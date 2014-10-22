@@ -1,0 +1,26 @@
+Install the application and launch the CresStreamSvc app in EVS device
+
+##############################################################################################
+Native TestApp:
+
+By default, video preview will be displayed as per the CresStreamSvc.
+
+Execute CresEmulator on any terminal with input as ipaddress of evm device
+
+Ex:  ./CresEmulator 192.168.50.107<IPaddress of the EVS device>
+Enter message :  format<"Tx;TS;192.168.50.112;1234;1920;1080">
+		 SessInitMode   : Pre	 Rx	 Tx	 McastRTSP	 McastUdp	
+ 		 TransportMode  : TS 	 RTSP	 RTP
+ 		 IpAddrAndPort	: IPAddress and Port for streamout/ Url to streamin
+ 		 OutResolution 	: any standard resolution like 1920;1080 etc 
+ 		 Play Ctrls	: start	 stop	 pause
+
+
+Paste test method which we want to test in "test-config" in NativeTestApp directory as "Tx;TS;192.168.50.112;1234;1920;1080"
+
+##############################################################################################
+KNOWN ISSUES: As per the Release 3.1
+
+1. RTSP STREAMING Restart Issue
+2. MPEG2 TS Streaming In Stop Issue
+3. Streaming In delay of 10 Sec
