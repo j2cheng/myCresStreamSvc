@@ -31,41 +31,41 @@ public class AudioPlayback
 				int readSize = bufferSize;
 				int sampleRate = 48000;
 
-			Log.d(TAG, "In audio task started ");
-			try
-			{
-				bufferSize = AudioRecord.getMinBufferSize(sampleRate, 3, 2);
-				readBuffer = ByteBuffer.allocate(bufferSize);
-				mRecorder = new AudioRecord(5, sampleRate, 3, audioFormat, 4 * bufferSize);
-				mRecorder.startRecording();
-				mPlayer = new AudioTrack(3, sampleRate, 3, audioFormat, 4 * bufferSize, 1);
-				mPlayer.play();
-				readSize = bufferSize;
-				while(!shouldExit)
+				Log.d(TAG, "In audio task started ");
+				try
 				{
-					read = mRecorder.read(readBuffer.array(), 0, readSize);
-					if (read > 0)
+					bufferSize = AudioRecord.getMinBufferSize(sampleRate, 3, 2);
+					readBuffer = ByteBuffer.allocate(bufferSize);
+					mRecorder = new AudioRecord(5, sampleRate, 3, audioFormat, 4 * bufferSize);
+					mRecorder.startRecording();
+					mPlayer = new AudioTrack(3, sampleRate, 3, audioFormat, 4 * bufferSize, 1);
+					mPlayer.play();
+					readSize = bufferSize;
+					while(!shouldExit)
 					{
-						mPlayer.write(readBuffer.array(), 0, read);
-						mPlayer.flush();
+						read = mRecorder.read(readBuffer.array(), 0, readSize);
+						if (read > 0)
+						{
+							mPlayer.write(readBuffer.array(), 0, read);
+							mPlayer.flush();
+						}
+					}
+				} catch (Exception localException) {
+					Log.e(TAG, "Audio exception caught");
+					localException.printStackTrace();
+					try{
+						Thread.sleep(100L);
+					}
+					catch (InterruptedException localInterruptedException)
+					{
+						localInterruptedException.printStackTrace();
+						mRecorder.stop();
+						mPlayer.stop();
+						mRecorder.release();
+						mPlayer.release();
 					}
 				}
-			} catch (Exception localException) {
-				Log.e(TAG, "Audio exception caught");
-				localException.printStackTrace();
-				try{
-					Thread.sleep(100L);
-				}
-				catch (InterruptedException localInterruptedException)
-				{
-					localInterruptedException.printStackTrace();
-					mRecorder.stop();
-					mPlayer.stop();
-					mRecorder.release();
-					mPlayer.release();
-				}
 			}
-		}
 	}
 	
 	protected void stopAudioTask(){

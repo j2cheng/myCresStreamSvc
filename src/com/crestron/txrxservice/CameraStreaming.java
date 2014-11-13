@@ -74,19 +74,18 @@ public class CameraStreaming implements Callback, ErrorCallback {
 		Log.d(TAG, "########surfaceDestroyed#########");
 		if(mCameraObj.APlayStatus())
 			mCameraObj.stopAudio();
+		stopRecording();
 		releaseMediaRecorder();
-		surfaceHolder = null;
+		mCameraObj.stopPlayback();
+		//mCameraObj = null;
+		//surfaceHolder = null;
 		//mCamera.stopPreview();
 		//mCamera.release();
 
 	}
 
-
-
 	protected void startRecording() throws IOException {
 
-		//	if(mCameraObj.IsPreviewStatus())
-		//		mCameraObj.stopPlayback();
 		if(mCameraObj.APlayStatus())
 			mCameraObj.stopAudio();
 		if(out_stream_status==true)
@@ -123,9 +122,11 @@ public class CameraStreaming implements Callback, ErrorCallback {
 		mrec.setCamera(mCameraObj.mCamera);
 		mrec.setAudioSource(MediaRecorder.AudioSource.MIC);
 		mrec.setVideoSource(MediaRecorder.VideoSource.CAMERA);
-		mrec.setRemoteIPAndPort(CresStreamConfigure.getIP(), CresStreamConfigure.getPort());
+		if(CresStreamConfigure.getIP()==null)
+			mrec.setRemoteIPAndPort(hostaddr, CresStreamConfigure.getPort());
+		else
+			mrec.setRemoteIPAndPort(CresStreamConfigure.getIP(), CresStreamConfigure.getPort());
 		mrec.setStreamTransportMode(CresStreamConfigure.mode.getMode());
-		//setStreamMode(l_mode);
 		mrec.setOutputFormat(9);
 		Log.d(TAG, "port is"+CresStreamConfigure.getPort() );
 		Log.d(TAG, "ip addr"+CresStreamConfigure.getIP());
@@ -150,55 +151,12 @@ public class CameraStreaming implements Callback, ErrorCallback {
 	public boolean isStreaming(){
 		return out_stream_status;
 	}
-/*	
-	public void setStreamMode(int mode){
-		switch(mode){
-			case 0://RTSP
-				{
-				mrec.setStreamTransportMode(0);
-				if(hostaddr != null) 		
-					mrec.setRemoteIPAndPort(hostaddr,l_port);
-				}
-				break;
-			case 1://RTP
-				{
-				mrec.setStreamTransportMode(1);
-				mrec.setRemoteIPAndPort(l_ip, l_port);
-				}
-				break;
-			case 2://MPEG2TS RTP
-				{
-				Log.d(TAG, "port is"+l_port );
-				Log.d(TAG, "ip addr"+l_ip);
-				mrec.setStreamTransportMode(2);
-				mrec.setRemoteIPAndPort(l_ip, l_port);
-				}
-				break;
-			case 3://MPEG2TS UDP
-				{
-				Log.d(TAG, "port is"+l_port );
-				Log.d(TAG, "ip addr"+l_ip);
-				mrec.setStreamTransportMode(3);
-				mrec.setRemoteIPAndPort(l_ip, l_port);
-				}
-				break;
-			case 4://MJPEG
-				{
-				Log.d(TAG, "port is"+l_port );
-				Log.d(TAG, "ip addr"+l_ip);
-				mrec.setStreamTransportMode(4);
-				mrec.setRemoteIPAndPort(l_ip, l_port);
-				}
-				break;
-			default:
-				break;
-		}
-	}
-*/	
+	
 	private void releaseMediaRecorder() {
 		if (mrec != null) {
 			mrec.reset(); // clear recorder configuration
 			mrec.release(); // release the recorder object
+			mrec = null;
 		}
 	}
 	
@@ -206,7 +164,6 @@ public class CameraStreaming implements Callback, ErrorCallback {
 		Log.d(TAG, "stopRecording");
 		if (mrec != null) {
 			mrec.stop();
-			mrec.release();
 			out_stream_status = false;
 		}
 	}

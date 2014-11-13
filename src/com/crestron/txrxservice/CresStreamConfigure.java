@@ -26,7 +26,7 @@ public class CresStreamConfigure {
 			return intToEnum.get(value);
 		}
 	}
-		static StreamMode mode;
+	static StreamMode mode;
 	public enum VideoEncProfile {
 		BP(1), MP(2), HP(8);
 		private int value;
@@ -46,7 +46,7 @@ public class CresStreamConfigure {
 			return intToEnum.get(value);
 		}
 	}
-		static VideoEncProfile vprofile;
+	static VideoEncProfile vprofile;
 	private static String ipAddr;
 	private static int width;
 	private static int height;
@@ -85,7 +85,6 @@ public class CresStreamConfigure {
 	
 	public void setMode(int _mode) { 
 		mode = StreamMode.fromInteger(_mode);
-//		mode.value = _mode; 
 	}
 	
 	public void setWidth(int _width) { 
@@ -110,7 +109,6 @@ public class CresStreamConfigure {
 	
 	public void setVEncProfile(int profile) { 
 		vprofile =  VideoEncProfile.fromInteger(profile);
-//		vprofile.value = profile;
 	}
 
 	public void setUrl(String Url) { 
@@ -120,5 +118,4 @@ public class CresStreamConfigure {
 	public String getUrl() { 
 		return url; 
 	}
-
 }

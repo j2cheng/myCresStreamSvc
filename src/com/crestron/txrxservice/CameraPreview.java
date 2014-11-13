@@ -113,9 +113,9 @@ public class CameraPreview implements Camera.PreviewCallback {
 			for (int i = 0; i < mSupportedPreviewSizes.size(); i++) {
 				Log.d(TAG, i + ". Supported Resolution = " + mSupportedPreviewSizes.get(i).width + "x" + mSupportedPreviewSizes.get(i).height);
 			}
-			currentFrameWidth = (mSupportedPreviewSizes.get(resId)).width;//localSize.width;
-			currentFrameHeight = (mSupportedPreviewSizes.get(resId)).height;//localSize.height;
-			Log.d(TAG, "Preview size set to Width:" + currentFrameWidth + "& Height:" + currentFrameHeight);
+			//currentFrameWidth = (mSupportedPreviewSizes.get(resId)).width;//localSize.width;
+			//currentFrameHeight = (mSupportedPreviewSizes.get(resId)).height;//localSize.height;
+			//Log.d(TAG, "Preview size set to Width:" + currentFrameWidth + "& Height:" + currentFrameHeight);
 			//localParameters.setPreviewSize(width, height);
 			//localParameters.set("mode", "high-quality");
 			//localParameters.set("ipp", "off");
@@ -140,14 +140,13 @@ public class CameraPreview implements Camera.PreviewCallback {
 		{
 			if (mCamera!= null)
 			{
-				Log.d(TAG, "Playback stopped !");
 				mCamera.setPreviewCallback(null);
 				mCamera.stopPreview();
-				is_preview = false;
+				releaseCamera();
 			}
-			releaseCamera();
 			stopAudio();
 			is_preview = false;
+			Log.d(TAG, "Playback stopped !");
 			return;
 		}
 		catch (Exception localException)
