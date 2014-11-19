@@ -1,5 +1,7 @@
 package com.crestron.txrxservice;
 
+import java.util.HashMap;
+import java.util.Map;
 import java.io.IOException;
 import java.lang.String;
 import android.net.Uri;
@@ -18,6 +20,13 @@ import android.content.IntentFilter;
 import android.content.BroadcastReceiver;
 import android.view.SurfaceHolder;
 
+interface Command {
+    void executeStart();
+}
+
+interface myCommand {
+    void executeStop();
+}
 
 public class CresStreamCtrl extends Activity {
 	CameraStreaming cam_streaming;
@@ -32,64 +41,93 @@ public class CresStreamCtrl extends Activity {
 	AsyncTask<Void, String, Long> sockTask;
 	
 	String TAG = "TxRx StreamCtrl";
-	boolean stream_out = false;
-	boolean stream_in =  false;
-	boolean preview =  false;
-	String videourl ;
-	int dmode = 0;
-	@Override
-	public void onCreate(Bundle savedInstanceState) {
-		super.onCreate(savedInstanceState);
-		setContentView(R.layout.activity_main);
-		//StreamIn Surface
-		streamingSurface = (SurfaceView) findViewById(R.id.surfaceView1);
-		streamPlay = new StreamIn(CresStreamCtrl.this, streamingSurface);
-		//StreamOut & Preview Surface
-		previewSurface = (SurfaceView) findViewById(R.id.surfaceView);
-	        cam_streaming = new CameraStreaming(CresStreamCtrl.this, previewSurface);
-		dummyView = streamingSurface;
-		//HPD and Resolution Event Registration
-		registerBroadcasts();
-		//Input Streamout Config
-		myconfig = new CresStreamConfigure();
-		//Stub: TestApp functionality
-		sockTask = new TCPInterface(this);
-                sockTask.execute(new Void[0]);
+	int device_mode = 0;
+	int sessInitMode = 0;
+	public enum DeviceMode {
+		PREVIEW(2), STREAMOUT(1), STREAMIN(0);
+		private final int value;
+
+		private DeviceMode(int value) {
+			this.value = value;
+		}
+
+		public int getValue() {
+			return value;
+		}
+		public static String getStringValueFromInt(int i) {
+			for (DeviceMode status : DeviceMode.values()) {
+				if (status.getValue() == i) {
+					return status.toString();
+				}
+			}
+			throw new IllegalArgumentException("the given number doesn't match any Status.");
+		}
 	}
+
+	//HashMap
+	HashMap<String, Command> hm;
+	HashMap<String, myCommand> hm2;
+	@Override
+		public void onCreate(Bundle savedInstanceState) {
+			super.onCreate(savedInstanceState);
+			setContentView(R.layout.activity_main);
+			//StreamIn Surface
+			streamingSurface = (SurfaceView) findViewById(R.id.surfaceView1);
+			streamPlay = new StreamIn(CresStreamCtrl.this, streamingSurface);
+			//StreamOut & Preview Surface
+			previewSurface = (SurfaceView) findViewById(R.id.surfaceView);
+			cam_streaming = new CameraStreaming(CresStreamCtrl.this, previewSurface);
+			dummyView = streamingSurface;
+			//HPD and Resolution Event Registration
+			registerBroadcasts();
+			//Input Streamout Config
+			myconfig = new CresStreamConfigure();
+			//Stub: TestApp functionality
+			sockTask = new TCPInterface(this);
+			sockTask.execute(new Void[0]);
+			hm = new HashMap();
+			hm.put("PREVIEW", new Command() {
+					public void executeStart() {startPreview(); };
+					});
+			hm.put("STREAMOUT", new Command() {
+					public void executeStart() {startStreamOut(); };
+					});
+			hm.put("STREAMIN", new Command() {
+					public void executeStart() {startStreamIn(); };
+					});
+			hm2 = new HashMap();
+			hm2.put("STREAMOUT", new myCommand() {
+					public void executeStop() {stopStreamOut(); };
+					});
+			hm2.put("STREAMIN", new myCommand() {
+					public void executeStop() {stopStreamIn(); };
+					});
+		}
 
 	protected void onDestroy(){
 		super.onDestroy();
 		sockTask.cancel(true);
 		Log.d(TAG, " Asynctask cancelled");
 	}
-	
+		
 	public void setSessionInitMode(int mode)
 	{
 		Log.d(TAG, " setSessionInitMode "+ mode);
+		sessInitMode = mode;
 	}
 
 	public void setDeviceMode(int mode)
 	{
-		Log.d(TAG, " setMode "+ mode);
-		dmode = mode;
+		Log.d(TAG, " setDeviceMode "+ mode);
+		device_mode = mode;
 	}
 	
 	//Ctrls
 	public void Start(){
-		if(dmode==1)	
-			startStreamOut();
-		else if (dmode==0)
-			startStreamIn();
-		else
-			startPreview();
+		hm.get(DeviceMode.getStringValueFromInt(device_mode)).executeStart();
 	}
 	public void Stop(){
-		if(dmode==1)	
-			stopStreamOut();
-		else if (dmode==0)
-			stopStreamIn();
-		else
-			Log.d(TAG, " Unimplemented");
+		hm2.get(DeviceMode.getStringValueFromInt(device_mode)).executeStop();
 	}
 	public void Pause(){
 		Log.d(TAG, " Unimplemented");
