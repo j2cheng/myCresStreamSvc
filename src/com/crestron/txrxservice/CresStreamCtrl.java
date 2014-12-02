@@ -64,6 +64,7 @@ public class CresStreamCtrl extends Activity {
 		}
 	}
 
+        public native void javaCallJNI();//JNI functionality
 	//HashMap
 	HashMap<String, Command> hm;
 	HashMap<String, myCommand> hm2;

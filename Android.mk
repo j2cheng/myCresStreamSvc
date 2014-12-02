@@ -14,7 +14,7 @@ LOCAL_SRC_FILES := $(call all-java-files-under, src)
 LOCAL_PACKAGE_NAME := CresStreamSvc
 
 ifeq ($(TARGET_PRODUCT),full_omap5panda)
-#include $(BUILD_PACKAGE)
+include $(BUILD_PACKAGE)
 endif
 
           

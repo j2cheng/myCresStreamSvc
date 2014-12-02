@@ -1,4 +1,11 @@
 Install the application and launch the CresStreamSvc app in EVS device
+using adb shell
+
+Procedure:
+adb root
+adb remount
+adb shell
+am startservice com.crestron.txrxservice/.ServiceLauncher
 
 ##############################################################################################
 Native TestApp:
