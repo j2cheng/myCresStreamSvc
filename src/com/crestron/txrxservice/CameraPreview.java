@@ -11,6 +11,7 @@ import android.hardware.Camera.Size;
 import android.util.Log;
 import android.content.Context;
 import android.view.SurfaceHolder;
+import android.graphics.ImageFormat;
 import com.crestron.txrxservice.CameraStreaming;
 
 public class CameraPreview implements Camera.PreviewCallback {
@@ -118,7 +119,7 @@ public class CameraPreview implements Camera.PreviewCallback {
 			//Log.d(TAG, "Preview size set to Width:" + currentFrameWidth + "& Height:" + currentFrameHeight);
 			//localParameters.setPreviewSize(width, height);
 			//localParameters.set("mode", "high-quality");
-			//localParameters.set("ipp", "off");
+			localParameters.set("ipp", "off");
 			Log.d(TAG, "Preview Size set to " + localParameters.getPreviewSize().width + "x" + localParameters.getPreviewSize().height);
 			//Log.d(TAG, "Scene mode" + localParameters.getSceneMode());
 			//Log.d(TAG, "Mode set to " + localParameters.get("mode"));

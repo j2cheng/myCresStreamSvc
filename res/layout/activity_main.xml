@@ -17,8 +17,8 @@
 	android:layout_height="480px">
    <SurfaceView
         android:id="@+id/surfaceView1"
-        android:layout_width="1280px"
-        android:layout_height="720px"
+        android:layout_width="1920px"
+        android:layout_height="1080px"
 	/>
 	</FrameLayout>
 	

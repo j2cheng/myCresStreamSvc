@@ -11,8 +11,7 @@ import android.util.Log;
 import android.app.Activity;
 import android.os.IBinder;
 import android.view.SurfaceView;
-import android.os.Message;
-import android.os.Handler;
+import android.widget.Toast;
 import android.content.Context;
 import android.os.AsyncTask;
 import android.content.Intent;
@@ -152,10 +151,12 @@ public class CresStreamCtrl extends Activity {
 		} catch(IOException e) {
 			e.printStackTrace();
 		}
+		Toast.makeText(this, "StreamOut Started", Toast.LENGTH_LONG).show();
 	}
 
 	public void stopStreamOut()
 	{
+		Toast.makeText(this, "StreamOut Stopped", Toast.LENGTH_LONG).show();
 		cam_streaming.stopRecording();
 	}
 
@@ -191,11 +192,13 @@ public class CresStreamCtrl extends Activity {
 			cam_streaming.mCameraObj.stopAudio();
 		showStreamInWindow();
 		streamPlay.onStart();
+		Toast.makeText(this, "StreamIN Started", Toast.LENGTH_LONG).show();
 	}
 
 	public void stopStreamIn()
 	{
 		streamPlay.onStop();
+		Toast.makeText(this, "StreamIN Stopped", Toast.LENGTH_LONG).show();
 		hideStreamInWindow();
 	}
 	
@@ -203,6 +206,7 @@ public class CresStreamCtrl extends Activity {
 	public void startPreview()
 	{
 		cam_streaming.mCameraObj.startAudio();
+		Toast.makeText(this, "Preview Started", Toast.LENGTH_LONG).show();
 	}
 
 	//Registering for HPD and Resolution Event detection	
