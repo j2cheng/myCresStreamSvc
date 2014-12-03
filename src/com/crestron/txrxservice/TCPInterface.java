@@ -94,26 +94,26 @@ public class TCPInterface extends AsyncTask<Void, String, Long> {
 						Log.d(TAG, "msg recived is "+read);
 						if(read.equalsIgnoreCase("help")){
 							StringBuilder sb = new StringBuilder(4096);
-							String str1= "MODE (= 0:STREAMIN 1: STREAMOUT 2:PREVIEW)\n";
-							String str2= "SessInitMode: (= 0: ByReceiver 1: ByTransmitter 3: MCastviaRTSP 4: MCastviaUDP)\n";
-							String str3= "TRANSPORTMODE: (= 0: RTSP 1: RTP 2: TS_RTP 3: TS_UDP)\n";
-							String str4= "VENCPROFILE: (= 1:BaseProfile 2:MainProfile 8:HighProfile)\n";
-							String str5= "STREAMURL(= any url) \n";
-							String str6= "RTSPPORT(= any port)\n";
-							String str7= "TSPORT(Dummy,Use RTSP Port)\n";
-							String str8= "RTPVIDEOPORT(Dummy,Use RTSP Port)\n";
-							String str9= "RTPAUDIOPORT(Dummy,Use RTSP Port)\n";
-							String str10= "HDMIOUTPUTRES(=1920x1080)\n";
-							String str11= "IPADDRESS(=xxx.xxx.xxx.xxx)\n";
-							String str12= "START | STOP | PAUSE (=true)\n";
-							String str13="Type command for query\n\n";
-							sb.append("TxRx>").append(str1).append(str2).append(str3).append(str4).append(str5).append(str6).append(str7).append(str8).append(str9).append(str10).append(str11).append(str12).append(str13);
+							String str1= "MODE (= 0:STREAMIN 1: STREAMOUT 2:PREVIEW)\r\n";
+							String str2= "SessInitMode: (= 0: ByReceiver 1: ByTransmitter 3: MCastviaRTSP 4: MCastviaUDP)\r\n";
+							String str3= "TRANSPORTMODE: (= 0: RTSP 1: RTP 2: TS_RTP 3: TS_UDP)\r\n";
+							String str4= "VENCPROFILE: (= 1:BaseProfile 2:MainProfile 8:HighProfile)\r\n";
+							String str5= "STREAMURL(= any url) \r\n";
+							String str6= "RTSPPORT(= any port)\r\n";
+							String str7= "TSPORT(Dummy,Use RTSP Port)\r\n";
+							String str8= "RTPVIDEOPORT(Dummy,Use RTSP Port)\r\n";
+							String str9= "RTPAUDIOPORT(Dummy,Use RTSP Port)\r\n";
+							String str10= "HDMIOUTPUTRES(=1920x1080)\r\n";
+							String str11= "IPADDRESS(=xxx.xxx.xxx.xxx)\r\n";
+							String str12= "START | STOP | PAUSE (=true)\r\n";
+							String str13="Type command for query\r\n";
+							sb.append("TxRx>").append(str1).append(str2).append(str3).append(str4).append(str5).append(str6).append(str7).append(str8).append(str9).append(str10).append(str11).append(str12).append(str13).append("\r\n");
 							out.write(sb.toString());
 							out.flush();
 						}
 						else{
 							StringBuilder sb = new StringBuilder(1024);
-							sb.append("TxRx>").append(read).append("<CMD Rsp>\r\n");
+							sb.append(read).append("TxRx>\r\n");
 							out.write(sb.toString());
 							out.flush();
 							publishProgress(read);
@@ -217,7 +217,7 @@ public class TCPInterface extends AsyncTask<Void, String, Long> {
                         if(tmp_str!=null){
                             StringBuilder sb = new StringBuilder(1024);
                             replyString = tmp_str ;
-                            sb.append("TxRx>").append(replyString).append("\t <TxRx>\r\n");
+                            sb.append(replyString).append("TxRx>\r\n");
                             try {
                                 out.write(sb.toString());
                                 out.flush();
