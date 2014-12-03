@@ -107,13 +107,13 @@ public class TCPInterface extends AsyncTask<Void, String, Long> {
 							String str11= "IPADDRESS(=xxx.xxx.xxx.xxx)\r\n";
 							String str12= "START | STOP | PAUSE (=true)\r\n";
 							String str13="Type command for query\r\n";
-							sb.append("TxRx>").append(str1).append(str2).append(str3).append(str4).append(str5).append(str6).append(str7).append(str8).append(str9).append(str10).append(str11).append(str12).append(str13).append("\r\n");
+							sb.append(str1).append(str2).append(str3).append(str4).append(str5).append(str6).append(str7).append(str8).append(str9).append(str10).append(str11).append(str12).append(str13).append("\r\nTxRx>");
 							out.write(sb.toString());
 							out.flush();
 						}
 						else{
 							StringBuilder sb = new StringBuilder(1024);
-							sb.append(read).append("TxRx>\r\n");
+							sb.append(read).append("\r\nTxRx>");
 							out.write(sb.toString());
 							out.flush();
 							publishProgress(read);
@@ -217,13 +217,13 @@ public class TCPInterface extends AsyncTask<Void, String, Long> {
                         if(tmp_str!=null){
                             StringBuilder sb = new StringBuilder(1024);
                             replyString = tmp_str ;
-                            sb.append(replyString).append("TxRx>\r\n");
                             try {
                                 out.write(sb.toString());
                                 out.flush();
                             } catch (IOException e) {
                                 e.printStackTrace();
                             }
+                            sb.append(replyString).append("\r\nTxRx>");
                         }
                     }
                 }	
