@@ -2,7 +2,7 @@ LOCAL_PATH:= $(call my-dir)
 include $(CLEAR_VARS)
 
 
-LOCAL_MODULE_TAGS := optional
+LOCAL_MODULE_TAGS := eng
 
 LOCAL_PROGUARD_ENABLED := disabled
 
@@ -16,5 +16,3 @@ LOCAL_PACKAGE_NAME := CresStreamSvc
 ifeq ($(TARGET_PRODUCT),full_omap5panda)
 include $(BUILD_PACKAGE)
 endif
-
-          
