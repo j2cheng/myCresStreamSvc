@@ -96,6 +96,9 @@ public class CresStreamCtrl extends Activity {
 					public void executeStart() {startStreamIn(); };
 					});
 			hm2 = new HashMap();
+			hm2.put("PREVIEW", new myCommand() {
+					public void executeStop() {stopPreview(); };
+					});
 			hm2.put("STREAMOUT", new myCommand() {
 					public void executeStop() {stopStreamOut(); };
 					});
@@ -205,9 +208,16 @@ public class CresStreamCtrl extends Activity {
 	//Preview 
 	public void startPreview()
 	{
-		cam_streaming.mCameraObj.startAudio();
+                cam_streaming.mCameraObj.startPlayback(true);
 		Toast.makeText(this, "Preview Started", Toast.LENGTH_LONG).show();
 	}
+	
+        public void stopPreview()
+	{
+                cam_streaming.mCameraObj.stopPlayback();
+		Toast.makeText(this, "Preview Stopped", Toast.LENGTH_LONG).show();
+	}
+	
 
 	//Registering for HPD and Resolution Event detection	
 	void registerBroadcasts(){

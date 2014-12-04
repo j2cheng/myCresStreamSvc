@@ -14,6 +14,7 @@ import android.os.Bundle;
 
 public class TCPInterface extends AsyncTask<Void, String, Long> {
 	String TAG = "TxRx TCPInterface"; 
+        boolean isWhiteSpace = false;
 	public static String replyString;
 	int port = 0, tmode = 0, w = 0, h = 0, profile = 0;
 
@@ -25,7 +26,7 @@ public class TCPInterface extends AsyncTask<Void, String, Long> {
 	public static final int SERVERPORT = 9876;
 	private BufferedReader input;
 
-	String[] array = {"MODE", "SessInitMode", "STREAMURL", "VENCPROFILE", "TRANSPORTMODE", "RTSPPORT", "TSPORT", "RTPVIDEOPORT", "RTSPAUDIOPORT", "HDMIOUTPUTRES", "IPADDRESS", "START", "STOP", "PAUSE"};
+	String[] array = {"MODE", "SessInitM", "STREAMURL", "VENCPROFILE", "TPROTOCOL", "RTSPPORT", "TSPORT", "RTPVIDEOPORT", "RTSPAUDIOPORT", "HDMIOUTPUTRES", "IPADDRESS", "START", "STOP", "PAUSE"};
 	
 	public TCPInterface(CresStreamCtrl a_crestctrl){
 		c_streamctl = a_crestctrl;
@@ -89,14 +90,14 @@ public class TCPInterface extends AsyncTask<Void, String, Long> {
 				try {
 
 					String read = input.readLine();
-					if(read!=null)
+					if(read!=null && !(isWhiteSpace=(read.matches("^\\s*$"))))
 					{
 						Log.d(TAG, "msg recived is "+read);
 						if(read.equalsIgnoreCase("help")){
 							StringBuilder sb = new StringBuilder(4096);
 							String str1= "MODE (= 0:STREAMIN 1: STREAMOUT 2:PREVIEW)\r\n";
 							String str2= "SessInitMode: (= 0: ByReceiver 1: ByTransmitter 3: MCastviaRTSP 4: MCastviaUDP)\r\n";
-							String str3= "TRANSPORTMODE: (= 0: RTSP 1: RTP 2: TS_RTP 3: TS_UDP)\r\n";
+							String str3= "TPROTOCOL: (= 0: RTSP 1: RTP 2: TS_RTP 3: TS_UDP)\r\n";
 							String str4= "VENCPROFILE: (= 1:BaseProfile 2:MainProfile 8:HighProfile)\r\n";
 							String str5= "STREAMURL(= any url) \r\n";
 							String str6= "RTSPPORT(= any port)\r\n";
@@ -106,7 +107,7 @@ public class TCPInterface extends AsyncTask<Void, String, Long> {
 							String str10= "HDMIOUTPUTRES(=1920x1080)\r\n";
 							String str11= "IPADDRESS(=xxx.xxx.xxx.xxx)\r\n";
 							String str12= "START | STOP | PAUSE (=true)\r\n";
-							String str13="Type command for query\r\n";
+							String str13= "Type COMMAND for Query\r\n";
 							sb.append(str1).append(str2).append(str3).append(str4).append(str5).append(str6).append(str7).append(str8).append(str9).append(str10).append(str11).append(str12).append(str13).append("\r\nTxRx>");
 							out.write(sb.toString());
 							out.flush();
@@ -211,19 +212,18 @@ public class TCPInterface extends AsyncTask<Void, String, Long> {
                         callbackFunc(i, msg[1]);
                     }
                     else {	//QUERY Procssing
-                        Log.d(TAG, "Query mode for loop "+i);
                         tmp_str = tokenizer.getStringValueOf(msg[0]);
-                        Log.d(TAG, "Query mode searched for "+msg[0]+"and got value of"+tmp_str);
+                        Log.d(TAG, "Querying:: searched for "+msg[0]+"and got value of "+tmp_str);
                         if(tmp_str!=null){
                             StringBuilder sb = new StringBuilder(1024);
                             replyString = tmp_str ;
                             try {
+                                sb.append(replyString).append("\r\nTxRx>");
                                 out.write(sb.toString());
                                 out.flush();
                             } catch (IOException e) {
                                 e.printStackTrace();
                             }
-                            sb.append(replyString).append("\r\nTxRx>");
                         }
                     }
                 }	

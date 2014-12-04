@@ -58,7 +58,7 @@ public class CameraStreaming implements Callback, ErrorCallback {
 	@Override
 	public void surfaceCreated(SurfaceHolder holder) {
 		Log.d(TAG, "########surfaceCreated#########");
-		mCameraObj.startPlayback(true);
+		//mCameraObj.startPlayback(true);
 		//surfaceHolder = holder;
 		//try {
 		//	mCamera.setPreviewDisplay(holder);
@@ -165,6 +165,7 @@ public class CameraStreaming implements Callback, ErrorCallback {
 		if (mrec != null) {
 			mrec.stop();
 			out_stream_status = false;
+                        mCameraObj.stopPlayback();
 		}
 	}
 	

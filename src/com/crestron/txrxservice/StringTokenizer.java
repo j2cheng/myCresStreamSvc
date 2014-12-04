@@ -43,7 +43,7 @@ public class StringTokenizer
 			pattern = Pattern.compile(l_str, Pattern.CASE_INSENSITIVE);	
 			matcher = pattern.matcher(newtoken);
 			if(matcher.find()){
-				boolean found = list.removeFirstOccurrence(tok);
+				boolean found = list.remove(tok);
 				Log.d(TAG, "removedToken "+found );
 				break;
 			}
@@ -56,7 +56,6 @@ public class StringTokenizer
 		for (int i = 0; i < l_tokens.length; i++){
 			String tok = l_tokens[i];
 			myStr = tok.split("=");
-			Log.d(TAG, "Total fields are "+ myStr.length);
 			if(myStr.length>1){
 				Log.d(TAG, "At Parser::strings are "+ myStr[0]+" "+myStr[1]);
 				SearchElement(myStr[0]);
@@ -68,14 +67,6 @@ public class StringTokenizer
 		return myStr;
 	}
 
-	public void getMyTokens(){
-		for (StringTokenizer.Token tok : getTokens())
-		{
-			String newtoken = tok.sequence1;
-			String newtoken1 = tok.sequence2;
-			Log.d(TAG, "tokens are "+newtoken+" "+newtoken1);
-		}
-	}
 	public String getStringValueOf(String regex){
 		String value = null;
 		for (StringTokenizer.Token tok : getTokens())
