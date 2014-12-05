@@ -71,7 +71,7 @@ public class StringTokenizer
 		String value = null;
 		for (StringTokenizer.Token tok : getTokens())
 		{
-			Log.d(TAG, "searching for "+tok.sequence1+ "and"+tok.sequence2);
+			Log.d(TAG, "searching for "+regex+" and entries are "+tok.sequence1+" and "+tok.sequence2);
 			String newtoken = tok.sequence1;
 			pattern = Pattern.compile(regex, Pattern.CASE_INSENSITIVE);	
 			matcher = pattern.matcher(newtoken);

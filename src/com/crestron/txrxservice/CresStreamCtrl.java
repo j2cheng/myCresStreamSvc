@@ -42,6 +42,7 @@ public class CresStreamCtrl extends Activity {
 	String TAG = "TxRx StreamCtrl";
 	int device_mode = 0;
 	int sessInitMode = 0;
+        int StreamState = 100;//INVALID State
 	public enum DeviceMode {
 		PREVIEW(2), STREAMOUT(1), STREAMIN(0);
 		private final int value;
@@ -87,23 +88,23 @@ public class CresStreamCtrl extends Activity {
 			sockTask.execute(new Void[0]);
 			hm = new HashMap();
 			hm.put("PREVIEW", new Command() {
-					public void executeStart() {startPreview(); };
+					public void executeStart() {startPreview(); StreamState = 2;};
 					});
 			hm.put("STREAMOUT", new Command() {
-					public void executeStart() {startStreamOut(); };
+					public void executeStart() {startStreamOut(); StreamState = 1;};
 					});
 			hm.put("STREAMIN", new Command() {
-					public void executeStart() {startStreamIn(); };
+					public void executeStart() {startStreamIn(); StreamState = 0;};
 					});
 			hm2 = new HashMap();
 			hm2.put("PREVIEW", new myCommand() {
-					public void executeStop() {stopPreview(); };
+					public void executeStop() {stopPreview(); StreamState = 100;};
 					});
 			hm2.put("STREAMOUT", new myCommand() {
-					public void executeStop() {stopStreamOut(); };
+					public void executeStop() {stopStreamOut(); StreamState = 100;};
 					});
 			hm2.put("STREAMIN", new myCommand() {
-					public void executeStop() {stopStreamIn(); };
+					public void executeStop() {stopStreamIn(); StreamState = 100;};
 					});
 		}
 
@@ -119,7 +120,12 @@ public class CresStreamCtrl extends Activity {
 		sessInitMode = mode;
 	}
 
-	public void setDeviceMode(int mode)
+	public int getStreamState()
+	{
+		return StreamState;
+	}
+	
+        public void setDeviceMode(int mode)
 	{
 		Log.d(TAG, " setDeviceMode "+ mode);
 		device_mode = mode;

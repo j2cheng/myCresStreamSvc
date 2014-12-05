@@ -26,7 +26,7 @@ public class TCPInterface extends AsyncTask<Void, String, Long> {
 	public static final int SERVERPORT = 9876;
 	private BufferedReader input;
 
-	String[] array = {"MODE", "SessInitM", "STREAMURL", "VENCPROFILE", "TPROTOCOL", "RTSPPORT", "TSPORT", "RTPVIDEOPORT", "RTSPAUDIOPORT", "HDMIOUTPUTRES", "IPADDRESS", "START", "STOP", "PAUSE"};
+	String[] array = {"MODE", "SessionInitiation", "STREAMURL", "VENCPROFILE", "TPROTOCOL", "RTSPPORT", "TSPORT", "RTPVIDEOPORT", "RTSPAUDIOPORT", "HDMIOUTPUTRES", "IPADDRESS", "START", "STOP", "PAUSE", "SHOWDEVICESTATUS"};
 	
 	public TCPInterface(CresStreamCtrl a_crestctrl){
 		c_streamctl = a_crestctrl;
@@ -93,10 +93,10 @@ public class TCPInterface extends AsyncTask<Void, String, Long> {
 					if(read!=null && !(isWhiteSpace=(read.matches("^\\s*$"))))
 					{
 						Log.d(TAG, "msg recived is "+read);
-						if(read.equalsIgnoreCase("help")){
+						if((read.trim()).equalsIgnoreCase("help")){
 							StringBuilder sb = new StringBuilder(4096);
 							String str1= "MODE (= 0:STREAMIN 1: STREAMOUT 2:PREVIEW)\r\n";
-							String str2= "SessInitMode: (= 0: ByReceiver 1: ByTransmitter 3: MCastviaRTSP 4: MCastviaUDP)\r\n";
+							String str2= "SessionInitiation: (= 0: ByReceiver 1: ByTransmitter 3: MCastviaRTSP 4: MCastviaUDP)\r\n";
 							String str3= "TPROTOCOL: (= 0: RTSP 1: RTP 2: TS_RTP 3: TS_UDP)\r\n";
 							String str4= "VENCPROFILE: (= 1:BaseProfile 2:MainProfile 8:HighProfile)\r\n";
 							String str5= "STREAMURL(= any url) \r\n";
@@ -107,19 +107,25 @@ public class TCPInterface extends AsyncTask<Void, String, Long> {
 							String str10= "HDMIOUTPUTRES(=1920x1080)\r\n";
 							String str11= "IPADDRESS(=xxx.xxx.xxx.xxx)\r\n";
 							String str12= "START | STOP | PAUSE (=true)\r\n";
-							String str13= "Type COMMAND for Query\r\n";
+							String str13= "Type COMMAND for Query |SHOWDEVICESTATUS to know status\r\n";
 							sb.append(str1).append(str2).append(str3).append(str4).append(str5).append(str6).append(str7).append(str8).append(str9).append(str10).append(str11).append(str12).append(str13).append("\r\nTxRx>");
 							out.write(sb.toString());
 							out.flush();
 						}
 						else{
 							StringBuilder sb = new StringBuilder(1024);
-							sb.append(read).append("\r\nTxRx>");
+							sb.append("\r\nTxRx>");
 							out.write(sb.toString());
 							out.flush();
-							publishProgress(read);
+							publishProgress(read.trim());
 						}
 					}
+                                        else{//white space or NULL Commands
+                                            StringBuilder sb = new StringBuilder(1024);
+                                            sb.append("\r\nTxRx>");
+                                            out.write(sb.toString());
+                                            out.flush();
+                                        }
 				} catch (IOException e) {
 					e.printStackTrace();
 				}
@@ -204,6 +210,7 @@ public class TCPInterface extends AsyncTask<Void, String, Long> {
         protected void onProgressUpdate(String... progress) { 
             String tmp_str;
             String receivedMsg = (String)progress[0];
+            StringBuilder sb = new StringBuilder(1024);
             String[] msg = tokenizer.Parse(receivedMsg);
 
             for(int i = 0; i< array.length; i++){
@@ -213,20 +220,35 @@ public class TCPInterface extends AsyncTask<Void, String, Long> {
                     }
                     else {	//QUERY Procssing
                         tmp_str = tokenizer.getStringValueOf(msg[0]);
-                        Log.d(TAG, "Querying:: searched for "+msg[0]+"and got value of "+tmp_str);
+                        Log.d(TAG, "Querying:: searched for "+msg[0]+" and got value of "+tmp_str);
                         if(tmp_str!=null){
-                            StringBuilder sb = new StringBuilder(1024);
                             replyString = tmp_str ;
-                            try {
-                                sb.append(replyString).append("\r\nTxRx>");
-                                out.write(sb.toString());
-                                out.flush();
-                            } catch (IOException e) {
-                                e.printStackTrace();
+                        } else {//Send StreamState
+                            int streamState = c_streamctl.getStreamState();
+                            switch(streamState){
+                                case 0:
+                                    replyString ="STREAMING IN";
+                                    break;
+                                case 1:
+                                    replyString ="STREAMING OUT";
+                                    break;
+                                case 2:
+                                    replyString ="Previewing Video";
+                                    break;
+                                default:
+                                    replyString = "Device in IdleMode";
+                                        break;
                             }
                         }
+                        try {
+                            sb.append(receivedMsg).append("=").append(replyString).append("\r\nTxRx>");
+                            out.write(sb.toString());
+                            out.flush();
+                        } catch (IOException e) {
+                            e.printStackTrace();
+                        }
                     }
-                }	
+                } 
             }        
         }
 }
