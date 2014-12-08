@@ -32,6 +32,16 @@ public class StringTokenizer
 		delims = "\\s*\\Q\\r\\n\\E\\s*";
 		subdelims = "[=]+";
 		list = new LinkedList<Token>();
+		list.add(new Token("mode", "0"));
+		list.add(new Token("sessioninitiation", "0"));
+		list.add(new Token("tprotocol", "0"));
+		list.add(new Token("vencprofile", "2"));
+		list.add(new Token("streamurl", "rtsp://192.168.50.78/live.sdp"));
+		list.add(new Token("rtspport", "1234"));
+		list.add(new Token("vframerate", "50"));
+		list.add(new Token("venclevel", "8192"));
+		list.add(new Token("hdmioutputres", "1920x1080"));
+		list.add(new Token("ipaddress", "127.0.0.1"));
 	}
 
 	private void SearchElement(String str){
