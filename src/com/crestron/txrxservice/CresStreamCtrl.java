@@ -142,7 +142,7 @@ public class CresStreamCtrl extends Activity {
 		Log.d(TAG, " Unimplemented");
 	}
 	//StreamOut Ctrl & Config 
-	public void setStreamOutConfig(String ip, int port, int w, int h, int mode, int profile, int level)
+	public void setStreamOutConfig(String ip, int port, int w, int h, int mode, int profile, int vfrate, int level)
 	{
 		Log.d(TAG, " setStreamOutConfig");
 		myconfig.setIP(ip);	
@@ -151,6 +151,7 @@ public class CresStreamCtrl extends Activity {
 		myconfig.setHeight(h);	
 		myconfig.setMode(mode);	
 		myconfig.setVEncProfile(profile);	
+		myconfig.setVFrameRate(vfrate);	
 		myconfig.setVEncLevel(level);	
 	}
 

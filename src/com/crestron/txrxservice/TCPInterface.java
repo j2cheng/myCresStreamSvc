@@ -16,7 +16,7 @@ public class TCPInterface extends AsyncTask<Void, String, Long> {
 	String TAG = "TxRx TCPInterface"; 
         boolean isWhiteSpace = false;
 	public static String replyString;
-	int port = 0, tmode = 0, w = 0, h = 0, profile = 0, venclevel = 0;
+	int port = 1234, tmode = 0, w = 1280, h = 720, profile = 2, venclevel = 4096, vframerate = 50;
 
 	private ServerSocket serverSocket;
 		StringTokenizer tokenizer; 
@@ -26,7 +26,7 @@ public class TCPInterface extends AsyncTask<Void, String, Long> {
 	public static final int SERVERPORT = 9876;
 	private BufferedReader input;
 
-	String[] array = {"MODE", "SessionInitiation", "STREAMURL", "VENCPROFILE", "TPROTOCOL", "RTSPPORT", "TSPORT", "RTPVIDEOPORT", "RTPAUDIOPORT", "HDMIOUTPUTRES", "IPADDRESS", "START", "STOP", "PAUSE", "VLEVELINFO", "streamstate"};
+	String[] array = {"MODE", "SessionInitiation", "STREAMURL", "VENCPROFILE", "TPROTOCOL", "RTSPPORT", "TSPORT", "RTPVIDEOPORT", "RTPAUDIOPORT", "VFRAMERATE", "VENCLEVEL", "HDMIOUTPUTRES", "IPADDRESS", "START", "STOP", "PAUSE", "streamstate"};
 	
 	public TCPInterface(CresStreamCtrl a_crestctrl){
 		c_streamctl = a_crestctrl;
@@ -105,20 +105,17 @@ public class TCPInterface extends AsyncTask<Void, String, Long> {
                                                 String str7= "TSPORT(Dummy,Use RTSP Port)\r\n";
                                                 String str8= "RTPVIDEOPORT(Dummy,Use RTSP Port)\r\n";
                                                 String str9= "RTPAUDIOPORT(Dummy,Use RTSP Port)\r\n";
-                                                String str10= "HDMIOUTPUTRES(=1920x1080)\r\n";
-                                                String str11= "IPADDRESS(=xxx.xxx.xxx.xxx)\r\n";
-                                                String str12= "START | STOP | PAUSE (=true)\r\n";
-                                                String str13= "VLEVELINFO (= 1:for 4.1 level 2:for 4.2 level)\r\n";
-                                                String str14= "Type COMMAND for Query |streamstate to know status\r\n";
-                                                sb.append(str1).append(str2).append(str3).append(str4).append(str5).append(str6).append(str7).append(str8).append(str9).append(str10).append(str11).append(str12).append(str13).append(str14).append("\r\nTxRx>");
+                                                String str10= "VFRAMERATE (= 60 50 30 24)\r\n";
+                                                String str11= "VENCLEVEL (= 4096:for 4.1 level, 8192:for 4.2 level)\r\n";
+                                                String str12= "HDMIOUTPUTRES(=1920x1080)\r\n";
+                                                String str13= "IPADDRESS(=xxx.xxx.xxx.xxx)\r\n";
+                                                String str14= "START | STOP | PAUSE (=true)\r\n";
+                                                String str15= "Type COMMAND for Query |streamstate to know status\r\n";
+                                                sb.append(str1).append(str2).append(str3).append(str4).append(str5).append(str6).append(str7).append(str8).append(str9).append(str10).append(str11).append(str12).append(str13).append(str14).append(str15).append("\r\nTxRx>");
                                                 out.write(sb.toString());
                                                 out.flush();
                                             }
                                             else{
-                                                //StringBuilder sb = new StringBuilder(1024);
-                                                //sb.append("\r\nTxRx>");
-                                                //out.write(sb.toString());
-                                                //out.flush();
                                                 publishProgress(read.trim());
                                             }
                                         }
@@ -175,36 +172,41 @@ public class TCPInterface extends AsyncTask<Void, String, Long> {
                         port = Integer.parseInt(tmp_str);
                     }
                     break;
-                case 9://Resolution
+                case 9://Videoframerate 
+                    {
+                        vframerate = Integer.parseInt(tmp_str);
+                    }
+                    break;
+                case 10://Video Encoding Level
+                    {
+                        venclevel = Integer.parseInt(tmp_str);
+                    }
+                    break;
+                case 11://Resolution
                     {
                         String[] str = tmp_str.split("[x]+");
                         w = Integer.parseInt(str[0]);
                         h = Integer.parseInt(str[1]);
                     }
                     break;
-                case 10://IPAddr
+                case 12://IPAddr
                     {
-					c_streamctl.setStreamOutConfig(tmp_str, port, w, h, tmode, profile, venclevel);
+			c_streamctl.setStreamOutConfig(tmp_str, port, w, h, tmode, profile, vframerate, venclevel);
                     }
                     break;
-                case 11://START
+                case 13://START
                     {
                         c_streamctl.Start();
                     }
                     break;
-                case 12://STOP
+                case 14://STOP
                     {
                         c_streamctl.Stop();
                     }
                     break;
-                case 13://PAUSE
+                case 15://PAUSE
                     {
                         c_streamctl.Pause();
-                    }
-                    break;
-                case 14://Video Encoding Level
-                    {
-                        venclevel = Integer.parseInt(tmp_str);
                     }
                     break;
                 default:

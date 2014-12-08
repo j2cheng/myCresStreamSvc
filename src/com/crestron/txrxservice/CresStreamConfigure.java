@@ -52,6 +52,7 @@ public class CresStreamConfigure {
 	private static int height;
 	private static int port;
 	private static int venclevel;
+	private static int vfrmrate;
 	private String url;
 
 	public CresStreamConfigure() {
@@ -61,7 +62,8 @@ public class CresStreamConfigure {
 		width 	= 1280;		//width;
 		height 	= 720;		//height;
 		vprofile=vprofile.HP;
-		venclevel  = 2;
+	        vfrmrate = 50;
+                venclevel  = 2;
 		url 	= null;
 	}
 
@@ -108,6 +110,17 @@ public class CresStreamConfigure {
 		Log.d(TAG, "GetHeight:" + height);
 	 	return height; 
 	}
+	
+        public void setVFrameRate(int _frmRate) { 
+		vfrmrate = _frmRate; 
+		Log.d(TAG, "setVFrameRate:" + vfrmrate);
+	}
+	
+	public static int getVFrameRate() { 
+		Log.d(TAG, "getVFrameRate:" + vfrmrate);
+	 	return vfrmrate; 
+	}
+	
 	
 	public void setVEncProfile(int profile) { 
 		vprofile =  VideoEncProfile.fromInteger(profile);
