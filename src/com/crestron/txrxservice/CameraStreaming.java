@@ -127,12 +127,14 @@ public class CameraStreaming implements Callback, ErrorCallback {
 		else
 			mrec.setRemoteIPAndPort(CresStreamConfigure.getIP(), CresStreamConfigure.getPort());
 		mrec.setStreamTransportMode(CresStreamConfigure.mode.getMode());
+		mrec.setVideoEncoderLevel(CresStreamConfigure.getVEncLevel());
 		mrec.setOutputFormat(9);
 		Log.d(TAG, "port is"+CresStreamConfigure.getPort() );
 		Log.d(TAG, "ip addr"+CresStreamConfigure.getIP());
 		Log.d(TAG, "setting width: "+CresStreamConfigure.getWidth() );
 		Log.d(TAG, "setting height: "+CresStreamConfigure.getHeight());
 		Log.d(TAG, "setting profile: "+CresStreamConfigure.vprofile.getVEncProfile());
+		Log.d(TAG, "setting video encoder level: "+CresStreamConfigure.getVEncLevel());
 		mrec.setVideoSize(CresStreamConfigure.getWidth(),CresStreamConfigure.getHeight());
 		//mrec.setVideoSize(out_w,out_h);
 		mrec.setVideoEncoder(MediaRecorder.VideoEncoder.H264);

@@ -75,7 +75,7 @@ public class StringTokenizer
 			String newtoken = tok.sequence1;
 			pattern = Pattern.compile(regex, Pattern.CASE_INSENSITIVE);	
 			matcher = pattern.matcher(newtoken);
-			if(matcher.find()){
+			if(matcher.matches()){
 				Log.d(TAG, "found");
 				value = tok.sequence2;
 				break;

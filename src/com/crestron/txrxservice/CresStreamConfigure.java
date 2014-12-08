@@ -51,6 +51,7 @@ public class CresStreamConfigure {
 	private static int width;
 	private static int height;
 	private static int port;
+	private static int venclevel;
 	private String url;
 
 	public CresStreamConfigure() {
@@ -60,6 +61,7 @@ public class CresStreamConfigure {
 		width 	= 1280;		//width;
 		height 	= 720;		//height;
 		vprofile=vprofile.HP;
+		venclevel  = 2;
 		url 	= null;
 	}
 
@@ -109,6 +111,14 @@ public class CresStreamConfigure {
 	
 	public void setVEncProfile(int profile) { 
 		vprofile =  VideoEncProfile.fromInteger(profile);
+	}
+	
+	public void setVEncLevel(int level) { 
+		venclevel = level; 
+	}
+	
+	public static int getVEncLevel() { 
+		return venclevel;
 	}
 
 	public void setUrl(String Url) { 
