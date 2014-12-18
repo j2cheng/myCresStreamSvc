@@ -137,6 +137,7 @@ public class CameraStreaming implements Callback, ErrorCallback {
 		Log.d(TAG, "setting video frame rate: "+CresStreamConfigure.getVFrameRate());
 		if((CresStreamConfigure.getWidth()!=0) || (CresStreamConfigure.getHeight()!=0))
 			mrec.setVideoSize(CresStreamConfigure.getWidth(),CresStreamConfigure.getHeight());
+		mrec.setVideoEncodingBitRate(CresStreamConfigure.getVideoBitRate());
 		mrec.setVideoFrameRate(CresStreamConfigure.getVFrameRate());
 		mrec.setVideoEncoder(MediaRecorder.VideoEncoder.H264);
 		mrec.setEncoderProfile(CresStreamConfigure.vprofile.getVEncProfile());

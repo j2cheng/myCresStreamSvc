@@ -19,7 +19,7 @@ public class TCPInterface extends AsyncTask<Void, String, Long> {
     static boolean connectionAlive = true;
     public static String replyString;
     String ip_addr = "127.0.0.1";
-    int port = 1234, tmode = 0, resolution = 17, profile = 2, venclevel = 4096, vframerate = 50;
+    int port = 1234, vbr = 6000, tmode = 0, resolution = 17, profile = 2, venclevel = 4096, vframerate = 50;
 
     public enum VideoEncProfile {
         BP(2), MP(1), HP(0);
@@ -72,7 +72,7 @@ public class TCPInterface extends AsyncTask<Void, String, Long> {
     public static final int SERVERPORT = 9876;
     private BufferedReader input;
 
-    String[] array = {"MODE", "SessionInitiation", "STREAMURL", "VENCPROFILE", "TRANSPORTMODE", "RTSPPORT", "TSPORT", "RTPVIDEOPORT", "RTPAUDIOPORT", "VFRAMERATE", "VENCLEVEL", "HDMIOUTPUTRES", "IPADDRESS", "START", "STOP", "PAUSE", "streamstate"};
+    String[] array = {"MODE", "SessionInitiation", "STREAMURL", "VENCPROFILE", "TRANSPORTMODE", "RTSPPORT", "TSPORT", "RTPVIDEOPORT", "RTPAUDIOPORT", "VFRAMERATE", "VBITRATE", "VENCLEVEL", "HDMIOUTPUTRES", "IPADDRESS", "START", "STOP", "PAUSE", "streamstate"};
 
     public TCPInterface(CresStreamCtrl a_crestctrl){
         c_streamctl = a_crestctrl;
@@ -152,12 +152,13 @@ public class TCPInterface extends AsyncTask<Void, String, Long> {
                             String str8= "RTPVIDEOPORT(Dummy,Use RTSP Port)\r\n";
                             String str9= "RTPAUDIOPORT(Dummy,Use RTSP Port)\r\n";
                             String str10= "VFRAMERATE (= 60 50 30 24)\r\n";
-                            String str11= "VENCLEVEL (= 4096:for 4.1 level, 8192:for 4.2 level)\r\n";
-                            String str12= "HDMIOUTPUTRES(17=1920x1080, 16=1680x1050 follow join sheet)\r\n";
-                            String str13= "IPADDRESS(=xxx.xxx.xxx.xxx)\r\n";
-                            String str14= "START | STOP | PAUSE (=true)\r\n";
-                            String str15= "Type COMMAND for Query |streamstate to know status\r\n";
-                            sb.append(str1).append(str2).append(str3).append(str4).append(str5).append(str6).append(str7).append(str8).append(str9).append(str10).append(str11).append(str12).append(str13).append(str14).append(str15).append("\r\nTxRx>");
+                            String str11= "VBITRATE (= 96 to 25000kbps)\r\n";
+                            String str12= "VENCLEVEL (= 4096:for 4.1 level, 8192:for 4.2 level)\r\n";
+                            String str13= "HDMIOUTPUTRES(17=1920x1080, 16=1680x1050 follow join sheet)\r\n";
+                            String str14= "IPADDRESS(=xxx.xxx.xxx.xxx)\r\n";
+                            String str15= "START | STOP | PAUSE (=true)\r\n";
+                            String str16= "Type COMMAND for Query |streamstate to know status\r\n";
+                            sb.append(str1).append(str2).append(str3).append(str4).append(str5).append(str6).append(str7).append(str8).append(str9).append(str10).append(str11).append(str12).append(str13).append(str14).append(str15).append(str16).append("\r\nTxRx>");
                             out.write(sb.toString());
                             out.flush();
                         }
@@ -227,33 +228,38 @@ public class TCPInterface extends AsyncTask<Void, String, Long> {
                     vframerate = Integer.parseInt(tmp_str);
                 }
                 break;
-            case 10://Video Encoding Level
+	    case 10://Video Bit Rate
+		{
+                    vbr = Integer.parseInt(tmp_str);
+		}
+		break;
+            case 11://Video Encoding Level
                 {
                     venclevel = Integer.parseInt(tmp_str);
                 }
                 break;
-            case 11://Resolution
+            case 12://Resolution
                 {
 		     resolution = Integer.parseInt(tmp_str);
                 }
                 break;
-            case 12://IPAddr
+            case 13://IPAddr
                 {
                     ip_addr = tmp_str;
                 }
                 break;
-            case 13://START
+            case 14://START
                 {
-                    c_streamctl.setStreamOutConfig(ip_addr, port, resolution, TransportMode.getStringValueFromInt(tmode), VideoEncProfile.getStringValueFromInt(profile), vframerate, venclevel);
+                    c_streamctl.setStreamOutConfig(ip_addr, port, resolution, TransportMode.getStringValueFromInt(tmode), VideoEncProfile.getStringValueFromInt(profile), vframerate, vbr, venclevel);
                     c_streamctl.Start();
                 }
                 break;
-            case 14://STOP
+            case 15://STOP
                 {
                     c_streamctl.Stop();
                 }
                 break;
-            case 15://PAUSE
+            case 16://PAUSE
                 {
                     c_streamctl.Pause();
                 }

@@ -39,6 +39,7 @@ public class StringTokenizer
 		list.add(new Token("streamurl", "rtsp://192.168.50.78/live.sdp"));
 		list.add(new Token("rtspport", "1234"));
 		list.add(new Token("vframerate", "50"));
+		list.add(new Token("vbitrate", "6000"));
 		list.add(new Token("venclevel", "4096"));
 		list.add(new Token("hdmioutputres", "17"));
 		list.add(new Token("ipaddress", "127.0.0.1"));

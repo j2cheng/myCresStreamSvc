@@ -55,6 +55,7 @@ public class CresStreamConfigure {
 	private static int port;
 	private static int venclevel;
 	private static int vfrmrate;
+	private static int vbitrate;
 	private String url;
 
 	public CresStreamConfigure() {
@@ -65,6 +66,7 @@ public class CresStreamConfigure {
 		height 	= 1080;		//height;
 		vprofile=vprofile.HP;
 	        vfrmrate = 50;
+	        vbitrate = 6000;
                 venclevel  = 2;
 		url 	= null;
 	}
@@ -100,15 +102,15 @@ public class CresStreamConfigure {
 	}
 	
 	public void setOutResolution(int index) {
-		if(index!=0 && (index > resolutionArray.length)){ 
+		if((index==0) || (index >=resolutionArray.length)){ 
+			width = 0;
+			height = 0;
+		}
+		else{
 			String res = resolutionArray[index];	
 			String[] str = res.split("[x]+");
 			width = Integer.parseInt(str[0]);
 			height = Integer.parseInt(str[1]);
-		}
-		else{
-			width = 0;
-			height = 0;
 		}
 	}
 	
@@ -130,6 +132,16 @@ public class CresStreamConfigure {
 	public static int getVFrameRate() { 
 		Log.d(TAG, "getVFrameRate:" + vfrmrate);
 	 	return vfrmrate; 
+	}
+	
+        public void setVideoBitRate(int _bitRate) { 
+		vbitrate = _bitRate; 
+		Log.d(TAG, "setVideoBitRate:" + vbitrate);
+	}
+	
+	public static int getVideoBitRate() { 
+		Log.d(TAG, "getVideoBitRate:" + vbitrate);
+	 	return vbitrate; 
 	}
 	
 	

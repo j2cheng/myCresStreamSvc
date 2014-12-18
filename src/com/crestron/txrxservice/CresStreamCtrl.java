@@ -188,7 +188,7 @@ public class CresStreamCtrl extends Activity {
         Log.d(TAG, " Unimplemented");
     }
     //StreamOut Ctrl & Config 
-    public void setStreamOutConfig(String ip, int port, int resolution, String tmode, String profile, int vfrate, int level)
+    public void setStreamOutConfig(String ip, int port, int resolution, String tmode, String profile, int vfrate, int vbr, int level)
     {
         Log.d(TAG, " setStreamOutConfig");
         myconfig.setIP(ip);	
@@ -200,6 +200,7 @@ public class CresStreamCtrl extends Activity {
 		Log.e(TAG, "Invalid transport mode for session initation mode");
         myconfig.setVEncProfile(profile);	
         myconfig.setVFrameRate(vfrate);	
+        myconfig.setVideoBitRate(vbr);	
         myconfig.setVEncLevel(level);	
     }
 
