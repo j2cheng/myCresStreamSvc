@@ -19,7 +19,49 @@ public class TCPInterface extends AsyncTask<Void, String, Long> {
     static boolean connectionAlive = true;
     public static String replyString;
     String ip_addr = "127.0.0.1";
-    int port = 1234, tmode = 0, w = 1280, h = 720, profile = 2, venclevel = 4096, vframerate = 50;
+    int port = 1234, tmode = 0, resolution = 17, profile = 2, venclevel = 4096, vframerate = 50;
+
+    public enum VideoEncProfile {
+        BP(2), MP(1), HP(0);
+        private final int value;
+
+        private VideoEncProfile(int value) {
+            this.value = value;
+        }
+
+        public int getValue() {
+            return value;
+        }
+        public static String getStringValueFromInt(int i) {
+            for (VideoEncProfile status : VideoEncProfile.values()) {
+                if (status.getValue() == i) {
+                    return status.toString();
+                }
+            }
+            throw new IllegalArgumentException("the given number doesn't match any Status.");
+        }
+    }
+
+    public enum TransportMode {
+        MPEG2TS_UDP(2), MPEG2TS_RTP(1), RTP(0);
+        private final int value;
+
+        private TransportMode(int value) {
+            this.value = value;
+        }
+
+        public int getValue() {
+            return value;
+        }
+        public static String getStringValueFromInt(int i) {
+            for (TransportMode status : TransportMode.values()) {
+                if (status.getValue() == i) {
+                    return status.toString();
+                }
+            }
+            throw new IllegalArgumentException("the given number doesn't match any Status.");
+        }
+    }
 
     private ServerSocket serverSocket;
     StringTokenizer tokenizer; 
@@ -30,7 +72,7 @@ public class TCPInterface extends AsyncTask<Void, String, Long> {
     public static final int SERVERPORT = 9876;
     private BufferedReader input;
 
-    String[] array = {"MODE", "SessionInitiation", "STREAMURL", "VENCPROFILE", "TPROTOCOL", "RTSPPORT", "TSPORT", "RTPVIDEOPORT", "RTPAUDIOPORT", "VFRAMERATE", "VENCLEVEL", "HDMIOUTPUTRES", "IPADDRESS", "START", "STOP", "PAUSE", "streamstate"};
+    String[] array = {"MODE", "SessionInitiation", "STREAMURL", "VENCPROFILE", "TRANSPORTMODE", "RTSPPORT", "TSPORT", "RTPVIDEOPORT", "RTPAUDIOPORT", "VFRAMERATE", "VENCLEVEL", "HDMIOUTPUTRES", "IPADDRESS", "START", "STOP", "PAUSE", "streamstate"};
 
     public TCPInterface(CresStreamCtrl a_crestctrl){
         c_streamctl = a_crestctrl;
@@ -100,10 +142,10 @@ public class TCPInterface extends AsyncTask<Void, String, Long> {
                         Log.d(TAG, "msg recived is "+read);
                         if((read.trim()).equalsIgnoreCase("help")){
                             StringBuilder sb = new StringBuilder(4096);
-                            String str1= "MODE (= 0:STREAMIN 1: STREAMOUT 2:PREVIEW)\r\n";
-                            String str2= "SessionInitiation: (= 0: ByReceiver 1: ByTransmitter 3: MCastviaRTSP 4: MCastviaUDP)\r\n";
-                            String str3= "TPROTOCOL: (= 0: RTSP 1: RTP 2: TS_RTP 3: TS_UDP)\r\n";
-                            String str4= "VENCPROFILE: (= 1:BaseProfile 2:MainProfile 8:HighProfile)\r\n";
+                            String str1= "MODE (= 0:STREAMIN 1: STREAMOUT 2:HDMIPREVIEW)\r\n";
+                            String str2= "SessionInitiation (= 0: ByReceiver 1: ByTransmitter 3: MCastviaRTSP 4: MCastviaUDP)\r\n";
+                            String str3= "TRANSPORTMODE (= 0: RTP 1: TS_RTP 2: TS_UDP)\r\n";
+                            String str4= "VENCPROFILE (= 0:HighProfile 1:MainProfile 2:BaseProfile)\r\n";
                             String str5= "STREAMURL(= any url) \r\n";
                             String str6= "RTSPPORT(= any port)\r\n";
                             String str7= "TSPORT(Dummy,Use RTSP Port)\r\n";
@@ -111,7 +153,7 @@ public class TCPInterface extends AsyncTask<Void, String, Long> {
                             String str9= "RTPAUDIOPORT(Dummy,Use RTSP Port)\r\n";
                             String str10= "VFRAMERATE (= 60 50 30 24)\r\n";
                             String str11= "VENCLEVEL (= 4096:for 4.1 level, 8192:for 4.2 level)\r\n";
-                            String str12= "HDMIOUTPUTRES(=1920x1080)\r\n";
+                            String str12= "HDMIOUTPUTRES(17=1920x1080, 16=1680x1050 follow join sheet)\r\n";
                             String str13= "IPADDRESS(=xxx.xxx.xxx.xxx)\r\n";
                             String str14= "START | STOP | PAUSE (=true)\r\n";
                             String str15= "Type COMMAND for Query |streamstate to know status\r\n";
@@ -151,7 +193,7 @@ public class TCPInterface extends AsyncTask<Void, String, Long> {
                     c_streamctl.setDeviceMode(val);
                 }
                 break;
-            case 1:
+            case 1://Session Initation Mode
                 {
                     val = Integer.parseInt(tmp_str);
                     c_streamctl.setSessionInitMode(val);
@@ -192,9 +234,7 @@ public class TCPInterface extends AsyncTask<Void, String, Long> {
                 break;
             case 11://Resolution
                 {
-                    String[] str = tmp_str.split("[x]+");
-                    w = Integer.parseInt(str[0]);
-                    h = Integer.parseInt(str[1]);
+		     resolution = Integer.parseInt(tmp_str);
                 }
                 break;
             case 12://IPAddr
@@ -204,7 +244,7 @@ public class TCPInterface extends AsyncTask<Void, String, Long> {
                 break;
             case 13://START
                 {
-                    c_streamctl.setStreamOutConfig(ip_addr, port, w, h, tmode, profile, vframerate, venclevel);
+                    c_streamctl.setStreamOutConfig(ip_addr, port, resolution, TransportMode.getStringValueFromInt(tmode), VideoEncProfile.getStringValueFromInt(profile), vframerate, venclevel);
                     c_streamctl.Start();
                 }
                 break;

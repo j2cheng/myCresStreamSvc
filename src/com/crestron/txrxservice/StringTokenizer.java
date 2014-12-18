@@ -34,14 +34,16 @@ public class StringTokenizer
 		list = new LinkedList<Token>();
 		list.add(new Token("mode", "0"));
 		list.add(new Token("sessioninitiation", "0"));
-		list.add(new Token("tprotocol", "0"));
+		list.add(new Token("transportmode", "0"));
 		list.add(new Token("vencprofile", "2"));
 		list.add(new Token("streamurl", "rtsp://192.168.50.78/live.sdp"));
 		list.add(new Token("rtspport", "1234"));
 		list.add(new Token("vframerate", "50"));
 		list.add(new Token("venclevel", "4096"));
-		list.add(new Token("hdmioutputres", "1280x720"));
+		list.add(new Token("hdmioutputres", "17"));
 		list.add(new Token("ipaddress", "127.0.0.1"));
+		list.add(new Token("start", "false"));
+		list.add(new Token("stop", "false"));
 	}
 
 	private void SearchElement(String str){
@@ -93,7 +95,7 @@ public class StringTokenizer
 		}
 		return value;
 	}
-	
+
 	public LinkedList<Token> getTokens()
 	{
 		return list;

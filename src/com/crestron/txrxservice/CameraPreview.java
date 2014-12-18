@@ -117,7 +117,8 @@ public class CameraPreview implements Camera.PreviewCallback {
 			//currentFrameWidth = (mSupportedPreviewSizes.get(resId)).width;//localSize.width;
 			//currentFrameHeight = (mSupportedPreviewSizes.get(resId)).height;//localSize.height;
 			//Log.d(TAG, "Preview size set to Width:" + currentFrameWidth + "& Height:" + currentFrameHeight);
-			//localParameters.setPreviewSize(width, height);
+			if((CresStreamConfigure.getWidth()!= 0) && (CresStreamConfigure.getHeight() !=0))	//Set to default if there is no width or height
+				localParameters.setPreviewSize(CresStreamConfigure.getWidth(), CresStreamConfigure.getHeight());
 			//localParameters.set("mode", "high-quality");
 			localParameters.set("ipp", "off");
 			Log.d(TAG, "Preview Size set to " + localParameters.getPreviewSize().width + "x" + localParameters.getPreviewSize().height);

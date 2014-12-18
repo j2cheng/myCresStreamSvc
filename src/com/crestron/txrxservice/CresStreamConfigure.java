@@ -7,6 +7,8 @@ import android.util.Log;
 public class CresStreamConfigure {
 	static String TAG = "CresStream Configure";
 
+   	String[] resolutionArray = { "Auto", "176x144", "352x288", "528x384", "640x360", "640x480", "720x480", "800x480", "800x600", "1024x768", "1280x720", "1280x800", "1366x768", "1440x900", "1600x900", "1600x1200", "1680x1050", "1920x1080"};
+
 	public enum StreamMode {
 		RTSP(0), RTP(1), MPEG2TS_RTP(2), MPEG2TS_UDP(3), MJPEG(4);
 		private int value;
@@ -57,10 +59,10 @@ public class CresStreamConfigure {
 
 	public CresStreamConfigure() {
 		ipAddr 	= "127.0.0.1";	//ipAddr; 
-		port 	= 5004;		//port; 
-		mode 	= mode.RTSP;	//RTSP;
-		width 	= 1280;		//width;
-		height 	= 720;		//height;
+		port 	= 1234;		//port; 
+		mode 	= mode.RTP;	//RTSP;
+		width 	= 1920;		//width;
+		height 	= 1080;		//height;
 		vprofile=vprofile.HP;
 	        vfrmrate = 50;
                 venclevel  = 2;
@@ -87,23 +89,32 @@ public class CresStreamConfigure {
 		return port; 
 	}
 	
-	public void setMode(int _mode) { 
-		mode = StreamMode.fromInteger(_mode);
+	public void setTransportMode(String tmode) { 
+		mode = StreamMode.valueOf(tmode);	
+		Log.d(TAG, "Transport mode value set is: " + mode);
 	}
 	
-	public void setWidth(int _width) { 
-		Log.d(TAG, "Setwidth:" + width);
-		width = _width; 
+	public void setVEncProfile(String profile) { 
+		vprofile= VideoEncProfile.valueOf(profile);	
+		Log.d(TAG, "vprofile value set is: " + vprofile);
 	}
-
+	
+	public void setOutResolution(int index) {
+		if(index!=0 && (index > resolutionArray.length)){ 
+			String res = resolutionArray[index];	
+			String[] str = res.split("[x]+");
+			width = Integer.parseInt(str[0]);
+			height = Integer.parseInt(str[1]);
+		}
+		else{
+			width = 0;
+			height = 0;
+		}
+	}
+	
 	public static int getWidth() { 
 		Log.d(TAG, "Getwidth:" + width);
 		return width; 
-	}
-
-	public void setHeight(int _height) { 
-		height = _height; 
-		Log.d(TAG, "SetHeight:" + height);
 	}
 	
 	public static int getHeight() { 
@@ -121,10 +132,6 @@ public class CresStreamConfigure {
 	 	return vfrmrate; 
 	}
 	
-	
-	public void setVEncProfile(int profile) { 
-		vprofile =  VideoEncProfile.fromInteger(profile);
-	}
 	
 	public void setVEncLevel(int level) { 
 		venclevel = level; 

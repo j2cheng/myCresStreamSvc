@@ -43,6 +43,7 @@ public class CresStreamCtrl extends Activity {
     int device_mode = 0;
     int sessInitMode = 0;
     int StreamState = 100;//INVALID State
+    boolean StreamOutstarted = false;
     public enum DeviceMode {
         PREVIEW(2), STREAMOUT(1), STREAMIN(0);
         private final int value;
@@ -64,7 +65,27 @@ public class CresStreamCtrl extends Activity {
         }
     }
 
-    public native void javaCallJNI();//JNI functionality
+    public enum SessionInitationMode{
+        ByReceiver(0), ByTransmitter(1), MCastViaRTSP(2), MCastViaUDP(3);
+        private final int value;
+
+        private SessionInitationMode(int value) {
+            this.value = value;
+        }
+
+        public int getValue() {
+            return value;
+        }
+        public static String getStringValueFromInt(int i) {
+            for (SessionInitationMode status : SessionInitationMode.values()) {
+                if (status.getValue() == i) {
+                    return status.toString();
+                }
+            }
+            throw new IllegalArgumentException("the given number doesn't match any Status.");
+        }
+    }
+
     //HashMap
     HashMap<String, Command> hm;
     HashMap<String, myCommand> hm2;
@@ -116,19 +137,44 @@ public class CresStreamCtrl extends Activity {
 
     public void setSessionInitMode(int mode)
     {
-        Log.d(TAG, " setSessionInitMode "+ mode);
-        sessInitMode = mode;
+	    Log.d(TAG, " setSessionInitMode "+ mode);
+	    sessInitMode = mode;
+	    //switch(SessionInitationMode.getStringValueFromInt(sessInitMode)){
+	    switch(mode){
+		//case "ByReceiver":
+		//case "MCastViaRTSP":
+		case 0: 
+		case 2:
+		{
+        		myconfig.setTransportMode("RTSP");	
+	    		Log.d(TAG, "By ReceiverMode rtsp streaming starts");
+		}
+		break;
+		//case "ByTransmitter":
+		case 1:
+		{
+	    		Log.d(TAG, "By TransmitterMode rtp streaming starts");
+		}
+		//case "MCastViaUDP":
+		case 3:
+		{
+	    		Log.d(TAG, "MCastViaUDP Mode");
+		}
+		break;
+		default:
+		break;
+	    }
     }
 
     public int getStreamState()
     {
-        return StreamState;
+	    return StreamState;
     }
 
     public void setDeviceMode(int mode)
     {
-        Log.d(TAG, " setDeviceMode "+ mode);
-        device_mode = mode;
+	    Log.d(TAG, " setDeviceMode "+ mode);
+	    device_mode = mode;
     }
 
     //Ctrls
@@ -142,14 +188,16 @@ public class CresStreamCtrl extends Activity {
         Log.d(TAG, " Unimplemented");
     }
     //StreamOut Ctrl & Config 
-    public void setStreamOutConfig(String ip, int port, int w, int h, int mode, int profile, int vfrate, int level)
+    public void setStreamOutConfig(String ip, int port, int resolution, String tmode, String profile, int vfrate, int level)
     {
         Log.d(TAG, " setStreamOutConfig");
         myconfig.setIP(ip);	
-        myconfig.setPort(port);	
-        myconfig.setWidth(w);	
-        myconfig.setHeight(h);	
-        myconfig.setMode(mode);	
+        myconfig.setPort(port);
+        myconfig.setOutResolution(resolution);
+	if(sessInitMode==1 || sessInitMode==3)	
+        	myconfig.setTransportMode(tmode);	
+	else
+		Log.e(TAG, "Invalid transport mode for session initation mode");
         myconfig.setVEncProfile(profile);	
         myconfig.setVFrameRate(vfrate);	
         myconfig.setVEncLevel(level);	
@@ -157,18 +205,29 @@ public class CresStreamCtrl extends Activity {
 
     public void startStreamOut()
     {
-        try {
-            cam_streaming.startRecording();
-        } catch(IOException e) {
-            e.printStackTrace();
-        }
-        Toast.makeText(this, "StreamOut Started", Toast.LENGTH_LONG).show();
+	int suresh =  myconfig.mode.getMode();
+	    Log.d(TAG, "SessionIntMode "+sessInitMode+"transport mode is "+ suresh);
+	    if((sessInitMode==0) && (myconfig.mode.getMode()!=0)){
+		    Toast.makeText(this, "Invalid Mode for this SessionInitation", Toast.LENGTH_LONG).show();
+	    }
+	    else{
+		    try {
+			    cam_streaming.startRecording();
+		    } catch(IOException e) {
+			    e.printStackTrace();
+		    }
+		    Toast.makeText(this, "StreamOut Started", Toast.LENGTH_LONG).show();
+		    StreamOutstarted = true;
+	    }
     }
 
     public void stopStreamOut()
     {
-        Toast.makeText(this, "StreamOut Stopped", Toast.LENGTH_LONG).show();
-        cam_streaming.stopRecording();
+	if(StreamOutstarted){
+        	Toast.makeText(this, "StreamOut Stopped", Toast.LENGTH_LONG).show();
+        	cam_streaming.stopRecording();
+		StreamOutstarted = false;
+	}
     }
 
     //StreamIn Ctrls & Config

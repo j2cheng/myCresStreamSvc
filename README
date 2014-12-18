@@ -8,42 +8,53 @@ adb shell
 am startservice com.crestron.txrxservice/.ServiceLauncher
 
 ##############################################################################################
-Native TestApp:
 
-By default, video preview will be displayed as per the CresStreamSvc.
+TELNET
+#################################################################
 
-Execute CresEmulator on any terminal with input as ipaddress of evm device
+telnet <device ipaddress> 9876
+press "Enter" twice to get prompt
 
-Ex:  ./TcpCresEmulator 192.168.50.107<IPaddress of the EVS device>
+TxRx>help "type help and press enter, it will display following info"
++++++++++++++++++++++++++++++++++++++++++++++++
+MODE (= 0:STREAMIN 1: STREAMOUT 2:HDMIPREVIEW)
+SessionInitiation: (= 0: ByReceiver 1: ByTransmitter 3: MCastviaRTSP 4: MCastviaUDP)
+TRANSPORTMODE: (= 0:RTP 1: TS_RTP 2: TS_UDP)
+VENCPROFILE: (= 2:BaseProfile 1:MainProfile 0:HighProfile)
+STREAMURL(= any url) 
+RTSPPORT(= any port)
+TSPORT(Dummy,Use RTSP Port)
+RTPVIDEOPORT(Dummy,Use RTSP Port)
+RTPAUDIOPORT(Dummy,Use RTSP Port)
+VFRAMERATE (= 60 50 30 24)
+VENCLEVEL (= 4096:for 4.1 level, 8192:for 4.2 level)
+HDMIOUTPUTRES(=17 (1920x1080) as per Join Sheet Enumerations)
+IPADDRESS(=xxx.xxx.xxx.xxx)
+START | STOP | PAUSE (=true)
+Type COMMAND for Query |streamstate to know status
++++++++++++++++++++++++++++++++++++++++++++++++
+TxRx>mode=0 "To set device mode to stream in(set any field "field=value"
+TxRx> mode "To query mode, will print current value"
+mode=2
+TxRx>streamstate (to know what device is playing.)
 
-MODE: 	0:STREAMIN
-	1:STREAMOUT
-	2:HDMIPREVIEW
-SessInitMode:	0: ByReceiver
-		1: ByTransmitter
-		2: MCastviaRTSP
-		3: MCastviaUDP
-TRANSPORTMODE:	0:RTSP
-		1:RTP
-		2:TS_RTP
-		3:TS_UDP
-VENCPROFILE:	1:BaseProfile
-		2:MainProfile
-		8:HighProfile
+Preview: 	mode=2 
+		HDMIOUTPUTRES=17
+		start=true (to start)
+		stop=true  (to stop)
+StreamIn:	mode=0
+		streamurl=anyurl
+		start=true (to start)
+		stop=true  (to stop)
+Streamout:	mode=1
+		TRANSPORTMODE=0
+		VENCPROFILE=2
+		RTSPPORT=1234
+		VFRAMERATE=60
+		VENCLEVEL=4096
+		HDMIOUTPUTRES=1920x1080
+		IPADDRESS=127.0.0.1
+		start=true (to start)
+		stop=true  (to stop)
 
-EXAMPLE COMMANDS:
-STREAMIN:	MODE=0\r\nSessInitMode=0\r\nSTREAMURL=rtsp://192.168.50.220:8554/live.sdp\r\nSTART=TRUE
-
-STOP: 		STOP=TRUE
-
-PREVIEW:	MODE=2\r\nSTART=TRUE
-
-STREAMOUT:	MODE=1\r\nSessInitMode=1\r\nTRANSPORTMODE=0\r\nRTSPPORT=1234\r\nHDMIOUTPUTRES=1920x1080\r\nVENCPROFILE=2\r\nSTART=TRUE
-
-
-##############################################################################################
-KNOWN ISSUES: As per the Release 3.2
-
-1. RTSP STREAMING Restart Issue
-2. MPEG2 TS Streaming In Stop Issue
-3. Streaming In delay of 10 Sec
+#################################################################

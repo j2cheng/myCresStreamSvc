@@ -127,19 +127,20 @@ public class CameraStreaming implements Callback, ErrorCallback {
 		else
 			mrec.setRemoteIPAndPort(CresStreamConfigure.getIP(), CresStreamConfigure.getPort());
 		mrec.setStreamTransportMode(CresStreamConfigure.mode.getMode());
-		//mrec.setVideoEncoderLevel(CresStreamConfigure.getVEncLevel());
 		mrec.setOutputFormat(9);
-		//mrec.setVideoFrameRate(CresStreamConfigure.getVFrameRate());
 		Log.d(TAG, "port is"+CresStreamConfigure.getPort() );
 		Log.d(TAG, "ip addr"+CresStreamConfigure.getIP());
 		Log.d(TAG, "setting width: "+CresStreamConfigure.getWidth() );
 		Log.d(TAG, "setting height: "+CresStreamConfigure.getHeight());
 		Log.d(TAG, "setting profile: "+CresStreamConfigure.vprofile.getVEncProfile());
-		//Log.d(TAG, "setting video encoder level: "+CresStreamConfigure.getVEncLevel());
-		//Log.d(TAG, "setting video frame rate: "+CresStreamConfigure.getVFrameRate());
-		mrec.setVideoSize(CresStreamConfigure.getWidth(),CresStreamConfigure.getHeight());
+		Log.d(TAG, "setting video encoder level: "+CresStreamConfigure.getVEncLevel());
+		Log.d(TAG, "setting video frame rate: "+CresStreamConfigure.getVFrameRate());
+		if((CresStreamConfigure.getWidth()!=0) || (CresStreamConfigure.getHeight()!=0))
+			mrec.setVideoSize(CresStreamConfigure.getWidth(),CresStreamConfigure.getHeight());
+		mrec.setVideoFrameRate(CresStreamConfigure.getVFrameRate());
 		mrec.setVideoEncoder(MediaRecorder.VideoEncoder.H264);
 		mrec.setEncoderProfile(CresStreamConfigure.vprofile.getVEncProfile());
+		mrec.setVideoEncoderLevel(CresStreamConfigure.getVEncLevel());
 		mrec.setAudioEncoder(MediaRecorder.AudioEncoder.AAC);
 		mrec.setOutputFile(path + filename);   
 
