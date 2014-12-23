@@ -40,6 +40,7 @@ public class CresStreamCtrl extends Activity {
     AsyncTask<Void, String, Long> sockTask;
 
     String TAG = "TxRx StreamCtrl";
+    static String out_url=null;
     int device_mode = 0;
     int sessInitMode = 0;
     int StreamState = 100;//INVALID State
@@ -188,11 +189,11 @@ public class CresStreamCtrl extends Activity {
         Log.d(TAG, " Unimplemented");
     }
     //StreamOut Ctrl & Config 
-    public void setStreamOutConfig(String ip, int port, int resolution, String tmode, String profile, int vfrate, int vbr, int level)
+    public void setStreamOutConfig(String ip, int resolution, String tmode, String profile, int vfrate, int vbr, int level)
     {
         Log.d(TAG, " setStreamOutConfig");
-        myconfig.setIP(ip);	
-        myconfig.setPort(port);
+	if(ip!=null)
+        	myconfig.setIP(ip);	
         myconfig.setOutResolution(resolution);
 	if(sessInitMode==1 || sessInitMode==3)	
         	myconfig.setTransportMode(tmode);	
@@ -204,10 +205,57 @@ public class CresStreamCtrl extends Activity {
         myconfig.setVEncLevel(level);	
     }
 
+    public void setRTSPPort(int _port){
+	    myconfig.setRTSPPort(_port);	
+    }
+    public void setTSPort(int _port){
+	    myconfig.setTSPort(_port);	
+    }
+    public void setRTPVideoPort(int _port){
+	    myconfig.setRTPVPort(_port);	
+    }
+    public void setRTPAudioPort(int _port){
+	    myconfig.setRTPAPort(_port);	
+    }
+
+    private String createStreamOutURL()
+    {
+            StringBuilder url = new StringBuilder(1024);
+	    String proto = null;
+	    int port = 0;  
+	    switch(myconfig.mode.getMode()){
+		    case 0:{
+				   proto = "rtsp";
+				   port = myconfig.getRTSPPort(); 
+			   }
+			   break;
+		    case 1:{
+				   port = myconfig.getRTSPPort(); 
+				   proto = "rtp";
+			   }
+			   break;
+		    case 2:{
+				   proto = "rtp";
+				   port = myconfig.getTSPort(); 
+			   }
+			   break;
+		    case 3:{
+				   proto = "udp";
+				   port = myconfig.getTSPort(); 
+			   }
+			   break;
+		    default:
+			   break;
+	    }
+		    String l_ipaddr = myconfig.getIP();
+		    url.append(proto).append("://").append(l_ipaddr).append(":").append(port);
+		    Log.d(TAG, "URL is "+url.toString());
+		    return url.toString();
+    }
+
     public void startStreamOut()
     {
-	int suresh =  myconfig.mode.getMode();
-	    Log.d(TAG, "SessionIntMode "+sessInitMode+"transport mode is "+ suresh);
+	    out_url = createStreamOutURL();
 	    if((sessInitMode==0) && (myconfig.mode.getMode()!=0)){
 		    Toast.makeText(this, "Invalid Mode for this SessionInitation", Toast.LENGTH_LONG).show();
 	    }
@@ -254,7 +302,13 @@ public class CresStreamCtrl extends Activity {
 
     public void setStreamInUrl(String ap_url)
     {
+	out_url = ap_url;
         streamPlay.setUrl(ap_url);
+    }
+    
+    public String getStreamUrl()
+    {
+        return out_url;
     }
 
     public void startStreamIn()

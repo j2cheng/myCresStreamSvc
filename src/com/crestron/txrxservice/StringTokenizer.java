@@ -42,7 +42,6 @@ public class StringTokenizer
 		list.add(new Token("vbitrate", "6000"));
 		list.add(new Token("venclevel", "4096"));
 		list.add(new Token("hdmioutputres", "17"));
-		list.add(new Token("ipaddress", "127.0.0.1"));
 		list.add(new Token("start", "false"));
 		list.add(new Token("stop", "false"));
 	}

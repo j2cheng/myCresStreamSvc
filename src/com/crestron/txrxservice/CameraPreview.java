@@ -16,11 +16,10 @@ import com.crestron.txrxservice.CameraStreaming;
 
 public class CameraPreview implements Camera.PreviewCallback {
 	String TAG = "TxRx Preview";
+	String hdmiinput;
 	AudioPlayback audio_pb; ;
 	public Camera mCamera = null;
 	private Camera.PreviewCallback mPreviewcallback;
-	int hdmiinput;
-	private int resId = 7;
 	SurfaceHolder surfaceHolder;
 	boolean is_pause = false;
 	boolean is_preview = false;
@@ -93,8 +92,6 @@ public class CameraPreview implements Camera.PreviewCallback {
 	}
 
 	public void startPlayback(boolean paramBoolean){
-		int currentFrameHeight = 0;
-		int currentFrameWidth = 0;
 		Log.d(TAG, "starting Playback"+ is_preview);
 		if(is_preview == false){
 			Log.d(TAG, "Actual startPlayback");
@@ -106,17 +103,13 @@ public class CameraPreview implements Camera.PreviewCallback {
 			}catch (Exception localException) {
 				localException.printStackTrace();
 			}
-			resId = hdmiinput;
 
-			Log.d(TAG, "#############Resolutin ID: "+resId);
+			Log.d(TAG, "########## Resolutin Info: "+hdmiinput+ "###########");
 			Camera.Parameters localParameters = mCamera.getParameters();
 			mSupportedPreviewSizes = mCamera.getParameters().getSupportedPreviewSizes();
 			for (int i = 0; i < mSupportedPreviewSizes.size(); i++) {
 				Log.d(TAG, i + ". Supported Resolution = " + mSupportedPreviewSizes.get(i).width + "x" + mSupportedPreviewSizes.get(i).height);
 			}
-			//currentFrameWidth = (mSupportedPreviewSizes.get(resId)).width;//localSize.width;
-			//currentFrameHeight = (mSupportedPreviewSizes.get(resId)).height;//localSize.height;
-			//Log.d(TAG, "Preview size set to Width:" + currentFrameWidth + "& Height:" + currentFrameHeight);
 			if((CresStreamConfigure.getWidth()!= 0) && (CresStreamConfigure.getHeight() !=0))	//Set to default if there is no width or height
 				localParameters.setPreviewSize(CresStreamConfigure.getWidth(), CresStreamConfigure.getHeight());
 			//localParameters.set("mode", "high-quality");

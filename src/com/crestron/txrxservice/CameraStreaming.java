@@ -115,21 +115,44 @@ public class CameraStreaming implements Callback, ErrorCallback {
 		mrec = new MediaRecorder();
 		if(mCameraObj.mCamera==null)
 			mCameraObj.MyCameraInstance();
-
+		
+		mCameraObj.mCamera.setEncoderFps(CresStreamConfigure.getVFrameRate());
 		mCameraObj.mCamera.lock();
 		mCameraObj.mCamera.unlock();
 
 		mrec.setCamera(mCameraObj.mCamera);
 		mrec.setAudioSource(MediaRecorder.AudioSource.MIC);
 		mrec.setVideoSource(MediaRecorder.VideoSource.CAMERA);
-		if(CresStreamConfigure.getIP()==null)
-			mrec.setRemoteIPAndPort(hostaddr, CresStreamConfigure.getPort());
-		else
-			mrec.setRemoteIPAndPort(CresStreamConfigure.getIP(), CresStreamConfigure.getPort());
+		mrec.setDestinationIP(CresStreamConfigure.getIP());
 		mrec.setStreamTransportMode(CresStreamConfigure.mode.getMode());
-		mrec.setOutputFormat(9);
-		Log.d(TAG, "port is"+CresStreamConfigure.getPort() );
-		Log.d(TAG, "ip addr"+CresStreamConfigure.getIP());
+		//Set Port
+		int l_port;
+		switch(CresStreamConfigure.mode.getMode())
+		{
+			case 0://RTSP
+				{
+					l_port = CresStreamConfigure.getRTSPPort();
+					mrec.setDestinationIP(hostaddr);
+					mrec.setRTSPPort(l_port);
+				}
+				break; 
+			case 1://RTP
+				l_port = CresStreamConfigure.getRTPVPort();
+				mrec.setRTPAudioPort(l_port);
+				l_port = CresStreamConfigure.getRTPAPort();
+				mrec.setRTPVideoPort(l_port);
+				break;
+			case 2://TS_RTP
+			case 3://TS_UDP
+				l_port = CresStreamConfigure.getTSPort();
+				mrec.setMPEG2TSPort(l_port);
+				break;
+			case 4://MJPEG
+			default:
+				break; 
+		}
+		mrec.setOutputFormat(9);//Streamout option set to Stagefright Recorder
+		Log.d(TAG, "ip addr "+CresStreamConfigure.getIP());
 		Log.d(TAG, "setting width: "+CresStreamConfigure.getWidth() );
 		Log.d(TAG, "setting height: "+CresStreamConfigure.getHeight());
 		Log.d(TAG, "setting profile: "+CresStreamConfigure.vprofile.getVEncProfile());
@@ -138,7 +161,7 @@ public class CameraStreaming implements Callback, ErrorCallback {
 		if((CresStreamConfigure.getWidth()!=0) || (CresStreamConfigure.getHeight()!=0))
 			mrec.setVideoSize(CresStreamConfigure.getWidth(),CresStreamConfigure.getHeight());
 		mrec.setVideoEncodingBitRate(CresStreamConfigure.getVideoBitRate());
-		mrec.setVideoFrameRate(CresStreamConfigure.getVFrameRate());
+		//mrec.setVideoFrameRate(CresStreamConfigure.getVFrameRate());//Mistral Propeitary API 
 		mrec.setVideoEncoder(MediaRecorder.VideoEncoder.H264);
 		mrec.setEncoderProfile(CresStreamConfigure.vprofile.getVEncProfile());
 		mrec.setVideoEncoderLevel(CresStreamConfigure.getVEncLevel());

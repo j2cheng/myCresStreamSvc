@@ -52,15 +52,22 @@ public class CresStreamConfigure {
 	private static String ipAddr;
 	private static int width;
 	private static int height;
-	private static int port;
+	private static int rport;
+	private static int tport;
+	private static int rvport;
+	private static int raport;
 	private static int venclevel;
 	private static int vfrmrate;
 	private static int vbitrate;
 	private String url;
 
 	public CresStreamConfigure() {
-		ipAddr 	= "127.0.0.1";	//ipAddr; 
-		port 	= 1234;		//port; 
+		MiscUtils.getDeviceIpAddr();
+                ipAddr = MiscUtils.matcher.group();
+		rport 	= 1234;		//port; 
+		tport 	= 1234;		//port; 
+		rvport 	= 1234;		//port; 
+		raport 	= 1234;		//port; 
 		mode 	= mode.RTP;	//RTSP;
 		width 	= 1920;		//width;
 		height 	= 1080;		//height;
@@ -81,14 +88,44 @@ public class CresStreamConfigure {
 		return ipAddr; 
 	}
 	
-	public void setPort(int _port) { 
-		port = _port; 
-		Log.d(TAG, "SetPort:" + port);
+	public void setRTSPPort(int _port) { 
+		rport = _port; 
+		Log.d(TAG, "SetPort:" + rport);
 	}
 	
-	public static int getPort() { 
-		Log.d(TAG, "GetPort:" + port);
-		return port; 
+	public static int getRTSPPort() { 
+		Log.d(TAG, "GetPort:" + rport);
+		return rport; 
+	}
+	
+	public void setTSPort(int _port) { 
+		tport = _port; 
+		Log.d(TAG, "SetPort:" + tport);
+	}
+	
+	public static int getTSPort() { 
+		Log.d(TAG, "GetPort:" + tport);
+		return tport; 
+	}
+	
+	public void setRTPVPort(int _port) { 
+		rvport = _port; 
+		Log.d(TAG, "SetPort:" + rvport);
+	}
+	
+	public static int getRTPVPort() { 
+		Log.d(TAG, "GetPort:" + rvport);
+		return raport; 
+	}
+	
+	public void setRTPAPort(int _port) { 
+		rport = _port; 
+		Log.d(TAG, "SetPort:" + raport);
+	}
+	
+	public static int getRTPAPort() { 
+		Log.d(TAG, "GetPort:" + raport);
+		return raport; 
 	}
 	
 	public void setTransportMode(String tmode) { 

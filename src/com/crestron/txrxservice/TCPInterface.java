@@ -18,8 +18,8 @@ public class TCPInterface extends AsyncTask<Void, String, Long> {
     boolean isWhiteSpace = false;
     static boolean connectionAlive = true;
     public static String replyString;
-    String ip_addr = "127.0.0.1";
-    int port = 1234, vbr = 6000, tmode = 0, resolution = 17, profile = 2, venclevel = 4096, vframerate = 50;
+    String ip_addr = null;// = "127.0.0.1";
+    int rport = 1234, tport = 1234, rvport=1234, raport = 1234, vbr = 6000, tmode = 0, resolution = 17, profile = 2, venclevel = 4096, vframerate = 50;
 
     public enum VideoEncProfile {
         BP(2), MP(1), HP(0);
@@ -147,10 +147,10 @@ public class TCPInterface extends AsyncTask<Void, String, Long> {
                             String str3= "TRANSPORTMODE (= 0: RTP 1: TS_RTP 2: TS_UDP)\r\n";
                             String str4= "VENCPROFILE (= 0:HighProfile 1:MainProfile 2:BaseProfile)\r\n";
                             String str5= "STREAMURL(= any url) \r\n";
-                            String str6= "RTSPPORT(= any port)\r\n";
-                            String str7= "TSPORT(Dummy,Use RTSP Port)\r\n";
-                            String str8= "RTPVIDEOPORT(Dummy,Use RTSP Port)\r\n";
-                            String str9= "RTPAUDIOPORT(Dummy,Use RTSP Port)\r\n";
+                            String str6= "RTSPPORT(= 1024 to 49151)\r\n";
+                            String str7= "TSPORT (= 1024 to 49151)\r\n";
+                            String str8= "RTPVIDEOPORT (= 1024 to 49151)\r\n";
+                            String str9= "RTPAUDIOPORT (= 1024 to 49151)\r\n";
                             String str10= "VFRAMERATE (= 60 50 30 24)\r\n";
                             String str11= "VBITRATE (= 96 to 25000kbps)\r\n";
                             String str12= "VENCLEVEL (= 4096:for 4.1 level, 8192:for 4.2 level)\r\n";
@@ -216,11 +216,27 @@ public class TCPInterface extends AsyncTask<Void, String, Long> {
                 }
                 break;
             case 5://RTSP Port
+                {
+                    rport = Integer.parseInt(tmp_str);
+                    c_streamctl.setRTSPPort(rport);
+                }
+                break;
             case 6://TS Port
+                {
+                    tport = Integer.parseInt(tmp_str);
+                    c_streamctl.setTSPort(tport);
+                }
+                break;
             case 7://RTP VPort
+                {
+                    rvport = Integer.parseInt(tmp_str);
+                    c_streamctl.setRTPVideoPort(rvport);
+                }
+                break;
             case 8:// RTP APort
                 {
-                    port = Integer.parseInt(tmp_str);
+                    raport = Integer.parseInt(tmp_str);
+                    c_streamctl.setRTPAudioPort(raport);
                 }
                 break;
             case 9://Videoframerate 
@@ -250,7 +266,7 @@ public class TCPInterface extends AsyncTask<Void, String, Long> {
                 break;
             case 14://START
                 {
-                    c_streamctl.setStreamOutConfig(ip_addr, port, resolution, TransportMode.getStringValueFromInt(tmode), VideoEncProfile.getStringValueFromInt(profile), vframerate, vbr, venclevel);
+                    c_streamctl.setStreamOutConfig(ip_addr, resolution, TransportMode.getStringValueFromInt(tmode), VideoEncProfile.getStringValueFromInt(profile), vframerate, vbr, venclevel);
                     c_streamctl.Start();
                 }
                 break;
@@ -300,6 +316,10 @@ public class TCPInterface extends AsyncTask<Void, String, Long> {
                         }
                         sb.append(receivedMsg).append("=").append(replyString).append("\r\nTxRx>");
                     }
+		    else if(msg[0].equalsIgnoreCase("streamurl")){//Send StreamState
+			String l_url = c_streamctl.getStreamUrl();
+                        sb.append(receivedMsg).append("=").append(l_url).append("\r\nTxRx>");
+		    }
                     else {//QUERY Procssing
                         tmp_str = tokenizer.getStringValueOf(msg[0]);
                         Log.d(TAG, "Querying:: searched for "+msg[0]+" and got value of "+tmp_str);
