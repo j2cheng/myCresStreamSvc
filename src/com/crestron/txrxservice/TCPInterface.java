@@ -290,6 +290,7 @@ public class TCPInterface extends AsyncTask<Void, String, Long> {
         String tmp_str;
         String receivedMsg = (String)progress[0];
         StringBuilder sb = new StringBuilder(1024);
+	//tokenizer.printList();//DEBUG Purpose
         String[] msg = tokenizer.Parse(receivedMsg);
 
         for(int i = 0; i< array.length; i++){
@@ -319,6 +320,14 @@ public class TCPInterface extends AsyncTask<Void, String, Long> {
 		    else if(msg[0].equalsIgnoreCase("streamurl")){//Send StreamState
 			String l_url = c_streamctl.getStreamUrl();
                         sb.append(receivedMsg).append("=").append(l_url).append("\r\nTxRx>");
+		    }
+		    else if(msg[0].equalsIgnoreCase("start")){//Send Start status
+			String temp = c_streamctl.getStartStatus();
+                        sb.append(receivedMsg).append("=").append(temp).append("\r\nTxRx>");
+		    }
+		    else if(msg[0].equalsIgnoreCase("stop")){//Send Start status
+			String temp = c_streamctl.getStopStatus();
+                        sb.append(receivedMsg).append("=").append(temp).append("\r\nTxRx>");
 		    }
                     else {//QUERY Procssing
                         tmp_str = tokenizer.getStringValueOf(msg[0]);

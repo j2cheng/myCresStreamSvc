@@ -73,7 +73,7 @@ public class CresStreamConfigure {
 		height 	= 1080;		//height;
 		vprofile=vprofile.HP;
 	        vfrmrate = 50;
-	        vbitrate = 6000;
+	        vbitrate = 600000;
                 venclevel  = 2;
 		url 	= null;
 	}
@@ -172,7 +172,7 @@ public class CresStreamConfigure {
 	}
 	
         public void setVideoBitRate(int _bitRate) { 
-		vbitrate = _bitRate; 
+		vbitrate = _bitRate*1000; 
 		Log.d(TAG, "setVideoBitRate:" + vbitrate);
 	}
 	

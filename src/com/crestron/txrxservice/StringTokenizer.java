@@ -36,14 +36,14 @@ public class StringTokenizer
 		list.add(new Token("sessioninitiation", "0"));
 		list.add(new Token("transportmode", "0"));
 		list.add(new Token("vencprofile", "2"));
-		list.add(new Token("streamurl", "rtsp://192.168.50.78/live.sdp"));
 		list.add(new Token("rtspport", "1234"));
+		list.add(new Token("tsport", "1234"));
+		list.add(new Token("rtpvideoport", "1234"));
+		list.add(new Token("rtpaudioport", "1236"));
 		list.add(new Token("vframerate", "50"));
 		list.add(new Token("vbitrate", "6000"));
 		list.add(new Token("venclevel", "4096"));
 		list.add(new Token("hdmioutputres", "17"));
-		list.add(new Token("start", "false"));
-		list.add(new Token("stop", "false"));
 	}
 
 	private void SearchElement(String str){
@@ -54,7 +54,7 @@ public class StringTokenizer
 			String newtoken = tok.sequence1;
 			pattern = Pattern.compile(l_str, Pattern.CASE_INSENSITIVE);	
 			matcher = pattern.matcher(newtoken);
-			if(matcher.find()){
+			if(matcher.matches()){
 				boolean found = list.remove(tok);
 				Log.d(TAG, "removedToken "+found );
 				break;
@@ -70,8 +70,13 @@ public class StringTokenizer
 			myStr = tok.split("=");
 			if(myStr.length>1){
 				Log.d(TAG, "At Parser::strings are "+ myStr[0]+" "+myStr[1]);
-				SearchElement(myStr[0]);
-				list.add(new Token(myStr[0], myStr[1]));
+				if(myStr[0].equalsIgnoreCase("start") || myStr[0].equalsIgnoreCase("stop")|| myStr[0].equalsIgnoreCase("pause")){
+					Log.d(TAG, "received control cmd");
+				}
+				else{
+					SearchElement(myStr[0]);
+					list.add(new Token(myStr[0], myStr[1]));
+				}
 			}else{
 				Log.d(TAG, "Query has been made for "+myStr[0]);
 			}
@@ -94,6 +99,16 @@ public class StringTokenizer
 			}
 		}
 		return value;
+	}
+
+	public void printList()
+	{
+		Log.d(TAG, "###########LIST MARKER START");
+		for (StringTokenizer.Token tok : getTokens())
+		{
+			Log.d(TAG, "List of entries are "+tok.sequence1+" and "+tok.sequence2);
+		}
+		Log.d(TAG, "###########LIST MARKER END");
 	}
 
 	public LinkedList<Token> getTokens()

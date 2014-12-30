@@ -41,6 +41,8 @@ public class CresStreamCtrl extends Activity {
 
     String TAG = "TxRx StreamCtrl";
     static String out_url=null;
+    static String playStatus="false";
+    static String stopStatus="true";
     int device_mode = 0;
     int sessInitMode = 0;
     int StreamState = 100;//INVALID State
@@ -180,9 +182,13 @@ public class CresStreamCtrl extends Activity {
 
     //Ctrls
     public void Start(){
+    	playStatus="true";
+    	stopStatus="false";
         hm.get(DeviceMode.getStringValueFromInt(device_mode)).executeStart();
     }
     public void Stop(){
+    	playStatus="false";
+    	stopStatus="true";
         hm2.get(DeviceMode.getStringValueFromInt(device_mode)).executeStop();
     }
     public void Pause(){
@@ -339,7 +345,15 @@ public class CresStreamCtrl extends Activity {
         cam_streaming.mCameraObj.stopPlayback();
         Toast.makeText(this, "Preview Stopped", Toast.LENGTH_LONG).show();
     }
+   
+    //Control Feedback
+    public String getStartStatus(){
+	return playStatus;
+    }
 
+    public String getStopStatus(){
+	return stopStatus;
+    }
 
     //Registering for HPD and Resolution Event detection	
     void registerBroadcasts(){

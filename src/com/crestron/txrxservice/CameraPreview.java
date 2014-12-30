@@ -104,7 +104,7 @@ public class CameraPreview implements Camera.PreviewCallback {
 				localException.printStackTrace();
 			}
 
-			Log.d(TAG, "########## Resolutin Info: "+hdmiinput+ "###########");
+			Log.d(TAG, "########## Resolutin Info: "+hdmiinput);
 			Camera.Parameters localParameters = mCamera.getParameters();
 			mSupportedPreviewSizes = mCamera.getParameters().getSupportedPreviewSizes();
 			for (int i = 0; i < mSupportedPreviewSizes.size(); i++) {

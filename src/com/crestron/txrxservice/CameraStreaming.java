@@ -37,8 +37,8 @@ public class CameraStreaming implements Callback, ErrorCallback {
 		if (view != null) {
 			Log.d(TAG, "View is not null");
 			surfaceHolder = view.getHolder();	
-			surfaceHolder.addCallback(this);
 			surfaceHolder.setType(SurfaceHolder.SURFACE_TYPE_PUSH_BUFFERS);
+			surfaceHolder.addCallback(this);
 			//view.setZOrderOnTop(true);
 		} else {
 			Log.d(TAG, "App passed null surface view for streaming");
@@ -192,6 +192,7 @@ public class CameraStreaming implements Callback, ErrorCallback {
 		Log.d(TAG, "stopRecording");
 		if (mrec != null) {
 			mrec.stop();
+			mrec.setPreviewDisplay(null);
 			out_stream_status = false;
                         mCameraObj.stopPlayback();
 		}
