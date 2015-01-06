@@ -395,6 +395,8 @@ public class CresStreamCtrl extends Activity {
                 {
                     int i = paramAnonymousIntent.getIntExtra("hdmi_hdp_id", -1);
                     Log.i(TAG, "Received hpd broadcast ! " + i);
+                    if((cam_streaming.mCameraObj != null) && ((cam_streaming.isStreaming()) == true))
+                        cam_streaming.stopRecording();
                 }
             }
         };

@@ -75,7 +75,6 @@ public class CameraStreaming implements Callback, ErrorCallback {
 		if(mCameraObj.APlayStatus())
 			mCameraObj.stopAudio();
 		stopRecording();
-		releaseMediaRecorder();
 		mCameraObj.stopPlayback();
 		//mCameraObj = null;
 		//surfaceHolder = null;
@@ -194,6 +193,7 @@ public class CameraStreaming implements Callback, ErrorCallback {
 			mrec.stop();
 			mrec.setPreviewDisplay(null);
 			out_stream_status = false;
+			releaseMediaRecorder();
                         mCameraObj.stopPlayback();
 		}
 	}
