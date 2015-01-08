@@ -64,10 +64,10 @@ public class CresStreamConfigure {
 	public CresStreamConfigure() {
 		MiscUtils.getDeviceIpAddr();
                 ipAddr = MiscUtils.matcher.group();
-		rport 	= 1234;		//port; 
-		tport 	= 1234;		//port; 
-		rvport 	= 1234;		//port; 
-		raport 	= 1234;		//port; 
+		rport 	= 2456;		//port; 
+		tport 	= 2456;		//port; 
+		rvport 	= 2456;		//port; 
+		raport 	= 2458;		//port; 
 		mode 	= mode.RTP;	//RTSP;
 		width 	= 1920;		//width;
 		height 	= 1080;		//height;

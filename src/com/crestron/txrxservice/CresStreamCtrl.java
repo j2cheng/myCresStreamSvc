@@ -136,6 +136,8 @@ public class CresStreamCtrl extends Activity {
         super.onDestroy();
         sockTask.cancel(true);
         Log.d(TAG, " Asynctask cancelled");
+        unregisterReceiver(resolutionEvent);
+        unregisterReceiver(hpdEvent);
     }
 
     public void setSessionInitMode(int mode)
@@ -385,8 +387,8 @@ public class CresStreamCtrl extends Activity {
                 }
             }
         };
-        IntentFilter localIntentFilter1 = new IntentFilter("evs.intent.action.hdmi.RESOLUTION_CHANGED");
-        registerReceiver(resolutionEvent, localIntentFilter1);
+        IntentFilter resolutionIntentFilter = new IntentFilter("evs.intent.action.hdmi.RESOLUTION_CHANGED");
+        registerReceiver(resolutionEvent, resolutionIntentFilter);
         hpdEvent = new BroadcastReceiver()
         {
             public void onReceive(Context paramAnonymousContext, Intent paramAnonymousIntent)
@@ -400,7 +402,7 @@ public class CresStreamCtrl extends Activity {
                 }
             }
         };
-        IntentFilter localIntentFilter2 = new IntentFilter("evs.intent.action.hdmi.HPD");
-        registerReceiver(hpdEvent, localIntentFilter2);	
+        IntentFilter hpdIntentFilter = new IntentFilter("evs.intent.action.hdmi.HPD");
+        registerReceiver(hpdEvent, hpdIntentFilter);	
     }
 }

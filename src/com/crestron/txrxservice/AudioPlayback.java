@@ -31,7 +31,7 @@ public class AudioPlayback
 				int readSize = bufferSize;
 				int sampleRate = 48000;
 
-				Log.d(TAG, "In audio task started ");
+				Log.d(TAG, "Streaming Audio task started.... ");
 				try
 				{
 					bufferSize = AudioRecord.getMinBufferSize(sampleRate, 3, 2);

@@ -91,7 +91,7 @@ public class CameraStreaming implements Callback, ErrorCallback {
 			stopRecording();
 		Log.d(TAG, "startRecording");
 
-		path = "/sdcard/";
+		path = "/sdcard/ROMDISK/";
 		Log.d(TAG, "CamTest: Camera Recording Path: " + path);
 
 		Date date = new Date();

@@ -6,7 +6,6 @@ import java.util.List;
 import android.hardware.Camera;
 import android.hardware.Camera.ErrorCallback;
 import android.hardware.Camera.Parameters;
-import android.hardware.Camera.PreviewCallback;
 import android.hardware.Camera.Size;
 import android.util.Log;
 import android.content.Context;
@@ -14,12 +13,11 @@ import android.view.SurfaceHolder;
 import android.graphics.ImageFormat;
 import com.crestron.txrxservice.CameraStreaming;
 
-public class CameraPreview implements Camera.PreviewCallback {
+public class CameraPreview {
 	String TAG = "TxRx Preview";
 	String hdmiinput;
 	AudioPlayback audio_pb; ;
 	public Camera mCamera = null;
-	private Camera.PreviewCallback mPreviewcallback;
 	SurfaceHolder surfaceHolder;
 	boolean is_pause = false;
 	boolean is_preview = false;
@@ -28,7 +26,6 @@ public class CameraPreview implements Camera.PreviewCallback {
 
 	public CameraPreview() {
 		audio_pb = new AudioPlayback();
-		mPreviewcallback = this;
 	}
 
 	public void MyCameraInstance (){
@@ -120,7 +117,6 @@ public class CameraPreview implements Camera.PreviewCallback {
 			//Log.d(TAG, "Picture formate %s " + localParameters.getPictureFormat());
 			mCamera.setDisplayOrientation(0);
 			mCamera.setParameters(localParameters);
-			mCamera.setPreviewCallback(mPreviewcallback);
 			mCamera.startPreview();
 			startAudio();
 			is_preview = true;
@@ -135,7 +131,6 @@ public class CameraPreview implements Camera.PreviewCallback {
 		{
 			if (mCamera!= null)
 			{
-				mCamera.setPreviewCallback(null);
 				mCamera.stopPreview();
 				releaseCamera();
 			}
