@@ -17,11 +17,14 @@ public class StreamIn implements SurfaceHolder.Callback, OnPreparedListener {
 	private SurfaceHolder vidHolder;
 	String TAG = "TxRx StreamIN";
 	String srcUrl;
+        int latency = 2000;//msec
+        boolean rtp_mode = false;
+        StringBuilder sb;
 	public StreamIn(Context mContext, SurfaceView view) {
 		Log.e(TAG, "StreamIN :: Constructor called...!");
 		if (view != null) {
 			Log.d(TAG, "View is not null");
-			vidHolder = view.getHolder();	
+			 = view.getHolder();	
 			vidHolder.addCallback(this);
 			vidHolder.setType(SurfaceHolder.SURFACE_TYPE_PUSH_BUFFERS);
 			view.setZOrderOnTop(true);
@@ -34,6 +37,18 @@ public class StreamIn implements SurfaceHolder.Callback, OnPreparedListener {
 	public void setUrl(String p_url){
 		srcUrl = p_url;
 		Log.d(TAG, "setting stream in URL to "+srcUrl);
+	}
+	
+        public void setLatency(int duration){
+	    latency = duration;	
+            Log.d(TAG, "setting stream in latency "+latency);
+	}
+
+        public void setRtpOnlyMode(String portStr){
+            rtp_mode = true;
+            sb = new StringBuilder(4096);
+            String str1 = portStr;
+            sb.append("v=0\r\n").append("o=- 15545345606659080561 15545345606659080561 IN IP4 cpu000669\r\n").append("s=Unnamed\r\n").append("i=N/A\r\n").append("c=IN IP4 127.0.0.1\r\n").append("t=0 0\r\n").append("a=tool:vlc 2.0.8\r\n").append("a=recvonly\r\n").append("a=type:broadcast\r\n").append("a=charset:UTF-8\r\n").append("m=video ").append(str1).append("RTP/AVP 33\r\n").append("b=RR:0\r\n").append("a=rtpmap:33 MP2T/90000\r\n");
 	}
 
 	@Override
@@ -60,13 +75,18 @@ public class StreamIn implements SurfaceHolder.Callback, OnPreparedListener {
 				Log.d(TAG, "holder is null ");
 				vidHolder = CresStreamCtrl.mPopupHolder;
 			}
-			mediaPlayer.setDisplay(vidHolder);
-			mediaPlayer.setDataSource(srcUrl);	
-			Log.d(TAG, "URL is "+srcUrl);
-			mediaPlayer.prepare();
+                        mediaPlayer.setDisplay(vidHolder);
+                        mediaPlayer.setDataSource(srcUrl);	
+                        Log.d(TAG, "URL is "+srcUrl);
+                        //Setting Initial Latency
+                        mediaPlayer.setDejitterBufferDuration(latency);
+                        if(rtp_mode){
+                            mediaPlayer.setSDP(sb.toString());
+                            rtp_mode = false;
+                        }
+                        mediaPlayer.prepare();
 			mediaPlayer.setOnPreparedListener(this);
-			mediaPlayer.setAudioStreamType(3);
-			//mediaPlayer.setAudioStreamType(AudioManager.STREAM_MUSIC);
+			mediaPlayer.setAudioStreamType(AudioManager.STREAM_MUSIC);
 		} 
 		catch(Exception e){
 			e.printStackTrace();

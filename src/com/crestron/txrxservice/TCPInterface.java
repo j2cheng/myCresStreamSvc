@@ -19,7 +19,8 @@ public class TCPInterface extends AsyncTask<Void, String, Long> {
     static boolean connectionAlive = true;
     public static String replyString;
     String ip_addr = null;// = "127.0.0.1";
-    int rport = 1234, tport = 1234, rvport=1234, raport = 1234, vbr = 6000, tmode = 0, resolution = 17, profile = 2, venclevel = 4096, vframerate = 50;
+    int rport = 1234, tport = 1234, rvport=1234, raport = 1234, vbr = 6000, tmode = 0, resolution = 17;
+    int initialLatency = 2000, profile = 2, venclevel = 4096, vframerate = 50;
 
     public enum VideoEncProfile {
         BP(2), MP(1), HP(0);
@@ -72,7 +73,15 @@ public class TCPInterface extends AsyncTask<Void, String, Long> {
     public static final int SERVERPORT = 9876;
     private BufferedReader input;
 
-    String[] array = {"MODE", "SessionInitiation", "STREAMURL", "VENCPROFILE", "TRANSPORTMODE", "RTSPPORT", "TSPORT", "RTPVIDEOPORT", "RTPAUDIOPORT", "VFRAMERATE", "VBITRATE", "VENCLEVEL", "HDMIOUTPUTRES", "IPADDRESS", "START", "STOP", "PAUSE", "streamstate"};
+    String[] cmdArray = {"MODE", "SessionInitiation", "STREAMURL", "VENCPROFILE", "TRANSPORTMODE", "RTSPPORT", "TSPORT", "RTPVIDEOPORT", "RTPAUDIOPORT", "VFRAMERATE", "VBITRATE", "VENCLEVEL", "HDMIOUTPUTRES", "IPADDRESS", "START", "STOP", "PAUSE", "MUTESTATE", "LATENCY", "streamstate"};
+
+    public boolean validateCommand(String targetValue) {
+        for(String s: cmdArray){
+            if(s.equals(targetValue))
+                return true;
+        }
+        return false;
+    }
 
     public TCPInterface(CresStreamCtrl a_crestctrl){
         c_streamctl = a_crestctrl;
@@ -156,9 +165,18 @@ public class TCPInterface extends AsyncTask<Void, String, Long> {
                             String str12= "VENCLEVEL (= 4096:for 4.1 level, 8192:for 4.2 level)\r\n";
                             String str13= "HDMIOUTPUTRES(17=1920x1080, 16=1680x1050 follow join sheet)\r\n";
                             String str14= "IPADDRESS(=xxx.xxx.xxx.xxx)\r\n";
-                            String str15= "START | STOP | PAUSE (=true)\r\n";
-                            String str16= "Type COMMAND for Query |streamstate to know status\r\n";
-                            sb.append(str1).append(str2).append(str3).append(str4).append(str5).append(str6).append(str7).append(str8).append(str9).append(str10).append(str11).append(str12).append(str13).append(str14).append(str15).append(str16).append("\r\nTxRx>");
+                            String str15= "MUTESTATE(=1:true/0:false)\r\n";
+                            String str16= "LATENCY=1000 to 3000 (in msec)\r\n";
+                            String str17= "START | STOP | PAUSE (=true)\r\n";
+                            String str18= "Type COMMAND for Query |streamstate to know status\r\n";
+                            sb.append(str1).append(str2).append(str3).append(str4).append(str5).append(str6).append(str7).append(str8).append(str9).append(str10).append(str11).append(str12).append(str13).append(str14).append(str15).append(str16).append(str17).append(str18).append("\r\nTxRx>");
+                            out.write(sb.toString());
+                            out.flush();
+                        }
+                        else if(validateCommand(read )){
+                            StringBuilder sb = new StringBuilder(1024);
+                            String str1= "Invalid Command.Check help....\r\nTxRx>";
+                            sb.append(str1);
                             out.write(sb.toString());
                             out.flush();
                         }
@@ -266,7 +284,7 @@ public class TCPInterface extends AsyncTask<Void, String, Long> {
                 break;
             case 14://START
                 {
-                    c_streamctl.setStreamOutConfig(ip_addr, resolution, TransportMode.getStringValueFromInt(tmode), VideoEncProfile.getStringValueFromInt(profile), vframerate, vbr, venclevel);
+                    //c_streamctl.setStreamOutConfig(ip_addr, resolution, TransportMode.getStringValueFromInt(tmode), VideoEncProfile.getStringValueFromInt(profile), vframerate, vbr, venclevel);
                     c_streamctl.Start();
                 }
                 break;
@@ -278,6 +296,21 @@ public class TCPInterface extends AsyncTask<Void, String, Long> {
             case 16://PAUSE
                 {
                     c_streamctl.Pause();
+                }
+                break;
+            case 17://MUTE/UNMUTE
+                {
+                    int mute_flag = Integer.parseInt(tmp_str);
+                    if(mute_flag==1)
+                        c_streamctl.setStreamMute();
+                    else
+                        c_streamctl.setStreamUnMute();
+                }
+                break;
+            case 18://Latency
+                {
+		    initialLatency = Integer.parseInt(tmp_str);
+                    c_streamctl.SetStreamInLatency(initialLatency);
                 }
                 break;
             default:
@@ -293,8 +326,8 @@ public class TCPInterface extends AsyncTask<Void, String, Long> {
 	//tokenizer.printList();//DEBUG Purpose
         String[] msg = tokenizer.Parse(receivedMsg);
 
-        for(int i = 0; i< array.length; i++){
-            if(array[i].equalsIgnoreCase(msg[0])){
+        for(int i = 0; i< cmdArray.length; i++){
+            if(cmdArray[i].equalsIgnoreCase(msg[0])){
                 if(msg.length>1) {//cmd processing
                     callbackFunc(i, msg[1]);
                     sb.append("\r\nTxRx>");

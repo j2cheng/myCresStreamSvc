@@ -44,6 +44,8 @@ public class StringTokenizer
 		list.add(new Token("vbitrate", "6000"));
 		list.add(new Token("venclevel", "4096"));
 		list.add(new Token("hdmioutputres", "17"));
+		list.add(new Token("mutestate", "false"));
+		list.add(new Token("latency", "2000"));
 	}
 
 	private void SearchElement(String str){

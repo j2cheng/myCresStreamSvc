@@ -18,6 +18,7 @@ import android.content.Intent;
 import android.content.IntentFilter;
 import android.content.BroadcastReceiver;
 import android.view.SurfaceHolder;
+import android.media.AudioManager;
 
 interface Command {
     void executeStart();
@@ -37,6 +38,7 @@ public class CresStreamCtrl extends Activity {
     private static SurfaceView dummyView = null;
     public static SurfaceHolder mPopupHolder;
     CresStreamConfigure myconfig;
+    AudioManager amanager;
     AsyncTask<Void, String, Long> sockTask;
 
     String TAG = "TxRx StreamCtrl";
@@ -105,6 +107,8 @@ public class CresStreamCtrl extends Activity {
             dummyView = streamingSurface;
             //HPD and Resolution Event Registration
             registerBroadcasts();
+            //AudioManager
+            amanager=(AudioManager)getSystemService(Context.AUDIO_SERVICE);
             //Input Streamout Config
             myconfig = new CresStreamConfigure();
             //Stub: TestApp functionality
@@ -169,6 +173,16 @@ public class CresStreamCtrl extends Activity {
 		default:
 		break;
 	    }
+    }
+
+    public void setStreamMute()
+    {
+        amanager.setStreamMute(AudioManager.STREAM_MUSIC, true);
+    }
+    
+    public void setStreamUnMute()
+    {
+        amanager.setStreamMute(AudioManager.STREAM_MUSIC, false);
     }
 
     public int getStreamState()
@@ -312,6 +326,11 @@ public class CresStreamCtrl extends Activity {
     {
 	out_url = ap_url;
         streamPlay.setUrl(ap_url);
+    }
+    
+    public void SetStreamInLatency(int initialLatency)
+    {
+        streamPlay.setLatency(initialLatency);
     }
     
     public String getStreamUrl()
