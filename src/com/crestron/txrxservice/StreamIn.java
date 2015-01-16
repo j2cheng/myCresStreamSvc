@@ -24,7 +24,7 @@ public class StreamIn implements SurfaceHolder.Callback, OnPreparedListener {
 		Log.e(TAG, "StreamIN :: Constructor called...!");
 		if (view != null) {
 			Log.d(TAG, "View is not null");
-			 = view.getHolder();	
+			vidHolder = view.getHolder();	
 			vidHolder.addCallback(this);
 			vidHolder.setType(SurfaceHolder.SURFACE_TYPE_PUSH_BUFFERS);
 			view.setZOrderOnTop(true);
