@@ -39,7 +39,7 @@ public class CresStreamCtrl extends Activity {
     public static SurfaceHolder mPopupHolder;
     CresStreamConfigure myconfig;
     AudioManager amanager;
-    AsyncTask<Void, String, Long> sockTask;
+    AsyncTask<Void, Object, Long> sockTask;
 
     String TAG = "TxRx StreamCtrl";
     static String out_url=null;
