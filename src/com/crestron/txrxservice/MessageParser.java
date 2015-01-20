@@ -90,8 +90,8 @@ public class MessageParser {
         String str15= "MUTESTATE(=1:true/0:false)\r\n";
         String str16= "LATENCY=1000 to 3000 (in msec)\r\n";
         String str17= "START | STOP | PAUSE (=true)\r\n";
-        String str18= "Type COMMAND for Query |streamstate to know status\r\n";
-        sb.append(str1).append(str2).append(str3).append(str4).append(str5).append(str6).append(str7).append(str8).append(str9).append(str10).append(str11).append(str12).append(str13).append(str14).append(str15).append(str16).append(str17).append(str18).append("\r\nTxRx>");
+        String str18= "UPDATEREQUEST\r\nType COMMAND for Query |streamstate to know status\r\n";
+        sb.append(str1).append(str2).append(str3).append(str4).append(str5).append(str6).append(str7).append(str8).append(str9).append(str10).append(str11).append(str12).append(str13).append(str14).append(str15).append(str16).append(str17).append(str18);
         return (sb.toString());
     }
 
@@ -221,7 +221,6 @@ public class MessageParser {
             if(cmdArray[i].equalsIgnoreCase(msg[0])){
                 if(msg.length>1) {//cmd processing
                     callbackFunc(i, msg[1]);
-                    sb.append("\r\nTxRx>");
                 }
                 else {
                     if(msg[0].equalsIgnoreCase("streamstate")){//Send StreamState
@@ -239,31 +238,31 @@ public class MessageParser {
                             default:
                                 replyString = "Device in IdleMode";
                         }
-                        sb.append(receivedMsg).append("=").append(replyString).append("\r\nTxRx>");
+                        sb.append(receivedMsg).append("=").append(replyString);
                     }
                     else if(msg[0].equalsIgnoreCase("streamurl")){//Send StreamState
                         String l_url = c_streamctl.getStreamUrl();
-                        sb.append(receivedMsg).append("=").append(l_url).append("\r\nTxRx>");
+                        sb.append(receivedMsg).append("=").append(l_url);
                     }
                     else if(msg[0].equalsIgnoreCase("start")){//Send Start status
                         String temp = c_streamctl.getStartStatus();
-                        sb.append(receivedMsg).append("=").append(temp).append("\r\nTxRx>");
+                        sb.append(receivedMsg).append("=").append(temp);
                     }
                     else if(msg[0].equalsIgnoreCase("stop")){//Send Start status
                         String temp = c_streamctl.getStopStatus();
-                        sb.append(receivedMsg).append("=").append(temp).append("\r\nTxRx>");
+                        sb.append(receivedMsg).append("=").append(temp);
                     }
                     else {//QUERY Procssing
                         String tmp_str = tokenizer.getStringValueOf(msg[0]);
                         Log.d(TAG, "Querying:: searched for "+msg[0]+" and got value of "+tmp_str);
                         if(tmp_str!=null){
                             replyString = tmp_str ;
-                            sb.append(receivedMsg).append("=").append(replyString).append("\r\nTxRx>");
+                            sb.append(receivedMsg).append("=").append(replyString);
                         }
                         else{
                             replyString="";
                             replyString.trim();
-                            sb.append(replyString).append("\r\nTxRx>");
+                            sb.append(replyString);
                         } 
                     }
                 }

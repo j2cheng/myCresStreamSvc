@@ -16,11 +16,11 @@ import android.util.Log;
 import android.os.Bundle;
 
 public class TCPInterface extends AsyncTask<Void, Object, Long> {
-    String TAG = "TxRx TCPInterface"; 
+    String TAG = "TxRx TCPInterface";
+    public static final String CONSOLEPROMPT = "\r\nTxRx>";
     MessageParser parserInstance;
     boolean isWhiteSpace = false;
     static boolean connectionAlive = true;
-    static boolean clientNew = false;
 
     public static final int SERVERPORT = 9876;
     private ServerSocket serverSocket;
@@ -78,7 +78,6 @@ public class TCPInterface extends AsyncTask<Void, Object, Long> {
                 clientSocket = serverSocket.accept();
                 Log.d(TAG, "Client connected to clientSocket: " + clientSocket.toString());
                 connectionAlive = true;//New Client Connected
-                clientNew = true;//New Client Connected
                 CommunicationThread commThread = new CommunicationThread(clientSocket, this);
                 clientList.add(commThread);
                 new Thread(commThread).start();
@@ -146,24 +145,20 @@ public class TCPInterface extends AsyncTask<Void, Object, Long> {
             {
                 try 
                 {
-                    out.write(data);
+                	// Append the Prompt to signal to the client that a transaction has been completed
+                    out.write(data + CONSOLEPROMPT);
                     out.flush();
                 } 
                 catch (IOException e) 
                 {
-                    e.printStackTrace();
+                    Log.d(TAG, "Error sending data to client.  Cleaning up");
+                    serverHandler.RemoveClientFromList(this);
                 }
             }
         }
 
         public void run() {
             while (connectionAlive) {
-                if(clientNew){
-                        for(String s: parserInstance.cmdArray){
-                            publishProgress(s, this);
-                        }
-                        clientNew = false;
-                }
                 try {
                     String read = input.readLine();
                     if(read!=null && !(isWhiteSpace=(read.matches("^\\s*$"))))
@@ -171,20 +166,24 @@ public class TCPInterface extends AsyncTask<Void, Object, Long> {
                         Log.d(TAG, "msg recived is "+read);
                         if((read.trim()).equalsIgnoreCase("help")){
                             String validatedMsg = parserInstance.validateReceivedMessage(read);
-                            SendDataToClient(validatedMsg);
+                            serverHandler.SendDataToAllClients(validatedMsg);
+                        }
+                        else if (read.trim().equalsIgnoreCase("updaterequest")) {
+                            for(String s: parserInstance.cmdArray){
+                                publishProgress(s, serverHandler);
+                            }
                         }
                         else{
-                            publishProgress(read.trim(), this);
+                            publishProgress(read.trim(), serverHandler);
                         }
                     }
                     else if(read == null) {
                         Log.d(TAG, "Client Disconnected..... ");
                         connectionAlive = false;
+                        serverHandler.RemoveClientFromList(this);
                     }
                     else{//white space or NULL Commands
-                        StringBuilder sb = new StringBuilder(1024);
-                        sb.append("\r\nTxRx>");
-                        SendDataToClient(sb.toString());
+                    	serverHandler.SendDataToAllClients("");
                     }
                 } catch (IOException e) {
                     e.printStackTrace();
@@ -196,10 +195,10 @@ public class TCPInterface extends AsyncTask<Void, Object, Long> {
     protected void onProgressUpdate(Object... progress) { 
         String tmp_str;
         String receivedMsg = (String)progress[0];
-        CommunicationThread thread = (CommunicationThread)progress[1];
+        TCPInterface server = (TCPInterface)progress[1];
         tmp_str = parserInstance.processReceivedMessage(receivedMsg); 
         try {
-            thread.SendDataToClient(tmp_str);
+        	server.SendDataToAllClients(tmp_str);
         } catch (Exception e) {
             e.printStackTrace();
         }
