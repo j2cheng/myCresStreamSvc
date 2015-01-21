@@ -173,6 +173,24 @@ public class TCPInterface extends AsyncTask<Void, Object, Long> {
                                 publishProgress(s, serverHandler);
                             }
                         }
+                        else if (read.trim().equalsIgnoreCase("hdmiin_horizontal_res_fb")) {
+                            publishProgress(read, serverHandler);
+                        }
+                        else if (read.trim().equalsIgnoreCase("hdmiin_vertical_res_fb")) {
+                            publishProgress(read, serverHandler);
+                        }
+                        else if (read.trim().equalsIgnoreCase("hdmiin_fps_fb")) {
+                            publishProgress(read, serverHandler);
+                        }
+                        else if (read.trim().equalsIgnoreCase("hdmiout_horizontal_res_fb")) {
+                            publishProgress(read, serverHandler);
+                        }
+                        else if (read.trim().equalsIgnoreCase("hdmiout_vertical_res_fb")) {
+                            publishProgress(read, serverHandler);
+                        }
+                        else if (read.trim().equalsIgnoreCase("hdmiout_fps_fb")) {
+                            publishProgress(read, serverHandler);
+                        }
                         else{
                             publishProgress(read.trim(), serverHandler);
                         }

@@ -166,4 +166,13 @@ public class CameraPreview {
 			mCamera = null;
 		}
 	}
+	
+	public String getHdmiInputResolution() {
+		if(mCamera != null) {
+			return mCamera.getHdmiInputStatus();
+		}
+		else {
+			return null;
+		}
+	}
 }

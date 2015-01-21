@@ -56,7 +56,7 @@ public class MessageParser {
     private final CresStreamCtrl c_streamctl;
     StringTokenizer tokenizer; 
     
-    String[] cmdArray = {"MODE", "SessionInitiation", "STREAMURL", "VENCPROFILE", "TRANSPORTMODE", "RTSPPORT", "TSPORT", "RTPVIDEOPORT", "RTPAUDIOPORT", "VFRAMERATE", "VBITRATE", "VENCLEVEL", "HDMIOUTPUTRES", "IPADDRESS", "START", "STOP", "PAUSE", "MUTESTATE", "LATENCY", "streamstate"};
+    String[] cmdArray = {"MODE", "SessionInitiation", "STREAMURL", "VENCPROFILE", "TRANSPORTMODE", "RTSPPORT", "TSPORT", "RTPVIDEOPORT", "RTPAUDIOPORT", "VFRAMERATE", "VBITRATE", "VENCLEVEL", "HDMIOUTPUTRES", "IPADDRESS", "START", "STOP", "PAUSE", "MUTESTATE", "LATENCY", "HDMIIN_HORIZONTAL_RES_FB", "HDMIIN_VERTICAL_RES_FB", "HDMIIN_FPS_FB", "HDMIOUT_HORIZONTAL_RES_FB", "HDMIOUT_VERTICAL_RES_FB", "HDMIOUT_FPS_FB", "streamstate"};
 
     public boolean validateCommand(String targetValue) {
         for(String s: cmdArray){
@@ -73,25 +73,31 @@ public class MessageParser {
 
     public String validateReceivedMessage(String read){
         StringBuilder sb = new StringBuilder(4096);
-        String str1= "MODE (= 0:STREAMIN 1: STREAMOUT 2:HDMIPREVIEW)\r\n";
-        String str2= "SessionInitiation (= 0: ByReceiver 1: ByTransmitter 2: MCastviaRTSP 3: MCastviaUDP)\r\n";
-        String str3= "TRANSPORTMODE (= 0: RTP 1: TS_RTP 2: TS_UDP)\r\n";
-        String str4= "VENCPROFILE (= 0:HighProfile 1:MainProfile 2:BaseProfile)\r\n";
-        String str5= "STREAMURL(= any url) \r\n";
-        String str6= "RTSPPORT(= 1024 to 49151)\r\n";
-        String str7= "TSPORT (= 1024 to 49151)\r\n";
-        String str8= "RTPVIDEOPORT (= 1024 to 49151)\r\n";
-        String str9= "RTPAUDIOPORT (= 1024 to 49151)\r\n";
-        String str10= "VFRAMERATE (= 60 50 30 24)\r\n";
-        String str11= "VBITRATE (= 96 to 25000kbps)\r\n";
-        String str12= "VENCLEVEL (= 4096:for 4.1 level, 8192:for 4.2 level)\r\n";
-        String str13= "HDMIOUTPUTRES(17=1920x1080, 16=1680x1050 follow join sheet)\r\n";
-        String str14= "IPADDRESS(=xxx.xxx.xxx.xxx)\r\n";
-        String str15= "MUTESTATE(=1:true/0:false)\r\n";
-        String str16= "LATENCY=1000 to 3000 (in msec)\r\n";
-        String str17= "START | STOP | PAUSE (=true)\r\n";
-        String str18= "UPDATEREQUEST\r\nType COMMAND for Query |streamstate to know status\r\n";
-        sb.append(str1).append(str2).append(str3).append(str4).append(str5).append(str6).append(str7).append(str8).append(str9).append(str10).append(str11).append(str12).append(str13).append(str14).append(str15).append(str16).append(str17).append(str18);
+        sb.append("MODE (= 0:STREAMIN 1: STREAMOUT 2:HDMIPREVIEW)\r\n");
+        sb.append("SessionInitiation (= 0: ByReceiver 1: ByTransmitter 2: MCastviaRTSP 3: MCastviaUDP)\r\n");
+        sb.append("TRANSPORTMODE (= 0: RTP 1: TS_RTP 2: TS_UDP)\r\n");
+        sb.append("VENCPROFILE (= 0:HighProfile 1:MainProfile 2:BaseProfile)\r\n");
+        sb.append("STREAMURL(= any url) \r\n");
+        sb.append("RTSPPORT(= 1024 to 49151)\r\n");
+        sb.append("TSPORT (= 1024 to 49151)\r\n");
+        sb.append("RTPVIDEOPORT (= 1024 to 49151)\r\n");
+        sb.append("RTPAUDIOPORT (= 1024 to 49151)\r\n");
+        sb.append("VFRAMERATE (= 60 50 30 24)\r\n");
+        sb.append("VBITRATE (= 96 to 25000kbps)\r\n");
+        sb.append("VENCLEVEL (= 4096:for 4.1 level, 8192:for 4.2 level)\r\n");
+        sb.append("HDMIOUTPUTRES(17=1920x1080, 16=1680x1050 follow join sheet)\r\n");
+        sb.append("IPADDRESS(=xxx.xxx.xxx.xxx)\r\n");
+        sb.append("MUTESTATE(=1:true/0:false)\r\n");
+        sb.append("LATENCY=1000 to 3000 (in msec)\r\n");
+        sb.append("START | STOP | PAUSE (=true)\r\n");
+        sb.append("HDMIIN_HORIZONTAL_RES_FB\r\n");
+        sb.append("HDMIIN_VERTICAL_RES_FB\r\n");
+        sb.append("HDMIIN_FPS_FB\r\n");
+        sb.append("HDMIOUT_HORIZONTAL_RES_FB\r\n");
+        sb.append("HDMIOUT_VERTICAL_RES_FB\r\n");
+        sb.append("HDMIOUT_FPS_FB\r\n");
+        sb.append("UPDATEREQUEST\r\nType COMMAND for Query |streamstate to know status\r\n");
+        
         return (sb.toString());
     }
 
@@ -251,6 +257,30 @@ public class MessageParser {
                     else if(msg[0].equalsIgnoreCase("stop")){//Send Start status
                         String temp = c_streamctl.getStopStatus();
                         sb.append(receivedMsg).append("=").append(temp);
+                    }
+                    else if (msg[0].equalsIgnoreCase("hdmiin_horizontal_res_fb"))
+                    {
+                    	sb.append(receivedMsg).append("=").append(c_streamctl.getHDMIInHorizontalRes());
+                    }
+                    else if (msg[0].equalsIgnoreCase("hdmiin_vertical_res_fb"))
+                    {
+                    	sb.append(receivedMsg).append("=").append(c_streamctl.getHDMIInVerticalRes());
+                    }
+                    else if (msg[0].equalsIgnoreCase("hdmiin_fps_fb"))
+                    {
+                    	sb.append(receivedMsg).append("=").append(c_streamctl.getHDMIInFPS());
+                    }
+                    else if (msg[0].equalsIgnoreCase("hdmiout_horizontal_res_fb"))
+                    {
+                    	sb.append(receivedMsg).append("=").append(c_streamctl.getHDMIOutHorizontalRes());
+                    }
+                    else if (msg[0].equalsIgnoreCase("hdmiout_vertical_res_fb"))
+                    {
+                    	sb.append(receivedMsg).append("=").append(c_streamctl.getHDMIOutVerticalRes());
+                    }
+                    else if (msg[0].equalsIgnoreCase("hdmiout_fps_fb"))
+                    {
+                    	sb.append(receivedMsg).append("=").append(c_streamctl.getHDMIOutFPS());
                     }
                     else {//QUERY Procssing
                         String tmp_str = tokenizer.getStringValueOf(msg[0]);

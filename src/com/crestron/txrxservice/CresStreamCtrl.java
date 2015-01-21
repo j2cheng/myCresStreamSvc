@@ -19,6 +19,9 @@ import android.content.IntentFilter;
 import android.content.BroadcastReceiver;
 import android.view.SurfaceHolder;
 import android.media.AudioManager;
+import android.view.Surface;
+import android.view.Surface.PhysicalDisplayInfo;
+import android.hardware.Camera;
 
 interface Command {
     void executeStart();
@@ -33,6 +36,7 @@ public class CresStreamCtrl extends Activity {
     StreamIn streamPlay;
     BroadcastReceiver hpdEvent = null;
     BroadcastReceiver resolutionEvent = null;
+    BroadcastReceiver hdmioutResolutionChangedEvent = null;
     private SurfaceView previewSurface;
     private SurfaceView streamingSurface = null;
     private static SurfaceView dummyView = null;
@@ -40,6 +44,9 @@ public class CresStreamCtrl extends Activity {
     CresStreamConfigure myconfig;
     AudioManager amanager;
     AsyncTask<Void, Object, Long> sockTask;
+    
+    HDMIInputInterface hdmiInput;
+    HDMIOutputInterface hdmiOutput;
 
     String TAG = "TxRx StreamCtrl";
     static String out_url=null;
@@ -111,6 +118,13 @@ public class CresStreamCtrl extends Activity {
             amanager=(AudioManager)getSystemService(Context.AUDIO_SERVICE);
             //Input Streamout Config
             myconfig = new CresStreamConfigure();
+            
+            hdmiInput = new HDMIInputInterface();
+            hdmiOutput = new HDMIOutputInterface();
+
+            //refresh resolution on startup
+            refreshResolutionInfo();
+            
             //Stub: TestApp functionality
             sockTask = new TCPInterface(this);
             sockTask.execute(new Void[0]);
@@ -142,6 +156,82 @@ public class CresStreamCtrl extends Activity {
         Log.d(TAG, " Asynctask cancelled");
         unregisterReceiver(resolutionEvent);
         unregisterReceiver(hpdEvent);
+        unregisterReceiver(hdmioutResolutionChangedEvent);
+    }
+
+    void refreshResolutionInfo()
+    {
+        Log.i(TAG, "Refresh resolution changes");
+    	
+    	//HDMI In
+    	String hdmiInputResolution = null;
+        if ((cam_streaming.mCameraObj != null) && (((cam_streaming.mCameraObj.IsPreviewStatus()) == true)))  
+        {
+            hdmiInputResolution = cam_streaming.mCameraObj.getHdmiInputResolution();
+            Log.i(TAG, "HDMI In Resolution " + hdmiInputResolution);
+        }
+        else if((cam_streaming.mCameraObj != null) && ((cam_streaming.isStreaming()) == true)){
+            hdmiInputResolution = cam_streaming.mCameraObj.getHdmiInputResolution();
+            Log.i(TAG, "HDMI In Resolution " + hdmiInputResolution);
+        }
+        else{
+        	Camera cameraInstance = Camera.open(0);
+        	if(cameraInstance != null){
+        		hdmiInputResolution = cameraInstance.getHdmiInputStatus();
+        		Log.i(TAG, "HDMI In Resolution " + hdmiInputResolution);
+        	   	cameraInstance.release();
+        	}
+        	cameraInstance = null;
+        }
+        
+        String delims = "[x@]+";
+        String tokens[] = hdmiInputResolution.split(delims);
+        
+        hdmiInput.setHorizontalRes(tokens[0]);
+        hdmiInput.setVerticalRes(tokens[1]);
+        hdmiInput.setFPS(tokens[2].trim());
+        
+    	//HDMI Out
+        PhysicalDisplayInfo hdmiOutputResolution = new PhysicalDisplayInfo();
+        Surface.getDisplayInfo(Surface.getBuiltInDisplay(Surface.BUILT_IN_DISPLAY_ID_MAIN), hdmiOutputResolution);
+        
+    	Log.i(TAG, "HDMI Out Resolution " + hdmiOutputResolution.width + " "
+    			+ hdmiOutputResolution.height + " "
+    			+ hdmiOutputResolution.refreshRate);
+    	
+        hdmiOutput.setHorizontalRes(Integer.toString(hdmiOutputResolution.width));
+        hdmiOutput.setVerticalRes(Integer.toString(hdmiOutputResolution.height));
+        hdmiOutput.setFPS(Float.toString(hdmiOutputResolution.refreshRate));
+    }
+    
+    public String getHDMIInHorizontalRes()
+    {
+    	return hdmiInput.getHorizontalRes();
+    }
+    
+    public String getHDMIInVerticalRes()
+    {
+    	return hdmiInput.getVerticalRes();
+    }
+
+    public String getHDMIInFPS()
+    {
+    	return hdmiInput.getFPS();
+    }
+
+    public String getHDMIOutHorizontalRes()
+    {
+    	return hdmiOutput.getHorizontalRes();
+    }
+    
+    public String getHDMIOutVerticalRes()
+    {
+    	return hdmiOutput.getVerticalRes();
+    }
+
+    public String getHDMIOutFPS()
+    {
+    	return hdmiOutput.getFPS();
     }
 
     public void setSessionInitMode(int mode)
@@ -386,23 +476,48 @@ public class CresStreamCtrl extends Activity {
                 if (paramAnonymousIntent.getAction().equals("evs.intent.action.hdmi.RESOLUTION_CHANGED"))
                 {
                     int i = paramAnonymousIntent.getIntExtra("hdmi_resolution_id", -1);
+                    String hdmiInputResolution = null;
                     Log.i(TAG, "Received resolution changed broadcast !: " + i);
                     if ((cam_streaming.mCameraObj != null) && (((cam_streaming.mCameraObj.IsPreviewStatus()) == true)))  
                     {
+                        hdmiInputResolution = cam_streaming.mCameraObj.getHdmiInputResolution();
+                        Log.i(TAG, "Resolution changed to " + hdmiInputResolution);
+
                         Log.i(TAG, "Restart called due to resolution change broadcast ! ");
                         cam_streaming.mCameraObj.stopPlayback();
                         cam_streaming.mCameraObj.startPlayback(true);
                     }
                     else if((cam_streaming.mCameraObj != null) && ((cam_streaming.isStreaming()) == true)){
-                        cam_streaming.stopRecording();
+                        hdmiInputResolution = cam_streaming.mCameraObj.getHdmiInputResolution();
+                        Log.i(TAG, "Resolution changed to " + hdmiInputResolution);
+
+                    	cam_streaming.stopRecording();
                         try{
                             cam_streaming.startRecording();
                         } catch(IOException e) {
                             e.printStackTrace();
                         }
                     }
-                    else
+                    else{
+                    	Camera cameraInstance = Camera.open(0);
+                    	if(cameraInstance != null){
+                    		hdmiInputResolution = cameraInstance.getHdmiInputStatus();
+                    		Log.i(TAG, "Resolution changed to " + hdmiInputResolution);
+                    	   	cameraInstance.release();
+                    	}
+                    	cameraInstance = null;
                         Log.i(TAG, " Nothing todo!!!");
+                    }
+                    
+                    String delims = "[x@]+";
+                    String tokens[] = hdmiInputResolution.split(delims);
+                    Log.i(TAG," HDMI Input resolution");
+                    for (int tokenIndex = 0; tokenIndex < tokens.length; tokenIndex++)
+                        Log.i(TAG, " " + tokens[tokenIndex]);
+                    
+                    hdmiInput.setHorizontalRes(tokens[0]);
+                    hdmiInput.setVerticalRes(tokens[1]);
+                    hdmiInput.setFPS(tokens[2].trim());
                 }
             }
         };
@@ -423,5 +538,31 @@ public class CresStreamCtrl extends Activity {
         };
         IntentFilter hpdIntentFilter = new IntentFilter("evs.intent.action.hdmi.HPD");
         registerReceiver(hpdEvent, hpdIntentFilter);	
+
+        hdmioutResolutionChangedEvent = new BroadcastReceiver()
+        {
+            public void onReceive(Context paramAnonymousContext, Intent paramAnonymousIntent)
+            {
+                if (paramAnonymousIntent.getAction().equals("evs.intent.action.hdmi.HDMIOUT_RESOLUTION_CHANGED"))
+                {
+            		Log.d(TAG, "receiving intent!!!!");
+                	
+                    int i = paramAnonymousIntent.getIntExtra("evs_hdmiout_resolution_changed_id", -1);
+                    Log.i(TAG, "Received hdmiout reoslution changed broadcast ! " + i);
+                    PhysicalDisplayInfo hdmiOutputResolution = new PhysicalDisplayInfo();
+                    Surface.getDisplayInfo(Surface.getBuiltInDisplay(Surface.BUILT_IN_DISPLAY_ID_MAIN), hdmiOutputResolution);
+                    
+					Log.i(TAG, "HDMI Output resolution " + hdmiOutputResolution.width + " "
+							+ hdmiOutputResolution.height + " "
+							+ hdmiOutputResolution.refreshRate);
+
+			        hdmiOutput.setHorizontalRes(Integer.toString(hdmiOutputResolution.width));
+			        hdmiOutput.setVerticalRes(Integer.toString(hdmiOutputResolution.height));
+			        hdmiOutput.setFPS(Float.toString(hdmiOutputResolution.refreshRate));
+                }
+            }
+        };
+        IntentFilter hdmioutResolutionIntentFilter = new IntentFilter("evs.intent.action.hdmi.HDMIOUT_RESOLUTION_CHANGED");
+        registerReceiver(hdmioutResolutionChangedEvent, hdmioutResolutionIntentFilter);
     }
 }
