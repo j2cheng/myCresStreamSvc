@@ -101,7 +101,7 @@ public class HDMIOutputInterface {
 		
 		byte[] hdmiOutEdid = DisplayManager.getEVSHdmiOutEdid();
 		
-		manfString.append((char)( 'A' - 1 + ((hdmiOutEdid[8] >> 2) & 0x7C) )); //Bits 14-10
+		manfString.append((char)( 'A' - 1 + ((hdmiOutEdid[8] >> 2) & 0x1F) )); //Bits 14-10
 		manfString.append((char)( 'A' - 1 + ( ((hdmiOutEdid[8] << 3) & 0x18) | ((hdmiOutEdid[9] >> 5) & 0x07) ) ));//Bits 9-5
 		manfString.append((char)( 'A' - 1 + (hdmiOutEdid[9] & 0x1F) ));//Bits 4-0
 		
