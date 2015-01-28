@@ -617,7 +617,12 @@ public class CresStreamCtrl extends Activity {
 
 			        hdmiOutput.setHorizontalRes(Integer.toString(hdmiOutputResolution.width));
 			        hdmiOutput.setVerticalRes(Integer.toString(hdmiOutputResolution.height));
-			        hdmiOutput.setFPS(Float.toString(hdmiOutputResolution.refreshRate));
+			        hdmiOutput.setFPS(Integer.toString((int)hdmiOutputResolution.refreshRate));
+			        hdmiOutput.setAspectRatio();
+			        hdmiOutput.setManf();
+			        hdmiOutput.setSerialNo();
+			        hdmiOutput.setModelNo();
+			        hdmiOutput.setPrefTiming();
                 }
             }
         };

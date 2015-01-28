@@ -67,11 +67,11 @@ public class HDMIOutputInterface {
 		{
 			aspectRatio = "133";
 		}
-		else if( (Integer.parseInt(horizontalRes) * 9) == (Integer.parseInt(verticalRes) * 16) )
+		else if( (Integer.parseInt(horizontalRes) * 10) == (Integer.parseInt(verticalRes) * 16) )
 		{
 			aspectRatio = "160";
 		}
-		else if( (Integer.parseInt(horizontalRes) * 10) == (Integer.parseInt(verticalRes) * 16) )
+		else if( (Integer.parseInt(horizontalRes) * 9) == (Integer.parseInt(verticalRes) * 16) )
 		{
 			aspectRatio = "177";
 		}
