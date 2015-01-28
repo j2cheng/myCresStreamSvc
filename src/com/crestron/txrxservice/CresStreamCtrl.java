@@ -161,7 +161,7 @@ public class CresStreamCtrl extends Activity {
 
     void refreshResolutionInfo()
     {
-        Log.i(TAG, "Refresh resolution changes");
+        Log.i(TAG, "Refresh resolution info");
     	
     	//HDMI In
     	String hdmiInputResolution = null;
@@ -202,6 +202,11 @@ public class CresStreamCtrl extends Activity {
         hdmiOutput.setHorizontalRes(Integer.toString(hdmiOutputResolution.width));
         hdmiOutput.setVerticalRes(Integer.toString(hdmiOutputResolution.height));
         hdmiOutput.setFPS(Float.toString(hdmiOutputResolution.refreshRate));
+        hdmiOutput.setAspectRatio();
+        hdmiOutput.setManf();
+        hdmiOutput.setSerialNo();
+        hdmiOutput.setModelNo();
+        hdmiOutput.setPrefTiming();
     }
     
     public String getHDMIInHorizontalRes()
@@ -219,6 +224,25 @@ public class CresStreamCtrl extends Activity {
     	return hdmiInput.getFPS();
     }
 
+    public boolean setDisplayBlankEnabled()
+    {
+    	Log.i(TAG, "Display blanking enabled");
+    	Surface.blankDisplay(Surface.getBuiltInDisplay(Surface.BUILT_IN_DISPLAY_ID_MAIN));
+    	return true;
+    }
+    
+    public boolean setDisplayBlankDisabled()
+    {
+    	Log.i(TAG, "Display blanking disabled");
+    	Surface.unblankDisplay(Surface.getBuiltInDisplay(Surface.BUILT_IN_DISPLAY_ID_MAIN));
+    	return true;
+    }
+    
+    public String getHDMIOutInterlacing()
+    {
+    	return hdmiOutput.getInterlacing();
+    }
+    
     public String getHDMIOutHorizontalRes()
     {
     	return hdmiOutput.getHorizontalRes();
@@ -232,6 +256,41 @@ public class CresStreamCtrl extends Activity {
     public String getHDMIOutFPS()
     {
     	return hdmiOutput.getFPS();
+    }
+    
+    public String getHDMIOutAspectRatio()
+    {
+    	return hdmiOutput.getAspectRatio();
+    }
+
+    public String getHDMIOutAudioFormat()
+    {
+    	return hdmiOutput.getAudioFormat();
+    }
+
+    public String getHDMIOutAudioChannels()
+    {
+    	return hdmiOutput.getAudioChannels();
+    }
+
+    public String getHDMIOutManf()
+    {
+    	return hdmiOutput.getManf();
+    }
+
+    public String getHDMIOutSerialNo()
+    {
+    	return hdmiOutput.getSerialNo();
+    }
+
+    public String getHDMIOutModelNo()
+    {
+    	return hdmiOutput.getModelNo();
+    }
+
+    public String getHDMIOutPrefTiming()
+    {
+    	return hdmiOutput.getPrefTiming();
     }
 
     public void setSessionInitMode(int mode)

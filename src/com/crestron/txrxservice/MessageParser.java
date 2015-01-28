@@ -56,7 +56,15 @@ public class MessageParser {
     private final CresStreamCtrl c_streamctl;
     StringTokenizer tokenizer; 
     
-    String[] cmdArray = {"MODE", "SessionInitiation", "STREAMURL", "VENCPROFILE", "TRANSPORTMODE", "RTSPPORT", "TSPORT", "RTPVIDEOPORT", "RTPAUDIOPORT", "VFRAMERATE", "VBITRATE", "VENCLEVEL", "HDMIOUTPUTRES", "IPADDRESS", "START", "STOP", "PAUSE", "MUTESTATE", "LATENCY", "HDMIIN_HORIZONTAL_RES_FB", "HDMIIN_VERTICAL_RES_FB", "HDMIIN_FPS_FB", "HDMIOUT_HORIZONTAL_RES_FB", "HDMIOUT_VERTICAL_RES_FB", "HDMIOUT_FPS_FB", "streamstate"};
+    String[] cmdArray = {"MODE", "SessionInitiation", "STREAMURL", "VENCPROFILE", "TRANSPORTMODE", "RTSPPORT", "TSPORT", "RTPVIDEOPORT", "RTPAUDIOPORT", "VFRAMERATE", "VBITRATE", "VENCLEVEL", "HDMIOUTPUTRES", "IPADDRESS", "START", "STOP", "PAUSE", "MUTESTATE", "LATENCY", 
+    					"HDMIIN_HORIZONTAL_RES_FB", "HDMIIN_VERTICAL_RES_FB", "HDMIIN_FPS_FB", 
+    					"HDMIOUT_INTERLACED_FB", 
+    					"HDMIOUT_DISPLAYBLANK_ENABLED", "HDMIOUT_DISPLAYBLANK_DISABLED",
+    					"HDMIOUT_HORIZONTAL_RES_FB", "HDMIOUT_VERTICAL_RES_FB", 
+    					"HDMIOUT_FPS_FB", "HDMIOUT_ASPECT_RATIO_FB",
+    					"HDMIOUT_AUDIO_FORMAT_FB", "HDMIOUT_AUDIO_CHANNELS_FB",
+    					"HDMIOUT_MANUFACTURER_FB", "HDMIOUT_MODELNO_FB", "HDMIOUT_PREFTIMING_FB", "HDMIOUT_SERIALNO_FB",
+    					"streamstate"};
 
     public boolean validateCommand(String targetValue) {
         for(String s: cmdArray){
@@ -93,9 +101,21 @@ public class MessageParser {
         sb.append("HDMIIN_HORIZONTAL_RES_FB\r\n");
         sb.append("HDMIIN_VERTICAL_RES_FB\r\n");
         sb.append("HDMIIN_FPS_FB\r\n");
+        //sb.append("HDMIOUT_SYNC_DETECTED_FB\r\n");
+        sb.append("HDMIOUT_INTERLACED_FB\r\n");
+        //sb.append("HDMIOUT_CEC_ERROR_FB\r\n");
+        sb.append("HDMIOUT_DISPLAYBLANK_ENABLED\r\n");
+        sb.append("HDMIOUT_DISPLAYBLANK_DISABLED\r\n");
         sb.append("HDMIOUT_HORIZONTAL_RES_FB\r\n");
         sb.append("HDMIOUT_VERTICAL_RES_FB\r\n");
         sb.append("HDMIOUT_FPS_FB\r\n");
+        sb.append("HDMIOUT_ASPECT_RATIO_FB\r\n");
+        sb.append("HDMIOUT_AUDIO_FORMAT_FB\r\n");
+        sb.append("HDMIOUT_AUDIO_CHANNELS_FB\r\n");
+        sb.append("HDMIOUT_MANUFACTURER_FB\r\n");
+        sb.append("HDMIOUT_MODELNO_FB\r\n");
+        sb.append("HDMIOUT_SERIALNO_FB\r\n");
+        sb.append("HDMIOUT_PREFTIMING_FB\r\n");
         sb.append("UPDATEREQUEST\r\nType COMMAND for Query |streamstate to know status\r\n");
         
         return (sb.toString());
@@ -213,6 +233,21 @@ public class MessageParser {
                     c_streamctl.SetStreamInLatency(initialLatency);
                 }
                 break;
+                
+            case 23://Display blank enabled
+            	{
+            		boolean result = false;
+            		result = c_streamctl.setDisplayBlankEnabled();
+            	}
+            	break;
+            	
+            case 24://Display blank disabled
+            	{
+            		boolean result = false;
+            		result = c_streamctl.setDisplayBlankDisabled();
+            	}
+            	break;
+            	
             default:
                 break;
         }	
@@ -270,6 +305,10 @@ public class MessageParser {
                     {
                     	sb.append(receivedMsg).append("=").append(c_streamctl.getHDMIInFPS());
                     }
+                    else if (msg[0].equalsIgnoreCase("hdmiout_interlaced_fb"))
+                    {
+                    	sb.append(receivedMsg).append("=").append(c_streamctl.getHDMIOutInterlacing());
+                    }
                     else if (msg[0].equalsIgnoreCase("hdmiout_horizontal_res_fb"))
                     {
                     	sb.append(receivedMsg).append("=").append(c_streamctl.getHDMIOutHorizontalRes());
@@ -281,6 +320,30 @@ public class MessageParser {
                     else if (msg[0].equalsIgnoreCase("hdmiout_fps_fb"))
                     {
                     	sb.append(receivedMsg).append("=").append(c_streamctl.getHDMIOutFPS());
+                    }
+                    else if (msg[0].equalsIgnoreCase("hdmiout_aspect_ratio_fb"))
+                    {
+                    	sb.append(receivedMsg).append("=").append(c_streamctl.getHDMIOutAspectRatio());
+                    }
+                    else if (msg[0].equalsIgnoreCase("hdmiout_audio_format_fb"))
+                    {
+                    	sb.append(receivedMsg).append("=").append(c_streamctl.getHDMIOutAudioFormat());
+                    }
+                    else if (msg[0].equalsIgnoreCase("hdmiout_audio_channels_fb"))
+                    {
+                    	sb.append(receivedMsg).append("=").append(c_streamctl.getHDMIOutAudioChannels());
+                    }
+                    else if (msg[0].equalsIgnoreCase("hdmiout_manufacturer_fb")) {
+                    	sb.append(receivedMsg).append("=").append(c_streamctl.getHDMIOutManf());
+                    }
+                    else if (msg[0].equalsIgnoreCase("hdmiout_modelno_fb")) {
+                    	sb.append(receivedMsg).append("=").append(c_streamctl.getHDMIOutModelNo());
+                    }
+                    else if (msg[0].equalsIgnoreCase("hdmiout_preftiming_fb")) {
+                    	sb.append(receivedMsg).append("=").append(c_streamctl.getHDMIOutPrefTiming());
+                    }
+                    else if (msg[0].equalsIgnoreCase("hdmiout_serialno_fb")) {
+                    	sb.append(receivedMsg).append("=").append(c_streamctl.getHDMIOutSerialNo());
                     }
                     else {//QUERY Procssing
                         String tmp_str = tokenizer.getStringValueOf(msg[0]);
