@@ -52,6 +52,7 @@ public class CresStreamCtrl extends Activity {
     static String out_url=null;
     static String playStatus="false";
     static String stopStatus="true";
+    static String pauseStatus="false";
     int device_mode = 0;
     int sessInitMode = 0;
     int StreamState = 100;//INVALID State
@@ -300,9 +301,7 @@ public class CresStreamCtrl extends Activity {
 	    //switch(SessionInitationMode.getStringValueFromInt(sessInitMode)){
 	    switch(mode){
 		//case "ByReceiver":
-		//case "MCastViaRTSP":
 		case 0: 
-		case 2:
 		{
         		myconfig.setTransportMode("RTSP");	
 	    		Log.d(TAG, "By ReceiverMode rtsp streaming starts");
@@ -312,6 +311,12 @@ public class CresStreamCtrl extends Activity {
 		case 1:
 		{
 	    		Log.d(TAG, "By TransmitterMode rtp streaming starts");
+		}
+		//case "MCastViaRTSP":
+		case 2:
+		{
+        		myconfig.setTransportMode("MRTSP");	
+	    		Log.d(TAG, "MCastViaRTSP streaming starts");
 		}
 		//case "MCastViaUDP":
 		case 3:
@@ -341,22 +346,27 @@ public class CresStreamCtrl extends Activity {
 
     public void setDeviceMode(int mode)
     {
-	    Log.d(TAG, " setDeviceMode "+ mode);
-	    device_mode = mode;
+        Log.d(TAG, " setDeviceMode "+ mode);
+        device_mode = mode;
     }
 
     //Ctrls
     public void Start(){
     	playStatus="true";
     	stopStatus="false";
+        pauseStatus="false";
         hm.get(DeviceMode.getStringValueFromInt(device_mode)).executeStart();
     }
     public void Stop(){
     	playStatus="false";
     	stopStatus="true";
+        pauseStatus="false";
         hm2.get(DeviceMode.getStringValueFromInt(device_mode)).executeStop();
     }
     public void Pause(){
+        pauseStatus="true";
+    	playStatus="false";
+    	stopStatus="false";
         Log.d(TAG, " Unimplemented");
     }
     //StreamOut Ctrl & Config 
@@ -391,37 +401,42 @@ public class CresStreamCtrl extends Activity {
 
     private String createStreamOutURL()
     {
-            StringBuilder url = new StringBuilder(1024);
-	    String proto = null;
-	    int port = 0;  
-	    switch(myconfig.mode.getMode()){
-		    case 0:{
-				   proto = "rtsp";
-				   port = myconfig.getRTSPPort(); 
-			   }
-			   break;
-		    case 1:{
-				   port = myconfig.getRTSPPort(); 
-				   proto = "rtp";
-			   }
-			   break;
-		    case 2:{
-				   proto = "rtp";
-				   port = myconfig.getTSPort(); 
-			   }
-			   break;
-		    case 3:{
-				   proto = "udp";
-				   port = myconfig.getTSPort(); 
-			   }
-			   break;
-		    default:
-			   break;
-	    }
-		    String l_ipaddr = myconfig.getIP();
-		    url.append(proto).append("://").append(l_ipaddr).append(":").append(port);
-		    Log.d(TAG, "URL is "+url.toString());
-		    return url.toString();
+        StringBuilder url = new StringBuilder(1024);
+        String proto = null;
+        String file = "";
+        int port = 0;  
+        String l_ipaddr = myconfig.getIP();
+        switch(myconfig.mode.getMode()){
+            case 5:
+            case 0:{
+                       proto = "rtsp";
+                       port = myconfig.getRTSPPort(); 
+                       file = "/live.sdp";
+                   }
+                   break;
+            case 1:{//Only RTP
+                       proto = "rtp";
+                       l_ipaddr = "@";
+                       port = myconfig.getRTPVPort();
+
+                   }
+                   break;
+            case 2:{
+                       proto = "rtp";
+                       port = myconfig.getTSPort(); 
+                   }
+                   break;
+            case 3:{
+                       proto = "udp";
+                       port = myconfig.getTSPort(); 
+                   }
+                   break;
+            default:
+                   break;
+        }
+        url.append(proto).append("://").append(l_ipaddr).append(":").append(port).append(file);
+        Log.d(TAG, "URL is "+url.toString());
+        return url.toString();
     }
 
     public void startStreamOut()
@@ -503,6 +518,61 @@ public class CresStreamCtrl extends Activity {
         hideStreamInWindow();
     }
 
+    public int getHorizontalResFb(){
+        if(device_mode==0)
+            return streamPlay.getMediaPlayerHorizontalResFb();
+        else if(device_mode==1)
+            return cam_streaming.getStreamOutHorizontalResFb();
+        else
+            return 0;
+    } 
+    
+    public int getVerticalResFb(){
+        if(device_mode==0)
+            return streamPlay.getMediaPlayerVerticalResFb();
+        else if(device_mode==1)
+            return cam_streaming.getStreamOutVerticalResFb();
+        else
+            return 0;
+    }
+    
+    public int getFpsFb(){
+        if(device_mode==0)
+            return streamPlay.getMediaPlayerFpsFb();
+        else if(device_mode==1)
+            return cam_streaming.getStreamOutFpsFb();
+        else
+            return 0;
+    }
+    
+    public String getAspectRatioFb(){
+        if(device_mode==0)
+            return streamPlay.getMediaPlayerAspectRatioFb();
+        else if(device_mode==1)
+                return cam_streaming.getStreamOutAspectRatioFb();
+        else
+            return "";
+    }
+    
+    public int getAudioFormatFb(){
+        if(device_mode==0)
+            return streamPlay.getMediaPlayerAudioFormatFb();
+        else if(device_mode==1)
+            return cam_streaming.getStreamOutAudioFormatFb();
+        else
+            return 0;
+    }
+    
+    public int getAudiochannelsFb(){
+        if(device_mode==0)
+            return streamPlay.getMediaPlayerAudiochannelsFb();
+        else if(device_mode==1)
+            return cam_streaming.getStreamOutAudiochannelsFb();
+        else
+            return 0;
+    }
+
+
     //Preview 
     public void startPreview()
     {
@@ -523,6 +593,26 @@ public class CresStreamCtrl extends Activity {
 
     public String getStopStatus(){
 	return stopStatus;
+    }
+    
+    public String getPauseStatus(){
+	return pauseStatus;
+    }
+   
+    public String getDeviceReadyStatus(){
+	return "TODO:MISTRAL";
+    }
+    
+    public String getProcessingStatus(){
+	return "TODO:MISTRAL";
+    }
+
+    public String getElapsedSeconds(){
+	return "TODO:MISTRAL";
+    }
+
+    public String getStreamStatus(){
+	return "TODO:MISTRAL";
     }
 
     //Registering for HPD and Resolution Event detection	

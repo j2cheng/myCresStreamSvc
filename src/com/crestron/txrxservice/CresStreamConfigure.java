@@ -10,7 +10,7 @@ public class CresStreamConfigure {
    	String[] resolutionArray = { "Auto", "176x144", "352x288", "528x384", "640x360", "640x480", "720x480", "800x480", "800x600", "1024x768", "1280x720", "1280x800", "1366x768", "1440x900", "1600x900", "1600x1200", "1680x1050", "1920x1080"};
 
 	public enum StreamMode {
-		RTSP(0), RTP(1), MPEG2TS_RTP(2), MPEG2TS_UDP(3), MJPEG(4);
+		RTSP(0), RTP(1), MPEG2TS_RTP(2), MPEG2TS_UDP(3), MJPEG(4), MRTSP(5);
 		private int value;
 		private static final Map<Integer, StreamMode> intToEnum = new HashMap<Integer, StreamMode>();		
 		static {

@@ -42,4 +42,15 @@ public class MiscUtils {
 			e1.printStackTrace();
 		}
 	}
+        private static int calcAspect(int a, int b){
+            return (b==0) ? a:calcAspect(b, a%b);
+        }
+
+        public static String calculateAspectRatio(int w, int h)
+        {
+            StringBuilder sb = new StringBuilder(64);
+            int r = calcAspect(w,h);
+            sb.append(w/r).append(":").append(h/r);
+            return (sb.toString());
+        }
 }

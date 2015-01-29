@@ -7,6 +7,8 @@ public class MessageParser {
     
     String TAG = "TxRx Parser"; 
     String ip_addr = null;// = "127.0.0.1";
+    boolean enable_passwd = false;
+    boolean disable_passwd = true;
     public static String replyString;
     int rport = 1234, tport = 1234, rvport=1234, raport = 1234, vbr = 6000, tmode = 0, resolution = 17;
     int initialLatency = 2000, profile = 2, venclevel = 4096, vframerate = 50;
@@ -56,23 +58,18 @@ public class MessageParser {
     private final CresStreamCtrl c_streamctl;
     StringTokenizer tokenizer; 
     
-    String[] cmdArray = {"MODE", "SessionInitiation", "STREAMURL", "VENCPROFILE", "TRANSPORTMODE", "RTSPPORT", "TSPORT", "RTPVIDEOPORT", "RTPAUDIOPORT", "VFRAMERATE", "VBITRATE", "VENCLEVEL", "HDMIOUTPUTRES", "IPADDRESS", "START", "STOP", "PAUSE", "MUTESTATE", "LATENCY", 
+    String[] cmdArray = {"MODE", "SessionInitiation", "STREAMURL", "VENCPROFILE", "TRANSPORTMODE", "RTSPPORT", "TSPORT", "RTPVIDEOPORT", "RTPAUDIOPORT", "VFRAMERATE", "VBITRATE", "VENCLEVEL", "HDMIOUTPUTRES", "IPADDRESS", "START", "STOP", "PAUSE", "MUTE", "UNMUTE", "LATENCY", "PASSWD_ENABLE", "PASSWD_DISABLE", "USERNAME", "PASSWORD", 
+    					"HDMIOUT_DISPLAYBLANK_ENABLED", "HDMIOUT_DISPLAYBLANK_DISABLED",
     					"HDMIIN_HORIZONTAL_RES_FB", "HDMIIN_VERTICAL_RES_FB", "HDMIIN_FPS_FB", 
     					"HDMIOUT_INTERLACED_FB", 
-    					"HDMIOUT_DISPLAYBLANK_ENABLED", "HDMIOUT_DISPLAYBLANK_DISABLED",
     					"HDMIOUT_HORIZONTAL_RES_FB", "HDMIOUT_VERTICAL_RES_FB", 
     					"HDMIOUT_FPS_FB", "HDMIOUT_ASPECT_RATIO_FB",
     					"HDMIOUT_AUDIO_FORMAT_FB", "HDMIOUT_AUDIO_CHANNELS_FB",
     					"HDMIOUT_MANUFACTURER_FB", "HDMIOUT_MODELNO_FB", "HDMIOUT_PREFTIMING_FB", "HDMIOUT_SERIALNO_FB",
     					"streamstate"};
 
-    public boolean validateCommand(String targetValue) {
-        for(String s: cmdArray){
-            if(s.equals(targetValue))
-                return true;
-        }
-        return false;
-    }
+    String[] fbArray = { "PROCESSING_FB", "device_ready_fb", "ELAPSED_SECONDS_FB", "STREAM_STATUS_FB", "INITIATOR_ADDRESS_FB","HORIZONTAL_RESOLUTION_FB", "VERTICAL_RESOLUTION_FB", "FPS_RESOLUTION_FB", "ASPECT_FB", "AUDIO_FORMAT_FB", "AUDIO_CHANNELS_FB"};
+            
 
     public MessageParser (CresStreamCtrl a_crestctrl){
         c_streamctl = a_crestctrl;
@@ -94,9 +91,14 @@ public class MessageParser {
         sb.append("VBITRATE (= 96 to 25000kbps)\r\n");
         sb.append("VENCLEVEL (= 4096:for 4.1 level, 8192:for 4.2 level)\r\n");
         sb.append("HDMIOUTPUTRES(17=1920x1080, 16=1680x1050 follow join sheet)\r\n");
-        sb.append("IPADDRESS(=xxx.xxx.xxx.xxx)\r\n");
-        sb.append("MUTESTATE(=1:true/0:false)\r\n");
-        sb.append("LATENCY=1000 to 3000 (in msec)\r\n");
+        sb.append("IPADDRESS(=xxx.xxx.xxx.xxx, also multicast address in SessionInitaion 2 & 3)\r\n");
+        sb.append("MUTE(=1:true/0:false)\r\n");
+        sb.append("UNMUTE(=1:true/0:false)\r\n");
+        sb.append("LATENCY=100 to 5000 (in msec)\r\n");
+        sb.append("PASSWD_ENABLE\r\n");
+        sb.append("PASSWD_DISABLE\r\n");
+        sb.append("USERNAME\r\n");
+        sb.append("PASSWORD\r\n");
         sb.append("START | STOP | PAUSE (=true)\r\n");
         sb.append("HDMIIN_HORIZONTAL_RES_FB\r\n");
         sb.append("HDMIIN_VERTICAL_RES_FB\r\n");
@@ -218,7 +220,7 @@ public class MessageParser {
                     c_streamctl.Pause();
                 }
                 break;
-            case 17://MUTE/UNMUTE
+            case 17://MUTE
                 {
                     int mute_flag = Integer.parseInt(tmp_str);
                     if(mute_flag==1)
@@ -227,140 +229,238 @@ public class MessageParser {
                         c_streamctl.setStreamUnMute();
                 }
                 break;
-            case 18://Latency
+            case 18://UNMUTE
+                {
+                    int mute_flag = Integer.parseInt(tmp_str);
+                    if(mute_flag==1)
+                        c_streamctl.setStreamUnMute();
+                    else
+                        c_streamctl.setStreamMute();
+                }
+                break;
+            case 19://Latency
                 {
 		    initialLatency = Integer.parseInt(tmp_str);
                     c_streamctl.SetStreamInLatency(initialLatency);
                 }
                 break;
-                
-            case 23://Display blank enabled
+            case 20://Passwd enable
+                {
+                    enable_passwd = true;
+                    disable_passwd = false;
+                }
+                break;
+            case 21://Passwd disable
+                {
+                    enable_passwd = false;
+                    disable_passwd = true;
+                }
+                break;
+            case 22://USERNAME
+                {
+                    String uname = tmp_str;
+                }
+                break;
+            case 23://PASSWD
+                {
+                    String passwd= tmp_str;
+                }
+                break;
+            case 24://Display blank enabled
             	{
             		boolean result = false;
             		result = c_streamctl.setDisplayBlankEnabled();
             	}
             	break;
             	
-            case 24://Display blank disabled
+            case 25://Display blank disabled
             	{
             		boolean result = false;
             		result = c_streamctl.setDisplayBlankDisabled();
             	}
             	break;
-            	
             default:
                 break;
         }	
     }
 
-    public String processReceivedMessage(String receivedMsg){
+    private String processFbMessage(String receivedMsg, String msg)
+    {
         StringBuilder sb = new StringBuilder(1024);
+
+        if (msg.equalsIgnoreCase("device_ready_fb"))
+        {
+            sb.append(receivedMsg).append("=").append(c_streamctl.getDeviceReadyStatus());
+        }
+        else if (msg.equalsIgnoreCase("PROCESSING_FB"))
+        {
+            sb.append(receivedMsg).append("=").append(c_streamctl.getProcessingStatus());
+        }
+        else if (msg.equalsIgnoreCase("ELAPSED_SECONDS_FB"))
+        {
+            sb.append(receivedMsg).append("=").append(c_streamctl.getElapsedSeconds());
+        }
+        else if (msg.equalsIgnoreCase("STREAM_STATUS_FB"))
+        {
+            sb.append(receivedMsg).append("=").append(c_streamctl.getStreamStatus());
+        }
+        else if (msg.equalsIgnoreCase("INITIATOR_ADDRESS_FB"))
+        {
+            //TODO
+            sb.append(receivedMsg).append("=").append("TODO");
+            //sb.append(receivedMsg).append("=").append(c_streamctl.getInitatorAddress());
+        }
+        else if (msg.equalsIgnoreCase("HORIZONTAL_RESOLUTION_FB"))
+        {
+            sb.append(receivedMsg).append("=").append(c_streamctl.getHorizontalResFb());
+        }
+        else if (msg.equalsIgnoreCase("VERTICAL_RESOLUTION_FB"))
+        {
+            sb.append(receivedMsg).append("=").append(c_streamctl.getVerticalResFb());
+        }
+        else if (msg.equalsIgnoreCase("FPS_RESOLUTION_FB"))
+        {
+            sb.append(receivedMsg).append("=").append(c_streamctl.getFpsFb());
+        }
+        else if (msg.equalsIgnoreCase("ASPECT_FB"))
+        {
+            sb.append(receivedMsg).append("=").append(c_streamctl.getAspectRatioFb());
+        }
+        else if (msg.equalsIgnoreCase("AUDIO_FORMAT_FB"))
+        {
+            sb.append(receivedMsg).append("=").append(c_streamctl.getAudioFormatFb());
+        }
+        else if (msg.equalsIgnoreCase("AUDIO_CHANNELS_FB"))
+        {
+            sb.append(receivedMsg).append("=").append(c_streamctl.getAudiochannelsFb());
+        }
+        else{
+            replyString="";
+            replyString.trim();
+            sb.append(replyString);
+        } 
+        return (sb.toString());
+    }
+    
+    private String processCmdMessage(String receivedMsg, String msg)
+    {
+        StringBuilder sb = new StringBuilder(1024);
+        if(msg.equalsIgnoreCase("streamstate")){//Send StreamState
+            int streamState = c_streamctl.getStreamState();
+            switch(streamState){
+                case 0:
+                    replyString ="STREAMING IN";
+                    break;
+                case 1:
+                    replyString ="STREAMING OUT";
+                    break;
+                case 2:
+                    replyString ="Previewing Video";
+                    break;
+                default:
+                    replyString = "Device in IdleMode";
+            }
+            sb.append(receivedMsg).append("=").append(replyString);
+        }
+        else if(msg.equalsIgnoreCase("streamurl")){//Send StreamState
+            String l_url = c_streamctl.getStreamUrl();
+            sb.append(receivedMsg).append("=").append(l_url);
+        }
+        else if(msg.equalsIgnoreCase("start")){//Send Start status
+            String temp = c_streamctl.getStartStatus();
+            sb.append(receivedMsg).append("=").append(temp);
+        }
+        else if(msg.equalsIgnoreCase("stop")){//Send Stop status
+            String temp = c_streamctl.getStopStatus();
+            sb.append(receivedMsg).append("=").append(temp);
+        }
+        else if(msg.equalsIgnoreCase("pause")){//Send Pause status
+            String temp = c_streamctl.getPauseStatus();
+            sb.append(receivedMsg).append("=").append(temp);
+        }
+        else if (msg.equalsIgnoreCase("hdmiin_horizontal_res_fb"))
+        {
+            sb.append(receivedMsg).append("=").append(c_streamctl.getHDMIInHorizontalRes());
+        }
+        else if (msg.equalsIgnoreCase("hdmiin_vertical_res_fb"))
+        {
+            sb.append(receivedMsg).append("=").append(c_streamctl.getHDMIInVerticalRes());
+        }
+        else if (msg.equalsIgnoreCase("hdmiin_fps_fb"))
+        {
+            sb.append(receivedMsg).append("=").append(c_streamctl.getHDMIInFPS());
+        }
+        else if (msg.equalsIgnoreCase("hdmiout_horizontal_res_fb"))
+        {
+            sb.append(receivedMsg).append("=").append(c_streamctl.getHDMIOutHorizontalRes());
+        }
+        else if (msg.equalsIgnoreCase("hdmiout_vertical_res_fb"))
+        {
+            sb.append(receivedMsg).append("=").append(c_streamctl.getHDMIOutVerticalRes());
+        }
+        else if (msg.equalsIgnoreCase("hdmiout_fps_fb"))
+        {
+            sb.append(receivedMsg).append("=").append(c_streamctl.getHDMIOutFPS());
+        }
+        else if (msg.equalsIgnoreCase("hdmiout_aspect_ratio_fb"))
+        {
+            sb.append(receivedMsg).append("=").append(c_streamctl.getHDMIOutAspectRatio());
+        }
+        else if (msg.equalsIgnoreCase("hdmiout_audio_format_fb"))
+        {
+            sb.append(receivedMsg).append("=").append(c_streamctl.getHDMIOutAudioFormat());
+        }
+        else if (msg.equalsIgnoreCase("hdmiout_audio_channels_fb"))
+        {
+            sb.append(receivedMsg).append("=").append(c_streamctl.getHDMIOutAudioChannels());
+        }
+        else if (msg.equalsIgnoreCase("hdmiout_manufacturer_fb")) {
+            sb.append(receivedMsg).append("=").append(c_streamctl.getHDMIOutManf());
+        }
+        else if (msg.equalsIgnoreCase("hdmiout_modelno_fb")) {
+            sb.append(receivedMsg).append("=").append(c_streamctl.getHDMIOutModelNo());
+        }
+        else if (msg.equalsIgnoreCase("hdmiout_preftiming_fb")) {
+            sb.append(receivedMsg).append("=").append(c_streamctl.getHDMIOutPrefTiming());
+        }
+        else if (msg.equalsIgnoreCase("hdmiout_serialno_fb")) {
+            sb.append(receivedMsg).append("=").append(c_streamctl.getHDMIOutSerialNo());
+        }
+        else {//QUERY Procssing
+            String tmp_str = tokenizer.getStringValueOf(msg);
+            Log.d(TAG, "Querying:: searched for "+msg+" and got value of "+tmp_str);
+            if(tmp_str!=null){
+                replyString = tmp_str ;
+                sb.append(receivedMsg).append("=").append(replyString);
+            }
+            else{
+                replyString="";
+                replyString.trim();
+                sb.append(replyString);
+            } 
+        }
+        return (sb.toString());
+    }
+   
+    public String processReceivedMessage(String receivedMsg){
         //tokenizer.printList();//DEBUG Purpose
         String[] msg = tokenizer.Parse(receivedMsg);
-
+        String reply = ""; 
+        for(int i = 0; i< fbArray.length; i++){
+            if(fbArray[i].equalsIgnoreCase(msg[0])){
+                reply = processFbMessage(receivedMsg, msg[0]); 
+            }
+        }
         for(int i = 0; i< cmdArray.length; i++){
             if(cmdArray[i].equalsIgnoreCase(msg[0])){
                 if(msg.length>1) {//cmd processing
                     callbackFunc(i, msg[1]);
                 }
-                else {
-                    if(msg[0].equalsIgnoreCase("streamstate")){//Send StreamState
-                        int streamState = c_streamctl.getStreamState();
-                        switch(streamState){
-                            case 0:
-                                replyString ="STREAMING IN";
-                                break;
-                            case 1:
-                                replyString ="STREAMING OUT";
-                                break;
-                            case 2:
-                                replyString ="Previewing Video";
-                                break;
-                            default:
-                                replyString = "Device in IdleMode";
-                        }
-                        sb.append(receivedMsg).append("=").append(replyString);
-                    }
-                    else if(msg[0].equalsIgnoreCase("streamurl")){//Send StreamState
-                        String l_url = c_streamctl.getStreamUrl();
-                        sb.append(receivedMsg).append("=").append(l_url);
-                    }
-                    else if(msg[0].equalsIgnoreCase("start")){//Send Start status
-                        String temp = c_streamctl.getStartStatus();
-                        sb.append(receivedMsg).append("=").append(temp);
-                    }
-                    else if(msg[0].equalsIgnoreCase("stop")){//Send Start status
-                        String temp = c_streamctl.getStopStatus();
-                        sb.append(receivedMsg).append("=").append(temp);
-                    }
-                    else if (msg[0].equalsIgnoreCase("hdmiin_horizontal_res_fb"))
-                    {
-                    	sb.append(receivedMsg).append("=").append(c_streamctl.getHDMIInHorizontalRes());
-                    }
-                    else if (msg[0].equalsIgnoreCase("hdmiin_vertical_res_fb"))
-                    {
-                    	sb.append(receivedMsg).append("=").append(c_streamctl.getHDMIInVerticalRes());
-                    }
-                    else if (msg[0].equalsIgnoreCase("hdmiin_fps_fb"))
-                    {
-                    	sb.append(receivedMsg).append("=").append(c_streamctl.getHDMIInFPS());
-                    }
-                    else if (msg[0].equalsIgnoreCase("hdmiout_interlaced_fb"))
-                    {
-                    	sb.append(receivedMsg).append("=").append(c_streamctl.getHDMIOutInterlacing());
-                    }
-                    else if (msg[0].equalsIgnoreCase("hdmiout_horizontal_res_fb"))
-                    {
-                    	sb.append(receivedMsg).append("=").append(c_streamctl.getHDMIOutHorizontalRes());
-                    }
-                    else if (msg[0].equalsIgnoreCase("hdmiout_vertical_res_fb"))
-                    {
-                    	sb.append(receivedMsg).append("=").append(c_streamctl.getHDMIOutVerticalRes());
-                    }
-                    else if (msg[0].equalsIgnoreCase("hdmiout_fps_fb"))
-                    {
-                    	sb.append(receivedMsg).append("=").append(c_streamctl.getHDMIOutFPS());
-                    }
-                    else if (msg[0].equalsIgnoreCase("hdmiout_aspect_ratio_fb"))
-                    {
-                    	sb.append(receivedMsg).append("=").append(c_streamctl.getHDMIOutAspectRatio());
-                    }
-                    else if (msg[0].equalsIgnoreCase("hdmiout_audio_format_fb"))
-                    {
-                    	sb.append(receivedMsg).append("=").append(c_streamctl.getHDMIOutAudioFormat());
-                    }
-                    else if (msg[0].equalsIgnoreCase("hdmiout_audio_channels_fb"))
-                    {
-                    	sb.append(receivedMsg).append("=").append(c_streamctl.getHDMIOutAudioChannels());
-                    }
-                    else if (msg[0].equalsIgnoreCase("hdmiout_manufacturer_fb")) {
-                    	sb.append(receivedMsg).append("=").append(c_streamctl.getHDMIOutManf());
-                    }
-                    else if (msg[0].equalsIgnoreCase("hdmiout_modelno_fb")) {
-                    	sb.append(receivedMsg).append("=").append(c_streamctl.getHDMIOutModelNo());
-                    }
-                    else if (msg[0].equalsIgnoreCase("hdmiout_preftiming_fb")) {
-                    	sb.append(receivedMsg).append("=").append(c_streamctl.getHDMIOutPrefTiming());
-                    }
-                    else if (msg[0].equalsIgnoreCase("hdmiout_serialno_fb")) {
-                    	sb.append(receivedMsg).append("=").append(c_streamctl.getHDMIOutSerialNo());
-                    }
-                    else {//QUERY Procssing
-                        String tmp_str = tokenizer.getStringValueOf(msg[0]);
-                        Log.d(TAG, "Querying:: searched for "+msg[0]+" and got value of "+tmp_str);
-                        if(tmp_str!=null){
-                            replyString = tmp_str ;
-                            sb.append(receivedMsg).append("=").append(replyString);
-                        }
-                        else{
-                            replyString="";
-                            replyString.trim();
-                            sb.append(replyString);
-                        } 
-                    }
+                else{
+                    reply = processCmdMessage(receivedMsg, msg[0]); 
                 }
             }
         }
-        return (sb.toString());
+        return reply;
     }
 }

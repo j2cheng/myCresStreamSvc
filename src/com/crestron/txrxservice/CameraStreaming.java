@@ -17,8 +17,6 @@ import android.view.SurfaceHolder;
 import android.view.SurfaceHolder.Callback;
 import android.view.SurfaceView;
 
-import com.crestron.txrxservice.CresStreamConfigure;
-
 public class CameraStreaming implements Callback, ErrorCallback {
 	static SurfaceHolder surfaceHolder;
 	public static CameraPreview mCameraObj = null;
@@ -122,34 +120,43 @@ public class CameraStreaming implements Callback, ErrorCallback {
 		mrec.setCamera(mCameraObj.mCamera);
 		mrec.setAudioSource(MediaRecorder.AudioSource.MIC);
 		mrec.setVideoSource(MediaRecorder.VideoSource.CAMERA);
-		mrec.setDestinationIP(CresStreamConfigure.getIP());
 		mrec.setStreamTransportMode(CresStreamConfigure.mode.getMode());
 		//Set Port
 		int l_port;
 		switch(CresStreamConfigure.mode.getMode())
-		{
-			case 0://RTSP
-				{
-					l_port = CresStreamConfigure.getRTSPPort();
-					mrec.setDestinationIP(hostaddr);
-					mrec.setRTSPPort(l_port);
-				}
-				break; 
-			case 1://RTP
-				l_port = CresStreamConfigure.getRTPVPort();
-				mrec.setRTPAudioPort(l_port);
-				l_port = CresStreamConfigure.getRTPAPort();
-				mrec.setRTPVideoPort(l_port);
-				break;
-			case 2://TS_RTP
-			case 3://TS_UDP
-				l_port = CresStreamConfigure.getTSPort();
-				mrec.setMPEG2TSPort(l_port);
-				break;
-			case 4://MJPEG
-			default:
-				break; 
-		}
+                {
+                    case 0://RTSP
+                        {
+                            l_port = CresStreamConfigure.getRTSPPort();
+                            mrec.setDestinationIP(hostaddr);
+                            mrec.setRTSPPort(l_port);
+                        }
+                        break; 
+                    case 1://RTP
+                        mrec.setDestinationIP(CresStreamConfigure.getIP());
+                        l_port = CresStreamConfigure.getRTPVPort();
+                        mrec.setRTPAudioPort(l_port);
+                        l_port = CresStreamConfigure.getRTPAPort();
+                        mrec.setRTPVideoPort(l_port);
+                        break;
+                    case 2://TS_RTP
+                    case 3://TS_UDP
+                        mrec.setDestinationIP(CresStreamConfigure.getIP());
+                        l_port = CresStreamConfigure.getTSPort();
+                        mrec.setMPEG2TSPort(l_port);
+                        break;
+                    case 4://MJPEG
+                        break;
+                    case 5://MCast RTSP
+                        {
+                            l_port = CresStreamConfigure.getRTSPPort();
+                            mrec.setMcastIP(CresStreamConfigure.getIP());
+                            mrec.setRTSPPort(l_port);
+                        }
+                        break;
+                    default:
+                        break; 
+                }
 		mrec.setOutputFormat(9);//Streamout option set to Stagefright Recorder
 		Log.d(TAG, "ip addr "+CresStreamConfigure.getIP());
 		Log.d(TAG, "setting width: "+CresStreamConfigure.getWidth() );
@@ -160,7 +167,7 @@ public class CameraStreaming implements Callback, ErrorCallback {
 		if((CresStreamConfigure.getWidth()!=0) || (CresStreamConfigure.getHeight()!=0))
 			mrec.setVideoSize(CresStreamConfigure.getWidth(),CresStreamConfigure.getHeight());
 		mrec.setVideoEncodingBitRate(CresStreamConfigure.getVideoBitRate());
-		//mrec.setVideoFrameRate(CresStreamConfigure.getVFrameRate());//Mistral Propeitary API 
+		//mrec.setVideoFrameRate(CresStreamConfigure.getVFrameRate());//Mistral Propietary API 
 		mrec.setVideoEncoder(MediaRecorder.VideoEncoder.H264);
 		mrec.setEncoderProfile(CresStreamConfigure.vprofile.getVEncProfile());
 		mrec.setVideoEncoderLevel(CresStreamConfigure.getVEncLevel());
@@ -202,4 +209,36 @@ public class CameraStreaming implements Callback, ErrorCallback {
 	public void onError(int error, Camera camera) {
 		Log.d(TAG, "Camera Error callback:" + error + "Camera :" + camera);
 	}
+        
+        //Response to CSIO Layer
+        public boolean getStreamOutStatus()
+        {
+            //TODO
+            return true; 
+        }
+
+        public int getStreamOutHorizontalResFb(){
+            return CresStreamConfigure.getWidth();
+        }
+
+        public int getStreamOutVerticalResFb(){
+            return CresStreamConfigure.getHeight();
+        }
+
+        public int getStreamOutFpsFb(){
+            return CresStreamConfigure.getVFrameRate();
+        }
+
+        public String getStreamOutAspectRatioFb(){
+            String aspect = MiscUtils.calculateAspectRatio(CresStreamConfigure.getWidth(),CresStreamConfigure.getHeight());
+            return aspect;
+        }
+        
+        public int getStreamOutAudioFormatFb(){
+            return 1;//Always
+        }
+        
+        public int getStreamOutAudiochannelsFb(){
+            return 2;//For Now only 2 Audio Channels
+        }
 }

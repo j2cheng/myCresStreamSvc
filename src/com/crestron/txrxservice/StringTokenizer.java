@@ -46,6 +46,8 @@ public class StringTokenizer
 		list.add(new Token("hdmioutputres", "17"));
 		list.add(new Token("mutestate", "false"));
 		list.add(new Token("latency", "2000"));
+		list.add(new Token("username", "crestron"));
+		list.add(new Token("password", "crestron"));
 		list.add(new Token("hdmiout_displayblank_enabled", "1"));
 		list.add(new Token("hdmiout_displayblank_disabled", "1"));
 	}
