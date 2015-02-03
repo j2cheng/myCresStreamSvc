@@ -45,11 +45,10 @@ public class StreamIn implements SurfaceHolder.Callback, OnPreparedListener {
         Log.d(TAG, "setting stream in latency "+latency);
     }
 
-    public void setRtpOnlyMode(String portStr){
+    public void setRtpOnlyMode(int vport, int aport){
         rtp_mode = true;
         sb = new StringBuilder(4096);
-        String str1 = portStr;
-        sb.append("v=0\r\n").append("o=- 15545345606659080561 15545345606659080561 IN IP4 cpu000669\r\n").append("s=Unnamed\r\n").append("i=N/A\r\n").append("c=IN IP4 127.0.0.1\r\n").append("t=0 0\r\n").append("a=tool:vlc 2.0.8\r\n").append("a=recvonly\r\n").append("a=type:broadcast\r\n").append("a=charset:UTF-8\r\n").append("m=video ").append(str1).append("RTP/AVP 33\r\n").append("b=RR:0\r\n").append("a=rtpmap:33 MP2T/90000\r\n");
+        sb.append("v=0\r\n").append("o=- 15545345606659080561 15545345606659080561 IN IP4 cpu000669\r\n").append("s=Sample\r\n").append("i=N/A\r\n").append("c=IN IP4 127.0.0.1\r\n").append("t=0 0\r\n").append("a=range:npt=now-\r\n").append("m=audio").append(Integer.toString(vport)).append("RTP/AVP 96\r\n").append("a=control:audio\r\n").append("a=rtpmap:96 MP4A-LATM/44100/2\r\n").append("m=video ").append(Integer.toString(aport)).append("RTP/AVP 97\r\n").append("a=control:video\r\n").append("a=rtpmap:97 H264/90000\r\n");
     }
 
     @Override

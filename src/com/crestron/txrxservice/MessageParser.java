@@ -60,6 +60,7 @@ public class MessageParser {
     
     String[] cmdArray = {"MODE", "SessionInitiation", "STREAMURL", "VENCPROFILE", "TRANSPORTMODE", "RTSPPORT", "TSPORT", "RTPVIDEOPORT", "RTPAUDIOPORT", "VFRAMERATE", "VBITRATE", "VENCLEVEL", "HDMIOUTPUTRES", "IPADDRESS", "START", "STOP", "PAUSE", "MUTE", "UNMUTE", "LATENCY", "PASSWD_ENABLE", "PASSWD_DISABLE", "USERNAME", "PASSWORD", 
     					"HDMIOUT_DISPLAYBLANK_ENABLED", "HDMIOUT_DISPLAYBLANK_DISABLED",
+    					"XLOC", "YLOC", "W", "H",
     					"HDMIIN_HORIZONTAL_RES_FB", "HDMIIN_VERTICAL_RES_FB", "HDMIIN_FPS_FB", 
     					"HDMIOUT_INTERLACED_FB", 
     					"HDMIOUT_HORIZONTAL_RES_FB", "HDMIOUT_VERTICAL_RES_FB", 
@@ -118,6 +119,10 @@ public class MessageParser {
         sb.append("HDMIOUT_MODELNO_FB\r\n");
         sb.append("HDMIOUT_SERIALNO_FB\r\n");
         sb.append("HDMIOUT_PREFTIMING_FB\r\n");
+        sb.append("XLOC = (x position)\r\n");
+        sb.append("YLOC = (y position)\r\n");
+        sb.append("W (= window width)\r\n");
+        sb.append("H (= window height)\r\n");
         sb.append("UPDATEREQUEST\r\nType COMMAND for Query |streamstate to know status\r\n");
         
         return (sb.toString());
@@ -277,6 +282,26 @@ public class MessageParser {
             	{
             		boolean result = false;
             		result = c_streamctl.setDisplayBlankDisabled();
+            	}
+            	break;
+            case 26://X Position
+            	{
+                    val = Integer.parseInt(l_msg);
+            	}
+            	break;
+            case 27://Y Position
+            	{
+                    val = Integer.parseInt(l_msg);
+            	}
+            	break;
+            case 28://window width
+            	{
+                    val = Integer.parseInt(l_msg);
+            	}
+            	break;
+            case 29://window height
+            	{
+                    val = Integer.parseInt(l_msg);
             	}
             	break;
             default:

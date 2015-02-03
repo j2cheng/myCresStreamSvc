@@ -490,6 +490,8 @@ public class CresStreamCtrl extends Activity {
     {
 	out_url = ap_url;
         streamPlay.setUrl(ap_url);
+        if(ap_url.equals("rtp://@"))
+            streamPlay.setRtpOnlyMode( myconfig.getRTPAPort(),  myconfig.getRTPVPort());
     }
     
     public void SetStreamInLatency(int initialLatency)
