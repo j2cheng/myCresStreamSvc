@@ -48,8 +48,6 @@ public class StringTokenizer
 		list.add(new Token("latency", "2000"));
 		list.add(new Token("username", ""));
 		list.add(new Token("password", ""));
-		list.add(new Token("hdmiout_displayblank_enabled", "1"));
-		list.add(new Token("hdmiout_displayblank_disabled", "1"));
 		list.add(new Token("Xloc", "0"));
 		list.add(new Token("Yloc", "0"));
 		list.add(new Token("w", "1920"));

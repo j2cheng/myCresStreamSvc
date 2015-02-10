@@ -188,9 +188,11 @@ public class CresStreamCtrl extends Activity {
         String delims = "[x@]+";
         String tokens[] = hdmiInputResolution.split(delims);
         
+        hdmiInput.setSyncStatus();
         hdmiInput.setHorizontalRes(tokens[0]);
         hdmiInput.setVerticalRes(tokens[1]);
         hdmiInput.setFPS(tokens[2].trim());
+        hdmiInput.setAspectRatio();
         
     	//HDMI Out
         PhysicalDisplayInfo hdmiOutputResolution = new PhysicalDisplayInfo();
@@ -200,14 +202,21 @@ public class CresStreamCtrl extends Activity {
     			+ hdmiOutputResolution.height + " "
     			+ hdmiOutputResolution.refreshRate);
     	
+    	hdmiOutput.setSyncStatus();
         hdmiOutput.setHorizontalRes(Integer.toString(hdmiOutputResolution.width));
         hdmiOutput.setVerticalRes(Integer.toString(hdmiOutputResolution.height));
         hdmiOutput.setFPS(Integer.toString((int)hdmiOutputResolution.refreshRate));
         hdmiOutput.setAspectRatio();
-        hdmiOutput.setManf();
-        hdmiOutput.setSerialNo();
-        hdmiOutput.setModelNo();
-        hdmiOutput.setPrefTiming();
+    }
+    
+    public String getHDMIInSyncStatus()
+    {
+    	return hdmiInput.getSyncStatus();
+    }
+
+    public String getHDMIInInterlacing()
+    {
+    	return hdmiInput.getInterlacing();
     }
     
     public String getHDMIInHorizontalRes()
@@ -225,20 +234,26 @@ public class CresStreamCtrl extends Activity {
     	return hdmiInput.getFPS();
     }
 
-    public boolean setDisplayBlankEnabled()
+    public String getHDMIInAspectRatio()
     {
-    	Log.i(TAG, "Display blanking enabled");
-    	Surface.blankDisplay(Surface.getBuiltInDisplay(Surface.BUILT_IN_DISPLAY_ID_MAIN));
-    	return true;
+    	return hdmiInput.getAspectRatio();
     }
-    
-    public boolean setDisplayBlankDisabled()
+
+    public String getHDMIInAudioFormat()
     {
-    	Log.i(TAG, "Display blanking disabled");
-    	Surface.unblankDisplay(Surface.getBuiltInDisplay(Surface.BUILT_IN_DISPLAY_ID_MAIN));
-    	return true;
+    	return hdmiInput.getAudioFormat();
     }
-    
+
+    public String getHDMIInAudioChannels()
+    {
+    	return hdmiInput.getAudioChannels();
+    }
+
+    public String getHDMIOutSyncStatus()
+    {
+    	return hdmiOutput.getSyncStatus();
+    }
+
     public String getHDMIOutInterlacing()
     {
     	return hdmiOutput.getInterlacing();
@@ -272,26 +287,6 @@ public class CresStreamCtrl extends Activity {
     public String getHDMIOutAudioChannels()
     {
     	return hdmiOutput.getAudioChannels();
-    }
-
-    public String getHDMIOutManf()
-    {
-    	return hdmiOutput.getManf();
-    }
-
-    public String getHDMIOutSerialNo()
-    {
-    	return hdmiOutput.getSerialNo();
-    }
-
-    public String getHDMIOutModelNo()
-    {
-    	return hdmiOutput.getModelNo();
-    }
-
-    public String getHDMIOutPrefTiming()
-    {
-    	return hdmiOutput.getPrefTiming();
     }
 
     public void setSessionInitMode(int mode)
@@ -666,9 +661,11 @@ public class CresStreamCtrl extends Activity {
                     for (int tokenIndex = 0; tokenIndex < tokens.length; tokenIndex++)
                         Log.i(TAG, " " + tokens[tokenIndex]);
                     
+                    hdmiInput.setSyncStatus();
                     hdmiInput.setHorizontalRes(tokens[0]);
                     hdmiInput.setVerticalRes(tokens[1]);
                     hdmiInput.setFPS(tokens[2].trim());
+                    hdmiInput.setAspectRatio();
                 }
             }
         };
@@ -707,14 +704,11 @@ public class CresStreamCtrl extends Activity {
 							+ hdmiOutputResolution.height + " "
 							+ hdmiOutputResolution.refreshRate);
 
+					hdmiOutput.setSyncStatus();
 			        hdmiOutput.setHorizontalRes(Integer.toString(hdmiOutputResolution.width));
 			        hdmiOutput.setVerticalRes(Integer.toString(hdmiOutputResolution.height));
 			        hdmiOutput.setFPS(Integer.toString((int)hdmiOutputResolution.refreshRate));
 			        hdmiOutput.setAspectRatio();
-			        hdmiOutput.setManf();
-			        hdmiOutput.setSerialNo();
-			        hdmiOutput.setModelNo();
-			        hdmiOutput.setPrefTiming();
                 }
             }
         };
