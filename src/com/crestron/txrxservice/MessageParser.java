@@ -58,7 +58,7 @@ public class MessageParser {
     private final CresStreamCtrl c_streamctl;
     StringTokenizer tokenizer; 
     
-    String[] cmdArray = {"MODE", "SessionInitiation", "STREAMURL", "VENCPROFILE", "TRANSPORTMODE", "RTSPPORT", "TSPORT", "RTPVIDEOPORT", "RTPAUDIOPORT", "VFRAMERATE", "VBITRATE", "VENCLEVEL", "HDMIOUTPUTRES", "IPADDRESS", "START", "STOP", "PAUSE", "MUTE", "UNMUTE", "LATENCY", "PASSWD_ENABLE", "PASSWD_DISABLE", "USERNAME", "PASSWORD", 
+    String[] cmdArray = {"MODE", "SessionInitiation", "STREAMURL", "VENCPROFILE", "TRANSPORTMODE", "RTSPPORT", "TSPORT", "RTPVIDEOPORT", "RTPAUDIOPORT", "VFRAMERATE", "VBITRATE", "VENCLEVEL", "IPADDRESS", "START", "STOP", "PAUSE", "MUTE", "UNMUTE", "LATENCY", "PASSWD_ENABLE", "PASSWD_DISABLE", "USERNAME", "PASSWORD", 
     					"XLOC", "YLOC", "W", "H",
     					"HDMIIN_SYNC_DETECTED", "HDMIIN_INTERLACED", "HDMIIN_CEC_ERROR",
     					"HDMIIN_HORIZONTAL_RES_FB", "HDMIIN_VERTICAL_RES_FB", 
@@ -94,7 +94,6 @@ public class MessageParser {
         sb.append("VFRAMERATE (= 60 50 30 24)\r\n");
         sb.append("VBITRATE (= 96 to 25000kbps)\r\n");
         sb.append("VENCLEVEL (= 4096:for 4.1 level, 8192:for 4.2 level)\r\n");
-        sb.append("HDMIOUTPUTRES(17=1920x1080, 16=1680x1050 follow join sheet)\r\n");
         sb.append("IPADDRESS(=xxx.xxx.xxx.xxx, also multicast address in SessionInitaion 2 & 3)\r\n");
         sb.append("MUTE(=1:true/0:false)\r\n");
         sb.append("UNMUTE(=1:true/0:false)\r\n");
@@ -199,43 +198,38 @@ public class MessageParser {
                     vframerate = Integer.parseInt(tmp_str);
                 }
                 break;
-	    case 10://Video Bit Rate
-		{
+            case 10://Video Bit Rate
+            	{
                     vbr = Integer.parseInt(tmp_str);
-		}
-		break;
+            	}
+            	break;
             case 11://Video Encoding Level
                 {
                     venclevel = Integer.parseInt(tmp_str);
                 }
                 break;
-            case 12://Resolution
-                {
-		     resolution = Integer.parseInt(tmp_str);
-                }
-                break;
-            case 13://IPAddr
+            case 12://IPAddr
                 {
                     ip_addr = tmp_str;
                 }
                 break;
-            case 14://START
+            case 13://START
                 {
                     c_streamctl.setStreamOutConfig(ip_addr, resolution, TransportMode.getStringValueFromInt(tmode), VideoEncProfile.getStringValueFromInt(profile), vframerate, vbr, venclevel);
                     c_streamctl.Start();
                 }
                 break;
-            case 15://STOP
+            case 14://STOP
                 {
                     c_streamctl.Stop();
                 }
                 break;
-            case 16://PAUSE
+            case 15://PAUSE
                 {
                     c_streamctl.Pause();
                 }
                 break;
-            case 17://MUTE
+            case 16://MUTE
                 {
                     int mute_flag = Integer.parseInt(tmp_str);
                     if(mute_flag==1)
@@ -244,7 +238,7 @@ public class MessageParser {
                         c_streamctl.setStreamUnMute();
                 }
                 break;
-            case 18://UNMUTE
+            case 17://UNMUTE
                 {
                     int mute_flag = Integer.parseInt(tmp_str);
                     if(mute_flag==1)
@@ -253,50 +247,50 @@ public class MessageParser {
                         c_streamctl.setStreamMute();
                 }
                 break;
-            case 19://Latency
+            case 18://Latency
                 {
-		    initialLatency = Integer.parseInt(tmp_str);
+                	initialLatency = Integer.parseInt(tmp_str);
                     c_streamctl.SetStreamInLatency(initialLatency);
                 }
                 break;
-            case 20://Passwd enable
+            case 19://Passwd enable
                 {
                     enable_passwd = true;
                     disable_passwd = false;
                 }
                 break;
-            case 21://Passwd disable
+            case 20://Passwd disable
                 {
                     enable_passwd = false;
                     disable_passwd = true;
                 }
                 break;
-            case 22://USERNAME
+            case 21://USERNAME
                 {
                     String uname = tmp_str;
                 }
                 break;
-            case 23://PASSWD
+            case 22://PASSWD
                 {
                     String passwd= tmp_str;
                 }
                 break;
-            case 24://X Position
+            case 23://X Position
             	{
                     val = Integer.parseInt(l_msg);
             	}
             	break;
-            case 25://Y Position
+            case 24://Y Position
             	{
                     val = Integer.parseInt(l_msg);
             	}
             	break;
-            case 26://window width
+            case 25://window width
             	{
                     val = Integer.parseInt(l_msg);
             	}
             	break;
-            case 27://window height
+            case 26://window height
             	{
                     val = Integer.parseInt(l_msg);
             	}

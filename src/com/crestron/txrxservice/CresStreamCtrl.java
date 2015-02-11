@@ -43,7 +43,7 @@ public class CresStreamCtrl extends Activity {
     public static SurfaceHolder mPopupHolder;
     CresStreamConfigure myconfig;
     AudioManager amanager;
-    AsyncTask<Void, Object, Long> sockTask;
+    TCPInterface sockTask;
     
     HDMIInputInterface hdmiInput;
     HDMIOutputInterface hdmiOutput;
@@ -621,7 +621,7 @@ public class CresStreamCtrl extends Activity {
             {
                 if (paramAnonymousIntent.getAction().equals("evs.intent.action.hdmi.RESOLUTION_CHANGED"))
                 {
-                    int i = paramAnonymousIntent.getIntExtra("hdmi_resolution_id", -1);
+                    int i = paramAnonymousIntent.getIntExtra("evs_hdmi_resolution_id", -1);
                     String hdmiInputResolution = null;
                     Log.i(TAG, "Received resolution changed broadcast !: " + i);
                     if ((cam_streaming.mCameraObj != null) && (((cam_streaming.mCameraObj.IsPreviewStatus()) == true)))  
@@ -677,10 +677,15 @@ public class CresStreamCtrl extends Activity {
             {
                 if (paramAnonymousIntent.getAction().equals("evs.intent.action.hdmi.HPD"))
                 {
-                    int i = paramAnonymousIntent.getIntExtra("hdmi_hdp_id", -1);
+                    int i = paramAnonymousIntent.getIntExtra("evs_hdmi_hdp_id", -1);
                     Log.i(TAG, "Received hpd broadcast ! " + i);
                     if((cam_streaming.mCameraObj != null) && ((cam_streaming.isStreaming()) == true))
                         cam_streaming.stopRecording();
+                    //send out sync detection signal
+                    hdmiInput.setSyncStatus();
+                    StringBuilder sb = new StringBuilder(1024);
+                    sb.append("hdmiin_sync_detected=").append(hdmiInput.getSyncStatus());
+                    sockTask.SendDataToAllClients(sb.toString());
                 }
             }
         };
@@ -704,7 +709,13 @@ public class CresStreamCtrl extends Activity {
 							+ hdmiOutputResolution.height + " "
 							+ hdmiOutputResolution.refreshRate);
 
-					hdmiOutput.setSyncStatus();
+                    //send out sync detection signal
+                    hdmiOutput.setSyncStatus();
+                    StringBuilder sb = new StringBuilder(1024);
+                    sb.append("hdmiout_sync_detected=").append(hdmiOutput.getSyncStatus());
+                    sockTask.SendDataToAllClients(sb.toString());
+
+                    hdmiOutput.setSyncStatus();
 			        hdmiOutput.setHorizontalRes(Integer.toString(hdmiOutputResolution.width));
 			        hdmiOutput.setVerticalRes(Integer.toString(hdmiOutputResolution.height));
 			        hdmiOutput.setFPS(Integer.toString((int)hdmiOutputResolution.refreshRate));
