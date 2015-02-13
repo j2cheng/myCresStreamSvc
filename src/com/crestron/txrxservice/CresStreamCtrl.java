@@ -17,10 +17,13 @@ import android.os.AsyncTask;
 import android.content.Intent;
 import android.content.IntentFilter;
 import android.content.BroadcastReceiver;
-import android.view.SurfaceHolder;
 import android.media.AudioManager;
 import android.view.Surface;
+import android.view.SurfaceHolder;
 import android.view.Surface.PhysicalDisplayInfo;
+import android.view.WindowManager;
+import android.view.Gravity;
+import android.graphics.PixelFormat;
 import android.hardware.Camera;
 
 interface Command {
@@ -38,12 +41,16 @@ public class CresStreamCtrl extends Activity {
     BroadcastReceiver resolutionEvent = null;
     BroadcastReceiver hdmioutResolutionChangedEvent = null;
     private SurfaceView previewSurface;
-    private SurfaceView streamingSurface = null;
+    private static SurfaceView streamingSurface = null;
     private static SurfaceView dummyView = null;
     public static SurfaceHolder mPopupHolder;
+    private WindowManager windowManager;
+    WindowManager.LayoutParams lp;
+    //final WindowManager.LayoutParams lp;
     CresStreamConfigure myconfig;
     AudioManager amanager;
     TCPInterface sockTask;
+   
     
     HDMIInputInterface hdmiInput;
     HDMIOutputInterface hdmiOutput;
@@ -56,6 +63,9 @@ public class CresStreamCtrl extends Activity {
     int device_mode = 0;
     int sessInitMode = 0;
     int StreamState = 100;//INVALID State
+    int g_x = 0;
+    int g_y = 0;
+    int g_w = 0;
     boolean StreamOutstarted = false;
     public enum DeviceMode {
         PREVIEW(2), STREAMOUT(1), STREAMIN(0);
@@ -106,9 +116,17 @@ public class CresStreamCtrl extends Activity {
         public void onCreate(Bundle savedInstanceState) {
             super.onCreate(savedInstanceState);
             setContentView(R.layout.activity_main);
+
+            windowManager = (WindowManager) getSystemService(WINDOW_SERVICE);
             //StreamIn Surface
             streamingSurface = (SurfaceView) findViewById(R.id.surfaceView1);
             streamPlay = new StreamIn(CresStreamCtrl.this, streamingSurface);
+
+            lp = new WindowManager.LayoutParams(WindowManager.LayoutParams.WRAP_CONTENT, WindowManager.LayoutParams.WRAP_CONTENT,PixelFormat.TRANSLUCENT);
+            lp.gravity = Gravity.TOP | Gravity.LEFT;
+            lp.x = 0;
+            lp.y = 100;
+            //windowManager.addView(streamingSurface, lp);
             //StreamOut & Preview Surface
             previewSurface = (SurfaceView) findViewById(R.id.surfaceView);
             cam_streaming = new CameraStreaming(CresStreamCtrl.this, previewSurface);
@@ -125,7 +143,7 @@ public class CresStreamCtrl extends Activity {
 
             //refresh resolution on startup
             refreshResolutionInfo();
-            
+
             //Stub: TestApp functionality
             sockTask = new TCPInterface(this);
             sockTask.execute(new Void[0]);
@@ -158,6 +176,29 @@ public class CresStreamCtrl extends Activity {
         unregisterReceiver(resolutionEvent);
         unregisterReceiver(hpdEvent);
         unregisterReceiver(hdmioutResolutionChangedEvent);
+    }
+
+    public void setXCoordinates(int x)
+    {
+            lp.x = x;
+        //layoutParams.x = x;
+    }
+
+    public void setYCoordinates(int y)
+    {
+            lp.y = y;
+            //windowManager.updateViewLayout(streamingSurface, lp);
+        //layoutParams.y = y;
+    }
+
+    public void setWindowSizeW(int w)
+    {
+        streamPlay.setDestWidth(w);
+    }
+
+    public void setWindowSizeH(int h)
+    {
+        streamPlay.setDestHeight(h);
     }
 
     void refreshResolutionInfo()
@@ -364,23 +405,39 @@ public class CresStreamCtrl extends Activity {
     	stopStatus="false";
         Log.d(TAG, " Unimplemented");
     }
-    //StreamOut Ctrl & Config 
-    public void setStreamOutConfig(String ip, int resolution, String tmode, String profile, int vfrate, int vbr, int level)
-    {
-        Log.d(TAG, " setStreamOutConfig");
-	if(ip!=null)
-        	myconfig.setIP(ip);	
-        myconfig.setOutResolution(resolution);
-	if(sessInitMode==1 || sessInitMode==3)	
-        	myconfig.setTransportMode(tmode);	
-	else
-		Log.e(TAG, "Invalid transport mode for session initation mode");
+    //StreamOut Ctrl & Config
+    public void setIpAddress(String ip){
+        if(ip!=null)
+            myconfig.setIP(ip);	
+    } 
+    
+    public void setResolution(int res){
+        myconfig.setOutResolution(res);
+    } 
+    
+    public void setTMode(String tmode){
+        if(sessInitMode==1 || sessInitMode==3)	
+            myconfig.setTransportMode(tmode);	
+        else
+            Log.e(TAG, "Invalid transport mode for session initation mode");
+    } 
+    
+    public void setStreamProfile(String profile){
         myconfig.setVEncProfile(profile);	
-        myconfig.setVFrameRate(vfrate);	
+    } 
+    
+    public void setVFrmRate(int vfr){
+        myconfig.setVFrameRate(vfr);	
+    } 
+    
+    public void setVbitRate(int vbr){
         myconfig.setVideoBitRate(vbr);	
-        myconfig.setVEncLevel(level);	
-    }
-
+    } 
+    
+    public void setVEncLevel(int lvl){
+        myconfig.setVEncLevel(lvl);	
+    } 
+    
     public void setRTSPPort(int _port){
 	    myconfig.setRTSPPort(_port);	
     }
@@ -411,7 +468,7 @@ public class CresStreamCtrl extends Activity {
                    break;
             case 1:{//Only RTP
                        proto = "rtp";
-                       l_ipaddr = "@";
+                       //l_ipaddr = "@";
                        port = myconfig.getRTPVPort();
 
                    }
@@ -483,10 +540,10 @@ public class CresStreamCtrl extends Activity {
 
     public void setStreamInUrl(String ap_url)
     {
-	out_url = ap_url;
+        out_url = ap_url;
         streamPlay.setUrl(ap_url);
         if(ap_url.equals("rtp://@"))
-            streamPlay.setRtpOnlyMode( myconfig.getRTPAPort(),  myconfig.getRTPVPort());
+            streamPlay.setRtpOnlyMode( myconfig.getRTPVPort(),  myconfig.getRTPAPort(), myconfig.getIP());
     }
     
     public void SetStreamInLatency(int initialLatency)

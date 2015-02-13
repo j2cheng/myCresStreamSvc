@@ -115,11 +115,11 @@ public class CresStreamConfigure {
 	
 	public static int getRTPVPort() { 
 		Log.d(TAG, "GetPort:" + rvport);
-		return raport; 
+		return rvport; 
 	}
 	
 	public void setRTPAPort(int _port) { 
-		rport = _port; 
+		raport = _port; 
 		Log.d(TAG, "SetPort:" + raport);
 	}
 	

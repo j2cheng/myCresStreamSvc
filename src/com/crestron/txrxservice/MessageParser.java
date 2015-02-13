@@ -162,11 +162,13 @@ public class MessageParser {
             case 3://VideoProfile
                 {
                     profile = Integer.parseInt(tmp_str);
+                    c_streamctl.setStreamProfile(VideoEncProfile.getStringValueFromInt(profile));
                 }
                 break;
             case 4://TransportType
                 {
                     tmode = Integer.parseInt(tmp_str);
+                    c_streamctl.setTMode(TransportMode.getStringValueFromInt(tmode));
                 }
                 break;
             case 5://RTSP Port
@@ -196,26 +198,29 @@ public class MessageParser {
             case 9://Videoframerate 
                 {
                     vframerate = Integer.parseInt(tmp_str);
+                     c_streamctl.setVFrmRate(vframerate);
                 }
                 break;
             case 10://Video Bit Rate
             	{
                     vbr = Integer.parseInt(tmp_str);
-            	}
-            	break;
+                     c_streamctl.setVbitRate(vbr);
+                }
+                break;
             case 11://Video Encoding Level
                 {
                     venclevel = Integer.parseInt(tmp_str);
+                     c_streamctl.setVEncLevel(venclevel);
                 }
                 break;
             case 12://IPAddr
                 {
                     ip_addr = tmp_str;
+                     c_streamctl.setIpAddress(ip_addr);
                 }
                 break;
             case 13://START
                 {
-                    c_streamctl.setStreamOutConfig(ip_addr, resolution, TransportMode.getStringValueFromInt(tmode), VideoEncProfile.getStringValueFromInt(profile), vframerate, vbr, venclevel);
                     c_streamctl.Start();
                 }
                 break;
@@ -278,21 +283,25 @@ public class MessageParser {
             case 23://X Position
             	{
                     val = Integer.parseInt(l_msg);
+                    c_streamctl.setXCoordinates(val);
             	}
             	break;
             case 24://Y Position
             	{
                     val = Integer.parseInt(l_msg);
+                    c_streamctl.setYCoordinates(val);
             	}
             	break;
             case 25://window width
             	{
                     val = Integer.parseInt(l_msg);
+                    c_streamctl.setWindowSizeW(val);
             	}
             	break;
             case 26://window height
             	{
                     val = Integer.parseInt(l_msg);
+                    c_streamctl.setWindowSizeH(val);
             	}
             	break;
             default:
@@ -469,7 +478,13 @@ public class MessageParser {
         }
         return (sb.toString());
     }
-   
+  
+    public String processReplyFbMessage(String msg1, String msg2){
+        StringBuilder sb = new StringBuilder(1024);
+        sb.append(msg1).append("=").append(msg2);
+        return (sb.toString());
+    }
+
     public String processReceivedMessage(String receivedMsg){
         //tokenizer.printList();//DEBUG Purpose
         String[] msg = tokenizer.Parse(receivedMsg);
@@ -483,6 +498,7 @@ public class MessageParser {
             if(cmdArray[i].equalsIgnoreCase(msg[0])){
                 if(msg.length>1) {//cmd processing
                     callbackFunc(i, msg[1]);
+                    reply = processReplyFbMessage(msg[0], msg[1]); 
                 }
                 else{
                     reply = processCmdMessage(receivedMsg, msg[0]); 

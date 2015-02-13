@@ -17,10 +17,13 @@ public class StreamIn implements SurfaceHolder.Callback, OnPreparedListener {
     private MediaPlayer mediaPlayer;
     private SurfaceHolder vidHolder;
     String TAG = "TxRx StreamIN";
+    StringBuilder sb;
     String srcUrl;
     int latency = 2000;//msec
+    int dest_width = 1920;
+    int dest_height = 1080;
     boolean rtp_mode = false;
-    StringBuilder sb;
+
     public StreamIn(Context mContext, SurfaceView view) {
         Log.e(TAG, "StreamIN :: Constructor called...!");
         if (view != null) {
@@ -45,10 +48,19 @@ public class StreamIn implements SurfaceHolder.Callback, OnPreparedListener {
         Log.d(TAG, "setting stream in latency "+latency);
     }
 
-    public void setRtpOnlyMode(int vport, int aport){
+    public void setDestWidth(int w){
+        dest_width = w;
+    }
+
+    public void setDestHeight(int h){
+        dest_height = h;
+    }
+
+    public void setRtpOnlyMode(int vport, int aport, String ip){
         rtp_mode = true;
         sb = new StringBuilder(4096);
-        sb.append("v=0\r\n").append("o=- 15545345606659080561 15545345606659080561 IN IP4 cpu000669\r\n").append("s=Sample\r\n").append("i=N/A\r\n").append("c=IN IP4 127.0.0.1\r\n").append("t=0 0\r\n").append("a=range:npt=now-\r\n").append("m=audio").append(Integer.toString(vport)).append("RTP/AVP 96\r\n").append("a=control:audio\r\n").append("a=rtpmap:96 MP4A-LATM/44100/2\r\n").append("m=video ").append(Integer.toString(aport)).append("RTP/AVP 97\r\n").append("a=control:video\r\n").append("a=rtpmap:97 H264/90000\r\n");
+        Log.d(TAG, "vport "+vport+ "aport "+aport +"ip "+ip);
+        sb.append("v=0\r\n").append("o=- 15545345606659080561 15545345606659080561 IN IP4 cpu000669\r\n").append("s=Sample\r\n").append("i=N/A\r\n").append("c=IN IP4 ").append(ip).append("\r\n").append("t=0 0\r\n").append("a=range:npt=now-\r\n").append("m=audio ").append(Integer.toString(aport)).append(" RTP/AVP 96\r\n").append("a=control:audio\r\n").append("a=rtpmap:96 MP4A-LATM/44100/2\r\n").append("a=fmtp:96 profile-level-id=15; object=2; cpresent=0; config=400024203fc0\r\n").append("m=video ").append(Integer.toString(vport)).append(" RTP/AVP 97\r\n").append("a=control:video\r\n").append("a=rtpmap:97 H264/90000\r\n").append("a=fmtp:97 profile-level-id=64002A;in-band-parameter-sets=1;packetization-mode=1\r\n");
     }
 
     @Override
@@ -75,6 +87,7 @@ public class StreamIn implements SurfaceHolder.Callback, OnPreparedListener {
                 Log.d(TAG, "holder is null ");
                 vidHolder = CresStreamCtrl.mPopupHolder;
             }
+            vidHolder.setFixedSize(dest_width, dest_height);
             mediaPlayer.setDisplay(vidHolder);
             mediaPlayer.setDataSource(srcUrl);	
             Log.d(TAG, "URL is "+srcUrl);
