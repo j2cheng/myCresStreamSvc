@@ -4,15 +4,15 @@ import java.io.IOException;
 
 import android.util.Log;
 import android.view.SurfaceHolder;
-import android.view.SurfaceHolder.Callback;
-import android.view.SurfaceView;
 import android.media.MediaPlayer;
 import android.content.Context;
 import android.media.MediaPlayer.OnPreparedListener;
+import android.media.MediaPlayer.OnBufferingUpdateListener;
+import android.media.MediaPlayer.OnCompletionListener;
 import android.media.AudioManager;
 import com.crestron.txrxservice.CresStreamConfigure;
 
-public class StreamIn implements SurfaceHolder.Callback, OnPreparedListener {
+public class StreamIn implements OnPreparedListener, OnCompletionListener, OnBufferingUpdateListener {
 
     private MediaPlayer mediaPlayer;
     private SurfaceHolder vidHolder;
@@ -20,22 +20,13 @@ public class StreamIn implements SurfaceHolder.Callback, OnPreparedListener {
     StringBuilder sb;
     String srcUrl;
     int latency = 2000;//msec
-    int dest_width = 1920;
-    int dest_height = 1080;
+    int dest_width = 1280;
+    int dest_height = 720;
     boolean rtp_mode = false;
 
-    public StreamIn(Context mContext, SurfaceView view) {
+    public StreamIn(Context mContext, SurfaceHolder vHolder) {
         Log.e(TAG, "StreamIN :: Constructor called...!");
-        if (view != null) {
-            Log.d(TAG, "View is not null");
-            vidHolder = view.getHolder();	
-            vidHolder.addCallback(this);
-            vidHolder.setType(SurfaceHolder.SURFACE_TYPE_PUSH_BUFFERS);
-            view.setZOrderOnTop(true);
-
-        } else {
-            Log.d(TAG, "App passed null surface view for stream in");
-        }
+        vidHolder = vHolder;
     }
 
     public void setUrl(String p_url){
@@ -62,24 +53,7 @@ public class StreamIn implements SurfaceHolder.Callback, OnPreparedListener {
         Log.d(TAG, "vport "+vport+ "aport "+aport +"ip "+ip);
         sb.append("v=0\r\n").append("o=- 15545345606659080561 15545345606659080561 IN IP4 cpu000669\r\n").append("s=Sample\r\n").append("i=N/A\r\n").append("c=IN IP4 ").append(ip).append("\r\n").append("t=0 0\r\n").append("a=range:npt=now-\r\n").append("m=audio ").append(Integer.toString(aport)).append(" RTP/AVP 96\r\n").append("a=control:audio\r\n").append("a=rtpmap:96 MP4A-LATM/44100/2\r\n").append("a=fmtp:96 profile-level-id=15; object=2; cpresent=0; config=400024203fc0\r\n").append("m=video ").append(Integer.toString(vport)).append(" RTP/AVP 97\r\n").append("a=control:video\r\n").append("a=rtpmap:97 H264/90000\r\n").append("a=fmtp:97 profile-level-id=64002A;in-band-parameter-sets=1;packetization-mode=1\r\n");
     }
-
-    @Override
-        public void surfaceChanged(SurfaceHolder arg0, int arg1, int arg2, int arg3) {
-            Log.d(TAG, "######### surfacechanged##############");
-            // TODO Auto-generated method stub
-        }
-
-    @Override
-        public void surfaceCreated(SurfaceHolder arg0) {
-            Log.d(TAG, "######### surfaceCreated##############");
-        }
-
-    @Override
-        public void surfaceDestroyed(SurfaceHolder arg0) {
-            // TODO Auto-generated method stub
-            onStop();
-        }
-
+    
     public void onStart() {
         try {
             mediaPlayer = new MediaPlayer();
@@ -87,8 +61,6 @@ public class StreamIn implements SurfaceHolder.Callback, OnPreparedListener {
                 Log.d(TAG, "holder is null ");
                 vidHolder = CresStreamCtrl.mPopupHolder;
             }
-            vidHolder.setFixedSize(dest_width, dest_height);
-            mediaPlayer.setDisplay(vidHolder);
             mediaPlayer.setDataSource(srcUrl);	
             Log.d(TAG, "URL is "+srcUrl);
             //Setting Initial Latency
@@ -99,7 +71,10 @@ public class StreamIn implements SurfaceHolder.Callback, OnPreparedListener {
             }
             mediaPlayer.prepare();
             mediaPlayer.setOnPreparedListener(this);
+            mediaPlayer.setOnCompletionListener(this);
+            mediaPlayer.setOnBufferingUpdateListener(this);
             mediaPlayer.setAudioStreamType(AudioManager.STREAM_MUSIC);
+            mediaPlayer.setDisplay(vidHolder);
         } 
         catch(Exception e){
             e.printStackTrace();
@@ -120,7 +95,40 @@ public class StreamIn implements SurfaceHolder.Callback, OnPreparedListener {
     @Override
         public void onPrepared(MediaPlayer mp) {
             Log.d(TAG, "######### OnPrepared##############");
+            /*
+            //Maintain Aspect ratio
+            // Get the video resolution info
+            int videoWidth = mediaPlayer.getVideoWidth();
+            int videoHeight = mediaPlayer.getVideoHeight();
+            float videoAspect = (float) videoWidth / (float) videoHeight;
+            Log.i(TAG, "VIDEO SIZES: W: " + videoWidth + " H: " + videoHeight + " PROP: " + videoAspect);
+
+            // Get the width of the screen
+            int screenWidth = dest_width;
+            int screenHeight = dest_height;
+            float screenAspect = (float) screenWidth / (float) screenHeight;
+            Log.i(TAG, "SCREEN SIZES: W: " + screenWidth + " H: " + screenHeight + " PROP: " + screenAspect);
+            //Set Apect as per video
+            if (videoAspect > screenAspect) {
+                dest_width = screenWidth;
+                dest_height = (int) ((float) screenWidth / videoProportion);
+            } else {
+                dest_width = (int) (videoProportion * (float) screenHeight);
+                dest_height = screenHeight;
+            }
+            */
+            //vidHolder.setFixedSize(dest_width, dest_height);
             mediaPlayer.start();
+        }
+
+        public void onBufferingUpdate(MediaPlayer mp, int percent) {
+            int progress = (int) ((float) mp.getDuration() * ((float) percent/ (float) 100));
+            Log.d(TAG, "####### Buffering percent "+percent);
+        }
+
+        public void onCompletion(MediaPlayer mp) {
+            mp.stop();
+            Log.d(TAG, "####### Stopping mediaplayer");
         }
 
         //Response to CSIO Layer

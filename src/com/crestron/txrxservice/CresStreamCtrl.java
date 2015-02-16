@@ -21,9 +21,9 @@ import android.media.AudioManager;
 import android.view.Surface;
 import android.view.SurfaceHolder;
 import android.view.Surface.PhysicalDisplayInfo;
-import android.view.WindowManager;
-import android.view.Gravity;
-import android.graphics.PixelFormat;
+import android.view.View;
+import android.view.ViewGroup;
+import android.widget.RelativeLayout;
 import android.hardware.Camera;
 
 interface Command {
@@ -36,21 +36,21 @@ interface myCommand {
 
 public class CresStreamCtrl extends Activity {
     CameraStreaming cam_streaming;
+    SurfaceManager sMGR;
     StreamIn streamPlay;
     BroadcastReceiver hpdEvent = null;
     BroadcastReceiver resolutionEvent = null;
     BroadcastReceiver hdmioutResolutionChangedEvent = null;
     private SurfaceView previewSurface;
-    private static SurfaceView streamingSurface = null;
-    private static SurfaceView dummyView = null;
+    private SurfaceView streamingSurface = null;
+    private SurfaceView dummyView = null;
     public static SurfaceHolder mPopupHolder;
-    private WindowManager windowManager;
-    WindowManager.LayoutParams lp;
-    //final WindowManager.LayoutParams lp;
+    private ViewGroup mRootLayout;
     CresStreamConfigure myconfig;
     AudioManager amanager;
     TCPInterface sockTask;
    
+    private SurfaceHolder vidHolder;
     
     HDMIInputInterface hdmiInput;
     HDMIOutputInterface hdmiOutput;
@@ -66,6 +66,7 @@ public class CresStreamCtrl extends Activity {
     int g_x = 0;
     int g_y = 0;
     int g_w = 0;
+    int g_h = 0;
     boolean StreamOutstarted = false;
     public enum DeviceMode {
         PREVIEW(2), STREAMOUT(1), STREAMIN(0);
@@ -117,18 +118,15 @@ public class CresStreamCtrl extends Activity {
             super.onCreate(savedInstanceState);
             setContentView(R.layout.activity_main);
 
-            windowManager = (WindowManager) getSystemService(WINDOW_SERVICE);
+            mRootLayout = (ViewGroup)findViewById(R.id.root);
             //StreamIn Surface
-            streamingSurface = (SurfaceView) findViewById(R.id.surfaceView1);
-            streamPlay = new StreamIn(CresStreamCtrl.this, streamingSurface);
+            streamingSurface = (SurfaceView) mRootLayout.findViewById(R.id.surfaceView1);
 
-            lp = new WindowManager.LayoutParams(WindowManager.LayoutParams.WRAP_CONTENT, WindowManager.LayoutParams.WRAP_CONTENT,PixelFormat.TRANSLUCENT);
-            lp.gravity = Gravity.TOP | Gravity.LEFT;
-            lp.x = 0;
-            lp.y = 100;
-            //windowManager.addView(streamingSurface, lp);
+            sMGR = new SurfaceManager(CresStreamCtrl.this, streamingSurface);
+            streamPlay = new StreamIn(CresStreamCtrl.this, sMGR.videoSurfaceHolder);
+
             //StreamOut & Preview Surface
-            previewSurface = (SurfaceView) findViewById(R.id.surfaceView);
+            previewSurface = (SurfaceView) mRootLayout.findViewById(R.id.surfaceView);
             cam_streaming = new CameraStreaming(CresStreamCtrl.this, previewSurface);
             dummyView = streamingSurface;
             //HPD and Resolution Event Registration
@@ -178,27 +176,47 @@ public class CresStreamCtrl extends Activity {
         unregisterReceiver(hdmioutResolutionChangedEvent);
     }
 
+    public void setDeviceMode(int mode)
+    {
+        Log.d(TAG, " setDeviceMode "+ mode);
+        device_mode = mode;
+    }
+    
     public void setXCoordinates(int x)
     {
-            lp.x = x;
+        g_x = x;
+        update();
         //layoutParams.x = x;
     }
 
     public void setYCoordinates(int y)
     {
-            lp.y = y;
-            //windowManager.updateViewLayout(streamingSurface, lp);
+        g_y = y;
+        update();
         //layoutParams.y = y;
     }
 
     public void setWindowSizeW(int w)
     {
-        streamPlay.setDestWidth(w);
+        //streamPlay.setDestWidth(w);
+        g_w = w;
     }
 
     public void setWindowSizeH(int h)
     {
-        streamPlay.setDestHeight(h);
+        //streamPlay.setDestHeight(h);
+        g_h = h;
+        update();
+    }
+    
+    private void update()
+    {
+        if(device_mode==0){
+            RelativeLayout.LayoutParams lParams = new RelativeLayout.LayoutParams(g_w, g_h);
+            lParams.setMargins(g_x, g_y, 0, 0);
+            streamingSurface.setLayoutParams(lParams);
+            mRootLayout.invalidate();
+        }
     }
 
     void refreshResolutionInfo()
@@ -380,11 +398,6 @@ public class CresStreamCtrl extends Activity {
 	    return StreamState;
     }
 
-    public void setDeviceMode(int mode)
-    {
-        Log.d(TAG, " setDeviceMode "+ mode);
-        device_mode = mode;
-    }
 
     //Ctrls
     public void Start(){
@@ -510,11 +523,11 @@ public class CresStreamCtrl extends Activity {
 
     public void stopStreamOut()
     {
-	if(StreamOutstarted){
-        	Toast.makeText(this, "StreamOut Stopped", Toast.LENGTH_LONG).show();
-        	cam_streaming.stopRecording();
-		StreamOutstarted = false;
-	}
+        if(StreamOutstarted){
+            Toast.makeText(this, "StreamOut Stopped", Toast.LENGTH_LONG).show();
+            cam_streaming.stopRecording();
+            StreamOutstarted = false;
+        }
     }
 
     //StreamIn Ctrls & Config
