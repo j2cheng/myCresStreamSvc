@@ -68,13 +68,13 @@ public class CresStreamConfigure {
 		tport 	= 2456;		//port; 
 		rvport 	= 2456;		//port; 
 		raport 	= 2458;		//port; 
-		mode 	= mode.RTP;	//RTSP;
+		mode 	= mode.RTSP;	//RTSP;
 		width 	= 1920;		//width;
 		height 	= 1080;		//height;
 		vprofile=vprofile.HP;
 	        vfrmrate = 50;
 	        vbitrate = 600000;
-                venclevel  = 2;
+                venclevel  = 8192;
 		url 	= null;
 	}
 

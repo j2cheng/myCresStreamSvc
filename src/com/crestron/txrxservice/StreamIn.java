@@ -18,8 +18,8 @@ public class StreamIn implements OnPreparedListener, OnCompletionListener, OnBuf
     private SurfaceHolder vidHolder;
     String TAG = "TxRx StreamIN";
     StringBuilder sb;
-    String srcUrl;
-    int latency = 2000;//msec
+    static String srcUrl;
+    static int latency = 2000;//msec
     int dest_width = 1280;
     int dest_height = 720;
     boolean rtp_mode = false;

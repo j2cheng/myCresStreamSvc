@@ -14,10 +14,8 @@ import android.media.MediaRecorder;
 import android.os.Environment;
 import android.util.Log;
 import android.view.SurfaceHolder;
-import android.view.SurfaceHolder.Callback;
-import android.view.SurfaceView;
 
-public class CameraStreaming implements Callback, ErrorCallback {
+public class CameraStreaming implements ErrorCallback {
 	static SurfaceHolder surfaceHolder;
 	public static CameraPreview mCameraObj = null;
 	MediaRecorder mrec;
@@ -27,46 +25,14 @@ public class CameraStreaming implements Callback, ErrorCallback {
 	String path;
 	boolean out_stream_status = false;
 	
-	public CameraStreaming(Context mContext, SurfaceView view) {
+	public CameraStreaming(Context mContext, SurfaceHolder lpHolder ) {
 		MiscUtils.getDeviceIpAddr();	
 		hostaddr = MiscUtils.matcher.group();
 		mCameraObj =  new CameraPreview();
 		Log.d(TAG, "CameraStreaming :: Constructor called.....");
-		if (view != null) {
-			Log.d(TAG, "View is not null");
-			surfaceHolder = view.getHolder();	
-			surfaceHolder.setType(SurfaceHolder.SURFACE_TYPE_PUSH_BUFFERS);
-			surfaceHolder.addCallback(this);
-			//view.setZOrderOnTop(true);
-		} else {
-			Log.d(TAG, "App passed null surface view for streaming");
-		}
+	        surfaceHolder = lpHolder;
 	}
-
-	public void surfaceChanged(SurfaceHolder holder, int format, int width,
-			int height) {	
-		Log.d(TAG, "########surfaceChanged#########");
-		//surfaceHolder = holder;
-		//try {
-		//	mCamera.setPreviewDisplay(surfaceHolder);
-		//} catch (IOException e) {
-		//	e.printStackTrace();
-		//}
-	}
-	@Override
-	public void surfaceCreated(SurfaceHolder holder) {
-		Log.d(TAG, "########surfaceCreated#########");
-		//mCameraObj.startPlayback(true);
-		//surfaceHolder = holder;
-		//try {
-		//	mCamera.setPreviewDisplay(holder);
-		//	mCamera.setPreviewCallback(null);
-		//	startPlayback();
-		//} catch (IOException exception) {
-		//	mCamera.release();
-		//	mCamera = null;
-		//}
-	}
+/*	
 	@Override
 	public void surfaceDestroyed(SurfaceHolder holder) {
 		Log.d(TAG, "########surfaceDestroyed#########");
@@ -80,7 +46,7 @@ public class CameraStreaming implements Callback, ErrorCallback {
 		//mCamera.release();
 
 	}
-
+*/
 	protected void startRecording() throws IOException {
 
 		if(mCameraObj.APlayStatus())
