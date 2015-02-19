@@ -8,7 +8,7 @@ import android.net.Uri;
 
 import android.os.Bundle;
 import android.util.Log;
-import android.app.Activity;
+import android.app.Service;
 import android.os.IBinder;
 import android.view.SurfaceView;
 import android.widget.Toast;
@@ -19,11 +19,12 @@ import android.content.IntentFilter;
 import android.content.BroadcastReceiver;
 import android.media.AudioManager;
 import android.view.Surface;
+import android.view.Gravity;
 import android.view.SurfaceHolder;
 import android.view.Surface.PhysicalDisplayInfo;
-import android.view.View;
-import android.view.ViewGroup;
-import android.widget.RelativeLayout;
+import android.view.WindowManager;
+import android.view.WindowManager.LayoutParams;
+import android.graphics.PixelFormat;
 import android.hardware.Camera;
 
 interface Command {
@@ -34,7 +35,7 @@ interface myCommand {
     void executeStop();
 }
 
-public class CresStreamCtrl extends Activity {
+public class CresStreamCtrl extends Service {
     CameraStreaming cam_streaming;
     SurfaceManager sMGR;
     StreamIn streamPlay;
@@ -45,13 +46,15 @@ public class CresStreamCtrl extends Activity {
     private SurfaceView streamingSurface = null;
     private SurfaceView dummyView = null;
     public static SurfaceHolder mPopupHolder;
-    private ViewGroup mRootLayout;
     CresStreamConfigure myconfig;
     AudioManager amanager;
     TCPInterface sockTask;
    
     private SurfaceHolder vidHolder;
-    
+
+    WindowManager.LayoutParams lp;
+    WindowManager wm;
+
     HDMIInputInterface hdmiInput;
     HDMIOutputInterface hdmiOutput;
 
@@ -114,17 +117,22 @@ public class CresStreamCtrl extends Activity {
     HashMap<String, Command> hm;
     HashMap<String, myCommand> hm2;
     @Override
-        public void onCreate(Bundle savedInstanceState) {
-            super.onCreate(savedInstanceState);
-            setContentView(R.layout.activity_main);
+        public void onCreate() {
+            super.onCreate();
+            final int windowWidth = 1920;
+            final int windowHeight = 1080;
+            streamingSurface = new SurfaceView(this);
 
-            mRootLayout = (ViewGroup)findViewById(R.id.root);
-            
-            //Stream Surface
-            streamingSurface = (SurfaceView) mRootLayout.findViewById(R.id.surfaceView1);
+            lp = new WindowManager.LayoutParams(windowWidth, windowHeight, WindowManager.LayoutParams.TYPE_SYSTEM_OVERLAY, 0, PixelFormat.TRANSLUCENT);
+            wm = (WindowManager) getSystemService(WINDOW_SERVICE);
+            lp.gravity = Gravity.TOP | Gravity.LEFT;
+            lp.x = 0;
+            lp.y = 0;
 
             sMGR = new SurfaceManager(CresStreamCtrl.this, streamingSurface);
             dummyView = streamingSurface;
+           
+            wm.addView(streamingSurface, lp); 
             //HPD and Resolution Event Registration
             registerBroadcasts();
             //AudioManager
@@ -162,8 +170,20 @@ public class CresStreamCtrl extends Activity {
                     public void executeStop() {stopStreamIn(); StreamState = 100;};
                     });
         }
+   
+    @Override
+        public int onStartCommand (Intent intent, int flags, int startId) {
+            // TODO Auto-generated method stub
+            Log.d(TAG,"S: CresStreamCtrl Started !" );
+            return 0;
+        }
     
-    protected void onDestroy(){
+    public IBinder onBind(Intent intent)
+    {
+        return null;
+    } 
+    
+    public void onDestroy(){
         super.onDestroy();
         sockTask.cancel(true);
         Log.d(TAG, " Asynctask cancelled");
@@ -193,14 +213,12 @@ public class CresStreamCtrl extends Activity {
     {
         g_x = x;
         update();
-        //layoutParams.x = x;
     }
 
     public void setYCoordinates(int y)
     {
         g_y = y;
         update();
-        //layoutParams.y = y;
     }
 
     public void setWindowSizeW(int w)
@@ -218,10 +236,8 @@ public class CresStreamCtrl extends Activity {
     
     private void update()
     {
-        RelativeLayout.LayoutParams lParams = new RelativeLayout.LayoutParams(g_w, g_h);
-        lParams.setMargins(g_x, g_y, 0, 0);
-        streamingSurface.setLayoutParams(lParams);
-        mRootLayout.invalidate();
+        WindowManager.LayoutParams pp = new WindowManager.LayoutParams(g_w, g_h, g_x, g_y, WindowManager.LayoutParams.TYPE_SYSTEM_OVERLAY, 0, PixelFormat.TRANSLUCENT );
+        wm.updateViewLayout(streamingSurface, pp);
     }
 
     void refreshResolutionInfo()
@@ -540,11 +556,11 @@ public class CresStreamCtrl extends Activity {
     //StreamIn Ctrls & Config
     private void hideStreamInWindow()
     {
-        if (streamingSurface != null)
+        /*if (streamingSurface != null)
         {
             streamingSurface.setVisibility(8);
             streamingSurface = null;
-        }
+        }*/
     }
 
     private void showStreamInWindow()
