@@ -27,13 +27,13 @@ public class HDMIInputInterface {
 	}
 
 	public void setSyncStatus() {
-		byte[] hdmiInSyncStatus = DisplayManager.getEVSHdmiInSyncStatus();
+		/*byte[] hdmiInSyncStatus = DisplayManager.getEVSHdmiInSyncStatus();
 		
 		Log.i(TAG, "SyncStatus " + (char)hdmiInSyncStatus[0]);
 
 		if((char)hdmiInSyncStatus[0] == '1')
 			syncStatus = "true";
-		else
+		else*/
 			syncStatus = "false";
 	}
 	

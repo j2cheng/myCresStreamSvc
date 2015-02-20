@@ -6,6 +6,7 @@ import java.util.ListIterator;
 import java.io.BufferedWriter;
 import java.io.BufferedReader;
 import java.io.IOException;
+import java.lang.IllegalArgumentException;
 import java.io.InputStreamReader;
 import java.io.OutputStreamWriter;
 import java.net.ServerSocket;
@@ -18,7 +19,8 @@ import android.os.Bundle;
 public class TCPInterface extends AsyncTask<Void, Object, Long> {
     String TAG = "TxRx TCPInterface";
     public static final String CONSOLEPROMPT = "\r\nTxRx>";
-    MessageParser parserInstance;
+    CommandParser parserInstance;
+    //MessageParser parserInstance;
     boolean isWhiteSpace = false;
     static boolean connectionAlive = true;
 
@@ -29,7 +31,8 @@ public class TCPInterface extends AsyncTask<Void, Object, Long> {
     private ArrayList<CommunicationThread> clientList;
 
     public TCPInterface(CresStreamCtrl a_crestctrl){
-        parserInstance = new MessageParser (a_crestctrl);
+        parserInstance = new CommandParser (a_crestctrl);
+        //parserInstance = new MessageParser (a_crestctrl);
         clientList = new ArrayList<TCPInterface.CommunicationThread>();
     }
     

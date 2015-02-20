@@ -237,6 +237,7 @@ public class CresStreamCtrl extends Service {
     private void update()
     {
         WindowManager.LayoutParams pp = new WindowManager.LayoutParams(g_w, g_h, g_x, g_y, WindowManager.LayoutParams.TYPE_SYSTEM_OVERLAY, 0, PixelFormat.TRANSLUCENT );
+        pp.gravity = Gravity.TOP | Gravity.LEFT;
         wm.updateViewLayout(streamingSurface, pp);
     }
 
