@@ -61,21 +61,21 @@ public class CresStreamConfigure {
 	private static int vbitrate;
 	private String url;
 
-	public CresStreamConfigure() {
-		MiscUtils.getDeviceIpAddr();
-                ipAddr = MiscUtils.matcher.group();
-		rport 	= 2456;		//port; 
-		tport 	= 2456;		//port; 
-		rvport 	= 2456;		//port; 
-		raport 	= 2458;		//port; 
-		mode 	= mode.RTSP;	//RTSP;
-		width 	= 1920;		//width;
-		height 	= 1080;		//height;
-		vprofile=vprofile.HP;
-	        vfrmrate = 50;
-	        vbitrate = 600000;
-                venclevel  = 8192;
-		url 	= null;
+    public CresStreamConfigure() {
+        MiscUtils.getDeviceIpAddr();
+        ipAddr = MiscUtils.matcher.group();
+        rport 	= 2456;		//port; 
+        tport 	= 2456;		//port; 
+        rvport 	= 2456;		//port; 
+        raport 	= 2458;		//port; 
+        mode 	= mode.RTSP;//RTSP;
+        width 	= 1920;		//width;
+        height 	= 1080;		//height;
+        vprofile=vprofile.HP;
+        vfrmrate = 50;
+        vbitrate = 600000;
+        venclevel= 8192;
+        url 	 = null;
 	}
 
 	public void setIP(String _ipAddr) { 
@@ -179,11 +179,6 @@ public class CresStreamConfigure {
 	public static int getVideoBitRate() { 
 		Log.d(TAG, "getVideoBitRate:" + vbitrate);
 	 	return vbitrate; 
-	}
-	
-	
-	public void setVEncLevel(int level) { 
-		venclevel = level; 
 	}
 	
 	public static int getVEncLevel() { 

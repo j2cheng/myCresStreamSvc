@@ -154,7 +154,7 @@ public class CresStreamCtrl extends Service {
                     public void executeStart() {startPreview(); StreamState = 2;};
                     });
             hm.put("STREAMOUT", new Command() {
-                    public void executeStart() {startStreamOut(); StreamState = 1;};
+                    public void executeStart() {startStreamOut(); StreamState = 1;createStreamOutURL();};
                     });
             hm.put("STREAMIN", new Command() {
                     public void executeStart() {startStreamIn(); StreamState = 0;};
@@ -469,10 +469,6 @@ public class CresStreamCtrl extends Service {
         myconfig.setVideoBitRate(vbr);	
     } 
     
-    public void setVEncLevel(int lvl){
-        myconfig.setVEncLevel(lvl);	
-    } 
-    
     public void setRTSPPort(int _port){
 	    myconfig.setRTSPPort(_port);	
     }
@@ -575,12 +571,21 @@ public class CresStreamCtrl extends Service {
         }
     }
 
+    public void EnableTcpInterleave(){
+        Log.d(TAG, " EnableTcpInterleave");
+        streamPlay.setRtspTcpInterleave(true);
+    }
+
     public void setStreamInUrl(String ap_url)
     {
         out_url = ap_url;
         streamPlay.setUrl(ap_url);
-        if(ap_url.equals("rtp://@"))
+        if(ap_url.startsWith("rtp://@"))
             streamPlay.setRtpOnlyMode( myconfig.getRTPVPort(),  myconfig.getRTPAPort(), myconfig.getIP());
+        else if(ap_url.startsWith("http://"))
+            streamPlay.disableLatency();
+        else
+            Log.d(TAG, "No conditional Tags for StreamIn");
     }
     
     public void SetStreamInLatency(int initialLatency)

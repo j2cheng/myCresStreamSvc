@@ -23,6 +23,8 @@ public class StreamIn implements OnPreparedListener, OnCompletionListener, OnBuf
     int dest_width = 1280;
     int dest_height = 720;
     boolean rtp_mode = false;
+    boolean tcpInterleaveFlag = false;
+    boolean disableLatencyFlag = false;
 
     public StreamIn(Context mContext, SurfaceHolder vHolder) {
         Log.e(TAG, "StreamIN :: Constructor called...!");
@@ -47,6 +49,15 @@ public class StreamIn implements OnPreparedListener, OnCompletionListener, OnBuf
         dest_height = h;
     }
 
+    public void disableLatency(){
+        disableLatencyFlag = true;    
+    }
+    
+    public void setRtspTcpInterleave(boolean tcpInterleave){
+            Log.d(TAG, " setRtspTcpInterleave");
+            tcpInterleaveFlag = tcpInterleave;    
+    }
+
     public void setRtpOnlyMode(int vport, int aport, String ip){
         rtp_mode = true;
         sb = new StringBuilder(4096);
@@ -63,8 +74,13 @@ public class StreamIn implements OnPreparedListener, OnCompletionListener, OnBuf
             }
             mediaPlayer.setDataSource(srcUrl);	
             Log.d(TAG, "URL is "+srcUrl);
+            if(tcpInterleaveFlag && srcUrl.startsWith("rtsp://"))
+                mediaPlayer.setTransportCommunication(true);
             //Setting Initial Latency
-            mediaPlayer.setDejitterBufferDuration(latency);
+            if(disableLatencyFlag){
+                mediaPlayer.setDejitterBufferDuration(latency);
+                disableLatencyFlag = false;
+            }
             if(rtp_mode){
                 mediaPlayer.setSDP(sb.toString());
                 rtp_mode = false;
@@ -127,7 +143,7 @@ public class StreamIn implements OnPreparedListener, OnCompletionListener, OnBuf
         }
 
         public void onCompletion(MediaPlayer mp) {
-            mp.stop();
+            //mp.stop();
             Log.d(TAG, "####### Stopping mediaplayer");
         }
 

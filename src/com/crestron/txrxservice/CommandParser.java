@@ -11,7 +11,7 @@ public class CommandParser {
     CommandReceiver cmdRx;
     CommandIf cmd ; 
     //TEMP HACK:TODO Needs to be removed
-    String[] cmdArray = {"MODE", "SessionInitiation", "STREAMURL", "VENCPROFILE", "TRANSPORTMODE", "RTSPPORT", "TSPORT", "RTPVIDEOPORT", "RTPAUDIOPORT", "VFRAMERATE", "VBITRATE", "VENCLEVEL", "IPADDRESS", "START", "STOP", "PAUSE", "MUTE", "UNMUTE", "LATENCY", "PASSWD_ENABLE", "PASSWD_DISABLE", "USERNAME", "PASSWORD", 
+    String[] cmdArray = {"MODE", "SessionInitiation", "STREAMURL", "VENCPROFILE", "TRANSPORTMODE", "RTSPPORT", "TSPORT", "RTPVIDEOPORT", "RTPAUDIOPORT", "VFRAMERATE", "VBITRATE", "TCPINTERLEAVE", "IPADDRESS", "START", "STOP", "PAUSE", "MUTE", "UNMUTE", "LATENCY", "PASSWD_ENABLE", "PASSWD_DISABLE", "USERNAME", "PASSWORD", 
     					"XLOC", "YLOC", "W", "H",
     					"HDMIIN_SYNC_DETECTED", "HDMIIN_INTERLACED", "HDMIIN_CEC_ERROR",
     					"HDMIIN_HORIZONTAL_RES_FB", "HDMIIN_VERTICAL_RES_FB", 
@@ -36,7 +36,7 @@ public class CommandParser {
         RTPAUDIOPORT,
         VFRAMERATE,
         VBITRATE,
-        VENCLEVEL,
+        TCPINTERLEAVE,
         IPADDRESS,
         MUTE,
         UNMUTE,
@@ -112,7 +112,7 @@ public class CommandParser {
         sb.append("RTPAUDIOPORT (= 1024 to 49151)\r\n");
         sb.append("VFRAMERATE (= 60 50 30 24)\r\n");
         sb.append("VBITRATE (= 96 to 25000kbps)\r\n");
-        sb.append("VENCLEVEL (= 4096:for 4.1 level, 8192:for 4.2 level)\r\n");
+        sb.append("TCPINTERLEAVE (enable tcp for RTSP Streaming In)\r\n");
         sb.append("IPADDRESS(=xxx.xxx.xxx.xxx, also multicast address in SessionInitaion 2 & 3)\r\n");
         sb.append("MUTE(=1:true/0:false)\r\n");
         sb.append("UNMUTE(=1:true/0:false)\r\n");
@@ -202,8 +202,8 @@ public class CommandParser {
             case VBITRATE:
                 cmd = new VbrCommand(cmdRx, arg); 
                 break;
-            case VENCLEVEL:
-                cmd = new VLevelCommand(cmdRx, arg); 
+            case TCPINTERLEAVE:
+                cmd = new TcpInterleaveCommand(cmdRx, arg); 
                 break;
             case IPADDRESS:
                 cmd = new IpaddrCommand(cmdRx, arg); 

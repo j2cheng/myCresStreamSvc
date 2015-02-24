@@ -95,8 +95,8 @@ public class CommandReceiver {
         ctl.setVbitRate(vbr);
     }
 
-    public void setVlevel(int vlevel){
-        ctl.setVEncLevel(vlevel);
+    public void EnableTcpInterleave(){
+        ctl.EnableTcpInterleave();
     }
     
     public void setIP(String ip){

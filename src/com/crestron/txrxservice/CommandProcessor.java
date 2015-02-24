@@ -181,18 +181,18 @@ class VbrCommand implements CommandIf {
         }
 }
 
-class VLevelCommand implements CommandIf {
+class TcpInterleaveCommand implements CommandIf {
     CommandReceiver launch;
     String msg;
 
-    public VLevelCommand(CommandReceiver launch, String arg) {
+    public TcpInterleaveCommand(CommandReceiver launch, String arg) {
         this.launch = launch;
         this.msg = arg;
     }
 
     @Override
         public void execute() {
-            launch.setVlevel(Integer.parseInt(msg));
+            launch.EnableTcpInterleave();
         }
         public String getFeedbackMsg() {
             return msg;
