@@ -372,7 +372,9 @@ class StartCommand implements CommandIf {
 
     @Override
         public void execute() {
-            launch.setStart();
+            boolean val = Boolean.valueOf(msg);
+            if(val)
+                launch.setStart();
         }
         public String getFeedbackMsg() {
             return launch.getStartStatus();
@@ -390,7 +392,9 @@ class StopCommand implements CommandIf {
 
     @Override
         public void execute() {
-            launch.setStop();
+            boolean val = Boolean.valueOf(msg);
+            if(val)
+                launch.setStop();
         }
         public String getFeedbackMsg() {
             return launch.getStopStatus();
@@ -408,7 +412,9 @@ class PauseCommand implements CommandIf {
 
     @Override
         public void execute() {
-            launch.setPause();
+            boolean val = Boolean.valueOf(msg);
+            if(val)
+                launch.setPause();
         }
         public String getFeedbackMsg() {
             return launch.getPauseStatus();

@@ -75,8 +75,7 @@ public class StreamIn implements OnPreparedListener, OnCompletionListener, OnBuf
             mediaPlayer.setDataSource(srcUrl);	
             Log.d(TAG, "URL is "+srcUrl);
             if(tcpInterleaveFlag && srcUrl.startsWith("rtsp://"))
-                // MNT - 2.24.15 - Temporarily commenting out api to set the communication mode.  skumar to uncomment when done        
-                //mediaPlayer.setTransportCommunication(true);
+                mediaPlayer.setTransportCommunication(true);
             //Setting Initial Latency
             if(disableLatencyFlag){
                 mediaPlayer.setDejitterBufferDuration(latency);

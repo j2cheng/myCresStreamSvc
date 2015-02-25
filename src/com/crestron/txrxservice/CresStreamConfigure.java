@@ -66,8 +66,8 @@ public class CresStreamConfigure {
         ipAddr = MiscUtils.matcher.group();
         rport 	= 2456;		//port; 
         tport 	= 2456;		//port; 
-        rvport 	= 2456;		//port; 
-        raport 	= 2458;		//port; 
+        rvport 	= 2458;		//port; 
+        raport 	= 2456;		//port; 
         mode 	= mode.RTSP;//RTSP;
         width 	= 1920;		//width;
         height 	= 1080;		//height;

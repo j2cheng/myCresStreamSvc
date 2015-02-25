@@ -36,13 +36,12 @@ public class StringTokenizer
 		list.add(new Token("sessioninitiation", "0"));
 		list.add(new Token("transportmode", "0"));
 		list.add(new Token("vencprofile", "2"));
-		list.add(new Token("rtspport", "1234"));
-		list.add(new Token("tsport", "1234"));
-		list.add(new Token("rtpvideoport", "1234"));
-		list.add(new Token("rtpaudioport", "1236"));
+		list.add(new Token("rtspport", "2456"));
+		list.add(new Token("tsport", "2456"));
+		list.add(new Token("rtpvideoport", "2458"));
+		list.add(new Token("rtpaudioport", "2456"));
 		list.add(new Token("vframerate", "50"));
 		list.add(new Token("vbitrate", "6000"));
-		list.add(new Token("venclevel", "4096"));
 		list.add(new Token("hdmioutputres", "17"));
 		list.add(new Token("mutestate", "false"));
 		list.add(new Token("latency", "2000"));
