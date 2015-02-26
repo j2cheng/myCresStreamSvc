@@ -192,7 +192,9 @@ class TcpInterleaveCommand implements CommandIf {
 
     @Override
         public void execute() {
-            launch.EnableTcpInterleave();
+            boolean val = Boolean.valueOf(msg);
+            if(val)
+                launch.EnableTcpInterleave();
         }
         public String getFeedbackMsg() {
             return msg;

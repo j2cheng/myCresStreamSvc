@@ -202,6 +202,12 @@ public class CommandReceiver {
             case 2:
                 replyString ="Previewing Video";
                 break;
+            case 3:
+                replyString ="Previewing Video and Streaming IN";
+                break;
+            case 4:
+                replyString ="StreaminOut and StreamingIn";
+                break;
             default:
                 replyString = "Device in IdleMode";
         }

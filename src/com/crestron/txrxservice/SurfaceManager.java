@@ -10,21 +10,25 @@ import android.content.Context;
 
 public class SurfaceManager implements SurfaceHolder.Callback {
 
-    public static SurfaceHolder videoSurfaceHolder;
+    private SurfaceHolder crestSurfaceHolder;
     String TAG = "TxRx SurfaceMgr"; 
 
-    public SurfaceManager(Context mContext, SurfaceView view){
+    public SurfaceManager(Context mContext){
         Log.e(TAG, "SurfaceManager:: Constructor called...!");
+    }
+    
+    public SurfaceHolder getCresSurfaceHolder (SurfaceView view) {
         if (view != null) {
             Log.d(TAG, "View is not null");
-            videoSurfaceHolder = view.getHolder();	
-            videoSurfaceHolder.addCallback(this);
-            videoSurfaceHolder.setType(SurfaceHolder.SURFACE_TYPE_PUSH_BUFFERS);
-            view.setZOrderOnTop(true);
+            crestSurfaceHolder = view.getHolder();	
+            crestSurfaceHolder.addCallback(this);
+            crestSurfaceHolder.setType(SurfaceHolder.SURFACE_TYPE_PUSH_BUFFERS);
+            //view.setZOrderOnTop(true);
 
         } else {
             Log.d(TAG, "App passed null surface view for stream in");
         }
+        return crestSurfaceHolder;
     }
     
     @Override

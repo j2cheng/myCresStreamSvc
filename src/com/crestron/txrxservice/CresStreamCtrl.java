@@ -24,6 +24,7 @@ import android.view.SurfaceHolder;
 import android.view.Surface.PhysicalDisplayInfo;
 import android.view.WindowManager;
 import android.view.WindowManager.LayoutParams;
+import android.widget.RelativeLayout;
 import android.graphics.PixelFormat;
 import android.hardware.Camera;
 
@@ -44,13 +45,15 @@ public class CresStreamCtrl extends Service {
     BroadcastReceiver hdmioutResolutionChangedEvent = null;
     private SurfaceView previewSurface;
     private SurfaceView streamingSurface = null;
-    private SurfaceView dummyView = null;
-    public static SurfaceHolder mPopupHolder;
+    //private SurfaceView dummyView = null;
+
     CresStreamConfigure myconfig;
     AudioManager amanager;
     TCPInterface sockTask;
    
-    private SurfaceHolder vidHolder;
+    private RelativeLayout parentlayout;
+    RelativeLayout.LayoutParams params_streamingview;
+    RelativeLayout.LayoutParams params_preview;
 
     WindowManager.LayoutParams lp;
     WindowManager wm;
@@ -121,18 +124,44 @@ public class CresStreamCtrl extends Service {
             super.onCreate();
             final int windowWidth = 1920;
             final int windowHeight = 1080;
+            
+            //Relative Layout to hanle multiple view
+            parentlayout = new RelativeLayout(this);
+            
+            //StreamingIn View 
             streamingSurface = new SurfaceView(this);
+            params_streamingview = new RelativeLayout.LayoutParams(
+                    WindowManager.LayoutParams.WRAP_CONTENT,
+                    WindowManager.LayoutParams.WRAP_CONTENT);
+            parentlayout.addView(streamingSurface, params_streamingview);
+            
+            //Preview/StreamOut View
+            previewSurface = new SurfaceView(this);
+            params_preview = new RelativeLayout.LayoutParams(
+                    WindowManager.LayoutParams.WRAP_CONTENT,
+                    WindowManager.LayoutParams.WRAP_CONTENT);
+            parentlayout.addView(previewSurface, params_preview);
 
+            //Setting WindowManager and Parameters with system overlay
             lp = new WindowManager.LayoutParams(windowWidth, windowHeight, WindowManager.LayoutParams.TYPE_SYSTEM_OVERLAY, 0, PixelFormat.TRANSLUCENT);
             wm = (WindowManager) getSystemService(WINDOW_SERVICE);
             lp.gravity = Gravity.TOP | Gravity.LEFT;
             lp.x = 0;
             lp.y = 0;
+            //Adding Relative Layout to WindowManager
+            wm.addView(parentlayout, lp); 
 
-            sMGR = new SurfaceManager(CresStreamCtrl.this, streamingSurface);
-            dummyView = streamingSurface;
+            //Instance for Surfaceholder for StreamIn/Preview
+            sMGR = new SurfaceManager(CresStreamCtrl.this);
+            //dummyView = streamingSurface;
            
-            wm.addView(streamingSurface, lp); 
+            //Enable StreamIn and CameraPreview 
+            SurfaceHolder streaminHolder = sMGR.getCresSurfaceHolder(streamingSurface);
+            streamPlay = new StreamIn(CresStreamCtrl.this, streaminHolder);
+            
+            SurfaceHolder previewHolder = sMGR.getCresSurfaceHolder(previewSurface);
+            cam_streaming = new CameraStreaming(CresStreamCtrl.this, previewHolder);
+
             //HPD and Resolution Event Registration
             registerBroadcasts();
             //AudioManager
@@ -196,17 +225,6 @@ public class CresStreamCtrl extends Service {
     {
         Log.d(TAG, " setDeviceMode "+ mode);
         device_mode = mode;
-        switch(device_mode){
-            case 0:
-                streamPlay = new StreamIn(CresStreamCtrl.this, sMGR.videoSurfaceHolder);
-                break;
-            case 1:
-            case 2:
-                cam_streaming = new CameraStreaming(CresStreamCtrl.this, sMGR.videoSurfaceHolder);
-                break;
-            default:
-                break;
-        }
     }
     
     public void setXCoordinates(int x)
@@ -236,9 +254,13 @@ public class CresStreamCtrl extends Service {
     
     private void update()
     {
-        WindowManager.LayoutParams pp = new WindowManager.LayoutParams(g_w, g_h, g_x, g_y, WindowManager.LayoutParams.TYPE_SYSTEM_OVERLAY, 0, PixelFormat.TRANSLUCENT );
-        pp.gravity = Gravity.TOP | Gravity.LEFT;
-        wm.updateViewLayout(streamingSurface, pp);
+        RelativeLayout.LayoutParams lp2=new RelativeLayout.LayoutParams(g_w, g_h);
+        streamingSurface.setLayoutParams(lp2);
+        lp2.setMargins(g_x, g_y, 0, 0);
+        //WindowManager.LayoutParams pp = new WindowManager.LayoutParams(g_w, g_h, g_x, g_y, WindowManager.LayoutParams.TYPE_SYSTEM_OVERLAY, 0, PixelFormat.TRANSLUCENT );
+        //pp.gravity = Gravity.TOP | Gravity.LEFT;
+        //wm.updateViewLayout(parentlayout, pp);
+        //wm.updateViewLayout(streamingSurface, pp);
     }
 
     void refreshResolutionInfo()
@@ -417,7 +439,7 @@ public class CresStreamCtrl extends Service {
 
     public int getStreamState()
     {
-	    return StreamState;
+        return StreamState;
     }
 
 
@@ -524,20 +546,20 @@ public class CresStreamCtrl extends Service {
 
     public void startStreamOut()
     {
-        showStreamInWindow();
-	    out_url = createStreamOutURL();
-	    if((sessInitMode==0) && (myconfig.mode.getMode()!=0)){
-		    Toast.makeText(this, "Invalid Mode for this SessionInitation", Toast.LENGTH_LONG).show();
-	    }
-	    else{
-		    try {
-			    cam_streaming.startRecording();
-		    } catch(IOException e) {
-			    e.printStackTrace();
-		    }
-		    Toast.makeText(this, "StreamOut Started", Toast.LENGTH_LONG).show();
-		    StreamOutstarted = true;
-	    }
+        showPreviewWindow();
+        out_url = createStreamOutURL();
+        if((sessInitMode==0) && (myconfig.mode.getMode()!=0)){
+            Toast.makeText(this, "Invalid Mode for this SessionInitation", Toast.LENGTH_LONG).show();
+        }
+        else{
+            try {
+                cam_streaming.startRecording();
+            } catch(IOException e) {
+                e.printStackTrace();
+            }
+            Toast.makeText(this, "StreamOut Started", Toast.LENGTH_LONG).show();
+            StreamOutstarted = true;
+        }
     }
 
     public void stopStreamOut()
@@ -546,13 +568,24 @@ public class CresStreamCtrl extends Service {
             Toast.makeText(this, "StreamOut Stopped", Toast.LENGTH_LONG).show();
             cam_streaming.stopRecording();
             StreamOutstarted = false;
-                hideStreamInWindow();
+            hidePreviewWindow();
         }
+    }
+
+    private void hidePreviewWindow()
+    {
+       //previewSurface.setVisibility(8);
+    }
+    
+    private void showPreviewWindow()
+    {
+        //streamingSurface.setVisibility(0);
     }
 
     //StreamIn Ctrls & Config
     private void hideStreamInWindow()
     {
+       //streamingSurface.setVisibility(8);
         /*if (streamingSurface != null)
         {
             streamingSurface.setVisibility(8);
@@ -562,13 +595,14 @@ public class CresStreamCtrl extends Service {
 
     private void showStreamInWindow()
     {
-        if (streamingSurface == null){
+        //streamingSurface.setVisibility(0);
+        /*if (streamingSurface == null){
             Log.d(TAG, " showStreamIn");
             streamingSurface = dummyView;
             mPopupHolder = streamingSurface.getHolder();
             streamingSurface.setVisibility(0);
             return;
-        }
+        }*/
     }
 
     public void EnableTcpInterleave(){
@@ -670,7 +704,7 @@ public class CresStreamCtrl extends Service {
     //Preview 
     public void startPreview()
     {
-        showStreamInWindow();
+        showPreviewWindow();
         cam_streaming.mCameraObj.startPlayback(true);
         Toast.makeText(this, "Preview Started", Toast.LENGTH_LONG).show();
     }
@@ -679,7 +713,7 @@ public class CresStreamCtrl extends Service {
     {
         cam_streaming.mCameraObj.stopPlayback();
         Toast.makeText(this, "Preview Stopped", Toast.LENGTH_LONG).show();
-        hideStreamInWindow();
+        hidePreviewWindow();
     }
    
     //Control Feedback

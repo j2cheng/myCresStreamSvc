@@ -68,10 +68,6 @@ public class StreamIn implements OnPreparedListener, OnCompletionListener, OnBuf
     public void onStart() {
         try {
             mediaPlayer = new MediaPlayer();
-            if(vidHolder==null){
-                Log.d(TAG, "holder is null ");
-                vidHolder = CresStreamCtrl.mPopupHolder;
-            }
             mediaPlayer.setDataSource(srcUrl);	
             Log.d(TAG, "URL is "+srcUrl);
             if(tcpInterleaveFlag && srcUrl.startsWith("rtsp://"))
