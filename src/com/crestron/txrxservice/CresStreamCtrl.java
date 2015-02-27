@@ -91,7 +91,7 @@ public class CresStreamCtrl extends Service {
                     return status.toString();
                 }
             }
-            throw new IllegalArgumentException("the given number doesn't match any Status.");
+            return ("the given number doesn't match any Status.");
         }
     }
 
@@ -112,7 +112,7 @@ public class CresStreamCtrl extends Service {
                     return status.toString();
                 }
             }
-            throw new IllegalArgumentException("the given number doesn't match any Status.");
+            return ("the given number doesn't match any Status.");
         }
     }
 
@@ -126,21 +126,21 @@ public class CresStreamCtrl extends Service {
             final int windowHeight = 1080;
             
             //Relative Layout to hanle multiple view
-            parentlayout = new RelativeLayout(this);
+            //parentlayout = new RelativeLayout(this);
             
             //StreamingIn View 
             streamingSurface = new SurfaceView(this);
-            params_streamingview = new RelativeLayout.LayoutParams(
+           /* params_streamingview = new RelativeLayout.LayoutParams(
                     WindowManager.LayoutParams.WRAP_CONTENT,
                     WindowManager.LayoutParams.WRAP_CONTENT);
-            parentlayout.addView(streamingSurface, params_streamingview);
+            parentlayout.addView(streamingSurface, params_streamingview);*/
             
             //Preview/StreamOut View
             previewSurface = new SurfaceView(this);
-            params_preview = new RelativeLayout.LayoutParams(
+            /*params_preview = new RelativeLayout.LayoutParams(
                     WindowManager.LayoutParams.WRAP_CONTENT,
                     WindowManager.LayoutParams.WRAP_CONTENT);
-            parentlayout.addView(previewSurface, params_preview);
+            parentlayout.addView(previewSurface, params_preview);*/
 
             //Setting WindowManager and Parameters with system overlay
             lp = new WindowManager.LayoutParams(windowWidth, windowHeight, WindowManager.LayoutParams.TYPE_SYSTEM_OVERLAY, 0, PixelFormat.TRANSLUCENT);
@@ -149,7 +149,9 @@ public class CresStreamCtrl extends Service {
             lp.x = 0;
             lp.y = 0;
             //Adding Relative Layout to WindowManager
-            wm.addView(parentlayout, lp); 
+            //wm.addView(parentlayout, lp); 
+            wm.addView(streamingSurface, lp);
+            //wm.addView(previewSurface, lp);
 
             //Instance for Surfaceholder for StreamIn/Preview
             sMGR = new SurfaceManager(CresStreamCtrl.this);
@@ -159,8 +161,9 @@ public class CresStreamCtrl extends Service {
             SurfaceHolder streaminHolder = sMGR.getCresSurfaceHolder(streamingSurface);
             streamPlay = new StreamIn(CresStreamCtrl.this, streaminHolder);
             
-            SurfaceHolder previewHolder = sMGR.getCresSurfaceHolder(previewSurface);
-            cam_streaming = new CameraStreaming(CresStreamCtrl.this, previewHolder);
+            //SurfaceHolder previewHolder = sMGR.getCresSurfaceHolder(previewSurface);
+            //cam_streaming = new CameraStreaming(CresStreamCtrl.this, previewHolder);
+            cam_streaming = new CameraStreaming(CresStreamCtrl.this, streaminHolder);
 
             //HPD and Resolution Event Registration
             registerBroadcasts();
@@ -254,13 +257,12 @@ public class CresStreamCtrl extends Service {
     
     private void update()
     {
-        RelativeLayout.LayoutParams lp2=new RelativeLayout.LayoutParams(g_w, g_h);
-        streamingSurface.setLayoutParams(lp2);
-        lp2.setMargins(g_x, g_y, 0, 0);
-        //WindowManager.LayoutParams pp = new WindowManager.LayoutParams(g_w, g_h, g_x, g_y, WindowManager.LayoutParams.TYPE_SYSTEM_OVERLAY, 0, PixelFormat.TRANSLUCENT );
-        //pp.gravity = Gravity.TOP | Gravity.LEFT;
-        //wm.updateViewLayout(parentlayout, pp);
-        //wm.updateViewLayout(streamingSurface, pp);
+        //RelativeLayout.LayoutParams lp2=new RelativeLayout.LayoutParams(g_w, g_h);
+        //streamingSurface.setLayoutParams(lp2);
+        //lp2.setMargins(g_x, g_y, 0, 0);
+        WindowManager.LayoutParams pp = new WindowManager.LayoutParams(g_w, g_h, g_x, g_y, WindowManager.LayoutParams.TYPE_SYSTEM_OVERLAY, 0, PixelFormat.TRANSLUCENT );
+        pp.gravity = Gravity.TOP | Gravity.LEFT;
+        wm.updateViewLayout(streamingSurface, pp);
     }
 
     void refreshResolutionInfo()
