@@ -151,6 +151,16 @@ public class CresStreamConfigure {
 		}
 	}
 	
+	public void setWidth(int w) { 
+		Log.d(TAG, "setwidth:" + w);
+		width = w; 
+	}
+	
+	public void setHeight(int h) { 
+		Log.d(TAG, "setHeight:" + h);
+	 	height = h; 
+	}
+	
 	public static int getWidth() { 
 		Log.d(TAG, "Getwidth:" + width);
 		return width; 

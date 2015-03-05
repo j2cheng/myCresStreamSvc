@@ -2,11 +2,14 @@ package com.crestron.txrxservice;
 
 import java.util.HashMap;
 import java.util.Map;
+import java.util.concurrent.locks.Lock;
+import java.util.concurrent.locks.ReentrantLock;
 import java.io.IOException;
 import java.lang.String;
 import android.net.Uri;
 
 import android.os.Bundle;
+import android.os.SystemClock;
 import android.util.Log;
 import android.app.Service;
 import android.os.IBinder;
@@ -38,6 +41,7 @@ interface myCommand {
 
 public class CresStreamCtrl extends Service {
     CameraStreaming cam_streaming;
+    CameraPreview cam_preview;
     SurfaceManager sMGR;
     StreamIn streamPlay;
     BroadcastReceiver hpdEvent = null;
@@ -60,6 +64,10 @@ public class CresStreamCtrl extends Service {
 
     HDMIInputInterface hdmiInput;
     HDMIOutputInterface hdmiOutput;
+
+    private final Lock _mutex = new ReentrantLock(true);
+    final int cameraRestartTimout = 2000;//msec
+    int hpdStateEnabled = 0;
 
     String TAG = "TxRx StreamCtrl";
     static String out_url=null;
@@ -125,22 +133,26 @@ public class CresStreamCtrl extends Service {
             final int windowWidth = 1920;
             final int windowHeight = 1080;
             
+            //Stub: CSIO Cmd Receiver & TestApp functionality
+            sockTask = new TCPInterface(this);
+            sockTask.execute(new Void[0]);
+            
             //Relative Layout to hanle multiple view
-            //parentlayout = new RelativeLayout(this);
+            parentlayout = new RelativeLayout(this);
             
             //StreamingIn View 
             streamingSurface = new SurfaceView(this);
-           /* params_streamingview = new RelativeLayout.LayoutParams(
+            params_streamingview = new RelativeLayout.LayoutParams(
                     WindowManager.LayoutParams.WRAP_CONTENT,
                     WindowManager.LayoutParams.WRAP_CONTENT);
-            parentlayout.addView(streamingSurface, params_streamingview);*/
+            parentlayout.addView(streamingSurface, params_streamingview);
             
             //Preview/StreamOut View
             previewSurface = new SurfaceView(this);
-            /*params_preview = new RelativeLayout.LayoutParams(
+            params_preview = new RelativeLayout.LayoutParams(
                     WindowManager.LayoutParams.WRAP_CONTENT,
                     WindowManager.LayoutParams.WRAP_CONTENT);
-            parentlayout.addView(previewSurface, params_preview);*/
+            parentlayout.addView(previewSurface, params_preview);
 
             //Setting WindowManager and Parameters with system overlay
             lp = new WindowManager.LayoutParams(windowWidth, windowHeight, WindowManager.LayoutParams.TYPE_SYSTEM_OVERLAY, 0, PixelFormat.TRANSLUCENT);
@@ -149,8 +161,8 @@ public class CresStreamCtrl extends Service {
             lp.x = 0;
             lp.y = 0;
             //Adding Relative Layout to WindowManager
-            //wm.addView(parentlayout, lp); 
-            wm.addView(streamingSurface, lp);
+            wm.addView(parentlayout, lp); 
+            //wm.addView(streamingSurface, lp);
             //wm.addView(previewSurface, lp);
 
             //Instance for Surfaceholder for StreamIn/Preview
@@ -161,9 +173,9 @@ public class CresStreamCtrl extends Service {
             SurfaceHolder streaminHolder = sMGR.getCresSurfaceHolder(streamingSurface);
             streamPlay = new StreamIn(CresStreamCtrl.this, streaminHolder);
             
-            //SurfaceHolder previewHolder = sMGR.getCresSurfaceHolder(previewSurface);
-            //cam_streaming = new CameraStreaming(CresStreamCtrl.this, previewHolder);
-            cam_streaming = new CameraStreaming(CresStreamCtrl.this, streaminHolder);
+            SurfaceHolder previewHolder = sMGR.getCresSurfaceHolder(previewSurface);
+            cam_streaming = new CameraStreaming(CresStreamCtrl.this, previewHolder);
+            cam_preview = new CameraPreview(previewHolder);
 
             //HPD and Resolution Event Registration
             registerBroadcasts();
@@ -178,9 +190,6 @@ public class CresStreamCtrl extends Service {
             //refresh resolution on startup
             refreshResolutionInfo();
 
-            //Stub: TestApp functionality
-            sockTask = new TCPInterface(this);
-            sockTask.execute(new Void[0]);
             hm = new HashMap();
             hm.put("PREVIEW", new Command() {
                     public void executeStart() {startPreview(); StreamState = 2;};
@@ -222,6 +231,10 @@ public class CresStreamCtrl extends Service {
         unregisterReceiver(resolutionEvent);
         unregisterReceiver(hpdEvent);
         unregisterReceiver(hdmioutResolutionChangedEvent);
+        cam_streaming.stopRecording();
+        cam_preview.stopPlayback();
+        streamPlay.onStop();
+        wm.removeView(streamingSurface);
     }
 
     public void setDeviceMode(int mode)
@@ -246,23 +259,28 @@ public class CresStreamCtrl extends Service {
     {
         //streamPlay.setDestWidth(w);
         g_w = w;
+         myconfig.setWidth(w);
     }
 
     public void setWindowSizeH(int h)
     {
         //streamPlay.setDestHeight(h);
         g_h = h;
+         myconfig.setHeight(h);
         update();
     }
     
     private void update()
     {
-        //RelativeLayout.LayoutParams lp2=new RelativeLayout.LayoutParams(g_w, g_h);
-        //streamingSurface.setLayoutParams(lp2);
-        //lp2.setMargins(g_x, g_y, 0, 0);
-        WindowManager.LayoutParams pp = new WindowManager.LayoutParams(g_w, g_h, g_x, g_y, WindowManager.LayoutParams.TYPE_SYSTEM_OVERLAY, 0, PixelFormat.TRANSLUCENT );
-        pp.gravity = Gravity.TOP | Gravity.LEFT;
-        wm.updateViewLayout(streamingSurface, pp);
+        RelativeLayout.LayoutParams lp2=new RelativeLayout.LayoutParams(g_w, g_h);
+        lp2.setMargins(g_x, g_y, 0, 0);
+        if(device_mode==0)
+            streamingSurface.setLayoutParams(lp2);
+        else 
+            previewSurface.setLayoutParams(lp2);
+        //WindowManager.LayoutParams pp = new WindowManager.LayoutParams(g_w, g_h, g_x, g_y, WindowManager.LayoutParams.TYPE_SYSTEM_OVERLAY, 0, PixelFormat.TRANSLUCENT );
+        //pp.gravity = Gravity.TOP | Gravity.LEFT;
+        //wm.updateViewLayout(streamingSurface, pp);
     }
 
     void refreshResolutionInfo()
@@ -271,21 +289,25 @@ public class CresStreamCtrl extends Service {
     	
     	//HDMI In
     	String hdmiInputResolution = null;
-        if ((cam_streaming.mCameraObj != null) && (((cam_streaming.mCameraObj.IsPreviewStatus()) == true)))  
+        //if ((cam_streaming.mCameraPreviewObj != null) && (((cam_streaming.mCameraPreviewObj.IsPreviewStatus()) == true)))  
+        if ((cam_preview.IsPreviewStatus()) == true)
         {
-            hdmiInputResolution = cam_streaming.mCameraObj.getHdmiInputResolution();
+            //hdmiInputResolution = cam_streaming.mCameraPreviewObj.getHdmiInputResolution();
+            hdmiInputResolution = cam_preview.getHdmiInputResolution();
             Log.i(TAG, "HDMI In Resolution " + hdmiInputResolution);
         }
-        else if((cam_streaming.mCameraObj != null) && ((cam_streaming.isStreaming()) == true)){
-            hdmiInputResolution = cam_streaming.mCameraObj.getHdmiInputResolution();
+        else if((cam_streaming.mCameraPreviewObj != null) && ((cam_streaming.isStreaming()) == true)){
+            hdmiInputResolution = cam_preview.getHdmiInputResolution();
+            //hdmiInputResolution = cam_streaming.mCameraPreviewObj.getHdmiInputResolution();
             Log.i(TAG, "HDMI In Resolution " + hdmiInputResolution);
         }
         else{
-        	Camera cameraInstance = Camera.open(0);
+        	Camera cameraInstance = CresCamera.getCamera();//Camera.open(0);
         	if(cameraInstance != null){
         		hdmiInputResolution = cameraInstance.getHdmiInputStatus();
         		Log.i(TAG, "HDMI In Resolution " + hdmiInputResolution);
-        	   	cameraInstance.release();
+        	   	//cameraInstance.release();
+                CresCamera.releaseCamera(cameraInstance);
         	}
         	cameraInstance = null;
         }
@@ -576,18 +598,18 @@ public class CresStreamCtrl extends Service {
 
     private void hidePreviewWindow()
     {
-       //previewSurface.setVisibility(8);
+       previewSurface.setVisibility(8);
     }
     
     private void showPreviewWindow()
     {
-        //streamingSurface.setVisibility(0);
+       previewSurface.setVisibility(0);
     }
 
     //StreamIn Ctrls & Config
     private void hideStreamInWindow()
     {
-       //streamingSurface.setVisibility(8);
+       streamingSurface.setVisibility(8);
         /*if (streamingSurface != null)
         {
             streamingSurface.setVisibility(8);
@@ -597,7 +619,7 @@ public class CresStreamCtrl extends Service {
 
     private void showStreamInWindow()
     {
-        //streamingSurface.setVisibility(0);
+        streamingSurface.setVisibility(0);
         /*if (streamingSurface == null){
             Log.d(TAG, " showStreamIn");
             streamingSurface = dummyView;
@@ -707,13 +729,15 @@ public class CresStreamCtrl extends Service {
     public void startPreview()
     {
         showPreviewWindow();
-        cam_streaming.mCameraObj.startPlayback(true);
+        cam_preview.startPlayback(true);
+        //cam_streaming.mCameraPreviewObj.startPlayback(true);
         Toast.makeText(this, "Preview Started", Toast.LENGTH_LONG).show();
     }
 
     public void stopPreview()
     {
-        cam_streaming.mCameraObj.stopPlayback();
+        cam_preview.stopPlayback();
+        //cam_streaming.mCameraPreviewObj.stopPlayback();
         Toast.makeText(this, "Preview Stopped", Toast.LENGTH_LONG).show();
         hidePreviewWindow();
     }
@@ -759,20 +783,27 @@ public class CresStreamCtrl extends Service {
                     int i = paramAnonymousIntent.getIntExtra("evs_hdmi_resolution_id", -1);
                     String hdmiInputResolution = null;
                     Log.i(TAG, "Received resolution changed broadcast !: " + i);
-                    if ((cam_streaming.mCameraObj != null) && (((cam_streaming.mCameraObj.IsPreviewStatus()) == true)))  
+                    //if ((cam_streaming.mCameraPreviewObj != null) && (((cam_streaming.mCameraPreviewObj.IsPreviewStatus()) == true)))  
+                    if ((((cam_preview.IsPreviewStatus()) == true)))  
                     {
-                        hdmiInputResolution = cam_streaming.mCameraObj.getHdmiInputResolution();
+                        //hdmiInputResolution = cam_streaming.mCameraPreviewObj.getHdmiInputResolution();
+                        hdmiInputResolution = cam_preview.getHdmiInputResolution();
                         Log.i(TAG, "Resolution changed to " + hdmiInputResolution);
 
                         Log.i(TAG, "Restart called due to resolution change broadcast ! ");
-                        cam_streaming.mCameraObj.stopPlayback();
-                        cam_streaming.mCameraObj.startPlayback(true);
+                        cam_preview.stopPlayback();
+                        //cam_streaming.mCameraPreviewObj.stopPlayback();
+                        SystemClock.sleep(cameraRestartTimout);
+                        cam_preview.startPlayback(true);
+                        //cam_streaming.mCameraPreviewObj.startPlayback(true);
                     }
-                    else if((cam_streaming.mCameraObj != null) && ((cam_streaming.isStreaming()) == true)){
-                        hdmiInputResolution = cam_streaming.mCameraObj.getHdmiInputResolution();
+                    else if((cam_streaming.mCameraPreviewObj != null) && ((cam_streaming.isStreaming()) == true)){
+                        hdmiInputResolution = cam_preview.getHdmiInputResolution();
+                        //hdmiInputResolution = cam_streaming.mCameraPreviewObj.getHdmiInputResolution();
                         Log.i(TAG, "Resolution changed to " + hdmiInputResolution);
 
                     	cam_streaming.stopRecording();
+                        SystemClock.sleep(cameraRestartTimout);
                         try{
                             cam_streaming.startRecording();
                         } catch(IOException e) {
@@ -780,16 +811,19 @@ public class CresStreamCtrl extends Service {
                         }
                     }
                     else{
-                    	Camera cameraInstance = Camera.open(0);
+                    	Camera cameraInstance = CresCamera.getCamera();//Camera.open(0);
                     	if(cameraInstance != null){
                     		hdmiInputResolution = cameraInstance.getHdmiInputStatus();
                     		Log.i(TAG, "Resolution changed to " + hdmiInputResolution);
-                    	   	cameraInstance.release();
+                //    	   	cameraInstance.release();
+                CresCamera.releaseCamera(cameraInstance);
                     	}
                     	cameraInstance = null;
                         Log.i(TAG, " Nothing todo!!!");
                     }
-                    
+                    if(hpdStateEnabled==1)
+                            cam_preview.startPlayback(true);
+                         
                     String delims = "[x@]+";
                     String tokens[] = hdmiInputResolution.split(delims);
                     Log.i(TAG," HDMI Input resolution");
@@ -814,8 +848,17 @@ public class CresStreamCtrl extends Service {
                 {
                     int i = paramAnonymousIntent.getIntExtra("evs_hdmi_hdp_id", -1);
                     Log.i(TAG, "Received hpd broadcast ! " + i);
-                    if((cam_streaming.mCameraObj != null) && ((cam_streaming.isStreaming()) == true))
-                        cam_streaming.stopRecording();
+                    if(i==0){
+                        if((cam_streaming.mCameraPreviewObj != null) && ((cam_streaming.isStreaming()) == true))
+                            cam_streaming.stopRecording();
+                        //else if ((cam_streaming.mCameraPreviewObj != null) && (((cam_streaming.mCameraPreviewObj.IsPreviewStatus()) == true)))  
+                        else if ((((cam_preview.IsPreviewStatus()) == true)))  
+                            cam_preview.stopPlayback();
+                        else
+                            Log.i(TAG, "Device is in Idle State");
+                    }
+                    else 
+                        hpdStateEnabled = 1;
                     //send out sync detection signal
                     hdmiInput.setSyncStatus();
                     StringBuilder sb = new StringBuilder(1024);

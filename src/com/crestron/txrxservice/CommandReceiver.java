@@ -23,7 +23,7 @@ public class CommandReceiver {
                     return status.toString();
                 }
             }
-            throw new IllegalArgumentException("the given number doesn't match any Status.");
+            return "the given number doesn't match any Status.";
         }
     }
 
@@ -44,7 +44,7 @@ public class CommandReceiver {
                     return status.toString();
                 }
             }
-            throw new IllegalArgumentException("the given number doesn't match any Status.");
+            return "the given number doesn't match any Status.";
         }
     }
     

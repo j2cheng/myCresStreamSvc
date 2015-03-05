@@ -8,7 +8,6 @@ import android.hardware.Camera.ErrorCallback;
 import android.hardware.Camera.Parameters;
 import android.hardware.Camera.Size;
 import android.util.Log;
-import android.content.Context;
 import android.view.SurfaceHolder;
 import android.graphics.ImageFormat;
 import com.crestron.txrxservice.CameraStreaming;
@@ -17,21 +16,29 @@ public class CameraPreview {
 	String TAG = "TxRx Preview";
 	String hdmiinput;
 	AudioPlayback audio_pb; ;
-	public Camera mCamera = null;
-	SurfaceHolder surfaceHolder;
+	CresCamera cresCam;
+	private Camera mCamera = null;
+	private SurfaceHolder surfaceHolder;
 	boolean is_pause = false;
 	boolean is_preview = false;
 	boolean is_audioplaying = false;
 	List<Camera.Size> mSupportedPreviewSizes;
 
-	public CameraPreview() {
+	public CameraPreview(SurfaceHolder vHolder) {
 		audio_pb = new AudioPlayback();
+        surfaceHolder = vHolder;
 	}
 
 	public void MyCameraInstance (){
-		mCamera = Camera.open(0);
-		if(mCamera!=null)
-			hdmiinput = mCamera.getHdmiInputStatus();
+       /* try {
+            mCamera = Camera.open(0);
+            if(mCamera!=null)
+                hdmiinput = mCamera.getHdmiInputStatus();
+        } catch (Exception e) {
+            Log.e(TAG, "fail to open camera");
+            e.printStackTrace();
+            mCamera = null; 
+        }*/
 	}
 
 	public void onPreviewFrame(byte[] paramArrayOfByte, Camera paramCamera) {}
@@ -92,14 +99,17 @@ public class CameraPreview {
 		Log.d(TAG, "starting Playback"+ is_preview);
 		if(is_preview == false){
 			Log.d(TAG, "Actual startPlayback");
-			if (paramBoolean == true){
-				MyCameraInstance();
-			}
-			try {
-				mCamera.setPreviewDisplay(CameraStreaming.surfaceHolder);
-			}catch (Exception localException) {
-				localException.printStackTrace();
-			}
+            if (paramBoolean == true){
+                mCamera = cresCam.getCamera();
+                if(mCamera!=null)
+                    hdmiinput = mCamera.getHdmiInputStatus();
+            }
+            try {
+                //mCamera.setPreviewDisplay(CameraStreaming.surfaceHolder);
+                mCamera.setPreviewDisplay(surfaceHolder);
+            }catch (Exception localException) {
+                localException.printStackTrace();
+            }
 
 			Log.d(TAG, "########## Resolutin Info: "+hdmiinput);
 			Camera.Parameters localParameters = mCamera.getParameters();
@@ -127,15 +137,15 @@ public class CameraPreview {
 	public void stopPlayback()
 	{
 		Log.d(TAG, "stopPlayback");
+	    stopAudio();
 		try
 		{
 			if (mCamera!= null)
 			{
 				mCamera.stopPreview();
-				releaseCamera();
+				cresCam.releaseCamera(mCamera);
 			}
-			stopAudio();
-			is_preview = false;
+            is_preview = false;
 			Log.d(TAG, "Playback stopped !");
 			return;
 		}
@@ -143,7 +153,7 @@ public class CameraPreview {
 		{
 			localException.printStackTrace();
 		}
-		is_preview = false;
+            is_preview = false;
 	}
 
 	protected void startAudio(){
@@ -159,14 +169,14 @@ public class CameraPreview {
 			is_audioplaying = false;
 		}
 	}
-
+/*
 	private void releaseCamera() {
 		if (mCamera != null) {
 			mCamera.release(); // release the camera for other applications
 			mCamera = null;
 		}
 	}
-	
+*/	
 	public String getHdmiInputResolution() {
 		if(mCamera != null) {
 			return mCamera.getHdmiInputStatus();

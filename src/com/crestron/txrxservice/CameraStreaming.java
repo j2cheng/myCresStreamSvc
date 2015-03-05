@@ -16,8 +16,9 @@ import android.util.Log;
 import android.view.SurfaceHolder;
 
 public class CameraStreaming implements ErrorCallback {
-	static SurfaceHolder surfaceHolder;
-	public static CameraPreview mCameraObj = null;
+	private SurfaceHolder surfaceHolder;
+	static Camera mCameraPreviewObj = null;
+	//public static CameraPreview mCameraObj = null;
 	MediaRecorder mrec;
 	String TAG = "TxRx CameraStreamer";
 	String hostaddr;
@@ -28,7 +29,7 @@ public class CameraStreaming implements ErrorCallback {
 	public CameraStreaming(Context mContext, SurfaceHolder lpHolder ) {
 		MiscUtils.getDeviceIpAddr();	
 		hostaddr = MiscUtils.matcher.group();
-		mCameraObj =  new CameraPreview();
+		//mCameraObj =  new CameraPreview();
 		Log.d(TAG, "CameraStreaming :: Constructor called.....");
 	        surfaceHolder = lpHolder;
 	}
@@ -49,8 +50,8 @@ public class CameraStreaming implements ErrorCallback {
 */
 	protected void startRecording() throws IOException {
 
-		if(mCameraObj.APlayStatus())
-			mCameraObj.stopAudio();
+		//if(mCameraObj.APlayStatus())
+		//	mCameraObj.stopAudio();
 		if(out_stream_status==true)
 			stopRecording();
 		Log.d(TAG, "startRecording");
@@ -76,14 +77,19 @@ public class CameraStreaming implements ErrorCallback {
 
 
 		mrec = new MediaRecorder();
-		if(mCameraObj.mCamera==null)
-			mCameraObj.MyCameraInstance();
+        mCameraPreviewObj = CresCamera.getCamera();
+		mCameraPreviewObj.setEncoderFps(CresStreamConfigure.getVFrameRate());
+		mCameraPreviewObj.lock();
+		mCameraPreviewObj.unlock();
+		mrec.setCamera(mCameraPreviewObj);
+
+			/*mCameraObj.MyCameraInstance();
 		
 		mCameraObj.mCamera.setEncoderFps(CresStreamConfigure.getVFrameRate());
 		mCameraObj.mCamera.lock();
 		mCameraObj.mCamera.unlock();
 
-		mrec.setCamera(mCameraObj.mCamera);
+		mrec.setCamera(mCameraObj.mCamera);*/
 		mrec.setAudioSource(MediaRecorder.AudioSource.MIC);
 		mrec.setVideoSource(MediaRecorder.VideoSource.CAMERA);
 		mrec.setStreamTransportMode(CresStreamConfigure.mode.getMode());
@@ -167,7 +173,8 @@ public class CameraStreaming implements ErrorCallback {
 			mrec.setPreviewDisplay(null);
 			out_stream_status = false;
 			releaseMediaRecorder();
-                        mCameraObj.stopPlayback();
+            CresCamera.releaseCamera(mCameraPreviewObj);
+            mCameraPreviewObj = null;
 		}
 	}
 	

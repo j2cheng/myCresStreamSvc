@@ -23,7 +23,7 @@ public class SurfaceManager implements SurfaceHolder.Callback {
             crestSurfaceHolder = view.getHolder();	
             crestSurfaceHolder.addCallback(this);
             crestSurfaceHolder.setType(SurfaceHolder.SURFACE_TYPE_PUSH_BUFFERS);
-            //view.setZOrderOnTop(true);
+            view.setZOrderOnTop(true);
 
         } else {
             Log.d(TAG, "App passed null surface view for stream in");
