@@ -260,6 +260,7 @@ public class CresStreamCtrl extends Service {
         //streamPlay.setDestWidth(w);
         g_w = w;
          myconfig.setWidth(w);
+        update();
     }
 
     public void setWindowSizeH(int h)
