@@ -14,7 +14,7 @@ import com.crestron.txrxservice.CameraStreaming;
 
 public class CameraPreview {
 	String TAG = "TxRx Preview";
-	String hdmiinput;
+	String hdmiinput = "";
 	AudioPlayback audio_pb; ;
 	CresCamera cresCam;
 	private Camera mCamera = null;
@@ -101,8 +101,12 @@ public class CameraPreview {
 			Log.d(TAG, "Actual startPlayback");
             if (paramBoolean == true){
                 mCamera = cresCam.getCamera();
-                if(mCamera!=null)
-                    hdmiinput = mCamera.getHdmiInputStatus();
+                  // MNT - 3.10.15 
+                  // getHdmiInputStatus causes a reset on the chip.  Calling this here causes
+                  // the chip to get reset twice.  This will be fixed by Mistral.  However,
+                  // until then, we will only call this on a resolution change or on startup.
+//                if(mCamera!=null)
+//                    hdmiinput = mCamera.getHdmiInputStatus();
             }
             try {
                 //mCamera.setPreviewDisplay(CameraStreaming.surfaceHolder);
