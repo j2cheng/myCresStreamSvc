@@ -252,12 +252,14 @@ public class CresStreamCtrl extends Service {
     public void setWindowSizeW(int w)
     {
         g_w = w;
+        myconfig.setWidth(w);
         update();
     }
 
     public void setWindowSizeH(int h)
     {
         g_h = h;
+        myconfig.setHeight(h);
         update();
     }
     
@@ -759,7 +761,7 @@ public class CresStreamCtrl extends Service {
                 if (paramAnonymousIntent.getAction().equals("evs.intent.action.hdmi.RESOLUTION_CHANGED"))
                 {
                     int i = paramAnonymousIntent.getIntExtra("evs_hdmi_resolution_id", -1);
-                    String hdmiInputResolution = null;
+                    //String hdmiInputResolution = null;
                     Log.i(TAG, "Received resolution changed broadcast !: " + i);
                     //if ((cam_streaming.mCameraPreviewObj != null) && (((cam_streaming.mCameraPreviewObj.IsPreviewStatus()) == true)))  
                     if ((((cam_preview.IsPreviewStatus()) == true)))  
@@ -798,7 +800,7 @@ public class CresStreamCtrl extends Service {
                     }
                     if(hpdStateEnabled==1)
                             cam_preview.startPlayback(true);
-                         
+                     /*    
                     String delims = "[x@]+";
                     String tokens[] = hdmiInputResolution.split(delims);
                     Log.i(TAG," HDMI Input resolution");
@@ -809,7 +811,8 @@ public class CresStreamCtrl extends Service {
                     hdmiInput.setHorizontalRes(tokens[0]);
                     hdmiInput.setVerticalRes(tokens[1]);
                     hdmiInput.setFPS(tokens[2].trim());
-                    hdmiInput.setAspectRatio();
+                    hdmiInput.setAspectRatio();*/
+                    readResolutionInfo();
                 }
             }
         };
