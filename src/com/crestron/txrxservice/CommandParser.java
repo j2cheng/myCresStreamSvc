@@ -11,7 +11,7 @@ public class CommandParser {
     CommandReceiver cmdRx;
     CommandIf cmd ; 
     //TEMP HACK:TODO Needs to be removed
-    String[] cmdArray = {"MODE", "SessionInitiation", "STREAMURL", "VENCPROFILE", "TRANSPORTMODE", "RTSPPORT", "TSPORT", "RTPVIDEOPORT", "RTPAUDIOPORT", "VFRAMERATE", "VBITRATE", "TCPINTERLEAVE", "IPADDRESS", "START", "STOP", "PAUSE", "MUTE", "UNMUTE", "LATENCY", "PASSWD_ENABLE", "PASSWD_DISABLE", "USERNAME", "PASSWORD", 
+    String[] cmdArray = {"MODE", "SessionInitiation", "STREAMURL", "VENCPROFILE", "TRANSPORTMODE", "RTSPPORT", "TSPORT", "RTPVIDEOPORT", "RTPAUDIOPORT", "VFRAMERATE", "VBITRATE", "TCPINTERLEAVE", "MULTICAST_ADDRESS", "ENCODING_RESOLUTION", "START", "STOP", "PAUSE", "AUDIO_MUTE", "AUDIO_UNMUTE", "LATENCY", "PASSWORD_ENABLE", "PASSWORD_DISABLE", "USERNAME", "PASSWORD", 
     					"XLOC", "YLOC", "W", "H",
     					"HDMIIN_SYNC_DETECTED", "HDMIIN_INTERLACED", "HDMIIN_CEC_ERROR",
     					"HDMIIN_HORIZONTAL_RES_FB", "HDMIIN_VERTICAL_RES_FB", 
@@ -37,12 +37,13 @@ public class CommandParser {
         VFRAMERATE,
         VBITRATE,
         TCPINTERLEAVE,
-        IPADDRESS,
-        MUTE,
-        UNMUTE,
+        MULTICAST_ADDRESS,
+        ENCODING_RESOLUTION,
+        AUDIO_MUTE,
+        AUDIO_UNMUTE,
         LATENCY,
-        PASSWD_ENABLE,
-        PASSWD_DISABLE,
+        PASSWORD_ENABLE,
+        PASSWORD_DISABLE,
         USERNAME,
         PASSWORD,
         START,
@@ -113,12 +114,13 @@ public class CommandParser {
         sb.append("VFRAMERATE (= 60 50 30 24)\r\n");
         sb.append("VBITRATE (= 96 to 25000kbps)\r\n");
         sb.append("TCPINTERLEAVE (=true enable tcp for RTSP Streaming In)\r\n");
-        sb.append("IPADDRESS(=xxx.xxx.xxx.xxx, also multicast address in SessionInitaion 2 & 3)\r\n");
-        sb.append("MUTE(=1:true/0:false)\r\n");
-        sb.append("UNMUTE(=1:true/0:false)\r\n");
+        sb.append("MULTICAST_ADDRESS(=xxx.xxx.xxx.xxx)\r\n");
+        sb.append("ENCODING_RESOLUTION(=0 to 17)\r\n");
+        sb.append("AUDIO_MUTE(=1:true/0:false)\r\n");
+        sb.append("AUDIO_UNMUTE(=1:true/0:false)\r\n");
         sb.append("LATENCY=100 to 5000 (in msec)\r\n");
-        sb.append("PASSWD_ENABLE\r\n");
-        sb.append("PASSWD_DISABLE\r\n");
+        sb.append("PASSWORD_ENABLE\r\n");
+        sb.append("PASSWORD_DISABLE\r\n");
         sb.append("USERNAME\r\n");
         sb.append("PASSWORD\r\n");
         sb.append("START | STOP | PAUSE (=true)\r\n");
@@ -205,22 +207,25 @@ public class CommandParser {
             case TCPINTERLEAVE:
                 cmd = new TcpInterleaveCommand(cmdRx, arg); 
                 break;
-            case IPADDRESS:
+            case MULTICAST_ADDRESS:
                 cmd = new IpaddrCommand(cmdRx, arg); 
                 break;
-            case MUTE:
+            case ENCODING_RESOLUTION:
+                cmd = new EncodingResolutionCommand(cmdRx, arg); 
+                break;
+            case AUDIO_MUTE:
                 cmd = new MuteCommand(cmdRx, arg); 
                 break;
-            case UNMUTE:
+            case AUDIO_UNMUTE:
                 cmd = new UnmuteCommand(cmdRx, arg); 
                 break;
             case LATENCY:
                 cmd = new LatencyCommand(cmdRx, arg); 
                 break;
-            case PASSWD_ENABLE:
+            case PASSWORD_ENABLE:
                 cmd = new PasswdEnableCommand(cmdRx, arg); 
                 break;
-            case PASSWD_DISABLE:
+            case PASSWORD_DISABLE:
                 cmd = new PasswdDisableCommand(cmdRx, arg); 
                 break;
             case USERNAME:

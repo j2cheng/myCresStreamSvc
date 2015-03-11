@@ -10,12 +10,12 @@ import android.hardware.Camera.Size;
 import android.util.Log;
 import android.view.SurfaceHolder;
 import android.graphics.ImageFormat;
-import com.crestron.txrxservice.CameraStreaming;
 
 public class CameraPreview {
 	String TAG = "TxRx Preview";
 	String hdmiinput = "";
 	AudioPlayback audio_pb; ;
+        HDMIInputInterface hdmiIf;
 	CresCamera cresCam;
 	private Camera mCamera = null;
 	private SurfaceHolder surfaceHolder;
@@ -24,22 +24,11 @@ public class CameraPreview {
 	boolean is_audioplaying = false;
 	List<Camera.Size> mSupportedPreviewSizes;
 
-	public CameraPreview(SurfaceHolder vHolder) {
-		audio_pb = new AudioPlayback();
-        surfaceHolder = vHolder;
-	}
-
-	public void MyCameraInstance (){
-       /* try {
-            mCamera = Camera.open(0);
-            if(mCamera!=null)
-                hdmiinput = mCamera.getHdmiInputStatus();
-        } catch (Exception e) {
-            Log.e(TAG, "fail to open camera");
-            e.printStackTrace();
-            mCamera = null; 
-        }*/
-	}
+        public CameraPreview(SurfaceHolder vHolder, HDMIInputInterface hdmiInIface) {
+            audio_pb = new AudioPlayback();
+            surfaceHolder = vHolder;
+            hdmiIf= hdmiInIface;
+        }
 
 	public void onPreviewFrame(byte[] paramArrayOfByte, Camera paramCamera) {}
 
@@ -109,7 +98,6 @@ public class CameraPreview {
 //                    hdmiinput = mCamera.getHdmiInputStatus();
             }
             try {
-                //mCamera.setPreviewDisplay(CameraStreaming.surfaceHolder);
                 mCamera.setPreviewDisplay(surfaceHolder);
             }catch (Exception localException) {
                 localException.printStackTrace();
@@ -121,8 +109,9 @@ public class CameraPreview {
 			for (int i = 0; i < mSupportedPreviewSizes.size(); i++) {
 				Log.d(TAG, i + ". Supported Resolution = " + mSupportedPreviewSizes.get(i).width + "x" + mSupportedPreviewSizes.get(i).height);
 			}
-			if((CresStreamConfigure.getWidth()!= 0) && (CresStreamConfigure.getHeight() !=0))	//Set to default if there is no width or height
-				localParameters.setPreviewSize(CresStreamConfigure.getWidth(), CresStreamConfigure.getHeight());
+			//if((CresStreamConfigure.getWidth()!= 0) && (CresStreamConfigure.getHeight() !=0))	//Set to default if there is no width or height
+			//	localParameters.setPreviewSize(CresStreamConfigure.getWidth(), CresStreamConfigure.getHeight());
+			localParameters.setPreviewSize(Integer.parseInt(hdmiIf.getHorizontalRes()), Integer.parseInt(hdmiIf.getVerticalRes()));
 			//localParameters.set("mode", "high-quality");
 			localParameters.set("ipp", "off");
 			Log.d(TAG, "Preview Size set to " + localParameters.getPreviewSize().width + "x" + localParameters.getPreviewSize().height);
@@ -173,14 +162,7 @@ public class CameraPreview {
 			is_audioplaying = false;
 		}
 	}
-/*
-	private void releaseCamera() {
-		if (mCamera != null) {
-			mCamera.release(); // release the camera for other applications
-			mCamera = null;
-		}
-	}
-*/	
+	
 	public String getHdmiInputResolution() {
 		if(mCamera != null) {
 			return mCamera.getHdmiInputStatus();

@@ -151,7 +151,7 @@ public class CresStreamConfigure {
 		}
 	}
 	
-	public void setWidth(int w) { 
+/*	public void setWidth(int w) { 
 		Log.d(TAG, "setwidth:" + w);
 		width = w; 
 	}
@@ -160,7 +160,7 @@ public class CresStreamConfigure {
 		Log.d(TAG, "setHeight:" + h);
 	 	height = h; 
 	}
-	
+*/	
 	public static int getWidth() { 
 		Log.d(TAG, "Getwidth:" + width);
 		return width; 
@@ -182,7 +182,7 @@ public class CresStreamConfigure {
 	}
 	
         public void setVideoBitRate(int _bitRate) { 
-		vbitrate = _bitRate*1000; 
+		vbitrate = _bitRate;//*1000; 
 		Log.d(TAG, "setVideoBitRate:" + vbitrate);
 	}
 	

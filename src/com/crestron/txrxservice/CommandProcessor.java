@@ -219,6 +219,24 @@ class IpaddrCommand implements CommandIf {
         }
 }
 
+class EncodingResolutionCommand implements CommandIf {
+    CommandReceiver launch;
+    String msg;
+
+    public EncodingResolutionCommand(CommandReceiver launch, String arg) {
+        this.launch = launch;
+        this.msg = arg;
+    }
+
+    @Override
+        public void execute() {
+            launch.setEncodingResolution(Integer.parseInt(msg));
+        }
+        public String getFeedbackMsg() {
+            return msg;
+        }
+}
+
 class MuteCommand implements CommandIf {
     CommandReceiver launch;
     String msg;
@@ -230,7 +248,9 @@ class MuteCommand implements CommandIf {
 
     @Override
         public void execute() {
-            launch.setMute(Integer.parseInt(msg));
+            boolean val = Boolean.valueOf(msg);
+            if(val)
+                launch.setMute(val);
         }
         public String getFeedbackMsg() {
             return msg;
@@ -248,7 +268,9 @@ class UnmuteCommand implements CommandIf {
 
     @Override
         public void execute() {
-            launch.setUnmute(Integer.parseInt(msg));
+            boolean val = Boolean.valueOf(msg);
+            if(val)
+                launch.setUnmute(val);
         }
         public String getFeedbackMsg() {
             return msg;

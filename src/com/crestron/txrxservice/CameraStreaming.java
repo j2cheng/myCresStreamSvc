@@ -23,7 +23,7 @@ public class CameraStreaming implements ErrorCallback {
 	String TAG = "TxRx CameraStreamer";
 	String hostaddr;
 	String filename;
-	String path;
+	//String path;
 	boolean out_stream_status = false;
 	
 	public CameraStreaming(Context mContext, SurfaceHolder lpHolder ) {
@@ -55,9 +55,14 @@ public class CameraStreaming implements ErrorCallback {
 		if(out_stream_status==true)
 			stopRecording();
 		Log.d(TAG, "startRecording");
+                boolean isDirExists = true;
+                File path = new File(Environment.getExternalStorageDirectory()+"/ROMDISK");
+                if(!path.exists()){
+                        isDirExists = path.mkdir();
+                }
 
-		path = "/sdcard/ROMDISK/";
-		Log.d(TAG, "CamTest: Camera Recording Path: " + path);
+		//path = "/sdcard/ROMDISK/";
+		//Log.d(TAG, "CamTest: Camera Recording Path: " + path);
 
 		Date date = new Date();
 		filename = "/rec" + date.toString().replace(" ", "_").replace(":", "_")

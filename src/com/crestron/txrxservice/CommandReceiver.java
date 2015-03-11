@@ -102,16 +102,20 @@ public class CommandReceiver {
     public void setIP(String ip){
         ctl.setIpAddress(ip);
     }
+
+    public void setEncodingResolution(int resID){
+       ctl.setEncodingResolution(resID);
+    }
     
-    public void setMute (int flag){
-        if(flag==1)
+    public void setMute (boolean flag){
+        if(flag)
             ctl.setStreamMute();
         else
             ctl.setStreamUnMute();
     }
 
-    public void setUnmute (int flag){
-        if(flag==1)
+    public void setUnmute (boolean flag){
+        if(flag)
             ctl.setStreamUnMute();
         else
             ctl.setStreamMute();
@@ -190,9 +194,9 @@ public class CommandReceiver {
     }
     
     public String getStreamState(){
-        String replyString;
+        //String replyString;
         int streamState = ctl.getStreamState();
-        switch(streamState){
+        /*switch(streamState){
             case 0:
                 replyString ="STREAMING IN";
                 break;
@@ -211,7 +215,8 @@ public class CommandReceiver {
             default:
                 replyString = "Device in IdleMode";
         }
-        return replyString;
+        return replyString;*/
+        return Integer.toString(streamState);
     }
     //HDMIIN
     public String getHdmiInSync(){
