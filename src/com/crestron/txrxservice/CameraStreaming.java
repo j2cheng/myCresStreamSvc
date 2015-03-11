@@ -56,7 +56,7 @@ public class CameraStreaming implements ErrorCallback {
 			stopRecording();
 		Log.d(TAG, "startRecording");
                 boolean isDirExists = true;
-                File path = new File(Environment.getExternalStorageDirectory()+"/ROMDISK");
+                File path = new File("/sdcard/ROMDISK");
                 if(!path.exists()){
                         isDirExists = path.mkdir();
                 }
