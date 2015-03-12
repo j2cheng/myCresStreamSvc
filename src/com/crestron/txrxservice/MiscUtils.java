@@ -14,9 +14,9 @@ import android.util.Log;
 
 public class MiscUtils {	
 	static Matcher matcher;
+        static String TAG = "TxRx Utils";
 	
 	public static void getDeviceIpAddr() {
-		String TAG = "TxRx Utils";
 		String ipAddress;
 		Process su = null, ipaddr = null;
 		try {
@@ -42,6 +42,27 @@ public class MiscUtils {
 			e1.printStackTrace();
 		}
 	}
+       
+        public static int getHdmiHpdEventState(){
+            StringBuilder text = new StringBuilder();
+            try {
+                //File sdcard = Environment.getExternalStorageDirectory();
+                File file = new File("/sys/class/switch/evs_hdmi_hpd/state");
+
+                BufferedReader br = new BufferedReader(new FileReader(file));  
+                String line;   
+                while ((line = br.readLine()) != null) {
+                    text.append(line);
+                    //text.append('\n');
+                }
+                br.close() ;
+            }catch (IOException e) {
+                e.printStackTrace();           
+            }
+            Log.d(TAG, "hpdState:" + text.toString());
+            return Integer.parseInt(text.toString());
+        }
+       
         private static int calcAspect(int a, int b){
             return (b==0) ? a:calcAspect(b, a%b);
         }

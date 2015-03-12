@@ -109,10 +109,17 @@ public class CameraPreview {
 			for (int i = 0; i < mSupportedPreviewSizes.size(); i++) {
 				Log.d(TAG, i + ". Supported Resolution = " + mSupportedPreviewSizes.get(i).width + "x" + mSupportedPreviewSizes.get(i).height);
 			}
-			//if((CresStreamConfigure.getWidth()!= 0) && (CresStreamConfigure.getHeight() !=0))	//Set to default if there is no width or height
-			//	localParameters.setPreviewSize(CresStreamConfigure.getWidth(), CresStreamConfigure.getHeight());
-			localParameters.setPreviewSize(Integer.parseInt(hdmiIf.getHorizontalRes()), Integer.parseInt(hdmiIf.getVerticalRes()));
-			//localParameters.set("mode", "high-quality");
+                        if(CresStreamCtrl.hpdHdmiEvent==1){
+                            String resInfo = getHdmiInputResolution();
+                            hdmiIf.updateResolutionInfo(resInfo);
+                            CresStreamCtrl.hpdHdmiEvent=0;
+                        }
+                        if((Integer.parseInt(hdmiIf.getHorizontalRes())==0) && (Integer.parseInt(hdmiIf.getVerticalRes())==0))
+                            localParameters.setPreviewSize(640, 480);//if no hdmi cable is connected
+                        else
+                            localParameters.setPreviewSize(Integer.parseInt(hdmiIf.getHorizontalRes()), Integer.parseInt(hdmiIf.getVerticalRes()));
+
+                        //localParameters.set("mode", "high-quality");
 			localParameters.set("ipp", "off");
 			Log.d(TAG, "Preview Size set to " + localParameters.getPreviewSize().width + "x" + localParameters.getPreviewSize().height);
 			//Log.d(TAG, "Scene mode" + localParameters.getSceneMode());
@@ -162,13 +169,13 @@ public class CameraPreview {
 			is_audioplaying = false;
 		}
 	}
-	
-	public String getHdmiInputResolution() {
-		if(mCamera != null) {
-			return mCamera.getHdmiInputStatus();
-		}
-		else {
-			return null;
-		}
-	}
+
+        public String getHdmiInputResolution() {
+            if(mCamera != null) {
+                return mCamera.getHdmiInputStatus();
+            }
+            else {
+                return null;
+            }
+        }
 }

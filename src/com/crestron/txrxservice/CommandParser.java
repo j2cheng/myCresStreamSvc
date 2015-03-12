@@ -369,6 +369,7 @@ public class CommandParser {
         return cmd;
     }
     
+    //Validating received command
     private boolean validateMsg (String msg){
         try {
             CmdTable validatecmd = CmdTable.valueOf(msg);
@@ -376,6 +377,22 @@ public class CommandParser {
         } catch (IllegalArgumentException e){
             return false;
         }
+    }
+
+    //Validating received integer value 
+    private boolean validateMsgValue (String msg){
+        try {
+            int val = Integer.parseInt(msg);
+            Log.d(TAG, "getting val for validating int "+ val);
+            if(val >= 0)
+                return (msg.matches("[0-65535]+"));
+            else 
+                return false;
+            //Log.d(TAG, "getting val for validating int "+ val);
+            //return true;
+       } catch (IllegalArgumentException e){
+         return true;
+       }
     }
 
     public String processReceivedMessage(String receivedMsg){
@@ -386,14 +403,19 @@ public class CommandParser {
 
         if(validateMsg(msg[0].toUpperCase())){
             if(msg.length>1){ //Process & Reply Feedback 
-                cmd = ProcCommand(msg[0].toUpperCase(), msg[1]); 
-                invoke.setCommand(cmd);
-                invoke.set();
-                reply = processReplyFbMessage(msg[0], msg[1]); 
+                if (validateMsgValue(msg[1])){
+                    cmd = ProcCommand(msg[0].toUpperCase(), msg[1]); 
+                    invoke.setCommand(cmd);
+                    invoke.set();
+                    reply = processReplyFbMessage(msg[0], msg[1]); 
+                } else {
+                    sb.append(receivedMsg).append(" is invalid value!!!");
+                    reply = sb.toString();
+                }
             }
             else { //Test Stub Query
                 String tmp_str = tokenizer.getStringValueOf(msg[0]);
-                Log.d(TAG, "Querying:: searched for "+msg+" and got value of "+tmp_str);
+                //Log.d(TAG, "Querying:: searched for "+msg+" and got value of "+tmp_str);
                 cmd = ProcCommand(msg[0].toUpperCase(), tmp_str); 
                 invoke.setCommand(cmd);
                 String fbMsg = invoke.get();

@@ -63,7 +63,7 @@ public class StringTokenizer
 			matcher = pattern.matcher(newtoken);
 			if(matcher.matches()){
 				boolean found = list.remove(tok);
-				Log.d(TAG, "removedToken "+found );
+				//Log.d(TAG, "removedToken "+found );
 				break;
 			}
 		}
@@ -100,7 +100,7 @@ public class StringTokenizer
 			pattern = Pattern.compile(regex, Pattern.CASE_INSENSITIVE);	
 			matcher = pattern.matcher(newtoken);
 			if(matcher.matches()){
-				Log.d(TAG, "found");
+				//Log.d(TAG, "found");
 				value = tok.sequence2;
 				break;
 			}

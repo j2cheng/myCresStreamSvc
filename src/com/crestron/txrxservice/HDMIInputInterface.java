@@ -108,4 +108,18 @@ public class HDMIInputInterface {
 		return audioChannels;
 	}
 
+        public void updateResolutionInfo(String hdmiInResolution) {
+            String delims = "[x@]+";
+            String tokens[] = hdmiInResolution.split(delims);
+            for (int tokenIndex = 0; tokenIndex < tokens.length; tokenIndex++)
+                Log.i(TAG, " " + tokens[tokenIndex]);
+
+            setSyncStatus();
+            setHorizontalRes("640");
+            setVerticalRes("480");
+            setHorizontalRes(tokens[0]);
+            setVerticalRes(tokens[1]);
+            setFPS(tokens[2].trim());
+            setAspectRatio();
+        }
 }
