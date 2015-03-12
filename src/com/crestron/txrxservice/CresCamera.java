@@ -12,7 +12,7 @@ public class CresCamera {
 	static String TAG = "TxRx Camera";
 
     private static int findCamera(){
-        int cameraId = -1;
+        int cameraId = 0;
         int numOfCameras = Camera.getNumberOfCameras();
         for (int i = 0; i < numOfCameras; i++){
             CameraInfo info = new CameraInfo();

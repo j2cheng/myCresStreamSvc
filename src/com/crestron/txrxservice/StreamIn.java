@@ -18,7 +18,7 @@ public class StreamIn implements OnPreparedListener, OnCompletionListener, OnBuf
     private SurfaceHolder vidHolder;
     String TAG = "TxRx StreamIN";
     StringBuilder sb;
-    static String srcUrl;
+    static String srcUrl="";
     static int latency = 2000;//msec
     int dest_width = 1280;
     int dest_height = 720;
@@ -67,6 +67,15 @@ public class StreamIn implements OnPreparedListener, OnCompletionListener, OnBuf
     
     public void onStart() {
         try {
+        	//MNT - 3.11.15 - clean up the player if it's already playing
+        	if ((mediaPlayer!=null) && (mediaPlayer.isPlaying()==true))
+        	{
+        		mediaPlayer.stop();
+        		mediaPlayer.reset();
+        		mediaPlayer.release();
+        		mediaPlayer = null;
+        	}
+        	
             mediaPlayer = new MediaPlayer();
             mediaPlayer.setDataSource(srcUrl);	
             Log.d(TAG, "URL is "+srcUrl);
