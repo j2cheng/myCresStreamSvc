@@ -276,20 +276,8 @@ public class CresStreamCtrl extends Service {
         else 
             previewSurface.setLayoutParams(lp2);
     }
-    public void readResolutionInfo(String hdmiInputResolution){
-/*
-        String delims = "[x@]+";
-        String tokens[] = hdmiInputResolution.split(delims);
-        for (int tokenIndex = 0; tokenIndex < tokens.length; tokenIndex++)
-            Log.i(TAG, " " + tokens[tokenIndex]);
 
-        hdmiInput.setSyncStatus();
-        hdmiInput.setHorizontalRes(tokens[0]);
-        hdmiInput.setVerticalRes(tokens[1]);
-        hdmiInput.setFPS(tokens[2].trim());
-        hdmiInput.setAspectRatio();
-*/
-                    
+    public void readResolutionInfo(String hdmiInputResolution){
         hdmiInput.updateResolutionInfo(hdmiInputResolution);
     }
     

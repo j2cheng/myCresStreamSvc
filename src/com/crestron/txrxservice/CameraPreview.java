@@ -22,7 +22,7 @@ public class CameraPreview {
 	boolean is_pause = false;
 	boolean is_preview = false;
 	boolean is_audioplaying = false;
-	List<Camera.Size> mSupportedPreviewSizes;
+	//List<Camera.Size> mSupportedPreviewSizes;
 
         public CameraPreview(SurfaceHolder vHolder, HDMIInputInterface hdmiInIface) {
             audio_pb = new AudioPlayback();
@@ -105,56 +105,57 @@ public class CameraPreview {
 
 			Log.d(TAG, "########## Resolutin Info: "+hdmiinput);
 			Camera.Parameters localParameters = mCamera.getParameters();
-			mSupportedPreviewSizes = mCamera.getParameters().getSupportedPreviewSizes();
+			/*mSupportedPreviewSizes = mCamera.getParameters().getSupportedPreviewSizes();
 			for (int i = 0; i < mSupportedPreviewSizes.size(); i++) {
 				Log.d(TAG, i + ". Supported Resolution = " + mSupportedPreviewSizes.get(i).width + "x" + mSupportedPreviewSizes.get(i).height);
-			}
+			}*/
                         if(CresStreamCtrl.hpdHdmiEvent==1){
                             String resInfo = getHdmiInputResolution();
                             hdmiIf.updateResolutionInfo(resInfo);
                             CresStreamCtrl.hpdHdmiEvent=0;
                         }
-                        if((Integer.parseInt(hdmiIf.getHorizontalRes())==0) && (Integer.parseInt(hdmiIf.getVerticalRes())==0))
+                        if((Integer.parseInt(hdmiIf.getHorizontalRes())==0) && (Integer.parseInt(hdmiIf.getVerticalRes())==0)){
                             localParameters.setPreviewSize(640, 480);//if no hdmi cable is connected
-                        else
+                            mCamera.setDisplayOrientation(0);
+                            mCamera.setParameters(localParameters);
+                            mCamera.startPreview();
+                        }
+                        else{
                             localParameters.setPreviewSize(Integer.parseInt(hdmiIf.getHorizontalRes()), Integer.parseInt(hdmiIf.getVerticalRes()));
 
-                        //localParameters.set("mode", "high-quality");
-			localParameters.set("ipp", "off");
-			Log.d(TAG, "Preview Size set to " + localParameters.getPreviewSize().width + "x" + localParameters.getPreviewSize().height);
-			//Log.d(TAG, "Scene mode" + localParameters.getSceneMode());
-			//Log.d(TAG, "Mode set to " + localParameters.get("mode"));
-			//Log.d(TAG, "Picture formate %s " + localParameters.getPictureFormat());
-			mCamera.setDisplayOrientation(0);
-			mCamera.setParameters(localParameters);
-			mCamera.startPreview();
-			startAudio();
+                            localParameters.set("ipp", "off");
+                            Log.d(TAG, "Preview Size set to " + localParameters.getPreviewSize().width + "x" + localParameters.getPreviewSize().height);
+                            mCamera.setDisplayOrientation(0);
+                            mCamera.setParameters(localParameters);
+                            mCamera.startPreview();
+                            startAudio();
+                            is_audioplaying = true;
+                        }
 			is_preview = true;
-			is_audioplaying = true;
 		}
 	}
 
 	public void stopPlayback()
-	{
-		Log.d(TAG, "stopPlayback");
-	    stopAudio();
-		try
-		{
-			if (mCamera!= null)
-			{
-				mCamera.stopPreview();
-				cresCam.releaseCamera(mCamera);
-			}
+        {
+            Log.d(TAG, "stopPlayback");
+            stopAudio();
+            try
+            {
+                if (mCamera!= null)
+                {
+                    mCamera.stopPreview();
+                    cresCam.releaseCamera(mCamera);
+                }
+                is_preview = false;
+                Log.d(TAG, "Playback stopped !");
+                return;
+            }
+            catch (Exception localException)
+            {
+                localException.printStackTrace();
+            }
             is_preview = false;
-			Log.d(TAG, "Playback stopped !");
-			return;
-		}
-		catch (Exception localException)
-		{
-			localException.printStackTrace();
-		}
-            is_preview = false;
-	}
+        }
 
 	protected void startAudio(){
 		if(!is_audioplaying)

@@ -50,6 +50,14 @@ public class CommandReceiver {
     
     private final CresStreamCtrl ctl;
     
+    public static int VALIDATE_INT(String msg){
+        try {
+            return Integer.parseInt(msg);
+        } catch (NumberFormatException e) {
+            return 0;
+        }
+    }
+
     public CommandReceiver(CresStreamCtrl a_crestctrl)
     {
         ctl = a_crestctrl;

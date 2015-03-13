@@ -12,7 +12,7 @@ class DeviceCommand implements CommandIf {
 
     @Override
         public void execute() {
-            launch.setDeviceMode(Integer.parseInt(msg));
+            launch.setDeviceMode(launch.VALIDATE_INT(msg));
         }
         public String getFeedbackMsg() {
             return msg;
@@ -30,7 +30,7 @@ class SessionInitiationCommand implements CommandIf {
 
     @Override
         public void execute() {
-            launch.setSessionInitation(Integer.parseInt(msg));
+            launch.setSessionInitation(launch.VALIDATE_INT(msg));
         }
         public String getFeedbackMsg() {
             return msg;
@@ -48,7 +48,7 @@ class TModeCommand implements CommandIf {
 
     @Override
         public void execute() {
-            launch.SetTMode(Integer.parseInt(msg));
+            launch.SetTMode(launch.VALIDATE_INT(msg));
         }
         public String getFeedbackMsg() {
             return msg;
@@ -66,7 +66,7 @@ class VencCommand implements CommandIf {
 
     @Override
         public void execute() {
-            launch.SetVenc(Integer.parseInt(msg));
+            launch.SetVenc(launch.VALIDATE_INT(msg));
         }
         public String getFeedbackMsg() {
             return msg;
@@ -84,7 +84,7 @@ class RtspPortCommand implements CommandIf {
 
     @Override
         public void execute() {
-            launch.setRtspPort(Integer.parseInt(msg));
+            launch.setRtspPort(launch.VALIDATE_INT(msg));
         }
         public String getFeedbackMsg() {
             return msg;
@@ -102,7 +102,7 @@ class TsPortCommand implements CommandIf {
 
     @Override
         public void execute() {
-            launch.setTsPort(Integer.parseInt(msg));
+            launch.setTsPort(launch.VALIDATE_INT(msg));
         }
         public String getFeedbackMsg() {
             return msg;
@@ -120,7 +120,7 @@ class RtpVCommand implements CommandIf {
 
     @Override
         public void execute() {
-            launch.setRtpV(Integer.parseInt(msg));
+            launch.setRtpV(launch.VALIDATE_INT(msg));
         }
         public String getFeedbackMsg() {
             return msg;
@@ -138,7 +138,7 @@ class RtpACommand implements CommandIf {
 
     @Override
         public void execute() {
-            launch.setRtpA(Integer.parseInt(msg));
+            launch.setRtpA(launch.VALIDATE_INT(msg));
         }
         public String getFeedbackMsg() {
             return msg;
@@ -156,7 +156,7 @@ class VfrCommand implements CommandIf {
 
     @Override
         public void execute() {
-            launch.setVfr(Integer.parseInt(msg));
+            launch.setVfr(launch.VALIDATE_INT(msg));
         }
         public String getFeedbackMsg() {
             return msg;
@@ -174,7 +174,7 @@ class VbrCommand implements CommandIf {
 
     @Override
         public void execute() {
-            launch.setVbr(Integer.parseInt(msg));
+            launch.setVbr(launch.VALIDATE_INT(msg));
         }
         public String getFeedbackMsg() {
             return msg;
@@ -230,7 +230,7 @@ class EncodingResolutionCommand implements CommandIf {
 
     @Override
         public void execute() {
-            launch.setEncodingResolution(Integer.parseInt(msg));
+            launch.setEncodingResolution(launch.VALIDATE_INT(msg));
         }
         public String getFeedbackMsg() {
             return msg;
@@ -288,7 +288,7 @@ class LatencyCommand implements CommandIf {
 
     @Override
         public void execute() {
-            launch.setLatency(Integer.parseInt(msg));
+            launch.setLatency(launch.VALIDATE_INT(msg));
         }
         public String getFeedbackMsg() {
             return msg;
@@ -457,7 +457,7 @@ class XlocCommand implements CommandIf {
 
     @Override
         public  void execute() {
-            launch.setXloc(Integer.parseInt(msg));
+            launch.setXloc(launch.VALIDATE_INT(msg));
         }
         public String getFeedbackMsg() {
             return msg;
@@ -476,7 +476,7 @@ class YlocCommand implements CommandIf {
 
     @Override
         public void execute() {
-            launch.setYloc(Integer.parseInt(msg));
+            launch.setYloc(launch.VALIDATE_INT(msg));
         }
         public String getFeedbackMsg() {
             return msg;
@@ -495,7 +495,7 @@ class DestWidthCommand implements CommandIf {
 
     @Override
         public void execute() {
-            launch.setDestWidth(Integer.parseInt(msg));
+            launch.setDestWidth(launch.VALIDATE_INT(msg));
         }
         public String getFeedbackMsg() {
             return msg;
@@ -514,7 +514,7 @@ class DestHeightCommand implements CommandIf {
 
     @Override
         public void execute() {
-            launch.setDestHeight(Integer.parseInt(msg));
+            launch.setDestHeight(launch.VALIDATE_INT(msg));
         }
         public String getFeedbackMsg() {
             return msg;
@@ -532,7 +532,7 @@ class InSyncCommand implements CommandIf {
 
     @Override
         public void execute() {
-            //launch.(Integer.parseInt(msg));
+            //launch.(launch.VALIDATE_INT(msg));
         }
         public String getFeedbackMsg() {
             return launch.getHdmiInSync();
@@ -551,7 +551,7 @@ class InInterlaceCommand implements CommandIf {
 
     @Override
         public void execute() {
-            //launch.(Integer.parseInt(msg));
+            //launch.(launch.VALIDATE_INT(msg));
         }
         public String getFeedbackMsg() {
             return launch.getHdmiInInterlace();
@@ -569,7 +569,7 @@ class InCecCommand implements CommandIf {
 
     @Override
         public void execute() {
-            //launch.(Integer.parseInt(msg));
+            //launch.(launch.VALIDATE_INT(msg));
         }
         public String getFeedbackMsg() {
             return msg;
@@ -588,7 +588,7 @@ class InHresCommand implements CommandIf {
 
     @Override
         public void execute() {
-           // launch.(Integer.parseInt(msg));
+           // launch.(launch.VALIDATE_INT(msg));
         }
         public String getFeedbackMsg() {
             return launch.getHdmiInHRes();
@@ -607,7 +607,7 @@ class InVResCommand implements CommandIf {
 
     @Override
         public void execute() {
-            //launch.(Integer.parseInt(msg));
+            //launch.(launch.VALIDATE_INT(msg));
         }
         public String getFeedbackMsg() {
             return launch.getHdmiInVRes();
@@ -626,7 +626,7 @@ class InFpsCommand implements CommandIf {
 
     @Override
         public void execute() {
-           // launch.(Integer.parseInt(msg));
+           // launch.(launch.VALIDATE_INT(msg));
         }
         public String getFeedbackMsg() {
             return launch.getHdmiInFps();
@@ -645,7 +645,7 @@ class InAspectCommand implements CommandIf {
 
     @Override
         public void execute() {
-           // launch.(Integer.parseInt(msg));
+           // launch.(launch.VALIDATE_INT(msg));
         }
         public String getFeedbackMsg() {
             return launch.getHdmiInAspect();
@@ -664,7 +664,7 @@ class InAudioFormatCommand implements CommandIf {
 
     @Override
         public void execute() {
-            //launch.(Integer.parseInt(msg));
+            //launch.(launch.VALIDATE_INT(msg));
         }
         public String getFeedbackMsg() {
             return launch.getHdmiInAudioFormat();
@@ -683,7 +683,7 @@ class InAudioChannelsCommand implements CommandIf {
 
     @Override
         public void execute() {
-            //launch.(Integer.parseInt(msg));
+            //launch.(launch.VALIDATE_INT(msg));
         }
         public String getFeedbackMsg() {
             return launch.getHdmiInAudioChannels();
@@ -702,7 +702,7 @@ class InTxCecCommand implements CommandIf {
 
     @Override
         public void execute() {
-            //launch.(Integer.parseInt(msg));
+            //launch.(launch.VALIDATE_INT(msg));
         }
         public String getFeedbackMsg() {
             return msg;
@@ -721,7 +721,7 @@ class InRxCecCommand implements CommandIf {
 
     @Override
         public void execute() {
-            //launch.(Integer.parseInt(msg));
+            //launch.(launch.VALIDATE_INT(msg));
         }
         public String getFeedbackMsg() {
             return msg;
@@ -740,7 +740,7 @@ class OutSyncCommand implements CommandIf {
 
     @Override
         public void execute() {
-            //launch.(Integer.parseInt(msg));
+            //launch.(launch.VALIDATE_INT(msg));
         }
         public String getFeedbackMsg() {
             return launch.getHdmiOutSync();
@@ -759,7 +759,7 @@ class OutInterlaceCommand implements CommandIf {
 
     @Override
         public void execute() {
-            //launch.(Integer.parseInt(msg));
+            //launch.(launch.VALIDATE_INT(msg));
         }
         public String getFeedbackMsg() {
             return launch.getHdmiOutInterlaced();
@@ -778,7 +778,7 @@ class OutCecCommand implements CommandIf {
 
     @Override
         public void execute() {
-            //launch.(Integer.parseInt(msg));
+            //launch.(launch.VALIDATE_INT(msg));
         }
         public String getFeedbackMsg() {
             return msg;
@@ -797,7 +797,7 @@ class OutHresCommand implements CommandIf {
 
     @Override
         public void execute() {
-            //launch.(Integer.parseInt(msg));
+            //launch.(launch.VALIDATE_INT(msg));
         }
         public String getFeedbackMsg() {
             return launch.getHdmiOutHRes();
@@ -816,7 +816,7 @@ class OutVresCommand implements CommandIf {
 
     @Override
         public void execute() {
-            //launch.(Integer.parseInt(msg));
+            //launch.(launch.VALIDATE_INT(msg));
         }
         public String getFeedbackMsg() {
             return launch.getHdmiOutVRes();
@@ -835,7 +835,7 @@ class outFpsCommand implements CommandIf {
 
     @Override
         public void execute() {
-            //launch.(Integer.parseInt(msg));
+            //launch.(launch.VALIDATE_INT(msg));
         }
         public String getFeedbackMsg() {
             return launch.getHdmiOutFps();
@@ -854,7 +854,7 @@ class OutAspectCommand implements CommandIf {
 
     @Override
         public void execute() {
-            //launch.(Integer.parseInt(msg));
+            //launch.(launch.VALIDATE_INT(msg));
         }
         public String getFeedbackMsg() {
             return launch.getHdmiOutAspect();
@@ -873,7 +873,7 @@ class OutAudioFormatCommand implements CommandIf {
 
     @Override
         public void execute() {
-            //launch.(Integer.parseInt(msg));
+            //launch.(launch.VALIDATE_INT(msg));
         }
         public String getFeedbackMsg() {
             return launch.getHdmiOutAudioFormat();
@@ -892,7 +892,7 @@ class OutAudioChannelsCommand implements CommandIf {
 
     @Override
         public void execute() {
-            //launch.(Integer.parseInt(msg));
+            //launch.(launch.VALIDATE_INT(msg));
         }
         public String getFeedbackMsg() {
             return launch.getHdmiOutAudioChannels();
@@ -911,7 +911,7 @@ class OutTxCecCommand implements CommandIf {
 
     @Override
         public void execute() {
-            //launch.(Integer.parseInt(msg));
+            //launch.(launch.VALIDATE_INT(msg));
         }
         public String getFeedbackMsg() {
             return msg;
@@ -930,7 +930,7 @@ class OutRxCecCommand implements CommandIf {
 
     @Override
         public void execute() {
-            //launch.(Integer.parseInt(msg));
+            //launch.(launch.VALIDATE_INT(msg));
         }
         public String getFeedbackMsg() {
             return msg;
@@ -949,7 +949,7 @@ class ProcessingCommand implements CommandIf {
 
     @Override
         public void execute() {
-            //launch.(Integer.parseInt(msg));
+            //launch.(launch.VALIDATE_INT(msg));
         }
         public String getFeedbackMsg() {
             return launch.getProcessingStats();
@@ -967,7 +967,7 @@ class DeviceReadyCommand implements CommandIf {
 
     @Override
         public void execute() {
-            //launch.(Integer.parseInt(msg));
+            //launch.(launch.VALIDATE_INT(msg));
         }
         public String getFeedbackMsg() {
             return launch.getDeviceReadyStatus();
@@ -986,7 +986,7 @@ class ElapsedSecondsCommand implements CommandIf {
 
     @Override
         public void execute() {
-            //launch.(Integer.parseInt(msg));
+            //launch.(launch.VALIDATE_INT(msg));
         }
         public String getFeedbackMsg() {
             return launch.getElapsedSeconds();
@@ -1005,7 +1005,7 @@ class StatusCommand implements CommandIf {
 
     @Override
         public void execute() {
-            //launch.(Integer.parseInt(msg));
+            //launch.(launch.VALIDATE_INT(msg));
         }
         public String getFeedbackMsg() {
             return launch.getStatus();
@@ -1024,7 +1024,7 @@ class InitAddressCommand implements CommandIf {
 
     @Override
         public void execute() {
-            //launch.(Integer.parseInt(msg));
+            //launch.(launch.VALIDATE_INT(msg));
         }
         public String getFeedbackMsg() {
             return launch.getInitAddress();
@@ -1043,7 +1043,7 @@ class HresCommand implements CommandIf {
 
     @Override
         public void execute() {
-            //launch.(Integer.parseInt(msg));
+            //launch.(launch.VALIDATE_INT(msg));
         }
         public String getFeedbackMsg() {
             return launch.getHresFb();
@@ -1062,7 +1062,7 @@ class VresCommand implements CommandIf {
 
     @Override
         public void execute() {
-            //launch.(Integer.parseInt(msg));
+            //launch.(launch.VALIDATE_INT(msg));
         }
         public String getFeedbackMsg() {
             return launch.getVresFb();
@@ -1080,7 +1080,7 @@ class ResolutionCommand implements CommandIf {
 
     @Override
         public void execute() {
-            //launch.(Integer.parseInt(msg));
+            //launch.(launch.VALIDATE_INT(msg));
         }
         public String getFeedbackMsg() {
             return launch.getFpsFb();
@@ -1098,7 +1098,7 @@ class AspectCommand implements CommandIf {
 
     @Override
         public void execute() {
-            //launch.(Integer.parseInt(msg));
+            //launch.(launch.VALIDATE_INT(msg));
         }
         public String getFeedbackMsg() {
             return launch.getAspectFb();
@@ -1116,7 +1116,7 @@ class SAudioFormatCommand implements CommandIf {
 
     @Override
         public void execute() {
-            //launch.(Integer.parseInt(msg));
+            //launch.(launch.VALIDATE_INT(msg));
         }
         public String getFeedbackMsg() {
             return launch.getAudioFormatFb();
@@ -1134,7 +1134,7 @@ class SAudioChannelsCommand implements CommandIf {
 
     @Override
         public void execute() {
-            //launch.(Integer.parseInt(msg));
+            //launch.(launch.VALIDATE_INT(msg));
         }
         public String getFeedbackMsg() {
             return launch.getAudioChannelsFb();
@@ -1152,7 +1152,7 @@ class StreamStateCommand implements CommandIf {
 
     @Override
         public void execute() {
-            //launch.(Integer.parseInt(msg));
+            //launch.(launch.VALIDATE_INT(msg));
         }
         public String getFeedbackMsg() {
             return launch.getStreamState();
