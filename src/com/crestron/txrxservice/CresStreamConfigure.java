@@ -182,7 +182,7 @@ public class CresStreamConfigure {
 	}
 	
         public void setVideoBitRate(int _bitRate) { 
-		vbitrate = _bitRate;//*1000; 
+		vbitrate = _bitRate*1000; 
 		Log.d(TAG, "setVideoBitRate:" + vbitrate);
 	}
 	
