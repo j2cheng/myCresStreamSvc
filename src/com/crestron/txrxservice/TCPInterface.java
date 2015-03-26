@@ -20,7 +20,6 @@ public class TCPInterface extends AsyncTask<Void, Object, Long> {
     String TAG = "TxRx TCPInterface";
     public static final String CONSOLEPROMPT = "\r\nTxRx>";
     CommandParser parserInstance;
-    //MessageParser parserInstance;
     boolean isWhiteSpace = false;
     static boolean connectionAlive = true;
 
@@ -32,7 +31,6 @@ public class TCPInterface extends AsyncTask<Void, Object, Long> {
 
     public TCPInterface(CresStreamCtrl a_crestctrl){
         parserInstance = new CommandParser (a_crestctrl);
-        //parserInstance = new MessageParser (a_crestctrl);
         clientList = new ArrayList<TCPInterface.CommunicationThread>();
     }
     
@@ -178,6 +176,22 @@ public class TCPInterface extends AsyncTask<Void, Object, Long> {
                         }
                         else{
                             publishProgress(read.trim(), serverHandler);
+                            String ctrlCmdStr = read.trim(); 
+                            if(ctrlCmdStr.toUpperCase().contains("START")) {
+                                Log.d(TAG, "In start ");
+                                publishProgress("STOP", serverHandler);
+                                publishProgress("PAUSE", serverHandler);
+                            }else if (ctrlCmdStr.toUpperCase().contains("STOP")) {
+                                Log.d(TAG, "In stop ");
+                                publishProgress("START", serverHandler);
+                                publishProgress("PAUSE", serverHandler);
+                            }else if (ctrlCmdStr.toUpperCase().contains("PAUSE")) {
+                                Log.d(TAG, "In pause ");
+                                publishProgress("START", serverHandler);
+                                publishProgress("STOP", serverHandler);
+                            }else {
+                                Log.d(TAG, "ctrlCmd not received " );
+                            }
                         }
                     }
                     else if(read == null) {

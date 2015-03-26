@@ -47,7 +47,6 @@ public class CresStreamCtrl extends Service {
     BroadcastReceiver hdmioutResolutionChangedEvent = null;
     private SurfaceView previewSurface;
     private SurfaceView streamingSurface = null;
-    //private SurfaceView dummyView = null;
 
     CresStreamConfigure myconfig;
     AudioManager amanager;
@@ -68,7 +67,7 @@ public class CresStreamCtrl extends Service {
     static int hpdHdmiEvent = 0;
 
     String TAG = "TxRx StreamCtrl";
-    static String out_url=null;
+    static String out_url="";
     static String playStatus="false";
     static String stopStatus="true";
     static String pauseStatus="false";
@@ -79,51 +78,10 @@ public class CresStreamCtrl extends Service {
     int g_w = 0;
     int g_h = 0;
     boolean StreamOutstarted = false;
-    public enum DeviceMode {
-        PREVIEW(2), STREAMOUT(1), STREAMIN(0);
-        private final int value;
-
-        private DeviceMode(int value) {
-            this.value = value;
-        }
-
-        public int getValue() {
-            return value;
-        }
-        public static String getStringValueFromInt(int i) {
-            for (DeviceMode status : DeviceMode.values()) {
-                if (status.getValue() == i) {
-                    return status.toString();
-                }
-            }
-            return ("the given number doesn't match any Status.");
-        }
-    }
-
-    public enum SessionInitationMode{
-        ByReceiver(0), ByTransmitter(1), MCastViaRTSP(2), MCastViaUDP(3);
-        private final int value;
-
-        private SessionInitationMode(int value) {
-            this.value = value;
-        }
-
-        public int getValue() {
-            return value;
-        }
-        public static String getStringValueFromInt(int i) {
-            for (SessionInitationMode status : SessionInitationMode.values()) {
-                if (status.getValue() == i) {
-                    return status.toString();
-                }
-            }
-            return ("the given number doesn't match any Status.");
-        }
-    }
 
     //HashMap
-    HashMap<String, Command> hm;
-    HashMap<String, myCommand> hm2;
+    HashMap<Integer, Command> hm;
+    HashMap<Integer, myCommand> hm2;
     @Override
         public void onCreate() {
             super.onCreate();
@@ -140,15 +98,15 @@ public class CresStreamCtrl extends Service {
             //StreamingIn View 
             streamingSurface = new SurfaceView(this);
             params_streamingview = new RelativeLayout.LayoutParams(
-                    WindowManager.LayoutParams.WRAP_CONTENT,
-                    WindowManager.LayoutParams.WRAP_CONTENT);
+                  RelativeLayout.LayoutParams.WRAP_CONTENT,
+                  RelativeLayout.LayoutParams.WRAP_CONTENT);
             parentlayout.addView(streamingSurface, params_streamingview);
             
             //Preview/StreamOut View
             previewSurface = new SurfaceView(this);
             params_preview = new RelativeLayout.LayoutParams(
-                    WindowManager.LayoutParams.WRAP_CONTENT,
-                    WindowManager.LayoutParams.WRAP_CONTENT);
+                   RelativeLayout.LayoutParams.WRAP_CONTENT,
+                   RelativeLayout.LayoutParams.WRAP_CONTENT);
             parentlayout.addView(previewSurface, params_preview);
 
             //Setting WindowManager and Parameters with system overlay
@@ -167,8 +125,6 @@ public class CresStreamCtrl extends Service {
             hpdHdmiEvent = MiscUtils.getHdmiHpdEventState();
             Log.d(TAG, "hpdHdmiEvent :" + hpdHdmiEvent);
 
-            //HPD and Resolution Event Registration
-            registerBroadcasts();
             //AudioManager
             amanager=(AudioManager)getSystemService(Context.AUDIO_SERVICE);
             //Input Streamout Config
@@ -180,6 +136,8 @@ public class CresStreamCtrl extends Service {
             //refresh resolution on startup
             refreshResolutionInfo();
 
+            //HPD and Resolution Event Registration
+            registerBroadcasts();
             //Enable StreamIn and CameraPreview 
             SurfaceHolder streaminHolder = sMGR.getCresSurfaceHolder(streamingSurface);
             streamPlay = new StreamIn(CresStreamCtrl.this, streaminHolder);
@@ -189,24 +147,41 @@ public class CresStreamCtrl extends Service {
             cam_preview = new CameraPreview(previewHolder, hdmiInput);
             //Play Control
             hm = new HashMap();
-            hm.put("PREVIEW", new Command() {
+            hm.put(2/*"PREVIEW"*/, new Command() {
                     public void executeStart() {startPreview(); };
                     });
-            hm.put("STREAMOUT", new Command() {
+            hm.put(1 /*"STREAMOUT"*/, new Command() {
                     public void executeStart() {startStreamOut();createStreamOutURL();};
                     });
-            hm.put("STREAMIN", new Command() {
+            hm.put(0 /*"STREAMIN"*/, new Command() {
                     public void executeStart() {startStreamIn(); };
                     });
             hm2 = new HashMap();
-            hm2.put("PREVIEW", new myCommand() {
+            hm2.put(2/*"PREVIEW"*/, new myCommand() {
                     public void executeStop() {stopPreview();};
                     });
-            hm2.put("STREAMOUT", new myCommand() {
+            hm2.put(1/*"STREAMOUT"*/, new myCommand() {
                     public void executeStop() {stopStreamOut();};
                     });
-            hm2.put("STREAMIN", new myCommand() {
+            hm2.put(0/*"STREAMIN"*/, new myCommand() {
                     public void executeStop() {stopStreamIn(); };
+                    });
+
+            //Global Default Exception Handler
+            final Thread.UncaughtExceptionHandler oldHandler = Thread.getDefaultUncaughtExceptionHandler();
+
+            Thread.setDefaultUncaughtExceptionHandler(
+                    new Thread.UncaughtExceptionHandler() {
+                    @Override
+                    public void uncaughtException(Thread paramThread, Throwable paramThrowable) {
+                    //Close Camera   
+                    cam_preview.stopPlayback();
+                    cam_streaming.stopRecording();
+                    if (oldHandler != null)
+                        oldHandler.uncaughtException(paramThread, paramThrowable); //Delegates to Android's error handling
+                    else
+                        System.exit(2); //Prevents the service/app from freezing
+                    }
                     });
         }
    
@@ -409,7 +384,6 @@ public class CresStreamCtrl extends Service {
     {
 	    Log.d(TAG, " setSessionInitMode "+ mode);
 	    sessInitMode = mode;
-	    //switch(SessionInitationMode.getStringValueFromInt(sessInitMode)){
 	    switch(mode){
 		//case "ByReceiver":
 		case 0: 
@@ -461,13 +435,13 @@ public class CresStreamCtrl extends Service {
     	playStatus="true";
     	stopStatus="false";
         pauseStatus="false";
-        hm.get(DeviceMode.getStringValueFromInt(device_mode)).executeStart();
+        hm.get(device_mode).executeStart();
     }
     public void Stop(){
     	playStatus="false";
     	stopStatus="true";
         pauseStatus="false";
-        hm2.get(DeviceMode.getStringValueFromInt(device_mode)).executeStop();
+        hm2.get(device_mode).executeStop();
     }
     public void Pause(){
         pauseStatus="true";
@@ -584,22 +558,26 @@ public class CresStreamCtrl extends Service {
 
     private void hidePreviewWindow()
     {
+        Log.d(TAG, "Preview Window hidden");
        previewSurface.setVisibility(8);
     }
     
     private void showPreviewWindow()
     {
+        Log.d(TAG, "Preview Window showing");
        previewSurface.setVisibility(0);
     }
 
     //StreamIn Ctrls & Config
     private void hideStreamInWindow()
     {
+        Log.d(TAG, " streamin Window hidden ");
        streamingSurface.setVisibility(8);
     }
 
     private void showStreamInWindow()
     {
+        Log.d(TAG, "streamin Window  showing");
         streamingSurface.setVisibility(0);
     }
 
@@ -703,7 +681,7 @@ public class CresStreamCtrl extends Service {
     public void startPreview()
     {
         showPreviewWindow();
-        cam_preview.startPlayback(true);
+        cam_preview.startPlayback();
         Toast.makeText(this, "Preview Started", Toast.LENGTH_LONG).show();
     }
 
@@ -763,7 +741,7 @@ public class CresStreamCtrl extends Service {
                         Log.i(TAG, "Restart called due to resolution change broadcast ! ");
                         cam_preview.stopPlayback();
                         SystemClock.sleep(cameraRestartTimout);
-                        cam_preview.startPlayback(true);
+                        cam_preview.startPlayback();
                     }
                     else if((cam_streaming.mCameraPreviewObj != null) && ((cam_streaming.isStreaming()) == true)){
                         hdmiInputResolution = cam_preview.getHdmiInputResolution();
@@ -787,8 +765,8 @@ public class CresStreamCtrl extends Service {
                     	cameraInstance = null;
                         Log.i(TAG, " Nothing todo!!!");
                     }
-                    if(hpdStateEnabled==1)
-                            cam_preview.startPlayback(true);
+                    if((hpdStateEnabled==1) && (device_mode==2))
+                            cam_preview.startPlayback();
                     
                     readResolutionInfo(hdmiInputResolution);
                 }
