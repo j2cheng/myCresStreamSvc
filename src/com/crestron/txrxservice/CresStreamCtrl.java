@@ -62,7 +62,7 @@ public class CresStreamCtrl extends Service {
     HDMIInputInterface hdmiInput;
     HDMIOutputInterface hdmiOutput;
 
-    final int cameraRestartTimout = 1000;//msec
+    final int cameraRestartTimout = 2000;//msec
     int hpdStateEnabled = 0;
     static int hpdHdmiEvent = 0;
 
@@ -541,7 +541,7 @@ public class CresStreamCtrl extends Service {
             } catch(IOException e) {
                 e.printStackTrace();
             }
-            //Toast.makeText(this, "StreamOut Started", Toast.LENGTH_LONG).show();
+            Toast.makeText(this, "StreamOut Started", Toast.LENGTH_LONG).show();
             StreamOutstarted = true;
         }
     }
@@ -549,7 +549,7 @@ public class CresStreamCtrl extends Service {
     public void stopStreamOut()
     {
         if(StreamOutstarted){
-            //Toast.makeText(this, "StreamOut Stopped", Toast.LENGTH_LONG).show();
+            Toast.makeText(this, "StreamOut Stopped", Toast.LENGTH_LONG).show();
             cam_streaming.stopRecording();
             StreamOutstarted = false;
             hidePreviewWindow();
@@ -612,13 +612,13 @@ public class CresStreamCtrl extends Service {
     {
         showStreamInWindow();
         streamPlay.onStart();
-        //Toast.makeText(this, "StreamIN Started", Toast.LENGTH_LONG).show();
+        Toast.makeText(this, "StreamIN Started", Toast.LENGTH_LONG).show();
     }
 
     public void stopStreamIn()
     {
         streamPlay.onStop();
-        //Toast.makeText(this, "StreamIN Stopped", Toast.LENGTH_LONG).show();
+        Toast.makeText(this, "StreamIN Stopped", Toast.LENGTH_LONG).show();
         hideStreamInWindow();
     }
 
@@ -682,14 +682,14 @@ public class CresStreamCtrl extends Service {
     {
         showPreviewWindow();
         cam_preview.startPlayback();
-        //Toast.makeText(this, "Preview Started", Toast.LENGTH_LONG).show();
+        Toast.makeText(this, "Preview Started", Toast.LENGTH_LONG).show();
     }
 
     public void stopPreview()
     {
-        hidePreviewWindow();
         cam_preview.stopPlayback();
-        //Toast.makeText(this, "Preview Stopped", Toast.LENGTH_LONG).show();
+        Toast.makeText(this, "Preview Stopped", Toast.LENGTH_LONG).show();
+        hidePreviewWindow();
     }
    
     //Control Feedback
@@ -765,11 +765,8 @@ public class CresStreamCtrl extends Service {
                     	cameraInstance = null;
                         Log.i(TAG, " Nothing todo!!!");
                     }
-                    if((hpdStateEnabled==1) && (device_mode==2)){
-                        SystemClock.sleep(cameraRestartTimout);
-                        showPreviewWindow();
-                        cam_preview.startPlayback();
-                    }
+                    if((hpdStateEnabled==1) && (device_mode==2))
+                            cam_preview.startPlayback();
                     
                     readResolutionInfo(hdmiInputResolution);
                 }
@@ -786,17 +783,12 @@ public class CresStreamCtrl extends Service {
                     int i = paramAnonymousIntent.getIntExtra("evs_hdmi_hdp_id", -1);
                     Log.i(TAG, "Received hpd broadcast ! " + i);
                     if(i==0){
-                        //HACK: For ioctl issue 
-                        //1. Hide Preview 2. sleep One Sec 3.Stop Camera 4. Sleep 5 sec
-                        hidePreviewWindow();
-                        SystemClock.sleep(cameraRestartTimout);
                         if((cam_streaming.mCameraPreviewObj != null) && ((cam_streaming.isStreaming()) == true))
-                            cam_streaming.stopRecording();
+                             cam_streaming.stopRecording();
                         else if ((((cam_preview.IsPreviewStatus()) == true)))  
                             cam_preview.stopPlayback();
                         else
                             Log.i(TAG, "Device is in Idle State");
-                        SystemClock.sleep((5*cameraRestartTimout));
                     }
                     else 
                         hpdStateEnabled = 1;
