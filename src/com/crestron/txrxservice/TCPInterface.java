@@ -181,14 +181,17 @@ public class TCPInterface extends AsyncTask<Void, Object, Long> {
                                 Log.d(TAG, "In start ");
                                 publishProgress("STOP", serverHandler);
                                 publishProgress("PAUSE", serverHandler);
+                                publishProgress("STREAMSTATE", serverHandler);
                             }else if (ctrlCmdStr.toUpperCase().contains("STOP")) {
                                 Log.d(TAG, "In stop ");
                                 publishProgress("START", serverHandler);
                                 publishProgress("PAUSE", serverHandler);
+                                publishProgress("STREAMSTATE", serverHandler);
                             }else if (ctrlCmdStr.toUpperCase().contains("PAUSE")) {
                                 Log.d(TAG, "In pause ");
                                 publishProgress("START", serverHandler);
                                 publishProgress("STOP", serverHandler);
+                                publishProgress("STREAMSTATE", serverHandler);
                             }else {
                                 Log.d(TAG, "ctrlCmd not received " );
                             }
