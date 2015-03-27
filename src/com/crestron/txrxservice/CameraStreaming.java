@@ -22,7 +22,6 @@ public class CameraStreaming implements ErrorCallback {
     String TAG = "TxRx CameraStreamer";
     String hostaddr;
     String filename;
-    File file4Recording;
     boolean out_stream_status = false;
 
     public CameraStreaming(Context mContext, SurfaceHolder lpHolder ) {
@@ -38,20 +37,20 @@ public class CameraStreaming implements ErrorCallback {
             stopRecording();
         Log.d(TAG, "startRecording");
         boolean isDirExists = true;
-        File path = new File("/dev/shm/crestron/CresStreamSvc");
+        File path = new File("/sdcard/ROMDISK");
+        //File path = new File("/dev/shm");
         if(!path.exists()){
             isDirExists = path.mkdir();
         }
 
-        //Date date = new Date();
-        //filename = "/rec" + date.toString().replace(" ", "_").replace(":", "_")
-        //	+ ".mp4";
-        filename = "/rec001.mp4";
+        Date date = new Date();
+        filename = "/rec" + date.toString().replace(" ", "_").replace(":", "_")
+        	+ ".mp4";
         Log.d(TAG, "CamTest: Camera Recording Filename: " + filename);
 
         // create empty file it must use
-        file4Recording = new File(path, filename);
-        if (file4Recording == null)
+        File file = new File(path, filename);
+        if (file == null)
         {
             Log.d(TAG, "CamTest: file() returned null");
         }
@@ -134,8 +133,6 @@ public class CameraStreaming implements ErrorCallback {
         }
         else {
             Log.e(TAG, "Camera Resource busy or not available !!!!");
-            file4Recording.delete();
-            mrec = null;
         }
     }
 
@@ -153,7 +150,7 @@ public class CameraStreaming implements ErrorCallback {
 
     public void stopRecording() {
         Log.d(TAG, "stopRecording");
-        if (out_stream_status && (mrec != null)) {
+        if (mrec != null) {
             mrec.stop();
             mrec.setPreviewDisplay(null);
             out_stream_status = false;
