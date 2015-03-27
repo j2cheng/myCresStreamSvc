@@ -37,6 +37,10 @@ interface myCommand {
     void executeStop();
 }
 
+interface myCommand2 {
+    void executePause();
+}
+
 public class CresStreamCtrl extends Service {
     CameraStreaming cam_streaming;
     CameraPreview cam_preview;
@@ -82,6 +86,7 @@ public class CresStreamCtrl extends Service {
     //HashMap
     HashMap<Integer, Command> hm;
     HashMap<Integer, myCommand> hm2;
+    HashMap<Integer, myCommand2> hm3;
     @Override
         public void onCreate() {
             super.onCreate();
@@ -165,6 +170,16 @@ public class CresStreamCtrl extends Service {
                     });
             hm2.put(0/*"STREAMIN"*/, new myCommand() {
                     public void executeStop() {stopStreamIn(); };
+                    });
+            hm3 = new HashMap();
+            hm3.put(2/*"PREVIEW"*/, new myCommand2() {
+                    public void executePause() {pausePreview();};
+                    });
+            hm3.put(1/*"STREAMOUT"*/, new myCommand2() {
+                    public void executePause() {pauseStreamOut();};
+                    });
+            hm3.put(0/*"STREAMIN"*/, new myCommand2() {
+                    public void executePause() {pauseStreamIn(); };
                     });
 
             //Global Default Exception Handler
@@ -447,7 +462,7 @@ public class CresStreamCtrl extends Service {
         pauseStatus="true";
     	playStatus="false";
     	stopStatus="false";
-        Log.d(TAG, " Unimplemented");
+        hm3.get(device_mode).executePause();
     }
     //StreamOut Ctrl & Config
     public void setIpAddress(String ip){
@@ -555,6 +570,11 @@ public class CresStreamCtrl extends Service {
             hidePreviewWindow();
         }
     }
+    
+    public void pauseStreamOut()
+    {
+        Log.d(TAG, "Nothing todo");
+    }
 
     private void hidePreviewWindow()
     {
@@ -620,6 +640,12 @@ public class CresStreamCtrl extends Service {
         streamPlay.onStop();
         //Toast.makeText(this, "StreamIN Stopped", Toast.LENGTH_LONG).show();
         hideStreamInWindow();
+    }
+
+    public void pauseStreamIn()
+    {
+        streamPlay.onPause();
+        //TODO
     }
 
     public int getHorizontalResFb(){
@@ -691,6 +717,12 @@ public class CresStreamCtrl extends Service {
         cam_preview.stopPlayback();
         //Toast.makeText(this, "Preview Stopped", Toast.LENGTH_LONG).show();
     }
+    
+    public void pausePreview()
+    {
+        cam_preview.pausePlayback();
+    }
+   
    
     //Control Feedback
     public String getStartStatus(){
@@ -706,11 +738,11 @@ public class CresStreamCtrl extends Service {
     }
    
     public String getDeviceReadyStatus(){
-	return "0";//"TODO:MISTRAL";
+	return "1";//"TODO:MISTRAL";
     }
     
     public String getProcessingStatus(){
-	return "0";//"TODO:MISTRAL";
+	return "1";//"TODO:MISTRAL";
     }
 
     public String getElapsedSeconds(){

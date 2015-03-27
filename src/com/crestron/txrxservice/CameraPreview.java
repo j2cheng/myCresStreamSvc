@@ -129,7 +129,8 @@ public class CameraPreview {
                 }
                 is_preview = true;
             }
-        }
+        }else   //Pause/Resume Case
+            resumePlayback();
     }
 
     public void stopPlayback()
