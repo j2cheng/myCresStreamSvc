@@ -107,6 +107,8 @@ public class CameraPreview {
                   }*/
                 if(CresStreamCtrl.hpdHdmiEvent==1){
                     String resInfo = getHdmiInputResolution();
+                    Log.i(TAG, "HDMI In Resolution API" + resInfo);
+                    MiscUtils.getHdmiInResolutionSysFs();//Reading From SysFs
                     hdmiIf.updateResolutionInfo(resInfo);
                     CresStreamCtrl.hpdHdmiEvent=0;
                 }
@@ -122,7 +124,13 @@ public class CameraPreview {
                     localParameters.set("ipp", "off");
                     Log.d(TAG, "Preview Size set to " + localParameters.getPreviewSize().width + "x" + localParameters.getPreviewSize().height);
                     mCamera.setDisplayOrientation(0);
-                    mCamera.setParameters(localParameters);
+                    try {
+                        mCamera.setParameters(localParameters);
+                    }catch (Exception localException) {
+                        localException.printStackTrace();
+                        localParameters.setPreviewSize(640, 480);
+                        mCamera.setParameters(localParameters);
+                    }
                     mCamera.startPreview();
                     startAudio();
                     is_audioplaying = true;

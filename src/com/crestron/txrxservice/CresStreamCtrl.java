@@ -190,12 +190,13 @@ public class CresStreamCtrl extends Service {
                     @Override
                     public void uncaughtException(Thread paramThread, Throwable paramThrowable) {
                     //Close Camera   
+                    Log.d(TAG,"Global uncaught Exception !!!!!!!!!!!" );
                     cam_preview.stopPlayback();
                     cam_streaming.stopRecording();
                     if (oldHandler != null)
-                        oldHandler.uncaughtException(paramThread, paramThrowable); //Delegates to Android's error handling
+                    oldHandler.uncaughtException(paramThread, paramThrowable); //Delegates to Android's error handling
                     else
-                        System.exit(2); //Prevents the service/app from freezing
+                    System.exit(2); //Prevents the service/app from freezing
                     }
                     });
         }
@@ -767,20 +768,16 @@ public class CresStreamCtrl extends Service {
                     Log.i(TAG, "Received resolution changed broadcast !: " + i);
                     if ((((cam_preview.IsPreviewStatus()) == true)))  
                     {
-                        hdmiInputResolution = cam_preview.getHdmiInputResolution();
-                        Log.i(TAG, "Resolution changed to " + hdmiInputResolution);
-
                         Log.i(TAG, "Restart called due to resolution change broadcast ! ");
                         cam_preview.stopPlayback();
                         SystemClock.sleep(cameraRestartTimout);
+                        hpdHdmiEvent = 1;
                         cam_preview.startPlayback();
                     }
                     else if((cam_streaming.mCameraPreviewObj != null) && ((cam_streaming.isStreaming()) == true)){
-                        hdmiInputResolution = cam_preview.getHdmiInputResolution();
-                        Log.i(TAG, "Resolution changed to " + hdmiInputResolution);
-
                     	cam_streaming.stopRecording();
                         SystemClock.sleep(cameraRestartTimout);
+                        hpdHdmiEvent = 1;
                         try{
                             cam_streaming.startRecording();
                         } catch(IOException e) {
@@ -788,7 +785,7 @@ public class CresStreamCtrl extends Service {
                         }
                     }
                     else{
-                    	Camera cameraInstance = CresCamera.getCamera();//Camera.open(0);
+                    	Camera cameraInstance = CresCamera.getCamera();
                     	if(cameraInstance != null){
                     		hdmiInputResolution = cameraInstance.getHdmiInputStatus();
                     		Log.i(TAG, "Resolution changed to " + hdmiInputResolution);
@@ -800,10 +797,9 @@ public class CresStreamCtrl extends Service {
                     if((hpdStateEnabled==1) && (device_mode==2)){
                         SystemClock.sleep(cameraRestartTimout);
                         showPreviewWindow();
+                        hpdHdmiEvent = 1;
                         cam_preview.startPlayback();
                     }
-                    
-                    readResolutionInfo(hdmiInputResolution);
                 }
             }
         };
