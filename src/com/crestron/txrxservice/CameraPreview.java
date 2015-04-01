@@ -113,7 +113,7 @@ public class CameraPreview {
                     CresStreamCtrl.hpdHdmiEvent=0;
                 }
                 if((Integer.parseInt(hdmiIf.getHorizontalRes())==0) && (Integer.parseInt(hdmiIf.getVerticalRes())==0)){
-                    localParameters.setPreviewSize(640, 480);//if no hdmi cable is connected
+                    //localParameters.setPreviewSize(640, 480);//if no hdmi cable is connected
                     //mCamera.setDisplayOrientation(0);
                     //mCamera.setParameters(localParameters);
                     //mCamera.startPreview();

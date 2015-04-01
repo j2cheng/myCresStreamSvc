@@ -83,6 +83,18 @@ public class CresStreamCtrl extends Service {
     int g_h = 0;
     boolean StreamOutstarted = false;
 
+    enum DeviceMode {
+        STREAM_IN,
+        STREAM_OUT,
+        PREVIEW
+    }
+    enum DeviceStatus {
+        STARTED,
+        STOPPED,
+        PAUSED
+    }
+
+    DeviceStatus devicestatus = DeviceStatus.STOPPED;
     //HashMap
     HashMap<Integer, Command> hm;
     HashMap<Integer, myCommand> hm2;
@@ -100,6 +112,8 @@ public class CresStreamCtrl extends Service {
             //Relative Layout to hanle multiple view
             parentlayout = new RelativeLayout(this);
             
+            //Instance for Surfaceholder for StreamIn/Preview
+            sMGR = new SurfaceManager(CresStreamCtrl.this);
             //StreamingIn View 
             streamingSurface = new SurfaceView(this);
             params_streamingview = new RelativeLayout.LayoutParams(
@@ -123,8 +137,6 @@ public class CresStreamCtrl extends Service {
             //Adding Relative Layout to WindowManager
             wm.addView(parentlayout, lp); 
 
-            //Instance for Surfaceholder for StreamIn/Preview
-            sMGR = new SurfaceManager(CresStreamCtrl.this);
             
             //Get HPDEVent state frromsysfile
             hpdHdmiEvent = MiscUtils.getHdmiHpdEventState();
@@ -262,7 +274,7 @@ public class CresStreamCtrl extends Service {
     {
         RelativeLayout.LayoutParams lp2=new RelativeLayout.LayoutParams(g_w, g_h);
         lp2.setMargins(g_x, g_y, 0, 0);
-        if(device_mode==0)
+        if(device_mode==DeviceMode.STREAM_IN.ordinal())
             streamingSurface.setLayoutParams(lp2);
         else 
             previewSurface.setLayoutParams(lp2);
@@ -451,18 +463,21 @@ public class CresStreamCtrl extends Service {
     	playStatus="true";
     	stopStatus="false";
         pauseStatus="false";
+        devicestatus = DeviceStatus.STARTED;
         hm.get(device_mode).executeStart();
     }
     public void Stop(){
     	playStatus="false";
     	stopStatus="true";
         pauseStatus="false";
+        devicestatus = DeviceStatus.STOPPED;
         hm2.get(device_mode).executeStop();
     }
     public void Pause(){
         pauseStatus="true";
     	playStatus="false";
     	stopStatus="false";
+        devicestatus = DeviceStatus.PAUSED;
         hm3.get(device_mode).executePause();
     }
     //StreamOut Ctrl & Config
@@ -650,54 +665,54 @@ public class CresStreamCtrl extends Service {
     }
 
     public int getHorizontalResFb(){
-        if(device_mode==0)
+        if(device_mode==DeviceMode.STREAM_IN.ordinal())
             return streamPlay.getMediaPlayerHorizontalResFb();
-        else if(device_mode==1)
+        else if(device_mode==DeviceMode.STREAM_OUT.ordinal())
             return cam_streaming.getStreamOutHorizontalResFb();
         else
             return 0;
     } 
     
     public int getVerticalResFb(){
-        if(device_mode==0)
+        if(device_mode==DeviceMode.STREAM_IN.ordinal())
             return streamPlay.getMediaPlayerVerticalResFb();
-        else if(device_mode==1)
+        else if(device_mode==DeviceMode.STREAM_OUT.ordinal())
             return cam_streaming.getStreamOutVerticalResFb();
         else
             return 0;
     }
     
     public int getFpsFb(){
-        if(device_mode==0)
+        if(device_mode==DeviceMode.PREVIEW.ordinal())
             return streamPlay.getMediaPlayerFpsFb();
-        else if(device_mode==1)
+        else if(device_mode==DeviceMode.STREAM_OUT.ordinal())
             return cam_streaming.getStreamOutFpsFb();
         else
             return 0;
     }
     
     public String getAspectRatioFb(){
-        if(device_mode==0)
+        if(device_mode==DeviceMode.PREVIEW.ordinal())
             return streamPlay.getMediaPlayerAspectRatioFb();
-        else if(device_mode==1)
+        else if(device_mode==DeviceMode.STREAM_IN.ordinal())
                 return cam_streaming.getStreamOutAspectRatioFb();
         else
             return "";
     }
     
     public int getAudioFormatFb(){
-        if(device_mode==0)
+        if(device_mode==DeviceMode.PREVIEW.ordinal())
             return streamPlay.getMediaPlayerAudioFormatFb();
-        else if(device_mode==1)
+        else if(device_mode==DeviceMode.STREAM_IN.ordinal())
             return cam_streaming.getStreamOutAudioFormatFb();
         else
             return 0;
     }
     
     public int getAudiochannelsFb(){
-        if(device_mode==0)
+        if(device_mode==DeviceMode.PREVIEW.ordinal())
             return streamPlay.getMediaPlayerAudiochannelsFb();
-        else if(device_mode==1)
+        else if(device_mode==DeviceMode.STREAM_IN.ordinal())
             return cam_streaming.getStreamOutAudiochannelsFb();
         else
             return 0;
@@ -763,38 +778,40 @@ public class CresStreamCtrl extends Service {
             {
                 if (paramAnonymousIntent.getAction().equals("evs.intent.action.hdmi.RESOLUTION_CHANGED"))
                 {
-                    int i = paramAnonymousIntent.getIntExtra("evs_hdmi_resolution_id", -1);
+                    int resolutionId = paramAnonymousIntent.getIntExtra("evs_hdmi_resolution_id", -1);
                     String hdmiInputResolution = null;
-                    Log.i(TAG, "Received resolution changed broadcast !: " + i);
-                    if ((((cam_preview.IsPreviewStatus()) == true)))  
+                    Log.i(TAG, "Received resolution changed broadcast !: " + resolutionId);
+                    if ((device_mode==DeviceMode.PREVIEW.ordinal()) && (devicestatus == DeviceStatus.STARTED))  
                     {
                         Log.i(TAG, "Restart called due to resolution change broadcast ! ");
                         cam_preview.stopPlayback();
+                        hidePreviewWindow();
                         SystemClock.sleep(cameraRestartTimout);
                         hpdHdmiEvent = 1;
-                        cam_preview.startPlayback();
+                        Log.i(TAG, "HDMI resolutions - HRes:" + hdmiInput.getHorizontalRes() + " Vres:" + hdmiInput.getVerticalRes());
+                        if ( (hdmiInput.getHorizontalRes().startsWith("0") != true) && (hdmiInput.getVerticalRes().startsWith("0")!= true)  &&
+                                (resolutionId > 0) && (resolutionId < 30))
+                        {
+                            showPreviewWindow();
+                            cam_preview.startPlayback();
+                        }
+
                     }
-                    else if((cam_streaming.mCameraPreviewObj != null) && ((cam_streaming.isStreaming()) == true)){
+                    else if((cam_streaming.mCameraPreviewObj != null) && (device_mode==DeviceMode.STREAM_OUT.ordinal()) && (devicestatus == DeviceStatus.STARTED)){
                     	cam_streaming.stopRecording();
-                        SystemClock.sleep(cameraRestartTimout);
-                        hpdHdmiEvent = 1;
+                        hidePreviewWindow();
+                        SystemClock.sleep(10*cameraRestartTimout);
                         try{
+                            showPreviewWindow();
                             cam_streaming.startRecording();
                         } catch(IOException e) {
                             e.printStackTrace();
                         }
                     }
                     else{
-                    	Camera cameraInstance = CresCamera.getCamera();
-                    	if(cameraInstance != null){
-                    		hdmiInputResolution = cameraInstance.getHdmiInputStatus();
-                    		Log.i(TAG, "Resolution changed to " + hdmiInputResolution);
-                                CresCamera.releaseCamera(cameraInstance);
-                    	}
-                    	cameraInstance = null;
                         Log.i(TAG, " Nothing todo!!!");
                     }
-                    if((hpdStateEnabled==1) && (device_mode==2)){
+                    if((hpdStateEnabled==1) && (device_mode==DeviceMode.PREVIEW.ordinal())){
                         SystemClock.sleep(cameraRestartTimout);
                         showPreviewWindow();
                         hpdHdmiEvent = 1;

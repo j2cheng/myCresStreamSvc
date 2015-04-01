@@ -115,8 +115,6 @@ public class HDMIInputInterface {
                 Log.i(TAG, " " + tokens[tokenIndex]);
 
             setSyncStatus();
-            setHorizontalRes("640");
-            setVerticalRes("480");
             setHorizontalRes(tokens[0]);
             setVerticalRes(tokens[1]);
             setFPS(tokens[2].trim());
