@@ -289,7 +289,9 @@ public class CresStreamCtrl extends Service {
         Log.i(TAG, "Refresh resolution info");
     	
     	//HDMI In
-    	//String hdmiInputResolution = null;
+    	String hdmiInputResolution = MiscUtils.getHdmiInResolutionSysFs();
+    	readResolutionInfo(hdmiInputResolution);
+    
         /*if ((cam_preview.IsPreviewStatus()) == true)
         {
             //hdmiInputResolution = cam_streaming.mCameraPreviewObj.getHdmiInputResolution();
