@@ -64,10 +64,10 @@ public class CresStreamConfigure {
     public CresStreamConfigure() {
         MiscUtils.getDeviceIpAddr();
         ipAddr = MiscUtils.matcher.group();
-        rport 	= 2456;		//port; 
-        tport 	= 2456;		//port; 
-        rvport 	= 2458;		//port; 
-        raport 	= 2456;		//port; 
+        rport 	= 12462;		//port; 
+        tport 	= 12460;		//port; 
+        rvport 	= 12458;		//port; 
+        raport 	= 12456;		//port; 
         mode 	= mode.RTSP;//RTSP;
         width 	= 1920;		//width;
         height 	= 1080;		//height;
@@ -90,41 +90,41 @@ public class CresStreamConfigure {
 	
 	public void setRTSPPort(int _port) { 
 		rport = _port; 
-		Log.d(TAG, "SetPort:" + rport);
+		Log.d(TAG, "SetRTSPPort:" + rport);
 	}
 	
 	public static int getRTSPPort() { 
-		Log.d(TAG, "GetPort:" + rport);
+		Log.d(TAG, "GetRTSPPort:" + rport);
 		return rport; 
 	}
 	
 	public void setTSPort(int _port) { 
 		tport = _port; 
-		Log.d(TAG, "SetPort:" + tport);
+		Log.d(TAG, "SetTSPort:" + tport);
 	}
 	
 	public static int getTSPort() { 
-		Log.d(TAG, "GetPort:" + tport);
+		Log.d(TAG, "GetTSPort:" + tport);
 		return tport; 
 	}
 	
 	public void setRTPVPort(int _port) { 
 		rvport = _port; 
-		Log.d(TAG, "SetPort:" + rvport);
+		Log.d(TAG, "SetRTPVideoPort:" + rvport);
 	}
 	
 	public static int getRTPVPort() { 
-		Log.d(TAG, "GetPort:" + rvport);
+		Log.d(TAG, "GetRTPVideoPort:" + rvport);
 		return rvport; 
 	}
 	
 	public void setRTPAPort(int _port) { 
 		raport = _port; 
-		Log.d(TAG, "SetPort:" + raport);
+		Log.d(TAG, "SetRTPAudioPort:" + raport);
 	}
 	
 	public static int getRTPAPort() { 
-		Log.d(TAG, "GetPort:" + raport);
+		Log.d(TAG, "GetRTPAudioPort:" + raport);
 		return raport; 
 	}
 	

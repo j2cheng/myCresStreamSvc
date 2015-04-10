@@ -97,6 +97,7 @@ public class CameraStreaming implements ErrorCallback {
                     break;
                 case 5://MCast RTSP
                     {
+                        mrec.setDestinationIP(hostaddr);//Set Server IP as HostIP
                         l_port = CresStreamConfigure.getRTSPPort();
                         mrec.setMcastIP(CresStreamConfigure.getIP());
                         mrec.setRTSPPort(l_port);
@@ -127,6 +128,8 @@ public class CameraStreaming implements ErrorCallback {
 
             mrec.prepare();
             mrec.start();
+            String sb = mrec.getSDP();
+            Log.d(TAG, "########SDP Dump######\n" + sb);
             out_stream_status = true;
         }
         else {

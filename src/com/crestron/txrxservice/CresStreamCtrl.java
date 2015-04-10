@@ -427,12 +427,14 @@ public class CresStreamCtrl extends Service {
 		{
 	    		Log.d(TAG, "By TransmitterMode rtp streaming starts");
 		}
+		break;
 		//case "MCastViaRTSP":
 		case 2:
 		{
         		myconfig.setTransportMode("MRTSP");	
 	    		Log.d(TAG, "MCastViaRTSP streaming starts");
 		}
+		break;
 		//case "MCastViaUDP":
 		case 3:
 		{
