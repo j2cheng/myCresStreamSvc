@@ -152,6 +152,17 @@ public class CresStreamCtrl extends Service {
 
             //refresh resolution on startup
             refreshResolutionInfo();
+            
+            // Update the resolution information before creating surfaces
+            try
+            {       
+	            setWindowSizeW(Integer.parseInt(hdmiOutput.getHorizontalRes()));
+	            setWindowSizeH(Integer.parseInt(hdmiOutput.getVerticalRes()));
+            }
+            catch (Exception e)
+            {
+            	e.printStackTrace();            	
+            }
 
             //HPD and Resolution Event Registration
             registerBroadcasts();
