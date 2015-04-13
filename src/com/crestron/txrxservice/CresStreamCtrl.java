@@ -794,7 +794,7 @@ public class CresStreamCtrl extends Service {
                         hpdHdmiEvent = 1;
                         Log.i(TAG, "HDMI resolutions - HRes:" + hdmiInput.getHorizontalRes() + " Vres:" + hdmiInput.getVerticalRes());
                         if ( (hdmiInput.getHorizontalRes().startsWith("0") != true) && (hdmiInput.getVerticalRes().startsWith("0")!= true)  &&
-                                (resolutionId > 0) && (resolutionId < 30))
+                                (resolutionId != 0))
                         {
                             showPreviewWindow();
                             cam_preview.startPlayback();
