@@ -61,6 +61,7 @@ public class CameraStreaming implements ErrorCallback {
         mrec = new MediaRecorder();
         mCameraPreviewObj = CresCamera.getCamera();
         if(mCameraPreviewObj!=null){
+            mCameraPreviewObj.getHdmiInputStatus();
             mCameraPreviewObj.setEncoderFps(CresStreamConfigure.getVFrameRate());
             mCameraPreviewObj.lock();
             mCameraPreviewObj.unlock();
@@ -128,8 +129,10 @@ public class CameraStreaming implements ErrorCallback {
 
             mrec.prepare();
             mrec.start();
-            String sb = mrec.getSDP();
-            Log.d(TAG, "########SDP Dump######\n" + sb);
+            if(CresStreamConfigure.mode.getMode()==1){
+                String sb = mrec.getSDP();
+                Log.d(TAG, "########SDP Dump######\n" + sb);
+            }
             out_stream_status = true;
         }
         else {
@@ -155,7 +158,7 @@ public class CameraStreaming implements ErrorCallback {
         Log.d(TAG, "stopRecording");
         if (out_stream_status && (mrec != null)) {
             mrec.stop();
-            mrec.setPreviewDisplay(null);
+            //mrec.setPreviewDisplay(null);
             out_stream_status = false;
             releaseMediaRecorder();
             CresCamera.releaseCamera(mCameraPreviewObj);
