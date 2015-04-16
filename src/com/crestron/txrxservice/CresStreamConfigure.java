@@ -59,7 +59,7 @@ public class CresStreamConfigure {
 	private static int venclevel;
 	private static int vfrmrate;
 	private static int vbitrate;
-	private String url;
+	private static String url;
 
     public CresStreamConfigure() {
         MiscUtils.getDeviceIpAddr();
@@ -195,11 +195,11 @@ public class CresStreamConfigure {
 		return venclevel;
 	}
 
-	public void setUrl(String Url) { 
+	public static void setUrl(String Url) { 
 		url = Url; 
 	}
 
-	public String getUrl() { 
+	public static String getUrl() { 
 		return url; 
 	}
 }

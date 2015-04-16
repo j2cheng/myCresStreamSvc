@@ -537,32 +537,36 @@ public class CresStreamCtrl extends Service {
     private String createStreamOutURL()
     {
         StringBuilder url = new StringBuilder(1024);
-        String proto = null;
+        String proto = "";
         String file = "";
         int port = 0;  
-        String l_ipaddr = myconfig.getIP();
+        String l_ipaddr= "";
         switch(myconfig.mode.getMode()){
             case 5:
             case 0:{
                        proto = "rtsp";
                        port = myconfig.getRTSPPort(); 
+                       l_ipaddr = myconfig.getIP();
                        file = "/live.sdp";
                    }
                    break;
             case 1:{//Only RTP
                        proto = "rtp";
                        //l_ipaddr = "@";
+                       l_ipaddr = myconfig.getUrl();
                        port = myconfig.getRTPVPort();
 
                    }
                    break;
             case 2:{
                        proto = "rtp";
+                       l_ipaddr = myconfig.getUrl();
                        port = myconfig.getTSPort(); 
                    }
                    break;
             case 3:{
                        proto = "udp";
+                       l_ipaddr = myconfig.getUrl();
                        port = myconfig.getTSPort(); 
                    }
                    break;
@@ -640,6 +644,7 @@ public class CresStreamCtrl extends Service {
     public void setStreamInUrl(String ap_url)
     {
         out_url = ap_url;
+        myconfig.setUrl(ap_url);
         streamPlay.setUrl(ap_url);
         if(ap_url.startsWith("rtp://@"))
             streamPlay.setRtpOnlyMode( myconfig.getRTPVPort(),  myconfig.getRTPAPort(), myconfig.getIP());

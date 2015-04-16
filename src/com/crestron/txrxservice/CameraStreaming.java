@@ -82,7 +82,7 @@ public class CameraStreaming implements ErrorCallback {
                     }
                     break; 
                 case 1://RTP
-                    mrec.setDestinationIP(CresStreamConfigure.getIP());
+                    mrec.setDestinationIP(CresStreamConfigure.getUrl());
                     l_port = CresStreamConfigure.getRTPAPort();
                     mrec.setRTPAudioPort(l_port);
                     l_port = CresStreamConfigure.getRTPVPort();
@@ -90,7 +90,8 @@ public class CameraStreaming implements ErrorCallback {
                     break;
                 case 2://TS_RTP
                 case 3://TS_UDP
-                    mrec.setDestinationIP(CresStreamConfigure.getIP());
+                    //TODO
+                    mrec.setDestinationIP(CresStreamConfigure.getUrl());
                     l_port = CresStreamConfigure.getTSPort();
                     mrec.setMPEG2TSPort(l_port);
                     break;
