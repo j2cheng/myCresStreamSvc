@@ -86,9 +86,8 @@ public class StreamIn implements OnPreparedListener, OnCompletionListener, OnBuf
                 if(tcpInterleaveFlag && srcUrl.startsWith("rtsp://"))
                     mediaPlayer.setTransportCommunication(true);
                 //Setting Initial Latency
-                if(disableLatencyFlag){
+                if(disableLatencyFlag==false){
                     mediaPlayer.setDejitterBufferDuration(latency);
-                    disableLatencyFlag = false;
                 }
                 if(rtp_mode){
                     mediaPlayer.setSDP(sb.toString());
