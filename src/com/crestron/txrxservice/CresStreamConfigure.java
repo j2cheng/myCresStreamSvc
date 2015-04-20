@@ -50,13 +50,8 @@ public class CresStreamConfigure {
 	}
 	static VideoEncProfile vprofile;
 	private static String ipAddr;
-	
-	// TODO: add values for every surface we need to save
-	private static int x;
-	private static int y;
 	private static int width;
 	private static int height;
-	
 	private static int rport;
 	private static int tport;
 	private static int rvport;
@@ -174,28 +169,6 @@ public class CresStreamConfigure {
 	public static int getHeight() { 
 		Log.d(TAG, "GetHeight:" + height);
 	 	return height; 
-	}
-
-	
-	
-	public void setx(int xloc) { 
-		Log.d(TAG, "setx:" + xloc);
-		x = xloc; 
-	}
-	
-	public void sety(int yloc) { 
-		Log.d(TAG, "sety:" + yloc);
-	 	y = yloc; 
-	}
-	
-	public static int getx() { 
-		Log.d(TAG, "getx:" + x);
-		return x; 
-	}
-	
-	public static int gety() { 
-		Log.d(TAG, "gety:" + y);
-	 	return y; 
 	}
 	
         public void setVFrameRate(int _frmRate) { 

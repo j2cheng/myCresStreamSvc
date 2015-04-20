@@ -460,7 +460,7 @@ class XlocCommand implements CommandIf {
             launch.setXloc(launch.VALIDATE_INT(msg));
         }
         public String getFeedbackMsg() {
-            return launch.getXloc();
+            return msg;
         }
 }
 
@@ -479,7 +479,7 @@ class YlocCommand implements CommandIf {
             launch.setYloc(launch.VALIDATE_INT(msg));
         }
         public String getFeedbackMsg() {
-            return launch.getYloc();
+            return msg;
         }
 }
 
@@ -498,7 +498,7 @@ class DestWidthCommand implements CommandIf {
             launch.setDestWidth(launch.VALIDATE_INT(msg));
         }
         public String getFeedbackMsg() {
-            return launch.getDestWidth();
+            return msg;
         }
 }
 
@@ -517,7 +517,7 @@ class DestHeightCommand implements CommandIf {
             launch.setDestHeight(launch.VALIDATE_INT(msg));
         }
         public String getFeedbackMsg() {
-            return launch.getDestHeight();
+            return msg;
         }
 }
 
@@ -937,7 +937,7 @@ class OutRxCecCommand implements CommandIf {
         }
 }
 
-/*
+
 class ProcessingCommand implements CommandIf {
     CommandReceiver launch;
     String msg;
@@ -954,7 +954,7 @@ class ProcessingCommand implements CommandIf {
         public String getFeedbackMsg() {
             return launch.getProcessingStats();
         }
-}*/
+}
 
 class DeviceReadyCommand implements CommandIf {
     CommandReceiver launch;

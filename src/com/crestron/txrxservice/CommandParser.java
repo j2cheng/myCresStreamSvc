@@ -326,9 +326,9 @@ public class CommandParser {
                 cmd = new OutRxCecCommand(cmdRx, arg); 
                 break;
                 //STREAMING
-            //case PROCESSING_FB:
-            //    cmd = new ProcessingCommand(cmdRx, arg); 
-            //    break;
+            case PROCESSING_FB:
+                cmd = new ProcessingCommand(cmdRx, arg); 
+                break;
             case DEVICE_READY_FB:
                 cmd = new DeviceReadyCommand(cmdRx, arg); 
                 break;

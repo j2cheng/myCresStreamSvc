@@ -290,10 +290,10 @@ public class CommandReceiver {
         return ctl.getHDMIOutAudioChannels();
     }
 
-/*    public String getProcessingStats(){
+    public String getProcessingStats(){
         return ctl.getProcessingStatus();
     }
-*/
+
     public String getDeviceReadyStatus(){
         return ctl.getDeviceReadyStatus();
     }
@@ -350,22 +350,4 @@ public class CommandReceiver {
         l_sb.append(achannels);
         return l_sb.toString();
     }
-    
-    
-    public String getXloc(){
-        return Integer.toString(ctl.getXCoordinates());
-    }
-
-    public String getYloc(){
-        return Integer.toString(ctl.getYCoordinates());
-    }
-    
-    public String getDestWidth(){
-        return Integer.toString(ctl.getWindowSizeW());
-    }
-    
-    public String getDestHeight(){
-        return Integer.toString(ctl.getWindowSizeH());
-    }
-    
 }
