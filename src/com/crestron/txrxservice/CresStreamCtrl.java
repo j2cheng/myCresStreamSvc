@@ -580,6 +580,7 @@ public class CresStreamCtrl extends Service {
 
     public void startStreamOut()
     {
+        StringBuilder sb = new StringBuilder(512);
         showPreviewWindow();
         out_url = createStreamOutURL();
         if((sessInitMode==0) && (myconfig.mode.getMode()!=0)){
@@ -594,6 +595,8 @@ public class CresStreamCtrl extends Service {
             //Toast.makeText(this, "StreamOut Started", Toast.LENGTH_LONG).show();
             StreamOutstarted = true;
         }
+        sb.append("STREAMURL=").append(out_url);
+        sockTask.SendDataToAllClients(sb.toString());
     }
 
     public void stopStreamOut()
