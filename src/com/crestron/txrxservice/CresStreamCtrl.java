@@ -82,6 +82,8 @@ public class CresStreamCtrl extends Service {
     int g_w = 0;
     int g_h = 0;
     boolean StreamOutstarted = false;
+    boolean enable_passwd = false;
+    boolean disable_passwd = true;
 
     enum DeviceMode {
         STREAM_IN,
@@ -460,11 +462,17 @@ public class CresStreamCtrl extends Service {
     public void setStreamMute()
     {
         amanager.setStreamMute(AudioManager.STREAM_MUSIC, true);
+        StringBuilder sb = new StringBuilder(512);
+        sb.append("AUDIO_UNMUTE=false");
+        sockTask.SendDataToAllClients(sb.toString());
     }
     
     public void setStreamUnMute()
     {
         amanager.setStreamMute(AudioManager.STREAM_MUSIC, false);
+        StringBuilder sb = new StringBuilder(512);
+        sb.append("AUDIO_MUTE=false");
+        sockTask.SendDataToAllClients(sb.toString());
     }
 
     public int getStreamState()
@@ -472,28 +480,87 @@ public class CresStreamCtrl extends Service {
         return device_mode;
     }
 
+    public void SetPasswdEnable()
+    {
+        StringBuilder sb = new StringBuilder(512);
+        enable_passwd = true;
+        disable_passwd = false;
+        sb.append("PASSWD_DISABLE=false");
+        sockTask.SendDataToAllClients(sb.toString());
+    }
+
+    public void SetPasswdDisable()
+    {
+        StringBuilder sb = new StringBuilder(512);
+        enable_passwd = false;
+        disable_passwd = true;
+        sb.append("PASSWD_ENABLE=false");
+        sockTask.SendDataToAllClients(sb.toString());
+    }
+
+    public void SetUserName(String uname){
+        myconfig.setUserName(uname);
+    }
+
+    public void SetPasswd(String passwd){
+        myconfig.setPasswd(passwd);
+    }
+
+    private void SendProcessingFb(String stats){
+        StringBuilder sb = new StringBuilder(512);
+        sb.append("PROCESSING_FB=").append(stats);
+        sockTask.SendDataToAllClients(sb.toString());
+    }
+
+    private void SendStartFb(String stats){
+        StringBuilder sb = new StringBuilder(512);
+        sb.append("START=").append(stats);
+        sockTask.SendDataToAllClients(sb.toString());
+    }
+
+    private void SendStopFb(String stats){
+        StringBuilder sb = new StringBuilder(512);
+        sb.append("STOP=").append(stats);
+        sockTask.SendDataToAllClients(sb.toString());
+    }
+
+    private void SendPauseFb(String stats){
+        StringBuilder sb = new StringBuilder(512);
+        sb.append("PAUSE=").append(stats);
+        sockTask.SendDataToAllClients(sb.toString());
+    }
+
 
     //Ctrls
     public void Start(){
+        SendProcessingFb("1");
     	playStatus="true";
     	stopStatus="false";
         pauseStatus="false";
         devicestatus = DeviceStatus.STARTED;
         hm.get(device_mode).executeStart();
+        SendPauseFb("false");
+        SendStopFb("false");
     }
     public void Stop(){
+        SendProcessingFb("1");
     	playStatus="false";
     	stopStatus="true";
         pauseStatus="false";
         devicestatus = DeviceStatus.STOPPED;
         hm2.get(device_mode).executeStop();
+        SendStartFb("false");
+        SendPauseFb("false");
     }
     public void Pause(){
+        SendProcessingFb("1");
         pauseStatus="true";
     	playStatus="false";
     	stopStatus="false";
         devicestatus = DeviceStatus.PAUSED;
         hm3.get(device_mode).executePause();
+        SendStartFb("false");
+        SendStopFb("false");
     }
     //StreamOut Ctrl & Config
     public void setIpAddress(String ip){
@@ -595,6 +662,7 @@ public class CresStreamCtrl extends Service {
             //Toast.makeText(this, "StreamOut Started", Toast.LENGTH_LONG).show();
             StreamOutstarted = true;
         }
+        SendProcessingFb("0");
         sb.append("STREAMURL=").append(out_url);
         sockTask.SendDataToAllClients(sb.toString());
     }
@@ -606,6 +674,7 @@ public class CresStreamCtrl extends Service {
             cam_streaming.stopRecording();
             StreamOutstarted = false;
             hidePreviewWindow();
+            SendProcessingFb("0");
         }
     }
     
@@ -671,6 +740,7 @@ public class CresStreamCtrl extends Service {
     {
         showStreamInWindow();
         streamPlay.onStart();
+        SendProcessingFb("0");
         //Toast.makeText(this, "StreamIN Started", Toast.LENGTH_LONG).show();
     }
 
@@ -679,11 +749,13 @@ public class CresStreamCtrl extends Service {
         streamPlay.onStop();
         //Toast.makeText(this, "StreamIN Stopped", Toast.LENGTH_LONG).show();
         hideStreamInWindow();
+        SendProcessingFb("0");
     }
 
     public void pauseStreamIn()
     {
         streamPlay.onPause();
+        SendProcessingFb("0");
         //TODO
     }
 
@@ -747,6 +819,7 @@ public class CresStreamCtrl extends Service {
     {
         showPreviewWindow();
         cam_preview.startPlayback();
+        SendProcessingFb("0");
         //Toast.makeText(this, "Preview Started", Toast.LENGTH_LONG).show();
     }
 
@@ -754,12 +827,14 @@ public class CresStreamCtrl extends Service {
     {
         hidePreviewWindow();
         cam_preview.stopPlayback();
+        SendProcessingFb("0");
         //Toast.makeText(this, "Preview Stopped", Toast.LENGTH_LONG).show();
     }
     
     public void pausePreview()
     {
         cam_preview.pausePlayback();
+        SendProcessingFb("0");
     }
    
    

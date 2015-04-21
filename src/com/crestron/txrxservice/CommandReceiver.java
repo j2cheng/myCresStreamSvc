@@ -3,8 +3,6 @@ package com.crestron.txrxservice;
 import com.crestron.txrxservice.CresStreamCtrl;
 
 public class CommandReceiver {
-    boolean enable_passwd = false;
-    boolean disable_passwd = true;
     StringBuilder l_sb;
     public enum VideoEncProfile {
         BP(2), MP(1), HP(0);
@@ -134,21 +132,19 @@ public class CommandReceiver {
     }
 
     public void passwdEnable(){
-        enable_passwd = true;
-        disable_passwd = false;
+        ctl.SetPasswdEnable();
     }
 
     public void passwdDisable(){
-        enable_passwd = false;
-        disable_passwd = true;
+        ctl.SetPasswdDisable();
     }
     
     public void setUserName(String uname){
-        String _uname = uname;
+        ctl.SetUserName(uname);
     }
     
     public void setPasswd(String passwd){
-        String _passwd = passwd;
+        ctl.SetPasswd(passwd);
     }
 
     public void setStreamUrl(String uri){

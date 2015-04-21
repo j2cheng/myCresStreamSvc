@@ -60,6 +60,8 @@ public class CresStreamConfigure {
 	private static int vfrmrate;
 	private static int vbitrate;
 	private static String url;
+	private static String username;
+	private static String passwd;
 
     public CresStreamConfigure() {
         MiscUtils.getDeviceIpAddr();
@@ -75,7 +77,9 @@ public class CresStreamConfigure {
         vfrmrate = 50;
         vbitrate = 600000;
         venclevel= 8192;
-        url 	 = null;
+        url 	 ="";
+        username ="";
+        passwd   ="";
 	}
 
 	public void setIP(String _ipAddr) { 
@@ -201,5 +205,21 @@ public class CresStreamConfigure {
 
 	public static String getUrl() { 
 		return url; 
+	}
+	
+        public static void setUserName(String uname) { 
+                username = uname;
+	}
+
+	public static void setPasswd(String passwd) { 
+		passwd = passwd; 
+	}
+       
+        public static String getUserName() { 
+                 return username;
+	}
+
+	public static String getPasswd() { 
+		return passwd;
 	}
 }

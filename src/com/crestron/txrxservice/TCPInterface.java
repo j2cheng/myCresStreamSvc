@@ -176,7 +176,7 @@ public class TCPInterface extends AsyncTask<Void, Object, Long> {
                         }
                         else{
                             publishProgress(read.trim(), serverHandler);
-                            String ctrlCmdStr = read.trim(); 
+                            /*String ctrlCmdStr = read.trim(); 
                             if(ctrlCmdStr.toUpperCase().contains("START")) {
                                 Log.d(TAG, "In start ");
                                 publishProgress("STOP", serverHandler);
@@ -194,7 +194,7 @@ public class TCPInterface extends AsyncTask<Void, Object, Long> {
                                 publishProgress("STREAMSTATE", serverHandler);
                             }else {
                                 Log.d(TAG, "ctrlCmd not received " );
-                            }
+                            }*/
                         }
                     }
                     else if(read == null) {
