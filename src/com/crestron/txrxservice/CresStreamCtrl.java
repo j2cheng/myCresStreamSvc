@@ -23,9 +23,6 @@ import android.view.Surface;
 import android.view.Gravity;
 import android.view.SurfaceHolder;
 import android.view.Surface.PhysicalDisplayInfo;
-import android.view.WindowManager;
-import android.view.WindowManager.LayoutParams;
-import android.widget.RelativeLayout;
 import android.graphics.PixelFormat;
 import android.hardware.Camera;
 
@@ -44,28 +41,20 @@ interface myCommand2 {
 public class CresStreamCtrl extends Service {
     CameraStreaming cam_streaming;
     CameraPreview cam_preview;
-    SurfaceManager sMGR;
     StreamIn streamPlay;
     BroadcastReceiver hpdEvent = null;
     BroadcastReceiver resolutionEvent = null;
     BroadcastReceiver hdmioutResolutionChangedEvent = null;
-    private SurfaceView previewSurface;
-    private SurfaceView streamingSurface = null;
 
     CresStreamConfigure myconfig;
     AudioManager amanager;
     TCPInterface sockTask;
    
-    private RelativeLayout parentlayout;
-    RelativeLayout.LayoutParams params_streamingview;
-    RelativeLayout.LayoutParams params_preview;
-
-    WindowManager.LayoutParams lp;
-    WindowManager wm;
-
     HDMIInputInterface hdmiInput;
     HDMIOutputInterface hdmiOutput;
 
+    CresDisplaySurface dispSurface;
+    
     final int cameraRestartTimout = 1000;//msec
     int hpdStateEnabled = 0;
     static int hpdHdmiEvent = 0;
@@ -77,10 +66,6 @@ public class CresStreamCtrl extends Service {
     static String pauseStatus="false";
     int device_mode = 0;
     int sessInitMode = 0;
-    int g_x = 0;
-    int g_y = 0;
-    int g_w = 0;
-    int g_h = 0;
     boolean StreamOutstarted = false;
     boolean enable_passwd = false;
     boolean disable_passwd = true;
@@ -104,51 +89,12 @@ public class CresStreamCtrl extends Service {
     @Override
         public void onCreate() {
             super.onCreate();
-            final int windowWidth = 1920;
-            final int windowHeight = 1080;
+            int windowWidth = 1920;
+            int windowHeight = 1080;
             
-            //Stub: CSIO Cmd Receiver & TestApp functionality
-            sockTask = new TCPInterface(this);
-            sockTask.execute(new Void[0]);
-            
-            //Relative Layout to hanle multiple view
-            parentlayout = new RelativeLayout(this);
-            
-            //Instance for Surfaceholder for StreamIn/Preview
-            sMGR = new SurfaceManager(CresStreamCtrl.this);
-            //StreamingIn View 
-            streamingSurface = new SurfaceView(this);
-            params_streamingview = new RelativeLayout.LayoutParams(
-                  RelativeLayout.LayoutParams.WRAP_CONTENT,
-                  RelativeLayout.LayoutParams.WRAP_CONTENT);
-            parentlayout.addView(streamingSurface, params_streamingview);
-            
-            //Preview/StreamOut View
-            previewSurface = new SurfaceView(this);
-            params_preview = new RelativeLayout.LayoutParams(
-                   RelativeLayout.LayoutParams.WRAP_CONTENT,
-                   RelativeLayout.LayoutParams.WRAP_CONTENT);
-            parentlayout.addView(previewSurface, params_preview);
-
-            //Setting WindowManager and Parameters with system overlay
-            lp = new WindowManager.LayoutParams(windowWidth, windowHeight, WindowManager.LayoutParams.TYPE_SYSTEM_OVERLAY, 0, PixelFormat.TRANSLUCENT);
-            wm = (WindowManager) getSystemService(WINDOW_SERVICE);
-            lp.gravity = Gravity.TOP | Gravity.LEFT;
-            lp.x = 0;
-            lp.y = 0;
-            //Adding Relative Layout to WindowManager
-            wm.addView(parentlayout, lp); 
-
-            
-            //Get HPDEVent state frromsysfile
-            hpdHdmiEvent = MiscUtils.getHdmiHpdEventState();
-            Log.d(TAG, "hpdHdmiEvent :" + hpdHdmiEvent);
-
-            //AudioManager
-            amanager=(AudioManager)getSystemService(Context.AUDIO_SERVICE);
             //Input Streamout Config
             myconfig = new CresStreamConfigure();
-            
+
             hdmiInput = new HDMIInputInterface();
             hdmiOutput = new HDMIOutputInterface();
 
@@ -157,24 +103,40 @@ public class CresStreamCtrl extends Service {
             
             // Update the resolution information before creating surfaces
             try
-            {       
-	            setWindowSizeW(Integer.parseInt(hdmiOutput.getHorizontalRes()));
-	            setWindowSizeH(Integer.parseInt(hdmiOutput.getVerticalRes()));
+            {  
+            	windowWidth = Integer.parseInt(hdmiOutput.getHorizontalRes());
+	            setWindowSizeW(windowWidth);
+	            windowHeight = Integer.parseInt(hdmiOutput.getVerticalRes());
+	            setWindowSizeH(windowHeight);
             }
             catch (Exception e)
             {
             	e.printStackTrace();            	
             }
 
+            //Stub: CSIO Cmd Receiver & TestApp functionality
+            sockTask = new TCPInterface(this);
+            sockTask.execute(new Void[0]);
+            
+            // Create a DisplaySurface to handle both preview and stream in
+            // TODO: Create an array to handle multiple instances 
+            dispSurface = new CresDisplaySurface(this, windowWidth, windowHeight);
+            
+            //Get HPDEVent state frromsysfile
+            hpdHdmiEvent = MiscUtils.getHdmiHpdEventState();
+            Log.d(TAG, "hpdHdmiEvent :" + hpdHdmiEvent);
+
+            //AudioManager
+            amanager=(AudioManager)getSystemService(Context.AUDIO_SERVICE);
+            
             //HPD and Resolution Event Registration
             registerBroadcasts();
             //Enable StreamIn and CameraPreview 
-            SurfaceHolder streaminHolder = sMGR.getCresSurfaceHolder(streamingSurface);
-            streamPlay = new StreamIn(CresStreamCtrl.this, streaminHolder);
+            SurfaceHolder sHolder = dispSurface.GetSurfaceHolder();
+            streamPlay = new StreamIn(CresStreamCtrl.this, sHolder);
             
-            SurfaceHolder previewHolder = sMGR.getCresSurfaceHolder(previewSurface);
-            cam_streaming = new CameraStreaming(CresStreamCtrl.this, previewHolder);
-            cam_preview = new CameraPreview(previewHolder, hdmiInput);
+            cam_streaming = new CameraStreaming(CresStreamCtrl.this, sHolder);
+            cam_preview = new CameraPreview(sHolder, hdmiInput);
             //Play Control
             hm = new HashMap();
             hm.put(2/*"PREVIEW"*/, new Command() {
@@ -248,7 +210,8 @@ public class CresStreamCtrl extends Service {
         cam_streaming.stopRecording();
         cam_preview.stopPlayback();
         streamPlay.onStop();
-        wm.removeView(parentlayout);
+        if (dispSurface != null)
+        	dispSurface.RemoveView();
     }
 
     public void setDeviceMode(int mode)
@@ -259,40 +222,61 @@ public class CresStreamCtrl extends Service {
     
     public void setXCoordinates(int x)
     {
-        g_x = x;
+        myconfig.setx(x);
         update();
     }
 
     public void setYCoordinates(int y)
     {
-        g_y = y;
+    	myconfig.sety(y);
         update();
     }
 
     public void setWindowSizeW(int w)
     {
-        g_w = w;
         myconfig.setWidth(w);
         update();
     }
 
     public void setWindowSizeH(int h)
     {
-        g_h = h;
         myconfig.setHeight(h);
         update();
     }
+
     
-    private void update()
+    public int getXCoordinates()
     {
-        RelativeLayout.LayoutParams lp2=new RelativeLayout.LayoutParams(g_w, g_h);
-        lp2.setMargins(g_x, g_y, 0, 0);
-        if(device_mode==DeviceMode.STREAM_IN.ordinal())
-            streamingSurface.setLayoutParams(lp2);
-        else 
-            previewSurface.setLayoutParams(lp2);
+        return CresStreamConfigure.getx();
     }
 
+    public int getYCoordinates()
+    {
+        return CresStreamConfigure.gety();
+    }
+
+    public int getWindowSizeW()
+    {
+        return CresStreamConfigure.getWidth();
+    }
+
+    public int getWindowSizeH()
+    {
+        return CresStreamConfigure.getHeight();
+    }
+        
+    
+    public void update()
+    {
+    	if (dispSurface != null)
+    	{
+    		dispSurface.UpdateDimensions(CresStreamConfigure.getx(), 
+    			CresStreamConfigure.gety(), 
+    			CresStreamConfigure.getWidth(), 
+    			CresStreamConfigure.getHeight());
+    	}
+    }
+    
     public void readResolutionInfo(String hdmiInputResolution){
         hdmiInput.updateResolutionInfo(hdmiInputResolution);
     }
@@ -686,26 +670,30 @@ public class CresStreamCtrl extends Service {
     private void hidePreviewWindow()
     {
         Log.d(TAG, "Preview Window hidden");
-       previewSurface.setVisibility(8);
+        if (dispSurface != null)
+        	dispSurface.HideWindow();
     }
     
     private void showPreviewWindow()
     {
         Log.d(TAG, "Preview Window showing");
-       previewSurface.setVisibility(0);
+        if (dispSurface != null)
+        	dispSurface.ShowWindow();
     }
 
     //StreamIn Ctrls & Config
     private void hideStreamInWindow()
     {
         Log.d(TAG, " streamin Window hidden ");
-       streamingSurface.setVisibility(8);
+        if (dispSurface != null)
+        	dispSurface.HideWindow();
     }
 
     private void showStreamInWindow()
     {
         Log.d(TAG, "streamin Window  showing");
-        streamingSurface.setVisibility(0);
+        if (dispSurface != null)
+        	dispSurface.ShowWindow();
     }
 
     public void EnableTcpInterleave(){

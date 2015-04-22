@@ -460,7 +460,7 @@ class XlocCommand implements CommandIf {
             launch.setXloc(launch.VALIDATE_INT(msg));
         }
         public String getFeedbackMsg() {
-            return msg;
+            return launch.getXloc();
         }
 }
 
@@ -479,7 +479,7 @@ class YlocCommand implements CommandIf {
             launch.setYloc(launch.VALIDATE_INT(msg));
         }
         public String getFeedbackMsg() {
-            return msg;
+            return launch.getYloc();
         }
 }
 
@@ -498,7 +498,7 @@ class DestWidthCommand implements CommandIf {
             launch.setDestWidth(launch.VALIDATE_INT(msg));
         }
         public String getFeedbackMsg() {
-            return msg;
+            return launch.getDestWidth();
         }
 }
 
@@ -517,7 +517,7 @@ class DestHeightCommand implements CommandIf {
             launch.setDestHeight(launch.VALIDATE_INT(msg));
         }
         public String getFeedbackMsg() {
-            return msg;
+            return launch.getDestHeight();
         }
 }
 
