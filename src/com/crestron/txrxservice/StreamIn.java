@@ -81,6 +81,7 @@ public class StreamIn implements OnPreparedListener, OnCompletionListener, OnBuf
                 }
 
                 mediaPlayer = new MediaPlayer();
+                mediaPlayer.setDisplay(vidHolder);
                 mediaPlayer.setDataSource(srcUrl);	
                 Log.d(TAG, "URL is "+srcUrl);
                 if(tcpInterleaveFlag && srcUrl.startsWith("rtsp://"))
@@ -98,7 +99,6 @@ public class StreamIn implements OnPreparedListener, OnCompletionListener, OnBuf
                 mediaPlayer.setOnCompletionListener(this);
                 mediaPlayer.setOnBufferingUpdateListener(this);
                 mediaPlayer.setAudioStreamType(AudioManager.STREAM_MUSIC);
-                mediaPlayer.setDisplay(vidHolder);
             } 
             catch(Exception e){
                 e.printStackTrace();
