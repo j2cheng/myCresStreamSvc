@@ -4,8 +4,9 @@ import java.util.HashMap;
 import java.util.Map;
 import java.io.IOException;
 import java.lang.String;
-import android.net.Uri;
+import java.util.concurrent.locks.*;
 
+import android.net.Uri;
 import android.os.Bundle;
 import android.os.SystemClock;
 import android.util.Log;
@@ -75,13 +76,53 @@ public class CresStreamCtrl extends Service {
         STREAM_OUT,
         PREVIEW
     }
-    enum DeviceStatus {
-        STARTED,
-        STOPPED,
-        PAUSED
-    }
+    
+    /*
+     * Copied from csio.h
+     * */
+    public enum StreamState 
+    {
+    	// Basic States
+    	STOPPED(0),
+    	STARTED(1),
+    	PAUSED(2),
 
-    DeviceStatus devicestatus = DeviceStatus.STOPPED;
+    	// Add additional states after this
+    	CONNECTING(3),
+    	RETRYING(4),
+    	CONNECTREFUSED(5),
+    	BUFFERING(6),
+
+    	// Do not add anything after the Last state
+    	LAST(7);
+    	
+        private final int value;
+
+        StreamState(int value) 
+        {
+            this.value = value;
+        }
+
+        public int getValue() 
+        {
+            return value;
+        }
+        public static String getStringValueFromInt(int i) 
+        {
+            for (StreamState state : StreamState.values()) 
+            {
+                if (state.getValue() == i) 
+                {
+                    return state.toString();
+                }
+            }
+            return ("Invalid State.");
+        }
+    }
+    
+    private final ReentrantLock threadLock = new ReentrantLock(true); // fairness=true, makes lock ordered
+
+    StreamState devicestatus = StreamState.STOPPED;
     //HashMap
     HashMap<Integer, Command> hm;
     HashMap<Integer, myCommand> hm2;
@@ -136,7 +177,7 @@ public class CresStreamCtrl extends Service {
             streamPlay = new StreamIn(CresStreamCtrl.this, sHolder);
             
             cam_streaming = new CameraStreaming(CresStreamCtrl.this, sHolder);
-            cam_preview = new CameraPreview(sHolder, hdmiInput);
+            cam_preview = new CameraPreview(this, sHolder, hdmiInput);
             //Play Control
             hm = new HashMap();
             hm.put(2/*"PREVIEW"*/, new Command() {
@@ -495,6 +536,25 @@ public class CresStreamCtrl extends Service {
         sb.append("PROCESSING_FB=").append(stats);
         sockTask.SendDataToAllClients(sb.toString());
     }
+    
+    public void SendStreamState(StreamState state)
+    {
+    	try
+    	{
+        	Log.d(TAG, "StreamState : Lock");
+        	threadLock.lock();
+
+        	devicestatus = state;
+	        StringBuilder sb = new StringBuilder(512);
+	        sb.append("STREAMSTATE=").append(state.getValue());
+	        sockTask.SendDataToAllClients(sb.toString());
+    	}
+    	finally
+    	{
+        	threadLock.unlock();
+        	Log.d(TAG, "StreamState : Unlock");
+    	}
+    }
 
     private void SendStartFb(String stats){
         StringBuilder sb = new StringBuilder(512);
@@ -516,35 +576,69 @@ public class CresStreamCtrl extends Service {
 
 
     //Ctrls
-    public void Start(){
-        SendProcessingFb("1");
-    	playStatus="true";
-    	stopStatus="false";
-        pauseStatus="false";
-        devicestatus = DeviceStatus.STARTED;
-        hm.get(device_mode).executeStart();
-        SendPauseFb("false");
-        SendStopFb("false");
+    public void Start()
+    {
+    	Log.d(TAG, "Start : Lock");
+    	threadLock.lock();
+    	try
+    	{
+    		SendStreamState(StreamState.CONNECTING);
+	        SendProcessingFb("1");
+	    	playStatus="true";
+	    	stopStatus="false";
+	        pauseStatus="false";
+	        hm.get(device_mode).executeStart();
+	        SendPauseFb("false");
+	        SendStopFb("false");
+	        // The started state goes back when we actually start
+    	}
+    	finally
+    	{
+    		threadLock.unlock();
+        	Log.d(TAG, "Start : Unlock");
+    	}
     }
-    public void Stop(){
-        SendProcessingFb("1");
-    	playStatus="false";
-    	stopStatus="true";
-        pauseStatus="false";
-        devicestatus = DeviceStatus.STOPPED;
-        hm2.get(device_mode).executeStop();
-        SendStartFb("false");
-        SendPauseFb("false");
+    public void Stop()
+    {
+    	Log.d(TAG, "Stop : Lock");
+    	threadLock.lock();
+    	try
+    	{
+	        SendProcessingFb("1");
+	    	playStatus="false";
+	    	stopStatus="true";
+	        pauseStatus="false";
+	        hm2.get(device_mode).executeStop();
+	        SendStartFb("false");
+	        SendPauseFb("false");
+	        // device state will be set in stop callback
+    	}
+    	finally
+    	{
+        	Log.d(TAG, "Stop : Unlock");
+    		threadLock.unlock();
+    	}
     }
-    public void Pause(){
-        SendProcessingFb("1");
-        pauseStatus="true";
-    	playStatus="false";
-    	stopStatus="false";
-        devicestatus = DeviceStatus.PAUSED;
-        hm3.get(device_mode).executePause();
-        SendStartFb("false");
-        SendStopFb("false");
+    public void Pause()
+    {
+    	Log.d(TAG, "Pause : Lock");
+    	threadLock.lock();
+    	try
+    	{
+	        SendProcessingFb("1");
+	        pauseStatus="true";
+	    	playStatus="false";
+	    	stopStatus="false";
+	        hm3.get(device_mode).executePause();
+	        SendStartFb("false");
+	        SendStopFb("false");
+	        // Device state will be set in pause callback
+    	}
+        finally
+    	{
+        	Log.d(TAG, "Pause : Unlock");
+    		threadLock.unlock();
+    	}
     }
     //StreamOut Ctrl & Config
     public void setIpAddress(String ip){
@@ -862,48 +956,56 @@ public class CresStreamCtrl extends Service {
         {
             public void onReceive(Context paramAnonymousContext, Intent paramAnonymousIntent)
             {
-                if (paramAnonymousIntent.getAction().equals("evs.intent.action.hdmi.RESOLUTION_CHANGED"))
-                {
-                    int resolutionId = paramAnonymousIntent.getIntExtra("evs_hdmi_resolution_id", -1);
-                    String hdmiInputResolution = null;
-                    Log.i(TAG, "Received resolution changed broadcast !: " + resolutionId);
-                    if ((device_mode==DeviceMode.PREVIEW.ordinal()) && (devicestatus == DeviceStatus.STARTED))  
-                    {
-                        Log.i(TAG, "Restart called due to resolution change broadcast ! ");
-                        cam_preview.stopPlayback();
-                        hidePreviewWindow();
-                        SystemClock.sleep(cameraRestartTimout);
-                        hpdHdmiEvent = 1;
-                        Log.i(TAG, "HDMI resolutions - HRes:" + hdmiInput.getHorizontalRes() + " Vres:" + hdmiInput.getVerticalRes());
-                        if ( (hdmiInput.getHorizontalRes().startsWith("0") != true) && (hdmiInput.getVerticalRes().startsWith("0")!= true)  &&
-                                (resolutionId != 0))
-                        {
-                            showPreviewWindow();
-                            cam_preview.startPlayback();
-                        }
-
-                    }
-                    else if((cam_streaming.mCameraPreviewObj != null) && (device_mode==DeviceMode.STREAM_OUT.ordinal()) && (devicestatus == DeviceStatus.STARTED)){
-                    	cam_streaming.stopRecording();
-                        hidePreviewWindow();
-                        SystemClock.sleep(10*cameraRestartTimout);
-                        try{
-                            showPreviewWindow();
-                            cam_streaming.startRecording();
-                        } catch(IOException e) {
-                            e.printStackTrace();
-                        }
-                    }
-                    else{
-                        Log.i(TAG, " Nothing todo!!!");
-                    }
-                    if((hpdStateEnabled==1) && (device_mode==DeviceMode.PREVIEW.ordinal())){
-                        SystemClock.sleep(cameraRestartTimout);
-                        showPreviewWindow();
-                        hpdHdmiEvent = 1;
-                        cam_preview.startPlayback();
-                    }
-                }
+            	threadLock.lock();
+            	try
+            	{
+	                if (paramAnonymousIntent.getAction().equals("evs.intent.action.hdmi.RESOLUTION_CHANGED"))
+	                {
+	                    int resolutionId = paramAnonymousIntent.getIntExtra("evs_hdmi_resolution_id", -1);
+	                    String hdmiInputResolution = null;
+	                    Log.i(TAG, "Received resolution changed broadcast !: " + resolutionId);
+	                    if ((device_mode==DeviceMode.PREVIEW.ordinal()) && (devicestatus == StreamState.STARTED))  
+	                    {
+	                        Log.i(TAG, "Restart called due to resolution change broadcast ! ");
+	                        cam_preview.stopPlayback();
+	                        hidePreviewWindow();
+	                        SystemClock.sleep(cameraRestartTimout);
+	                        hpdHdmiEvent = 1;
+	                        Log.i(TAG, "HDMI resolutions - HRes:" + hdmiInput.getHorizontalRes() + " Vres:" + hdmiInput.getVerticalRes());
+	                        if ( (hdmiInput.getHorizontalRes().startsWith("0") != true) && (hdmiInput.getVerticalRes().startsWith("0")!= true)  &&
+	                                (resolutionId != 0))
+	                        {
+	                            showPreviewWindow();
+	                            cam_preview.startPlayback();
+	                        }
+	
+	                    }
+	                    else if((cam_streaming.mCameraPreviewObj != null) && (device_mode==DeviceMode.STREAM_OUT.ordinal()) && (devicestatus == StreamState.STARTED)){
+	                    	cam_streaming.stopRecording();
+	                        hidePreviewWindow();
+	                        SystemClock.sleep(10*cameraRestartTimout);
+	                        try{
+	                            showPreviewWindow();
+	                            cam_streaming.startRecording();
+	                        } catch(IOException e) {
+	                            e.printStackTrace();
+	                        }
+	                    }
+	                    else{
+	                        Log.i(TAG, " Nothing todo!!!");
+	                    }
+	                    if((hpdStateEnabled==1) && (device_mode==DeviceMode.PREVIEW.ordinal())){
+	                        SystemClock.sleep(cameraRestartTimout);
+	                        showPreviewWindow();
+	                        hpdHdmiEvent = 1;
+	                        cam_preview.startPlayback();
+	                    }
+	                }
+            	}
+            	finally
+            	{
+            		threadLock.unlock();
+            	}
             }
         };
         IntentFilter resolutionIntentFilter = new IntentFilter("evs.intent.action.hdmi.RESOLUTION_CHANGED");
@@ -912,31 +1014,39 @@ public class CresStreamCtrl extends Service {
         {
             public void onReceive(Context paramAnonymousContext, Intent paramAnonymousIntent)
             {
-                if (paramAnonymousIntent.getAction().equals("evs.intent.action.hdmi.HPD"))
-                {
-                    int i = paramAnonymousIntent.getIntExtra("evs_hdmi_hdp_id", -1);
-                    Log.i(TAG, "Received hpd broadcast ! " + i);
-                    if(i==0){
-                        //HACK: For ioctl issue 
-                        //1. Hide Preview 2. sleep One Sec 3.Stop Camera 4. Sleep 5 sec
-                        hidePreviewWindow();
-                        SystemClock.sleep(cameraRestartTimout);
-                        if((cam_streaming.mCameraPreviewObj != null) && ((cam_streaming.isStreaming()) == true))
-                            cam_streaming.stopRecording();
-                        else if ((((cam_preview.IsPreviewStatus()) == true)))  
-                            cam_preview.stopPlayback();
-                        else
-                            Log.i(TAG, "Device is in Idle State");
-                        SystemClock.sleep((5*cameraRestartTimout));
-                    }
-                    else 
-                        hpdStateEnabled = 1;
-                    //send out sync detection signal
-                    hdmiInput.setSyncStatus();
-                    StringBuilder sb = new StringBuilder(1024);
-                    sb.append("hdmiin_sync_detected=").append(hdmiInput.getSyncStatus());
-                    sockTask.SendDataToAllClients(sb.toString());
-                }
+            	threadLock.lock();
+            	try
+            	{
+	                if (paramAnonymousIntent.getAction().equals("evs.intent.action.hdmi.HPD"))
+	                {
+	                    int i = paramAnonymousIntent.getIntExtra("evs_hdmi_hdp_id", -1);
+	                    Log.i(TAG, "Received hpd broadcast ! " + i);
+	                    if(i==0){
+	                        //HACK: For ioctl issue 
+	                        //1. Hide Preview 2. sleep One Sec 3.Stop Camera 4. Sleep 5 sec
+	                        hidePreviewWindow();
+	                        SystemClock.sleep(cameraRestartTimout);
+	                        if((cam_streaming.mCameraPreviewObj != null) && ((cam_streaming.isStreaming()) == true))
+	                            cam_streaming.stopRecording();
+	                        else if ((((cam_preview.IsPreviewStatus()) == true)))  
+	                            cam_preview.stopPlayback();
+	                        else
+	                            Log.i(TAG, "Device is in Idle State");
+	                        SystemClock.sleep((5*cameraRestartTimout));
+	                    }
+	                    else 
+	                        hpdStateEnabled = 1;
+	                    //send out sync detection signal
+	                    hdmiInput.setSyncStatus();
+	                    StringBuilder sb = new StringBuilder(1024);
+	                    sb.append("hdmiin_sync_detected=").append(hdmiInput.getSyncStatus());
+	                    sockTask.SendDataToAllClients(sb.toString());
+	                }
+            	}
+            	finally
+            	{
+            		threadLock.unlock();
+            	}
             }
         };
         IntentFilter hpdIntentFilter = new IntentFilter("evs.intent.action.hdmi.HPD");

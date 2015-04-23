@@ -5,6 +5,8 @@ import java.io.IOException;
 import java.util.Date;
 import java.util.List;
 
+import com.crestron.txrxservice.CresStreamCtrl.StreamState;
+
 import android.content.Context;
 import android.graphics.ImageFormat;
 import android.graphics.PixelFormat;
@@ -24,12 +26,14 @@ public class CameraStreaming implements ErrorCallback {
     String filename;
     File file4Recording;
     boolean out_stream_status = false;
+    CresStreamCtrl streamCtl;
 
-    public CameraStreaming(Context mContext, SurfaceHolder lpHolder ) {
+    public CameraStreaming(CresStreamCtrl mContext, SurfaceHolder lpHolder ) {
         MiscUtils.getDeviceIpAddr();	
         hostaddr = MiscUtils.matcher.group();
         Log.d(TAG, "CameraStreaming :: Constructor called.....");
         surfaceHolder = lpHolder;
+        streamCtl = mContext;
     }
 
     protected void startRecording() throws IOException {
@@ -134,6 +138,7 @@ public class CameraStreaming implements ErrorCallback {
                 String sb = mrec.getSDP();
                 Log.d(TAG, "########SDP Dump######\n" + sb);
             }
+            streamCtl.SendStreamState(StreamState.STARTED);
             out_stream_status = true;
         }
         else {
@@ -164,6 +169,7 @@ public class CameraStreaming implements ErrorCallback {
             releaseMediaRecorder();
             CresCamera.releaseCamera(mCameraPreviewObj);
             mCameraPreviewObj = null;
+            streamCtl.SendStreamState(StreamState.STOPPED);
         }
     }
 

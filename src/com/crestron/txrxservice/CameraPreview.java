@@ -3,6 +3,8 @@ package com.crestron.txrxservice;
 import java.io.IOException;
 import java.util.List;
 
+import com.crestron.txrxservice.CresStreamCtrl.StreamState;
+
 import android.hardware.Camera;
 import android.hardware.Camera.ErrorCallback;
 import android.hardware.Camera.Parameters;
@@ -21,11 +23,13 @@ public class CameraPreview {
     boolean is_preview = false;
     boolean is_audioplaying = false;
     //List<Camera.Size> mSupportedPreviewSizes;
+    CresStreamCtrl streamCtl;
 
-    public CameraPreview(SurfaceHolder vHolder, HDMIInputInterface hdmiInIface) {
+    public CameraPreview(CresStreamCtrl ctl, SurfaceHolder vHolder, HDMIInputInterface hdmiInIface) {
         audio_pb = new AudioPlayback();
         surfaceHolder = vHolder;
         hdmiIf = hdmiInIface;
+        streamCtl = ctl;
     }
 
     public void onPreviewFrame(byte[] paramArrayOfByte, Camera paramCamera) {}
@@ -40,6 +44,7 @@ public class CameraPreview {
                 is_pause = true;
                 mCamera.stopPreview();	
                 stopAudio();
+                streamCtl.SendStreamState(StreamState.PAUSED);
             }
             return true;
         }
@@ -61,6 +66,7 @@ public class CameraPreview {
                 mCamera.startPreview();
                 startAudio();
             }
+            streamCtl.SendStreamState(StreamState.STARTED);
             return true;
         }
         catch (Exception localException)
@@ -139,6 +145,9 @@ public class CameraPreview {
             }
         }else   //Pause/Resume Case
             resumePlayback();
+
+        streamCtl.SendStreamState(StreamState.STARTED);
+
     }
 
     public void stopPlayback()
@@ -155,6 +164,7 @@ public class CameraPreview {
                 }
                 is_preview = false;
                 Log.d(TAG, "Playback stopped !");
+                streamCtl.SendStreamState(StreamState.STOPPED);
                 return;
             }
             catch (Exception localException)

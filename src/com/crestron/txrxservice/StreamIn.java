@@ -10,7 +10,9 @@ import android.media.MediaPlayer.OnPreparedListener;
 import android.media.MediaPlayer.OnBufferingUpdateListener;
 import android.media.MediaPlayer.OnCompletionListener;
 import android.media.AudioManager;
+
 import com.crestron.txrxservice.CresStreamConfigure;
+import com.crestron.txrxservice.CresStreamCtrl.StreamState;
 
 public class StreamIn implements OnPreparedListener, OnCompletionListener, OnBufferingUpdateListener {
 
@@ -26,10 +28,12 @@ public class StreamIn implements OnPreparedListener, OnCompletionListener, OnBuf
     boolean media_pause = false;
     boolean tcpInterleaveFlag = false;
     boolean disableLatencyFlag = false;
+    private CresStreamCtrl streamCtl;
 
-    public StreamIn(Context mContext, SurfaceHolder vHolder) {
+    public StreamIn(CresStreamCtrl mContext, SurfaceHolder vHolder) {
         Log.e(TAG, "StreamIN :: Constructor called...!");
         vidHolder = vHolder;
+        streamCtl = mContext;
     }
 
     //Setting source url to play streamin
@@ -99,6 +103,8 @@ public class StreamIn implements OnPreparedListener, OnCompletionListener, OnBuf
                 mediaPlayer.setOnCompletionListener(this);
                 mediaPlayer.setOnBufferingUpdateListener(this);
                 mediaPlayer.setAudioStreamType(AudioManager.STREAM_MUSIC);
+            
+                streamCtl.SendStreamState(StreamState.STARTED);
             } 
             catch(Exception e){
                 e.printStackTrace();
@@ -110,6 +116,7 @@ public class StreamIn implements OnPreparedListener, OnCompletionListener, OnBuf
         if((mediaPlayer!=null) && (mediaPlayer.isPlaying())) 
             mediaPlayer.pause();
         media_pause = true;
+        streamCtl.SendStreamState(StreamState.PAUSED);
     }
 
     public void onStop() {
@@ -120,6 +127,7 @@ public class StreamIn implements OnPreparedListener, OnCompletionListener, OnBuf
             }
             mediaPlayer.release();
             mediaPlayer = null;
+            streamCtl.SendStreamState(StreamState.STOPPED);
         }
     }
 
