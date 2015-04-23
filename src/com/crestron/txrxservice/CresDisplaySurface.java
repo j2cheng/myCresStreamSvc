@@ -58,8 +58,7 @@ public class CresDisplaySurface
               windowWidth,
               windowHeight);
         parentlayout.addView(displaySurface, viewLayoutParams);
-        
-        
+       
         //Setting WindowManager and Parameters with system overlay
         wmLayoutParams = new WindowManager.LayoutParams(windowWidth, windowHeight, WindowManager.LayoutParams.TYPE_SYSTEM_OVERLAY, 0, PixelFormat.TRANSLUCENT);
         wm = (WindowManager) svc.getSystemService(Context.WINDOW_SERVICE);
@@ -87,9 +86,9 @@ public class CresDisplaySurface
      * Update the width and height of the surface
      * TODO: Add an index so that the correct surface can be updated
      */
-    public void UpdateDimensions(int x, int y, int width, int height)
+    public void UpdateDimensions(int width, int height)
     {
-        Log.i(TAG, "UpdateDimensions: " + x + "," + y + " " + width + "x" + height );
+        Log.i(TAG, "UpdateDimensions: " + width + "x" + height );
 //
 //    	WindowManager.LayoutParams params = (WindowManager.LayoutParams) parentlayout.getLayoutParams();
 //    	params.x = x;
@@ -100,21 +99,39 @@ public class CresDisplaySurface
         
         /*old way of setting params*/
         
-        RelativeLayout.LayoutParams lp=new RelativeLayout.LayoutParams(width, height);
-        lp.setMargins(x, y, 0, 0);
-        displaySurface.setLayoutParams(lp);
+        viewLayoutParams =new RelativeLayout.LayoutParams(width, height);
+        displaySurface.setLayoutParams(viewLayoutParams);
         
     	forceLayoutInvalidation();
     }
 
+    public void UpdateCoordinates(int x, int y)
+    {
+        Log.i(TAG, "UpdateDimensions: " + x + "," + y );
+//
+//    	WindowManager.LayoutParams params = (WindowManager.LayoutParams) parentlayout.getLayoutParams();
+//    	params.x = x;
+//    	params.y = y;
+//    	params.width = width;
+//    	params.height = height;
+//    	
+        
+        /*old way of setting params*/
+        
+        viewLayoutParams = new RelativeLayout.LayoutParams(viewLayoutParams);
+        viewLayoutParams.setMargins(x, y, 0, 0);
+        displaySurface.setLayoutParams(viewLayoutParams);
+        
+    	forceLayoutInvalidation();
+    }
 	/**
 	 * Force the invalidation of the layout
 	 */
-	private void forceLayoutInvalidation() {
-		parentlayout.bringToFront();
-    	parentlayout.invalidate();
-    	parentlayout.requestLayout();
-	}
+    private void forceLayoutInvalidation() {
+        parentlayout.bringToFront();
+        parentlayout.invalidate();
+        parentlayout.requestLayout();
+    }
     
     
     /**

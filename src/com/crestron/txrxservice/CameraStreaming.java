@@ -39,7 +39,7 @@ public class CameraStreaming implements ErrorCallback {
     protected void startRecording() throws IOException {
 
         if(out_stream_status==true)
-            stopRecording();
+            stopRecording(false);
         Log.d(TAG, "startRecording");
         boolean isDirExists = true;
         File path = new File("/dev/shm/crestron/CresStreamSvc");
@@ -160,15 +160,21 @@ public class CameraStreaming implements ErrorCallback {
         }
     }
 
-    public void stopRecording() {
+    public void stopRecording(boolean hpdEventAction) {
         Log.d(TAG, "stopRecording");
         if (out_stream_status && (mrec != null)) {
+            if(hpdEventAction==true){
+                CresCamera.releaseCamera(mCameraPreviewObj);
+                mCameraPreviewObj = null;
+            }
             mrec.stop();
             //mrec.setPreviewDisplay(null);
             out_stream_status = false;
             releaseMediaRecorder();
-            CresCamera.releaseCamera(mCameraPreviewObj);
-            mCameraPreviewObj = null;
+            if(hpdEventAction==false){
+                CresCamera.releaseCamera(mCameraPreviewObj);
+                mCameraPreviewObj = null;
+            }
             streamCtl.SendStreamState(StreamState.STOPPED);
         }
     }

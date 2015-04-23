@@ -65,6 +65,7 @@ public class CresStreamCtrl extends Service {
     static String playStatus="false";
     static String stopStatus="true";
     static String pauseStatus="false";
+    static int last_x = 0, last_y = 0, last_w = 1920, last_h = 1080;
     int device_mode = 0;
     int sessInitMode = 0;
     boolean StreamOutstarted = false;
@@ -220,7 +221,7 @@ public class CresStreamCtrl extends Service {
                     //Close Camera   
                     Log.d(TAG,"Global uncaught Exception !!!!!!!!!!!" );
                     cam_preview.stopPlayback();
-                    cam_streaming.stopRecording();
+                    cam_streaming.stopRecording(false);
                     if (oldHandler != null)
                     oldHandler.uncaughtException(paramThread, paramThrowable); //Delegates to Android's error handling
                     else
@@ -248,7 +249,7 @@ public class CresStreamCtrl extends Service {
         unregisterReceiver(resolutionEvent);
         unregisterReceiver(hpdEvent);
         unregisterReceiver(hdmioutResolutionChangedEvent);
-        cam_streaming.stopRecording();
+        cam_streaming.stopRecording(false);
         cam_preview.stopPlayback();
         streamPlay.onStop();
         if (dispSurface != null)
@@ -263,26 +264,34 @@ public class CresStreamCtrl extends Service {
     
     public void setXCoordinates(int x)
     {
-        myconfig.setx(x);
-        update();
+        if (last_x!=x){
+            myconfig.setx(x);
+            updateXY();
+        }
     }
 
     public void setYCoordinates(int y)
     {
-    	myconfig.sety(y);
-        update();
+        if(last_y!=y){
+            myconfig.sety(y);
+            updateXY();
+        }
     }
 
     public void setWindowSizeW(int w)
     {
-        myconfig.setWidth(w);
-        update();
+        if(last_w!=w){
+            myconfig.setWidth(w);
+            updateWH();
+        }
     }
 
     public void setWindowSizeH(int h)
     {
-        myconfig.setHeight(h);
-        update();
+        if(last_h!=h){
+            myconfig.setHeight(h);
+            updateWH();
+        }
     }
 
     
@@ -307,17 +316,24 @@ public class CresStreamCtrl extends Service {
     }
         
     
-    public void update()
+    public void updateWH()
     {
     	if (dispSurface != null)
     	{
-    		dispSurface.UpdateDimensions(CresStreamConfigure.getx(), 
-    			CresStreamConfigure.gety(), 
-    			CresStreamConfigure.getWidth(), 
+    		dispSurface.UpdateDimensions(CresStreamConfigure.getWidth(), 
     			CresStreamConfigure.getHeight());
     	}
     }
     
+    public void updateXY()
+    {
+    	if (dispSurface != null)
+    	{
+    		dispSurface.UpdateCoordinates(CresStreamConfigure.getx(), 
+    			CresStreamConfigure.gety()); 
+    	}
+    }
+
     public void readResolutionInfo(String hdmiInputResolution){
         hdmiInput.updateResolutionInfo(hdmiInputResolution);
     }
@@ -531,12 +547,6 @@ public class CresStreamCtrl extends Service {
         myconfig.setPasswd(passwd);
     }
 
-    private void SendProcessingFb(String stats){
-        StringBuilder sb = new StringBuilder(512);
-        sb.append("PROCESSING_FB=").append(stats);
-        sockTask.SendDataToAllClients(sb.toString());
-    }
-    
     public void SendStreamState(StreamState state)
     {
     	try
@@ -556,25 +566,6 @@ public class CresStreamCtrl extends Service {
     	}
     }
 
-    private void SendStartFb(String stats){
-        StringBuilder sb = new StringBuilder(512);
-        sb.append("START=").append(stats);
-        sockTask.SendDataToAllClients(sb.toString());
-    }
-
-    private void SendStopFb(String stats){
-        StringBuilder sb = new StringBuilder(512);
-        sb.append("STOP=").append(stats);
-        sockTask.SendDataToAllClients(sb.toString());
-    }
-
-    private void SendPauseFb(String stats){
-        StringBuilder sb = new StringBuilder(512);
-        sb.append("PAUSE=").append(stats);
-        sockTask.SendDataToAllClients(sb.toString());
-    }
-
-
     //Ctrls
     public void Start()
     {
@@ -583,13 +574,10 @@ public class CresStreamCtrl extends Service {
     	try
     	{
     		SendStreamState(StreamState.CONNECTING);
-	        SendProcessingFb("1");
 	    	playStatus="true";
 	    	stopStatus="false";
 	        pauseStatus="false";
 	        hm.get(device_mode).executeStart();
-	        SendPauseFb("false");
-	        SendStopFb("false");
 	        // The started state goes back when we actually start
     	}
     	finally
@@ -598,19 +586,17 @@ public class CresStreamCtrl extends Service {
         	Log.d(TAG, "Start : Unlock");
     	}
     }
+
     public void Stop()
     {
     	Log.d(TAG, "Stop : Lock");
     	threadLock.lock();
     	try
     	{
-	        SendProcessingFb("1");
 	    	playStatus="false";
 	    	stopStatus="true";
 	        pauseStatus="false";
 	        hm2.get(device_mode).executeStop();
-	        SendStartFb("false");
-	        SendPauseFb("false");
 	        // device state will be set in stop callback
     	}
     	finally
@@ -625,13 +611,10 @@ public class CresStreamCtrl extends Service {
     	threadLock.lock();
     	try
     	{
-	        SendProcessingFb("1");
 	        pauseStatus="true";
 	    	playStatus="false";
 	    	stopStatus="false";
 	        hm3.get(device_mode).executePause();
-	        SendStartFb("false");
-	        SendStopFb("false");
 	        // Device state will be set in pause callback
     	}
         finally
@@ -740,7 +723,6 @@ public class CresStreamCtrl extends Service {
             //Toast.makeText(this, "StreamOut Started", Toast.LENGTH_LONG).show();
             StreamOutstarted = true;
         }
-        SendProcessingFb("0");
         sb.append("STREAMURL=").append(out_url);
         sockTask.SendDataToAllClients(sb.toString());
     }
@@ -749,10 +731,9 @@ public class CresStreamCtrl extends Service {
     {
         if(StreamOutstarted){
             //Toast.makeText(this, "StreamOut Stopped", Toast.LENGTH_LONG).show();
-            cam_streaming.stopRecording();
+            cam_streaming.stopRecording(false);
             StreamOutstarted = false;
             hidePreviewWindow();
-            SendProcessingFb("0");
         }
     }
     
@@ -822,7 +803,6 @@ public class CresStreamCtrl extends Service {
     {
         showStreamInWindow();
         streamPlay.onStart();
-        SendProcessingFb("0");
         //Toast.makeText(this, "StreamIN Started", Toast.LENGTH_LONG).show();
     }
 
@@ -831,13 +811,11 @@ public class CresStreamCtrl extends Service {
         streamPlay.onStop();
         //Toast.makeText(this, "StreamIN Stopped", Toast.LENGTH_LONG).show();
         hideStreamInWindow();
-        SendProcessingFb("0");
     }
 
     public void pauseStreamIn()
     {
         streamPlay.onPause();
-        SendProcessingFb("0");
         //TODO
     }
 
@@ -901,7 +879,6 @@ public class CresStreamCtrl extends Service {
     {
         showPreviewWindow();
         cam_preview.startPlayback();
-        SendProcessingFb("0");
         //Toast.makeText(this, "Preview Started", Toast.LENGTH_LONG).show();
     }
 
@@ -909,14 +886,12 @@ public class CresStreamCtrl extends Service {
     {
         hidePreviewWindow();
         cam_preview.stopPlayback();
-        SendProcessingFb("0");
         //Toast.makeText(this, "Preview Stopped", Toast.LENGTH_LONG).show();
     }
     
     public void pausePreview()
     {
         cam_preview.pausePlayback();
-        SendProcessingFb("0");
     }
    
    
@@ -981,7 +956,7 @@ public class CresStreamCtrl extends Service {
 	
 	                    }
 	                    else if((cam_streaming.mCameraPreviewObj != null) && (device_mode==DeviceMode.STREAM_OUT.ordinal()) && (devicestatus == StreamState.STARTED)){
-	                    	cam_streaming.stopRecording();
+	                    	cam_streaming.stopRecording(false);
 	                        hidePreviewWindow();
 	                        SystemClock.sleep(10*cameraRestartTimout);
 	                        try{
@@ -1027,7 +1002,7 @@ public class CresStreamCtrl extends Service {
 	                        hidePreviewWindow();
 	                        SystemClock.sleep(cameraRestartTimout);
 	                        if((cam_streaming.mCameraPreviewObj != null) && ((cam_streaming.isStreaming()) == true))
-	                            cam_streaming.stopRecording();
+	                            cam_streaming.stopRecording(true);
 	                        else if ((((cam_preview.IsPreviewStatus()) == true)))  
 	                            cam_preview.stopPlayback();
 	                        else

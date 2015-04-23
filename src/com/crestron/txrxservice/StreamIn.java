@@ -107,6 +107,7 @@ public class StreamIn implements OnPreparedListener, OnCompletionListener, OnBuf
                 streamCtl.SendStreamState(StreamState.STARTED);
             } 
             catch(Exception e){
+                streamCtl.SendStreamState(StreamState.CONNECTREFUSED);
                 e.printStackTrace();
             }}
     }
@@ -140,6 +141,7 @@ public class StreamIn implements OnPreparedListener, OnCompletionListener, OnBuf
     public void onBufferingUpdate(MediaPlayer mp, int percent) {
         int progress = (int) ((float) mp.getDuration() * ((float) percent/ (float) 100));
         Log.d(TAG, "####### Buffering percent "+percent);
+        streamCtl.SendStreamState(StreamState.BUFFERING);
     }
 
     public void onCompletion(MediaPlayer mp) {
