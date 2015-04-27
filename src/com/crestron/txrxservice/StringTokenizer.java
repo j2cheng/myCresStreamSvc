@@ -10,6 +10,7 @@ public class StringTokenizer
 	String TAG = "TxRx Tokenizer";
 	Pattern pattern;
 	Matcher matcher;
+        private final int REGEX_LIMIT = 2;//Only First Occurence
 
 	public class Token
 	{
@@ -74,7 +75,7 @@ public class StringTokenizer
 		String[] l_tokens = str.split(delims);
 		for (int i = 0; i < l_tokens.length; i++){
 			String tok = l_tokens[i];
-			myStr = tok.split("=");
+			myStr = tok.split("=", REGEX_LIMIT);
 			if(myStr.length>1){
 				Log.d(TAG, "At Parser::strings are "+ myStr[0]+" "+myStr[1]);
 				if(myStr[0].equalsIgnoreCase("start") || myStr[0].equalsIgnoreCase("stop")|| myStr[0].equalsIgnoreCase("pause")){
