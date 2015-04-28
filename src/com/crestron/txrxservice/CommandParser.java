@@ -1,29 +1,19 @@
 package com.crestron.txrxservice;
 
 import java.io.IOException;
+
+import com.crestron.txrxservice.CresStreamCtrl.DeviceMode;
+
 import android.util.Log;
 
 public class CommandParser {
 
-    String TAG = "TxRx CmdParser"; 
+    String TAG = "TxRx CmdParser";
     StringTokenizer tokenizer; 
     CommandInvoker invoke;
     CommandReceiver cmdRx;
     CommandIf cmd ; 
-    //TEMP HACK:TODO Needs to be removed
-    String[] cmdArray = {"MODE", "SessionInitiation", "STREAMURL", "VENCPROFILE", "TRANSPORTMODE", "RTSPPORT", "TSPORT", "RTPVIDEOPORT", "RTPAUDIOPORT", "VFRAMERATE", "VBITRATE", "TCPINTERLEAVE", "MULTICAST_ADDRESS", "ENCODING_RESOLUTION", "START", "STOP", "PAUSE", "AUDIO_MUTE", "AUDIO_UNMUTE", "LATENCY", "PASSWORD_ENABLE", "PASSWORD_DISABLE", "USERNAME", "PASSWORD", 
-    					"XLOC", "YLOC", "W", "H",
-    					"HDMIIN_SYNC_DETECTED", "HDMIIN_INTERLACED", "HDMIIN_CEC_ERROR",
-    					"HDMIIN_HORIZONTAL_RES_FB", "HDMIIN_VERTICAL_RES_FB", 
-    					"HDMIIN_FPS_FB", "HDMIIN_ASPECT_RATIO",
-    					"HDMIIN_AUDIO_FORMAT", "HDMIIN_AUDIO_CHANNELS",
-    					"HDMIIN_TRANSMIT_CEC_MESSAGE", "HDMIIN_RECEIVE_CEC_MESSAGE",
-    					"HDMIOUT_SYNC_DETECTED", "HDMIOUT_INTERLACED", "HDMIOUT_CEC_ERROR",
-    					"HDMIOUT_HORIZONTAL_RES_FB", "HDMIOUT_VERTICAL_RES_FB", 
-    					"HDMIOUT_FPS_FB", "HDMIOUT_ASPECT_RATIO",
-    					"HDMIOUT_AUDIO_FORMAT", "HDMIOUT_AUDIO_CHANNELS",
-    					"HDMIOUT_TRANSMIT_CEC_MESSAGE", "HDMIOUT_RECEIVE_CEC_MESSAGE",
-    					"streamstate"};
+
     public enum CmdTable {
         MODE,
         SESSIONINITIATION,
@@ -77,21 +67,29 @@ public class CommandParser {
         HDMIOUT_AUDIO_CHANNELS,
         HDMIOUT_TRANSMIT_CEC_MESSAGE,
         HDMIOUT_RECEIVE_CEC_MESSAGE,
+        //STREAM IN
+        STREAMIN_HORIZONTAL_RES_FB,
+        STREAMIN_VERTICAL_RES_FB,
+        STREAMIN_FPS_FB,
+        STREAMIN_ASPECT_RATIO,
+        STREAMIN_AUDIO_FORMAT,
+        STREAMIN_AUDIO_CHANNELS,
+        //STREAM OUT
+        STREAMOUT_HORIZONTAL_RES_FB,
+        STREAMOUT_VERTICAL_RES_FB,
+        STREAMOUT_FPS_FB,
+        STREAMOUT_ASPECT_RATIO,
+        STREAMOUT_AUDIO_FORMAT,
+        STREAMOUT_AUDIO_CHANNELS,
         //STREAMING
         PROCESSING_FB,
         DEVICE_READY_FB,
         ELAPSED_SECONDS_FB,
         STREAM_STATUS_FB, 
         INITIATOR_ADDRESS_FB,
-        HORIZONTAL_RESOLUTION_FB, 
-        VERTICAL_RESOLUTION_FB, 
-        FPS_RESOLUTION_FB, 
-        ASPECT_FB, 
-        AUDIO_FORMAT_FB, 
-        AUDIO_CHANNELS_FB,
         //STATUS  
-        STREAMSTATE,
-        UPDATEREQUEST;
+        STREAMSTATE;
+        //UPDATEREQUEST;
     }
 
     public  CommandParser(CresStreamCtrl a_crestctrl){
@@ -170,7 +168,7 @@ public class CommandParser {
         return (sb.toString());
     }
 
-
+    // TODO: These joins should be organized by slots
     CommandIf ProcCommand (String msg, String arg){
         CommandIf cmd = null;
         switch(CmdTable.valueOf(msg)){
@@ -325,7 +323,45 @@ public class CommandParser {
             case HDMIOUT_RECEIVE_CEC_MESSAGE:
                 cmd = new OutRxCecCommand(cmdRx, arg); 
                 break;
-                //STREAMING
+            //STREAM IN
+            case STREAMIN_HORIZONTAL_RES_FB:
+            	cmd = new StreamInHresCommand(cmdRx, arg); 
+                break; 
+            case STREAMIN_VERTICAL_RES_FB:
+            	cmd = new StreamInVresCommand(cmdRx, arg); 
+                break; 
+            case STREAMIN_FPS_FB:
+            	cmd = new StreamInFpsCommand(cmdRx, arg); 
+                break;
+            case STREAMIN_ASPECT_RATIO:
+            	cmd = new StreamInAspectCommand(cmdRx, arg); 
+                break;   
+            case STREAMIN_AUDIO_FORMAT:
+            	cmd = new StreamInAudioFormatCommand(cmdRx, arg); 
+                break;
+            case STREAMIN_AUDIO_CHANNELS:
+            	cmd = new StreamInAudioChannelsCommand(cmdRx, arg); 
+                break;   
+            //STREAM OUT
+            case STREAMOUT_HORIZONTAL_RES_FB:
+        		cmd = new StreamOutHresCommand(cmdRx, arg); 
+                break; 
+            case STREAMOUT_VERTICAL_RES_FB:
+        		cmd = new StreamOutVresCommand(cmdRx, arg); 
+                break; 
+            case STREAMOUT_FPS_FB:
+            	cmd = new StreamOutFpsCommand(cmdRx, arg); 
+                break;
+            case STREAMOUT_ASPECT_RATIO:
+            	cmd = new StreamOutAspectCommand(cmdRx, arg); 
+                break;   
+            case STREAMOUT_AUDIO_FORMAT:
+            	cmd = new StreamOutAudioFormatCommand(cmdRx, arg); 
+                break;
+            case STREAMOUT_AUDIO_CHANNELS:
+            	cmd = new StreamOutAudioChannelsCommand(cmdRx, arg); 
+                break; 
+            //STREAMING
             case PROCESSING_FB:
                 cmd = new ProcessingCommand(cmdRx, arg); 
                 break;
@@ -340,24 +376,6 @@ public class CommandParser {
                 break;
             case INITIATOR_ADDRESS_FB:
                 cmd = new InitAddressCommand(cmdRx, arg); 
-                break;
-            case HORIZONTAL_RESOLUTION_FB:
-                cmd = new HresCommand(cmdRx, arg); 
-                break;
-            case VERTICAL_RESOLUTION_FB: 
-                cmd = new VresCommand(cmdRx, arg); 
-                break;
-            case FPS_RESOLUTION_FB:
-                cmd = new ResolutionCommand(cmdRx, arg); 
-                break;
-            case ASPECT_FB:
-                cmd = new AspectCommand(cmdRx, arg); 
-                break;
-            case AUDIO_FORMAT_FB: 
-                cmd = new SAudioFormatCommand(cmdRx, arg); 
-                break;
-            case AUDIO_CHANNELS_FB:
-                cmd = new SAudioChannelsCommand(cmdRx, arg); 
                 break;
                 //STATUS  
             case STREAMSTATE:
@@ -385,21 +403,27 @@ public class CommandParser {
         StringBuilder sb = new StringBuilder(1024);
         String reply = ""; 
 
-        if(validateMsg(msg[0].toUpperCase())){
+        if(msg !=null && validateMsg(msg[0].toUpperCase())){
             if(msg.length>1){ //Process & Reply Feedback 
                 cmd = ProcCommand(msg[0].toUpperCase(), msg[1]); 
-                invoke.setCommand(cmd);
-                invoke.set();
+                if (cmd != null)
+                {
+	                invoke.setCommand(cmd);
+	                invoke.set();
+                }
                 reply = processReplyFbMessage(msg[0], msg[1]); 
             }
             else { //Test Stub Query
                 String tmp_str = tokenizer.getStringValueOf(msg[0]);
-                //Log.d(TAG, "Querying:: searched for "+msg+" and got value of "+tmp_str);
+                Log.d(TAG, "Querying:: searched for "+msg[0]+" and got value of "+tmp_str);
                 cmd = ProcCommand(msg[0].toUpperCase(), tmp_str); 
-                invoke.setCommand(cmd);
-                String fbMsg = invoke.get();
-                sb.append(receivedMsg).append("=").append(fbMsg);
-                reply = sb.toString();
+                if (cmd != null)
+                {
+	                invoke.setCommand(cmd);
+	                String fbMsg = invoke.get();
+	                sb.append(receivedMsg).append("=").append(fbMsg);
+	                reply = sb.toString();
+                }
                 //reply = processCmdMessage(receivedMsg, msg[0]); 
             }
         } else {

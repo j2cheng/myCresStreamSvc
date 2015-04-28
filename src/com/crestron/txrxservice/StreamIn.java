@@ -9,12 +9,13 @@ import android.content.Context;
 import android.media.MediaPlayer.OnPreparedListener;
 import android.media.MediaPlayer.OnBufferingUpdateListener;
 import android.media.MediaPlayer.OnCompletionListener;
+import android.media.MediaPlayer.OnErrorListener;
 import android.media.AudioManager;
 
 import com.crestron.txrxservice.CresStreamConfigure;
 import com.crestron.txrxservice.CresStreamCtrl.StreamState;
 
-public class StreamIn implements OnPreparedListener, OnCompletionListener, OnBufferingUpdateListener {
+public class StreamIn implements OnPreparedListener, OnCompletionListener, OnBufferingUpdateListener, OnErrorListener {
 
     private MediaPlayer mediaPlayer;
     private SurfaceHolder vidHolder;
@@ -29,6 +30,7 @@ public class StreamIn implements OnPreparedListener, OnCompletionListener, OnBuf
     boolean tcpInterleaveFlag = false;
     boolean disableLatencyFlag = false;
     private CresStreamCtrl streamCtl;
+
 
     public StreamIn(CresStreamCtrl mContext, SurfaceHolder vHolder) {
         Log.e(TAG, "StreamIN :: Constructor called...!");
@@ -83,7 +85,6 @@ public class StreamIn implements OnPreparedListener, OnCompletionListener, OnBuf
                     mediaPlayer.release();
                     mediaPlayer = null;
                 }
-
                 mediaPlayer = new MediaPlayer();
                 mediaPlayer.setDisplay(vidHolder);
                 mediaPlayer.setDataSource(srcUrl);	
@@ -99,12 +100,11 @@ public class StreamIn implements OnPreparedListener, OnCompletionListener, OnBuf
                     rtp_mode = false;
                 }
                 mediaPlayer.prepare();
-                mediaPlayer.setOnPreparedListener(this);
+                mediaPlayer.setOnErrorListener(this);
                 mediaPlayer.setOnCompletionListener(this);
                 mediaPlayer.setOnBufferingUpdateListener(this);
+                mediaPlayer.setOnPreparedListener(this);
                 mediaPlayer.setAudioStreamType(AudioManager.STREAM_MUSIC);
-            
-                streamCtl.SendStreamState(StreamState.STARTED);
             } 
             catch(Exception e){
                 streamCtl.SendStreamState(StreamState.CONNECTREFUSED);
@@ -136,8 +136,49 @@ public class StreamIn implements OnPreparedListener, OnCompletionListener, OnBuf
         public void onPrepared(MediaPlayer mp) {
             Log.d(TAG, "######### OnPrepared##############");
             mediaPlayer.start();
+            
+            streamCtl.SendStreamState(StreamState.STARTED); // TODO: this should be on start complete not prepared
+            streamCtl.SendStreamInFeedbacks();
+        }
+        
+
+    //Error Indication Callback
+    public boolean onError(MediaPlayer mp, int what, int extra){
+        switch (what){
+            case MediaPlayer.MEDIA_ERROR_UNKNOWN:
+                Log.e(TAG, "unknown media playback error");
+                break;
+            case MediaPlayer.MEDIA_ERROR_SERVER_DIED:
+                Log.e(TAG, "server connection died");
+            default:
+                Log.e(TAG, "generic audio playback error");
+                break;
         }
 
+        switch (extra){
+            case MediaPlayer.MEDIA_ERROR_IO:
+                Log.e(TAG, "IO media error");
+                break;
+            case MediaPlayer.MEDIA_ERROR_MALFORMED:
+                Log.e(TAG, "media error, malformed");
+                break;
+            case MediaPlayer.MEDIA_ERROR_UNSUPPORTED:
+                Log.e(TAG, "unsupported media content");
+                break;
+            case MediaPlayer.MEDIA_ERROR_TIMED_OUT:
+                Log.e(TAG, "media timeout error");
+                break;
+            default:
+                Log.e(TAG, "unknown playback error");
+                break;
+        }
+        mp.stop();
+        mp.reset();
+        mp.release();
+        mp = null;
+        return true;
+    }
+    
     public void onBufferingUpdate(MediaPlayer mp, int percent) {
         int progress = (int) ((float) mp.getDuration() * ((float) percent/ (float) 100));
         Log.d(TAG, "####### Buffering percent "+percent);
@@ -152,22 +193,37 @@ public class StreamIn implements OnPreparedListener, OnCompletionListener, OnBuf
     //Response to CSIO Layer
     public boolean getMediaPlayerStatus()
     {
-        return mediaPlayer.isPlaying();
+    	if (mediaPlayer!=null)
+    		return mediaPlayer.isPlaying();
+    	else
+    		return false;
     }
 
     public int getMediaPlayerHorizontalResFb(){
-        return mediaPlayer.getVideoWidth();
+    	if (mediaPlayer!=null)
+    		return mediaPlayer.getVideoWidth();
+    	else
+    		return 0;
     }
 
     public int getMediaPlayerVerticalResFb(){
-        return mediaPlayer.getVideoHeight();
+    	if (mediaPlayer!=null)
+    		return mediaPlayer.getVideoHeight();
+    	else
+    		return 0;
     }
 
     public int getMediaPlayerFpsFb(){
         return 30;//TODO
     }
     public String getMediaPlayerAspectRatioFb(){
-        String aspect = MiscUtils.calculateAspectRatio(mediaPlayer.getVideoWidth(), mediaPlayer.getVideoHeight());
+    	String aspect;
+    	if (mediaPlayer != null)
+    	{
+	        aspect = MiscUtils.calculateAspectRatio(mediaPlayer.getVideoWidth(), mediaPlayer.getVideoHeight());
+    	}
+    	else
+    		aspect = String.valueOf(0);
         return aspect;
     }
     public int getMediaPlayerAudioFormatFb(){

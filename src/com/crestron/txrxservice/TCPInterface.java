@@ -170,9 +170,12 @@ public class TCPInterface extends AsyncTask<Void, Object, Long> {
                             serverHandler.SendDataToAllClients(validatedMsg);
                         }
                         else if (read.trim().equalsIgnoreCase("updaterequest")) {
-                            for(String s: parserInstance.cmdArray){
-                                publishProgress(s, serverHandler);
-                            }
+                        	for(CommandParser.CmdTable ct: CommandParser.CmdTable.values()){
+                        		publishProgress(ct.name(), serverHandler);
+                        	}
+                            //for(String s: parserInstance.cmdArray){
+                                //publishProgress(s, serverHandler);
+                            //}
                         }
                         else{
                             publishProgress(read.trim(), serverHandler);
@@ -216,11 +219,15 @@ public class TCPInterface extends AsyncTask<Void, Object, Long> {
         String tmp_str;
         String receivedMsg = (String)progress[0];
         TCPInterface server = (TCPInterface)progress[1];
-        tmp_str = parserInstance.processReceivedMessage(receivedMsg); 
-        try {
-        	server.SendDataToAllClients(tmp_str);
-        } catch (Exception e) {
-            e.printStackTrace();
+        
+        if (receivedMsg != null)
+        {
+	        tmp_str = parserInstance.processReceivedMessage(receivedMsg); 
+	        try {
+	        	server.SendDataToAllClients(tmp_str);
+	        } catch (Exception e) {
+	            e.printStackTrace();
+	        }
         }
     }
 }

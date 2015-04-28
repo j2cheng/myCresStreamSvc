@@ -86,9 +86,11 @@ public class MiscUtils {
 
         public static String calculateAspectRatio(int w, int h)
         {
-            StringBuilder sb = new StringBuilder(64);
-            int r = calcAspect(w,h);
-            sb.append(w/r).append(":").append(h/r);
-            return (sb.toString());
+            String retstr;
+            if (h != 0)
+            	retstr = String.valueOf((w * 100) / h);
+            else
+            	retstr = String.valueOf(0);
+            return retstr;
         }
 }

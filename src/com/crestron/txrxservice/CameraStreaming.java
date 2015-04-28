@@ -139,6 +139,7 @@ public class CameraStreaming implements ErrorCallback {
                 Log.d(TAG, "########SDP Dump######\n" + sb);
             }
             streamCtl.SendStreamState(StreamState.STARTED);
+            streamCtl.SendStreamOutFeedbacks();
             out_stream_status = true;
         }
         else {

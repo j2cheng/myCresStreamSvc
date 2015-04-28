@@ -1032,11 +1032,11 @@ class InitAddressCommand implements CommandIf {
 }
 
 
-class HresCommand implements CommandIf {
+class StreamInHresCommand implements CommandIf {
     CommandReceiver launch;
     String msg;
 
-    public HresCommand(CommandReceiver launch, String arg) {
+    public StreamInHresCommand(CommandReceiver launch, String arg) {
         this.launch = launch;
         this.msg = arg;
     }
@@ -1046,16 +1046,34 @@ class HresCommand implements CommandIf {
             //launch.(launch.VALIDATE_INT(msg));
         }
         public String getFeedbackMsg() {
-            return launch.getHresFb();
+            return launch.getHresFb(true);
+        }
+}
+
+class StreamOutHresCommand implements CommandIf {
+    CommandReceiver launch;
+    String msg;
+
+    public StreamOutHresCommand(CommandReceiver launch, String arg) {
+        this.launch = launch;
+        this.msg = arg;
+    }
+
+    @Override
+        public void execute() {
+            //launch.(launch.VALIDATE_INT(msg));
+        }
+        public String getFeedbackMsg() {
+            return launch.getHresFb(false);
         }
 }
 
 
-class VresCommand implements CommandIf {
+class StreamInVresCommand implements CommandIf {
     CommandReceiver launch;
     String msg;
 
-    public VresCommand(CommandReceiver launch, String arg) {
+    public StreamInVresCommand(CommandReceiver launch, String arg) {
         this.launch = launch;
         this.msg = arg;
     }
@@ -1065,15 +1083,15 @@ class VresCommand implements CommandIf {
             //launch.(launch.VALIDATE_INT(msg));
         }
         public String getFeedbackMsg() {
-            return launch.getVresFb();
+            return launch.getVresFb(true);
         }
 }
 
-class ResolutionCommand implements CommandIf {
+class StreamOutVresCommand implements CommandIf {
     CommandReceiver launch;
     String msg;
 
-    public ResolutionCommand(CommandReceiver launch, String arg) {
+    public StreamOutVresCommand(CommandReceiver launch, String arg) {
         this.launch = launch;
         this.msg = arg;
     }
@@ -1083,15 +1101,15 @@ class ResolutionCommand implements CommandIf {
             //launch.(launch.VALIDATE_INT(msg));
         }
         public String getFeedbackMsg() {
-            return launch.getFpsFb();
+            return launch.getVresFb(false);
         }
 }
 
-class AspectCommand implements CommandIf {
+class StreamInFpsCommand implements CommandIf {
     CommandReceiver launch;
     String msg;
 
-    public AspectCommand(CommandReceiver launch, String arg) {
+    public StreamInFpsCommand(CommandReceiver launch, String arg) {
         this.launch = launch;
         this.msg = arg;
     }
@@ -1101,15 +1119,15 @@ class AspectCommand implements CommandIf {
             //launch.(launch.VALIDATE_INT(msg));
         }
         public String getFeedbackMsg() {
-            return launch.getAspectFb();
+            return launch.getFpsFb(true);
         }
 }
 
-class SAudioFormatCommand implements CommandIf {
+class StreamOutFpsCommand implements CommandIf {
     CommandReceiver launch;
     String msg;
 
-    public SAudioFormatCommand(CommandReceiver launch, String arg) {
+    public StreamOutFpsCommand(CommandReceiver launch, String arg) {
         this.launch = launch;
         this.msg = arg;
     }
@@ -1119,15 +1137,15 @@ class SAudioFormatCommand implements CommandIf {
             //launch.(launch.VALIDATE_INT(msg));
         }
         public String getFeedbackMsg() {
-            return launch.getAudioFormatFb();
+            return launch.getFpsFb(false);
         }
 }
 
-class SAudioChannelsCommand implements CommandIf {
+class StreamInAspectCommand implements CommandIf {
     CommandReceiver launch;
     String msg;
 
-    public SAudioChannelsCommand(CommandReceiver launch, String arg) {
+    public StreamInAspectCommand(CommandReceiver launch, String arg) {
         this.launch = launch;
         this.msg = arg;
     }
@@ -1137,7 +1155,97 @@ class SAudioChannelsCommand implements CommandIf {
             //launch.(launch.VALIDATE_INT(msg));
         }
         public String getFeedbackMsg() {
-            return launch.getAudioChannelsFb();
+            return launch.getAspectFb(true);
+        }
+}
+
+class StreamOutAspectCommand implements CommandIf {
+    CommandReceiver launch;
+    String msg;
+
+    public StreamOutAspectCommand(CommandReceiver launch, String arg) {
+        this.launch = launch;
+        this.msg = arg;
+    }
+
+    @Override
+        public void execute() {
+            //launch.(launch.VALIDATE_INT(msg));
+        }
+        public String getFeedbackMsg() {
+            return launch.getAspectFb(false);
+        }
+}
+
+class StreamInAudioFormatCommand implements CommandIf {
+    CommandReceiver launch;
+    String msg;
+
+    public StreamInAudioFormatCommand(CommandReceiver launch, String arg) {
+        this.launch = launch;
+        this.msg = arg;
+    }
+
+    @Override
+        public void execute() {
+            //launch.(launch.VALIDATE_INT(msg));
+        }
+        public String getFeedbackMsg() {
+            return launch.getAudioFormatFb(true);
+        }
+}
+
+class StreamOutAudioFormatCommand implements CommandIf {
+    CommandReceiver launch;
+    String msg;
+
+    public StreamOutAudioFormatCommand(CommandReceiver launch, String arg) {
+        this.launch = launch;
+        this.msg = arg;
+    }
+
+    @Override
+        public void execute() {
+            //launch.(launch.VALIDATE_INT(msg));
+        }
+        public String getFeedbackMsg() {
+            return launch.getAudioFormatFb(false);
+        }
+}
+
+class StreamInAudioChannelsCommand implements CommandIf {
+    CommandReceiver launch;
+    String msg;
+
+    public StreamInAudioChannelsCommand(CommandReceiver launch, String arg) {
+        this.launch = launch;
+        this.msg = arg;
+    }
+
+    @Override
+        public void execute() {
+            //launch.(launch.VALIDATE_INT(msg));
+        }
+        public String getFeedbackMsg() {
+            return launch.getAudioChannelsFb(true);
+        }
+}
+
+class StreamOutAudioChannelsCommand implements CommandIf {
+    CommandReceiver launch;
+    String msg;
+
+    public StreamOutAudioChannelsCommand(CommandReceiver launch, String arg) {
+        this.launch = launch;
+        this.msg = arg;
+    }
+
+    @Override
+        public void execute() {
+            //launch.(launch.VALIDATE_INT(msg));
+        }
+        public String getFeedbackMsg() {
+            return launch.getAudioChannelsFb(false);
         }
 }
 

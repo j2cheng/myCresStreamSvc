@@ -27,6 +27,7 @@ import android.view.Surface.PhysicalDisplayInfo;
 import android.graphics.PixelFormat;
 import android.hardware.Camera;
 
+
 interface Command {
     void executeStart();
 }
@@ -42,6 +43,7 @@ interface myCommand2 {
 public class CresStreamCtrl extends Service {
     CameraStreaming cam_streaming;
     CameraPreview cam_preview;
+    StringTokenizer tokenizer;
     StreamIn streamPlay;
     BroadcastReceiver hpdEvent = null;
     BroadcastReceiver resolutionEvent = null;
@@ -136,7 +138,7 @@ public class CresStreamCtrl extends Service {
             
             //Input Streamout Config
             myconfig = new CresStreamConfigure();
-
+            tokenizer = new StringTokenizer();
             hdmiInput = new HDMIInputInterface();
             hdmiOutput = new HDMIOutputInterface();
 
@@ -156,15 +158,11 @@ public class CresStreamCtrl extends Service {
             	e.printStackTrace();            	
             }
 
-            //Stub: CSIO Cmd Receiver & TestApp functionality
-            sockTask = new TCPInterface(this);
-            sockTask.execute(new Void[0]);
-            
             // Create a DisplaySurface to handle both preview and stream in
             // TODO: Create an array to handle multiple instances 
             dispSurface = new CresDisplaySurface(this, windowWidth, windowHeight);
             
-            //Get HPDEVent state frromsysfile
+            //Get HPDEVent state fromsysfile
             hpdHdmiEvent = MiscUtils.getHdmiHpdEventState();
             Log.d(TAG, "hpdHdmiEvent :" + hpdHdmiEvent);
 
@@ -211,6 +209,11 @@ public class CresStreamCtrl extends Service {
                     public void executePause() {pauseStreamIn(); };
                     });
 
+
+            //Stub: CSIO Cmd Receiver & TestApp functionality
+            sockTask = new TCPInterface(this);
+            sockTask.execute(new Void[0]);
+            
             //Global Default Exception Handler
             final Thread.UncaughtExceptionHandler oldHandler = Thread.getDefaultUncaughtExceptionHandler();
 
@@ -518,7 +521,7 @@ public class CresStreamCtrl extends Service {
 
     public int getStreamState()
     {
-        return device_mode;
+        return devicestatus.getValue();
     }
 
     public void SetPasswdEnable()
@@ -526,7 +529,7 @@ public class CresStreamCtrl extends Service {
         StringBuilder sb = new StringBuilder(512);
         enable_passwd = true;
         disable_passwd = false;
-        sb.append("PASSWD_DISABLE=false");
+        sb.append("PASSWORD_DISABLE=FALSE");
         sockTask.SendDataToAllClients(sb.toString());
     }
 
@@ -535,7 +538,7 @@ public class CresStreamCtrl extends Service {
         StringBuilder sb = new StringBuilder(512);
         enable_passwd = false;
         disable_passwd = true;
-        sb.append("PASSWD_ENABLE=false");
+        sb.append("PASSWORD_ENABLE=FALSE");
         sockTask.SendDataToAllClients(sb.toString());
     }
 
@@ -546,18 +549,41 @@ public class CresStreamCtrl extends Service {
     public void SetPasswd(String passwd){
         myconfig.setPasswd(passwd);
     }
+    
+    public void SendStreamInFeedbacks()
+    {
+    	sockTask.SendDataToAllClients("STREAMIN_HORIZONTAL_RES_FB=" + String.valueOf(getStreamHorizontalResFb(true)));
+    	sockTask.SendDataToAllClients("STREAMIN_VERTICAL_RES_FB=" + String.valueOf(getStreamVerticalResFb(true)));
+    	sockTask.SendDataToAllClients("STREAMIN_FPS_FB=" + String.valueOf(getStreamFpsFb(true)));
+    	sockTask.SendDataToAllClients("STREAMIN_ASPECT_RATIO=" + String.valueOf(getStreamAspectRatioFb(true)));
+    	sockTask.SendDataToAllClients("STREAMIN_AUDIO_FORMAT=" + String.valueOf(getStreamAudioFormatFb(true)));
+    	sockTask.SendDataToAllClients("STREAMIN_AUDIO_CHANNELS=" + String.valueOf(getStreamAudiochannelsFb(true)));
+
+        //processReceivedMessage()
+    }
+    
+    public void SendStreamOutFeedbacks()
+    {
+    	sockTask.SendDataToAllClients("STREAMOUT_HORIZONTAL_RES_FB=" + String.valueOf(getStreamHorizontalResFb(false)));
+    	sockTask.SendDataToAllClients("STREAMOUT_VERTICAL_RES_FB=" + String.valueOf(getStreamVerticalResFb(false)));
+    	sockTask.SendDataToAllClients("STREAMOUT_FPS_FB=" + String.valueOf(getStreamFpsFb(false)));
+    	sockTask.SendDataToAllClients("STREAMOUT_ASPECT_RATIO=" + String.valueOf(getStreamAspectRatioFb(false)));
+    	sockTask.SendDataToAllClients("STREAMOUT_AUDIO_FORMAT=" + String.valueOf(getStreamAudioFormatFb(false)));
+    	sockTask.SendDataToAllClients("STREAMOUT_AUDIO_CHANNELS=" + String.valueOf(getStreamAudiochannelsFb(false)));
+    }
 
     public void SendStreamState(StreamState state)
     {
+    	Log.d(TAG, "StreamState : Lock");
+    	threadLock.lock();
+    	
     	try
     	{
-        	Log.d(TAG, "StreamState : Lock");
-        	threadLock.lock();
-
         	devicestatus = state;
 	        StringBuilder sb = new StringBuilder(512);
 	        sb.append("STREAMSTATE=").append(state.getValue());
 	        sockTask.SendDataToAllClients(sb.toString());
+	        tokenizer.AddTokenToList("STREAMSTATE", String.valueOf(state.getValue()));
     	}
     	finally
     	{
@@ -601,10 +627,11 @@ public class CresStreamCtrl extends Service {
     	}
     	finally
     	{
-        	Log.d(TAG, "Stop : Unlock");
+    		Log.d(TAG, "Stop : Unlock");
     		threadLock.unlock();
     	}
     }
+
     public void Pause()
     {
     	Log.d(TAG, "Pause : Lock");
@@ -619,14 +646,14 @@ public class CresStreamCtrl extends Service {
     	}
         finally
     	{
-        	Log.d(TAG, "Pause : Unlock");
+    		Log.d(TAG, "Pause : Unlock");
     		threadLock.unlock();
     	}
     }
     //StreamOut Ctrl & Config
     public void setIpAddress(String ip){
         if(ip!=null)
-            myconfig.setIP(ip);	
+            myconfig.setIP(ip);
     } 
     
     public void setEncodingResolution(int res){
@@ -819,58 +846,46 @@ public class CresStreamCtrl extends Service {
         //TODO
     }
 
-    public int getHorizontalResFb(){
-        if(device_mode==DeviceMode.STREAM_IN.ordinal())
-            return streamPlay.getMediaPlayerHorizontalResFb();
-        else if(device_mode==DeviceMode.STREAM_OUT.ordinal())
-            return cam_streaming.getStreamOutHorizontalResFb();
-        else
-            return 0;
+    public int getStreamHorizontalResFb(boolean streamIn){
+    	if (streamIn)
+    		return streamPlay.getMediaPlayerHorizontalResFb();
+    	else
+    		return cam_streaming.getStreamOutHorizontalResFb();
     } 
     
-    public int getVerticalResFb(){
-        if(device_mode==DeviceMode.STREAM_IN.ordinal())
-            return streamPlay.getMediaPlayerVerticalResFb();
-        else if(device_mode==DeviceMode.STREAM_OUT.ordinal())
-            return cam_streaming.getStreamOutVerticalResFb();
-        else
-            return 0;
+    public int getStreamVerticalResFb(boolean streamIn){
+    	if (streamIn)
+    		return streamPlay.getMediaPlayerVerticalResFb();
+    	else
+    		return cam_streaming.getStreamOutVerticalResFb();
     }
     
-    public int getFpsFb(){
-        if(device_mode==DeviceMode.PREVIEW.ordinal())
-            return streamPlay.getMediaPlayerFpsFb();
-        else if(device_mode==DeviceMode.STREAM_OUT.ordinal())
-            return cam_streaming.getStreamOutFpsFb();
-        else
-            return 0;
+    public int getStreamFpsFb(boolean streamIn){
+    	if (streamIn)
+    		return streamPlay.getMediaPlayerFpsFb();
+    	else
+    		return cam_streaming.getStreamOutFpsFb();
     }
     
-    public String getAspectRatioFb(){
-        if(device_mode==DeviceMode.PREVIEW.ordinal())
-            return streamPlay.getMediaPlayerAspectRatioFb();
-        else if(device_mode==DeviceMode.STREAM_IN.ordinal())
-                return cam_streaming.getStreamOutAspectRatioFb();
-        else
-            return "";
+    public String getStreamAspectRatioFb(boolean streamIn){
+    	if (streamIn)
+    		return streamPlay.getMediaPlayerAspectRatioFb();
+    	else
+    		return cam_streaming.getStreamOutAspectRatioFb();
+    }
+
+    public int getStreamAudioFormatFb(boolean streamIn){
+    	if (streamIn)
+    		return streamPlay.getMediaPlayerAudioFormatFb();
+    	else
+    		return cam_streaming.getStreamOutAudioFormatFb();
     }
     
-    public int getAudioFormatFb(){
-        if(device_mode==DeviceMode.PREVIEW.ordinal())
-            return streamPlay.getMediaPlayerAudioFormatFb();
-        else if(device_mode==DeviceMode.STREAM_IN.ordinal())
-            return cam_streaming.getStreamOutAudioFormatFb();
-        else
-            return 0;
-    }
-    
-    public int getAudiochannelsFb(){
-        if(device_mode==DeviceMode.PREVIEW.ordinal())
-            return streamPlay.getMediaPlayerAudiochannelsFb();
-        else if(device_mode==DeviceMode.STREAM_IN.ordinal())
-            return cam_streaming.getStreamOutAudiochannelsFb();
-        else
-            return 0;
+    public int getStreamAudiochannelsFb(boolean streamIn){
+    	if (streamIn)
+    		return streamPlay.getMediaPlayerAudiochannelsFb();
+    	else
+    		return cam_streaming.getStreamOutAudiochannelsFb();
     }
 
 

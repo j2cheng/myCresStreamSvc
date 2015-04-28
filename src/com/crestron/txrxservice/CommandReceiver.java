@@ -308,40 +308,40 @@ public class CommandReceiver {
         //return ctl.getInitiatorAddress();
     }
     
-    public String getHresFb(){
-        int hres = ctl.getHorizontalResFb();
+    public String getHresFb(boolean streamIn){
+		int hres = ctl.getStreamHorizontalResFb(streamIn);
         l_sb = new StringBuilder(256);
         l_sb.append(hres);
         return l_sb.toString();
     }
 
-    public String getVresFb(){
-        int vres= ctl.getVerticalResFb();
+    public String getVresFb(boolean streamIn){
+        int vres= ctl.getStreamVerticalResFb(streamIn);
         l_sb = new StringBuilder(256);
         l_sb.append(vres);
         return l_sb.toString();
     }
     
-    public String getFpsFb(){
-        int fps = ctl.getFpsFb();
+    public String getFpsFb(boolean streamIn){
+        int fps = ctl.getStreamFpsFb(streamIn);
         l_sb = new StringBuilder(256);
         l_sb.append(fps);
         return l_sb.toString();
     }
     
-    public String getAspectFb(){
-        return ctl.getAspectRatioFb();
+    public String getAspectFb(boolean streamIn){
+        return ctl.getStreamAspectRatioFb(streamIn);
     }
     
-    public String getAudioFormatFb(){
-        int afmt= ctl.getAudioFormatFb();
+    public String getAudioFormatFb(boolean streamIn){
+        int afmt= ctl.getStreamAudioFormatFb(streamIn);
         l_sb = new StringBuilder(256);
         l_sb.append(afmt);
         return l_sb.toString();
     }
     
-    public String getAudioChannelsFb(){
-        int achannels = ctl.getAudiochannelsFb();
+    public String getAudioChannelsFb(boolean streamIn){
+        int achannels = ctl.getStreamAudiochannelsFb(streamIn);
         l_sb = new StringBuilder(256);
         l_sb.append(achannels);
         return l_sb.toString();
