@@ -114,7 +114,7 @@ public class CameraPreview {
                 if(CresStreamCtrl.hpdHdmiEvent==1){
                     String resInfo = getHdmiInputResolution();
                     Log.i(TAG, "HDMI In Resolution API" + resInfo);
-                    MiscUtils.getHdmiInResolutionSysFs();//Reading From SysFs
+                    HDMIInputInterface.getHdmiInResolutionSysFs();//Reading From SysFs
                     hdmiIf.updateResolutionInfo(resInfo);
                     CresStreamCtrl.hpdHdmiEvent=0;
                 }
@@ -152,15 +152,17 @@ public class CameraPreview {
 
     public void stopPlayback()
     {
+    	// TODO: ioctl crash when input hdmi is plugged in but no video passing
         Log.d(TAG, "stopPlayback");
-        if(is_preview){
-            stopAudio();
+        if(is_preview)
+        {
+        	//stopAudio();
             try
             {
                 if (mCamera!= null)
                 {
-                    mCamera.stopPreview();
-                    cresCam.releaseCamera(mCamera);
+            		mCamera.stopPreview();            		
+                	cresCam.releaseCamera(mCamera);
                 }
                 is_preview = false;
                 Log.d(TAG, "Playback stopped !");
@@ -171,6 +173,7 @@ public class CameraPreview {
             {
                 localException.printStackTrace();
             }
+            //stopAudio();
             is_preview = false;
         }
         else

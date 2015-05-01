@@ -4,7 +4,9 @@ import android.media.AudioManager;
 import android.media.AudioRecord;
 import android.media.AudioTrack;
 import android.util.Log;
+
 import java.nio.ByteBuffer;
+import java.util.concurrent.locks.ReentrantLock;
 
 public class AudioPlayback 
 {
@@ -14,10 +16,13 @@ public class AudioPlayback
     AudioRecord mRecorder = null;
     String TAG = "TxRx AudioPlayback"; 
     boolean shouldExit = false;
+    private final ReentrantLock audioBufferLock = new ReentrantLock(true); // fairness=true, makes lock ordered   
+    Thread streamAudioThread;
 
 
     protected void startAudioTask(){
-        new Thread(new StreamAudioTask()).start();
+    	streamAudioThread = new Thread(new StreamAudioTask());
+    	streamAudioThread.start();
     }
 
     class StreamAudioTask implements Runnable {
@@ -73,11 +78,21 @@ public class AudioPlayback
     protected void stopAudioTask(){
         Log.e(TAG, "stop Audio started");
         shouldExit = true;
-        mRecorder.stop();
-        mPlayer.stop();
-        mRecorder.release();
-        mPlayer.release();
-        Log.e(TAG, "Audio Task Stopped");
-        shouldExit = false;
+        try
+        {
+        	this.streamAudioThread.join();
+       	
+        	mRecorder.stop();
+	        mPlayer.stop();
+	        mRecorder.release();
+	        mPlayer.release();
+	        
+	        Log.e(TAG, "Audio Task Stopped");
+	        shouldExit = false;
+        }
+        catch (InterruptedException localInterruptedException)
+        {
+            localInterruptedException.printStackTrace();
+        }        
     }
 }

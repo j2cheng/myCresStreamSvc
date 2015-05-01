@@ -107,7 +107,8 @@ public class StreamIn implements OnPreparedListener, OnCompletionListener, OnBuf
                 mediaPlayer.setAudioStreamType(AudioManager.STREAM_MUSIC);
             } 
             catch(Exception e){
-                streamCtl.SendStreamState(StreamState.CONNECTREFUSED);
+            	// TODO: explore exception handling with better feedback of what went wrong to user
+                streamCtl.SendStreamState(StreamState.STOPPED);
                 e.printStackTrace();
             }}
     }

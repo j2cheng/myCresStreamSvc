@@ -42,44 +42,6 @@ public class MiscUtils {
 			e1.printStackTrace();
 		}
 	}
-       
-        public static String getHdmiInResolutionSysFs(){
-            StringBuilder text = new StringBuilder();
-            try {
-                File file = new File("/sys/devices/platform/omap_i2c.2/i2c-2/2-000f/hdmi_in_resolution");
-                BufferedReader br = new BufferedReader(new FileReader(file));  
-                String line;   
-                while ((line = br.readLine()) != null) {
-                    text.append(line);
-                }
-                br.close() ;
-            }catch (IOException e) {
-                e.printStackTrace();           
-            }
-            Log.d(TAG, "HDMI IN Res from sysfs:" + text.toString());
-            return text.toString();
-        }
-
-        public static int getHdmiHpdEventState(){
-            StringBuilder text = new StringBuilder();
-            try {
-                //File sdcard = Environment.getExternalStorageDirectory();
-                File file = new File("/sys/class/switch/evs_hdmi_hpd/state");
-
-                BufferedReader br = new BufferedReader(new FileReader(file));  
-                String line;   
-                while ((line = br.readLine()) != null) {
-                    text.append(line);
-                    //text.append('\n');
-                }
-                br.close() ;
-            }catch (IOException e) {
-                e.printStackTrace();           
-            }
-            Log.d(TAG, "hpdState:" + text.toString());
-            return Integer.parseInt(text.toString());
-        }
-       
         private static int calcAspect(int a, int b){
             return (b==0) ? a:calcAspect(b, a%b);
         }
