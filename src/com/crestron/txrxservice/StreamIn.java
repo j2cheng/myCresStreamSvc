@@ -93,7 +93,11 @@ public class StreamIn implements OnPreparedListener, OnCompletionListener, OnBuf
                     mediaPlayer.setTransportCommunication(true);
                 //Setting Initial Latency
                 if(disableLatencyFlag==false){
-                    mediaPlayer.setDejitterBufferDuration(latency);
+                    try {
+                        mediaPlayer.setDejitterBufferDuration(latency);
+                    }catch(Exception e){
+                        e.printStackTrace();
+                    }
                 }
                 if(rtp_mode){
                     mediaPlayer.setSDP(sb.toString());
