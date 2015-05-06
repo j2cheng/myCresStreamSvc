@@ -25,9 +25,10 @@ public class CameraPreview {
     //List<Camera.Size> mSupportedPreviewSizes;
     CresStreamCtrl streamCtl;
 
-    public CameraPreview(CresStreamCtrl ctl, SurfaceHolder vHolder, HDMIInputInterface hdmiInIface) {
+    //public CameraPreview(CresStreamCtrl ctl, SurfaceHolder vHolder, HDMIInputInterface hdmiInIface) {
+    public CameraPreview(CresStreamCtrl ctl, HDMIInputInterface hdmiInIface) {
         audio_pb = new AudioPlayback();
-        surfaceHolder = vHolder;
+        //surfaceHolder = vHolder;
         hdmiIf = hdmiInIface;
         streamCtl = ctl;
     }
@@ -101,7 +102,8 @@ public class CameraPreview {
             //                    hdmiinput = mCamera.getHdmiInputStatus();
             if(mCamera!=null){
                 try {
-                    mCamera.setPreviewDisplay(surfaceHolder);
+                    mCamera.setPreviewDisplay(streamCtl.getCresSurfaceHolder());
+                    //mCamera.setPreviewDisplay(surfaceHolder);
                 }catch (Exception localException) {
                     localException.printStackTrace();
                 }
@@ -173,7 +175,7 @@ public class CameraPreview {
             {
                 localException.printStackTrace();
             }
-            //stopAudio();
+            stopAudio();
             is_preview = false;
         }
         else

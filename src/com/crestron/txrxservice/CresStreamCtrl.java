@@ -27,6 +27,8 @@ import android.view.Surface.PhysicalDisplayInfo;
 import android.graphics.PixelFormat;
 import android.hardware.Camera;
 
+//import com.google.gson.Gson;
+//import com.google.gson.GsonBuilder;
 
 interface Command {
     void executeStart();
@@ -68,8 +70,9 @@ public class CresStreamCtrl extends Service {
     static String stopStatus="true";
     static String pauseStatus="false";
     static int last_x = 0, last_y = 0, last_w = 1920, last_h = 1080;
-    int device_mode = 0;
+    //int device_mode = 0;
     int sessInitMode = 0;
+    static int idx = 0;
     boolean StreamOutstarted = false;
     boolean hdmiInputDriverPresent = false;
     boolean enable_passwd = false;
@@ -143,6 +146,18 @@ public class CresStreamCtrl extends Service {
             tokenizer = new StringTokenizer();
             hdmiOutput = new HDMIOutputInterface();
             
+//            //////////////////////////
+//            UserSettings userSettings = new UserSettings();
+//            userSettings.setVolume(11);
+//            GsonBuilder builder = new GsonBuilder();
+//            Gson gson = builder.create();
+//            String serializedClass = gson.toJson(userSettings);
+//            Log.d(TAG, "Serialized Class :" + serializedClass);
+//            UserSettings settings2 = new UserSettings();
+//            settings2 = gson.fromJson(serializedClass, UserSettings.class);
+//            Log.d(TAG, "Volume is at :" + settings2.getVolume());
+//            ///////////////////////////
+            
             hdmiInputDriverPresent = HDMIInputInterface.isHdmiDriverPresent();
 
         	if (hdmiInputDriverPresent)
@@ -161,9 +176,9 @@ public class CresStreamCtrl extends Service {
             try
             {  
             	windowWidth = Integer.parseInt(hdmiOutput.getHorizontalRes());
-	            setWindowSizeW(windowWidth);
+	            setWindowSizeW(windowWidth, 0);
 	            windowHeight = Integer.parseInt(hdmiOutput.getVerticalRes());
-	            setWindowSizeH(windowHeight);
+	            setWindowSizeH(windowHeight, 0);
             }
             catch (Exception e)
             {
@@ -187,20 +202,22 @@ public class CresStreamCtrl extends Service {
             //HPD and Resolution Event Registration
             registerBroadcasts();
             //Enable StreamIn and CameraPreview 
-            SurfaceHolder sHolder = dispSurface.GetSurfaceHolder(0);//TODO:IDX
-            streamPlay = new StreamIn(CresStreamCtrl.this, sHolder);
+            //SurfaceHolder sHolder = dispSurface.GetSurfaceHolder(0);//TODO:IDX
+            //streamPlay = new StreamIn(CresStreamCtrl.this, sHolder);
+            streamPlay = new StreamIn(CresStreamCtrl.this);
             
-            sHolder = dispSurface.GetSurfaceHolder(1);//TODO:IDX
-            cam_streaming = new CameraStreaming(CresStreamCtrl.this, sHolder);
-            if (hdmiInputDriverPresent)
-            	cam_preview = new CameraPreview(this, sHolder, hdmiInput);
+            //sHolder = dispSurface.GetSurfaceHolder(1);//TODO:IDX
+            //cam_streaming = new CameraStreaming(CresStreamCtrl.this, sHolder);
+            cam_streaming = new CameraStreaming(CresStreamCtrl.this);
+            //cam_preview = new CameraPreview(this, sHolder, hdmiInput);
+            cam_preview = new CameraPreview(this, hdmiInput);
             //Play Control
             hm = new HashMap();
             hm.put(2/*"PREVIEW"*/, new Command() {
                     public void executeStart() {startPreview(); };
                     });
             hm.put(1 /*"STREAMOUT"*/, new Command() {
-                    public void executeStart() {startStreamOut();createStreamOutURL();};
+                    public void executeStart() {startStreamOut();};//createStreamOutURL();};
                     });
             hm.put(0 /*"STREAMIN"*/, new Command() {
                     public void executeStart() {startStreamIn(); };
@@ -230,7 +247,7 @@ public class CresStreamCtrl extends Service {
             //Stub: CSIO Cmd Receiver & TestApp functionality
             sockTask = new TCPInterface(this);
             sockTask.execute(new Void[0]);
-           /* 
+            
             //Global Default Exception Handler
             final Thread.UncaughtExceptionHandler oldHandler = Thread.getDefaultUncaughtExceptionHandler();
 
@@ -247,7 +264,7 @@ public class CresStreamCtrl extends Service {
                     else
                     System.exit(2); //Prevents the service/app from freezing
                     }
-                    });*/
+                    });
         }
    
     @Override
@@ -276,104 +293,97 @@ public class CresStreamCtrl extends Service {
         	dispSurface.RemoveView();
     }
 
-    public void setDeviceMode(int mode)
+    public SurfaceHolder getCresSurfaceHolder(){
+        return dispSurface.GetSurfaceHolder(idx);
+    }
+
+    public void setDeviceMode(int mode, int sessionId)
     {
-    	// If hdmi input driver is present allow all 3 modes, otherwise only allow stream in mode
-		if (hdmiInputDriverPresent || (mode == DeviceMode.STREAM_IN.ordinal())) 
-    	{
-	        Log.d(TAG, " setDeviceMode "+ mode);
-	        
-	        if ((device_mode != mode) && (devicestatus == StreamState.STARTED))
-	        	hm2.get(device_mode).executeStop();
-	        device_mode = mode;
-    	}
+        Log.d(TAG, " setDeviceMode "+ mode);
+        // If hdmi input driver is present allow all 3 modes, otherwise only allow stream in mode
+        if (hdmiInputDriverPresent || (mode == DeviceMode.STREAM_IN.ordinal())) 
+        {
+            Log.d(TAG, " setDeviceMode "+ mode);
+
+            if ((myconfig.getDeviceMode(sessionId) != mode) && (devicestatus == StreamState.STARTED))
+                hm2.get(myconfig.getDeviceMode(sessionId)).executeStop();
+            myconfig.setDeviceMode(sessionId, mode);
+        }
     }
     
-    public void setXCoordinates(int x)
+    public void setXCoordinates(int x, int sessionId)
     {
         if (last_x!=x){
-            myconfig.setx(x);
-            updateXY();
+            myconfig.setx(sessionId, x);
+            updateXY(sessionId);
         }
     }
 
-    public void setYCoordinates(int y)
+    public void setYCoordinates(int y, int sessionId)
     {
         if(last_y!=y){
-            myconfig.sety(y);
-            updateXY();
+            myconfig.sety(sessionId, y);
+            updateXY(sessionId);
         }
     }
 
-    public void setWindowSizeW(int w)
+    public void setWindowSizeW(int w, int sessionId)
     {
         if(last_w!=w){
-            myconfig.setWidth(w);
-            updateWH();
+            myconfig.setWidth(sessionId, w);
+            updateWH(sessionId);
         }
     }
 
-    public void setWindowSizeH(int h)
+    public void setWindowSizeH(int h, int sessionId)
     {
         if(last_h!=h){
-            myconfig.setHeight(h);
-            updateWH();
+            myconfig.setHeight(sessionId, h);
+            updateWH(sessionId);
         }
     }
 
-    
     public int getXCoordinates()
     {
-        return CresStreamConfigure.getx();
+        return CresStreamConfigure.getx(idx);
     }
 
     public int getYCoordinates()
     {
-        return CresStreamConfigure.gety();
+        return CresStreamConfigure.gety(idx);
     }
 
     public int getWindowSizeW()
     {
-        return CresStreamConfigure.getWidth();
+        return CresStreamConfigure.getWidth(idx);
     }
 
     public int getWindowSizeH()
     {
-        return CresStreamConfigure.getHeight();
+        return CresStreamConfigure.getHeight(idx);
     }
         
-    private int getDevIdx(){
-        int i = 0;
-        if(device_mode==DeviceMode.STREAM_IN.ordinal())
-            i = 0;
-        else
-            i = 1;
-        return i; 
-    }
-    
-    public void updateWH()
+    public void updateWH(int sessionId)
     {
-    	
-    	Log.d(TAG, "updateWH : Lock");
-    	threadLock.lock();
-    	
-    	try
-    	{
-        	if (dispSurface != null)
-        	{
-        		dispSurface.UpdateDimensions(CresStreamConfigure.getWidth(), 
-        			CresStreamConfigure.getHeight(), getDevIdx());
-        	}
-    	}
-    	finally
-    	{
-        	threadLock.unlock();
-        	Log.d(TAG, "updateWH : Unlock");
-    	}
-    	
+        Log.d(TAG, "updateWH : Lock");
+        threadLock.lock();
+        try
+        {
+            if (dispSurface != null)
+            {
+                dispSurface.UpdateDimensions(CresStreamConfigure.getWidth(sessionId), 
+                        CresStreamConfigure.getHeight(sessionId), sessionId);
+            }
+        }
+        finally
+        {
+            threadLock.unlock();
+            Log.d(TAG, "updateWH : Unlock");
+        }
+
     }
     
-    public void updateXY()
+    public void updateXY(int sessionId)
     {
     	
     	Log.d(TAG, "updateXY : Lock");
@@ -382,10 +392,10 @@ public class CresStreamCtrl extends Service {
     	try
     	{
         	if (dispSurface != null)
-        	{
-        		dispSurface.UpdateCoordinates(CresStreamConfigure.getx(), 
-        			CresStreamConfigure.gety(), getDevIdx()); 
-        	}
+                {
+                    dispSurface.UpdateCoordinates(CresStreamConfigure.getx(sessionId), 
+                            CresStreamConfigure.gety(sessionId), sessionId); 
+                }
     	}
     	finally
     	{
@@ -402,7 +412,6 @@ public class CresStreamCtrl extends Service {
     
     void refreshInputResolution()
     {
-    	// TODO: Timeout occurs when there is no valid input signal (HDMI plugged in but resolution 0)
         Log.i(TAG, "Refresh resolution info");
     	
     	//HDMI In
@@ -411,29 +420,6 @@ public class CresStreamCtrl extends Service {
     	readResolutionInfo(hdmiInputResolution);
 
     	
-        /*if ((cam_preview.IsPreviewStatus()) == true)
-        {
-            //hdmiInputResolution = cam_streaming.mCameraPreviewObj.getHdmiInputResolution();
-            hdmiInputResolution = cam_preview.getHdmiInputResolution();
-            Log.i(TAG, "HDMI In Resolution " + hdmiInputResolution);
-        }
-        else if((cam_streaming.mCameraPreviewObj != null) && ((cam_streaming.isStreaming()) == true)){
-            hdmiInputResolution = cam_preview.getHdmiInputResolution();
-            //hdmiInputResolution = cam_streaming.mCameraPreviewObj.getHdmiInputResolution();
-            Log.i(TAG, "HDMI In Resolution " + hdmiInputResolution);
-        }
-        else{
-        	Camera cameraInstance = CresCamera.getCamera();//Camera.open(0);
-        	if(cameraInstance != null){
-        		hdmiInputResolution = cameraInstance.getHdmiInputStatus();
-        		Log.i(TAG, "HDMI In Resolution " + hdmiInputResolution);
-        	   	//cameraInstance.release();
-                CresCamera.releaseCamera(cameraInstance);
-        	}
-        	cameraInstance = null;
-        //}
-        readResolutionInfo();
-       */ 
     }
 
 	public void refreshOutputResolution() {
@@ -556,7 +542,7 @@ public class CresStreamCtrl extends Service {
     	return hdmiOutput.getAudioChannels();
     }
 
-    public void setSessionInitMode(int mode)
+    public void setSessionInitMode(int sessId, int mode)
     {
 	    Log.d(TAG, " setSessionInitMode "+ mode);
 	    sessInitMode = mode;
@@ -610,10 +596,11 @@ public class CresStreamCtrl extends Service {
 
     public int getStreamState()
     {
-        return devicestatus.getValue();
+        return myconfig.getDeviceMode(idx);
+        //return device_mode[idx];
     }
 
-    public void SetPasswdEnable()
+    public void SetPasswdEnable(int sessId)
     {
         StringBuilder sb = new StringBuilder(512);
         enable_passwd = true;
@@ -622,7 +609,7 @@ public class CresStreamCtrl extends Service {
         sockTask.SendDataToAllClients(sb.toString());
     }
 
-    public void SetPasswdDisable()
+    public void SetPasswdDisable(int sessId)
     {
         StringBuilder sb = new StringBuilder(512);
         enable_passwd = false;
@@ -631,12 +618,12 @@ public class CresStreamCtrl extends Service {
         sockTask.SendDataToAllClients(sb.toString());
     }
 
-    public void SetUserName(String uname){
-        myconfig.setUserName(uname);
+    public void SetUserName(String uname, int sessId){
+        myconfig.setUserName(sessId, uname);
     }
 
-    public void SetPasswd(String passwd){
-        myconfig.setPasswd(passwd);
+    public void SetPasswd(String passwd, int sessId){
+        myconfig.setPasswd(sessId, passwd);
     }
     
     public void SendStreamInFeedbacks()
@@ -674,7 +661,7 @@ public class CresStreamCtrl extends Service {
 	        sockTask.SendDataToAllClients(sb.toString());
 	        tokenizer.AddTokenToList("STREAMSTATE", String.valueOf(state.getValue()));
     	}
-    	finally
+        finally 
     	{
         	threadLock.unlock();
         	Log.d(TAG, "StreamState : Unlock");
@@ -682,8 +669,9 @@ public class CresStreamCtrl extends Service {
     }
 
     //Ctrls
-    public void Start()
+    public void Start(int sessionId)
     {
+        idx = sessionId;
     	Log.d(TAG, "Start : Lock");
     	threadLock.lock();
     	try
@@ -692,7 +680,8 @@ public class CresStreamCtrl extends Service {
 	    	playStatus="true";
 	    	stopStatus="false";
 	        pauseStatus="false";
-	        hm.get(device_mode).executeStart();
+	        hm.get(myconfig.getDeviceMode(sessionId)).executeStart();
+	        //hm.get(device_mode).executeStart();
 	        // The started state goes back when we actually start
     	}
     	finally
@@ -702,8 +691,9 @@ public class CresStreamCtrl extends Service {
     	}
     }
 
-    public void Stop()
+    public void Stop(int sessionId)
     {
+        idx = sessionId;
     	Log.d(TAG, "Stop : Lock");
     	threadLock.lock();
     	try
@@ -712,7 +702,7 @@ public class CresStreamCtrl extends Service {
 	    	stopStatus="true";
 	        pauseStatus="false";
 	        restartRequired=false;
-	        hm2.get(device_mode).executeStop();
+	        hm2.get(myconfig.getDeviceMode(sessionId)).executeStop();
 	        // device state will be set in stop callback
     	}
     	finally
@@ -722,8 +712,9 @@ public class CresStreamCtrl extends Service {
     	}
     }
 
-    public void Pause()
+    public void Pause(int sessionId)
     {
+        idx = sessionId;
     	Log.d(TAG, "Pause : Lock");
     	threadLock.lock();
     	try
@@ -731,7 +722,8 @@ public class CresStreamCtrl extends Service {
 	        pauseStatus="true";
 	    	playStatus="false";
 	    	stopStatus="false";
-	        hm3.get(device_mode).executePause();
+	        hm3.get(myconfig.getDeviceMode(sessionId)).executePause();
+	        //hm3.get(device_mode).executePause();
 	        // Device state will be set in pause callback
     	}
         finally
@@ -741,13 +733,13 @@ public class CresStreamCtrl extends Service {
     	}
     }
     //StreamOut Ctrl & Config
-    public void setIpAddress(String ip){
+    public void setMulticastIpAddress(String ip, int sessId){
         if(ip!=null)
-            myconfig.setIP(ip);
+            myconfig.setMulticastIP(sessId, ip);
     } 
     
-    public void setEncodingResolution(int res){
-        myconfig.setOutResolution(res);
+    public void setEncodingResolution(int res, int sessId){
+        myconfig.setOutResolution(sessId,res);
     } 
     
     public void setTMode(String tmode){
@@ -758,82 +750,88 @@ public class CresStreamCtrl extends Service {
         myconfig.setVEncProfile(profile);	
     } 
     
-    public void setVFrmRate(int vfr){
-        myconfig.setVFrameRate(vfr);	
+    public void setVFrmRate(int sessId, int vfr){
+        myconfig.setVFrameRate(sessId, vfr);	
     } 
     
-    public void setVbitRate(int vbr){
-        myconfig.setVideoBitRate(vbr);	
+    public void setVbitRate(int sessId, int vbr){
+        myconfig.setVideoBitRate(sessId, vbr);	
     } 
     
-    public void setRTSPPort(int _port){
-	    myconfig.setRTSPPort(_port);	
+    public void setRTSPPort(int sessId, int _port){
+	    myconfig.setRTSPPort(sessId,_port);	
     }
-    public void setTSPort(int _port){
-	    myconfig.setTSPort(_port);	
+    public void setTSPort(int sessId, int _port){
+	    myconfig.setTSPort(sessId,_port);	
     }
-    public void setRTPVideoPort(int _port){
-	    myconfig.setRTPVPort(_port);	
+    public void setRTPVideoPort(int sessId, int _port){
+	    myconfig.setRTPVPort(sessId,_port);	
     }
-    public void setRTPAudioPort(int _port){
-	    myconfig.setRTPAPort(_port);	
+    public void setRTPAudioPort(int sessId, int _port){
+	    myconfig.setRTPAPort(sessId,_port);	
     }
 
     private String createStreamOutURL()
     {
         StringBuilder url = new StringBuilder(1024);
+        url.append("");
         String proto = "";
         String file = "";
         int port = 0;  
         String l_ipaddr= "";
-        switch(myconfig.mode.getMode()){
-            case 5:
-            case 0:{
-                       proto = "rtsp";
-                       port = myconfig.getRTSPPort(); 
-                       l_ipaddr = myconfig.getIP();
-                       file = "/live.sdp";
-                   }
-                   break;
-            case 1:{//Only RTP
-                       proto = "rtp";
-                       //l_ipaddr = "@";
-                       l_ipaddr = myconfig.getUrl();
-                       port = myconfig.getRTPVPort();
-
-                   }
-                   break;
-            case 2:{
-                       proto = "rtp";
-                       l_ipaddr = myconfig.getUrl();
-                       port = myconfig.getTSPort(); 
-                   }
-                   break;
-            case 3:{
-                       proto = "udp";
-                       l_ipaddr = myconfig.getUrl();
-                       port = myconfig.getTSPort(); 
-                   }
-                   break;
-            default:
-                   break;
-        }
-        url.append(proto).append("://").append(l_ipaddr).append(":").append(port).append(file);
-        Log.d(TAG, "URL is "+url.toString());
+        if ((sessInitMode == 0) || (sessInitMode == 2))
+        {
+	        switch(myconfig.mode.getMode()){
+	            case 5:
+	            case 0:{
+	                       proto = "rtsp";
+	                       port = myconfig.getRTSPPort(idx); 
+	                       l_ipaddr = myconfig.getDeviceIP();
+	                       file = "/live.sdp";
+	                   }
+	                   break;
+	            case 1:{//Only RTP
+	                       proto = "rtp";
+	                       //l_ipaddr = "@";
+	                       l_ipaddr = myconfig.getUrl(idx);
+	                       port = myconfig.getRTPVPort(idx);
+	
+	                   }
+	                   break;
+	            case 2:{
+	                       proto = "rtp";
+	                       l_ipaddr = myconfig.getUrl(idx);
+	                       port = myconfig.getTSPort(idx); 
+	                   }
+	                   break;
+	            case 3:{
+	                       proto = "udp";
+	                       l_ipaddr = myconfig.getUrl(idx);
+	                       port = myconfig.getTSPort(idx); 
+	                   }
+	                   break;
+	            default:
+	                   break;
+	        }
+	        url.append(proto).append("://").append(l_ipaddr).append(":").append(port).append(file);
+	        Log.d(TAG, "URL is "+url.toString());
+        }        
         return url.toString();
     }
 
     public void startStreamOut()
     {
         StringBuilder sb = new StringBuilder(512);
-        updateWindow();
+        updateWindow(idx);
         showPreviewWindow();
         out_url = createStreamOutURL();
+
         if((sessInitMode==0) && (myconfig.mode.getMode()!=0)){
             Toast.makeText(this, "Invalid Mode for this SessionInitation", Toast.LENGTH_LONG).show();
         }
         else{
             try {
+                cam_streaming.setSessionIndex(idx);
                 cam_streaming.startRecording();
             } catch(IOException e) {
                 e.printStackTrace();
@@ -849,6 +847,7 @@ public class CresStreamCtrl extends Service {
     {
         if(StreamOutstarted){
             //Toast.makeText(this, "StreamOut Stopped", Toast.LENGTH_LONG).show();
+            cam_streaming.setSessionIndex(idx);
             cam_streaming.stopRecording(false);
             StreamOutstarted = false;
             hidePreviewWindow();
@@ -864,52 +863,52 @@ public class CresStreamCtrl extends Service {
     {
         Log.d(TAG, "Preview Window hidden");
         if (dispSurface != null)
-        	dispSurface.HideWindow(getDevIdx());
+        	dispSurface.HideWindow(idx);
     }
     
     private void showPreviewWindow()
     {
         Log.d(TAG, "Preview Window showing");
         if (dispSurface != null)
-        	dispSurface.ShowWindow(getDevIdx());
+        	dispSurface.ShowWindow(idx);
     }
 
     //StreamIn Ctrls & Config
     private void hideStreamInWindow()
     {
-        Log.d(TAG, " streamin Window hidden ");
+        Log.d(TAG, " streamin Window hidden " + idx);
         if (dispSurface != null)
-        	dispSurface.HideWindow(getDevIdx());
+        	dispSurface.HideWindow(idx);
     }
 
     private void showStreamInWindow()
     {
-        Log.d(TAG, "streamin Window  showing");
+        Log.d(TAG, "streamin Window  showing" + idx);
         if (dispSurface != null)
-        	dispSurface.ShowWindow(getDevIdx());
+        	dispSurface.ShowWindow(idx);
     }
 
-    public void EnableTcpInterleave(){
+    public void EnableTcpInterleave(int sessionId){
         Log.d(TAG, " EnableTcpInterleave");
         streamPlay.setRtspTcpInterleave(true);
     }
 
-    public void setStreamInUrl(String ap_url)
+    public void setStreamInUrl(String ap_url, int sessionId)
     {
         out_url = ap_url;
-        myconfig.setUrl(ap_url);
+        myconfig.setUrl(sessionId, ap_url);
         streamPlay.setUrl(ap_url);
         if(ap_url.startsWith("rtp://@"))
-            streamPlay.setRtpOnlyMode( myconfig.getRTPVPort(),  myconfig.getRTPAPort(), myconfig.getIP());
+            streamPlay.setRtpOnlyMode( myconfig.getRTPVPort(idx),  myconfig.getRTPAPort(idx), myconfig.getDeviceIP());
         else if(ap_url.startsWith("http://"))
             streamPlay.disableLatency();
         else
             Log.d(TAG, "No conditional Tags for StreamIn");
     }
     
-    public void SetStreamInLatency(int initialLatency)
+    public void SetStreamInLatency(int sessId, int initialLatency)
     {
-        streamPlay.setLatency(initialLatency);
+        streamPlay.setLatency(sessId, initialLatency);
     }
     
     public String getStreamUrl()
@@ -919,8 +918,9 @@ public class CresStreamCtrl extends Service {
 
     public void startStreamIn()
     {
-        updateWindow();
+        updateWindow(idx);
         showStreamInWindow();
+        streamPlay.setSessionIndex(idx);
         streamPlay.onStart();
         //Toast.makeText(this, "StreamIN Started", Toast.LENGTH_LONG).show();
     }
@@ -928,13 +928,14 @@ public class CresStreamCtrl extends Service {
 	/**
 	 * 
 	 */
-	public void updateWindow() {
-		updateWH();
-        updateXY();
-	}
+    public void updateWindow(int sessId) {
+        updateWH(sessId);
+        updateXY(sessId);
+    }
 
     public void stopStreamIn()
     {
+        streamPlay.setSessionIndex(idx);
         streamPlay.onStop();
         //Toast.makeText(this, "StreamIN Stopped", Toast.LENGTH_LONG).show();
         hideStreamInWindow();
@@ -992,7 +993,7 @@ public class CresStreamCtrl extends Service {
     //Preview 
     public void startPreview()
     {
-        updateWindow();
+        updateWindow(idx);
         showPreviewWindow();
         cam_preview.startPlayback();
         //Toast.makeText(this, "Preview Started", Toast.LENGTH_LONG).show();
@@ -1025,19 +1026,28 @@ public class CresStreamCtrl extends Service {
     }
    
     public String getDeviceReadyStatus(){
-	return "1";//"TODO:MISTRAL";
+	return "1";//"TODO";
     }
     
     public String getProcessingStatus(){
-	return "1";//"TODO:MISTRAL";
+	return "1";//"TODO";
     }
 
     public String getElapsedSeconds(){
-	return "0";//"TODO:MISTRAL";
+	return "0";//"TODO";
     }
 
     public String getStreamStatus(){
-	return "0";//"TODO:MISTRAL";
+	return "0";//"TODO";
+    }
+
+    public String getStreamStatistics(){
+        if (myconfig.getDeviceMode(idx) == DeviceMode.STREAM_IN.ordinal()) 
+            return streamPlay.updateSvcWithPlayerStatistics(); 
+        else if (myconfig.getDeviceMode(idx) == DeviceMode.STREAM_OUT.ordinal()) 
+            return cam_streaming.updateSvcWithStreamStatistics();
+        else
+            return "";
     }
 
     //Registering for HPD and Resolution Event detection	
@@ -1053,6 +1063,7 @@ public class CresStreamCtrl extends Service {
             	{
 	                if (paramAnonymousIntent.getAction().equals("evs.intent.action.hdmi.RESOLUTION_CHANGED"))
 	                {
+                        int device_mode = myconfig.getDeviceMode(idx);
 	                    int resolutionId = paramAnonymousIntent.getIntExtra("evs_hdmi_resolution_id", -1);
 	                    String hdmiInputResolution = null;
 	                    Log.i(TAG, "Received resolution changed broadcast !: " + resolutionId);
@@ -1066,7 +1077,6 @@ public class CresStreamCtrl extends Service {
 
 	                        cam_preview.stopPlayback();
 	                        hidePreviewWindow();
-	                        cam_preview.stopPlayback();
 	                        SystemClock.sleep(cameraRestartTimout);
 	                        hpdHdmiEvent = 1;
 	                        Log.i(TAG, "HDMI resolutions - HRes:" + hdmiInput.getHorizontalRes() + " Vres:" + hdmiInput.getVerticalRes());

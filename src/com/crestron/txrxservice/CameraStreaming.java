@@ -27,13 +27,19 @@ public class CameraStreaming implements ErrorCallback {
     File file4Recording;
     boolean out_stream_status = false;
     CresStreamCtrl streamCtl;
+    private int idx = 0;
 
-    public CameraStreaming(CresStreamCtrl mContext, SurfaceHolder lpHolder ) {
+    //public CameraStreaming(CresStreamCtrl mContext, SurfaceHolder lpHolder ) {
+    public CameraStreaming(CresStreamCtrl mContext) {
         MiscUtils.getDeviceIpAddr();	
         hostaddr = MiscUtils.matcher.group();
         Log.d(TAG, "CameraStreaming :: Constructor called.....");
-        surfaceHolder = lpHolder;
+        //surfaceHolder = lpHolder;
         streamCtl = mContext;
+    }
+   
+    public void setSessionIndex(int id){
+        idx = id;
     }
 
     protected void startRecording() throws IOException {
@@ -66,7 +72,7 @@ public class CameraStreaming implements ErrorCallback {
         mCameraPreviewObj = CresCamera.getCamera();
         if(mCameraPreviewObj!=null){
             mCameraPreviewObj.getHdmiInputStatus();
-            mCameraPreviewObj.setEncoderFps(CresStreamConfigure.getVFrameRate());
+            mCameraPreviewObj.setEncoderFps(CresStreamConfigure.getVFrameRate(idx));
             mCameraPreviewObj.lock();
             mCameraPreviewObj.unlock();
             mrec.setCamera(mCameraPreviewObj);
@@ -80,23 +86,23 @@ public class CameraStreaming implements ErrorCallback {
             {
                 case 0://RTSP
                     {
-                        l_port = CresStreamConfigure.getRTSPPort();
-                        mrec.setDestinationIP(hostaddr);
+                        l_port = CresStreamConfigure.getRTSPPort(idx);
+                        mrec.setDestinationIP( hostaddr);
                         mrec.setRTSPPort(l_port);
                     }
                     break; 
                 case 1://RTP
-                    mrec.setDestinationIP(CresStreamConfigure.getUrl());
-                    l_port = CresStreamConfigure.getRTPAPort();
+                    mrec.setDestinationIP(CresStreamConfigure.getUrl(idx));
+                    l_port = CresStreamConfigure.getRTPAPort(idx);
                     mrec.setRTPAudioPort(l_port);
-                    l_port = CresStreamConfigure.getRTPVPort();
+                    l_port = CresStreamConfigure.getRTPVPort(idx);
                     mrec.setRTPVideoPort(l_port);
                     break;
                 case 2://TS_RTP
                 case 3://TS_UDP
                     //TODO
-                    mrec.setDestinationIP(CresStreamConfigure.getUrl());
-                    l_port = CresStreamConfigure.getTSPort();
+                    mrec.setDestinationIP(CresStreamConfigure.getUrl(idx));
+                    l_port = CresStreamConfigure.getTSPort(idx);
                     mrec.setMPEG2TSPort(l_port);
                     break;
                 case 4://MJPEG
@@ -104,8 +110,8 @@ public class CameraStreaming implements ErrorCallback {
                 case 5://MCast RTSP
                     {
                         mrec.setDestinationIP(hostaddr);//Set Server IP as HostIP
-                        l_port = CresStreamConfigure.getRTSPPort();
-                        mrec.setMcastIP(CresStreamConfigure.getIP());
+                        l_port = CresStreamConfigure.getRTSPPort(idx);
+                        mrec.setMcastIP(CresStreamConfigure.getMulticastIP(idx));
                         mrec.setRTSPPort(l_port);
                     }
                     break;
@@ -113,24 +119,28 @@ public class CameraStreaming implements ErrorCallback {
                     break; 
             }
             mrec.setOutputFormat(9);//Streamout option set to Stagefright Recorder
-            Log.d(TAG, "ip addr "+CresStreamConfigure.getIP());
-            Log.d(TAG, "setting width: "+CresStreamConfigure.getWidth() );
-            Log.d(TAG, "setting height: "+CresStreamConfigure.getHeight());
+            if (CresStreamConfigure.mode.getMode() == 5)
+            	Log.d(TAG, "ip addr "+CresStreamConfigure.getMulticastIP(idx));
+            else
+            	Log.d(TAG, "ip addr "+CresStreamConfigure.getDeviceIP());
+            Log.d(TAG, "setting width: "+CresStreamConfigure.getWidth(idx) );
+            Log.d(TAG, "setting height: "+CresStreamConfigure.getHeight(idx));
             Log.d(TAG, "setting profile: "+CresStreamConfigure.vprofile.getVEncProfile());
-            Log.d(TAG, "setting video encoder level: "+CresStreamConfigure.getVEncLevel());
-            Log.d(TAG, "setting video frame rate: "+CresStreamConfigure.getVFrameRate());
-            if((CresStreamConfigure.getWidth()!=0) || (CresStreamConfigure.getHeight()!=0))
-                mrec.setVideoSize(CresStreamConfigure.getWidth(),CresStreamConfigure.getHeight());
-            mrec.setVideoEncodingBitRate(CresStreamConfigure.getVideoBitRate());
+            Log.d(TAG, "setting video encoder level: "+CresStreamConfigure.getVEncLevel(idx));
+            Log.d(TAG, "setting video frame rate: "+CresStreamConfigure.getVFrameRate(idx));
+            if((CresStreamConfigure.getWidth(idx)!=0) || (CresStreamConfigure.getHeight(idx)!=0))
+                mrec.setVideoSize(CresStreamConfigure.getWidth(idx),CresStreamConfigure.getHeight(idx));
+            mrec.setVideoEncodingBitRate(CresStreamConfigure.getVideoBitRate(idx));
             //mrec.setVideoFrameRate(CresStreamConfigure.getVFrameRate());//Mistral Propietary API 
             mrec.setVideoEncoder(MediaRecorder.VideoEncoder.H264);
             mrec.setEncoderProfile(CresStreamConfigure.vprofile.getVEncProfile());
-            mrec.setVideoEncoderLevel(CresStreamConfigure.getVEncLevel());
+            mrec.setVideoEncoderLevel(CresStreamConfigure.getVEncLevel(idx));
             mrec.setAudioEncoder(MediaRecorder.AudioEncoder.AAC);
             mrec.setOutputFile(path + filename);   
 
             Log.d(TAG, "########setPreviewDisplay######");
-            mrec.setPreviewDisplay(surfaceHolder.getSurface());
+            mrec.setPreviewDisplay(streamCtl.getCresSurfaceHolder().getSurface());
+            //mrec.setPreviewDisplay(surfaceHolder.getSurface());
 
             mrec.prepare();
             mrec.start();
@@ -138,6 +148,7 @@ public class CameraStreaming implements ErrorCallback {
                 String sb = mrec.getSDP();
                 Log.d(TAG, "########SDP Dump######\n" + sb);
             }
+            //mrec.getStatisticsData();
             streamCtl.SendStreamState(StreamState.STARTED);
             streamCtl.SendStreamOutFeedbacks();
             out_stream_status = true;
@@ -147,6 +158,10 @@ public class CameraStreaming implements ErrorCallback {
             file4Recording.delete();
             mrec = null;
         }
+    }
+
+    public String updateSvcWithStreamStatistics(){
+            return mrec.getStatisticsData();
     }
 
     public boolean isStreaming(){
@@ -193,19 +208,19 @@ public class CameraStreaming implements ErrorCallback {
     }
 
     public int getStreamOutHorizontalResFb(){
-        return CresStreamConfigure.getWidth();
+        return CresStreamConfigure.getWidth(idx);
     }
 
     public int getStreamOutVerticalResFb(){
-        return CresStreamConfigure.getHeight();
+        return CresStreamConfigure.getHeight(idx);
     }
 
     public int getStreamOutFpsFb(){
-        return CresStreamConfigure.getVFrameRate();
+        return CresStreamConfigure.getVFrameRate(idx);
     }
 
     public String getStreamOutAspectRatioFb(){
-        String aspect = MiscUtils.calculateAspectRatio(CresStreamConfigure.getWidth(),CresStreamConfigure.getHeight());
+        String aspect = MiscUtils.calculateAspectRatio(CresStreamConfigure.getWidth(idx),CresStreamConfigure.getHeight(idx));
         return aspect;
     }
 

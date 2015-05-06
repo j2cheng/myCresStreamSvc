@@ -156,12 +156,6 @@ public class CommandParser {
         return (sb.toString());
     }
 
-    private String processCmdMessage(String receivedMsg, String msg){
-        StringBuilder sb = new StringBuilder(1024);
-        //sb.append(receivedMsg).append("=").append(temp);
-        return (sb.toString());
-    }
-
     private String processReplyFbMessage(String msg1, String msg2){
         StringBuilder sb = new StringBuilder(1024);
         sb.append(msg1).append("=").append(msg2);
@@ -169,14 +163,14 @@ public class CommandParser {
     }
 
     // TODO: These joins should be organized by slots
-    CommandIf ProcCommand (String msg, String arg){
+    CommandIf ProcCommand (String msg, String arg, int idx){
         CommandIf cmd = null;
         switch(CmdTable.valueOf(msg)){
             case MODE:
-                cmd = new DeviceCommand(cmdRx, arg); 
+                cmd = new DeviceCommand(cmdRx, arg, idx); 
                 break;
             case SESSIONINITIATION:
-                cmd = new SessionInitiationCommand(cmdRx, arg); 
+                cmd = new SessionInitiationCommand(cmdRx, arg, idx); 
                 break;
             case TRANSPORTMODE:
                 cmd = new TModeCommand(cmdRx, arg); 
@@ -185,31 +179,31 @@ public class CommandParser {
                 cmd = new VencCommand(cmdRx, arg); 
                 break;
             case RTSPPORT:
-                cmd = new RtspPortCommand(cmdRx, arg); 
+                cmd = new RtspPortCommand(cmdRx, arg, idx); 
                 break;
             case TSPORT:
-                cmd = new TsPortCommand(cmdRx, arg); 
+                cmd = new TsPortCommand(cmdRx, arg, idx); 
                 break;
             case RTPVIDEOPORT:
-                cmd = new RtpVCommand(cmdRx, arg); 
+                cmd = new RtpVCommand(cmdRx, arg, idx); 
                 break;
             case RTPAUDIOPORT:
-                cmd = new RtpACommand(cmdRx, arg); 
+                cmd = new RtpACommand(cmdRx, arg, idx); 
                 break;
             case VFRAMERATE:
-                cmd = new VfrCommand(cmdRx, arg); 
+                cmd = new VfrCommand(cmdRx, arg, idx); 
                 break;
             case VBITRATE:
-                cmd = new VbrCommand(cmdRx, arg); 
+                cmd = new VbrCommand(cmdRx, arg, idx); 
                 break;
             case TCPINTERLEAVE:
-                cmd = new TcpInterleaveCommand(cmdRx, arg); 
+                cmd = new TcpInterleaveCommand(cmdRx, arg, idx); 
                 break;
             case MULTICAST_ADDRESS:
-                cmd = new IpaddrCommand(cmdRx, arg); 
+                cmd = new MulticastIpaddrCommand(cmdRx, arg, idx); 
                 break;
             case ENCODING_RESOLUTION:
-                cmd = new EncodingResolutionCommand(cmdRx, arg); 
+                cmd = new EncodingResolutionCommand(cmdRx, arg, idx); 
                 break;
             case AUDIO_MUTE:
                 cmd = new MuteCommand(cmdRx, arg); 
@@ -218,43 +212,43 @@ public class CommandParser {
                 cmd = new UnmuteCommand(cmdRx, arg); 
                 break;
             case LATENCY:
-                cmd = new LatencyCommand(cmdRx, arg); 
+                cmd = new LatencyCommand(cmdRx, arg, idx); 
                 break;
             case PASSWORD_ENABLE:
-                cmd = new PasswdEnableCommand(cmdRx, arg); 
+                cmd = new PasswdEnableCommand(cmdRx, arg, idx); 
                 break;
             case PASSWORD_DISABLE:
-                cmd = new PasswdDisableCommand(cmdRx, arg); 
+                cmd = new PasswdDisableCommand(cmdRx, arg, idx); 
                 break;
             case USERNAME:
-                cmd = new UserCommand(cmdRx, arg); 
+                cmd = new UserCommand(cmdRx, arg, idx); 
                 break;
             case PASSWORD:
-                cmd = new PasswdCommand(cmdRx, arg); 
+                cmd = new PasswdCommand(cmdRx, arg, idx); 
                 break;
             case STREAMURL:
-                cmd = new StreamUrlCommand(cmdRx, arg); 
+                cmd = new StreamUrlCommand(cmdRx, arg, idx); 
                 break;
             case START:
-                cmd = new StartCommand(cmdRx, arg); 
+                cmd = new StartCommand(cmdRx, arg, idx); 
                 break;
             case STOP:
-                cmd = new StopCommand(cmdRx, arg); 
+                cmd = new StopCommand(cmdRx, arg, idx); 
                 break;
             case PAUSE:
-                cmd = new PauseCommand(cmdRx, arg); 
+                cmd = new PauseCommand(cmdRx, arg, idx); 
                 break;
             case XLOC:
-                cmd = new XlocCommand(cmdRx, arg); 
+                cmd = new XlocCommand(cmdRx, arg, idx); 
                 break;
             case YLOC:
-                cmd = new YlocCommand(cmdRx, arg); 
+                cmd = new YlocCommand(cmdRx, arg, idx); 
                 break;
             case W: 
-                cmd = new DestWidthCommand(cmdRx, arg); 
+                cmd = new DestWidthCommand(cmdRx, arg, idx); 
                 break;
             case H:
-                cmd = new DestHeightCommand(cmdRx, arg); 
+                cmd = new DestHeightCommand(cmdRx, arg, idx); 
                 break;
             case HDMIIN_SYNC_DETECTED:
                 cmd = new InSyncCommand(cmdRx, arg); 
@@ -398,38 +392,50 @@ public class CommandParser {
     }
 
     public String processReceivedMessage(String receivedMsg){
-        //tokenizer.printList();//DEBUG Purpose
-        String[] msg = tokenizer.Parse(receivedMsg);
-        StringBuilder sb = new StringBuilder(1024);
+        tokenizer.printList();//DEBUG Purpose
         String reply = ""; 
+        StringTokenizer.ParseResponse parseResponse = tokenizer.Parse(receivedMsg);
+        Log.d(TAG, "sessId parsed "+ parseResponse.sessId);
 
-        if(msg !=null && validateMsg(msg[0].toUpperCase())){
-            if(msg.length>1){ //Process & Reply Feedback 
-                cmd = ProcCommand(msg[0].toUpperCase(), msg[1]); 
-                if (cmd != null)
-                {
+        if (validateMsg(parseResponse.joinName.toUpperCase()))
+		{
+        	String joinNameWithSessId = (parseResponse.joinName + String.valueOf(parseResponse.sessId));
+        	String valueResponse = "";
+        	
+	        if(parseResponse.joinValue != null)
+	        { //Process & Reply Feedback 
+	            cmd = ProcCommand(parseResponse.joinName.toUpperCase(), parseResponse.joinValue, parseResponse.sessId); 
+	            if (cmd != null)
+	            {
 	                invoke.setCommand(cmd);
 	                invoke.set();
-                }
-                reply = processReplyFbMessage(msg[0], msg[1]); 
-            }
-            else { //Test Stub Query
-                String tmp_str = tokenizer.getStringValueOf(msg[0]);
-                Log.d(TAG, "Querying:: searched for "+msg[0]+" and got value of "+tmp_str);
-                cmd = ProcCommand(msg[0].toUpperCase(), tmp_str); 
-                if (cmd != null)
-                {
-	                invoke.setCommand(cmd);
-	                String fbMsg = invoke.get();
-	                sb.append(receivedMsg).append("=").append(fbMsg);
-	                reply = sb.toString();
-                }
-                //reply = processCmdMessage(receivedMsg, msg[0]); 
-            }
-        } else {
-            sb.append(receivedMsg).append(" is invalid command!!!");
-            reply = sb.toString();
-        }
+	            }
+	            
+	            valueResponse = parseResponse.joinValue;
+	        }
+	        else
+	        { //Test Stub Query
+	            String tmp_str = tokenizer.getStringValueOf(joinNameWithSessId);
+	            Log.d(TAG, "Querying:: searched for "+joinNameWithSessId+" and got value of "+tmp_str);
+	            if(tmp_str.equals(""))
+	            {
+	                cmd = ProcCommand(parseResponse.joinName.toUpperCase(), tmp_str, parseResponse.sessId); 
+	                if (cmd != null)
+	                {
+	                    invoke.setCommand(cmd);
+	                    valueResponse = invoke.get();
+	                }
+	            }
+	            else
+	            	valueResponse = tmp_str;
+	        }
+	        
+	        if (parseResponse.sessIdSpecified)
+	        	reply = processReplyFbMessage(joinNameWithSessId, valueResponse);
+	        else
+	        	reply = processReplyFbMessage(parseResponse.joinName, valueResponse);
+		}
+
         return reply;
     }
 }

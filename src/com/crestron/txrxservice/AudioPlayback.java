@@ -6,7 +6,6 @@ import android.media.AudioTrack;
 import android.util.Log;
 
 import java.nio.ByteBuffer;
-import java.util.concurrent.locks.ReentrantLock;
 
 public class AudioPlayback 
 {
@@ -16,7 +15,6 @@ public class AudioPlayback
     AudioRecord mRecorder = null;
     String TAG = "TxRx AudioPlayback"; 
     boolean shouldExit = false;
-    private final ReentrantLock audioBufferLock = new ReentrantLock(true); // fairness=true, makes lock ordered   
     Thread streamAudioThread;
 
 

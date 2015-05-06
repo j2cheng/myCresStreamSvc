@@ -50,91 +50,105 @@ public class CresStreamConfigure {
 	}
 	static VideoEncProfile vprofile;
 	private static String ipAddr;
+	private static String[] multicastIpAddr;
 	
 	// TODO: add values for every surface we need to save
-	private static int x;
-	private static int y;
-	private static int width;
-	private static int height;
+	private static int[] x;
+	private static int[] y;
+	private static int[] width;
+	private static int[] height;
 	
-	private static int rport;
-	private static int tport;
-	private static int rvport;
-	private static int raport;
-	private static int venclevel;
-	private static int vfrmrate;
-	private static int vbitrate;
-	private static String url;
-	private static String username;
-	private static String passwd;
+	private static int[] rport;
+	private static int[] tport;
+	private static int[] rvport;
+	private static int[] raport;
+	private static int[] venclevel;
+	private static int[] vfrmrate;
+	private static int[] vbitrate;
+	private static String[] url;
+	private static String[] username;
+	private static String[] password;
+
+	private static int[] deviceMode;
+	private static int sessInitMode;
 
     public CresStreamConfigure() {
         MiscUtils.getDeviceIpAddr();
         ipAddr = MiscUtils.matcher.group();
-        rport 	= 12462;		//port; 
-        tport 	= 12460;		//port; 
-        rvport 	= 12458;		//port; 
-        raport 	= 12456;		//port; 
+        rport 	= new int[]{ 12462, 14462};		//port; 
+        tport 	= new int[]{ 12460, 14460};;		//port; 
+        rvport 	= new int[]{ 12458, 14458};		//port; 
+        raport 	= new int[]{ 12456, 14456};		//port; 
         mode 	= mode.RTSP;//RTSP;
-        width 	= 1920;		//width;
-        height 	= 1080;		//height;
+        x       = new int[]{0,0};
+        y       = new int[]{0,0};
+        width   = new int[]{1920, 1920};		//width;
+        height  = new int[]{1080, 1080};		//height;
         vprofile=vprofile.HP;
-        vfrmrate = 50;
-        vbitrate = 600000;
-        venclevel= 8192;
-        url 	 ="";
-        username ="";
-        passwd   ="";
+        vfrmrate = new int[]{50, 50 };
+        vbitrate = new int[]{600000, 600000};
+        venclevel= new int[]{8192, 8192 };
+        multicastIpAddr = new String[]{ "0.0.0.0", "0.0.0.0"};
+        url 	 = new String[]{"", ""};
+        username = new String[]{"", ""};
+        password = new String[]{"", ""};
+        deviceMode=new int[]{0, 0};
+        sessInitMode=0;
 	}
 
-	public void setIP(String _ipAddr) { 
-		ipAddr = _ipAddr; 
-		Log.d(TAG, "SetIP:" + ipAddr);
+	public void setMulticastIP(int id, String _ipAddr) { 
+		multicastIpAddr[id] = _ipAddr; 
+		Log.d(TAG, "setMulticastIP:" + multicastIpAddr[id]);
 	}
 	
-	public static String getIP() { 
-		Log.d(TAG, "GetIP:" + ipAddr);
+	public static String getMulticastIP(int id) { 
+		Log.d(TAG, "getMulticastIP:" + multicastIpAddr[id]);
+		return multicastIpAddr[id]; 
+	}
+	
+	public static String getDeviceIP() { 
+		Log.d(TAG, "getDeviceIP:" + ipAddr);
 		return ipAddr; 
 	}
-	
-	public void setRTSPPort(int _port) { 
-		rport = _port; 
-		Log.d(TAG, "SetRTSPPort:" + rport);
+
+	public void setRTSPPort(int id, int _port) { 
+		rport[id] = _port; 
+		Log.d(TAG, "SetRTSPPort:" + rport[id]);
 	}
 	
-	public static int getRTSPPort() { 
-		Log.d(TAG, "GetRTSPPort:" + rport);
-		return rport; 
+	public static int getRTSPPort(int id) { 
+		Log.d(TAG, "GetRTSPPort:" + rport[id]);
+		return rport[id]; 
 	}
 	
-	public void setTSPort(int _port) { 
-		tport = _port; 
-		Log.d(TAG, "SetTSPort:" + tport);
+	public void setTSPort(int id, int _port) { 
+		tport[id] = _port; 
+		Log.d(TAG, "SetTSPort:" + tport[id]);
 	}
 	
-	public static int getTSPort() { 
-		Log.d(TAG, "GetTSPort:" + tport);
-		return tport; 
+	public static int getTSPort(int id) { 
+		Log.d(TAG, "GetTSPort:" + tport[id]);
+		return tport[id]; 
 	}
 	
-	public void setRTPVPort(int _port) { 
-		rvport = _port; 
-		Log.d(TAG, "SetRTPVideoPort:" + rvport);
+	public void setRTPVPort(int id, int _port) { 
+		rvport[id] = _port; 
+		Log.d(TAG, "SetRTPVideoPort:" + rvport[id]);
 	}
 	
-	public static int getRTPVPort() { 
-		Log.d(TAG, "GetRTPVideoPort:" + rvport);
-		return rvport; 
+	public static int getRTPVPort(int id) { 
+		Log.d(TAG, "GetRTPVideoPort:" + rvport[id]);
+		return rvport[id]; 
 	}
 	
-	public void setRTPAPort(int _port) { 
-		raport = _port; 
-		Log.d(TAG, "SetRTPAudioPort:" + raport);
+	public void setRTPAPort(int id, int _port) { 
+		raport[id] = _port; 
+		Log.d(TAG, "SetRTPAudioPort:" + raport[id]);
 	}
 	
-	public static int getRTPAPort() { 
-		Log.d(TAG, "GetRTPAudioPort:" + raport);
-		return raport; 
+	public static int getRTPAPort(int id) { 
+		Log.d(TAG, "GetRTPAudioPort:" + raport[id]);
+		return raport[id]; 
 	}
 	
 	public void setTransportMode(String tmode) { 
@@ -147,106 +161,114 @@ public class CresStreamConfigure {
 		Log.d(TAG, "vprofile value set is: " + vprofile);
 	}
 	
-	public void setOutResolution(int index) {
+	public void setOutResolution(int id, int index) {//TODO
 		if((index==0) || (index >=resolutionArray.length)){ 
-			width = 0;
-			height = 0;
+			width[0] = 0;
+			height[0] = 0;
 		}
 		else{
 			String res = resolutionArray[index];	
 			String[] str = res.split("[x]+");
-			width = Integer.parseInt(str[0]);
-			height = Integer.parseInt(str[1]);
+			width[0] = Integer.parseInt(str[0]);
+			height[0] = Integer.parseInt(str[1]);
 		}
 	}
 	
-	public void setWidth(int w) { 
+	public void setWidth(int id, int w) { 
 		Log.d(TAG, "setwidth:" + w);
-		width = w; 
+		width[id] = w; 
 	}
 	
-	public void setHeight(int h) { 
+	public void setHeight(int id, int h) { 
 		Log.d(TAG, "setHeight:" + h);
-	 	height = h; 
+	 	height[id] = h; 
 	}
 	
-	public static int getWidth() { 
-		Log.d(TAG, "Getwidth:" + width);
-		return width; 
+	public static int getWidth(int id) { 
+		Log.d(TAG, "Getwidth:" + width[id]);
+		return width[id]; 
 	}
 	
-	public static int getHeight() { 
-		Log.d(TAG, "GetHeight:" + height);
-	 	return height; 
+	public static int getHeight(int id) { 
+		Log.d(TAG, "GetHeight:" + height[id]);
+	 	return height[id]; 
 	}
-
 	
-	
-	public void setx(int xloc) { 
+	public void setx(int id, int xloc) { 
 		Log.d(TAG, "setx:" + xloc);
-		x = xloc; 
+		x[id] = xloc; 
 	}
 	
-	public void sety(int yloc) { 
+	public void sety(int id, int yloc) { 
 		Log.d(TAG, "sety:" + yloc);
-	 	y = yloc; 
+	 	y[id] = yloc; 
 	}
 	
-	public static int getx() { 
-		Log.d(TAG, "getx:" + x);
-		return x; 
+	public static int getx (int id) { 
+		Log.d(TAG, "getx:" + x[id]);
+		return x[id]; 
 	}
 	
-	public static int gety() { 
-		Log.d(TAG, "gety:" + y);
-	 	return y; 
+	public static int gety(int id) { 
+		Log.d(TAG, "gety:" + y[id]);
+	 	return y[id]; 
 	}
 	
-        public void setVFrameRate(int _frmRate) { 
-		vfrmrate = _frmRate; 
-		Log.d(TAG, "setVFrameRate:" + vfrmrate);
+        public void setVFrameRate(int id, int _frmRate) { 
+		vfrmrate[id] = _frmRate; 
+		Log.d(TAG, "setVFrameRate:" + vfrmrate[id]);
 	}
 	
-	public static int getVFrameRate() { 
-		Log.d(TAG, "getVFrameRate:" + vfrmrate);
-	 	return vfrmrate; 
+	public static int getVFrameRate(int id) { 
+		Log.d(TAG, "getVFrameRate:" + vfrmrate[id]);
+	 	return vfrmrate[id]; 
 	}
 	
-        public void setVideoBitRate(int _bitRate) { 
-		vbitrate = _bitRate*1000; 
-		Log.d(TAG, "setVideoBitRate:" + vbitrate);
+        public void setVideoBitRate(int id, int _bitRate) { 
+		vbitrate[id] = _bitRate*1000; 
+		Log.d(TAG, "setVideoBitRate:" + vbitrate[id]);
 	}
 	
-	public static int getVideoBitRate() { 
-		Log.d(TAG, "getVideoBitRate:" + vbitrate);
-	 	return vbitrate; 
+	public static int getVideoBitRate(int id) { 
+		Log.d(TAG, "getVideoBitRate:" + vbitrate[id]);
+	 	return vbitrate[id]; 
 	}
 	
-	public static int getVEncLevel() { 
-		return venclevel;
+	public static int getVEncLevel(int id) { 
+		return venclevel[id];
 	}
 
-	public static void setUrl(String Url) { 
-		url = Url; 
+	public static void setUrl(int id, String Url) { 
+		url[id] = Url; 
 	}
 
-	public static String getUrl() { 
-		return url; 
+	public static String getUrl(int id) { 
+		return url[id]; 
 	}
 	
-        public static void setUserName(String uname) { 
-                username = uname;
+        public static void setUserName(int id, String uname) { 
+                username[id] = uname;
 	}
 
-	public static void setPasswd(String passwd) { 
-		passwd = passwd; 
+	public static void setPasswd(int id, String passwd) { 
+		password[id] = passwd; 
 	}
        
-        public static String getUserName() { 
-                 return username;
+        public static String getUserName(int id) { 
+                 return username[id];
 	}
 
-	public static String getPasswd() { 
-		return passwd;
+	public static String getPasswd(int id) { 
+		return password[id];
 	}
+
+        public static void setDeviceMode(int id, int devmode) { 
+            Log.d(TAG, "Setting device mode to "+ devmode + "for session id "+ id);
+            deviceMode[id] = devmode;
+        }
+
+        public static int getDeviceMode(int id) { 
+                return deviceMode[id];
+	}
+
 }

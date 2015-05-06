@@ -161,7 +161,6 @@ public class CresDisplaySurface
     	displaySurface[idx].setVisibility(View.INVISIBLE);    
     }
     
-
     /**
      * Show the window by setting the view visibility
      */
@@ -169,7 +168,4 @@ public class CresDisplaySurface
     {
     	displaySurface[idx].setVisibility(View.VISIBLE);        	
     }
-
-
-
 }

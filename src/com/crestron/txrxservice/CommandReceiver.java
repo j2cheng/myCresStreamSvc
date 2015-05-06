@@ -61,12 +61,12 @@ public class CommandReceiver {
         ctl = a_crestctrl;
     }
 
-    public void setDeviceMode(int mode){
-        ctl.setDeviceMode(mode);
+    public void setDeviceMode(int mode, int sessId){
+        ctl.setDeviceMode(mode, sessId);
     }
 
-    public void setSessionInitation(int mode){
-        ctl.setSessionInitMode(mode);
+    public void setSessionInitation(int mode, int sessId){
+        ctl.setSessionInitMode(mode, sessId);
     }
     
     public void SetTMode(int mode){
@@ -77,40 +77,40 @@ public class CommandReceiver {
         ctl.setStreamProfile(VideoEncProfile.getStringValueFromInt(profile));
     }
     
-    public void setRtspPort(int port){
-        ctl.setRTSPPort(port);
+    public void setRtspPort(int port, int sessId){
+        ctl.setRTSPPort(port, sessId);
     }
     
-    public void setTsPort (int port){
-        ctl.setTSPort(port);
+    public void setTsPort (int port, int sessId){
+        ctl.setTSPort(port, sessId);
     }
     
-    public void setRtpV(int port){
-        ctl.setRTPVideoPort(port);
+    public void setRtpV(int port, int sessId){
+        ctl.setRTPVideoPort(port, sessId);
     }
     
-    public void setRtpA(int port){
-        ctl.setRTPAudioPort(port);
+    public void setRtpA(int port, int sessId){
+        ctl.setRTPAudioPort(port, sessId);
     }
     
-    public void setVfr(int vfr){
-        ctl.setVFrmRate(vfr);
+    public void setVfr(int vfr, int sessId){
+        ctl.setVFrmRate(vfr, sessId);
     }
 
-    public void setVbr(int vbr){
-        ctl.setVbitRate(vbr);
+    public void setVbr(int vbr, int sessId){
+        ctl.setVbitRate(vbr, sessId);
     }
 
-    public void EnableTcpInterleave(){
-        ctl.EnableTcpInterleave();
+    public void EnableTcpInterleave(int sessId){
+        ctl.EnableTcpInterleave(sessId);
     }
     
-    public void setIP(String ip){
-        ctl.setIpAddress(ip);
+    public void setMulticastIpAddress(String ip, int sessId){
+        ctl.setMulticastIpAddress(ip, sessId);
     }
 
-    public void setEncodingResolution(int resID){
-       ctl.setEncodingResolution(resID);
+    public void setEncodingResolution(int resID, int sessId){
+       ctl.setEncodingResolution(resID, sessId);
     }
     
     public void setMute (boolean flag){
@@ -127,56 +127,56 @@ public class CommandReceiver {
             ctl.setStreamMute();
     }
     
-    public void setLatency(int latency){
-        ctl.SetStreamInLatency(latency);
+    public void setLatency(int latency, int sessId){
+        ctl.SetStreamInLatency(latency, sessId);
     }
 
-    public void passwdEnable(){
-        ctl.SetPasswdEnable();
+    public void passwdEnable(int sessId){
+        ctl.SetPasswdEnable(sessId);
     }
 
-    public void passwdDisable(){
-        ctl.SetPasswdDisable();
+    public void passwdDisable(int sessId){
+        ctl.SetPasswdDisable(sessId);
     }
     
-    public void setUserName(String uname){
-        ctl.SetUserName(uname);
+    public void setUserName(String uname, int sessId){
+        ctl.SetUserName(uname, sessId);
     }
     
-    public void setPasswd(String passwd){
-        ctl.SetPasswd(passwd);
+    public void setPasswd(String passwd, int sessId){
+        ctl.SetPasswd(passwd, sessId);
     }
 
-    public void setStreamUrl(String uri){
-        ctl.setStreamInUrl(uri);
+    public void setStreamUrl(String uri, int sessId){
+        ctl.setStreamInUrl(uri, sessId);
     }
 
-    public void setStart(){
-        ctl.Start();
+    public void setStart(int sessId){
+        ctl.Start(sessId);
     }
 
-    public void setStop(){
-        ctl.Stop();
+    public void setStop(int sessId){
+        ctl.Stop(sessId);
     }
 
-    public void setPause(){
-        ctl.Pause();
+    public void setPause(int sessId){
+        ctl.Pause(sessId);
     }
 
-    public void setXloc(int xloc){
-        ctl.setXCoordinates(xloc);
+    public void setXloc(int xloc, int sessId){
+        ctl.setXCoordinates(xloc, sessId);
     }
 
-    public void setYloc(int yloc){
-        ctl.setYCoordinates(yloc);
+    public void setYloc(int yloc, int sessId){
+        ctl.setYCoordinates(yloc, sessId);
     }
     
-    public void setDestWidth(int w){
-        ctl.setWindowSizeW(w);
+    public void setDestWidth(int w, int sessId){
+        ctl.setWindowSizeW(w, sessId);
     }
     
-    public void setDestHeight(int h ){
-        ctl.setWindowSizeH(h);
+    public void setDestHeight(int h, int sessId){
+        ctl.setWindowSizeH(h, sessId);
     }
 
     //Process Feedbacks
@@ -309,42 +309,48 @@ public class CommandReceiver {
     }
     
     public String getHresFb(boolean streamIn){
-		int hres = ctl.getStreamHorizontalResFb(streamIn);
+        return "";
+/*		int hres = ctl.getHorizontalResFb(streamIn);
         l_sb = new StringBuilder(256);
         l_sb.append(hres);
-        return l_sb.toString();
+        return l_sb.toString();*/
     }
 
     public String getVresFb(boolean streamIn){
-        int vres= ctl.getStreamVerticalResFb(streamIn);
+        return "";
+        /*int vres= ctl.getVerticalResFb(streamIn);
         l_sb = new StringBuilder(256);
         l_sb.append(vres);
-        return l_sb.toString();
+        return l_sb.toString();*/
     }
     
     public String getFpsFb(boolean streamIn){
-        int fps = ctl.getStreamFpsFb(streamIn);
+        return "";
+        /*int fps = ctl.getFpsFb(streamIn);
         l_sb = new StringBuilder(256);
         l_sb.append(fps);
-        return l_sb.toString();
+        return l_sb.toString();*/
     }
     
     public String getAspectFb(boolean streamIn){
-        return ctl.getStreamAspectRatioFb(streamIn);
+        return "";
+        //return ctl.getAspectRatioFb(streamIn);
     }
     
     public String getAudioFormatFb(boolean streamIn){
-        int afmt= ctl.getStreamAudioFormatFb(streamIn);
+        return "";
+        /*int afmt= ctl.getAudioFormatFb(streamIn);
         l_sb = new StringBuilder(256);
         l_sb.append(afmt);
-        return l_sb.toString();
+        return l_sb.toString();*/
     }
     
     public String getAudioChannelsFb(boolean streamIn){
-        int achannels = ctl.getStreamAudiochannelsFb(streamIn);
+        return "";
+        /*int achannels = ctl.getAudiochannelsFb(streamIn);
         l_sb = new StringBuilder(256);
         l_sb.append(achannels);
-        return l_sb.toString();
+        return l_sb.toString();*/
     }
     
     

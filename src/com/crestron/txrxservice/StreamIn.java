@@ -17,27 +17,31 @@ import com.crestron.txrxservice.CresStreamCtrl.StreamState;
 
 public class StreamIn implements OnPreparedListener, OnCompletionListener, OnBufferingUpdateListener, OnErrorListener {
 
-    private MediaPlayer mediaPlayer;
+    private MediaPlayer[] mediaPlayer = new MediaPlayer[2];
     private SurfaceHolder vidHolder;
     String TAG = "TxRx StreamIN";
     StringBuilder sb;
     static String srcUrl="";
-    static int latency = 2000;//msec
-    int dest_width = 1280;
-    int dest_height = 720;
+    static int[] latency = new int [] {2000, 2000};//msec
     boolean rtp_mode = false;
     boolean media_pause = false;
     boolean tcpInterleaveFlag = false;
     boolean disableLatencyFlag = false;
     private CresStreamCtrl streamCtl;
+    private int idx = 0;
 
 
-    public StreamIn(CresStreamCtrl mContext, SurfaceHolder vHolder) {
+    //public StreamIn(CresStreamCtrl mContext, SurfaceHolder vHolder) {
+    public StreamIn(CresStreamCtrl mContext) {
         Log.e(TAG, "StreamIN :: Constructor called...!");
-        vidHolder = vHolder;
+        //vidHolder = vHolder;
         streamCtl = mContext;
     }
 
+    public void setSessionIndex(int id){
+        idx = id;
+    }
+    
     //Setting source url to play streamin
     public void setUrl(String p_url){
         srcUrl = p_url;
@@ -45,9 +49,9 @@ public class StreamIn implements OnPreparedListener, OnCompletionListener, OnBuf
     }
 
     //Dejitter Buffer latency
-    public void setLatency(int duration){
-        latency = duration;	
-        Log.d(TAG, "setting stream in latency "+latency);
+    public void setLatency(int sessId, int duration){
+        latency[sessId] = duration;	
+        Log.d(TAG, "setting stream in latency "+latency[sessId]);
     }
 
     //MJPEG IN  ??? Not Needed
@@ -72,43 +76,45 @@ public class StreamIn implements OnPreparedListener, OnCompletionListener, OnBuf
     //Play based on based Pause/Actual Playback 
     public void onStart() {
         if(media_pause && (mediaPlayer!=null)){
-            mediaPlayer.start();
+            mediaPlayer[idx].start();
             media_pause = false;
 
         }else{
             try {
                 //MNT - 3.11.15 - clean up the player if it's already playing
-                if ((mediaPlayer!=null) && (mediaPlayer.isPlaying()==true))
+                if ((mediaPlayer[idx]!=null) && (mediaPlayer[idx].isPlaying()==true))
                 {
-                    mediaPlayer.stop();
-                    mediaPlayer.reset();
-                    mediaPlayer.release();
-                    mediaPlayer = null;
+                    mediaPlayer[idx].stop();
+                    mediaPlayer[idx].reset();
+                    mediaPlayer[idx].release();
+                    mediaPlayer[idx] = null;
                 }
-                mediaPlayer = new MediaPlayer();
-                mediaPlayer.setDisplay(vidHolder);
-                mediaPlayer.setDataSource(srcUrl);	
+                mediaPlayer[idx] = new MediaPlayer();
+                mediaPlayer[idx].setDisplay(streamCtl.getCresSurfaceHolder());
+                //mediaPlayer.setDisplay(vidHolder);
+                srcUrl = streamCtl.myconfig.getUrl(idx);
+                mediaPlayer[idx].setDataSource(srcUrl);	
                 Log.d(TAG, "URL is "+srcUrl);
                 if(tcpInterleaveFlag && srcUrl.startsWith("rtsp://"))
-                    mediaPlayer.setTransportCommunication(true);
+                    mediaPlayer[idx].setTransportCommunication(true);
                 //Setting Initial Latency
                 if(disableLatencyFlag==false){
                     try {
-                        mediaPlayer.setDejitterBufferDuration(latency);
-                    }catch(Exception e){
+                        mediaPlayer[idx].setDejitterBufferDuration(latency[idx]);
+                    } catch(Exception e){
                         e.printStackTrace();
                     }
                 }
                 if(rtp_mode){
-                    mediaPlayer.setSDP(sb.toString());
+                    mediaPlayer[idx].setSDP(sb.toString());
                     rtp_mode = false;
                 }
-                mediaPlayer.prepare();
-                mediaPlayer.setOnErrorListener(this);
-                mediaPlayer.setOnCompletionListener(this);
-                mediaPlayer.setOnBufferingUpdateListener(this);
-                mediaPlayer.setOnPreparedListener(this);
-                mediaPlayer.setAudioStreamType(AudioManager.STREAM_MUSIC);
+                mediaPlayer[idx].prepare();
+                mediaPlayer[idx].setOnErrorListener(this);
+                mediaPlayer[idx].setOnCompletionListener(this);
+                mediaPlayer[idx].setOnBufferingUpdateListener(this);
+                mediaPlayer[idx].setOnPreparedListener(this);
+                mediaPlayer[idx].setAudioStreamType(AudioManager.STREAM_MUSIC);
             } 
             catch(Exception e){
             	// TODO: explore exception handling with better feedback of what went wrong to user
@@ -119,20 +125,20 @@ public class StreamIn implements OnPreparedListener, OnCompletionListener, OnBuf
 
     //Pause
     public void onPause() {
-        if((mediaPlayer!=null) && (mediaPlayer.isPlaying())) 
-            mediaPlayer.pause();
+        if((mediaPlayer[idx]!=null) && (mediaPlayer[idx].isPlaying())) 
+            mediaPlayer[idx].pause();
         media_pause = true;
         streamCtl.SendStreamState(StreamState.PAUSED);
     }
 
     public void onStop() {
         Log.d(TAG, "Stopping MediaPlayer");
-        if(mediaPlayer != null){
-            if(mediaPlayer.isPlaying()){
-                mediaPlayer.stop();
+        if(mediaPlayer[idx] != null){
+            if(mediaPlayer[idx].isPlaying()){
+                mediaPlayer[idx].stop();
             }
-            mediaPlayer.release();
-            mediaPlayer = null;
+            mediaPlayer[idx].release();
+            mediaPlayer[idx] = null;
             streamCtl.SendStreamState(StreamState.STOPPED);
         }
     }
@@ -140,7 +146,8 @@ public class StreamIn implements OnPreparedListener, OnCompletionListener, OnBuf
     @Override
         public void onPrepared(MediaPlayer mp) {
             Log.d(TAG, "######### OnPrepared##############");
-            mediaPlayer.start();
+            mediaPlayer[idx].start();
+            //mediaPlayer[idx].getStatisticsData();
             
             streamCtl.SendStreamState(StreamState.STARTED); // TODO: this should be on start complete not prepared
             streamCtl.SendStreamInFeedbacks();
@@ -177,10 +184,10 @@ public class StreamIn implements OnPreparedListener, OnCompletionListener, OnBuf
                 Log.e(TAG, "unknown playback error");
                 break;
         }
-        mp.stop();
-        mp.reset();
-        mp.release();
-        mp = null;
+        mediaPlayer[idx].stop();
+        mediaPlayer[idx].reset();
+        mediaPlayer[idx].release();
+        mediaPlayer[idx] = null;
         return true;
     }
     
@@ -195,25 +202,33 @@ public class StreamIn implements OnPreparedListener, OnCompletionListener, OnBuf
         Log.d(TAG, "####### Stopping mediaplayer");
     }
 
+    public String updateSvcWithPlayerStatistics(){
+        if(mediaPlayer.isPlaying())
+            return mediaPlayer.getStatisticsData();
+        else
+            return "";
+    }
+
+
     //Response to CSIO Layer
     public boolean getMediaPlayerStatus()
     {
-    	if (mediaPlayer!=null)
-    		return mediaPlayer.isPlaying();
+    	if (mediaPlayer[idx]!=null)
+    		return mediaPlayer[idx].isPlaying();
     	else
     		return false;
     }
 
     public int getMediaPlayerHorizontalResFb(){
-    	if (mediaPlayer!=null)
-    		return mediaPlayer.getVideoWidth();
+    	if (mediaPlayer[idx]!=null)
+    		return mediaPlayer[idx].getVideoWidth();
     	else
     		return 0;
     }
 
     public int getMediaPlayerVerticalResFb(){
-    	if (mediaPlayer!=null)
-    		return mediaPlayer.getVideoHeight();
+    	if (mediaPlayer[idx]!=null)
+    		return mediaPlayer[idx].getVideoHeight();
     	else
     		return 0;
     }
@@ -223,9 +238,9 @@ public class StreamIn implements OnPreparedListener, OnCompletionListener, OnBuf
     }
     public String getMediaPlayerAspectRatioFb(){
     	String aspect;
-    	if (mediaPlayer != null)
+    	if (mediaPlayer[idx] != null)
     	{
-	        aspect = MiscUtils.calculateAspectRatio(mediaPlayer.getVideoWidth(), mediaPlayer.getVideoHeight());
+	        aspect = MiscUtils.calculateAspectRatio(mediaPlayer[idx].getVideoWidth(), mediaPlayer[idx].getVideoHeight());
     	}
     	else
     		aspect = String.valueOf(0);

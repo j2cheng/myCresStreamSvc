@@ -4,15 +4,17 @@ package com.crestron.txrxservice;
 class DeviceCommand implements CommandIf {
     CommandReceiver launch;
     String msg;
+    int idx;
 
-    public DeviceCommand(CommandReceiver launch, String arg) {
+    public DeviceCommand(CommandReceiver launch, String arg, int sessId) {
         this.launch = launch;
         this.msg = arg;
+        this.idx = sessId;
     }
 
     @Override
         public void execute() {
-            launch.setDeviceMode(launch.VALIDATE_INT(msg));
+            launch.setDeviceMode(launch.VALIDATE_INT(msg), idx);
         }
         public String getFeedbackMsg() {
             return msg;
@@ -22,15 +24,17 @@ class DeviceCommand implements CommandIf {
 class SessionInitiationCommand implements CommandIf {
     CommandReceiver launch;
     String msg;
+    int idx;
 
-    public SessionInitiationCommand(CommandReceiver launch, String arg) {
+    public SessionInitiationCommand(CommandReceiver launch, String arg, int sessId) {
         this.launch = launch;
         this.msg = arg;
+        this.idx = sessId;
     }
 
     @Override
         public void execute() {
-            launch.setSessionInitation(launch.VALIDATE_INT(msg));
+            launch.setSessionInitation(launch.VALIDATE_INT(msg), idx);
         }
         public String getFeedbackMsg() {
             return msg;
@@ -76,15 +80,17 @@ class VencCommand implements CommandIf {
 class RtspPortCommand implements CommandIf {
     CommandReceiver launch;
     String msg;
+    int idx;
 
-    public RtspPortCommand(CommandReceiver launch, String arg) {
+    public RtspPortCommand(CommandReceiver launch, String arg, int sessId) {
         this.launch = launch;
         this.msg = arg;
+        this.idx = sessId;
     }
 
     @Override
         public void execute() {
-            launch.setRtspPort(launch.VALIDATE_INT(msg));
+            launch.setRtspPort(launch.VALIDATE_INT(msg), idx);
         }
         public String getFeedbackMsg() {
             return msg;
@@ -94,15 +100,17 @@ class RtspPortCommand implements CommandIf {
 class TsPortCommand implements CommandIf {
     CommandReceiver launch;
     String msg;
+    int idx;
 
-    public TsPortCommand(CommandReceiver launch, String arg) {
+    public TsPortCommand(CommandReceiver launch, String arg, int sessId) {
         this.launch = launch;
         this.msg = arg;
+        this.idx = sessId;
     }
 
     @Override
         public void execute() {
-            launch.setTsPort(launch.VALIDATE_INT(msg));
+            launch.setTsPort(launch.VALIDATE_INT(msg), idx);
         }
         public String getFeedbackMsg() {
             return msg;
@@ -112,15 +120,17 @@ class TsPortCommand implements CommandIf {
 class RtpVCommand implements CommandIf {
     CommandReceiver launch;
     String msg;
+    int idx;
 
-    public RtpVCommand(CommandReceiver launch, String arg) {
+    public RtpVCommand(CommandReceiver launch, String arg, int sessId) {
         this.launch = launch;
         this.msg = arg;
+        this.idx = sessId;
     }
 
     @Override
         public void execute() {
-            launch.setRtpV(launch.VALIDATE_INT(msg));
+            launch.setRtpV(launch.VALIDATE_INT(msg), idx);
         }
         public String getFeedbackMsg() {
             return msg;
@@ -130,15 +140,17 @@ class RtpVCommand implements CommandIf {
 class RtpACommand implements CommandIf {
     CommandReceiver launch;
     String msg;
+    int idx;
 
-    public RtpACommand(CommandReceiver launch, String arg) {
+    public RtpACommand(CommandReceiver launch, String arg, int sessId) {
         this.launch = launch;
         this.msg = arg;
+        this.idx = sessId;
     }
 
     @Override
         public void execute() {
-            launch.setRtpA(launch.VALIDATE_INT(msg));
+            launch.setRtpA(launch.VALIDATE_INT(msg), idx);
         }
         public String getFeedbackMsg() {
             return msg;
@@ -148,15 +160,17 @@ class RtpACommand implements CommandIf {
 class VfrCommand implements CommandIf {
     CommandReceiver launch;
     String msg;
+    int idx;
 
-    public VfrCommand(CommandReceiver launch, String arg) {
+    public VfrCommand(CommandReceiver launch, String arg, int sessId) {
         this.launch = launch;
         this.msg = arg;
+        this.idx = sessId;
     }
 
     @Override
         public void execute() {
-            launch.setVfr(launch.VALIDATE_INT(msg));
+            launch.setVfr(launch.VALIDATE_INT(msg), idx);
         }
         public String getFeedbackMsg() {
             return msg;
@@ -166,15 +180,17 @@ class VfrCommand implements CommandIf {
 class VbrCommand implements CommandIf {
     CommandReceiver launch;
     String msg;
+    int idx;
 
-    public VbrCommand(CommandReceiver launch, String arg) {
+    public VbrCommand(CommandReceiver launch, String arg, int sessId) {
         this.launch = launch;
         this.msg = arg;
+        this.idx = sessId;
     }
 
     @Override
         public void execute() {
-            launch.setVbr(launch.VALIDATE_INT(msg));
+            launch.setVbr(launch.VALIDATE_INT(msg), idx);
         }
         public String getFeedbackMsg() {
             return msg;
@@ -184,35 +200,39 @@ class VbrCommand implements CommandIf {
 class TcpInterleaveCommand implements CommandIf {
     CommandReceiver launch;
     String msg;
+    int idx;
 
-    public TcpInterleaveCommand(CommandReceiver launch, String arg) {
+    public TcpInterleaveCommand(CommandReceiver launch, String arg, int sessId) {
         this.launch = launch;
         this.msg = arg;
+        this.idx = sessId;
     }
 
     @Override
         public void execute() {
             boolean val = Boolean.valueOf(msg);
             if(val)
-                launch.EnableTcpInterleave();
+                launch.EnableTcpInterleave(idx);
         }
         public String getFeedbackMsg() {
             return msg;
         }
 }
 
-class IpaddrCommand implements CommandIf {
+class MulticastIpaddrCommand implements CommandIf {
     CommandReceiver launch;
     String msg;
+    int idx;
 
-    public IpaddrCommand(CommandReceiver launch, String arg) {
+    public MulticastIpaddrCommand(CommandReceiver launch, String arg, int sessId) {
         this.launch = launch;
         this.msg = arg;
+        this.idx = sessId;
     }
 
     @Override
         public void execute() {
-            launch.setIP(msg);
+            launch.setMulticastIpAddress(msg, idx);
         }
         public String getFeedbackMsg() {
             return msg;
@@ -222,15 +242,17 @@ class IpaddrCommand implements CommandIf {
 class EncodingResolutionCommand implements CommandIf {
     CommandReceiver launch;
     String msg;
+    int idx;
 
-    public EncodingResolutionCommand(CommandReceiver launch, String arg) {
+    public EncodingResolutionCommand(CommandReceiver launch, String arg, int sessId) {
         this.launch = launch;
         this.msg = arg;
+        this.idx = sessId;
     }
 
     @Override
         public void execute() {
-            launch.setEncodingResolution(launch.VALIDATE_INT(msg));
+            launch.setEncodingResolution(launch.VALIDATE_INT(msg), idx);
         }
         public String getFeedbackMsg() {
             return msg;
@@ -280,15 +302,17 @@ class UnmuteCommand implements CommandIf {
 class LatencyCommand implements CommandIf {
     CommandReceiver launch;
     String msg;
+    int idx;
 
-    public LatencyCommand(CommandReceiver launch, String arg) {
+    public LatencyCommand(CommandReceiver launch, String arg, int sessId) {
         this.launch = launch;
         this.msg = arg;
+        this.idx = sessId;
     }
 
     @Override
         public void execute() {
-            launch.setLatency(launch.VALIDATE_INT(msg));
+            launch.setLatency(launch.VALIDATE_INT(msg), idx);
         }
         public String getFeedbackMsg() {
             return msg;
@@ -298,15 +322,17 @@ class LatencyCommand implements CommandIf {
 class PasswdEnableCommand implements CommandIf {
     CommandReceiver launch;
     String msg;
+    int idx;
 
-    public PasswdEnableCommand(CommandReceiver launch, String arg) {
+    public PasswdEnableCommand(CommandReceiver launch, String arg, int sessId) {
         this.launch = launch;
         this.msg = arg;
+        this.idx = sessId;
     }
 
     @Override
         public void execute() {
-            launch.passwdEnable();
+            launch.passwdEnable(idx);
         }
         public String getFeedbackMsg() {
             return msg;
@@ -316,15 +342,17 @@ class PasswdEnableCommand implements CommandIf {
 class PasswdDisableCommand implements CommandIf {
     CommandReceiver launch;
     String msg;
+    int idx;
 
-    public PasswdDisableCommand(CommandReceiver launch, String arg) {
+    public PasswdDisableCommand(CommandReceiver launch, String arg, int sessId) {
         this.launch = launch;
         this.msg = arg;
+        this.idx = sessId;
     }
 
     @Override
         public void execute() {
-            launch.passwdDisable();
+            launch.passwdDisable(idx);
         }
         public String getFeedbackMsg() {
             return msg;
@@ -334,15 +362,17 @@ class PasswdDisableCommand implements CommandIf {
 class UserCommand implements CommandIf {
     CommandReceiver launch;
     String msg;
+    int idx;
 
-    public UserCommand(CommandReceiver launch, String arg) {
+    public UserCommand(CommandReceiver launch, String arg, int sessId) {
         this.launch = launch;
         this.msg = arg;
+        this.idx = sessId;
     }
 
     @Override
         public void execute() {
-            launch.setUserName(msg);
+            launch.setUserName(msg, idx);
         }
         public String getFeedbackMsg() {
             return msg;
@@ -352,15 +382,17 @@ class UserCommand implements CommandIf {
 class PasswdCommand implements CommandIf {
     CommandReceiver launch;
     String msg;
+    int idx;
 
-    public PasswdCommand(CommandReceiver launch, String arg) {
+    public PasswdCommand(CommandReceiver launch, String arg, int sessId) {
         this.launch = launch;
         this.msg = arg;
+        this.idx = sessId;
     }
 
     @Override
         public void execute() {
-            launch.setPasswd(msg);
+            launch.setPasswd(msg, idx);
         }
         public String getFeedbackMsg() {
             return msg;
@@ -370,15 +402,16 @@ class PasswdCommand implements CommandIf {
 class StreamUrlCommand implements CommandIf {
     CommandReceiver launch;
     String msg;
-
-    public StreamUrlCommand(CommandReceiver launch, String arg) {
+    int idx;
+    public StreamUrlCommand(CommandReceiver launch, String arg, int sessId) {
         this.launch = launch;
         this.msg = arg;
+        this.idx = sessId;
     }
 
     @Override
         public void execute() {
-            launch.setStreamUrl(msg);
+            launch.setStreamUrl(msg, idx);
         }
         public String getFeedbackMsg() {
             return launch.getStreamUrl();
@@ -388,17 +421,19 @@ class StreamUrlCommand implements CommandIf {
 class StartCommand implements CommandIf {
     CommandReceiver launch;
     String msg;
+    int idx;
 
-    public StartCommand(CommandReceiver launch, String arg) {
+    public StartCommand(CommandReceiver launch, String arg, int sessId) {
         this.launch = launch;
         this.msg = arg;
+        this.idx = sessId;
     }
 
     @Override
         public void execute() {
             boolean val = Boolean.valueOf(msg);
             if(val)
-                launch.setStart();
+                launch.setStart(idx);
         }
         public String getFeedbackMsg() {
             return launch.getStartStatus();
@@ -408,17 +443,19 @@ class StartCommand implements CommandIf {
 class StopCommand implements CommandIf {
     CommandReceiver launch;
     String msg;
+    int idx;
 
-    public StopCommand(CommandReceiver launch, String arg) {
+    public StopCommand(CommandReceiver launch, String arg, int sessId) {
         this.launch = launch;
         this.msg = arg;
+        this.idx = sessId;
     }
 
     @Override
         public void execute() {
             boolean val = Boolean.valueOf(msg);
             if(val)
-                launch.setStop();
+                launch.setStop(idx);
         }
         public String getFeedbackMsg() {
             return launch.getStopStatus();
@@ -428,17 +465,19 @@ class StopCommand implements CommandIf {
 class PauseCommand implements CommandIf {
     CommandReceiver launch;
     String msg;
+    int idx;
 
-    public PauseCommand(CommandReceiver launch, String arg) {
+    public PauseCommand(CommandReceiver launch, String arg, int sessId) {
         this.launch = launch;
         this.msg = arg;
+        this.idx = sessId;
     }
 
     @Override
         public void execute() {
             boolean val = Boolean.valueOf(msg);
             if(val)
-                launch.setPause();
+                launch.setPause(idx);
         }
         public String getFeedbackMsg() {
             return launch.getPauseStatus();
@@ -449,15 +488,17 @@ class XlocCommand implements CommandIf {
 
     CommandReceiver launch;
     String msg;
+    int idx;
 
-    public XlocCommand(CommandReceiver launch, String arg) {
+    public XlocCommand(CommandReceiver launch, String arg, int sessId) {
         this.launch = launch;
         this.msg = arg;
+        this.idx = sessId;
     }
 
     @Override
         public  void execute() {
-            launch.setXloc(launch.VALIDATE_INT(msg));
+            launch.setXloc(launch.VALIDATE_INT(msg), idx);
         }
         public String getFeedbackMsg() {
             return launch.getXloc();
@@ -468,15 +509,17 @@ class YlocCommand implements CommandIf {
 
     CommandReceiver launch;
     String msg;
+    int idx;
 
-    public YlocCommand(CommandReceiver launch, String arg) {
+    public YlocCommand(CommandReceiver launch, String arg, int sessId) {
         this.launch = launch;
         this.msg = arg;
+        this.idx = sessId;
     }
 
     @Override
         public void execute() {
-            launch.setYloc(launch.VALIDATE_INT(msg));
+            launch.setYloc(launch.VALIDATE_INT(msg), idx);
         }
         public String getFeedbackMsg() {
             return launch.getYloc();
@@ -487,15 +530,17 @@ class DestWidthCommand implements CommandIf {
 
     CommandReceiver launch;
     String msg;
+    int idx;
 
-    public DestWidthCommand(CommandReceiver launch, String arg) {
+    public DestWidthCommand(CommandReceiver launch, String arg, int sessId) {
         this.launch = launch;
         this.msg = arg;
+        this.idx = sessId;
     }
 
     @Override
         public void execute() {
-            launch.setDestWidth(launch.VALIDATE_INT(msg));
+            launch.setDestWidth(launch.VALIDATE_INT(msg), idx);
         }
         public String getFeedbackMsg() {
             return launch.getDestWidth();
@@ -506,15 +551,17 @@ class DestHeightCommand implements CommandIf {
 
     CommandReceiver launch;
     String msg;
+    int idx;
 
-    public DestHeightCommand(CommandReceiver launch, String arg) {
+    public DestHeightCommand(CommandReceiver launch, String arg, int sessId) {
         this.launch = launch;
         this.msg = arg;
+        this.idx = sessId;
     }
 
     @Override
         public void execute() {
-            launch.setDestHeight(launch.VALIDATE_INT(msg));
+            launch.setDestHeight(launch.VALIDATE_INT(msg), idx);
         }
         public String getFeedbackMsg() {
             return launch.getDestHeight();
