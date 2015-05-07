@@ -161,7 +161,8 @@ public class CameraStreaming implements ErrorCallback {
     }
 
     public String updateSvcWithStreamStatistics(){
-            return mrec.getStatisticsData();
+            //return mrec.getStatisticsData();
+    	return "";
     }
 
     public boolean isStreaming(){
