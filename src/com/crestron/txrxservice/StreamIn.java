@@ -203,13 +203,12 @@ public class StreamIn implements OnPreparedListener, OnCompletionListener, OnBuf
     }
 
     public String updateSvcWithPlayerStatistics(){
-        if(mediaPlayer.isPlaying())
-            return mediaPlayer.getStatisticsData();
-        else
+//        if(mediaPlayer[idx].isPlaying())
+//            return mediaPlayer[idx].getStatisticsData();
+//        else
             return "";
     }
-
-
+    
     //Response to CSIO Layer
     public boolean getMediaPlayerStatus()
     {
