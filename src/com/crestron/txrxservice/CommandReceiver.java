@@ -128,7 +128,7 @@ public class CommandReceiver {
     }
     
     public void setLatency(int latency, int sessId){
-        ctl.SetStreamInLatency(latency, sessId);
+        ctl.SetStreamInLatency(sessId, latency);
     }
 
     public void passwdEnable(int sessId){
