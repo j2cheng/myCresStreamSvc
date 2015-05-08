@@ -98,7 +98,7 @@ public class CommandReceiver {
     }
 
     public void setVbr(int vbr, int sessId){
-        ctl.setVbitRate(vbr, sessId);
+        ctl.setVbitRate(sessId, vbr);
     }
 
     public void EnableTcpInterleave(int sessId){
