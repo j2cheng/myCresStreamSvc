@@ -78,19 +78,19 @@ public class CommandReceiver {
     }
     
     public void setRtspPort(int port, int sessId){
-        ctl.setRTSPPort(port, sessId);
+        ctl.setRTSPPort(sessId, port);
     }
     
     public void setTsPort (int port, int sessId){
-        ctl.setTSPort(port, sessId);
+        ctl.setTSPort(sessId, port);
     }
     
     public void setRtpV(int port, int sessId){
-        ctl.setRTPVideoPort(port, sessId);
+        ctl.setRTPVideoPort(sessId, port);
     }
     
     public void setRtpA(int port, int sessId){
-        ctl.setRTPAudioPort(port, sessId);
+        ctl.setRTPAudioPort(sessId, port);
     }
     
     public void setVfr(int vfr, int sessId){
