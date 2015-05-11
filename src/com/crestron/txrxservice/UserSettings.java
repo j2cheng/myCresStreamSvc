@@ -114,6 +114,7 @@ public class UserSettings //implements java.io.Serializable
 	private int[] sessionInitiation; //TODO: make enum
 	private int[] encodingResolution; // TODO: make enum
 	private int[] encodingFramerate;
+	private int[] streamingBuffer;
 	private String[] serverUrl;
 	private String[] multicastAddress;
 	private String[] userName;
@@ -126,8 +127,7 @@ public class UserSettings //implements java.io.Serializable
 	// Top Slot
 	private int deviceReady; // TODO: needed?
 	private boolean audioMute;
-	private boolean audioUnmute;
-	private int streamingBuffer;
+	private boolean audioUnmute;	
 	private int volume;
 	private int bass;
 	private int treble;
@@ -218,6 +218,11 @@ public class UserSettings //implements java.io.Serializable
         serverUrl 	 		= new String[]{"", ""};
         userName 			= new String[] {"", ""};
         password   			= new String[] {"", ""};
+        streamState			= new CresStreamCtrl.StreamState[] {StreamState.STOPPED, StreamState.STOPPED};
+        transportMode		= new int[] {0, 0};
+        passwordEnable		= new boolean[] {false, false};
+        passwordDisable		= new boolean[] {true, true};
+        streamingBuffer		= new int[] {2000, 2000};
 	}
 	
 	public String getDeviceIp() {
@@ -352,12 +357,12 @@ public class UserSettings //implements java.io.Serializable
 		this.streamProfile[sessId] = streamProfile;
 	}
 
-	public int getStreamingBuffer() {
-		return streamingBuffer;
+	public int getStreamingBuffer(int sessId) {
+		return streamingBuffer[sessId];
 	}
 
-	public void setStreamingBuffer(int streamingBuffer) {
-		this.streamingBuffer = streamingBuffer;
+	public void setStreamingBuffer(int streamingBuffer, int sessId) {
+		this.streamingBuffer[sessId] = streamingBuffer;
 	}
 
 	public int getTransportMode(int sessId) {

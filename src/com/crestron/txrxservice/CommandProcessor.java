@@ -17,7 +17,7 @@ class DeviceCommand implements CommandIf {
             launch.setDeviceMode(launch.VALIDATE_INT(msg), idx);
         }
         public String getFeedbackMsg() {
-            return msg;
+            return launch.getDeviceMode(idx);
         }
 }
 
@@ -37,7 +37,7 @@ class SessionInitiationCommand implements CommandIf {
             launch.setSessionInitation(launch.VALIDATE_INT(msg), idx);
         }
         public String getFeedbackMsg() {
-            return msg;
+            return launch.getSessionInitiation(idx);
         }
 }
 
@@ -57,7 +57,7 @@ class TModeCommand implements CommandIf {
             launch.SetTMode(launch.VALIDATE_INT(msg), idx);
         }
         public String getFeedbackMsg() {
-            return msg;
+        	return launch.getTransportMode(idx);
         }
 }
 
@@ -77,7 +77,7 @@ class VencCommand implements CommandIf {
             launch.SetVenc(launch.VALIDATE_INT(msg), idx);
         }
         public String getFeedbackMsg() {
-            return msg;
+        	return launch.getStreamProfile(idx);
         }
 }
 
@@ -97,7 +97,7 @@ class RtspPortCommand implements CommandIf {
             launch.setRtspPort(launch.VALIDATE_INT(msg), idx);
         }
         public String getFeedbackMsg() {
-            return msg;
+            return launch.getRtspPort(idx);
         }
 }
 
@@ -117,7 +117,7 @@ class TsPortCommand implements CommandIf {
             launch.setTsPort(launch.VALIDATE_INT(msg), idx);
         }
         public String getFeedbackMsg() {
-            return msg;
+        	return launch.getTsPort(idx);
         }
 }
 
@@ -137,7 +137,7 @@ class RtpVCommand implements CommandIf {
             launch.setRtpV(launch.VALIDATE_INT(msg), idx);
         }
         public String getFeedbackMsg() {
-            return msg;
+        	return launch.getRtpVideoPort(idx);
         }
 }
 
@@ -157,7 +157,7 @@ class RtpACommand implements CommandIf {
             launch.setRtpA(launch.VALIDATE_INT(msg), idx);
         }
         public String getFeedbackMsg() {
-            return msg;
+        	return launch.getRtpAudioPort(idx);
         }
 }
 
@@ -177,7 +177,7 @@ class VfrCommand implements CommandIf {
             launch.setVfr(launch.VALIDATE_INT(msg), idx);
         }
         public String getFeedbackMsg() {
-            return msg;
+            return launch.getEncodingFramerate(idx);
         }
 }
 
@@ -197,7 +197,7 @@ class VbrCommand implements CommandIf {
             launch.setVbr(launch.VALIDATE_INT(msg), idx);
         }
         public String getFeedbackMsg() {
-            return msg;
+            return launch.getBitrate(idx);
         }
 }
 
@@ -239,7 +239,7 @@ class MulticastIpaddrCommand implements CommandIf {
             launch.setMulticastIpAddress(msg, idx);
         }
         public String getFeedbackMsg() {
-            return msg;
+            return launch.getMulticastIpAddress(idx);
         }
 }
 
@@ -259,7 +259,7 @@ class EncodingResolutionCommand implements CommandIf {
             launch.setEncodingResolution(launch.VALIDATE_INT(msg), idx);
         }
         public String getFeedbackMsg() {
-            return msg;
+            return launch.getEncodingResolution(idx);
         }
 }
 
@@ -279,7 +279,7 @@ class MuteCommand implements CommandIf {
                 launch.setMute(val);
         }
         public String getFeedbackMsg() {
-            return msg;
+            return launch.getMute();
         }
 }
 
@@ -299,7 +299,7 @@ class UnmuteCommand implements CommandIf {
                 launch.setUnmute(val);
         }
         public String getFeedbackMsg() {
-            return msg;
+        	return launch.getUnmute();
         }
 }
 
@@ -319,7 +319,7 @@ class LatencyCommand implements CommandIf {
             launch.setLatency(launch.VALIDATE_INT(msg), idx);
         }
         public String getFeedbackMsg() {
-            return msg;
+            return launch.getLatency(idx);
         }
 }
 
@@ -339,7 +339,7 @@ class PasswdEnableCommand implements CommandIf {
             launch.passwdEnable(idx);
         }
         public String getFeedbackMsg() {
-            return msg;
+            return launch.getPasswordEnable(idx);
         }
 }
 
@@ -359,7 +359,7 @@ class PasswdDisableCommand implements CommandIf {
             launch.passwdDisable(idx);
         }
         public String getFeedbackMsg() {
-            return msg;
+            return launch.getPasswordDisable(idx);
         }
 }
 
@@ -379,7 +379,7 @@ class UserCommand implements CommandIf {
             launch.setUserName(msg, idx);
         }
         public String getFeedbackMsg() {
-            return msg;
+            return launch.getUsername(idx);
         }
 }
 
@@ -399,7 +399,7 @@ class PasswdCommand implements CommandIf {
             launch.setPasswd(msg, idx);
         }
         public String getFeedbackMsg() {
-            return msg;
+            return launch.getPassword(idx);
         }
 }
 

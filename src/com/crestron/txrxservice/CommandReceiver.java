@@ -370,4 +370,79 @@ public class CommandReceiver {
         return Integer.toString(ctl.getWindowSizeH());
     }
     
+    public String getDeviceMode(int sessId){
+    	return Integer.toString(ctl.userSettings.getMode(sessId));
+    }
+    
+    public String getSessionInitiation(int sessId){
+    	return Integer.toString(ctl.userSettings.getSessionInitiation(sessId));
+    }
+    
+    public String getTransportMode(int sessId){
+    	return Integer.toString(ctl.userSettings.getTransportMode(sessId));
+    }
+    
+    public String getStreamProfile(int sessId){
+    	return Integer.toString(ctl.userSettings.getStreamProfile(sessId).getVEncProfile());
+    }
+    
+    public String getRtspPort(int sessId){
+    	return Integer.toString(ctl.userSettings.getRtspPort(sessId));
+    }
+    
+    public String getTsPort(int sessId){
+    	return Integer.toString(ctl.userSettings.getTsPort(sessId));
+    }
+    
+    public String getRtpVideoPort(int sessId){
+    	return Integer.toString(ctl.userSettings.getRtpVideoPort(sessId));
+    }
+    
+    public String getRtpAudioPort(int sessId){
+    	return Integer.toString(ctl.userSettings.getRtpAudioPort(sessId));
+    }
+    
+    public String getEncodingFramerate(int sessId){
+    	return Integer.toString(ctl.userSettings.getEncodingFramerate(sessId));
+    }
+    
+    public String getBitrate(int sessId){
+    	return Integer.toString(ctl.userSettings.getBitrate(sessId));
+    }
+
+    public String getMulticastIpAddress(int sessId){
+    	return ctl.userSettings.getMulticastAddress(sessId);
+    }
+    
+    public String getEncodingResolution(int sessId){
+    	return Integer.toString(ctl.userSettings.getEncodingResolution(sessId));
+    }
+    
+    public String getMute(){
+    	return String.valueOf(ctl.userSettings.isAudioMute());
+    }
+    
+    public String getUnmute(){
+    	return String.valueOf(ctl.userSettings.isAudioUnmute());
+    }
+    
+    public String getLatency(int sessId){
+    	return String.valueOf(ctl.userSettings.getStreamingBuffer(sessId));
+    }
+    
+    public String getPasswordEnable(int sessId){
+    	return String.valueOf(ctl.userSettings.isPasswordEnable(sessId));
+    }
+    
+    public String getPasswordDisable(int sessId){
+    	return String.valueOf(ctl.userSettings.isPasswordDisable(sessId));
+    }
+    
+    public String getUsername(int sessId){
+    	return ctl.userSettings.getUserName(sessId);
+    }
+    
+    public String getPassword(int sessId){
+    	return ctl.userSettings.getPassword(sessId);
+    }
 }

@@ -19,6 +19,7 @@ public class HDMIInputInterface {
 	private static String aspectRatio;
 	private static String audioFormat;
 	private static String audioChannels;
+	private static int resolutionIndex;
 	
 	public HDMIInputInterface() {
 		syncStatus = "false";
@@ -29,6 +30,7 @@ public class HDMIInputInterface {
 		aspectRatio = "0";
 		audioFormat = "1";	//1=PCM for txrx and dge
 		audioChannels = "0";
+		resolutionIndex = 0;
 	}
 	
 	public void setSyncStatus() {
@@ -36,10 +38,14 @@ public class HDMIInputInterface {
 		
 		Log.i(TAG, "SyncStatus " + (char)hdmiInSyncStatus[0]);
 
-		if((char)hdmiInSyncStatus[0] == '1')
+		if(((char)hdmiInSyncStatus[0] == '1') && (resolutionIndex != 0))
 			syncStatus = "true";
 		else
 			syncStatus = "false";
+	}
+	
+	public void setResolutionIndex(int index){
+		resolutionIndex = index;
 	}
 	
 	public String getSyncStatus() {

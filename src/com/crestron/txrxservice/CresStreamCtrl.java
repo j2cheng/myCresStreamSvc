@@ -31,15 +31,15 @@ import android.hardware.Camera;
 //import com.google.gson.GsonBuilder;
 
 interface Command {
-    void executeStart();
+    void executeStart(int sessId);
 }
 
 interface myCommand {
-    void executeStop();
+    void executeStop(int sessId);
 }
 
 interface myCommand2 {
-    void executePause();
+    void executePause(int sessId);
 }
 
 public class CresStreamCtrl extends Service {
@@ -52,7 +52,7 @@ public class CresStreamCtrl extends Service {
     BroadcastReceiver hdmioutResolutionChangedEvent = null;
 
     //CresStreamConfigure myconfig;
-    UserSettings userSettings;
+    public UserSettings userSettings;
     AudioManager amanager;
     TCPInterface sockTask;
    
@@ -65,7 +65,7 @@ public class CresStreamCtrl extends Service {
     int hpdStateEnabled = 0;
     static int hpdHdmiEvent = 0;
 
-    final static int NumOfSurfaces = 2;
+    public final static int NumOfSurfaces = 2;
     String TAG = "TxRx StreamCtrl";
     static String out_url="";
     static String playStatus="false";
@@ -82,7 +82,7 @@ public class CresStreamCtrl extends Service {
     boolean hdmiInputDriverPresent = false;
     //boolean enable_passwd = false;
     //boolean disable_passwd = true;
-    static boolean restartRequired;
+    boolean[] restartRequired = new boolean[NumOfSurfaces];
 
     enum DeviceMode {
         STREAM_IN,
@@ -223,33 +223,33 @@ public class CresStreamCtrl extends Service {
             //Play Control
             hm = new HashMap();
             hm.put(2/*"PREVIEW"*/, new Command() {
-                    public void executeStart() {startPreview(); };
+                    public void executeStart(int sessId) {startPreview(sessId); };
                     });
             hm.put(1 /*"STREAMOUT"*/, new Command() {
-                    public void executeStart() {startStreamOut();};//createStreamOutURL();};
+                    public void executeStart(int sessId) {startStreamOut(sessId);};//createStreamOutURL();};
                     });
             hm.put(0 /*"STREAMIN"*/, new Command() {
-                    public void executeStart() {startStreamIn(); };
+                    public void executeStart(int sessId) {startStreamIn(sessId); };
                     });
             hm2 = new HashMap();
             hm2.put(2/*"PREVIEW"*/, new myCommand() {
-                    public void executeStop() {stopPreview();};
+                    public void executeStop(int sessId) {stopPreview(sessId);};
                     });
             hm2.put(1/*"STREAMOUT"*/, new myCommand() {
-                    public void executeStop() {stopStreamOut();};
+                    public void executeStop(int sessId) {stopStreamOut(sessId);};
                     });
             hm2.put(0/*"STREAMIN"*/, new myCommand() {
-                    public void executeStop() {stopStreamIn(); };
+                    public void executeStop(int sessId) {stopStreamIn(sessId); };
                     });
             hm3 = new HashMap();
             hm3.put(2/*"PREVIEW"*/, new myCommand2() {
-                    public void executePause() {pausePreview();};
+                    public void executePause(int sessId) {pausePreview(sessId);};
                     });
             hm3.put(1/*"STREAMOUT"*/, new myCommand2() {
-                    public void executePause() {pauseStreamOut();};
+                    public void executePause(int sessId) {pauseStreamOut(sessId);};
                     });
             hm3.put(0/*"STREAMIN"*/, new myCommand2() {
-                    public void executePause() {pauseStreamIn(); };
+                    public void executePause(int sessId) {pauseStreamIn(sessId); };
                     });
 
 
@@ -315,7 +315,7 @@ public class CresStreamCtrl extends Service {
             Log.d(TAG, " setDeviceMode "+ mode);
 
             if ((userSettings.getMode(sessionId) != mode) && (userSettings.getStreamState(sessionId) == StreamState.STARTED))
-                hm2.get(userSettings.getMode(sessionId)).executeStop();
+                hm2.get(userSettings.getMode(sessionId)).executeStop(sessionId);
             userSettings.setMode(mode, sessionId);
         }
     }
@@ -584,7 +584,7 @@ public class CresStreamCtrl extends Service {
 		break;
 	    }
     }
-
+    
     public void setStreamMute() //TODO: store in userSettings
     {
         amanager.setStreamMute(AudioManager.STREAM_MUSIC, true);
@@ -599,11 +599,6 @@ public class CresStreamCtrl extends Service {
         StringBuilder sb = new StringBuilder(512);
         sb.append("AUDIO_MUTE=false");
         sockTask.SendDataToAllClients(sb.toString());
-    }
-
-    public int getDeviceMode()
-    {
-    	return userSettings.getMode(idx); // TODO: make query based on streamId not idx
     }
 
     public void SetPasswdEnable(int sessId)
@@ -688,7 +683,7 @@ public class CresStreamCtrl extends Service {
 	    	playStatus="true";
 	    	stopStatus="false";
 	        pauseStatus="false";	        
-	        hm.get(userSettings.getMode(sessionId)).executeStart();
+	        hm.get(userSettings.getMode(sessionId)).executeStart(sessionId);
 	        //hm.get(device_mode).executeStart();
 	        // The started state goes back when we actually start
     	}
@@ -709,8 +704,8 @@ public class CresStreamCtrl extends Service {
 	    	playStatus="false";
 	    	stopStatus="true";
 	        pauseStatus="false";
-	        restartRequired=false;
-	        hm2.get(userSettings.getMode(sessionId)).executeStop();
+	        restartRequired[sessionId]=false;
+	        hm2.get(userSettings.getMode(sessionId)).executeStop(sessionId);
 	        // device state will be set in stop callback
     	}
     	finally
@@ -730,7 +725,7 @@ public class CresStreamCtrl extends Service {
 	        pauseStatus="true";
 	    	playStatus="false";
 	    	stopStatus="false";
-	        hm3.get(userSettings.getMode(sessionId)).executePause();
+	        hm3.get(userSettings.getMode(sessionId)).executePause(sessionId);
 	        //hm3.get(device_mode).executePause();
 	        // Device state will be set in pause callback
     	}
@@ -832,15 +827,15 @@ public class CresStreamCtrl extends Service {
         return url.toString();
     }
 
-    public void startStreamOut()
+    public void startStreamOut(int sessId)
     {
         StringBuilder sb = new StringBuilder(512);
-        updateWindow(idx);
+        updateWindow(sessId);
         showPreviewWindow();
         out_url = createStreamOutURL();
 
         try {
-            cam_streaming.setSessionIndex(idx);
+            cam_streaming.setSessionIndex(sessId);
             cam_streaming.startRecording();
         } catch(IOException e) {
             e.printStackTrace();
@@ -852,7 +847,7 @@ public class CresStreamCtrl extends Service {
         sockTask.SendDataToAllClients(sb.toString());
     }
 
-    public void stopStreamOut()
+    public void stopStreamOut(int sessId)
     {
         if(StreamOutstarted){
             //Toast.makeText(this, "StreamOut Stopped", Toast.LENGTH_LONG).show();
@@ -863,7 +858,7 @@ public class CresStreamCtrl extends Service {
         }
     }
     
-    public void pauseStreamOut()
+    public void pauseStreamOut(int sessId)
     {
         Log.d(TAG, "Nothing to do");
     }
@@ -925,11 +920,11 @@ public class CresStreamCtrl extends Service {
         return out_url;
     }
 
-    public void startStreamIn()
+    public void startStreamIn(int sessId)
     {
-        updateWindow(idx);
+        updateWindow(sessId);
         showStreamInWindow();
-        streamPlay.setSessionIndex(idx);
+        streamPlay.setSessionIndex(sessId);
         streamPlay.onStart();
         //Toast.makeText(this, "StreamIN Started", Toast.LENGTH_LONG).show();
     }
@@ -942,16 +937,17 @@ public class CresStreamCtrl extends Service {
         updateXY(sessId);
     }
 
-    public void stopStreamIn()
+    public void stopStreamIn(int sessId)
     {
-        streamPlay.setSessionIndex(idx);
+        streamPlay.setSessionIndex(sessId);
         streamPlay.onStop();
         //Toast.makeText(this, "StreamIN Stopped", Toast.LENGTH_LONG).show();
         hideStreamInWindow();
     }
 
-    public void pauseStreamIn()
+    public void pauseStreamIn(int sessId)
     {
+    	streamPlay.setSessionIndex(sessId);
         streamPlay.onPause();
         //TODO
     }
@@ -1000,23 +996,24 @@ public class CresStreamCtrl extends Service {
 
 
     //Preview 
-    public void startPreview()
+    public void startPreview(int sessId)
     {
-        updateWindow(idx);
+        updateWindow(sessId);
         showPreviewWindow();
-        cam_preview.setSessionIndex(idx);
+        cam_preview.setSessionIndex(sessId);
         cam_preview.startPlayback();
         //Toast.makeText(this, "Preview Started", Toast.LENGTH_LONG).show();
     }
 
-    public void stopPreview()
+    public void stopPreview(int sessId)
     {
         hidePreviewWindow();
+        cam_preview.setSessionIndex(sessId);
         cam_preview.stopPlayback();
         //Toast.makeText(this, "Preview Stopped", Toast.LENGTH_LONG).show();
     }
     
-    public void pausePreview()
+    public void pausePreview(int sessId)
     {
         cam_preview.pausePlayback();
     }
@@ -1073,67 +1070,75 @@ public class CresStreamCtrl extends Service {
             	{
 	                if (paramAnonymousIntent.getAction().equals("evs.intent.action.hdmi.RESOLUTION_CHANGED"))
 	                {
-                        int device_mode = userSettings.getMode(idx);
-	                    int resolutionId = paramAnonymousIntent.getIntExtra("evs_hdmi_resolution_id", -1);
-	                    String hdmiInputResolution = null;
-	                    Log.i(TAG, "Received resolution changed broadcast !: " + resolutionId);
-	                    boolean validResolution = (hdmiInput.getHorizontalRes().startsWith("0") != true) && (hdmiInput.getVerticalRes().startsWith("0")!= true) && (resolutionId != 0);
-	                    
-	                    if (device_mode != DeviceMode.STREAM_IN.ordinal())
-	                    	restartRequired = ((userSettings.getStreamState(idx) == StreamState.STARTED) || (restartRequired));
-	                    if ((device_mode==DeviceMode.PREVIEW.ordinal()) && (restartRequired))  
-	                    {
-	                        Log.i(TAG, "Restart called due to resolution change broadcast ! ");
-
-	                        cam_preview.stopPlayback();
-	                        hidePreviewWindow();
-	                        SystemClock.sleep(cameraRestartTimout);
-	                        hpdHdmiEvent = 1;
-	                        Log.i(TAG, "HDMI resolutions - HRes:" + hdmiInput.getHorizontalRes() + " Vres:" + hdmiInput.getVerticalRes());
-	                        
-	                        if (validResolution)
-	                        {
-	                            showPreviewWindow();
-	                            cam_preview.startPlayback();
-	                            restartRequired = false;
-	                        }
-	                    }
-	                    else if((device_mode==DeviceMode.STREAM_OUT.ordinal()) && (restartRequired))
-	                    {
-                    		//HACK: For ioctl issue 
-	                        //1. Hide Preview 2. sleep One Sec 3.Stop Camera 4. Sleep 5 sec
-	                        hidePreviewWindow();
-	                        SystemClock.sleep(cameraRestartTimout);
-	                        if((cam_streaming.mCameraPreviewObj != null) && ((cam_streaming.isStreaming()) == true))
-	                            cam_streaming.stopRecording(true);
-	                        else if ((((cam_preview.IsPreviewStatus()) == true)))  
-	                            cam_preview.stopPlayback();
-	                        else
-	                            Log.i(TAG, "Device is in Idle State");
-
-	                        SystemClock.sleep((5*cameraRestartTimout));	                    	
-	                        
-	                        if (validResolution)
-	                        {
-		                        try{
+	                	for(int i = 0; i < NumOfSurfaces; i++)
+	                	{
+	                        int device_mode = userSettings.getMode(i);
+		                    int resolutionId = paramAnonymousIntent.getIntExtra("evs_hdmi_resolution_id", -1);
+		                    hdmiInput.setResolutionIndex(resolutionId);
+		                    
+		                    String hdmiInputResolution = null;
+		                    Log.i(TAG, "Received resolution changed broadcast !: " + resolutionId);
+		                    boolean validResolution = (hdmiInput.getHorizontalRes().startsWith("0") != true) && (hdmiInput.getVerticalRes().startsWith("0")!= true) && (resolutionId != 0);
+		                    
+		                    if (device_mode != DeviceMode.STREAM_IN.ordinal())
+		                    	restartRequired[i] = ((userSettings.getStreamState(i) == StreamState.STARTED) || (restartRequired[i]));
+		                    if ((device_mode==DeviceMode.PREVIEW.ordinal()) && (restartRequired[i]))  
+		                    {
+		                        Log.i(TAG, "Restart called due to resolution change broadcast ! ");
+	
+		                        cam_preview.stopPlayback();
+		                        hidePreviewWindow();
+		                        SystemClock.sleep(cameraRestartTimout);
+		                        hpdHdmiEvent = 1;
+		                        Log.i(TAG, "HDMI resolutions - HRes:" + hdmiInput.getHorizontalRes() + " Vres:" + hdmiInput.getVerticalRes());
+		                        
+		                        if (validResolution)
+		                        {
 		                            showPreviewWindow();
-		                            cam_streaming.startRecording();
-		                            restartRequired = false;
-		                        } catch(IOException e) {
-		                            e.printStackTrace();
+		                            cam_preview.startPlayback();
+		                            restartRequired[i] = false;
 		                        }
-	                        }
-	                    }
-	                    else{
-	                        Log.i(TAG, " Nothing to do!!!");
-	                    }
-	                    if((hpdStateEnabled==1) && (device_mode==DeviceMode.PREVIEW.ordinal())){
-	                        SystemClock.sleep(cameraRestartTimout);
-	                        showPreviewWindow();
-	                        hpdHdmiEvent = 1;
-	                        cam_preview.startPlayback();
-	                    }
-	                }
+		                    }
+		                    else if((device_mode==DeviceMode.STREAM_OUT.ordinal()) && (restartRequired[i]))
+		                    {
+	                    		//HACK: For ioctl issue 
+		                        //1. Hide Preview 2. sleep One Sec 3.Stop Camera 4. Sleep 5 sec
+		                        hidePreviewWindow();
+		                        SystemClock.sleep(cameraRestartTimout);
+		                        if((cam_streaming.mCameraPreviewObj != null) && ((cam_streaming.isStreaming()) == true))
+		                            cam_streaming.stopRecording(true);
+		                        else if ((((cam_preview.IsPreviewStatus()) == true)))  
+		                            cam_preview.stopPlayback();
+		                        else
+		                            Log.i(TAG, "Device is in Idle State");
+	
+		                        SystemClock.sleep((5*cameraRestartTimout));	                    	
+		                        
+		                        if (validResolution)
+		                        {
+			                        try{
+			                            showPreviewWindow();
+			                            cam_streaming.startRecording();
+			                            restartRequired[i] = false;
+			                        } catch(IOException e) {
+			                            e.printStackTrace();
+			                        }
+		                        }
+		                    }
+	                	}
+		                    
+	                    sendHdmiInSyncState();
+                    }
+                    else{
+                        Log.i(TAG, " Nothing to do!!!");
+                    }
+//	                    if((hpdStateEnabled==1) && (device_mode==DeviceMode.PREVIEW.ordinal())){
+//	                        SystemClock.sleep(cameraRestartTimout);
+//	                        showPreviewWindow();
+//	                        hpdHdmiEvent = 1;
+//	                        cam_preview.startPlayback();
+//	                    }
+	                
             	}
             	finally
             	{
@@ -1170,11 +1175,7 @@ public class CresStreamCtrl extends Service {
 	                    }
 	                    else 
 	                        hpdStateEnabled = 1;
-	                    //send out sync detection signal
-	                    hdmiInput.setSyncStatus();
-	                    StringBuilder sb = new StringBuilder(1024);
-	                    sb.append("hdmiin_sync_detected=").append(hdmiInput.getSyncStatus());
-	                    sockTask.SendDataToAllClients(sb.toString());
+	                    sendHdmiInSyncState();
 	                }
             	}
             	finally
@@ -1220,4 +1221,12 @@ public class CresStreamCtrl extends Service {
         IntentFilter hdmioutResolutionIntentFilter = new IntentFilter("evs.intent.action.hdmi.HDMIOUT_RESOLUTION_CHANGED");
         registerReceiver(hdmioutResolutionChangedEvent, hdmioutResolutionIntentFilter);
     }
+
+	private void sendHdmiInSyncState() {
+		//send out sync detection signal
+		hdmiInput.setSyncStatus();
+		StringBuilder sb = new StringBuilder(1024);
+		sb.append("hdmiin_sync_detected=").append(hdmiInput.getSyncStatus());
+		sockTask.SendDataToAllClients(sb.toString());
+	}
 }

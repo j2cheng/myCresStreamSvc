@@ -365,9 +365,9 @@ public class CommandParser {
             case ELAPSED_SECONDS_FB:
                 cmd = new ElapsedSecondsCommand(cmdRx, arg); 
                 break;
-            case STREAM_STATUS_FB:
-                cmd = new StatusCommand(cmdRx, arg); 
-                break;
+//            case STREAM_STATUS_FB:
+//                cmd = new StatusCommand(cmdRx, arg); 
+//                break;
             case INITIATOR_ADDRESS_FB:
                 cmd = new InitAddressCommand(cmdRx, arg); 
                 break;
@@ -407,7 +407,7 @@ public class CommandParser {
         	String joinNameWithSessId = (parseResponse.joinName + String.valueOf(parseResponse.sessId));
         	String valueResponse = "";
         	
-	        if(parseResponse.joinValue != null)
+	        if(parseResponse.joinValue != "")
 	        { //Process & Reply Feedback 
 	            cmd = ProcCommand(parseResponse.joinName.toUpperCase(), parseResponse.joinValue, parseResponse.sessId); 
 	            if (cmd != null)
@@ -420,19 +420,20 @@ public class CommandParser {
 	        }
 	        else
 	        { //Test Stub Query
-	            String tmp_str = tokenizer.getStringValueOf(joinNameWithSessId);
-	            Log.d(TAG, "Querying:: searched for "+joinNameWithSessId+" and got value of "+tmp_str);
-	            if(tmp_str.equals(""))
-	            {
-	                cmd = ProcCommand(parseResponse.joinName.toUpperCase(), tmp_str, parseResponse.sessId); 
+//	            String tmp_str = tokenizer.getStringValueOf(joinNameWithSessId);
+//	            Log.d(TAG, "Querying:: searched for "+joinNameWithSessId+" and got value of "+tmp_str);
+//	            if(tmp_str.equals(""))
+//	            {
+	                cmd = ProcCommand(parseResponse.joinName.toUpperCase(), "", parseResponse.sessId); 
 	                if (cmd != null)
 	                {
 	                    invoke.setCommand(cmd);
 	                    valueResponse = invoke.get();
-	                }
-	            }
-	            else
-	            	valueResponse = tmp_str;
+	                    Log.d(TAG, String.format("Join value response: %s", valueResponse));
+ 	                }
+//	            }
+//	            else
+//	            	valueResponse = tmp_str;
 	        }
 	        
 	        if (parseResponse.sessIdSpecified)

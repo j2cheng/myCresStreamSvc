@@ -119,7 +119,7 @@ public class StringTokenizer
                 }
                 else
                 {
-                    SearchElement(parseRes.joinName);
+                    SearchElement(joinNameWithSessId);
                     list.add(new Token(joinNameWithSessId, parseRes.joinValue));
                 }
             }
