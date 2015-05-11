@@ -173,10 +173,10 @@ public class CommandParser {
                 cmd = new SessionInitiationCommand(cmdRx, arg, idx); 
                 break;
             case TRANSPORTMODE:
-                cmd = new TModeCommand(cmdRx, arg); 
+                cmd = new TModeCommand(cmdRx, arg, idx); 
                 break;
             case VENCPROFILE:
-                cmd = new VencCommand(cmdRx, arg); 
+                cmd = new VencCommand(cmdRx, arg, idx); 
                 break;
             case RTSPPORT:
                 cmd = new RtspPortCommand(cmdRx, arg, idx); 
@@ -373,7 +373,7 @@ public class CommandParser {
                 break;
                 //STATUS  
             case STREAMSTATE:
-                cmd = new StreamStateCommand(cmdRx, arg); 
+                cmd = new StreamStateCommand(cmdRx, arg, idx); 
                 break;
             default:
                 break;
@@ -396,6 +396,11 @@ public class CommandParser {
         String reply = ""; 
         StringTokenizer.ParseResponse parseResponse = tokenizer.Parse(receivedMsg);
         Log.d(TAG, "sessId parsed "+ parseResponse.sessId);
+        
+        if (parseResponse.sessId >= CresStreamCtrl.NumOfSurfaces)
+        {
+        	return String.format("Invalid Session id: %d", parseResponse.sessId);
+        }
 
         if (validateMsg(parseResponse.joinName.toUpperCase()))
 		{

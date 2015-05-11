@@ -24,6 +24,7 @@ public class CameraPreview {
     boolean is_audioplaying = false;
     //List<Camera.Size> mSupportedPreviewSizes;
     CresStreamCtrl streamCtl;
+    private int idx = 0;
 
     //public CameraPreview(CresStreamCtrl ctl, SurfaceHolder vHolder, HDMIInputInterface hdmiInIface) {
     public CameraPreview(CresStreamCtrl ctl, HDMIInputInterface hdmiInIface) {
@@ -31,6 +32,10 @@ public class CameraPreview {
         //surfaceHolder = vHolder;
         hdmiIf = hdmiInIface;
         streamCtl = ctl;
+    }
+    
+    public void setSessionIndex(int id){
+        idx = id;
     }
 
     public void onPreviewFrame(byte[] paramArrayOfByte, Camera paramCamera) {}
@@ -45,7 +50,7 @@ public class CameraPreview {
                 is_pause = true;
                 mCamera.stopPreview();	
                 stopAudio();
-                streamCtl.SendStreamState(StreamState.PAUSED);
+                streamCtl.SendStreamState(StreamState.PAUSED, idx);
             }
             return true;
         }
@@ -67,7 +72,7 @@ public class CameraPreview {
                 mCamera.startPreview();
                 startAudio();
             }
-            streamCtl.SendStreamState(StreamState.STARTED);
+            streamCtl.SendStreamState(StreamState.STARTED, idx);
             return true;
         }
         catch (Exception localException)
@@ -148,7 +153,7 @@ public class CameraPreview {
         }else   //Pause/Resume Case
             resumePlayback();
 
-        streamCtl.SendStreamState(StreamState.STARTED);
+        streamCtl.SendStreamState(StreamState.STARTED, idx);
 
     }
 
@@ -168,7 +173,7 @@ public class CameraPreview {
                 }
                 is_preview = false;
                 Log.d(TAG, "Playback stopped !");
-                streamCtl.SendStreamState(StreamState.STOPPED);
+                streamCtl.SendStreamState(StreamState.STOPPED, idx);
                 return;
             }
             catch (Exception localException)

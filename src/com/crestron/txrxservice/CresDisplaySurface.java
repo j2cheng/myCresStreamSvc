@@ -29,18 +29,16 @@ import android.content.Context;
  */
 public class CresDisplaySurface 
 {
-    private SurfaceView[] displaySurface = new SurfaceView[2];
+    private SurfaceView[] displaySurface = new SurfaceView[CresStreamCtrl.NumOfSurfaces];
     private RelativeLayout parentlayout;
     private RelativeLayout.LayoutParams viewLayoutParams;
     private WindowManager wm;
     private WindowManager.LayoutParams  wmLayoutParams;
     SurfaceManager sMGR;
-    private final int numOfSurfaces = 2;
     String TAG = "CresDisplaySurface";
 
     public CresDisplaySurface(Service svc, int windowWidth, int windowHeight)
     {
-
         Log.i(TAG, "Creating surface: " + windowWidth + "x" + windowHeight );
 
     	//Relative Layout to handle multiple views

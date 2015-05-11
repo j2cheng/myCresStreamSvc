@@ -44,15 +44,17 @@ class SessionInitiationCommand implements CommandIf {
 class TModeCommand implements CommandIf {
     CommandReceiver launch;
     String msg;
+    int idx;
 
-    public TModeCommand(CommandReceiver launch, String arg) {
+    public TModeCommand(CommandReceiver launch, String arg, int sessId) {
         this.launch = launch;
         this.msg = arg;
+        this.idx = sessId;
     }
 
     @Override
         public void execute() {
-            launch.SetTMode(launch.VALIDATE_INT(msg));
+            launch.SetTMode(launch.VALIDATE_INT(msg), idx);
         }
         public String getFeedbackMsg() {
             return msg;
@@ -62,15 +64,17 @@ class TModeCommand implements CommandIf {
 class VencCommand implements CommandIf {
     CommandReceiver launch;
     String msg;
+    int idx;
 
-    public VencCommand(CommandReceiver launch, String arg) {
+    public VencCommand(CommandReceiver launch, String arg, int sessId) {
         this.launch = launch;
         this.msg = arg;
+        this.idx = sessId;
     }
 
     @Override
         public void execute() {
-            launch.SetVenc(launch.VALIDATE_INT(msg));
+            launch.SetVenc(launch.VALIDATE_INT(msg), idx);
         }
         public String getFeedbackMsg() {
             return msg;
@@ -1299,10 +1303,12 @@ class StreamOutAudioChannelsCommand implements CommandIf {
 class StreamStateCommand implements CommandIf {
     CommandReceiver launch;
     String msg;
+    int idx;
 
-    public StreamStateCommand(CommandReceiver launch, String arg) {
+    public StreamStateCommand(CommandReceiver launch, String arg, int sessId) {
         this.launch = launch;
         this.msg = arg;
+        this.idx = sessId;
     }
 
     @Override
@@ -1310,8 +1316,6 @@ class StreamStateCommand implements CommandIf {
             //launch.(launch.VALIDATE_INT(msg));
         }
         public String getFeedbackMsg() {
-            return launch.getStreamState();
+            return launch.getStreamState(idx);
         }
 }
-
-

@@ -62,7 +62,7 @@ public class StringTokenizer
             matcher = pattern.matcher(newtoken);
             if(matcher.matches()){
                 boolean found = list.remove(tok);
-                //Log.d(TAG, "removedToken "+found );
+                Log.d(TAG, "removedToken "+found );
                 break;
             }
         }

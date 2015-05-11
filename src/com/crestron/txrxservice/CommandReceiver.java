@@ -4,26 +4,26 @@ import com.crestron.txrxservice.CresStreamCtrl;
 
 public class CommandReceiver {
     StringBuilder l_sb;
-    public enum VideoEncProfile {
-        BP(2), MP(1), HP(0);
-        private final int value;
-
-        private VideoEncProfile(int value) {
-            this.value = value;
-        }
-
-        public int getValue() {
-            return value;
-        }
-        public static String getStringValueFromInt(int i) {
-            for (VideoEncProfile status : VideoEncProfile.values()) {
-                if (status.getValue() == i) {
-                    return status.toString();
-                }
-            }
-            return "the given number doesn't match any Status.";
-        }
-    }
+//    public enum VideoEncProfile {
+//        BP(2), MP(1), HP(0);
+//        private final int value;
+//
+//        private VideoEncProfile(int value) {
+//            this.value = value;
+//        }
+//
+//        public int getValue() {
+//            return value;
+//        }
+//        public static String getStringValueFromInt(int i) {
+//            for (VideoEncProfile status : VideoEncProfile.values()) {
+//                if (status.getValue() == i) {
+//                    return status.toString();
+//                }
+//            }
+//            return "the given number doesn't match any Status.";
+//        }
+//    }
 
     public enum TransportMode {
         MPEG2TS_UDP(2), MPEG2TS_RTP(1), RTP(0);
@@ -69,12 +69,12 @@ public class CommandReceiver {
         ctl.setSessionInitMode(mode, sessId);
     }
     
-    public void SetTMode(int mode){
-        ctl.setTMode(TransportMode.getStringValueFromInt(mode));
+    public void SetTMode(int mode, int sessId){
+        ctl.setTMode(mode, sessId);
     }
     
-    public void SetVenc (int profile){
-        ctl.setStreamProfile(VideoEncProfile.getStringValueFromInt(profile));
+    public void SetVenc (int profile, int sessId){    	
+        ctl.setStreamProfile(UserSettings.VideoEncProfile.fromInteger(profile), sessId);
     }
     
     public void setRtspPort(int port, int sessId){
@@ -98,7 +98,7 @@ public class CommandReceiver {
     }
 
     public void setVbr(int vbr, int sessId){
-        ctl.setVbitRate(sessId, vbr);
+        ctl.setVbitRate(vbr, sessId);
     }
 
     public void EnableTcpInterleave(int sessId){
@@ -128,7 +128,7 @@ public class CommandReceiver {
     }
     
     public void setLatency(int latency, int sessId){
-        ctl.SetStreamInLatency(sessId, latency);
+        ctl.SetStreamInLatency(latency, sessId);
     }
 
     public void passwdEnable(int sessId){
@@ -197,9 +197,9 @@ public class CommandReceiver {
         return ctl.getPauseStatus();
     }
     
-    public String getStreamState(){
+    public String getStreamState(int sessId){
         //String replyString;
-        int streamState = ctl.getStreamState();
+        int streamState = (ctl.userSettings.getStreamState(sessId)).getValue();
         /*switch(streamState){
             case 0:
                 replyString ="STREAMING IN";
@@ -353,7 +353,7 @@ public class CommandReceiver {
         return l_sb.toString();*/
     }
     
-    
+    //TODO: we should really be calling userSettings directly and not adding an extra layer through ctl
     public String getXloc(){
         return Integer.toString(ctl.getXCoordinates());
     }

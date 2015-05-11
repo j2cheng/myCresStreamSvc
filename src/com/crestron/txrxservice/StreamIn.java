@@ -12,7 +12,7 @@ import android.media.MediaPlayer.OnCompletionListener;
 import android.media.MediaPlayer.OnErrorListener;
 import android.media.AudioManager;
 
-import com.crestron.txrxservice.CresStreamConfigure;
+//import com.crestron.txrxservice.CresStreamConfigure;
 import com.crestron.txrxservice.CresStreamCtrl.StreamState;
 
 public class StreamIn implements OnPreparedListener, OnCompletionListener, OnBufferingUpdateListener, OnErrorListener {
@@ -92,7 +92,7 @@ public class StreamIn implements OnPreparedListener, OnCompletionListener, OnBuf
                 mediaPlayer[idx] = new MediaPlayer();
                 mediaPlayer[idx].setDisplay(streamCtl.getCresSurfaceHolder());
                 //mediaPlayer.setDisplay(vidHolder);
-                srcUrl = streamCtl.myconfig.getUrl(idx);
+                srcUrl = streamCtl.userSettings.getServerUrl(idx);
                 mediaPlayer[idx].setDataSource(srcUrl);	
                 Log.d(TAG, "URL is "+srcUrl);
                 if(tcpInterleaveFlag && srcUrl.startsWith("rtsp://"))
@@ -118,7 +118,7 @@ public class StreamIn implements OnPreparedListener, OnCompletionListener, OnBuf
             } 
             catch(Exception e){
             	// TODO: explore exception handling with better feedback of what went wrong to user
-                streamCtl.SendStreamState(StreamState.STOPPED);
+                streamCtl.SendStreamState(StreamState.STOPPED, idx);
                 e.printStackTrace();
             }}
     }
@@ -128,7 +128,7 @@ public class StreamIn implements OnPreparedListener, OnCompletionListener, OnBuf
         if((mediaPlayer[idx]!=null) && (mediaPlayer[idx].isPlaying())) 
             mediaPlayer[idx].pause();
         media_pause = true;
-        streamCtl.SendStreamState(StreamState.PAUSED);
+        streamCtl.SendStreamState(StreamState.PAUSED, idx);
     }
 
     public void onStop() {
@@ -139,7 +139,7 @@ public class StreamIn implements OnPreparedListener, OnCompletionListener, OnBuf
             }
             mediaPlayer[idx].release();
             mediaPlayer[idx] = null;
-            streamCtl.SendStreamState(StreamState.STOPPED);
+            streamCtl.SendStreamState(StreamState.STOPPED, idx);
         }
     }
 
@@ -149,7 +149,7 @@ public class StreamIn implements OnPreparedListener, OnCompletionListener, OnBuf
             mediaPlayer[idx].start();
             //mediaPlayer[idx].getStatisticsData();
             
-            streamCtl.SendStreamState(StreamState.STARTED); // TODO: this should be on start complete not prepared
+            streamCtl.SendStreamState(StreamState.STARTED, idx); // TODO: this should be on start complete not prepared
             streamCtl.SendStreamInFeedbacks();
         }
         
@@ -194,7 +194,7 @@ public class StreamIn implements OnPreparedListener, OnCompletionListener, OnBuf
     public void onBufferingUpdate(MediaPlayer mp, int percent) {
         int progress = (int) ((float) mp.getDuration() * ((float) percent/ (float) 100));
         Log.d(TAG, "####### Buffering percent "+percent);
-        streamCtl.SendStreamState(StreamState.BUFFERING);
+        streamCtl.SendStreamState(StreamState.BUFFERING, idx);
     }
 
     public void onCompletion(MediaPlayer mp) {

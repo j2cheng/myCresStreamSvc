@@ -14,7 +14,7 @@ import android.util.Log;
 
 public class MiscUtils {	
 	static Matcher matcher;
-        static String TAG = "TxRx Utils";
+    static String TAG = "TxRx Utils";
 	
 	public static void getDeviceIpAddr() {
 		String ipAddress;
@@ -42,17 +42,17 @@ public class MiscUtils {
 			e1.printStackTrace();
 		}
 	}
-        private static int calcAspect(int a, int b){
-            return (b==0) ? a:calcAspect(b, a%b);
-        }
+//        private static int calcAspect(int a, int b){
+//            return (b==0) ? a:calcAspect(b, a%b);
+//        }
 
-        public static String calculateAspectRatio(int w, int h)
-        {
-            String retstr;
-            if (h != 0)
-            	retstr = String.valueOf((w * 100) / h);
-            else
-            	retstr = String.valueOf(0);
-            return retstr;
-        }
+    public static String calculateAspectRatio(int w, int h)
+    {
+        String retstr;
+        if (h != 0)
+        	retstr = String.valueOf((w * 100) / h);
+        else
+        	retstr = String.valueOf(0);
+        return retstr;
+    }
 }
