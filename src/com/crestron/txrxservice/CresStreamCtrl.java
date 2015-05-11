@@ -347,7 +347,7 @@ public class CresStreamCtrl extends Service {
     public void setWindowSizeH(int h, int sessionId)
     {
         if(last_h[sessionId] != h){
-        	userSettings.setW(h, sessionId);
+        	userSettings.setH(h, sessionId);
             updateWH(sessionId);
         }
     }
