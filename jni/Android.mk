@@ -4,7 +4,7 @@ GSTREAMER_ROOT_ANDROID := $(LOCAL_PATH)/../../../gstreamer-1.4.5
 CSIO_INCLUDE_ROOT := $(LOCAL_PATH)/../../csio
 CSIO_ROOT := ../../csio
 CRESTRON_ROOT := $(LOCAL_PATH)/../..
-LOCAL_MODULE    := libtutorial-3
+LOCAL_MODULE    := libgstreamer_jni
 LOCAL_SRC_FILES := jni.c \
 	$(CSIO_ROOT)/gstreamer-1.0/csioutils.cpp \
 	$(CSIO_ROOT)/gstreamer-1.0/cstream.cpp \
@@ -16,7 +16,6 @@ LOCAL_SRC_FILES := jni.c \
 	$(CSIO_ROOT)/gstreamer-1.0/vputils.cpp \
     $(CSIO_ROOT)/csioCommonShare.cpp \
     $(CSIO_ROOT)/url_parser/url_parser.cpp
-
 
 COMMON_INC_PATH := $(CRESTRON_ROOT)/Include
 UTIL_INC_PATH := $(CRESTRON_ROOT)/Utilities

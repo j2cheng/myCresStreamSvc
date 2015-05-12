@@ -234,7 +234,7 @@ public class GstreamIn implements OnPreparedListener, OnCompletionListener, OnBu
 
     static {
         System.loadLibrary("gstreamer_android");
-        System.loadLibrary("tutorial-3");
+        System.loadLibrary("gstreamer_jni");
         nativeClassInit();
     }
 
