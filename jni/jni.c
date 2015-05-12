@@ -344,7 +344,7 @@ jint JNI_OnLoad(JavaVM *vm, void *reserved)
 
 #include "cregstplay.c"
 
-int csio_IpLinkCientConnected()
+int csio_IpLinkClientConnected()
 {
 	return 0;
 }
