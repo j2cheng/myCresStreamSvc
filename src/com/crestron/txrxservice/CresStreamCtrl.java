@@ -47,6 +47,7 @@ public class CresStreamCtrl extends Service {
     CameraPreview cam_preview;
     StringTokenizer tokenizer;
     StreamIn streamPlay;
+    //GstreamIn streamPlay;
     BroadcastReceiver hpdEvent = null;
     BroadcastReceiver resolutionEvent = null;
     BroadcastReceiver hdmioutResolutionChangedEvent = null;
@@ -426,6 +427,7 @@ public class CresStreamCtrl extends Service {
         String hdmiInputResolution = HDMIInputInterface.getHdmiInResolutionSysFs();
 
     	readResolutionInfo(hdmiInputResolution);
+    	hdmiInput.setSyncStatus();
     }
 
 	public void refreshOutputResolution() {
@@ -1034,6 +1036,8 @@ public class CresStreamCtrl extends Service {
             	{
 	                if (paramAnonymousIntent.getAction().equals("evs.intent.action.hdmi.RESOLUTION_CHANGED"))
 	                {
+	                	sendHdmiInSyncState();
+	                	
 	                	for(int sessionId = 0; sessionId < NumOfSurfaces; sessionId++)
 	                	{
 	                        int device_mode = userSettings.getMode(sessionId);
@@ -1090,9 +1094,6 @@ public class CresStreamCtrl extends Service {
 		                        }
 		                    }
 	                	}
-		                
-	                	
-	                    sendHdmiInSyncState();
                     }
                     else{
                         Log.i(TAG, " Nothing to do!!!");
@@ -1122,7 +1123,7 @@ public class CresStreamCtrl extends Service {
             	{
 	                if (paramAnonymousIntent.getAction().equals("evs.intent.action.hdmi.HPD"))
 	                {
-	                	
+	                	sendHdmiInSyncState();
 	                    int i = paramAnonymousIntent.getIntExtra("evs_hdmi_hdp_id", -1);
 	                    Log.i(TAG, "Received hpd broadcast ! " + i);
 	                    if(i==0){
@@ -1145,7 +1146,7 @@ public class CresStreamCtrl extends Service {
 	                    }
 	                    else 
 	                        hpdStateEnabled = 1;
-	                    sendHdmiInSyncState();	                	
+	                    	                	
 	                }
             	}
             	finally
@@ -1191,10 +1192,16 @@ public class CresStreamCtrl extends Service {
         IntentFilter hdmioutResolutionIntentFilter = new IntentFilter("evs.intent.action.hdmi.HDMIOUT_RESOLUTION_CHANGED");
         registerReceiver(hdmioutResolutionChangedEvent, hdmioutResolutionIntentFilter);
     }
-
+    
 	private void sendHdmiInSyncState() {
-		//send out sync detection signal
-		hdmiInput.setSyncStatus();
+		refreshInputResolution();
 		sockTask.SendDataToAllClients("hdmiin_sync_detected=" + hdmiInput.getSyncStatus());
+		sockTask.SendDataToAllClients("HDMIIN_INTERLACED=" + hdmiInput.getInterlacing());
+		sockTask.SendDataToAllClients("HDMIIN_HORIZONTAL_RES_FB=" + hdmiInput.getHorizontalRes());
+		sockTask.SendDataToAllClients("HDMIIN_VERTICAL_RES_FB=" + hdmiInput.getVerticalRes());
+		sockTask.SendDataToAllClients("HDMIIN_FPS_FB=" + hdmiInput.getFPS());
+		sockTask.SendDataToAllClients("HDMIIN_ASPECT_RATIO=" + hdmiInput.getAspectRatio());
+		sockTask.SendDataToAllClients("HDMIIN_AUDIO_FORMAT=" + hdmiInput.getAudioFormat());
+		sockTask.SendDataToAllClients("HDMIIN_AUDIO_CHANNELS=" + hdmiInput.getAudioChannels());
 	}
 }
