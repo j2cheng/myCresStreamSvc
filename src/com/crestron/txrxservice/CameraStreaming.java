@@ -74,7 +74,7 @@ public class CameraStreaming implements ErrorCallback {
             mCameraPreviewObj.getHdmiInputStatus();
             mCameraPreviewObj.setEncoderFps(streamCtl.userSettings.getEncodingFramerate(idx));
             mCameraPreviewObj.lock();
-            mCameraPreviewObj.unlock();
+            mCameraPreviewObj.unlock(); //TODO: what is the purpose of this????
             mrec.setCamera(mCameraPreviewObj);
 
             mrec.setAudioSource(MediaRecorder.AudioSource.MIC);
@@ -85,20 +85,16 @@ public class CameraStreaming implements ErrorCallback {
             int l_port;
             int currentSessionInitiation = streamCtl.userSettings.getSessionInitiation(idx);
             int currentTransportMode = streamCtl.userSettings.getTransportMode(idx);
-            if (currentSessionInitiation == 0) //By Receiver
+            if ((currentSessionInitiation == 0) || (currentSessionInitiation == 2)) //Multicast via RTSP or By Receiver
             {
             	l_port = streamCtl.userSettings.getRtspPort(idx);
                 mrec.setDestinationIP( hostaddr);
                 mrec.setRTSPPort(l_port);
+                
+                if (currentSessionInitiation == 2) //Multicast via RTSP
+                	mrec.setMcastIP(streamCtl.userSettings.getMulticastAddress(idx));
             }
-            else if (currentSessionInitiation == 2) //Multicast via RTSP
-            {
-            	mrec.setDestinationIP(hostaddr);//Set Server IP as HostIP
-                l_port = streamCtl.userSettings.getRtspPort(idx);
-                mrec.setMcastIP(streamCtl.userSettings.getMulticastAddress(idx));
-                mrec.setRTSPPort(l_port);
-            }
-            else //Multicast via UDP
+            else //Multicast via UDP or By Transmitter
             {
             	if (currentSessionInitiation == 1)	//By Transmitter
             		mrec.setDestinationIP(streamCtl.userSettings.getServerUrl(idx));
@@ -140,13 +136,13 @@ public class CameraStreaming implements ErrorCallback {
             mrec.setOutputFile(path + filename);   
 
             Log.d(TAG, "########setPreviewDisplay######");
-            mrec.setPreviewDisplay(streamCtl.getCresSurfaceHolder().getSurface());
+            mrec.setPreviewDisplay(streamCtl.getCresSurfaceHolder(idx).getSurface());
             //mrec.setPreviewDisplay(surfaceHolder.getSurface());
 
             mrec.prepare();
             mrec.start();
-            
-            if (currentTransportMode == 0) {	//RTP mode
+
+            if ((currentSessionInitiation != 0) && (currentSessionInitiation != 2) && (currentTransportMode == 0)) {	//TODO: causes crash in RTSP modes currently being worked around
                 String sb = mrec.getSDP();
                 Log.d(TAG, "########SDP Dump######\n" + sb);
             }

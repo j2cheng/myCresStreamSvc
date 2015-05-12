@@ -66,7 +66,7 @@ public class CommandReceiver {
     }
 
     public void setSessionInitation(int mode, int sessId){
-        ctl.setSessionInitMode(mode, sessId);
+    	ctl.userSettings.setSessionInitiation(mode, sessId);
     }
     
     public void SetTMode(int mode, int sessId){

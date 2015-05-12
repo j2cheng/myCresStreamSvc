@@ -107,7 +107,7 @@ public class CameraPreview {
             //                    hdmiinput = mCamera.getHdmiInputStatus();
             if(mCamera!=null){
                 try {
-                    mCamera.setPreviewDisplay(streamCtl.getCresSurfaceHolder());
+                    mCamera.setPreviewDisplay(streamCtl.getCresSurfaceHolder(idx));
                     //mCamera.setPreviewDisplay(surfaceHolder);
                 }catch (Exception localException) {
                     localException.printStackTrace();

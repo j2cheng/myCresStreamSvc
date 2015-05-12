@@ -90,7 +90,7 @@ public class StreamIn implements OnPreparedListener, OnCompletionListener, OnBuf
                     mediaPlayer[idx] = null;
                 }
                 mediaPlayer[idx] = new MediaPlayer();
-                mediaPlayer[idx].setDisplay(streamCtl.getCresSurfaceHolder());
+                mediaPlayer[idx].setDisplay(streamCtl.getCresSurfaceHolder(idx));
                 //mediaPlayer.setDisplay(vidHolder);
                 srcUrl = streamCtl.userSettings.getServerUrl(idx);
                 mediaPlayer[idx].setDataSource(srcUrl);	

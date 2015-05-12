@@ -155,7 +155,7 @@ public class CresStreamCtrl extends Service {
             userSettings.setStreamState(StreamState.STOPPED, 0);
             userSettings.setStreamState(StreamState.STOPPED, 1);
             
-//            //////////////////////////
+            //////////////////////////
 //            UserSettings userSettings = new UserSettings();
 //            userSettings.setVolume(11);
 //            GsonBuilder builder = new GsonBuilder();
@@ -165,7 +165,7 @@ public class CresStreamCtrl extends Service {
 //            UserSettings settings2 = new UserSettings();
 //            settings2 = gson.fromJson(serializedClass, UserSettings.class);
 //            Log.d(TAG, "Volume is at :" + settings2.getVolume());
-//            ///////////////////////////
+            ///////////////////////////
             
             hdmiInputDriverPresent = HDMIInputInterface.isHdmiDriverPresent();
 
@@ -302,8 +302,8 @@ public class CresStreamCtrl extends Service {
         	dispSurface.RemoveView();
     }
 
-    public SurfaceHolder getCresSurfaceHolder(){
-        return dispSurface.GetSurfaceHolder(idx);
+    public SurfaceHolder getCresSurfaceHolder(int sessionId){
+        return dispSurface.GetSurfaceHolder(sessionId);
     }
 
     public void setDeviceMode(int mode, int sessionId)
@@ -546,43 +546,6 @@ public class CresStreamCtrl extends Service {
     public String getHDMIOutAudioChannels()
     {
     	return hdmiOutput.getAudioChannels();
-    }
-
-    public void setSessionInitMode(int sessId, int mode)
-    {
-	    Log.d(TAG, " setSessionInitMode "+ mode);
-	    //sessInitMode = mode;
-	    userSettings.setSessionInitiation(mode, sessId);
-	    switch(mode){
-		//case "ByReceiver":
-		case 0: 
-		{
-        		//myconfig.setTransportMode("RTSP");	
-	    		Log.d(TAG, "By ReceiverMode rtsp streaming starts");
-		}
-		break;
-		//case "ByTransmitter":
-		case 1:
-		{
-	    		Log.d(TAG, "By TransmitterMode streaming starts");
-		}
-		break;
-		//case "MCastViaRTSP":
-		case 2:
-		{
-        		//myconfig.setTransportMode("MRTSP");	
-	    		Log.d(TAG, "MCastViaRTSP streaming starts");
-		}
-		break;
-		//case "MCastViaUDP":
-		case 3:
-		{
-	    		Log.d(TAG, "MCastViaUDP Mode");
-		}
-		break;
-		default:
-		break;
-	    }
     }
     
     public void setStreamMute() //TODO: store in userSettings
