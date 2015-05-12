@@ -352,24 +352,24 @@ public class CresStreamCtrl extends Service {
         }
     }
 
-    public int getXCoordinates()
+    public int getXCoordinates(int sessId)
     {
-        return userSettings.getXloc(idx);
+        return userSettings.getXloc(sessId);
     }
 
-    public int getYCoordinates()
+    public int getYCoordinates(int sessId)
     {
-        return userSettings.getYloc(idx);
+        return userSettings.getYloc(sessId);
     }
 
-    public int getWindowSizeW()
+    public int getWindowSizeW(int sessId)
     {
-        return userSettings.getW(idx);
+        return userSettings.getW(sessId);
     }
 
-    public int getWindowSizeH()
+    public int getWindowSizeH(int sessId)
     {
-        return userSettings.getH(idx);
+        return userSettings.getH(sessId);
     }
         
     public void updateWH(int sessionId)
@@ -662,7 +662,7 @@ public class CresStreamCtrl extends Service {
 	        
 	        sb.append(streamStateText + "=").append(state.getValue());
 	        sockTask.SendDataToAllClients(sb.toString());
-	        tokenizer.AddTokenToList(streamStateText, String.valueOf(state.getValue()));
+	        //tokenizer.AddTokenToList(streamStateText, String.valueOf(state.getValue()));
     	}
         finally 
     	{
@@ -774,7 +774,7 @@ public class CresStreamCtrl extends Service {
     	userSettings.setRtpAudioPort(_port, sessId);
     }
 
-    private String createStreamOutURL()
+    private String createStreamOutURL(int sessId)
     {
         StringBuilder url = new StringBuilder(1024);
         url.append("");
@@ -782,14 +782,14 @@ public class CresStreamCtrl extends Service {
         String file = "";
         int port = 0;  
         String l_ipaddr= "";
-        int currentSessionInitiation = userSettings.getSessionInitiation(idx);
-        int currentTransportMode = userSettings.getTransportMode(idx);
+        int currentSessionInitiation = userSettings.getSessionInitiation(sessId);
+        int currentTransportMode = userSettings.getTransportMode(sessId);
         
         //Rtsp Modes
         if ((currentSessionInitiation == 0) || (currentSessionInitiation == 2))
         {
         	proto = "rtsp";
-            port = userSettings.getRtspPort(idx);
+            port = userSettings.getRtspPort(sessId);
             l_ipaddr = userSettings.getDeviceIp();
             file = "/live.sdp";
             
@@ -831,8 +831,8 @@ public class CresStreamCtrl extends Service {
     {
         StringBuilder sb = new StringBuilder(512);
         updateWindow(sessId);
-        showPreviewWindow();
-        out_url = createStreamOutURL();
+        showPreviewWindow(sessId);
+        out_url = createStreamOutURL(sessId);
 
         try {
             cam_streaming.setSessionIndex(sessId);
@@ -851,10 +851,10 @@ public class CresStreamCtrl extends Service {
     {
         if(StreamOutstarted){
             //Toast.makeText(this, "StreamOut Stopped", Toast.LENGTH_LONG).show();
-            cam_streaming.setSessionIndex(idx);
+            cam_streaming.setSessionIndex(sessId);
             cam_streaming.stopRecording(false);
             StreamOutstarted = false;
-            hidePreviewWindow();
+            hidePreviewWindow(sessId);
         }
     }
     
@@ -863,33 +863,33 @@ public class CresStreamCtrl extends Service {
         Log.d(TAG, "Nothing to do");
     }
 
-    private void hidePreviewWindow()
+    private void hidePreviewWindow(int sessId)
     {
         Log.d(TAG, "Preview Window hidden");
         if (dispSurface != null)
-        	dispSurface.HideWindow(idx);
+        	dispSurface.HideWindow(sessId);
     }
     
-    private void showPreviewWindow()
+    private void showPreviewWindow(int sessId)
     {
         Log.d(TAG, "Preview Window showing");
         if (dispSurface != null)
-        	dispSurface.ShowWindow(idx);
+        	dispSurface.ShowWindow(sessId);
     }
 
     //StreamIn Ctrls & Config
-    private void hideStreamInWindow()
+    private void hideStreamInWindow(int sessId)
     {
-        Log.d(TAG, " streamin Window hidden " + idx);
+        Log.d(TAG, " streamin Window hidden " + sessId);
         if (dispSurface != null)
-        	dispSurface.HideWindow(idx);
+        	dispSurface.HideWindow(sessId);
     }
 
-    private void showStreamInWindow()
+    private void showStreamInWindow(int sessId)
     {
-        Log.d(TAG, "streamin Window  showing" + idx);
+        Log.d(TAG, "streamin Window  showing" + sessId);
         if (dispSurface != null)
-        	dispSurface.ShowWindow(idx);
+        	dispSurface.ShowWindow(sessId);
     }
 
     public void EnableTcpInterleave(int sessionId){
@@ -923,7 +923,7 @@ public class CresStreamCtrl extends Service {
     public void startStreamIn(int sessId)
     {
         updateWindow(sessId);
-        showStreamInWindow();
+        showStreamInWindow(sessId);
         streamPlay.setSessionIndex(sessId);
         streamPlay.onStart();
         //Toast.makeText(this, "StreamIN Started", Toast.LENGTH_LONG).show();
@@ -942,7 +942,7 @@ public class CresStreamCtrl extends Service {
         streamPlay.setSessionIndex(sessId);
         streamPlay.onStop();
         //Toast.makeText(this, "StreamIN Stopped", Toast.LENGTH_LONG).show();
-        hideStreamInWindow();
+        hideStreamInWindow(sessId);
     }
 
     public void pauseStreamIn(int sessId)
@@ -999,7 +999,7 @@ public class CresStreamCtrl extends Service {
     public void startPreview(int sessId)
     {
         updateWindow(sessId);
-        showPreviewWindow();
+        showPreviewWindow(sessId);
         cam_preview.setSessionIndex(sessId);
         cam_preview.startPlayback();
         //Toast.makeText(this, "Preview Started", Toast.LENGTH_LONG).show();
@@ -1007,7 +1007,7 @@ public class CresStreamCtrl extends Service {
 
     public void stopPreview(int sessId)
     {
-        hidePreviewWindow();
+        hidePreviewWindow(sessId);
         cam_preview.setSessionIndex(sessId);
         cam_preview.stopPlayback();
         //Toast.makeText(this, "Preview Stopped", Toast.LENGTH_LONG).show();
@@ -1015,6 +1015,7 @@ public class CresStreamCtrl extends Service {
     
     public void pausePreview(int sessId)
     {
+    	cam_preview.setSessionIndex(sessId);
         cam_preview.pausePlayback();
     }
    
@@ -1070,9 +1071,9 @@ public class CresStreamCtrl extends Service {
             	{
 	                if (paramAnonymousIntent.getAction().equals("evs.intent.action.hdmi.RESOLUTION_CHANGED"))
 	                {
-	                	for(int i = 0; i < NumOfSurfaces; i++)
+	                	for(int sessionId = 0; sessionId < NumOfSurfaces; sessionId++)
 	                	{
-	                        int device_mode = userSettings.getMode(i);
+	                        int device_mode = userSettings.getMode(sessionId);
 		                    int resolutionId = paramAnonymousIntent.getIntExtra("evs_hdmi_resolution_id", -1);
 		                    hdmiInput.setResolutionIndex(resolutionId);
 		                    
@@ -1081,29 +1082,29 @@ public class CresStreamCtrl extends Service {
 		                    boolean validResolution = (hdmiInput.getHorizontalRes().startsWith("0") != true) && (hdmiInput.getVerticalRes().startsWith("0")!= true) && (resolutionId != 0);
 		                    
 		                    if (device_mode != DeviceMode.STREAM_IN.ordinal())
-		                    	restartRequired[i] = ((userSettings.getStreamState(i) == StreamState.STARTED) || (restartRequired[i]));
-		                    if ((device_mode==DeviceMode.PREVIEW.ordinal()) && (restartRequired[i]))  
+		                    	restartRequired[sessionId] = ((userSettings.getStreamState(sessionId) == StreamState.STARTED) || (restartRequired[sessionId]));
+		                    if ((device_mode==DeviceMode.PREVIEW.ordinal()) && (restartRequired[sessionId]))  
 		                    {
 		                        Log.i(TAG, "Restart called due to resolution change broadcast ! ");
 	
 		                        cam_preview.stopPlayback();
-		                        hidePreviewWindow();
+		                        hidePreviewWindow(sessionId);
 		                        SystemClock.sleep(cameraRestartTimout);
 		                        hpdHdmiEvent = 1;
 		                        Log.i(TAG, "HDMI resolutions - HRes:" + hdmiInput.getHorizontalRes() + " Vres:" + hdmiInput.getVerticalRes());
 		                        
 		                        if (validResolution)
 		                        {
-		                            showPreviewWindow();
+		                            showPreviewWindow(sessionId);
 		                            cam_preview.startPlayback();
-		                            restartRequired[i] = false;
+		                            restartRequired[sessionId] = false;
 		                        }
 		                    }
-		                    else if((device_mode==DeviceMode.STREAM_OUT.ordinal()) && (restartRequired[i]))
+		                    else if((device_mode==DeviceMode.STREAM_OUT.ordinal()) && (restartRequired[sessionId]))
 		                    {
 	                    		//HACK: For ioctl issue 
 		                        //1. Hide Preview 2. sleep One Sec 3.Stop Camera 4. Sleep 5 sec
-		                        hidePreviewWindow();
+		                        hidePreviewWindow(sessionId);
 		                        SystemClock.sleep(cameraRestartTimout);
 		                        if((cam_streaming.mCameraPreviewObj != null) && ((cam_streaming.isStreaming()) == true))
 		                            cam_streaming.stopRecording(true);
@@ -1117,16 +1118,17 @@ public class CresStreamCtrl extends Service {
 		                        if (validResolution)
 		                        {
 			                        try{
-			                            showPreviewWindow();
+			                            showPreviewWindow(sessionId);
 			                            cam_streaming.startRecording();
-			                            restartRequired[i] = false;
+			                            restartRequired[sessionId] = false;
 			                        } catch(IOException e) {
 			                            e.printStackTrace();
 			                        }
 		                        }
 		                    }
 	                	}
-		                    
+		                
+	                	
 	                    sendHdmiInSyncState();
                     }
                     else{
@@ -1157,12 +1159,17 @@ public class CresStreamCtrl extends Service {
             	{
 	                if (paramAnonymousIntent.getAction().equals("evs.intent.action.hdmi.HPD"))
 	                {
+	                	
 	                    int i = paramAnonymousIntent.getIntExtra("evs_hdmi_hdp_id", -1);
 	                    Log.i(TAG, "Received hpd broadcast ! " + i);
 	                    if(i==0){
 	                        //HACK: For ioctl issue 
 	                        //1. Hide Preview 2. sleep One Sec 3.Stop Camera 4. Sleep 5 sec
-	                        hidePreviewWindow();
+	                    	for (int sessionId = 0; sessionId < NumOfSurfaces; sessionId++)
+		                	{
+	                    		if (userSettings.getMode(sessionId) != DeviceMode.STREAM_IN.ordinal())
+	                    			hidePreviewWindow(sessionId);
+		                	}
 	                        SystemClock.sleep(cameraRestartTimout);
 	                        if((cam_streaming.mCameraPreviewObj != null) && ((cam_streaming.isStreaming()) == true))
 	                            cam_streaming.stopRecording(true);
@@ -1175,7 +1182,7 @@ public class CresStreamCtrl extends Service {
 	                    }
 	                    else 
 	                        hpdStateEnabled = 1;
-	                    sendHdmiInSyncState();
+	                    sendHdmiInSyncState();	                	
 	                }
             	}
             	finally
@@ -1225,8 +1232,6 @@ public class CresStreamCtrl extends Service {
 	private void sendHdmiInSyncState() {
 		//send out sync detection signal
 		hdmiInput.setSyncStatus();
-		StringBuilder sb = new StringBuilder(1024);
-		sb.append("hdmiin_sync_detected=").append(hdmiInput.getSyncStatus());
-		sockTask.SendDataToAllClients(sb.toString());
+		sockTask.SendDataToAllClients("hdmiin_sync_detected=" + hdmiInput.getSyncStatus());
 	}
 }

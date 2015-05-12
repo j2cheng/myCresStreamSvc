@@ -354,20 +354,20 @@ public class CommandReceiver {
     }
     
     //TODO: we should really be calling userSettings directly and not adding an extra layer through ctl
-    public String getXloc(){
-        return Integer.toString(ctl.getXCoordinates());
+    public String getXloc(int sessId){
+        return Integer.toString(ctl.userSettings.getXloc(sessId));
     }
 
-    public String getYloc(){
-        return Integer.toString(ctl.getYCoordinates());
+    public String getYloc(int sessId){
+        return Integer.toString(ctl.userSettings.getYloc(sessId));
     }
     
-    public String getDestWidth(){
-        return Integer.toString(ctl.getWindowSizeW());
+    public String getDestWidth(int sessId){
+        return Integer.toString(ctl.userSettings.getW(sessId));
     }
     
-    public String getDestHeight(){
-        return Integer.toString(ctl.getWindowSizeH());
+    public String getDestHeight(int sessId){
+        return Integer.toString(ctl.userSettings.getH(sessId));
     }
     
     public String getDeviceMode(int sessId){

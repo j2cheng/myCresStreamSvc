@@ -392,7 +392,6 @@ public class CommandParser {
     }
 
     public String processReceivedMessage(String receivedMsg){
-        tokenizer.printList();//DEBUG Purpose
         String reply = ""; 
         StringTokenizer.ParseResponse parseResponse = tokenizer.Parse(receivedMsg);
         Log.d(TAG, "sessId parsed "+ parseResponse.sessId);

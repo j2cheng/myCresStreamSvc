@@ -28,46 +28,6 @@ public class StringTokenizer
 		}
 	}
 
-	public class Token
-    {
-        public final String sequence1, sequence2 ;
-
-        public Token(String sequence1, String sequence2)
-        {
-            super();
-            this.sequence1 = sequence1;
-            this.sequence2 = sequence2;
-        }
-    }
-	private static LinkedList<Token> list;
-	private static int sessionIDX = 0;
-	private static boolean markSessionForDelete = false;
-
-    public StringTokenizer() {
-        list = new LinkedList<Token>();
-    }
-
-    public void AddTokenToList(String command, String value){
-        SearchElement(command);
-        list.add(new Token(command, value));
-    }
-
-    private void SearchElement(String str){
-        String l_str = str;
-        for (StringTokenizer.Token tok : getTokens())
-        {
-            //Log.d(TAG, "SearchElement::tokens are "+tok.sequence1+" "+tok.sequence2);
-            String newtoken = tok.sequence1;
-            pattern = Pattern.compile(l_str, Pattern.CASE_INSENSITIVE);	
-            matcher = pattern.matcher(newtoken);
-            if(matcher.matches()){
-                boolean found = list.remove(tok);
-                Log.d(TAG, "removedToken "+found );
-                break;
-            }
-        }
-    }
-
     private String processCmdForSessionCreate(String msg){
         StringBuilder sb = new StringBuilder();
         boolean found = false;
@@ -117,11 +77,6 @@ public class StringTokenizer
                 if(parseRes.joinName.equalsIgnoreCase("start") || parseRes.joinName.equalsIgnoreCase("stop")|| parseRes.joinName.equalsIgnoreCase("pause")){
                     Log.d(TAG, "received control cmd");
                 }
-                else
-                {
-                    SearchElement(joinNameWithSessId);
-                    list.add(new Token(joinNameWithSessId, parseRes.joinValue));
-                }
             }
             else
                 Log.d(TAG, "Query has been made for '"+joinNameWithSessId+"'");
@@ -129,37 +84,5 @@ public class StringTokenizer
         }
 
         return parseRes;
-    }
-
-    public String getStringValueOf(String regex){
-        String value = "";
-        for (StringTokenizer.Token tok : getTokens())
-        {
-            //Log.d(TAG, "searching for "+regex+" and entries are "+tok.sequence1+" and "+tok.sequence2);
-            String newtoken = tok.sequence1;
-            pattern = Pattern.compile(regex, Pattern.CASE_INSENSITIVE);	
-            matcher = pattern.matcher(newtoken);
-            if(matcher.matches()){
-                //Log.d(TAG, "found");
-                value = tok.sequence2;
-                break;
-            }
-        }
-        return value;
-    }
-
-    public void printList()
-    {
-        Log.d(TAG, "###########LIST MARKER START");
-        for (StringTokenizer.Token tok : getTokens())
-        {
-            Log.d(TAG, "List of entries are "+tok.sequence1+" and "+tok.sequence2);
-        }
-        Log.d(TAG, "###########LIST MARKER END");
-    }
-
-    public LinkedList<Token> getTokens()
-    {
-        return list;
     }
 }
