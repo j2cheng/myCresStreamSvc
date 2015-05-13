@@ -173,7 +173,6 @@ public class CameraPreview {
                 is_preview = false;
                 Log.d(TAG, "Playback stopped !");
                 streamCtl.SendStreamState(StreamState.STOPPED, idx);
-                return;
             }
             catch (Exception localException)
             {

@@ -14,12 +14,13 @@ public class AudioPlayback
     AudioTrack mPlayer = null;
     AudioRecord mRecorder = null;
     String TAG = "TxRx AudioPlayback"; 
-    boolean shouldExit = false;
+    boolean shouldExit;
     Thread streamAudioThread;
 
 
     protected void startAudioTask(){
     	streamAudioThread = new Thread(new StreamAudioTask());
+    	shouldExit = false;
     	streamAudioThread.start();
     }
 
@@ -86,7 +87,6 @@ public class AudioPlayback
 	        mPlayer.release();
 	        
 	        Log.e(TAG, "Audio Task Stopped");
-	        shouldExit = false;
         }
         catch (InterruptedException localInterruptedException)
         {
