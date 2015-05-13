@@ -27,8 +27,8 @@ CPP_INC_PATH := $(CRESTRON_ROOT)/../../bionic
 #LOCAL_SHARED_LIBRARIES := gstreamer_android
 LOCAL_SHARED_LIBRARIES := libgstreamer_android
 # Crestron - why do I have to do this?
-LOCAL_LDLIBS := -llog -landroid
-#LOCAL_LDFLAGS := -llog -landroid 
+#LOCAL_LDLIBS := -llog -landroid
+LOCAL_LDFLAGS := -llog -landroid 
 ### Crestron added - why do I need to do this?
 LOCAL_CFLAGS +=\
 	-I$(CPP_INC_PATH) \
