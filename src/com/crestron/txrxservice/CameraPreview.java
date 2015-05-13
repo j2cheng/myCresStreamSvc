@@ -147,13 +147,12 @@ public class CameraPreview {
                     mCamera.startPreview();
                     startAudio();
                     is_audioplaying = true;
+                    streamCtl.SendStreamState(StreamState.STARTED, idx);
                 }
                 is_preview = true;
             }
         }else   //Pause/Resume Case
-            resumePlayback();
-
-        streamCtl.SendStreamState(StreamState.STARTED, idx);
+            resumePlayback();      
 
     }
 
