@@ -48,6 +48,10 @@ public class HDMIInputInterface {
 		resolutionIndex = index;
 	}
 	
+	public int getResolutionIndex() {
+		return resolutionIndex;
+	}
+	
 	public String getSyncStatus() {
 		return syncStatus;
 	}

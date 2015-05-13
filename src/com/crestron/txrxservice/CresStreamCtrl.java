@@ -1033,13 +1033,16 @@ public class CresStreamCtrl extends Service {
 	                	{
 	                        int device_mode = userSettings.getMode(sessionId);
 		                    int resolutionId = paramAnonymousIntent.getIntExtra("evs_hdmi_resolution_id", -1);
+		                    
+		                    int prevResolutionIndex = hdmiInput.getResolutionIndex();
+		                    
 		                    hdmiInput.setResolutionIndex(resolutionId);
 		                    
 		                    String hdmiInputResolution = null;
 		                    Log.i(TAG, "Received resolution changed broadcast !: " + resolutionId);
 		                    boolean validResolution = (hdmiInput.getHorizontalRes().startsWith("0") != true) && (hdmiInput.getVerticalRes().startsWith("0")!= true) && (resolutionId != 0);
 		                    
-		                    if ((device_mode==DeviceMode.PREVIEW.ordinal()) && (restartRequired[sessionId]))  
+		                    if ((device_mode==DeviceMode.PREVIEW.ordinal()) && (restartRequired[sessionId]) && (prevResolutionIndex != resolutionId))  
 		                    {
 		                        Log.i(TAG, "Restart called due to resolution change broadcast ! ");
 	
@@ -1053,10 +1056,9 @@ public class CresStreamCtrl extends Service {
 		                        {
 		                            showPreviewWindow(sessionId);
 		                            cam_preview.startPlayback();
-		                            restartRequired[sessionId] = false;
 		                        }
 		                    }
-		                    else if((device_mode==DeviceMode.STREAM_OUT.ordinal()) && (restartRequired[sessionId]))
+		                    else if((device_mode==DeviceMode.STREAM_OUT.ordinal()) && (restartRequired[sessionId]) && (prevResolutionIndex != resolutionId))
 		                    {
 	                    		//HACK: For ioctl issue 
 		                        //1. Hide Preview 2. sleep One Sec 3.Stop Camera 4. Sleep 5 sec
@@ -1076,7 +1078,6 @@ public class CresStreamCtrl extends Service {
 			                        try{
 			                            showPreviewWindow(sessionId);
 			                            cam_streaming.startRecording();
-			                            restartRequired[sessionId] = false;
 			                        } catch(IOException e) {
 			                            e.printStackTrace();
 			                        }
