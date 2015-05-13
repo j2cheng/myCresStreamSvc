@@ -119,9 +119,9 @@ public class CameraPreview {
                   Log.d(TAG, i + ". Supported Resolution = " + mSupportedPreviewSizes.get(i).width + "x" + mSupportedPreviewSizes.get(i).height);
                   }*/
                 if(CresStreamCtrl.hpdHdmiEvent==1){
-                    String resInfo = getHdmiInputResolution();
+                    getHdmiInputResolution();
+                    String resInfo = HDMIInputInterface.getHdmiInResolutionSysFs();//Reading From SysFs
                     Log.i(TAG, "HDMI In Resolution API" + resInfo);
-                    HDMIInputInterface.getHdmiInResolutionSysFs();//Reading From SysFs
                     hdmiIf.updateResolutionInfo(resInfo);
                     CresStreamCtrl.hpdHdmiEvent=0;
                 }
