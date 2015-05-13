@@ -62,7 +62,7 @@ public class CommandReceiver {
     }
 
     public void setDeviceMode(int mode, int sessId){
-        ctl.setDeviceMode(mode, sessId);
+    	ctl.userSettings.setMode(mode, sessId);
     }
 
     public void setSessionInitation(int mode, int sessId){
@@ -70,35 +70,35 @@ public class CommandReceiver {
     }
     
     public void SetTMode(int mode, int sessId){
-        ctl.setTMode(mode, sessId);
+    	ctl.userSettings.setTransportMode(mode, sessId);
     }
     
-    public void SetVenc (int profile, int sessId){    	
-        ctl.setStreamProfile(UserSettings.VideoEncProfile.fromInteger(profile), sessId);
+    public void SetVenc (int profile, int sessId){   
+    	ctl.userSettings.setStreamProfile(UserSettings.VideoEncProfile.fromInteger(profile), sessId);
     }
     
     public void setRtspPort(int port, int sessId){
-        ctl.setRTSPPort(sessId, port);
+    	ctl.userSettings.setRtspPort(port, sessId);
     }
     
     public void setTsPort (int port, int sessId){
-        ctl.setTSPort(sessId, port);
+    	ctl.userSettings.setTsPort(port, sessId);
     }
     
     public void setRtpV(int port, int sessId){
-        ctl.setRTPVideoPort(sessId, port);
+    	ctl.userSettings.setRtpVideoPort(port, sessId);
     }
     
     public void setRtpA(int port, int sessId){
-        ctl.setRTPAudioPort(sessId, port);
+    	ctl.userSettings.setRtpAudioPort(port, sessId);
     }
     
     public void setVfr(int vfr, int sessId){
-        ctl.setVFrmRate(vfr, sessId);
+    	ctl.userSettings.setEncodingFramerate(vfr, sessId);
     }
 
     public void setVbr(int vbr, int sessId){
-        ctl.setVbitRate(vbr, sessId);
+    	ctl.userSettings.setBitrate(vbr, sessId);
     }
 
     public void EnableTcpInterleave(int sessId){
@@ -106,37 +106,35 @@ public class CommandReceiver {
     }
     
     public void setMulticastIpAddress(String ip, int sessId){
-        ctl.setMulticastIpAddress(ip, sessId);
+    	ctl.userSettings.setMulticastAddress(ip, sessId);
     }
 
     public void setEncodingResolution(int resID, int sessId){
-       ctl.setEncodingResolution(resID, sessId);
+    	ctl.userSettings.setEncodingResolution(resID, sessId);
     }
     
     public void setMute (boolean flag){
-        if(flag)
-            ctl.setStreamMute();
-        else
-            ctl.setStreamUnMute();
+    	if (flag)
+    		ctl.userSettings.setAudioMute(flag);
     }
 
     public void setUnmute (boolean flag){
         if(flag)
-            ctl.setStreamUnMute();
-        else
-            ctl.setStreamMute();
+        	ctl.userSettings.setAudioUnmute(flag);
     }
     
     public void setLatency(int latency, int sessId){
-        ctl.SetStreamInLatency(latency, sessId);
+    	ctl.userSettings.setStreamingBuffer(latency, sessId);
     }
 
-    public void passwdEnable(int sessId){
-        ctl.SetPasswdEnable(sessId);
+    public void passwdEnable(boolean flag, int sessId){
+    	if(flag)
+    		ctl.userSettings.setPasswordEnable(flag, sessId);
     }
 
-    public void passwdDisable(int sessId){
-        ctl.SetPasswdDisable(sessId);
+    public void passwdDisable(boolean flag, int sessId){
+    	if(flag)
+    		ctl.userSettings.setPasswordDisable(flag, sessId);
     }
     
     public void setUserName(String uname, int sessId){
@@ -200,26 +198,6 @@ public class CommandReceiver {
     public String getStreamState(int sessId){
         //String replyString;
         int streamState = (ctl.userSettings.getStreamState(sessId)).getValue();
-        /*switch(streamState){
-            case 0:
-                replyString ="STREAMING IN";
-                break;
-            case 1:
-                replyString ="STREAMING OUT";
-                break;
-            case 2:
-                replyString ="Previewing Video";
-                break;
-            case 3:
-                replyString ="Previewing Video and Streaming IN";
-                break;
-            case 4:
-                replyString ="StreaminOut and StreamingIn";
-                break;
-            default:
-                replyString = "Device in IdleMode";
-        }
-        return replyString;*/
         return Integer.toString(streamState);
     }
     //HDMIIN

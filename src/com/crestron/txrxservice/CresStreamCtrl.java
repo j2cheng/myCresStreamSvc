@@ -72,12 +72,6 @@ public class CresStreamCtrl extends Service {
     static String playStatus="false";
     static String stopStatus="true";
     static String pauseStatus="false";
-    static int last_x[] = new int[]{0,0};
-    static int last_y[] = new int[]{0,0};
-    static int last_w[] = new int[]{1920,1920};
-    static int last_h[] = new int[]{1080,1080};
-    //int device_mode = 0;
-    //int sessInitMode = 0;
     static int idx = 0; //TODO: lets remove this, put in a more permanent solution
     boolean StreamOutstarted = false;
     boolean hdmiInputDriverPresent = false;
@@ -322,8 +316,8 @@ public class CresStreamCtrl extends Service {
     }
     
     public void setXCoordinates(int x, int sessionId)
-    {
-        if (last_x[sessionId] != x){
+    {    	
+        if (userSettings.getXloc(sessionId) != x){
         	userSettings.setXloc(x, sessionId);
             updateXY(sessionId);
         }
@@ -331,7 +325,7 @@ public class CresStreamCtrl extends Service {
 
     public void setYCoordinates(int y, int sessionId)
     {
-        if(last_y[sessionId] != y){
+        if(userSettings.getYloc(sessionId) != y){
         	userSettings.setYloc(y, sessionId);
             updateXY(sessionId);
         }
@@ -339,7 +333,7 @@ public class CresStreamCtrl extends Service {
 
     public void setWindowSizeW(int w, int sessionId)
     {
-        if(last_w[sessionId] != w){
+        if(userSettings.getW(sessionId) != w){
         	userSettings.setW(w, sessionId);
             updateWH(sessionId);
         }
@@ -347,7 +341,7 @@ public class CresStreamCtrl extends Service {
 
     public void setWindowSizeH(int h, int sessionId)
     {
-        if(last_h[sessionId] != h){
+        if(userSettings.getH(sessionId) != h){
         	userSettings.setH(h, sessionId);
             updateWH(sessionId);
         }
@@ -647,7 +641,8 @@ public class CresStreamCtrl extends Service {
     		SendStreamState(StreamState.CONNECTING, sessionId);
 	    	playStatus="true";
 	    	stopStatus="false";
-	        pauseStatus="false";	        
+	        pauseStatus="false";	
+	        restartRequired[sessionId]=true;
 	        hm.get(userSettings.getMode(sessionId)).executeStart(sessionId);
 	        //hm.get(device_mode).executeStart();
 	        // The started state goes back when we actually start
@@ -690,6 +685,7 @@ public class CresStreamCtrl extends Service {
 	        pauseStatus="true";
 	    	playStatus="false";
 	    	stopStatus="false";
+	    	restartRequired[sessionId]=false;
 	        hm3.get(userSettings.getMode(sessionId)).executePause(sessionId);
 	        //hm3.get(device_mode).executePause();
 	        // Device state will be set in pause callback
@@ -874,12 +870,7 @@ public class CresStreamCtrl extends Service {
         else
             Log.d(TAG, "No conditional Tags for StreamIn");
     }
-    
-    public void SetStreamInLatency(int initialLatency, int sessId)
-    {
-        streamPlay.setLatency(sessId, initialLatency);
-    }
-    
+
     public String getStreamUrl()
     {
         return out_url;
@@ -1048,8 +1039,6 @@ public class CresStreamCtrl extends Service {
 		                    Log.i(TAG, "Received resolution changed broadcast !: " + resolutionId);
 		                    boolean validResolution = (hdmiInput.getHorizontalRes().startsWith("0") != true) && (hdmiInput.getVerticalRes().startsWith("0")!= true) && (resolutionId != 0);
 		                    
-		                    if (device_mode != DeviceMode.STREAM_IN.ordinal())
-		                    	restartRequired[sessionId] = ((userSettings.getStreamState(sessionId) == StreamState.STARTED) || (restartRequired[sessionId]));
 		                    if ((device_mode==DeviceMode.PREVIEW.ordinal()) && (restartRequired[sessionId]))  
 		                    {
 		                        Log.i(TAG, "Restart called due to resolution change broadcast ! ");

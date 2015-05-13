@@ -295,8 +295,7 @@ class UnmuteCommand implements CommandIf {
     @Override
         public void execute() {
             boolean val = Boolean.valueOf(msg);
-            if(val)
-                launch.setUnmute(val);
+            launch.setUnmute(val);
         }
         public String getFeedbackMsg() {
         	return launch.getUnmute();
@@ -336,7 +335,8 @@ class PasswdEnableCommand implements CommandIf {
 
     @Override
         public void execute() {
-            launch.passwdEnable(idx);
+	    	boolean val = Boolean.valueOf(msg);
+            launch.passwdEnable(val, idx);
         }
         public String getFeedbackMsg() {
             return launch.getPasswordEnable(idx);
@@ -356,7 +356,8 @@ class PasswdDisableCommand implements CommandIf {
 
     @Override
         public void execute() {
-            launch.passwdDisable(idx);
+	    	boolean val = Boolean.valueOf(msg);
+            launch.passwdDisable(val, idx);
         }
         public String getFeedbackMsg() {
             return launch.getPasswordDisable(idx);

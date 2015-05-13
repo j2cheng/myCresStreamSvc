@@ -17,15 +17,14 @@ import com.crestron.txrxservice.CresStreamCtrl.StreamState;
 
 public class StreamIn implements OnPreparedListener, OnCompletionListener, OnBufferingUpdateListener, OnErrorListener {
 
-    private MediaPlayer[] mediaPlayer = new MediaPlayer[2];
+    private MediaPlayer[] mediaPlayer = new MediaPlayer[CresStreamCtrl.NumOfSurfaces];
     private SurfaceHolder vidHolder;
     String TAG = "TxRx StreamIN";
     StringBuilder sb;
     static String srcUrl="";
-    static int[] latency = new int [] {2000, 2000};//msec
     boolean rtp_mode = false;
     boolean media_pause = false;
-    boolean tcpInterleaveFlag = false;
+    boolean tcpInterleaveFlag = false;	//TODO: investigate if this should go into userSettings, needs to be enum
     boolean disableLatencyFlag = false;
     private CresStreamCtrl streamCtl;
     private int idx = 0;
@@ -46,12 +45,6 @@ public class StreamIn implements OnPreparedListener, OnCompletionListener, OnBuf
     public void setUrl(String p_url){
         srcUrl = p_url;
         Log.d(TAG, "setting stream in URL to "+srcUrl);
-    }
-
-    //Dejitter Buffer latency
-    public void setLatency(int sessId, int duration){
-        latency[sessId] = duration;	
-        Log.d(TAG, "setting stream in latency "+latency[sessId]);
     }
 
     //MJPEG IN  ??? Not Needed
@@ -100,7 +93,7 @@ public class StreamIn implements OnPreparedListener, OnCompletionListener, OnBuf
                 //Setting Initial Latency
                 if(disableLatencyFlag==false){
                     try {
-                        mediaPlayer[idx].setDejitterBufferDuration(latency[idx]);
+                        mediaPlayer[idx].setDejitterBufferDuration(streamCtl.userSettings.getStreamingBuffer(idx));
                     } catch(Exception e){
                         e.printStackTrace();
                     }
