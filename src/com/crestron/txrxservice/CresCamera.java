@@ -1,6 +1,7 @@
 package com.crestron.txrxservice;
 
 import java.io.IOException;
+import android.os.SystemClock;
 
 import android.hardware.Camera;
 import android.hardware.Camera.CameraInfo;
@@ -24,16 +25,20 @@ public class CresCamera {
 
     public static Camera getCamera(){
 	    Camera lCamera = null;
-        int cameraId = findCamera();
-        if(cameraId>=0){
-            try {
-                lCamera = Camera.open(cameraId); 
-            } catch (Exception e) {
-                Log.e(TAG, "fail to open camera");
-                e.printStackTrace();
-                lCamera = null; 
-            }
-        }
+	    for(int retry = 5; lCamera == null && retry > 0; retry--)
+	    {
+	        int cameraId = findCamera();
+	        if(cameraId>=0){
+	            try {
+	                lCamera = Camera.open(cameraId); 
+	            } catch (Exception e) {
+	                Log.e(TAG, "fail to open camera");
+	                e.printStackTrace();
+	                lCamera = null;
+	                SystemClock.sleep(1000);
+	            }
+	        }
+	    }
         return lCamera;
     }
     
