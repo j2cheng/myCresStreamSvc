@@ -1027,17 +1027,15 @@ public class CresStreamCtrl extends Service {
             	{
 	                if (paramAnonymousIntent.getAction().equals("evs.intent.action.hdmi.RESOLUTION_CHANGED"))
 	                {
+                        int resolutionId = paramAnonymousIntent.getIntExtra("evs_hdmi_resolution_id", -1);
+	                    int prevResolutionIndex = hdmiInput.getResolutionIndex();
+	                    hdmiInput.setResolutionIndex(resolutionId);
 	                	sendHdmiInSyncState();
 	                	
 	                	for(int sessionId = 0; sessionId < NumOfSurfaces; sessionId++)
 	                	{
-	                        int device_mode = userSettings.getMode(sessionId);
-		                    int resolutionId = paramAnonymousIntent.getIntExtra("evs_hdmi_resolution_id", -1);
-		                    
-		                    int prevResolutionIndex = hdmiInput.getResolutionIndex();
-		                    
-		                    hdmiInput.setResolutionIndex(resolutionId);
-		                    
+	                		int device_mode = userSettings.getMode(sessionId);
+	                				                    
 		                    String hdmiInputResolution = null;
 		                    Log.i(TAG, "Received resolution changed broadcast !: " + resolutionId);
 		                    boolean validResolution = (hdmiInput.getHorizontalRes().startsWith("0") != true) && (hdmiInput.getVerticalRes().startsWith("0")!= true) && (resolutionId != 0);
