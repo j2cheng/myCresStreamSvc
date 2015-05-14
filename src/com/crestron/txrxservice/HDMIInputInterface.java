@@ -181,4 +181,25 @@ public class HDMIInputInterface {
         Log.d(TAG, "HDMI IN Res from sysfs:" + text.toString());
         return text.toString();
     }
+
+    public static int readResolutionEnum(){
+        int resolutionIndex = 0;
+        StringBuilder text = new StringBuilder();
+        try {
+            File file = new File("/sys/class/switch/evs_hdmi_resolution/state");
+            BufferedReader br = new BufferedReader(new FileReader(file));  
+            String line;   
+            while ((line = br.readLine()) != null) {
+                text.append(line);
+            }
+            br.close();
+            
+            resolutionIndex = Integer.parseInt(text.toString());
+        }catch (IOException e) {
+            e.printStackTrace();           
+        }
+        
+        Log.d(TAG, "HDMI IN index from sysfs:" + resolutionIndex);
+        return resolutionIndex;
+    }
 }
