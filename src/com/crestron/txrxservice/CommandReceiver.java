@@ -62,7 +62,8 @@ public class CommandReceiver {
     }
 
     public void setDeviceMode(int mode, int sessId){
-    	ctl.userSettings.setMode(mode, sessId);
+    	// Stop if something was going on.
+    	ctl.setDeviceMode(mode, sessId);
     }
 
     public void setSessionInitation(int mode, int sessId){
