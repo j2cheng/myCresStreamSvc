@@ -28,6 +28,8 @@ public class CameraStreaming implements ErrorCallback {
     boolean out_stream_status = false;
     CresStreamCtrl streamCtl;
     private int idx = 0;
+    private int streamOutWidth = 0;
+    private int streamOutHeight = 0;
 
     //public CameraStreaming(CresStreamCtrl mContext, SurfaceHolder lpHolder ) {
     public CameraStreaming(CresStreamCtrl mContext) {
@@ -119,14 +121,11 @@ public class CameraStreaming implements ErrorCallback {
             	Log.d(TAG, "ip addr " + streamCtl.userSettings.getMulticastAddress(idx));
             else
             	Log.d(TAG, "ip addr " + streamCtl.userSettings.getDeviceIp());
-            Log.d(TAG, "setting width: " + streamCtl.userSettings.getW(idx));
-            Log.d(TAG, "setting height: " + streamCtl.userSettings.getH(idx));
             Log.d(TAG, "setting profile: " + streamCtl.userSettings.getStreamProfile(idx).getVEncProfile());
             Log.d(TAG, "setting video encoder level: " + streamCtl.userSettings.getEncodingLevel(idx));
             Log.d(TAG, "setting video frame rate: " + streamCtl.userSettings.getEncodingFramerate(idx));
             
-            if((streamCtl.userSettings.getW(idx) !=0) || (streamCtl.userSettings.getH(idx) !=0))
-                mrec.setVideoSize(streamCtl.userSettings.getW(idx), streamCtl.userSettings.getH(idx));
+            setWidthAndHeightFromEncRes(idx);
             mrec.setVideoEncodingBitRate(streamCtl.userSettings.getBitrate(idx));
             //mrec.setVideoFrameRate(streamCtl.userSettings.getEncodingFramerate(idx));//Mistral Propietary API 
             mrec.setVideoEncoder(MediaRecorder.VideoEncoder.H264);
@@ -157,6 +156,135 @@ public class CameraStreaming implements ErrorCallback {
             mrec = null;
         }
     }
+
+	/**
+	 *  Use the following conversion
+	 *  0,Auto (follows input)
+		1,176x144
+		2,352x288
+		3,528x384
+		4,640x360
+		5,640x480
+		6,720x480
+		7,800x480
+		8,800x600
+		9,1024x768
+		10,1280x720
+		11,1280x800
+		12,1366x768
+		13,1440x900
+		14,1600x900
+		15,1600x1200
+		16,1680x1050
+		17,1920x1080
+ 
+	 */
+	private void setWidthAndHeightFromEncRes(int sessionId) 
+	{
+		// Start with current hdmi input values
+		streamOutWidth = Integer.valueOf(streamCtl.hdmiInput.getHorizontalRes());
+		streamOutHeight = Integer.valueOf(streamCtl.hdmiInput.getVerticalRes());
+
+		switch (streamCtl.userSettings.getEncodingResolution(sessionId))
+		{
+			case 1: 
+				streamOutWidth = 176;
+				streamOutHeight = 144;
+				break;
+			
+			case 2: 
+				streamOutWidth = 352;
+				streamOutHeight = 288;
+				break;
+			
+			case 3: 
+				streamOutWidth = 528;
+				streamOutHeight = 384;
+				break;
+			
+			case 4: 
+				streamOutWidth = 640;
+				streamOutHeight = 360;
+				break;
+			
+			case 5: 
+				streamOutWidth = 640;
+				streamOutHeight = 480;
+				break;
+			
+			case 6: 
+				streamOutWidth = 720;
+				streamOutHeight = 480;
+				break;
+			
+			case 7: 
+				streamOutWidth = 800;
+				streamOutHeight = 480;
+				break;
+			
+			case 8: 
+				streamOutWidth = 800;
+				streamOutHeight = 600;
+				break;
+			
+			case 9: 
+				streamOutWidth = 1024;
+				streamOutHeight = 768;
+				break;
+			
+			case 10: 
+				streamOutWidth = 1280;
+				streamOutHeight = 720;
+				break;
+			
+			case 11: 
+				streamOutWidth = 1280;
+				streamOutHeight = 800;
+				break;
+			
+			case 12: 
+				streamOutWidth = 1366;
+				streamOutHeight = 768;
+				break;
+			
+			case 13: 
+				streamOutWidth = 1440;
+				streamOutHeight = 900;
+				break;
+			
+			case 14: 
+				streamOutWidth = 1600;
+				streamOutHeight = 900;
+				break;
+			
+			case 15: 
+				streamOutWidth = 1600;
+				streamOutHeight = 1200;
+				break;
+			
+			case 16: 
+				streamOutWidth = 1680;
+				streamOutHeight = 1050;
+				break;
+			
+			case 17: 
+				streamOutWidth = 1920;
+				streamOutHeight = 1080;
+				break;
+			
+			case 0:
+				break;
+				
+			default:
+				break;
+		
+		}
+			
+        Log.d(TAG, "setting width: " + streamOutWidth);
+        Log.d(TAG, "setting height: " + streamOutHeight);
+			
+		mrec.setVideoSize(streamOutWidth, streamOutHeight);
+	}
     
     private int getStreamTransportMode() // TODO: MJPEG mode will never be set
     {
@@ -230,14 +358,6 @@ public class CameraStreaming implements ErrorCallback {
         return true; 
     }
 
-    public int getStreamOutHorizontalResFb(){
-        return streamCtl.userSettings.getW(idx);
-    }
-
-    public int getStreamOutVerticalResFb(){
-        return streamCtl.userSettings.getH(idx);
-    }
-
     public int getStreamOutFpsFb(){
     	return streamCtl.userSettings.getEncodingFramerate(idx);
     }
@@ -253,4 +373,20 @@ public class CameraStreaming implements ErrorCallback {
     public int getStreamOutAudiochannelsFb(){
         return 2;//For Now only 2 Audio Channels
     }
+
+	public int getStreamOutWidth() {
+		return streamOutWidth;
+	}
+
+	public void setStreamOutWidth(int streamOutWidth) {
+		this.streamOutWidth = streamOutWidth;
+	}
+
+	public int getStreamOutHeight() {
+		return streamOutHeight;
+	}
+
+	public void setStreamOutHeight(int streamOutHeight) {
+		this.streamOutHeight = streamOutHeight;
+	}
 }

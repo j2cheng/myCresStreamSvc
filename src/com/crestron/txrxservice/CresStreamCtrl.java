@@ -799,7 +799,7 @@ public class CresStreamCtrl extends Service {
         try {
             cam_streaming.setSessionIndex(sessId);
             cam_streaming.startRecording();
-        } catch(IOException e) {
+        } catch(Exception e) {
             e.printStackTrace();
         }
         //Toast.makeText(this, "StreamOut Started", Toast.LENGTH_LONG).show();
@@ -913,14 +913,14 @@ public class CresStreamCtrl extends Service {
     	if (streamIn)
     		return streamPlay.getMediaPlayerHorizontalResFb();
     	else
-    		return cam_streaming.getStreamOutHorizontalResFb();
+    		return cam_streaming.getStreamOutWidth();
     } 
     
     public int getStreamVerticalResFb(boolean streamIn){
     	if (streamIn)
     		return streamPlay.getMediaPlayerVerticalResFb();
     	else
-    		return cam_streaming.getStreamOutVerticalResFb();
+    		return cam_streaming.getStreamOutHeight();
     }
     
     public int getStreamFpsFb(boolean streamIn){

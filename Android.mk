@@ -12,6 +12,8 @@ LOCAL_SRC_FILES := $(call all-java-files-under, src)
 # This is the target being built.
 LOCAL_PACKAGE_NAME := CresStreamSvc
 
+LOCAL_CERTIFICATE := platform
+
 # Native functions in jni folder
 LOCAL_SHARED_LIBRARIES := libgstreamer_jni
 	

@@ -198,18 +198,18 @@ public class UserSettings //implements java.io.Serializable
 	{
         MiscUtils.getDeviceIpAddr();
         deviceIp 			= MiscUtils.matcher.group();
-		rtspPort 			= new int[]{ 12462, 14462};		
-        tsPort 				= new int[]{ 12460, 14460};		
-        rtpVideoPort 		= new int[]{ 12458, 14458};
-        rtpAudioPort 		= new int[]{ 12456, 14456};
+		rtspPort 			= new int[]{ 554, 554};		
+        tsPort 				= new int[]{ 4570, 4570};		
+        rtpVideoPort 		= new int[]{ 49170, 49170};
+        rtpAudioPort 		= new int[]{ 49172, 49172};
         mode				= new int[]{0,0};
         w 					= new int[]{1920,1920};
         h					= new int[]{1080,1080};
         xloc 				= new int[]{0,0};
         yloc				= new int[]{0,0};
         encodingResolution	= new int[] {0, 0};
-        encodingFramerate	= new int[] {50, 50}; // TODO: 50 not 60?
-        bitrate				= new int[]{600000, 600000}; //????
+        encodingFramerate	= new int[] {60, 60};
+        bitrate				= new int[]{25000, 25000}; 
         //mode 	= mode.RTSP;//RTSP;
         sessionInitiation 	= new int[] {0, 0};
         streamProfile 		= new VideoEncProfile[] {VideoEncProfile.HP, VideoEncProfile.HP};
