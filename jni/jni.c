@@ -222,10 +222,7 @@ void gst_native_play (JNIEnv* env, jobject thiz)
 /* Set pipeline to PAUSED state */
 static void gst_native_pause (JNIEnv* env, jobject thiz) 
 {
-	CustomData *data = GET_CUSTOM_DATA (env, thiz, custom_data_field_id);
-	if (!data) return;
-	GST_DEBUG ("Setting state to PAUSED");
-	gst_element_set_state (data->pipeline, GST_STATE_PAUSED);
+	pause_streaming_cmd();
 }
 
 /* Set pipeline to PAUSED state */
