@@ -4,34 +4,32 @@ import java.io.IOException;
 
 import android.util.Log;
 import android.view.SurfaceHolder;
-import android.media.MediaPlayer;
-import android.content.Context;
-import android.media.MediaPlayer.OnPreparedListener;
-import android.media.MediaPlayer.OnBufferingUpdateListener;
-import android.media.MediaPlayer.OnCompletionListener;
-import android.media.AudioManager;
-import com.crestron.txrxservice.CresStreamConfigure;
 
+import android.content.Context;
+
+import com.crestron.txrxservice.CresStreamCtrl.StreamState;
 import org.freedesktop.gstreamer.GStreamer;
 
-public class GstreamIn implements OnPreparedListener, OnCompletionListener, OnBufferingUpdateListener, SurfaceHolder.Callback {
+public class GstreamIn implements /*OnPreparedListener, OnCompletionListener, OnBufferingUpdateListener,*/ SurfaceHolder.Callback {
 
-    private MediaPlayer mediaPlayer;
-    private SurfaceHolder vidHolder;
+    //private MediaPlayer mediaPlayer;
+//    private SurfaceHolder vidHolder;
     String TAG = "TxRx GstreamIN";
     StringBuilder sb;
     static String srcUrl="";
-    static int latency = 2000;//msec
-    int dest_width = 1280;
-    int dest_height = 720;
+//    static int latency = 2000;//msec
+//    int dest_width = 1280;
+//    int dest_height = 720;
     boolean rtp_mode = false;
     boolean media_pause = false;
     boolean tcpInterleaveFlag = false;
     boolean disableLatencyFlag = false;
+    private CresStreamCtrl streamCtl;
+    private int idx = 0;
 
     private native void nativeInit();     // Initialize native code, build pipeline, etc
     private native void nativeFinalize(); // Destroy pipeline and shutdown native code
-    private native void nativePlay(String url);     // Set pipeline to PLAYING
+    private native void nativePlay();     // Set pipeline to PLAYING
     private native void nativePause();    // Set pipeline to PAUSED
     private native void nativeStop();    // Set pipeline to NULL
     private static native boolean nativeClassInit(); // Initialize native class: cache Method IDs for callbacks
@@ -39,37 +37,115 @@ public class GstreamIn implements OnPreparedListener, OnCompletionListener, OnBu
     private native void nativeSurfaceFinalize();
     private long native_custom_data;      // Native code will use this to keep private data
 
+    private native void nativeSetSeverUrl(String url, int sessionId);
+    private native void nativeSetRtspPort(int port, int sessionId);
+    private native void nativeSetTsPort(int port, int sessionId);
+    private native void nativeSetRtpVideoPort(int port, int sessionId);
+    private native void nativeSetRtpAudioPort(int port, int sessionId);
+    private native void nativeSetSessionInitiation(int initMode, int sessionId);
+    private native void nativeSetTransportMode(int transportMode, int sessionId);
+    private native void nativeSetMulticastAddress(String multicastIp, int sessionId);
+    private native void nativeSetStreamingBuffer(int buffer_ms, int sessionId);
+    private native void nativeSetXYlocations(int xloc, int yloc, int sessionId);
 
-    public GstreamIn(Context mContext, SurfaceHolder vHolder) {
+    public GstreamIn(CresStreamCtrl mContext) {
         Log.e(TAG, "GstreamIN :: Constructor called...!");
-        vidHolder = vHolder;
-
+        streamCtl = mContext;
         // Initialize GStreamer and warn if it fails
         try {
-            GStreamer.init(mContext);
+            GStreamer.init((Context)mContext);
         } catch (Exception e) {
 //             Toast.makeText(this, e.getMessage(), Toast.LENGTH_LONG).show();
 //             finish();
             return;
         }
-
-        vidHolder.addCallback(this);
-
         nativeInit();
     }
 
+    public void setSessionIndex(int id){
+        idx = id;
+    }
+    
     //Setting source url to play GstreamIn
     public void setUrl(String p_url){
-        srcUrl = p_url;
+    	Log.e(TAG, "GstreamIN :: In setUrl Function...!");
+        srcUrl = p_url;	// TODO: remove when join changes interface to longer have string input
         Log.d(TAG, "setting stream in URL to "+srcUrl);
     }
 
-    //Dejitter Buffer latency
-    public void setLatency(int duration){
-        latency = duration;	
-        Log.d(TAG, "setting stream in latency "+latency);
+    public void setServerUrl(String url, int sessionId){
+    	nativeSetSeverUrl(url, sessionId);	//TODO: change to add sessId
+    }
+    
+    public void setRtspPort(int port, int sessionId){
+    	nativeSetRtspPort(port, 0);
+    }
+    
+    public void setTsPort(int port, int sessionId){
+    	nativeSetTsPort(port, 0);
+    }
+    
+    public void setRtpVideoPort(int port, int sessionId){
+    	nativeSetRtpVideoPort(port, 0);
+    }
+    
+    public void setRtpAudioPort(int port, int sessionId){
+    	nativeSetRtpAudioPort(port, 0);
+    }
+    
+    public void setSessionInitiation(int initMode, int sessionId){
+    	nativeSetSessionInitiation(initMode, sessionId);
+    }
+    
+    public void setTransportMode(int transportMode, int sessionId){
+    	nativeSetTransportMode(transportMode, sessionId);
+    }
+    
+    public void setMulticastAddress(String multicastIp, int sessionId){
+    	nativeSetMulticastAddress(multicastIp, sessionId);
+    }
+    
+    public void setStreamingBuffer(int buffer_ms, int sessionId){
+    	nativeSetStreamingBuffer(buffer_ms, sessionId);
+    }
+    
+    public void sendStatistics(long video_packets_received, int video_packets_lost, long audio_packets_received, int audio_packets_lost, int bitrate){
+    	// TODO: Implement this
+    	Log.d(TAG, "video_packets_received "+video_packets_received+ "\n");
+    	Log.d(TAG, "video_packets_lost "+video_packets_lost+ "\n");
+    	Log.d(TAG, "audio_packets_received "+audio_packets_received+ "\n");
+    	Log.d(TAG, "audio_packets_lost "+audio_packets_lost+ "\n");
+    	Log.d(TAG, "bitrate "+bitrate+ "\n");
+    }
+ 
+    public void updateCurrentXYloc(int xloc, int yloc, int sessId){
+    	nativeSetXYlocations(xloc, yloc, sessId);
+    }
+    
+    public int[] getCurrentWidthHeight(){
+        int[] widthHeight = new int[2];
+        // width in index 0, height in index 1
+    	widthHeight[0] = streamCtl.userSettings.getW(idx); //TODO: avoid using idx
+        widthHeight[1] = streamCtl.userSettings.getH(idx);
+        return widthHeight;
     }
 
+    public int getCurrentStreamState(int sessionId){
+    	return (streamCtl.userSettings.getStreamState(sessionId)).getValue();
+	}
+    
+    public void updateStreamStatus(int streamStateEnum, int sessionId){
+    	streamCtl.SendStreamState(StreamState.getStreamStateFromInt(streamStateEnum), sessionId); 
+	}
+    
+    public void sendMulticastAddress(String multicastAddress, int sessionId){
+    	streamCtl.sendMulticastIpAddress(multicastAddress, sessionId);
+	}
+    
+    public void sendVideoSourceParams(int source, int width, int height, int framerate, int profile){
+    	streamCtl.SendStreamInVideoFeedbacks(source, width, height, framerate, profile); //TODO: see if profile needs to be converted
+    }
+    
     //MJPEG IN  ??? Not Needed
     public void disableLatency(){
         disableLatencyFlag = true;    
@@ -91,47 +167,16 @@ public class GstreamIn implements OnPreparedListener, OnCompletionListener, OnBu
 
     //Play based on based Pause/Actual Playback 
     public void onStart() {
-//         if(media_pause && (mediaPlayer!=null)){
-//             mediaPlayer.start();
-//             media_pause = false;
-//
-//         }else{
-//             try {
-//                 //MNT - 3.11.15 - clean up the player if it's already playing
-//                 if ((mediaPlayer!=null) && (mediaPlayer.isPlaying()==true))
-//                 {
-//                     mediaPlayer.stop();
-//                     mediaPlayer.reset();
-//                     mediaPlayer.release();
-//                     mediaPlayer = null;
-//                 }
-//
-//                 mediaPlayer = new MediaPlayer();
-//                 mediaPlayer.setDataSource(srcUrl);
-//                 Log.d(TAG, "URL is "+srcUrl);
-//                 if(tcpInterleaveFlag && srcUrl.startsWith("rtsp://"))
-//                     mediaPlayer.setTransportCommunication(true);
-//                 //Setting Initial Latency
-//                 if(disableLatencyFlag){
-//                     mediaPlayer.setDejitterBufferDuration(latency);
-//                     disableLatencyFlag = false;
-//                 }
-//                 if(rtp_mode){
-//                     mediaPlayer.setSDP(sb.toString());
-//                     rtp_mode = false;
-//                 }
-//                 mediaPlayer.prepare();
-//                 mediaPlayer.setOnPreparedListener(this);
-//                 mediaPlayer.setOnCompletionListener(this);
-//                 mediaPlayer.setOnBufferingUpdateListener(this);
-//                 mediaPlayer.setAudioStreamType(AudioManager.STREAM_MUSIC);
-//                 mediaPlayer.setDisplay(vidHolder);
-//             }
-//             catch(Exception e){
-//                 e.printStackTrace();
-//             }}
-
-        nativePlay(srcUrl);
+    	try {
+    		//streamCtl.getCresSurfaceHolder(idx).addCallback(this); //needed?
+    		nativeSurfaceInit (streamCtl.getCresSurfaceHolder(idx).getSurface());
+    		nativePlay();
+    	}
+    	catch(Exception e){
+        	// TODO: explore exception handling with better feedback of what went wrong to user
+            streamCtl.SendStreamState(StreamState.STOPPED, idx);
+            e.printStackTrace();        
+        }        
     }
 
     //Pause
@@ -139,6 +184,8 @@ public class GstreamIn implements OnPreparedListener, OnCompletionListener, OnBu
 //         if((mediaPlayer!=null) && (mediaPlayer.isPlaying()))
 //             mediaPlayer.pause();
 //         media_pause = true;
+    	//streamCtl.SendStreamState(StreamState.PAUSED, idx);
+        nativePause();
     }
 
     public void onStop() {
@@ -150,45 +197,29 @@ public class GstreamIn implements OnPreparedListener, OnCompletionListener, OnBu
 //             mediaPlayer.release();
 //             mediaPlayer = null;
 //         }
-
+        nativeSurfaceFinalize ();
         nativeStop();
     }
 
-    @Override
-        public void onPrepared(MediaPlayer mp) {
-            Log.d(TAG, "######### OnPrepared##############");
-            mediaPlayer.start();
-        }
-
-    public void onBufferingUpdate(MediaPlayer mp, int percent) {
-        int progress = (int) ((float) mp.getDuration() * ((float) percent/ (float) 100));
-        Log.d(TAG, "####### Buffering percent "+percent);
-    }
-
-    public void onCompletion(MediaPlayer mp) {
-        //mp.stop();
-        Log.d(TAG, "####### Stopping mediaplayer");
-    }
-
-    //Response to CSIO Layer
+    //Response to CSIO Layer TODO: these can most likely be deleted handled in jni library
     public boolean getMediaPlayerStatus()
     {
-        return mediaPlayer.isPlaying();
+    	return true;//TODO
     }
 
     public int getMediaPlayerHorizontalResFb(){
-        return mediaPlayer.getVideoWidth();
+        return 0;//TODO
     }
 
     public int getMediaPlayerVerticalResFb(){
-        return mediaPlayer.getVideoHeight();
+    	return 0;//TODO
     }
 
     public int getMediaPlayerFpsFb(){
         return 30;//TODO
     }
     public String getMediaPlayerAspectRatioFb(){
-        String aspect = MiscUtils.calculateAspectRatio(mediaPlayer.getVideoWidth(), mediaPlayer.getVideoHeight());
+        String aspect = MiscUtils.calculateAspectRatio(0, 0);//TODO
         return aspect;
     }
     public int getMediaPlayerAudioFormatFb(){
@@ -197,9 +228,6 @@ public class GstreamIn implements OnPreparedListener, OnCompletionListener, OnBu
     public int getMediaPlayerAudiochannelsFb(){
         return 2;//TODO
     }
-
-
-
 
     protected void onDestroy() {
         nativeFinalize();
@@ -238,6 +266,7 @@ public class GstreamIn implements OnPreparedListener, OnCompletionListener, OnBu
         nativeClassInit();
     }
 
+    //TODO: check if we can delete implements surface for class
     public void surfaceChanged(SurfaceHolder holder, int format, int width,
             int height) {
         Log.d("GStreamer", "Surface changed to format " + format + " width "

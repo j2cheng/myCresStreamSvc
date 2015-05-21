@@ -27,6 +27,8 @@
 #include <stdlib.h>		/* for setenv */
 #include <unistd.h>
 #include "cregstplay.h" 
+#include <jni.h>
+#include "GstreamIn.h"
 
 ///////////////////////////////////////////////////////////////////////////////
 
@@ -43,6 +45,7 @@
 #endif
 
 ///////////////////////////////////////////////////////////////////////////////
+CustomData *CresDataDB = NULL; //
 
 /* These global variables cache values which are not changing during execution */
 static pthread_t gst_app_thread;
@@ -51,6 +54,7 @@ static JavaVM *java_vm;
 static jfieldID custom_data_field_id;
 static jmethodID set_message_method_id;
 static jmethodID on_gstreamer_initialized_method_id;
+static jclass *gStreamIn_javaClass_id;
 
 ///////////////////////////////////////////////////////////////////////////////
 
@@ -135,6 +139,37 @@ void check_initialization_complete (CustomData *data)
 		data->initialized = TRUE;
 	}
 	//TODO: what we do with CallVoidMethod ?? need data->app here??
+
+}
+
+void csio_jni_init()
+{
+	int iStatus = CSIO_SUCCESS;
+
+	/* Get the product name */
+	CRESTRON_PRODUCT_TYPE product_type = GetProductType();
+	GST_DEBUG("Product type: %X", (unsigned)product_type);
+
+	/*
+	 * Iterate through the hard-coded list looking for the product name,
+	 * defaulting on a product name of "" (touchpanel)
+	 */
+	for
+	(
+	  prod_info = Product_Information_Table;
+	  (prod_info->product_type != (CRESTRON_PRODUCT_TYPE)0) && (prod_info->product_type != product_type);
+	  ++prod_info
+	) ; // Intentionally empty loop
+
+
+
+	iStatus = csio_Init();
+	if(iStatus != CSIO_SUCCESS)
+	{
+		GST_DEBUG("csio_Init returned error %d\n", iStatus);
+	}
+
+	GST_DEBUG("Done with init\n");
 }
 
 /*
@@ -145,6 +180,7 @@ void check_initialization_complete (CustomData *data)
 static void gst_native_init (JNIEnv* env, jobject thiz) 
 {
 	CustomData *data = g_new0 (CustomData, 1);
+	CresDataDB = data;
 	SET_CUSTOM_DATA (env, thiz, custom_data_field_id, data);
 	GST_DEBUG_CATEGORY_INIT (debug_category, "gstreamer_jni", 0, "Android jni");
 	gst_debug_set_threshold_for_name("gstreamer_jni", GST_LEVEL_DEBUG);
@@ -154,7 +190,9 @@ static void gst_native_init (JNIEnv* env, jobject thiz)
 	init_custom_data(data);
 	pthread_mutex_init(&(data->ready_to_start_playing_lock), NULL);
 	pthread_cond_init(&(data->ready_to_start_playing_signal), NULL);
-	//TODO: what do we do with this data->app
+
+	//call csio init here.
+	csio_jni_init();
 }
 
 /* Quit the main loop, remove the native thread and free resources */
@@ -164,6 +202,7 @@ static void gst_native_finalize (JNIEnv* env, jobject thiz)
 	if (!data) return;
 
 	GST_DEBUG ("Deleting GlobalRef for app object at %p", data->app);
+    (*env)->DeleteGlobalRef (env, gStreamIn_javaClass_id);
 	(*env)->DeleteGlobalRef (env, data->app);
 	GST_DEBUG ("Freeing CustomData at %p", data);
 	g_free (data);
@@ -175,28 +214,9 @@ static void gst_native_finalize (JNIEnv* env, jobject thiz)
 }
 
 /* Set pipeline to PLAYING state */
-static void gst_native_play (JNIEnv* env, jobject thiz, jstring url) 
-{
-	CustomData *data = GET_CUSTOM_DATA (env, thiz, custom_data_field_id);
-	if (!data) return;
-
-	const char * url_cstring = (*env)->GetStringUTFChars( env, url , NULL ) ;
-
-	GST_DEBUG ("Using URL: '%s'", url_cstring);
-	strcpy(data->url, url_cstring);
-
-	(*env)->ReleaseStringUTFChars(env, url, url_cstring);
-#ifdef PETE_JNI_CODE
-	pthread_create (&gst_app_thread, NULL, &app_function, data);
-	pthread_mutex_lock(&(data->ready_to_start_playing_lock));
-	pthread_cond_wait(&(data->ready_to_start_playing_signal), &(data->ready_to_start_playing_lock));
-	pthread_mutex_unlock(&(data->ready_to_start_playing_lock));
-
-	GST_DEBUG ("Setting state to PLAYING");
-	gst_element_set_state (data->pipeline, GST_STATE_PLAYING);
-#else
-	start_streaming_cmd();
-#endif
+void gst_native_play (JNIEnv* env, jobject thiz)
+{	
+	start_streaming_cmd();	
 }
 
 /* Set pipeline to PAUSED state */
@@ -209,27 +229,22 @@ static void gst_native_pause (JNIEnv* env, jobject thiz)
 }
 
 /* Set pipeline to PAUSED state */
-static void gst_native_stop (JNIEnv* env, jobject thiz) 
+void gst_native_stop (JNIEnv* env, jobject thiz)
 {
     CustomData *data = GET_CUSTOM_DATA (env, thiz, custom_data_field_id);
     if (!data) return;
     GST_DEBUG ("Setting state to NULL");
-
-#ifdef PETE_JNI_CODE
-    gst_element_set_state (data->pipeline, GST_STATE_NULL);
-
-    GST_DEBUG ("Quitting main loop...");
-    g_main_loop_quit (data->main_loop);
-    GST_DEBUG ("Waiting for thread to finish...");
-    pthread_join (gst_app_thread, NULL);
-#else
+    
     stop_streaming_cmd();
-#endif
+    data->video_sink = NULL;//TODO: this will be unref by CStreamer.
+    data->audio_sink = NULL;//TODO: this will be unref by CStreamer.
+    data->pipeline   = NULL;//TODO: this will be unref by CStreamer.
 }
 
 /* Static class initializer: retrieve method and field IDs */
 static jboolean gst_native_class_init (JNIEnv* env, jclass klass) 
 {
+	GST_DEBUG("gst_native_class_init\n");
 	custom_data_field_id = (*env)->GetFieldID (env, klass, "native_custom_data", "J");
 	set_message_method_id = (*env)->GetMethodID (env, klass, "setMessage", "(Ljava/lang/String;)V");
 	on_gstreamer_initialized_method_id = (*env)->GetMethodID (env, klass, "onGStreamerInitialized", "()V");
@@ -292,14 +307,148 @@ static void gst_native_surface_finalize (JNIEnv *env, jobject thiz)
 	if (data->video_sink) 
 	{
 		gst_video_overlay_set_window_handle (GST_VIDEO_OVERLAY (data->video_sink), (guintptr)NULL);
-		gst_element_set_state (data->pipeline, GST_STATE_READY);
+		//gst_element_set_state (data->pipeline, GST_STATE_READY);
 	}
 
-	ANativeWindow_release (data->native_window);
+	if (data->native_window != NULL)
+		ANativeWindow_release (data->native_window); //TODO: java seems to already handle this
 	data->native_window = NULL;
 	data->initialized = FALSE;
 
 	//TODO: when this will be called?
+}
+
+/* Set Stream URL */
+JNIEXPORT void JNICALL Java_com_crestron_txrxservice_GstreamIn_nativeSetSeverUrl(JNIEnv *env, jobject thiz, jstring url_jstring, jint sessionId)
+{
+	int restartStream = 0;
+	if (nativeGetCurrentStreamState(0) == STREAMSTATE_STARTED) //TODO: make this based on sessionId
+		restartStream = 1;
+
+	if (restartStream)
+	{
+		jmethodID onStop = (*env)->GetMethodID(env, gStreamIn_javaClass_id, "onStop", "()V");
+		if (onStop == NULL) return;
+
+		(*env)->CallVoidMethod(env, CresDataDB->app, onStop);
+		if ((*env)->ExceptionCheck (env)) {
+			GST_ERROR ("Failed to call Java method 'onStop'");
+			(*env)->ExceptionClear (env);
+		}
+	}
+
+	const char * url_cstring = (*env)->GetStringUTFChars( env, url_jstring , NULL ) ;
+	if (url_cstring == NULL) return;
+
+	GST_DEBUG ("Using URL: '%s'", url_cstring);
+	strcpy(currentSettingsDB.settingsMessage.msg[sessionId].url, url_cstring);
+	GST_DEBUG ("URL in currentSettingsDB: '%s'", currentSettingsDB.settingsMessage.msg[sessionId].url);
+
+	(*env)->ReleaseStringUTFChars(env, url_jstring, url_cstring);
+
+	if (restartStream)
+	{
+		jmethodID onStart = (*env)->GetMethodID(env, gStreamIn_javaClass_id, "onStart", "()V");
+		if (onStart == NULL) return;
+
+		(*env)->CallVoidMethod(env, CresDataDB->app, onStart);
+		if ((*env)->ExceptionCheck (env)) {
+			GST_ERROR ("Failed to call Java method 'onStart'");
+			(*env)->ExceptionClear (env);
+		}
+	}
+}
+
+JNIEXPORT void JNICALL Java_com_crestron_txrxservice_GstreamIn_nativeSetRtspPort(JNIEnv *env, jobject thiz, jint port, jint sessionId)
+{
+	CustomData *data = GET_CUSTOM_DATA (env, thiz, custom_data_field_id);
+	if (!data) return;
+
+	GST_DEBUG ("Using RtspPort: '%d'", port);
+	//TODO: Currently we dont save rtsp port in CSIOsettings
+	//currentSettingsDB.videoSettings[0]. = port;
+	//GST_DEBUG ("URL in currentSettingsDB: '%d'", currentSettingsDB.settingsMessage.msg[0].url);
+}
+
+JNIEXPORT void JNICALL Java_com_crestron_txrxservice_GstreamIn_nativeSetTsPort(JNIEnv *env, jobject thiz, jint port, jint sessionId)
+{
+	GST_DEBUG ("Using tsPort: '%d'", port);
+	currentSettingsDB.videoSettings[sessionId].tsPort = port;
+	GST_DEBUG ("tsPort in currentSettingsDB: '%d'", currentSettingsDB.videoSettings[sessionId].tsPort);
+}
+
+JNIEXPORT void JNICALL Java_com_crestron_txrxservice_GstreamIn_nativeSetRtpVideoPort(JNIEnv *env, jobject thiz, jint port, jint sessionId)
+{
+	GST_DEBUG ("Using rtpVideoPort: '%d'", port);
+	currentSettingsDB.videoSettings[sessionId].rtpVideoPort = port;
+	GST_DEBUG ("rtpVideoPort in currentSettingsDB: '%d'", currentSettingsDB.videoSettings[sessionId].rtpVideoPort);
+}
+
+JNIEXPORT void JNICALL Java_com_crestron_txrxservice_GstreamIn_nativeSetRtpAudioPort(JNIEnv *env, jobject thiz, jint port, jint sessionId)
+{
+	GST_DEBUG ("Using rtpAudioPort: '%d'", port);
+	currentSettingsDB.videoSettings[sessionId].rtpAudioPort = port;
+	GST_DEBUG ("rtpAudioPort in currentSettingsDB: '%d'", currentSettingsDB.videoSettings[sessionId].rtpAudioPort);
+}
+
+JNIEXPORT void JNICALL Java_com_crestron_txrxservice_GstreamIn_nativeSetSessionInitiation(JNIEnv *env, jobject thiz, jint initMode, jint sessionId)
+{
+	GST_DEBUG ("Using sessionInitiationMode: '%d'", initMode);
+	currentSettingsDB.videoSettings[sessionId].sessionInitiationMode = initMode;
+	GST_DEBUG ("sessionInitiationMode in currentSettingsDB: '%d'", currentSettingsDB.videoSettings[sessionId].sessionInitiationMode);
+}
+
+JNIEXPORT void JNICALL Java_com_crestron_txrxservice_GstreamIn_nativeSetTransportMode(JNIEnv *env, jobject thiz, jint transportMode, jint sessionId)
+{
+	GST_DEBUG ("Using tsEnabled: '%d'", transportMode);
+	currentSettingsDB.videoSettings[sessionId].tsEnabled = transportMode;
+	GST_DEBUG ("tsEnabled in currentSettingsDB: '%d'", currentSettingsDB.videoSettings[sessionId].tsEnabled);
+}
+
+JNIEXPORT void JNICALL Java_com_crestron_txrxservice_GstreamIn_nativeSetMulticastAddress(JNIEnv *env, jobject thiz, jstring multicastIp_jstring, jint sessionId)
+{
+	const char * multicastIp_cstring = (*env)->GetStringUTFChars( env, multicastIp_jstring , NULL ) ;
+	if (multicastIp_cstring == NULL) return;
+
+	GST_DEBUG ("Using multicastAddress: '%s'", multicastIp_cstring);
+	strcpy(currentSettingsDB.videoSettings[sessionId].multicastAddress, multicastIp_cstring);
+	GST_DEBUG ("multicastAddress in currentSettingsDB: '%s'", currentSettingsDB.videoSettings[sessionId].multicastAddress);
+
+	(*env)->ReleaseStringUTFChars(env, multicastIp_jstring, multicastIp_cstring);
+}
+
+JNIEXPORT void JNICALL Java_com_crestron_txrxservice_GstreamIn_nativeSetStreamingBuffer(JNIEnv *env, jobject thiz, jint buffer_ms, jint sessionId)
+{
+	GST_DEBUG ("Using streamingBuffer: '%d'", buffer_ms);
+	currentSettingsDB.videoSettings[sessionId].streamingBuffer = buffer_ms;
+	GST_DEBUG ("streamingBuffer in currentSettingsDB: '%d'", currentSettingsDB.videoSettings[sessionId].streamingBuffer);
+}
+
+JNIEXPORT void JNICALL Java_com_crestron_txrxservice_GstreamIn_nativeSetXYlocations(JNIEnv *env, jobject thiz, jint xLocation, jint yLocation, jint sessionId)
+{
+	currentSettingsDB.settingsMessage.msg[sessionId].left = xLocation;
+	currentSettingsDB.settingsMessage.msg[sessionId].top = yLocation;
+	GST_DEBUG ("xLocation in currentSettingsDB: '%d'", currentSettingsDB.settingsMessage.msg[sessionId].left);
+	GST_DEBUG ("yLocation in currentSettingsDB: '%d'", currentSettingsDB.settingsMessage.msg[sessionId].top);
+}
+
+StreamState nativeGetCurrentStreamState(jint sessionId)
+{
+	StreamState currentStreamState;
+	JNIEnv *env = get_jni_env ();
+
+	jmethodID getCurrentStreamState = (*env)->GetMethodID(env, gStreamIn_javaClass_id, "getCurrentStreamState", "(I)I");
+
+	currentStreamState = (StreamState)(*env)->CallIntMethod(env, CresDataDB->app, getCurrentStreamState, sessionId);
+
+	if ((*env)->ExceptionCheck (env)) {
+		GST_ERROR ("Failed to call Java method 'getCurrentStreamState'");
+		(*env)->ExceptionClear (env);
+	}
+
+	GST_DEBUG("currentStreamState = %d", (jint)currentStreamState);
+
+	return currentStreamState;
 }
 
 /* List of implemented native methods */
@@ -307,7 +456,7 @@ static JNINativeMethod native_methods[] =
 {
 	{ "nativeInit", "()V", (void *) gst_native_init},
 	{ "nativeFinalize", "()V", (void *) gst_native_finalize},
-	{ "nativePlay", "(Ljava/lang/String;)V", (void *) gst_native_play},
+	{ "nativePlay", "()V", (void *) gst_native_play},
 	{ "nativePause", "()V", (void *) gst_native_pause},
 	{ "nativeStop", "()V", (void *) gst_native_stop},
 	{ "nativeSurfaceInit", "(Ljava/lang/Object;)V", (void *) gst_native_surface_init},
@@ -321,11 +470,11 @@ jint JNI_OnLoad(JavaVM *vm, void *reserved)
 	JNIEnv *env = NULL;
 
 	java_vm = vm;
-
+	GST_DEBUG ("JNI_OnLoad ");
 	// Uncomment these lines to enable debugging
 	// You may need to run this on the command line as well:
 	//      setprop log.redirect-stdio true
-	setenv("GST_DEBUG", "*:3", 1);
+	setenv("GST_DEBUG", "*:1", 1);
 	setenv("GST_DEBUG_NO_COLOR", "1", 1);
 
 	if ((*vm)->GetEnv(vm, (void**) &env, JNI_VERSION_1_4) != JNI_OK) 
@@ -334,8 +483,16 @@ jint JNI_OnLoad(JavaVM *vm, void *reserved)
 		return 0;
 	}
 	//jclass klass = (*env)->FindClass (env, "com/gst_sdk_tutorials/tutorial_3/Tutorial3");
-	jclass klass = (*env)->FindClass (env, "com/crestron/txrxservice/StreamIn");
-	(*env)->RegisterNatives (env, klass, native_methods, G_N_ELEMENTS(native_methods));
+	jclass klass = (*env)->FindClass (env, "com/crestron/txrxservice/GstreamIn");
+	/* Create a global reference to GstreamIn class Id, because it gets lost when pthread is created */
+	gStreamIn_javaClass_id = (jclass*)(*env)->NewGlobalRef(env, klass);
+	(*env)->DeleteLocalRef(env, klass);
+	if (gStreamIn_javaClass_id == NULL) {
+		__android_log_print(ANDROID_LOG_ERROR, "gstreamer_jni", "gStreamIn_javaClass_id is still null when it is suppose to be global");
+	     return 0; /* out of memory exception thrown */
+	 }
+
+	(*env)->RegisterNatives (env, gStreamIn_javaClass_id, native_methods, G_N_ELEMENTS(native_methods));
 
 	pthread_key_create (&current_jni_env, detach_current_thread);
 
@@ -344,14 +501,14 @@ jint JNI_OnLoad(JavaVM *vm, void *reserved)
 
 #include "cregstplay.c"
 
+
 int csio_IpLinkClientConnected()
 {
-	return 0;
+	return 1;
 }
 void csio_send_zerostats()
-{
-	   //CSIOProductMessageHandler->send_statistics(0, 0, 0, 0);
-	   //CSIOProductMessageHandler->send_bitrate(0);
+{	
+	csio_send_stats(0, 0, 0, 0, 0);
 }
 int csio_ClearOverlay()
 {
@@ -360,23 +517,92 @@ int csio_ClearOverlay()
 
 void    *csio_SendMulticastAddressFb(void * arg)
 {
-	return NULL;
+	jstring multicastAddress_jstr;
+	JNIEnv *env = get_jni_env ();
+	jint streamId = csio_GetStreamId(arg);
+	char *multicastAddress_cstr = csio_GetMulticastAddress(streamId);	
+
+	multicastAddress_jstr = (*env)->NewStringUTF(env, multicastAddress_cstr);
+
+	jmethodID sendMulticastAddress = (*env)->GetMethodID(env, gStreamIn_javaClass_id, "sendMulticastAddress", "(Ljava/lang/String;I)V");
+	if (sendMulticastAddress == NULL) return NULL;
+
+	(*env)->CallVoidMethod(env, CresDataDB->app, sendMulticastAddress, multicastAddress_jstr, streamId);
+	if ((*env)->ExceptionCheck (env)) {
+		GST_ERROR ("Failed to call Java method 'sendMulticastAddress'");
+		(*env)->ExceptionClear (env);
+	}
+	(*env)->DeleteLocalRef (env, multicastAddress_jstr);
+
+	return(NULL);
 }
 void csio_send_stats (uint64_t video_packets_received, int video_packets_lost, uint64_t audio_packets_received, int audio_packets_lost, uint16_t bitrate)
 {
+	JNIEnv *env = get_jni_env ();
+
+	jmethodID sendStatistics = (*env)->GetMethodID(env, gStreamIn_javaClass_id, "sendStatistics", "(JIJII)V");
+	if (sendStatistics == NULL) return;
+
+	(*env)->CallVoidMethod(env, CresDataDB->app, sendStatistics, (jlong)video_packets_received, (jint)video_packets_lost, (jlong)audio_packets_received, (jint)audio_packets_lost, (jint)bitrate);
+	if ((*env)->ExceptionCheck (env)) {
+		GST_ERROR ("Failed to call Java method 'sendStatistics'");
+		(*env)->ExceptionClear (env);
+	}
 }
 
 void csio_get_width_and_height_from_mode (uint32_t * width, uint32_t * height)
 {
-	return;
+        JNIEnv *env = get_jni_env ();
+
+	jmethodID getCurrentWidthHeight = (*env)->GetMethodID(env, gStreamIn_javaClass_id, "getCurrentWidthHeight", "()[I");
+        if (getCurrentWidthHeight == NULL) return;
+
+        jintArray retval = (jintArray) (*env)->CallObjectMethod(env, CresDataDB->app, getCurrentWidthHeight);
+	if ((*env)->ExceptionCheck (env)) {
+		GST_ERROR ("Failed to call Java method 'getCurrentWidthHeight'");
+		(*env)->ExceptionClear (env);
+	}
+        jint *widthHeight = (*env)->GetIntArrayElements(env, retval, NULL);
+
+        (*width) = widthHeight[0];
+        (*height) = widthHeight[1];
+        return;
 }
 
 int csio_SendVideoPlayingStatusMessage(unsigned int source, StreamState state)
 {
+	JNIEnv *env = get_jni_env ();
+
+	jmethodID updateStreamStatus = (*env)->GetMethodID(env, gStreamIn_javaClass_id, "updateStreamStatus", "(II)V");
+	if (updateStreamStatus == NULL) return -1; // TODO: what is error code here
+
+	(*env)->CallVoidMethod(env, CresDataDB->app, updateStreamStatus, (jint)state, (jint)source);
+	if ((*env)->ExceptionCheck (env)) {
+		GST_ERROR ("Failed to call Java method 'updateStreamStatus'");
+		(*env)->ExceptionClear (env);
+	}
+
+	// Reset source parameters when stopped - Bug 88712
+	if (state == STREAMSTATE_STOPPED)
+	{
+		csio_SendVideoSourceParams(source,0,0,0,0);
+	}
+	
 	return 0;
 }
 int csio_SendVideoSourceParams(unsigned int source, unsigned int width, unsigned int height, unsigned int framerate, unsigned int profile)
 {
+	JNIEnv *env = get_jni_env ();	
+
+	jmethodID sendVideoSourceParams = (*env)->GetMethodID(env, gStreamIn_javaClass_id, "sendVideoSourceParams", "(IIIII)V");
+	if (sendVideoSourceParams == NULL) return -1; // TODO: what is error code here
+
+	(*env)->CallVoidMethod(env, CresDataDB->app, sendVideoSourceParams, (jint)source, (jint)width, (jint)height, (jint)framerate, (jint)profile);
+	if ((*env)->ExceptionCheck (env)) {
+		GST_ERROR ("Failed to call Java method 'sendVideoSourceParams'");
+		(*env)->ExceptionClear (env);
+	}
+
 	return 0;
 }
 void csio_signal_that_stream_has_stopped()
@@ -389,6 +615,190 @@ void csio_start_mode_change_detection ()
 	return;
 }
 
+void csio_jni_CreateMainContext()
+{
+	CresDataDB->context = g_main_context_new ();
+	g_main_context_push_thread_default(CresDataDB->context);
+}
+
+void csio_jni_FreeMainContext()
+{	
+	g_main_context_pop_thread_default(CresDataDB->context);
+	g_main_context_unref (CresDataDB->context);
+}
+
+void csio_jni_CheckInitializationComplete()
+{
+	check_initialization_complete(CresDataDB);
+}
+
+void csio_jni_SetOverlayWindow()
+{
+	/* The main loop is running and we received a native window, inform the sink about it */
+	if(CresDataDB->video_sink)
+	{
+		gst_video_overlay_set_window_handle (GST_VIDEO_OVERLAY (CresDataDB->video_sink), (guintptr)CresDataDB->native_window);
+	}
+}
+
+int csio_jni_CreatePipeline(GstElement **pipeline,GstElement **source)
+{	
+	CresDataDB->pipeline = gst_pipeline_new(NULL);
+	CresDataDB->element_zero = gst_element_factory_make("rtspsrc", NULL);
+
+	gst_bin_add_many(GST_BIN(CresDataDB->pipeline), CresDataDB->element_zero, NULL);
+	if( !CresDataDB->pipeline || !CresDataDB->element_zero )
+	{
+		GST_ERROR ("ERROR: Cannot create source pipeline elements\n");
+		return CSIO_CANNOT_CREATE_ELEMENTS;
+	}
+	
+	*pipeline = CresDataDB->pipeline;
+	*source   = CresDataDB->element_zero;
+
+	return CSIO_SUCCESS;
+}
+
+
+void csio_jni_InitPipeline()
+{
+	g_object_set(G_OBJECT(CresDataDB->element_zero), "location", currentSettingsDB.settingsMessage.msg[0].url, NULL);
+	//g_object_set(G_OBJECT(data->element_zero), "latency", xxx, NULL);  // intentionally NOT setting this
+	g_object_set(G_OBJECT(CresDataDB->element_zero), "tcp_timeout", CresDataDB->tcp_timeout_usec, NULL);
+	g_object_set(G_OBJECT(CresDataDB->element_zero), "timeout", CresDataDB->udp_timeout_usec, NULL);
+	// For some reason, this port range must be set for rtsp with multicast to work.
+	//g_object_set(G_OBJECT(CresDataDB->element_zero), "port-range", "5001-65535", NULL);
+	g_object_set(G_OBJECT(CresDataDB->element_zero), "protocols", CresDataDB->protocols, NULL);
+
+	// video part
+	CresDataDB->video_sink = NULL;
+}
+
+void csio_jni_SetSourceLocation()
+{
+	g_object_set(G_OBJECT(CresDataDB->element_zero), "location", currentSettingsDB.settingsMessage.msg[0].url, NULL);
+}
+
+void csio_jni_SetMsgHandlers(void* obj)
+{
+	// Register callback.
+	if(CresDataDB->element_zero != NULL)
+	{
+		//g_signal_connect(CresDataDB->element_zero, "pad-added", G_CALLBACK(pad_added_callback), CresDataDB);
+		g_signal_connect(CresDataDB->element_zero, "pad-added", G_CALLBACK(csio_PadAddedMsgHandler), obj);
+
+	}
+	else
+	{
+		GST_ERROR("Null element zero, no callbacks will be registered");
+	}
+
+	/* Set the pipeline to READY, so it can already accept a window handle, if we have one */
+	 gst_element_set_state(CresDataDB->pipeline, GST_STATE_READY);
+
+	 if (CresDataDB->video_sink)
+	 {
+		 // Try just setting the video sink, because we haven't built the pipeline yet.
+	   	 //gst_element_set_state(data->video_sink, GST_STATE_READY);
+	 }
+	 else
+	 {
+		 CresDataDB->video_sink = gst_bin_get_by_interface(GST_BIN(CresDataDB->pipeline), GST_TYPE_VIDEO_OVERLAY);
+	 }
+
+	 /* Instruct the bus to emit signals for each received message, and connect to the interesting signals
+	 GstBus *bus = gst_element_get_bus (CresDataDB->pipeline);
+	 GSource *bus_source = gst_bus_create_watch (bus);
+	 g_source_set_callback (bus_source, (GSourceFunc) gst_bus_async_signal_func, NULL, NULL);
+	 g_source_attach (bus_source, CresDataDB->context);
+	 g_source_unref (bus_source);
+	 g_signal_connect (G_OBJECT (bus), "message::error", (GCallback)error_callback, CresDataDB);
+	 g_signal_connect (G_OBJECT (bus), "message::state-changed", (GCallback)state_changed_callback, CresDataDB);
+	 gst_object_unref (bus);*/
+}
+
+int csio_jni_AddAudio(GstPad *new_pad,gchar *encoding_name, int do_rtp,GstElement **sink)
+{
+	int iStatus  = CSIO_SUCCESS;
+	*sink = NULL;
+	GstElement *ele0 = NULL;
+	iStatus = build_audio_pipeline(encoding_name, CresDataDB, do_rtp,&ele0,sink);
+	if(ele0 == NULL)
+	{
+		return CSIO_CANNOT_CREATE_ELEMENTS;
+	}
+
+	//TODOL need to call CStreamer::initAudio here
+
+	// Get the pad given an element.
+	GstPad *sink_pad = NULL;
+	sink_pad = gst_element_get_static_pad (ele0, "sink");
+	if(sink_pad == NULL)
+		return CSIO_CANNOT_LINK_ELEMENTS;
+
+	if(gst_pad_is_linked (sink_pad))
+	{
+		GST_ERROR ("audio sink pad is already linked");
+		gst_object_unref(sink_pad);
+
+		return CSIO_CANNOT_LINK_ELEMENTS;
+	}
+
+	// Link rest of pipeline to beginning.
+	gst_pad_link(new_pad, sink_pad);
+
+	gst_element_set_state( CresDataDB->pipeline, GST_STATE_PLAYING);
+
+	GST_DEBUG("csio_jni_AddAudio iStatus = %d", iStatus);
+	//TODOL need to call pCurCfg->setStatus( iStatus );
+	return iStatus;
+}
+
+int csio_jni_AddVideo(GstPad *new_pad,gchar *encoding_name, int do_rtp,GstElement **sink)
+{
+	int iStatus  = CSIO_SUCCESS;
+	*sink = NULL;
+	GstElement *ele0 = NULL;
+	iStatus = build_video_pipeline(encoding_name, CresDataDB,0,do_rtp,&ele0,sink);
+	GST_DEBUG("csio_jni_AddVideo: sink =0x%x",*sink);
+	if(ele0 == NULL)
+	{
+		return CSIO_CANNOT_CREATE_ELEMENTS;
+	}
+
+	//TODOL need to call CStreamer::initVideo here
+
+	// Get the pad given an element.
+	GstPad *sink_pad = NULL;
+	sink_pad = gst_element_get_static_pad (ele0, "sink");
+	if(sink_pad == NULL)
+		return CSIO_CANNOT_LINK_ELEMENTS;
+
+	if(gst_pad_is_linked (sink_pad))
+	{
+		GST_ERROR ("video sink pad is already linked");
+		gst_object_unref(sink_pad);
+
+		return CSIO_CANNOT_LINK_ELEMENTS;
+	}
+
+	// Link rest of pipeline to beginning.
+	iStatus = gst_pad_link(new_pad, sink_pad);
+	GST_DEBUG ("csio_jni_AddVideo:gst_pad_link returns iStatus[0x%x]",iStatus);
+	if(iStatus != CSIO_SUCCESS)
+		return CSIO_CANNOT_LINK_ELEMENTS;
+
+	if( gst_element_set_state( CresDataDB->pipeline, GST_STATE_PLAYING) == GST_STATE_CHANGE_FAILURE )
+	{
+		GST_ERROR ("Cannot restart pipeline\n");
+	}
+
+	if(iStatus != CSIO_SUCCESS)
+		return CSIO_COULD_NOT_START_PIPELINE;
+
+	//TODOL need to call pCurCfg->setStatus( iStatus );
+	return iStatus;
+}
 
 
 

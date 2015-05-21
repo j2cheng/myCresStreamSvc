@@ -6,11 +6,14 @@ import java.util.Map;
 import com.crestron.txrxservice.CresStreamConfigure.StreamMode;
 import com.crestron.txrxservice.CresStreamConfigure.VideoEncProfile;
 import com.crestron.txrxservice.CresStreamCtrl.StreamState;
+import com.crestron.txrxservice.CresStreamCtrl.DeviceMode;
 
 import android.util.Log;
 
 public class UserSettings //implements java.io.Serializable
 {
+	private GstreamIn gStreamIn;
+	
 	public enum VideoEncProfile {
 		BP(1), MP(2), HP(8);
 		private int value;
@@ -194,8 +197,10 @@ public class UserSettings //implements java.io.Serializable
 	private String deviceIp;
 	// TODO: do we need statistics and dhcp settings here?
 
-	public UserSettings()
+	public UserSettings(GstreamIn mContext)
 	{
+		this.gStreamIn = mContext;
+		
         MiscUtils.getDeviceIpAddr();
         deviceIp 			= MiscUtils.matcher.group();
 		rtspPort 			= new int[]{ 554, 554};		
@@ -322,6 +327,9 @@ public class UserSettings //implements java.io.Serializable
 	}
 
 	public void setSessionInitiation(int sessionInitiation, int sessId) {
+		if ((gStreamIn != null) && (this.mode[sessId] == DeviceMode.STREAM_IN.ordinal()))
+			gStreamIn.setSessionInitiation(sessionInitiation, sessId);
+		
 		this.sessionInitiation[sessId] = sessionInitiation;
 	}
 
@@ -362,6 +370,9 @@ public class UserSettings //implements java.io.Serializable
 	}
 
 	public void setStreamingBuffer(int streamingBuffer, int sessId) {
+		if ((gStreamIn != null) && (this.mode[sessId] == DeviceMode.STREAM_IN.ordinal()))
+			gStreamIn.setStreamingBuffer(streamingBuffer, sessId);
+		
 		this.streamingBuffer[sessId] = streamingBuffer;
 	}
 
@@ -370,6 +381,9 @@ public class UserSettings //implements java.io.Serializable
 	}
 
 	public void setTransportMode(int transportMode, int sessId) {
+		if ((gStreamIn != null) && (this.mode[sessId] == DeviceMode.STREAM_IN.ordinal()))
+			gStreamIn.setTransportMode(transportMode, sessId);
+		
 		this.transportMode[sessId] = transportMode;
 	}
 
@@ -402,6 +416,9 @@ public class UserSettings //implements java.io.Serializable
 	}
 
 	public void setServerUrl(String serverUrl, int sessId) {
+		if ((gStreamIn != null) && (this.mode[sessId] == DeviceMode.STREAM_IN.ordinal()))
+			gStreamIn.setServerUrl(serverUrl, sessId);
+		
 		this.serverUrl[sessId] = serverUrl;
 	}
 
@@ -418,6 +435,9 @@ public class UserSettings //implements java.io.Serializable
 	}
 
 	public void setMulticastAddress(String multicastAddress, int sessId) {
+		if ((gStreamIn != null) && (this.mode[sessId] == DeviceMode.STREAM_IN.ordinal()))
+			gStreamIn.setMulticastAddress(multicastAddress, sessId);
+		
 		this.multicastAddress[sessId] = multicastAddress;
 	}
 
@@ -602,6 +622,9 @@ public class UserSettings //implements java.io.Serializable
 	}
 
 	public void setRtspPort(int rtspPort, int sessId) {
+		if ((gStreamIn != null) && (this.mode[sessId] == DeviceMode.STREAM_IN.ordinal()))
+			gStreamIn.setRtspPort(rtspPort, sessId);
+		
 		this.rtspPort[sessId] = rtspPort;
 	}
 
@@ -610,6 +633,9 @@ public class UserSettings //implements java.io.Serializable
 	}
 
 	public void setTsPort(int tsPort, int sessId) {
+		if ((gStreamIn != null) && (this.mode[sessId] == DeviceMode.STREAM_IN.ordinal()))
+			gStreamIn.setTsPort(tsPort, sessId);
+		
 		this.tsPort[sessId] = tsPort;
 	}
 
@@ -618,6 +644,9 @@ public class UserSettings //implements java.io.Serializable
 	}
 
 	public void setRtpVideoPort(int rtpVideoPort, int sessId) {
+		if ((gStreamIn != null) && (this.mode[sessId] == DeviceMode.STREAM_IN.ordinal()))
+			gStreamIn.setRtpVideoPort(rtpVideoPort, sessId);
+		
 		this.rtpVideoPort[sessId] = rtpVideoPort;
 	}
 
@@ -626,6 +655,9 @@ public class UserSettings //implements java.io.Serializable
 	}
 
 	public void setRtpAudioPort(int rtpAudioPort, int sessId) {
+		if ((gStreamIn != null) && (this.mode[sessId] == DeviceMode.STREAM_IN.ordinal()))
+			gStreamIn.setRtpAudioPort(rtpAudioPort, sessId);
+		
 		this.rtpAudioPort[sessId] = rtpAudioPort;
 	}
 

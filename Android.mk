@@ -17,7 +17,10 @@ LOCAL_CERTIFICATE := platform
 # Native functions in jni folder
 LOCAL_SHARED_LIBRARIES := libgstreamer_jni
 	
+#LOCAL_STATIC_JAVA_LIBRARIES := libgson
+
 ifeq ($(TARGET_PRODUCT),full_omap5panda)
 include $(BUILD_PACKAGE)
 include $(LOCAL_PATH)/jni/Android.mk
+#LOCAL_PREBUILT_STATIC_JAVA_LIBRARIES := libgson:libs/gson-2.3.1.jar
 endif

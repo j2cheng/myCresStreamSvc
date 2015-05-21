@@ -26,6 +26,7 @@ CPP_INC_PATH := $(CRESTRON_ROOT)/../../bionic
 # Crestron - name was different
 #LOCAL_SHARED_LIBRARIES := gstreamer_android
 LOCAL_SHARED_LIBRARIES := libgstreamer_android liblog libandroid
+LOCAL_SHARED_LIBRARIES += libproductName
 # Crestron - why do I have to do this?
 #LOCAL_LDLIBS := -llog -landroid
 #LOCAL_LDFLAGS := -llog -landroid 

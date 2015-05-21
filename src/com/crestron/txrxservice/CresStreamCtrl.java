@@ -46,8 +46,8 @@ public class CresStreamCtrl extends Service {
     CameraStreaming cam_streaming;
     CameraPreview cam_preview;
     StringTokenizer tokenizer;
-    StreamIn streamPlay;
-    //GstreamIn streamPlay;
+    
+    GstreamIn streamPlay;
     BroadcastReceiver hpdEvent = null;
     BroadcastReceiver resolutionEvent = null;
     BroadcastReceiver hdmioutResolutionChangedEvent = null;
@@ -126,9 +126,22 @@ public class CresStreamCtrl extends Service {
             }
             return ("Invalid State.");
         }
+        
+        public static StreamState getStreamStateFromInt(int i) 
+        {
+            for (StreamState state : StreamState.values()) 
+            {
+                if (state.getValue() == i) 
+                {
+                    return state;
+                }
+            }
+            return LAST;
+        }
     }
     
     private final ReentrantLock threadLock = new ReentrantLock(true); // fairness=true, makes lock ordered
+    private final ReentrantLock streamStateLock = new ReentrantLock(true); // fairness=true, makes lock ordered
 
     //StreamState devicestatus = StreamState.STOPPED;
     //HashMap
@@ -142,7 +155,9 @@ public class CresStreamCtrl extends Service {
             int windowHeight = 1080;
             
             //Input Streamout Config
-            userSettings = new UserSettings();
+            streamPlay = new GstreamIn(CresStreamCtrl.this);
+            userSettings = new UserSettings(streamPlay);
+
             //myconfig = new CresStreamConfigure();
             tokenizer = new StringTokenizer();
             hdmiOutput = new HDMIOutputInterface();
@@ -208,8 +223,8 @@ public class CresStreamCtrl extends Service {
             registerBroadcasts();
             //Enable StreamIn and CameraPreview 
             //SurfaceHolder sHolder = dispSurface.GetSurfaceHolder(0);//TODO:IDX
-            //streamPlay = new StreamIn(CresStreamCtrl.this, sHolder);
-            streamPlay = new StreamIn(CresStreamCtrl.this);
+
+            
             
             //sHolder = dispSurface.GetSurfaceHolder(1);//TODO:IDX
             //cam_streaming = new CameraStreaming(CresStreamCtrl.this, sHolder);
@@ -297,7 +312,7 @@ public class CresStreamCtrl extends Service {
         if (dispSurface != null)
         	dispSurface.RemoveView();
     }
-
+ 
     public SurfaceHolder getCresSurfaceHolder(int sessionId){
         return dispSurface.GetSurfaceHolder(sessionId);
     }
@@ -401,6 +416,10 @@ public class CresStreamCtrl extends Service {
                 dispSurface.UpdateCoordinates(userSettings.getXloc(sessionId), 
                 		userSettings.getYloc(sessionId), sessionId); 
             }
+        	
+        	// Gstreamer needs X and Y locations and does not update itself like it does for width and height
+        	if (userSettings.getMode(sessionId) == DeviceMode.STREAM_IN.ordinal()) 
+        		streamPlay.updateCurrentXYloc(userSettings.getXloc(sessionId), userSettings.getYloc(sessionId), sessionId);
     	}
     	finally
     	{
@@ -587,6 +606,15 @@ public class CresStreamCtrl extends Service {
     	userSettings.setPassword(passwd, sessId);
     }
     
+    public void SendStreamInVideoFeedbacks(int source, int width, int height, int framerate, int profile)
+    {	    
+		sockTask.SendDataToAllClients(String.format("STREAMIN_HORIZONTAL_RES_FB%d=%s", source, width));
+		sockTask.SendDataToAllClients(String.format("STREAMIN_VERTICAL_RES_FB%d=%s", source, height));
+		sockTask.SendDataToAllClients(String.format("STREAMIN_FPS_FB%d=%s", source, framerate));
+		sockTask.SendDataToAllClients(String.format("STREAMIN_ASPECT_RATIO%d=%s", source, MiscUtils.calculateAspectRatio(width, height)));
+		sockTask.SendDataToAllClients(String.format("VENCPROFILE%d=%s", source, profile));
+    }
+    
     public void SendStreamInFeedbacks()
     {
     	sockTask.SendDataToAllClients("STREAMIN_HORIZONTAL_RES_FB=" + String.valueOf(getStreamHorizontalResFb(true)));
@@ -612,8 +640,7 @@ public class CresStreamCtrl extends Service {
     public void SendStreamState(StreamState state, int sessionId)
     {
     	Log.d(TAG, "StreamState : Lock");
-    	threadLock.lock();
-    	
+    	streamStateLock.lock();
     	try
     	{
         	userSettings.setStreamState(state, sessionId);
@@ -622,11 +649,10 @@ public class CresStreamCtrl extends Service {
 	        
 	        sb.append(streamStateText + "=").append(state.getValue());
 	        sockTask.SendDataToAllClients(sb.toString());
-	        //tokenizer.AddTokenToList(streamStateText, String.valueOf(state.getValue()));
     	}
         finally 
     	{
-        	threadLock.unlock();
+        	streamStateLock.unlock();
         	Log.d(TAG, "StreamState : Unlock");
     	}
     }
@@ -702,6 +728,10 @@ public class CresStreamCtrl extends Service {
         if(ip!=null)
         	userSettings.setMulticastAddress(ip, sessId);
     } 
+    
+    public void sendMulticastIpAddress(String ip, int sessId){
+    	sockTask.SendDataToAllClients(String.format("MULTICAST_ADDRESS%d=%s", sessId, ip));
+    }
     
     public void setEncodingResolution(int res, int sessId){
     	userSettings.setEncodingResolution(res, sessId);
@@ -863,7 +893,7 @@ public class CresStreamCtrl extends Service {
     {
         out_url = ap_url;
         userSettings.setServerUrl(ap_url, sessionId);
-        streamPlay.setUrl(ap_url);
+        //streamPlay.setUrl(ap_url); //TODO: remove and replace have streamPlay access userSettings directly
         if(ap_url.startsWith("rtp://@"))
             streamPlay.setRtpOnlyMode( userSettings.getRtpVideoPort(sessionId),  userSettings.getRtpAudioPort(sessionId), userSettings.getDeviceIp());
         else if(ap_url.startsWith("http://"))
@@ -1007,11 +1037,11 @@ public class CresStreamCtrl extends Service {
     }
 
     public String getStreamStatistics(){
-        if (userSettings.getMode(idx) == DeviceMode.STREAM_IN.ordinal()) 
-            return streamPlay.updateSvcWithPlayerStatistics(); 
-        else if (userSettings.getMode(idx) == DeviceMode.STREAM_OUT.ordinal()) 
-            return cam_streaming.updateSvcWithStreamStatistics();
-        else
+//        if (userSettings.getMode(idx) == DeviceMode.STREAM_IN.ordinal()) 
+//            return streamPlay.updateSvcWithPlayerStatistics(); 
+//        else if (userSettings.getMode(idx) == DeviceMode.STREAM_OUT.ordinal()) 
+//            return cam_streaming.updateSvcWithStreamStatistics();
+//        else
             return "";
     }
 

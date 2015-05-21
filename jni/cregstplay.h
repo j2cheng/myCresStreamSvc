@@ -17,7 +17,7 @@
 
 GST_DEBUG_CATEGORY_STATIC (debug_category);
 #define GST_CAT_DEFAULT debug_category
-#define PETE_JNI_CODE
+
 ///////////////////////////////////////////////////////////////////////////////
 
 typedef struct
@@ -43,7 +43,7 @@ typedef struct _CustomData
 	gboolean initialized;   /* To avoid informing the UI multiple times about the initialization */
 	GstElement *video_sink; /* The video sink element which receives XOverlay commands */
 	GstElement *audio_sink; 
-	char url [1024];
+	
 	GstElement *element_zero;	
 	GstElement *element_av [10];
 	GstElement *element_a [10];
@@ -51,11 +51,8 @@ typedef struct _CustomData
 	unsigned int element_after_tsdemux;	/* Used to add the rest of the video pipeline */
 	
 	// parameters from control system/platform/java
-	unsigned int udp_port;
-	unsigned int udp_video_port;
-	unsigned int udp_audio_port;
-	char multicast_grp[256];
-	unsigned int buffer_msec;
+
+
     CRESTWINDOW	win;
 	// rtspsrc parameters
 	guint64 tcp_timeout_usec;
@@ -71,7 +68,7 @@ extern void check_initialization_complete (CustomData *data);
 extern void init_custom_data(void *userdata);
 
 
-//#include "csioCapability.h"
+extern void csio_PadAddedMsgHandler(GstElement *src, GstPad *new_pad, void *pCstreamer);
 
 
 #endif

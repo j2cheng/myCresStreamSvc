@@ -46,8 +46,8 @@
 
 ///////////////////////////////////////////////////////////////////////////////
 
-static void build_audio_pipeline(gchar *encoding_name, CustomData *data, int do_rtp);
-static void build_video_pipeline(gchar *encoding_name, CustomData *data, unsigned int start, int do_rtp);
+static int build_audio_pipeline(gchar *encoding_name, CustomData *data, int do_rtp,GstElement **ele0,GstElement **sink);
+static int build_video_pipeline(gchar *encoding_name, CustomData *data, unsigned int start, int do_rtp,GstElement **ele0,GstElement **sink);
 
 ///////////////////////////////////////////////////////////////////////////////
 
@@ -74,6 +74,7 @@ static void pad_added_callback2 (GstElement *src, GstPad *new_pad, CustomData *d
     GstCaps      *new_pad_caps   = gst_pad_query_caps( new_pad, NULL );
     GstStructure *new_pad_struct = gst_caps_get_structure( new_pad_caps, 0 );
     GstElement *sinker = NULL;
+    GstElement *ele0 = NULL;
 	const GValue* value = NULL;	
 	gchar * 	p_caps_string;
 	int do_rtp = 0;
@@ -106,13 +107,13 @@ static void pad_added_callback2 (GstElement *src, GstPad *new_pad, CustomData *d
 
     if (strncmp("audio", p_caps_string, 5) == 0)
     {
-		build_audio_pipeline(p_caps_string, data, do_rtp);
+		build_audio_pipeline(p_caps_string, data, do_rtp,&ele0,&sinker);
         sinker = data->element_a[0];
 		GST_DEBUG ("Completing audio pipeline");
     }
     else if (strncmp("video", p_caps_string, 5) == 0)
     {
-		build_video_pipeline(p_caps_string, data, data->element_after_tsdemux, do_rtp);
+		build_video_pipeline(p_caps_string, data, data->element_after_tsdemux, do_rtp,&ele0,&sinker);
         sinker = data->element_v[data->element_after_tsdemux];
 		GST_DEBUG ("Completing video pipeline");
     }
@@ -170,7 +171,7 @@ static void pad_added_callback2 (GstElement *src, GstPad *new_pad, CustomData *d
  * 				RTP depayloaders will be added as needed.
  * 
  */
-static void build_video_pipeline(gchar *encoding_name, CustomData *data, unsigned int start, int do_rtp)
+static int build_video_pipeline(gchar *encoding_name, CustomData *data, unsigned int start, int do_rtp,GstElement **ele0,GstElement **sink)
 {
 	unsigned int i = start;
 	int do_window = 1;
@@ -190,6 +191,8 @@ static void build_video_pipeline(gchar *encoding_name, CustomData *data, unsigne
 		data->element_v[i++] = gst_element_factory_make("queue", NULL);
 		data->element_v[i++] = gst_element_factory_make("h264parse", NULL);
 		data->element_v[i++] = gst_element_factory_make("amcviddec-omxtiducati1videodecoder", NULL);
+		
+		*ele0 = data->element_v[0];
 	}
 	else if(strcmp(encoding_name, "MP2T") == 0)
 	{		
@@ -239,13 +242,15 @@ static void build_video_pipeline(gchar *encoding_name, CustomData *data, unsigne
 	{
 		data->element_v[start] = NULL;
 		GST_ERROR("Unsupported video encoding %s", encoding_name);
-		return;
+		return CSIO_CANNOT_CREATE_ELEMENTS;
 	}
 		
 	if(do_sink)
-	{
-		data->element_v[i++] = gst_element_factory_make("videoconvert", NULL);						
+	{		
+		data->element_v[i++] = gst_element_factory_make("videoconvert", NULL);
 		data->video_sink = gst_element_factory_make("glimagesink", NULL);
+		*sink = data->video_sink;
+
 		// Have to add all the elements to the bin before linking.
 		gst_bin_add(GST_BIN(data->pipeline), data->video_sink);
 		num_elements = i-start;		
@@ -270,7 +275,7 @@ static void build_video_pipeline(gchar *encoding_name, CustomData *data, unsigne
 	if(!do_window)
 	{
 		GST_DEBUG("Not doing window yet");
-		return;
+		return CSIO_GSTREAMER_ERROR;
 	}
 
 	if(!data->native_window)
@@ -285,7 +290,9 @@ static void build_video_pipeline(gchar *encoding_name, CustomData *data, unsigne
 	// By the time we call the first expose, 
 	// the surface that the sink will pick up still contains the old size."
 	gst_video_overlay_expose(GST_VIDEO_OVERLAY (data->video_sink));
-	gst_video_overlay_expose(GST_VIDEO_OVERLAY (data->video_sink)); 			
+	gst_video_overlay_expose(GST_VIDEO_OVERLAY (data->video_sink));
+
+	return CSIO_SUCCESS;
 }
 
 /**
@@ -306,13 +313,11 @@ static void build_video_pipeline(gchar *encoding_name, CustomData *data, unsigne
  *
  * \todo		check for failures
  */
-static void build_audio_pipeline(gchar *encoding_name, CustomData *data, int do_rtp)
+static int build_audio_pipeline(gchar *encoding_name, CustomData *data, int do_rtp,GstElement **ele0,GstElement **sink)
 {
 	unsigned int start = 0;
 	unsigned int i = start;
-	unsigned int num_elements;			
-
-	GST_DEBUG("encoding_name=%s, do_rtp=%d", encoding_name, do_rtp);
+	unsigned int num_elements;		
 	
 	if((strcmp(encoding_name, "MPEG4-GENERIC") == 0) || (strcmp(encoding_name, "audio/mpeg") == 0)
 		|| (strcmp(encoding_name, "MP4A-LATM") == 0))
@@ -320,9 +325,11 @@ static void build_audio_pipeline(gchar *encoding_name, CustomData *data, int do_
 		if(do_rtp)
 		{
 			data->element_a[i++] = gst_element_factory_make("rtpmp4gdepay", NULL);
+			GST_ERROR("data->element_a[0]=0x%x", data->element_a[0]);
 		}
 		data->element_a[i++] = gst_element_factory_make("aacparse", NULL);
 		data->element_a[i++] = gst_element_factory_make("faad", NULL);
+		*ele0 = data->element_a[0];
 	}
 	else if(strcmp(encoding_name, "PCMU") == 0)
 	{
@@ -352,12 +359,14 @@ static void build_audio_pipeline(gchar *encoding_name, CustomData *data, int do_
 	{
 		data->element_a[start] = NULL;
 		GST_ERROR("Unsupported audio encoding %s", encoding_name);
-		return;
+		return CSIO_CANNOT_CREATE_ELEMENTS;
 	}
 	data->element_a[i++] = gst_element_factory_make("audioconvert", NULL);
 	data->element_a[i++] = gst_element_factory_make("audioresample", NULL);
 	num_elements = i-start;
 	data->audio_sink = gst_element_factory_make("openslessink", NULL);		
+	*sink = data->audio_sink;
+
 	for(i=start; i<num_elements; i++)
 	{	
 		gst_bin_add(GST_BIN(data->pipeline), data->element_a[i]);
@@ -374,6 +383,7 @@ static void build_audio_pipeline(gchar *encoding_name, CustomData *data, int do_
 			gst_element_link(data->element_a[i], data->audio_sink);
 		}
 	}
+	return CSIO_SUCCESS;
 }
 
 /**
@@ -400,6 +410,7 @@ static void pad_added_callback(GstElement *src, GstPad *new_pad, CustomData *dat
     GstStructure *new_pad_struct = gst_caps_get_structure( new_pad_caps, 0 );
     const gchar  *new_pad_type = gst_value_serialize(gst_structure_get_value( new_pad_struct, "media" ));
     GstElement *sinker = NULL;
+    GstElement *ele0 = NULL;
 	gchar        *encoding_name   = NULL;
 	const GValue* value = NULL;
 	int do_rtp = 0;
@@ -425,13 +436,13 @@ static void pad_added_callback(GstElement *src, GstPad *new_pad, CustomData *dat
 	
     if (strncmp("audio", new_pad_type, 5) == 0)
     {
-		build_audio_pipeline(encoding_name, data, do_rtp);
+		build_audio_pipeline(encoding_name, data, do_rtp,&ele0,&sinker);
         sinker = data->element_a[0];
 		GST_DEBUG ("Completing audio pipeline");
     }
     else if (strncmp("video", new_pad_type, 5) == 0)
     {
-		build_video_pipeline(encoding_name, data, 0, do_rtp);
+		build_video_pipeline(encoding_name, data, 0, do_rtp,&ele0,&sinker);
         sinker = data->element_v[0];
 		GST_DEBUG ("Completing video pipeline");
     }
@@ -496,7 +507,7 @@ static void build_rtsp_pipeline(void * userdata)
 	CustomData *data = (CustomData *)userdata;
 	
 	GST_DEBUG("%p", (data->element_zero = gst_element_factory_make("rtspsrc", NULL)));
-	g_object_set(G_OBJECT(data->element_zero), "location", data->url, NULL);	
+	g_object_set(G_OBJECT(data->element_zero), "location", currentSettingsDB.settingsMessage.msg[0].url, NULL);
 	//g_object_set(G_OBJECT(data->element_zero), "latency", xxx, NULL);  // intentionally NOT setting this 
 	g_object_set(G_OBJECT(data->element_zero), "tcp_timeout", data->tcp_timeout_usec, NULL);
 	g_object_set(G_OBJECT(data->element_zero), "timeout", data->udp_timeout_usec, NULL);
@@ -516,7 +527,7 @@ static void build_http_pipeline(void * userdata)
 	CustomData *data = (CustomData *)userdata;
 			
 	GST_DEBUG("%p", (data->element_zero = gst_element_factory_make("souphttpsrc", NULL)));
-	g_object_set(G_OBJECT(data->element_zero), "location", data->url, NULL);		
+	g_object_set(G_OBJECT(data->element_zero), "location", currentSettingsDB.settingsMessage.msg[0].url, NULL);
 	gst_bin_add(GST_BIN(data->pipeline), data->element_zero);
 }
 
@@ -530,7 +541,7 @@ static void build_udp_pipeline(void * userdata)
 
 	// video+audio part
 	data->element_av[0] = gst_element_factory_make("udpsrc", NULL);	
-	g_object_set(G_OBJECT(data->element_av[0]), "port", data->udp_port, NULL);
+	g_object_set(G_OBJECT(data->element_av[0]), "port", currentSettingsDB.videoSettings[0].tsPort, NULL);
 	data->element_av[1] = gst_element_factory_make("queue", NULL);
 	data->element_zero = gst_element_factory_make("tsdemux", NULL);
 		
@@ -661,19 +672,19 @@ void *app_function (void *userdata)
 	
 	data->pipeline = gst_pipeline_new(NULL);
   
-	if(strncmp("http://", data->url, 7) == 0)
+	if(strncmp("http://", currentSettingsDB.settingsMessage.msg[0].url, 7) == 0)
 	{
 		build_http_pipeline(data);
 	}
-	else if(strncmp("rtsp://", data->url, 7) == 0)
+	else if(strncmp("rtsp://", currentSettingsDB.settingsMessage.msg[0].url, 7) == 0)
 	{
 		build_rtsp_pipeline(data);
 	}
-	else if(strncmp("udp://", data->url, 6) == 0)
+	else if(strncmp("udp://", currentSettingsDB.settingsMessage.msg[0].url, 6) == 0)
 	{
 		build_udp_pipeline(data);
 	}	
-	else if(strncmp("gst-launch://", data->url, 13) == 0)
+	else if(strncmp("gst-launch://", currentSettingsDB.settingsMessage.msg[0].url, 13) == 0)
 	{
 		data->element_zero = NULL;	// no callbacks will be registered.
 		data->video_sink = NULL;	// want to auto-detect sink
@@ -681,7 +692,7 @@ void *app_function (void *userdata)
 	}
 	else
 	{
-		GST_ERROR ("Unsupported stream url: %s", data->url);
+		GST_ERROR ("Unsupported stream url: %s", currentSettingsDB.settingsMessage.msg[0].url);
 		return NULL;
 	}
   
@@ -776,9 +787,11 @@ void init_custom_data(void * userdata)
 {
 	CustomData *data = (CustomData *)userdata;	
 	
+	currentSettingsDB.videoSettings[0].tsPort = 5000;	//TODO: remove
 	// temp debug
-	data->udp_port = 5000;
+//	data->udp_port = 5000;
 	data->tcp_timeout_usec = 3000000;
 	data->udp_timeout_usec = 3000000;
 	data->protocols = GST_RTSP_LOWER_TRANS_UDP|GST_RTSP_LOWER_TRANS_UDP_MCAST|GST_RTSP_LOWER_TRANS_TCP;
 }
+
