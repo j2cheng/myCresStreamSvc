@@ -228,14 +228,12 @@ static void gst_native_pause (JNIEnv* env, jobject thiz)
 /* Set pipeline to PAUSED state */
 void gst_native_stop (JNIEnv* env, jobject thiz)
 {
-    CustomData *data = GET_CUSTOM_DATA (env, thiz, custom_data_field_id);
-    if (!data) return;
     GST_DEBUG ("Setting state to NULL");
     
     stop_streaming_cmd();
-    data->video_sink = NULL;//TODO: this will be unref by CStreamer.
-    data->audio_sink = NULL;//TODO: this will be unref by CStreamer.
-    data->pipeline   = NULL;//TODO: this will be unref by CStreamer.
+    CresDataDB->video_sink = NULL;//TODO: this will be unref by CStreamer.
+    CresDataDB->audio_sink = NULL;//TODO: this will be unref by CStreamer.
+    CresDataDB->pipeline   = NULL;//TODO: this will be unref by CStreamer.
 }
 
 /* Static class initializer: retrieve method and field IDs */
@@ -358,9 +356,6 @@ JNIEXPORT void JNICALL Java_com_crestron_txrxservice_GstreamIn_nativeSetSeverUrl
 
 JNIEXPORT void JNICALL Java_com_crestron_txrxservice_GstreamIn_nativeSetRtspPort(JNIEnv *env, jobject thiz, jint port, jint sessionId)
 {
-	CustomData *data = GET_CUSTOM_DATA (env, thiz, custom_data_field_id);
-	if (!data) return;
-
 	GST_DEBUG ("Using RtspPort: '%d'", port);
 	//TODO: Currently we dont save rtsp port in CSIOsettings
 	//currentSettingsDB.videoSettings[0]. = port;
@@ -660,7 +655,7 @@ int csio_jni_CreatePipeline(GstElement **pipeline,GstElement **source)
 void csio_jni_InitPipeline()
 {
 	g_object_set(G_OBJECT(CresDataDB->element_zero), "location", currentSettingsDB.settingsMessage.msg[0].url, NULL);
-	//g_object_set(G_OBJECT(data->element_zero), "latency", xxx, NULL);  // intentionally NOT setting this
+	g_object_set(G_OBJECT(CresDataDB->element_zero), "latency", currentSettingsDB.videoSettings[0].streamingBuffer, NULL);
 	g_object_set(G_OBJECT(CresDataDB->element_zero), "tcp_timeout", CresDataDB->tcp_timeout_usec, NULL);
 	g_object_set(G_OBJECT(CresDataDB->element_zero), "timeout", CresDataDB->udp_timeout_usec, NULL);
 	// For some reason, this port range must be set for rtsp with multicast to work.
