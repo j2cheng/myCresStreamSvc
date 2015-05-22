@@ -792,6 +792,11 @@ int csio_jni_AddVideo(GstPad *new_pad,gchar *encoding_name, int do_rtp,GstElemen
 	return iStatus;
 }
 
+void csio_jni_initVideo()
+{
+	g_object_set(G_OBJECT(CresDataDB->video_sink), "force-aspect-ratio", FALSE, NULL);
+}
+
 
 
 
