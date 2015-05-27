@@ -3,8 +3,6 @@ package com.crestron.txrxservice;
 import java.util.HashMap;
 import java.util.Map;
 
-import com.crestron.txrxservice.CresStreamConfigure.StreamMode;
-import com.crestron.txrxservice.CresStreamConfigure.VideoEncProfile;
 import com.crestron.txrxservice.CresStreamCtrl.StreamState;
 import com.crestron.txrxservice.CresStreamCtrl.DeviceMode;
 
@@ -13,7 +11,7 @@ import android.util.Log;
 public class UserSettings //implements java.io.Serializable
 {
 	private GstreamIn gStreamIn;
-	
+
 	public enum VideoEncProfile {
 		BP(1), MP(2), HP(8);
 		private int value;
