@@ -179,8 +179,8 @@ public class CommandReceiver {
     }
 
     //Process Feedbacks
-    public String getStreamUrl(){
-        return ctl.getStreamUrl();
+    public String getStreamUrl(int idx){
+        return ctl.getStreamUrl(idx);
     }
 
 

@@ -419,7 +419,7 @@ class StreamUrlCommand implements CommandIf {
             launch.setStreamUrl(msg, idx);
         }
         public String getFeedbackMsg() {
-            return launch.getStreamUrl();
+            return launch.getStreamUrl(idx);
         }
 }
 

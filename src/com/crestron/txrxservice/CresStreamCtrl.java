@@ -891,7 +891,7 @@ public class CresStreamCtrl extends Service {
 
     public void setStreamInUrl(String ap_url, int sessionId)
     {
-        out_url = ap_url;
+        //out_url = ap_url;
         userSettings.setServerUrl(ap_url, sessionId);
         //streamPlay.setUrl(ap_url); //TODO: remove and replace have streamPlay access userSettings directly
         if(ap_url.startsWith("rtp://@"))
@@ -902,9 +902,10 @@ public class CresStreamCtrl extends Service {
             Log.d(TAG, "No conditional Tags for StreamIn");
     }
 
-    public String getStreamUrl()
+    public String getStreamUrl(int sessId)
     {
-        return out_url;
+        //return out_url;
+        return userSettings.getServerUrl(sessId);
     }
 
     public void startStreamIn(int sessId)
