@@ -4,7 +4,10 @@ import java.io.File;
 import java.io.IOException;
 import java.util.Date;
 import java.util.List;
+import java.util.regex.Matcher;
+import java.util.regex.Pattern;
 
+import com.crestron.txrxservice.AudioPlayback.StreamAudioTask;
 import com.crestron.txrxservice.CresStreamCtrl.StreamState;
 
 import android.content.Context;
@@ -30,6 +33,12 @@ public class CameraStreaming implements ErrorCallback {
     private int idx = 0;
     private int streamOutWidth = 0;
     private int streamOutHeight = 0;
+    private int streamOutFps = 0;
+    private int streamOutAudioChannels = 0;
+    private int streamOutAudioFormat = 0;
+    private boolean shouldExit = false;
+    private Thread statisticsThread;
+    private final long statisticsThreadPollTime = 1000;
 
     //public CameraStreaming(CresStreamCtrl mContext, SurfaceHolder lpHolder ) {
     public CameraStreaming(CresStreamCtrl mContext) {
@@ -146,9 +155,10 @@ public class CameraStreaming implements ErrorCallback {
                 Log.d(TAG, "########SDP Dump######\n" + sb);
             }
             //mrec.getStatisticsData();
-            streamCtl.SendStreamState(StreamState.STARTED, idx);
-            streamCtl.SendStreamOutFeedbacks();
+            streamCtl.SendStreamState(StreamState.STARTED, idx);            
             out_stream_status = true;
+            
+            startStatisticsTask();
         }
         else {
             Log.e(TAG, "Camera Resource busy or not available !!!!");
@@ -342,7 +352,14 @@ public class CameraStreaming implements ErrorCallback {
                 CresCamera.releaseCamera(mCameraPreviewObj);
                 mCameraPreviewObj = null;
             }
+            
+            stopStatisticsTask();
+		            
             streamCtl.SendStreamState(StreamState.STOPPED, idx);
+            
+            // Zero out statistics on stop
+            streamOutAudioFormat = streamOutAudioChannels = streamOutWidth = streamOutHeight = streamOutFps = 0;
+			streamCtl.SendStreamOutFeedbacks();
         }
     }
 
@@ -359,19 +376,19 @@ public class CameraStreaming implements ErrorCallback {
     }
 
     public int getStreamOutFpsFb(){
-    	return streamCtl.userSettings.getEncodingFramerate(idx);
+    	return streamOutFps;
     }
 
     public String getStreamOutAspectRatioFb(){
-        return MiscUtils.calculateAspectRatio(streamCtl.userSettings.getW(idx),streamCtl.userSettings.getH(idx));
+        return MiscUtils.calculateAspectRatio(streamOutWidth, streamOutHeight);
     }
 
     public int getStreamOutAudioFormatFb(){
-        return 1;//Always
+        return streamOutAudioFormat;
     }
 
     public int getStreamOutAudiochannelsFb(){
-        return 2;//For Now only 2 Audio Channels
+        return streamOutAudioChannels;
     }
 
 	public int getStreamOutWidth() {
@@ -389,4 +406,99 @@ public class CameraStreaming implements ErrorCallback {
 	public void setStreamOutHeight(int streamOutHeight) {
 		this.streamOutHeight = streamOutHeight;
 	}
+	
+	protected void startStatisticsTask(){
+		shouldExit = false;
+		statisticsThread = new Thread(new StatisticsTask());    	
+    	statisticsThread.start();
+    }
+	
+	protected void stopStatisticsTask(){
+    	shouldExit = true;
+    	try
+        {
+        	this.statisticsThread.join();
+        }
+        catch (InterruptedException localInterruptedException)
+        {
+            localInterruptedException.printStackTrace();
+        }   
+    }
+
+    class StatisticsTask implements Runnable {
+    	public void run() {
+    		/*
+    		 * Example getStatisticsData response:
+			Statistics
+			**********
+
+			Codec
+			*****
+			Audio:
+			Codec Type: AAC
+			SampleRate: 44100
+			Audio Channel: 2
+
+			Video
+			Codec Type: H264
+			Resolution: 1920 x 1080
+			Frame Rate: 30
+			Encoder Profile: High Profile
+			Encoder Level: 4.2
+
+			Audio
+			Encoded Frames: 196
+			Bytes Sent: 27365
+			Video
+			Encoded Frames: 252
+			Bytes Sent: 446387 */
+    		
+    		try
+            {
+    			Pattern regexP;
+    			Matcher regexM;
+    			while(!shouldExit)
+				{    				
+    				if (mrec == null)
+    					continue;
+    				
+					String statisticsString = mrec.getStatisticsData();
+    				
+    				// Pull out Audio number of channels
+    				regexP = Pattern.compile("Audio\\s+Channel:\\s+(\\d+)");
+    				regexM = regexP.matcher(statisticsString);
+    				regexM.find();
+    				if (regexM.group(1) != null)
+    					streamOutAudioChannels = Integer.parseInt(regexM.group(1));
+    				
+    				// Pull out Video width and height
+    				regexP = Pattern.compile("Resolution:\\s+(\\d+)\\s+x\\s+(\\d+)");	//width x height
+    				regexM = regexP.matcher(statisticsString);
+    				regexM.find();
+    				if (regexM.group(1) != null)
+    					streamOutWidth = Integer.parseInt(regexM.group(1));
+    				if (regexM.group(2) != null)
+    					streamOutHeight = Integer.parseInt(regexM.group(2));
+    				
+    				// Pull out Video frames per second
+    				regexP = Pattern.compile("Frame\\s+Rate:\\s+(\\d+)");
+    				regexM = regexP.matcher(statisticsString);
+    				regexM.find();
+    				if (regexM.group(1) != null)
+    					streamOutFps = Integer.parseInt(regexM.group(1));
+    				
+    				streamOutAudioFormat = 1; //TODO: currently we are always setting this to PCM (1)
+    				
+    				streamCtl.SendStreamOutFeedbacks();
+    				
+					Thread.sleep(statisticsThreadPollTime);
+				}
+            }
+            catch (InterruptedException localInterruptedException)
+            {
+                localInterruptedException.printStackTrace();
+            }
+    	}
+    
+    }
 }
