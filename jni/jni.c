@@ -317,8 +317,13 @@ static void gst_native_surface_finalize (JNIEnv *env, jobject thiz)
 JNIEXPORT void JNICALL Java_com_crestron_txrxservice_GstreamIn_nativeSetSeverUrl(JNIEnv *env, jobject thiz, jstring url_jstring, jint sessionId)
 {
 	int restartStream = 0;
-	if (nativeGetCurrentStreamState(0) == STREAMSTATE_STARTED) //TODO: make this based on sessionId
+	const char * url_cstring = (*env)->GetStringUTFChars( env, url_jstring , NULL ) ;
+	if (url_cstring == NULL) return;
+
+	if ((nativeGetCurrentStreamState(sessionId) == STREAMSTATE_STARTED) && (strcasecmp(url_cstring, currentSettingsDB.settingsMessage.msg[sessionId].url)))
+	{
 		restartStream = 1;
+	}
 
 	if (restartStream)
 	{
@@ -332,12 +337,8 @@ JNIEXPORT void JNICALL Java_com_crestron_txrxservice_GstreamIn_nativeSetSeverUrl
 		}
 	}
 
-	const char * url_cstring = (*env)->GetStringUTFChars( env, url_jstring , NULL ) ;
-	if (url_cstring == NULL) return;
-
 	GST_DEBUG ("Using URL: '%s'", url_cstring);
 	strcpy(currentSettingsDB.settingsMessage.msg[sessionId].url, url_cstring);
-	GST_DEBUG ("URL in currentSettingsDB: '%s'", currentSettingsDB.settingsMessage.msg[sessionId].url);
 
 	(*env)->ReleaseStringUTFChars(env, url_jstring, url_cstring);
 
