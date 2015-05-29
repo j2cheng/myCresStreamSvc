@@ -418,21 +418,14 @@ public class CommandParser {
 	            valueResponse = parseResponse.joinValue;
 	        }
 	        else
-	        { //Test Stub Query
-//	            String tmp_str = tokenizer.getStringValueOf(joinNameWithSessId);
-//	            Log.d(TAG, "Querying:: searched for "+joinNameWithSessId+" and got value of "+tmp_str);
-//	            if(tmp_str.equals(""))
-//	            {
-	                cmd = ProcCommand(parseResponse.joinName.toUpperCase(), "", parseResponse.sessId); 
-	                if (cmd != null)
-	                {
-	                    invoke.setCommand(cmd);
-	                    valueResponse = invoke.get();
-	                    Log.d(TAG, String.format("Join value response: %s", valueResponse));
- 	                }
-//	            }
-//	            else
-//	            	valueResponse = tmp_str;
+	        {
+                cmd = ProcCommand(parseResponse.joinName.toUpperCase(), "", parseResponse.sessId); 
+                if (cmd != null)
+                {
+                    invoke.setCommand(cmd);
+                    valueResponse = invoke.get();
+                    Log.d(TAG, String.format("Join value response: %s", valueResponse));
+                }
 	        }
 	        
 	        if (parseResponse.sessIdSpecified)

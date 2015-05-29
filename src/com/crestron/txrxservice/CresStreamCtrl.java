@@ -308,7 +308,10 @@ public class CresStreamCtrl extends Service {
         unregisterReceiver(hdmioutResolutionChangedEvent);
         cam_streaming.stopRecording(false);
         cam_preview.stopPlayback();
-        streamPlay.onStop();
+        for (int i = 0; i < NumOfSurfaces; i++)
+        {
+        	streamPlay.onStop(i);
+        }
         if (dispSurface != null)
         	dispSurface.RemoveView();
     }
@@ -912,8 +915,8 @@ public class CresStreamCtrl extends Service {
     {
         updateWindow(sessId);
         showStreamInWindow(sessId);
-        streamPlay.setSessionIndex(sessId);
-        streamPlay.onStart();
+        //streamPlay.setSessionIndex(sessId);
+        streamPlay.onStart(sessId);
         //Toast.makeText(this, "StreamIN Started", Toast.LENGTH_LONG).show();
     }
 
@@ -927,16 +930,16 @@ public class CresStreamCtrl extends Service {
 
     public void stopStreamIn(int sessId)
     {
-        streamPlay.setSessionIndex(sessId);
-        streamPlay.onStop();
+        //streamPlay.setSessionIndex(sessId);
+        streamPlay.onStop(sessId);
         //Toast.makeText(this, "StreamIN Stopped", Toast.LENGTH_LONG).show();
         hideStreamInWindow(sessId);
     }
 
     public void pauseStreamIn(int sessId)
     {
-    	streamPlay.setSessionIndex(sessId);
-        streamPlay.onPause();
+    	//streamPlay.setSessionIndex(sessId);
+        streamPlay.onPause(sessId);
         //TODO
     }
 

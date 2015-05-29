@@ -325,8 +325,8 @@ public class UserSettings //implements java.io.Serializable
 	}
 
 	public void setSessionInitiation(int sessionInitiation, int sessId) {
-		if ((gStreamIn != null) && (this.mode[sessId] == DeviceMode.STREAM_IN.ordinal()))
-			gStreamIn.setSessionInitiation(sessionInitiation, sessId);
+//		if ((gStreamIn != null) && (this.mode[sessId] == DeviceMode.STREAM_IN.ordinal()))
+//			gStreamIn.setSessionInitiation(sessionInitiation, sessId);
 		
 		this.sessionInitiation[sessId] = sessionInitiation;
 	}
@@ -368,9 +368,9 @@ public class UserSettings //implements java.io.Serializable
 	}
 
 	public void setStreamingBuffer(int streamingBuffer, int sessId) {
-		if ((gStreamIn != null) && (this.mode[sessId] == DeviceMode.STREAM_IN.ordinal()))
-			gStreamIn.setStreamingBuffer(streamingBuffer, sessId);
-		
+//		if ((gStreamIn != null) && (this.mode[sessId] == DeviceMode.STREAM_IN.ordinal()))
+//			gStreamIn.setStreamingBuffer(streamingBuffer, sessId);
+
 		this.streamingBuffer[sessId] = streamingBuffer;
 	}
 
@@ -379,8 +379,8 @@ public class UserSettings //implements java.io.Serializable
 	}
 
 	public void setTransportMode(int transportMode, int sessId) {
-		if ((gStreamIn != null) && (this.mode[sessId] == DeviceMode.STREAM_IN.ordinal()))
-			gStreamIn.setTransportMode(transportMode, sessId);
+//		if ((gStreamIn != null) && (this.mode[sessId] == DeviceMode.STREAM_IN.ordinal()))
+//			gStreamIn.setTransportMode(transportMode, sessId);
 		
 		this.transportMode[sessId] = transportMode;
 	}
@@ -433,8 +433,8 @@ public class UserSettings //implements java.io.Serializable
 	}
 
 	public void setMulticastAddress(String multicastAddress, int sessId) {
-		if ((gStreamIn != null) && (this.mode[sessId] == DeviceMode.STREAM_IN.ordinal()))
-			gStreamIn.setMulticastAddress(multicastAddress, sessId);
+//		if ((gStreamIn != null) && (this.mode[sessId] == DeviceMode.STREAM_IN.ordinal()))
+//			gStreamIn.setMulticastAddress(multicastAddress, sessId);
 		
 		this.multicastAddress[sessId] = multicastAddress;
 	}
@@ -620,8 +620,8 @@ public class UserSettings //implements java.io.Serializable
 	}
 
 	public void setRtspPort(int rtspPort, int sessId) {
-		if ((gStreamIn != null) && (this.mode[sessId] == DeviceMode.STREAM_IN.ordinal()))
-			gStreamIn.setRtspPort(rtspPort, sessId);
+//		if ((gStreamIn != null) && (this.mode[sessId] == DeviceMode.STREAM_IN.ordinal()))
+//			gStreamIn.setRtspPort(rtspPort, sessId);
 		
 		this.rtspPort[sessId] = rtspPort;
 	}
@@ -631,8 +631,8 @@ public class UserSettings //implements java.io.Serializable
 	}
 
 	public void setTsPort(int tsPort, int sessId) {
-		if ((gStreamIn != null) && (this.mode[sessId] == DeviceMode.STREAM_IN.ordinal()))
-			gStreamIn.setTsPort(tsPort, sessId);
+//		if ((gStreamIn != null) && (this.mode[sessId] == DeviceMode.STREAM_IN.ordinal()))
+//			gStreamIn.setTsPort(tsPort, sessId);
 		
 		this.tsPort[sessId] = tsPort;
 	}
@@ -642,8 +642,8 @@ public class UserSettings //implements java.io.Serializable
 	}
 
 	public void setRtpVideoPort(int rtpVideoPort, int sessId) {
-		if ((gStreamIn != null) && (this.mode[sessId] == DeviceMode.STREAM_IN.ordinal()))
-			gStreamIn.setRtpVideoPort(rtpVideoPort, sessId);
+//		if ((gStreamIn != null) && (this.mode[sessId] == DeviceMode.STREAM_IN.ordinal()))
+//			gStreamIn.setRtpVideoPort(rtpVideoPort, sessId);
 		
 		this.rtpVideoPort[sessId] = rtpVideoPort;
 	}
@@ -653,8 +653,8 @@ public class UserSettings //implements java.io.Serializable
 	}
 
 	public void setRtpAudioPort(int rtpAudioPort, int sessId) {
-		if ((gStreamIn != null) && (this.mode[sessId] == DeviceMode.STREAM_IN.ordinal()))
-			gStreamIn.setRtpAudioPort(rtpAudioPort, sessId);
+//		if ((gStreamIn != null) && (this.mode[sessId] == DeviceMode.STREAM_IN.ordinal()))
+//			gStreamIn.setRtpAudioPort(rtpAudioPort, sessId);
 		
 		this.rtpAudioPort[sessId] = rtpAudioPort;
 	}

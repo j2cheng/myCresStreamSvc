@@ -16,7 +16,6 @@ public class GstreamIn implements /*OnPreparedListener, OnCompletionListener, On
 //    private SurfaceHolder vidHolder;
     String TAG = "TxRx GstreamIN";
     StringBuilder sb;
-    static String srcUrl="";
 //    static int latency = 2000;//msec
 //    int dest_width = 1280;
 //    int dest_height = 720;
@@ -25,7 +24,7 @@ public class GstreamIn implements /*OnPreparedListener, OnCompletionListener, On
     boolean tcpInterleaveFlag = false;
     boolean disableLatencyFlag = false;
     private CresStreamCtrl streamCtl;
-    private int idx = 0;
+    //private int idx = 0;
 
     private native void nativeInit();     // Initialize native code, build pipeline, etc
     private native void nativeFinalize(); // Destroy pipeline and shutdown native code
@@ -63,19 +62,12 @@ public class GstreamIn implements /*OnPreparedListener, OnCompletionListener, On
     }
 
     public void setSessionIndex(int id){
-        idx = id;
-    }
-    
-    //Setting source url to play GstreamIn
-    public void setUrl(String p_url){
-    	Log.e(TAG, "GstreamIN :: In setUrl Function...!");
-        srcUrl = p_url;	// TODO: remove when join changes interface to longer have string input
-        Log.d(TAG, "setting stream in URL to "+srcUrl);
+        //idx = id;
     }
 
     public void setServerUrl(String url, int sessionId){
-    	nativeSetSeverUrl(url, sessionId);	//TODO: change to add sessId
-    }
+    	nativeSetSeverUrl(url, sessionId);	
+	}
     
     public void setRtspPort(int port, int sessionId){
     	nativeSetRtspPort(port, 0);
@@ -122,11 +114,11 @@ public class GstreamIn implements /*OnPreparedListener, OnCompletionListener, On
     	nativeSetXYlocations(xloc, yloc, sessId);
     }
     
-    public int[] getCurrentWidthHeight(){
+    public int[] getCurrentWidthHeight(int sessionId){
         int[] widthHeight = new int[2];
         // width in index 0, height in index 1
-    	widthHeight[0] = streamCtl.userSettings.getW(idx); //TODO: avoid using idx
-        widthHeight[1] = streamCtl.userSettings.getH(idx);
+    	widthHeight[0] = streamCtl.userSettings.getW(sessionId);
+        widthHeight[1] = streamCtl.userSettings.getH(sessionId);
         return widthHeight;
     }
 
@@ -166,21 +158,22 @@ public class GstreamIn implements /*OnPreparedListener, OnCompletionListener, On
     }
 
     //Play based on based Pause/Actual Playback 
-    public void onStart() {
+    public void onStart(int sessionId) {
     	try {
-    		//streamCtl.getCresSurfaceHolder(idx).addCallback(this); //needed?
-    		nativeSurfaceInit (streamCtl.getCresSurfaceHolder(idx).getSurface());
+    		//streamCtl.getCresSurfaceHolder(sessionId).addCallback(this); //needed?
+    		updateNativeDataStruct(sessionId);
+    		nativeSurfaceInit (streamCtl.getCresSurfaceHolder(sessionId).getSurface());
     		nativePlay();
     	}
     	catch(Exception e){
         	// TODO: explore exception handling with better feedback of what went wrong to user
-            streamCtl.SendStreamState(StreamState.STOPPED, idx);
+            streamCtl.SendStreamState(StreamState.STOPPED, sessionId);
             e.printStackTrace();        
         }        
     }
 
     //Pause
-    public void onPause() {
+    public void onPause(int sessionId) {
 //         if((mediaPlayer!=null) && (mediaPlayer.isPlaying()))
 //             mediaPlayer.pause();
 //         media_pause = true;
@@ -188,7 +181,7 @@ public class GstreamIn implements /*OnPreparedListener, OnCompletionListener, On
         nativePause();
     }
 
-    public void onStop() {
+    public void onStop(int sessionId) {
         Log.d(TAG, "Stopping MediaPlayer");
 //         if(mediaPlayer != null){
 //             if(mediaPlayer.isPlaying()){
@@ -199,6 +192,19 @@ public class GstreamIn implements /*OnPreparedListener, OnCompletionListener, On
 //         }
         nativeSurfaceFinalize ();
         nativeStop();
+    }
+    
+    private void updateNativeDataStruct(int sessionId)
+    {
+    	setServerUrl(streamCtl.userSettings.getServerUrl(sessionId), sessionId);
+    	setRtspPort(streamCtl.userSettings.getRtspPort(sessionId), sessionId);
+    	setTsPort(streamCtl.userSettings.getTsPort(sessionId), sessionId);
+    	setRtpVideoPort(streamCtl.userSettings.getRtpVideoPort(sessionId), sessionId);
+    	setRtpAudioPort(streamCtl.userSettings.getRtpAudioPort(sessionId), sessionId);
+    	setSessionInitiation(streamCtl.userSettings.getSessionInitiation(sessionId), sessionId);
+    	setTransportMode(streamCtl.userSettings.getTransportMode(sessionId), sessionId);
+    	setMulticastAddress(streamCtl.userSettings.getMulticastAddress(sessionId), sessionId);
+    	setStreamingBuffer(streamCtl.userSettings.getStreamingBuffer(sessionId), sessionId);
     }
 
     //Response to CSIO Layer TODO: these can most likely be deleted handled in jni library

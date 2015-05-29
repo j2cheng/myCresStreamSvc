@@ -545,21 +545,23 @@ void csio_send_stats (uint64_t video_packets_received, int video_packets_lost, u
 
 void csio_get_width_and_height_from_mode (uint32_t * width, uint32_t * height)
 {
-        JNIEnv *env = get_jni_env ();
+	//TODO: this method needs to be updated with source as a input parameter currently defaulting to 0
+	unsigned int source = 0;
+	JNIEnv *env = get_jni_env ();
 
-	jmethodID getCurrentWidthHeight = (*env)->GetMethodID(env, gStreamIn_javaClass_id, "getCurrentWidthHeight", "()[I");
-        if (getCurrentWidthHeight == NULL) return;
+	jmethodID getCurrentWidthHeight = (*env)->GetMethodID(env, gStreamIn_javaClass_id, "getCurrentWidthHeight", "(I)[I");
+	if (getCurrentWidthHeight == NULL) return;
 
-        jintArray retval = (jintArray) (*env)->CallObjectMethod(env, CresDataDB->app, getCurrentWidthHeight);
+	jintArray retval = (jintArray) (*env)->CallObjectMethod(env, CresDataDB->app, getCurrentWidthHeight, (jint)source);
 	if ((*env)->ExceptionCheck (env)) {
 		GST_ERROR ("Failed to call Java method 'getCurrentWidthHeight'");
 		(*env)->ExceptionClear (env);
 	}
-        jint *widthHeight = (*env)->GetIntArrayElements(env, retval, NULL);
+	jint *widthHeight = (*env)->GetIntArrayElements(env, retval, NULL);
 
-        (*width) = widthHeight[0];
-        (*height) = widthHeight[1];
-        return;
+	(*width) = widthHeight[0];
+	(*height) = widthHeight[1];
+	return;
 }
 
 int csio_SendVideoPlayingStatusMessage(unsigned int source, StreamState state)
