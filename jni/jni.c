@@ -327,10 +327,10 @@ JNIEXPORT void JNICALL Java_com_crestron_txrxservice_GstreamIn_nativeSetSeverUrl
 
 	if (restartStream)
 	{
-		jmethodID onStop = (*env)->GetMethodID(env, gStreamIn_javaClass_id, "onStop", "()V");
+		jmethodID onStop = (*env)->GetMethodID(env, gStreamIn_javaClass_id, "onStop", "(I)V");
 		if (onStop == NULL) return;
 
-		(*env)->CallVoidMethod(env, CresDataDB->app, onStop);
+		(*env)->CallVoidMethod(env, CresDataDB->app, onStop, sessionId);
 		if ((*env)->ExceptionCheck (env)) {
 			GST_ERROR ("Failed to call Java method 'onStop'");
 			(*env)->ExceptionClear (env);
@@ -344,10 +344,10 @@ JNIEXPORT void JNICALL Java_com_crestron_txrxservice_GstreamIn_nativeSetSeverUrl
 
 	if (restartStream)
 	{
-		jmethodID onStart = (*env)->GetMethodID(env, gStreamIn_javaClass_id, "onStart", "()V");
+		jmethodID onStart = (*env)->GetMethodID(env, gStreamIn_javaClass_id, "onStart", "(I)V");
 		if (onStart == NULL) return;
 
-		(*env)->CallVoidMethod(env, CresDataDB->app, onStart);
+		(*env)->CallVoidMethod(env, CresDataDB->app, onStart, sessionId);
 		if ((*env)->ExceptionCheck (env)) {
 			GST_ERROR ("Failed to call Java method 'onStart'");
 			(*env)->ExceptionClear (env);
