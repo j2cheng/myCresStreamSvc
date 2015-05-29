@@ -571,6 +571,8 @@ public class CresStreamCtrl extends Service {
     {
         amanager.setStreamMute(AudioManager.STREAM_MUSIC, true);
         StringBuilder sb = new StringBuilder(512);
+        userSettings.setAudioMute(true);
+        userSettings.setAudioUnmute(false);
         sb.append("AUDIO_UNMUTE=false");
         sockTask.SendDataToAllClients(sb.toString());
     }
@@ -579,6 +581,8 @@ public class CresStreamCtrl extends Service {
     {
         amanager.setStreamMute(AudioManager.STREAM_MUSIC, false);
         StringBuilder sb = new StringBuilder(512);
+        userSettings.setAudioMute(false);
+        userSettings.setAudioUnmute(true);
         sb.append("AUDIO_MUTE=false");
         sockTask.SendDataToAllClients(sb.toString());
     }

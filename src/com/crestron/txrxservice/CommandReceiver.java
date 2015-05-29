@@ -115,13 +115,13 @@ public class CommandReceiver {
     }
     
     public void setMute (boolean flag){
-    	if (flag)
-    		ctl.userSettings.setAudioMute(flag);
+    	if(flag)
+    		ctl.setStreamMute();
     }
 
     public void setUnmute (boolean flag){
         if(flag)
-        	ctl.userSettings.setAudioUnmute(flag);
+        	ctl.setStreamUnMute();
     }
     
     public void setLatency(int latency, int sessId){
@@ -130,12 +130,12 @@ public class CommandReceiver {
 
     public void passwdEnable(boolean flag, int sessId){
     	if(flag)
-    		ctl.userSettings.setPasswordEnable(flag, sessId);
+    		ctl.SetPasswdEnable(sessId);
     }
 
     public void passwdDisable(boolean flag, int sessId){
     	if(flag)
-    		ctl.userSettings.setPasswordDisable(flag, sessId);
+    		ctl.SetPasswdDisable(sessId);
     }
     
     public void setUserName(String uname, int sessId){

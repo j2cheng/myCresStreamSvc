@@ -458,7 +458,9 @@ public class CameraStreaming implements ErrorCallback {
     			Pattern regexP;
     			Matcher regexM;
     			while(!shouldExit)
-				{    				
+				{    		
+    				Thread.sleep(statisticsThreadPollTime);
+    				
     				if (mrec == null)
     					continue;
     				
@@ -490,8 +492,6 @@ public class CameraStreaming implements ErrorCallback {
     				streamOutAudioFormat = 1; //TODO: currently we are always setting this to PCM (1)
     				
     				streamCtl.SendStreamOutFeedbacks();
-    				
-					Thread.sleep(statisticsThreadPollTime);
 				}
             }
             catch (InterruptedException localInterruptedException)
