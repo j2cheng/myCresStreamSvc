@@ -362,7 +362,7 @@ public class CommandReceiver {
     }
     
     public String getStreamProfile(int sessId){
-    	return Integer.toString(ctl.userSettings.getStreamProfile(sessId).getVEncProfile());
+    	return Integer.toString(ctl.userSettings.getStreamProfile(sessId).getVEncProfileUserEnum());
     }
     
     public String getRtspPort(int sessId){

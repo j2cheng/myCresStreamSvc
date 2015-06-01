@@ -748,9 +748,9 @@ public class CresStreamCtrl extends Service {
     	userSettings.setTransportMode(tmode, sessId);
     } 
     
-    public void setStreamProfile(UserSettings.VideoEncProfile profile, int sessId){
-    	userSettings.setStreamProfile(profile, sessId);
-    } 
+//    public void setStreamProfile(UserSettings.VideoEncProfile profile, int sessId){
+//    	userSettings.setStreamProfile(profile, sessId);
+//    } 
     
     public void setVFrmRate(int vfr, int sessId){
     	userSettings.setEncodingFramerate(vfr, sessId);

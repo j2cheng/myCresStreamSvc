@@ -12,25 +12,51 @@ public class UserSettings //implements java.io.Serializable
 {
 	private GstreamIn gStreamIn;
 
-	public enum VideoEncProfile {
+	public enum VideoEncProfile 
+    {
 		BP(1), MP(2), HP(8);
-		private int value;
-		private static final Map<Integer, VideoEncProfile> intToEnum = new HashMap<Integer, VideoEncProfile>();		
-		static {
-			for (VideoEncProfile type:values()){
-				intToEnum.put(type.getVEncProfile(), type);
-			}
-		}
-		private VideoEncProfile(int _value){
-			value = _value;
-		}	
-		public int getVEncProfile() { 
-			return value;
-		}
-		public static VideoEncProfile fromInteger(int value){
-			return intToEnum.get(value);
-		}
-	}
+    	
+        private final int value;
+
+        VideoEncProfile(int value) 
+        {
+            this.value = value;
+        }
+
+        public int getVEncProfile() 
+        {
+            return value;
+        }
+        
+        public int getVEncProfileUserEnum() 
+        {
+            // values from spreadsheet
+        	switch (value) {
+        	case 8:
+        		return 0;	//High
+        	case 2:
+        		return 1;	//Main
+        	case 1:
+        		return 2;	//Baseline
+        	default:
+        		return -1;	//Error
+        	}
+        }
+        
+        public static VideoEncProfile fromInteger(int i) 
+        {
+        	// values from spreadsheet
+        	switch (i) {
+        	case 0:
+        		return HP;
+        	case 1:
+        		return MP;
+        	case 2:
+        	default:
+        		return BP;
+        	}
+        }
+    }
 	
 //	public enum SessionInitiation 
 //    {
