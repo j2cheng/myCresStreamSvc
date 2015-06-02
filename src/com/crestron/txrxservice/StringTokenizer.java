@@ -45,7 +45,7 @@ public class StringTokenizer
 	public ParseResponse Parse(String str)
     {
         ParseResponse parseRes = new ParseResponse();
-        Pattern regexP = Pattern.compile("([^=\\r\\n\\d]+)(\\d+)?(?:=([^\\r\\n]+))?");
+        Pattern regexP = Pattern.compile("([^=\\r\\n\\d]+)(\\d+)?(?:(=)([^\\r\\n]+)?)?");	//Group1=JoinName, Group2=SessId, Group3=EqualSign, Group4=JoinVal
         Matcher regexM = regexP.matcher(str);
 
         while (regexM.find())
@@ -64,10 +64,15 @@ public class StringTokenizer
         		parseRes.sessIdSpecified = false;
         		parseRes.sessId = 0;
         	}
-        	if (regexM.group(3) != null)
-        		parseRes.joinValue = regexM.group(3);
+        	if (regexM.group(4) != null)
+        		parseRes.joinValue = regexM.group(4);
         	else
-        		parseRes.joinValue = "";
+        	{
+        		if (regexM.group(3) != null)
+        			parseRes.joinValue = "";
+        		else
+        			parseRes.joinValue = null;
+        	}
         	
         	String joinNameWithSessId = (parseRes.joinName + String.valueOf(parseRes.sessId));
         	

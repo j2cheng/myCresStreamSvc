@@ -406,7 +406,7 @@ public class CommandParser {
         	String joinNameWithSessId = (parseResponse.joinName + String.valueOf(parseResponse.sessId));
         	String valueResponse = "";
         	
-	        if(parseResponse.joinValue != "")
+	        if(parseResponse.joinValue != null)
 	        { //Process & Reply Feedback 
 	            cmd = ProcCommand(parseResponse.joinName.toUpperCase(), parseResponse.joinValue, parseResponse.sessId); 
 	            if (cmd != null)
