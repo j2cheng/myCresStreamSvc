@@ -254,7 +254,7 @@ public class CommandReceiver {
     }
 
     public String getHdmiOutAspect(){
-        return ctl.getHDMIInAspectRatio();    
+    	return ctl.getHDMIOutAspectRatio();   
     }
 
     public String getHdmiOutAudioFormat()   {
