@@ -184,9 +184,9 @@ static void gst_native_init (JNIEnv* env, jobject thiz)
 	SET_CUSTOM_DATA (env, thiz, custom_data_field_id, data);
 	GST_DEBUG_CATEGORY_INIT (debug_category, "gstreamer_jni", 0, "Android jni");
 	gst_debug_set_threshold_for_name("gstreamer_jni", GST_LEVEL_DEBUG);
-	GST_DEBUG ("Created CustomData at %p", data);
+	
 	data->app = (*env)->NewGlobalRef (env, thiz);
-	GST_DEBUG ("Created GlobalRef for app object at %p", data->app);
+	
 	init_custom_data(data);
 	pthread_mutex_init(&(data->ready_to_start_playing_lock), NULL);
 	pthread_cond_init(&(data->ready_to_start_playing_signal), NULL);
@@ -227,9 +227,7 @@ static void gst_native_pause (JNIEnv* env, jobject thiz)
 
 /* Set pipeline to PAUSED state */
 void gst_native_stop (JNIEnv* env, jobject thiz)
-{
-    GST_DEBUG ("Setting state to NULL");
-    
+{    
     stop_streaming_cmd();
     CresDataDB->video_sink = NULL;//TODO: this will be unref by CStreamer.
     CresDataDB->audio_sink = NULL;//TODO: this will be unref by CStreamer.
@@ -464,11 +462,8 @@ jint JNI_OnLoad(JavaVM *vm, void *reserved)
 
 	java_vm = vm;
 	GST_DEBUG ("JNI_OnLoad ");
-	// Uncomment these lines to enable debugging
-	// You may need to run this on the command line as well:
-	//      setprop log.redirect-stdio true
-	setenv("GST_DEBUG", "*:1", 1);
-	setenv("GST_DEBUG_NO_COLOR", "1", 1);
+
+	set_gst_debug_level();
 
 	if ((*vm)->GetEnv(vm, (void**) &env, JNI_VERSION_1_4) != JNI_OK) 
 	{
@@ -636,80 +631,174 @@ void csio_jni_SetOverlayWindow()
 	}
 }
 
-int csio_jni_CreatePipeline(GstElement **pipeline,GstElement **source)
+int csio_jni_CreatePipeline(GstElement **pipeline,GstElement **source,eProtocolId protoId)
 {	
+	int iStatus = CSIO_SUCCESS;
+
 	CresDataDB->pipeline = gst_pipeline_new(NULL);
-	CresDataDB->element_zero = gst_element_factory_make("rtspsrc", NULL);
 
-	gst_bin_add_many(GST_BIN(CresDataDB->pipeline), CresDataDB->element_zero, NULL);
-	if( !CresDataDB->pipeline || !CresDataDB->element_zero )
+	switch( protoId )
 	{
-		GST_ERROR ("ERROR: Cannot create source pipeline elements\n");
-		return CSIO_CANNOT_CREATE_ELEMENTS;
-	}
+		case ePROTOCOL_RTSP_TCP:
+	    case ePROTOCOL_DEFAULT_RTSP_TCP:
+	    {
+	    	CresDataDB->element_zero = gst_element_factory_make("rtspsrc", NULL);
+
+	    	gst_bin_add_many(GST_BIN(CresDataDB->pipeline), CresDataDB->element_zero, NULL);
+			if( !CresDataDB->pipeline || !CresDataDB->element_zero )
+			{
+				GST_ERROR ("ERROR: Cannot create source pipeline elements\n");
+				return CSIO_CANNOT_CREATE_ELEMENTS;
+			}
 	
-	*pipeline = CresDataDB->pipeline;
-	*source   = CresDataDB->element_zero;
+			*pipeline = CresDataDB->pipeline;
+			*source   = CresDataDB->element_zero;
+			break;
+	    }
+	    case ePROTOCOL_RTSP_UDP_TS:
+	    case ePROTOCOL_RTSP_TS:
+	    case ePROTOCOL_RTSP_UDP:
+	    {
+	    	iStatus = CSIO_FAILURE;
+	    	break;
+	    }
+	    case ePROTOCOL_HTTP:
+	    {
+	    	build_http_pipeline(CresDataDB);
 
-	return CSIO_SUCCESS;
-}
-
-
-void csio_jni_InitPipeline()
-{
-	g_object_set(G_OBJECT(CresDataDB->element_zero), "location", currentSettingsDB.settingsMessage.msg[0].url, NULL);
-	g_object_set(G_OBJECT(CresDataDB->element_zero), "latency", currentSettingsDB.videoSettings[0].streamingBuffer, NULL);
-	g_object_set(G_OBJECT(CresDataDB->element_zero), "tcp_timeout", CresDataDB->tcp_timeout_usec, NULL);
-	g_object_set(G_OBJECT(CresDataDB->element_zero), "timeout", CresDataDB->udp_timeout_usec, NULL);
-	// For some reason, this port range must be set for rtsp with multicast to work.
-	//g_object_set(G_OBJECT(CresDataDB->element_zero), "port-range", "5001-65535", NULL);
-	g_object_set(G_OBJECT(CresDataDB->element_zero), "protocols", CresDataDB->protocols, NULL);
-
-	// video part
-	CresDataDB->video_sink = NULL;
-}
-
-void csio_jni_SetSourceLocation()
-{
-	g_object_set(G_OBJECT(CresDataDB->element_zero), "location", currentSettingsDB.settingsMessage.msg[0].url, NULL);
-}
-
-void csio_jni_SetMsgHandlers(void* obj)
-{
-	// Register callback.
-	if(CresDataDB->element_zero != NULL)
-	{
-		//g_signal_connect(CresDataDB->element_zero, "pad-added", G_CALLBACK(pad_added_callback), CresDataDB);
-		g_signal_connect(CresDataDB->element_zero, "pad-added", G_CALLBACK(csio_PadAddedMsgHandler), obj);
-
-	}
-	else
-	{
-		GST_ERROR("Null element zero, no callbacks will be registered");
+			*pipeline = CresDataDB->pipeline;
+			*source   = CresDataDB->element_zero;
+			//GST_ERROR ("called build_http_pipeline [0x%x][0x%x]",CresDataDB->pipeline,CresDataDB->element_zero);
+			break;
+	    }
+	    case ePROTOCOL_UDP_TS:
+	    case ePROTOCOL_UDP:
+	    case ePROTOCOL_MULTICAST_TS:
+	    case ePROTOCOL_MULTICAST:
+	    case ePROTOCOL_FILE: //stub for now
+	    default:
+			iStatus = CSIO_FAILURE;
+			break;
 	}
 
-	/* Set the pipeline to READY, so it can already accept a window handle, if we have one */
-	 gst_element_set_state(CresDataDB->pipeline, GST_STATE_READY);
+	return iStatus;
+}
 
-	 if (CresDataDB->video_sink)
-	 {
-		 // Try just setting the video sink, because we haven't built the pipeline yet.
-	   	 //gst_element_set_state(data->video_sink, GST_STATE_READY);
-	 }
-	 else
-	 {
-		 CresDataDB->video_sink = gst_bin_get_by_interface(GST_BIN(CresDataDB->pipeline), GST_TYPE_VIDEO_OVERLAY);
-	 }
 
-	 /* Instruct the bus to emit signals for each received message, and connect to the interesting signals
-	 GstBus *bus = gst_element_get_bus (CresDataDB->pipeline);
-	 GSource *bus_source = gst_bus_create_watch (bus);
-	 g_source_set_callback (bus_source, (GSourceFunc) gst_bus_async_signal_func, NULL, NULL);
-	 g_source_attach (bus_source, CresDataDB->context);
-	 g_source_unref (bus_source);
-	 g_signal_connect (G_OBJECT (bus), "message::error", (GCallback)error_callback, CresDataDB);
-	 g_signal_connect (G_OBJECT (bus), "message::state-changed", (GCallback)state_changed_callback, CresDataDB);
-	 gst_object_unref (bus);*/
+void csio_jni_InitPipeline(eProtocolId protoId)
+{
+	switch( protoId )
+	{
+		case ePROTOCOL_RTSP_TCP:
+		case ePROTOCOL_DEFAULT_RTSP_TCP:
+		{
+			g_object_set(G_OBJECT(CresDataDB->element_zero), "location", currentSettingsDB.settingsMessage.msg[0].url, NULL);
+			g_object_set(G_OBJECT(CresDataDB->element_zero), "latency", currentSettingsDB.videoSettings[0].streamingBuffer, NULL);
+			g_object_set(G_OBJECT(CresDataDB->element_zero), "tcp_timeout", CresDataDB->tcp_timeout_usec, NULL);
+			g_object_set(G_OBJECT(CresDataDB->element_zero), "timeout", CresDataDB->udp_timeout_usec, NULL);
+			// For some reason, this port range must be set for rtsp with multicast to work.
+			//g_object_set(G_OBJECT(CresDataDB->element_zero), "port-range", "5001-65535", NULL);
+			g_object_set(G_OBJECT(CresDataDB->element_zero), "protocols", CresDataDB->protocols, NULL);
+
+			// video part
+			CresDataDB->video_sink = NULL;
+			break;
+		}
+		case ePROTOCOL_RTSP_UDP_TS:
+		case ePROTOCOL_RTSP_TS:
+		case ePROTOCOL_RTSP_UDP:
+		case ePROTOCOL_HTTP:
+			GST_DEBUG ("csio_jni_InitPipeline: ePROTOCOL_HTTP pass\n");
+		case ePROTOCOL_UDP_TS:
+		case ePROTOCOL_UDP:
+		case ePROTOCOL_MULTICAST_TS:
+		case ePROTOCOL_MULTICAST:
+		case ePROTOCOL_FILE: //stub for now
+		default:
+			//iStatus = CSIO_FAILURE;
+			break;
+	}
+}
+
+void csio_jni_SetSourceLocation(eProtocolId protoId)
+{
+	switch( protoId )
+	{
+		case ePROTOCOL_RTSP_TCP:
+		case ePROTOCOL_DEFAULT_RTSP_TCP:
+		{
+			g_object_set(G_OBJECT(CresDataDB->element_zero), "location", \
+					     currentSettingsDB.settingsMessage.msg[0].url, NULL);
+			break;
+		}
+		case ePROTOCOL_RTSP_UDP_TS:
+		case ePROTOCOL_RTSP_TS:
+		case ePROTOCOL_RTSP_UDP:
+		case ePROTOCOL_HTTP:
+			GST_DEBUG ("csio_jni_SetSourceLocation: ePROTOCOL_HTTP pass\n");
+		case ePROTOCOL_UDP_TS:
+		case ePROTOCOL_UDP:
+		case ePROTOCOL_MULTICAST_TS:
+		case ePROTOCOL_MULTICAST:
+		case ePROTOCOL_FILE: //stub for now
+		default:
+			//iStatus = CSIO_FAILURE;
+			break;
+	}
+}
+
+void csio_jni_SetMsgHandlers(void* obj,eProtocolId protoId)
+{
+	switch( protoId )
+	{
+		case ePROTOCOL_RTSP_TCP:
+		case ePROTOCOL_DEFAULT_RTSP_TCP:
+		{
+			// Register callback.
+			if(CresDataDB->element_zero != NULL)
+			{
+				//g_signal_connect(CresDataDB->element_zero, "pad-added", G_CALLBACK(pad_added_callback), CresDataDB);
+				g_signal_connect(CresDataDB->element_zero, "pad-added", G_CALLBACK(csio_PadAddedMsgHandler), obj);
+
+			}
+			else
+			{
+				GST_ERROR("Null element zero, no callbacks will be registered");
+			}
+
+			/* Set the pipeline to READY, so it can already accept a window handle, if we have one */
+			 gst_element_set_state(CresDataDB->pipeline, GST_STATE_READY);
+
+			 if (CresDataDB->video_sink)
+			 {
+				 // Try just setting the video sink, because we haven't built the pipeline yet.
+				 //gst_element_set_state(data->video_sink, GST_STATE_READY);
+			 }
+			 else
+			 {
+				 CresDataDB->video_sink = gst_bin_get_by_interface(GST_BIN(CresDataDB->pipeline), GST_TYPE_VIDEO_OVERLAY);
+			 }
+			 
+			 break;
+		}
+		case ePROTOCOL_RTSP_UDP_TS:
+		case ePROTOCOL_RTSP_TS:
+		case ePROTOCOL_RTSP_UDP:
+			break;
+
+		case ePROTOCOL_HTTP:
+			GST_DEBUG ("csio_jni_SetMsgHandlers: \n");
+
+			break;
+		case ePROTOCOL_UDP_TS:
+		case ePROTOCOL_UDP:
+		case ePROTOCOL_MULTICAST_TS:
+		case ePROTOCOL_MULTICAST:
+		case ePROTOCOL_FILE: //stub for now
+		default:
+			//iStatus = CSIO_FAILURE;
+			break;
+	}
 }
 
 int csio_jni_AddAudio(GstPad *new_pad,gchar *encoding_name, int do_rtp,GstElement **sink)
@@ -749,7 +838,7 @@ int csio_jni_AddAudio(GstPad *new_pad,gchar *encoding_name, int do_rtp,GstElemen
 	return iStatus;
 }
 
-int csio_jni_AddVideo(GstPad *new_pad,gchar *encoding_name, int do_rtp,GstElement **sink)
+int csio_jni_AddVideo(GstPad *new_pad,gchar *encoding_name, int do_rtp,GstElement **sink,eProtocolId protoId)
 {
 	int iStatus  = CSIO_SUCCESS;
 	*sink = NULL;

@@ -216,7 +216,7 @@ static int build_video_pipeline(gchar *encoding_name, CustomData *data, unsigned
 		do_window = 0;
 		do_sink = 0;
 	}
-	else if(strcmp(encoding_name, "JPEG") == 0)
+	else if((strcmp(encoding_name, "JPEG") == 0) || (strcmp(encoding_name, "image/jpeg") == 0))
 	{	
 		i = start;
 		if(do_rtp)
@@ -484,51 +484,54 @@ static void pad_added_callback(GstElement *src, GstPad *new_pad, CustomData *dat
 	g_free(encoding_name);
 }
 
-/**
- * \author      Pete McCormick
- *
- * \date        4/23/2015
- *
- * \return      void
- *
- * \retval      void
- *
- * \brief       Build the beginning of a gstreamer pipeline 
- *				for playing video via RTSP.
- *
- * \param       userdata
- *
- * \note        
- *
- * \todo		check for failures
- */
-static void build_rtsp_pipeline(void * userdata)
-{
-	CustomData *data = (CustomData *)userdata;
-	
-	GST_DEBUG("%p", (data->element_zero = gst_element_factory_make("rtspsrc", NULL)));
-	g_object_set(G_OBJECT(data->element_zero), "location", currentSettingsDB.settingsMessage.msg[0].url, NULL);
-	//g_object_set(G_OBJECT(data->element_zero), "latency", xxx, NULL);  // intentionally NOT setting this 
-	g_object_set(G_OBJECT(data->element_zero), "tcp_timeout", data->tcp_timeout_usec, NULL);
-	g_object_set(G_OBJECT(data->element_zero), "timeout", data->udp_timeout_usec, NULL);
-	// For some reason, this port range must be set for rtsp with multicast to work.
-	g_object_set(G_OBJECT(data->element_zero), "port-range", "5001-65535", NULL);
-	g_object_set(G_OBJECT(data->element_zero), "protocols", data->protocols, NULL);	
-	gst_bin_add_many(GST_BIN(data->pipeline), data->element_zero, NULL);		
-	
-	// video part
-	data->video_sink = NULL;
-}
-
 // "souphttpsrc location=http://ssabet.no-ip.org:8084/video.mjpg ! jpegdec ! glimagesink" works with gst_parse_launch,
 // but here we get internal data flow error!?
 static void build_http_pipeline(void * userdata)
 {
+	char *url = (char *)currentSettingsDB.settingsMessage.msg[0].url;
 	CustomData *data = (CustomData *)userdata;
-			
-	GST_DEBUG("%p", (data->element_zero = gst_element_factory_make("souphttpsrc", NULL)));
-	g_object_set(G_OBJECT(data->element_zero), "location", currentSettingsDB.settingsMessage.msg[0].url, NULL);
-	gst_bin_add(GST_BIN(data->pipeline), data->element_zero);
+	
+	if(g_str_has_suffix(url, ".mjpg") || g_str_has_suffix(url, ".mjpeg") || g_str_has_suffix(url, ".cgi")
+		|| g_str_has_suffix(url, ".jpg") || g_str_has_suffix(url, ".jpeg"))
+	{		
+		GstElement *sinker = NULL;
+		GstElement *ele0 = NULL;
+
+		data->element_zero = gst_element_factory_make("souphttpsrc", NULL);
+		g_object_set(G_OBJECT(data->element_zero), "location", url, NULL);
+		g_object_set(G_OBJECT(data->element_zero), "is-live", 1, NULL);
+		g_object_set(G_OBJECT(data->element_zero), "do-timestamp", 1, NULL);
+		gst_bin_add(GST_BIN(data->pipeline), data->element_zero);
+		build_video_pipeline("image/jpeg", data, 0, 0,&ele0,&sinker);
+		gst_element_link_many(data->element_zero, data->element_v[0], NULL);
+		data->element_zero = NULL;	// no callbacks
+	}
+	else if(g_str_has_suffix(url, ".mp4"))
+	{
+		data->element_av[0] = gst_element_factory_make("souphttpsrc", NULL);
+		g_object_set(G_OBJECT(data->element_av[0]), "location", url, NULL);
+		gst_bin_add(GST_BIN(data->pipeline), data->element_av[0]);
+
+		data->element_zero = gst_element_factory_make("qtdemux", NULL);
+		gst_bin_add(GST_BIN(data->pipeline), data->element_zero);
+
+		gst_element_link_many(data->element_av[0], data->element_zero, NULL);
+	}
+	else if(g_str_has_suffix(url, ".flv"))
+	{
+		data->element_av[0] = gst_element_factory_make("souphttpsrc", NULL);
+		g_object_set(G_OBJECT(data->element_av[0]), "location", url, NULL);
+		gst_bin_add(GST_BIN(data->pipeline), data->element_av[0]);
+
+		data->element_zero = gst_element_factory_make("flvdemux", NULL);
+		gst_bin_add(GST_BIN(data->pipeline), data->element_zero);
+
+		gst_element_link_many(data->element_av[0], data->element_zero, NULL);
+	}
+	else
+	{
+		GST_DEBUG("Unsupported http url %s", url);
+	}
 }
 
 // At the moment, just handles ts/udp, not ts/rtp/udp.
@@ -648,130 +651,6 @@ static void state_changed_callback (GstBus *bus, GstMessage *msg, CustomData *da
  *
  * \date        4/23/2015
  *
- * \return      void *
- *
- * \retval      NULL
- *
- * \brief       Thread for building gstreamer pipeline.
- *
- * \param       userdata	
- *
- * \todo		check for failures
- */
-void *app_function (void *userdata) 
-{
-	GstBus *bus;
-	CustomData *data = (CustomData *)userdata;
-	GSource *bus_source;
-
-	GST_DEBUG ("Creating pipeline in CustomData at %p", data);
-
-	/* Create our own GLib Main Context and make it the default one */
-	data->context = g_main_context_new ();
-	g_main_context_push_thread_default(data->context);
-	
-	data->pipeline = gst_pipeline_new(NULL);
-  
-	if(strncmp("http://", currentSettingsDB.settingsMessage.msg[0].url, 7) == 0)
-	{
-		build_http_pipeline(data);
-	}
-	else if(strncmp("rtsp://", currentSettingsDB.settingsMessage.msg[0].url, 7) == 0)
-	{
-		build_rtsp_pipeline(data);
-	}
-	else if(strncmp("udp://", currentSettingsDB.settingsMessage.msg[0].url, 6) == 0)
-	{
-		build_udp_pipeline(data);
-	}	
-	else if(strncmp("gst-launch://", currentSettingsDB.settingsMessage.msg[0].url, 13) == 0)
-	{
-		data->element_zero = NULL;	// no callbacks will be registered.
-		data->video_sink = NULL;	// want to auto-detect sink
-		build_gst_launch_pipeline(data);
-	}
-	else
-	{
-		GST_ERROR ("Unsupported stream url: %s", currentSettingsDB.settingsMessage.msg[0].url);
-		return NULL;
-	}
-  
-    // Register callback.
-    if(data->element_zero != NULL)
-	{
-		g_signal_connect(data->element_zero, "pad-added", G_CALLBACK(pad_added_callback), data);
-	}
-	else
-	{
-		GST_DEBUG("Null element zero, no callbacks will be registered");
-	}
-
-	/* Set the pipeline to READY, so it can already accept a window handle, if we have one */
-	gst_element_set_state(data->pipeline, GST_STATE_READY);
-
-	if (data->video_sink) 
-	{
-		// Try just setting the video sink, because we haven't built the pipeline yet.
-		//gst_element_set_state(data->video_sink, GST_STATE_READY);	
-	}
-	else
-	{
-		data->video_sink = gst_bin_get_by_interface(GST_BIN(data->pipeline), GST_TYPE_VIDEO_OVERLAY);
-	}
-	
-	// Video sink might not exist yet
-	//if (!data->video_sink) 
-	//{
-	//	GST_ERROR ("Could not retrieve video sink");
-	//	g_main_context_pop_thread_default(data->context);
-	//	g_main_context_unref (data->context);
-	//	gst_element_set_state (data->pipeline, GST_STATE_NULL);	
-	//	gst_object_unref (data->pipeline);
-	//	return NULL;
-	//}
-
-	/* Instruct the bus to emit signals for each received message, and connect to the interesting signals */
-	bus = gst_element_get_bus (data->pipeline);
-	bus_source = gst_bus_create_watch (bus);
-	g_source_set_callback (bus_source, (GSourceFunc) gst_bus_async_signal_func, NULL, NULL);
-	g_source_attach (bus_source, data->context);
-	g_source_unref (bus_source);
-	g_signal_connect (G_OBJECT (bus), "message::error", (GCallback)error_callback, data);
-	g_signal_connect (G_OBJECT (bus), "message::state-changed", (GCallback)state_changed_callback, data);
-	gst_object_unref (bus);
-
-	/* Create a GLib Main Loop and set it to run */
-	GST_DEBUG ("Entering main loop... (CustomData:%p)", data);
-	data->main_loop = g_main_loop_new (data->context, FALSE);
-	check_initialization_complete(data);
-	pthread_mutex_lock(&(data->ready_to_start_playing_lock));
-	pthread_cond_signal(&(data->ready_to_start_playing_signal));
-	pthread_mutex_unlock(&(data->ready_to_start_playing_lock));
-	
-	// g_main_loop_run will not return until playback is failed or finished.
-	g_main_loop_run (data->main_loop);
-	
-	// Wait...
-	
-	GST_DEBUG ("Exited main loop");
-	g_main_loop_unref (data->main_loop);
-	data->main_loop = NULL;
-
-	/* Free resources */
-	g_main_context_pop_thread_default(data->context);
-	g_main_context_unref (data->context);
-	gst_element_set_state (data->pipeline, GST_STATE_NULL);
-	gst_object_unref (data->video_sink);
-	gst_object_unref (data->pipeline);
-
-	return NULL;
-}
-
-/**
- * \author      Pete McCormick
- *
- * \date        4/23/2015
- *
  * \return      void 
  *
  * \retval      void
@@ -794,4 +673,23 @@ void init_custom_data(void * userdata)
 	data->udp_timeout_usec = 3000000;
 	data->protocols = GST_RTSP_LOWER_TRANS_UDP|GST_RTSP_LOWER_TRANS_UDP_MCAST|GST_RTSP_LOWER_TRANS_TCP;
 }
+void set_gst_debug_level(void)
+{
+	gchar temp[256];
+	FILE * f;
 
+	f = fopen("/dev/crestron/gst_debug", "r");
+	if (f == NULL)
+	{
+		snprintf(temp, sizeof(temp), "%s", "*:1");	// default to errors, warning for all plugins
+	}
+	else
+	{
+		fgets(temp, sizeof(temp), f);
+		fclose(f);
+	}
+	setenv("GST_DEBUG", temp, 1);
+	setenv("GST_DEBUG_NO_COLOR", "1", 1);
+
+	GST_DEBUG("Set GST_DEBUG to %s", temp);
+}
