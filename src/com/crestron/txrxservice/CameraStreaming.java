@@ -135,7 +135,7 @@ public class CameraStreaming implements ErrorCallback {
             Log.d(TAG, "setting video frame rate: " + streamCtl.userSettings.getEncodingFramerate(idx));
             
             setWidthAndHeightFromEncRes(idx);
-            mrec.setVideoEncodingBitRate(streamCtl.userSettings.getBitrate(idx));
+            mrec.setVideoEncodingBitRate(streamCtl.userSettings.getBitrate(idx) * 1000);	//This is in bits per second
             //mrec.setVideoFrameRate(streamCtl.userSettings.getEncodingFramerate(idx));//Mistral Propietary API 
             mrec.setVideoEncoder(MediaRecorder.VideoEncoder.H264);
             mrec.setEncoderProfile(streamCtl.userSettings.getStreamProfile(idx).getVEncProfile());
@@ -292,6 +292,8 @@ public class CameraStreaming implements ErrorCallback {
 			
         Log.d(TAG, "setting width: " + streamOutWidth);
         Log.d(TAG, "setting height: " + streamOutHeight);
+        
+        //TODO: what if streamOutWidth or streamOutHeight is 0
 			
 		mrec.setVideoSize(streamOutWidth, streamOutHeight);
 	}
