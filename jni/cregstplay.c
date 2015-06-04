@@ -491,9 +491,9 @@ static void build_http_pipeline(void * userdata)
 	char *url = (char *)currentSettingsDB.settingsMessage.msg[0].url;
 	CustomData *data = (CustomData *)userdata;
 	
-	if(g_str_has_suffix(url, ".mjpg") || g_str_has_suffix(url, ".mjpeg") || g_str_has_suffix(url, ".cgi")
+	/*if(g_str_has_suffix(url, ".mjpg") || g_str_has_suffix(url, ".mjpeg") || g_str_has_suffix(url, ".cgi")
 		|| g_str_has_suffix(url, ".jpg") || g_str_has_suffix(url, ".jpeg"))
-	{		
+	{*/		
 		GstElement *sinker = NULL;
 		GstElement *ele0 = NULL;
 
@@ -505,7 +505,7 @@ static void build_http_pipeline(void * userdata)
 		build_video_pipeline("image/jpeg", data, 0, 0,&ele0,&sinker);
 		gst_element_link_many(data->element_zero, data->element_v[0], NULL);
 		data->element_zero = NULL;	// no callbacks
-	}
+	/*}
 	else if(g_str_has_suffix(url, ".mp4"))
 	{
 		data->element_av[0] = gst_element_factory_make("souphttpsrc", NULL);
@@ -531,7 +531,7 @@ static void build_http_pipeline(void * userdata)
 	else
 	{
 		GST_DEBUG("Unsupported http url %s", url);
-	}
+	}*/
 }
 
 // At the moment, just handles ts/udp, not ts/rtp/udp.
