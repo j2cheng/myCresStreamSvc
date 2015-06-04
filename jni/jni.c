@@ -890,5 +890,8 @@ void csio_jni_initVideo()
 }
 
 
-
-
+void *csio_SendInitiatorAddressFb( void * arg )
+{
+	// TODO: Fill this function in
+	return NULL;
+}
