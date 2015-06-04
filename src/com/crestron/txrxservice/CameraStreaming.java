@@ -457,6 +457,36 @@ public class CameraStreaming implements ErrorCallback {
             {
     			Pattern regexP;
     			Matcher regexM;
+    			
+    			String statisticsString = mrec.getStatisticsData();
+				
+				// Pull out Audio number of channels
+				regexP = Pattern.compile("Audio\\s+Channel:\\s+(\\d+)");
+				regexM = regexP.matcher(statisticsString);
+				regexM.find();
+				if (regexM.group(1) != null)
+					streamOutAudioChannels = Integer.parseInt(regexM.group(1));
+				
+				// Pull out Video width and height
+				regexP = Pattern.compile("Resolution:\\s+(\\d+)\\s+x\\s+(\\d+)");	//width x height
+				regexM = regexP.matcher(statisticsString);
+				regexM.find();
+				if (regexM.group(1) != null)
+					streamOutWidth = Integer.parseInt(regexM.group(1));
+				if (regexM.group(2) != null)
+					streamOutHeight = Integer.parseInt(regexM.group(2));
+				
+				// Pull out Video frames per second
+				regexP = Pattern.compile("Frame\\s+Rate:\\s+(\\d+)");
+				regexM = regexP.matcher(statisticsString);
+				regexM.find();
+				if (regexM.group(1) != null)
+					streamOutFps = Integer.parseInt(regexM.group(1));
+				
+				streamOutAudioFormat = 1; //TODO: currently we are always setting this to PCM (1)
+				
+				streamCtl.SendStreamOutFeedbacks();
+    			
     			while(!shouldExit)
 				{    		
     				Thread.sleep(statisticsThreadPollTime);
@@ -464,34 +494,8 @@ public class CameraStreaming implements ErrorCallback {
     				if (mrec == null)
     					continue;
     				
-					String statisticsString = mrec.getStatisticsData();
-    				
-    				// Pull out Audio number of channels
-    				regexP = Pattern.compile("Audio\\s+Channel:\\s+(\\d+)");
-    				regexM = regexP.matcher(statisticsString);
-    				regexM.find();
-    				if (regexM.group(1) != null)
-    					streamOutAudioChannels = Integer.parseInt(regexM.group(1));
-    				
-    				// Pull out Video width and height
-    				regexP = Pattern.compile("Resolution:\\s+(\\d+)\\s+x\\s+(\\d+)");	//width x height
-    				regexM = regexP.matcher(statisticsString);
-    				regexM.find();
-    				if (regexM.group(1) != null)
-    					streamOutWidth = Integer.parseInt(regexM.group(1));
-    				if (regexM.group(2) != null)
-    					streamOutHeight = Integer.parseInt(regexM.group(2));
-    				
-    				// Pull out Video frames per second
-    				regexP = Pattern.compile("Frame\\s+Rate:\\s+(\\d+)");
-    				regexM = regexP.matcher(statisticsString);
-    				regexM.find();
-    				if (regexM.group(1) != null)
-    					streamOutFps = Integer.parseInt(regexM.group(1));
-    				
-    				streamOutAudioFormat = 1; //TODO: currently we are always setting this to PCM (1)
-    				
-    				streamCtl.SendStreamOutFeedbacks();
+					statisticsString = mrec.getStatisticsData();
+
 				}
             }
             catch (InterruptedException localInterruptedException)
