@@ -394,7 +394,7 @@ public class CommandParser {
     public String processReceivedMessage(String receivedMsg){
         String reply = ""; 
         StringTokenizer.ParseResponse parseResponse = tokenizer.Parse(receivedMsg);
-        Log.d(TAG, "sessId parsed "+ parseResponse.sessId);
+//        Log.d(TAG, "sessId parsed "+ parseResponse.sessId);
         
         if (parseResponse.sessId >= CresStreamCtrl.NumOfSurfaces)
         {
@@ -424,7 +424,7 @@ public class CommandParser {
                 {
                     invoke.setCommand(cmd);
                     valueResponse = invoke.get();
-                    Log.d(TAG, String.format("Join value response: %s", valueResponse));
+//                    Log.d(TAG, String.format("Join value response: %s", valueResponse));
                 }
 	        }
 	        

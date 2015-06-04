@@ -597,12 +597,17 @@ int csio_SendVideoSourceParams(unsigned int source, unsigned int width, unsigned
 }
 void csio_signal_that_stream_has_stopped()
 {
-
+	//Intentionally left blank
 }
 
 void csio_start_mode_change_detection ()
 {
 	return;
+}
+
+GMainLoop * csio_jni_CreateMainLoop()
+{
+	return g_main_loop_new( CresDataDB->context, FALSE );
 }
 
 void csio_jni_CreateMainContext()

@@ -74,17 +74,17 @@ public class StringTokenizer
         			parseRes.joinValue = null;
         	}
         	
-        	String joinNameWithSessId = (parseRes.joinName + String.valueOf(parseRes.sessId));
+//        	String joinNameWithSessId = (parseRes.joinName + String.valueOf(parseRes.sessId));
         	
-            if (regexM.group(3) != null)
-            {
-                Log.d(TAG, "At Parser::strings are '"+joinNameWithSessId+"' '"+parseRes.joinValue+"'");
-                if(parseRes.joinName.equalsIgnoreCase("start") || parseRes.joinName.equalsIgnoreCase("stop")|| parseRes.joinName.equalsIgnoreCase("pause")){
-                    Log.d(TAG, "received control cmd");
-                }
-            }
-            else
-                Log.d(TAG, "Query has been made for '"+joinNameWithSessId+"'");
+//            if (regexM.group(3) != null)
+//            {
+//                Log.d(TAG, "At Parser::strings are '"+joinNameWithSessId+"' '"+parseRes.joinValue+"'");
+//                if(parseRes.joinName.equalsIgnoreCase("start") || parseRes.joinName.equalsIgnoreCase("stop")|| parseRes.joinName.equalsIgnoreCase("pause")){
+//                    Log.d(TAG, "received control cmd");
+//                }
+//            }
+//            else
+//                Log.d(TAG, "Query has been made for '"+joinNameWithSessId+"'");
             
         }
 
