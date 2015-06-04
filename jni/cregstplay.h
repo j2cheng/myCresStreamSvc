@@ -51,13 +51,26 @@ typedef struct _CustomData
 	unsigned int element_after_tsdemux;	/* Used to add the rest of the video pipeline */
 	
 	// parameters from control system/platform/java
-
+	unsigned int udp_port;
+	unsigned int udp_video_port;
+	unsigned int udp_audio_port;
+	char multicast_grp[512];
 
     CRESTWINDOW	win;
 	// rtspsrc parameters
 	guint64 tcp_timeout_usec;
 	guint64 udp_timeout_usec;
 	GstRTSPLowerTrans protocols;
+	//g_object_set for udpsrc crashes if try to have caps as strings.
+	//char caps_v[2048];
+	//char caps_a[2048];
+	GstCaps * caps_v;
+	GstCaps * caps_v_rtp;
+	GstCaps * caps_v_ts;
+	GstCaps * caps_a;
+	GstCaps * caps_a_rtp;
+	char port_range_text[32];
+	int do_udp_ts;
 } CustomData;
 
 ///////////////////////////////////////////////////////////////////////////////

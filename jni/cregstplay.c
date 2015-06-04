@@ -178,8 +178,8 @@ static int build_video_pipeline(gchar *encoding_name, CustomData *data, unsigned
 	int num_elements;
 	int do_sink = 1;
 	
-	GST_DEBUG("encoding_name=%s, native_window=%p, start=%u, do_rtp=%d", 
-			  encoding_name, data->native_window, start, do_rtp);
+	//GST_DEBUG("encoding_name=%s, native_window=%p, start=%u, do_rtp=%d",
+	//		  encoding_name, data->native_window, start, do_rtp);
 
 	if((strcmp(encoding_name, "H264") == 0) || (strcmp(encoding_name, "video/x-h264") == 0))
 	{
@@ -325,7 +325,6 @@ static int build_audio_pipeline(gchar *encoding_name, CustomData *data, int do_r
 		if(do_rtp)
 		{
 			data->element_a[i++] = gst_element_factory_make("rtpmp4gdepay", NULL);
-			GST_ERROR("data->element_a[0]=0x%x", data->element_a[0]);
 		}
 		data->element_a[i++] = gst_element_factory_make("aacparse", NULL);
 		data->element_a[i++] = gst_element_factory_make("faad", NULL);
@@ -534,64 +533,6 @@ static void build_http_pipeline(void * userdata)
 	}*/
 }
 
-// At the moment, just handles ts/udp, not ts/rtp/udp.
-// The following worked using gst_parse_launch:
-// udpsrc port=5000 ! queue ! tsdemux name=demux ! faad ! audioresample ! openslessink demux. ! videotestsrc ! glimagesink
-static void build_udp_pipeline(void * userdata)
-{
-	CustomData *data = (CustomData *)userdata;
-
-
-	// video+audio part
-	data->element_av[0] = gst_element_factory_make("udpsrc", NULL);	
-	g_object_set(G_OBJECT(data->element_av[0]), "port", currentSettingsDB.videoSettings[0].tsPort, NULL);
-	data->element_av[1] = gst_element_factory_make("queue", NULL);
-	data->element_zero = gst_element_factory_make("tsdemux", NULL);
-		
-	gst_bin_add_many(GST_BIN(data->pipeline), data->element_av[0], data->element_av[1], data->element_zero, NULL);
-	gst_element_link_many(data->element_av[0], data->element_av[1], data->element_zero, NULL);	
-}
-
-/**
- * \author      Pete McCormick
- *
- * \date        4/23/2015
- *
- * \return      void
- *
- * \retval      void
- *
- * \brief       Launch the entire pipeline at once, 
- * 				using the same pipeline syntax as gst-launch-1.0
- *
- * \param      	userdata 
- *
- * \note		This is to allow tweaking of different possible pipelines 
- *				without having to recompile.
- * 
- * \todo		check for failures
- */
-static void build_gst_launch_pipeline(void * userdata)
-{
-	gchar temp[2048];
-	FILE * f;
-	GError *error = NULL;	
-	CustomData *data = (CustomData *)userdata;	
-
-	f = fopen("/dev/shm/gst-launch", "r");
-	if (f == NULL) 
-	{
-		GST_ERROR("Could not open gst-launch file");
-		return;
-	}
-	
-	fgets(temp, sizeof(temp), f);
-	fclose(f);
-	
-	GST_DEBUG("Doing gst_parse_launch, pipeline=%s", temp);
-	data->pipeline = gst_parse_launch(temp, &error);
-}
-
 /**
  * \author      Pete McCormick
  *
@@ -666,12 +607,50 @@ void init_custom_data(void * userdata)
 {
 	CustomData *data = (CustomData *)userdata;	
 	
-	currentSettingsDB.videoSettings[0].tsPort = 5000;	//TODO: remove
-	// temp debug
-//	data->udp_port = 5000;
+	GST_DEBUG_CATEGORY_INIT (debug_category, "cregstplay", 0, "Crestron gstreamer player!");
+	gst_debug_set_threshold_for_name("cregstplay", GST_LEVEL_DEBUG);
+
+	data->udp_port = 9700;
+	data->udp_video_port = 2048;
+	data->udp_audio_port = 2049;
 	data->tcp_timeout_usec = 3000000;
 	data->udp_timeout_usec = 3000000;
 	data->protocols = GST_RTSP_LOWER_TRANS_UDP|GST_RTSP_LOWER_TRANS_UDP_MCAST|GST_RTSP_LOWER_TRANS_TCP;
+
+	// Tried keeping these as strings, but would crash when g_object_set was called for udpsrc.
+	data->caps_v_rtp = gst_caps_new_simple(
+		"application/x-rtp",
+		"media",         G_TYPE_STRING, "video",
+		"clock-rate",    G_TYPE_INT,     90000,
+		"encoding-name", G_TYPE_STRING, "H264",
+		"payload",       G_TYPE_INT,     96,
+		NULL );
+
+	data->caps_a_rtp = gst_caps_new_simple (
+		"application/x-rtp",
+		"media",        G_TYPE_STRING, "audio",
+		"clock-rate",   G_TYPE_INT,     48000,
+		"encoding-name",G_TYPE_STRING, "MPEG4-GENERIC",
+		"config",G_TYPE_STRING, "1210",
+		"sizelength",G_TYPE_STRING, "13",
+		"payload",    G_TYPE_INT,     127,
+		"streamtype",G_TYPE_STRING, "4",
+		"mode",G_TYPE_STRING, "generic",
+		NULL);
+
+	// This is if there's ts encapsulation.
+	data->caps_v_ts = gst_caps_new_simple(
+		"application/x-rtp",
+		"media",         G_TYPE_STRING, "video",
+		"clock-rate",    G_TYPE_INT,     90000,
+		"encoding-name", G_TYPE_STRING, "MP2T",
+		"payload",       G_TYPE_INT,     33,
+		NULL );
+
+	// Pretend ts is on for now
+	data->caps_v = data->caps_v_ts;
+	data->caps_a = NULL;
+	//data->do_udp_ts = 1;
 }
 void set_gst_debug_level(void)
 {

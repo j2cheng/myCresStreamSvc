@@ -364,28 +364,32 @@ JNIEXPORT void JNICALL Java_com_crestron_txrxservice_GstreamIn_nativeSetRtspPort
 JNIEXPORT void JNICALL Java_com_crestron_txrxservice_GstreamIn_nativeSetTsPort(JNIEnv *env, jobject thiz, jint port, jint sessionId)
 {
 	GST_DEBUG ("Using tsPort: '%d'", port);
-	currentSettingsDB.videoSettings[sessionId].tsPort = port;
+	//currentSettingsDB.videoSettings[sessionId].tsPort = port;
+	csio_SetPortNumber( eWindowId_0, port, c_TSportNumber );
 	GST_DEBUG ("tsPort in currentSettingsDB: '%d'", currentSettingsDB.videoSettings[sessionId].tsPort);
 }
 
 JNIEXPORT void JNICALL Java_com_crestron_txrxservice_GstreamIn_nativeSetRtpVideoPort(JNIEnv *env, jobject thiz, jint port, jint sessionId)
 {
 	GST_DEBUG ("Using rtpVideoPort: '%d'", port);
-	currentSettingsDB.videoSettings[sessionId].rtpVideoPort = port;
+	//currentSettingsDB.videoSettings[sessionId].rtpVideoPort = port;
+	csio_SetPortNumber( eWindowId_0, port, c_RTPVideoPortNumber );
 	GST_DEBUG ("rtpVideoPort in currentSettingsDB: '%d'", currentSettingsDB.videoSettings[sessionId].rtpVideoPort);
 }
 
 JNIEXPORT void JNICALL Java_com_crestron_txrxservice_GstreamIn_nativeSetRtpAudioPort(JNIEnv *env, jobject thiz, jint port, jint sessionId)
 {
 	GST_DEBUG ("Using rtpAudioPort: '%d'", port);
-	currentSettingsDB.videoSettings[sessionId].rtpAudioPort = port;
+	//currentSettingsDB.videoSettings[sessionId].rtpAudioPort = port;
+	csio_SetPortNumber( eWindowId_0, port, c_RTPAudioPortNumber );
 	GST_DEBUG ("rtpAudioPort in currentSettingsDB: '%d'", currentSettingsDB.videoSettings[sessionId].rtpAudioPort);
 }
 
 JNIEXPORT void JNICALL Java_com_crestron_txrxservice_GstreamIn_nativeSetSessionInitiation(JNIEnv *env, jobject thiz, jint initMode, jint sessionId)
 {
 	GST_DEBUG ("Using sessionInitiationMode: '%d'", initMode);
-	currentSettingsDB.videoSettings[sessionId].sessionInitiationMode = initMode;
+	//currentSettingsDB.videoSettings[sessionId].sessionInitiationMode = initMode;
+	csio_SetSessionInitiationMode(sessionId,initMode);
 	GST_DEBUG ("sessionInitiationMode in currentSettingsDB: '%d'", currentSettingsDB.videoSettings[sessionId].sessionInitiationMode);
 }
 
@@ -642,6 +646,8 @@ int csio_jni_CreatePipeline(GstElement **pipeline,GstElement **source,eProtocolI
 
 	CresDataDB->pipeline = gst_pipeline_new(NULL);
 
+	//GST_ERROR ("protoId = %d\n",protoId);
+
 	switch( protoId )
 	{
 		case ePROTOCOL_RTSP_TCP:
@@ -677,9 +683,71 @@ int csio_jni_CreatePipeline(GstElement **pipeline,GstElement **source,eProtocolI
 			break;
 	    }
 	    case ePROTOCOL_UDP_TS:
+	    	break;
+
 	    case ePROTOCOL_UDP:
+	    {
+	    	//GST_ERROR ("ePROTOCOL_UDP\n");
+			strcpy(CresDataDB->multicast_grp,currentSettingsDB.videoSettings[eWindowId_0].multicastAddress);
+
+			//build_udp_pipeline(CresDataDB,protoId);
+			CresDataDB->element_zero = gst_element_factory_make("rtpbin", NULL);
+			gst_bin_add(GST_BIN(CresDataDB->pipeline), CresDataDB->element_zero);
+
+			//video
+			CresDataDB->udp_video_port = currentSettingsDB.videoSettings[eWindowId_0].rtpVideoPort;
+			CresDataDB->element_av[0] = gst_element_factory_make("udpsrc", NULL);
+			g_object_set(G_OBJECT(CresDataDB->element_av[0]), "port", CresDataDB->udp_video_port, NULL);
+			g_object_set(G_OBJECT(CresDataDB->element_av[0]), "caps", CresDataDB->caps_v_rtp, NULL);
+			gst_bin_add(GST_BIN(CresDataDB->pipeline), CresDataDB->element_av[0]);
+			gst_element_link(CresDataDB->element_av[0], CresDataDB->element_zero);
+
+			//audio
+			CresDataDB->element_av[1] = gst_element_factory_make("udpsrc", NULL);
+			CresDataDB->udp_audio_port = currentSettingsDB.videoSettings[eWindowId_0].rtpAudioPort;
+			g_object_set(G_OBJECT(CresDataDB->element_av[1]), "port", CresDataDB->udp_audio_port, NULL);
+			g_object_set(G_OBJECT(CresDataDB->element_av[1]), "caps", CresDataDB->caps_a_rtp, NULL);
+			gst_bin_add(GST_BIN(CresDataDB->pipeline), CresDataDB->element_av[1]);
+			gst_element_link(CresDataDB->element_av[1], CresDataDB->element_zero);
+
+			*pipeline = CresDataDB->pipeline;
+			*source   = CresDataDB->element_zero;
+	    	break;
+	    }
 	    case ePROTOCOL_MULTICAST_TS:
+	    	iStatus = CSIO_FAILURE;
+	    	break;
+
 	    case ePROTOCOL_MULTICAST:
+	    {
+	    	//GST_ERROR ("ePROTOCOL_MULTICAST\n");
+	    	strcpy(CresDataDB->multicast_grp,currentSettingsDB.videoSettings[eWindowId_0].multicastAddress);
+
+	    	//build_udp_pipeline(CresDataDB,protoId);
+	    	CresDataDB->element_zero = gst_element_factory_make("rtpbin", NULL);
+			gst_bin_add(GST_BIN(CresDataDB->pipeline), CresDataDB->element_zero);
+
+			//video
+			CresDataDB->udp_video_port = currentSettingsDB.videoSettings[eWindowId_0].rtpVideoPort;
+			CresDataDB->element_av[0] = gst_element_factory_make("udpsrc", NULL);
+			g_object_set(G_OBJECT(CresDataDB->element_av[0]), "port", CresDataDB->udp_video_port, NULL);
+			g_object_set(G_OBJECT(CresDataDB->element_av[0]), "caps", CresDataDB->caps_v_rtp, NULL);
+			gst_bin_add(GST_BIN(CresDataDB->pipeline), CresDataDB->element_av[0]);
+			gst_element_link(CresDataDB->element_av[0], CresDataDB->element_zero);
+
+			//audio
+			CresDataDB->element_av[1] = gst_element_factory_make("udpsrc", NULL);
+			CresDataDB->udp_audio_port = currentSettingsDB.videoSettings[eWindowId_0].rtpAudioPort;
+			g_object_set(G_OBJECT(CresDataDB->element_av[1]), "port", CresDataDB->udp_audio_port, NULL);
+			g_object_set(G_OBJECT(CresDataDB->element_av[1]), "caps", CresDataDB->caps_a_rtp, NULL);
+			gst_bin_add(GST_BIN(CresDataDB->pipeline), CresDataDB->element_av[1]);
+			gst_element_link(CresDataDB->element_av[1], CresDataDB->element_zero);
+
+	    	*pipeline = CresDataDB->pipeline;
+	    	*source   = CresDataDB->element_zero;
+
+	    	break;
+	    }
 	    case ePROTOCOL_FILE: //stub for now
 	    default:
 			iStatus = CSIO_FAILURE;
@@ -692,6 +760,7 @@ int csio_jni_CreatePipeline(GstElement **pipeline,GstElement **source,eProtocolI
 
 void csio_jni_InitPipeline(eProtocolId protoId)
 {
+	//GST_ERROR ("protoId = %d\n",protoId);
 	switch( protoId )
 	{
 		case ePROTOCOL_RTSP_TCP:
@@ -713,11 +782,25 @@ void csio_jni_InitPipeline(eProtocolId protoId)
 		case ePROTOCOL_RTSP_TS:
 		case ePROTOCOL_RTSP_UDP:
 		case ePROTOCOL_HTTP:
-			GST_DEBUG ("csio_jni_InitPipeline: ePROTOCOL_HTTP pass\n");
+			//GST_DEBUG ("ePROTOCOL_HTTP pass\n");
+			break;
+
 		case ePROTOCOL_UDP_TS:
+			break;
+
 		case ePROTOCOL_UDP:
+		{
+			//GST_DEBUG ("ePROTOCOL_UDP pass\n");
+			break;
+		}
 		case ePROTOCOL_MULTICAST_TS:
+			break;
+
 		case ePROTOCOL_MULTICAST:
+		{
+			//GST_DEBUG ("ePROTOCOL_MULTICAST pass\n");
+			break;
+		}
 		case ePROTOCOL_FILE: //stub for now
 		default:
 			//iStatus = CSIO_FAILURE;
@@ -727,6 +810,7 @@ void csio_jni_InitPipeline(eProtocolId protoId)
 
 void csio_jni_SetSourceLocation(eProtocolId protoId)
 {
+	//GST_ERROR ("protoId = %d\n",protoId);
 	switch( protoId )
 	{
 		case ePROTOCOL_RTSP_TCP:
@@ -740,11 +824,31 @@ void csio_jni_SetSourceLocation(eProtocolId protoId)
 		case ePROTOCOL_RTSP_TS:
 		case ePROTOCOL_RTSP_UDP:
 		case ePROTOCOL_HTTP:
-			GST_DEBUG ("csio_jni_SetSourceLocation: ePROTOCOL_HTTP pass\n");
+			//GST_DEBUG ("csio_jni_SetSourceLocation: ePROTOCOL_HTTP pass\n");
+			break;
+
 		case ePROTOCOL_UDP_TS:
+			break;
+
 		case ePROTOCOL_UDP:
+		{
+			//GST_DEBUG ("ePROTOCOL_UDP pass\n");
+			break;
+		}
 		case ePROTOCOL_MULTICAST_TS:
+			break;
+
 		case ePROTOCOL_MULTICAST:
+		{
+			//GST_DEBUG ("ePROTOCOL_MULTICAST: location[%s]\n",CresDataDB->multicast_grp);
+			g_object_set(G_OBJECT(CresDataDB->element_av[0]), "address", \
+					CresDataDB->multicast_grp, NULL);
+
+			//g_object_set(G_OBJECT(CresDataDB->element_av[1]), "address", \
+			//		CresDataDB->multicast_grp, NULL);
+
+			break;
+		}
 		case ePROTOCOL_FILE: //stub for now
 		default:
 			//iStatus = CSIO_FAILURE;
@@ -754,15 +858,18 @@ void csio_jni_SetSourceLocation(eProtocolId protoId)
 
 void csio_jni_SetMsgHandlers(void* obj,eProtocolId protoId)
 {
+	//GST_ERROR ("protoId = %d\n",protoId);
 	switch( protoId )
 	{
 		case ePROTOCOL_RTSP_TCP:
 		case ePROTOCOL_DEFAULT_RTSP_TCP:
+		case ePROTOCOL_MULTICAST:
+		case ePROTOCOL_UDP:
 		{
+			//GST_DEBUG ("SetMsgHandlers protoId[%d]\n",protoId);
 			// Register callback.
 			if(CresDataDB->element_zero != NULL)
-			{
-				//g_signal_connect(CresDataDB->element_zero, "pad-added", G_CALLBACK(pad_added_callback), CresDataDB);
+			{				
 				g_signal_connect(CresDataDB->element_zero, "pad-added", G_CALLBACK(csio_PadAddedMsgHandler), obj);
 
 			}
@@ -796,9 +903,7 @@ void csio_jni_SetMsgHandlers(void* obj,eProtocolId protoId)
 
 			break;
 		case ePROTOCOL_UDP_TS:
-		case ePROTOCOL_UDP:
 		case ePROTOCOL_MULTICAST_TS:
-		case ePROTOCOL_MULTICAST:
 		case ePROTOCOL_FILE: //stub for now
 		default:
 			//iStatus = CSIO_FAILURE;
@@ -806,15 +911,26 @@ void csio_jni_SetMsgHandlers(void* obj,eProtocolId protoId)
 	}
 }
 
-int csio_jni_AddAudio(GstPad *new_pad,gchar *encoding_name, int do_rtp,GstElement **sink)
+int csio_jni_AddAudio(GstPad *new_pad,gchar *encoding_name, GstElement **sink)
 {
 	int iStatus  = CSIO_SUCCESS;
 	*sink = NULL;
 	GstElement *ele0 = NULL;
+	int do_rtp;
+
+	gchar * p_caps_string;
+	GstCaps *new_pad_caps = gst_pad_query_caps( new_pad, NULL );
+	p_caps_string = gst_caps_to_string (new_pad_caps);
+	if(strncmp(p_caps_string, "application/x-rtp", 17) == 0)
+	{
+		do_rtp = 1;
+	}
+
 	iStatus = build_audio_pipeline(encoding_name, CresDataDB, do_rtp,&ele0,sink);
 	if(ele0 == NULL)
 	{
-		return CSIO_CANNOT_CREATE_ELEMENTS;
+		iStatus  = CSIO_CANNOT_CREATE_ELEMENTS;
+		goto doneAddAudio ;
 	}
 
 	//TODOL need to call CStreamer::initAudio here
@@ -823,14 +939,18 @@ int csio_jni_AddAudio(GstPad *new_pad,gchar *encoding_name, int do_rtp,GstElemen
 	GstPad *sink_pad = NULL;
 	sink_pad = gst_element_get_static_pad (ele0, "sink");
 	if(sink_pad == NULL)
-		return CSIO_CANNOT_LINK_ELEMENTS;
+	{
+		iStatus  = CSIO_CANNOT_LINK_ELEMENTS;
+		goto doneAddAudio ;
+	}
 
 	if(gst_pad_is_linked (sink_pad))
 	{
 		GST_ERROR ("audio sink pad is already linked");
 		gst_object_unref(sink_pad);
 
-		return CSIO_CANNOT_LINK_ELEMENTS;
+		iStatus  =  CSIO_CANNOT_LINK_ELEMENTS;
+		goto doneAddAudio ;
 	}
 
 	// Link rest of pipeline to beginning.
@@ -839,20 +959,39 @@ int csio_jni_AddAudio(GstPad *new_pad,gchar *encoding_name, int do_rtp,GstElemen
 	gst_element_set_state( CresDataDB->pipeline, GST_STATE_PLAYING);
 
 	GST_DEBUG("csio_jni_AddAudio iStatus = %d", iStatus);
-	//TODOL need to call pCurCfg->setStatus( iStatus );
+
+doneAddAudio:
+	if(new_pad_caps != NULL)
+	{
+		gst_caps_unref(new_pad_caps);
+	}
+
 	return iStatus;
 }
 
-int csio_jni_AddVideo(GstPad *new_pad,gchar *encoding_name, int do_rtp,GstElement **sink,eProtocolId protoId)
+int csio_jni_AddVideo(GstPad *new_pad,gchar *encoding_name, GstElement **sink,eProtocolId protoId)
 {
 	int iStatus  = CSIO_SUCCESS;
 	*sink = NULL;
 	GstElement *ele0 = NULL;
+	int do_rtp;
+
+	//GST_DEBUG("csio_jni_AddVideo: sink =0x%x",protoId);
+
+	gchar * p_caps_string;
+	GstCaps *new_pad_caps = gst_pad_query_caps( new_pad, NULL );
+	p_caps_string = gst_caps_to_string (new_pad_caps);
+	if(strncmp(p_caps_string, "application/x-rtp", 17) == 0)
+	{
+		do_rtp = 1;
+	}
+
 	iStatus = build_video_pipeline(encoding_name, CresDataDB,0,do_rtp,&ele0,sink);
-	GST_DEBUG("csio_jni_AddVideo: sink =0x%x",*sink);
+
 	if(ele0 == NULL)
 	{
-		return CSIO_CANNOT_CREATE_ELEMENTS;
+		iStatus = CSIO_CANNOT_CREATE_ELEMENTS;
+		goto doneAddVideo;
 	}
 
 	//TODOL need to call CStreamer::initVideo here
@@ -861,21 +1000,28 @@ int csio_jni_AddVideo(GstPad *new_pad,gchar *encoding_name, int do_rtp,GstElemen
 	GstPad *sink_pad = NULL;
 	sink_pad = gst_element_get_static_pad (ele0, "sink");
 	if(sink_pad == NULL)
-		return CSIO_CANNOT_LINK_ELEMENTS;
+	{
+		iStatus = CSIO_CANNOT_LINK_ELEMENTS;
+		goto doneAddVideo;
+	}
 
 	if(gst_pad_is_linked (sink_pad))
 	{
 		GST_ERROR ("video sink pad is already linked");
 		gst_object_unref(sink_pad);
 
-		return CSIO_CANNOT_LINK_ELEMENTS;
+		iStatus = CSIO_CANNOT_LINK_ELEMENTS;
+		goto doneAddVideo;
 	}
 
 	// Link rest of pipeline to beginning.
 	iStatus = gst_pad_link(new_pad, sink_pad);
-	GST_DEBUG ("csio_jni_AddVideo:gst_pad_link returns iStatus[0x%x]",iStatus);
+
 	if(iStatus != CSIO_SUCCESS)
-		return CSIO_CANNOT_LINK_ELEMENTS;
+	{
+		iStatus = CSIO_CANNOT_LINK_ELEMENTS;
+		goto doneAddVideo;
+	}
 
 	if( gst_element_set_state( CresDataDB->pipeline, GST_STATE_PLAYING) == GST_STATE_CHANGE_FAILURE )
 	{
@@ -883,9 +1029,17 @@ int csio_jni_AddVideo(GstPad *new_pad,gchar *encoding_name, int do_rtp,GstElemen
 	}
 
 	if(iStatus != CSIO_SUCCESS)
-		return CSIO_COULD_NOT_START_PIPELINE;
+	{
+		iStatus = CSIO_COULD_NOT_START_PIPELINE;
+		goto doneAddVideo;
+	}
 
-	//TODOL need to call pCurCfg->setStatus( iStatus );
+	GST_DEBUG("csio_jni_AddVideo iStatus = %d", iStatus);
+doneAddVideo:
+	if(new_pad_caps != NULL)
+	{
+		gst_caps_unref(new_pad_caps);
+	}
 	return iStatus;
 }
 
