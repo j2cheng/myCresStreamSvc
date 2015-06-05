@@ -918,6 +918,8 @@ int csio_jni_AddAudio(GstPad *new_pad,gchar *encoding_name, GstElement **sink)
 	GstElement *ele0 = NULL;
 	int do_rtp;
 
+	gst_element_set_state( CresDataDB->pipeline, GST_STATE_PAUSED);
+
 	gchar * p_caps_string;
 	GstCaps *new_pad_caps = gst_pad_query_caps( new_pad, NULL );
 	p_caps_string = gst_caps_to_string (new_pad_caps);
@@ -977,6 +979,7 @@ int csio_jni_AddVideo(GstPad *new_pad,gchar *encoding_name, GstElement **sink,eP
 	int do_rtp;
 
 	//GST_DEBUG("csio_jni_AddVideo: sink =0x%x",protoId);
+	gst_element_set_state( CresDataDB->pipeline, GST_STATE_PAUSED);
 
 	gchar * p_caps_string;
 	GstCaps *new_pad_caps = gst_pad_query_caps( new_pad, NULL );
