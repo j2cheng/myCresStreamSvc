@@ -215,6 +215,8 @@ static int build_video_pipeline(gchar *encoding_name, CustomData *data, unsigned
 		data->element_after_tsdemux = i;
 		do_window = 0;
 		do_sink = 0;
+
+		*ele0 = data->element_v[0];
 	}
 	else if((strcmp(encoding_name, "JPEG") == 0) || (strcmp(encoding_name, "image/jpeg") == 0))
 	{	
@@ -275,7 +277,7 @@ static int build_video_pipeline(gchar *encoding_name, CustomData *data, unsigned
 	if(!do_window)
 	{
 		GST_DEBUG("Not doing window yet");
-		return CSIO_GSTREAMER_ERROR;
+		return CSIO_SUCCESS;
 	}
 
 	if(!data->native_window)
