@@ -14,7 +14,7 @@ import android.view.SurfaceHolder;
 
 public class CameraPreview {
     String TAG = "TxRx Preview";
-    AudioPlayback audio_pb; ;
+    AudioPlayback audio_pb;
     HDMIInputInterface hdmiIf;
     CresCamera cresCam;
     private Camera mCamera = null;

@@ -144,8 +144,7 @@ public class CameraStreaming implements ErrorCallback {
             mrec.setOutputFile(path + filename);   
 
             Log.d(TAG, "########setPreviewDisplay######");
-            mrec.setPreviewDisplay(streamCtl.getCresSurfaceHolder(idx).getSurface());
-            //mrec.setPreviewDisplay(surfaceHolder.getSurface());
+//            mrec.setPreviewDisplay(streamCtl.getCresSurfaceHolder(idx).getSurface());	//TODO: put back in when preview audio works
 
             mrec.prepare();
             mrec.start();
@@ -354,7 +353,7 @@ public class CameraStreaming implements ErrorCallback {
                 CresCamera.releaseCamera(mCameraPreviewObj);
                 mCameraPreviewObj = null;
             }
-            
+
             stopStatisticsTask();
 		            
             streamCtl.SendStreamState(StreamState.STOPPED, idx);
@@ -364,6 +363,7 @@ public class CameraStreaming implements ErrorCallback {
 			streamCtl.SendStreamOutFeedbacks();
         }
     }
+    
 
     @Override
         public void onError(int error, Camera camera) {
