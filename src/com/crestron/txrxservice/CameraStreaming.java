@@ -144,7 +144,7 @@ public class CameraStreaming implements ErrorCallback {
             mrec.setOutputFile(path + filename);   
 
             Log.d(TAG, "########setPreviewDisplay######");
-//            mrec.setPreviewDisplay(streamCtl.getCresSurfaceHolder(idx).getSurface());	//TODO: put back in when preview audio works
+            mrec.setPreviewDisplay(streamCtl.getCresSurfaceHolder(idx).getSurface());	//TODO: put back in when preview audio works
 
             mrec.prepare();
             mrec.start();
