@@ -219,7 +219,6 @@ public class UserSettings //implements java.io.Serializable
 	private boolean statisticsEnable;
 	private boolean statisticsDisable;
 	private String deviceIp;
-	// TODO: do we need statistics and dhcp settings here?
 
 	public UserSettings(GstreamIn mContext)
 	{
@@ -237,7 +236,7 @@ public class UserSettings //implements java.io.Serializable
         xloc 				= new int[]{0,0};
         yloc				= new int[]{0,0};
         encodingResolution	= new int[] {0, 0};
-        encodingFramerate	= new int[] {60, 60};
+        encodingFramerate	= new int[] {30, 30};
         bitrate				= new int[]{25000, 25000}; 
         //mode 	= mode.RTSP;//RTSP;
         sessionInitiation 	= new int[] {0, 0};
