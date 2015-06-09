@@ -1320,3 +1320,132 @@ class StreamStateCommand implements CommandIf {
             return launch.getStreamState(idx);
         }
 }
+
+class StatisticsEnableCommand implements CommandIf {
+	CommandReceiver launch;
+    String msg;
+
+    public StatisticsEnableCommand(CommandReceiver launch, String arg) {
+        this.launch = launch;
+        this.msg = arg;
+    }
+
+    @Override
+        public void execute() {
+	    	boolean val = Boolean.valueOf(msg);
+            launch.setStatisticsEnable(val);
+        }
+        public String getFeedbackMsg() {
+            return launch.getStatisticsEnable();
+        }
+}
+
+class StatisticsResetCommand implements CommandIf {
+	CommandReceiver launch;
+    String msg;
+
+    public StatisticsResetCommand(CommandReceiver launch, String arg) {
+        this.launch = launch;
+        this.msg = arg;
+    }
+
+    @Override
+        public void execute() {
+	    	boolean val = Boolean.valueOf(msg);
+            launch.setStatisticsReset(val);
+        }
+        public String getFeedbackMsg() {
+            return "false";	//no feedback for this join
+        }
+}
+
+class StatisticsDisableCommand implements CommandIf {
+	CommandReceiver launch;
+    String msg;
+
+    public StatisticsDisableCommand(CommandReceiver launch, String arg) {
+        this.launch = launch;
+        this.msg = arg;
+    }
+
+    @Override
+        public void execute() {
+	    	boolean val = Boolean.valueOf(msg);
+            launch.setStatisticsDisable(val);
+        }
+        public String getFeedbackMsg() {
+            return launch.getStatisticsDisable();
+        }
+}
+
+class StatisticsNumVideoPacketsCommand implements CommandIf {
+	CommandReceiver launch;
+    String msg;
+
+    public StatisticsNumVideoPacketsCommand(CommandReceiver launch, String arg) {
+        this.launch = launch;
+        this.msg = arg;
+    }
+
+    @Override
+        public void execute() {
+    		// Feedback only join
+        }
+        public String getFeedbackMsg() {
+            return launch.getNumVideoPackets();
+        }
+}
+
+class StatisticsNumVideoPacketsDroppedCommand implements CommandIf {
+	CommandReceiver launch;
+    String msg;
+
+    public StatisticsNumVideoPacketsDroppedCommand(CommandReceiver launch, String arg) {
+        this.launch = launch;
+        this.msg = arg;
+    }
+
+    @Override
+        public void execute() {
+    		// Feedback only join
+        }
+        public String getFeedbackMsg() {
+            return launch.getNumVideoPacketsDropped();
+        }
+}
+
+class StatisticsNumAudioPacketsCommand implements CommandIf {
+	CommandReceiver launch;
+    String msg;
+
+    public StatisticsNumAudioPacketsCommand(CommandReceiver launch, String arg) {
+        this.launch = launch;
+        this.msg = arg;
+    }
+
+    @Override
+        public void execute() {
+    		// Feedback only join
+        }
+        public String getFeedbackMsg() {
+            return launch.getNumAudioPackets();
+        }
+}
+
+class StatisticsNumAudioPacketsDroppedCommand implements CommandIf {
+	CommandReceiver launch;
+    String msg;
+
+    public StatisticsNumAudioPacketsDroppedCommand(CommandReceiver launch, String arg) {
+        this.launch = launch;
+        this.msg = arg;
+    }
+
+    @Override
+        public void execute() {
+    		// Feedback only join
+        }
+        public String getFeedbackMsg() {
+            return launch.getNumAudioPacketsDropped();
+        }
+}

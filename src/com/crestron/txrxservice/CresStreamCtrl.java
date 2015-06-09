@@ -620,28 +620,35 @@ public class CresStreamCtrl extends Service {
 		sockTask.SendDataToAllClients(String.format("STREAMIN_FPS_FB%d=%s", source, framerate));
 		sockTask.SendDataToAllClients(String.format("STREAMIN_ASPECT_RATIO%d=%s", source, MiscUtils.calculateAspectRatio(width, height)));
 		sockTask.SendDataToAllClients(String.format("VENCPROFILE%d=%s", source, profile));
+		
+		sockTask.SendDataToAllClients("STREAMIN_AUDIO_FORMAT=" + String.valueOf(streamPlay.getMediaPlayerAudioFormatFb()));
+    	sockTask.SendDataToAllClients("STREAMIN_AUDIO_CHANNELS=" + String.valueOf(streamPlay.getMediaPlayerAudiochannelsFb()));
     }
     
     public void SendStreamInFeedbacks()
     {
-    	sockTask.SendDataToAllClients("STREAMIN_HORIZONTAL_RES_FB=" + String.valueOf(getStreamHorizontalResFb(true)));
-    	sockTask.SendDataToAllClients("STREAMIN_VERTICAL_RES_FB=" + String.valueOf(getStreamVerticalResFb(true)));
-    	sockTask.SendDataToAllClients("STREAMIN_FPS_FB=" + String.valueOf(getStreamFpsFb(true)));
-    	sockTask.SendDataToAllClients("STREAMIN_ASPECT_RATIO=" + String.valueOf(getStreamAspectRatioFb(true)));
-    	sockTask.SendDataToAllClients("STREAMIN_AUDIO_FORMAT=" + String.valueOf(getStreamAudioFormatFb(true)));
-    	sockTask.SendDataToAllClients("STREAMIN_AUDIO_CHANNELS=" + String.valueOf(getStreamAudiochannelsFb(true)));
+    	sockTask.SendDataToAllClients("Statistics_NumberOfVideoPackets=" + String.valueOf(streamPlay.getStreamInNumVideoPackets()));
+    	sockTask.SendDataToAllClients("StatisticsNumVideoPacketsDropped=" + String.valueOf(streamPlay.getStreamInNumVideoPacketsDropped()));
+    	sockTask.SendDataToAllClients("Statistics_NumberOfAudioPackets=" + String.valueOf(streamPlay.getStreamInNumAudioPackets()));
+    	sockTask.SendDataToAllClients("Statistics_NumberOfAudioPacketsDropped=" + String.valueOf(streamPlay.getStreamInNumAudioPacketsDropped()));    	
+    	sockTask.SendDataToAllClients("VBITRATE=" + String.valueOf(streamPlay.getStreamInBitrate()));
 
         //processReceivedMessage()
     }
     
     public void SendStreamOutFeedbacks()
     {
-    	sockTask.SendDataToAllClients("STREAMOUT_HORIZONTAL_RES_FB=" + String.valueOf(getStreamHorizontalResFb(false)));
-    	sockTask.SendDataToAllClients("STREAMOUT_VERTICAL_RES_FB=" + String.valueOf(getStreamVerticalResFb(false)));
-    	sockTask.SendDataToAllClients("STREAMOUT_FPS_FB=" + String.valueOf(getStreamFpsFb(false)));
-    	sockTask.SendDataToAllClients("STREAMOUT_ASPECT_RATIO=" + String.valueOf(getStreamAspectRatioFb(false)));
-    	sockTask.SendDataToAllClients("STREAMOUT_AUDIO_FORMAT=" + String.valueOf(getStreamAudioFormatFb(false)));
-    	sockTask.SendDataToAllClients("STREAMOUT_AUDIO_CHANNELS=" + String.valueOf(getStreamAudiochannelsFb(false)));
+    	sockTask.SendDataToAllClients("STREAMOUT_HORIZONTAL_RES_FB=" + String.valueOf(cam_streaming.getStreamOutWidth()));
+    	sockTask.SendDataToAllClients("STREAMOUT_VERTICAL_RES_FB=" + String.valueOf(cam_streaming.getStreamOutHeight()));
+    	sockTask.SendDataToAllClients("STREAMOUT_FPS_FB=" + String.valueOf(cam_streaming.getStreamOutFpsFb()));
+    	sockTask.SendDataToAllClients("STREAMOUT_ASPECT_RATIO=" + String.valueOf(cam_streaming.getStreamOutAspectRatioFb()));
+    	sockTask.SendDataToAllClients("STREAMOUT_AUDIO_FORMAT=" + String.valueOf(cam_streaming.getStreamOutAudioFormatFb()));
+    	sockTask.SendDataToAllClients("STREAMOUT_AUDIO_CHANNELS=" + String.valueOf(cam_streaming.getStreamOutAudiochannelsFb()));
+    	
+    	sockTask.SendDataToAllClients("Statistics_NumberOfVideoPackets=" + String.valueOf(cam_streaming.getStreamOutNumVideoPackets()));
+    	sockTask.SendDataToAllClients("StatisticsNumVideoPacketsDropped=" + String.valueOf(cam_streaming.getStreamOutNumVideoPacketsDropped()));
+    	sockTask.SendDataToAllClients("Statistics_NumberOfAudioPackets=" + String.valueOf(cam_streaming.getStreamOutNumAudioPackets()));
+    	sockTask.SendDataToAllClients("Statistics_NumberOfAudioPacketsDropped=" + String.valueOf(cam_streaming.getStreamOutNumAudioPacketsDropped()));
     }
 
     public void SendStreamState(StreamState state, int sessionId)
@@ -947,49 +954,6 @@ public class CresStreamCtrl extends Service {
         //TODO
     }
 
-    public int getStreamHorizontalResFb(boolean streamIn){
-    	if (streamIn)
-    		return streamPlay.getMediaPlayerHorizontalResFb();
-    	else
-    		return cam_streaming.getStreamOutWidth();
-    } 
-    
-    public int getStreamVerticalResFb(boolean streamIn){
-    	if (streamIn)
-    		return streamPlay.getMediaPlayerVerticalResFb();
-    	else
-    		return cam_streaming.getStreamOutHeight();
-    }
-    
-    public int getStreamFpsFb(boolean streamIn){
-    	if (streamIn)
-    		return streamPlay.getMediaPlayerFpsFb();
-    	else
-    		return cam_streaming.getStreamOutFpsFb();
-    }
-    
-    public String getStreamAspectRatioFb(boolean streamIn){
-    	if (streamIn)
-    		return streamPlay.getMediaPlayerAspectRatioFb();
-    	else
-    		return cam_streaming.getStreamOutAspectRatioFb();
-    }
-
-    public int getStreamAudioFormatFb(boolean streamIn){
-    	if (streamIn)
-    		return streamPlay.getMediaPlayerAudioFormatFb();
-    	else
-    		return cam_streaming.getStreamOutAudioFormatFb();
-    }
-    
-    public int getStreamAudiochannelsFb(boolean streamIn){
-    	if (streamIn)
-    		return streamPlay.getMediaPlayerAudiochannelsFb();
-    	else
-    		return cam_streaming.getStreamOutAudiochannelsFb();
-    }
-
-
     //Preview 
     public void startPreview(int sessId)
     {
@@ -1043,15 +1007,28 @@ public class CresStreamCtrl extends Service {
     public String getStreamStatus(){
 	return "0";//"TODO";
     }
+    
+    public void setStatistics(boolean enabled){
+    	userSettings.setStatisticsEnable(enabled);
+		userSettings.setStatisticsDisable(!enabled);
+    }
+    
+    public void resetStatistics(){
+    	if (userSettings.getMode(0) == DeviceMode.STREAM_IN.ordinal())	//statistics should only report for window id 0
+    		streamPlay.resetStatistics();
+    	else if (userSettings.getMode(0) == DeviceMode.STREAM_OUT.ordinal())
+    		cam_streaming.resetStatistics();
+    }
+    
 
-    public String getStreamStatistics(){
+//    public String getStreamStatistics(){
 //        if (userSettings.getMode(idx) == DeviceMode.STREAM_IN.ordinal()) 
 //            return streamPlay.updateSvcWithPlayerStatistics(); 
 //        else if (userSettings.getMode(idx) == DeviceMode.STREAM_OUT.ordinal()) 
 //            return cam_streaming.updateSvcWithStreamStatistics();
 //        else
-            return "";
-    }
+//            return "";
+//    }
 
     //Registering for HPD and Resolution Event detection	
     void registerBroadcasts(){

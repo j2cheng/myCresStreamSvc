@@ -36,6 +36,11 @@ public class CameraStreaming implements ErrorCallback {
     private int streamOutFps = 0;
     private int streamOutAudioChannels = 0;
     private int streamOutAudioFormat = 0;
+    private long statisticsNumVideoPackets = 0;
+    private int statisticsNumVideoPacketsDropped = 0;
+    private long statisticsNumAudioPackets = 0;
+    private int statisticsNumAudioPacketsDropped = 0;
+
     private boolean shouldExit = false;
     private Thread statisticsThread;
     private final long statisticsThreadPollTime = 1000;
@@ -409,6 +414,32 @@ public class CameraStreaming implements ErrorCallback {
 		this.streamOutHeight = streamOutHeight;
 	}
 	
+    public long getStreamOutNumVideoPackets() {
+		return statisticsNumVideoPackets;
+	}
+	
+	public int getStreamOutNumVideoPacketsDropped() {
+		return statisticsNumVideoPacketsDropped;
+	}
+	
+	public long getStreamOutNumAudioPackets() {
+		return statisticsNumAudioPackets;
+	}
+	
+	public int getStreamOutNumAudioPacketsDropped() {
+		return statisticsNumAudioPacketsDropped;
+	}
+	
+	public void resetStatistics() {
+		//TODO: command to tell native code to reset statistics
+//		statisticsNumVideoPackets = 0;
+//        statisticsNumVideoPacketsDropped = 0;
+//        statisticsNumAudioPackets = 0;
+//        statisticsNumAudioPacketsDropped = 0;
+//        
+//        streamCtl.SendStreamOutFeedbacks();
+	}
+	
 	protected void startStatisticsTask(){
 		shouldExit = false;
 		statisticsThread = new Thread(new StatisticsTask());    	
@@ -493,11 +524,29 @@ public class CameraStreaming implements ErrorCallback {
 				{    		
     				Thread.sleep(statisticsThreadPollTime);
     				
-    				if (mrec == null)
-    					continue;
-    				
-					statisticsString = mrec.getStatisticsData();
-
+    				if (streamCtl.userSettings.isStatisticsEnable())
+    				{
+    					if (mrec == null)
+	    					continue;
+	    				
+						statisticsString = mrec.getStatisticsData();
+						
+						// Pull out number of Video packets
+						regexP = Pattern.compile("Video\\s+Encoded Frames:\\s+(\\d+)");
+						regexM = regexP.matcher(statisticsString);
+						regexM.find();
+						if (regexM.group(1) != null)
+							statisticsNumVideoPackets = Long.valueOf(regexM.group(1));
+						
+						// Pull out number of Audio packets
+						regexP = Pattern.compile("Audio\\s+Encoded Frames:\\s+(\\d+)");
+						regexM = regexP.matcher(statisticsString);
+						regexM.find();
+						if (regexM.group(1) != null)
+							statisticsNumAudioPackets = Long.valueOf(regexM.group(1));
+						
+						streamCtl.SendStreamOutFeedbacks();
+    				}
 				}
             }
             catch (InterruptedException localInterruptedException)

@@ -177,6 +177,21 @@ public class CommandReceiver {
     public void setDestHeight(int h, int sessId){
         ctl.setWindowSizeH(h, sessId);
     }
+    
+    public void setStatisticsEnable(boolean flag){
+    	if(flag)
+    		ctl.setStatistics(flag);
+    }
+    
+    public void setStatisticsReset(boolean flag){
+    	if (flag)
+    		ctl.resetStatistics();
+    }
+    
+    public void setStatisticsDisable(boolean flag){
+    	if(flag)
+    		ctl.setStatistics(!flag);
+    }
 
     //Process Feedbacks
     public String getStreamUrl(int idx){
@@ -423,5 +438,30 @@ public class CommandReceiver {
     
     public String getPassword(int sessId){
     	return ctl.userSettings.getPassword(sessId);
+    }
+    
+    public String getStatisticsEnable(){
+    	return String.valueOf(ctl.userSettings.isStatisticsEnable());
+    }
+    
+    public String getStatisticsDisable(){
+    	return String.valueOf(ctl.userSettings.isStatisticsDisable());
+    }
+    
+    //TODO: do we want to save this every second in memory???
+    public String getNumVideoPackets(){
+    	return "0";
+    }
+    
+    public String getNumVideoPacketsDropped(){
+    	return "0";
+    }
+    
+    public String getNumAudioPackets(){
+    	return "0";
+    }
+    
+    public String getNumAudioPacketsDropped(){
+    	return "0";
     }
 }

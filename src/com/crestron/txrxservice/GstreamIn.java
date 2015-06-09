@@ -10,21 +10,21 @@ import android.content.Context;
 import com.crestron.txrxservice.CresStreamCtrl.StreamState;
 import org.freedesktop.gstreamer.GStreamer;
 
-public class GstreamIn implements /*OnPreparedListener, OnCompletionListener, OnBufferingUpdateListener,*/ SurfaceHolder.Callback {
+public class GstreamIn implements SurfaceHolder.Callback {
 
-    //private MediaPlayer mediaPlayer;
-//    private SurfaceHolder vidHolder;
     String TAG = "TxRx GstreamIN";
     StringBuilder sb;
-//    static int latency = 2000;//msec
-//    int dest_width = 1280;
-//    int dest_height = 720;
     boolean rtp_mode = false;
     boolean media_pause = false;
     boolean tcpInterleaveFlag = false;
     boolean disableLatencyFlag = false;
     private CresStreamCtrl streamCtl;
-    //private int idx = 0;
+    private long statisticsNumVideoPackets = 0;
+    private int statisticsNumVideoPacketsDropped = 0;
+    private long statisticsNumAudioPackets = 0;
+    private int statisticsNumAudioPacketsDropped = 0;
+    private int statisticsBitrate = 0;
+
 
     private native void nativeInit();     // Initialize native code, build pipeline, etc
     private native void nativeFinalize(); // Destroy pipeline and shutdown native code
@@ -102,12 +102,19 @@ public class GstreamIn implements /*OnPreparedListener, OnCompletionListener, On
     }
     
     public void sendStatistics(long video_packets_received, int video_packets_lost, long audio_packets_received, int audio_packets_lost, int bitrate){
-    	// TODO: Implement this
     	Log.d(TAG, "video_packets_received "+video_packets_received+ "\n");
     	Log.d(TAG, "video_packets_lost "+video_packets_lost+ "\n");
     	Log.d(TAG, "audio_packets_received "+audio_packets_received+ "\n");
     	Log.d(TAG, "audio_packets_lost "+audio_packets_lost+ "\n");
     	Log.d(TAG, "bitrate "+bitrate+ "\n");
+    	
+    	statisticsNumVideoPackets = video_packets_received;
+        statisticsNumVideoPacketsDropped = video_packets_lost;
+        statisticsNumAudioPackets = audio_packets_received;
+        statisticsNumAudioPacketsDropped = audio_packets_lost;
+        statisticsBitrate = bitrate;
+        
+        streamCtl.SendStreamInFeedbacks();
     }
  
     public void updateCurrentXYloc(int xloc, int yloc, int sessId){
@@ -138,23 +145,54 @@ public class GstreamIn implements /*OnPreparedListener, OnCompletionListener, On
     	streamCtl.SendStreamInVideoFeedbacks(source, width, height, framerate, profile); //TODO: see if profile needs to be converted
     }
     
+    public long getStreamInNumVideoPackets() {
+		return statisticsNumVideoPackets;
+	}
+	
+	public int getStreamInNumVideoPacketsDropped() {
+		return statisticsNumVideoPacketsDropped;
+	}
+	
+	public long getStreamInNumAudioPackets() {
+		return statisticsNumAudioPackets;
+	}
+	
+	public int getStreamInNumAudioPacketsDropped() {
+		return statisticsNumAudioPacketsDropped;
+	}
+	
+	public int getStreamInBitrate() {
+		return statisticsBitrate;
+	}
+	
+	public void resetStatistics() {
+		//TODO: JNI command to tell native code to reset statistics
+//		statisticsNumVideoPackets = 0;
+//        statisticsNumVideoPacketsDropped = 0;
+//        statisticsNumAudioPackets = 0;
+//        statisticsNumAudioPacketsDropped = 0;
+//        statisticsBitrate = 0;
+//        
+//        streamCtl.SendStreamInFeedbacks();
+	}
+    
     //MJPEG IN  ??? Not Needed
     public void disableLatency(){
-        disableLatencyFlag = true;    
+//        disableLatencyFlag = true;    
     }
 
     //Enable TCP for RTSP Mode
     public void setRtspTcpInterleave(boolean tcpInterleave){
-        Log.d(TAG, " setRtspTcpInterleave");
-        tcpInterleaveFlag = tcpInterleave;    
+//        Log.d(TAG, " setRtspTcpInterleave");
+//        tcpInterleaveFlag = tcpInterleave;    
     }
 
     //RTP Only Mode, SDP Creation based on RTP Video and Audio Ports
     public void setRtpOnlyMode(int vport, int aport, String ip){
-        rtp_mode = true;
-        sb = new StringBuilder(4096);
-        Log.d(TAG, "vport "+vport+ "aport "+aport +"ip "+ip);
-        sb.append("v=0\r\n").append("o=- 15545345606659080561 15545345606659080561 IN IP4 cpu000669\r\n").append("s=Sample\r\n").append("i=N/A\r\n").append("c=IN IP4 ").append(ip).append("\r\n").append("t=0 0\r\n").append("a=range:npt=now-\r\n").append("m=audio ").append(Integer.toString(aport)).append(" RTP/AVP 96\r\n").append("a=control:audio\r\n").append("a=rtpmap:96 MP4A-LATM/44100/2\r\n").append("a=fmtp:96 profile-level-id=15; object=2; cpresent=0; config=400024203fc0\r\n").append("m=video ").append(Integer.toString(vport)).append(" RTP/AVP 97\r\n").append("a=control:video\r\n").append("a=rtpmap:97 H264/90000\r\n").append("a=fmtp:97 profile-level-id=64002A;in-band-parameter-sets=1;packetization-mode=1\r\n");
+//        rtp_mode = true;
+//        sb = new StringBuilder(4096);
+//        Log.d(TAG, "vport "+vport+ "aport "+aport +"ip "+ip);
+//        sb.append("v=0\r\n").append("o=- 15545345606659080561 15545345606659080561 IN IP4 cpu000669\r\n").append("s=Sample\r\n").append("i=N/A\r\n").append("c=IN IP4 ").append(ip).append("\r\n").append("t=0 0\r\n").append("a=range:npt=now-\r\n").append("m=audio ").append(Integer.toString(aport)).append(" RTP/AVP 96\r\n").append("a=control:audio\r\n").append("a=rtpmap:96 MP4A-LATM/44100/2\r\n").append("a=fmtp:96 profile-level-id=15; object=2; cpresent=0; config=400024203fc0\r\n").append("m=video ").append(Integer.toString(vport)).append(" RTP/AVP 97\r\n").append("a=control:video\r\n").append("a=rtpmap:97 H264/90000\r\n").append("a=fmtp:97 profile-level-id=64002A;in-band-parameter-sets=1;packetization-mode=1\r\n");
     }
 
     //Play based on based Pause/Actual Playback 
@@ -174,10 +212,6 @@ public class GstreamIn implements /*OnPreparedListener, OnCompletionListener, On
 
     //Pause
     public void onPause(int sessionId) {
-//         if((mediaPlayer!=null) && (mediaPlayer.isPlaying()))
-//             mediaPlayer.pause();
-//         media_pause = true;
-    	//streamCtl.SendStreamState(StreamState.PAUSED, idx);
         nativePause();
     }
 
@@ -213,21 +247,21 @@ public class GstreamIn implements /*OnPreparedListener, OnCompletionListener, On
     	return true;//TODO
     }
 
-    public int getMediaPlayerHorizontalResFb(){
-        return 0;//TODO
-    }
-
-    public int getMediaPlayerVerticalResFb(){
-    	return 0;//TODO
-    }
-
-    public int getMediaPlayerFpsFb(){
-        return 30;//TODO
-    }
-    public String getMediaPlayerAspectRatioFb(){
-        String aspect = MiscUtils.calculateAspectRatio(0, 0);//TODO
-        return aspect;
-    }
+//    public int getMediaPlayerHorizontalResFb(){
+//        return 0;//TODO
+//    }
+//
+//    public int getMediaPlayerVerticalResFb(){
+//    	return 0;//TODO
+//    }
+//
+//    public int getMediaPlayerFpsFb(){
+//        return 30;//TODO
+//    }
+//    public String getMediaPlayerAspectRatioFb(){
+//        String aspect = MiscUtils.calculateAspectRatio(0, 0);//TODO
+//        return aspect;
+//    }
     public int getMediaPlayerAudioFormatFb(){
         return 1;//TODO
     }

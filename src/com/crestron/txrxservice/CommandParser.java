@@ -88,7 +88,16 @@ public class CommandParser {
         STREAM_STATUS_FB, 
         INITIATOR_ADDRESS_FB,
         //STATUS  
-        STREAMSTATE;
+        STREAMSTATE,
+        //Ethernet
+        STATISTICS_ENABLE,
+        STATISTICS_DISABLE,
+        STATISTICS_RESET,
+        STATISTICS_NUMBEROFVIDEOPACKETS,
+        STATISTICS_NUMBEROFVIDEOPACKETSDROPPED,
+        STATISTICS_NUMBEROFAUDIOPACKETS,
+        STATISTICS_NUMBEROFAUDIOPACKETSDROPPED;
+
         //UPDATEREQUEST;
     }
 
@@ -151,6 +160,10 @@ public class CommandParser {
         sb.append("YLOC = (y position)\r\n");
         sb.append("W (= window width)\r\n");
         sb.append("H (= window height)\r\n");
+        
+        sb.append("STATISTICS_ENABLE (=true)\r\n");
+        sb.append("STATISTICS_DISABLE (=true)\r\n");
+
         sb.append("UPDATEREQUEST\r\nType COMMAND for Query |streamstate to know status\r\n");
         
         return (sb.toString());
@@ -375,6 +388,28 @@ public class CommandParser {
             case STREAMSTATE:
                 cmd = new StreamStateCommand(cmdRx, arg, idx); 
                 break;
+            //Ethernet
+            case STATISTICS_ENABLE:
+            	cmd = new StatisticsEnableCommand(cmdRx, arg);
+            	break;
+            case STATISTICS_DISABLE:
+            	cmd = new StatisticsDisableCommand(cmdRx, arg);
+            	break;
+            case STATISTICS_RESET:
+            	cmd = new StatisticsResetCommand(cmdRx, arg);
+            	break;
+            case STATISTICS_NUMBEROFVIDEOPACKETS:
+            	cmd = new StatisticsNumVideoPacketsCommand(cmdRx, arg);
+            	break;
+            case STATISTICS_NUMBEROFVIDEOPACKETSDROPPED:
+            	cmd = new StatisticsNumVideoPacketsDroppedCommand(cmdRx, arg);
+            	break;
+            case STATISTICS_NUMBEROFAUDIOPACKETS:
+            	cmd = new StatisticsNumAudioPacketsCommand(cmdRx, arg);
+            	break;
+            case STATISTICS_NUMBEROFAUDIOPACKETSDROPPED:
+            	cmd = new StatisticsNumAudioPacketsDroppedCommand(cmdRx, arg);
+            	break;
             default:
                 break;
         }
