@@ -326,7 +326,10 @@ static int build_audio_pipeline(gchar *encoding_name, CustomData *data, int do_r
 	{
 		if(do_rtp)
 		{
-			data->element_a[i++] = gst_element_factory_make("rtpmp4gdepay", NULL);
+			if (strcmp(encoding_name, "MP4A-LATM") == 0)
+				data->element_a[i++] = gst_element_factory_make("rtpmp4adepay", NULL);
+			else
+				data->element_a[i++] = gst_element_factory_make("rtpmp4gdepay", NULL);
 		}
 		data->element_a[i++] = gst_element_factory_make("aacparse", NULL);
 		data->element_a[i++] = gst_element_factory_make("faad", NULL);
