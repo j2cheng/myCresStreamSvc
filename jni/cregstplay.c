@@ -490,9 +490,9 @@ static void pad_added_callback(GstElement *src, GstPad *new_pad, CustomData *dat
 
 // "souphttpsrc location=http://ssabet.no-ip.org:8084/video.mjpg ! jpegdec ! glimagesink" works with gst_parse_launch,
 // but here we get internal data flow error!?
-static void build_http_pipeline(void * userdata)
+static void build_http_pipeline(void * userdata, int iStreamId)
 {
-	char *url = (char *)currentSettingsDB.settingsMessage.msg[0].url;
+	char *url = (char *)currentSettingsDB.settingsMessage.msg[iStreamId].url;
 	CustomData *data = (CustomData *)userdata;
 	
 	/*if(g_str_has_suffix(url, ".mjpg") || g_str_has_suffix(url, ".mjpeg") || g_str_has_suffix(url, ".cgi")

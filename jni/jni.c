@@ -214,21 +214,22 @@ static void gst_native_finalize (JNIEnv* env, jobject thiz)
 }
 
 /* Set pipeline to PLAYING state */
-void gst_native_play (JNIEnv* env, jobject thiz)
+void gst_native_play (JNIEnv* env, jobject thiz, jint sessionId)
 {	
-	start_streaming_cmd();	
+	currentSettingsDB.settingsMessage.msg[sessionId].src = sessionId;
+	start_streaming_cmd(sessionId);
 }
 
 /* Set pipeline to PAUSED state */
-static void gst_native_pause (JNIEnv* env, jobject thiz) 
+static void gst_native_pause (JNIEnv* env, jobject thiz, jint sessionId)
 {
-	pause_streaming_cmd();
+	pause_streaming_cmd(sessionId);
 }
 
 /* Set pipeline to PAUSED state */
-void gst_native_stop (JNIEnv* env, jobject thiz)
+void gst_native_stop (JNIEnv* env, jobject thiz, jint sessionId)
 {    
-    stop_streaming_cmd();
+    stop_streaming_cmd(sessionId);
     csio_jni_cleanup();
 }
 
@@ -355,15 +356,15 @@ JNIEXPORT void JNICALL Java_com_crestron_txrxservice_GstreamIn_nativeSetRtspPort
 {
 	GST_DEBUG ("Using RtspPort: '%d'", port);
 	//TODO: Currently we dont save rtsp port in CSIOsettings
-	//currentSettingsDB.videoSettings[0]. = port;
-	//GST_DEBUG ("URL in currentSettingsDB: '%d'", currentSettingsDB.settingsMessage.msg[0].url);
+	//currentSettingsDB.videoSettings[sessionId]. = port;
+	//GST_DEBUG ("URL in currentSettingsDB: '%d'", currentSettingsDB.settingsMessage.msg[sessionId].url);
 }
 
 JNIEXPORT void JNICALL Java_com_crestron_txrxservice_GstreamIn_nativeSetTsPort(JNIEnv *env, jobject thiz, jint port, jint sessionId)
 {
 	GST_DEBUG ("Using tsPort: '%d'", port);
 	//currentSettingsDB.videoSettings[sessionId].tsPort = port;
-	csio_SetPortNumber( eWindowId_0, port, c_TSportNumber );
+	csio_SetPortNumber( sessionId, port, c_TSportNumber );
 	GST_DEBUG ("tsPort in currentSettingsDB: '%d'", currentSettingsDB.videoSettings[sessionId].tsPort);
 }
 
@@ -371,7 +372,7 @@ JNIEXPORT void JNICALL Java_com_crestron_txrxservice_GstreamIn_nativeSetRtpVideo
 {
 	GST_DEBUG ("Using rtpVideoPort: '%d'", port);
 	//currentSettingsDB.videoSettings[sessionId].rtpVideoPort = port;
-	csio_SetPortNumber( eWindowId_0, port, c_RTPVideoPortNumber );
+	csio_SetPortNumber( sessionId, port, c_RTPVideoPortNumber );
 	GST_DEBUG ("rtpVideoPort in currentSettingsDB: '%d'", currentSettingsDB.videoSettings[sessionId].rtpVideoPort);
 }
 
@@ -379,7 +380,7 @@ JNIEXPORT void JNICALL Java_com_crestron_txrxservice_GstreamIn_nativeSetRtpAudio
 {
 	GST_DEBUG ("Using rtpAudioPort: '%d'", port);
 	//currentSettingsDB.videoSettings[sessionId].rtpAudioPort = port;
-	csio_SetPortNumber( eWindowId_0, port, c_RTPAudioPortNumber );
+	csio_SetPortNumber( sessionId, port, c_RTPAudioPortNumber );
 	GST_DEBUG ("rtpAudioPort in currentSettingsDB: '%d'", currentSettingsDB.videoSettings[sessionId].rtpAudioPort);
 }
 
@@ -450,9 +451,9 @@ static JNINativeMethod native_methods[] =
 {
 	{ "nativeInit", "()V", (void *) gst_native_init},
 	{ "nativeFinalize", "()V", (void *) gst_native_finalize},
-	{ "nativePlay", "()V", (void *) gst_native_play},
-	{ "nativePause", "()V", (void *) gst_native_pause},
-	{ "nativeStop", "()V", (void *) gst_native_stop},
+	{ "nativePlay", "(I)V", (void *) gst_native_play},
+	{ "nativePause", "(I)V", (void *) gst_native_pause},
+	{ "nativeStop", "(I)V", (void *) gst_native_stop},
 	{ "nativeSurfaceInit", "(Ljava/lang/Object;)V", (void *) gst_native_surface_init},
 	{ "nativeSurfaceFinalize", "()V", (void *) gst_native_surface_finalize},
 	{ "nativeClassInit", "()Z", (void *) gst_native_class_init},
@@ -639,7 +640,7 @@ void csio_jni_SetOverlayWindow()
 	}
 }
 
-int csio_jni_CreatePipeline(GstElement **pipeline,GstElement **source,eProtocolId protoId)
+int csio_jni_CreatePipeline(GstElement **pipeline,GstElement **source,eProtocolId protoId, int iStreamId)
 {	
 	int iStatus = CSIO_SUCCESS;
 
@@ -675,7 +676,7 @@ int csio_jni_CreatePipeline(GstElement **pipeline,GstElement **source,eProtocolI
 	    }
 	    case ePROTOCOL_HTTP:
 	    {
-	    	build_http_pipeline(CresDataDB);
+	    	build_http_pipeline(CresDataDB, iStreamId);
 
 			*pipeline = CresDataDB->pipeline;
 			*source   = CresDataDB->element_zero;
@@ -687,7 +688,7 @@ int csio_jni_CreatePipeline(GstElement **pipeline,GstElement **source,eProtocolI
 	    	CresDataDB->element_zero = gst_element_factory_make("rtpbin", NULL);
 	    	gst_bin_add(GST_BIN(CresDataDB->pipeline), CresDataDB->element_zero);
 
-	    	CresDataDB->udp_port = currentSettingsDB.videoSettings[eWindowId_0].tsPort;
+	    	CresDataDB->udp_port = currentSettingsDB.videoSettings[iStreamId].tsPort;
 	    	CresDataDB->element_av[0] = gst_element_factory_make("udpsrc", NULL);
 	    	g_object_set(G_OBJECT(CresDataDB->element_av[0]), "caps", CresDataDB->caps_v_ts, NULL);
 			g_object_set(G_OBJECT(CresDataDB->element_av[0]), "port", CresDataDB->udp_port, NULL);
@@ -705,7 +706,7 @@ int csio_jni_CreatePipeline(GstElement **pipeline,GstElement **source,eProtocolI
 			gst_bin_add(GST_BIN(CresDataDB->pipeline), CresDataDB->element_zero);
 
 			//video
-			CresDataDB->udp_video_port = currentSettingsDB.videoSettings[eWindowId_0].rtpVideoPort;
+			CresDataDB->udp_video_port = currentSettingsDB.videoSettings[iStreamId].rtpVideoPort;
 			CresDataDB->element_av[0] = gst_element_factory_make("udpsrc", NULL);
 			g_object_set(G_OBJECT(CresDataDB->element_av[0]), "port", CresDataDB->udp_video_port, NULL);
 			g_object_set(G_OBJECT(CresDataDB->element_av[0]), "caps", CresDataDB->caps_v_rtp, NULL);
@@ -714,7 +715,7 @@ int csio_jni_CreatePipeline(GstElement **pipeline,GstElement **source,eProtocolI
 
 			//audio
 			CresDataDB->element_av[1] = gst_element_factory_make("udpsrc", NULL);
-			CresDataDB->udp_audio_port = currentSettingsDB.videoSettings[eWindowId_0].rtpAudioPort;
+			CresDataDB->udp_audio_port = currentSettingsDB.videoSettings[iStreamId].rtpAudioPort;
 			g_object_set(G_OBJECT(CresDataDB->element_av[1]), "port", CresDataDB->udp_audio_port, NULL);
 			g_object_set(G_OBJECT(CresDataDB->element_av[1]), "caps", CresDataDB->caps_a_rtp, NULL);
 			gst_bin_add(GST_BIN(CresDataDB->pipeline), CresDataDB->element_av[1]);
@@ -727,12 +728,12 @@ int csio_jni_CreatePipeline(GstElement **pipeline,GstElement **source,eProtocolI
 	    case ePROTOCOL_MULTICAST_TS:
 	    {
 	    	GST_DEBUG("ePROTOCOL_MULTICAST_TS");
-	    	strcpy(CresDataDB->multicast_grp,currentSettingsDB.videoSettings[eWindowId_0].multicastAddress);
+	    	strcpy(CresDataDB->multicast_grp,currentSettingsDB.videoSettings[iStreamId].multicastAddress);
 
 			CresDataDB->element_zero = gst_element_factory_make("rtpbin", NULL);
 			gst_bin_add(GST_BIN(CresDataDB->pipeline), CresDataDB->element_zero);
 
-			CresDataDB->udp_port = currentSettingsDB.videoSettings[eWindowId_0].tsPort;
+			CresDataDB->udp_port = currentSettingsDB.videoSettings[iStreamId].tsPort;
 			CresDataDB->element_av[0] = gst_element_factory_make("udpsrc", NULL);
 			g_object_set(G_OBJECT(CresDataDB->element_av[0]), "caps", CresDataDB->caps_v_ts, NULL);
 			g_object_set(G_OBJECT(CresDataDB->element_av[0]), "port", CresDataDB->udp_port, NULL);
@@ -746,14 +747,14 @@ int csio_jni_CreatePipeline(GstElement **pipeline,GstElement **source,eProtocolI
 	    case ePROTOCOL_MULTICAST:
 	    {
 	    	//GST_ERROR ("ePROTOCOL_MULTICAST\n");
-	    	strcpy(CresDataDB->multicast_grp,currentSettingsDB.videoSettings[eWindowId_0].multicastAddress);
+	    	strcpy(CresDataDB->multicast_grp,currentSettingsDB.videoSettings[iStreamId].multicastAddress);
 
 	    	//build_udp_pipeline(CresDataDB,protoId);
 	    	CresDataDB->element_zero = gst_element_factory_make("rtpbin", NULL);
 			gst_bin_add(GST_BIN(CresDataDB->pipeline), CresDataDB->element_zero);
 
 			//video
-			CresDataDB->udp_video_port = currentSettingsDB.videoSettings[eWindowId_0].rtpVideoPort;
+			CresDataDB->udp_video_port = currentSettingsDB.videoSettings[iStreamId].rtpVideoPort;
 			CresDataDB->element_av[0] = gst_element_factory_make("udpsrc", NULL);
 			g_object_set(G_OBJECT(CresDataDB->element_av[0]), "port", CresDataDB->udp_video_port, NULL);
 			g_object_set(G_OBJECT(CresDataDB->element_av[0]), "caps", CresDataDB->caps_v_rtp, NULL);
@@ -762,7 +763,7 @@ int csio_jni_CreatePipeline(GstElement **pipeline,GstElement **source,eProtocolI
 
 			//audio
 			CresDataDB->element_av[1] = gst_element_factory_make("udpsrc", NULL);
-			CresDataDB->udp_audio_port = currentSettingsDB.videoSettings[eWindowId_0].rtpAudioPort;
+			CresDataDB->udp_audio_port = currentSettingsDB.videoSettings[iStreamId].rtpAudioPort;
 			g_object_set(G_OBJECT(CresDataDB->element_av[1]), "port", CresDataDB->udp_audio_port, NULL);
 			g_object_set(G_OBJECT(CresDataDB->element_av[1]), "caps", CresDataDB->caps_a_rtp, NULL);
 			gst_bin_add(GST_BIN(CresDataDB->pipeline), CresDataDB->element_av[1]);
@@ -783,7 +784,7 @@ int csio_jni_CreatePipeline(GstElement **pipeline,GstElement **source,eProtocolI
 }
 
 
-void csio_jni_InitPipeline(eProtocolId protoId)
+void csio_jni_InitPipeline(eProtocolId protoId, int iStreamId)
 {
 	//GST_ERROR ("protoId = %d\n",protoId);
 	switch( protoId )
@@ -793,8 +794,8 @@ void csio_jni_InitPipeline(eProtocolId protoId)
 		case ePROTOCOL_RTSP_UDP_TS:
 		case ePROTOCOL_RTSP_TS:
 		{
-			g_object_set(G_OBJECT(CresDataDB->element_zero), "location", currentSettingsDB.settingsMessage.msg[0].url, NULL);
-			g_object_set(G_OBJECT(CresDataDB->element_zero), "latency", currentSettingsDB.videoSettings[0].streamingBuffer, NULL);
+			g_object_set(G_OBJECT(CresDataDB->element_zero), "location", currentSettingsDB.settingsMessage.msg[iStreamId].url, NULL);
+			g_object_set(G_OBJECT(CresDataDB->element_zero), "latency", currentSettingsDB.videoSettings[iStreamId].streamingBuffer, NULL);
 			g_object_set(G_OBJECT(CresDataDB->element_zero), "tcp_timeout", CresDataDB->tcp_timeout_usec, NULL);
 			g_object_set(G_OBJECT(CresDataDB->element_zero), "timeout", CresDataDB->udp_timeout_usec, NULL);
 			// For some reason, this port range must be set for rtsp with multicast to work.
@@ -834,7 +835,7 @@ void csio_jni_InitPipeline(eProtocolId protoId)
 	}
 }
 
-void csio_jni_SetSourceLocation(eProtocolId protoId)
+void csio_jni_SetSourceLocation(eProtocolId protoId, int iStreamId)
 {
 	//GST_ERROR ("protoId = %d\n",protoId);
 	switch( protoId )
@@ -845,7 +846,7 @@ void csio_jni_SetSourceLocation(eProtocolId protoId)
 		case ePROTOCOL_RTSP_TS:
 		{
 			g_object_set(G_OBJECT(CresDataDB->element_zero), "location", \
-					     currentSettingsDB.settingsMessage.msg[0].url, NULL);
+					     currentSettingsDB.settingsMessage.msg[iStreamId].url, NULL);
 			break;
 		}
 
