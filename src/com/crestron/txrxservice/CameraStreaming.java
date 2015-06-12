@@ -40,6 +40,7 @@ public class CameraStreaming implements ErrorCallback {
     private int statisticsNumVideoPacketsDropped = 0;
     private long statisticsNumAudioPackets = 0;
     private int statisticsNumAudioPacketsDropped = 0;
+    private boolean confidencePreviewRunning = false;
 
     private boolean shouldExit = false;
     private Thread statisticsThread;
@@ -553,7 +554,28 @@ public class CameraStreaming implements ErrorCallback {
             {
                 localInterruptedException.printStackTrace();
             }
-    	}
+    	}    
+    }
     
+    public void startConfidencePreview(int sessionId){
+    	streamCtl.updateWindow(sessionId);
+    	streamCtl.showPreviewWindow(sessionId);
+    	streamCtl.cam_preview.setSessionIndex(sessionId);
+    	streamCtl.cam_preview.startPlayback(true);
+    	
+    	confidencePreviewRunning = true;
+    }
+    
+    public void stopConfidencePreview(int sessionId){
+    	streamCtl.hidePreviewWindow(sessionId);
+    	streamCtl.cam_preview.setSessionIndex(sessionId);
+        streamCtl.cam_preview.stopPlayback(true);
+        
+        confidencePreviewRunning = false;
+    }
+    
+    public boolean getConfidencePreviewStatus()
+    {
+    	return confidencePreviewRunning;
     }
 }

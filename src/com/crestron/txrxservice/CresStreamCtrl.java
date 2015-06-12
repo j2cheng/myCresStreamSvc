@@ -100,9 +100,10 @@ public class CresStreamCtrl extends Service {
     	RETRYING(4),
     	CONNECTREFUSED(5),
     	BUFFERING(6),
+    	CONFIDENCEMODE(7),
 
     	// Do not add anything after the Last state
-    	LAST(7);
+    	LAST(8);
     	
         private final int value;
 
@@ -277,7 +278,7 @@ public class CresStreamCtrl extends Service {
                     public void uncaughtException(Thread paramThread, Throwable paramThrowable) {
                     //Close Camera   
                     Log.d(TAG,"Global uncaught Exception !!!!!!!!!!!" );
-                    cam_preview.stopPlayback();
+                    cam_preview.stopPlayback(false);
                     cam_streaming.stopRecording(false);
                     if (oldHandler != null)
                     oldHandler.uncaughtException(paramThread, paramThrowable); //Delegates to Android's error handling
@@ -307,7 +308,7 @@ public class CresStreamCtrl extends Service {
         unregisterReceiver(hpdEvent);
         unregisterReceiver(hdmioutResolutionChangedEvent);
         cam_streaming.stopRecording(false);
-        cam_preview.stopPlayback();
+        cam_preview.stopPlayback(false);
         for (int i = 0; i < NumOfSurfaces; i++)
         {
         	streamPlay.onStop(i);
@@ -323,14 +324,29 @@ public class CresStreamCtrl extends Service {
     public void setDeviceMode(int mode, int sessionId)
     {
         Log.d(TAG, " setDeviceMode "+ mode);
+        int prevMode = userSettings.getMode(sessionId);
+        userSettings.setMode(mode, sessionId);
+        
         // If hdmi input driver is present allow all 3 modes, otherwise only allow stream in mode
-        if (hdmiInputDriverPresent || (mode == DeviceMode.STREAM_IN.ordinal())) 
+        // Only if mode actually changed
+        if ((mode != prevMode) && ((hdmiInputDriverPresent || (mode == DeviceMode.STREAM_IN.ordinal())))) 
         {
-            Log.d(TAG, " setDeviceMode "+ mode);
-
-            if ((userSettings.getMode(sessionId) != mode) && (userSettings.getStreamState(sessionId) == StreamState.STARTED))
-                hm2.get(userSettings.getMode(sessionId)).executeStop(sessionId);
-            userSettings.setMode(mode, sessionId);
+            if (userSettings.getStreamState(sessionId) == StreamState.STARTED)
+                hm2.get(prevMode).executeStop(sessionId);
+            else if (prevMode == DeviceMode.STREAM_OUT.ordinal())
+            {
+            	// Turn off confidence mode if leaving stream out mode and not streaming out
+            	cam_streaming.stopConfidencePreview(sessionId);
+            	SendStreamState(StreamState.STOPPED, sessionId);
+    			restartRequired[sessionId] = false;
+            }
+                        
+            if (mode == DeviceMode.STREAM_OUT.ordinal())
+            {
+            	// we want confidence image up for stream out, until streamout is actually started
+            	cam_streaming.startConfidencePreview(sessionId);
+            	restartRequired[sessionId] = true;
+            }
         }
     }
     
@@ -836,6 +852,10 @@ public class CresStreamCtrl extends Service {
     public void startStreamOut(int sessId)
     {
         StringBuilder sb = new StringBuilder(512);
+        
+        // we are starting to streamout so stop confidence preview
+        cam_streaming.stopConfidencePreview(sessId);
+        
         updateWindow(sessId);
         showPreviewWindow(sessId);
         out_url = createStreamOutURL(sessId);
@@ -861,6 +881,14 @@ public class CresStreamCtrl extends Service {
             cam_streaming.stopRecording(false);
             StreamOutstarted = false;
             hidePreviewWindow(sessId);
+            
+            // Make sure that stop stream out was called by stop not a device mode change
+        	// We do not want to restart confidence preview if mode is changing
+        	if (userSettings.getMode(sessId) == DeviceMode.STREAM_OUT.ordinal())
+        	{
+        		cam_streaming.startConfidencePreview(sessId);
+        		restartRequired[sessId] = true;
+        	}
         }
     }
     
@@ -869,14 +897,14 @@ public class CresStreamCtrl extends Service {
         Log.d(TAG, "Nothing to do");
     }
 
-    private void hidePreviewWindow(int sessId)
+    public void hidePreviewWindow(int sessId)
     {
         Log.d(TAG, "Preview Window hidden");
         if (dispSurface != null)
         	dispSurface.HideWindow(sessId);
     }
     
-    private void showPreviewWindow(int sessId)
+    public void showPreviewWindow(int sessId)
     {
         Log.d(TAG, "Preview Window showing");
         if (dispSurface != null)
@@ -960,7 +988,7 @@ public class CresStreamCtrl extends Service {
         updateWindow(sessId);
         showPreviewWindow(sessId);
         cam_preview.setSessionIndex(sessId);
-        cam_preview.startPlayback();
+        cam_preview.startPlayback(false);
         //Toast.makeText(this, "Preview Started", Toast.LENGTH_LONG).show();
     }
 
@@ -968,7 +996,7 @@ public class CresStreamCtrl extends Service {
     {
         hidePreviewWindow(sessId);
         cam_preview.setSessionIndex(sessId);
-        cam_preview.stopPlayback();
+        cam_preview.stopPlayback(false);
         //Toast.makeText(this, "Preview Stopped", Toast.LENGTH_LONG).show();
     }
     
@@ -1055,12 +1083,16 @@ public class CresStreamCtrl extends Service {
 		                    String hdmiInputResolution = null;
 		                    Log.i(TAG, "Received resolution changed broadcast !: " + resolutionId);
 		                    boolean validResolution = (hdmiInput.getHorizontalRes().startsWith("0") != true) && (hdmiInput.getVerticalRes().startsWith("0")!= true) && (resolutionId != 0);
-		                    
+		                    // Treat confidence mode same as preview mode, except dont include streamstate flag
+		                    boolean confidencePreviewMode = ((device_mode==DeviceMode.STREAM_OUT.ordinal()) && (cam_streaming.getConfidencePreviewStatus()));
+		                    if (confidencePreviewMode)
+		                    	device_mode = DeviceMode.PREVIEW.ordinal();
+		                    	
 		                    if ((device_mode==DeviceMode.PREVIEW.ordinal()) && (restartRequired[sessionId]) && (prevResolutionIndex != resolutionId))  
 		                    {
 		                        Log.i(TAG, "Restart called due to resolution change broadcast ! ");
 	
-		                        cam_preview.stopPlayback();
+		                        cam_preview.stopPlayback(false);
 		                        hidePreviewWindow(sessionId);
 		                        SystemClock.sleep(cameraRestartTimout);
 		                        hpdHdmiEvent = 1;
@@ -1069,7 +1101,10 @@ public class CresStreamCtrl extends Service {
 		                        if (validResolution)
 		                        {
 		                            showPreviewWindow(sessionId);
-		                            cam_preview.startPlayback();
+		                            if (confidencePreviewMode)
+		                            	cam_preview.startPlayback(true);
+		                            else
+		                            	cam_preview.startPlayback(false);
 		                        }
 		                    }
 		                    else if((device_mode==DeviceMode.STREAM_OUT.ordinal()) && (restartRequired[sessionId]) && (prevResolutionIndex != resolutionId))
@@ -1081,7 +1116,7 @@ public class CresStreamCtrl extends Service {
 		                        if((cam_streaming.mCameraPreviewObj != null) && ((cam_streaming.isStreaming()) == true))
 		                            cam_streaming.stopRecording(true);
 		                        else if ((((cam_preview.IsPreviewStatus()) == true)))  
-		                            cam_preview.stopPlayback();
+		                            cam_preview.stopPlayback(false);
 		                        else
 		                            Log.i(TAG, "Device is in Idle State");
 	
@@ -1142,7 +1177,7 @@ public class CresStreamCtrl extends Service {
 	                        if((cam_streaming.mCameraPreviewObj != null) && ((cam_streaming.isStreaming()) == true))
 	                            cam_streaming.stopRecording(true);
 	                        else if ((((cam_preview.IsPreviewStatus()) == true)))  
-	                            cam_preview.stopPlayback();
+	                            cam_preview.stopPlayback(false);
 	                        else
 	                            Log.i(TAG, "Device is in Idle State");
 

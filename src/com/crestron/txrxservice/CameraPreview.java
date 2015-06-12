@@ -94,7 +94,7 @@ public class CameraPreview {
         return is_pause;
     }
 
-    public void startPlayback(){
+    public void startPlayback(boolean confidenceMode){
         Log.d(TAG, "starting Playback"+ is_preview);
         if(is_preview == false){
             Log.d(TAG, "Actual startPlayback");
@@ -147,7 +147,11 @@ public class CameraPreview {
                     mCamera.startPreview();
                     startAudio();
                     is_audioplaying = true;
-                    streamCtl.SendStreamState(StreamState.STARTED, idx);
+                    
+                    if (confidenceMode)
+                    	streamCtl.SendStreamState(StreamState.CONFIDENCEMODE, idx);
+                    else
+                    	streamCtl.SendStreamState(StreamState.STARTED, idx);
                 }
                 is_preview = true;
             }
@@ -156,7 +160,7 @@ public class CameraPreview {
 
     }
 
-    public void stopPlayback()
+    public void stopPlayback(boolean confidenceMode)
     {
     	// TODO: ioctl crash when input hdmi is plugged in but no video passing
         Log.d(TAG, "stopPlayback");
@@ -172,7 +176,9 @@ public class CameraPreview {
                 }
                 is_preview = false;
                 Log.d(TAG, "Playback stopped !");
-                streamCtl.SendStreamState(StreamState.STOPPED, idx);
+                
+                if (!confidenceMode)
+                	streamCtl.SendStreamState(StreamState.STOPPED, idx);
             }
             catch (Exception localException)
             {
