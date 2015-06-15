@@ -2,8 +2,16 @@ package com.crestron.txrxservice;
 
 import java.util.HashMap;
 import java.util.Map;
+import java.util.Scanner;
+import java.io.BufferedWriter;
+import java.io.File;
+import java.io.FileNotFoundException;
+import java.io.FileOutputStream;
 import java.io.IOException;
+import java.io.OutputStreamWriter;
+import java.io.Writer;
 import java.lang.String;
+import java.nio.charset.Charset;
 import java.util.concurrent.locks.*;
 
 import android.net.Uri;
@@ -16,6 +24,7 @@ import android.view.SurfaceView;
 import android.widget.Toast;
 import android.content.Context;
 import android.os.AsyncTask;
+import android.provider.MediaStore.Files;
 import android.content.Intent;
 import android.content.IntentFilter;
 import android.content.BroadcastReceiver;
@@ -27,8 +36,8 @@ import android.view.Surface.PhysicalDisplayInfo;
 import android.graphics.PixelFormat;
 import android.hardware.Camera;
 
-//import com.google.gson.Gson;
-//import com.google.gson.GsonBuilder;
+import com.google.gson.Gson;
+import com.google.gson.GsonBuilder;
 
 interface Command {
     void executeStart(int sessId);
@@ -65,6 +74,10 @@ public class CresStreamCtrl extends Service {
     final int cameraRestartTimout = 1000;//msec
     int hpdStateEnabled = 0;
     static int hpdHdmiEvent = 0;
+    
+    private boolean saveSettingsShouldExit = false;
+    public static boolean saveSettingsPendingUpdate = false;
+    private final long saveSettingsPollTime = 1000;
 
     public final static int NumOfSurfaces = 2;
     String TAG = "TxRx StreamCtrl";
@@ -78,6 +91,7 @@ public class CresStreamCtrl extends Service {
     //boolean enable_passwd = false;
     //boolean disable_passwd = true;
     boolean[] restartRequired = new boolean[NumOfSurfaces];
+    public final static String savedSettingsFilePath = "/dev/shm/crestron/CresStreamSvc/userSettings";
 
     enum DeviceMode {
         STREAM_IN,
@@ -142,7 +156,8 @@ public class CresStreamCtrl extends Service {
     }
     
     private final ReentrantLock threadLock = new ReentrantLock(true); // fairness=true, makes lock ordered
-    private final ReentrantLock streamStateLock = new ReentrantLock(true); // fairness=true, makes lock ordered
+    private final ReentrantLock streamStateLock = new ReentrantLock(true);
+    private final ReentrantLock saveSettingsLock = new ReentrantLock(true);
 
     //StreamState devicestatus = StreamState.STOPPED;
     //HashMap
@@ -157,26 +172,45 @@ public class CresStreamCtrl extends Service {
             
             //Input Streamout Config
             streamPlay = new GstreamIn(CresStreamCtrl.this);
-            userSettings = new UserSettings(streamPlay);
+            userSettings = new UserSettings(/*streamPlay*/);
 
             //myconfig = new CresStreamConfigure();
             tokenizer = new StringTokenizer();
             hdmiOutput = new HDMIOutputInterface();
             
-            userSettings.setStreamState(StreamState.STOPPED, 0);
-            userSettings.setStreamState(StreamState.STOPPED, 1);
+            File serializedClassFile = new File (savedSettingsFilePath);
+            if (serializedClassFile.isFile())	//check if file exists
+            {
+            	// File exists deserialize it into userSettings
+            	GsonBuilder builder = new GsonBuilder();
+                Gson gson = builder.create();
+                try
+                {
+                	String serializedClass = new Scanner(serializedClassFile, "UTF-8").useDelimiter("\\A").next();
+                	userSettings = gson.fromJson(serializedClass, UserSettings.class);
+                }
+                catch (FileNotFoundException ex)
+                {
+                	Log.e(TAG, "File not found: " + ex);
+                }            	
+            }
+            else
+            {
+            	// File Does not exist, create it
+            	try
+            	{
+	            	serializedClassFile.getParentFile().mkdirs(); 
+	            	serializedClassFile.createNewFile();
+	            	saveUserSettings();
+            	}
+            	catch (IOException ex)
+    			{
+            		Log.e(TAG, "Could not create serialized class file: " + ex);
+    			}
+            }
             
-            //////////////////////////
-//            UserSettings userSettings = new UserSettings();
-//            userSettings.setVolume(11);
-//            GsonBuilder builder = new GsonBuilder();
-//            Gson gson = builder.create();
-//            String serializedClass = gson.toJson(userSettings);
-//            Log.d(TAG, "Serialized Class :" + serializedClass);
-//            UserSettings settings2 = new UserSettings();
-//            settings2 = gson.fromJson(serializedClass, UserSettings.class);
-//            Log.d(TAG, "Volume is at :" + settings2.getVolume());
-            ///////////////////////////
+            Thread saveSettingsThread = new Thread(new SaveSettingsTask());    	
+            saveSettingsThread.start();
             
             hdmiInputDriverPresent = HDMIInputInterface.isHdmiDriverPresent();
 
@@ -300,8 +334,25 @@ public class CresStreamCtrl extends Service {
         return null;
     } 
     
+    public void restartStreams()
+    {
+        //If streamstate was previously started, restart stream
+        for (int sessionId = 0; sessionId < NumOfSurfaces; sessionId++)
+        {
+            if (userSettings.getStreamState(sessionId) == StreamState.STARTED)
+            	Start(sessionId);
+            else if (userSettings.getStreamState(sessionId) == StreamState.CONFIDENCEMODE)
+            {
+            	cam_streaming.startConfidencePreview(sessionId);
+            	restartRequired[sessionId] = true;
+            }
+        }
+    }
+    
     public void onDestroy(){
         super.onDestroy();
+        saveUserSettings();
+        saveSettingsShouldExit = true;
         sockTask.cancel(true);
         Log.d(TAG, " Asynctask cancelled");
         unregisterReceiver(resolutionEvent);
@@ -1106,6 +1157,9 @@ public class CresStreamCtrl extends Service {
 		                            else
 		                            	cam_preview.startPlayback(false);
 		                        }
+		                        else
+		                        	// This will send processing join
+		                        	SendStreamState(StreamState.CONNECTING, sessionId);
 		                    }
 		                    else if((device_mode==DeviceMode.STREAM_OUT.ordinal()) && (restartRequired[sessionId]) && (prevResolutionIndex != resolutionId))
 		                    {
@@ -1131,6 +1185,9 @@ public class CresStreamCtrl extends Service {
 			                            e.printStackTrace();
 			                        }
 		                        }
+		                        else
+		                        	// This will send processing join
+		                        	SendStreamState(StreamState.CONNECTING, sessionId);
 		                    }
 	                	}
                     }
@@ -1182,10 +1239,16 @@ public class CresStreamCtrl extends Service {
 	                            Log.i(TAG, "Device is in Idle State");
 
 	                        SystemClock.sleep((5*cameraRestartTimout));
+	                        
+	                        for (int sessionId = 0; sessionId < NumOfSurfaces; sessionId++)
+		                	{
+		                		if ((userSettings.getMode(sessionId) != DeviceMode.STREAM_IN.ordinal()) && (restartRequired[sessionId]))
+		                        	// This will send processing join
+	                        		SendStreamState(StreamState.CONNECTING, sessionId);
+		                	}
 	                    }
 	                    else 
-	                        hpdStateEnabled = 1;
-	                    	                	
+	                        hpdStateEnabled = 1;	                    	                	
 	                }
             	}
             	finally
@@ -1242,5 +1305,46 @@ public class CresStreamCtrl extends Service {
 		sockTask.SendDataToAllClients("HDMIIN_ASPECT_RATIO=" + hdmiInput.getAspectRatio());
 		sockTask.SendDataToAllClients("HDMIIN_AUDIO_FORMAT=" + hdmiInput.getAudioFormat());
 		sockTask.SendDataToAllClients("HDMIIN_AUDIO_CHANNELS=" + hdmiInput.getAudioChannels());
+	}
+	
+	public void saveUserSettings()
+	{
+		Writer writer = null;
+		GsonBuilder builder = new GsonBuilder();
+      	Gson gson = builder.create();
+      	String serializedClass = gson.toJson(this.userSettings);
+      	try 
+      	{
+      		saveSettingsLock.lock();
+      		writer = new BufferedWriter(new OutputStreamWriter(new FileOutputStream(savedSettingsFilePath), "utf-8"));
+    	    writer.write(serializedClass);
+    	} 
+      	catch (IOException ex) {
+    	  Log.e(TAG, "Failed to save userSettings to RAM disk: " + ex);
+    	} finally 
+    	{
+    		saveSettingsLock.unlock();
+    		try {writer.close();} catch (Exception ex) {/*ignore*/}
+    	}
+
+      Log.d(TAG, "Saved userSettings to RAM disk");
+	}
+	
+	public class SaveSettingsTask implements Runnable 
+	{
+		public void run() {
+			while (!saveSettingsShouldExit)
+			{
+				if (saveSettingsPendingUpdate)
+				{
+					saveSettingsPendingUpdate = false;
+					saveUserSettings();					
+				}
+				
+				try {
+					Thread.sleep(saveSettingsPollTime);
+				} catch (InterruptedException localInterruptedException) {/*Ignore*/}           
+			}
+		}
 	}
 }

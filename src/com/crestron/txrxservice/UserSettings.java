@@ -10,7 +10,7 @@ import android.util.Log;
 
 public class UserSettings //implements java.io.Serializable
 {
-	private GstreamIn gStreamIn;
+//	private GstreamIn gStreamIn;
 
 	public enum VideoEncProfile 
     {
@@ -220,9 +220,9 @@ public class UserSettings //implements java.io.Serializable
 	private boolean statisticsDisable;
 	private String deviceIp;
 
-	public UserSettings(GstreamIn mContext)
+	public UserSettings(/*GstreamIn mContext*/)
 	{
-		this.gStreamIn = mContext;
+//		this.gStreamIn = mContext;
 		
         MiscUtils.getDeviceIpAddr();
         deviceIp 			= MiscUtils.matcher.group();
@@ -439,8 +439,8 @@ public class UserSettings //implements java.io.Serializable
 	}
 
 	public void setServerUrl(String serverUrl, int sessId) {
-		if ((gStreamIn != null) && (this.mode[sessId] == DeviceMode.STREAM_IN.ordinal()))
-			gStreamIn.setServerUrl(serverUrl, sessId);
+		if (this.mode[sessId] == DeviceMode.STREAM_IN.ordinal())
+			GstreamIn.setServerUrl(serverUrl, sessId);
 		
 		this.serverUrl[sessId] = serverUrl;
 	}
@@ -687,5 +687,4 @@ public class UserSettings //implements java.io.Serializable
 	public int getEncodingLevel(int sessId) {
 		return encodingLevel[sessId];
 	}
-
 }

@@ -22,6 +22,7 @@ public class TCPInterface extends AsyncTask<Void, Object, Long> {
     CommandParser parserInstance;
     boolean isWhiteSpace = false;
     static boolean connectionAlive = true;
+    private CresStreamCtrl streamCtl;
 
     public static final int SERVERPORT = 9876;
     private ServerSocket serverSocket;
@@ -32,6 +33,7 @@ public class TCPInterface extends AsyncTask<Void, Object, Long> {
     public TCPInterface(CresStreamCtrl a_crestctrl){
         parserInstance = new CommandParser (a_crestctrl);
         clientList = new ArrayList<TCPInterface.CommunicationThread>();
+        streamCtl = a_crestctrl;
     }
     
     public void RemoveClientFromList(CommunicationThread clientThread)
@@ -67,6 +69,7 @@ public class TCPInterface extends AsyncTask<Void, Object, Long> {
     
     protected Long doInBackground(Void... paramVarArgs)
     {
+    	streamCtl.restartStreams();
         Socket clientSocket = null;
         try {
             serverSocket = new ServerSocket(SERVERPORT);
@@ -82,6 +85,9 @@ public class TCPInterface extends AsyncTask<Void, Object, Long> {
                 CommunicationThread commThread = new CommunicationThread(clientSocket, this);
                 clientList.add(commThread);
                 new Thread(commThread).start();
+                
+                // Tell CSIO to send update request to control system
+                SendDataToAllClients("UPDATE_REQUEST_TO_CONTROLSYSTEM");
 
             } catch (IOException e) {
                 e.printStackTrace();
@@ -173,9 +179,9 @@ public class TCPInterface extends AsyncTask<Void, Object, Long> {
                         	for(CommandParser.CmdTable ct: CommandParser.CmdTable.values()){
                         		publishProgress(ct.name(), serverHandler);
                         	}
-                            //for(String s: parserInstance.cmdArray){
-                                //publishProgress(s, serverHandler);
-                            //}
+                        	
+                        	// Tell CSIO that update request is complete
+                        	publishProgress("ENCODER_READY", serverHandler);
                         }
                         else{
                             publishProgress(read.trim(), serverHandler);
@@ -203,7 +209,11 @@ public class TCPInterface extends AsyncTask<Void, Object, Long> {
         
         if (receivedMsg != null)
         {
-	        tmp_str = parserInstance.processReceivedMessage(receivedMsg); 
+        	if (receivedMsg.equals("ENCODER_READY"))
+        		tmp_str = receivedMsg;
+        	else
+        		tmp_str = parserInstance.processReceivedMessage(receivedMsg); 
+        	
 	        try {
 	        	server.SendDataToAllClients(tmp_str);
 	        } catch (Exception e) {

@@ -9,6 +9,7 @@ public class CommandInvoker{
 
     public void set(){
         myCmd.execute();
+        CresStreamCtrl.saveSettingsPendingUpdate = true;
     }
     
     public String get(){

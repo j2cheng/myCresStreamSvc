@@ -36,7 +36,7 @@ public class GstreamIn implements SurfaceHolder.Callback {
     private native void nativeSurfaceFinalize();
     private long native_custom_data;      // Native code will use this to keep private data
 
-    private native void nativeSetSeverUrl(String url, int sessionId);
+    private static native void nativeSetSeverUrl(String url, int sessionId);
     private native void nativeSetRtspPort(int port, int sessionId);
     private native void nativeSetTsPort(int port, int sessionId);
     private native void nativeSetRtpVideoPort(int port, int sessionId);
@@ -65,7 +65,7 @@ public class GstreamIn implements SurfaceHolder.Callback {
         //idx = id;
     }
 
-    public void setServerUrl(String url, int sessionId){
+    public static void setServerUrl(String url, int sessionId){
     	nativeSetSeverUrl(url, sessionId);	
 	}
     
@@ -198,7 +198,7 @@ public class GstreamIn implements SurfaceHolder.Callback {
     //Play based on based Pause/Actual Playback 
     public void onStart(int sessionId) {
     	try {
-    		//streamCtl.getCresSurfaceHolder(sessionId).addCallback(this); //needed?
+    		streamCtl.getCresSurfaceHolder(sessionId).addCallback(this); //needed?
     		updateNativeDataStruct(sessionId);
     		nativeSurfaceInit (streamCtl.getCresSurfaceHolder(sessionId).getSurface());
     		nativePlay(sessionId);
@@ -316,6 +316,7 @@ public class GstreamIn implements SurfaceHolder.Callback {
 
     public void surfaceCreated(SurfaceHolder holder) {
         Log.d("GStreamer", "Surface created: " + holder.getSurface());
+        nativeSurfaceInit (holder.getSurface());
     }
 
     public void surfaceDestroyed(SurfaceHolder holder) {
