@@ -651,6 +651,7 @@ int csio_jni_CreatePipeline(GstElement **pipeline,GstElement **source,eProtocolI
 	switch( protoId )
 	{
 		case ePROTOCOL_RTSP_TCP:
+		case ePROTOCOL_RTSP_UDP:
 	    case ePROTOCOL_DEFAULT_RTSP_TCP:
 	    case ePROTOCOL_RTSP_UDP_TS:
 	    case ePROTOCOL_RTSP_TS:
@@ -667,12 +668,6 @@ int csio_jni_CreatePipeline(GstElement **pipeline,GstElement **source,eProtocolI
 			*pipeline = CresDataDB->pipeline;
 			*source   = CresDataDB->element_zero;
 			break;
-	    }
-
-	    case ePROTOCOL_RTSP_UDP:
-	    {
-	    	iStatus = CSIO_FAILURE;
-	    	break;
 	    }
 	    case ePROTOCOL_HTTP:
 	    {
@@ -790,6 +785,7 @@ void csio_jni_InitPipeline(eProtocolId protoId, int iStreamId)
 	switch( protoId )
 	{
 		case ePROTOCOL_RTSP_TCP:
+		case ePROTOCOL_RTSP_UDP:
 		case ePROTOCOL_DEFAULT_RTSP_TCP:
 		case ePROTOCOL_RTSP_UDP_TS:
 		case ePROTOCOL_RTSP_TS:
@@ -807,7 +803,6 @@ void csio_jni_InitPipeline(eProtocolId protoId, int iStreamId)
 			break;
 		}
 
-		case ePROTOCOL_RTSP_UDP:
 		case ePROTOCOL_HTTP:
 			//GST_DEBUG ("ePROTOCOL_HTTP pass\n");
 			break;
@@ -841,6 +836,7 @@ void csio_jni_SetSourceLocation(eProtocolId protoId, int iStreamId)
 	switch( protoId )
 	{
 		case ePROTOCOL_RTSP_TCP:
+		case ePROTOCOL_RTSP_UDP:
 		case ePROTOCOL_DEFAULT_RTSP_TCP:
 		case ePROTOCOL_RTSP_UDP_TS:
 		case ePROTOCOL_RTSP_TS:
@@ -850,7 +846,6 @@ void csio_jni_SetSourceLocation(eProtocolId protoId, int iStreamId)
 			break;
 		}
 
-		case ePROTOCOL_RTSP_UDP:
 		case ePROTOCOL_HTTP:
 			//GST_DEBUG ("csio_jni_SetSourceLocation: ePROTOCOL_HTTP pass\n");
 			break;
@@ -891,6 +886,7 @@ void csio_jni_SetMsgHandlers(void* obj,eProtocolId protoId)
 	switch( protoId )
 	{
 		case ePROTOCOL_RTSP_TCP:
+		case ePROTOCOL_RTSP_UDP:
 		case ePROTOCOL_DEFAULT_RTSP_TCP:
 		case ePROTOCOL_MULTICAST:
 		case ePROTOCOL_RTSP_UDP_TS:
@@ -927,7 +923,6 @@ void csio_jni_SetMsgHandlers(void* obj,eProtocolId protoId)
 			 break;
 		}
 
-		case ePROTOCOL_RTSP_UDP:
 		case ePROTOCOL_HTTP:
 			break;
 
