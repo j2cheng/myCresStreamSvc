@@ -150,6 +150,8 @@ public class UserSettings //implements java.io.Serializable
 	private boolean[] passwordDisable;
 	private VideoEncProfile[] streamProfile;
 	private int[] encodingLevel; // TODO: this should be local to streamIn.java
+	private boolean[] statisticsEnable;
+	private boolean[] statisticsDisable;
 	
 	// Top Slot
 	private int deviceReady; // TODO: needed?
@@ -216,8 +218,6 @@ public class UserSettings //implements java.io.Serializable
 	private int streamOutAudioChannels;
 
 	// Ethernet
-	private boolean statisticsEnable;
-	private boolean statisticsDisable;
 	private String deviceIp;
 
 	public UserSettings(/*GstreamIn mContext*/)
@@ -251,6 +251,8 @@ public class UserSettings //implements java.io.Serializable
         passwordEnable		= new boolean[] {false, false};
         passwordDisable		= new boolean[] {true, true};
         streamingBuffer		= new int[] {2000, 2000};
+        statisticsEnable	= new boolean[] {false, false};
+    	statisticsDisable	= new boolean[] {true, true};
 	}
 	
 	public String getDeviceIp() {
@@ -624,20 +626,26 @@ public class UserSettings //implements java.io.Serializable
 		this.streamOutAudioChannels = streamOutAudioChannels;
 	}
 
-	public boolean isStatisticsEnable() {
-		return statisticsEnable;
+	public boolean isStatisticsEnable(int sessId) {
+		return statisticsEnable[sessId];
 	}
 
-	public void setStatisticsEnable(boolean statisticsEnable) {
-		this.statisticsEnable = statisticsEnable;
+	public void setStatisticsEnable(boolean statisticsEnable, int sessId) {
+		this.statisticsEnable[sessId] = statisticsEnable;
+		
+		if ((this.mode[sessId] == DeviceMode.STREAM_IN.ordinal()) && (statisticsEnable))
+			GstreamIn.setStatistics(statisticsEnable, sessId);
 	}
 
-	public boolean isStatisticsDisable() {
-		return statisticsDisable;
+	public boolean isStatisticsDisable(int sessId) {
+		return statisticsDisable[sessId];
 	}
 
-	public void setStatisticsDisable(boolean statisticsDisable) {
-		this.statisticsDisable = statisticsDisable;
+	public void setStatisticsDisable(boolean statisticsDisable, int sessId) {
+		this.statisticsDisable[sessId] = statisticsDisable;
+		
+		if ((this.mode[sessId] == DeviceMode.STREAM_IN.ordinal()) && (statisticsDisable))
+			GstreamIn.setStatistics(!statisticsDisable, sessId);
 	}
 
 	public int getRtspPort(int sessId) {

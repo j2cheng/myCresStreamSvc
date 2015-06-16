@@ -1324,35 +1324,39 @@ class StreamStateCommand implements CommandIf {
 class StatisticsEnableCommand implements CommandIf {
 	CommandReceiver launch;
     String msg;
+    int idx;
 
-    public StatisticsEnableCommand(CommandReceiver launch, String arg) {
+    public StatisticsEnableCommand(CommandReceiver launch, String arg, int sessId) {
         this.launch = launch;
         this.msg = arg;
+        this.idx = sessId;
     }
 
     @Override
         public void execute() {
 	    	boolean val = Boolean.valueOf(msg);
-            launch.setStatisticsEnable(val);
+            launch.setStatisticsEnable(val, idx);
         }
         public String getFeedbackMsg() {
-            return launch.getStatisticsEnable();
+            return launch.getStatisticsEnable(idx);
         }
 }
 
 class StatisticsResetCommand implements CommandIf {
 	CommandReceiver launch;
     String msg;
+    int idx;
 
-    public StatisticsResetCommand(CommandReceiver launch, String arg) {
+    public StatisticsResetCommand(CommandReceiver launch, String arg, int sessId) {
         this.launch = launch;
         this.msg = arg;
+        this.idx = sessId;
     }
 
     @Override
         public void execute() {
 	    	boolean val = Boolean.valueOf(msg);
-            launch.setStatisticsReset(val);
+            launch.setStatisticsReset(val, idx);
         }
         public String getFeedbackMsg() {
             return "false";	//no feedback for this join
@@ -1362,19 +1366,21 @@ class StatisticsResetCommand implements CommandIf {
 class StatisticsDisableCommand implements CommandIf {
 	CommandReceiver launch;
     String msg;
+    int idx;
 
-    public StatisticsDisableCommand(CommandReceiver launch, String arg) {
+    public StatisticsDisableCommand(CommandReceiver launch, String arg, int sessId) {
         this.launch = launch;
         this.msg = arg;
+        this.idx = sessId;
     }
 
     @Override
         public void execute() {
 	    	boolean val = Boolean.valueOf(msg);
-            launch.setStatisticsDisable(val);
+            launch.setStatisticsDisable(val, idx);
         }
         public String getFeedbackMsg() {
-            return launch.getStatisticsDisable();
+            return launch.getStatisticsDisable(idx);
         }
 }
 

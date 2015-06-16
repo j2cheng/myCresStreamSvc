@@ -36,16 +36,18 @@ public class GstreamIn implements SurfaceHolder.Callback {
     private native void nativeSurfaceFinalize();
     private long native_custom_data;      // Native code will use this to keep private data
 
-    private static native void nativeSetSeverUrl(String url, int sessionId);
-    private native void nativeSetRtspPort(int port, int sessionId);
-    private native void nativeSetTsPort(int port, int sessionId);
-    private native void nativeSetRtpVideoPort(int port, int sessionId);
-    private native void nativeSetRtpAudioPort(int port, int sessionId);
-    private native void nativeSetSessionInitiation(int initMode, int sessionId);
-    private native void nativeSetTransportMode(int transportMode, int sessionId);
-    private native void nativeSetMulticastAddress(String multicastIp, int sessionId);
-    private native void nativeSetStreamingBuffer(int buffer_ms, int sessionId);
-    private native void nativeSetXYlocations(int xloc, int yloc, int sessionId);
+    private static native void 	nativeSetSeverUrl(String url, int sessionId);
+    private native void 		nativeSetRtspPort(int port, int sessionId);
+    private native void 		nativeSetTsPort(int port, int sessionId);
+    private native void 		nativeSetRtpVideoPort(int port, int sessionId);
+    private native void 		nativeSetRtpAudioPort(int port, int sessionId);
+    private native void 		nativeSetSessionInitiation(int initMode, int sessionId);
+    private native void 		nativeSetTransportMode(int transportMode, int sessionId);
+    private native void 		nativeSetMulticastAddress(String multicastIp, int sessionId);
+    private native void 		nativeSetStreamingBuffer(int buffer_ms, int sessionId);
+    private native void 		nativeSetXYlocations(int xloc, int yloc, int sessionId);
+    private static native void 	nativeSetStatistics(boolean enabled, int sessionId);
+    private static native void 	nativeResetStatistics(int sessionId);
 
     public GstreamIn(CresStreamCtrl mContext) {
         Log.e(TAG, "GstreamIN :: Constructor called...!");
@@ -102,12 +104,6 @@ public class GstreamIn implements SurfaceHolder.Callback {
     }
     
     public void sendStatistics(long video_packets_received, int video_packets_lost, long audio_packets_received, int audio_packets_lost, int bitrate){
-    	Log.d(TAG, "video_packets_received "+video_packets_received+ "\n");
-    	Log.d(TAG, "video_packets_lost "+video_packets_lost+ "\n");
-    	Log.d(TAG, "audio_packets_received "+audio_packets_received+ "\n");
-    	Log.d(TAG, "audio_packets_lost "+audio_packets_lost+ "\n");
-    	Log.d(TAG, "bitrate "+bitrate+ "\n");
-    	
     	statisticsNumVideoPackets = video_packets_received;
         statisticsNumVideoPacketsDropped = video_packets_lost;
         statisticsNumAudioPackets = audio_packets_received;
@@ -121,6 +117,14 @@ public class GstreamIn implements SurfaceHolder.Callback {
     	nativeSetXYlocations(xloc, yloc, sessId);
     }
     
+    public static void setStatistics(boolean enabled, int sessId){
+    	nativeSetStatistics(enabled, sessId);
+    }
+    
+    public static void resetStatistics(int sessId){
+    	nativeResetStatistics(sessId);
+    }
+
     public int[] getCurrentWidthHeight(int sessionId){
         int[] widthHeight = new int[2];
         // width in index 0, height in index 1
@@ -239,6 +243,7 @@ public class GstreamIn implements SurfaceHolder.Callback {
     	setTransportMode(streamCtl.userSettings.getTransportMode(sessionId), sessionId);
     	setMulticastAddress(streamCtl.userSettings.getMulticastAddress(sessionId), sessionId);
     	setStreamingBuffer(streamCtl.userSettings.getStreamingBuffer(sessionId), sessionId);
+    	nativeSetStatistics(streamCtl.userSettings.isStatisticsEnable(sessionId), sessionId);
     }
 
     //Response to CSIO Layer TODO: these can most likely be deleted handled in jni library

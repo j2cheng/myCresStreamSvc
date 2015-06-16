@@ -187,7 +187,12 @@ public class CresStreamCtrl extends Service {
                 try
                 {
                 	String serializedClass = new Scanner(serializedClassFile, "UTF-8").useDelimiter("\\A").next();
-                	userSettings = gson.fromJson(serializedClass, UserSettings.class);
+                	try {
+                		userSettings = gson.fromJson(serializedClass, UserSettings.class);
+                	} catch (Exception ex) {
+                		Log.e(TAG, "Failed to deserialize userSettings: " + ex);
+                		saveUserSettings();
+            		}
                 }
                 catch (FileNotFoundException ex)
                 {
@@ -1087,16 +1092,16 @@ public class CresStreamCtrl extends Service {
 	return "0";//"TODO";
     }
     
-    public void setStatistics(boolean enabled){
-    	userSettings.setStatisticsEnable(enabled);
-		userSettings.setStatisticsDisable(!enabled);
+    public void setStatistics(boolean enabled, int sessId){
+    	userSettings.setStatisticsEnable(enabled, sessId);
+		userSettings.setStatisticsDisable(!enabled, sessId);
     }
     
-    public void resetStatistics(){
-    	if (userSettings.getMode(0) == DeviceMode.STREAM_IN.ordinal())	//statistics should only report for window id 0
-    		streamPlay.resetStatistics();
-    	else if (userSettings.getMode(0) == DeviceMode.STREAM_OUT.ordinal())
-    		cam_streaming.resetStatistics();
+    public void resetStatistics(int sessId){
+    	if (userSettings.getMode(sessId) == DeviceMode.STREAM_IN.ordinal())
+    		streamPlay.resetStatistics(sessId);
+    	else if (userSettings.getMode(sessId) == DeviceMode.STREAM_OUT.ordinal())
+    		cam_streaming.resetStatistics(sessId);
     }
     
 

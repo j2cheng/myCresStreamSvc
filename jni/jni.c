@@ -427,6 +427,26 @@ JNIEXPORT void JNICALL Java_com_crestron_txrxservice_GstreamIn_nativeSetXYlocati
 	GST_DEBUG ("yLocation in currentSettingsDB: '%d'", currentSettingsDB.settingsMessage.msg[sessionId].top);
 }
 
+JNIEXPORT void JNICALL Java_com_crestron_txrxservice_GstreamIn_nativeSetStatistics(JNIEnv *env, jobject thiz, jboolean enabled, jint sessionId)
+{
+	currentSettingsDB.videoSettings[sessionId].statisticsEnabled = (UINT8)enabled;
+
+	if (nativeGetCurrentStreamState(sessionId) == STREAMSTATE_STARTED)
+	{
+		if (enabled)
+			start_sending_stream_statistics(sessionId);
+		else
+			stop_sending_stream_statistics(sessionId);
+	}
+
+	//GST_DEBUG ("statisticsEnabled in currentSettingsDB: '%d'", currentSettingsDB.videoSettings[sessionId].statisticsEnabled);
+}
+
+JNIEXPORT void JNICALL Java_com_crestron_txrxservice_GstreamIn_nativeResetStatistics(JNIEnv *env, jobject thiz, jint sessionId)
+{
+	reset_statistics(sessionId);
+}
+
 StreamState nativeGetCurrentStreamState(jint sessionId)
 {
 	StreamState currentStreamState;

@@ -431,7 +431,7 @@ public class CameraStreaming implements ErrorCallback {
 		return statisticsNumAudioPacketsDropped;
 	}
 	
-	public void resetStatistics() {
+	public void resetStatistics(int sessId) {
 		//TODO: command to tell native code to reset statistics
 //		statisticsNumVideoPackets = 0;
 //        statisticsNumVideoPacketsDropped = 0;
@@ -525,7 +525,7 @@ public class CameraStreaming implements ErrorCallback {
 				{    		
     				Thread.sleep(statisticsThreadPollTime);
     				
-    				if (streamCtl.userSettings.isStatisticsEnable())
+    				if (streamCtl.userSettings.isStatisticsEnable(idx))
     				{
     					if (mrec == null)
 	    					continue;

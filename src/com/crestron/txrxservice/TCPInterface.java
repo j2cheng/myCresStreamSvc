@@ -69,7 +69,7 @@ public class TCPInterface extends AsyncTask<Void, Object, Long> {
     
     protected Long doInBackground(Void... paramVarArgs)
     {
-    	streamCtl.restartStreams();
+//    	streamCtl.restartStreams();
         Socket clientSocket = null;
         try {
             serverSocket = new ServerSocket(SERVERPORT);
@@ -87,7 +87,7 @@ public class TCPInterface extends AsyncTask<Void, Object, Long> {
                 new Thread(commThread).start();
                 
                 // Tell CSIO to send update request to control system
-                SendDataToAllClients("UPDATE_REQUEST_TO_CONTROLSYSTEM");
+                SendDataToAllClients("UPDATE_REQUEST_TO_CONTROLSYSTEM=");
 
             } catch (IOException e) {
                 e.printStackTrace();
@@ -181,7 +181,7 @@ public class TCPInterface extends AsyncTask<Void, Object, Long> {
                         	}
                         	
                         	// Tell CSIO that update request is complete
-                        	publishProgress("ENCODER_READY", serverHandler);
+                        	publishProgress("ENCODER_READY=", serverHandler);
                         }
                         else{
                             publishProgress(read.trim(), serverHandler);
@@ -209,7 +209,7 @@ public class TCPInterface extends AsyncTask<Void, Object, Long> {
         
         if (receivedMsg != null)
         {
-        	if (receivedMsg.equals("ENCODER_READY"))
+        	if (receivedMsg.equals("ENCODER_READY="))
         		tmp_str = receivedMsg;
         	else
         		tmp_str = parserInstance.processReceivedMessage(receivedMsg); 

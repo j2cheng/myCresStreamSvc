@@ -94,6 +94,20 @@ JNIEXPORT void JNICALL Java_com_crestron_txrxservice_GstreamIn_nativeSetStreamin
  */
 JNIEXPORT void JNICALL Java_com_crestron_txrxservice_GstreamIn_nativeSetXYlocations(JNIEnv *, jobject, jint, jint, jint);
 
+/*
+ * Class:     GstreamIn
+ * Method:    nativeSetStatistics
+ * Signature: (ZI)V
+ */
+JNIEXPORT void JNICALL Java_com_crestron_txrxservice_GstreamIn_nativeSetStatistics(JNIEnv *, jobject, jboolean, jint);
+
+/*
+ * Class:     GstreamIn
+ * Method:    nativeResetStatistics
+ * Signature: (I)V
+ */
+JNIEXPORT void JNICALL Java_com_crestron_txrxservice_GstreamIn_nativeResetStatistics(JNIEnv *, jobject, jint);
+
 ///////////////////////////////////////////////////////////////////////////////
 StreamState nativeGetCurrentStreamState(jint);
 void csio_send_stats (uint64_t, int, uint64_t, int, uint16_t);

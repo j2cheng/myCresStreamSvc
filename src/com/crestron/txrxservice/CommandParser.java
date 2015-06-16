@@ -390,13 +390,13 @@ public class CommandParser {
                 break;
             //Ethernet
             case STATISTICS_ENABLE:
-            	cmd = new StatisticsEnableCommand(cmdRx, arg);
+            	cmd = new StatisticsEnableCommand(cmdRx, arg, idx);
             	break;
             case STATISTICS_DISABLE:
-            	cmd = new StatisticsDisableCommand(cmdRx, arg);
+            	cmd = new StatisticsDisableCommand(cmdRx, arg, idx);
             	break;
             case STATISTICS_RESET:
-            	cmd = new StatisticsResetCommand(cmdRx, arg);
+            	cmd = new StatisticsResetCommand(cmdRx, arg, idx);
             	break;
             case STATISTICS_NUMBEROFVIDEOPACKETS:
             	cmd = new StatisticsNumVideoPacketsCommand(cmdRx, arg);

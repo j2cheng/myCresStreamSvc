@@ -178,19 +178,19 @@ public class CommandReceiver {
         ctl.setWindowSizeH(h, sessId);
     }
     
-    public void setStatisticsEnable(boolean flag){
+    public void setStatisticsEnable(boolean flag, int sessId){
     	if(flag)
-    		ctl.setStatistics(flag);
+    		ctl.setStatistics(flag, sessId);
     }
     
-    public void setStatisticsReset(boolean flag){
+    public void setStatisticsReset(boolean flag, int sessId){
     	if (flag)
-    		ctl.resetStatistics();
+    		ctl.resetStatistics(sessId);
     }
     
-    public void setStatisticsDisable(boolean flag){
+    public void setStatisticsDisable(boolean flag, int sessId){
     	if(flag)
-    		ctl.setStatistics(!flag);
+    		ctl.setStatistics(!flag, sessId);
     }
 
     //Process Feedbacks
@@ -440,12 +440,12 @@ public class CommandReceiver {
     	return ctl.userSettings.getPassword(sessId);
     }
     
-    public String getStatisticsEnable(){
-    	return String.valueOf(ctl.userSettings.isStatisticsEnable());
+    public String getStatisticsEnable(int sessId){
+    	return String.valueOf(ctl.userSettings.isStatisticsEnable(sessId));
     }
     
-    public String getStatisticsDisable(){
-    	return String.valueOf(ctl.userSettings.isStatisticsDisable());
+    public String getStatisticsDisable(int sessId){
+    	return String.valueOf(ctl.userSettings.isStatisticsDisable(sessId));
     }
     
     //TODO: do we want to save this every second in memory???
