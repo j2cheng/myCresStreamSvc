@@ -172,7 +172,7 @@ public class CresStreamCtrl extends Service {
             
             //Input Streamout Config
             streamPlay = new GstreamIn(CresStreamCtrl.this);
-            userSettings = new UserSettings(/*streamPlay*/);
+//            userSettings = new UserSettings(/*streamPlay*/);
 
             //myconfig = new CresStreamConfigure();
             tokenizer = new StringTokenizer();
@@ -191,6 +191,7 @@ public class CresStreamCtrl extends Service {
                 		userSettings = gson.fromJson(serializedClass, UserSettings.class);
                 	} catch (Exception ex) {
                 		Log.e(TAG, "Failed to deserialize userSettings: " + ex);
+                		userSettings = new UserSettings();
                 		saveUserSettings();
             		}
                 }
@@ -204,6 +205,7 @@ public class CresStreamCtrl extends Service {
             	// File Does not exist, create it
             	try
             	{
+            		userSettings = new UserSettings();
 	            	serializedClassFile.getParentFile().mkdirs(); 
 	            	serializedClassFile.createNewFile();
 	            	saveUserSettings();
@@ -1169,15 +1171,16 @@ public class CresStreamCtrl extends Service {
 		                    else if((device_mode==DeviceMode.STREAM_OUT.ordinal()) && (restartRequired[sessionId]) && (prevResolutionIndex != resolutionId))
 		                    {
 	                    		//HACK: For ioctl issue 
-		                        //1. Hide Preview 2. sleep One Sec 3.Stop Camera 4. Sleep 5 sec
-		                        hidePreviewWindow(sessionId);
-		                        SystemClock.sleep(cameraRestartTimout);
+		                        //1. Stop Camera 2. Hide Preview 3. Sleep 5 sec		                        
 		                        if((cam_streaming.mCameraPreviewObj != null) && ((cam_streaming.isStreaming()) == true))
+		                        {
+		                        	//Log.d(TAG, "///// stopRecording...");
 		                            cam_streaming.stopRecording(true);
-		                        else if ((((cam_preview.IsPreviewStatus()) == true)))  
-		                            cam_preview.stopPlayback(false);
+		                            //Log.d(TAG, "///// stopRecording...Complete");
+		                        }
 		                        else
 		                            Log.i(TAG, "Device is in Idle State");
+		                        hidePreviewWindow(sessionId);
 	
 		                        SystemClock.sleep((5*cameraRestartTimout));	                    	
 		                        
@@ -1272,6 +1275,15 @@ public class CresStreamCtrl extends Service {
                 if (paramAnonymousIntent.getAction().equals("evs.intent.action.hdmi.HDMIOUT_RESOLUTION_CHANGED"))
                 {
             		Log.d(TAG, "receiving intent!!!!");
+                	
+            		for(int sessionId = 0; sessionId < NumOfSurfaces; sessionId++)
+                	{
+                		int device_mode = userSettings.getMode(sessionId);
+	            		boolean confidencePreviewMode = ((device_mode==DeviceMode.STREAM_OUT.ordinal()) && (cam_streaming.getConfidencePreviewStatus()));
+	            		if (confidencePreviewMode)
+	            			cam_streaming.stopConfidencePreview(sessionId);
+                	}
+                	
                 	
                     int i = paramAnonymousIntent.getIntExtra("evs_hdmiout_resolution_changed_id", -1);
                     Log.i(TAG, "Received hdmiout resolution changed broadcast ! " + i);

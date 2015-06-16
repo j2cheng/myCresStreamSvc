@@ -558,12 +558,15 @@ public class CameraStreaming implements ErrorCallback {
     }
     
     public void startConfidencePreview(int sessionId){
-    	streamCtl.updateWindow(sessionId);
-    	streamCtl.showPreviewWindow(sessionId);
-    	streamCtl.cam_preview.setSessionIndex(sessionId);
-    	streamCtl.cam_preview.startPlayback(true);
-    	
-    	confidencePreviewRunning = true;
+    	if (Boolean.parseBoolean(streamCtl.hdmiOutput.getSyncStatus()))
+    	{
+	    	streamCtl.updateWindow(sessionId);
+	    	streamCtl.showPreviewWindow(sessionId);
+	    	streamCtl.cam_preview.setSessionIndex(sessionId);
+	    	streamCtl.cam_preview.startPlayback(true);
+	    	
+	    	confidencePreviewRunning = true;
+    	}
     }
     
     public void stopConfidencePreview(int sessionId){

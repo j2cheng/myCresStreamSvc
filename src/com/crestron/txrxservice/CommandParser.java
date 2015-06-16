@@ -459,7 +459,7 @@ public class CommandParser {
                 {
                     invoke.setCommand(cmd);
                     valueResponse = invoke.get();
-//                    Log.d(TAG, String.format("Join value response: %s", valueResponse));
+                    Log.d(TAG, String.format("Join value response: %s", valueResponse));
                 }
 	        }
 	        
