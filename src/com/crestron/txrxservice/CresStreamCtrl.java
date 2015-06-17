@@ -61,7 +61,6 @@ public class CresStreamCtrl extends Service {
     BroadcastReceiver resolutionEvent = null;
     BroadcastReceiver hdmioutResolutionChangedEvent = null;
 
-    //CresStreamConfigure myconfig;
     public UserSettings userSettings;
     AudioManager amanager;
     TCPInterface sockTask;
@@ -76,8 +75,8 @@ public class CresStreamCtrl extends Service {
     static int hpdHdmiEvent = 0;
     
     private boolean saveSettingsShouldExit = false;
-    public static boolean saveSettingsPendingUpdate = false;
-    private final long saveSettingsPollTime = 1000;
+    public static Object saveSettingsPendingUpdate = new Object();
+    public static boolean saveSettingsUpdateArrived = false;
 
     public final static int NumOfSurfaces = 2;
     String TAG = "TxRx StreamCtrl";
@@ -85,7 +84,6 @@ public class CresStreamCtrl extends Service {
     static String playStatus="false";
     static String stopStatus="true";
     static String pauseStatus="false";
-    static int idx = 0; //TODO: lets remove this, put in a more permanent solution
     boolean StreamOutstarted = false;
     boolean hdmiInputDriverPresent = false;
     //boolean enable_passwd = false;
@@ -169,6 +167,24 @@ public class CresStreamCtrl extends Service {
             super.onCreate();
             int windowWidth = 1920;
             int windowHeight = 1080;
+            
+            //Global Default Exception Handler
+            final Thread.UncaughtExceptionHandler oldHandler = Thread.getDefaultUncaughtExceptionHandler();
+
+            Thread.setDefaultUncaughtExceptionHandler(
+                    new Thread.UncaughtExceptionHandler() {
+                    @Override
+                    public void uncaughtException(Thread paramThread, Throwable paramThrowable) {
+                    //Close Camera   
+                    Log.d(TAG,"Global uncaught Exception !!!!!!!!!!!" );
+                    cam_preview.stopPlayback(false);
+                    cam_streaming.stopRecording(false);
+                    if (oldHandler != null)
+                    oldHandler.uncaughtException(paramThread, paramThrowable); //Delegates to Android's error handling
+                    else
+                    System.exit(2); //Prevents the service/app from freezing
+                    }
+                    });
             
             //Input Streamout Config
             streamPlay = new GstreamIn(CresStreamCtrl.this);
@@ -269,17 +285,20 @@ public class CresStreamCtrl extends Service {
             
             
             //sHolder = dispSurface.GetSurfaceHolder(1);//TODO:IDX
-            //cam_streaming = new CameraStreaming(CresStreamCtrl.this, sHolder);
-            cam_streaming = new CameraStreaming(CresStreamCtrl.this);
+            //cam_streaming = new CameraStreaming(CresStreamCtrl.this, sHolder);            
             //cam_preview = new CameraPreview(this, sHolder, hdmiInput);
-            cam_preview = new CameraPreview(this, hdmiInput);
+            if (hdmiInputDriverPresent)
+        	{
+            	cam_streaming = new CameraStreaming(this);
+            	cam_preview = new CameraPreview(this, hdmiInput);
+        	}
             //Play Control
             hm = new HashMap();
             hm.put(2/*"PREVIEW"*/, new Command() {
                     public void executeStart(int sessId) {startPreview(sessId); };
                     });
             hm.put(1 /*"STREAMOUT"*/, new Command() {
-                    public void executeStart(int sessId) {startStreamOut(sessId);};//createStreamOutURL();};
+                    public void executeStart(int sessId) {startStreamOut(sessId); };//createStreamOutURL();};
                     });
             hm.put(0 /*"STREAMIN"*/, new Command() {
                     public void executeStart(int sessId) {startStreamIn(sessId); };
@@ -310,23 +329,7 @@ public class CresStreamCtrl extends Service {
             sockTask = new TCPInterface(this);
             sockTask.execute(new Void[0]);
             
-            //Global Default Exception Handler
-            final Thread.UncaughtExceptionHandler oldHandler = Thread.getDefaultUncaughtExceptionHandler();
-
-            Thread.setDefaultUncaughtExceptionHandler(
-                    new Thread.UncaughtExceptionHandler() {
-                    @Override
-                    public void uncaughtException(Thread paramThread, Throwable paramThrowable) {
-                    //Close Camera   
-                    Log.d(TAG,"Global uncaught Exception !!!!!!!!!!!" );
-                    cam_preview.stopPlayback(false);
-                    cam_streaming.stopRecording(false);
-                    if (oldHandler != null)
-                    oldHandler.uncaughtException(paramThread, paramThrowable); //Delegates to Android's error handling
-                    else
-                    System.exit(2); //Prevents the service/app from freezing
-                    }
-                    });
+            
         }
    
     @Override
@@ -748,7 +751,6 @@ public class CresStreamCtrl extends Service {
     //Ctrls
     public void Start(int sessionId)
     {
-        //idx = sessionId;
     	Log.d(TAG, "Start : Lock");
     	threadLock.lock();
     	try
@@ -771,7 +773,6 @@ public class CresStreamCtrl extends Service {
 
     public void Stop(int sessionId)
     {
-        //idx = sessionId;
     	Log.d(TAG, "Stop : Lock");
     	threadLock.lock();
     	try
@@ -792,7 +793,6 @@ public class CresStreamCtrl extends Service {
 
     public void Pause(int sessionId)
     {
-        //idx = sessionId;
     	Log.d(TAG, "Pause : Lock");
     	threadLock.lock();
     	try
@@ -876,33 +876,6 @@ public class CresStreamCtrl extends Service {
             url.append(proto).append("://").append(l_ipaddr).append(":").append(port).append(file);
 	        Log.d(TAG, "URL is "+url.toString());
         }
-//        else
-//        {
-//        	//By Transmitter
-//        	if (currentStreamState == 1)
-//        		l_ipaddr = userSettings.getServerUrl(idx);
-//        	//Multicast via RTSP
-//        	else if (currentStreamState == 3)
-//        		l_ipaddr = userSettings.getMulticastAddress(idx);
-//
-//        	//RTP
-//        	if (currentTransportMode == 0)
-//        	{
-//        		proto = "rtp";
-//                port = userSettings.getRtpVideoPort(idx); //TODO: if we want to use this we need to change port to a string so we can have both video and audio ports
-//        	}
-//        	//TS over RTP
-//        	else if (currentTransportMode == 1)
-//        	{
-//        		proto = "rtp";
-//        		port = userSettings.getTsPort(idx); 
-//        	}
-//        	else if (currentTransportMode == 2)
-//        	{
-//        		proto = "udp";
-//                port = userSettings.getTsPort(idx);
-//        	}
-//        }
 
         return url.toString();
     }
@@ -1352,15 +1325,15 @@ public class CresStreamCtrl extends Service {
 		public void run() {
 			while (!saveSettingsShouldExit)
 			{
-				if (saveSettingsPendingUpdate)
-				{
-					saveSettingsPendingUpdate = false;
+				synchronized (saveSettingsPendingUpdate) {
+					while (!saveSettingsUpdateArrived) {
+						try {
+							saveSettingsPendingUpdate.wait();
+						} catch (InterruptedException ex) {ex.printStackTrace();}
+					}
+					saveSettingsUpdateArrived = false;
 					saveUserSettings();					
 				}
-				
-				try {
-					Thread.sleep(saveSettingsPollTime);
-				} catch (InterruptedException localInterruptedException) {/*Ignore*/}           
 			}
 		}
 	}

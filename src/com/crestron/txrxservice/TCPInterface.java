@@ -177,11 +177,13 @@ public class TCPInterface extends AsyncTask<Void, Object, Long> {
                         }
                         else if (read.trim().equalsIgnoreCase("updaterequest")) {
                         	for(CommandParser.CmdTable ct: CommandParser.CmdTable.values()){
-                        		publishProgress(ct.name(), serverHandler);
+                        		// Send device ready as last join
+                        		if (!ct.name().equals("DEVICE_READY_FB"))
+                        			publishProgress(ct.name(), serverHandler);
                         	}
                         	
                         	// Tell CSIO that update request is complete
-                        	publishProgress("ENCODER_READY=", serverHandler);
+                        	publishProgress("DEVICE_READY_FB", serverHandler);
                         }
                         else{
                             publishProgress(read.trim(), serverHandler);
@@ -209,10 +211,7 @@ public class TCPInterface extends AsyncTask<Void, Object, Long> {
         
         if (receivedMsg != null)
         {
-        	if (receivedMsg.equals("ENCODER_READY="))
-        		tmp_str = receivedMsg;
-        	else
-        		tmp_str = parserInstance.processReceivedMessage(receivedMsg); 
+    		tmp_str = parserInstance.processReceivedMessage(receivedMsg); 
         	
 	        try {
 	        	server.SendDataToAllClients(tmp_str);

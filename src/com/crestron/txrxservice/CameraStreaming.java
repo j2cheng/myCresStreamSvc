@@ -25,7 +25,6 @@ public class CameraStreaming implements ErrorCallback {
     static Camera mCameraPreviewObj = null;
     MediaRecorder mrec;
     String TAG = "TxRx CameraStreamer";
-    String hostaddr;
     String filename;
     File file4Recording;
     boolean out_stream_status = false;
@@ -48,10 +47,7 @@ public class CameraStreaming implements ErrorCallback {
 
     //public CameraStreaming(CresStreamCtrl mContext, SurfaceHolder lpHolder ) {
     public CameraStreaming(CresStreamCtrl mContext) {
-        MiscUtils.getDeviceIpAddr();	
-        hostaddr = MiscUtils.matcher.group();
-        Log.d(TAG, "CameraStreaming :: Constructor called.....");
-        //surfaceHolder = lpHolder;
+    	Log.d(TAG, "CameraStreaming :: Constructor called.....");
         streamCtl = mContext;
     }
    
@@ -105,7 +101,7 @@ public class CameraStreaming implements ErrorCallback {
             if ((currentSessionInitiation == 0) || (currentSessionInitiation == 2)) //Multicast via RTSP or By Receiver
             {
             	l_port = streamCtl.userSettings.getRtspPort(idx);
-                mrec.setDestinationIP( hostaddr);
+                mrec.setDestinationIP( streamCtl.userSettings.getDeviceIp());
                 mrec.setRTSPPort(l_port);
                 
                 if (currentSessionInitiation == 2) //Multicast via RTSP
