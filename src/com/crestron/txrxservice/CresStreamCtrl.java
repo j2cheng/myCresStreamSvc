@@ -74,7 +74,7 @@ public class CresStreamCtrl extends Service {
     int hpdStateEnabled = 0;
     static int hpdHdmiEvent = 0;
     
-    private boolean saveSettingsShouldExit = false;
+    private volatile boolean saveSettingsShouldExit = false;
     public static Object saveSettingsPendingUpdate = new Object();
     public static boolean saveSettingsUpdateArrived = false;
 

@@ -14,7 +14,7 @@ public class AudioPlayback
     AudioTrack mPlayer = null;
     AudioRecord mRecorder = null;
     String TAG = "TxRx AudioPlayback"; 
-    boolean shouldExit;
+    volatile boolean shouldExit;
     Thread streamAudioThread;
 
 
