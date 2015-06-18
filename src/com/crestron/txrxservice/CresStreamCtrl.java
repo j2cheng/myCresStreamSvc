@@ -704,10 +704,10 @@ public class CresStreamCtrl extends Service {
     
     public void SendStreamInFeedbacks()
     {
-    	sockTask.SendDataToAllClients("Statistics_NumberOfVideoPackets=" + String.valueOf(streamPlay.getStreamInNumVideoPackets()));
-    	sockTask.SendDataToAllClients("StatisticsNumVideoPacketsDropped=" + String.valueOf(streamPlay.getStreamInNumVideoPacketsDropped()));
-    	sockTask.SendDataToAllClients("Statistics_NumberOfAudioPackets=" + String.valueOf(streamPlay.getStreamInNumAudioPackets()));
-    	sockTask.SendDataToAllClients("Statistics_NumberOfAudioPacketsDropped=" + String.valueOf(streamPlay.getStreamInNumAudioPacketsDropped()));    	
+    	sockTask.SendDataToAllClients("STATISTICS_NUMBEROFVIDEOPACKETS=" + String.valueOf(streamPlay.getStreamInNumVideoPackets()));
+    	sockTask.SendDataToAllClients("STATISTICS_NUMBEROFVIDEOPACKETSDROPPED=" + String.valueOf(streamPlay.getStreamInNumVideoPacketsDropped()));
+    	sockTask.SendDataToAllClients("STATISTICS_NUMBEROFAUDIOPACKETS=" + String.valueOf(streamPlay.getStreamInNumAudioPackets()));
+    	sockTask.SendDataToAllClients("STATISTICS_NUMBEROFAUDIOPACKETSDROPPED=" + String.valueOf(streamPlay.getStreamInNumAudioPacketsDropped()));    	
     	sockTask.SendDataToAllClients("VBITRATE=" + String.valueOf(streamPlay.getStreamInBitrate()));
 
         //processReceivedMessage()
@@ -722,10 +722,10 @@ public class CresStreamCtrl extends Service {
     	sockTask.SendDataToAllClients("STREAMOUT_AUDIO_FORMAT=" + String.valueOf(cam_streaming.getStreamOutAudioFormatFb()));
     	sockTask.SendDataToAllClients("STREAMOUT_AUDIO_CHANNELS=" + String.valueOf(cam_streaming.getStreamOutAudiochannelsFb()));
     	
-    	sockTask.SendDataToAllClients("Statistics_NumberOfVideoPackets=" + String.valueOf(cam_streaming.getStreamOutNumVideoPackets()));
-    	sockTask.SendDataToAllClients("StatisticsNumVideoPacketsDropped=" + String.valueOf(cam_streaming.getStreamOutNumVideoPacketsDropped()));
-    	sockTask.SendDataToAllClients("Statistics_NumberOfAudioPackets=" + String.valueOf(cam_streaming.getStreamOutNumAudioPackets()));
-    	sockTask.SendDataToAllClients("Statistics_NumberOfAudioPacketsDropped=" + String.valueOf(cam_streaming.getStreamOutNumAudioPacketsDropped()));
+    	sockTask.SendDataToAllClients("STATISTICS_NUMBEROFVIDEOPACKETS=" + String.valueOf(cam_streaming.getStreamOutNumVideoPackets()));
+    	sockTask.SendDataToAllClients("STATISTICS_NUMBEROFVIDEOPACKETSDROPPED=" + String.valueOf(cam_streaming.getStreamOutNumVideoPacketsDropped()));
+    	sockTask.SendDataToAllClients("STATISTICS_NUMBEROFAUDIOPACKETS=" + String.valueOf(cam_streaming.getStreamOutNumAudioPackets()));
+    	sockTask.SendDataToAllClients("STATISTICS_NUMBEROFAUDIOPACKETSDROPPED=" + String.valueOf(cam_streaming.getStreamOutNumAudioPacketsDropped()));
     }
 
     public void SendStreamState(StreamState state, int sessionId)
@@ -1148,7 +1148,7 @@ public class CresStreamCtrl extends Service {
 		                        if((cam_streaming.mCameraPreviewObj != null) && ((cam_streaming.isStreaming()) == true))
 		                        {
 		                        	//Log.d(TAG, "///// stopRecording...");
-		                            cam_streaming.stopRecording(true);
+		                            cam_streaming.stopRecording(false); //true
 		                            //Log.d(TAG, "///// stopRecording...Complete");
 		                        }
 		                        else
@@ -1213,7 +1213,7 @@ public class CresStreamCtrl extends Service {
 		                	}
 	                        SystemClock.sleep(cameraRestartTimout);
 	                        if((cam_streaming.mCameraPreviewObj != null) && ((cam_streaming.isStreaming()) == true))
-	                            cam_streaming.stopRecording(true);
+	                            cam_streaming.stopRecording(false);	//true
 	                        else if ((((cam_preview.IsPreviewStatus()) == true)))  
 	                            cam_preview.stopPlayback(false);
 	                        else
