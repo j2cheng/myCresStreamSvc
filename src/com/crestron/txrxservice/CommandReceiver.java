@@ -192,6 +192,10 @@ public class CommandReceiver {
     	if(flag)
     		ctl.setStatistics(!flag, sessId);
     }
+    
+    public void setRestartStreamOnStart(boolean flag) {
+    	ctl.restartStreamsOnStart = flag;
+    }
 
     //Process Feedbacks
     public String getStreamUrl(int idx){

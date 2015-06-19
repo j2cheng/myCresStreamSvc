@@ -96,7 +96,9 @@ public class CommandParser {
         STATISTICS_NUMBEROFVIDEOPACKETS,
         STATISTICS_NUMBEROFVIDEOPACKETSDROPPED,
         STATISTICS_NUMBEROFAUDIOPACKETS,
-        STATISTICS_NUMBEROFAUDIOPACKETSDROPPED;
+        STATISTICS_NUMBEROFAUDIOPACKETSDROPPED,
+        
+        RESTART_STREAM_ON_START;
 
         //UPDATEREQUEST;
     }
@@ -409,6 +411,9 @@ public class CommandParser {
             	break;
             case STATISTICS_NUMBEROFAUDIOPACKETSDROPPED:
             	cmd = new StatisticsNumAudioPacketsDroppedCommand(cmdRx, arg);
+            	break;
+            case RESTART_STREAM_ON_START:
+            	cmd = new RestartStreamOnStartCommand(cmdRx, arg);
             	break;
             default:
                 break;

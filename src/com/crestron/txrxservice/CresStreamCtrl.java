@@ -79,6 +79,7 @@ public class CresStreamCtrl extends Service {
     public static boolean saveSettingsUpdateArrived = false;
 
     public final static int NumOfSurfaces = 2;
+    public volatile boolean restartStreamsOnStart = false;
     String TAG = "TxRx StreamCtrl";
     static String out_url="";
     static String playStatus="false";
@@ -178,7 +179,7 @@ public class CresStreamCtrl extends Service {
                     //Close Camera   
                     Log.d(TAG,"Global uncaught Exception !!!!!!!!!!!" );
                     cam_preview.stopPlayback(false);
-                    cam_streaming.stopRecording(false);
+                    cam_streaming.stopRecording(true);//false
                     if (oldHandler != null)
                     oldHandler.uncaughtException(paramThread, paramThrowable); //Delegates to Android's error handling
                     else
@@ -190,7 +191,6 @@ public class CresStreamCtrl extends Service {
             streamPlay = new GstreamIn(CresStreamCtrl.this);
 //            userSettings = new UserSettings(/*streamPlay*/);
 
-            //myconfig = new CresStreamConfigure();
             tokenizer = new StringTokenizer();
             hdmiOutput = new HDMIOutputInterface();
             
@@ -279,14 +279,8 @@ public class CresStreamCtrl extends Service {
             
             //HPD and Resolution Event Registration
             registerBroadcasts();
+            
             //Enable StreamIn and CameraPreview 
-            //SurfaceHolder sHolder = dispSurface.GetSurfaceHolder(0);//TODO:IDX
-
-            
-            
-            //sHolder = dispSurface.GetSurfaceHolder(1);//TODO:IDX
-            //cam_streaming = new CameraStreaming(CresStreamCtrl.this, sHolder);            
-            //cam_preview = new CameraPreview(this, sHolder, hdmiInput);
             if (hdmiInputDriverPresent)
         	{
             	cam_streaming = new CameraStreaming(this);
@@ -298,7 +292,7 @@ public class CresStreamCtrl extends Service {
                     public void executeStart(int sessId) {startPreview(sessId); };
                     });
             hm.put(1 /*"STREAMOUT"*/, new Command() {
-                    public void executeStart(int sessId) {startStreamOut(sessId); };//createStreamOutURL();};
+                    public void executeStart(int sessId) {startStreamOut(sessId); };
                     });
             hm.put(0 /*"STREAMIN"*/, new Command() {
                     public void executeStart(int sessId) {startStreamIn(sessId); };
@@ -327,9 +321,7 @@ public class CresStreamCtrl extends Service {
 
             //Stub: CSIO Cmd Receiver & TestApp functionality
             sockTask = new TCPInterface(this);
-            sockTask.execute(new Void[0]);
-            
-            
+            sockTask.execute(new Void[0]);                       
         }
    
     @Override
@@ -343,22 +335,7 @@ public class CresStreamCtrl extends Service {
     {
         return null;
     } 
-    
-    public void restartStreams()
-    {
-        //If streamstate was previously started, restart stream
-        for (int sessionId = 0; sessionId < NumOfSurfaces; sessionId++)
-        {
-            if (userSettings.getStreamState(sessionId) == StreamState.STARTED)
-            	Start(sessionId);
-            else if (userSettings.getStreamState(sessionId) == StreamState.CONFIDENCEMODE)
-            {
-            	cam_streaming.startConfidencePreview(sessionId);
-            	restartRequired[sessionId] = true;
-            }
-        }
-    }
-    
+
     public void onDestroy(){
         super.onDestroy();
         saveUserSettings();
@@ -751,64 +728,73 @@ public class CresStreamCtrl extends Service {
     //Ctrls
     public void Start(int sessionId)
     {
-    	Log.d(TAG, "Start : Lock");
-    	threadLock.lock();
-    	try
+    	if (userSettings.getStreamState(sessionId) != StreamState.STARTED)
     	{
-    		SendStreamState(StreamState.CONNECTING, sessionId);
-	    	playStatus="true";
-	    	stopStatus="false";
-	        pauseStatus="false";	
-	        restartRequired[sessionId]=true;
-	        hm.get(userSettings.getMode(sessionId)).executeStart(sessionId);
-	        //hm.get(device_mode).executeStart();
-	        // The started state goes back when we actually start
-    	}
-    	finally
-    	{
-    		threadLock.unlock();
-        	Log.d(TAG, "Start : Unlock");
+	    	Log.d(TAG, "Start : Lock");
+	    	threadLock.lock();
+	    	try
+	    	{
+	    		SendStreamState(StreamState.CONNECTING, sessionId);
+		    	playStatus="true";
+		    	stopStatus="false";
+		        pauseStatus="false";	
+		        restartRequired[sessionId]=true;
+		        hm.get(userSettings.getMode(sessionId)).executeStart(sessionId);
+		        //hm.get(device_mode).executeStart();
+		        // The started state goes back when we actually start
+	    	}
+	    	finally
+	    	{
+	    		threadLock.unlock();
+	        	Log.d(TAG, "Start : Unlock");
+	    	}
     	}
     }
 
     public void Stop(int sessionId)
     {
-    	Log.d(TAG, "Stop : Lock");
-    	threadLock.lock();
-    	try
+    	if (userSettings.getStreamState(sessionId) != StreamState.STOPPED)
     	{
-	    	playStatus="false";
-	    	stopStatus="true";
-	        pauseStatus="false";
-	        restartRequired[sessionId]=false;
-	        hm2.get(userSettings.getMode(sessionId)).executeStop(sessionId);
-	        // device state will be set in stop callback
-    	}
-    	finally
-    	{
-    		Log.d(TAG, "Stop : Unlock");
-    		threadLock.unlock();
+	    	Log.d(TAG, "Stop : Lock");
+	    	threadLock.lock();
+	    	try
+	    	{
+		    	playStatus="false";
+		    	stopStatus="true";
+		        pauseStatus="false";
+		        restartRequired[sessionId]=false;
+		        hm2.get(userSettings.getMode(sessionId)).executeStop(sessionId);
+		        // device state will be set in stop callback
+	    	}
+	    	finally
+	    	{
+	    		Log.d(TAG, "Stop : Unlock");
+	    		threadLock.unlock();
+	    	}
     	}
     }
 
     public void Pause(int sessionId)
     {
-    	Log.d(TAG, "Pause : Lock");
-    	threadLock.lock();
-    	try
+    	if (userSettings.getStreamState(sessionId) != StreamState.PAUSED)
     	{
-	        pauseStatus="true";
-	    	playStatus="false";
-	    	stopStatus="false";
-	    	restartRequired[sessionId]=false;
-	        hm3.get(userSettings.getMode(sessionId)).executePause(sessionId);
-	        //hm3.get(device_mode).executePause();
-	        // Device state will be set in pause callback
-    	}
-        finally
-    	{
-    		Log.d(TAG, "Pause : Unlock");
-    		threadLock.unlock();
+	    	Log.d(TAG, "Pause : Lock");
+	    	threadLock.lock();
+	    	try
+	    	{
+		        pauseStatus="true";
+		    	playStatus="false";
+		    	stopStatus="false";
+		    	restartRequired[sessionId]=false;
+		        hm3.get(userSettings.getMode(sessionId)).executePause(sessionId);
+		        //hm3.get(device_mode).executePause();
+		        // Device state will be set in pause callback
+	    	}
+	        finally
+	    	{
+	    		Log.d(TAG, "Pause : Unlock");
+	    		threadLock.unlock();
+	    	}
     	}
     }
     //StreamOut Ctrl & Config

@@ -1455,3 +1455,22 @@ class StatisticsNumAudioPacketsDroppedCommand implements CommandIf {
             return launch.getNumAudioPacketsDropped();
         }
 }
+
+class RestartStreamOnStartCommand implements CommandIf {
+	CommandReceiver launch;
+    String msg;
+
+    public RestartStreamOnStartCommand(CommandReceiver launch, String arg) {
+        this.launch = launch;
+        this.msg = arg;
+    }
+
+    @Override
+    public void execute() {
+    	boolean val = Boolean.valueOf(msg);
+        launch.setRestartStreamOnStart(val);
+    }
+    public String getFeedbackMsg() {
+    	return msg;	//no feedback for this join
+    }
+}

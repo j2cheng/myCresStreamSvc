@@ -12,6 +12,8 @@ import java.io.OutputStreamWriter;
 import java.net.ServerSocket;
 import java.net.Socket;
 
+import com.crestron.txrxservice.CresStreamCtrl.StreamState;
+
 import android.os.AsyncTask;
 import android.util.Log;
 import android.os.Bundle;
@@ -27,6 +29,7 @@ public class TCPInterface extends AsyncTask<Void, Object, Long> {
     public static final int SERVERPORT = 9876;
     private ServerSocket serverSocket;
     private BufferedReader input;
+    private boolean isFirstRun = false;
     
     private ArrayList<CommunicationThread> clientList;
 
@@ -67,9 +70,28 @@ public class TCPInterface extends AsyncTask<Void, Object, Long> {
 
     }
     
+    private void restartStreams(TCPInterface serverHandler)
+    {
+        Log.d(TAG, "Restarting Streams...");
+        isFirstRun = true;
+        //If streamstate was previously started, restart stream
+        for (int sessionId = 0; sessionId < streamCtl.NumOfSurfaces; sessionId++)
+        {
+            if (streamCtl.userSettings.getStreamState(sessionId) == StreamState.STARTED)
+            {
+            	streamCtl.userSettings.setStreamState(StreamState.STOPPED, sessionId);
+            	publishProgress(String.format("START%d=TRUE", sessionId), serverHandler);
+            }
+            else if (streamCtl.userSettings.getStreamState(sessionId) == StreamState.CONFIDENCEMODE)
+            {
+            	streamCtl.userSettings.setMode(0, sessionId);
+            	publishProgress(String.format("MODE%d=%d", sessionId, CresStreamCtrl.DeviceMode.STREAM_OUT.ordinal()), serverHandler);
+            }            
+        }
+    }
+    
     protected Long doInBackground(Void... paramVarArgs)
     {
-//    	streamCtl.restartStreams();
         Socket clientSocket = null;
         try {
             serverSocket = new ServerSocket(SERVERPORT);
@@ -166,6 +188,8 @@ public class TCPInterface extends AsyncTask<Void, Object, Long> {
 
         public void run() {
             while (connectionAlive) {
+            	if ((streamCtl.restartStreamsOnStart) && (!isFirstRun))
+                	restartStreams(serverHandler);
                 try {
                     String read = input.readLine();
                     if(read!=null && !(isWhiteSpace=(read.matches("^\\s*$"))))
