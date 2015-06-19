@@ -162,6 +162,7 @@ public class CameraStreaming implements ErrorCallback {
             startStatisticsTask();
         }
         else {
+        	stopRecording(false);
             Log.e(TAG, "Camera Resource busy or not available !!!!");
             file4Recording.delete();
             mrec = null;

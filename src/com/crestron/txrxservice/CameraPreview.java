@@ -155,6 +155,10 @@ public class CameraPreview {
                 }
                 is_preview = true;
             }
+            else
+            {
+            	stopPlayback(false);
+            }
         }else   //Pause/Resume Case
             resumePlayback();      
 
