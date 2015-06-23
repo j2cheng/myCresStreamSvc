@@ -355,9 +355,8 @@ JNIEXPORT void JNICALL Java_com_crestron_txrxservice_GstreamIn_nativeSetSeverUrl
 JNIEXPORT void JNICALL Java_com_crestron_txrxservice_GstreamIn_nativeSetRtspPort(JNIEnv *env, jobject thiz, jint port, jint sessionId)
 {
 	GST_DEBUG ("Using RtspPort: '%d'", port);
-	//TODO: Currently we dont save rtsp port in CSIOsettings
-	//currentSettingsDB.videoSettings[sessionId]. = port;
-	//GST_DEBUG ("URL in currentSettingsDB: '%d'", currentSettingsDB.settingsMessage.msg[sessionId].url);
+	currentSettingsDB.videoSettings[sessionId].rtsp_port = port;
+	GST_DEBUG ("RtspPort in currentSettingsDB: '%d'", currentSettingsDB.videoSettings[sessionId].rtsp_port);
 }
 
 JNIEXPORT void JNICALL Java_com_crestron_txrxservice_GstreamIn_nativeSetTsPort(JNIEnv *env, jobject thiz, jint port, jint sessionId)
@@ -445,6 +444,30 @@ JNIEXPORT void JNICALL Java_com_crestron_txrxservice_GstreamIn_nativeSetStatisti
 JNIEXPORT void JNICALL Java_com_crestron_txrxservice_GstreamIn_nativeResetStatistics(JNIEnv *env, jobject thiz, jint sessionId)
 {
 	reset_statistics(sessionId);
+}
+
+JNIEXPORT void JNICALL Java_com_crestron_txrxservice_GstreamIn_nativeSetUserName(JNIEnv *env, jobject thiz, jstring userName_jstring, jint sessionId)
+{
+	const char * userName_cstring = (*env)->GetStringUTFChars( env, userName_jstring , NULL ) ;
+	if (userName_cstring == NULL) return;
+
+	GST_DEBUG ("Using UserName: '%s'", userName_cstring);
+	strcpy(currentSettingsDB.videoSettings[sessionId].username, userName_cstring);
+	GST_DEBUG ("UserName in currentSettingsDB: '%s'", currentSettingsDB.videoSettings[sessionId].username);
+
+	(*env)->ReleaseStringUTFChars(env, userName_jstring, userName_cstring);
+}
+
+JNIEXPORT void JNICALL Java_com_crestron_txrxservice_GstreamIn_nativeSetPassword(JNIEnv *env, jobject thiz, jstring password_jstring, jint sessionId)
+{
+	const char * password_cstring = (*env)->GetStringUTFChars( env, password_jstring , NULL ) ;
+	if (password_cstring == NULL) return;
+
+	GST_DEBUG ("Using password: '%s'", password_cstring);
+	strcpy(currentSettingsDB.videoSettings[sessionId].password, password_cstring);
+	GST_DEBUG ("Password in currentSettingsDB: '%s'", currentSettingsDB.videoSettings[sessionId].password);
+
+	(*env)->ReleaseStringUTFChars(env, password_jstring, password_cstring);
 }
 
 StreamState nativeGetCurrentStreamState(jint sessionId)
@@ -850,7 +873,7 @@ void csio_jni_InitPipeline(eProtocolId protoId, int iStreamId)
 	}
 }
 
-void csio_jni_SetSourceLocation(eProtocolId protoId, int iStreamId)
+void csio_jni_SetSourceLocation(eProtocolId protoId, char *location, int iStreamId)
 {
 	//GST_ERROR ("protoId = %d\n",protoId);
 	switch( protoId )
@@ -862,7 +885,7 @@ void csio_jni_SetSourceLocation(eProtocolId protoId, int iStreamId)
 		case ePROTOCOL_RTSP_TS:
 		{
 			g_object_set(G_OBJECT(CresDataDB->element_zero), "location", \
-					     currentSettingsDB.settingsMessage.msg[iStreamId].url, NULL);
+					location, NULL);
 			break;
 		}
 
@@ -886,7 +909,7 @@ void csio_jni_SetSourceLocation(eProtocolId protoId, int iStreamId)
 		{
 			//GST_DEBUG ("ePROTOCOL_MULTICAST: location[%s]\n",CresDataDB->multicast_grp);
 			g_object_set(G_OBJECT(CresDataDB->element_av[0]), "address", \
-					CresDataDB->multicast_grp, NULL);
+					location, NULL);
 
 			//g_object_set(G_OBJECT(CresDataDB->element_av[1]), "address", \
 			//		CresDataDB->multicast_grp, NULL);

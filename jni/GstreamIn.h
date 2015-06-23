@@ -108,6 +108,20 @@ JNIEXPORT void JNICALL Java_com_crestron_txrxservice_GstreamIn_nativeSetStatisti
  */
 JNIEXPORT void JNICALL Java_com_crestron_txrxservice_GstreamIn_nativeResetStatistics(JNIEnv *, jobject, jint);
 
+/*
+ * Class:     		GstreamIn
+ * Method:    		nativeSetUserName
+ * Signature: 		(Ljava/lang/string; I)V
+ */
+JNIEXPORT void JNICALL Java_com_crestron_txrxservice_GstreamIn_nativeSetUserName(JNIEnv *, jobject, jstring, jint);
+
+/*
+ * Class:     		GstreamIn
+ * Method:    		nativeSetPassword
+ * Signature: 		(Ljava/lang/string; I)V
+ */
+JNIEXPORT void JNICALL Java_com_crestron_txrxservice_GstreamIn_nativeSetPassword(JNIEnv *, jobject, jstring, jint);
+
 ///////////////////////////////////////////////////////////////////////////////
 StreamState nativeGetCurrentStreamState(jint);
 void csio_send_stats (uint64_t, int, uint64_t, int, uint16_t);

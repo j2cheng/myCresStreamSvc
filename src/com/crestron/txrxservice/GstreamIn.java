@@ -48,6 +48,8 @@ public class GstreamIn implements SurfaceHolder.Callback {
     private native void 		nativeSetXYlocations(int xloc, int yloc, int sessionId);
     private static native void 	nativeSetStatistics(boolean enabled, int sessionId);
     private static native void 	nativeResetStatistics(int sessionId);
+    private native void			nativeSetUserName(String userName, int sessionId);
+    private native void			nativeSetPassword(String password, int sessionId);
 
     public GstreamIn(CresStreamCtrl mContext) {
         Log.e(TAG, "GstreamIN :: Constructor called...!");
@@ -72,19 +74,19 @@ public class GstreamIn implements SurfaceHolder.Callback {
 	}
     
     public void setRtspPort(int port, int sessionId){
-    	nativeSetRtspPort(port, 0);
+    	nativeSetRtspPort(port, sessionId);
     }
     
     public void setTsPort(int port, int sessionId){
-    	nativeSetTsPort(port, 0);
+    	nativeSetTsPort(port, sessionId);
     }
     
     public void setRtpVideoPort(int port, int sessionId){
-    	nativeSetRtpVideoPort(port, 0);
+    	nativeSetRtpVideoPort(port, sessionId);
     }
     
     public void setRtpAudioPort(int port, int sessionId){
-    	nativeSetRtpAudioPort(port, 0);
+    	nativeSetRtpAudioPort(port, sessionId);
     }
     
     public void setSessionInitiation(int initMode, int sessionId){
@@ -101,6 +103,14 @@ public class GstreamIn implements SurfaceHolder.Callback {
     
     public void setStreamingBuffer(int buffer_ms, int sessionId){
     	nativeSetStreamingBuffer(buffer_ms, sessionId);
+    }
+    
+    public void setUserName(String userName, int sessionId){
+    	nativeSetUserName(userName, sessionId);
+    }
+    
+    public void setPassword(String password, int sessionId){
+    	nativeSetPassword(password, sessionId);
     }
     
     public void sendStatistics(long video_packets_received, int video_packets_lost, long audio_packets_received, int audio_packets_lost, int bitrate){
@@ -168,19 +178,8 @@ public class GstreamIn implements SurfaceHolder.Callback {
 	public int getStreamInBitrate() {
 		return statisticsBitrate;
 	}
-	
-	public void resetStatistics() {
-		//TODO: JNI command to tell native code to reset statistics
-//		statisticsNumVideoPackets = 0;
-//        statisticsNumVideoPacketsDropped = 0;
-//        statisticsNumAudioPackets = 0;
-//        statisticsNumAudioPacketsDropped = 0;
-//        statisticsBitrate = 0;
-//        
-//        streamCtl.SendStreamInFeedbacks();
-	}
-    
-    //MJPEG IN  ??? Not Needed
+
+	//MJPEG IN  ??? Not Needed
     public void disableLatency(){
 //        disableLatencyFlag = true;    
     }
@@ -244,6 +243,8 @@ public class GstreamIn implements SurfaceHolder.Callback {
     	setMulticastAddress(streamCtl.userSettings.getMulticastAddress(sessionId), sessionId);
     	setStreamingBuffer(streamCtl.userSettings.getStreamingBuffer(sessionId), sessionId);
     	nativeSetStatistics(streamCtl.userSettings.isStatisticsEnable(sessionId), sessionId);
+    	nativeSetUserName(streamCtl.userSettings.getUserName(sessionId), sessionId);
+    	nativeSetPassword(streamCtl.userSettings.getPassword(sessionId), sessionId);    	
     }
 
     //Response to CSIO Layer TODO: these can most likely be deleted handled in jni library
