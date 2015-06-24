@@ -28,8 +28,6 @@ CPP_INC_PATH := $(CRESTRON_ROOT)/../../bionic
 #LOCAL_SHARED_LIBRARIES := gstreamer_android
 LOCAL_SHARED_LIBRARIES := libgstreamer_android liblog libandroid
 LOCAL_SHARED_LIBRARIES += libproductName
-LOCAL_SHARED_LIBRARIES += libAEth
-LOCAL_SHARED_LIBRARIES += libAWChar	
 
 # Crestron - why do I have to do this?
 #LOCAL_LDLIBS := -llog -landroid
