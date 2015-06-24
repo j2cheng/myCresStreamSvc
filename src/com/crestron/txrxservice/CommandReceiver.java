@@ -196,6 +196,10 @@ public class CommandReceiver {
     public void setRestartStreamOnStart(boolean flag) {
     	ctl.restartStreamsOnStart = flag;
     }
+    
+    public void setUseGstreamer(boolean flag) {
+    	ctl.setUseGstreamer(flag);
+    }
 
     //Process Feedbacks
     public String getStreamUrl(int idx){

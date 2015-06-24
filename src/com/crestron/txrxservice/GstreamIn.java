@@ -10,7 +10,7 @@ import android.content.Context;
 import com.crestron.txrxservice.CresStreamCtrl.StreamState;
 import org.freedesktop.gstreamer.GStreamer;
 
-public class GstreamIn implements SurfaceHolder.Callback {
+public class GstreamIn implements StreamInStrategy, SurfaceHolder.Callback {
 
     String TAG = "TxRx GstreamIN";
     StringBuilder sb;
@@ -179,19 +179,19 @@ public class GstreamIn implements SurfaceHolder.Callback {
 		return statisticsBitrate;
 	}
 
-	//MJPEG IN  ??? Not Needed
-    public void disableLatency(){
+	//Not needed by Gstreamer, only gallery player
+    public void disableLatency(int sessionId){
 //        disableLatencyFlag = true;    
     }
 
-    //Enable TCP for RTSP Mode
-    public void setRtspTcpInterleave(boolean tcpInterleave){
+  //Not needed by Gstreamer, only gallery player
+    public void setRtspTcpInterleave(boolean tcpInterleave, int sessionId){
 //        Log.d(TAG, " setRtspTcpInterleave");
 //        tcpInterleaveFlag = tcpInterleave;    
     }
 
-    //RTP Only Mode, SDP Creation based on RTP Video and Audio Ports
-    public void setRtpOnlyMode(int vport, int aport, String ip){
+  //Not needed by Gstreamer, only gallery player
+    public void setRtpOnlyMode(int vport, int aport, String ip, int sessionId){
 //        rtp_mode = true;
 //        sb = new StringBuilder(4096);
 //        Log.d(TAG, "vport "+vport+ "aport "+aport +"ip "+ip);

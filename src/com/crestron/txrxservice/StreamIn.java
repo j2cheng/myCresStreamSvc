@@ -1,248 +1,159 @@
-//package com.crestron.txrxservice;
-//
-//import java.io.IOException;
-//
-//import android.util.Log;
-//import android.view.SurfaceHolder;
-//import android.media.MediaPlayer;
-//import android.content.Context;
-//import android.media.MediaPlayer.OnPreparedListener;
-//import android.media.MediaPlayer.OnBufferingUpdateListener;
-//import android.media.MediaPlayer.OnCompletionListener;
-//import android.media.MediaPlayer.OnErrorListener;
-//import android.media.AudioManager;
-//
-////import com.crestron.txrxservice.CresStreamConfigure;
-//import com.crestron.txrxservice.CresStreamCtrl.StreamState;
-//
-//public class StreamIn implements OnPreparedListener, OnCompletionListener, OnBufferingUpdateListener, OnErrorListener {
-//
-//    private MediaPlayer[] mediaPlayer = new MediaPlayer[CresStreamCtrl.NumOfSurfaces];
-//    private SurfaceHolder vidHolder;
-//    String TAG = "TxRx StreamIN";
-//    StringBuilder sb;
-//    static String srcUrl="";
-//    boolean rtp_mode = false;
-//    boolean media_pause = false;
-//    boolean tcpInterleaveFlag = false;	//TODO: investigate if this should go into userSettings, needs to be enum
-//    boolean disableLatencyFlag = false;
-//    private CresStreamCtrl streamCtl;
-//    private int idx = 0;
-//
-//
-//    //public StreamIn(CresStreamCtrl mContext, SurfaceHolder vHolder) {
-//    public StreamIn(CresStreamCtrl mContext) {
-//        Log.e(TAG, "StreamIN :: Constructor called...!");
-//        //vidHolder = vHolder;
-//        streamCtl = mContext;
-//    }
-//
-//    public void setSessionIndex(int id){
-//        idx = id;
-//    }
-//    
-//    //Setting source url to play streamin
-//    public void setUrl(String p_url){
-//        srcUrl = p_url;
-//        Log.d(TAG, "setting stream in URL to "+srcUrl);
-//    }
-//
-//    //MJPEG IN  ??? Not Needed
-//    public void disableLatency(){
-//        disableLatencyFlag = true;    
-//    }
-//
-//    //Enable TCP for RTSP Mode
-//    public void setRtspTcpInterleave(boolean tcpInterleave){
-//        Log.d(TAG, " setRtspTcpInterleave");
-//        tcpInterleaveFlag = tcpInterleave;    
-//    }
-//
-//    //RTP Only Mode, SDP Creation based on RTP Video and Audio Ports
-//    public void setRtpOnlyMode(int vport, int aport, String ip){
-//        rtp_mode = true;
-//        sb = new StringBuilder(4096);
-//        Log.d(TAG, "vport "+vport+ "aport "+aport +"ip "+ip);
-//        sb.append("v=0\r\n").append("o=- 15545345606659080561 15545345606659080561 IN IP4 cpu000669\r\n").append("s=Sample\r\n").append("i=N/A\r\n").append("c=IN IP4 ").append(ip).append("\r\n").append("t=0 0\r\n").append("a=range:npt=now-\r\n").append("m=audio ").append(Integer.toString(aport)).append(" RTP/AVP 96\r\n").append("a=control:audio\r\n").append("a=rtpmap:96 MP4A-LATM/44100/2\r\n").append("a=fmtp:96 profile-level-id=15; object=2; cpresent=0; config=400024203fc0\r\n").append("m=video ").append(Integer.toString(vport)).append(" RTP/AVP 97\r\n").append("a=control:video\r\n").append("a=rtpmap:97 H264/90000\r\n").append("a=fmtp:97 profile-level-id=64002A;in-band-parameter-sets=1;packetization-mode=1\r\n");
-//    }
-//
-//    //Play based on based Pause/Actual Playback 
-//    public void onStart() {
-//        if(media_pause && (mediaPlayer!=null)){
-//            mediaPlayer[idx].start();
-//            media_pause = false;
-//
-//        }else{
-//            try {
-//                //MNT - 3.11.15 - clean up the player if it's already playing
-//                if ((mediaPlayer[idx]!=null) && (mediaPlayer[idx].isPlaying()==true))
-//                {
-//                    mediaPlayer[idx].stop();
-//                    mediaPlayer[idx].reset();
-//                    mediaPlayer[idx].release();
-//                    mediaPlayer[idx] = null;
-//                }
-//                mediaPlayer[idx] = new MediaPlayer();
-//                mediaPlayer[idx].setDisplay(streamCtl.getCresSurfaceHolder(idx));
-//                //mediaPlayer.setDisplay(vidHolder);
-//                srcUrl = streamCtl.userSettings.getServerUrl(idx);
-//                mediaPlayer[idx].setDataSource(srcUrl);	
-//                Log.d(TAG, "URL is "+srcUrl);
-//                if(tcpInterleaveFlag && srcUrl.startsWith("rtsp://"))
-//                    mediaPlayer[idx].setTransportCommunication(true);
-//                //Setting Initial Latency
-//                if(disableLatencyFlag==false){
-//                    try {
-//                        mediaPlayer[idx].setDejitterBufferDuration(streamCtl.userSettings.getStreamingBuffer(idx));
-//                    } catch(Exception e){
-//                        e.printStackTrace();
-//                    }
-//                }
-//                if(rtp_mode){
-//                    mediaPlayer[idx].setSDP(sb.toString());
-//                    rtp_mode = false;
-//                }
-//                mediaPlayer[idx].prepare();
-//                mediaPlayer[idx].setOnErrorListener(this);
-//                mediaPlayer[idx].setOnCompletionListener(this);
-//                mediaPlayer[idx].setOnBufferingUpdateListener(this);
-//                mediaPlayer[idx].setOnPreparedListener(this);
-//                mediaPlayer[idx].setAudioStreamType(AudioManager.STREAM_MUSIC);
-//            } 
-//            catch(Exception e){
-//            	// TODO: explore exception handling with better feedback of what went wrong to user
-//                streamCtl.SendStreamState(StreamState.STOPPED, idx);
-//                e.printStackTrace();
-//            }}
-//    }
-//
-//    //Pause
-//    public void onPause() {
-//        if((mediaPlayer[idx]!=null) && (mediaPlayer[idx].isPlaying())) 
-//            mediaPlayer[idx].pause();
-//        media_pause = true;
-//        streamCtl.SendStreamState(StreamState.PAUSED, idx);
-//    }
-//
-//    public void onStop() {
-//        Log.d(TAG, "Stopping MediaPlayer");
-//        if(mediaPlayer[idx] != null){
-//            if(mediaPlayer[idx].isPlaying()){
-//                mediaPlayer[idx].stop();
-//            }
-//            mediaPlayer[idx].release();
-//            mediaPlayer[idx] = null;
-//            streamCtl.SendStreamState(StreamState.STOPPED, idx);
-//        }
-//    }
-//
-//    @Override
-//        public void onPrepared(MediaPlayer mp) {
-//            Log.d(TAG, "######### OnPrepared##############");
-//            mediaPlayer[idx].start();
-//            //mediaPlayer[idx].getStatisticsData();
-//            
-//            streamCtl.SendStreamState(StreamState.STARTED, idx); // TODO: this should be on start complete not prepared
-//            streamCtl.SendStreamInFeedbacks();
-//        }
-//        
-//
-//    //Error Indication Callback
-//    public boolean onError(MediaPlayer mp, int what, int extra){
-//        switch (what){
-//            case MediaPlayer.MEDIA_ERROR_UNKNOWN:
-//                Log.e(TAG, "unknown media playback error");
-//                break;
-//            case MediaPlayer.MEDIA_ERROR_SERVER_DIED:
-//                Log.e(TAG, "server connection died");
-//            default:
-//                Log.e(TAG, "generic audio playback error");
-//                break;
-//        }
-//
-//        switch (extra){
-//            case MediaPlayer.MEDIA_ERROR_IO:
-//                Log.e(TAG, "IO media error");
-//                break;
-//            case MediaPlayer.MEDIA_ERROR_MALFORMED:
-//                Log.e(TAG, "media error, malformed");
-//                break;
-//            case MediaPlayer.MEDIA_ERROR_UNSUPPORTED:
-//                Log.e(TAG, "unsupported media content");
-//                break;
-//            case MediaPlayer.MEDIA_ERROR_TIMED_OUT:
-//                Log.e(TAG, "media timeout error");
-//                break;
-//            default:
-//                Log.e(TAG, "unknown playback error");
-//                break;
-//        }
-//        mediaPlayer[idx].stop();
-//        mediaPlayer[idx].reset();
-//        mediaPlayer[idx].release();
-//        mediaPlayer[idx] = null;
-//        return true;
-//    }
-//    
-//    public void onBufferingUpdate(MediaPlayer mp, int percent) {
-//        int progress = (int) ((float) mp.getDuration() * ((float) percent/ (float) 100));
-//        Log.d(TAG, "####### Buffering percent "+percent);
-//        streamCtl.SendStreamState(StreamState.BUFFERING, idx);
-//    }
-//
-//    public void onCompletion(MediaPlayer mp) {
-//        //mp.stop();
-//        Log.d(TAG, "####### Stopping mediaplayer");
-//    }
-//
-//    public String updateSvcWithPlayerStatistics(){
-////        if(mediaPlayer[idx].isPlaying())
-////            return mediaPlayer[idx].getStatisticsData();
-////        else
-//            return "";
-//    }
-//    
-//    //Response to CSIO Layer
-//    public boolean getMediaPlayerStatus()
-//    {
-//    	if (mediaPlayer[idx]!=null)
-//    		return mediaPlayer[idx].isPlaying();
-//    	else
-//    		return false;
-//    }
-//
-//    public int getMediaPlayerHorizontalResFb(){
-//    	if (mediaPlayer[idx]!=null)
-//    		return mediaPlayer[idx].getVideoWidth();
-//    	else
-//    		return 0;
-//    }
-//
-//    public int getMediaPlayerVerticalResFb(){
-//    	if (mediaPlayer[idx]!=null)
-//    		return mediaPlayer[idx].getVideoHeight();
-//    	else
-//    		return 0;
-//    }
-//
-//    public int getMediaPlayerFpsFb(){
-//        return 30;//TODO
-//    }
-//    public String getMediaPlayerAspectRatioFb(){
-//    	String aspect;
-//    	if (mediaPlayer[idx] != null)
-//    	{
-//	        aspect = MiscUtils.calculateAspectRatio(mediaPlayer[idx].getVideoWidth(), mediaPlayer[idx].getVideoHeight());
-//    	}
-//    	else
-//    		aspect = String.valueOf(0);
-//        return aspect;
-//    }
-//    public int getMediaPlayerAudioFormatFb(){
-//        return 1;//TODO
-//    }
-//    public int getMediaPlayerAudiochannelsFb(){
-//        return 2;//TODO
-//    }
-//
-//}
+package com.crestron.txrxservice;
+
+public class StreamIn {
+	private StreamInStrategy strategy;
+	
+	public StreamIn(StreamInStrategy streamStrategy) {
+		this.strategy = streamStrategy;
+	}
+	
+	// Static methods for GstreamIn
+	public static void setServerUrl(String url, int sessionId){
+		if (CresStreamCtrl.useGstreamer)
+			GstreamIn.setServerUrl(url, sessionId);
+	}
+	
+	public static void setStatistics(boolean enabled, int sessId){
+		if (CresStreamCtrl.useGstreamer)
+			GstreamIn.setStatistics(enabled, sessId);
+	}
+	
+	public static void resetStatistics(int sessId){
+		if (CresStreamCtrl.useGstreamer)
+		GstreamIn.resetStatistics(sessId);
+	}
+	
+	// Interface Methods
+	public void setSessionIndex(int id) {
+		strategy.setSessionIndex(id);
+	}
+	
+    public void setRtspPort(int port, int sessionId) {
+    	strategy.setRtspPort(port, sessionId);
+    }
+    
+    public void setTsPort(int port, int sessionId) {
+    	strategy.setTsPort(port, sessionId);
+    }
+    
+    public void setRtpVideoPort(int port, int sessionId) {
+    	strategy.setRtpVideoPort(port, sessionId);
+    }
+    
+    public void setRtpAudioPort(int port, int sessionId) {
+    	strategy.setRtpAudioPort(port, sessionId);
+    }
+    
+    public void setSessionInitiation(int initMode, int sessionId) {
+    	strategy.setSessionInitiation(initMode, sessionId);
+    }
+    
+    public void setTransportMode(int transportMode, int sessionId) {
+    	strategy.setTransportMode(transportMode, sessionId);
+    }
+    
+    public void setMulticastAddress(String multicastIp, int sessionId) {
+    	strategy.setMulticastAddress(multicastIp, sessionId);
+    }
+    
+    public void setStreamingBuffer(int buffer_ms, int sessionId) {
+    	strategy.setStreamingBuffer(buffer_ms, sessionId);
+    }
+    
+    public void setUserName(String userName, int sessionId) {
+    	strategy.setUserName(userName, sessionId);
+    }
+    
+    public void setPassword(String password, int sessionId) {
+    	strategy.setPassword(password, sessionId);
+    }
+    
+    public void updateCurrentXYloc(int xloc, int yloc, int sessId) {
+    	strategy.updateCurrentXYloc(xloc, yloc, sessId);
+    }
+    
+    public long getStreamInNumVideoPackets() {
+    	return strategy.getStreamInNumVideoPackets();
+    }
+    
+	public int getStreamInNumVideoPacketsDropped() {
+		return strategy.getStreamInNumVideoPacketsDropped();
+	}
+	
+	public long getStreamInNumAudioPackets() {
+		return strategy.getStreamInNumAudioPackets();
+	}
+	
+	public int getStreamInNumAudioPacketsDropped() {
+		return strategy.getStreamInNumAudioPacketsDropped();
+	}
+	
+	public int getStreamInBitrate() {
+		return strategy.getStreamInBitrate();
+	}
+	
+    public void disableLatency(int sessionId) {
+    	strategy.disableLatency(sessionId);
+    }
+    
+    public void setRtspTcpInterleave(boolean tcpInterleave, int sessionId) {
+    	strategy.setRtspTcpInterleave(tcpInterleave, sessionId);
+    }
+    
+    public void setRtpOnlyMode(int vport, int aport, String ip, int sessionId) {
+    	strategy.setRtpOnlyMode(vport, aport, ip, sessionId);
+    }
+    
+    public void onStart(int sessionId) {
+    	strategy.onStart(sessionId);
+    }
+    
+    public void onPause(int sessionId) {
+    	strategy.onPause(sessionId);
+    }
+    
+    public void onStop(int sessionId) {
+    	strategy.onStop(sessionId);
+    }
+    
+    public boolean getMediaPlayerStatus() {
+    	return strategy.getMediaPlayerStatus();
+    }
+    
+    public int getMediaPlayerAudioFormatFb() {
+    	return strategy.getMediaPlayerAudioFormatFb();
+    }
+    
+    public int getMediaPlayerAudiochannelsFb() {
+    	return strategy.getMediaPlayerAudiochannelsFb();
+    }
+}
+
+interface StreamInStrategy{
+    public void setSessionIndex(int id);    
+    public void setRtspPort(int port, int sessionId);    
+    public void setTsPort(int port, int sessionId);    
+    public void setRtpVideoPort(int port, int sessionId);    
+    public void setRtpAudioPort(int port, int sessionId);    
+    public void setSessionInitiation(int initMode, int sessionId);    
+    public void setTransportMode(int transportMode, int sessionId);    
+    public void setMulticastAddress(String multicastIp, int sessionId);    
+    public void setStreamingBuffer(int buffer_ms, int sessionId);    
+    public void setUserName(String userName, int sessionId);    
+    public void setPassword(String password, int sessionId); 
+    public void updateCurrentXYloc(int xloc, int yloc, int sessId);
+    public long getStreamInNumVideoPackets();	
+	public int getStreamInNumVideoPacketsDropped();	
+	public long getStreamInNumAudioPackets();	
+	public int getStreamInNumAudioPacketsDropped();	
+	public int getStreamInBitrate();
+    public void disableLatency(int sessionId);
+    public void setRtspTcpInterleave(boolean tcpInterleave, int sessionId);
+    public void setRtpOnlyMode(int vport, int aport, String ip, int sessionId);
+    public void onStart(int sessionId); 
+    public void onPause(int sessionId);
+    public void onStop(int sessionId);
+    public boolean getMediaPlayerStatus();
+    public int getMediaPlayerAudioFormatFb();
+    public int getMediaPlayerAudiochannelsFb();
+}

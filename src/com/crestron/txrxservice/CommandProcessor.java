@@ -1474,3 +1474,22 @@ class RestartStreamOnStartCommand implements CommandIf {
     	return msg;	//no feedback for this join
     }
 }
+
+class UseGstreamerCommand implements CommandIf {
+	CommandReceiver launch;
+    String msg;
+
+    public UseGstreamerCommand(CommandReceiver launch, String arg) {
+        this.launch = launch;
+        this.msg = arg;
+    }
+
+    @Override
+    public void execute() {
+    	boolean val = Boolean.valueOf(msg);
+        launch.setUseGstreamer(val);
+    }
+    public String getFeedbackMsg() {
+    	return msg;	//no feedback for this join
+    }
+}

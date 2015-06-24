@@ -56,7 +56,8 @@ public class CresStreamCtrl extends Service {
     CameraPreview cam_preview;
     StringTokenizer tokenizer;
     
-    GstreamIn streamPlay;
+    public static boolean useGstreamer = true;
+    StreamIn streamPlay;
     BroadcastReceiver hpdEvent = null;
     BroadcastReceiver resolutionEvent = null;
     BroadcastReceiver hdmioutResolutionChangedEvent = null;
@@ -87,8 +88,6 @@ public class CresStreamCtrl extends Service {
     static String pauseStatus="false";
     boolean StreamOutstarted = false;
     boolean hdmiInputDriverPresent = false;
-    //boolean enable_passwd = false;
-    //boolean disable_passwd = true;
     boolean[] restartRequired = new boolean[NumOfSurfaces];
     public final static String savedSettingsFilePath = "/dev/shm/crestron/CresStreamSvc/userSettings";
 
@@ -188,8 +187,10 @@ public class CresStreamCtrl extends Service {
                     });
             
             //Input Streamout Config
-            streamPlay = new GstreamIn(CresStreamCtrl.this);
-//            userSettings = new UserSettings(/*streamPlay*/);
+            if (useGstreamer)
+            	streamPlay = new StreamIn(new GstreamIn(CresStreamCtrl.this));
+            else
+            	streamPlay = new StreamIn(new NstreamIn(CresStreamCtrl.this));
 
             tokenizer = new StringTokenizer();
             hdmiOutput = new HDMIOutputInterface();
@@ -386,6 +387,27 @@ public class CresStreamCtrl extends Service {
             	restartRequired[sessionId] = true;
             }
         }
+    }
+    
+    public void setUseGstreamer(boolean flag)
+    {
+    	if (flag != useGstreamer)
+    	{
+	    	for (int sessionId = 0; sessionId < NumOfSurfaces; sessionId++)
+	    	{
+	    		if ((userSettings.getMode(sessionId) == DeviceMode.STREAM_IN.ordinal())
+	    				&& (userSettings.getStreamState(sessionId) != StreamState.STOPPED))
+	    		{
+	    			Stop(sessionId);
+	    		}
+	    	}
+	    	
+	    	if (flag)
+            	streamPlay = new StreamIn(new GstreamIn(CresStreamCtrl.this));
+            else
+            	streamPlay = new StreamIn(new NstreamIn(CresStreamCtrl.this));
+	    	useGstreamer = flag;
+    	}
     }
     
     public void setXCoordinates(int x, int sessionId)
@@ -945,7 +967,7 @@ public class CresStreamCtrl extends Service {
 
     public void EnableTcpInterleave(int sessionId){
         Log.d(TAG, " EnableTcpInterleave");
-        streamPlay.setRtspTcpInterleave(true);
+        streamPlay.setRtspTcpInterleave(true, sessionId);
     }
 
     public void setStreamInUrl(String ap_url, int sessionId)
@@ -954,9 +976,9 @@ public class CresStreamCtrl extends Service {
         userSettings.setServerUrl(ap_url, sessionId);
         //streamPlay.setUrl(ap_url); //TODO: remove and replace have streamPlay access userSettings directly
         if(ap_url.startsWith("rtp://@"))
-            streamPlay.setRtpOnlyMode( userSettings.getRtpVideoPort(sessionId),  userSettings.getRtpAudioPort(sessionId), userSettings.getDeviceIp());
+            streamPlay.setRtpOnlyMode( userSettings.getRtpVideoPort(sessionId),  userSettings.getRtpAudioPort(sessionId), userSettings.getDeviceIp(), sessionId);
         else if(ap_url.startsWith("http://"))
-            streamPlay.disableLatency();
+            streamPlay.disableLatency(sessionId);
         else
             Log.d(TAG, "No conditional Tags for StreamIn");
     }

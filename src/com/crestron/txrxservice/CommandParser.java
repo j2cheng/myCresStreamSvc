@@ -98,7 +98,9 @@ public class CommandParser {
         STATISTICS_NUMBEROFAUDIOPACKETS,
         STATISTICS_NUMBEROFAUDIOPACKETSDROPPED,
         
-        RESTART_STREAM_ON_START;
+        RESTART_STREAM_ON_START,
+        
+        USE_GSTREAMER;
 
         //UPDATEREQUEST;
     }
@@ -414,6 +416,9 @@ public class CommandParser {
             	break;
             case RESTART_STREAM_ON_START:
             	cmd = new RestartStreamOnStartCommand(cmdRx, arg);
+            	break;
+            case USE_GSTREAMER:
+            	cmd = new UseGstreamerCommand(cmdRx, arg);
             	break;
             default:
                 break;
