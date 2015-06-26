@@ -263,6 +263,25 @@ class EncodingResolutionCommand implements CommandIf {
         }
 }
 
+class SetVolumeCommand implements CommandIf {
+    CommandReceiver launch;
+    String msg;
+
+    public SetVolumeCommand(CommandReceiver launch, String arg) {
+        this.launch = launch;
+        this.msg = arg;
+    }
+
+    @Override
+        public void execute() {
+    		int volume = Integer.valueOf(msg);
+            launch.setVolume(volume);
+        }
+        public String getFeedbackMsg() {
+            return launch.getVolume();
+        }
+}
+
 class MuteCommand implements CommandIf {
     CommandReceiver launch;
     String msg;

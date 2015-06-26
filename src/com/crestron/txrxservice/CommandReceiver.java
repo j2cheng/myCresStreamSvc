@@ -114,6 +114,9 @@ public class CommandReceiver {
     	ctl.userSettings.setEncodingResolution(resID, sessId);
     }
     
+    public void setVolume (int volume){
+    		ctl.setStreamVolume(volume);
+    }
     public void setMute (boolean flag){
     	if(flag)
     		ctl.setStreamMute();
@@ -420,6 +423,10 @@ public class CommandReceiver {
     	return Integer.toString(ctl.userSettings.getEncodingResolution(sessId));
     }
     
+    public String getVolume(){
+    	return String.valueOf(ctl.userSettings.getStreamVolume());
+    }
+
     public String getMute(){
     	return String.valueOf(ctl.userSettings.isAudioMute());
     }

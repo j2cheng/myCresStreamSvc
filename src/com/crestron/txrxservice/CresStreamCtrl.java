@@ -749,6 +749,15 @@ public class CresStreamCtrl extends Service {
     	return hdmiOutput.getAudioChannels();
     }
     
+    public void setStreamVolume(int volume) //TODO: store in userSettings
+    {
+        amanager.setStreamVolume(AudioManager.STREAM_MUSIC, volume * amanager.getStreamMaxVolume(AudioManager.STREAM_MUSIC) / 100, 0);
+        StringBuilder sb = new StringBuilder(512);
+        userSettings.setStreamVolume(volume);
+        sb.append("AUDIO_VOLUME=").append(String.valueOf(volume));
+        sockTask.SendDataToAllClients(sb.toString());
+    }
+
     public void setStreamMute() //TODO: store in userSettings
     {
         amanager.setStreamMute(AudioManager.STREAM_MUSIC, true);

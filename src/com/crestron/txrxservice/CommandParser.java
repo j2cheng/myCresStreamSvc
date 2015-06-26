@@ -29,6 +29,7 @@ public class CommandParser {
         TCPINTERLEAVE,
         MULTICAST_ADDRESS,
         ENCODING_RESOLUTION,
+        AUDIO_VOLUME,
         AUDIO_MUTE,
         AUDIO_UNMUTE,
         LATENCY,
@@ -127,6 +128,7 @@ public class CommandParser {
         sb.append("TCPINTERLEAVE (=true enable tcp for RTSP Streaming In)\r\n");
         sb.append("MULTICAST_ADDRESS(=xxx.xxx.xxx.xxx)\r\n");
         sb.append("ENCODING_RESOLUTION(=0 to 17)\r\n");
+        sb.append("AUDIO_VOLUME(=0 to 100)\r\n");
         sb.append("AUDIO_MUTE(=1:true/0:false)\r\n");
         sb.append("AUDIO_UNMUTE(=1:true/0:false)\r\n");
         sb.append("LATENCY=100 to 5000 (in msec)\r\n");
@@ -221,6 +223,9 @@ public class CommandParser {
                 break;
             case ENCODING_RESOLUTION:
                 cmd = new EncodingResolutionCommand(cmdRx, arg, idx); 
+                break;
+            case AUDIO_VOLUME:
+                cmd = new SetVolumeCommand(cmdRx, arg); 
                 break;
             case AUDIO_MUTE:
                 cmd = new MuteCommand(cmdRx, arg); 
