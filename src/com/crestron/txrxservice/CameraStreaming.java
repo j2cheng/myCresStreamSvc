@@ -4,6 +4,8 @@ import java.io.File;
 import java.io.IOException;
 import java.util.Date;
 import java.util.List;
+import java.util.concurrent.CountDownLatch;
+import java.util.concurrent.TimeUnit;
 import java.util.regex.Matcher;
 import java.util.regex.Pattern;
 
@@ -18,6 +20,7 @@ import android.hardware.Camera.ErrorCallback;
 import android.media.MediaRecorder;
 import android.os.Environment;
 import android.util.Log;
+import android.view.Surface;
 import android.view.SurfaceHolder;
 
 public class CameraStreaming implements ErrorCallback {
@@ -40,6 +43,8 @@ public class CameraStreaming implements ErrorCallback {
     private long statisticsNumAudioPackets = 0;
     private int statisticsNumAudioPacketsDropped = 0;
     private boolean confidencePreviewRunning = false;
+    private final long stopTimeout_ms = 15000;
+    private final long startTimeout_ms = 20000;
 
     private boolean shouldExit = false;
     private Thread statisticsThread;
@@ -56,117 +61,147 @@ public class CameraStreaming implements ErrorCallback {
     }
 
     protected void startRecording() throws IOException {
+    	final Surface surface = streamCtl.getCresSurfaceHolder(idx).getSurface();
+    	final CountDownLatch latch = new CountDownLatch(1);
+    	new Thread(new Runnable() {
+    		public void run() {
 
-        if(out_stream_status==true)
-            stopRecording(false);
-        Log.d(TAG, "startRecording");
-        boolean isDirExists = true;
-        File path = new File("/dev/shm/crestron/CresStreamSvc");
-        if(!path.exists()){
-            isDirExists = path.mkdir();
-        }
-
-        filename = "/rec001.mp4";
-        Log.d(TAG, "CamTest: Camera Recording Filename: " + filename);
-
-        // create empty file it must use
-        file4Recording = new File(path, filename);
-        if (file4Recording == null)
-        {
-            Log.d(TAG, "CamTest: file() returned null");
-        }
-        else
-        {
-            Log.d(TAG, "CamTest: file() didn't return null");
-        }
-
-
-        mrec = new MediaRecorder();
-        mCameraPreviewObj = CresCamera.getCamera();
-        if(mCameraPreviewObj!=null){
-            mCameraPreviewObj.getHdmiInputStatus();
-            mCameraPreviewObj.setEncoderFps(streamCtl.userSettings.getEncodingFramerate(idx));
-            mCameraPreviewObj.lock();
-            mCameraPreviewObj.unlock(); //TODO: what is the purpose of this????
-            mrec.setCamera(mCameraPreviewObj);
-
-            mrec.setAudioSource(MediaRecorder.AudioSource.MIC);
-            mrec.setVideoSource(MediaRecorder.VideoSource.CAMERA);
-            mrec.setStreamTransportMode(getStreamTransportMode());
-            
-            //Set Port
-            int l_port;
-            int currentSessionInitiation = streamCtl.userSettings.getSessionInitiation(idx);
-            int currentTransportMode = streamCtl.userSettings.getTransportMode(idx);
-            if ((currentSessionInitiation == 0) || (currentSessionInitiation == 2)) //Multicast via RTSP or By Receiver
-            {
-            	l_port = streamCtl.userSettings.getRtspPort(idx);
-                mrec.setDestinationIP( streamCtl.userSettings.getDeviceIp());
-                mrec.setRTSPPort(l_port);
-                
-                if (currentSessionInitiation == 2) //Multicast via RTSP
-                	mrec.setMcastIP(streamCtl.userSettings.getMulticastAddress(idx));
-            }
-            else //Multicast via UDP or By Transmitter
-            {
-            	if (currentSessionInitiation == 1)	//By Transmitter
-            		mrec.setDestinationIP(streamCtl.userSettings.getServerUrl(idx));
-            	else if (currentSessionInitiation == 3) //Multicast via UDP
-            		mrec.setDestinationIP(streamCtl.userSettings.getMulticastAddress(idx));
-            	if (currentTransportMode == 0)	//RTP
-            	{
-                    l_port = streamCtl.userSettings.getRtpAudioPort(idx);
-                    mrec.setRTPAudioPort(l_port);
-                    l_port = streamCtl.userSettings.getRtpVideoPort(idx);
-                    mrec.setRTPVideoPort(l_port);
-            	}
-            	else
-            	{
-                     l_port = streamCtl.userSettings.getTsPort(idx);
-                     mrec.setMPEG2TSPort(l_port);
-            	}
-            }
-            
-            mrec.setOutputFormat(9);//Streamout option set to Stagefright Recorder
-            if ((currentSessionInitiation == 2) || (currentSessionInitiation == 3))
-            	Log.d(TAG, "ip addr " + streamCtl.userSettings.getMulticastAddress(idx));
-            else
-            	Log.d(TAG, "ip addr " + streamCtl.userSettings.getDeviceIp());
-            Log.d(TAG, "setting profile: " + streamCtl.userSettings.getStreamProfile(idx).getVEncProfile());
-            Log.d(TAG, "setting video encoder level: " + streamCtl.userSettings.getEncodingLevel(idx));
-            Log.d(TAG, "setting video frame rate: " + streamCtl.userSettings.getEncodingFramerate(idx));
-            
-            setWidthAndHeightFromEncRes(idx);
-            mrec.setVideoEncodingBitRate(streamCtl.userSettings.getBitrate(idx) * 1000);	//This is in bits per second
-            //mrec.setVideoFrameRate(streamCtl.userSettings.getEncodingFramerate(idx));//Mistral Propietary API 
-            mrec.setVideoEncoder(MediaRecorder.VideoEncoder.H264);
-            mrec.setEncoderProfile(streamCtl.userSettings.getStreamProfile(idx).getVEncProfile());
-            mrec.setVideoEncoderLevel(streamCtl.userSettings.getEncodingLevel(idx));
-            mrec.setAudioEncoder(MediaRecorder.AudioEncoder.AAC);
-            mrec.setOutputFile(path + filename);   
-
-            Log.d(TAG, "########setPreviewDisplay######");
-            mrec.setPreviewDisplay(streamCtl.getCresSurfaceHolder(idx).getSurface());	//TODO: put back in when preview audio works
-
-            mrec.prepare();
-            mrec.start();
-
-            if ((currentSessionInitiation != 0) && (currentSessionInitiation != 2) && (currentTransportMode == 0)) {	//TODO: causes crash in RTSP modes currently being worked around
-                String sb = mrec.getSDP();
-                Log.d(TAG, "########SDP Dump######\n" + sb);
-            }
-            //mrec.getStatisticsData();
-            streamCtl.SendStreamState(StreamState.STARTED, idx);            
-            out_stream_status = true;
-            
-            startStatisticsTask();
-        }
-        else {
-        	stopRecording(false);
-            Log.e(TAG, "Camera Resource busy or not available !!!!");
-            file4Recording.delete();
-            mrec = null;
-        }
+		        if(out_stream_status==true)
+		            stopRecording(false);
+		        Log.d(TAG, "startRecording");
+		        boolean isDirExists = true;
+		        File path = new File("/dev/shm/crestron/CresStreamSvc");
+		        if(!path.exists()){
+		            isDirExists = path.mkdir();
+		        }
+		
+		        filename = "/rec001.mp4";
+		        Log.d(TAG, "CamTest: Camera Recording Filename: " + filename);
+		
+		        // create empty file it must use
+		        file4Recording = new File(path, filename);
+		        if (file4Recording == null)
+		        {
+		            Log.d(TAG, "CamTest: file() returned null");
+		        }
+		        else
+		        {
+		            Log.d(TAG, "CamTest: file() didn't return null");
+		        }
+		
+		
+		        mrec = new MediaRecorder();
+		        mCameraPreviewObj = CresCamera.getCamera();
+		        if(mCameraPreviewObj!=null){
+		            mCameraPreviewObj.getHdmiInputStatus();
+		            mCameraPreviewObj.setEncoderFps(streamCtl.userSettings.getEncodingFramerate(idx));
+		            mCameraPreviewObj.lock();
+		            mCameraPreviewObj.unlock(); //TODO: what is the purpose of this????
+		            mrec.setCamera(mCameraPreviewObj);
+		
+		            mrec.setAudioSource(MediaRecorder.AudioSource.MIC);
+		            mrec.setVideoSource(MediaRecorder.VideoSource.CAMERA);
+		            mrec.setStreamTransportMode(getStreamTransportMode());
+		            
+		            //Set Port
+		            int l_port;
+		            int currentSessionInitiation = streamCtl.userSettings.getSessionInitiation(idx);
+		            int currentTransportMode = streamCtl.userSettings.getTransportMode(idx);
+		            if ((currentSessionInitiation == 0) || (currentSessionInitiation == 2)) //Multicast via RTSP or By Receiver
+		            {
+		            	l_port = streamCtl.userSettings.getRtspPort(idx);
+		                mrec.setDestinationIP( streamCtl.userSettings.getDeviceIp());
+		                mrec.setRTSPPort(l_port);
+		                
+		                if (currentSessionInitiation == 2) //Multicast via RTSP
+		                	mrec.setMcastIP(streamCtl.userSettings.getMulticastAddress(idx));
+		            }
+		            else //Multicast via UDP or By Transmitter
+		            {
+		            	if (currentSessionInitiation == 1)	//By Transmitter
+		            		mrec.setDestinationIP(streamCtl.userSettings.getServerUrl(idx));
+		            	else if (currentSessionInitiation == 3) //Multicast via UDP
+		            		mrec.setDestinationIP(streamCtl.userSettings.getMulticastAddress(idx));
+		            	if (currentTransportMode == 0)	//RTP
+		            	{
+		                    l_port = streamCtl.userSettings.getRtpAudioPort(idx);
+		                    mrec.setRTPAudioPort(l_port);
+		                    l_port = streamCtl.userSettings.getRtpVideoPort(idx);
+		                    mrec.setRTPVideoPort(l_port);
+		            	}
+		            	else
+		            	{
+		                     l_port = streamCtl.userSettings.getTsPort(idx);
+		                     mrec.setMPEG2TSPort(l_port);
+		            	}
+		            }
+		            
+		            mrec.setOutputFormat(9);//Streamout option set to Stagefright Recorder
+		            if ((currentSessionInitiation == 2) || (currentSessionInitiation == 3))
+		            	Log.d(TAG, "ip addr " + streamCtl.userSettings.getMulticastAddress(idx));
+		            else
+		            	Log.d(TAG, "ip addr " + streamCtl.userSettings.getDeviceIp());
+		            Log.d(TAG, "setting profile: " + streamCtl.userSettings.getStreamProfile(idx).getVEncProfile());
+		            Log.d(TAG, "setting video encoder level: " + streamCtl.userSettings.getEncodingLevel(idx));
+		            Log.d(TAG, "setting video frame rate: " + streamCtl.userSettings.getEncodingFramerate(idx));
+		            
+		            setWidthAndHeightFromEncRes(idx);
+		            mrec.setVideoEncodingBitRate(streamCtl.userSettings.getBitrate(idx) * 1000);	//This is in bits per second
+		            //mrec.setVideoFrameRate(streamCtl.userSettings.getEncodingFramerate(idx));//Mistral Propietary API 
+		            mrec.setVideoEncoder(MediaRecorder.VideoEncoder.H264);
+		            mrec.setEncoderProfile(streamCtl.userSettings.getStreamProfile(idx).getVEncProfile());
+		            mrec.setVideoEncoderLevel(streamCtl.userSettings.getEncodingLevel(idx));
+		            mrec.setAudioEncoder(MediaRecorder.AudioEncoder.AAC);
+		            mrec.setOutputFile(path + filename);   
+		
+		            Log.d(TAG, "########setPreviewDisplay######");
+		            mrec.setPreviewDisplay(surface);	//TODO: put back in when preview audio works
+		            Log.d(TAG, "######## After setPreviewDisplay");
+		            try
+		            {
+			            mrec.prepare();
+			            Log.d(TAG, "######## After prepare");
+			            mrec.start();
+			            Log.d(TAG, "######## After start");
+		            }
+		            catch (Exception ex) 
+		            {
+		            	ex.printStackTrace();
+		            }
+		
+		            if ((currentSessionInitiation != 0) && (currentSessionInitiation != 2) && (currentTransportMode == 0)) {	//TODO: causes crash in RTSP modes currently being worked around
+		                String sb = mrec.getSDP();
+		                Log.d(TAG, "########SDP Dump######\n" + sb);
+		            }
+		            //mrec.getStatisticsData();
+		            streamCtl.SendStreamState(StreamState.STARTED, idx);     
+		            Log.d(TAG, "######## After SendStreamState");
+		            out_stream_status = true;
+		            
+		            startStatisticsTask();
+		            Log.d(TAG, "######## After SendStreamState");		            
+		        }
+		        else {
+		        	stopRecording(false);
+		            Log.e(TAG, "Camera Resource busy or not available !!!!");
+		            file4Recording.delete();
+		            mrec = null;
+		        }
+		        
+		        latch.countDown();
+    		}
+    	}).start();
+    	
+    	// We launch the start command in its own thread and timeout in case mediaserver gets hung
+    	boolean successfulStart = true; //indicates that there was no time out condition
+    	try { successfulStart = latch.await(startTimeout_ms, TimeUnit.MILLISECONDS); }
+    	catch (InterruptedException ex) { ex.printStackTrace(); }
+    	
+    	if (!successfulStart)
+    	{
+    		Log.e(TAG, String.format("MediaServer failed to start after %d ms", startTimeout_ms));
+    		streamCtl.RecoverDucati();
+    	}
     }
 
 	/**
@@ -341,30 +376,48 @@ public class CameraStreaming implements ErrorCallback {
         }
     }
 
-    public void stopRecording(boolean hpdEventAction) {
-        Log.d(TAG, "stopRecording");
-        if (out_stream_status && (mrec != null)) {
-            if(hpdEventAction==true){
-                CresCamera.releaseCamera(mCameraPreviewObj);
-                mCameraPreviewObj = null;
-            }
-            mrec.stop();
-            //mrec.setPreviewDisplay(null);
-            out_stream_status = false;
-            releaseMediaRecorder();
-            if(hpdEventAction==false){
-                CresCamera.releaseCamera(mCameraPreviewObj);
-                mCameraPreviewObj = null;
-            }
-
-            stopStatisticsTask();
+    public void stopRecording(final boolean hpdEventAction) {
+    	final CountDownLatch latch = new CountDownLatch(1);
+    	new Thread(new Runnable() {
+    		public void run() {
+		        Log.d(TAG, "stopRecording");
+		        if (out_stream_status && (mrec != null)) {
+		            if(hpdEventAction==true){
+		                CresCamera.releaseCamera(mCameraPreviewObj);
+		                mCameraPreviewObj = null;
+		            }
+		            mrec.stop();
+		            //mrec.setPreviewDisplay(null);
+		            out_stream_status = false;
+		            releaseMediaRecorder();
+		            if(hpdEventAction==false){
+		                CresCamera.releaseCamera(mCameraPreviewObj);
+		                mCameraPreviewObj = null;
+		            }
+		
+		            stopStatisticsTask();
+				            
+		            streamCtl.SendStreamState(StreamState.STOPPED, idx);
 		            
-            streamCtl.SendStreamState(StreamState.STOPPED, idx);
-            
-            // Zero out statistics on stop
-            streamOutAudioFormat = streamOutAudioChannels = streamOutWidth = streamOutHeight = streamOutFps = 0;
-			streamCtl.SendStreamOutFeedbacks();
-        }
+		            // Zero out statistics on stop
+		            streamOutAudioFormat = streamOutAudioChannels = streamOutWidth = streamOutHeight = streamOutFps = 0;
+					streamCtl.SendStreamOutFeedbacks();
+				
+					latch.countDown();
+		        }
+    		}
+    	}).start();
+    	
+    	// We launch the stop commands in its own thread and timeout in case mediaserver gets hung
+    	boolean successfulStop = true; //indicates that there was no time out condition
+    	try { successfulStop = latch.await(stopTimeout_ms, TimeUnit.MILLISECONDS); }
+    	catch (InterruptedException ex) { ex.printStackTrace(); }
+    	
+    	if (!successfulStop)
+    	{
+    		Log.e(TAG, String.format("MediaServer failed to stop after %d ms", stopTimeout_ms));
+    		streamCtl.RecoverDucati();
+    	}
     }
     
 
@@ -495,23 +548,24 @@ public class CameraStreaming implements ErrorCallback {
 				regexP = Pattern.compile("Audio\\s+Channel:\\s+(\\d+)");
 				regexM = regexP.matcher(statisticsString);
 				regexM.find();
-				if (regexM.group(1) != null)
+				if (regexM.matches())
 					streamOutAudioChannels = Integer.parseInt(regexM.group(1));
 				
 				// Pull out Video width and height
 				regexP = Pattern.compile("Resolution:\\s+(\\d+)\\s+x\\s+(\\d+)");	//width x height
 				regexM = regexP.matcher(statisticsString);
-				regexM.find();
-				if (regexM.group(1) != null)
+				regexM.find();				
+				if (regexM.matches())
+				{
 					streamOutWidth = Integer.parseInt(regexM.group(1));
-				if (regexM.group(2) != null)
 					streamOutHeight = Integer.parseInt(regexM.group(2));
+				}
 				
 				// Pull out Video frames per second
 				regexP = Pattern.compile("Frame\\s+Rate:\\s+(\\d+)");
 				regexM = regexP.matcher(statisticsString);
 				regexM.find();
-				if (regexM.group(1) != null)
+				if (regexM.matches())
 					streamOutFps = Integer.parseInt(regexM.group(1));
 				
 				streamOutAudioFormat = 1; //TODO: currently we are always setting this to PCM (1)
@@ -533,14 +587,14 @@ public class CameraStreaming implements ErrorCallback {
 						regexP = Pattern.compile("Video\\s+Encoded Frames:\\s+(\\d+)");
 						regexM = regexP.matcher(statisticsString);
 						regexM.find();
-						if (regexM.group(1) != null)
+						if (regexM.matches())
 							statisticsNumVideoPackets = Long.valueOf(regexM.group(1));
 						
 						// Pull out number of Audio packets
 						regexP = Pattern.compile("Audio\\s+Encoded Frames:\\s+(\\d+)");
 						regexM = regexP.matcher(statisticsString);
 						regexM.find();
-						if (regexM.group(1) != null)
+						if (regexM.matches())
 							statisticsNumAudioPackets = Long.valueOf(regexM.group(1));
 						
 						streamCtl.SendStreamOutFeedbacks();

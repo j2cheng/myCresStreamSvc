@@ -556,7 +556,7 @@ public class CresStreamCtrl extends Service {
 	            	});	            	
 
 	            	try { latch.await(); }
-	            	catch (InterruptedException ex) {}  
+	            	catch (InterruptedException ex) { ex.printStackTrace(); }  
             	}
             	else
             		dispSurface.UpdateDimensions(userSettings.getW(sessionId),
@@ -594,7 +594,7 @@ public class CresStreamCtrl extends Service {
 		       		     }
 	        		});
 	        		try { latch.await(); }
-	        		catch (InterruptedException ex) {}
+	            	catch (InterruptedException ex) { ex.printStackTrace(); }  
             	}
             	else
             		dispSurface.UpdateCoordinates(userSettings.getXloc(sessionId), 
@@ -1068,7 +1068,7 @@ public class CresStreamCtrl extends Service {
 				     }
 		    	});
 		    	try { latch.await(); }
-		    	catch (InterruptedException ex) {}
+            	catch (InterruptedException ex) { ex.printStackTrace(); }  
 	    	}
 	    	else
 	    		dispSurface.HideWindow(sessId);
@@ -1091,7 +1091,7 @@ public class CresStreamCtrl extends Service {
 				     }
 		    	});
 		    	try { latch.await(); }
-		    	catch (InterruptedException ex) {}
+            	catch (InterruptedException ex) { ex.printStackTrace(); }  
 	    	}
 	    	else
 	    		dispSurface.ShowWindow(sessId);
@@ -1254,6 +1254,10 @@ public class CresStreamCtrl extends Service {
 //        else
 //            return "";
 //    }
+    
+    public void RecoverDucati(){
+    	sockTask.SendDataToAllClients("RECOVER_DUCATI=TRUE");
+    }
 
     //Registering for HPD and Resolution Event detection	
     void registerBroadcasts(){
