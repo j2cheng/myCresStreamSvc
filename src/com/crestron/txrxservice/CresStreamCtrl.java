@@ -991,14 +991,15 @@ public class CresStreamCtrl extends Service {
         //Rtsp Modes
         if ((currentSessionInitiation == 0) || (currentSessionInitiation == 2))
         {
-        	proto = "rtsp";
+            proto = "rtsp";
             port = userSettings.getRtspPort(sessId);
             l_ipaddr = userSettings.getDeviceIp();
             file = "/live.sdp";
-            
+
             url.append(proto).append("://").append(l_ipaddr).append(":").append(port).append(file);
-	        Log.d(TAG, "URL is "+url.toString());
-        }
+            Log.d(TAG, "URL is "+url.toString());
+        }else
+            url.append(userSettings.getServerUrl(sessId));
 
         return url.toString();
     }
