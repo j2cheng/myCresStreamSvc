@@ -45,6 +45,7 @@ import android.graphics.Canvas;
 import android.graphics.PixelFormat;
 import android.graphics.Rect;
 import android.hardware.Camera;
+import android.app.Notification;
 
 import com.google.gson.Gson;
 import com.google.gson.GsonBuilder;
@@ -168,6 +169,41 @@ public class CresStreamCtrl extends Service {
     private final ReentrantLock streamStateLock = new ReentrantLock(true);
     private final ReentrantLock saveSettingsLock = new ReentrantLock(true);
 
+    /**
+     * Force the service to the foreground
+     */
+    public void ForceServiceToForeground()
+    {
+        Notification note = new Notification( 0, null, System.currentTimeMillis() );
+        note.flags |= Notification.FLAG_NO_CLEAR;
+        startForeground( 42, note );
+    }
+    
+    /**
+     * Keep running the forcing of the service foreground piece every 5 seconds
+     */
+    public void RunNotificationThread()
+    {
+    	new Thread(new Runnable() {
+    		public void run() {
+		    	while (true)
+		    	{
+			    	runOnUiThread(new Runnable() {
+			  		     @Override
+			  		     public void run() {
+			  		    	ForceServiceToForeground();
+			  		     }
+			    	});
+			    	try {
+			    		Thread.sleep(5000);
+			    	} catch (Exception e) {
+			    		e.printStackTrace();
+			    	}
+		    	}
+    		}
+    	}).start();
+    }
+    
     //StreamState devicestatus = StreamState.STOPPED;
     //HashMap
     HashMap<Integer, Command> hm;
@@ -180,6 +216,8 @@ public class CresStreamCtrl extends Service {
             super.onCreate();
             int windowWidth = 1920;
             int windowHeight = 1080;
+                        
+            RunNotificationThread();
             
             //Global Default Exception Handler
             final Thread.UncaughtExceptionHandler oldHandler = Thread.getDefaultUncaughtExceptionHandler();
@@ -342,7 +380,7 @@ public class CresStreamCtrl extends Service {
         public int onStartCommand (Intent intent, int flags, int startId) {
             // TODO Auto-generated method stub
             Log.d(TAG,"S: CresStreamCtrl Started !" );
-            return 0;
+            return START_STICKY;
         }
     
     public IBinder onBind(Intent intent)
