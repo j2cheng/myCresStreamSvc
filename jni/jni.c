@@ -162,8 +162,9 @@ void csio_jni_init()
 	) ; // Intentionally empty loop
 
 
-
-	iStatus = csio_Init();
+    // MNT - 7.5.15 - Indicate that init is being called from CresStreamSvc so that
+    // it does not get SIGUSR2.
+	iStatus = csio_Init(0);
 	if(iStatus != CSIO_SUCCESS)
 	{
 		GST_DEBUG("csio_Init returned error %d\n", iStatus);
