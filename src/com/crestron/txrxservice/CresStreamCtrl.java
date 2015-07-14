@@ -675,12 +675,12 @@ public class CresStreamCtrl extends Service {
         
     	Log.i(TAG, "HDMI Out Resolution " + hdmiOutputResolution.width + " "
     			+ hdmiOutputResolution.height + " "
-    			+ hdmiOutputResolution.refreshRate);
+    			+ Math.round(hdmiOutputResolution.refreshRate));
     	
     	hdmiOutput.setSyncStatus();
         hdmiOutput.setHorizontalRes(Integer.toString(hdmiOutputResolution.width));
         hdmiOutput.setVerticalRes(Integer.toString(hdmiOutputResolution.height));
-        hdmiOutput.setFPS(Integer.toString((int)hdmiOutputResolution.refreshRate));
+        hdmiOutput.setFPS(Integer.toString(Math.round(hdmiOutputResolution.refreshRate)));
         hdmiOutput.setAspectRatio();
 	}
     
@@ -1512,7 +1512,7 @@ public class CresStreamCtrl extends Service {
 		                    
 							Log.i(TAG, "HDMI Output resolution " + hdmiOutputResolution.width + " "
 									+ hdmiOutputResolution.height + " "
-									+ hdmiOutputResolution.refreshRate);
+									+ Math.round(hdmiOutputResolution.refreshRate));
 		
 		                    //send out sync detection signal
 		                    hdmiOutput.setSyncStatus();
@@ -1523,7 +1523,7 @@ public class CresStreamCtrl extends Service {
 		                    hdmiOutput.setSyncStatus();
 					        hdmiOutput.setHorizontalRes(Integer.toString(hdmiOutputResolution.width));
 					        hdmiOutput.setVerticalRes(Integer.toString(hdmiOutputResolution.height));
-					        hdmiOutput.setFPS(Integer.toString((int)hdmiOutputResolution.refreshRate));
+					        hdmiOutput.setFPS(Integer.toString(Math.round(hdmiOutputResolution.refreshRate)));
 					        hdmiOutput.setAspectRatio();
 		                }
 		            }
