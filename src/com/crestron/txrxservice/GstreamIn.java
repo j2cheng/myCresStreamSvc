@@ -50,6 +50,7 @@ public class GstreamIn implements StreamInStrategy, SurfaceHolder.Callback {
     private static native void 	nativeResetStatistics(int sessionId);
     private native void			nativeSetUserName(String userName, int sessionId);
     private native void			nativeSetPassword(String password, int sessionId);
+    public native void 			nativeSetVolume(int volume, int sessionid);
 
     public GstreamIn(CresStreamCtrl mContext) {
         Log.e(TAG, "GstreamIN :: Constructor called...!");
@@ -111,6 +112,10 @@ public class GstreamIn implements StreamInStrategy, SurfaceHolder.Callback {
     
     public void setPassword(String password, int sessionId){
     	nativeSetPassword(password, sessionId);
+    }
+    
+    public void setVolume(int volume, int sessionId){
+    	nativeSetVolume(volume, sessionId);
     }
     
     public void sendStatistics(long video_packets_received, int video_packets_lost, long audio_packets_received, int audio_packets_lost, int bitrate){
@@ -244,7 +249,8 @@ public class GstreamIn implements StreamInStrategy, SurfaceHolder.Callback {
     	setStreamingBuffer(streamCtl.userSettings.getStreamingBuffer(sessionId), sessionId);
     	nativeSetStatistics(streamCtl.userSettings.isStatisticsEnable(sessionId), sessionId);
     	nativeSetUserName(streamCtl.userSettings.getUserName(sessionId), sessionId);
-    	nativeSetPassword(streamCtl.userSettings.getPassword(sessionId), sessionId);    	
+    	nativeSetPassword(streamCtl.userSettings.getPassword(sessionId), sessionId);   
+    	nativeSetVolume(streamCtl.userSettings.getVolume(), sessionId);
     }
 
     //Response to CSIO Layer TODO: these can most likely be deleted handled in jni library

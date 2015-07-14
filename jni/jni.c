@@ -471,6 +471,14 @@ JNIEXPORT void JNICALL Java_com_crestron_txrxservice_GstreamIn_nativeSetPassword
 	(*env)->ReleaseStringUTFChars(env, password_jstring, password_cstring);
 }
 
+JNIEXPORT void JNICALL Java_com_crestron_txrxservice_GstreamIn_nativeSetVolume(JNIEnv *env, jobject thiz, jint volume, jint sessionId)
+{
+	double convertedVolume = (double)volume / 100;	//convert from 0-100 to 0.0-1.0
+	currentSettingsDB.videoSettings[sessionId].volumeIndB = convertedVolume;
+	int ret = csio_SetLinearVolume(sessionId, convertedVolume);
+	GST_DEBUG ("Return from csio_SetLinearVolume = %d", ret);
+}
+
 StreamState nativeGetCurrentStreamState(jint sessionId)
 {
 	StreamState currentStreamState;
@@ -1001,7 +1009,7 @@ int csio_jni_AddAudio(GstPad *new_pad,gchar *encoding_name, GstElement **sink)
 		goto doneAddAudio ;
 	}
 
-	//TODOL need to call CStreamer::initAudio here
+	// calling initAudio on return
 
 	// Get the pad given an element.
 	GstPad *sink_pad = NULL;

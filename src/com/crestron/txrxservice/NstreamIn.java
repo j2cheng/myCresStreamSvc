@@ -261,6 +261,13 @@ public class NstreamIn implements StreamInStrategy, OnPreparedListener, OnComple
         return 2;//TODO
     }
     
+    public void setVolume(int volume, int sessId){
+    	int audioSteps = 101; // 0-100
+    	float newVolume = (float)(1 - (Math.log(audioSteps - volume)/Math.log(audioSteps)));
+    	Log.d(TAG, "New volume = " + newVolume);
+    	mediaPlayer[sessId].setVolume(newVolume, newVolume);
+    }
+    
     public void updateCurrentXYloc(int xloc, int yloc, int sessId){
     	// Not needed by gallery player, only for Gstreamer
     }

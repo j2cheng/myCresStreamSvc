@@ -11,12 +11,17 @@ public class AudioPlayback
 {
     public AudioManager mAudiomanager = null;
 
+    CresStreamCtrl mStreamCtl;
     AudioTrack mPlayer = null;
     AudioRecord mRecorder = null;
     String TAG = "TxRx AudioPlayback"; 
     volatile boolean shouldExit;
     Thread streamAudioThread;
+    volatile boolean initVolumePending = false;
 
+    public AudioPlayback(CresStreamCtrl streamCtl) {
+    	mStreamCtl = streamCtl;
+    }
 
     protected void startAudioTask(){
     	streamAudioThread = new Thread(new StreamAudioTask());
@@ -36,6 +41,7 @@ public class AudioPlayback
             int read = 0;
             int readSize = bufferSize;
             final int sampleRate = 48000;
+            initVolumePending = true;
 
             Log.d(TAG, "Streaming Audio task started.... ");
             try
@@ -54,6 +60,11 @@ public class AudioPlayback
                     {
                         mPlayer.write(readBuffer.array(), 0, read);
                         mPlayer.flush();
+                        if (initVolumePending)
+                        {
+                        	setVolume(mStreamCtl.userSettings.getVolume());
+                        	initVolumePending = false;
+                        }
                     }
                 }
             } catch (Exception localException) {
@@ -92,5 +103,17 @@ public class AudioPlayback
         {
             localInterruptedException.printStackTrace();
         }        
+    }
+    
+    public void setVolume(int volume) {
+    	if (mPlayer != null)
+    	{
+    		int audioSteps = 101; // 0-100
+        	float newVolume = (float)(1 - (Math.log(audioSteps - volume)/Math.log(audioSteps)));
+        	newVolume = newVolume * AudioTrack.getMaxVolume();
+    		int ret = mPlayer.setStereoVolume(newVolume, newVolume);
+			if (ret < 0) 
+    			Log.e(TAG, "Could not change volume, error code = " + ret);
+    	}
     }
 }

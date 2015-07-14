@@ -101,7 +101,7 @@ public class CresStreamCtrl extends Service {
     boolean StreamOutstarted = false;
     boolean hdmiInputDriverPresent = false;
     boolean[] restartRequired = new boolean[NumOfSurfaces];
-    public final static String savedSettingsFilePath = "/dev/shm/crestron/CresStreamSvc/userSettings";
+    public final static String savedSettingsFilePath = "/data/crestron/CresStreamSvc/userSettings";
 
     enum DeviceMode {
         STREAM_IN,
@@ -181,6 +181,7 @@ public class CresStreamCtrl extends Service {
     
     /**
      * Keep running the forcing of the service foreground piece every 5 seconds
+     * Might not be needed anymore, running CresStreamSvc as persistent service
      */
     public void RunNotificationThread()
     {
@@ -787,13 +788,39 @@ public class CresStreamCtrl extends Service {
     	return hdmiOutput.getAudioChannels();
     }
     
-    public void setStreamVolume(int volume) //TODO: store in userSettings
+    public void setSystemVolume(int volume)
+    {    	
+    	// Stream Out preview audio will be placed on the unused ALARM stream
+    	amanager.setStreamVolume(AudioManager.STREAM_ALARM, volume * amanager.getStreamMaxVolume(AudioManager.STREAM_ALARM) / 100, 0);
+    }
+    
+    private void setPreviewVolume(int volume)
     {
-        amanager.setStreamVolume(AudioManager.STREAM_MUSIC, volume * amanager.getStreamMaxVolume(AudioManager.STREAM_MUSIC) / 100, 0);
-        StringBuilder sb = new StringBuilder(512);
-        userSettings.setStreamVolume(volume);
-        sb.append("AUDIO_VOLUME=").append(String.valueOf(volume));
-        sockTask.SendDataToAllClients(sb.toString());
+    	cam_preview.setVolume(volume);
+    }
+    
+    private void setStreamInVolume(int volume, int sessionId)
+    {
+    	streamPlay.setVolume(volume, sessionId);
+    }
+    
+    public void setStreamVolume(int volume) 
+    {
+    	userSettings.setVolume(volume);
+    	for (int sessionId = 0; sessionId < NumOfSurfaces; sessionId++)
+    	{
+    		if (userSettings.getMode(sessionId) == DeviceMode.PREVIEW.ordinal())
+    			setPreviewVolume(volume);
+    		else if (userSettings.getMode(sessionId) == DeviceMode.STREAM_IN.ordinal())
+    			setStreamInVolume(volume, sessionId);
+    		else if (userSettings.getMode(sessionId) == DeviceMode.STREAM_OUT.ordinal())
+    		{
+    			if (userSettings.getStreamState(sessionId) == StreamState.CONFIDENCEMODE)
+    				setPreviewVolume(volume);
+    			else
+    				setSystemVolume(volume);
+    		}
+    	}
     }
 
     public void setStreamMute() //TODO: store in userSettings
@@ -928,7 +955,7 @@ public class CresStreamCtrl extends Service {
 
     public void Stop(int sessionId)
     {
-    	if (userSettings.getStreamState(sessionId) != StreamState.STOPPED)
+    	if ((userSettings.getStreamState(sessionId) != StreamState.STOPPED) && (userSettings.getStreamState(sessionId) != StreamState.CONFIDENCEMODE))
     	{
 	    	Log.d(TAG, "Stop : Lock");
 	    	threadLock.lock();

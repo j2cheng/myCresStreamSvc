@@ -19,10 +19,11 @@
     <uses-permission android:name="android.permission.SYSTEM_ALERT_WINDOW" />
 
     <application
+        android:name=".LaunchApp"
         android:allowBackup="true"
         android:icon="@drawable/ic_launcher"
         android:theme="@android:style/Theme.NoTitleBar.Fullscreen" android:persistent="true">
-		<service android:name=".CresStreamCtrl" android:persistent="true"/>
+		<service android:name=".CresStreamCtrl"/>
     </application>
 	
 </manifest>

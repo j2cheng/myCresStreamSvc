@@ -28,7 +28,7 @@ public class CameraPreview {
 
     //public CameraPreview(CresStreamCtrl ctl, SurfaceHolder vHolder, HDMIInputInterface hdmiInIface) {
     public CameraPreview(CresStreamCtrl ctl, HDMIInputInterface hdmiInIface) {
-        audio_pb = new AudioPlayback();
+        audio_pb = new AudioPlayback(ctl);
         //surfaceHolder = vHolder;
         hdmiIf = hdmiInIface;
         streamCtl = ctl;
@@ -216,5 +216,9 @@ public class CameraPreview {
         else {
             return null;
         }
+    }
+    
+    public void setVolume(int volume) {
+    	audio_pb.setVolume(volume);
     }
 }

@@ -311,14 +311,6 @@ public class UserSettings
 		this.deviceReady = deviceReady;
 	}
 
-	public void setStreamVolume(int volume) {
-		this.volume = volume;
-	}
-
-	public int getStreamVolume() {
-		return volume;
-	}
-
 	public boolean isAudioMute() {
 		return audioMute;
 	}

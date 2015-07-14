@@ -68,6 +68,10 @@ public class StreamIn {
     	strategy.setPassword(password, sessionId);
     }
     
+    public void setVolume(int volume, int sessionId) {
+    	strategy.setVolume(volume, sessionId);
+    }
+    
     public void updateCurrentXYloc(int xloc, int yloc, int sessId) {
     	strategy.updateCurrentXYloc(xloc, yloc, sessId);
     }
@@ -140,7 +144,8 @@ interface StreamInStrategy{
     public void setMulticastAddress(String multicastIp, int sessionId);    
     public void setStreamingBuffer(int buffer_ms, int sessionId);    
     public void setUserName(String userName, int sessionId);    
-    public void setPassword(String password, int sessionId); 
+    public void setPassword(String password, int sessionId);
+    public void setVolume(int volume, int sessionId);
     public void updateCurrentXYloc(int xloc, int yloc, int sessId);
     public long getStreamInNumVideoPackets();	
 	public int getStreamInNumVideoPacketsDropped();	
