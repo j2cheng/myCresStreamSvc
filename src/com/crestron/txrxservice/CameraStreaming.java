@@ -157,15 +157,11 @@ public class CameraStreaming implements ErrorCallback {
 		            mrec.setAudioEncoder(MediaRecorder.AudioEncoder.AAC);
 		            mrec.setOutputFile(path + filename);   
 		
-		            Log.d(TAG, "########setPreviewDisplay######");
 		            mrec.setPreviewDisplay(surface);	//TODO: put back in when preview audio works
-		            Log.d(TAG, "######## After setPreviewDisplay");
 		            try
 		            {
 			            mrec.prepare();
-			            Log.d(TAG, "######## After prepare");
 			            mrec.start();
-			            Log.d(TAG, "######## After start");
 		            }
 		            catch (Exception ex) 
 		            {
@@ -178,11 +174,9 @@ public class CameraStreaming implements ErrorCallback {
 		            }
 		            //mrec.getStatisticsData();
 		            streamCtl.SendStreamState(StreamState.STARTED, idx);     
-		            Log.d(TAG, "######## After SendStreamState");
 		            out_stream_status = true;
 		            
-		            startStatisticsTask();
-		            Log.d(TAG, "######## After SendStreamState");		            
+		            startStatisticsTask();	            
 		        }
 		        else {
 		        	stopRecording(false);

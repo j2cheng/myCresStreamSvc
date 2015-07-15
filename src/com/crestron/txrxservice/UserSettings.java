@@ -249,6 +249,7 @@ public class UserSettings
         streamingBuffer		= new int[] {250, 250};
         statisticsEnable	= new boolean[] {false, false};
     	statisticsDisable	= new boolean[] {true, true};
+    	volume 				= 100;
 	}
 	
 	public String getDeviceIp() {
