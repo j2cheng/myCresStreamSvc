@@ -247,6 +247,7 @@ public class CresStreamCtrl extends Service {
             tokenizer = new StringTokenizer();
             hdmiOutput = new HDMIOutputInterface();
             
+            boolean wipeOutUserSettings = false;
             File serializedClassFile = new File (savedSettingsFilePath);
             if (serializedClassFile.isFile())	//check if file exists
             {
@@ -260,26 +261,29 @@ public class CresStreamCtrl extends Service {
                 		userSettings = gson.fromJson(serializedClass, UserSettings.class);
                 	} catch (Exception ex) {
                 		Log.e(TAG, "Failed to deserialize userSettings: " + ex);
-                		userSettings = new UserSettings();
-                		saveUserSettings();
+                		wipeOutUserSettings = true;
             		}
                 }
-                catch (FileNotFoundException ex)
+                catch (Exception ex)
                 {
-                	Log.e(TAG, "File not found: " + ex);
+                	Log.e(TAG, "Exception encountered loading userSettings from disk: " + ex);
+                	wipeOutUserSettings = true;
                 }            	
             }
             else
             {
+            	wipeOutUserSettings = true;            	
+            }
+            if (wipeOutUserSettings)
+            {
             	// File Does not exist, create it
             	try
             	{
-            		userSettings = new UserSettings();
-	            	serializedClassFile.getParentFile().mkdirs(); 
+            		userSettings = new UserSettings(); 
 	            	serializedClassFile.createNewFile();
 	            	saveUserSettings();
             	}
-            	catch (IOException ex)
+            	catch (Exception ex)
     			{
             		Log.e(TAG, "Could not create serialized class file: " + ex);
     			}
@@ -1559,14 +1563,14 @@ public class CresStreamCtrl extends Service {
     	    writer.write(serializedClass);
     	} 
       	catch (IOException ex) {
-    	  Log.e(TAG, "Failed to save userSettings to RAM disk: " + ex);
+    	  Log.e(TAG, "Failed to save userSettings to disk: " + ex);
     	} finally 
     	{
     		saveSettingsLock.unlock();
     		try {writer.close();} catch (Exception ex) {/*ignore*/}
     	}
 
-      Log.d(TAG, "Saved userSettings to RAM disk");
+      Log.d(TAG, "Saved userSettings to disk");
 	}
 	
 	public class SaveSettingsTask implements Runnable 

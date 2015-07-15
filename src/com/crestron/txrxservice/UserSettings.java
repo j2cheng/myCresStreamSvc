@@ -168,37 +168,6 @@ public class UserSettings
 	private int osdYLocation;
 	private String osdText;
 	
-//	// HDMI in
-//	private boolean hdmiInSyncDetected;
-//	private boolean hdmiInInterlaced;
-//	private boolean hdmiInCecError;
-//	private int hdmiInHorizontalResolution;
-//	private int hdmiInVerticalResolution;
-//	private int hdmiInFPS;
-//	private int hdmiInAspectRatio;
-//	private int hdmiInAudioFormat;
-//	private int hdmiInAudioChannels;
-//	private String hdmiInTransmitCec;
-//	private String hdmiInReceiveCec;
-//	
-//	// HDMI out
-//	private boolean hdmiOutSyncDetected;
-//	private boolean hdmiOutInterlaced;
-//	private boolean hdmiOutCecError;
-//	private boolean hdmiOutdisabledByHdcp;
-//	private boolean hdmiOutdisplayBlankEnabled;
-//	private boolean hdmiOutdisplayBlankDisabled;
-//	private int hdmiOutResolution; // TODO: make enum
-//	private int hdmiOutHorizontalResolution;
-//	private int hdmiOutVerticalResolution;
-//	private int hdmiOutFPS;
-//	private int hdmiOutAspectRatio;
-//	private int hdmiOutAudioFormat;
-//	private int hdmiOutAudioChannels;
-//	private String hdmiOutTransmitCec;
-//	private String hdmiOutReceiveCec;
-//	// TODO: do we need the hdmi out serials as well?
-	
 	// STREAM IN
 	private int streamInHorizontalResolution;
 	private int streamInVerticalResolution;
