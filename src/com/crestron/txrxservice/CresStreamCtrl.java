@@ -21,6 +21,7 @@ import java.util.concurrent.locks.*;
 
 import android.net.Uri;
 import android.os.Bundle;
+import android.os.FileObserver;
 import android.os.Handler;
 import android.os.Looper;
 import android.os.SystemClock;
@@ -102,6 +103,8 @@ public class CresStreamCtrl extends Service {
     boolean hdmiInputDriverPresent = false;
     boolean[] restartRequired = new boolean[NumOfSurfaces];
     public final static String savedSettingsFilePath = "/data/crestron/CresStreamSvc/userSettings";
+    public volatile boolean mIgnoreMediaServerCrash = false;
+    private FileObserver mediaServerObserver;
 
     enum DeviceMode {
         STREAM_IN,
@@ -378,7 +381,10 @@ public class CresStreamCtrl extends Service {
 
             //Stub: CSIO Cmd Receiver & TestApp functionality
             sockTask = new TCPInterface(this);
-            sockTask.execute(new Void[0]);                       
+            sockTask.execute(new Void[0]);  
+            
+            // Monitor mediaserver, if it crashes restart stream
+            monitorMediaServer();
         }
    
     @Override
@@ -398,7 +404,7 @@ public class CresStreamCtrl extends Service {
         saveUserSettings();
         saveSettingsShouldExit = true;
         sockTask.cancel(true);
-        Log.d(TAG, " Asynctask cancelled");
+        mediaServerObserver.stopWatching();
         unregisterReceiver(resolutionEvent);
         unregisterReceiver(hpdEvent);
         unregisterReceiver(hdmioutResolutionChangedEvent);
@@ -472,6 +478,30 @@ public class CresStreamCtrl extends Service {
     	Log.d(TAG, String.format("returned surface holder %s", surfaceHolder.toString()));
     	
     	return surfaceHolder;
+    }
+    
+    private void monitorMediaServer()
+    {
+    	File mediaServerReboot = new File ("/dev/shm/crestron/CresStreamSvc/mediaServerState");
+        if (!mediaServerReboot.isFile())	//check if file exists
+        {
+        	try {
+            	mediaServerReboot.getParentFile().mkdirs(); 
+            	mediaServerReboot.createNewFile();
+        	} catch (Exception e) {}
+        }
+        mediaServerObserver = new FileObserver("/dev/shm/crestron/CresStreamSvc/mediaServerState", FileObserver.CLOSE_WRITE) {						
+			@Override
+			public void onEvent(int event, String path) {
+				//function start
+				if (mIgnoreMediaServerCrash == false)
+				{
+					sockTask.restartStreams();
+				}
+				//function end
+			}
+		};
+		mediaServerObserver.startWatching();
     }
 
     public void setDeviceMode(int mode, int sessionId)
@@ -1367,8 +1397,11 @@ public class CresStreamCtrl extends Service {
 				                    	
 				                    if ((device_mode==DeviceMode.PREVIEW.ordinal()) && (restartRequired[sessionId]) && (prevResolutionIndex != resolutionId))  
 				                    {
+										//TODO: Improve logic for mediaserver crash gating
 				                        Log.i(TAG, "Restart called due to resolution change broadcast ! ");
 			
+				                        mIgnoreMediaServerCrash = true;
+				                        
 				                        if (cam_preview.IsPreviewStatus())
 				                        {
 					                        cam_preview.stopPlayback(false);
@@ -1381,6 +1414,8 @@ public class CresStreamCtrl extends Service {
 				                        
 				                        if ((validResolution) && (threadLock.getQueueLength() == 0))
 				                        {
+				                        	mIgnoreMediaServerCrash = false;
+				                        	
 				                            showPreviewWindow(sessionId);
 				                            if (confidencePreviewMode)
 				                            	cam_preview.startPlayback(true);
@@ -1393,6 +1428,8 @@ public class CresStreamCtrl extends Service {
 				                    }
 				                    else if((device_mode==DeviceMode.STREAM_OUT.ordinal()) && (restartRequired[sessionId]) && (prevResolutionIndex != resolutionId))
 				                    {
+				                    	mIgnoreMediaServerCrash = true;
+				                    	
 			                    		//HACK: For ioctl issue 
 				                        //1. Stop Camera 2. Hide Preview 3. Sleep 5 sec		                        
 				                        if((cam_streaming.mCameraPreviewObj != null) && ((cam_streaming.isStreaming()) == true))
@@ -1409,6 +1446,8 @@ public class CresStreamCtrl extends Service {
 				                        
 				                        if ((validResolution) && (threadLock.getQueueLength() == 0))
 				                        {
+				                        	mIgnoreMediaServerCrash = false;
+				                        	
 					                        try{
 					                            showPreviewWindow(sessionId);
 					                            cam_streaming.startRecording();
@@ -1457,6 +1496,8 @@ public class CresStreamCtrl extends Service {
 	        	                    int i = paramAnonymousIntent.getIntExtra("evs_hdmi_hdp_id", -1);
 	        	                    Log.i(TAG, "Received hpd broadcast ! " + i);
 	        	                    if(i==0){
+	        	                    	mIgnoreMediaServerCrash = true;
+	        	                    	
 	        	                        //HACK: For ioctl issue 
 	        	                        //1. Hide Preview 2. sleep One Sec 3.Stop Camera 4. Sleep 5 sec
 	        	                    	for (int sessionId = 0; sessionId < NumOfSurfaces; sessionId++)
