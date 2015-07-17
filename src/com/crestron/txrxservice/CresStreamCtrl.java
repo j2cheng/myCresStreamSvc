@@ -1386,6 +1386,10 @@ public class CresStreamCtrl extends Service {
 			                	for(int sessionId = 0; sessionId < NumOfSurfaces; sessionId++)
 			                	{
 			                		int device_mode = userSettings.getMode(sessionId);
+			                		
+			                		// Hide window while hdmi status is changing
+			                		if (device_mode != DeviceMode.STREAM_IN.ordinal())
+    	                    			hidePreviewWindow(sessionId);
 			                				                    
 				                    String hdmiInputResolution = null;
 				                    Log.i(TAG, "Received resolution changed broadcast !: " + resolutionId);
@@ -1395,18 +1399,29 @@ public class CresStreamCtrl extends Service {
 				                    if (confidencePreviewMode)
 				                    	device_mode = DeviceMode.PREVIEW.ordinal();
 				                    	
-				                    if ((device_mode==DeviceMode.PREVIEW.ordinal()) && (restartRequired[sessionId]) && (prevResolutionIndex != resolutionId))  
+				                    if ((device_mode!=DeviceMode.STREAM_IN.ordinal()) && (restartRequired[sessionId]) && (prevResolutionIndex != resolutionId))  
 				                    {
 										//TODO: Improve logic for mediaserver crash gating
 				                        Log.i(TAG, "Restart called due to resolution change broadcast ! ");
 			
 				                        mIgnoreMediaServerCrash = true;
 				                        
-				                        if (cam_preview.IsPreviewStatus())
+				                        // stop stream
+				                        if (device_mode == DeviceMode.PREVIEW.ordinal())
 				                        {
-					                        cam_preview.stopPlayback(false);
-					                        hidePreviewWindow(sessionId);
-//					                        SystemClock.sleep(cameraRestartTimout);
+					                        if (cam_preview.IsPreviewStatus())
+						                        cam_preview.stopPlayback(false);
+					                        else
+					                            Log.i(TAG, "Device is in Idle State");
+				                        }
+				                        else if (device_mode == DeviceMode.STREAM_OUT.ordinal())
+				                        {
+				                        	//HACK: For ioctl issue 
+					                        //1. Stop Camera 2. Hide Preview 3. Sleep 5 sec		                        
+					                        if((cam_streaming.mCameraPreviewObj != null) && ((cam_streaming.isStreaming()) == true))
+					                            cam_streaming.stopRecording(false); //true
+					                        else
+					                            Log.i(TAG, "Device is in Idle State");
 				                        }
 				                        
 				                        hpdHdmiEvent = 1;
@@ -1417,43 +1432,20 @@ public class CresStreamCtrl extends Service {
 				                        	mIgnoreMediaServerCrash = false;
 				                        	
 				                            showPreviewWindow(sessionId);
-				                            if (confidencePreviewMode)
-				                            	cam_preview.startPlayback(true);
-				                            else
-				                            	cam_preview.startPlayback(false);
-				                        }
-				                        else
-				                        	// This will send processing join
-				                        	SendStreamState(StreamState.CONNECTING, sessionId);
-				                    }
-				                    else if((device_mode==DeviceMode.STREAM_OUT.ordinal()) && (restartRequired[sessionId]) && (prevResolutionIndex != resolutionId))
-				                    {
-				                    	mIgnoreMediaServerCrash = true;
-				                    	
-			                    		//HACK: For ioctl issue 
-				                        //1. Stop Camera 2. Hide Preview 3. Sleep 5 sec		                        
-				                        if((cam_streaming.mCameraPreviewObj != null) && ((cam_streaming.isStreaming()) == true))
-				                        {
-				                        	//Log.d(TAG, "///// stopRecording...");
-				                            cam_streaming.stopRecording(false); //true
-				                            hidePreviewWindow(sessionId);
-				                            //Log.d(TAG, "///// stopRecording...Complete");
-				                        }
-				                        else
-				                            Log.i(TAG, "Device is in Idle State");				                        
-			
-//				                        SystemClock.sleep((5*cameraRestartTimout));	                    	
-				                        
-				                        if ((validResolution) && (threadLock.getQueueLength() == 0))
-				                        {
-				                        	mIgnoreMediaServerCrash = false;
-				                        	
-					                        try{
-					                            showPreviewWindow(sessionId);
-					                            cam_streaming.startRecording();
-					                        } catch(IOException e) {
-					                            e.printStackTrace();
+				                            
+				                            if (device_mode == DeviceMode.PREVIEW.ordinal())
+					                        {
+					                            if (confidencePreviewMode)
+					                            	cam_preview.startPlayback(true);
+					                            else
+					                            	cam_preview.startPlayback(false);
 					                        }
+				                            else if (device_mode == DeviceMode.STREAM_OUT.ordinal())
+				                            {
+				                            	try {				                            	
+				                            		cam_streaming.startRecording();
+				                            	} catch (Exception e) {e.printStackTrace();}
+				                            }
 				                        }
 				                        else
 				                        	// This will send processing join
