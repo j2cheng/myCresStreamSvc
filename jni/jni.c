@@ -318,12 +318,14 @@ JNIEXPORT void JNICALL Java_com_crestron_txrxservice_GstreamIn_nativeSetSeverUrl
 	const char * url_cstring = (*env)->GetStringUTFChars( env, url_jstring , NULL ) ;
 	if (url_cstring == NULL) return;
 
-	if ((nativeGetCurrentStreamState(sessionId) == STREAMSTATE_STARTED) && (strcasecmp(url_cstring, currentSettingsDB.settingsMessage.msg[sessionId].url)))
+	int currentStreamState = nativeGetCurrentStreamState(sessionId);
+
+	if ((currentStreamState == STREAMSTATE_STARTED) && (strcasecmp(url_cstring, currentSettingsDB.settingsMessage.msg[sessionId].url) != 0))
 	{
 		restartStream = 1;
 	}
 
-	if (restartStream)
+	if ((restartStream) || (currentStreamState == STREAMSTATE_PAUSED))
 	{
 		jmethodID onStop = (*env)->GetMethodID(env, gStreamIn_javaClass_id, "onStop", "(I)V");
 		if (onStop == NULL) return;

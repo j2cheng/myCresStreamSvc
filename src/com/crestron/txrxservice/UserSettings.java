@@ -398,10 +398,10 @@ public class UserSettings
 	}
 
 	public void setServerUrl(String serverUrl, int sessId) {
-		if (this.mode[sessId] == DeviceMode.STREAM_IN.ordinal())
-			StreamIn.setServerUrl(serverUrl, sessId);
-		
 		this.serverUrl[sessId] = serverUrl;
+		
+		if (this.mode[sessId] == DeviceMode.STREAM_IN.ordinal())
+			StreamIn.setServerUrl(serverUrl, sessId);		
 	}
 
 	public String getInitiatorAddress() {

@@ -247,10 +247,10 @@ public class GstreamIn implements StreamInStrategy, SurfaceHolder.Callback {
     	setTransportMode(streamCtl.userSettings.getTransportMode(sessionId), sessionId);
     	setMulticastAddress(streamCtl.userSettings.getMulticastAddress(sessionId), sessionId);
     	setStreamingBuffer(streamCtl.userSettings.getStreamingBuffer(sessionId), sessionId);
-    	nativeSetStatistics(streamCtl.userSettings.isStatisticsEnable(sessionId), sessionId);
-    	nativeSetUserName(streamCtl.userSettings.getUserName(sessionId), sessionId);
-    	nativeSetPassword(streamCtl.userSettings.getPassword(sessionId), sessionId);   
-    	nativeSetVolume(streamCtl.userSettings.getVolume(), sessionId);
+    	setStatistics(streamCtl.userSettings.isStatisticsEnable(sessionId), sessionId);
+    	setUserName(streamCtl.userSettings.getUserName(sessionId), sessionId);
+    	setPassword(streamCtl.userSettings.getPassword(sessionId), sessionId);
+    	setVolume(streamCtl.userSettings.getVolume(), sessionId);
     }
 
     //Response to CSIO Layer TODO: these can most likely be deleted handled in jni library
