@@ -1131,6 +1131,10 @@ public class CresStreamCtrl extends Service {
     {
         if(StreamOutstarted){
             //Toast.makeText(this, "StreamOut Stopped", Toast.LENGTH_LONG).show();
+            //On STOP, there is a chance to get ducati crash which does not save current state
+            //causes streaming never stops.
+            //FIXME:Temp Hack for ducati crash to save current state
+            userSettings.setStreamState(StreamState.STOPPED, sessId);
             cam_streaming.setSessionIndex(sessId);
             cam_streaming.stopRecording(false);
             StreamOutstarted = false;
@@ -1292,6 +1296,10 @@ public class CresStreamCtrl extends Service {
     {
         hidePreviewWindow(sessId);
         cam_preview.setSessionIndex(sessId);
+        //On STOP, there is a chance to get ducati crash which does not save current state
+        //causes streaming never stops.
+        //FIXME:Temp Hack for ducati crash to save current state
+        userSettings.setStreamState(StreamState.STOPPED, sessId);
         cam_preview.stopPlayback(false);
         //Toast.makeText(this, "Preview Stopped", Toast.LENGTH_LONG).show();
     }
