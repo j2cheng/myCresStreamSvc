@@ -250,7 +250,11 @@ static int build_video_pipeline(gchar *encoding_name, CustomData *data, unsigned
 	if(do_sink)
 	{		
 		data->element_v[i++] = gst_element_factory_make("videoconvert", NULL);
-		data->video_sink = gst_element_factory_make("glimagesink", NULL);
+		if(currentSettingsDB.videoSettings[0].videoSinkSelect == 0)
+			data->video_sink = gst_element_factory_make("glimagesink", NULL);
+		else
+			data->video_sink = gst_element_factory_make("surfaceflingersink", NULL);
+
 		*sink = data->video_sink;
 
 		// Have to add all the elements to the bin before linking.
@@ -674,6 +678,7 @@ void set_gst_debug_level(void)
 	}
 	setenv("GST_DEBUG", temp, 1);
 	setenv("GST_DEBUG_NO_COLOR", "1", 1);
+	setenv("GST_PLUGIN_PATH", "/system/lib/gstreamer-1.0", 1);
 
 	GST_DEBUG("Set GST_DEBUG to %s", temp);
 }

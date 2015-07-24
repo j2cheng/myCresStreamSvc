@@ -314,7 +314,8 @@ public class GstreamIn implements StreamInStrategy, SurfaceHolder.Callback {
 
     static {
         System.loadLibrary("gstreamer_android");
-        System.loadLibrary("gstreamer_jni");
+        System.loadLibrary("gstsurfaceflingersink");
+        System.loadLibrary("gstreamer_jni");        
         nativeClassInit();
     }
 
