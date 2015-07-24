@@ -554,6 +554,12 @@ public class CresStreamCtrl extends Service {
     	}
     }
     
+    public void setNewSink(boolean flag, int sessionId)
+    {
+        userSettings.setNewSink(flag, sessionId);
+    	streamPlay.setNewSink(flag, sessionId);
+    }
+    
     public void setXCoordinates(int x, int sessionId)
     {    	
         if (userSettings.getXloc(sessionId) != x){

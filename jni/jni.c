@@ -485,6 +485,12 @@ JNIEXPORT void JNICALL Java_com_crestron_txrxservice_GstreamIn_nativeSetVolume(J
 	GST_DEBUG ("Return from csio_SetLinearVolume = %d", ret);
 }
 
+JNIEXPORT void JNICALL Java_com_crestron_txrxservice_GstreamIn_nativeSetNewSink(JNIEnv *env, jobject thiz, jboolean enabled, jint sessionId)
+{
+	currentSettingsDB.videoSettings[sessionId].videoSinkSelect = (UINT8)enabled;
+	GST_DEBUG ("new Sink Enabled in currentSettingsDB: %d", currentSettingsDB.videoSettings[sessionId].videoSinkSelect);
+}
+
 StreamState nativeGetCurrentStreamState(jint sessionId)
 {
 	StreamState currentStreamState;

@@ -340,4 +340,8 @@ public class NstreamIn implements StreamInStrategy, OnPreparedListener, OnComple
 	public void setPassword(String password, int sessionId) {
 		// Not needed by gallery player			
 	}
+	
+	public void setNewSink(boolean flag, int sessId){
+    	// Not needed by gallery player
+	}
 }

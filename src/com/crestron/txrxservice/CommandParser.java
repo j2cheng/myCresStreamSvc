@@ -101,8 +101,8 @@ public class CommandParser {
         
         RESTART_STREAM_ON_START,
         
-        USE_GSTREAMER;
-
+        USE_GSTREAMER,
+	NEW_SYNC;
         //UPDATEREQUEST;
     }
 
@@ -169,6 +169,7 @@ public class CommandParser {
         
         sb.append("STATISTICS_ENABLE (=true)\r\n");
         sb.append("STATISTICS_DISABLE (=true)\r\n");
+        sb.append("NEW_SYNC(=true)\r\n");
 
         sb.append("UPDATEREQUEST\r\nType COMMAND for Query |streamstate to know status\r\n");
         
@@ -424,6 +425,9 @@ public class CommandParser {
             	break;
             case USE_GSTREAMER:
             	cmd = new UseGstreamerCommand(cmdRx, arg);
+            	break;
+            case NEW_SYNC:
+            	cmd = new UseNewSinkCommand(cmdRx, arg, idx);
             	break;
             default:
                 break;

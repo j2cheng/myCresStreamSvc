@@ -76,6 +76,10 @@ public class StreamIn {
     	strategy.updateCurrentXYloc(xloc, yloc, sessId);
     }
     
+    public void setNewSink(boolean flag, int sessionId) {
+    	strategy.setNewSink(flag, sessionId);
+    }
+    
     public long getStreamInNumVideoPackets() {
     	return strategy.getStreamInNumVideoPackets();
     }
@@ -147,6 +151,7 @@ interface StreamInStrategy{
     public void setPassword(String password, int sessionId);
     public void setVolume(int volume, int sessionId);
     public void updateCurrentXYloc(int xloc, int yloc, int sessId);
+    public void setNewSink(boolean flag, int sessionId);
     public long getStreamInNumVideoPackets();	
 	public int getStreamInNumVideoPacketsDropped();	
 	public long getStreamInNumAudioPackets();	

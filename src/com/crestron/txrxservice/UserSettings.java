@@ -187,6 +187,9 @@ public class UserSettings
 	// Ethernet
 	private String deviceIp;
 
+	//Misc
+	private boolean[] useNewSink;
+
 	public UserSettings()
 	{
         MiscUtils.getDeviceIpAddr();
@@ -219,6 +222,7 @@ public class UserSettings
         statisticsEnable	= new boolean[] {false, false};
     	statisticsDisable	= new boolean[] {true, true};
     	volume 				= 100;
+    	useNewSink		= new boolean[] {false, false};
 	}
 	
 	public String getDeviceIp() {
@@ -636,5 +640,13 @@ public class UserSettings
 
 	public int getEncodingLevel(int sessId) {
 		return encodingLevel[sessId];
+	}
+
+	public void setNewSink(boolean useNewSink, int sessId) {
+		this.useNewSink[sessId] = useNewSink;
+	}
+
+	public boolean isNewSink(int sessId) {
+		return useNewSink[sessId];
 	}
 }

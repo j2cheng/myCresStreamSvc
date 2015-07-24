@@ -1512,3 +1512,24 @@ class UseGstreamerCommand implements CommandIf {
     	return msg;	//no feedback for this join
     }
 }
+
+class UseNewSinkCommand implements CommandIf {
+	CommandReceiver launch;
+	String msg;
+	int idx;
+
+	public UseNewSinkCommand(CommandReceiver launch, String arg, int sessId) {
+		this.launch = launch;
+		this.msg = arg;
+        	this.idx = sessId;
+	}
+
+	@Override
+	public void execute() {
+		boolean val = Boolean.valueOf(msg);
+		launch.setNewSink(val, idx);
+	}
+	public String getFeedbackMsg() {
+		return msg;	//no feedback for this join
+	}
+}

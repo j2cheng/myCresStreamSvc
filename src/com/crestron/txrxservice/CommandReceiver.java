@@ -204,6 +204,10 @@ public class CommandReceiver {
     	ctl.setUseGstreamer(flag);
     }
 
+    public void setNewSink(boolean flag, int sessId) {
+    	ctl.setNewSink(flag, sessId);
+    }
+
     //Process Feedbacks
     public String getStreamUrl(int idx){
         return ctl.getStreamUrl(idx);

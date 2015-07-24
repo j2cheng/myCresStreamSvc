@@ -48,6 +48,7 @@ public class GstreamIn implements StreamInStrategy, SurfaceHolder.Callback {
     private native void 		nativeSetXYlocations(int xloc, int yloc, int sessionId);
     private static native void 	nativeSetStatistics(boolean enabled, int sessionId);
     private static native void 	nativeResetStatistics(int sessionId);
+    private native void 		nativeSetNewSink(boolean enabled, int sessionId);
     private native void			nativeSetUserName(String userName, int sessionId);
     private native void			nativeSetPassword(String password, int sessionId);
     public native void 			nativeSetVolume(int volume, int sessionid);
@@ -140,6 +141,10 @@ public class GstreamIn implements StreamInStrategy, SurfaceHolder.Callback {
     	nativeResetStatistics(sessId);
     }
 
+    public void setNewSink(boolean enabled, int sessId){
+    	nativeSetNewSink(enabled, sessId);
+    }
+    
     public int[] getCurrentWidthHeight(int sessionId){
         int[] widthHeight = new int[2];
         // width in index 0, height in index 1
@@ -251,6 +256,7 @@ public class GstreamIn implements StreamInStrategy, SurfaceHolder.Callback {
     	setUserName(streamCtl.userSettings.getUserName(sessionId), sessionId);
     	setPassword(streamCtl.userSettings.getPassword(sessionId), sessionId);
     	setVolume(streamCtl.userSettings.getVolume(), sessionId);
+    	setNewSink(streamCtl.userSettings.isNewSink(sessionId), sessionId);
     }
 
     //Response to CSIO Layer TODO: these can most likely be deleted handled in jni library

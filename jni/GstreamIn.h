@@ -109,6 +109,13 @@ JNIEXPORT void JNICALL Java_com_crestron_txrxservice_GstreamIn_nativeSetStatisti
 JNIEXPORT void JNICALL Java_com_crestron_txrxservice_GstreamIn_nativeResetStatistics(JNIEnv *, jobject, jint);
 
 /*
+ * Class:     GstreamIn
+ * Method:    nativeSetNewSink
+ * Signature: (ZI)V
+ */
+JNIEXPORT void JNICALL Java_com_crestron_txrxservice_GstreamIn_nativeSetNewSink(JNIEnv *, jobject, jboolean, jint);
+
+/*
  * Class:     		GstreamIn
  * Method:    		nativeSetUserName
  * Signature: 		(Ljava/lang/string; I)V
