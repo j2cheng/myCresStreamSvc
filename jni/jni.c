@@ -43,6 +43,10 @@
 # define GET_CUSTOM_DATA(env, thiz, fieldID) (CustomData *)(jint)(*env)->GetLongField (env, thiz, fieldID)
 # define SET_CUSTOM_DATA(env, thiz, fieldID, data) (*env)->SetLongField (env, thiz, fieldID, (jlong)(jint)data)
 #endif
+   
+#define STREAM_TRANSPORT_MPEG2TS_RTP (1)
+#define STREAM_TRANSPORT_MPEG2TS_UDP (2)
+
 
 ///////////////////////////////////////////////////////////////////////////////
 CustomData *CresDataDB = NULL; //
@@ -734,19 +738,57 @@ int csio_jni_CreatePipeline(GstElement **pipeline,GstElement **source,eProtocolI
 	    }
 	    case ePROTOCOL_UDP_TS:
 	    {
-	    	CresDataDB->element_zero = gst_element_factory_make("rtpbin", NULL);
-	    	gst_bin_add(GST_BIN(CresDataDB->pipeline), CresDataDB->element_zero);
+		    if(currentSettingsDB.videoSettings[iStreamId].tsEnabled==STREAM_TRANSPORT_MPEG2TS_RTP){
+			    CresDataDB->element_zero = gst_element_factory_make("rtpbin", NULL);
+			    gst_bin_add(GST_BIN(CresDataDB->pipeline), CresDataDB->element_zero);
 
-	    	CresDataDB->udp_port = currentSettingsDB.videoSettings[iStreamId].tsPort;
-	    	CresDataDB->element_av[0] = gst_element_factory_make("udpsrc", NULL);
-	    	g_object_set(G_OBJECT(CresDataDB->element_av[0]), "caps", CresDataDB->caps_v_ts, NULL);
-			g_object_set(G_OBJECT(CresDataDB->element_av[0]), "port", CresDataDB->udp_port, NULL);
-			gst_bin_add(GST_BIN(CresDataDB->pipeline), CresDataDB->element_av[0]);
-			gst_element_link(CresDataDB->element_av[0], CresDataDB->element_zero);
-			
-			*pipeline = CresDataDB->pipeline;
-			*source   = CresDataDB->element_zero;
-			break;
+			    CresDataDB->udp_port = currentSettingsDB.videoSettings[iStreamId].tsPort;
+			    CresDataDB->element_av[0] = gst_element_factory_make("udpsrc", NULL);
+			    g_object_set(G_OBJECT(CresDataDB->element_av[0]), "caps", CresDataDB->caps_v_ts, NULL);
+			    g_object_set(G_OBJECT(CresDataDB->element_av[0]), "port", CresDataDB->udp_port, NULL);
+			    gst_bin_add(GST_BIN(CresDataDB->pipeline), CresDataDB->element_av[0]);
+			    int ret = gst_element_link(CresDataDB->element_av[0], CresDataDB->element_zero);
+			    if(ret==0){
+				    g_print( "ERROR:  Cannot link filter to source elements.\n" );
+				    iStatus = CSIO_CANNOT_LINK_ELEMENTS;
+			    }else
+				    g_print( "link filter to source elements.\n" );
+
+		    }else if(currentSettingsDB.videoSettings[iStreamId].tsEnabled==STREAM_TRANSPORT_MPEG2TS_UDP){
+			    CresDataDB->element_zero = gst_element_factory_make("udpsrc", NULL);
+			    if(!CresDataDB->element_zero)
+			    {
+				    iStatus = CSIO_CANNOT_CREATE_ELEMENTS;
+				    g_print( "ERROR: Cannot create udp source pipeline elements\n" );
+			    }
+
+			    CresDataDB->udp_port = currentSettingsDB.videoSettings[iStreamId].tsPort;
+			    g_object_set(G_OBJECT(CresDataDB->element_zero), "port", CresDataDB->udp_port, NULL);
+
+			    CresDataDB->element_av[0] = gst_element_factory_make( "queue", NULL );
+			    if(!CresDataDB->element_av[0])
+			    {
+				    iStatus = CSIO_CANNOT_CREATE_ELEMENTS;
+				    g_print( "ERROR: Cannot create queue source pipeline elements\n" );
+			    }
+			    
+			    CresDataDB->element_av[1] = gst_element_factory_make( "tsdemux", NULL );
+			    if(!CresDataDB->element_av[1])
+			    {
+				    iStatus = CSIO_CANNOT_CREATE_ELEMENTS;
+				    g_print( "ERROR: Cannot create tsdemux source pipeline elements\n" );
+			    }
+
+			    gst_bin_add_many(GST_BIN(CresDataDB->pipeline), CresDataDB->element_zero, CresDataDB->element_av[0], CresDataDB->element_av[1], NULL);
+			    if( !gst_element_link_many(CresDataDB->element_zero, CresDataDB->element_av[0], CresDataDB->element_av[1], NULL)){
+				    g_print( "ERROR:  Cannot link filter to source elements.\n" );
+				    iStatus = CSIO_CANNOT_LINK_ELEMENTS;
+			    }else
+				    GST_DEBUG("success linking pipeline elements\n");
+		    }	
+		    *pipeline = CresDataDB->pipeline;
+		    *source   = CresDataDB->element_zero;
+		    break;
 	    }
 	    case ePROTOCOL_UDP:
 	    {
@@ -778,7 +820,7 @@ int csio_jni_CreatePipeline(GstElement **pipeline,GstElement **source,eProtocolI
 	    {
 	    	GST_DEBUG("ePROTOCOL_MULTICAST_TS");
 	    	strcpy(CresDataDB->multicast_grp,currentSettingsDB.videoSettings[iStreamId].multicastAddress);
-
+		    if(currentSettingsDB.videoSettings[iStreamId].tsEnabled==STREAM_TRANSPORT_MPEG2TS_RTP){
 			CresDataDB->element_zero = gst_element_factory_make("rtpbin", NULL);
 			gst_bin_add(GST_BIN(CresDataDB->pipeline), CresDataDB->element_zero);
 
@@ -787,12 +829,50 @@ int csio_jni_CreatePipeline(GstElement **pipeline,GstElement **source,eProtocolI
 			g_object_set(G_OBJECT(CresDataDB->element_av[0]), "caps", CresDataDB->caps_v_ts, NULL);
 			g_object_set(G_OBJECT(CresDataDB->element_av[0]), "port", CresDataDB->udp_port, NULL);
 			gst_bin_add(GST_BIN(CresDataDB->pipeline), CresDataDB->element_av[0]);
-			int ret = gst_element_link(CresDataDB->element_av[0], CresDataDB->element_zero);			
+			int ret = gst_element_link(CresDataDB->element_av[0], CresDataDB->element_zero);
+			if(ret==0){
+				g_print( "ERROR:  Cannot link filter to source elements.\n" );
+				iStatus = CSIO_CANNOT_LINK_ELEMENTS;
+			}else
+				g_print( "ERROR:  Cannot link filter to source elements.\n" );
+
+		    }else if(currentSettingsDB.videoSettings[iStreamId].tsEnabled==STREAM_TRANSPORT_MPEG2TS_UDP){
+			    CresDataDB->element_zero = gst_element_factory_make("udpsrc", NULL);
+			    if(!CresDataDB->element_zero)
+			    {
+				    iStatus = CSIO_CANNOT_CREATE_ELEMENTS;
+				    g_print( "ERROR: Cannot create udp source pipeline elements\n" );
+			    }
+
+			    CresDataDB->udp_port = currentSettingsDB.videoSettings[iStreamId].tsPort;
+			    g_object_set(G_OBJECT(CresDataDB->element_zero), "port", CresDataDB->udp_port, NULL);
+
+			    CresDataDB->element_av[0] = gst_element_factory_make( "queue", NULL );
+			    if(!CresDataDB->element_av[0])
+			    {
+				    iStatus = CSIO_CANNOT_CREATE_ELEMENTS;
+				    g_print( "ERROR: Cannot create queue source pipeline elements\n" );
+			    }
+			    
+			    CresDataDB->element_av[1] = gst_element_factory_make( "tsdemux", NULL );
+			    if(!CresDataDB->element_av[1])
+			    {
+				    iStatus = CSIO_CANNOT_CREATE_ELEMENTS;
+				    g_print( "ERROR: Cannot create tsdemux source pipeline elements\n" );
+			    }
+
+			    gst_bin_add_many(GST_BIN(CresDataDB->pipeline), CresDataDB->element_zero, CresDataDB->element_av[0], CresDataDB->element_av[1], NULL);
+			    if( !gst_element_link_many(CresDataDB->element_zero, CresDataDB->element_av[0], CresDataDB->element_av[1], NULL)){
+				    g_print( "ERROR:  Cannot link filter to source elements.\n" );
+				    iStatus = CSIO_CANNOT_LINK_ELEMENTS;
+			    }else
+				    GST_DEBUG ("success link pipeline elements\n");
+			}
 
 			*pipeline = CresDataDB->pipeline;
 			*source   = CresDataDB->element_zero;
-	    	break;
 	    }
+	    	break;
 	    case ePROTOCOL_MULTICAST:
 	    {
 	    	//GST_ERROR ("ePROTOCOL_MULTICAST\n");
@@ -919,8 +999,15 @@ void csio_jni_SetSourceLocation(eProtocolId protoId, char *location, int iStream
 		case ePROTOCOL_MULTICAST:
 		{
 			//GST_DEBUG ("ePROTOCOL_MULTICAST: location[%s]\n",CresDataDB->multicast_grp);
+		    if(currentSettingsDB.videoSettings[iStreamId].tsEnabled==STREAM_TRANSPORT_MPEG2TS_RTP){
+			//iStatus = CSIO_FAILURE;
 			g_object_set(G_OBJECT(CresDataDB->element_av[0]), "address", \
 					location, NULL);
+		    }
+		    else if(currentSettingsDB.videoSettings[iStreamId].tsEnabled==STREAM_TRANSPORT_MPEG2TS_UDP){
+			g_object_set(G_OBJECT(CresDataDB->element_zero), "address", \
+					location, NULL);
+		    }
 
 			//g_object_set(G_OBJECT(CresDataDB->element_av[1]), "address", \
 			//		CresDataDB->multicast_grp, NULL);
@@ -929,12 +1016,11 @@ void csio_jni_SetSourceLocation(eProtocolId protoId, char *location, int iStream
 		}
 		case ePROTOCOL_FILE: //stub for now
 		default:
-			//iStatus = CSIO_FAILURE;
 			break;
 	}
 }
 
-void csio_jni_SetMsgHandlers(void* obj,eProtocolId protoId)
+void csio_jni_SetMsgHandlers(void* obj,eProtocolId protoId, int iStreamId)
 {
 	GST_ERROR ("protoId = %d\n",protoId);
 	switch( protoId )
@@ -946,15 +1032,12 @@ void csio_jni_SetMsgHandlers(void* obj,eProtocolId protoId)
 		case ePROTOCOL_RTSP_UDP_TS:
 		case ePROTOCOL_RTSP_TS:
 		case ePROTOCOL_UDP:
-		case ePROTOCOL_UDP_TS:
-		case ePROTOCOL_MULTICAST_TS:
 		{
 			//GST_DEBUG ("SetMsgHandlers protoId[%d]\n",protoId);
 			// Register callback.
 			if(CresDataDB->element_zero != NULL)
 			{				
 				g_signal_connect(CresDataDB->element_zero, "pad-added", G_CALLBACK(csio_PadAddedMsgHandler), obj);
-
 			}
 			else
 			{
@@ -976,7 +1059,23 @@ void csio_jni_SetMsgHandlers(void* obj,eProtocolId protoId)
 			 
 			 break;
 		}
-
+		case ePROTOCOL_UDP_TS:
+		case ePROTOCOL_MULTICAST_TS:
+		{
+			if(CresDataDB->element_zero != NULL)
+			{
+		    		if(currentSettingsDB.videoSettings[iStreamId].tsEnabled==STREAM_TRANSPORT_MPEG2TS_RTP){
+				g_signal_connect(CresDataDB->element_zero, "pad-added", G_CALLBACK(csio_PadAddedMsgHandler), obj);
+		    		}else if(currentSettingsDB.videoSettings[iStreamId].tsEnabled==STREAM_TRANSPORT_MPEG2TS_UDP){
+				g_signal_connect(CresDataDB->element_av[1], "pad-added", G_CALLBACK(csio_PadAddedMsgHandler), obj);
+				}
+			}
+			else
+			{
+				GST_ERROR("Null element zero, no callbacks will be registered");
+			}
+			break;
+		}
 		case ePROTOCOL_HTTP:
 			break;
 
@@ -1052,7 +1151,7 @@ int csio_jni_AddVideo(GstPad *new_pad,gchar *encoding_name, GstElement **sink,eP
 	int iStatus  = CSIO_SUCCESS;
 	*sink = NULL;
 	GstElement *ele0 = NULL;
-	int do_rtp;
+	int do_rtp = 0;
 
 	//GST_DEBUG("csio_jni_AddVideo: sink =0x%x",protoId);
 	gst_element_set_state( CresDataDB->pipeline, GST_STATE_PAUSED);
