@@ -346,6 +346,7 @@ static int build_audio_pipeline(gchar *encoding_name, CustomData *data, int do_r
 			data->element_a[i++] = gst_element_factory_make("rtppcmudepay", NULL);
 		}
 		data->element_a[i++] = gst_element_factory_make("mulawdec", NULL);
+		*ele0 = data->element_a[0];
 	}
 	else if(strcmp(encoding_name, "PCMA") == 0)
 	{
@@ -354,6 +355,7 @@ static int build_audio_pipeline(gchar *encoding_name, CustomData *data, int do_r
 			data->element_a[i++] = gst_element_factory_make("rtppcmadepay", NULL);
 		}
 		data->element_a[i++] = gst_element_factory_make("alawdec", NULL);
+		*ele0 = data->element_a[0];
 	}
 	else if(strcmp(encoding_name, "MP3") == 0)
 	{
@@ -362,6 +364,7 @@ static int build_audio_pipeline(gchar *encoding_name, CustomData *data, int do_r
 			data->element_a[i++] = gst_element_factory_make("rtpmpadepay", NULL);
 		}
 		data->element_a[i++] = gst_element_factory_make("mad", NULL);
+		*ele0 = data->element_a[0];
 	}
 	else
 	{

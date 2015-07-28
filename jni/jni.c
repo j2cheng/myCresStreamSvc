@@ -1092,14 +1092,17 @@ void csio_jni_SetMsgHandlers(void* obj,eProtocolId protoId, int iStreamId)
 	}
 }
 
-int csio_jni_AddAudio(GstPad *new_pad,gchar *encoding_name, GstElement **sink)
+int csio_jni_AddAudio(GstPad *new_pad,gchar *encoding_name, GstElement **sink, bool send_pause)
 {
 	int iStatus  = CSIO_SUCCESS;
 	*sink = NULL;
 	GstElement *ele0 = NULL;
 	int do_rtp;
 
-	gst_element_set_state( CresDataDB->pipeline, GST_STATE_PAUSED);
+	//Extracted from STR, to support IC Camera with mulaw
+	if(send_pause){
+		gst_element_set_state( CresDataDB->pipeline, GST_STATE_PAUSED);
+	}
 
 	gchar * p_caps_string;
 	GstCaps *new_pad_caps = gst_pad_query_caps( new_pad, NULL );
@@ -1152,7 +1155,7 @@ doneAddAudio:
 	return iStatus;
 }
 
-int csio_jni_AddVideo(GstPad *new_pad,gchar *encoding_name, GstElement **sink,eProtocolId protoId)
+int csio_jni_AddVideo(GstPad *new_pad,gchar *encoding_name, GstElement **sink,eProtocolId protoIdi, bool send_pause)
 {
 	int iStatus  = CSIO_SUCCESS;
 	*sink = NULL;
@@ -1160,7 +1163,10 @@ int csio_jni_AddVideo(GstPad *new_pad,gchar *encoding_name, GstElement **sink,eP
 	int do_rtp = 0;
 
 	//GST_DEBUG("csio_jni_AddVideo: sink =0x%x",protoId);
-	gst_element_set_state( CresDataDB->pipeline, GST_STATE_PAUSED);
+	//Extracted from STR, to support IC Camera
+	if(send_pause){
+		gst_element_set_state( CresDataDB->pipeline, GST_STATE_PAUSED);
+	}
 
 	gchar * p_caps_string;
 	GstCaps *new_pad_caps = gst_pad_query_caps( new_pad, NULL );
