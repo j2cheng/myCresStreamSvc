@@ -1005,16 +1005,14 @@ void csio_jni_SetSourceLocation(eProtocolId protoId, char *location, int iStream
 		case ePROTOCOL_MULTICAST:
 		{
 			//GST_DEBUG ("ePROTOCOL_MULTICAST: location[%s]\n",CresDataDB->multicast_grp);
-		    if(currentSettingsDB.videoSettings[iStreamId].tsEnabled==STREAM_TRANSPORT_MPEG2TS_RTP){
-			//iStatus = CSIO_FAILURE;
-			g_object_set(G_OBJECT(CresDataDB->element_av[0]), "address", \
-					location, NULL);
-		    }
-		    else if(currentSettingsDB.videoSettings[iStreamId].tsEnabled==STREAM_TRANSPORT_MPEG2TS_UDP){
-			g_object_set(G_OBJECT(CresDataDB->element_zero), "address", \
-					location, NULL);
-		    }
-
+			if(currentSettingsDB.videoSettings[iStreamId].tsEnabled==STREAM_TRANSPORT_MPEG2TS_UDP){
+				g_object_set(G_OBJECT(CresDataDB->element_zero), "address", \
+						location, NULL);
+			}
+			else { //RTP Only and MPEG2TS RTP 
+				g_object_set(G_OBJECT(CresDataDB->element_av[0]), "address", \
+						location, NULL);
+			}
 			//g_object_set(G_OBJECT(CresDataDB->element_av[1]), "address", \
 			//		CresDataDB->multicast_grp, NULL);
 
