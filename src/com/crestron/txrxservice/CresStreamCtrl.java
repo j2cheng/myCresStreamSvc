@@ -302,8 +302,14 @@ public class CresStreamCtrl extends Service {
         		Log.d(TAG, "HDMI input driver is present");
         		hdmiInput = new HDMIInputInterface();
         		//refresh resolution on startup
-			hdmiInput.setResolutionIndex(hdmiInput.readResolutionEnum());
-        		refreshInputResolution();
+        		hdmiInput.setResolutionIndex(hdmiInput.readResolutionEnum());
+        		
+        		// Call getHdmiInResolutionSysFs in a separate thread so that if read takes a long time we don't get ANR 
+                new Thread(new Runnable() {
+            		public void run() {
+        				refreshInputResolution();
+            		}
+                }).start();
         	}
         	else
         		Log.d(TAG, "HDMI input driver is NOT present");
