@@ -824,7 +824,6 @@ int csio_jni_CreatePipeline(GstElement **pipeline,GstElement **source,eProtocolI
 	    }
 	    case ePROTOCOL_MULTICAST_TS:
 	    {
-	    	GST_DEBUG("ePROTOCOL_MULTICAST_TS");
 	    	strcpy(CresDataDB->multicast_grp,currentSettingsDB.videoSettings[iStreamId].multicastAddress);
 		    if(currentSettingsDB.videoSettings[iStreamId].tsEnabled==STREAM_TRANSPORT_MPEG2TS_RTP){
 			CresDataDB->element_zero = gst_element_factory_make("rtpbin", NULL);
@@ -840,7 +839,7 @@ int csio_jni_CreatePipeline(GstElement **pipeline,GstElement **source,eProtocolI
 				g_print( "ERROR:  Cannot link filter to source elements.\n" );
 				iStatus = CSIO_CANNOT_LINK_ELEMENTS;
 			}else
-				g_print( "ERROR:  Cannot link filter to source elements.\n" );
+				g_print( "ERROR: link filter to source elements.\n" );
 
 		    }else if(currentSettingsDB.videoSettings[iStreamId].tsEnabled==STREAM_TRANSPORT_MPEG2TS_UDP){
 			    CresDataDB->element_zero = gst_element_factory_make("udpsrc", NULL);
@@ -1242,8 +1241,29 @@ void csio_jni_cleanup (JNIEnv* env, jobject thiz)
     CresDataDB->audio_sink = NULL;//TODO: this will be unref by CStreamer.
     CresDataDB->pipeline   = NULL;//TODO: this will be unref by CStreamer.
 }
+
 void *csio_SendInitiatorAddressFb( void * arg )
 {
-	// TODO: Fill this function in
-	return NULL;
+	jstring initiatorAddress_jstr;
+	JNIEnv *env = get_jni_env ();
+	jint streamId = csio_GetStreamId(arg);
+	char *initiatorAddress_cstr = csio_GetInitiatorFbAddress(streamId);	
+
+	GST_DEBUG( "Sent INITIATOR FB %s", initiatorAddress_cstr );
+
+	initiatorAddress_jstr = (*env)->NewStringUTF(env, initiatorAddress_cstr);
+
+	jmethodID sendInitiatorAddress = (*env)->GetMethodID(env, gStreamIn_javaClass_id, "sendInitiatorFbAddress", "(Ljava/lang/String;I)V");
+	if (sendInitiatorAddress == NULL) return NULL;
+
+	(*env)->CallVoidMethod(env, CresDataDB->app, sendInitiatorAddress, initiatorAddress_jstr, 0);
+	if ((*env)->ExceptionCheck (env)) {
+		GST_ERROR ("Failed to call Java method 'sendInitiatorAddress'");
+		(*env)->ExceptionClear (env);
+	}
+	(*env)->DeleteLocalRef (env, initiatorAddress_jstr);
+
+	pthread_exit( NULL );
+	return(NULL);
 }
+

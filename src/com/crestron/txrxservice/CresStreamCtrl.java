@@ -917,14 +917,14 @@ public class CresStreamCtrl extends Service {
     
     public void SendStreamInVideoFeedbacks(int source, int width, int height, int framerate, int profile)
     {	    
-		sockTask.SendDataToAllClients(String.format("STREAMIN_HORIZONTAL_RES_FB%d=%s", source, width));
-		sockTask.SendDataToAllClients(String.format("STREAMIN_VERTICAL_RES_FB%d=%s", source, height));
-		sockTask.SendDataToAllClients(String.format("STREAMIN_FPS_FB%d=%s", source, framerate));
-		sockTask.SendDataToAllClients(String.format("STREAMIN_ASPECT_RATIO%d=%s", source, MiscUtils.calculateAspectRatio(width, height)));
-		sockTask.SendDataToAllClients(String.format("VENCPROFILE%d=%s", source, profile));
-		
-		sockTask.SendDataToAllClients("STREAMIN_AUDIO_FORMAT=" + String.valueOf(streamPlay.getMediaPlayerAudioFormatFb()));
-    	sockTask.SendDataToAllClients("STREAMIN_AUDIO_CHANNELS=" + String.valueOf(streamPlay.getMediaPlayerAudiochannelsFb()));
+	    sockTask.SendDataToAllClients(String.format("STREAMIN_HORIZONTAL_RES_FB%d=%s", source, width));
+	    sockTask.SendDataToAllClients(String.format("STREAMIN_VERTICAL_RES_FB%d=%s", source, height));
+	    sockTask.SendDataToAllClients(String.format("STREAMIN_FPS_FB%d=%s", source, framerate));
+	    sockTask.SendDataToAllClients(String.format("STREAMIN_ASPECT_RATIO%d=%s", source, MiscUtils.calculateAspectRatio(width, height)));
+	    sockTask.SendDataToAllClients(String.format("VENCPROFILE%d=%s", source, profile));
+
+	    sockTask.SendDataToAllClients("STREAMIN_AUDIO_FORMAT=" + String.valueOf(streamPlay.getMediaPlayerAudioFormatFb()));
+	    sockTask.SendDataToAllClients("STREAMIN_AUDIO_CHANNELS=" + String.valueOf(streamPlay.getMediaPlayerAudiochannelsFb()));
     }
     
     public void SendStreamInFeedbacks()
@@ -1051,6 +1051,10 @@ public class CresStreamCtrl extends Service {
         	userSettings.setMulticastAddress(ip, sessId);
     } 
     
+    public void sendInitiatorFbAddress(String ip, int sessId){
+    	sockTask.SendDataToAllClients("INITIATOR_ADDRESS=" + ip);
+    }
+
     public void sendMulticastIpAddress(String ip, int sessId){
     	sockTask.SendDataToAllClients(String.format("MULTICAST_ADDRESS%d=%s", sessId, ip));
     }

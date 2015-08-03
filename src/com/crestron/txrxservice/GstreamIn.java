@@ -152,13 +152,18 @@ public class GstreamIn implements StreamInStrategy, SurfaceHolder.Callback {
         widthHeight[1] = streamCtl.userSettings.getH(sessionId);
         return widthHeight;
     }
-
+    
     public int getCurrentStreamState(int sessionId){
     	return (streamCtl.userSettings.getStreamState(sessionId)).getValue();
 	}
     
     public void updateStreamStatus(int streamStateEnum, int sessionId){
     	streamCtl.SendStreamState(StreamState.getStreamStateFromInt(streamStateEnum), sessionId); 
+	}
+    
+    public void sendInitiatorFbAddress(String initiatorFbAddress, int sessionId){
+    	streamCtl.userSettings.setInitiatorAddress(initiatorFbAddress);
+    	streamCtl.sendInitiatorFbAddress(initiatorFbAddress, sessionId);
 	}
     
     public void sendMulticastAddress(String multicastAddress, int sessionId){

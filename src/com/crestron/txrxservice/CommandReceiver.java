@@ -312,9 +312,7 @@ public class CommandReceiver {
     }
     
     public String getInitAddress(){
-        //TODO
-        return "";
-        //return ctl.getInitiatorAddress();
+        return (ctl.userSettings.getInitiatorAddress());
     }
     
     public String getHresFb(boolean streamIn){
