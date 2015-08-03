@@ -3,12 +3,17 @@ package com.crestron.txrxservice;
 import java.util.ArrayList;
 import java.util.Iterator;
 import java.util.ListIterator;
+import java.util.regex.Matcher;
+import java.util.regex.Pattern;
 import java.io.BufferedWriter;
+import java.io.File;
+import java.io.FileReader;
 import java.io.BufferedReader;
 import java.io.IOException;
 import java.lang.IllegalArgumentException;
 import java.io.InputStreamReader;
 import java.io.OutputStreamWriter;
+import java.net.InetAddress;
 import java.net.ServerSocket;
 import java.net.Socket;
 
@@ -27,6 +32,7 @@ public class TCPInterface extends AsyncTask<Void, Object, Long> {
     private CresStreamCtrl streamCtl;
 
     public static final int SERVERPORT = 9876;
+    public static final String LOCALHOST = "127.0.0.1";
     private ServerSocket serverSocket;
     private BufferedReader input;
     private volatile boolean isFirstRun = true;
@@ -95,11 +101,52 @@ public class TCPInterface extends AsyncTask<Void, Object, Long> {
     	restartStreams(clientList.get(0).serverHandler);
     }
     
+    private String FindAllowedTcpAddress()
+    {
+    	String allowedAddress = LOCALHOST;
+
+    	StringBuilder text = new StringBuilder();
+        try {
+            File file = new File("/data/crestron/config/rc.conf");
+
+            BufferedReader br = new BufferedReader(new FileReader(file));  
+            String line;   
+            while ((line = br.readLine()) != null) {
+                text.append(line);
+                //text.append('\n');
+            }
+            br.close() ;
+        }catch (IOException e) {
+            e.printStackTrace();           
+        }
+        
+        Pattern regexP = Pattern.compile("TELNETPORT=\"(\\d+)\"");
+		Matcher regexM = regexP.matcher(text.toString());
+		regexM.find();
+		try {
+			int currentTelnetSetting = Integer.parseInt(regexM.group(1));
+			if (currentTelnetSetting == 2)
+			{
+				allowedAddress = null; // null address means all address accepted
+			}
+		} catch (Exception e) {}
+            
+        return allowedAddress;
+    }
+    
     protected Long doInBackground(Void... paramVarArgs)
     {
         Socket clientSocket = null;
         try {
-            serverSocket = new ServerSocket(SERVERPORT);
+        	//If telnet debug is enabled we allow all connections to 9876 port, otherwise restrict to local ip
+        	String allowedAddress = FindAllowedTcpAddress();
+        	if (allowedAddress == null)
+        	{
+        		serverSocket = new ServerSocket(SERVERPORT, 50, null);
+        		Log.d(TAG, "Allowing all tcp connections to debug port");
+        	}
+        	else
+        		serverSocket = new ServerSocket(SERVERPORT, 50, InetAddress.getByName(allowedAddress));
         } catch (IOException e) {
             e.printStackTrace();
         }
