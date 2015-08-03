@@ -250,9 +250,9 @@ static int build_video_pipeline(gchar *encoding_name, CustomData *data, unsigned
 	if(do_sink)
 	{		
 		data->element_v[i++] = gst_element_factory_make("videoconvert", NULL);
-		if(currentSettingsDB.videoSettings[0].videoSinkSelect == 0)
-			data->video_sink = gst_element_factory_make("glimagesink", NULL);
-		else
+		//if(currentSettingsDB.videoSettings[0].videoSinkSelect == 0)
+		//	data->video_sink = gst_element_factory_make("glimagesink", NULL);
+		//else
 			data->video_sink = gst_element_factory_make("surfaceflingersink", NULL);
 
 		*sink = data->video_sink;
