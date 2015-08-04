@@ -1260,6 +1260,15 @@ public class CresStreamCtrl extends Service {
             streamPlay.disableLatency(sessionId);
         else
             Log.d(TAG, "No conditional Tags for StreamIn");
+        sockTask.SendDataToAllClients(String.format("STREAMURL%d=%s", sessionId, ap_url));
+    }
+    
+    public void setStreamOutUrl(String ap_url, int sessionId)
+    {
+    	userSettings.setServerUrl(ap_url, sessionId);
+    	
+    	if (userSettings.getMode(sessionId) == DeviceMode.STREAM_OUT.ordinal())
+    		sockTask.SendDataToAllClients(String.format("STREAMURL%d=%s", sessionId, createStreamOutURL(sessionId)));
     }
 
     public String getStreamUrl(int sessId)

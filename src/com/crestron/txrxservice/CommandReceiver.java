@@ -1,6 +1,7 @@
 package com.crestron.txrxservice;
 
 import com.crestron.txrxservice.CresStreamCtrl;
+import com.crestron.txrxservice.CresStreamCtrl.DeviceMode;
 
 public class CommandReceiver {
     StringBuilder l_sb;
@@ -150,7 +151,10 @@ public class CommandReceiver {
     }
 
     public void setStreamUrl(String uri, int sessId){
-        ctl.setStreamInUrl(uri, sessId);
+    	if (ctl.userSettings.getMode(sessId) == DeviceMode.STREAM_IN.ordinal())
+    		ctl.setStreamInUrl(uri, sessId);
+    	else
+    		ctl.setStreamOutUrl(uri, sessId);
     }
 
     public void setStart(int sessId){
