@@ -503,6 +503,15 @@ public class CresStreamCtrl extends Service {
 				if (mIgnoreMediaServerCrash == false)
 				{
 					Log.e(TAG, "Mediaserver crashed, Restarting Streams!");
+					//Sleep for 3000msec for
+					//mediaserver to be up
+					try {	 
+						Thread.sleep(3000, 1);
+					}
+					catch (InterruptedException ex) 
+					{ 
+						ex.printStackTrace(); 
+					}
 					sockTask.restartStreams();
 				}
 				//function end
