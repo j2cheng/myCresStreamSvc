@@ -3,6 +3,8 @@ package com.crestron.txrxservice;
 import java.util.ArrayList;
 import java.util.Iterator;
 import java.util.ListIterator;
+import java.util.Queue;
+import java.util.concurrent.LinkedBlockingQueue;
 import java.util.regex.Matcher;
 import java.util.regex.Pattern;
 import java.io.BufferedWriter;
@@ -38,11 +40,39 @@ public class TCPInterface extends AsyncTask<Void, Object, Long> {
     private volatile boolean isFirstRun = true;
     
     private ArrayList<CommunicationThread> clientList;
+    
+    class JoinObject {
+    	String joinString;
+    	TCPInterface serverHandler;
+    	public JoinObject(String joinString, TCPInterface serverHandler)
+    	{
+    		this.joinString = joinString;
+    		this.serverHandler = serverHandler;
+    	}
+    }
+    private Thread joinProcessingThread;
+    volatile boolean shouldExit = true;
+    private Queue<JoinObject> joinQueue = new LinkedBlockingQueue<JoinObject>();
 
     public TCPInterface(CresStreamCtrl a_crestctrl){
         parserInstance = new CommandParser (a_crestctrl);
         clientList = new ArrayList<TCPInterface.CommunicationThread>();
         streamCtl = a_crestctrl;
+        StartJoinThread();
+    }
+    
+    private void StartJoinThread()
+    {
+    	joinProcessingThread = new Thread(new ProcessJoinTask());
+    	shouldExit = false;
+    	joinProcessingThread.start();
+    }
+    private void StopJoinThread()
+    {
+    	shouldExit = true;
+    	try {
+    		joinProcessingThread.join();
+    	} catch (Exception e) {e.printStackTrace();}
     }
     
     public void RemoveClientFromList(CommunicationThread clientThread)
@@ -86,12 +116,12 @@ public class TCPInterface extends AsyncTask<Void, Object, Long> {
             if (streamCtl.userSettings.getStreamState(sessionId) == StreamState.STARTED)
             {
             	streamCtl.userSettings.setStreamState(StreamState.STOPPED, sessionId);
-            	publishProgress(String.format("START%d=TRUE", sessionId), serverHandler);
+            	addJoinToQueue(new JoinObject(String.format("START%d=TRUE", sessionId), serverHandler));
             }
             else if (streamCtl.userSettings.getStreamState(sessionId) == StreamState.CONFIDENCEMODE)
             {
             	streamCtl.userSettings.setMode(0, sessionId);
-            	publishProgress(String.format("MODE%d=%d", sessionId, CresStreamCtrl.DeviceMode.STREAM_OUT.ordinal()), serverHandler);
+            	addJoinToQueue(new JoinObject(String.format("MODE%d=%d", sessionId, CresStreamCtrl.DeviceMode.STREAM_OUT.ordinal()), serverHandler));
             }            
         }
     }
@@ -255,14 +285,14 @@ public class TCPInterface extends AsyncTask<Void, Object, Long> {
                         	for(CommandParser.CmdTable ct: CommandParser.CmdTable.values()){
                         		// Send device ready as last join
                         		if (!ct.name().equals("DEVICE_READY_FB"))
-                        			publishProgress(ct.name(), serverHandler);
+                        			addJoinToQueue(new JoinObject(ct.name(), serverHandler));
                         	}
                         	
                         	// Tell CSIO that update request is complete
-                        	publishProgress("DEVICE_READY_FB", serverHandler);
+                        	addJoinToQueue(new JoinObject("DEVICE_READY_FB", serverHandler));
                         }
                         else{
-                            publishProgress(read.trim(), serverHandler);
+                        	addJoinToQueue(new JoinObject(read.trim(), serverHandler));
                         }
                     }
                     else if(read == null) {
@@ -281,19 +311,53 @@ public class TCPInterface extends AsyncTask<Void, Object, Long> {
     }
 
     protected void onProgressUpdate(Object... progress) { 
-        String tmp_str;
-        String receivedMsg = (String)progress[0];
-        TCPInterface server = (TCPInterface)progress[1];
-        
-        if (receivedMsg != null)
-        {
-    		tmp_str = parserInstance.processReceivedMessage(receivedMsg); 
-        	
-	        try {
-	        	server.SendDataToAllClients(tmp_str);
-	        } catch (Exception e) {
-	            e.printStackTrace();
-	        }
+		//TODO: can we remove this method??
+		//Intentionally left blank
+    }
+    
+    private void addJoinToQueue(JoinObject newJoin) {
+    	synchronized (joinQueue)
+    	{
+    		joinQueue.add(newJoin);
+    		joinQueue.notify();
+    	}
+    }
+    
+    class ProcessJoinTask implements Runnable {
+        public void run() {
+        	while (!shouldExit) {
+        		if (joinQueue.isEmpty())
+        		{
+        			try {
+        				synchronized (joinQueue)
+        				{
+        					joinQueue.wait(5000);
+        				}
+        			} catch (Exception e) {e.printStackTrace();}
+        		}
+        		else //process queue
+        		{        			       			
+        			String tmp_str;
+        			
+        			JoinObject currentJoinObject = joinQueue.poll();
+        			if (currentJoinObject != null)
+        			{
+	        	        String receivedMsg = currentJoinObject.joinString;
+	        	        TCPInterface server = currentJoinObject.serverHandler;
+	        	        
+	        	        if (receivedMsg != null)
+	        	        {
+	        	    		tmp_str = parserInstance.processReceivedMessage(receivedMsg); 
+	        	        	
+	        		        try {
+	        		        	server.SendDataToAllClients(tmp_str);
+	        		        } catch (Exception e) {
+	        		            e.printStackTrace();
+	        		        }
+	        	        }
+        			}
+        		}
+        	}
         }
     }
 }

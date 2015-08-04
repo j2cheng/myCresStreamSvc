@@ -502,6 +502,7 @@ public class CresStreamCtrl extends Service {
 				//function start
 				if (mIgnoreMediaServerCrash == false)
 				{
+					Log.e(TAG, "Mediaserver crashed, Restarting Streams!");
 					sockTask.restartStreams();
 				}
 				//function end
@@ -982,6 +983,7 @@ public class CresStreamCtrl extends Service {
 	    	threadLock.lock();
 	    	try
 	    	{
+	    		mIgnoreMediaServerCrash = false;
 	    		SendStreamState(StreamState.CONNECTING, sessionId);
 		    	playStatus="true";
 		    	stopStatus="false";
