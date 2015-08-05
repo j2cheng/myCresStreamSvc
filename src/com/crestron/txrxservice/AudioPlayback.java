@@ -33,8 +33,8 @@ public class AudioPlayback
 
         public void run() {
             ByteBuffer readBuffer;
-            final int audioFormat = 2;//ENCODING_PCM_!^BIT
-            final int audioChannels= 12;//CHANNEL_IN/OUT_STEREO
+            final int audioFormat = 2;//ENCODING_PCM_16BIT
+            final int audioChannels= 1;//CHANNEL_IN/OUT_STEREO:Default Android Val is 12
             final int numOfBuffers= 4;
             final int audioSource = 5; //Audio Source is CAMCORDER
             int bufferSize = 131072;
