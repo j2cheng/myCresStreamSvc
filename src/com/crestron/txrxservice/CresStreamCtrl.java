@@ -499,6 +499,7 @@ public class CresStreamCtrl extends Service {
         mediaServerObserver = new FileObserver("/dev/shm/crestron/CresStreamSvc/mediaServerState", FileObserver.CLOSE_WRITE) {						
 			@Override
 			public void onEvent(int event, String path) {
+				Log.i(TAG, String.format("CresStreamSvc detects a mediaserver crash, mIgnoreMediaServerCrash = %b", mIgnoreMediaServerCrash));
 				//function start
 				if (mIgnoreMediaServerCrash == false)
 				{
@@ -1400,6 +1401,11 @@ public class CresStreamCtrl extends Service {
     
     public void RecoverDucati(){
     	sockTask.SendDataToAllClients("RECOVER_DUCATI=TRUE");
+    }
+    
+    public void RecoverTxrxService(){
+    	Log.e(TAG, "Fatal error, kill CresStreamSvc!");
+    	sockTask.SendDataToAllClients("KillMePlease=true");
     }
 
     //Registering for HPD and Resolution Event detection	

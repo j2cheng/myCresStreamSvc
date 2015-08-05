@@ -1,6 +1,8 @@
 package com.crestron.txrxservice;
 
 import java.io.IOException;
+import java.util.concurrent.CountDownLatch;
+import java.util.concurrent.TimeUnit;
 
 import android.util.Log;
 import android.view.SurfaceHolder;
@@ -24,6 +26,7 @@ public class GstreamIn implements StreamInStrategy, SurfaceHolder.Callback {
     private long statisticsNumAudioPackets = 0;
     private int statisticsNumAudioPacketsDropped = 0;
     private int statisticsBitrate = 0;
+    private final long stopTimeout_ms = 60000;
 
 
     private native void nativeInit();     // Initialize native code, build pipeline, etc
@@ -233,17 +236,27 @@ public class GstreamIn implements StreamInStrategy, SurfaceHolder.Callback {
         nativePause(sessionId);
     }
 
-    public void onStop(int sessionId) {
-        Log.d(TAG, "Stopping MediaPlayer");
-//         if(mediaPlayer != null){
-//             if(mediaPlayer.isPlaying()){
-//                 mediaPlayer.stop();
-//             }
-//             mediaPlayer.release();
-//             mediaPlayer = null;
-//         }
-        nativeSurfaceFinalize ();
-        nativeStop(sessionId);
+    public void onStop(final int sessionId) {
+    	final CountDownLatch latch = new CountDownLatch(1);
+    	new Thread(new Runnable() {
+    		public void run() {
+		        Log.d(TAG, "Stopping MediaPlayer");
+		        nativeSurfaceFinalize ();
+		        nativeStop(sessionId);
+		        latch.countDown();
+    		}
+    	}).start();
+    	
+    	// We launch the stop commands in its own thread and timeout in case jni library gets hung
+    	boolean successfulStop = false; //indicates if there was timeout condition
+    	try { successfulStop = latch.await(stopTimeout_ms, TimeUnit.MILLISECONDS); }
+    	catch (InterruptedException ex) { ex.printStackTrace(); }
+    	
+    	if (!successfulStop)
+    	{
+    		Log.e(TAG, String.format("libgstreamer_jni failed to stop after %d ms", stopTimeout_ms));
+    		streamCtl.RecoverTxrxService();
+    	}
     }
     
     private void updateNativeDataStruct(int sessionId)
