@@ -220,7 +220,8 @@ static void gst_native_finalize (JNIEnv* env, jobject thiz)
 
 /* Set pipeline to PLAYING state */
 void gst_native_play (JNIEnv* env, jobject thiz, jint sessionId)
-{	
+{	    
+    InPausedState = 0;
 	currentSettingsDB.settingsMessage.msg[sessionId].src = sessionId;
 	start_streaming_cmd(sessionId);
 }
@@ -228,12 +229,14 @@ void gst_native_play (JNIEnv* env, jobject thiz, jint sessionId)
 /* Set pipeline to PAUSED state */
 static void gst_native_pause (JNIEnv* env, jobject thiz, jint sessionId)
 {
+    InPausedState = 1;
 	pause_streaming_cmd(sessionId);
 }
 
 /* Set pipeline to PAUSED state */
 void gst_native_stop (JNIEnv* env, jobject thiz, jint sessionId)
 {    
+    InPausedState = 0;
     stop_streaming_cmd(sessionId);
     csio_jni_cleanup();
 }
@@ -322,15 +325,18 @@ JNIEXPORT void JNICALL Java_com_crestron_txrxservice_GstreamIn_nativeSetSeverUrl
 	const char * url_cstring = (*env)->GetStringUTFChars( env, url_jstring , NULL ) ;
 	if (url_cstring == NULL) return;
 
-	int currentStreamState = nativeGetCurrentStreamState(sessionId);
 
-	if ((currentStreamState == STREAMSTATE_STARTED) && (strcasecmp(url_cstring, currentSettingsDB.settingsMessage.msg[sessionId].url) != 0))
+	if ((strcasecmp(url_cstring, currentSettingsDB.settingsMessage.msg[sessionId].url) != 0))
 	{
 		restartStream = 1;
+
+		GST_DEBUG ("Using URL: '%s'", url_cstring);
+		strcpy(currentSettingsDB.settingsMessage.msg[sessionId].url, url_cstring);
+		(*env)->ReleaseStringUTFChars(env, url_jstring, url_cstring);
 	}
 
-	if ((restartStream) || (currentStreamState == STREAMSTATE_PAUSED))
-	{
+	if ((restartStream) && (GetStartedPlay() == 1) && (InPausedState == 0))
+	{	    
 		jmethodID onStop = (*env)->GetMethodID(env, gStreamIn_javaClass_id, "onStop", "(I)V");
 		if (onStop == NULL) return;
 
@@ -339,15 +345,7 @@ JNIEXPORT void JNICALL Java_com_crestron_txrxservice_GstreamIn_nativeSetSeverUrl
 			GST_ERROR ("Failed to call Java method 'onStop'");
 			(*env)->ExceptionClear (env);
 		}
-	}
 
-	GST_DEBUG ("Using URL: '%s'", url_cstring);
-	strcpy(currentSettingsDB.settingsMessage.msg[sessionId].url, url_cstring);
-
-	(*env)->ReleaseStringUTFChars(env, url_jstring, url_cstring);
-
-	if (restartStream)
-	{
 		jmethodID onStart = (*env)->GetMethodID(env, gStreamIn_javaClass_id, "onStart", "(I)V");
 		if (onStart == NULL) return;
 
