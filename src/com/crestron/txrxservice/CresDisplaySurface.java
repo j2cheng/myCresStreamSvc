@@ -133,7 +133,7 @@ public class CresDisplaySurface
 	/**
 	 * Force the invalidation of the layout
 	 */
-    private void forceLayoutInvalidation() {
+    public void forceLayoutInvalidation() {
         parentlayout.bringToFront();
         parentlayout.invalidate();
         parentlayout.requestLayout();

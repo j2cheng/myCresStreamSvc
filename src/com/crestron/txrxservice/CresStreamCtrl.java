@@ -667,6 +667,29 @@ public class CresStreamCtrl extends Service {
 
     }
     
+    public void invalidateSurface()
+    {
+    	if (dispSurface != null)
+        {
+    		// Make sure surface changes are only done in UI (main) thread
+        	if (Looper.myLooper() != Looper.getMainLooper())
+        	{
+        		final CountDownLatch latch = new CountDownLatch(1);
+        		runOnUiThread(new Runnable() {
+	       		     @Override
+	       		     public void run() {
+		                dispSurface.forceLayoutInvalidation();
+		                latch.countDown();
+	       		     }
+        		});
+        		try { latch.await(); }
+            	catch (InterruptedException ex) { ex.printStackTrace(); }  
+        	}
+        	else
+        		dispSurface.forceLayoutInvalidation();        		
+        }
+    }
+    
     public void updateXY(final int sessionId)
     {
     	
@@ -1144,6 +1167,7 @@ public class CresStreamCtrl extends Service {
 
         try {
             cam_streaming.setSessionIndex(sessId);
+            invalidateSurface();
             cam_streaming.startRecording();
         } catch(Exception e) {
             e.printStackTrace();
@@ -1292,6 +1316,7 @@ public class CresStreamCtrl extends Service {
         updateWindow(sessId);
         showStreamInWindow(sessId);
         //streamPlay.setSessionIndex(sessId);
+        invalidateSurface();
         streamPlay.onStart(sessId);
         //Toast.makeText(this, "StreamIN Started", Toast.LENGTH_LONG).show();
     }
@@ -1325,6 +1350,7 @@ public class CresStreamCtrl extends Service {
         updateWindow(sessId);
         showPreviewWindow(sessId);
         cam_preview.setSessionIndex(sessId);
+        invalidateSurface();
         cam_preview.startPlayback(false);
         //Toast.makeText(this, "Preview Started", Toast.LENGTH_LONG).show();
     }
