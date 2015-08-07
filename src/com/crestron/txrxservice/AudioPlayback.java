@@ -3,6 +3,7 @@ package com.crestron.txrxservice;
 import android.media.AudioManager;
 import android.media.AudioRecord;
 import android.media.AudioTrack;
+import android.media.AudioFormat;
 import android.util.Log;
 
 import java.nio.ByteBuffer;
@@ -33,8 +34,8 @@ public class AudioPlayback
 
         public void run() {
             ByteBuffer readBuffer;
-            final int audioFormat = 2;//ENCODING_PCM_16BIT
-            final int audioChannels= 1;//CHANNEL_IN/OUT_STEREO:Default Android Val is 12
+            final int audioFormat = AudioFormat.ENCODING_PCM_16BIT;//ENCODING_PCM_16BIT
+            final int audioChannels= AudioFormat.CHANNEL_OUT_STEREO;//CHANNEL_IN/OUT_STEREO:Default Android Val is 12
             final int numOfBuffers= 4;
             final int audioSource = 5; //Audio Source is CAMCORDER
             int bufferSize = 131072;
