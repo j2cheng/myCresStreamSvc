@@ -154,7 +154,6 @@ public class CameraStreaming implements ErrorCallback {
 		            mrec.setVideoEncoder(MediaRecorder.VideoEncoder.H264);
 		            mrec.setEncoderProfile(streamCtl.userSettings.getStreamProfile(idx).getVEncProfile());
 		            mrec.setVideoEncoderLevel(streamCtl.userSettings.getEncodingLevel(idx));
-		            mrec.setAudioChannels(1);//Setting to Stereo for streaming out
 		            mrec.setAudioEncoder(MediaRecorder.AudioEncoder.AAC);
 		            mrec.setOutputFile(path + filename);   
 		
