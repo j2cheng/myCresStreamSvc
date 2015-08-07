@@ -379,9 +379,10 @@ public class CameraStreaming implements ErrorCallback {
     	new Thread(new Runnable() {
     		public void run() {
 		        Log.d(TAG, "stopRecording");
-		        if (out_stream_status && (mrec != null)) {
+		        if (mrec != null) {
 		            if(hpdEventAction==true){
-		                CresCamera.releaseCamera(mCameraPreviewObj);
+		            	if (mCameraPreviewObj != null)
+		            		CresCamera.releaseCamera(mCameraPreviewObj);
 		                mCameraPreviewObj = null;
 		            }
 		            mrec.stop();
@@ -389,7 +390,8 @@ public class CameraStreaming implements ErrorCallback {
 		            out_stream_status = false;
 		            releaseMediaRecorder();
 		            if(hpdEventAction==false){
-		                CresCamera.releaseCamera(mCameraPreviewObj);
+		            	if (mCameraPreviewObj != null)
+		            		CresCamera.releaseCamera(mCameraPreviewObj);
 		                mCameraPreviewObj = null;
 		            }
 		
@@ -400,9 +402,9 @@ public class CameraStreaming implements ErrorCallback {
 		            // Zero out statistics on stop
 		            streamOutAudioFormat = streamOutAudioChannels = streamOutWidth = streamOutHeight = streamOutFps = 0;
 					streamCtl.SendStreamOutFeedbacks();
-				
-					latch.countDown();
-		        }
+				}
+		        
+		        latch.countDown();
     		}
     	}).start();
     	
@@ -496,15 +498,18 @@ public class CameraStreaming implements ErrorCallback {
     }
 	
 	protected void stopStatisticsTask(){
-    	shouldExit = true;
-    	try
-        {
-        	this.statisticsThread.join();
-        }
-        catch (InterruptedException localInterruptedException)
-        {
-            localInterruptedException.printStackTrace();
-        }   
+		if (this.statisticsThread != null)
+		{
+	    	shouldExit = true;
+	    	try
+	        {
+	        	this.statisticsThread.join();
+	        }
+	        catch (InterruptedException localInterruptedException)
+	        {
+	            localInterruptedException.printStackTrace();
+	        }
+		}
     }
 
     class StatisticsTask implements Runnable {

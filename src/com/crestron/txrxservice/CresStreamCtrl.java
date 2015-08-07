@@ -507,12 +507,13 @@ public class CresStreamCtrl extends Service {
 					//Sleep for 3000msec for
 					//mediaserver to be up
 					try {	 
-						Thread.sleep(3000, 1);
+						Thread.sleep(3000);
 					}
 					catch (InterruptedException ex) 
 					{ 
 						ex.printStackTrace(); 
 					}
+						
 					sockTask.restartStreams();
 				}
 				//function end
@@ -1055,6 +1056,8 @@ public class CresStreamCtrl extends Service {
 	    		threadLock.unlock();
 	    	}
     	}
+    	else
+    		SendStreamState(StreamState.STOPPED, sessionId);
     }
 
     public void Pause(int sessionId)
@@ -1181,25 +1184,23 @@ public class CresStreamCtrl extends Service {
 
     public void stopStreamOut(int sessId)
     {
-        if(StreamOutstarted){
-            //Toast.makeText(this, "StreamOut Stopped", Toast.LENGTH_LONG).show();
-            //On STOP, there is a chance to get ducati crash which does not save current state
-            //causes streaming never stops.
-            //FIXME:Temp Hack for ducati crash to save current state
-            userSettings.setStreamState(StreamState.STOPPED, sessId);
-            cam_streaming.setSessionIndex(sessId);
-            cam_streaming.stopRecording(false);
-            StreamOutstarted = false;
-            hidePreviewWindow(sessId);
-            
-            // Make sure that stop stream out was called by stop not a device mode change
-        	// We do not want to restart confidence preview if mode is changing
-        	if (userSettings.getMode(sessId) == DeviceMode.STREAM_OUT.ordinal())
-        	{
-        		cam_streaming.startConfidencePreview(sessId);
-        		restartRequired[sessId] = true;
-        	}
-        }
+        //Toast.makeText(this, "StreamOut Stopped", Toast.LENGTH_LONG).show();
+        //On STOP, there is a chance to get ducati crash which does not save current state
+        //causes streaming never stops.
+        //FIXME:Temp Hack for ducati crash to save current state
+        userSettings.setStreamState(StreamState.STOPPED, sessId);
+        cam_streaming.setSessionIndex(sessId);
+        cam_streaming.stopRecording(false);
+        StreamOutstarted = false;
+        hidePreviewWindow(sessId);
+        
+        // Make sure that stop stream out was called by stop not a device mode change
+    	// We do not want to restart confidence preview if mode is changing
+    	if (userSettings.getMode(sessId) == DeviceMode.STREAM_OUT.ordinal())
+    	{
+    		cam_streaming.startConfidencePreview(sessId);
+    		restartRequired[sessId] = true;
+    	}
     }
     
     public void pauseStreamOut(int sessId)

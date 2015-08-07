@@ -113,16 +113,23 @@ public class TCPInterface extends AsyncTask<Void, Object, Long> {
         //If streamstate was previously started, restart stream
         for (int sessionId = 0; sessionId < streamCtl.NumOfSurfaces; sessionId++)
         {
-            if (streamCtl.userSettings.getStreamState(sessionId) == StreamState.STARTED)
+        	if (streamCtl.userSettings.getStreamState(sessionId) == StreamState.CONFIDENCEMODE)
             {
-            	streamCtl.userSettings.setStreamState(StreamState.STOPPED, sessionId);
-            	addJoinToQueue(new JoinObject(String.format("START%d=TRUE", sessionId), serverHandler));
-            }
-            else if (streamCtl.userSettings.getStreamState(sessionId) == StreamState.CONFIDENCEMODE)
+            	streamCtl.cam_streaming.stopConfidencePreview(sessionId);
+            	streamCtl.cam_streaming.startConfidencePreview(sessionId);
+            } 
+        	else if (streamCtl.userSettings.getStreamState(sessionId) != StreamState.STOPPED)
             {
-            	streamCtl.userSettings.setMode(0, sessionId);
-            	addJoinToQueue(new JoinObject(String.format("MODE%d=%d", sessionId, CresStreamCtrl.DeviceMode.STREAM_OUT.ordinal()), serverHandler));
-            }            
+            	//Avoid starting confidence mode when stopping stream out
+            	if (streamCtl.userSettings.getMode(sessionId) == CresStreamCtrl.DeviceMode.STREAM_OUT.ordinal())
+            	{
+            		streamCtl.setDeviceMode(CresStreamCtrl.DeviceMode.PREVIEW.ordinal(), sessionId);
+            		streamCtl.userSettings.setMode(CresStreamCtrl.DeviceMode.STREAM_OUT.ordinal(), sessionId);
+            	}
+            	else
+            		streamCtl.Stop(sessionId);
+            	streamCtl.Start(sessionId);
+            }                       
         }
     }
     
