@@ -118,7 +118,7 @@ public class CameraStreaming implements ErrorCallback {
 		            if ((currentSessionInitiation == 0) || (currentSessionInitiation == 2)) //Multicast via RTSP or By Receiver
 		            {
 		            	l_port = streamCtl.userSettings.getRtspPort(idx);
-		                mrec.setDestinationIP( streamCtl.userSettings.getDeviceIp());
+		            	streamIp = streamCtl.userSettings.getDeviceIp();
 		                mrec.setRTSPPort(l_port);
 		                
 		                if (currentSessionInitiation == 2) //Multicast via RTSP
