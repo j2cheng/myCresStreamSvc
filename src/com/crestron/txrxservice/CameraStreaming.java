@@ -65,7 +65,7 @@ public class CameraStreaming implements ErrorCallback {
     	final CountDownLatch latch = new CountDownLatch(1);
     	new Thread(new Runnable() {
     		public void run() {
-
+    			String streamIp = "";
 		        if(out_stream_status==true)
 		            stopRecording(false);
 		        Log.d(TAG, "startRecording");
@@ -92,6 +92,11 @@ public class CameraStreaming implements ErrorCallback {
 		            Log.d(TAG, "CamTest: file() didn't return null");
 		        }
 		
+		        if (CheckForValidIp() == false)
+		        {
+		        	latch.countDown();
+		        	return;
+		        }
 		
 		        mrec = new MediaRecorder();
 		        mCameraPreviewObj = CresCamera.getCamera();
@@ -122,9 +127,10 @@ public class CameraStreaming implements ErrorCallback {
 		            else //Multicast via UDP or By Transmitter
 		            {
 		            	if (currentSessionInitiation == 1)	//By Transmitter
-		            		mrec.setDestinationIP(streamCtl.userSettings.getServerUrl(idx));
+		            		streamIp = streamCtl.userSettings.getServerUrl(idx);
 		            	else if (currentSessionInitiation == 3) //Multicast via UDP
-		            		mrec.setDestinationIP(streamCtl.userSettings.getMulticastAddress(idx));
+		            		streamIp = streamCtl.userSettings.getMulticastAddress(idx);
+		            	
 		            	if (currentTransportMode == 0)	//RTP
 		            	{
 		                    l_port = streamCtl.userSettings.getRtpAudioPort(idx);
@@ -138,6 +144,8 @@ public class CameraStreaming implements ErrorCallback {
 		                     mrec.setMPEG2TSPort(l_port);
 		            	}
 		            }
+		            
+		            mrec.setDestinationIP(streamIp);
 		            
 		            mrec.setOutputFormat(9);//Streamout option set to Stagefright Recorder
 		            if ((currentSessionInitiation == 2) || (currentSessionInitiation == 3))
@@ -199,6 +207,64 @@ public class CameraStreaming implements ErrorCallback {
     		Log.e(TAG, String.format("MediaServer failed to start after %d ms", startTimeout_ms));
     		streamCtl.RecoverDucati();
     	}
+    }
+    
+    private boolean CheckForValidIp()
+    {
+    	boolean isMulticast = false;
+    	String streamIp = "";
+    	String IPV4_REGEX = "(([0-1]?[0-9]{1,2}\\.)|(2[0-4][0-9]\\.)|(25[0-5]\\.)){3}(([0-1]?[0-9]{1,2})|(2[0-4][0-9])|(25[0-5]))";
+    	String Multicast_REGEX = "((22[4-9])|(23[0-9]))\\.(?:(([0-1]?[0-9]{1,2})|(2[0-4][0-9])|(25[0-5]))\\.){2}(([0-1]?[0-9]{1,2})|(2[0-4][0-9])|(25[0-5]))";
+    	Pattern regexPattern;
+    	
+    	int currentSessionInitiation = streamCtl.userSettings.getSessionInitiation(idx);
+        int currentTransportMode = streamCtl.userSettings.getTransportMode(idx);
+        if ((currentSessionInitiation == 0) || (currentSessionInitiation == 2)) //Multicast via RTSP or By Receiver
+        {
+        	streamIp = streamCtl.userSettings.getDeviceIp();
+        	if (currentSessionInitiation == 2) //Multicast via RTSP
+        	{
+        		isMulticast = true;
+        		// First check device IP for validity
+        		regexPattern = Pattern.compile(IPV4_REGEX);
+        		if (regexPattern.matcher(streamIp).matches() == false)
+            	{
+        			streamCtl.SendStreamState(StreamState.CONNECTREFUSED, idx);
+        			Log.e(TAG, String.format("Tried to stream to invalid address, address = %s", streamIp));
+            		streamCtl.SendStreamState(StreamState.STOPPED, idx);
+            		return false;
+            	}
+        		
+        		// if device IP ok then check multicast
+        		streamIp = streamCtl.userSettings.getMulticastAddress(idx);
+        	}
+        }
+        else
+        {
+        	if (currentSessionInitiation == 1)	//By Transmitter
+        		streamIp = streamCtl.userSettings.getServerUrl(idx);
+        	else if (currentSessionInitiation == 3) //Multicast via UDP
+        	{
+        		streamIp = streamCtl.userSettings.getMulticastAddress(idx);
+        		isMulticast = true;
+        	}
+        }
+        
+        if (isMulticast)
+        	regexPattern = Pattern.compile(Multicast_REGEX);
+        else
+        	regexPattern = Pattern.compile(IPV4_REGEX);
+    	
+    	Log.e(TAG, String.format("Checking address = %s", streamIp));
+    	if (regexPattern.matcher(streamIp).matches() == false)
+    	{
+    		streamCtl.SendStreamState(StreamState.CONNECTREFUSED, idx);
+			Log.e(TAG, String.format("Tried to stream to invalid address, address = %s", streamIp));
+    		streamCtl.SendStreamState(StreamState.STOPPED, idx);
+    		return false;
+    	}
+    	else
+    		return true;
     }
 
 	/**

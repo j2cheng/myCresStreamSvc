@@ -513,6 +513,16 @@ public class CresStreamCtrl extends Service {
 					{ 
 						ex.printStackTrace(); 
 					}
+					
+					for (int sessionId = 0; sessionId < NumOfSurfaces; sessionId++)
+					{
+						// if we were trying to decode stream when mediaserver crashed, we must kill service to recover
+						if ((userSettings.getStreamState(sessionId) != StreamState.STOPPED) && (userSettings.getMode(sessionId) == DeviceMode.STREAM_IN.ordinal()))
+						{
+							RecoverTxrxService();
+							return;
+						}
+					}
 						
 					sockTask.restartStreams();
 				}
@@ -995,6 +1005,7 @@ public class CresStreamCtrl extends Service {
     	try
     	{
         	userSettings.setStreamState(state, sessionId);
+        	TriggerSettingsSave();
 	        StringBuilder sb = new StringBuilder(512);
 	        String streamStateText = "STREAMSTATE" + String.valueOf(sessionId);
 	        
@@ -1699,5 +1710,13 @@ public class CresStreamCtrl extends Service {
 				}
 			}
 		}
+	}
+	
+	public void TriggerSettingsSave()
+	{
+		synchronized ( saveSettingsPendingUpdate ) {  
+        	saveSettingsUpdateArrived = true;        
+            saveSettingsPendingUpdate.notify();
+        }
 	}
 }
