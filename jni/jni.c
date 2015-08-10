@@ -1264,4 +1264,15 @@ void *csio_SendInitiatorAddressFb( void * arg )
 	pthread_exit( NULL );
 	return(NULL);
 }
+void csio_jni_recoverDucati()
+{
+    JNIEnv *env = get_jni_env ();
+    jmethodID recoverDucati = (*env)->GetMethodID(env, gStreamIn_javaClass_id, "recoverDucati", "()V");
+    if (recoverDucati == NULL) return NULL;
 
+    (*env)->CallVoidMethod(env, CresDataDB->app, recoverDucati);
+    if ((*env)->ExceptionCheck (env)) {
+        GST_ERROR ("Failed to call Java method 'recoverDucati'");
+        (*env)->ExceptionClear (env);
+    }
+}

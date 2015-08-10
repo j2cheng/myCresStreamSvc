@@ -169,6 +169,10 @@ public class GstreamIn implements StreamInStrategy, SurfaceHolder.Callback {
     	streamCtl.sendInitiatorFbAddress(initiatorFbAddress, sessionId);
 	}
     
+    public void recoverDucati(){
+    	streamCtl.RecoverDucati();
+	}
+    
     public void sendMulticastAddress(String multicastAddress, int sessionId){
     	streamCtl.sendMulticastIpAddress(multicastAddress, sessionId);
 	}
