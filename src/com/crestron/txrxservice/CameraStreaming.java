@@ -443,36 +443,47 @@ public class CameraStreaming implements ErrorCallback {
     	final CountDownLatch latch = new CountDownLatch(1);
     	new Thread(new Runnable() {
     		public void run() {
-		        Log.d(TAG, "stopRecording");
-		        if (mrec != null) {
-		            if(hpdEventAction==true){
-		            	if (mCameraPreviewObj != null)
-		            		CresCamera.releaseCamera(mCameraPreviewObj);
-		                mCameraPreviewObj = null;
-		            }
-		            mrec.stop();
-		            //mrec.setPreviewDisplay(null);
-		            out_stream_status = false;
-		            releaseMediaRecorder();
-		            if(hpdEventAction==false){
-		            	if (mCameraPreviewObj != null)
-		            		CresCamera.releaseCamera(mCameraPreviewObj);
-		                mCameraPreviewObj = null;
-		            }
-		
-		            stopStatisticsTask();
-				            
-		            streamCtl.SendStreamState(StreamState.STOPPED, idx);
-		            
-		            // Zero out statistics on stop
-		            streamOutAudioFormat = streamOutAudioChannels = streamOutWidth = streamOutHeight = streamOutFps = 0;
-					streamCtl.SendStreamOutFeedbacks();
-				}
+    			try {
+			        Log.d(TAG, "stopRecording");
+
+			        if (mrec != null) {
+			            if(hpdEventAction==true){
+			            	if (mCameraPreviewObj != null)
+			            	{
+			            		mCameraPreviewObj.lock(); //Android recommends this
+			            		CresCamera.releaseCamera(mCameraPreviewObj);
+			            	}
+			                mCameraPreviewObj = null;
+			            }
+			            mrec.stop();
+			            //mrec.setPreviewDisplay(null);
+			            out_stream_status = false;
+			            releaseMediaRecorder();
+			            
+			            
+			            if(hpdEventAction==false){
+			            	if (mCameraPreviewObj != null)
+			            	{
+			            		mCameraPreviewObj.lock(); //Android recommends this
+			            		CresCamera.releaseCamera(mCameraPreviewObj);
+			            	}
+			                mCameraPreviewObj = null;
+			            }
+			
+			            stopStatisticsTask();
+					            
+			            streamCtl.SendStreamState(StreamState.STOPPED, idx);
+			            
+			            // Zero out statistics on stop
+			            streamOutAudioFormat = streamOutAudioChannels = streamOutWidth = streamOutHeight = streamOutFps = 0;
+						streamCtl.SendStreamOutFeedbacks();
+					}
+    			} catch (Exception e) { e.printStackTrace(); }
 		        
 		        latch.countDown();
     		}
     	}).start();
-    	
+
     	// We launch the stop commands in its own thread and timeout in case mediaserver gets hung
     	boolean successfulStop = true; //indicates that there was no time out condition
     	try { successfulStop = latch.await(stopTimeout_ms, TimeUnit.MILLISECONDS); }
@@ -481,7 +492,12 @@ public class CameraStreaming implements ErrorCallback {
     	if (!successfulStop)
     	{
     		Log.e(TAG, String.format("MediaServer failed to stop after %d ms", stopTimeout_ms));
+    		streamCtl.SendStreamState(StreamState.STOPPED, idx);
     		streamCtl.RecoverDucati();
+    		try {
+    			Thread.sleep(2000);
+    		} catch (Exception e) {}
+    		streamCtl.RecoverMediaServer();
     	}
     }
     

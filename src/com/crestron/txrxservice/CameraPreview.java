@@ -170,7 +170,6 @@ public class CameraPreview {
         Log.d(TAG, "stopPlayback");
         if(is_preview)
         {
-        	//stopAudio();
             try
             {
                 if (mCamera!= null)
@@ -183,12 +182,13 @@ public class CameraPreview {
                 
                 if (!confidenceMode)
                 	streamCtl.SendStreamState(StreamState.STOPPED, idx);
+                stopAudio();
             }
             catch (Exception localException)
             {
                 localException.printStackTrace();
             }
-            stopAudio();
+            
             is_preview = false;
         }
         else
