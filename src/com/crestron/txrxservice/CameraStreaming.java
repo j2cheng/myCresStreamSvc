@@ -103,8 +103,7 @@ public class CameraStreaming implements ErrorCallback {
 		        if(mCameraPreviewObj!=null){
 		            mCameraPreviewObj.getHdmiInputStatus();
 		            mCameraPreviewObj.setEncoderFps(streamCtl.userSettings.getEncodingFramerate(idx));
-		            mCameraPreviewObj.lock();
-		            mCameraPreviewObj.unlock(); //TODO: what is the purpose of this????
+		            mCameraPreviewObj.unlock();
 		            mrec.setCamera(mCameraPreviewObj);
 		
 		            mrec.setAudioSource(MediaRecorder.AudioSource.MIC);

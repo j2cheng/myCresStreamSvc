@@ -916,40 +916,45 @@ public class CresStreamCtrl extends Service {
     public void setStreamVolume(int volume) 
     {
     	userSettings.setVolume(volume);
-    	for (int sessionId = 0; sessionId < NumOfSurfaces; sessionId++)
-    	{
-    		if (userSettings.getMode(sessionId) == DeviceMode.PREVIEW.ordinal())
-    			setPreviewVolume(volume);
-    		else if (userSettings.getMode(sessionId) == DeviceMode.STREAM_IN.ordinal())
-    			setStreamInVolume(volume, sessionId);
-    		else if (userSettings.getMode(sessionId) == DeviceMode.STREAM_OUT.ordinal())
-    		{
-    			if (userSettings.getStreamState(sessionId) == StreamState.CONFIDENCEMODE)
-    				setPreviewVolume(volume);
-    			else
-    				setSystemVolume(volume);
-    		}
+    	if (userSettings.isAudioMute())
+    		userSettings.setPreviousVolume(); //make sure previous volume is updated as well
+    	else
+    	{	    	
+	    	for (int sessionId = 0; sessionId < NumOfSurfaces; sessionId++)
+	    	{
+	    		if (userSettings.getMode(sessionId) == DeviceMode.PREVIEW.ordinal())
+	    			setPreviewVolume(volume);
+	    		else if (userSettings.getMode(sessionId) == DeviceMode.STREAM_IN.ordinal())
+	    			setStreamInVolume(volume, sessionId);
+	    		else if (userSettings.getMode(sessionId) == DeviceMode.STREAM_OUT.ordinal())
+	    		{
+	    			if (userSettings.getStreamState(sessionId) == StreamState.CONFIDENCEMODE)
+	    				setPreviewVolume(volume);
+	    			else
+	    				setSystemVolume(volume);
+	    		}
+	    	}
     	}
     }
 
     public void setStreamMute() //TODO: store in userSettings
     {
-        amanager.setStreamMute(AudioManager.STREAM_MUSIC, true);
-        StringBuilder sb = new StringBuilder(512);
+    	userSettings.setPreviousVolume();
+    	setStreamVolume(0);
+    	
         userSettings.setAudioMute(true);
         userSettings.setAudioUnmute(false);
-        sb.append("AUDIO_UNMUTE=false");
-        sockTask.SendDataToAllClients(sb.toString());
+        sockTask.SendDataToAllClients("AUDIO_UNMUTE=false");
     }
     
     public void setStreamUnMute()//TODO: store in userSettings
     {
-        amanager.setStreamMute(AudioManager.STREAM_MUSIC, false);
-        StringBuilder sb = new StringBuilder(512);
-        userSettings.setAudioMute(false);
+    	userSettings.setAudioMute(false);
         userSettings.setAudioUnmute(true);
-        sb.append("AUDIO_MUTE=false");
-        sockTask.SendDataToAllClients(sb.toString());
+        
+    	setStreamVolume(userSettings.getPreviousVolume());
+
+        sockTask.SendDataToAllClients("AUDIO_MUTE=false");
     }
 
     public void SetPasswdEnable(int sessId)

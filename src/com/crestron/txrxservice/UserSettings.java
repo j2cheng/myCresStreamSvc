@@ -152,10 +152,11 @@ public class UserSettings
 	private boolean[] statisticsDisable;
 	
 	// Top Slot
-	private int deviceReady; // TODO: needed?
-	private boolean audioMute;
-	private boolean audioUnmute;	
+	private int deviceReady; // TODO: needed?	
+	private boolean audioMute; //TODO: remove
+	private boolean audioUnmute; //TODO: remove	
 	private int volume;
+	private int previousVolume;
 	private int bass;
 	private int treble;
 	private String initiatorAddress;
@@ -222,6 +223,7 @@ public class UserSettings
         statisticsEnable	= new boolean[] {false, false};
     	statisticsDisable	= new boolean[] {true, true};
     	volume 				= 100;
+    	previousVolume 		= 100;
     	useNewSink		= new boolean[] {false, false};
 	}
 	
@@ -379,6 +381,14 @@ public class UserSettings
 
 	public void setVolume(int volume) {
 		this.volume = volume;
+	}
+	
+	public int getPreviousVolume() {
+		return previousVolume;
+	}
+
+	public void setPreviousVolume() {
+		this.previousVolume = this.volume;
 	}
 
 	public int getBass() {
