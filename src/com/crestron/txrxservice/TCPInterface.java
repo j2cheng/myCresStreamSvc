@@ -357,9 +357,7 @@ public class TCPInterface extends AsyncTask<Void, Object, Long> {
 	        	    		tmp_str = parserInstance.processReceivedMessage(receivedMsg); 
 	        	        	
 	        		        try {
-	        		        	// FIXME: this is a hardcoded workaround, we should not just be echoing back
-	        		        	if (!tmp_str.toLowerCase().contains("streamurl"))
-	        		        		server.SendDataToAllClients(tmp_str);
+        		        		server.SendDataToAllClients(tmp_str);
 	        		        } catch (Exception e) {
 	        		            e.printStackTrace();
 	        		        }
