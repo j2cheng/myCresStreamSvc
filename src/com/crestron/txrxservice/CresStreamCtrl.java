@@ -1662,17 +1662,15 @@ public class CresStreamCtrl extends Service {
 									+ hdmiOutputResolution.height + " "
 									+ Math.round(hdmiOutputResolution.refreshRate));
 		
-		                    //send out sync detection signal
-		                    hdmiOutput.setSyncStatus();
-		                    StringBuilder sb = new StringBuilder(1024);
-		                    sb.append("hdmiout_sync_detected=").append(hdmiOutput.getSyncStatus());
-		                    sockTask.SendDataToAllClients(sb.toString());
-		
-		                    hdmiOutput.setSyncStatus();
+		                    //update HDMI output
+							hdmiOutput.setSyncStatus();		
 					        hdmiOutput.setHorizontalRes(Integer.toString(hdmiOutputResolution.width));
 					        hdmiOutput.setVerticalRes(Integer.toString(hdmiOutputResolution.height));
 					        hdmiOutput.setFPS(Integer.toString(Math.round(hdmiOutputResolution.refreshRate)));
 					        hdmiOutput.setAspectRatio();
+					        
+					        //update with current HDMI output resolution information
+					        sendHdmiOutSyncState();
 		                }
 		            }
             	}).start();
@@ -1692,6 +1690,14 @@ public class CresStreamCtrl extends Service {
 		sockTask.SendDataToAllClients("HDMIIN_ASPECT_RATIO=" + hdmiInput.getAspectRatio());
 		sockTask.SendDataToAllClients("HDMIIN_AUDIO_FORMAT=" + hdmiInput.getAudioFormat());
 		sockTask.SendDataToAllClients("HDMIIN_AUDIO_CHANNELS=" + hdmiInput.getAudioChannels());
+	}
+	
+	private void sendHdmiOutSyncState() {
+		sockTask.SendDataToAllClients("HDMIOUT_SYNC_DETECTED=" + hdmiOutput.getSyncStatus());
+		sockTask.SendDataToAllClients("HDMIOUT_HORIZONTAL_RES_FB=" + hdmiOutput.getHorizontalRes());
+		sockTask.SendDataToAllClients("HDMIOUT_VERTICAL_RES_FB=" + hdmiOutput.getVerticalRes());
+		sockTask.SendDataToAllClients("HDMIOUT_FPS_FB=" + hdmiOutput.getFPS());
+		sockTask.SendDataToAllClients("HDMIOUT_ASPECT_RATIO=" + hdmiOutput.getAspectRatio());
 	}
 	
 	public void saveUserSettings()
