@@ -937,7 +937,7 @@ public class CresStreamCtrl extends Service {
     	}
     }
 
-    public void setStreamMute() //TODO: store in userSettings
+    public void setStreamMute()
     {
     	userSettings.setPreviousVolume();
     	setStreamVolume(0);
@@ -947,7 +947,7 @@ public class CresStreamCtrl extends Service {
         sockTask.SendDataToAllClients("AUDIO_UNMUTE=false");
     }
     
-    public void setStreamUnMute()//TODO: store in userSettings
+    public void setStreamUnMute()
     {
     	userSettings.setAudioMute(false);
         userSettings.setAudioUnmute(true);
@@ -1668,6 +1668,7 @@ public class CresStreamCtrl extends Service {
 									+ Math.round(hdmiOutputResolution.refreshRate));
 		
 		                    //update HDMI output
+							// FIXME: reverting resolution update so that platform does not continuously reboot
 							hdmiOutput.setSyncStatus();		
 					        hdmiOutput.setHorizontalRes(Integer.toString(hdmiOutputResolution.width));
 					        hdmiOutput.setVerticalRes(Integer.toString(hdmiOutputResolution.height));
@@ -1675,7 +1676,8 @@ public class CresStreamCtrl extends Service {
 					        hdmiOutput.setAspectRatio();
 					        
 					        //update with current HDMI output resolution information
-					        sendHdmiOutSyncState();
+//					        sendHdmiOutSyncState();
+					        sockTask.SendDataToAllClients("HDMIOUT_SYNC_DETECTED=" + hdmiOutput.getSyncStatus());
 		                }
 		            }
             	}).start();
