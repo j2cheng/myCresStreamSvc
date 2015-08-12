@@ -59,7 +59,7 @@ static jfieldID custom_data_field_id;
 static jmethodID set_message_method_id;
 static jmethodID on_gstreamer_initialized_method_id;
 static jclass *gStreamIn_javaClass_id;
-
+int g_using_glimagsink = 0;
 ///////////////////////////////////////////////////////////////////////////////
 
 /*
@@ -1230,7 +1230,16 @@ doneAddVideo:
 
 void csio_jni_initVideo()
 {
-	g_object_set(G_OBJECT(CresDataDB->video_sink), "force-aspect-ratio", FALSE, NULL);
+	if(g_using_glimagsink || currentSettingsDB.videoSettings[0].videoSinkSelect == 0)
+	{
+	    GST_DEBUG("qos is set to default");
+	    g_object_set(G_OBJECT(CresDataDB->video_sink), "force-aspect-ratio", FALSE, NULL);
+    }
+	else
+	{	    
+	    GST_DEBUG("qos is turned off for surfaceflingersink!");
+	    g_object_set(G_OBJECT(CresDataDB->video_sink), "qos", FALSE, NULL);	   
+	}
 }
 
 void csio_jni_cleanup (JNIEnv* env, jobject thiz)

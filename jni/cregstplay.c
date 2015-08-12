@@ -50,6 +50,23 @@ static int build_audio_pipeline(gchar *encoding_name, CustomData *data, int do_r
 static int build_video_pipeline(gchar *encoding_name, CustomData *data, unsigned int start, int do_rtp,GstElement **ele0,GstElement **sink);
 
 ///////////////////////////////////////////////////////////////////////////////
+// Write stride value to a file so that gstreamer base libraries can use it.
+static void crestron_set_stride(int stride) {
+     FILE * pf;
+
+     if(stride == 0)
+     {
+         unlink("/dev/shm/stride.nv12");
+         return;
+     }
+     pf = fopen("/dev/shm/stride.nv12", "w");
+     if(!pf)
+     {
+         return;
+     }
+     fprintf(pf, "%d", stride);
+     fclose(pf);
+}
 
 /**
  * \author      Pete McCormick
@@ -178,6 +195,8 @@ static int build_video_pipeline(gchar *encoding_name, CustomData *data, unsigned
 	int num_elements;
 	int do_sink = 1;
 	
+	g_using_glimagsink = 0;
+
 	//GST_DEBUG("encoding_name=%s, native_window=%p, start=%u, do_rtp=%d",
 	//		  encoding_name, data->native_window, start, do_rtp);
 
@@ -228,6 +247,8 @@ static int build_video_pipeline(gchar *encoding_name, CustomData *data, unsigned
 		data->element_v[i++] = gst_element_factory_make("queue", NULL);
 		data->element_v[i++] = gst_element_factory_make("jpegparse", NULL);
 		data->element_v[i++] = gst_element_factory_make("jpegdec", NULL);
+
+		g_using_glimagsink =1;
 	}
 	else if(strcmp(encoding_name, "MPEG4") == 0)
 	{
@@ -250,10 +271,20 @@ static int build_video_pipeline(gchar *encoding_name, CustomData *data, unsigned
 	if(do_sink)
 	{		
 		data->element_v[i++] = gst_element_factory_make("videoconvert", NULL);
-		if(currentSettingsDB.videoSettings[0].videoSinkSelect == 0)
+		if(g_using_glimagsink || currentSettingsDB.videoSettings[0].videoSinkSelect == 0)
+		{
+		    //using glimagesink
+		    crestron_set_stride(0);
 			data->video_sink = gst_element_factory_make("glimagesink", NULL);
+		    GST_INFO("using glimagesink");
+		}
 		else
+		{
+		    // This value is dictated by TI OMAP hardware.
+		    crestron_set_stride(4096);
 			data->video_sink = gst_element_factory_make("surfaceflingersink", NULL);
+		    GST_INFO("using surfaceflingersink");
+		}
 
 		*sink = data->video_sink;
 
