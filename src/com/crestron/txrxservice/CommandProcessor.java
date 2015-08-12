@@ -1533,3 +1533,21 @@ class UseNewSinkCommand implements CommandIf {
 		return msg;	//no feedback for this join
 	}
 }
+
+class UseNewIpAddrCommand implements CommandIf {
+	CommandReceiver launch;
+	String msg;
+
+	public UseNewIpAddrCommand(CommandReceiver launch, String arg) {
+		this.launch = launch;
+		this.msg = arg;
+	}
+
+	@Override
+	public void execute() {
+            launch.setChangedIpAddress(msg);
+	}
+	public String getFeedbackMsg() {
+		return msg;	//no feedback for this join
+	}
+}

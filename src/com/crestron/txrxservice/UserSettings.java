@@ -230,6 +230,10 @@ public class UserSettings
 	public String getDeviceIp() {
 		return deviceIp;
 	}
+	
+	public void setDeviceIp(String newIpAddr) {
+		deviceIp = newIpAddr;
+	}
 
 	public int getMode(int sessId) {
 		return mode[sessId];

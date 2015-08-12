@@ -1473,6 +1473,26 @@ public class CresStreamCtrl extends Service {
     	Log.e(TAG, "Fatal error, kill mediaserver!");
     	sockTask.SendDataToAllClients("KillMediaServer=true");
     }
+    
+    public void stopOnIpAddrChange(){
+	Log.e(TAG, "stopping on device IP Address Change...!");
+	try {
+	    for (int sessionId = 0; sessionId < NumOfSurfaces; sessionId++)
+	    {
+	        if (userSettings.getStreamState(sessionId) != StreamState.STOPPED)
+	        {
+	               if (userSettings.getMode(sessionId) == DeviceMode.STREAM_IN.ordinal())
+	           	    streamPlay.onStop(sessionId);
+	               else if (userSettings.getMode(sessionId) == DeviceMode.STREAM_OUT.ordinal())
+	           	    cam_streaming.stopRecording(true);//false
+	        }
+	    }
+	}
+	catch (Exception e) { 
+	    Log.e(TAG, "Failed to stop streams on IP Addr Change");
+	    e.printStackTrace(); 
+	}
+    }
 
     //Registering for HPD and Resolution Event detection	
     void registerBroadcasts(){

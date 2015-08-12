@@ -110,6 +110,14 @@ public class CommandReceiver {
     public void setMulticastIpAddress(String ip, int sessId){
     	ctl.userSettings.setMulticastAddress(ip, sessId);
     }
+    
+    public void setChangedIpAddress(String changedIp){
+	if(!changedIp.equals(ctl.userSettings.getDeviceIp()))
+	{
+            ctl.stopOnIpAddrChange();
+    	    ctl.userSettings.setDeviceIp(changedIp);
+	}
+    }
 
     public void setEncodingResolution(int resID, int sessId){
     	ctl.userSettings.setEncodingResolution(resID, sessId);
