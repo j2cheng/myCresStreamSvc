@@ -102,7 +102,7 @@ public class CresStreamCtrl extends Service {
     boolean StreamOutstarted = false;
     boolean hdmiInputDriverPresent = false;
     boolean[] restartRequired = new boolean[NumOfSurfaces];
-    public final static String savedSettingsFilePath = "/data/CresStreamSvc/userSettings";
+    public final static String savedSettingsFilePath = "/data/crestron/CresStreamSvc/userSettings";
     public volatile boolean mIgnoreMediaServerCrash = false;
     private FileObserver mediaServerObserver;
 
@@ -1725,6 +1725,7 @@ public class CresStreamCtrl extends Service {
     	{
     		saveSettingsLock.unlock();
     		try {writer.close();} catch (Exception ex) {/*ignore*/}
+    		recomputeHash();
     	}
 
       Log.d(TAG, "Saved userSettings to disk");
@@ -1754,5 +1755,9 @@ public class CresStreamCtrl extends Service {
         	saveSettingsUpdateArrived = true;        
             saveSettingsPendingUpdate.notify();
         }
+	}
+	
+	private void recomputeHash() {
+		sockTask.SendDataToAllClients(String.format("RECOMPUTEHASH=%s", savedSettingsFilePath));
 	}
 }
