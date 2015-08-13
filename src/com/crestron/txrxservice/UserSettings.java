@@ -224,7 +224,7 @@ public class UserSettings
     	statisticsDisable	= new boolean[] {true, true};
     	volume 				= 100;
     	previousVolume 		= 100;
-    	useNewSink		= new boolean[] {false, false};
+    	useNewSink		= new boolean[] {true, true};
 	}
 	
 	public String getDeviceIp() {
