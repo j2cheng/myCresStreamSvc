@@ -1696,8 +1696,7 @@ public class CresStreamCtrl extends Service {
 					        hdmiOutput.setAspectRatio();
 					        
 					        //update with current HDMI output resolution information
-//					        sendHdmiOutSyncState();
-					        sockTask.SendDataToAllClients("HDMIOUT_SYNC_DETECTED=" + hdmiOutput.getSyncStatus());
+					        sendHdmiOutSyncState();
 		                }
 		            }
             	}).start();
