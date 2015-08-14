@@ -26,7 +26,7 @@ public class GstreamIn implements StreamInStrategy, SurfaceHolder.Callback {
     private long statisticsNumAudioPackets = 0;
     private int statisticsNumAudioPacketsDropped = 0;
     private int statisticsBitrate = 0;
-    private final long stopTimeout_ms = 60000;
+    private final long stopTimeout_ms = 30000;
 
 
     private native void nativeInit();     // Initialize native code, build pipeline, etc
@@ -171,6 +171,10 @@ public class GstreamIn implements StreamInStrategy, SurfaceHolder.Callback {
     
     public void recoverDucati(){
     	streamCtl.RecoverDucati();
+    	try {
+    		Thread.sleep(5000);
+    	} catch (Exception e) { e.printStackTrace(); }
+    	streamCtl.RecoverTxrxService();
 	}
     
     public void sendMulticastAddress(String multicastAddress, int sessionId){
@@ -260,7 +264,7 @@ public class GstreamIn implements StreamInStrategy, SurfaceHolder.Callback {
     	{
     		Log.e(TAG, String.format("libgstreamer_jni failed to stop after %d ms", stopTimeout_ms));
     		streamCtl.SendStreamState(StreamState.STOPPED, sessionId);
-    		streamCtl.RecoverTxrxService();
+    		recoverDucati();
     	}
     }
     
