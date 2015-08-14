@@ -10,6 +10,7 @@ import android.util.Log;
 
 public class UserSettings
 {
+	private final int CurrentVersionNumber = 1;
 	public enum VideoEncProfile 
     {
 		BP(1), MP(2), HP(8);
@@ -123,6 +124,9 @@ public class UserSettings
 //        }
 //    }
 
+	//Version info
+	private int versionNum;
+	
 	// MultiWindow joins	
 	private int[] mode;
 	private int[] xloc;
@@ -195,6 +199,7 @@ public class UserSettings
 	{
         MiscUtils.getDeviceIpAddr();
         deviceIp 			= MiscUtils.matcher.group();
+        versionNum 			= CurrentVersionNumber;
 		rtspPort 			= new int[]{ 554, 554};		
         tsPort 				= new int[]{ 4570, 4570};		
         rtpVideoPort 		= new int[]{ 49170, 49170};
