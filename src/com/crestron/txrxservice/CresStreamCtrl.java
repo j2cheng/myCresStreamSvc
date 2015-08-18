@@ -1201,6 +1201,7 @@ public class CresStreamCtrl extends Service {
         updateWindow(sessId);
         showPreviewWindow(sessId);
         out_url = createStreamOutURL(sessId);
+        userSettings.setServerUrl(out_url, sessId);
 
         try {
             cam_streaming.setSessionIndex(sessId);
