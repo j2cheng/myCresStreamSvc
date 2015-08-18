@@ -276,14 +276,12 @@ static int build_video_pipeline(gchar *encoding_name, CustomData *data, unsigned
 		    //using glimagesink
 		    crestron_set_stride(0);
 			data->video_sink = gst_element_factory_make("glimagesink", NULL);
-		    GST_INFO("using glimagesink");
 		}
 		else
 		{
 		    // This value is dictated by TI OMAP hardware.
 		    crestron_set_stride(4096);
 			data->video_sink = gst_element_factory_make("surfaceflingersink", NULL);
-		    GST_INFO("using surfaceflingersink");
 		}
 
 		*sink = data->video_sink;
