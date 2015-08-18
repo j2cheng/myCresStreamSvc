@@ -193,8 +193,6 @@ static void gst_native_init (JNIEnv* env, jobject thiz)
 	data->app = (*env)->NewGlobalRef (env, thiz);
 	
 	init_custom_data(data);
-	pthread_mutex_init(&(data->ready_to_start_playing_lock), NULL);
-	pthread_cond_init(&(data->ready_to_start_playing_signal), NULL);
 
 	//call csio init here.
 	csio_jni_init();
@@ -213,9 +211,6 @@ static void gst_native_finalize (JNIEnv* env, jobject thiz)
 	g_free (data);
 	SET_CUSTOM_DATA (env, thiz, custom_data_field_id, NULL);
 	GST_DEBUG ("Done finalizing");
-
-	pthread_mutex_destroy(&(data->ready_to_start_playing_lock));
-	pthread_cond_destroy(&(data->ready_to_start_playing_signal));
 }
 
 /* Set pipeline to PLAYING state */

@@ -34,8 +34,8 @@ typedef struct _CustomData
 	jobject app;            /* Application instance, used to call its methods. A global reference is kept. */
 	ANativeWindow *native_window; /* The Android native window where video will be rendered */
 
-	pthread_mutex_t ready_to_start_playing_lock;
-	pthread_cond_t ready_to_start_playing_signal;
+	//pthread_mutex_t ready_to_start_playing_lock;
+	//pthread_cond_t ready_to_start_playing_signal;
 
 	GstElement *pipeline;   /* The running pipeline */
 	GMainContext *context;  /* GLib context used to run the main loop */
