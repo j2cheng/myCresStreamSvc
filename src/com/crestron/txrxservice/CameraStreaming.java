@@ -31,6 +31,7 @@ public class CameraStreaming implements ErrorCallback {
     String filename;
     File file4Recording;
     boolean out_stream_status = false;
+    boolean is_pause = false;
     CresStreamCtrl streamCtl;
     private int idx = 0;
     private int streamOutWidth = 0;
@@ -66,6 +67,14 @@ public class CameraStreaming implements ErrorCallback {
     	new Thread(new Runnable() {
     		public void run() {
     			String streamIp = "";
+    			
+    			if (is_pause == true)
+    			{
+    				resumePlayback();
+    				latch.countDown();
+    				return;
+    			}
+
 		        if(out_stream_status==true)
 		            stopRecording(false);
 		        Log.d(TAG, "startRecording");
@@ -457,6 +466,8 @@ public class CameraStreaming implements ErrorCallback {
 			            mrec.stop();
 			            //mrec.setPreviewDisplay(null);
 			            out_stream_status = false;
+			            streamCtl.setPauseVideoImage(false);
+			            is_pause = false;
 			            releaseMediaRecorder();
 			            
 			            
@@ -498,6 +509,40 @@ public class CameraStreaming implements ErrorCallback {
     		} catch (Exception e) {}
     		streamCtl.RecoverMediaServer();
     	}
+    }
+    
+    public boolean pausePlayback()
+    {
+    	if (confidencePreviewRunning == false)
+    	{
+	    	Log.d(TAG, "pausePlayback");
+	        try
+	        {
+	        	streamCtl.setPauseVideoImage(true);
+	        	is_pause = true;
+	        	streamCtl.SendStreamState(StreamState.PAUSED, idx);
+	        	return true;
+	        } catch (Exception e)
+	        {
+	        	return false;
+	        }	        
+    	}
+    	return false;
+    }
+    
+    public boolean resumePlayback()
+    {
+    	Log.d(TAG, "resumePlayback");
+        try
+        {
+        	streamCtl.setPauseVideoImage(false);
+        	is_pause = false;
+        	streamCtl.SendStreamState(StreamState.STARTED, idx);
+        	return true;
+        } catch (Exception e)
+        {
+        	return false;
+        }
     }
     
 

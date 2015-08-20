@@ -202,4 +202,23 @@ public class HDMIInputInterface {
         Log.d(TAG, "HDMI IN index from sysfs:" + resolutionIndex);
         return resolutionIndex;
     }
+    
+    public static boolean readHDCPStatus (){
+    	boolean hdcpStatus = false;
+    	StringBuilder text = new StringBuilder();
+        try {
+            File file = new File("/sys/devices/platform/omap_i2c.2/i2c-2/2-000f/hdcp");
+
+            BufferedReader br = new BufferedReader(new FileReader(file));  
+            String line;   
+            while ((line = br.readLine()) != null) {
+                text.append(line);
+            }
+            br.close();
+        }catch (IOException e) {
+            e.printStackTrace();           
+        }
+        Log.d(TAG, "HDMI IN HDCP status from sysfs:" + text.toString());
+        return Integer.parseInt(text.toString()) == 1;
+    }
 }

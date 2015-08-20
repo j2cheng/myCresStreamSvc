@@ -48,7 +48,7 @@ public class CameraPreview {
             if (mCamera != null)
             {
                 is_pause = true;
-                mCamera.stopPreview();	
+                streamCtl.setPauseVideoImage(true);
                 stopAudio();
                 streamCtl.SendStreamState(StreamState.PAUSED, idx);
             }
@@ -69,7 +69,7 @@ public class CameraPreview {
             if (mCamera != null)
             {
                 is_pause = false;
-                mCamera.startPreview();
+                streamCtl.setPauseVideoImage(false);
                 startAudio();
             }
             streamCtl.SendStreamState(StreamState.STARTED, idx);
@@ -178,6 +178,8 @@ public class CameraPreview {
                 	cresCam.releaseCamera(mCamera);
                 }
                 is_preview = false;
+                streamCtl.setPauseVideoImage(false);
+                is_pause = false;
                 Log.d(TAG, "Playback stopped !");
                 
                 if (!confidenceMode)
