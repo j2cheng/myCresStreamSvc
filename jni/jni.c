@@ -31,6 +31,7 @@
 #include "GstreamIn.h"
 #include "csioCommonShare.h"
 #include <gst/video/video.h>
+#include "csio_jni_if.h"
 
 ///////////////////////////////////////////////////////////////////////////////
 
@@ -100,7 +101,7 @@ static JNIEnv *attach_current_thread (void)
 	args.name = NULL;
 	args.group = NULL;
 
-	if ((*java_vm)->AttachCurrentThread (java_vm, &env, &args) < 0) {
+	if ((*java_vm)->AttachCurrentThread (java_vm, (void**)&env, &args) < 0) {
 		GST_ERROR ("Failed to attach current thread");
 		return NULL;
 	}
@@ -226,7 +227,7 @@ static void gst_native_finalize (JNIEnv* env, jobject thiz)
 	if (!cdata) return;
 		
 	GST_DEBUG ("Deleting GlobalRef for app object at %p", cdata->app);
-    (*env)->DeleteGlobalRef (env, gStreamIn_javaClass_id);
+    (*env)->DeleteGlobalRef (env, (jobject)gStreamIn_javaClass_id);
 	(*env)->DeleteGlobalRef (env, cdata->app);
 	GST_DEBUG ("Freeing CustomData at %p", cdata);
 	g_free (cdata);
@@ -238,8 +239,6 @@ static void gst_native_finalize (JNIEnv* env, jobject thiz)
 void gst_native_play (JNIEnv* env, jobject thiz, jint sessionId)
 {	    
     SetInPausedState(sessionId, 0);
-    GST_ERROR("Crestron - starbucks");
-
 	currentSettingsDB.settingsMessage.msg[sessionId].src = sessionId;
 	start_streaming_cmd(sessionId);
 }
@@ -365,7 +364,7 @@ StreamState gst_native_get_current_stream_state(int stream)
 	StreamState currentStreamState;
 	JNIEnv *env = get_jni_env ();
 
-	jmethodID getCurrentStreamState = (*env)->GetMethodID(env, gStreamIn_javaClass_id, "getCurrentStreamState", "(I)I");
+	jmethodID getCurrentStreamState = (*env)->GetMethodID(env, (jclass)gStreamIn_javaClass_id, "getCurrentStreamState", "(I)I");
 
 	currentStreamState = (StreamState)(*env)->CallIntMethod(env, CresDataDB->app, getCurrentStreamState, stream);
 
@@ -418,7 +417,7 @@ JNIEXPORT void JNICALL Java_com_crestron_txrxservice_GstreamIn_nativeSetServerUr
 	if (url_cstring == NULL) return;
 
 	GST_DEBUG ("Using server url: '%s'", url_cstring);
-	csio_SetURL(sessionId, url_cstring, strlen(url_cstring) + 1);
+	csio_SetURL(sessionId, (char *)url_cstring, strlen(url_cstring) + 1);
 
 	(*env)->ReleaseStringUTFChars(env, url_jstring, url_cstring);
 }
@@ -435,7 +434,7 @@ JNIEXPORT void JNICALL Java_com_crestron_txrxservice_GstreamIn_nativeSetTsPort(J
 	GST_DEBUG ("Using tsPort: '%d'", port);
 	//currentSettingsDB.videoSettings[sessionId].tsPort = port;
 	csio_SetPortNumber( sessionId, port, c_TSportNumber );
-	GST_DEBUG ("tsPort in currentSettingsDB: '%d'", currentSettingsDB.videoSettings[sessionId].tsPort);
+	GST_DEBUG ("tsPort in currentSettingsDB: '%ld'", currentSettingsDB.videoSettings[sessionId].tsPort);
 }
 
 JNIEXPORT void JNICALL Java_com_crestron_txrxservice_GstreamIn_nativeSetRtpVideoPort(JNIEnv *env, jobject thiz, jint port, jint sessionId)
@@ -443,7 +442,7 @@ JNIEXPORT void JNICALL Java_com_crestron_txrxservice_GstreamIn_nativeSetRtpVideo
 	GST_DEBUG ("Using rtpVideoPort: '%d'", port);
 	//currentSettingsDB.videoSettings[sessionId].rtpVideoPort = port;
 	csio_SetPortNumber( sessionId, port, c_RTPVideoPortNumber );
-	GST_DEBUG ("rtpVideoPort in currentSettingsDB: '%d'", currentSettingsDB.videoSettings[sessionId].rtpVideoPort);
+	GST_DEBUG ("rtpVideoPort in currentSettingsDB: '%ld'", currentSettingsDB.videoSettings[sessionId].rtpVideoPort);
 }
 
 JNIEXPORT void JNICALL Java_com_crestron_txrxservice_GstreamIn_nativeSetRtpAudioPort(JNIEnv *env, jobject thiz, jint port, jint sessionId)
@@ -451,7 +450,7 @@ JNIEXPORT void JNICALL Java_com_crestron_txrxservice_GstreamIn_nativeSetRtpAudio
 	GST_DEBUG ("Using rtpAudioPort: '%d'", port);
 	//currentSettingsDB.videoSettings[sessionId].rtpAudioPort = port;
 	csio_SetPortNumber( sessionId, port, c_RTPAudioPortNumber );
-	GST_DEBUG ("rtpAudioPort in currentSettingsDB: '%d'", currentSettingsDB.videoSettings[sessionId].rtpAudioPort);
+	GST_DEBUG ("rtpAudioPort in currentSettingsDB: '%ld'", currentSettingsDB.videoSettings[sessionId].rtpAudioPort);
 }
 
 JNIEXPORT void JNICALL Java_com_crestron_txrxservice_GstreamIn_nativeSetSessionInitiation(JNIEnv *env, jobject thiz, jint initMode, jint sessionId)
@@ -476,7 +475,7 @@ JNIEXPORT void JNICALL Java_com_crestron_txrxservice_GstreamIn_nativeSetMulticas
 	if (multicastIp_cstring == NULL) return;
 
 	GST_DEBUG ("Using multicastAddress: '%s'", multicastIp_cstring);
-	strcpy(currentSettingsDB.videoSettings[sessionId].multicastAddress, multicastIp_cstring);
+	strcpy((char*)currentSettingsDB.videoSettings[sessionId].multicastAddress, multicastIp_cstring);
 	GST_DEBUG ("multicastAddress in currentSettingsDB: '%s'", currentSettingsDB.videoSettings[sessionId].multicastAddress);
 
 	(*env)->ReleaseStringUTFChars(env, multicastIp_jstring, multicastIp_cstring);
@@ -560,7 +559,7 @@ StreamState nativeGetCurrentStreamState(jint sessionId)
 	StreamState currentStreamState;
 	JNIEnv *env = get_jni_env ();
 
-	jmethodID getCurrentStreamState = (*env)->GetMethodID(env, gStreamIn_javaClass_id, "getCurrentStreamState", "(I)I");
+	jmethodID getCurrentStreamState = (*env)->GetMethodID(env, (jclass)gStreamIn_javaClass_id, "getCurrentStreamState", "(I)I");
 
 	currentStreamState = (StreamState)(*env)->CallIntMethod(env, CresDataDB->app, getCurrentStreamState, sessionId);
 
@@ -612,7 +611,7 @@ jint JNI_OnLoad(JavaVM *vm, void *reserved)
 	     return 0; /* out of memory exception thrown */
 	 }
 
-	(*env)->RegisterNatives (env, gStreamIn_javaClass_id, native_methods, G_N_ELEMENTS(native_methods));
+	(*env)->RegisterNatives (env, (jclass)gStreamIn_javaClass_id, native_methods, G_N_ELEMENTS(native_methods));
 
 	pthread_key_create (&current_jni_env, detach_current_thread);
 
@@ -644,7 +643,7 @@ void    *csio_SendMulticastAddressFb(void * arg)
 
 	multicastAddress_jstr = (*env)->NewStringUTF(env, multicastAddress_cstr);
 
-	jmethodID sendMulticastAddress = (*env)->GetMethodID(env, gStreamIn_javaClass_id, "sendMulticastAddress", "(Ljava/lang/String;I)V");
+	jmethodID sendMulticastAddress = (*env)->GetMethodID(env, (jclass)gStreamIn_javaClass_id, "sendMulticastAddress", "(Ljava/lang/String;I)V");
 	if (sendMulticastAddress == NULL) return NULL;
 
 	(*env)->CallVoidMethod(env, CresDataDB->app, sendMulticastAddress, multicastAddress_jstr, streamId);
@@ -660,7 +659,7 @@ void csio_send_stats (uint64_t video_packets_received, int video_packets_lost, u
 {
 	JNIEnv *env = get_jni_env ();
 
-	jmethodID sendStatistics = (*env)->GetMethodID(env, gStreamIn_javaClass_id, "sendStatistics", "(JIJII)V");
+	jmethodID sendStatistics = (*env)->GetMethodID(env, (jclass)gStreamIn_javaClass_id, "sendStatistics", "(JIJII)V");
 	if (sendStatistics == NULL) return;
 
 	(*env)->CallVoidMethod(env, CresDataDB->app, sendStatistics, (jlong)video_packets_received, (jint)video_packets_lost, (jlong)audio_packets_received, (jint)audio_packets_lost, (jint)bitrate);
@@ -676,7 +675,7 @@ void csio_get_width_and_height_from_mode (uint32_t * width, uint32_t * height)
 	unsigned int source = 0;
 	JNIEnv *env = get_jni_env ();
 
-	jmethodID getCurrentWidthHeight = (*env)->GetMethodID(env, gStreamIn_javaClass_id, "getCurrentWidthHeight", "(I)[I");
+	jmethodID getCurrentWidthHeight = (*env)->GetMethodID(env, (jclass)gStreamIn_javaClass_id, "getCurrentWidthHeight", "(I)[I");
 	if (getCurrentWidthHeight == NULL) return;
 
 	jintArray retval = (jintArray) (*env)->CallObjectMethod(env, CresDataDB->app, getCurrentWidthHeight, (jint)source);
@@ -695,7 +694,7 @@ int csio_SendVideoPlayingStatusMessage(unsigned int source, StreamState state)
 {
 	JNIEnv *env = get_jni_env ();
 
-	jmethodID updateStreamStatus = (*env)->GetMethodID(env, gStreamIn_javaClass_id, "updateStreamStatus", "(II)V");
+	jmethodID updateStreamStatus = (*env)->GetMethodID(env, (jclass)gStreamIn_javaClass_id, "updateStreamStatus", "(II)V");
 	if (updateStreamStatus == NULL) return -1; // TODO: what is error code here
 
 	(*env)->CallVoidMethod(env, CresDataDB->app, updateStreamStatus, (jint)state, (jint)source);
@@ -716,7 +715,7 @@ int csio_SendVideoSourceParams(unsigned int source, unsigned int width, unsigned
 {
 	JNIEnv *env = get_jni_env ();	
 
-	jmethodID sendVideoSourceParams = (*env)->GetMethodID(env, gStreamIn_javaClass_id, "sendVideoSourceParams", "(IIIII)V");
+	jmethodID sendVideoSourceParams = (*env)->GetMethodID(env, (jclass)gStreamIn_javaClass_id, "sendVideoSourceParams", "(IIIII)V");
 	if (sendVideoSourceParams == NULL) return -1; // TODO: what is error code here
 
 	(*env)->CallVoidMethod(env, CresDataDB->app, sendVideoSourceParams, (jint)source, (jint)width, (jint)height, (jint)framerate, (jint)profile);
@@ -926,7 +925,7 @@ int csio_jni_CreatePipeline(GstElement **pipeline,GstElement **source,eProtocolI
 	    }
 	    case ePROTOCOL_MULTICAST_TS:
 	    {
-	    	strcpy(data->multicast_grp,currentSettingsDB.videoSettings[iStreamId].multicastAddress);
+	    	strcpy(data->multicast_grp, (char*)currentSettingsDB.videoSettings[iStreamId].multicastAddress);
 		    if(currentSettingsDB.videoSettings[iStreamId].tsEnabled==STREAM_TRANSPORT_MPEG2TS_RTP){
 			data->element_zero = gst_element_factory_make("rtpbin", NULL);
 			gst_bin_add(GST_BIN(data->pipeline), data->element_zero);
@@ -983,7 +982,7 @@ int csio_jni_CreatePipeline(GstElement **pipeline,GstElement **source,eProtocolI
 	    case ePROTOCOL_MULTICAST:
 	    {
 	    	//GST_ERROR ("ePROTOCOL_MULTICAST\n");
-	    	strcpy(data->multicast_grp,currentSettingsDB.videoSettings[iStreamId].multicastAddress);
+	    	strcpy(data->multicast_grp,(char*)currentSettingsDB.videoSettings[iStreamId].multicastAddress);
 
 	    	//build_udp_pipeline(data,protoId);
 	    	data->element_zero = gst_element_factory_make("rtpbin", NULL);
@@ -1403,7 +1402,7 @@ void *csio_SendInitiatorAddressFb( void * arg )
 
 	initiatorAddress_jstr = (*env)->NewStringUTF(env, initiatorAddress_cstr);
 
-	jmethodID sendInitiatorAddress = (*env)->GetMethodID(env, gStreamIn_javaClass_id, "sendInitiatorFbAddress", "(Ljava/lang/String;I)V");
+	jmethodID sendInitiatorAddress = (*env)->GetMethodID(env, (jclass)gStreamIn_javaClass_id, "sendInitiatorFbAddress", "(Ljava/lang/String;I)V");
 	if (sendInitiatorAddress == NULL) return NULL;
 
 	(*env)->CallVoidMethod(env, CresDataDB->app, sendInitiatorAddress, initiatorAddress_jstr, 0);
@@ -1419,7 +1418,7 @@ void *csio_SendInitiatorAddressFb( void * arg )
 void csio_jni_recoverDucati()
 {
     JNIEnv *env = get_jni_env ();
-    jmethodID recoverDucati = (*env)->GetMethodID(env, gStreamIn_javaClass_id, "recoverDucati", "()V");
+    jmethodID recoverDucati = (*env)->GetMethodID(env, (jclass)gStreamIn_javaClass_id, "recoverDucati", "()V");
     if (recoverDucati == NULL) return;
 
     (*env)->CallVoidMethod(env, CresDataDB->app, recoverDucati);
