@@ -22,12 +22,7 @@ public class StreamIn {
 		if (CresStreamCtrl.useGstreamer)
 		GstreamIn.resetStatistics(sessId);
 	}
-	
-	// Interface Methods
-	public void setSessionIndex(int id) {
-		strategy.setSessionIndex(id);
-	}
-	
+		
     public void setRtspPort(int port, int sessionId) {
     	strategy.setRtspPort(port, sessionId);
     }
@@ -138,7 +133,6 @@ public class StreamIn {
 }
 
 interface StreamInStrategy{
-    public void setSessionIndex(int id);    
     public void setRtspPort(int port, int sessionId);    
     public void setTsPort(int port, int sessionId);    
     public void setRtpVideoPort(int port, int sessionId);    

@@ -27,18 +27,12 @@ public class NstreamIn implements StreamInStrategy, OnPreparedListener, OnComple
     boolean tcpInterleaveFlag[] = {false, false};	//TODO: investigate if this should go into userSettings, needs to be enum
     boolean disableLatencyFlag[] = {false, false};
     private CresStreamCtrl streamCtl;
-//    private int idx = 0;
-
 
     //public StreamIn(CresStreamCtrl mContext, SurfaceHolder vHolder) {
     public NstreamIn(CresStreamCtrl mContext) {
         Log.e(TAG, "StreamIN :: Constructor called...!");
         //vidHolder = vHolder;
         streamCtl = mContext;
-    }
-
-    public void setSessionIndex(int id){
-//        idx = id;
     }
     
     //MJPEG IN  ??? Not Needed

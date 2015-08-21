@@ -1320,7 +1320,7 @@ public class CresStreamCtrl extends Service {
 
     private void showStreamInWindow(int sessId)
     {
-        Log.d(TAG, "streamin Window  showing" + sessId);
+        Log.d(TAG, "streamin Window  showing " + sessId);
         showWindow(sessId);
     }
 
@@ -1361,7 +1361,6 @@ public class CresStreamCtrl extends Service {
     {
         updateWindow(sessId);
         showStreamInWindow(sessId);
-        //streamPlay.setSessionIndex(sessId);
         invalidateSurface();
         streamPlay.onStart(sessId);
         //Toast.makeText(this, "StreamIN Started", Toast.LENGTH_LONG).show();
@@ -1377,7 +1376,6 @@ public class CresStreamCtrl extends Service {
 
     public void stopStreamIn(int sessId)
     {
-        //streamPlay.setSessionIndex(sessId);
         streamPlay.onStop(sessId);
         //Toast.makeText(this, "StreamIN Stopped", Toast.LENGTH_LONG).show();
         hideStreamInWindow(sessId);
@@ -1385,9 +1383,7 @@ public class CresStreamCtrl extends Service {
 
     public void pauseStreamIn(int sessId)
     {
-    	//streamPlay.setSessionIndex(sessId);
         streamPlay.onPause(sessId);
-        //TODO
     }
 
     //Preview 

@@ -29,7 +29,7 @@ extern "C" {
  * Method:    		nativeSetSeverUrl
  * Signature: 		(Ljava/lang/string; I)V
  */
-JNIEXPORT void JNICALL Java_com_crestron_txrxservice_GstreamIn_nativeSetSeverUrl(JNIEnv *, jobject, jstring, jint);
+JNIEXPORT void JNICALL Java_com_crestron_txrxservice_GstreamIn_nativeSetServerUrl(JNIEnv *, jobject, jstring, jint);
 
 /*
  * Class:     GstreamIn

@@ -18,6 +18,8 @@
 GST_DEBUG_CATEGORY_STATIC (debug_category);
 #define GST_CAT_DEFAULT debug_category
 
+#define MAX_STREAMS 2
+
 ///////////////////////////////////////////////////////////////////////////////
 
 typedef struct
@@ -28,10 +30,9 @@ typedef struct
 	unsigned int height;
 } CRESTWINDOW;
 
-/* Structure to contain all our information, so we can pass it to callbacks */
-typedef struct _CustomData 
+/* per-stream info */
+typedef struct _CREGSTREAM 
 {
-	jobject app;            /* Application instance, used to call its methods. A global reference is kept. */
 	ANativeWindow *native_window; /* The Android native window where video will be rendered */
 
 	//pthread_mutex_t ready_to_start_playing_lock;
@@ -71,17 +72,26 @@ typedef struct _CustomData
 	GstCaps * caps_a_rtp;
 	char port_range_text[32];
 	int do_udp_ts;
+} CREGSTREAM;
+
+/* Structure to contain all our information, so we can pass it to callbacks */
+typedef struct _CustomData 
+{
+	jobject app;            /* Application instance, used to call its methods. A global reference is kept. */
+	
+    CREGSTREAM stream[MAX_STREAMS];
 } CustomData;
 
 ///////////////////////////////////////////////////////////////////////////////
 
-extern void *app_function (void *userdata);
-extern void set_ui_message (const gchar *message, CustomData *data);
-extern void check_initialization_complete (CustomData *data);
-extern void init_custom_data(void *userdata);
-
+//extern void *app_function (void *userdata);
+//extern void set_ui_message (const gchar *message, CustomData *data);
+//extern void check_initialization_complete (CustomData *data, int stream);
+extern void init_custom_data(CustomData * cdata);
+extern int build_audio_pipeline(gchar *encoding_name, CREGSTREAM *data, int do_rtp,GstElement **ele0,GstElement **sink);
+extern int build_video_pipeline(gchar *encoding_name, CREGSTREAM *data, unsigned int start, int do_rtp,GstElement **ele0,GstElement **sink);
+extern void build_http_pipeline(CREGSTREAM *data, int iStreamId);
 
 extern void csio_PadAddedMsgHandler(GstElement *src, GstPad *new_pad, void *pCstreamer);
-
 
 #endif

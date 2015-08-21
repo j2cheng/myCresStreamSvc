@@ -46,10 +46,10 @@
 
 ///////////////////////////////////////////////////////////////////////////////
 
-static int build_audio_pipeline(gchar *encoding_name, CustomData *data, int do_rtp,GstElement **ele0,GstElement **sink);
-static int build_video_pipeline(gchar *encoding_name, CustomData *data, unsigned int start, int do_rtp,GstElement **ele0,GstElement **sink);
+extern int g_using_glimagsink;
 
 ///////////////////////////////////////////////////////////////////////////////
+
 // Write stride value to a file so that gstreamer base libraries can use it.
 static void crestron_set_stride(int stride) {
      FILE * pf;
@@ -86,7 +86,7 @@ static void crestron_set_stride(int stride) {
  * \note		The pipeline begins with rtspsrc and rtpmp2tdepay		
  *
  */
-static void pad_added_callback2 (GstElement *src, GstPad *new_pad, CustomData *data) 
+static void pad_added_callback2 (GstElement *src, GstPad *new_pad, CREGSTREAM *data) 
 {
     GstCaps      *new_pad_caps   = gst_pad_query_caps( new_pad, NULL );
     GstStructure *new_pad_struct = gst_caps_get_structure( new_pad_caps, 0 );
@@ -188,7 +188,7 @@ static void pad_added_callback2 (GstElement *src, GstPad *new_pad, CustomData *d
  * 				RTP depayloaders will be added as needed.
  * 
  */
-static int build_video_pipeline(gchar *encoding_name, CustomData *data, unsigned int start, int do_rtp,GstElement **ele0,GstElement **sink)
+int build_video_pipeline(gchar *encoding_name, CREGSTREAM *data, unsigned int start, int do_rtp,GstElement **ele0,GstElement **sink)
 {
 	unsigned int i = start;
 	int do_window = 1;
@@ -354,7 +354,7 @@ static int build_video_pipeline(gchar *encoding_name, CustomData *data, unsigned
  *
  * \todo		check for failures
  */
-static int build_audio_pipeline(gchar *encoding_name, CustomData *data, int do_rtp,GstElement **ele0,GstElement **sink)
+int build_audio_pipeline(gchar *encoding_name, CREGSTREAM *data, int do_rtp,GstElement **ele0,GstElement **sink)
 {
 	unsigned int start = 0;
 	unsigned int i = start;
@@ -450,96 +450,97 @@ static int build_audio_pipeline(gchar *encoding_name, CustomData *data, int do_r
  * \note        For rtspsrc or souphttpsrc.
  *
  */
-static void pad_added_callback(GstElement *src, GstPad *new_pad, CustomData *data) 
-{
-    GstCaps      *new_pad_caps   = gst_pad_query_caps( new_pad, NULL );
-    GstStructure *new_pad_struct = gst_caps_get_structure( new_pad_caps, 0 );
-    const gchar  *new_pad_type = gst_value_serialize(gst_structure_get_value( new_pad_struct, "media" ));
-    GstElement *sinker = NULL;
-    GstElement *ele0 = NULL;
-	gchar        *encoding_name   = NULL;
-	const GValue* value = NULL;
-	int do_rtp = 0;
-	gchar * p_caps_string;
-	
-	if(new_pad_type == NULL)
-	{
-		GST_ERROR("Null pad type");
-		return;
-	}
-	
-	gst_element_set_state( data->pipeline, GST_STATE_PAUSED);
-	
-    value = gst_structure_get_value( new_pad_struct, "encoding-name" );
-    encoding_name = gst_value_serialize( value );
-	p_caps_string = gst_caps_to_string (new_pad_caps);
-	if(strncmp(p_caps_string, "application/x-rtp", 17) == 0)
-	{
-		do_rtp = 1;
-	}
-	GST_DEBUG("Pad added callback, type=%s, encoding_name=%s", new_pad_type, encoding_name);
-	GST_DEBUG ("caps are %" GST_PTR_FORMAT, new_pad_caps);
-	
-    if (strncmp("audio", new_pad_type, 5) == 0)
-    {
-		build_audio_pipeline(encoding_name, data, do_rtp,&ele0,&sinker);
-        sinker = data->element_a[0];
-		GST_DEBUG ("Completing audio pipeline");
-    }
-    else if (strncmp("video", new_pad_type, 5) == 0)
-    {
-		build_video_pipeline(encoding_name, data, 0, do_rtp,&ele0,&sinker);
-        sinker = data->element_v[0];
-		GST_DEBUG ("Completing video pipeline");
-    }
-    else
-    {
-        GST_ERROR ("Unknown stream type: %s", new_pad_type);
-		gst_caps_unref( new_pad_caps );
-		g_free( encoding_name );
-		return;
-    }
-	
-	if(sinker == NULL)
-	{
-		GST_ERROR("Empty video pipeline, not linking");
-		gst_caps_unref( new_pad_caps );		
-		g_free(encoding_name);
-		return;
-	}
-	
-	// Get the pad given an element.
-	GstPad *sink_pad = gst_element_get_static_pad (sinker, "sink");
-	if(gst_pad_is_linked (sink_pad)) 
-	{
-		GST_ERROR ("sink pad is already linked");
-		gst_object_unref(sink_pad);
-		gst_caps_unref( new_pad_caps );		
-		g_free(encoding_name);
-		return;
-	}
-
-	// Link rest of pipeline to beginning.
-    gst_pad_link(new_pad, sink_pad);
-    
-	gst_element_set_state( data->pipeline, GST_STATE_PLAYING);
-	
-	// cleanup
-	gst_object_unref(sink_pad);
-    gst_caps_unref(new_pad_caps);
-	g_free(encoding_name);
-}
+// csio_PadAddedMsgHandler is used instead of this.
+// The code is left here as an example.
+// static void pad_added_callback(GstElement *src, GstPad *new_pad, CustomData *data) 
+// {
+//     GstCaps      *new_pad_caps   = gst_pad_query_caps( new_pad, NULL );
+//     GstStructure *new_pad_struct = gst_caps_get_structure( new_pad_caps, 0 );
+//     const gchar  *new_pad_type = gst_value_serialize(gst_structure_get_value( new_pad_struct, "media" ));
+//     GstElement *sinker = NULL;
+//     GstElement *ele0 = NULL;
+// 	gchar        *encoding_name   = NULL;
+// 	const GValue* value = NULL;
+// 	int do_rtp = 0;
+// 	gchar * p_caps_string;
+// 	
+// 	if(new_pad_type == NULL)
+// 	{
+// 		GST_ERROR("Null pad type");
+// 		return;
+// 	}
+// 	
+// 	gst_element_set_state( data->pipeline, GST_STATE_PAUSED);
+// 	
+//     value = gst_structure_get_value( new_pad_struct, "encoding-name" );
+//     encoding_name = gst_value_serialize( value );
+// 	p_caps_string = gst_caps_to_string (new_pad_caps);
+// 	if(strncmp(p_caps_string, "application/x-rtp", 17) == 0)
+// 	{
+// 		do_rtp = 1;
+// 	}
+// 	GST_DEBUG("Pad added callback, type=%s, encoding_name=%s", new_pad_type, encoding_name);
+// 	GST_DEBUG ("caps are %" GST_PTR_FORMAT, new_pad_caps);
+// 	
+//     if (strncmp("audio", new_pad_type, 5) == 0)
+//     {
+// 		build_audio_pipeline(encoding_name, data, do_rtp,&ele0,&sinker);
+//         sinker = data->element_a[0];
+// 		GST_DEBUG ("Completing audio pipeline");
+//     }
+//     else if (strncmp("video", new_pad_type, 5) == 0)
+//     {
+// 		build_video_pipeline(encoding_name, data, 0, do_rtp,&ele0,&sinker);
+//         sinker = data->element_v[0];
+// 		GST_DEBUG ("Completing video pipeline");
+//     }
+//     else
+//     {
+//         GST_ERROR ("Unknown stream type: %s", new_pad_type);
+// 		gst_caps_unref( new_pad_caps );
+// 		g_free( encoding_name );
+// 		return;
+//     }
+// 	
+// 	if(sinker == NULL)
+// 	{
+// 		GST_ERROR("Empty video pipeline, not linking");
+// 		gst_caps_unref( new_pad_caps );		
+// 		g_free(encoding_name);
+// 		return;
+// 	}
+// 	
+// 	// Get the pad given an element.
+// 	GstPad *sink_pad = gst_element_get_static_pad (sinker, "sink");
+// 	if(gst_pad_is_linked (sink_pad)) 
+// 	{
+// 		GST_ERROR ("sink pad is already linked");
+// 		gst_object_unref(sink_pad);
+// 		gst_caps_unref( new_pad_caps );		
+// 		g_free(encoding_name);
+// 		return;
+// 	}
+// 
+// 	// Link rest of pipeline to beginning.
+//     gst_pad_link(new_pad, sink_pad);
+//     
+// 	gst_element_set_state( data->pipeline, GST_STATE_PLAYING);
+// 	
+// 	// cleanup
+// 	gst_object_unref(sink_pad);
+//     gst_caps_unref(new_pad_caps);
+// 	g_free(encoding_name);
+// }
 
 // "souphttpsrc location=http://ssabet.no-ip.org:8084/video.mjpg ! jpegdec ! glimagesink" works with gst_parse_launch,
 // but here we get internal data flow error!?
-static void build_http_pipeline(void * userdata, int iStreamId)
+void build_http_pipeline(CREGSTREAM *data, int iStreamId)
 {
 	char *url = (char *)currentSettingsDB.settingsMessage.msg[iStreamId].url;
-	CustomData *data = (CustomData *)userdata;
 	
-	/*if(g_str_has_suffix(url, ".mjpg") || g_str_has_suffix(url, ".mjpeg") || g_str_has_suffix(url, ".cgi")
+	if(g_str_has_suffix(url, ".mjpg") || g_str_has_suffix(url, ".mjpeg") || g_str_has_suffix(url, ".cgi")
 		|| g_str_has_suffix(url, ".jpg") || g_str_has_suffix(url, ".jpeg"))
-	{*/		
+	{		
 		GstElement *sinker = NULL;
 		GstElement *ele0 = NULL;
 
@@ -551,33 +552,34 @@ static void build_http_pipeline(void * userdata, int iStreamId)
 		build_video_pipeline("image/jpeg", data, 0, 0,&ele0,&sinker);
 		gst_element_link_many(data->element_zero, data->element_v[0], NULL);
 		data->element_zero = NULL;	// no callbacks
-	/*}
-	else if(g_str_has_suffix(url, ".mp4"))
-	{
-		data->element_av[0] = gst_element_factory_make("souphttpsrc", NULL);
-		g_object_set(G_OBJECT(data->element_av[0]), "location", url, NULL);
-		gst_bin_add(GST_BIN(data->pipeline), data->element_av[0]);
-
-		data->element_zero = gst_element_factory_make("qtdemux", NULL);
-		gst_bin_add(GST_BIN(data->pipeline), data->element_zero);
-
-		gst_element_link_many(data->element_av[0], data->element_zero, NULL);
 	}
-	else if(g_str_has_suffix(url, ".flv"))
-	{
-		data->element_av[0] = gst_element_factory_make("souphttpsrc", NULL);
-		g_object_set(G_OBJECT(data->element_av[0]), "location", url, NULL);
-		gst_bin_add(GST_BIN(data->pipeline), data->element_av[0]);
-
-		data->element_zero = gst_element_factory_make("flvdemux", NULL);
-		gst_bin_add(GST_BIN(data->pipeline), data->element_zero);
-
-		gst_element_link_many(data->element_av[0], data->element_zero, NULL);
-	}
+// The following file types work, but don't want to support them for now.
+// 	else if(g_str_has_suffix(url, ".mp4"))
+// 	{
+// 		data->element_av[0] = gst_element_factory_make("souphttpsrc", NULL);
+// 		g_object_set(G_OBJECT(data->element_av[0]), "location", url, NULL);
+// 		gst_bin_add(GST_BIN(data->pipeline), data->element_av[0]);
+// 
+// 		data->element_zero = gst_element_factory_make("qtdemux", NULL);
+// 		gst_bin_add(GST_BIN(data->pipeline), data->element_zero);
+// 
+// 		gst_element_link_many(data->element_av[0], data->element_zero, NULL);
+// 	}
+// 	else if(g_str_has_suffix(url, ".flv"))
+// 	{
+// 		data->element_av[0] = gst_element_factory_make("souphttpsrc", NULL);
+// 		g_object_set(G_OBJECT(data->element_av[0]), "location", url, NULL);
+// 		gst_bin_add(GST_BIN(data->pipeline), data->element_av[0]);
+// 
+// 		data->element_zero = gst_element_factory_make("flvdemux", NULL);
+// 		gst_bin_add(GST_BIN(data->pipeline), data->element_zero);
+// 
+// 		gst_element_link_many(data->element_av[0], data->element_zero, NULL);
+// 	}
 	else
 	{
 		GST_DEBUG("Unsupported http url %s", url);
-	}*/
+	}
 }
 
 /**
@@ -593,20 +595,21 @@ static void build_http_pipeline(void * userdata, int iStreamId)
  * \param		msg
  * \param		data
  */
-static void error_callback(GstBus *bus, GstMessage *msg, CustomData *data) 
-{
-	GError *err;
-	gchar *debug_info;
-	gchar *message_string;
-
-	gst_message_parse_error (msg, &err, &debug_info);
-	message_string = g_strdup_printf ("Error received from element %s: %s", GST_OBJECT_NAME (msg->src), err->message);
-	g_clear_error (&err);
-	g_free (debug_info);
-	set_ui_message (message_string, data);
-	g_free (message_string);
-	gst_element_set_state (data->pipeline, GST_STATE_NULL);
-}
+// Not used.
+// static void error_callback(GstBus *bus, GstMessage *msg, CustomData *data) 
+// {
+// 	GError *err;
+// 	gchar *debug_info;
+// 	gchar *message_string;
+// 
+// 	gst_message_parse_error (msg, &err, &debug_info);
+// 	message_string = g_strdup_printf ("Error received from element %s: %s", GST_OBJECT_NAME (msg->src), err->message);
+// 	g_clear_error (&err);
+// 	g_free (debug_info);
+// 	set_ui_message (message_string, data);
+// 	g_free (message_string);
+// 	gst_element_set_state (data->pipeline, GST_STATE_NULL);
+// }
 
 /**
  * \author      Pete McCormick
@@ -621,18 +624,18 @@ static void error_callback(GstBus *bus, GstMessage *msg, CustomData *data)
  * \param		msg
  * \param		data
  */
-static void state_changed_callback (GstBus *bus, GstMessage *msg, CustomData *data) 
-{
-	GstState old_state, new_state, pending_state;
-	gst_message_parse_state_changed (msg, &old_state, &new_state, &pending_state);
-	/* Only pay attention to messages coming from the pipeline, not its children */
-	if (GST_MESSAGE_SRC (msg) == GST_OBJECT (data->pipeline)) 
-	{
-		gchar *message = g_strdup_printf("State changed to %s", gst_element_state_get_name(new_state));
-		set_ui_message(message, data);
-		g_free (message);
-	}
-}
+// static void state_changed_callback (GstBus *bus, GstMessage *msg, CustomData *data) 
+// {
+// 	GstState old_state, new_state, pending_state;
+// 	gst_message_parse_state_changed (msg, &old_state, &new_state, &pending_state);
+// 	/* Only pay attention to messages coming from the pipeline, not its children */
+// 	if (GST_MESSAGE_SRC (msg) == GST_OBJECT (data->pipeline)) 
+// 	{
+// 		gchar *message = g_strdup_printf("State changed to %s", gst_element_state_get_name(new_state));
+// 		set_ui_message(message, data);
+// 		g_free (message);
+// 	}
+// }
 
 /**
  * \author      Pete McCormick
@@ -650,55 +653,61 @@ static void state_changed_callback (GstBus *bus, GstMessage *msg, CustomData *da
  * \note		This would be a good place to pull these values 
  * 				from The Platform or somewhere else in the system.
  */
-void init_custom_data(void * userdata)
+void init_custom_data(CustomData * cdata)
 {
-	CustomData *data = (CustomData *)userdata;	
+	int i;
+	CREGSTREAM * data;
 	
 	GST_DEBUG_CATEGORY_INIT (debug_category, "cregstplay", 0, "Crestron gstreamer player!");
 	gst_debug_set_threshold_for_name("cregstplay", GST_LEVEL_DEBUG);
 
-	data->udp_port = 9700;
-	data->udp_video_port = 2048;
-	data->udp_audio_port = 2049;
-	data->tcp_timeout_usec = 3000000;
-	data->udp_timeout_usec = 3000000;
-	data->protocols = GST_RTSP_LOWER_TRANS_UDP|GST_RTSP_LOWER_TRANS_UDP_MCAST|GST_RTSP_LOWER_TRANS_TCP;
+	for(i=0; i<MAX_STREAMS; i++)
+	{
+		data = &cdata->stream[i];
+		data->udp_port = 9700;
+		data->udp_video_port = 2048;
+		data->udp_audio_port = 2049;
+		data->tcp_timeout_usec = 3000000;
+		data->udp_timeout_usec = 3000000;
+		data->protocols = GST_RTSP_LOWER_TRANS_UDP|GST_RTSP_LOWER_TRANS_UDP_MCAST|GST_RTSP_LOWER_TRANS_TCP;
 
-	// Tried keeping these as strings, but would crash when g_object_set was called for udpsrc.
-	data->caps_v_rtp = gst_caps_new_simple(
-		"application/x-rtp",
-		"media",         G_TYPE_STRING, "video",
-		"clock-rate",    G_TYPE_INT,     90000,
-		"encoding-name", G_TYPE_STRING, "H264",
-		"payload",       G_TYPE_INT,     96,
-		NULL );
+		// Tried keeping these as strings, but would crash when g_object_set was called for udpsrc.
+		data->caps_v_rtp = gst_caps_new_simple(
+			"application/x-rtp",
+			"media",         G_TYPE_STRING, "video",
+			"clock-rate",    G_TYPE_INT,     90000,
+			"encoding-name", G_TYPE_STRING, "H264",
+			"payload",       G_TYPE_INT,     96,
+			NULL );
 
-	data->caps_a_rtp = gst_caps_new_simple (
-		"application/x-rtp",
-		"media",        G_TYPE_STRING, "audio",
-		"clock-rate",   G_TYPE_INT,     48000,
-		"encoding-name",G_TYPE_STRING, "MPEG4-GENERIC",
-		"config",G_TYPE_STRING, "1210",
-		"sizelength",G_TYPE_STRING, "13",
-		"payload",    G_TYPE_INT,     127,
-		"streamtype",G_TYPE_STRING, "4",
-		"mode",G_TYPE_STRING, "generic",
-		NULL);
+		data->caps_a_rtp = gst_caps_new_simple (
+			"application/x-rtp",
+			"media",        G_TYPE_STRING, "audio",
+			"clock-rate",   G_TYPE_INT,     48000,
+			"encoding-name",G_TYPE_STRING, "MPEG4-GENERIC",
+			"config",G_TYPE_STRING, "1210",
+			"sizelength",G_TYPE_STRING, "13",
+			"payload",    G_TYPE_INT,     127,
+			"streamtype",G_TYPE_STRING, "4",
+			"mode",G_TYPE_STRING, "generic",
+			NULL);
 
-	// This is if there's ts encapsulation.
-	data->caps_v_ts = gst_caps_new_simple(
-		"application/x-rtp",
-		"media",         G_TYPE_STRING, "video",
-		"clock-rate",    G_TYPE_INT,     90000,
-		"encoding-name", G_TYPE_STRING, "MP2T",
-		"payload",       G_TYPE_INT,     33,
-		NULL );
+		// This is if there's ts encapsulation.
+		data->caps_v_ts = gst_caps_new_simple(
+			"application/x-rtp",
+			"media",         G_TYPE_STRING, "video",
+			"clock-rate",    G_TYPE_INT,     90000,
+			"encoding-name", G_TYPE_STRING, "MP2T",
+			"payload",       G_TYPE_INT,     33,
+			NULL );
 
-	// Pretend ts is on for now
-	data->caps_v = data->caps_v_ts;
-	data->caps_a = NULL;
-	//data->do_udp_ts = 1;
+		// Pretend ts is on for now
+		data->caps_v = data->caps_v_ts;
+		data->caps_a = NULL;
+		//data->do_udp_ts = 1;
+	}
 }
+
 void set_gst_debug_level(void)
 {
 	gchar temp[256];

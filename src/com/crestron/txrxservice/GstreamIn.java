@@ -35,11 +35,11 @@ public class GstreamIn implements StreamInStrategy, SurfaceHolder.Callback {
     private native void nativePause(int sessionId);    // Set pipeline to PAUSED
     private native void nativeStop(int sessionId);    // Set pipeline to NULL
     private static native boolean nativeClassInit(); // Initialize native class: cache Method IDs for callbacks
-    private native void nativeSurfaceInit(Object surface);
-    private native void nativeSurfaceFinalize();
+    private native void nativeSurfaceInit(Object surface, int sessionId);
+    private native void nativeSurfaceFinalize(int sessionId);
     private long native_custom_data;      // Native code will use this to keep private data
 
-    private static native void 	nativeSetSeverUrl(String url, int sessionId);
+    private static native void 	nativeSetServerUrl(String url, int sessionId);
     private native void 		nativeSetRtspPort(int port, int sessionId);
     private native void 		nativeSetTsPort(int port, int sessionId);
     private native void 		nativeSetRtpVideoPort(int port, int sessionId);
@@ -70,12 +70,8 @@ public class GstreamIn implements StreamInStrategy, SurfaceHolder.Callback {
         nativeInit();
     }
 
-    public void setSessionIndex(int id){
-        //idx = id;
-    }
-
     public static void setServerUrl(String url, int sessionId){
-    	nativeSetSeverUrl(url, sessionId);	
+    	nativeSetServerUrl(url, sessionId);	
 	}
     
     public void setRtspPort(int port, int sessionId){
@@ -227,9 +223,10 @@ public class GstreamIn implements StreamInStrategy, SurfaceHolder.Callback {
     //Play based on based Pause/Actual Playback 
     public void onStart(int sessionId) {
     	try {
-    		streamCtl.getCresSurfaceHolder(sessionId).addCallback(this); //needed?
+			SurfaceHolder sh = streamCtl.getCresSurfaceHolder(sessionId);
+    		sh.addCallback(this); //needed?
     		updateNativeDataStruct(sessionId);
-    		nativeSurfaceInit (streamCtl.getCresSurfaceHolder(sessionId).getSurface());
+    		nativeSurfaceInit(sh.getSurface(), sessionId);
     		nativePlay(sessionId);
     	}
     	catch(Exception e){
@@ -249,7 +246,7 @@ public class GstreamIn implements StreamInStrategy, SurfaceHolder.Callback {
     	new Thread(new Runnable() {
     		public void run() {
 		        Log.d(TAG, "Stopping MediaPlayer");
-		        nativeSurfaceFinalize ();
+		        nativeSurfaceFinalize (sessionId);
 		        nativeStop(sessionId);
 		        latch.countDown();
     		}
@@ -332,7 +329,7 @@ public class GstreamIn implements StreamInStrategy, SurfaceHolder.Callback {
 
     // Called from native code. Native code calls this once it has created its pipeline and
     // the main loop is running, so it is ready to accept commands.
-    private void onGStreamerInitialized () {
+//    private void onGStreamerInitialized () {
 //         Log.i ("GStreamer", "Gst initialized. Restoring state, playing:" + is_playing_desired);
 //         // Restore previous playing state
 //         if (is_playing_desired) {
@@ -340,7 +337,7 @@ public class GstreamIn implements StreamInStrategy, SurfaceHolder.Callback {
 //         } else {
 //             nativePause();
 //         }
-    }
+//    }
 
 
 
@@ -351,23 +348,55 @@ public class GstreamIn implements StreamInStrategy, SurfaceHolder.Callback {
         System.loadLibrary("gstreamer_jni");        
         nativeClassInit();
     }
-
+ 
+	// Find the session id (aka stream number) given a surface holder.
+	// Returns <0 for failure.
+    private int sessionIdFromSurfaceHolder(SurfaceHolder holder) {
+		int i;
+		for(i=0; i<CresStreamCtrl.NumOfSurfaces; i++) {
+			if(streamCtl.getCresSurfaceHolder(i) == null){
+			    continue;
+			}
+			if(streamCtl.getCresSurfaceHolder(i) == holder) {
+				return i;
+			}			
+		}    
+		return -1;
+    }
+    
     //TODO: check if we can delete implements surface for class
     public void surfaceChanged(SurfaceHolder holder, int format, int width,
             int height) {
-        Log.d("GStreamer", "Surface changed to format " + format + " width "
-                + width + " height " + height);
-        nativeSurfaceInit (holder.getSurface());
+		int sessionId = sessionIdFromSurfaceHolder(holder);     
+		if(sessionId < 0)
+		{
+		    Log.d("GStreamer","Failed to get session id from surface holder");
+		    return;
+		}
+        Log.d("GStreamer", "Surface for stream " + sessionId + " changed to format " + format + " width "
+                + width + " height " + height);		
+        nativeSurfaceInit (holder.getSurface(), sessionId);
     }
 
     public void surfaceCreated(SurfaceHolder holder) {
-        Log.d("GStreamer", "Surface created: " + holder.getSurface());
-        nativeSurfaceInit (holder.getSurface());
+        int sessionId = sessionIdFromSurfaceHolder(holder);        
+   		if(sessionId < 0)
+		{
+		    Log.d("GStreamer","Failed to get session id from surface holder");
+		    return;
+		}
+        Log.d("GStreamer", "Surface for stream " + sessionId + " created: " + holder.getSurface());
+        nativeSurfaceInit (holder.getSurface(), sessionId);
     }
 
-    public void surfaceDestroyed(SurfaceHolder holder) {
-        Log.d("GStreamer", "Surface destroyed");
-        nativeSurfaceFinalize ();
+    public void surfaceDestroyed(SurfaceHolder holder) {        
+        int sessionId = sessionIdFromSurfaceHolder(holder);        
+		if(sessionId < 0)
+		{
+		    Log.d("GStreamer","Failed to get session id from surface holder");
+		    return;
+		}        
+		Log.d("GStreamer", "Surface for stream " + sessionId + " destroyed");		
+        nativeSurfaceFinalize (sessionId);
     }
-
 }

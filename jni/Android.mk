@@ -5,8 +5,10 @@ CSIO_INCLUDE_ROOT := $(LOCAL_PATH)/../../csio
 CSIO_ROOT := ../../csio
 CRESTRON_ROOT := $(LOCAL_PATH)/../..
 LOCAL_MODULE    := libgstreamer_jni
-LOCAL_SRC_FILES := jni.c \
-    gst_element_print_properties.c \
+LOCAL_SRC_FILES := \
+	jni.c \
+	cregstplay.c \
+	gst_element_print_properties.c \
 	$(CSIO_ROOT)/gstreamer-1.0/csioutils.cpp \
 	$(CSIO_ROOT)/gstreamer-1.0/cstream.cpp \
 	$(CSIO_ROOT)/gstreamer-1.0/cstreamer.cpp \
