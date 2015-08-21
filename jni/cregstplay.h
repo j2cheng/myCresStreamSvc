@@ -94,4 +94,6 @@ extern void build_http_pipeline(CREGSTREAM *data, int iStreamId);
 
 extern void csio_PadAddedMsgHandler(GstElement *src, GstPad *new_pad, void *pCstreamer);
 
+extern void set_gst_debug_level(void);
+
 #endif
