@@ -417,35 +417,10 @@ JNIEXPORT void JNICALL Java_com_crestron_txrxservice_GstreamIn_nativeSetServerUr
 	const char * url_cstring = (*env)->GetStringUTFChars( env, url_jstring , NULL ) ;
 	if (url_cstring == NULL) return;
 
-	if ((strcasecmp(url_cstring, currentSettingsDB.settingsMessage.msg[sessionId].url) != 0))
-	{
-		restartStream = 1;
+	GST_DEBUG ("Using server url: '%s'", url_cstring);
+	csio_SetURL(sessionId, url_cstring, strlen(url_cstring) + 1);
 
-		GST_DEBUG ("Using URL: '%s'", url_cstring);
-		strcpy(currentSettingsDB.settingsMessage.msg[sessionId].url, url_cstring);
-		(*env)->ReleaseStringUTFChars(env, url_jstring, url_cstring);
-	}
-
-	if ((restartStream) && (GetStartedPlay(sessionId) == 1) && (GetInPausedState(sessionId) == 0))
-	{	    
-		jmethodID onStop = (*env)->GetMethodID(env, gStreamIn_javaClass_id, "onStop", "(I)V");
-		if (onStop == NULL) return;
-
-		(*env)->CallVoidMethod(env, CresDataDB->app, onStop, sessionId);
-		if ((*env)->ExceptionCheck (env)) {
-			GST_ERROR ("Failed to call Java method 'onStop'");
-			(*env)->ExceptionClear (env);
-		}
-
-		jmethodID onStart = (*env)->GetMethodID(env, gStreamIn_javaClass_id, "onStart", "(I)V");
-		if (onStart == NULL) return;
-
-		(*env)->CallVoidMethod(env, CresDataDB->app, onStart, sessionId);
-		if ((*env)->ExceptionCheck (env)) {
-			GST_ERROR ("Failed to call Java method 'onStart'");
-			(*env)->ExceptionClear (env);
-		}
-	}
+	(*env)->ReleaseStringUTFChars(env, url_jstring, url_cstring);
 }
 
 JNIEXPORT void JNICALL Java_com_crestron_txrxservice_GstreamIn_nativeSetRtspPort(JNIEnv *env, jobject thiz, jint port, jint sessionId)
