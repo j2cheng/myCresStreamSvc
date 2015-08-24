@@ -252,6 +252,7 @@ static void gst_native_pause (JNIEnv* env, jobject thiz, jint sessionId)
 
 void csio_jni_cleanup (int iStreamId)
 {
+    int i;
 	CREGSTREAM * data = GetStreamFromCustomData(CresDataDB, iStreamId);
 
 	if(!data)
@@ -260,9 +261,18 @@ void csio_jni_cleanup (int iStreamId)
 		return;
 	}	
 	
-    data->video_sink = NULL;//TODO: this will be unref by CStreamer.
-    data->audio_sink = NULL;//TODO: this will be unref by CStreamer.
-    data->pipeline   = NULL;//TODO: this will be unref by CStreamer.
+    data->element_zero = NULL;
+	data->video_sink = NULL;
+	data->audio_sink = NULL;
+	data->pipeline = NULL;
+	for(i = 0; i < 10; i++)
+	{
+	    data->element_av [i] = NULL;
+	    data->element_a [i]  = NULL;
+	    data->element_v [i]  = NULL;
+	}
+
+    csio_jni_FreeMainContext(iStreamId);
 }
 
 /* Set pipeline to PAUSED state */
@@ -772,9 +782,13 @@ void csio_jni_FreeMainContext(int iStreamId)
 		GST_ERROR("Could not obtain stream pointer for stream %d", iStreamId);
 		return;
 	}	
-	
-	g_main_context_pop_thread_default(data->context);
-	g_main_context_unref (data->context);
+
+    if(data->context)
+	{
+        g_main_context_pop_thread_default(data->context);
+        g_main_context_unref (data->context);
+        data->context = NULL;
+	}
 }
 
 void csio_jni_CheckInitializationComplete(int iStreamId)
@@ -808,6 +822,8 @@ int csio_jni_CreatePipeline(GstElement **pipeline,GstElement **source,eProtocolI
 		GST_ERROR("Could not obtain stream pointer for stream %d", iStreamId);
 		return CSIO_FAILURE;
 	}	
+
+	csio_jni_CreateMainContext(iStreamId);
 
 	data->pipeline = gst_pipeline_new(NULL);
 
