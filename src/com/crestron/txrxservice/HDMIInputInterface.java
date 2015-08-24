@@ -20,6 +20,7 @@ public class HDMIInputInterface {
 	private static String audioFormat;
 	private static String audioChannels;
 	private static int resolutionIndex;
+	private static boolean isHdmiDriverPresent;
 	
 	public HDMIInputInterface() {
 		syncStatus = "false";
@@ -31,17 +32,21 @@ public class HDMIInputInterface {
 		audioFormat = "1";	//1=PCM for txrx and dge
 		audioChannels = "0";
 		resolutionIndex = 0;
+		isHdmiDriverPresent = (isHdmiDriverPresent | false); //set isHdmiDriverPresentH to false if not set
 	}
 	
 	public void setSyncStatus() {
-		byte[] hdmiInSyncStatus = DisplayManager.getEVSHdmiInSyncStatus();
-		
-		Log.i(TAG, "SyncStatus " + (char)hdmiInSyncStatus[0]);
-
-		if(((char)hdmiInSyncStatus[0] == '1') && (resolutionIndex != 0))
-			syncStatus = "true";
-		else
-			syncStatus = "false";
+		if (isHdmiDriverPresent == true)
+		{
+			byte[] hdmiInSyncStatus = DisplayManager.getEVSHdmiInSyncStatus();
+			
+			Log.i(TAG, "SyncStatus " + (char)hdmiInSyncStatus[0]);
+	
+			if(((char)hdmiInSyncStatus[0] == '1') && (resolutionIndex != 0))
+				syncStatus = "true";
+			else
+				syncStatus = "false";
+		}
 	}
 	
 	public void setResolutionIndex(int index){
@@ -141,84 +146,106 @@ public class HDMIInputInterface {
     {
         File file = new File("/sys/devices/platform/omap_i2c.2/i2c-2/2-000f/sync_state");
         
+        isHdmiDriverPresent = file.exists();
+        
         return file.exists();
     }
     
     public static int getHdmiHpdEventState(){
-        StringBuilder text = new StringBuilder();
-        try {
-            //File sdcard = Environment.getExternalStorageDirectory();
-            File file = new File("/sys/class/switch/evs_hdmi_hpd/state");
-
-            BufferedReader br = new BufferedReader(new FileReader(file));  
-            String line;   
-            while ((line = br.readLine()) != null) {
-                text.append(line);
-                //text.append('\n');
-            }
-            br.close() ;
-        }catch (IOException e) {
-            e.printStackTrace();           
-        }
-        Log.d(TAG, "hpdState:" + text.toString());
-        return Integer.parseInt(text.toString());
+    	if (isHdmiDriverPresent == true)
+		{
+	        StringBuilder text = new StringBuilder();
+	        try {
+	            //File sdcard = Environment.getExternalStorageDirectory();
+	            File file = new File("/sys/class/switch/evs_hdmi_hpd/state");
+	
+	            BufferedReader br = new BufferedReader(new FileReader(file));  
+	            String line;   
+	            while ((line = br.readLine()) != null) {
+	                text.append(line);
+	                //text.append('\n');
+	            }
+	            br.close() ;
+	        }catch (IOException e) {
+	            e.printStackTrace();           
+	        }
+	        Log.d(TAG, "hpdState:" + text.toString());
+	        return Integer.parseInt(text.toString());
+		}
+    	else
+    		return 0;
     }
 
     public static String getHdmiInResolutionSysFs(){
-        StringBuilder text = new StringBuilder();
-        try {
-            File file = new File("/sys/devices/platform/omap_i2c.2/i2c-2/2-000f/hdmi_in_resolution");
-
-            BufferedReader br = new BufferedReader(new FileReader(file));  
-            String line;   
-            while ((line = br.readLine()) != null) {
-                text.append(line);
-            }
-            br.close();
-        }catch (IOException e) {
-            e.printStackTrace();           
-        }
-        Log.d(TAG, "HDMI IN Res from sysfs:" + text.toString());
-        return text.toString();
+    	if (isHdmiDriverPresent == true)
+		{
+	        StringBuilder text = new StringBuilder();
+	        try {
+	            File file = new File("/sys/devices/platform/omap_i2c.2/i2c-2/2-000f/hdmi_in_resolution");
+	
+	            BufferedReader br = new BufferedReader(new FileReader(file));  
+	            String line;   
+	            while ((line = br.readLine()) != null) {
+	                text.append(line);
+	            }
+	            br.close();
+	        }catch (IOException e) {
+	            e.printStackTrace();           
+	        }
+	        Log.d(TAG, "HDMI IN Res from sysfs:" + text.toString());
+	        return text.toString();
+		}
+    	else 
+    		return "0x0@0";
     }
 
     public static int readResolutionEnum(){
-        int resolutionIndex = 0;
-        StringBuilder text = new StringBuilder();
-        try {
-            File file = new File("/sys/class/switch/evs_hdmi_resolution/state");
-            BufferedReader br = new BufferedReader(new FileReader(file));  
-            String line;   
-            while ((line = br.readLine()) != null) {
-                text.append(line);
-            }
-            br.close();
-            
-            resolutionIndex = Integer.parseInt(text.toString());
-        }catch (IOException e) {
-            e.printStackTrace();           
-        }
-        
-        Log.d(TAG, "HDMI IN index from sysfs:" + resolutionIndex);
-        return resolutionIndex;
+    	if (isHdmiDriverPresent == true)
+		{
+	        int resolutionIndex = 0;
+	        StringBuilder text = new StringBuilder();
+	        try {
+	            File file = new File("/sys/class/switch/evs_hdmi_resolution/state");
+	            BufferedReader br = new BufferedReader(new FileReader(file));  
+	            String line;   
+	            while ((line = br.readLine()) != null) {
+	                text.append(line);
+	            }
+	            br.close();
+	            
+	            resolutionIndex = Integer.parseInt(text.toString());
+	        }catch (IOException e) {
+	            e.printStackTrace();           
+	        }
+	        
+	        Log.d(TAG, "HDMI IN index from sysfs:" + resolutionIndex);
+	        return resolutionIndex;
+		}
+    	else
+    		return 0;
     }
     
     public static boolean readHDCPStatus (){
-    	boolean hdcpStatus = false;
-    	StringBuilder text = new StringBuilder();
-        try {
-            File file = new File("/sys/devices/platform/omap_i2c.2/i2c-2/2-000f/hdcp");
-
-            BufferedReader br = new BufferedReader(new FileReader(file));  
-            String line;   
-            while ((line = br.readLine()) != null) {
-                text.append(line);
-            }
-            br.close();
-        }catch (IOException e) {
-            e.printStackTrace();           
-        }
-        Log.d(TAG, "HDMI IN HDCP status from sysfs:" + text.toString());
-        return Integer.parseInt(text.toString()) == 1;
+    	if (isHdmiDriverPresent == true)
+		{
+	    	boolean hdcpStatus = false;
+	    	StringBuilder text = new StringBuilder();
+	        try {
+	            File file = new File("/sys/devices/platform/omap_i2c.2/i2c-2/2-000f/hdcp");
+	
+	            BufferedReader br = new BufferedReader(new FileReader(file));  
+	            String line;   
+	            while ((line = br.readLine()) != null) {
+	                text.append(line);
+	            }
+	            br.close();
+	        }catch (IOException e) {
+	            e.printStackTrace();           
+	        }
+	        Log.d(TAG, "HDMI IN HDCP status from sysfs:" + text.toString());
+	        return Integer.parseInt(text.toString()) == 1;
+		}
+    	else 
+    		return false;
     }
 }

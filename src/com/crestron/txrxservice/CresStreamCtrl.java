@@ -106,6 +106,7 @@ public class CresStreamCtrl extends Service {
     public final static String cameraModeFilePath = "/dev/shm/crestron/CresStreamSvc/cameraMode";
     public volatile boolean mIgnoreMediaServerCrash = false;
     private FileObserver mediaServerObserver;
+    private int previousHdmiInputEnum = 0;
 
     enum DeviceMode {
         STREAM_IN,
@@ -322,6 +323,7 @@ public class CresStreamCtrl extends Service {
         		hdmiInput = new HDMIInputInterface();
         		//refresh resolution on startup
         		hdmiInput.setResolutionIndex(hdmiInput.readResolutionEnum());
+        		previousHdmiInputEnum = hdmiInput.getResolutionIndex();
         		
         		// Call getHdmiInResolutionSysFs in a separate thread so that if read takes a long time we don't get ANR 
                 new Thread(new Runnable() {
@@ -1468,7 +1470,8 @@ public class CresStreamCtrl extends Service {
 //    }
     
     public void RecoverDucati(){
-    	sockTask.SendDataToAllClients("RECOVER_DUCATI=TRUE");
+    	if (sockTask != null)
+    		sockTask.SendDataToAllClients("RECOVER_DUCATI=TRUE");
     }
     
     public void RecoverTxrxService(){
@@ -1518,14 +1521,17 @@ public class CresStreamCtrl extends Service {
 		            	{
 			                if (paramAnonymousIntent.getAction().equals("evs.intent.action.hdmi.RESOLUTION_CHANGED"))
 			                {
-		                        int resolutionId = paramAnonymousIntent.getIntExtra("evs_hdmi_resolution_id", -1);
-			                    int prevResolutionIndex = hdmiInput.getResolutionIndex();
-			                    hdmiInput.setResolutionIndex(resolutionId);
-			                	sendHdmiInSyncState();
-			                	hpdHdmiEvent = 1;
-		                        Log.i(TAG, "HDMI resolutions - HRes:" + hdmiInput.getHorizontalRes() + " Vres:" + hdmiInput.getVerticalRes());
-
-		                        setCamera(resolutionId);
+			                	if (threadLock.getQueueLength() == 0)
+			                	{
+				                	int resolutionId = paramAnonymousIntent.getIntExtra("evs_hdmi_resolution_id", -1);
+				                	setCamera(resolutionId);			                	
+			                        
+				                    int prevResolutionIndex = hdmiInput.getResolutionIndex();
+				                    hdmiInput.setResolutionIndex(resolutionId);
+				                	sendHdmiInSyncState();
+				                	hpdHdmiEvent = 1;
+			                        Log.i(TAG, "HDMI resolutions - HRes:" + hdmiInput.getHorizontalRes() + " Vres:" + hdmiInput.getVerticalRes());
+			                	}
 		                    }
 		                    else
 		                        Log.i(TAG, " Nothing to do!!!");
@@ -1555,6 +1561,7 @@ public class CresStreamCtrl extends Service {
         	                {
         	                	if ((threadLock.getQueueLength() == 0) || (threadLock.getQueueLength() == 1))
         	                	{
+        	                		setNoVideoImage(true);
 	        	                	sendHdmiInSyncState();
 	        	                    int i = paramAnonymousIntent.getIntExtra("evs_hdmi_hdp_id", -1);
 	        	                    Log.i(TAG, "Received hpd broadcast ! " + i);
@@ -1646,8 +1653,25 @@ public class CresStreamCtrl extends Service {
 //    			setHDCPErrorImage(true);
 //    		else
 //    		{
-    			cam_preview.getHdmiInputResolution();
-    			setNoVideoImage(false);
+//    			cam_preview.getHdmiInputResolution();
+	    		if (hdmiInputResolutionEnum != previousHdmiInputEnum)
+	    		{
+	    			previousHdmiInputEnum = hdmiInputResolutionEnum;
+		    		for (int sessionId = 0; sessionId < NumOfSurfaces; ++sessionId)
+		    		{
+		    			if (userSettings.getStreamState(sessionId) == StreamState.CONFIDENCEMODE)
+		    				cam_preview.restartCamera(true);
+		    			else if (userSettings.getStreamState(sessionId) == StreamState.STARTED)
+		    			{
+			    			int deviceMode = userSettings.getMode(sessionId);
+							if (deviceMode == DeviceMode.PREVIEW.ordinal())
+								cam_preview.restartCamera(false);
+							else if (deviceMode == DeviceMode.STREAM_OUT.ordinal())
+								cam_streaming.restartCamera();
+		    			}
+		    		}
+	    		}
+       			setNoVideoImage(false);
     			setHDCPErrorImage(false);
 //    		}			                		
 		 }			                
@@ -1721,7 +1745,7 @@ public class CresStreamCtrl extends Service {
         {			
 	    	try {
 	    		String serializedCameraMode = new Scanner(cameraModeFile, "UTF-8").useDelimiter("\\A").next();
-	    		cameraMode = Integer.parseInt(serializedCameraMode);
+	    		cameraMode = Integer.parseInt(serializedCameraMode.trim());
 	    	} catch (Exception ex) {
 	    		Log.e(TAG, "Failed to read cameraMode: " + ex);
 			}

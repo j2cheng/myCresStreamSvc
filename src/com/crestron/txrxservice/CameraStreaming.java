@@ -60,6 +60,15 @@ public class CameraStreaming implements ErrorCallback {
     public void setSessionIndex(int id){
         idx = id;
     }
+    
+    protected void restartCamera() {
+    	try {
+    		boolean pauseStatus = is_pause;
+	    	stopRecording(false);
+	    	is_pause = pauseStatus;
+	    	startRecording();
+    	} catch (Exception e) { e.printStackTrace(); }
+    }
 
     protected void startRecording() throws IOException {
     	final Surface surface = streamCtl.getCresSurfaceHolder(idx).getSurface();

@@ -1395,7 +1395,7 @@ void csio_jni_initVideo(int iStreamId)
 		return;
 	}	
 
-	if(g_using_glimagsink || currentSettingsDB.videoSettings[0].videoSinkSelect == 0)
+	if(g_using_glimagsink)
 	{
 	    GST_DEBUG("qos is set to default");
 	    g_object_set(G_OBJECT(data->video_sink), "force-aspect-ratio", FALSE, NULL);

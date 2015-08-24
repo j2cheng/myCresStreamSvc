@@ -248,7 +248,8 @@ int build_video_pipeline(gchar *encoding_name, CREGSTREAM *data, unsigned int st
 		data->element_v[i++] = gst_element_factory_make("jpegparse", NULL);
 		data->element_v[i++] = gst_element_factory_make("jpegdec", NULL);
 
-		g_using_glimagsink =1;
+
+		g_using_glimagsink = 1;
 	}
 	else if(strcmp(encoding_name, "MPEG4") == 0)
 	{
@@ -274,8 +275,7 @@ int build_video_pipeline(gchar *encoding_name, CREGSTREAM *data, unsigned int st
 		// Temporary hack - always force the settings to use new sink.  This avoids
 		// requiring the user to restore settings.
 		// TODO: Don't use old sink at all for H.264
-		currentSettingsDB.videoSettings[0].videoSinkSelect = 1;
-		if(g_using_glimagsink || currentSettingsDB.videoSettings[0].videoSinkSelect == 0)
+		if(g_using_glimagsink)
 		{
 		    //using glimagesink
 		    crestron_set_stride(0);

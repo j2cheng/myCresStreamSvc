@@ -22,6 +22,7 @@ public class CameraPreview {
     boolean is_pause = false;
     boolean is_preview = false;
     boolean is_audioplaying = false;
+    private boolean skipAudio = false;
     //List<Camera.Size> mSupportedPreviewSizes;
     CresStreamCtrl streamCtl;
     private int idx = 0;
@@ -36,6 +37,18 @@ public class CameraPreview {
     
     public void setSessionIndex(int id){
         idx = id;
+    }
+    
+    public void restartCamera(boolean confidenceMode)
+    {
+    	try {
+    		boolean pauseStatus = is_pause;
+	    	skipAudio = true;
+	    	stopPlayback(confidenceMode);
+	    	is_pause = pauseStatus;
+	    	startPlayback(confidenceMode);
+	    	skipAudio = false;
+    	} catch (Exception e) { e.printStackTrace(); }        
     }
 
     public void onPreviewFrame(byte[] paramArrayOfByte, Camera paramCamera) {}
@@ -145,9 +158,8 @@ public class CameraPreview {
                         mCamera.setParameters(localParameters);
                     }
                     mCamera.startPreview();
-                    startAudio();
-                    is_audioplaying = true;
-                    
+
+                	startAudio();                    
                     if (confidenceMode)
                     	streamCtl.SendStreamState(StreamState.CONFIDENCEMODE, idx);
                     else
@@ -184,7 +196,8 @@ public class CameraPreview {
                 
                 if (!confidenceMode)
                 	streamCtl.SendStreamState(StreamState.STOPPED, idx);
-                stopAudio();
+                
+            	stopAudio();
             }
             catch (Exception localException)
             {
@@ -198,17 +211,23 @@ public class CameraPreview {
     }
 
     protected void startAudio(){
-        if(!is_audioplaying)
-            audio_pb.startAudioTask();
-        is_audioplaying = true;
+    	if (skipAudio == false)
+    	{
+	        if(!is_audioplaying)
+	            audio_pb.startAudioTask();
+	        is_audioplaying = true;
+    	}
     }
 
     public void stopAudio() {
-        Log.d(TAG, "stoppingAudio");
-        if(is_audioplaying){
-            audio_pb.stopAudioTask();
-            is_audioplaying = false;
-        }
+    	if (skipAudio == false)
+    	{
+	        Log.d(TAG, "stoppingAudio");
+	        if(is_audioplaying){
+	            audio_pb.stopAudioTask();
+	            is_audioplaying = false;
+	        }
+    	}
     }
 
     public String getHdmiInputResolution() {
