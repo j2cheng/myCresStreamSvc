@@ -113,7 +113,7 @@ public class CresDisplaySurface
 
     public void UpdateCoordinates(int x, int y, int idx)
     {
-        Log.i(TAG, "UpdateDimensions: " + x + "," + y );
+        Log.i(TAG, "UpdateCoordinates: " + x + "," + y );
 //
 //    	WindowManager.LayoutParams params = (WindowManager.LayoutParams) parentlayout.getLayoutParams();
 //    	params.x = x;

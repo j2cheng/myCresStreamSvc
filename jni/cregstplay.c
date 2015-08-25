@@ -538,8 +538,8 @@ void build_http_pipeline(CREGSTREAM *data, int iStreamId)
 {
 	char *url = (char *)currentSettingsDB.settingsMessage.msg[iStreamId].url;
 	
-	if(g_str_has_suffix(url, ".mjpg") || g_str_has_suffix(url, ".mjpeg") || g_str_has_suffix(url, ".cgi")
-		|| g_str_has_suffix(url, ".jpg") || g_str_has_suffix(url, ".jpeg"))
+//	if(g_str_has_suffix(url, ".mjpg") || g_str_has_suffix(url, ".mjpeg") || g_str_has_suffix(url, ".cgi")
+//		|| g_str_has_suffix(url, ".jpg") || g_str_has_suffix(url, ".jpeg"))
 	{		
 		GstElement *sinker = NULL;
 		GstElement *ele0 = NULL;
@@ -576,10 +576,10 @@ void build_http_pipeline(CREGSTREAM *data, int iStreamId)
 // 
 // 		gst_element_link_many(data->element_av[0], data->element_zero, NULL);
 // 	}
-	else
-	{
-		GST_DEBUG("Unsupported http url %s", url);
-	}
+//	else
+//	{
+//		GST_DEBUG("Unsupported http url %s", url);
+//	}
 }
 
 /**
