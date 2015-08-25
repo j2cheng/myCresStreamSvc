@@ -113,12 +113,13 @@ public class TCPInterface extends AsyncTask<Void, Object, Long> {
         //If streamstate was previously started, restart stream
         for (int sessionId = 0; sessionId < streamCtl.NumOfSurfaces; sessionId++)
         {
-        	if (streamCtl.userSettings.getStreamState(sessionId) == StreamState.CONFIDENCEMODE)
+        	if ((streamCtl.userSettings.getMode(sessionId) == CresStreamCtrl.DeviceMode.STREAM_OUT.ordinal()) 
+        			&& (streamCtl.userSettings.getUserRequestedStreamState(sessionId) == StreamState.STOPPED))
             {
             	streamCtl.cam_streaming.stopConfidencePreview(sessionId);
             	streamCtl.cam_streaming.startConfidencePreview(sessionId);
             } 
-        	else if (streamCtl.userSettings.getStreamState(sessionId) != StreamState.STOPPED)
+        	else if (streamCtl.userSettings.getUserRequestedStreamState(sessionId) == StreamState.STARTED)
             {
             	//Avoid starting confidence mode when stopping stream out
             	if (streamCtl.userSettings.getMode(sessionId) == CresStreamCtrl.DeviceMode.STREAM_OUT.ordinal())
@@ -277,7 +278,7 @@ public class TCPInterface extends AsyncTask<Void, Object, Long> {
 
         public void run() {
             while (connectionAlive) {
-            	if ((streamCtl.restartStreamsOnStart) && (isFirstRun))
+            	if ((streamCtl.restartStreamsOnStart == true) && (isFirstRun == true))
                 	restartStreams(serverHandler);
                 try {
                     String read = input.readLine();

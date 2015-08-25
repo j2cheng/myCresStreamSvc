@@ -48,6 +48,7 @@ import android.graphics.Rect;
 import android.hardware.Camera;
 import android.app.Notification;
 
+import com.crestron.txrxservice.CresStreamCtrl.StreamState;
 import com.google.gson.Gson;
 import com.google.gson.GsonBuilder;
 
@@ -311,6 +312,11 @@ public class CresStreamCtrl extends Service {
             		Log.e(TAG, "Could not create serialized class file: " + ex);
     			}
             }
+            // Always wipe out previous streamstate
+            for (int sessionId = 0; sessionId < NumOfSurfaces; sessionId++)
+    		{
+    			userSettings.setStreamState(StreamState.STOPPED, sessionId);
+    		}
             
             Thread saveSettingsThread = new Thread(new SaveSettingsTask());    	
             saveSettingsThread.start();
@@ -564,6 +570,9 @@ public class CresStreamCtrl extends Service {
         // Only if mode actually changed
         if ((mode != prevMode) && ((hdmiInputDriverPresent || (mode == DeviceMode.STREAM_IN.ordinal())))) 
         {
+        	// Since this is a user request, mark as stopped requested if mode changes
+        	userSettings.setUserRequestedStreamState(StreamState.STOPPED, sessionId);
+        	
             if (userSettings.getStreamState(sessionId) == StreamState.STARTED)
                 hm2.get(prevMode).executeStop(sessionId);
             else if (prevMode == DeviceMode.STREAM_OUT.ordinal())
@@ -1055,6 +1064,7 @@ public class CresStreamCtrl extends Service {
     //Ctrls
     public void Start(int sessionId)
     {
+    	userSettings.setUserRequestedStreamState(StreamState.STARTED, sessionId);
     	if (userSettings.getStreamState(sessionId) != StreamState.STARTED)
     	{
 	    	Log.d(TAG, "Start : Lock");
@@ -1081,6 +1091,7 @@ public class CresStreamCtrl extends Service {
 
     public void Stop(int sessionId)
     {
+    	userSettings.setUserRequestedStreamState(StreamState.STOPPED, sessionId);
     	if ((userSettings.getStreamState(sessionId) != StreamState.STOPPED) && (userSettings.getStreamState(sessionId) != StreamState.CONFIDENCEMODE))
     	{
 	    	Log.d(TAG, "Stop : Lock");
@@ -1106,6 +1117,7 @@ public class CresStreamCtrl extends Service {
 
     public void Pause(int sessionId)
     {
+    	userSettings.setUserRequestedStreamState(StreamState.PAUSED, sessionId);
     	if ((userSettings.getStreamState(sessionId) != StreamState.PAUSED) && (userSettings.getStreamState(sessionId) != StreamState.STOPPED))
     	{
 	    	Log.d(TAG, "Pause : Lock");

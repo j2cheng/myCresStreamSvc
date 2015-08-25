@@ -134,6 +134,7 @@ public class UserSettings
 	private int[] w;
 	private int[] h;
 	private CresStreamCtrl.StreamState[] streamState;
+	private CresStreamCtrl.StreamState[] userRequestedStreamState;
 	private int[] rtspPort;
 	private int[] tsPort;
 	private int[] rtpVideoPort;
@@ -221,6 +222,7 @@ public class UserSettings
         userName 			= new String[] {"", ""};
         password   			= new String[] {"", ""};
         streamState			= new CresStreamCtrl.StreamState[] {StreamState.STOPPED, StreamState.STOPPED};
+        userRequestedStreamState = new CresStreamCtrl.StreamState[] {StreamState.STOPPED, StreamState.STOPPED};
         transportMode		= new int[] {0, 0};
         passwordEnable		= new boolean[] {false, false};
         passwordDisable		= new boolean[] {true, true};
@@ -229,7 +231,7 @@ public class UserSettings
     	statisticsDisable	= new boolean[] {true, true};
     	volume 				= 100;
     	previousVolume 		= 100;
-    	useNewSink		= new boolean[] {true, true};
+    	useNewSink			= new boolean[] {true, true};
 	}
 	
 	public String getDeviceIp() {
@@ -286,6 +288,14 @@ public class UserSettings
 
 	public void setStreamState(CresStreamCtrl.StreamState streamState, int sessId) {
 		this.streamState[sessId] = streamState;
+	}
+	
+	public CresStreamCtrl.StreamState getUserRequestedStreamState(int sessId) {
+		return userRequestedStreamState[sessId];
+	}
+	
+	public void setUserRequestedStreamState(CresStreamCtrl.StreamState streamState, int sessId) {
+		this.userRequestedStreamState[sessId] = streamState;
 	}
 
 	public int getDeviceReady() {
