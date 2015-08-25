@@ -246,7 +246,7 @@ public class GstreamIn implements StreamInStrategy, SurfaceHolder.Callback {
     	new Thread(new Runnable() {
     		public void run() {
 		        Log.d(TAG, "Stopping MediaPlayer");
-		        nativeSurfaceFinalize (sessionId);
+		        //nativeSurfaceFinalize (sessionId);should be called in surfaceDestroyed()
 		        nativeStop(sessionId);
 		        latch.countDown();
     		}
