@@ -131,9 +131,10 @@ public class CresStreamCtrl extends Service {
     	CONNECTREFUSED(5),
     	BUFFERING(6),
     	CONFIDENCEMODE(7),
-	STREAMER_READY(8),
+	HDMIPreviewNoVideo(8),
+	STREAMER_READY(9),
     	// Do not add anything after the Last state
-    	LAST(9);
+    	LAST(10);
     	
         private final int value;
 
