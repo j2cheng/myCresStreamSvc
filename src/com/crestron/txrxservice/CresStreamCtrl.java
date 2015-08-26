@@ -131,9 +131,9 @@ public class CresStreamCtrl extends Service {
     	CONNECTREFUSED(5),
     	BUFFERING(6),
     	CONFIDENCEMODE(7),
-
+	STREAMER_READY(8),
     	// Do not add anything after the Last state
-    	LAST(8);
+    	LAST(9);
     	
         private final int value;
 

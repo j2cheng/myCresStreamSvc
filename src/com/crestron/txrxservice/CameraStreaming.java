@@ -1,6 +1,8 @@
 package com.crestron.txrxservice;
 
 import java.io.File;
+import java.io.BufferedReader;
+import java.io.FileReader;
 import java.io.IOException;
 import java.util.Date;
 import java.util.List;
@@ -18,6 +20,7 @@ import android.graphics.PixelFormat;
 import android.hardware.Camera;
 import android.hardware.Camera.ErrorCallback;
 import android.media.MediaRecorder;
+import android.os.FileObserver;
 import android.os.Environment;
 import android.util.Log;
 import android.view.Surface;
@@ -25,6 +28,7 @@ import android.view.SurfaceHolder;
 
 public class CameraStreaming implements ErrorCallback {
     private SurfaceHolder surfaceHolder;
+    private FileObserver activeClientObserver;
     static Camera mCameraPreviewObj = null;
     MediaRecorder mrec;
     String TAG = "TxRx CameraStreamer";
@@ -198,7 +202,14 @@ public class CameraStreaming implements ErrorCallback {
 		                Log.d(TAG, "########SDP Dump######\n" + sb);
 		            }
 		            //mrec.getStatisticsData();
-		            streamCtl.SendStreamState(StreamState.STARTED, idx);     
+		            if ((currentSessionInitiation == 0) || (currentSessionInitiation == 2)) {	
+		                streamCtl.SendStreamState(StreamState.STREAMER_READY, idx);
+				monitorRtspClientActiveConnections();
+							//RTSP Modified to Streamer Ready State, until client connects 
+			    }
+			    else {
+		                streamCtl.SendStreamState(StreamState.STARTED, idx);     
+			    }
 		            out_stream_status = true;
 		            
 		            startStatisticsTask();	            
@@ -221,11 +232,53 @@ public class CameraStreaming implements ErrorCallback {
     	
     	if (!successfulStart)
     	{
-    		Log.e(TAG, String.format("MediaServer failed to start after %d ms", startTimeout_ms));
+		Log.e(TAG, String.format("MediaServer failed to start after %d ms", startTimeout_ms));
     		streamCtl.RecoverDucati();
     	}
     }
     
+    void monitorRtspClientActiveConnections() 
+    {
+    	File activeClientConnection = new File ("/dev/shm/crestron/CresStreamSvc/clientConnected");
+        if (!activeClientConnection.isFile())	//check if file exist
+        {
+        	try {
+            	activeClientConnection.getParentFile().mkdirs();
+            	activeClientConnection.createNewFile();
+        	} catch (Exception e) {}
+        }
+        activeClientObserver = new FileObserver("/dev/shm/crestron/CresStreamSvc/clientConnected", FileObserver.CLOSE_WRITE) {						
+			@Override
+			public void onEvent(int event, String path) {
+				int val = 0;
+				//function start
+				BufferedReader br = null;
+				try {
+					String sCurrentLine;
+					br = new BufferedReader(new FileReader("/dev/shm/crestron/CresStreamSvc/clientConnected"));
+					while ((sCurrentLine = br.readLine()) != null) {
+						val = Integer.parseInt(sCurrentLine);
+					}
+
+				} catch (IOException e) {
+					e.printStackTrace();
+				} finally {
+					try {
+						if (br != null)br.close();
+					} catch (IOException ex) {
+						ex.printStackTrace();
+					}
+				}
+				if(val > 0)
+				    streamCtl.SendStreamState(StreamState.STARTED, idx);     
+				else
+				    streamCtl.SendStreamState(StreamState.STREAMER_READY, idx);     
+				//function end
+			}
+	};
+	activeClientObserver.startWatching();
+    }
+
     private boolean CheckForValidIp()
     {
     	boolean isMulticast = false;
@@ -462,6 +515,9 @@ public class CameraStreaming implements ErrorCallback {
     		public void run() {
     			try {
 			        Log.d(TAG, "stopRecording");
+		                int currSessionInitiation = streamCtl.userSettings.getSessionInitiation(idx);
+        			if ((currSessionInitiation == 0) || (currSessionInitiation == 2))
+        			    activeClientObserver.stopWatching();
 
 			        if (mrec != null) {
 			            if(hpdEventAction==true){
