@@ -659,7 +659,7 @@ void init_custom_data(CustomData * cdata)
 	CREGSTREAM * data;
 	
 	GST_DEBUG_CATEGORY_INIT (debug_category, "cregstplay", 0, "Crestron gstreamer player!");
-	gst_debug_set_threshold_for_name("cregstplay", GST_LEVEL_DEBUG);
+	gst_debug_set_threshold_for_name("cregstplay", GST_LEVEL_ERROR);
 
 	for(i=0; i<MAX_STREAMS; i++)
 	{
