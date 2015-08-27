@@ -108,7 +108,6 @@ public class CresStreamCtrl extends Service {
     public final static String cameraModeFilePath = "/dev/shm/crestron/CresStreamSvc/cameraMode";
     public volatile boolean mIgnoreMediaServerCrash = false;
     private FileObserver mediaServerObserver;
-    private int previousHdmiInputEnum = 0;
     private Thread monitorDucatiThread;
     volatile boolean cameraErrorResolved = true;
     private Object ducatiLock = new Object();
@@ -329,7 +328,6 @@ public class CresStreamCtrl extends Service {
         		hdmiInput = new HDMIInputInterface();
         		//refresh resolution on startup
         		hdmiInput.setResolutionIndex(hdmiInput.readResolutionEnum());
-        		previousHdmiInputEnum = hdmiInput.getResolutionIndex();
         		
         		// Call getHdmiInResolutionSysFs in a separate thread so that if read takes a long time we don't get ANR 
                 new Thread(new Runnable() {
@@ -1764,22 +1762,19 @@ public class CresStreamCtrl extends Service {
 //    		else
 //    		{
 //    			cam_preview.getHdmiInputResolution();
-	    		if (hdmiInputResolutionEnum != previousHdmiInputEnum)
+    		
+	    		for (int sessionId = 0; sessionId < NumOfSurfaces; ++sessionId)
 	    		{
-	    			previousHdmiInputEnum = hdmiInputResolutionEnum;
-		    		for (int sessionId = 0; sessionId < NumOfSurfaces; ++sessionId)
-		    		{
-		    			if (userSettings.getStreamState(sessionId) == StreamState.CONFIDENCEMODE)
-		    				cam_preview.restartCamera(true);
-		    			else if (userSettings.getStreamState(sessionId) == StreamState.STARTED)
-		    			{
-			    			int deviceMode = userSettings.getMode(sessionId);
-							if (deviceMode == DeviceMode.PREVIEW.ordinal())
-								cam_preview.restartCamera(false);
-							else if (deviceMode == DeviceMode.STREAM_OUT.ordinal())
-								cam_streaming.restartCamera();
-		    			}
-		    		}
+	    			if (userSettings.getStreamState(sessionId) == StreamState.CONFIDENCEMODE)
+	    				cam_preview.restartCamera(true);
+	    			else if (userSettings.getStreamState(sessionId) == StreamState.STARTED)
+	    			{
+		    			int deviceMode = userSettings.getMode(sessionId);
+						if (deviceMode == DeviceMode.PREVIEW.ordinal())
+							cam_preview.restartCamera(false);
+						else if (deviceMode == DeviceMode.STREAM_OUT.ordinal())
+							cam_streaming.restartCamera();
+	    			}
 	    		}
        			setNoVideoImage(false);
     			setHDCPErrorImage(false);
