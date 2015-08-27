@@ -1057,24 +1057,21 @@ public class CresStreamCtrl extends Service {
     	{
 	    	userSettings.setPreviousVolume();
 	    	setStreamVolume(0);
-	    	
-	        userSettings.setAudioMute(true);
-	        userSettings.setAudioUnmute(false);
-	        sockTask.SendDataToAllClients("AUDIO_UNMUTE=false");
     	}
+    	userSettings.setAudioMute(true);
+        userSettings.setAudioUnmute(false);
+        sockTask.SendDataToAllClients("AUDIO_UNMUTE=false");
     }
     
     public void setStreamUnMute()
     {
+    	userSettings.setAudioMute(false);
+        userSettings.setAudioUnmute(true);
     	if (userSettings.isAudioMute())
     	{
-	    	userSettings.setAudioMute(false);
-	        userSettings.setAudioUnmute(true);
-	        
 	    	setStreamVolume(userSettings.getPreviousVolume());
-	
-	        sockTask.SendDataToAllClients("AUDIO_MUTE=false");
     	}
+    	sockTask.SendDataToAllClients("AUDIO_MUTE=false");
     }
 
     public void SetPasswdEnable(int sessId)

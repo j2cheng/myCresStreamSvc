@@ -158,8 +158,8 @@ public class UserSettings
 	
 	// Top Slot
 	private int deviceReady; // TODO: needed?	
-	private boolean audioMute; //TODO: remove
-	private boolean audioUnmute; //TODO: remove	
+	private boolean audioMute;
+	private boolean audioUnmute;
 	private int volume;
 	private int previousVolume;
 	private int bass;
@@ -232,6 +232,8 @@ public class UserSettings
     	volume 				= 100;
     	previousVolume 		= 100;
     	useNewSink			= new boolean[] {true, true};
+    	audioMute			= false;
+    	audioUnmute			= true;
 	}
 	
 	public String getDeviceIp() {
