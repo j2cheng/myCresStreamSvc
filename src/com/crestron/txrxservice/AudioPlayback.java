@@ -3,6 +3,7 @@ package com.crestron.txrxservice;
 import android.media.AudioManager;
 import android.media.AudioRecord;
 import android.media.AudioTrack;
+import android.media.MediaRecorder.AudioSource;
 import android.media.AudioFormat;
 import android.util.Log;
 
@@ -37,11 +38,11 @@ public class AudioPlayback
             final int audioFormat = AudioFormat.ENCODING_PCM_16BIT;//ENCODING_PCM_16BIT
             final int audioChannels= AudioFormat.CHANNEL_OUT_STEREO;//CHANNEL_IN/OUT_STEREO:Default Android Val is 12
             final int numOfBuffers= 4;
-            final int audioSource = 5; //Audio Source is CAMCORDER
+            final int audioSource = AudioSource.CAMCORDER; //Audio Source is CAMCORDER
             int bufferSize = 131072;
             int read = 0;
             int readSize = bufferSize;
-            final int sampleRate = 48000;
+            final int sampleRate = 44100;//48000;
             initVolumePending = true;
 
             Log.d(TAG, "Streaming Audio task started.... ");
@@ -59,13 +60,16 @@ public class AudioPlayback
                     read = mRecorder.read(readBuffer.array(), 0, readSize);
                     if (read > 0)
                     {
-                        mPlayer.write(readBuffer.array(), 0, read);
-                        mPlayer.flush();
-                        if (initVolumePending)
-                        {
-                        	setVolume(mStreamCtl.userSettings.getVolume());
-                        	initVolumePending = false;
-                        }
+                    	if (!shouldExit) //write is time intensive function, skip if we are trying to stop
+                    	{
+	                        mPlayer.write(readBuffer.array(), 0, read);
+	                        mPlayer.flush();
+	                        if (initVolumePending)
+	                        {
+	                        	setVolume(mStreamCtl.userSettings.getVolume());
+	                        	initVolumePending = false;
+	                        }
+                    	}
                     }
                 }
             } catch (Exception localException) {

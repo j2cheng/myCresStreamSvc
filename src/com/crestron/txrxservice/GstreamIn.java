@@ -260,7 +260,6 @@ public class GstreamIn implements StreamInStrategy, SurfaceHolder.Callback {
     	if (!successfulStop)
     	{
     		Log.e(TAG, String.format("libgstreamer_jni failed to stop after %d ms", stopTimeout_ms));
-    		streamCtl.SendStreamState(StreamState.STOPPED, sessionId);
     		recoverDucati();
     	}
     }

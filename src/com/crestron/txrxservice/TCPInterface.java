@@ -37,7 +37,8 @@ public class TCPInterface extends AsyncTask<Void, Object, Long> {
     public static final String LOCALHOST = "127.0.0.1";
     private ServerSocket serverSocket;
     private BufferedReader input;
-    private volatile boolean isFirstRun = true;
+    private volatile boolean restartStreamsPending = true;
+    public volatile boolean firstRun = true;
     
     private ArrayList<CommunicationThread> clientList;
     
@@ -108,30 +109,8 @@ public class TCPInterface extends AsyncTask<Void, Object, Long> {
     
     private void restartStreams(TCPInterface serverHandler)
     {
-        Log.d(TAG, "Restarting Streams...");
-        isFirstRun = false;
-        //If streamstate was previously started, restart stream
-        for (int sessionId = 0; sessionId < streamCtl.NumOfSurfaces; sessionId++)
-        {
-        	if ((streamCtl.userSettings.getMode(sessionId) == CresStreamCtrl.DeviceMode.STREAM_OUT.ordinal()) 
-        			&& (streamCtl.userSettings.getUserRequestedStreamState(sessionId) == StreamState.STOPPED))
-            {
-            	streamCtl.cam_streaming.stopConfidencePreview(sessionId);
-            	streamCtl.cam_streaming.startConfidencePreview(sessionId);
-            } 
-        	else if (streamCtl.userSettings.getUserRequestedStreamState(sessionId) == StreamState.STARTED)
-            {
-            	//Avoid starting confidence mode when stopping stream out
-            	if (streamCtl.userSettings.getMode(sessionId) == CresStreamCtrl.DeviceMode.STREAM_OUT.ordinal())
-            	{
-            		streamCtl.setDeviceMode(CresStreamCtrl.DeviceMode.PREVIEW.ordinal(), sessionId);
-            		streamCtl.userSettings.setMode(CresStreamCtrl.DeviceMode.STREAM_OUT.ordinal(), sessionId);
-            	}
-            	else
-            		streamCtl.Stop(sessionId);
-            	streamCtl.Start(sessionId);
-            }                       
-        }
+        restartStreamsPending   = false;
+        streamCtl.restartStreams();
     }
     
     public void restartStreams()
@@ -198,6 +177,18 @@ public class TCPInterface extends AsyncTask<Void, Object, Long> {
                 clientList.add(commThread);
                 new Thread(commThread).start();
                 
+                // Always wipe out previous streamstate for first connection
+                if (firstRun)
+                {
+                	firstRun = false;
+	                for (int sessionId = 0; sessionId < streamCtl.NumOfSurfaces; sessionId++)
+	        		{
+	            		streamCtl.SendStreamState(StreamState.STOPPED, sessionId);
+	        		}   
+	                
+	                if (streamCtl.hdmiInputDriverPresent == true)
+	                	streamCtl.setCamera(HDMIInputInterface.readResolutionEnum());
+                }
                 // Tell CSIO to send update request to control system
                 SendDataToAllClients("UPDATE_REQUEST_TO_CONTROLSYSTEM=");
 
@@ -278,7 +269,7 @@ public class TCPInterface extends AsyncTask<Void, Object, Long> {
 
         public void run() {
             while (connectionAlive) {
-            	if ((streamCtl.restartStreamsOnStart == true) && (isFirstRun == true))
+            	if ((streamCtl.restartStreamsOnStart == true) && (restartStreamsPending   == true))
                 	restartStreams(serverHandler);
                 try {
                     String read = input.readLine();

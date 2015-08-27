@@ -3,10 +3,12 @@ package com.crestron.txrxservice;
 import java.util.HashMap;
 import java.util.Map;
 import java.util.Scanner;
+import java.io.BufferedReader;
 import java.io.BufferedWriter;
 import java.io.File;
 import java.io.FileNotFoundException;
 import java.io.FileOutputStream;
+import java.io.FileReader;
 import java.io.IOException;
 import java.io.OutputStreamWriter;
 import java.io.Writer;
@@ -86,7 +88,6 @@ public class CresStreamCtrl extends Service {
     CresDisplaySurface dispSurface;
     
     final int cameraRestartTimout = 1000;//msec
-    int hpdStateEnabled = 0;
     static int hpdHdmiEvent = 0;
     
     private volatile boolean saveSettingsShouldExit = false;
@@ -108,6 +109,9 @@ public class CresStreamCtrl extends Service {
     public volatile boolean mIgnoreMediaServerCrash = false;
     private FileObserver mediaServerObserver;
     private int previousHdmiInputEnum = 0;
+    private Thread monitorDucatiThread;
+    volatile boolean cameraErrorResolved = true;
+    private Object ducatiLock = new Object();
 
     enum DeviceMode {
         STREAM_IN,
@@ -131,10 +135,10 @@ public class CresStreamCtrl extends Service {
     	CONNECTREFUSED(5),
     	BUFFERING(6),
     	CONFIDENCEMODE(7),
-	HDMIPreviewNoVideo(8),
-	STREAMER_READY(9),
+    	STREAMERREADY(8),
+
     	// Do not add anything after the Last state
-    	LAST(10);
+    	LAST(9);
     	
         private final int value;
 
@@ -313,11 +317,6 @@ public class CresStreamCtrl extends Service {
             		Log.e(TAG, "Could not create serialized class file: " + ex);
     			}
             }
-            // Always wipe out previous streamstate
-            for (int sessionId = 0; sessionId < NumOfSurfaces; sessionId++)
-    		{
-    			userSettings.setStreamState(StreamState.STOPPED, sessionId);
-    		}
             
             Thread saveSettingsThread = new Thread(new SaveSettingsTask());    	
             saveSettingsThread.start();
@@ -378,8 +377,7 @@ public class CresStreamCtrl extends Service {
             if (hdmiInputDriverPresent)
         	{
             	cam_streaming = new CameraStreaming(this);
-            	cam_preview = new CameraPreview(this, hdmiInput);
-            	setCamera(HDMIInputInterface.readResolutionEnum());
+            	cam_preview = new CameraPreview(this, hdmiInput);            	
         	}
             //Play Control
             hm = new HashMap();
@@ -420,6 +418,9 @@ public class CresStreamCtrl extends Service {
             
             // Monitor mediaserver, if it crashes restart stream
             monitorMediaServer();
+            
+            // Monitor Ducati
+            monitorDucati();
         }
    
     @Override
@@ -528,6 +529,8 @@ public class CresStreamCtrl extends Service {
         mediaServerObserver = new FileObserver("/dev/shm/crestron/CresStreamSvc/mediaServerState", FileObserver.CLOSE_WRITE) {						
 			@Override
 			public void onEvent(int event, String path) {
+				// If this crash was caused by ducati crash we must clear ducati crash state so that we dont handle it twice
+				cameraErrorResolved = false;
 				Log.i(TAG, String.format("CresStreamSvc detects a mediaserver crash, mIgnoreMediaServerCrash = %b", mIgnoreMediaServerCrash));
 				//function start
 				if (mIgnoreMediaServerCrash == false)
@@ -552,15 +555,112 @@ public class CresStreamCtrl extends Service {
 							return;
 						}
 					}
-						
-					sockTask.restartStreams();
+					
+					// Dont call recovery if monitorDucati is already recovering
+					if (cameraErrorResolved == false)
+					{						
+						cameraErrorResolved = true;
+						writeDucatiState(1);
+						Log.i(TAG, "Recovering from mediaserver crash");
+						hpdHdmiEvent = 1;
+						restartStreams();
+					}
 				}
 				//function end
 			}
 		};
 		mediaServerObserver.startWatching();
     }
+    
+    private void monitorDucati ()
+    {
+    	monitorDucatiThread = new Thread(new Runnable() {
+    		@Override
+    		public void run() {    			
+    			// Clear out initial ducati flag since first boot is not a crash
+    			writeDucatiState(1);
+    			//wait for ducati state to be cleared (async call to csio)
+    			try {
+					Thread.sleep(5000);
+				} catch (Exception e) { e.printStackTrace(); }
 
+    			while (!Thread.currentThread().isInterrupted())
+    			{
+    				try {
+    					Thread.sleep(1000);
+    				} catch (Exception e) { e.printStackTrace(); }
+
+    				int currentDucatiState = readDucatiState();
+    				// Dont call recovery if monitorMediaServer is already recovering
+    				if (currentDucatiState == 0)
+    				{
+    					cameraErrorResolved = true;
+    					writeDucatiState(1);
+    					Log.i(TAG, "Recovering from Ducati crash!");
+    					hpdHdmiEvent = 1;
+    					restartStreams(); 
+    				}
+    			}
+    		}
+    	});
+    	
+    	monitorDucatiThread.start();
+    }
+    
+    private int readDucatiState() {
+		int ducatiState = 0;
+        
+    	StringBuilder text = new StringBuilder();
+        try {
+            File file = new File("/sys/kernel/debug/remoteproc/remoteproc0/ducati_recovered");
+
+            BufferedReader br = new BufferedReader(new FileReader(file));  
+            String line;   
+            while ((line = br.readLine()) != null) {
+                text.append(line);
+            }
+            br.close();
+            ducatiState = Integer.parseInt(text.toString().trim());
+        }catch (IOException e) {
+            e.printStackTrace();           
+        }
+        
+		return ducatiState;
+	}
+    
+    private void writeDucatiState(int state) {
+    	// we need csio to clear ducati state since sysfs needs root permissions to write
+    	sockTask.SendDataToAllClients(String.format("CLEARDUCATISTATE=%d", state));
+	}
+    
+    public void restartStreams() 
+    {
+    	Log.d(TAG, "Restarting Streams...");
+
+    	//If streamstate was previously started, restart stream
+        for (int sessionId = 0; sessionId < NumOfSurfaces; sessionId++)
+        {
+        	if ((userSettings.getMode(sessionId) == DeviceMode.STREAM_OUT.ordinal()) 
+        			&& (userSettings.getUserRequestedStreamState(sessionId) == StreamState.STOPPED))
+            {
+            	cam_streaming.stopConfidencePreview(sessionId);
+            	cam_streaming.startConfidencePreview(sessionId);
+            } 
+        	else if (userSettings.getUserRequestedStreamState(sessionId) == StreamState.STARTED)
+            {
+            	//Avoid starting confidence mode when stopping stream out
+            	if (userSettings.getMode(sessionId) == DeviceMode.STREAM_OUT.ordinal())
+            	{
+            		setDeviceMode(DeviceMode.PREVIEW.ordinal(), sessionId);
+            		userSettings.setMode(DeviceMode.STREAM_OUT.ordinal(), sessionId);
+            	}
+            	else
+            		Stop(sessionId);
+            	Start(sessionId);
+            }                       
+        }
+    }
+    
     public void setDeviceMode(int mode, int sessionId)
     {
         Log.d(TAG, " setDeviceMode "+ mode);
@@ -1445,7 +1545,7 @@ public class CresStreamCtrl extends Service {
     }
    
     public String getDeviceReadyStatus(){
-	return "1";//"TODO";
+    	return "TRUE";
     }
     
     public String getProcessingStatus(){
@@ -1489,6 +1589,7 @@ public class CresStreamCtrl extends Service {
     
     public void RecoverTxrxService(){
     	Log.e(TAG, "Fatal error, kill CresStreamSvc!");
+    	sockTask.SendDataToAllClients("DEVICE_READY_FB=FALSE");
     	sockTask.SendDataToAllClients("KillMePlease=true");
     }
     
@@ -1578,8 +1679,7 @@ public class CresStreamCtrl extends Service {
 	        	                	sendHdmiInSyncState();
 	        	                    int i = paramAnonymousIntent.getIntExtra("evs_hdmi_hdp_id", -1);
 	        	                    Log.i(TAG, "Received hpd broadcast ! " + i);
-	        	                    if (i!=0)
-	        	                        hpdStateEnabled = 1;
+	        	                    hpdHdmiEvent = 1;
         	                	}
         	                }
                     	}
@@ -1656,7 +1756,7 @@ public class CresStreamCtrl extends Service {
 		sockTask.SendDataToAllClients("HDMIOUT_ASPECT_RATIO=" + hdmiOutput.getAspectRatio());
 	}
 	
-	private void setCamera(int hdmiInputResolutionEnum)
+	public void setCamera(int hdmiInputResolutionEnum)
 	{
 		boolean validResolution = (hdmiInput.getHorizontalRes().startsWith("0") != true) && (hdmiInput.getVerticalRes().startsWith("0")!= true) && (hdmiInputResolutionEnum != 0);
     	if (validResolution == true)
@@ -1704,6 +1804,17 @@ public class CresStreamCtrl extends Service {
 				setCameraMode("1");
 			else
 				setCameraMode("0");
+		}
+		
+		// Set hdmi connected states for csio
+		sockTask.SendDataToAllClients(String.format("HDMIInputConnectedState=%b", !enable)); //true means hdmi input connected
+		for (int sessionId = 0; sessionId < NumOfSurfaces; sessionId++)
+		{
+			if ((userSettings.getMode(sessionId) == DeviceMode.PREVIEW.ordinal()) || (userSettings.getMode(sessionId) == DeviceMode.STREAM_OUT.ordinal()))
+			{
+				// resend streamstate
+				SendStreamState(userSettings.getStreamState(sessionId), sessionId);
+			}
 		}
 	}
 	

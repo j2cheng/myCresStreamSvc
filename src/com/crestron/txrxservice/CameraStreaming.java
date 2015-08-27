@@ -203,7 +203,7 @@ public class CameraStreaming implements ErrorCallback {
 		            }
 		            //mrec.getStatisticsData();
 		            if ((currentSessionInitiation == 0) || (currentSessionInitiation == 2)) {	
-		                streamCtl.SendStreamState(StreamState.STREAMER_READY, idx);
+		                streamCtl.SendStreamState(StreamState.STREAMERREADY, idx);
 				monitorRtspClientActiveConnections();
 							//RTSP Modified to Streamer Ready State, until client connects 
 			    }
@@ -272,7 +272,7 @@ public class CameraStreaming implements ErrorCallback {
 				if(val > 0)
 				    streamCtl.SendStreamState(StreamState.STARTED, idx);     
 				else
-				    streamCtl.SendStreamState(StreamState.STREAMER_READY, idx);     
+				    streamCtl.SendStreamState(StreamState.STREAMERREADY, idx);     
 				//function end
 			}
 	};
