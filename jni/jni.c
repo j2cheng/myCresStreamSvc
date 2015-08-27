@@ -211,7 +211,7 @@ static void gst_native_init (JNIEnv* env, jobject thiz)
 	CresDataDB = cdata;
 	SET_CUSTOM_DATA (env, thiz, custom_data_field_id, cdata);
 	GST_DEBUG_CATEGORY_INIT (debug_category, "gstreamer_jni", 0, "Android jni");
-	gst_debug_set_threshold_for_name("gstreamer_jni", GST_LEVEL_DEBUG);
+	gst_debug_set_threshold_for_name("gstreamer_jni", GST_LEVEL_ERROR);
 	
 	cdata->app = (*env)->NewGlobalRef (env, thiz);
 	init_custom_data(cdata);
@@ -826,9 +826,7 @@ int csio_jni_CreatePipeline(GstElement **pipeline,GstElement **source,eProtocolI
 	csio_jni_CreateMainContext(iStreamId);
 
 	data->pipeline = gst_pipeline_new(NULL);
-
-	//GST_ERROR ("protoId = %d\n",protoId);
-
+    
 	switch( protoId )
 	{
 		case ePROTOCOL_RTSP_TCP:
@@ -1045,7 +1043,6 @@ void csio_jni_InitPipeline(eProtocolId protoId, int iStreamId)
 		return;
 	}	
 
-	//GST_ERROR ("protoId = %d\n",protoId);
 	switch( protoId )
 	{
 		case ePROTOCOL_RTSP_TCP:
@@ -1104,7 +1101,6 @@ void csio_jni_SetSourceLocation(eProtocolId protoId, char *location, int iStream
 		return;
 	}	
 	
-	//GST_ERROR ("protoId = %d\n",protoId);
 	switch( protoId )
 	{
 		case ePROTOCOL_RTSP_TCP:
@@ -1166,7 +1162,7 @@ void csio_jni_SetMsgHandlers(void* obj,eProtocolId protoId, int iStreamId)
 		return;
 	}	
 	
-	GST_ERROR ("protoId = %d\n",protoId);
+	GST_DEBUG ("protoId = %d\n",protoId);
 	switch( protoId )
 	{
 		case ePROTOCOL_RTSP_TCP:
