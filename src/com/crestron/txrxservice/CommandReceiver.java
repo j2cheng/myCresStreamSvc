@@ -207,6 +207,33 @@ public class CommandReceiver {
     	if(flag)
     		ctl.setStatistics(!flag, sessId);
     }
+   
+    //OSD 
+    public void EnableOsd() {
+        ctl.userSettings.setOsdEnable(true);
+        ctl.userSettings.setOsdDisable(false);
+    }
+    
+    public void DisableOsd() {
+        ctl.userSettings.setOsdDisable(true);
+        ctl.userSettings.setOsdEnable(false);
+    }
+    
+    public void setOsdText(String text) {
+        ctl.userSettings.setOsdText(text);
+    }
+    
+    public void setOsdLocation(int loc) {
+        ctl.userSettings.setOsdLocation(loc);
+    }
+    
+    public void setOsdXPos(int x) {
+        ctl.userSettings.setOsdXLocation(x);
+    }
+    
+    public void setOsdYPos(int y) {
+        ctl.userSettings.setOsdYLocation(y);
+    }
     
     public void setRestartStreamOnStart(boolean flag) {
     	ctl.restartStreamsOnStart = flag;
@@ -492,5 +519,29 @@ public class CommandReceiver {
     
     public String getNumAudioPacketsDropped(){
     	return "0";
+    }
+    
+    public String getOsdEnable() {
+    	return String.valueOf(ctl.userSettings.isOsdEnable());
+    }
+    
+    public String getOsdDisable() {
+    	return String.valueOf(ctl.userSettings.isOsdDisable());
+    }
+    
+    public String getOsdText() {
+    	return ctl.userSettings.getOsdText();
+    }
+    
+    public String getOsdLocation() {
+	return Integer.toString(ctl.userSettings.getOsdLocation());
+    }
+    
+    public String getOsdXPos() {
+	return Integer.toString(ctl.userSettings.getOsdXLocation());
+    }
+    
+    public String getOsdYPos() {
+	return Integer.toString(ctl.userSettings.getOsdYLocation());
     }
 }

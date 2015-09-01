@@ -1475,6 +1475,119 @@ class StatisticsNumAudioPacketsDroppedCommand implements CommandIf {
         }
 }
 
+class OsdEnableCommand implements CommandIf {
+    CommandReceiver launch;
+    String msg;
+    
+    public OsdEnableCommand(CommandReceiver launch, String arg) {
+        this.launch = launch;
+        this.msg = arg;
+    }
+
+    @Override
+        public void execute() {
+            boolean val = Boolean.valueOf(msg);
+            if(val)
+                launch.EnableOsd();
+        }
+        public String getFeedbackMsg() {
+            return launch.getOsdEnable();
+        }
+}
+
+class OsdDisableCommand implements CommandIf {
+    CommandReceiver launch;
+    String msg;
+    
+    public OsdDisableCommand(CommandReceiver launch, String arg) {
+        this.launch = launch;
+        this.msg = arg;
+    }
+
+    @Override
+        public void execute() {
+            boolean val = Boolean.valueOf(msg);
+            if(val)
+                launch.DisableOsd();
+        }
+        public String getFeedbackMsg() {
+            return launch.getOsdDisable();
+        }
+}
+
+class OsdTextCommand implements CommandIf {
+    CommandReceiver launch;
+    String msg;
+    
+    public OsdTextCommand(CommandReceiver launch, String arg) {
+        this.launch = launch;
+        this.msg = arg;
+    }
+
+    @Override
+        public void execute() {
+            launch.setOsdText(msg);
+        }
+        public String getFeedbackMsg() {
+            return launch.getOsdText();
+        }
+}
+
+class OsdLocationCommand implements CommandIf {
+    CommandReceiver launch;
+    String msg;
+    
+    public OsdLocationCommand(CommandReceiver launch, String arg) {
+        this.launch = launch;
+        this.msg = arg;
+    }
+
+    @Override
+        public void execute() {
+            launch.setOsdLocation(launch.VALIDATE_INT(msg));
+        }
+        public String getFeedbackMsg() {
+            return launch.getOsdLocation();
+        }
+}
+
+class OsdXPosCommand implements CommandIf {
+    CommandReceiver launch;
+    String msg;
+    
+    public OsdXPosCommand(CommandReceiver launch, String arg) {
+        this.launch = launch;
+        this.msg = arg;
+    }
+
+    @Override
+        public void execute() {
+            launch.setOsdXPos(launch.VALIDATE_INT(msg));
+        }
+        public String getFeedbackMsg() {
+            return launch.getOsdXPos();
+        }
+}
+
+class OsdYPosCommand implements CommandIf {
+    CommandReceiver launch;
+    String msg;
+    
+    public OsdYPosCommand(CommandReceiver launch, String arg) {
+        this.launch = launch;
+        this.msg = arg;
+    }
+
+    @Override
+        public void execute() {
+            launch.setOsdYPos(launch.VALIDATE_INT(msg));
+        }
+
+        public String getFeedbackMsg() {
+            return launch.getOsdYPos();
+        }
+}
+
 class RestartStreamOnStartCommand implements CommandIf {
 	CommandReceiver launch;
     String msg;

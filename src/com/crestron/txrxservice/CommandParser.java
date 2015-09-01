@@ -98,8 +98,15 @@ public class CommandParser {
         STATISTICS_NUMBEROFVIDEOPACKETSDROPPED,
         STATISTICS_NUMBEROFAUDIOPACKETS,
         STATISTICS_NUMBEROFAUDIOPACKETSDROPPED,
+	//OSD            
+	OSD_ENABLE,
+	OSD_DISABLE,
+	OSD_TEXT,
+	OSD_LOCATION,
+	OSD_X,
+	OSD_Y,
         
-        RESTART_STREAM_ON_START,
+	RESTART_STREAM_ON_START,
         
         USE_GSTREAMER,
 	NEW_SINK,
@@ -420,6 +427,25 @@ public class CommandParser {
             	break;
             case STATISTICS_NUMBEROFAUDIOPACKETSDROPPED:
             	cmd = new StatisticsNumAudioPacketsDroppedCommand(cmdRx, arg);
+            	break;
+		//OSD
+            case OSD_ENABLE:
+            	cmd = new OsdEnableCommand(cmdRx, arg);
+            	break;
+            case OSD_DISABLE:
+            	cmd = new OsdDisableCommand(cmdRx, arg);
+            	break;
+            case OSD_TEXT:
+            	cmd = new OsdTextCommand(cmdRx, arg);
+            	break;
+            case OSD_LOCATION:
+            	cmd = new OsdLocationCommand(cmdRx, arg);
+            	break;
+            case OSD_X:
+            	cmd = new OsdXPosCommand(cmdRx, arg);
+            	break;
+            case OSD_Y:
+            	cmd = new OsdYPosCommand(cmdRx, arg);
             	break;
             case RESTART_STREAM_ON_START:
             	cmd = new RestartStreamOnStartCommand(cmdRx, arg);
