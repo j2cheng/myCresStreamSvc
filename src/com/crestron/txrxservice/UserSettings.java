@@ -161,7 +161,7 @@ public class UserSettings
 	private boolean audioMute;
 	private boolean audioUnmute;
 	private int volume;
-	private int previousVolume;
+	private int userRequestedVolume;
 	private int bass;
 	private int treble;
 	private String initiatorAddress;
@@ -230,7 +230,7 @@ public class UserSettings
         statisticsEnable	= new boolean[] {false, false};
     	statisticsDisable	= new boolean[] {true, true};
     	volume 				= 100;
-    	previousVolume 		= 100;
+    	userRequestedVolume = 100;
     	useNewSink			= new boolean[] {true, true};
     	audioMute			= false;
     	audioUnmute			= true;
@@ -408,12 +408,16 @@ public class UserSettings
 		this.volume = volume;
 	}
 	
-	public int getPreviousVolume() {
-		return previousVolume;
+	public int getUserRequestedVolume() {
+		return userRequestedVolume;
 	}
 
-	public void setPreviousVolume() {
-		this.previousVolume = this.volume;
+	public void setUserRequestedVolume() {
+		setUserRequestedVolume(this.volume);
+	}
+	
+	public void setUserRequestedVolume(int volume) {
+		this.userRequestedVolume = volume;
 	}
 
 	public int getBass() {

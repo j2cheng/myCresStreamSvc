@@ -465,7 +465,7 @@ public class CommandReceiver {
     }
     
     public String getVolume(){
-    	return String.valueOf(ctl.userSettings.getVolume());
+    	return String.valueOf(ctl.userSettings.getUserRequestedVolume());
     }
 
     public String getMute(){

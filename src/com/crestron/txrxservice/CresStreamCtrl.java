@@ -1027,11 +1027,23 @@ public class CresStreamCtrl extends Service {
     
     public void setStreamVolume(int volume) 
     {
-    	userSettings.setVolume(volume);
-    	if (userSettings.isAudioMute())
-    		userSettings.setPreviousVolume(); //make sure previous volume is updated as well
+    	//Volume of -1 means setting mute
+    	//If user sets volume while in muted mode, save new volume in previousVolume
+    	if ((userSettings.isAudioMute() == true) && (volume != -1))
+    	{
+			userSettings.setUserRequestedVolume(volume);
+    	}
     	else
-    	{	    	
+    	{
+    		// If Audio is unmuted always setUserRequested volume to new volume value
+    		if (userSettings.isAudioUnmute() == true)
+    			userSettings.setUserRequestedVolume(volume);
+    			
+    		if (volume == -1)
+    			volume = 0;
+    		
+    		userSettings.setVolume(volume);
+    		
 	    	for (int sessionId = 0; sessionId < NumOfSurfaces; sessionId++)
 	    	{
 	    		if (userSettings.getMode(sessionId) == DeviceMode.PREVIEW.ordinal())
@@ -1051,13 +1063,16 @@ public class CresStreamCtrl extends Service {
 
     public void setStreamMute()
     {
+    	// volume cached in userSettings will store the current set value on the device
+    	// userRequestedVolume in userSettings will store the last value the user set on the device
+    	// We will always feedback the userRequestedVolume
     	if (userSettings.isAudioUnmute())
-    	{
-	    	userSettings.setPreviousVolume();
-	    	setStreamVolume(0);
-    	}
+	    	userSettings.setUserRequestedVolume();
+    	
     	userSettings.setAudioMute(true);
         userSettings.setAudioUnmute(false);
+        
+        setStreamVolume(-1);
         sockTask.SendDataToAllClients("AUDIO_UNMUTE=false");
     }
     
@@ -1065,10 +1080,7 @@ public class CresStreamCtrl extends Service {
     {
     	userSettings.setAudioMute(false);
         userSettings.setAudioUnmute(true);
-    	if (userSettings.isAudioMute())
-    	{
-	    	setStreamVolume(userSettings.getPreviousVolume());
-    	}
+    	setStreamVolume(userSettings.getUserRequestedVolume());
     	sockTask.SendDataToAllClients("AUDIO_MUTE=false");
     }
 
