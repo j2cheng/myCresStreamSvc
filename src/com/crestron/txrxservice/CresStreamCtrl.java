@@ -606,7 +606,7 @@ public class CresStreamCtrl extends Service {
     }
     
     private int readDucatiState() {
-		int ducatiState = 0;
+		int ducatiState = 1;
         
     	StringBuilder text = new StringBuilder();
         try {
@@ -619,9 +619,7 @@ public class CresStreamCtrl extends Service {
             }
             br.close();
             ducatiState = Integer.parseInt(text.toString().trim());
-        }catch (IOException e) {
-            e.printStackTrace();           
-        }
+        }catch (IOException e) {}
         
 		return ducatiState;
 	}
@@ -1768,13 +1766,10 @@ public class CresStreamCtrl extends Service {
 		boolean validResolution = (hdmiInput.getHorizontalRes().startsWith("0") != true) && (hdmiInput.getVerticalRes().startsWith("0")!= true) && (hdmiInputResolutionEnum != 0);
     	if (validResolution == true)
     	{
-    		// TODO: Implement HDCP status but where it only affects the stream not the loopout
-//    		if (HDMIInputInterface.readHDCPStatus() == true) 
-//    			setHDCPErrorImage(true);
-//    		else
-//    		{
-//    			cam_preview.getHdmiInputResolution();
-    		
+    		if (HDMIInputInterface.readHDCPStatus() == true) 
+    			setHDCPErrorImage(true);
+    		else
+    		{    		
 	    		for (int sessionId = 0; sessionId < NumOfSurfaces; ++sessionId)
 	    		{
 	    			if (userSettings.getStreamState(sessionId) == StreamState.CONFIDENCEMODE)
@@ -1790,7 +1785,7 @@ public class CresStreamCtrl extends Service {
 	    		}
        			setNoVideoImage(false);
     			setHDCPErrorImage(false);
-//    		}			                		
+    		}			                		
 		 }			                
         else
         	setNoVideoImage(true);
