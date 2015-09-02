@@ -47,6 +47,7 @@
 ///////////////////////////////////////////////////////////////////////////////
 
 extern int g_using_glimagsink;
+extern int g_force_glimagsink;
 
 ///////////////////////////////////////////////////////////////////////////////
 
@@ -195,7 +196,7 @@ int build_video_pipeline(gchar *encoding_name, CREGSTREAM *data, unsigned int st
 	int num_elements;
 	int do_sink = 1;
 	
-	g_using_glimagsink = 0;
+	g_using_glimagsink = g_force_glimagsink;
 
 	//GST_DEBUG("encoding_name=%s, native_window=%p, start=%u, do_rtp=%d",
 	//		  encoding_name, data->native_window, start, do_rtp);

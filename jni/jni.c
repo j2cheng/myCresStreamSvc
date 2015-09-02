@@ -68,6 +68,7 @@ static jmethodID set_message_method_id;
 //static jmethodID on_gstreamer_initialized_method_id;
 static jclass *gStreamIn_javaClass_id;
 int g_using_glimagsink = 0;
+int g_force_glimagsink = 0;
 ///////////////////////////////////////////////////////////////////////////////
 
 /*
@@ -196,6 +197,12 @@ void csio_jni_init()
 	{
 		GST_DEBUG("csio_Init returned error %d\n", iStatus);
 	}
+
+	//TODO: this is only a temporary workaround for 1542, need to understand why surfaceflingersink goes to GLES
+	if( (product_info()->product_type == CRESTRON_TS1542) || (product_info()->product_type == CRESTRON_TS1542_C) )
+		g_force_glimagsink = 1;
+	else
+		g_force_glimagsink = 0;
 
 	GST_DEBUG("Done with init\n");
 }
