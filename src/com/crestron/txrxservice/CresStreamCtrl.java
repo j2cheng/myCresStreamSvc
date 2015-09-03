@@ -686,6 +686,10 @@ public class CresStreamCtrl extends Service {
             	cam_streaming.startConfidencePreview(sessionId);
             	restartRequired[sessionId] = true;
             }
+            
+            // Since we are switching device modes, clear out stream url (Bug 100790)
+            userSettings.setServerUrl("", sessionId);
+            sockTask.SendDataToAllClients("STREAMURL=");
         }
     }
     
@@ -1766,26 +1770,24 @@ public class CresStreamCtrl extends Service {
 		boolean validResolution = (hdmiInput.getHorizontalRes().startsWith("0") != true) && (hdmiInput.getVerticalRes().startsWith("0")!= true) && (hdmiInputResolutionEnum != 0);
     	if (validResolution == true)
     	{
-    		if (HDMIInputInterface.readHDCPStatus() == true) 
-    			setHDCPErrorImage(true);
-    		else
-    		{    		
-	    		for (int sessionId = 0; sessionId < NumOfSurfaces; ++sessionId)
-	    		{
-	    			if (userSettings.getStreamState(sessionId) == StreamState.CONFIDENCEMODE)
-	    				cam_preview.restartCamera(true);
-	    			else if (userSettings.getStreamState(sessionId) == StreamState.STARTED)
-	    			{
-		    			int deviceMode = userSettings.getMode(sessionId);
-						if (deviceMode == DeviceMode.PREVIEW.ordinal())
-							cam_preview.restartCamera(false);
-						else if (deviceMode == DeviceMode.STREAM_OUT.ordinal())
-							cam_streaming.restartCamera();
-	    			}
-	    		}
-       			setNoVideoImage(false);
-    			setHDCPErrorImage(false);
-    		}			                		
+    		for (int sessionId = 0; sessionId < NumOfSurfaces; ++sessionId)
+    		{
+    			if (userSettings.getStreamState(sessionId) == StreamState.CONFIDENCEMODE)
+    				cam_preview.restartCamera(true);
+    			else if (userSettings.getStreamState(sessionId) == StreamState.STARTED)
+    			{
+	    			int deviceMode = userSettings.getMode(sessionId);
+					if (deviceMode == DeviceMode.PREVIEW.ordinal())
+						cam_preview.restartCamera(false);
+					else if (deviceMode == DeviceMode.STREAM_OUT.ordinal())
+						cam_streaming.restartCamera();
+    			}
+    		}
+   			setNoVideoImage(false);
+   			if (HDMIInputInterface.readHDCPStatus() == true)
+   				setHDCPErrorImage(true);
+   			else
+   				setHDCPErrorImage(false);			                		
 		 }			                
         else
         	setNoVideoImage(true);
