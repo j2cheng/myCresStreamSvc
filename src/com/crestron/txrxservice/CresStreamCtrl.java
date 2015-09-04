@@ -6,6 +6,7 @@ import java.util.Scanner;
 import java.io.BufferedReader;
 import java.io.BufferedWriter;
 import java.io.File;
+import java.io.FileInputStream;
 import java.io.FileNotFoundException;
 import java.io.FileOutputStream;
 import java.io.FileReader;
@@ -13,6 +14,7 @@ import java.io.IOException;
 import java.io.OutputStreamWriter;
 import java.io.Writer;
 import java.lang.String;
+import java.nio.channels.FileChannel;
 import java.nio.charset.Charset;
 import java.util.concurrent.CountDownLatch;
 import java.util.concurrent.ExecutionException;
@@ -105,6 +107,7 @@ public class CresStreamCtrl extends Service {
     boolean hdmiInputDriverPresent = false;
     boolean[] restartRequired = new boolean[NumOfSurfaces];
     public final static String savedSettingsFilePath = "/data/CresStreamSvc/userSettings";
+    public final static String savedSettingsTmpFilePath = "/dev/shm/crestron/CresStreamSvc/userSettings_tmp";
     public final static String cameraModeFilePath = "/dev/shm/crestron/CresStreamSvc/cameraMode";
     public volatile boolean mIgnoreMediaServerCrash = false;
     private FileObserver mediaServerObserver;
@@ -116,6 +119,20 @@ public class CresStreamCtrl extends Service {
         STREAM_IN,
         STREAM_OUT,
         PREVIEW
+    }
+    
+    enum CameraMode {
+    	Camera(0),
+    	Paused(1),
+    	NoVideo(2),
+    	HDCPError(3);
+    	
+    	private final int value;
+    	
+    	CameraMode(int value) 
+        {
+            this.value = value;
+        }
     }
     
     /*
@@ -560,7 +577,7 @@ public class CresStreamCtrl extends Service {
 						cameraErrorResolved = true;
 						writeDucatiState(1);
 						Log.i(TAG, "Recovering from mediaserver crash");
-						hpdHdmiEvent = 1;
+						cam_preview.getHdmiInputResolution();
 						restartStreams();
 					}
 				}
@@ -595,7 +612,7 @@ public class CresStreamCtrl extends Service {
     					cameraErrorResolved = true;
     					writeDucatiState(1);
     					Log.i(TAG, "Recovering from Ducati crash!");
-    					hpdHdmiEvent = 1;
+    					cam_preview.getHdmiInputResolution();
     					restartStreams(); 
     				}
     			}
@@ -647,8 +664,24 @@ public class CresStreamCtrl extends Service {
             	//Avoid starting confidence mode when stopping stream out
             	if (userSettings.getMode(sessionId) == DeviceMode.STREAM_OUT.ordinal())
             	{
-            		setDeviceMode(DeviceMode.PREVIEW.ordinal(), sessionId);
-            		userSettings.setMode(DeviceMode.STREAM_OUT.ordinal(), sessionId);
+            		Log.d(TAG, "Stop : Lock");
+        	    	threadLock.lock();
+        	    	try
+        	    	{
+        		    	playStatus="false";
+        		    	stopStatus="true";
+        		        pauseStatus="false";
+        		        restartRequired[sessionId]=false;
+        		        cam_streaming.setSessionIndex(sessionId);
+                        cam_streaming.stopRecording(false);
+                        StreamOutstarted = false;
+                        hidePreviewWindow(sessionId);
+        	    	}
+        	    	finally
+        	    	{
+        	    		Log.d(TAG, "Stop : Unlock");
+        	    		threadLock.unlock();
+        	    	}                    
             	}
             	else
             		Stop(sessionId);
@@ -1770,6 +1803,8 @@ public class CresStreamCtrl extends Service {
 		boolean validResolution = (hdmiInput.getHorizontalRes().startsWith("0") != true) && (hdmiInput.getVerticalRes().startsWith("0")!= true) && (hdmiInputResolutionEnum != 0);
     	if (validResolution == true)
     	{
+    		cam_preview.getHdmiInputResolution();
+    		
     		for (int sessionId = 0; sessionId < NumOfSurfaces; ++sessionId)
     		{
     			if (userSettings.getStreamState(sessionId) == StreamState.CONFIDENCEMODE)
@@ -1798,13 +1833,13 @@ public class CresStreamCtrl extends Service {
 		String cameraMode = "";
 		int previousCameraMode = readCameraMode();
 		if (enable)
-			setCameraMode("2");
-		else if (previousCameraMode == 2)
+			setCameraMode(String.valueOf(CameraMode.NoVideo.ordinal()));
+		else if (previousCameraMode == CameraMode.NoVideo.ordinal())
 		{
 			if (Boolean.parseBoolean(pauseStatus) == true)
-				setCameraMode("1");
+				setCameraMode(String.valueOf(CameraMode.Paused.ordinal()));
 			else
-				setCameraMode("0");
+				setCameraMode(String.valueOf(CameraMode.Camera.ordinal()));
 		}
 		
 		// Set hdmi connected states for csio
@@ -1824,9 +1859,9 @@ public class CresStreamCtrl extends Service {
 		String cameraMode = "";
 		int previousCameraMode = readCameraMode();
 		if (enable)
-			setCameraMode("1");
-		else if (previousCameraMode == 1)
-			setCameraMode("0");
+			setCameraMode(String.valueOf(CameraMode.Paused.ordinal()));
+		else if (previousCameraMode == CameraMode.Paused.ordinal())
+			setCameraMode(String.valueOf(CameraMode.Camera.ordinal()));
 	}
 	
 	public void setHDCPErrorImage(boolean enable) 
@@ -1834,13 +1869,13 @@ public class CresStreamCtrl extends Service {
 		String cameraMode = "";
 		int previousCameraMode = readCameraMode();
 		if (enable)
-			setCameraMode("3");
-		else if (previousCameraMode == 3)
+			setCameraMode(String.valueOf(CameraMode.HDCPError.ordinal()));
+		else if (previousCameraMode == CameraMode.HDCPError.ordinal())
 		{
 			if (Boolean.parseBoolean(pauseStatus) == true)
-				setCameraMode("1");
+				setCameraMode(String.valueOf(CameraMode.Paused.ordinal()));
 			else
-				setCameraMode("0");
+				setCameraMode(String.valueOf(CameraMode.Camera.ordinal()));
 		}
 	}
 	
@@ -1884,21 +1919,46 @@ public class CresStreamCtrl extends Service {
 		GsonBuilder builder = new GsonBuilder();
       	Gson gson = builder.create();
       	String serializedClass = gson.toJson(this.userSettings);
-      	try 
+      	String currentUserSettings = "";
+      	try {
+      		currentUserSettings = new Scanner(new File (savedSettingsFilePath), "UTF-8").useDelimiter("\\A").next();
+      	} catch (Exception e) { }
+      	
+      	// Only update userSettings if it has changed
+      	if (serializedClass != currentUserSettings)
       	{
-      		saveSettingsLock.lock();
-      		writer = new BufferedWriter(new OutputStreamWriter(new FileOutputStream(savedSettingsFilePath), "utf-8"));
-    	    writer.write(serializedClass);
-    	} 
-      	catch (IOException ex) {
-    	  Log.e(TAG, "Failed to save userSettings to disk: " + ex);
-    	} finally 
-    	{
-    		saveSettingsLock.unlock();
-    		try {writer.close();} catch (Exception ex) {/*ignore*/}
-    	}
-
-      Log.d(TAG, "Saved userSettings to disk");
+	      	try 
+	      	{
+	      		saveSettingsLock.lock();
+	      		writer = new BufferedWriter(new OutputStreamWriter(new FileOutputStream(savedSettingsTmpFilePath), "utf-8"));
+	    	    writer.write(serializedClass);
+	    	    writer.flush();
+	    	} 
+	      	catch (IOException ex) {
+	    	  Log.e(TAG, "Failed to save userSettings to disk: " + ex);
+	    	} finally 
+	    	{
+	    		saveSettingsLock.unlock();
+	    		try {writer.close();} catch (Exception ex) {/*ignore*/}
+	    	}
+	      	
+	      	//Copy the tmp userSettings file to the permanent userSettings file
+	      	//Should help prevent data corruption when saving
+	      	try
+	      	{
+		      	FileInputStream inStream = new FileInputStream(savedSettingsTmpFilePath);
+		        FileOutputStream outStream = new FileOutputStream(savedSettingsFilePath);
+		        FileChannel inChannel = inStream.getChannel();
+		        FileChannel outChannel = outStream.getChannel();
+		        inChannel.transferTo(0, inChannel.size(), outChannel);
+		        inStream.close();
+		        outStream.close();
+	      	} catch (Exception e) { 
+	      		Log.e(TAG, "Failed to copy tmp UserSettings to UserSettings: " + e);
+	      	} 
+      	
+	      	Log.d(TAG, "Saved userSettings to disk");
+      	}
 	}
 	
 	public class SaveSettingsTask implements Runnable 

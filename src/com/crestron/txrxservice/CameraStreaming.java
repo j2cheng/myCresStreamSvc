@@ -180,10 +180,10 @@ public class CameraStreaming implements ErrorCallback {
 		            setWidthAndHeightFromEncRes(idx);
 		            mrec.setVideoEncodingBitRate(streamCtl.userSettings.getBitrate(idx) * 1000);	//This is in bits per second
 		            //mrec.setVideoFrameRate(streamCtl.userSettings.getEncodingFramerate(idx));//Mistral Propietary API 
+		            mrec.setAudioEncoder(MediaRecorder.AudioEncoder.AAC);
 		            mrec.setVideoEncoder(MediaRecorder.VideoEncoder.H264);
 		            mrec.setEncoderProfile(streamCtl.userSettings.getStreamProfile(idx).getVEncProfile());
-		            mrec.setVideoEncoderLevel(streamCtl.userSettings.getEncodingLevel(idx));
-		            mrec.setAudioEncoder(MediaRecorder.AudioEncoder.AAC);
+		            mrec.setVideoEncoderLevel(streamCtl.userSettings.getEncodingLevel(idx));		            
 		            mrec.setOutputFile(path + filename);   
 		
 		            mrec.setPreviewDisplay(surface);	//TODO: put back in when preview audio works
@@ -204,15 +204,15 @@ public class CameraStreaming implements ErrorCallback {
 		            //mrec.getStatisticsData();
 		            if ((currentSessionInitiation == 0) || (currentSessionInitiation == 2)) {	
 		                streamCtl.SendStreamState(StreamState.STREAMERREADY, idx);
-				monitorRtspClientActiveConnections();
-							//RTSP Modified to Streamer Ready State, until client connects 
-			    }
-			    else {
+		                monitorRtspClientActiveConnections();
+						//RTSP Modified to Streamer Ready State, until client connects 
+				    }
+				    else {
 		                streamCtl.SendStreamState(StreamState.STARTED, idx);     
-			    }
-		            out_stream_status = true;
-		            
-		            startStatisticsTask();	            
+				    }
+			            out_stream_status = true;
+			            
+			            startStatisticsTask();	            
 		        }
 		        else {
 		        	stopRecording(false);
@@ -275,8 +275,8 @@ public class CameraStreaming implements ErrorCallback {
 				    streamCtl.SendStreamState(StreamState.STREAMERREADY, idx);     
 				//function end
 			}
-	};
-	activeClientObserver.startWatching();
+		};
+		activeClientObserver.startWatching();
     }
 
     private boolean CheckForValidIp()
@@ -513,47 +513,51 @@ public class CameraStreaming implements ErrorCallback {
     	final CountDownLatch latch = new CountDownLatch(1);
     	new Thread(new Runnable() {
     		public void run() {
+		        Log.d(TAG, "stopRecording");
+                int currSessionInitiation = streamCtl.userSettings.getSessionInitiation(idx);
+                try {
+	    			if ((activeClientObserver != null) && ((currSessionInitiation == 0) || (currSessionInitiation == 2)))
+	    			    activeClientObserver.stopWatching();
+                } catch (Exception e) { e.printStackTrace(); }
+    			
     			try {
-			        Log.d(TAG, "stopRecording");
-		                int currSessionInitiation = streamCtl.userSettings.getSessionInitiation(idx);
-        			if ((currSessionInitiation == 0) || (currSessionInitiation == 2))
-        			    activeClientObserver.stopWatching();
-
-			        if (mrec != null) {
-			            if(hpdEventAction==true){
-			            	if (mCameraPreviewObj != null)
-			            	{
-			            		mCameraPreviewObj.lock(); //Android recommends this
-			            		CresCamera.releaseCamera(mCameraPreviewObj);
-			            	}
-			                mCameraPreviewObj = null;
-			            }
+        			if(hpdEventAction==true){
+		            	if (mCameraPreviewObj != null)
+		            	{
+		            		mCameraPreviewObj.lock(); //Android recommends this
+		            		CresCamera.releaseCamera(mCameraPreviewObj);
+		            	}
+		                mCameraPreviewObj = null;
+		            }
+    			} catch (Exception e) { e.printStackTrace(); }
+    			try {
+			        if (mrec != null) {				            
 			            mrec.stop();
-			            //mrec.setPreviewDisplay(null);
-			            out_stream_status = false;
-			            streamCtl.setPauseVideoImage(false);
-			            is_pause = false;
+			            //mrec.setPreviewDisplay(null);				            
 			            releaseMediaRecorder();
-			            
-			            
-			            if(hpdEventAction==false){
-			            	if (mCameraPreviewObj != null)
-			            	{
-			            		mCameraPreviewObj.lock(); //Android recommends this
-			            		CresCamera.releaseCamera(mCameraPreviewObj);
-			            	}
-			                mCameraPreviewObj = null;
-			            }
-			
-			            stopStatisticsTask();
-					            
-			            streamCtl.SendStreamState(StreamState.STOPPED, idx);
-			            
-			            // Zero out statistics on stop
-			            streamOutAudioFormat = streamOutAudioChannels = streamOutWidth = streamOutHeight = streamOutFps = 0;
-						streamCtl.SendStreamOutFeedbacks();
 					}
     			} catch (Exception e) { e.printStackTrace(); }
+    			try {
+	    			if(hpdEventAction==false){
+		            	if (mCameraPreviewObj != null)
+		            	{
+		            		mCameraPreviewObj.lock(); //Android recommends this
+		            		CresCamera.releaseCamera(mCameraPreviewObj);
+		            	}
+		                mCameraPreviewObj = null;
+		            }
+    			} catch (Exception e) { e.printStackTrace(); }
+    			
+    			out_stream_status = false;
+	            streamCtl.setPauseVideoImage(false);
+	            is_pause = false;
+	            stopStatisticsTask();
+	            
+	            streamCtl.SendStreamState(StreamState.STOPPED, idx);
+	            
+	            // Zero out statistics on stop
+	            streamOutAudioFormat = streamOutAudioChannels = streamOutWidth = streamOutHeight = streamOutFps = 0;
+				streamCtl.SendStreamOutFeedbacks();
 		        
 		        latch.countDown();
     		}
