@@ -392,7 +392,9 @@ public class CresStreamCtrl extends Service {
             if (hdmiInputDriverPresent)
         	{
             	cam_streaming = new CameraStreaming(this);
-            	cam_preview = new CameraPreview(this, hdmiInput);            	
+            	cam_preview = new CameraPreview(this, hdmiInput);    
+            	 // Set up Ducati
+                cam_preview.getHdmiInputResolution();
         	}
             //Play Control
             hm = new HashMap();

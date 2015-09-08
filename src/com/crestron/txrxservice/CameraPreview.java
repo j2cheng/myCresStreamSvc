@@ -111,7 +111,12 @@ public class CameraPreview {
         Log.d(TAG, "starting Playback"+ is_preview);
         if(is_preview == false){
             Log.d(TAG, "Actual startPlayback");
-            mCamera = cresCam.getCamera();
+            if (mCamera != null)
+            {
+            	cresCam.releaseCamera(mCamera);
+            	mCamera = null;
+            }
+        	mCamera = cresCam.getCamera();
             // MNT - 3.10.15 
             // getHdmiInputStatus causes a reset on the chip.  Calling this here causes
             // the chip to get reset twice.  This will be fixed by Mistral.  However,
@@ -187,6 +192,7 @@ public class CameraPreview {
                 {
             		mCamera.stopPreview();            		
                 	cresCam.releaseCamera(mCamera);
+                	mCamera = null;
                 }
                 is_preview = false;
                 streamCtl.setPauseVideoImage(false);
@@ -230,11 +236,18 @@ public class CameraPreview {
     }
 
     public String getHdmiInputResolution() {
+    	if(mCamera == null) {
+    		mCamera = cresCam.getCamera();
+    	}
+    	
         if(mCamera != null) {
-            return mCamera.getHdmiInputStatus();
+        	String ret = mCamera.getHdmiInputStatus();
+        	cresCam.releaseCamera(mCamera);
+        	mCamera = null;
+        	return ret;            
         }
         else {
-            return null;
+    		return null;
         }
     }
     
