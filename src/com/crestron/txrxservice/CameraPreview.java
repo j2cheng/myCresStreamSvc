@@ -108,7 +108,7 @@ public class CameraPreview {
     }
 
     public void startPlayback(boolean confidenceMode){
-        Log.d(TAG, "starting Playback"+ is_preview);
+        Log.d(TAG, "starting Playback " + is_preview);
         if(is_preview == false){
             Log.d(TAG, "Actual startPlayback");
             if (mCamera != null)

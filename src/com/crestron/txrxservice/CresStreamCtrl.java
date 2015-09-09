@@ -152,9 +152,10 @@ public class CresStreamCtrl extends Service {
     	BUFFERING(6),
     	CONFIDENCEMODE(7),
     	STREAMERREADY(8),
+    	HDCPREFUSED(9),
 
     	// Do not add anything after the Last state
-    	LAST(9);
+    	LAST(10);
     	
         private final int value;
 
@@ -650,46 +651,70 @@ public class CresStreamCtrl extends Service {
     
     public void restartStreams() 
     {
-    	Log.d(TAG, "Restarting Streams...");
-
-    	//If streamstate was previously started, restart stream
-        for (int sessionId = 0; sessionId < NumOfSurfaces; sessionId++)
-        {
-        	if ((userSettings.getMode(sessionId) == DeviceMode.STREAM_OUT.ordinal()) 
-        			&& (userSettings.getUserRequestedStreamState(sessionId) == StreamState.STOPPED))
-            {
-            	cam_streaming.stopConfidencePreview(sessionId);
-            	cam_streaming.startConfidencePreview(sessionId);
-            } 
-        	else if (userSettings.getUserRequestedStreamState(sessionId) == StreamState.STARTED)
-            {
-            	//Avoid starting confidence mode when stopping stream out
-            	if (userSettings.getMode(sessionId) == DeviceMode.STREAM_OUT.ordinal())
-            	{
-            		Log.d(TAG, "Stop : Lock");
-        	    	threadLock.lock();
-        	    	try
-        	    	{
-        		    	playStatus="false";
-        		    	stopStatus="true";
-        		        pauseStatus="false";
-        		        restartRequired[sessionId]=false;
-        		        cam_streaming.setSessionIndex(sessionId);
-                        cam_streaming.stopRecording(false);
-                        StreamOutstarted = false;
-                        hidePreviewWindow(sessionId);
-        	    	}
-        	    	finally
-        	    	{
-        	    		Log.d(TAG, "Stop : Unlock");
-        	    		threadLock.unlock();
-        	    	}                    
-            	}
-            	else
-            		Stop(sessionId);
-            	Start(sessionId);
-            }                       
-        }
+    	new Thread(new Runnable() {
+    		public void run() {				
+		    	Log.d(TAG, "Restarting Streams...");
+		
+		    	//If streamstate was previously started, restart stream
+		        for (int sessionId = 0; sessionId < NumOfSurfaces; sessionId++)
+		        {
+		        	if ((userSettings.getMode(sessionId) == DeviceMode.STREAM_OUT.ordinal()) 
+		        			&& (userSettings.getUserRequestedStreamState(sessionId) == StreamState.STOPPED))
+		            {
+		        		Log.d(TAG, "Stop : Lock");
+		    	    	threadLock.lock();
+		    	    	try
+		    	    	{
+		    	    		cam_streaming.stopConfidencePreview(sessionId);
+		    	    	}
+			    		finally
+				    	{
+				    		Log.d(TAG, "Stop : Unlock");
+				    		threadLock.unlock();
+				    	}
+		    	    	Log.d(TAG, "Start : Lock");
+		    	    	threadLock.lock();
+		    	    	try
+		    	    	{
+		    	    		cam_streaming.startConfidencePreview(sessionId);
+		    	    	}
+			    		finally
+				    	{
+				    		Log.d(TAG, "Start : Unlock");
+				    		threadLock.unlock();
+				    	}            	
+		            } 
+		        	else if (userSettings.getUserRequestedStreamState(sessionId) == StreamState.STARTED)
+		            {
+		            	//Avoid starting confidence mode when stopping stream out
+		            	if (userSettings.getMode(sessionId) == DeviceMode.STREAM_OUT.ordinal())
+		            	{
+		            		Log.d(TAG, "Stop : Lock");
+		        	    	threadLock.lock();
+		        	    	try
+		        	    	{
+		        		    	playStatus="false";
+		        		    	stopStatus="true";
+		        		        pauseStatus="false";
+		        		        restartRequired[sessionId]=false;
+		        		        cam_streaming.setSessionIndex(sessionId);
+		                        cam_streaming.stopRecording(false);
+		                        StreamOutstarted = false;
+		                        hidePreviewWindow(sessionId);
+		        	    	}
+		        	    	finally
+		        	    	{
+		        	    		Log.d(TAG, "Stop : Unlock");
+		        	    		threadLock.unlock();
+		        	    	}                    
+		            	}
+		            	else
+		            		Stop(sessionId);
+		            	Start(sessionId);
+		            }                       
+		        }
+    		}
+		}).start();
     }
     
     public void setDeviceMode(int mode, int sessionId)
@@ -1374,36 +1399,66 @@ public class CresStreamCtrl extends Service {
         try {
             cam_streaming.setSessionIndex(sessId);
             invalidateSurface();
-            cam_streaming.startRecording();
+            // FIXME: Temporary workaround until HDCP red screen works
+			if (HDMIInputInterface.readHDCPStatus() == true)
+			{
+				cam_streaming.startConfidencePreview(sessId);
+				SendStreamState(StreamState.HDCPREFUSED, sessId);
+			}
+			else
+			{
+				cam_streaming.startRecording();
+				StreamOutstarted = true;
+			}
         } catch(Exception e) {
             e.printStackTrace();
         }
         //Toast.makeText(this, "StreamOut Started", Toast.LENGTH_LONG).show();
-        StreamOutstarted = true;
-       
+               
         sb.append("STREAMURL=").append(out_url);
         sockTask.SendDataToAllClients(sb.toString());
     }
 
     public void stopStreamOut(int sessId)
     {
-        //Toast.makeText(this, "StreamOut Stopped", Toast.LENGTH_LONG).show();
-        //On STOP, there is a chance to get ducati crash which does not save current state
-        //causes streaming never stops.
-        //FIXME:Temp Hack for ducati crash to save current state
-        userSettings.setStreamState(StreamState.STOPPED, sessId);
-        cam_streaming.setSessionIndex(sessId);
-        cam_streaming.stopRecording(false);
-        StreamOutstarted = false;
-        hidePreviewWindow(sessId);
-        
-        // Make sure that stop stream out was called by stop not a device mode change
-    	// We do not want to restart confidence preview if mode is changing
-    	if (userSettings.getMode(sessId) == DeviceMode.STREAM_OUT.ordinal())
-    	{
-    		cam_streaming.startConfidencePreview(sessId);
-    		restartRequired[sessId] = true;
-    	}
+    	 // FIXME: Temporary workaround until HDCP red screen works
+		if (userSettings.getStreamState(sessId) == StreamState.HDCPREFUSED)
+		{
+			StreamOutstarted = false;
+			if (userSettings.getMode(sessId) == DeviceMode.STREAM_OUT.ordinal())
+	    	{
+				SendStreamState(StreamState.STOPPED, sessId);
+				SendStreamState(StreamState.CONFIDENCEMODE, sessId);
+				restartRequired[sessId] = true;
+	    	}
+			else
+			{
+				cam_streaming.setSessionIndex(sessId);
+				cam_streaming.stopConfidencePreview(sessId);
+				SendStreamState(StreamState.STOPPED, sessId);
+				hidePreviewWindow(sessId);
+			}
+		}
+		else
+		{
+	        //Toast.makeText(this, "StreamOut Stopped", Toast.LENGTH_LONG).show();
+	        //On STOP, there is a chance to get ducati crash which does not save current state
+	        //causes streaming never stops.
+	        //FIXME:Temp Hack for ducati crash to save current state
+	        userSettings.setStreamState(StreamState.STOPPED, sessId);
+	        cam_streaming.setSessionIndex(sessId);
+	        cam_streaming.stopRecording(false);
+	        StreamOutstarted = false;
+	        hidePreviewWindow(sessId);
+	        
+	        // Make sure that stop stream out was called by stop not a device mode change
+	    	// We do not want to restart confidence preview if mode is changing
+	    	if (userSettings.getMode(sessId) == DeviceMode.STREAM_OUT.ordinal())
+	    	{
+	    		cam_streaming.startConfidencePreview(sessId);
+	    		restartRequired[sessId] = true;
+	    	}
+		}
     }
     
     public void pauseStreamOut(int sessId)
@@ -1807,19 +1862,8 @@ public class CresStreamCtrl extends Service {
     	{
     		cam_preview.getHdmiInputResolution();
     		
-    		for (int sessionId = 0; sessionId < NumOfSurfaces; ++sessionId)
-    		{
-    			if (userSettings.getStreamState(sessionId) == StreamState.CONFIDENCEMODE)
-    				cam_preview.restartCamera(true);
-    			else if (userSettings.getStreamState(sessionId) == StreamState.STARTED)
-    			{
-	    			int deviceMode = userSettings.getMode(sessionId);
-					if (deviceMode == DeviceMode.PREVIEW.ordinal())
-						cam_preview.restartCamera(false);
-					else if (deviceMode == DeviceMode.STREAM_OUT.ordinal())
-						cam_streaming.restartCamera();
-    			}
-    		}
+    		restartStreams();
+
    			setNoVideoImage(false);
    			if (HDMIInputInterface.readHDCPStatus() == true)
    				setHDCPErrorImage(true);

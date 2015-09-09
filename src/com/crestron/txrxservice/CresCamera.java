@@ -11,6 +11,7 @@ import android.util.Log;
 
 public class CresCamera {
 	static String TAG = "TxRx Camera";
+	static Camera mCamera = null;
 
     private static int findCamera(){
         int cameraId = 0;
@@ -25,6 +26,10 @@ public class CresCamera {
 
     public static Camera getCamera(){
 	    Camera lCamera = null;
+	    
+	    if (mCamera != null)
+	    	releaseCamera(mCamera);
+	    	
 	    for(int retry = 5; lCamera == null && retry > 0; retry--)
 	    {
 	        int cameraId = findCamera();
@@ -39,6 +44,7 @@ public class CresCamera {
 	            }
 	        }
 	    }
+	    mCamera = lCamera;
         return lCamera;
     }
     
@@ -46,6 +52,7 @@ public class CresCamera {
 		if (lCamera != null) {
 			lCamera.release(); // release the camera for other applications
 			lCamera = null;
+			mCamera = null;
 		}
 	}
 }
