@@ -235,19 +235,19 @@ public class CameraPreview {
     	}
     }
 
-    public String getHdmiInputResolution() {
-    	if(mCamera == null) {
-    		mCamera = cresCam.getCamera();
-    	}
-    	
+    public String getHdmiInputResolution() {    	
         if(mCamera != null) {
-        	String ret = mCamera.getHdmiInputStatus();
-        	cresCam.releaseCamera(mCamera);
-        	mCamera = null;
-        	return ret;            
+        	return mCamera.getHdmiInputStatus();
         }
         else {
-    		return null;
+        	mCamera = cresCam.getCamera();
+        	if (mCamera != null) {
+        		String ret = mCamera.getHdmiInputStatus();
+        		cresCam.releaseCamera(mCamera);
+            	mCamera = null;
+            	return ret;
+        	} else
+        		return null;
         }
     }
     

@@ -579,6 +579,7 @@ public class CresStreamCtrl extends Service {
 						cameraErrorResolved = true;
 						writeDucatiState(1);
 						Log.i(TAG, "Recovering from mediaserver crash");
+						cam_preview.getHdmiInputResolution();
 						restartStreams();
 					}
 				}
@@ -613,6 +614,7 @@ public class CresStreamCtrl extends Service {
     					cameraErrorResolved = true;
     					writeDucatiState(1);
     					Log.i(TAG, "Recovering from Ducati crash!");
+    					cam_preview.getHdmiInputResolution();
     					restartStreams(); 
     				}
     			}
