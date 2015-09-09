@@ -579,7 +579,6 @@ public class CresStreamCtrl extends Service {
 						cameraErrorResolved = true;
 						writeDucatiState(1);
 						Log.i(TAG, "Recovering from mediaserver crash");
-						cam_preview.getHdmiInputResolution();
 						restartStreams();
 					}
 				}
@@ -614,7 +613,6 @@ public class CresStreamCtrl extends Service {
     					cameraErrorResolved = true;
     					writeDucatiState(1);
     					Log.i(TAG, "Recovering from Ducati crash!");
-    					cam_preview.getHdmiInputResolution();
     					restartStreams(); 
     				}
     			}
@@ -1887,7 +1885,8 @@ public class CresStreamCtrl extends Service {
 		try 
       	{
 			writer = new BufferedWriter(new OutputStreamWriter(new FileOutputStream(cameraModeFilePath), "utf-8"));
-		    writer.write(mode);
+//		    writer.write(mode);
+			writer.write("0"); // TODO: This is temporary, remove when ducati frame issue is fixed
 		    writer.flush();
 	    } 
       	catch (IOException ex) {
