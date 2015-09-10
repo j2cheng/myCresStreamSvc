@@ -462,14 +462,19 @@ public class CresStreamCtrl extends Service {
         unregisterReceiver(resolutionEvent);
         unregisterReceiver(hpdEvent);
         unregisterReceiver(hdmioutResolutionChangedEvent);
-        cam_streaming.stopRecording(false);
-        cam_preview.stopPlayback(false);
-        for (int i = 0; i < NumOfSurfaces; i++)
-        {
-        	streamPlay.onStop(i);
-        }
+        try {
+        	cam_streaming.stopRecording(false);
+        	cam_preview.stopPlayback(false);
+	        for (int i = 0; i < NumOfSurfaces; i++)
+	        {
+	        	streamPlay.onStop(i);
+	        }
+        } finally {}
+        
         if (dispSurface != null)
         	dispSurface.RemoveView();
+        
+        CresCamera.releaseCamera();
     }
     
     private void runOnUiThread(Runnable runnable) {
@@ -1871,7 +1876,14 @@ public class CresStreamCtrl extends Service {
    				setHDCPErrorImage(false);			                		
 		 }			                
         else
-        	setNoVideoImage(true);
+        {
+        	//TODO: no need to stop camera when ducati frame buffer copying is in place
+//        	setNoVideoImage(true);
+        	for (int sessionId = 0 ; sessionId < NumOfSurfaces; sessionId++)
+        	{
+        		hidePreviewWindow(sessionId);
+        	}
+        }
 	}
 	
 	public void setNoVideoImage(boolean enable) 

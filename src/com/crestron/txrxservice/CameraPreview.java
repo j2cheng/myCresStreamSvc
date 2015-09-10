@@ -16,8 +16,6 @@ public class CameraPreview {
     String TAG = "TxRx Preview";
     AudioPlayback audio_pb;
     HDMIInputInterface hdmiIf;
-    CresCamera cresCam;
-    private Camera mCamera = null;
     private SurfaceHolder surfaceHolder;
     boolean is_pause = false;
     boolean is_preview = false;
@@ -58,7 +56,7 @@ public class CameraPreview {
         Log.d(TAG, "pausePlayback");
         try
         {
-            if (mCamera != null)
+            if (is_preview)
             {
                 is_pause = true;
                 streamCtl.setPauseVideoImage(true);
@@ -79,7 +77,7 @@ public class CameraPreview {
         Log.d(TAG, "resumePlayback");
         try
         {
-            if (mCamera != null)
+            if (is_preview)
             {
                 is_pause = false;
                 streamCtl.setPauseVideoImage(false);
@@ -111,27 +109,23 @@ public class CameraPreview {
         Log.d(TAG, "starting Playback " + is_preview);
         if(is_preview == false){
             Log.d(TAG, "Actual startPlayback");
-            if (mCamera != null)
-            {
-            	cresCam.releaseCamera(mCamera);
-            	mCamera = null;
-            }
-        	mCamera = cresCam.getCamera();
+
+            CresCamera.openCamera();
             // MNT - 3.10.15 
             // getHdmiInputStatus causes a reset on the chip.  Calling this here causes
             // the chip to get reset twice.  This will be fixed by Mistral.  However,
             // until then, we will only call this on a resolution change or on startup.
             //                if(mCamera!=null)
             //                    hdmiinput = mCamera.getHdmiInputStatus();
-            if(mCamera!=null){
+            if(CresCamera.mCamera != null){
                 try {
-                    mCamera.setPreviewDisplay(streamCtl.getCresSurfaceHolder(idx));
+                	CresCamera.mCamera.setPreviewDisplay(streamCtl.getCresSurfaceHolder(idx));
                     //mCamera.setPreviewDisplay(surfaceHolder);
                 }catch (Exception localException) {
                     localException.printStackTrace();
                 }
 
-                Camera.Parameters localParameters = mCamera.getParameters();
+                Camera.Parameters localParameters = CresCamera.mCamera.getParameters();
                 /*mSupportedPreviewSizes = mCamera.getParameters().getSupportedPreviewSizes();
                   for (int i = 0; i < mSupportedPreviewSizes.size(); i++) {
                   Log.d(TAG, i + ". Supported Resolution = " + mSupportedPreviewSizes.get(i).width + "x" + mSupportedPreviewSizes.get(i).height);
@@ -153,15 +147,15 @@ public class CameraPreview {
 
                     localParameters.set("ipp", "off");
                     Log.d(TAG, "Preview Size set to " + localParameters.getPreviewSize().width + "x" + localParameters.getPreviewSize().height);
-                    mCamera.setDisplayOrientation(0);
+                    CresCamera.mCamera.setDisplayOrientation(0);
                     try {
-                        mCamera.setParameters(localParameters);
+                    	CresCamera.mCamera.setParameters(localParameters);
                     }catch (Exception localException) {
                         localException.printStackTrace();
                         localParameters.setPreviewSize(640, 480);
-                        mCamera.setParameters(localParameters);
+                        CresCamera.mCamera.setParameters(localParameters);
                     }
-                    mCamera.startPreview();
+                    CresCamera.mCamera.startPreview();
 
                 	startAudio();                    
                     if (confidenceMode)
@@ -188,11 +182,10 @@ public class CameraPreview {
         {
             try
             {
-                if (mCamera!= null)
+                if (CresCamera.mCamera != null)
                 {
-            		mCamera.stopPreview();            		
-                	cresCam.releaseCamera(mCamera);
-                	mCamera = null;
+                	CresCamera.mCamera.stopPreview();            		
+            		CresCamera.releaseCamera();
                 }
                 is_preview = false;
                 streamCtl.setPauseVideoImage(false);
@@ -235,16 +228,16 @@ public class CameraPreview {
     	}
     }
 
-    public String getHdmiInputResolution() {    	
-        if(mCamera != null) {
-        	return mCamera.getHdmiInputStatus();
+    public String getHdmiInputResolution() {   
+    	Log.i(TAG, "Calling getHdmiInputResolution, mCamera = " + CresCamera.mCamera);
+        if(CresCamera.mCamera != null) {
+        	return CresCamera.mCamera.getHdmiInputStatus();
         }
         else {
-        	mCamera = cresCam.getCamera();
-        	if (mCamera != null) {
-        		String ret = mCamera.getHdmiInputStatus();
-        		cresCam.releaseCamera(mCamera);
-            	mCamera = null;
+        	CresCamera.openCamera();
+        	if (CresCamera.mCamera != null) {
+        		String ret = CresCamera.mCamera.getHdmiInputStatus();
+        		CresCamera.releaseCamera();
             	return ret;
         	} else
         		return null;

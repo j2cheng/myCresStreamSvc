@@ -29,7 +29,6 @@ import android.view.SurfaceHolder;
 public class CameraStreaming implements ErrorCallback {
     private SurfaceHolder surfaceHolder;
     private FileObserver activeClientObserver;
-    static Camera mCameraPreviewObj = null;
     MediaRecorder mrec;
     String TAG = "TxRx CameraStreamer";
     String filename;
@@ -121,12 +120,12 @@ public class CameraStreaming implements ErrorCallback {
 		        }
 		
 		        mrec = new MediaRecorder();
-		        mCameraPreviewObj = CresCamera.getCamera();
-		        if(mCameraPreviewObj!=null){
-		            mCameraPreviewObj.getHdmiInputStatus();
-		            mCameraPreviewObj.setEncoderFps(streamCtl.userSettings.getEncodingFramerate(idx));
-		            mCameraPreviewObj.unlock();
-		            mrec.setCamera(mCameraPreviewObj);
+		        CresCamera.openCamera();
+		        if(CresCamera.mCamera != null){
+		        	CresCamera.mCamera.getHdmiInputStatus();
+		        	CresCamera.mCamera.setEncoderFps(streamCtl.userSettings.getEncodingFramerate(idx));
+		        	CresCamera.mCamera.unlock();
+		            mrec.setCamera(CresCamera.mCamera);
 		
 		            mrec.setAudioSource(MediaRecorder.AudioSource.MIC);
 		            mrec.setVideoSource(MediaRecorder.VideoSource.CAMERA);
@@ -522,12 +521,11 @@ public class CameraStreaming implements ErrorCallback {
     			
     			try {
         			if(hpdEventAction==true){
-		            	if (mCameraPreviewObj != null)
+		            	if (CresCamera.mCamera != null)
 		            	{
-		            		mCameraPreviewObj.lock(); //Android recommends this
-		            		CresCamera.releaseCamera(mCameraPreviewObj);
+		            		CresCamera.mCamera.lock(); //Android recommends this
+		            		CresCamera.releaseCamera();
 		            	}
-		                mCameraPreviewObj = null;
 		            }
     			} catch (Exception e) { e.printStackTrace(); }
     			try {
@@ -539,12 +537,11 @@ public class CameraStreaming implements ErrorCallback {
     			} catch (Exception e) { e.printStackTrace(); }
     			try {
 	    			if(hpdEventAction==false){
-		            	if (mCameraPreviewObj != null)
+		            	if (CresCamera.mCamera != null)
 		            	{
-		            		mCameraPreviewObj.lock(); //Android recommends this
-		            		CresCamera.releaseCamera(mCameraPreviewObj);
+		            		CresCamera.mCamera.lock(); //Android recommends this
+		            		CresCamera.releaseCamera();
 		            	}
-		                mCameraPreviewObj = null;
 		            }
     			} catch (Exception e) { e.printStackTrace(); }
     			
@@ -738,36 +735,40 @@ public class CameraStreaming implements ErrorCallback {
             {
     			Pattern regexP;
     			Matcher regexM;
+    			String statisticsString;
     			
-    			String statisticsString = mrec.getStatisticsData();
-				
-				// Pull out Audio number of channels
-				regexP = Pattern.compile("Audio\\s+Channel:\\s+(\\d+)");
-				regexM = regexP.matcher(statisticsString);
-				regexM.find();
-				if (regexM.matches())
-					streamOutAudioChannels = Integer.parseInt(regexM.group(1));
-				
-				// Pull out Video width and height
-				regexP = Pattern.compile("Resolution:\\s+(\\d+)\\s+x\\s+(\\d+)");	//width x height
-				regexM = regexP.matcher(statisticsString);
-				regexM.find();				
-				if (regexM.matches())
-				{
-					streamOutWidth = Integer.parseInt(regexM.group(1));
-					streamOutHeight = Integer.parseInt(regexM.group(2));
-				}
-				
-				// Pull out Video frames per second
-				regexP = Pattern.compile("Frame\\s+Rate:\\s+(\\d+)");
-				regexM = regexP.matcher(statisticsString);
-				regexM.find();
-				if (regexM.matches())
-					streamOutFps = Integer.parseInt(regexM.group(1));
-				
-				streamOutAudioFormat = 1; //TODO: currently we are always setting this to PCM (1)
-				
-				streamCtl.SendStreamOutFeedbacks();
+    			if (mrec != null)
+    			{
+	    			statisticsString = mrec.getStatisticsData();
+					
+					// Pull out Audio number of channels
+					regexP = Pattern.compile("Audio\\s+Channel:\\s+(\\d+)");
+					regexM = regexP.matcher(statisticsString);
+					regexM.find();
+					if (regexM.matches())
+						streamOutAudioChannels = Integer.parseInt(regexM.group(1));
+					
+					// Pull out Video width and height
+					regexP = Pattern.compile("Resolution:\\s+(\\d+)\\s+x\\s+(\\d+)");	//width x height
+					regexM = regexP.matcher(statisticsString);
+					regexM.find();				
+					if (regexM.matches())
+					{
+						streamOutWidth = Integer.parseInt(regexM.group(1));
+						streamOutHeight = Integer.parseInt(regexM.group(2));
+					}
+					
+					// Pull out Video frames per second
+					regexP = Pattern.compile("Frame\\s+Rate:\\s+(\\d+)");
+					regexM = regexP.matcher(statisticsString);
+					regexM.find();
+					if (regexM.matches())
+						streamOutFps = Integer.parseInt(regexM.group(1));
+					
+					streamOutAudioFormat = 1; //TODO: currently we are always setting this to PCM (1)
+					
+					streamCtl.SendStreamOutFeedbacks();
+    			}
     			
     			while(!shouldExit)
 				{    		

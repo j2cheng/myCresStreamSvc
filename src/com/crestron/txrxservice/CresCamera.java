@@ -11,47 +11,47 @@ import android.util.Log;
 
 public class CresCamera {
 	static String TAG = "TxRx Camera";
-	static Camera mCamera = null;
+	public static Camera mCamera = null;
+	static Object lockObj = new Object();
 
-    private static int findCamera(){
-        int cameraId = 0;
-        int numOfCameras = Camera.getNumberOfCameras();
-        for (int i = 0; i < numOfCameras; i++){
-            CameraInfo info = new CameraInfo();
-            Camera.getCameraInfo(i, info);
-            cameraId = i;
-        }
-        return cameraId;
-    }
+	private static int findCamera(){
+		int cameraId = 0;
+		int numOfCameras = Camera.getNumberOfCameras();
+		for (int i = 0; i < numOfCameras; i++){
+			CameraInfo info = new CameraInfo();
+			Camera.getCameraInfo(i, info);
+			cameraId = i;
+		}
+		return cameraId;
+	}
 
-    public static Camera getCamera(){
-	    Camera lCamera = null;
-	    
-	    if (mCamera != null)
-	    	releaseCamera(mCamera);
-	    	
-	    for(int retry = 5; lCamera == null && retry > 0; retry--)
-	    {
-	        int cameraId = findCamera();
-	        if(cameraId>=0){
-	            try {
-	                lCamera = Camera.open(cameraId); 
-	            } catch (Exception e) {
-	                Log.e(TAG, "fail to open camera");
-	                e.printStackTrace();
-	                lCamera = null;
-	                SystemClock.sleep(1000);
-	            }
-	        }
-	    }
-	    mCamera = lCamera;
-        return lCamera;
-    }
-    
-    public static void releaseCamera(Camera lCamera) {
-		if (lCamera != null) {
-			lCamera.release(); // release the camera for other applications
-			lCamera = null;
+	public static void openCamera(){
+		synchronized (lockObj)
+		{
+			if (mCamera != null)
+				releaseCamera();
+
+			for(int retry = 5; mCamera == null && retry > 0; retry--)
+			{
+				int cameraId = findCamera();
+				if(cameraId>=0){
+					try {
+						mCamera = Camera.open(cameraId);            	
+					} catch (Exception e) {
+						Log.e(TAG, "fail to open camera");
+						e.printStackTrace();
+						mCamera = null;
+						SystemClock.sleep(1000);
+					}
+				}
+			}
+			return;
+		}
+	}
+
+	public static void releaseCamera() {
+		if (mCamera != null) {
+			mCamera.release(); // release the camera for other applications
 			mCamera = null;
 		}
 	}
