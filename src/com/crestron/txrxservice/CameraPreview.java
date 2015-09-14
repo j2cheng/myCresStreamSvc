@@ -8,6 +8,7 @@ import com.crestron.txrxservice.CresStreamCtrl.StreamState;
 import android.hardware.Camera;
 import android.hardware.Camera.ErrorCallback;
 import android.hardware.Camera.Parameters;
+import android.hardware.Camera.PreviewCallback;
 import android.hardware.Camera.Size;
 import android.util.Log;
 import android.view.SurfaceHolder;
@@ -72,7 +73,7 @@ public class CameraPreview {
         return false;
     }
 
-    public boolean resumePlayback()
+    public boolean resumePlayback(boolean confidenceMode)
     {
         Log.d(TAG, "resumePlayback");
         try
@@ -83,7 +84,11 @@ public class CameraPreview {
                 streamCtl.setPauseVideoImage(false);
                 startAudio();
             }
-            streamCtl.SendStreamState(StreamState.STARTED, idx);
+            
+            if (confidenceMode)
+            	streamCtl.SendStreamState(StreamState.CONFIDENCEMODE, idx);
+            else
+            	streamCtl.SendStreamState(StreamState.STARTED, idx);
             return true;
         }
         catch (Exception localException)
@@ -155,13 +160,12 @@ public class CameraPreview {
                         localParameters.setPreviewSize(640, 480);
                         CresCamera.mCamera.setParameters(localParameters);
                     }
+                    CresCamera.mCamera.setPreviewCallback(new PreviewCB(confidenceMode));
+                    CresCamera.mCamera.setErrorCallback(new ErrorCB(confidenceMode));
                     CresCamera.mCamera.startPreview();
 
-                	startAudio();                    
-                    if (confidenceMode)
-                    	streamCtl.SendStreamState(StreamState.CONFIDENCEMODE, idx);
-                    else
-                    	streamCtl.SendStreamState(StreamState.STARTED, idx);
+                	startAudio(); 
+					//Streamstate is now being fedback using preview callback                   
                 }
                 is_preview = true;
             }
@@ -170,7 +174,7 @@ public class CameraPreview {
             	stopPlayback(false);
             }
         }else   //Pause/Resume Case
-            resumePlayback();      
+            resumePlayback(confidenceMode);      
 
     }
 
@@ -184,6 +188,7 @@ public class CameraPreview {
             {
                 if (CresCamera.mCamera != null)
                 {
+                	CresCamera.mCamera.setPreviewCallback(null); //probably not necessary since handled by callback, but doesn't hurt
                 	CresCamera.mCamera.stopPreview();            		
             		CresCamera.releaseCamera();
                 }
@@ -246,5 +251,45 @@ public class CameraPreview {
     
     public void setVolume(int volume) {
     	audio_pb.setVolume(volume);
+    }
+    
+    private class PreviewCB implements PreviewCallback
+    {
+    	public final boolean confidenceMode;
+    	
+    	public PreviewCB (boolean confidenceModeEnabled)
+    	{
+    		this.confidenceMode = confidenceModeEnabled;
+    	}
+    	
+		@Override
+		public void onPreviewFrame(byte[] data, Camera camera) {
+			if (confidenceMode)
+            	streamCtl.SendStreamState(StreamState.CONFIDENCEMODE, idx);
+            else
+            	streamCtl.SendStreamState(StreamState.STARTED, idx);
+
+			//Set data to null so that it can be GC a little bit faster, it has a large allocation (size of frame)
+			data = null;
+
+			// After first frame arrives unregister callback to prevent sending multiple streamstates
+			camera.setPreviewCallback(null);
+		}    	
+    }
+    
+    private class ErrorCB implements ErrorCallback
+    {
+    	public final boolean confidenceMode;
+    	
+    	public ErrorCB (boolean confidenceModeEnabled)
+    	{
+    		this.confidenceMode = confidenceModeEnabled;
+    	}
+    	
+    	@Override
+    	public void onError(int error, Camera camera) {
+            Log.e(TAG, "Camera Error callback:" + error + "Camera :" + camera);
+            //stopPlayback(confidenceMode); // TODO: decide what we want to do here
+    	}
     }
 }

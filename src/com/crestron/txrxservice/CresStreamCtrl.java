@@ -193,10 +193,11 @@ public class CresStreamCtrl extends Service {
         }
     }
     
-    private final ReentrantLock threadLock = new ReentrantLock(true); // fairness=true, makes lock ordered
-    private final ReentrantLock streamStateLock = new ReentrantLock(true);
-    private final ReentrantLock saveSettingsLock = new ReentrantLock(true);
-
+    private final ReentrantLock threadLock 			= new ReentrantLock(true); // fairness=true, makes lock ordered
+    private final ReentrantLock streamStateLock 	= new ReentrantLock(true);
+    private final ReentrantLock saveSettingsLock 	= new ReentrantLock(true);
+    public final ReentrantLock restartLock	 		= new ReentrantLock(true);
+    
     /**
      * Force the service to the foreground
      */
@@ -581,9 +582,9 @@ public class CresStreamCtrl extends Service {
 					
 					// Dont call recovery if monitorDucati is already recovering
 					if (cameraErrorResolved == false)
-					{						
-						cameraErrorResolved = true;
+					{		
 						writeDucatiState(1);
+						cameraErrorResolved = true;						
 						Log.i(TAG, "Recovering from mediaserver crash");
 						cam_preview.getHdmiInputResolution();
 						restartStreams();
@@ -657,67 +658,81 @@ public class CresStreamCtrl extends Service {
     public void restartStreams() 
     {
     	new Thread(new Runnable() {
-    		public void run() {				
-		    	Log.d(TAG, "Restarting Streams...");
-		
-		    	//If streamstate was previously started, restart stream
-		        for (int sessionId = 0; sessionId < NumOfSurfaces; sessionId++)
-		        {
-		        	if ((userSettings.getMode(sessionId) == DeviceMode.STREAM_OUT.ordinal()) 
-		        			&& (userSettings.getUserRequestedStreamState(sessionId) == StreamState.STOPPED))
-		            {
-		        		Log.d(TAG, "Stop : Lock");
-		    	    	threadLock.lock();
-		    	    	try
-		    	    	{
-		    	    		cam_streaming.stopConfidencePreview(sessionId);
-		    	    	}
-			    		finally
-				    	{
-				    		Log.d(TAG, "Stop : Unlock");
-				    		threadLock.unlock();
-				    	}
-		    	    	Log.d(TAG, "Start : Lock");
-		    	    	threadLock.lock();
-		    	    	try
-		    	    	{
-		    	    		cam_streaming.startConfidencePreview(sessionId);
-		    	    	}
-			    		finally
-				    	{
-				    		Log.d(TAG, "Start : Unlock");
-				    		threadLock.unlock();
-				    	}            	
-		            } 
-		        	else if (userSettings.getUserRequestedStreamState(sessionId) == StreamState.STARTED)
-		            {
-		            	//Avoid starting confidence mode when stopping stream out
-		            	if (userSettings.getMode(sessionId) == DeviceMode.STREAM_OUT.ordinal())
-		            	{
-		            		Log.d(TAG, "Stop : Lock");
-		        	    	threadLock.lock();
-		        	    	try
-		        	    	{
-		        		    	playStatus="false";
-		        		    	stopStatus="true";
-		        		        pauseStatus="false";
-		        		        restartRequired[sessionId]=false;
-		        		        cam_streaming.setSessionIndex(sessionId);
-		                        cam_streaming.stopRecording(false);
-		                        StreamOutstarted = false;
-		                        hidePreviewWindow(sessionId);
-		        	    	}
-		        	    	finally
-		        	    	{
-		        	    		Log.d(TAG, "Stop : Unlock");
-		        	    		threadLock.unlock();
-		        	    	}                    
-		            	}
-		            	else
-		            		Stop(sessionId);
-		            	Start(sessionId);
-		            }                       
-		        }
+    		public void run() {	
+				//If we are already processing restart streams do not queue, just skip	
+    			boolean locked = restartLock.tryLock();
+    			if (locked)
+    			{
+	    	    	Log.i(TAG, "RestartLock : Lock");
+	    	    	try
+	    	    	{	
+				    	Log.d(TAG, "Restarting Streams...");
+				
+				    	//If streamstate was previously started, restart stream
+				        for (int sessionId = 0; sessionId < NumOfSurfaces; sessionId++)
+				        {
+				        	if ((userSettings.getMode(sessionId) == DeviceMode.STREAM_OUT.ordinal()) 
+				        			&& (userSettings.getUserRequestedStreamState(sessionId) == StreamState.STOPPED))
+				            {
+				        		Log.d(TAG, "Stop : Lock");
+				    	    	threadLock.lock();
+				    	    	try
+				    	    	{
+				    	    		cam_streaming.stopConfidencePreview(sessionId);
+				    	    	}
+					    		finally
+						    	{
+						    		Log.d(TAG, "Stop : Unlock");
+						    		threadLock.unlock();
+						    	}
+				    	    	Log.d(TAG, "restartStreams Start : Lock");
+				    	    	threadLock.lock();
+				    	    	try
+				    	    	{
+				    	    		cam_streaming.startConfidencePreview(sessionId);
+				    	    	}
+					    		finally
+						    	{
+						    		Log.d(TAG, "Start : Unlock");
+						    		threadLock.unlock();
+						    	}            	
+				            } 
+				        	else if (userSettings.getUserRequestedStreamState(sessionId) == StreamState.STARTED)
+				            {
+				            	//Avoid starting confidence mode when stopping stream out
+				            	if (userSettings.getMode(sessionId) == DeviceMode.STREAM_OUT.ordinal())
+				            	{
+				            		Log.d(TAG, "Stop : Lock");
+				        	    	threadLock.lock();
+				        	    	try
+				        	    	{
+				        		    	playStatus="false";
+				        		    	stopStatus="true";
+				        		        pauseStatus="false";
+				        		        restartRequired[sessionId]=false;
+				        		        cam_streaming.setSessionIndex(sessionId);
+				                        cam_streaming.stopRecording(false);
+				                        StreamOutstarted = false;
+				                        hidePreviewWindow(sessionId);
+				        	    	}
+				        	    	finally
+				        	    	{
+				        	    		Log.d(TAG, "Stop : Unlock");
+				        	    		threadLock.unlock();
+				        	    	}                    
+				            	}
+				            	else
+				            		Stop(sessionId);
+				            	Start(sessionId);
+				            }                       
+				        }
+		    		}
+		    		finally
+			    	{
+			    		Log.i(TAG, "RestartLock : Unlock");
+			    		restartLock.unlock();
+			    	}
+    			}
     		}
 		}).start();
     }
@@ -1820,7 +1835,6 @@ public class CresStreamCtrl extends Service {
 									+ Math.round(hdmiOutputResolution.refreshRate));
 		
 		                    //update HDMI output
-							// FIXME: reverting resolution update so that platform does not continuously reboot
 							hdmiOutput.setSyncStatus();		
 					        hdmiOutput.setHorizontalRes(Integer.toString(hdmiOutputResolution.width));
 					        hdmiOutput.setVerticalRes(Integer.toString(hdmiOutputResolution.height));

@@ -19,6 +19,7 @@ import android.graphics.ImageFormat;
 import android.graphics.PixelFormat;
 import android.hardware.Camera;
 import android.hardware.Camera.ErrorCallback;
+import android.hardware.Camera.PreviewCallback;
 import android.media.MediaRecorder;
 import android.os.FileObserver;
 import android.os.Environment;
@@ -26,7 +27,7 @@ import android.util.Log;
 import android.view.Surface;
 import android.view.SurfaceHolder;
 
-public class CameraStreaming implements ErrorCallback {
+public class CameraStreaming {
     private SurfaceHolder surfaceHolder;
     private FileObserver activeClientObserver;
     MediaRecorder mrec;
@@ -49,6 +50,7 @@ public class CameraStreaming implements ErrorCallback {
     private boolean confidencePreviewRunning = false;
     private final long stopTimeout_ms = 15000;
     private final long startTimeout_ms = 20000;
+    private final String clientConnectedFilePath = "/dev/shm/crestron/CresStreamSvc/clientConnected";
 
     private boolean shouldExit = false;
     private Thread statisticsThread;
@@ -76,7 +78,7 @@ public class CameraStreaming implements ErrorCallback {
     protected void startRecording() throws IOException {
     	final Surface surface = streamCtl.getCresSurfaceHolder(idx).getSurface();
     	final CountDownLatch latch = new CountDownLatch(1);
-    	new Thread(new Runnable() {
+    	Thread startThread = new Thread(new Runnable() {
     		public void run() {
     			String streamIp = "";
     			
@@ -190,6 +192,9 @@ public class CameraStreaming implements ErrorCallback {
 		            {
 			            mrec.prepare();
 			            mrec.start();
+			            //Must be called after start(), send status feedbacks on first frame coming in
+			            CresCamera.mCamera.setPreviewCallback(new PreviewCB());
+			            CresCamera.mCamera.setErrorCallback(new ErrorCB());
 		            }
 		            catch (Exception ex) 
 		            {
@@ -200,18 +205,10 @@ public class CameraStreaming implements ErrorCallback {
 		                String sb = mrec.getSDP();
 		                Log.d(TAG, "########SDP Dump######\n" + sb);
 		            }
-		            //mrec.getStatisticsData();
-		            if ((currentSessionInitiation == 0) || (currentSessionInitiation == 2)) {	
-		                streamCtl.SendStreamState(StreamState.STREAMERREADY, idx);
-		                monitorRtspClientActiveConnections();
-						//RTSP Modified to Streamer Ready State, until client connects 
-				    }
-				    else {
-		                streamCtl.SendStreamState(StreamState.STARTED, idx);     
-				    }
-			            out_stream_status = true;
-			            
-			            startStatisticsTask();	            
+		           
+		            out_stream_status = true;
+		            
+		            startStatisticsTask();	            
 		        }
 		        else {
 		        	stopRecording(false);
@@ -222,7 +219,8 @@ public class CameraStreaming implements ErrorCallback {
 		        
 		        latch.countDown();
     		}
-    	}).start();
+    	});
+    	startThread.start();
     	
     	// We launch the start command in its own thread and timeout in case mediaserver gets hung
     	boolean successfulStart = true; //indicates that there was no time out condition
@@ -231,14 +229,16 @@ public class CameraStreaming implements ErrorCallback {
     	
     	if (!successfulStart)
     	{
-		Log.e(TAG, String.format("MediaServer failed to start after %d ms", startTimeout_ms));
+    		Log.e(TAG, String.format("MediaServer failed to start after %d ms", startTimeout_ms));
+    		startThread.interrupt(); //cleanly kill thread
+    		startThread = null;
     		streamCtl.RecoverDucati();
     	}
     }
     
     void monitorRtspClientActiveConnections() 
     {
-    	File activeClientConnection = new File ("/dev/shm/crestron/CresStreamSvc/clientConnected");
+    	File activeClientConnection = new File (clientConnectedFilePath);
         if (!activeClientConnection.isFile())	//check if file exist
         {
         	try {
@@ -246,36 +246,44 @@ public class CameraStreaming implements ErrorCallback {
             	activeClientConnection.createNewFile();
         	} catch (Exception e) {}
         }
-        activeClientObserver = new FileObserver("/dev/shm/crestron/CresStreamSvc/clientConnected", FileObserver.CLOSE_WRITE) {						
+        
+        //send initial state
+        sendRtspStreamState(true);
+        activeClientObserver = new FileObserver(clientConnectedFilePath, FileObserver.CLOSE_WRITE) {						
 			@Override
 			public void onEvent(int event, String path) {
-				int val = 0;
-				//function start
-				BufferedReader br = null;
-				try {
-					String sCurrentLine;
-					br = new BufferedReader(new FileReader("/dev/shm/crestron/CresStreamSvc/clientConnected"));
-					while ((sCurrentLine = br.readLine()) != null) {
-						val = Integer.parseInt(sCurrentLine);
-					}
-
-				} catch (IOException e) {
-					e.printStackTrace();
-				} finally {
-					try {
-						if (br != null)br.close();
-					} catch (IOException ex) {
-						ex.printStackTrace();
-					}
-				}
-				if(val > 0)
-				    streamCtl.SendStreamState(StreamState.STARTED, idx);     
-				else
-				    streamCtl.SendStreamState(StreamState.STREAMERREADY, idx);     
-				//function end
+				sendRtspStreamState(false);
 			}
 		};
 		activeClientObserver.startWatching();
+    }
+    
+    private void sendRtspStreamState(boolean firstRun)
+    {
+    	// If firstRun is true only send feedback if client is connected
+    	int val = 0;
+		BufferedReader br = null;
+		try {
+			String sCurrentLine;
+			br = new BufferedReader(new FileReader(clientConnectedFilePath));
+			while ((sCurrentLine = br.readLine()) != null) {
+				val = Integer.parseInt(sCurrentLine);
+			}
+
+		} catch (IOException e) {
+			e.printStackTrace();
+		} finally {
+			try {
+				if (br != null)
+					br.close();
+			} catch (IOException ex) {
+				ex.printStackTrace();
+			}
+		}
+		if(val > 0)
+			streamCtl.SendStreamState(StreamState.STARTED, idx);
+		else if (firstRun == false)
+		    streamCtl.SendStreamState(StreamState.STREAMERREADY, idx);
     }
 
     private boolean CheckForValidIp()
@@ -510,7 +518,7 @@ public class CameraStreaming implements ErrorCallback {
 
     public void stopRecording(final boolean hpdEventAction) {
     	final CountDownLatch latch = new CountDownLatch(1);
-    	new Thread(new Runnable() {
+    	Thread stopThread = new Thread(new Runnable() {
     		public void run() {
 		        Log.d(TAG, "stopRecording");
                 int currSessionInitiation = streamCtl.userSettings.getSessionInitiation(idx);
@@ -523,6 +531,7 @@ public class CameraStreaming implements ErrorCallback {
         			if(hpdEventAction==true){
 		            	if (CresCamera.mCamera != null)
 		            	{
+		            		CresCamera.mCamera.setPreviewCallback(null);
 		            		CresCamera.mCamera.lock(); //Android recommends this
 		            		CresCamera.releaseCamera();
 		            	}
@@ -539,6 +548,7 @@ public class CameraStreaming implements ErrorCallback {
 	    			if(hpdEventAction==false){
 		            	if (CresCamera.mCamera != null)
 		            	{
+		            		CresCamera.mCamera.setPreviewCallback(null);
 		            		CresCamera.mCamera.lock(); //Android recommends this
 		            		CresCamera.releaseCamera();
 		            	}
@@ -550,6 +560,15 @@ public class CameraStreaming implements ErrorCallback {
 	            is_pause = false;
 	            stopStatisticsTask();
 	            
+	            //Delete clientConnectedFilePath
+	            File activeClientConnection = new File (clientConnectedFilePath);
+	            if (activeClientConnection.isFile())	//check if file exist
+	            {
+	            	boolean deleteSuccess = activeClientConnection.delete();
+	            	if (deleteSuccess == false)
+	            		Log.e(TAG, String.format("Unable to delete %s", clientConnectedFilePath));
+	            }
+	            
 	            streamCtl.SendStreamState(StreamState.STOPPED, idx);
 	            
 	            // Zero out statistics on stop
@@ -558,7 +577,8 @@ public class CameraStreaming implements ErrorCallback {
 		        
 		        latch.countDown();
     		}
-    	}).start();
+    	});
+    	stopThread.start();
 
     	// We launch the stop commands in its own thread and timeout in case mediaserver gets hung
     	boolean successfulStop = true; //indicates that there was no time out condition
@@ -568,6 +588,8 @@ public class CameraStreaming implements ErrorCallback {
     	if (!successfulStop)
     	{
     		Log.e(TAG, String.format("MediaServer failed to stop after %d ms", stopTimeout_ms));
+    		stopThread.interrupt(); //cleanly kill thread
+    		stopThread = null;
     		streamCtl.SendStreamState(StreamState.STOPPED, idx);
     		streamCtl.RecoverDucati();
     		try {
@@ -611,12 +633,6 @@ public class CameraStreaming implements ErrorCallback {
         }
     }
     
-
-    @Override
-        public void onError(int error, Camera camera) {
-            Log.d(TAG, "Camera Error callback:" + error + "Camera :" + camera);
-        }
-
     //Response to CSIO Layer
     public boolean getStreamOutStatus()
     {
@@ -829,5 +845,34 @@ public class CameraStreaming implements ErrorCallback {
     public boolean getConfidencePreviewStatus()
     {
     	return confidencePreviewRunning;
+    }
+    
+    private class PreviewCB implements PreviewCallback
+    {
+		@Override
+		public void onPreviewFrame(byte[] data, Camera camera) {
+			int currentSessionInitiation = streamCtl.userSettings.getSessionInitiation(idx);
+			if ((currentSessionInitiation == 0) || (currentSessionInitiation == 2)) {	
+                streamCtl.SendStreamState(StreamState.STREAMERREADY, idx);
+                monitorRtspClientActiveConnections();
+		    }
+		    else {
+                streamCtl.SendStreamState(StreamState.STARTED, idx);     
+		    }
+
+			//Set data to null so that it can be GC a little bit faster, it has a large allocation (size of frame)
+			data = null;
+			// After first frame arrives unregister callback to prevent sending multiple streamstates
+			camera.setPreviewCallback(null);
+		}    	
+    }
+    
+    private class ErrorCB implements ErrorCallback
+    {
+    	@Override
+        public void onError(int error, Camera camera) {
+            Log.d(TAG, "Camera Error callback:" + error + "Camera :" + camera);
+            //stopRecording(false); // TODO: decide what we want to do here
+        }
     }
 }
