@@ -26,7 +26,7 @@ public class GstreamIn implements StreamInStrategy, SurfaceHolder.Callback {
     private long statisticsNumAudioPackets = 0;
     private int statisticsNumAudioPacketsDropped = 0;
     private int statisticsBitrate = 0;
-    private final long stopTimeout_ms = 30000;
+    private final int stopTimeout_sec = 30;
 
 
     private native void nativeInit();     // Initialize native code, build pipeline, etc
@@ -55,6 +55,7 @@ public class GstreamIn implements StreamInStrategy, SurfaceHolder.Callback {
     private native void			nativeSetUserName(String userName, int sessionId);
     private native void			nativeSetPassword(String password, int sessionId);
     public native void 			nativeSetVolume(int volume, int sessionid);
+    public native void			nativeSetStopTimeout(int stopTimeout_sec);
 
     public GstreamIn(CresStreamCtrl mContext) {
         Log.e(TAG, "GstreamIN :: Constructor called...!");
@@ -62,6 +63,8 @@ public class GstreamIn implements StreamInStrategy, SurfaceHolder.Callback {
         // Initialize GStreamer and warn if it fails
         try {
             GStreamer.init((Context)mContext);
+            //Set stop timeout
+            nativeSetStopTimeout(stopTimeout_sec);
         } catch (Exception e) {
 //             Toast.makeText(this, e.getMessage(), Toast.LENGTH_LONG).show();
 //             finish();
@@ -242,26 +245,10 @@ public class GstreamIn implements StreamInStrategy, SurfaceHolder.Callback {
     }
 
     public void onStop(final int sessionId) {
-    	final CountDownLatch latch = new CountDownLatch(1);
-    	new Thread(new Runnable() {
-    		public void run() {
-		        Log.d(TAG, "Stopping MediaPlayer");
-		        //nativeSurfaceFinalize (sessionId);should be called in surfaceDestroyed()
-		        nativeStop(sessionId);
-		        latch.countDown();
-    		}
-    	}).start();
     	
-    	// We launch the stop commands in its own thread and timeout in case jni library gets hung
-    	boolean successfulStop = false; //indicates if there was timeout condition
-    	try { successfulStop = latch.await(stopTimeout_ms, TimeUnit.MILLISECONDS); }
-    	catch (InterruptedException ex) { ex.printStackTrace(); }
-    	
-    	if (!successfulStop)
-    	{
-    		Log.e(TAG, String.format("libgstreamer_jni failed to stop after %d ms", stopTimeout_ms));
-    		recoverDucati();
-    	}
+    	Log.d(TAG, "Stopping MediaPlayer");
+        //nativeSurfaceFinalize (sessionId);should be called in surfaceDestroyed()
+        nativeStop(sessionId);
     }
     
     private void updateNativeDataStruct(int sessionId)

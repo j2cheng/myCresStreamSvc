@@ -8,6 +8,8 @@
 #include <android/native_window.h>
 #include <android/native_window_jni.h>
 #include <pthread.h>
+#include <time.h>
+#include <errno.h>
 #include <gst/gst.h>
 #include <gst/video/video.h>
 #include <gst/rtsp/gstrtsptransport.h>

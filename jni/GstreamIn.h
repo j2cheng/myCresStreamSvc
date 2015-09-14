@@ -136,6 +136,13 @@ JNIEXPORT void JNICALL Java_com_crestron_txrxservice_GstreamIn_nativeSetPassword
  */
 JNIEXPORT void JNICALL Java_com_crestron_txrxservice_GstreamIn_nativeSetVolume(JNIEnv *, jobject, jint, jint);
 
+/*
+ * Class:     		GstreamIn
+ * Method:    		nativeSetStopTimeout
+ * Signature: 		(I)V
+ */
+JNIEXPORT void JNICALL Java_com_crestron_txrxservice_GstreamIn_nativeSetStopTimeout(JNIEnv *, jobject, jint);
+
 ///////////////////////////////////////////////////////////////////////////////
 StreamState nativeGetCurrentStreamState(jint);
 void csio_send_stats (uint64_t, int, uint64_t, int, uint16_t);

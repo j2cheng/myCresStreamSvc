@@ -36,6 +36,7 @@
 ///////////////////////////////////////////////////////////////////////////////
 
 extern int  csio_Init(int calledFromCsio);
+void csio_jni_stop(int sessionId);
 
 ///////////////////////////////////////////////////////////////////////////////
 
@@ -69,6 +70,9 @@ static jmethodID set_message_method_id;
 static jclass *gStreamIn_javaClass_id;
 int g_using_glimagsink = 0;
 int g_force_glimagsink = 0;
+
+pthread_cond_t stop_completed_sig;
+static int stop_timeout_sec = 1000;
 ///////////////////////////////////////////////////////////////////////////////
 
 /*
@@ -282,12 +286,62 @@ void csio_jni_cleanup (int iStreamId)
     csio_jni_FreeMainContext(iStreamId);
 }
 
+void * jni_stop (void * arg)
+{
+	jint sessionId = (*(jint *)arg);
+	SetInPausedState(sessionId,0);
+	stop_streaming_cmd(sessionId);
+	csio_jni_cleanup(sessionId);
+
+    pthread_cond_broadcast(&stop_completed_sig); //Flags that stop has completed
+	pthread_exit(NULL);
+
+	return NULL;
+}
+
+void csio_jni_stop(int sessionId)
+{
+	jint timeout_sec = stop_timeout_sec;
+	struct timespec stopTimeout;
+	int result;
+	pthread_t gst_stop_thread;
+	pthread_mutex_t stop_completed_lock;
+
+	//init mutex and thread attributes
+	pthread_cond_init(&stop_completed_sig, NULL);
+	pthread_mutex_init(&stop_completed_lock, NULL);
+	pthread_attr_t attr;
+	pthread_attr_init(&attr);
+	pthread_attr_setdetachstate(&attr, PTHREAD_CREATE_DETACHED);
+	clock_gettime(CLOCK_REALTIME, &stopTimeout);
+	stopTimeout.tv_sec += timeout_sec;
+
+	//Kick off stop thread
+	pthread_create(&gst_stop_thread, &attr, jni_stop, &sessionId);
+
+	//Wait for timeout or completion
+	pthread_mutex_lock(&stop_completed_lock);
+	result = pthread_cond_timedwait(&stop_completed_sig, &stop_completed_lock, &stopTimeout);
+	pthread_mutex_unlock(&stop_completed_lock);
+
+	//Cleanup pthread objects
+	pthread_attr_destroy(&attr);
+	pthread_cond_destroy(&stop_completed_sig);
+	pthread_mutex_destroy(&stop_completed_lock);
+
+	if (result == ETIMEDOUT)
+	{
+		GST_ERROR("Stop timed out after %d seconds\n", timeout_sec);
+		csio_jni_recoverDucati();
+	}
+	else if (result != 0)
+		GST_ERROR("Unknown error occurred while waiting for stop to complete, error = %d\n", result);
+}
+
 /* Set pipeline to PAUSED state */
-void gst_native_stop (JNIEnv* env, jobject thiz, jint sessionId)
-{    
-    SetInPausedState(sessionId,0);
-    stop_streaming_cmd(sessionId);
-    csio_jni_cleanup(sessionId);
+void gst_native_stop (JNIEnv* env, jobject thiz, jint sessionId, jint stopTimeout_sec)
+{
+	csio_jni_stop((int)sessionId);
 }
 
 /* Static class initializer: retrieve method and field IDs */
@@ -563,6 +617,11 @@ JNIEXPORT void JNICALL Java_com_crestron_txrxservice_GstreamIn_nativeSetVolume(J
 	currentSettingsDB.videoSettings[sessionId].volumeIndB = convertedVolume;
 	int ret = csio_SetLinearVolume(sessionId, convertedVolume);
 	GST_DEBUG ("Return from csio_SetLinearVolume = %d", ret);
+}
+
+JNIEXPORT void JNICALL Java_com_crestron_txrxservice_GstreamIn_nativeSetStopTimeout(JNIEnv *env, jobject thiz, jint stopTimeout_sec)
+{
+	stop_timeout_sec = stopTimeout_sec;
 }
 
 JNIEXPORT void JNICALL Java_com_crestron_txrxservice_GstreamIn_nativeSetNewSink(JNIEnv *env, jobject thiz, jboolean enabled, jint sessionId)
