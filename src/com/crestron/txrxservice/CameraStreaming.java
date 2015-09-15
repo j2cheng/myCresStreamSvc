@@ -205,6 +205,11 @@ public class CameraStreaming {
 		                String sb = mrec.getSDP();
 		                Log.d(TAG, "########SDP Dump######\n" + sb);
 		            }
+		            
+		            //UDP TS streaming modes do not call PreviewCB so send started state
+		            if (((currentSessionInitiation == 1) || (currentSessionInitiation == 3)) && 
+		            		((currentTransportMode == 1) || (currentTransportMode == 2)))
+		            	streamCtl.SendStreamState(StreamState.STARTED, idx);
 		           
 		            out_stream_status = true;
 		            
