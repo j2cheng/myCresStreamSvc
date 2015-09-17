@@ -21,7 +21,9 @@ GST_DEBUG_CATEGORY_STATIC (debug_category);
 #define GST_CAT_DEFAULT debug_category
 
 #define MAX_STREAMS 2
+#define MAX_ELEMENTS 20
 
+//#define INSERT_SF_SINK 1
 ///////////////////////////////////////////////////////////////////////////////
 
 typedef struct
@@ -48,9 +50,9 @@ typedef struct _CREGSTREAM
 	GstElement *audio_sink; 
 	
 	GstElement *element_zero;	
-	GstElement *element_av [10];
-	GstElement *element_a [10];
-	GstElement *element_v [10];
+	GstElement *element_av [MAX_ELEMENTS];
+	GstElement *element_a [MAX_ELEMENTS];
+	GstElement *element_v [MAX_ELEMENTS];
 	unsigned int element_after_tsdemux;	/* Used to add the rest of the video pipeline */
 	
 	// parameters from control system/platform/java
@@ -74,6 +76,9 @@ typedef struct _CREGSTREAM
 	GstCaps * caps_a_rtp;
 	char port_range_text[32];
 	int do_udp_ts;
+
+	int using_glimagsink;
+	void* surface;
 } CREGSTREAM;
 
 /* Structure to contain all our information, so we can pass it to callbacks */
@@ -98,4 +103,5 @@ extern void csio_PadAddedMsgHandler(GstElement *src, GstPad *new_pad, void *pCst
 
 extern void set_gst_debug_level(void);
 
+extern guint64 amcviddec_min_threshold_time ;
 #endif

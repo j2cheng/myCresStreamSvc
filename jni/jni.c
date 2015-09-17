@@ -32,7 +32,9 @@
 #include "csioCommonShare.h"
 #include <gst/video/video.h>
 #include "csio_jni_if.h"
-
+// Android headers
+#include "hardware/gralloc.h"           // for GRALLOC_USAGE_PROTECTED
+#include "android/native_window.h"      // for ANativeWindow_ functions
 ///////////////////////////////////////////////////////////////////////////////
 
 extern int  csio_Init(int calledFromCsio);
@@ -68,13 +70,15 @@ static jmethodID set_message_method_id;
 // not used
 //static jmethodID on_gstreamer_initialized_method_id;
 static jclass *gStreamIn_javaClass_id;
-int g_using_glimagsink = 0;
+
 int g_force_glimagsink = 0;
 
 pthread_cond_t stop_completed_sig;
 static int stop_timeout_sec = 1000;
 ///////////////////////////////////////////////////////////////////////////////
+void csio_jni_FreeMainContext(int iStreamId);
 
+guint64 amcviddec_min_threshold_time = 500000000;//500ms default
 /*
  * Private methods
  */
@@ -264,24 +268,26 @@ static void gst_native_pause (JNIEnv* env, jobject thiz, jint sessionId)
 void csio_jni_cleanup (int iStreamId)
 {
     int i;
-	CREGSTREAM * data = GetStreamFromCustomData(CresDataDB, iStreamId);
+    CREGSTREAM * data = GetStreamFromCustomData(CresDataDB, iStreamId);
 
-	if(!data)
-	{
-		GST_ERROR("Could not obtain stream pointer for stream %d", iStreamId);
-		return;
-	}	
-	
+    if (!data)
+    {
+        GST_ERROR("Could not obtain stream pointer for stream %d", iStreamId);
+        return;
+    }
+
     data->element_zero = NULL;
-	data->video_sink = NULL;
-	data->audio_sink = NULL;
-	data->pipeline = NULL;
-	for(i = 0; i < 10; i++)
-	{
-	    data->element_av [i] = NULL;
-	    data->element_a [i]  = NULL;
-	    data->element_v [i]  = NULL;
-	}
+    data->video_sink = NULL;
+    data->audio_sink = NULL;
+    data->pipeline = NULL;
+    for (i = 0; i < MAX_ELEMENTS; i++)
+    {
+        data->element_av[i] = NULL;
+        data->element_a[i] = NULL;
+        data->element_v[i] = NULL;   
+    }
+    
+    data->using_glimagsink = 0;
 
     csio_jni_FreeMainContext(iStreamId);
 }
@@ -363,71 +369,133 @@ static jboolean gst_native_class_init (JNIEnv* env, jclass klass)
 	return JNI_TRUE;
 }
 
-static void gst_native_surface_init (JNIEnv *env, jobject thiz, jobject surface, jint stream) 
+//this is to set up the surface format
+static void gst_jni_setup_surface_format(JNIEnv *env,ANativeWindow *new_native_window,CREGSTREAM * data,jobject surface)
 {
-	CustomData *cdata = GET_CUSTOM_DATA (env, thiz, custom_data_field_id);	
-	ANativeWindow *new_native_window; 
-	CREGSTREAM * data;
-	
-	GST_DEBUG("surface=%p, stream=%d", surface, stream);
-	
-	if(!surface)
-	{
-		GST_ERROR("No surface for stream %d", stream);
-		return;
-	}
-	
-	new_native_window = ANativeWindow_fromSurface(env, surface);
-	if(!new_native_window)
-	{
-		GST_ERROR("No native window for stream %d", stream);
-		return;
-	}
-	
-	if (!cdata)
-	{
-		GST_ERROR("Could not access custom data");
-		return;
-	}
-		
-	data = GetStreamFromCustomData(cdata, stream);
-	if(!data)
-	{
-		GST_ERROR("Could not obtain stream pointer for stream %d", stream);
-		return;
-	}
+    int format = 0x100;
+    int err = 0;
+    int usage = 0;
+    int queuesToNativeWindow = 0;
+    int minUndequeuedBufs = 0;
+
+    GST_DEBUG("ANativeWindow format was %x", ANativeWindow_getFormat(new_native_window));
+
+    err = native_window_set_buffers_format(new_native_window, format);
+    if (err != 0)
+    {
+        GST_ERROR("Failed to set buffers format to %d", format);
+        return;
+    }
+
+    GST_DEBUG("ANativeWindow after set buffers format, width=%d, height=%d, format=0x%x",
+            ANativeWindow_getWidth(new_native_window), ANativeWindow_getHeight(new_native_window),
+            ANativeWindow_getFormat(new_native_window));
+
+    usage = GRALLOC_USAGE_PROTECTED | GRALLOC_USAGE_HW_TEXTURE
+            | GRALLOC_USAGE_EXTERNAL_DISP; // Sunita - standard set of flags we set to allow HW acceleration of the layers
+    native_window_set_usage(new_native_window, usage);
+
+    err = native_window_set_scaling_mode(new_native_window,
+            NATIVE_WINDOW_SCALING_MODE_SCALE_TO_WINDOW);
+    if (err != 0)
+    {
+        GST_ERROR("Failed to set buffers scaling_mode : %s (%d)",strerror(-err), -err);
+        return;
+    }
+
+    err = new_native_window->query(new_native_window,
+            NATIVE_WINDOW_QUEUES_TO_WINDOW_COMPOSER, &queuesToNativeWindow);
+    if (err != 0)
+    {
+        GST_ERROR("error authenticating native window: %d", err);
+        return;
+    }
+
+    err = new_native_window->query(new_native_window,
+            NATIVE_WINDOW_MIN_UNDEQUEUED_BUFFERS, (int*) &minUndequeuedBufs);
+    if (err != 0)
+    {
+        GST_ERROR("NATIVE_WINDOW_MIN_UNDEQUEUED_BUFFERS query failed: %s (%d)", strerror(-err), -err);
+        return FALSE;
+    }
+
+    if (data->surface)
+    {
+        GST_ERROR("Delete GlobalRef before adding new: %p", data->surface);
+        (*env)->DeleteGlobalRef(env, data->surface);
+        data->surface = NULL;
+    }
+    data->surface = (*env)->NewGlobalRef(env, surface);
+    GST_DEBUG ("native window = %p,surface[%p],data->surface[%p]", data->native_window,surface,data->surface);
+}
+
+static void gst_native_surface_init(JNIEnv *env, jobject thiz, jobject surface, jint stream)
+{
+    CustomData *cdata = GET_CUSTOM_DATA (env, thiz, custom_data_field_id);
+    ANativeWindow *new_native_window;
+    CREGSTREAM * data;
+
+    GST_DEBUG("surface=%p, stream=%d", surface, stream);
+
+    if (!surface)
+    {
+        GST_ERROR("No surface for stream %d", stream);
+        return;
+    }
+
+    new_native_window = ANativeWindow_fromSurface(env, surface);
+    if (!new_native_window)
+    {
+        GST_ERROR("No native window for stream %d", stream);
+        return;
+    }
+
+    if (!cdata)
+    {
+        GST_ERROR("Could not access custom data");
+        return;
+    }
+
+    data = GetStreamFromCustomData(cdata, stream);
+    if (!data)
+    {
+        GST_ERROR("Could not obtain stream pointer for stream %d", stream);
+        return;
+    }
 
 	GST_DEBUG ("Received surface %p (native window %p) for stream %d, video_sink=%p", 
 			   surface, new_native_window, stream, data->video_sink);
-	
-	if (data->native_window) 
-	{
-		ANativeWindow_release (data->native_window);
-		if (data->native_window == new_native_window) 
-		{
+
+    if (data->native_window)
+    {
+        ANativeWindow_release(data->native_window);
+        if (data->native_window == new_native_window)
+        {
 			GST_DEBUG ("New native window is the same as the previous one %p", data->native_window);
-			if (data->video_sink) 
-			{
-				// From tutorial 3 comments:
-				// "We need to call gst_x_overlay_expose() twice 
-				// because of the way the surface changes propagate down the OpenGL ES / EGL pipeline 
-				// (The only video sink available for Android in the GStreamer SDK uses OpenGL ES). 
-				// By the time we call the first expose, 
-				// the surface that the sink will pick up still contains the old size."
-				gst_video_overlay_expose(GST_VIDEO_OVERLAY (data->video_sink));
-				gst_video_overlay_expose(GST_VIDEO_OVERLAY (data->video_sink)); 
-			}
-			return;
-		} 
-		else 
-		{
-			GST_DEBUG ("Released previous native window %p", data->native_window);
-			data->initialized = FALSE;
-		}
-	}	
-	data->native_window = new_native_window;
-	GST_DEBUG ("native window = %p", data->native_window);
-	check_initialization_complete(cdata, stream);
+            if (data->video_sink)
+            {
+                // From tutorial 3 comments:
+                // "We need to call gst_x_overlay_expose() twice
+                // because of the way the surface changes propagate down the OpenGL ES / EGL pipeline
+                // (The only video sink available for Android in the GStreamer SDK uses OpenGL ES).
+                // By the time we call the first expose,
+                // the surface that the sink will pick up still contains the old size."
+                gst_video_overlay_expose(GST_VIDEO_OVERLAY (data->video_sink));
+                gst_video_overlay_expose(GST_VIDEO_OVERLAY (data->video_sink));
+            }
+            return;
+        }
+        else
+        {
+            GST_DEBUG ("Released previous native window %p", data->native_window);
+            data->initialized = FALSE;
+        }
+    }
+    data->native_window = new_native_window;
+
+    gst_jni_setup_surface_format(env, new_native_window, data, surface);
+
+    check_initialization_complete(cdata, stream);
 }
 
 StreamState gst_native_get_current_stream_state(int stream)
@@ -477,6 +545,12 @@ static void gst_native_surface_finalize (JNIEnv *env, jobject thiz, jint stream)
 	data->native_window = NULL;
 	data->initialized = FALSE;
 
+	if(data->surface)
+	{
+	    GST_ERROR("Delete GlobalRef %p", data->surface);
+	    (*env)->DeleteGlobalRef(env, data->surface);
+	    data->surface = NULL;
+	}
 	//TODO: when this will be called?
 }
 
@@ -1457,15 +1531,16 @@ void csio_jni_initVideo(int iStreamId)
 		return;
 	}	
 
-	if(g_using_glimagsink)
+	if(data->using_glimagsink)
 	{
 	    GST_DEBUG("qos is set to default");
 	    g_object_set(G_OBJECT(data->video_sink), "force-aspect-ratio", FALSE, NULL);
-    }
+        }
 	else
 	{	    
 	    GST_DEBUG("qos is turned off for surfaceflingersink!");
-	    g_object_set(G_OBJECT(data->video_sink), "qos", FALSE, NULL);	   
+	    if(data->video_sink)
+	        g_object_set(G_OBJECT(data->video_sink), "qos", FALSE, NULL);   
 	}
 }
 

@@ -191,31 +191,42 @@ static void pad_added_callback2 (GstElement *src, GstPad *new_pad, CREGSTREAM *d
  */
 int build_video_pipeline(gchar *encoding_name, CREGSTREAM *data, unsigned int start, int do_rtp,GstElement **ele0,GstElement **sink)
 {
-	unsigned int i = start;
-	int do_window = 1;
-	int num_elements;
-	int do_sink = 1;
+    unsigned int i = start;
+    int do_window = 1;
+    int num_elements;
+    int do_sink = 1;
 	
-	g_using_glimagsink = g_force_glimagsink;
+    data->using_glimagsink = g_force_glimagsink;
+    *sink = NULL;
+    //GST_DEBUG("encoding_name=%s, native_window=%p, start=%u, do_rtp=%d",
+    //		  encoding_name, data->native_window, start, do_rtp);
 
-	//GST_DEBUG("encoding_name=%s, native_window=%p, start=%u, do_rtp=%d",
-	//		  encoding_name, data->native_window, start, do_rtp);
+    if((strcmp(encoding_name, "H264") == 0) || (strcmp(encoding_name, "video/x-h264") == 0))
+    {
+        //TODO:checking return values.
+        i = start;
+        if(do_rtp)
+        {
+            data->element_v[i++] = gst_element_factory_make("rtph264depay", NULL);
+        }
+        data->element_v[i++] = gst_element_factory_make("queue", NULL);
+        data->element_v[i++] = gst_element_factory_make("h264parse", NULL);
 
-	if((strcmp(encoding_name, "H264") == 0) || (strcmp(encoding_name, "video/x-h264") == 0))
-	{
-		i = start;
-		if(do_rtp)
-		{
-			data->element_v[i++] = gst_element_factory_make("rtph264depay", NULL);
-		}
-		data->element_v[i++] = gst_element_factory_make("queue", NULL);
-		data->element_v[i++] = gst_element_factory_make("h264parse", NULL);
-		data->element_v[i++] = gst_element_factory_make("amcviddec-omxtiducati1videodecoder", NULL);
+        //TODO:remove. this queue is used only for testing until we can set "ts-offset"
+        data->element_v[i++] = gst_element_factory_make("queue", NULL);
+        g_object_set(G_OBJECT(data->element_v[i-1]), "min-threshold-time", amcviddec_min_threshold_time, NULL);
+        GST_DEBUG("[%d]set min_threshold_time:%lld",i-1,amcviddec_min_threshold_time);
+
+        data->element_v[i++] = gst_element_factory_make("amcviddec-omxtiducati1videodecoder", NULL);
 		
-		*ele0 = data->element_v[0];
-	}
-	else if(strcmp(encoding_name, "MP2T") == 0)
-	{		
+        //pass surface object to the decoder
+        g_object_set(G_OBJECT(data->element_v[i-1]), "surface-window", data->surface, NULL);
+        GST_DEBUG("SET surface-window[0x%x][%d]",data->surface,data->surface);    
+
+        *ele0 = data->element_v[0];
+    }
+    else if(strcmp(encoding_name, "MP2T") == 0)
+    {
 		// This happens when there's TS encapsulation.  We won't add the video sink yet.
 		i = start;
 		if(do_rtp)
@@ -250,7 +261,7 @@ int build_video_pipeline(gchar *encoding_name, CREGSTREAM *data, unsigned int st
 		data->element_v[i++] = gst_element_factory_make("jpegdec", NULL);
 
 
-		g_using_glimagsink = 1;
+		data->using_glimagsink = 1;
 	}
 	else if(strcmp(encoding_name, "MPEG4") == 0)
 	{
@@ -262,6 +273,10 @@ int build_video_pipeline(gchar *encoding_name, CREGSTREAM *data, unsigned int st
 		data->element_v[i++] = gst_element_factory_make("queue", NULL);
 		data->element_v[i++] = gst_element_factory_make("mpeg4videoparse", NULL);
 		data->element_v[i++] = gst_element_factory_make("amcviddec-omxtiducati1videodecoder", NULL);
+
+		//pass surface object to the decoder
+		g_object_set(G_OBJECT(data->element_v[i-1]), "surface-window", data->surface, NULL);
+		GST_DEBUG("SET surface-window[0x%x][%d]",data->surface,data->surface);
 	}
 	else
 	{
@@ -272,29 +287,39 @@ int build_video_pipeline(gchar *encoding_name, CREGSTREAM *data, unsigned int st
 		
 	if(do_sink)
 	{		
-		data->element_v[i++] = gst_element_factory_make("videoconvert", NULL);
+	    if(data->using_glimagsink)
+	    {
+	        data->element_v[i++] = gst_element_factory_make("videoconvert", NULL);
+	    }
+        
 		// Temporary hack - always force the settings to use new sink.  This avoids
 		// requiring the user to restore settings.
 		// TODO: Don't use old sink at all for H.264
-		if(g_using_glimagsink)
+		if(data->using_glimagsink)
 		{
+#ifdef INSERT_SF_SINK
 		    //using glimagesink
 		    crestron_set_stride(0);
-			data->video_sink = gst_element_factory_make("glimagesink", NULL);
+#endif
+		    data->video_sink = gst_element_factory_make("glimagesink", NULL);
 		    GST_INFO("using glimagesink");
 		}
 		else
 		{
+#ifdef INSERT_SF_SINK
 		    // This value is dictated by TI OMAP hardware.
 		    crestron_set_stride(4096);
-			data->video_sink = gst_element_factory_make("surfaceflingersink", NULL);
+		    data->video_sink = gst_element_factory_make("surfaceflingersink", NULL);
 		    GST_INFO("using surfaceflingersink");
+#endif
 		}
 
 		*sink = data->video_sink;
 
 		// Have to add all the elements to the bin before linking.
-		gst_bin_add(GST_BIN(data->pipeline), data->video_sink);
+		if(data->video_sink)
+		    gst_bin_add(GST_BIN(data->pipeline), data->video_sink);
+
 		num_elements = i-start;		
 		for(i=start;i<start+num_elements; i++)
 		{
@@ -305,13 +330,14 @@ int build_video_pipeline(gchar *encoding_name, CREGSTREAM *data, unsigned int st
 		{
 			if(i<start+num_elements-1)
 			{
-				gst_element_link(data->element_v[i], data->element_v[i+1]);
+				gst_element_link(data->element_v[i], data->element_v[i+1]);				
 			}
 			else
 			{
-				gst_element_link(data->element_v[i], data->video_sink);
+			    if(data->video_sink)
+			        gst_element_link(data->element_v[i], data->video_sink);
 			}
-		}				
+		}
 	}
 	
 	if(!do_window)
@@ -324,16 +350,19 @@ int build_video_pipeline(gchar *encoding_name, CREGSTREAM *data, unsigned int st
 	{
 		GST_ERROR("No native window");
 	}
-	gst_video_overlay_set_window_handle(GST_VIDEO_OVERLAY (data->video_sink), (guintptr)data->native_window);
-	// From tutorial 3 comments:
-	// "We need to call gst_x_overlay_expose() twice 
-	// because of the way the surface changes propagate down the OpenGL ES / EGL pipeline 
-	// (The only video sink available for Android in the GStreamer SDK uses OpenGL ES). 
-	// By the time we call the first expose, 
-	// the surface that the sink will pick up still contains the old size."
-	gst_video_overlay_expose(GST_VIDEO_OVERLAY (data->video_sink));
-	gst_video_overlay_expose(GST_VIDEO_OVERLAY (data->video_sink));
 
+	if(data->video_sink)
+	{
+	    gst_video_overlay_set_window_handle(GST_VIDEO_OVERLAY (data->video_sink), (guintptr)data->native_window);
+            // From tutorial 3 comments:
+            // "We need to call gst_x_overlay_expose() twice
+            // because of the way the surface changes propagate down the OpenGL ES / EGL pipeline
+            // (The only video sink available for Android in the GStreamer SDK uses OpenGL ES).
+            // By the time we call the first expose,
+            // the surface that the sink will pick up still contains the old size."
+            gst_video_overlay_expose(GST_VIDEO_OVERLAY (data->video_sink));
+            gst_video_overlay_expose(GST_VIDEO_OVERLAY (data->video_sink));
+	}
 	return CSIO_SUCCESS;
 }
 
