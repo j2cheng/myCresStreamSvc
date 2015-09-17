@@ -1,6 +1,16 @@
 package com.crestron.txrxservice;
 
 import android.util.Log;
+
+import java.io.BufferedReader;
+import java.io.BufferedWriter;
+import java.io.File;
+import java.io.FileOutputStream;
+import java.io.FileReader;
+import java.io.IOException;
+import java.io.OutputStreamWriter;
+import java.io.Writer;
+
 import android.hardware.display.DisplayManager;
 
 public class HDMIOutputInterface {
@@ -108,4 +118,43 @@ public class HDMIOutputInterface {
 		return audioChannels;
 	}
 	
+	public static boolean readHDCPOutputStatus (){
+    	boolean hdcpStatus = false;
+    	StringBuilder text = new StringBuilder();
+        try {
+            File file = new File("/sys/devices/virtual/misc/hdcp/hdcp_status");
+
+            BufferedReader br = new BufferedReader(new FileReader(file));  
+            String line;   
+            while ((line = br.readLine()) != null) {
+                text.append(line);
+            }
+            br.close();
+        }catch (IOException e) {
+            e.printStackTrace();
+            text.append("0"); //if error default to no HDCP
+        }
+        Log.d(TAG, "HDMI OUT HDCP status from sysfs:" + text.toString());
+        return Integer.parseInt(text.toString()) == 1;
+    }
+	
+	public static void setHDCPBypass (boolean enabled){
+        Writer writer = null;
+		try 
+      	{
+			writer = new BufferedWriter(new OutputStreamWriter(new FileOutputStream("/sys/devices/virtual/misc/hdcp/hdcp_bypass"), "utf-8"));
+			if (enabled)
+				writer.write("1");
+			else
+				writer.write("0");
+		    writer.flush();
+	    } 
+      	catch (IOException ex) {
+    	  Log.e(TAG, "Failed to set HDCP bypass mode: " + ex);
+    	} 
+		finally 
+    	{
+    		try {writer.close();} catch (Exception ex) {/*ignore*/}
+    	}	
+    }
 }

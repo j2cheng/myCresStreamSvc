@@ -125,7 +125,8 @@ public class CresStreamCtrl extends Service {
     	Camera(0),
     	Paused(1),
     	NoVideo(2),
-    	HDCPError(3);
+    	HDCPStreamError(3),
+    	HDCPAllError(4);
     	
     	private final int value;
     	
@@ -1420,7 +1421,7 @@ public class CresStreamCtrl extends Service {
             cam_streaming.setSessionIndex(sessId);
             invalidateSurface();
             // FIXME: Temporary workaround until HDCP red screen works
-			if (HDMIInputInterface.readHDCPStatus() == true)
+			if (HDMIInputInterface.readHDCPInputStatus() == true)
 			{
 				cam_streaming.startConfidencePreview(sessId);
 				SendStreamState(StreamState.HDCPREFUSED, sessId);
@@ -1833,6 +1834,9 @@ public class CresStreamCtrl extends Service {
 							Log.i(TAG, "HDMI Output resolution " + hdmiOutputResolution.width + " "
 									+ hdmiOutputResolution.height + " "
 									+ Math.round(hdmiOutputResolution.refreshRate));
+							
+							//Set bypass mode when output HDMI is not HDCP authenticated
+							HDMIOutputInterface.setHDCPBypass(!HDMIOutputInterface.readHDCPOutputStatus());
 		
 		                    //update HDMI output
 							hdmiOutput.setSyncStatus();		
@@ -1884,7 +1888,7 @@ public class CresStreamCtrl extends Service {
     		restartStreams();
 
    			setNoVideoImage(false);
-   			if (HDMIInputInterface.readHDCPStatus() == true)
+   			if (HDMIInputInterface.readHDCPInputStatus() == true)
    				setHDCPErrorImage(true);
    			else
    				setHDCPErrorImage(false);			                		
@@ -1892,11 +1896,7 @@ public class CresStreamCtrl extends Service {
         else
         {
         	//TODO: no need to stop camera when ducati frame buffer copying is in place
-//        	setNoVideoImage(true);
-        	for (int sessionId = 0 ; sessionId < NumOfSurfaces; sessionId++)
-        	{
-        		hidePreviewWindow(sessionId);
-        	}
+        	setNoVideoImage(true);
         }
 	}
 	
@@ -1941,8 +1941,15 @@ public class CresStreamCtrl extends Service {
 		String cameraMode = "";
 		int previousCameraMode = readCameraMode();
 		if (enable)
-			setCameraMode(String.valueOf(CameraMode.HDCPError.ordinal()));
-		else if (previousCameraMode == CameraMode.HDCPError.ordinal())
+		{
+			//Read HDCP output status
+			if (HDMIOutputInterface.readHDCPOutputStatus())
+				setCameraMode(String.valueOf(CameraMode.HDCPStreamError.ordinal()));
+			else
+				setCameraMode(String.valueOf(CameraMode.HDCPAllError.ordinal()));
+		}
+		else if ((previousCameraMode == CameraMode.HDCPStreamError.ordinal()) ||
+				(previousCameraMode == CameraMode.HDCPAllError.ordinal()))
 		{
 			if (Boolean.parseBoolean(pauseStatus) == true)
 				setCameraMode(String.valueOf(CameraMode.Paused.ordinal()));
@@ -1957,8 +1964,7 @@ public class CresStreamCtrl extends Service {
 		try 
       	{
 			writer = new BufferedWriter(new OutputStreamWriter(new FileOutputStream(cameraModeFilePath), "utf-8"));
-//		    writer.write(mode);
-			writer.write("0"); // TODO: This is temporary, remove when ducati frame issue is fixed
+		    writer.write(mode);
 		    writer.flush();
 	    } 
       	catch (IOException ex) {

@@ -225,7 +225,7 @@ public class HDMIInputInterface {
     		return 0;
     }
     
-    public static boolean readHDCPStatus (){
+    public static boolean readHDCPInputStatus (){
     	if (isHdmiDriverPresent == true)
 		{
 	    	boolean hdcpStatus = false;
@@ -240,7 +240,8 @@ public class HDMIInputInterface {
 	            }
 	            br.close();
 	        }catch (IOException e) {
-	            e.printStackTrace();           
+	            e.printStackTrace();
+	            text.append("0"); //if error default to no HDCP
 	        }
 	        Log.d(TAG, "HDMI IN HDCP status from sysfs:" + text.toString());
 	        return Integer.parseInt(text.toString()) == 1;
