@@ -765,15 +765,13 @@ public class CameraStreaming {
 					// Pull out Audio number of channels
 					regexP = Pattern.compile("Audio\\s+Channel:\\s+(\\d+)");
 					regexM = regexP.matcher(statisticsString);
-					regexM.find();
-					if (regexM.matches())
+					if (regexM.find())
 						streamOutAudioChannels = Integer.parseInt(regexM.group(1));
 					
 					// Pull out Video width and height
 					regexP = Pattern.compile("Resolution:\\s+(\\d+)\\s+x\\s+(\\d+)");	//width x height
-					regexM = regexP.matcher(statisticsString);
-					regexM.find();				
-					if (regexM.matches())
+					regexM = regexP.matcher(statisticsString);			
+					if (regexM.find())
 					{
 						streamOutWidth = Integer.parseInt(regexM.group(1));
 						streamOutHeight = Integer.parseInt(regexM.group(2));
@@ -782,8 +780,7 @@ public class CameraStreaming {
 					// Pull out Video frames per second
 					regexP = Pattern.compile("Frame\\s+Rate:\\s+(\\d+)");
 					regexM = regexP.matcher(statisticsString);
-					regexM.find();
-					if (regexM.matches())
+					if (regexM.find())
 						streamOutFps = Integer.parseInt(regexM.group(1));
 					
 					streamOutAudioFormat = 1; //TODO: currently we are always setting this to PCM (1)
@@ -805,15 +802,13 @@ public class CameraStreaming {
 						// Pull out number of Video packets
 						regexP = Pattern.compile("Video\\s+Encoded Frames:\\s+(\\d+)");
 						regexM = regexP.matcher(statisticsString);
-						regexM.find();
-						if (regexM.matches())
+						if (regexM.find())
 							statisticsNumVideoPackets = Long.valueOf(regexM.group(1));
-						
+
 						// Pull out number of Audio packets
 						regexP = Pattern.compile("Audio\\s+Encoded Frames:\\s+(\\d+)");
 						regexM = regexP.matcher(statisticsString);
-						regexM.find();
-						if (regexM.matches())
+						if (regexM.find())
 							statisticsNumAudioPackets = Long.valueOf(regexM.group(1));
 						
 						streamCtl.SendStreamOutFeedbacks();
