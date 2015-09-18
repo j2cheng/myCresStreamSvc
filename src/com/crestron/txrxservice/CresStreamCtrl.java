@@ -588,7 +588,7 @@ public class CresStreamCtrl extends Service {
 						cameraErrorResolved = true;						
 						Log.i(TAG, "Recovering from mediaserver crash");
 						cam_preview.getHdmiInputResolution();
-						restartStreams();
+						restartStreams(false);
 					}
 				}
 				//function end
@@ -623,7 +623,7 @@ public class CresStreamCtrl extends Service {
     					writeDucatiState(1);
     					Log.i(TAG, "Recovering from Ducati crash!");
     					cam_preview.getHdmiInputResolution();
-    					restartStreams(); 
+    					restartStreams(false); 
     				}
     			}
     		}
@@ -656,8 +656,9 @@ public class CresStreamCtrl extends Service {
     	sockTask.SendDataToAllClients(String.format("CLEARDUCATISTATE=%d", state));
 	}
     
-    public void restartStreams() 
+    public void restartStreams(final boolean skipStreamIn) 
     {
+    	// Skip Stream in is when we need to only restart camera modes i.e. when resolution changes
     	new Thread(new Runnable() {
     		public void run() {	
 				//If we are already processing restart streams do not queue, just skip	
@@ -672,6 +673,8 @@ public class CresStreamCtrl extends Service {
 				    	//If streamstate was previously started, restart stream
 				        for (int sessionId = 0; sessionId < NumOfSurfaces; sessionId++)
 				        {
+				        	if (skipStreamIn && (userSettings.getMode(sessionId) == DeviceMode.STREAM_IN.ordinal()))
+				        		continue;
 				        	if ((userSettings.getMode(sessionId) == DeviceMode.STREAM_OUT.ordinal()) 
 				        			&& (userSettings.getUserRequestedStreamState(sessionId) == StreamState.STOPPED))
 				            {
@@ -1885,7 +1888,7 @@ public class CresStreamCtrl extends Service {
     	{
     		cam_preview.getHdmiInputResolution();
     		
-    		restartStreams();
+    		restartStreams(true); //true because we do not need to restart stream in streams
 
    			setNoVideoImage(false);
    			if (HDMIInputInterface.readHDCPInputStatus() == true)

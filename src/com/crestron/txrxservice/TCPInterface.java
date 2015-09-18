@@ -110,7 +110,7 @@ public class TCPInterface extends AsyncTask<Void, Object, Long> {
     private void restartStreams(TCPInterface serverHandler)
     {
         restartStreamsPending   = false;
-        streamCtl.restartStreams();
+        streamCtl.restartStreams(false);
     }
     
     public void restartStreams()
