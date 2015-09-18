@@ -13,6 +13,7 @@ public class CresCamera {
 	static String TAG = "TxRx Camera";
 	public static Camera mCamera = null;
 	static Object lockObj = new Object();
+	public static boolean mSetHdmiInputStatus = false;
 
 	private static int findCamera(){
 		int cameraId = 0;
@@ -45,8 +46,23 @@ public class CresCamera {
 					}
 				}
 			}
+			
+			if (mSetHdmiInputStatus)
+				getHdmiInputStatus();
+			
 			return;
 		}
+	}
+	
+	public static void getHdmiInputStatus()
+	{
+		if (mCamera != null)
+		{
+			mCamera.getHdmiInputStatus();
+			mSetHdmiInputStatus = false; 
+		}
+		else // If we can't set HDMI status now, lets do it later
+			mSetHdmiInputStatus = true;
 	}
 
 	public static void releaseCamera() {

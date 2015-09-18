@@ -187,7 +187,7 @@ public class TCPInterface extends AsyncTask<Void, Object, Long> {
 	        		}   
 	                
 	                if (streamCtl.hdmiInputDriverPresent == true)
-	                	streamCtl.setCamera(HDMIInputInterface.readResolutionEnum());
+	                	streamCtl.setCamera(HDMIInputInterface.readResolutionEnum()); //no need to restart streams
                 }
                 // Tell CSIO to send update request to control system
                 SendDataToAllClients("UPDATE_REQUEST_TO_CONTROLSYSTEM=");

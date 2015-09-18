@@ -194,7 +194,8 @@ public class CresStreamCtrl extends Service {
         }
     }
     
-    private final ReentrantLock threadLock 			= new ReentrantLock(true); // fairness=true, makes lock ordered
+    private final ReentrantLock stopStartLock		= new ReentrantLock(true); // fairness=true, makes lock ordered
+    private final ReentrantLock hdmiLock			= new ReentrantLock(true);
     private final ReentrantLock streamStateLock 	= new ReentrantLock(true);
     private final ReentrantLock saveSettingsLock 	= new ReentrantLock(true);
     public final ReentrantLock restartLock	 		= new ReentrantLock(true);
@@ -397,7 +398,7 @@ public class CresStreamCtrl extends Service {
             	cam_streaming = new CameraStreaming(this);
             	cam_preview = new CameraPreview(this, hdmiInput);    
             	 // Set up Ducati
-                cam_preview.getHdmiInputResolution();
+            	CresCamera.getHdmiInputStatus();
         	}
             //Play Control
             hm = new HashMap();
@@ -587,7 +588,7 @@ public class CresStreamCtrl extends Service {
 						writeDucatiState(1);
 						cameraErrorResolved = true;						
 						Log.i(TAG, "Recovering from mediaserver crash");
-						cam_preview.getHdmiInputResolution();
+						CresCamera.mSetHdmiInputStatus = true;
 						restartStreams(false);
 					}
 				}
@@ -617,13 +618,13 @@ public class CresStreamCtrl extends Service {
 
     				int currentDucatiState = readDucatiState();
     				// Dont call recovery if monitorMediaServer is already recovering
-    				if (currentDucatiState == 0)
+    				if ((currentDucatiState == 0) && (mIgnoreMediaServerCrash = false))
     				{
     					cameraErrorResolved = true;
     					writeDucatiState(1);
     					Log.i(TAG, "Recovering from Ducati crash!");
-    					cam_preview.getHdmiInputResolution();
-    					restartStreams(false); 
+    					CresCamera.mSetHdmiInputStatus = true;
+    					restartStreams(false);
     				}
     			}
     		}
@@ -658,87 +659,92 @@ public class CresStreamCtrl extends Service {
     
     public void restartStreams(final boolean skipStreamIn) 
     {
+    	Log.i(TAG, String.format("Requesting restartStreams, skipStreamIn = %b", skipStreamIn));
+    	final CountDownLatch latch = new CountDownLatch(1);
+    	
     	// Skip Stream in is when we need to only restart camera modes i.e. when resolution changes
     	new Thread(new Runnable() {
     		public void run() {	
-				//If we are already processing restart streams do not queue, just skip	
-    			boolean locked = restartLock.tryLock();
-    			if (locked)
-    			{
-	    	    	Log.i(TAG, "RestartLock : Lock");
-	    	    	try
-	    	    	{	
-				    	Log.d(TAG, "Restarting Streams...");
-				
-				    	//If streamstate was previously started, restart stream
-				        for (int sessionId = 0; sessionId < NumOfSurfaces; sessionId++)
-				        {
-				        	if (skipStreamIn && (userSettings.getMode(sessionId) == DeviceMode.STREAM_IN.ordinal()))
-				        		continue;
-				        	if ((userSettings.getMode(sessionId) == DeviceMode.STREAM_OUT.ordinal()) 
-				        			&& (userSettings.getUserRequestedStreamState(sessionId) == StreamState.STOPPED))
-				            {
-				        		Log.d(TAG, "Stop : Lock");
-				    	    	threadLock.lock();
-				    	    	try
-				    	    	{
-				    	    		cam_streaming.stopConfidencePreview(sessionId);
-				    	    	}
-					    		finally
-						    	{
-						    		Log.d(TAG, "Stop : Unlock");
-						    		threadLock.unlock();
-						    	}
-				    	    	Log.d(TAG, "restartStreams Start : Lock");
-				    	    	threadLock.lock();
-				    	    	try
-				    	    	{
-				    	    		cam_streaming.startConfidencePreview(sessionId);
-				    	    	}
-					    		finally
-						    	{
-						    		Log.d(TAG, "Start : Unlock");
-						    		threadLock.unlock();
-						    	}            	
-				            } 
-				        	else if (userSettings.getUserRequestedStreamState(sessionId) == StreamState.STARTED)
-				            {
-				            	//Avoid starting confidence mode when stopping stream out
-				            	if (userSettings.getMode(sessionId) == DeviceMode.STREAM_OUT.ordinal())
-				            	{
-				            		Log.d(TAG, "Stop : Lock");
-				        	    	threadLock.lock();
-				        	    	try
-				        	    	{
-				        		    	playStatus="false";
-				        		    	stopStatus="true";
-				        		        pauseStatus="false";
-				        		        restartRequired[sessionId]=false;
-				        		        cam_streaming.setSessionIndex(sessionId);
-				                        cam_streaming.stopRecording(false);
-				                        StreamOutstarted = false;
-				                        hidePreviewWindow(sessionId);
-				        	    	}
-				        	    	finally
-				        	    	{
-				        	    		Log.d(TAG, "Stop : Unlock");
-				        	    		threadLock.unlock();
-				        	    	}                    
-				            	}
-				            	else
-				            		Stop(sessionId);
-				            	Start(sessionId);
-				            }                       
-				        }
-		    		}
-		    		finally
-			    	{
-			    		Log.i(TAG, "RestartLock : Unlock");
-			    		restartLock.unlock();
-			    	}
-    			}
+    			restartLock.lock();
+    	    	Log.i(TAG, "RestartLock : Lock");
+    	    	try
+    	    	{	
+			    	Log.d(TAG, "Restarting Streams...");
+			
+			    	//If streamstate was previously started, restart stream
+			        for (int sessionId = 0; sessionId < NumOfSurfaces; sessionId++)
+			        {
+			        	if (skipStreamIn && (userSettings.getMode(sessionId) == DeviceMode.STREAM_IN.ordinal()))
+			        		continue;
+			        	if ((userSettings.getMode(sessionId) == DeviceMode.STREAM_OUT.ordinal()) 
+			        			&& (userSettings.getUserRequestedStreamState(sessionId) == StreamState.STOPPED))
+			            {
+			        		Log.d(TAG, "Stop : Lock");
+			    	    	stopStartLock.lock();
+			    	    	try
+			    	    	{
+			    	    		cam_streaming.stopConfidencePreview(sessionId);
+			    	    	}
+				    		finally
+					    	{
+					    		Log.d(TAG, "Stop : Unlock");
+					    		stopStartLock.unlock();
+					    	}
+			    	    	Log.d(TAG, "restartStreams Start : Lock");
+			    	    	stopStartLock.lock();
+			    	    	try
+			    	    	{
+			    	    		cam_streaming.startConfidencePreview(sessionId);
+			    	    	}
+				    		finally
+					    	{
+					    		Log.d(TAG, "Start : Unlock");
+					    		stopStartLock.unlock();
+					    	}            	
+			            } 
+			        	else if (userSettings.getUserRequestedStreamState(sessionId) == StreamState.STARTED)
+			            {
+			            	//Avoid starting confidence mode when stopping stream out
+			            	if (userSettings.getMode(sessionId) == DeviceMode.STREAM_OUT.ordinal())
+			            	{
+			            		Log.d(TAG, "Stop : Lock");
+			        	    	stopStartLock.lock();
+			        	    	try
+			        	    	{
+			        		    	playStatus="false";
+			        		    	stopStatus="true";
+			        		        pauseStatus="false";
+			        		        restartRequired[sessionId]=false;
+			        		        cam_streaming.setSessionIndex(sessionId);
+			                        cam_streaming.stopRecording(false);
+			                        StreamOutstarted = false;
+			                        hidePreviewWindow(sessionId);
+			        	    	}
+			        	    	finally
+			        	    	{
+			        	    		Log.d(TAG, "Stop : Unlock");
+			        	    		stopStartLock.unlock();
+			        	    	}                    
+			            	}
+			            	else
+			            		Stop(sessionId);
+			            	Start(sessionId);
+			            }                       
+			        }
+	    		}
+	    		finally
+		    	{
+		    		Log.i(TAG, "RestartLock : Unlock");
+		    		restartLock.unlock();
+		    	}
+    	    	
+    	    	latch.countDown();
     		}
 		}).start();
+    	
+    	//make call synchronous by waiting for completion before returning
+    	try { latch.await(); }
+    	catch (InterruptedException ex) { ex.printStackTrace(); }  
     }
     
     public void setDeviceMode(int mode, int sessionId)
@@ -859,7 +865,7 @@ public class CresStreamCtrl extends Service {
     public void updateWH(final int sessionId)
     {
         Log.d(TAG, "updateWH : Lock");
-        threadLock.lock();
+        stopStartLock.lock();
         try
         {
             if (dispSurface != null)
@@ -888,7 +894,7 @@ public class CresStreamCtrl extends Service {
         }
         finally
         {
-            threadLock.unlock();
+            stopStartLock.unlock();
             Log.d(TAG, "updateWH : Unlock");
         }
 
@@ -921,7 +927,7 @@ public class CresStreamCtrl extends Service {
     {
     	
     	Log.d(TAG, "updateXY : Lock");
-    	threadLock.lock();
+    	stopStartLock.lock();
     	
     	try
     	{
@@ -954,7 +960,7 @@ public class CresStreamCtrl extends Service {
     	}
     	finally
     	{
-        	threadLock.unlock();
+        	stopStartLock.unlock();
         	Log.d(TAG, "updateXY : Unlock");
     	}
     }
@@ -1262,7 +1268,7 @@ public class CresStreamCtrl extends Service {
     	if (userSettings.getStreamState(sessionId) != StreamState.STARTED)
     	{
 	    	Log.d(TAG, "Start : Lock");
-	    	threadLock.lock();
+	    	stopStartLock.lock();
 	    	try
 	    	{
 	    		mIgnoreMediaServerCrash = false;
@@ -1277,7 +1283,7 @@ public class CresStreamCtrl extends Service {
 	    	}
 	    	finally
 	    	{
-	    		threadLock.unlock();
+	    		stopStartLock.unlock();
 	        	Log.d(TAG, "Start : Unlock");
 	    	}
     	}
@@ -1289,7 +1295,7 @@ public class CresStreamCtrl extends Service {
     	if ((userSettings.getStreamState(sessionId) != StreamState.STOPPED) && (userSettings.getStreamState(sessionId) != StreamState.CONFIDENCEMODE))
     	{
 	    	Log.d(TAG, "Stop : Lock");
-	    	threadLock.lock();
+	    	stopStartLock.lock();
 	    	try
 	    	{
 		    	playStatus="false";
@@ -1302,7 +1308,7 @@ public class CresStreamCtrl extends Service {
 	    	finally
 	    	{
 	    		Log.d(TAG, "Stop : Unlock");
-	    		threadLock.unlock();
+	    		stopStartLock.unlock();
 	    	}
     	}
     	else
@@ -1315,7 +1321,7 @@ public class CresStreamCtrl extends Service {
     	if ((userSettings.getStreamState(sessionId) != StreamState.PAUSED) && (userSettings.getStreamState(sessionId) != StreamState.STOPPED))
     	{
 	    	Log.d(TAG, "Pause : Lock");
-	    	threadLock.lock();
+	    	stopStartLock.lock();
 	    	try
 	    	{
 		        pauseStatus="true";
@@ -1329,7 +1335,7 @@ public class CresStreamCtrl extends Service {
 	        finally
 	    	{
 	    		Log.d(TAG, "Pause : Unlock");
-	    		threadLock.unlock();
+	    		stopStartLock.unlock();
 	    	}
     	}
     }
@@ -1753,15 +1759,15 @@ public class CresStreamCtrl extends Service {
             	// Therefore we will run all commands through a worker thread
             	new Thread(new Runnable() {
             		public void run() {
-		            	threadLock.lock();
+            			hdmiLock.lock();
 		            	try
 		            	{
 			                if (paramAnonymousIntent.getAction().equals("evs.intent.action.hdmi.RESOLUTION_CHANGED"))
 			                {
-			                	if (threadLock.getQueueLength() == 0)
+			                	if (hdmiLock.getQueueLength() == 0)
 			                	{
 				                	int resolutionId = paramAnonymousIntent.getIntExtra("evs_hdmi_resolution_id", -1);
-				                	setCamera(resolutionId);			                	
+				                	setCameraAndRestartStreams(resolutionId); //we need to restart streams for resolution change		                	
 			                        
 				                    int prevResolutionIndex = hdmiInput.getResolutionIndex();
 				                    hdmiInput.setResolutionIndex(resolutionId);
@@ -1775,7 +1781,7 @@ public class CresStreamCtrl extends Service {
 		            	}
 		            	finally
 		            	{
-		            		threadLock.unlock();
+		            		hdmiLock.unlock();
 		            	}
             		}
             	}).start();
@@ -1791,12 +1797,12 @@ public class CresStreamCtrl extends Service {
             	// Therefore we will run all commands through a worker thread
             	new Thread(new Runnable() {
             		public void run() {
-            			threadLock.lock();
+            			hdmiLock.lock();
                     	try
                     	{
         	                if (paramAnonymousIntent.getAction().equals("evs.intent.action.hdmi.HPD"))
         	                {
-        	                	if ((threadLock.getQueueLength() == 0) || (threadLock.getQueueLength() == 1))
+        	                	if ((hdmiLock.getQueueLength() == 0) || (hdmiLock.getQueueLength() == 1))
         	                	{
         	                		setNoVideoImage(true);
 	        	                	sendHdmiInSyncState();
@@ -1808,7 +1814,7 @@ public class CresStreamCtrl extends Service {
                     	}
                     	finally
                     	{
-                    		threadLock.unlock();
+                    		hdmiLock.unlock();
                     	}
             		}
             	}).start();            	
@@ -1881,14 +1887,32 @@ public class CresStreamCtrl extends Service {
 		sockTask.SendDataToAllClients("HDMIOUT_ASPECT_RATIO=" + hdmiOutput.getAspectRatio());
 	}
 	
+	public void setCameraAndRestartStreams(int hdmiInputResolutionEnum)
+	{
+		//Set Camera and restart streams
+		setCameraHelper(hdmiInputResolutionEnum, false);
+	}
+	
 	public void setCamera(int hdmiInputResolutionEnum)
 	{
+		//Set Camera but do not restart streams
+		setCameraHelper(hdmiInputResolutionEnum, true);
+	}
+	
+	private void setCameraHelper(int hdmiInputResolutionEnum, boolean ignoreRestart)
+	{
+		//Set ignore restart to true if you want to set camera mode but do not want to restart any streams
 		boolean validResolution = (hdmiInput.getHorizontalRes().startsWith("0") != true) && (hdmiInput.getVerticalRes().startsWith("0")!= true) && (hdmiInputResolutionEnum != 0);
     	if (validResolution == true)
     	{
-    		cam_preview.getHdmiInputResolution();
+    		CresCamera.mSetHdmiInputStatus = true;
     		
-    		restartStreams(true); //true because we do not need to restart stream in streams
+    		if (ignoreRestart == false)
+    		{
+	    		mIgnoreMediaServerCrash = true;
+	    		restartStreams(true); //true because we do not need to restart stream in streams
+	    		mIgnoreMediaServerCrash = false;
+    		}
 
    			setNoVideoImage(false);
    			if (HDMIInputInterface.readHDCPInputStatus() == true)

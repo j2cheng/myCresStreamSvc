@@ -233,22 +233,6 @@ public class CameraPreview {
     	}
     }
 
-    public String getHdmiInputResolution() {   
-    	Log.i(TAG, "Calling getHdmiInputResolution, mCamera = " + CresCamera.mCamera);
-        if(CresCamera.mCamera != null) {
-        	return CresCamera.mCamera.getHdmiInputStatus();
-        }
-        else {
-        	CresCamera.openCamera();
-        	if (CresCamera.mCamera != null) {
-        		String ret = CresCamera.mCamera.getHdmiInputStatus();
-        		CresCamera.releaseCamera();
-            	return ret;
-        	} else
-        		return null;
-        }
-    }
-    
     public void setVolume(int volume) {
     	audio_pb.setVolume(volume);
     }
