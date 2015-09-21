@@ -1750,7 +1750,15 @@ public class CresStreamCtrl extends Service {
 			                        
 				                    int prevResolutionIndex = hdmiInput.getResolutionIndex();
 				                    hdmiInput.setResolutionIndex(resolutionId);
-				                	sendHdmiInSyncState();
+				                    //Wait 5 seconds before sending hdmi in sync state - bug 96552
+				                    new Thread(new Runnable() {
+				                		public void run() { 
+				                			try {
+				                				Thread.sleep(5000);
+				                			} catch (Exception e) { e.printStackTrace(); }				                			
+				                			sendHdmiInSyncState();
+				                		}
+				                    }).start();
 				                	hpdHdmiEvent = 1;
 			                        Log.i(TAG, "HDMI resolutions - HRes:" + hdmiInput.getHorizontalRes() + " Vres:" + hdmiInput.getVerticalRes());
 			                	}
