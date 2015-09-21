@@ -48,11 +48,29 @@ public class MiscUtils {
 
     public static String calculateAspectRatio(int w, int h)
     {
+    	// We give a range of 10 to match with aspect ratio
         String retstr;
-        if (h != 0)
-        	retstr = String.valueOf((w * 100) / h);
-        else
-        	retstr = String.valueOf(0);
+        
+        if( Math.abs((w * 3) - (h * 4)) <= 10 )
+		{
+        	retstr = "133";
+		}
+		else if( Math.abs((w * 10) - (h * 16)) <= 10 )
+		{
+			retstr = "160";
+		}
+		else if( Math.abs((w * 9) - (h * 16)) <= 10 )
+		{
+			retstr = "177";
+		}
+		else
+		{
+	        if (h != 0)
+	        	retstr = String.valueOf((w * 100) / h);
+	        else
+	        	retstr = String.valueOf(0);
+		}
+
         return retstr;
     }
 }

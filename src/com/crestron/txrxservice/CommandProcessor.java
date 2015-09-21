@@ -468,18 +468,20 @@ class StopCommand implements CommandIf {
     CommandReceiver launch;
     String msg;
     int idx;
+    boolean fullStop;
 
-    public StopCommand(CommandReceiver launch, String arg, int sessId) {
+    public StopCommand(CommandReceiver launch, String arg, int sessId, boolean fullStopRequested) {
         this.launch = launch;
         this.msg = arg;
         this.idx = sessId;
+        this.fullStop = fullStopRequested;
     }
 
     @Override
         public void execute() {
             boolean val = Boolean.valueOf(msg);
             if(val)
-                launch.setStop(idx);
+                launch.setStop(idx, fullStop);
         }
         public String getFeedbackMsg() {
             return launch.getStopStatus();

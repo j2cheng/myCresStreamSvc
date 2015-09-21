@@ -39,6 +39,7 @@ public class CommandParser {
         PASSWORD,
         START,
         STOP,
+        STOPFULL,
         PAUSE,
         XLOC,
         YLOC,
@@ -264,8 +265,11 @@ public class CommandParser {
                 cmd = new StartCommand(cmdRx, arg, idx); 
                 break;
             case STOP:
-                cmd = new StopCommand(cmdRx, arg, idx); 
+                cmd = new StopCommand(cmdRx, arg, idx, false); //normal stop
                 break;
+            case STOPFULL:
+            	cmd = new StopCommand(cmdRx, arg, idx, true); //full stop means do not start confidence preview on stop
+            	break;
             case PAUSE:
                 cmd = new PauseCommand(cmdRx, arg, idx); 
                 break;

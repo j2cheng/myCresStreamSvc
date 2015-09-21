@@ -89,28 +89,14 @@ public class HDMIInputInterface {
 		return fps;
 	}
 	
-	public void setAspectRatio() { 
+	public void setAspectRatio() {
 		if(syncStatus == "false")
 		{
 			aspectRatio = "0";
 			return;
 		}
-		if( (Integer.parseInt(horizontalRes) * 3) == (Integer.parseInt(verticalRes) * 4) )
-		{
-			aspectRatio = "133";
-		}
-		else if( (Integer.parseInt(horizontalRes) * 10) == (Integer.parseInt(verticalRes) * 16) )
-		{
-			aspectRatio = "160";
-		}
-		else if( (Integer.parseInt(horizontalRes) * 9) == (Integer.parseInt(verticalRes) * 16) )
-		{
-			aspectRatio = "177";
-		}
 		else
-		{
-			aspectRatio = "0";
-		}
+			aspectRatio = MiscUtils.calculateAspectRatio(Integer.parseInt(horizontalRes), Integer.parseInt(verticalRes));
 		
 		Log.i(TAG, "AR " + aspectRatio);
 		return;

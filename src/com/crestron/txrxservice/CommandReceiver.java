@@ -169,8 +169,8 @@ public class CommandReceiver {
         ctl.Start(sessId);
     }
 
-    public void setStop(int sessId){
-        ctl.Stop(sessId);
+    public void setStop(int sessId, boolean fullStop){
+        ctl.Stop(sessId, fullStop);
     }
 
     public void setPause(int sessId){

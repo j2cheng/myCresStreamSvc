@@ -61,7 +61,7 @@ interface Command {
 }
 
 interface myCommand {
-    void executeStop(int sessId);
+    void executeStop(int sessId, boolean fullStop);
 }
 
 interface myCommand2 {
@@ -413,13 +413,13 @@ public class CresStreamCtrl extends Service {
                     });
             hm2 = new HashMap();
             hm2.put(2/*"PREVIEW"*/, new myCommand() {
-                    public void executeStop(int sessId) {stopPreview(sessId);};
+                    public void executeStop(int sessId, boolean fullStop) {stopPreview(sessId);};
                     });
             hm2.put(1/*"STREAMOUT"*/, new myCommand() {
-                    public void executeStop(int sessId) {stopStreamOut(sessId);};
+                    public void executeStop(int sessId, boolean fullStop) {stopStreamOut(sessId, fullStop);};
                     });
             hm2.put(0/*"STREAMIN"*/, new myCommand() {
-                    public void executeStop(int sessId) {stopStreamIn(sessId); };
+                    public void executeStop(int sessId, boolean fullStop) {stopStreamIn(sessId); };
                     });
             hm3 = new HashMap();
             hm3.put(2/*"PREVIEW"*/, new myCommand2() {
@@ -659,7 +659,6 @@ public class CresStreamCtrl extends Service {
     
     public void restartStreams(final boolean skipStreamIn) 
     {
-    	Log.i(TAG, String.format("Requesting restartStreams, skipStreamIn = %b", skipStreamIn));
     	final CountDownLatch latch = new CountDownLatch(1);
     	
     	// Skip Stream in is when we need to only restart camera modes i.e. when resolution changes
@@ -705,29 +704,7 @@ public class CresStreamCtrl extends Service {
 			        	else if (userSettings.getUserRequestedStreamState(sessionId) == StreamState.STARTED)
 			            {
 			            	//Avoid starting confidence mode when stopping stream out
-			            	if (userSettings.getMode(sessionId) == DeviceMode.STREAM_OUT.ordinal())
-			            	{
-			            		Log.d(TAG, "Stop : Lock");
-			        	    	stopStartLock.lock();
-			        	    	try
-			        	    	{
-			        		    	playStatus="false";
-			        		    	stopStatus="true";
-			        		        pauseStatus="false";
-			        		        restartRequired[sessionId]=false;
-			        		        cam_streaming.setSessionIndex(sessionId);
-			                        cam_streaming.stopRecording(false);
-			                        StreamOutstarted = false;
-			                        hidePreviewWindow(sessionId);
-			        	    	}
-			        	    	finally
-			        	    	{
-			        	    		Log.d(TAG, "Stop : Unlock");
-			        	    		stopStartLock.unlock();
-			        	    	}                    
-			            	}
-			            	else
-			            		Stop(sessionId);
+		            		Stop(sessionId, true);
 			            	Start(sessionId);
 			            }                       
 			        }
@@ -761,7 +738,7 @@ public class CresStreamCtrl extends Service {
         	userSettings.setUserRequestedStreamState(StreamState.STOPPED, sessionId);
         	
             if (userSettings.getStreamState(sessionId) == StreamState.STARTED)
-                hm2.get(prevMode).executeStop(sessionId);
+                hm2.get(prevMode).executeStop(sessionId, false);
             else if (prevMode == DeviceMode.STREAM_OUT.ordinal())
             {
             	// Turn off confidence mode if leaving stream out mode and not streaming out
@@ -792,7 +769,7 @@ public class CresStreamCtrl extends Service {
 	    		if ((userSettings.getMode(sessionId) == DeviceMode.STREAM_IN.ordinal())
 	    				&& (userSettings.getStreamState(sessionId) != StreamState.STOPPED))
 	    		{
-	    			Stop(sessionId);
+	    			Stop(sessionId, false);
 	    		}
 	    	}
 	    	
@@ -1289,8 +1266,9 @@ public class CresStreamCtrl extends Service {
     	}
     }
 
-    public void Stop(int sessionId)
+    public void Stop(int sessionId, boolean fullStop)
     {
+    	//csio will send service full stop when it does not want confidence mode started
     	userSettings.setUserRequestedStreamState(StreamState.STOPPED, sessionId);
     	if ((userSettings.getStreamState(sessionId) != StreamState.STOPPED) && (userSettings.getStreamState(sessionId) != StreamState.CONFIDENCEMODE))
     	{
@@ -1302,7 +1280,7 @@ public class CresStreamCtrl extends Service {
 		    	stopStatus="true";
 		        pauseStatus="false";
 		        restartRequired[sessionId]=false;
-		        hm2.get(userSettings.getMode(sessionId)).executeStop(sessionId);
+		        hm2.get(userSettings.getMode(sessionId)).executeStop(sessionId, fullStop);
 		        // device state will be set in stop callback
 	    	}
 	    	finally
@@ -1449,7 +1427,7 @@ public class CresStreamCtrl extends Service {
         sockTask.SendDataToAllClients(sb.toString());
     }
 
-    public void stopStreamOut(int sessId)
+    public void stopStreamOut(int sessId, boolean fullStop)
     {
     	 // FIXME: Temporary workaround until HDCP red screen works
 		if (userSettings.getStreamState(sessId) == StreamState.HDCPREFUSED)
@@ -1483,7 +1461,8 @@ public class CresStreamCtrl extends Service {
 	        
 	        // Make sure that stop stream out was called by stop not a device mode change
 	    	// We do not want to restart confidence preview if mode is changing
-	    	if (userSettings.getMode(sessId) == DeviceMode.STREAM_OUT.ordinal())
+	        // If fullstop is passed down then do not start confidence preview
+	    	if ((!fullStop) && (userSettings.getMode(sessId) == DeviceMode.STREAM_OUT.ordinal()))
 	    	{
 	    		cam_streaming.startConfidencePreview(sessId);
 	    		restartRequired[sessId] = true;
