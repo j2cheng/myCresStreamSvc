@@ -76,7 +76,12 @@ public class CresDisplaySurface
         
         // Force invalidation
         forceLayoutInvalidation();
-
+        
+        // Add callbacks to surfaceviews
+        for (int sessId = 0; sessId < CresStreamCtrl.NumOfSurfaces; sessId++)
+        {
+        	InitSurfaceHolder(sessId);
+        }
     }
     
     /**
@@ -105,7 +110,7 @@ public class CresDisplaySurface
         
         /*old way of setting params*/
         
-        viewLayoutParams =new RelativeLayout.LayoutParams(width, height);
+        viewLayoutParams = new RelativeLayout.LayoutParams(width, height);
         displaySurface[idx].setLayoutParams(viewLayoutParams);
         
     	forceLayoutInvalidation();
@@ -142,12 +147,19 @@ public class CresDisplaySurface
     
     /**
      * Return the surface holder for the display surface
-     * TODO: Add an index so that the correct surface can be updated
      * @return Surface holder of the surface view
      */
     public SurfaceHolder GetSurfaceHolder(int idx)
     {
         return sMGR.getCresSurfaceHolder(displaySurface[idx]);
+    }
+    
+    /**
+     * Initialize surface holder for the display surface, create the surface for use
+     */
+    public void InitSurfaceHolder(int idx)
+    {
+        sMGR.initCresSurfaceHolder(displaySurface[idx]);
     }
     
     
