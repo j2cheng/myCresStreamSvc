@@ -23,6 +23,8 @@ GST_DEBUG_CATEGORY_STATIC (debug_category);
 #define MAX_STREAMS 2
 #define MAX_ELEMENTS 20
 
+#define DEFAULT_AMCVIDDEC_TS_OFFSET 700//in ms
+
 //#define INSERT_SF_SINK 1
 ///////////////////////////////////////////////////////////////////////////////
 
@@ -48,6 +50,7 @@ typedef struct _CREGSTREAM
 	gboolean initialized;   /* To avoid informing the UI multiple times about the initialization */
 	GstElement *video_sink; /* The video sink element which receives XOverlay commands */
 	GstElement *audio_sink; 
+	GstElement *amcvid_dec;
 	
 	GstElement *element_zero;	
 	GstElement *element_av [MAX_ELEMENTS];
@@ -79,6 +82,7 @@ typedef struct _CREGSTREAM
 
 	int using_glimagsink;
 	void* surface;
+	int amcviddec_ts_offset;
 } CREGSTREAM;
 
 /* Structure to contain all our information, so we can pass it to callbacks */
@@ -89,6 +93,46 @@ typedef struct _CustomData
     CREGSTREAM stream[MAX_STREAMS];
 } CustomData;
 
+/**********************************************************************
+* Field debugging command
+**********************************************************************/
+enum
+  {
+      FIELD_DEBUG_PRINT_PROBE_TS = 1,                     //1
+      FIELD_DEBUG_INSERT_PROBE ,
+      FIELD_DEBUG_AMC_PRINT_TS ,
+      FIELD_DEBUG_DROP_BEFORE_PARSE ,
+      FIELD_DEBUG_FLUSH_PIPELINE ,
+      FIELD_DEBUG_SET_AMCVIDDEC_DEBUG_LEVEL ,
+      FIELD_DEBUG_SET_VIDEODECODER_DEBUG_LEVEL ,
+      FIELD_DEBUG_SET_OPENSLESSINK_DEBUG_LEVEL ,
+      FIELD_DEBUG_SET_CATEGORY_DEBUG_LEVEL,
+      FIELD_DEBUG_SET_AUDIOSINK_BUFFER_TIME,
+      FIELD_DEBUG_SET_AMCVIDDEC_TS_OFFSET,
+      FIELD_DEBUG_PRINT_AUDIOSINK_PROPERTIES,
+      FIELD_DEBUG_PRINT_ELEMENT_PROPERTY,
+      //this should the last item
+      MAX_SPECIAL_FIELD_DEBUG_NUM              //
+  };
+//Verification macro
+#define IsValidSpecialFieldIndex(a)            ( a > 0 && a < MAX_SPECIAL_FIELD_DEBUG_NUM )
+
+//Field debug UINT32 array size
+#define SPECIAL_FIELD_DEBUG_ARRAY_SIZE         ( ((MAX_SPECIAL_FIELD_DEBUG_NUM-1)/32)+1 )
+
+extern UINT32 g_lSpecialFieldDebugState[SPECIAL_FIELD_DEBUG_ARRAY_SIZE];
+extern void csio_jni_printFieldDebugInfo();
+
+//Field debug macros
+#define IsSpecialFieldDebugIndexActive(a)      ( g_lSpecialFieldDebugState[((a-1)/32)] & (1<<((a-1)%32)) )
+#define EnableSpecialFieldDebugIndex(a)        ( g_lSpecialFieldDebugState[((a-1)/32)] |= (1<<((a-1)%32)) )
+#define DisableSpecialFieldDebugIndex(a)       ( g_lSpecialFieldDebugState[((a-1)/32)] &= ~(1<<((a-1)%32)) )
+
+#define IsValidDebugLevel(a)            ( a > GST_LEVEL_NONE && a < GST_LEVEL_TRACE )
+
+/**********************************************************************
+*End of Field debugging command
+**********************************************************************/
 ///////////////////////////////////////////////////////////////////////////////
 
 //extern void *app_function (void *userdata);

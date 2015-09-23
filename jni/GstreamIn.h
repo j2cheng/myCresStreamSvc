@@ -123,6 +123,13 @@ JNIEXPORT void JNICALL Java_com_crestron_txrxservice_GstreamIn_nativeSetNewSink(
 JNIEXPORT void JNICALL Java_com_crestron_txrxservice_GstreamIn_nativeSetUserName(JNIEnv *, jobject, jstring, jint);
 
 /*
+ * Class:           GstreamIn
+ * Method:    nativesetFieldDebugJni
+ * Signature: (Ljava/lang/string; I)V
+ */
+JNIEXPORT void JNICALL Java_com_crestron_txrxservice_GstreamIn_nativeSetFieldDebugJni(JNIEnv *, jobject, jstring, jint);
+
+/*
  * Class:     		GstreamIn
  * Method:    		nativeSetPassword
  * Signature: 		(Ljava/lang/string; I)V

@@ -212,13 +212,9 @@ int build_video_pipeline(gchar *encoding_name, CREGSTREAM *data, unsigned int st
         data->element_v[i++] = gst_element_factory_make("queue", NULL);
         data->element_v[i++] = gst_element_factory_make("h264parse", NULL);
 
-        //TODO:remove. this queue is used only for testing until we can set "ts-offset"
-        data->element_v[i++] = gst_element_factory_make("queue", NULL);
-        g_object_set(G_OBJECT(data->element_v[i-1]), "min-threshold-time", amcviddec_min_threshold_time, NULL);
-        GST_DEBUG("[%d]set min_threshold_time:%lld",i-1,amcviddec_min_threshold_time);
-
         data->element_v[i++] = gst_element_factory_make("amcviddec-omxtiducati1videodecoder", NULL);
-		
+        data->amcvid_dec = data->element_v[i-1];
+
         //pass surface object to the decoder
         g_object_set(G_OBJECT(data->element_v[i-1]), "surface-window", data->surface, NULL);
         GST_DEBUG("SET surface-window[0x%x][%d]",data->surface,data->surface);    
@@ -273,6 +269,7 @@ int build_video_pipeline(gchar *encoding_name, CREGSTREAM *data, unsigned int st
 		data->element_v[i++] = gst_element_factory_make("queue", NULL);
 		data->element_v[i++] = gst_element_factory_make("mpeg4videoparse", NULL);
 		data->element_v[i++] = gst_element_factory_make("amcviddec-omxtiducati1videodecoder", NULL);
+		data->amcvid_dec = data->element_v[i-1];
 
 		//pass surface object to the decoder
 		g_object_set(G_OBJECT(data->element_v[i-1]), "surface-window", data->surface, NULL);
@@ -734,7 +731,7 @@ void init_custom_data(CustomData * cdata)
 		// Pretend ts is on for now
 		data->caps_v = data->caps_v_ts;
 		data->caps_a = NULL;
-		//data->do_udp_ts = 1;
+		data->amcviddec_ts_offset = DEFAULT_AMCVIDDEC_TS_OFFSET;
 	}
 }
 

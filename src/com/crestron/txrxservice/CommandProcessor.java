@@ -1666,3 +1666,24 @@ class UseNewIpAddrCommand implements CommandIf {
 		return msg;	//no feedback for this join
 	}
 }
+
+class FIELDDEBUGJNICommand implements CommandIf {
+	CommandReceiver launch;
+	String msg;
+	int idx;
+
+	public FIELDDEBUGJNICommand(CommandReceiver launch, String arg, int sessId) {
+		this.launch = launch;
+		this.msg = arg;
+        this.idx = sessId;
+	}
+
+	@Override
+	public void execute() {
+		//int val = Integer.valueOf(msg);
+		launch.setFieldDebugJni(msg, idx);
+	}
+	public String getFeedbackMsg() {
+		return msg;	//no feedback for this join
+	}
+}

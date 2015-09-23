@@ -56,7 +56,8 @@ public class GstreamIn implements StreamInStrategy, SurfaceHolder.Callback {
     private native void			nativeSetPassword(String password, int sessionId);
     public native void 			nativeSetVolume(int volume, int sessionid);
     public native void			nativeSetStopTimeout(int stopTimeout_sec);
-
+    private native void         nativeSetFieldDebugJni(String cmd,int sessId);
+    
     public GstreamIn(CresStreamCtrl mContext) {
         Log.e(TAG, "GstreamIN :: Constructor called...!");
         streamCtl = mContext;
@@ -146,7 +147,10 @@ public class GstreamIn implements StreamInStrategy, SurfaceHolder.Callback {
     public void setNewSink(boolean enabled, int sessId){
     	nativeSetNewSink(enabled, sessId);
     }
-    
+    public void setFieldDebugJni(String cmd, int sessionId){
+    	nativeSetFieldDebugJni(cmd, sessionId);
+    }
+
     public int[] getCurrentWidthHeight(int sessionId){
         int[] widthHeight = new int[2];
         // width in index 0, height in index 1

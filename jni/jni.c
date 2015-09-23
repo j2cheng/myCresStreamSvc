@@ -77,8 +77,28 @@ pthread_cond_t stop_completed_sig;
 static int stop_timeout_sec = 1000;
 ///////////////////////////////////////////////////////////////////////////////
 void csio_jni_FreeMainContext(int iStreamId);
+void LocalConvertToLower(char *str);
 
-guint64 amcviddec_min_threshold_time = 500000000;//500ms default
+UINT32 g_lSpecialFieldDebugState[SPECIAL_FIELD_DEBUG_ARRAY_SIZE] = {0};
+const char * const fieldDebugNames[MAX_SPECIAL_FIELD_DEBUG_NUM - 1] =
+{
+    "01 PRINT_PROBE_TS           ",
+    "02 INSERT_PROBE             " ,
+    "03 AMC_PRINT_TS             " ,
+    "04 DROP_BEFORE_PARSE        " ,
+    "05 FLUSH_PIPELINE           " ,
+    "06 SET_AMCVIDDEC_DEBUG_LEVEL     " ,
+    "07 SET_VIDEODECODER_DEBUG_LEVEL  " ,
+    "08 SET_OPENSLESSINK_DEBUG_LEVEL  " ,
+    "09 SET_CATEGORY_DEBUG_LEVEL      " ,
+    "10 SET_AUDIOSINK_BUFFER_TIME   " ,
+    "11 SET_AMCVIDDEC_TS_OFFSET     " ,
+    "12 PRINT_AUDIOSINK_PROPERTIES  " ,
+    "13 PRINT_ELEMENT_PROPERTY      " ,
+};
+int amcviddec_debug_level    = GST_LEVEL_ERROR;
+int videodecoder_debug_level = GST_LEVEL_ERROR;
+
 /*
  * Private methods
  */
@@ -280,6 +300,8 @@ void csio_jni_cleanup (int iStreamId)
     data->video_sink = NULL;
     data->audio_sink = NULL;
     data->pipeline = NULL;
+    data->amcvid_dec = NULL;
+
     for (i = 0; i < MAX_ELEMENTS; i++)
     {
         data->element_av[i] = NULL;
@@ -704,6 +726,356 @@ JNIEXPORT void JNICALL Java_com_crestron_txrxservice_GstreamIn_nativeSetNewSink(
 	GST_DEBUG ("new Sink Enabled in currentSettingsDB: %d", currentSettingsDB.videoSettings[sessionId].videoSinkSelect);
 }
 
+JNIEXPORT void JNICALL Java_com_crestron_txrxservice_GstreamIn_nativeSetFieldDebugJni(JNIEnv *env, jobject thiz, jstring cmd_jstring, jint sessionId)
+{
+    int iStringLen = 0;
+    int fieldNum = 0;
+    int iEnable = 0;
+    char *EndPtr,*CmdPtr;
+    int i = 0;
+    char* namestring[100];
+
+    const char * cmd_cstring = (*env)->GetStringUTFChars( env, cmd_jstring , NULL ) ;
+    if (cmd_cstring == NULL)
+    {
+        GST_ERROR ("cmd_cstring is NULL");
+        return;
+    }
+
+    CREGSTREAM * data = GetStreamFromCustomData(CresDataDB, sessionId);
+    if(!data)
+    {
+        GST_ERROR("Could not obtain stream pointer for stream %d", sessionId);
+        return;
+    }
+
+    iStringLen = strlen(cmd_cstring);
+    GST_ERROR ("Set Field debug: '%s', iStringLen:%d", cmd_cstring,iStringLen);
+    if(cmd_cstring == 0)
+    {
+        GST_ERROR ("Received NULL string");
+    }
+    else
+    {
+        //1. if empty string, then print surrent settings
+        CmdPtr = strtok(cmd_cstring,", ");
+        if ( CmdPtr == NULL )
+        {
+            csio_jni_printFieldDebugInfo();
+        }
+        else
+        {
+            LocalConvertToUpper(CmdPtr);
+            //2. the first one has to be string
+            if (!strcmp(CmdPtr, "ON"))
+            {
+                CmdPtr = strtok(NULL, ", ");
+                if (CmdPtr == NULL)
+                {
+                    GST_ERROR("Invalid Format, need a parameter\r\n");
+                }
+                else
+                {
+                    fieldNum = (int) strtol(CmdPtr, &EndPtr, 10);
+
+                    if ( IsValidSpecialFieldIndex(fieldNum) )
+                    {
+                        EnableSpecialFieldDebugIndex(fieldNum);
+                        GST_ERROR("turn ON %d\r\n",fieldNum);
+                    }
+                    else
+                    {
+                        GST_ERROR("Invalid fdebug number:%d\r\n",fieldNum);
+                    }
+                }
+            }
+            else if (!strcmp(CmdPtr, "OFF"))
+            {
+                CmdPtr = strtok(NULL, ", ");
+                if (CmdPtr == NULL)
+                {
+                    GST_ERROR("Invalid Format, need a parameter\r\n");
+                }
+                else
+                {
+                    fieldNum = (int) strtol(CmdPtr, &EndPtr, 10);
+
+                    if ( IsValidSpecialFieldIndex(fieldNum) )
+                    {
+                        DisableSpecialFieldDebugIndex(fieldNum);
+                        GST_ERROR("turn OFF %d\r\n",fieldNum);
+                    }
+                    else
+                    {
+                        GST_ERROR("Invalid fdebug number:%d\r\n",fieldNum);
+                    }
+                }
+            }
+            else if (!strcmp(CmdPtr, "FLUSH_PIPELINE"))
+            {
+                GST_ERROR("flushing pipeline...");
+                GstEvent* flush_start = gst_event_new_flush_start();
+                gboolean ret = FALSE;
+                ret = gst_element_send_event(GST_ELEMENT(data->pipeline), flush_start);
+                if (!ret)
+                {
+                    GST_ERROR("failed to send flush-start event");
+                }
+                else
+                {
+                    //true: to reset timestamp, false not to
+                    GstEvent* flush_stop = gst_event_new_flush_stop(TRUE);
+
+                    ret = gst_element_send_event(GST_ELEMENT(data->pipeline), flush_stop);
+                    if (!ret)
+                        GST_ERROR("failed to send flush-stop event");
+                    else
+                        GST_ERROR("Just flushed pipeline");
+                }
+            }
+            else if (!strcmp(CmdPtr, "SET_CATEGORY_DEBUG_LEVEL"))
+            {
+                CmdPtr = strtok(NULL, ", ");
+                if (CmdPtr == NULL)
+                {
+                    GST_ERROR("Invalid Format, need a parameter\r\n");
+                }
+                else
+                {
+                    //save category name
+                    strcpy(namestring,CmdPtr);
+                    GST_ERROR("CmdPtr:%s\r\n",CmdPtr);
+                    GST_ERROR("namestring:%s\r\n",namestring);
+                    //get debug level
+                    CmdPtr = strtok(NULL, ", ");
+                    if (CmdPtr == NULL)
+                    {
+                        GST_ERROR("Invalid Format, need a parameter\r\n");
+                    }
+                    else
+                    {
+                        fieldNum = (int) strtol(CmdPtr, &EndPtr, 10);
+                        if (IsValidDebugLevel(fieldNum))
+                        {
+                            gst_debug_set_threshold_for_name(namestring,fieldNum);
+                            amcviddec_debug_level = fieldNum;
+                            GST_ERROR("set [%s] debug level to: %d\r\n",namestring,fieldNum);
+                        }
+                        else
+                        {
+                            GST_ERROR("Invalid gst_debug_level:%d\r\n",fieldNum);
+                        }
+                    }
+                }
+            }
+            else if (!strcmp(CmdPtr, "AMCVIDDEC_DEBUG_LEVEL"))
+            {
+                CmdPtr = strtok(NULL, ", ");
+                if (CmdPtr == NULL)
+                {
+                    GST_ERROR("Invalid Format, need a parameter\r\n");
+                }
+                else
+                {
+                    fieldNum = (int) strtol(CmdPtr, &EndPtr, 10);
+                    if (IsValidDebugLevel(fieldNum))
+                    {
+                        gst_debug_set_threshold_for_name("amcvideodec",fieldNum);
+                        amcviddec_debug_level = fieldNum;
+                        GST_DEBUG("set amcvideodec debug level to: %d\r\n",fieldNum);
+                    }
+                    else
+                    {
+                        GST_ERROR("Invalid gst_debug_level:%d\r\n",fieldNum);
+                    }
+                }
+            }
+            else if (!strcmp(CmdPtr, "SET_OPENSLESSINK_DEBUG_LEVEL"))
+            {
+                CmdPtr = strtok(NULL, ", ");
+                if (CmdPtr == NULL)
+                {
+                    GST_ERROR("Invalid Format, need a parameter\r\n");
+                }
+                else
+                {
+                    fieldNum = (int) strtol(CmdPtr, &EndPtr, 10);
+                    if (IsValidDebugLevel(fieldNum))
+                    {
+                        gst_debug_set_threshold_for_name("openslessink",fieldNum);
+                        amcviddec_debug_level = fieldNum;
+                        GST_ERROR("set openslessink debug level to: %d\r\n",fieldNum);
+                    }
+                    else
+                    {
+                        GST_ERROR("Invalid gst_debug_level:%d\r\n",fieldNum);
+                    }
+                }
+            }
+            else if (!strcmp(CmdPtr, "SET_AUDIOSINK_BUFFER_TIME"))
+            {
+                CmdPtr = strtok(NULL, ", ");
+                guint64  tmp = 0;
+                if (CmdPtr == NULL)
+                {
+                    if(data->audio_sink)
+                    {
+                        g_object_get(G_OBJECT(data->audio_sink), "buffer-time", &tmp, NULL);
+                        __android_log_print(ANDROID_LOG_INFO, "FieldDebugInfo",\
+                                 "Size of audio buffer in microseconds, buffer-time is set to %lld microseconds", tmp);
+                    }
+                    else
+                    {
+                        __android_log_print(ANDROID_LOG_INFO, "FieldDebugInfo",\
+                                 "no audio sink found.", tmp);
+                    }
+                }
+                else
+                {
+                    fieldNum = (int) strtol(CmdPtr, &EndPtr, 10);
+                    tmp = (guint64)fieldNum;
+                    if(data->audio_sink)
+                    {
+                        g_object_set(G_OBJECT(data->audio_sink), "buffer-time", tmp, NULL);
+
+                        __android_log_print(ANDROID_LOG_INFO, "FieldDebugInfo",\
+                              "Set buffer-time to %lld microseconds", tmp);
+                    }
+                    else
+                    {
+                        __android_log_print(ANDROID_LOG_INFO, "FieldDebugInfo",\
+                                 "no audio sink found.", tmp);
+                    }
+                }
+            }
+            else if (!strcmp(CmdPtr, "SET_AMCVIDDEC_TS_OFFSET"))
+            {
+                CmdPtr = strtok(NULL, ", ");
+                if (CmdPtr == NULL)
+                {
+                    GST_ERROR("Invalid Format, need a parameter\r\n");
+                }
+                else
+                {
+
+                    fieldNum = (int) strtol(CmdPtr, &EndPtr, 10);
+                    if ( fieldNum < 5000 && fieldNum >= 0)
+                    {
+                        data->amcviddec_ts_offset = fieldNum;
+                        for(i=0; i<MAX_ELEMENTS; i++)
+                        {
+                            if(data->element_v[i])
+                            {
+                                gchar * n = gst_element_get_name(data->element_v[i]);
+                                GST_ERROR("[%d]element name[%s]",i,n);
+                                if(strstr(n,"amcvideodec"))
+                                {
+                                    g_object_set(G_OBJECT(data->element_v[i]), "ts-offset", data->amcviddec_ts_offset, NULL);
+
+                                    data->amcviddec_ts_offset -= currentSettingsDB.videoSettings[sessionId].streamingBuffer;
+                                    GST_ERROR("[%d]set amcviddec_ts_offset:%d",i,data->amcviddec_ts_offset);
+                                    break;
+                                }
+                            }
+                            else
+                            {
+                                GST_ERROR("[%d]break",i);
+                                break;
+                            }
+                        }
+                    }
+                    else
+                    {
+                        GST_ERROR("Invalid gst_debug_level:%d\r\n",fieldNum);
+                    }
+                }
+            }
+            else if (!strcmp(CmdPtr, "PRINT_ELEMENT_PROPERTY"))
+            {
+                CmdPtr = strtok(NULL, ", ");
+                if (CmdPtr == NULL)
+                {
+                    GST_ERROR("Invalid Format, need element's name\r\n");
+                }
+                else
+                {
+                    if(data->pipeline)
+                    {
+                        GstElement *ele = gst_bin_get_by_name(GST_BIN(data->pipeline), CmdPtr);
+                        if(ele)
+                            gst_element_print_properties(ele);
+                    }
+                }
+            }
+            else if (!strcmp(CmdPtr, "PRINT_AUDIOSINK_PROPERTIES"))
+            {
+                if(data->audio_sink)
+                {
+                    gchar * name = gst_element_get_name(data->audio_sink);
+                    __android_log_print(ANDROID_LOG_INFO, "FieldDebugInfo",\
+                                        "element name[%s]",name);
+
+                    gboolean audioSync = 0;
+                    guint64  tmp = 0;
+
+                    g_object_get(G_OBJECT(data->audio_sink), "sync", &audioSync, NULL);
+                    __android_log_print(ANDROID_LOG_INFO, "FieldDebugInfo",\
+                            "audioSync is set to %d", audioSync);
+
+                    g_object_get(G_OBJECT(data->audio_sink), "max-lateness", &tmp, NULL);
+                    __android_log_print(ANDROID_LOG_INFO, "FieldDebugInfo",\
+                            "Maximum number of nanoseconds that a buffer can be late before it is dropped (-1 unlimited).max-lateness is set to %lld", tmp);
+
+                    g_object_get(G_OBJECT(data->audio_sink), "ts-offset", &tmp, NULL);
+                    __android_log_print(ANDROID_LOG_INFO, "FieldDebugInfo",\
+                            "ts-offset is set to %lld", tmp);
+
+                    g_object_get(G_OBJECT(data->audio_sink), "render-delay", &tmp, NULL);
+                    __android_log_print(ANDROID_LOG_INFO, "FieldDebugInfo",\
+                            "The additional delay between synchronisation and actual rendering of the media. \nThis property will add additional latency to the device in order to make other sinks compensate for the delay.\nrender-delay is set to %lld", tmp);
+
+                    g_object_get(G_OBJECT(data->audio_sink), "buffer-time", &tmp, NULL);
+                    __android_log_print(ANDROID_LOG_INFO, "FieldDebugInfo",\
+                            "Size of audio buffer in microseconds, this is the minimum latency that the sink reports.buffer-time is set to %lld microseconds", tmp);
+
+                    g_object_get(G_OBJECT(data->audio_sink), "latency-time", &tmp, NULL);
+                    __android_log_print(ANDROID_LOG_INFO, "FieldDebugInfo",\
+                            "The minimum amount of data to write in each iteration: latency-time is set to %lld microseconds", tmp);
+
+                    g_object_get(G_OBJECT(data->audio_sink), "provide-clock", &audioSync, NULL);
+                    __android_log_print(ANDROID_LOG_INFO, "FieldDebugInfo",\
+                            "provide-clock is set to %d", audioSync);
+
+                    g_object_get(G_OBJECT(data->audio_sink), "alignment-threshold", &tmp, NULL);
+                    __android_log_print(ANDROID_LOG_INFO, "FieldDebugInfo",\
+                            "Timestamp alignment threshold: alignment-threshold is set to %lld nanoseconds", tmp);
+
+                    g_object_get(G_OBJECT(data->audio_sink), "drift-tolerance", &tmp, NULL);
+                    __android_log_print(ANDROID_LOG_INFO, "FieldDebugInfo",\
+                            "drift-tolerance is set to %lld microseconds ", tmp);
+
+                    g_object_get(G_OBJECT(data->audio_sink), "discont-wait", &tmp, NULL);
+                    __android_log_print(ANDROID_LOG_INFO, "FieldDebugInfo",\
+                            "discont-wait is set to %lld nanoseconds ", tmp);
+
+
+
+                }
+                else
+                {
+                    GST_ERROR("No audio sink found\r\n");
+                }
+
+            }
+            else
+            {
+                GST_ERROR("Invalid command:%s\r\n",CmdPtr);
+            }
+        }
+    }
+
+    (*env)->ReleaseStringUTFChars(env, cmd_jstring, cmd_cstring);
+}
 StreamState nativeGetCurrentStreamState(jint sessionId)
 {
 	StreamState currentStreamState;
@@ -1538,6 +1910,15 @@ void csio_jni_initVideo(int iStreamId)
         }
 	else
 	{	    
+	    //SET OFSSET
+	    if( data->amcvid_dec )
+	    {
+	        int tmp = currentSettingsDB.videoSettings[iStreamId].streamingBuffer +
+	                  data->amcviddec_ts_offset;
+	        g_object_set(G_OBJECT(data->amcvid_dec), "ts-offset", tmp, NULL);
+	        GST_ERROR("set amcviddec_ts_offset:%d",data->amcviddec_ts_offset);
+	    }
+
 	    GST_DEBUG("qos is turned off for surfaceflingersink!");
 	    if(data->video_sink)
 	        g_object_set(G_OBJECT(data->video_sink), "qos", FALSE, NULL);   
@@ -1578,5 +1959,59 @@ void csio_jni_recoverDucati()
     if ((*env)->ExceptionCheck (env)) {
         GST_ERROR ("Failed to call Java method 'recoverDucati'");
         (*env)->ExceptionClear (env);
+    }
+}
+void LocalConvertToUpper(char *str)
+{
+    char *TmpPtr;
+
+    for (TmpPtr = str; *TmpPtr != 0; TmpPtr++)
+    {
+        *TmpPtr = toupper(*TmpPtr);
+        if ( *TmpPtr == ' ')
+            break;
+    }
+}
+void csio_jni_printFieldDebugInfo()
+{
+    int i;
+
+    CREGSTREAM * data = GetStreamFromCustomData(CresDataDB, 0);
+
+    if(!data)
+    {
+        GST_ERROR("Could not obtain stream pointer for stream %d", 0);
+        return CSIO_FAILURE;
+    }
+
+    __android_log_print (ANDROID_LOG_INFO, "FieldDebugInfo", "Current setting:");
+    for (i = 0; i < MAX_SPECIAL_FIELD_DEBUG_NUM - 1; i++)
+    {
+
+        if((i+1) == FIELD_DEBUG_SET_AMCVIDDEC_DEBUG_LEVEL)
+        {
+            __android_log_print(ANDROID_LOG_INFO, "FieldDebugInfo", "  %s  -- %d", \
+                                fieldDebugNames[i], amcviddec_debug_level);
+        }
+        else if((i+1) == FIELD_DEBUG_SET_VIDEODECODER_DEBUG_LEVEL)
+        {
+            __android_log_print(ANDROID_LOG_INFO, "FieldDebugInfo", "  %s  -- %d", \
+                                fieldDebugNames[i], videodecoder_debug_level);
+        }        
+        else if((i+1) == FIELD_DEBUG_SET_AMCVIDDEC_TS_OFFSET)
+        {
+            __android_log_print(ANDROID_LOG_INFO, "FieldDebugInfo", "  %s  -- %dms", \
+                                fieldDebugNames[i],data->amcviddec_ts_offset);
+        }
+        else if((i+1) == FIELD_DEBUG_PRINT_AUDIOSINK_PROPERTIES)
+        {
+            __android_log_print(ANDROID_LOG_INFO, "FieldDebugInfo", "  %s",fieldDebugNames[i]);
+        }
+        else
+        {
+            __android_log_print(ANDROID_LOG_INFO, "FieldDebugInfo", "  %s%s", \
+                                fieldDebugNames[i], \
+                                (IsSpecialFieldDebugIndexActive(i+1) ? "ON" : "OFF"));
+        }
     }
 }

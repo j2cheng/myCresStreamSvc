@@ -787,6 +787,11 @@ public class CresStreamCtrl extends Service {
     	streamPlay.setNewSink(flag, sessionId);
     }
     
+    public void setFieldDebugJni(String cmd, int sessId)
+    {
+        streamPlay.setFieldDebugJni(cmd, sessId);
+    }
+
     public void setXCoordinates(int x, int sessionId)
     {    	
         if (userSettings.getXloc(sessionId) != x){

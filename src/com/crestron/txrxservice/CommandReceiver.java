@@ -246,6 +246,10 @@ public class CommandReceiver {
     public void setNewSink(boolean flag, int sessId) {
     	ctl.setNewSink(flag, sessId);
     }
+  
+    public void setFieldDebugJni(String cmd, int sessId){
+        ctl.setFieldDebugJni(cmd, sessId);
+    }
 
     //Process Feedbacks
     public String getStreamUrl(int idx){

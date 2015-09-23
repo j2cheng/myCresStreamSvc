@@ -111,7 +111,8 @@ public class CommandParser {
         
         USE_GSTREAMER,
 	NEW_SINK,
-	NEW_IPADDR;
+	NEW_IPADDR,
+        FDEBUG_JNI;
         //UPDATEREQUEST;
     }
 
@@ -463,6 +464,11 @@ public class CommandParser {
             case NEW_IPADDR:
             	cmd = new UseNewIpAddrCommand(cmdRx, arg);
             	break;
+
+            case FDEBUG_JNI:            	
+            	cmd = new FIELDDEBUGJNICommand(cmdRx, arg, idx);
+            	break;
+
             default:
                 break;
         }
