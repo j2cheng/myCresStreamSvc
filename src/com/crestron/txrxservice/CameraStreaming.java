@@ -180,7 +180,7 @@ public class CameraStreaming {
 		            
 		            setWidthAndHeightFromEncRes(idx);
 		            mrec.setVideoEncodingBitRate(streamCtl.userSettings.getBitrate(idx) * 1000);	//This is in bits per second
-		            //mrec.setVideoFrameRate(streamCtl.userSettings.getEncodingFramerate(idx));//Mistral Propietary API 
+		            mrec.setVideoFrameRate(streamCtl.userSettings.getEncodingFramerate(idx));//Mistral Propietary API 
 		            mrec.setAudioEncoder(MediaRecorder.AudioEncoder.AAC);
 		            mrec.setVideoEncoder(MediaRecorder.VideoEncoder.H264);
 		            mrec.setEncoderProfile(streamCtl.userSettings.getStreamProfile(idx).getVEncProfile());
