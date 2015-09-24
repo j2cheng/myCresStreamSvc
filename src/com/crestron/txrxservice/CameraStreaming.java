@@ -209,11 +209,14 @@ public class CameraStreaming {
 		            //UDP TS streaming modes do not call PreviewCB so send started state
 		            if (((currentSessionInitiation == 1) || (currentSessionInitiation == 3)) && 
 		            		((currentTransportMode == 1) || (currentTransportMode == 2)))
+		            {
 		            	streamCtl.SendStreamState(StreamState.STARTED, idx);
+		            	startStatisticsTask();
+		            }
 		           
 		            out_stream_status = true;
 		            
-		            startStatisticsTask();	            
+		                      
 		        }
 		        else {
 		        	stopRecording(false);
@@ -376,6 +379,12 @@ public class CameraStreaming {
 		// Start with current hdmi input values
 		streamOutWidth = Integer.valueOf(streamCtl.hdmiInput.getHorizontalRes());
 		streamOutHeight = Integer.valueOf(streamCtl.hdmiInput.getVerticalRes());
+		
+		if ((streamOutWidth == 1366) && (streamOutHeight == 768))//FIXME: Currently Encoder does not accept 1366x768, workaround is set to 1280x720 (10)
+		{
+			streamOutWidth = 1280;
+			streamOutHeight = 720;
+		}
 
 		switch (streamCtl.userSettings.getEncodingResolution(sessionId))
 		{
@@ -859,6 +868,7 @@ public class CameraStreaming {
 		    else {
                 streamCtl.SendStreamState(StreamState.STARTED, idx);     
 		    }
+			startStatisticsTask();
 
 			//Set data to null so that it can be GC a little bit faster, it has a large allocation (size of frame)
 			data = null;
