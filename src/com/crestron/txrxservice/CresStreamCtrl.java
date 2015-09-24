@@ -618,7 +618,7 @@ public class CresStreamCtrl extends Service {
 
     				int currentDucatiState = readDucatiState();
     				// Dont call recovery if monitorMediaServer is already recovering
-    				if ((currentDucatiState == 0) && (mIgnoreMediaServerCrash = false))
+    				if ((currentDucatiState == 0) && (mIgnoreMediaServerCrash == false))
     				{
     					cameraErrorResolved = true;
     					writeDucatiState(1);
