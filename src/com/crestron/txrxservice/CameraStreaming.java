@@ -554,7 +554,7 @@ public class CameraStreaming {
     			try {
 			        if (mrec != null) {				            
 			            mrec.stop();
-			            //mrec.setPreviewDisplay(null);				            
+			            mrec.setPreviewDisplay(null);				            
 			            releaseMediaRecorder();
 					}
     			} catch (Exception e) { e.printStackTrace(); }
