@@ -677,9 +677,9 @@ public class CresStreamCtrl extends Service {
 			        		continue;
 			        	if ((userSettings.getMode(sessionId) == DeviceMode.STREAM_OUT.ordinal()) 
 			        			&& (userSettings.getUserRequestedStreamState(sessionId) == StreamState.STOPPED))
-			            {
-			        		Log.d(TAG, "Stop : Lock");
+			            {			        		
 			    	    	stopStartLock.lock();
+			    	    	Log.d(TAG, "Stop : Lock");
 			    	    	try
 			    	    	{
 			    	    		cam_streaming.stopConfidencePreview(sessionId);
@@ -689,8 +689,9 @@ public class CresStreamCtrl extends Service {
 					    		Log.d(TAG, "Stop : Unlock");
 					    		stopStartLock.unlock();
 					    	}
-			    	    	Log.d(TAG, "restartStreams Start : Lock");
+			    	    	
 			    	    	stopStartLock.lock();
+			    	    	Log.d(TAG, "Start : Lock");
 			    	    	try
 			    	    	{
 			    	    		cam_streaming.startConfidencePreview(sessionId);
@@ -737,20 +738,25 @@ public class CresStreamCtrl extends Service {
         	// Since this is a user request, mark as stopped requested if mode changes
         	userSettings.setUserRequestedStreamState(StreamState.STOPPED, sessionId);
         	
-            if (userSettings.getStreamState(sessionId) == StreamState.STARTED)
+            if (userSettings.getStreamState(sessionId) != StreamState.STOPPED)
                 hm2.get(prevMode).executeStop(sessionId, false);
-            else if (prevMode == DeviceMode.STREAM_OUT.ordinal())
-            {
-            	// Turn off confidence mode if leaving stream out mode and not streaming out
-            	cam_streaming.stopConfidencePreview(sessionId);
-            	SendStreamState(StreamState.STOPPED, sessionId);
-    			restartRequired[sessionId] = false;
-            }
-                        
+ 
             if (mode == DeviceMode.STREAM_OUT.ordinal())
             {
             	// we want confidence image up for stream out, until streamout is actually started
-            	cam_streaming.startConfidencePreview(sessionId);
+            	stopStartLock.lock();
+            	Log.d(TAG, "Start : Lock");
+                try
+                {
+                	updateWindow(sessionId);
+                    showPreviewWindow(sessionId);
+                    invalidateSurface();
+                	cam_streaming.startConfidencePreview(sessionId);
+                } finally
+                {
+                	stopStartLock.unlock();
+                	Log.d(TAG, "Start : Unlock");
+                }
             	restartRequired[sessionId] = true;
             }
             
@@ -1248,9 +1254,9 @@ public class CresStreamCtrl extends Service {
     {
     	userSettings.setUserRequestedStreamState(StreamState.STARTED, sessionId);
     	if (userSettings.getStreamState(sessionId) != StreamState.STARTED)
-    	{
-	    	Log.d(TAG, "Start : Lock");
+    	{	    	
 	    	stopStartLock.lock();
+	    	Log.d(TAG, "Start : Lock");
 	    	try
 	    	{
 	    		mIgnoreMediaServerCrash = false;
@@ -1277,8 +1283,8 @@ public class CresStreamCtrl extends Service {
     	userSettings.setUserRequestedStreamState(StreamState.STOPPED, sessionId);
     	if ((userSettings.getStreamState(sessionId) != StreamState.STOPPED) && (userSettings.getStreamState(sessionId) != StreamState.CONFIDENCEMODE))
     	{
-	    	Log.d(TAG, "Stop : Lock");
 	    	stopStartLock.lock();
+	    	Log.d(TAG, "Stop : Lock");
 	    	try
 	    	{
 		    	playStatus="false";
@@ -1290,8 +1296,8 @@ public class CresStreamCtrl extends Service {
 	    	}
 	    	finally
 	    	{
-	    		Log.d(TAG, "Stop : Unlock");
 	    		stopStartLock.unlock();
+	    		Log.d(TAG, "Stop : Unlock");
 	    	}
     	}
     	else
@@ -1454,13 +1460,11 @@ public class CresStreamCtrl extends Service {
 		}
 		else
 		{
-	        //Toast.makeText(this, "StreamOut Stopped", Toast.LENGTH_LONG).show();
-	        //On STOP, there is a chance to get ducati crash which does not save current state
-	        //causes streaming never stops.
-	        //FIXME:Temp Hack for ducati crash to save current state
-	        userSettings.setStreamState(StreamState.STOPPED, sessId);
 	        cam_streaming.setSessionIndex(sessId);
-	        cam_streaming.stopRecording(false);
+	        if ((userSettings.getStreamState(sessId) == StreamState.CONFIDENCEMODE) ||(userSettings.getStreamState(sessId) == StreamState.STOPPED))
+	        	cam_streaming.stopConfidencePreview(sessId);
+        	else
+	        	cam_streaming.stopRecording(false);
 	        StreamOutstarted = false;
 	        hidePreviewWindow(sessId);
 	        
@@ -1935,14 +1939,6 @@ public class CresStreamCtrl extends Service {
 		
 		// Set hdmi connected states for csio
 		sockTask.SendDataToAllClients(String.format("HDMIInputConnectedState=%b", !enable)); //true means hdmi input connected
-		for (int sessionId = 0; sessionId < NumOfSurfaces; sessionId++)
-		{
-			if ((userSettings.getMode(sessionId) == DeviceMode.PREVIEW.ordinal()) || (userSettings.getMode(sessionId) == DeviceMode.STREAM_OUT.ordinal()))
-			{
-				// resend streamstate
-				SendStreamState(userSettings.getStreamState(sessionId), sessionId);
-			}
-		}
 	}
 	
 	public void setPauseVideoImage(boolean enable) 

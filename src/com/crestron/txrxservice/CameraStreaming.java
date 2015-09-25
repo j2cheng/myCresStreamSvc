@@ -21,6 +21,7 @@ import android.hardware.Camera;
 import android.hardware.Camera.ErrorCallback;
 import android.hardware.Camera.PreviewCallback;
 import android.media.MediaRecorder;
+import android.media.MediaRecorder.OnErrorListener;
 import android.os.FileObserver;
 import android.os.Environment;
 import android.util.Log;
@@ -76,7 +77,6 @@ public class CameraStreaming {
     }
 
     protected void startRecording() throws IOException {
-    	final Surface surface = streamCtl.getCresSurfaceHolder(idx).getSurface();
     	final CountDownLatch latch = new CountDownLatch(1);
     	Thread startThread = new Thread(new Runnable() {
     		public void run() {
@@ -124,7 +124,6 @@ public class CameraStreaming {
 		        mrec = new MediaRecorder();
 		        CresCamera.openCamera();
 		        if(CresCamera.mCamera != null){
-		        	CresCamera.mCamera.getHdmiInputStatus();
 		        	CresCamera.mCamera.setEncoderFps(streamCtl.userSettings.getEncodingFramerate(idx));
 		        	CresCamera.mCamera.unlock();
 		            mrec.setCamera(CresCamera.mCamera);
@@ -187,9 +186,10 @@ public class CameraStreaming {
 		            mrec.setVideoEncoderLevel(streamCtl.userSettings.getEncodingLevel(idx));		            
 		            mrec.setOutputFile(path + filename);   
 		
-		            mrec.setPreviewDisplay(surface);	//TODO: put back in when preview audio works
+		            mrec.setPreviewDisplay(streamCtl.getCresSurfaceHolder(idx).getSurface());	//TODO: put back in when preview audio works
 		            try
 		            {
+		            	mrec.setOnErrorListener(new ErrorListner());
 			            mrec.prepare();
 			            mrec.start();
 			            //Must be called after start(), send status feedbacks on first frame coming in
@@ -260,7 +260,9 @@ public class CameraStreaming {
         activeClientObserver = new FileObserver(clientConnectedFilePath, FileObserver.CLOSE_WRITE) {						
 			@Override
 			public void onEvent(int event, String path) {
-				sendRtspStreamState(false);
+				Log.i(TAG, String.format("Received FileObserver event, sending rtspStream State, event = %d, path = %s", event, path)); //my change remove
+				if (event != 32768)//32768 is IN_IGNORED and should not send streamstate
+					sendRtspStreamState(false);
 			}
 		};
 		activeClientObserver.startWatching();
@@ -881,8 +883,16 @@ public class CameraStreaming {
     {
     	@Override
         public void onError(int error, Camera camera) {
-            Log.d(TAG, "Camera Error callback:" + error + "Camera :" + camera);
-            //stopRecording(false); // TODO: decide what we want to do here
+            Log.d(TAG, "Camera Error callback: " + error + "Camera :" + camera);
         }
+    }
+    
+    private class ErrorListner implements OnErrorListener
+    {
+		@Override
+		public void onError(MediaRecorder mr, int what, int extra) {
+			// TODO Auto-generated method stub
+			Log.d(TAG, "MediaRecorder Error callback: " + what + ", " + extra + " MediaRecorder :" + mr);
+		}
     }
 }

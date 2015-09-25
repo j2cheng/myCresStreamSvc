@@ -77,6 +77,5 @@ public class SurfaceManager implements SurfaceHolder.Callback {
     @Override
     public void surfaceDestroyed(SurfaceHolder arg0) {
     	Log.d(TAG, "######### surfaceDestroyed##############");
-    	// TODO Auto-generated method stub
     }
 }
