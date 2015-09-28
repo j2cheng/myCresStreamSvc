@@ -63,7 +63,7 @@ public class AudioPlayback
                     	if (!shouldExit) //write is time intensive function, skip if we are trying to stop
                     	{
 	                        mPlayer.write(readBuffer.array(), 0, read);
-	                        mPlayer.flush();
+//	                        mPlayer.flush();
 	                        if (initVolumePending)
 	                        {
 	                        	setVolume(mStreamCtl.userSettings.getVolume());
