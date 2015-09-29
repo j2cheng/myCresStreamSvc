@@ -23,8 +23,9 @@ GST_DEBUG_CATEGORY_STATIC (debug_category);
 #define MAX_STREAMS 2
 #define MAX_ELEMENTS 20
 
-#define DEFAULT_AMCVIDDEC_TS_OFFSET 700//in ms
-
+#define DEFAULT_AMCVIDDEC_TS_OFFSET 400//in ms
+#define DEFAULT_MIN_STRING_BUFFER 100//in ms
+#define DEFAULT_MAX_STRING_BUFFER 5000//in ms
 //#define INSERT_SF_SINK 1
 ///////////////////////////////////////////////////////////////////////////////
 
@@ -39,6 +40,7 @@ typedef struct
 /* per-stream info */
 typedef struct _CREGSTREAM 
 {
+    unsigned int streamId;
 	ANativeWindow *native_window; /* The Android native window where video will be rendered */
 
 	//pthread_mutex_t ready_to_start_playing_lock;
@@ -83,6 +85,7 @@ typedef struct _CREGSTREAM
 	int using_glimagsink;
 	void* surface;
 	int amcviddec_ts_offset;
+	int audiosink_ts_offset;	
 } CREGSTREAM;
 
 /* Structure to contain all our information, so we can pass it to callbacks */
@@ -98,7 +101,7 @@ typedef struct _CustomData
 **********************************************************************/
 enum
   {
-      FIELD_DEBUG_PRINT_PROBE_TS = 1,                     //1
+      FIELD_DEBUG_BLOCK_AUDIO = 1,                     //1
       FIELD_DEBUG_INSERT_PROBE ,
       FIELD_DEBUG_AMC_PRINT_TS ,
       FIELD_DEBUG_DROP_BEFORE_PARSE ,
@@ -107,7 +110,7 @@ enum
       FIELD_DEBUG_SET_VIDEODECODER_DEBUG_LEVEL ,
       FIELD_DEBUG_SET_OPENSLESSINK_DEBUG_LEVEL ,
       FIELD_DEBUG_SET_CATEGORY_DEBUG_LEVEL,
-      FIELD_DEBUG_SET_AUDIOSINK_BUFFER_TIME,
+      FIELD_DEBUG_SET_AUDIOSINK_TS_OFFSET,
       FIELD_DEBUG_SET_AMCVIDDEC_TS_OFFSET,
       FIELD_DEBUG_PRINT_AUDIOSINK_PROPERTIES,
       FIELD_DEBUG_PRINT_ELEMENT_PROPERTY,
@@ -148,4 +151,5 @@ extern void csio_PadAddedMsgHandler(GstElement *src, GstPad *new_pad, void *pCst
 extern void set_gst_debug_level(void);
 
 extern guint64 amcviddec_min_threshold_time ;
+extern int debug_blocking_audio;
 #endif

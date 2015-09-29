@@ -162,6 +162,10 @@ static void pad_added_callback2 (GstElement *src, GstPad *new_pad, CREGSTREAM *d
 	// Link rest of pipeline to beginning.
     gst_pad_link(new_pad, sink_pad);
     
+    //call initVideo before set to play state when video was added first
+    csio_jni_initVideo(data->streamId);
+    csio_jni_initAudio(data->streamId);
+
 	gst_element_set_state( data->pipeline, GST_STATE_PLAYING);
 	
 	// cleanup
@@ -214,6 +218,9 @@ int build_video_pipeline(gchar *encoding_name, CREGSTREAM *data, unsigned int st
 
         data->element_v[i++] = gst_element_factory_make("amcviddec-omxtiducati1videodecoder", NULL);
         data->amcvid_dec = data->element_v[i-1];
+
+        //SET OFSSET to zero for now
+        g_object_set(G_OBJECT(data->amcvid_dec), "ts-offset", 0, NULL);
 
         //pass surface object to the decoder
         g_object_set(G_OBJECT(data->element_v[i-1]), "surface-window", data->surface, NULL);
@@ -270,6 +277,9 @@ int build_video_pipeline(gchar *encoding_name, CREGSTREAM *data, unsigned int st
 		data->element_v[i++] = gst_element_factory_make("mpeg4videoparse", NULL);
 		data->element_v[i++] = gst_element_factory_make("amcviddec-omxtiducati1videodecoder", NULL);
 		data->amcvid_dec = data->element_v[i-1];
+
+		//SET OFSSET to zero for now
+		g_object_set(G_OBJECT(data->amcvid_dec), "ts-offset", 0, NULL);
 
 		//pass surface object to the decoder
 		g_object_set(G_OBJECT(data->element_v[i-1]), "surface-window", data->surface, NULL);
@@ -691,6 +701,7 @@ void init_custom_data(CustomData * cdata)
 	for(i=0; i<MAX_STREAMS; i++)
 	{
 		data = &cdata->stream[i];
+		data->streamId = i;
 		data->udp_port = 9700;
 		data->udp_video_port = 2048;
 		data->udp_audio_port = 2049;
@@ -732,6 +743,7 @@ void init_custom_data(CustomData * cdata)
 		data->caps_v = data->caps_v_ts;
 		data->caps_a = NULL;
 		data->amcviddec_ts_offset = DEFAULT_AMCVIDDEC_TS_OFFSET;
+		data->audiosink_ts_offset = 0;
 	}
 }
 

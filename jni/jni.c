@@ -82,7 +82,7 @@ void LocalConvertToLower(char *str);
 UINT32 g_lSpecialFieldDebugState[SPECIAL_FIELD_DEBUG_ARRAY_SIZE] = {0};
 const char * const fieldDebugNames[MAX_SPECIAL_FIELD_DEBUG_NUM - 1] =
 {
-    "01 PRINT_PROBE_TS           ",
+    "01 BLOCK_AUDIO              " ,
     "02 INSERT_PROBE             " ,
     "03 AMC_PRINT_TS             " ,
     "04 DROP_BEFORE_PARSE        " ,
@@ -91,14 +91,14 @@ const char * const fieldDebugNames[MAX_SPECIAL_FIELD_DEBUG_NUM - 1] =
     "07 SET_VIDEODECODER_DEBUG_LEVEL  " ,
     "08 SET_OPENSLESSINK_DEBUG_LEVEL  " ,
     "09 SET_CATEGORY_DEBUG_LEVEL      " ,
-    "10 SET_AUDIOSINK_BUFFER_TIME   " ,
+    "10 SET_AUDIOSINK_TS_OFFSET     " ,
     "11 SET_AMCVIDDEC_TS_OFFSET     " ,
     "12 PRINT_AUDIOSINK_PROPERTIES  " ,
     "13 PRINT_ELEMENT_PROPERTY      " ,
 };
 int amcviddec_debug_level    = GST_LEVEL_ERROR;
 int videodecoder_debug_level = GST_LEVEL_ERROR;
-
+int debug_blocking_audio = 0;
 /*
  * Private methods
  */
@@ -569,7 +569,7 @@ static void gst_native_surface_finalize (JNIEnv *env, jobject thiz, jint stream)
 
 	if(data->surface)
 	{
-	    GST_ERROR("Delete GlobalRef %p", data->surface);
+	    GST_DEBUG("Delete GlobalRef %p", data->surface);
 	    (*env)->DeleteGlobalRef(env, data->surface);
 	    data->surface = NULL;
 	}
@@ -650,7 +650,19 @@ JNIEXPORT void JNICALL Java_com_crestron_txrxservice_GstreamIn_nativeSetMulticas
 
 JNIEXPORT void JNICALL Java_com_crestron_txrxservice_GstreamIn_nativeSetStreamingBuffer(JNIEnv *env, jobject thiz, jint buffer_ms, jint sessionId)
 {
-	GST_DEBUG ("Using streamingBuffer: '%d'", buffer_ms);
+    GST_DEBUG ("Using streamingBuffer: '%d'", buffer_ms);
+	if(buffer_ms < DEFAULT_MIN_STRING_BUFFER)
+	{
+	    buffer_ms = DEFAULT_MIN_STRING_BUFFER;
+	    GST_DEBUG ("Clip streamingBuffer to: '%d'", DEFAULT_MIN_STRING_BUFFER);
+	}
+
+	if(buffer_ms > DEFAULT_MAX_STRING_BUFFER)
+    {
+        buffer_ms = DEFAULT_MAX_STRING_BUFFER;
+        GST_DEBUG ("Clip streamingBuffer to: '%d'", DEFAULT_MIN_STRING_BUFFER);
+    }
+
 	currentSettingsDB.videoSettings[sessionId].streamingBuffer = buffer_ms;
 	GST_DEBUG ("streamingBuffer in currentSettingsDB: '%d'", currentSettingsDB.videoSettings[sessionId].streamingBuffer);
 }
@@ -808,6 +820,34 @@ JNIEXPORT void JNICALL Java_com_crestron_txrxservice_GstreamIn_nativeSetFieldDeb
                     else
                     {
                         GST_ERROR("Invalid fdebug number:%d\r\n",fieldNum);
+                    }
+                }
+            }
+            else if (!strcmp(CmdPtr, "BLOCK_AUDIO"))
+            {
+                CmdPtr = strtok(NULL, ", ");
+                if (CmdPtr == NULL)
+                {
+                    GST_ERROR("BLOCK_AUDIO is %s", (IsSpecialFieldDebugIndexActive(i+1) ? "ON" : "OFF"));
+                }
+                else
+                {
+                    LocalConvertToUpper(CmdPtr);
+                    if (!strcmp(CmdPtr, "ON"))
+                    {
+                        EnableSpecialFieldDebugIndex(FIELD_DEBUG_BLOCK_AUDIO);
+                        debug_blocking_audio = 1;
+                        GST_ERROR("BLOCK_AUDIO enabled\r\n");
+                    }
+                    else if (!strcmp(CmdPtr, "OFF"))
+                    {
+                        DisableSpecialFieldDebugIndex(FIELD_DEBUG_BLOCK_AUDIO);
+                        debug_blocking_audio = 0;
+                        GST_ERROR("BLOCK_AUDIO disabled\r\n");
+                    }
+                    else
+                    {
+                        GST_ERROR("Invalid Format, On or OFF\r\n");
                     }
                 }
             }
@@ -990,6 +1030,31 @@ JNIEXPORT void JNICALL Java_com_crestron_txrxservice_GstreamIn_nativeSetFieldDeb
                     }
                 }
             }
+            else if (!strcmp(CmdPtr, "SET_AUDIOSINK_TS_OFFSET"))
+            {
+                CmdPtr = strtok(NULL, ", ");
+                if (CmdPtr == NULL)
+                {
+                    GST_ERROR("Invalid Format, need a parameter\r\n");
+                }
+                else
+                {
+                    gint64 tmp = 0;
+                    fieldNum = (int) strtol(CmdPtr, &EndPtr, 10);
+
+                    data->audiosink_ts_offset = fieldNum ;
+
+                    if(data->audio_sink)
+                    {
+                        gchar * n = gst_element_get_name(data->audio_sink);
+                        GST_ERROR("element name[%s]",n);
+                        tmp = data->audiosink_ts_offset * 1000000;
+                        g_object_set(G_OBJECT(data->audio_sink), "ts-offset",
+                                     tmp, NULL);
+                        GST_ERROR("set audiosink_ts_offset:%lldns",tmp);
+                    }
+                }
+            }
             else if (!strcmp(CmdPtr, "PRINT_ELEMENT_PROPERTY"))
             {
                 CmdPtr = strtok(NULL, ", ");
@@ -1001,9 +1066,50 @@ JNIEXPORT void JNICALL Java_com_crestron_txrxservice_GstreamIn_nativeSetFieldDeb
                 {
                     if(data->pipeline)
                     {
-                        GstElement *ele = gst_bin_get_by_name(GST_BIN(data->pipeline), CmdPtr);
-                        if(ele)
-                            gst_element_print_properties(ele);
+                        if (!strcmp(CmdPtr, "allvideo"))
+                        {
+                            if(data->element_zero)
+                                gst_element_print_properties(data->element_zero);
+                            for(i=0; i<MAX_ELEMENTS; i++)
+                            {
+                                if(data->element_v[i])
+                                {
+                                    gst_element_print_properties(data->element_v[i]);
+                                }
+                                else
+                                {
+                                    GST_ERROR("[%d]break",i);
+                                    break;
+                                }
+                            }
+                        }
+                        else if (!strcmp(CmdPtr, "allaudio"))
+                        {
+                            if(data->element_zero)
+                                gst_element_print_properties(data->element_zero);
+
+                            if(data->audio_sink)
+                                gst_element_print_properties(data->audio_sink);
+
+                            for(i=0; i<MAX_ELEMENTS; i++)
+                            {
+                                if(data->element_a[i])
+                                {
+                                    gst_element_print_properties(data->element_a[i]);
+                                }
+                                else
+                                {
+                                    GST_ERROR("[%d]break",i);
+                                    break;
+                                }
+                            }
+                        }
+                        else
+                        {
+                            GstElement *ele = gst_bin_get_by_name(GST_BIN(data->pipeline), CmdPtr);
+                            if(ele)
+                                gst_element_print_properties(ele);
+                        }
                     }
                 }
             }
@@ -1752,6 +1858,12 @@ int csio_jni_AddAudio(GstPad *new_pad,gchar *encoding_name, GstElement **sink, b
 		return CSIO_FAILURE;
 	}	
 
+	if(debug_blocking_audio)
+	{
+	    GST_ERROR("debug_blocking_audio is set");
+	    return CSIO_AUDIO_BLOCKED;
+	}
+
 	//Extracted from STR, to support IC Camera with mulaw
 	if(send_pause){
 		gst_element_set_state( data->pipeline, GST_STATE_PAUSED);
@@ -1794,6 +1906,10 @@ int csio_jni_AddAudio(GstPad *new_pad,gchar *encoding_name, GstElement **sink, b
 
 	// Link rest of pipeline to beginning.
 	gst_pad_link(new_pad, sink_pad);
+
+	//call init before set to play state when video was added first
+	csio_jni_initVideo(iStreamId);
+	csio_jni_initAudio(iStreamId);
 
 	gst_element_set_state( data->pipeline, GST_STATE_PLAYING);
 
@@ -1873,6 +1989,9 @@ int csio_jni_AddVideo(GstPad *new_pad,gchar *encoding_name, GstElement **sink,eP
 		goto doneAddVideo;
 	}
 
+	//call initVideo before set to play state
+	csio_jni_initVideo(iStreamId);
+
 	if( gst_element_set_state( data->pipeline, GST_STATE_PLAYING) == GST_STATE_CHANGE_FAILURE )
 	{
 		GST_ERROR ("Cannot restart pipeline\n");
@@ -1893,6 +2012,24 @@ doneAddVideo:
 	return iStatus;
 }
 
+void csio_jni_initAudio(int iStreamId)
+{
+    CREGSTREAM * data = GetStreamFromCustomData(CresDataDB, iStreamId);
+
+    if(!data)
+    {
+        GST_ERROR("Could not obtain stream pointer for stream %d", iStreamId);
+        return;
+    }
+
+    if( data->audio_sink)
+    {
+        gint64 tmp = data->audiosink_ts_offset * 1000000;
+        g_object_set(G_OBJECT(data->audio_sink), "ts-offset", tmp, NULL);
+        GST_ERROR("set audiosink_ts_offset:%lld",tmp);
+    }
+}
+
 void csio_jni_initVideo(int iStreamId)
 {
 	CREGSTREAM * data = GetStreamFromCustomData(CresDataDB, iStreamId);
@@ -1907,16 +2044,18 @@ void csio_jni_initVideo(int iStreamId)
 	{
 	    GST_DEBUG("qos is set to default");
 	    g_object_set(G_OBJECT(data->video_sink), "force-aspect-ratio", FALSE, NULL);
-        }
+    }
 	else
 	{	    
 	    //SET OFSSET
-	    if( data->amcvid_dec )
+	    if( data->amcvid_dec && (!debug_blocking_audio) && data->audio_sink)
 	    {
 	        int tmp = currentSettingsDB.videoSettings[iStreamId].streamingBuffer +
 	                  data->amcviddec_ts_offset;
 	        g_object_set(G_OBJECT(data->amcvid_dec), "ts-offset", tmp, NULL);
-	        GST_ERROR("set amcviddec_ts_offset:%d",data->amcviddec_ts_offset);
+	        GST_DEBUG("streamingBuffer or latency is:%d",currentSettingsDB.videoSettings[iStreamId].streamingBuffer);
+	        GST_DEBUG("amcviddec_ts_offset:%d",data->amcviddec_ts_offset);
+	        GST_DEBUG("total ts_offset:%d",tmp);
 	    }
 
 	    GST_DEBUG("qos is turned off for surfaceflingersink!");
@@ -1998,6 +2137,11 @@ void csio_jni_printFieldDebugInfo()
             __android_log_print(ANDROID_LOG_INFO, "FieldDebugInfo", "  %s  -- %d", \
                                 fieldDebugNames[i], videodecoder_debug_level);
         }        
+        else if((i+1) == FIELD_DEBUG_SET_AUDIOSINK_TS_OFFSET)
+        {
+            __android_log_print(ANDROID_LOG_INFO, "FieldDebugInfo", "  %s  -- %dms", \
+                                fieldDebugNames[i],data->audiosink_ts_offset);
+        }
         else if((i+1) == FIELD_DEBUG_SET_AMCVIDDEC_TS_OFFSET)
         {
             __android_log_print(ANDROID_LOG_INFO, "FieldDebugInfo", "  %s  -- %dms", \
