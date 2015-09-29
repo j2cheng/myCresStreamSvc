@@ -107,7 +107,7 @@ public class CresStreamCtrl extends Service {
     boolean hdmiInputDriverPresent = false;
     boolean[] restartRequired = new boolean[NumOfSurfaces];
     public final static String savedSettingsFilePath = "/data/CresStreamSvc/userSettings";
-    public final static String savedSettingsTmpFilePath = "/dev/shm/crestron/CresStreamSvc/userSettings_tmp";
+    public final static String savedSettingsOldFilePath = "/data/CresStreamSvc/userSettings.old";
     public final static String cameraModeFilePath = "/dev/shm/crestron/CresStreamSvc/cameraMode";
     public volatile boolean mIgnoreMediaServerCrash = false;
     private FileObserver mediaServerObserver;
@@ -297,6 +297,7 @@ public class CresStreamCtrl extends Service {
             hdmiOutput = new HDMIOutputInterface();
             
             boolean wipeOutUserSettings = false;
+            boolean useOldUserSettingsFile = false;
             File serializedClassFile = new File (savedSettingsFilePath);
             if (serializedClassFile.isFile())	//check if file exists
             {
@@ -310,19 +311,53 @@ public class CresStreamCtrl extends Service {
                 		userSettings = gson.fromJson(serializedClass, UserSettings.class);
                 	} catch (Exception ex) {
                 		Log.e(TAG, "Failed to deserialize userSettings: " + ex);
-                		wipeOutUserSettings = true;
+                		useOldUserSettingsFile = true;
             		}
                 }
                 catch (Exception ex)
                 {
                 	Log.e(TAG, "Exception encountered loading userSettings from disk: " + ex);
-                	wipeOutUserSettings = true;
+                	useOldUserSettingsFile = true;
                 }            	
             }
             else
             {
-            	wipeOutUserSettings = true;            	
+            	Log.e(TAG, "UserSettings file did not exist");
+            	useOldUserSettingsFile = true;
             }
+            
+            if (useOldUserSettingsFile) //userSettings deserialization failed try using old userSettings file
+            {            	
+	            File serializedOldClassFile = new File (savedSettingsOldFilePath);
+            	if (serializedOldClassFile.isFile())	//check if file exists 
+            	{
+            		Log.i(TAG, "Deserializing old userSettings file");
+		        	// File exists deserialize it into userSettings
+		        	GsonBuilder builder = new GsonBuilder();
+		            Gson gson = builder.create();
+		            try
+		            {
+		            	String serializedClass = new Scanner(serializedOldClassFile, "UTF-8").useDelimiter("\\A").next();
+		            	try {
+		            		userSettings = gson.fromJson(serializedClass, UserSettings.class);
+		            	} catch (Exception ex) {
+		            		Log.e(TAG, "Failed to deserialize userSettings.old: " + ex);
+		            		wipeOutUserSettings = true;
+		        		}
+		            }
+		            catch (Exception ex)
+		            {
+		            	Log.e(TAG, "Exception encountered loading old userSettings from disk: " + ex);
+		            	wipeOutUserSettings = true;
+		            }
+            	}
+            	else
+            	{
+            		Log.e(TAG, "Old userSettings file did not exist");
+            		wipeOutUserSettings = true;
+            	}
+            }
+            
             if (wipeOutUserSettings)
             {
             	// File Does not exist, create it
@@ -1252,7 +1287,6 @@ public class CresStreamCtrl extends Service {
     //Ctrls
     public void Start(int sessionId)
     {
-    	userSettings.setUserRequestedStreamState(StreamState.STARTED, sessionId);
     	if (userSettings.getStreamState(sessionId) != StreamState.STARTED)
     	{	    	
 	    	stopStartLock.lock();
@@ -1280,7 +1314,6 @@ public class CresStreamCtrl extends Service {
     public void Stop(int sessionId, boolean fullStop)
     {
     	//csio will send service full stop when it does not want confidence mode started
-    	userSettings.setUserRequestedStreamState(StreamState.STOPPED, sessionId);
     	if ((userSettings.getStreamState(sessionId) != StreamState.STOPPED) && (userSettings.getStreamState(sessionId) != StreamState.CONFIDENCEMODE))
     	{
 	    	stopStartLock.lock();
@@ -1306,7 +1339,6 @@ public class CresStreamCtrl extends Service {
 
     public void Pause(int sessionId)
     {
-    	userSettings.setUserRequestedStreamState(StreamState.PAUSED, sessionId);
     	if ((userSettings.getStreamState(sessionId) != StreamState.PAUSED) && (userSettings.getStreamState(sessionId) != StreamState.STOPPED))
     	{
 	    	Log.d(TAG, "Pause : Lock");
@@ -1842,6 +1874,17 @@ public class CresStreamCtrl extends Service {
 							
 							//Set bypass mode when output HDMI is not HDCP authenticated
 							HDMIOutputInterface.setHDCPBypass(!HDMIOutputInterface.readHDCPOutputStatus());
+							
+							// Recheck if HDCP changed
+							checkHDCPStatus();
+							new Thread(new Runnable() {
+			            		public void run() {
+			            			try {
+			            				Thread.sleep(2 * 1000); //2 second sleep
+			            			} catch (Exception e ) { e.printStackTrace(); }
+			            			checkHDCPStatus();
+			            		}
+							}).start();
 		
 		                    //update HDMI output
 							hdmiOutput.setSyncStatus();		
@@ -1911,10 +1954,15 @@ public class CresStreamCtrl extends Service {
     		}
 
    			setNoVideoImage(false);
-   			if (HDMIInputInterface.readHDCPInputStatus() == true)
-   				setHDCPErrorImage(true);
-   			else
-   				setHDCPErrorImage(false);			                		
+   			checkHDCPStatus();
+   			new Thread(new Runnable() {
+        		public void run() {
+        			try {
+        				Thread.sleep(2 * 1000); //2 second sleep
+        			} catch (Exception e ) { e.printStackTrace(); }
+        			checkHDCPStatus();
+        		}
+			}).start();
 		 }			                
         else
         {
@@ -2023,8 +2071,21 @@ public class CresStreamCtrl extends Service {
       	{
 	      	try 
 	      	{
+	      		// If old file exists delete it
+	      		File oldFile = new File(savedSettingsOldFilePath);
+		      	if (oldFile.exists())
+				{
+					boolean deleteSuccess = oldFile.delete();
+					if (!deleteSuccess)
+						Log.e(TAG,"Failed to delete " + savedSettingsOldFilePath);
+				}
+		      	
+	      		// rename current file to old
+	      		renameFile(savedSettingsFilePath, savedSettingsOldFilePath);
+	      		
+	      		// Save new userSettings
 	      		saveSettingsLock.lock();
-	      		writer = new BufferedWriter(new OutputStreamWriter(new FileOutputStream(savedSettingsTmpFilePath), "utf-8"));
+	      		writer = new BufferedWriter(new OutputStreamWriter(new FileOutputStream(savedSettingsFilePath), "utf-8"));
 	    	    writer.write(serializedClass);
 	    	    writer.flush();
 	    	} 
@@ -2035,24 +2096,30 @@ public class CresStreamCtrl extends Service {
 	    		saveSettingsLock.unlock();
 	    		try {writer.close();} catch (Exception ex) {/*ignore*/}
 	    	}
-	      	
-	      	//Copy the tmp userSettings file to the permanent userSettings file
-	      	//Should help prevent data corruption when saving
-	      	try
-	      	{
-		      	FileInputStream inStream = new FileInputStream(savedSettingsTmpFilePath);
-		        FileOutputStream outStream = new FileOutputStream(savedSettingsFilePath);
-		        FileChannel inChannel = inStream.getChannel();
-		        FileChannel outChannel = outStream.getChannel();
-		        inChannel.transferTo(0, inChannel.size(), outChannel);
-		        inStream.close();
-		        outStream.close();
-	      	} catch (Exception e) { 
-	      		Log.e(TAG, "Failed to copy tmp UserSettings to UserSettings: " + e);
-	      	} 
       	
 	      	Log.d(TAG, "Saved userSettings to disk");
       	}
+	}
+	
+	private void renameFile(String currentFilePath, String newFilePath)
+	{
+		// File (or directory) with old name
+		File oldFile = new File(currentFilePath);
+
+		// File (or directory) with new name
+		File newFile = new File(newFilePath);
+		
+		if (newFile.exists())
+		{
+			boolean deleteSuccess = newFile.delete();
+		}
+		
+		// Rename file (or directory)
+		boolean success = oldFile.renameTo(newFile);
+
+		if (!success) {
+		   Log.e(TAG, "Failed to rename file");
+		}
 	}
 	
 	public class SaveSettingsTask implements Runnable 
@@ -2083,5 +2150,15 @@ public class CresStreamCtrl extends Service {
 	
 	private void recomputeHash() {
 		sockTask.SendDataToAllClients(String.format("RECOMPUTEHASH=%s", savedSettingsFilePath));
+	}
+
+	static private Object mHdcpLock = new Object();
+	private void checkHDCPStatus() {
+		synchronized (mHdcpLock) {
+			if (HDMIInputInterface.readHDCPInputStatus() == true)
+				setHDCPErrorImage(true);
+			else
+				setHDCPErrorImage(false);
+		}
 	}
 }

@@ -2,6 +2,7 @@ package com.crestron.txrxservice;
 
 import com.crestron.txrxservice.CresStreamCtrl;
 import com.crestron.txrxservice.CresStreamCtrl.DeviceMode;
+import com.crestron.txrxservice.CresStreamCtrl.StreamState;
 
 public class CommandReceiver {
     StringBuilder l_sb;
@@ -166,14 +167,17 @@ public class CommandReceiver {
     }
 
     public void setStart(int sessId){
+    	ctl.userSettings.setUserRequestedStreamState(StreamState.STARTED, sessId);
         ctl.Start(sessId);
     }
 
     public void setStop(int sessId, boolean fullStop){
+    	ctl.userSettings.setUserRequestedStreamState(StreamState.STOPPED, sessId);
         ctl.Stop(sessId, fullStop);
     }
 
     public void setPause(int sessId){
+    	ctl.userSettings.setUserRequestedStreamState(StreamState.PAUSED, sessId);
         ctl.Pause(sessId);
     }
 
