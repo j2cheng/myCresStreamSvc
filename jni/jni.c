@@ -1445,6 +1445,8 @@ int csio_jni_CreatePipeline(GstElement **pipeline,GstElement **source,eProtocolI
 
 	data->pipeline = gst_pipeline_new(NULL);
     
+    GST_DEBUG("CreatePipeline protoId %d", protoId);
+
 	switch( protoId )
 	{
 		case ePROTOCOL_RTSP_TCP:
@@ -1544,15 +1546,20 @@ int csio_jni_CreatePipeline(GstElement **pipeline,GstElement **source,eProtocolI
 			gst_element_link(data->element_av[0], data->element_zero);
 
 			//audio
-			data->element_av[1] = gst_element_factory_make("udpsrc", NULL);
-			data->udp_audio_port = currentSettingsDB.videoSettings[iStreamId].rtpAudioPort;
-			g_object_set(G_OBJECT(data->element_av[1]), "port", data->udp_audio_port, NULL);
-			g_object_set(G_OBJECT(data->element_av[1]), "caps", data->caps_a_rtp, NULL);
-			gst_bin_add(GST_BIN(data->pipeline), data->element_av[1]);
-			gst_element_link(data->element_av[1], data->element_zero);
+			if(!debug_blocking_audio)
+			{
+			    data->element_av[1] = gst_element_factory_make("udpsrc", NULL);
 
-			*pipeline = data->pipeline;
-			*source   = data->element_zero;
+                data->udp_audio_port = currentSettingsDB.videoSettings[iStreamId].rtpAudioPort;
+                g_object_set(G_OBJECT(data->element_av[1]), "port", data->udp_audio_port, NULL);
+                g_object_set(G_OBJECT(data->element_av[1]), "caps", data->caps_a_rtp, NULL);
+                gst_bin_add(GST_BIN(data->pipeline), data->element_av[1]);
+                gst_element_link(data->element_av[1], data->element_zero);
+			}
+
+            *pipeline = data->pipeline;
+            *source   = data->element_zero;
+
 	    	break;
 	    }
 	    case ePROTOCOL_MULTICAST_TS:
