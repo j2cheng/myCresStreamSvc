@@ -117,6 +117,9 @@ public class CameraStreaming {
 		
 		        if (CheckForValidIp() == false)
 		        {
+		        	streamCtl.cam_preview.setSessionIndex(idx);
+			    	streamCtl.cam_preview.startPlayback(true);			    	
+			    	confidencePreviewRunning = true;
 		        	latch.countDown();
 		        	return;
 		        }

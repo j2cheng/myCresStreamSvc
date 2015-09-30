@@ -1447,7 +1447,7 @@ public class CresStreamCtrl extends Service {
         StringBuilder sb = new StringBuilder(512);
         
         // we are starting to streamout so stop confidence preview (unless resuming from pause)
-        if (StreamOutstarted != true)
+        if (cam_streaming.getConfidencePreviewStatus() == true)
         	cam_streaming.stopConfidencePreview(sessId);
         
         updateWindow(sessId);
@@ -1509,7 +1509,7 @@ public class CresStreamCtrl extends Service {
 		else
 		{
 	        cam_streaming.setSessionIndex(sessId);
-	        if ((userSettings.getStreamState(sessId) == StreamState.CONFIDENCEMODE) ||(userSettings.getStreamState(sessId) == StreamState.STOPPED))
+	        if (cam_streaming.getConfidencePreviewStatus() == true)
 	        	cam_streaming.stopConfidencePreview(sessId);
         	else
 	        	cam_streaming.stopRecording(false);
