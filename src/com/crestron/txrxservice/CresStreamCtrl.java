@@ -114,6 +114,7 @@ public class CresStreamCtrl extends Service {
     private Thread monitorDucatiThread;
     volatile boolean cameraErrorResolved = true;
     private Object ducatiLock = new Object();
+    private boolean mIgnoreHDCP = false; //FIXME: This is for testing
 
     enum DeviceMode {
         STREAM_IN,
@@ -477,6 +478,13 @@ public class CresStreamCtrl extends Service {
             
             // Monitor Ducati
             monitorDucati();
+            
+            // FIXME: this is a temprorary workaround for testing so that we can ignore HDCP state
+            File ignoreHDCPFile = new File ("/data/CresStreamSvc/ignoreHDCP");
+            if (ignoreHDCPFile.isFile())	//check if file exists
+            	mIgnoreHDCP = true;
+            else
+            	mIgnoreHDCP = false;
         }
    
     @Override
@@ -1451,16 +1459,24 @@ public class CresStreamCtrl extends Service {
             cam_streaming.setSessionIndex(sessId);
             invalidateSurface();
             // FIXME: Temporary workaround until HDCP red screen works
-			if (HDMIInputInterface.readHDCPInputStatus() == true)
-			{
-				cam_streaming.startConfidencePreview(sessId);
-				SendStreamState(StreamState.HDCPREFUSED, sessId);
-			}
-			else
-			{
-				cam_streaming.startRecording();
+            if (mIgnoreHDCP == true)
+            {
+            	cam_streaming.startRecording();
 				StreamOutstarted = true;
-			}
+            }
+            else
+            {
+            	if (HDMIInputInterface.readHDCPInputStatus() == true)
+				{
+					cam_streaming.startConfidencePreview(sessId);
+					SendStreamState(StreamState.HDCPREFUSED, sessId);
+				}
+				else
+				{
+					cam_streaming.startRecording();
+					StreamOutstarted = true;
+				}
+            }
         } catch(Exception e) {
             e.printStackTrace();
         }
