@@ -479,6 +479,9 @@ public class CresStreamCtrl extends Service {
             // Monitor Ducati
             monitorDucati();
             
+            // Monitor HDCP
+            monitorHDCP();
+            
             // FIXME: this is a temprorary workaround for testing so that we can ignore HDCP state
             File ignoreHDCPFile = new File ("/data/CresStreamSvc/ignoreHDCP");
             if (ignoreHDCPFile.isFile())	//check if file exists
@@ -699,6 +702,22 @@ public class CresStreamCtrl extends Service {
     	// we need csio to clear ducati state since sysfs needs root permissions to write
     	sockTask.SendDataToAllClients(String.format("CLEARDUCATISTATE=%d", state));
 	}
+    
+    private void monitorHDCP() {
+    	new Thread(new Runnable() {
+    		@Override
+    		public void run() {
+    			// Poll input and output HDCP states once a second
+    			while (!Thread.currentThread().isInterrupted())
+    			{
+    				checkHDCPStatus();
+    				try {
+    					Thread.sleep(1000);
+    				} catch (Exception e) { e.printStackTrace(); }
+    			}
+    		}
+    	}).start();
+    }
     
     public void restartStreams(final boolean skipStreamIn) 
     {
@@ -1893,14 +1912,6 @@ public class CresStreamCtrl extends Service {
 							
 							// Recheck if HDCP changed
 							checkHDCPStatus();
-							new Thread(new Runnable() {
-			            		public void run() {
-			            			try {
-			            				Thread.sleep(2 * 1000); //2 second sleep
-			            			} catch (Exception e ) { e.printStackTrace(); }
-			            			checkHDCPStatus();
-			            		}
-							}).start();
 		
 		                    //update HDMI output
 							hdmiOutput.setSyncStatus();		
@@ -1971,14 +1982,6 @@ public class CresStreamCtrl extends Service {
 
    			setNoVideoImage(false);
    			checkHDCPStatus();
-   			new Thread(new Runnable() {
-        		public void run() {
-        			try {
-        				Thread.sleep(2 * 1000); //2 second sleep
-        			} catch (Exception e ) { e.printStackTrace(); }
-        			checkHDCPStatus();
-        		}
-			}).start();
 		 }			                
         else
         {
@@ -2174,7 +2177,18 @@ public class CresStreamCtrl extends Service {
 			if (HDMIInputInterface.readHDCPInputStatus() == true)
 				setHDCPErrorImage(true);
 			else
+			{
 				setHDCPErrorImage(false);
+				//Since input HDCP is not authenticated output HDCP doesnt matter for red frame, only check for feedback status
+				if (HDMIOutputInterface.readHDCPOutputStatus() == true)
+				{
+					//TODO: set feedback high here
+				}
+				else
+				{
+					//TODO: set feedback low here
+				}
+			}
 		}
 	}
 }

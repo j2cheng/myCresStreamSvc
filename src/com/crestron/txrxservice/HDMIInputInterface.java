@@ -229,7 +229,7 @@ public class HDMIInputInterface {
 	            e.printStackTrace();
 	            text.append("0"); //if error default to no HDCP
 	        }
-	        Log.d(TAG, "HDMI IN HDCP status from sysfs:" + text.toString());
+//	        Log.d(TAG, "HDMI IN HDCP status from sysfs:" + text.toString());
 	        return Integer.parseInt(text.toString()) == 1;
 		}
     	else 
