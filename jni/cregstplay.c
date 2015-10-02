@@ -98,7 +98,7 @@ static void pad_added_callback2 (GstElement *src, GstPad *new_pad, CREGSTREAM *d
 	int do_rtp = 0;
 	gchar * p;
 	
-	gst_element_set_state( data->pipeline, GST_STATE_PAUSED);
+	csio_element_set_state( data->pipeline, GST_STATE_PAUSED);
 	
 	GST_DEBUG ("caps are %" GST_PTR_FORMAT, new_pad_caps);
 	
@@ -166,7 +166,7 @@ static void pad_added_callback2 (GstElement *src, GstPad *new_pad, CREGSTREAM *d
     csio_jni_initVideo(data->streamId);
     csio_jni_initAudio(data->streamId);
 
-	gst_element_set_state( data->pipeline, GST_STATE_PLAYING);
+	csio_element_set_state( data->pipeline, GST_STATE_PLAYING);
 	
 	// cleanup
 	gst_object_unref(sink_pad);

@@ -1810,7 +1810,7 @@ void csio_jni_SetMsgHandlers(void* obj,eProtocolId protoId, int iStreamId)
 			}
 
 			/* Set the pipeline to READY, so it can already accept a window handle, if we have one */
-			 gst_element_set_state(data->pipeline, GST_STATE_READY);
+			 csio_element_set_state(data->pipeline, GST_STATE_READY);
 
 			 if (data->video_sink)
 			 {
@@ -1873,7 +1873,7 @@ int csio_jni_AddAudio(GstPad *new_pad,gchar *encoding_name, GstElement **sink, b
 
 	//Extracted from STR, to support IC Camera with mulaw
 	if(send_pause){
-		gst_element_set_state( data->pipeline, GST_STATE_PAUSED);
+		csio_element_set_state( data->pipeline, GST_STATE_PAUSED);
 	}
 
 	gchar * p_caps_string;
@@ -1918,7 +1918,7 @@ int csio_jni_AddAudio(GstPad *new_pad,gchar *encoding_name, GstElement **sink, b
 	csio_jni_initVideo(iStreamId);
 	csio_jni_initAudio(iStreamId);
 
-	gst_element_set_state( data->pipeline, GST_STATE_PLAYING);
+	csio_element_set_state( data->pipeline, GST_STATE_PLAYING);
 
 	GST_DEBUG("csio_jni_AddAudio iStatus = %d", iStatus);
 
@@ -1948,7 +1948,7 @@ int csio_jni_AddVideo(GstPad *new_pad,gchar *encoding_name, GstElement **sink,eP
 	//GST_DEBUG("csio_jni_AddVideo: sink =0x%x",protoId);
 	//Extracted from STR, to support IC Camera
 	if(send_pause){
-		gst_element_set_state( data->pipeline, GST_STATE_PAUSED);
+		csio_element_set_state( data->pipeline, GST_STATE_PAUSED);
 	}
 
 	gchar * p_caps_string;
@@ -1999,7 +1999,7 @@ int csio_jni_AddVideo(GstPad *new_pad,gchar *encoding_name, GstElement **sink,eP
 	//call initVideo before set to play state
 	csio_jni_initVideo(iStreamId);
 
-	if( gst_element_set_state( data->pipeline, GST_STATE_PLAYING) == GST_STATE_CHANGE_FAILURE )
+	if( csio_element_set_state( data->pipeline, GST_STATE_PLAYING) == GST_STATE_CHANGE_FAILURE )
 	{
 		GST_ERROR ("Cannot restart pipeline\n");
 	}
