@@ -114,6 +114,8 @@ public class CresStreamCtrl extends Service {
     private Thread monitorDucatiThread;
     volatile boolean cameraErrorResolved = true;
     private Object ducatiLock = new Object();
+    private boolean mHDCPOutputStatus = false;
+    private boolean mHDCPInputStatus = false;
     private boolean mIgnoreHDCP = false; //FIXME: This is for testing
 
     enum DeviceMode {
@@ -711,6 +713,7 @@ public class CresStreamCtrl extends Service {
     			while (!Thread.currentThread().isInterrupted())
     			{
     				checkHDCPStatus();
+    				sendHDCPFeedbacks();
     				try {
     					Thread.sleep(1000);
     				} catch (Exception e) { e.printStackTrace(); }
@@ -1912,6 +1915,7 @@ public class CresStreamCtrl extends Service {
 							
 							// Recheck if HDCP changed
 							checkHDCPStatus();
+							sendHDCPFeedbacks();
 		
 		                    //update HDMI output
 							hdmiOutput.setSyncStatus();		
@@ -1982,6 +1986,7 @@ public class CresStreamCtrl extends Service {
 
    			setNoVideoImage(false);
    			checkHDCPStatus();
+   			sendHDCPFeedbacks();
 		 }			                
         else
         {
@@ -2024,8 +2029,8 @@ public class CresStreamCtrl extends Service {
 		int previousCameraMode = readCameraMode();
 		if (enable)
 		{
-			//Read HDCP output status
-			if (HDMIOutputInterface.readHDCPOutputStatus())
+			//Check HDCP output status
+			if (mHDCPOutputStatus == true)
 				setCameraMode(String.valueOf(CameraMode.HDCPStreamError.ordinal()));
 			else
 				setCameraMode(String.valueOf(CameraMode.HDCPAllError.ordinal()));
@@ -2174,21 +2179,35 @@ public class CresStreamCtrl extends Service {
 	static private Object mHdcpLock = new Object();
 	private void checkHDCPStatus() {
 		synchronized (mHdcpLock) {
-			if (HDMIInputInterface.readHDCPInputStatus() == true)
+			mHDCPInputStatus = HDMIInputInterface.readHDCPInputStatus();
+			mHDCPOutputStatus = HDMIOutputInterface.readHDCPOutputStatus();
+			if (mHDCPInputStatus == true)
 				setHDCPErrorImage(true);
 			else
-			{
 				setHDCPErrorImage(false);
-				//Since input HDCP is not authenticated output HDCP doesnt matter for red frame, only check for feedback status
-				if (HDMIOutputInterface.readHDCPOutputStatus() == true)
-				{
-					//TODO: set feedback high here
-				}
-				else
-				{
-					//TODO: set feedback low here
-				}
-			}
 		}
+	}
+	
+	private void sendHDCPFeedbacks()
+	{
+		//Send input feedbacks
+		if (mHDCPInputStatus == true)
+		{
+			sockTask.SendDataToAllClients(String.format("%s=%b", "HDMIIN_SOURCEHDCPACTIVE", true));
+			sockTask.SendDataToAllClients(String.format("%s=%d", "HDMIIN_SOURCEHDCPSTATE", 57));
+		}
+		else
+		{
+			sockTask.SendDataToAllClients(String.format("%s=%b", "HDMIIN_SOURCEHDCPACTIVE", false));
+			if (Boolean.parseBoolean(hdmiInput.getSyncStatus()) == true) //Valid input present
+				sockTask.SendDataToAllClients(String.format("%s=%d", "HDMIIN_SOURCEHDCPSTATE", 0));
+			else
+				sockTask.SendDataToAllClients(String.format("%s=%d", "HDMIIN_SOURCEHDCPSTATE", 58));
+		}
+		//Send output feedbacks
+		if ((mHDCPInputStatus == true) && (mHDCPOutputStatus == false))
+			sockTask.SendDataToAllClients(String.format("%s=%b", "HDMIOUT_DISABLEDBYHDCP", true));
+		else
+			sockTask.SendDataToAllClients(String.format("%s=%b", "HDMIOUT_DISABLEDBYHDCP", false));
 	}
 }
