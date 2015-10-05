@@ -390,6 +390,11 @@ public class CameraStreaming {
 			streamOutWidth = 1280;
 			streamOutHeight = 720;
 		}
+		else if ((streamOutWidth == 1400) && (streamOutHeight == 1050))//FIXME: Currently Encoder does not accept 1400x1050, workaround is set to 1024x768 (9)
+		{
+			streamOutWidth = 1024;
+			streamOutHeight = 768;
+		}
 
 		switch (streamCtl.userSettings.getEncodingResolution(sessionId))
 		{
