@@ -2191,18 +2191,21 @@ public class CresStreamCtrl extends Service {
 	private void sendHDCPFeedbacks()
 	{
 		//Send input feedbacks
-		if (mHDCPInputStatus == true)
-		{
-			sockTask.SendDataToAllClients(String.format("%s=%b", "HDMIIN_SOURCEHDCPACTIVE", true));
-			sockTask.SendDataToAllClients(String.format("%s=%d", "HDMIIN_SOURCEHDCPSTATE", 57));
-		}
-		else
-		{
-			sockTask.SendDataToAllClients(String.format("%s=%b", "HDMIIN_SOURCEHDCPACTIVE", false));
-			if (Boolean.parseBoolean(hdmiInput.getSyncStatus()) == true) //Valid input present
-				sockTask.SendDataToAllClients(String.format("%s=%d", "HDMIIN_SOURCEHDCPSTATE", 0));
+		if (hdmiInputDriverPresent)
+		{		
+			if (mHDCPInputStatus == true)
+			{
+				sockTask.SendDataToAllClients(String.format("%s=%b", "HDMIIN_SOURCEHDCPACTIVE", true));
+				sockTask.SendDataToAllClients(String.format("%s=%d", "HDMIIN_SOURCEHDCPSTATE", 57));
+			}
 			else
-				sockTask.SendDataToAllClients(String.format("%s=%d", "HDMIIN_SOURCEHDCPSTATE", 58));
+			{
+				sockTask.SendDataToAllClients(String.format("%s=%b", "HDMIIN_SOURCEHDCPACTIVE", false));
+				if (Boolean.parseBoolean(hdmiInput.getSyncStatus()) == true) //Valid input present
+					sockTask.SendDataToAllClients(String.format("%s=%d", "HDMIIN_SOURCEHDCPSTATE", 0));
+				else
+					sockTask.SendDataToAllClients(String.format("%s=%d", "HDMIIN_SOURCEHDCPSTATE", 58));
+			}
 		}
 		//Send output feedbacks
 		if ((mHDCPInputStatus == true) && (mHDCPOutputStatus == false))
