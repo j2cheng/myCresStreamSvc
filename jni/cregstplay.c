@@ -215,6 +215,7 @@ int build_video_pipeline(gchar *encoding_name, CREGSTREAM *data, unsigned int st
         }
         data->element_v[i++] = gst_element_factory_make("queue", NULL);
         data->element_v[i++] = gst_element_factory_make("h264parse", NULL);
+        data->element_fake_dec = data->element_v[i-1];
 
         data->element_v[i++] = gst_element_factory_make("amcviddec-omxtiducati1videodecoder", NULL);
         data->amcvid_dec = data->element_v[i-1];
@@ -262,7 +263,7 @@ int build_video_pipeline(gchar *encoding_name, CREGSTREAM *data, unsigned int st
 		data->element_v[i++] = gst_element_factory_make("queue", NULL);
 		data->element_v[i++] = gst_element_factory_make("jpegparse", NULL);
 		data->element_v[i++] = gst_element_factory_make("jpegdec", NULL);
-
+		data->element_fake_dec = data->element_v[i-1];
 
 		data->using_glimagsink = 1;
 	}
@@ -275,6 +276,8 @@ int build_video_pipeline(gchar *encoding_name, CREGSTREAM *data, unsigned int st
 		}
 		data->element_v[i++] = gst_element_factory_make("queue", NULL);
 		data->element_v[i++] = gst_element_factory_make("mpeg4videoparse", NULL);
+		data->element_fake_dec = data->element_v[i-1];
+
 		data->element_v[i++] = gst_element_factory_make("amcviddec-omxtiducati1videodecoder", NULL);
 		data->amcvid_dec = data->element_v[i-1];
 

@@ -296,11 +296,12 @@ void csio_jni_cleanup (int iStreamId)
         return;
     }
 
-    data->element_zero = NULL;
-    data->video_sink = NULL;
-    data->audio_sink = NULL;
-    data->pipeline = NULL;
-    data->amcvid_dec = NULL;
+    data->pipeline     = NULL;
+    data->video_sink   = NULL;
+    data->audio_sink   = NULL;
+    data->amcvid_dec   = NULL;
+    data->element_fake_dec = NULL;
+    data->element_zero     = NULL;
 
     for (i = 0; i < MAX_ELEMENTS; i++)
     {
@@ -2069,6 +2070,20 @@ void csio_jni_initVideo(int iStreamId)
 	    if(data->video_sink)
 	        g_object_set(G_OBJECT(data->video_sink), "qos", FALSE, NULL);   
 	}
+}
+
+GstElement * csio_jni_getVideoDecEle(int iStreamId)
+{
+    CREGSTREAM * data = GetStreamFromCustomData(CresDataDB, iStreamId);
+    int i;
+
+    if(!data)
+    {
+        GST_ERROR("Could not obtain stream pointer for stream %d", iStreamId);
+        return NULL;
+    }
+
+    return data->element_fake_dec;
 }
 
 void *csio_SendInitiatorAddressFb( void * arg )

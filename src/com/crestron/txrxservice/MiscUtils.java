@@ -50,8 +50,11 @@ public class MiscUtils {
     {
     	// We give a range of 10 to match with aspect ratio
         String retstr;
-        
-        if( Math.abs((w * 3) - (h * 4)) <= 10 )
+        if( w == 0 || h == 0 )
+        {
+        	retstr = "0";
+        }
+        else if( Math.abs((w * 3) - (h * 4)) <= 10 )
 		{
         	retstr = "133";
 		}

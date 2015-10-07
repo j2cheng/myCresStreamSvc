@@ -53,6 +53,7 @@ typedef struct _CREGSTREAM
 	GstElement *video_sink; /* The video sink element which receives XOverlay commands */
 	GstElement *audio_sink; 
 	GstElement *amcvid_dec;
+	GstElement *element_fake_dec;
 	
 	GstElement *element_zero;	
 	GstElement *element_av [MAX_ELEMENTS];
