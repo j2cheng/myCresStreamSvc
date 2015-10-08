@@ -684,8 +684,7 @@ JNIEXPORT void JNICALL Java_com_crestron_txrxservice_GstreamIn_nativeSetStatisti
 	{
 		if (enabled)
 			start_sending_stream_statistics(sessionId);
-		else
-			stop_sending_stream_statistics(sessionId);
+		//we will keep thread running all the time.
 	}
 
 	//GST_DEBUG ("statisticsEnabled in currentSettingsDB: '%d'", currentSettingsDB.videoSettings[sessionId].statisticsEnabled);
@@ -693,6 +692,7 @@ JNIEXPORT void JNICALL Java_com_crestron_txrxservice_GstreamIn_nativeSetStatisti
 
 JNIEXPORT void JNICALL Java_com_crestron_txrxservice_GstreamIn_nativeResetStatistics(JNIEnv *env, jobject thiz, jint sessionId)
 {
+    csio_send_zerostats();
 	reset_statistics(sessionId);
 }
 
