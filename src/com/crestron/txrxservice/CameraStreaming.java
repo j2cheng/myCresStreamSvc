@@ -127,7 +127,10 @@ public class CameraStreaming {
 		        mrec = new MediaRecorder();
 		        CresCamera.openCamera();
 		        if(CresCamera.mCamera != null){
-		        	CresCamera.mCamera.setEncoderFps(streamCtl.userSettings.getEncodingFramerate(idx));
+		        	if (streamCtl.userSettings.getEncodingResolution(idx) == 0) // if in auto mode set framerate to input framerate
+		        		CresCamera.mCamera.setEncoderFps(Integer.parseInt(streamCtl.hdmiInput.getFPS()));
+		        	else
+		        		CresCamera.mCamera.setEncoderFps(streamCtl.userSettings.getEncodingFramerate(idx));
 		        	CresCamera.mCamera.unlock();
 		            mrec.setCamera(CresCamera.mCamera);
 		
@@ -808,9 +811,7 @@ public class CameraStreaming {
     			}
     			
     			while(!shouldExit)
-				{    		
-    				Thread.sleep(statisticsThreadPollTime);
-    				
+				{    	
     				if (streamCtl.userSettings.isStatisticsEnable(idx))
     				{
     					if (mrec == null)
@@ -832,6 +833,8 @@ public class CameraStreaming {
 						
 						streamCtl.SendStreamOutFeedbacks();
     				}
+					// Sleep last so that we dont call getStatisticsData while trying to stop					
+					Thread.sleep(statisticsThreadPollTime);
 				}
             }
             catch (InterruptedException localInterruptedException)

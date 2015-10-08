@@ -1483,25 +1483,8 @@ public class CresStreamCtrl extends Service {
         try {
             cam_streaming.setSessionIndex(sessId);
             invalidateSurface();
-            // FIXME: Temporary workaround until HDCP red screen works
-            if (mIgnoreHDCP == true)
-            {
-            	cam_streaming.startRecording();
-				StreamOutstarted = true;
-            }
-            else
-            {
-            	if (HDMIInputInterface.readHDCPInputStatus() == true)
-				{
-					cam_streaming.startConfidencePreview(sessId);
-					SendStreamState(StreamState.HDCPREFUSED, sessId);
-				}
-				else
-				{
-					cam_streaming.startRecording();
-					StreamOutstarted = true;
-				}
-            }
+        	cam_streaming.startRecording();
+			StreamOutstarted = true;
         } catch(Exception e) {
             e.printStackTrace();
         }
@@ -1513,43 +1496,22 @@ public class CresStreamCtrl extends Service {
 
     public void stopStreamOut(int sessId, boolean fullStop)
     {
-    	 // FIXME: Temporary workaround until HDCP red screen works
-		if (userSettings.getStreamState(sessId) == StreamState.HDCPREFUSED)
-		{
-			StreamOutstarted = false;
-			if (userSettings.getMode(sessId) == DeviceMode.STREAM_OUT.ordinal())
-	    	{
-				SendStreamState(StreamState.STOPPED, sessId);
-				SendStreamState(StreamState.CONFIDENCEMODE, sessId);
-				restartRequired[sessId] = true;
-	    	}
-			else
-			{
-				cam_streaming.setSessionIndex(sessId);
-				cam_streaming.stopConfidencePreview(sessId);
-				SendStreamState(StreamState.STOPPED, sessId);
-				hidePreviewWindow(sessId);
-			}
-		}
-		else
-		{
-	        cam_streaming.setSessionIndex(sessId);
-	        if (cam_streaming.getConfidencePreviewStatus() == true)
-	        	cam_streaming.stopConfidencePreview(sessId);
-        	else
-	        	cam_streaming.stopRecording(false);
-	        StreamOutstarted = false;
-	        hidePreviewWindow(sessId);
-	        
-	        // Make sure that stop stream out was called by stop not a device mode change
-	    	// We do not want to restart confidence preview if mode is changing
-	        // If fullstop is passed down then do not start confidence preview
-	    	if ((!fullStop) && (userSettings.getMode(sessId) == DeviceMode.STREAM_OUT.ordinal()))
-	    	{
-	    		cam_streaming.startConfidencePreview(sessId);
-	    		restartRequired[sessId] = true;
-	    	}
-		}
+        cam_streaming.setSessionIndex(sessId);
+        if (cam_streaming.getConfidencePreviewStatus() == true)
+        	cam_streaming.stopConfidencePreview(sessId);
+    	else
+        	cam_streaming.stopRecording(false);
+        StreamOutstarted = false;
+        hidePreviewWindow(sessId);
+        
+        // Make sure that stop stream out was called by stop not a device mode change
+    	// We do not want to restart confidence preview if mode is changing
+        // If fullstop is passed down then do not start confidence preview
+    	if ((!fullStop) && (userSettings.getMode(sessId) == DeviceMode.STREAM_OUT.ordinal()))
+    	{
+    		cam_streaming.startConfidencePreview(sessId);
+    		restartRequired[sessId] = true;
+    	}
     }
     
     public void pauseStreamOut(int sessId)
@@ -1636,9 +1598,8 @@ public class CresStreamCtrl extends Service {
 
     public void setStreamInUrl(String ap_url, int sessionId)
     {
-        //out_url = ap_url;
         userSettings.setServerUrl(ap_url, sessionId);
-        //streamPlay.setUrl(ap_url); //TODO: remove and replace have streamPlay access userSettings directly
+
         if(ap_url.startsWith("rtp://@"))
             streamPlay.setRtpOnlyMode( userSettings.getRtpVideoPort(sessionId),  userSettings.getRtpAudioPort(sessionId), userSettings.getDeviceIp(), sessionId);
         else if(ap_url.startsWith("http://"))
@@ -1993,7 +1954,6 @@ public class CresStreamCtrl extends Service {
 		 }			                
         else
         {
-        	//TODO: no need to stop camera when ducati frame buffer copying is in place
         	setNoVideoImage(true);
         }
 	}
@@ -2182,12 +2142,19 @@ public class CresStreamCtrl extends Service {
 	static private Object mHdcpLock = new Object();
 	private void checkHDCPStatus() {
 		synchronized (mHdcpLock) {
-			mHDCPInputStatus = HDMIInputInterface.readHDCPInputStatus();
-			mHDCPOutputStatus = HDMIOutputInterface.readHDCPOutputStatus();
-			if (mHDCPInputStatus == true)
-				setHDCPErrorImage(true);
-			else
-				setHDCPErrorImage(false);
+			boolean currentHDCPInputStatus = HDMIInputInterface.readHDCPInputStatus();
+			boolean currentHDCPOutputStatus = HDMIOutputInterface.readHDCPOutputStatus();
+			// Only send new status when hdcp status changes for either input or output
+			if ((mHDCPInputStatus != currentHDCPInputStatus) || (mHDCPOutputStatus != currentHDCPOutputStatus))
+			{
+				mHDCPInputStatus = currentHDCPInputStatus;
+				mHDCPOutputStatus = currentHDCPOutputStatus;				
+				
+				if ((mHDCPInputStatus == true) && (mIgnoreHDCP == false))
+					setHDCPErrorImage(true);
+				else
+					setHDCPErrorImage(false);
+			}
 		}
 	}
 	
