@@ -40,7 +40,7 @@ public class TCPInterface extends AsyncTask<Void, Object, Long> {
     private volatile boolean restartStreamsPending = true;
     public volatile boolean firstRun = true;
     
-    private ArrayList<CommunicationThread> clientList;
+    public ArrayList<CommunicationThread> clientList;
     
     class JoinObject {
     	String joinString;
