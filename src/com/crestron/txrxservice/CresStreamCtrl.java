@@ -664,15 +664,18 @@ public class CresStreamCtrl extends Service {
     					Thread.sleep(1000);
     				} catch (Exception e) { e.printStackTrace(); }
 
-    				int currentDucatiState = readDucatiState();
-    				// Dont call recovery if monitorMediaServer is already recovering
-    				if ((currentDucatiState == 0) && (mIgnoreMediaServerCrash == false))
+    				if (sockTask.clientList.isEmpty() == false) // makes sure that csio is up so as not to spam the logs if it is not
     				{
-    					cameraErrorResolved = true;
-    					writeDucatiState(1);
-    					Log.i(TAG, "Recovering from Ducati crash!");
-    					CresCamera.mSetHdmiInputStatus = true;
-    					restartStreams(false);
+	    				int currentDucatiState = readDucatiState();
+	    				// Dont call recovery if monitorMediaServer is already recovering
+	    				if ((currentDucatiState == 0) && (mIgnoreMediaServerCrash == false))
+	    				{
+	    					cameraErrorResolved = true;
+	    					writeDucatiState(1);
+	    					Log.i(TAG, "Recovering from Ducati crash!");
+	    					CresCamera.mSetHdmiInputStatus = true;
+	    					restartStreams(false);
+	    				}
     				}
     			}
     		}
