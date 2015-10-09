@@ -104,7 +104,7 @@ public class HDMIOutputInterface {
 		return audioChannels;
 	}
 	
-	public static boolean readHDCPOutputStatus (){
+	public static int readHDCPOutputStatus (){
     	boolean hdcpStatus = false;
     	StringBuilder text = new StringBuilder();
         try {
@@ -121,7 +121,7 @@ public class HDMIOutputInterface {
             text.append("0"); //if error default to no HDCP
         }
 //        Log.d(TAG, "HDMI OUT HDCP status from sysfs:" + text.toString());
-        return Integer.parseInt(text.toString()) == 1;
+        return Integer.parseInt(text.toString());
     }
 	
 	public static void setHDCPBypass (boolean enabled){

@@ -298,6 +298,7 @@ public class CresStreamCtrl extends Service {
 
             tokenizer = new StringTokenizer();
             hdmiOutput = new HDMIOutputInterface();
+            setHDCPBypass();
             
             boolean wipeOutUserSettings = false;
             boolean useOldUserSettingsFile = false;
@@ -1878,7 +1879,10 @@ public class CresStreamCtrl extends Service {
 									+ Math.round(hdmiOutputResolution.refreshRate));
 							
 							//Set bypass mode when output HDMI is not HDCP authenticated
-							HDMIOutputInterface.setHDCPBypass(!HDMIOutputInterface.readHDCPOutputStatus());
+							if (i != 0)
+							{
+								setHDCPBypass();
+							}
 							
 							// Recheck if HDCP changed
 							checkHDCPStatus();
@@ -1922,6 +1926,22 @@ public class CresStreamCtrl extends Service {
 		sockTask.SendDataToAllClients("HDMIOUT_VERTICAL_RES_FB=" + hdmiOutput.getVerticalRes());
 		sockTask.SendDataToAllClients("HDMIOUT_FPS_FB=" + hdmiOutput.getFPS());
 		sockTask.SendDataToAllClients("HDMIOUT_ASPECT_RATIO=" + hdmiOutput.getAspectRatio());
+	}
+	
+	private void setHDCPBypass()
+	{
+		new Thread(new Runnable() {
+    		public void run() {
+    			while (HDMIOutputInterface.readHDCPOutputStatus() == -1)
+    			{
+    				try {
+    					Thread.sleep(100);
+    				} catch (Exception e) { e.printStackTrace(); }
+    			}
+    			
+				HDMIOutputInterface.setHDCPBypass(HDMIOutputInterface.readHDCPOutputStatus() == 0); //Set bypass high when hdcp is not authenticated on output
+    		}
+		}).start();
 	}
 	
 	public void setCameraAndRestartStreams(int hdmiInputResolutionEnum)
@@ -2149,7 +2169,7 @@ public class CresStreamCtrl extends Service {
 	private void checkHDCPStatus() {
 		synchronized (mHdcpLock) {
 			boolean currentHDCPInputStatus = HDMIInputInterface.readHDCPInputStatus();
-			boolean currentHDCPOutputStatus = HDMIOutputInterface.readHDCPOutputStatus();
+			boolean currentHDCPOutputStatus = HDMIOutputInterface.readHDCPOutputStatus() == 1;
 			// Only send new status when hdcp status changes for either input or output
 			if ((mHDCPInputStatus != currentHDCPInputStatus) || (mHDCPOutputStatus != currentHDCPOutputStatus))
 			{
