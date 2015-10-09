@@ -1946,9 +1946,12 @@ public class CresStreamCtrl extends Service {
     		
     		if (ignoreRestart == false)
     		{
-	    		mIgnoreMediaServerCrash = true;
-	    		restartStreams(true); //true because we do not need to restart stream in streams
-	    		mIgnoreMediaServerCrash = false;
+    			if (sockTask.firstRun == false) // makes sure that csio is up so as restart streams before all information is received from platform
+    			{
+		    		mIgnoreMediaServerCrash = true;
+		    		restartStreams(true); //true because we do not need to restart stream in streams
+		    		mIgnoreMediaServerCrash = false;
+    			}
     		}
 
    			setNoVideoImage(false);
