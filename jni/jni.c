@@ -272,7 +272,24 @@ static void gst_native_finalize (JNIEnv* env, jobject thiz)
 
 /* Set pipeline to PLAYING state */
 void gst_native_play (JNIEnv* env, jobject thiz, jint sessionId)
-{	    
+{
+    CREGSTREAM * data = GetStreamFromCustomData(CresDataDB, sessionId);
+
+    if (!data)
+    {
+        GST_ERROR("Could not obtain stream pointer for stream %d", sessionId);
+        return;
+    }
+
+    if(GetInPausedState(sessionId))
+    {
+        GST_DEBUG("GetInPausedState is true, resume now");
+        if(data->element_valve_a)
+            g_object_set(G_OBJECT(data->element_valve_a), "drop", FALSE, NULL);
+        if(data->element_valve_v)
+            g_object_set(G_OBJECT(data->element_valve_v), "drop", FALSE, NULL);
+    }
+
     SetInPausedState(sessionId, 0);
 	currentSettingsDB.settingsMessage.msg[sessionId].src = sessionId;
 	start_streaming_cmd(sessionId);
@@ -281,6 +298,23 @@ void gst_native_play (JNIEnv* env, jobject thiz, jint sessionId)
 /* Set pipeline to PAUSED state */
 static void gst_native_pause (JNIEnv* env, jobject thiz, jint sessionId)
 {
+    CREGSTREAM * data = GetStreamFromCustomData(CresDataDB, sessionId);
+
+    if (!data)
+    {
+        GST_ERROR("Could not obtain stream pointer for stream %d", sessionId);
+        return;
+    }
+    
+    if(GetInPausedState(sessionId) == 0)
+    {
+        GST_DEBUG("GetInPausedState is false, drop all");
+        if(data->element_valve_a)
+            g_object_set(G_OBJECT(data->element_valve_a), "drop", TRUE, NULL);
+        if(data->element_valve_v)
+            g_object_set(G_OBJECT(data->element_valve_v), "drop", TRUE, NULL);
+    }
+
     SetInPausedState(sessionId, 1);
 	pause_streaming_cmd(sessionId);
 }
@@ -302,6 +336,8 @@ void csio_jni_cleanup (int iStreamId)
     data->amcvid_dec   = NULL;
     data->element_fake_dec = NULL;
     data->element_zero     = NULL;
+    data->element_valve_v    = NULL;
+    data->element_valve_a    = NULL;
 
     for (i = 0; i < MAX_ELEMENTS; i++)
     {
@@ -2030,11 +2066,14 @@ void csio_jni_initAudio(int iStreamId)
         return;
     }
 
+    if(data->element_valve_a)
+        g_object_set(G_OBJECT(data->element_valve_a), "drop", FALSE, NULL);
+
     if( data->audio_sink)
     {
         gint64 tmp = data->audiosink_ts_offset * 1000000;
         g_object_set(G_OBJECT(data->audio_sink), "ts-offset", tmp, NULL);
-        GST_ERROR("set audiosink_ts_offset:%lld",tmp);
+        GST_DEBUG("set audiosink_ts_offset:%lld",tmp);
     }
 }
 
@@ -2065,6 +2104,9 @@ void csio_jni_initVideo(int iStreamId)
 	        GST_DEBUG("amcviddec_ts_offset:%d",data->amcviddec_ts_offset);
 	        GST_DEBUG("total ts_offset:%d",tmp);
 	    }
+
+	    if(data->element_valve_v)
+	        g_object_set(G_OBJECT(data->element_valve_v), "drop", FALSE, NULL);
 
 	    GST_DEBUG("qos is turned off for surfaceflingersink!");
 	    if(data->video_sink)
@@ -2122,6 +2164,24 @@ void csio_jni_recoverDucati()
         (*env)->ExceptionClear (env);
     }
 }
+
+void csio_jni_drop_audio(jint sessionId,jboolean enabled)
+{
+    CREGSTREAM * data = GetStreamFromCustomData(CresDataDB, sessionId);
+
+    if(!data)
+    {
+        GST_ERROR("Could not obtain stream pointer for stream %d", sessionId);
+        return;
+    }
+
+    if(data->element_valve_a)
+    {
+        g_object_set(G_OBJECT(data->element_valve_a), "drop", enabled, NULL);
+        GST_DEBUG("set audio valve drop property to:%d",enabled);
+    }
+}
+
 void LocalConvertToUpper(char *str)
 {
     char *TmpPtr;

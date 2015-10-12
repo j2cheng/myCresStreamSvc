@@ -54,6 +54,8 @@ typedef struct _CREGSTREAM
 	GstElement *audio_sink; 
 	GstElement *amcvid_dec;
 	GstElement *element_fake_dec;
+	GstElement *element_valve_v;
+	GstElement *element_valve_a;
 	
 	GstElement *element_zero;	
 	GstElement *element_av [MAX_ELEMENTS];

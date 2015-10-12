@@ -213,7 +213,10 @@ int build_video_pipeline(gchar *encoding_name, CREGSTREAM *data, unsigned int st
         {
             data->element_v[i++] = gst_element_factory_make("rtph264depay", NULL);
         }
-        data->element_v[i++] = gst_element_factory_make("queue", NULL);
+        //data->element_v[i++] = gst_element_factory_make("queue", NULL);
+        data->element_v[i++] = gst_element_factory_make("valve", NULL);
+        data->element_valve_v = data->element_v[i-1];
+
         data->element_v[i++] = gst_element_factory_make("h264parse", NULL);
         data->element_fake_dec = data->element_v[i-1];
 
@@ -274,7 +277,10 @@ int build_video_pipeline(gchar *encoding_name, CREGSTREAM *data, unsigned int st
 		{		
 			data->element_v[i++] = gst_element_factory_make("rtpmp4vdepay", NULL);
 		}
-		data->element_v[i++] = gst_element_factory_make("queue", NULL);
+		//data->element_v[i++] = gst_element_factory_make("queue", NULL);
+        data->element_v[i++] = gst_element_factory_make("valve", NULL);
+        data->element_valve_v = data->element_v[i-1];
+
 		data->element_v[i++] = gst_element_factory_make("mpeg4videoparse", NULL);
 		data->element_fake_dec = data->element_v[i-1];
 
@@ -447,6 +453,9 @@ int build_audio_pipeline(gchar *encoding_name, CREGSTREAM *data, int do_rtp,GstE
 		GST_ERROR("Unsupported audio encoding %s", encoding_name);
 		return CSIO_CANNOT_CREATE_ELEMENTS;
 	}
+	data->element_a[i++] = gst_element_factory_make("valve", NULL);
+	data->element_valve_a = data->element_a[i-1];
+
 	data->element_a[i++] = gst_element_factory_make("audioconvert", NULL);
 	data->element_a[i++] = gst_element_factory_make("audioresample", NULL);
 	num_elements = i-start;
