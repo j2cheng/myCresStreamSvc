@@ -755,6 +755,8 @@ void init_custom_data(CustomData * cdata)
 		data->caps_a = NULL;
 		data->amcviddec_ts_offset = DEFAULT_AMCVIDDEC_TS_OFFSET;
 		data->audiosink_ts_offset = 0;
+
+		data->dropAudio = false;
 	}
 }
 

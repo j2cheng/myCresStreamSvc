@@ -109,6 +109,10 @@ public class StreamIn {
     	strategy.setRtpOnlyMode(vport, aport, ip, sessionId);
     }
     
+    public void setAudioDrop(boolean enabled, int sessionId) {
+    	strategy.setAudioDrop(enabled, sessionId);
+    }
+    
     public void onStart(int sessionId) {
     	strategy.onStart(sessionId);
     }
@@ -157,6 +161,7 @@ interface StreamInStrategy{
     public void disableLatency(int sessionId);
     public void setRtspTcpInterleave(boolean tcpInterleave, int sessionId);
     public void setRtpOnlyMode(int vport, int aport, String ip, int sessionId);
+    public void setAudioDrop(boolean enabled, int sessionId);
     public void onStart(int sessionId); 
     public void onPause(int sessionId);
     public void onStop(int sessionId);

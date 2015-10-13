@@ -338,7 +338,11 @@ public class NstreamIn implements StreamInStrategy, OnPreparedListener, OnComple
 	public void setNewSink(boolean flag, int sessId){
     	// Not needed by gallery player
 	}
-        public void setFieldDebugJni(String cmd, int sessId){
+    public void setFieldDebugJni(String cmd, int sessId){
     	// Not needed by gallery player
 	}
+     
+    public void setAudioDrop(boolean enabled, int sessionId) {
+    	// Not needed by gallery player
+    }
 }

@@ -57,6 +57,7 @@ public class GstreamIn implements StreamInStrategy, SurfaceHolder.Callback {
     public native void 			nativeSetVolume(int volume, int sessionid);
     public native void			nativeSetStopTimeout(int stopTimeout_sec);
     private native void         nativeSetFieldDebugJni(String cmd,int sessId);
+    private native void			nativeDropAudio(boolean enabled, int sessionId);
     
     public GstreamIn(CresStreamCtrl mContext) {
         Log.e(TAG, "GstreamIN :: Constructor called...!");
@@ -149,6 +150,10 @@ public class GstreamIn implements StreamInStrategy, SurfaceHolder.Callback {
     }
     public void setFieldDebugJni(String cmd, int sessionId){
     	nativeSetFieldDebugJni(cmd, sessionId);
+    }
+    
+    public void setAudioDrop(boolean enabled, int sessionId) {
+    	nativeDropAudio(enabled, sessionId);
     }
 
     public int[] getCurrentWidthHeight(int sessionId){
@@ -270,6 +275,7 @@ public class GstreamIn implements StreamInStrategy, SurfaceHolder.Callback {
     	setPassword(streamCtl.userSettings.getPassword(sessionId), sessionId);
     	setVolume(streamCtl.userSettings.getVolume(), sessionId);
     	setNewSink(streamCtl.userSettings.isNewSink(sessionId), sessionId);
+    	setAudioDrop(streamCtl.userSettings.isRavaMode(), sessionId);
     }
 
     //Response to CSIO Layer TODO: these can most likely be deleted handled in jni library

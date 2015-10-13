@@ -150,6 +150,13 @@ JNIEXPORT void JNICALL Java_com_crestron_txrxservice_GstreamIn_nativeSetVolume(J
  */
 JNIEXPORT void JNICALL Java_com_crestron_txrxservice_GstreamIn_nativeSetStopTimeout(JNIEnv *, jobject, jint);
 
+/*
+ * Class:     		GstreamIn
+ * Method:    		nativeDropAudio
+ * Signature: 		(ZI)V
+ */
+JNIEXPORT void JNICALL Java_com_crestron_txrxservice_GstreamIn_nativeDropAudio(JNIEnv *env, jobject thiz, jboolean enabled, jint sessionId);
+
 ///////////////////////////////////////////////////////////////////////////////
 StreamState nativeGetCurrentStreamState(jint);
 void csio_send_stats (uint64_t, int, uint64_t, int, uint16_t);

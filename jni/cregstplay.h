@@ -89,6 +89,8 @@ typedef struct _CREGSTREAM
 	void* surface;
 	int amcviddec_ts_offset;
 	int audiosink_ts_offset;	
+
+	bool dropAudio;
 } CREGSTREAM;
 
 /* Structure to contain all our information, so we can pass it to callbacks */

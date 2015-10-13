@@ -109,11 +109,12 @@ public class CresStreamCtrl extends Service {
     public final static String savedSettingsFilePath = "/data/CresStreamSvc/userSettings";
     public final static String savedSettingsOldFilePath = "/data/CresStreamSvc/userSettings.old";
     public final static String cameraModeFilePath = "/dev/shm/crestron/CresStreamSvc/cameraMode";
-    public volatile boolean mIgnoreMediaServerCrash = false;
+    public volatile boolean mMediaServerCrash = false;
+    public volatile boolean mDucatiCrash = false;
+    public volatile boolean mIgnoreAllCrash = false;
     private FileObserver mediaServerObserver;
-    private Thread monitorDucatiThread;
-    volatile boolean cameraErrorResolved = true;
-    private Object ducatiLock = new Object();
+    private FileObserver ravaModeObserver;
+    private Thread monitorCrashThread;
     private boolean mHDCPOutputStatus = false;
     private boolean mHDCPInputStatus = false;
     private boolean mIgnoreHDCP = false; //FIXME: This is for testing
@@ -197,11 +198,11 @@ public class CresStreamCtrl extends Service {
         }
     }
     
-    private final ReentrantLock stopStartLock		= new ReentrantLock(true); // fairness=true, makes lock ordered
-    private final ReentrantLock hdmiLock			= new ReentrantLock(true);
-    private final ReentrantLock streamStateLock 	= new ReentrantLock(true);
-    private final ReentrantLock saveSettingsLock 	= new ReentrantLock(true);
-    public final ReentrantLock restartLock	 		= new ReentrantLock(true);
+    private final ReentrantLock stopStartLock			= new ReentrantLock(true); // fairness=true, makes lock ordered
+    private final ReentrantLock hdmiLock				= new ReentrantLock(true);
+    private final ReentrantLock streamStateLock 		= new ReentrantLock(true);
+    private final ReentrantLock saveSettingsLock 		= new ReentrantLock(true);
+    public final ReentrantLock restartLock	 			= new ReentrantLock(true);
     
     /**
      * Force the service to the foreground
@@ -479,11 +480,14 @@ public class CresStreamCtrl extends Service {
             // Monitor mediaserver, if it crashes restart stream
             monitorMediaServer();
             
-            // Monitor Ducati
-            monitorDucati();
+            // Monitor Crash State
+            monitorCrashState();
             
             // Monitor HDCP
             monitorHDCP();
+            
+        	// Monitor Rava Mode
+            monitorRavaMode();
             
             // FIXME: this is a temprorary workaround for testing so that we can ignore HDCP state
             File ignoreHDCPFile = new File ("/data/CresStreamSvc/ignoreHDCP");
@@ -604,52 +608,15 @@ public class CresStreamCtrl extends Service {
         mediaServerObserver = new FileObserver("/dev/shm/crestron/CresStreamSvc/mediaServerState", FileObserver.CLOSE_WRITE) {						
 			@Override
 			public void onEvent(int event, String path) {
-				// If this crash was caused by ducati crash we must clear ducati crash state so that we dont handle it twice
-				cameraErrorResolved = false;
-				Log.i(TAG, String.format("CresStreamSvc detects a mediaserver crash, mIgnoreMediaServerCrash = %b", mIgnoreMediaServerCrash));
-				//function start
-				if (mIgnoreMediaServerCrash == false)
-				{
-					Log.e(TAG, "Mediaserver crashed, Restarting Streams!");
-					//Sleep for 3000msec for
-					//mediaserver to be up
-					try {	 
-						Thread.sleep(3000);
-					}
-					catch (InterruptedException ex) 
-					{ 
-						ex.printStackTrace(); 
-					}
-					
-					for (int sessionId = 0; sessionId < NumOfSurfaces; sessionId++)
-					{
-						// if we were trying to decode stream when mediaserver crashed, we must kill service to recover
-						if ((userSettings.getStreamState(sessionId) != StreamState.STOPPED) && (userSettings.getMode(sessionId) == DeviceMode.STREAM_IN.ordinal()))
-						{
-							RecoverTxrxService();
-							return;
-						}
-					}
-					
-					// Dont call recovery if monitorDucati is already recovering
-					if (cameraErrorResolved == false)
-					{		
-						writeDucatiState(1);
-						cameraErrorResolved = true;						
-						Log.i(TAG, "Recovering from mediaserver crash");
-						CresCamera.mSetHdmiInputStatus = true;
-						restartStreams(false);
-					}
-				}
-				//function end
+				mMediaServerCrash = true;
 			}
 		};
 		mediaServerObserver.startWatching();
     }
     
-    private void monitorDucati ()
+    private void monitorCrashState ()
     {
-    	monitorDucatiThread = new Thread(new Runnable() {
+    	monitorCrashThread = new Thread(new Runnable() {
     		@Override
     		public void run() {    			
     			// Clear out initial ducati flag since first boot is not a crash
@@ -663,26 +630,52 @@ public class CresStreamCtrl extends Service {
     			{
     				try {
     					Thread.sleep(1000);
-    				} catch (Exception e) { e.printStackTrace(); }
+    				
 
-    				if (sockTask.clientList.isEmpty() == false) // makes sure that csio is up so as not to spam the logs if it is not
-    				{
-	    				int currentDucatiState = readDucatiState();
-	    				// Dont call recovery if monitorMediaServer is already recovering
-	    				if ((currentDucatiState == 0) && (mIgnoreMediaServerCrash == false))
-	    				{
-	    					cameraErrorResolved = true;
-	    					writeDucatiState(1);
-	    					Log.i(TAG, "Recovering from Ducati crash!");
-	    					CresCamera.mSetHdmiInputStatus = true;
-	    					restartStreams(false);
-	    				}
-    				}
+						if (sockTask.clientList.isEmpty() == false) // makes sure that csio is up so as not to spam the logs if it is not
+						{
+							//Check if ignoreAllCrash flag is set (this means we are handling resolution change)
+							if (mIgnoreAllCrash == true)
+							{
+								// Clear crash flags
+								writeDucatiState(1);
+								mMediaServerCrash = false;
+								continue;
+							}
+							
+							// Check if Ducati Crashed
+							int currentDucatiState = readDucatiState();
+							if ((currentDucatiState == 0) && (mIgnoreAllCrash == false))
+							{
+								Log.i(TAG, "Recovering from Ducati crash!");
+								recoverFromCrash();
+							}
+							
+							// Check if mediaserver crashed
+							if ((mMediaServerCrash == true) && (mIgnoreAllCrash == false))
+							{
+								Log.i(TAG, "Recovering from mediaserver crash!");
+								recoverFromCrash();
+							}
+						}
+					} catch (Exception e) { 
+						Log.e(TAG, "Problem occured in monitor thread!!!!");
+						e.printStackTrace();
+					}
     			}
     		}
     	});
     	
-    	monitorDucatiThread.start();
+    	monitorCrashThread.start();
+    }
+    
+    private void recoverFromCrash()
+    {
+    	CresCamera.mSetHdmiInputStatus = true;
+		restartStreams(false);
+		// Clear crash flags
+		writeDucatiState(1);
+		mMediaServerCrash = false;
     }
     
     private int readDucatiState() {
@@ -724,6 +717,98 @@ public class CresStreamCtrl extends Service {
     			}
     		}
     	}).start();
+    }
+    
+    private void monitorRavaMode()
+    {
+    	final String ravaModeFilePath = "/dev/shm/crestron/CresStreamSvc/ravacallMode";
+    	final String audioDropDoneFilePath = "/dev/shm/crestron/CresStreamSvc/audiodropDone";
+    	final Object ravaModeLock = new Object();
+    	File ravaModeFile = new File (ravaModeFilePath);
+        if (!ravaModeFile.isFile())	//check if file exists
+        {
+        	try {
+        		ravaModeFile.getParentFile().mkdirs(); 
+        		ravaModeFile.createNewFile();
+        	} catch (Exception e) {}
+        }
+        ravaModeObserver = new FileObserver(ravaModeFilePath, FileObserver.CLOSE_WRITE) {						
+			@Override
+			public void onEvent(int event, String path) {
+				synchronized (ravaModeLock)
+				{
+					int ravaMode = 0;
+			        
+					// Read rava mode
+			    	StringBuilder text = new StringBuilder();
+			        try {
+			            File file = new File(ravaModeFilePath);
+	
+			            BufferedReader br = new BufferedReader(new FileReader(file));  
+			            String line;   
+			            while ((line = br.readLine()) != null) {
+			                text.append(line);
+			            }
+			            br.close();
+			            ravaMode = Integer.parseInt(text.toString().trim());
+			        }catch (IOException e) {}
+					
+					// Stop/Start all audio
+			        if (ravaMode == 1)
+			        	setAudioDropFlag(true);
+			        else if (ravaMode == 0)
+			        	setAudioDropFlag(false);
+			        else
+			        	Log.e(TAG, String.format("Invalid rava mode detected, mode = %d", ravaMode));
+			        
+			        // Write Audio done
+			        Writer writer = null;
+	
+		      		File audioDropDoneFile = new File(audioDropDoneFilePath);
+		      		if (audioDropDoneFile.isFile())	//check if file exists
+		            {
+				      	try 
+				      	{
+		            		writer = new BufferedWriter(new OutputStreamWriter(new FileOutputStream(audioDropDoneFilePath), "utf-8"));
+				    	    writer.write("1");
+				    	    writer.flush();
+				      	}
+			    	    catch (IOException ex) {
+				    	  Log.e(TAG, "Failed to save audioDropDone to disk: " + ex);
+				    	} finally 
+				    	{
+				    		try {writer.close();} catch (Exception ex) {/*ignore*/}
+				    	}
+		            }
+				}
+			}
+		};
+		ravaModeObserver.startWatching();
+    }
+    
+    private void setAudioDropFlag(boolean enabled)
+    {
+    	userSettings.setRavaMode(enabled);    		
+    	
+    	for(int sessionId = 0; sessionId < NumOfSurfaces; sessionId++)
+    	{
+    		if (userSettings.getUserRequestedStreamState(sessionId) == StreamState.STARTED)
+    		{
+    			if (userSettings.getMode(sessionId) == DeviceMode.PREVIEW.ordinal())
+    			{
+    				if (enabled)
+    					cam_preview.stopAudio();
+    				else
+    					cam_preview.startAudio();
+    			}
+    			else if (userSettings.getMode(sessionId) == DeviceMode.STREAM_IN.ordinal())
+    			{
+					streamPlay.setAudioDrop(enabled, sessionId);
+    			}
+    			else
+    				Log.e(TAG, "ERROR!!!! Rava mode was configured while streaming out!!!!");
+    		}
+    	}
     }
     
     public void restartStreams(final boolean skipStreamIn) 
@@ -1330,7 +1415,6 @@ public class CresStreamCtrl extends Service {
 	    	Log.d(TAG, "Start : Lock");
 	    	try
 	    	{
-	    		mIgnoreMediaServerCrash = false;
 	    		SendStreamState(StreamState.CONNECTING, sessionId);
 		    	playStatus="true";
 		    	stopStatus="false";
@@ -1968,9 +2052,9 @@ public class CresStreamCtrl extends Service {
     		{
     			if (sockTask.firstRun == false) // makes sure that csio is up so as restart streams before all information is received from platform
     			{
-		    		mIgnoreMediaServerCrash = true;
+		    		mIgnoreAllCrash = true;
 		    		restartStreams(true); //true because we do not need to restart stream in streams
-		    		mIgnoreMediaServerCrash = false;
+		    		mIgnoreAllCrash = false;
     			}
     		}
 

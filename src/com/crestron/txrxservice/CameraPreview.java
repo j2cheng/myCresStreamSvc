@@ -214,7 +214,7 @@ public class CameraPreview {
     }
 
     protected void startAudio(){
-    	if (skipAudio == false)
+    	if ((skipAudio == false) && (streamCtl.userSettings.isRavaMode() == false))
     	{
 	        if(!is_audioplaying)
 	            audio_pb.startAudioTask();

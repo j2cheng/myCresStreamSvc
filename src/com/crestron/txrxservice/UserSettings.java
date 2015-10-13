@@ -195,6 +195,7 @@ public class UserSettings
 
 	//Misc
 	private boolean[] useNewSink;
+	private boolean ravaMode;
 
 	public UserSettings()
 	{
@@ -234,6 +235,7 @@ public class UserSettings
     	useNewSink			= new boolean[] {true, true};
     	audioMute			= false;
     	audioUnmute			= true;
+    	ravaMode			= false;
 	}
 	
 	public String getDeviceIp() {
@@ -687,5 +689,13 @@ public class UserSettings
 
 	public boolean isNewSink(int sessId) {
 		return useNewSink[sessId];
+	}
+	
+	public void setRavaMode(boolean enabled) {
+		this.ravaMode = enabled;
+	}
+	
+	public boolean isRavaMode() {
+		return ravaMode;
 	}
 }
