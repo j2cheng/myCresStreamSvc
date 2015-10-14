@@ -118,6 +118,7 @@ public class CresStreamCtrl extends Service {
     private boolean mHDCPOutputStatus = false;
     private boolean mHDCPInputStatus = false;
     private boolean mIgnoreHDCP = false; //FIXME: This is for testing
+    public CountDownLatch streamingReadyLatch = new CountDownLatch(1);
 
     enum DeviceMode {
         STREAM_IN,
@@ -252,6 +253,10 @@ public class CresStreamCtrl extends Service {
             super.onCreate();
             int windowWidth = 1920;
             int windowHeight = 1080;
+            
+            //Start service connection
+            sockTask = new TCPInterface(this);
+            sockTask.execute(new Void[0]);  
                         
             RunNotificationThread();
             
@@ -377,7 +382,7 @@ public class CresStreamCtrl extends Service {
             		Log.e(TAG, "Could not create serialized class file: " + ex);
     			}
             }
-            
+
             Thread saveSettingsThread = new Thread(new SaveSettingsTask());    	
             saveSettingsThread.start();
             
@@ -399,24 +404,10 @@ public class CresStreamCtrl extends Service {
         	}
         	else
         		Log.d(TAG, "HDMI input driver is NOT present");
-        	
+
         	refreshOutputResolution();
 
-            // Update the resolution information before creating surfaces
-            try
-            {  
-            	windowWidth = Integer.parseInt(hdmiOutput.getHorizontalRes());
-	            setWindowSizeW(windowWidth, 0);
-	            windowHeight = Integer.parseInt(hdmiOutput.getVerticalRes());
-	            setWindowSizeH(windowHeight, 0);	            
-            }
-            catch (Exception e)
-            {
-            	e.printStackTrace();            	
-            }
-
             // Create a DisplaySurface to handle both preview and stream in
-            // TODO: Create an array to handle multiple instances 
             dispSurface = new CresDisplaySurface(this, windowWidth, windowHeight);
             
             //Get HPDEVent state fromsysfile
@@ -472,10 +463,8 @@ public class CresStreamCtrl extends Service {
                     public void executePause(int sessId) {pauseStreamIn(sessId); };
                     });
 
-
-            //Stub: CSIO Cmd Receiver & TestApp functionality
-            sockTask = new TCPInterface(this);
-            sockTask.execute(new Void[0]);  
+            // Flag to TCPInterface that streaming can start
+            streamingReadyLatch.countDown();
             
             // Monitor mediaserver, if it crashes restart stream
             monitorMediaServer();

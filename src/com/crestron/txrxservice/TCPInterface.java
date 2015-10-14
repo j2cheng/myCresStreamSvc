@@ -177,6 +177,11 @@ public class TCPInterface extends AsyncTask<Void, Object, Long> {
                 clientList.add(commThread);
                 new Thread(commThread).start();
                 
+                // Wait until CresStreamCtl signals that is ok to start processing join queue
+                try {
+					streamCtl.streamingReadyLatch.await();
+				} catch (InterruptedException e) { e.printStackTrace();	}
+                
                 // Always wipe out previous streamstate for first connection
                 if (firstRun)
                 {
@@ -337,6 +342,11 @@ public class TCPInterface extends AsyncTask<Void, Object, Long> {
         		else //process queue
         		{        			       			
         			String tmp_str;
+        			
+        			// Wait until CresStreamCtl signals that is ok to start processing join queue
+        			try {
+    					streamCtl.streamingReadyLatch.await();
+    				} catch (InterruptedException e) { e.printStackTrace();	}
         			
         			JoinObject currentJoinObject = joinQueue.poll();
         			if (currentJoinObject != null)
