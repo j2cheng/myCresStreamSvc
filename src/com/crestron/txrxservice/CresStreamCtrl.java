@@ -619,16 +619,15 @@ public class CresStreamCtrl extends Service {
     			{
     				try {
     					Thread.sleep(1000);
-    				
-
+    					
+						//Check if ignoreAllCrash flag is set (this means we are handling resolution change)
+						if (mIgnoreAllCrash == true)
+						{
+							continue;
+						}
+						
 						if (sockTask.clientList.isEmpty() == false) // makes sure that csio is up so as not to spam the logs if it is not
 						{
-							//Check if ignoreAllCrash flag is set (this means we are handling resolution change)
-							if (mIgnoreAllCrash == true)
-							{
-								continue;
-							}
-							
 							// Check if Ducati Crashed
 							int currentDucatiState = readDucatiState();
 							if ((currentDucatiState == 0) && (mIgnoreAllCrash == false))
@@ -636,13 +635,13 @@ public class CresStreamCtrl extends Service {
 								Log.i(TAG, "Recovering from Ducati crash!");
 								recoverFromCrash();
 							}
-							
-							// Check if mediaserver crashed
-							if ((mMediaServerCrash == true) && (mIgnoreAllCrash == false))
-							{
-								Log.i(TAG, "Recovering from mediaserver crash!");
-								recoverFromCrash();
-							}
+						}
+						
+						// Check if mediaserver crashed
+						if ((mMediaServerCrash == true) && (mIgnoreAllCrash == false))
+						{
+							Log.i(TAG, "Recovering from mediaserver crash!");
+							recoverFromCrash();
 						}
 					} catch (Exception e) { 
 						Log.e(TAG, "Problem occured in monitor thread!!!!");
@@ -805,6 +804,7 @@ public class CresStreamCtrl extends Service {
     	    	Log.i(TAG, "RestartLock : Lock");
     	    	try
     	    	{	
+    	    		boolean restartStreamsCalled = false;
 			    	Log.d(TAG, "Restarting Streams...");
 			
 			    	//If streamstate was previously started, restart stream
@@ -814,7 +814,9 @@ public class CresStreamCtrl extends Service {
 			        		continue;
 			        	if ((userSettings.getMode(sessionId) == DeviceMode.STREAM_OUT.ordinal()) 
 			        			&& (userSettings.getUserRequestedStreamState(sessionId) == StreamState.STOPPED))
-			            {			        		
+			            {			
+			        		restartStreamsCalled = true;
+			        		
 			    	    	stopStartLock.lock();
 			    	    	Log.d(TAG, "Stop : Lock");
 			    	    	try
@@ -845,6 +847,8 @@ public class CresStreamCtrl extends Service {
 			            } 
 			        	else if (userSettings.getUserRequestedStreamState(sessionId) == StreamState.STARTED)
 			            {
+			        		restartStreamsCalled = true;
+			        		
 			            	//Avoid starting confidence mode when stopping stream out
 		            		Stop(sessionId, true);
 		            		
@@ -854,6 +858,13 @@ public class CresStreamCtrl extends Service {
 		            		
 			            	Start(sessionId);
 			            }                       
+			        }
+			        
+			        // Clear crash flags if restart streams is not needed, otherwise no one will clear the flag
+			        if (restartStreamsCalled == true)
+			        {
+	            		writeDucatiState(1);
+	            		mMediaServerCrash = false;
 			        }
 	    		}
 	    		finally
