@@ -626,9 +626,6 @@ public class CresStreamCtrl extends Service {
 							//Check if ignoreAllCrash flag is set (this means we are handling resolution change)
 							if (mIgnoreAllCrash == true)
 							{
-								// Clear crash flags
-								writeDucatiState(1);
-								mMediaServerCrash = false;
 								continue;
 							}
 							
@@ -662,9 +659,6 @@ public class CresStreamCtrl extends Service {
     {
     	CresCamera.mSetHdmiInputStatus = true;
 		restartStreams(false);
-		// Clear crash flags
-		writeDucatiState(1);
-		mMediaServerCrash = false;
     }
     
     private int readDucatiState() {
@@ -833,6 +827,10 @@ public class CresStreamCtrl extends Service {
 					    		stopStartLock.unlock();
 					    	}
 			    	    	
+			    	    	// Clear crash flags after stop completes but before start
+		            		writeDucatiState(1);
+		            		mMediaServerCrash = false;
+			    	    	
 			    	    	stopStartLock.lock();
 			    	    	Log.d(TAG, "Start : Lock");
 			    	    	try
@@ -849,6 +847,11 @@ public class CresStreamCtrl extends Service {
 			            {
 			            	//Avoid starting confidence mode when stopping stream out
 		            		Stop(sessionId, true);
+		            		
+		            		// Clear crash flags after stop completes but before start
+		            		writeDucatiState(1);
+		            		mMediaServerCrash = false;
+		            		
 			            	Start(sessionId);
 			            }                       
 			        }
