@@ -178,6 +178,12 @@ public class GstreamIn implements StreamInStrategy, SurfaceHolder.Callback {
 	}
     
     public void recoverDucati(){
+		// Delete all surfaces so we dont have a gralloc memory leak
+    	for(int sessionId = 0; sessionId < CresStreamCtrl.NumOfSurfaces; sessionId++)
+    	{
+    		streamCtl.hideStreamInWindow(sessionId);
+    	}
+
     	streamCtl.RecoverDucati();
     	try {
     		Thread.sleep(5000);

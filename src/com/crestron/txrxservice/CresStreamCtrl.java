@@ -1670,7 +1670,7 @@ public class CresStreamCtrl extends Service {
     }
 
     //StreamIn Ctrls & Config
-    private void hideStreamInWindow(int sessId)
+    public void hideStreamInWindow(int sessId)
     {
         Log.d(TAG, " streamin Window hidden " + sessId);
         hideWindow(sessId);
