@@ -861,7 +861,7 @@ public class CresStreamCtrl extends Service {
 			        }
 			        
 			        // Clear crash flags if restart streams is not needed, otherwise no one will clear the flag
-			        if (restartStreamsCalled == true)
+			        if (restartStreamsCalled == false)
 			        {
 	            		writeDucatiState(1);
 	            		mMediaServerCrash = false;
