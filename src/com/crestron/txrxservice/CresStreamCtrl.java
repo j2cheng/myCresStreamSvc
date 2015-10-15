@@ -830,8 +830,7 @@ public class CresStreamCtrl extends Service {
 					    	}
 			    	    	
 			    	    	// Clear crash flags after stop completes but before start
-		            		writeDucatiState(1);
-		            		mMediaServerCrash = false;
+			    	    	clearErrorFlags();
 			    	    	
 			    	    	stopStartLock.lock();
 			    	    	Log.d(TAG, "Start : Lock");
@@ -853,8 +852,7 @@ public class CresStreamCtrl extends Service {
 		            		Stop(sessionId, true);
 		            		
 		            		// Clear crash flags after stop completes but before start
-		            		writeDucatiState(1);
-		            		mMediaServerCrash = false;
+		            		clearErrorFlags();
 		            		
 			            	Start(sessionId);
 			            }                       
@@ -863,6 +861,7 @@ public class CresStreamCtrl extends Service {
 			        // Clear crash flags if restart streams is not needed, otherwise no one will clear the flag
 			        if (restartStreamsCalled == false)
 			        {
+			        	// We don't use clearErrorFlags() here because flags should be cleared immediately since we are not calling start/stop
 	            		writeDucatiState(1);
 	            		mMediaServerCrash = false;
 			        }
@@ -880,6 +879,22 @@ public class CresStreamCtrl extends Service {
     	//make call synchronous by waiting for completion before returning
     	try { latch.await(); }
     	catch (InterruptedException ex) { ex.printStackTrace(); }  
+    }
+    
+    public void clearErrorFlags()
+    {
+    	// Clear mediaServer flag immediately because crash notification occurs immediately
+		mMediaServerCrash = false;
+		
+    	new Thread(new Runnable() {    		
+    		public void run() {	 
+    			// Wait 3.5 seconds to clear the ducati flag because ducati does not notify of crash until ~3 seconds later
+    			try {
+    				Thread.sleep(3500);
+    			} catch (Exception e) { e.printStackTrace(); }
+    			writeDucatiState(1);
+    		}
+    	}).start();    	
     }
     
     public void setDeviceMode(int mode, int sessionId)
