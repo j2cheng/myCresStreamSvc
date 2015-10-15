@@ -33,7 +33,7 @@ public class HDMIOutputInterface {
 		fps = "0";
 		aspectRatio = "0";
 		audioFormat = "1";	//1=PCM for txrx and dge
-		audioChannels = "0";
+		audioChannels = "2";
 	}
 
 	public void setSyncStatus() {
