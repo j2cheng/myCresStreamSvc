@@ -1427,7 +1427,7 @@ public class CresStreamCtrl extends Service {
     //Ctrls
     public void Start(int sessionId)
     {
-    	if (userSettings.getStreamState(sessionId) != StreamState.STARTED)
+    	if ((userSettings.getStreamState(sessionId) != StreamState.STARTED) && (userSettings.getStreamState(sessionId) != StreamState.STREAMERREADY))
     	{	    	
 	    	stopStartLock.lock();
 	    	Log.d(TAG, "Start : Lock");
