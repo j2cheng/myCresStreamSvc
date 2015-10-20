@@ -735,13 +735,18 @@ public class CresStreamCtrl extends Service {
 			            ravaMode = Integer.parseInt(text.toString().trim());
 			        }catch (IOException e) {}
 					
+			        Log.i(TAG, "Received rava mode " + ravaMode);
 					// Stop/Start all audio
 			        if (ravaMode == 1)
+			        {
+			        	Log.i(TAG, "Setting audio to true");
 			        	setAudioDropFlag(true);
-			        else if (ravaMode == 0)
-			        	setAudioDropFlag(false);
+			        }
 			        else
-			        	Log.e(TAG, String.format("Invalid rava mode detected, mode = %d", ravaMode));
+			        {
+			        	Log.i(TAG, "Setting audio drop to false");
+			        	setAudioDropFlag(false);
+			        }
 			        
 			        // Write Audio done
 			        Writer writer = null;
