@@ -119,6 +119,7 @@ public class CresStreamCtrl extends Service {
     private boolean mHDCPInputStatus = false;
     private boolean mIgnoreHDCP = false; //FIXME: This is for testing
     public CountDownLatch streamingReadyLatch = new CountDownLatch(1);
+    private Object cameraModeLock = new Object();
 
     enum DeviceMode {
         STREAM_IN,
@@ -1081,6 +1082,42 @@ public class CresStreamCtrl extends Service {
             	else
             		dispSurface.UpdateDimensions(userSettings.getW(sessionId),
 	                		userSettings.getH(sessionId), sessionId);
+            }
+        }
+        finally
+        {
+            stopStartLock.unlock();
+            Log.d(TAG, "updateWH : Unlock");
+        }
+
+    }
+    
+    public void hideWindowWithoutDestroy(final int sessionId)
+    {
+        Log.d(TAG, "updateWH : Lock");
+        stopStartLock.lock();
+        try
+        {
+            if (dispSurface != null)
+            {
+            	// Make sure surface changes are only done in UI (main) thread
+            	if (Looper.myLooper() != Looper.getMainLooper())
+            	{
+	            	final CountDownLatch latch = new CountDownLatch(1);
+	
+	            	runOnUiThread(new Runnable() {
+		       		     @Override
+		       		     public void run() {
+		       		    	dispSurface.UpdateDimensions(0, 0, sessionId);
+			                latch.countDown();
+		       		     }
+	            	});	            	
+
+	            	try { latch.await(); }
+	            	catch (InterruptedException ex) { ex.printStackTrace(); }  
+            	}
+            	else
+            		dispSurface.UpdateDimensions(0, 0, sessionId);
             }
         }
         finally
@@ -2102,6 +2139,10 @@ public class CresStreamCtrl extends Service {
     			if (sockTask.firstRun == false) // makes sure that csio is up so as restart streams before all information is received from platform
     			{
 		    		mIgnoreAllCrash = true;
+		    		// Lets wait to make sure CSI buffer is ready
+		    		try {
+            			Thread.sleep(500);
+            		} catch (Exception e ) { e.printStackTrace(); }
 		    		restartStreams(true); //true because we do not need to restart stream in streams
 		    		mIgnoreAllCrash = false;
     			}
@@ -2113,7 +2154,8 @@ public class CresStreamCtrl extends Service {
 		 }			                
         else
         {
-        	setNoVideoImage(true);
+        	// TODO: Lets get cameraMode to work with resolution and HPD events
+//        	setNoVideoImage(true);
         }
 	}
 	
@@ -2169,36 +2211,42 @@ public class CresStreamCtrl extends Service {
 	
 	private void setCameraMode(String mode) 
 	{
-		Writer writer = null;
-		try 
-      	{
-			writer = new BufferedWriter(new OutputStreamWriter(new FileOutputStream(cameraModeFilePath), "utf-8"));
-		    writer.write(mode);
-		    writer.flush();
-	    } 
-      	catch (IOException ex) {
-    	  Log.e(TAG, "Failed to save cameraMode to disk: " + ex);
-    	} 
-		finally 
-    	{
-    		try {writer.close();} catch (Exception ex) {/*ignore*/}
-    	}		
+		synchronized(cameraModeLock)
+		{
+			Writer writer = null;
+			try 
+	      	{
+				writer = new BufferedWriter(new OutputStreamWriter(new FileOutputStream(cameraModeFilePath), "utf-8"));
+			    writer.write(mode);
+			    writer.flush();
+		    } 
+	      	catch (IOException ex) {
+	    	  Log.e(TAG, "Failed to save cameraMode to disk: " + ex);
+	    	} 
+			finally 
+	    	{
+	    		try {writer.close();} catch (Exception ex) {/*ignore*/}
+	    	}
+		}
 	}
 	
 	private int readCameraMode() 
 	{
-		int cameraMode = 0;
-		File cameraModeFile = new File (cameraModeFilePath);
-        if (cameraModeFile.isFile())	//check if file exists
-        {			
-	    	try {
-	    		String serializedCameraMode = new Scanner(cameraModeFile, "UTF-8").useDelimiter("\\A").next();
-	    		cameraMode = Integer.parseInt(serializedCameraMode.trim());
-	    	} catch (Exception ex) {
-	    		Log.e(TAG, "Failed to read cameraMode: " + ex);
-			}
-        }
-		return cameraMode;	
+		synchronized(cameraModeLock)
+		{
+			int cameraMode = 0;
+			File cameraModeFile = new File (cameraModeFilePath);
+	        if (cameraModeFile.isFile())	//check if file exists
+	        {			
+		    	try {
+		    		String serializedCameraMode = new Scanner(cameraModeFile, "UTF-8").useDelimiter("\\A").next();
+		    		cameraMode = Integer.parseInt(serializedCameraMode.trim());
+		    	} catch (Exception ex) {
+		    		Log.e(TAG, "Failed to read cameraMode: " + ex);
+				}
+	        }
+			return cameraMode;	
+		}
 	}
 	
 	public void saveUserSettings()
