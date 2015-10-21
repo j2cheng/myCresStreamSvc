@@ -717,7 +717,7 @@ public class CresStreamCtrl extends Service {
         }
         
         // Set initial state, before file observing
-        int initialRavaMode = readRavaMode();
+        int initialRavaMode = readRavaMode(ravaModeFilePath);
 
 		// Stop/Start all audio
         if (initialRavaMode == 1)
@@ -736,7 +736,7 @@ public class CresStreamCtrl extends Service {
 			public void onEvent(int event, String path) {
 				synchronized (ravaModeLock)
 				{
-					int ravaMode = readRavaMode();
+					int ravaMode = readRavaMode(ravaModeFilePath);
 
 					// Stop/Start all audio
 			        if (ravaMode == 1)
@@ -775,7 +775,7 @@ public class CresStreamCtrl extends Service {
 		ravaModeObserver.startWatching();
     }
     
-    private int readRavaMode()
+    private int readRavaMode(String ravaModeFilePath)
     {
     	int ravaMode = 0;
         
