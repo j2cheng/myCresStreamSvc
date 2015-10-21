@@ -57,7 +57,7 @@ public class GstreamIn implements StreamInStrategy, SurfaceHolder.Callback {
     public native void 			nativeSetVolume(int volume, int sessionid);
     public native void			nativeSetStopTimeout(int stopTimeout_sec);
     private native void         nativeSetFieldDebugJni(String cmd,int sessId);
-    private native void			nativeDropAudio(boolean enabled, int sessionId);
+    private native void			nativeDropAudio(boolean enabled, boolean dropAudioPipeline, int sessionId);
     
     public GstreamIn(CresStreamCtrl mContext) {
         Log.e(TAG, "GstreamIN :: Constructor called...!");
@@ -153,7 +153,9 @@ public class GstreamIn implements StreamInStrategy, SurfaceHolder.Callback {
     }
     
     public void setAudioDrop(boolean enabled, int sessionId) {
-    	nativeDropAudio(enabled, sessionId);
+    	boolean dropAudioPipeline = true; 	// do not dynamically drop audio through valve because that cause obtainBuffer timeout 
+											// we will not add audio pipeline instead
+    	nativeDropAudio(enabled, dropAudioPipeline, sessionId);
     }
 
     public int[] getCurrentWidthHeight(int sessionId){

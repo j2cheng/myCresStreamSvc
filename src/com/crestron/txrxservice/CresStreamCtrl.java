@@ -691,8 +691,9 @@ public class CresStreamCtrl extends Service {
     			// Poll input and output HDCP states once a second
     			while (!Thread.currentThread().isInterrupted())
     			{
-    				checkHDCPStatus();
-    				sendHDCPFeedbacks();
+    				boolean hdcpStatusChanged = checkHDCPStatus();
+    				if (hdcpStatusChanged) // Only send hdcp feedback if hdcp status has changed
+    					sendHDCPFeedbacks();
     				try {
     					Thread.sleep(1000);
     				} catch (Exception e) { e.printStackTrace(); }
@@ -714,32 +715,33 @@ public class CresStreamCtrl extends Service {
         		ravaModeFile.createNewFile();
         	} catch (Exception e) {}
         }
+        
+        // Set initial state, before file observing
+        int initialRavaMode = readRavaMode();
+
+		// Stop/Start all audio
+        if (initialRavaMode == 1)
+        {
+        	Log.i(TAG, "Setting audio drop to true");
+        	setAudioDropFlag(true);
+        }
+        else
+        {
+        	Log.i(TAG, "Setting audio drop to false");
+        	setAudioDropFlag(false);
+        }
+        
         ravaModeObserver = new FileObserver(ravaModeFilePath, FileObserver.CLOSE_WRITE) {						
 			@Override
 			public void onEvent(int event, String path) {
 				synchronized (ravaModeLock)
 				{
-					int ravaMode = 0;
-			        
-					// Read rava mode
-			    	StringBuilder text = new StringBuilder();
-			        try {
-			            File file = new File(ravaModeFilePath);
-	
-			            BufferedReader br = new BufferedReader(new FileReader(file));  
-			            String line;   
-			            while ((line = br.readLine()) != null) {
-			                text.append(line);
-			            }
-			            br.close();
-			            ravaMode = Integer.parseInt(text.toString().trim());
-			        }catch (IOException e) {}
-					
-			        Log.i(TAG, "Received rava mode " + ravaMode);
+					int ravaMode = readRavaMode();
+
 					// Stop/Start all audio
 			        if (ravaMode == 1)
 			        {
-			        	Log.i(TAG, "Setting audio to true");
+			        	Log.i(TAG, "Setting audio drop to true");
 			        	setAudioDropFlag(true);
 			        }
 			        else
@@ -771,6 +773,28 @@ public class CresStreamCtrl extends Service {
 			}
 		};
 		ravaModeObserver.startWatching();
+    }
+    
+    private int readRavaMode()
+    {
+    	int ravaMode = 0;
+        
+		// Read rava mode
+    	StringBuilder text = new StringBuilder();
+        try {
+            File file = new File(ravaModeFilePath);
+
+            BufferedReader br = new BufferedReader(new FileReader(file));  
+            String line;   
+            while ((line = br.readLine()) != null) {
+                text.append(line);
+            }
+            br.close();
+            ravaMode = Integer.parseInt(text.toString().trim());
+        }catch (IOException e) {}
+		
+        Log.i(TAG, "Received rava mode " + ravaMode);
+		return ravaMode;
     }
     
     private void setAudioDropFlag(boolean enabled)
@@ -2273,13 +2297,15 @@ public class CresStreamCtrl extends Service {
 	}
 
 	static private Object mHdcpLock = new Object();
-	private void checkHDCPStatus() {
+	private boolean checkHDCPStatus() {
+		boolean hdcpStatusChanged = false;
 		synchronized (mHdcpLock) {
 			boolean currentHDCPInputStatus = HDMIInputInterface.readHDCPInputStatus();
 			boolean currentHDCPOutputStatus = HDMIOutputInterface.readHDCPOutputStatus() == 1;
 			// Only send new status when hdcp status changes for either input or output
 			if ((mHDCPInputStatus != currentHDCPInputStatus) || (mHDCPOutputStatus != currentHDCPOutputStatus))
 			{
+				hdcpStatusChanged = true;
 				mHDCPInputStatus = currentHDCPInputStatus;
 				mHDCPOutputStatus = currentHDCPOutputStatus;				
 				
@@ -2289,6 +2315,8 @@ public class CresStreamCtrl extends Service {
 					setHDCPErrorImage(false);
 			}
 		}
+		
+		return hdcpStatusChanged;
 	}
 	
 	private void sendHDCPFeedbacks()

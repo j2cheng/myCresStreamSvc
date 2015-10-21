@@ -767,31 +767,41 @@ JNIEXPORT void JNICALL Java_com_crestron_txrxservice_GstreamIn_nativeSetNewSink(
 	GST_DEBUG ("new Sink Enabled in currentSettingsDB: %d", currentSettingsDB.videoSettings[sessionId].videoSinkSelect);
 }
 
-JNIEXPORT void JNICALL Java_com_crestron_txrxservice_GstreamIn_nativeDropAudio(JNIEnv *env, jobject thiz, jboolean enabled, jint sessionId)
+JNIEXPORT void JNICALL Java_com_crestron_txrxservice_GstreamIn_nativeDropAudio(JNIEnv *env, jobject thiz, jboolean enabled, jboolean dropAudioPipeline, jint sessionId)
 {
-	// Set all streams to new drop Audio mode
-	int i;
-    CREGSTREAM * data;
-    for(i=0; i<MAX_STREAMS; i++)
+	if (dropAudioPipeline)
 	{
-    	data = GetStreamFromCustomData(CresDataDB, i);
-    	if(data)
-    		data->dropAudio = enabled;
+		if (enabled)
+			debug_blocking_audio = 1;
+		else
+			debug_blocking_audio = 0;
 	}
+	else
+	{
+		// Set all streams to new drop Audio mode
+		int i;
+		CREGSTREAM * data;
+		for(i=0; i<MAX_STREAMS; i++)
+		{
+			data = GetStreamFromCustomData(CresDataDB, i);
+			if(data)
+				data->dropAudio = enabled;
+		}
 
-    data = GetStreamFromCustomData(CresDataDB, sessionId);
+		data = GetStreamFromCustomData(CresDataDB, sessionId);
 
-    if(!data)
-    {
-        GST_ERROR("Could not obtain stream pointer for stream %d", sessionId);
-        return;
-    }
+		if(!data)
+		{
+			GST_ERROR("Could not obtain stream pointer for stream %d", sessionId);
+			return;
+		}
 
-    if(data->element_valve_a)
-    {
-        g_object_set(G_OBJECT(data->element_valve_a), "drop", enabled, NULL);
-        GST_DEBUG("set audio valve drop property to:%d",enabled);
-    }
+		if(data->element_valve_a)
+		{
+			g_object_set(G_OBJECT(data->element_valve_a), "drop", enabled, NULL);
+			GST_DEBUG("set audio valve drop property to:%d",enabled);
+		}
+	}
 }
 
 JNIEXPORT void JNICALL Java_com_crestron_txrxservice_GstreamIn_nativeSetFieldDebugJni(JNIEnv *env, jobject thiz, jstring cmd_jstring, jint sessionId)
