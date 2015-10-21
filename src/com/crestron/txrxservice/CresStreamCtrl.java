@@ -790,7 +790,9 @@ public class CresStreamCtrl extends Service {
                 text.append(line);
             }
             br.close();
-            ravaMode = Integer.parseInt(text.toString().trim());
+            try {
+            	ravaMode = Integer.parseInt(text.toString().trim());
+            } catch (NumberFormatException e) { } //Ignore integer parse error, treat as 0
         }catch (IOException e) {}
 		
         Log.i(TAG, "Received rava mode " + ravaMode);
