@@ -204,6 +204,8 @@ public class CameraStreaming {
 		            }
 		            catch (Exception ex) 
 		            {
+		            	// Mark media server error so that streams will be restarted
+		            	streamCtl.mMediaServerCrash = true;
 		            	ex.printStackTrace();
 		            }
 		

@@ -110,6 +110,12 @@ public class TCPInterface extends AsyncTask<Void, Object, Long> {
     private void restartStreams(TCPInterface serverHandler)
     {
         restartStreamsPending   = false;
+        
+        // Sleep for 3 seconds before calling initial restart streams to give rest of system time to catch up
+        try {
+        	Thread.sleep(3000);
+        } catch (Exception e) { e.printStackTrace(); }
+        
         streamCtl.restartStreams(false);
     }
     
@@ -192,7 +198,12 @@ public class TCPInterface extends AsyncTask<Void, Object, Long> {
 	        		}   
 	                
 	                if (streamCtl.hdmiInputDriverPresent == true)
-	                	streamCtl.setCamera(HDMIInputInterface.readResolutionEnum()); //no need to restart streams
+	                {
+	                	int hdmiInEnum = HDMIInputInterface.readResolutionEnum();
+	                	if (hdmiInEnum == 0) //FIXME: this is a workaround for cameraMode problems
+	                		streamCtl.setNoVideoImage(true);
+	                	streamCtl.setCamera(hdmiInEnum); //no need to restart streams
+	                }
                 }
                 // Tell CSIO to send update request to control system
                 SendDataToAllClients("UPDATE_REQUEST_TO_CONTROLSYSTEM=");
