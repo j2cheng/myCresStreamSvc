@@ -801,6 +801,25 @@ class InRxCecCommand implements CommandIf {
         }
 }
 
+class OutForceHdcp implements CommandIf {
+    CommandReceiver launch;
+    String msg;
+
+    public OutForceHdcp(CommandReceiver launch, String arg) {
+        this.launch = launch;
+        this.msg = arg;
+    }
+
+    @Override
+        public void execute() {
+    		boolean val = Boolean.valueOf(msg);
+            launch.setHdmiOutForceHdcp(val);
+        }
+        public String getFeedbackMsg() {
+            return launch.getHdmiOutForceHdcp();
+        }
+}
+
 
 class OutSyncCommand implements CommandIf {
     CommandReceiver launch;
@@ -1682,6 +1701,24 @@ class FIELDDEBUGJNICommand implements CommandIf {
 	public void execute() {
 		//int val = Integer.valueOf(msg);
 		launch.setFieldDebugJni(msg, idx);
+	}
+	public String getFeedbackMsg() {
+		return msg;	//no feedback for this join
+	}
+}
+
+class ResetAllWindowsCommand implements CommandIf {
+	CommandReceiver launch;
+	String msg;
+
+	public ResetAllWindowsCommand(CommandReceiver launch, String arg) {
+		this.launch = launch;
+		this.msg = arg;
+	}
+
+	@Override
+	public void execute() {
+		launch.resetAllWindows();
 	}
 	public String getFeedbackMsg() {
 		return msg;	//no feedback for this join

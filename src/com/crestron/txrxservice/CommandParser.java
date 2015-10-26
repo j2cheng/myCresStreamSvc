@@ -58,6 +58,7 @@ public class CommandParser {
         HDMIIN_TRANSMIT_CEC_MESSAGE,
         HDMIIN_RECEIVE_CEC_MESSAGE,
         //HDMI OUT
+        HDMIOUT_FORCE_HDCP,
         HDMIOUT_SYNC_DETECTED,
         HDMIOUT_INTERLACED,
         HDMIOUT_CEC_ERROR,
@@ -99,21 +100,22 @@ public class CommandParser {
         STATISTICS_NUMBEROFVIDEOPACKETSDROPPED,
         STATISTICS_NUMBEROFAUDIOPACKETS,
         STATISTICS_NUMBEROFAUDIOPACKETSDROPPED,
-	//OSD            
-	OSD_ENABLE,
-	OSD_DISABLE,
-	OSD_TEXT,
-	OSD_LOCATION,
-	OSD_X,
-	OSD_Y,
-        
-	RESTART_STREAM_ON_START,
-        
+        //OSD            
+        OSD_ENABLE,
+        OSD_DISABLE,
+        OSD_TEXT,
+        OSD_LOCATION,
+        OSD_X,
+        OSD_Y,
+
+        RESTART_STREAM_ON_START,
+
         USE_GSTREAMER,
-	NEW_SINK,
-	NEW_IPADDR,
-        FDEBUG_JNI;
-        //UPDATEREQUEST;
+        NEW_SINK,
+        NEW_IPADDR,
+        FDEBUG_JNI,
+        RESET_ALL_WINDOWS;
+    	//UPDATEREQUEST;
     }
 
     public  CommandParser(CresStreamCtrl a_crestctrl){
@@ -320,6 +322,9 @@ public class CommandParser {
                 cmd = new InRxCecCommand(cmdRx, arg); 
                 break;
                 //HDMI OUT
+            case HDMIOUT_FORCE_HDCP:
+            	cmd = new OutForceHdcp(cmdRx, arg);
+            	break;
             case HDMIOUT_SYNC_DETECTED:
                 cmd = new OutSyncCommand(cmdRx, arg); 
                 break;
@@ -464,11 +469,12 @@ public class CommandParser {
             case NEW_IPADDR:
             	cmd = new UseNewIpAddrCommand(cmdRx, arg);
             	break;
-
             case FDEBUG_JNI:            	
             	cmd = new FIELDDEBUGJNICommand(cmdRx, arg, idx);
             	break;
-
+            case RESET_ALL_WINDOWS:
+            	cmd = new ResetAllWindowsCommand(cmdRx, arg);
+            	break;
             default:
                 break;
         }

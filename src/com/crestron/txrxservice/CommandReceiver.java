@@ -254,6 +254,15 @@ public class CommandReceiver {
     public void setFieldDebugJni(String cmd, int sessId){
         ctl.setFieldDebugJni(cmd, sessId);
     }
+    
+    public void resetAllWindows() {
+    	ctl.resetAllWindows();
+    }
+    
+    // HDMI Out
+    public void setHdmiOutForceHdcp(boolean enabled){
+    	ctl.setHdmiOutForceHdcp(enabled);
+    }
 
     //Process Feedbacks
     public String getStreamUrl(int idx){
@@ -310,6 +319,10 @@ public class CommandReceiver {
         return ctl.getHDMIInAudioChannels();
     }
     //HDMIOut
+    public String getHdmiOutForceHdcp() {
+    	return String.valueOf(ctl.userSettings.isHdmiOutForceHdcp());
+    }
+    
     public String getHdmiOutSync(){
         return ctl.getHDMIOutSyncStatus();
     }

@@ -164,7 +164,7 @@ public class UserSettings
 	private int userRequestedVolume;
 	private int bass;
 	private int treble;
-	private String initiatorAddress = "";
+	private String initiatorAddress;
 	
 	// OSD Slot
 	private boolean osdEnable;
@@ -172,7 +172,7 @@ public class UserSettings
 	private int osdLocation; // TODO: make enum
 	private int osdXLocation;
 	private int osdYLocation;
-	private String osdText = "";
+	private String osdText;
 	
 	// STREAM IN
 	private int streamInHorizontalResolution;
@@ -189,6 +189,9 @@ public class UserSettings
 	private int streamOutAspectRatio;
 	private int streamOutAudioFormat;
 	private int streamOutAudioChannels;
+	
+	// HDMI OUT
+	private boolean hdmiOutForceHdcp;
 
 	// Ethernet
 	private String deviceIp;
@@ -236,6 +239,9 @@ public class UserSettings
     	audioMute			= false;
     	audioUnmute			= true;
     	ravaMode			= false;
+    	hdmiOutForceHdcp 	= false;
+    	initiatorAddress 	= "";
+    	osdText 			= "";
 	}
 	
 	public String getDeviceIp() {
@@ -623,6 +629,14 @@ public class UserSettings
 
 	public void setStreamOutAudioChannels(int streamOutAudioChannels) {
 		this.streamOutAudioChannels = streamOutAudioChannels;
+	}
+	
+	public boolean isHdmiOutForceHdcp() {
+		return hdmiOutForceHdcp;
+	}
+	
+	public void setHdmiOutForceHdcp(boolean enabled) {
+		this.hdmiOutForceHdcp = enabled;
 	}
 
 	public boolean isStatisticsEnable(int sessId) {

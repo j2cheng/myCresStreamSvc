@@ -118,6 +118,7 @@ public class CresStreamCtrl extends Service {
     private boolean mHDCPOutputStatus = false;
     private boolean mHDCPInputStatus = false;
     private boolean mIgnoreHDCP = false; //FIXME: This is for testing
+    private volatile boolean mForceHdcpStatusUpdate = true;
     public CountDownLatch streamingReadyLatch = new CountDownLatch(1);
     private Object cameraModeLock = new Object();
 
@@ -256,6 +257,7 @@ public class CresStreamCtrl extends Service {
             int windowHeight = 1080;
             
             //Start service connection
+            tokenizer = new StringTokenizer();
             sockTask = new TCPInterface(this);
             sockTask.execute(new Void[0]);  
                         
@@ -302,10 +304,6 @@ public class CresStreamCtrl extends Service {
             	streamPlay = new StreamIn(new GstreamIn(CresStreamCtrl.this));
             else
             	streamPlay = new StreamIn(new NstreamIn(CresStreamCtrl.this));
-
-            tokenizer = new StringTokenizer();
-            hdmiOutput = new HDMIOutputInterface();
-            setHDCPBypass();
             
             boolean wipeOutUserSettings = false;
             boolean useOldUserSettingsFile = false;
@@ -368,7 +366,7 @@ public class CresStreamCtrl extends Service {
             		wipeOutUserSettings = true;
             	}
             }
-            
+
             if (wipeOutUserSettings)
             {
             	// File Does not exist, create it
@@ -383,6 +381,9 @@ public class CresStreamCtrl extends Service {
             		Log.e(TAG, "Could not create serialized class file: " + ex);
     			}
             }
+            
+            hdmiOutput = new HDMIOutputInterface();
+            setHDCPBypass();
 
             Thread saveSettingsThread = new Thread(new SaveSettingsTask());    	
             saveSettingsThread.start();
@@ -417,7 +418,7 @@ public class CresStreamCtrl extends Service {
 	            hpdHdmiEvent = HDMIInputInterface.getHdmiHpdEventState();            
 	            Log.d(TAG, "hpdHdmiEvent :" + hpdHdmiEvent);
             }
-            
+
             //AudioManager
             amanager=(AudioManager)getSystemService(Context.AUDIO_SERVICE);
             
@@ -1001,6 +1002,24 @@ public class CresStreamCtrl extends Service {
     {
         streamPlay.setFieldDebugJni(cmd, sessId);
     }
+    
+    public void resetAllWindows()
+    {
+    	for (int sessionId = 0; sessionId < NumOfSurfaces; sessionId++)
+    	{
+    		userSettings.setXloc(0, sessionId);
+    		userSettings.setYloc(0, sessionId);
+    		userSettings.setW(0, sessionId);
+    		userSettings.setH(0, sessionId);
+    		
+    		updateWindow(sessionId);
+    	}
+    }
+    
+    public void setHdmiOutForceHdcp(boolean enabled) {
+    	userSettings.setHdmiOutForceHdcp(enabled);
+    	mForceHdcpStatusUpdate = true;
+    }
 
     public void setXCoordinates(int x, int sessionId)
     {    	
@@ -1070,9 +1089,20 @@ public class CresStreamCtrl extends Service {
 	            	runOnUiThread(new Runnable() {
 		       		     @Override
 		       		     public void run() {
-			                dispSurface.UpdateDimensions(userSettings.getW(sessionId),
-			                		userSettings.getH(sessionId), sessionId);
-			                latch.countDown();
+		       		    	 int width = userSettings.getW(sessionId);
+		       		    	 int height = userSettings.getH(sessionId);
+		       		    	 if ((width == 0) && (height == 0))
+		       		    	 {
+		       		    		 width = Integer.parseInt(hdmiOutput.getHorizontalRes());
+		       		    		 height = Integer.parseInt(hdmiOutput.getVerticalRes());
+								 if ((width == 0) && (height == 0))
+								 {
+								 	width = 1920;
+									height = 1080;
+								 }
+		       		    	 }
+		       		    	 dispSurface.UpdateDimensions(width, height, sessionId);
+		       		    	 latch.countDown();
 		       		     }
 	            	});	            	
 
@@ -1080,8 +1110,21 @@ public class CresStreamCtrl extends Service {
 	            	catch (InterruptedException ex) { ex.printStackTrace(); }  
             	}
             	else
-            		dispSurface.UpdateDimensions(userSettings.getW(sessionId),
-	                		userSettings.getH(sessionId), sessionId);
+            	{
+            		int width = userSettings.getW(sessionId);
+            		int height = userSettings.getH(sessionId);
+            		if ((width == 0) && (height == 0))
+            		{
+            			width = Integer.parseInt(hdmiOutput.getHorizontalRes());
+            			height = Integer.parseInt(hdmiOutput.getVerticalRes());
+						if ((width == 0) && (height == 0))
+						{
+						 	width = 1920;
+							height = 1080;
+						}
+            		}
+            		dispSurface.UpdateDimensions(width, height, sessionId);
+            	}
             }
         }
         finally
@@ -2013,6 +2056,7 @@ public class CresStreamCtrl extends Service {
 	        	                    int i = paramAnonymousIntent.getIntExtra("evs_hdmi_hdp_id", -1);
 	        	                    Log.i(TAG, "Received hpd broadcast ! " + i);
 	        	                    hpdHdmiEvent = 1;
+	        	                    mForceHdcpStatusUpdate = true;
         	                	}
         	                }
                     	}
@@ -2048,15 +2092,8 @@ public class CresStreamCtrl extends Service {
 									+ hdmiOutputResolution.height + " "
 									+ Math.round(hdmiOutputResolution.refreshRate));
 							
-							//Set bypass mode when output HDMI is not HDCP authenticated
-							if (i != 0)
-							{
-								setHDCPBypass();
-							}
-							
 							// Recheck if HDCP changed
-							checkHDCPStatus();
-							sendHDCPFeedbacks();
+							mForceHdcpStatusUpdate = true;
 		
 		                    //update HDMI output
 							hdmiOutput.setSyncStatus();		
@@ -2111,7 +2148,9 @@ public class CresStreamCtrl extends Service {
     				} catch (Exception e) { e.printStackTrace(); }
     			}
     			
-				HDMIOutputInterface.setHDCPBypass(HDMIOutputInterface.readHDCPOutputStatus() == 0); //Set bypass high when hdcp is not authenticated on output
+    			//Set bypass high when hdcp is not authenticated on output, if not in force hdcp mode
+    			boolean setHDCPBypass = ((userSettings.isHdmiOutForceHdcp() == false) && (HDMIOutputInterface.readHDCPOutputStatus() == 0));
+				HDMIOutputInterface.setHDCPBypass(setHDCPBypass); 
     		}
 		}).start();
 	}
@@ -2151,8 +2190,7 @@ public class CresStreamCtrl extends Service {
     		}
 
    			setNoVideoImage(false);
-   			checkHDCPStatus();
-   			sendHDCPFeedbacks();
+   			mForceHdcpStatusUpdate = true;
 		 }			                
         else
         {
@@ -2354,8 +2392,8 @@ public class CresStreamCtrl extends Service {
 		synchronized (mHdcpLock) {
 			boolean currentHDCPInputStatus = HDMIInputInterface.readHDCPInputStatus();
 			boolean currentHDCPOutputStatus = HDMIOutputInterface.readHDCPOutputStatus() == 1;
-			// Only send new status when hdcp status changes for either input or output
-			if ((mHDCPInputStatus != currentHDCPInputStatus) || (mHDCPOutputStatus != currentHDCPOutputStatus))
+			// Only send new status when hdcp status changes for either input or output, or if force status update is called
+			if ((mHDCPInputStatus != currentHDCPInputStatus) || (mHDCPOutputStatus != currentHDCPOutputStatus) || (mForceHdcpStatusUpdate == true))
 			{
 				hdcpStatusChanged = true;
 				mHDCPInputStatus = currentHDCPInputStatus;
@@ -2365,6 +2403,14 @@ public class CresStreamCtrl extends Service {
 					setHDCPErrorImage(true);
 				else
 					setHDCPErrorImage(false);
+				
+				//Call set bypass mode when output HDMI is connected
+				if (Boolean.parseBoolean(hdmiOutput.getSyncStatus()) == true)
+				{
+					setHDCPBypass();
+				}
+				
+				mForceHdcpStatusUpdate = false; // we have updated hdcp status, clear flag
 			}
 		}
 		
@@ -2391,7 +2437,8 @@ public class CresStreamCtrl extends Service {
 			}
 		}
 		//Send output feedbacks
-		if ((mHDCPInputStatus == true) && (mHDCPOutputStatus == false))
+		//Log.i(TAG, String.format("mHDCPInputStatus = %b, userSettings.isHdmiOutForceHdcp() = %b, mHDCPOutputStatus = %b", mHDCPInputStatus, userSettings.isHdmiOutForceHdcp(), mHDCPOutputStatus));
+		if (((mHDCPInputStatus == true) || (userSettings.isHdmiOutForceHdcp() == true)) && (mHDCPOutputStatus == false))
 			sockTask.SendDataToAllClients(String.format("%s=%b", "HDMIOUT_DISABLEDBYHDCP", true));
 		else
 			sockTask.SendDataToAllClients(String.format("%s=%b", "HDMIOUT_DISABLEDBYHDCP", false));
