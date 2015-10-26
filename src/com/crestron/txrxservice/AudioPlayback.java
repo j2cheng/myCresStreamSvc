@@ -20,7 +20,9 @@ public class AudioPlayback
     volatile boolean shouldExit;
     Thread streamAudioThread;
     volatile boolean initVolumePending = false;
-
+    int mWaitFrames = 15;
+    final int mWaitFramesDone = 15;
+    
     public AudioPlayback(CresStreamCtrl streamCtl) {
     	mStreamCtl = streamCtl;
     }
@@ -57,19 +59,45 @@ public class AudioPlayback
                 readSize = bufferSize;
                 while(!shouldExit)
                 {
-                    read = mRecorder.read(readBuffer.array(), 0, readSize);
-                    if (read > 0)
+                    read = mRecorder.read(readBuffer.array(), 0, readSize);                    
+                    
+                    if (Boolean.parseBoolean(mStreamCtl.hdmiOutput.getSyncStatus()) == false)
                     {
-                    	if (!shouldExit) //write is time intensive function, skip if we are trying to stop
+                    	mWaitFrames = 0; // reset mWaitFrames count
+                    	if (mPlayer != null)
                     	{
-	                        mPlayer.write(readBuffer.array(), 0, read);
-//	                        mPlayer.flush();
-	                        if (initVolumePending)
-	                        {
-	                        	setVolume(mStreamCtl.userSettings.getVolume());
-	                        	initVolumePending = false;
-	                        }
+                    		mPlayer.stop();                  		
+                    		mPlayer.release();
+                    		mPlayer = null;
                     	}
+                    }
+                    else
+                    {
+                    	if (mWaitFrames >= mWaitFramesDone)
+                    	{
+                    		if (mPlayer == null)
+                    		{
+                    			mPlayer = new AudioTrack(AudioManager.STREAM_MUSIC, sampleRate, audioChannels, audioFormat, (numOfBuffers * bufferSize), AudioTrack.MODE_STREAM);
+                                mPlayer.play();
+                    		}
+                    		
+                    		// Write to audiotrack
+                    		if (read > 0)
+                            {
+                            	if (!shouldExit) //write is time intensive function, skip if we are trying to stop
+                            	{
+        	                        mPlayer.write(readBuffer.array(), 0, read);
+//        	                        mPlayer.flush();
+        	                        if (initVolumePending)
+        	                        {
+        	                        	setVolume(mStreamCtl.userSettings.getVolume());
+        	                        	initVolumePending = false;
+        	                        }
+                            	}
+                            }
+                    	}
+                    	else
+                    		mWaitFrames++;
                     }
                 }
             } catch (Exception localException) {
