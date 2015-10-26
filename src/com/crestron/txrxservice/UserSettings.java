@@ -164,7 +164,7 @@ public class UserSettings
 	private int userRequestedVolume;
 	private int bass;
 	private int treble;
-	private String initiatorAddress;
+	private String initiatorAddress = "";
 	
 	// OSD Slot
 	private boolean osdEnable;
@@ -172,7 +172,7 @@ public class UserSettings
 	private int osdLocation; // TODO: make enum
 	private int osdXLocation;
 	private int osdYLocation;
-	private String osdText;
+	private String osdText = "";
 	
 	// STREAM IN
 	private int streamInHorizontalResolution;
