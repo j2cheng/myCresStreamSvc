@@ -410,7 +410,7 @@ public class CresStreamCtrl extends Service {
         	refreshOutputResolution();
 
             // Create a DisplaySurface to handle both preview and stream in
-            dispSurface = new CresDisplaySurface(this, windowWidth, windowHeight);
+        	dispSurface = new CresDisplaySurface(this, 1920, 1200); // set to max output resolution
             
             //Get HPDEVent state fromsysfile
             if (hdmiInputDriverPresent)
