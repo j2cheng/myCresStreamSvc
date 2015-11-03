@@ -200,8 +200,6 @@ public class TCPInterface extends AsyncTask<Void, Object, Long> {
 	                if (streamCtl.hdmiInputDriverPresent == true)
 	                {
 	                	int hdmiInEnum = HDMIInputInterface.readResolutionEnum();
-	                	if (hdmiInEnum == 0) //FIXME: this is a workaround for cameraMode problems
-	                		streamCtl.setNoVideoImage(true);
 	                	streamCtl.setCamera(hdmiInEnum); //no need to restart streams
 	                }
                 }

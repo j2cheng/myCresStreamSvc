@@ -119,6 +119,7 @@ public class CresStreamCtrl extends Service {
     private boolean mHDCPInputStatus = false;
     private boolean mIgnoreHDCP = false; //FIXME: This is for testing
     private volatile boolean mForceHdcpStatusUpdate = true;
+    private int mPreviousValidHdmiInputResolution = 0;
     public CountDownLatch streamingReadyLatch = new CountDownLatch(1);
     private Object cameraModeLock = new Object();
 
@@ -1564,7 +1565,7 @@ public class CresStreamCtrl extends Service {
     public void Stop(int sessionId, boolean fullStop)
     {
     	//csio will send service full stop when it does not want confidence mode started
-    	if ((userSettings.getStreamState(sessionId) != StreamState.STOPPED) && (userSettings.getStreamState(sessionId) != StreamState.CONFIDENCEMODE))
+    	if ((userSettings.getStreamState(sessionId) != StreamState.STOPPED) && ((userSettings.getStreamState(sessionId) != StreamState.CONFIDENCEMODE) || (fullStop == true)))
     	{
 	    	stopStartLock.lock();
 	    	Log.d(TAG, "Stop : Lock");
@@ -2169,6 +2170,12 @@ public class CresStreamCtrl extends Service {
 	
 	private void setCameraHelper(int hdmiInputResolutionEnum, boolean ignoreRestart)
 	{
+		// If resolution did not change don't restart streams, ignore 0 enum
+		if (hdmiInputResolutionEnum == mPreviousValidHdmiInputResolution)
+			ignoreRestart = true;
+		else if (hdmiInputResolutionEnum != 0)
+			mPreviousValidHdmiInputResolution = hdmiInputResolutionEnum;
+		
 		//Set ignore restart to true if you want to set camera mode but do not want to restart any streams
 		boolean validResolution = (hdmiInput.getHorizontalRes().startsWith("0") != true) && (hdmiInput.getVerticalRes().startsWith("0")!= true) && (hdmiInputResolutionEnum != 0);
     	if (validResolution == true)
@@ -2194,8 +2201,7 @@ public class CresStreamCtrl extends Service {
 		 }			                
         else
         {
-        	// TODO: Lets get cameraMode to work with resolution and HPD events
-//        	setNoVideoImage(true);
+        	setNoVideoImage(true);
         }
 	}
 	
