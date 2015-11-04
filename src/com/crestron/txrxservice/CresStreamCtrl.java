@@ -206,7 +206,6 @@ public class CresStreamCtrl extends Service {
     private final ReentrantLock hdmiLock				= new ReentrantLock(true);
     private final ReentrantLock streamStateLock 		= new ReentrantLock(true);
     private final ReentrantLock saveSettingsLock 		= new ReentrantLock(true);
-    public final ReentrantLock restartLock	 			= new ReentrantLock(true);
     
     /**
      * Force the service to the foreground
@@ -834,7 +833,7 @@ public class CresStreamCtrl extends Service {
     	// Skip Stream in is when we need to only restart camera modes i.e. when resolution changes
     	new Thread(new Runnable() {
     		public void run() {	
-    			restartLock.lock();
+    			stopStartLock.lock();
     	    	Log.i(TAG, "RestartLock : Lock");
     	    	try
     	    	{	
@@ -850,33 +849,13 @@ public class CresStreamCtrl extends Service {
 			        			&& (userSettings.getUserRequestedStreamState(sessionId) == StreamState.STOPPED))
 			            {			
 			        		restartStreamsCalled = true;
-			        		
-			    	    	stopStartLock.lock();
-			    	    	Log.d(TAG, "Stop : Lock");
-			    	    	try
-			    	    	{
-			    	    		cam_streaming.stopConfidencePreview(sessionId);
-			    	    	}
-				    		finally
-					    	{
-					    		Log.d(TAG, "Stop : Unlock");
-					    		stopStartLock.unlock();
-					    	}
+
+		    	    		cam_streaming.stopConfidencePreview(sessionId);
 			    	    	
 			    	    	// Clear crash flags after stop completes but before start
 			    	    	clearErrorFlags();
 			    	    	
-			    	    	stopStartLock.lock();
-			    	    	Log.d(TAG, "Start : Lock");
-			    	    	try
-			    	    	{
-			    	    		cam_streaming.startConfidencePreview(sessionId);
-			    	    	}
-				    		finally
-					    	{
-					    		Log.d(TAG, "Start : Unlock");
-					    		stopStartLock.unlock();
-					    	}            	
+		    	    		cam_streaming.startConfidencePreview(sessionId);
 			            } 
 			        	else if (userSettings.getUserRequestedStreamState(sessionId) == StreamState.STARTED)
 			            {
@@ -903,7 +882,7 @@ public class CresStreamCtrl extends Service {
 	    		finally
 		    	{
 		    		Log.i(TAG, "RestartLock : Unlock");
-		    		restartLock.unlock();
+		    		stopStartLock.unlock();
 		    	}
     	    	
     	    	latch.countDown();
@@ -1495,9 +1474,9 @@ public class CresStreamCtrl extends Service {
     	   	sockTask.SendDataToAllClients("STATISTICS_NUMBEROFAUDIOPACKETS=" + String.valueOf(streamPlay.getStreamInNumAudioPackets()));
     	   	sockTask.SendDataToAllClients("STATISTICS_NUMBEROFAUDIOPACKETSDROPPED=" + String.valueOf(streamPlay.getStreamInNumAudioPacketsDropped()));    	
     	}
-    	sockTask.SendDataToAllClients("VBITRATE=" + String.valueOf(streamPlay.getStreamInBitrate()));
-
-        //processReceivedMessage()
+    	
+    	if (streamPlay.getStreamInBitrate() >= 0) //negative value means don't send feedback
+    		sockTask.SendDataToAllClients("VBITRATE=" + String.valueOf(streamPlay.getStreamInBitrate()));
     }
     
     public void SendStreamOutFeedbacks()

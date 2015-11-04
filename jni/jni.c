@@ -39,6 +39,7 @@
 
 extern int  csio_Init(int calledFromCsio);
 void csio_jni_stop(int sessionId);
+void csio_send_stats_no_bitrate (uint64_t video_packets_received, int video_packets_lost, uint64_t audio_packets_received, int audio_packets_lost);
 
 ///////////////////////////////////////////////////////////////////////////////
 
@@ -720,7 +721,8 @@ JNIEXPORT void JNICALL Java_com_crestron_txrxservice_GstreamIn_nativeSetStatisti
 
 JNIEXPORT void JNICALL Java_com_crestron_txrxservice_GstreamIn_nativeResetStatistics(JNIEnv *env, jobject thiz, jint sessionId)
 {
-    csio_send_zerostats();
+	csio_send_stats_no_bitrate(0, 0, 0, 0); //omit bitrate so that it won't be sent to control system
+
 	reset_statistics(sessionId);
 }
 
@@ -1351,6 +1353,21 @@ void    *csio_SendMulticastAddressFb(void * arg)
 }
 void csio_send_stats (uint64_t video_packets_received, int video_packets_lost, uint64_t audio_packets_received, int audio_packets_lost, uint16_t bitrate)
 {
+	JNIEnv *env = get_jni_env ();
+
+	jmethodID sendStatistics = (*env)->GetMethodID(env, (jclass)gStreamIn_javaClass_id, "sendStatistics", "(JIJII)V");
+	if (sendStatistics == NULL) return;
+
+	(*env)->CallVoidMethod(env, CresDataDB->app, sendStatistics, (jlong)video_packets_received, (jint)video_packets_lost, (jlong)audio_packets_received, (jint)audio_packets_lost, (jint)bitrate);
+	if ((*env)->ExceptionCheck (env)) {
+		GST_ERROR ("Failed to call Java method 'sendStatistics'");
+		(*env)->ExceptionClear (env);
+	}
+}
+
+void csio_send_stats_no_bitrate (uint64_t video_packets_received, int video_packets_lost, uint64_t audio_packets_received, int audio_packets_lost)
+{
+	int bitrate = -1; //bitrate was omitted so send -1 which will flag txrxservice to ignore
 	JNIEnv *env = get_jni_env ();
 
 	jmethodID sendStatistics = (*env)->GetMethodID(env, (jclass)gStreamIn_javaClass_id, "sendStatistics", "(JIJII)V");
