@@ -70,6 +70,7 @@ public class CommandParser {
         HDMIOUT_AUDIO_CHANNELS,
         HDMIOUT_TRANSMIT_CEC_MESSAGE,
         HDMIOUT_RECEIVE_CEC_MESSAGE,
+        HDMI_SENDHDCPFB,
         //STREAM IN
         STREAMIN_HORIZONTAL_RES_FB,
         STREAMIN_VERTICAL_RES_FB,
@@ -358,6 +359,9 @@ public class CommandParser {
             case HDMIOUT_RECEIVE_CEC_MESSAGE:
                 cmd = new OutRxCecCommand(cmdRx, arg); 
                 break;
+            case HDMI_SENDHDCPFB:
+            	cmd = new HdcpFeedbackCommand(cmdRx, arg);
+            	break;
             //STREAM IN
             case STREAMIN_HORIZONTAL_RES_FB:
             	cmd = new StreamInHresCommand(cmdRx, arg); 

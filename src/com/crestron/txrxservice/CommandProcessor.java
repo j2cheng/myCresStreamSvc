@@ -1029,6 +1029,24 @@ class OutRxCecCommand implements CommandIf {
         }
 }
 
+class HdcpFeedbackCommand implements CommandIf {
+    CommandReceiver launch;
+    String msg;
+
+    public HdcpFeedbackCommand(CommandReceiver launch, String arg) {
+        this.launch = launch;
+        this.msg = arg;
+    }
+
+    @Override
+        public void execute() {
+            //not command join
+        }
+        public String getFeedbackMsg() {
+            return launch.getHdcpFb();
+        }
+}
+
 
 class ProcessingCommand implements CommandIf {
     CommandReceiver launch;

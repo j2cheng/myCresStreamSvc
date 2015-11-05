@@ -354,6 +354,11 @@ public class CommandReceiver {
     public String getHdmiOutAudioChannels() {
         return ctl.getHDMIOutAudioChannels();
     }
+    
+    public String getHdcpFb() {
+    	ctl.mForceHdcpStatusUpdate = true;
+    	return "TRUE";
+    }
 
     public String getProcessingStats(){
         return ctl.getProcessingStatus();

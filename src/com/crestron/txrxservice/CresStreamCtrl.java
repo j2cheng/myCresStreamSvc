@@ -118,7 +118,7 @@ public class CresStreamCtrl extends Service {
     private boolean mHDCPOutputStatus = false;
     private boolean mHDCPInputStatus = false;
     private boolean mIgnoreHDCP = false; //FIXME: This is for testing
-    private volatile boolean mForceHdcpStatusUpdate = true;
+    public volatile boolean mForceHdcpStatusUpdate = true;
     private int mPreviousValidHdmiInputResolution = 0;
     public CountDownLatch streamingReadyLatch = new CountDownLatch(1);
     private Object cameraModeLock = new Object();
