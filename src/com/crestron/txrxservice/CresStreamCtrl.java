@@ -109,6 +109,7 @@ public class CresStreamCtrl extends Service {
     public final static String savedSettingsFilePath = "/data/CresStreamSvc/userSettings";
     public final static String savedSettingsOldFilePath = "/data/CresStreamSvc/userSettings.old";
     public final static String cameraModeFilePath = "/dev/shm/crestron/CresStreamSvc/cameraMode";
+    public final static String restoreFlagFilePath = "/data/CresStreamSvc/restore";
     public volatile boolean mMediaServerCrash = false;
     public volatile boolean mDucatiCrash = false;
     public volatile boolean mIgnoreAllCrash = false;
@@ -307,6 +308,16 @@ public class CresStreamCtrl extends Service {
             
             boolean wipeOutUserSettings = false;
             boolean useOldUserSettingsFile = false;
+            
+            File restoreFlagFile = new File(restoreFlagFilePath);
+            if (restoreFlagFile.isFile())
+            {
+            	wipeOutUserSettings = true;
+            	boolean deleteSuccess = restoreFlagFile.delete(); //delete restore flag since we handled it by wiping out userSettings
+            	if (deleteSuccess == false)
+            		Log.e(TAG, "Failed to delete restore file!");
+            }
+            
             File serializedClassFile = new File (savedSettingsFilePath);
             if (serializedClassFile.isFile())	//check if file exists
             {
