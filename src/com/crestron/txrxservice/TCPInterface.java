@@ -203,6 +203,10 @@ public class TCPInterface extends AsyncTask<Void, Object, Long> {
 	                	streamCtl.setCamera(hdmiInEnum); //no need to restart streams
 	                }
                 }
+                
+                // Update csio on hdmi input status
+                SendDataToAllClients(String.format("HDMIInputConnectedState=%s", streamCtl.hdmiInput.getSyncStatus())); //true means hdmi input connected
+                
                 // Tell CSIO to send update request to control system
                 SendDataToAllClients("UPDATE_REQUEST_TO_CONTROLSYSTEM=");
 
