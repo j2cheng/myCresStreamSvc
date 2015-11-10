@@ -133,6 +133,7 @@ public class UserSettings
 	private int[] yloc;
 	private int[] w;
 	private int[] h;
+	private int[] z;
 	private CresStreamCtrl.StreamState[] streamState;
 	private CresStreamCtrl.StreamState[] userRequestedStreamState;
 	private int[] rtspPort;
@@ -212,6 +213,7 @@ public class UserSettings
         mode				= new int[]{0,0};
         w 					= new int[]{1920,1920};
         h					= new int[]{1080,1080};
+        z					= new int[]{1, 2};
         xloc 				= new int[]{0,0};
         yloc				= new int[]{0,0};
         encodingResolution	= new int[] {0, 0};
@@ -290,6 +292,14 @@ public class UserSettings
 
 	public void setH(int h, int sessId) {
 		this.h[sessId] = h;
+	}
+	
+	public int getZ(int sessId) { 
+		return z[sessId];
+	}
+	
+	public void setZ(int z, int sessId) {
+		this.z[sessId] = z;
 	}
 
 	public CresStreamCtrl.StreamState getStreamState(int sessId) {

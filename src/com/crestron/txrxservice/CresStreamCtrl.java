@@ -1043,6 +1043,62 @@ public class CresStreamCtrl extends Service {
             updateWH(sessionId);
         }
     }
+    
+    public void setWindowSizeZ(int z, int sessionId)
+    {
+    	if (userSettings.getZ(sessionId) != z)
+    	{
+    		// Determine current zOrder before change
+    		final Integer[][] zOrderOld = dispSurface.createZOrderArray();
+	    	dispSurface.sortZOrderArray(zOrderOld);
+	    	
+    		userSettings.setZ(z, sessionId);
+    		
+    		// Determine whether zorder update is necessary
+	    	boolean overlap = dispSurface.doWindowsOverlap();
+	
+	    	// Find zOrder after update
+	    	// Index 0 is the sessionId value, Index 1 is the relative Z order saved in userSettings
+	    	final Integer[][] zOrder = dispSurface.createZOrderArray();
+	    	dispSurface.sortZOrderArray(zOrder);
+	    	
+	    	boolean zOrderUpdated = dispSurface.didZOrderChange(zOrderOld, zOrder);
+	    	
+	    	if ((overlap == true) && (zOrderUpdated == true))
+	    	{  
+	    		// All streams must be stopped before touching surfaces
+				// Does not send userRequested Stop but sends feedback
+	    		for (int i = 0; i < CresStreamCtrl.NumOfSurfaces; i++)
+	            {
+	    			Stop(i, true);
+	            }
+	    		
+	    		// Make sure surface changes are only done in UI (main) thread
+	        	if (Looper.myLooper() != Looper.getMainLooper())
+	        	{
+	            	final CountDownLatch latch = new CountDownLatch(1);
+	
+	            	runOnUiThread(new Runnable() {
+		       		     @Override
+		       		     public void run() {
+		       		    	 dispSurface.updateZOrder(zOrder);
+		       		    	 latch.countDown();
+		       		     }
+	            	});	            	
+	
+	            	try { latch.await(); }
+	            	catch (InterruptedException ex) { ex.printStackTrace(); }  
+	        	}
+	        	else
+	        	{
+	        		dispSurface.updateZOrder(zOrder);
+	        	}
+	        	
+	        	// Start streams back up
+	        	restartStreams(false);
+	    	}
+    	}
+    }
 
     public int getXCoordinates(int sessId)
     {

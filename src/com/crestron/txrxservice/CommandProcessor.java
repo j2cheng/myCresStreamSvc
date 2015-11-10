@@ -594,6 +594,27 @@ class DestHeightCommand implements CommandIf {
         }
 }
 
+class DestZOrderCommand implements CommandIf {
+
+    CommandReceiver launch;
+    String msg;
+    int idx;
+
+    public DestZOrderCommand(CommandReceiver launch, String arg, int sessId) {
+        this.launch = launch;
+        this.msg = arg;
+        this.idx = sessId;
+    }
+
+    @Override
+        public void execute() {
+            launch.setDestZOrder(launch.VALIDATE_INT(msg), idx);
+        }
+        public String getFeedbackMsg() {
+            return launch.getDestZOrder(idx);
+        }
+}
+
 class InSyncCommand implements CommandIf {
     CommandReceiver launch;
     String msg;

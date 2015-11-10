@@ -9,6 +9,7 @@ import java.io.BufferedReader;
 import java.io.File;
 import java.io.FileReader;
 
+import android.graphics.Rect;
 import android.os.Bundle;
 import android.util.Log;
 
@@ -75,5 +76,13 @@ public class MiscUtils {
 		}
 
         return retstr;
+    }
+    
+    public static boolean rectanglesOverlap(int s1xLeft, int s1xRight, int s1yTop, int s1yBottom, int s2xLeft, int s2xRight, int s2yTop, int s2yBottom)
+    {
+    	Rect surface1 = new Rect(s1xLeft, s1yTop, s1xRight, s1yBottom);
+    	Rect surface2 = new Rect(s2xLeft, s2yTop, s2xRight, s2yBottom);
+    	
+    	return Rect.intersects(surface1, surface2);    		
     }
 }

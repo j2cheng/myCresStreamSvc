@@ -45,6 +45,7 @@ public class CommandParser {
         YLOC,
         W, 
         H,
+        Z,
         //HDMI IN 
         HDMIIN_SYNC_DETECTED,
         HDMIIN_INTERLACED,
@@ -179,6 +180,7 @@ public class CommandParser {
         sb.append("YLOC = (y position)\r\n");
         sb.append("W (= window width)\r\n");
         sb.append("H (= window height)\r\n");
+        sb.append("Z = (z order, higher z on top)\r\n");
         
         sb.append("STATISTICS_ENABLE (=true)\r\n");
         sb.append("STATISTICS_DISABLE (=true)\r\n");
@@ -289,6 +291,9 @@ public class CommandParser {
             case H:
                 cmd = new DestHeightCommand(cmdRx, arg, idx); 
                 break;
+            case Z:
+            	cmd = new DestZOrderCommand(cmdRx, arg, idx);
+            	break;
             case HDMIIN_SYNC_DETECTED:
                 cmd = new InSyncCommand(cmdRx, arg); 
                 break;

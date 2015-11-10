@@ -197,6 +197,10 @@ public class CommandReceiver {
         ctl.setWindowSizeH(h, sessId);
     }
     
+    public void setDestZOrder(int z, int sessId){
+    	ctl.setWindowSizeZ(z, sessId);
+    }
+    
     public void setStatisticsEnable(boolean flag, int sessId){
     	if(flag)
     		ctl.setStatistics(flag, sessId);
@@ -440,6 +444,10 @@ public class CommandReceiver {
     
     public String getDestHeight(int sessId){
         return Integer.toString(ctl.userSettings.getH(sessId));
+    }
+    
+    public String getDestZOrder(int sessId){
+    	return Integer.toString(ctl.userSettings.getZ(sessId));
     }
     
     public String getDeviceMode(int sessId){
