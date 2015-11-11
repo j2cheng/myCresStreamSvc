@@ -955,10 +955,6 @@ public class CresStreamCtrl extends Service {
                 }
             	restartRequired[sessionId] = true;
             }
-            
-            // Since we are switching device modes, clear out stream url (Bug 100790)
-            userSettings.setServerUrl("", sessionId);
-            sockTask.SendDataToAllClients("STREAMURL=");
         }
     }
     
@@ -1623,6 +1619,10 @@ public class CresStreamCtrl extends Service {
 		        restartRequired[sessionId]=false;
 		        hm2.get(userSettings.getMode(sessionId)).executeStop(sessionId, fullStop);
 		        // device state will be set in stop callback
+		        
+		        // Since we are stopping, clear out stream url (Bug 103801)
+	            userSettings.setServerUrl("", sessionId);
+	            sockTask.SendDataToAllClients("STREAMURL=");
 	    	}
 	    	finally
 	    	{
