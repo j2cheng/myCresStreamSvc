@@ -302,7 +302,28 @@ public class CresStreamCtrl extends Service {
             
             //Input Streamout Config
             if (useGstreamer)
-            	streamPlay = new StreamIn(new GstreamIn(CresStreamCtrl.this));
+            {
+            	// If mediaserver is in bad state this could get stuck
+            	final CountDownLatch latch = new CountDownLatch(1);
+            	Thread startGstreamerThread = new Thread(new Runnable() {
+            		public void run() {
+            			streamPlay = new StreamIn(new GstreamIn(CresStreamCtrl.this));
+            			latch.countDown();
+            		}
+            	});
+            	startGstreamerThread.start();
+            	
+            	boolean successfulStart = true; //indicates that there was no time out condition
+            	try { successfulStart = latch.await(3000, TimeUnit.MILLISECONDS); }
+            	catch (InterruptedException ex) { ex.printStackTrace(); }
+            	
+            	// Library failed to load kill mediaserver and restart txrxservice
+            	if (!successfulStart)
+            	{
+            		RecoverMediaServer();
+            		RecoverTxrxService();
+            	}
+            }
             else
             	streamPlay = new StreamIn(new NstreamIn(CresStreamCtrl.this));
             
