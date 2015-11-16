@@ -171,6 +171,11 @@ public class GstreamIn implements StreamInStrategy, SurfaceHolder.Callback {
 	}
     
     public void updateStreamStatus(int streamStateEnum, int sessionId){
+    	// Send stream url again on start fb
+    	if (streamStateEnum == CresStreamCtrl.StreamState.STARTED.getValue())
+    	{
+    		streamCtl.sockTask.SendDataToAllClients(String.format("STREAMURL%d=%s", sessionId, streamCtl.userSettings.getServerUrl(sessionId)));
+    	}
     	streamCtl.SendStreamState(StreamState.getStreamStateFromInt(streamStateEnum), sessionId); 
 	}
     
