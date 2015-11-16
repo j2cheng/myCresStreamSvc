@@ -47,7 +47,8 @@ public class CresCamera {
 				}
 			}
 			
-			if (mSetHdmiInputStatus)
+			// Always set Ducati up with resolution info
+//			if (mSetHdmiInputStatus)
 				getHdmiInputStatus();
 			
 			return;
