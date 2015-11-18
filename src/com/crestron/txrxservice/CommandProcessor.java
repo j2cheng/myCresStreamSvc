@@ -1380,6 +1380,42 @@ class StreamOutAudioChannelsCommand implements CommandIf {
         }
 }
 
+class StreamOutRtspStreamFileName implements CommandIf {
+    CommandReceiver launch;
+    String msg;
+
+    public StreamOutRtspStreamFileName(CommandReceiver launch, String arg) {
+        this.launch = launch;
+        this.msg = arg;
+    }
+
+    @Override
+        public void execute() {
+            launch.setRtspStreamFileName(msg);
+        }
+        public String getFeedbackMsg() {
+            return launch.getRtspStreamFileName();
+        }
+}
+
+class StreamOutRtspSessionName implements CommandIf {
+    CommandReceiver launch;
+    String msg;
+    
+    public StreamOutRtspSessionName(CommandReceiver launch, String arg) {
+        this.launch = launch;
+        this.msg = arg;
+    }
+    
+    @Override
+        public void execute() {
+            launch.setRtspSessionName(msg);
+        }
+        public String getFeedbackMsg() {
+            return launch.getRtspSessionName();
+        }
+}
+
 class StreamStateCommand implements CommandIf {
     CommandReceiver launch;
     String msg;

@@ -1756,9 +1756,9 @@ public class CresStreamCtrl extends Service {
             proto = "rtsp";
             port = userSettings.getRtspPort(sessId);
             l_ipaddr = userSettings.getDeviceIp();
-            file = "/live.sdp";
+            file = userSettings.getRtspStreamFileName();;
 
-            url.append(proto).append("://").append(l_ipaddr).append(":").append(port).append(file);
+            url.append(proto).append("://").append(l_ipaddr).append(":").append(port).append("/").append(file);
             Log.d(TAG, "URL is "+url.toString());
         }else
             url.append(userSettings.getStreamOutUrl(sessId));

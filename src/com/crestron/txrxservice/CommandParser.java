@@ -86,6 +86,8 @@ public class CommandParser {
         STREAMOUT_ASPECT_RATIO,
         STREAMOUT_AUDIO_FORMAT,
         STREAMOUT_AUDIO_CHANNELS,
+        STREAMOUT_RTSP_STREAM_FILENAME,
+        STREAMOUT_RTSP_SESSION_NAME,
         //STREAMING
         PROCESSING_FB,
         DEVICE_READY_FB,
@@ -185,6 +187,8 @@ public class CommandParser {
         sb.append("STATISTICS_ENABLE (=true)\r\n");
         sb.append("STATISTICS_DISABLE (=true)\r\n");
         sb.append("NEW_SINK(=true)\r\n");
+        sb.append("RTSP_STREAM_FILENAME(=)\r\n");
+        sb.append("RTSP_SESSION_NAME(=)\r\n");
 
         sb.append("UPDATEREQUEST\r\nType COMMAND for Query |streamstate to know status\r\n");
         
@@ -404,6 +408,12 @@ public class CommandParser {
                 break;
             case STREAMOUT_AUDIO_CHANNELS:
             	cmd = new StreamOutAudioChannelsCommand(cmdRx, arg); 
+                break; 
+            case STREAMOUT_RTSP_STREAM_FILENAME:
+            	cmd = new StreamOutRtspStreamFileName(cmdRx, arg); 
+                break; 
+            case STREAMOUT_RTSP_SESSION_NAME:
+            	cmd = new StreamOutRtspSessionName(cmdRx, arg); 
                 break; 
             //STREAMING
             case PROCESSING_FB:

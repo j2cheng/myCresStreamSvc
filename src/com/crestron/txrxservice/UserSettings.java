@@ -191,6 +191,8 @@ public class UserSettings
 	private int streamOutAspectRatio;
 	private int streamOutAudioFormat;
 	private int streamOutAudioChannels;
+	private String rtspStreamFileName;
+	private String rtspSessionName;
 	
 	// HDMI OUT
 	private boolean hdmiOutForceHdcp;
@@ -246,6 +248,8 @@ public class UserSettings
     	hdmiOutForceHdcp 	= false;
     	initiatorAddress 	= "";
     	osdText 			= "";
+	rtspStreamFileName      = "test";
+	rtspSessionName         = "";
 	}
 	
 	public String getDeviceIp() {
@@ -651,6 +655,22 @@ public class UserSettings
 		this.streamOutAudioChannels = streamOutAudioChannels;
 	}
 	
+        public void SetRtspStreamFileName(String fileName){
+            rtspStreamFileName      = fileName;
+        }
+
+	public String getRtspStreamFileName() {
+		return rtspStreamFileName;
+	}
+
+        public void SetRtspSessionName(String sessionName){
+            rtspSessionName         = sessionName;
+        }
+
+	public String getRtspSessionName() {
+		return rtspSessionName;
+	}
+
 	public boolean isHdmiOutForceHdcp() {
 		return hdmiOutForceHdcp;
 	}

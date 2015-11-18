@@ -159,6 +159,14 @@ public class CommandReceiver {
         ctl.SetPasswd(passwd, sessId);
     }
 
+    public void setRtspStreamFileName(String fileName){
+        ctl.userSettings.SetRtspStreamFileName(fileName);
+    }
+
+    public void setRtspSessionName(String sessionName){
+        ctl.userSettings.SetRtspSessionName(sessionName);
+    }
+
     public void setStreamUrl(String uri, int sessId){
     	if (ctl.userSettings.getMode(sessId) == DeviceMode.STREAM_IN.ordinal())
     		ctl.setStreamInUrl(uri, sessId);
@@ -362,6 +370,14 @@ public class CommandReceiver {
     public String getHdcpFb() {
     	ctl.mForceHdcpStatusUpdate = true;
     	return "TRUE";
+    }
+
+    public String getRtspStreamFileName() {
+        return ctl.userSettings.getRtspStreamFileName();
+    }
+    
+    public String getRtspSessionName(){
+        return ctl.userSettings.getRtspSessionName();
     }
 
     public String getProcessingStats(){
