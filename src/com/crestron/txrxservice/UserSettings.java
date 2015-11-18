@@ -218,7 +218,7 @@ public class UserSettings
         xloc 				= new int[]{0,0};
         yloc				= new int[]{0,0};
         encodingResolution	= new int[] {0, 0};
-        encodingFramerate	= new int[] {30, 30};
+        encodingFramerate	= new int[] {60, 60};
         bitrate				= new int[]{25000, 25000}; 
         //mode 	= mode.RTSP;//RTSP;
         sessionInitiation 	= new int[] {0, 0};
