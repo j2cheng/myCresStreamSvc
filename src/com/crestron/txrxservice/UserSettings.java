@@ -12,121 +12,121 @@ public class UserSettings
 {
 	private final int CurrentVersionNumber = 1;
 	public enum VideoEncProfile 
-    {
+	{
 		BP(1), MP(2), HP(8);
-    	
-        private final int value;
 
-        VideoEncProfile(int value) 
-        {
-            this.value = value;
-        }
+		private final int value;
 
-        public int getVEncProfile() 
-        {
-            return value;
-        }
-        
-        public int getVEncProfileUserEnum() 
-        {
-            // values from spreadsheet
-        	switch (value) {
-        	case 8:
-        		return 0;	//High
-        	case 2:
-        		return 1;	//Main
-        	case 1:
-        		return 2;	//Baseline
-        	default:
-        		return -1;	//Error
-        	}
-        }
-        
-        public static VideoEncProfile fromInteger(int i) 
-        {
-        	// values from spreadsheet
-        	switch (i) {
-        	case 0:
-        		return HP;
-        	case 1:
-        		return MP;
-        	case 2:
-        	default:
-        		return BP;
-        	}
-        }
-    }
-	
-//	public enum SessionInitiation 
-//    {
-//    	ByReceiver(0),
-//    	ByTransmitter(1),
-//    	MulticastViaRTSP(2),
-//    	MulticastViaUDP(3),
-//
-//    	// Do not add anything after the Last state
-//    	LAST(4);
-//    	
-//        private final int value;
-//
-//        SessionInitiation(int value) 
-//        {
-//            this.value = value;
-//        }
-//
-//        public int getValue() 
-//        {
-//            return value;
-//        }
-//        public static String getStringValueFromInt(int i) 
-//        {
-//            for (StreamState state : StreamState.values()) 
-//            {
-//                if (state.getValue() == i) 
-//                {
-//                    return state.toString();
-//                }
-//            }
-//            return ("Invalid State.");
-//        }
-//    } 
-//	
-//	public enum TransportMode 
-//    {
-//    	RTP(0),
-//    	TsOverRtp(1),
-//    	TsOverUdp(2),
-//    	
-//    	// Do not add anything after the Last state
-//    	LAST(3);
-//    	
-//        private final int value;
-//
-//        TransportMode(int value) 
-//        {
-//            this.value = value;
-//        }
-//
-//        public int getValue() 
-//        {
-//            return value;
-//        }
-//        public static String getStringValueFromInt(int i) 
-//        {
-//            for (StreamState state : StreamState.values()) 
-//            {
-//                if (state.getValue() == i) 
-//                {
-//                    return state.toString();
-//                }
-//            }
-//            return ("Invalid State.");
-//        }
-//    }
+		VideoEncProfile(int value) 
+		{
+			this.value = value;
+		}
+
+		public int getVEncProfile() 
+		{
+			return value;
+		}
+
+		public int getVEncProfileUserEnum() 
+		{
+			// values from spreadsheet
+			switch (value) {
+			case 8:
+				return 0;	//High
+			case 2:
+				return 1;	//Main
+			case 1:
+				return 2;	//Baseline
+			default:
+				return -1;	//Error
+			}
+		}
+
+		public static VideoEncProfile fromInteger(int i) 
+		{
+			// values from spreadsheet
+			switch (i) {
+			case 0:
+				return HP;
+			case 1:
+				return MP;
+			case 2:
+			default:
+				return BP;
+			}
+		}
+	}
+
+	//	public enum SessionInitiation 
+	//    {
+	//    	ByReceiver(0),
+	//    	ByTransmitter(1),
+	//    	MulticastViaRTSP(2),
+	//    	MulticastViaUDP(3),
+	//
+	//    	// Do not add anything after the Last state
+	//    	LAST(4);
+	//    	
+	//        private final int value;
+	//
+	//        SessionInitiation(int value) 
+	//        {
+	//            this.value = value;
+	//        }
+	//
+	//        public int getValue() 
+	//        {
+	//            return value;
+	//        }
+	//        public static String getStringValueFromInt(int i) 
+	//        {
+	//            for (StreamState state : StreamState.values()) 
+	//            {
+	//                if (state.getValue() == i) 
+	//                {
+	//                    return state.toString();
+	//                }
+	//            }
+	//            return ("Invalid State.");
+	//        }
+	//    } 
+	//	
+	//	public enum TransportMode 
+	//    {
+	//    	RTP(0),
+	//    	TsOverRtp(1),
+	//    	TsOverUdp(2),
+	//    	
+	//    	// Do not add anything after the Last state
+	//    	LAST(3);
+	//    	
+	//        private final int value;
+	//
+	//        TransportMode(int value) 
+	//        {
+	//            this.value = value;
+	//        }
+	//
+	//        public int getValue() 
+	//        {
+	//            return value;
+	//        }
+	//        public static String getStringValueFromInt(int i) 
+	//        {
+	//            for (StreamState state : StreamState.values()) 
+	//            {
+	//                if (state.getValue() == i) 
+	//                {
+	//                    return state.toString();
+	//                }
+	//            }
+	//            return ("Invalid State.");
+	//        }
+	//    }
 
 	//Version info
 	private int versionNum;
-	
+
 	// MultiWindow joins	
 	private int[] mode;
 	private int[] xloc;
@@ -157,7 +157,7 @@ public class UserSettings
 	private int[] encodingLevel; // TODO: this should be local to streamIn.java
 	private boolean[] statisticsEnable;
 	private boolean[] statisticsDisable;
-	
+
 	// Top Slot
 	private int deviceReady; // TODO: needed?	
 	private boolean audioMute;
@@ -167,7 +167,7 @@ public class UserSettings
 	private int bass;
 	private int treble;
 	private String initiatorAddress;
-	
+
 	// OSD Slot
 	private boolean osdEnable;
 	private boolean osdDisable;
@@ -175,7 +175,7 @@ public class UserSettings
 	private int osdXLocation;
 	private int osdYLocation;
 	private String osdText;
-	
+
 	// STREAM IN
 	private int streamInHorizontalResolution;
 	private int streamInVerticalResolution;
@@ -184,7 +184,7 @@ public class UserSettings
 	private int streamInAudioFormat;
 	private int streamInAudioChannels;
 
-    // STREAM OUT
+	// STREAM OUT
 	private int streamOutHorizontalResolution;
 	private int streamOutVerticalResolution;
 	private int streamOutFPS;
@@ -193,7 +193,7 @@ public class UserSettings
 	private int streamOutAudioChannels;
 	private String rtspStreamFileName;
 	private String rtspSessionName;
-	
+
 	// HDMI OUT
 	private boolean hdmiOutForceHdcp;
 
@@ -206,56 +206,56 @@ public class UserSettings
 
 	public UserSettings()
 	{
-        MiscUtils.getDeviceIpAddr();
-        deviceIp 			= MiscUtils.matcher.group();
-        versionNum 			= CurrentVersionNumber;
+		MiscUtils.getDeviceIpAddr();
+		deviceIp 			= MiscUtils.matcher.group();
+		versionNum 			= CurrentVersionNumber;
 		rtspPort 			= new int[]{ 554, 554};		
-        tsPort 				= new int[]{ 4570, 4570};		
-        rtpVideoPort 		= new int[]{ 49170, 49170};
-        rtpAudioPort 		= new int[]{ 49172, 49172};
-        mode				= new int[]{0,0};
-        w 					= new int[]{1920,1920};
-        h					= new int[]{1080,1080};
-        z					= new int[]{1, 2};
-        xloc 				= new int[]{0,0};
-        yloc				= new int[]{0,0};
-        encodingResolution	= new int[] {0, 0};
-        encodingFramerate	= new int[] {60, 60};
-        bitrate				= new int[]{25000, 25000}; 
-        //mode 	= mode.RTSP;//RTSP;
-        sessionInitiation 	= new int[] {0, 0};
-        streamProfile 		= new VideoEncProfile[] {VideoEncProfile.HP, VideoEncProfile.HP};
-        encodingLevel		= new int[] {8192, 8192};
-        multicastAddress 	= new String[] {"0.0.0.0", "0.0.0.0"};
-        streamOutUrl 	 	= new String[]{"", ""};
-        streamInUrl			= new String[]{"", ""};
-        userName 			= new String[] {"", ""};
-        password   			= new String[] {"", ""};
-        streamState			= new CresStreamCtrl.StreamState[] {StreamState.STOPPED, StreamState.STOPPED};
-        userRequestedStreamState = new CresStreamCtrl.StreamState[] {StreamState.STOPPED, StreamState.STOPPED};
-        transportMode		= new int[] {0, 0};
-        passwordEnable		= new boolean[] {false, false};
-        passwordDisable		= new boolean[] {true, true};
-        streamingBuffer		= new int[] {1000, 1000};
-        statisticsEnable	= new boolean[] {false, false};
-    	statisticsDisable	= new boolean[] {true, true};
-    	volume 				= 100;
-    	userRequestedVolume = 100;
-    	useNewSink			= new boolean[] {true, true};
-    	audioMute			= false;
-    	audioUnmute			= true;
-    	ravaMode			= false;
-    	hdmiOutForceHdcp 	= false;
-    	initiatorAddress 	= "";
-    	osdText 			= "";
-	rtspStreamFileName      = "test";
-	rtspSessionName         = "";
+		tsPort 				= new int[]{ 4570, 4570};		
+		rtpVideoPort 		= new int[]{ 49170, 49170};
+		rtpAudioPort 		= new int[]{ 49172, 49172};
+		mode				= new int[]{0,0};
+		w 					= new int[]{1920,1920};
+		h					= new int[]{1080,1080};
+		z					= new int[]{1, 2};
+		xloc 				= new int[]{0,0};
+		yloc				= new int[]{0,0};
+		encodingResolution	= new int[] {0, 0};
+		encodingFramerate	= new int[] {60, 60};
+		bitrate				= new int[]{25000, 25000}; 
+		//mode 	= mode.RTSP;//RTSP;
+		sessionInitiation 	= new int[] {0, 0};
+		streamProfile 		= new VideoEncProfile[] {VideoEncProfile.HP, VideoEncProfile.HP};
+		encodingLevel		= new int[] {8192, 8192};
+		multicastAddress 	= new String[] {"0.0.0.0", "0.0.0.0"};
+		streamOutUrl 	 	= new String[]{"", ""};
+		streamInUrl			= new String[]{"", ""};
+		userName 			= new String[] {"", ""};
+		password   			= new String[] {"", ""};
+		streamState			= new CresStreamCtrl.StreamState[] {StreamState.STOPPED, StreamState.STOPPED};
+		userRequestedStreamState = new CresStreamCtrl.StreamState[] {StreamState.STOPPED, StreamState.STOPPED};
+		transportMode		= new int[] {0, 0};
+		passwordEnable		= new boolean[] {false, false};
+		passwordDisable		= new boolean[] {true, true};
+		streamingBuffer		= new int[] {1000, 1000};
+		statisticsEnable	= new boolean[] {false, false};
+		statisticsDisable	= new boolean[] {true, true};
+		volume 				= 100;
+		userRequestedVolume = 100;
+		useNewSink			= new boolean[] {true, true};
+		audioMute			= false;
+		audioUnmute			= true;
+		ravaMode			= false;
+		hdmiOutForceHdcp 	= false;
+		initiatorAddress 	= "";
+		osdText 			= "";
+		rtspStreamFileName	= "live.sdp";
+		rtspSessionName		= "CrestronStreamingSession";
 	}
-	
+
 	public String getDeviceIp() {
 		return deviceIp;
 	}
-	
+
 	public void setDeviceIp(String newIpAddr) {
 		deviceIp = newIpAddr;
 	}
@@ -263,7 +263,7 @@ public class UserSettings
 	public int getMode(int sessId) {
 		return mode[sessId];
 	}
-	
+
 	public void setMode(int mode, int sessId) {
 		this.mode[sessId] = mode;
 	}
@@ -299,11 +299,11 @@ public class UserSettings
 	public void setH(int h, int sessId) {
 		this.h[sessId] = h;
 	}
-	
+
 	public int getZ(int sessId) { 
 		return z[sessId];
 	}
-	
+
 	public void setZ(int z, int sessId) {
 		this.z[sessId] = z;
 	}
@@ -315,17 +315,17 @@ public class UserSettings
 	public void setStreamState(CresStreamCtrl.StreamState streamState, int sessId) {
 		this.streamState[sessId] = streamState;
 	}
-	
+
 	public CresStreamCtrl.StreamState getUserRequestedStreamState(int sessId) {
 		return userRequestedStreamState[sessId];
 	}
-	
+
 	public void setUserRequestedStreamState(CresStreamCtrl.StreamState streamState, int sessId) {
 		this.userRequestedStreamState[sessId] = streamState;
 		synchronized ( CresStreamCtrl.saveSettingsPendingUpdate ) {  
-        	CresStreamCtrl.saveSettingsUpdateArrived = true;        
-            CresStreamCtrl.saveSettingsPendingUpdate.notify();
-        }
+			CresStreamCtrl.saveSettingsUpdateArrived = true;        
+			CresStreamCtrl.saveSettingsPendingUpdate.notify();
+		}
 	}
 
 	public int getDeviceReady() {
@@ -431,7 +431,7 @@ public class UserSettings
 	public void setVolume(int volume) {
 		this.volume = volume;
 	}
-	
+
 	public int getUserRequestedVolume() {
 		return userRequestedVolume;
 	}
@@ -439,7 +439,7 @@ public class UserSettings
 	public void setUserRequestedVolume() {
 		setUserRequestedVolume(this.volume);
 	}
-	
+
 	public void setUserRequestedVolume(int volume) {
 		this.userRequestedVolume = volume;
 	}
@@ -466,11 +466,11 @@ public class UserSettings
 
 	public void setStreamInUrl(String url, int sessId) {
 		this.streamInUrl[sessId] = url;
-		
+
 		if (this.mode[sessId] == DeviceMode.STREAM_IN.ordinal())
 			StreamIn.setServerUrl(url, sessId);		
 	}
-	
+
 	public String getStreamOutUrl(int sessId) {
 		return streamOutUrl[sessId];
 	}
@@ -654,18 +654,18 @@ public class UserSettings
 	public void setStreamOutAudioChannels(int streamOutAudioChannels) {
 		this.streamOutAudioChannels = streamOutAudioChannels;
 	}
-	
-        public void SetRtspStreamFileName(String fileName){
-            rtspStreamFileName      = fileName;
-        }
+
+	public void SetRtspStreamFileName(String fileName){
+		rtspStreamFileName      = fileName;
+	}
 
 	public String getRtspStreamFileName() {
 		return rtspStreamFileName;
 	}
 
-        public void SetRtspSessionName(String sessionName){
-            rtspSessionName         = sessionName;
-        }
+	public void SetRtspSessionName(String sessionName){
+		rtspSessionName         = sessionName;
+	}
 
 	public String getRtspSessionName() {
 		return rtspSessionName;
@@ -674,7 +674,7 @@ public class UserSettings
 	public boolean isHdmiOutForceHdcp() {
 		return hdmiOutForceHdcp;
 	}
-	
+
 	public void setHdmiOutForceHdcp(boolean enabled) {
 		this.hdmiOutForceHdcp = enabled;
 	}
@@ -685,7 +685,7 @@ public class UserSettings
 
 	public void setStatisticsEnable(boolean statisticsEnable, int sessId) {
 		this.statisticsEnable[sessId] = statisticsEnable;
-		
+
 		if ((this.mode[sessId] == DeviceMode.STREAM_IN.ordinal()) && (statisticsEnable))
 			StreamIn.setStatistics(statisticsEnable, sessId);
 	}
@@ -696,7 +696,7 @@ public class UserSettings
 
 	public void setStatisticsDisable(boolean statisticsDisable, int sessId) {
 		this.statisticsDisable[sessId] = statisticsDisable;
-		
+
 		if ((this.mode[sessId] == DeviceMode.STREAM_IN.ordinal()) && (statisticsDisable))
 			StreamIn.setStatistics(!statisticsDisable, sessId);
 	}
@@ -744,11 +744,11 @@ public class UserSettings
 	public boolean isNewSink(int sessId) {
 		return useNewSink[sessId];
 	}
-	
+
 	public void setRavaMode(boolean enabled) {
 		this.ravaMode = enabled;
 	}
-	
+
 	public boolean isRavaMode() {
 		return ravaMode;
 	}
