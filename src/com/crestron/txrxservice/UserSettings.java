@@ -236,7 +236,7 @@ public class UserSettings
         transportMode		= new int[] {0, 0};
         passwordEnable		= new boolean[] {false, false};
         passwordDisable		= new boolean[] {true, true};
-        streamingBuffer		= new int[] {250, 250};
+        streamingBuffer		= new int[] {1000, 1000};
         statisticsEnable	= new boolean[] {false, false};
     	statisticsDisable	= new boolean[] {true, true};
     	volume 				= 100;
