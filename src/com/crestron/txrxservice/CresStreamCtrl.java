@@ -978,7 +978,22 @@ public class CresStreamCtrl extends Service {
             }
             
             // Since we are changing mode, clear out stream url fb only (Bug 103801)
-            sockTask.SendDataToAllClients(String.format("STREAMURL%d=", sessionId));
+            if (mode == DeviceMode.STREAM_OUT.ordinal())
+            {
+            	// Only clear if in by receiver or multicast via rtsp, if By transmitter send saved url 
+            	if ( (userSettings.getSessionInitiation(sessionId) == 0) || (userSettings.getSessionInitiation(sessionId) == 2) )			
+            		sockTask.SendDataToAllClients(String.format("STREAMURL%d=", sessionId));
+				else if (userSettings.getSessionInitiation(sessionId) == 1)
+					sockTask.SendDataToAllClients(String.format("STREAMURL%d=%s", sessionId, userSettings.getStreamOutUrl(sessionId)));
+            }
+            else if (mode == DeviceMode.STREAM_IN.ordinal())
+            {
+            	// By transmitter clear, else send saved url
+            	if (userSettings.getSessionInitiation(sessionId) == 1)
+            		sockTask.SendDataToAllClients(String.format("STREAMURL%d=", sessionId));
+            	else
+            		sockTask.SendDataToAllClients(String.format("STREAMURL%d=%s", sessionId, userSettings.getStreamInUrl(sessionId)));
+            }
         }
     }
     
@@ -1642,10 +1657,7 @@ public class CresStreamCtrl extends Service {
 		        pauseStatus="false";
 		        restartRequired[sessionId]=false;
 		        hm2.get(userSettings.getMode(sessionId)).executeStop(sessionId, fullStop);
-		        // device state will be set in stop callback	
-		        
-		        // Since we are stopping, clear out stream url fb only (Bug 103801)
-	            sockTask.SendDataToAllClients(String.format("STREAMURL%d=", sessionId));
+		        // device state will be set in stop callback
 	    	}
 	    	finally
 	    	{
@@ -1749,7 +1761,7 @@ public class CresStreamCtrl extends Service {
             url.append(proto).append("://").append(l_ipaddr).append(":").append(port).append(file);
             Log.d(TAG, "URL is "+url.toString());
         }else
-            url.append(userSettings.getServerUrl(sessId));
+            url.append(userSettings.getStreamOutUrl(sessId));
 
         return url.toString();
     }
@@ -1765,7 +1777,7 @@ public class CresStreamCtrl extends Service {
         updateWindow(sessId);
         showPreviewWindow(sessId);
         out_url = createStreamOutURL(sessId);
-        userSettings.setServerUrl(out_url, sessId);
+        userSettings.setStreamOutUrl(out_url, sessId);
 
         try {
             cam_streaming.setSessionIndex(sessId);
@@ -1783,6 +1795,10 @@ public class CresStreamCtrl extends Service {
 
     public void stopStreamOut(int sessId, boolean fullStop)
     {
+    	// If in streamout and in By Reciever(0) or Multicast RTSP (2) clear url on stop- Bug 103801
+    	if ( (userSettings.getSessionInitiation(sessId) == 0) || (userSettings.getSessionInitiation(sessId) == 2) )
+    		sockTask.SendDataToAllClients(String.format("STREAMURL%d=", sessId));
+    	
         cam_streaming.setSessionIndex(sessId);
         if (cam_streaming.getConfidencePreviewStatus() == true)
         	cam_streaming.stopConfidencePreview(sessId);
@@ -1885,7 +1901,7 @@ public class CresStreamCtrl extends Service {
 
     public void setStreamInUrl(String ap_url, int sessionId)
     {
-        userSettings.setServerUrl(ap_url, sessionId);
+        userSettings.setStreamInUrl(ap_url, sessionId);
 
         if(ap_url.startsWith("rtp://@"))
             streamPlay.setRtpOnlyMode( userSettings.getRtpVideoPort(sessionId),  userSettings.getRtpAudioPort(sessionId), userSettings.getDeviceIp(), sessionId);
@@ -1898,7 +1914,7 @@ public class CresStreamCtrl extends Service {
     
     public void setStreamOutUrl(String ap_url, int sessionId)
     {
-    	userSettings.setServerUrl(ap_url, sessionId);
+    	userSettings.setStreamOutUrl(ap_url, sessionId);
     	
     	if (userSettings.getMode(sessionId) == DeviceMode.STREAM_OUT.ordinal())
     		sockTask.SendDataToAllClients(String.format("STREAMURL%d=%s", sessionId, createStreamOutURL(sessionId)));
@@ -1907,7 +1923,12 @@ public class CresStreamCtrl extends Service {
     public String getStreamUrl(int sessId)
     {
         //return out_url;
-        return userSettings.getServerUrl(sessId);
+    	if (userSettings.getMode(sessId) == DeviceMode.STREAM_OUT.ordinal())
+    		return userSettings.getStreamOutUrl(sessId);
+    	else if (userSettings.getMode(sessId) == DeviceMode.STREAM_IN.ordinal())
+    		return userSettings.getStreamInUrl(sessId);
+    	else
+    		return "";
     }
 
     public void startStreamIn(int sessId)
@@ -2001,6 +2022,28 @@ public class CresStreamCtrl extends Service {
     public void setStatistics(boolean enabled, int sessId){
     	userSettings.setStatisticsEnable(enabled, sessId);
 		userSettings.setStatisticsDisable(!enabled, sessId);
+    }
+    
+    public void setSessionInitiation(int sessionInitiation, int sessionId)
+    {
+    	userSettings.setSessionInitiation(sessionInitiation, sessionId);
+    	
+    	if (userSettings.getMode(sessionId) == DeviceMode.STREAM_OUT.ordinal())
+		{
+    		// if by transmitter, send currently saved url, else clear
+    		if (userSettings.getSessionInitiation(sessionId) == 1)
+    			sockTask.SendDataToAllClients(String.format("STREAMURL%d=%s", sessionId, userSettings.getStreamOutUrl(sessionId)));
+    		else
+    			sockTask.SendDataToAllClients(String.format("STREAMURL%d=", sessionId));
+		}
+    	else if (userSettings.getMode(sessionId) == DeviceMode.STREAM_IN.ordinal())
+    	{
+    		// if not by transmitter send currently saved url, else clear
+    		if (userSettings.getSessionInitiation(sessionId) != 1)
+    			sockTask.SendDataToAllClients(String.format("STREAMURL%d=%s", sessionId, userSettings.getStreamInUrl(sessionId)));
+    		else
+    			sockTask.SendDataToAllClients(String.format("STREAMURL%d=", sessionId));
+    	}
     }
     
     public void resetStatistics(int sessId){

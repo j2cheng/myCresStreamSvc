@@ -154,7 +154,7 @@ public class CameraStreaming {
 		            else //Multicast via UDP or By Transmitter
 		            {
 		            	if (currentSessionInitiation == 1)	//By Transmitter
-		            		streamIp = streamCtl.userSettings.getServerUrl(idx);
+		            		streamIp = streamCtl.userSettings.getStreamOutUrl(idx);
 		            	else if (currentSessionInitiation == 3) //Multicast via UDP
 		            		streamIp = streamCtl.userSettings.getMulticastAddress(idx);
 		            	
@@ -337,7 +337,7 @@ public class CameraStreaming {
         else
         {
         	if (currentSessionInitiation == 1)	//By Transmitter
-        		streamIp = streamCtl.userSettings.getServerUrl(idx);
+        		streamIp = streamCtl.userSettings.getStreamOutUrl(idx);
         	else if (currentSessionInitiation == 3) //Multicast via UDP
         	{
         		streamIp = streamCtl.userSettings.getMulticastAddress(idx);

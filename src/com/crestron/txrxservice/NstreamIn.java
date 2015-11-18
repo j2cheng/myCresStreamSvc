@@ -73,7 +73,7 @@ public class NstreamIn implements StreamInStrategy, OnPreparedListener, OnComple
                 mediaPlayer[sessionId] = new MediaPlayer();
                 mediaPlayer[sessionId].setDisplay(streamCtl.getCresSurfaceHolder(sessionId));
                 //mediaPlayer.setDisplay(vidHolder);
-                String srcUrl = streamCtl.userSettings.getServerUrl(sessionId);
+                String srcUrl = streamCtl.userSettings.getStreamInUrl(sessionId);
                 mediaPlayer[sessionId].setDataSource(srcUrl);	
                 Log.d(TAG, "URL is "+srcUrl);
                 if(tcpInterleaveFlag[sessionId] && srcUrl.startsWith("rtsp://"))

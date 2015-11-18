@@ -146,7 +146,8 @@ public class UserSettings
 	private int[] encodingResolution; // TODO: make enum
 	private int[] encodingFramerate;
 	private int[] streamingBuffer;
-	private String[] serverUrl;
+	private String[] streamOutUrl;
+	private String[] streamInUrl;
 	private String[] multicastAddress;
 	private String[] userName;
 	private String[] password;
@@ -224,7 +225,8 @@ public class UserSettings
         streamProfile 		= new VideoEncProfile[] {VideoEncProfile.HP, VideoEncProfile.HP};
         encodingLevel		= new int[] {8192, 8192};
         multicastAddress 	= new String[] {"0.0.0.0", "0.0.0.0"};
-        serverUrl 	 		= new String[]{"", ""};
+        streamOutUrl 	 	= new String[]{"", ""};
+        streamInUrl			= new String[]{"", ""};
         userName 			= new String[] {"", ""};
         password   			= new String[] {"", ""};
         streamState			= new CresStreamCtrl.StreamState[] {StreamState.STOPPED, StreamState.STOPPED};
@@ -454,16 +456,24 @@ public class UserSettings
 		this.treble = treble;
 	}
 
-	public String getServerUrl(int sessId) {
-		return serverUrl[sessId];
+	public String getStreamInUrl(int sessId) {
+		return streamInUrl[sessId];
 	}
 
-	public void setServerUrl(String serverUrl, int sessId) {
-		this.serverUrl[sessId] = serverUrl;
+	public void setStreamInUrl(String url, int sessId) {
+		this.streamInUrl[sessId] = url;
 		
 		if (this.mode[sessId] == DeviceMode.STREAM_IN.ordinal())
-			StreamIn.setServerUrl(serverUrl, sessId);		
+			StreamIn.setServerUrl(url, sessId);		
 	}
+	
+	public String getStreamOutUrl(int sessId) {
+		return streamOutUrl[sessId];
+	}
+
+	public void setStreamOutUrl(String url, int sessId) {
+		this.streamOutUrl[sessId] = url;	
+	}	
 
 	public String getInitiatorAddress() {
 		return initiatorAddress;
