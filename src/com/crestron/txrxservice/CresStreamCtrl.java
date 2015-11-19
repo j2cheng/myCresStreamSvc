@@ -2026,23 +2026,26 @@ public class CresStreamCtrl extends Service {
     
     public void setSessionInitiation(int sessionInitiation, int sessionId)
     {
-    	userSettings.setSessionInitiation(sessionInitiation, sessionId);
-    	
-    	if (userSettings.getMode(sessionId) == DeviceMode.STREAM_OUT.ordinal())
-		{
-    		// if by transmitter, send currently saved url, else clear
-    		if (userSettings.getSessionInitiation(sessionId) == 1)
-    			sockTask.SendDataToAllClients(String.format("STREAMURL%d=%s", sessionId, userSettings.getStreamOutUrl(sessionId)));
-    		else
-    			sockTask.SendDataToAllClients(String.format("STREAMURL%d=", sessionId));
-		}
-    	else if (userSettings.getMode(sessionId) == DeviceMode.STREAM_IN.ordinal())
+    	if (sessionInitiation != userSettings.getSessionInitiation(sessionId))
     	{
-    		// if not by transmitter send currently saved url, else clear
-    		if (userSettings.getSessionInitiation(sessionId) != 1)
-    			sockTask.SendDataToAllClients(String.format("STREAMURL%d=%s", sessionId, userSettings.getStreamInUrl(sessionId)));
-    		else
-    			sockTask.SendDataToAllClients(String.format("STREAMURL%d=", sessionId));
+	    	userSettings.setSessionInitiation(sessionInitiation, sessionId);
+	    	
+	    	if (userSettings.getMode(sessionId) == DeviceMode.STREAM_OUT.ordinal())
+			{
+	    		// if by transmitter, send currently saved url, else clear
+	    		if (userSettings.getSessionInitiation(sessionId) == 1)
+	    			sockTask.SendDataToAllClients(String.format("STREAMURL%d=%s", sessionId, userSettings.getStreamOutUrl(sessionId)));
+	    		else
+	    			sockTask.SendDataToAllClients(String.format("STREAMURL%d=", sessionId));
+			}
+	    	else if (userSettings.getMode(sessionId) == DeviceMode.STREAM_IN.ordinal())
+	    	{
+	    		// if not by transmitter send currently saved url, else clear
+	    		if (userSettings.getSessionInitiation(sessionId) != 1)
+	    			sockTask.SendDataToAllClients(String.format("STREAMURL%d=%s", sessionId, userSettings.getStreamInUrl(sessionId)));
+	    		else
+	    			sockTask.SendDataToAllClients(String.format("STREAMURL%d=", sessionId));
+	    	}
     	}
     }
     
