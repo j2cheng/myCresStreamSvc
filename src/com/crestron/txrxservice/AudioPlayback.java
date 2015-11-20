@@ -90,7 +90,7 @@ public class AudioPlayback
 //        	                        mPlayer.flush();
         	                        if (initVolumePending)
         	                        {
-        	                        	setVolume(mStreamCtl.userSettings.getVolume());
+        	                        	setVolume((int)mStreamCtl.userSettings.getVolume());
         	                        	initVolumePending = false;
         	                        }
                             	}

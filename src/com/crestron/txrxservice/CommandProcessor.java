@@ -274,7 +274,7 @@ class SetVolumeCommand implements CommandIf {
 
     @Override
         public void execute() {
-    		int volume = Integer.valueOf(msg);
+    		double volume = Double.valueOf(msg);
             launch.setVolume(volume);
         }
         public String getFeedbackMsg() {

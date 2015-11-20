@@ -93,7 +93,7 @@ public class CameraStreaming {
 		            stopRecording(false);
 		        Log.d(TAG, "startRecording");
 		        
-		        streamCtl.setSystemVolume(streamCtl.userSettings.getVolume());
+		        streamCtl.setSystemVolume((int)streamCtl.userSettings.getVolume());
 		        
 		        boolean isDirExists = true;
 		        File path = new File("/dev/shm/crestron/CresStreamSvc");

@@ -1470,7 +1470,7 @@ public class CresStreamCtrl extends Service {
     	streamPlay.setVolume(volume, sessionId);
     }
     
-    public void setStreamVolume(int volume) 
+    public void setStreamVolume(double volume) 
     {
     	//Volume of -1 means setting mute
     	//If user sets volume while in muted mode, save new volume in previousVolume
@@ -1492,15 +1492,15 @@ public class CresStreamCtrl extends Service {
 	    	for (int sessionId = 0; sessionId < NumOfSurfaces; sessionId++)
 	    	{
 	    		if (userSettings.getMode(sessionId) == DeviceMode.PREVIEW.ordinal())
-	    			setPreviewVolume(volume);
+	    			setPreviewVolume((int)volume);
 	    		else if (userSettings.getMode(sessionId) == DeviceMode.STREAM_IN.ordinal())
-	    			setStreamInVolume(volume, sessionId);
+	    			setStreamInVolume((int)volume, sessionId);
 	    		else if (userSettings.getMode(sessionId) == DeviceMode.STREAM_OUT.ordinal())
 	    		{
 	    			if (userSettings.getStreamState(sessionId) == StreamState.CONFIDENCEMODE)
-	    				setPreviewVolume(volume);
+	    				setPreviewVolume((int)volume);
 	    			else
-	    				setSystemVolume(volume);
+	    				setSystemVolume((int)volume);
 	    		}
 	    	}
     	}

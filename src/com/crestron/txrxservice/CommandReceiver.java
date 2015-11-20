@@ -124,7 +124,7 @@ public class CommandReceiver {
     	ctl.userSettings.setEncodingResolution(resID, sessId);
     }
     
-    public void setVolume (int volume){
+    public void setVolume (double volume){
     		ctl.setStreamVolume(volume);
     }
     public void setMute (boolean flag){

@@ -162,8 +162,8 @@ public class UserSettings
 	private int deviceReady; // TODO: needed?	
 	private boolean audioMute;
 	private boolean audioUnmute;
-	private int volume;
-	private int userRequestedVolume;
+	private double volume;
+	private double userRequestedVolume;
 	private int bass;
 	private int treble;
 	private String initiatorAddress;
@@ -239,8 +239,8 @@ public class UserSettings
 		streamingBuffer		= new int[] {1000, 1000};
 		statisticsEnable	= new boolean[] {false, false};
 		statisticsDisable	= new boolean[] {true, true};
-		volume 				= 100;
-		userRequestedVolume = 100;
+		volume 				= 100.0;
+		userRequestedVolume = 100.0;
 		useNewSink			= new boolean[] {true, true};
 		audioMute			= false;
 		audioUnmute			= true;
@@ -424,15 +424,15 @@ public class UserSettings
 		this.transportMode[sessId] = transportMode;
 	}
 
-	public int getVolume() {
+	public double getVolume() {
 		return volume;
 	}
 
-	public void setVolume(int volume) {
+	public void setVolume(double volume) {
 		this.volume = volume;
 	}
 
-	public int getUserRequestedVolume() {
+	public double getUserRequestedVolume() {
 		return userRequestedVolume;
 	}
 
@@ -440,7 +440,7 @@ public class UserSettings
 		setUserRequestedVolume(this.volume);
 	}
 
-	public void setUserRequestedVolume(int volume) {
+	public void setUserRequestedVolume(double volume) {
 		this.userRequestedVolume = volume;
 	}
 

@@ -286,7 +286,7 @@ public class GstreamIn implements StreamInStrategy, SurfaceHolder.Callback {
     	setStatistics(streamCtl.userSettings.isStatisticsEnable(sessionId), sessionId);
     	setUserName(streamCtl.userSettings.getUserName(sessionId), sessionId);
     	setPassword(streamCtl.userSettings.getPassword(sessionId), sessionId);
-    	setVolume(streamCtl.userSettings.getVolume(), sessionId);
+    	setVolume((int)streamCtl.userSettings.getVolume(), sessionId);
     	setNewSink(streamCtl.userSettings.isNewSink(sessionId), sessionId);
     	setAudioDrop(streamCtl.userSettings.isRavaMode(), sessionId);
     }
