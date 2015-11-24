@@ -28,6 +28,21 @@ GST_DEBUG_CATEGORY_STATIC (debug_category);
 #define DEFAULT_MAX_STRING_BUFFER 5000//in ms
 //#define INSERT_SF_SINK 1
 ///////////////////////////////////////////////////////////////////////////////
+#define TIMEOUT_TIME 1000   //for 1s
+#define MAX_NAMESIZE 40
+#define MAX_TIMESTAMPARRAY 1000
+
+typedef struct
+{
+    guint m_type;
+    GstElement *m_filter;
+    guint overruncount;
+    guint underruncount;
+    gchar m_queue_name[MAX_NAMESIZE];
+    guint m_queue_probId;
+    GstClockTime m_Timestamp[MAX_TIMESTAMPARRAY];
+    guint m_TsIndex;
+} CRESTELEINFO;
 
 typedef struct
 {
@@ -56,6 +71,7 @@ typedef struct _CREGSTREAM
 	GstElement *element_fake_dec;
 	GstElement *element_valve_v;
 	GstElement *element_valve_a;
+	GstElement *element_audiorate;
 	
 	GstElement *element_zero;	
 	GstElement *element_av [MAX_ELEMENTS];
@@ -89,8 +105,11 @@ typedef struct _CREGSTREAM
 	void* surface;
 	int amcviddec_ts_offset;
 	int audiosink_ts_offset;	
+    bool dropAudio;
 
-	bool dropAudio;
+	GSource * g_timer_source;
+	guint m_elem_prob_id[MAX_ELEMENTS];
+	CRESTELEINFO videoQueues[MAX_ELEMENTS];//shared with audio
 } CREGSTREAM;
 
 /* Structure to contain all our information, so we can pass it to callbacks */
@@ -107,9 +126,9 @@ typedef struct _CustomData
 enum
   {
       FIELD_DEBUG_BLOCK_AUDIO = 1,                     //1
-      FIELD_DEBUG_INSERT_PROBE ,
-      FIELD_DEBUG_AMC_PRINT_TS ,
-      FIELD_DEBUG_DROP_BEFORE_PARSE ,
+      FIELD_DEBUG_INSERT_VIDEO_PROBE ,
+      FIELD_DEBUG_PRINT_PROBE_TS ,
+      FIELD_DEBUG_SET_PIPELINE_TO_PAUSE ,
       FIELD_DEBUG_FLUSH_PIPELINE ,
       FIELD_DEBUG_SET_AMCVIDDEC_DEBUG_LEVEL ,
       FIELD_DEBUG_SET_VIDEODECODER_DEBUG_LEVEL ,
@@ -119,6 +138,16 @@ enum
       FIELD_DEBUG_SET_AMCVIDDEC_TS_OFFSET,
       FIELD_DEBUG_PRINT_AUDIOSINK_PROPERTIES,
       FIELD_DEBUG_PRINT_ELEMENT_PROPERTY,
+      FIELD_DEBUG_PRINT_A_V_DEBUG,
+      FIELD_DEBUG_INSERT_TIME_CB,
+      FIELD_DEBUG_NOT_PROCESS_RTCP,
+      FIELD_DEBUG_SET_BASETIME_OFFSET,
+      FIELD_DEBUG_SET_SEEK_EVENT,
+      FIELD_DEBUG_SET_AUDIO_PAD_OFFSET,
+      FIELD_DEBUG_DROP_AUDIO_PACKETS,
+      FIELD_DEBUG_INSERT_AUDIO_PROBE,
+      FIELD_DEBUG_PRINT_BACKWDS_TS ,      
+
       //this should the last item
       MAX_SPECIAL_FIELD_DEBUG_NUM              //
   };

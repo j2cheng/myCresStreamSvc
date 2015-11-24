@@ -206,6 +206,9 @@ int build_video_pipeline(gchar *encoding_name, CREGSTREAM *data, unsigned int st
 
     if((strcmp(encoding_name, "H264") == 0) || (strcmp(encoding_name, "video/x-h264") == 0))
     {
+        //insert queue right after rtspsrc element
+        data->element_a[i++] = gst_element_factory_make("queue", NULL);
+
         //TODO:checking return values.
         i = start;
         if(do_rtp)
@@ -408,6 +411,9 @@ int build_audio_pipeline(gchar *encoding_name, CREGSTREAM *data, int do_rtp,GstE
 	if((strcmp(encoding_name, "MPEG4-GENERIC") == 0) || (strcmp(encoding_name, "audio/mpeg") == 0)
 		|| (strcmp(encoding_name, "MP4A-LATM") == 0))
 	{
+	    //insert queue right after rtspsrc element
+	    data->element_a[i++] = gst_element_factory_make("queue", NULL);
+	    
 		if(do_rtp)
 		{
 			if (strcmp(encoding_name, "MP4A-LATM") == 0)
@@ -416,7 +422,10 @@ int build_audio_pipeline(gchar *encoding_name, CREGSTREAM *data, int do_rtp,GstE
 				data->element_a[i++] = gst_element_factory_make("rtpmp4gdepay", NULL);
 		}
 		data->element_a[i++] = gst_element_factory_make("aacparse", NULL);
-		data->element_a[i++] = gst_element_factory_make("faad", NULL);
+
+		data->element_a[i++] = gst_element_factory_make("queue", NULL);
+    	data->element_a[i++] = gst_element_factory_make("faad", NULL);
+		
 		*ele0 = data->element_a[0];
 	}
 	else if(strcmp(encoding_name, "PCMU") == 0)
@@ -452,14 +461,26 @@ int build_audio_pipeline(gchar *encoding_name, CREGSTREAM *data, int do_rtp,GstE
 		GST_ERROR("Unsupported audio encoding %s", encoding_name);
 		return CSIO_CANNOT_CREATE_ELEMENTS;
 	}
+	data->element_a[i++] = gst_element_factory_make("queue", NULL);
 	data->element_a[i++] = gst_element_factory_make("valve", NULL);
 	data->element_valve_a = data->element_a[i-1];
 
+    data->element_a[i] = gst_element_factory_make("audiorate", NULL);
+	if(data->element_a[i])
+	{
+        data->element_audiorate = data->element_a[i++];
+        guint64 tmp = 80000000;
+        g_object_set(G_OBJECT(data->element_a[i-1]), "tolerance", tmp, NULL);
+    }	
+
 	data->element_a[i++] = gst_element_factory_make("audioconvert", NULL);
 	data->element_a[i++] = gst_element_factory_make("audioresample", NULL);
+	////g_object_set(G_OBJECT(data->element_a[i-1]), "qos", TRUE, NULL);
+
+	data->element_a[i++] = gst_element_factory_make("queue", NULL);
 	num_elements = i-start;
-	data->audio_sink = gst_element_factory_make("openslessink", NULL);		
-	*sink = data->audio_sink;
+    data->audio_sink = gst_element_factory_make("openslessink", NULL);
+    *sink = data->audio_sink;
 
 	for(i=start; i<num_elements; i++)
 	{	

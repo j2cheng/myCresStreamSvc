@@ -82,9 +82,9 @@ UINT32 g_lSpecialFieldDebugState[SPECIAL_FIELD_DEBUG_ARRAY_SIZE] = {0};
 const char * const fieldDebugNames[MAX_SPECIAL_FIELD_DEBUG_NUM - 1] =
 {
     "01 BLOCK_AUDIO              " ,
-    "02 INSERT_PROBE             " ,
-    "03 AMC_PRINT_TS             " ,
-    "04 DROP_BEFORE_PARSE        " ,
+    "02 INSERT_VIDEO_PROBE       " ,
+    "03 PRINT_PROBE_TS           " ,
+    "04 SET_PIPELINE_TO_PAUSE    " ,
     "05 FLUSH_PIPELINE           " ,
     "06 SET_AMCVIDDEC_DEBUG_LEVEL     " ,
     "07 SET_VIDEODECODER_DEBUG_LEVEL  " ,
@@ -94,6 +94,16 @@ const char * const fieldDebugNames[MAX_SPECIAL_FIELD_DEBUG_NUM - 1] =
     "11 SET_AMCVIDDEC_TS_OFFSET     " ,
     "12 PRINT_AUDIOSINK_PROPERTIES  " ,
     "13 PRINT_ELEMENT_PROPERTY      " ,
+    "14 PRINT_A_V_DEBUG             " ,
+    "15 INSERT_TIME_CB              " ,
+    "16 NOT_PROCESS_RTCP            " ,
+    "17 SET_BASETIME_OFFSET         ",
+    "18 SET_SEEK_EVENT              ",
+    "19 SET_AUDIO_PAD_OFFSET        ",
+    "20 DROP_AUDIO_PACKETS          ",
+    "21 INSERT_AUDIO_PROBE          ",
+    "22 PRINT_BACKWDS_TS            ",
+    
 };
 int amcviddec_debug_level    = GST_LEVEL_ERROR;
 int videodecoder_debug_level = GST_LEVEL_ERROR;
@@ -331,6 +341,7 @@ void csio_jni_cleanup (int iStreamId)
     data->element_zero     = NULL;
     data->element_valve_v    = NULL;
     data->element_valve_a    = NULL;
+    data->element_audiorate  = NULL;
 
     for (i = 0; i < MAX_ELEMENTS; i++)
     {
@@ -896,7 +907,8 @@ JNIEXPORT void JNICALL Java_com_crestron_txrxservice_GstreamIn_nativeSetFieldDeb
                 CmdPtr = strtok(NULL, ", ");
                 if (CmdPtr == NULL)
                 {
-                    GST_ERROR("BLOCK_AUDIO is %s", (IsSpecialFieldDebugIndexActive(i+1) ? "ON" : "OFF"));
+                    GST_ERROR("BLOCK_AUDIO is %s",
+                               (IsSpecialFieldDebugIndexActive(FIELD_DEBUG_BLOCK_AUDIO) ? "ON" : "OFF"));
                 }
                 else
                 {
