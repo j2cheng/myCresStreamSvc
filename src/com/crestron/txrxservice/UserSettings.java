@@ -248,6 +248,8 @@ public class UserSettings
 		hdmiOutForceHdcp 	= false;
 		initiatorAddress 	= "";
 		osdText 			= "";
+		osdEnable           = false;
+		osdDisable          = true;
 		rtspStreamFileName	= "live.sdp";
 		rtspSessionName		= "CrestronStreamingSession";
 	}
