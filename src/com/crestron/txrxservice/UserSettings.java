@@ -221,7 +221,7 @@ public class UserSettings
 		yloc				= new int[]{0,0};
 		encodingResolution	= new int[] {0, 0};
 		encodingFramerate	= new int[] {60, 60};
-		bitrate				= new int[]{25000, 25000}; 
+		bitrate				= new int[]{10000, 10000}; 
 		//mode 	= mode.RTSP;//RTSP;
 		sessionInitiation 	= new int[] {0, 0};
 		streamProfile 		= new VideoEncProfile[] {VideoEncProfile.HP, VideoEncProfile.HP};
