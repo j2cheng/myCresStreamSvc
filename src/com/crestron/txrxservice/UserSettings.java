@@ -250,6 +250,9 @@ public class UserSettings
 		osdText 			= "";
 		osdEnable           = false;
 		osdDisable          = true;
+		osdLocation         = 1;  // Upper left
+		osdXLocation        = 0;
+		osdYLocation        = 0;
 		rtspStreamFileName	= "live.sdp";
 		rtspSessionName		= "CrestronStreamingSession";
 	}
