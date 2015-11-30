@@ -43,6 +43,7 @@
 #include <stdlib.h>		/* for setenv */
 #include <unistd.h>
 #include "cregstplay.h"
+#include "csio_jni_if.h"
 
 ///////////////////////////////////////////////////////////////////////////////
 
@@ -221,6 +222,17 @@ int build_video_pipeline(gchar *encoding_name, CREGSTREAM *data, unsigned int st
 
         data->element_v[i++] = gst_element_factory_make("h264parse", NULL);
         data->element_fake_dec = data->element_v[i-1];
+
+        data->element_v[i++] = gst_element_factory_make("queue", NULL);
+        //add a probe for loss of video detection.
+        GstPad *pad;
+        pad = gst_element_get_static_pad( data->element_v[i-1], "src" );
+        if( pad != NULL )
+        {
+        	guint video_probe_id = gst_pad_add_probe( pad, GST_PAD_PROBE_TYPE_BUFFER, csio_videoProbe, (void *) &data->streamId, NULL );
+        	csio_SetVideoProbeId(data->streamId, video_probe_id);
+        	gst_object_unref( pad );
+        }
 
         data->element_v[i++] = gst_element_factory_make("amcviddec-omxtiducati1videodecoder", NULL);
         data->amcvid_dec = data->element_v[i-1];
@@ -474,10 +486,18 @@ int build_audio_pipeline(gchar *encoding_name, CREGSTREAM *data, int do_rtp,GstE
     }	
 
 	data->element_a[i++] = gst_element_factory_make("audioconvert", NULL);
-	data->element_a[i++] = gst_element_factory_make("audioresample", NULL);
-	////g_object_set(G_OBJECT(data->element_a[i-1]), "qos", TRUE, NULL);
-
-	data->element_a[i++] = gst_element_factory_make("queue", NULL);
+   data->element_a[i++] = gst_element_factory_make("audioresample", NULL);
+   data->element_a[i++] = gst_element_factory_make("queue", NULL);
+   //add a probe for loss of audio detection.  Probe fires as long as buffers continue to push
+   //onto on source pad.
+   GstPad *pad;
+   pad = gst_element_get_static_pad( data->element_a[i-1], "src" );
+   if( pad != NULL )
+   {
+	   guint audio_probe_id = gst_pad_add_probe( pad, GST_PAD_PROBE_TYPE_BUFFER, csio_audioProbe, (void *) &data->streamId, NULL );
+	   csio_SetAudioProbeId(data->streamId, audio_probe_id);
+	   gst_object_unref( pad );
+   }
 	num_elements = i-start;
     data->audio_sink = gst_element_factory_make("openslessink", NULL);
     *sink = data->audio_sink;
