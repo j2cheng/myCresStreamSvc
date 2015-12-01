@@ -181,7 +181,7 @@ public class HDMIInputInterface {
 	        Log.d(TAG, "HDMI IN Res from sysfs:" + text.toString());
 	        return text.toString();
 		}
-    	else 
+    	else
     		return "0x0@0";
     }
 
@@ -234,5 +234,51 @@ public class HDMIInputInterface {
 		}
     	else 
     		return false;
+    }
+    
+    public static boolean readSyncState (){
+    	if (isHdmiDriverPresent == true)
+		{
+	    	StringBuilder text = new StringBuilder();
+	        try {
+	            File file = new File("/sys/devices/platform/omap_i2c.2/i2c-2/2-000f/sync_state");
+	
+	            BufferedReader br = new BufferedReader(new FileReader(file));  
+	            String line;   
+	            while ((line = br.readLine()) != null) {
+	                text.append(line);
+	            }
+	            br.close();
+	        }catch (IOException e) {
+	            e.printStackTrace();
+	            text.append("0"); //if error default to no sync
+	        }
+	        return Integer.parseInt(text.toString()) == 1;
+		}
+    	else 
+    		return false;
+    }
+    
+    public static int readAudioSampleRate (){
+    	if (isHdmiDriverPresent == true)
+		{
+	    	StringBuilder text = new StringBuilder();
+	        try {
+	            File file = new File("/sys/devices/platform/omap_i2c.2/i2c-2/2-000f/audio_sample_rate");
+	
+	            BufferedReader br = new BufferedReader(new FileReader(file));  
+	            String line;   
+	            while ((line = br.readLine()) != null) {
+	                text.append(line);
+	            }
+	            br.close();
+	        }catch (IOException e) {
+	            e.printStackTrace();
+	            text.append("48000"); //if error default to 48kHz
+	        }
+	        return Integer.parseInt(text.toString());
+		}
+    	else 
+    		return 0;
     }
 }

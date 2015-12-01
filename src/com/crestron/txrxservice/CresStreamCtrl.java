@@ -121,6 +121,7 @@ public class CresStreamCtrl extends Service {
     private boolean mIgnoreHDCP = false; //FIXME: This is for testing
     public volatile boolean mForceHdcpStatusUpdate = true;
     private int mPreviousValidHdmiInputResolution = 0;
+    private int mPreviousAudioInputSampleRate = 0;
     public CountDownLatch streamingReadyLatch = new CountDownLatch(1);
     private Object cameraModeLock = new Object();
 
@@ -2285,11 +2286,14 @@ public class CresStreamCtrl extends Service {
 	
 	private void setCameraHelper(int hdmiInputResolutionEnum, boolean ignoreRestart)
 	{
+		int hdmiInSampleRate = HDMIInputInterface.readAudioSampleRate();
 		// If resolution did not change don't restart streams, ignore 0 enum
-		if (hdmiInputResolutionEnum == mPreviousValidHdmiInputResolution)
+		if ( (hdmiInputResolutionEnum == mPreviousValidHdmiInputResolution) && (hdmiInSampleRate == mPreviousAudioInputSampleRate) )
 			ignoreRestart = true;
-		else if (hdmiInputResolutionEnum != 0)
+		else if (hdmiInputResolutionEnum != 0) {
 			mPreviousValidHdmiInputResolution = hdmiInputResolutionEnum;
+			mPreviousAudioInputSampleRate = hdmiInSampleRate;
+		}
 		
 		//Set ignore restart to true if you want to set camera mode but do not want to restart any streams
 		boolean validResolution = (hdmiInput.getHorizontalRes().startsWith("0") != true) && (hdmiInput.getVerticalRes().startsWith("0")!= true) && (hdmiInputResolutionEnum != 0);
