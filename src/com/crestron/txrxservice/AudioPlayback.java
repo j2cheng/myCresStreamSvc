@@ -123,19 +123,22 @@ public class AudioPlayback
         shouldExit = true;
         try
         {
-        	this.streamAudioThread.join();
-       	
-        	mRecorder.stop();
-	        mPlayer.stop();
-	        mRecorder.release();
-	        mPlayer.release();
-	        
-	        Log.e(TAG, "Audio Task Stopped");
-        }
-        catch (InterruptedException localInterruptedException)
+        	this.streamAudioThread.join();       	
+        } catch (Exception ex) { ex.printStackTrace(); }           
+        
+        try
         {
-            localInterruptedException.printStackTrace();
-        }        
+        	mRecorder.stop();
+        	mRecorder.release();
+        } catch (Exception ex) { ex.printStackTrace(); }
+        
+        try
+        {
+	        mPlayer.stop();	        
+	        mPlayer.release();
+        } catch (Exception ex) { ex.printStackTrace(); }  
+	        
+        Log.e(TAG, "Audio Task Stopped");     
     }
     
     public void setVolume(int volume) {
