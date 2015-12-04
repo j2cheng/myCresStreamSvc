@@ -128,9 +128,9 @@ public class CameraStreaming {
 		        CresCamera.openCamera();
 		        if(CresCamera.mCamera != null){
 		        	if (streamCtl.userSettings.getEncodingResolution(idx) == 0) // if in auto mode set framerate to input framerate
-		        		CresCamera.mCamera.setEncoderFps(Integer.parseInt(streamCtl.hdmiInput.getFPS()));
+		        		CresCamera.mCamera.setEncoderFps(Integer.parseInt(streamCtl.hdmiInput.getFPS()), Integer.parseInt(streamCtl.hdmiInput.getFPS()));
 		        	else
-		        		CresCamera.mCamera.setEncoderFps(streamCtl.userSettings.getEncodingFramerate(idx));
+		        		CresCamera.mCamera.setEncoderFps(streamCtl.userSettings.getEncodingFramerate(idx), Integer.parseInt(streamCtl.hdmiInput.getFPS()));
 		        	CresCamera.mCamera.unlock();
 		            mrec.setCamera(CresCamera.mCamera);
 		

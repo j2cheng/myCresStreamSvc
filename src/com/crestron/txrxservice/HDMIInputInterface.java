@@ -211,6 +211,11 @@ public class HDMIInputInterface {
     		return 0;
     }
     
+    public static int getResolutionEnum()
+    {
+    	return resolutionIndex;
+    }
+    
     public static boolean readHDCPInputStatus (){
     	if (isHdmiDriverPresent == true)
 		{

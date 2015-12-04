@@ -59,7 +59,7 @@ public class CresCamera {
 	{
 		if (mCamera != null)
 		{
-			mCamera.getHdmiInputStatus();
+			mCamera.getHdmiInputStatus(HDMIInputInterface.getResolutionEnum());
 			mSetHdmiInputStatus = false; 
 		}
 		else // If we can't set HDMI status now, lets do it later

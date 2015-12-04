@@ -428,7 +428,7 @@ public class CresStreamCtrl extends Service {
         		Log.d(TAG, "HDMI input driver is present");
         		hdmiInput = new HDMIInputInterface();
         		//refresh resolution on startup
-        		hdmiInput.setResolutionIndex(hdmiInput.readResolutionEnum());
+        		hdmiInput.setResolutionIndex(HDMIInputInterface.readResolutionEnum());
         		
         		// Call getHdmiInResolutionSysFs in a separate thread so that if read takes a long time we don't get ANR 
                 new Thread(new Runnable() {
@@ -667,6 +667,7 @@ public class CresStreamCtrl extends Service {
 							int currentDucatiState = readDucatiState();
 							if ((currentDucatiState == 0) && (mIgnoreAllCrash == false))
 							{
+								mPreviousValidHdmiInputResolution = 0;
 								Log.i(TAG, "Recovering from Ducati crash!");
 								recoverFromCrash();
 							}
@@ -675,6 +676,7 @@ public class CresStreamCtrl extends Service {
 						// Check if mediaserver crashed
 						if ((mMediaServerCrash == true) && (mIgnoreAllCrash == false))
 						{
+							mPreviousValidHdmiInputResolution = 0;
 							Log.i(TAG, "Recovering from mediaserver crash!");
 							recoverFromCrash();
 						}
@@ -2285,7 +2287,9 @@ public class CresStreamCtrl extends Service {
 	}
 	
 	private void setCameraHelper(int hdmiInputResolutionEnum, boolean ignoreRestart)
-	{
+	{		
+		hdmiInput.setResolutionIndex(hdmiInputResolutionEnum);
+
 		int hdmiInSampleRate = HDMIInputInterface.readAudioSampleRate();
 		// If resolution did not change don't restart streams, ignore 0 enum
 		if ( (hdmiInputResolutionEnum == mPreviousValidHdmiInputResolution) && (hdmiInSampleRate == mPreviousAudioInputSampleRate) )
