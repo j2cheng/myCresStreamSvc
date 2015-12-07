@@ -958,9 +958,13 @@ public class CresStreamCtrl extends Service {
         	// Since this is a user request, mark as stopped requested if mode changes
         	userSettings.setUserRequestedStreamState(StreamState.STOPPED, sessionId);
         	
-            if (userSettings.getStreamState(sessionId) != StreamState.STOPPED)
+        	stopStartLock.lock(); //Lock here to synchronize with restartStreams
+        	StreamState currentStreamState = userSettings.getStreamState(sessionId);
+        	StreamState currentUserReqStreamState = userSettings.getUserRequestedStreamState(sessionId);
+        	stopStartLock.unlock();
+            if ( (currentStreamState != StreamState.STOPPED) || (currentUserReqStreamState != StreamState.STOPPED) )
                 hm2.get(prevMode).executeStop(sessionId, false);
- 
+            
             if (mode == DeviceMode.STREAM_OUT.ordinal())
             {
             	// we want confidence image up for stream out, until streamout is actually started
@@ -2125,10 +2129,13 @@ public class CresStreamCtrl extends Service {
 			                	if (hdmiLock.getQueueLength() == 0)
 			                	{
 				                	int resolutionId = paramAnonymousIntent.getIntExtra("evs_hdmi_resolution_id", -1);
+				                	
+				                	int prevResolutionIndex = hdmiInput.getResolutionIndex();
+				                    if (resolutionId != 0)
+				                    	hdmiInput.setResolutionIndex(resolutionId);
+				                	
 				                	setCameraAndRestartStreams(resolutionId); //we need to restart streams for resolution change		                	
-			                        
-				                    int prevResolutionIndex = hdmiInput.getResolutionIndex();
-				                    hdmiInput.setResolutionIndex(resolutionId);
+
 				                    //Wait 5 seconds before sending hdmi in sync state - bug 96552
 				                    new Thread(new Runnable() {
 				                		public void run() { 
@@ -2287,9 +2294,7 @@ public class CresStreamCtrl extends Service {
 	}
 	
 	private void setCameraHelper(int hdmiInputResolutionEnum, boolean ignoreRestart)
-	{		
-		hdmiInput.setResolutionIndex(hdmiInputResolutionEnum);
-
+	{
 		int hdmiInSampleRate = HDMIInputInterface.readAudioSampleRate();
 		// If resolution did not change don't restart streams, ignore 0 enum
 		if ( (hdmiInputResolutionEnum == mPreviousValidHdmiInputResolution) && (hdmiInSampleRate == mPreviousAudioInputSampleRate) )
