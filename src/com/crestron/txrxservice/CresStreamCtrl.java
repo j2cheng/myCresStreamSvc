@@ -11,6 +11,7 @@ import java.io.FileNotFoundException;
 import java.io.FileOutputStream;
 import java.io.FileReader;
 import java.io.IOException;
+import java.io.InputStreamReader;
 import java.io.OutputStreamWriter;
 import java.io.Writer;
 import java.lang.String;
@@ -2465,6 +2466,7 @@ public class CresStreamCtrl extends Service {
 		      	
 	      		// rename current file to old
 	      		renameFile(savedSettingsFilePath, savedSettingsOldFilePath);
+	      		syncFileSystem();
 	      		
 	      		// Save new userSettings
 	      		saveSettingsLock.lock();
@@ -2478,6 +2480,7 @@ public class CresStreamCtrl extends Service {
 	    	{
 	    		saveSettingsLock.unlock();
 	    		try {writer.close();} catch (Exception ex) {/*ignore*/}
+	    		syncFileSystem();
 	    	}
       	
 	      	Log.d(TAG, "Saved userSettings to disk");
@@ -2502,6 +2505,20 @@ public class CresStreamCtrl extends Service {
 
 		if (!success) {
 		   Log.e(TAG, "Failed to rename file");
+		}
+	}
+	
+	private void syncFileSystem()
+	{
+		try
+		{
+			Process p = Runtime.getRuntime().exec("sync");
+			BufferedReader bufferedReader = new BufferedReader(new InputStreamReader(p.getInputStream()));
+			p.waitFor();
+		} catch (Exception e)
+		{
+			Log.e(TAG, "Failed to call sync");
+			e.printStackTrace();
 		}
 	}
 	
