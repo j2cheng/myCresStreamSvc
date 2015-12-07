@@ -507,8 +507,8 @@ public class CresStreamCtrl extends Service {
             // Monitor Crash State
             monitorCrashState();
             
-            // Monitor HDCP
-            monitorHDCP();
+            // Monitor System State
+            monitorSystemState();
             
         	// Monitor Rava Mode
             monitorRavaMode();
@@ -721,19 +721,34 @@ public class CresStreamCtrl extends Service {
     	sockTask.SendDataToAllClients(String.format("CLEARDUCATISTATE=%d", state));
 	}
     
-    private void monitorHDCP() {
+    private void monitorSystemState() {
     	new Thread(new Runnable() {
     		@Override
     		public void run() {
     			// Poll input and output HDCP states once a second
     			while (!Thread.currentThread().isInterrupted())
     			{
-    				boolean hdcpStatusChanged = checkHDCPStatus();
-    				if (hdcpStatusChanged) // Only send hdcp feedback if hdcp status has changed
-    					sendHDCPFeedbacks();
+    				// Sleep 1 second
     				try {
     					Thread.sleep(1000);
     				} catch (Exception e) { e.printStackTrace(); }
+    				
+    				// Query HDCP status
+    				boolean hdcpStatusChanged = checkHDCPStatus();
+    				if (hdcpStatusChanged) // Only send hdcp feedback if hdcp status has changed
+    					sendHDCPFeedbacks();
+    				
+    				// Query hdmiInput audio sampling frequency
+    				if (mIgnoreAllCrash != true) // Dont activate this code if we are handling hdmi input resolution change
+    				{
+    					int hdmiInSampleRate = HDMIInputInterface.readAudioSampleRate();
+    					// If sample frequency changes on the fly, restart stream
+    					if (hdmiInSampleRate != mPreviousAudioInputSampleRate)
+    					{
+    						mPreviousAudioInputSampleRate = hdmiInSampleRate;
+    						restartStreams(true); //skip stream in since it does not use hdmi input
+    					}
+    				}
     			}
     		}
     	}).start();
