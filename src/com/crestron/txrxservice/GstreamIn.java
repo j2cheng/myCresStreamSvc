@@ -203,6 +203,10 @@ public class GstreamIn implements StreamInStrategy, SurfaceHolder.Callback {
 	}
     
     public void sendVideoSourceParams(int source, int width, int height, int framerate, int profile){
+    	streamCtl.userSettings.setStreamInHorizontalResolution(width);
+    	streamCtl.userSettings.setStreamInVerticalResolution(height);
+    	streamCtl.userSettings.setStreamInFPS(framerate);
+    	streamCtl.userSettings.setStreamInAspectRatio(Integer.parseInt(MiscUtils.calculateAspectRatio(width, height)));
     	streamCtl.SendStreamInVideoFeedbacks(source, width, height, framerate, profile); //TODO: see if profile needs to be converted
     }
     

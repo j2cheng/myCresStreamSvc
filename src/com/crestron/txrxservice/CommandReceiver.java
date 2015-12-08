@@ -401,48 +401,70 @@ public class CommandReceiver {
     }
     
     public String getHresFb(boolean streamIn){
-        return "";
-/*		int hres = ctl.getHorizontalResFb(streamIn);
-        l_sb = new StringBuilder(256);
-        l_sb.append(hres);
-        return l_sb.toString();*/
+    	if (streamIn)
+    		return String.valueOf(ctl.userSettings.getStreamInHorizontalResolution());
+    	else
+    	{
+    		try {
+    			return String.valueOf(ctl.cam_streaming.getStreamOutWidth());
+    		} catch (Exception e) { return "0"; }
+    	}
+    		
     }
 
     public String getVresFb(boolean streamIn){
-        return "";
-        /*int vres= ctl.getVerticalResFb(streamIn);
-        l_sb = new StringBuilder(256);
-        l_sb.append(vres);
-        return l_sb.toString();*/
+    	if (streamIn)
+    		return String.valueOf(ctl.userSettings.getStreamInVerticalResolution());
+    	else
+    	{
+    		try {
+    			return String.valueOf(ctl.cam_streaming.getStreamOutHeight());
+    		} catch (Exception e) { return "0"; }
+    	}    		
     }
     
     public String getFpsFb(boolean streamIn){
-        return "";
-        /*int fps = ctl.getFpsFb(streamIn);
-        l_sb = new StringBuilder(256);
-        l_sb.append(fps);
-        return l_sb.toString();*/
+    	if (streamIn)
+    		return String.valueOf(ctl.userSettings.getStreamInFPS());
+    	else
+    	{
+    		try {
+    			return String.valueOf(ctl.cam_streaming.getStreamOutFpsFb());
+    		} catch (Exception e) { return "0"; }
+    	}   
     }
     
     public String getAspectFb(boolean streamIn){
-        return "";
-        //return ctl.getAspectRatioFb(streamIn);
+    	if (streamIn)
+    		return String.valueOf(ctl.userSettings.getStreamInAspectRatio());
+    	else
+    	{
+    		try {
+    			return String.valueOf(ctl.cam_streaming.getStreamOutAspectRatioFb());
+    		} catch (Exception e) { return "0"; }
+    	}  
     }
     
     public String getAudioFormatFb(boolean streamIn){
-        return "";
-        /*int afmt= ctl.getAudioFormatFb(streamIn);
-        l_sb = new StringBuilder(256);
-        l_sb.append(afmt);
-        return l_sb.toString();*/
+    	if (streamIn)
+    		return String.valueOf(ctl.streamPlay.getMediaPlayerAudioFormatFb());
+    	else
+    	{
+    		try {
+    			return String.valueOf(ctl.cam_streaming.getStreamOutAudioFormatFb());
+    		} catch (Exception e) { return "0"; }
+    	} 
     }
     
     public String getAudioChannelsFb(boolean streamIn){
-        return "";
-        /*int achannels = ctl.getAudiochannelsFb(streamIn);
-        l_sb = new StringBuilder(256);
-        l_sb.append(achannels);
-        return l_sb.toString();*/
+    	if (streamIn)
+    		return  String.valueOf(ctl.streamPlay.getMediaPlayerAudiochannelsFb());
+    	else
+    	{
+    		try {
+    			return String.valueOf(ctl.cam_streaming.getStreamOutAudiochannelsFb());
+    		} catch (Exception e) { return "0"; }
+    	}
     }
     
     //TODO: we should really be calling userSettings directly and not adding an extra layer through ctl
