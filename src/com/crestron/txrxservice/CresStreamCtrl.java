@@ -349,7 +349,7 @@ public class CresStreamCtrl extends Service {
                 Gson gson = builder.create();
                 try
                 {
-                	String serializedClass = new Scanner(serializedClassFile, "UTF-8").useDelimiter("\\A").next();
+                	String serializedClass = new Scanner(serializedClassFile, "US-ASCII").useDelimiter("\\A").next();
                 	try {
                 		userSettings = gson.fromJson(serializedClass, UserSettings.class);
                 	} catch (Exception ex) {
@@ -380,7 +380,7 @@ public class CresStreamCtrl extends Service {
 		            Gson gson = builder.create();
 		            try
 		            {
-		            	String serializedClass = new Scanner(serializedOldClassFile, "UTF-8").useDelimiter("\\A").next();
+		            	String serializedClass = new Scanner(serializedOldClassFile, "US-ASCII").useDelimiter("\\A").next();
 		            	try {
 		            		userSettings = gson.fromJson(serializedClass, UserSettings.class);
 		            	} catch (Exception ex) {
@@ -811,7 +811,7 @@ public class CresStreamCtrl extends Service {
 		            {
 				      	try 
 				      	{
-		            		writer = new BufferedWriter(new OutputStreamWriter(new FileOutputStream(audioDropDoneFilePath), "utf-8"));
+		            		writer = new BufferedWriter(new OutputStreamWriter(new FileOutputStream(audioDropDoneFilePath), "US-ASCII"));
 				    	    writer.write("1");
 				    	    writer.flush();
 				      	}
@@ -1689,7 +1689,12 @@ public class CresStreamCtrl extends Service {
 	    	}
     	}
     	else
-    		SendStreamState(StreamState.STOPPED, sessionId);
+    	{
+    		if (userSettings.getStreamState(sessionId) == StreamState.CONFIDENCEMODE)
+    			SendStreamState(StreamState.CONFIDENCEMODE, sessionId);
+    		else
+    			SendStreamState(StreamState.STOPPED, sessionId);
+    	}
     }
 
     public void Pause(int sessionId)
@@ -2406,7 +2411,7 @@ public class CresStreamCtrl extends Service {
 			Writer writer = null;
 			try 
 	      	{
-				writer = new BufferedWriter(new OutputStreamWriter(new FileOutputStream(cameraModeFilePath), "utf-8"));
+				writer = new BufferedWriter(new OutputStreamWriter(new FileOutputStream(cameraModeFilePath), "US-ASCII"));
 			    writer.write(mode);
 			    writer.flush();
 		    } 
@@ -2429,7 +2434,7 @@ public class CresStreamCtrl extends Service {
 	        if (cameraModeFile.isFile())	//check if file exists
 	        {			
 		    	try {
-		    		String serializedCameraMode = new Scanner(cameraModeFile, "UTF-8").useDelimiter("\\A").next();
+		    		String serializedCameraMode = new Scanner(cameraModeFile, "US-ASCII").useDelimiter("\\A").next();
 		    		cameraMode = Integer.parseInt(serializedCameraMode.trim());
 		    	} catch (Exception ex) {
 		    		Log.e(TAG, "Failed to read cameraMode: " + ex);
@@ -2447,7 +2452,7 @@ public class CresStreamCtrl extends Service {
       	String serializedClass = gson.toJson(this.userSettings);
       	String currentUserSettings = "";
       	try {
-      		currentUserSettings = new Scanner(new File (savedSettingsFilePath), "UTF-8").useDelimiter("\\A").next();
+      		currentUserSettings = new Scanner(new File (savedSettingsFilePath), "US-ASCII").useDelimiter("\\A").next();
       	} catch (Exception e) { }
       	
       	// Only update userSettings if it has changed
@@ -2455,6 +2460,9 @@ public class CresStreamCtrl extends Service {
       	{
 	      	try 
 	      	{
+	      		// Save new userSettings
+	      		saveSettingsLock.lock();
+	      		
 	      		// If old file exists delete it
 	      		File oldFile = new File(savedSettingsOldFilePath);
 		      	if (oldFile.exists())
@@ -2466,12 +2474,10 @@ public class CresStreamCtrl extends Service {
 		      	
 	      		// rename current file to old
 	      		renameFile(savedSettingsFilePath, savedSettingsOldFilePath);
-	      		syncFileSystem();
+	      		syncFileSystem();	      		
 	      		
-	      		// Save new userSettings
-	      		saveSettingsLock.lock();
-	      		writer = new BufferedWriter(new OutputStreamWriter(new FileOutputStream(savedSettingsFilePath), "utf-8"));
-	    	    writer.write(serializedClass);
+	      		writer = new BufferedWriter(new OutputStreamWriter(new FileOutputStream(savedSettingsFilePath), "US-ASCII"));
+	      		writer.write(serializedClass);
 	    	    writer.flush();
 	    	} 
 	      	catch (IOException ex) {

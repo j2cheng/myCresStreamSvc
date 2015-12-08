@@ -128,7 +128,7 @@ public class HDMIOutputInterface {
         Writer writer = null;
 		try 
       	{
-			writer = new BufferedWriter(new OutputStreamWriter(new FileOutputStream("/sys/devices/virtual/misc/hdcp/hdcp_bypass"), "utf-8"));
+			writer = new BufferedWriter(new OutputStreamWriter(new FileOutputStream("/sys/devices/virtual/misc/hdcp/hdcp_bypass"), "US-ASCII"));
 			if (enabled)
 				writer.write("1");
 			else
