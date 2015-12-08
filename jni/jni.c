@@ -1951,7 +1951,7 @@ int csio_jni_AddAudio(GstPad *new_pad,gchar *encoding_name, GstElement **sink, b
 	int iStatus  = CSIO_SUCCESS;
 	*sink = NULL;
 	GstElement *ele0 = NULL;
-	int do_rtp;
+	int do_rtp = 0;
 	CREGSTREAM * data = GetStreamFromCustomData(CresDataDB, iStreamId);
 
 	if(!data)
