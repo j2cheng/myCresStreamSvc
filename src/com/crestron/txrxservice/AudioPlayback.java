@@ -66,6 +66,7 @@ public class AudioPlayback
                     	mWaitFrames = 0; // reset mWaitFrames count
                     	if (mPlayer != null)
                     	{
+                    		initVolumePending = true;
                     		mPlayer.stop();                  		
                     		mPlayer.release();
                     		mPlayer = null;
