@@ -208,7 +208,7 @@ int build_video_pipeline(gchar *encoding_name, CREGSTREAM *data, unsigned int st
     if((strcmp(encoding_name, "H264") == 0) || (strcmp(encoding_name, "video/x-h264") == 0))
     {
         //insert queue right after rtspsrc element
-        data->element_a[i++] = gst_element_factory_make("queue", NULL);
+        data->element_v[i++] = gst_element_factory_make("queue", NULL);
 
         //TODO:checking return values.
         i = start;
