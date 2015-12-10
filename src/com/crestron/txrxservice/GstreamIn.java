@@ -199,6 +199,7 @@ public class GstreamIn implements StreamInStrategy, SurfaceHolder.Callback {
 	}
     
     public void sendMulticastAddress(String multicastAddress, int sessionId){
+    	streamCtl.userSettings.setMulticastAddress(multicastAddress, sessionId);
     	streamCtl.sendMulticastIpAddress(multicastAddress, sessionId);
 	}
     

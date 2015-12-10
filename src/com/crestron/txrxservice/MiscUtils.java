@@ -55,7 +55,8 @@ public class MiscUtils {
         {
         	retstr = "0";
         }
-        else if( Math.abs((w * 3) - (h * 4)) <= 10 )
+        //720x480(NTSC) and 720x576(PAL) should show as 4:3
+        else if( (Math.abs((w * 3) - (h * 4)) <= 10) || ((w == 720) && (h == 576 || h == 480)) )
 		{
         	retstr = "133";
 		}
