@@ -207,11 +207,10 @@ int build_video_pipeline(gchar *encoding_name, CREGSTREAM *data, unsigned int st
 
     if((strcmp(encoding_name, "H264") == 0) || (strcmp(encoding_name, "video/x-h264") == 0))
     {
+        //TODO:checking return values.
         //insert queue right after rtspsrc element
         data->element_v[i++] = gst_element_factory_make("queue", NULL);
-
-        //TODO:checking return values.
-        i = start;
+        
         if(do_rtp)
         {
             data->element_v[i++] = gst_element_factory_make("rtph264depay", NULL);
@@ -249,7 +248,6 @@ int build_video_pipeline(gchar *encoding_name, CREGSTREAM *data, unsigned int st
     else if(strcmp(encoding_name, "MP2T") == 0)
     {
 		// This happens when there's TS encapsulation.  We won't add the video sink yet.
-		i = start;
 		if(do_rtp)
 		{
 			data->element_v[i] = gst_element_factory_make("rtpmp2tdepay", NULL);
@@ -271,8 +269,7 @@ int build_video_pipeline(gchar *encoding_name, CREGSTREAM *data, unsigned int st
 		*ele0 = data->element_v[0];
 	}
 	else if((strcmp(encoding_name, "JPEG") == 0) || (strcmp(encoding_name, "image/jpeg") == 0))
-	{	
-		i = start;
+	{   
 		if(do_rtp)
 		{
 			data->element_v[i++] = gst_element_factory_make("rtpjpegdepay", NULL);
@@ -286,7 +283,6 @@ int build_video_pipeline(gchar *encoding_name, CREGSTREAM *data, unsigned int st
 	}
 	else if(strcmp(encoding_name, "MPEG4") == 0)
 	{
-		i = start;
 		if(do_rtp)
 		{		
 			data->element_v[i++] = gst_element_factory_make("rtpmp4vdepay", NULL);
