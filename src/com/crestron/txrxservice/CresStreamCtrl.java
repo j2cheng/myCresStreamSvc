@@ -1840,6 +1840,9 @@ public class CresStreamCtrl extends Service {
         // If fullstop is passed down then do not start confidence preview
     	if ((!fullStop) && (userSettings.getMode(sessId) == DeviceMode.STREAM_OUT.ordinal()))
     	{
+    		try {
+    			Thread.sleep(1000);
+    		} catch (Exception e) { }
     		cam_streaming.startConfidencePreview(sessId);
     		restartRequired[sessId] = true;
     	}
