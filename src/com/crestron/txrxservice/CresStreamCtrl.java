@@ -111,6 +111,7 @@ public class CresStreamCtrl extends Service {
     public final static String savedSettingsOldFilePath = "/data/CresStreamSvc/userSettings.old";
     public final static String cameraModeFilePath = "/dev/shm/crestron/CresStreamSvc/cameraMode";
     public final static String restoreFlagFilePath = "/data/CresStreamSvc/restore";
+    public final static String restartStreamsFilePath = "/dev/shm/crestron/CresStreamSvc/restartStreams";
     public volatile boolean mMediaServerCrash = false;
     public volatile boolean mDucatiCrash = false;
     public volatile boolean mIgnoreAllCrash = false;
@@ -681,6 +682,13 @@ public class CresStreamCtrl extends Service {
 							Log.i(TAG, "Recovering from mediaserver crash!");
 							recoverFromCrash();
 						}
+						
+						// Check if restartStreams was requested
+						int restartStreamsState = readRestartStreamsState();
+						if (restartStreamsState == 1)
+						{
+							recoverFromCrash();
+						}
 					} catch (Exception e) { 
 						Log.e(TAG, "Problem occured in monitor thread!!!!");
 						e.printStackTrace();
@@ -694,7 +702,7 @@ public class CresStreamCtrl extends Service {
     
     private void recoverFromCrash()
     {
-    	CresCamera.mSetHdmiInputStatus = true;
+    	CresCamera.mSetHdmiInputStatus = true; //TODO: This should be safe to remove now
 		restartStreams(false);
     }
     
@@ -720,6 +728,42 @@ public class CresStreamCtrl extends Service {
     private void writeDucatiState(int state) {
     	// we need csio to clear ducati state since sysfs needs root permissions to write
     	sockTask.SendDataToAllClients(String.format("CLEARDUCATISTATE=%d", state));
+	}
+    
+    private int readRestartStreamsState() {
+		int restartStreamsState = 0;
+        
+    	StringBuilder text = new StringBuilder();
+        try {
+            File file = new File(restartStreamsFilePath);
+
+            BufferedReader br = new BufferedReader(new FileReader(file));  
+            String line;   
+            while ((line = br.readLine()) != null) {
+                text.append(line);
+            }
+            br.close();
+            restartStreamsState = Integer.parseInt(text.toString().trim());
+        }catch (Exception e) {}
+        
+		return restartStreamsState;
+	}
+    
+    private void writeRestartStreamsState(int state) {
+    	Writer writer = null;
+		try 
+      	{
+			writer = new BufferedWriter(new OutputStreamWriter(new FileOutputStream(restartStreamsFilePath), "US-ASCII"));
+		    writer.write(String.valueOf(state));
+		    writer.flush();
+	    } 
+      	catch (Exception ex) {
+    	  Log.e(TAG, "Failed to clearn restartStreams flag: " + ex);
+    	} 
+		finally 
+    	{
+    		try {writer.close();} catch (Exception ex) {/*ignore*/}
+    	}
 	}
     
     private void monitorSystemState() {
@@ -902,6 +946,10 @@ public class CresStreamCtrl extends Service {
 			        		restartStreamsCalled = true;
 
 		    	    		cam_streaming.stopConfidencePreview(sessionId);
+		    	    		
+		    	    		try {
+		    	    			Thread.sleep(1000);
+		    	    		} catch (Exception e) {}
 			    	    	
 			    	    	// Clear crash flags after stop completes but before start
 			    	    	clearErrorFlags();
@@ -958,7 +1006,10 @@ public class CresStreamCtrl extends Service {
     			} catch (Exception e) { e.printStackTrace(); }
     			writeDucatiState(1);
     		}
-    	}).start();    	
+    	}).start();   
+    	
+    	// Clear restartStreams flag
+    	writeRestartStreamsState(0);
     }
     
     public void setDeviceMode(int mode, int sessionId)
