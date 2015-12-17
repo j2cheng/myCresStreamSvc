@@ -23,8 +23,8 @@ GST_DEBUG_CATEGORY_STATIC (debug_category);
 #define MAX_STREAMS 2
 #define MAX_ELEMENTS 20
 
-#define DEFAULT_AMCVIDDEC_TS_OFFSET 400//in ms
-#define DEFAULT_MIN_STRING_BUFFER 100//in ms
+#define DEFAULT_AMCVIDDEC_TS_OFFSET 0//in ms
+#define DEFAULT_MIN_STRING_BUFFER 25//in ms
 #define DEFAULT_MAX_STRING_BUFFER 5000//in ms
 //#define INSERT_SF_SINK 1
 ///////////////////////////////////////////////////////////////////////////////
