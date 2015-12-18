@@ -3,6 +3,8 @@ package com.crestron.txrxservice;
 import java.util.HashMap;
 import java.util.Map;
 import java.util.Scanner;
+import java.util.Timer;
+import java.util.TimerTask;
 import java.io.BufferedReader;
 import java.io.BufferedWriter;
 import java.io.File;
@@ -126,6 +128,7 @@ public class CresStreamCtrl extends Service {
     private int mPreviousAudioInputSampleRate = 0;
     public CountDownLatch streamingReadyLatch = new CountDownLatch(1);
     private Object cameraModeLock = new Object();
+    private Timer mNoVideoTimer;
 
     enum DeviceMode {
         STREAM_IN,
@@ -138,7 +141,8 @@ public class CresStreamCtrl extends Service {
     	Paused(1),
     	NoVideo(2),
     	HDCPStreamError(3),
-    	HDCPAllError(4);
+    	HDCPAllError(4),
+    	BlackScreen(5);
     	
     	private final int value;
     	
@@ -2397,10 +2401,18 @@ public class CresStreamCtrl extends Service {
 	{
 		String cameraMode = "";
 		int previousCameraMode = readCameraMode();
-		if (enable)
-			setCameraMode(String.valueOf(CameraMode.NoVideo.ordinal()));
-		else if (previousCameraMode == CameraMode.NoVideo.ordinal())
+		if ( (enable) && (previousCameraMode != CameraMode.NoVideo.ordinal() 
+				|| previousCameraMode != CameraMode.BlackScreen.ordinal()) )
 		{
+			mNoVideoTimer = new Timer();
+			mNoVideoTimer.schedule(new setNoVideoImage(CameraMode.NoVideo.ordinal()), 5000);
+			setCameraMode(String.valueOf(CameraMode.BlackScreen.ordinal()));
+		}
+		else if ( (previousCameraMode == CameraMode.NoVideo.ordinal()) ||
+				(previousCameraMode == CameraMode.BlackScreen.ordinal()) )
+		{
+			mNoVideoTimer.cancel();
+			mNoVideoTimer.purge();
 			if (Boolean.parseBoolean(pauseStatus) == true)
 				setCameraMode(String.valueOf(CameraMode.Paused.ordinal()));
 			else
@@ -2653,5 +2665,19 @@ public class CresStreamCtrl extends Service {
 			sockTask.SendDataToAllClients(String.format("%s=%b", "HDMIOUT_DISABLEDBYHDCP", true));
 		else
 			sockTask.SendDataToAllClients(String.format("%s=%b", "HDMIOUT_DISABLEDBYHDCP", false));
+	}
+	
+	private class setNoVideoImage extends TimerTask
+	{
+		private int cameraMode;
+		setNoVideoImage(int mode)
+		{
+			cameraMode = mode;
+		}
+		
+		@Override
+		public void run() {
+			setCameraMode(String.valueOf(cameraMode));
+		}		
 	}
 }
