@@ -226,7 +226,7 @@ public class UserSettings
 		sessionInitiation 	= new int[] {0, 0};
 		streamProfile 		= new VideoEncProfile[] {VideoEncProfile.HP, VideoEncProfile.HP};
 		encodingLevel		= new int[] {8192, 8192};
-		multicastAddress 	= new String[] {"0.0.0.0", "0.0.0.0"};
+		multicastAddress 	= new String[] {"", ""};
 		streamOutUrl 	 	= new String[]{"", ""};
 		streamInUrl			= new String[]{"", ""};
 		userName 			= new String[] {"", ""};
