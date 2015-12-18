@@ -469,7 +469,7 @@ public class CresStreamCtrl extends Service {
             	CresCamera.getHdmiInputStatus();
         	}
             //Play Control
-            hm = new HashMap();
+            hm = new HashMap<Integer, Command>();
             hm.put(2/*"PREVIEW"*/, new Command() {
                     public void executeStart(int sessId) {startPreview(sessId); };
                     });
@@ -479,7 +479,7 @@ public class CresStreamCtrl extends Service {
             hm.put(0 /*"STREAMIN"*/, new Command() {
                     public void executeStart(int sessId) {startStreamIn(sessId); };
                     });
-            hm2 = new HashMap();
+            hm2 = new HashMap<Integer, myCommand>();
             hm2.put(2/*"PREVIEW"*/, new myCommand() {
                     public void executeStop(int sessId, boolean fullStop) {stopPreview(sessId);};
                     });
@@ -489,7 +489,7 @@ public class CresStreamCtrl extends Service {
             hm2.put(0/*"STREAMIN"*/, new myCommand() {
                     public void executeStop(int sessId, boolean fullStop) {stopStreamIn(sessId); };
                     });
-            hm3 = new HashMap();
+            hm3 = new HashMap<Integer, myCommand2>();
             hm3.put(2/*"PREVIEW"*/, new myCommand2() {
                     public void executePause(int sessId) {pausePreview(sessId);};
                     });
@@ -946,7 +946,7 @@ public class CresStreamCtrl extends Service {
 			        		restartStreamsCalled = true;
 
 		    	    		cam_streaming.stopConfidencePreview(sessionId);
-		    	    		
+			    	    	
 		    	    		try {
 		    	    			Thread.sleep(1000);
 		    	    		} catch (Exception e) {}
@@ -1006,7 +1006,7 @@ public class CresStreamCtrl extends Service {
     			} catch (Exception e) { e.printStackTrace(); }
     			writeDucatiState(1);
     		}
-    	}).start();   
+    	}).start();    	
     	
     	// Clear restartStreams flag
     	writeRestartStreamsState(0);
@@ -2165,23 +2165,8 @@ public class CresStreamCtrl extends Service {
     }
     
     public void stopOnIpAddrChange(){
-	Log.e(TAG, "stopping on device IP Address Change...!");
-	try {
-	    for (int sessionId = 0; sessionId < NumOfSurfaces; sessionId++)
-	    {
-	        if (userSettings.getStreamState(sessionId) != StreamState.STOPPED)
-	        {
-	               if (userSettings.getMode(sessionId) == DeviceMode.STREAM_IN.ordinal())
-	           	    streamPlay.onStop(sessionId);
-	               else if (userSettings.getMode(sessionId) == DeviceMode.STREAM_OUT.ordinal())
-	           	    cam_streaming.stopRecording(true);//false
-	        }
-	    }
-	}
-	catch (Exception e) { 
-	    Log.e(TAG, "Failed to stop streams on IP Addr Change");
-	    e.printStackTrace(); 
-	}
+		Log.e(TAG, "Restarting on device IP Address Change...!");
+		restartStreams(false);
     }
 
     //Registering for HPD and Resolution Event detection	
