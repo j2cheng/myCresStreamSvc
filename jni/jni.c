@@ -321,10 +321,8 @@ static void gst_native_pause (JNIEnv* env, jobject thiz, jint sessionId)
     SetInPausedState(sessionId, 1);
 	pause_streaming_cmd(sessionId);
 }
-
-void csio_jni_cleanup (int iStreamId)
+void csio_jni_remove_probe (int iStreamId)
 {
-    int i;
     CREGSTREAM * data = GetStreamFromCustomData(CresDataDB, iStreamId);
 
     if (!data)
@@ -332,7 +330,7 @@ void csio_jni_cleanup (int iStreamId)
         GST_ERROR("Could not obtain stream pointer for stream %d", iStreamId);
         return;
     }
-
+    
     if(data->udpsrc_prob_id)
     {
         GstPad *pad;
@@ -344,6 +342,23 @@ void csio_jni_cleanup (int iStreamId)
             data->udpsrc_prob_id = 0;
         }
     }
+    memset(data->sourceIP_addr,0,sizeof(data->sourceIP_addr));
+    data->udpsrc_prob_timer.tv_sec = 0;
+    data->udpsrc_prob_timer.tv_nsec = 0;
+    data->udpsrc_prob_element = 0;
+    data->udpsrc_prob_id = 0;
+}
+void csio_jni_cleanup (int iStreamId)
+{
+    int i;
+    CREGSTREAM * data = GetStreamFromCustomData(CresDataDB, iStreamId);
+
+    if (!data)
+    {
+        GST_ERROR("Could not obtain stream pointer for stream %d", iStreamId);
+        return;
+    }
+    
     memset(data->sourceIP_addr,0,sizeof(data->sourceIP_addr));
     data->udpsrc_prob_timer.tv_sec = 0;
     data->udpsrc_prob_timer.tv_nsec = 0;
