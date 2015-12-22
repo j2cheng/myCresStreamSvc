@@ -333,6 +333,23 @@ void csio_jni_cleanup (int iStreamId)
         return;
     }
 
+    if(data->udpsrc_prob_id)
+    {
+        GstPad *pad;
+        pad = gst_element_get_static_pad(data->udpsrc_prob_element, "src");
+        if (pad != NULL)
+        {
+            gst_pad_remove_probe(pad, data->udpsrc_prob_element);
+            gst_object_unref(pad);
+            data->udpsrc_prob_id = 0;
+        }
+    }
+    memset(data->sourceIP_addr,0,sizeof(data->sourceIP_addr));
+    data->udpsrc_prob_timer.tv_sec = 0;
+    data->udpsrc_prob_timer.tv_nsec = 0;
+    data->udpsrc_prob_element = 0;
+    data->udpsrc_prob_id = 0;
+
     data->pipeline     = NULL;
     data->video_sink   = NULL;
     data->audio_sink   = NULL;
@@ -1574,29 +1591,36 @@ int csio_jni_CreatePipeline(GstElement **pipeline,GstElement **source,eProtocolI
 	    }
 	    case ePROTOCOL_UDP_TS:
 	    {
-		    if(currentSettingsDB.videoSettings[iStreamId].tsEnabled==STREAM_TRANSPORT_MPEG2TS_RTP){
-			    data->element_zero = gst_element_factory_make("rtpbin", NULL);
+		    if(currentSettingsDB.videoSettings[iStreamId].tsEnabled==STREAM_TRANSPORT_MPEG2TS_RTP)
+		    {
+		        data->element_zero = gst_element_factory_make("rtpbin", NULL);
 			    gst_bin_add(GST_BIN(data->pipeline), data->element_zero);
 
 			    data->udp_port = currentSettingsDB.videoSettings[iStreamId].tsPort;
 			    data->element_av[0] = gst_element_factory_make("udpsrc", NULL);
+			    insert_udpsrc_probe(data,data->element_av[0],"src");
+
 			    g_object_set(G_OBJECT(data->element_av[0]), "caps", data->caps_v_ts, NULL);
 			    g_object_set(G_OBJECT(data->element_av[0]), "port", data->udp_port, NULL);
 			    gst_bin_add(GST_BIN(data->pipeline), data->element_av[0]);
 			    int ret = gst_element_link(data->element_av[0], data->element_zero);
 			    if(ret==0){
-				    g_print( "ERROR:  Cannot link filter to source elements.\n" );
+			        GST_ERROR( "ERROR:  Cannot link filter to source elements.\n" );
 				    iStatus = CSIO_CANNOT_LINK_ELEMENTS;
 			    }else
-				    g_print( "link filter to source elements.\n" );
+			        GST_DEBUG( "link filter to source elements.\n" );
 
-		    }else if(currentSettingsDB.videoSettings[iStreamId].tsEnabled==STREAM_TRANSPORT_MPEG2TS_UDP){
-			    data->element_zero = gst_element_factory_make("udpsrc", NULL);
+		    }
+		    else if(currentSettingsDB.videoSettings[iStreamId].tsEnabled==STREAM_TRANSPORT_MPEG2TS_UDP)
+		    {
+		        data->element_zero = gst_element_factory_make("udpsrc", NULL);
 			    if(!data->element_zero)
 			    {
 				    iStatus = CSIO_CANNOT_CREATE_ELEMENTS;
-				    g_print( "ERROR: Cannot create udp source pipeline elements\n" );
+				    GST_DEBUG( "ERROR: Cannot create udp source pipeline elements\n" );
 			    }
+			    else
+			        insert_udpsrc_probe(data,data->element_zero,"src");
 
 			    data->udp_port = currentSettingsDB.videoSettings[iStreamId].tsPort;
 			    g_object_set(G_OBJECT(data->element_zero), "port", data->udp_port, NULL);
@@ -1605,22 +1629,24 @@ int csio_jni_CreatePipeline(GstElement **pipeline,GstElement **source,eProtocolI
 			    if(!data->element_av[0])
 			    {
 				    iStatus = CSIO_CANNOT_CREATE_ELEMENTS;
-				    g_print( "ERROR: Cannot create queue source pipeline elements\n" );
+				    GST_DEBUG( "ERROR: Cannot create queue source pipeline elements\n" );
 			    }
 			    
 			    data->element_av[1] = gst_element_factory_make( "tsdemux", NULL );
 			    if(!data->element_av[1])
 			    {
 				    iStatus = CSIO_CANNOT_CREATE_ELEMENTS;
-				    g_print( "ERROR: Cannot create tsdemux source pipeline elements\n" );
+				    GST_DEBUG( "ERROR: Cannot create tsdemux source pipeline elements\n" );
 			    }
 
 			    gst_bin_add_many(GST_BIN(data->pipeline), data->element_zero, data->element_av[0], data->element_av[1], NULL);
-			    if( !gst_element_link_many(data->element_zero, data->element_av[0], data->element_av[1], NULL)){
-				    g_print( "ERROR:  Cannot link filter to source elements.\n" );
+			    if( !gst_element_link_many(data->element_zero, data->element_av[0], data->element_av[1], NULL))
+			    {
+			        GST_DEBUG( "ERROR:  Cannot link filter to source elements.\n" );
 				    iStatus = CSIO_CANNOT_LINK_ELEMENTS;
-			    }else
-				    GST_DEBUG("success linking pipeline elements\n");
+			    }
+			    else
+			        GST_DEBUG("success linking pipeline elements\n");
 		    }	
 		    *pipeline = data->pipeline;
 		    *source   = data->element_zero;
@@ -1635,6 +1661,8 @@ int csio_jni_CreatePipeline(GstElement **pipeline,GstElement **source,eProtocolI
 			//video
 			data->udp_video_port = currentSettingsDB.videoSettings[iStreamId].rtpVideoPort;
 			data->element_av[0] = gst_element_factory_make("udpsrc", NULL);
+			insert_udpsrc_probe(data,data->element_av[0],"src");
+
 			g_object_set(G_OBJECT(data->element_av[0]), "port", data->udp_video_port, NULL);
 			g_object_set(G_OBJECT(data->element_av[0]), "caps", data->caps_v_rtp, NULL);
 			gst_bin_add(GST_BIN(data->pipeline), data->element_av[0]);
@@ -1666,6 +1694,8 @@ int csio_jni_CreatePipeline(GstElement **pipeline,GstElement **source,eProtocolI
 
 			data->udp_port = currentSettingsDB.videoSettings[iStreamId].tsPort;
 			data->element_av[0] = gst_element_factory_make("udpsrc", NULL);
+			insert_udpsrc_probe(data,data->element_av[0],"src");
+
 			g_object_set(G_OBJECT(data->element_av[0]), "caps", data->caps_v_ts, NULL);
 			g_object_set(G_OBJECT(data->element_av[0]), "port", data->udp_port, NULL);
 			gst_bin_add(GST_BIN(data->pipeline), data->element_av[0]);
@@ -1683,6 +1713,7 @@ int csio_jni_CreatePipeline(GstElement **pipeline,GstElement **source,eProtocolI
 				    iStatus = CSIO_CANNOT_CREATE_ELEMENTS;
 				    g_print( "ERROR: Cannot create udp source pipeline elements\n" );
 			    }
+			    insert_udpsrc_probe(data,data->element_zero,"src");
 
 			    data->udp_port = currentSettingsDB.videoSettings[iStreamId].tsPort;
 			    g_object_set(G_OBJECT(data->element_zero), "port", data->udp_port, NULL);
@@ -1725,6 +1756,8 @@ int csio_jni_CreatePipeline(GstElement **pipeline,GstElement **source,eProtocolI
 			//video
 			data->udp_video_port = currentSettingsDB.videoSettings[iStreamId].rtpVideoPort;
 			data->element_av[0] = gst_element_factory_make("udpsrc", NULL);
+            insert_udpsrc_probe(data,data->element_av[0],"src"); 
+
 			g_object_set(G_OBJECT(data->element_av[0]), "port", data->udp_video_port, NULL);
 			g_object_set(G_OBJECT(data->element_av[0]), "caps", data->caps_v_rtp, NULL);
 			gst_bin_add(GST_BIN(data->pipeline), data->element_av[0]);
@@ -2199,7 +2232,16 @@ void *csio_SendInitiatorAddressFb( void * arg )
 	jstring initiatorAddress_jstr;
 	JNIEnv *env = get_jni_env ();
 	jint streamId = csio_GetStreamId(arg);
-	char *initiatorAddress_cstr = csio_GetInitiatorFbAddress(streamId);	
+
+	CREGSTREAM * data = GetStreamFromCustomData(CresDataDB, streamId);
+    if(!data)
+    {
+        GST_ERROR("Could not obtain stream pointer for stream %d", streamId);
+        pthread_exit( NULL );
+        return NULL;
+    }
+
+	char *initiatorAddress_cstr = data->sourceIP_addr;//csio_GetInitiatorFbAddress(streamId);
 
 	GST_DEBUG( "Sent INITIATOR FB %s", initiatorAddress_cstr );
 

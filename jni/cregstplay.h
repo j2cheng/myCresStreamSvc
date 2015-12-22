@@ -110,6 +110,11 @@ typedef struct _CREGSTREAM
 	GSource * g_timer_source;
 	guint m_elem_prob_id[MAX_ELEMENTS];
 	CRESTELEINFO videoQueues[MAX_ELEMENTS];//shared with audio
+
+	guint udpsrc_prob_id;
+	GstElement *udpsrc_prob_element;
+	struct timespec udpsrc_prob_timer;
+	char sourceIP_addr[32];
 } CREGSTREAM;
 
 /* Structure to contain all our information, so we can pass it to callbacks */

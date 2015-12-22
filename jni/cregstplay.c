@@ -44,7 +44,7 @@
 #include <unistd.h>
 #include "cregstplay.h"
 #include "csio_jni_if.h"
-
+#include <gst/net/gstnetaddressmeta.h>
 ///////////////////////////////////////////////////////////////////////////////
 
 extern int g_using_glimagsink;
@@ -173,6 +173,104 @@ static void pad_added_callback2 (GstElement *src, GstPad *new_pad, CREGSTREAM *d
     gst_caps_unref(new_pad_caps);
 }
 
+GstPadProbeReturn udpsrcProbe(GstPad *pad, GstPadProbeInfo *info, gpointer user_data)
+{
+    CREGSTREAM * data = (CREGSTREAM *)user_data;
+    long tDiff = 0;
+
+    if( user_data == NULL )
+        return GST_PAD_PROBE_OK;
+
+    static struct timespec   currentTime;
+    clock_gettime(CLOCK_REALTIME, &currentTime);
+
+    //if this is the first time
+    if( data->udpsrc_prob_timer.tv_sec == 0)
+    {
+        data->udpsrc_prob_timer.tv_sec = currentTime.tv_sec;
+    }
+    else
+    {
+        //if still within the same second
+        if(data->udpsrc_prob_timer.tv_sec == currentTime.tv_sec)
+            return GST_PAD_PROBE_OK;
+    }
+
+    //now time increased or is the first time
+    tDiff = currentTime.tv_sec - data->udpsrc_prob_timer.tv_sec;
+
+    //only check every 5 seconds
+    if(tDiff%5)
+        return GST_PAD_PROBE_OK;
+
+    //save it here
+    data->udpsrc_prob_timer.tv_sec = currentTime.tv_sec;
+
+    char *textString = data->sourceIP_addr;
+    GstBuffer *gbuffer = GST_PAD_PROBE_INFO_BUFFER (info);
+
+//get meta from the buffer
+    if(gbuffer)
+    {
+        GstNetAddressMeta *meta;
+        meta = gst_buffer_get_net_address_meta (gbuffer);
+
+        if (meta == NULL)
+        {
+            //GST_DEBUG ("Buffer does not have net_address_meta.");
+            return GST_PAD_PROBE_OK;//try again
+        }
+        else
+        {
+            GSocketAddress *addr = meta->addr;
+            if(addr)
+            {
+                gchar *host;
+
+                host = g_inet_address_to_string (g_inet_socket_address_get_address
+                                                 (G_INET_SOCKET_ADDRESS (addr)));
+
+                memset(data->sourceIP_addr,0,sizeof(data->sourceIP_addr));
+                memcpy(textString,host,sizeof(data->sourceIP_addr)-1);
+
+                GST_DEBUG ("sourceIP_addr[%s], size:%d",data->sourceIP_addr,sizeof(data->sourceIP_addr));
+                g_free (host);
+            }
+        }
+    }
+
+    return GST_PAD_PROBE_OK;
+}
+
+void insert_udpsrc_probe(CREGSTREAM *data,GstElement *element,const gchar *name)
+{
+    if (element)
+    {
+        GstPad *pad;
+        pad = gst_element_get_static_pad(element, name);
+        GST_DEBUG("data[0x%x],element[0x%x],name[%s] pad:[0x%x]", data,element,name,pad);
+        
+        if (pad != NULL)
+        {
+
+            memset(data->sourceIP_addr,0,sizeof(data->sourceIP_addr));
+            data->udpsrc_prob_timer.tv_sec = 0;
+            data->udpsrc_prob_timer.tv_nsec = 0;
+            data->udpsrc_prob_element = element;
+
+            data->udpsrc_prob_id = gst_pad_add_probe(pad,
+                    GST_PAD_PROBE_TYPE_BUFFER, udpsrcProbe,
+                    data, NULL);
+            
+            gst_object_unref(pad);
+        }
+        else
+        {
+            GST_DEBUG("Failed to insert udpsrc probe");
+        }
+    }
+}
+
 /**
  * \author      Pete McCormick
  *
@@ -215,7 +313,7 @@ int build_video_pipeline(gchar *encoding_name, CREGSTREAM *data, unsigned int st
         {
             data->element_v[i++] = gst_element_factory_make("rtph264depay", NULL);
         }
-        //data->element_v[i++] = gst_element_factory_make("queue", NULL);
+        
         data->element_v[i++] = gst_element_factory_make("valve", NULL);
         data->element_valve_v = data->element_v[i-1];
 
