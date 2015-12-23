@@ -12,8 +12,7 @@ public class HDMIInputInterface {
 	static String TAG = "HDMIInInterface";
 
 	private static String syncStatus;
-	private static String interlaced;
-   	private static String horizontalRes;
+	private static String horizontalRes;
 	private static String verticalRes;
 	private static String fps;
 	private static String aspectRatio;
@@ -24,7 +23,6 @@ public class HDMIInputInterface {
 	
 	public HDMIInputInterface() {
 		syncStatus = "false";
-		interlaced = "false";	//no interlacing for txrx and dge for now
 		horizontalRes = "0";
 		verticalRes = "0";
 		fps = "0";
@@ -62,7 +60,7 @@ public class HDMIInputInterface {
 	}
 
 	public String getInterlacing() { 
-		return interlaced;
+		return String.valueOf(readInterlaced());
 	}
 
 	public void setHorizontalRes(String _horizontalRes) { 
@@ -285,5 +283,27 @@ public class HDMIInputInterface {
 		}
     	else 
     		return 0;
+    }
+    public static boolean readInterlaced (){
+    	if (isHdmiDriverPresent == true)
+		{
+	    	StringBuilder text = new StringBuilder();
+	        try {
+	            File file = new File("/sys/devices/platform/omap_i2c.2/i2c-2/2-000f/interlaced");
+	
+	            BufferedReader br = new BufferedReader(new FileReader(file));  
+	            String line;   
+	            while ((line = br.readLine()) != null) {
+	                text.append(line);
+	            }
+	            br.close();
+	        }catch (IOException e) {
+	            e.printStackTrace();
+	            text.append("0"); //if error default to not interlaced
+	        }
+	        return Integer.parseInt(text.toString()) == 1;
+		}
+    	else 
+    		return false;
     }
 }
