@@ -128,7 +128,7 @@ public class CresStreamCtrl extends Service {
     private int mPreviousAudioInputSampleRate = 0;
     public CountDownLatch streamingReadyLatch = new CountDownLatch(1);
     private Object cameraModeLock = new Object();
-    private Timer mNoVideoTimer;
+    private Timer mNoVideoTimer = null;
 
     enum DeviceMode {
         STREAM_IN,
@@ -2404,15 +2404,22 @@ public class CresStreamCtrl extends Service {
 		if ( (enable) && (previousCameraMode != CameraMode.NoVideo.ordinal() 
 				|| previousCameraMode != CameraMode.BlackScreen.ordinal()) )
 		{
-			mNoVideoTimer = new Timer();
-			mNoVideoTimer.schedule(new setNoVideoImage(CameraMode.NoVideo.ordinal()), 5000);
+			if (mNoVideoTimer == null)
+			{
+				mNoVideoTimer = new Timer();
+				mNoVideoTimer.schedule(new setNoVideoImage(CameraMode.NoVideo.ordinal()), 5000);
+			}
 			setCameraMode(String.valueOf(CameraMode.BlackScreen.ordinal()));
 		}
 		else if ( (previousCameraMode == CameraMode.NoVideo.ordinal()) ||
 				(previousCameraMode == CameraMode.BlackScreen.ordinal()) )
 		{
-			mNoVideoTimer.cancel();
-			mNoVideoTimer.purge();
+			if (mNoVideoTimer != null)
+			{
+				mNoVideoTimer.cancel();
+				mNoVideoTimer.purge();
+				mNoVideoTimer = null;
+			}
 			if (Boolean.parseBoolean(pauseStatus) == true)
 				setCameraMode(String.valueOf(CameraMode.Paused.ordinal()));
 			else
@@ -2678,6 +2685,7 @@ public class CresStreamCtrl extends Service {
 		@Override
 		public void run() {
 			setCameraMode(String.valueOf(cameraMode));
+			mNoVideoTimer = null;
 		}		
 	}
 }
