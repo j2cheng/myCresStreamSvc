@@ -96,8 +96,8 @@ public class CresStreamCtrl extends Service {
     static int hpdHdmiEvent = 0;
     
     private volatile boolean saveSettingsShouldExit = false;
-    public static Object saveSettingsPendingUpdate = new Object();
-    public static boolean saveSettingsUpdateArrived = false;
+    public static Object saveSettingsLock = new Object();
+    public static volatile boolean saveSettingsUpdateArrived = false;
 
     public final static int NumOfSurfaces = 2;
     public volatile boolean restartStreamsOnStart = false;
@@ -213,7 +213,7 @@ public class CresStreamCtrl extends Service {
     private final ReentrantLock stopStartLock			= new ReentrantLock(true); // fairness=true, makes lock ordered
     private final ReentrantLock hdmiLock				= new ReentrantLock(true);
     private final ReentrantLock streamStateLock 		= new ReentrantLock(true);
-    private final ReentrantLock saveSettingsLock 		= new ReentrantLock(true);
+//    private final ReentrantLock saveSettingsLock 		= new ReentrantLock(true);
     
     /**
      * Force the service to the foreground
@@ -1681,7 +1681,7 @@ public class CresStreamCtrl extends Service {
     	try
     	{
         	userSettings.setStreamState(state, sessionId);
-        	TriggerSettingsSave();
+        	CresStreamCtrl.saveSettingsUpdateArrived = true; // flag userSettings to save
 	        StringBuilder sb = new StringBuilder(512);
 	        String streamStateText = "STREAMSTATE" + String.valueOf(sessionId);
 	        
@@ -2504,51 +2504,50 @@ public class CresStreamCtrl extends Service {
 	
 	public void saveUserSettings()
 	{
-		Writer writer = null;
-		GsonBuilder builder = new GsonBuilder();
-      	Gson gson = builder.create();
-      	String serializedClass = gson.toJson(this.userSettings);
-      	String currentUserSettings = "";
-      	try {
-      		currentUserSettings = new Scanner(new File (savedSettingsFilePath), "US-ASCII").useDelimiter("\\A").next();
-      	} catch (Exception e) { }
-      	
-      	// Only update userSettings if it has changed
-      	if (serializedClass != currentUserSettings)
-      	{
-	      	try 
+		synchronized (saveSettingsLock)
+		{
+			Writer writer = null;
+			GsonBuilder builder = new GsonBuilder();
+	      	Gson gson = builder.create();
+	      	String serializedClass = gson.toJson(this.userSettings);
+	      	String currentUserSettings = "";
+	      	try {      		
+	      		currentUserSettings = new Scanner(new File (savedSettingsFilePath), "US-ASCII").useDelimiter("\\A").next();
+	      	} catch (Exception e) {Log.d(TAG, "Exception in saveUserSettings" + e.toString()); }
+	      	
+	      	// Only update userSettings if it has changed
+	      	if (serializedClass != currentUserSettings)
 	      	{
-	      		// Save new userSettings
-	      		saveSettingsLock.lock();
-	      		
-	      		// If old file exists delete it
-	      		File oldFile = new File(savedSettingsOldFilePath);
-		      	if (oldFile.exists())
-				{
-					boolean deleteSuccess = oldFile.delete();
-					if (!deleteSuccess)
-						Log.e(TAG,"Failed to delete " + savedSettingsOldFilePath);
-				}
-		      	
-	      		// rename current file to old
-	      		renameFile(savedSettingsFilePath, savedSettingsOldFilePath);
-	      		syncFileSystem();	      		
-	      		
-	      		writer = new BufferedWriter(new OutputStreamWriter(new FileOutputStream(savedSettingsFilePath), "US-ASCII"));
-	      		writer.write(serializedClass);
-	    	    writer.flush();
-	    	} 
-	      	catch (IOException ex) {
-	    	  Log.e(TAG, "Failed to save userSettings to disk: " + ex);
-	    	} finally 
-	    	{
-	    		saveSettingsLock.unlock();
-	    		try {writer.close();} catch (Exception ex) {/*ignore*/}
-	    		syncFileSystem();
-	    	}
-      	
-	      	Log.d(TAG, "Saved userSettings to disk");
-      	}
+		      	try 
+		      	{
+		      		// If old file exists delete it
+		      		File oldFile = new File(savedSettingsOldFilePath);
+			      	if (oldFile.exists())
+					{
+						boolean deleteSuccess = oldFile.delete();
+						if (!deleteSuccess)
+							Log.e(TAG,"Failed to delete " + savedSettingsOldFilePath);
+					}
+			      	
+		      		// rename current file to old
+		      		renameFile(savedSettingsFilePath, savedSettingsOldFilePath);
+		      		syncFileSystem();	      		
+		      		
+		      		writer = new BufferedWriter(new OutputStreamWriter(new FileOutputStream(savedSettingsFilePath), "US-ASCII"));
+		      		writer.write(serializedClass);
+		    	    writer.flush();
+		    	} 
+		      	catch (IOException ex) {
+		    	  Log.e(TAG, "Failed to save userSettings to disk: " + ex);
+		    	} finally 
+		    	{
+		    		try {writer.close();} catch (Exception ex) {/*ignore*/}
+		    		syncFileSystem();
+		    	}
+	      	
+		      	Log.d(TAG, "Saved userSettings to disk");
+	      	}
+		}
 	}
 	
 	private void renameFile(String currentFilePath, String newFilePath)
@@ -2591,27 +2590,24 @@ public class CresStreamCtrl extends Service {
 		public void run() {
 			while (!saveSettingsShouldExit)
 			{
-				synchronized (saveSettingsPendingUpdate) {
-					while (!saveSettingsUpdateArrived) {
-						try {
-							saveSettingsPendingUpdate.wait();
-						} catch (InterruptedException ex) {ex.printStackTrace();}
-					}
+				if (saveSettingsUpdateArrived == true)
+				{
 					saveSettingsUpdateArrived = false;
 					saveUserSettings();					
 				}
+
+				try
+				{
+					Thread.sleep(1000);
+				}
+				catch (Exception e)
+				{
+					Log.d(TAG, "Save settings task exception" + e.toString());
+				}				
 			}
 		}
 	}
-	
-	public void TriggerSettingsSave()
-	{
-		synchronized ( saveSettingsPendingUpdate ) {  
-        	saveSettingsUpdateArrived = true;        
-            saveSettingsPendingUpdate.notify();
-        }
-	}
-	
+
 	private void recomputeHash() {
 		sockTask.SendDataToAllClients(String.format("RECOMPUTEHASH=%s", savedSettingsFilePath));
 	}

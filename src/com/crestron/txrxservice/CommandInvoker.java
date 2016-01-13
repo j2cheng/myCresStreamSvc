@@ -9,10 +9,7 @@ public class CommandInvoker{
 
     public void set(){
         myCmd.execute();
-        synchronized ( CresStreamCtrl.saveSettingsPendingUpdate ) {  
-        	CresStreamCtrl.saveSettingsUpdateArrived = true;        
-            CresStreamCtrl.saveSettingsPendingUpdate.notify();
-        }
+        CresStreamCtrl.saveSettingsUpdateArrived = true;
     }
     
     public String get(){

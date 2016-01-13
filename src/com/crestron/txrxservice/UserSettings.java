@@ -327,10 +327,7 @@ public class UserSettings
 
 	public void setUserRequestedStreamState(CresStreamCtrl.StreamState streamState, int sessId) {
 		this.userRequestedStreamState[sessId] = streamState;
-		synchronized ( CresStreamCtrl.saveSettingsPendingUpdate ) {  
-			CresStreamCtrl.saveSettingsUpdateArrived = true;        
-			CresStreamCtrl.saveSettingsPendingUpdate.notify();
-		}
+		CresStreamCtrl.saveSettingsUpdateArrived = true;        
 	}
 
 	public int getDeviceReady() {
