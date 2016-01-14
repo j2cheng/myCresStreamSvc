@@ -118,7 +118,8 @@ public class CommandParser {
         NEW_SINK,
         NEW_IPADDR,
         FDEBUG_JNI,
-        RESET_ALL_WINDOWS;
+        RESET_ALL_WINDOWS,
+    	LOGLEVEL;
     	//UPDATEREQUEST;
     }
 
@@ -493,6 +494,9 @@ public class CommandParser {
             	break;
             case RESET_ALL_WINDOWS:
             	cmd = new ResetAllWindowsCommand(cmdRx, arg);
+            	break;
+            case LOGLEVEL:
+            	cmd = new SetLogLevelCommand(cmdRx, arg);
             	break;
             default:
                 break;

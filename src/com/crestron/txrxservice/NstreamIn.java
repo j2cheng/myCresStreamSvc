@@ -345,4 +345,8 @@ public class NstreamIn implements StreamInStrategy, OnPreparedListener, OnComple
     public void setAudioDrop(boolean enabled, int sessionId) {
     	// Not needed by gallery player
     }
+    
+    public void setLogLevel(int logLevel) {
+    	// Not needed by gallery player
+    }
 }

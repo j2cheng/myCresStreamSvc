@@ -1799,3 +1799,24 @@ class ResetAllWindowsCommand implements CommandIf {
 		return msg;	//no feedback for this join
 	}
 }
+
+class SetLogLevelCommand implements CommandIf {
+	CommandReceiver launch;
+	String msg;
+
+	public SetLogLevelCommand(CommandReceiver launch, String arg) {
+		this.launch = launch;
+		this.msg = arg;
+	}
+
+	@Override
+	public void execute() {
+		try {
+			launch.setLogLevel(Integer.parseInt(msg));
+		} catch (Exception e) {}
+	}
+	public String getFeedbackMsg() {
+		return msg;	//no feedback for this join
+	}
+}
+

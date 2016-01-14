@@ -271,6 +271,10 @@ public class CommandReceiver {
     	ctl.resetAllWindows();
     }
     
+    public void setLogLevel(int logLevel) {
+    	ctl.setLogLevel(logLevel);
+    }
+    
     // HDMI Out
     public void setHdmiOutForceHdcp(boolean enabled){
     	ctl.setHdmiOutForceHdcp(enabled);

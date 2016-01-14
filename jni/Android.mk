@@ -30,6 +30,8 @@ CPP_INC_PATH := $(CRESTRON_ROOT)/../../bionic
 #LOCAL_SHARED_LIBRARIES := gstreamer_android
 LOCAL_SHARED_LIBRARIES := libgstreamer_android liblog libandroid
 LOCAL_SHARED_LIBRARIES += libproductName
+LOCAL_SHARED_LIBRARIES += libLinuxUtil
+
 
 # Crestron - why do I have to do this?
 #LOCAL_LDLIBS := -llog -landroid
@@ -51,7 +53,8 @@ LOCAL_CFLAGS +=\
 	-I$(CSIO_INCLUDE_ROOT) \
 	-I$(CSIO_INCLUDE_ROOT)/txrx \
 	-I$(CSIO_INCLUDE_ROOT)/url_parser \
-	-I$(CSIO_INCLUDE_ROOT)/gstreamer-1.0
+	-I$(CSIO_INCLUDE_ROOT)/gstreamer-1.0 \
+	-DANDROID_OS
 LOCAL_MODULE_TAGS := eng
 LOCAL_PRELINK_MODULE := false
 include $(BUILD_SHARED_LIBRARY)

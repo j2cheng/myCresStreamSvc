@@ -134,13 +134,13 @@ static JNIEnv *attach_current_thread (void)
 	JNIEnv *env;
 	JavaVMAttachArgs args;
 
-	GST_DEBUG ("Attaching thread %p", g_thread_self ());
+	CSIO_LOG(eLogLevel_debug, "Attaching thread %p", g_thread_self ());
 	args.version = JNI_VERSION_1_4;
 	args.name = NULL;
 	args.group = NULL;
 
 	if ((*java_vm)->AttachCurrentThread (java_vm, (void**)&env, &args) < 0) {
-		GST_ERROR ("Failed to attach current thread");
+		CSIO_LOG(eLogLevel_warning, "Failed to attach current thread");
 		return NULL;
 	}
 
@@ -150,7 +150,7 @@ static JNIEnv *attach_current_thread (void)
 /* Unregister this thread from the VM */
 static void detach_current_thread (void *env) 
 {
-	GST_DEBUG ("Detaching thread %p", g_thread_self ());
+	CSIO_LOG(eLogLevel_debug, "Detaching thread %p", g_thread_self ());
 	(*java_vm)->DetachCurrentThread (java_vm);
 }
 
@@ -171,11 +171,11 @@ static JNIEnv *get_jni_env (void)
 // void set_ui_message (const gchar *message, CustomData *data) 
 // {
 // 	JNIEnv *env = get_jni_env ();
-// 	GST_DEBUG ("Setting message to: %s", message);
+// 	CSIO_LOG(eLogLevel_debug, "Setting message to: %s", message);
 // 	jstring jmessage = (*env)->NewStringUTF(env, message);
 // 	(*env)->CallVoidMethod (env, data->app, set_message_method_id, jmessage);
 // 	if ((*env)->ExceptionCheck (env)) {
-// 		GST_ERROR ("Failed to call Java method");
+// 		CSIO_LOG(eLogLevel_error, "Failed to call Java method");
 // 		(*env)->ExceptionClear (env);
 // 	}
 // 	(*env)->DeleteLocalRef (env, jmessage);
@@ -188,20 +188,20 @@ static void check_initialization_complete (CustomData *cdata, int stream)
 	JNIEnv *env = get_jni_env ();
 	CREGSTREAM * data = GetStreamFromCustomData(cdata, stream);
 
-	GST_DEBUG("stream=%d", stream);
+	CSIO_LOG(eLogLevel_debug, "stream=%d", stream);
 	
 	if(!data)
  	{
-		GST_ERROR("Could not obtain stream pointer for stream %d", stream);
+		CSIO_LOG(eLogLevel_error, "Could not obtain stream pointer for stream %d", stream);
 		return;
 	}
 
-	GST_DEBUG("stream=%d: initialized=%d, native_window=%p, main_loop=%p", 
+	CSIO_LOG(eLogLevel_debug, "stream=%d: initialized=%d, native_window=%p, main_loop=%p",
 		stream, data->initialized, data->native_window,data->main_loop);
 	
 	if (!data->initialized && data->native_window && data->main_loop) 
 	{
-		GST_DEBUG ("Initialization complete for stream %d, video_sink=%p", 
+		CSIO_LOG(eLogLevel_debug, "Initialization complete for stream %d, video_sink=%p",
 			stream, data->video_sink);
 
 		/* The main loop is running and we received a native window, inform the sink about it */
@@ -213,7 +213,7 @@ static void check_initialization_complete (CustomData *cdata, int stream)
 		// Not used.
 		//(*env)->CallVoidMethod (env, cdata->app, on_gstreamer_initialized_method_id);
 		//if ((*env)->ExceptionCheck (env)) {
-		//	GST_ERROR ("Failed to call Java method");
+		//	CSIO_LOG(eLogLevel_error, "Failed to call Java method");
 		//	(*env)->ExceptionClear (env);
 		//}
 		
@@ -232,10 +232,10 @@ void csio_jni_init()
 	iStatus = csio_Init(0);
 	if(iStatus != CSIO_SUCCESS)
 	{
-		GST_DEBUG("csio_Init returned error %d\n", iStatus);
+		CSIO_LOG(eLogLevel_info, "csio_Init returned error %d\n", iStatus);
 	}
 
-	GST_DEBUG("Done with init\n");
+	CSIO_LOG(eLogLevel_debug, "Done with init\n");
 }
 
 /*
@@ -264,13 +264,13 @@ static void gst_native_finalize (JNIEnv* env, jobject thiz)
 	
 	if (!cdata) return;
 		
-	GST_DEBUG ("Deleting GlobalRef for app object at %p", cdata->app);
+	CSIO_LOG(eLogLevel_debug, "Deleting GlobalRef for app object at %p", cdata->app);
     (*env)->DeleteGlobalRef (env, (jobject)gStreamIn_javaClass_id);
 	(*env)->DeleteGlobalRef (env, cdata->app);
-	GST_DEBUG ("Freeing CustomData at %p", cdata);
+	CSIO_LOG(eLogLevel_debug, "Freeing CustomData at %p", cdata);
 	g_free (cdata);
 	SET_CUSTOM_DATA (env, thiz, custom_data_field_id, NULL);
-	GST_DEBUG ("Done finalizing");
+	CSIO_LOG(eLogLevel_debug, "Done finalizing");
 }
 
 /* Set pipeline to PLAYING state */
@@ -280,13 +280,13 @@ void gst_native_play (JNIEnv* env, jobject thiz, jint sessionId)
 
     if (!data)
     {
-        GST_ERROR("Could not obtain stream pointer for stream %d", sessionId);
+        CSIO_LOG(eLogLevel_error, "Could not obtain stream pointer for stream %d", sessionId);
         return;
     }
 
     if(GetInPausedState(sessionId))
     {
-        GST_DEBUG("GetInPausedState is true, resume now");
+        CSIO_LOG(eLogLevel_debug, "GetInPausedState is true, resume now");
         if(data->element_valve_a)
             g_object_set(G_OBJECT(data->element_valve_a), "drop", FALSE, NULL);
         if(data->element_valve_v)
@@ -305,13 +305,13 @@ static void gst_native_pause (JNIEnv* env, jobject thiz, jint sessionId)
 
     if (!data)
     {
-        GST_ERROR("Could not obtain stream pointer for stream %d", sessionId);
+        CSIO_LOG(eLogLevel_error, "Could not obtain stream pointer for stream %d", sessionId);
         return;
     }
     
     if(GetInPausedState(sessionId) == 0)
     {
-        GST_DEBUG("GetInPausedState is false, drop all");
+        CSIO_LOG(eLogLevel_debug, "GetInPausedState is false, drop all");
         if(data->element_valve_a)
             g_object_set(G_OBJECT(data->element_valve_a), "drop", TRUE, NULL);
         if(data->element_valve_v)
@@ -327,7 +327,7 @@ void csio_jni_remove_probe (int iStreamId)
 
     if (!data)
     {
-        GST_ERROR("Could not obtain stream pointer for stream %d", iStreamId);
+        CSIO_LOG(eLogLevel_error, "Could not obtain stream pointer for stream %d", iStreamId);
         return;
     }
     
@@ -355,7 +355,7 @@ void csio_jni_cleanup (int iStreamId)
 
     if (!data)
     {
-        GST_ERROR("Could not obtain stream pointer for stream %d", iStreamId);
+        CSIO_LOG(eLogLevel_error, "Could not obtain stream pointer for stream %d", iStreamId);
         return;
     }
     
@@ -432,11 +432,11 @@ void csio_jni_stop(int sessionId)
 
 	if (result == ETIMEDOUT)
 	{
-		GST_ERROR("Stop timed out after %d seconds\n", timeout_sec);
+		CSIO_LOG(eLogLevel_error, "Stop timed out after %d seconds\n", timeout_sec);
 		csio_jni_recoverDucati();
 	}
 	else if (result != 0)
-		GST_ERROR("Unknown error occurred while waiting for stop to complete, error = %d\n", result);
+		CSIO_LOG(eLogLevel_error, "Unknown error occurred while waiting for stop to complete, error = %d\n", result);
 }
 
 /* Set pipeline to PAUSED state */
@@ -448,7 +448,7 @@ void gst_native_stop (JNIEnv* env, jobject thiz, jint sessionId, jint stopTimeou
 /* Static class initializer: retrieve method and field IDs */
 static jboolean gst_native_class_init (JNIEnv* env, jclass klass) 
 {
-	GST_DEBUG("gst_native_class_init\n");
+	CSIO_LOG(eLogLevel_debug, "gst_native_class_init\n");
 	custom_data_field_id = (*env)->GetFieldID (env, klass, "native_custom_data", "J");
 	set_message_method_id = (*env)->GetMethodID (env, klass, "setMessage", "(Ljava/lang/String;)V");
 	//on_gstreamer_initialized_method_id = (*env)->GetMethodID (env, klass, "onGStreamerInitialized", "()V");
@@ -458,7 +458,7 @@ static jboolean gst_native_class_init (JNIEnv* env, jclass klass)
 		/* We emit this message through the Android log instead of the GStreamer log because the later
 		* has not been initialized yet.
 		*/
-		__android_log_print (ANDROID_LOG_ERROR, "gstreamer_jni", "The calling class does not implement all necessary interface methods");
+		CSIO_LOG(eLogLevel_error, "The calling class does not implement all necessary interface methods");
 		return JNI_FALSE;
 	}
 	return JNI_TRUE;
@@ -473,16 +473,16 @@ static void gst_jni_setup_surface_format(JNIEnv *env,ANativeWindow *new_native_w
     int queuesToNativeWindow = 0;
     int minUndequeuedBufs = 0;
 
-    GST_DEBUG("ANativeWindow format was %x", ANativeWindow_getFormat(new_native_window));
+    CSIO_LOG(eLogLevel_debug, "ANativeWindow format was %x", ANativeWindow_getFormat(new_native_window));
 
     err = native_window_set_buffers_format(new_native_window, format);
     if (err != 0)
     {
-        GST_ERROR("Failed to set buffers format to %d", format);
+        CSIO_LOG(eLogLevel_error, "Failed to set buffers format to %d", format);
         return;
     }
 
-    GST_DEBUG("ANativeWindow after set buffers format, width=%d, height=%d, format=0x%x",
+    CSIO_LOG(eLogLevel_debug, "ANativeWindow after set buffers format, width=%d, height=%d, format=0x%x",
             ANativeWindow_getWidth(new_native_window), ANativeWindow_getHeight(new_native_window),
             ANativeWindow_getFormat(new_native_window));
 
@@ -494,7 +494,7 @@ static void gst_jni_setup_surface_format(JNIEnv *env,ANativeWindow *new_native_w
             NATIVE_WINDOW_SCALING_MODE_SCALE_TO_WINDOW);
     if (err != 0)
     {
-        GST_ERROR("Failed to set buffers scaling_mode : %s (%d)",strerror(-err), -err);
+        CSIO_LOG(eLogLevel_error, "Failed to set buffers scaling_mode : %s (%d)",strerror(-err), -err);
         return;
     }
 
@@ -502,7 +502,7 @@ static void gst_jni_setup_surface_format(JNIEnv *env,ANativeWindow *new_native_w
             NATIVE_WINDOW_QUEUES_TO_WINDOW_COMPOSER, &queuesToNativeWindow);
     if (err != 0)
     {
-        GST_ERROR("error authenticating native window: %d", err);
+        CSIO_LOG(eLogLevel_error, "error authenticating native window: %d", err);
         return;
     }
 
@@ -510,18 +510,18 @@ static void gst_jni_setup_surface_format(JNIEnv *env,ANativeWindow *new_native_w
             NATIVE_WINDOW_MIN_UNDEQUEUED_BUFFERS, (int*) &minUndequeuedBufs);
     if (err != 0)
     {
-        GST_ERROR("NATIVE_WINDOW_MIN_UNDEQUEUED_BUFFERS query failed: %s (%d)", strerror(-err), -err);
+        CSIO_LOG(eLogLevel_error, "NATIVE_WINDOW_MIN_UNDEQUEUED_BUFFERS query failed: %s (%d)", strerror(-err), -err);
         return FALSE;
     }
 
     if (data->surface)
     {
-        GST_ERROR("Delete GlobalRef before adding new: %p", data->surface);
+        CSIO_LOG(eLogLevel_debug, "Delete GlobalRef before adding new: %p", data->surface);
         (*env)->DeleteGlobalRef(env, data->surface);
         data->surface = NULL;
     }
     data->surface = (*env)->NewGlobalRef(env, surface);
-    GST_DEBUG ("native window = %p,surface[%p],data->surface[%p]", data->native_window,surface,data->surface);
+    CSIO_LOG(eLogLevel_debug, "native window = %p,surface[%p],data->surface[%p]", data->native_window,surface,data->surface);
 }
 
 static void gst_native_surface_init(JNIEnv *env, jobject thiz, jobject surface, jint stream)
@@ -530,35 +530,35 @@ static void gst_native_surface_init(JNIEnv *env, jobject thiz, jobject surface, 
     ANativeWindow *new_native_window;
     CREGSTREAM * data;
 
-    GST_DEBUG("surface=%p, stream=%d", surface, stream);
+    CSIO_LOG(eLogLevel_debug, "surface=%p, stream=%d", surface, stream);
 
     if (!surface)
     {
-        GST_ERROR("No surface for stream %d", stream);
+        CSIO_LOG(eLogLevel_error, "No surface for stream %d", stream);
         return;
     }
 
     new_native_window = ANativeWindow_fromSurface(env, surface);
     if (!new_native_window)
     {
-        GST_ERROR("No native window for stream %d", stream);
+        CSIO_LOG(eLogLevel_error, "No native window for stream %d", stream);
         return;
     }
 
     if (!cdata)
     {
-        GST_ERROR("Could not access custom data");
+        CSIO_LOG(eLogLevel_error, "Could not access custom data");
         return;
     }
 
     data = GetStreamFromCustomData(cdata, stream);
     if (!data)
     {
-        GST_ERROR("Could not obtain stream pointer for stream %d", stream);
+        CSIO_LOG(eLogLevel_error, "Could not obtain stream pointer for stream %d", stream);
         return;
     }
 
-	GST_DEBUG ("Received surface %p (native window %p) for stream %d, video_sink=%p", 
+	CSIO_LOG(eLogLevel_debug, "Received surface %p (native window %p) for stream %d, video_sink=%p",
 			   surface, new_native_window, stream, data->video_sink);
 
     if (data->native_window)
@@ -566,7 +566,7 @@ static void gst_native_surface_init(JNIEnv *env, jobject thiz, jobject surface, 
         ANativeWindow_release(data->native_window);
         if (data->native_window == new_native_window)
         {
-			GST_DEBUG ("New native window is the same as the previous one %p", data->native_window);
+			CSIO_LOG(eLogLevel_debug, "New native window is the same as the previous one %p", data->native_window);
             if (data->video_sink)
             {
                 // From tutorial 3 comments:
@@ -582,7 +582,7 @@ static void gst_native_surface_init(JNIEnv *env, jobject thiz, jobject surface, 
         }
         else
         {
-            GST_DEBUG ("Released previous native window %p", data->native_window);
+            CSIO_LOG(eLogLevel_debug, "Released previous native window %p", data->native_window);
             data->initialized = FALSE;
         }
     }
@@ -603,11 +603,11 @@ StreamState gst_native_get_current_stream_state(int stream)
 	currentStreamState = (StreamState)(*env)->CallIntMethod(env, CresDataDB->app, getCurrentStreamState, stream);
 
 	if ((*env)->ExceptionCheck (env)) {
-		GST_ERROR ("Failed to call Java method 'getCurrentStreamState'");
+		CSIO_LOG(eLogLevel_error, "Failed to call Java method 'getCurrentStreamState'");
 		(*env)->ExceptionClear (env);
 	}
 
-	GST_DEBUG("currentStreamState(%d) = %d", stream, (jint)currentStreamState);
+	CSIO_LOG(eLogLevel_debug, "currentStreamState(%d) = %d", stream, (jint)currentStreamState);
 
 	return currentStreamState;
 }
@@ -622,11 +622,11 @@ static void gst_native_surface_finalize (JNIEnv *env, jobject thiz, jint stream)
 	data = GetStreamFromCustomData(cdata, stream);
 	if(!data)
 	{
-		GST_ERROR("Could not obtain stream pointer for stream %d", stream);
+		CSIO_LOG(eLogLevel_error, "Could not obtain stream pointer for stream %d", stream);
 		return;
 	}
 	
-	GST_DEBUG ("Releasing native window %p for stream %d", 
+	CSIO_LOG(eLogLevel_debug, "Releasing native window %p for stream %d",
 			   data->native_window, stream);
 	
 	if (data->video_sink) 
@@ -642,7 +642,7 @@ static void gst_native_surface_finalize (JNIEnv *env, jobject thiz, jint stream)
 
 	if(data->surface)
 	{
-	    GST_DEBUG("Delete GlobalRef %p", data->surface);
+	    CSIO_LOG(eLogLevel_debug, "Delete GlobalRef %p", data->surface);
 	    (*env)->DeleteGlobalRef(env, data->surface);
 	    data->surface = NULL;
 	}
@@ -656,7 +656,7 @@ JNIEXPORT void JNICALL Java_com_crestron_txrxservice_GstreamIn_nativeSetServerUr
 	const char * url_cstring = (*env)->GetStringUTFChars( env, url_jstring , NULL ) ;
 	if (url_cstring == NULL) return;
 
-	GST_DEBUG ("Using server url: '%s'", url_cstring);
+	CSIO_LOG(eLogLevel_debug, "Using server url: '%s'", url_cstring);
 	csio_SetURL(sessionId, (char *)url_cstring, strlen(url_cstring) + 1);
 
 	(*env)->ReleaseStringUTFChars(env, url_jstring, url_cstring);
@@ -664,49 +664,49 @@ JNIEXPORT void JNICALL Java_com_crestron_txrxservice_GstreamIn_nativeSetServerUr
 
 JNIEXPORT void JNICALL Java_com_crestron_txrxservice_GstreamIn_nativeSetRtspPort(JNIEnv *env, jobject thiz, jint port, jint sessionId)
 {
-	GST_DEBUG ("Using RtspPort: '%d'", port);
+	CSIO_LOG(eLogLevel_debug, "Using RtspPort: '%d'", port);
 	currentSettingsDB.videoSettings[sessionId].rtsp_port = port;
-	GST_DEBUG ("RtspPort in currentSettingsDB: '%d'", currentSettingsDB.videoSettings[sessionId].rtsp_port);
+	CSIO_LOG(eLogLevel_debug, "RtspPort in currentSettingsDB: '%d'", currentSettingsDB.videoSettings[sessionId].rtsp_port);
 }
 
 JNIEXPORT void JNICALL Java_com_crestron_txrxservice_GstreamIn_nativeSetTsPort(JNIEnv *env, jobject thiz, jint port, jint sessionId)
 {
-	GST_DEBUG ("Using tsPort: '%d'", port);
+	CSIO_LOG(eLogLevel_debug, "Using tsPort: '%d'", port);
 	//currentSettingsDB.videoSettings[sessionId].tsPort = port;
 	csio_SetPortNumber( sessionId, port, c_TSportNumber );
-	GST_DEBUG ("tsPort in currentSettingsDB: '%ld'", currentSettingsDB.videoSettings[sessionId].tsPort);
+	CSIO_LOG(eLogLevel_debug, "tsPort in currentSettingsDB: '%ld'", currentSettingsDB.videoSettings[sessionId].tsPort);
 }
 
 JNIEXPORT void JNICALL Java_com_crestron_txrxservice_GstreamIn_nativeSetRtpVideoPort(JNIEnv *env, jobject thiz, jint port, jint sessionId)
 {
-	GST_DEBUG ("Using rtpVideoPort: '%d'", port);
+	CSIO_LOG(eLogLevel_debug, "Using rtpVideoPort: '%d'", port);
 	//currentSettingsDB.videoSettings[sessionId].rtpVideoPort = port;
 	csio_SetPortNumber( sessionId, port, c_RTPVideoPortNumber );
-	GST_DEBUG ("rtpVideoPort in currentSettingsDB: '%ld'", currentSettingsDB.videoSettings[sessionId].rtpVideoPort);
+	CSIO_LOG(eLogLevel_debug, "rtpVideoPort in currentSettingsDB: '%ld'", currentSettingsDB.videoSettings[sessionId].rtpVideoPort);
 }
 
 JNIEXPORT void JNICALL Java_com_crestron_txrxservice_GstreamIn_nativeSetRtpAudioPort(JNIEnv *env, jobject thiz, jint port, jint sessionId)
 {
-	GST_DEBUG ("Using rtpAudioPort: '%d'", port);
+	CSIO_LOG(eLogLevel_debug, "Using rtpAudioPort: '%d'", port);
 	//currentSettingsDB.videoSettings[sessionId].rtpAudioPort = port;
 	csio_SetPortNumber( sessionId, port, c_RTPAudioPortNumber );
-	GST_DEBUG ("rtpAudioPort in currentSettingsDB: '%ld'", currentSettingsDB.videoSettings[sessionId].rtpAudioPort);
+	CSIO_LOG(eLogLevel_debug, "rtpAudioPort in currentSettingsDB: '%ld'", currentSettingsDB.videoSettings[sessionId].rtpAudioPort);
 }
 
 JNIEXPORT void JNICALL Java_com_crestron_txrxservice_GstreamIn_nativeSetSessionInitiation(JNIEnv *env, jobject thiz, jint initMode, jint sessionId)
 {
-	GST_DEBUG ("Using sessionInitiationMode: '%d'", initMode);
+	CSIO_LOG(eLogLevel_debug, "Using sessionInitiationMode: '%d'", initMode);
 	//currentSettingsDB.videoSettings[sessionId].sessionInitiationMode = initMode;
 	csio_SetSessionInitiationMode(sessionId,initMode);
-	GST_DEBUG ("sessionInitiationMode in currentSettingsDB: '%d'", currentSettingsDB.videoSettings[sessionId].sessionInitiationMode);
+	CSIO_LOG(eLogLevel_debug, "sessionInitiationMode in currentSettingsDB: '%d'", currentSettingsDB.videoSettings[sessionId].sessionInitiationMode);
 }
 
 JNIEXPORT void JNICALL Java_com_crestron_txrxservice_GstreamIn_nativeSetTransportMode(JNIEnv *env, jobject thiz, jint transportMode, jint sessionId)
 {
-	GST_DEBUG ("Using tsEnabled: '%d'", transportMode);
+	CSIO_LOG(eLogLevel_debug, "Using tsEnabled: '%d'", transportMode);
 	currentSettingsDB.videoSettings[sessionId].tsEnabled = transportMode;
 	csio_SetTransportMode(sessionId,transportMode);
-	GST_DEBUG ("tsEnabled in currentSettingsDB: '%d'", currentSettingsDB.videoSettings[sessionId].tsEnabled);
+	CSIO_LOG(eLogLevel_debug, "tsEnabled in currentSettingsDB: '%d'", currentSettingsDB.videoSettings[sessionId].tsEnabled);
 }
 
 JNIEXPORT void JNICALL Java_com_crestron_txrxservice_GstreamIn_nativeSetMulticastAddress(JNIEnv *env, jobject thiz, jstring multicastIp_jstring, jint sessionId)
@@ -714,38 +714,38 @@ JNIEXPORT void JNICALL Java_com_crestron_txrxservice_GstreamIn_nativeSetMulticas
 	const char * multicastIp_cstring = (*env)->GetStringUTFChars( env, multicastIp_jstring , NULL ) ;
 	if (multicastIp_cstring == NULL) return;
 
-	GST_DEBUG ("Using multicastAddress: '%s'", multicastIp_cstring);
+	CSIO_LOG(eLogLevel_debug, "Using multicastAddress: '%s'", multicastIp_cstring);
 	strcpy((char*)currentSettingsDB.videoSettings[sessionId].multicastAddress, multicastIp_cstring);
-	GST_DEBUG ("multicastAddress in currentSettingsDB: '%s'", currentSettingsDB.videoSettings[sessionId].multicastAddress);
+	CSIO_LOG(eLogLevel_debug, "multicastAddress in currentSettingsDB: '%s'", currentSettingsDB.videoSettings[sessionId].multicastAddress);
 
 	(*env)->ReleaseStringUTFChars(env, multicastIp_jstring, multicastIp_cstring);
 }
 
 JNIEXPORT void JNICALL Java_com_crestron_txrxservice_GstreamIn_nativeSetStreamingBuffer(JNIEnv *env, jobject thiz, jint buffer_ms, jint sessionId)
 {
-    GST_DEBUG ("Using streamingBuffer: '%d'", buffer_ms);
+    CSIO_LOG(eLogLevel_debug, "Using streamingBuffer: '%d'", buffer_ms);
 	if(buffer_ms < DEFAULT_MIN_STRING_BUFFER)
 	{
 	    buffer_ms = DEFAULT_MIN_STRING_BUFFER;
-	    GST_DEBUG ("Clip streamingBuffer to: '%d'", DEFAULT_MIN_STRING_BUFFER);
+	    CSIO_LOG(eLogLevel_debug, "Clip streamingBuffer to: '%d'", DEFAULT_MIN_STRING_BUFFER);
 	}
 
 	if(buffer_ms > DEFAULT_MAX_STRING_BUFFER)
     {
         buffer_ms = DEFAULT_MAX_STRING_BUFFER;
-        GST_DEBUG ("Clip streamingBuffer to: '%d'", DEFAULT_MIN_STRING_BUFFER);
+        CSIO_LOG(eLogLevel_debug, "Clip streamingBuffer to: '%d'", DEFAULT_MIN_STRING_BUFFER);
     }
 
 	currentSettingsDB.videoSettings[sessionId].streamingBuffer = buffer_ms;
-	GST_DEBUG ("streamingBuffer in currentSettingsDB: '%d'", currentSettingsDB.videoSettings[sessionId].streamingBuffer);
+	CSIO_LOG(eLogLevel_debug, "streamingBuffer in currentSettingsDB: '%d'", currentSettingsDB.videoSettings[sessionId].streamingBuffer);
 }
 
 JNIEXPORT void JNICALL Java_com_crestron_txrxservice_GstreamIn_nativeSetXYlocations(JNIEnv *env, jobject thiz, jint xLocation, jint yLocation, jint sessionId)
 {
 	currentSettingsDB.settingsMessage.msg[sessionId].left = xLocation;
 	currentSettingsDB.settingsMessage.msg[sessionId].top = yLocation;
-	GST_DEBUG ("xLocation in currentSettingsDB: '%d'", currentSettingsDB.settingsMessage.msg[sessionId].left);
-	GST_DEBUG ("yLocation in currentSettingsDB: '%d'", currentSettingsDB.settingsMessage.msg[sessionId].top);
+	CSIO_LOG(eLogLevel_debug, "xLocation in currentSettingsDB: '%d'", currentSettingsDB.settingsMessage.msg[sessionId].left);
+	CSIO_LOG(eLogLevel_debug, "yLocation in currentSettingsDB: '%d'", currentSettingsDB.settingsMessage.msg[sessionId].top);
 }
 
 JNIEXPORT void JNICALL Java_com_crestron_txrxservice_GstreamIn_nativeSetStatistics(JNIEnv *env, jobject thiz, jboolean enabled, jint sessionId)
@@ -759,7 +759,7 @@ JNIEXPORT void JNICALL Java_com_crestron_txrxservice_GstreamIn_nativeSetStatisti
 		//we will keep thread running all the time.
 	}
 
-	//GST_DEBUG ("statisticsEnabled in currentSettingsDB: '%d'", currentSettingsDB.videoSettings[sessionId].statisticsEnabled);
+	//CSIO_LOG(eLogLevel_debug, "statisticsEnabled in currentSettingsDB: '%d'", currentSettingsDB.videoSettings[sessionId].statisticsEnabled);
 }
 
 JNIEXPORT void JNICALL Java_com_crestron_txrxservice_GstreamIn_nativeResetStatistics(JNIEnv *env, jobject thiz, jint sessionId)
@@ -774,9 +774,9 @@ JNIEXPORT void JNICALL Java_com_crestron_txrxservice_GstreamIn_nativeSetUserName
 	const char * userName_cstring = (*env)->GetStringUTFChars( env, userName_jstring , NULL ) ;
 	if (userName_cstring == NULL) return;
 
-	GST_DEBUG ("Using UserName: '%s'", userName_cstring);
+	CSIO_LOG(eLogLevel_debug, "Using UserName: '%s'", userName_cstring);
 	strcpy(currentSettingsDB.videoSettings[sessionId].username, userName_cstring);
-	GST_DEBUG ("UserName in currentSettingsDB: '%s'", currentSettingsDB.videoSettings[sessionId].username);
+	CSIO_LOG(eLogLevel_debug, "UserName in currentSettingsDB: '%s'", currentSettingsDB.videoSettings[sessionId].username);
 
 	(*env)->ReleaseStringUTFChars(env, userName_jstring, userName_cstring);
 }
@@ -786,9 +786,9 @@ JNIEXPORT void JNICALL Java_com_crestron_txrxservice_GstreamIn_nativeSetPassword
 	const char * password_cstring = (*env)->GetStringUTFChars( env, password_jstring , NULL ) ;
 	if (password_cstring == NULL) return;
 
-	GST_DEBUG ("Using password: '%s'", password_cstring);
+	CSIO_LOG(eLogLevel_debug, "Using password: '%s'", password_cstring);
 	strcpy(currentSettingsDB.videoSettings[sessionId].password, password_cstring);
-	GST_DEBUG ("Password in currentSettingsDB: '%s'", currentSettingsDB.videoSettings[sessionId].password);
+	CSIO_LOG(eLogLevel_debug, "Password in currentSettingsDB: '%s'", currentSettingsDB.videoSettings[sessionId].password);
 
 	(*env)->ReleaseStringUTFChars(env, password_jstring, password_cstring);
 }
@@ -798,7 +798,7 @@ JNIEXPORT void JNICALL Java_com_crestron_txrxservice_GstreamIn_nativeSetVolume(J
 	double convertedVolume = (double)volume / 100;	//convert from 0-100 to 0.0-1.0
 	currentSettingsDB.videoSettings[sessionId].volumeIndB = convertedVolume;
 	int ret = csio_SetLinearVolume(sessionId, convertedVolume);
-	GST_DEBUG ("Return from csio_SetLinearVolume = %d", ret);
+	CSIO_LOG(eLogLevel_debug, "Return from csio_SetLinearVolume = %d", ret);
 }
 
 JNIEXPORT void JNICALL Java_com_crestron_txrxservice_GstreamIn_nativeSetStopTimeout(JNIEnv *env, jobject thiz, jint stopTimeout_sec)
@@ -809,7 +809,7 @@ JNIEXPORT void JNICALL Java_com_crestron_txrxservice_GstreamIn_nativeSetStopTime
 JNIEXPORT void JNICALL Java_com_crestron_txrxservice_GstreamIn_nativeSetNewSink(JNIEnv *env, jobject thiz, jboolean enabled, jint sessionId)
 {
 	currentSettingsDB.videoSettings[sessionId].videoSinkSelect = (UINT8)enabled;
-	GST_DEBUG ("new Sink Enabled in currentSettingsDB: %d", currentSettingsDB.videoSettings[sessionId].videoSinkSelect);
+	CSIO_LOG(eLogLevel_debug, "new Sink Enabled in currentSettingsDB: %d", currentSettingsDB.videoSettings[sessionId].videoSinkSelect);
 }
 
 JNIEXPORT void JNICALL Java_com_crestron_txrxservice_GstreamIn_nativeDropAudio(JNIEnv *env, jobject thiz, jboolean enabled, jboolean dropAudioPipeline, jint sessionId)
@@ -837,16 +837,22 @@ JNIEXPORT void JNICALL Java_com_crestron_txrxservice_GstreamIn_nativeDropAudio(J
 
 		if(!data)
 		{
-			GST_ERROR("Could not obtain stream pointer for stream %d", sessionId);
+			CSIO_LOG(eLogLevel_error, "Could not obtain stream pointer for stream %d", sessionId);
 			return;
 		}
 
 		if(data->element_valve_a)
 		{
 			g_object_set(G_OBJECT(data->element_valve_a), "drop", enabled, NULL);
-			GST_DEBUG("set audio valve drop property to:%d",enabled);
+			CSIO_LOG(eLogLevel_debug, "set audio valve drop property to:%d",enabled);
 		}
 	}
+}
+
+JNIEXPORT void JNICALL Java_com_crestron_txrxservice_GstreamIn_nativeSetLogLevel(JNIEnv *env, jobject thiz, jint logLevel)
+{
+	currentSettingsDB.csioLogLevel = (eLogLevel)logLevel;
+	CSIO_LOG(eLogLevel_debug, "Setting minimum printed log level to %d", logLevel);
 }
 
 JNIEXPORT void JNICALL Java_com_crestron_txrxservice_GstreamIn_nativeSetFieldDebugJni(JNIEnv *env, jobject thiz, jstring cmd_jstring, jint sessionId)
@@ -861,22 +867,22 @@ JNIEXPORT void JNICALL Java_com_crestron_txrxservice_GstreamIn_nativeSetFieldDeb
     const char * cmd_cstring = (*env)->GetStringUTFChars( env, cmd_jstring , NULL ) ;
     if (cmd_cstring == NULL)
     {
-        GST_ERROR ("cmd_cstring is NULL");
+        CSIO_LOG(eLogLevel_info, "cmd_cstring is NULL");
         return;
     }
 
     CREGSTREAM * data = GetStreamFromCustomData(CresDataDB, sessionId);
     if(!data)
     {
-        GST_ERROR("Could not obtain stream pointer for stream %d", sessionId);
+        CSIO_LOG(eLogLevel_error, "Could not obtain stream pointer for stream %d", sessionId);
         return;
     }
 
     iStringLen = strlen(cmd_cstring);
-    GST_ERROR ("Set Field debug: '%s', iStringLen:%d", cmd_cstring,iStringLen);
+    CSIO_LOG(eLogLevel_debug, "Set Field debug: '%s', iStringLen:%d", cmd_cstring,iStringLen);
     if(cmd_cstring == 0)
     {
-        GST_ERROR ("Received NULL string");
+        CSIO_LOG(eLogLevel_info, "Received NULL string");
     }
     else
     {
@@ -895,7 +901,7 @@ JNIEXPORT void JNICALL Java_com_crestron_txrxservice_GstreamIn_nativeSetFieldDeb
                 CmdPtr = strtok(NULL, ", ");
                 if (CmdPtr == NULL)
                 {
-                    GST_ERROR("Invalid Format, need a parameter\r\n");
+                    CSIO_LOG(eLogLevel_info, "Invalid Format, need a parameter\r\n");
                 }
                 else
                 {
@@ -904,11 +910,11 @@ JNIEXPORT void JNICALL Java_com_crestron_txrxservice_GstreamIn_nativeSetFieldDeb
                     if ( IsValidSpecialFieldIndex(fieldNum) )
                     {
                         EnableSpecialFieldDebugIndex(fieldNum);
-                        GST_ERROR("turn ON %d\r\n",fieldNum);
+                        CSIO_LOG(eLogLevel_debug, "turn ON %d\r\n",fieldNum);
                     }
                     else
                     {
-                        GST_ERROR("Invalid fdebug number:%d\r\n",fieldNum);
+                        CSIO_LOG(eLogLevel_info, "Invalid fdebug number:%d\r\n",fieldNum);
                     }
                 }
             }
@@ -917,7 +923,7 @@ JNIEXPORT void JNICALL Java_com_crestron_txrxservice_GstreamIn_nativeSetFieldDeb
                 CmdPtr = strtok(NULL, ", ");
                 if (CmdPtr == NULL)
                 {
-                    GST_ERROR("Invalid Format, need a parameter\r\n");
+                    CSIO_LOG(eLogLevel_info, "Invalid Format, need a parameter\r\n");
                 }
                 else
                 {
@@ -926,11 +932,11 @@ JNIEXPORT void JNICALL Java_com_crestron_txrxservice_GstreamIn_nativeSetFieldDeb
                     if ( IsValidSpecialFieldIndex(fieldNum) )
                     {
                         DisableSpecialFieldDebugIndex(fieldNum);
-                        GST_ERROR("turn OFF %d\r\n",fieldNum);
+                        CSIO_LOG(eLogLevel_debug, "turn OFF %d\r\n",fieldNum);
                     }
                     else
                     {
-                        GST_ERROR("Invalid fdebug number:%d\r\n",fieldNum);
+                        CSIO_LOG(eLogLevel_info, "Invalid fdebug number:%d\r\n",fieldNum);
                     }
                 }
             }
@@ -939,7 +945,7 @@ JNIEXPORT void JNICALL Java_com_crestron_txrxservice_GstreamIn_nativeSetFieldDeb
                 CmdPtr = strtok(NULL, ", ");
                 if (CmdPtr == NULL)
                 {
-                    GST_ERROR("BLOCK_AUDIO is %s",
+                    CSIO_LOG(eLogLevel_debug, "BLOCK_AUDIO is %s",
                                (IsSpecialFieldDebugIndexActive(FIELD_DEBUG_BLOCK_AUDIO) ? "ON" : "OFF"));
                 }
                 else
@@ -949,29 +955,29 @@ JNIEXPORT void JNICALL Java_com_crestron_txrxservice_GstreamIn_nativeSetFieldDeb
                     {
                         EnableSpecialFieldDebugIndex(FIELD_DEBUG_BLOCK_AUDIO);
                         debug_blocking_audio = 1;
-                        GST_ERROR("BLOCK_AUDIO enabled\r\n");
+                        CSIO_LOG(eLogLevel_debug, "BLOCK_AUDIO enabled\r\n");
                     }
                     else if (!strcmp(CmdPtr, "OFF"))
                     {
                         DisableSpecialFieldDebugIndex(FIELD_DEBUG_BLOCK_AUDIO);
                         debug_blocking_audio = 0;
-                        GST_ERROR("BLOCK_AUDIO disabled\r\n");
+                        CSIO_LOG(eLogLevel_debug, "BLOCK_AUDIO disabled\r\n");
                     }
                     else
                     {
-                        GST_ERROR("Invalid Format, On or OFF\r\n");
+                        CSIO_LOG(eLogLevel_info, "Invalid Format, On or OFF\r\n");
                     }
                 }
             }
             else if (!strcmp(CmdPtr, "FLUSH_PIPELINE"))
             {
-                GST_ERROR("flushing pipeline...");
+                CSIO_LOG(eLogLevel_debug, "flushing pipeline...");
                 GstEvent* flush_start = gst_event_new_flush_start();
                 gboolean ret = FALSE;
                 ret = gst_element_send_event(GST_ELEMENT(data->pipeline), flush_start);
                 if (!ret)
                 {
-                    GST_ERROR("failed to send flush-start event");
+                    CSIO_LOG(eLogLevel_warning, "failed to send flush-start event");
                 }
                 else
                 {
@@ -980,9 +986,9 @@ JNIEXPORT void JNICALL Java_com_crestron_txrxservice_GstreamIn_nativeSetFieldDeb
 
                     ret = gst_element_send_event(GST_ELEMENT(data->pipeline), flush_stop);
                     if (!ret)
-                        GST_ERROR("failed to send flush-stop event");
+                        CSIO_LOG(eLogLevel_warning, "failed to send flush-stop event");
                     else
-                        GST_ERROR("Just flushed pipeline");
+                        CSIO_LOG(eLogLevel_debug, "Just flushed pipeline");
                 }
             }
             else if (!strcmp(CmdPtr, "SET_CATEGORY_DEBUG_LEVEL"))
@@ -990,19 +996,19 @@ JNIEXPORT void JNICALL Java_com_crestron_txrxservice_GstreamIn_nativeSetFieldDeb
                 CmdPtr = strtok(NULL, ", ");
                 if (CmdPtr == NULL)
                 {
-                    GST_ERROR("Invalid Format, need a parameter\r\n");
+                    CSIO_LOG(eLogLevel_info, "Invalid Format, need a parameter\r\n");
                 }
                 else
                 {
                     //save category name
                     strcpy(namestring,CmdPtr);
-                    GST_ERROR("CmdPtr:%s\r\n",CmdPtr);
-                    GST_ERROR("namestring:%s\r\n",namestring);
+                    CSIO_LOG(eLogLevel_debug, "CmdPtr:%s\r\n",CmdPtr);
+                    CSIO_LOG(eLogLevel_debug, "namestring:%s\r\n",namestring);
                     //get debug level
                     CmdPtr = strtok(NULL, ", ");
                     if (CmdPtr == NULL)
                     {
-                        GST_ERROR("Invalid Format, need a parameter\r\n");
+                        CSIO_LOG(eLogLevel_warning, "Invalid Format, need a parameter\r\n");
                     }
                     else
                     {
@@ -1011,11 +1017,11 @@ JNIEXPORT void JNICALL Java_com_crestron_txrxservice_GstreamIn_nativeSetFieldDeb
                         {
                             gst_debug_set_threshold_for_name(namestring,fieldNum);
                             amcviddec_debug_level = fieldNum;
-                            GST_ERROR("set [%s] debug level to: %d\r\n",namestring,fieldNum);
+                            CSIO_LOG(eLogLevel_debug, "set [%s] debug level to: %d\r\n",namestring,fieldNum);
                         }
                         else
                         {
-                            GST_ERROR("Invalid gst_debug_level:%d\r\n",fieldNum);
+                            CSIO_LOG(eLogLevel_info, "Invalid gst_debug_level:%d\r\n",fieldNum);
                         }
                     }
                 }
@@ -1025,7 +1031,7 @@ JNIEXPORT void JNICALL Java_com_crestron_txrxservice_GstreamIn_nativeSetFieldDeb
                 CmdPtr = strtok(NULL, ", ");
                 if (CmdPtr == NULL)
                 {
-                    GST_ERROR("Invalid Format, need a parameter\r\n");
+                    CSIO_LOG(eLogLevel_info, "Invalid Format, need a parameter\r\n");
                 }
                 else
                 {
@@ -1034,11 +1040,11 @@ JNIEXPORT void JNICALL Java_com_crestron_txrxservice_GstreamIn_nativeSetFieldDeb
                     {
                         gst_debug_set_threshold_for_name("amcvideodec",fieldNum);
                         amcviddec_debug_level = fieldNum;
-                        GST_DEBUG("set amcvideodec debug level to: %d\r\n",fieldNum);
+                        CSIO_LOG(eLogLevel_debug, "set amcvideodec debug level to: %d\r\n",fieldNum);
                     }
                     else
                     {
-                        GST_ERROR("Invalid gst_debug_level:%d\r\n",fieldNum);
+                        CSIO_LOG(eLogLevel_info, "Invalid gst_debug_level:%d\r\n",fieldNum);
                     }
                 }
             }
@@ -1047,7 +1053,7 @@ JNIEXPORT void JNICALL Java_com_crestron_txrxservice_GstreamIn_nativeSetFieldDeb
                 CmdPtr = strtok(NULL, ", ");
                 if (CmdPtr == NULL)
                 {
-                    GST_ERROR("Invalid Format, need a parameter\r\n");
+                    CSIO_LOG(eLogLevel_info, "Invalid Format, need a parameter\r\n");
                 }
                 else
                 {
@@ -1056,11 +1062,11 @@ JNIEXPORT void JNICALL Java_com_crestron_txrxservice_GstreamIn_nativeSetFieldDeb
                     {
                         gst_debug_set_threshold_for_name("openslessink",fieldNum);
                         amcviddec_debug_level = fieldNum;
-                        GST_ERROR("set openslessink debug level to: %d\r\n",fieldNum);
+                        CSIO_LOG(eLogLevel_debug, "set openslessink debug level to: %d\r\n",fieldNum);
                     }
                     else
                     {
-                        GST_ERROR("Invalid gst_debug_level:%d\r\n",fieldNum);
+                        CSIO_LOG(eLogLevel_info, "Invalid gst_debug_level:%d\r\n",fieldNum);
                     }
                 }
             }
@@ -1073,12 +1079,12 @@ JNIEXPORT void JNICALL Java_com_crestron_txrxservice_GstreamIn_nativeSetFieldDeb
                     if(data->audio_sink)
                     {
                         g_object_get(G_OBJECT(data->audio_sink), "buffer-time", &tmp, NULL);
-                        __android_log_print(ANDROID_LOG_INFO, "FieldDebugInfo",\
+                        CSIO_LOG(eLogLevel_debug, "FieldDebugInfo",\
                                  "Size of audio buffer in microseconds, buffer-time is set to %lld microseconds", tmp);
                     }
                     else
                     {
-                        __android_log_print(ANDROID_LOG_INFO, "FieldDebugInfo",\
+                        CSIO_LOG(eLogLevel_debug, "FieldDebugInfo",\
                                  "no audio sink found.", tmp);
                     }
                 }
@@ -1090,12 +1096,12 @@ JNIEXPORT void JNICALL Java_com_crestron_txrxservice_GstreamIn_nativeSetFieldDeb
                     {
                         g_object_set(G_OBJECT(data->audio_sink), "buffer-time", tmp, NULL);
 
-                        __android_log_print(ANDROID_LOG_INFO, "FieldDebugInfo",\
+                        CSIO_LOG(eLogLevel_debug, "FieldDebugInfo",\
                               "Set buffer-time to %lld microseconds", tmp);
                     }
                     else
                     {
-                        __android_log_print(ANDROID_LOG_INFO, "FieldDebugInfo",\
+                        CSIO_LOG(eLogLevel_debug, "FieldDebugInfo",\
                                  "no audio sink found.", tmp);
                     }
                 }
@@ -1105,7 +1111,7 @@ JNIEXPORT void JNICALL Java_com_crestron_txrxservice_GstreamIn_nativeSetFieldDeb
                 CmdPtr = strtok(NULL, ", ");
                 if (CmdPtr == NULL)
                 {
-                    GST_ERROR("Invalid Format, need a parameter\r\n");
+                    CSIO_LOG(eLogLevel_info, "Invalid Format, need a parameter\r\n");
                 }
                 else
                 {
@@ -1119,26 +1125,26 @@ JNIEXPORT void JNICALL Java_com_crestron_txrxservice_GstreamIn_nativeSetFieldDeb
                             if(data->element_v[i])
                             {
                                 gchar * n = gst_element_get_name(data->element_v[i]);
-                                GST_ERROR("[%d]element name[%s]",i,n);
+                                CSIO_LOG(eLogLevel_debug, "[%d]element name[%s]",i,n);
                                 if(strstr(n,"amcvideodec"))
                                 {
                                     g_object_set(G_OBJECT(data->element_v[i]), "ts-offset", data->amcviddec_ts_offset, NULL);
 
                                     data->amcviddec_ts_offset -= currentSettingsDB.videoSettings[sessionId].streamingBuffer;
-                                    GST_ERROR("[%d]set amcviddec_ts_offset:%d",i,data->amcviddec_ts_offset);
+                                    CSIO_LOG(eLogLevel_debug, "[%d]set amcviddec_ts_offset:%d",i,data->amcviddec_ts_offset);
                                     break;
                                 }
                             }
                             else
                             {
-                                GST_ERROR("[%d]break",i);
+                                CSIO_LOG(eLogLevel_debug, "[%d]break",i);
                                 break;
                             }
                         }
                     }
                     else
                     {
-                        GST_ERROR("Invalid gst_debug_level:%d\r\n",fieldNum);
+                        CSIO_LOG(eLogLevel_info, "Invalid gst_debug_level:%d\r\n",fieldNum);
                     }
                 }
             }
@@ -1147,7 +1153,7 @@ JNIEXPORT void JNICALL Java_com_crestron_txrxservice_GstreamIn_nativeSetFieldDeb
                 CmdPtr = strtok(NULL, ", ");
                 if (CmdPtr == NULL)
                 {
-                    GST_ERROR("Invalid Format, need a parameter\r\n");
+                    CSIO_LOG(eLogLevel_info, "Invalid Format, need a parameter\r\n");
                 }
                 else
                 {
@@ -1159,11 +1165,11 @@ JNIEXPORT void JNICALL Java_com_crestron_txrxservice_GstreamIn_nativeSetFieldDeb
                     if(data->audio_sink)
                     {
                         gchar * n = gst_element_get_name(data->audio_sink);
-                        GST_ERROR("element name[%s]",n);
+                        CSIO_LOG(eLogLevel_debug, "element name[%s]",n);
                         tmp = data->audiosink_ts_offset * 1000000;
                         g_object_set(G_OBJECT(data->audio_sink), "ts-offset",
                                      tmp, NULL);
-                        GST_ERROR("set audiosink_ts_offset:%lldns",tmp);
+                        CSIO_LOG(eLogLevel_debug, "set audiosink_ts_offset:%lldns",tmp);
                     }
                 }
             }
@@ -1172,7 +1178,7 @@ JNIEXPORT void JNICALL Java_com_crestron_txrxservice_GstreamIn_nativeSetFieldDeb
                 CmdPtr = strtok(NULL, ", ");
                 if (CmdPtr == NULL)
                 {
-                    GST_ERROR("Invalid Format, need element's name\r\n");
+                    CSIO_LOG(eLogLevel_info, "Invalid Format, need element's name\r\n");
                 }
                 else
                 {
@@ -1190,7 +1196,7 @@ JNIEXPORT void JNICALL Java_com_crestron_txrxservice_GstreamIn_nativeSetFieldDeb
                                 }
                                 else
                                 {
-                                    GST_ERROR("[%d]break",i);
+                                    CSIO_LOG(eLogLevel_debug, "[%d]break",i);
                                     break;
                                 }
                             }
@@ -1211,7 +1217,7 @@ JNIEXPORT void JNICALL Java_com_crestron_txrxservice_GstreamIn_nativeSetFieldDeb
                                 }
                                 else
                                 {
-                                    GST_ERROR("[%d]break",i);
+                                    CSIO_LOG(eLogLevel_debug, "[%d]break",i);
                                     break;
                                 }
                             }
@@ -1230,64 +1236,62 @@ JNIEXPORT void JNICALL Java_com_crestron_txrxservice_GstreamIn_nativeSetFieldDeb
                 if(data->audio_sink)
                 {
                     gchar * name = gst_element_get_name(data->audio_sink);
-                    __android_log_print(ANDROID_LOG_INFO, "FieldDebugInfo",\
+                    CSIO_LOG(eLogLevel_debug, "FieldDebugInfo",\
                                         "element name[%s]",name);
 
                     gboolean audioSync = 0;
                     guint64  tmp = 0;
 
                     g_object_get(G_OBJECT(data->audio_sink), "sync", &audioSync, NULL);
-                    __android_log_print(ANDROID_LOG_INFO, "FieldDebugInfo",\
+                    CSIO_LOG(eLogLevel_debug, "FieldDebugInfo",\
                             "audioSync is set to %d", audioSync);
 
                     g_object_get(G_OBJECT(data->audio_sink), "max-lateness", &tmp, NULL);
-                    __android_log_print(ANDROID_LOG_INFO, "FieldDebugInfo",\
+                    CSIO_LOG(eLogLevel_debug, "FieldDebugInfo",\
                             "Maximum number of nanoseconds that a buffer can be late before it is dropped (-1 unlimited).max-lateness is set to %lld", tmp);
 
                     g_object_get(G_OBJECT(data->audio_sink), "ts-offset", &tmp, NULL);
-                    __android_log_print(ANDROID_LOG_INFO, "FieldDebugInfo",\
+                    CSIO_LOG(eLogLevel_debug, "FieldDebugInfo",\
                             "ts-offset is set to %lld", tmp);
 
                     g_object_get(G_OBJECT(data->audio_sink), "render-delay", &tmp, NULL);
-                    __android_log_print(ANDROID_LOG_INFO, "FieldDebugInfo",\
+                    CSIO_LOG(eLogLevel_debug, "FieldDebugInfo",\
                             "The additional delay between synchronisation and actual rendering of the media. \nThis property will add additional latency to the device in order to make other sinks compensate for the delay.\nrender-delay is set to %lld", tmp);
 
                     g_object_get(G_OBJECT(data->audio_sink), "buffer-time", &tmp, NULL);
-                    __android_log_print(ANDROID_LOG_INFO, "FieldDebugInfo",\
+                    CSIO_LOG(eLogLevel_debug, "FieldDebugInfo",\
                             "Size of audio buffer in microseconds, this is the minimum latency that the sink reports.buffer-time is set to %lld microseconds", tmp);
 
                     g_object_get(G_OBJECT(data->audio_sink), "latency-time", &tmp, NULL);
-                    __android_log_print(ANDROID_LOG_INFO, "FieldDebugInfo",\
+                    CSIO_LOG(eLogLevel_debug, "FieldDebugInfo",\
                             "The minimum amount of data to write in each iteration: latency-time is set to %lld microseconds", tmp);
 
                     g_object_get(G_OBJECT(data->audio_sink), "provide-clock", &audioSync, NULL);
-                    __android_log_print(ANDROID_LOG_INFO, "FieldDebugInfo",\
+                    CSIO_LOG(eLogLevel_debug, "FieldDebugInfo",\
                             "provide-clock is set to %d", audioSync);
 
                     g_object_get(G_OBJECT(data->audio_sink), "alignment-threshold", &tmp, NULL);
-                    __android_log_print(ANDROID_LOG_INFO, "FieldDebugInfo",\
+                    CSIO_LOG(eLogLevel_debug, "FieldDebugInfo",\
                             "Timestamp alignment threshold: alignment-threshold is set to %lld nanoseconds", tmp);
 
                     g_object_get(G_OBJECT(data->audio_sink), "drift-tolerance", &tmp, NULL);
-                    __android_log_print(ANDROID_LOG_INFO, "FieldDebugInfo",\
+                    CSIO_LOG(eLogLevel_debug, "FieldDebugInfo",\
                             "drift-tolerance is set to %lld microseconds ", tmp);
 
                     g_object_get(G_OBJECT(data->audio_sink), "discont-wait", &tmp, NULL);
-                    __android_log_print(ANDROID_LOG_INFO, "FieldDebugInfo",\
+                    CSIO_LOG(eLogLevel_debug, "FieldDebugInfo",\
                             "discont-wait is set to %lld nanoseconds ", tmp);
-
-
 
                 }
                 else
                 {
-                    GST_ERROR("No audio sink found\r\n");
+                    CSIO_LOG(eLogLevel_info, "No audio sink found\r\n");
                 }
 
             }
             else
             {
-                GST_ERROR("Invalid command:%s\r\n",CmdPtr);
+                CSIO_LOG(eLogLevel_info, "Invalid command:%s\r\n",CmdPtr);
             }
         }
     }
@@ -1304,11 +1308,11 @@ StreamState nativeGetCurrentStreamState(jint sessionId)
 	currentStreamState = (StreamState)(*env)->CallIntMethod(env, CresDataDB->app, getCurrentStreamState, sessionId);
 
 	if ((*env)->ExceptionCheck (env)) {
-		GST_ERROR ("Failed to call Java method 'getCurrentStreamState'");
+		CSIO_LOG(eLogLevel_error, "Failed to call Java method 'getCurrentStreamState'");
 		(*env)->ExceptionClear (env);
 	}
 
-	GST_DEBUG("currentStreamState = %d", (jint)currentStreamState);
+	CSIO_LOG(eLogLevel_debug, "currentStreamState = %d", (jint)currentStreamState);
 
 	return currentStreamState;
 }
@@ -1332,13 +1336,13 @@ jint JNI_OnLoad(JavaVM *vm, void *reserved)
 	JNIEnv *env = NULL;
 
 	java_vm = vm;
-	GST_DEBUG ("JNI_OnLoad ");
+	CSIO_LOG(eLogLevel_debug, "JNI_OnLoad ");
 
 	set_gst_debug_level();
 	
 	if ((*vm)->GetEnv(vm, (void**) &env, JNI_VERSION_1_4) != JNI_OK) 
 	{
-		__android_log_print (ANDROID_LOG_ERROR, "gstreamer_jni", "Could not retrieve JNIEnv");
+		CSIO_LOG(eLogLevel_error, "gstreamer_jni", "Could not retrieve JNIEnv");
 		return 0;
 	}
 	//jclass klass = (*env)->FindClass (env, "com/gst_sdk_tutorials/tutorial_3/Tutorial3");
@@ -1347,7 +1351,7 @@ jint JNI_OnLoad(JavaVM *vm, void *reserved)
 	gStreamIn_javaClass_id = (jclass*)(*env)->NewGlobalRef(env, klass);
 	(*env)->DeleteLocalRef(env, klass);
 	if (gStreamIn_javaClass_id == NULL) {
-		__android_log_print(ANDROID_LOG_ERROR, "gstreamer_jni", "gStreamIn_javaClass_id is still null when it is suppose to be global");
+		CSIO_LOG(eLogLevel_error, "gstreamer_jni", "gStreamIn_javaClass_id is still null when it is suppose to be global");
 	     return 0; /* out of memory exception thrown */
 	 }
 
@@ -1388,7 +1392,7 @@ void    *csio_SendMulticastAddressFb(void * arg)
 
 	(*env)->CallVoidMethod(env, CresDataDB->app, sendMulticastAddress, multicastAddress_jstr, streamId);
 	if ((*env)->ExceptionCheck (env)) {
-		GST_ERROR ("Failed to call Java method 'sendMulticastAddress'");
+		CSIO_LOG(eLogLevel_error, "Failed to call Java method 'sendMulticastAddress'");
 		(*env)->ExceptionClear (env);
 	}
 	(*env)->DeleteLocalRef (env, multicastAddress_jstr);
@@ -1404,7 +1408,7 @@ void csio_send_stats (uint64_t video_packets_received, int video_packets_lost, u
 
 	(*env)->CallVoidMethod(env, CresDataDB->app, sendStatistics, (jlong)video_packets_received, (jint)video_packets_lost, (jlong)audio_packets_received, (jint)audio_packets_lost, (jint)bitrate);
 	if ((*env)->ExceptionCheck (env)) {
-		GST_ERROR ("Failed to call Java method 'sendStatistics'");
+		CSIO_LOG(eLogLevel_error, "Failed to call Java method 'sendStatistics'");
 		(*env)->ExceptionClear (env);
 	}
 }
@@ -1419,7 +1423,7 @@ void csio_send_stats_no_bitrate (uint64_t video_packets_received, int video_pack
 
 	(*env)->CallVoidMethod(env, CresDataDB->app, sendStatistics, (jlong)video_packets_received, (jint)video_packets_lost, (jlong)audio_packets_received, (jint)audio_packets_lost, (jint)bitrate);
 	if ((*env)->ExceptionCheck (env)) {
-		GST_ERROR ("Failed to call Java method 'sendStatistics'");
+		CSIO_LOG(eLogLevel_error, "Failed to call Java method 'sendStatistics'");
 		(*env)->ExceptionClear (env);
 	}
 }
@@ -1435,7 +1439,7 @@ void csio_get_width_and_height_from_mode (uint32_t * width, uint32_t * height)
 
 	jintArray retval = (jintArray) (*env)->CallObjectMethod(env, CresDataDB->app, getCurrentWidthHeight, (jint)source);
 	if ((*env)->ExceptionCheck (env)) {
-		GST_ERROR ("Failed to call Java method 'getCurrentWidthHeight'");
+		CSIO_LOG(eLogLevel_error, "Failed to call Java method 'getCurrentWidthHeight'");
 		(*env)->ExceptionClear (env);
 	}
 	jint *widthHeight = (*env)->GetIntArrayElements(env, retval, NULL);
@@ -1454,7 +1458,7 @@ int csio_SendVideoPlayingStatusMessage(unsigned int source, StreamState state)
 
 	(*env)->CallVoidMethod(env, CresDataDB->app, updateStreamStatus, (jint)state, (jint)source);
 	if ((*env)->ExceptionCheck (env)) {
-		GST_ERROR ("Failed to call Java method 'updateStreamStatus'");
+		CSIO_LOG(eLogLevel_error, "Failed to call Java method 'updateStreamStatus'");
 		(*env)->ExceptionClear (env);
 	}
 
@@ -1475,7 +1479,7 @@ int csio_SendVideoSourceParams(unsigned int source, unsigned int width, unsigned
 
 	(*env)->CallVoidMethod(env, CresDataDB->app, sendVideoSourceParams, (jint)source, (jint)width, (jint)height, (jint)framerate, (jint)profile);
 	if ((*env)->ExceptionCheck (env)) {
-		GST_ERROR ("Failed to call Java method 'sendVideoSourceParams'");
+		CSIO_LOG(eLogLevel_error, "Failed to call Java method 'sendVideoSourceParams'");
 		(*env)->ExceptionClear (env);
 	}
 
@@ -1497,7 +1501,7 @@ GMainLoop * csio_jni_CreateMainLoop(int iStreamId)
 	
 	if(!data)
 	{
-		GST_ERROR("Could not obtain stream pointer for stream %d", iStreamId);
+		CSIO_LOG(eLogLevel_error, "Could not obtain stream pointer for stream %d", iStreamId);
 		return NULL;
 	}	
 	
@@ -1510,7 +1514,7 @@ void csio_jni_CreateMainContext(int iStreamId)
 	
 	if(!data)
 	{
-		GST_ERROR("Could not obtain stream pointer for stream %d", iStreamId);
+		CSIO_LOG(eLogLevel_error, "Could not obtain stream pointer for stream %d", iStreamId);
 		return;
 	}	
 	
@@ -1524,7 +1528,7 @@ void csio_jni_FreeMainContext(int iStreamId)
 	
 	if(!data)
 	{
-		GST_ERROR("Could not obtain stream pointer for stream %d", iStreamId);
+		CSIO_LOG(eLogLevel_error, "Could not obtain stream pointer for stream %d", iStreamId);
 		return;
 	}	
 
@@ -1547,7 +1551,7 @@ void csio_jni_SetOverlayWindow(int iStreamId)
 	
 	if(!data)
 	{
-		GST_ERROR("Could not obtain stream pointer for stream %d", iStreamId);
+		CSIO_LOG(eLogLevel_error, "Could not obtain stream pointer for stream %d", iStreamId);
 		return;
 	}	
 	
@@ -1564,7 +1568,7 @@ int csio_jni_CreatePipeline(GstElement **pipeline,GstElement **source,eProtocolI
 	CREGSTREAM * data = GetStreamFromCustomData(CresDataDB, iStreamId);
 	if(!data)
 	{
-		GST_ERROR("Could not obtain stream pointer for stream %d", iStreamId);
+		CSIO_LOG(eLogLevel_error, "Could not obtain stream pointer for stream %d", iStreamId);
 		return CSIO_FAILURE;
 	}	
 
@@ -1572,7 +1576,7 @@ int csio_jni_CreatePipeline(GstElement **pipeline,GstElement **source,eProtocolI
 
 	data->pipeline = gst_pipeline_new(NULL);
     
-    GST_DEBUG("CreatePipeline protoId %d", protoId);
+    CSIO_LOG(eLogLevel_debug, "CreatePipeline protoId %d", protoId);
 
 	switch( protoId )
 	{
@@ -1587,7 +1591,7 @@ int csio_jni_CreatePipeline(GstElement **pipeline,GstElement **source,eProtocolI
 	    	gst_bin_add_many(GST_BIN(data->pipeline), data->element_zero, NULL);
 			if( !data->pipeline || !data->element_zero )
 			{
-				GST_ERROR ("ERROR: Cannot create source pipeline elements\n");
+				CSIO_LOG(eLogLevel_error, "ERROR: Cannot create source pipeline elements\n");
 				return CSIO_CANNOT_CREATE_ELEMENTS;
 			}
 	
@@ -1601,7 +1605,7 @@ int csio_jni_CreatePipeline(GstElement **pipeline,GstElement **source,eProtocolI
 
 			*pipeline = data->pipeline;
 			*source   = data->element_zero;
-			//GST_ERROR ("called build_http_pipeline [0x%x][0x%x]",CresDataDB->pipeline,CresDataDB->element_zero);
+			//CSIO_LOG(eLogLevel_debug, "called build_http_pipeline [0x%x][0x%x]",CresDataDB->pipeline,CresDataDB->element_zero);
 			break;
 	    }
 	    case ePROTOCOL_UDP_TS:
@@ -1620,10 +1624,10 @@ int csio_jni_CreatePipeline(GstElement **pipeline,GstElement **source,eProtocolI
 			    gst_bin_add(GST_BIN(data->pipeline), data->element_av[0]);
 			    int ret = gst_element_link(data->element_av[0], data->element_zero);
 			    if(ret==0){
-			        GST_ERROR( "ERROR:  Cannot link filter to source elements.\n" );
+			        CSIO_LOG(eLogLevel_error,  "ERROR:  Cannot link filter to source elements.\n" );
 				    iStatus = CSIO_CANNOT_LINK_ELEMENTS;
 			    }else
-			        GST_DEBUG( "link filter to source elements.\n" );
+			        CSIO_LOG(eLogLevel_debug,  "link filter to source elements.\n" );
 
 		    }
 		    else if(currentSettingsDB.videoSettings[iStreamId].tsEnabled==STREAM_TRANSPORT_MPEG2TS_UDP)
@@ -1632,7 +1636,7 @@ int csio_jni_CreatePipeline(GstElement **pipeline,GstElement **source,eProtocolI
 			    if(!data->element_zero)
 			    {
 				    iStatus = CSIO_CANNOT_CREATE_ELEMENTS;
-				    GST_DEBUG( "ERROR: Cannot create udp source pipeline elements\n" );
+				    CSIO_LOG(eLogLevel_error,  "ERROR: Cannot create udp source pipeline elements\n" );
 			    }
 			    else
 			        insert_udpsrc_probe(data,data->element_zero,"src");
@@ -1644,24 +1648,24 @@ int csio_jni_CreatePipeline(GstElement **pipeline,GstElement **source,eProtocolI
 			    if(!data->element_av[0])
 			    {
 				    iStatus = CSIO_CANNOT_CREATE_ELEMENTS;
-				    GST_DEBUG( "ERROR: Cannot create queue source pipeline elements\n" );
+				    CSIO_LOG(eLogLevel_error,  "ERROR: Cannot create queue source pipeline elements\n" );
 			    }
 			    
 			    data->element_av[1] = gst_element_factory_make( "tsdemux", NULL );
 			    if(!data->element_av[1])
 			    {
 				    iStatus = CSIO_CANNOT_CREATE_ELEMENTS;
-				    GST_DEBUG( "ERROR: Cannot create tsdemux source pipeline elements\n" );
+				    CSIO_LOG(eLogLevel_error,  "ERROR: Cannot create tsdemux source pipeline elements\n" );
 			    }
 
 			    gst_bin_add_many(GST_BIN(data->pipeline), data->element_zero, data->element_av[0], data->element_av[1], NULL);
 			    if( !gst_element_link_many(data->element_zero, data->element_av[0], data->element_av[1], NULL))
 			    {
-			        GST_DEBUG( "ERROR:  Cannot link filter to source elements.\n" );
+			        CSIO_LOG(eLogLevel_error,  "ERROR:  Cannot link filter to source elements.\n" );
 				    iStatus = CSIO_CANNOT_LINK_ELEMENTS;
 			    }
 			    else
-			        GST_DEBUG("success linking pipeline elements\n");
+			        CSIO_LOG(eLogLevel_debug, "success linking pipeline elements\n");
 		    }	
 		    *pipeline = data->pipeline;
 		    *source   = data->element_zero;
@@ -1716,17 +1720,17 @@ int csio_jni_CreatePipeline(GstElement **pipeline,GstElement **source,eProtocolI
 			gst_bin_add(GST_BIN(data->pipeline), data->element_av[0]);
 			int ret = gst_element_link(data->element_av[0], data->element_zero);
 			if(ret==0){
-				g_print( "ERROR:  Cannot link filter to source elements.\n" );
+				CSIO_LOG(eLogLevel_error,  "ERROR:  Cannot link filter to source elements.\n" );
 				iStatus = CSIO_CANNOT_LINK_ELEMENTS;
 			}else
-				g_print( "ERROR: link filter to source elements.\n" );
+				CSIO_LOG(eLogLevel_error,  "ERROR: link filter to source elements.\n" );
 
 		    }else if(currentSettingsDB.videoSettings[iStreamId].tsEnabled==STREAM_TRANSPORT_MPEG2TS_UDP){
 			    data->element_zero = gst_element_factory_make("udpsrc", NULL);
 			    if(!data->element_zero)
 			    {
 				    iStatus = CSIO_CANNOT_CREATE_ELEMENTS;
-				    g_print( "ERROR: Cannot create udp source pipeline elements\n" );
+				    CSIO_LOG(eLogLevel_error,  "ERROR: Cannot create udp source pipeline elements\n" );
 			    }
 			    insert_udpsrc_probe(data,data->element_zero,"src");
 
@@ -1737,22 +1741,22 @@ int csio_jni_CreatePipeline(GstElement **pipeline,GstElement **source,eProtocolI
 			    if(!data->element_av[0])
 			    {
 				    iStatus = CSIO_CANNOT_CREATE_ELEMENTS;
-				    g_print( "ERROR: Cannot create queue source pipeline elements\n" );
+				    CSIO_LOG(eLogLevel_error,  "ERROR: Cannot create queue source pipeline elements\n" );
 			    }
 			    
 			    data->element_av[1] = gst_element_factory_make( "tsdemux", NULL );
 			    if(!data->element_av[1])
 			    {
 				    iStatus = CSIO_CANNOT_CREATE_ELEMENTS;
-				    g_print( "ERROR: Cannot create tsdemux source pipeline elements\n" );
+				    CSIO_LOG(eLogLevel_error,  "ERROR: Cannot create tsdemux source pipeline elements\n" );
 			    }
 
 			    gst_bin_add_many(GST_BIN(data->pipeline), data->element_zero, data->element_av[0], data->element_av[1], NULL);
 			    if( !gst_element_link_many(data->element_zero, data->element_av[0], data->element_av[1], NULL)){
-				    g_print( "ERROR:  Cannot link filter to source elements.\n" );
+				    CSIO_LOG(eLogLevel_error,  "ERROR:  Cannot link filter to source elements.\n" );
 				    iStatus = CSIO_CANNOT_LINK_ELEMENTS;
 			    }else
-				    GST_DEBUG ("success link pipeline elements\n");
+				    CSIO_LOG(eLogLevel_debug, "success link pipeline elements\n");
 			}
 
 			*pipeline = data->pipeline;
@@ -1761,7 +1765,7 @@ int csio_jni_CreatePipeline(GstElement **pipeline,GstElement **source,eProtocolI
 	    	break;
 	    case ePROTOCOL_MULTICAST:
 	    {
-	    	//GST_ERROR ("ePROTOCOL_MULTICAST\n");
+	    	//CSIO_LOG(eLogLevel_debug, "ePROTOCOL_MULTICAST\n");
 	    	strcpy(data->multicast_grp,(char*)currentSettingsDB.videoSettings[iStreamId].multicastAddress);
 
 	    	//build_udp_pipeline(data,protoId);
@@ -1807,7 +1811,7 @@ void csio_jni_InitPipeline(eProtocolId protoId, int iStreamId)
 	
 	if(!data)
 	{
-		GST_ERROR("Could not obtain stream pointer for stream %d", iStreamId);
+		CSIO_LOG(eLogLevel_error, "Could not obtain stream pointer for stream %d", iStreamId);
 		return;
 	}	
 
@@ -1833,7 +1837,7 @@ void csio_jni_InitPipeline(eProtocolId protoId, int iStreamId)
 		}
 
 		case ePROTOCOL_HTTP:
-			//GST_DEBUG ("ePROTOCOL_HTTP pass\n");
+			//CSIO_LOG(eLogLevel_debug, "ePROTOCOL_HTTP pass\n");
 			break;
 
 		case ePROTOCOL_UDP_TS:
@@ -1841,7 +1845,7 @@ void csio_jni_InitPipeline(eProtocolId protoId, int iStreamId)
 
 		case ePROTOCOL_UDP:
 		{
-			//GST_DEBUG ("ePROTOCOL_UDP pass\n");
+			//CSIO_LOG(eLogLevel_debug, "ePROTOCOL_UDP pass\n");
 			break;
 		}
 		case ePROTOCOL_MULTICAST_TS:
@@ -1849,7 +1853,7 @@ void csio_jni_InitPipeline(eProtocolId protoId, int iStreamId)
 
 		case ePROTOCOL_MULTICAST:
 		{
-			//GST_DEBUG ("ePROTOCOL_MULTICAST pass\n");
+			//CSIO_LOG(eLogLevel_debug, "ePROTOCOL_MULTICAST pass\n");
 			break;
 		}
 		case ePROTOCOL_FILE: //stub for now
@@ -1865,7 +1869,7 @@ void csio_jni_SetSourceLocation(eProtocolId protoId, char *location, int iStream
 	
 	if(!data)
 	{
-		GST_ERROR("Could not obtain stream pointer for stream %d", iStreamId);
+		CSIO_LOG(eLogLevel_error, "Could not obtain stream pointer for stream %d", iStreamId);
 		return;
 	}	
 	
@@ -1883,24 +1887,24 @@ void csio_jni_SetSourceLocation(eProtocolId protoId, char *location, int iStream
 		}
 
 		case ePROTOCOL_HTTP:
-			//GST_DEBUG ("csio_jni_SetSourceLocation: ePROTOCOL_HTTP pass\n");
+			//CSIO_LOG(eLogLevel_debug, "csio_jni_SetSourceLocation: ePROTOCOL_HTTP pass\n");
 			break;
 
 		case ePROTOCOL_UDP_TS:
 		{
-			//GST_DEBUG ("ePROTOCOL_UDP_TS pass\n");
+			//CSIO_LOG(eLogLevel_debug, "ePROTOCOL_UDP_TS pass\n");
 			break;
 		}
 
 		case ePROTOCOL_UDP:
 		{
-			//GST_DEBUG ("ePROTOCOL_UDP pass\n");
+			//CSIO_LOG(eLogLevel_debug, "ePROTOCOL_UDP pass\n");
 			break;
 		}
 		case ePROTOCOL_MULTICAST_TS:
 		case ePROTOCOL_MULTICAST:
 		{
-			//GST_DEBUG ("ePROTOCOL_MULTICAST: location[%s]\n",CresDataDB->multicast_grp);
+			//CSIO_LOG(eLogLevel_debug, "ePROTOCOL_MULTICAST: location[%s]\n",CresDataDB->multicast_grp);
 			if(currentSettingsDB.videoSettings[iStreamId].tsEnabled==STREAM_TRANSPORT_MPEG2TS_UDP){
 				g_object_set(G_OBJECT(data->element_zero), "address", \
 						location, NULL);
@@ -1926,11 +1930,11 @@ void csio_jni_SetMsgHandlers(void* obj,eProtocolId protoId, int iStreamId)
 	
 	if(!data)
 	{
-		GST_ERROR("Could not obtain stream pointer for stream %d", iStreamId);
+		CSIO_LOG(eLogLevel_error, "Could not obtain stream pointer for stream %d", iStreamId);
 		return;
 	}	
 	
-	GST_DEBUG ("protoId = %d\n",protoId);
+	CSIO_LOG(eLogLevel_debug, "protoId = %d\n",protoId);
 	switch( protoId )
 	{
 		case ePROTOCOL_RTSP_TCP:
@@ -1941,7 +1945,7 @@ void csio_jni_SetMsgHandlers(void* obj,eProtocolId protoId, int iStreamId)
 		case ePROTOCOL_RTSP_TS:
 		case ePROTOCOL_UDP:
 		{
-			//GST_DEBUG ("SetMsgHandlers protoId[%d]\n",protoId);
+			//CSIO_LOG(eLogLevel_debug, "SetMsgHandlers protoId[%d]\n",protoId);
 			// Register callback.
 			if(data->element_zero != NULL)
 			{				
@@ -1949,7 +1953,7 @@ void csio_jni_SetMsgHandlers(void* obj,eProtocolId protoId, int iStreamId)
 			}
 			else
 			{
-				GST_ERROR("Null element zero, no callbacks will be registered");
+				CSIO_LOG(eLogLevel_warning, "Null element zero, no callbacks will be registered");
 			}
 
 			/* Set the pipeline to READY, so it can already accept a window handle, if we have one */
@@ -1980,7 +1984,7 @@ void csio_jni_SetMsgHandlers(void* obj,eProtocolId protoId, int iStreamId)
 			}
 			else
 			{
-				GST_ERROR("Null element zero, no callbacks will be registered");
+				CSIO_LOG(eLogLevel_warning, "Null element zero, no callbacks will be registered");
 			}
 			break;
 		}
@@ -2004,13 +2008,13 @@ int csio_jni_AddAudio(GstPad *new_pad,gchar *encoding_name, GstElement **sink, b
 
 	if(!data)
 	{
-		GST_ERROR("Could not obtain stream pointer for stream %d", iStreamId);
+		CSIO_LOG(eLogLevel_error, "Could not obtain stream pointer for stream %d", iStreamId);
 		return CSIO_FAILURE;
 	}	
 
 	if(debug_blocking_audio)
 	{
-	    GST_ERROR("debug_blocking_audio is set");
+	    CSIO_LOG(eLogLevel_debug, "debug_blocking_audio is set");
 	    return CSIO_AUDIO_BLOCKED;
 	}
 
@@ -2047,7 +2051,7 @@ int csio_jni_AddAudio(GstPad *new_pad,gchar *encoding_name, GstElement **sink, b
 
 	if(gst_pad_is_linked (sink_pad))
 	{
-		GST_ERROR ("audio sink pad is already linked");
+		CSIO_LOG(eLogLevel_info, "audio sink pad is already linked");
 		gst_object_unref(sink_pad);
 
 		iStatus  =  CSIO_CANNOT_LINK_ELEMENTS;
@@ -2063,7 +2067,7 @@ int csio_jni_AddAudio(GstPad *new_pad,gchar *encoding_name, GstElement **sink, b
 
 	csio_element_set_state( data->pipeline, GST_STATE_PLAYING);
 
-	GST_DEBUG("csio_jni_AddAudio iStatus = %d", iStatus);
+	CSIO_LOG(eLogLevel_debug, "csio_jni_AddAudio iStatus = %d", iStatus);
 
 doneAddAudio:
 	if(new_pad_caps != NULL)
@@ -2084,11 +2088,11 @@ int csio_jni_AddVideo(GstPad *new_pad,gchar *encoding_name, GstElement **sink,eP
 
 	if(!data)
 	{
-		GST_ERROR("Could not obtain stream pointer for stream %d", iStreamId);
+		CSIO_LOG(eLogLevel_error, "Could not obtain stream pointer for stream %d", iStreamId);
 		return CSIO_FAILURE;
 	}	
 
-	//GST_DEBUG("csio_jni_AddVideo: sink =0x%x",protoId);
+	//CSIO_LOG(eLogLevel_debug, "csio_jni_AddVideo: sink =0x%x",protoId);
 	//Extracted from STR, to support IC Camera
 	if(send_pause){
 		csio_element_set_state( data->pipeline, GST_STATE_PAUSED);
@@ -2123,7 +2127,7 @@ int csio_jni_AddVideo(GstPad *new_pad,gchar *encoding_name, GstElement **sink,eP
 
 	if(gst_pad_is_linked (sink_pad))
 	{
-		GST_ERROR ("video sink pad is already linked");
+		CSIO_LOG(eLogLevel_info, "video sink pad is already linked");
 		gst_object_unref(sink_pad);
 
 		iStatus = CSIO_CANNOT_LINK_ELEMENTS;
@@ -2144,7 +2148,7 @@ int csio_jni_AddVideo(GstPad *new_pad,gchar *encoding_name, GstElement **sink,eP
 
 	if( csio_element_set_state( data->pipeline, GST_STATE_PLAYING) == GST_STATE_CHANGE_FAILURE )
 	{
-		GST_ERROR ("Cannot restart pipeline\n");
+		CSIO_LOG(eLogLevel_error, "Cannot restart pipeline\n");
 	}
 
 	if(iStatus != CSIO_SUCCESS)
@@ -2153,7 +2157,7 @@ int csio_jni_AddVideo(GstPad *new_pad,gchar *encoding_name, GstElement **sink,eP
 		goto doneAddVideo;
 	}
 
-	GST_DEBUG("csio_jni_AddVideo iStatus = %d", iStatus);
+	CSIO_LOG(eLogLevel_debug, "csio_jni_AddVideo iStatus = %d", iStatus);
 doneAddVideo:
 	if(new_pad_caps != NULL)
 	{
@@ -2168,7 +2172,7 @@ void csio_jni_initAudio(int iStreamId)
 
     if(!data)
     {
-        GST_ERROR("Could not obtain stream pointer for stream %d", iStreamId);
+        CSIO_LOG(eLogLevel_error, "Could not obtain stream pointer for stream %d", iStreamId);
         return;
     }
 
@@ -2176,7 +2180,7 @@ void csio_jni_initAudio(int iStreamId)
     {
     	if (data->dropAudio)
 		{
-			GST_ERROR("Dropping audio flag set");
+			CSIO_LOG(eLogLevel_debug, "Dropping audio flag set");
     		g_object_set(G_OBJECT(data->element_valve_a), "drop", TRUE, NULL);
 		}
     	else
@@ -2187,7 +2191,7 @@ void csio_jni_initAudio(int iStreamId)
     {
         gint64 tmp = data->audiosink_ts_offset * 1000000;
         g_object_set(G_OBJECT(data->audio_sink), "ts-offset", tmp, NULL);
-        GST_DEBUG("set audiosink_ts_offset:%lld",tmp);
+        CSIO_LOG(eLogLevel_debug, "set audiosink_ts_offset:%lld",tmp);
     }
 }
 
@@ -2197,13 +2201,13 @@ void csio_jni_initVideo(int iStreamId)
 
 	if(!data)
 	{
-		GST_ERROR("Could not obtain stream pointer for stream %d", iStreamId);
+		CSIO_LOG(eLogLevel_error, "Could not obtain stream pointer for stream %d", iStreamId);
 		return;
 	}	
 
 	if(data->using_glimagsink)
 	{
-	    GST_DEBUG("qos is set to default");
+	    CSIO_LOG(eLogLevel_debug, "qos is set to default");
 	    g_object_set(G_OBJECT(data->video_sink), "force-aspect-ratio", FALSE, NULL);
     }
 	else
@@ -2214,15 +2218,15 @@ void csio_jni_initVideo(int iStreamId)
 	        int tmp = currentSettingsDB.videoSettings[iStreamId].streamingBuffer +
 	                  data->amcviddec_ts_offset;
 	        g_object_set(G_OBJECT(data->amcvid_dec), "ts-offset", tmp, NULL);
-	        GST_DEBUG("streamingBuffer or latency is:%d",currentSettingsDB.videoSettings[iStreamId].streamingBuffer);
-	        GST_DEBUG("amcviddec_ts_offset:%d",data->amcviddec_ts_offset);
-	        GST_DEBUG("total ts_offset:%d",tmp);
+	        CSIO_LOG(eLogLevel_debug, "streamingBuffer or latency is:%d",currentSettingsDB.videoSettings[iStreamId].streamingBuffer);
+	        CSIO_LOG(eLogLevel_debug, "amcviddec_ts_offset:%d",data->amcviddec_ts_offset);
+	        CSIO_LOG(eLogLevel_debug, "total ts_offset:%d",tmp);
 	    }
 
 	    if(data->element_valve_v)
 	        g_object_set(G_OBJECT(data->element_valve_v), "drop", FALSE, NULL);
 
-	    GST_DEBUG("qos is turned off for surfaceflingersink!");
+	    CSIO_LOG(eLogLevel_debug, "qos is turned off for surfaceflingersink!");
 	    if(data->video_sink)
 	        g_object_set(G_OBJECT(data->video_sink), "qos", FALSE, NULL);   
 	}
@@ -2235,7 +2239,7 @@ GstElement * csio_jni_getVideoDecEle(int iStreamId)
 
     if(!data)
     {
-        GST_ERROR("Could not obtain stream pointer for stream %d", iStreamId);
+        CSIO_LOG(eLogLevel_error, "Could not obtain stream pointer for stream %d", iStreamId);
         return NULL;
     }
 
@@ -2251,14 +2255,14 @@ void *csio_SendInitiatorAddressFb( void * arg )
 	CREGSTREAM * data = GetStreamFromCustomData(CresDataDB, streamId);
     if(!data)
     {
-        GST_ERROR("Could not obtain stream pointer for stream %d", streamId);
+        CSIO_LOG(eLogLevel_error, "Could not obtain stream pointer for stream %d", streamId);
         pthread_exit( NULL );
         return NULL;
     }
 
 	char *initiatorAddress_cstr = data->sourceIP_addr;//csio_GetInitiatorFbAddress(streamId);
 
-	GST_DEBUG( "Sent INITIATOR FB %s", initiatorAddress_cstr );
+	CSIO_LOG(eLogLevel_debug,  "Sent INITIATOR FB %s", initiatorAddress_cstr );
 
 	initiatorAddress_jstr = (*env)->NewStringUTF(env, initiatorAddress_cstr);
 
@@ -2267,7 +2271,7 @@ void *csio_SendInitiatorAddressFb( void * arg )
 
 	(*env)->CallVoidMethod(env, CresDataDB->app, sendInitiatorAddress, initiatorAddress_jstr, 0);
 	if ((*env)->ExceptionCheck (env)) {
-		GST_ERROR ("Failed to call Java method 'sendInitiatorAddress'");
+		CSIO_LOG(eLogLevel_error, "Failed to call Java method 'sendInitiatorAddress'");
 		(*env)->ExceptionClear (env);
 	}
 	(*env)->DeleteLocalRef (env, initiatorAddress_jstr);
@@ -2283,7 +2287,7 @@ void csio_jni_recoverDucati()
 
     (*env)->CallVoidMethod(env, CresDataDB->app, recoverDucati);
     if ((*env)->ExceptionCheck (env)) {
-        GST_ERROR ("Failed to call Java method 'recoverDucati'");
+        CSIO_LOG(eLogLevel_error, "Failed to call Java method 'recoverDucati'");
         (*env)->ExceptionClear (env);
     }
 }
@@ -2307,41 +2311,41 @@ void csio_jni_printFieldDebugInfo()
 
     if(!data)
     {
-        GST_ERROR("Could not obtain stream pointer for stream %d", 0);
+        CSIO_LOG(eLogLevel_error, "Could not obtain stream pointer for stream %d", 0);
         return CSIO_FAILURE;
     }
 
-    __android_log_print (ANDROID_LOG_INFO, "FieldDebugInfo", "Current setting:");
+    CSIO_LOG(eLogLevel_debug, "FieldDebugInfo", "Current setting:");
     for (i = 0; i < MAX_SPECIAL_FIELD_DEBUG_NUM - 1; i++)
     {
 
         if((i+1) == FIELD_DEBUG_SET_AMCVIDDEC_DEBUG_LEVEL)
         {
-            __android_log_print(ANDROID_LOG_INFO, "FieldDebugInfo", "  %s  -- %d", \
+            CSIO_LOG(eLogLevel_debug, "FieldDebugInfo", "  %s  -- %d", \
                                 fieldDebugNames[i], amcviddec_debug_level);
         }
         else if((i+1) == FIELD_DEBUG_SET_VIDEODECODER_DEBUG_LEVEL)
         {
-            __android_log_print(ANDROID_LOG_INFO, "FieldDebugInfo", "  %s  -- %d", \
+            CSIO_LOG(eLogLevel_debug, "FieldDebugInfo", "  %s  -- %d", \
                                 fieldDebugNames[i], videodecoder_debug_level);
         }        
         else if((i+1) == FIELD_DEBUG_SET_AUDIOSINK_TS_OFFSET)
         {
-            __android_log_print(ANDROID_LOG_INFO, "FieldDebugInfo", "  %s  -- %dms", \
+            CSIO_LOG(eLogLevel_debug, "FieldDebugInfo", "  %s  -- %dms", \
                                 fieldDebugNames[i],data->audiosink_ts_offset);
         }
         else if((i+1) == FIELD_DEBUG_SET_AMCVIDDEC_TS_OFFSET)
         {
-            __android_log_print(ANDROID_LOG_INFO, "FieldDebugInfo", "  %s  -- %dms", \
+            CSIO_LOG(eLogLevel_debug, "FieldDebugInfo", "  %s  -- %dms", \
                                 fieldDebugNames[i],data->amcviddec_ts_offset);
         }
         else if((i+1) == FIELD_DEBUG_PRINT_AUDIOSINK_PROPERTIES)
         {
-            __android_log_print(ANDROID_LOG_INFO, "FieldDebugInfo", "  %s",fieldDebugNames[i]);
+            CSIO_LOG(eLogLevel_debug, "FieldDebugInfo", "  %s",fieldDebugNames[i]);
         }
         else
         {
-            __android_log_print(ANDROID_LOG_INFO, "FieldDebugInfo", "  %s%s", \
+            CSIO_LOG(eLogLevel_debug, "FieldDebugInfo", "  %s%s", \
                                 fieldDebugNames[i], \
                                 (IsSpecialFieldDebugIndexActive(i+1) ? "ON" : "OFF"));
         }

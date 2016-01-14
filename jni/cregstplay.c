@@ -100,7 +100,7 @@ static void pad_added_callback2 (GstElement *src, GstPad *new_pad, CREGSTREAM *d
 	
 	csio_element_set_state( data->pipeline, GST_STATE_PAUSED);
 	
-	GST_DEBUG ("caps are %" GST_PTR_FORMAT, new_pad_caps);
+	CSIO_LOG(eLogLevel_debug, "caps are %" GST_PTR_FORMAT, new_pad_caps);
 	
 	p_caps_string = gst_caps_to_string (new_pad_caps);
 	p = p_caps_string;
@@ -127,24 +127,24 @@ static void pad_added_callback2 (GstElement *src, GstPad *new_pad, CREGSTREAM *d
     {
 		build_audio_pipeline(p_caps_string, data, do_rtp,&ele0,&sinker);
         sinker = data->element_a[0];
-		GST_DEBUG ("Completing audio pipeline");
+		CSIO_LOG(eLogLevel_debug, "Completing audio pipeline");
     }
     else if (strncmp("video", p_caps_string, 5) == 0)
     {
 		build_video_pipeline(p_caps_string, data, data->element_after_tsdemux, do_rtp,&ele0,&sinker);
         sinker = data->element_v[data->element_after_tsdemux];
-		GST_DEBUG ("Completing video pipeline");
+		CSIO_LOG(eLogLevel_debug, "Completing video pipeline");
     }
     else
     {
-        GST_ERROR ("Unknown stream type: %s", p_caps_string);
+        CSIO_LOG(eLogLevel_warning, "Unknown stream type: %s", p_caps_string);
 		gst_caps_unref( new_pad_caps );
 		return;
     }
 	
 	if(sinker == NULL)
 	{
-		GST_ERROR("Empty video pipeline, not linking");
+		CSIO_LOG(eLogLevel_error, "Empty video pipeline, not linking");
 		gst_caps_unref( new_pad_caps );		
 		return;
 	}
@@ -153,7 +153,7 @@ static void pad_added_callback2 (GstElement *src, GstPad *new_pad, CREGSTREAM *d
 	GstPad *sink_pad = gst_element_get_static_pad (sinker, "sink");
 	if(gst_pad_is_linked(sink_pad)) 
 	{
-		GST_ERROR ("sink pad is already linked");
+		CSIO_LOG(eLogLevel_info, "sink pad is already linked");
 		gst_object_unref(sink_pad);
 		gst_caps_unref( new_pad_caps );		
 		return;
@@ -217,7 +217,7 @@ GstPadProbeReturn udpsrcProbe(GstPad *pad, GstPadProbeInfo *info, gpointer user_
 
         if (meta == NULL)
         {
-            //GST_DEBUG ("Buffer does not have net_address_meta.");
+            //CSIO_LOG(eLogLevel_info, "Buffer does not have net_address_meta.");
             return GST_PAD_PROBE_OK;//try again
         }
         else
@@ -233,7 +233,7 @@ GstPadProbeReturn udpsrcProbe(GstPad *pad, GstPadProbeInfo *info, gpointer user_
                 memset(data->sourceIP_addr,0,sizeof(data->sourceIP_addr));
                 memcpy(textString,host,sizeof(data->sourceIP_addr)-1);
 
-                GST_DEBUG ("sourceIP_addr[%s], size:%d",data->sourceIP_addr,sizeof(data->sourceIP_addr));
+                CSIO_LOG(eLogLevel_debug, "sourceIP_addr[%s], size:%d",data->sourceIP_addr,sizeof(data->sourceIP_addr));
                 g_free (host);
             }
         }
@@ -248,7 +248,7 @@ void insert_udpsrc_probe(CREGSTREAM *data,GstElement *element,const gchar *name)
     {
         GstPad *pad;
         pad = gst_element_get_static_pad(element, name);
-        GST_DEBUG("data[0x%x],element[0x%x],name[%s] pad:[0x%x]", data,element,name,pad);
+        CSIO_LOG(eLogLevel_debug, "data[0x%x],element[0x%x],name[%s] pad:[0x%x]", data,element,name,pad);
         
         if (pad != NULL)
         {
@@ -266,7 +266,7 @@ void insert_udpsrc_probe(CREGSTREAM *data,GstElement *element,const gchar *name)
         }
         else
         {
-            GST_DEBUG("Failed to insert udpsrc probe");
+            CSIO_LOG(eLogLevel_error, "Failed to insert udpsrc probe");
         }
     }
 }
@@ -300,7 +300,7 @@ int build_video_pipeline(gchar *encoding_name, CREGSTREAM *data, unsigned int st
 	
     data->using_glimagsink = 0;
     *sink = NULL;
-    //GST_DEBUG("encoding_name=%s, native_window=%p, start=%u, do_rtp=%d",
+    //CSIO_LOG(eLogLevel_debug, "encoding_name=%s, native_window=%p, start=%u, do_rtp=%d",
     //		  encoding_name, data->native_window, start, do_rtp);
 
     if((strcmp(encoding_name, "H264") == 0) || (strcmp(encoding_name, "video/x-h264") == 0))
@@ -339,7 +339,7 @@ int build_video_pipeline(gchar *encoding_name, CREGSTREAM *data, unsigned int st
 
         //pass surface object to the decoder
         g_object_set(G_OBJECT(data->element_v[i-1]), "surface-window", data->surface, NULL);
-        GST_DEBUG("SET surface-window[0x%x][%d]",data->surface,data->surface);    
+        CSIO_LOG(eLogLevel_debug, "SET surface-window[0x%x][%d]",data->surface,data->surface);
 
         *ele0 = data->element_v[0];
     }
@@ -400,12 +400,12 @@ int build_video_pipeline(gchar *encoding_name, CREGSTREAM *data, unsigned int st
 
 		//pass surface object to the decoder
 		g_object_set(G_OBJECT(data->element_v[i-1]), "surface-window", data->surface, NULL);
-		GST_DEBUG("SET surface-window[0x%x][%d]",data->surface,data->surface);
+		CSIO_LOG(eLogLevel_debug, "SET surface-window[0x%x][%d]",data->surface,data->surface);
 	}
 	else
 	{
 		data->element_v[start] = NULL;
-		GST_ERROR("Unsupported video encoding %s", encoding_name);
+		CSIO_LOG(eLogLevel_error, "Unsupported video encoding %s", encoding_name);
 		return CSIO_CANNOT_CREATE_ELEMENTS;
 	}
 		
@@ -426,7 +426,7 @@ int build_video_pipeline(gchar *encoding_name, CREGSTREAM *data, unsigned int st
 		    crestron_set_stride(0);
 #endif
 		    data->video_sink = gst_element_factory_make("glimagesink", NULL);
-		    GST_INFO("using glimagesink");
+		    CSIO_LOG(eLogLevel_debug, "using glimagesink");
 		}
 		else
 		{
@@ -434,7 +434,7 @@ int build_video_pipeline(gchar *encoding_name, CREGSTREAM *data, unsigned int st
 		    // This value is dictated by TI OMAP hardware.
 		    crestron_set_stride(4096);
 		    data->video_sink = gst_element_factory_make("surfaceflingersink", NULL);
-		    GST_INFO("using surfaceflingersink");
+		    CSIO_LOG(eLogLevel_debug, "using surfaceflingersink");
 #endif
 		}
 
@@ -466,13 +466,13 @@ int build_video_pipeline(gchar *encoding_name, CREGSTREAM *data, unsigned int st
 	
 	if(!do_window)
 	{
-		GST_DEBUG("Not doing window yet");
+		CSIO_LOG(eLogLevel_debug, "Not doing window yet");
 		return CSIO_SUCCESS;
 	}
 
 	if(!data->native_window)
 	{
-		GST_ERROR("No native window");
+		CSIO_LOG(eLogLevel_error, "No native window");
 	}
 
 	if(data->video_sink)
@@ -564,7 +564,7 @@ int build_audio_pipeline(gchar *encoding_name, CREGSTREAM *data, int do_rtp,GstE
 	else
 	{
 		data->element_a[start] = NULL;
-		GST_ERROR("Unsupported audio encoding %s", encoding_name);
+		CSIO_LOG(eLogLevel_error, "Unsupported audio encoding %s", encoding_name);
 		return CSIO_CANNOT_CREATE_ELEMENTS;
 	}
 	data->element_a[i++] = gst_element_factory_make("queue", NULL);
@@ -649,7 +649,7 @@ int build_audio_pipeline(gchar *encoding_name, CREGSTREAM *data, int do_rtp,GstE
 // 	
 // 	if(new_pad_type == NULL)
 // 	{
-// 		GST_ERROR("Null pad type");
+// 		CSIO_LOG(eLogLevel_error, "Null pad type");
 // 		return;
 // 	}
 // 	
@@ -662,24 +662,24 @@ int build_audio_pipeline(gchar *encoding_name, CREGSTREAM *data, int do_rtp,GstE
 // 	{
 // 		do_rtp = 1;
 // 	}
-// 	GST_DEBUG("Pad added callback, type=%s, encoding_name=%s", new_pad_type, encoding_name);
-// 	GST_DEBUG ("caps are %" GST_PTR_FORMAT, new_pad_caps);
+// 	CSIO_LOG(eLogLevel_debug, "Pad added callback, type=%s, encoding_name=%s", new_pad_type, encoding_name);
+// 	CSIO_LOG(eLogLevel_debug, "caps are %" GST_PTR_FORMAT, new_pad_caps);
 // 	
 //     if (strncmp("audio", new_pad_type, 5) == 0)
 //     {
 // 		build_audio_pipeline(encoding_name, data, do_rtp,&ele0,&sinker);
 //         sinker = data->element_a[0];
-// 		GST_DEBUG ("Completing audio pipeline");
+// 		CSIO_LOG(eLogLevel_debug, "Completing audio pipeline");
 //     }
 //     else if (strncmp("video", new_pad_type, 5) == 0)
 //     {
 // 		build_video_pipeline(encoding_name, data, 0, do_rtp,&ele0,&sinker);
 //         sinker = data->element_v[0];
-// 		GST_DEBUG ("Completing video pipeline");
+// 		CSIO_LOG(eLogLevel_debug, "Completing video pipeline");
 //     }
 //     else
 //     {
-//         GST_ERROR ("Unknown stream type: %s", new_pad_type);
+//         CSIO_LOG(eLogLevel_error, "Unknown stream type: %s", new_pad_type);
 // 		gst_caps_unref( new_pad_caps );
 // 		g_free( encoding_name );
 // 		return;
@@ -687,7 +687,7 @@ int build_audio_pipeline(gchar *encoding_name, CREGSTREAM *data, int do_rtp,GstE
 // 	
 // 	if(sinker == NULL)
 // 	{
-// 		GST_ERROR("Empty video pipeline, not linking");
+// 		CSIO_LOG(eLogLevel_error, "Empty video pipeline, not linking");
 // 		gst_caps_unref( new_pad_caps );		
 // 		g_free(encoding_name);
 // 		return;
@@ -697,7 +697,7 @@ int build_audio_pipeline(gchar *encoding_name, CREGSTREAM *data, int do_rtp,GstE
 // 	GstPad *sink_pad = gst_element_get_static_pad (sinker, "sink");
 // 	if(gst_pad_is_linked (sink_pad)) 
 // 	{
-// 		GST_ERROR ("sink pad is already linked");
+// 		CSIO_LOG(eLogLevel_warning, "sink pad is already linked");
 // 		gst_object_unref(sink_pad);
 // 		gst_caps_unref( new_pad_caps );		
 // 		g_free(encoding_name);
@@ -761,7 +761,7 @@ void build_http_pipeline(CREGSTREAM *data, int iStreamId)
 // 	}
 //	else
 //	{
-//		GST_DEBUG("Unsupported http url %s", url);
+//		CSIO_LOG(eLogLevel_warning, "Unsupported http url %s", url);
 //	}
 }
 
@@ -914,5 +914,5 @@ void set_gst_debug_level(void)
 	setenv("GST_DEBUG_NO_COLOR", "1", 1);
 	setenv("GST_PLUGIN_PATH", "/system/lib/gstreamer-1.0", 1);
 
-	GST_DEBUG("Set GST_DEBUG to %s", temp);
+	CSIO_LOG(eLogLevel_debug, "Set GST_DEBUG to %s", temp);
 }

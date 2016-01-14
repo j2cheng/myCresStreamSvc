@@ -78,7 +78,7 @@ public class CresStreamCtrl extends Service {
     StringTokenizer tokenizer;
     
     public static boolean useGstreamer = true;
-    StreamIn streamPlay;
+    StreamIn streamPlay = null;
     BroadcastReceiver hpdEvent = null;
     BroadcastReceiver resolutionEvent = null;
     BroadcastReceiver hdmioutResolutionChangedEvent = null;
@@ -129,6 +129,7 @@ public class CresStreamCtrl extends Service {
     public CountDownLatch streamingReadyLatch = new CountDownLatch(1);
     private Object cameraModeLock = new Object();
     private Timer mNoVideoTimer = null;
+    private int defaultLoggingLevel = -1;
 
     enum DeviceMode {
         STREAM_IN,
@@ -329,6 +330,13 @@ public class CresStreamCtrl extends Service {
             	{
             		RecoverMediaServer();
             		RecoverTxrxService();
+            	}
+            	else
+            	{
+            		if (defaultLoggingLevel != -1) //-1 means that value still has not been set
+            		{
+            			streamPlay.setLogLevel(defaultLoggingLevel);
+            		}
             	}
             }
             else
@@ -1117,6 +1125,18 @@ public class CresStreamCtrl extends Service {
     		userSettings.setH(0, sessionId);
     		
     		updateWindow(sessionId);
+    	}
+    }
+    
+    public void setLogLevel(int logLevel)
+    {
+    	if (streamPlay != null)
+    	{
+    		streamPlay.setLogLevel(logLevel);
+    	}
+    	else
+    	{
+    		defaultLoggingLevel = logLevel; //since streamplay was not up mark inteded log level and set when streamPlay is created
     	}
     }
     

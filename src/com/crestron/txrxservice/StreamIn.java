@@ -135,6 +135,10 @@ public class StreamIn {
     
     public int getMediaPlayerAudiochannelsFb() {
     	return strategy.getMediaPlayerAudiochannelsFb();
+    }    
+    
+    public void setLogLevel(int LogLevel) {
+    	strategy.setLogLevel(LogLevel);
     }
 }
 
@@ -152,7 +156,8 @@ interface StreamInStrategy{
     public void setVolume(int volume, int sessionId);
     public void updateCurrentXYloc(int xloc, int yloc, int sessId);
     public void setNewSink(boolean flag, int sessionId);
-    public void setFieldDebugJni(String cmd, int sessionId);   
+    public void setFieldDebugJni(String cmd, int sessionId); 
+    public void setLogLevel(int LogLevel);
     public long getStreamInNumVideoPackets();	
 	public int getStreamInNumVideoPacketsDropped();	
 	public long getStreamInNumAudioPackets();	
