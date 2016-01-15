@@ -321,6 +321,25 @@ class UnmuteCommand implements CommandIf {
         }
 }
 
+class HdmiInAudioCommand implements CommandIf {
+    CommandReceiver launch;
+    String msg;
+
+    public HdmiInAudioCommand(CommandReceiver launch, String arg) {
+        this.launch = launch;
+        this.msg = arg;
+    }
+
+    @Override
+        public void execute() {
+            boolean val = Boolean.valueOf(msg);
+            launch.setProcessHdmiInAudio(val);
+        }
+        public String getFeedbackMsg() {
+        	return launch.getProcessHdmiInAudio();
+        }
+}
+
 class LatencyCommand implements CommandIf {
     CommandReceiver launch;
     String msg;

@@ -1626,7 +1626,20 @@ public class CresStreamCtrl extends Service {
     	setStreamVolume(userSettings.getUserRequestedVolume());
     	sockTask.SendDataToAllClients("AUDIO_MUTE=false");
     }
-
+    
+    public void setProcessHdmiInAudio(boolean flag)
+    {
+    	userSettings.setProcessHdmiInAudio(flag);
+    	if(flag)
+    	{
+			sockTask.SendDataToAllClients("PROCESS_HDMI_IN_AUDIO=true");
+		}
+		else
+		{
+			sockTask.SendDataToAllClients("PROCESS_HDMI_IN_AUDIO=false");
+		}			
+    }
+    
     public void SetPasswdEnable(int sessId)
     {
         StringBuilder sb = new StringBuilder(512);

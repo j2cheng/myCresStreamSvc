@@ -203,7 +203,8 @@ public class UserSettings
 	//Misc
 	private boolean[] useNewSink;
 	private boolean ravaMode;
-
+	private boolean processHdmiInAudio;
+	
 	public UserSettings()
 	{
 		MiscUtils.getDeviceIpAddr();
@@ -245,6 +246,7 @@ public class UserSettings
 		audioMute			= false;
 		audioUnmute			= true;
 		ravaMode			= false;
+		processHdmiInAudio  = true; 
 		hdmiOutForceHdcp 	= false;
 		initiatorAddress 	= "";
 		osdText 			= "";
@@ -754,4 +756,13 @@ public class UserSettings
 	public boolean isRavaMode() {
 		return ravaMode;
 	}
+	
+	public void setProcessHdmiInAudio(boolean enabled) {
+		this.processHdmiInAudio = enabled;
+	}
+
+	public boolean isProcessHdmiInAudio() {
+		return processHdmiInAudio;
+	}
+	
 }

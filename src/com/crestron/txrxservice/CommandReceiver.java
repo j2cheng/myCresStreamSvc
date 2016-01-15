@@ -136,7 +136,11 @@ public class CommandReceiver {
         if(flag)
         	ctl.setStreamUnMute();
     }
-    
+
+	public void setProcessHdmiInAudio (boolean flag){
+       	ctl.setProcessHdmiInAudio(flag);
+    }
+
     public void setLatency(int latency, int sessId){
     	ctl.userSettings.setStreamingBuffer(latency, sessId);
     }
@@ -550,6 +554,10 @@ public class CommandReceiver {
     
     public String getUnmute(){
     	return String.valueOf(ctl.userSettings.isAudioUnmute());
+    }
+
+    public String getProcessHdmiInAudio(){
+    	return String.valueOf(ctl.userSettings.isProcessHdmiInAudio());
     }
     
     public String getLatency(int sessId){

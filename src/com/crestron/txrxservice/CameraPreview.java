@@ -260,12 +260,25 @@ public class CameraPreview {
     	}
     }
 
-    protected void startAudio(){
-    	if ((skipAudio == false) && (streamCtl.userSettings.isRavaMode() == false))
+    protected void startAudio(){		
+    	if ((skipAudio == false) 
+			&& (streamCtl.userSettings.isRavaMode() == false)
+			&& (streamCtl.userSettings.isProcessHdmiInAudio() == true))
     	{
 	        if(!is_audioplaying)
+	        {
+				Log.d(TAG, "starting audio task");
 	            audio_pb.startAudioTask();
+	        }
+	        else
+	        {
+				Log.d(TAG, "audio task already running");
+	        }
 	        is_audioplaying = true;
+    	}
+    	else
+    	{
+			Log.d(TAG, "NOT starting audio task");
     	}
     }
 

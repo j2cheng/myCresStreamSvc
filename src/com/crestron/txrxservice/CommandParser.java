@@ -32,6 +32,7 @@ public class CommandParser {
         AUDIO_VOLUME,
         AUDIO_MUTE,
         AUDIO_UNMUTE,
+        PROCESS_HDMI_IN_AUDIO,
         LATENCY,
         PASSWORD_ENABLE,
         PASSWORD_DISABLE,
@@ -148,6 +149,7 @@ public class CommandParser {
         sb.append("AUDIO_VOLUME(=0 to 100)\r\n");
         sb.append("AUDIO_MUTE(=1:true/0:false)\r\n");
         sb.append("AUDIO_UNMUTE(=1:true/0:false)\r\n");
+        sb.append("PROCESS_HDMI_IN_AUDIO(=1:true/0:false)\r\n");
         sb.append("LATENCY=100 to 5000 (in msec)\r\n");
         sb.append("PASSWORD_ENABLE\r\n");
         sb.append("PASSWORD_DISABLE\r\n");
@@ -253,6 +255,9 @@ public class CommandParser {
                 break;
             case AUDIO_UNMUTE:
                 cmd = new UnmuteCommand(cmdRx, arg); 
+                break;
+            case PROCESS_HDMI_IN_AUDIO:
+                cmd = new HdmiInAudioCommand(cmdRx, arg); 
                 break;
             case LATENCY:
                 cmd = new LatencyCommand(cmdRx, arg, idx); 
