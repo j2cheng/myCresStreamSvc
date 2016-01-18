@@ -193,6 +193,7 @@ public class CameraPreview {
     	try { successfulStart = latch.await(startTimeout_ms, TimeUnit.MILLISECONDS); }
     	catch (InterruptedException ex) { ex.printStackTrace(); }
     	
+    	streamCtl.checkVideoTimeouts(successfulStart);
     	if (!successfulStart)
     	{
     		Log.e(TAG, String.format("Preview mode failed to start after %d ms", startTimeout_ms));
@@ -250,6 +251,7 @@ public class CameraPreview {
     	try { successfulStop = latch.await(stopTimeout_ms, TimeUnit.MILLISECONDS); }
     	catch (InterruptedException ex) { ex.printStackTrace(); }
     	
+    	streamCtl.checkVideoTimeouts(successfulStop);
     	if (!successfulStop)
     	{
     		Log.e(TAG, String.format("Preview mode failed to stop after %d ms", stopTimeout_ms));

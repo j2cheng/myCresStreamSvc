@@ -130,6 +130,7 @@ public class CresStreamCtrl extends Service {
     private Object cameraModeLock = new Object();
     private Timer mNoVideoTimer = null;
     private int defaultLoggingLevel = -1;
+    private int numberOfVideoTimeouts = 0; //we will use this to track stop/start timeouts
 
     enum DeviceMode {
         STREAM_IN,
@@ -2730,5 +2731,22 @@ public class CresStreamCtrl extends Service {
 			setCameraMode(String.valueOf(cameraMode));
 			mNoVideoTimer = null;
 		}		
+	}
+	
+	public void checkVideoTimeouts(boolean successfulStateChange)
+	{		
+		if (successfulStateChange)
+		{
+			// clear number of timeouts
+			numberOfVideoTimeouts = 0;
+		}
+		else
+		{
+			if ((++numberOfVideoTimeouts) >= 10) // if more than 10 timeouts occur in a row call recovery
+			{
+		    	sockTask.SendDataToAllClients("DEVICE_READY_FB=FALSE");
+		    	sockTask.SendDataToAllClients("KillEveryThingPlease=true");
+			}
+		}
 	}
 }
