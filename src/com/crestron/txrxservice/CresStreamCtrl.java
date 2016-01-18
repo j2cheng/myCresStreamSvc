@@ -210,20 +210,21 @@ public class CresStreamCtrl extends Service {
             return LAST;
         }
     }
-    
-    private final ReentrantLock stopStartLock			= new ReentrantLock(true); // fairness=true, makes lock ordered
-    private final ReentrantLock hdmiLock				= new ReentrantLock(true);
-    private final ReentrantLock streamStateLock 		= new ReentrantLock(true);
-//    private final ReentrantLock saveSettingsLock 		= new ReentrantLock(true);
+   
+    private final ReentrantLock hdmiLock				= new ReentrantLock(true); // fairness=true, makes lock ordered    
+    private final ReentrantLock[] stopStartLock			= new ReentrantLock[NumOfSurfaces]; // members will be allocated in constructor
+    private final ReentrantLock[] streamStateLock 		= new ReentrantLock[NumOfSurfaces]; // members will be allocated in constructor
+
+    private Notification mNote = new Notification( 0, null, System.currentTimeMillis() );
     
     /**
      * Force the service to the foreground
      */
     public void ForceServiceToForeground()
     {
-        Notification note = new Notification( 0, null, System.currentTimeMillis() );
-        note.flags |= Notification.FLAG_NO_CLEAR;
-        startForeground( 42, note );
+    	mNote.when = System.currentTimeMillis();
+    	mNote.flags |= Notification.FLAG_NO_CLEAR;
+        startForeground( 42, mNote );
     }
     
     /**
@@ -269,6 +270,13 @@ public class CresStreamCtrl extends Service {
             tokenizer = new StringTokenizer();
             sockTask = new TCPInterface(this);
             sockTask.execute(new Void[0]);  
+            
+            // Allocate startStop and streamstate Locks
+            for (int sessionId = 0; sessionId < NumOfSurfaces; sessionId++)
+            {
+            	stopStartLock[sessionId] = new ReentrantLock(true);
+            	streamStateLock[sessionId] = new ReentrantLock(true);
+            }
                         
             RunNotificationThread();
             
@@ -940,7 +948,10 @@ public class CresStreamCtrl extends Service {
     	// Skip Stream in is when we need to only restart camera modes i.e. when resolution changes
     	new Thread(new Runnable() {
     		public void run() {	
-    			stopStartLock.lock();
+    			for (int sessionId = 0; sessionId < NumOfSurfaces; sessionId++)
+                {
+    				stopStartLock[sessionId].lock();
+                }
     	    	Log.i(TAG, "RestartLock : Lock");
     	    	try
     	    	{	
@@ -993,7 +1004,10 @@ public class CresStreamCtrl extends Service {
 	    		finally
 		    	{
 		    		Log.i(TAG, "RestartLock : Unlock");
-		    		stopStartLock.unlock();
+		    		for (int sessionId = 0; sessionId < NumOfSurfaces; sessionId++)
+	                {
+		    			stopStartLock[sessionId].unlock();
+	                }
 		    	}
     	    	
     	    	latch.countDown();
@@ -1037,18 +1051,18 @@ public class CresStreamCtrl extends Service {
         	// Since this is a user request, mark as stopped requested if mode changes
         	userSettings.setUserRequestedStreamState(StreamState.STOPPED, sessionId);
         	
-        	stopStartLock.lock(); //Lock here to synchronize with restartStreams
+        	stopStartLock[sessionId].lock(); //Lock here to synchronize with restartStreams
         	StreamState currentStreamState = userSettings.getStreamState(sessionId);
         	StreamState currentUserReqStreamState = userSettings.getUserRequestedStreamState(sessionId);
-        	stopStartLock.unlock();
+        	stopStartLock[sessionId].unlock();
             if ( (currentStreamState != StreamState.STOPPED) || (currentUserReqStreamState != StreamState.STOPPED) )
                 hm2.get(prevMode).executeStop(sessionId, false);
             
             if (mode == DeviceMode.STREAM_OUT.ordinal())
             {
             	// we want confidence image up for stream out, until streamout is actually started
-            	stopStartLock.lock();
-            	Log.d(TAG, "Start : Lock");
+            	stopStartLock[sessionId].lock();
+            	Log.d(TAG, "Start " + sessionId + " : Lock");
                 try
                 {
                 	updateWindow(sessionId);
@@ -1057,8 +1071,8 @@ public class CresStreamCtrl extends Service {
                 	cam_streaming.startConfidencePreview(sessionId);
                 } finally
                 {
-                	stopStartLock.unlock();
-                	Log.d(TAG, "Start : Unlock");
+                	stopStartLock[sessionId].unlock();
+                	Log.d(TAG, "Start " + sessionId + " : Unlock");
                 }
             	restartRequired[sessionId] = true;
             }
@@ -1255,8 +1269,8 @@ public class CresStreamCtrl extends Service {
         
     public void updateWH(final int sessionId)
     {
-        Log.d(TAG, "updateWH : Lock");
-        stopStartLock.lock();
+        Log.d(TAG, "updateWH " + sessionId + " : Lock");
+        stopStartLock[sessionId].lock();
         try
         {
             if (dispSurface != null)
@@ -1309,16 +1323,16 @@ public class CresStreamCtrl extends Service {
         }
         finally
         {
-            stopStartLock.unlock();
-            Log.d(TAG, "updateWH : Unlock");
+            stopStartLock[sessionId].unlock();
+            Log.d(TAG, "updateWH " + sessionId + " : Unlock");
         }
 
     }
     
     public void hideWindowWithoutDestroy(final int sessionId)
     {
-        Log.d(TAG, "updateWH : Lock");
-        stopStartLock.lock();
+        Log.d(TAG, "updateWH " + sessionId + " : Lock");
+        stopStartLock[sessionId].lock();
         try
         {
             if (dispSurface != null)
@@ -1345,8 +1359,8 @@ public class CresStreamCtrl extends Service {
         }
         finally
         {
-            stopStartLock.unlock();
-            Log.d(TAG, "updateWH : Unlock");
+            stopStartLock[sessionId].unlock();
+            Log.d(TAG, "updateWH " + sessionId + " : Unlock");
         }
 
     }
@@ -1377,8 +1391,8 @@ public class CresStreamCtrl extends Service {
     public void updateXY(final int sessionId)
     {
     	
-    	Log.d(TAG, "updateXY : Lock");
-    	stopStartLock.lock();
+    	Log.d(TAG, "updateXY " + sessionId + " : Lock");
+    	stopStartLock[sessionId].lock();
     	
     	try
     	{
@@ -1411,8 +1425,8 @@ public class CresStreamCtrl extends Service {
     	}
     	finally
     	{
-        	stopStartLock.unlock();
-        	Log.d(TAG, "updateXY : Unlock");
+        	stopStartLock[sessionId].unlock();
+        	Log.d(TAG, "updateXY " + sessionId + " : Unlock");
     	}
     }
 
@@ -1709,8 +1723,8 @@ public class CresStreamCtrl extends Service {
 
     public void SendStreamState(StreamState state, int sessionId)
     {
-    	Log.d(TAG, "StreamState : Lock");
-    	streamStateLock.lock();
+    	Log.d(TAG, "StreamState " + sessionId + " : Lock");
+    	streamStateLock[sessionId].lock();
     	try
     	{
         	userSettings.setStreamState(state, sessionId);
@@ -1723,8 +1737,8 @@ public class CresStreamCtrl extends Service {
     	}
         finally 
     	{
-        	streamStateLock.unlock();
-        	Log.d(TAG, "StreamState : Unlock");
+        	streamStateLock[sessionId].unlock();
+        	Log.d(TAG, "StreamState " + sessionId + " : Unlock");
     	}
     }
 
@@ -1733,8 +1747,8 @@ public class CresStreamCtrl extends Service {
     {
     	if ((userSettings.getStreamState(sessionId) != StreamState.STARTED) && (userSettings.getStreamState(sessionId) != StreamState.STREAMERREADY))
     	{	    	
-	    	stopStartLock.lock();
-	    	Log.d(TAG, "Start : Lock");
+	    	stopStartLock[sessionId].lock();
+	    	Log.d(TAG, "Start " + sessionId + " : Lock");
 	    	try
 	    	{
 	    		SendStreamState(StreamState.CONNECTING, sessionId);
@@ -1748,8 +1762,8 @@ public class CresStreamCtrl extends Service {
 	    	}
 	    	finally
 	    	{
-	    		stopStartLock.unlock();
-	        	Log.d(TAG, "Start : Unlock");
+	    		stopStartLock[sessionId].unlock();
+	        	Log.d(TAG, "Start " + sessionId + " : Unlock");
 	    	}
     	}
     }
@@ -1759,8 +1773,8 @@ public class CresStreamCtrl extends Service {
     	//csio will send service full stop when it does not want confidence mode started
     	if ((userSettings.getStreamState(sessionId) != StreamState.STOPPED) && ((userSettings.getStreamState(sessionId) != StreamState.CONFIDENCEMODE) || (fullStop == true)))
     	{
-	    	stopStartLock.lock();
-	    	Log.d(TAG, "Stop : Lock");
+	    	stopStartLock[sessionId].lock();
+	    	Log.d(TAG, "Stop " + sessionId + " : Lock");
 	    	try
 	    	{
 		    	playStatus="false";
@@ -1772,8 +1786,8 @@ public class CresStreamCtrl extends Service {
 	    	}
 	    	finally
 	    	{
-	    		stopStartLock.unlock();
-	    		Log.d(TAG, "Stop : Unlock");
+	    		stopStartLock[sessionId].unlock();
+	    		Log.d(TAG, "Stop " + sessionId + " : Unlock");
 	    	}
     	}
     	else
@@ -1789,8 +1803,8 @@ public class CresStreamCtrl extends Service {
     {
     	if ((userSettings.getStreamState(sessionId) != StreamState.PAUSED) && (userSettings.getStreamState(sessionId) != StreamState.STOPPED))
     	{
-	    	Log.d(TAG, "Pause : Lock");
-	    	stopStartLock.lock();
+	    	Log.d(TAG, "Pause " + sessionId + " : Lock");
+	    	stopStartLock[sessionId].lock();
 	    	try
 	    	{
 		        pauseStatus="true";
@@ -1803,8 +1817,8 @@ public class CresStreamCtrl extends Service {
 	    	}
 	        finally
 	    	{
-	    		Log.d(TAG, "Pause : Unlock");
-	    		stopStartLock.unlock();
+	    		Log.d(TAG, "Pause " + sessionId + " : Unlock");
+	    		stopStartLock[sessionId].unlock();
 	    	}
     	}
     }

@@ -214,7 +214,7 @@ public class UserSettings
 		tsPort 				= new int[]{ 4570, 4570};		
 		rtpVideoPort 		= new int[]{ 49170, 49170};
 		rtpAudioPort 		= new int[]{ 49172, 49172};
-		mode				= new int[]{0,0};
+		mode				= new int[]{1,0}; // Bug 105751: make default mode transmitter
 		w 					= new int[]{1920,1920};
 		h					= new int[]{1080,1080};
 		z					= new int[]{1, 2};

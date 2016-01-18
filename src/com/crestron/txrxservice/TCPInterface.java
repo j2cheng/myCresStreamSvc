@@ -13,6 +13,7 @@ import java.io.FileReader;
 import java.io.BufferedReader;
 import java.io.IOException;
 import java.lang.IllegalArgumentException;
+import java.lang.reflect.Array;
 import java.io.InputStreamReader;
 import java.io.OutputStreamWriter;
 import java.net.InetAddress;
@@ -36,9 +37,10 @@ public class TCPInterface extends AsyncTask<Void, Object, Long> {
     public static final int SERVERPORT = 9876;
     public static final String LOCALHOST = "127.0.0.1";
     private ServerSocket serverSocket;
-    private BufferedReader input;
     private volatile boolean restartStreamsPending = true;
     public volatile boolean firstRun = true;
+    private final StringTokenizer tokenizer = new StringTokenizer();
+    private final Object serverLock = new Object();
     
     public ArrayList<CommunicationThread> clientList;
     
@@ -51,9 +53,11 @@ public class TCPInterface extends AsyncTask<Void, Object, Long> {
     		this.serverHandler = serverHandler;
     	}
     }
-    private Thread joinProcessingThread;
+    
+    private final Thread[] joinProcessingThread = new Thread[CresStreamCtrl.NumOfSurfaces];
     volatile boolean shouldExit = true;
-    private Queue<JoinObject> joinQueue = new LinkedBlockingQueue<JoinObject>();
+    @SuppressWarnings("unchecked")
+	private Queue<JoinObject>[] joinQueue = (Queue<JoinObject>[]) new Queue[CresStreamCtrl.NumOfSurfaces];
 
     public TCPInterface(CresStreamCtrl a_crestctrl){
         parserInstance = new CommandParser (a_crestctrl);
@@ -64,16 +68,28 @@ public class TCPInterface extends AsyncTask<Void, Object, Long> {
     
     private void StartJoinThread()
     {
-    	joinProcessingThread = new Thread(new ProcessJoinTask());
     	shouldExit = false;
-    	joinProcessingThread.start();
+    	
+    	// Allocate memory for joinQueue, one per sessionId
+    	// Kick off one thread of ProcessJoinTask per sessionId, allows parallel join processing
+    	for (int sessionId = 0; sessionId < CresStreamCtrl.NumOfSurfaces; sessionId++)
+    	{
+    		joinQueue[sessionId] = new LinkedBlockingQueue<JoinObject>(); 
+    		
+    		joinProcessingThread[sessionId] = new Thread(new ProcessJoinTask(joinQueue[sessionId]));
+    		joinProcessingThread[sessionId].start();
+    	}
     }
     private void StopJoinThread()
     {
     	shouldExit = true;
-    	try {
-    		joinProcessingThread.join();
-    	} catch (Exception e) {e.printStackTrace();}
+    	
+    	for (int sessionId = 0; sessionId < CresStreamCtrl.NumOfSurfaces; sessionId++)
+    	{
+	    	try {
+	    		joinProcessingThread[sessionId].join();
+	    	} catch (Exception e) {e.printStackTrace();}
+    	}
     }
     
     public void RemoveClientFromList(CommunicationThread clientThread)
@@ -303,14 +319,16 @@ public class TCPInterface extends AsyncTask<Void, Object, Long> {
                         	for(CommandParser.CmdTable ct: CommandParser.CmdTable.values()){
                         		// Send device ready as last join
                         		if (!ct.name().equals("DEVICE_READY_FB"))
-                        			addJoinToQueue(new JoinObject(ct.name(), serverHandler));
+                        			addJoinToQueue(new JoinObject(ct.name(), serverHandler), 0); //Currently updaterequest will only be handled for sessionId 0
                         	}
                         	
                         	// Tell CSIO that update request is complete
-                        	addJoinToQueue(new JoinObject("DEVICE_READY_FB", serverHandler));
+                        	addJoinToQueue(new JoinObject("DEVICE_READY_FB", serverHandler), 0);
                         }
                         else{
-                        	addJoinToQueue(new JoinObject(read.trim(), serverHandler));
+                        	// determine sessionId first so we can add to the right queue
+                        	StringTokenizer.ParseResponse parseResponse = tokenizer.Parse(read.trim());
+                        	addJoinToQueue(new JoinObject(read.trim(), serverHandler), parseResponse.sessId);
                         }
                     }
                     else if(read == null) {
@@ -333,23 +351,33 @@ public class TCPInterface extends AsyncTask<Void, Object, Long> {
 		//Intentionally left blank
     }
     
-    private void addJoinToQueue(JoinObject newJoin) {
-    	synchronized (joinQueue)
+    private void addJoinToQueue(JoinObject newJoin, int sessionId) {
+    	if ((sessionId >= 0) && (sessionId < CresStreamCtrl.NumOfSurfaces))
     	{
-    		joinQueue.add(newJoin);
-    		joinQueue.notify();
+	    	synchronized (joinQueue[sessionId])
+	    	{
+	    		joinQueue[sessionId].add(newJoin);
+	    		joinQueue[sessionId].notify();
+	    	}
     	}
     }
     
     class ProcessJoinTask implements Runnable {
+    	private Queue<JoinObject> jQ;
+    	
+    	public ProcessJoinTask(Queue<JoinObject> join_queue)
+    	{
+    		jQ = join_queue;
+    	}
+    	
         public void run() {
         	while (!shouldExit) {
-        		if (joinQueue.isEmpty())
+        		if (jQ.isEmpty())
         		{
         			try {
-        				synchronized (joinQueue)
+        				synchronized (jQ)
         				{
-        					joinQueue.wait(5000);
+        					jQ.wait(5000);
         				}
         			} catch (Exception e) {e.printStackTrace();}
         		}
@@ -362,7 +390,7 @@ public class TCPInterface extends AsyncTask<Void, Object, Long> {
     					streamCtl.streamingReadyLatch.await();
     				} catch (InterruptedException e) { e.printStackTrace();	}
         			
-        			JoinObject currentJoinObject = joinQueue.poll();
+        			JoinObject currentJoinObject = jQ.poll();
         			if (currentJoinObject != null)
         			{
 	        	        String receivedMsg = currentJoinObject.joinString;
@@ -373,7 +401,10 @@ public class TCPInterface extends AsyncTask<Void, Object, Long> {
 	        	    		tmp_str = parserInstance.processReceivedMessage(receivedMsg); 
 	        	        	
 	        		        try {
-        		        		server.SendDataToAllClients(tmp_str);
+	        		        	synchronized(serverLock)
+	        		        	{
+	        		        		server.SendDataToAllClients(tmp_str);
+	        		        	}
 	        		        } catch (Exception e) {
 	        		            e.printStackTrace();
 	        		        }
