@@ -1527,6 +1527,14 @@ public class CresStreamCtrl extends Service {
     		return "0";
     }
 
+    public String getHDMIInAudioSampleRate()
+    {
+    	if (hdmiInputDriverPresent)
+    		return hdmiInput.getAudioSampleRate();
+    	else
+    		return "0";
+    }
+    
     public String getHDMIOutSyncStatus()
     {
     	return hdmiOutput.getSyncStatus();
@@ -2362,6 +2370,7 @@ public class CresStreamCtrl extends Service {
 		sockTask.SendDataToAllClients("HDMIIN_ASPECT_RATIO=" + hdmiInput.getAspectRatio());
 		sockTask.SendDataToAllClients("HDMIIN_AUDIO_FORMAT=" + hdmiInput.getAudioFormat());
 		sockTask.SendDataToAllClients("HDMIIN_AUDIO_CHANNELS=" + hdmiInput.getAudioChannels());
+		sockTask.SendDataToAllClients("HDMIIN_AUDIO_SAMPLE_RATE=" + hdmiInput.getAudioSampleRate());
 	}
 	
 	private void sendHdmiOutSyncState() 

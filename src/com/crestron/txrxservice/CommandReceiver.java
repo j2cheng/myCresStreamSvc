@@ -338,6 +338,9 @@ public class CommandReceiver {
     public String getHdmiInAudioChannels() {
         return ctl.getHDMIInAudioChannels();
     }
+    public String getHdmiInAudioSampleRate() {
+        return ctl.getHDMIInAudioSampleRate();
+    }
     //HDMIOut
     public String getHdmiOutForceHdcp() {
     	return String.valueOf(ctl.userSettings.isHdmiOutForceHdcp());

@@ -803,6 +803,23 @@ class InAudioChannelsCommand implements CommandIf {
         }
 }
 
+class InAudioSampleRateCommand implements CommandIf {
+    CommandReceiver launch;
+    String msg;
+
+    public InAudioSampleRateCommand(CommandReceiver launch, String arg) {
+        this.launch = launch;
+        this.msg = arg;
+    }
+
+    @Override
+        public void execute() {
+            //launch.(launch.VALIDATE_INT(msg));
+        }
+        public String getFeedbackMsg() {
+            return launch.getHdmiInAudioSampleRate();
+        }
+}
 
 class InTxCecCommand implements CommandIf {
     CommandReceiver launch;

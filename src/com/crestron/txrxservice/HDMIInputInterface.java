@@ -18,6 +18,7 @@ public class HDMIInputInterface {
 	private static String aspectRatio;
 	private static String audioFormat;
 	private static String audioChannels;
+	private static String audioSampleRate;
 	private static int resolutionIndex;
 	private static boolean isHdmiDriverPresent;
 	
@@ -29,6 +30,7 @@ public class HDMIInputInterface {
 		aspectRatio = "0";
 		audioFormat = "1";	//1=PCM for txrx and dge
 		audioChannels = "2";
+		audioSampleRate = "44100";
 		resolutionIndex = 0;
 		isHdmiDriverPresent = (isHdmiDriverPresent | false); //set isHdmiDriverPresentH to false if not set
 	}
@@ -112,6 +114,10 @@ public class HDMIInputInterface {
 		return audioChannels;
 	}
 
+	public String getAudioSampleRate() {
+		return audioSampleRate;
+	}
+	
     public void updateResolutionInfo(String hdmiInResolution) 
     {
         String delims = "[x@]+";
@@ -279,6 +285,8 @@ public class HDMIInputInterface {
 	            e.printStackTrace();
 	            text.append("48000"); //if error default to 48kHz
 	        }
+	        // save value for later
+	        audioSampleRate = text.toString();
 	        return Integer.parseInt(text.toString());
 		}
     	else 

@@ -57,6 +57,7 @@ public class CommandParser {
         HDMIIN_ASPECT_RATIO,
         HDMIIN_AUDIO_FORMAT,
         HDMIIN_AUDIO_CHANNELS,
+        HDMIIN_AUDIO_SAMPLE_RATE,
         HDMIIN_TRANSMIT_CEC_MESSAGE,
         HDMIIN_RECEIVE_CEC_MESSAGE,
         //HDMI OUT
@@ -166,6 +167,7 @@ public class CommandParser {
         sb.append("HDMIIN_ASPECT_RATIO\r\n");
         sb.append("HDMIIN_AUDIO_FORMAT\r\n");
         sb.append("HDMIIN_AUDIO_CHANNELS\r\n");
+        sb.append("HDMIIN_AUDIO_SAMPLE_RATE\r\n");
         //sb.append("HDMIIN_TRANSMIT_CEC_MESSAGE\r\n");
         //sb.append("HDMIIN_RECEIVE_CEC_MESSAGE\r\n");
         
@@ -330,6 +332,9 @@ public class CommandParser {
                 break;
             case HDMIIN_AUDIO_CHANNELS:
                 cmd = new InAudioChannelsCommand(cmdRx, arg); 
+                break;
+            case HDMIIN_AUDIO_SAMPLE_RATE:
+                cmd = new InAudioSampleRateCommand(cmdRx, arg); 
                 break;
             case HDMIIN_TRANSMIT_CEC_MESSAGE:
                 cmd = new InTxCecCommand(cmdRx, arg); 
