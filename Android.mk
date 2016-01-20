@@ -22,6 +22,8 @@ LOCAL_STATIC_JAVA_LIBRARIES := gson
 ifeq ($(TARGET_PRODUCT),$(filter $(TARGET_PRODUCT),yushan_one full_omap5panda))
 include $(BUILD_PACKAGE)
 include $(LOCAL_PATH)/jni/Android.mk
+
+include $(CLEAR_VARS)
 LOCAL_PREBUILT_STATIC_JAVA_LIBRARIES := gson:../libs/gson-2.3.1.jar
 include $(BUILD_MULTI_PREBUILT)
 endif
