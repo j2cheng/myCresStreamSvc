@@ -19,7 +19,8 @@ LOCAL_SHARED_LIBRARIES := libgstreamer_jni
 	
 
 LOCAL_STATIC_JAVA_LIBRARIES := gson
-ifeq ($(TARGET_PRODUCT),$(filter $(TARGET_PRODUCT),yushan_one full_omap5panda))
+ifeq ($(TARGET_PRODUCT),$(filter $(TARGET_PRODUCT),full_omap5panda))
+#ifeq ($(TARGET_PRODUCT),$(filter $(TARGET_PRODUCT),yushan_one full_omap5panda))
 include $(BUILD_PACKAGE)
 include $(LOCAL_PATH)/jni/Android.mk
 
