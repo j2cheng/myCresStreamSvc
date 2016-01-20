@@ -1805,7 +1805,7 @@ int csio_jni_CreatePipeline(GstElement **pipeline,GstElement **source,eProtocolI
 }
 
 
-void csio_jni_InitPipeline(eProtocolId protoId, int iStreamId)
+void csio_jni_InitPipeline(eProtocolId protoId, int iStreamId,GstRTSPLowerTrans tcpModeFlags)
 {
 	CREGSTREAM * data = GetStreamFromCustomData(CresDataDB, iStreamId);
 	
@@ -1829,6 +1829,7 @@ void csio_jni_InitPipeline(eProtocolId protoId, int iStreamId)
 			g_object_set(G_OBJECT(data->element_zero), "timeout", data->udp_timeout_usec, NULL);
 			// For some reason, this port range must be set for rtsp with multicast to work.
 			//g_object_set(G_OBJECT(data->element_zero), "port-range", "5001-65535", NULL);
+			data->protocols = tcpModeFlags;
 			g_object_set(G_OBJECT(data->element_zero), "protocols", data->protocols, NULL);
 
 			// video part
