@@ -11,7 +11,7 @@ import java.io.IOException;
 import java.io.OutputStreamWriter;
 import java.io.Writer;
 
-import android.hardware.display.DisplayManager;
+import com.crestron.txrxservice.ProductSpecific;
 
 public class HDMIOutputInterface {
 	static String TAG = "TxRx HDMIOutInterface";
@@ -37,7 +37,7 @@ public class HDMIOutputInterface {
 	}
 
 	public void setSyncStatus() {
-		byte[] hdmiOutSyncStatus = DisplayManager.getEVSHdmiOutSyncStatus();
+		byte[] hdmiOutSyncStatus = ProductSpecific.getEVSHdmiOutSyncStatus();
 		
 		Log.i(TAG, "SyncStatus " + (char)hdmiOutSyncStatus[0]);
 

@@ -6,7 +6,8 @@ import java.io.FileReader;
 import java.io.IOException;
 
 import android.util.Log;
-import android.hardware.display.DisplayManager;
+
+import com.crestron.txrxservice.ProductSpecific;
 
 public class HDMIInputInterface {
 	static String TAG = "HDMIInInterface";
@@ -36,7 +37,7 @@ public class HDMIInputInterface {
 	public void setSyncStatus() {
 		if (isHdmiDriverPresent == true)
 		{
-			byte[] hdmiInSyncStatus = DisplayManager.getEVSHdmiInSyncStatus();
+			byte[] hdmiInSyncStatus = ProductSpecific.getEVSHdmiInSyncStatus();
 			
 			Log.i(TAG, "SyncStatus " + (char)hdmiInSyncStatus[0]);
 	

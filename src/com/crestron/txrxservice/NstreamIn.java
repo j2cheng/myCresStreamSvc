@@ -12,6 +12,8 @@ import android.media.MediaPlayer.OnCompletionListener;
 import android.media.MediaPlayer.OnErrorListener;
 import android.media.AudioManager;
 
+import com.crestron.txrxservice.ProductSpecific;
+
 
 //import com.crestron.txrxservice.CresStreamConfigure;
 import com.crestron.txrxservice.CresStreamCtrl.StreamState;
@@ -77,17 +79,17 @@ public class NstreamIn implements StreamInStrategy, OnPreparedListener, OnComple
                 mediaPlayer[sessionId].setDataSource(srcUrl);	
                 Log.d(TAG, "URL is "+srcUrl);
                 if(tcpInterleaveFlag[sessionId] && srcUrl.startsWith("rtsp://"))
-                    mediaPlayer[sessionId].setTransportCommunication(true);
+                	ProductSpecific.setTransportCommunication(mediaPlayer[sessionId], true);
                 //Setting Initial Latency
                 if(disableLatencyFlag[sessionId]==false){
                     try {
-                        mediaPlayer[sessionId].setDejitterBufferDuration(streamCtl.userSettings.getStreamingBuffer(sessionId));
+                    	ProductSpecific.setDejitterBufferDuration(mediaPlayer[sessionId], streamCtl.userSettings.getStreamingBuffer(sessionId));
                     } catch(Exception e){
                         e.printStackTrace();
                     }
                 }
                 if(rtp_mode[sessionId]){
-                    mediaPlayer[sessionId].setSDP(sb[sessionId].toString());
+                	ProductSpecific.setSDP(mediaPlayer[sessionId], sb[sessionId].toString());
                     rtp_mode[sessionId] = false;
                 }
                 mediaPlayer[sessionId].prepare();

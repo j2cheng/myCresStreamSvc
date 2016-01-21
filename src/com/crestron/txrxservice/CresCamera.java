@@ -5,9 +5,10 @@ import android.os.SystemClock;
 
 import android.hardware.Camera;
 import android.hardware.Camera.CameraInfo;
-//import android.hardware.Camera.Parameters;
 import android.hardware.Camera.Size;
 import android.util.Log;
+
+import com.crestron.txrxservice.ProductSpecific;
 
 public class CresCamera {
 	static String TAG = "TxRx Camera";
@@ -59,7 +60,7 @@ public class CresCamera {
 	{
 		if (mCamera != null)
 		{
-			mCamera.getHdmiInputStatus(HDMIInputInterface.getResolutionEnum());
+			ProductSpecific.getHdmiInputStatus(mCamera, HDMIInputInterface.getResolutionEnum());
 			mSetHdmiInputStatus = false; 
 		}
 		else // If we can't set HDMI status now, lets do it later

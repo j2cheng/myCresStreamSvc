@@ -47,7 +47,6 @@ import android.media.AudioManager;
 import android.view.Surface;
 import android.view.Gravity;
 import android.view.SurfaceHolder;
-import android.view.Surface.PhysicalDisplayInfo;
 import android.view.SurfaceHolder.Callback;
 import android.graphics.Canvas;
 import android.graphics.PixelFormat;
@@ -56,6 +55,7 @@ import android.hardware.Camera;
 import android.app.Notification;
 
 import com.crestron.txrxservice.CresStreamCtrl.StreamState;
+import com.crestron.txrxservice.ProductSpecific;
 import com.google.gson.Gson;
 import com.google.gson.GsonBuilder;
 
@@ -131,6 +131,7 @@ public class CresStreamCtrl extends Service {
     private Timer mNoVideoTimer = null;
     private int defaultLoggingLevel = -1;
     private int numberOfVideoTimeouts = 0; //we will use this to track stop/start timeouts
+    private final ProductSpecific mProductSpecific = new ProductSpecific();
 
     enum DeviceMode {
         STREAM_IN,
@@ -1448,10 +1449,9 @@ public class CresStreamCtrl extends Service {
     }
 
 	public void refreshOutputResolution() {
-		//HDMI Out
-        PhysicalDisplayInfo hdmiOutputResolution = new PhysicalDisplayInfo();
-        Surface.getDisplayInfo(Surface.getBuiltInDisplay(Surface.BUILT_IN_DISPLAY_ID_MAIN), hdmiOutputResolution);
-        
+		//HDMI Out		
+		ProductSpecific.DispayInfo hdmiOutputResolution = mProductSpecific.new DispayInfo();
+
     	Log.i(TAG, "HDMI Out Resolution " + hdmiOutputResolution.width + " "
     			+ hdmiOutputResolution.height + " "
     			+ Math.round(hdmiOutputResolution.refreshRate));
@@ -2331,8 +2331,7 @@ public class CresStreamCtrl extends Service {
 		                	
 		                    int i = paramAnonymousIntent.getIntExtra("evs_hdmiout_resolution_changed_id", -1);
 		                    Log.i(TAG, "Received hdmiout resolution changed broadcast ! " + i);
-		                    PhysicalDisplayInfo hdmiOutputResolution = new PhysicalDisplayInfo();
-		                    Surface.getDisplayInfo(Surface.getBuiltInDisplay(Surface.BUILT_IN_DISPLAY_ID_MAIN), hdmiOutputResolution);
+		                    ProductSpecific.DispayInfo hdmiOutputResolution = mProductSpecific.new DispayInfo();
 		                    
 							Log.i(TAG, "HDMI Output resolution " + hdmiOutputResolution.width + " "
 									+ hdmiOutputResolution.height + " "

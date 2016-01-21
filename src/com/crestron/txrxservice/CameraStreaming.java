@@ -13,6 +13,7 @@ import java.util.regex.Pattern;
 
 import com.crestron.txrxservice.AudioPlayback.StreamAudioTask;
 import com.crestron.txrxservice.CresStreamCtrl.StreamState;
+import com.crestron.txrxservice.ProductSpecific;
 
 import android.content.Context;
 import android.graphics.ImageFormat;
@@ -128,15 +129,15 @@ public class CameraStreaming {
 		        CresCamera.openCamera();
 		        if(CresCamera.mCamera != null){
 		        	if (streamCtl.userSettings.getEncodingResolution(idx) == 0) // if in auto mode set framerate to input framerate
-		        		CresCamera.mCamera.setEncoderFps(Integer.parseInt(streamCtl.hdmiInput.getFPS()), Integer.parseInt(streamCtl.hdmiInput.getFPS()));
+		        		ProductSpecific.setEncoderFps(CresCamera.mCamera, Integer.parseInt(streamCtl.hdmiInput.getFPS()), Integer.parseInt(streamCtl.hdmiInput.getFPS()));
 		        	else
-		        		CresCamera.mCamera.setEncoderFps(streamCtl.userSettings.getEncodingFramerate(idx), Integer.parseInt(streamCtl.hdmiInput.getFPS()));
+		        		ProductSpecific.setEncoderFps(CresCamera.mCamera, streamCtl.userSettings.getEncodingFramerate(idx), Integer.parseInt(streamCtl.hdmiInput.getFPS()));
 		        	CresCamera.mCamera.unlock();
 		            mrec.setCamera(CresCamera.mCamera);
 		
 		            mrec.setAudioSource(MediaRecorder.AudioSource.MIC);
 		            mrec.setVideoSource(MediaRecorder.VideoSource.CAMERA);
-		            mrec.setStreamTransportMode(getStreamTransportMode());
+		            ProductSpecific.setStreamTransportMode(mrec, getStreamTransportMode());
 		            
 		            //Set Port
 		            int l_port;
@@ -146,10 +147,10 @@ public class CameraStreaming {
 		            {
 		            	l_port = streamCtl.userSettings.getRtspPort(idx);
 		            	streamIp = streamCtl.userSettings.getDeviceIp();
-		                mrec.setRTSPPort(l_port);
+		            	ProductSpecific.setRTSPPort(mrec, l_port);
 		                
 		                if (currentSessionInitiation == 2) //Multicast via RTSP
-		                	mrec.setMcastIP(streamCtl.userSettings.getMulticastAddress(idx));
+		                	ProductSpecific.setMcastIP(mrec, streamCtl.userSettings.getMulticastAddress(idx));
 		            }
 		            else //Multicast via UDP or By Transmitter
 		            {
@@ -161,18 +162,18 @@ public class CameraStreaming {
 		            	if (currentTransportMode == 0)	//RTP
 		            	{
 		                    l_port = streamCtl.userSettings.getRtpAudioPort(idx);
-		                    mrec.setRTPAudioPort(l_port);
+		                    ProductSpecific.setRTPAudioPort(mrec, l_port);
 		                    l_port = streamCtl.userSettings.getRtpVideoPort(idx);
-		                    mrec.setRTPVideoPort(l_port);
+		                    ProductSpecific.setRTPVideoPort(mrec, l_port);
 		            	}
 		            	else
 		            	{
 		                     l_port = streamCtl.userSettings.getTsPort(idx);
-		                     mrec.setMPEG2TSPort(l_port);
+		                     ProductSpecific.setMPEG2TSPort(mrec, l_port);
 		            	}
 		            }
 		            
-		            mrec.setDestinationIP(streamIp);
+		            ProductSpecific.setDestinationIP(mrec, streamIp);
 		            
 		            mrec.setOutputFormat(9);//Streamout option set to Stagefright Recorder
 		            if ((currentSessionInitiation == 2) || (currentSessionInitiation == 3))
@@ -188,8 +189,8 @@ public class CameraStreaming {
 		            mrec.setVideoFrameRate(streamCtl.userSettings.getEncodingFramerate(idx));//Mistral Propietary API 
 		            mrec.setAudioEncoder(MediaRecorder.AudioEncoder.AAC);
 		            mrec.setVideoEncoder(MediaRecorder.VideoEncoder.H264);
-		            mrec.setEncoderProfile(streamCtl.userSettings.getStreamProfile(idx).getVEncProfile());
-		            mrec.setVideoEncoderLevel(streamCtl.userSettings.getEncodingLevel(idx));		            
+		            ProductSpecific.setEncoderProfile(mrec, streamCtl.userSettings.getStreamProfile(idx).getVEncProfile());
+		            ProductSpecific.setVideoEncoderLevel(mrec, streamCtl.userSettings.getEncodingLevel(idx));            
 		            mrec.setOutputFile(path + filename);   
 		
 		            mrec.setPreviewDisplay(streamCtl.getCresSurfaceHolder(idx).getSurface());	//TODO: put back in when preview audio works
@@ -210,7 +211,7 @@ public class CameraStreaming {
 		            }
 		
 		            if ((currentSessionInitiation != 0) && (currentSessionInitiation != 2) && (currentTransportMode == 0)) {	//TODO: causes crash in RTSP modes currently being worked around
-		                String sb = mrec.getSDP();
+		            	String sb = ProductSpecific.getSDP(mrec);
 		                Log.d(TAG, "########SDP Dump######\n" + sb);
 		            }
 		            
@@ -786,7 +787,7 @@ public class CameraStreaming {
     			
     			if (mrec != null)
     			{
-	    			statisticsString = mrec.getStatisticsData();
+    				statisticsString = ProductSpecific.getStatisticsData(mrec);
 					
 					// Pull out Audio number of channels
 					regexP = Pattern.compile("Audio\\s+Channel:\\s+(\\d+)");
@@ -821,7 +822,7 @@ public class CameraStreaming {
     					if (mrec == null)
 	    					continue;
 	    				
-						statisticsString = mrec.getStatisticsData();
+    					statisticsString = ProductSpecific.getStatisticsData(mrec);
 						
 						// Pull out number of Video packets
 						regexP = Pattern.compile("Video\\s+Encoded Frames:\\s+(\\d+)");
