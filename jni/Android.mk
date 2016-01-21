@@ -57,7 +57,7 @@ LOCAL_CFLAGS +=\
 	-DANDROID_OS
 
 
-ifeq ($(TARGET_PRODUCT),$(filter $(TARGET_PRODUCT),yushan_one full_omap5panda))
+ifeq ($(TARGET_PRODUCT),$(filter $(TARGET_PRODUCT),yushan_one ))
 LOCAL_CFLAGS += -DBIONIC_HAS_STPCPY
 endif
 
