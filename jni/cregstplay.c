@@ -233,7 +233,7 @@ GstPadProbeReturn udpsrcProbe(GstPad *pad, GstPadProbeInfo *info, gpointer user_
                 memset(data->sourceIP_addr,0,sizeof(data->sourceIP_addr));
                 memcpy(textString,host,sizeof(data->sourceIP_addr)-1);
 
-                CSIO_LOG(eLogLevel_debug, "sourceIP_addr[%s], size:%d",data->sourceIP_addr,sizeof(data->sourceIP_addr));
+                CSIO_LOG(eLogLevel_extraVerbose, "sourceIP_addr[%s], size:%d",data->sourceIP_addr,sizeof(data->sourceIP_addr));
                 g_free (host);
             }
         }
