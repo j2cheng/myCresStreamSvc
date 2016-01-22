@@ -126,11 +126,12 @@ public class TCPInterface extends AsyncTask<Void, Object, Long> {
     private void restartStreams(TCPInterface serverHandler)
     {
         restartStreamsPending   = false;
+        streamCtl.enableRestartMechanism = true;
         
         // Sleep for 3 seconds before calling initial restart streams to give rest of system time to catch up
-        try {
-        	Thread.sleep(3000);
-        } catch (Exception e) { e.printStackTrace(); }
+//        try {
+//        	Thread.sleep(3000);
+//        } catch (Exception e) { e.printStackTrace(); }
         
         streamCtl.restartStreams(false);
     }
@@ -333,6 +334,7 @@ public class TCPInterface extends AsyncTask<Void, Object, Long> {
                     }
                     else if(read == null) {
                         Log.d(TAG, "Client Disconnected..... ");
+                        try {clientSocket.close();} catch(Exception ex) {}
                         connectionAlive = false;
                         serverHandler.RemoveClientFromList(this);
                     }

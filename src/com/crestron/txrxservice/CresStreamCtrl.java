@@ -127,6 +127,7 @@ public class CresStreamCtrl extends Service {
     private int mPreviousValidHdmiInputResolution = 0;
     private int mPreviousAudioInputSampleRate = 0;
     public CountDownLatch streamingReadyLatch = new CountDownLatch(1);
+    public volatile boolean enableRestartMechanism = false; // Until we get a start or platform automatically restarts don't restart streams
     private Object cameraModeLock = new Object();
     private Timer mNoVideoTimer = null;
     private int defaultLoggingLevel = -1;
@@ -666,7 +667,7 @@ public class CresStreamCtrl extends Service {
     {
     	monitorCrashThread = new Thread(new Runnable() {
     		@Override
-    		public void run() {    			
+    		public void run() { 
     			// Clear out initial ducati flag since first boot is not a crash
     			writeDucatiState(1);
     			//wait for ducati state to be cleared (async call to csio)
@@ -945,6 +946,10 @@ public class CresStreamCtrl extends Service {
     
     public void restartStreams(final boolean skipStreamIn) 
     {
+    	// If resolution change or crash occurs we don't want to restart until we know the system is up and stable
+    	if (enableRestartMechanism == false)
+    		return;
+    	
     	final CountDownLatch latch = new CountDownLatch(1);
     	
     	// Skip Stream in is when we need to only restart camera modes i.e. when resolution changes
@@ -1067,6 +1072,7 @@ public class CresStreamCtrl extends Service {
             	Log.d(TAG, "Start " + sessionId + " : Lock");
                 try
                 {
+                	enableRestartMechanism = true; //enable restart detection
                 	updateWindow(sessionId);
                     showPreviewWindow(sessionId);
                     invalidateSurface();
@@ -1754,6 +1760,8 @@ public class CresStreamCtrl extends Service {
     //Ctrls
     public void Start(int sessionId)
     {
+    	enableRestartMechanism = true; //if user starts stream allow restart mechanism
+    	
     	if ((userSettings.getStreamState(sessionId) != StreamState.STARTED) && (userSettings.getStreamState(sessionId) != StreamState.STREAMERREADY))
     	{	    	
 	    	stopStartLock[sessionId].lock();
