@@ -593,14 +593,14 @@ static void gst_native_surface_init(JNIEnv *env, jobject thiz, jobject surface, 
     check_initialization_complete(cdata, stream);
 }
 
-StreamState gst_native_get_current_stream_state(int stream)
+eStreamState gst_native_get_current_stream_state(int stream)
 {
-	StreamState currentStreamState;
+	eStreamState currentStreamState;
 	JNIEnv *env = get_jni_env ();
 
 	jmethodID getCurrentStreamState = (*env)->GetMethodID(env, (jclass)gStreamIn_javaClass_id, "getCurrentStreamState", "(I)I");
 
-	currentStreamState = (StreamState)(*env)->CallIntMethod(env, CresDataDB->app, getCurrentStreamState, stream);
+	currentStreamState = (eStreamState)(*env)->CallIntMethod(env, CresDataDB->app, getCurrentStreamState, stream);
 
 	if ((*env)->ExceptionCheck (env)) {
 		CSIO_LOG(eLogLevel_error, "Failed to call Java method 'getCurrentStreamState'");
@@ -1298,14 +1298,14 @@ JNIEXPORT void JNICALL Java_com_crestron_txrxservice_GstreamIn_nativeSetFieldDeb
 
     (*env)->ReleaseStringUTFChars(env, cmd_jstring, cmd_cstring);
 }
-StreamState nativeGetCurrentStreamState(jint sessionId)
+eStreamState nativeGetCurrentStreamState(jint sessionId)
 {
-	StreamState currentStreamState;
+	eStreamState currentStreamState;
 	JNIEnv *env = get_jni_env ();
 
 	jmethodID getCurrentStreamState = (*env)->GetMethodID(env, (jclass)gStreamIn_javaClass_id, "getCurrentStreamState", "(I)I");
 
-	currentStreamState = (StreamState)(*env)->CallIntMethod(env, CresDataDB->app, getCurrentStreamState, sessionId);
+	currentStreamState = (eStreamState)(*env)->CallIntMethod(env, CresDataDB->app, getCurrentStreamState, sessionId);
 
 	if ((*env)->ExceptionCheck (env)) {
 		CSIO_LOG(eLogLevel_error, "Failed to call Java method 'getCurrentStreamState'");
@@ -1449,7 +1449,7 @@ void csio_get_width_and_height_from_mode (uint32_t * width, uint32_t * height)
 	return;
 }
 
-int csio_SendVideoPlayingStatusMessage(unsigned int source, StreamState state)
+int csio_SendVideoPlayingStatusMessage(unsigned int source, eStreamState state)
 {
 	JNIEnv *env = get_jni_env ();
 
