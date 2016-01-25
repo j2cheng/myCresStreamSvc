@@ -35,7 +35,7 @@ public class HDMIOutputInterface {
 		audioFormat = "1";	//1=PCM for txrx and dge
 		audioChannels = "2";
 	}
-
+	
 	public void setSyncStatus() {
 		byte[] hdmiOutSyncStatus = ProductSpecific.getEVSHdmiOutSyncStatus();
 		
@@ -116,8 +116,8 @@ public class HDMIOutputInterface {
                 text.append(line);
             }
             br.close();
-        }catch (IOException e) {
-            e.printStackTrace();
+        }catch (Exception e) {
+//            e.printStackTrace();
             text.append("0"); //if error default to no HDCP
         }
 //        Log.d(TAG, "HDMI OUT HDCP status from sysfs:" + text.toString());
