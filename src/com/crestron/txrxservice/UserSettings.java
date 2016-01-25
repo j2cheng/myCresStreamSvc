@@ -199,6 +199,7 @@ public class UserSettings
 
 	// Ethernet
 	private String deviceIp;
+	private int multicastTTL;
 
 	//Misc
 	private boolean[] useNewSink;
@@ -207,8 +208,8 @@ public class UserSettings
 	
 	public UserSettings()
 	{
-		MiscUtils.getDeviceIpAddr();
-		deviceIp 			= MiscUtils.matcher.group();
+//		MiscUtils.getDeviceIpAddr();
+		deviceIp 			= "0.0.0.0";//MiscUtils.matcher.group();
 		versionNum 			= CurrentVersionNumber;
 		rtspPort 			= new int[]{ 554, 554};		
 		tsPort 				= new int[]{ 4570, 4570};		
@@ -257,6 +258,7 @@ public class UserSettings
 		osdYLocation        = 0;
 		rtspStreamFileName	= "live.sdp";
 		rtspSessionName		= "CrestronStreamingSession";
+		multicastTTL		= 64;
 	}
 
 	public String getDeviceIp() {
@@ -265,6 +267,14 @@ public class UserSettings
 
 	public void setDeviceIp(String newIpAddr) {
 		deviceIp = newIpAddr;
+	}
+	
+	public int getMulticastTTL() {
+		return multicastTTL;
+	}
+	
+	public void setMulticastTTL(int value) {
+		this.multicastTTL = value;
 	}
 
 	public int getMode(int sessId) {

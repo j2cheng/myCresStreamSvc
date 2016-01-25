@@ -106,6 +106,7 @@ public class CommandParser {
         STATISTICS_NUMBEROFVIDEOPACKETSDROPPED,
         STATISTICS_NUMBEROFAUDIOPACKETS,
         STATISTICS_NUMBEROFAUDIOPACKETSDROPPED,
+        MULTICASTTTL,
         //OSD            
         OSD_ENABLE,
         OSD_DISABLE,
@@ -467,6 +468,9 @@ public class CommandParser {
             	break;
             case STATISTICS_NUMBEROFAUDIOPACKETSDROPPED:
             	cmd = new StatisticsNumAudioPacketsDroppedCommand(cmdRx, arg);
+            	break;
+            case MULTICASTTTL:
+            	cmd = new SetMulticastTTLCommand(cmdRx, arg);
             	break;
 		//OSD
             case OSD_ENABLE:

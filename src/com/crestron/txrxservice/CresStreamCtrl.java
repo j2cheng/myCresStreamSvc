@@ -134,6 +134,7 @@ public class CresStreamCtrl extends Service {
     private int defaultLoggingLevel = -1;
     private int numberOfVideoTimeouts = 0; //we will use this to track stop/start timeouts
     private final ProductSpecific mProductSpecific = new ProductSpecific();
+    private final static String multicastTTLFilePath = "/dev/shm/crestron/CresStreamSvc/multicast_ttl";
 
     enum DeviceMode {
         STREAM_IN,
@@ -2172,6 +2173,11 @@ public class CresStreamCtrl extends Service {
     public void setStatistics(boolean enabled, int sessId){
     	userSettings.setStatisticsEnable(enabled, sessId);
 		userSettings.setStatisticsDisable(!enabled, sessId);
+    }
+    
+    public void setMulticastTTl(int value){
+    	userSettings.setMulticastTTL(value);
+    	MiscUtils.writeStringToDisk(multicastTTLFilePath, String.valueOf(value));
     }
     
     public void setSessionInitiation(int sessionInitiation, int sessionId)

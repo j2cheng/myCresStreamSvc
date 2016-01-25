@@ -227,6 +227,11 @@ public class CommandReceiver {
     	if(flag)
     		ctl.setStatistics(!flag, sessId);
     }
+    
+    public void setMulticastTTL(int value)
+    {
+    	ctl.setMulticastTTl(value);
+    }
    
     //OSD 
     public void EnableOsd() {
@@ -606,6 +611,10 @@ public class CommandReceiver {
     
     public String getNumAudioPacketsDropped(){
     	return "0";
+    }
+    
+    public String getMulticastTTL() {
+    	return String.valueOf(ctl.userSettings.getMulticastTTL());
     }
     
     public String getOsdEnable() {

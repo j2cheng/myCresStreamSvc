@@ -2,11 +2,15 @@ package com.crestron.txrxservice;
 
 import java.io.IOException;
 import java.io.InputStreamReader;
+import java.io.OutputStreamWriter;
+import java.io.Writer;
 import java.util.Scanner;
 import java.util.regex.Pattern;
 import java.util.regex.Matcher;
 import java.io.BufferedReader;
+import java.io.BufferedWriter;
 import java.io.File;
+import java.io.FileOutputStream;
 import java.io.FileReader;
 
 import android.graphics.Rect;
@@ -85,5 +89,23 @@ public class MiscUtils {
     	Rect surface2 = new Rect(s2xLeft, s2yTop, s2xRight, s2yBottom);
     	
     	return Rect.intersects(surface1, surface2);    		
+    }
+    
+    public static void writeStringToDisk(String filePath, String stringToWrite)
+    {
+    	Writer writer = null;
+		try 
+      	{
+			writer = new BufferedWriter(new OutputStreamWriter(new FileOutputStream(filePath), "US-ASCII"));
+			writer.write(stringToWrite);
+		    writer.flush();
+	    } 
+      	catch (IOException ex) {
+    	  Log.e(TAG, "Failed to write to file " + filePath + " : " + ex);
+    	} 
+		finally 
+    	{
+    		try {writer.close();} catch (Exception ex) {/*ignore*/}
+    	}	
     }
 }

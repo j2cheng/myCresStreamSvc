@@ -1607,6 +1607,25 @@ class StatisticsNumAudioPacketsDroppedCommand implements CommandIf {
         }
 }
 
+class SetMulticastTTLCommand implements CommandIf {
+    CommandReceiver launch;
+    String msg;
+    
+    public SetMulticastTTLCommand(CommandReceiver launch, String arg) {
+        this.launch = launch;
+        this.msg = arg;
+    }
+
+    @Override
+        public void execute() {
+            int val = Integer.valueOf(msg);
+            launch.setMulticastTTL(val);
+        }
+        public String getFeedbackMsg() {
+            return launch.getMulticastTTL();
+        }
+}
+
 class OsdEnableCommand implements CommandIf {
     CommandReceiver launch;
     String msg;
