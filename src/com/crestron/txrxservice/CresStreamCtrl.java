@@ -129,7 +129,8 @@ public class CresStreamCtrl extends Service {
     public CountDownLatch streamingReadyLatch = new CountDownLatch(1);
     public volatile boolean enableRestartMechanism = false; // Until we get a start or platform automatically restarts don't restart streams
     private Object cameraModeLock = new Object();
-    private Timer mNoVideoTimer = null;
+    private volatile Timer mNoVideoTimer = null;
+    private Object mCameraModeScheduleLock = new Object();
     private int defaultLoggingLevel = -1;
     private int numberOfVideoTimeouts = 0; //we will use this to track stop/start timeouts
     private final ProductSpecific mProductSpecific = new ProductSpecific();
@@ -1829,7 +1830,6 @@ public class CresStreamCtrl extends Service {
 		    	stopStatus="false";
 		    	restartRequired[sessionId]=false;
 		        hm3.get(userSettings.getMode(sessionId)).executePause(sessionId);
-		        //hm3.get(device_mode).executePause();
 		        // Device state will be set in pause callback
 	    	}
 	        finally
@@ -2468,26 +2468,31 @@ public class CresStreamCtrl extends Service {
 		if ( (enable) && (previousCameraMode != CameraMode.NoVideo.ordinal() 
 				|| previousCameraMode != CameraMode.BlackScreen.ordinal()) )
 		{
-			if (mNoVideoTimer == null)
+			synchronized (mCameraModeScheduleLock)
 			{
-				mNoVideoTimer = new Timer();
-				mNoVideoTimer.schedule(new setNoVideoImage(CameraMode.NoVideo.ordinal()), 5000);
+				if (mNoVideoTimer == null)
+				{
+					mNoVideoTimer = new Timer();
+					mNoVideoTimer.schedule(new setNoVideoImage(CameraMode.NoVideo.ordinal()), 5000);
+				}
+				setCameraMode(String.valueOf(CameraMode.BlackScreen.ordinal()));
 			}
-			setCameraMode(String.valueOf(CameraMode.BlackScreen.ordinal()));
 		}
-		else if ( (previousCameraMode == CameraMode.NoVideo.ordinal()) ||
-				(previousCameraMode == CameraMode.BlackScreen.ordinal()) )
+		else if ( (!enable) && ((previousCameraMode == CameraMode.NoVideo.ordinal()) ||
+				(previousCameraMode == CameraMode.BlackScreen.ordinal())) )
 		{
-			if (mNoVideoTimer != null)
+			synchronized (mCameraModeScheduleLock)
 			{
-				mNoVideoTimer.cancel();
-				mNoVideoTimer.purge();
-				mNoVideoTimer = null;
+				if (mNoVideoTimer != null)
+				{
+					mNoVideoTimer.cancel();
+					mNoVideoTimer = null;
+				}
+				if (Boolean.parseBoolean(pauseStatus) == true)
+					setCameraMode(String.valueOf(CameraMode.Paused.ordinal()));
+				else
+					setCameraMode(String.valueOf(CameraMode.Camera.ordinal()));
 			}
-			if (Boolean.parseBoolean(pauseStatus) == true)
-				setCameraMode(String.valueOf(CameraMode.Paused.ordinal()));
-			else
-				setCameraMode(String.valueOf(CameraMode.Camera.ordinal()));
 		}
 		
 		// Set hdmi connected states for csio
@@ -2744,9 +2749,16 @@ public class CresStreamCtrl extends Service {
 		
 		@Override
 		public void run() {
-			setCameraMode(String.valueOf(cameraMode));
-			mNoVideoTimer = null;
-		}		
+			synchronized (mCameraModeScheduleLock)
+			{
+				if (mNoVideoTimer != null)
+				{
+					setCameraMode(String.valueOf(cameraMode));
+					mNoVideoTimer.cancel();
+					mNoVideoTimer = null;
+				}
+			}
+		}
 	}
 	
 	public void checkVideoTimeouts(boolean successfulStateChange)
