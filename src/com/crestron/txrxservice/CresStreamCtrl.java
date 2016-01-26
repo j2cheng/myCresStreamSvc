@@ -950,7 +950,14 @@ public class CresStreamCtrl extends Service {
     {
     	// If resolution change or crash occurs we don't want to restart until we know the system is up and stable
     	if (enableRestartMechanism == false)
+    	{
+    		// MNT - 1.26.16 - Even if the system is not up - This was causing the ducati
+    		// engine to not start up in some scenarios correctly
+    		writeDucatiState(1);
+    		mMediaServerCrash = false;
+    		
     		return;
+    	}
     	
     	final CountDownLatch latch = new CountDownLatch(1);
     	
