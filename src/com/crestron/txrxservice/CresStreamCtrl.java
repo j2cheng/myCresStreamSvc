@@ -2318,9 +2318,11 @@ public class CresStreamCtrl extends Service {
         	                {
         	                	if ((hdmiLock.getQueueLength() == 0) || (hdmiLock.getQueueLength() == 1))
         	                	{
-        	                		setNoVideoImage(true);
+        	                		int i = paramAnonymousIntent.getIntExtra("evs_hdmi_hdp_id", -1);
+        	                		if (i == 0)
+        	                			setNoVideoImage(true);
 	        	                	sendHdmiInSyncState();
-	        	                    int i = paramAnonymousIntent.getIntExtra("evs_hdmi_hdp_id", -1);
+	        	                    
 	        	                    Log.i(TAG, "Received hpd broadcast ! " + i);
 	        	                    hpdHdmiEvent = 1;
 	        	                    mForceHdcpStatusUpdate = true;
@@ -2446,7 +2448,7 @@ public class CresStreamCtrl extends Service {
 		}
 		
 		//Set ignore restart to true if you want to set camera mode but do not want to restart any streams
-		boolean validResolution = (hdmiInput.getHorizontalRes().startsWith("0") != true) && (hdmiInput.getVerticalRes().startsWith("0")!= true) && (hdmiInputResolutionEnum != 0);
+		boolean validResolution = (hdmiInputResolutionEnum != 0);
     	if (validResolution == true)
     	{
     		CresCamera.mSetHdmiInputStatus = true;
