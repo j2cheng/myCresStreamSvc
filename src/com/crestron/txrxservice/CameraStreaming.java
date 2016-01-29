@@ -216,9 +216,8 @@ public class CameraStreaming {
 		                Log.d(TAG, "########SDP Dump######\n" + sb);
 		            }
 		            
-		            //UDP TS streaming modes do not call PreviewCB so send started state
-		            if (((currentSessionInitiation == 1) || (currentSessionInitiation == 3)) && 
-		            		((currentTransportMode == 1) || (currentTransportMode == 2)))
+		            //TS UDP and TS RTP streaming modes do not call PreviewCB so send started state
+		            if ((currentTransportMode == 1) || (currentTransportMode == 2))
 		            {
 		            	streamCtl.SendStreamState(StreamState.STARTED, idx);
 		            	startStatisticsTask();
