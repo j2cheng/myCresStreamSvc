@@ -219,7 +219,13 @@ public class CameraStreaming {
 		            //TS UDP and TS RTP streaming modes do not call PreviewCB so send started state
 		            if ((currentTransportMode == 1) || (currentTransportMode == 2))
 		            {
-		            	streamCtl.SendStreamState(StreamState.STARTED, idx);
+		            	if ((currentSessionInitiation == 0) || (currentSessionInitiation == 2))
+		            	{
+    						streamCtl.SendStreamState(StreamState.STREAMERREADY, idx);
+    						monitorRtspClientActiveConnections();
+		            	}
+    					else
+    						streamCtl.SendStreamState(StreamState.STARTED, idx);
 		            	startStatisticsTask();
 		            }
 		           
