@@ -137,6 +137,7 @@ public class CameraStreaming {
 		
 		            mrec.setAudioSource(MediaRecorder.AudioSource.MIC);
 		            mrec.setVideoSource(MediaRecorder.VideoSource.CAMERA);
+                            Log.d(TAG, "selected mode is " + getStreamTransportMode());
 		            ProductSpecific.setStreamTransportMode(mrec, getStreamTransportMode());
 		            
 		            //Set Port
@@ -512,10 +513,23 @@ public class CameraStreaming {
     	int currentSessionInitiation = streamCtl.userSettings.getSessionInitiation(idx);
         int currentTransportMode = streamCtl.userSettings.getTransportMode(idx);
         
-        if (currentSessionInitiation == 0)
-        	return 0;	//RTSP unicast mode (By Receiver)
-        else if (currentSessionInitiation == 2)
-        	return 5;	//RTSP multicast mode (Multicast via RTSP)
+        if (currentSessionInitiation == 0){
+        	if (currentTransportMode == 0)
+        		return 0;	//RTP mode (By Transmitter or Multicast via UDP)
+        	else if (currentTransportMode == 1)
+        		return 6; 	//TS over RTP mode (By Transmitter or Multicast via UDP)
+        	else if (currentTransportMode == 2)
+        		return 7;	//TS over UDP mode (By Transmitter or Multicast via UDP)
+        }
+        else if (currentSessionInitiation == 2){
+        	if (currentTransportMode == 0)
+        		return 5;	//RTP mode (By Transmitter or Multicast via UDP)
+        	else if (currentTransportMode == 1)
+        		return 8; 	//TS over RTP mode (By Transmitter or Multicast via UDP)
+        	else if (currentTransportMode == 2)
+        		return 9;	//TS over UDP mode (By Transmitter or Multicast via UDP)
+        	//return 5;	//RTSP multicast mode (Multicast via RTSP)
+        }
         else
         {
         	if (currentTransportMode == 0)
@@ -879,10 +893,10 @@ public class CameraStreaming {
 		@Override
 		public void onPreviewFrame(byte[] data, Camera camera) {
 			int currentSessionInitiation = streamCtl.userSettings.getSessionInitiation(idx);
-			if ((currentSessionInitiation == 0) || (currentSessionInitiation == 2)) {	
-                streamCtl.SendStreamState(StreamState.STREAMERREADY, idx);
-                monitorRtspClientActiveConnections();
-		    }
+                        if ((currentSessionInitiation == 0) || (currentSessionInitiation == 2)) {	
+                            streamCtl.SendStreamState(StreamState.STREAMERREADY, idx);
+                            monitorRtspClientActiveConnections();
+                        }
 		    else {
                 streamCtl.SendStreamState(StreamState.STARTED, idx);     
 		    }
