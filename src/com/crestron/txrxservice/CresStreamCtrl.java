@@ -2452,8 +2452,8 @@ public class CresStreamCtrl extends Service {
 		boolean validResolution = (hdmiInputResolutionEnum != 0);
     	if (validResolution == true)
     	{
-    		CresCamera.mSetHdmiInputStatus = true;
-    		
+    		CresCamera.mSetHdmiInputStatus = true;    		
+    		    		
     		if (ignoreRestart == false)
     		{
     			if (sockTask.firstRun == false) // makes sure that csio is up so as restart streams before all information is received from platform
@@ -2467,8 +2467,8 @@ public class CresStreamCtrl extends Service {
 		    		mIgnoreAllCrash = false;
     			}
     		}
-
-   			setNoVideoImage(false);
+    		
+    		setNoVideoImage(false);
    			mForceHdcpStatusUpdate = true;
 		 }			                
         else
@@ -2552,6 +2552,7 @@ public class CresStreamCtrl extends Service {
 	{
 		synchronized(cameraModeLock)
 		{
+			Log.i(TAG, "Writing " + mode + " to camera mode file");
 			Writer writer = null;
 			try 
 	      	{
