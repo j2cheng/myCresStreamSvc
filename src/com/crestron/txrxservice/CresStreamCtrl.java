@@ -2438,6 +2438,7 @@ public class CresStreamCtrl extends Service {
 	
 	private void setCameraHelper(int hdmiInputResolutionEnum, boolean ignoreRestart)
 	{
+		Log.i(TAG, String.format("Setting cameraMode with resolution enum = %d", hdmiInputResolutionEnum));
 		int hdmiInSampleRate = HDMIInputInterface.readAudioSampleRate();
 		// If resolution did not change don't restart streams, ignore 0 enum
 		if ( (hdmiInputResolutionEnum == mPreviousValidHdmiInputResolution) && (hdmiInSampleRate == mPreviousAudioInputSampleRate) )
@@ -2478,6 +2479,7 @@ public class CresStreamCtrl extends Service {
 	
 	public void setNoVideoImage(boolean enable) 
 	{
+		Log.i(TAG, String.format("Setting no video format to %s", String.valueOf(enable)));
 		String cameraMode = "";
 		int previousCameraMode = readCameraMode();
 		if ( (enable) && (previousCameraMode != CameraMode.NoVideo.ordinal() 

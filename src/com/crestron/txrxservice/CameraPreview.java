@@ -144,7 +144,7 @@ public class CameraPreview {
 		                  }*/
 		                if(CresStreamCtrl.hpdHdmiEvent==1){
 		                    String resInfo = HDMIInputInterface.getHdmiInResolutionSysFs();//Reading From SysFs
-		                    Log.i(TAG, "HDMI In Resolution API" + resInfo);
+		                    Log.i(TAG, "HDMI In Resolution API " + resInfo);
 		                    hdmiIf.updateResolutionInfo(resInfo);
 		                    CresStreamCtrl.hpdHdmiEvent=0;
 		                }
