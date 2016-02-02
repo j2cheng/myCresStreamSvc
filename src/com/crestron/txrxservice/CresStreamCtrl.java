@@ -803,21 +803,29 @@ public class CresStreamCtrl extends Service {
     					Thread.sleep(1000);
     				} catch (Exception e) { e.printStackTrace(); }
     				
-    				// Query HDCP status
-    				boolean hdcpStatusChanged = checkHDCPStatus();
-    				if (hdcpStatusChanged) // Only send hdcp feedback if hdcp status has changed
-    					sendHDCPFeedbacks();
-    				
-    				// Query hdmiInput audio sampling frequency
-    				if (mIgnoreAllCrash != true) // Dont activate this code if we are handling hdmi input resolution change
+    				hdmiLock.lock();
+    				try
     				{
-    					int hdmiInSampleRate = HDMIInputInterface.readAudioSampleRate();
-    					// If sample frequency changes on the fly, restart stream
-    					if (hdmiInSampleRate != mPreviousAudioInputSampleRate)
-    					{
-    						mPreviousAudioInputSampleRate = hdmiInSampleRate;
-    						restartStreams(true); //skip stream in since it does not use hdmi input
-    					}
+	    				// Query HDCP status
+	    				boolean hdcpStatusChanged = checkHDCPStatus();
+	    				if (hdcpStatusChanged) // Only send hdcp feedback if hdcp status has changed
+	    					sendHDCPFeedbacks();
+	    				
+	    				// Query hdmiInput audio sampling frequency
+	    				if (mIgnoreAllCrash != true) // Dont activate this code if we are handling hdmi input resolution change
+	    				{
+	    					int hdmiInSampleRate = HDMIInputInterface.readAudioSampleRate();
+	    					// If sample frequency changes on the fly, restart stream
+	    					if (hdmiInSampleRate != mPreviousAudioInputSampleRate)
+	    					{
+	    						mPreviousAudioInputSampleRate = hdmiInSampleRate;
+	    						restartStreams(true); //skip stream in since it does not use hdmi input
+	    					}
+	    				}
+    				} 
+    				finally 
+    				{
+    					hdmiLock.unlock();
     				}
     			}
     		}
@@ -2479,7 +2487,7 @@ public class CresStreamCtrl extends Service {
 	
 	public void setNoVideoImage(boolean enable) 
 	{
-		Log.i(TAG, String.format("Setting no video format to %s", String.valueOf(enable)));
+		Log.d(TAG, String.format("Setting no video format to %s", String.valueOf(enable)));
 		String cameraMode = "";
 		int previousCameraMode = readCameraMode();
 		if ( (enable) && (previousCameraMode != CameraMode.NoVideo.ordinal() 
@@ -2495,8 +2503,7 @@ public class CresStreamCtrl extends Service {
 				setCameraMode(String.valueOf(CameraMode.BlackScreen.ordinal()));
 			}
 		}
-		else if ( (!enable) && ((previousCameraMode == CameraMode.NoVideo.ordinal()) ||
-				(previousCameraMode == CameraMode.BlackScreen.ordinal())) )
+		else if (!enable)
 		{
 			synchronized (mCameraModeScheduleLock)
 			{
@@ -2505,10 +2512,15 @@ public class CresStreamCtrl extends Service {
 					mNoVideoTimer.cancel();
 					mNoVideoTimer = null;
 				}
-				if (Boolean.parseBoolean(pauseStatus) == true)
-					setCameraMode(String.valueOf(CameraMode.Paused.ordinal()));
-				else
-					setCameraMode(String.valueOf(CameraMode.Camera.ordinal()));
+				
+				previousCameraMode = readCameraMode(); //check camera mode again if it changed
+				if ((previousCameraMode == CameraMode.NoVideo.ordinal()) || (previousCameraMode == CameraMode.BlackScreen.ordinal()))
+				{
+					if (Boolean.parseBoolean(pauseStatus) == true)
+						setCameraMode(String.valueOf(CameraMode.Paused.ordinal()));
+					else
+						setCameraMode(String.valueOf(CameraMode.Camera.ordinal()));
+				}
 			}
 		}
 		
@@ -2552,7 +2564,7 @@ public class CresStreamCtrl extends Service {
 	{
 		synchronized(cameraModeLock)
 		{
-			Log.i(TAG, "Writing " + mode + " to camera mode file");
+			Log.d(TAG, "Writing " + mode + " to camera mode file");
 			Writer writer = null;
 			try 
 	      	{
