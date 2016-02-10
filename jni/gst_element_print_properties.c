@@ -133,8 +133,8 @@ void gst_element_print_properties( GstElement * element )
       if ( param->flags & GST_PARAM_CONTROLLABLE )
          flags[2] = 'c';
 
-      CSIO_LOG(eLogLevel_extraVerbose,  "%s |", flags );
-      CSIO_LOG(eLogLevel_extraVerbose,  " %-*s | ", c2w, g_param_spec_get_name( param ));
+      CSIO_LOG(eLogLevel_verbose,  "%s |", flags );
+      CSIO_LOG(eLogLevel_verbose,  " %-*s | ", c2w, g_param_spec_get_name( param ));
 
       switch( G_VALUE_TYPE( &value ))
       {
@@ -150,18 +150,18 @@ void gst_element_print_properties( GstElement * element )
                   sprintf( work_string, "\"%s\"","null" );
                else
                   sprintf( work_string, "\"%s\"", string_val );
-               CSIO_LOG(eLogLevel_extraVerbose,  "%-*.*s", c3w, c3w, work_string );
+               CSIO_LOG(eLogLevel_verbose,  "%-*.*s", c3w, c3w, work_string );
             }
             else
             {
-               CSIO_LOG(eLogLevel_extraVerbose,  "%-*s", c3w, "<not readable>" );       /* alt current */
+               CSIO_LOG(eLogLevel_verbose,  "%-*s", c3w, "<not readable>" );       /* alt current */
             }
-            CSIO_LOG(eLogLevel_extraVerbose,  " | %-*s", c4w, "G_TYPE_STRING" );               /* type */
+            CSIO_LOG(eLogLevel_verbose,  " | %-*s", c4w, "G_TYPE_STRING" );               /* type */
 
             if ( pstring->default_value == NULL )
-               CSIO_LOG(eLogLevel_extraVerbose,  " | %s", "null" );                         /* default */
+               CSIO_LOG(eLogLevel_verbose,  " | %s", "null" );                         /* default */
             else
-               CSIO_LOG(eLogLevel_extraVerbose,  " | \"%s\"", pstring->default_value );     /* default */
+               CSIO_LOG(eLogLevel_verbose,  " | \"%s\"", pstring->default_value );     /* default */
             break;
          }
 
@@ -169,12 +169,12 @@ void gst_element_print_properties( GstElement * element )
          {
             GParamSpecBoolean *pboolean = G_PARAM_SPEC_BOOLEAN( param );
             if ( readable )                                        /* current */
-               CSIO_LOG(eLogLevel_extraVerbose,  "%-*s", c3w,
+               CSIO_LOG(eLogLevel_verbose,  "%-*s", c3w,
                         ( g_value_get_boolean( &value ) ? "true" : "false" ));
             else
-               CSIO_LOG(eLogLevel_extraVerbose,  "%-*s", c3w, "<not readable>" );
-            CSIO_LOG(eLogLevel_extraVerbose,  " | %-*s", c4w, "G_TYPE_BOOLEAN" );              /* type */
-            CSIO_LOG(eLogLevel_extraVerbose,  " | %s ",                                     /* default */
+               CSIO_LOG(eLogLevel_verbose,  "%-*s", c3w, "<not readable>" );
+            CSIO_LOG(eLogLevel_verbose,  " | %-*s", c4w, "G_TYPE_BOOLEAN" );              /* type */
+            CSIO_LOG(eLogLevel_verbose,  " | %s ",                                     /* default */
                      (pboolean->default_value ? "true" : "false"));
             break;
          }
@@ -183,11 +183,11 @@ void gst_element_print_properties( GstElement * element )
          {
             GParamSpecULong *pulong = G_PARAM_SPEC_ULONG( param );
             if ( readable )                                        /* current */
-               CSIO_LOG(eLogLevel_extraVerbose,  "%-*lu", c3w, g_value_get_ulong( &value ));
+               CSIO_LOG(eLogLevel_verbose,  "%-*lu", c3w, g_value_get_ulong( &value ));
             else
-               CSIO_LOG(eLogLevel_extraVerbose,  "%-*s", c3w, "<not readable>" );
-            CSIO_LOG(eLogLevel_extraVerbose,  " | %-*s", c4w, "G_TYPE_ULONG" );                /* type */
-            CSIO_LOG(eLogLevel_extraVerbose,  " | (%lu - %lu)   %lu ",
+               CSIO_LOG(eLogLevel_verbose,  "%-*s", c3w, "<not readable>" );
+            CSIO_LOG(eLogLevel_verbose,  " | %-*s", c4w, "G_TYPE_ULONG" );                /* type */
+            CSIO_LOG(eLogLevel_verbose,  " | (%lu - %lu)   %lu ",
                      pulong->minimum, pulong->maximum,               /* range */
                      pulong->default_value );                      /* default */
             break;
@@ -197,11 +197,11 @@ void gst_element_print_properties( GstElement * element )
          {
             GParamSpecLong *plong = G_PARAM_SPEC_LONG( param );
             if ( readable )                                        /* current */
-               CSIO_LOG(eLogLevel_extraVerbose,  "%-*ld", c3w, g_value_get_long( &value ));
+               CSIO_LOG(eLogLevel_verbose,  "%-*ld", c3w, g_value_get_long( &value ));
             else
-               CSIO_LOG(eLogLevel_extraVerbose,  "%-*s", c3w, "<not readable>" );
-            CSIO_LOG(eLogLevel_extraVerbose,  " | %-*s", c4w, "G_TYPE_LONG" );                 /* type */
-            CSIO_LOG(eLogLevel_extraVerbose,  " | (%ld - %ld)   %ld ",
+               CSIO_LOG(eLogLevel_verbose,  "%-*s", c3w, "<not readable>" );
+            CSIO_LOG(eLogLevel_verbose,  " | %-*s", c4w, "G_TYPE_LONG" );                 /* type */
+            CSIO_LOG(eLogLevel_verbose,  " | (%ld - %ld)   %ld ",
                      plong->minimum, plong->maximum,                 /* range */
                      plong->default_value );                       /* default */
             break;
@@ -211,11 +211,11 @@ void gst_element_print_properties( GstElement * element )
          {
             GParamSpecUInt *puint = G_PARAM_SPEC_UINT( param );
             if ( readable )                                        /* current */
-               CSIO_LOG(eLogLevel_extraVerbose,  "%-*u", c3w, g_value_get_uint( &value ));
+               CSIO_LOG(eLogLevel_verbose,  "%-*u", c3w, g_value_get_uint( &value ));
             else
-               CSIO_LOG(eLogLevel_extraVerbose,  "%-*s", c3w, "<not readable>" );
-            CSIO_LOG(eLogLevel_extraVerbose,  " | %-*s", c4w, "G_TYPE_UINT" );                 /* type */
-            CSIO_LOG(eLogLevel_extraVerbose,  " | (%u - %u)   %u ",
+               CSIO_LOG(eLogLevel_verbose,  "%-*s", c3w, "<not readable>" );
+            CSIO_LOG(eLogLevel_verbose,  " | %-*s", c4w, "G_TYPE_UINT" );                 /* type */
+            CSIO_LOG(eLogLevel_verbose,  " | (%u - %u)   %u ",
                      puint->minimum, puint->maximum,                 /* range */
                      puint->default_value );                       /* default */
             break;
@@ -225,11 +225,11 @@ void gst_element_print_properties( GstElement * element )
          {
             GParamSpecInt *pint = G_PARAM_SPEC_INT( param );
             if ( readable )                                        /* current */
-               CSIO_LOG(eLogLevel_extraVerbose,  "%-*d", c3w, g_value_get_int( &value ));
+               CSIO_LOG(eLogLevel_verbose,  "%-*d", c3w, g_value_get_int( &value ));
             else
-               CSIO_LOG(eLogLevel_extraVerbose,  "%-*s", c3w, "<not readable>" );
-            CSIO_LOG(eLogLevel_extraVerbose,  " | %-*s", c4w, "G_TYPE_INT" );                  /* type */
-            CSIO_LOG(eLogLevel_extraVerbose,  " | (%d - %d)   %d ",
+               CSIO_LOG(eLogLevel_verbose,  "%-*s", c3w, "<not readable>" );
+            CSIO_LOG(eLogLevel_verbose,  " | %-*s", c4w, "G_TYPE_INT" );                  /* type */
+            CSIO_LOG(eLogLevel_verbose,  " | (%d - %d)   %d ",
                      pint->minimum, pint->maximum,                   /* range */
                      pint->default_value );                        /* default */
             break;
@@ -239,12 +239,12 @@ void gst_element_print_properties( GstElement * element )
          {
             GParamSpecUInt64 *puint64 = G_PARAM_SPEC_UINT64( param );
             if ( readable )                                        /* current */
-               CSIO_LOG(eLogLevel_extraVerbose,  "%-*" G_GUINT64_FORMAT,
+               CSIO_LOG(eLogLevel_verbose,  "%-*" G_GUINT64_FORMAT,
                         c3w, g_value_get_uint64( &value ));
             else
-               CSIO_LOG(eLogLevel_extraVerbose,  "%-*s", c3w, "<not readable>" );
-            CSIO_LOG(eLogLevel_extraVerbose,  " | %-*s", c4w, "G_TYPE_UINT64" );               /* type */
-            CSIO_LOG(eLogLevel_extraVerbose,  " | (%" G_GUINT64_FORMAT " - %" G_GUINT64_FORMAT ")"
+               CSIO_LOG(eLogLevel_verbose,  "%-*s", c3w, "<not readable>" );
+            CSIO_LOG(eLogLevel_verbose,  " | %-*s", c4w, "G_TYPE_UINT64" );               /* type */
+            CSIO_LOG(eLogLevel_verbose,  " | (%" G_GUINT64_FORMAT " - %" G_GUINT64_FORMAT ")"
                      "   %" G_GUINT64_FORMAT " ",
                      puint64->minimum, puint64->maximum,             /* range */
                      puint64->default_value );                     /* default */
@@ -255,11 +255,11 @@ void gst_element_print_properties( GstElement * element )
          {
             GParamSpecInt64 *pint64 = G_PARAM_SPEC_INT64( param );
             if ( readable )                                        /* current */
-               CSIO_LOG(eLogLevel_extraVerbose,  "%-*" G_GINT64_FORMAT, c3w, g_value_get_int64( &value ));
+               CSIO_LOG(eLogLevel_verbose,  "%-*" G_GINT64_FORMAT, c3w, g_value_get_int64( &value ));
             else
-               CSIO_LOG(eLogLevel_extraVerbose,  "%-*s", c3w, "<not readable>" );
-            CSIO_LOG(eLogLevel_extraVerbose,  " | %-*s", c4w, "G_TYPE_INT64"  );               /* type */
-            CSIO_LOG(eLogLevel_extraVerbose,  " | (%" G_GINT64_FORMAT " - %" G_GINT64_FORMAT ")"
+               CSIO_LOG(eLogLevel_verbose,  "%-*s", c3w, "<not readable>" );
+            CSIO_LOG(eLogLevel_verbose,  " | %-*s", c4w, "G_TYPE_INT64"  );               /* type */
+            CSIO_LOG(eLogLevel_verbose,  " | (%" G_GINT64_FORMAT " - %" G_GINT64_FORMAT ")"
                      "   %" G_GINT64_FORMAT " ",
                      pint64->minimum, pint64->maximum,               /* range */
                      pint64->default_value );                      /* default */
@@ -270,11 +270,11 @@ void gst_element_print_properties( GstElement * element )
          {
             GParamSpecFloat *pfloat = G_PARAM_SPEC_FLOAT( param );
             if ( readable )                                        /* current */
-               CSIO_LOG(eLogLevel_extraVerbose,  "%-*g", c3w, g_value_get_float( &value ));
+               CSIO_LOG(eLogLevel_verbose,  "%-*g", c3w, g_value_get_float( &value ));
             else
-               CSIO_LOG(eLogLevel_extraVerbose,  "%-*s", c3w, "<not readable>" );
-            CSIO_LOG(eLogLevel_extraVerbose,  " | %-*s", c4w, "G_TYPE_FLOAT" );                /* type */
-            CSIO_LOG(eLogLevel_extraVerbose,  " | (%g - %g)   %g ",
+               CSIO_LOG(eLogLevel_verbose,  "%-*s", c3w, "<not readable>" );
+            CSIO_LOG(eLogLevel_verbose,  " | %-*s", c4w, "G_TYPE_FLOAT" );                /* type */
+            CSIO_LOG(eLogLevel_verbose,  " | (%g - %g)   %g ",
                       pfloat->minimum, pfloat->maximum,              /* range */
                       pfloat->default_value );                     /* default */
             break;
@@ -284,11 +284,11 @@ void gst_element_print_properties( GstElement * element )
          {
             GParamSpecDouble *pdouble = G_PARAM_SPEC_DOUBLE( param );
             if ( readable )                                        /* current */
-               CSIO_LOG(eLogLevel_extraVerbose,  "%-*g", c3w, g_value_get_double( &value ));
+               CSIO_LOG(eLogLevel_verbose,  "%-*g", c3w, g_value_get_double( &value ));
             else
-               CSIO_LOG(eLogLevel_extraVerbose,  "%-*s", c3w, "<not readable>" );
-            CSIO_LOG(eLogLevel_extraVerbose,  " | %-*s", c4w, "G_TYPE_DOUBLE" );               /* type */
-            CSIO_LOG(eLogLevel_extraVerbose,  " | (%g - %g)   %g ",
+               CSIO_LOG(eLogLevel_verbose,  "%-*s", c3w, "<not readable>" );
+            CSIO_LOG(eLogLevel_verbose,  " | %-*s", c4w, "G_TYPE_DOUBLE" );               /* type */
+            CSIO_LOG(eLogLevel_verbose,  " | (%g - %g)   %g ",
                      pdouble->minimum, pdouble->maximum,             /* range */
                      pdouble->default_value );                     /* default */
             break;
@@ -299,7 +299,7 @@ void gst_element_print_properties( GstElement * element )
          {
             const GstCaps *caps = gst_value_get_caps( &value );
             if ( !caps )
-               CSIO_LOG(eLogLevel_extraVerbose,  "%-*s | %-*.*s |",
+               CSIO_LOG(eLogLevel_verbose,  "%-*s | %-*.*s |",
                         c3w, "Caps (NULL)",
                         c4w, c4w, " " );
             else
@@ -332,8 +332,8 @@ void gst_element_print_properties( GstElement * element )
                }
 
             sprintf( work_string, "%d, \"%s\"", enum_value, cur_val_nick );
-            CSIO_LOG(eLogLevel_extraVerbose,  "%-*.*s", c3w, c3w, work_string );
-            CSIO_LOG(eLogLevel_extraVerbose,  " | Enum \"%s\" : %d, \"%s\"",
+            CSIO_LOG(eLogLevel_verbose,  "%-*.*s", c3w, c3w, work_string );
+            CSIO_LOG(eLogLevel_verbose,  " | Enum \"%s\" : %d, \"%s\"",
                      g_type_name( G_VALUE_TYPE( &value )),
                      penum->default_value, def_val_nick );
          }
@@ -353,15 +353,15 @@ void gst_element_print_properties( GstElement * element )
             /* current */
             sprintf( work_string, "0x%08x, \"%s\"",
                      g_value_get_flags( &value ), cur  );
-            CSIO_LOG(eLogLevel_extraVerbose,  "%-*.*s", c3w, c3w, work_string );
+            CSIO_LOG(eLogLevel_verbose,  "%-*.*s", c3w, c3w, work_string );
 
             /* type */
             sprintf( work_string, "Flags \"%s\"",
                      g_type_name( G_VALUE_TYPE( &value )) );
-            CSIO_LOG(eLogLevel_extraVerbose,  "%-*.*s", c4w, c4w, work_string );
+            CSIO_LOG(eLogLevel_verbose,  "%-*.*s", c4w, c4w, work_string );
 
             /* default */
-            CSIO_LOG(eLogLevel_extraVerbose,  " | 0x%08x, \"%s\"",
+            CSIO_LOG(eLogLevel_verbose,  " | 0x%08x, \"%s\"",
                      pflags->default_value, def );
 
             /* values list */
@@ -370,7 +370,7 @@ void gst_element_print_properties( GstElement * element )
                sprintf( work_string, "\n    | %-*.*s |   (0x%08x): %-16s - %s",
                         c2w, c2w, "",
                         vals[0].value, vals[0].value_nick, vals[0].value_name );
-               CSIO_LOG(eLogLevel_extraVerbose,  "%s", work_string );
+               CSIO_LOG(eLogLevel_verbose,  "%s", work_string );
                ++vals;
             }
 
@@ -380,7 +380,7 @@ void gst_element_print_properties( GstElement * element )
 
          else if ( G_IS_PARAM_SPEC_OBJECT( param ))
          {
-            CSIO_LOG(eLogLevel_extraVerbose,  "%-*.*s | Object of type \"%s\"",
+            CSIO_LOG(eLogLevel_verbose,  "%-*.*s | Object of type \"%s\"",
                      c3w, c3w,
                      g_type_name( param->value_type ),
                      g_type_name( param->value_type ) );
@@ -388,7 +388,7 @@ void gst_element_print_properties( GstElement * element )
 
          else if ( G_IS_PARAM_SPEC_BOXED( param ))
          {
-            CSIO_LOG(eLogLevel_extraVerbose,  "%-*.*s | Boxed pointer of type \"%s\"",
+            CSIO_LOG(eLogLevel_verbose,  "%-*.*s | Boxed pointer of type \"%s\"",
                      c3w, c3w,
                      g_type_name( param->value_type ),
                      g_type_name( param->value_type ) );
@@ -398,14 +398,14 @@ void gst_element_print_properties( GstElement * element )
          {
             if ( param->value_type != G_TYPE_POINTER )
             {
-               CSIO_LOG(eLogLevel_extraVerbose,  "%-*.*s | Pointer of type \"%s\"",
+               CSIO_LOG(eLogLevel_verbose,  "%-*.*s | Pointer of type \"%s\"",
                         c3w, c3w,
                         g_type_name( param->value_type ),
                         g_type_name( param->value_type ) );
             }
             else
             {
-               CSIO_LOG(eLogLevel_extraVerbose,  "%-*.*s |", c3w, c3w, "Pointer." );
+               CSIO_LOG(eLogLevel_verbose,  "%-*.*s |", c3w, c3w, "Pointer." );
             }
          }
 
@@ -414,14 +414,14 @@ void gst_element_print_properties( GstElement * element )
             GParamSpecValueArray *pvarray = G_PARAM_SPEC_VALUE_ARRAY( param );
             if ( pvarray->element_spec )
             {
-               CSIO_LOG(eLogLevel_extraVerbose,  "%-*.*s :Array of GValues of type \"%s\"",
+               CSIO_LOG(eLogLevel_verbose,  "%-*.*s :Array of GValues of type \"%s\"",
                         c3w, c3w,
                         g_type_name( pvarray->element_spec->value_type ),
                         g_type_name( pvarray->element_spec->value_type ) );
             }
             else
             {
-               CSIO_LOG(eLogLevel_extraVerbose,  "%-*.*s :", c3w, c3w, "Array of GValues" );
+               CSIO_LOG(eLogLevel_verbose,  "%-*.*s :", c3w, c3w, "Array of GValues" );
             }
          }
 
@@ -435,24 +435,24 @@ void gst_element_print_properties( GstElement * element )
                sprintf( work_string, "%d/%d",
                         gst_value_get_fraction_numerator( &value ),
                         gst_value_get_fraction_denominator( &value ));
-               CSIO_LOG(eLogLevel_extraVerbose,  "%-*.*s", c3w, c3w, work_string );
+               CSIO_LOG(eLogLevel_verbose,  "%-*.*s", c3w, c3w, work_string );
             }
             else
-               CSIO_LOG(eLogLevel_extraVerbose,  "%-*s", c3w, "<not readable>" );
+               CSIO_LOG(eLogLevel_verbose,  "%-*s", c3w, "<not readable>" );
 
-            CSIO_LOG(eLogLevel_extraVerbose,  " | %-*.*s",                                     /* type */
+            CSIO_LOG(eLogLevel_verbose,  " | %-*.*s",                                     /* type */
                      c3w, c3w,
                      " Fraction. " );
-            CSIO_LOG(eLogLevel_extraVerbose,  " | (%d/%d - %d/%d)",                           /* range */
+            CSIO_LOG(eLogLevel_verbose,  " | (%d/%d - %d/%d)",                           /* range */
                      pfraction->min_num, pfraction->min_den,
                      pfraction->max_num, pfraction->max_den );
-            CSIO_LOG(eLogLevel_extraVerbose,  "   %d/%d ",                                  /* default */
+            CSIO_LOG(eLogLevel_verbose,  "   %d/%d ",                                  /* default */
                      pfraction->def_num, pfraction->def_den );
          }
 
          else if ( G_IS_PARAM_SPEC_BOXED( param ))
          {
-            CSIO_LOG(eLogLevel_extraVerbose,  "%-*.*s | Boxed of type \"%s\"",
+            CSIO_LOG(eLogLevel_verbose,  "%-*.*s | Boxed of type \"%s\"",
                      c3w, c3w,
                      g_type_name( param->value_type ),
                      g_type_name( param->value_type ) );
@@ -460,7 +460,7 @@ void gst_element_print_properties( GstElement * element )
 
          else
          {
-            CSIO_LOG(eLogLevel_extraVerbose,  "Unknown type %ld \"%s\"",
+            CSIO_LOG(eLogLevel_verbose,  "Unknown type %ld \"%s\"",
                      (glong)param->value_type,
                      g_type_name( param->value_type ));
 
@@ -469,15 +469,15 @@ void gst_element_print_properties( GstElement * element )
       }
 
       if ( !readable )
-         CSIO_LOG(eLogLevel_extraVerbose,  " Write only\n" );
+         CSIO_LOG(eLogLevel_verbose,  " Write only\n" );
       else
-         CSIO_LOG(eLogLevel_extraVerbose,  "\n" );
+         CSIO_LOG(eLogLevel_verbose,  "\n" );
 
       g_value_reset( &value );
    }
 
    if ( 0 == num_properties )
-      CSIO_LOG(eLogLevel_extraVerbose,  "  none\n" );
+      CSIO_LOG(eLogLevel_verbose,  "  none\n" );
 
    g_free( property_specs );
 }
@@ -529,7 +529,7 @@ void   print_column_titles( guint c2w, guint c3w, guint c4w )
       /*--- column 5 - range and default ---*/
       strcat( work_string, "----- range and default ----->" );
 
-      CSIO_LOG(eLogLevel_extraVerbose, "\n%s\n", work_string );
+      CSIO_LOG(eLogLevel_verbose, "\n%s\n", work_string );
    }
 
 //------------------------------------------------------------------------------
@@ -544,18 +544,18 @@ void  print_element_info( GstElement *element, guint c2w, guint c3w, guint c4w  
    GstElementFactory   *factory = gst_element_get_factory( element );
 
    sprintf( work_string, "ELEMENT CLASS NAME" );
-   CSIO_LOG(eLogLevel_extraVerbose,  "    | %-*s",   c2w, work_string );
-   CSIO_LOG(eLogLevel_extraVerbose,  " | %-*s",      c3w, g_type_name( G_OBJECT_TYPE( element )) );
-   CSIO_LOG(eLogLevel_extraVerbose,  " | %-*s | \n", c4w, "" );
+   CSIO_LOG(eLogLevel_verbose,  "    | %-*s",   c2w, work_string );
+   CSIO_LOG(eLogLevel_verbose,  " | %-*s",      c3w, g_type_name( G_OBJECT_TYPE( element )) );
+   CSIO_LOG(eLogLevel_verbose,  " | %-*s | \n", c4w, "" );
 
 
    sprintf( work_string, "ELEMENT FACTORY NAME" );
-   CSIO_LOG(eLogLevel_extraVerbose,  "    | %-*s",   c2w, work_string );
+   CSIO_LOG(eLogLevel_verbose,  "    | %-*s",   c2w, work_string );
 
-   CSIO_LOG(eLogLevel_extraVerbose,  " | %-*s",      c3w, gst_plugin_feature_get_name( GST_PLUGIN_FEATURE( factory ) ));
-   CSIO_LOG(eLogLevel_extraVerbose,  " | %-*s | \n", c4w,  gst_element_factory_get_longname( factory ));
+   CSIO_LOG(eLogLevel_verbose,  " | %-*s",      c3w, gst_plugin_feature_get_name( GST_PLUGIN_FEATURE( factory ) ));
+   CSIO_LOG(eLogLevel_verbose,  " | %-*s | \n", c4w,  gst_element_factory_get_longname( factory ));
 
-// "Audio Resampler"   CSIO_LOG(eLogLevel_extraVerbose,  " | %-*s",      c3w, gst_element_factory_get_longname( gst_element_get_factory( element )) );
+// "Audio Resampler"   CSIO_LOG(eLogLevel_verbose,  " | %-*s",      c3w, gst_element_factory_get_longname( gst_element_get_factory( element )) );
 
 
 }
@@ -617,19 +617,19 @@ void print_caps( const GstCaps * caps, const gchar * pfx )
 
    if ( gst_caps_is_any( caps ))
    {
-      CSIO_LOG(eLogLevel_extraVerbose,  "%s | %s", pfx, "ANY                 |                     |" );
+      CSIO_LOG(eLogLevel_verbose,  "%s | %s", pfx, "ANY                 |                     |" );
       return;
    }
    if (gst_caps_is_empty( caps ))
    {
-      CSIO_LOG(eLogLevel_extraVerbose,  "%s | %s", pfx, "EMPTY               |                     |" );
+      CSIO_LOG(eLogLevel_verbose,  "%s | %s", pfx, "EMPTY               |                     |" );
       return;
    }
 
    for ( i = 0 ; i < gst_caps_get_size( caps ) ; i++ )
    {
       GstStructure   *structure = gst_caps_get_structure( caps, i );
-      CSIO_LOG(eLogLevel_extraVerbose,  "%s", gst_structure_get_name( structure ));
+      CSIO_LOG(eLogLevel_verbose,  "%s", gst_structure_get_name( structure ));
       gst_structure_foreach( structure, print_field, (gpointer)pfx );
    }
 }
@@ -643,7 +643,7 @@ gboolean    print_field( GQuark field, const GValue * value, gpointer pfx )
    //
    /////////////////////////////////////////////////////////////////////////////
    gchar    *str = gst_value_serialize( value );
-   CSIO_LOG(eLogLevel_extraVerbose,  "\n%s  %-15.15s - %s",
+   CSIO_LOG(eLogLevel_verbose,  "\n%s  %-15.15s - %s",
             ( gchar * )pfx, g_quark_to_string( field ), str );
    g_free( str );
    return TRUE;
