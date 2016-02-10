@@ -913,6 +913,8 @@ void set_gst_debug_level(void)
 	setenv("GST_DEBUG", temp, 1);
 	setenv("GST_DEBUG_NO_COLOR", "1", 1);
 	setenv("GST_PLUGIN_PATH", "/system/lib/gstreamer-1.0", 1);
+	// for x60, but should not harm other platforms - without this change you don't see any video
+	setenv("GST_AMC_IGNORE_UNKNOWN_COLOR_FORMATS", "yes", 1);
 
 	CSIO_LOG(eLogLevel_debug, "Set GST_DEBUG to %s", temp);
 }
