@@ -634,6 +634,26 @@ class DestZOrderCommand implements CommandIf {
         }
 }
 
+class ExternalHdcpStatusCommand implements CommandIf {
+
+    CommandReceiver launch;
+    String msg;
+
+    public ExternalHdcpStatusCommand(CommandReceiver launch, String arg) {
+        this.launch = launch;
+        this.msg = arg;
+    }
+
+    @Override
+        public void execute() {
+    		launch.setExternalHdcpStatus(CommandReceiver.VALIDATE_INT(msg));
+        }
+        public String getFeedbackMsg() {
+        	return ""; // No feedback for this join
+//        	return launch.getExternalHdcpStatus();
+        }
+}
+
 class InSyncCommand implements CommandIf {
     CommandReceiver launch;
     String msg;

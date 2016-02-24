@@ -121,6 +121,7 @@ public class CresStreamCtrl extends Service {
     private FileObserver ravaModeObserver;
     private Thread monitorCrashThread;
     private boolean mHDCPOutputStatus = false;
+    private boolean mHDCPExternalStatus = false;
     private boolean mHDCPInputStatus = false;
     private boolean mIgnoreHDCP = false; //FIXME: This is for testing
     public volatile boolean mForceHdcpStatusUpdate = true;
@@ -2545,7 +2546,7 @@ public class CresStreamCtrl extends Service {
 		if (enable)
 		{
 			//Check HDCP output status
-			if (mHDCPOutputStatus == true)
+			if ((mHDCPOutputStatus == true) || (mHDCPExternalStatus == true))
 				setCameraMode(String.valueOf(CameraMode.HDCPStreamError.ordinal()));
 			else
 				setCameraMode(String.valueOf(CameraMode.HDCPAllError.ordinal()));
@@ -2763,10 +2764,32 @@ public class CresStreamCtrl extends Service {
 		}
 		//Send output feedbacks
 		//Log.i(TAG, String.format("mHDCPInputStatus = %b, userSettings.isHdmiOutForceHdcp() = %b, mHDCPOutputStatus = %b", mHDCPInputStatus, userSettings.isHdmiOutForceHdcp(), mHDCPOutputStatus));
-		if (((mHDCPInputStatus == true) || (userSettings.isHdmiOutForceHdcp() == true)) && (mHDCPOutputStatus == false))
+		// If force HDCP is enabled, blank output if not authenticated
+		// If force HDCP is disabled, blank output if not authenticated and input is authenticated
+		if (((mHDCPInputStatus == true) || (userSettings.isHdmiOutForceHdcp() == true)) && ((mHDCPOutputStatus == false) && (mHDCPExternalStatus == false)))
 			sockTask.SendDataToAllClients(String.format("%s=%b", "HDMIOUT_DISABLEDBYHDCP", true));
 		else
 			sockTask.SendDataToAllClients(String.format("%s=%b", "HDMIOUT_DISABLEDBYHDCP", false));
+	}
+	
+	public void setExternalHdcpStatus(int hdcpStatus)
+	{
+		switch(hdcpStatus)
+		{ 
+		case 50: //unauthenticated
+		case 51: //unauthenticated  DEVICE_COUNT_EXCEEDED
+		case 52: //unauthenticated CASCADE_DEPTH_EXCEEDED
+		case 54: //No HDCP receiver in downstream
+			mHDCPExternalStatus = false;			
+			break;
+		case 53: //authenticated
+			mHDCPExternalStatus = true;
+			break;
+		default:
+			mHDCPExternalStatus = false;
+		}
+
+		mForceHdcpStatusUpdate = true;
 	}
 	
 	private class setNoVideoImage extends TimerTask

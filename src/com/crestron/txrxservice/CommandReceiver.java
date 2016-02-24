@@ -213,6 +213,10 @@ public class CommandReceiver {
     	ctl.setWindowSizeZ(z, sessId);
     }
     
+    public void setExternalHdcpStatus(int hdcpStatus){
+    	ctl.setExternalHdcpStatus(hdcpStatus);
+    }
+    
     public void setStatisticsEnable(boolean flag, int sessId){
     	if(flag)
     		ctl.setStatistics(flag, sessId);

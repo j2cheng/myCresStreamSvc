@@ -47,6 +47,7 @@ public class CommandParser {
         W, 
         H,
         Z,
+        HDMI_OUT_EXTERNAL_HDCP_STATUS,
         //HDMI IN 
         HDMIIN_SYNC_DETECTED,
         HDMIIN_INTERLACED,
@@ -306,6 +307,9 @@ public class CommandParser {
                 break;
             case Z:
             	cmd = new DestZOrderCommand(cmdRx, arg, idx);
+            	break;
+            case HDMI_OUT_EXTERNAL_HDCP_STATUS:
+            	cmd = new ExternalHdcpStatusCommand(cmdRx, arg);
             	break;
             case HDMIIN_SYNC_DETECTED:
                 cmd = new InSyncCommand(cmdRx, arg); 

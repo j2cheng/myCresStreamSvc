@@ -105,7 +105,6 @@ public class HDMIOutputInterface {
 	}
 	
 	public static int readHDCPOutputStatus (){
-    	boolean hdcpStatus = false;
     	StringBuilder text = new StringBuilder();
         try {
             File file = new File("/sys/devices/virtual/misc/hdcp/hdcp_status");
