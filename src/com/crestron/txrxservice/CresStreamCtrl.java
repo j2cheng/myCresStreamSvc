@@ -342,11 +342,13 @@ public class CresStreamCtrl extends Service {
             	// Library failed to load kill mediaserver and restart txrxservice
             	if (!successfulStart)
             	{
+            		Log.e(TAG, "Gstreamer failed to initialize, restarting txrxservice and mediaserver");
+            		
             		RecoverMediaServer();
-            		RecoverTxrxService();
+            		RecoverTxrxService();    		
             	}
             	else
-            	{
+            	{            		
             		if (defaultLoggingLevel != -1) //-1 means that value still has not been set
             		{
             			streamPlay.setLogLevel(defaultLoggingLevel);
@@ -2246,7 +2248,8 @@ public class CresStreamCtrl extends Service {
     public void RecoverTxrxService(){
     	Log.e(TAG, "Fatal error, kill CresStreamSvc!");
     	sockTask.SendDataToAllClients("DEVICE_READY_FB=FALSE");
-    	sockTask.SendDataToAllClients("KillMePlease=true");
+//    	sockTask.SendDataToAllClients("KillMePlease=true");
+    	System.exit(1); //We pick 1 since 0 probably means success
     }
     
     public void RecoverMediaServer() {
