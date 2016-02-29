@@ -1222,6 +1222,23 @@ JNIEXPORT void JNICALL Java_com_crestron_txrxservice_GstreamIn_nativeSetFieldDeb
                                 }
                             }
                         }
+                        else if (!strcmp(CmdPtr, "allav"))
+						{
+							if(data->element_zero)
+								gst_element_print_properties(data->element_zero);
+							for(i=0; i<MAX_ELEMENTS; i++)
+							{
+								if(data->element_av[i])
+								{
+									gst_element_print_properties(data->element_av[i]);
+								}
+								else
+								{
+									CSIO_LOG(eLogLevel_debug, "[%d]break",i);
+									break;
+								}
+							}
+						}
                         else
                         {
                             GstElement *ele = gst_bin_get_by_name(GST_BIN(data->pipeline), CmdPtr);
@@ -1623,10 +1640,12 @@ int csio_jni_CreatePipeline(GstElement **pipeline,GstElement **source,eProtocolI
 			    g_object_set(G_OBJECT(data->element_av[0]), "port", data->udp_port, NULL);
 			    gst_bin_add(GST_BIN(data->pipeline), data->element_av[0]);
 			    int ret = gst_element_link(data->element_av[0], data->element_zero);
-			    if(ret==0){
+			    if(ret==0)
+			    {
 			        CSIO_LOG(eLogLevel_error,  "ERROR:  Cannot link filter to source elements.\n" );
 				    iStatus = CSIO_CANNOT_LINK_ELEMENTS;
-			    }else
+			    }
+			    else
 			        CSIO_LOG(eLogLevel_debug,  "link filter to source elements.\n" );
 
 		    }
@@ -1657,6 +1676,7 @@ int csio_jni_CreatePipeline(GstElement **pipeline,GstElement **source,eProtocolI
 				    iStatus = CSIO_CANNOT_CREATE_ELEMENTS;
 				    CSIO_LOG(eLogLevel_error,  "ERROR: Cannot create tsdemux source pipeline elements\n" );
 			    }
+			    data->mpegtsPresent = TRUE;
 
 			    gst_bin_add_many(GST_BIN(data->pipeline), data->element_zero, data->element_av[0], data->element_av[1], NULL);
 			    if( !gst_element_link_many(data->element_zero, data->element_av[0], data->element_av[1], NULL))
@@ -1707,25 +1727,28 @@ int csio_jni_CreatePipeline(GstElement **pipeline,GstElement **source,eProtocolI
 	    case ePROTOCOL_MULTICAST_TS:
 	    {
 	    	strcpy(data->multicast_grp, (char*)currentSettingsDB.videoSettings[iStreamId].multicastAddress);
-		    if(currentSettingsDB.videoSettings[iStreamId].tsEnabled==STREAM_TRANSPORT_MPEG2TS_RTP){
-			data->element_zero = gst_element_factory_make("rtpbin", NULL);
-			gst_bin_add(GST_BIN(data->pipeline), data->element_zero);
+		    if(currentSettingsDB.videoSettings[iStreamId].tsEnabled==STREAM_TRANSPORT_MPEG2TS_RTP)
+		    {
+				data->element_zero = gst_element_factory_make("rtpbin", NULL);
+				gst_bin_add(GST_BIN(data->pipeline), data->element_zero);
 
-			data->udp_port = currentSettingsDB.videoSettings[iStreamId].tsPort;
-			data->element_av[0] = gst_element_factory_make("udpsrc", NULL);
-			insert_udpsrc_probe(data,data->element_av[0],"src");
+				data->udp_port = currentSettingsDB.videoSettings[iStreamId].tsPort;
+				data->element_av[0] = gst_element_factory_make("udpsrc", NULL);
+				insert_udpsrc_probe(data,data->element_av[0],"src");
 
-			g_object_set(G_OBJECT(data->element_av[0]), "caps", data->caps_v_ts, NULL);
-			g_object_set(G_OBJECT(data->element_av[0]), "port", data->udp_port, NULL);
-			gst_bin_add(GST_BIN(data->pipeline), data->element_av[0]);
-			int ret = gst_element_link(data->element_av[0], data->element_zero);
-			if(ret==0){
-				CSIO_LOG(eLogLevel_error,  "ERROR:  Cannot link filter to source elements.\n" );
-				iStatus = CSIO_CANNOT_LINK_ELEMENTS;
-			}else
-				CSIO_LOG(eLogLevel_error,  "ERROR: link filter to source elements.\n" );
-
-		    }else if(currentSettingsDB.videoSettings[iStreamId].tsEnabled==STREAM_TRANSPORT_MPEG2TS_UDP){
+				g_object_set(G_OBJECT(data->element_av[0]), "caps", data->caps_v_ts, NULL);
+				g_object_set(G_OBJECT(data->element_av[0]), "port", data->udp_port, NULL);
+				gst_bin_add(GST_BIN(data->pipeline), data->element_av[0]);
+				int ret = gst_element_link(data->element_av[0], data->element_zero);
+				if(ret==0){
+					CSIO_LOG(eLogLevel_error,  "ERROR:  Cannot link filter to source elements.\n" );
+					iStatus = CSIO_CANNOT_LINK_ELEMENTS;
+				}
+				else
+					CSIO_LOG(eLogLevel_error,  "ERROR: link filter to source elements.\n" );
+		    }
+		    else if(currentSettingsDB.videoSettings[iStreamId].tsEnabled==STREAM_TRANSPORT_MPEG2TS_UDP)
+		    {
 			    data->element_zero = gst_element_factory_make("udpsrc", NULL);
 			    if(!data->element_zero)
 			    {
@@ -1733,8 +1756,8 @@ int csio_jni_CreatePipeline(GstElement **pipeline,GstElement **source,eProtocolI
 				    CSIO_LOG(eLogLevel_error,  "ERROR: Cannot create udp source pipeline elements\n" );
 			    }
 			    insert_udpsrc_probe(data,data->element_zero,"src");
-
-			    data->udp_port = currentSettingsDB.videoSettings[iStreamId].tsPort;
+			    			    
+			   	data->udp_port = currentSettingsDB.videoSettings[iStreamId].tsPort;
 			    g_object_set(G_OBJECT(data->element_zero), "port", data->udp_port, NULL);
 
 			    data->element_av[0] = gst_element_factory_make( "queue", NULL );
@@ -1750,12 +1773,15 @@ int csio_jni_CreatePipeline(GstElement **pipeline,GstElement **source,eProtocolI
 				    iStatus = CSIO_CANNOT_CREATE_ELEMENTS;
 				    CSIO_LOG(eLogLevel_error,  "ERROR: Cannot create tsdemux source pipeline elements\n" );
 			    }
+			    data->mpegtsPresent = TRUE;
 
 			    gst_bin_add_many(GST_BIN(data->pipeline), data->element_zero, data->element_av[0], data->element_av[1], NULL);
-			    if( !gst_element_link_many(data->element_zero, data->element_av[0], data->element_av[1], NULL)){
+			    if( !gst_element_link_many(data->element_zero, data->element_av[0], data->element_av[1], NULL))
+			    {
 				    CSIO_LOG(eLogLevel_error,  "ERROR:  Cannot link filter to source elements.\n" );
 				    iStatus = CSIO_CANNOT_LINK_ELEMENTS;
-			    }else
+			    }
+			    else
 				    CSIO_LOG(eLogLevel_debug, "success link pipeline elements\n");
 			}
 
@@ -1814,6 +1840,9 @@ void csio_jni_InitPipeline(eProtocolId protoId, int iStreamId,GstRTSPLowerTrans 
 		CSIO_LOG(eLogLevel_error, "Could not obtain stream pointer for stream %d", iStreamId);
 		return;
 	}	
+
+	// Reset TS flag
+	data->mpegtsPresent = FALSE;
 
 	switch( protoId )
 	{
@@ -2191,6 +2220,15 @@ void csio_jni_initAudio(int iStreamId)
     if( data->audio_sink)
     {
         gint64 tmp = data->audiosink_ts_offset * 1000000;
+
+        if (data->mpegtsPresent)
+        {
+			//TODO: figure out problems with TS audio
+        	tmp -= 750000LL; //This value seemed to get decent lip sync
+        	g_object_set(G_OBJECT(data->audio_sink), "sync", FALSE, NULL); 
+        }
+        CSIO_LOG(eLogLevel_error, "RS: current offset 2 %lld", (tmp)); //TESTING REMOVE
+
         g_object_set(G_OBJECT(data->audio_sink), "ts-offset", tmp, NULL);
         CSIO_LOG(eLogLevel_debug, "set audiosink_ts_offset:%lld",tmp);
     }
@@ -2313,7 +2351,7 @@ void csio_jni_printFieldDebugInfo()
     if(!data)
     {
         CSIO_LOG(eLogLevel_error, "Could not obtain stream pointer for stream %d", 0);
-        return CSIO_FAILURE;
+        return;
     }
 
     CSIO_LOG(eLogLevel_debug, "FieldDebugInfo", "Current setting:");

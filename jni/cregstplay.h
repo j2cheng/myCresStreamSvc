@@ -105,6 +105,7 @@ typedef struct _CREGSTREAM
 	int amcviddec_ts_offset;
 	int audiosink_ts_offset;	
     bool dropAudio;
+    gboolean mpegtsPresent;
 
 	GSource * g_timer_source;
 	guint m_elem_prob_id[MAX_ELEMENTS];

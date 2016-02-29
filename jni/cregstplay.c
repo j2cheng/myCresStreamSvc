@@ -363,6 +363,7 @@ int build_video_pipeline(gchar *encoding_name, CREGSTREAM *data, unsigned int st
 		data->element_after_tsdemux = i;
 		do_window = 0;
 		do_sink = 0;
+		data->mpegtsPresent = TRUE;
 
 		*ele0 = data->element_v[0];
 	}
