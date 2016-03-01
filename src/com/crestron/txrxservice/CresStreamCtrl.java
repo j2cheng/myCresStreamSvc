@@ -2364,9 +2364,17 @@ public class CresStreamCtrl extends Service {
 		                {
 		            		Log.d(TAG, "receiving intent!!!!");
 		                	
-		                    int i = paramAnonymousIntent.getIntExtra("evs_hdmiout_resolution_changed_id", -1);
-		                    Log.i(TAG, "Received hdmiout resolution changed broadcast ! " + i);
+		                    int hdmiOutResolutionEnum = paramAnonymousIntent.getIntExtra("evs_hdmiout_resolution_changed_id", -1);
+		                    Log.i(TAG, "Received hdmiout resolution changed broadcast ! " + hdmiOutResolutionEnum);
 		                    ProductSpecific.DispayInfo hdmiOutputResolution = mProductSpecific.new DispayInfo();
+		                    
+		                    // When hdmi out resolution is 0, DispayInfo incorrectly returns size of previous resolution
+		                    if (hdmiOutResolutionEnum == 0)
+		                    {
+		                    	hdmiOutputResolution.width = 0;
+		                    	hdmiOutputResolution.height = 0;
+		                    	hdmiOutputResolution.refreshRate = 0;
+		                    }
 		                    
 							Log.i(TAG, "HDMI Output resolution " + hdmiOutputResolution.width + " "
 									+ hdmiOutputResolution.height + " "
