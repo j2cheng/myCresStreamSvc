@@ -1,12 +1,22 @@
 package com.crestron.txrxservice;
 
+import java.io.BufferedReader;
+import java.io.File;
+import java.io.FileReader;
+import java.io.IOException;
+
+import android.util.Log;
+
 import android.hardware.Camera;
 import android.media.MediaPlayer;
 import android.media.MediaRecorder;
 import android.view.Surface;
+import com.droidlogic.app.DisplaySettingManager;
 
 public class ProductSpecific
 {	
+    static String TAG = "X60 ProductSpecific";
+
 	// ******************* CameraStreaming.java *******************
 	public static void setEncoderFps(Camera camera, int encoderFps, int hdmiInFps)
 	{
@@ -104,6 +114,35 @@ public class ProductSpecific
 	public static void setSDP(MediaPlayer mediaPlayer, String sdp) throws java.io.IOException
 	{
 		// Not implmented for this product
+	}
+
+    public static void doChromakey()
+    {
+		DisplaySettingManager.setDisplayDiscardColorEnable(0);				
+		File file = new File("/dev/crestron/gstreamerChromaKey");		
+		try
+		{
+			int value;
+			int red;
+			int green;
+			int blue;
+			BufferedReader br = new BufferedReader(new FileReader(file));
+			String line = br.readLine();
+			if(line != null)
+			{
+				value = Integer.decode(line);
+				red = (value >> 16) & 0xff;
+				green = (value >> 8) & 0xff;
+				blue = value & 0xff;
+				Log.e(TAG,"X60 Setting chromakey color to " + red + "," + green + "," + blue);
+				DisplaySettingManager.setDisplayDiscardColor(red, green, blue);
+				DisplaySettingManager.setDisplayDiscardColorEnable(1);				
+			}
+			br.close();
+		}
+		catch(IOException e)
+		{			
+		}
 	}
 
 	// ******************* Classes *******************

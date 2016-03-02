@@ -1780,6 +1780,7 @@ public class CresStreamCtrl extends Service {
     //Ctrls
     public void Start(int sessionId)
     {
+		ProductSpecific.doChromakey();
     	enableRestartMechanism = true; //if user starts stream allow restart mechanism
     	
     	if ((userSettings.getStreamState(sessionId) != StreamState.STARTED) && (userSettings.getStreamState(sessionId) != StreamState.STREAMERREADY))

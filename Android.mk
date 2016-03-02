@@ -13,6 +13,7 @@ ifeq ($(TARGET_PRODUCT),$(filter $(TARGET_PRODUCT),full_omap5panda))
 endif
 ifeq ($(TARGET_PRODUCT),$(filter $(TARGET_PRODUCT),yushan_one))
 	LOCAL_SRC_FILES += $(call all-java-files-under, AMLogic)
+	LOCAL_JAVA_LIBRARIES := droidlogic
 endif
 
 
