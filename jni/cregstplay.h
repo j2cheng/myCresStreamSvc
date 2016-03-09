@@ -66,6 +66,7 @@ typedef struct _CREGSTREAM
 	gboolean initialized;   /* To avoid informing the UI multiple times about the initialization */
 	GstElement *video_sink; /* The video sink element which receives XOverlay commands */
 	GstElement *audio_sink; 
+	GstElement *app_sink; 
 	GstElement *amcvid_dec;
 	GstElement *element_fake_dec;
 	GstElement *element_valve_v;
@@ -183,6 +184,7 @@ extern void csio_jni_printFieldDebugInfo();
 extern void init_custom_data(CustomData * cdata);
 extern int build_audio_pipeline(gchar *encoding_name, CREGSTREAM *data, int do_rtp,GstElement **ele0,GstElement **sink);
 extern int build_video_pipeline(gchar *encoding_name, CREGSTREAM *data, unsigned int start, int do_rtp,GstElement **ele0,GstElement **sink);
+extern int build_metadata_pipeline(CREGSTREAM *data, GstElement **sink);
 extern void build_http_pipeline(CREGSTREAM *data, int iStreamId);
 
 extern void csio_PadAddedMsgHandler(GstElement *src, GstPad *new_pad, void *pCstreamer);
