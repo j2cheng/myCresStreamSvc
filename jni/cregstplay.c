@@ -112,6 +112,7 @@ static void pad_added_callback2 (GstElement *src, GstPad *new_pad, CREGSTREAM *d
 	// Sample caps strings:
 	// "audio/mpeg, mpegversion=(int)2, stream-format=(string)adts"
 	// "video/x-h264, stream-format=(string)byte-stream, alignment=(string)nal"
+	// "application/x-teletext" using this caqps for crestron metadata
 	
 	// Seek to the 1st comma in caps
 	while((*p) && (*p != ','))
@@ -134,6 +135,12 @@ static void pad_added_callback2 (GstElement *src, GstPad *new_pad, CREGSTREAM *d
 		build_video_pipeline(p_caps_string, data, data->element_after_tsdemux, do_rtp,&ele0,&sinker);
         sinker = data->element_v[data->element_after_tsdemux];
 		CSIO_LOG(eLogLevel_debug, "Completing video pipeline");
+    }
+    else if (strncmp("application/x-teletext", p_caps_string, 22) == 0){
+        CSIO_LOG(eLogLevel_debug, "found  metadata in the tsdemux");
+        build_metadata_pipeline(data, &sinker);
+        sinker = data->app_sink;;
+        CSIO_LOG(eLogLevel_debug, "Completing metadata pipeline");
     }
     else
     {
@@ -161,7 +168,7 @@ static void pad_added_callback2 (GstElement *src, GstPad *new_pad, CREGSTREAM *d
 
 	// Link rest of pipeline to beginning.
     gst_pad_link(new_pad, sink_pad);
-    
+
     //call initVideo before set to play state when video was added first
     csio_jni_initVideo(data->streamId);
     csio_jni_initAudio(data->streamId);
@@ -272,6 +279,70 @@ void insert_udpsrc_probe(CREGSTREAM *data,GstElement *element,const gchar *name)
 }
 
 /**
+ * \author      Suresh Kumar
+ *
+ * \date        3/07/2016
+ *
+ * \return      void
+ *
+ * \retval      void
+ *
+ * \brief       Build just the part of the metadatapipeline appsink callback 
+ *
+ * \param		src - appsink element
+ * \param		newpad - not required
+ * \param		data - pointer to custom data structure      
+ * 
+ * 
+ */
+static void on_sample_callback_meta (GstElement *src, GstPad *new_pad, CREGSTREAM *data) 
+{
+
+    CSIO_LOG(eLogLevel_debug, "on receive metadata");
+    GstSample *sample;
+    GstBuffer *csio_buffer, *metadataBuffer;
+
+    /* get the sample from appsink */
+    sample = gst_app_sink_pull_sample (src);
+    metadataBuffer = gst_sample_get_buffer (sample);
+
+    /* make a copy and send to CSIO*/
+    csio_buffer = gst_buffer_copy (metadataBuffer);
+
+    gsize metaDataSize = gst_buffer_get_size (csio_buffer);
+    CSIO_LOG(eLogLevel_debug, "metadata size %d", metaDataSize);
+
+    /* we don't need the appsink sample anymore */
+    gst_sample_unref (sample);
+}
+
+/**
+ * \author      Suresh Kumar
+ *
+ * \date        3/07/2016
+ *
+ * \return      void
+ *
+ * \retval      void
+ *
+ * \brief       Build just the part of the metadata pipeline that comes after rtspsrc and before the video sink.
+ *
+ * \param		data - pointer to custom data structure      
+ * \param		sink - pointer to custom data structure      
+ * 
+ */
+int build_metadata_pipeline(CREGSTREAM *data, GstElement **sink)
+{
+    CSIO_LOG(eLogLevel_debug, "creating metdata pipeline with appsink");
+    data->app_sink = gst_element_factory_make("appsink", NULL);
+    gst_bin_add(GST_BIN(data->pipeline), data->app_sink);
+    g_object_set(G_OBJECT(data->app_sink), "emit-signals", TRUE, "sync", FALSE, NULL);
+    g_signal_connect(data->app_sink, "new-sample", G_CALLBACK(on_sample_callback_meta), data);
+    *sink = data->app_sink;
+    return CSIO_SUCCESS;
+}
+
+/**
  * \author      Pete McCormick
  *
  * \date        4/23/2015
@@ -364,7 +435,6 @@ int build_video_pipeline(gchar *encoding_name, CREGSTREAM *data, unsigned int st
 		do_window = 0;
 		do_sink = 0;
 		data->mpegtsPresent = TRUE;
-
 		*ele0 = data->element_v[0];
 	}
 	else if((strcmp(encoding_name, "JPEG") == 0) || (strcmp(encoding_name, "image/jpeg") == 0))
