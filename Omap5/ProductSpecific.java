@@ -30,6 +30,11 @@ public class ProductSpecific
 		mrec.setMcastIP(multicastAddress);
 	}
 	
+	public static void setRtspSessionName(MediaRecorder mrec, String sessionName)
+	{
+		mrec.setRtspSessionName(sessionName);
+	}
+	
 	public static void setRTPAudioPort(MediaRecorder mrec, int port)
 	{
 		mrec.setRTPAudioPort(port);

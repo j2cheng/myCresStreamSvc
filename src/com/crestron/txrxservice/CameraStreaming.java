@@ -152,6 +152,7 @@ public class CameraStreaming {
 		                
 		                if (currentSessionInitiation == 2) //Multicast via RTSP
 		                	ProductSpecific.setMcastIP(mrec, streamCtl.userSettings.getMulticastAddress(idx));
+		            	ProductSpecific.setRtspSessionName(mrec, streamCtl.userSettings.getRtspSessionName());
 		            }
 		            else //Multicast via UDP or By Transmitter
 		            {

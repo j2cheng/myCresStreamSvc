@@ -194,8 +194,8 @@ public class CommandParser {
         sb.append("STATISTICS_ENABLE (=true)\r\n");
         sb.append("STATISTICS_DISABLE (=true)\r\n");
         sb.append("NEW_SINK(=true)\r\n");
-        sb.append("RTSP_STREAM_FILENAME(=)\r\n");
-        sb.append("RTSP_SESSION_NAME(=)\r\n");
+        sb.append("STREAMOUT_RTSP_STREAM_FILENAME(=)\r\n");
+        sb.append("STREAMOUT_RTSP_SESSION_NAME(=)\r\n");
 
         sb.append("UPDATEREQUEST\r\nType COMMAND for Query |streamstate to know status\r\n");
         

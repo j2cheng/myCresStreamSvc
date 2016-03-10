@@ -38,6 +38,11 @@ public class ProductSpecific
 		// Not implmented for this product
 	}
 	
+	public static void setRtspSessionName(MediaRecorder mrec, String sessionName)
+	{
+		// Not implmented for this product
+	}
+	
 	public static void setRTPAudioPort(MediaRecorder mrec, int port)
 	{
 		// Not implmented for this product
