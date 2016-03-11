@@ -974,7 +974,7 @@ JNIEXPORT void JNICALL Java_com_crestron_txrxservice_GstreamIn_nativeSetFieldDeb
                 CSIO_LOG(eLogLevel_debug, "flushing pipeline...");
                 GstEvent* flush_start = gst_event_new_flush_start();
                 gboolean ret = FALSE;
-                ret = gst_element_send_event(GST_ELEMENT(data->pipeline), flush_start);
+                ret = gst_element_send_event(GST_ELEMENT(data->pipeline), flush_start); //Try element 0
                 if (!ret)
                 {
                     CSIO_LOG(eLogLevel_warning, "failed to send flush-start event");
@@ -1253,50 +1253,50 @@ JNIEXPORT void JNICALL Java_com_crestron_txrxservice_GstreamIn_nativeSetFieldDeb
                 if(data->audio_sink)
                 {
                     gchar * name = gst_element_get_name(data->audio_sink);
-                    CSIO_LOG(eLogLevel_debug, "FieldDebugInfo",\
+                    CSIO_LOG(eLogLevel_debug, "FieldDebugInfo: "\
                                         "element name[%s]",name);
 
                     gboolean audioSync = 0;
                     guint64  tmp = 0;
 
                     g_object_get(G_OBJECT(data->audio_sink), "sync", &audioSync, NULL);
-                    CSIO_LOG(eLogLevel_debug, "FieldDebugInfo",\
+                    CSIO_LOG(eLogLevel_debug, "FieldDebugInfo: "\
                             "audioSync is set to %d", audioSync);
 
                     g_object_get(G_OBJECT(data->audio_sink), "max-lateness", &tmp, NULL);
-                    CSIO_LOG(eLogLevel_debug, "FieldDebugInfo",\
+                    CSIO_LOG(eLogLevel_debug, "FieldDebugInfo: "\
                             "Maximum number of nanoseconds that a buffer can be late before it is dropped (-1 unlimited).max-lateness is set to %lld", tmp);
 
                     g_object_get(G_OBJECT(data->audio_sink), "ts-offset", &tmp, NULL);
-                    CSIO_LOG(eLogLevel_debug, "FieldDebugInfo",\
+                    CSIO_LOG(eLogLevel_debug, "FieldDebugInfo: "\
                             "ts-offset is set to %lld", tmp);
 
                     g_object_get(G_OBJECT(data->audio_sink), "render-delay", &tmp, NULL);
-                    CSIO_LOG(eLogLevel_debug, "FieldDebugInfo",\
+                    CSIO_LOG(eLogLevel_debug, "FieldDebugInfo: "\
                             "The additional delay between synchronisation and actual rendering of the media. \nThis property will add additional latency to the device in order to make other sinks compensate for the delay.\nrender-delay is set to %lld", tmp);
 
                     g_object_get(G_OBJECT(data->audio_sink), "buffer-time", &tmp, NULL);
-                    CSIO_LOG(eLogLevel_debug, "FieldDebugInfo",\
+                    CSIO_LOG(eLogLevel_debug, "FieldDebugInfo: "\
                             "Size of audio buffer in microseconds, this is the minimum latency that the sink reports.buffer-time is set to %lld microseconds", tmp);
 
                     g_object_get(G_OBJECT(data->audio_sink), "latency-time", &tmp, NULL);
-                    CSIO_LOG(eLogLevel_debug, "FieldDebugInfo",\
+                    CSIO_LOG(eLogLevel_debug, "FieldDebugInfo: "\
                             "The minimum amount of data to write in each iteration: latency-time is set to %lld microseconds", tmp);
 
                     g_object_get(G_OBJECT(data->audio_sink), "provide-clock", &audioSync, NULL);
-                    CSIO_LOG(eLogLevel_debug, "FieldDebugInfo",\
+                    CSIO_LOG(eLogLevel_debug, "FieldDebugInfo: "\
                             "provide-clock is set to %d", audioSync);
 
                     g_object_get(G_OBJECT(data->audio_sink), "alignment-threshold", &tmp, NULL);
-                    CSIO_LOG(eLogLevel_debug, "FieldDebugInfo",\
+                    CSIO_LOG(eLogLevel_debug, "FieldDebugInfo: "\
                             "Timestamp alignment threshold: alignment-threshold is set to %lld nanoseconds", tmp);
 
                     g_object_get(G_OBJECT(data->audio_sink), "drift-tolerance", &tmp, NULL);
-                    CSIO_LOG(eLogLevel_debug, "FieldDebugInfo",\
+                    CSIO_LOG(eLogLevel_debug, "FieldDebugInfo: "\
                             "drift-tolerance is set to %lld microseconds ", tmp);
 
                     g_object_get(G_OBJECT(data->audio_sink), "discont-wait", &tmp, NULL);
-                    CSIO_LOG(eLogLevel_debug, "FieldDebugInfo",\
+                    CSIO_LOG(eLogLevel_debug, "FieldDebugInfo: "\
                             "discont-wait is set to %lld nanoseconds ", tmp);
 
                 }
@@ -2223,11 +2223,8 @@ void csio_jni_initAudio(int iStreamId)
 
         if (data->mpegtsPresent)
         {
-			//TODO: figure out problems with TS audio
-        	tmp -= 750000LL; //This value seemed to get decent lip sync
-        	g_object_set(G_OBJECT(data->audio_sink), "sync", FALSE, NULL); 
+        	g_object_set(G_OBJECT(data->audio_sink), "slave-method", 0, NULL); //GST_AUDIO_BASE_SINK_SLAVE_RESAMPLE
         }
-        CSIO_LOG(eLogLevel_error, "RS: current offset 2 %lld", (tmp)); //TESTING REMOVE
 
         g_object_set(G_OBJECT(data->audio_sink), "ts-offset", tmp, NULL);
         CSIO_LOG(eLogLevel_debug, "set audiosink_ts_offset:%lld",tmp);

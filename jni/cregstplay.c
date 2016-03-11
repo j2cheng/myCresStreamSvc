@@ -379,6 +379,16 @@ int build_video_pipeline(gchar *encoding_name, CREGSTREAM *data, unsigned int st
         //TODO:checking return values.
         //insert queue right after rtspsrc element
         data->element_v[i++] = gst_element_factory_make("queue", NULL);
+        if (data->mpegtsPresent)
+        {
+			g_object_set(G_OBJECT(data->element_v[i - 1]),
+						"leaky", (gint)2,					//GST_QUEUE_LEAK_DOWNSTREAM
+						"max-size-bytes", (guint)0,
+						"max-size-buffers", (guint)50000, //25000
+						"max-size-time", (guint64)0ll,
+						"silent", (gboolean)TRUE,
+						NULL);
+        }
         
         if(do_rtp)
         {
@@ -416,6 +426,17 @@ int build_video_pipeline(gchar *encoding_name, CREGSTREAM *data, unsigned int st
     }
     else if(strcmp(encoding_name, "MP2T") == 0)
     {
+    	//insert queue right after rtspsrc element
+		data->element_v[i] = gst_element_factory_make("queue", NULL);
+		g_object_set(G_OBJECT(data->element_v[i]),
+					"leaky", (gint)2,					//GST_QUEUE_LEAK_DOWNSTREAM
+					"max-size-bytes", (guint)0,
+					"max-size-buffers", (guint)50000,	// Extra big because of high latency in tsdemux
+					"max-size-time", (guint64)0ll,
+					"silent", (gboolean)TRUE,
+					NULL);
+		gst_bin_add(GST_BIN(data->pipeline), data->element_v[i++]);
+
 		// This happens when there's TS encapsulation.  We won't add the video sink yet.
 		if(do_rtp)
 		{
@@ -426,6 +447,10 @@ int build_video_pipeline(gchar *encoding_name, CREGSTREAM *data, unsigned int st
 		data->element_v[i] = gst_element_factory_make("tsdemux", NULL);
 		gst_bin_add(GST_BIN(data->pipeline), data->element_v[i]);
 		if(i > start)
+		{
+			gst_element_link_many(data->element_v[i-2], data->element_v[i-1], data->element_v[i], NULL);
+		}
+		else
 		{
 			gst_element_link(data->element_v[i-1], data->element_v[i]);
 		}
@@ -590,6 +615,13 @@ int build_audio_pipeline(gchar *encoding_name, CREGSTREAM *data, int do_rtp,GstE
 	{
 	    //insert queue right after rtspsrc element
 	    data->element_a[i++] = gst_element_factory_make("queue", NULL);
+	    g_object_set(G_OBJECT(data->element_a[i - 1]),
+	    		"leaky", (gint)2,					//GST_QUEUE_LEAK_DOWNSTREAM
+	    		"max-size-bytes", (guint)0,
+				"max-size-buffers", (guint)50000, //25000
+				"max-size-time", (guint64)0ll,
+				"silent", (gboolean)TRUE,
+				NULL);
 	    
 		if(do_rtp)
 		{
@@ -599,7 +631,6 @@ int build_audio_pipeline(gchar *encoding_name, CREGSTREAM *data, int do_rtp,GstE
 				data->element_a[i++] = gst_element_factory_make("rtpmp4gdepay", NULL);
 		}
 		data->element_a[i++] = gst_element_factory_make("aacparse", NULL);
-
 		data->element_a[i++] = gst_element_factory_make("queue", NULL);
     	data->element_a[i++] = gst_element_factory_make("faad", NULL);
 		
@@ -638,7 +669,6 @@ int build_audio_pipeline(gchar *encoding_name, CREGSTREAM *data, int do_rtp,GstE
 		CSIO_LOG(eLogLevel_error, "Unsupported audio encoding %s", encoding_name);
 		return CSIO_CANNOT_CREATE_ELEMENTS;
 	}
-	data->element_a[i++] = gst_element_factory_make("queue", NULL);
 	data->element_a[i++] = gst_element_factory_make("valve", NULL);
 	data->element_valve_a = data->element_a[i-1];
 
@@ -652,7 +682,6 @@ int build_audio_pipeline(gchar *encoding_name, CREGSTREAM *data, int do_rtp,GstE
 
 	data->element_a[i++] = gst_element_factory_make("audioconvert", NULL);
    data->element_a[i++] = gst_element_factory_make("audioresample", NULL);
-   data->element_a[i++] = gst_element_factory_make("queue", NULL);
    //add a probe for loss of audio detection.  Probe fires as long as buffers continue to push
    //onto on source pad.
    GstPad *pad;
@@ -932,17 +961,15 @@ void init_custom_data(CustomData * cdata)
 			"media",         G_TYPE_STRING, "video",
 			"clock-rate",    G_TYPE_INT,     90000,
 			"encoding-name", G_TYPE_STRING, "H264",
-			"payload",       G_TYPE_INT,     96,
 			NULL );
 
-		data->caps_a_rtp = gst_caps_new_simple (
+		data->caps_a_rtp = gst_caps_new_simple  (
 			"application/x-rtp",
 			"media",        G_TYPE_STRING, "audio",
-			"clock-rate",   G_TYPE_INT,     48000,
+			"clock-rate",   G_TYPE_INT,     44100,	//TODO: This will break STRO and any 48kHz encoders
 			"encoding-name",G_TYPE_STRING, "MPEG4-GENERIC",
 			"config",G_TYPE_STRING, "1210",
 			"sizelength",G_TYPE_STRING, "13",
-			"payload",    G_TYPE_INT,     127,
 			"streamtype",G_TYPE_STRING, "4",
 			"mode",G_TYPE_STRING, "generic",
 			NULL);
