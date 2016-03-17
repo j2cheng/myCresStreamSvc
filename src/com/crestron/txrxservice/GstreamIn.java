@@ -172,7 +172,7 @@ public class GstreamIn implements StreamInStrategy, SurfaceHolder.Callback {
     }
     
     public int getCurrentStreamState(int sessionId){
-    	return (streamCtl.userSettings.getStreamState(sessionId)).getValue();
+    	return (streamCtl.getCurrentStreamState(sessionId)).getValue();
 	}
     
     public void updateStreamStatus(int streamStateEnum, int sessionId){

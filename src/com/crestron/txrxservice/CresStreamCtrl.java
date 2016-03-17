@@ -300,7 +300,7 @@ public class CresStreamCtrl extends Service {
                     try {
                     	for (int sessionId = 0; sessionId < NumOfSurfaces; sessionId++)
                     	{
-	                    	if (userSettings.getStreamState(sessionId) != StreamState.STOPPED)
+	                    	if (getCurrentStreamState(sessionId) != StreamState.STOPPED)
 	                    	{
 	                    		if (userSettings.getMode(sessionId) == DeviceMode.PREVIEW.ordinal())
 	                    			cam_preview.stopPlayback(false);
@@ -1132,7 +1132,7 @@ public class CresStreamCtrl extends Service {
 	    	for (int sessionId = 0; sessionId < NumOfSurfaces; sessionId++)
 	    	{
 	    		if ((userSettings.getMode(sessionId) == DeviceMode.STREAM_IN.ordinal())
-	    				&& (userSettings.getStreamState(sessionId) != StreamState.STOPPED))
+	    				&& (getCurrentStreamState(sessionId) != StreamState.STOPPED))
 	    		{
 	    			Stop(sessionId, false);
 	    		}
@@ -1644,7 +1644,7 @@ public class CresStreamCtrl extends Service {
 	    			setStreamInVolume((int)volume, sessionId);
 	    		else if (userSettings.getMode(sessionId) == DeviceMode.STREAM_OUT.ordinal())
 	    		{
-	    			if (userSettings.getStreamState(sessionId) == StreamState.CONFIDENCEMODE)
+	    			if (getCurrentStreamState(sessionId) == StreamState.CONFIDENCEMODE)
 	    				setPreviewVolume((int)volume);
 	    			else
 	    				setSystemVolume((int)volume);
@@ -1755,6 +1755,23 @@ public class CresStreamCtrl extends Service {
     	sockTask.SendDataToAllClients("STATISTICS_NUMBEROFAUDIOPACKETS=" + String.valueOf(cam_streaming.getStreamOutNumAudioPackets()));
     	sockTask.SendDataToAllClients("STATISTICS_NUMBEROFAUDIOPACKETSDROPPED=" + String.valueOf(cam_streaming.getStreamOutNumAudioPacketsDropped()));
     }
+    
+    public StreamState getCurrentStreamState(int sessionId)
+    {
+    	StreamState returnStreamState;
+    	Log.d(TAG, "StreamState " + sessionId + " : Lock");
+    	streamStateLock[sessionId].lock();
+    	try
+    	{
+    		returnStreamState = userSettings.getStreamState(sessionId);
+    	}
+    	finally 
+    	{
+        	streamStateLock[sessionId].unlock();
+        	Log.d(TAG, "StreamState " + sessionId + " : Unlock");
+    	}
+    	return returnStreamState;
+    }
 
     public void SendStreamState(StreamState state, int sessionId)
     {
@@ -1783,13 +1800,12 @@ public class CresStreamCtrl extends Service {
 		ProductSpecific.doChromakey();
     	enableRestartMechanism = true; //if user starts stream allow restart mechanism
     	
-    	if ((userSettings.getStreamState(sessionId) != StreamState.STARTED) && (userSettings.getStreamState(sessionId) != StreamState.STREAMERREADY))
+    	if ((getCurrentStreamState(sessionId) != StreamState.STARTED) && (userSettings.getStreamState(sessionId) != StreamState.STREAMERREADY))
     	{	    	
 	    	stopStartLock[sessionId].lock();
 	    	Log.d(TAG, "Start " + sessionId + " : Lock");
 	    	try
-	    	{
-	    		SendStreamState(StreamState.CONNECTING, sessionId);
+	    	{	    		
 		    	playStatus="true";
 		    	stopStatus="false";
 		        pauseStatus="false";	
@@ -1809,7 +1825,7 @@ public class CresStreamCtrl extends Service {
     public void Stop(int sessionId, boolean fullStop)
     {
     	//csio will send service full stop when it does not want confidence mode started
-    	if ((userSettings.getStreamState(sessionId) != StreamState.STOPPED) && ((userSettings.getStreamState(sessionId) != StreamState.CONFIDENCEMODE) || (fullStop == true)))
+    	if ((getCurrentStreamState(sessionId) != StreamState.STOPPED) && ((userSettings.getStreamState(sessionId) != StreamState.CONFIDENCEMODE) || (fullStop == true)))
     	{
 	    	stopStartLock[sessionId].lock();
 	    	Log.d(TAG, "Stop " + sessionId + " : Lock");
@@ -1830,7 +1846,7 @@ public class CresStreamCtrl extends Service {
     	}
     	else
     	{
-    		if (userSettings.getStreamState(sessionId) == StreamState.CONFIDENCEMODE)
+    		if (getCurrentStreamState(sessionId) == StreamState.CONFIDENCEMODE)
     			SendStreamState(StreamState.CONFIDENCEMODE, sessionId);
     		else
     			SendStreamState(StreamState.STOPPED, sessionId);
@@ -1839,7 +1855,7 @@ public class CresStreamCtrl extends Service {
 
     public void Pause(int sessionId)
     {
-    	if ((userSettings.getStreamState(sessionId) != StreamState.PAUSED) && (userSettings.getStreamState(sessionId) != StreamState.STOPPED))
+    	if ((getCurrentStreamState(sessionId) != StreamState.PAUSED) && (userSettings.getStreamState(sessionId) != StreamState.STOPPED))
     	{
 	    	Log.d(TAG, "Pause " + sessionId + " : Lock");
 	    	stopStartLock[sessionId].lock();
@@ -1936,6 +1952,8 @@ public class CresStreamCtrl extends Service {
     public void startStreamOut(int sessId)
     {
         StringBuilder sb = new StringBuilder(512);
+        
+        SendStreamState(StreamState.CONNECTING, sessId);
         
         // we are starting to streamout so stop confidence preview (unless resuming from pause)
         if (cam_streaming.getConfidencePreviewStatus() == true)
@@ -2133,6 +2151,7 @@ public class CresStreamCtrl extends Service {
     //Preview 
     public void startPreview(int sessId)
     {
+    	SendStreamState(StreamState.CONNECTING, sessId);
         updateWindow(sessId);
         showPreviewWindow(sessId);
         cam_preview.setSessionIndex(sessId);

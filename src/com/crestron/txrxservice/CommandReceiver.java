@@ -313,7 +313,7 @@ public class CommandReceiver {
     
     public String getStreamState(int sessId){
         //String replyString;
-        int streamState = (ctl.userSettings.getStreamState(sessId)).getValue();
+        int streamState = (ctl.getCurrentStreamState(sessId)).getValue();
         return Integer.toString(streamState);
     }
     //HDMIIN
