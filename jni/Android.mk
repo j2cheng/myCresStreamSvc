@@ -31,6 +31,7 @@ CPP_INC_PATH := $(CRESTRON_ROOT)/../../bionic
 LOCAL_SHARED_LIBRARIES := libgstreamer_android liblog libandroid
 LOCAL_SHARED_LIBRARIES += libproductName
 LOCAL_SHARED_LIBRARIES += libLinuxUtil
+LOCAL_SHARED_LIBRARIES += libmpegtsdemuxhelper
 
 
 # Crestron - why do I have to do this?
