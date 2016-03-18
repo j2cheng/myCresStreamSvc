@@ -2221,10 +2221,8 @@ void csio_jni_initAudio(int iStreamId)
     {
         gint64 tmp = data->audiosink_ts_offset * 1000000;
 
-        if (data->mpegtsPresent)
-        {
-        	g_object_set(G_OBJECT(data->audio_sink), "slave-method", 0, NULL); //GST_AUDIO_BASE_SINK_SLAVE_RESAMPLE
-        }
+        // Bug 107700: AV goes haywire when packets are lost when openslessink is set to GST_AUDIO_BASE_SINK_SLAVE_SKEW, resample fixes the problem
+		g_object_set(G_OBJECT(data->audio_sink), "slave-method", 0, NULL); // 0 = GST_AUDIO_BASE_SINK_SLAVE_RESAMPLE
 
         g_object_set(G_OBJECT(data->audio_sink), "ts-offset", tmp, NULL);
         CSIO_LOG(eLogLevel_debug, "set audiosink_ts_offset:%lld",tmp);
