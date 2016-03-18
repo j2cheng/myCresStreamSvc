@@ -966,7 +966,7 @@ void init_custom_data(CustomData * cdata)
 		data->caps_a_rtp = gst_caps_new_simple  (
 			"application/x-rtp",
 			"media",        G_TYPE_STRING, "audio",
-			"clock-rate",   G_TYPE_INT,     44100,	//TODO: This will break STRO and any 48kHz encoders
+			"clock-rate",   G_TYPE_INT,     48000,
 			"encoding-name",G_TYPE_STRING, "MPEG4-GENERIC",
 			"config",G_TYPE_STRING, "1210",
 			"sizelength",G_TYPE_STRING, "13",

@@ -53,6 +53,7 @@ public class CameraStreaming {
     private final long stopTimeout_ms = 15000;
     private final long startTimeout_ms = 20000;
     private final String clientConnectedFilePath = "/dev/shm/crestron/CresStreamSvc/clientConnected";
+    private final int audioSampleRate = 48000;
 
     private boolean shouldExit = false;
     private Thread statisticsThread;
@@ -136,9 +137,10 @@ public class CameraStreaming {
 		            mrec.setCamera(CresCamera.mCamera);
 		
 		            mrec.setAudioSource(MediaRecorder.AudioSource.MIC);
-		            mrec.setVideoSource(MediaRecorder.VideoSource.CAMERA);
+		            mrec.setVideoSource(MediaRecorder.VideoSource.CAMERA);		            
                             Log.d(TAG, "selected mode is " + getStreamTransportMode());
 		            ProductSpecific.setStreamTransportMode(mrec, getStreamTransportMode());
+		            mrec.setAudioSamplingRate(audioSampleRate);
 		            
 		            //Set Port
 		            int l_port;

@@ -44,7 +44,7 @@ public class AudioPlayback
             int bufferSize = 131072;
             int read = 0;
             int readSize = bufferSize;
-            final int sampleRate = 44100;//48000;
+            final int sampleRate = 48000;
             initVolumePending = true;
 
             Log.d(TAG, "Streaming Audio task started.... ");
