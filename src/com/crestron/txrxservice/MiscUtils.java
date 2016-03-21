@@ -108,4 +108,21 @@ public class MiscUtils {
     		try {writer.close();} catch (Exception ex) {/*ignore*/}
     	}	
     }
+    
+    public static String readStringFromDisk(String filePath)
+    {
+    	StringBuilder text = new StringBuilder();
+    	text.append(""); //default to blank string
+        try {
+            File file = new File(filePath);
+
+            BufferedReader br = new BufferedReader(new FileReader(file));  
+            String line;   
+            while ((line = br.readLine()) != null) {
+                text.append(line);
+            }
+            br.close();
+        }catch (Exception e) {}
+        return text.toString();
+    }
 }

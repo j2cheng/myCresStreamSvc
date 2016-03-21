@@ -136,6 +136,7 @@ public class CresStreamCtrl extends Service {
     private int numberOfVideoTimeouts = 0; //we will use this to track stop/start timeouts
     private final ProductSpecific mProductSpecific = new ProductSpecific();
     private final static String multicastTTLFilePath = "/dev/shm/crestron/CresStreamSvc/multicast_ttl";
+    private final static String ducatiCrashCountFilePath = "/dev/shm/crestron/CresStreamSvc/ducatiCrashCount";
 
     enum DeviceMode {
         STREAM_IN,
@@ -673,6 +674,16 @@ public class CresStreamCtrl extends Service {
     	monitorCrashThread = new Thread(new Runnable() {
     		@Override
     		public void run() { 
+    			int ducatiCrashCount;	//we will use this to record the number of times Ducati has crashed for statistical information
+    			try
+    			{
+    				ducatiCrashCount = Integer.parseInt(MiscUtils.readStringFromDisk(ducatiCrashCountFilePath));
+    			} catch (Exception e)
+    			{
+    				ducatiCrashCount = 0;	// not an error condition, just default to 0 if file does not exist
+    			}
+    			MiscUtils.writeStringToDisk(ducatiCrashCountFilePath, String.valueOf(ducatiCrashCount)); 
+    			
     			// Clear out initial ducati flag since first boot is not a crash
     			writeDucatiState(1);
     			//wait for ducati state to be cleared (async call to csio)
@@ -697,6 +708,7 @@ public class CresStreamCtrl extends Service {
 							int currentDucatiState = readDucatiState();
 							if ((currentDucatiState == 0) && (mIgnoreAllCrash == false))
 							{
+								MiscUtils.writeStringToDisk(ducatiCrashCountFilePath, String.valueOf(++ducatiCrashCount)); 
 								mPreviousValidHdmiInputResolution = 0;
 								Log.i(TAG, "Recovering from Ducati crash!");
 								recoverFromCrash();
@@ -706,6 +718,7 @@ public class CresStreamCtrl extends Service {
 						// Check if mediaserver crashed
 						if ((mMediaServerCrash == true) && (mIgnoreAllCrash == false))
 						{
+							MiscUtils.writeStringToDisk(ducatiCrashCountFilePath, String.valueOf(++ducatiCrashCount)); 
 							mPreviousValidHdmiInputResolution = 0;
 							Log.i(TAG, "Recovering from mediaserver crash!");
 							recoverFromCrash();
