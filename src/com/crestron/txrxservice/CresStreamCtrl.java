@@ -136,7 +136,10 @@ public class CresStreamCtrl extends Service {
     private int numberOfVideoTimeouts = 0; //we will use this to track stop/start timeouts
     private final ProductSpecific mProductSpecific = new ProductSpecific();
     private final static String multicastTTLFilePath = "/dev/shm/crestron/CresStreamSvc/multicast_ttl";
+    
     private final static String ducatiCrashCountFilePath = "/dev/shm/crestron/CresStreamSvc/ducatiCrashCount";
+    public final static String gstreamerTimeoutCountFilePath = "/dev/shm/crestron/CresStreamSvc/gstreamerTimeoutCount";
+    public int mGstreamerTimeoutCount = 0;
 
     enum DeviceMode {
         STREAM_IN,
@@ -550,6 +553,16 @@ public class CresStreamCtrl extends Service {
             	mIgnoreHDCP = true;
             else
             	mIgnoreHDCP = false;
+            
+            // Monitor the number of times the gstreamer 10 second timeout occurs
+            try
+			{
+            	mGstreamerTimeoutCount = Integer.parseInt(MiscUtils.readStringFromDisk(gstreamerTimeoutCountFilePath));
+			} catch (Exception e)
+			{
+				mGstreamerTimeoutCount = 0;	// not an error condition, just default to 0 if file does not exist
+			}
+			MiscUtils.writeStringToDisk(gstreamerTimeoutCountFilePath, String.valueOf(mGstreamerTimeoutCount));            
         }
    
     @Override

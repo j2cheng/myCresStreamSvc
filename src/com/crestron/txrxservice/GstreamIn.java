@@ -190,6 +190,9 @@ public class GstreamIn implements StreamInStrategy, SurfaceHolder.Callback {
 	}
     
     public void recoverDucati(){
+    	// Increment gstreamer timeout counter
+    	MiscUtils.writeStringToDisk(CresStreamCtrl.gstreamerTimeoutCountFilePath, String.valueOf(++(streamCtl.mGstreamerTimeoutCount)));
+    	
 		// Delete all surfaces so we dont have a gralloc memory leak
     	for(int sessionId = 0; sessionId < CresStreamCtrl.NumOfSurfaces; sessionId++)
     	{
