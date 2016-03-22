@@ -148,6 +148,8 @@ public class UserSettings
 	private int[] streamingBuffer;
 	private String[] streamOutUrl;
 	private String[] streamInUrl;
+	private boolean[] proxyEnable;
+	private int[] internalRtspPort;
 	private String[] multicastAddress;
 	private String[] userName;
 	private String[] password;
@@ -231,6 +233,8 @@ public class UserSettings
 		multicastAddress 	= initStringArray("");
 		streamOutUrl 	 	= initStringArray("");
 		streamInUrl			= initStringArray("");
+        proxyEnable         = initBoolArray(false);
+        internalRtspPort 	= initIntArray(5540);
 		userName 			= initStringArray("");
 		password   			= initStringArray("");
 		streamState			= initStreamState(StreamState.STOPPED);
@@ -553,13 +557,29 @@ public class UserSettings
 		return streamInUrl[sessId];
 	}
 
+	public boolean getProxyEnable(int sessId) {
+		return proxyEnable[sessId];
+	}
+	
 	public void setStreamInUrl(String url, int sessId) {
 		this.streamInUrl[sessId] = url;
 
 		if (this.mode[sessId] == DeviceMode.STREAM_IN.ordinal())
 			StreamIn.setServerUrl(url, sessId);		
 	}
+	
+	public void setProxyEnable(boolean flag, int sessId) {
+		this.proxyEnable[sessId] = flag;	
+	}
 
+	public int getInternalRtspPort(int sessId) {
+		return internalRtspPort[sessId];
+	}
+
+	public void setInternalRtspPort(int rtspPort, int sessId) {
+		this.internalRtspPort[sessId] = rtspPort;
+	}
+		
 	public String getStreamOutUrl(int sessId) {
 		return streamOutUrl[sessId];
 	}

@@ -178,6 +178,14 @@ public class CommandReceiver {
     		ctl.setStreamOutUrl(uri, sessId);
     }
 
+    public void setProxyEnable(boolean flag, int sessId){
+    		ctl.userSettings.setProxyEnable(flag, sessId);
+    }
+    
+    public void setInternalRtspPort(int port, int sessId){
+    	ctl.userSettings.setInternalRtspPort(port, sessId);
+    }
+    
     public void setStart(int sessId){
     	ctl.userSettings.setUserRequestedStreamState(StreamState.STARTED, sessId);
         ctl.Start(sessId);
@@ -298,7 +306,15 @@ public class CommandReceiver {
         return ctl.getStreamUrl(idx);
     }
 
-
+/*
+    public String getProxyEnable(int idx){
+    	return String.valueOf(ctl.userSettings.getProxyEnable(idx));
+    }
+    
+    public String getInternalRtspPort(int sessId){
+    	return Integer.toString(ctl.userSettings.getInternalRtspPort(sessId));
+    }
+*/    
     public String getStartStatus(){
         return ctl.getStartStatus();
     }

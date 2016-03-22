@@ -148,8 +148,17 @@ public class CameraStreaming {
 		            int currentTransportMode = streamCtl.userSettings.getTransportMode(idx);
 		            if ((currentSessionInitiation == 0) || (currentSessionInitiation == 2)) //Multicast via RTSP or By Receiver
 		            {
-		            	l_port = streamCtl.userSettings.getRtspPort(idx);
-		            	streamIp = streamCtl.userSettings.getDeviceIp();
+		            	if(streamCtl.userSettings.getProxyEnable(idx))
+                        {
+		            		l_port = streamCtl.userSettings.getInternalRtspPort(idx);
+                            streamIp = "127.0.0.1";
+                        }
+                        else
+                        {
+		            		l_port = streamCtl.userSettings.getRtspPort(idx);
+		            		streamIp = streamCtl.userSettings.getDeviceIp();
+                        }
+		            	
 		            	ProductSpecific.setRTSPPort(mrec, l_port);
 		                
 		                if (currentSessionInitiation == 2) //Multicast via RTSP

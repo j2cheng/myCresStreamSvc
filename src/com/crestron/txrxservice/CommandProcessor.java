@@ -461,6 +461,46 @@ class StreamUrlCommand implements CommandIf {
         }
 }
 
+class ProxyEnableCommand implements CommandIf {
+    CommandReceiver launch;
+    String msg;
+    int idx;
+    public ProxyEnableCommand(CommandReceiver launch, String arg, int sessId) {
+        this.launch = launch;
+        this.msg = arg;
+        this.idx = sessId;
+    }
+
+    @Override
+        public void execute() {
+	    	boolean val = Boolean.valueOf(msg);
+            launch.setProxyEnable(val, idx);
+        }
+        public String getFeedbackMsg() {
+            return msg;
+        }
+}
+
+class InternalRtspPortCommand implements CommandIf {
+    CommandReceiver launch;
+    String msg;
+    int idx;
+
+    public InternalRtspPortCommand(CommandReceiver launch, String arg, int sessId) {
+        this.launch = launch;
+        this.msg = arg;
+        this.idx = sessId;
+    }
+
+    @Override
+        public void execute() {
+            launch.setInternalRtspPort(launch.VALIDATE_INT(msg), idx);
+        }
+        public String getFeedbackMsg() {
+            return msg;
+        }
+}
+
 class StartCommand implements CommandIf {
     CommandReceiver launch;
     String msg;

@@ -819,7 +819,7 @@ int build_audio_pipeline(gchar *encoding_name, CREGSTREAM *data, int do_rtp,GstE
 // but here we get internal data flow error!?
 void build_http_pipeline(CREGSTREAM *data, int iStreamId)
 {
-	char *url = (char *)currentSettingsDB.settingsMessage.msg[iStreamId].url;
+	char *url = (char *)currentSettingsDB->settingsMessage.msg[iStreamId].url;
 	
 //	if(g_str_has_suffix(url, ".mjpg") || g_str_has_suffix(url, ".mjpeg") || g_str_has_suffix(url, ".cgi")
 //		|| g_str_has_suffix(url, ".jpg") || g_str_has_suffix(url, ".jpeg"))

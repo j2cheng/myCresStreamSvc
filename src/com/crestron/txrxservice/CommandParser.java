@@ -20,6 +20,8 @@ public class CommandParser {
         TRANSPORTMODE,
         VENCPROFILE,
         STREAMURL,
+        PROXYENABLE,
+        INTERNAL_RTSPPORT,
         RTSPPORT,
         TSPORT,
         RTPVIDEOPORT,
@@ -140,6 +142,8 @@ public class CommandParser {
         sb.append("TRANSPORTMODE (= 0: RTP 1: TS_RTP 2: TS_UDP)\r\n");
         sb.append("VENCPROFILE (= 0:HighProfile 1:MainProfile 2:BaseProfile)\r\n");
         sb.append("STREAMURL(= any url) \r\n");
+        sb.append("PROXYENABLE(=true)\r\n");
+        sb.append("INTERNAL_RTSPPORT(= 1024 to 49151)\r\n");
         sb.append("RTSPPORT(= 1024 to 49151)\r\n");
         sb.append("TSPORT (= 1024 to 49151)\r\n");
         sb.append("RTPVIDEOPORT (= 1024 to 49151)\r\n");
@@ -280,6 +284,12 @@ public class CommandParser {
                 break;
             case STREAMURL:
                 cmd = new StreamUrlCommand(cmdRx, arg, idx); 
+                break;
+            case PROXYENABLE:
+                cmd = new ProxyEnableCommand(cmdRx, arg, idx); 
+                break;
+            case INTERNAL_RTSPPORT:
+                cmd = new InternalRtspPortCommand(cmdRx, arg, idx); 
                 break;
             case START:
                 cmd = new StartCommand(cmdRx, arg, idx); 
