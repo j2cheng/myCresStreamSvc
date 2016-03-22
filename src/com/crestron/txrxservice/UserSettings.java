@@ -211,39 +211,39 @@ public class UserSettings
 //		MiscUtils.getDeviceIpAddr();
 		deviceIp 			= "0.0.0.0";//MiscUtils.matcher.group();
 		versionNum 			= CurrentVersionNumber;
-		rtspPort 			= new int[]{ 554, 554};		
-		tsPort 				= new int[]{ 4570, 4570};		
-		rtpVideoPort 		= new int[]{ 49170, 49170};
-		rtpAudioPort 		= new int[]{ 49172, 49172};
-		mode				= new int[]{1,0}; // Bug 105751: make default mode transmitter
-		w 					= new int[]{1920,1920};
-		h					= new int[]{1080,1080};
-		z					= new int[]{1, 2};
-		xloc 				= new int[]{0,0};
-		yloc				= new int[]{0,0};
-		encodingResolution	= new int[] {0, 0};
-		encodingFramerate	= new int[] {60, 60};
-		bitrate				= new int[]{10000, 10000}; 
+		rtspPort 			= initIntArray(554);		
+		tsPort 				= initIntArray(4570);		
+		rtpVideoPort 		= initIntArray(49170);
+		rtpAudioPort 		= initIntArray(49172);
+		mode				= initDeviceMode();
+		w 					= initIntArray(1920);
+		h					= initIntArray(1080);
+		z					= initZOrder();
+		xloc 				= initIntArray(0);
+		yloc				= initIntArray(0);
+		encodingResolution	= initIntArray(0);
+		encodingFramerate	= initIntArray(60);
+		bitrate				= initIntArray(10000);
 		//mode 	= mode.RTSP;//RTSP;
-		sessionInitiation 	= new int[] {0, 0};
-		streamProfile 		= new VideoEncProfile[] {VideoEncProfile.HP, VideoEncProfile.HP};
-		encodingLevel		= new int[] {8192, 8192};
-		multicastAddress 	= new String[] {"", ""};
-		streamOutUrl 	 	= new String[]{"", ""};
-		streamInUrl			= new String[]{"", ""};
-		userName 			= new String[] {"", ""};
-		password   			= new String[] {"", ""};
-		streamState			= new CresStreamCtrl.StreamState[] {StreamState.STOPPED, StreamState.STOPPED};
-		userRequestedStreamState = new CresStreamCtrl.StreamState[] {StreamState.STOPPED, StreamState.STOPPED};
-		transportMode		= new int[] {0, 0};
-		passwordEnable		= new boolean[] {false, false};
-		passwordDisable		= new boolean[] {true, true};
-		streamingBuffer		= new int[] {1000, 1000};
-		statisticsEnable	= new boolean[] {false, false};
-		statisticsDisable	= new boolean[] {true, true};
+		sessionInitiation 	= initIntArray(0);
+		streamProfile 		= initStreamProfile(VideoEncProfile.HP);
+		encodingLevel		= initIntArray(8192);
+		multicastAddress 	= initStringArray("");
+		streamOutUrl 	 	= initStringArray("");
+		streamInUrl			= initStringArray("");
+		userName 			= initStringArray("");
+		password   			= initStringArray("");
+		streamState			= initStreamState(StreamState.STOPPED);
+		userRequestedStreamState = initStreamState(StreamState.STOPPED);
+		transportMode		= initIntArray(0);
+		passwordEnable		= initBoolArray(false);
+		passwordDisable		= initBoolArray(true);
+		streamingBuffer		= initIntArray(1000);
+		statisticsEnable	= initBoolArray(false);
+		statisticsDisable	= initBoolArray(true);
 		volume 				= 100.0;
 		userRequestedVolume = 100.0;
-		useNewSink			= new boolean[] {true, true};
+		useNewSink			= initBoolArray(true);
 		audioMute			= false;
 		audioUnmute			= true;
 		ravaMode			= false;
@@ -260,6 +260,81 @@ public class UserSettings
 		rtspSessionName		= "CrestronStreamingSession";
 		multicastTTL		= 64;
 	}
+	
+	private boolean[] initBoolArray(boolean initValue)
+	{
+		boolean[] retArray = new boolean[CresStreamCtrl.NumOfSurfaces];
+		for (int i = 0; i < CresStreamCtrl.NumOfSurfaces; i++)
+		{
+			retArray[i] = initValue;
+		}
+		return retArray;
+	}
+
+	private int[] initIntArray(int initValue)
+	{
+		int[] retArray = new int[CresStreamCtrl.NumOfSurfaces];
+		for (int i = 0; i < CresStreamCtrl.NumOfSurfaces; i++)
+		{
+			retArray[i] = initValue;
+		}
+		return retArray;
+	}
+
+	private String[] initStringArray(String initValue)
+	{
+		String[] retArray = new String[CresStreamCtrl.NumOfSurfaces];
+		for (int i = 0; i < CresStreamCtrl.NumOfSurfaces; i++)
+		{
+			retArray[i] = initValue;
+		}
+		return retArray;
+	}
+	
+	private int[] initDeviceMode()
+	{
+		// Bug 105751: make default mode transmitter, other ids should be 0
+		int[] retArray = new int[CresStreamCtrl.NumOfSurfaces];
+		for (int i = 0; i < CresStreamCtrl.NumOfSurfaces; i++)
+		{
+			if (i == 0)
+				retArray[i] = 1;
+			else
+				retArray[i] = 0;
+		}
+		return retArray;
+	}
+	
+	private int[] initZOrder()
+	{
+		// Init z order with ascending z order values
+		int[] retArray = new int[CresStreamCtrl.NumOfSurfaces];
+		for (int i = 0; i < CresStreamCtrl.NumOfSurfaces; i++)
+		{
+			retArray[i] = i + 1;
+		}
+		return retArray;
+	}
+	
+	private VideoEncProfile[] initStreamProfile(VideoEncProfile initValue)
+	{
+		VideoEncProfile[] retArray = new VideoEncProfile[CresStreamCtrl.NumOfSurfaces];
+		for (int i = 0; i < CresStreamCtrl.NumOfSurfaces; i++)
+		{
+			retArray[i] = initValue;
+		}
+		return retArray;
+	}
+	
+	private CresStreamCtrl.StreamState[] initStreamState(CresStreamCtrl.StreamState initValue)
+	{
+		CresStreamCtrl.StreamState[] retArray = new CresStreamCtrl.StreamState[CresStreamCtrl.NumOfSurfaces];
+		for (int i = 0; i < CresStreamCtrl.NumOfSurfaces; i++)
+		{
+			retArray[i] = initValue;
+		}
+		return retArray;
+	}	
 
 	public String getDeviceIp() {
 		return deviceIp;

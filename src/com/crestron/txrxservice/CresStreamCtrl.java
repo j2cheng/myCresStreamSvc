@@ -99,7 +99,7 @@ public class CresStreamCtrl extends Service {
     public static Object saveSettingsLock = new Object();
     public static volatile boolean saveSettingsUpdateArrived = false;
 
-    public final static int NumOfSurfaces = 2;
+    public final static int NumOfSurfaces = 3;
     public volatile boolean restartStreamsOnStart = false;
     String TAG = "TxRx StreamCtrl";
     static String out_url="";
@@ -658,7 +658,8 @@ public class CresStreamCtrl extends Service {
     	else
     		surfaceHolder = dispSurface.GetSurfaceHolder(sessionId);
     	
-    	Log.d(TAG, String.format("returned surface holder %s", surfaceHolder.toString()));
+    	if (surfaceHolder != null)
+    		Log.d(TAG, String.format("returned surface holder %s", surfaceHolder.toString()));
     	
     	return surfaceHolder;
     }

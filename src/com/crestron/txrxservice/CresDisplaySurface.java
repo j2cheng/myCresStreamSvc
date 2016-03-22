@@ -58,18 +58,13 @@ public class CresDisplaySurface
         // TODO: Add ability to create multiple surfaces at different width and heigh
         // One way to do this is to create AddSurface and RemoveSurface functions
         // Adjust z-order as well
-        //for (int i = 0; i < numOfSurfaces; i++){
-            displaySurface[0] = new SurfaceView(svc);
+        for (int i = 0; i < CresStreamCtrl.NumOfSurfaces; i++){
+            displaySurface[i] = new SurfaceView(svc);
             viewLayoutParams = new RelativeLayout.LayoutParams(
                   windowWidth,
                   windowHeight);
-            parentlayout.addView(displaySurface[0], viewLayoutParams);
-            displaySurface[1] = new SurfaceView(svc);
-            viewLayoutParams = new RelativeLayout.LayoutParams(
-                  windowWidth,
-                  windowHeight);
-            parentlayout.addView(displaySurface[1], viewLayoutParams);
-        //}
+            parentlayout.addView(displaySurface[i], viewLayoutParams);
+        }
        
         //Setting WindowManager and Parameters with system overlay
         wmLayoutParams = new WindowManager.LayoutParams(windowWidth, windowHeight, WindowManager.LayoutParams.TYPE_SYSTEM_OVERLAY, 0, PixelFormat.TRANSLUCENT);
@@ -116,10 +111,10 @@ public class CresDisplaySurface
         
         /*old way of setting params*/
         
-        viewLayoutParams = new RelativeLayout.LayoutParams(width, height);
+	        viewLayoutParams = new RelativeLayout.LayoutParams(width, height);
         displaySurface[idx].setLayoutParams(viewLayoutParams);
-        
-    	forceLayoutInvalidation();
+	        
+	    	forceLayoutInvalidation();
     }
 
     public void UpdateCoordinates(int x, int y, int idx)
@@ -135,11 +130,11 @@ public class CresDisplaySurface
         
         /*old way of setting params*/
         
-        viewLayoutParams = new RelativeLayout.LayoutParams(viewLayoutParams);
-        viewLayoutParams.setMargins(x, y, 0, 0);
+	        viewLayoutParams = new RelativeLayout.LayoutParams(viewLayoutParams);
+	        viewLayoutParams.setMargins(x, y, 0, 0);
         displaySurface[idx].setLayoutParams(viewLayoutParams);
-        
-    	forceLayoutInvalidation();
+	        
+	    	forceLayoutInvalidation();
     }
 	/**
 	 * Force the invalidation of the layout
