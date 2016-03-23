@@ -10,7 +10,7 @@ import android.util.Log;
 
 public class UserSettings
 {
-	private final int CurrentVersionNumber = 1;
+	public final int CurrentVersionNumber = CresStreamCtrl.VersionNumber;
 	public enum VideoEncProfile 
 	{
 		BP(1), MP(2), HP(8);

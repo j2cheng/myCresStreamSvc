@@ -76,6 +76,7 @@ public class CresStreamCtrl extends Service {
     CameraStreaming cam_streaming;
     CameraPreview cam_preview;
     StringTokenizer tokenizer;
+    public static int VersionNumber = 2;
     
     public static boolean useGstreamer = true;
     StreamIn streamPlay = null;
@@ -385,6 +386,12 @@ public class CresStreamCtrl extends Service {
                 	String serializedClass = new Scanner(serializedClassFile, "US-ASCII").useDelimiter("\\A").next();
                 	try {
                 		userSettings = gson.fromJson(serializedClass, UserSettings.class);
+                		if (userSettings.CurrentVersionNumber < VersionNumber)
+						{
+                			wipeOutUserSettings = true;
+							Log.d(TAG, "Saved userSettings version too old, wiping settings, saved version: " 
+								+ userSettings.CurrentVersionNumber + " required version: " + VersionNumber);
+						}
                 	} catch (Exception ex) {
                 		Log.e(TAG, "Failed to deserialize userSettings: " + ex);
                 		useOldUserSettingsFile = true;
@@ -416,6 +423,12 @@ public class CresStreamCtrl extends Service {
 		            	String serializedClass = new Scanner(serializedOldClassFile, "US-ASCII").useDelimiter("\\A").next();
 		            	try {
 		            		userSettings = gson.fromJson(serializedClass, UserSettings.class);
+		            		if (userSettings.CurrentVersionNumber < VersionNumber)
+							{
+		            			wipeOutUserSettings = true;
+								Log.d(TAG, "Saved userSettings version too old, wiping settings, saved version: " 
+									+ userSettings.CurrentVersionNumber + " required version: " + VersionNumber);
+							}
 		            	} catch (Exception ex) {
 		            		Log.e(TAG, "Failed to deserialize userSettings.old: " + ex);
 		            		wipeOutUserSettings = true;
