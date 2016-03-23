@@ -509,7 +509,15 @@ public class CameraStreaming {
 				break;
 			
 			case 0:
+			{
+				// If input is not a valid resolution, just stream out at 640x480
+				if (streamCtl.hdmiInput.getResolutionIndex() == 0)
+				{
+					streamOutWidth = 640;
+					streamOutHeight = 480;
+				}
 				break;
+			}
 				
 			default:
 				break;
