@@ -365,6 +365,7 @@ public class CresStreamCtrl extends Service {
             
             boolean wipeOutUserSettings = false;
             boolean useOldUserSettingsFile = false;
+            boolean fixSettingsVersionMismatch = false;
             
             File restoreFlagFile = new File(restoreFlagFilePath);
             if (restoreFlagFile.isFile())
@@ -386,12 +387,8 @@ public class CresStreamCtrl extends Service {
                 	String serializedClass = new Scanner(serializedClassFile, "US-ASCII").useDelimiter("\\A").next();
                 	try {
                 		userSettings = gson.fromJson(serializedClass, UserSettings.class);
-                		if (userSettings.CurrentVersionNumber < VersionNumber)
-						{
-                			wipeOutUserSettings = true;
-							Log.d(TAG, "Saved userSettings version too old, wiping settings, saved version: " 
-								+ userSettings.CurrentVersionNumber + " required version: " + VersionNumber);
-						}
+                		if (userSettings.getVersionNum() < VersionNumber)
+                			fixSettingsVersionMismatch = true;
                 	} catch (Exception ex) {
                 		Log.e(TAG, "Failed to deserialize userSettings: " + ex);
                 		useOldUserSettingsFile = true;
@@ -423,12 +420,8 @@ public class CresStreamCtrl extends Service {
 		            	String serializedClass = new Scanner(serializedOldClassFile, "US-ASCII").useDelimiter("\\A").next();
 		            	try {
 		            		userSettings = gson.fromJson(serializedClass, UserSettings.class);
-		            		if (userSettings.CurrentVersionNumber < VersionNumber)
-							{
-		            			wipeOutUserSettings = true;
-								Log.d(TAG, "Saved userSettings version too old, wiping settings, saved version: " 
-									+ userSettings.CurrentVersionNumber + " required version: " + VersionNumber);
-							}
+		            		if (userSettings.getVersionNum() < VersionNumber)
+		            			fixSettingsVersionMismatch = true;
 		            	} catch (Exception ex) {
 		            		Log.e(TAG, "Failed to deserialize userSettings.old: " + ex);
 		            		wipeOutUserSettings = true;
@@ -459,6 +452,24 @@ public class CresStreamCtrl extends Service {
             	catch (Exception ex)
     			{
             		Log.e(TAG, "Could not create serialized class file: " + ex);
+    			}
+            }
+            else if (fixSettingsVersionMismatch)
+            {
+				// If version mismatch, create new userSettings with defaults and copy over all stored values (where possible)
+            	try
+            	{	            	
+	            	Log.d(TAG, "Saved userSettings version too old, upgrading settings, saved version: " 
+							+ userSettings.getVersionNum() + " required version: " + VersionNumber);
+            		UserSettings savedUserSettings = userSettings;
+            		userSettings = new UserSettings();	// Create new userSettings with default values           		
+            		UserSettings.fixVersionMismatch(savedUserSettings, userSettings); 	// Copy over previous values on top of defaults already set
+
+	            	saveUserSettings();
+            	}
+            	catch (Exception ex)
+    			{
+            		Log.e(TAG, "Could not upgrade userSettings: " + ex);
     			}
             }
             

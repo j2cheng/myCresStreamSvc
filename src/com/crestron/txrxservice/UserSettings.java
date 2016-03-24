@@ -1,8 +1,7 @@
 package com.crestron.txrxservice;
 
-import java.util.HashMap;
-import java.util.Map;
-
+import java.lang.reflect.Array;
+import java.lang.reflect.Field;
 import com.crestron.txrxservice.CresStreamCtrl.StreamState;
 import com.crestron.txrxservice.CresStreamCtrl.DeviceMode;
 
@@ -10,7 +9,6 @@ import android.util.Log;
 
 public class UserSettings
 {
-	public final int CurrentVersionNumber = CresStreamCtrl.VersionNumber;
 	public enum VideoEncProfile 
 	{
 		BP(1), MP(2), HP(8);
@@ -212,7 +210,7 @@ public class UserSettings
 	{
 //		MiscUtils.getDeviceIpAddr();
 		deviceIp 			= "0.0.0.0";//MiscUtils.matcher.group();
-		versionNum 			= CurrentVersionNumber;
+		versionNum 			= CresStreamCtrl.VersionNumber;
 		rtspPort 			= initIntArray(554);		
 		tsPort 				= initIntArray(4570);		
 		rtpVideoPort 		= initIntArray(49170);
@@ -265,6 +263,52 @@ public class UserSettings
 		multicastTTL		= 64;
 	}
 	
+	// If there is a version mismatch between current userSettings and the one loaded from file system
+	// Copy over user data while keeping all new data at default values
+	public static void fixVersionMismatch(UserSettings storedSettings, UserSettings currentSettings)
+	{
+		// Loop over all fields saved in storedSettings
+		for (Field storedField : storedSettings.getClass().getDeclaredFields()) 
+		{
+			if (!storedField.getName().equals("versionNum")) // Do not replace new versionNum with previous value
+			{
+				try {
+					Field updatedField = currentSettings.getClass().getDeclaredField(storedField.getName());
+
+					if (storedField.getType() == updatedField.getType())	//make sure both fields are of same type
+					{
+						updatedField.setAccessible(true); // Allow modifying private fields
+
+						// If object is array copy, else use set function
+						if (updatedField.getType().isArray())
+						{
+							int length = 0;
+							Object storedArray = storedField.get(storedSettings);
+							Object currentArray = updatedField.get(currentSettings);
+							if (Array.getLength(currentArray) < Array.getLength(storedArray)) // make sure we aren't copying more than we have stored
+								length = Array.getLength(currentArray);
+							else
+								length = Array.getLength(storedArray);
+							System.arraycopy(storedArray, 0, updatedField.get(currentSettings), 0, length);
+						}
+						else
+						{
+							Object fieldValue = storedField.get(storedSettings);
+							updatedField.set(currentSettings,fieldValue);
+						}
+
+						updatedField.setAccessible(false); // Disallow modifying private fields
+					}
+				}
+				catch (NoSuchFieldException e) {} //Field doesn't exist, move on to next field
+				catch (Exception e)
+				{
+					Log.e("UserSettings", "Failed to copy over field " + storedField.getName() + "! " + e); //TODO: make better
+				} 
+			}
+		}
+	}
+
 	private boolean[] initBoolArray(boolean initValue)
 	{
 		boolean[] retArray = new boolean[CresStreamCtrl.NumOfSurfaces];
@@ -339,6 +383,10 @@ public class UserSettings
 		}
 		return retArray;
 	}	
+	
+	public int getVersionNum() {
+		return versionNum;
+	}
 
 	public String getDeviceIp() {
 		return deviceIp;
