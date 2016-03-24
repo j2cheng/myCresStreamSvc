@@ -1138,6 +1138,9 @@ public class CresStreamCtrl extends Service {
             
             if (mode == DeviceMode.STREAM_OUT.ordinal())
             {
+            	// Bug 109256: send bitrate when changing to streamout mode
+            	sockTask.SendDataToAllClients("VBITRATE=" + String.valueOf(userSettings.getBitrate(sessionId)));
+            	
             	// we want confidence image up for stream out, until streamout is actually started
             	stopStartLock[sessionId].lock();
             	Log.d(TAG, "Start " + sessionId + " : Lock");
@@ -1956,10 +1959,6 @@ public class CresStreamCtrl extends Service {
     	userSettings.setEncodingFramerate(vfr, sessId);
     } 
     
-    public void setVbitRate(int vbr, int sessId){
-    	userSettings.setBitrate(vbr, sessId);	
-    } 
-    
     public void setRTSPPort(int _port, int sessId){
     	userSettings.setRtspPort(_port, sessId);	
     }
@@ -2026,7 +2025,7 @@ public class CresStreamCtrl extends Service {
         //Toast.makeText(this, "StreamOut Started", Toast.LENGTH_LONG).show();
                
         sb.append("STREAMURL=").append(out_url);
-        sockTask.SendDataToAllClients(sb.toString());
+        sockTask.SendDataToAllClients(sb.toString());        
     }
 
     public void stopStreamOut(int sessId, boolean fullStop)

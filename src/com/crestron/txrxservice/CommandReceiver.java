@@ -561,7 +561,10 @@ public class CommandReceiver {
     }
     
     public String getBitrate(int sessId){
-    	return Integer.toString(ctl.userSettings.getBitrate(sessId));
+    	if (ctl.userSettings.getMode(sessId) == DeviceMode.STREAM_IN.ordinal())
+    		return Integer.toString(ctl.streamPlay.getStreamInBitrate());
+    	else
+    		return Integer.toString(ctl.userSettings.getBitrate(sessId));
     }
 
     public String getMulticastIpAddress(int sessId){
