@@ -27,6 +27,7 @@ public class GstreamIn implements StreamInStrategy, SurfaceHolder.Callback {
     private int statisticsNumAudioPacketsDropped = 0;
     private int statisticsBitrate = 0;
     private final int stopTimeout_sec = 30;
+    private boolean isPlaying = false;
 
 
     private native void nativeInit();     // Initialize native code, build pipeline, etc
@@ -266,6 +267,7 @@ public class GstreamIn implements StreamInStrategy, SurfaceHolder.Callback {
     		updateNativeDataStruct(sessionId);
     		nativeSurfaceInit(sh.getSurface(), sessionId);
     		nativePlay(sessionId);
+    		isPlaying = true;
     	}
     	catch(Exception e){
         	// TODO: explore exception handling with better feedback of what went wrong to user
@@ -283,6 +285,7 @@ public class GstreamIn implements StreamInStrategy, SurfaceHolder.Callback {
     	Log.d(TAG, "Stopping MediaPlayer");
         //nativeSurfaceFinalize (sessionId);should be called in surfaceDestroyed()
         nativeStop(sessionId);
+        isPlaying = false;
     }
     
     private void updateNativeDataStruct(int sessionId)
@@ -326,10 +329,16 @@ public class GstreamIn implements StreamInStrategy, SurfaceHolder.Callback {
 //        return aspect;
 //    }
     public int getMediaPlayerAudioFormatFb(){
-        return 1;//TODO
+    	if (isPlaying)
+    		return 1;//TODO
+    	else
+    		return 0;
     }
     public int getMediaPlayerAudiochannelsFb(){
-        return 2;//TODO
+    	if (isPlaying)
+    		return 2;//TODO
+    	else
+    		return 0;
     }
 
     protected void onDestroy() {
