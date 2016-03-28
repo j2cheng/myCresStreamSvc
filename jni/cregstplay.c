@@ -370,11 +370,6 @@ static void ts_demux_post_process_callback (GstElement *src, gpointer pesPrivate
 	guint8 inputCtr[8] = {0};
 	guint8 streamCtr[4] = {0};
 
-	CSIO_LOG(eLogLevel_error, "RS: ts_demux_post_process_callback: pesPrivateData = %#08x, pesPayload = %#08x, pesPayloadLength = %u",
-				pesPrivateData,
-				pesPayload,
-				pesPayloadLength);
-
 	//Do nothing if hdcp is disabled, no post processing required, or if input data invalid
 	if (!data->doHdcp)
 		return;
