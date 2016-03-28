@@ -1849,6 +1849,19 @@ void csio_jni_InitPipeline(eProtocolId protoId, int iStreamId,GstRTSPLowerTrans 
 	// Reset TS flag
 	data->mpegtsPresent = FALSE;
 
+	// Read if we should do HDCP decryption, TODO: this will be commanded from CSIO through join eventually
+	data->doHdcp = FALSE;
+	int hdcpEncrypt = (int)data->doHdcp;
+	FILE * hdcpEncryptFile = fopen("/dev/shm/crestron/CresStreamSvc/HDCPEncrypt", "r");
+	// Check if user set hdcp encrypt value
+	if (hdcpEncryptFile != NULL)
+	{
+		fscanf(hdcpEncryptFile, "%d", &hdcpEncrypt);
+		fclose(hdcpEncryptFile);
+	}
+	data->doHdcp = (gboolean)!!hdcpEncrypt;
+
+
 	switch( protoId )
 	{
 		case ePROTOCOL_RTSP_TCP:

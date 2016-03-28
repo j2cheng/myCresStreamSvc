@@ -62,6 +62,12 @@ ifeq ($(TARGET_PRODUCT),$(filter $(TARGET_PRODUCT),yushan_one ))
 LOCAL_CFLAGS += -DBIONIC_HAS_STPCPY
 endif
 
+ifeq ($(TARGET_PRODUCT),$(filter $(TARGET_PRODUCT),full_omap5panda)) #All products which support HDCP 2X encryption need this flag
+LOCAL_SHARED_LIBRARIES += libHdcp2xEncryptApi
+LOCAL_CFLAGS += -I$(CRESTRON_ROOT)/Hdcp2x/HDCP2xEncryptAPI
+LOCAL_CFLAGS += -DSupportsHDCPEncryption
+endif
+
 LOCAL_MODULE_TAGS := eng
 LOCAL_PRELINK_MODULE := false
 include $(BUILD_SHARED_LIBRARY)

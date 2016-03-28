@@ -45,6 +45,9 @@
 #include "cregstplay.h"
 #include "csio_jni_if.h"
 #include <gst/net/gstnetaddressmeta.h>
+#ifdef SupportsHDCPEncryption
+	#include "HDCP2xEncryptAPI.h"
+#endif
 ///////////////////////////////////////////////////////////////////////////////
 
 extern int g_using_glimagsink;
@@ -343,6 +346,77 @@ int build_metadata_pipeline(CREGSTREAM *data, GstElement **sink)
 }
 
 /**
+ * \author      Robert Secco
+ *
+ * \date        3/25/2016
+ *
+ * \return      void
+ *
+ * \retval      void
+ *
+ * \brief       Handle HDCP decryption through this signal, pass back buffer decrypted
+ *
+ * \param		src - appsink element
+ * \param		pesPrivateData - pointer to PES private data
+ * \param		pesPayload - pointer to PES payload data
+ * \param		pesPayloadLength - length of PES payload
+ * \param		data - pointer to custom data structure     *
+ */
+static void ts_demux_post_process_callback (GstElement *src, gpointer pesPrivateData, gpointer pesPayload, guint pesPayloadLength, CREGSTREAM *data)
+{
+//#define ALIGN_ENCRYPT_MASK(x, mask)  (((x) + (mask)) & ~(mask))
+//#define ALIGN_ENCRYPT(x, a)       ALIGN_ENCRYPT_MASK(x, (typeof(x))(a) - 1)
+	guint8 * pPrivateData = (guint8 *)pesPrivateData;
+	guint8 inputCtr[8] = {0};
+	guint8 streamCtr[4] = {0};
+
+	CSIO_LOG(eLogLevel_error, "RS: ts_demux_post_process_callback: pesPrivateData = %#08x, pesPayload = %#08x, pesPayloadLength = %u",
+				pesPrivateData,
+				pesPayload,
+				pesPayloadLength);
+
+	//Do nothing if hdcp is disabled, no post processing required, or if input data invalid
+	if (!data->doHdcp)
+		return;
+	else if ((pesPayloadLength == 0) || (pesPayload == NULL) || (pesPrivateData == NULL))
+	{
+		CSIO_LOG(eLogLevel_warning, "ts-demux post process failed: invalid parameters");
+		return;	
+	}
+
+	// TODO: add error message
+
+	// Parse inputCtr and streamCtr from PES private data
+	inputCtr[0] =  (pPrivateData[1] << 7) | (pPrivateData[0] >> 1);
+	inputCtr[1] =  ((pPrivateData[2] >> 1) << 7) | (pPrivateData[1] >> 1);
+
+	inputCtr[2] =  (pPrivateData[3] << 6) | (pPrivateData[2] >> 2);
+	inputCtr[3] =  ((pPrivateData[4] >> 1) << 6) | (pPrivateData[3] >> 2);
+
+
+	inputCtr[4] =  (pPrivateData[5] << 5) | (pPrivateData[4] >> 3);
+	inputCtr[5] =  ((pPrivateData[6] >> 1) << 5) | (pPrivateData[5] >> 3);
+
+	inputCtr[6] =  (pPrivateData[7] << 4) | (pPrivateData[6] >> 4);
+	inputCtr[7] =  ((pPrivateData[8] >> 1) << 4) | (pPrivateData[7] >> 4);
+
+
+	streamCtr[0] =  (pPrivateData[11] << 7) | (pPrivateData[10] >> 1);
+	streamCtr[1] =  ((pPrivateData[12] >> 1) << 7) | (pPrivateData[11] >> 1);
+
+	streamCtr[2] =  (pPrivateData[13] << 6) | (pPrivateData[12] >> 2);
+	streamCtr[3] =  ((pPrivateData[14] >> 1) << 6) | (pPrivateData[13] >> 2);
+
+#ifdef SupportsHDCPEncryption
+      int  err = do_decrypt (pesPayload, pesPayload , pesPayloadLength, &(inputCtr[0]), &(streamCtr[0]));
+      if(err != 0)
+      {
+    	  CSIO_LOG(eLogLevel_warning, "Decrypt-failed: failed to decrypt :%d", err);
+      }
+#endif
+}
+
+/**
  * \author      Pete McCormick
  *
  * \date        4/23/2015
@@ -455,6 +529,10 @@ int build_video_pipeline(gchar *encoding_name, CREGSTREAM *data, unsigned int st
 			gst_element_link(data->element_v[i-1], data->element_v[i]);
 		}
 		g_signal_connect(data->element_v[i], "pad-added", G_CALLBACK(pad_added_callback2), data);
+	
+		// We will only do HDCP encryption in RTSP modes so only add callback here
+		if (data->doHdcp)
+			g_signal_connect(data->element_v[i], "post-process", G_CALLBACK(ts_demux_post_process_callback), data);
 		i++;
 		data->element_after_tsdemux = i;
 		do_window = 0;
