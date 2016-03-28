@@ -1936,7 +1936,7 @@ public class CresStreamCtrl extends Service {
     } 
     
     public void sendInitiatorFbAddress(String ip, int sessId){
-    	sockTask.SendDataToAllClients("INITIATOR_ADDRESS=" + ip);
+    	sockTask.SendDataToAllClients("INITIATOR_ADDRESS_FB=" + ip);
     }
 
     public void sendMulticastIpAddress(String ip, int sessId){
