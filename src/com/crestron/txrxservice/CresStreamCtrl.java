@@ -499,6 +499,7 @@ public class CresStreamCtrl extends Service {
         		Log.d(TAG, "HDMI input driver is NOT present");
 
         	refreshOutputResolution();
+        	sendHdmiOutSyncState(); // Send out initial hdmi out resolution info
 
             // Create a DisplaySurface to handle both preview and stream in
         	dispSurface = new CresDisplaySurface(this, 1920, 1200); // set to max output resolution
