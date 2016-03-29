@@ -100,7 +100,7 @@ public class MiscUtils {
 			writer.write(stringToWrite);
 		    writer.flush();
 	    } 
-      	catch (IOException ex) {
+      	catch (Exception ex) {
     	  Log.e(TAG, "Failed to write to file " + filePath + " : " + ex);
     	} 
 		finally 
