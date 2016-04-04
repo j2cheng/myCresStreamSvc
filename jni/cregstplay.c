@@ -452,8 +452,8 @@ int build_video_pipeline(gchar *encoding_name, CREGSTREAM *data, unsigned int st
         {
 			g_object_set(G_OBJECT(data->element_v[i - 1]),
 						"leaky", (gint)2,					//GST_QUEUE_LEAK_DOWNSTREAM
-						"max-size-bytes", (guint)0,
-						"max-size-buffers", (guint)50000, //25000
+						"max-size-bytes", (guint)16*1024*1024, //16 Mb of buffer
+						"max-size-buffers", (guint)0,
 						"max-size-time", (guint64)0ll,
 						"silent", (gboolean)TRUE,
 						NULL);
@@ -499,8 +499,8 @@ int build_video_pipeline(gchar *encoding_name, CREGSTREAM *data, unsigned int st
 		data->element_v[i] = gst_element_factory_make("queue", NULL);
 		g_object_set(G_OBJECT(data->element_v[i]),
 					"leaky", (gint)2,					//GST_QUEUE_LEAK_DOWNSTREAM
-					"max-size-bytes", (guint)0,
-					"max-size-buffers", (guint)50000,	// Extra big because of high latency in tsdemux
+					"max-size-bytes", (guint)16*1024*1024, //16 Mb of buffer
+					"max-size-buffers", (guint)0,
 					"max-size-time", (guint64)0ll,
 					"silent", (gboolean)TRUE,
 					NULL);
@@ -690,8 +690,8 @@ int build_audio_pipeline(gchar *encoding_name, CREGSTREAM *data, int do_rtp,GstE
 	    data->element_a[i++] = gst_element_factory_make("queue", NULL);
 	    g_object_set(G_OBJECT(data->element_a[i - 1]),
 	    		"leaky", (gint)2,					//GST_QUEUE_LEAK_DOWNSTREAM
-	    		"max-size-bytes", (guint)0,
-				"max-size-buffers", (guint)50000, //25000
+	    		"max-size-bytes", (guint)16*1024*1024, //16 Mb of buffer
+				"max-size-buffers", (guint)0,
 				"max-size-time", (guint64)0ll,
 				"silent", (gboolean)TRUE,
 				NULL);

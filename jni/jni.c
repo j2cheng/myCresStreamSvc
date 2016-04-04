@@ -1878,7 +1878,8 @@ void csio_jni_InitPipeline(eProtocolId protoId, int iStreamId,GstRTSPLowerTrans 
 			//g_object_set(G_OBJECT(data->element_zero), "port-range", "5001-65535", NULL);
 			data->protocols = tcpModeFlags;
 			g_object_set(G_OBJECT(data->element_zero), "protocols", data->protocols, NULL);
-
+			g_object_set(G_OBJECT(data->element_zero), "udp-buffer-size", 26214400, NULL); // setting udp buffer to 25 Mb
+			
 			// video part
 			data->video_sink = NULL;
 			break;
