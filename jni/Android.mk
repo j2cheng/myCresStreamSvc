@@ -31,6 +31,7 @@ CPP_INC_PATH := $(CRESTRON_ROOT)/../../bionic
 LOCAL_SHARED_LIBRARIES := libgstreamer_android liblog libandroid
 LOCAL_SHARED_LIBRARIES += libproductName
 LOCAL_SHARED_LIBRARIES += libLinuxUtil
+LOCAL_SHARED_LIBRARIES += libCresSocketHandler
 
 
 # Crestron - why do I have to do this?
@@ -47,6 +48,7 @@ LOCAL_CFLAGS +=\
 	-I$(CRESTRON_ROOT)/common/include \
 	-I$(CRESTRON_ROOT)/cipclientd/include \
 	-I$(CRESTRON_ROOT)/libiplinkclientwrapper/include \
+	-I$(CRESTRON_ROOT)/libCresSocketHandler \
 	-I$(CRESTRON_ROOT)/productNameUtil \
 	-I$(CRESTRON_ROOT)/Include/External \
 	-I$(CRESTRON_ROOT)/MJPEGPlayer \

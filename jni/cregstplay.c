@@ -45,6 +45,7 @@
 #include "cregstplay.h"
 #include "csio_jni_if.h"
 #include <gst/net/gstnetaddressmeta.h>
+#include "socketHandler.h"
 #ifdef SupportsHDCPEncryption
 	#include "HDCP2xEncryptAPI.h"
 #endif
@@ -52,6 +53,7 @@
 
 extern int g_using_glimagsink;
 
+void *sockInst;//Generic instance, get socket class instance
 ///////////////////////////////////////////////////////////////////////////////
 
 // Write stride value to a file so that gstreamer base libraries can use it.
@@ -301,7 +303,6 @@ void insert_udpsrc_probe(CREGSTREAM *data,GstElement *element,const gchar *name)
 static void on_sample_callback_meta (GstElement *src, GstPad *new_pad, CREGSTREAM *data) 
 {
 
-    CSIO_LOG(eLogLevel_debug, "on receive metadata");
     GstSample *sample;
     GstBuffer *csio_buffer, *metadataBuffer;
 
@@ -313,8 +314,10 @@ static void on_sample_callback_meta (GstElement *src, GstPad *new_pad, CREGSTREA
     csio_buffer = gst_buffer_copy (metadataBuffer);
 
     gsize metaDataSize = gst_buffer_get_size (csio_buffer);
-    CSIO_LOG(eLogLevel_debug, "metadata size %d", metaDataSize);
-
+    if(sockInst)
+        socketSend(sockInst, metadataBuffer, metaDataSize, 0, false);
+        CSIO_LOG(eLogLevel_verbose, "sending metadata size %d", metaDataSize);{
+    }
     /* we don't need the appsink sample anymore */
     gst_sample_unref (sample);
 }
@@ -334,8 +337,13 @@ static void on_sample_callback_meta (GstElement *src, GstPad *new_pad, CREGSTREA
  * \param		sink - pointer to custom data structure      
  * 
  */
+#define META_SERVICE_PORT (9872)
 int build_metadata_pipeline(CREGSTREAM *data, GstElement **sink)
 {
+    sockInst = getSocketInstance();
+    if(sockInst){
+        socketConnect(sockInst,"127.0.0.1", META_SERVICE_PORT, 0);
+    }
     CSIO_LOG(eLogLevel_debug, "creating metdata pipeline with appsink");
     data->app_sink = gst_element_factory_make("appsink", NULL);
     gst_bin_add(GST_BIN(data->pipeline), data->app_sink);
@@ -345,6 +353,27 @@ int build_metadata_pipeline(CREGSTREAM *data, GstElement **sink)
     return CSIO_SUCCESS;
 }
 
+/**
+ * \author      Suresh Kumar
+ *
+ * \date        3/07/2016
+ *
+ * \return      void
+ *
+ * \retval      void
+ *
+ * \brief       closes the socket connections for metadata sending on reception
+ * 
+ */
+void clearMetadataConnections()
+{
+    if(sockInst){
+        CSIO_LOG(eLogLevel_verbose, "deleting socketInstance for sending metadata");
+        socketDisconnect(sockInst);
+        delSocketInstance(sockInst);
+        sockInst = NULL;
+    }
+}
 /**
  * \author      Robert Secco
  *

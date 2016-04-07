@@ -1560,6 +1560,8 @@ void csio_jni_FreeMainContext(int iStreamId)
         g_main_context_unref (data->context);
         data->context = NULL;
 	}
+
+        clearMetadataConnections();
 }
 
 void csio_jni_CheckInitializationComplete(int iStreamId)

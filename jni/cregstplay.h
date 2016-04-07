@@ -182,6 +182,7 @@ extern void csio_jni_printFieldDebugInfo();
 //extern void *app_function (void *userdata);
 //extern void set_ui_message (const gchar *message, CustomData *data);
 //extern void check_initialization_complete (CustomData *data, int stream);
+void clearMetadataConnections();
 extern void init_custom_data(CustomData * cdata);
 extern int build_audio_pipeline(gchar *encoding_name, CREGSTREAM *data, int do_rtp,GstElement **ele0,GstElement **sink);
 extern int build_video_pipeline(gchar *encoding_name, CREGSTREAM *data, unsigned int start, int do_rtp,GstElement **ele0,GstElement **sink);
