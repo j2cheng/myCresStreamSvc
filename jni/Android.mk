@@ -53,6 +53,7 @@ LOCAL_CFLAGS +=\
 	-I$(CRESTRON_ROOT)/Include/External \
 	-I$(CRESTRON_ROOT)/MJPEGPlayer \
 	-I$(CSIO_INCLUDE_ROOT) \
+        -I$(CSIO_INCLUDE_ROOT)/crestHdcp \
 	-I$(CSIO_INCLUDE_ROOT)/txrx \
 	-I$(CSIO_INCLUDE_ROOT)/url_parser \
 	-I$(CSIO_INCLUDE_ROOT)/gstreamer-1.0 \
