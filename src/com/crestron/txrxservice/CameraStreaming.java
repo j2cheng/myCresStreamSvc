@@ -136,12 +136,12 @@ public class CameraStreaming {
 		        	CresCamera.mCamera.unlock();
 		            mrec.setCamera(CresCamera.mCamera);
 		
+		            mrec.setAudioSamplingRate(audioSampleRate);
 		            mrec.setAudioSource(MediaRecorder.AudioSource.MIC);
 		            mrec.setVideoSource(MediaRecorder.VideoSource.CAMERA);		            
                             Log.d(TAG, "selected mode is " + getStreamTransportMode());
 		            ProductSpecific.setStreamTransportMode(mrec, getStreamTransportMode());
-		            mrec.setAudioSamplingRate(audioSampleRate);
-		            
+		            		            
 		            //Set Port
 		            int l_port;
 		            int currentSessionInitiation = streamCtl.userSettings.getSessionInitiation(idx);
