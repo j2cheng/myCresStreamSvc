@@ -148,6 +148,18 @@ public class CameraStreaming {
 		            int currentTransportMode = streamCtl.userSettings.getTransportMode(idx);
 		            if ((currentSessionInitiation == 0) || (currentSessionInitiation == 2)) //Multicast via RTSP or By Receiver
 		            {
+                                if(streamCtl.userSettings.isPasswordEnable(idx) && !(streamCtl.userSettings.isPasswordDisable(idx)))
+                                {
+                                    Log.d(TAG, "Auth Enabled " );
+                                    ProductSpecific.setRtspAuthentication(mrec, 1);
+                                    ProductSpecific.setRtspSessionUserName(mrec, streamCtl.userSettings.getUserName(idx));
+                                    ProductSpecific.setRtspSessionPassword(mrec, streamCtl.userSettings.getPassword(idx));
+                                }
+                                else{
+                                    Log.d(TAG, "Auth Disabled " );
+                                    ProductSpecific.setRtspAuthentication(mrec, 0);
+                                }
+
 		            	if(streamCtl.userSettings.getProxyEnable(idx))
                         {
 		            		l_port = streamCtl.userSettings.getInternalRtspPort(idx);

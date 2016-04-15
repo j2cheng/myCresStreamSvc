@@ -35,6 +35,21 @@ public class ProductSpecific
 		mrec.setRtspSessionName(sessionName);
 	}
 	
+	public static void setRtspSessionUserName(MediaRecorder mrec, String userName)
+	{
+		mrec.setRtspSessionUserName(userName);
+	}
+
+	public static void setRtspSessionPassword(MediaRecorder mrec, String password)
+	{
+		mrec.setRtspSessionPassword(password);
+	}
+	
+	public static void setRtspAuthentication(MediaRecorder mrec, int authMode)
+	{
+		mrec.setRtspAuthentication(authMode);
+	}
+	
 	public static void setRTPAudioPort(MediaRecorder mrec, int port)
 	{
 		mrec.setRTPAudioPort(port);
