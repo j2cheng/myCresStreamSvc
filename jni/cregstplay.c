@@ -780,18 +780,28 @@ int build_audio_pipeline(gchar *encoding_name, CREGSTREAM *data, int do_rtp,GstE
         data->element_audiorate = data->element_a[i++];
         guint64 tmp = 80000000;
         g_object_set(G_OBJECT(data->element_a[i-1]), "tolerance", tmp, NULL);
-    }	
+	}
 
 	data->element_a[i++] = gst_element_factory_make("audioconvert", NULL);
-   data->element_a[i++] = gst_element_factory_make("audioresample", NULL);
-   //add a probe for loss of audio detection.  Probe fires as long as buffers continue to push
-   //onto on source pad.
-   GstPad *pad;
-   pad = gst_element_get_static_pad( data->element_a[i-1], "src" );
-   if( pad != NULL )
-   {
-	   guint audio_probe_id = gst_pad_add_probe( pad, GST_PAD_PROBE_TYPE_BUFFER, csio_audioProbe, (void *) &data->streamId, NULL );
-	   csio_SetAudioProbeId(data->streamId, audio_probe_id);
+	data->element_a[i++] = gst_element_factory_make("audioresample", NULL);
+	data->element_a[i++] = gst_element_factory_make("capsfilter", NULL);
+
+	// AudioFlinger cannot resample properly, so set caps to force gstreamer to do the resample
+	gchar *capsstr = g_strdup_printf ("audio/x-raw, rate=(int)%d", (gint)product_info()->output_audio_samplerate);
+	GstCaps *caps = gst_caps_from_string (capsstr);
+	g_free (capsstr);
+	g_object_set (G_OBJECT(data->element_a[i - 1]), "caps", caps, NULL);
+	gst_caps_unref (caps);
+
+
+	//add a probe for loss of audio detection.  Probe fires as long as buffers continue to push
+	//onto on source pad.
+	GstPad *pad;
+	pad = gst_element_get_static_pad( data->element_a[i-1], "src" );
+	if( pad != NULL )
+	{
+		guint audio_probe_id = gst_pad_add_probe( pad, GST_PAD_PROBE_TYPE_BUFFER, csio_audioProbe, (void *) &data->streamId, NULL );
+		csio_SetAudioProbeId(data->streamId, audio_probe_id);
 	   gst_object_unref( pad );
    }
 	num_elements = i-start;
@@ -1066,15 +1076,14 @@ void init_custom_data(CustomData * cdata)
 			NULL );
 
 		data->caps_a_rtp = gst_caps_new_simple  (
-			"application/x-rtp",
-			"media",        G_TYPE_STRING, "audio",
-			"clock-rate",   G_TYPE_INT,     48000,
-			"encoding-name",G_TYPE_STRING, "MPEG4-GENERIC",
-			"config",G_TYPE_STRING, "1210",
-			"sizelength",G_TYPE_STRING, "13",
-			"streamtype",G_TYPE_STRING, "4",
-			"mode",G_TYPE_STRING, "generic",
-			NULL);
+				"application/x-rtp",
+				"media",        G_TYPE_STRING, 	"audio",
+				"clock-rate",   G_TYPE_INT,     48000,
+				"encoding-name",G_TYPE_STRING, 	"MPEG4-GENERIC",
+				"mode",			G_TYPE_STRING,	"AAC-hbr",
+				"config",		G_TYPE_STRING, 	"1190",
+				"sizelength",	G_TYPE_STRING, 	"13",
+				NULL);
 
 		// This is if there's ts encapsulation.
 		data->caps_v_ts = gst_caps_new_simple(

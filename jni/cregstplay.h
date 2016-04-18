@@ -25,6 +25,7 @@ GST_DEBUG_CATEGORY_STATIC (debug_category);
 #define DEFAULT_AMCVIDDEC_TS_OFFSET 0//in ms
 #define DEFAULT_MIN_STRING_BUFFER 25//in ms
 #define DEFAULT_MAX_STRING_BUFFER 5000//in ms
+#define DEFAULT_UDP_BUFFER 15728640 //in bytes (15 Mb)
 //#define INSERT_SF_SINK 1
 ///////////////////////////////////////////////////////////////////////////////
 #define TIMEOUT_TIME 1000   //for 1s

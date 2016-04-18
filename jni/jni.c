@@ -1880,7 +1880,7 @@ void csio_jni_InitPipeline(eProtocolId protoId, int iStreamId,GstRTSPLowerTrans 
 			//g_object_set(G_OBJECT(data->element_zero), "port-range", "5001-65535", NULL);
 			data->protocols = tcpModeFlags;
 			g_object_set(G_OBJECT(data->element_zero), "protocols", data->protocols, NULL);
-			g_object_set(G_OBJECT(data->element_zero), "udp-buffer-size", 26214400, NULL); // setting udp buffer to 25 Mb
+			g_object_set(G_OBJECT(data->element_zero), "udp-buffer-size", DEFAULT_UDP_BUFFER, NULL);
 			
 			// video part
 			data->video_sink = NULL;
@@ -1892,18 +1892,33 @@ void csio_jni_InitPipeline(eProtocolId protoId, int iStreamId,GstRTSPLowerTrans 
 			break;
 
 		case ePROTOCOL_UDP_TS:
+			if (currentSettingsDB->videoSettings[iStreamId].tsEnabled==STREAM_TRANSPORT_MPEG2TS_RTP)
+				g_object_set(G_OBJECT(data->element_av[0]), "buffer-size", DEFAULT_UDP_BUFFER, NULL);
+			else if(currentSettingsDB->videoSettings[iStreamId].tsEnabled==STREAM_TRANSPORT_MPEG2TS_UDP)
+				g_object_set(G_OBJECT(data->element_zero), "buffer-size", DEFAULT_UDP_BUFFER, NULL);
+
 			break;
 
 		case ePROTOCOL_UDP:
 		{
+			g_object_set(G_OBJECT(data->element_av[0]), "buffer-size", DEFAULT_UDP_BUFFER, NULL);
+			if(!debug_blocking_audio)
+				g_object_set(G_OBJECT(data->element_av[1]), "buffer-size", DEFAULT_UDP_BUFFER, NULL);
 			//CSIO_LOG(eLogLevel_debug, "ePROTOCOL_UDP pass\n");
 			break;
 		}
 		case ePROTOCOL_MULTICAST_TS:
+			if (currentSettingsDB->videoSettings[iStreamId].tsEnabled==STREAM_TRANSPORT_MPEG2TS_RTP)
+				g_object_set(G_OBJECT(data->element_av[0]), "buffer-size", DEFAULT_UDP_BUFFER, NULL);
+			else if(currentSettingsDB->videoSettings[iStreamId].tsEnabled==STREAM_TRANSPORT_MPEG2TS_UDP)
+				g_object_set(G_OBJECT(data->element_zero), "buffer-size", DEFAULT_UDP_BUFFER, NULL);
 			break;
 
 		case ePROTOCOL_MULTICAST:
 		{
+			g_object_set(G_OBJECT(data->element_av[0]), "buffer-size", DEFAULT_UDP_BUFFER, NULL);
+			if(!debug_blocking_audio)
+				g_object_set(G_OBJECT(data->element_av[1]), "buffer-size", DEFAULT_UDP_BUFFER, NULL);
 			//CSIO_LOG(eLogLevel_debug, "ePROTOCOL_MULTICAST pass\n");
 			break;
 		}
