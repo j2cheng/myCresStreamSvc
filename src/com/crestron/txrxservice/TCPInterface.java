@@ -96,7 +96,9 @@ public class TCPInterface extends AsyncTask<Void, Object, Long> {
     {
     	try
     	{
-    		clientList.remove(clientThread);
+    		synchronized (serverLock) {
+    			clientList.remove(clientThread);
+    		}
     	}
     	catch (Exception e)
     	{
@@ -111,16 +113,18 @@ public class TCPInterface extends AsyncTask<Void, Object, Long> {
      */
     public void SendDataToAllClients(String data)
     {
-    	// First make sure that thread exists and then send out the data
-        for (ListIterator<CommunicationThread> iter = clientList.listIterator(clientList.size()); iter.hasPrevious();)
-        {
-        	CommunicationThread thread = iter.previous();
-        	if (thread != null)
-        	{
-        		thread.SendDataToClient(data);
-        	}
-        }
-
+    	synchronized(serverLock)
+    	{
+	    	// First make sure that thread exists and then send out the data
+	        for (ListIterator<CommunicationThread> iter = clientList.listIterator(clientList.size()); iter.hasPrevious();)
+	        {
+	        	CommunicationThread thread = iter.previous();
+	        	if (thread != null)
+	        	{
+	        		thread.SendDataToClient(data);
+	        	}
+	        }
+    	}
     }
     
     private void restartStreams(TCPInterface serverHandler)
@@ -197,7 +201,9 @@ public class TCPInterface extends AsyncTask<Void, Object, Long> {
                 Log.d(TAG, "Client connected to clientSocket: " + clientSocket.toString());
                 connectionAlive = true;//New Client Connected
                 CommunicationThread commThread = new CommunicationThread(clientSocket, this);
-                clientList.add(commThread);
+                synchronized (serverLock) {
+                	clientList.add(commThread);
+				}                
                 new Thread(commThread).start();
                 
                 // Wait until CresStreamCtl signals that is ok to start processing join queue
@@ -402,11 +408,8 @@ public class TCPInterface extends AsyncTask<Void, Object, Long> {
 	        	        {
 	        	    		tmp_str = parserInstance.processReceivedMessage(receivedMsg); 
 	        	        	
-	        		        try {
-	        		        	synchronized(serverLock)
-	        		        	{
-	        		        		server.SendDataToAllClients(tmp_str);
-	        		        	}
+	        		        try {	        		        	
+        		        		server.SendDataToAllClients(tmp_str);	        		        	
 	        		        } catch (Exception e) {
 	        		            e.printStackTrace();
 	        		        }
