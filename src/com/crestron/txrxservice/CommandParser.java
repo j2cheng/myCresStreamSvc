@@ -21,6 +21,7 @@ public class CommandParser {
         VENCPROFILE,
         STREAMURL,
         PROXYENABLE,
+        HDCPENCRYPT,
         INTERNAL_RTSPPORT,
         RTSPPORT,
         TSPORT,
@@ -287,6 +288,9 @@ public class CommandParser {
                 break;
             case PROXYENABLE:
                 cmd = new ProxyEnableCommand(cmdRx, arg, idx); 
+                break;
+            case HDCPENCRYPT:
+                cmd = new HdcpEncryptCommand(cmdRx, arg, idx); 
                 break;
             case INTERNAL_RTSPPORT:
                 cmd = new InternalRtspPortCommand(cmdRx, arg, idx); 

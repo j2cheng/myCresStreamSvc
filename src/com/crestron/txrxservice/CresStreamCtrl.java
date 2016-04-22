@@ -124,6 +124,7 @@ public class CresStreamCtrl extends Service {
     private boolean mHDCPOutputStatus = false;
     private boolean mHDCPExternalStatus = false;
     private boolean mHDCPInputStatus = false;
+    private boolean/*[]*/ mHDCPEncryptStatus = false;//new boolean[NumOfSurfaces];
     private boolean mIgnoreHDCP = false; //FIXME: This is for testing
     public volatile boolean mForceHdcpStatusUpdate = true;
     private int mPreviousValidHdmiInputResolution = 0;
@@ -140,6 +141,7 @@ public class CresStreamCtrl extends Service {
     
     private final static String ducatiCrashCountFilePath = "/dev/shm/crestron/CresStreamSvc/ducatiCrashCount";
     public final static String gstreamerTimeoutCountFilePath = "/dev/shm/crestron/CresStreamSvc/gstreamerTimeoutCount";
+    public final static String hdcpEncryptFilePath = "/dev/shm/crestron/CresStreamSvc/HDCPEncrypt";
     public int mGstreamerTimeoutCount = 0;
 
     enum DeviceMode {
@@ -282,11 +284,12 @@ public class CresStreamCtrl extends Service {
             sockTask = new TCPInterface(this);
             sockTask.execute(new Void[0]);  
             
-            // Allocate startStop and streamstate Locks
+            // Allocate startStop and streamstate Locks, also initializing array
             for (int sessionId = 0; sessionId < NumOfSurfaces; sessionId++)
             {
             	stopStartLock[sessionId] = new ReentrantLock(true);
             	streamStateLock[sessionId] = new ReentrantLock(true);
+//            	mHDCPEncryptStatus[sessionId] = false;          	
             }
                         
             RunNotificationThread();
@@ -2159,6 +2162,21 @@ public class CresStreamCtrl extends Service {
     		sockTask.SendDataToAllClients(String.format("STREAMURL%d=%s", sessionId, createStreamOutURL(sessionId)));
     }
 
+    public void setHdcpEncrypt(boolean flag, int sessId)
+    {
+    	if(flag)
+    	{
+    		MiscUtils.writeStringToDisk(hdcpEncryptFilePath, String.valueOf(1));
+    	}
+    	else
+    	{
+    		MiscUtils.writeStringToDisk(hdcpEncryptFilePath, String.valueOf(0));
+    	}
+    		
+    	mHDCPEncryptStatus/*[sessId]*/ = flag;
+    	mForceHdcpStatusUpdate = true;
+    }
+
     public String getStreamUrl(int sessId)
     {
         //return out_url;
@@ -2807,7 +2825,7 @@ public class CresStreamCtrl extends Service {
 				mHDCPInputStatus = currentHDCPInputStatus;
 				mHDCPOutputStatus = currentHDCPOutputStatus;				
 				
-				if ((mHDCPInputStatus == true) && (mIgnoreHDCP == false))
+				if ((mHDCPInputStatus == true && mHDCPEncryptStatus == false) && (mIgnoreHDCP == false))
 					setHDCPErrorImage(true);
 				else
 					setHDCPErrorImage(false);

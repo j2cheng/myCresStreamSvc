@@ -481,6 +481,26 @@ class ProxyEnableCommand implements CommandIf {
         }
 }
 
+class HdcpEncryptCommand implements CommandIf {
+    CommandReceiver launch;
+    String msg;
+    int idx;
+    public HdcpEncryptCommand(CommandReceiver launch, String arg, int sessId) {
+        this.launch = launch;
+        this.msg = arg;
+        this.idx = sessId;
+    }
+
+    @Override
+        public void execute() {
+	    	boolean val = Boolean.valueOf(msg);
+            launch.setHdcpEncrypt(val, idx);
+        }
+        public String getFeedbackMsg() {
+            return msg;
+        }
+}
+
 class InternalRtspPortCommand implements CommandIf {
     CommandReceiver launch;
     String msg;
