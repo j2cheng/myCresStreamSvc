@@ -136,9 +136,13 @@ public class ProductSpecific
 		// Not implmented for this product
 	}
 
-    public static void doChromakey()
+    public static void doChromakey(boolean enable)
     {
 		DisplaySettingManager.setDisplayDiscardColorEnable(0);				
+		if(!enable)
+		{
+			return;
+		}
 		File file = new File("/dev/crestron/gstreamerChromaKey");		
 		try
 		{

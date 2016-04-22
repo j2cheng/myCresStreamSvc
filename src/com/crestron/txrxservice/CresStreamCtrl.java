@@ -1855,7 +1855,7 @@ public class CresStreamCtrl extends Service {
     //Ctrls
     public void Start(int sessionId)
     {
-		ProductSpecific.doChromakey();
+		ProductSpecific.doChromakey(true);
     	enableRestartMechanism = true; //if user starts stream allow restart mechanism
     	
     	if ((getCurrentStreamState(sessionId) != StreamState.STARTED) && (userSettings.getStreamState(sessionId) != StreamState.STREAMERREADY))
@@ -1909,6 +1909,7 @@ public class CresStreamCtrl extends Service {
     		else
     			SendStreamState(StreamState.STOPPED, sessionId);
     	}
+		ProductSpecific.doChromakey(false);
     }
 
     public void Pause(int sessionId)

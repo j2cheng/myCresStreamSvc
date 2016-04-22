@@ -130,7 +130,7 @@ public class ProductSpecific
        return Surface.getDisplayInfo(Surface.getBuiltInDisplay(Surface.BUILT_IN_DISPLAY_ID_MAIN), outInfo);
 	}
 	
-    public static void doChromakey()
+    public static void doChromakey(boolean enable)
     {
 		// no java code controlling chromakey in this product
 	}
