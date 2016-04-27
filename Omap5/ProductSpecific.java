@@ -50,6 +50,11 @@ public class ProductSpecific
 		mrec.setRtspAuthentication(authMode);
 	}
 	
+	public static void setHdcpEncrypt(MediaRecorder mrec, int hdcpEncrypt)
+	{
+		mrec.setHdcpEncrypt(hdcpEncrypt);
+	}
+	
 	public static void setRTPAudioPort(MediaRecorder mrec, int port)
 	{
 		mrec.setRTPAudioPort(port);

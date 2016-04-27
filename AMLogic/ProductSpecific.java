@@ -58,7 +58,12 @@ public class ProductSpecific
 		// Not implmented for this product
 	}
 	
-        public static void setRTPAudioPort(MediaRecorder mrec, int port)
+	public static void setHdcpEncrypt(MediaRecorder mrec, int hdcpEncrypt)
+	{
+		// Not implmented for this product
+	}
+	
+    public static void setRTPAudioPort(MediaRecorder mrec, int port)
 	{
 		// Not implmented for this product
 	}

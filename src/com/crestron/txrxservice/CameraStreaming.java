@@ -589,6 +589,18 @@ public class CameraStreaming {
     public boolean isStreaming(){
         return out_stream_status;
     }
+    
+    public void setHdcpEncrypt(boolean isHdcpEncrypt)
+    {
+        //This routine get called after start
+        int val = (isHdcpEncrypt) ? 1 : 0;
+        
+        if(mrec != null)
+        	ProductSpecific.setHdcpEncrypt(mrec, val);
+        else
+            Log.d(TAG, "HdcpEncrypt mrec is null");
+
+    }
 
     private void releaseMediaRecorder() {
         if (mrec != null) {

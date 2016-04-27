@@ -2173,11 +2173,19 @@ public class CresStreamCtrl extends Service {
     	{
     		MiscUtils.writeStringToDisk(hdcpEncryptFilePath, String.valueOf(0));
     	}
-    		
+    	
+  		cam_streaming.setHdcpEncrypt(flag);
+    	
     	mHDCPEncryptStatus/*[sessId]*/ = flag;
     	mForceHdcpStatusUpdate = true;
     }
 
+    
+    public boolean getHdcpEncrypt(int sessId)
+    {
+    	return mHDCPEncryptStatus;
+    }
+    
     public String getStreamUrl(int sessId)
     {
         //return out_url;
