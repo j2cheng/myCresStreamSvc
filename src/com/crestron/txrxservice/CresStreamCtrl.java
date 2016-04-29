@@ -2174,7 +2174,8 @@ public class CresStreamCtrl extends Service {
     		MiscUtils.writeStringToDisk(hdcpEncryptFilePath, String.valueOf(0));
     	}
     	
-  		cam_streaming.setHdcpEncrypt(flag);
+    	if(cam_streaming != null)
+    		cam_streaming.setHdcpEncrypt(flag);
     	
     	mHDCPEncryptStatus/*[sessId]*/ = flag;
     	mForceHdcpStatusUpdate = true;
