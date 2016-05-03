@@ -125,6 +125,7 @@ public class CresStreamCtrl extends Service {
     private boolean mHDCPExternalStatus = false;
     private boolean mHDCPInputStatus = false;
     private boolean/*[]*/ mHDCPEncryptStatus = false;//new boolean[NumOfSurfaces];
+    private boolean/*[]*/ mTxHdcpActive = false;//new boolean[NumOfSurfaces];
     private boolean mIgnoreHDCP = false; //FIXME: This is for testing
     public volatile boolean mForceHdcpStatusUpdate = true;
     private int mPreviousValidHdmiInputResolution = 0;
@@ -2181,6 +2182,12 @@ public class CresStreamCtrl extends Service {
     	mForceHdcpStatusUpdate = true;
     }
 
+    
+    public void setTxHdcpActive(boolean flag, int sessId)
+    {
+    	mTxHdcpActive/*[sessId]*/ = flag;
+    }
+    
     
     public boolean getHdcpEncrypt(int sessId)
     {

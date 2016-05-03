@@ -183,8 +183,11 @@ public class CommandReceiver {
     }
     
     public void setHdcpEncrypt(boolean flag, int sessId){
-    	//ctl.userSettings.setProxyEnable(flag, sessId);
     	ctl.setHdcpEncrypt(flag, sessId);
+    }
+    
+    public void setTxHdcpActive(boolean flag, int sessId){
+    	ctl.setTxHdcpActive(flag, sessId);
     }
     
     public void setInternalRtspPort(int port, int sessId){

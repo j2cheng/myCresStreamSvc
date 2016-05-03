@@ -501,6 +501,26 @@ class HdcpEncryptCommand implements CommandIf {
         }
 }
 
+class TxHdcpActiveCommand implements CommandIf {
+    CommandReceiver launch;
+    String msg;
+    int idx;
+    public TxHdcpActiveCommand(CommandReceiver launch, String arg, int sessId) {
+        this.launch = launch;
+        this.msg = arg;
+        this.idx = sessId;
+    }
+
+    @Override
+        public void execute() {
+	    	boolean val = Boolean.valueOf(msg);
+            launch.setTxHdcpActive(val, idx);
+        }
+        public String getFeedbackMsg() {
+            return msg;
+        }
+}
+
 class InternalRtspPortCommand implements CommandIf {
     CommandReceiver launch;
     String msg;

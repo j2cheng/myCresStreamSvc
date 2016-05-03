@@ -22,6 +22,7 @@ public class CommandParser {
         STREAMURL,
         PROXYENABLE,
         HDCPENCRYPT,
+        TXHDCPACTIVE,
         INTERNAL_RTSPPORT,
         RTSPPORT,
         TSPORT,
@@ -291,6 +292,9 @@ public class CommandParser {
                 break;
             case HDCPENCRYPT:
                 cmd = new HdcpEncryptCommand(cmdRx, arg, idx); 
+                break;
+            case TXHDCPACTIVE:
+                cmd = new TxHdcpActiveCommand(cmdRx, arg, idx); 
                 break;
             case INTERNAL_RTSPPORT:
                 cmd = new InternalRtspPortCommand(cmdRx, arg, idx); 
