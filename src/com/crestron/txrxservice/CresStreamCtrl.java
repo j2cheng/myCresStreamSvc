@@ -458,17 +458,21 @@ public class CresStreamCtrl extends Service {
             		Log.e(TAG, "Could not create serialized class file: " + ex);
     			}
             }
-            else if (fixSettingsVersionMismatch)
+            else
             {
-				// If version mismatch, create new userSettings with defaults and copy over all stored values (where possible)
+				// Always upgrade userSettings
             	try
-            	{	            	
-	            	Log.d(TAG, "Saved userSettings version too old, upgrading settings, saved version: " 
-							+ userSettings.getVersionNum() + " required version: " + VersionNumber);
+            	{           		
             		UserSettings savedUserSettings = userSettings;
-            		userSettings = new UserSettings();	// Create new userSettings with default values           		
+            		userSettings = new UserSettings();	// Create new userSettings with default values   
             		UserSettings.fixVersionMismatch(savedUserSettings, userSettings); 	// Copy over previous values on top of defaults already set
-
+            		
+            		if (fixSettingsVersionMismatch)
+            		{
+		            	Log.d(TAG, "Saved userSettings version too old, upgrading settings, saved version: " 
+								+ userSettings.getVersionNum() + " required version: " + VersionNumber);
+            		}
+		            	
 	            	saveUserSettings();
             	}
             	catch (Exception ex)
@@ -632,7 +636,7 @@ public class CresStreamCtrl extends Service {
     
     private void runOnUiThread(Runnable runnable) {
     	// Android wants all surface methods to be run on UI thread, 
-    	// unstablility and/or crashes can occur if this is not observed
+    	// Instability and/or crashes can occur if this is not observed
         handler.post(runnable);
     }
  
@@ -2186,6 +2190,7 @@ public class CresStreamCtrl extends Service {
     public void setTxHdcpActive(boolean flag, int sessId)
     {
     	mTxHdcpActive/*[sessId]*/ = flag;
+    	mForceHdcpStatusUpdate = true;
     }
     
     
@@ -2367,7 +2372,7 @@ public class CresStreamCtrl extends Service {
 		Log.e(TAG, "Restarting on device IP Address Change...!");
 		restartStreams(false);
     }
-
+    
     //Registering for HPD and Resolution Event detection	
     void registerBroadcasts(){
         Log.d(TAG, "registerBroadcasts !");
@@ -2678,6 +2683,18 @@ public class CresStreamCtrl extends Service {
 		}
 	}
 	
+	public void sendHDCPLocalOutputBlanking(boolean enable) 
+	{
+		String msg = (enable ? "true" : "false");
+		sockTask.SendDataToAllClients(String.format("HDCP_BLANK_HDMI_OUTPUT=%s", msg));
+		
+		// mute/unmute volume as well 
+		if (enable)
+			setStreamVolume(-1);
+		else
+			setStreamVolume(userSettings.getUserRequestedVolume());
+	}
+	
 	private void setCameraMode(String mode) 
 	{
 		synchronized(cameraModeLock)
@@ -2724,8 +2741,7 @@ public class CresStreamCtrl extends Service {
 		synchronized (saveSettingsLock)
 		{
 			Writer writer = null;
-			GsonBuilder builder = new GsonBuilder();
-	      	Gson gson = builder.create();
+			Gson gson = new GsonBuilder().setPrettyPrinting().create();
 	      	String serializedClass = gson.toJson(this.userSettings);
 	      	String currentUserSettings = "";
 	      	try {      		
@@ -2846,6 +2862,15 @@ public class CresStreamCtrl extends Service {
 					setHDCPErrorImage(true);
 				else
 					setHDCPErrorImage(false);
+				
+				// The below case is transmitter which is streaming protected content but can't display on loopout
+				if ((mHDCPInputStatus == true && mHDCPEncryptStatus == true && mHDCPOutputStatus == false) && (mIgnoreHDCP == false))	
+					sendHDCPLocalOutputBlanking(true);
+				// The below case is receiver which is receiving protect stream but can't display on output
+				else if ((mTxHdcpActive == true && mHDCPEncryptStatus == true && mHDCPOutputStatus == false) && (mIgnoreHDCP == false))
+					sendHDCPLocalOutputBlanking(true);
+				else
+					sendHDCPLocalOutputBlanking(false);
 				
 				//Call set bypass mode when output HDMI is connected
 				if (Boolean.parseBoolean(hdmiOutput.getSyncStatus()) == true)

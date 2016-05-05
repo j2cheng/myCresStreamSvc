@@ -3,24 +3,15 @@
  */
 package com.crestron.txrxservice;
 
-import java.util.Arrays;
-import java.util.Collections;
-
-import com.crestron.txrxservice.CresStreamCtrl.DeviceMode;
-
 import android.util.Log;
 import android.view.Gravity;
 import android.view.SurfaceHolder;
 import android.view.SurfaceView;
 import android.view.View;
-import android.view.ViewGroup;
 import android.view.WindowManager;
 import android.widget.RelativeLayout;
 import android.app.Service;
 import android.graphics.PixelFormat;
-import android.view.WindowManager;
-import android.view.WindowManager.LayoutParams;
-import android.widget.RelativeLayout;
 import android.content.Context;
 
 /**
@@ -55,7 +46,7 @@ public class CresDisplaySurface
 
         // Create the surface and set the width and height to the display width
         // and height
-        // TODO: Add ability to create multiple surfaces at different width and heigh
+        // TODO: Add ability to create multiple surfaces at different width and height
         // One way to do this is to create AddSurface and RemoveSurface functions
         // Adjust z-order as well
         for (int i = 0; i < CresStreamCtrl.NumOfSurfaces; i++){
@@ -65,7 +56,7 @@ public class CresDisplaySurface
                   windowHeight);
             parentlayout.addView(displaySurface[i], viewLayoutParams);
         }
-       
+
         //Setting WindowManager and Parameters with system overlay
         wmLayoutParams = new WindowManager.LayoutParams(windowWidth, windowHeight, WindowManager.LayoutParams.TYPE_SYSTEM_OVERLAY, 0, PixelFormat.TRANSLUCENT);
         wm = (WindowManager) svc.getSystemService(Context.WINDOW_SERVICE);
