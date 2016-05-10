@@ -8,13 +8,10 @@ import android.hardware.Camera.CameraInfo;
 import android.hardware.Camera.Size;
 import android.util.Log;
 
-import com.crestron.txrxservice.ProductSpecific;
-
 public class CresCamera {
 	static String TAG = "TxRx Camera";
 	public static Camera mCamera = null;
 	static Object lockObj = new Object();
-	public static boolean mSetHdmiInputStatus = false;
 
 	private static int findCamera(){
 		int cameraId = 0;
@@ -40,37 +37,25 @@ public class CresCamera {
 					try {
 						mCamera = Camera.open(cameraId);            	
 					} catch (Exception e) {
-						Log.e(TAG, "fail to open camera");
+						Log.e(TAG, "fail to open camera " + cameraId);
 						e.printStackTrace();
 						mCamera = null;
 						SystemClock.sleep(1000);
 					}
 				}
-			}
-			
-			// Always set Ducati up with resolution info
-//			if (mSetHdmiInputStatus)
-				getHdmiInputStatus();
-			
+			}			
 			return;
 		}
 	}
 	
-	public static void getHdmiInputStatus()
-	{
-		if (mCamera != null)
-		{
-			ProductSpecific.getHdmiInputStatus(mCamera, HDMIInputInterface.getResolutionEnum());
-			mSetHdmiInputStatus = false; 
-		}
-		else // If we can't set HDMI status now, lets do it later
-			mSetHdmiInputStatus = true;
-	}
-
 	public static void releaseCamera() {
 		if (mCamera != null) {
 			mCamera.release(); // release the camera for other applications
 			mCamera = null;
 		}
+	}
+	
+	public static Camera getCamera(){
+		return mCamera;
 	}
 }

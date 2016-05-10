@@ -1,14 +1,19 @@
 package com.crestron.txrxservice;
 
+import java.io.File;
+
 import android.view.Surface;
 import android.view.Surface.PhysicalDisplayInfo;
 import android.hardware.Camera;
 import android.media.MediaRecorder;
 import android.hardware.display.DisplayManager;
 import android.media.MediaPlayer;
+import android.util.Log;
 
 public class ProductSpecific
 {
+    static String TAG = "OMAP5 ProductSpecific";
+
 	// ******************* CameraStreaming.java *******************
 	public static void setEncoderFps(Camera camera, int encoderFps, int hdmiInFps)
 	{
@@ -101,6 +106,27 @@ public class ProductSpecific
 		return DisplayManager.getEVSHdmiInSyncStatus();
 	}
 	
+	public static boolean hasRealCamera()
+	{
+		return false;
+	}
+	
+    public static boolean isHdmiDriverPresent()
+    {
+        File file = new File("/sys/devices/platform/omap_i2c.2/i2c-2/2-000f/sync_state");
+        
+        boolean isHdmiDriverPresent = file.exists();
+        
+        return file.exists();
+    }
+
+    public static void handleHpdHdmiEvent(HDMIInputInterface hdmiIf)
+    {
+		String resInfo = HDMIInputInterface.getHdmiInResolutionSysFs();//Reading From SysFs
+		Log.i(TAG, "HDMI In Resolution API " + resInfo);
+		hdmiIf.updateResolutionInfo(resInfo);
+	}
+	
 	// ******************* HDMIOutputInterface.java *******************
 	public static byte[] getEVSHdmiOutSyncStatus()
 	{
@@ -108,8 +134,11 @@ public class ProductSpecific
 	}
 	
 	// ******************* CresCamera.java *******************
-	public static void getHdmiInputStatus(Camera camera, int hdmiInResolutionEnum)
+	public static void getHdmiInputStatus()
 	{
+		Camera camera = CresCamera.getCamera();
+		int hdmiInResolutionEnum = HDMIInputInterface.getResolutionEnum();
+		// Yes, someone actually hacked the android camera source to put hdmi into it!
 		camera.getHdmiInputStatus(hdmiInResolutionEnum);
 	}
 	

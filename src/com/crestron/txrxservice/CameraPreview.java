@@ -123,6 +123,11 @@ public class CameraPreview {
 		            Log.d(TAG, "Actual startPlayback");
 		
 		            CresCamera.openCamera();
+		            // This is here because moved out of openCamera
+		            if(hdmiIf != null)
+		            {
+						ProductSpecific.getHdmiInputStatus();			
+					}
 		            // MNT - 3.10.15 
 		            // getHdmiInputStatus causes a reset on the chip.  Calling this here causes
 		            // the chip to get reset twice.  This will be fixed by Mistral.  However,
@@ -131,7 +136,9 @@ public class CameraPreview {
 		            //                    hdmiinput = mCamera.getHdmiInputStatus();
 		            if(CresCamera.mCamera != null){
 		                try {
-		                	CresCamera.mCamera.setPreviewDisplay(streamCtl.getCresSurfaceHolder(idx));
+							SurfaceHolder sh = streamCtl.getCresSurfaceHolder(idx);
+		                	CresCamera.mCamera.setPreviewDisplay(sh);
+		                	
 		                    //mCamera.setPreviewDisplay(surfaceHolder);
 		                }catch (Exception localException) {
 		                    localException.printStackTrace();
@@ -143,22 +150,21 @@ public class CameraPreview {
 		                  Log.d(TAG, i + ". Supported Resolution = " + mSupportedPreviewSizes.get(i).width + "x" + mSupportedPreviewSizes.get(i).height);
 		                  }*/
 		                if(CresStreamCtrl.hpdHdmiEvent==1){
-		                    String resInfo = HDMIInputInterface.getHdmiInResolutionSysFs();//Reading From SysFs
-		                    Log.i(TAG, "HDMI In Resolution API " + resInfo);
-		                    hdmiIf.updateResolutionInfo(resInfo);
+							ProductSpecific.handleHpdHdmiEvent(hdmiIf);
 		                    CresStreamCtrl.hpdHdmiEvent=0;
 		                }
-		                if((Integer.parseInt(hdmiIf.getHorizontalRes())==0) && (Integer.parseInt(hdmiIf.getVerticalRes())==0)){
-		                    //localParameters.setPreviewSize(640, 480);//if no hdmi cable is connected
-		                    //mCamera.setDisplayOrientation(0);
-		                    //mCamera.setParameters(localParameters);
-		                    //mCamera.startPreview();
-		                }
-		                else{
-		                    localParameters.setPreviewSize(Integer.parseInt(hdmiIf.getHorizontalRes()), Integer.parseInt(hdmiIf.getVerticalRes()));
 		
+		                // PEM - Previous check didn't look quite right here, was allowing zero horizontal or vertical to be considered ok.
+		                boolean validRes = false;
+		                if(hdmiIf != null)
+		                {
+							int hres = Integer.parseInt(hdmiIf.getHorizontalRes());
+							int vres = Integer.parseInt(hdmiIf.getVerticalRes());
+							if((hres !=0) && ( vres !=0))
+							{
+								validRes = true;
+								localParameters.setPreviewSize(hres, vres);
 		                    localParameters.set("ipp", "off");
-		                    Log.d(TAG, "Preview Size set to " + localParameters.getPreviewSize().width + "x" + localParameters.getPreviewSize().height);
 		                    CresCamera.mCamera.setDisplayOrientation(0);
 		                    try {
 		                    	CresCamera.mCamera.setParameters(localParameters);
@@ -167,6 +173,15 @@ public class CameraPreview {
 		                        localParameters.setPreviewSize(640, 480);
 		                        CresCamera.mCamera.setParameters(localParameters);
 		                    }
+								}		                
+		                }
+		                else // assume valid res for real camera, don't set preview size?
+		                {
+							validRes = true;
+		                }
+		                if(validRes)
+		                {
+		                    Log.d(TAG, "Camera preview size: " + localParameters.getPreviewSize().width + "x" + localParameters.getPreviewSize().height);
 		                    CresCamera.mCamera.setPreviewCallback(new PreviewCB(confidenceMode));
 		                    CresCamera.mCamera.setErrorCallback(new ErrorCB(confidenceMode));
 		                    CresCamera.mCamera.startPreview();

@@ -112,6 +112,21 @@ public class ProductSpecific
 		return new byte[] { 0x0 };
 	}
 	
+	public static boolean hasRealCamera()
+	{
+		return true;
+	}
+	
+    public static boolean isHdmiDriverPresent()
+    {
+		return false;
+	}
+		
+    public static void handleHpdHdmiEvent(HDMIInputInterface hdmiIf)
+    {
+		// no hdmi input on this product.
+	}
+	
 	// ******************* HDMIOutputInterface.java *******************
 	public static byte[] getEVSHdmiOutSyncStatus()
 	{
@@ -120,9 +135,9 @@ public class ProductSpecific
 	}
 	
 	// ******************* CresCamera.java *******************
-	public static void getHdmiInputStatus(Camera camera, int hdmiInResolutionEnum)
+	public static void getHdmiInputStatus()
 	{
-		// Not implmented for this product
+		// No HDMI input on this product.
 	}
 	
 	// ******************* NstreamIn.java *******************

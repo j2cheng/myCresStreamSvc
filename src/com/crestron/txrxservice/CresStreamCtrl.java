@@ -102,7 +102,7 @@ public class CresStreamCtrl extends Service {
 
     public final static int NumOfSurfaces = 3;
     public volatile boolean restartStreamsOnStart = false;
-    String TAG = "TxRx StreamCtrl";
+    static String TAG = "TxRx StreamCtrl";
     static String out_url="";
     static String playStatus="false";
     static String stopStatus="true";
@@ -487,7 +487,7 @@ public class CresStreamCtrl extends Service {
             Thread saveSettingsThread = new Thread(new SaveSettingsTask());    	
             saveSettingsThread.start();
             
-            hdmiInputDriverPresent = HDMIInputInterface.isHdmiDriverPresent();
+            hdmiInputDriverPresent = ProductSpecific.isHdmiDriverPresent();
 
         	if (hdmiInputDriverPresent)
         	{
@@ -531,8 +531,17 @@ public class CresStreamCtrl extends Service {
             	cam_streaming = new CameraStreaming(this);
             	cam_preview = new CameraPreview(this, hdmiInput);    
             	 // Set up Ducati
-            	CresCamera.getHdmiInputStatus();
+            	ProductSpecific.getHdmiInputStatus();
         	}
+        	
+        	// Added for real camera on x60
+        	// to-do: support having both hdmi input and a real camera at the same time...
+        	if(ProductSpecific.hasRealCamera())
+        	{
+            	Log.i(TAG, "Creating preview for real camera");
+            	cam_preview = new CameraPreview(this, null);                	
+        	}
+        	
             //Play Control
             hm = new HashMap<Integer, Command>();
             hm.put(2/*"PREVIEW"*/, new Command() {
@@ -790,8 +799,7 @@ public class CresStreamCtrl extends Service {
     
     private void recoverFromCrash()
     {
-    	CresCamera.mSetHdmiInputStatus = true; //TODO: This should be safe to remove now
-		restartStreams(false);
+    	restartStreams(false);
     }
     
     private int readDucatiState() {
@@ -1133,7 +1141,8 @@ public class CresStreamCtrl extends Service {
         
         // If hdmi input driver is present allow all 3 modes, otherwise only allow stream in mode
         // Only if mode actually changed
-        if ((mode != prevMode) && ((hdmiInputDriverPresent || (mode == DeviceMode.STREAM_IN.ordinal())))) 
+        if ((mode != prevMode) && ((hdmiInputDriverPresent || (mode == DeviceMode.STREAM_IN.ordinal()) 
+        || (ProductSpecific.hasRealCamera())))) 
         {
         	// Since this is a user request, mark as stopped requested if mode changes
         	userSettings.setUserRequestedStreamState(StreamState.STOPPED, sessionId);
@@ -2583,8 +2592,6 @@ public class CresStreamCtrl extends Service {
 		boolean validResolution = (hdmiInputResolutionEnum != 0);
     	if (validResolution == true)
     	{
-    		CresCamera.mSetHdmiInputStatus = true;    		
-    		    		
     		if (ignoreRestart == false)
     		{
     			if (sockTask.firstRun == false) // makes sure that csio is up so as restart streams before all information is received from platform

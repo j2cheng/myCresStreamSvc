@@ -131,16 +131,7 @@ public class HDMIInputInterface {
         setFPS(tokens[2].trim());
         setAspectRatio();
     }
-    
-    public static boolean isHdmiDriverPresent()
-    {
-        File file = new File("/sys/devices/platform/omap_i2c.2/i2c-2/2-000f/sync_state");
         
-        isHdmiDriverPresent = file.exists();
-        
-        return file.exists();
-    }
-    
     public static int getHdmiHpdEventState(){
     	if (isHdmiDriverPresent == true)
 		{
