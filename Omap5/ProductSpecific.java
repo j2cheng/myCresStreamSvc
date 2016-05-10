@@ -139,7 +139,9 @@ public class ProductSpecific
 		Camera camera = CresCamera.getCamera();
 		int hdmiInResolutionEnum = HDMIInputInterface.getResolutionEnum();
 		// Yes, someone actually hacked the android camera source to put hdmi into it!
-		camera.getHdmiInputStatus(hdmiInResolutionEnum);
+		if(camera != null){
+			camera.getHdmiInputStatus(hdmiInResolutionEnum);
+		}
 	}
 	
 	// ******************* NstreamIn.java *******************
