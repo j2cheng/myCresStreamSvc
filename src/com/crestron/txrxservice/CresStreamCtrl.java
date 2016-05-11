@@ -75,6 +75,7 @@ public class CresStreamCtrl extends Service {
 	Handler handler;
     CameraStreaming cam_streaming;
     CameraPreview cam_preview;
+    GstreamOut gstStreamOut;
     StringTokenizer tokenizer;
     public static int VersionNumber = 2;
     
@@ -265,6 +266,14 @@ public class CresStreamCtrl extends Service {
 		    	}
     		}
     	}).start();
+    }
+    
+    // Moved here from GstreamIn.java,
+    // since gstreamer is used for streaming out as well as in.
+    static {
+		Log.d(TAG,"loading gstreamer_android and gstreamer_jni" );
+        System.loadLibrary("gstreamer_android");
+        System.loadLibrary("gstreamer_jni");                
     }
     
     //StreamState devicestatus = StreamState.STOPPED;
@@ -541,6 +550,13 @@ public class CresStreamCtrl extends Service {
         	{
             	Log.i(TAG, "Creating preview for real camera");
             	cam_preview = new CameraPreview(this, null);                	
+            	
+            	Thread myThread = new Thread(new Runnable() {
+            		public void run() {
+						gstStreamOut = new GstreamOut(CresStreamCtrl.this);
+            		}
+            	});
+            	myThread.start();            	
         	}
         	
             //Play Control
