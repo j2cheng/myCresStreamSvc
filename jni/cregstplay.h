@@ -128,6 +128,14 @@ typedef struct _CustomData
     CREGSTREAM stream[MAX_STREAMS];
 } CustomData;
 
+/* Structure to contain all our information, so we can pass it to callbacks */
+typedef struct _CustomDataOut 
+{
+	jobject app;            /* Application instance, used to call its methods. A global reference is kept. */
+	
+	//void * surface;			/* not sure yet */
+} CustomDataOut;
+
 /**********************************************************************
 * Field debugging command
 **********************************************************************/
