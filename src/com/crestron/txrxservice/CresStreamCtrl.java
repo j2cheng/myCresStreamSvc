@@ -81,6 +81,7 @@ public class CresStreamCtrl extends Service {
     
     public static boolean useGstreamer = true;
     StreamIn streamPlay = null;
+    GstreamBase gstreamBase = null;
     BroadcastReceiver hpdEvent = null;
     BroadcastReceiver resolutionEvent = null;
     BroadcastReceiver hdmioutResolutionChangedEvent = null;
@@ -268,14 +269,6 @@ public class CresStreamCtrl extends Service {
     	}).start();
     }
     
-    // Moved here from GstreamIn.java,
-    // since gstreamer is used for streaming out as well as in.
-    static {
-		Log.d(TAG,"loading gstreamer_android and gstreamer_jni" );
-        System.loadLibrary("gstreamer_android");
-        System.loadLibrary("gstreamer_jni");                
-    }
-    
     //StreamState devicestatus = StreamState.STOPPED;
     //HashMap
     HashMap<Integer, Command> hm;
@@ -344,10 +337,11 @@ public class CresStreamCtrl extends Service {
             if (useGstreamer)
             {
             	// If mediaserver is in bad state this could get stuck
+            	// Load GstreamBase first!
             	final CountDownLatch latch = new CountDownLatch(1);
             	Thread startGstreamerThread = new Thread(new Runnable() {
             		public void run() {
-            			streamPlay = new StreamIn(new GstreamIn(CresStreamCtrl.this));
+            			gstreamBase = new GstreamBase(CresStreamCtrl.this);
             			latch.countDown();
             		}
             	});
@@ -372,6 +366,17 @@ public class CresStreamCtrl extends Service {
             			streamPlay.setLogLevel(defaultLoggingLevel);
             		}
             	}
+            	
+            	// After gstreamer is initialized we can load gstreamIn and gstreamOut
+            	streamPlay = new StreamIn(new GstreamIn(CresStreamCtrl.this));
+            	
+            	// Added for real camera on x60
+            	// to-do: support having both hdmi input and a real camera at the same time...
+            	if(ProductSpecific.hasRealCamera())
+            	{
+            		gstStreamOut = new GstreamOut(CresStreamCtrl.this);
+            	}
+
             }
             else
             	streamPlay = new StreamIn(new NstreamIn(CresStreamCtrl.this));
@@ -543,22 +548,7 @@ public class CresStreamCtrl extends Service {
             	 // Set up Ducati
             	ProductSpecific.getHdmiInputStatus();
         	}
-        	
-        	// Added for real camera on x60
-        	// to-do: support having both hdmi input and a real camera at the same time...
-        	if(ProductSpecific.hasRealCamera())
-        	{
-            	Log.i(TAG, "Creating preview for real camera");
-            	cam_preview = new CameraPreview(this, null);                	
-            	
-            	Thread myThread = new Thread(new Runnable() {
-            		public void run() {
-						gstStreamOut = new GstreamOut(CresStreamCtrl.this);
-            		}
-            	});
-            	myThread.start();            	
-        	}
-        	
+        	        	
             //Play Control
             hm = new HashMap<Integer, Command>();
             hm.put(2/*"PREVIEW"*/, new Command() {

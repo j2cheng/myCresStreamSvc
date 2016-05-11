@@ -1,16 +1,12 @@
 package com.crestron.txrxservice;
 
 import java.io.IOException;
-import java.util.concurrent.CountDownLatch;
-import java.util.concurrent.TimeUnit;
 
 import android.util.Log;
 import android.view.SurfaceHolder;
-
 import android.content.Context;
 
 import com.crestron.txrxservice.CresStreamCtrl.StreamState;
-import org.freedesktop.gstreamer.GStreamer;
 
 public class GstreamIn implements StreamInStrategy, SurfaceHolder.Callback {
 
@@ -64,16 +60,7 @@ public class GstreamIn implements StreamInStrategy, SurfaceHolder.Callback {
     public GstreamIn(CresStreamCtrl mContext) {
         Log.e(TAG, "GstreamIN :: Constructor called...!");
         streamCtl = mContext;
-        // Initialize GStreamer and warn if it fails
-        try {
-            GStreamer.init((Context)mContext);
-            //Set stop timeout
-            nativeSetStopTimeout(stopTimeout_sec);
-        } catch (Exception e) {
-//             Toast.makeText(this, e.getMessage(), Toast.LENGTH_LONG).show();
-//             finish();
-            return;
-        }
+        nativeSetStopTimeout(stopTimeout_sec);
         nativeInit();
     }
 
