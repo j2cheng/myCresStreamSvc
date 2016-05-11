@@ -31,6 +31,8 @@
 #include "GstreamIn.h"
 #include "csioCommonShare.h"
 #include <gst/video/video.h>
+#include <gst/rtsp-server/rtsp-server.h>
+#include <gst/rtsp-server/rtsp-media-factory.h>
 #include "csio_jni_if.h"
 // Android headers
 #include "hardware/gralloc.h"           // for GRALLOC_USAGE_PROTECTED
@@ -68,9 +70,12 @@ static pthread_key_t current_jni_env;
 static JavaVM *java_vm;
 static jfieldID custom_data_field_id;
 static jmethodID set_message_method_id;
+static jfieldID custom_data_field_id_rtsp_server;
+static jmethodID set_message_method_id_rtsp_server;
 // not used
 //static jmethodID on_gstreamer_initialized_method_id;
 static jclass *gStreamIn_javaClass_id;
+static jclass *gStreamOut_javaClass_id;
 
 pthread_cond_t stop_completed_sig;
 static int stop_timeout_sec = 1000;
@@ -256,6 +261,105 @@ static void gst_native_init (JNIEnv* env, jobject thiz)
 	csio_jni_init();
 }
 
+// Set up some defaults for streaming out using gstreamer.
+void init_custom_data_out(CustomDataOut * cdata)
+{	
+	//cdata->surface = NULL;
+}
+
+// Allow file to override canned pipeline, for debugging...
+// The following pipeline worked!
+// ( videotestsrc is-live=1 ! jpegenc ! rtpjpegpay name=pay0 pt=96 )
+static void gst_rtsp_server_get_pipeline(char * pDest, int destSize)
+{
+	FILE * pf;
+		
+	pf = fopen("/dev/shm/rtsp_server_pipeline", "r");
+	if(!pf)
+	{
+		// Because camera on x60 is front-facing, it is mirrored by default for the preview.
+		// We use videoflip to undo the mirroring.
+		snprintf(pDest, destSize, "( ahcsrc ! videoflip method=4 ! videoconvert ! %s ! rtph264pay name=pay0 pt=96 )",
+			product_info()->video_encoder_string);
+		return;
+	}
+	fgets(pDest, destSize, pf);
+	fclose(pf);
+}
+
+// rtsp object documentation: https://gstreamer.freedesktop.org/data/doc/gstreamer/head/gst-rtsp-server/html/GstRTSPServer.html
+// copied code from gst-rtsp-server-1.4.5/examples/test-launch.c
+static void gstNativeInitRtspServer (JNIEnv* env, jobject thiz, jobject surface) 
+{
+	GMainLoop *loop;
+	GstRTSPServer *server;
+	GstRTSPMountPoints *mounts;
+	GstRTSPMediaFactory *factory;	
+	char pipeline[1024];
+	guint id;
+		
+	CSIO_LOG(eLogLevel_error, "Creating rtsp server, jobject surface=%p", surface);	
+	
+	CustomDataOut *cdata = g_new0 (CustomDataOut, 1);
+	//CresDataDB = cdata;
+	SET_CUSTOM_DATA (env, thiz, custom_data_field_id_rtsp_server, cdata);
+	//GST_DEBUG_CATEGORY_INIT (debug_category, "gstreamer_jni", 0, "Android jni");
+	//gst_debug_set_threshold_for_name("gstreamer_jni", GST_LEVEL_ERROR);
+	
+	cdata->app = (*env)->NewGlobalRef(env, thiz);
+	init_custom_data_out(cdata);
+	//csio_jni_init();
+	
+
+	gst_init(NULL,NULL);				// already called from csio_Init?
+	loop = g_main_loop_new (NULL, FALSE);	// called from CStreamer::execute
+	if(!loop)
+	{
+		CSIO_LOG(eLogLevel_error, "Failed to create rtsp server loop");	
+		return;
+	}
+	server = gst_rtsp_server_new();
+	if(!server)
+	{
+		CSIO_LOG(eLogLevel_error, "Failed to create rtsp server");	
+		return;
+	}
+	/* get the mount points for this server, every server has a default object
+	* that be used to map uri mount points to media factories */
+	mounts = gst_rtsp_server_get_mount_points (server);	
+	if(!mounts)
+	{
+		CSIO_LOG(eLogLevel_error, "Failed to create server mounts");	
+		return;
+	}	
+	factory = gst_rtsp_media_factory_new ();
+	if(!factory)
+	{
+		CSIO_LOG(eLogLevel_error, "Failed to create factory");	
+		return;
+	}	
+	
+    //if (cdata->surface)
+    //{
+    //    CSIO_LOG(eLogLevel_debug, "Delete GlobalRef before adding new: %p", cdata->surface);
+    //    (*env)->DeleteGlobalRef(env, cdata->surface);
+    //    cdata->surface = NULL;
+    //}
+    //cdata->surface = (*env)->NewGlobalRef(env, surface);
+	
+	// to-do: get platform-specific encoder name from csio
+	gst_rtsp_server_get_pipeline(pipeline, sizeof(pipeline));
+	CSIO_LOG(eLogLevel_error, "rtsp server pipeline: %s", pipeline);	
+	gst_rtsp_media_factory_set_launch (factory, pipeline);
+	gst_rtsp_media_factory_set_shared (factory, TRUE);
+    gst_rtsp_mount_points_add_factory (mounts, "/live.sdp", factory);	
+	g_object_unref (mounts);
+	id = gst_rtsp_server_attach(server, NULL);
+	CSIO_LOG(eLogLevel_debug, "Attach to rtsp server returned id %u", id);	
+	
+	g_main_loop_run (loop);				// called from CStreamer::execute
+}
+
 /* Quit the main loop, remove the native thread and free resources */
 static void gst_native_finalize (JNIEnv* env, jobject thiz) 
 {
@@ -271,6 +375,22 @@ static void gst_native_finalize (JNIEnv* env, jobject thiz)
 	g_free (cdata);
 	SET_CUSTOM_DATA (env, thiz, custom_data_field_id, NULL);
 	CSIO_LOG(eLogLevel_debug, "Done finalizing");
+}
+
+static void gstNativeFinalizeRtspServer (JNIEnv* env, jobject thiz) 
+{
+	CustomDataOut *cdata = GET_CUSTOM_DATA (env, thiz, custom_data_field_id_rtsp_server);
+	int i;
+	
+	if (!cdata) return;
+	
+	CSIO_LOG(eLogLevel_debug, "Deleting GlobalRef for app object at %p", cdata->app);
+	(*env)->DeleteGlobalRef (env, (jobject)gStreamOut_javaClass_id);	
+	(*env)->DeleteGlobalRef (env, cdata->app);
+	CSIO_LOG(eLogLevel_debug, "Freeing CustomData at %p", cdata);
+	g_free (cdata);
+	SET_CUSTOM_DATA (env, thiz, custom_data_field_id_rtsp_server, NULL);
+	CSIO_LOG(eLogLevel_debug, "Done finalizing");	
 }
 
 /* Set pipeline to PLAYING state */
@@ -455,6 +575,23 @@ static jboolean gst_native_class_init (JNIEnv* env, jclass klass)
 
 	//if (!custom_data_field_id || !set_message_method_id || !on_gstreamer_initialized_method_id) {
     if (!custom_data_field_id || !set_message_method_id) {		
+		/* We emit this message through the Android log instead of the GStreamer log because the later
+		* has not been initialized yet.
+		*/
+		CSIO_LOG(eLogLevel_error, "The calling class does not implement all necessary interface methods");
+		return JNI_FALSE;
+	}
+	return JNI_TRUE;
+}
+
+static jboolean gstNativeClassInitRtspServer (JNIEnv* env, jclass klass) 
+{
+	CSIO_LOG(eLogLevel_debug, "gst_native_class_init_rtsp_server\n");
+	custom_data_field_id_rtsp_server = (*env)->GetFieldID (env, klass, "native_custom_data", "J");
+	set_message_method_id_rtsp_server = (*env)->GetMethodID (env, klass, "setMessage", "(Ljava/lang/String;)V");
+	//on_gstreamer_initialized_method_id = (*env)->GetMethodID (env, klass, "onGStreamerInitialized", "()V");
+
+    if (!custom_data_field_id_rtsp_server || !set_message_method_id_rtsp_server) {		
 		/* We emit this message through the Android log instead of the GStreamer log because the later
 		* has not been initialized yet.
 		*/
@@ -1347,6 +1484,13 @@ static JNINativeMethod native_methods[] =
 	{ "nativeClassInit", "()Z", (void *) gst_native_class_init}
 };
 
+static JNINativeMethod native_methods_rtsp_server[] = 
+{
+	{ "nativeInitRtspServer", "(Ljava/lang/Object;)V", (void *) gstNativeInitRtspServer},	
+	{ "nativeFinalizeRtspServer", "()V", (void *) gstNativeFinalizeRtspServer},
+	{ "nativeClassInitRtspServer", "()Z", (void *) gstNativeClassInitRtspServer}
+};
+
 /* Library initializer */
 jint JNI_OnLoad(JavaVM *vm, void *reserved) 
 {
@@ -1374,6 +1518,17 @@ jint JNI_OnLoad(JavaVM *vm, void *reserved)
 
 	(*env)->RegisterNatives (env, (jclass)gStreamIn_javaClass_id, native_methods, G_N_ELEMENTS(native_methods));
 
+	// Crestron - PEM - register jni for GstreamOut
+	CSIO_LOG(eLogLevel_error, "gstreamer_jni", "Registering natives for GstreamOut");
+	jclass klass2 = (*env)->FindClass (env, "com/crestron/txrxservice/GstreamOut");
+	gStreamOut_javaClass_id = (jclass*)(*env)->NewGlobalRef(env, klass2);
+	(*env)->DeleteLocalRef(env, klass2);
+	if (gStreamOut_javaClass_id == NULL) {
+		CSIO_LOG(eLogLevel_error, "gstreamer_jni", "gStreamOut_javaClass_id is still null when it is suppose to be global");
+	     return 0; /* out of memory exception thrown */
+	}
+	(*env)->RegisterNatives (env, (jclass)gStreamOut_javaClass_id, native_methods_rtsp_server, G_N_ELEMENTS(native_methods_rtsp_server));
+	
 	pthread_key_create (&current_jni_env, detach_current_thread);
 
 	return JNI_VERSION_1_4;
