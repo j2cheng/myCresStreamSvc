@@ -114,9 +114,7 @@ public class ProductSpecific
     public static boolean isHdmiDriverPresent()
     {
         File file = new File("/sys/devices/platform/omap_i2c.2/i2c-2/2-000f/sync_state");
-        
-        boolean isHdmiDriverPresent = file.exists();
-        
+
         return file.exists();
     }
 

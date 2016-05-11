@@ -131,6 +131,10 @@ public class HDMIInputInterface {
         setFPS(tokens[2].trim());
         setAspectRatio();
     }
+    
+    public static void setHdmiDriverPresent(boolean isPresent) {
+    	isHdmiDriverPresent = isPresent;
+    }
         
     public static int getHdmiHpdEventState(){
     	if (isHdmiDriverPresent == true)

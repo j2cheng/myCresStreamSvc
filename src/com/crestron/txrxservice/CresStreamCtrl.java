@@ -488,6 +488,7 @@ public class CresStreamCtrl extends Service {
             saveSettingsThread.start();
             
             hdmiInputDriverPresent = ProductSpecific.isHdmiDriverPresent();
+            HDMIInputInterface.setHdmiDriverPresent(hdmiInputDriverPresent);
 
         	if (hdmiInputDriverPresent)
         	{
@@ -2381,7 +2382,7 @@ public class CresStreamCtrl extends Service {
 		Log.e(TAG, "Restarting on device IP Address Change...!");
 		restartStreams(false);
     }
-    
+
     //Registering for HPD and Resolution Event detection	
     void registerBroadcasts(){
         Log.d(TAG, "registerBroadcasts !");
