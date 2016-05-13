@@ -590,6 +590,9 @@ public class CresStreamCtrl extends Service {
             // Monitor Crash State
             monitorCrashState();
             
+            // Set HDCP error color to red
+            setHDCPErrorColor();
+            
             // Monitor System State
             monitorSystemState();
             
@@ -2028,7 +2031,7 @@ public class CresStreamCtrl extends Service {
     public void startStreamOut(int sessId)
     {
         StringBuilder sb = new StringBuilder(512);
-        
+
         SendStreamState(StreamState.CONNECTING, sessId);
         
         // we are starting to streamout so stop confidence preview (unless resuming from pause)
@@ -2380,13 +2383,13 @@ public class CresStreamCtrl extends Service {
     }
     
     public void RecoverMediaServer() {
-    	Log.e(TAG, "Fatal error, kill mediaserver!");
+        Log.e(TAG, "Fatal error, kill mediaserver!");
     	sockTask.SendDataToAllClients("KillMediaServer=true");
     }
     
     public void stopOnIpAddrChange(){
 		Log.e(TAG, "Restarting on device IP Address Change...!");
-		restartStreams(false);
+        restartStreams(false);
     }
 
     //Registering for HPD and Resolution Event detection	
@@ -2566,15 +2569,15 @@ public class CresStreamCtrl extends Service {
     			
     			//Set bypass high when hdcp is not authenticated on output, if not in force hdcp mode
     			boolean setHDCPBypass = ((userSettings.isHdmiOutForceHdcp() == false) && (HDMIOutputInterface.readHDCPOutputStatus() == 0));
-				HDMIOutputInterface.setHDCPBypass(setHDCPBypass); 
-    		}
+				HDMIOutputInterface.setHDCPBypass(setHDCPBypass);
+            }
 		}).start();
 	}
 	
 	public void setCameraAndRestartStreams(int hdmiInputResolutionEnum)
 	{
 		//Set Camera and restart streams
-		setCameraHelper(hdmiInputResolutionEnum, false);
+        setCameraHelper(hdmiInputResolutionEnum, false);
 	}
 	
 	public void setCamera(int hdmiInputResolutionEnum)
@@ -2624,7 +2627,7 @@ public class CresStreamCtrl extends Service {
 	
 	public void setNoVideoImage(boolean enable) 
 	{
-		Log.d(TAG, String.format("Setting no video format to %s", String.valueOf(enable)));
+        Log.d(TAG, String.format("Setting no video format to %s", String.valueOf(enable)));
 		String cameraMode = "";
 		int previousCameraMode = readCameraMode();
 		if ( (enable) && (previousCameraMode != CameraMode.NoVideo.ordinal() 
@@ -2985,5 +2988,10 @@ public class CresStreamCtrl extends Service {
 		    	sockTask.SendDataToAllClients("KillEveryThingPlease=true");
 			}
 		}
+	}
+	
+	public void setHDCPErrorColor()
+	{
+        sockTask.SendDataToAllClients("SET_HDCP_ERROR_COLOR=TRUE");
 	}
 }
