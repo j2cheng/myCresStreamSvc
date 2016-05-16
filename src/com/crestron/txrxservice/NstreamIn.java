@@ -351,4 +351,9 @@ public class NstreamIn implements StreamInStrategy, OnPreparedListener, OnComple
     public void setLogLevel(int logLevel) {
     	// Not needed by gallery player
     }
+    
+    public void setHdcpEncrypt(boolean flag, int sessionId) {
+    	// Not needed by gallery player
+    }
+    
 }

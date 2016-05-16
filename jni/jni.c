@@ -815,6 +815,20 @@ JNIEXPORT void JNICALL Java_com_crestron_txrxservice_GstreamIn_nativeSetTsPort(J
 	CSIO_LOG(eLogLevel_debug, "tsPort in currentSettingsDB: '%ld'", currentSettingsDB->videoSettings[sessionId].tsPort);
 }
 
+JNIEXPORT void JNICALL Java_com_crestron_txrxservice_GstreamIn_nativeSetHdcpEncrypt(JNIEnv *env, jobject thiz, jboolean flag, jint sessionId)
+{
+    CREGSTREAM * data = GetStreamFromCustomData(CresDataDB, sessionId);
+
+    if(!data)
+    {
+        CSIO_LOG(eLogLevel_error, "Could not obtain stream pointer for stream %d", sessionId);
+        return;
+    }
+
+    // Read if we should do HDCP decryption, TODO: this will be commanded from CSIO through join eventually
+    data->doHdcp = (gboolean)flag;
+}
+
 JNIEXPORT void JNICALL Java_com_crestron_txrxservice_GstreamIn_nativeSetRtpVideoPort(JNIEnv *env, jobject thiz, jint port, jint sessionId)
 {
 	CSIO_LOG(eLogLevel_debug, "Using rtpVideoPort: '%d'", port);
@@ -2008,7 +2022,8 @@ void csio_jni_InitPipeline(eProtocolId protoId, int iStreamId,GstRTSPLowerTrans 
 	data->mpegtsPresent = FALSE;
 
 	// Read if we should do HDCP decryption, TODO: this will be commanded from CSIO through join eventually
-	data->doHdcp = FALSE;
+	//Set dynamically from CSIO now
+/*	data->doHdcp = FALSE;
 	int hdcpEncrypt = (int)data->doHdcp;
 	FILE * hdcpEncryptFile = fopen("/dev/shm/crestron/CresStreamSvc/HDCPEncrypt", "r");
 	// Check if user set hdcp encrypt value
@@ -2017,7 +2032,7 @@ void csio_jni_InitPipeline(eProtocolId protoId, int iStreamId,GstRTSPLowerTrans 
 		fscanf(hdcpEncryptFile, "%d", &hdcpEncrypt);
 		fclose(hdcpEncryptFile);
 	}
-	data->doHdcp = (gboolean)!!hdcpEncrypt;
+	data->doHdcp = (gboolean)!!hdcpEncrypt;*/
 
 
 	switch( protoId )

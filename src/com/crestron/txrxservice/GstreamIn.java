@@ -39,6 +39,7 @@ public class GstreamIn implements StreamInStrategy, SurfaceHolder.Callback {
     private static native void 	nativeSetServerUrl(String url, int sessionId);
     private native void 		nativeSetRtspPort(int port, int sessionId);
     private native void 		nativeSetTsPort(int port, int sessionId);
+    private native void 		nativeSetHdcpEncrypt(boolean flag, int sessionId);
     private native void 		nativeSetRtpVideoPort(int port, int sessionId);
     private native void 		nativeSetRtpAudioPort(int port, int sessionId);
     private native void 		nativeSetSessionInitiation(int initMode, int sessionId);
@@ -74,6 +75,10 @@ public class GstreamIn implements StreamInStrategy, SurfaceHolder.Callback {
     
     public void setTsPort(int port, int sessionId){
     	nativeSetTsPort(port, sessionId);
+    }
+    
+    public void setHdcpEncrypt(boolean flag, int sessionId) {
+    	nativeSetHdcpEncrypt(flag, sessionId);
     }
     
     public void setRtpVideoPort(int port, int sessionId){

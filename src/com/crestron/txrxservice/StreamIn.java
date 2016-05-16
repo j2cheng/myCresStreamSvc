@@ -31,6 +31,10 @@ public class StreamIn {
     	strategy.setTsPort(port, sessionId);
     }
     
+    public void setHdcpEncrypt(boolean flag, int sessionId) {
+    	strategy.setHdcpEncrypt(flag, sessionId);
+    }
+    
     public void setRtpVideoPort(int port, int sessionId) {
     	strategy.setRtpVideoPort(port, sessionId);
     }
@@ -144,7 +148,8 @@ public class StreamIn {
 
 interface StreamInStrategy{
     public void setRtspPort(int port, int sessionId);    
-    public void setTsPort(int port, int sessionId);    
+    public void setTsPort(int port, int sessionId);
+    public void setHdcpEncrypt(boolean flag, int sessionId);
     public void setRtpVideoPort(int port, int sessionId);    
     public void setRtpAudioPort(int port, int sessionId);    
     public void setSessionInitiation(int initMode, int sessionId);    

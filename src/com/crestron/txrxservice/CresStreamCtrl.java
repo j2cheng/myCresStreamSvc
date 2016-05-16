@@ -2201,6 +2201,9 @@ public class CresStreamCtrl extends Service {
     	if(cam_streaming != null)
     		cam_streaming.setHdcpEncrypt(flag);
     	
+    	if(streamPlay != null)
+    		streamPlay.setHdcpEncrypt(flag, sessId);
+    	
     	mHDCPEncryptStatus/*[sessId]*/ = flag;
     	mForceHdcpStatusUpdate = true;
     }

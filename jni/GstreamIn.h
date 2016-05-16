@@ -47,6 +47,13 @@ JNIEXPORT void JNICALL Java_com_crestron_txrxservice_GstreamIn_nativeSetTsPort(J
 
 /*
  * Class:     GstreamIn
+ * Method:    nativeSetHdcpEncrypt
+ * Signature: (ZI)V
+ */
+JNIEXPORT void JNICALL Java_com_crestron_txrxservice_GstreamIn_nativeSetHdcpEncrypt(JNIEnv *, jobject, jboolean, jint);
+
+/*
+ * Class:     GstreamIn
  * Method:    nativeSetRtpVideoPort
  * Signature: (II)V
  */
