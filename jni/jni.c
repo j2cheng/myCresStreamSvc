@@ -310,7 +310,7 @@ static void gstNativeInitRtspServer (JNIEnv* env, jobject thiz, jobject surface)
 	init_custom_data_out(cdata);
 	//csio_jni_init();
 	
-
+#if 0 // Comment this back in when it is ready
 	gst_init(NULL,NULL);				// already called from csio_Init?
 	loop = g_main_loop_new (NULL, FALSE);	// called from CStreamer::execute
 	if(!loop)
@@ -358,6 +358,7 @@ static void gstNativeInitRtspServer (JNIEnv* env, jobject thiz, jobject surface)
 	CSIO_LOG(eLogLevel_debug, "Attach to rtsp server returned id %u", id);	
 	
 	g_main_loop_run (loop);				// called from CStreamer::execute
+#endif
 }
 
 /* Quit the main loop, remove the native thread and free resources */
