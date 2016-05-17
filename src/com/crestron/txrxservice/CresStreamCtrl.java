@@ -1902,6 +1902,10 @@ public class CresStreamCtrl extends Service {
 	        	Log.d(TAG, "Start " + sessionId + " : Unlock");
 	    	}
     	}
+        else if (getCurrentStreamState(sessionId) == StreamState.STARTED)
+        {
+            SendStreamState(StreamState.STARTED, sessionId);         
+        }
     }
 
     public void Stop(int sessionId, boolean fullStop)
