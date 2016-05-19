@@ -2345,7 +2345,11 @@ public class CresStreamCtrl extends Service {
 			{
 	    		// if by transmitter, send currently saved url, else clear
 	    		if (userSettings.getSessionInitiation(sessionId) == 1)
+	    		{
+	    			// Bug 108125: Clear out stream out url when changing initiation modes
+	    			userSettings.setStreamOutUrl("", sessionId);
 	    			sockTask.SendDataToAllClients(String.format("STREAMURL%d=%s", sessionId, userSettings.getStreamOutUrl(sessionId)));
+	    		}
 	    		else
 	    			sockTask.SendDataToAllClients(String.format("STREAMURL%d=", sessionId));
 			}
@@ -2632,8 +2636,7 @@ public class CresStreamCtrl extends Service {
         }
 	}
 	
-	public void setNoVideoImage(boolean enable) 
-	{
+	public void setNoVideoImage(boolean enable) {
         Log.d(TAG, String.format("Setting no video format to %s", String.valueOf(enable)));
 		String cameraMode = "";
 		int previousCameraMode = readCameraMode();
