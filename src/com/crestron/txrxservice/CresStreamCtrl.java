@@ -1902,10 +1902,10 @@ public class CresStreamCtrl extends Service {
 	        	Log.d(TAG, "Start " + sessionId + " : Unlock");
 	    	}
     	}
-        else if (getCurrentStreamState(sessionId) == StreamState.STARTED)
-        {
-            SendStreamState(StreamState.STARTED, sessionId);         
-        }
+    	else if (getCurrentStreamState(sessionId) == StreamState.STARTED)
+    	{
+			SendStreamState(StreamState.STARTED, sessionId);
+    	}
     }
 
     public void Stop(int sessionId, boolean fullStop)
@@ -2936,6 +2936,12 @@ public class CresStreamCtrl extends Service {
 		// If force HDCP is enabled, blank output if not authenticated
 		// If force HDCP is disabled, blank output if not authenticated and input is authenticated
 		if (((mHDCPInputStatus == true) || (userSettings.isHdmiOutForceHdcp() == true)) && ((mHDCPOutputStatus == false) && (mHDCPExternalStatus == false)))
+			sockTask.SendDataToAllClients(String.format("%s=%b", "HDMIOUT_DISABLEDBYHDCP", true));
+		// The below case is transmitter which is streaming protected content but can't display on loopout
+		else if ((mHDCPInputStatus == true && mHDCPEncryptStatus == true && mHDCPOutputStatus == false) && (mIgnoreHDCP == false))	
+			sockTask.SendDataToAllClients(String.format("%s=%b", "HDMIOUT_DISABLEDBYHDCP", true));
+		// The below case is receiver which is receiving protect stream but can't display on output
+		else if ((mTxHdcpActive == true && mHDCPEncryptStatus == true && mHDCPOutputStatus == false) && (mIgnoreHDCP == false))
 			sockTask.SendDataToAllClients(String.format("%s=%b", "HDMIOUT_DISABLEDBYHDCP", true));
 		else
 			sockTask.SendDataToAllClients(String.format("%s=%b", "HDMIOUT_DISABLEDBYHDCP", false));
