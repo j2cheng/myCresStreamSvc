@@ -1,4 +1,17 @@
 LOCAL_PATH := $(call my-dir)
+
+########################
+# /system/lib
+########################
+include $(CLEAR_VARS)
+LOCAL_MODULE := libgstreamer_android.so
+LOCAL_MODULE_CLASS := SHARED_LIBRARIES
+LOCAL_MODULE_TAGS := eng
+LOCAL_SRC_FILES := ./gstreamer_android/libgstreamer_android.so
+include $(BUILD_PREBUILT)
+
+
+
 include $(CLEAR_VARS)
 GSTREAMER_ROOT_ANDROID := $(LOCAL_PATH)/../../../gstreamer-1.4.5
 CSIO_INCLUDE_ROOT := $(LOCAL_PATH)/../../csio
@@ -92,15 +105,5 @@ include $(BUILD_SHARED_LIBRARY)
 
 
 
-########################
-# /system/lib
-########################
-
-include $(CLEAR_VARS)
-LOCAL_MODULE := libgstreamer_android.so
-LOCAL_MODULE_CLASS := SHARED_LIBRARIES
-LOCAL_MODULE_TAGS := eng
-LOCAL_SRC_FILES := libgstreamer_android.so
-include $(BUILD_PREBUILT)
 
 
