@@ -269,6 +269,11 @@ public class CresStreamCtrl extends Service {
     	}).start();
     }
     
+	static {
+		Log.d(TAG,"loading csio product info library" );
+		System.loadLibrary("CsioProdInfo");
+	}
+    
     //StreamState devicestatus = StreamState.STOPPED;
     //HashMap
     HashMap<Integer, Command> hm;
