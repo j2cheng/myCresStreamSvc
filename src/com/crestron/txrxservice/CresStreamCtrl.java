@@ -147,6 +147,9 @@ public class CresStreamCtrl extends Service {
     public final static String hdcpEncryptFilePath = "/dev/shm/crestron/CresStreamSvc/HDCPEncrypt";
     public int mGstreamerTimeoutCount = 0;
 
+    // JNI prototype
+    public native boolean nativeHaveExternalDisplays(); 
+
     enum DeviceMode {
         STREAM_IN,
         STREAM_OUT,
@@ -272,6 +275,8 @@ public class CresStreamCtrl extends Service {
 	static {
 		Log.d(TAG,"loading csio product info library" );
 		System.loadLibrary("CsioProdInfo");
+		Log.d(TAG,"loading cresstreamctrl jni library" );
+		System.loadLibrary("cresstreamctrl_jni");
 	}
     
     //StreamState devicestatus = StreamState.STOPPED;
@@ -279,6 +284,7 @@ public class CresStreamCtrl extends Service {
     HashMap<Integer, Command> hm;
     HashMap<Integer, myCommand> hm2;
     HashMap<Integer, myCommand2> hm3;
+        
     @Override
         public void onCreate() {
     		// Create Handler onCreate so that it is always associated with UI thread (main thread)
@@ -286,7 +292,23 @@ public class CresStreamCtrl extends Service {
             super.onCreate();
             int windowWidth = 1920;
             int windowHeight = 1080;
+            boolean haveExternalDisplays;
             
+            // Wait until 2nd display has settled down.
+			// Android will kill this after 20 seconds!
+			// Tried waiting for just 10 seconds, didn't work.
+			// I guess 2nd display is not ready yet.
+			haveExternalDisplays = nativeHaveExternalDisplays();
+			if(haveExternalDisplays){
+				Log.d(TAG, "about to wait for external display(s)");
+				for(int i=1; i<=15; i++)
+				{
+					SystemClock.sleep(1000);
+					Log.d(TAG, "waited " + i + " sec");
+				}
+				Log.d(TAG, "done waiting for external display(s)");
+			}
+			
             //Start service connection
             tokenizer = new StringTokenizer();
             sockTask = new TCPInterface(this);
@@ -530,7 +552,7 @@ public class CresStreamCtrl extends Service {
         	sendHdmiOutSyncState(); // Send out initial hdmi out resolution info
 
             // Create a DisplaySurface to handle both preview and stream in
-        	dispSurface = new CresDisplaySurface(this, 1920, 1200); // set to max output resolution
+        	dispSurface = new CresDisplaySurface(this, 1920, 1200, haveExternalDisplays); // set to max output resolution
             
             //Get HPDEVent state fromsysfile
             if (hdmiInputDriverPresent)

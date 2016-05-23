@@ -87,6 +87,7 @@ endif
 LOCAL_MODULE_TAGS := eng
 LOCAL_PRELINK_MODULE := false
 include $(BUILD_SHARED_LIBRARY)
+
 ###############################################################################
 # Crestron - commenting this out b/c was built elsewhere
 # ifndef GSTREAMER_ROOT
@@ -100,6 +101,51 @@ include $(BUILD_SHARED_LIBRARY)
 # GSTREAMER_PLUGINS         := $(GSTREAMER_PLUGINS_CORE) $(GSTREAMER_PLUGINS_SYS) $(GSTREAMER_PLUGINS_EFFECTS)  $(GSTREAMER_PLUGINS_NET) $(GSTREAMER_PLUGINS_CODECS) $(GSTREAMER_PLUGINS_PLAYBACK) $(GSTREAMER_PLUGINS_CODECS_RESTRICTED) rtsp rtp
 # GSTREAMER_EXTRA_DEPS      := gstreamer-video-1.0
 # include $(GSTREAMER_NDK_BUILD_PATH)/gstreamer-1.0.mk
+
+### library for CresStreamCtrl jni functions
+include $(CLEAR_VARS)
+CRESTRON_ROOT := $(LOCAL_PATH)/../..
+CSIO_INCLUDE_ROOT := $(LOCAL_PATH)/../../csio
+LOCAL_MODULE := libcresstreamctrl_jni
+LOCAL_CFLAGS +=\
+	-DANDROID_OS \
+	-I$(CSIO_INCLUDE_ROOT) \
+	-I$(CRESTRON_ROOT)/productNameUtil \
+	-I$(CRESTRON_ROOT)/common/include \
+	-I$(CRESTRON_ROOT)/Include/External 
+	
+#	-I$(CPP_INC_PATH) \
+#	-I$(COMMON_INC_PATH) \
+#	-I$(STL_INC_PATH) \
+# iMX53 #
+ifeq ($(TARGET_PRODUCT),imx53_smd)
+LOCAL_CFLAGS +=\
+	-I$(CSIO_INCLUDE_ROOT)/tsx
+endif
+# iMX6 #
+ifeq ($(TARGET_PRODUCT),iWave_G15M)
+LOCAL_CFLAGS +=\
+	-I$(CSIO_INCLUDE_ROOT)/str
+endif
+# OMAP5 #
+ifeq ($(TARGET_PRODUCT),$(filter $(TARGET_PRODUCT),full_omap5panda)) 
+LOCAL_CFLAGS +=\
+	-I$(CSIO_INCLUDE_ROOT)/txrx 
+endif
+# AM Logic #
+# For now just use the txrx code.  Move this out if needed
+ifeq ($(TARGET_PRODUCT),$(filter $(TARGET_PRODUCT),yushan_one))
+LOCAL_CFLAGS +=\
+	-I$(CSIO_INCLUDE_ROOT)/txrx 
+endif	
+
+LOCAL_SHARED_LIBRARIES := libCsioProdInfo
+LOCAL_SRC_FILES := cresstreamctrl_jni.c
+
+LOCAL_MODULE_TAGS := eng
+LOCAL_PRELINK_MODULE := false
+include $(BUILD_SHARED_LIBRARY)
+
 
 
 

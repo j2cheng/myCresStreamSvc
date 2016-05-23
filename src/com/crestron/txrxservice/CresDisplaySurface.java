@@ -14,6 +14,13 @@ import android.app.Service;
 import android.graphics.PixelFormat;
 import android.content.Context;
 
+// PEM - for 2nd display
+import android.content.Context;
+import android.hardware.display.DisplayManager;
+import android.hardware.display.DisplayManager.DisplayListener;
+import android.view.Display;
+import android.app.Service;
+
 /**
  * CresDisplaySurface class
  * 
@@ -32,7 +39,25 @@ public class CresDisplaySurface
     SurfaceManager sMGR;
     String TAG = "CresDisplaySurface";
 
-    public CresDisplaySurface(Service svc, int windowWidth, int windowHeight)
+    // PEM - add a view to the 2nd display
+    // Needed to pass Service or else can't call getApplicationContext...
+    private void addViewToExternalDisplay(Service svc, View view, WindowManager.LayoutParams params){
+        DisplayManager dm = (DisplayManager) svc.getApplicationContext().getSystemService(Context.DISPLAY_SERVICE);
+        if (dm != null){
+            Display dispArray[] = dm.getDisplays();
+            if (dispArray.length>1){
+				Log.e(TAG, "Crestron PEM adding view to 2nd display");
+                Context displayContext = svc.getApplicationContext().createDisplayContext(dispArray[1]);
+                WindowManager wm = (WindowManager)displayContext.getSystemService(Context.WINDOW_SERVICE);
+                wm.addView(view, params);
+            }
+            else{
+				Log.e(TAG, "Crestron PEM 2nd display not ready yet");
+            }
+        }
+    }
+
+    public CresDisplaySurface(Service svc, int windowWidth, int windowHeight, boolean haveExternalDisplays)
     {
         Log.i(TAG, "Creating surface: " + windowWidth + "x" + windowHeight );
         
@@ -59,13 +84,19 @@ public class CresDisplaySurface
 
         //Setting WindowManager and Parameters with system overlay
         wmLayoutParams = new WindowManager.LayoutParams(windowWidth, windowHeight, WindowManager.LayoutParams.TYPE_SYSTEM_OVERLAY, 0, PixelFormat.TRANSLUCENT);
-        wm = (WindowManager) svc.getSystemService(Context.WINDOW_SERVICE);
         wmLayoutParams.gravity = Gravity.TOP | Gravity.LEFT;
         wmLayoutParams.x = 0;
         wmLayoutParams.y = 0;
         //Adding Relative Layout to WindowManager
-        wm.addView(parentlayout, wmLayoutParams); 
-        
+		if(haveExternalDisplays){		
+			Log.d(TAG, "moving streams to 2nd display");
+			addViewToExternalDisplay(svc, parentlayout, wmLayoutParams);
+		}
+		else{
+			wm = (WindowManager) svc.getSystemService(Context.WINDOW_SERVICE);
+			wm.addView(parentlayout, wmLayoutParams); 
+		}
+		
         // Force invalidation
         forceLayoutInvalidation();
         
