@@ -13,7 +13,7 @@ include $(BUILD_PREBUILT)
 
 
 include $(CLEAR_VARS)
-GSTREAMER_ROOT_ANDROID := $(LOCAL_PATH)/../../../gstreamer-1.4.5
+GSTREAMER_ROOT_ANDROID := $(LOCAL_PATH)/../../../gstreamer-1.8.1
 CSIO_INCLUDE_ROOT := $(LOCAL_PATH)/../../csio
 CSIO_ROOT := ../../csio
 CRESTRON_ROOT := $(LOCAL_PATH)/../..
