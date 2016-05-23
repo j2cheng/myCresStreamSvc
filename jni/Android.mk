@@ -58,6 +58,7 @@ LOCAL_CFLAGS +=\
 	-I$(GSTREAMER_ROOT_ANDROID)/include/gstreamer-1.0 \
 	-I$(GSTREAMER_ROOT_ANDROID)/include/glib-2.0 \
 	-I$(GSTREAMER_ROOT_ANDROID)/lib/glib-2.0/include \
+	-I$(GSTREAMER_ROOT_ANDROID)/gstreamer/lib/gstreamer-1.0/include \
 	-I$(CRESTRON_ROOT)/common/include \
 	-I$(CRESTRON_ROOT)/cipclientd/include \
 	-I$(CRESTRON_ROOT)/libiplinkclientwrapper/include \
