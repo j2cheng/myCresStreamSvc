@@ -230,7 +230,7 @@ void csio_jni_init()
 {
 	int iStatus = CSIO_SUCCESS;
 
-	csio_setup_product_info();
+	csio_setup_product_info(0);
 	
     // MNT - 7.5.15 - Indicate that init is being called from CresStreamSvc so that
     // it does not get SIGUSR2.
@@ -311,7 +311,6 @@ static void gstNativeInitRtspServer (JNIEnv* env, jobject thiz, jobject surface)
 	//csio_jni_init();
 	
 #if 0 // Comment this back in when it is ready
-	gst_init(NULL,NULL);				// already called from csio_Init?
 	loop = g_main_loop_new (NULL, FALSE);	// called from CStreamer::execute
 	if(!loop)
 	{

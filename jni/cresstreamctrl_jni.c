@@ -42,7 +42,7 @@ JNIEXPORT jboolean JNICALL Java_com_crestron_txrxservice_CresStreamCtrl_nativeHa
 	{
 		did_init = 1;
 	    currentSettingsDB = (CSIOSettings*)malloc(sizeof(CSIOSettings));
-		csio_setup_product_info();
+		csio_setup_product_info(0);
 	}
 
 	if(product_info()->stream_display_bitmask & 0xfffffffe)
