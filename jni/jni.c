@@ -279,7 +279,9 @@ static void gst_rtsp_server_get_pipeline(char * pDest, int destSize)
 	{
 		// Because camera on x60 is front-facing, it is mirrored by default for the preview.
 		// Old default pipeline (with video flipping) "( ahcsrc ! videoflip method=4 ! videoconvert ! %s ! rtph264pay name=pay0 pt=96 )"
-		snprintf(pDest, destSize, "( ahcsrc ! videoconvert ! %s ! rtph264pay name=pay0 pt=96 )",
+		// Enabled NV21 pixel format in libgstreamer_android.so, don't need videoconvert anymore.
+		//"( ahcsrc ! videoconvert ! %s ! rtph264pay name=pay0 pt=96 )"
+		snprintf(pDest, destSize, "( ahcsrc ! %s ! rtph264pay name=pay0 pt=96 )",
 			product_info()->video_encoder_string);
 		return;
 	}
