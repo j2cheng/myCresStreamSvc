@@ -278,8 +278,8 @@ static void gst_rtsp_server_get_pipeline(char * pDest, int destSize)
 	if(!pf)
 	{
 		// Because camera on x60 is front-facing, it is mirrored by default for the preview.
-		// We use videoflip to undo the mirroring.
-		snprintf(pDest, destSize, "( ahcsrc ! videoflip method=4 ! videoconvert ! %s ! rtph264pay name=pay0 pt=96 )",
+		// Old default pipeline (with video flipping) "( ahcsrc ! videoflip method=4 ! videoconvert ! %s ! rtph264pay name=pay0 pt=96 )"
+		snprintf(pDest, destSize, "( ahcsrc ! videoconvert ! %s ! rtph264pay name=pay0 pt=96 )",
 			product_info()->video_encoder_string);
 		return;
 	}
@@ -289,28 +289,19 @@ static void gst_rtsp_server_get_pipeline(char * pDest, int destSize)
 
 // rtsp object documentation: https://gstreamer.freedesktop.org/data/doc/gstreamer/head/gst-rtsp-server/html/GstRTSPServer.html
 // copied code from gst-rtsp-server-1.4.5/examples/test-launch.c
-static void gstNativeInitRtspServer (JNIEnv* env, jobject thiz, jobject surface) 
+static void jni_start_rtsp_server(void *data)
 {
 	GMainLoop *loop;
 	GstRTSPServer *server;
 	GstRTSPMountPoints *mounts;
-	GstRTSPMediaFactory *factory;	
+	GstRTSPMediaFactory *factory;
 	char pipeline[1024];
 	guint id;
-		
-	CSIO_LOG(eLogLevel_error, "Creating rtsp server, jobject surface=%p", surface);	
-	
-	CustomDataOut *cdata = g_new0 (CustomDataOut, 1);
-	//CresDataDB = cdata;
-	SET_CUSTOM_DATA (env, thiz, custom_data_field_id_rtsp_server, cdata);
-	//GST_DEBUG_CATEGORY_INIT (debug_category, "gstreamer_jni", 0, "Android jni");
-	//gst_debug_set_threshold_for_name("gstreamer_jni", GST_LEVEL_ERROR);
-	
-	cdata->app = (*env)->NewGlobalRef(env, thiz);
-	init_custom_data_out(cdata);
-	//csio_jni_init();
-	
-#if 0 // Comment this back in when it is ready
+
+
+	CustomDataOut *cdata = (CustomDataOut *)data;
+	// TODO: These parameters should be saved in cdata
+#if 1 // Comment this back in when it is ready
 	loop = g_main_loop_new (NULL, FALSE);	// called from CStreamer::execute
 	if(!loop)
 	{
@@ -358,6 +349,30 @@ static void gstNativeInitRtspServer (JNIEnv* env, jobject thiz, jobject surface)
 	
 	g_main_loop_run (loop);				// called from CStreamer::execute
 #endif
+}
+
+
+static void gstNativeInitRtspServer (JNIEnv* env, jobject thiz, jobject surface)
+{
+	CSIO_LOG(eLogLevel_error, "Creating rtsp server, jobject surface=%p", surface);
+
+	CustomDataOut *cdata = g_new0 (CustomDataOut, 1);
+	//CresDataDB = cdata;
+	SET_CUSTOM_DATA (env, thiz, custom_data_field_id_rtsp_server, cdata);
+	//GST_DEBUG_CATEGORY_INIT (debug_category, "gstreamer_jni", 0, "Android jni");
+	//gst_debug_set_threshold_for_name("gstreamer_jni", GST_LEVEL_ERROR);
+
+	cdata->app = (*env)->NewGlobalRef(env, thiz);
+	init_custom_data_out(cdata);
+	//csio_jni_init();
+
+	// TODO: save threadId in cdata
+	pthread_t streamOutThread;
+	int iRtn = pthread_create( &streamOutThread, NULL, jni_start_rtsp_server, (void*) cdata );
+	if( iRtn )
+	{
+		CSIO_LOG(eLogLevel_error,  "ERROR: Failed to launch RTSP server thread: %d\n", iRtn );
+	}
 }
 
 /* Quit the main loop, remove the native thread and free resources */
