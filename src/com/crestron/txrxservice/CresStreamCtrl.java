@@ -2917,8 +2917,20 @@ public class CresStreamCtrl extends Service {
 				else
 					setHDCPErrorImage(false);
 				
+				// Check if HDMI content is visible on screen
+				boolean hdmiContentVisible = false;
+				for (int sessionId = 0; sessionId < NumOfSurfaces; sessionId++)
+				{
+					if ((userSettings.getMode(sessionId) == DeviceMode.STREAM_OUT.ordinal()) || 
+							(userSettings.getMode(sessionId) == DeviceMode.PREVIEW.ordinal() &&
+							userSettings.getStreamState(sessionId) == StreamState.STARTED))
+					{
+						hdmiContentVisible = true;
+						break;
+					}
+				}
 				// The below case is transmitter which is streaming protected content but can't display on loopout
-				if ((mHDCPInputStatus == true && mHDCPEncryptStatus == true && mHDCPOutputStatus == false) && (mIgnoreHDCP == false))	
+				if (((mHDCPInputStatus == true && hdmiContentVisible == true) && mHDCPEncryptStatus == true && mHDCPOutputStatus == false) && (mIgnoreHDCP == false))	
 					sendHDCPLocalOutputBlanking(true);
 				// The below case is receiver which is receiving protect stream but can't display on output
 				else if ((mTxHdcpActive == true && mHDCPEncryptStatus == true && mHDCPOutputStatus == false) && (mIgnoreHDCP == false))
@@ -2959,13 +2971,25 @@ public class CresStreamCtrl extends Service {
 			}
 		}
 		//Send output feedbacks
-		//Log.i(TAG, String.format("mHDCPInputStatus = %b, userSettings.isHdmiOutForceHdcp() = %b, mHDCPOutputStatus = %b", mHDCPInputStatus, userSettings.isHdmiOutForceHdcp(), mHDCPOutputStatus));
+		// Check if HDMI content is visible on screen
+		boolean hdmiContentVisible = false;
+		for (int sessionId = 0; sessionId < NumOfSurfaces; sessionId++)
+		{
+			if ((userSettings.getMode(sessionId) == DeviceMode.STREAM_OUT.ordinal()) || 
+					(userSettings.getMode(sessionId) == DeviceMode.PREVIEW.ordinal() &&
+					userSettings.getStreamState(sessionId) == StreamState.STARTED))
+			{
+				hdmiContentVisible = true;
+				break;
+			}
+		}
+		
 		// If force HDCP is enabled, blank output if not authenticated
 		// If force HDCP is disabled, blank output if not authenticated and input is authenticated
-		if (((mHDCPInputStatus == true) || (userSettings.isHdmiOutForceHdcp() == true)) && ((mHDCPOutputStatus == false) && (mHDCPExternalStatus == false)))
+		if (((mHDCPInputStatus == true && hdmiContentVisible == true) || (userSettings.isHdmiOutForceHdcp() == true)) && ((mHDCPOutputStatus == false) && (mHDCPExternalStatus == false)))
 			sockTask.SendDataToAllClients(String.format("%s=%b", "HDMIOUT_DISABLEDBYHDCP", true));
 		// The below case is transmitter which is streaming protected content but can't display on loopout
-		else if ((mHDCPInputStatus == true && mHDCPEncryptStatus == true && mHDCPOutputStatus == false) && (mIgnoreHDCP == false))	
+		else if (((mHDCPInputStatus == true && hdmiContentVisible == true) && mHDCPEncryptStatus == true && mHDCPOutputStatus == false) && (mIgnoreHDCP == false))	
 			sockTask.SendDataToAllClients(String.format("%s=%b", "HDMIOUT_DISABLEDBYHDCP", true));
 		// The below case is receiver which is receiving protect stream but can't display on output
 		else if ((mTxHdcpActive == true && mHDCPEncryptStatus == true && mHDCPOutputStatus == false) && (mIgnoreHDCP == false))
