@@ -879,38 +879,46 @@ public class CameraStreaming {
 					
 					streamCtl.SendStreamOutFeedbacks();
     			}
-    			
-    			while(!shouldExit)
-				{    	
+            }
+            catch (Exception e)
+            {
+            	Log.d(TAG, "Failed to query statistics from mediaServer");
+            }
+
+    		while(!shouldExit)
+    		{    	
+    			try
+    			{
     				if (streamCtl.userSettings.isStatisticsEnable(idx))
     				{
     					if (mrec == null)
-	    					continue;
-	    				
-    					statisticsString = ProductSpecific.getStatisticsData(mrec);
-						
-						// Pull out number of Video packets
-						regexP = Pattern.compile("Video\\s+Encoded Frames:\\s+(\\d+)");
-						regexM = regexP.matcher(statisticsString);
-						if (regexM.find())
-							statisticsNumVideoPackets = Long.valueOf(regexM.group(1));
+    						continue;
 
-						// Pull out number of Audio packets
-						regexP = Pattern.compile("Audio\\s+Encoded Frames:\\s+(\\d+)");
-						regexM = regexP.matcher(statisticsString);
-						if (regexM.find())
-							statisticsNumAudioPackets = Long.valueOf(regexM.group(1));
-						
-						streamCtl.SendStreamOutFeedbacks();
+    					statisticsString = ProductSpecific.getStatisticsData(mrec);
+
+    					// Pull out number of Video packets
+    					regexP = Pattern.compile("Video\\s+Encoded Frames:\\s+(\\d+)");
+    					regexM = regexP.matcher(statisticsString);
+    					if (regexM.find())
+    						statisticsNumVideoPackets = Long.valueOf(regexM.group(1));
+
+    					// Pull out number of Audio packets
+    					regexP = Pattern.compile("Audio\\s+Encoded Frames:\\s+(\\d+)");
+    					regexM = regexP.matcher(statisticsString);
+    					if (regexM.find())
+    						statisticsNumAudioPackets = Long.valueOf(regexM.group(1));
+
+    					streamCtl.SendStreamOutFeedbacks();
     				}
-					// Sleep last so that we dont call getStatisticsData while trying to stop					
-					Thread.sleep(statisticsThreadPollTime);
-				}
-            }
-            catch (InterruptedException localInterruptedException)
-            {
-                localInterruptedException.printStackTrace();
-            }
+    				// Sleep last so that we dont call getStatisticsData while trying to stop					
+    				Thread.sleep(statisticsThreadPollTime);
+    			}
+    			catch (Exception e)
+    			{
+    				Log.v(TAG, "Failed to query statistics from mediaServer");
+    			}
+    		}
+
     	}    
     }
     
