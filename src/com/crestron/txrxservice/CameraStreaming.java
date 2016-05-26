@@ -844,12 +844,11 @@ public class CameraStreaming {
 			Encoded Frames: 252
 			Bytes Sent: 446387 */
     		
+    		Pattern regexP;
+			Matcher regexM;
+			String statisticsString;
     		try
             {
-    			Pattern regexP;
-    			Matcher regexM;
-    			String statisticsString;
-    			
     			if (mrec != null)
     			{
     				statisticsString = ProductSpecific.getStatisticsData(mrec);
