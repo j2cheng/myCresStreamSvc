@@ -237,7 +237,7 @@ public class UserSettings
 		password   			= initStringArray("");
 		streamState			= initStreamState(StreamState.STOPPED);
 		userRequestedStreamState = initStreamState(StreamState.STOPPED);
-		transportMode		= initIntArray(0);
+		transportMode		= initIntArray(1);  // Bug 111632: set default transport mode to MPEG TS RTP
 		passwordEnable		= initBoolArray(false);
 		passwordDisable		= initBoolArray(true);
 		streamingBuffer		= initIntArray(1000);
