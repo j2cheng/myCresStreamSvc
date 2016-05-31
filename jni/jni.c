@@ -303,7 +303,7 @@ static void jni_start_rtsp_server(void *data)
 
 	CustomDataOut *cdata = (CustomDataOut *)data;
 	// TODO: These parameters should be saved in cdata
-#if 1 // Comment this back in when it is ready
+#if 0 // Comment this back in when it is ready
 	loop = g_main_loop_new (NULL, FALSE);	// called from CStreamer::execute
 	if(!loop)
 	{
