@@ -2281,9 +2281,10 @@ public class CresStreamCtrl extends Service {
 
     public void stopStreamIn(int sessId)
     {
-        streamPlay.onStop(sessId);
-        //Toast.makeText(this, "StreamIN Stopped", Toast.LENGTH_LONG).show();
-        hideStreamInWindow(sessId);
+    	//hide video window first
+    	hideStreamInWindow(sessId);
+    	
+        streamPlay.onStop(sessId);        
     }
 
     public void pauseStreamIn(int sessId)
