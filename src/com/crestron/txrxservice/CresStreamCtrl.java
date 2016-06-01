@@ -399,10 +399,10 @@ public class CresStreamCtrl extends Service {
             	
             	// Added for real camera on x60
             	// to-do: support having both hdmi input and a real camera at the same time...
-            	//if(ProductSpecific.hasRealCamera())
-            	//{
-            	//	gstStreamOut = new GstreamOut(CresStreamCtrl.this);
-            	//}
+            	if(ProductSpecific.hasRealCamera())
+            	{
+            		gstStreamOut = new GstreamOut(CresStreamCtrl.this);
+            	}
 
             }
             else
@@ -1178,7 +1178,8 @@ public class CresStreamCtrl extends Service {
         
         // If hdmi input driver is present allow all 3 modes, otherwise only allow stream in mode
         // Only if mode actually changed
-        if ((mode != prevMode) && (hdmiInputDriverPresent || (mode == DeviceMode.STREAM_IN.ordinal())))
+        if ((mode != prevMode) && ((hdmiInputDriverPresent || (mode == DeviceMode.STREAM_IN.ordinal()) 
+        || (ProductSpecific.hasRealCamera())))) 
         {
         	// Since this is a user request, mark as stopped requested if mode changes
         	userSettings.setUserRequestedStreamState(StreamState.STOPPED, sessionId);
