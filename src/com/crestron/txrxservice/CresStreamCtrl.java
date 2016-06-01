@@ -1178,8 +1178,7 @@ public class CresStreamCtrl extends Service {
         
         // If hdmi input driver is present allow all 3 modes, otherwise only allow stream in mode
         // Only if mode actually changed
-        if ((mode != prevMode) && ((hdmiInputDriverPresent || (mode == DeviceMode.STREAM_IN.ordinal()) 
-        || (ProductSpecific.hasRealCamera())))) 
+        if ((mode != prevMode) && (hdmiInputDriverPresent || (mode == DeviceMode.STREAM_IN.ordinal())))
         {
         	// Since this is a user request, mark as stopped requested if mode changes
         	userSettings.setUserRequestedStreamState(StreamState.STOPPED, sessionId);
