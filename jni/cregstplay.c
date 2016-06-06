@@ -575,6 +575,7 @@ int build_video_pipeline(gchar *encoding_name, CREGSTREAM *data, unsigned int st
 		data->element_v[i++] = gst_element_factory_make("jpegdec", NULL);
 		data->element_fake_dec = data->element_v[i-1];
 
+		*ele0 = data->element_v[0];
 		data->using_glimagsink = 1;
 	}
 	else if(strcmp(encoding_name, "MPEG4") == 0)
@@ -599,6 +600,8 @@ int build_video_pipeline(gchar *encoding_name, CREGSTREAM *data, unsigned int st
 		//pass surface object to the decoder
 		g_object_set(G_OBJECT(data->element_v[i-1]), "surface-window", data->surface, NULL);
 		CSIO_LOG(eLogLevel_debug, "SET surface-window[0x%x][%d]",data->surface,data->surface);
+
+		*ele0 = data->element_v[0];
 	}
 	else
 	{
