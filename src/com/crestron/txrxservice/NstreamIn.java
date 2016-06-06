@@ -43,9 +43,12 @@ public class NstreamIn implements StreamInStrategy, OnPreparedListener, OnComple
     }
 
     //Enable TCP for RTSP Mode
-    public void setRtspTcpInterleave(boolean tcpInterleave, int sessionId){
+    public void setRtspTcpInterleave(int tcpInterleave, int sessionId){
         Log.d(TAG, " setRtspTcpInterleave");
-        tcpInterleaveFlag[sessionId] = tcpInterleave;    
+        if(tcpInterleave == 0)
+        	tcpInterleaveFlag[sessionId] = false; 
+        else
+            tcpInterleaveFlag[sessionId] = true; 
     }
 
     //RTP Only Mode, SDP Creation based on RTP Video and Audio Ports

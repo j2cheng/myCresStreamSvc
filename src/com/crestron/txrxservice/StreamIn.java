@@ -105,7 +105,7 @@ public class StreamIn {
     	strategy.disableLatency(sessionId);
     }
     
-    public void setRtspTcpInterleave(boolean tcpInterleave, int sessionId) {
+    public void setRtspTcpInterleave(int tcpInterleave, int sessionId) {
     	strategy.setRtspTcpInterleave(tcpInterleave, sessionId);
     }
     
@@ -169,7 +169,7 @@ interface StreamInStrategy{
 	public int getStreamInNumAudioPacketsDropped();	
 	public int getStreamInBitrate();
     public void disableLatency(int sessionId);
-    public void setRtspTcpInterleave(boolean tcpInterleave, int sessionId);
+    public void setRtspTcpInterleave(int tcpInterleave, int sessionId);
     public void setRtpOnlyMode(int vport, int aport, String ip, int sessionId);
     public void setAudioDrop(boolean enabled, int sessionId);
     public void onStart(int sessionId); 

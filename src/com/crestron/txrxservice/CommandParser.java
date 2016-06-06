@@ -152,7 +152,7 @@ public class CommandParser {
         sb.append("RTPAUDIOPORT (= 1024 to 49151)\r\n");
         sb.append("VFRAMERATE (= 60 50 30 24)\r\n");
         sb.append("VBITRATE (= 96 to 25000kbps)\r\n");
-        sb.append("TCPINTERLEAVE (=true enable tcp for RTSP Streaming In)\r\n");
+        sb.append("TCPINTERLEAVE (=0:auto 1:tcp 2:udp for RTSP Streaming In)\r\n");
         sb.append("MULTICAST_ADDRESS(=xxx.xxx.xxx.xxx)\r\n");
         sb.append("ENCODING_RESOLUTION(=0 to 17)\r\n");
         sb.append("AUDIO_VOLUME(=0 to 100)\r\n");

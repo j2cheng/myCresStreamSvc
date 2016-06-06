@@ -2191,11 +2191,16 @@ public class CresStreamCtrl extends Service {
         showWindow(sessId);
     }
 
-    public void EnableTcpInterleave(int sessionId){
-        Log.d(TAG, " EnableTcpInterleave");
-        streamPlay.setRtspTcpInterleave(true, sessionId);
+    public void EnableTcpInterleave(int tcpInterleave,int sessionId){
+        userSettings.setTcpInterleave(tcpInterleave,sessionId);
+        streamPlay.setRtspTcpInterleave(tcpInterleave, sessionId);
     }
 
+    public int getTcpInterleave(int sessionId)
+    {    	
+        return userSettings.getTcpInterleave(sessionId);
+    }
+    
     public void setStreamInUrl(String ap_url, int sessionId)
     {
         userSettings.setStreamInUrl(ap_url, sessionId);

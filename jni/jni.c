@@ -1023,6 +1023,13 @@ JNIEXPORT void JNICALL Java_com_crestron_txrxservice_GstreamIn_nativeSetLogLevel
 	CSIO_LOG(eLogLevel_debug, "Setting minimum printed log level to %d", logLevel);
 }
 
+JNIEXPORT void JNICALL Java_com_crestron_txrxservice_GstreamIn_nativeSetTcpMode(JNIEnv *env, jobject thiz, jint tcpMode, jint sessionId)
+{
+    currentSettingsDB->videoSettings[sessionId].rtspTCPMode = tcpMode;
+    CSIO_LOG(eLogLevel_debug, "Setting windoe{%d] tcpMode to %d", sessionId, tcpMode);
+
+    csio_SetRtspNetworkMode(sessionId,tcpMode);
+}
 JNIEXPORT void JNICALL Java_com_crestron_txrxservice_GstreamIn_nativeSetFieldDebugJni(JNIEnv *env, jobject thiz, jstring cmd_jstring, jint sessionId)
 {
     int iStringLen = 0;

@@ -205,6 +205,7 @@ public class UserSettings
 	private boolean[] useNewSink;
 	private boolean ravaMode;
 	private boolean processHdmiInAudio;
+	private int[] tcpInterleave;
 	
 	public UserSettings()
 	{
@@ -261,6 +262,7 @@ public class UserSettings
 		rtspStreamFileName	= "live.sdp";
 		rtspSessionName		= "CrestronStreamingSession";
 		multicastTTL		= 64;
+		tcpInterleave       = initIntArray(0);//auto mode
 	}
 	
 	// If there is a version mismatch between current userSettings and the one loaded from file system
@@ -918,4 +920,14 @@ public class UserSettings
 		return processHdmiInAudio;
 	}
 	
+	public int getTcpInterleave(int sessId) {		
+		return tcpInterleave[sessId];
+	}
+	
+	public void setTcpInterleave(int tcpIn,int sessId) {	
+		//TODO: as of now command allways set is to 0.
+		//so we have to set all windows to the same mode for now
+		for (int i = 0; i < CresStreamCtrl.NumOfSurfaces; i++)
+			this.tcpInterleave[i] = tcpIn;
+	}
 }

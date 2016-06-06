@@ -14,7 +14,7 @@ public class GstreamIn implements StreamInStrategy, SurfaceHolder.Callback {
     StringBuilder sb;
     boolean rtp_mode = false;
     boolean media_pause = false;
-    boolean tcpInterleaveFlag = false;
+    int     tcpInterleaveFlag = 0;
     boolean disableLatencyFlag = false;
     private CresStreamCtrl streamCtl;
     private long statisticsNumVideoPackets = 0;
@@ -57,6 +57,7 @@ public class GstreamIn implements StreamInStrategy, SurfaceHolder.Callback {
     private native void         nativeSetFieldDebugJni(String cmd,int sessId);
     private native void			nativeDropAudio(boolean enabled, boolean dropAudioPipeline, int sessionId);
     private native void			nativeSetLogLevel(int logLevel);
+    private native void			nativeSetTcpMode(int tcpMode, int sessionId);
     
     public GstreamIn(CresStreamCtrl mContext) {
         Log.e(TAG, "GstreamIN :: Constructor called...!");
@@ -237,10 +238,10 @@ public class GstreamIn implements StreamInStrategy, SurfaceHolder.Callback {
 //        disableLatencyFlag = true;    
     }
 
-  //Not needed by Gstreamer, only gallery player
-    public void setRtspTcpInterleave(boolean tcpInterleave, int sessionId){
-//        Log.d(TAG, " setRtspTcpInterleave");
-//        tcpInterleaveFlag = tcpInterleave;    
+    //needed by Gstreamer
+    public void setRtspTcpInterleave(int tcpInterleave, int sessionId){    	
+    	nativeSetTcpMode(tcpInterleave,sessionId);
+        tcpInterleaveFlag = tcpInterleave;    
     }
 
   //Not needed by Gstreamer, only gallery player
@@ -297,6 +298,7 @@ public class GstreamIn implements StreamInStrategy, SurfaceHolder.Callback {
     	setVolume((int)streamCtl.userSettings.getVolume(), sessionId);
     	setNewSink(streamCtl.userSettings.isNewSink(sessionId), sessionId);
     	setAudioDrop(streamCtl.userSettings.isRavaMode(), sessionId);
+    	setRtspTcpInterleave(streamCtl.userSettings.getTcpInterleave(sessionId), sessionId);
     }
 
     //Response to CSIO Layer TODO: these can most likely be deleted handled in jni library

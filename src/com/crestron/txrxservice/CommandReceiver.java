@@ -104,8 +104,12 @@ public class CommandReceiver {
     	ctl.userSettings.setBitrate(vbr, sessId);
     }
 
-    public void EnableTcpInterleave(int sessId){
-        ctl.EnableTcpInterleave(sessId);
+    public void EnableTcpInterleave(int tcpInterleave,int sessId){
+        ctl.EnableTcpInterleave(tcpInterleave,sessId);
+    }
+    
+    public String getTcpInterleave(int sessId){
+    	return Integer.toString(ctl.getTcpInterleave(sessId));
     }
     
     public void setMulticastIpAddress(String ip, int sessId){
