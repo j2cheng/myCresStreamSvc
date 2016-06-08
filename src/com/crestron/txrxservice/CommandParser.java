@@ -119,6 +119,36 @@ public class CommandParser {
         OSD_LOCATION,
         OSD_X,
         OSD_Y,
+        
+        // AirMedia Top slot
+        AIRMEDIA_LAUNCH,
+        AIRMEDIA_WINDOW_LAUNCH,
+        AIRMEDIA_LOGIN_CODE,
+        AIRMEDIA_LOGIN_MODE,
+        AIRMEDIA_WINDOW_POSITION,
+        AIRMEDIA_WINDOW_X_OFFSET,
+        AIRMEDIA_WINDOW_Y_OFFSET,
+        AIRMEDIA_WINDOW_WIDTH,
+        AIRMEDIA_WINDOW_HEIGHT,
+        
+        // AirMedia Layout control
+        AIRMEDIA_MODERATOR,
+        AIRMEDIA_RESET_CONNECTIONS,
+        AIRMEDIA_APPLY_LAYOUT_PASSWORD,
+        AIRMEDIA_LAYOUT_PASSWORD,
+        AIRMEDIA_DISCONNECT_USER,
+        AIRMEDIA_START_USER,
+        AIRMEDIA_USER_POSITION,
+        AIRMEDIA_STOP_USER,
+        
+        // AirMedia OSD Control
+        AIRMEDIA_APPLY_OSD_IMAGE,
+        AIRMEDIA_OSD_IMAGE,
+        AIRMEDIA_DISPLAY_LOGIN_CODE,
+        AIRMEDIA_IP_ADDRESS_PROMPT,
+        AIRMEDIA_DOMAIN_NAME_PROMPT,
+        AIRMEDIA_DISPLAY_SCREEN,
+        
 
         RESTART_STREAM_ON_START,
 
@@ -512,6 +542,76 @@ public class CommandParser {
             	break;
             case OSD_Y:
             	cmd = new OsdYPosCommand(cmdRx, arg);
+            	break;
+    	// AirMedia
+            case AIRMEDIA_LAUNCH:            
+            	cmd = new AirMediaLaunchCommand(cmdRx, arg, idx);
+            	break;
+            case AIRMEDIA_WINDOW_LAUNCH:
+            	cmd = new AirMediaWindowLaunchCommand(cmdRx, arg, idx);
+            	break;
+            case AIRMEDIA_LOGIN_CODE:
+            	cmd = new AirMediaLoginCodeCommand(cmdRx, arg, idx);
+            	break;
+            case AIRMEDIA_LOGIN_MODE:
+            	cmd = new AirMediaLoginModeCommand(cmdRx, arg, idx);
+            	break;
+            case AIRMEDIA_MODERATOR:
+            	cmd = new AirMediaModeratorCommand(cmdRx, arg, idx);
+            	break;
+            case AIRMEDIA_RESET_CONNECTIONS:
+            	cmd = new AirMediaResetConnectionsCommand(cmdRx, arg, idx);
+            	break;
+            case AIRMEDIA_DISCONNECT_USER:
+            	cmd = new AirMediaDisconnectUserCommand(cmdRx, arg, idx);
+            	break;
+            case AIRMEDIA_START_USER:
+            	cmd = new AirMediaStartUserCommand(cmdRx, arg, idx);
+            	break;
+            case AIRMEDIA_USER_POSITION:
+            	cmd = new AirMediaUserPositionCommand(cmdRx, arg, idx);
+            	break;
+            case AIRMEDIA_STOP_USER:
+            	cmd = new AirMediaStopUserCommand(cmdRx, arg, idx);
+            	break;
+            case AIRMEDIA_OSD_IMAGE:
+            	cmd = new AirMediaOsdImageCommand(cmdRx, arg, idx);
+            	break;
+            case AIRMEDIA_IP_ADDRESS_PROMPT:
+            	cmd = new AirMediaIpAddressPromptCommand(cmdRx, arg, idx);
+            	break;
+            case AIRMEDIA_DOMAIN_NAME_PROMPT:
+            	cmd = new AirMediaDomainNamePromptCommand(cmdRx, arg, idx);
+            	break;            	
+            case AIRMEDIA_WINDOW_POSITION:
+            	cmd = new AirMediaWindowPositionCommand(cmdRx, arg, idx);
+            	break;
+            case AIRMEDIA_WINDOW_X_OFFSET:
+            	cmd = new AirMediaWindowXOffsetCommand(cmdRx, arg, idx);
+            	break;
+            case AIRMEDIA_WINDOW_Y_OFFSET:
+            	cmd = new AirMediaWindowYOffsetCommand(cmdRx, arg, idx);
+            	break;
+            case AIRMEDIA_WINDOW_WIDTH:
+            	cmd = new AirMediaWindowWidthCommand(cmdRx, arg, idx);
+            	break;
+            case AIRMEDIA_WINDOW_HEIGHT:
+            	cmd = new AirMediaWindowHeightCommand(cmdRx, arg, idx);
+            	break;
+            case AIRMEDIA_APPLY_LAYOUT_PASSWORD:
+            	cmd = new AirMediaApplyLayoutPasswordCommand(cmdRx, arg, idx);
+            	break;
+            case AIRMEDIA_LAYOUT_PASSWORD:
+            	cmd = new AirMediaLayoutPasswordCommand(cmdRx, arg, idx);
+            	break;
+            case AIRMEDIA_APPLY_OSD_IMAGE:
+            	cmd = new AirMediaApplyOsdImageCommand(cmdRx, arg, idx);
+            	break;
+            case AIRMEDIA_DISPLAY_LOGIN_CODE:
+            	cmd = new AirMediaDisplayLoginCodeCommand(cmdRx, arg, idx);
+            	break;
+            case AIRMEDIA_DISPLAY_SCREEN:
+            	cmd = new AirMediaDisplayScreenCommand(cmdRx, arg, idx);
             	break;
             case RESTART_STREAM_ON_START:
             	cmd = new RestartStreamOnStartCommand(cmdRx, arg);

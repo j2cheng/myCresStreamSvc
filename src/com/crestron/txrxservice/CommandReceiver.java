@@ -284,6 +284,99 @@ public class CommandReceiver {
         ctl.userSettings.setOsdYLocation(y);
     }
     
+    public void setAirMediaLaunch(boolean val, int sessId, boolean fullscreen) {
+    	ctl.launchAirMedia(val, sessId, fullscreen);
+    }
+    
+    public void setAirMediaLoginCode(int val, int sessId) {
+    	ctl.setAirMediaLoginCode(val, sessId);
+    }
+    
+    public void setAirMediaLoginMode(int val, int sessId) {
+    	ctl.setAirMediaLoginMode(val, sessId);
+    }
+    
+    public void setAirMediaModerator(boolean val, int sessId) {
+    	ctl.setAirMediaModerator(val, sessId);
+    }
+    
+    public void setAirMediaResetConnections(boolean val, int sessId) {
+    	ctl.setAirMediaResetConnections(val, sessId);
+    }
+    
+    public void setAirMediaDisconnectUser(int userId, boolean val, int sessId) {
+    	ctl.setAirMediaDisconnectUser(userId, val, sessId);
+    }
+    
+    public void setAirMediaStartUser(int userId, boolean val, int sessId) {
+    	ctl.setAirMediaStartUser(userId, val, sessId);
+    }
+    
+    public void setAirMediaUserPosition(int userId, int val, int sessId) {
+    	ctl.setAirMediaUserPosition(userId, val, sessId);
+    }
+    
+    public void setAirMediaStopUser(int userId, boolean val, int sessId) {
+    	ctl.setAirMediaStopUser(userId, val, sessId);
+    }
+    
+    public void setAirMediaOsdImage(String val, int sessId) {
+    	ctl.setAirMediaOsdImage(val, sessId);
+    }
+    
+    public void setAirMediaIpAddressPrompt(boolean val, int sessId) {
+    	ctl.setAirMediaIpAddressPrompt(val, sessId);
+    }
+    
+    public void setAirMediaDomainNamePrompt(boolean val, int sessId) {
+    	ctl.setAirMediaDomainNamePrompt(val, sessId);
+    }
+    
+    public void setAirMediaWindowPosition(int x, int y, int width, int height)
+    {
+    	ctl.setAirMediaWindowPosition(x,y,width,height);
+    }
+    
+    public void setAirMediaWindowXOffset(int x, int sessId)
+    {
+    	ctl.setAirMediaWindowXOffset(x, sessId);
+    }
+    
+    public void setAirMediaWindowYOffset(int y, int sessId)
+    {
+    	ctl.setAirMediaWindowYOffset(y, sessId);
+    }
+    
+    public void setAirMediaWindowWidth(int width, int sessId)
+    {
+    	ctl.setAirMediaWindowWidth(width, sessId);
+    }
+    
+    public void setAirMediaWindowHeight(int height, int sessId)
+    {
+    	ctl.setAirMediaWindowHeight(height, sessId);
+    }
+    
+    public void airMediaApplyLayoutPassword(boolean enable, int sessId) {
+    	ctl.airMediaApplyLayoutPassword(enable, sessId);
+    }
+    
+    public void setAirMediaLayoutPassword(String layoutPassword, int sessId) {
+    	ctl.setAirMediaLayoutPassword(layoutPassword, sessId); 
+    }
+    
+    public void airMediaApplyOsdImage(boolean enable, int sessId) {
+    	ctl.airMediaApplyOsdImage(enable, sessId);
+    }
+    
+    public void setAirMediaDisplayLoginCode(boolean enable, int sessId) {
+    	ctl.setAirMediaDisplayLoginCode(enable, sessId);
+    }
+    
+    public void airMediaSetDisplayScreen(int displayId, int sessId) {
+    	ctl.airMediaSetDisplayScreen(displayId, sessId);
+    }
+    
     public void setRestartStreamOnStart(boolean flag) {
     	ctl.restartStreamsOnStart = flag;
     }
@@ -674,5 +767,77 @@ public class CommandReceiver {
     
     public String getOsdYPos() {
 	return Integer.toString(ctl.userSettings.getOsdYLocation());
+    }
+    
+    public String getAirMediaLaunch(int sessId) {
+    	return Boolean.toString(ctl.userSettings.getAirMediaLaunch());
+    }
+    
+    public String getAirMediaLoginCode(int sessId) {
+    	return Integer.toString(ctl.userSettings.getAirMediaLoginCode());
+    }
+    
+    public String getAirMediaLoginMode(int sessId) {
+    	return Integer.toString(ctl.userSettings.getAirMediaLoginMode());
+    }
+    
+    public String getAirMediaModerator(int sessId) {
+    	return Boolean.toString(ctl.userSettings.getAirMediaModerator());
+    }
+    
+    public String getAirMediaResetConnections(int sessId) {
+    	return Boolean.toString(ctl.userSettings.getAirMediaResetConnections());
+    }
+    
+    public String getAirMediaDisconnectUser(int sessId) {
+    	return ctl.getAirMediaDisconnectUser(sessId);
+    }
+    
+    public String getAirMediaStartUser(int sessId) {
+    	return ctl.getAirMediaStartUser(sessId);
+    }
+    
+    public String getAirMediaUserPosition(int sessId) {
+    	return ctl.getAirMediaUserPosition(sessId);
+    }
+    
+    public String getAirMediaStopUser(int sessId) {
+    	return ctl.getAirMediaStopUser(sessId);
+    }
+    
+    public String getAirMediaOsdImage(int sessId) {
+    	return ctl.userSettings.getAirMediaOsdImage();
+    }
+    
+    public String getAirMediaIpAddressPrompt(int sessId) {
+    	return Boolean.toString(ctl.userSettings.getAirMediaIpAddressPrompt());
+    }
+    
+    public String getAirMediaWindowXOffset(int sessId) {
+    	return String.valueOf(ctl.userSettings.getAirMediaX());
+    }
+    
+    public String getAirMediaWindowYOffset(int sessId) {
+    	return String.valueOf(ctl.userSettings.getAirMediaY());
+    }
+    
+    public String getAirMediaWindowWidth(int sessId) {
+    	return String.valueOf(ctl.userSettings.getAirMediaWidth());
+    }
+    
+    public String getAirMediaWindowHeight(int sessId) {
+    	return String.valueOf(ctl.userSettings.getAirMediaHeight());
+    }
+    
+    public String getAirMediaDomainNamePrompt(int sessId) {
+    	return Boolean.toString(ctl.userSettings.getAirMediaDomainNamePrompt());
+    }
+    
+    public String getAirMediaLayoutPassword(int sessId) {
+    	return ctl.userSettings.getAirMediaLayoutPassword();
+    }
+    
+    public String getAirMediaDisplayLoginCode(int sessId) {
+    	return Boolean.toString(ctl.userSettings.getAirMediaDisplayLoginCode());
     }
 }

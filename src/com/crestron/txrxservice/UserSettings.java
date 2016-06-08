@@ -200,6 +200,28 @@ public class UserSettings
 	// Ethernet
 	private String deviceIp;
 	private int multicastTTL;
+	
+	// AirMedia
+	private boolean airMediaLaunch;
+	private int airMediaLoginCode;
+	private int airMediaLoginMode;
+	private boolean airMediaModerator;
+	private boolean airMediaResetConnections;
+	private boolean[] airMediaDisconnectUser;
+	private boolean[] airMediaStartUser;
+	private boolean[] airMediaUserConnected;
+	private int[] airMediaUserPosition;
+	private boolean[] airMediaStopUser;
+	private String airMediaOsdImage;
+	private boolean airMediaIpAddressPrompt;
+	private boolean airMediaDomainNamePrompt;
+	private int airMediaX;
+	private int airMediaY;
+	private int airMediaWidth;
+	private int airMediaHeight;
+	private String airMediaLayoutPassword;
+	private boolean airMediaDisplayLoginCode;
+	private int airMediaDisplayScreen;
 
 	//Misc
 	private boolean[] useNewSink;
@@ -262,6 +284,21 @@ public class UserSettings
 		rtspStreamFileName	= "live.sdp";
 		rtspSessionName		= "CrestronStreamingSession";
 		multicastTTL		= 64;
+		airMediaLaunch		= false;
+		airMediaLoginCode	= 1234; //Get default value
+		airMediaDisconnectUser = initBoolArray(false, 32);
+		airMediaStartUser 	= initBoolArray(false, 32);
+		airMediaUserPosition = initIntArray(0, 32);
+		airMediaStopUser 	= initBoolArray(true, 32);
+		airMediaUserConnected = initBoolArray(false, 32);
+		airMediaOsdImage	= "";
+		airMediaX			= 0;
+		airMediaY			= 0;
+		airMediaWidth		= 1920;
+		airMediaHeight		= 1080;
+		airMediaLayoutPassword = "";
+		airMediaDisplayLoginCode = false;
+		airMediaDisplayScreen = 0;
 		tcpInterleave       = initIntArray(0);//auto mode
 	}
 	
@@ -313,8 +350,13 @@ public class UserSettings
 
 	private boolean[] initBoolArray(boolean initValue)
 	{
-		boolean[] retArray = new boolean[CresStreamCtrl.NumOfSurfaces];
-		for (int i = 0; i < CresStreamCtrl.NumOfSurfaces; i++)
+		return initBoolArray(initValue, CresStreamCtrl.NumOfSurfaces);
+	}
+	
+	private boolean[] initBoolArray(boolean initValue, int arraySize)
+	{
+		boolean[] retArray = new boolean[arraySize];
+		for (int i = 0; i < arraySize; i++)
 		{
 			retArray[i] = initValue;
 		}
@@ -323,8 +365,13 @@ public class UserSettings
 
 	private int[] initIntArray(int initValue)
 	{
-		int[] retArray = new int[CresStreamCtrl.NumOfSurfaces];
-		for (int i = 0; i < CresStreamCtrl.NumOfSurfaces; i++)
+		return initIntArray(initValue, CresStreamCtrl.NumOfSurfaces);
+	}
+	
+	private int[] initIntArray(int initValue, int arraySize)
+	{
+		int[] retArray = new int[arraySize];
+		for (int i = 0; i < arraySize; i++)
 		{
 			retArray[i] = initValue;
 		}
@@ -333,8 +380,13 @@ public class UserSettings
 
 	private String[] initStringArray(String initValue)
 	{
-		String[] retArray = new String[CresStreamCtrl.NumOfSurfaces];
-		for (int i = 0; i < CresStreamCtrl.NumOfSurfaces; i++)
+		return initStringArray(initValue, CresStreamCtrl.NumOfSurfaces);
+	}
+
+	private String[] initStringArray(String initValue, int arraySize)
+	{
+		String[] retArray = new String[arraySize];
+		for (int i = 0; i < arraySize; i++)
 		{
 			retArray[i] = initValue;
 		}
@@ -405,7 +457,7 @@ public class UserSettings
 	public void setMulticastTTL(int value) {
 		this.multicastTTL = value;
 	}
-
+	
 	public int getMode(int sessId) {
 		return mode[sessId];
 	}
@@ -919,7 +971,7 @@ public class UserSettings
 	public boolean isProcessHdmiInAudio() {
 		return processHdmiInAudio;
 	}
-	
+
 	public int getTcpInterleave(int sessId) {		
 		return tcpInterleave[sessId];
 	}
@@ -928,6 +980,166 @@ public class UserSettings
 		//TODO: as of now command allways set is to 0.
 		//so we have to set all windows to the same mode for now
 		for (int i = 0; i < CresStreamCtrl.NumOfSurfaces; i++)
-			this.tcpInterleave[i] = tcpIn;
+		this.tcpInterleave[i] = tcpIn;
+	}
+	
+	public boolean getAirMediaLaunch() {
+		return airMediaLaunch;
+	}
+	
+	public void setAirMediaLaunch(boolean enable) {
+		this.airMediaLaunch = enable;
+	}
+	
+	public int getAirMediaLoginCode() {
+		return airMediaLoginCode;
+	}
+	
+	public void setAirMediaLoginCode(int loginCode) {
+		this.airMediaLoginCode = loginCode;
+	}
+	
+	public int getAirMediaLoginMode() {
+		return airMediaLoginMode;
+	}
+	
+	public void setAirMediaLoginMode(int loginMode) {
+		this.airMediaLoginMode = loginMode;
+	}
+	
+	public boolean getAirMediaModerator() {
+		return airMediaModerator;
+	}
+	
+	public void setAirMediaModerator(boolean enable) {
+		this.airMediaModerator = enable;
+	}
+	
+	public boolean getAirMediaResetConnections() {
+		return airMediaResetConnections;
+	}
+
+	public void setAirMediaResetConnections(boolean airMediaResetConnections) {
+		this.airMediaResetConnections = airMediaResetConnections;
+	}
+
+	public boolean getAirMediaDisconnectUser(int userId) {
+		return airMediaDisconnectUser[userId];
+	}
+
+	public void setAirMediaDisconnectUser(boolean airMediaDisconnectUser, int userId) {
+		this.airMediaDisconnectUser[userId] = airMediaDisconnectUser;
+	}
+
+	public boolean getAirMediaStartUser(int userId) {
+		return airMediaStartUser[userId];
+	}
+
+	public void setAirMediaStartUser(boolean airMediaStartUser, int userId) {
+		this.airMediaStartUser[userId] = airMediaStartUser;
+	}
+
+	public int getAirMediaUserPosition(int userId) {
+		return airMediaUserPosition[userId];
+	}
+
+	public void setAirMediaUserPosition(int airMediaUserPosition, int userId) {
+		this.airMediaUserPosition[userId] = airMediaUserPosition;
+	}
+
+	public boolean getAirMediaStopUser(int userId) {
+		return airMediaStopUser[userId];
+	}
+
+	public void setAirMediaStopUser(boolean airMediaStopUser, int userId) {
+		this.airMediaStopUser[userId] = airMediaStopUser;
+	}
+	
+	public boolean getAirMediaUserConnected(int userId) {
+		return airMediaUserConnected[userId];
+	}
+	
+	public void setAirMediaUserConnected(boolean userConnected, int userId) {
+		this.airMediaUserConnected[userId] = userConnected;
+	}
+
+	public String getAirMediaOsdImage() {
+		return airMediaOsdImage;
+	}
+
+	public void setAirMediaOsdImage(String airMediaOsdImage) {
+		this.airMediaOsdImage = airMediaOsdImage;
+	}
+
+	public boolean getAirMediaIpAddressPrompt() {
+		return airMediaIpAddressPrompt;
+	}
+
+	public void setAirMediaIpAddressPrompt(boolean airMediaIpAddressPrompt) {
+		this.airMediaIpAddressPrompt = airMediaIpAddressPrompt;
+	}
+
+	public boolean getAirMediaDomainNamePrompt() {
+		return airMediaDomainNamePrompt;
+	}
+
+	public void setAirMediaDomainNamePrompt(boolean airMediaDomainNamePrompt) {
+		this.airMediaDomainNamePrompt = airMediaDomainNamePrompt;
+	}
+	
+	public int getAirMediaX() {
+		return airMediaX;
+	}
+
+	public void setAirMediaX(int airMediaX) {
+		this.airMediaX = airMediaX;
+	}
+
+	public int getAirMediaY() {
+		return airMediaY;
+	}
+
+	public void setAirMediaY(int airMediaY) {
+		this.airMediaY = airMediaY;
+	}
+
+	public int getAirMediaWidth() {
+		return airMediaWidth;
+	}
+
+	public void setAirMediaWidth(int airMediaWidth) {
+		this.airMediaWidth = airMediaWidth;
+	}
+
+	public int getAirMediaHeight() {
+		return airMediaHeight;
+	}
+
+	public void setAirMediaHeight(int airMediaHeight) {
+		this.airMediaHeight = airMediaHeight;
+	}
+	
+	public String getAirMediaLayoutPassword() {
+		return airMediaLayoutPassword;
+	}
+
+	public void setAirMediaLayoutPassword(String airMediaLayoutPassword) {
+		this.airMediaLayoutPassword = airMediaLayoutPassword;
+	}
+
+	public boolean getAirMediaDisplayLoginCode() {
+		return airMediaDisplayLoginCode;
+	}
+
+	public void setAirMediaDisplayLoginCode(boolean airMediaDisplayLoginCode) {
+		this.airMediaDisplayLoginCode = airMediaDisplayLoginCode;
+	}
+	
+	public void setAirMediaDisplayScreen(int displayScreen) {
+		this.airMediaDisplayScreen = displayScreen;
+	}
+
+	public int getAirMediaDisplayScreen() {
+		return airMediaDisplayScreen;
 	}
 }

@@ -1,6 +1,34 @@
 
 package com.crestron.txrxservice;
 
+class CrestronCommand implements CommandIf {
+	CommandReceiver launch = null;
+    String msg = null;
+    int idx = 0;
+    
+    public CrestronCommand(CommandReceiver launch, String arg, int sessId) {
+        this.launch = launch;
+        this.msg = arg;
+        this.idx = sessId;
+    }
+    
+    public CrestronCommand(CommandReceiver launch, String arg) {
+        this.launch = launch;
+        this.msg = arg;
+    }
+    
+    //Should override if join should be be acted upon
+    public void execute() {
+        return;
+    }
+    
+    //Should override if join should be included in update request
+    public String getFeedbackMsg() {
+        return msg;  
+    }
+}
+
+
 class DeviceCommand implements CommandIf {
     CommandReceiver launch;
     String msg;
@@ -1835,6 +1863,297 @@ class OsdYPosCommand implements CommandIf {
         public String getFeedbackMsg() {
             return launch.getOsdYPos();
         }
+}
+
+class AirMediaLaunchCommand extends CrestronCommand {
+	public AirMediaLaunchCommand(CommandReceiver launch, String arg, int sessId) {
+		super(launch, arg, sessId);
+	}
+	public void execute() {
+		boolean val = Boolean.valueOf(msg);
+		launch.setAirMediaLaunch(val, idx, true); //Launch is full screen
+	}
+	public String getFeedbackMsg() {
+		return launch.getAirMediaLaunch(idx);
+	}
+}
+
+class AirMediaWindowLaunchCommand extends CrestronCommand {
+	public AirMediaWindowLaunchCommand(CommandReceiver launch, String arg, int sessId) {
+		super(launch, arg, sessId);
+	}
+	public void execute() {
+		boolean val = Boolean.valueOf(msg);
+		launch.setAirMediaLaunch(val, idx, false); //Window launch is with window parameters
+	}
+	public String getFeedbackMsg() {
+		return launch.getAirMediaLaunch(idx);
+	}
+}
+
+class AirMediaLoginCodeCommand extends CrestronCommand {
+	public AirMediaLoginCodeCommand(CommandReceiver launch, String arg, int sessId) {
+		super(launch, arg, sessId);
+	}
+	public void execute() {
+		launch.setAirMediaLoginCode(CommandReceiver.VALIDATE_INT(msg), idx);
+	}
+	public String getFeedbackMsg() {
+		return launch.getAirMediaLoginCode(idx);
+	}
+}
+
+class AirMediaLoginModeCommand extends CrestronCommand {
+	public AirMediaLoginModeCommand(CommandReceiver launch, String arg, int sessId) {
+		super(launch, arg, sessId);
+	}
+
+	public void execute() {
+		launch.setAirMediaLoginMode(CommandReceiver.VALIDATE_INT(msg), idx);
+	}
+	public String getFeedbackMsg() {
+		return launch.getAirMediaLoginMode(idx);
+	}
+}
+
+class AirMediaModeratorCommand extends CrestronCommand {
+	public AirMediaModeratorCommand(CommandReceiver launch, String arg, int sessId) {
+		super(launch, arg, sessId);
+	}
+	public void execute() {
+		launch.setAirMediaModerator(Boolean.valueOf(msg), idx);
+	}
+	public String getFeedbackMsg() {
+		return launch.getAirMediaModerator(idx);
+	}
+}
+
+class AirMediaResetConnectionsCommand extends CrestronCommand {
+	public AirMediaResetConnectionsCommand(CommandReceiver launch, String arg, int sessId) {
+		super(launch, arg, sessId);
+	}
+	public void execute() {
+		launch.setAirMediaResetConnections(Boolean.valueOf(msg), idx);
+	}
+	public String getFeedbackMsg() {
+		return launch.getAirMediaResetConnections(idx);
+	}
+}
+
+class AirMediaDisconnectUserCommand extends CrestronCommand {
+	public AirMediaDisconnectUserCommand(CommandReceiver launch, String arg, int sessId) {
+		super(launch, arg, sessId);
+	}	
+	public void execute() {
+		String[] tokens = msg.split("[:]"); // Format should be "UserId:JoinVal"
+		if (tokens.length == 2)
+		{
+			launch.setAirMediaDisconnectUser(CommandReceiver.VALIDATE_INT(tokens[0]), Boolean.valueOf(tokens[1]), idx);
+		}
+	}
+	public String getFeedbackMsg() {
+		return launch.getAirMediaDisconnectUser(idx);
+	}
+}
+
+class AirMediaStartUserCommand extends CrestronCommand {
+	public AirMediaStartUserCommand(CommandReceiver launch, String arg, int sessId) {
+		super(launch, arg, sessId);
+	}	
+	public void execute() {
+		String[] tokens = msg.split("[:]"); // Format should be "UserId:JoinVal"
+		if (tokens.length == 2)
+		{
+			launch.setAirMediaStartUser(CommandReceiver.VALIDATE_INT(tokens[0]), Boolean.valueOf(tokens[1]), idx);
+		}
+	}
+	public String getFeedbackMsg() {
+		return launch.getAirMediaStartUser(idx);
+	}
+}
+
+class AirMediaUserPositionCommand extends CrestronCommand {
+	public AirMediaUserPositionCommand(CommandReceiver launch, String arg, int sessId) {
+		super(launch, arg, sessId);
+	}	
+	public void execute() {
+		String[] tokens = msg.split("[:]"); // Format should be "UserId:JoinVal"
+		if (tokens.length == 2)
+		{
+			launch.setAirMediaUserPosition(CommandReceiver.VALIDATE_INT(tokens[0]), CommandReceiver.VALIDATE_INT(tokens[1]), idx);
+		}
+	}
+	public String getFeedbackMsg() {
+		return launch.getAirMediaUserPosition(idx);
+	}
+}
+
+class AirMediaStopUserCommand extends CrestronCommand {
+	public AirMediaStopUserCommand(CommandReceiver launch, String arg, int sessId) {
+		super(launch, arg, sessId);
+	}	
+	public void execute() {
+		String[] tokens = msg.split("[:]"); // Format should be "UserId:JoinVal"
+		if (tokens.length == 2)
+		{
+			launch.setAirMediaStopUser(CommandReceiver.VALIDATE_INT(tokens[0]), Boolean.valueOf(tokens[1]), idx);
+		}
+	}
+	public String getFeedbackMsg() {
+		return launch.getAirMediaStopUser(idx);
+	}
+}
+
+class AirMediaOsdImageCommand extends CrestronCommand {
+	public AirMediaOsdImageCommand(CommandReceiver launch, String arg, int sessId) {
+		super(launch, arg, sessId);
+	}	
+	public void execute() {
+		launch.setAirMediaOsdImage(msg, idx);
+	}
+	public String getFeedbackMsg() {
+		return launch.getAirMediaOsdImage(idx);
+	}
+}
+
+class AirMediaIpAddressPromptCommand extends CrestronCommand {
+	public AirMediaIpAddressPromptCommand(CommandReceiver launch, String arg, int sessId) {
+		super(launch, arg, sessId);
+	}	
+	public void execute() {
+		launch.setAirMediaIpAddressPrompt(Boolean.valueOf(msg), idx);
+	}
+	public String getFeedbackMsg() {
+		return launch.getAirMediaIpAddressPrompt(idx);
+	}
+}
+
+class AirMediaDomainNamePromptCommand extends CrestronCommand {
+	public AirMediaDomainNamePromptCommand(CommandReceiver launch, String arg, int sessId) {
+		super(launch, arg, sessId);
+	}	
+	public void execute() {
+		launch.setAirMediaDomainNamePrompt(Boolean.valueOf(msg), idx);
+	}
+	public String getFeedbackMsg() {
+		return launch.getAirMediaDomainNamePrompt(idx);
+	}
+}
+
+class AirMediaWindowPositionCommand extends CrestronCommand {
+	public AirMediaWindowPositionCommand(CommandReceiver launch, String arg, int sessId) {
+		super(launch, arg, sessId);
+	}	
+	public void execute() {
+		String[] tokens = msg.split("[,]"); // Format should be "x,y,width,height"
+		if (tokens.length == 4)
+		{
+			launch.setAirMediaWindowPosition(
+					CommandReceiver.VALIDATE_INT(tokens[0]),
+					CommandReceiver.VALIDATE_INT(tokens[1]),
+					CommandReceiver.VALIDATE_INT(tokens[2]),
+					CommandReceiver.VALIDATE_INT(tokens[3]));
+		}
+	}
+}
+
+class AirMediaWindowXOffsetCommand extends CrestronCommand {
+	public AirMediaWindowXOffsetCommand(CommandReceiver launch, String arg, int sessId) {
+		super(launch, arg, sessId);
+	}	
+	public void execute() {
+		launch.setAirMediaWindowXOffset(CommandReceiver.VALIDATE_INT(msg), idx);
+	}
+	public String getFeedbackMsg() {
+		return launch.getAirMediaWindowXOffset(idx);
+	}
+}
+
+class AirMediaWindowYOffsetCommand extends CrestronCommand {
+	public AirMediaWindowYOffsetCommand(CommandReceiver launch, String arg, int sessId) {
+		super(launch, arg, sessId);
+	}	
+	public void execute() {
+		launch.setAirMediaWindowYOffset(CommandReceiver.VALIDATE_INT(msg), idx);
+	}
+	public String getFeedbackMsg() {
+		return launch.getAirMediaWindowYOffset(idx);
+	}
+}
+
+class AirMediaWindowWidthCommand extends CrestronCommand {
+	public AirMediaWindowWidthCommand(CommandReceiver launch, String arg, int sessId) {
+		super(launch, arg, sessId);
+	}	
+	public void execute() {
+		launch.setAirMediaWindowWidth(CommandReceiver.VALIDATE_INT(msg), idx);
+	}
+	public String getFeedbackMsg() {
+		return launch.getAirMediaWindowWidth(idx);
+	}
+}
+
+class AirMediaWindowHeightCommand extends CrestronCommand {
+	public AirMediaWindowHeightCommand(CommandReceiver launch, String arg, int sessId) {
+		super(launch, arg, sessId);
+	}	
+	public void execute() {
+		launch.setAirMediaWindowHeight(CommandReceiver.VALIDATE_INT(msg), idx);
+	}
+	public String getFeedbackMsg() {
+		return launch.getAirMediaWindowHeight(idx);
+	}
+}
+
+class AirMediaApplyLayoutPasswordCommand extends CrestronCommand {
+	public AirMediaApplyLayoutPasswordCommand(CommandReceiver launch, String arg, int sessId) {
+		super(launch, arg, sessId);
+	}	
+	public void execute() {
+		launch.airMediaApplyLayoutPassword(Boolean.valueOf(msg), idx);
+	}
+}
+
+class AirMediaLayoutPasswordCommand extends CrestronCommand {
+	public AirMediaLayoutPasswordCommand(CommandReceiver launch, String arg, int sessId) {
+		super(launch, arg, sessId);
+	}	
+	public void execute() {
+		launch.setAirMediaLayoutPassword(msg, idx);
+	}
+	public String getFeedbackMsg() {
+		return launch.getAirMediaLayoutPassword(idx);
+	}
+}
+
+class AirMediaApplyOsdImageCommand extends CrestronCommand {
+	public AirMediaApplyOsdImageCommand(CommandReceiver launch, String arg, int sessId) {
+		super(launch, arg, sessId);
+	}	
+	public void execute() {
+		launch.airMediaApplyOsdImage(Boolean.valueOf(msg), idx);
+	}
+}
+
+class AirMediaDisplayLoginCodeCommand extends CrestronCommand {
+	public AirMediaDisplayLoginCodeCommand(CommandReceiver launch, String arg, int sessId) {
+		super(launch, arg, sessId);
+	}	
+	public void execute() {
+		launch.setAirMediaDisplayLoginCode(Boolean.valueOf(msg), idx);
+	}
+	public String getFeedbackMsg() {
+		return launch.getAirMediaDisplayLoginCode(idx);
+	}
+}
+
+class AirMediaDisplayScreenCommand extends CrestronCommand {
+	public AirMediaDisplayScreenCommand(CommandReceiver launch, String arg, int sessId) {
+		super(launch, arg, sessId);
+	}	
+	public void execute() {
+		launch.airMediaSetDisplayScreen(CommandReceiver.VALIDATE_INT(msg), idx);
+	}
 }
 
 class RestartStreamOnStartCommand implements CommandIf {

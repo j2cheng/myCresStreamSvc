@@ -95,6 +95,8 @@ public class CresStreamCtrl extends Service {
 
     CresDisplaySurface dispSurface;
     
+    AirMedia airMedia = null;
+    
     final int cameraRestartTimout = 1000;//msec
     static int hpdHdmiEvent = 0;
     
@@ -154,6 +156,19 @@ public class CresStreamCtrl extends Service {
         STREAM_IN,
         STREAM_OUT,
         PREVIEW
+    }
+    
+    enum AirMediaLoginMode {
+    	Disabled(0),
+    	Random(1),
+    	Fixed(2);
+    	
+    	private final int value;
+    	
+    	AirMediaLoginMode(int value) 
+        {
+            this.value = value;
+        }
     }
     
     enum CameraMode {
@@ -2433,6 +2448,340 @@ public class CresStreamCtrl extends Service {
     public void stopOnIpAddrChange(){
 		Log.e(TAG, "Restarting on device IP Address Change...!");
         restartStreams(false);
+    }
+
+    public void launchAirMedia(boolean val, int sessId, boolean fullscreen) {
+    	userSettings.setAirMediaLaunch(val);
+    	if (val == true) // True = launch airmedia app, false = close app
+    	{
+    		// Do I need to stop all video here???
+    		airMedia = new AirMedia(this);
+    		int x, y, width, height;
+    		if (fullscreen)
+    		{
+	    		x = y = 0;
+	    		width = Integer.parseInt(hdmiOutput.getHorizontalRes());
+	            height = Integer.parseInt(hdmiOutput.getVerticalRes());
+    		}
+    		else
+    		{
+    			x = userSettings.getAirMediaX();
+    			y = userSettings.getAirMediaY();
+    			width = userSettings.getAirMediaWidth();
+    			height = userSettings.getAirMediaHeight();
+    		}
+    		
+    		airMedia.launch(x, y, width, height);
+    	}
+    	else
+    	{
+    		airMedia.quit();
+    	}
+    }
+    
+    public void setAirMediaLoginCode(int loginCode, int sessId) {
+    	if ((loginCode < 1) || (loginCode > 9999))
+    		return; //Don't set out of range value
+    		
+    	userSettings.setAirMediaLoginCode(loginCode);
+    	userSettings.setAirMediaLoginMode(AirMediaLoginMode.Fixed.ordinal()); // When loginCode is set auto switch to fixed mode
+    	
+    	if (airMedia != null)
+    	{
+	    	airMedia.setLoginCode(userSettings.getAirMediaLoginCode());
+	    	
+	    	if (userSettings.getAirMediaDisplayLoginCode())
+			{
+	    		airMedia.showLoginCodePrompt(loginCode);
+			}
+    	}
+
+    	// send feedback of login mode since it might have changed
+    	sockTask.SendDataToAllClients(String.format("AIRMEDIA_LOGIN_MODE=%d", AirMediaLoginMode.Fixed.ordinal()));
+    }
+    
+    public void setAirMediaLoginMode(int loginMode, int sessId) {
+    	// FIXME: protect against same join val coming in????
+    	userSettings.setAirMediaLoginMode(loginMode);
+    	
+		if (loginMode == AirMediaLoginMode.Disabled.ordinal())
+    	{
+			userSettings.setAirMediaLoginCode(0);
+			if (airMedia != null)
+	    	{
+	    		airMedia.setLoginCode(0);
+	    		airMedia.hideLoginCodePrompt();
+	    	}
+    	}
+		else if (loginMode == AirMediaLoginMode.Random.ordinal())
+    	{
+    		int rand = (int)(Math.random() * 9999 + 1); 
+    		userSettings.setAirMediaLoginCode(rand);
+    		if (airMedia != null)
+	    	{
+	    		airMedia.setLoginCode(rand);
+	    		if (userSettings.getAirMediaDisplayLoginCode())
+	    		{
+	    			airMedia.showLoginCodePrompt(rand);
+	    		}
+	    	}
+    	}
+		else if(loginMode == AirMediaLoginMode.Fixed.ordinal())
+    	{
+			if (airMedia != null)
+	    	{
+	    		airMedia.setLoginCode(userSettings.getAirMediaLoginCode());
+	    		if (userSettings.getAirMediaDisplayLoginCode())
+	    		{
+	    			airMedia.showLoginCodePrompt(userSettings.getAirMediaLoginCode());
+	    		}
+	    	}
+    	}
+    		
+		sockTask.SendDataToAllClients(String.format("AIRMEDIA_LOGIN_CODE=%d", userSettings.getAirMediaLoginCode()));
+    }
+    
+    public void setAirMediaDisplayLoginCode(boolean display, int sessid)
+    {
+    	userSettings.setAirMediaDisplayLoginCode(display);
+    	if (airMedia != null)
+    	{
+	    	if ((display) && (userSettings.getAirMediaLoginMode() != AirMediaLoginMode.Disabled.ordinal()))
+	    	{
+	    		airMedia.showLoginCodePrompt(userSettings.getAirMediaLoginCode());
+	    	}
+	    	else
+	    	{
+	    		airMedia.hideLoginCodePrompt();
+	    	}
+    	}
+    }
+    
+    public void setAirMediaModerator(boolean enable, int sessId)
+    {
+    	userSettings.setAirMediaModerator(enable);
+    	if (airMedia != null)
+    	{
+    		airMedia.setModeratorEnable(enable);
+    	}
+    }
+    
+    public void setAirMediaResetConnections(boolean enable, int sessId)
+    {
+    	if ((enable) && (airMedia != null))
+    	{
+    		airMedia.resetConnections();
+    	}
+    }
+    
+    public void setAirMediaDisconnectUser(int userId, boolean enable, int sessId)
+    {
+    	userSettings.setAirMediaDisconnectUser(enable, userId);
+    	if ((enable) && (airMedia != null))
+    	{
+    		airMedia.disconnectUser(userId);
+    	}
+    }
+    
+    public void setAirMediaStartUser(int userId, boolean enable, int sessId)
+    {
+    	
+    }
+    
+    public void setAirMediaUserPosition(int userId, int position, int sessId)
+    {
+    	if (airMedia != null)
+    	{
+    		if (position == 0)
+    			airMedia.stopUser(userId);
+    		else
+    			airMedia.setUserPosition(userId, position);
+    	}
+    }
+    
+    public void setAirMediaStopUser(int userId, boolean enable, int sessId)
+    {
+    	
+    }
+    
+    public void setAirMediaOsdImage(String filePath, int sessId)
+    {
+    	// Image gets sent on apply
+    	userSettings.setAirMediaOsdImage(filePath);
+    }
+    
+    public void setAirMediaIpAddressPrompt(boolean enable, int sessId)
+    {
+    	userSettings.setAirMediaIpAddressPrompt(enable);
+    	if (airMedia != null)
+    	{
+    		airMedia.setIpAddressPrompt(enable);
+    	}
+    }
+    
+    public void setAirMediaDomainNamePrompt(boolean enable, int sessId)
+    {
+    	userSettings.setAirMediaDomainNamePrompt(enable);
+    	if (airMedia != null)
+    	{
+    		airMedia.setDomainNamePrompt(enable);
+    	}
+    }
+    
+    public void setAirMediaWindowPosition(int x, int y, int width, int height)
+    {    	
+    	userSettings.setAirMediaX(x);
+    	userSettings.setAirMediaY(y);
+    	userSettings.setAirMediaWidth(width);
+    	userSettings.setAirMediaHeight(height);
+    	if (airMedia != null)
+    	{
+    		airMedia.setSurfaceSize(x, y, width, height, false);
+    	}
+    }
+    
+    public void setAirMediaWindowXOffset(int x, int sessId)
+    {    	
+    	userSettings.setAirMediaX(x);
+    	int y = userSettings.getAirMediaY();
+    	int width = userSettings.getAirMediaWidth();
+		int height = userSettings.getAirMediaHeight();
+    	if (airMedia != null)
+    	{
+    		airMedia.setSurfaceSize(x, y, width, height, false);
+    	}
+    }
+    
+    public void setAirMediaWindowYOffset(int y, int sessId)
+    {    	
+    	userSettings.setAirMediaY(y);
+    	int x = userSettings.getAirMediaX();    	
+    	int width = userSettings.getAirMediaWidth();
+		int height = userSettings.getAirMediaHeight();
+    	if (airMedia != null)
+    	{
+    		airMedia.setSurfaceSize(x, y, width, height, false);
+    	}
+    }
+    
+    public void setAirMediaWindowWidth(int width, int sessId)
+    {    	
+    	userSettings.setAirMediaWidth(width);
+    	int x = userSettings.getAirMediaX();    	
+    	int y = userSettings.getAirMediaY();
+		int height = userSettings.getAirMediaHeight();
+    	if (airMedia != null)
+    	{
+    		airMedia.setSurfaceSize(x, y, width, height, false);
+    	}
+    }
+    
+    public void setAirMediaWindowHeight(int height, int sessId)
+    {    	
+    	userSettings.setAirMediaHeight(height);
+    	int x = userSettings.getAirMediaX();    	
+    	int y = userSettings.getAirMediaY();
+    	int width = userSettings.getAirMediaWidth();
+    	if (airMedia != null)
+    	{
+    		airMedia.setSurfaceSize(x, y, width, height, false);
+    	}
+    }
+    
+    public void airMediaApplyLayoutPassword(boolean apply, int sessId)
+    {
+    	if (apply)
+    	{
+    		// apply layout password here
+    		// TODO: we need layout password from airmedia app    		
+    	}
+    }
+    
+    public void setAirMediaLayoutPassword(String layoutPassword, int sessId)
+    {
+    	// User needs to send apply join to take effect
+    	userSettings.setAirMediaLayoutPassword(layoutPassword);
+    }
+    
+    public void airMediaApplyOsdImage(boolean apply, int sessId)
+    {
+    	if (apply)
+    	{
+    		if (airMedia != null)
+        	{
+        		airMedia.setOsdImage(userSettings.getAirMediaOsdImage());
+        	}
+    	}
+    }
+    
+    public void airMediaSetDisplayScreen(int displayId, int sessId)
+    {
+    	if (airMedia != null)
+    	{
+    		userSettings.setAirMediaDisplayScreen(displayId);
+    		airMedia.setDisplayScreen(displayId);
+    	}
+    }
+        
+    public String getAirMediaDisconnectUser(int sessId)
+    {
+    	// Do nothing handled by getAirMediaUserPosition
+    	return "";
+    }
+    
+    public String getAirMediaStartUser(int sessId)
+    {
+    	// Do nothing handled by getAirMediaUserPosition
+    	return "";
+    }
+    
+    public String getAirMediaUserPosition(int sessId)
+    {
+    	// Just send all airMedia user feedbacks
+    	airMediaUserFeedbackUpdateRequest(sessId);
+    	return "";
+    }
+    
+    public String getAirMediaStopUser(int sessId)
+    {
+    	// Do nothing handled by getAirMediaUserPosition
+    	return "";
+    }
+    
+    public void airMediaUserFeedbackUpdateRequest(int sessId)
+    {
+    	if (airMedia != null)
+    	{
+    		airMedia.querySenderList(true);
+    	}
+    }
+    
+    public void sendAirMediaUserFeedbacks(int userId, String userName, String ipAddress, int position, boolean status)
+    {
+    	userSettings.setAirMediaUserPosition(position, userId);
+    	sockTask.SendDataToAllClients(String.format("AIRMEDIA_USER_NAME=%d:%s", userId, userName));
+    	sockTask.SendDataToAllClients(String.format("AIRMEDIA_USER_IP=%d:%s", userId, ipAddress));
+    	sockTask.SendDataToAllClients(String.format("AIRMEDIA_USER_POSITION=%d:%d", userId, position));
+    	sockTask.SendDataToAllClients(String.format("AIRMEDIA_USER_CONNECTED=%d:%s", userId, String.valueOf(status)));
+    	
+    }
+    
+    public void sendAirMediaStatus(int status)
+    {
+    	// TODO: send on update request
+    	sockTask.SendDataToAllClients(String.format("AIRMEDIA_STATUS=%d", status));
+    }
+    
+    public void sendAirMediaNumberUserConnected()
+    {
+    	// TODO: send on update request
+    	int numberUserConnected = 0;
+    	for (int i = 0; i < 32; i++)
+    	{
+    		if (userSettings.getAirMediaUserConnected(i))
+    			numberUserConnected++;
+    	}
+    	sockTask.SendDataToAllClients(String.format("AIRMEDIA_NUMBER_USER_CONNECTED=%d", numberUserConnected));
     }
 
     //Registering for HPD and Resolution Event detection	
