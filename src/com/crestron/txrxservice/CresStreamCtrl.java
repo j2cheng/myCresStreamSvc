@@ -2302,9 +2302,11 @@ public class CresStreamCtrl extends Service {
     public void stopStreamIn(int sessId)
     {
     	//hide video window first
+    	hideWindowWithoutDestroy(sessId);
+
+    	streamPlay.onStop(sessId);   
+
     	hideStreamInWindow(sessId);
-    	
-        streamPlay.onStop(sessId);        
     }
 
     public void pauseStreamIn(int sessId)
