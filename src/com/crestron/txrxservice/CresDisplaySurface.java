@@ -10,6 +10,7 @@ import android.view.SurfaceView;
 import android.view.View;
 import android.view.WindowManager;
 import android.widget.RelativeLayout;
+import android.app.Activity;
 import android.app.Service;
 import android.graphics.PixelFormat;
 import android.content.Context;
@@ -41,13 +42,13 @@ public class CresDisplaySurface
 
     // PEM - add a view to the 2nd display
     // Needed to pass Service or else can't call getApplicationContext...
-    private void addViewToExternalDisplay(Service svc, View view, WindowManager.LayoutParams params){
-        DisplayManager dm = (DisplayManager) svc.getApplicationContext().getSystemService(Context.DISPLAY_SERVICE);
+    private void addViewToExternalDisplay(Activity app, View view, WindowManager.LayoutParams params){
+        DisplayManager dm = (DisplayManager) app.getApplicationContext().getSystemService(Context.DISPLAY_SERVICE);
         if (dm != null){
             Display dispArray[] = dm.getDisplays();
             if (dispArray.length>1){
 				Log.e(TAG, "Crestron PEM adding view to 2nd display");
-                Context displayContext = svc.getApplicationContext().createDisplayContext(dispArray[1]);
+                Context displayContext = app.getApplicationContext().createDisplayContext(dispArray[1]);
                 WindowManager wm = (WindowManager)displayContext.getSystemService(Context.WINDOW_SERVICE);
                 wm.addView(view, params);
             }
@@ -57,17 +58,17 @@ public class CresDisplaySurface
         }
     }
 
-    public CresDisplaySurface(Service svc, int windowWidth, int windowHeight, boolean haveExternalDisplays)
+    public CresDisplaySurface(Activity app, int windowWidth, int windowHeight, boolean haveExternalDisplays)
     {
         Log.i(TAG, "Creating surface: " + windowWidth + "x" + windowHeight );
         
-        streamCtl = (CresStreamCtrl)svc;
+        streamCtl = (CresStreamCtrl)app;
 
     	//Relative Layout to handle multiple views
-        parentlayout = new RelativeLayout(svc);
+        parentlayout = new RelativeLayout(app);
         
         //Instance for Surfaceholder for StreamIn/Preview
-        sMGR = new SurfaceManager(svc);
+        sMGR = new SurfaceManager(app);
 
         // Create the surface and set the width and height to the display width
         // and height
@@ -75,7 +76,7 @@ public class CresDisplaySurface
         // One way to do this is to create AddSurface and RemoveSurface functions
         // Adjust z-order as well
         for (int i = 0; i < CresStreamCtrl.NumOfSurfaces; i++){
-            displaySurface[i] = new SurfaceView(svc);
+            displaySurface[i] = new SurfaceView(app);
             viewLayoutParams = new RelativeLayout.LayoutParams(
                   windowWidth,
                   windowHeight);
@@ -83,17 +84,20 @@ public class CresDisplaySurface
         }
 
         //Setting WindowManager and Parameters with system overlay
-        wmLayoutParams = new WindowManager.LayoutParams(windowWidth, windowHeight, WindowManager.LayoutParams.TYPE_SYSTEM_OVERLAY, 0, PixelFormat.TRANSLUCENT);
+        // If doing chromakey set type to: TYPE_SYSTEM_OVERLAY
+		// If doing alpha blending set type to: TYPE_BASE_APPLICATION
+        wmLayoutParams = new WindowManager.LayoutParams(windowWidth, windowHeight, WindowManager.LayoutParams.TYPE_SYSTEM_OVERLAY, 0, PixelFormat.TRANSLUCENT);        
         wmLayoutParams.gravity = Gravity.TOP | Gravity.LEFT;
         wmLayoutParams.x = 0;
         wmLayoutParams.y = 0;
+		wmLayoutParams.flags |= (WindowManager.LayoutParams.FLAG_NOT_TOUCHABLE | WindowManager.LayoutParams.FLAG_NOT_FOCUSABLE);
         //Adding Relative Layout to WindowManager
 		if(haveExternalDisplays){		
 			Log.d(TAG, "moving streams to 2nd display");
-			addViewToExternalDisplay(svc, parentlayout, wmLayoutParams);
+			addViewToExternalDisplay(app, parentlayout, wmLayoutParams);
 		}
 		else{
-			wm = (WindowManager) svc.getSystemService(Context.WINDOW_SERVICE);
+			wm = app.getWindowManager();	// getting windowManager in this fashion fills in application binder token automatically
 			wm.addView(parentlayout, wmLayoutParams); 
 		}
 		
