@@ -1026,7 +1026,7 @@ JNIEXPORT void JNICALL Java_com_crestron_txrxservice_GstreamIn_nativeSetLogLevel
 JNIEXPORT void JNICALL Java_com_crestron_txrxservice_GstreamIn_nativeSetTcpMode(JNIEnv *env, jobject thiz, jint tcpMode, jint sessionId)
 {
     currentSettingsDB->videoSettings[sessionId].rtspTCPMode = tcpMode;
-    CSIO_LOG(eLogLevel_debug, "Setting windoe{%d] tcpMode to %d", sessionId, tcpMode);
+    CSIO_LOG(eLogLevel_debug, "Setting window{%d] tcpMode to %d", sessionId, tcpMode);
 
     csio_SetRtspNetworkMode(sessionId,tcpMode);
 }

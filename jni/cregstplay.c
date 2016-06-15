@@ -282,7 +282,35 @@ void insert_udpsrc_probe(CREGSTREAM *data,GstElement *element,const gchar *name)
         }
     }
 }
-
+/**
+ * \author      John Cheng
+ *
+ * \date        6/15/2016
+ *
+ * \return      void
+ *
+ * \retval      void
+ *
+ * \brief       callback when decoder output the first video
+ *  
+ * \param		src - pointer to the element, 
+ *              id  - stream id of the window      
+ * 
+ * 
+ */
+void csio_DecVideo1stOutputCB(GstElement *src,int id)
+{ 
+    if(csio_GetWaitDecHas1stVidDelay(id))
+    {
+        csio_SendVideoPlayingStatusMessage(id, STREAMSTATE_STARTED );
+        CSIO_LOG(eLogLevel_info,  "+++SENT ACK TO IPLINK CLIENT Source- %ld\n", id);
+        csio_SetWaitDecHas1stVidDelay(id,0);
+    }
+    else
+    {
+        CSIO_LOG(eLogLevel_debug, "csio_firstDecVideoCB, skip SENT ACK");
+    }
+}
 /**
  * \author      Suresh Kumar
  *
@@ -521,6 +549,16 @@ int build_video_pipeline(gchar *encoding_name, CREGSTREAM *data, unsigned int st
         CSIO_LOG(eLogLevel_debug, "SET surface-window[0x%x][%d]",data->surface,data->surface);
 
         *ele0 = data->element_v[0];
+
+        if(data->amcvid_dec && csio_GetWaitDecHas1stVidDelay(data->streamId) == 0)
+        {
+            int sigId = 0;
+            sigId = g_signal_connect(data->amcvid_dec, "crestron-vdec-output", G_CALLBACK(csio_DecVideo1stOutputCB), data->streamId);
+            CSIO_LOG(eLogLevel_debug, "connect to crestron-vdec-output: StreamId[%d],sigHandlerId[%d]",data->streamId,sigId);
+
+            if(sigId)
+                csio_SetWaitDecHas1stVidDelay(data->streamId,1);
+        }
     }
     else if(strcmp(encoding_name, "MP2T") == 0)
     {
