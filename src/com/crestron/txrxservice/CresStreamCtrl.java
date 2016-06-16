@@ -1748,17 +1748,17 @@ public class CresStreamCtrl extends Service {//extends Activity {
     {
     	//Volume of -1 means setting mute
     	//If user sets volume while in muted mode, save new volume in previousVolume
-    	if ((userSettings.isAudioMute() == true) && (volume != -1))
+    	if ((userSettings.isAudioMute() == true) && (volume != -1.0))
     	{
 			userSettings.setUserRequestedVolume(volume);
     	}
     	else
     	{
     		// If Audio is unmuted always setUserRequested volume to new volume value
-    		if (userSettings.isAudioUnmute() == true)
+    		if ((userSettings.isAudioUnmute() == true) && (volume != -1.0))
     			userSettings.setUserRequestedVolume(volume);
     			
-    		if (volume == -1)
+    		if (volume == -1.0)
     			volume = 0;
     		
     		userSettings.setVolume(volume);
@@ -1781,13 +1781,7 @@ public class CresStreamCtrl extends Service {//extends Activity {
     }
 
     public void setStreamMute()
-    {
-    	// volume cached in userSettings will store the current set value on the device
-    	// userRequestedVolume in userSettings will store the last value the user set on the device
-    	// We will always feedback the userRequestedVolume
-    	if (userSettings.isAudioUnmute())
-	    	userSettings.setUserRequestedVolume();
-    	
+    {    	
     	userSettings.setAudioMute(true);
         userSettings.setAudioUnmute(false);
         
