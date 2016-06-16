@@ -42,7 +42,7 @@ public class CresDisplaySurface
 
     // PEM - add a view to the 2nd display
     // Needed to pass Service or else can't call getApplicationContext...
-    private void addViewToExternalDisplay(Activity app, View view, WindowManager.LayoutParams params){
+    private void addViewToExternalDisplay(/*Activity*/Service app, View view, WindowManager.LayoutParams params){
         DisplayManager dm = (DisplayManager) app.getApplicationContext().getSystemService(Context.DISPLAY_SERVICE);
         if (dm != null){
             Display dispArray[] = dm.getDisplays();
@@ -58,7 +58,7 @@ public class CresDisplaySurface
         }
     }
 
-    public CresDisplaySurface(Activity app, int windowWidth, int windowHeight, boolean haveExternalDisplays)
+    public CresDisplaySurface(/*Activity*/Service app, int windowWidth, int windowHeight, boolean haveExternalDisplays)
     {
         Log.i(TAG, "Creating surface: " + windowWidth + "x" + windowHeight );
         
@@ -97,7 +97,8 @@ public class CresDisplaySurface
 			addViewToExternalDisplay(app, parentlayout, wmLayoutParams);
 		}
 		else{
-			wm = app.getWindowManager();	// getting windowManager in this fashion fills in application binder token automatically
+			wm =  (WindowManager) app.getSystemService(Context.WINDOW_SERVICE);
+//			wm = app.getWindowManager();	// getting windowManager in this fashion fills in application binder token automatically
 			wm.addView(parentlayout, wmLayoutParams); 
 		}
 		

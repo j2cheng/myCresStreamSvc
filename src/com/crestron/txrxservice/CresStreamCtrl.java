@@ -72,7 +72,7 @@ interface myCommand2 {
     void executePause(int sessId);
 }
 
-public class CresStreamCtrl extends Activity {
+public class CresStreamCtrl extends Service {//extends Activity {
 	Handler handler;
     CameraStreaming cam_streaming;
     CameraPreview cam_preview;
@@ -259,7 +259,7 @@ public class CresStreamCtrl extends Activity {
     {
     	mNote.when = System.currentTimeMillis();
     	mNote.flags |= Notification.FLAG_NO_CLEAR;
-//        startForeground( 42, mNote );
+        startForeground( 42, mNote );
     }
     
     /**
@@ -302,10 +302,10 @@ public class CresStreamCtrl extends Activity {
     HashMap<Integer, myCommand2> hm3;
         
     @Override
-        public void onCreate(Bundle savedInstanceState) {
+        public void onCreate(/*Bundle savedInstanceState*/) {
     		// Create Handler onCreate so that it is always associated with UI thread (main thread)
     		handler = new Handler();
-            super.onCreate(savedInstanceState);
+            super.onCreate(/*savedInstanceState*/);
             int windowWidth = 1920;
             int windowHeight = 1080;
             boolean haveExternalDisplays;
@@ -338,7 +338,7 @@ public class CresStreamCtrl extends Activity {
 //            	mHDCPEncryptStatus[sessionId] = false;          	
             }
                         
-//            RunNotificationThread();		// No longer needed since we are an activity not a service
+            RunNotificationThread();		// No longer needed since we are an activity not a service
             
             //Global Default Exception Handler
             final Thread.UncaughtExceptionHandler oldHandler = Thread.getDefaultUncaughtExceptionHandler();
@@ -661,11 +661,12 @@ public class CresStreamCtrl extends Activity {
         }
    
     @Override
-		public void onStart() {
+    public int onStartCommand (Intent intent, int flags, int startId) {
+//		public void onStart() {
             // TODO Auto-generated method stub
-    		super.onStart();
+//    		super.onStart();
             Log.d(TAG,"S: CresStreamCtrl Started !" );            
-//            return START_STICKY;	// No longer needed since it is not a service
+            return START_STICKY;	// No longer needed since it is not a service
         }
     
     public IBinder onBind(Intent intent)
@@ -698,11 +699,11 @@ public class CresStreamCtrl extends Activity {
     }
     
 	// We can no longer (and no loger require) creating our own runOnUIThread implementation, it is part of activty class
-//    private void runOnUiThread(Runnable runnable) {
-//    	// Android wants all surface methods to be run on UI thread, 
-//    	// Instability and/or crashes can occur if this is not observed
-//        handler.post(runnable);
-//    }
+    private void runOnUiThread(Runnable runnable) {
+    	// Android wants all surface methods to be run on UI thread, 
+    	// Instability and/or crashes can occur if this is not observed
+        handler.post(runnable);
+    }
  
     public SurfaceHolder getCresSurfaceHolder(final int sessionId){
     	SurfaceHolder surfaceHolder = null;

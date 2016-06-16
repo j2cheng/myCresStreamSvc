@@ -23,7 +23,7 @@
         android:allowBackup="true"
         android:icon="@drawable/ic_launcher"
         android:theme="@android:style/Theme.NoTitleBar.Fullscreen" android:persistent="true">
-		<activity android:name=".CresStreamCtrl" android:theme="@android:style/Theme.Translucent.NoTitleBar"/>
+		<service android:name=".CresStreamCtrl" android:theme="@android:style/Theme.Translucent.NoTitleBar"/>
     </application>
 	
 </manifest>
