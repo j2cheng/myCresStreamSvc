@@ -665,9 +665,18 @@ public class UserSettings
 	
 	public void setStreamInUrl(String url, int sessId) {
 		this.streamInUrl[sessId] = url;
+		String newUrl = url;
 
 		if (this.mode[sessId] == DeviceMode.STREAM_IN.ordinal())
-			StreamIn.setServerUrl(url, sessId);		
+		{
+			//Need to modify url function if proxy enable
+			if(this.getProxyEnable(sessId))
+			{
+	    		newUrl = MiscUtils.getLocalUrl(url);
+			}
+
+			StreamIn.setServerUrl(newUrl, sessId);
+		}
 	}
 	
 	public void setProxyEnable(boolean flag, int sessId) {

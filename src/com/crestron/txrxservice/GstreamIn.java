@@ -283,7 +283,16 @@ public class GstreamIn implements StreamInStrategy, SurfaceHolder.Callback {
     
     private void updateNativeDataStruct(int sessionId)
     {
-    	setServerUrl(streamCtl.userSettings.getStreamInUrl(sessionId), sessionId);
+    	String url = streamCtl.userSettings.getStreamInUrl(sessionId);
+    	String newUrl = url;
+    	
+    	//Need to modify url function if proxy enable
+    	if(streamCtl.userSettings.getProxyEnable(sessionId))
+    	{
+    		newUrl = MiscUtils.getLocalUrl(url);
+    	}
+
+    	setServerUrl(newUrl, sessionId); 
     	setRtspPort(streamCtl.userSettings.getRtspPort(sessionId), sessionId);
     	setTsPort(streamCtl.userSettings.getTsPort(sessionId), sessionId);
     	setRtpVideoPort(streamCtl.userSettings.getRtpVideoPort(sessionId), sessionId);

@@ -125,4 +125,12 @@ public class MiscUtils {
         }catch (Exception e) {}
         return text.toString();
     }
+    
+    public static String getLocalUrl(String url)
+    {
+    	String newUrl;
+    	String ipRegex = "\\d{1,3}\\.\\d{1,3}\\.\\d{1,3}\\.\\d{1,3}";
+    	newUrl = url.replaceFirst(ipRegex, "127.0.0.1");
+    	return newUrl;
+    }
 }
