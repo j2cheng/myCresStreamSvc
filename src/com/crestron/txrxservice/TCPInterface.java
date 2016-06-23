@@ -239,7 +239,7 @@ public class TCPInterface extends AsyncTask<Void, Object, Long> {
             }
             if (isCancelled()){
                 try {
-                    serverSocket.close();
+                	serverSocket.close();
                     for (ListIterator<CommunicationThread> iter = clientList.listIterator(clientList.size()); iter.hasPrevious();)
                     {
                     	CommunicationThread thread = iter.previous();
@@ -247,7 +247,7 @@ public class TCPInterface extends AsyncTask<Void, Object, Long> {
                     	{
                     		if (thread.clientSocket != null)
                     		{
-                    			thread.clientSocket.close();
+                    			closeClientSocket(thread.clientSocket);
                     		}
                         	iter.remove();
                     	}
@@ -340,7 +340,7 @@ public class TCPInterface extends AsyncTask<Void, Object, Long> {
                     }
                     else if(read == null) {
                         Log.d(TAG, "Client Disconnected..... ");
-                        try {clientSocket.close();} catch(Exception ex) {}
+                        closeClientSocket(clientSocket);
                         connectionAlive = false;
                         serverHandler.RemoveClientFromList(this);
                     }
@@ -352,6 +352,13 @@ public class TCPInterface extends AsyncTask<Void, Object, Long> {
                 }
             }
         }
+    }
+    
+    private void closeClientSocket(Socket socket)
+    {
+        try {socket.shutdownInput();} catch(Exception ex) {}
+        try {socket.shutdownOutput();} catch(Exception ex) {}
+        try {socket.close();} catch(Exception ex) {}
     }
 
     protected void onProgressUpdate(Object... progress) { 
