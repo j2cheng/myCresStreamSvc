@@ -255,12 +255,12 @@ public class GstreamIn implements StreamInStrategy, SurfaceHolder.Callback {
     //Play based on based Pause/Actual Playback 
     public void onStart(int sessionId) {
     	try {
+    		isPlaying = true;
 			SurfaceHolder sh = streamCtl.getCresSurfaceHolder(sessionId);
     		sh.addCallback(this); //needed?
     		updateNativeDataStruct(sessionId);
     		nativeSurfaceInit(sh.getSurface(), sessionId);
-    		nativePlay(sessionId);
-    		isPlaying = true;
+    		nativePlay(sessionId);    		
     	}
     	catch(Exception e){
         	// TODO: explore exception handling with better feedback of what went wrong to user
@@ -275,10 +275,10 @@ public class GstreamIn implements StreamInStrategy, SurfaceHolder.Callback {
     }
 
     public void onStop(final int sessionId) {
+    	isPlaying = false;
     	Log.d(TAG, "Stopping MediaPlayer");
         //nativeSurfaceFinalize (sessionId);should be called in surfaceDestroyed()
-        nativeStop(sessionId);
-        isPlaying = false;
+        nativeStop(sessionId);        
     }
     
     private void updateNativeDataStruct(int sessionId)
