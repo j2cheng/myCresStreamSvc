@@ -2234,6 +2234,15 @@ public class CresStreamCtrl extends Service {//extends Activity {
     	if (userSettings.getMode(sessionId) == DeviceMode.STREAM_OUT.ordinal())
     		sockTask.SendDataToAllClients(String.format("STREAMURL%d=%s", sessionId, createStreamOutURL(sessionId)));
     }
+    
+    public void updateStreamOutUrl_OnIPChange()
+    {
+    	for(int sessionId = 0; sessionId < NumOfSurfaces; sessionId++)
+    	{
+        	if (userSettings.getMode(sessionId) == DeviceMode.STREAM_OUT.ordinal())
+        		sockTask.SendDataToAllClients(String.format("STREAMURL%d=%s", sessionId, createStreamOutURL(sessionId)));
+    	}
+    }
 
     public void setHdcpEncrypt(boolean flag, int sessId)
     {

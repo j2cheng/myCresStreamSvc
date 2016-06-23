@@ -117,11 +117,11 @@ public class CommandReceiver {
     }
     
     public void setChangedIpAddress(String changedIp){
-	if(!changedIp.equals(ctl.userSettings.getDeviceIp()))
-	{
-            ctl.stopOnIpAddrChange();
-    	    ctl.userSettings.setDeviceIp(changedIp);
-	}
+    	if(!changedIp.equals(ctl.userSettings.getDeviceIp()))
+    	{
+    		ctl.userSettings.setDeviceIp(changedIp);    
+    		ctl.updateStreamOutUrl_OnIPChange();
+    	}
     }
 
     public void setEncodingResolution(int resID, int sessId){
