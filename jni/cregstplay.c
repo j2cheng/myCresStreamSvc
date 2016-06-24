@@ -132,6 +132,12 @@ static void pad_added_callback2 (GstElement *src, GstPad *new_pad, CREGSTREAM *d
     if (strncmp("audio", p_caps_string, 5) == 0)
     {
 		build_audio_pipeline(p_caps_string, data, do_rtp,&ele0,&sinker);
+		if (data->audio_sink != NULL)
+		{
+			csio_SetAudioSink(data->audio_sink, data->streamId); // Need to set AudioSink
+			csio_SetLinearVolume(data->streamId, currentSettingsDB->videoSettings[data->streamId].volumeIndB); //Set initial volume
+		}
+
         sinker = data->element_a[0];
 		CSIO_LOG(eLogLevel_debug, "Completing audio pipeline");
     }
@@ -591,6 +597,7 @@ int build_video_pipeline(gchar *encoding_name, CREGSTREAM *data, unsigned int st
 		{
 			gst_element_link(data->element_v[i-1], data->element_v[i]);
 		}
+		// TODO: this should just connect csio_PadAddedMsgHandler, but we need to add teletext support first!
 		g_signal_connect(data->element_v[i], "pad-added", G_CALLBACK(pad_added_callback2), data);
 	
 		// We will only do HDCP encryption in RTSP modes so only add callback here
