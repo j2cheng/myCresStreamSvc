@@ -306,368 +306,368 @@ public class CresStreamCtrl extends Service {//extends Activity {
     		// Create Handler onCreate so that it is always associated with UI thread (main thread)
     		handler = new Handler();
             super.onCreate(/*savedInstanceState*/);
-            int windowWidth = 1920;
-            int windowHeight = 1080;
+    		int windowWidth = 1920;
+    		int windowHeight = 1080;
             boolean haveExternalDisplays;
-            
-            // Wait until 2nd display has settled down.
-			// Android will kill this after 20 seconds!
-			// Tried waiting for just 10 seconds, didn't work.
-			// I guess 2nd display is not ready yet.
-			haveExternalDisplays = nativeHaveExternalDisplays();
-			if(haveExternalDisplays){
-				Log.d(TAG, "about to wait for external display(s)");
-				for(int i=1; i<=15; i++)
-				{
-					SystemClock.sleep(1000);
-					Log.d(TAG, "waited " + i + " sec");
-				}
-				Log.d(TAG, "done waiting for external display(s)");
-			}
-			
-            //Start service connection
-            tokenizer = new StringTokenizer();
-            sockTask = new TCPInterface(this);
-            sockTask.execute(new Void[0]);  
-            
-            // Allocate startStop and streamstate Locks, also initializing array
-            for (int sessionId = 0; sessionId < NumOfSurfaces; sessionId++)
-            {
-            	stopStartLock[sessionId] = new ReentrantLock(true);
-            	streamStateLock[sessionId] = new ReentrantLock(true);
-//            	mHDCPEncryptStatus[sessionId] = false;          	
-            }
-                        
+
+    		// Wait until 2nd display has settled down.
+    		// Android will kill this after 20 seconds!
+    		// Tried waiting for just 10 seconds, didn't work.
+    		// I guess 2nd display is not ready yet.
+    		haveExternalDisplays = nativeHaveExternalDisplays();
+    		if(haveExternalDisplays){
+    			Log.d(TAG, "about to wait for external display(s)");
+    			for(int i=1; i<=15; i++)
+    			{
+    				SystemClock.sleep(1000);
+    				Log.d(TAG, "waited " + i + " sec");
+    			}
+    			Log.d(TAG, "done waiting for external display(s)");
+    		}
+    		
+    		//Start service connection
+    		tokenizer = new StringTokenizer();
+    		sockTask = new TCPInterface(this);
+    		sockTask.execute(new Void[0]);  
+
+    		// Allocate startStop and streamstate Locks, also initializing array
+    		for (int sessionId = 0; sessionId < NumOfSurfaces; sessionId++)
+    		{
+    			stopStartLock[sessionId] = new ReentrantLock(true);
+    			streamStateLock[sessionId] = new ReentrantLock(true);
+    			//            	mHDCPEncryptStatus[sessionId] = false;          	
+    		}
+
             RunNotificationThread();		// No longer needed since we are an activity not a service
-            
-            //Global Default Exception Handler
-            final Thread.UncaughtExceptionHandler oldHandler = Thread.getDefaultUncaughtExceptionHandler();
 
-            Thread.setDefaultUncaughtExceptionHandler(
-                    new Thread.UncaughtExceptionHandler() {
-                    @Override
-                    public void uncaughtException(Thread paramThread, Throwable paramThrowable) {
-                    //Close Camera   
-                    Log.d(TAG,"Global uncaught Exception !!!!!!!!!!!" );
-                    paramThrowable.printStackTrace();
-                    
-                    try {
-                    	for (int sessionId = 0; sessionId < NumOfSurfaces; sessionId++)
-                    	{
-	                    	if (getCurrentStreamState(sessionId) != StreamState.STOPPED)
-	                    	{
-	                    		if (userSettings.getMode(sessionId) == DeviceMode.PREVIEW.ordinal())
-	                    			cam_preview.stopPlayback(false);
-	                    		else if (userSettings.getMode(sessionId) == DeviceMode.STREAM_IN.ordinal())
-	                    			streamPlay.onStop(sessionId);
-	                    		else if (userSettings.getMode(sessionId) == DeviceMode.STREAM_OUT.ordinal())
-                    				cam_streaming.stopRecording(true);//false
-	                    	}
-                    	}
-                    }
-                    catch (Exception e) { 
-                    	Log.e(TAG, "Failed to stop streams on error exit");
-                    	e.printStackTrace(); 
-                	}
-                    if (oldHandler != null)
-                    oldHandler.uncaughtException(paramThread, paramThrowable); //Delegates to Android's error handling
-                    else
-                    System.exit(2); //Prevents the service/app from freezing
-                    }
-                    });
-            
-            //Input Streamout Config
-            if (useGstreamer)
-            {
-            	// If mediaserver is in bad state this could get stuck
-            	// Load GstreamBase first!
-            	final CountDownLatch latch = new CountDownLatch(1);
-            	Thread startGstreamerThread = new Thread(new Runnable() {
-            		public void run() {
-            			gstreamBase = new GstreamBase(CresStreamCtrl.this);
-            			latch.countDown();
-            		}
-            	});
-            	startGstreamerThread.start();
-            	
-            	boolean successfulStart = true; //indicates that there was no time out condition
-            	try { successfulStart = latch.await(3000, TimeUnit.MILLISECONDS); }
-            	catch (InterruptedException ex) { ex.printStackTrace(); }
-            	
-            	// Library failed to load kill mediaserver and restart txrxservice
-            	if (!successfulStart)
-            	{
-            		Log.e(TAG, "Gstreamer failed to initialize, restarting txrxservice and mediaserver");
-            		
-            		RecoverMediaServer();
-            		RecoverTxrxService();    		
-            	}
-            	else
-            	{            		
-            		if (defaultLoggingLevel != -1) //-1 means that value still has not been set
-            		{
-            			streamPlay.setLogLevel(defaultLoggingLevel);
-            		}
-            	}
-            	
-            	// After gstreamer is initialized we can load gstreamIn and gstreamOut
-            	streamPlay = new StreamIn(new GstreamIn(CresStreamCtrl.this));
-            	
-            	// Added for real camera on x60
-            	// to-do: support having both hdmi input and a real camera at the same time...
-            	if(ProductSpecific.hasRealCamera())
-            	{
-            		gstStreamOut = new GstreamOut(CresStreamCtrl.this);
-            	}
+    		//Global Default Exception Handler
+    		final Thread.UncaughtExceptionHandler oldHandler = Thread.getDefaultUncaughtExceptionHandler();
 
-            }
-            else
-            	streamPlay = new StreamIn(new NstreamIn(CresStreamCtrl.this));
-            
-            boolean wipeOutUserSettings = false;
-            boolean useOldUserSettingsFile = false;
-            boolean fixSettingsVersionMismatch = false;
-            
-            File restoreFlagFile = new File(restoreFlagFilePath);
-            if (restoreFlagFile.isFile())
-            {
-            	wipeOutUserSettings = true;
-            	boolean deleteSuccess = restoreFlagFile.delete(); //delete restore flag since we handled it by wiping out userSettings
-            	if (deleteSuccess == false)
-            		Log.e(TAG, "Failed to delete restore file!");
-            }
-            
-            File serializedClassFile = new File (savedSettingsFilePath);
-            if (serializedClassFile.isFile())	//check if file exists
-            {
-            	// File exists deserialize it into userSettings
-            	GsonBuilder builder = new GsonBuilder();
-                Gson gson = builder.create();
-                try
-                {
-                	String serializedClass = new Scanner(serializedClassFile, "US-ASCII").useDelimiter("\\A").next();
-                	try {
-                		userSettings = gson.fromJson(serializedClass, UserSettings.class);
-                		if (userSettings.getVersionNum() < VersionNumber)
-                			fixSettingsVersionMismatch = true;
-                	} catch (Exception ex) {
-                		Log.e(TAG, "Failed to deserialize userSettings: " + ex);
-                		useOldUserSettingsFile = true;
-            		}
-                }
-                catch (Exception ex)
-                {
-                	Log.e(TAG, "Exception encountered loading userSettings from disk: " + ex);
-                	useOldUserSettingsFile = true;
-                }            	
-            }
-            else
-            {
-            	Log.e(TAG, "UserSettings file did not exist");
-            	useOldUserSettingsFile = true;
-            }
-            
-            if (useOldUserSettingsFile) //userSettings deserialization failed try using old userSettings file
-            {            	
-	            File serializedOldClassFile = new File (savedSettingsOldFilePath);
-            	if (serializedOldClassFile.isFile())	//check if file exists 
-            	{
-            		Log.i(TAG, "Deserializing old userSettings file");
-		        	// File exists deserialize it into userSettings
-		        	GsonBuilder builder = new GsonBuilder();
-		            Gson gson = builder.create();
-		            try
-		            {
-		            	String serializedClass = new Scanner(serializedOldClassFile, "US-ASCII").useDelimiter("\\A").next();
-		            	try {
-		            		userSettings = gson.fromJson(serializedClass, UserSettings.class);
-		            		if (userSettings.getVersionNum() < VersionNumber)
-		            			fixSettingsVersionMismatch = true;
-		            	} catch (Exception ex) {
-		            		Log.e(TAG, "Failed to deserialize userSettings.old: " + ex);
-		            		wipeOutUserSettings = true;
-		        		}
-		            }
-		            catch (Exception ex)
-		            {
-		            	Log.e(TAG, "Exception encountered loading old userSettings from disk: " + ex);
-		            	wipeOutUserSettings = true;
-		            }
-            	}
-            	else
-            	{
-            		Log.e(TAG, "Old userSettings file did not exist");
-            		wipeOutUserSettings = true;
-            	}
-            }
+    		Thread.setDefaultUncaughtExceptionHandler(
+    				new Thread.UncaughtExceptionHandler() {
+    					@Override
+    					public void uncaughtException(Thread paramThread, Throwable paramThrowable) {
+    						//Close Camera   
+    						Log.d(TAG,"Global uncaught Exception !!!!!!!!!!!" );
+    						paramThrowable.printStackTrace();
 
-            if (wipeOutUserSettings)
-            {
-            	// File Does not exist, create it
-            	try
-            	{
-            		userSettings = new UserSettings(); 
-	            	serializedClassFile.createNewFile();
-	            	saveUserSettings();
-            	}
-            	catch (Exception ex)
+    						try {
+    							for (int sessionId = 0; sessionId < NumOfSurfaces; sessionId++)
+    							{
+    								if (getCurrentStreamState(sessionId) != StreamState.STOPPED)
+    								{
+    									if (userSettings.getMode(sessionId) == DeviceMode.PREVIEW.ordinal())
+    										cam_preview.stopPlayback(false);
+    									else if (userSettings.getMode(sessionId) == DeviceMode.STREAM_IN.ordinal())
+    										streamPlay.onStop(sessionId);
+    									else if (userSettings.getMode(sessionId) == DeviceMode.STREAM_OUT.ordinal())
+    										cam_streaming.stopRecording(true);//false
+    								}
+    							}
+    						}
+    						catch (Exception e) { 
+    							Log.e(TAG, "Failed to stop streams on error exit");
+    							e.printStackTrace(); 
+    						}
+    						if (oldHandler != null)
+    							oldHandler.uncaughtException(paramThread, paramThrowable); //Delegates to Android's error handling
+    						else
+    							System.exit(2); //Prevents the service/app from freezing
+    					}
+    				});
+
+    		//Input Streamout Config
+    		if (useGstreamer)
+    		{
+    			// If mediaserver is in bad state this could get stuck
+    			// Load GstreamBase first!
+    			final CountDownLatch latch = new CountDownLatch(1);
+    			Thread startGstreamerThread = new Thread(new Runnable() {
+    				public void run() {
+    					gstreamBase = new GstreamBase(CresStreamCtrl.this);
+    					latch.countDown();
+    				}
+    			});
+    			startGstreamerThread.start();
+
+    			boolean successfulStart = true; //indicates that there was no time out condition
+    			try { successfulStart = latch.await(3000, TimeUnit.MILLISECONDS); }
+    			catch (InterruptedException ex) { ex.printStackTrace(); }
+
+    			// Library failed to load kill mediaserver and restart txrxservice
+    			if (!successfulStart)
     			{
-            		Log.e(TAG, "Could not create serialized class file: " + ex);
+    				Log.e(TAG, "Gstreamer failed to initialize, restarting txrxservice and mediaserver");
+
+    				RecoverMediaServer();
+    				RecoverTxrxService();    		
     			}
-            }
-            else
-            {
-				// Always upgrade userSettings
-            	try
-            	{           		
-            		UserSettings savedUserSettings = userSettings;
-            		userSettings = new UserSettings();	// Create new userSettings with default values   
-            		UserSettings.fixVersionMismatch(savedUserSettings, userSettings); 	// Copy over previous values on top of defaults already set
-            		
-            		if (fixSettingsVersionMismatch)
-            		{
-		            	Log.d(TAG, "Saved userSettings version too old, upgrading settings, saved version: " 
-								+ userSettings.getVersionNum() + " required version: " + VersionNumber);
-            		}
-		            	
-	            	saveUserSettings();
-            	}
-            	catch (Exception ex)
+    			else
+    			{            		
+    				if (defaultLoggingLevel != -1) //-1 means that value still has not been set
+    				{
+    					streamPlay.setLogLevel(defaultLoggingLevel);
+    				}
+    			}
+
+    			// After gstreamer is initialized we can load gstreamIn and gstreamOut
+    			streamPlay = new StreamIn(new GstreamIn(CresStreamCtrl.this));
+
+    			// Added for real camera on x60
+    			// to-do: support having both hdmi input and a real camera at the same time...
+    			if(ProductSpecific.hasRealCamera())
     			{
-            		Log.e(TAG, "Could not upgrade userSettings: " + ex);
+    				gstStreamOut = new GstreamOut(CresStreamCtrl.this);
     			}
-            }
-            
-            hdmiOutput = new HDMIOutputInterface();
-            setHDCPBypass();
 
-            Thread saveSettingsThread = new Thread(new SaveSettingsTask());    	
-            saveSettingsThread.start();
-            
-            hdmiInputDriverPresent = ProductSpecific.isHdmiDriverPresent();
-            HDMIInputInterface.setHdmiDriverPresent(hdmiInputDriverPresent);
+    		}
+    		else
+    			streamPlay = new StreamIn(new NstreamIn(CresStreamCtrl.this));
 
-        	if (hdmiInputDriverPresent)
-        	{
-        		Log.d(TAG, "HDMI input driver is present");
-        		hdmiInput = new HDMIInputInterface();
-        		//refresh resolution on startup
-        		hdmiInput.setResolutionIndex(HDMIInputInterface.readResolutionEnum());
-        		
-        		// Call getHdmiInResolutionSysFs in a separate thread so that if read takes a long time we don't get ANR 
-                new Thread(new Runnable() {
-            		public void run() {
-        				refreshInputResolution();
-            		}
-                }).start();
-        	}
-        	else
-        		Log.d(TAG, "HDMI input driver is NOT present");
+    		boolean wipeOutUserSettings = false;
+    		boolean useOldUserSettingsFile = false;
+    		boolean fixSettingsVersionMismatch = false;
 
-        	refreshOutputResolution();
-        	sendHdmiOutSyncState(); // Send out initial hdmi out resolution info
+    		File restoreFlagFile = new File(restoreFlagFilePath);
+    		if (restoreFlagFile.isFile())
+    		{
+    			wipeOutUserSettings = true;
+    			boolean deleteSuccess = restoreFlagFile.delete(); //delete restore flag since we handled it by wiping out userSettings
+    			if (deleteSuccess == false)
+    				Log.e(TAG, "Failed to delete restore file!");
+    		}
 
+    		File serializedClassFile = new File (savedSettingsFilePath);
+    		if (serializedClassFile.isFile())	//check if file exists
+    		{
+    			// File exists deserialize it into userSettings
+    			GsonBuilder builder = new GsonBuilder();
+    			Gson gson = builder.create();
+    			try
+    			{
+    				String serializedClass = new Scanner(serializedClassFile, "US-ASCII").useDelimiter("\\A").next();
+    				try {
+    					userSettings = gson.fromJson(serializedClass, UserSettings.class);
+    					if (userSettings.getVersionNum() < VersionNumber)
+    						fixSettingsVersionMismatch = true;
+    				} catch (Exception ex) {
+    					Log.e(TAG, "Failed to deserialize userSettings: " + ex);
+    					useOldUserSettingsFile = true;
+    				}
+    			}
+    			catch (Exception ex)
+    			{
+    				Log.e(TAG, "Exception encountered loading userSettings from disk: " + ex);
+    				useOldUserSettingsFile = true;
+    			}            	
+    		}
+    		else
+    		{
+    			Log.e(TAG, "UserSettings file did not exist");
+    			useOldUserSettingsFile = true;
+    		}
+
+    		if (useOldUserSettingsFile) //userSettings deserialization failed try using old userSettings file
+    		{            	
+    			File serializedOldClassFile = new File (savedSettingsOldFilePath);
+    			if (serializedOldClassFile.isFile())	//check if file exists 
+    			{
+    				Log.i(TAG, "Deserializing old userSettings file");
+    				// File exists deserialize it into userSettings
+    				GsonBuilder builder = new GsonBuilder();
+    				Gson gson = builder.create();
+    				try
+    				{
+    					String serializedClass = new Scanner(serializedOldClassFile, "US-ASCII").useDelimiter("\\A").next();
+    					try {
+    						userSettings = gson.fromJson(serializedClass, UserSettings.class);
+    						if (userSettings.getVersionNum() < VersionNumber)
+    							fixSettingsVersionMismatch = true;
+    					} catch (Exception ex) {
+    						Log.e(TAG, "Failed to deserialize userSettings.old: " + ex);
+    						wipeOutUserSettings = true;
+    					}
+    				}
+    				catch (Exception ex)
+    				{
+    					Log.e(TAG, "Exception encountered loading old userSettings from disk: " + ex);
+    					wipeOutUserSettings = true;
+    				}
+    			}
+    			else
+    			{
+    				Log.e(TAG, "Old userSettings file did not exist");
+    				wipeOutUserSettings = true;
+    			}
+    		}
+
+    		if (wipeOutUserSettings)
+    		{
+    			// File Does not exist, create it
+    			try
+    			{
+    				userSettings = new UserSettings(); 
+    				serializedClassFile.createNewFile();
+    				saveUserSettings();
+    			}
+    			catch (Exception ex)
+    			{
+    				Log.e(TAG, "Could not create serialized class file: " + ex);
+    			}
+    		}
+    		else
+    		{
+    			// Always upgrade userSettings
+    			try
+    			{           		
+    				UserSettings savedUserSettings = userSettings;
+    				userSettings = new UserSettings();	// Create new userSettings with default values   
+    				UserSettings.fixVersionMismatch(savedUserSettings, userSettings); 	// Copy over previous values on top of defaults already set
+
+    				if (fixSettingsVersionMismatch)
+    				{
+    					Log.d(TAG, "Saved userSettings version too old, upgrading settings, saved version: " 
+    							+ userSettings.getVersionNum() + " required version: " + VersionNumber);
+    				}
+
+    				saveUserSettings();
+    			}
+    			catch (Exception ex)
+    			{
+    				Log.e(TAG, "Could not upgrade userSettings: " + ex);
+    			}
+    		}
+
+    		hdmiOutput = new HDMIOutputInterface();
+    		setHDCPBypass();
+
+    		Thread saveSettingsThread = new Thread(new SaveSettingsTask());    	
+    		saveSettingsThread.start();
+
+    		hdmiInputDriverPresent = ProductSpecific.isHdmiDriverPresent();
+    		HDMIInputInterface.setHdmiDriverPresent(hdmiInputDriverPresent);
+
+    		if (hdmiInputDriverPresent)
+    		{
+    			Log.d(TAG, "HDMI input driver is present");
+    			hdmiInput = new HDMIInputInterface();
+    			//refresh resolution on startup
+    			hdmiInput.setResolutionIndex(HDMIInputInterface.readResolutionEnum());
+
+    			// Call getHdmiInResolutionSysFs in a separate thread so that if read takes a long time we don't get ANR 
+    			new Thread(new Runnable() {
+    				public void run() {
+    					refreshInputResolution();
+    				}
+    			}).start();
+    		}
+    		else
+    			Log.d(TAG, "HDMI input driver is NOT present");
+
+    		refreshOutputResolution();
+    		sendHdmiOutSyncState(); // Send out initial hdmi out resolution info
+    		
             // Create a DisplaySurface to handle both preview and stream in
-        	dispSurface = new CresDisplaySurface(this, 1920, 1200, haveExternalDisplays); // set to max output resolution
-            
-            //Get HPDEVent state fromsysfile
-            if (hdmiInputDriverPresent)
-            {
-	            hpdHdmiEvent = HDMIInputInterface.getHdmiHpdEventState();            
-	            Log.d(TAG, "hpdHdmiEvent :" + hpdHdmiEvent);
-            }
+    		dispSurface = new CresDisplaySurface(this, 1920, 1200, haveExternalDisplays); // set to max output resolution
+    		
+    		//Get HPDEVent state fromsysfile
+    		if (hdmiInputDriverPresent)
+    		{
+    			hpdHdmiEvent = HDMIInputInterface.getHdmiHpdEventState();            
+    			Log.d(TAG, "hpdHdmiEvent :" + hpdHdmiEvent);
+    		}
 
-            //AudioManager
-            amanager=(AudioManager)getSystemService(Context.AUDIO_SERVICE);
-            
-            //HPD and Resolution Event Registration
-            registerBroadcasts();
-            
-            //Enable StreamIn and CameraPreview 
-            if (hdmiInputDriverPresent)
-        	{
-            	cam_streaming = new CameraStreaming(this);
-            	cam_preview = new CameraPreview(this, hdmiInput);    
-            	 // Set up Ducati
-            	ProductSpecific.getHdmiInputStatus();
-        	}
-        	        	
-            //Play Control
-            hm = new HashMap<Integer, Command>();
-            hm.put(2/*"PREVIEW"*/, new Command() {
-                    public void executeStart(int sessId) {startPreview(sessId); };
-                    });
-            hm.put(1 /*"STREAMOUT"*/, new Command() {
-                    public void executeStart(int sessId) {startStreamOut(sessId); };
-                    });
-            hm.put(0 /*"STREAMIN"*/, new Command() {
-                    public void executeStart(int sessId) {startStreamIn(sessId); };
-                    });
-            hm2 = new HashMap<Integer, myCommand>();
-            hm2.put(2/*"PREVIEW"*/, new myCommand() {
-                    public void executeStop(int sessId, boolean fullStop) {stopPreview(sessId);};
-                    });
-            hm2.put(1/*"STREAMOUT"*/, new myCommand() {
-                    public void executeStop(int sessId, boolean fullStop) {stopStreamOut(sessId, fullStop);};
-                    });
-            hm2.put(0/*"STREAMIN"*/, new myCommand() {
-                    public void executeStop(int sessId, boolean fullStop) {stopStreamIn(sessId); };
-                    });
-            hm3 = new HashMap<Integer, myCommand2>();
-            hm3.put(2/*"PREVIEW"*/, new myCommand2() {
-                    public void executePause(int sessId) {pausePreview(sessId);};
-                    });
-            hm3.put(1/*"STREAMOUT"*/, new myCommand2() {
-                    public void executePause(int sessId) {pauseStreamOut(sessId);};
-                    });
-            hm3.put(0/*"STREAMIN"*/, new myCommand2() {
-                    public void executePause(int sessId) {pauseStreamIn(sessId); };
-                    });
+    		//AudioManager
+    		amanager=(AudioManager)getSystemService(Context.AUDIO_SERVICE);
 
-            // Flag to TCPInterface that streaming can start
-            streamingReadyLatch.countDown();
-            
-            // Monitor mediaserver, if it crashes restart stream
-            monitorMediaServer();
-            
-            // Monitor Crash State
-            monitorCrashState();
-            
-            // Set HDCP error color to red
-            setHDCPErrorColor();
-            
-            // Monitor System State
-            monitorSystemState();
-            
-        	// Monitor Rava Mode
-            monitorRavaMode();
-            
-            // FIXME: this is a temprorary workaround for testing so that we can ignore HDCP state
-            File ignoreHDCPFile = new File ("/data/CresStreamSvc/ignoreHDCP");
-            if (ignoreHDCPFile.isFile())	//check if file exists
-            	mIgnoreHDCP = true;
-            else
-            	mIgnoreHDCP = false;
-            
-            // Monitor the number of times the gstreamer 10 second timeout occurs
-            try
-			{
-            	mGstreamerTimeoutCount = Integer.parseInt(MiscUtils.readStringFromDisk(gstreamerTimeoutCountFilePath));
-			} catch (Exception e)
-			{
-				mGstreamerTimeoutCount = 0;	// not an error condition, just default to 0 if file does not exist
-			}
-			MiscUtils.writeStringToDisk(gstreamerTimeoutCountFilePath, String.valueOf(mGstreamerTimeoutCount));            
-        }
+    		//HPD and Resolution Event Registration
+    		registerBroadcasts();
+
+    		//Enable StreamIn and CameraPreview 
+    		if (hdmiInputDriverPresent)
+    		{
+    			cam_streaming = new CameraStreaming(this);
+    			cam_preview = new CameraPreview(this, hdmiInput);    
+    			// Set up Ducati
+    			ProductSpecific.getHdmiInputStatus();
+    		}
+
+    		//Play Control
+    		hm = new HashMap<Integer, Command>();
+    		hm.put(2/*"PREVIEW"*/, new Command() {
+    			public void executeStart(int sessId) {startPreview(sessId); };
+    		});
+    		hm.put(1 /*"STREAMOUT"*/, new Command() {
+    			public void executeStart(int sessId) {startStreamOut(sessId); };
+    		});
+    		hm.put(0 /*"STREAMIN"*/, new Command() {
+    			public void executeStart(int sessId) {startStreamIn(sessId); };
+    		});
+    		hm2 = new HashMap<Integer, myCommand>();
+    		hm2.put(2/*"PREVIEW"*/, new myCommand() {
+    			public void executeStop(int sessId, boolean fullStop) {stopPreview(sessId);};
+    		});
+    		hm2.put(1/*"STREAMOUT"*/, new myCommand() {
+    			public void executeStop(int sessId, boolean fullStop) {stopStreamOut(sessId, fullStop);};
+    		});
+    		hm2.put(0/*"STREAMIN"*/, new myCommand() {
+    			public void executeStop(int sessId, boolean fullStop) {stopStreamIn(sessId); };
+    		});
+    		hm3 = new HashMap<Integer, myCommand2>();
+    		hm3.put(2/*"PREVIEW"*/, new myCommand2() {
+    			public void executePause(int sessId) {pausePreview(sessId);};
+    		});
+    		hm3.put(1/*"STREAMOUT"*/, new myCommand2() {
+    			public void executePause(int sessId) {pauseStreamOut(sessId);};
+    		});
+    		hm3.put(0/*"STREAMIN"*/, new myCommand2() {
+    			public void executePause(int sessId) {pauseStreamIn(sessId); };
+    		});
+
+    		// Flag to TCPInterface that streaming can start
+    		streamingReadyLatch.countDown();
+
+    		// Monitor mediaserver, if it crashes restart stream
+    		monitorMediaServer();
+
+    		// Monitor Crash State
+    		monitorCrashState();
+
+    		// Set HDCP error color to red
+    		setHDCPErrorColor();
+
+    		// Monitor System State
+    		monitorSystemState();
+
+    		// Monitor Rava Mode
+    		monitorRavaMode();
+
+    		// FIXME: this is a temprorary workaround for testing so that we can ignore HDCP state
+    		File ignoreHDCPFile = new File ("/data/CresStreamSvc/ignoreHDCP");
+    		if (ignoreHDCPFile.isFile())	//check if file exists
+    			mIgnoreHDCP = true;
+    		else
+    			mIgnoreHDCP = false;
+
+    		// Monitor the number of times the gstreamer 10 second timeout occurs
+    		try
+    		{
+    			mGstreamerTimeoutCount = Integer.parseInt(MiscUtils.readStringFromDisk(gstreamerTimeoutCountFilePath));
+    		} catch (Exception e)
+    		{
+    			mGstreamerTimeoutCount = 0;	// not an error condition, just default to 0 if file does not exist
+    		}
+    		MiscUtils.writeStringToDisk(gstreamerTimeoutCountFilePath, String.valueOf(mGstreamerTimeoutCount));    
+    	}
    
     @Override
     public int onStartCommand (Intent intent, int flags, int startId) {
 //		public void onStart() {
-            // TODO Auto-generated method stub
+    	// TODO Auto-generated method stub
 //    		super.onStart();
             Log.d(TAG,"S: CresStreamCtrl Started !" );            
             return START_STICKY;	// No longer needed since it is not a service
-        }
+    }
     
     public IBinder onBind(Intent intent)
     {
@@ -1748,18 +1748,21 @@ public class CresStreamCtrl extends Service {//extends Activity {
     {
     	//Volume of -1 means setting mute
     	//If user sets volume while in muted mode, save new volume in previousVolume
-    	if ((userSettings.isAudioMute() == true) && (volume != -1.0))
+    	if ((userSettings.isAudioMute() == true) && (volume >= (double)0.0))
     	{
 			userSettings.setUserRequestedVolume(volume);
     	}
     	else
     	{
     		// If Audio is unmuted always setUserRequested volume to new volume value
-    		if ((userSettings.isAudioUnmute() == true) && (volume != -1.0))
+    		if ((userSettings.isAudioUnmute() == true) && (volume >= (double)0.0))
+    		{
     			userSettings.setUserRequestedVolume(volume);
-    			
-    		if (volume == -1.0)
-    			volume = 0;
+    		}
+    		
+    		// Negative volume means that we are trying to mute
+    		if (volume < (double)0.0)
+    			volume = (double)0.0;
     		
     		userSettings.setVolume(volume);
     		
@@ -1785,7 +1788,7 @@ public class CresStreamCtrl extends Service {//extends Activity {
     	userSettings.setAudioMute(true);
         userSettings.setAudioUnmute(false);
         
-        setStreamVolume(-1);
+        setStreamVolume((double)-1.0);
         sockTask.SendDataToAllClients("AUDIO_UNMUTE=false");
     }
     
