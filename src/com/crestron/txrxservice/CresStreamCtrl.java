@@ -1139,7 +1139,12 @@ public class CresStreamCtrl extends Service {//extends Activity {
 		            		
 		            		// Clear crash flags after stop completes but before start
 		            		clearErrorFlags();
-		            		
+
+		            		// Fix bug 112972: We need to let MediaServer recover after error occurs
+		            		try {
+		            			Thread.sleep(1000);
+		            		} catch (Exception e) { e.printStackTrace(); }
+
 			            	Start(sessionId);
 			            }                       
 			        }

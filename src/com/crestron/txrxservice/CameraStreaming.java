@@ -849,6 +849,11 @@ public class CameraStreaming {
 			String statisticsString;
     		try
             {
+    			// This function crashes if MediaServer is in a bad state, wait 5 seconds before calling
+    			Thread.sleep(5000);
+    			if (shouldExit)
+    				return;
+    			
     			if (mrec != null)
     			{
     				statisticsString = ProductSpecific.getStatisticsData(mrec);
