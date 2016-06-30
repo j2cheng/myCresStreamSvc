@@ -152,7 +152,8 @@ public class HDMIInputInterface {
 	            }
 	            br.close() ;
 	        }catch (IOException e) {
-	            e.printStackTrace();           
+	            e.printStackTrace();   
+	            text.append("0");
 	        }
 	        Log.d(TAG, "hpdState:" + text.toString());
 	        return Integer.parseInt(text.toString());
@@ -175,7 +176,8 @@ public class HDMIInputInterface {
 	            }
 	            br.close();
 	        }catch (IOException e) {
-	            e.printStackTrace();           
+	            e.printStackTrace();
+	            text.append("0x0@0");
 	        }
 	        Log.d(TAG, "HDMI IN Res from sysfs:" + text.toString());
 	        return text.toString();
@@ -200,7 +202,8 @@ public class HDMIInputInterface {
 	            
 	            resolutionIndex = Integer.parseInt(text.toString());
 	        }catch (IOException e) {
-	            e.printStackTrace();           
+	            e.printStackTrace(); 
+	            resolutionIndex = 0;
 	        }
 	        
 	        Log.d(TAG, "HDMI IN index from sysfs:" + resolutionIndex);
