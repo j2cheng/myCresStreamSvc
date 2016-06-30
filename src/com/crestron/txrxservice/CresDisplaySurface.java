@@ -42,7 +42,7 @@ public class CresDisplaySurface
 
     // PEM - add a view to the 2nd display
     // Needed to pass Service or else can't call getApplicationContext...
-    private void addViewToExternalDisplay(/*Activity*/Service app, View view, WindowManager.LayoutParams params){
+    private void addViewToExternalDisplay(Context app, View view, WindowManager.LayoutParams params){
         DisplayManager dm = (DisplayManager) app.getApplicationContext().getSystemService(Context.DISPLAY_SERVICE);
         if (dm != null){
             Display dispArray[] = dm.getDisplays();
@@ -58,7 +58,7 @@ public class CresDisplaySurface
         }
     }
 
-    public CresDisplaySurface(/*Activity*/Service app, int windowWidth, int windowHeight, boolean haveExternalDisplays)
+    public CresDisplaySurface(Service app, int windowWidth, int windowHeight, boolean haveExternalDisplays)
     {
         Log.i(TAG, "Creating surface: " + windowWidth + "x" + windowHeight );
         
@@ -84,14 +84,23 @@ public class CresDisplaySurface
         }
 
         //Setting WindowManager and Parameters with system overlay
-        // If doing chromakey set type to: TYPE_SYSTEM_OVERLAY
-		// If doing alpha blending set type to: TYPE_BASE_APPLICATION
-        wmLayoutParams = new WindowManager.LayoutParams(windowWidth, windowHeight, WindowManager.LayoutParams.TYPE_SYSTEM_OVERLAY, 0, PixelFormat.TRANSLUCENT);        
-        wmLayoutParams.gravity = Gravity.TOP | Gravity.LEFT;
+        // Z-order by type (higher value is higher z order)
+        // TYPE_SYSTEM_OVERLAY 		= ~181000
+        // TYPE_SYSTEM_ALERT 		= ~91000
+        // TYPE_PRIORITY_PHONE 		= ~71000
+        // TYPE_SEARCH_BAR 			= ~41000
+        // TYPE_PHONE 				= ~31000
+        // TYPE_INPUT_METHOD_DIALOG	= ~21015
+        // TYPE_APPLICATION 		= ~21000 <- Can't use as a service
+        wmLayoutParams = new WindowManager.LayoutParams(
+        		windowWidth, 
+        		windowHeight, 
+        		WindowManager.LayoutParams.TYPE_SYSTEM_OVERLAY, // See above chart for z order control
+        		(0 | WindowManager.LayoutParams.FLAG_NOT_TOUCHABLE | WindowManager.LayoutParams.FLAG_NOT_FOCUSABLE), 
+        		PixelFormat.TRANSLUCENT);        
+        wmLayoutParams.gravity = Gravity.TOP | Gravity.LEFT; 
         wmLayoutParams.x = 0;
         wmLayoutParams.y = 0;
-		wmLayoutParams.flags |= (WindowManager.LayoutParams.FLAG_NOT_TOUCHABLE | WindowManager.LayoutParams.FLAG_NOT_FOCUSABLE);
-        //Adding Relative Layout to WindowManager
 		if(haveExternalDisplays){		
 			Log.d(TAG, "moving streams to 2nd display");
 			addViewToExternalDisplay(app, parentlayout, wmLayoutParams);

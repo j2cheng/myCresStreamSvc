@@ -72,7 +72,7 @@ interface myCommand2 {
     void executePause(int sessId);
 }
 
-public class CresStreamCtrl extends Service {//extends Activity {
+public class CresStreamCtrl extends Service {
 	Handler handler;
     CameraStreaming cam_streaming;
     CameraPreview cam_preview;
@@ -302,10 +302,10 @@ public class CresStreamCtrl extends Service {//extends Activity {
     HashMap<Integer, myCommand2> hm3;
         
     @Override
-        public void onCreate(/*Bundle savedInstanceState*/) {
+        public void onCreate() {
     		// Create Handler onCreate so that it is always associated with UI thread (main thread)
     		handler = new Handler();
-            super.onCreate(/*savedInstanceState*/);
+            super.onCreate();
     		int windowWidth = 1920;
     		int windowHeight = 1080;
             boolean haveExternalDisplays;
@@ -662,10 +662,7 @@ public class CresStreamCtrl extends Service {//extends Activity {
    
     @Override
     public int onStartCommand (Intent intent, int flags, int startId) {
-//		public void onStart() {
-    	// TODO Auto-generated method stub
-//    		super.onStart();
-            Log.d(TAG,"S: CresStreamCtrl Started !" );            
+            Log.d(TAG,"CresStreamCtrl Started !" );            
             return START_STICKY;	// No longer needed since it is not a service
     }
     
@@ -698,7 +695,6 @@ public class CresStreamCtrl extends Service {//extends Activity {
         CresCamera.releaseCamera();
     }
     
-	// We can no longer (and no loger require) creating our own runOnUIThread implementation, it is part of activty class
     private void runOnUiThread(Runnable runnable) {
     	// Android wants all surface methods to be run on UI thread, 
     	// Instability and/or crashes can occur if this is not observed
