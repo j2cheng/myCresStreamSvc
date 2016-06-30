@@ -2821,6 +2821,9 @@ public class CresStreamCtrl extends Service {
 				                	int prevResolutionIndex = hdmiInput.getResolutionIndex();
 				                    if (resolutionId != 0)
 				                    	hdmiInput.setResolutionIndex(resolutionId);
+				                    
+				                    // Fix issue where we start video before we setup resolution 
+				                    refreshInputResolution();
 				                	
 				                	setCameraAndRestartStreams(resolutionId); //we need to restart streams for resolution change		                	
 
