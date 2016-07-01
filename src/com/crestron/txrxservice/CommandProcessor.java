@@ -2156,6 +2156,84 @@ class AirMediaDisplayScreenCommand extends CrestronCommand {
 	}
 }
 
+class camStreamMulticastEnableCommand extends CrestronCommand {
+	public camStreamMulticastEnableCommand(CommandReceiver launch, String arg) {
+		super(launch, arg);
+	}	
+	public void execute() {		
+		launch.setCamStreamMulticastEnable(Boolean.valueOf(msg));
+	}
+	public String getFeedbackMsg() {
+		return launch.getCamStreamMulticastEnable();
+	}
+}
+
+class camStreamResolutionCommand extends CrestronCommand {
+	public camStreamResolutionCommand(CommandReceiver launch, String arg) {
+		super(launch, arg);
+	}	
+	public void execute() {		
+		launch.setCamStreamResolution(CommandReceiver.VALIDATE_INT(msg));
+	}
+	public String getFeedbackMsg() {
+		return launch.getCamStreamResolution();
+	}
+}
+
+class camStreamUrlCommand extends CrestronCommand {
+	public camStreamUrlCommand(CommandReceiver launch, String arg) {
+		super(launch, arg);
+	}	
+	public String getFeedbackMsg() {
+		return launch.getCamStreamUrl();
+	}
+}
+
+class camStreamSnapshotUrlCommand extends CrestronCommand {
+	public camStreamSnapshotUrlCommand(CommandReceiver launch, String arg) {
+		super(launch, arg);
+	}	
+	public String getFeedbackMsg() {
+		return launch.getCamStreamSnapshotUrl();
+	}
+}
+
+class camStreamNameCommand extends CrestronCommand {
+	public camStreamNameCommand(CommandReceiver launch, String arg) {
+		super(launch, arg);
+	}	
+	public void execute() {		
+		launch.setCamStreamName(msg);
+	}
+	public String getFeedbackMsg() {
+		return launch.getCamStreamName();
+	}
+}
+
+class camStreamSnapshotNameCommand extends CrestronCommand {
+	public camStreamSnapshotNameCommand(CommandReceiver launch, String arg) {
+		super(launch, arg);
+	}	
+	public void execute() {		
+		launch.setCamStreamSnapshotName(msg);
+	}
+	public String getFeedbackMsg() {
+		return launch.getCamStreamSnapshotName();
+	}
+}
+
+class camStreamMulticastAddressCommand extends CrestronCommand {
+	public camStreamMulticastAddressCommand(CommandReceiver launch, String arg) {
+		super(launch, arg);
+	}	
+	public void execute() {		
+		launch.setCamStreamMulticastAddress(msg);
+	}
+	public String getFeedbackMsg() {
+		return launch.getCamStreamMulticastAddress();
+	}
+}
+
 class RestartStreamOnStartCommand implements CommandIf {
 	CommandReceiver launch;
     String msg;

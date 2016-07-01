@@ -222,6 +222,15 @@ public class UserSettings
 	private String airMediaLayoutPassword;
 	private boolean airMediaDisplayLoginCode;
 	private int airMediaDisplayScreen;
+	
+	// Camera Streaming
+	private boolean camStreamMulticastEnable;
+	private int camStreamResolution;
+	private String camStreamUrl;
+	private String camStreamSnapshotUrl;
+	private String camStreamName;
+	private String camStreamSnapshotName;
+	private String camStreamMulticastAddress;
 
 	//Misc
 	private boolean[] useNewSink;
@@ -300,6 +309,13 @@ public class UserSettings
 		airMediaDisplayLoginCode = false;
 		airMediaDisplayScreen = 0;
 		tcpInterleave       = initIntArray(0);//auto mode
+		camStreamMulticastEnable = false;
+		camStreamResolution = 10;
+		camStreamUrl		= "";
+		camStreamSnapshotUrl = "";
+		camStreamName		= "camera";
+		camStreamSnapshotName = "snapshot";
+		camStreamMulticastAddress = "";
 	}
 	
 	// If there is a version mismatch between current userSettings and the one loaded from file system
@@ -1150,5 +1166,61 @@ public class UserSettings
 
 	public int getAirMediaDisplayScreen() {
 		return airMediaDisplayScreen;
+	}
+	
+	public boolean getCamStreamMulticastEnable() {
+		return camStreamMulticastEnable;
+	}
+
+	public void setCamStreamMulticastEnable(boolean camStreamMulticastEnable) {
+		this.camStreamMulticastEnable = camStreamMulticastEnable;
+	}
+
+	public int getCamStreamResolution() {
+		return camStreamResolution;
+	}
+
+	public void setCamStreamResolution(int camStreamResolution) {
+		this.camStreamResolution = camStreamResolution;
+	}
+
+	public String getCamStreamUrl() {
+		return camStreamUrl;
+	}
+
+	public void setCamStreamUrl(String camStreamUrl) {
+		this.camStreamUrl = camStreamUrl;
+	}
+
+	public String getCamStreamSnapshotUrl() {
+		return camStreamSnapshotUrl;
+	}
+
+	public void setCamStreamSnapshotUrl(String camStreamSnapshotUrl) {
+		this.camStreamSnapshotUrl = camStreamSnapshotUrl;
+	}
+
+	public String getCamStreamName() {
+		return camStreamName;
+	}
+
+	public void setCamStreamName(String camStreamName) {
+		this.camStreamName = camStreamName;
+	}
+
+	public String getCamStreamSnapshotName() {
+		return camStreamSnapshotName;
+	}
+
+	public void setCamStreamSnapshotName(String camStreamSnapshotName) {
+		this.camStreamSnapshotName = camStreamSnapshotName;
+	}
+
+	public String getCamStreamMulticastAddress() {
+		return camStreamMulticastAddress;
+	}
+
+	public void setCamStreamMulticastAddress(String camStreamMulticastAddress) {
+		this.camStreamMulticastAddress = camStreamMulticastAddress;
 	}
 }

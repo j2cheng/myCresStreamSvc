@@ -377,6 +377,26 @@ public class CommandReceiver {
     	ctl.airMediaSetDisplayScreen(displayId, sessId);
     }
     
+    public void setCamStreamMulticastEnable(boolean enable) {
+    	ctl.setCamStreamMulticastEnable(enable);
+    }
+    
+    public void setCamStreamResolution(int resolution) {
+    	ctl.setCamStreamResolution(resolution);
+    }
+    
+    public void setCamStreamName(String name) {
+    	ctl.setCamStreamName(name);
+    }
+    
+    public void setCamStreamSnapshotName(String name) {
+    	ctl.setCamStreamSnapshotName(name);
+    }
+    
+    public void setCamStreamMulticastAddress(String address) {
+    	ctl.setCamStreamMulticastAddress(address);
+    }
+    
     public void setRestartStreamOnStart(boolean flag) {
     	ctl.restartStreamsOnStart = flag;
     }
@@ -839,5 +859,33 @@ public class CommandReceiver {
     
     public String getAirMediaDisplayLoginCode(int sessId) {
     	return Boolean.toString(ctl.userSettings.getAirMediaDisplayLoginCode());
+    }
+    
+    public String getCamStreamMulticastEnable() {
+    	return Boolean.toString(ctl.userSettings.getCamStreamMulticastEnable());
+    }
+    
+    public String getCamStreamResolution() {
+    	return String.valueOf(ctl.userSettings.getCamStreamResolution());
+    }
+    
+    public String getCamStreamUrl() {
+    	return ctl.userSettings.getCamStreamUrl();
+    }
+    
+    public String getCamStreamSnapshotUrl() {
+    	return ctl.userSettings.getCamStreamSnapshotUrl();
+    }
+    
+    public String getCamStreamName() {
+    	return ctl.userSettings.getCamStreamName();
+    }
+    
+    public String getCamStreamSnapshotName() {
+    	return ctl.userSettings.getCamStreamSnapshotName();
+    }
+    
+    public String getCamStreamMulticastAddress() {
+    	return ctl.userSettings.getCamStreamMulticastAddress();
     }
 }

@@ -149,6 +149,14 @@ public class CommandParser {
         AIRMEDIA_DOMAIN_NAME_PROMPT,
         AIRMEDIA_DISPLAY_SCREEN,
         
+        // Camera Streaming Slot
+        CAMERA_STREAMING_MULTICAST_ENABLE,
+        CAMERA_STREAMING_RESOLUTION,
+        CAMERA_STREAMING_STREAM_URL,
+        CAMERA_STREAMING_SNAPSHOT_URL,
+        CAMERA_STREAMING_STREAM_NAME,
+        CAMERA_STREAMING_SNAPSHOT_NAME,
+        CAMERA_STREAMING_MULTICAST_ADDRESS,
 
         RESTART_STREAM_ON_START,
 
@@ -613,6 +621,30 @@ public class CommandParser {
             case AIRMEDIA_DISPLAY_SCREEN:
             	cmd = new AirMediaDisplayScreenCommand(cmdRx, arg, idx);
             	break;
+            	
+        	// Camera Streaming
+            case CAMERA_STREAMING_MULTICAST_ENABLE:
+            	cmd = new camStreamMulticastEnableCommand(cmdRx, arg);
+            	break;
+            case CAMERA_STREAMING_RESOLUTION:
+            	cmd = new camStreamResolutionCommand(cmdRx, arg);
+            	break;
+            case CAMERA_STREAMING_STREAM_URL:
+            	cmd = new camStreamUrlCommand(cmdRx, arg);
+            	break;
+            case CAMERA_STREAMING_SNAPSHOT_URL:
+            	cmd = new camStreamSnapshotUrlCommand(cmdRx, arg);
+            	break;
+            case CAMERA_STREAMING_STREAM_NAME:
+            	cmd = new camStreamNameCommand(cmdRx, arg);
+            	break;
+            case CAMERA_STREAMING_SNAPSHOT_NAME:
+            	cmd = new camStreamSnapshotNameCommand(cmdRx, arg);
+            	break;
+            case CAMERA_STREAMING_MULTICAST_ADDRESS:
+            	cmd = new camStreamMulticastAddressCommand(cmdRx, arg);
+            	break;
+            	
             case RESTART_STREAM_ON_START:
             	cmd = new RestartStreamOnStartCommand(cmdRx, arg);
             	break;
