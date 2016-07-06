@@ -864,7 +864,7 @@ JNIEXPORT void JNICALL Java_com_crestron_txrxservice_GstreamIn_nativeSetRtpAudio
 JNIEXPORT void JNICALL Java_com_crestron_txrxservice_GstreamIn_nativeSetSessionInitiation(JNIEnv *env, jobject thiz, jint initMode, jint sessionId)
 {
 	CSIO_LOG(eLogLevel_debug, "Using sessionInitiationMode: '%d'", initMode);
-	//currentSettingsDB->videoSettings[sessionId].sessionInitiationMode = initMode;
+	currentSettingsDB->videoSettings[sessionId].sessionInitiationMode = initMode;
 	csio_SetSessionInitiationMode(sessionId,initMode);
 	CSIO_LOG(eLogLevel_debug, "sessionInitiationMode in currentSettingsDB: '%d'", currentSettingsDB->videoSettings[sessionId].sessionInitiationMode);
 }
@@ -2478,7 +2478,12 @@ void csio_jni_initVideo(int iStreamId)
 	else
 	{	    
 	    //SET OFSSET
-	    if( data->amcvid_dec && (!debug_blocking_audio) && data->audio_sink)
+		// Bug 113246: For RTSP modes we need to set ts offset, for udp modes we should not or AV sync is off
+	    if( data->amcvid_dec &&
+	    		(!debug_blocking_audio) &&
+				data->audio_sink &&
+				( currentSettingsDB->videoSettings[iStreamId].sessionInitiationMode == 0 ||
+						currentSettingsDB->videoSettings[iStreamId].sessionInitiationMode == 2  ))
 	    {
 	        int tmp = currentSettingsDB->videoSettings[iStreamId].streamingBuffer +
 	                  data->amcviddec_ts_offset;
