@@ -32,8 +32,8 @@ public class HDMIOutputInterface {
 		verticalRes = "0";
 		fps = "0";
 		aspectRatio = "0";
-		audioFormat = "1";	//1=PCM for txrx and dge
-		audioChannels = "2";
+		audioFormat = "0";	//1=PCM for txrx and dge
+		audioChannels = "0";
 	}
 	
 	public void setSyncStatus() {
@@ -94,6 +94,14 @@ public class HDMIOutputInterface {
 	
 	public String getAspectRatio() {
 		return aspectRatio;
+	}
+	
+	public void setAudioFormat(String audioFmt) {
+		audioFormat = audioFmt;
+	}
+	
+	public void setAudioChannels(String audioChn) {
+		audioChannels = audioChn;
 	}
 	
 	public String getAudioFormat() {

@@ -1594,12 +1594,20 @@ public class CresStreamCtrl extends Service {
     void refreshInputResolution()
     {
         Log.i(TAG, "Refresh resolution info");
+        
+        
     	
-    	//HDMI In
-        String hdmiInputResolution = HDMIInputInterface.getHdmiInResolutionSysFs();
-
-    	readResolutionInfo(hdmiInputResolution);
-    	hdmiInput.setSyncStatus();
+        if (HDMIInputInterface.readSyncState() == true)
+        {
+	    	//HDMI In
+	        String hdmiInputResolution = HDMIInputInterface.getHdmiInResolutionSysFs();	
+	    	readResolutionInfo(hdmiInputResolution);
+        }
+        else
+        {
+        	// If no sync then all values should be zeroed out
+        	hdmiInput.updateResolutionInfo("0x0@0");
+        }
     }
 
 	public void refreshOutputResolution() {
@@ -1611,9 +1619,24 @@ public class CresStreamCtrl extends Service {
     			+ Math.round(hdmiOutputResolution.refreshRate));
     	
     	hdmiOutput.setSyncStatus();
-        hdmiOutput.setHorizontalRes(Integer.toString(hdmiOutputResolution.width));
-        hdmiOutput.setVerticalRes(Integer.toString(hdmiOutputResolution.height));
-        hdmiOutput.setFPS(Integer.toString(Math.round(hdmiOutputResolution.refreshRate)));
+    	
+    	if (Boolean.parseBoolean(hdmiOutput.getSyncStatus()) == true)
+		{
+	        hdmiOutput.setHorizontalRes(Integer.toString(hdmiOutputResolution.width));
+	        hdmiOutput.setVerticalRes(Integer.toString(hdmiOutputResolution.height));
+	        hdmiOutput.setFPS(Integer.toString(Math.round(hdmiOutputResolution.refreshRate)));
+	        hdmiOutput.setAudioFormat(Integer.toString(1));
+	        hdmiOutput.setAudioChannels(Integer.toString(2));
+		}
+		else
+		{
+			hdmiOutput.setHorizontalRes(Integer.toString(0));
+	        hdmiOutput.setVerticalRes(Integer.toString(0));
+	        hdmiOutput.setFPS(Integer.toString(0));
+	        hdmiOutput.setAudioFormat(Integer.toString(0));
+	        hdmiOutput.setAudioChannels(Integer.toString(0));
+		}
+
         hdmiOutput.setAspectRatio();
 	}
     
@@ -2934,29 +2957,11 @@ public class CresStreamCtrl extends Service {
 		                	
 		                    int hdmiOutResolutionEnum = paramAnonymousIntent.getIntExtra("evs_hdmiout_resolution_changed_id", -1);
 		                    Log.i(TAG, "Received hdmiout resolution changed broadcast ! " + hdmiOutResolutionEnum);
-		                    ProductSpecific.DispayInfo hdmiOutputResolution = mProductSpecific.new DispayInfo();
 		                    
-		                    // When hdmi out resolution is 0, DispayInfo incorrectly returns size of previous resolution
-		                    if (hdmiOutResolutionEnum == 0)
-		                    {
-		                    	hdmiOutputResolution.width = 0;
-		                    	hdmiOutputResolution.height = 0;
-		                    	hdmiOutputResolution.refreshRate = 0;
-		                    }
-		                    
-							Log.i(TAG, "HDMI Output resolution " + hdmiOutputResolution.width + " "
-									+ hdmiOutputResolution.height + " "
-									+ Math.round(hdmiOutputResolution.refreshRate));
+		                    refreshOutputResolution();
 							
 							// Recheck if HDCP changed
 							mForceHdcpStatusUpdate = true;
-		
-		                    //update HDMI output
-							hdmiOutput.setSyncStatus();		
-					        hdmiOutput.setHorizontalRes(Integer.toString(hdmiOutputResolution.width));
-					        hdmiOutput.setVerticalRes(Integer.toString(hdmiOutputResolution.height));
-					        hdmiOutput.setFPS(Integer.toString(Math.round(hdmiOutputResolution.refreshRate)));
-					        hdmiOutput.setAspectRatio();
 					        
 					        //update with current HDMI output resolution information
 					        sendHdmiOutSyncState();

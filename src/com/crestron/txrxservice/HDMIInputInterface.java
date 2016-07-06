@@ -28,8 +28,8 @@ public class HDMIInputInterface {
 		verticalRes = "0";
 		fps = "0";
 		aspectRatio = "0";
-		audioFormat = "1";	//1=PCM for txrx and dge
-		audioChannels = "2";
+		audioFormat = "0";	//1=PCM for txrx and dge
+		audioChannels = "0";
 		resolutionIndex = 0;
 		isHdmiDriverPresent = (isHdmiDriverPresent | false); //set isHdmiDriverPresentH to false if not set
 	}
@@ -105,6 +105,14 @@ public class HDMIInputInterface {
 		return aspectRatio;
 	}
 	
+	public void setAudioFormat(String audioFmt) {
+		audioFormat = audioFmt;
+	}
+	
+	public void setAudioChannels(String audioChn) {
+		audioChannels = audioChn;
+	}
+	
 	public String getAudioFormat() {
 		return audioFormat;
 	}
@@ -130,6 +138,17 @@ public class HDMIInputInterface {
         setVerticalRes(tokens[1]);
         setFPS(tokens[2].trim());
         setAspectRatio();
+        
+        if (Boolean.parseBoolean(getSyncStatus()) == true)
+        {
+        	setAudioFormat("1");        	
+        	setAudioChannels("2");
+    	}
+        else
+        {
+        	setAudioFormat("0");        	
+        	setAudioChannels("0");
+        }
     }
     
     public static void setHdmiDriverPresent(boolean isPresent) {
