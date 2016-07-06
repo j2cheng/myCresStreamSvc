@@ -524,11 +524,96 @@ public class CameraStreaming {
 			
 			case 0:
 			{
-				// If input is not a valid resolution, just stream out at 640x480
-				if (streamCtl.hdmiInput.getResolutionIndex() == 0)
+				// Use Enum because horizontal/vertical resolution unreliable from driver
+				switch (streamCtl.hdmiInput.getResolutionIndex())
 				{
+				case 0:
+				case 1:
 					streamOutWidth = 640;
 					streamOutHeight = 480;
+					break;
+				case 2:
+				case 3:
+					streamOutWidth = 720;
+					streamOutHeight = 480;
+					break;
+				case 4:
+				case 5:
+					streamOutWidth = 720;
+					streamOutHeight = 576;
+					break;
+				case 6:
+					streamOutWidth = 800;
+					streamOutHeight = 600;
+					break;
+				case 7:
+					streamOutWidth = 848;
+					streamOutHeight = 480;
+					break;
+				case 8:
+					streamOutWidth = 1024;
+					streamOutHeight = 768;
+					break;
+				case 9:
+				case 10:
+					streamOutWidth = 1280;
+					streamOutHeight = 720;
+					break;				
+				case 11:
+				case 12:
+					streamOutWidth = 1280;
+					streamOutHeight = 768;
+					break;	
+				case 13:
+				case 14:
+					streamOutWidth = 1280;
+					streamOutHeight = 800;
+					break;	
+				case 15:
+					streamOutWidth = 1280;
+					streamOutHeight = 960;
+					break;	
+				case 16:
+					streamOutWidth = 1280;
+					streamOutHeight = 1024;
+					break;	
+//				case 17:
+//				case 18:
+//				case 19:
+//				case 20:
+//				case 21:
+				case 22:					
+				case 23:
+					streamOutWidth = 1440;
+					streamOutHeight = 900;
+					break;	
+				case 24:
+					streamOutWidth = 1600;
+					streamOutHeight = 900;
+					break;	
+				case 25:
+					streamOutWidth = 1600;
+					streamOutHeight = 1200;
+					break;	
+				case 26:
+				case 27:
+					streamOutWidth = 1680;
+					streamOutHeight = 1050;
+					break;	
+				case 28:
+				case 29:
+				case 30:
+				case 31:
+				case 32:
+					streamOutWidth = 1920;
+					streamOutHeight = 1080;
+					break;	
+				case 33:
+					streamOutWidth = 1920;
+					streamOutHeight = 1200;
+					break;	
+				default:
+						break;
 				}
 				break;
 			}

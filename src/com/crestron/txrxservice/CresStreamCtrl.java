@@ -246,7 +246,8 @@ public class CresStreamCtrl extends Service {
         }
     }
    
-    private final ReentrantLock hdmiLock				= new ReentrantLock(true); // fairness=true, makes lock ordered    
+    private final ReentrantLock hdmiLock				= new ReentrantLock(true); // fairness=true, makes lock ordered
+    private final ReentrantLock[] windowtLock			= new ReentrantLock[NumOfSurfaces]; // members will be allocated in constructor
     private final ReentrantLock[] stopStartLock			= new ReentrantLock[NumOfSurfaces]; // members will be allocated in constructor
     private final ReentrantLock[] streamStateLock 		= new ReentrantLock[NumOfSurfaces]; // members will be allocated in constructor
 
@@ -335,6 +336,7 @@ public class CresStreamCtrl extends Service {
     		{
     			stopStartLock[sessionId] = new ReentrantLock(true);
     			streamStateLock[sessionId] = new ReentrantLock(true);
+    			windowtLock[sessionId] =  new ReentrantLock(true);
     			//            	mHDCPEncryptStatus[sessionId] = false;          	
     		}
 
@@ -1426,7 +1428,7 @@ public class CresStreamCtrl extends Service {
     public void updateWH(final int sessionId)
     {
         Log.d(TAG, "updateWH " + sessionId + " : Lock");
-        stopStartLock[sessionId].lock();
+        windowtLock[sessionId].lock();
         try
         {
             if (dispSurface != null)
@@ -1456,7 +1458,13 @@ public class CresStreamCtrl extends Service {
 		       		     }
 	            	});	            	
 
-	            	try { latch.await(); }
+	            	try { 
+	            		if (latch.await(5, TimeUnit.SECONDS) == false)
+	            		{
+	            			Log.e(TAG, "updateWH: Timeout after 5 seconds");
+	            			RecoverTxrxService();
+	            		}
+	            	}
 	            	catch (InterruptedException ex) { ex.printStackTrace(); }  
             	}
             	else
@@ -1479,7 +1487,7 @@ public class CresStreamCtrl extends Service {
         }
         finally
         {
-            stopStartLock[sessionId].unlock();
+        	windowtLock[sessionId].unlock();
             Log.d(TAG, "updateWH " + sessionId + " : Unlock");
         }
 
@@ -1488,7 +1496,7 @@ public class CresStreamCtrl extends Service {
     public void hideWindowWithoutDestroy(final int sessionId)
     {
         Log.d(TAG, "updateWH " + sessionId + " : Lock");
-        stopStartLock[sessionId].lock();
+        windowtLock[sessionId].lock();
         try
         {
             if (dispSurface != null)
@@ -1506,7 +1514,13 @@ public class CresStreamCtrl extends Service {
 		       		     }
 	            	});	            	
 
-	            	try { latch.await(); }
+	            	try { 
+	            		if (latch.await(5, TimeUnit.SECONDS) == false)
+	            		{
+	            			Log.e(TAG, "hideWindowWithoutDestroy: timeout after 5 seconds");
+	            			RecoverTxrxService();
+	            		}
+	            	}
 	            	catch (InterruptedException ex) { ex.printStackTrace(); }  
             	}
             	else
@@ -1515,7 +1529,7 @@ public class CresStreamCtrl extends Service {
         }
         finally
         {
-            stopStartLock[sessionId].unlock();
+        	windowtLock[sessionId].unlock();
             Log.d(TAG, "updateWH " + sessionId + " : Unlock");
         }
 
@@ -1536,7 +1550,13 @@ public class CresStreamCtrl extends Service {
 		                latch.countDown();
 	       		     }
         		});
-        		try { latch.await(); }
+        		try { 
+            		if (latch.await(5, TimeUnit.SECONDS) == false)
+            		{
+            			Log.e(TAG, "invalidateSurface: timeout after 5 seconds");
+            			RecoverTxrxService();
+            		}
+            	}
             	catch (InterruptedException ex) { ex.printStackTrace(); }  
         	}
         	else
@@ -1548,7 +1568,7 @@ public class CresStreamCtrl extends Service {
     {
     	
     	Log.d(TAG, "updateXY " + sessionId + " : Lock");
-    	stopStartLock[sessionId].lock();
+    	windowtLock[sessionId].lock();
     	
     	try
     	{
@@ -1566,7 +1586,13 @@ public class CresStreamCtrl extends Service {
 			                latch.countDown();
 		       		     }
 	        		});
-	        		try { latch.await(); }
+	        		try { 
+	            		if (latch.await(5, TimeUnit.SECONDS) == false)
+	            		{
+	            			Log.e(TAG, "updateXY: timeout after 5 seconds");
+	            			RecoverTxrxService();
+	            		}
+	            	}
 	            	catch (InterruptedException ex) { ex.printStackTrace(); }  
             	}
             	else
@@ -1581,7 +1607,7 @@ public class CresStreamCtrl extends Service {
     	}
     	finally
     	{
-        	stopStartLock[sessionId].unlock();
+    		windowtLock[sessionId].unlock();
         	Log.d(TAG, "updateXY " + sessionId + " : Unlock");
     	}
     }
@@ -2175,7 +2201,13 @@ public class CresStreamCtrl extends Service {
 				    	 latch.countDown();
 				     }
 		    	});
-		    	try { latch.await(); }
+		    	try { 
+            		if (latch.await(5, TimeUnit.SECONDS) == false)
+            		{
+            			Log.e(TAG, "hideWindow: timeout after 5 seconds");
+            			RecoverTxrxService();
+            		}
+            	}
             	catch (InterruptedException ex) { ex.printStackTrace(); }  
 	    	}
 	    	else
@@ -2198,7 +2230,13 @@ public class CresStreamCtrl extends Service {
 				    	 latch.countDown();
 				     }
 		    	});
-		    	try { latch.await(); }
+		    	try { 
+            		if (latch.await(5, TimeUnit.SECONDS) == false)
+            		{
+            			Log.e(TAG, "showWindow: Timeout after 5 seconds");
+            			RecoverTxrxService();
+            		}
+            	}
             	catch (InterruptedException ex) { ex.printStackTrace(); }  
 	    	}
 	    	else
@@ -3308,7 +3346,7 @@ public class CresStreamCtrl extends Service {
 	private boolean checkHDCPStatus() {
 		boolean hdcpStatusChanged = false;
 		synchronized (mHdcpLock) {
-			boolean currentHDCPInputStatus = HDMIInputInterface.readHDCPInputStatus();
+			boolean currentHDCPInputStatus = (HDMIInputInterface.readHDCPInputStatus() && HDMIInputInterface.readResolutionEnum() != 0); // Check for valid resolution 
 			boolean currentHDCPOutputStatus = HDMIOutputInterface.readHDCPOutputStatus() == 1;
 			// Only send new status when hdcp status changes for either input or output, or if force status update is called
 			if ((mHDCPInputStatus != currentHDCPInputStatus) || (mHDCPOutputStatus != currentHDCPOutputStatus) || (mForceHdcpStatusUpdate == true))

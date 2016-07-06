@@ -4,7 +4,9 @@ import java.util.ArrayList;
 import java.util.Iterator;
 import java.util.ListIterator;
 import java.util.Queue;
+import java.util.concurrent.CountDownLatch;
 import java.util.concurrent.LinkedBlockingQueue;
+import java.util.concurrent.TimeUnit;
 import java.util.regex.Matcher;
 import java.util.regex.Pattern;
 import java.io.BufferedWriter;
@@ -113,6 +115,8 @@ public class TCPInterface extends AsyncTask<Void, Object, Long> {
      */
     public void SendDataToAllClients(String data)
     {
+    	ArrayList<CommunicationThread> errorThreads = new ArrayList<TCPInterface.CommunicationThread>();
+    	
     	synchronized(serverLock)
     	{
 	    	// First make sure that thread exists and then send out the data
@@ -121,10 +125,20 @@ public class TCPInterface extends AsyncTask<Void, Object, Long> {
 	        	CommunicationThread thread = iter.previous();
 	        	if (thread != null)
 	        	{
-	        		thread.SendDataToClient(data);
+	        		if (thread.SendDataToClient(data) != 0)
+	        		{
+	        			errorThreads.add(thread);
+	        		}
 	        	}
 	        }
-    	}
+	        
+	        for (ListIterator<CommunicationThread> iter = errorThreads.listIterator(errorThreads.size()); iter.hasPrevious();)
+	        {
+	        	// Remove all clients that had an error
+	        	CommunicationThread thread = iter.previous();
+	        	thread.serverHandler.RemoveClientFromList(thread);
+	        }
+    	}    	
     }
     
     private void restartStreams(TCPInterface serverHandler)
@@ -291,8 +305,10 @@ public class TCPInterface extends AsyncTask<Void, Object, Long> {
          * Lock the send and send the data to the client
          * @param data
          */
-        public void SendDataToClient(String data)
+        public int SendDataToClient(String data)
         {
+        	int retVal = 0;
+        	
             synchronized(out)
             {
                 try 
@@ -300,12 +316,15 @@ public class TCPInterface extends AsyncTask<Void, Object, Long> {
                 	// Append the Prompt to signal to the client that a transaction has been completed
                     out.write(data + CONSOLEPROMPT);
                     out.flush();
+                    retVal = 0;
                 } 
                 catch (IOException e) 
                 {
                     Log.d(TAG, "Error sending data to client.  Cleaning up");
-                    serverHandler.RemoveClientFromList(this);
+//                    serverHandler.RemoveClientFromList(this);
+                    retVal = -1;
                 }
+                return retVal;
             }
         }
 
@@ -397,9 +416,7 @@ public class TCPInterface extends AsyncTask<Void, Object, Long> {
         			} catch (Exception e) {e.printStackTrace();}
         		}
         		else //process queue
-        		{        			       			
-        			String tmp_str;
-        			
+        		{            			
         			// Wait until CresStreamCtl signals that is ok to start processing join queue
         			try {
     					streamCtl.streamingReadyLatch.await();
@@ -408,18 +425,36 @@ public class TCPInterface extends AsyncTask<Void, Object, Long> {
         			JoinObject currentJoinObject = jQ.poll();
         			if (currentJoinObject != null)
         			{
-	        	        String receivedMsg = currentJoinObject.joinString;
-	        	        TCPInterface server = currentJoinObject.serverHandler;
+	        	        final String receivedMsg = currentJoinObject.joinString;
+	        	        final TCPInterface server = currentJoinObject.serverHandler;
 	        	        
 	        	        if (receivedMsg != null)
 	        	        {
-	        	    		tmp_str = parserInstance.processReceivedMessage(receivedMsg); 
-	        	        	
-	        		        try {	        		        	
-        		        		server.SendDataToAllClients(tmp_str);	        		        	
-	        		        } catch (Exception e) {
-	        		            e.printStackTrace();
-	        		        }
+	        	        	final CountDownLatch latch = new CountDownLatch(1);
+
+	        	        	new Thread(new Runnable() {
+	        	        		@Override
+	        	        		public void run() {
+	        	        			String tmp_str = parserInstance.processReceivedMessage(receivedMsg); 
+	    	        	        	
+	    	        		        try {	        		        	
+	            		        		server.SendDataToAllClients(tmp_str);	        		        	
+	    	        		        } catch (Exception e) {
+	    	        		            e.printStackTrace();
+	    	        		        }
+	    	        		        
+	        	        			latch.countDown();
+	        	        		}
+	        	        	}).start();	            	
+
+	        	        	try { 
+	        	        		if (latch.await(30, TimeUnit.SECONDS) == false)
+	        	        		{
+	        	        			Log.e(TAG, "ProcessJoinTask: timeout after 30 seconds");
+	        	        			streamCtl.RecoverTxrxService();
+	        	        		}
+	        	        	}
+	        	        	catch (InterruptedException ex) { ex.printStackTrace(); }  
 	        	        }
         			}
         		}
