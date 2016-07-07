@@ -31,8 +31,8 @@
 
 #include "csioCommonShare.h"
 
-int did_init;
-CSIOSettings* currentSettingsDB;
+int did_init = 0;
+CSIOSettings* currentSettingsDB = NULL;
 
 ///////////////////////////////////////////////////////////////////////////////
 

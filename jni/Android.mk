@@ -18,10 +18,13 @@ CSIO_INCLUDE_ROOT := $(LOCAL_PATH)/../../csio
 CSIO_ROOT := ../../csio
 CRESTRON_ROOT := $(LOCAL_PATH)/../..
 LOCAL_MODULE    := libgstreamer_jni
+STREAMOUT_PATH := $(LOCAL_PATH)/cresStreamOut
 LOCAL_SRC_FILES := \
 	jni.c \
 	cregstplay.c \
 	gst_element_print_properties.c \
+	cresStreamOut/streamOutManager/cresStreamOutManager.cpp \
+	cresStreamOut/streamOutDebug/cresStreamOutDebug.cpp \
 	$(CSIO_ROOT)/gstreamer-1.0/csioutils.cpp \
 	$(CSIO_ROOT)/gstreamer-1.0/cstream.cpp \
 	$(CSIO_ROOT)/gstreamer-1.0/cstreamer.cpp \
@@ -37,7 +40,6 @@ COMMON_INC_PATH := $(CRESTRON_ROOT)/Include
 UTIL_INC_PATH := $(CRESTRON_ROOT)/Utilities
 STL_INC_PATH := $(CRESTRON_ROOT)/../stlport/stlport
 CPP_INC_PATH := $(CRESTRON_ROOT)/../../bionic
-
 
 # Crestron - name was different
 #LOCAL_SHARED_LIBRARIES := gstreamer_android
@@ -71,11 +73,19 @@ LOCAL_CFLAGS +=\
 	-I$(CSIO_INCLUDE_ROOT)/txrx \
 	-I$(CSIO_INCLUDE_ROOT)/url_parser \
 	-I$(CSIO_INCLUDE_ROOT)/gstreamer-1.0 \
+	-I$(STREAMOUT_PATH) \
 	-DANDROID_OS
 
 
+$(info ============================================) 
+$(info STREAMOUT_PATH = $(STREAMOUT_PATH)) 
+$(info LOCAL_CFLAGS = $(LOCAL_CFLAGS)) 
+$(info ============================================) 
+
 ifeq ($(TARGET_PRODUCT),$(filter $(TARGET_PRODUCT),yushan_one ))
 LOCAL_CFLAGS += -DBIONIC_HAS_STPCPY
+LOCAL_CFLAGS += -w
+#LOCAL_CFLAGS += -Wall -Wextra -Wno-unused-parameter
 endif
 
 ifeq ($(TARGET_PRODUCT),$(filter $(TARGET_PRODUCT),full_omap5panda)) #All products which support HDCP 2X encryption need this flag
