@@ -76,16 +76,8 @@ LOCAL_CFLAGS +=\
 	-I$(STREAMOUT_PATH) \
 	-DANDROID_OS
 
-
-$(info ============================================) 
-$(info STREAMOUT_PATH = $(STREAMOUT_PATH)) 
-$(info LOCAL_CFLAGS = $(LOCAL_CFLAGS)) 
-$(info ============================================) 
-
 ifeq ($(TARGET_PRODUCT),$(filter $(TARGET_PRODUCT),yushan_one ))
 LOCAL_CFLAGS += -DBIONIC_HAS_STPCPY
-LOCAL_CFLAGS += -w
-#LOCAL_CFLAGS += -Wall -Wextra -Wno-unused-parameter
 endif
 
 ifeq ($(TARGET_PRODUCT),$(filter $(TARGET_PRODUCT),full_omap5panda)) #All products which support HDCP 2X encryption need this flag

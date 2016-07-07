@@ -142,6 +142,7 @@ static void* stream_out_thread(void * arg)
 
     loop = NULL;
     CSIO_LOG(eLogLevel_debug, "rtsp_server: jni_start_rtsp_server ended------");
+	return NULL;
 }
 
 void stream_out_stop(int id)
