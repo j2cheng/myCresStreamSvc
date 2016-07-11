@@ -6,6 +6,7 @@ import com.crestron.txrxservice.CresStreamCtrl.StreamState;
 import com.crestron.txrxservice.CresStreamCtrl.DeviceMode;
 
 import android.util.Log;
+import android.view.WindowManager;
 
 public class UserSettings
 {
@@ -222,6 +223,7 @@ public class UserSettings
 	private String airMediaLayoutPassword;
 	private boolean airMediaDisplayLoginCode;
 	private int airMediaDisplayScreen;
+	private int airMediaWindowFlag;
 	
 	// Camera Streaming
 	private boolean camStreamMulticastEnable;
@@ -308,6 +310,7 @@ public class UserSettings
 		airMediaLayoutPassword = "";
 		airMediaDisplayLoginCode = false;
 		airMediaDisplayScreen = 0;
+		airMediaWindowFlag	= WindowManager.LayoutParams.TYPE_SYSTEM_OVERLAY;
 		tcpInterleave       = initIntArray(0);//auto mode
 		camStreamMulticastEnable = false;
 		camStreamResolution = 10;
@@ -1166,6 +1169,14 @@ public class UserSettings
 
 	public int getAirMediaDisplayScreen() {
 		return airMediaDisplayScreen;
+	}
+	
+	public void setAirMediaWindowFlag(int windowFlag) {
+		this.airMediaWindowFlag = windowFlag;
+	}
+
+	public int getAirMediaWindowFlag() {
+		return airMediaWindowFlag;
 	}
 	
 	public boolean getCamStreamMulticastEnable() {

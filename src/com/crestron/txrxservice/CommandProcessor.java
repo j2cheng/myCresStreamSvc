@@ -2156,6 +2156,15 @@ class AirMediaDisplayScreenCommand extends CrestronCommand {
 	}
 }
 
+class AirMediaWindowFlagCommand extends CrestronCommand {
+	public AirMediaWindowFlagCommand(CommandReceiver launch, String arg, int sessId) {
+		super(launch, arg, sessId);
+	}	
+	public void execute() {
+		launch.airMediaSetWindowFlag(CommandReceiver.VALIDATE_INT(msg), idx);
+	}
+}
+
 class camStreamMulticastEnableCommand extends CrestronCommand {
 	public camStreamMulticastEnableCommand(CommandReceiver launch, String arg) {
 		super(launch, arg);

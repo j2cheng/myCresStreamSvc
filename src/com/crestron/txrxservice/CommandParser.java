@@ -148,6 +148,7 @@ public class CommandParser {
         AIRMEDIA_IP_ADDRESS_PROMPT,
         AIRMEDIA_DOMAIN_NAME_PROMPT,
         AIRMEDIA_DISPLAY_SCREEN,
+        AIRMEDIA_WINDOW_FLAG,
         
         // Camera Streaming Slot
         CAMERA_STREAMING_MULTICAST_ENABLE,
@@ -620,6 +621,9 @@ public class CommandParser {
             	break;
             case AIRMEDIA_DISPLAY_SCREEN:
             	cmd = new AirMediaDisplayScreenCommand(cmdRx, arg, idx);
+            	break;
+            case AIRMEDIA_WINDOW_FLAG:
+            	cmd = new AirMediaWindowFlagCommand(cmdRx, arg, idx);
             	break;
             	
         	// Camera Streaming

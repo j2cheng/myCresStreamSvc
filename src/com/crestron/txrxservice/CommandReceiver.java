@@ -377,6 +377,10 @@ public class CommandReceiver {
     	ctl.airMediaSetDisplayScreen(displayId, sessId);
     }
     
+    public void airMediaSetWindowFlag(int windowFlag, int sessId) {
+    	ctl.airMediaSetWindowFlag(windowFlag, sessId);
+    }
+    
     public void setCamStreamMulticastEnable(boolean enable) {
     	ctl.setCamStreamMulticastEnable(enable);
     }

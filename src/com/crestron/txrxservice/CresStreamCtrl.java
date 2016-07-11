@@ -149,7 +149,7 @@ public class CresStreamCtrl extends Service {
     public final static String gstreamerTimeoutCountFilePath = "/dev/shm/crestron/CresStreamSvc/gstreamerTimeoutCount";
     public final static String hdcpEncryptFilePath = "/dev/shm/crestron/CresStreamSvc/HDCPEncrypt";
     public int mGstreamerTimeoutCount = 0;
-
+    
     // JNI prototype
     public native boolean nativeHaveExternalDisplays(); 
 
@@ -317,13 +317,23 @@ public class CresStreamCtrl extends Service {
     		// I guess 2nd display is not ready yet.
     		haveExternalDisplays = nativeHaveExternalDisplays();
     		if(haveExternalDisplays){
-    			Log.d(TAG, "about to wait for external display(s)");
-    			for(int i=1; i<=15; i++)
+    			String startUpFilePath = "/dev/shm/crestron/CresStreamSvc/startup";
+    			int val = 0;
+    			try
     			{
-    				SystemClock.sleep(1000);
-    				Log.d(TAG, "waited " + i + " sec");
+    				val = Integer.parseInt(MiscUtils.readStringFromDisk(startUpFilePath));
+    			} catch (Exception e) {}
+    			if (val == 1)
+    			{
+	    			Log.d(TAG, "about to wait for external display(s)");
+	    			for(int i=1; i<=15; i++)
+	    			{
+	    				SystemClock.sleep(1000);
+	    				Log.d(TAG, "waited " + i + " sec");
+	    			}
+	    			Log.d(TAG, "done waiting for external display(s)");
+	    			MiscUtils.writeStringToDisk(startUpFilePath, String.valueOf(1));
     			}
-    			Log.d(TAG, "done waiting for external display(s)");
     		}
     		
     		//Start service connection
@@ -2797,6 +2807,15 @@ public class CresStreamCtrl extends Service {
     	}
     }
     
+    public void airMediaSetWindowFlag(int windowFlag, int sessId)
+    {
+    	if (airMedia != null)
+    	{
+    		userSettings.setAirMediaWindowFlag(windowFlag);
+    		airMedia.setWindowFlag(windowFlag);
+    	}
+    }
+    
     public void setCamStreamMulticastEnable(boolean enable) {
     	userSettings.setCamStreamMulticastEnable(enable);
     	
@@ -2980,6 +2999,8 @@ public class CresStreamCtrl extends Service {
         };
         IntentFilter hpdIntentFilter = new IntentFilter("evs.intent.action.hdmi.HPD");
         registerReceiver(hpdEvent, hpdIntentFilter);	
+        
+        final CresStreamCtrl streamCtrl = this;
 
         hdmioutResolutionChangedEvent = new BroadcastReceiver()
         {
@@ -3003,6 +3024,14 @@ public class CresStreamCtrl extends Service {
 					        
 					        //update with current HDMI output resolution information
 					        sendHdmiOutSyncState();
+					        
+//					        if (haveExternalDisplays && Boolean.parseBoolean(hdmiOutput.getSyncStatus()))
+//					        {
+//					        	dispSurface = new CresDisplaySurface(streamCtrl, 1920, 1200, haveExternalDisplays); // set to max output resolution
+//
+//					        	try { Thread.sleep(3000); } catch (Exception e) {}
+//					        	restartStreams(false);
+//					        }
 		                }
 		            }
             	}).start();

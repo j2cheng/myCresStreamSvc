@@ -56,23 +56,9 @@ public class AirMedia
     
     public void quit()
     {
-    	// TODO: the below does not work, we need Airmedia to add broadcast to shutdown app
-    	try
-    	{
-	    	Process suProcess = Runtime.getRuntime().exec("su");
-	        DataOutputStream os = new DataOutputStream(suProcess.getOutputStream());
-	
-	        os.writeBytes("adb shell" + "\n");
-	
-	        os.flush();
-	
-	        os.writeBytes("am force-stop com.awindinc.receiver.airmedia" + "\n");
-	
-	        os.flush();
-    	} catch (Exception e)
-    	{
-    		Log.w(TAG, "Failed to stop com.awindinc.receiver.airmedia: " + e);
-    	}
+    	Intent i = new Intent(commandIntent);
+        i.putExtra("command", "close_receiver");
+        mContext.sendBroadcast(i);
     }
     
     public void registerBroadcasts() {
@@ -213,9 +199,13 @@ public class AirMedia
         }
         
         // Show/Hide IP address depending on setting
-        // TODO:
+        setIpAddressPrompt(mStreamCtl.userSettings.getAirMediaIpAddressPrompt());
         //Show/Hide domain name depending on setting
         // TODO:
+        
+        // Set window display and flag (z order control)
+        setDisplayScreen(mStreamCtl.userSettings.getAirMediaDisplayScreen());
+        setWindowFlag(mStreamCtl.userSettings.getAirMediaWindowFlag());
     }
     
     public void unregisterBroadcasts() {
@@ -436,6 +426,14 @@ public class AirMedia
     	Intent i = new Intent(commandIntent);
     	i.putExtra("command", "set_display_screen");
     	i.putExtra("value", (int)displayId);
+    	mContext.sendBroadcast(i);
+    }
+    
+    public void setWindowFlag(int windowFlag)
+    {
+    	Intent i = new Intent(commandIntent);
+    	i.putExtra("command", "set_window_flag");
+    	i.putExtra("value", (int)windowFlag);
     	mContext.sendBroadcast(i);
     }
 }

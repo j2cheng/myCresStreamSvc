@@ -548,6 +548,8 @@ int build_video_pipeline(gchar *encoding_name, CREGSTREAM *data, unsigned int st
         data->element_v[i++] = gst_element_factory_make(product_info()->video_decoder_string, NULL);
         data->amcvid_dec = data->element_v[i-1];
 
+        csio_SetVpuDecoder(data->amcvid_dec, data->streamId);
+
         //SET OFSSET to zero for now
         g_object_set(G_OBJECT(data->amcvid_dec), "ts-offset", 0, NULL);
 
