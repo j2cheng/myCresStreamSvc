@@ -123,51 +123,47 @@ void jni_rtsp_server_debug(char *cmd_cstring)
                 }
                 else
                 {
-                    //CSIO_LOG(eLogLevel_info, "pMediaEle : 0x%x\r\n",pMediaPipeline);
-                    //if(pMediaPipeline)
+                    if (!strcmp(CmdPtr, "allvideo"))
                     {
-                        if (!strcmp(CmdPtr, "allvideo"))
-                        {
-                            CSIO_LOG(eLogLevel_info, "rtsp_server: allvideo");
-                        }
-                        else if (!strcmp(CmdPtr, "allaudio"))
-                        {
-                            CSIO_LOG(eLogLevel_info, "rtsp_server: allaudio");
-                        }
-                        else if (!strcmp(CmdPtr, "allav"))
-                        {
-                            CSIO_LOG(eLogLevel_info, "rtsp_server: allav");
-                        }
-                        else
-                        {
-                            //GstElement *ele = gst_bin_get_by_name(GST_BIN(data->pipeline), CmdPtr);
-                            //if(ele)
-                            //    gst_element_print_properties(ele);
-                            GstElement *element;
+                        CSIO_LOG(eLogLevel_info, "rtsp_server: allvideo");
+                    }
+                    else if (!strcmp(CmdPtr, "allaudio"))
+                    {
+                        CSIO_LOG(eLogLevel_info, "rtsp_server: allaudio");
+                    }
+                    else if (!strcmp(CmdPtr, "allav"))
+                    {
+                        CSIO_LOG(eLogLevel_info, "rtsp_server: allav");
+                    }
+                    else
+                    {
+                        //GstElement *ele = gst_bin_get_by_name(GST_BIN(data->pipeline), CmdPtr);
+                        //if(ele)
+                        //    gst_element_print_properties(ele);
+                        GstElement *element;
 
-                            /* get the element used for providing the streams of the media */
-                            GstRTSPMedia* pMedia = StreamoutProjectGetManagerObj();
-                            if(pMedia)
+                        /* get the element used for providing the streams of the media */
+                        GstRTSPMedia* pMedia = StreamoutProjectGetManagerObj();
+                        if(pMedia)
+                        {
+                            element = gst_rtsp_media_get_element (pMedia);
+                            gchar * n = gst_element_get_name(element);
+                            CSIO_LOG(eLogLevel_info, "rtsp_server: element name[%s] of pMedia[0x%x]",n,pMedia);
+
+                            /* get our ahcsrc, we named it 'mysrc' with the name property */
+                            GstElement *ele = gst_bin_get_by_name_recurse_up (GST_BIN (element), "cressrc");
+                            if(ele)
                             {
-                                element = gst_rtsp_media_get_element (pMedia);
-                                gchar * n = gst_element_get_name(element);
-                                CSIO_LOG(eLogLevel_info, "rtsp_server: element name[%s] of pMedia[0x%x]",n,pMedia);
-
-                                /* get our ahcsrc, we named it 'mysrc' with the name property */
-                                GstElement *ele = gst_bin_get_by_name_recurse_up (GST_BIN (element), "cressrc");
-                                if(ele)
-                                {
-                                    gst_element_print_properties(ele);
-                                }
-                                else
-                                {
-                                    CSIO_LOG(eLogLevel_info, "rtsp_server: element name[cressrc] is null");
-                                }
+                                gst_element_print_properties(ele);
                             }
                             else
                             {
-                                CSIO_LOG(eLogLevel_info, "rtsp_server: pMedia is null");
+                                CSIO_LOG(eLogLevel_info, "rtsp_server: element name[cressrc] is null");
                             }
+                        }
+                        else
+                        {
+                            CSIO_LOG(eLogLevel_info, "rtsp_server: pMedia is null");
                         }
                     }
                 }

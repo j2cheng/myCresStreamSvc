@@ -285,9 +285,14 @@ CStreamoutProject::CStreamoutProject(int iId): m_projectID(iId)
 
 CStreamoutProject::~CStreamoutProject()
 {
-
+    removeAllStreamoutTasks();
     CSIO_LOG(m_debugLevel, "--Streamout: ~CStreamoutProject delete m_projEvent is DONE");
 
+    if(m_projEvent)
+        delete m_projEvent;
+
+    if(m_projEventQ)
+        delete m_projEventQ;
 
     if(mLock)
         delete mLock;
@@ -493,7 +498,29 @@ void CStreamoutProject::sendEvent(EventQueueStruct* pEvntQ)
 }
 void CStreamoutProject::removeAllStreamoutTasks()
 {
+    if(m_StreamoutTaskObjList)
+    {
+        for(int i = 0; i < MAX_STREAM_OUT; i++)
+        {
+            if(m_StreamoutTaskObjList[i])
+            {
+                //tell thread to exit
+                m_StreamoutTaskObjList[i]->exitThread();
 
+                //wait until thread exits
+                CSIO_LOG(m_debugLevel, "Streamout: [%d]call WaitForThreadToExit[0x%x]\n",i,m_StreamoutTaskObjList[i]);
+                m_StreamoutTaskObjList[i]->WaitForThreadToExit();
+                CSIO_LOG(m_debugLevel, "Streamout: Wait is done\n");
+
+                //delete the object, and set list to NULL
+                delete m_StreamoutTaskObjList[i];
+                m_StreamoutTaskObjList[i] = NULL;
+            }
+        }
+
+        delete[] m_StreamoutTaskObjList;
+        m_StreamoutTaskObjList = NULL;
+    }
 }
 void CStreamoutProject::setProjectDebugLevel(int level)
 {
