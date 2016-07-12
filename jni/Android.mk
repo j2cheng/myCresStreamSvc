@@ -25,6 +25,9 @@ LOCAL_SRC_FILES := \
 	gst_element_print_properties.c \
 	cresStreamOut/streamOutManager/cresStreamOutManager.cpp \
 	cresStreamOut/streamOutDebug/cresStreamOutDebug.cpp \
+	cresStreamOut/cresStreamOutProject.cpp \
+	cresStreamOut/streamOutUtils/cresProjectBaseClass.cpp \
+	cresStreamOut/streamOutUtils/cresStreamOutUtils.cpp \
 	$(CSIO_ROOT)/gstreamer-1.0/csioutils.cpp \
 	$(CSIO_ROOT)/gstreamer-1.0/cstream.cpp \
 	$(CSIO_ROOT)/gstreamer-1.0/cstreamer.cpp \

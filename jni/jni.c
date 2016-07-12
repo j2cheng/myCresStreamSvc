@@ -63,6 +63,7 @@ void LocalConvertToUpper(char *str);
 
 ///////////////////////////////////////////////////////////////////////////////
 CustomData *CresDataDB = NULL; //
+CustomStreamOutData *CresStreamOutDataDB = NULL; //
 
 /* These global variables cache values which are not changing during execution */
 static pthread_t gst_app_thread;
@@ -278,9 +279,13 @@ static void gst_native_init (JNIEnv* env, jobject thiz)
 }
 
 // Set up some defaults for streaming out using gstreamer.
-void init_custom_data_out(CustomDataOut * cdata)
+void init_custom_data_out(CustomStreamOutData * cdata)
 {	
 	//cdata->surface = NULL;
+    CSIO_LOG(eLogLevel_debug, "rtsp_server: init_custom_data_out cdata[0x%x],cdata->app[0x%x],streamOut[0x%x]",
+            cdata,cdata->app,&cdata->streamOut[0]);
+
+    strcpy(cdata->streamOut[0].rtsp_port, DEFAULT_RTSP_PORT);
 }
 
 
@@ -913,7 +918,7 @@ JNIEXPORT void JNICALL Java_com_crestron_txrxservice_GstreamIn_nativeSetFieldDeb
     int iEnable = 0;
     char *EndPtr,*CmdPtr;
     int i = 0;
-    char* namestring[100];
+    char namestring[100];
 
     const char * cmd_cstring = (*env)->GetStringUTFChars( env, cmd_jstring , NULL ) ;
     if (cmd_cstring == NULL)
@@ -1419,6 +1424,9 @@ jint JNI_OnLoad(JavaVM *vm, void *reserved)
 	JNIEnv *env = NULL;
     currentSettingsDB = (CSIOSettings*)malloc(sizeof(CSIOSettings));
 	java_vm = vm;
+
+	currentSettingsDB->csioLogLevel = CSIO_DEFAULT_LOG_LEVEL;
+
 	CSIO_LOG(eLogLevel_debug, "JNI_OnLoad ");
 
 	set_gst_debug_level();
@@ -2532,44 +2540,64 @@ static void gstNativeInitRtspServer (JNIEnv* env, jobject thiz, jobject surface)
 {
     CSIO_LOG(eLogLevel_debug, "rtsp_server: Creating rtsp server, jobject surface=%p", surface);
 
-    CustomDataOut *cdata = g_new0 (CustomDataOut, 1);
+    CustomStreamOutData *cdata = g_new0 (CustomStreamOutData, 1);
+    CresStreamOutDataDB = cdata;
     
     SET_CUSTOM_DATA (env, thiz, custom_data_field_id_rtsp_server, cdata);
     
     cdata->app = (*env)->NewGlobalRef(env, thiz);
     init_custom_data_out(cdata);
 
-    //start stream out
-    stream_out_start(0);
+    //init project
+    StreamoutProjectInit();
+
+    //Note: we should not start stream out here, wait until we have got user's data updated.
+    //      and then call:  Streamout_Start(0);
+    Streamout_Start(0);
+    CSIO_LOG(eLogLevel_debug, "rtsp_server: gstNativeInitRtspServer exit.");
 }
 
 static void gstNativeFinalizeRtspServer (JNIEnv* env, jobject thiz)
 {
-    CustomDataOut *cdata = GET_CUSTOM_DATA (env, thiz, custom_data_field_id_rtsp_server);
+    CustomStreamOutData *cdata = GET_CUSTOM_DATA (env, thiz, custom_data_field_id_rtsp_server);
     int i;
 
     if (!cdata) return;
+
+    //turn off project and all stream out first
+    StreamoutProjectDeInit();
 
     CSIO_LOG(eLogLevel_debug, "rtsp_server: Deleting GlobalRef for app object at %p", cdata->app);
     (*env)->DeleteGlobalRef (env, (jobject)gStreamOut_javaClass_id);
     (*env)->DeleteGlobalRef (env, cdata->app);
     CSIO_LOG(eLogLevel_debug, "Freeing CustomData at %p", cdata);
     g_free (cdata);
+    CresStreamOutDataDB = NULL;
     SET_CUSTOM_DATA (env, thiz, custom_data_field_id_rtsp_server, NULL);
     CSIO_LOG(eLogLevel_debug, "rtsp_server: Done finalizing");
 }
-/* Set pipeline to PAUSED state */
+/* Set stream out server to start */
 void gst_native_rtsp_server_start (JNIEnv* env, jobject thiz)
 {
     CSIO_LOG(eLogLevel_debug, "rtsp_server: gst_native_rtsp_server_start");
-    stream_out_start(0);
+    Streamout_Start(0);
     CSIO_LOG(eLogLevel_debug, "rtsp_server: gst_native_rtsp_server_start is done");
 }
-/* Set pipeline to PAUSED state */
+/* Set stream out server to stop */
 void gst_native_rtsp_server_stop (JNIEnv* env, jobject thiz)
 {
     CSIO_LOG(eLogLevel_debug, "rtsp_server: gst_native_rtsp_server_stop");
-    stream_out_stop(0);
+    Streamout_Stop(0);
     CSIO_LOG(eLogLevel_debug, "rtsp_server: gst_native_rtsp_server_stop is done");
+}
+
+JNIEXPORT void JNICALL Java_com_crestron_GstreamOut_nativeSetRtspPort(JNIEnv *env, jobject thiz, jint port, jint sessionId)
+{
+    CSIO_LOG(eLogLevel_debug, "rtsp_server: Using RtspPort: '%d'", port);
+    char port_str[32];
+    sprintf(port_str, "%d", port);
+    strcpy(&CresStreamOutDataDB->streamOut[0].rtsp_port,port_str);
+    Streamout_SetPort(port_str);
+    CSIO_LOG(eLogLevel_debug, "rtsp_server: RtspPort in CresStreamOutDataDB: '%s'", CresStreamOutDataDB->streamOut[0].rtsp_port);
 }
 /***************************** end of rtsp_server for video streaming out *********************************/

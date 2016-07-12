@@ -14,6 +14,7 @@
 #include <gst/rtsp/gstrtsptransport.h>
 #include <stdbool.h>
 #include "csioCommonShare.h"
+#include "cresStreamOut_Common_Def.h"
 ///////////////////////////////////////////////////////////////////////////////
 
 GST_DEBUG_CATEGORY_STATIC (debug_category);
@@ -128,13 +129,26 @@ typedef struct _CustomData
     CREGSTREAM stream[MAX_STREAMS];
 } CustomData;
 
-/* Structure to contain all our information, so we can pass it to callbacks */
-typedef struct _CustomDataOut 
+/**********************************************************************
+* for stream out
+**********************************************************************/
+/* per-stream info */
+typedef struct _CRESSTREAMOUT
 {
-	jobject app;            /* Application instance, used to call its methods. A global reference is kept. */
-	
-	//void * surface;			/* not sure yet */
-} CustomDataOut;
+    unsigned int streamId;
+
+    char rtsp_port[125];
+} CRESSTREAMOUT;
+
+/* Structure to contain all our information, so we can pass it to callbacks */
+typedef struct _CustomStreamOutData
+{
+    jobject app;            /* Application instance, used to call its methods. A global reference is kept. */
+
+    //void * surface;           /* not sure yet */
+
+    CRESSTREAMOUT streamOut[MAX_STREAMS];
+} CustomStreamOutData;
 
 /**********************************************************************
 * Field debugging command
