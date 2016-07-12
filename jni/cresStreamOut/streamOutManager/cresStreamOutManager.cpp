@@ -92,7 +92,14 @@ m_pMediaPipeline(NULL)
 
 CStreamoutManager::~CStreamoutManager()
 {
+    if(m_StreamoutEvent)
+        delete m_StreamoutEvent;
 
+    if(m_StreamoutEventQ)
+        delete m_StreamoutEventQ;
+
+    if(mLock)
+        delete mLock;
 }
 void CStreamoutManager::DumpClassPara(int level)
 {
