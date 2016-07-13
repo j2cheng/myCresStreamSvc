@@ -18,6 +18,7 @@
 ///////////////////////////////////////////////////////////////////////////////
 
 #include "cresStreamOutManager.h"
+#define OVERLOAD_CRES_MEDIA_CLASS 1
 
 ///////////////////////////////////////////////////////////////////////////////
 // Allow file to override canned pipeline, for debugging...
@@ -202,6 +203,11 @@ void* CStreamoutManager::ThreadEntry()
     g_signal_connect (factory, "media-configure", (GCallback) media_configure,this);
 
     gst_rtsp_media_factory_set_shared (factory, TRUE);
+
+#ifdef OVERLOAD_CRES_MEDIA_CLASS    
+    gst_rtsp_media_factory_set_media_gtype (factory, CRES_TYPE_RTSP_MEDIA);
+#endif
+
     gst_rtsp_mount_points_add_factory (mounts, "/live.sdp", factory);
     g_object_unref (mounts);
     server_id = gst_rtsp_server_attach(server, g_main_loop_get_context(m_loop));

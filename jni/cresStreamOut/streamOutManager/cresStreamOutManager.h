@@ -4,6 +4,7 @@
 //////////////////////////////////////////////////////////////////////////////
 
 #include "../cresStreamOutProject.h"
+#include "cres_rtsp-media.h"
 
 class CStreamoutProject;
 class CStreamoutManager : public CresProjBaseClass
