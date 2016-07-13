@@ -10,23 +10,6 @@
 
 #define IsValidStreamOut(a)  ( (a >= 0) && (a < MAX_STREAM_OUT) )
 
-enum
-{
-    RTSP_PARAMETER_GET,
-    RTSP_PARAMETER_SET
-};
-
-enum
-{
- //events come from jni.c to the project
-    STREAMOUT_EVENT_JNI_CMD_START = 0,
-    STREAMOUT_EVENT_JNI_CMD_STOP,
-
-    STREAMOUT_EVENT_JNI_CMD_PORT,
-
-    STREAMOUT_EVENT_MAX
-};
-
 class CStreamoutManager;
 class CStreamoutProject : public CresProjBaseClass
 {
@@ -42,14 +25,13 @@ public:
 
     void setProjectDebugLevel(int level);
     void removeAllStreamoutTasks();
+    void restartStreamoutIfMainLoopEnded();
 
     void lockProject(){if(mLock) mLock->lock();}
     void unlockProject(){if(mLock) mLock->unlock();}
 
     CStreamoutEvent *m_projEvent;
     CStreamoutEventRingBuffer *m_projEventQ;
-
-    struct timeval eventTime[STREAMOUT_EVENT_MAX];
 
     CStreamoutManager** m_StreamoutTaskObjList;
 

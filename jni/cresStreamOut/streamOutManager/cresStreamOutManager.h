@@ -33,6 +33,7 @@ public:
     void exitThread() ;
 
     GstRTSPMedia * m_pMediaPipeline ;
+    GMainLoop * getMainLoop(){return m_loop;}
 
     char m_rtsp_port[MAX_STR_LEN];
     char m_frame_rate[MAX_STR_LEN];

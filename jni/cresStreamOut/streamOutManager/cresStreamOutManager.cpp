@@ -218,6 +218,9 @@ exitThread:
 
     //need to create a cleanup function and call here
     m_loop = NULL;
+    m_main_loop_is_running = 0;
+    m_pMediaPipeline = NULL;;
+
     if(context)
     {
         g_main_context_pop_thread_default(context);

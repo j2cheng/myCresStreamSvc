@@ -195,9 +195,9 @@ void StreamoutProjectDumpClassPara(int level)
     gProjectsLock.unlock();
 }
 
-GstRTSPMedia * StreamoutProjectGetManagerObj()
+CStreamoutManager * StreamoutProjectGetManagerObj()
 {
-    GstRTSPMedia * pMedia = NULL;
+    CStreamoutManager * pManager = NULL;
 
     if(StreamOutProjList)
     {
@@ -214,11 +214,11 @@ GstRTSPMedia * StreamoutProjectGetManagerObj()
                     {
                         if(StreamOutProjList[i]->m_StreamoutTaskObjList[j])
                         {
-                            pMedia = StreamOutProjList[i]->m_StreamoutTaskObjList[j]->m_pMediaPipeline;
-                            CSIO_LOG(StreamOutProjDebugLevel, "Streamout: found GstRTSPMedia :i[%d],j[%d].[0x%x]\n",i,j,
-                                     pMedia);
-
-                            //return pMedia;
+                            pManager = StreamOutProjList[i]->m_StreamoutTaskObjList[j];
+                            CSIO_LOG(StreamOutProjDebugLevel, "Streamout: found pManager :i[%d],j[%d].[0x%x]\n",i,j,
+                                     pManager);  
+ 
+                            break;//only one for now                         
                         }
                     }
                 }
@@ -230,8 +230,8 @@ GstRTSPMedia * StreamoutProjectGetManagerObj()
         CSIO_LOG(StreamOutProjDebugLevel, "Streamout: no project is running\n");
     }
 
-    CSIO_LOG(StreamOutProjDebugLevel, "Streamout: pMedia : 0x%x\n",pMedia);
-    return pMedia;
+    CSIO_LOG(StreamOutProjDebugLevel, "Streamout: pManager : 0x%x\n",pManager);
+    return pManager;
 }
 /*********************local static functions **************************/
 static void StreamoutProjectSendEvent(int iId, int evnt, int data_size, void* bufP)
@@ -441,6 +441,9 @@ void* CStreamoutProject::ThreadEntry()
             //CSIO_LOG(eLogLevel_extraVerbose, "Streamout: evntQ is empty\n");
         }
 
+        //check to see if we need to restart task
+        restartStreamoutIfMainLoopEnded();
+
         if(m_forceThreadExit)
         {
             //TODO: exit all child thread and wait here
@@ -494,6 +497,31 @@ void CStreamoutProject::sendEvent(EventQueueStruct* pEvntQ)
     else
     {
         CSIO_LOG(eLogLevel_warning, "Streamout: m_projEvent or m_projEventQ is NULL\n");
+    }
+}
+void CStreamoutProject::restartStreamoutIfMainLoopEnded()
+{
+    if(m_StreamoutTaskObjList)
+    {
+        for(int i = 0; i < MAX_STREAM_OUT; i++)
+        {
+            if(m_StreamoutTaskObjList[i])
+            {
+                if(m_StreamoutTaskObjList[i]->m_ThreadIsRunning == 0)
+                {
+                    CSIO_LOG(eLogLevel_warning, "Streamout: stream out main loop exited by itself.\n");
+
+                    //this should return right away
+                    m_StreamoutTaskObjList[i]->WaitForThreadToExit();
+
+                    CSIO_LOG(eLogLevel_warning, "Streamout: try to restart a new stream out thread.\n");
+                    //as long as this object exist, restart it
+                    m_StreamoutTaskObjList[i]->CreateNewThread();
+
+                    CSIO_LOG(eLogLevel_warning, "Streamout: restarts a new stream out thread.\n");
+                }
+            }
+        }
     }
 }
 void CStreamoutProject::removeAllStreamoutTasks()

@@ -24,7 +24,11 @@ typedef struct _EVNT_QUEUE_STRUCT
 
 typedef enum _eStreamoutEvents
 {
+//events come from jni.c to the project
+    STREAMOUT_EVENT_JNI_CMD_START = 0,
+    STREAMOUT_EVENT_JNI_CMD_STOP,
 
+    STREAMOUT_EVENT_JNI_CMD_PORT,
 
     STREAMOUT_EVENTS_MAX
 }eStreamoutEvents;

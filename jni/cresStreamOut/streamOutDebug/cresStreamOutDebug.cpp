@@ -22,7 +22,7 @@
 void jni_rtsp_server_debug_printFieldDebugInfo();
 
 extern "C" void       gst_element_print_properties( GstElement * element );
-GstRTSPMedia * StreamoutProjectGetManagerObj();
+extern CStreamoutManager * StreamoutProjectGetManagerObj();
 /**********************************************************************
 * Field debugging command
 **********************************************************************/
@@ -32,6 +32,8 @@ enum
     RTSP_SERV_FIELD_DEBUG_STOP,
     RTSP_SERV_FIELD_DEBUG_PORT,
 
+    RTSP_SERV_FIELD_DEBUG_DUMPALL,
+    RTSP_SERV_FIELD_DEBUG_PRINT_ELEMENT_PROPERTY,
     //this should the last item
     MAX_RTSP_SERV_FIELD_DEBUG_NUM              //
 };
@@ -40,6 +42,9 @@ const char * const rtsp_serv_fieldDebugNames[MAX_RTSP_SERV_FIELD_DEBUG_NUM - 1] 
     "01 START              " ,
     "02 STOP               " ,
     "03 PORT               " ,
+    "04 DUMPALL                " ,
+    "05 PRINT_ELEMENT_PROPERTY " ,
+
 };
 
 void jni_rtsp_server_debug(char *cmd_cstring)
@@ -143,29 +148,51 @@ void jni_rtsp_server_debug(char *cmd_cstring)
                         GstElement *element;
 
                         /* get the element used for providing the streams of the media */
-                        GstRTSPMedia* pMedia = StreamoutProjectGetManagerObj();
-                        if(pMedia)
+                        CStreamoutManager* pM = StreamoutProjectGetManagerObj();
+                        if(pM)
                         {
-                            element = gst_rtsp_media_get_element (pMedia);
-                            gchar * n = gst_element_get_name(element);
-                            CSIO_LOG(eLogLevel_info, "rtsp_server: element name[%s] of pMedia[0x%x]",n,pMedia);
+                            GstRTSPMedia* pMedia = pM->m_pMediaPipeline;
 
-                            /* get our ahcsrc, we named it 'mysrc' with the name property */
-                            GstElement *ele = gst_bin_get_by_name_recurse_up (GST_BIN (element), "cressrc");
-                            if(ele)
+                            if(pMedia)
                             {
-                                gst_element_print_properties(ele);
+                                element = gst_rtsp_media_get_element (pMedia);
+                                gchar * n = gst_element_get_name(element);
+                                CSIO_LOG(eLogLevel_info, "rtsp_server: element name[%s] of pMedia[0x%x]",n,pMedia);
+
+                                /* get our ahcsrc, we named it 'mysrc' with the name property */
+                                GstElement *ele = gst_bin_get_by_name_recurse_up (GST_BIN (element), "cressrc");
+                                if(ele)
+                                {
+                                    gst_element_print_properties(ele);
+                                }
+                                else
+                                {
+                                    CSIO_LOG(eLogLevel_info, "rtsp_server: element name[cressrc] is null");
+                                }
                             }
                             else
                             {
-                                CSIO_LOG(eLogLevel_info, "rtsp_server: element name[cressrc] is null");
+                                CSIO_LOG(eLogLevel_info, "rtsp_server: pMedia is null");
                             }
                         }
                         else
                         {
-                            CSIO_LOG(eLogLevel_info, "rtsp_server: pMedia is null");
+                            CSIO_LOG(eLogLevel_info, "rtsp_server: CStreamoutManager object is null");
                         }
                     }
+                }
+            }
+            else if(strcasestr(CmdPtr, "QUIT_LOOP"))//this is hidden command
+            {
+                CStreamoutManager* pM = StreamoutProjectGetManagerObj();
+                if(pM)
+                {
+                    pM->exitThread();
+                    CSIO_LOG(eLogLevel_info, "rtsp_server: quit main loop now command has set.");
+                }
+                else
+                {
+                    CSIO_LOG(eLogLevel_info, "rtsp_server: CStreamoutManager object is null");
                 }
             }
             else
