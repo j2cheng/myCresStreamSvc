@@ -226,8 +226,11 @@ public class UserSettings
 	private int airMediaWindowFlag;
 	
 	// Camera Streaming
+	private boolean camStreamEnable;
 	private boolean camStreamMulticastEnable;
 	private int camStreamResolution;
+	private int camStreamFrameRate;
+	private int camStreamPort;
 	private String camStreamUrl;
 	private String camStreamSnapshotUrl;
 	private String camStreamName;
@@ -312,8 +315,11 @@ public class UserSettings
 		airMediaDisplayScreen = 0;
 		airMediaWindowFlag	= WindowManager.LayoutParams.TYPE_SYSTEM_OVERLAY;
 		tcpInterleave       = initIntArray(0);//auto mode
+		camStreamEnable		= true;
 		camStreamMulticastEnable = false;
 		camStreamResolution = 10;
+		camStreamFrameRate	= 30;
+		camStreamPort		= 8554;
 		camStreamUrl		= "";
 		camStreamSnapshotUrl = "";
 		camStreamName		= "camera";
@@ -1179,6 +1185,14 @@ public class UserSettings
 		return airMediaWindowFlag;
 	}
 	
+	public boolean getCamStreamEnable() {
+		return camStreamEnable;
+	}
+
+	public void setCamStreamEnable(boolean camStreamEnable) {
+		this.camStreamEnable = camStreamEnable;
+	}
+	
 	public boolean getCamStreamMulticastEnable() {
 		return camStreamMulticastEnable;
 	}
@@ -1194,7 +1208,23 @@ public class UserSettings
 	public void setCamStreamResolution(int camStreamResolution) {
 		this.camStreamResolution = camStreamResolution;
 	}
+	
+	public int getCamStreamFrameRate() {
+		return camStreamFrameRate;
+	}
 
+	public void setCamStreamFrameRate(int camStreamFrameRate) {
+		this.camStreamFrameRate = camStreamFrameRate;
+	}
+	
+	public int getCamStreamPort() {
+		return camStreamPort;
+	}
+
+	public void setCamStreamPort(int camStreamPort) {
+		this.camStreamPort = camStreamPort;
+	}
+	
 	public String getCamStreamUrl() {
 		return camStreamUrl;
 	}

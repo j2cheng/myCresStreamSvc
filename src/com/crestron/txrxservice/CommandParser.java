@@ -151,6 +151,7 @@ public class CommandParser {
         AIRMEDIA_WINDOW_FLAG,
         
         // Camera Streaming Slot
+        CAMERA_STREAMING_ENABLE,
         CAMERA_STREAMING_MULTICAST_ENABLE,
         CAMERA_STREAMING_RESOLUTION,
         CAMERA_STREAMING_STREAM_URL,
@@ -627,6 +628,9 @@ public class CommandParser {
             	break;
             	
         	// Camera Streaming
+            case CAMERA_STREAMING_ENABLE:
+            	cmd = new camStreamEnableCommand(cmdRx, arg);
+            	break;            	
             case CAMERA_STREAMING_MULTICAST_ENABLE:
             	cmd = new camStreamMulticastEnableCommand(cmdRx, arg);
             	break;

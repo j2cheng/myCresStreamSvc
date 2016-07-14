@@ -381,6 +381,10 @@ public class CommandReceiver {
     	ctl.airMediaSetWindowFlag(windowFlag, sessId);
     }
     
+    public void setCamStreamEnable(boolean enable) {
+    	ctl.setCamStreamEnable(enable);
+    }
+    
     public void setCamStreamMulticastEnable(boolean enable) {
     	ctl.setCamStreamMulticastEnable(enable);
     }
@@ -863,6 +867,10 @@ public class CommandReceiver {
     
     public String getAirMediaDisplayLoginCode(int sessId) {
     	return Boolean.toString(ctl.userSettings.getAirMediaDisplayLoginCode());
+    }
+    
+    public String getCamStreamEnable() {
+    	return Boolean.toString(ctl.userSettings.getCamStreamEnable());
     }
     
     public String getCamStreamMulticastEnable() {

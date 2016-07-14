@@ -205,7 +205,7 @@ public class HDMIInputInterface {
     		return "0x0@0";
     }
 
-    public static int readResolutionEnum(){
+    public static int readResolutionEnum(boolean logResult){
     	if (isHdmiDriverPresent == true)
 		{
 	        int resolutionIndex = 0;
@@ -225,7 +225,8 @@ public class HDMIInputInterface {
 	            resolutionIndex = 0;
 	        }
 	        
-	        Log.d(TAG, "HDMI IN index from sysfs:" + resolutionIndex);
+	        if (logResult)
+	        	Log.d(TAG, "HDMI IN index from sysfs:" + resolutionIndex);
 	        return resolutionIndex;
 		}
     	else

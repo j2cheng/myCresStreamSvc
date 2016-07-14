@@ -34,9 +34,16 @@ public class GstreamOut {
 
 	// Function prototypes for 
     private static native boolean nativeClassInitRtspServer();
+    private native void nativeRtspServerStart();
+    private native void nativeRtspServerStop();
     private native void nativeInitRtspServer(Object s);     
-    private native void nativeFinalizeRtspServer(); 
+    private native void nativeFinalizeRtspServer();    
+    private native void nativeSetRtspPort(int port, int sessionId);
+    private native void nativeSet_Res_x(int xRes, int sessionId);
+    private native void nativeSet_Res_y(int yRes, int sessionId);
+    private native void nativeSet_FrameRate(int frameRate, int sessionId);
     
+    private final int sessionId = 0; 	// This is currently always 0
     private long native_custom_data;    // Native code will use this to keep private data
     private Object mSurface;			// We keep surface as just an object because that's how we pass it to jni
     private CresStreamCtrl streamCtl;
@@ -52,7 +59,12 @@ public class GstreamOut {
         Log.d(TAG, "constructor called");
         streamCtl = ctl;
         //Don't start server until we have a surface to get data from...
-        nativeInitRtspServer(null);        
+        nativeInitRtspServer(null);
+        
+        if (streamCtl.userSettings.getCamStreamEnable() == true)
+        {
+        	start();
+        }
     }
 
     public void setSurface(Object s) {
@@ -60,16 +72,64 @@ public class GstreamOut {
 		//mSurface = s;
     }
     
-    public void start() {    
-		//if(mSurface == null){
-		//	Log.e(TAG, "Can't serve null surface");
-		//	return;
-		//}
-		//Log.d(TAG, "Initializing rtsp server with surface " + mSurface);
-		//nativeInitRtspServer(mSurface);
+    public void start() {
+    	updateNativeDataStruct();
+    	nativeRtspServerStart();
     }
     
-    public void stop() {    
+    public void stop() {
+    	nativeRtspServerStop();
+    }
+    
+    public void setPort(int port) {
+    	nativeSetRtspPort(port, sessionId);
+    }
+    
+    public void setMulticastEnable(boolean enable) {
+    	
+    	// TODO: 
+    }
+    
+    public void setResolution(int resolution) {
+    	switch (resolution)
+    	{
+    	case 10: //1280x720
+    		nativeSet_Res_x(1280, sessionId);
+    		nativeSet_Res_y(720, sessionId);
+    		break;
+    	case 17: //1920x1080
+    		nativeSet_Res_x(1920, sessionId);
+    		nativeSet_Res_y(1080, sessionId);
+    		break;
+    	default:
+    		break;
+    	}
+    }
+    
+    public void setFramerate(int fps) {
+    	nativeSet_FrameRate(fps, sessionId);
+    }
+    
+    public void setCamStreamName(String name) {
+    	// TODO: 
+    }
+    
+    public void setCamStreamSnapshotName(String name) {
+    	// TODO: 
+    }
+    
+    public void setCamStreamMulticastAddress(String address) {
+    	// TODO:
+    }
+    
+    private void updateNativeDataStruct() {
+    	setPort(streamCtl.userSettings.getCamStreamPort());        
+        setMulticastEnable(streamCtl.userSettings.getCamStreamMulticastEnable());        
+        setResolution(streamCtl.userSettings.getCamStreamResolution());
+        setFramerate(streamCtl.userSettings.getCamStreamFrameRate());        
+        setCamStreamName(streamCtl.userSettings.getCamStreamName());
+        setCamStreamSnapshotName(streamCtl.userSettings.getCamStreamSnapshotName());        
+        setCamStreamMulticastAddress(streamCtl.userSettings.getCamStreamMulticastAddress());
     }
     
 ///////////////////////////////////////////////////////////////////////////////

@@ -149,6 +149,7 @@ public class CresStreamCtrl extends Service {
     public final static String gstreamerTimeoutCountFilePath = "/dev/shm/crestron/CresStreamSvc/gstreamerTimeoutCount";
     public final static String hdcpEncryptFilePath = "/dev/shm/crestron/CresStreamSvc/HDCPEncrypt";
     public int mGstreamerTimeoutCount = 0;
+    public boolean haveExternalDisplays;
     
     // JNI prototype
     public native boolean nativeHaveExternalDisplays(); 
@@ -309,7 +310,6 @@ public class CresStreamCtrl extends Service {
             super.onCreate();
     		int windowWidth = 1920;
     		int windowHeight = 1080;
-            boolean haveExternalDisplays;
 
     		// Wait until 2nd display has settled down.
     		// Android will kill this after 20 seconds!
@@ -564,7 +564,7 @@ public class CresStreamCtrl extends Service {
     			Log.d(TAG, "HDMI input driver is present");
     			hdmiInput = new HDMIInputInterface();
     			//refresh resolution on startup
-    			hdmiInput.setResolutionIndex(HDMIInputInterface.readResolutionEnum());
+    			hdmiInput.setResolutionIndex(HDMIInputInterface.readResolutionEnum(true));
 
     			// Call getHdmiInResolutionSysFs in a separate thread so that if read takes a long time we don't get ANR 
     			new Thread(new Runnable() {
@@ -1469,9 +1469,9 @@ public class CresStreamCtrl extends Service {
 	            	});	            	
 
 	            	try { 
-	            		if (latch.await(5, TimeUnit.SECONDS) == false)
+	            		if (latch.await(15, TimeUnit.SECONDS) == false)
 	            		{
-	            			Log.e(TAG, "updateWH: Timeout after 5 seconds");
+	            			Log.e(TAG, "updateWH: Timeout after 15 seconds");
 	            			RecoverTxrxService();
 	            		}
 	            	}
@@ -2816,6 +2816,18 @@ public class CresStreamCtrl extends Service {
     	}
     }
     
+    public void setCamStreamEnable(boolean enable) {
+    	userSettings.setCamStreamEnable(enable);
+    	
+    	if (gstStreamOut != null)
+    	{
+    		if (enable)
+    			gstStreamOut.start();
+    		else
+    			gstStreamOut.stop();
+    	}
+    }
+    
     public void setCamStreamMulticastEnable(boolean enable) {
     	userSettings.setCamStreamMulticastEnable(enable);
     	
@@ -3017,21 +3029,21 @@ public class CresStreamCtrl extends Service {
 		                    int hdmiOutResolutionEnum = paramAnonymousIntent.getIntExtra("evs_hdmiout_resolution_changed_id", -1);
 		                    Log.i(TAG, "Received hdmiout resolution changed broadcast ! " + hdmiOutResolutionEnum);
 		                    
-		                    refreshOutputResolution();
-							
+							refreshOutputResolution();									
+		                    
 							// Recheck if HDCP changed
 							mForceHdcpStatusUpdate = true;
 					        
 					        //update with current HDMI output resolution information
 					        sendHdmiOutSyncState();
 					        
-//					        if (haveExternalDisplays && Boolean.parseBoolean(hdmiOutput.getSyncStatus()))
-//					        {
-//					        	dispSurface = new CresDisplaySurface(streamCtrl, 1920, 1200, haveExternalDisplays); // set to max output resolution
-//
-//					        	try { Thread.sleep(3000); } catch (Exception e) {}
-//					        	restartStreams(false);
-//					        }
+					        if (haveExternalDisplays && Boolean.parseBoolean(hdmiOutput.getSyncStatus()))
+					        {
+					        	dispSurface = new CresDisplaySurface(streamCtrl, 1920, 1200, haveExternalDisplays); // set to max output resolution
+
+					        	try { Thread.sleep(3000); } catch (Exception e) {}
+					        	restartStreams(false);
+					        }
 		                }
 		            }
             	}).start();
@@ -3375,7 +3387,7 @@ public class CresStreamCtrl extends Service {
 	private boolean checkHDCPStatus() {
 		boolean hdcpStatusChanged = false;
 		synchronized (mHdcpLock) {
-			boolean currentHDCPInputStatus = (HDMIInputInterface.readHDCPInputStatus() && HDMIInputInterface.readResolutionEnum() != 0); // Check for valid resolution 
+			boolean currentHDCPInputStatus = (HDMIInputInterface.readHDCPInputStatus() && HDMIInputInterface.readResolutionEnum(false) != 0); // Check for valid resolution 
 			boolean currentHDCPOutputStatus = HDMIOutputInterface.readHDCPOutputStatus() == 1;
 			// Only send new status when hdcp status changes for either input or output, or if force status update is called
 			if ((mHDCPInputStatus != currentHDCPInputStatus) || (mHDCPOutputStatus != currentHDCPOutputStatus) || (mForceHdcpStatusUpdate == true))

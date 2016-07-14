@@ -26,9 +26,13 @@
 #include <stdio.h>
 #include <stdlib.h>		/* for setenv */
 #include <unistd.h>
+#include <sys/resource.h>
+#include <sys/socket.h>
+#include <sys/time.h>
 #include "cregstplay.h" 
 #include <jni.h>
 #include "GstreamIn.h"
+#include "GstreamOut.h"
 #include "csioCommonShare.h"
 #include <gst/video/video.h>
 #include <gst/rtsp-server/rtsp-server.h>
@@ -95,8 +99,8 @@ static JNINativeMethod native_methods_rtsp_server[] =
     { "nativeInitRtspServer", "(Ljava/lang/Object;)V", (void *) gstNativeInitRtspServer},
     { "nativeFinalizeRtspServer", "()V", (void *) gstNativeFinalizeRtspServer},
     { "nativeClassInitRtspServer", "()Z", (void *) gstNativeClassInitRtspServer},
-    //{ "nativeRtspServerStart", "()V", (void *) gst_native_rtsp_server_start},
-    //{ "nativeRtspServerStop", "()V",  (void *) gst_native_rtsp_server_stop},
+    { "nativeRtspServerStart", "()V", (void *) gst_native_rtsp_server_start},
+    { "nativeRtspServerStop", "()V",  (void *) gst_native_rtsp_server_stop},
 };
 
 
@@ -2554,9 +2558,6 @@ static void gstNativeInitRtspServer (JNIEnv* env, jobject thiz, jobject surface)
     //init project
     StreamoutProjectInit();
 
-    //Note: we should not start stream out here, wait until we have got user's data updated.
-    //      and then call:  Streamout_Start(0);
-    Streamout_Start(0);
     CSIO_LOG(eLogLevel_debug, "rtsp_server: gstNativeInitRtspServer exit.");
 }
 

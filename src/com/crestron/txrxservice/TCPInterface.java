@@ -236,7 +236,7 @@ public class TCPInterface extends AsyncTask<Void, Object, Long> {
 	                
 	                if (streamCtl.hdmiInputDriverPresent == true)
 	                {
-	                	int hdmiInEnum = HDMIInputInterface.readResolutionEnum();
+	                	int hdmiInEnum = HDMIInputInterface.readResolutionEnum(true);
 	                	streamCtl.setCamera(hdmiInEnum); //no need to restart streams
 	                }
                 }
