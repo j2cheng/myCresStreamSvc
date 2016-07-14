@@ -123,17 +123,17 @@ void CStreamoutManager::DumpClassPara(int level)
 //overloaded from base
 void CStreamoutManager::exitThread()
 {
-    CSIO_LOG(eLogLevel_debug, "Streamout: try to quit g_main_loop[0x%x]",m_loop);
+    CSIO_LOG(m_debugLevel, "Streamout: try to quit g_main_loop[0x%x]",m_loop);
     m_forceThreadExit = 1;
 
     if(m_loop)
     {
         g_main_loop_quit(m_loop);
-        CSIO_LOG(eLogLevel_debug, "Streamout: g_main_loop_quit returned");
+        CSIO_LOG(m_debugLevel, "Streamout: g_main_loop_quit returned");
     }
     else
     {
-        CSIO_LOG(eLogLevel_debug, "Streamout: g_main_loop is not running");
+        CSIO_LOG(m_debugLevel, "Streamout: g_main_loop is not running");
     }
 }
 void* CStreamoutManager::ThreadEntry()
@@ -148,7 +148,7 @@ void* CStreamoutManager::ThreadEntry()
     //create new context
     context = g_main_context_new ();
     g_main_context_push_thread_default(context);
-    CSIO_LOG(eLogLevel_debug,  "Streamout: creste new context: 0x%x\n", context );
+    CSIO_LOG(m_debugLevel,  "Streamout: creste new context: 0x%x\n", context );
     if(!context)
     {
         CSIO_LOG(eLogLevel_error, "Streamout: Failed to create rtsp server context");
@@ -169,7 +169,7 @@ void* CStreamoutManager::ThreadEntry()
     }
 
     //setup listening port
-    CSIO_LOG(eLogLevel_error, "Streamout: set_service to port:%s",m_rtsp_port);
+    CSIO_LOG(m_debugLevel, "Streamout: set_service to port:%s",m_rtsp_port);
     gst_rtsp_server_set_service (server, m_rtsp_port);
 
     /* get the mount points for this server, every server has a default object
@@ -195,7 +195,7 @@ void* CStreamoutManager::ThreadEntry()
                                              m_res_x,m_res_y,m_frame_rate,
                                              product_info()->video_encoder_string);
     }
-    CSIO_LOG(eLogLevel_debug, "Streamout: rtsp server pipeline: [%s]", pipeline);
+    CSIO_LOG(m_debugLevel, "Streamout: rtsp server pipeline: [%s]", pipeline);
     gst_rtsp_media_factory_set_launch (factory, pipeline);
 
     /* notify when our media is ready, This is called whenever someone asks for
@@ -211,7 +211,7 @@ void* CStreamoutManager::ThreadEntry()
     gst_rtsp_mount_points_add_factory (mounts, "/live.sdp", factory);
     g_object_unref (mounts);
     server_id = gst_rtsp_server_attach(server, g_main_loop_get_context(m_loop));
-    CSIO_LOG(eLogLevel_debug, "Streamout: Attach to rtsp server returned server_id %u", server_id);
+    CSIO_LOG(m_debugLevel, "Streamout: Attach to rtsp server returned server_id %u", server_id);
 
     m_main_loop_is_running = 1;
     g_main_loop_run (m_loop);
@@ -234,7 +234,7 @@ exitThread:
         context = NULL;
     }
 
-    CSIO_LOG(eLogLevel_debug, "Streamout: jni_start_rtsp_server ended------");
+    CSIO_LOG(m_debugLevel, "Streamout: jni_start_rtsp_server ended------");
 
     //thread exit here
     m_ThreadIsRunning = 0;
