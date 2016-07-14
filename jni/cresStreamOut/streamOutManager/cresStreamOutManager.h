@@ -33,7 +33,7 @@ public:
     //overload exitThread function
     void exitThread() ;
 
-    GstRTSPMedia * m_pMediaPipeline ;
+    GstRTSPMedia * m_pMedia ;
     GMainLoop * getMainLoop(){return m_loop;}
 
     char m_rtsp_port[MAX_STR_LEN];

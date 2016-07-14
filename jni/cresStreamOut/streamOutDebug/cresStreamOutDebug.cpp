@@ -151,7 +151,7 @@ void jni_rtsp_server_debug(char *cmd_cstring)
                         CStreamoutManager* pM = StreamoutProjectGetManagerObj();
                         if(pM)
                         {
-                            GstRTSPMedia* pMedia = pM->m_pMediaPipeline;
+                            GstRTSPMedia* pMedia = pM->m_pMedia;
 
                             if(pMedia)
                             {

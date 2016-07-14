@@ -68,7 +68,7 @@ media_configure (GstRTSPMediaFactory * factory, GstRTSPMedia * media,
   gst_rtsp_media_set_reusable (media, TRUE);
 
   //pass media back to manager
-  ((CStreamoutManager*)user_data)->m_pMediaPipeline = media;
+  ((CStreamoutManager*)user_data)->m_pMedia = media;
 
   gst_object_unref (ahcsrc);
   gst_object_unref (element);
@@ -78,7 +78,7 @@ media_configure (GstRTSPMediaFactory * factory, GstRTSPMedia * media,
 /**********************CStreamoutManager class implementation***************************************/
 CStreamoutManager::CStreamoutManager():
 m_clientConnCnt(0),m_loop(NULL),m_main_loop_is_running(0),
-m_pMediaPipeline(NULL)
+m_pMedia(NULL)
 {
     m_StreamoutEvent  = new CStreamoutEvent();
 
@@ -112,7 +112,7 @@ void CStreamoutManager::DumpClassPara(int level)
     CSIO_LOG(eLogLevel_info, "---Streamout: m_main_loop_is_running %d", m_main_loop_is_running);
 
     CSIO_LOG(eLogLevel_info, "---Streamout: m_loop 0x%x", m_loop);
-    CSIO_LOG(eLogLevel_info, "---Streamout: m_pMediaPipeline [0x%x]",m_pMediaPipeline);
+    CSIO_LOG(eLogLevel_info, "---Streamout: m_pMedia [0x%x]",m_pMedia);
 
     CSIO_LOG(eLogLevel_info, "---Streamout: m_rtsp_port %s", m_rtsp_port);
     CSIO_LOG(eLogLevel_info, "---Streamout: m_res_x %s", m_res_x);
@@ -225,7 +225,7 @@ exitThread:
     //need to create a cleanup function and call here
     m_loop = NULL;
     m_main_loop_is_running = 0;
-    m_pMediaPipeline = NULL;;
+    m_pMedia = NULL;;
 
     if(context)
     {
