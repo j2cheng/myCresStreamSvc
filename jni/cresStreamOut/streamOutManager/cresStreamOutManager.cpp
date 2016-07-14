@@ -190,10 +190,10 @@ void* CStreamoutManager::ThreadEntry()
     if(gst_rtsp_server_get_pipeline(pipeline, sizeof(pipeline)) == false)
     {
         snprintf(pipeline, sizeof(pipeline), "( ahcsrc name=cressrc ! "
-                "                               video/x-raw,width=%s,height=%s,framerate=%s/1 ! "
-                                                "%s ! rtph264pay name=pay0 pt=96 )",
-                                                m_res_x,m_res_y,m_frame_rate,
-                                                product_info()->video_encoder_string);
+                                             "video/x-raw,width=%s,height=%s,framerate=%s/1 ! "
+                                             "%s ! rtph264pay name=pay0 pt=96 )",
+                                             m_res_x,m_res_y,m_frame_rate,
+                                             product_info()->video_encoder_string);
     }
     CSIO_LOG(eLogLevel_debug, "Streamout: rtsp server pipeline: [%s]", pipeline);
     gst_rtsp_media_factory_set_launch (factory, pipeline);

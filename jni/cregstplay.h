@@ -138,6 +138,10 @@ typedef struct _CRESSTREAMOUT
     unsigned int streamId;
 
     char rtsp_port[125];
+    char res_x[125];
+    char res_y[125];
+    char frame_rate[125];
+
 } CRESSTREAMOUT;
 
 /* Structure to contain all our information, so we can pass it to callbacks */

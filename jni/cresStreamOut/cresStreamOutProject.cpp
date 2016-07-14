@@ -158,6 +158,55 @@ void Streamout_SetPort(char* port)
     gProjectsLock.unlock();
     CSIO_LOG(StreamOutProjDebugLevel, "Streamout: Streamout_SetPort() exit.");
 }
+void Streamout_SetFrameRate(char* rate)
+{
+    CSIO_LOG(StreamOutProjDebugLevel, "Streamout: Streamout_SetFrameRate() enter");
+
+    gProjectsLock.lock();
+
+    if(rate)
+    {
+        CSIO_LOG(StreamOutProjDebugLevel, "Streamout: set rate to [%s].\n",rate);
+
+        StreamoutProjectSendEvent(0, STREAMOUT_EVENT_JNI_CMD_FRAMERATE,strlen(rate), rate);
+    }
+
+    gProjectsLock.unlock();
+    CSIO_LOG(StreamOutProjDebugLevel, "Streamout: Streamout_SetFrameRate() exit.");
+}
+void Streamout_SetRes_x(char* res_x)
+{
+    CSIO_LOG(StreamOutProjDebugLevel, "Streamout: Streamout_SetRes_x() enter");
+
+    gProjectsLock.lock();
+
+    if(res_x)
+    {
+        CSIO_LOG(StreamOutProjDebugLevel, "Streamout: set res_x to [%s].\n",res_x);
+
+        StreamoutProjectSendEvent(0, STREAMOUT_EVENT_JNI_CMD_RES_X,strlen(res_x), res_x);
+    }
+
+    gProjectsLock.unlock();
+    CSIO_LOG(StreamOutProjDebugLevel, "Streamout: Streamout_SetRes_x() exit.");
+}
+void Streamout_SetRes_y(char* res_y)
+{
+    CSIO_LOG(StreamOutProjDebugLevel, "Streamout: Streamout_SetRes_y() enter");
+
+    gProjectsLock.lock();
+
+    if(res_y)
+    {
+        CSIO_LOG(StreamOutProjDebugLevel, "Streamout: set res_y to [%s].\n",res_y);
+
+        StreamoutProjectSendEvent(0, STREAMOUT_EVENT_JNI_CMD_RES_Y,strlen(res_y), res_y);
+    }
+
+    gProjectsLock.unlock();
+    CSIO_LOG(StreamOutProjDebugLevel, "Streamout: Streamout_SetRes_y() exit.");
+}
+
 void StreamoutProjectDumpClassPara(int level)
 {
     gProjectsLock.lock();
@@ -432,6 +481,91 @@ void* CStreamoutProject::ThreadEntry()
                     }
                     break;
                 }
+                case STREAMOUT_EVENT_JNI_CMD_PORT:
+                {
+                    int id = evntQ.streamout_obj_id;
+                    if( evntQ.buf_size && evntQ.buffPtr)
+                    {
+                        CSIO_LOG(m_debugLevel, "Streamout: call setFrameRate streamId[%d],port[%s]",
+                                 id,evntQ.buffPtr);
+
+                        //save for this project
+                        strcpy(m_rtsp_port, (char*)evntQ.buffPtr);
+
+                        m_projEventQ->del_Q_buf(evntQ.buffPtr);
+                    }
+                    else
+                    {
+                        CSIO_LOG(m_debugLevel, "Streamout: streamId[%d],port string is null",id);
+                    }
+
+                    CSIO_LOG(m_debugLevel, "Streamout: STREAMOUT_EVENT_JNI_CMD_PORT done.");
+                    break;
+                }
+                case STREAMOUT_EVENT_JNI_CMD_RES_X:
+                {
+                    int id = evntQ.streamout_obj_id;
+                    if( evntQ.buf_size && evntQ.buffPtr)
+                    {
+                        CSIO_LOG(m_debugLevel, "Streamout: call setFrameRate streamId[%d],res_x[%s]",
+                                 id,evntQ.buffPtr);
+
+                        //save for this project
+                        strcpy(m_res_x, (char*)evntQ.buffPtr);
+
+                        m_projEventQ->del_Q_buf(evntQ.buffPtr);
+                    }
+                    else
+                    {
+                        CSIO_LOG(m_debugLevel, "Streamout: streamId[%d],res_x string is null",id);
+                    }
+
+                    CSIO_LOG(m_debugLevel, "Streamout: STREAMOUT_EVENT_JNI_CMD_RES_X done.");
+                    break;
+                }
+                case STREAMOUT_EVENT_JNI_CMD_RES_Y:
+                {
+                    int id = evntQ.streamout_obj_id;
+                    if( evntQ.buf_size && evntQ.buffPtr)
+                    {
+                        CSIO_LOG(m_debugLevel, "Streamout: call setResY streamId[%d],res_y[%s]",
+                                 id,evntQ.buffPtr);
+
+                        //save for this project
+                        strcpy(m_res_y, (char*)evntQ.buffPtr);
+
+                        m_projEventQ->del_Q_buf(evntQ.buffPtr);
+                    }
+                    else
+                    {
+                        CSIO_LOG(m_debugLevel, "Streamout: streamId[%d],res_y string is null",id);
+                    }
+
+                    CSIO_LOG(m_debugLevel, "Streamout: STREAMOUT_EVENT_JNI_CMD_RES_Y done.");
+                    break;
+                }
+                case STREAMOUT_EVENT_JNI_CMD_FRAMERATE:
+                {
+                    int id = evntQ.streamout_obj_id;
+                    if( evntQ.buf_size && evntQ.buffPtr)
+                    {
+                        CSIO_LOG(m_debugLevel, "Streamout: call setFrameRate streamId[%d],framerate[%s]",
+                                 id,evntQ.buffPtr);
+
+                        //save for this project
+                        strcpy(m_frame_rate, (char*)evntQ.buffPtr);
+
+                        m_projEventQ->del_Q_buf(evntQ.buffPtr);
+                    }
+                    else
+                    {
+                        CSIO_LOG(m_debugLevel, "Streamout: streamId[%d],framerate string is null",id);
+                    }
+
+                    CSIO_LOG(m_debugLevel, "Streamout: STREAMOUT_EVENT_JNI_CMD_FRAMERATE done.");
+                    break;
+                }
+
                 default:
                     break;
             }
@@ -482,7 +616,26 @@ void CStreamoutProject::sendEvent(EventQueueStruct* pEvntQ)
         {
             switch (evntQ.event_type)
             {
-
+                case STREAMOUT_EVENT_JNI_CMD_PORT:
+                case STREAMOUT_EVENT_JNI_CMD_RES_X:
+                case STREAMOUT_EVENT_JNI_CMD_RES_Y:
+                case STREAMOUT_EVENT_JNI_CMD_FRAMERATE:
+                {
+                    evntQ.buffPtr = new char [dataSize + 1];//data might be binary
+                    if(evntQ.buffPtr)
+                    {
+                        //copy data
+                        char* destPtr = (char*)evntQ.buffPtr;
+                        memcpy(destPtr,(char*)bufP,dataSize);
+                        destPtr[dataSize] = 0;//terminate string
+                        evntQ.buf_size = dataSize;
+                    }
+                    else
+                    {
+                        CSIO_LOG(eLogLevel_warning, "Streamout: create buffer failed\n");
+                    }
+                    break;
+                }
             }
         }
         //passing a copy of the queue

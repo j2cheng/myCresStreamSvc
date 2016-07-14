@@ -286,6 +286,9 @@ void init_custom_data_out(CustomStreamOutData * cdata)
             cdata,cdata->app,&cdata->streamOut[0]);
 
     strcpy(cdata->streamOut[0].rtsp_port, DEFAULT_RTSP_PORT);
+    strcpy(cdata->streamOut[0].res_x, DEFAULT_RES_X);
+    strcpy(cdata->streamOut[0].res_y, DEFAULT_RES_Y);
+    strcpy(cdata->streamOut[0].frame_rate, DEFAULT_FRAME_RATE);
 }
 
 
@@ -2594,10 +2597,37 @@ void gst_native_rtsp_server_stop (JNIEnv* env, jobject thiz)
 JNIEXPORT void JNICALL Java_com_crestron_GstreamOut_nativeSetRtspPort(JNIEnv *env, jobject thiz, jint port, jint sessionId)
 {
     CSIO_LOG(eLogLevel_debug, "rtsp_server: Using RtspPort: '%d'", port);
-    char port_str[32];
-    sprintf(port_str, "%d", port);
-    strcpy(&CresStreamOutDataDB->streamOut[0].rtsp_port,port_str);
-    Streamout_SetPort(port_str);
+    char* desBuf = CresStreamOutDataDB->streamOut[0].rtsp_port;
+    sprintf(desBuf, "%d", port);
+
+    Streamout_SetPort(desBuf);
     CSIO_LOG(eLogLevel_debug, "rtsp_server: RtspPort in CresStreamOutDataDB: '%s'", CresStreamOutDataDB->streamOut[0].rtsp_port);
+}
+JNIEXPORT void JNICALL Java_com_crestron_GstreamOut_nativeSet_Res_x(JNIEnv *env, jobject thiz, jint Res_x, jint sessionId)
+{
+    CSIO_LOG(eLogLevel_debug, "rtsp_server: Using Res_x: '%d'", Res_x);
+    char* desBuf = CresStreamOutDataDB->streamOut[0].res_x;
+    sprintf(desBuf, "%d", Res_x);
+
+    Streamout_SetRes_x(desBuf);
+    CSIO_LOG(eLogLevel_debug, "rtsp_server: res_x in CresStreamOutDataDB: '%s'", CresStreamOutDataDB->streamOut[0].res_x);
+}
+JNIEXPORT void JNICALL Java_com_crestron_GstreamOut_nativeSet_Res_y(JNIEnv *env, jobject thiz, jint Res_y, jint sessionId)
+{
+    CSIO_LOG(eLogLevel_debug, "rtsp_server: Using Res_y: '%d'", Res_y);
+    char* desBuf = CresStreamOutDataDB->streamOut[0].res_y;
+    sprintf(desBuf, "%d", Res_y);
+
+    Streamout_SetRes_y(desBuf);
+    CSIO_LOG(eLogLevel_debug, "rtsp_server: res_y in CresStreamOutDataDB: '%s'", CresStreamOutDataDB->streamOut[0].res_y);
+}
+JNIEXPORT void JNICALL Java_com_crestron_GstreamOut_nativeSet_FrameRate(JNIEnv *env, jobject thiz, jint FrameRate, jint sessionId)
+{
+    CSIO_LOG(eLogLevel_debug, "rtsp_server: Using FrameRate: '%d'", FrameRate);
+    char* desBuf = CresStreamOutDataDB->streamOut[0].frame_rate;
+    sprintf(desBuf, "%d", FrameRate);
+
+    Streamout_SetFrameRate(desBuf);
+    CSIO_LOG(eLogLevel_debug, "rtsp_server: frame_rate in CresStreamOutDataDB: '%s'", CresStreamOutDataDB->streamOut[0].frame_rate);
 }
 /***************************** end of rtsp_server for video streaming out *********************************/

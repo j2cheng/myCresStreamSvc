@@ -39,6 +39,9 @@ void Streamout_Start(int streamID);
 void Streamout_Stop(int streamID);
 void Streamout_SetDebugLevel(int level);
 void Streamout_SetPort(char* port);
+void Streamout_SetFrameRate(char* r);
+void Streamout_SetRes_x(char* x);
+void Streamout_SetRes_y(char* y);
 
 #ifdef __cplusplus
 }
