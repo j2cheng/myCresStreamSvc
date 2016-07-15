@@ -387,55 +387,7 @@ public class CresStreamCtrl extends Service {
     							System.exit(2); //Prevents the service/app from freezing
     					}
     				});
-
-    		//Input Streamout Config
-    		if (useGstreamer)
-    		{
-    			// If mediaserver is in bad state this could get stuck
-    			// Load GstreamBase first!
-    			final CountDownLatch latch = new CountDownLatch(1);
-    			Thread startGstreamerThread = new Thread(new Runnable() {
-    				public void run() {
-    					gstreamBase = new GstreamBase(CresStreamCtrl.this);
-    					latch.countDown();
-    				}
-    			});
-    			startGstreamerThread.start();
-
-    			boolean successfulStart = true; //indicates that there was no time out condition
-    			try { successfulStart = latch.await(3000, TimeUnit.MILLISECONDS); }
-    			catch (InterruptedException ex) { ex.printStackTrace(); }
-
-    			// Library failed to load kill mediaserver and restart txrxservice
-    			if (!successfulStart)
-    			{
-    				Log.e(TAG, "Gstreamer failed to initialize, restarting txrxservice and mediaserver");
-
-    				RecoverMediaServer();
-    				RecoverTxrxService();    		
-    			}
-    			else
-    			{            		
-    				if (defaultLoggingLevel != -1) //-1 means that value still has not been set
-    				{
-    					streamPlay.setLogLevel(defaultLoggingLevel);
-    				}
-    			}
-
-    			// After gstreamer is initialized we can load gstreamIn and gstreamOut
-    			streamPlay = new StreamIn(new GstreamIn(CresStreamCtrl.this));
-
-    			// Added for real camera on x60
-    			// to-do: support having both hdmi input and a real camera at the same time...
-    			if(ProductSpecific.hasRealCamera())
-    			{
-    				gstStreamOut = new GstreamOut(CresStreamCtrl.this);
-    			}
-
-    		}
-    		else
-    			streamPlay = new StreamIn(new NstreamIn(CresStreamCtrl.this));
-
+    		
     		boolean wipeOutUserSettings = false;
     		boolean useOldUserSettingsFile = false;
     		boolean fixSettingsVersionMismatch = false;
@@ -549,6 +501,54 @@ public class CresStreamCtrl extends Service {
     				Log.e(TAG, "Could not upgrade userSettings: " + ex);
     			}
     		}
+    		
+    		//Input Streamout Config
+    		if (useGstreamer)
+    		{
+    			// If mediaserver is in bad state this could get stuck
+    			// Load GstreamBase first!
+    			final CountDownLatch latch = new CountDownLatch(1);
+    			Thread startGstreamerThread = new Thread(new Runnable() {
+    				public void run() {
+    					gstreamBase = new GstreamBase(CresStreamCtrl.this);
+    					latch.countDown();
+    				}
+    			});
+    			startGstreamerThread.start();
+
+    			boolean successfulStart = true; //indicates that there was no time out condition
+    			try { successfulStart = latch.await(3000, TimeUnit.MILLISECONDS); }
+    			catch (InterruptedException ex) { ex.printStackTrace(); }
+
+    			// Library failed to load kill mediaserver and restart txrxservice
+    			if (!successfulStart)
+    			{
+    				Log.e(TAG, "Gstreamer failed to initialize, restarting txrxservice and mediaserver");
+
+    				RecoverMediaServer();
+    				RecoverTxrxService();    		
+    			}
+    			else
+    			{            		
+    				if (defaultLoggingLevel != -1) //-1 means that value still has not been set
+    				{
+    					streamPlay.setLogLevel(defaultLoggingLevel);
+    				}
+    			}
+
+    			// After gstreamer is initialized we can load gstreamIn and gstreamOut
+    			streamPlay = new StreamIn(new GstreamIn(CresStreamCtrl.this));
+
+    			// Added for real camera on x60
+    			// to-do: support having both hdmi input and a real camera at the same time...
+    			if(ProductSpecific.hasRealCamera())
+    			{
+    				gstStreamOut = new GstreamOut(CresStreamCtrl.this);
+    			}
+
+    		}
+    		else
+    			streamPlay = new StreamIn(new NstreamIn(CresStreamCtrl.this));    		
 
     		hdmiOutput = new HDMIOutputInterface();
     		setHDCPBypass();
