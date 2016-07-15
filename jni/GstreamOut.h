@@ -28,28 +28,28 @@ extern "C" {
  * Method:    		nativeSetRtspPort
  * Signature: 		(II)V
  */
-JNIEXPORT void JNICALL Java_com_crestron_GstreamOut_nativeSetRtspPort(JNIEnv *env, jobject thiz, jint port, jint sessionId);
+JNIEXPORT void JNICALL Java_com_crestron_txrxservice_GstreamOut_nativeSetRtspPort(JNIEnv *env, jobject thiz, jint port, jint sessionId);
 
 /*
  * Class:     		GstreamOut
  * Method:    		nativeSet_Res_x
  * Signature: 		(II)V
  */
-JNIEXPORT void JNICALL Java_com_crestron_GstreamOut_nativeSet_Res_x(JNIEnv *env, jobject thiz, jint Res_x, jint sessionId);
+JNIEXPORT void JNICALL Java_com_crestron_txrxservice_GstreamOut_nativeSet_Res_x(JNIEnv *env, jobject thiz, jint Res_x, jint sessionId);
 
 /*
  * Class:     		GstreamOut
  * Method:    		nativeSet_Res_y
  * Signature: 		(II)V
  */
-JNIEXPORT void JNICALL Java_com_crestron_GstreamOut_nativeSet_Res_y(JNIEnv *env, jobject thiz, jint Res_y, jint sessionId);
+JNIEXPORT void JNICALL Java_com_crestron_txrxservice_GstreamOut_nativeSet_Res_y(JNIEnv *env, jobject thiz, jint Res_y, jint sessionId);
 
 /*
  * Class:     		GstreamOut
  * Method:    		nativeSet_FrameRate
  * Signature: 		(II)V
  */
-JNIEXPORT void JNICALL Java_com_crestron_GstreamOut_nativeSet_FrameRate(JNIEnv *env, jobject thiz, jint FrameRate, jint sessionId);
+JNIEXPORT void JNICALL Java_com_crestron_txrxservice_GstreamOut_nativeSet_FrameRate(JNIEnv *env, jobject thiz, jint FrameRate, jint sessionId);
 
 ///////////////////////////////////////////////////////////////////////////////
 

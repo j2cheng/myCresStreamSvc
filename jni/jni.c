@@ -2595,7 +2595,7 @@ void gst_native_rtsp_server_stop (JNIEnv* env, jobject thiz)
     CSIO_LOG(eLogLevel_debug, "rtsp_server: gst_native_rtsp_server_stop is done");
 }
 
-JNIEXPORT void JNICALL Java_com_crestron_GstreamOut_nativeSetRtspPort(JNIEnv *env, jobject thiz, jint port, jint sessionId)
+JNIEXPORT void JNICALL Java_com_crestron_txrxservice_GstreamOut_nativeSetRtspPort(JNIEnv *env, jobject thiz, jint port, jint sessionId)
 {
     CSIO_LOG(eLogLevel_debug, "rtsp_server: Using RtspPort: '%d'", port);
     char* desBuf = CresStreamOutDataDB->streamOut[0].rtsp_port;
@@ -2604,7 +2604,7 @@ JNIEXPORT void JNICALL Java_com_crestron_GstreamOut_nativeSetRtspPort(JNIEnv *en
     Streamout_SetPort(desBuf);
     CSIO_LOG(eLogLevel_debug, "rtsp_server: RtspPort in CresStreamOutDataDB: '%s'", CresStreamOutDataDB->streamOut[0].rtsp_port);
 }
-JNIEXPORT void JNICALL Java_com_crestron_GstreamOut_nativeSet_Res_x(JNIEnv *env, jobject thiz, jint Res_x, jint sessionId)
+JNIEXPORT void JNICALL Java_com_crestron_txrxservice_GstreamOut_nativeSet_Res_x(JNIEnv *env, jobject thiz, jint Res_x, jint sessionId)
 {
     CSIO_LOG(eLogLevel_debug, "rtsp_server: Using Res_x: '%d'", Res_x);
     char* desBuf = CresStreamOutDataDB->streamOut[0].res_x;
@@ -2613,7 +2613,7 @@ JNIEXPORT void JNICALL Java_com_crestron_GstreamOut_nativeSet_Res_x(JNIEnv *env,
     Streamout_SetRes_x(desBuf);
     CSIO_LOG(eLogLevel_debug, "rtsp_server: res_x in CresStreamOutDataDB: '%s'", CresStreamOutDataDB->streamOut[0].res_x);
 }
-JNIEXPORT void JNICALL Java_com_crestron_GstreamOut_nativeSet_Res_y(JNIEnv *env, jobject thiz, jint Res_y, jint sessionId)
+JNIEXPORT void JNICALL Java_com_crestron_txrxservice_GstreamOut_nativeSet_Res_y(JNIEnv *env, jobject thiz, jint Res_y, jint sessionId)
 {
     CSIO_LOG(eLogLevel_debug, "rtsp_server: Using Res_y: '%d'", Res_y);
     char* desBuf = CresStreamOutDataDB->streamOut[0].res_y;
@@ -2622,7 +2622,7 @@ JNIEXPORT void JNICALL Java_com_crestron_GstreamOut_nativeSet_Res_y(JNIEnv *env,
     Streamout_SetRes_y(desBuf);
     CSIO_LOG(eLogLevel_debug, "rtsp_server: res_y in CresStreamOutDataDB: '%s'", CresStreamOutDataDB->streamOut[0].res_y);
 }
-JNIEXPORT void JNICALL Java_com_crestron_GstreamOut_nativeSet_FrameRate(JNIEnv *env, jobject thiz, jint FrameRate, jint sessionId)
+JNIEXPORT void JNICALL Java_com_crestron_txrxservice_GstreamOut_nativeSet_FrameRate(JNIEnv *env, jobject thiz, jint FrameRate, jint sessionId)
 {
     CSIO_LOG(eLogLevel_debug, "rtsp_server: Using FrameRate: '%d'", FrameRate);
     char* desBuf = CresStreamOutDataDB->streamOut[0].frame_rate;

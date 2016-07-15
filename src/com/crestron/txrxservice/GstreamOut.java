@@ -38,10 +38,10 @@ public class GstreamOut {
     private native void nativeRtspServerStop();
     private native void nativeInitRtspServer(Object s);     
     private native void nativeFinalizeRtspServer();    
-    private native void nativeSetRtspPort(int port, int sessionId);
-    private native void nativeSet_Res_x(int xRes, int sessionId);
-    private native void nativeSet_Res_y(int yRes, int sessionId);
-    private native void nativeSet_FrameRate(int frameRate, int sessionId);
+//    private native void nativeSetRtspPort(int port, int sessionId);
+//    private native void nativeSet_Res_x(int xRes, int sessionId);
+//    private native void nativeSet_Res_y(int yRes, int sessionId);
+//    private native void nativeSet_FrameRate(int frameRate, int sessionId);
     
     private final int sessionId = 0; 	// This is currently always 0
     private long native_custom_data;    // Native code will use this to keep private data
@@ -82,7 +82,7 @@ public class GstreamOut {
     }
     
     public void setPort(int port) {
-    	nativeSetRtspPort(port, sessionId);
+//    	nativeSetRtspPort(port, sessionId);
     }
     
     public void setMulticastEnable(boolean enable) {
@@ -94,12 +94,12 @@ public class GstreamOut {
     	switch (resolution)
     	{
     	case 10: //1280x720
-    		nativeSet_Res_x(1280, sessionId);
-    		nativeSet_Res_y(720, sessionId);
+//    		nativeSet_Res_x(1280, sessionId);
+//    		nativeSet_Res_y(720, sessionId);
     		break;
     	case 17: //1920x1080
-    		nativeSet_Res_x(1920, sessionId);
-    		nativeSet_Res_y(1080, sessionId);
+//    		nativeSet_Res_x(1920, sessionId);
+//    		nativeSet_Res_y(1080, sessionId);
     		break;
     	default:
     		break;
@@ -107,7 +107,7 @@ public class GstreamOut {
     }
     
     public void setFramerate(int fps) {
-    	nativeSet_FrameRate(fps, sessionId);
+//    	nativeSet_FrameRate(fps, sessionId);
     }
     
     public void setCamStreamName(String name) {
