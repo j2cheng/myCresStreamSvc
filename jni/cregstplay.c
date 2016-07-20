@@ -621,11 +621,51 @@ int build_video_pipeline(gchar *encoding_name, CREGSTREAM *data, unsigned int st
 		}
 		data->element_v[i++] = gst_element_factory_make("queue", NULL);
 		data->element_v[i++] = gst_element_factory_make("jpegparse", NULL);
-		data->element_v[i++] = gst_element_factory_make("jpegdec", NULL);
-		data->element_fake_dec = data->element_v[i-1];
+		
+		if(product_info()->mjpeg_decoder_string[0])
+		{
+			// We are using gstreamer androidmedia plugin to decode mjpeg.
+		    //add a probe for loss of video detection.
+			GstPad *pad;
+			pad = gst_element_get_static_pad( data->element_v[i-1], "src" );
+			if( pad != NULL )
+			{
+				guint video_probe_id = gst_pad_add_probe( pad, GST_PAD_PROBE_TYPE_BUFFER, csio_videoProbe, (void *) &data->streamId, NULL );
+				csio_SetVideoProbeId(data->streamId, video_probe_id);
+				gst_object_unref( pad );
+			}
 
-		*ele0 = data->element_v[0];
-		data->using_glimagsink = 1;
+			data->element_v[i++] = gst_element_factory_make(product_info()->mjpeg_decoder_string, NULL);
+			data->amcvid_dec = data->element_v[i-1];
+
+			csio_SetVpuDecoder(data->amcvid_dec, data->streamId);
+
+			//SET OFSSET to zero for now
+			g_object_set(G_OBJECT(data->amcvid_dec), "ts-offset", 0, NULL);
+
+			//pass surface object to the decoder
+			g_object_set(G_OBJECT(data->element_v[i-1]), "surface-window", data->surface, NULL);
+			CSIO_LOG(eLogLevel_debug, "SET surface-window[0x%x][%d]",data->surface,data->surface);
+
+			*ele0 = data->element_v[0];
+
+			if(data->amcvid_dec && csio_GetWaitDecHas1stVidDelay(data->streamId) == 0)
+			{
+				int sigId = 0;
+				sigId = g_signal_connect(data->amcvid_dec, "crestron-vdec-output", G_CALLBACK(csio_DecVideo1stOutputCB), data->streamId);
+				CSIO_LOG(eLogLevel_debug, "connect to crestron-vdec-output: StreamId[%d],sigHandlerId[%d]",data->streamId,sigId);
+
+				if(sigId)
+					csio_SetWaitDecHas1stVidDelay(data->streamId,1);
+			}
+		}
+		else // No hardware mjpeg decoder
+		{
+			data->element_v[i++] = gst_element_factory_make("jpegdec", NULL);
+			data->element_fake_dec = data->element_v[i-1];
+			*ele0 = data->element_v[0];
+			data->using_glimagsink = 1;
+		}
 	}
 	else if(strcmp(encoding_name, "MPEG4") == 0)
 	{
