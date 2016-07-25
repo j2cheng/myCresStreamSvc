@@ -39,6 +39,8 @@ public:
     char m_frame_rate[MAX_STR_LEN];
     char m_res_x[MAX_STR_LEN];
     char m_res_y[MAX_STR_LEN];
+    char m_bit_rate[MAX_STR_LEN];
+    char m_iframe_interval[MAX_STR_LEN];
 private:
     int  m_projectID;
     Mutex* mLock;

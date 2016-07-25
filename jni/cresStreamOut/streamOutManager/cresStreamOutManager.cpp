@@ -118,6 +118,9 @@ void CStreamoutManager::DumpClassPara(int level)
     CSIO_LOG(eLogLevel_info, "---Streamout: m_res_x %s", m_res_x);
     CSIO_LOG(eLogLevel_info, "---Streamout: m_res_y %s", m_res_y);
     CSIO_LOG(eLogLevel_info, "---Streamout: m_frame_rate %s", m_frame_rate);
+
+    CSIO_LOG(eLogLevel_info, "---Streamout: m_bit_rate %s", m_bit_rate);
+    CSIO_LOG(eLogLevel_info, "---Streamout: m_iframe_interval %s", m_iframe_interval);
 }
 
 //overloaded from base
@@ -193,7 +196,13 @@ void* CStreamoutManager::ThreadEntry()
                                              "video/x-raw,width=%s,height=%s,framerate=%s/1 ! "
                                              "%s ! rtph264pay name=pay0 pt=96 )",
                                              m_res_x,m_res_y,m_frame_rate,
-                                             product_info()->video_encoder_string);
+                                             product_info()->video_encoder_string 
+                                             //todo: replace above three lines with below after getting the default bitrate and iframe interval 
+                                             //"%s bitrate=%s i-frame-interval=%s ! rtph264pay name=pay0 pt=96 )",
+                                             //m_res_x,m_res_y,m_frame_rate,
+                                             //product_info()->video_encoder_string, 
+                                             //m_bit_rate, m_iframe_interval
+                                             );
     }
     CSIO_LOG(m_debugLevel, "Streamout: rtsp server pipeline: [%s]", pipeline);
     gst_rtsp_media_factory_set_launch (factory, pipeline);

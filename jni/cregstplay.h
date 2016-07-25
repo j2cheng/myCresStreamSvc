@@ -143,6 +143,8 @@ typedef struct _CRESSTREAMOUT
     char res_x[125];
     char res_y[125];
     char frame_rate[125];
+    char bitrate[125];
+    char iframe_interval[125];
 
 } CRESSTREAMOUT;
 

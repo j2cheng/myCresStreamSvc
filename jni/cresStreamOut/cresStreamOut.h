@@ -42,6 +42,8 @@ void Streamout_SetPort(char* port);
 void Streamout_SetFrameRate(char* r);
 void Streamout_SetRes_x(char* x);
 void Streamout_SetRes_y(char* y);
+void Streamout_SetBitrate(char* r);
+void Streamout_SetIFrameInterval(char* r);
 
 #ifdef __cplusplus
 }

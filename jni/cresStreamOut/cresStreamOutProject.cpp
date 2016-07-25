@@ -158,6 +158,7 @@ void Streamout_SetPort(char* port)
     gProjectsLock.unlock();
     CSIO_LOG(StreamOutProjDebugLevel, "Streamout: Streamout_SetPort() exit.");
 }
+
 void Streamout_SetFrameRate(char* rate)
 {
     CSIO_LOG(StreamOutProjDebugLevel, "Streamout: Streamout_SetFrameRate() enter");
@@ -174,6 +175,41 @@ void Streamout_SetFrameRate(char* rate)
     gProjectsLock.unlock();
     CSIO_LOG(StreamOutProjDebugLevel, "Streamout: Streamout_SetFrameRate() exit.");
 }
+
+void Streamout_SetBitrate(char* bitrate)
+{
+    CSIO_LOG(StreamOutProjDebugLevel, "Streamout: Streamout_SetBitrate() enter");
+
+    gProjectsLock.lock();
+
+    if(bitrate)
+    {
+        CSIO_LOG(StreamOutProjDebugLevel, "Streamout: set bitrate to [%s].\n", bitrate);
+
+        StreamoutProjectSendEvent(0, STREAMOUT_EVENT_JNI_CMD_BITRATE,strlen(bitrate), bitrate);
+    }
+
+    gProjectsLock.unlock();
+    CSIO_LOG(StreamOutProjDebugLevel, "Streamout: Streamout_SetBitrate() exit.");
+}
+
+void Streamout_SetIFrameInterval(char* iframeinterval)
+{
+    CSIO_LOG(StreamOutProjDebugLevel, "Streamout: Streamout_SetIFrameInterval() enter");
+
+    gProjectsLock.lock();
+
+    if(iframeinterval)
+    {
+        CSIO_LOG(StreamOutProjDebugLevel, "Streamout: set iframeinterval to [%s].\n", iframeinterval);
+
+        StreamoutProjectSendEvent(0, STREAMOUT_EVENT_JNI_CMD_IFRAMEINTERVAL,strlen(iframeinterval), iframeinterval);
+    }
+
+    gProjectsLock.unlock();
+    CSIO_LOG(StreamOutProjDebugLevel, "Streamout: Streamout_SetIFrameInterval() exit.");
+}
+
 void Streamout_SetRes_x(char* res_x)
 {
     CSIO_LOG(StreamOutProjDebugLevel, "Streamout: Streamout_SetRes_x() enter");
@@ -330,6 +366,8 @@ CStreamoutProject::CStreamoutProject(int iId): m_projectID(iId)
     strcpy(m_res_x, DEFAULT_RES_X);
     strcpy(m_res_y, DEFAULT_RES_Y);
     strcpy(m_frame_rate, DEFAULT_FRAME_RATE);
+    strcpy(m_bit_rate, DEFAULT_BIT_RATE);
+    strcpy(m_iframe_interval, DEFAULT_IFRAME_INTERVAL);
 }
 
 CStreamoutProject::~CStreamoutProject()
@@ -365,6 +403,8 @@ void CStreamoutProject::DumpClassPara(int level)
     CSIO_LOG(eLogLevel_info, "--Streamout: m_res_y %s", m_res_y);
     CSIO_LOG(eLogLevel_info, "--Streamout: m_frame_rate %s", m_frame_rate);
 
+    CSIO_LOG(eLogLevel_info, "---Streamout: m_bit_rate %s", m_bit_rate);
+    CSIO_LOG(eLogLevel_info, "---Streamout: m_iframe_interval %s", m_iframe_interval);
 }
 void* CStreamoutProject::ThreadEntry()
 {
@@ -440,6 +480,8 @@ void* CStreamoutProject::ThreadEntry()
                             m_StreamoutTaskObjList[id]->setResX(m_res_x);
                             m_StreamoutTaskObjList[id]->setResY(m_res_y);
                             m_StreamoutTaskObjList[id]->setFrameRate(m_frame_rate);
+                            m_StreamoutTaskObjList[id]->setBitRate(m_bit_rate);
+                            m_StreamoutTaskObjList[id]->setIFrameInterval(m_iframe_interval);
 
                             m_StreamoutTaskObjList[id]->CreateNewThread();
 
@@ -565,6 +607,48 @@ void* CStreamoutProject::ThreadEntry()
                     CSIO_LOG(m_debugLevel, "Streamout: STREAMOUT_EVENT_JNI_CMD_FRAMERATE done.");
                     break;
                 }
+                case STREAMOUT_EVENT_JNI_CMD_BITRATE:
+                {
+                    int id = evntQ.streamout_obj_id;
+                    if( evntQ.buf_size && evntQ.buffPtr)
+                    {
+                        CSIO_LOG(m_debugLevel, "Streamout: call setBitRate streamId[%d],bitrate[%s]",
+                                 id,evntQ.buffPtr);
+
+                        //save for this project
+                        strcpy(m_bit_rate, (char*)evntQ.buffPtr);
+
+                        m_projEventQ->del_Q_buf(evntQ.buffPtr);
+                    }
+                    else
+                    {
+                        CSIO_LOG(m_debugLevel, "Streamout: streamId[%d],bitrate string is null",id);
+                    }
+
+                    CSIO_LOG(m_debugLevel, "Streamout: STREAMOUT_EVENT_JNI_CMD_BITRATE done.");
+                    break;
+                }
+                case STREAMOUT_EVENT_JNI_CMD_IFRAMEINTERVAL:
+                {
+                    int id = evntQ.streamout_obj_id;
+                    if( evntQ.buf_size && evntQ.buffPtr)
+                    {
+                        CSIO_LOG(m_debugLevel, "Streamout: call setIFrameInterval streamId[%d],iframeinterval[%s]",
+                                 id,evntQ.buffPtr);
+
+                        //save for this project
+                        strcpy(m_iframe_interval, (char*)evntQ.buffPtr);
+
+                        m_projEventQ->del_Q_buf(evntQ.buffPtr);
+                    }
+                    else
+                    {
+                        CSIO_LOG(m_debugLevel, "Streamout: streamId[%d],iframeinterval string is null",id);
+                    }
+
+                    CSIO_LOG(m_debugLevel, "Streamout: STREAMOUT_EVENT_JNI_CMD_IFRAMEINTERVAL done.");
+                    break;
+                }
 
                 default:
                     break;
@@ -620,6 +704,8 @@ void CStreamoutProject::sendEvent(EventQueueStruct* pEvntQ)
                 case STREAMOUT_EVENT_JNI_CMD_RES_X:
                 case STREAMOUT_EVENT_JNI_CMD_RES_Y:
                 case STREAMOUT_EVENT_JNI_CMD_FRAMERATE:
+                case STREAMOUT_EVENT_JNI_CMD_BITRATE:
+                case STREAMOUT_EVENT_JNI_CMD_IFRAMEINTERVAL:
                 {
                     evntQ.buffPtr = new char [dataSize + 1];//data might be binary
                     if(evntQ.buffPtr)

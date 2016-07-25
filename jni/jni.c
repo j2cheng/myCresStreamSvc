@@ -297,10 +297,9 @@ void init_custom_data_out(CustomStreamOutData * cdata)
     strcpy(cdata->streamOut[0].res_x, DEFAULT_RES_X);
     strcpy(cdata->streamOut[0].res_y, DEFAULT_RES_Y);
     strcpy(cdata->streamOut[0].frame_rate, DEFAULT_FRAME_RATE);
+    strcpy(cdata->streamOut[0].bitrate, DEFAULT_BIT_RATE);
+    strcpy(cdata->streamOut[0].iframe_interval, DEFAULT_IFRAME_INTERVAL);
 }
-
-
-
 
 /* Quit the main loop, remove the native thread and free resources */
 static void gst_native_finalize (JNIEnv* env, jobject thiz) 
@@ -2779,5 +2778,23 @@ JNIEXPORT void JNICALL Java_com_crestron_txrxservice_GstreamOut_nativeSet_FrameR
 
     Streamout_SetFrameRate(desBuf);
     CSIO_LOG(eLogLevel_debug, "rtsp_server: frame_rate in CresStreamOutDataDB: '%s'", CresStreamOutDataDB->streamOut[0].frame_rate);
+}
+JNIEXPORT void JNICALL Java_com_crestron_txrxservice_GstreamOut_nativeSet_Bitrate(JNIEnv *env, jobject thiz, jint Bitrate, jint sessionId)
+{
+    CSIO_LOG(eLogLevel_debug, "rtsp_server: Using Bitrate: '%d'", Bitrate);
+    char* desBuf = CresStreamOutDataDB->streamOut[sessionId].bitrate;
+    sprintf(desBuf, "%d", Bitrate);
+
+    Streamout_SetBitrate(desBuf);
+    CSIO_LOG(eLogLevel_debug, "rtsp_server: bitrate in CresStreamOutDataDB: '%s'", CresStreamOutDataDB->streamOut[0].bitrate);
+}
+JNIEXPORT void JNICALL Java_com_crestron_txrxservice_GstreamOut_nativeSet_IFrameInterval(JNIEnv *env, jobject thiz, jint IFrameInterval, jint sessionId)
+{
+    CSIO_LOG(eLogLevel_debug, "rtsp_server: Using iFrameInterval: '%d'", IFrameInterval);
+    char* desBuf = CresStreamOutDataDB->streamOut[sessionId].iframe_interval;
+    sprintf(desBuf, "%d", IFrameInterval);
+
+    Streamout_SetIFrameInterval(desBuf);
+    CSIO_LOG(eLogLevel_debug, "rtsp_server: IFrameInterval in CresStreamOutDataDB: '%s'", CresStreamOutDataDB->streamOut[0].iframe_interval);
 }
 /***************************** end of rtsp_server for video streaming out *********************************/

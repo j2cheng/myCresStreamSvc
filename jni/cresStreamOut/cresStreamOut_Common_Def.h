@@ -8,6 +8,8 @@
 #define DEFAULT_RES_X     "1280"
 #define DEFAULT_RES_Y     "720"
 #define DEFAULT_FRAME_RATE "30"
+#define DEFAULT_BIT_RATE        "4194304"    // 4Mbps = 4,194,304 bps
+#define DEFAULT_IFRAME_INTERVAL "15"          // 1 second
 
 #define MAX_STR_LEN    126
 #endif __CRESSTREAMOUTCOMMON_DEF_H__

@@ -42,6 +42,8 @@ public class GstreamOut {
 //    private native void nativeSet_Res_x(int xRes, int sessionId);
 //    private native void nativeSet_Res_y(int yRes, int sessionId);
 //    private native void nativeSet_FrameRate(int frameRate, int sessionId);
+//    private native void nativeSet_Bitrate(int bitrate, int sessionId);
+//    private native void nativeSet_IFrameInterval(int iframeinterval, int sessionId);
     
     private final int sessionId = 0; 	// This is currently always 0
     private long native_custom_data;    // Native code will use this to keep private data
@@ -110,6 +112,14 @@ public class GstreamOut {
 //    	nativeSet_FrameRate(fps, sessionId);
     }
     
+	public void setBitrate(int bitrate) {
+//		nativeSet_Bitrate(bitrate, sessionId);
+	}
+
+	public void setIFrameInterval(int iframeinterval) {
+//		nativeSet_IFrameInterval(iframeinterval, sessionId);
+	}
+			
     public void setCamStreamName(String name) {
     	// TODO: 
     }
@@ -127,6 +137,8 @@ public class GstreamOut {
         setMulticastEnable(streamCtl.userSettings.getCamStreamMulticastEnable());        
         setResolution(streamCtl.userSettings.getCamStreamResolution());
         setFramerate(streamCtl.userSettings.getCamStreamFrameRate());        
+        setBitrate(streamCtl.userSettings.getCamStreamBitrate());        
+        setIFrameInterval(streamCtl.userSettings.getCamStreamIFrameInterval());        
         setCamStreamName(streamCtl.userSettings.getCamStreamName());
         setCamStreamSnapshotName(streamCtl.userSettings.getCamStreamSnapshotName());        
         setCamStreamMulticastAddress(streamCtl.userSettings.getCamStreamMulticastAddress());

@@ -231,6 +231,8 @@ public class UserSettings
 	private int camStreamResolution;
 	private int camStreamFrameRate;
 	private int camStreamPort;
+	private int camStreamBitrate;
+	private int camStreamIFrameInterval;
 	private String camStreamUrl;
 	private String camStreamSnapshotUrl;
 	private String camStreamName;
@@ -320,6 +322,8 @@ public class UserSettings
 		camStreamResolution = 10;
 		camStreamFrameRate	= 30;
 		camStreamPort		= 8554;
+		camStreamBitrate    = 4194304;        //todo: 4Mbps as temp default
+		camStreamIFrameInterval= 15;          //todo: need investigate what unit will be used here
 		camStreamUrl		= "";
 		camStreamSnapshotUrl = "";
 		camStreamName		= "camera";
@@ -1223,6 +1227,22 @@ public class UserSettings
 
 	public void setCamStreamPort(int camStreamPort) {
 		this.camStreamPort = camStreamPort;
+	}
+	
+	public int getCamStreamBitrate() {
+		return camStreamBitrate;
+	}
+
+	public void setCamStreamBitrate(int camStreamBitrate) {
+		this.camStreamBitrate = camStreamBitrate;
+	}
+	
+	public int getCamStreamIFrameInterval() {
+		return camStreamIFrameInterval;
+	}
+
+	public void setCamStreamIFrameInterval(int camStreamIFrameInterval) {
+		this.camStreamIFrameInterval = camStreamIFrameInterval;
 	}
 	
 	public String getCamStreamUrl() {

@@ -40,11 +40,15 @@ public:
     char m_frame_rate[MAX_STR_LEN];
     char m_res_x[MAX_STR_LEN];
     char m_res_y[MAX_STR_LEN];
+    char m_bit_rate[MAX_STR_LEN];
+    char m_iframe_interval[MAX_STR_LEN];
 
     void setPort(char* p){strcpy(m_rtsp_port, p);}
     void setResX(char* x){strcpy(m_res_x, x);}
     void setResY(char* y){strcpy(m_res_y, y);}
     void setFrameRate(char* r){strcpy(m_frame_rate, r);}
+    void setBitRate(char* b){strcpy(m_bit_rate, b);}
+    void setIFrameInterval(char* i){strcpy(m_iframe_interval, i);}
 
 
 private:
