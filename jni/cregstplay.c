@@ -1193,6 +1193,7 @@ void init_custom_data(CustomData * cdata)
 		data->audiosink_ts_offset = 0;
 
 		data->dropAudio = false;
+		data->isStarted = false;
 	}
 }
 

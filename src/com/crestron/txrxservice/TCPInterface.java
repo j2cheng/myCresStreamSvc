@@ -239,6 +239,8 @@ public class TCPInterface extends AsyncTask<Void, Object, Long> {
 	                	int hdmiInEnum = HDMIInputInterface.readResolutionEnum(true);
 	                	streamCtl.setCamera(hdmiInEnum); //no need to restart streams
 	                }
+	                
+	                streamCtl.streamPlay.initUnixSocketState();
                 }
                 
                 // Update csio on hdmi input status

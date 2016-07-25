@@ -119,6 +119,8 @@ typedef struct _CREGSTREAM
 	GstElement *udpsrc_prob_element;
 	struct timespec udpsrc_prob_timer;
 	char sourceIP_addr[32];
+
+	bool isStarted;
 } CREGSTREAM;
 
 /* Structure to contain all our information, so we can pass it to callbacks */

@@ -59,11 +59,18 @@ public class GstreamIn implements StreamInStrategy, SurfaceHolder.Callback {
     private native void			nativeSetLogLevel(int logLevel);
     private native void			nativeSetTcpMode(int tcpMode, int sessionId);
     
+    private native void			nativeInitUnixSocketState();
+    
     public GstreamIn(CresStreamCtrl mContext) {
         Log.e(TAG, "GstreamIN :: Constructor called...!");
         streamCtl = mContext;
         nativeSetStopTimeout(stopTimeout_sec);
         nativeInit();
+    }
+    
+    public void initUnixSocketState()
+    {
+    	nativeInitUnixSocketState();
     }
 
     public static void setServerUrl(String url, int sessionId){

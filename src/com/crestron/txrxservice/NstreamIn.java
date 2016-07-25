@@ -359,4 +359,8 @@ public class NstreamIn implements StreamInStrategy, OnPreparedListener, OnComple
     	// Not needed by gallery player
     }
     
+    public void initUnixSocketState()
+    {
+    	// Not needed by gallery player
+    }
 }

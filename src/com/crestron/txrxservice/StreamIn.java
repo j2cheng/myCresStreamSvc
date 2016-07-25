@@ -22,6 +22,11 @@ public class StreamIn {
 		if (CresStreamCtrl.useGstreamer)
 		GstreamIn.resetStatistics(sessId);
 	}
+	
+	public void initUnixSocketState()
+	{
+		strategy.initUnixSocketState();
+	}
 		
     public void setRtspPort(int port, int sessionId) {
     	strategy.setRtspPort(port, sessionId);
@@ -178,4 +183,5 @@ interface StreamInStrategy{
     public boolean getMediaPlayerStatus();
     public int getMediaPlayerAudioFormatFb();
     public int getMediaPlayerAudiochannelsFb();
+    public void initUnixSocketState();
 }

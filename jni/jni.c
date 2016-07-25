@@ -84,6 +84,10 @@ static jclass *gStreamOut_javaClass_id;
 
 pthread_cond_t stop_completed_sig;
 static int stop_timeout_sec = 1000;
+
+const int c_minSocketLeft = 20;
+const int c_maxNumInitialPorts	= 100;
+static unsigned int *initialPorts = NULL;
 ///////////////////////////////////////////////////////////////////////////////
 void csio_jni_FreeMainContext(int iStreamId);
 
@@ -313,6 +317,12 @@ static void gst_native_finalize (JNIEnv* env, jobject thiz)
 	g_free (cdata);
 	SET_CUSTOM_DATA (env, thiz, custom_data_field_id, NULL);
 	CSIO_LOG(eLogLevel_debug, "Done finalizing");
+
+	if (initialPorts != NULL)
+	{
+		free(initialPorts);
+		initialPorts = NULL;
+	}
 }
 
 /* Set pipeline to PLAYING state */
@@ -325,6 +335,8 @@ void gst_native_play (JNIEnv* env, jobject thiz, jint sessionId)
         CSIO_LOG(eLogLevel_error, "Could not obtain stream pointer for stream %d", sessionId);
         return;
     }
+
+    data->isStarted = true;
 
     if(GetInPausedState(sessionId))
     {
@@ -390,9 +402,60 @@ void csio_jni_remove_probe (int iStreamId)
     data->udpsrc_prob_element = 0;
     data->udpsrc_prob_id = 0;
 }
+
+static bool shouldCloseSockets()
+{
+	int i;
+	bool closeSockets = true;
+
+	for (i = 0; i < MAX_STREAMS; i++)
+	{
+		CREGSTREAM * data = GetStreamFromCustomData(CresDataDB, i);
+		if (data == NULL)
+		{
+			CSIO_LOG(eLogLevel_error, "Failed to obtain CREGSTREAM for index %d", i);
+			return true;
+		}
+
+		if (data->isStarted == true)
+		{
+			closeSockets = false;
+			break;
+		}
+	}
+
+	if (closeSockets == false)
+	{
+		unsigned int fd_count = 0;
+		char buf[64];
+		struct dirent *dp;
+		struct rlimit limit;
+
+		snprintf(buf, 64, "/proc/%i/fd/", getpid());
+
+		DIR *dir = opendir(buf);
+		while ((dp = readdir(dir)) != NULL) {
+			fd_count++;
+		}
+		closedir(dir);
+
+		getrlimit(RLIMIT_NOFILE, &limit);
+
+		if ((limit.rlim_cur - fd_count) < c_minSocketLeft)
+		{
+			CSIO_LOG(eLogLevel_warning, "Warning: Closing sockets before max is reached");
+			closeSockets = true;
+		}
+	}
+
+	return closeSockets;
+}
+
 void csio_jni_cleanup (int iStreamId)
 {
     int i;
+	unsigned int index;
+	int portIndex;
     CREGSTREAM * data = GetStreamFromCustomData(CresDataDB, iStreamId);
 
     if (!data)
@@ -427,6 +490,52 @@ void csio_jni_cleanup (int iStreamId)
     data->using_glimagsink = 0;
 
     csio_jni_FreeMainContext(iStreamId);
+
+
+	if (shouldCloseSockets()) //all streams stopped or near max fd limit
+	{
+		// Close all the AF_UNIX sockets that Android creates when querying DNS
+		// On Jellybean, these sockets were accruing with each connection, eventually exceeding the maximum and crashing csio
+		// Fixes bug#92551
+		// Get the maximum number of file descriptors this process can open
+		struct rlimit limit;
+		getrlimit(RLIMIT_NOFILE, &limit);
+
+		// Don't both checking fd 0, 1, and 2
+		for (index = 3; index < limit.rlim_cur; ++index)
+		{
+			struct sockaddr addr;
+			socklen_t len = sizeof(addr);
+
+			// if ( (this fd is open and is a socket) && (this socket is AF_UNIX) )
+			if ( (getsockname(index, &addr, &len) == 0) && (addr.sa_family == AF_UNIX) )
+			{
+				bool portFound = false;
+
+				for (portIndex =0; portIndex < c_maxNumInitialPorts; portIndex++)
+				{
+					if (initialPorts[portIndex] == index)
+					{
+						portFound = true;
+						break;
+					}
+					else if (initialPorts[portIndex] == 0)
+					{
+						// reached end of initialPorts
+						portFound = false;
+						break;
+					}
+				}
+
+
+				if (!portFound)
+				{
+					CSIO_LOG(eLogLevel_debug, "Closing socket fd %d\n", index);
+					close(index);
+				}
+			}
+		}
+	}
 }
 
 void * jni_stop (void * arg)
@@ -484,6 +593,13 @@ void csio_jni_stop(int sessionId)
 /* Set pipeline to PAUSED state */
 void gst_native_stop (JNIEnv* env, jobject thiz, jint sessionId, jint stopTimeout_sec)
 {
+	CREGSTREAM * data = GetStreamFromCustomData(CresDataDB, sessionId);
+
+	if (data)
+		data->isStarted = false;
+	else
+		CSIO_LOG(eLogLevel_error, "Could not obtain stream pointer for stream %d, failed to set isStarted state", sessionId);
+
 	csio_jni_stop((int)sessionId);
 }
 
@@ -918,6 +1034,39 @@ JNIEXPORT void JNICALL Java_com_crestron_txrxservice_GstreamIn_nativeSetTcpMode(
 
     csio_SetRtspNetworkMode(sessionId,tcpMode);
 }
+
+JNIEXPORT void JNICALL Java_com_crestron_txrxservice_GstreamIn_nativeInitUnixSocketState(JNIEnv *env, jobject thiz)
+{
+	int i;
+
+	//Store all open AF_UNIX ports before starting Gstreamer so that we don't kill on cleanup
+	struct rlimit limit;
+	getrlimit(RLIMIT_NOFILE, &limit);
+
+	unsigned initialPortIndex =0;
+	initialPorts = (unsigned int *)malloc(sizeof(unsigned int) * c_maxNumInitialPorts);
+
+	memset(initialPorts, 0, (sizeof(unsigned int) * c_maxNumInitialPorts));
+
+	// Don't bother checking fd 0, 1, and 2
+	for (i = 3; i < limit.rlim_cur; ++i)
+	{
+		struct sockaddr addr;
+		socklen_t len = sizeof(addr);
+
+		// if ( (this fd is open and is a socket) && (this socket is AF_UNIX) )
+		if ( (getsockname(i, &addr, &len) == 0) && (addr.sa_family == AF_UNIX) )
+		{
+			if (initialPortIndex < c_maxNumInitialPorts)
+			{
+				initialPorts[initialPortIndex++] = i;
+			}
+			else
+				CSIO_LOG(eLogLevel_error, "ERROR: ran out of sockets to store, increase array size!!!!\n");
+		}
+	}
+}
+
 JNIEXPORT void JNICALL Java_com_crestron_txrxservice_GstreamIn_nativeSetFieldDebugJni(JNIEnv *env, jobject thiz, jstring cmd_jstring, jint sessionId)
 {
     int iStringLen = 0;
