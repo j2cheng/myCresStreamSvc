@@ -1624,9 +1624,6 @@ void JNI_OnUnload(JavaVM *vm, void *reserved)
     free(currentSettingsDB);
 }
 
-//#include "cregstplay.c"
-
-
 int csio_IpLinkClientConnected()
 {
 	return 1;

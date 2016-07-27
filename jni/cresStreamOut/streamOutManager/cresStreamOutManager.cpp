@@ -18,7 +18,8 @@
 ///////////////////////////////////////////////////////////////////////////////
 
 #include "cresStreamOutManager.h"
-#define OVERLOAD_CRES_MEDIA_CLASS 1
+#define CRES_OVERLOAD_MEDIA_CLASS 1
+#define CRES_UNPREPARE_MEDIA      1
 
 ///////////////////////////////////////////////////////////////////////////////
 // Allow file to override canned pipeline, for debugging...
@@ -29,21 +30,14 @@ static bool gst_rtsp_server_get_pipeline(char * pDest, int destSize)
     FILE * pf;
 
     pf = fopen("/dev/shm/rtsp_server_pipeline", "r");
-    if(!pf)
+    if(pf)
     {
-        // Because camera on x60 is front-facing, it is mirrored by default for the preview.
-        // Old default pipeline (with video flipping) "( ahcsrc ! videoflip method=4 ! videoconvert ! %s ! rtph264pay name=pay0 pt=96 )"
-        // Enabled NV21 pixel format in libgstreamer_android.so, don't need videoconvert anymore.
-        //"( ahcsrc ! videoconvert ! %s ! rtph264pay name=pay0 pt=96 )"
-        snprintf(pDest, destSize, "( ahcsrc name=cressrc ! video/x-raw,width=1280,height=720,framerate=15/1 ! "
-                                  "%s ! rtph264pay name=pay0 pt=96 )",
-                                  product_info()->video_encoder_string);
-
-        return false;
+        fgets(pDest, destSize, pf);
+        fclose(pf);
+        return true;
     }
-    fgets(pDest, destSize, pf);
-    fclose(pf);
-    return true;
+
+    return false;
 }
 
 
@@ -60,7 +54,7 @@ media_configure (GstRTSPMediaFactory * factory, GstRTSPMedia * media,
   gchar * n = gst_element_get_name(element);
   CSIO_LOG(eLogLevel_debug, "Streamout: element name[%s] of media[0x%x]",n,media);
 
-  /* get our ahcsrc, we named it 'mysrc' with the name property */
+  /* get our ahcsrc, we named it 'cressrc' with the name property */
   ahcsrc = gst_bin_get_by_name_recurse_up (GST_BIN (element), "cressrc");
   CSIO_LOG(eLogLevel_debug, "Streamout: get_by_name ahcsrc[%p]",ahcsrc);
 
@@ -73,6 +67,13 @@ media_configure (GstRTSPMediaFactory * factory, GstRTSPMedia * media,
   gst_object_unref (ahcsrc);
   gst_object_unref (element);
   g_free(n);
+}
+
+static GstRTSPFilterResult
+filter_cb (GstRTSPStream *stream, GstRTSPStreamTransport *trans,gpointer user_data)
+{
+    CSIO_LOG(eLogLevel_info, "Streamout: filter_cb-------stream[0x%x]---",stream);
+    return GST_RTSP_FILTER_REMOVE;
 }
 
 /**********************CStreamoutManager class implementation***************************************/
@@ -131,6 +132,9 @@ void CStreamoutManager::exitThread()
 
     if(m_loop)
     {
+        if(m_factory)
+            gst_rtsp_media_factory_set_eos_shutdown (m_factory, TRUE);
+
         g_main_loop_quit(m_loop);
         CSIO_LOG(m_debugLevel, "Streamout: g_main_loop_quit returned");
     }
@@ -141,12 +145,14 @@ void CStreamoutManager::exitThread()
 }
 void* CStreamoutManager::ThreadEntry()
 {
+    char pipeline[1024];
+    guint server_id;
     GMainContext*        context = NULL;
     GstRTSPServer *      server  = NULL;
     GstRTSPMountPoints * mounts  = NULL;
-    GstRTSPMediaFactory *factory = NULL;
-    char pipeline[1024];
-    guint server_id;
+    GSource *  server_source     = NULL;
+
+    m_factory = NULL;
 
     //create new context
     context = g_main_context_new ();
@@ -183,8 +189,8 @@ void* CStreamoutManager::ThreadEntry()
         CSIO_LOG(eLogLevel_error, "Streamout: Failed to create server mounts");
         goto exitThread;
     }
-    factory = gst_rtsp_media_factory_new ();
-    if(!factory)
+    m_factory = gst_rtsp_media_factory_new ();
+    if(!m_factory)
     {
         CSIO_LOG(eLogLevel_error, "Streamout: Failed to create factory");
         goto exitThread;
@@ -192,43 +198,101 @@ void* CStreamoutManager::ThreadEntry()
 
     if(gst_rtsp_server_get_pipeline(pipeline, sizeof(pipeline)) == false)
     {
+        // Because camera on x60 is front-facing, it is mirrored by default for the preview.
+        // Old default pipeline (with video flipping) "( ahcsrc ! videoflip method=4 ! videoconvert ! %s ! rtph264pay name=pay0 pt=96 )"
+        // Enabled NV21 pixel format in libgstreamer_android.so, don't need videoconvert anymore.
+        //"( ahcsrc ! videoconvert ! %s ! rtph264pay name=pay0 pt=96 )"
         snprintf(pipeline, sizeof(pipeline), "( ahcsrc name=cressrc ! "
                                              "video/x-raw,width=%s,height=%s,framerate=%s/1 ! "
-                                             "%s ! rtph264pay name=pay0 pt=96 )",
+                                             "%s bitrate=%s i-frame-interval=%s ! "
+                                             "rtph264pay name=pay0 pt=96 )",
                                              m_res_x,m_res_y,m_frame_rate,
-                                             product_info()->video_encoder_string 
-                                             //todo: replace above three lines with below after getting the default bitrate and iframe interval 
-                                             //"%s bitrate=%s i-frame-interval=%s ! rtph264pay name=pay0 pt=96 )",
-                                             //m_res_x,m_res_y,m_frame_rate,
-                                             //product_info()->video_encoder_string, 
-                                             //m_bit_rate, m_iframe_interval
-                                             );
+                                             product_info()->video_encoder_string,
+                                             m_bit_rate,m_iframe_interval);
     }
     CSIO_LOG(m_debugLevel, "Streamout: rtsp server pipeline: [%s]", pipeline);
-    gst_rtsp_media_factory_set_launch (factory, pipeline);
+    gst_rtsp_media_factory_set_launch (m_factory, pipeline);
 
     /* notify when our media is ready, This is called whenever someone asks for
        * the media and a new pipeline with our appsrc is created */
-    g_signal_connect (factory, "media-configure", (GCallback) media_configure,this);
+    g_signal_connect (m_factory, "media-configure", (GCallback) media_configure,this);
 
-    gst_rtsp_media_factory_set_shared (factory, TRUE);
+    gst_rtsp_media_factory_set_shared (m_factory, TRUE);
 
-#ifdef OVERLOAD_CRES_MEDIA_CLASS    
-    gst_rtsp_media_factory_set_media_gtype (factory, CRES_TYPE_RTSP_MEDIA);
+#ifdef CRES_OVERLOAD_MEDIA_CLASS
+    gst_rtsp_media_factory_set_media_gtype (m_factory, CRES_TYPE_RTSP_MEDIA);
 #endif
 
-    gst_rtsp_mount_points_add_factory (mounts, "/live.sdp", factory);
+    gst_rtsp_mount_points_add_factory (mounts, "/live.sdp", m_factory);
     g_object_unref (mounts);
-    server_id = gst_rtsp_server_attach(server, g_main_loop_get_context(m_loop));
-    CSIO_LOG(m_debugLevel, "Streamout: Attach to rtsp server returned server_id %u", server_id);
+
+//correct way to create source and attatch to mainloop
+    server_source = gst_rtsp_server_create_source(server,NULL,NULL);
+    if(server_source)
+    {
+        CSIO_LOG(m_debugLevel, "Streamout: create_source , server_source [0x%x]", server_source);
+    }
+    else
+    {
+        CSIO_LOG(eLogLevel_error, "Streamout: Failed to create_source");
+        goto exitThread;
+    }
+    server_id = g_source_attach (server_source, g_main_loop_get_context(m_loop));
+    
+    if(server_id)
+    {
+        CSIO_LOG(m_debugLevel, "Streamout: Attached server to maincontext, server_id %u", server_id);
+    }
+    else
+    {
+        CSIO_LOG(eLogLevel_error, "Streamout: Failed to attach server");
+        goto exitThread;
+    }
 
     m_main_loop_is_running = 1;
     g_main_loop_run (m_loop);
 
 exitThread:
     /* cleanup */
+
+#ifdef CRES_UNPREPARE_MEDIA
+/*   please check out this bug: https://bugzilla.gnome.org/show_bug.cgi?id=747801
+ *   if it is fixed, we should take it. */
+
+    if(m_pMedia)
+    {
+        gst_rtsp_media_suspend (m_pMedia);
+
+        //remove stream from session before unprepare media
+        guint i, n_streams;
+        n_streams = gst_rtsp_media_n_streams (m_pMedia);
+        CSIO_LOG(m_debugLevel, "Streamout: -------n_streams[%d]---",n_streams);
+
+        for (i = 0; i < n_streams; i++)
+        {
+            GstRTSPStream *stream = gst_rtsp_media_get_stream (m_pMedia, i);            
+
+            if (stream == NULL)  continue;
+
+            gst_rtsp_stream_transport_filter (stream, filter_cb, NULL);
+        }
+
+        CSIO_LOG(m_debugLevel, "Streamout: -------call gst_rtsp_media_unprepare---");
+        gst_rtsp_media_unprepare (m_pMedia);       
+     }
+#endif
+
+/* You must use g_source_destroy() for sources added to a non-default main context.  */
+    if(server_source)
+    {
+        /*You must use g_source_destroy() for sources added to a non-default main context.*/
+        g_source_destroy (server_source);
+        g_source_unref(server_source);
+        CSIO_LOG(m_debugLevel, "Streamout: g_source_destroy server_source[0x%x]",server_source);
+    }
+
+    if(m_factory) g_object_unref (m_factory);
     if(server) g_object_unref (server);
-    if(factory) g_object_unref (factory);
     if(m_loop) g_main_loop_unref (m_loop);
 
     //need to create a cleanup function and call here

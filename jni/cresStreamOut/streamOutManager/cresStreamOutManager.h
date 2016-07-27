@@ -50,6 +50,7 @@ public:
     void setBitRate(char* b){strcpy(m_bit_rate, b);}
     void setIFrameInterval(char* i){strcpy(m_iframe_interval, i);}
 
+    GstRTSPMediaFactory *m_factory;
 
 private:
     Mutex* mLock;

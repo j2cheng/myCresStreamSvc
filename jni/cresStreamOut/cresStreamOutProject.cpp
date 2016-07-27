@@ -403,8 +403,8 @@ void CStreamoutProject::DumpClassPara(int level)
     CSIO_LOG(eLogLevel_info, "--Streamout: m_res_y %s", m_res_y);
     CSIO_LOG(eLogLevel_info, "--Streamout: m_frame_rate %s", m_frame_rate);
 
-    CSIO_LOG(eLogLevel_info, "---Streamout: m_bit_rate %s", m_bit_rate);
-    CSIO_LOG(eLogLevel_info, "---Streamout: m_iframe_interval %s", m_iframe_interval);
+    CSIO_LOG(eLogLevel_info, "--Streamout: m_bit_rate %s", m_bit_rate);
+    CSIO_LOG(eLogLevel_info, "--Streamout: m_iframe_interval %s", m_iframe_interval);
 }
 void* CStreamoutProject::ThreadEntry()
 {
