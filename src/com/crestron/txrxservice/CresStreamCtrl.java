@@ -2586,7 +2586,8 @@ public class CresStreamCtrl extends Service {
     	}
     	else
     	{
-    		airMedia.quit();
+    		if (airMedia != null)
+    			airMedia.quit();
     	}
     }
     
