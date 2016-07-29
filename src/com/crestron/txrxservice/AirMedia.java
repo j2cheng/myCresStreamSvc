@@ -44,12 +44,12 @@ public class AirMedia
             // Set z-order and display
             setWindowFlag(mStreamCtl.userSettings.getAirMediaWindowFlag());
             setDisplayScreen(mStreamCtl.userSettings.getAirMediaDisplayScreen());
+
+            // Show/Hide display items based on current settings
+            intializeDisplay();
             
             //show surface
             setSurfaceSize(x,y,width,height, true);
-            
-            // Show/Hide display items based on current settings
-            intializeDisplay();
         } else {
         	Log.e(TAG, "Failed to launch Airmedia!");
         }
@@ -403,8 +403,8 @@ public class AirMedia
     public void setSurfaceSize(int x, int y, int width, int height, boolean launch)
     {
     	Intent i = new Intent(commandIntent);
-    	i.putExtra("full_screen", (int)0);
     	i.putExtra("command", "set_receiver_size");
+    	i.putExtra("full_screen", (int)0);    	
     	i.putExtra("full_screen", (int)0);
     	i.putExtra("x", x);
     	i.putExtra("y", y);
