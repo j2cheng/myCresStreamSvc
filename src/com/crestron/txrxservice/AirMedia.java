@@ -1,8 +1,5 @@
 package com.crestron.txrxservice;
 
-import java.io.DataOutputStream;
-
-import android.app.ActivityOptions;
 import android.content.BroadcastReceiver;
 import android.content.ContentResolver;
 import android.content.Context;
@@ -44,6 +41,10 @@ public class AirMedia
 //            intent.putExtra("login_code", (int)2266);
             mContext.startActivity(intent);
             
+            // Set z-order and display
+            setWindowFlag(mStreamCtl.userSettings.getAirMediaWindowFlag());
+            setDisplayScreen(mStreamCtl.userSettings.getAirMediaDisplayScreen());
+            
             //show surface
             setSurfaceSize(x,y,width,height, true);
             
@@ -72,15 +73,14 @@ public class AirMedia
     			// Therefore we will run all commands through a worker thread
     			new Thread(new Runnable() {
     				public void run() {
-    					Log.e(TAG, "RS: Received airMedia feedback!!!!");
     					Bundle bundle = paramAnonymousIntent.getExtras();
     					for (String key : bundle.keySet()) {
     					    Object value = bundle.get(key);
-    					    Log.e(TAG, String.format("RS: %s %s (%s)", key,  
+    					    Log.d(TAG, String.format("Received airMedia feedback: %s %s (%s)", key,  
     					        value.toString(), value.getClass().getName()));
     					}
     					String eventName = paramAnonymousIntent.getStringExtra("event");
-    					Log.e(TAG, "RS: event name = " + eventName);
+
     					if (eventName.equals("sender_login"))
     					{
     						int senderId = paramAnonymousIntent.getIntExtra("sender_id", -1);
@@ -92,19 +92,17 @@ public class AirMedia
     						else
     							Log.w(TAG, "Received invalid sender Id of " + senderId);
     						
-    						Log.e(TAG, "RS: Received sender_login");
     					}
     					else if (eventName.equals("sender_logout"))
     					{
     						int senderId = paramAnonymousIntent.getIntExtra("sender_id", -1);
     						if ((senderId > 0) && (senderId <= 32))
     						{
-    							mStreamCtl.userSettings.setAirMediaUserConnected(false, senderId - 1);
+    							mStreamCtl.userSettings.setAirMediaUserConnected(false, senderId);
     							mStreamCtl.sendAirMediaNumberUserConnected();
     						}
     						else
     							Log.w(TAG, "Received invalid sender Id of " + senderId);
-    						Log.e(TAG, "RS: Received sender_logout");
     					}
     					else if (eventName.equals("start_play_done"))
     					{
@@ -114,7 +112,6 @@ public class AirMedia
     					}
     					else if (eventName.equals("provider_change"))
     					{
-    						Log.e(TAG, "RS: Received provider_change");
     						querySenderList(false);
     					}
     					else if (eventName.equals("set_display_error"))

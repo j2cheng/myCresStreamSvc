@@ -36,6 +36,7 @@ import android.util.Log;
 import android.app.Service;
 import android.os.IBinder;
 import android.view.SurfaceView;
+import android.view.WindowManager;
 import android.widget.Toast;
 import android.content.Context;
 import android.os.AsyncTask;
@@ -45,15 +46,18 @@ import android.content.IntentFilter;
 import android.content.BroadcastReceiver;
 import android.media.AudioManager;
 import android.view.Surface;
+import android.view.Display;
 import android.view.Gravity;
 import android.view.SurfaceHolder;
 import android.view.SurfaceHolder.Callback;
 import android.graphics.Canvas;
 import android.graphics.PixelFormat;
+import android.graphics.Point;
 import android.graphics.Rect;
 import android.hardware.Camera;
 import android.app.Activity;
 import android.app.Notification;
+import android.hardware.display.DisplayManager;
 
 import com.crestron.txrxservice.CresStreamCtrl.StreamState;
 import com.crestron.txrxservice.ProductSpecific;
@@ -2543,9 +2547,32 @@ public class CresStreamCtrl extends Service {
     		int x, y, width, height;
     		if (fullscreen)
     		{
+    			WindowManager wm = (WindowManager) this.getSystemService(Context.WINDOW_SERVICE);
+    			Log.e(TAG, "RS: fullscreen true");
+    			
+    			if (haveExternalDisplays)
+    			{
+	    			DisplayManager dm = (DisplayManager) getApplicationContext().getSystemService(Context.DISPLAY_SERVICE);
+	    	        if (dm != null){
+	    	            Display dispArray[] = dm.getDisplays();
+	    	            if (dispArray.length>1){
+	    	                Context displayContext = getApplicationContext().createDisplayContext(dispArray[1]);
+	    	                wm = (WindowManager)displayContext.getSystemService(Context.WINDOW_SERVICE);
+	    	            }
+	    	        }
+	    	        else
+	    	        {
+	    	        	Log.e(TAG, "Unable to query second display size, using primary display");
+	    	        }
+    			}	
+
+				Display display = wm.getDefaultDisplay();
+    			Point size = new Point();
+    			display.getSize(size);
+
+    			width = size.x;
+    			height = size.y;    			
 	    		x = y = 0;
-	    		width = Integer.parseInt(hdmiOutput.getHorizontalRes());
-	            height = Integer.parseInt(hdmiOutput.getVerticalRes());
     		}
     		else
     		{

@@ -1062,42 +1062,52 @@ public class UserSettings
 	}
 
 	public boolean getAirMediaDisconnectUser(int userId) {
+		userId--; // We want user Id 0 based when saving
 		return airMediaDisconnectUser[userId];
 	}
 
 	public void setAirMediaDisconnectUser(boolean airMediaDisconnectUser, int userId) {
+		userId--; // We want user Id 0 based when saving
 		this.airMediaDisconnectUser[userId] = airMediaDisconnectUser;
 	}
 
 	public boolean getAirMediaStartUser(int userId) {
+		userId--; // We want user Id 0 based when saving
 		return airMediaStartUser[userId];
 	}
 
 	public void setAirMediaStartUser(boolean airMediaStartUser, int userId) {
+		userId--; // We want user Id 0 based when saving
 		this.airMediaStartUser[userId] = airMediaStartUser;
 	}
 
 	public int getAirMediaUserPosition(int userId) {
+		userId--; // We want user Id 0 based when saving
 		return airMediaUserPosition[userId];
 	}
 
 	public void setAirMediaUserPosition(int airMediaUserPosition, int userId) {
+		userId--; // We want user Id 0 based when saving
 		this.airMediaUserPosition[userId] = airMediaUserPosition;
 	}
 
 	public boolean getAirMediaStopUser(int userId) {
+		userId--; // We want user Id 0 based when saving
 		return airMediaStopUser[userId];
 	}
 
 	public void setAirMediaStopUser(boolean airMediaStopUser, int userId) {
+		userId--; // We want user Id 0 based when saving
 		this.airMediaStopUser[userId] = airMediaStopUser;
 	}
 	
 	public boolean getAirMediaUserConnected(int userId) {
+		userId--; // We want user Id 0 based when saving
 		return airMediaUserConnected[userId];
 	}
 	
 	public void setAirMediaUserConnected(boolean userConnected, int userId) {
+		userId--; // We want user Id 0 based when saving
 		this.airMediaUserConnected[userId] = userConnected;
 	}
 
