@@ -100,7 +100,7 @@ public class CresStreamCtrl extends Service {
 
     CresDisplaySurface dispSurface;
     
-    AirMedia airMedia = null;
+    AirMedia mAirMedia = null;
     
     final int cameraRestartTimout = 1000;//msec
     static int hpdHdmiEvent = 0;
@@ -2543,7 +2543,7 @@ public class CresStreamCtrl extends Service {
     	if (val == true) // True = launch airmedia app, false = close app
     	{
     		// Do I need to stop all video here???
-    		airMedia = new AirMedia(this);
+    		mAirMedia = new AirMedia(this);
     		int x, y, width, height;
     		if (fullscreen)
     		{
@@ -2582,12 +2582,15 @@ public class CresStreamCtrl extends Service {
     			height = userSettings.getAirMediaHeight();
     		}
     		
-    		airMedia.launch(x, y, width, height);
+    		mAirMedia.launch(x, y, width, height);
     	}
     	else
     	{
-    		if (airMedia != null)
-    			airMedia.quit();
+    		if (mAirMedia != null)
+    		{
+    			mAirMedia.quit();
+    			mAirMedia = null;
+    		}
     	}
     }
     
@@ -2598,13 +2601,13 @@ public class CresStreamCtrl extends Service {
     	userSettings.setAirMediaLoginCode(loginCode);
     	userSettings.setAirMediaLoginMode(AirMediaLoginMode.Fixed.ordinal()); // When loginCode is set auto switch to fixed mode
     	
-    	if (airMedia != null)
+    	if (mAirMedia != null)
     	{
-	    	airMedia.setLoginCode(userSettings.getAirMediaLoginCode());
+	    	mAirMedia.setLoginCode(userSettings.getAirMediaLoginCode());
 	    	
 	    	if (userSettings.getAirMediaDisplayLoginCode())
 			{
-	    		airMedia.showLoginCodePrompt(loginCode);
+	    		mAirMedia.showLoginCodePrompt(loginCode);
 			}
     	}
 
@@ -2619,33 +2622,33 @@ public class CresStreamCtrl extends Service {
 		if (loginMode == AirMediaLoginMode.Disabled.ordinal())
     	{
 			userSettings.setAirMediaLoginCode(0);
-			if (airMedia != null)
+			if (mAirMedia != null)
 	    	{
-	    		airMedia.setLoginCode(0);
-	    		airMedia.hideLoginCodePrompt();
+	    		mAirMedia.setLoginCode(0);
+	    		mAirMedia.hideLoginCodePrompt();
 	    	}
     	}
 		else if (loginMode == AirMediaLoginMode.Random.ordinal())
     	{
     		int rand = (int)(Math.random() * 9999 + 1); 
     		userSettings.setAirMediaLoginCode(rand);
-    		if (airMedia != null)
+    		if (mAirMedia != null)
 	    	{
-	    		airMedia.setLoginCode(rand);
+	    		mAirMedia.setLoginCode(rand);
 	    		if (userSettings.getAirMediaDisplayLoginCode())
 	    		{
-	    			airMedia.showLoginCodePrompt(rand);
+	    			mAirMedia.showLoginCodePrompt(rand);
 	    		}
 	    	}
     	}
 		else if(loginMode == AirMediaLoginMode.Fixed.ordinal())
     	{
-			if (airMedia != null)
+			if (mAirMedia != null)
 	    	{
-	    		airMedia.setLoginCode(userSettings.getAirMediaLoginCode());
+	    		mAirMedia.setLoginCode(userSettings.getAirMediaLoginCode());
 	    		if (userSettings.getAirMediaDisplayLoginCode())
 	    		{
-	    			airMedia.showLoginCodePrompt(userSettings.getAirMediaLoginCode());
+	    			mAirMedia.showLoginCodePrompt(userSettings.getAirMediaLoginCode());
 	    		}
 	    	}
     	}
@@ -2656,15 +2659,15 @@ public class CresStreamCtrl extends Service {
     public void setAirMediaDisplayLoginCode(boolean display, int sessid)
     {
     	userSettings.setAirMediaDisplayLoginCode(display);
-    	if (airMedia != null)
+    	if (mAirMedia != null)
     	{
 	    	if ((display) && (userSettings.getAirMediaLoginMode() != AirMediaLoginMode.Disabled.ordinal()))
 	    	{
-	    		airMedia.showLoginCodePrompt(userSettings.getAirMediaLoginCode());
+	    		mAirMedia.showLoginCodePrompt(userSettings.getAirMediaLoginCode());
 	    	}
 	    	else
 	    	{
-	    		airMedia.hideLoginCodePrompt();
+	    		mAirMedia.hideLoginCodePrompt();
 	    	}
     	}
     }
@@ -2672,26 +2675,26 @@ public class CresStreamCtrl extends Service {
     public void setAirMediaModerator(boolean enable, int sessId)
     {
     	userSettings.setAirMediaModerator(enable);
-    	if (airMedia != null)
+    	if (mAirMedia != null)
     	{
-    		airMedia.setModeratorEnable(enable);
+    		mAirMedia.setModeratorEnable(enable);
     	}
     }
     
     public void setAirMediaResetConnections(boolean enable, int sessId)
     {
-    	if ((enable) && (airMedia != null))
+    	if ((enable) && (mAirMedia != null))
     	{
-    		airMedia.resetConnections();
+    		mAirMedia.resetConnections();
     	}
     }
     
     public void setAirMediaDisconnectUser(int userId, boolean enable, int sessId)
     {
     	userSettings.setAirMediaDisconnectUser(enable, userId);
-    	if ((enable) && (airMedia != null))
+    	if ((enable) && (mAirMedia != null))
     	{
-    		airMedia.disconnectUser(userId);
+    		mAirMedia.disconnectUser(userId);
     	}
     }
     
@@ -2702,12 +2705,12 @@ public class CresStreamCtrl extends Service {
     
     public void setAirMediaUserPosition(int userId, int position, int sessId)
     {
-    	if (airMedia != null)
+    	if (mAirMedia != null)
     	{
     		if (position == 0)
-    			airMedia.stopUser(userId);
+    			mAirMedia.stopUser(userId);
     		else
-    			airMedia.setUserPosition(userId, position);
+    			mAirMedia.setUserPosition(userId, position);
     	}
     }
     
@@ -2725,18 +2728,18 @@ public class CresStreamCtrl extends Service {
     public void setAirMediaIpAddressPrompt(boolean enable, int sessId)
     {
     	userSettings.setAirMediaIpAddressPrompt(enable);
-    	if (airMedia != null)
+    	if (mAirMedia != null)
     	{
-    		airMedia.setIpAddressPrompt(enable);
+    		mAirMedia.setIpAddressPrompt(enable);
     	}
     }
     
     public void setAirMediaDomainNamePrompt(boolean enable, int sessId)
     {
     	userSettings.setAirMediaDomainNamePrompt(enable);
-    	if (airMedia != null)
+    	if (mAirMedia != null)
     	{
-    		airMedia.setDomainNamePrompt(enable);
+    		mAirMedia.setDomainNamePrompt(enable);
     	}
     }
     
@@ -2746,9 +2749,9 @@ public class CresStreamCtrl extends Service {
     	userSettings.setAirMediaY(y);
     	userSettings.setAirMediaWidth(width);
     	userSettings.setAirMediaHeight(height);
-    	if (airMedia != null)
+    	if (mAirMedia != null)
     	{
-    		airMedia.setSurfaceSize(x, y, width, height, false);
+    		mAirMedia.setSurfaceSize(x, y, width, height, false);
     	}
     }
     
@@ -2758,9 +2761,9 @@ public class CresStreamCtrl extends Service {
     	int y = userSettings.getAirMediaY();
     	int width = userSettings.getAirMediaWidth();
 		int height = userSettings.getAirMediaHeight();
-    	if (airMedia != null)
+    	if (mAirMedia != null)
     	{
-    		airMedia.setSurfaceSize(x, y, width, height, false);
+    		mAirMedia.setSurfaceSize(x, y, width, height, false);
     	}
     }
     
@@ -2770,9 +2773,9 @@ public class CresStreamCtrl extends Service {
     	int x = userSettings.getAirMediaX();    	
     	int width = userSettings.getAirMediaWidth();
 		int height = userSettings.getAirMediaHeight();
-    	if (airMedia != null)
+    	if (mAirMedia != null)
     	{
-    		airMedia.setSurfaceSize(x, y, width, height, false);
+    		mAirMedia.setSurfaceSize(x, y, width, height, false);
     	}
     }
     
@@ -2782,9 +2785,9 @@ public class CresStreamCtrl extends Service {
     	int x = userSettings.getAirMediaX();    	
     	int y = userSettings.getAirMediaY();
 		int height = userSettings.getAirMediaHeight();
-    	if (airMedia != null)
+    	if (mAirMedia != null)
     	{
-    		airMedia.setSurfaceSize(x, y, width, height, false);
+    		mAirMedia.setSurfaceSize(x, y, width, height, false);
     	}
     }
     
@@ -2794,9 +2797,9 @@ public class CresStreamCtrl extends Service {
     	int x = userSettings.getAirMediaX();    	
     	int y = userSettings.getAirMediaY();
     	int width = userSettings.getAirMediaWidth();
-    	if (airMedia != null)
+    	if (mAirMedia != null)
     	{
-    		airMedia.setSurfaceSize(x, y, width, height, false);
+    		mAirMedia.setSurfaceSize(x, y, width, height, false);
     	}
     }
     
@@ -2819,28 +2822,28 @@ public class CresStreamCtrl extends Service {
     {
     	if (apply)
     	{
-    		if (airMedia != null)
+    		if (mAirMedia != null)
         	{
-        		airMedia.setOsdImage(userSettings.getAirMediaOsdImage());
+        		mAirMedia.setOsdImage(userSettings.getAirMediaOsdImage());
         	}
     	}
     }
     
     public void airMediaSetDisplayScreen(int displayId, int sessId)
     {
-    	if (airMedia != null)
+    	if (mAirMedia != null)
     	{
     		userSettings.setAirMediaDisplayScreen(displayId);
-    		airMedia.setDisplayScreen(displayId);
+    		mAirMedia.setDisplayScreen(displayId);
     	}
     }
     
     public void airMediaSetWindowFlag(int windowFlag, int sessId)
     {
-    	if (airMedia != null)
+    	if (mAirMedia != null)
     	{
     		userSettings.setAirMediaWindowFlag(windowFlag);
-    		airMedia.setWindowFlag(windowFlag);
+    		mAirMedia.setWindowFlag(windowFlag);
     	}
     }
     
@@ -2913,9 +2916,9 @@ public class CresStreamCtrl extends Service {
     
     public void airMediaUserFeedbackUpdateRequest(int sessId)
     {
-    	if (airMedia != null)
+    	if (mAirMedia != null)
     	{
-    		airMedia.querySenderList(true);
+    		mAirMedia.querySenderList(true);
     	}
     }
     
@@ -2939,7 +2942,7 @@ public class CresStreamCtrl extends Service {
     {
     	// TODO: send on update request
     	int numberUserConnected = 0;
-    	for (int i = 0; i < 32; i++)
+    	for (int i = 1; i <= 32; i++) // We handle airMedia user ID as 1 based
     	{
     		if (userSettings.getAirMediaUserConnected(i))
     			numberUserConnected++;

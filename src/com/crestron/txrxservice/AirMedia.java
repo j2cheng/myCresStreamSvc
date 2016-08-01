@@ -86,7 +86,7 @@ public class AirMedia
     						int senderId = paramAnonymousIntent.getIntExtra("sender_id", -1);
     						if ((senderId > 0) && (senderId <= 32))
     						{
-    							mStreamCtl.userSettings.setAirMediaUserConnected(true, senderId - 1);
+    							mStreamCtl.userSettings.setAirMediaUserConnected(true, senderId);
     							mStreamCtl.sendAirMediaNumberUserConnected();
     						}
     						else
