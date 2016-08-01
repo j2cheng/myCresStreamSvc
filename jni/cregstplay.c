@@ -624,6 +624,7 @@ int build_video_pipeline(gchar *encoding_name, CREGSTREAM *data, unsigned int st
 		
 		if(product_info()->mjpeg_decoder_string[0])
 		{
+			CSIO_LOG(eLogLevel_debug, "MJPEG: using the Hardware decoder via TI Ducati\n");
 			// We are using gstreamer androidmedia plugin to decode mjpeg.
 		    //add a probe for loss of video detection.
 			GstPad *pad;
@@ -638,9 +639,10 @@ int build_video_pipeline(gchar *encoding_name, CREGSTREAM *data, unsigned int st
 			data->element_v[i++] = gst_element_factory_make(product_info()->mjpeg_decoder_string, NULL);
 			data->amcvid_dec = data->element_v[i-1];
 
+			CSIO_LOG(eLogLevel_debug, "MJPEG: invokes SetVpuDecoder\n");
 			csio_SetVpuDecoder(data->amcvid_dec, data->streamId);
 
-			//SET OFSSET to zero for now
+			//SET OFFSET to zero for now
 			g_object_set(G_OBJECT(data->amcvid_dec), "ts-offset", 0, NULL);
 
 			//pass surface object to the decoder
@@ -656,11 +658,13 @@ int build_video_pipeline(gchar *encoding_name, CREGSTREAM *data, unsigned int st
 				CSIO_LOG(eLogLevel_debug, "connect to crestron-vdec-output: StreamId[%d],sigHandlerId[%d]",data->streamId,sigId);
 
 				if(sigId)
+					CSIO_LOG(eLogLevel_debug, "MJPEG:  invokes SetWaitDecHas1stVidDelay\n");
 					csio_SetWaitDecHas1stVidDelay(data->streamId,1);
 			}
 		}
-		else // No hardware mjpeg decoder
+		else // If there is No hardware mjpeg decoder
 		{
+			CSIO_LOG(eLogLevel_debug, "MJPEG: using the software decoder: jpegdec\n");
 			data->element_v[i++] = gst_element_factory_make("jpegdec", NULL);
 			data->element_fake_dec = data->element_v[i-1];
 			*ele0 = data->element_v[0];
