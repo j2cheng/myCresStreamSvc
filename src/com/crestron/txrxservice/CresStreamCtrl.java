@@ -2862,31 +2862,46 @@ public class CresStreamCtrl extends Service {
     public void setCamStreamMulticastEnable(boolean enable) {
     	userSettings.setCamStreamMulticastEnable(enable);
     	
-    	// TODO: bring into GstreamOut.java
+    	if (gstStreamOut != null)
+    	{
+    		gstStreamOut.setMulticastEnable(enable);
+    	}
     }
     
     public void setCamStreamResolution(int resolution) {
     	userSettings.setCamStreamResolution(resolution);
     	
-    	// TODO: bring into GstreamOut.java
+    	if (gstStreamOut != null)
+    	{
+    		gstStreamOut.setResolution(resolution);
+    	}
     }
     
     public void setCamStreamName(String name) {
     	userSettings.setCamStreamName(name);
     	
-    	// TODO: bring into GstreamOut.java
+    	if (gstStreamOut != null)
+    	{
+    		gstStreamOut.setCamStreamName(name);
+    	}
     }
     
     public void setCamStreamSnapshotName(String name) {
     	userSettings.setCamStreamSnapshotName(name);
     	
-    	// TODO: bring into GstreamOut.java    
+    	if (gstStreamOut != null)
+    	{
+    		gstStreamOut.setCamStreamSnapshotName(name);
+    	}
     }
     
     public void setCamStreamMulticastAddress(String address) {
     	userSettings.setCamStreamMulticastAddress(address);
     	
-    	// TODO: bring into GstreamOut.java  
+    	if (gstStreamOut != null)
+    	{
+    		gstStreamOut.setCamStreamMulticastAddress(address);
+    	}
     }
         
     public String getAirMediaDisconnectUser(int sessId)

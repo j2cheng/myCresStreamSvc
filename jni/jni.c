@@ -402,6 +402,7 @@ void csio_jni_remove_probe (int iStreamId)
     data->udpsrc_prob_id = 0;
 }
 
+// TODO: Once fd leak is solved, see if this is still necessary on current version of android
 static bool shouldCloseSockets()
 {
 	int i;
@@ -2749,7 +2750,7 @@ JNIEXPORT void JNICALL Java_com_crestron_txrxservice_GstreamOut_nativeSetRtspPor
     Streamout_SetPort(desBuf);
     CSIO_LOG(eLogLevel_debug, "rtsp_server: RtspPort in CresStreamOutDataDB: '%s'", CresStreamOutDataDB->streamOut[0].rtsp_port);
 }
-JNIEXPORT void JNICALL Java_com_crestron_txrxservice_GstreamOut_nativeSet_Res_x(JNIEnv *env, jobject thiz, jint Res_x, jint sessionId)
+JNIEXPORT void JNICALL Java_com_crestron_txrxservice_GstreamOut_nativeSet_1Res_1x(JNIEnv *env, jobject thiz, jint Res_x, jint sessionId)
 {
     CSIO_LOG(eLogLevel_debug, "rtsp_server: Using Res_x: '%d'", Res_x);
     char* desBuf = CresStreamOutDataDB->streamOut[0].res_x;
@@ -2758,7 +2759,7 @@ JNIEXPORT void JNICALL Java_com_crestron_txrxservice_GstreamOut_nativeSet_Res_x(
     Streamout_SetRes_x(desBuf);
     CSIO_LOG(eLogLevel_debug, "rtsp_server: res_x in CresStreamOutDataDB: '%s'", CresStreamOutDataDB->streamOut[0].res_x);
 }
-JNIEXPORT void JNICALL Java_com_crestron_txrxservice_GstreamOut_nativeSet_Res_y(JNIEnv *env, jobject thiz, jint Res_y, jint sessionId)
+JNIEXPORT void JNICALL Java_com_crestron_txrxservice_GstreamOut_nativeSet_1Res_1y(JNIEnv *env, jobject thiz, jint Res_y, jint sessionId)
 {
     CSIO_LOG(eLogLevel_debug, "rtsp_server: Using Res_y: '%d'", Res_y);
     char* desBuf = CresStreamOutDataDB->streamOut[0].res_y;
@@ -2767,7 +2768,7 @@ JNIEXPORT void JNICALL Java_com_crestron_txrxservice_GstreamOut_nativeSet_Res_y(
     Streamout_SetRes_y(desBuf);
     CSIO_LOG(eLogLevel_debug, "rtsp_server: res_y in CresStreamOutDataDB: '%s'", CresStreamOutDataDB->streamOut[0].res_y);
 }
-JNIEXPORT void JNICALL Java_com_crestron_txrxservice_GstreamOut_nativeSet_FrameRate(JNIEnv *env, jobject thiz, jint FrameRate, jint sessionId)
+JNIEXPORT void JNICALL Java_com_crestron_txrxservice_GstreamOut_nativeSet_1FrameRate(JNIEnv *env, jobject thiz, jint FrameRate, jint sessionId)
 {
     CSIO_LOG(eLogLevel_debug, "rtsp_server: Using FrameRate: '%d'", FrameRate);
     char* desBuf = CresStreamOutDataDB->streamOut[0].frame_rate;
@@ -2776,7 +2777,7 @@ JNIEXPORT void JNICALL Java_com_crestron_txrxservice_GstreamOut_nativeSet_FrameR
     Streamout_SetFrameRate(desBuf);
     CSIO_LOG(eLogLevel_debug, "rtsp_server: frame_rate in CresStreamOutDataDB: '%s'", CresStreamOutDataDB->streamOut[0].frame_rate);
 }
-JNIEXPORT void JNICALL Java_com_crestron_txrxservice_GstreamOut_nativeSet_Bitrate(JNIEnv *env, jobject thiz, jint Bitrate, jint sessionId)
+JNIEXPORT void JNICALL Java_com_crestron_txrxservice_GstreamOut_nativeSet_1Bitrate(JNIEnv *env, jobject thiz, jint Bitrate, jint sessionId)
 {
     CSIO_LOG(eLogLevel_debug, "rtsp_server: Using Bitrate: '%d'", Bitrate);
     char* desBuf = CresStreamOutDataDB->streamOut[sessionId].bitrate;
@@ -2785,7 +2786,7 @@ JNIEXPORT void JNICALL Java_com_crestron_txrxservice_GstreamOut_nativeSet_Bitrat
     Streamout_SetBitrate(desBuf);
     CSIO_LOG(eLogLevel_debug, "rtsp_server: bitrate in CresStreamOutDataDB: '%s'", CresStreamOutDataDB->streamOut[0].bitrate);
 }
-JNIEXPORT void JNICALL Java_com_crestron_txrxservice_GstreamOut_nativeSet_IFrameInterval(JNIEnv *env, jobject thiz, jint IFrameInterval, jint sessionId)
+JNIEXPORT void JNICALL Java_com_crestron_txrxservice_GstreamOut_nativeSet_1IFrameInterval(JNIEnv *env, jobject thiz, jint IFrameInterval, jint sessionId)
 {
     CSIO_LOG(eLogLevel_debug, "rtsp_server: Using iFrameInterval: '%d'", IFrameInterval);
     char* desBuf = CresStreamOutDataDB->streamOut[sessionId].iframe_interval;
