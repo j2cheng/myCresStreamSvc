@@ -158,22 +158,125 @@ public class CameraPreview {
 		                boolean validRes = false;
 		                if(hdmiIf != null)
 		                {
-							int hres = Integer.parseInt(hdmiIf.getHorizontalRes());
-							int vres = Integer.parseInt(hdmiIf.getVerticalRes());
+		                	int hres, vres;
+		                	int resIndex = hdmiIf.getResolutionIndex();
+		                	
+		                	switch (streamCtl.hdmiInput.getResolutionIndex())
+		    				{
+		    				case 0:
+		    				case 1:
+		    					hres = 640;
+		    					vres = 480;
+		    					break;
+		    				case 2:
+		    				case 3:
+		    					hres = 720;
+		    					vres = 480;
+		    					break;
+		    				case 4:
+		    				case 5:
+		    					hres = 720;
+		    					vres = 576;
+		    					break;
+		    				case 6:
+		    					hres = 800;
+		    					vres = 600;
+		    					break;
+		    				case 7:
+		    					hres = 848;
+		    					vres = 480;
+		    					break;
+		    				case 8:
+		    					hres = 1024;
+		    					vres = 768;
+		    					break;
+		    				case 9:
+		    				case 10:
+		    					hres = 1280;
+		    					vres = 720;
+		    					break;				
+		    				case 11:
+		    				case 12:
+		    					hres = 1280;
+		    					vres = 768;
+		    					break;	
+		    				case 13:
+		    				case 14:
+		    					hres = 1280;
+		    					vres = 800;
+		    					break;	
+		    				case 15:
+		    					hres = 1280;
+		    					vres = 960;
+		    					break;	
+		    				case 16:
+		    					hres = 1280;
+		    					vres = 1024;
+		    					break;	
+		    				case 17:
+		    					hres = 1360;
+		    					vres = 768;
+		    					break;
+		    				case 18:
+		    				case 19:
+			    				hres = 1366;
+		    					vres = 768;
+		    					break;
+		    				case 20:
+		    				case 21:
+		    					hres = 1400;
+		    					vres = 1050;
+		    					break;
+		    				case 22:					
+		    				case 23:
+		    					hres = 1440;
+		    					vres = 900;
+		    					break;	
+		    				case 24:
+		    					hres = 1600;
+		    					vres = 900;
+		    					break;	
+		    				case 25:
+		    					hres = 1600;
+		    					vres = 1200;
+		    					break;	
+		    				case 26:
+		    				case 27:
+		    					hres = 1680;
+		    					vres = 1050;
+		    					break;	
+		    				case 28:
+		    				case 29:
+		    				case 30:
+		    				case 31:
+		    				case 32:
+		    					hres = 1920;
+		    					vres = 1080;
+		    					break;	
+		    				case 33:
+		    					hres = 1920;
+		    					vres = 1200;
+		    					break;	
+		    				default:
+		    					hres = 640;
+		    					vres = 480;
+		    						break;
+		    				}
+		                	
 							if((hres !=0) && ( vres !=0))
 							{
 								validRes = true;
 								localParameters.setPreviewSize(hres, vres);
-		                    localParameters.set("ipp", "off");
-		                    CresCamera.mCamera.setDisplayOrientation(0);
-		                    try {
-		                    	CresCamera.mCamera.setParameters(localParameters);
-		                    }catch (Exception localException) {
-		                        localException.printStackTrace();
-		                        localParameters.setPreviewSize(640, 480);
-		                        CresCamera.mCamera.setParameters(localParameters);
-		                    }
-								}		                
+								localParameters.set("ipp", "off");
+								CresCamera.mCamera.setDisplayOrientation(0);
+								try {
+									CresCamera.mCamera.setParameters(localParameters);
+								}catch (Exception localException) {
+									localException.printStackTrace();
+									localParameters.setPreviewSize(640, 480);
+									CresCamera.mCamera.setParameters(localParameters);
+								}
+							}		                
 		                }
 		                else // assume valid res for real camera, don't set preview size?
 		                {
