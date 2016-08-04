@@ -24,6 +24,8 @@ public class GstreamIn implements StreamInStrategy, SurfaceHolder.Callback {
     private int statisticsBitrate = 0;
     private final int stopTimeout_sec = 30;
     private boolean isPlaying = false;
+    private final static String ducatiRecoverFilePath = "/dev/shm/crestron/CresStreamSvc/ducatiRecoverTime";
+    private final static long ducatiRecoverTimeDelta = (30 * 1000); //30 seconds
 
 
     private native void nativeInit();     // Initialize native code, build pipeline, etc
@@ -193,6 +195,24 @@ public class GstreamIn implements StreamInStrategy, SurfaceHolder.Callback {
     public void recoverDucati(){
     	// Increment gstreamer timeout counter
     	MiscUtils.writeStringToDisk(CresStreamCtrl.gstreamerTimeoutCountFilePath, String.valueOf(++(streamCtl.mGstreamerTimeoutCount)));
+
+    	long previousRecoverTime = 0;
+    	try {
+    		previousRecoverTime = Long.parseLong(MiscUtils.readStringFromDisk(ducatiRecoverFilePath));
+    	} catch (Exception e) {}    	
+    	long currentTime = MiscUtils.getSystemUptimeMs();
+    	
+    	// Write current time as most recent ducati recover time
+    	MiscUtils.writeStringToDisk(ducatiRecoverFilePath, String.valueOf(currentTime));
+    	
+    	// If recovery occurred within of previous recovery, give 10 seconds to let system recover
+    	if ((previousRecoverTime != 0) && (Math.abs(currentTime - previousRecoverTime) <= ducatiRecoverTimeDelta))
+    	{
+    		Log.i(TAG, "Giving system extra 10 seconds to recover");
+    		try {
+        		Thread.sleep(10000);
+        	} catch (Exception e) { e.printStackTrace(); }
+    	}
     	
 		// Delete all surfaces so we dont have a gralloc memory leak
     	for(int sessionId = 0; sessionId < CresStreamCtrl.NumOfSurfaces; sessionId++)

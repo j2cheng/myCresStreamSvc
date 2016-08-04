@@ -353,6 +353,13 @@ public class TCPInterface extends AsyncTask<Void, Object, Long> {
                         	// Tell CSIO that update request is complete
                         	addJoinToQueue(new JoinObject("DEVICE_READY_FB", serverHandler), 0);
                         }
+                        else if((read.trim()).equalsIgnoreCase("RESTART_STREAM_ON_START=TRUE")){
+                        	Log.e(TAG, "RS: RESTART_STREAM_ON_START=TRUE received");
+                        	streamCtl.restartStreamsOnStart = true;
+                        }
+                        else if ((read.trim()).equalsIgnoreCase("RESTART_STREAM_ON_START=FALSE")) {
+                        	streamCtl.restartStreamsOnStart = false;                        		
+                        }
                         else{
                         	// determine sessionId first so we can add to the right queue
                         	StringTokenizer.ParseResponse parseResponse = tokenizer.Parse(read.trim());
@@ -438,7 +445,7 @@ public class TCPInterface extends AsyncTask<Void, Object, Long> {
 	        	        		@Override
 	        	        		public void run() {
 	        	        			String tmp_str = parserInstance.processReceivedMessage(receivedMsg); 
-	    	        	        	
+	        	        			
 	    	        		        try {	        		        	
 	            		        		server.SendDataToAllClients(tmp_str);	        		        	
 	    	        		        } catch (Exception e) {

@@ -10,6 +10,7 @@ import java.util.regex.Matcher;
 import java.io.BufferedReader;
 import java.io.BufferedWriter;
 import java.io.File;
+import java.io.FileInputStream;
 import java.io.FileOutputStream;
 import java.io.FileReader;
 
@@ -132,5 +133,15 @@ public class MiscUtils {
     	String ipRegex = "\\d{1,3}\\.\\d{1,3}\\.\\d{1,3}\\.\\d{1,3}";
     	newUrl = url.replaceFirst(ipRegex, "127.0.0.1");
     	return newUrl;
+    }
+    
+    public static long getSystemUptimeMs() {
+        long uptime = -1;
+        try {
+        	 double d_time = Double.parseDouble(new Scanner(new FileInputStream("/proc/uptime")).next());
+             uptime = (long)(d_time * 1000);
+        } catch (Exception e) {}
+        
+        return uptime;
     }
 }

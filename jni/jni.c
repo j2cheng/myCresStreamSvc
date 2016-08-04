@@ -64,7 +64,7 @@ void LocalConvertToUpper(char *str);
 #define STREAM_TRANSPORT_MPEG2TS_RTP (1)
 #define STREAM_TRANSPORT_MPEG2TS_UDP (2)
 
-
+#define CRESTRON_USER_AGENT ("Crestron/1.8.2")
 ///////////////////////////////////////////////////////////////////////////////
 CustomData *CresDataDB = NULL; //
 CustomStreamOutData *CresStreamOutDataDB = NULL; //
@@ -2121,6 +2121,8 @@ void csio_jni_InitPipeline(eProtocolId protoId, int iStreamId,GstRTSPLowerTrans 
 			g_object_set(G_OBJECT(data->element_zero), "protocols", data->protocols, NULL);
 			g_object_set(G_OBJECT(data->element_zero), "udp-buffer-size", DEFAULT_UDP_BUFFER, NULL);
 			
+			g_object_set(G_OBJECT(data->element_zero), "user-agent", (gchar *)CRESTRON_USER_AGENT, NULL); // TESTING REMOVE
+
 			// video part
 			data->video_sink = NULL;
 			break;
