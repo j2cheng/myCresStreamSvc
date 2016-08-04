@@ -548,6 +548,9 @@ public class CresStreamCtrl extends Service {
     			if(ProductSpecific.hasRealCamera())
     			{
     				gstStreamOut = new GstreamOut(CresStreamCtrl.this);
+    				// PEM - uncomment if you want to enable camera preview for real camera.
+    				// To-do: support platform that has an hdmi input and a real camera.
+    				// cam_preview = new CameraPreview(this, null);    
     			}
 
     		}
