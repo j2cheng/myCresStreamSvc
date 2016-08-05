@@ -1114,6 +1114,9 @@ public class CresStreamCtrl extends Service {
     	// Skip Stream in is when we need to only restart camera modes i.e. when resolution changes
     	new Thread(new Runnable() {
     		public void run() {	
+    			// Make sure that CresStreamCtrl Constructor finishes before restarting 
+    			try { streamingReadyLatch.await(); } catch (Exception e) {}
+    			
     			for (int sessionId = 0; sessionId < NumOfSurfaces; sessionId++)
                 {
     				stopStartLock[sessionId].lock();
