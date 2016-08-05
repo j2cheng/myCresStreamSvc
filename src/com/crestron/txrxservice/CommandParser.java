@@ -261,7 +261,11 @@ public class CommandParser {
     CommandIf ProcCommand (String msg, String arg, int idx){
     	CmdTable temp = CmdTable.valueOf(msg);	//check if command is in hashMap
     	if (cmdHashMap.containsKey(temp))		//if so, return value
-    		return cmdHashMap.get(temp);	
+    	{
+    		CrestronCommand cmd = (CrestronCommand)cmdHashMap.get(temp);
+    		cmd.setVars(arg, idx);				// Make sure to set new value and stream ID
+    		return cmd;
+    	}
     	
     	CommandIf cmd = null;
     	cmd = ProcCommandSwitchTable(msg, arg, idx);		//if not in hashMap, use switch table to add to hashmap

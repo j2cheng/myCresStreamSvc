@@ -32,6 +32,17 @@ class CrestronCommand implements CommandIf {
         return msg;  
     }
     
+    public void setVars(String arg, int sessId)
+    {
+    	this.msg = arg;
+        this.sessId = sessId;
+    }
+    
+    public void setVars(String arg)
+    {
+    	this.msg = arg;
+    }
+    
     public static int VALIDATE_INT(String msg){
         try {
             return Integer.parseInt(msg);
@@ -459,15 +470,15 @@ class StreamUrlCommand extends CrestronCommand {
     }
 
     @Override
-        public void execute() {
-            if (ctrl.userSettings.getMode(sessId) == DeviceMode.STREAM_IN.ordinal())
+    public void execute() {
+    	if (ctrl.userSettings.getMode(sessId) == DeviceMode.STREAM_IN.ordinal())
     		ctrl.setStreamInUrl(msg, sessId);
     	else
     		ctrl.setStreamOutUrl(msg, sessId);
-        }
-        public String getFeedbackMsg() {
-            return ctrl.getStreamUrl(sessId);
-        }
+    }
+    public String getFeedbackMsg() {
+    	return ctrl.getStreamUrl(sessId);
+    }
 }
 
 class ProxyEnableCommand extends CrestronCommand {
