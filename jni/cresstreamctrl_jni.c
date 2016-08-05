@@ -41,7 +41,8 @@ JNIEXPORT jboolean JNICALL Java_com_crestron_txrxservice_CresStreamCtrl_nativeHa
 	if(!did_init)
 	{
 		did_init = 1;
-	    currentSettingsDB = (CSIOSettings*)malloc(sizeof(CSIOSettings));
+		if (currentSettingsDB == NULL)
+			currentSettingsDB = (CSIOSettings*)malloc(sizeof(CSIOSettings));
 		csio_setup_product_info(0);
 	}
 

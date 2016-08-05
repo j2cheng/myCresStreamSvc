@@ -135,7 +135,7 @@ static void pad_added_callback2 (GstElement *src, GstPad *new_pad, CREGSTREAM *d
 		if (data->audio_sink != NULL)
 		{
 			csio_SetAudioSink(data->audio_sink, data->streamId); // Need to set AudioSink
-			csio_SetLinearVolume(data->streamId, currentSettingsDB->videoSettings[data->streamId].volumeIndB); //Set initial volume
+			csio_SetLinearVolume(data->streamId, data->audioVolume); //Set initial volume
 		}
 
         sinker = data->element_a[0];

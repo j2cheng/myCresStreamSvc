@@ -108,6 +108,7 @@ typedef struct _CREGSTREAM
 	int amcviddec_ts_offset;
 	int audiosink_ts_offset;	
     bool dropAudio;
+    double audioVolume;
     gboolean mpegtsPresent;
     gboolean doHdcp;
 

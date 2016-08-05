@@ -968,7 +968,12 @@ JNIEXPORT void JNICALL Java_com_crestron_txrxservice_GstreamIn_nativeSetPassword
 JNIEXPORT void JNICALL Java_com_crestron_txrxservice_GstreamIn_nativeSetVolume(JNIEnv *env, jobject thiz, jint volume, jint sessionId)
 {
 	double convertedVolume = (double)volume / 100;	//convert from 0-100 to 0.0-1.0
-	currentSettingsDB->videoSettings[sessionId].volumeIndB = convertedVolume;
+	CREGSTREAM * data = GetStreamFromCustomData(CresDataDB, sessionId);
+	if (data)
+		data->audioVolume = convertedVolume;
+	else
+		CSIO_LOG(eLogLevel_error, "Unable to access data object");
+
 	int ret = csio_SetLinearVolume(sessionId, convertedVolume);
 	CSIO_LOG(eLogLevel_debug, "Return from csio_SetLinearVolume = %d", ret);
 }
