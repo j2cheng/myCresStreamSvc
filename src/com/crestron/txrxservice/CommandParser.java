@@ -1,7 +1,9 @@
 package com.crestron.txrxservice;
 
 import java.io.IOException;
+import java.util.HashMap;
 
+import com.crestron.txrxservice.CommandParser.CmdTable;
 import com.crestron.txrxservice.CresStreamCtrl.DeviceMode;
 
 import android.util.Log;
@@ -11,8 +13,9 @@ public class CommandParser {
     String TAG = "TxRx CmdParser";
     StringTokenizer tokenizer; 
     CommandInvoker invoke;
-    CommandReceiver cmdRx;
     CommandIf cmd ; 
+    CresStreamCtrl ctrl;
+    HashMap <CmdTable, CommandIf> cmdHashMap;
 
     public enum CmdTable {
         MODE,
@@ -174,7 +177,8 @@ public class CommandParser {
     public  CommandParser(CresStreamCtrl a_crestctrl){
         tokenizer = new StringTokenizer();
         invoke = new CommandInvoker();
-        cmdRx = new CommandReceiver(a_crestctrl);
+        ctrl = a_crestctrl;
+        cmdHashMap = new HashMap<CmdTable, CommandIf>();	//update request will fill in hashmap values
     }
     
     public String validateReceivedMessage(String read){
@@ -253,426 +257,437 @@ public class CommandParser {
         sb.append(msg1).append("=").append(msg2);
         return (sb.toString());
     }
+    
+    CommandIf ProcCommand (String msg, String arg, int idx){
+    	CmdTable temp = CmdTable.valueOf(msg);	//check if command is in hashMap
+    	if (cmdHashMap.containsKey(temp))		//if so, return value
+    		return cmdHashMap.get(temp);	
+    	
+    	CommandIf cmd = null;
+    	cmd = ProcCommandSwitchTable(msg, arg, idx);		//if not in hashMap, use switch table to add to hashmap
+    	cmdHashMap.put(temp, cmd);			
+    	return cmd;								
+    }
 
     // TODO: These joins should be organized by slots
-    CommandIf ProcCommand (String msg, String arg, int idx){
+    CommandIf ProcCommandSwitchTable (String msg, String arg, int idx){
         CommandIf cmd = null;
         switch(CmdTable.valueOf(msg)){
             case MODE:
-                cmd = new DeviceCommand(cmdRx, arg, idx); 
+                cmd = new DeviceCommand(ctrl, arg, idx); 
                 break;
             case SESSIONINITIATION:
-                cmd = new SessionInitiationCommand(cmdRx, arg, idx); 
+                cmd = new SessionInitiationCommand(ctrl, arg, idx); 
                 break;
             case TRANSPORTMODE:
-                cmd = new TModeCommand(cmdRx, arg, idx); 
+                cmd = new TModeCommand(ctrl, arg, idx); 
                 break;
             case VENCPROFILE:
-                cmd = new VencCommand(cmdRx, arg, idx); 
+                cmd = new VencCommand(ctrl, arg, idx); 
                 break;
             case RTSPPORT:
-                cmd = new RtspPortCommand(cmdRx, arg, idx); 
+                cmd = new RtspPortCommand(ctrl, arg, idx); 
                 break;
             case TSPORT:
-                cmd = new TsPortCommand(cmdRx, arg, idx); 
+                cmd = new TsPortCommand(ctrl, arg, idx); 
                 break;
             case RTPVIDEOPORT:
-                cmd = new RtpVCommand(cmdRx, arg, idx); 
+                cmd = new RtpVCommand(ctrl, arg, idx); 
                 break;
             case RTPAUDIOPORT:
-                cmd = new RtpACommand(cmdRx, arg, idx); 
+                cmd = new RtpACommand(ctrl, arg, idx); 
                 break;
             case VFRAMERATE:
-                cmd = new VfrCommand(cmdRx, arg, idx); 
+                cmd = new VfrCommand(ctrl, arg, idx); 
                 break;
             case VBITRATE:
-                cmd = new VbrCommand(cmdRx, arg, idx); 
+                cmd = new VbrCommand(ctrl, arg, idx); 
                 break;
             case TCPINTERLEAVE:
-                cmd = new TcpInterleaveCommand(cmdRx, arg, idx); 
+                cmd = new TcpInterleaveCommand(ctrl, arg, idx); 
                 break;
             case MULTICAST_ADDRESS:
-                cmd = new MulticastIpaddrCommand(cmdRx, arg, idx); 
+                cmd = new MulticastIpaddrCommand(ctrl, arg, idx); 
                 break;
             case ENCODING_RESOLUTION:
-                cmd = new EncodingResolutionCommand(cmdRx, arg, idx); 
+                cmd = new EncodingResolutionCommand(ctrl, arg, idx); 
                 break;
             case AUDIO_VOLUME:
-                cmd = new SetVolumeCommand(cmdRx, arg); 
+                cmd = new SetVolumeCommand(ctrl, arg); 
                 break;
             case AUDIO_MUTE:
-                cmd = new MuteCommand(cmdRx, arg); 
+                cmd = new MuteCommand(ctrl, arg); 
                 break;
             case AUDIO_UNMUTE:
-                cmd = new UnmuteCommand(cmdRx, arg); 
+                cmd = new UnmuteCommand(ctrl, arg); 
                 break;
             case PROCESS_HDMI_IN_AUDIO:
-                cmd = new HdmiInAudioCommand(cmdRx, arg); 
+                cmd = new HdmiInAudioCommand(ctrl, arg); 
                 break;
             case LATENCY:
-                cmd = new LatencyCommand(cmdRx, arg, idx); 
+                cmd = new LatencyCommand(ctrl, arg, idx); 
                 break;
             case PASSWORD_ENABLE:
-                cmd = new PasswdEnableCommand(cmdRx, arg, idx); 
+                cmd = new PasswdEnableCommand(ctrl, arg, idx); 
                 break;
             case PASSWORD_DISABLE:
-                cmd = new PasswdDisableCommand(cmdRx, arg, idx); 
+                cmd = new PasswdDisableCommand(ctrl, arg, idx); 
                 break;
             case USERNAME:
-                cmd = new UserCommand(cmdRx, arg, idx); 
+                cmd = new UserCommand(ctrl, arg, idx); 
                 break;
             case PASSWORD:
-                cmd = new PasswdCommand(cmdRx, arg, idx); 
+                cmd = new PasswdCommand(ctrl, arg, idx); 
                 break;
             case STREAMURL:
-                cmd = new StreamUrlCommand(cmdRx, arg, idx); 
+                cmd = new StreamUrlCommand(ctrl, arg, idx); 
                 break;
             case PROXYENABLE:
-                cmd = new ProxyEnableCommand(cmdRx, arg, idx); 
+                cmd = new ProxyEnableCommand(ctrl, arg, idx); 
                 break;
             case HDCPENCRYPT:
-                cmd = new HdcpEncryptCommand(cmdRx, arg, idx); 
+                cmd = new HdcpEncryptCommand(ctrl, arg, idx); 
                 break;
             case TXHDCPACTIVE:
-                cmd = new TxHdcpActiveCommand(cmdRx, arg, idx); 
+                cmd = new TxHdcpActiveCommand(ctrl, arg, idx); 
                 break;
             case INTERNAL_RTSPPORT:
-                cmd = new InternalRtspPortCommand(cmdRx, arg, idx); 
+                cmd = new InternalRtspPortCommand(ctrl, arg, idx); 
                 break;
             case START:
-                cmd = new StartCommand(cmdRx, arg, idx); 
+                cmd = new StartCommand(ctrl, arg, idx); 
                 break;
             case STOP:
-                cmd = new StopCommand(cmdRx, arg, idx, false); //normal stop
+                cmd = new StopCommand(ctrl, arg, idx, false); //normal stop
                 break;
             case STOPFULL:
-            	cmd = new StopCommand(cmdRx, arg, idx, true); //full stop means do not start confidence preview on stop
+            	cmd = new StopCommand(ctrl, arg, idx, true); //full stop means do not start confidence preview on stop
             	break;
             case PAUSE:
-                cmd = new PauseCommand(cmdRx, arg, idx); 
+                cmd = new PauseCommand(ctrl, arg, idx); 
                 break;
             case XLOC:
-                cmd = new XlocCommand(cmdRx, arg, idx); 
+                cmd = new XlocCommand(ctrl, arg, idx); 
                 break;
             case YLOC:
-                cmd = new YlocCommand(cmdRx, arg, idx); 
+                cmd = new YlocCommand(ctrl, arg, idx); 
                 break;
             case W: 
-                cmd = new DestWidthCommand(cmdRx, arg, idx); 
+                cmd = new DestWidthCommand(ctrl, arg, idx); 
                 break;
             case H:
-                cmd = new DestHeightCommand(cmdRx, arg, idx); 
+                cmd = new DestHeightCommand(ctrl, arg, idx); 
                 break;
             case Z:
-            	cmd = new DestZOrderCommand(cmdRx, arg, idx);
+            	cmd = new DestZOrderCommand(ctrl, arg, idx);
             	break;
             case HDMI_OUT_EXTERNAL_HDCP_STATUS:
-            	cmd = new ExternalHdcpStatusCommand(cmdRx, arg);
+            	cmd = new ExternalHdcpStatusCommand(ctrl, arg);
             	break;
             case HDMIIN_SYNC_DETECTED:
-                cmd = new InSyncCommand(cmdRx, arg); 
+                cmd = new InSyncCommand(ctrl, arg); 
                 break;
             case HDMIIN_INTERLACED:
-                cmd = new InInterlaceCommand(cmdRx, arg); 
+                cmd = new InInterlaceCommand(ctrl, arg); 
                 break;
             case HDMIIN_CEC_ERROR:
-                cmd = new InCecCommand(cmdRx, arg); 
+                cmd = new InCecCommand(ctrl, arg); 
                 break;
             case HDMIIN_HORIZONTAL_RES_FB:
-                cmd = new InHresCommand(cmdRx, arg); 
+                cmd = new InHresCommand(ctrl, arg); 
                 break;
             case HDMIIN_VERTICAL_RES_FB:
-                cmd = new InVResCommand(cmdRx, arg); 
+                cmd = new InVResCommand(ctrl, arg); 
                 break;
             case HDMIIN_FPS_FB:
-                cmd = new InFpsCommand(cmdRx, arg); 
+                cmd = new InFpsCommand(ctrl, arg); 
                 break;
             case HDMIIN_ASPECT_RATIO:
-                cmd = new InAspectCommand(cmdRx, arg); 
+                cmd = new InAspectCommand(ctrl, arg); 
                 break;
             case HDMIIN_AUDIO_FORMAT:
-                cmd = new InAudioFormatCommand(cmdRx, arg); 
+                cmd = new InAudioFormatCommand(ctrl, arg); 
                 break;
             case HDMIIN_AUDIO_CHANNELS:
-                cmd = new InAudioChannelsCommand(cmdRx, arg); 
+                cmd = new InAudioChannelsCommand(ctrl, arg); 
                 break;
             case HDMIIN_AUDIO_SAMPLE_RATE:
-                cmd = new InAudioSampleRateCommand(cmdRx, arg); 
+                cmd = new InAudioSampleRateCommand(ctrl, arg); 
                 break;
             case HDMIIN_TRANSMIT_CEC_MESSAGE:
-                cmd = new InTxCecCommand(cmdRx, arg); 
+                cmd = new InTxCecCommand(ctrl, arg); 
                 break;
             case HDMIIN_RECEIVE_CEC_MESSAGE:
-                cmd = new InRxCecCommand(cmdRx, arg); 
+                cmd = new InRxCecCommand(ctrl, arg); 
                 break;
                 //HDMI OUT
             case HDMIOUT_FORCE_HDCP:
-            	cmd = new OutForceHdcp(cmdRx, arg);
+            	cmd = new OutForceHdcp(ctrl, arg);
             	break;
             case HDMIOUT_SYNC_DETECTED:
-                cmd = new OutSyncCommand(cmdRx, arg); 
+                cmd = new OutSyncCommand(ctrl, arg); 
                 break;
             case HDMIOUT_INTERLACED:
-                cmd = new OutInterlaceCommand(cmdRx, arg); 
+                cmd = new OutInterlaceCommand(ctrl, arg); 
                 break;
             case HDMIOUT_CEC_ERROR:
-                cmd = new OutCecCommand(cmdRx, arg); 
+                cmd = new OutCecCommand(ctrl, arg); 
                 break;
             case HDMIOUT_HORIZONTAL_RES_FB:
-                cmd = new OutHresCommand(cmdRx, arg); 
+                cmd = new OutHresCommand(ctrl, arg); 
                 break;
             case HDMIOUT_VERTICAL_RES_FB:
-                cmd = new OutVresCommand(cmdRx, arg); 
+                cmd = new OutVresCommand(ctrl, arg); 
                 break;
             case HDMIOUT_FPS_FB:
-                cmd = new outFpsCommand(cmdRx, arg); 
+                cmd = new outFpsCommand(ctrl, arg); 
                 break;
             case HDMIOUT_ASPECT_RATIO:
-                cmd = new OutAspectCommand(cmdRx, arg); 
+                cmd = new OutAspectCommand(ctrl, arg); 
                 break;
             case HDMIOUT_AUDIO_FORMAT:
-                cmd = new OutAudioFormatCommand(cmdRx, arg); 
+                cmd = new OutAudioFormatCommand(ctrl, arg); 
                 break;
             case HDMIOUT_AUDIO_CHANNELS:
-                cmd = new OutAudioChannelsCommand(cmdRx, arg); 
+                cmd = new OutAudioChannelsCommand(ctrl, arg); 
                 break;
             case HDMIOUT_TRANSMIT_CEC_MESSAGE:
-                cmd = new OutTxCecCommand(cmdRx, arg); 
+                cmd = new OutTxCecCommand(ctrl, arg); 
                 break;
             case HDMIOUT_RECEIVE_CEC_MESSAGE:
-                cmd = new OutRxCecCommand(cmdRx, arg); 
+                cmd = new OutRxCecCommand(ctrl, arg); 
                 break;
             case HDMI_SENDHDCPFB:
-            	cmd = new HdcpFeedbackCommand(cmdRx, arg);
+            	cmd = new HdcpFeedbackCommand(ctrl, arg);
             	break;
             //STREAM IN
             case STREAMIN_HORIZONTAL_RES_FB:
-            	cmd = new StreamInHresCommand(cmdRx, arg); 
+            	cmd = new StreamInHresCommand(ctrl, arg); 
                 break; 
             case STREAMIN_VERTICAL_RES_FB:
-            	cmd = new StreamInVresCommand(cmdRx, arg); 
+            	cmd = new StreamInVresCommand(ctrl, arg); 
                 break; 
             case STREAMIN_FPS_FB:
-            	cmd = new StreamInFpsCommand(cmdRx, arg); 
+            	cmd = new StreamInFpsCommand(ctrl, arg); 
                 break;
             case STREAMIN_ASPECT_RATIO:
-            	cmd = new StreamInAspectCommand(cmdRx, arg); 
+            	cmd = new StreamInAspectCommand(ctrl, arg); 
                 break;   
             case STREAMIN_AUDIO_FORMAT:
-            	cmd = new StreamInAudioFormatCommand(cmdRx, arg); 
+            	cmd = new StreamInAudioFormatCommand(ctrl, arg); 
                 break;
             case STREAMIN_AUDIO_CHANNELS:
-            	cmd = new StreamInAudioChannelsCommand(cmdRx, arg); 
+            	cmd = new StreamInAudioChannelsCommand(ctrl, arg); 
                 break;   
             //STREAM OUT
             case STREAMOUT_HORIZONTAL_RES_FB:
-        		cmd = new StreamOutHresCommand(cmdRx, arg); 
+        		cmd = new StreamOutHresCommand(ctrl, arg); 
                 break; 
             case STREAMOUT_VERTICAL_RES_FB:
-        		cmd = new StreamOutVresCommand(cmdRx, arg); 
+        		cmd = new StreamOutVresCommand(ctrl, arg); 
                 break; 
             case STREAMOUT_FPS_FB:
-            	cmd = new StreamOutFpsCommand(cmdRx, arg); 
+            	cmd = new StreamOutFpsCommand(ctrl, arg); 
                 break;
             case STREAMOUT_ASPECT_RATIO:
-            	cmd = new StreamOutAspectCommand(cmdRx, arg); 
+            	cmd = new StreamOutAspectCommand(ctrl, arg); 
                 break;   
             case STREAMOUT_AUDIO_FORMAT:
-            	cmd = new StreamOutAudioFormatCommand(cmdRx, arg); 
+            	cmd = new StreamOutAudioFormatCommand(ctrl, arg); 
                 break;
             case STREAMOUT_AUDIO_CHANNELS:
-            	cmd = new StreamOutAudioChannelsCommand(cmdRx, arg); 
+            	cmd = new StreamOutAudioChannelsCommand(ctrl, arg); 
                 break; 
             case STREAMOUT_RTSP_STREAM_FILENAME:
-            	cmd = new StreamOutRtspStreamFileName(cmdRx, arg); 
+            	cmd = new StreamOutRtspStreamFileName(ctrl, arg); 
                 break; 
             case STREAMOUT_RTSP_SESSION_NAME:
-            	cmd = new StreamOutRtspSessionName(cmdRx, arg); 
+            	cmd = new StreamOutRtspSessionName(ctrl, arg); 
                 break; 
             //STREAMING
             case PROCESSING_FB:
-                cmd = new ProcessingCommand(cmdRx, arg); 
+                cmd = new ProcessingCommand(ctrl, arg); 
                 break;
             case DEVICE_READY_FB:
-                cmd = new DeviceReadyCommand(cmdRx, arg); 
+                cmd = new DeviceReadyCommand(ctrl, arg); 
                 break;
             case ELAPSED_SECONDS_FB:
-                cmd = new ElapsedSecondsCommand(cmdRx, arg); 
+                cmd = new ElapsedSecondsCommand(ctrl, arg); 
                 break;
 //            case STREAM_STATUS_FB:
-//                cmd = new StatusCommand(cmdRx, arg); 
+//                cmd = new StatusCommand(ctrl, arg); 
 //                break;
             case INITIATOR_ADDRESS_FB:
-                cmd = new InitAddressCommand(cmdRx, arg); 
+                cmd = new InitAddressCommand(ctrl, arg); 
                 break;
                 //STATUS  
             case STREAMSTATE:
-                cmd = new StreamStateCommand(cmdRx, arg, idx); 
+                cmd = new StreamStateCommand(ctrl, arg, idx); 
                 break;
             //Ethernet
             case STATISTICS_ENABLE:
-            	cmd = new StatisticsEnableCommand(cmdRx, arg, idx);
+            	cmd = new StatisticsEnableCommand(ctrl, arg, idx);
             	break;
             case STATISTICS_DISABLE:
-            	cmd = new StatisticsDisableCommand(cmdRx, arg, idx);
+            	cmd = new StatisticsDisableCommand(ctrl, arg, idx);
             	break;
             case STATISTICS_RESET:
-            	cmd = new StatisticsResetCommand(cmdRx, arg, idx);
+            	cmd = new StatisticsResetCommand(ctrl, arg, idx);
             	break;
             case STATISTICS_NUMBEROFVIDEOPACKETS:
-            	cmd = new StatisticsNumVideoPacketsCommand(cmdRx, arg);
+            	cmd = new StatisticsNumVideoPacketsCommand(ctrl, arg);
             	break;
             case STATISTICS_NUMBEROFVIDEOPACKETSDROPPED:
-            	cmd = new StatisticsNumVideoPacketsDroppedCommand(cmdRx, arg);
+            	cmd = new StatisticsNumVideoPacketsDroppedCommand(ctrl, arg);
             	break;
             case STATISTICS_NUMBEROFAUDIOPACKETS:
-            	cmd = new StatisticsNumAudioPacketsCommand(cmdRx, arg);
+            	cmd = new StatisticsNumAudioPacketsCommand(ctrl, arg);
             	break;
             case STATISTICS_NUMBEROFAUDIOPACKETSDROPPED:
-            	cmd = new StatisticsNumAudioPacketsDroppedCommand(cmdRx, arg);
+            	cmd = new StatisticsNumAudioPacketsDroppedCommand(ctrl, arg);
             	break;
             case MULTICASTTTL:
-            	cmd = new SetMulticastTTLCommand(cmdRx, arg);
+            	cmd = new SetMulticastTTLCommand(ctrl, arg);
             	break;
 		//OSD
             case OSD_ENABLE:
-            	cmd = new OsdEnableCommand(cmdRx, arg);
+            	cmd = new OsdEnableCommand(ctrl, arg);
             	break;
             case OSD_DISABLE:
-            	cmd = new OsdDisableCommand(cmdRx, arg);
+            	cmd = new OsdDisableCommand(ctrl, arg);
             	break;
             case OSD_TEXT:
-            	cmd = new OsdTextCommand(cmdRx, arg);
+            	cmd = new OsdTextCommand(ctrl, arg);
             	break;
             case OSD_LOCATION:
-            	cmd = new OsdLocationCommand(cmdRx, arg);
+            	cmd = new OsdLocationCommand(ctrl, arg);
             	break;
             case OSD_X:
-            	cmd = new OsdXPosCommand(cmdRx, arg);
+            	cmd = new OsdXPosCommand(ctrl, arg);
             	break;
             case OSD_Y:
-            	cmd = new OsdYPosCommand(cmdRx, arg);
+            	cmd = new OsdYPosCommand(ctrl, arg);
             	break;
     	// AirMedia
             case AIRMEDIA_LAUNCH:            
-            	cmd = new AirMediaLaunchCommand(cmdRx, arg, idx);
+            	cmd = new AirMediaLaunchCommand(ctrl, arg, idx);
             	break;
             case AIRMEDIA_WINDOW_LAUNCH:
-            	cmd = new AirMediaWindowLaunchCommand(cmdRx, arg, idx);
+            	cmd = new AirMediaWindowLaunchCommand(ctrl, arg, idx);
             	break;
             case AIRMEDIA_LOGIN_CODE:
-            	cmd = new AirMediaLoginCodeCommand(cmdRx, arg, idx);
+            	cmd = new AirMediaLoginCodeCommand(ctrl, arg, idx);
             	break;
             case AIRMEDIA_LOGIN_MODE:
-            	cmd = new AirMediaLoginModeCommand(cmdRx, arg, idx);
+            	cmd = new AirMediaLoginModeCommand(ctrl, arg, idx);
             	break;
             case AIRMEDIA_MODERATOR:
-            	cmd = new AirMediaModeratorCommand(cmdRx, arg, idx);
+            	cmd = new AirMediaModeratorCommand(ctrl, arg, idx);
             	break;
             case AIRMEDIA_RESET_CONNECTIONS:
-            	cmd = new AirMediaResetConnectionsCommand(cmdRx, arg, idx);
+            	cmd = new AirMediaResetConnectionsCommand(ctrl, arg, idx);
             	break;
             case AIRMEDIA_DISCONNECT_USER:
-            	cmd = new AirMediaDisconnectUserCommand(cmdRx, arg, idx);
+            	cmd = new AirMediaDisconnectUserCommand(ctrl, arg, idx);
             	break;
             case AIRMEDIA_START_USER:
-            	cmd = new AirMediaStartUserCommand(cmdRx, arg, idx);
+            	cmd = new AirMediaStartUserCommand(ctrl, arg, idx);
             	break;
             case AIRMEDIA_USER_POSITION:
-            	cmd = new AirMediaUserPositionCommand(cmdRx, arg, idx);
+            	cmd = new AirMediaUserPositionCommand(ctrl, arg, idx);
             	break;
             case AIRMEDIA_STOP_USER:
-            	cmd = new AirMediaStopUserCommand(cmdRx, arg, idx);
+            	cmd = new AirMediaStopUserCommand(ctrl, arg, idx);
             	break;
             case AIRMEDIA_OSD_IMAGE:
-            	cmd = new AirMediaOsdImageCommand(cmdRx, arg, idx);
+            	cmd = new AirMediaOsdImageCommand(ctrl, arg, idx);
             	break;
             case AIRMEDIA_IP_ADDRESS_PROMPT:
-            	cmd = new AirMediaIpAddressPromptCommand(cmdRx, arg, idx);
+            	cmd = new AirMediaIpAddressPromptCommand(ctrl, arg, idx);
             	break;
             case AIRMEDIA_DOMAIN_NAME_PROMPT:
-            	cmd = new AirMediaDomainNamePromptCommand(cmdRx, arg, idx);
+            	cmd = new AirMediaDomainNamePromptCommand(ctrl, arg, idx);
             	break;            	
             case AIRMEDIA_WINDOW_POSITION:
-            	cmd = new AirMediaWindowPositionCommand(cmdRx, arg, idx);
+            	cmd = new AirMediaWindowPositionCommand(ctrl, arg, idx);
             	break;
             case AIRMEDIA_WINDOW_X_OFFSET:
-            	cmd = new AirMediaWindowXOffsetCommand(cmdRx, arg, idx);
+            	cmd = new AirMediaWindowXOffsetCommand(ctrl, arg, idx);
             	break;
             case AIRMEDIA_WINDOW_Y_OFFSET:
-            	cmd = new AirMediaWindowYOffsetCommand(cmdRx, arg, idx);
+            	cmd = new AirMediaWindowYOffsetCommand(ctrl, arg, idx);
             	break;
             case AIRMEDIA_WINDOW_WIDTH:
-            	cmd = new AirMediaWindowWidthCommand(cmdRx, arg, idx);
+            	cmd = new AirMediaWindowWidthCommand(ctrl, arg, idx);
             	break;
             case AIRMEDIA_WINDOW_HEIGHT:
-            	cmd = new AirMediaWindowHeightCommand(cmdRx, arg, idx);
+            	cmd = new AirMediaWindowHeightCommand(ctrl, arg, idx);
             	break;
             case AIRMEDIA_APPLY_LAYOUT_PASSWORD:
-            	cmd = new AirMediaApplyLayoutPasswordCommand(cmdRx, arg, idx);
+            	cmd = new AirMediaApplyLayoutPasswordCommand(ctrl, arg, idx);
             	break;
             case AIRMEDIA_LAYOUT_PASSWORD:
-            	cmd = new AirMediaLayoutPasswordCommand(cmdRx, arg, idx);
+            	cmd = new AirMediaLayoutPasswordCommand(ctrl, arg, idx);
             	break;
             case AIRMEDIA_APPLY_OSD_IMAGE:
-            	cmd = new AirMediaApplyOsdImageCommand(cmdRx, arg, idx);
+            	cmd = new AirMediaApplyOsdImageCommand(ctrl, arg, idx);
             	break;
             case AIRMEDIA_DISPLAY_LOGIN_CODE:
-            	cmd = new AirMediaDisplayLoginCodeCommand(cmdRx, arg, idx);
+            	cmd = new AirMediaDisplayLoginCodeCommand(ctrl, arg, idx);
             	break;
             case AIRMEDIA_DISPLAY_SCREEN:
-            	cmd = new AirMediaDisplayScreenCommand(cmdRx, arg, idx);
+            	cmd = new AirMediaDisplayScreenCommand(ctrl, arg, idx);
             	break;
             case AIRMEDIA_WINDOW_FLAG:
-            	cmd = new AirMediaWindowFlagCommand(cmdRx, arg, idx);
+            	cmd = new AirMediaWindowFlagCommand(ctrl, arg, idx);
             	break;
             	
         	// Camera Streaming
             case CAMERA_STREAMING_ENABLE:
-            	cmd = new camStreamEnableCommand(cmdRx, arg);
+            	cmd = new camStreamEnableCommand(ctrl, arg);
             	break;            	
             case CAMERA_STREAMING_MULTICAST_ENABLE:
-            	cmd = new camStreamMulticastEnableCommand(cmdRx, arg);
+            	cmd = new camStreamMulticastEnableCommand(ctrl, arg);
             	break;
             case CAMERA_STREAMING_RESOLUTION:
-            	cmd = new camStreamResolutionCommand(cmdRx, arg);
+            	cmd = new camStreamResolutionCommand(ctrl, arg);
             	break;
             case CAMERA_STREAMING_STREAM_URL:
-            	cmd = new camStreamUrlCommand(cmdRx, arg);
+            	cmd = new camStreamUrlCommand(ctrl, arg);
             	break;
             case CAMERA_STREAMING_SNAPSHOT_URL:
-            	cmd = new camStreamSnapshotUrlCommand(cmdRx, arg);
+            	cmd = new camStreamSnapshotUrlCommand(ctrl, arg);
             	break;
             case CAMERA_STREAMING_STREAM_NAME:
-            	cmd = new camStreamNameCommand(cmdRx, arg);
+            	cmd = new camStreamNameCommand(ctrl, arg);
             	break;
             case CAMERA_STREAMING_SNAPSHOT_NAME:
-            	cmd = new camStreamSnapshotNameCommand(cmdRx, arg);
+            	cmd = new camStreamSnapshotNameCommand(ctrl, arg);
             	break;
             case CAMERA_STREAMING_MULTICAST_ADDRESS:
-            	cmd = new camStreamMulticastAddressCommand(cmdRx, arg);
+            	cmd = new camStreamMulticastAddressCommand(ctrl, arg);
             	break;
             	
             case RESTART_STREAM_ON_START:
-            	cmd = new RestartStreamOnStartCommand(cmdRx, arg);
+            	cmd = new RestartStreamOnStartCommand(ctrl, arg);
             	break;
             case USE_GSTREAMER:
-            	cmd = new UseGstreamerCommand(cmdRx, arg);
+            	cmd = new UseGstreamerCommand(ctrl, arg);
             	break;
             case NEW_SINK:
-            	cmd = new UseNewSinkCommand(cmdRx, arg, idx);
+            	cmd = new UseNewSinkCommand(ctrl, arg, idx);
             	break;
             case NEW_IPADDR:
-            	cmd = new UseNewIpAddrCommand(cmdRx, arg);
+            	cmd = new UseNewIpAddrCommand(ctrl, arg);
             	break;
             case FDEBUG_JNI:            	
-            	cmd = new FIELDDEBUGJNICommand(cmdRx, arg, idx);
+            	cmd = new FIELDDEBUGJNICommand(ctrl, arg, idx);
             	break;
             case RESET_ALL_WINDOWS:
-            	cmd = new ResetAllWindowsCommand(cmdRx, arg);
+            	cmd = new ResetAllWindowsCommand(ctrl, arg);
             	break;
             case LOGLEVEL:
-            	cmd = new SetLogLevelCommand(cmdRx, arg);
+            	cmd = new SetLogLevelCommand(ctrl, arg);
             	break;
             default:
                 break;

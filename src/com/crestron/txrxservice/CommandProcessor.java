@@ -1,19 +1,24 @@
 
 package com.crestron.txrxservice;
 
+
+import com.crestron.txrxservice.CresStreamCtrl;
+import com.crestron.txrxservice.CresStreamCtrl.DeviceMode;
+import com.crestron.txrxservice.CresStreamCtrl.StreamState;
+
 class CrestronCommand implements CommandIf {
-	CommandReceiver launch = null;
+	CresStreamCtrl ctrl = null;
     String msg = null;
-    int idx = 0;
+    int sessId = 0;
     
-    public CrestronCommand(CommandReceiver launch, String arg, int sessId) {
-        this.launch = launch;
+    public CrestronCommand(CresStreamCtrl ctrl, String arg, int sessId) {
+        this.ctrl = ctrl;
         this.msg = arg;
-        this.idx = sessId;
+        this.sessId = sessId;
     }
     
-    public CrestronCommand(CommandReceiver launch, String arg) {
-        this.launch = launch;
+    public CrestronCommand(CresStreamCtrl ctrl, String arg) {
+        this.ctrl = ctrl;
         this.msg = arg;
     }
     
@@ -26,789 +31,698 @@ class CrestronCommand implements CommandIf {
     public String getFeedbackMsg() {
         return msg;  
     }
+    
+    public static int VALIDATE_INT(String msg){
+        try {
+            return Integer.parseInt(msg);
+        } catch (NumberFormatException e) {
+            return 0;
+        }
+    }
+    
+    public String getHresFb(boolean streamIn){
+    	if (streamIn)
+    		return String.valueOf(ctrl.userSettings.getStreamInHorizontalResolution());
+    	else
+    	{
+    		try {
+    			return String.valueOf(ctrl.cam_streaming.getStreamOutWidth());
+    		} catch (Exception e) { return "0"; }
+    	}
+    		
+    }
+
+    public String getVresFb(boolean streamIn){
+    	if (streamIn)
+    		return String.valueOf(ctrl.userSettings.getStreamInVerticalResolution());
+    	else
+    	{
+    		try {
+    			return String.valueOf(ctrl.cam_streaming.getStreamOutHeight());
+    		} catch (Exception e) { return "0"; }
+    	}    		
+    }
+    
+    public String getFpsFb(boolean streamIn){
+    	if (streamIn)
+    		return String.valueOf(ctrl.userSettings.getStreamInFPS());
+    	else
+    	{
+    		try {
+    			return String.valueOf(ctrl.cam_streaming.getStreamOutFpsFb());
+    		} catch (Exception e) { return "0"; }
+    	}   
+    }
+    
+    public String getAspectFb(boolean streamIn){
+    	if (streamIn)
+    		return String.valueOf(ctrl.userSettings.getStreamInAspectRatio());
+    	else
+    	{
+    		try {
+    			return String.valueOf(ctrl.cam_streaming.getStreamOutAspectRatioFb());
+    		} catch (Exception e) { return "0"; }
+    	}  
+    }
+    
+    public String getAudioFormatFb(boolean streamIn){
+    	if (streamIn)
+    		return String.valueOf(ctrl.streamPlay.getMediaPlayerAudioFormatFb());
+    	else
+    	{
+    		try {
+    			return String.valueOf(ctrl.cam_streaming.getStreamOutAudioFormatFb());
+    		} catch (Exception e) { return "0"; }
+    	} 
+    }
+    
+    public String getAudioChannelsFb(boolean streamIn){
+    	if (streamIn)
+    		return  String.valueOf(ctrl.streamPlay.getMediaPlayerAudiochannelsFb());
+    	else
+    	{
+    		try {
+    			return String.valueOf(ctrl.cam_streaming.getStreamOutAudiochannelsFb());
+    		} catch (Exception e) { return "0"; }
+    	}
+    }
 }
 
 
-class DeviceCommand implements CommandIf {
-    CommandReceiver launch;
-    String msg;
-    int idx;
-
-    public DeviceCommand(CommandReceiver launch, String arg, int sessId) {
-        this.launch = launch;
-        this.msg = arg;
-        this.idx = sessId;
+class DeviceCommand extends CrestronCommand {
+	
+    public DeviceCommand(CresStreamCtrl ctrl, String arg, int sessId) {
+		super (ctrl, arg, sessId);
     }
 
     @Override
         public void execute() {
-            launch.setDeviceMode(launch.VALIDATE_INT(msg), idx);
+            ctrl.setDeviceMode(VALIDATE_INT(msg), sessId);
         }
         public String getFeedbackMsg() {
-            return launch.getDeviceMode(idx);
+            return Integer.toString(ctrl.userSettings.getMode(sessId));
         }
 }
 
-class SessionInitiationCommand implements CommandIf {
-    CommandReceiver launch;
-    String msg;
-    int idx;
-
-    public SessionInitiationCommand(CommandReceiver launch, String arg, int sessId) {
-        this.launch = launch;
-        this.msg = arg;
-        this.idx = sessId;
+class SessionInitiationCommand extends CrestronCommand {
+    
+    public SessionInitiationCommand(CresStreamCtrl ctrl, String arg, int sessId) {
+		super(ctrl, arg, sessId);
     }
 
     @Override
         public void execute() {
-            launch.setSessionInitation(launch.VALIDATE_INT(msg), idx);
+            ctrl.setSessionInitiation(VALIDATE_INT(msg), sessId);
         }
         public String getFeedbackMsg() {
-            return launch.getSessionInitiation(idx);
+            return Integer.toString(ctrl.userSettings.getSessionInitiation(sessId));
         }
 }
 
-class TModeCommand implements CommandIf {
-    CommandReceiver launch;
-    String msg;
-    int idx;
+class TModeCommand extends CrestronCommand {
 
-    public TModeCommand(CommandReceiver launch, String arg, int sessId) {
-        this.launch = launch;
-        this.msg = arg;
-        this.idx = sessId;
+    public TModeCommand(CresStreamCtrl ctrl, String arg, int sessId) {
+		super(ctrl, arg, sessId);
     }
 
     @Override
         public void execute() {
-            launch.SetTMode(launch.VALIDATE_INT(msg), idx);
+            ctrl.userSettings.setTransportMode(VALIDATE_INT(msg), sessId);
         }
         public String getFeedbackMsg() {
-        	return launch.getTransportMode(idx);
+        	return Integer.toString(ctrl.userSettings.getTransportMode(sessId));
         }
 }
 
-class VencCommand implements CommandIf {
-    CommandReceiver launch;
-    String msg;
-    int idx;
+class VencCommand extends CrestronCommand{
 
-    public VencCommand(CommandReceiver launch, String arg, int sessId) {
-        this.launch = launch;
-        this.msg = arg;
-        this.idx = sessId;
+    public VencCommand(CresStreamCtrl ctrl, String arg, int sessId) {
+        super(ctrl, arg, sessId);
     }
 
     @Override
         public void execute() {
-            launch.SetVenc(launch.VALIDATE_INT(msg), idx);
+            ctrl.userSettings.setStreamProfile(UserSettings.VideoEncProfile.fromInteger(VALIDATE_INT(msg)), sessId);
         }
         public String getFeedbackMsg() {
-        	return launch.getStreamProfile(idx);
+        	return Integer.toString(ctrl.userSettings.getStreamProfile(sessId).getVEncProfileUserEnum());
         }
 }
 
-class RtspPortCommand implements CommandIf {
-    CommandReceiver launch;
-    String msg;
-    int idx;
+class RtspPortCommand extends CrestronCommand {
 
-    public RtspPortCommand(CommandReceiver launch, String arg, int sessId) {
-        this.launch = launch;
-        this.msg = arg;
-        this.idx = sessId;
+    public RtspPortCommand(CresStreamCtrl ctrl, String arg, int sessId) {
+        super (ctrl, arg, sessId);
     }
 
     @Override
         public void execute() {
-            launch.setRtspPort(launch.VALIDATE_INT(msg), idx);
+    	ctrl.userSettings.setStreamProfile(UserSettings.VideoEncProfile.fromInteger(VALIDATE_INT(msg)), sessId);
         }
         public String getFeedbackMsg() {
-            return launch.getRtspPort(idx);
+            return Integer.toString(ctrl.userSettings.getRtspPort(sessId));
         }
 }
 
-class TsPortCommand implements CommandIf {
-    CommandReceiver launch;
-    String msg;
-    int idx;
+class TsPortCommand extends CrestronCommand {
 
-    public TsPortCommand(CommandReceiver launch, String arg, int sessId) {
-        this.launch = launch;
-        this.msg = arg;
-        this.idx = sessId;
+    public TsPortCommand(CresStreamCtrl ctrl, String arg, int sessId) {
+       super (ctrl, arg, sessId);
     }
 
     @Override
         public void execute() {
-            launch.setTsPort(launch.VALIDATE_INT(msg), idx);
+            ctrl.userSettings.setTsPort(VALIDATE_INT(msg), sessId);
         }
         public String getFeedbackMsg() {
-        	return launch.getTsPort(idx);
+        	return Integer.toString(ctrl.userSettings.getTsPort(sessId));
         }
 }
 
-class RtpVCommand implements CommandIf {
-    CommandReceiver launch;
-    String msg;
-    int idx;
+class RtpVCommand extends CrestronCommand {
 
-    public RtpVCommand(CommandReceiver launch, String arg, int sessId) {
-        this.launch = launch;
-        this.msg = arg;
-        this.idx = sessId;
+    public RtpVCommand(CresStreamCtrl ctrl, String arg, int sessId) {
+        super(ctrl, arg, sessId);
     }
 
     @Override
         public void execute() {
-            launch.setRtpV(launch.VALIDATE_INT(msg), idx);
+            ctrl.userSettings.setRtpVideoPort(VALIDATE_INT(msg), sessId);
         }
         public String getFeedbackMsg() {
-        	return launch.getRtpVideoPort(idx);
+        	return Integer.toString(ctrl.userSettings.getRtpVideoPort(sessId));
         }
 }
 
-class RtpACommand implements CommandIf {
-    CommandReceiver launch;
-    String msg;
-    int idx;
-
-    public RtpACommand(CommandReceiver launch, String arg, int sessId) {
-        this.launch = launch;
-        this.msg = arg;
-        this.idx = sessId;
+class RtpACommand extends CrestronCommand {
+	
+    public RtpACommand(CresStreamCtrl ctrl, String arg, int sessId) {
+        super(ctrl, arg, sessId);
     }
 
     @Override
         public void execute() {
-            launch.setRtpA(launch.VALIDATE_INT(msg), idx);
+            ctrl.userSettings.setRtpAudioPort(VALIDATE_INT(msg), sessId);
         }
         public String getFeedbackMsg() {
-        	return launch.getRtpAudioPort(idx);
+        	return Integer.toString(ctrl.userSettings.getRtpAudioPort(sessId));
         }
 }
 
-class VfrCommand implements CommandIf {
-    CommandReceiver launch;
-    String msg;
-    int idx;
+class VfrCommand extends CrestronCommand {
 
-    public VfrCommand(CommandReceiver launch, String arg, int sessId) {
-        this.launch = launch;
-        this.msg = arg;
-        this.idx = sessId;
+    public VfrCommand(CresStreamCtrl ctrl, String arg, int sessId) {
+        super(ctrl, arg, sessId);
     }
 
     @Override
         public void execute() {
-            launch.setVfr(launch.VALIDATE_INT(msg), idx);
+            ctrl.userSettings.setEncodingFramerate(VALIDATE_INT(msg), sessId);
         }
         public String getFeedbackMsg() {
-            return launch.getEncodingFramerate(idx);
+            return Integer.toString(ctrl.userSettings.getEncodingFramerate(sessId));
         }
 }
 
-class VbrCommand implements CommandIf {
-    CommandReceiver launch;
-    String msg;
-    int idx;
+class VbrCommand extends CrestronCommand {
 
-    public VbrCommand(CommandReceiver launch, String arg, int sessId) {
-        this.launch = launch;
-        this.msg = arg;
-        this.idx = sessId;
+    public VbrCommand(CresStreamCtrl ctrl, String arg, int sessId) {
+        super(ctrl, arg, sessId);
     }
 
     @Override
         public void execute() {
-            launch.setVbr(launch.VALIDATE_INT(msg), idx);
+            ctrl.userSettings.setBitrate(VALIDATE_INT(msg), sessId);
         }
         public String getFeedbackMsg() {
-            return launch.getBitrate(idx);
+			if (ctrl.userSettings.getMode(sessId) == DeviceMode.STREAM_IN.ordinal())
+				return Integer.toString(ctrl.streamPlay.getStreamInBitrate());
+			else
+				return Integer.toString(ctrl.userSettings.getBitrate(sessId));
         }
 }
 
-class TcpInterleaveCommand implements CommandIf {
-    CommandReceiver launch;
-    String msg;
-    int idx;
+class TcpInterleaveCommand extends CrestronCommand {
 
-    public TcpInterleaveCommand(CommandReceiver launch, String arg, int sessId) {
-        this.launch = launch;
-        this.msg = arg;
-        this.idx = sessId;
+    public TcpInterleaveCommand(CresStreamCtrl ctrl, String arg, int sessId) {
+        super(ctrl, arg, sessId);
     }
 
     @Override
         public void execute() {
-            launch.EnableTcpInterleave(launch.VALIDATE_INT(msg),idx);
+            ctrl.EnableTcpInterleave(VALIDATE_INT(msg),sessId);
         }
         public String getFeedbackMsg() {
-        	return launch.getTcpInterleave(idx);
+        	return Integer.toString(ctrl.getTcpInterleave(sessId));
         }
 }
 
-class MulticastIpaddrCommand implements CommandIf {
-    CommandReceiver launch;
-    String msg;
-    int idx;
+class MulticastIpaddrCommand extends CrestronCommand {
 
-    public MulticastIpaddrCommand(CommandReceiver launch, String arg, int sessId) {
-        this.launch = launch;
-        this.msg = arg;
-        this.idx = sessId;
+    public MulticastIpaddrCommand(CresStreamCtrl ctrl, String arg, int sessId) {
+        super(ctrl, arg, sessId);
     }
 
     @Override
         public void execute() {
-            launch.setMulticastIpAddress(msg, idx);
+            ctrl.userSettings.setMulticastAddress(msg, sessId);
         }
         public String getFeedbackMsg() {
-            return launch.getMulticastIpAddress(idx);
+            return ctrl.userSettings.getMulticastAddress(sessId);
         }
 }
 
-class EncodingResolutionCommand implements CommandIf {
-    CommandReceiver launch;
-    String msg;
-    int idx;
+class EncodingResolutionCommand extends CrestronCommand {
 
-    public EncodingResolutionCommand(CommandReceiver launch, String arg, int sessId) {
-        this.launch = launch;
-        this.msg = arg;
-        this.idx = sessId;
+    public EncodingResolutionCommand(CresStreamCtrl ctrl, String arg, int sessId) {
+		super(ctrl, arg, sessId);
     }
 
     @Override
         public void execute() {
-            launch.setEncodingResolution(launch.VALIDATE_INT(msg), idx);
+            ctrl.userSettings.setEncodingResolution(VALIDATE_INT(msg), sessId);
         }
         public String getFeedbackMsg() {
-            return launch.getEncodingResolution(idx);
+            return Integer.toString(ctrl.userSettings.getEncodingResolution(sessId));
         }
 }
 
-class SetVolumeCommand implements CommandIf {
-    CommandReceiver launch;
-    String msg;
+class SetVolumeCommand extends CrestronCommand {
 
-    public SetVolumeCommand(CommandReceiver launch, String arg) {
-        this.launch = launch;
-        this.msg = arg;
+    public SetVolumeCommand(CresStreamCtrl ctrl, String arg) { 
+        super(ctrl, arg);
     }
 
     @Override
         public void execute() {
     		double volume = Double.valueOf(msg);
-            launch.setVolume(volume);
+            ctrl.setStreamVolume(volume);
         }
         public String getFeedbackMsg() {
-            return launch.getVolume();
+            return String.valueOf(ctrl.userSettings.getUserRequestedVolume());
         }
 }
 
-class MuteCommand implements CommandIf {
-    CommandReceiver launch;
-    String msg;
+class MuteCommand extends CrestronCommand{
 
-    public MuteCommand(CommandReceiver launch, String arg) {
-        this.launch = launch;
-        this.msg = arg;
+    public MuteCommand(CresStreamCtrl ctrl, String arg) {
+        super(ctrl, arg);
     }
 
     @Override
         public void execute() {
             boolean val = Boolean.valueOf(msg);
             if(val)
-                launch.setMute(val);
+                ctrl.setStreamMute();
         }
         public String getFeedbackMsg() {
-            return launch.getMute();
+            return String.valueOf(ctrl.userSettings.isAudioMute());
         }
 }
 
-class UnmuteCommand implements CommandIf {
-    CommandReceiver launch;
-    String msg;
+class UnmuteCommand extends CrestronCommand{
 
-    public UnmuteCommand(CommandReceiver launch, String arg) {
-        this.launch = launch;
-        this.msg = arg;
+    public UnmuteCommand(CresStreamCtrl ctrl, String arg) {
+        super(ctrl, arg);
     }
 
     @Override
         public void execute() {
             boolean val = Boolean.valueOf(msg);
-            launch.setUnmute(val);
+			if(val)
+            ctrl.setStreamUnMute();
         }
         public String getFeedbackMsg() {
-        	return launch.getUnmute();
+        	return String.valueOf(ctrl.userSettings.isAudioUnmute());
         }
 }
 
-class HdmiInAudioCommand implements CommandIf {
-    CommandReceiver launch;
-    String msg;
+class HdmiInAudioCommand extends CrestronCommand {
 
-    public HdmiInAudioCommand(CommandReceiver launch, String arg) {
-        this.launch = launch;
-        this.msg = arg;
+    public HdmiInAudioCommand(CresStreamCtrl ctrl, String arg) {
+		super(ctrl, arg);
     }
 
     @Override
         public void execute() {
             boolean val = Boolean.valueOf(msg);
-            launch.setProcessHdmiInAudio(val);
+            ctrl.setProcessHdmiInAudio(val);
         }
         public String getFeedbackMsg() {
-        	return launch.getProcessHdmiInAudio();
+        	return String.valueOf(ctrl.userSettings.isProcessHdmiInAudio());
         }
 }
 
-class LatencyCommand implements CommandIf {
-    CommandReceiver launch;
-    String msg;
-    int idx;
+class LatencyCommand extends CrestronCommand {
 
-    public LatencyCommand(CommandReceiver launch, String arg, int sessId) {
-        this.launch = launch;
-        this.msg = arg;
-        this.idx = sessId;
+    public LatencyCommand(CresStreamCtrl ctrl, String arg, int sessId) {
+        super(ctrl, arg, sessId);
     }
 
     @Override
         public void execute() {
-            launch.setLatency(launch.VALIDATE_INT(msg), idx);
+           ctrl.userSettings.setStreamingBuffer(VALIDATE_INT(msg), sessId);// ctrl.setLatency(VALIDATE_INT(msg), sessId);
         }
         public String getFeedbackMsg() {
-            return launch.getLatency(idx);
+            return String.valueOf(ctrl.userSettings.getStreamingBuffer(sessId));//return ctrl.getLatency(sessId);
         }
 }
 
-class PasswdEnableCommand implements CommandIf {
-    CommandReceiver launch;
-    String msg;
-    int idx;
+class PasswdEnableCommand extends CrestronCommand {
 
-    public PasswdEnableCommand(CommandReceiver launch, String arg, int sessId) {
-        this.launch = launch;
-        this.msg = arg;
-        this.idx = sessId;
+    public PasswdEnableCommand(CresStreamCtrl ctrl, String arg, int sessId) {
+        super(ctrl, arg, sessId);
     }
 
     @Override
         public void execute() {
 	    	boolean val = Boolean.valueOf(msg);
-            launch.passwdEnable(val, idx);
+			if (val)
+            ctrl.SetPasswdEnable(sessId);
         }
         public String getFeedbackMsg() {
-            return launch.getPasswordEnable(idx);
+            return String.valueOf(ctrl.userSettings.isPasswordEnable(sessId));
         }
 }
 
-class PasswdDisableCommand implements CommandIf {
-    CommandReceiver launch;
-    String msg;
-    int idx;
-
-    public PasswdDisableCommand(CommandReceiver launch, String arg, int sessId) {
-        this.launch = launch;
-        this.msg = arg;
-        this.idx = sessId;
+class PasswdDisableCommand extends CrestronCommand {
+	
+    public PasswdDisableCommand(CresStreamCtrl ctrl, String arg, int sessId) {
+        super(ctrl, arg, sessId);
     }
 
     @Override
         public void execute() {
 	    	boolean val = Boolean.valueOf(msg);
-            launch.passwdDisable(val, idx);
+            if (val)
+				ctrl.SetPasswdDisable(sessId);
         }
         public String getFeedbackMsg() {
-            return launch.getPasswordDisable(idx);
+            return String.valueOf(ctrl.userSettings.isPasswordDisable(sessId));
         }
 }
 
-class UserCommand implements CommandIf {
-    CommandReceiver launch;
-    String msg;
-    int idx;
-
-    public UserCommand(CommandReceiver launch, String arg, int sessId) {
-        this.launch = launch;
-        this.msg = arg;
-        this.idx = sessId;
+class UserCommand extends CrestronCommand {
+	
+    public UserCommand(CresStreamCtrl ctrl, String arg, int sessId) {
+        super(ctrl, arg, sessId);
     }
 
     @Override
         public void execute() {
-            launch.setUserName(msg, idx);
+            ctrl.SetUserName(msg, sessId);
         }
         public String getFeedbackMsg() {
-            return launch.getUsername(idx);
+            return ctrl.userSettings.getUserName(sessId);
         }
 }
 
-class PasswdCommand implements CommandIf {
-    CommandReceiver launch;
-    String msg;
-    int idx;
-
-    public PasswdCommand(CommandReceiver launch, String arg, int sessId) {
-        this.launch = launch;
-        this.msg = arg;
-        this.idx = sessId;
+class PasswdCommand extends CrestronCommand {
+	
+    public PasswdCommand(CresStreamCtrl ctrl, String arg, int sessId) {
+        super(ctrl, arg, sessId);
     }
 
     @Override
         public void execute() {
-            launch.setPasswd(msg, idx);
+            ctrl.SetPasswd(msg, sessId);
         }
         public String getFeedbackMsg() {
-            return launch.getPassword(idx);
+            return ctrl.userSettings.getPassword(sessId);
         }
 }
 
-class StreamUrlCommand implements CommandIf {
-    CommandReceiver launch;
-    String msg;
-    int idx;
-    public StreamUrlCommand(CommandReceiver launch, String arg, int sessId) {
-        this.launch = launch;
-        this.msg = arg;
-        this.idx = sessId;
+class StreamUrlCommand extends CrestronCommand {
+	
+    public StreamUrlCommand(CresStreamCtrl ctrl, String arg, int sessId) {
+        super(ctrl, arg, sessId);
     }
 
     @Override
         public void execute() {
-            launch.setStreamUrl(msg, idx);
+            if (ctrl.userSettings.getMode(sessId) == DeviceMode.STREAM_IN.ordinal())
+    		ctrl.setStreamInUrl(msg, sessId);
+    	else
+    		ctrl.setStreamOutUrl(msg, sessId);
         }
         public String getFeedbackMsg() {
-            return launch.getStreamUrl(idx);
+            return ctrl.getStreamUrl(sessId);
         }
 }
 
-class ProxyEnableCommand implements CommandIf {
-    CommandReceiver launch;
-    String msg;
-    int idx;
-    public ProxyEnableCommand(CommandReceiver launch, String arg, int sessId) {
-        this.launch = launch;
-        this.msg = arg;
-        this.idx = sessId;
+class ProxyEnableCommand extends CrestronCommand {
+	
+    public ProxyEnableCommand(CresStreamCtrl ctrl, String arg, int sessId) {
+        super(ctrl, arg, sessId);
     }
 
     @Override
         public void execute() {
 	    	boolean val = Boolean.valueOf(msg);
-            launch.setProxyEnable(val, idx);
+            ctrl.userSettings.setProxyEnable(val, sessId);
         }
         public String getFeedbackMsg() {
             return msg;
         }
 }
 
-class HdcpEncryptCommand implements CommandIf {
-    CommandReceiver launch;
-    String msg;
-    int idx;
-    public HdcpEncryptCommand(CommandReceiver launch, String arg, int sessId) {
-        this.launch = launch;
-        this.msg = arg;
-        this.idx = sessId;
+class HdcpEncryptCommand extends CrestronCommand {
+	
+    public HdcpEncryptCommand(CresStreamCtrl ctrl, String arg, int sessId) {
+        super(ctrl, arg, sessId);
     }
 
     @Override
         public void execute() {
 	    	boolean val = Boolean.valueOf(msg);
-            launch.setHdcpEncrypt(val, idx);
+            ctrl.setHdcpEncrypt(val, sessId);
         }
         public String getFeedbackMsg() {
             return msg;
         }
 }
 
-class TxHdcpActiveCommand implements CommandIf {
-    CommandReceiver launch;
-    String msg;
-    int idx;
-    public TxHdcpActiveCommand(CommandReceiver launch, String arg, int sessId) {
-        this.launch = launch;
-        this.msg = arg;
-        this.idx = sessId;
+class TxHdcpActiveCommand extends CrestronCommand {
+	
+    public TxHdcpActiveCommand(CresStreamCtrl ctrl, String arg, int sessId) {
+        super(ctrl, arg, sessId);
     }
 
     @Override
         public void execute() {
 	    	boolean val = Boolean.valueOf(msg);
-            launch.setTxHdcpActive(val, idx);
+            ctrl.setTxHdcpActive(val, sessId);
         }
         public String getFeedbackMsg() {
             return msg;
         }
 }
 
-class InternalRtspPortCommand implements CommandIf {
-    CommandReceiver launch;
-    String msg;
-    int idx;
+class InternalRtspPortCommand extends CrestronCommand {
 
-    public InternalRtspPortCommand(CommandReceiver launch, String arg, int sessId) {
-        this.launch = launch;
-        this.msg = arg;
-        this.idx = sessId;
+    public InternalRtspPortCommand(CresStreamCtrl ctrl, String arg, int sessId) {
+        super(ctrl, arg, sessId);
     }
 
     @Override
         public void execute() {
-            launch.setInternalRtspPort(launch.VALIDATE_INT(msg), idx);
+            ctrl.userSettings.setInternalRtspPort(VALIDATE_INT(msg), sessId);
         }
         public String getFeedbackMsg() {
             return msg;
         }
 }
 
-class StartCommand implements CommandIf {
-    CommandReceiver launch;
-    String msg;
-    int idx;
+class StartCommand extends CrestronCommand {
 
-    public StartCommand(CommandReceiver launch, String arg, int sessId) {
-        this.launch = launch;
-        this.msg = arg;
-        this.idx = sessId;
+    public StartCommand(CresStreamCtrl ctrl, String arg, int sessId) {
+        super(ctrl, arg, sessId);
     }
 
     @Override
         public void execute() {
             boolean val = Boolean.valueOf(msg);
-            if(val)
-                launch.setStart(idx);
+            if(val){
+				ctrl.userSettings.setUserRequestedStreamState(StreamState.STARTED, sessId);
+				ctrl.Start(sessId);
+			}
         }
         public String getFeedbackMsg() {
-            return launch.getStartStatus();
+            return ctrl.getStartStatus();
         }
 }
 
-class StopCommand implements CommandIf {
-    CommandReceiver launch;
-    String msg;
-    int idx;
+class StopCommand extends CrestronCommand {
     boolean fullStop;
 
-    public StopCommand(CommandReceiver launch, String arg, int sessId, boolean fullStopRequested) {
-        this.launch = launch;
-        this.msg = arg;
-        this.idx = sessId;
+    public StopCommand(CresStreamCtrl ctrl, String arg, int sessId, boolean fullStopRequested) {
+        super(ctrl, arg, sessId);
         this.fullStop = fullStopRequested;
     }
 
     @Override
         public void execute() {
             boolean val = Boolean.valueOf(msg);
-            if(val)
-                launch.setStop(idx, fullStop);
+            if(val){		
+				ctrl.userSettings.setUserRequestedStreamState(StreamState.STOPPED, sessId);
+				ctrl.Stop(sessId, fullStop);
+			}
         }
         public String getFeedbackMsg() {
-            return launch.getStopStatus();
+            return ctrl.getStopStatus();
         }
 }
 
-class PauseCommand implements CommandIf {
-    CommandReceiver launch;
-    String msg;
-    int idx;
+class PauseCommand extends CrestronCommand {
 
-    public PauseCommand(CommandReceiver launch, String arg, int sessId) {
-        this.launch = launch;
-        this.msg = arg;
-        this.idx = sessId;
+    public PauseCommand(CresStreamCtrl ctrl, String arg, int sessId) {
+        super(ctrl, arg, sessId);
     }
 
     @Override
         public void execute() {
             boolean val = Boolean.valueOf(msg);
-            if(val)
-                launch.setPause(idx);
+            if(val){
+				ctrl.userSettings.setUserRequestedStreamState(StreamState.PAUSED, sessId);
+				ctrl.Pause(sessId);
+			}
         }
         public String getFeedbackMsg() {
-            return launch.getPauseStatus();
+            return ctrl.getPauseStatus();
         }
 }
 
-class XlocCommand implements CommandIf {
+class XlocCommand extends CrestronCommand {
 
-    CommandReceiver launch;
-    String msg;
-    int idx;
-
-    public XlocCommand(CommandReceiver launch, String arg, int sessId) {
-        this.launch = launch;
-        this.msg = arg;
-        this.idx = sessId;
+    public XlocCommand(CresStreamCtrl ctrl, String arg, int sessId) {
+		super(ctrl, arg, sessId);
     }
 
     @Override
         public  void execute() {
-            launch.setXloc(launch.VALIDATE_INT(msg), idx);
+            ctrl.setXCoordinates(VALIDATE_INT(msg), sessId);
         }
         public String getFeedbackMsg() {
-            return launch.getXloc(idx);
+            return Integer.toString(ctrl.userSettings.getXloc(sessId));
         }
 }
 
-class YlocCommand implements CommandIf {
-
-    CommandReceiver launch;
-    String msg;
-    int idx;
-
-    public YlocCommand(CommandReceiver launch, String arg, int sessId) {
-        this.launch = launch;
-        this.msg = arg;
-        this.idx = sessId;
+class YlocCommand extends CrestronCommand {
+	
+	public YlocCommand(CresStreamCtrl ctrl, String arg, int sessId) {
+		super(ctrl, arg, sessId);
     }
 
     @Override
         public void execute() {
-            launch.setYloc(launch.VALIDATE_INT(msg), idx);
+            ctrl.setYCoordinates(VALIDATE_INT(msg), sessId);
         }
         public String getFeedbackMsg() {
-            return launch.getYloc(idx);
+            return Integer.toString(ctrl.userSettings.getYloc(sessId));
         }
 }
 
-class DestWidthCommand implements CommandIf {
+class DestWidthCommand extends CrestronCommand {
 
-    CommandReceiver launch;
-    String msg;
-    int idx;
-
-    public DestWidthCommand(CommandReceiver launch, String arg, int sessId) {
-        this.launch = launch;
-        this.msg = arg;
-        this.idx = sessId;
+    public DestWidthCommand(CresStreamCtrl ctrl, String arg, int sessId) {
+		super (ctrl, arg, sessId);
     }
 
     @Override
         public void execute() {
-            launch.setDestWidth(launch.VALIDATE_INT(msg), idx);
+            ctrl.setWindowSizeW(VALIDATE_INT(msg), sessId);
         }
         public String getFeedbackMsg() {
-            return launch.getDestWidth(idx);
+            return Integer.toString(ctrl.userSettings.getW(sessId));
         }
 }
 
-class DestHeightCommand implements CommandIf {
+class DestHeightCommand extends CrestronCommand {
 
-    CommandReceiver launch;
-    String msg;
-    int idx;
-
-    public DestHeightCommand(CommandReceiver launch, String arg, int sessId) {
-        this.launch = launch;
-        this.msg = arg;
-        this.idx = sessId;
+    public DestHeightCommand(CresStreamCtrl ctrl, String arg, int sessId) {
+        super(ctrl, arg, sessId);
     }
 
     @Override
         public void execute() {
-            launch.setDestHeight(launch.VALIDATE_INT(msg), idx);
+            ctrl.setWindowSizeH(VALIDATE_INT(msg), sessId);
         }
         public String getFeedbackMsg() {
-            return launch.getDestHeight(idx);
+            return Integer.toString(ctrl.userSettings.getH(sessId));
         }
 }
 
-class DestZOrderCommand implements CommandIf {
+class DestZOrderCommand extends CrestronCommand {
 
-    CommandReceiver launch;
-    String msg;
-    int idx;
-
-    public DestZOrderCommand(CommandReceiver launch, String arg, int sessId) {
-        this.launch = launch;
-        this.msg = arg;
-        this.idx = sessId;
+    public DestZOrderCommand(CresStreamCtrl ctrl, String arg, int sessId) {
+        super(ctrl, arg, sessId);
     }
 
     @Override
         public void execute() {
-            launch.setDestZOrder(launch.VALIDATE_INT(msg), idx);
+            ctrl.setWindowSizeZ(VALIDATE_INT(msg), sessId);
         }
         public String getFeedbackMsg() {
-            return launch.getDestZOrder(idx);
+            return Integer.toString(ctrl.userSettings.getZ(sessId));
         }
 }
 
-class ExternalHdcpStatusCommand implements CommandIf {
-
-    CommandReceiver launch;
-    String msg;
-
-    public ExternalHdcpStatusCommand(CommandReceiver launch, String arg) {
-        this.launch = launch;
-        this.msg = arg;
+class ExternalHdcpStatusCommand extends CrestronCommand {
+	
+    public ExternalHdcpStatusCommand(CresStreamCtrl ctrl, String arg) {
+        super(ctrl, arg);
     }
 
     @Override
         public void execute() {
-    		launch.setExternalHdcpStatus(CommandReceiver.VALIDATE_INT(msg));
+    		ctrl.setExternalHdcpStatus(VALIDATE_INT(msg));
         }
         public String getFeedbackMsg() {
         	return ""; // No feedback for this join
-//        	return launch.getExternalHdcpStatus();
+//        	return ctrl.getExternalHdcpStatus();
         }
 }
 
-class InSyncCommand implements CommandIf {
-    CommandReceiver launch;
-    String msg;
+class InSyncCommand extends CrestronCommand {
 
-    public InSyncCommand(CommandReceiver launch, String arg) {
-        this.launch = launch;
-        this.msg = arg;
+    public InSyncCommand(CresStreamCtrl ctrl, String arg) {
+        super(ctrl, arg);
     }
 
     @Override
         public void execute() {
-            //launch.(launch.VALIDATE_INT(msg));
+            //ctrl.(VALIDATE_INT(msg));
         }
         public String getFeedbackMsg() {
-            return launch.getHdmiInSync();
+            return ctrl.getHDMIInSyncStatus();
         }
 }
 
 
-class InInterlaceCommand implements CommandIf {
-    CommandReceiver launch;
-    String msg;
+class InInterlaceCommand extends CrestronCommand {
 
-    public InInterlaceCommand(CommandReceiver launch, String arg) {
-        this.launch = launch;
-        this.msg = arg;
+    public InInterlaceCommand(CresStreamCtrl ctrl, String arg) {
+        super(ctrl, arg);
     }
 
     @Override
         public void execute() {
-            //launch.(launch.VALIDATE_INT(msg));
+            //ctrl.(VALIDATE_INT(msg));
         }
         public String getFeedbackMsg() {
-            return launch.getHdmiInInterlace();
+            return ctrl.getHDMIInInterlacing();
         }
 }
 
-class InCecCommand implements CommandIf {
-    CommandReceiver launch;
-    String msg;
+class InCecCommand extends CrestronCommand {
 
-    public InCecCommand(CommandReceiver launch, String arg) {
-        this.launch = launch;
-        this.msg = arg;
+    public InCecCommand(CresStreamCtrl ctrl, String arg) {
+        super(ctrl, arg);
     }
 
     @Override
         public void execute() {
-            //launch.(launch.VALIDATE_INT(msg));
+            //ctrl.(VALIDATE_INT(msg));
         }
         public String getFeedbackMsg() {
             return msg;
@@ -816,149 +730,125 @@ class InCecCommand implements CommandIf {
 }
 
 
-class InHresCommand implements CommandIf {
-    CommandReceiver launch;
-    String msg;
+class InHresCommand extends CrestronCommand {
 
-    public InHresCommand(CommandReceiver launch, String arg) {
-        this.launch = launch;
-        this.msg = arg;
+    public InHresCommand(CresStreamCtrl ctrl, String arg) {
+        super(ctrl, arg);
     }
 
     @Override
         public void execute() {
-           // launch.(launch.VALIDATE_INT(msg));
+           // ctrl.(VALIDATE_INT(msg));
         }
         public String getFeedbackMsg() {
-            return launch.getHdmiInHRes();
+            return ctrl.getHDMIInHorizontalRes();
         }
 }
 
 
-class InVResCommand implements CommandIf {
-    CommandReceiver launch;
-    String msg;
+class InVResCommand extends CrestronCommand {
 
-    public InVResCommand(CommandReceiver launch, String arg) {
-        this.launch = launch;
-        this.msg = arg;
+    public InVResCommand(CresStreamCtrl ctrl, String arg) {
+        super(ctrl, arg);
     }
 
     @Override
         public void execute() {
-            //launch.(launch.VALIDATE_INT(msg));
+            //ctrl.(VALIDATE_INT(msg));
         }
         public String getFeedbackMsg() {
-            return launch.getHdmiInVRes();
+            return ctrl.getHDMIInVerticalRes();
         }
 }
 
 
-class InFpsCommand implements CommandIf {
-    CommandReceiver launch;
-    String msg;
+class InFpsCommand extends CrestronCommand {
 
-    public InFpsCommand(CommandReceiver launch, String arg) {
-        this.launch = launch;
-        this.msg = arg;
+    public InFpsCommand(CresStreamCtrl ctrl, String arg) {
+        super(ctrl, arg);
     }
 
     @Override
         public void execute() {
-           // launch.(launch.VALIDATE_INT(msg));
+           // ctrl.(VALIDATE_INT(msg));
         }
         public String getFeedbackMsg() {
-            return launch.getHdmiInFps();
+            return ctrl.getHDMIInFPS();
         }
 }
 
 
-class InAspectCommand implements CommandIf {
-    CommandReceiver launch;
-    String msg;
+class InAspectCommand extends CrestronCommand {
 
-    public InAspectCommand(CommandReceiver launch, String arg) {
-        this.launch = launch;
-        this.msg = arg;
+    public InAspectCommand(CresStreamCtrl ctrl, String arg) {
+        super(ctrl, arg);
     }
 
     @Override
         public void execute() {
-           // launch.(launch.VALIDATE_INT(msg));
+           // ctrl.(VALIDATE_INT(msg));
         }
         public String getFeedbackMsg() {
-            return launch.getHdmiInAspect();
+            return ctrl.getHDMIInAspectRatio();
         }
 }
 
 
-class InAudioFormatCommand implements CommandIf {
-    CommandReceiver launch;
-    String msg;
+class InAudioFormatCommand extends CrestronCommand {
 
-    public InAudioFormatCommand(CommandReceiver launch, String arg) {
-        this.launch = launch;
-        this.msg = arg;
+    public InAudioFormatCommand(CresStreamCtrl ctrl, String arg) {
+        super(ctrl, arg);
     }
 
     @Override
         public void execute() {
-            //launch.(launch.VALIDATE_INT(msg));
+            //ctrl.(VALIDATE_INT(msg));
         }
         public String getFeedbackMsg() {
-            return launch.getHdmiInAudioFormat();
+            return ctrl.getHDMIInAudioFormat();
         }
 }
 
 
-class InAudioChannelsCommand implements CommandIf {
-    CommandReceiver launch;
-    String msg;
-
-    public InAudioChannelsCommand(CommandReceiver launch, String arg) {
-        this.launch = launch;
-        this.msg = arg;
+class InAudioChannelsCommand extends CrestronCommand {
+	
+    public InAudioChannelsCommand(CresStreamCtrl ctrl, String arg) {
+        super(ctrl, arg);
     }
 
     @Override
         public void execute() {
-            //launch.(launch.VALIDATE_INT(msg));
+            //ctrl.(VALIDATE_INT(msg));
         }
         public String getFeedbackMsg() {
-            return launch.getHdmiInAudioChannels();
+            return ctrl.getHDMIInAudioChannels();
         }
 }
 
-class InAudioSampleRateCommand implements CommandIf {
-    CommandReceiver launch;
-    String msg;
+class InAudioSampleRateCommand extends CrestronCommand {
 
-    public InAudioSampleRateCommand(CommandReceiver launch, String arg) {
-        this.launch = launch;
-        this.msg = arg;
+    public InAudioSampleRateCommand(CresStreamCtrl ctrl, String arg) {
+        super(ctrl, arg);
     }
 
     @Override
         public void execute() {
-            //launch.(launch.VALIDATE_INT(msg));
+            //ctrl.(VALIDATE_INT(msg));
         }
         public String getFeedbackMsg() {
-            return launch.getHdmiInAudioSampleRate();
+            return ctrl.getHDMIInAudioSampleRate();
         }
 }
 
-class InTxCecCommand implements CommandIf {
-    CommandReceiver launch;
-    String msg;
+class InTxCecCommand extends CrestronCommand {
 
-    public InTxCecCommand(CommandReceiver launch, String arg) {
-        this.launch = launch;
-        this.msg = arg;
+    public InTxCecCommand(CresStreamCtrl ctrl, String arg) {
+        super(ctrl, arg);
     }
 
     @Override
         public void execute() {
-            //launch.(launch.VALIDATE_INT(msg));
+            //ctrl.(VALIDATE_INT(msg));
         }
         public String getFeedbackMsg() {
             return msg;
@@ -966,94 +856,79 @@ class InTxCecCommand implements CommandIf {
 }
 
 
-class InRxCecCommand implements CommandIf {
-    CommandReceiver launch;
-    String msg;
+class InRxCecCommand extends CrestronCommand {
 
-    public InRxCecCommand(CommandReceiver launch, String arg) {
-        this.launch = launch;
-        this.msg = arg;
+    public InRxCecCommand(CresStreamCtrl ctrl, String arg) {
+        super(ctrl, arg);
     }
 
     @Override
         public void execute() {
-            //launch.(launch.VALIDATE_INT(msg));
+            //ctrl.(VALIDATE_INT(msg));
         }
         public String getFeedbackMsg() {
             return msg;
         }
 }
 
-class OutForceHdcp implements CommandIf {
-    CommandReceiver launch;
-    String msg;
+class OutForceHdcp extends CrestronCommand {
 
-    public OutForceHdcp(CommandReceiver launch, String arg) {
-        this.launch = launch;
-        this.msg = arg;
+    public OutForceHdcp(CresStreamCtrl ctrl, String arg) {
+        super(ctrl, arg);
     }
 
     @Override
         public void execute() {
     		boolean val = Boolean.valueOf(msg);
-            launch.setHdmiOutForceHdcp(val);
+            ctrl.setHdmiOutForceHdcp(val);
         }
         public String getFeedbackMsg() {
-            return launch.getHdmiOutForceHdcp();
+            return String.valueOf(ctrl.userSettings.isHdmiOutForceHdcp());
         }
 }
 
 
-class OutSyncCommand implements CommandIf {
-    CommandReceiver launch;
-    String msg;
-
-    public OutSyncCommand(CommandReceiver launch, String arg) {
-        this.launch = launch;
-        this.msg = arg;
+class OutSyncCommand extends CrestronCommand {
+	
+    public OutSyncCommand(CresStreamCtrl ctrl, String arg) {
+        super(ctrl, arg);
     }
 
     @Override
         public void execute() {
-            //launch.(launch.VALIDATE_INT(msg));
+            //ctrl.(VALIDATE_INT(msg));
         }
         public String getFeedbackMsg() {
-            return launch.getHdmiOutSync();
+            return ctrl.getHDMIOutSyncStatus();
         }
 }
 
 
-class OutInterlaceCommand implements CommandIf {
-    CommandReceiver launch;
-    String msg;
+class OutInterlaceCommand extends CrestronCommand {
 
-    public OutInterlaceCommand(CommandReceiver launch, String arg) {
-        this.launch = launch;
-        this.msg = arg;
+    public OutInterlaceCommand(CresStreamCtrl ctrl, String arg) {
+        super(ctrl, arg);
     }
 
     @Override
         public void execute() {
-            //launch.(launch.VALIDATE_INT(msg));
+            //ctrl.(VALIDATE_INT(msg));
         }
         public String getFeedbackMsg() {
-            return launch.getHdmiOutInterlaced();
+            return ctrl.getHDMIOutInterlacing();
         }
 }
 
 
-class OutCecCommand implements CommandIf {
-    CommandReceiver launch;
-    String msg;
+class OutCecCommand extends CrestronCommand {
 
-    public OutCecCommand(CommandReceiver launch, String arg) {
-        this.launch = launch;
-        this.msg = arg;
+    public OutCecCommand(CresStreamCtrl ctrl, String arg) {
+        super(ctrl, arg);
     }
 
     @Override
         public void execute() {
-            //launch.(launch.VALIDATE_INT(msg));
+            //ctrl.(VALIDATE_INT(msg));
         }
         public String getFeedbackMsg() {
             return msg;
@@ -1061,132 +936,111 @@ class OutCecCommand implements CommandIf {
 }
 
 
-class OutHresCommand implements CommandIf {
-    CommandReceiver launch;
-    String msg;
+class OutHresCommand extends CrestronCommand {
 
-    public OutHresCommand(CommandReceiver launch, String arg) {
-        this.launch = launch;
-        this.msg = arg;
+    public OutHresCommand(CresStreamCtrl ctrl, String arg) {
+        super(ctrl, arg);
     }
 
     @Override
         public void execute() {
-            //launch.(launch.VALIDATE_INT(msg));
+            //ctrl.(VALIDATE_INT(msg));
         }
         public String getFeedbackMsg() {
-            return launch.getHdmiOutHRes();
+            return ctrl.getHDMIOutHorizontalRes();
         }
 }
 
 
-class OutVresCommand implements CommandIf {
-    CommandReceiver launch;
-    String msg;
-
-    public OutVresCommand(CommandReceiver launch, String arg) {
-        this.launch = launch;
-        this.msg = arg;
+class OutVresCommand extends CrestronCommand {
+	
+    public OutVresCommand(CresStreamCtrl ctrl, String arg) {
+        super(ctrl, arg);
     }
 
     @Override
         public void execute() {
-            //launch.(launch.VALIDATE_INT(msg));
+            //ctrl.(VALIDATE_INT(msg));
         }
         public String getFeedbackMsg() {
-            return launch.getHdmiOutVRes();
+            return ctrl.getHDMIOutVerticalRes();
         }
 }
 
 
-class outFpsCommand implements CommandIf {
-    CommandReceiver launch;
-    String msg;
+class outFpsCommand extends CrestronCommand {
 
-    public outFpsCommand(CommandReceiver launch, String arg) {
-        this.launch = launch;
-        this.msg = arg;
+    public outFpsCommand(CresStreamCtrl ctrl, String arg) {
+        super(ctrl, arg);
     }
 
     @Override
         public void execute() {
-            //launch.(launch.VALIDATE_INT(msg));
+            //ctrl.(VALIDATE_INT(msg));
         }
         public String getFeedbackMsg() {
-            return launch.getHdmiOutFps();
+            return ctrl.getHDMIOutFPS();
         }
 }
 
 
-class OutAspectCommand implements CommandIf {
-    CommandReceiver launch;
-    String msg;
+class OutAspectCommand extends CrestronCommand {
 
-    public OutAspectCommand(CommandReceiver launch, String arg) {
-        this.launch = launch;
-        this.msg = arg;
+    public OutAspectCommand(CresStreamCtrl ctrl, String arg) {
+        super(ctrl, arg);
     }
 
     @Override
         public void execute() {
-            //launch.(launch.VALIDATE_INT(msg));
+            //ctrl.(VALIDATE_INT(msg));
         }
         public String getFeedbackMsg() {
-            return launch.getHdmiOutAspect();
+            return ctrl.getHDMIOutAspectRatio();
         }
 }
 
 
-class OutAudioFormatCommand implements CommandIf {
-    CommandReceiver launch;
-    String msg;
+class OutAudioFormatCommand extends CrestronCommand {
 
-    public OutAudioFormatCommand (CommandReceiver launch, String arg) {
-        this.launch = launch;
-        this.msg = arg;
+    public OutAudioFormatCommand (CresStreamCtrl ctrl, String arg) {
+        super(ctrl, arg);
     }
 
     @Override
         public void execute() {
-            //launch.(launch.VALIDATE_INT(msg));
+            //ctrl.(VALIDATE_INT(msg));
         }
         public String getFeedbackMsg() {
-            return launch.getHdmiOutAudioFormat();
+            return ctrl.getHDMIOutAudioFormat();
         }
 }
 
 
-class OutAudioChannelsCommand implements CommandIf {
-    CommandReceiver launch;
-    String msg;
-
-    public OutAudioChannelsCommand(CommandReceiver launch, String arg) {
-        this.launch = launch;
-        this.msg = arg;
+class OutAudioChannelsCommand extends CrestronCommand {
+	
+    public OutAudioChannelsCommand(CresStreamCtrl ctrl, String arg) {
+        super(ctrl, arg);
     }
 
     @Override
         public void execute() {
-            //launch.(launch.VALIDATE_INT(msg));
+            //ctrl.(VALIDATE_INT(msg));
         }
         public String getFeedbackMsg() {
-            return launch.getHdmiOutAudioChannels();
+            return ctrl.getHDMIOutAudioChannels();
         }
 }
 
 
-class OutTxCecCommand implements CommandIf {
-    CommandReceiver launch;
-    String msg;
+class OutTxCecCommand extends CrestronCommand {
 
-    public OutTxCecCommand(CommandReceiver launch, String arg) {
-        this.launch = launch;
-        this.msg = arg;
+    public OutTxCecCommand(CresStreamCtrl ctrl, String arg) {
+        super(ctrl, arg);
     }
 
     @Override
         public void execute() {
-            //launch.(launch.VALIDATE_INT(msg));
+            //ctrl.(VALIDATE_INT(msg));
         }
         public String getFeedbackMsg() {
             return msg;
@@ -1194,31 +1048,25 @@ class OutTxCecCommand implements CommandIf {
 }
 
 
-class OutRxCecCommand implements CommandIf {
-    CommandReceiver launch;
-    String msg;
-
-    public OutRxCecCommand(CommandReceiver launch, String arg) {
-        this.launch = launch;
-        this.msg = arg;
+class OutRxCecCommand extends CrestronCommand {
+	
+    public OutRxCecCommand(CresStreamCtrl ctrl, String arg) {
+        super(ctrl, arg);
     }
 
     @Override
         public void execute() {
-            //launch.(launch.VALIDATE_INT(msg));
+            //ctrl.(VALIDATE_INT(msg));
         }
         public String getFeedbackMsg() {
             return msg;
         }
 }
 
-class HdcpFeedbackCommand implements CommandIf {
-    CommandReceiver launch;
-    String msg;
+class HdcpFeedbackCommand extends CrestronCommand {
 
-    public HdcpFeedbackCommand(CommandReceiver launch, String arg) {
-        this.launch = launch;
-        this.msg = arg;
+    public HdcpFeedbackCommand(CresStreamCtrl ctrl, String arg) {
+        super(ctrl, arg);
     }
 
     @Override
@@ -1226,448 +1074,373 @@ class HdcpFeedbackCommand implements CommandIf {
             //not command join
         }
         public String getFeedbackMsg() {
-            return launch.getHdcpFb();
+			ctrl.mForceHdcpStatusUpdate = true;
+			return "TRUE";
         }
 }
 
 
-class ProcessingCommand implements CommandIf {
-    CommandReceiver launch;
-    String msg;
+class ProcessingCommand extends CrestronCommand {
 
-    public ProcessingCommand(CommandReceiver launch, String arg) {
-        this.launch = launch;
-        this.msg = arg; 
+    public ProcessingCommand(CresStreamCtrl ctrl, String arg) {
+        super(ctrl, arg);
     }
 
     @Override
         public void execute() {
-            //launch.(launch.VALIDATE_INT(msg));
+            //ctrl.(VALIDATE_INT(msg));
         }
         public String getFeedbackMsg() {
-            return launch.getProcessingStats();
+            return ctrl.getProcessingStatus();
         }
 }
 
-class DeviceReadyCommand implements CommandIf {
-    CommandReceiver launch;
-    String msg;
+class DeviceReadyCommand extends CrestronCommand {
 
-    public DeviceReadyCommand(CommandReceiver launch, String arg) {
-        this.launch = launch;
-        this.msg = arg;
+    public DeviceReadyCommand(CresStreamCtrl ctrl, String arg) {
+        super(ctrl, arg);
     }
 
     @Override
         public void execute() {
-            //launch.(launch.VALIDATE_INT(msg));
+            //ctrl.(VALIDATE_INT(msg));
         }
         public String getFeedbackMsg() {
-            return launch.getDeviceReadyStatus();
+            return ctrl.getDeviceReadyStatus();
         }
 }
 
 
-class ElapsedSecondsCommand implements CommandIf {
-    CommandReceiver launch;
-    String msg;
+class ElapsedSecondsCommand extends CrestronCommand {
 
-    public ElapsedSecondsCommand(CommandReceiver launch, String arg) {
-        this.launch = launch;
-        this.msg = arg;
+    public ElapsedSecondsCommand(CresStreamCtrl ctrl, String arg) {
+        super(ctrl, arg);
     }
 
     @Override
         public void execute() {
-            //launch.(launch.VALIDATE_INT(msg));
+            //ctrl.(VALIDATE_INT(msg));
         }
         public String getFeedbackMsg() {
-            return launch.getElapsedSeconds();
+            return ctrl.getElapsedSeconds();
         }
 }
 
 
-class StatusCommand implements CommandIf {
-    CommandReceiver launch;
-    String msg;
+class StatusCommand extends CrestronCommand {
 
-    public StatusCommand (CommandReceiver launch, String arg) {
-        this.launch = launch;
-        this.msg = arg;
+    public StatusCommand (CresStreamCtrl ctrl, String arg) {
+        super(ctrl, arg);
     }
 
     @Override
         public void execute() {
-            //launch.(launch.VALIDATE_INT(msg));
+            //ctrl.(VALIDATE_INT(msg));
         }
         public String getFeedbackMsg() {
-            return launch.getStatus();
+            return ctrl.getStreamStatus();
         }
 }
 
 
-class InitAddressCommand implements CommandIf {
-    CommandReceiver launch;
-    String msg;
+class InitAddressCommand extends CrestronCommand {
 
-    public InitAddressCommand(CommandReceiver launch, String arg) {
-        this.launch = launch;
-        this.msg = arg;
+    public InitAddressCommand(CresStreamCtrl ctrl, String arg) {
+        super(ctrl, arg);
     }
 
     @Override
         public void execute() {
-            //launch.(launch.VALIDATE_INT(msg));
+            //ctrl.(VALIDATE_INT(msg));
         }
         public String getFeedbackMsg() {
-            return launch.getInitAddress();
+            return (ctrl.userSettings.getInitiatorAddress());
         }
 }
 
 
-class StreamInHresCommand implements CommandIf {
-    CommandReceiver launch;
-    String msg;
+class StreamInHresCommand extends CrestronCommand {
 
-    public StreamInHresCommand(CommandReceiver launch, String arg) {
-        this.launch = launch;
-        this.msg = arg;
+    public StreamInHresCommand(CresStreamCtrl ctrl, String arg) {
+        super(ctrl, arg);
     }
 
     @Override
         public void execute() {
-            //launch.(launch.VALIDATE_INT(msg));
+            //ctrl.(VALIDATE_INT(msg));
         }
         public String getFeedbackMsg() {
-            return launch.getHresFb(true);
+            return getHresFb(true);
         }
 }
 
-class StreamOutHresCommand implements CommandIf {
-    CommandReceiver launch;
-    String msg;
+class StreamOutHresCommand extends CrestronCommand {
 
-    public StreamOutHresCommand(CommandReceiver launch, String arg) {
-        this.launch = launch;
-        this.msg = arg;
+    public StreamOutHresCommand(CresStreamCtrl ctrl, String arg) {
+        super(ctrl, arg);
     }
 
     @Override
         public void execute() {
-            //launch.(launch.VALIDATE_INT(msg));
+            //ctrl.(VALIDATE_INT(msg));
         }
         public String getFeedbackMsg() {
-            return launch.getHresFb(false);
+            return getHresFb(false);
         }
 }
 
 
-class StreamInVresCommand implements CommandIf {
-    CommandReceiver launch;
-    String msg;
+class StreamInVresCommand extends CrestronCommand {
 
-    public StreamInVresCommand(CommandReceiver launch, String arg) {
-        this.launch = launch;
-        this.msg = arg;
+    public StreamInVresCommand(CresStreamCtrl ctrl, String arg) {
+        super(ctrl, arg);
     }
 
     @Override
         public void execute() {
-            //launch.(launch.VALIDATE_INT(msg));
+            //ctrl.(VALIDATE_INT(msg));
         }
         public String getFeedbackMsg() {
-            return launch.getVresFb(true);
+            return getVresFb(true);
         }
 }
 
-class StreamOutVresCommand implements CommandIf {
-    CommandReceiver launch;
-    String msg;
+class StreamOutVresCommand extends CrestronCommand {
 
-    public StreamOutVresCommand(CommandReceiver launch, String arg) {
-        this.launch = launch;
-        this.msg = arg;
+    public StreamOutVresCommand(CresStreamCtrl ctrl, String arg) {
+        super(ctrl, arg);
     }
 
     @Override
         public void execute() {
-            //launch.(launch.VALIDATE_INT(msg));
+            //ctrl.(VALIDATE_INT(msg));
         }
         public String getFeedbackMsg() {
-            return launch.getVresFb(false);
+            return getVresFb(false);
         }
 }
 
-class StreamInFpsCommand implements CommandIf {
-    CommandReceiver launch;
-    String msg;
+class StreamInFpsCommand extends CrestronCommand {
 
-    public StreamInFpsCommand(CommandReceiver launch, String arg) {
-        this.launch = launch;
-        this.msg = arg;
+    public StreamInFpsCommand(CresStreamCtrl ctrl, String arg) {
+        super(ctrl, arg);
     }
 
     @Override
         public void execute() {
-            //launch.(launch.VALIDATE_INT(msg));
+            //ctrl.(VALIDATE_INT(msg));
         }
         public String getFeedbackMsg() {
-            return launch.getFpsFb(true);
+            return getFpsFb(true);
         }
 }
 
-class StreamOutFpsCommand implements CommandIf {
-    CommandReceiver launch;
-    String msg;
+class StreamOutFpsCommand extends CrestronCommand {
 
-    public StreamOutFpsCommand(CommandReceiver launch, String arg) {
-        this.launch = launch;
-        this.msg = arg;
+    public StreamOutFpsCommand(CresStreamCtrl ctrl, String arg) {
+        super(ctrl, arg);
     }
 
     @Override
         public void execute() {
-            //launch.(launch.VALIDATE_INT(msg));
+            //ctrl.(VALIDATE_INT(msg));
         }
         public String getFeedbackMsg() {
-            return launch.getFpsFb(false);
+            return getFpsFb(false);
         }
 }
 
-class StreamInAspectCommand implements CommandIf {
-    CommandReceiver launch;
-    String msg;
+class StreamInAspectCommand extends CrestronCommand {
 
-    public StreamInAspectCommand(CommandReceiver launch, String arg) {
-        this.launch = launch;
-        this.msg = arg;
+    public StreamInAspectCommand(CresStreamCtrl ctrl, String arg) {
+        super(ctrl, arg);
     }
 
     @Override
         public void execute() {
-            //launch.(launch.VALIDATE_INT(msg));
+            //ctrl.(VALIDATE_INT(msg));
         }
         public String getFeedbackMsg() {
-            return launch.getAspectFb(true);
+            return getAspectFb(true);
         }
 }
 
-class StreamOutAspectCommand implements CommandIf {
-    CommandReceiver launch;
-    String msg;
+class StreamOutAspectCommand extends CrestronCommand {
 
-    public StreamOutAspectCommand(CommandReceiver launch, String arg) {
-        this.launch = launch;
-        this.msg = arg;
+    public StreamOutAspectCommand(CresStreamCtrl ctrl, String arg) {
+        super(ctrl, arg);
     }
 
     @Override
         public void execute() {
-            //launch.(launch.VALIDATE_INT(msg));
+            //ctrl.(VALIDATE_INT(msg));
         }
         public String getFeedbackMsg() {
-            return launch.getAspectFb(false);
+            return getAspectFb(false);
         }
 }
 
-class StreamInAudioFormatCommand implements CommandIf {
-    CommandReceiver launch;
-    String msg;
+class StreamInAudioFormatCommand extends CrestronCommand {
 
-    public StreamInAudioFormatCommand(CommandReceiver launch, String arg) {
-        this.launch = launch;
-        this.msg = arg;
+    public StreamInAudioFormatCommand(CresStreamCtrl ctrl, String arg) {
+        super(ctrl, arg);
     }
 
     @Override
         public void execute() {
-            //launch.(launch.VALIDATE_INT(msg));
+            //ctrl.(VALIDATE_INT(msg));
         }
         public String getFeedbackMsg() {
-            return launch.getAudioFormatFb(true);
+            return getAudioFormatFb(true);
         }
 }
 
-class StreamOutAudioFormatCommand implements CommandIf {
-    CommandReceiver launch;
-    String msg;
+class StreamOutAudioFormatCommand extends CrestronCommand {
 
-    public StreamOutAudioFormatCommand(CommandReceiver launch, String arg) {
-        this.launch = launch;
-        this.msg = arg;
+    public StreamOutAudioFormatCommand(CresStreamCtrl ctrl, String arg) {
+        super(ctrl, arg);
     }
 
     @Override
         public void execute() {
-            //launch.(launch.VALIDATE_INT(msg));
+            //ctrl.(VALIDATE_INT(msg));
         }
         public String getFeedbackMsg() {
-            return launch.getAudioFormatFb(false);
+            return getAudioFormatFb(false);
         }
 }
 
-class StreamInAudioChannelsCommand implements CommandIf {
-    CommandReceiver launch;
-    String msg;
-
-    public StreamInAudioChannelsCommand(CommandReceiver launch, String arg) {
-        this.launch = launch;
-        this.msg = arg;
+class StreamInAudioChannelsCommand extends CrestronCommand {
+	
+    public StreamInAudioChannelsCommand(CresStreamCtrl ctrl, String arg) {
+        super(ctrl, arg);
     }
 
     @Override
         public void execute() {
-            //launch.(launch.VALIDATE_INT(msg));
+            //ctrl.(VALIDATE_INT(msg));
         }
         public String getFeedbackMsg() {
-            return launch.getAudioChannelsFb(true);
+            return getAudioChannelsFb(true);
         }
 }
 
-class StreamOutAudioChannelsCommand implements CommandIf {
-    CommandReceiver launch;
-    String msg;
+class StreamOutAudioChannelsCommand extends CrestronCommand {
 
-    public StreamOutAudioChannelsCommand(CommandReceiver launch, String arg) {
-        this.launch = launch;
-        this.msg = arg;
+    public StreamOutAudioChannelsCommand(CresStreamCtrl ctrl, String arg) {
+        super(ctrl, arg);
     }
 
     @Override
         public void execute() {
-            //launch.(launch.VALIDATE_INT(msg));
+            //ctrl.(VALIDATE_INT(msg));
         }
         public String getFeedbackMsg() {
-            return launch.getAudioChannelsFb(false);
+            return getAudioChannelsFb(false);
         }
 }
 
-class StreamOutRtspStreamFileName implements CommandIf {
-    CommandReceiver launch;
-    String msg;
+class StreamOutRtspStreamFileName extends CrestronCommand {
 
-    public StreamOutRtspStreamFileName(CommandReceiver launch, String arg) {
-        this.launch = launch;
-        this.msg = arg;
+    public StreamOutRtspStreamFileName(CresStreamCtrl ctrl, String arg) {
+        super(ctrl, arg);
     }
 
     @Override
         public void execute() {
-            launch.setRtspStreamFileName(msg);
+            ctrl.userSettings.SetRtspStreamFileName(msg);
         }
         public String getFeedbackMsg() {
-            return launch.getRtspStreamFileName();
+            return ctrl.userSettings.getRtspStreamFileName();
         }
 }
 
-class StreamOutRtspSessionName implements CommandIf {
-    CommandReceiver launch;
-    String msg;
+class StreamOutRtspSessionName extends CrestronCommand {
     
-    public StreamOutRtspSessionName(CommandReceiver launch, String arg) {
-        this.launch = launch;
-        this.msg = arg;
+    public StreamOutRtspSessionName(CresStreamCtrl ctrl, String arg) {
+        super(ctrl, arg);
     }
     
     @Override
         public void execute() {
-            launch.setRtspSessionName(msg);
+            ctrl.userSettings.SetRtspSessionName(msg);
         }
         public String getFeedbackMsg() {
-            return launch.getRtspSessionName();
+            return ctrl.userSettings.getRtspSessionName();
         }
 }
 
-class StreamStateCommand implements CommandIf {
-    CommandReceiver launch;
-    String msg;
-    int idx;
+class StreamStateCommand extends CrestronCommand {
 
-    public StreamStateCommand(CommandReceiver launch, String arg, int sessId) {
-        this.launch = launch;
-        this.msg = arg;
-        this.idx = sessId;
+    public StreamStateCommand(CresStreamCtrl ctrl, String arg, int sessId) {
+        super(ctrl, arg, sessId);
     }
 
     @Override
         public void execute() {
-            //launch.(launch.VALIDATE_INT(msg));
+            //ctrl.(VALIDATE_INT(msg));
         }
         public String getFeedbackMsg() {
-            return launch.getStreamState(idx);
+			int streamState = (ctrl.getCurrentStreamState(sessId)).getValue();
+			return Integer.toString(streamState);
         }
 }
 
-class StatisticsEnableCommand implements CommandIf {
-	CommandReceiver launch;
-    String msg;
-    int idx;
+class StatisticsEnableCommand extends CrestronCommand {
 
-    public StatisticsEnableCommand(CommandReceiver launch, String arg, int sessId) {
-        this.launch = launch;
-        this.msg = arg;
-        this.idx = sessId;
+    public StatisticsEnableCommand(CresStreamCtrl ctrl, String arg, int sessId) {
+        super(ctrl, arg, sessId);
     }
 
     @Override
         public void execute() {
 	    	boolean val = Boolean.valueOf(msg);
-            launch.setStatisticsEnable(val, idx);
+            if(val)
+				ctrl.setStatistics(val, sessId);
         }
         public String getFeedbackMsg() {
-            return launch.getStatisticsEnable(idx);
+            return String.valueOf(ctrl.userSettings.isStatisticsEnable(sessId));
         }
 }
 
-class StatisticsResetCommand implements CommandIf {
-	CommandReceiver launch;
-    String msg;
-    int idx;
+class StatisticsResetCommand extends CrestronCommand {
 
-    public StatisticsResetCommand(CommandReceiver launch, String arg, int sessId) {
-        this.launch = launch;
-        this.msg = arg;
-        this.idx = sessId;
+    public StatisticsResetCommand(CresStreamCtrl ctrl, String arg, int sessId) {
+        super(ctrl, arg, sessId);
     }
 
     @Override
         public void execute() {
 	    	boolean val = Boolean.valueOf(msg);
-            launch.setStatisticsReset(val, idx);
+			if(val)
+				ctrl.resetStatistics(sessId);
         }
         public String getFeedbackMsg() {
             return "false";	//no feedback for this join
         }
 }
 
-class StatisticsDisableCommand implements CommandIf {
-	CommandReceiver launch;
-    String msg;
-    int idx;
+class StatisticsDisableCommand extends CrestronCommand {
 
-    public StatisticsDisableCommand(CommandReceiver launch, String arg, int sessId) {
-        this.launch = launch;
-        this.msg = arg;
-        this.idx = sessId;
+    public StatisticsDisableCommand(CresStreamCtrl ctrl, String arg, int sessId) {
+        super(ctrl, arg, sessId);
     }
 
     @Override
         public void execute() {
 	    	boolean val = Boolean.valueOf(msg);
-            launch.setStatisticsDisable(val, idx);
+			if(val)
+				ctrl.setStatistics(!val, sessId);
         }
         public String getFeedbackMsg() {
-            return launch.getStatisticsDisable(idx);
+            return String.valueOf(ctrl.userSettings.isStatisticsDisable(sessId));
         }
 }
 
-class StatisticsNumVideoPacketsCommand implements CommandIf {
-	CommandReceiver launch;
-    String msg;
+class StatisticsNumVideoPacketsCommand extends CrestronCommand {
 
-    public StatisticsNumVideoPacketsCommand(CommandReceiver launch, String arg) {
-        this.launch = launch;
-        this.msg = arg;
+    public StatisticsNumVideoPacketsCommand(CresStreamCtrl ctrl, String arg) {
+        super(ctrl, arg);
     }
 
     @Override
@@ -1675,17 +1448,14 @@ class StatisticsNumVideoPacketsCommand implements CommandIf {
     		// Feedback only join
         }
         public String getFeedbackMsg() {
-            return launch.getNumVideoPackets();
+            return "0";
         }
 }
 
-class StatisticsNumVideoPacketsDroppedCommand implements CommandIf {
-	CommandReceiver launch;
-    String msg;
+class StatisticsNumVideoPacketsDroppedCommand extends CrestronCommand {
 
-    public StatisticsNumVideoPacketsDroppedCommand(CommandReceiver launch, String arg) {
-        this.launch = launch;
-        this.msg = arg;
+    public StatisticsNumVideoPacketsDroppedCommand(CresStreamCtrl ctrl, String arg) {
+        super(ctrl, arg);
     }
 
     @Override
@@ -1693,17 +1463,14 @@ class StatisticsNumVideoPacketsDroppedCommand implements CommandIf {
     		// Feedback only join
         }
         public String getFeedbackMsg() {
-            return launch.getNumVideoPacketsDropped();
+            return "0";
         }
 }
 
-class StatisticsNumAudioPacketsCommand implements CommandIf {
-	CommandReceiver launch;
-    String msg;
+class StatisticsNumAudioPacketsCommand extends CrestronCommand {
 
-    public StatisticsNumAudioPacketsCommand(CommandReceiver launch, String arg) {
-        this.launch = launch;
-        this.msg = arg;
+    public StatisticsNumAudioPacketsCommand(CresStreamCtrl ctrl, String arg) {
+        super(ctrl, arg);
     }
 
     @Override
@@ -1711,17 +1478,14 @@ class StatisticsNumAudioPacketsCommand implements CommandIf {
     		// Feedback only join
         }
         public String getFeedbackMsg() {
-            return launch.getNumAudioPackets();
+            return "0";
         }
 }
 
-class StatisticsNumAudioPacketsDroppedCommand implements CommandIf {
-	CommandReceiver launch;
-    String msg;
+class StatisticsNumAudioPacketsDroppedCommand extends CrestronCommand {
 
-    public StatisticsNumAudioPacketsDroppedCommand(CommandReceiver launch, String arg) {
-        this.launch = launch;
-        this.msg = arg;
+    public StatisticsNumAudioPacketsDroppedCommand(CresStreamCtrl ctrl, String arg) {
+        super(ctrl, arg);
     }
 
     @Override
@@ -1729,665 +1493,626 @@ class StatisticsNumAudioPacketsDroppedCommand implements CommandIf {
     		// Feedback only join
         }
         public String getFeedbackMsg() {
-            return launch.getNumAudioPacketsDropped();
+            return "0";
         }
 }
 
-class SetMulticastTTLCommand implements CommandIf {
-    CommandReceiver launch;
-    String msg;
+class SetMulticastTTLCommand extends CrestronCommand {
     
-    public SetMulticastTTLCommand(CommandReceiver launch, String arg) {
-        this.launch = launch;
-        this.msg = arg;
+    public SetMulticastTTLCommand(CresStreamCtrl ctrl, String arg) {
+        super(ctrl, arg);
     }
 
     @Override
         public void execute() {
             int val = Integer.valueOf(msg);
-            launch.setMulticastTTL(val);
+            ctrl.setMulticastTTl(val);
         }
         public String getFeedbackMsg() {
-            return launch.getMulticastTTL();
+            return String.valueOf(ctrl.userSettings.getMulticastTTL());
         }
 }
 
-class OsdEnableCommand implements CommandIf {
-    CommandReceiver launch;
-    String msg;
+class OsdEnableCommand extends CrestronCommand {
     
-    public OsdEnableCommand(CommandReceiver launch, String arg) {
-        this.launch = launch;
-        this.msg = arg;
+    public OsdEnableCommand(CresStreamCtrl ctrl, String arg) {
+        super(ctrl, arg);
     }
 
     @Override
         public void execute() {
             boolean val = Boolean.valueOf(msg);
-            if(val)
-                launch.EnableOsd();
+            if(val){
+				ctrl.userSettings.setOsdEnable(true);
+				ctrl.userSettings.setOsdDisable(false);
+			}
         }
         public String getFeedbackMsg() {
-            return launch.getOsdEnable();
+            return String.valueOf(ctrl.userSettings.isOsdEnable());
         }
 }
 
-class OsdDisableCommand implements CommandIf {
-    CommandReceiver launch;
-    String msg;
+class OsdDisableCommand extends CrestronCommand {
     
-    public OsdDisableCommand(CommandReceiver launch, String arg) {
-        this.launch = launch;
-        this.msg = arg;
+    public OsdDisableCommand(CresStreamCtrl ctrl, String arg) {
+        super(ctrl, arg);
     }
 
     @Override
         public void execute() {
             boolean val = Boolean.valueOf(msg);
-            if(val)
-                launch.DisableOsd();
+            if(val){
+				ctrl.userSettings.setOsdDisable(true);
+				ctrl.userSettings.setOsdEnable(false);
+			}
         }
         public String getFeedbackMsg() {
-            return launch.getOsdDisable();
+            return String.valueOf(ctrl.userSettings.isOsdDisable());
         }
 }
 
-class OsdTextCommand implements CommandIf {
-    CommandReceiver launch;
-    String msg;
+class OsdTextCommand extends CrestronCommand {
     
-    public OsdTextCommand(CommandReceiver launch, String arg) {
-        this.launch = launch;
-        this.msg = arg;
+    public OsdTextCommand(CresStreamCtrl ctrl, String arg) {
+        super(ctrl, arg);
     }
 
     @Override
         public void execute() {
-            launch.setOsdText(msg);
+            ctrl.userSettings.setOsdText(msg);
         }
         public String getFeedbackMsg() {
-            return launch.getOsdText();
+            return ctrl.userSettings.getOsdText();
         }
 }
 
-class OsdLocationCommand implements CommandIf {
-    CommandReceiver launch;
-    String msg;
+class OsdLocationCommand extends CrestronCommand {
     
-    public OsdLocationCommand(CommandReceiver launch, String arg) {
-        this.launch = launch;
-        this.msg = arg;
+    public OsdLocationCommand(CresStreamCtrl ctrl, String arg) {
+        super(ctrl, arg);
     }
 
     @Override
         public void execute() {
-            launch.setOsdLocation(launch.VALIDATE_INT(msg));
+            ctrl.userSettings.setOsdLocation(VALIDATE_INT(msg));
         }
         public String getFeedbackMsg() {
-            return launch.getOsdLocation();
+            return Integer.toString(ctrl.userSettings.getOsdLocation());
         }
 }
 
-class OsdXPosCommand implements CommandIf {
-    CommandReceiver launch;
-    String msg;
+class OsdXPosCommand extends CrestronCommand {
     
-    public OsdXPosCommand(CommandReceiver launch, String arg) {
-        this.launch = launch;
-        this.msg = arg;
+    public OsdXPosCommand(CresStreamCtrl ctrl, String arg) {
+        super(ctrl, arg);
     }
 
     @Override
         public void execute() {
-            launch.setOsdXPos(launch.VALIDATE_INT(msg));
+            ctrl.userSettings.setOsdXLocation(VALIDATE_INT(msg));
         }
         public String getFeedbackMsg() {
-            return launch.getOsdXPos();
+            return Integer.toString(ctrl.userSettings.getOsdXLocation());
         }
 }
 
-class OsdYPosCommand implements CommandIf {
-    CommandReceiver launch;
-    String msg;
+class OsdYPosCommand extends CrestronCommand {
     
-    public OsdYPosCommand(CommandReceiver launch, String arg) {
-        this.launch = launch;
-        this.msg = arg;
+    public OsdYPosCommand(CresStreamCtrl ctrl, String arg) {
+        super(ctrl, arg);
     }
 
     @Override
         public void execute() {
-            launch.setOsdYPos(launch.VALIDATE_INT(msg));
+            ctrl.userSettings.setOsdYLocation(VALIDATE_INT(msg));
         }
 
         public String getFeedbackMsg() {
-            return launch.getOsdYPos();
+            return Integer.toString(ctrl.userSettings.getOsdYLocation());
         }
 }
 
 class AirMediaLaunchCommand extends CrestronCommand {
-	public AirMediaLaunchCommand(CommandReceiver launch, String arg, int sessId) {
-		super(launch, arg, sessId);
+	public AirMediaLaunchCommand(CresStreamCtrl ctrl, String arg, int sessId) {
+		super(ctrl, arg, sessId);
 	}
 	public void execute() {
 		boolean val = Boolean.valueOf(msg);
-		launch.setAirMediaLaunch(val, idx, true); //Launch is full screen
+		ctrl.launchAirMedia(val, sessId, true); //ctrl is full screen
 	}
 	public String getFeedbackMsg() {
-		return launch.getAirMediaLaunch(idx);
+		return Boolean.toString(ctrl.userSettings.getAirMediaLaunch());
 	}
 }
 
 class AirMediaWindowLaunchCommand extends CrestronCommand {
-	public AirMediaWindowLaunchCommand(CommandReceiver launch, String arg, int sessId) {
-		super(launch, arg, sessId);
+	public AirMediaWindowLaunchCommand(CresStreamCtrl ctrl, String arg, int sessId) {
+		super(ctrl, arg, sessId);
 	}
 	public void execute() {
 		boolean val = Boolean.valueOf(msg);
-		launch.setAirMediaLaunch(val, idx, false); //Window launch is with window parameters
+		ctrl.launchAirMedia(val, sessId, false); //Window ctrl is with window parameters
 	}
 	public String getFeedbackMsg() {
-		return launch.getAirMediaLaunch(idx);
+		return Boolean.toString(ctrl.userSettings.getAirMediaLaunch());
 	}
 }
 
 class AirMediaLoginCodeCommand extends CrestronCommand {
-	public AirMediaLoginCodeCommand(CommandReceiver launch, String arg, int sessId) {
-		super(launch, arg, sessId);
+	public AirMediaLoginCodeCommand(CresStreamCtrl ctrl, String arg, int sessId) {
+		super(ctrl, arg, sessId);
 	}
 	public void execute() {
-		launch.setAirMediaLoginCode(CommandReceiver.VALIDATE_INT(msg), idx);
+		ctrl.setAirMediaLoginCode(VALIDATE_INT(msg), sessId);
 	}
 	public String getFeedbackMsg() {
-		return launch.getAirMediaLoginCode(idx);
+		return Integer.toString(ctrl.userSettings.getAirMediaLoginCode());
 	}
 }
 
 class AirMediaLoginModeCommand extends CrestronCommand {
-	public AirMediaLoginModeCommand(CommandReceiver launch, String arg, int sessId) {
-		super(launch, arg, sessId);
+	public AirMediaLoginModeCommand(CresStreamCtrl ctrl, String arg, int sessId) {
+		super(ctrl, arg, sessId);
 	}
 
 	public void execute() {
-		launch.setAirMediaLoginMode(CommandReceiver.VALIDATE_INT(msg), idx);
+		ctrl.setAirMediaLoginMode(VALIDATE_INT(msg), sessId);
 	}
 	public String getFeedbackMsg() {
-		return launch.getAirMediaLoginMode(idx);
+		return Integer.toString(ctrl.userSettings.getAirMediaLoginMode());
 	}
 }
 
 class AirMediaModeratorCommand extends CrestronCommand {
-	public AirMediaModeratorCommand(CommandReceiver launch, String arg, int sessId) {
-		super(launch, arg, sessId);
+	public AirMediaModeratorCommand(CresStreamCtrl ctrl, String arg, int sessId) {
+		super(ctrl, arg, sessId);
 	}
 	public void execute() {
-		launch.setAirMediaModerator(Boolean.valueOf(msg), idx);
+		ctrl.setAirMediaModerator(Boolean.valueOf(msg), sessId);
 	}
 	public String getFeedbackMsg() {
-		return launch.getAirMediaModerator(idx);
+		return Boolean.toString(ctrl.userSettings.getAirMediaModerator());
 	}
 }
 
 class AirMediaResetConnectionsCommand extends CrestronCommand {
-	public AirMediaResetConnectionsCommand(CommandReceiver launch, String arg, int sessId) {
-		super(launch, arg, sessId);
+	public AirMediaResetConnectionsCommand(CresStreamCtrl ctrl, String arg, int sessId) {
+		super(ctrl, arg, sessId);
 	}
 	public void execute() {
-		launch.setAirMediaResetConnections(Boolean.valueOf(msg), idx);
+		ctrl.setAirMediaResetConnections(Boolean.valueOf(msg), sessId);
 	}
 	public String getFeedbackMsg() {
-		return launch.getAirMediaResetConnections(idx);
+		return Boolean.toString(ctrl.userSettings.getAirMediaResetConnections());
 	}
 }
 
 class AirMediaDisconnectUserCommand extends CrestronCommand {
-	public AirMediaDisconnectUserCommand(CommandReceiver launch, String arg, int sessId) {
-		super(launch, arg, sessId);
+	public AirMediaDisconnectUserCommand(CresStreamCtrl ctrl, String arg, int sessId) {
+		super(ctrl, arg, sessId);
 	}	
 	public void execute() {
 		String[] tokens = msg.split("[:]"); // Format should be "UserId:JoinVal"
 		if (tokens.length == 2)
 		{
-			launch.setAirMediaDisconnectUser(CommandReceiver.VALIDATE_INT(tokens[0]), Boolean.valueOf(tokens[1]), idx);
+			ctrl.setAirMediaDisconnectUser(VALIDATE_INT(tokens[0]), Boolean.valueOf(tokens[1]), sessId);
 		}
 	}
 	public String getFeedbackMsg() {
-		return launch.getAirMediaDisconnectUser(idx);
+		return ctrl.getAirMediaDisconnectUser(sessId);
 	}
 }
 
 class AirMediaStartUserCommand extends CrestronCommand {
-	public AirMediaStartUserCommand(CommandReceiver launch, String arg, int sessId) {
-		super(launch, arg, sessId);
+	public AirMediaStartUserCommand(CresStreamCtrl ctrl, String arg, int sessId) {
+		super(ctrl, arg, sessId);
 	}	
 	public void execute() {
 		String[] tokens = msg.split("[:]"); // Format should be "UserId:JoinVal"
 		if (tokens.length == 2)
 		{
-			launch.setAirMediaStartUser(CommandReceiver.VALIDATE_INT(tokens[0]), Boolean.valueOf(tokens[1]), idx);
+			ctrl.setAirMediaStartUser(VALIDATE_INT(tokens[0]), Boolean.valueOf(tokens[1]), sessId);
 		}
 	}
 	public String getFeedbackMsg() {
-		return launch.getAirMediaStartUser(idx);
+		return ctrl.getAirMediaStartUser(sessId);
 	}
 }
 
 class AirMediaUserPositionCommand extends CrestronCommand {
-	public AirMediaUserPositionCommand(CommandReceiver launch, String arg, int sessId) {
-		super(launch, arg, sessId);
+	public AirMediaUserPositionCommand(CresStreamCtrl ctrl, String arg, int sessId) {
+		super(ctrl, arg, sessId);
 	}	
 	public void execute() {
 		String[] tokens = msg.split("[:]"); // Format should be "UserId:JoinVal"
 		if (tokens.length == 2)
 		{
-			launch.setAirMediaUserPosition(CommandReceiver.VALIDATE_INT(tokens[0]), CommandReceiver.VALIDATE_INT(tokens[1]), idx);
+			ctrl.setAirMediaUserPosition(VALIDATE_INT(tokens[0]), VALIDATE_INT(tokens[1]), sessId);
 		}
 	}
 	public String getFeedbackMsg() {
-		return launch.getAirMediaUserPosition(idx);
+		return ctrl.getAirMediaUserPosition(sessId);
 	}
 }
 
 class AirMediaStopUserCommand extends CrestronCommand {
-	public AirMediaStopUserCommand(CommandReceiver launch, String arg, int sessId) {
-		super(launch, arg, sessId);
+	public AirMediaStopUserCommand(CresStreamCtrl ctrl, String arg, int sessId) {
+		super(ctrl, arg, sessId);
 	}	
 	public void execute() {
 		String[] tokens = msg.split("[:]"); // Format should be "UserId:JoinVal"
 		if (tokens.length == 2)
 		{
-			launch.setAirMediaStopUser(CommandReceiver.VALIDATE_INT(tokens[0]), Boolean.valueOf(tokens[1]), idx);
+			ctrl.setAirMediaStopUser(VALIDATE_INT(tokens[0]), Boolean.valueOf(tokens[1]), sessId);
 		}
 	}
 	public String getFeedbackMsg() {
-		return launch.getAirMediaStopUser(idx);
+		return ctrl.getAirMediaStopUser(sessId);
 	}
 }
 
 class AirMediaOsdImageCommand extends CrestronCommand {
-	public AirMediaOsdImageCommand(CommandReceiver launch, String arg, int sessId) {
-		super(launch, arg, sessId);
+	public AirMediaOsdImageCommand(CresStreamCtrl ctrl, String arg, int sessId) {
+		super(ctrl, arg, sessId);
 	}	
 	public void execute() {
-		launch.setAirMediaOsdImage(msg, idx);
+		ctrl.setAirMediaOsdImage(msg, sessId);
 	}
 	public String getFeedbackMsg() {
-		return launch.getAirMediaOsdImage(idx);
+		return ctrl.userSettings.getAirMediaOsdImage();
 	}
 }
 
 class AirMediaIpAddressPromptCommand extends CrestronCommand {
-	public AirMediaIpAddressPromptCommand(CommandReceiver launch, String arg, int sessId) {
-		super(launch, arg, sessId);
+	public AirMediaIpAddressPromptCommand(CresStreamCtrl ctrl, String arg, int sessId) {
+		super(ctrl, arg, sessId);
 	}	
 	public void execute() {
-		launch.setAirMediaIpAddressPrompt(Boolean.valueOf(msg), idx);
+		ctrl.setAirMediaIpAddressPrompt(Boolean.valueOf(msg), sessId);
 	}
 	public String getFeedbackMsg() {
-		return launch.getAirMediaIpAddressPrompt(idx);
+		return Boolean.toString(ctrl.userSettings.getAirMediaIpAddressPrompt());
 	}
 }
 
 class AirMediaDomainNamePromptCommand extends CrestronCommand {
-	public AirMediaDomainNamePromptCommand(CommandReceiver launch, String arg, int sessId) {
-		super(launch, arg, sessId);
+	public AirMediaDomainNamePromptCommand(CresStreamCtrl ctrl, String arg, int sessId) {
+		super(ctrl, arg, sessId);
 	}	
 	public void execute() {
-		launch.setAirMediaDomainNamePrompt(Boolean.valueOf(msg), idx);
+		ctrl.setAirMediaDomainNamePrompt(Boolean.valueOf(msg), sessId);
 	}
 	public String getFeedbackMsg() {
-		return launch.getAirMediaDomainNamePrompt(idx);
+		return Boolean.toString(ctrl.userSettings.getAirMediaDomainNamePrompt());
 	}
 }
 
 class AirMediaWindowPositionCommand extends CrestronCommand {
-	public AirMediaWindowPositionCommand(CommandReceiver launch, String arg, int sessId) {
-		super(launch, arg, sessId);
+	public AirMediaWindowPositionCommand(CresStreamCtrl ctrl, String arg, int sessId) {
+		super(ctrl, arg, sessId);
 	}	
-	public void execute() {
+	public void execute() {		
 		String[] tokens = msg.split("[,]"); // Format should be "x,y,width,height"
 		if (tokens.length == 4)
 		{
-			launch.setAirMediaWindowPosition(
-					CommandReceiver.VALIDATE_INT(tokens[0]),
-					CommandReceiver.VALIDATE_INT(tokens[1]),
-					CommandReceiver.VALIDATE_INT(tokens[2]),
-					CommandReceiver.VALIDATE_INT(tokens[3]));
+			ctrl.setAirMediaWindowPosition(
+					VALIDATE_INT(tokens[0]),
+					VALIDATE_INT(tokens[1]),
+					VALIDATE_INT(tokens[2]),
+					VALIDATE_INT(tokens[3]));
 		}
 	}
 }
 
 class AirMediaWindowXOffsetCommand extends CrestronCommand {
-	public AirMediaWindowXOffsetCommand(CommandReceiver launch, String arg, int sessId) {
-		super(launch, arg, sessId);
+	public AirMediaWindowXOffsetCommand(CresStreamCtrl ctrl, String arg, int sessId) {
+		super(ctrl, arg, sessId);
 	}	
 	public void execute() {
-		launch.setAirMediaWindowXOffset(CommandReceiver.VALIDATE_INT(msg), idx);
+		ctrl.setAirMediaWindowXOffset(VALIDATE_INT(msg), sessId);
 	}
 	public String getFeedbackMsg() {
-		return launch.getAirMediaWindowXOffset(idx);
+		return String.valueOf(ctrl.userSettings.getAirMediaX());
 	}
 }
 
 class AirMediaWindowYOffsetCommand extends CrestronCommand {
-	public AirMediaWindowYOffsetCommand(CommandReceiver launch, String arg, int sessId) {
-		super(launch, arg, sessId);
+	public AirMediaWindowYOffsetCommand(CresStreamCtrl ctrl, String arg, int sessId) {
+		super(ctrl, arg, sessId);
 	}	
 	public void execute() {
-		launch.setAirMediaWindowYOffset(CommandReceiver.VALIDATE_INT(msg), idx);
+		ctrl.setAirMediaWindowYOffset(VALIDATE_INT(msg), sessId);
 	}
 	public String getFeedbackMsg() {
-		return launch.getAirMediaWindowYOffset(idx);
+		return String.valueOf(ctrl.userSettings.getAirMediaY());
 	}
 }
 
 class AirMediaWindowWidthCommand extends CrestronCommand {
-	public AirMediaWindowWidthCommand(CommandReceiver launch, String arg, int sessId) {
-		super(launch, arg, sessId);
+	public AirMediaWindowWidthCommand(CresStreamCtrl ctrl, String arg, int sessId) {
+		super(ctrl, arg, sessId);
 	}	
 	public void execute() {
-		launch.setAirMediaWindowWidth(CommandReceiver.VALIDATE_INT(msg), idx);
+		ctrl.setAirMediaWindowWidth(VALIDATE_INT(msg), sessId);
 	}
 	public String getFeedbackMsg() {
-		return launch.getAirMediaWindowWidth(idx);
+		return String.valueOf(ctrl.userSettings.getAirMediaWidth());
 	}
 }
 
 class AirMediaWindowHeightCommand extends CrestronCommand {
-	public AirMediaWindowHeightCommand(CommandReceiver launch, String arg, int sessId) {
-		super(launch, arg, sessId);
+	public AirMediaWindowHeightCommand(CresStreamCtrl ctrl, String arg, int sessId) {
+		super(ctrl, arg, sessId);
 	}	
 	public void execute() {
-		launch.setAirMediaWindowHeight(CommandReceiver.VALIDATE_INT(msg), idx);
+		ctrl.setAirMediaWindowHeight(VALIDATE_INT(msg), sessId);
 	}
 	public String getFeedbackMsg() {
-		return launch.getAirMediaWindowHeight(idx);
+		return String.valueOf(ctrl.userSettings.getAirMediaHeight());
 	}
 }
 
 class AirMediaApplyLayoutPasswordCommand extends CrestronCommand {
-	public AirMediaApplyLayoutPasswordCommand(CommandReceiver launch, String arg, int sessId) {
-		super(launch, arg, sessId);
+	public AirMediaApplyLayoutPasswordCommand(CresStreamCtrl ctrl, String arg, int sessId) {
+		super(ctrl, arg, sessId);
 	}	
 	public void execute() {
-		launch.airMediaApplyLayoutPassword(Boolean.valueOf(msg), idx);
+		ctrl.airMediaApplyLayoutPassword(Boolean.valueOf(msg), sessId);
 	}
 }
 
 class AirMediaLayoutPasswordCommand extends CrestronCommand {
-	public AirMediaLayoutPasswordCommand(CommandReceiver launch, String arg, int sessId) {
-		super(launch, arg, sessId);
+	public AirMediaLayoutPasswordCommand(CresStreamCtrl ctrl, String arg, int sessId) {
+		super(ctrl, arg, sessId);
 	}	
 	public void execute() {
-		launch.setAirMediaLayoutPassword(msg, idx);
+		ctrl.setAirMediaLayoutPassword(msg, sessId);
 	}
 	public String getFeedbackMsg() {
-		return launch.getAirMediaLayoutPassword(idx);
+		return ctrl.userSettings.getAirMediaLayoutPassword();
 	}
 }
 
 class AirMediaApplyOsdImageCommand extends CrestronCommand {
-	public AirMediaApplyOsdImageCommand(CommandReceiver launch, String arg, int sessId) {
-		super(launch, arg, sessId);
+	public AirMediaApplyOsdImageCommand(CresStreamCtrl ctrl, String arg, int sessId) {
+		super(ctrl, arg, sessId);
 	}	
 	public void execute() {
-		launch.airMediaApplyOsdImage(Boolean.valueOf(msg), idx);
+		ctrl.airMediaApplyOsdImage(Boolean.valueOf(msg), sessId);
 	}
 }
 
 class AirMediaDisplayLoginCodeCommand extends CrestronCommand {
-	public AirMediaDisplayLoginCodeCommand(CommandReceiver launch, String arg, int sessId) {
-		super(launch, arg, sessId);
+	public AirMediaDisplayLoginCodeCommand(CresStreamCtrl ctrl, String arg, int sessId) {
+		super(ctrl, arg, sessId);
 	}	
 	public void execute() {
-		launch.setAirMediaDisplayLoginCode(Boolean.valueOf(msg), idx);
+		ctrl.setAirMediaDisplayLoginCode(Boolean.valueOf(msg), sessId);
 	}
 	public String getFeedbackMsg() {
-		return launch.getAirMediaDisplayLoginCode(idx);
+		return Boolean.toString(ctrl.userSettings.getAirMediaDisplayLoginCode());
 	}
 }
 
 class AirMediaDisplayScreenCommand extends CrestronCommand {
-	public AirMediaDisplayScreenCommand(CommandReceiver launch, String arg, int sessId) {
-		super(launch, arg, sessId);
+	public AirMediaDisplayScreenCommand(CresStreamCtrl ctrl, String arg, int sessId) {
+		super(ctrl, arg, sessId);
 	}	
 	public void execute() {
-		launch.airMediaSetDisplayScreen(CommandReceiver.VALIDATE_INT(msg), idx);
+		ctrl.airMediaSetDisplayScreen(VALIDATE_INT(msg), sessId);
 	}
 }
 
 class AirMediaWindowFlagCommand extends CrestronCommand {
-	public AirMediaWindowFlagCommand(CommandReceiver launch, String arg, int sessId) {
-		super(launch, arg, sessId);
+	public AirMediaWindowFlagCommand(CresStreamCtrl ctrl, String arg, int sessId) {
+		super(ctrl, arg, sessId);
 	}	
 	public void execute() {
-		launch.airMediaSetWindowFlag(CommandReceiver.VALIDATE_INT(msg), idx);
+		ctrl.airMediaSetWindowFlag(VALIDATE_INT(msg), sessId);
 	}
 }
 
 class camStreamEnableCommand extends CrestronCommand {
-	public camStreamEnableCommand(CommandReceiver launch, String arg) {
-		super(launch, arg);
+	public camStreamEnableCommand(CresStreamCtrl ctrl, String arg) {
+		super(ctrl, arg);
 	}	
 	public void execute() {		
-		launch.setCamStreamEnable(Boolean.valueOf(msg));
+		ctrl.setCamStreamEnable(Boolean.valueOf(msg));
 	}
 	public String getFeedbackMsg() {
-		return launch.getCamStreamEnable();
+		return Boolean.toString(ctrl.userSettings.getCamStreamEnable());
 	}
 }
 
 class camStreamMulticastEnableCommand extends CrestronCommand {
-	public camStreamMulticastEnableCommand(CommandReceiver launch, String arg) {
-		super(launch, arg);
+	public camStreamMulticastEnableCommand(CresStreamCtrl ctrl, String arg) {
+		super(ctrl, arg);
 	}	
 	public void execute() {		
-		launch.setCamStreamMulticastEnable(Boolean.valueOf(msg));
+		ctrl.setCamStreamMulticastEnable(Boolean.valueOf(msg));
 	}
 	public String getFeedbackMsg() {
-		return launch.getCamStreamMulticastEnable();
+		return Boolean.toString(ctrl.userSettings.getCamStreamMulticastEnable());
 	}
 }
 
 class camStreamResolutionCommand extends CrestronCommand {
-	public camStreamResolutionCommand(CommandReceiver launch, String arg) {
-		super(launch, arg);
+	public camStreamResolutionCommand(CresStreamCtrl ctrl, String arg) {
+		super(ctrl, arg);
 	}	
 	public void execute() {		
-		launch.setCamStreamResolution(CommandReceiver.VALIDATE_INT(msg));
+		ctrl.setCamStreamResolution(VALIDATE_INT(msg));
 	}
 	public String getFeedbackMsg() {
-		return launch.getCamStreamResolution();
+		return String.valueOf(ctrl.userSettings.getCamStreamResolution());
 	}
 }
 
 class camStreamUrlCommand extends CrestronCommand {
-	public camStreamUrlCommand(CommandReceiver launch, String arg) {
-		super(launch, arg);
+	public camStreamUrlCommand(CresStreamCtrl ctrl, String arg) {
+		super(ctrl, arg);
 	}	
 	public String getFeedbackMsg() {
-		return launch.getCamStreamUrl();
+		return ctrl.userSettings.getCamStreamUrl();
 	}
 }
 
 class camStreamSnapshotUrlCommand extends CrestronCommand {
-	public camStreamSnapshotUrlCommand(CommandReceiver launch, String arg) {
-		super(launch, arg);
+	public camStreamSnapshotUrlCommand(CresStreamCtrl ctrl, String arg) {
+		super(ctrl, arg);
 	}	
 	public String getFeedbackMsg() {
-		return launch.getCamStreamSnapshotUrl();
+		return ctrl.userSettings.getCamStreamSnapshotUrl();
 	}
 }
 
 class camStreamNameCommand extends CrestronCommand {
-	public camStreamNameCommand(CommandReceiver launch, String arg) {
-		super(launch, arg);
+	public camStreamNameCommand(CresStreamCtrl ctrl, String arg) {
+		super(ctrl, arg);
 	}	
 	public void execute() {		
-		launch.setCamStreamName(msg);
+		ctrl.setCamStreamName(msg);
 	}
 	public String getFeedbackMsg() {
-		return launch.getCamStreamName();
+		return ctrl.userSettings.getCamStreamName();
 	}
 }
 
 class camStreamSnapshotNameCommand extends CrestronCommand {
-	public camStreamSnapshotNameCommand(CommandReceiver launch, String arg) {
-		super(launch, arg);
+	public camStreamSnapshotNameCommand(CresStreamCtrl ctrl, String arg) {
+		super(ctrl, arg);
 	}	
 	public void execute() {		
-		launch.setCamStreamSnapshotName(msg);
+		ctrl.setCamStreamSnapshotName(msg);
 	}
 	public String getFeedbackMsg() {
-		return launch.getCamStreamSnapshotName();
+		return ctrl.userSettings.getCamStreamSnapshotName();
 	}
 }
 
 class camStreamMulticastAddressCommand extends CrestronCommand {
-	public camStreamMulticastAddressCommand(CommandReceiver launch, String arg) {
-		super(launch, arg);
+	public camStreamMulticastAddressCommand(CresStreamCtrl ctrl, String arg) {
+		super(ctrl, arg);
 	}	
 	public void execute() {		
-		launch.setCamStreamMulticastAddress(msg);
+		ctrl.setCamStreamMulticastAddress(msg);
 	}
 	public String getFeedbackMsg() {
-		return launch.getCamStreamMulticastAddress();
+		return ctrl.userSettings.getCamStreamMulticastAddress();
 	}
 }
 
-class RestartStreamOnStartCommand implements CommandIf {
-	CommandReceiver launch;
-    String msg;
+class RestartStreamOnStartCommand extends CrestronCommand {
 
-    public RestartStreamOnStartCommand(CommandReceiver launch, String arg) {
-        this.launch = launch;
-        this.msg = arg;
+    public RestartStreamOnStartCommand(CresStreamCtrl ctrl, String arg) {
+     super(ctrl, arg);
     }
 
     @Override
     public void execute() {
     	boolean val = Boolean.valueOf(msg);
-        launch.setRestartStreamOnStart(val);
+    	ctrl.restartStreamsOnStart = val;
     }
     public String getFeedbackMsg() {
     	return msg;	//no feedback for this join
     }
 }
 
-class UseGstreamerCommand implements CommandIf {
-	CommandReceiver launch;
-    String msg;
-
-    public UseGstreamerCommand(CommandReceiver launch, String arg) {
-        this.launch = launch;
-        this.msg = arg;
+class UseGstreamerCommand extends CrestronCommand {
+	
+    public UseGstreamerCommand(CresStreamCtrl ctrl, String arg) {
+		super(ctrl, arg);
     }
 
     @Override
     public void execute() {
     	boolean val = Boolean.valueOf(msg);
-        launch.setUseGstreamer(val);
+        ctrl.setUseGstreamer(val);
     }
     public String getFeedbackMsg() {
     	return msg;	//no feedback for this join
     }
 }
 
-class UseNewSinkCommand implements CommandIf {
-	CommandReceiver launch;
-	String msg;
-	int idx;
-
-	public UseNewSinkCommand(CommandReceiver launch, String arg, int sessId) {
-		this.launch = launch;
-		this.msg = arg;
-        	this.idx = sessId;
+class UseNewSinkCommand extends CrestronCommand {
+	
+	public UseNewSinkCommand(CresStreamCtrl ctrl, String arg, int sessId) {
+		super(ctrl, arg, sessId);
 	}
 
 	@Override
 	public void execute() {
 		boolean val = Boolean.valueOf(msg);
-		launch.setNewSink(val, idx);
+		ctrl.setNewSink(val, sessId);
 	}
 	public String getFeedbackMsg() {
 		return msg;	//no feedback for this join
 	}
 }
 
-class UseNewIpAddrCommand implements CommandIf {
-	CommandReceiver launch;
-	String msg;
+class UseNewIpAddrCommand extends CrestronCommand {
 
-	public UseNewIpAddrCommand(CommandReceiver launch, String arg) {
-		this.launch = launch;
-		this.msg = arg;
+	public UseNewIpAddrCommand(CresStreamCtrl ctrl, String arg) {
+		super(ctrl, arg);
 	}
 
 	@Override
 	public void execute() {
-            launch.setChangedIpAddress(msg);
+            if(!msg.equals(ctrl.userSettings.getDeviceIp()))
+	{
+            ctrl.stopOnIpAddrChange();
+    	    ctrl.userSettings.setDeviceIp(msg);
+	}
 	}
 	public String getFeedbackMsg() {
 		return msg;	//no feedback for this join
 	}
 }
 
-class FIELDDEBUGJNICommand implements CommandIf {
-	CommandReceiver launch;
-	String msg;
-	int idx;
+class FIELDDEBUGJNICommand extends CrestronCommand {
 
-	public FIELDDEBUGJNICommand(CommandReceiver launch, String arg, int sessId) {
-		this.launch = launch;
-		this.msg = arg;
-        this.idx = sessId;
+	public FIELDDEBUGJNICommand(CresStreamCtrl ctrl, String arg, int sessId) {
+		super(ctrl, arg, sessId);
 	}
 
 	@Override
 	public void execute() {
 		//int val = Integer.valueOf(msg);
-		launch.setFieldDebugJni(msg, idx);
+		ctrl.setFieldDebugJni(msg, sessId);
 	}
 	public String getFeedbackMsg() {
 		return msg;	//no feedback for this join
 	}
 }
 
-class ResetAllWindowsCommand implements CommandIf {
-	CommandReceiver launch;
-	String msg;
+class ResetAllWindowsCommand extends CrestronCommand {
 
-	public ResetAllWindowsCommand(CommandReceiver launch, String arg) {
-		this.launch = launch;
-		this.msg = arg;
+	public ResetAllWindowsCommand(CresStreamCtrl ctrl, String arg) {
+		super(ctrl, arg);
 	}
 
 	@Override
 	public void execute() {
-		launch.resetAllWindows();
+		ctrl.resetAllWindows();
 	}
 	public String getFeedbackMsg() {
 		return msg;	//no feedback for this join
 	}
 }
 
-class SetLogLevelCommand implements CommandIf {
-	CommandReceiver launch;
-	String msg;
+class SetLogLevelCommand extends CrestronCommand {
 
-	public SetLogLevelCommand(CommandReceiver launch, String arg) {
-		this.launch = launch;
-		this.msg = arg;
+	public SetLogLevelCommand(CresStreamCtrl ctrl, String arg) {
+		super(ctrl, arg);
 	}
 
 	@Override
 	public void execute() {
 		try {
-			launch.setLogLevel(Integer.parseInt(msg));
+			ctrl.setLogLevel(Integer.parseInt(msg));
 		} catch (Exception e) {}
 	}
 	public String getFeedbackMsg() {
 		return msg;	//no feedback for this join
 	}
 }
-
