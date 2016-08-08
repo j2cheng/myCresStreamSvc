@@ -263,8 +263,11 @@ public class CommandParser {
     	if (cmdHashMap.containsKey(temp))		//if so, return value
     	{
     		CrestronCommand cmd = (CrestronCommand)cmdHashMap.get(temp);
-    		cmd.setVars(arg, idx);				// Make sure to set new value and stream ID
-    		return cmd;
+    		if (cmd != null)
+    		{
+    			cmd.setVars(arg, idx);				// Make sure to set new value and stream ID
+    			return cmd;
+    		}
     	}
     	
     	CommandIf cmd = null;
