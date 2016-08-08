@@ -64,7 +64,8 @@ void LocalConvertToUpper(char *str);
 #define STREAM_TRANSPORT_MPEG2TS_RTP (1)
 #define STREAM_TRANSPORT_MPEG2TS_UDP (2)
 
-#define CRESTRON_USER_AGENT ("Crestron/1.8.2")
+#define CRESTRON_USER_AGENT 	("Crestron/1.8.2")
+#define PROC_SELF_FD_FILEPATH 	("/proc/self/fd")
 ///////////////////////////////////////////////////////////////////////////////
 CustomData *CresDataDB = NULL; //
 CustomStreamOutData *CresStreamOutDataDB = NULL; //
@@ -402,7 +403,7 @@ void csio_jni_remove_probe (int iStreamId)
     data->udpsrc_prob_id = 0;
 }
 
-// TODO: Once fd leak is solved, see if this is still necessary on current version of android
+// This is still a current problem as of Android 4.4 and Gstreamer 1.8.2, we leak 2 sockets everytime a new url is connected to
 static bool shouldCloseSockets()
 {
 	int i;
@@ -451,6 +452,48 @@ static bool shouldCloseSockets()
 	return closeSockets;
 }
 
+// TODO: If we ever use eventfd elsewhere we will need to make sure that we dont close it here
+static void closeEventfdLeak()
+{
+	// In Gstreamer 1.8.x a anon_inode[eventfd] leak was introduced, we must close these as well
+	DIR *fdFolder;
+	struct dirent *next_file;
+	char tmp[512];
+	char filepath[256];
+	ssize_t ret;
+
+	fdFolder = opendir(PROC_SELF_FD_FILEPATH);
+
+	if (fdFolder != NULL)
+	{
+		while ( (next_file = readdir(fdFolder)) != NULL )
+		{
+			// build the path for each file in the folder
+			sprintf(filepath, "%s/%s", PROC_SELF_FD_FILEPATH, next_file->d_name);
+
+			ret = readlink(filepath, &tmp, sizeof(tmp));
+			if (ret >= 0)
+			{
+				tmp[ret] = '\0';	// readlink will not terminate buf w/ NULL
+
+				if (strstr(&tmp, "anon_inode:[eventfd]") != NULL)
+				{
+					char *end;
+
+					int fd = (int)strtol(next_file->d_name, &end, 10);        //10 specifies base-10
+					if (end != next_file->d_name)     //if no characters were converted these pointers are equal
+					{
+						CSIO_LOG(eLogLevel_debug, "Closing anon_inode fd %d", fd);
+						if (close(fd) == -1)
+							CSIO_LOG(eLogLevel_error, "Error: Could not close fd %d, errno = %d", fd, errno);
+					}
+				}
+			}
+		}
+		closedir(fdFolder);
+	}
+}
+
 void csio_jni_cleanup (int iStreamId)
 {
     int i;
@@ -490,7 +533,6 @@ void csio_jni_cleanup (int iStreamId)
     data->using_glimagsink = 0;
 
     csio_jni_FreeMainContext(iStreamId);
-
 
 	if (shouldCloseSockets()) //all streams stopped or near max fd limit
 	{
@@ -535,6 +577,8 @@ void csio_jni_cleanup (int iStreamId)
 				}
 			}
 		}
+
+		closeEventfdLeak();
 	}
 }
 
