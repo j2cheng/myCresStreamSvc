@@ -102,6 +102,8 @@ custom_handle_message (GstRTSPMedia * media, GstMessage * message)
 
           break;
       }
+      default:
+    	  break;
   }
 
   return GST_RTSP_MEDIA_CLASS (cres_rtsp_media_parent_class)->handle_message(media,message);

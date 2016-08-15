@@ -340,20 +340,24 @@ static void on_sample_callback_meta (GstElement *src, GstPad *new_pad, CREGSTREA
 {
 
     GstSample *sample;
-    GstBuffer *csio_buffer, *metadataBuffer;
+    GstBuffer *metadataBuffer;
+    GstMapInfo map;
 
     /* get the sample from appsink */
     sample = gst_app_sink_pull_sample (src);
     metadataBuffer = gst_sample_get_buffer (sample);
 
-    /* make a copy and send to CSIO*/
-    csio_buffer = gst_buffer_copy (metadataBuffer);
-
-    gsize metaDataSize = gst_buffer_get_size (csio_buffer);
-    if(sockInst)
-        socketSend(sockInst, metadataBuffer, metaDataSize, 0, false);
-        CSIO_LOG(eLogLevel_verbose, "sending metadata size %d", metaDataSize);{
+    if (gst_buffer_map (metadataBuffer, &map, GST_MAP_READ)) {
+    	gsize metaDataSize = gst_buffer_get_size (metadataBuffer);//csio_buffer);
+    	if(sockInst) {
+			socketSend(sockInst, map.data, map.size, 0, false);
+    		CSIO_LOG(eLogLevel_verbose, "sending metadata size %d", metaDataSize);
+    		gst_buffer_unmap (metadataBuffer, &map);
+    	}
     }
+	else
+		CSIO_LOG(eLogLevel_error, "Could not map gst buffer!");
+
     /* we don't need the appsink sample anymore */
     gst_sample_unref (sample);
 }
