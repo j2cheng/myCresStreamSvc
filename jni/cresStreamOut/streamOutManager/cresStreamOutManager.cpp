@@ -202,8 +202,9 @@ void* CStreamoutManager::ThreadEntry()
         // Old default pipeline (with video flipping) "( ahcsrc ! videoflip method=4 ! videoconvert ! %s ! rtph264pay name=pay0 pt=96 )"
         // Enabled NV21 pixel format in libgstreamer_android.so, don't need videoconvert anymore.
         //"( ahcsrc ! videoconvert ! %s ! rtph264pay name=pay0 pt=96 )"
+        // Queue before encoder reduces stream latency.
         snprintf(pipeline, sizeof(pipeline), "( ahcsrc name=cressrc ! "
-                                             "video/x-raw,width=%s,height=%s,framerate=%s/1 ! "
+                                             "video/x-raw,width=%s,height=%s,framerate=%s/1 ! queue ! "
                                              "%s bitrate=%s i-frame-interval=%s ! "
                                              "rtph264pay name=pay0 pt=96 )",
                                              m_res_x,m_res_y,m_frame_rate,
@@ -218,6 +219,9 @@ void* CStreamoutManager::ThreadEntry()
     g_signal_connect (m_factory, "media-configure", (GCallback) media_configure,this);
 
     gst_rtsp_media_factory_set_shared (m_factory, TRUE);
+
+    // Reduce stream latency.
+    gst_rtsp_media_factory_set_latency (m_factory, 10);	
 
 #ifdef CRES_OVERLOAD_MEDIA_CLASS
     gst_rtsp_media_factory_set_media_gtype (m_factory, CRES_TYPE_RTSP_MEDIA);
