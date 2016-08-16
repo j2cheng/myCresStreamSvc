@@ -93,19 +93,19 @@ public class GstreamOut {
     }
     
     public void setResolution(int resolution) {
-    	switch (resolution)
-    	{
-    	case 10: //1280x720
+//    	switch (resolution)
+//    	{
+//    	case 10: //1280x720
     		nativeSet_Res_x(1280, sessionId);
     		nativeSet_Res_y(720, sessionId);
-    		break;
-    	case 17: //1920x1080
-    		nativeSet_Res_x(1920, sessionId);
-    		nativeSet_Res_y(1080, sessionId);
-    		break;
-    	default:
-    		break;
-    	}
+//    		break;
+//    	case 17: //1920x1080
+//    		nativeSet_Res_x(1920, sessionId);
+//    		nativeSet_Res_y(1080, sessionId);
+//    		break;
+//    	default:
+//    		break;
+//   	}
     }
     
     public void setFramerate(int fps) {
