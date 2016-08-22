@@ -129,9 +129,11 @@ public class MiscUtils {
     
     public static String getLocalUrl(String url)
     {
-    	String newUrl;
+    	String newUrl = url;
+    	String matchString = "rtsp://";
     	String ipRegex = "\\d{1,3}\\.\\d{1,3}\\.\\d{1,3}\\.\\d{1,3}";
-    	newUrl = url.replaceFirst(ipRegex, "127.0.0.1");
+    	if (url.contains(matchString))	// only perform the replacement on rtsp addresses
+    		newUrl = url.replaceFirst(ipRegex, "127.0.0.1");
     	return newUrl;
     }
     
