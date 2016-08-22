@@ -317,7 +317,7 @@ public class UserSettings
 		airMediaDisplayScreen = 0;
 		airMediaWindowFlag	= WindowManager.LayoutParams.TYPE_SYSTEM_OVERLAY;
 		tcpInterleave       = initIntArray(0);//auto mode
-		camStreamEnable		= true;
+		camStreamEnable		= false;
 		camStreamMulticastEnable = false;
 		camStreamResolution = 10;
 		camStreamFrameRate	= 30;
