@@ -1919,6 +1919,13 @@ int csio_jni_CreatePipeline(GstElement **pipeline,GstElement **source,eProtocolI
 			//CSIO_LOG(eLogLevel_debug, "called build_http_pipeline [0x%x][0x%x]",CresDataDB->pipeline,CresDataDB->element_zero);
 			break;
 	    }
+	    case ePROTOCOL_ADAPTIVE_STREAMING:
+            {
+                build_hls_pipeline(data, iStreamId);
+                *pipeline = data->pipeline;
+                *source   = data->element_zero;
+                break;
+            }
 	    case ePROTOCOL_UDP_TS:
 	    {
 		    if(currentSettingsDB->videoSettings[iStreamId].tsEnabled==STREAM_TRANSPORT_MPEG2TS_RTP)
@@ -2181,6 +2188,11 @@ void csio_jni_InitPipeline(eProtocolId protoId, int iStreamId,GstRTSPLowerTrans 
 			//CSIO_LOG(eLogLevel_debug, "ePROTOCOL_HTTP pass\n");
 			break;
 
+		case ePROTOCOL_ADAPTIVE_STREAMING:
+			//CSIO_LOG(eLogLevel_debug, "ePROTOCOL_ADAPTIVE_STREAMING pass\n");
+		    g_object_set(G_OBJECT(data->element_v[1]), "connection-speed", 15000, NULL);
+			break;
+
 		case ePROTOCOL_UDP_TS:
 			if (currentSettingsDB->videoSettings[iStreamId].tsEnabled==STREAM_TRANSPORT_MPEG2TS_RTP)
 				g_object_set(G_OBJECT(data->element_av[0]), "buffer-size", DEFAULT_UDP_BUFFER, NULL);
@@ -2222,6 +2234,7 @@ void csio_jni_InitPipeline(eProtocolId protoId, int iStreamId,GstRTSPLowerTrans 
 void csio_jni_SetSourceLocation(eProtocolId protoId, char *location, int iStreamId)
 {
 	CREGSTREAM * data = GetStreamFromCustomData(CresDataDB, iStreamId);
+    char *url;
 	
 	if(!data)
 	{
@@ -2243,7 +2256,13 @@ void csio_jni_SetSourceLocation(eProtocolId protoId, char *location, int iStream
 		}
 
 		case ePROTOCOL_HTTP:
+			break;
+
+		case ePROTOCOL_ADAPTIVE_STREAMING:
 			//CSIO_LOG(eLogLevel_debug, "csio_jni_SetSourceLocation: ePROTOCOL_HTTP pass\n");
+		    url = (char *)currentSettingsDB->settingsMessage.msg[iStreamId].url;
+		    CSIO_LOG(eLogLevel_debug, "using url %s", url);
+		    g_object_set(G_OBJECT(data->element_zero), "location", url,  NULL);
 			break;
 
 		case ePROTOCOL_UDP_TS:
@@ -2345,6 +2364,11 @@ void csio_jni_SetMsgHandlers(void* obj,eProtocolId protoId, int iStreamId)
 			break;
 		}
 		case ePROTOCOL_HTTP:
+			break;
+
+		case ePROTOCOL_ADAPTIVE_STREAMING:
+		    g_signal_connect(data->element_v[1], "pad-added", G_CALLBACK(csio_pad_added_callback_hls), (void *) data->element_v[2]);
+			g_signal_connect(data->element_v[2], "pad-added", G_CALLBACK(csio_PadAddedMsgHandler), obj);
 			break;
 
 		case ePROTOCOL_FILE: //stub for now

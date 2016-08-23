@@ -98,6 +98,8 @@ static void pad_added_callback2 (GstElement *src, GstPad *new_pad, CREGSTREAM *d
     GstStructure *new_pad_struct = gst_caps_get_structure( new_pad_caps, 0 );
     GstElement *sinker = NULL;
     GstElement *ele0 = NULL;
+    const gchar *new_pad_type = NULL;
+    new_pad_type = gst_structure_get_name (new_pad_struct);
 	const GValue* value = NULL;	
 	gchar * 	p_caps_string;
 	int do_rtp = 0;
@@ -177,8 +179,19 @@ static void pad_added_callback2 (GstElement *src, GstPad *new_pad, CREGSTREAM *d
 		return;
 	}
 
-	// Link rest of pipeline to beginning.
-    gst_pad_link(new_pad, sink_pad);
+    // Link rest of pipeline to beginning.
+    GstPadLinkReturn ret = gst_pad_link(new_pad, sink_pad);
+    if (GST_PAD_LINK_FAILED (ret))
+    {
+        CSIO_LOG(eLogLevel_error,"Type is '%s' but link failed.\n", new_pad_type);
+    	gst_object_unref(sink_pad);
+        gst_caps_unref(new_pad_caps);
+        return;
+    }
+    else
+    {
+        CSIO_LOG(eLogLevel_debug,"Link succeeded (type '%s').\n", new_pad_type);
+    }
 
     //call initVideo before set to play state when video was added first
     csio_jni_initVideo(data->streamId);
@@ -927,6 +940,24 @@ int build_audio_pipeline(gchar *encoding_name, CREGSTREAM *data, int do_rtp,GstE
 	return CSIO_SUCCESS;
 }
 
+void build_hls_pipeline(CREGSTREAM *data, int iStreamId)
+{
+    data->element_zero = gst_element_factory_make("souphttpsrc", NULL);
+    data->element_v[0]  = gst_element_factory_make ("typefind",  NULL);
+    data->element_v[1]  = gst_element_factory_make ("hlsdemux",  NULL);
+    data->element_v[2]  = gst_element_factory_make ("tsdemux",   NULL);
+    data->element_after_tsdemux = 3;
+    gst_bin_add_many (GST_BIN (data->pipeline), data->element_zero, data->element_v[0], data->element_v[1], data->element_v[2], NULL);
+
+    if (!gst_element_link_many(data->element_zero,  data->element_v[0], data->element_v[1], NULL))
+    {
+    	CSIO_LOG(eLogLevel_error, "Cannot link HLS pipeline.\n");
+        gst_object_unref (data->pipeline);
+        return -1;
+    }
+}
+
+// The following file types work, but don't want to support them for now.
 /**
  * \author      Pete McCormick
  *
