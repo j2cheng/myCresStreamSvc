@@ -154,9 +154,11 @@ public class CresStreamCtrl extends Service {
     public final static String hdcpEncryptFilePath = "/dev/shm/crestron/CresStreamSvc/HDCPEncrypt";
     public int mGstreamerTimeoutCount = 0;
     public boolean haveExternalDisplays;
+    public boolean hideVideoOnStop = false;
     
     // JNI prototype
-    public native boolean nativeHaveExternalDisplays(); 
+    public native boolean nativeHaveExternalDisplays();
+    public native boolean nativeHideVideoBeforeStop();
 
     enum DeviceMode {
         STREAM_IN,
@@ -314,6 +316,7 @@ public class CresStreamCtrl extends Service {
             super.onCreate();
     		int windowWidth = 1920;
     		int windowHeight = 1080;
+    		hideVideoOnStop = nativeHideVideoBeforeStop();
 
     		// Wait until 2nd display has settled down.
     		// Android will kill this after 20 seconds!
@@ -2394,7 +2397,8 @@ public class CresStreamCtrl extends Service {
     public void stopStreamIn(int sessId)
     {
     	//hide video window first
-    	hideWindowWithoutDestroy(sessId);
+    	if (hideVideoOnStop)
+    		hideWindowWithoutDestroy(sessId);
 
     	streamPlay.onStop(sessId);   
 

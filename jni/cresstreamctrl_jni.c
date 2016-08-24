@@ -36,7 +36,8 @@ CSIOSettings* currentSettingsDB = NULL;
 
 ///////////////////////////////////////////////////////////////////////////////
 
-JNIEXPORT jboolean JNICALL Java_com_crestron_txrxservice_CresStreamCtrl_nativeHaveExternalDisplays(JNIEnv *env, jobject thiz)
+// TODO: expose to java and just call this in constructor, currently needs to be called before every function added
+static void do_init()
 {
 	if(!did_init)
 	{
@@ -45,11 +46,26 @@ JNIEXPORT jboolean JNICALL Java_com_crestron_txrxservice_CresStreamCtrl_nativeHa
 			currentSettingsDB = (CSIOSettings*)malloc(sizeof(CSIOSettings));
 		csio_setup_product_info(0);
 	}
+}
+
+JNIEXPORT jboolean JNICALL Java_com_crestron_txrxservice_CresStreamCtrl_nativeHaveExternalDisplays(JNIEnv *env, jobject thiz)
+{
+	do_init();
 
 	if(product_info()->stream_display_bitmask & 0xfffffffe)
 	{
 		return JNI_TRUE;
 	}
-	
+
 	return JNI_FALSE;
+}
+
+JNIEXPORT jboolean JNICALL Java_com_crestron_txrxservice_CresStreamCtrl_nativeHideVideoBeforeStop(JNIEnv *env, jobject thiz)
+{
+	do_init();
+
+	if(product_info()->hide_video_on_stop)
+		return JNI_TRUE;
+	else
+		return JNI_FALSE;
 }
