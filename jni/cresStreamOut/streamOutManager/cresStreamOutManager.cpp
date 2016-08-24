@@ -282,7 +282,7 @@ exitThread:
         }
 
         CSIO_LOG(m_debugLevel, "Streamout: -------call gst_rtsp_media_unprepare---");
-        gst_rtsp_media_unprepare (m_pMedia);       
+        gst_rtsp_media_unprepare_force (m_pMedia);       
      }
 #endif
 
