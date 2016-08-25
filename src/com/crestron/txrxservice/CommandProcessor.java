@@ -1923,6 +1923,16 @@ class AirMediaWindowFlagCommand extends CrestronCommand {
 	}
 }
 
+class AirMediaVersionCommand extends CrestronCommand {
+	public AirMediaVersionCommand(CresStreamCtrl ctrl, String arg, int sessId) {
+		super(ctrl, arg, sessId);
+	}	
+
+	public String getFeedbackMsg() {
+		return ctrl.getAirMediaVersion(sessId);
+	}
+}
+
 class camStreamEnableCommand extends CrestronCommand {
 	public camStreamEnableCommand(CresStreamCtrl ctrl, String arg) {
 		super(ctrl, arg);

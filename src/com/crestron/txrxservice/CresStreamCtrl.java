@@ -43,6 +43,8 @@ import android.os.AsyncTask;
 import android.provider.MediaStore.Files;
 import android.content.Intent;
 import android.content.IntentFilter;
+import android.content.pm.PackageInfo;
+import android.content.pm.PackageManager;
 import android.content.BroadcastReceiver;
 import android.media.AudioManager;
 import android.view.Surface;
@@ -2857,6 +2859,18 @@ public class CresStreamCtrl extends Service {
     	}
     }
     
+    public String getAirMediaVersion(int sessId)
+    {
+    	String versionName = "";
+		final PackageManager pm = getPackageManager();
+		String apkName = "ReceiverAirMedia.apk";
+		String fullPath = "/data/app" + "/" + apkName;        
+		PackageInfo info = pm.getPackageArchiveInfo(fullPath, 0);
+		if (info != null)
+			versionName = info.versionName;
+		return versionName;
+    }
+    
     public void setCamStreamEnable(boolean enable) {
     	userSettings.setCamStreamEnable(enable);
     	
@@ -3448,9 +3462,10 @@ public class CresStreamCtrl extends Service {
 			// Only send new status when hdcp status changes for either input or output, or if force status update is called
 			if ((mHDCPInputStatus != currentHDCPInputStatus) || (mHDCPOutputStatus != currentHDCPOutputStatus) || (mForceHdcpStatusUpdate == true))
 			{
+				boolean outputHDCPstatus = currentHDCPOutputStatus || mHDCPExternalStatus;
 				hdcpStatusChanged = true;
 				mHDCPInputStatus = currentHDCPInputStatus;
-				mHDCPOutputStatus = currentHDCPOutputStatus;				
+				mHDCPOutputStatus = currentHDCPOutputStatus;	
 				
 				if ((mHDCPInputStatus == true && mHDCPEncryptStatus == false) && (mIgnoreHDCP == false))
 					setHDCPErrorImage(true);
@@ -3470,10 +3485,10 @@ public class CresStreamCtrl extends Service {
 					}
 				}
 				// The below case is transmitter which is streaming protected content but can't display on loopout
-				if (((mHDCPInputStatus == true && hdmiContentVisible == true) && mHDCPEncryptStatus == true && mHDCPOutputStatus == false) && (mIgnoreHDCP == false))	
+				if (((mHDCPInputStatus == true && hdmiContentVisible == true) && mHDCPEncryptStatus == true && outputHDCPstatus == false) && (mIgnoreHDCP == false))	
 					sendHDCPLocalOutputBlanking(true);
 				// The below case is receiver which is receiving protect stream but can't display on output
-				else if ((mTxHdcpActive == true && mHDCPEncryptStatus == true && mHDCPOutputStatus == false) && (mIgnoreHDCP == false))
+				else if ((mTxHdcpActive == true && mHDCPEncryptStatus == true && outputHDCPstatus == false) && (mIgnoreHDCP == false))
 					sendHDCPLocalOutputBlanking(true);
 				else
 					sendHDCPLocalOutputBlanking(false);

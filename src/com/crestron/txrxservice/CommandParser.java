@@ -152,6 +152,7 @@ public class CommandParser {
         AIRMEDIA_DOMAIN_NAME_PROMPT,
         AIRMEDIA_DISPLAY_SCREEN,
         AIRMEDIA_WINDOW_FLAG,
+        AIRMEDIA_VERSION,
         
         // Camera Streaming Slot
         CAMERA_STREAMING_ENABLE,
@@ -647,6 +648,9 @@ public class CommandParser {
             	break;
             case AIRMEDIA_WINDOW_FLAG:
             	cmd = new AirMediaWindowFlagCommand(ctrl, arg, idx);
+            	break;
+            case AIRMEDIA_VERSION:
+            	cmd = new AirMediaVersionCommand(ctrl, arg, idx);
             	break;
             	
         	// Camera Streaming
