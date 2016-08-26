@@ -189,6 +189,11 @@ public class ProductSpecific
 		}
 	}
 
+	public static void hideVideoWithoutDestroy(int sessID)
+    	{
+		// Causes display artifacts (workaround because table is not returning right value)
+	}
+
 	// ******************* Classes *******************
 	public class DispayInfo
 	{
