@@ -157,10 +157,12 @@ public class CresStreamCtrl extends Service {
     public int mGstreamerTimeoutCount = 0;
     public boolean haveExternalDisplays;
     public boolean hideVideoOnStop = false;
+    public CrestronHwPlatform mHwPlatform;
     
     // JNI prototype
     public native boolean nativeHaveExternalDisplays();
     public native boolean nativeHideVideoBeforeStop();
+    public native int nativeGetHWPlatformEnum();
 
     enum DeviceMode {
         STREAM_IN,
@@ -254,6 +256,38 @@ public class CresStreamCtrl extends Service {
             return LAST;
         }
     }
+    
+ // ***********************************************************************************
+ // Keep updated with eHardwarePlatform in csioCommonShare.h !!!!!!!!!!!!!!!!!!!!!!!!!!!!!!
+ // ***********************************************************************************
+    public enum CrestronHwPlatform
+    {
+        eHardwarePlatform_iMx53,
+        eHardwarePlatform_iMx6,
+        eHardwarePlatform_OMAP5,
+        eHardwarePlatform_Arria10,
+    	eHardwarePlatform_Amlogic,
+    	eHardwarePlatform_Unknown;
+    	
+        public static CrestronHwPlatform fromInteger(int x) {
+        	switch(x) {
+        	case 0:
+        		return eHardwarePlatform_iMx53;
+        	case 1:
+        		return eHardwarePlatform_iMx6;
+        	case 2:
+        		return eHardwarePlatform_OMAP5;
+        	case 3:
+        		return eHardwarePlatform_Arria10;
+        	case 4:
+        		return eHardwarePlatform_Amlogic;
+        	default:
+				Log.i(TAG, String.format("Unknown hardware platform %d, please update enum!!!!!", x));
+        		return eHardwarePlatform_Unknown;
+        	}
+        }
+    }
+
    
     private final ReentrantLock hdmiLock				= new ReentrantLock(true); // fairness=true, makes lock ordered
     private final ReentrantLock[] windowtLock			= new ReentrantLock[NumOfSurfaces]; // members will be allocated in constructor
@@ -319,6 +353,7 @@ public class CresStreamCtrl extends Service {
     		int windowWidth = 1920;
     		int windowHeight = 1080;
     		hideVideoOnStop = nativeHideVideoBeforeStop();
+    		mHwPlatform = CrestronHwPlatform.fromInteger(nativeGetHWPlatformEnum());
 
     		// Wait until 2nd display has settled down.
     		// Android will kill this after 20 seconds!

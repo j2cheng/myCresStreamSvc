@@ -69,3 +69,10 @@ JNIEXPORT jboolean JNICALL Java_com_crestron_txrxservice_CresStreamCtrl_nativeHi
 	else
 		return JNI_FALSE;
 }
+
+JNIEXPORT jint JNICALL Java_com_crestron_txrxservice_CresStreamCtrl_nativeGetHWPlatformEnum(JNIEnv *env, jobject thiz)
+{
+	do_init();
+
+	return product_info()->hw_platform;
+}
