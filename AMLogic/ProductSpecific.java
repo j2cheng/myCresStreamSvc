@@ -188,6 +188,11 @@ public class ProductSpecific
 		{			
 		}
 	}
+    
+    public static boolean hideVideoOnStop()
+    {
+    	return false;
+    }
 
 	// ******************* Classes *******************
 	public class DispayInfo
