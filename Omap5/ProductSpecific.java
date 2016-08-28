@@ -171,7 +171,7 @@ public class ProductSpecific
     
     public static boolean hideVideoOnStop()
     {
-    	return false;
+    	return true;
     }
 	
 	public class DispayInfo
