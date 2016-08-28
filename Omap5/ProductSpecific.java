@@ -171,7 +171,7 @@ public class ProductSpecific
 
 	public static void hideVideoWithoutDestroy(int sessID)
     	{
-		hideWindowWithoutDestroy(sessId);
+		hideWindowWithoutDestroy(sessID);
 	}
 	
 	public class DispayInfo
