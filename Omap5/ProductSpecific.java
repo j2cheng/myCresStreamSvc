@@ -168,11 +168,6 @@ public class ProductSpecific
     {
 		// no java code controlling chromakey in this product
 	}
-
-	public static void hideVideoWithoutDestroy(int sessID)
-    	{
-		hideWindowWithoutDestroy(sessID);
-	}
 	
 	public class DispayInfo
 	{

@@ -2434,9 +2434,8 @@ public class CresStreamCtrl extends Service {
     public void stopStreamIn(int sessId)
     {
     	//hide video window first
-//    	if (hideVideoOnStop)
-//    		hideWindowWithoutDestroy(sessId);
-	ProductSpecific.hideVideoWithoutDestroy(sessId); //TODO workaround for table being broken
+    	if (hideVideoOnStop)
+    		hideWindowWithoutDestroy(sessId);
 
     	streamPlay.onStop(sessId);   
 
