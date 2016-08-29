@@ -1877,6 +1877,8 @@ int csio_jni_CreatePipeline(GstElement **pipeline,GstElement **source,eProtocolI
 {	
 	int iStatus = CSIO_SUCCESS;
 	CREGSTREAM * data = GetStreamFromCustomData(CresDataDB, iStreamId);
+    CSIO_LOG(eLogLevel_debug, "%s() protoId = %d", __FUNCTION__, protoId);
+
 	if(!data)
 	{
 		CSIO_LOG(eLogLevel_error, "Could not obtain stream pointer for stream %d", iStreamId);
@@ -1887,8 +1889,6 @@ int csio_jni_CreatePipeline(GstElement **pipeline,GstElement **source,eProtocolI
 
 	data->pipeline = gst_pipeline_new(NULL);
     
-    CSIO_LOG(eLogLevel_debug, "CreatePipeline protoId %d", protoId);
-
 	switch( protoId )
 	{
 		case ePROTOCOL_RTSP_TCP:
@@ -2030,6 +2030,8 @@ int csio_jni_CreatePipeline(GstElement **pipeline,GstElement **source,eProtocolI
 	    	strcpy(data->multicast_grp, (char*)currentSettingsDB->videoSettings[iStreamId].multicastAddress);
 		    if(currentSettingsDB->videoSettings[iStreamId].tsEnabled==STREAM_TRANSPORT_MPEG2TS_RTP)
 		    {
+				CSIO_LOG(eLogLevel_debug,  "in STREAM_TRANSPORT_MPEG2TS_RTP\n" );
+
 				data->element_zero = gst_element_factory_make("rtpbin", NULL);
 				gst_bin_add(GST_BIN(data->pipeline), data->element_zero);
 
@@ -2050,6 +2052,8 @@ int csio_jni_CreatePipeline(GstElement **pipeline,GstElement **source,eProtocolI
 		    }
 		    else if(currentSettingsDB->videoSettings[iStreamId].tsEnabled==STREAM_TRANSPORT_MPEG2TS_UDP)
 		    {
+				CSIO_LOG(eLogLevel_debug,  "in STREAM_TRANSPORT_MPEG2TS_UDP\n" );
+
 			    data->element_zero = gst_element_factory_make("udpsrc", NULL);
 			    if(!data->element_zero)
 			    {
@@ -2058,7 +2062,7 @@ int csio_jni_CreatePipeline(GstElement **pipeline,GstElement **source,eProtocolI
 			    }
 			    insert_udpsrc_probe(data,data->element_zero,"src");
 			    			    
-			   	data->udp_port = currentSettingsDB->videoSettings[iStreamId].tsPort;
+			    data->udp_port = currentSettingsDB->videoSettings[iStreamId].tsPort;
 			    g_object_set(G_OBJECT(data->element_zero), "port", data->udp_port, NULL);
 
 			    data->element_av[0] = gst_element_factory_make( "queue", NULL );
@@ -2077,6 +2081,7 @@ int csio_jni_CreatePipeline(GstElement **pipeline,GstElement **source,eProtocolI
 			    data->mpegtsPresent = TRUE;
 
 			    gst_bin_add_many(GST_BIN(data->pipeline), data->element_zero, data->element_av[0], data->element_av[1], NULL);
+
 			    if( !gst_element_link_many(data->element_zero, data->element_av[0], data->element_av[1], NULL))
 			    {
 				    CSIO_LOG(eLogLevel_error,  "ERROR:  Cannot link filter to source elements.\n" );
@@ -2084,6 +2089,10 @@ int csio_jni_CreatePipeline(GstElement **pipeline,GstElement **source,eProtocolI
 			    }
 			    else
 				    CSIO_LOG(eLogLevel_debug, "success link pipeline elements\n");
+			}else 
+			{
+				CSIO_LOG(eLogLevel_debug,  "WARNING - invalid case\n" );
+
 			}
 
 			*pipeline = data->pipeline;
@@ -2124,6 +2133,7 @@ int csio_jni_CreatePipeline(GstElement **pipeline,GstElement **source,eProtocolI
 	    }
 	    case ePROTOCOL_FILE: //stub for now
 	    default:
+			CSIO_LOG(eLogLevel_error,  "ERROR: invalid protoID.\n" );
 			iStatus = CSIO_FAILURE;
 			break;
 	}
