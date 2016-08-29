@@ -26,10 +26,16 @@
 // In csioCommonShare.h, Product_Information structure uses "bool", 
 // but that doesn't exist in C, only C++.
 #ifndef __cplusplus
-	typedef int bool;
+	#include<stdbool.h>
 #endif
 
 #include "csioCommonShare.h"
+#include <android/log.h>
+
+#define  LOG_TAG    "CresStreamCtrlJNI"
+
+#define  LOGD(...)  __android_log_print(ANDROID_LOG_DEBUG, LOG_TAG, __VA_ARGS__)
+#define  LOGE(...)  __android_log_print(ANDROID_LOG_ERROR, LOG_TAG, __VA_ARGS__)
 
 int did_init = 0;
 CSIOSettings* currentSettingsDB = NULL;

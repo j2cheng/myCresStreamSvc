@@ -169,11 +169,6 @@ public class ProductSpecific
 		// no java code controlling chromakey in this product
 	}
     
-    public static boolean hideVideoOnStop()
-    {
-    	return true;
-    }
-	
 	public class DispayInfo
 	{
 		public int width;

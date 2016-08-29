@@ -145,6 +145,7 @@ LOCAL_CFLAGS +=\
 	-I$(CSIO_INCLUDE_ROOT)/txrx 
 endif	
 
+LOCAL_LDLIBS := -llog
 LOCAL_SHARED_LIBRARIES := libCsioProdInfo
 LOCAL_SRC_FILES := cresstreamctrl_jni.c
 
