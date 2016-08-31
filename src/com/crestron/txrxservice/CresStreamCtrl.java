@@ -2595,10 +2595,12 @@ public class CresStreamCtrl extends Service {
     		if (fullscreen)
     		{
     			WindowManager wm = (WindowManager) this.getSystemService(Context.WINDOW_SERVICE);
-    			Log.e(TAG, "RS: fullscreen true");
+    			Log.e(TAG, "AirMedia fullscreen true");
     			
     			if (haveExternalDisplays)
     			{
+    				userSettings.setAirMediaDisplayScreen(1);
+    				
 	    			DisplayManager dm = (DisplayManager) getApplicationContext().getSystemService(Context.DISPLAY_SERVICE);
 	    	        if (dm != null){
 	    	            Display dispArray[] = dm.getDisplays();
@@ -2612,6 +2614,10 @@ public class CresStreamCtrl extends Service {
 	    	        	Log.e(TAG, "Unable to query second display size, using primary display");
 	    	        }
     			}	
+    			else
+    			{
+    				userSettings.setAirMediaDisplayScreen(0);
+    			}
 
 				Display display = wm.getDefaultDisplay();
     			Point size = new Point();
