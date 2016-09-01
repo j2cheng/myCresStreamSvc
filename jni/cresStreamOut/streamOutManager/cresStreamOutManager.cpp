@@ -64,6 +64,8 @@ media_configure (GstRTSPMediaFactory * factory, GstRTSPMedia * media,
   //pass media back to manager
   ((CStreamoutManager*)user_data)->m_pMedia = media;
 
+  ((CresRTSPMedia *)media)->m_loop = ((CStreamoutManager*)user_data)->m_loop;
+
   gst_object_unref (ahcsrc);
   gst_object_unref (element);
   g_free(n);

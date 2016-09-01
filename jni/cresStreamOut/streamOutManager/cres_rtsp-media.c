@@ -24,19 +24,6 @@ GST_DEBUG_CATEGORY_STATIC (cres_rtsp_media_debug);
 
 #define GST_CAT_DEFAULT cres_rtsp_media_debug
 
-typedef struct CresRTSPMediaClass CresRTSPMediaClass;
-typedef struct CresRTSPMedia CresRTSPMedia;
-
-struct CresRTSPMediaClass
-{
-  GstRTSPMediaClass parent;
-};
-
-struct CresRTSPMedia
-{
-  GstRTSPMedia parent;
-};
-
 static gboolean
 custom_handle_message (GstRTSPMedia * media, GstMessage * message);
 
@@ -64,6 +51,7 @@ custom_handle_message (GstRTSPMedia * media, GstMessage * message)
 {
   GstMessageType type;
 
+  gboolean bIgnoreError = TRUE;
   GError *err    = NULL;
   gchar  *debug  = NULL;
 
@@ -89,6 +77,7 @@ custom_handle_message (GstRTSPMedia * media, GstMessage * message)
       }
       case GST_MESSAGE_ERROR:
       {
+    	  bIgnoreError = FALSE; // For now restart on error
           gst_message_parse_error( message, &err, &debug );
           if(message->src && err && err->message)
           {
@@ -104,6 +93,12 @@ custom_handle_message (GstRTSPMedia * media, GstMessage * message)
       }
       default:
     	  break;
+  }
+
+  if (!bIgnoreError)
+  {
+	  // quit loop to trigger restart
+	  g_main_loop_quit(((CresRTSPMedia *)media)->m_loop);
   }
 
   return GST_RTSP_MEDIA_CLASS (cres_rtsp_media_parent_class)->handle_message(media,message);

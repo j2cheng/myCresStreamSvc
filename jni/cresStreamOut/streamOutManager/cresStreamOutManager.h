@@ -51,9 +51,8 @@ public:
     void setIFrameInterval(char* i){strcpy(m_iframe_interval, i);}
 
     GstRTSPMediaFactory *m_factory;
-
+    GMainLoop *  m_loop;
 private:
     Mutex* mLock;
-    GMainLoop *  m_loop;
 };
 #endif __CRESSTREAMOUTMANAGER_H__

@@ -11,6 +11,20 @@ extern "C"
 {
 #endif
 
+typedef struct CresRTSPMediaClass CresRTSPMediaClass;
+typedef struct CresRTSPMedia CresRTSPMedia;
+
+struct CresRTSPMediaClass
+{
+  GstRTSPMediaClass parent;
+};
+
+struct CresRTSPMedia
+{
+  GstRTSPMedia parent;
+  GMainLoop *  m_loop;
+};
+
 GType cres_rtsp_media_get_type (void);
 
 #ifdef __cplusplus
