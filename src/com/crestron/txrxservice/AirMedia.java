@@ -16,6 +16,7 @@ public class AirMedia
     Context mContext;
     String TAG = "TxRx AirMedia"; 
     private final static String commandIntent = "com.awindinc.receiver.airmedia.command";
+	private final static String licenseFilePath = "/dev/shm/airmedia";
     
     BroadcastReceiver feedback = null;
     
@@ -24,41 +25,46 @@ public class AirMedia
     	mStreamCtl = streamCtl;
     	mContext = (Context)mStreamCtl;
     	registerBroadcasts();
+    	
+    	// Launch service
+    	Intent intent = mContext.getPackageManager().getLaunchIntentForPackage("com.awindinc.receiver.airmedia");
+    	if (intent != null) {
+    		mContext.startActivity(intent);
+    		intent.putExtra("receiver_name", "AirMedia");
+    		intializeDisplay();
+    	}
+    	else {
+        	Log.e(TAG, "Failed to launch Airmedia!");
+        }
     }
     
     public void onDestroy(){
-    	Log.e(TAG, "RS: AirMedia Class destroyed!!!");
+    	Log.e(TAG, "AirMedia Class destroyed!!!");
+    	
+    	Intent i = new Intent(commandIntent);
+        i.putExtra("command", "close_receiver");
+        mContext.sendBroadcast(i);
+        
     	unregisterBroadcasts();
     }
     
-    public void launch(int x, int y, int width, int height)
+    public void show(int x, int y, int width, int height)
     {
-    	Intent intent = mContext.getPackageManager().getLaunchIntentForPackage("com.awindinc.receiver.airmedia");
-        if (intent != null) {
-            // We found the activity now start the activity
-        	// Launch app
-        	intent.putExtra("receiver_name", "AirMedia");
-//            intent.putExtra("login_code", (int)2266);
-            mContext.startActivity(intent);
-            
-            // Set z-order and display
-            setWindowFlag(mStreamCtl.userSettings.getAirMediaWindowFlag());
-            setDisplayScreen(mStreamCtl.userSettings.getAirMediaDisplayScreen());
+    	// Set z-order and display
+    	setWindowFlag(mStreamCtl.userSettings.getAirMediaWindowFlag());
+    	setDisplayScreen(mStreamCtl.userSettings.getAirMediaDisplayScreen());
 
-            // Show/Hide display items based on current settings
-            intializeDisplay();
-            
-            //show surface
-            setSurfaceSize(x,y,width,height, true);
-        } else {
-        	Log.e(TAG, "Failed to launch Airmedia!");
-        }
+    	// Show/Hide display items based on current settings
+    	intializeDisplay();
+
+    	//show surface
+    	setSurfaceSize(x,y,width,height, true);
     }    
     
-    public void quit()
+    public void hide()
     {
     	Intent i = new Intent(commandIntent);
-        i.putExtra("command", "close_receiver");
+        i.putExtra("command", "hide_receiver_info");
         mContext.sendBroadcast(i);
     }
     
@@ -432,5 +438,15 @@ public class AirMedia
     	i.putExtra("command", "set_window_flag");
     	i.putExtra("value", (int)windowFlag);
     	mContext.sendBroadcast(i);
+    }
+    
+    public static boolean checkAirMediaLicense()
+    {
+    	boolean licensed = false;
+    	try
+    	{
+    		licensed = Integer.parseInt(MiscUtils.readStringFromDisk(licenseFilePath)) == 1;
+    	} catch (Exception e) {} // If file DNE or corrupt not licensed
+    	return licensed;
     }
 }

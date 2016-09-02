@@ -700,6 +700,9 @@ public class CresStreamCtrl extends Service {
 
     		// Monitor Rava Mode
     		monitorRavaMode();
+    		
+    		if (mAirMedia == null && AirMedia.checkAirMediaLicense())
+    			mAirMedia = new AirMedia(this);
 
     		// FIXME: this is a temprorary workaround for testing so that we can ignore HDCP state
     		File ignoreHDCPFile = new File ("/data/CresStreamSvc/ignoreHDCP");
@@ -2590,7 +2593,8 @@ public class CresStreamCtrl extends Service {
     	if (val == true) // True = launch airmedia app, false = close app
     	{
     		// Do I need to stop all video here???
-    		mAirMedia = new AirMedia(this);
+    		if (mAirMedia == null && AirMedia.checkAirMediaLicense())
+    			mAirMedia = new AirMedia(this);
     		int x, y, width, height;
     		if (fullscreen)
     		{
@@ -2635,15 +2639,11 @@ public class CresStreamCtrl extends Service {
     			height = userSettings.getAirMediaHeight();
     		}
     		
-    		mAirMedia.launch(x, y, width, height);
+    		mAirMedia.show(x, y, width, height);
     	}
     	else
     	{
-    		if (mAirMedia != null)
-    		{
-    			mAirMedia.quit();
-    			mAirMedia = null;
-    		}
+    		mAirMedia.hide();
     	}
     }
     
