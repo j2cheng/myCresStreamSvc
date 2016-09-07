@@ -413,7 +413,12 @@ public class CresStreamCtrl extends Service {
     								if (getCurrentStreamState(sessionId) != StreamState.STOPPED)
     								{
     									if (userSettings.getMode(sessionId) == DeviceMode.PREVIEW.ordinal())
-    										cam_preview.stopPlayback(false);
+    									{
+    										if (cam_preview != null)
+    								    	{
+    											cam_preview.stopPlayback(false);
+    								    	}
+    									}    										
     									else if (userSettings.getMode(sessionId) == DeviceMode.STREAM_IN.ordinal())
     										streamPlay.onStop(sessionId);
     									else if (userSettings.getMode(sessionId) == DeviceMode.STREAM_OUT.ordinal())
@@ -1124,10 +1129,13 @@ public class CresStreamCtrl extends Service {
     		{
     			if (userSettings.getMode(sessionId) == DeviceMode.PREVIEW.ordinal())
     			{
-    				if (enabled)
-    					cam_preview.stopAudio();
-    				else
-    					cam_preview.startAudio();
+    				if (cam_preview != null)
+    				{
+	    				if (enabled)
+	    					cam_preview.stopAudio();
+	    				else
+	    					cam_preview.startAudio();
+    				}
     			}
     			else if (userSettings.getMode(sessionId) == DeviceMode.STREAM_IN.ordinal())
     			{
@@ -1849,7 +1857,8 @@ public class CresStreamCtrl extends Service {
     
     private void setPreviewVolume(int volume)
     {
-    	cam_preview.setVolume(volume);
+    	if (cam_preview != null)
+    		cam_preview.setVolume(volume);
     }
     
     private void setStreamInVolume(int volume, int sessionId)
@@ -2453,31 +2462,40 @@ public class CresStreamCtrl extends Service {
     //Preview 
     public void startPreview(int sessId)
     {
-    	SendStreamState(StreamState.CONNECTING, sessId);
-        updateWindow(sessId);
-        showPreviewWindow(sessId);
-        cam_preview.setSessionIndex(sessId);
-        invalidateSurface();
-        cam_preview.startPlayback(false);
-        //Toast.makeText(this, "Preview Started", Toast.LENGTH_LONG).show();
+    	if (cam_preview != null)
+    	{
+    		SendStreamState(StreamState.CONNECTING, sessId);
+    		updateWindow(sessId);
+    		showPreviewWindow(sessId);
+    		cam_preview.setSessionIndex(sessId);
+    		invalidateSurface();
+    		cam_preview.startPlayback(false);
+    		//Toast.makeText(this, "Preview Started", Toast.LENGTH_LONG).show();
+    	}
     }
 
     public void stopPreview(int sessId)
     {
-        hidePreviewWindow(sessId);
-        cam_preview.setSessionIndex(sessId);
-        //On STOP, there is a chance to get ducati crash which does not save current state
-        //causes streaming never stops.
-        //FIXME:Temp Hack for ducati crash to save current state
-        userSettings.setStreamState(StreamState.STOPPED, sessId);
-        cam_preview.stopPlayback(false);
-        //Toast.makeText(this, "Preview Stopped", Toast.LENGTH_LONG).show();
+    	if (cam_preview != null)
+    	{
+    		hidePreviewWindow(sessId);
+    		cam_preview.setSessionIndex(sessId);
+    		//On STOP, there is a chance to get ducati crash which does not save current state
+    		//causes streaming never stops.
+    		//FIXME:Temp Hack for ducati crash to save current state
+    		userSettings.setStreamState(StreamState.STOPPED, sessId);
+    		cam_preview.stopPlayback(false);
+    		//Toast.makeText(this, "Preview Stopped", Toast.LENGTH_LONG).show();
+    	}
     }
     
     public void pausePreview(int sessId)
     {
-    	cam_preview.setSessionIndex(sessId);
-        cam_preview.pausePlayback();
+    	if (cam_preview != null)
+    	{
+    		cam_preview.setSessionIndex(sessId);
+    		cam_preview.pausePlayback();
+    	}
     }
    
    
