@@ -318,6 +318,49 @@ CStreamoutManager * StreamoutProjectGetManagerObj()
     CSIO_LOG(StreamOutProjDebugLevel, "Streamout: pManager : 0x%x\n",pManager);
     return pManager;
 }
+
+void Streamout_EnableMulticast(int enable)
+{
+	CSIO_LOG(StreamOutProjDebugLevel, "Streamout: %s() enter", __FUNCTION__);
+
+	gProjectsLock.lock();
+
+	CSIO_LOG(StreamOutProjDebugLevel, "Streamout: set multicast enable to [%d].\n", enable);
+
+	StreamoutProjectSendEvent(0, STREAMOUT_EVENT_JNI_CMD_ENABLE_MULTICAST,sizeof(int), &enable);
+
+	gProjectsLock.unlock();
+	CSIO_LOG(StreamOutProjDebugLevel, "Streamout: %s() exit.", __FUNCTION__);
+}
+
+void Streamout_SetMulticastAddress(char * address)
+{
+	CSIO_LOG(StreamOutProjDebugLevel, "Streamout: %s() enter", __FUNCTION__);
+
+	gProjectsLock.lock();
+
+	CSIO_LOG(StreamOutProjDebugLevel, "Streamout: set multicast address to [%s].\n",address);
+
+	StreamoutProjectSendEvent(0, STREAMOUT_EVENT_JNI_CMD_MULTICAST_ADDRESS,strlen(address), address);
+
+	gProjectsLock.unlock();
+	CSIO_LOG(StreamOutProjDebugLevel, "Streamout: %s() exit.", __FUNCTION__);
+}
+
+void Streamout_SetStreamName(char * name)
+{
+	CSIO_LOG(StreamOutProjDebugLevel, "Streamout: %s() enter", __FUNCTION__);
+
+	gProjectsLock.lock();
+
+	CSIO_LOG(StreamOutProjDebugLevel, "Streamout: set stream name to [%s].\n", name);
+
+	StreamoutProjectSendEvent(0, STREAMOUT_EVENT_JNI_CMD_STREAM_NAME,strlen(name), name);
+
+	gProjectsLock.unlock();
+	CSIO_LOG(StreamOutProjDebugLevel, "Streamout: %s() exit.", __FUNCTION__);
+}
+
 /*********************local static functions **************************/
 static void StreamoutProjectSendEvent(int iId, int evnt, int data_size, void* bufP)
 {
@@ -368,6 +411,9 @@ CStreamoutProject::CStreamoutProject(int iId): m_projectID(iId)
     strcpy(m_frame_rate, DEFAULT_FRAME_RATE);
     strcpy(m_bit_rate, DEFAULT_BIT_RATE);
     strcpy(m_iframe_interval, DEFAULT_IFRAME_INTERVAL);
+    m_multicast_enable = DEFAULT_MULTICAST_ENABLE;
+    strcpy(m_multicast_address, DEFAULT_MULTICAST_ADDRESS);
+    strcpy(m_stream_name, DEFAULT_STREAM_NAME);
 }
 
 CStreamoutProject::~CStreamoutProject()
@@ -482,6 +528,9 @@ void* CStreamoutProject::ThreadEntry()
                             m_StreamoutTaskObjList[id]->setFrameRate(m_frame_rate);
                             m_StreamoutTaskObjList[id]->setBitRate(m_bit_rate);
                             m_StreamoutTaskObjList[id]->setIFrameInterval(m_iframe_interval);
+                            m_StreamoutTaskObjList[id]->setMulticastEnable(&m_multicast_enable);
+                            m_StreamoutTaskObjList[id]->setMulticastAddress(m_multicast_address);
+                            m_StreamoutTaskObjList[id]->setStreamName(m_stream_name);
 
                             m_StreamoutTaskObjList[id]->CreateNewThread();
 
@@ -649,6 +698,71 @@ void* CStreamoutProject::ThreadEntry()
                     CSIO_LOG(m_debugLevel, "Streamout: STREAMOUT_EVENT_JNI_CMD_IFRAMEINTERVAL done.");
                     break;
                 }
+                case STREAMOUT_EVENT_JNI_CMD_ENABLE_MULTICAST:
+                {
+                	int id = evntQ.streamout_obj_id;
+                	
+                	if( evntQ.buf_size && evntQ.buffPtr)
+                	{
+						int enable = *((int *)evntQ.buffPtr);
+                		CSIO_LOG(m_debugLevel, "Streamout: call enableMulticast streamId[%d],multicastEnable[%d]",
+                				id, enable);
+
+                		//save for this project
+                		m_multicast_enable = enable;
+
+                		m_projEventQ->del_Q_buf(evntQ.buffPtr);
+                	}
+                	else
+                	{
+                		CSIO_LOG(m_debugLevel, "Streamout: streamId[%d], enableMulticast is null",id);
+                	}
+
+                	CSIO_LOG(m_debugLevel, "Streamout: STREAMOUT_EVENT_JNI_CMD_ENABLE_MULTICAST done.");
+                	break;
+                }
+                case STREAMOUT_EVENT_JNI_CMD_MULTICAST_ADDRESS:
+                {
+                	int id = evntQ.streamout_obj_id;
+                	if( evntQ.buf_size && evntQ.buffPtr)
+                	{
+                		CSIO_LOG(m_debugLevel, "Streamout: call setMulticastAddress streamId[%d],multicastAddress[%s]",
+                				id,evntQ.buffPtr);
+
+                		//save for this project
+                		strcpy(m_multicast_address, (char*)evntQ.buffPtr);
+
+                		m_projEventQ->del_Q_buf(evntQ.buffPtr);
+                	}
+                	else
+                	{
+                		CSIO_LOG(m_debugLevel, "Streamout: streamId[%d],setMulticastAddress string is null",id);
+                	}
+
+                	CSIO_LOG(m_debugLevel, "Streamout: STREAMOUT_EVENT_JNI_CMD_MULTICAST_ADDRESS done.");
+                	break;
+                }
+                case STREAMOUT_EVENT_JNI_CMD_STREAM_NAME:
+                {
+                	int id = evntQ.streamout_obj_id;
+                	if( evntQ.buf_size && evntQ.buffPtr)
+                	{
+                		CSIO_LOG(m_debugLevel, "Streamout: call setStreamName streamId[%d],streamName[%s]",
+                				id,evntQ.buffPtr);
+
+                		//save for this project
+                		strcpy(m_stream_name, (char*)evntQ.buffPtr);
+
+                		m_projEventQ->del_Q_buf(evntQ.buffPtr);
+                	}
+                	else
+                	{
+                		CSIO_LOG(m_debugLevel, "Streamout: streamId[%d],setStreamName string is null",id);
+                	}
+
+                	CSIO_LOG(m_debugLevel, "Streamout: STREAMOUT_EVENT_JNI_CMD_STREAM_NAME done.");
+                	break;
+                }
 
                 default:
                     break;
@@ -706,6 +820,8 @@ void CStreamoutProject::sendEvent(EventQueueStruct* pEvntQ)
                 case STREAMOUT_EVENT_JNI_CMD_FRAMERATE:
                 case STREAMOUT_EVENT_JNI_CMD_BITRATE:
                 case STREAMOUT_EVENT_JNI_CMD_IFRAMEINTERVAL:
+				case STREAMOUT_EVENT_JNI_CMD_MULTICAST_ADDRESS:
+				case STREAMOUT_EVENT_JNI_CMD_STREAM_NAME:
                 {
                     evntQ.buffPtr = new char [dataSize + 1];//data might be binary
                     if(evntQ.buffPtr)
@@ -722,6 +838,21 @@ void CStreamoutProject::sendEvent(EventQueueStruct* pEvntQ)
                     }
                     break;
                 }
+				case STREAMOUT_EVENT_JNI_CMD_ENABLE_MULTICAST:
+				{
+					evntQ.buffPtr = new int(0);
+					if(evntQ.buffPtr)
+		            {
+						int * destPtr = (int *)evntQ.buffPtr;
+						memcpy(destPtr, (int*)bufP, dataSize);
+						evntQ.buf_size = dataSize;
+					}
+			        else
+			        {
+			            CSIO_LOG(eLogLevel_warning, "Streamout: create buffer failed\n");
+			        }
+					break;
+				}
             }
         }
         //passing a copy of the queue

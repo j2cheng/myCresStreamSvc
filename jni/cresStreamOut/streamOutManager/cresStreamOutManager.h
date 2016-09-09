@@ -42,6 +42,9 @@ public:
     char m_res_y[MAX_STR_LEN];
     char m_bit_rate[MAX_STR_LEN];
     char m_iframe_interval[MAX_STR_LEN];
+    int m_multicast_enable;
+    char m_multicast_address[MAX_STR_LEN];
+    char m_stream_name[MAX_STR_LEN];
 
     void setPort(char* p){strcpy(m_rtsp_port, p);}
     void setResX(char* x){strcpy(m_res_x, x);}
@@ -49,6 +52,9 @@ public:
     void setFrameRate(char* r){strcpy(m_frame_rate, r);}
     void setBitRate(char* b){strcpy(m_bit_rate, b);}
     void setIFrameInterval(char* i){strcpy(m_iframe_interval, i);}
+    void setMulticastEnable(int* enable){m_multicast_enable = *enable;}
+    void setMulticastAddress(char* address){strcpy(m_multicast_address, address);}
+    void setStreamName(char* name){strcpy(m_stream_name, name);}
 
     GstRTSPMediaFactory *m_factory;
     GMainLoop *  m_loop;
@@ -56,3 +62,4 @@ private:
     Mutex* mLock;
 };
 #endif __CRESSTREAMOUTMANAGER_H__
+

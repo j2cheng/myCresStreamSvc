@@ -73,6 +73,30 @@ JNIEXPORT void JNICALL Java_com_crestron_txrxservice_GstreamOut_nativeSet_1Bitra
 JNIEXPORT void JNICALL Java_com_crestron_txrxservice_GstreamOut_nativeSet_1IFrameInterval
   (JNIEnv *, jobject, jint, jint);
 
+/*
+ * Class:     com_crestron_txrxservice_GstreamOut
+ * Method:    nativeSet_MulticastEnable
+ * Signature: (ZI)V
+ */
+JNIEXPORT void JNICALL Java_com_crestron_txrxservice_GstreamOut_nativeSet_1MulticastEnable
+  (JNIEnv *, jobject, jboolean, jint);
+
+/*
+ * Class:     com_crestron_txrxservice_GstreamOut
+ * Method:    nativeSet_MulticastAddress
+ * Signature: (Ljava/lang/String;I)V
+ */
+JNIEXPORT void JNICALL Java_com_crestron_txrxservice_GstreamOut_nativeSet_1MulticastAddress
+  (JNIEnv *, jobject, jstring, jint);
+
+/*
+ * Class:     com_crestron_txrxservice_GstreamOut
+ * Method:    nativeSet_StreamName
+ * Signature: (Ljava/lang/String;I)V
+ */
+JNIEXPORT void JNICALL Java_com_crestron_txrxservice_GstreamOut_nativeSet_1StreamName
+  (JNIEnv *, jobject, jstring, jint);
+
 #ifdef __cplusplus
 }
 #endif

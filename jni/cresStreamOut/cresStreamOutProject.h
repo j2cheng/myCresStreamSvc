@@ -41,6 +41,9 @@ public:
     char m_res_y[MAX_STR_LEN];
     char m_bit_rate[MAX_STR_LEN];
     char m_iframe_interval[MAX_STR_LEN];
+    int m_multicast_enable;
+    char m_multicast_address[MAX_STR_LEN];
+    char m_stream_name[MAX_STR_LEN];
 private:
     int  m_projectID;
     Mutex* mLock;

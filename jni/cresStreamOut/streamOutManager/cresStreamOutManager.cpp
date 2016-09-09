@@ -216,6 +216,26 @@ void* CStreamoutManager::ThreadEntry()
     CSIO_LOG(m_debugLevel, "Streamout: rtsp server pipeline: [%s]", pipeline);
     gst_rtsp_media_factory_set_launch (m_factory, pipeline);
 
+
+    if (m_multicast_enable)
+    {
+    	if (m_multicast_address)	// TODO: Also check that multicast address is valid
+    	{
+    		/* make a new address pool for multicast */
+    		GstRTSPAddressPool *pool = gst_rtsp_address_pool_new ();
+    		gst_rtsp_address_pool_add_range (pool,
+    				m_multicast_address, m_multicast_address, 11000, 12000, 64);	// Setting ttl to fixed 64, and fixed port range
+    		gst_rtsp_media_factory_set_address_pool (m_factory, pool);
+		/* only allow multicast */
+		gst_rtsp_media_factory_set_protocols (m_factory,
+		      GST_RTSP_LOWER_TRANS_UDP_MCAST);
+    		g_object_unref (pool);
+    	}
+    	else
+    		CSIO_LOG(m_debugLevel, "Streamout: Invalid multicast address provided");
+    }
+
+
     /* notify when our media is ready, This is called whenever someone asks for
        * the media and a new pipeline with our appsrc is created */
     g_signal_connect (m_factory, "media-configure", (GCallback) media_configure,this);
@@ -229,7 +249,14 @@ void* CStreamoutManager::ThreadEntry()
     gst_rtsp_media_factory_set_media_gtype (m_factory, CRES_TYPE_RTSP_MEDIA);
 #endif
 
-    gst_rtsp_mount_points_add_factory (mounts, "/live.sdp", m_factory);
+    if (m_stream_name)
+    {
+	    char mountPoint [512];
+        sprintf(mountPoint, "/%s", m_stream_name);
+    	gst_rtsp_mount_points_add_factory (mounts, mountPoint, m_factory);
+    }
+    else
+    	gst_rtsp_mount_points_add_factory (mounts, "/live.sdp", m_factory);
     g_object_unref (mounts);
 
 //correct way to create source and attatch to mainloop

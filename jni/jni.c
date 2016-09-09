@@ -2880,4 +2880,41 @@ JNIEXPORT void JNICALL Java_com_crestron_txrxservice_GstreamOut_nativeSet_1IFram
     Streamout_SetIFrameInterval(desBuf);
     CSIO_LOG(eLogLevel_debug, "rtsp_server: IFrameInterval in CresStreamOutDataDB: '%s'", CresStreamOutDataDB->streamOut[0].iframe_interval);
 }
+JNIEXPORT void JNICALL Java_com_crestron_txrxservice_GstreamOut_nativeSet_1MulticastEnable(JNIEnv *env, jobject thiz, jboolean enable, jint sessionId)
+{
+    CSIO_LOG(eLogLevel_debug, "rtsp_server: Using multicast enable: '%d'", enable);
+    CresStreamOutDataDB->streamOut[sessionId].multicast_enable = enable;
+
+    Streamout_EnableMulticast((int) CresStreamOutDataDB->streamOut[sessionId].multicast_enable);
+
+    CSIO_LOG(eLogLevel_debug, "rtsp_server: multicast_enable in CresStreamOutDataDB: '%d'", CresStreamOutDataDB->streamOut[sessionId].multicast_enable);
+}
+JNIEXPORT void JNICALL Java_com_crestron_txrxservice_GstreamOut_nativeSet_1MulticastAddress(JNIEnv *env, jobject thiz, jstring address_jstring, jint sessionId)
+{
+	const char * address_cstring = (*env)->GetStringUTFChars( env, address_jstring , NULL ) ;
+	if (address_cstring == NULL) return;
+
+	CSIO_LOG(eLogLevel_debug, "rtsp_server: Using multicast address: '%s'", address_cstring);
+	char* desBuf = CresStreamOutDataDB->streamOut[sessionId].multicast_address;
+	strcpy(desBuf, address_cstring);
+
+	Streamout_SetMulticastAddress(desBuf);
+	CSIO_LOG(eLogLevel_debug, "rtsp_server: multicast_address in CresStreamOutDataDB: '%s'", CresStreamOutDataDB->streamOut[sessionId].multicast_address);
+	(*env)->ReleaseStringUTFChars(env, address_jstring, address_cstring);
+}
+
+JNIEXPORT void JNICALL Java_com_crestron_txrxservice_GstreamOut_nativeSet_1StreamName(JNIEnv *env, jobject thiz, jstring name_jstring, jint sessionId)
+{
+	const char * name_cstring = (*env)->GetStringUTFChars( env, name_jstring , NULL ) ;
+	if (name_cstring == NULL) return;
+
+	CSIO_LOG(eLogLevel_debug, "rtsp_server: Using stream name: '%s'", name_cstring);
+	char* desBuf = CresStreamOutDataDB->streamOut[sessionId].stream_name;
+	strcpy(desBuf, name_cstring);
+
+	Streamout_SetStreamName(desBuf);
+	CSIO_LOG(eLogLevel_debug, "rtsp_server: stream_name in CresStreamOutDataDB: '%s'", CresStreamOutDataDB->streamOut[sessionId].stream_name);
+	(*env)->ReleaseStringUTFChars(env, name_jstring, name_cstring);
+}
+
 /***************************** end of rtsp_server for video streaming out *********************************/
