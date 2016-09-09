@@ -129,6 +129,19 @@ public class CresDisplaySurface
     	wm.removeView(parentlayout);    	
     }
 
+    /**
+     * Update the x, y, width, height of the surface
+     */
+    public void UpdateWindowSize(int x, int y, int width, int height, int idx)
+    {
+    	Log.i(TAG, "UpdateDimensions: " + x + "," + y + " " + width + "x" + height );
+
+    	viewLayoutParams = new RelativeLayout.LayoutParams(width, height);
+    	viewLayoutParams.setMargins(x, y, 0, 0);
+    	displaySurface[idx].setLayoutParams(viewLayoutParams);
+
+    	forceLayoutInvalidation();
+    }
     
     /**
      * Update the width and height of the surface
@@ -136,42 +149,43 @@ public class CresDisplaySurface
      */
     public void UpdateDimensions(int width, int height, int idx)
     {
-        Log.i(TAG, "UpdateDimensions: " + width + "x" + height );
-//
-//    	WindowManager.LayoutParams params = (WindowManager.LayoutParams) parentlayout.getLayoutParams();
-//    	params.x = x;
-//    	params.y = y;
-//    	params.width = width;
-//    	params.height = height;
-//    	
-        
-        /*old way of setting params*/
-        
-	        viewLayoutParams = new RelativeLayout.LayoutParams(width, height);
-        displaySurface[idx].setLayoutParams(viewLayoutParams);
-	        
-	    	forceLayoutInvalidation();
+    	Log.i(TAG, "UpdateDimensions: " + width + "x" + height );
+    	//
+    	//    	WindowManager.LayoutParams params = (WindowManager.LayoutParams) parentlayout.getLayoutParams();
+    	//    	params.x = x;
+    	//    	params.y = y;
+    	//    	params.width = width;
+    	//    	params.height = height;
+    	//    	
+
+    	/*old way of setting params*/
+
+    	viewLayoutParams = new RelativeLayout.LayoutParams(width, height);
+    	displaySurface[idx].setLayoutParams(viewLayoutParams);
+
+    	forceLayoutInvalidation();
     }
 
     public void UpdateCoordinates(int x, int y, int idx)
     {
-        Log.i(TAG, "UpdateCoordinates: " + x + "," + y );
-//
-//    	WindowManager.LayoutParams params = (WindowManager.LayoutParams) parentlayout.getLayoutParams();
-//    	params.x = x;
-//    	params.y = y;
-//    	params.width = width;
-//    	params.height = height;
-//    	
-        
-        /*old way of setting params*/
-        
-	        viewLayoutParams = new RelativeLayout.LayoutParams(viewLayoutParams);
-	        viewLayoutParams.setMargins(x, y, 0, 0);
-        displaySurface[idx].setLayoutParams(viewLayoutParams);
-	        
-	    	forceLayoutInvalidation();
+    	Log.i(TAG, "UpdateCoordinates: " + x + "," + y );
+    	//
+    	//    	WindowManager.LayoutParams params = (WindowManager.LayoutParams) parentlayout.getLayoutParams();
+    	//    	params.x = x;
+    	//    	params.y = y;
+    	//    	params.width = width;
+    	//    	params.height = height;
+    	//    	
+
+    	/*old way of setting params*/
+
+    	viewLayoutParams = new RelativeLayout.LayoutParams(viewLayoutParams);
+    	viewLayoutParams.setMargins(x, y, 0, 0);
+    	displaySurface[idx].setLayoutParams(viewLayoutParams);
+
+    	forceLayoutInvalidation();
     }
+    
 	/**
 	 * Force the invalidation of the layout
 	 */

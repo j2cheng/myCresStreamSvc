@@ -54,6 +54,7 @@ public class CommandParser {
         W, 
         H,
         Z,
+        WINDOW_DIMENSION,
         HDMI_OUT_EXTERNAL_HDCP_STATUS,
         //HDMI IN 
         HDMIIN_SYNC_DETECTED,
@@ -241,6 +242,7 @@ public class CommandParser {
         sb.append("W (= window width)\r\n");
         sb.append("H (= window height)\r\n");
         sb.append("Z = (z order, higher z on top)\r\n");
+        sb.append("WINDOW_DIMENSION = (X,Y,Width,Height)\r\n");
         
         sb.append("STATISTICS_ENABLE (=true)\r\n");
         sb.append("STATISTICS_DISABLE (=true)\r\n");
@@ -388,6 +390,9 @@ public class CommandParser {
                 break;
             case Z:
             	cmd = new DestZOrderCommand(ctrl, arg, idx);
+            	break;
+            case WINDOW_DIMENSION:
+            	cmd = new WindowDimensionCommand(ctrl, arg, idx);;
             	break;
             case HDMI_OUT_EXTERNAL_HDCP_STATUS:
             	cmd = new ExternalHdcpStatusCommand(ctrl, arg);

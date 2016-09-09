@@ -678,6 +678,30 @@ class DestZOrderCommand extends CrestronCommand {
         }
 }
 
+class WindowDimensionCommand extends CrestronCommand {
+
+	public WindowDimensionCommand(CresStreamCtrl ctrl, String arg, int sessId) {
+		super(ctrl, arg, sessId);
+	}
+
+	@Override
+	public void execute() {
+		String[] tokens = msg.split("[,]"); // Format should be "X,Y,Width,Height"
+		if (tokens.length == 4)
+		{
+			ctrl.setWindowDimensions(
+					VALIDATE_INT(tokens[0]), 
+					VALIDATE_INT(tokens[1]), 
+					VALIDATE_INT(tokens[2]), 
+					VALIDATE_INT(tokens[3]), 
+					sessId);
+		}
+
+		ctrl.setWindowSizeZ(VALIDATE_INT(msg), sessId);
+	}
+	// Feedbacks will get sent individually when x,y,width,height are queried
+}
+
 class ExternalHdcpStatusCommand extends CrestronCommand {
 	
     public ExternalHdcpStatusCommand(CresStreamCtrl ctrl, String arg) {

@@ -1387,6 +1387,15 @@ public class CresStreamCtrl extends Service {
     	userSettings.setHdmiOutForceHdcp(enabled);
     	mForceHdcpStatusUpdate = true;
     }
+    
+    public void setWindowDimensions(int x, int y, int width, int height, int sessionId)
+    {
+    	userSettings.setXloc(x, sessionId);
+    	userSettings.setYloc(y, sessionId);
+    	userSettings.setW(width, sessionId);
+    	userSettings.setH(height, sessionId);
+    	updateFullWindow(sessionId);
+    }
 
     public void setXCoordinates(int x, int sessionId)
     {    	
@@ -1560,6 +1569,71 @@ public class CresStreamCtrl extends Service {
         {
         	windowtLock[sessionId].unlock();
             Log.d(TAG, "updateWH " + sessionId + " : Unlock");
+        }
+
+    }
+    
+    public void updateFullWindow(final int sessionId)
+    {
+        Log.d(TAG, "updateFullWindow " + sessionId + " : Lock");
+        windowtLock[sessionId].lock();
+        try
+        {
+        	int tmpWidth = userSettings.getW(sessionId);
+        	int tmpHeight = userSettings.getH(sessionId);
+        	int tmpX = userSettings.getXloc(sessionId);
+        	int tmpY = userSettings.getYloc(sessionId);
+        	if ((tmpWidth == 0) && (tmpHeight == 0))
+        	{
+        		tmpWidth = Integer.parseInt(hdmiOutput.getHorizontalRes());
+        		tmpHeight = Integer.parseInt(hdmiOutput.getVerticalRes());
+        		if ((tmpWidth == 0) && (tmpHeight == 0))
+        		{
+        			tmpWidth = 1920;
+        			tmpHeight = 1080;
+        		}
+        	}
+        	
+        	// Needs to be final so that we can pass to another thread
+        	final int width = tmpWidth;
+        	final int height = tmpHeight;
+        	final int x = tmpX;
+        	final int y = tmpY;
+        	
+            if (dispSurface != null)
+            {
+            	// Make sure surface changes are only done in UI (main) thread
+            	if (Looper.myLooper() != Looper.getMainLooper())
+            	{
+	            	final CountDownLatch latch = new CountDownLatch(1);
+	
+	            	runOnUiThread(new Runnable() {
+	            		@Override
+	            		public void run() {
+	            			dispSurface.UpdateWindowSize(x, y, width, height, sessionId);		       		    	 
+	            			latch.countDown();
+	            		}
+	            	});	            	
+
+	            	try { 
+	            		if (latch.await(15, TimeUnit.SECONDS) == false)
+	            		{
+	            			Log.e(TAG, "updateFullWindow: Timeout after 15 seconds");
+	            			RecoverTxrxService();
+	            		}
+	            	}
+	            	catch (InterruptedException ex) { ex.printStackTrace(); }  
+            	}
+            	else
+            	{
+            		dispSurface.UpdateWindowSize(x, y, width, height, sessionId);
+            	}
+            }
+        }
+        finally
+        {
+        	windowtLock[sessionId].unlock();
+            Log.d(TAG, "updateFullWindow " + sessionId + " : Unlock");
         }
 
     }
