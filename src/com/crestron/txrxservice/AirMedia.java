@@ -17,6 +17,7 @@ public class AirMedia
     String TAG = "TxRx AirMedia"; 
     private final static String commandIntent = "com.awindinc.receiver.airmedia.command";
 	private final static String licenseFilePath = "/dev/shm/airmedia";
+	private boolean surfaceDisplayed = false;
     
     BroadcastReceiver feedback = null;
     
@@ -41,6 +42,8 @@ public class AirMedia
     public void onDestroy(){
     	Log.e(TAG, "AirMedia Class destroyed!!!");
     	
+    	surfaceDisplayed = false;
+    	
     	Intent i = new Intent(commandIntent);
         i.putExtra("command", "close_receiver");
         mContext.sendBroadcast(i);
@@ -50,6 +53,8 @@ public class AirMedia
     
     public void show(int x, int y, int width, int height)
     {
+    	surfaceDisplayed = true;
+    	
     	// Set z-order and display
     	setWindowFlag(mStreamCtl.userSettings.getAirMediaWindowFlag());
     	setDisplayScreen(mStreamCtl.userSettings.getAirMediaDisplayScreen());
@@ -63,9 +68,16 @@ public class AirMedia
     
     public void hide()
     {
+    	surfaceDisplayed = false;
+    	
     	Intent i = new Intent(commandIntent);
         i.putExtra("command", "hide_receiver_info");
         mContext.sendBroadcast(i);
+    }
+    
+    public boolean getSurfaceDisplayed()
+    {
+    	return surfaceDisplayed;
     }
     
     public void registerBroadcasts() {

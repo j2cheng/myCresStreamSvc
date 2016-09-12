@@ -2695,8 +2695,6 @@ public class CresStreamCtrl extends Service {
     			
     			if (haveExternalDisplays)
     			{
-    				userSettings.setAirMediaDisplayScreen(1);
-    				
 	    			DisplayManager dm = (DisplayManager) getApplicationContext().getSystemService(Context.DISPLAY_SERVICE);
 	    	        if (dm != null){
 	    	            Display dispArray[] = dm.getDisplays();
@@ -2710,12 +2708,8 @@ public class CresStreamCtrl extends Service {
 	    	        	Log.e(TAG, "Unable to query second display size, using primary display");
 	    	        }
     			}	
-    			else
-    			{
-    				userSettings.setAirMediaDisplayScreen(0);
-    			}
-
-				Display display = wm.getDefaultDisplay();
+    	
+    			Display display = wm.getDefaultDisplay();
     			Point size = new Point();
     			display.getSize(size);
 
@@ -2728,8 +2722,13 @@ public class CresStreamCtrl extends Service {
     			x = userSettings.getAirMediaX();
     			y = userSettings.getAirMediaY();
     			width = userSettings.getAirMediaWidth();
-    			height = userSettings.getAirMediaHeight();
+    			height = userSettings.getAirMediaHeight();  	
     		}
+    		
+    		if (haveExternalDisplays)
+				userSettings.setAirMediaDisplayScreen(1);
+			else
+				userSettings.setAirMediaDisplayScreen(0);
     		
     		mAirMedia.show(x, y, width, height);
     	}
@@ -2894,7 +2893,7 @@ public class CresStreamCtrl extends Service {
     	userSettings.setAirMediaY(y);
     	userSettings.setAirMediaWidth(width);
     	userSettings.setAirMediaHeight(height);
-    	if (mAirMedia != null)
+    	if ((mAirMedia != null) && (mAirMedia.getSurfaceDisplayed() == true))
     	{
     		mAirMedia.setSurfaceSize(x, y, width, height, false);
     	}
@@ -2906,7 +2905,7 @@ public class CresStreamCtrl extends Service {
     	int y = userSettings.getAirMediaY();
     	int width = userSettings.getAirMediaWidth();
 		int height = userSettings.getAirMediaHeight();
-    	if (mAirMedia != null)
+		if ((mAirMedia != null) && (mAirMedia.getSurfaceDisplayed() == true))
     	{
     		mAirMedia.setSurfaceSize(x, y, width, height, false);
     	}
@@ -2918,7 +2917,7 @@ public class CresStreamCtrl extends Service {
     	int x = userSettings.getAirMediaX();    	
     	int width = userSettings.getAirMediaWidth();
 		int height = userSettings.getAirMediaHeight();
-    	if (mAirMedia != null)
+		if ((mAirMedia != null) && (mAirMedia.getSurfaceDisplayed() == true))
     	{
     		mAirMedia.setSurfaceSize(x, y, width, height, false);
     	}
@@ -2930,7 +2929,7 @@ public class CresStreamCtrl extends Service {
     	int x = userSettings.getAirMediaX();    	
     	int y = userSettings.getAirMediaY();
 		int height = userSettings.getAirMediaHeight();
-    	if (mAirMedia != null)
+		if ((mAirMedia != null) && (mAirMedia.getSurfaceDisplayed() == true))
     	{
     		mAirMedia.setSurfaceSize(x, y, width, height, false);
     	}
@@ -2942,7 +2941,7 @@ public class CresStreamCtrl extends Service {
     	int x = userSettings.getAirMediaX();    	
     	int y = userSettings.getAirMediaY();
     	int width = userSettings.getAirMediaWidth();
-    	if (mAirMedia != null)
+    	if ((mAirMedia != null) && (mAirMedia.getSurfaceDisplayed() == true))
     	{
     		mAirMedia.setSurfaceSize(x, y, width, height, false);
     	}
