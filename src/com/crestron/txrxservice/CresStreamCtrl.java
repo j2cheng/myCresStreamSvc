@@ -3000,6 +3000,9 @@ public class CresStreamCtrl extends Service {
 		PackageInfo info = pm.getPackageArchiveInfo(fullPath, 0);
 		if (info != null)
 			versionName = info.versionName;
+		if (AirMedia.checkAirMediaLicense())
+			MiscUtils.writeStringToDisk("/dev/shm/crestron/CresStreamSvc/airmediaVersion", versionName);
+		
 		return versionName;
     }
     
