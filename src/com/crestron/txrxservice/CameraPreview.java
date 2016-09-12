@@ -119,185 +119,190 @@ public class CameraPreview {
     	Thread startThread = new Thread(new Runnable() {
     		public void run() {
 		        Log.d(TAG, "starting Playback " + is_preview);
-		        if(is_preview == false){
-		            Log.d(TAG, "Actual startPlayback");
-		
-		            CresCamera.openCamera();
-		            // This is here because moved out of openCamera
-		            if(hdmiIf != null)
-		            {
-						ProductSpecific.getHdmiInputStatus();			
-					}
-		            // MNT - 3.10.15 
-		            // getHdmiInputStatus causes a reset on the chip.  Calling this here causes
-		            // the chip to get reset twice.  This will be fixed by Mistral.  However,
-		            // until then, we will only call this on a resolution change or on startup.
-		            //                if(mCamera!=null)
-		            //                    hdmiinput = mCamera.getHdmiInputStatus();
-		            if(CresCamera.mCamera != null){
-		                try {
-							SurfaceHolder sh = streamCtl.getCresSurfaceHolder(idx);
-		                	CresCamera.mCamera.setPreviewDisplay(sh);
-		                	
-		                    //mCamera.setPreviewDisplay(surfaceHolder);
-		                }catch (Exception localException) {
-		                    localException.printStackTrace();
-		                }
-		
-		                Camera.Parameters localParameters = CresCamera.mCamera.getParameters();
-		                /*mSupportedPreviewSizes = mCamera.getParameters().getSupportedPreviewSizes();
+		        if(is_preview == false){		        	
+		        	Log.d(TAG, "Actual startPlayback");
+
+		        	CresCamera.openCamera();
+		        	// This is here because moved out of openCamera
+		        	if(hdmiIf != null)
+		        	{
+		        		ProductSpecific.getHdmiInputStatus();			
+		        	}
+		        	// MNT - 3.10.15 
+		        	// getHdmiInputStatus causes a reset on the chip.  Calling this here causes
+		        	// the chip to get reset twice.  This will be fixed by Mistral.  However,
+		        	// until then, we will only call this on a resolution change or on startup.
+		        	//                if(mCamera!=null)
+		        	//                    hdmiinput = mCamera.getHdmiInputStatus();
+		        	if(CresCamera.mCamera != null){
+		        		try {
+		        			try {
+		        				SurfaceHolder sh = streamCtl.getCresSurfaceHolder(idx);
+		        				CresCamera.mCamera.setPreviewDisplay(sh);
+
+		        				//mCamera.setPreviewDisplay(surfaceHolder);
+		        			}catch (Exception localException) {
+		        				localException.printStackTrace();
+		        			}
+
+		        			Camera.Parameters localParameters = CresCamera.mCamera.getParameters();
+		        			/*mSupportedPreviewSizes = mCamera.getParameters().getSupportedPreviewSizes();
 		                  for (int i = 0; i < mSupportedPreviewSizes.size(); i++) {
 		                  Log.d(TAG, i + ". Supported Resolution = " + mSupportedPreviewSizes.get(i).width + "x" + mSupportedPreviewSizes.get(i).height);
 		                  }*/
-		                if(CresStreamCtrl.hpdHdmiEvent==1){
-							ProductSpecific.handleHpdHdmiEvent(hdmiIf);
-		                    CresStreamCtrl.hpdHdmiEvent=0;
-		                }
-		
-		                // PEM - Previous check didn't look quite right here, was allowing zero horizontal or vertical to be considered ok.
-		                boolean validRes = false;
-		                if(hdmiIf != null)
-		                {
-		                	int hres, vres;
-		                	int resIndex = hdmiIf.getResolutionIndex();
-		                	
-		                	switch (streamCtl.hdmiInput.getResolutionIndex())
-		    				{
-		    				case 0:
-		    				case 1:
-		    					hres = 640;
-		    					vres = 480;
-		    					break;
-		    				case 2:
-		    				case 3:
-		    					hres = 720;
-		    					vres = 480;
-		    					break;
-		    				case 4:
-		    				case 5:
-		    					hres = 720;
-		    					vres = 576;
-		    					break;
-		    				case 6:
-		    					hres = 800;
-		    					vres = 600;
-		    					break;
-		    				case 7:
-		    					hres = 848;
-		    					vres = 480;
-		    					break;
-		    				case 8:
-		    					hres = 1024;
-		    					vres = 768;
-		    					break;
-		    				case 9:
-		    				case 10:
-		    					hres = 1280;
-		    					vres = 720;
-		    					break;				
-		    				case 11:
-		    				case 12:
-		    					hres = 1280;
-		    					vres = 768;
-		    					break;	
-		    				case 13:
-		    				case 14:
-		    					hres = 1280;
-		    					vres = 800;
-		    					break;	
-		    				case 15:
-		    					hres = 1280;
-		    					vres = 960;
-		    					break;	
-		    				case 16:
-		    					hres = 1280;
-		    					vres = 1024;
-		    					break;	
-		    				case 17:
-		    					hres = 1360;
-		    					vres = 768;
-		    					break;
-		    				case 18:
-		    				case 19:
-			    				hres = 1366;
-		    					vres = 768;
-		    					break;
-		    				case 20:
-		    				case 21:
-		    					hres = 1400;
-		    					vres = 1050;
-		    					break;
-		    				case 22:					
-		    				case 23:
-		    					hres = 1440;
-		    					vres = 900;
-		    					break;	
-		    				case 24:
-		    					hres = 1600;
-		    					vres = 900;
-		    					break;	
-		    				case 25:
-		    					hres = 1600;
-		    					vres = 1200;
-		    					break;	
-		    				case 26:
-		    				case 27:
-		    					hres = 1680;
-		    					vres = 1050;
-		    					break;	
-		    				case 28:
-		    				case 29:
-		    				case 30:
-		    				case 31:
-		    				case 32:
-		    					hres = 1920;
-		    					vres = 1080;
-		    					break;	
-		    				case 33:
-		    					hres = 1920;
-		    					vres = 1200;
-		    					break;	
-		    				default:
-		    					hres = 640;
-		    					vres = 480;
-		    						break;
-		    				}
-		                	
-							if((hres !=0) && ( vres !=0))
-							{
-								validRes = true;
-								localParameters.setPreviewSize(hres, vres);
-								localParameters.set("ipp", "off");
-								CresCamera.mCamera.setDisplayOrientation(0);
-								try {
-									CresCamera.mCamera.setParameters(localParameters);
-								}catch (Exception localException) {
-									localException.printStackTrace();
-									localParameters.setPreviewSize(640, 480);
-									CresCamera.mCamera.setParameters(localParameters);
-								}
-							}		                
-		                }
-		                else // assume valid res for real camera, don't set preview size?
-		                {
-							validRes = true;
-		                }
-		                if(validRes)
-		                {
-		                    Log.d(TAG, "Camera preview size: " + localParameters.getPreviewSize().width + "x" + localParameters.getPreviewSize().height);
-		                    CresCamera.mCamera.setPreviewCallback(new PreviewCB(confidenceMode));
-		                    CresCamera.mCamera.setErrorCallback(new ErrorCB(confidenceMode));
-		                    CresCamera.mCamera.startPreview();
-		
-		                	startAudio(); 
-							//Streamstate is now being fedback using preview callback                   
-		                }
-		                is_preview = true;
-		            }
-		            else
-		            {
-		            	stopPlayback(false);
-		            }
+		        			if(CresStreamCtrl.hpdHdmiEvent==1){
+		        				ProductSpecific.handleHpdHdmiEvent(hdmiIf);
+		        				CresStreamCtrl.hpdHdmiEvent=0;
+		        			}
+
+		        			// PEM - Previous check didn't look quite right here, was allowing zero horizontal or vertical to be considered ok.
+		        			boolean validRes = false;
+		        			if(hdmiIf != null)
+		        			{
+		        				int hres, vres;
+		        				int resIndex = hdmiIf.getResolutionIndex();
+
+		        				switch (streamCtl.hdmiInput.getResolutionIndex())
+		        				{
+		        				case 0:
+		        				case 1:
+		        					hres = 640;
+		        					vres = 480;
+		        					break;
+		        				case 2:
+		        				case 3:
+		        					hres = 720;
+		        					vres = 480;
+		        					break;
+		        				case 4:
+		        				case 5:
+		        					hres = 720;
+		        					vres = 576;
+		        					break;
+		        				case 6:
+		        					hres = 800;
+		        					vres = 600;
+		        					break;
+		        				case 7:
+		        					hres = 848;
+		        					vres = 480;
+		        					break;
+		        				case 8:
+		        					hres = 1024;
+		        					vres = 768;
+		        					break;
+		        				case 9:
+		        				case 10:
+		        					hres = 1280;
+		        					vres = 720;
+		        					break;				
+		        				case 11:
+		        				case 12:
+		        					hres = 1280;
+		        					vres = 768;
+		        					break;	
+		        				case 13:
+		        				case 14:
+		        					hres = 1280;
+		        					vres = 800;
+		        					break;	
+		        				case 15:
+		        					hres = 1280;
+		        					vres = 960;
+		        					break;	
+		        				case 16:
+		        					hres = 1280;
+		        					vres = 1024;
+		        					break;	
+		        				case 17:
+		        					hres = 1360;
+		        					vres = 768;
+		        					break;
+		        				case 18:
+		        				case 19:
+		        					hres = 1366;
+		        					vres = 768;
+		        					break;
+		        				case 20:
+		        				case 21:
+		        					hres = 1400;
+		        					vres = 1050;
+		        					break;
+		        				case 22:					
+		        				case 23:
+		        					hres = 1440;
+		        					vres = 900;
+		        					break;	
+		        				case 24:
+		        					hres = 1600;
+		        					vres = 900;
+		        					break;	
+		        				case 25:
+		        					hres = 1600;
+		        					vres = 1200;
+		        					break;	
+		        				case 26:
+		        				case 27:
+		        					hres = 1680;
+		        					vres = 1050;
+		        					break;	
+		        				case 28:
+		        				case 29:
+		        				case 30:
+		        				case 31:
+		        				case 32:
+		        					hres = 1920;
+		        					vres = 1080;
+		        					break;	
+		        				case 33:
+		        					hres = 1920;
+		        					vres = 1200;
+		        					break;	
+		        				default:
+		        					hres = 640;
+		        					vres = 480;
+		        					break;
+		        				}
+
+		        				if((hres !=0) && ( vres !=0))
+		        				{
+		        					validRes = true;
+		        					localParameters.setPreviewSize(hres, vres);
+		        					localParameters.set("ipp", "off");
+		        					CresCamera.mCamera.setDisplayOrientation(0);
+		        					try {
+		        						CresCamera.mCamera.setParameters(localParameters);
+		        					}catch (Exception localException) {
+		        						localException.printStackTrace();
+		        						localParameters.setPreviewSize(640, 480);
+		        						CresCamera.mCamera.setParameters(localParameters);
+		        					}
+		        				}		                
+		        			}
+		        			else // assume valid res for real camera, don't set preview size?
+		        			{
+		        				validRes = true;
+		        			}
+		        			if(validRes)
+		        			{
+		        				Log.d(TAG, "Camera preview size: " + localParameters.getPreviewSize().width + "x" + localParameters.getPreviewSize().height);
+		        				CresCamera.mCamera.setPreviewCallback(new PreviewCB(confidenceMode));
+		        				CresCamera.mCamera.setErrorCallback(new ErrorCB(confidenceMode));
+		        				CresCamera.mCamera.startPreview();
+
+		        				startAudio(); 
+		        				//Streamstate is now being fedback using preview callback                   
+		        			}
+		        			is_preview = true;
+		        		} catch (Exception e)
+		        		{
+		        			e.printStackTrace();
+		        		}
+		        	}
+		        	else
+		        	{
+		        		stopPlayback(false);
+		        	}
 		        }else   //Pause/Resume Case
 		            resumePlayback(confidenceMode);
 		        
