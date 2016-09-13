@@ -158,7 +158,13 @@ public class CresStreamCtrl extends Service {
     public boolean haveExternalDisplays;
     public boolean hideVideoOnStop = false;
     public CrestronHwPlatform mHwPlatform;
-    
+    private final Runnable foregroundRunnable = new Runnable() {
+    	@Override
+    	public void run() {
+    		ForceServiceToForeground();
+    	}
+    };
+
     // JNI prototype
     public native boolean nativeHaveExternalDisplays();
     public native boolean nativeHideVideoBeforeStop();
@@ -316,12 +322,7 @@ public class CresStreamCtrl extends Service {
     		public void run() {
 		    	while (true)
 		    	{
-			    	runOnUiThread(new Runnable() {
-			  		     @Override
-			  		     public void run() {
-			  		    	ForceServiceToForeground();
-			  		     }
-			    	});
+			    	runOnUiThread(foregroundRunnable);
 			    	try {
 			    		Thread.sleep(5000);
 			    	} catch (Exception e) {
@@ -704,7 +705,7 @@ public class CresStreamCtrl extends Service {
     		monitorSystemState();
 
     		// Monitor Rava Mode
-    		monitorRavaMode();
+//    		monitorRavaMode();
     		
     		if (mAirMedia == null && AirMedia.checkAirMediaLicense())
     			mAirMedia = new AirMedia(this);
@@ -2092,7 +2093,7 @@ public class CresStreamCtrl extends Service {
     	}
     	return returnStreamState;
     }
-
+    
     public void SendStreamState(StreamState state, int sessionId)
     {
     	Log.d(TAG, "StreamState " + sessionId + " : Lock");
