@@ -21,6 +21,7 @@ import java.io.OutputStreamWriter;
 import java.net.InetAddress;
 import java.net.ServerSocket;
 import java.net.Socket;
+import java.net.SocketException;
 
 import com.crestron.txrxservice.CresStreamCtrl.StreamState;
 
@@ -213,6 +214,15 @@ public class TCPInterface extends AsyncTask<Void, Object, Long> {
             try {
                 clientSocket = serverSocket.accept();
                 Log.d(TAG, "Client connected to clientSocket: " + clientSocket.toString());
+                try
+                {
+                	clientSocket.setTcpNoDelay(true);
+                } 
+                catch (SocketException ex)
+                {
+                	Log.e(TAG, "Error disabling nagle: " + ex);
+                }
+                
                 connectionAlive = true;//New Client Connected
                 CommunicationThread commThread = new CommunicationThread(clientSocket, this);
                 synchronized (serverLock) {
