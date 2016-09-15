@@ -75,7 +75,7 @@ typedef struct _CREGSTREAM
 	GstElement *element_valve_a;
 	GstElement *element_audiorate;
 	
-	GstElement *element_zero;	
+	GstElement *element_zero;
 	GstElement *element_av [MAX_ELEMENTS];
 	GstElement *element_a [MAX_ELEMENTS];
 	GstElement *element_v [MAX_ELEMENTS];

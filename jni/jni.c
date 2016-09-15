@@ -89,6 +89,10 @@ static int stop_timeout_sec = 1000;
 const int c_minSocketLeft = 20;
 const int c_maxNumInitialPorts	= 100;
 static unsigned int *initialPorts = NULL;
+
+static char const* file_prefix = "file://";
+static unsigned const prefixLength7 = 7;
+
 ///////////////////////////////////////////////////////////////////////////////
 void csio_jni_FreeMainContext(int iStreamId);
 
@@ -1873,19 +1877,19 @@ void csio_jni_SetOverlayWindow(int iStreamId)
 	}
 }
 
-int csio_jni_CreatePipeline(GstElement **pipeline,GstElement **source,eProtocolId protoId, int iStreamId)
-{	
+int csio_jni_CreatePipeline(GstElement **pipeline, GstElement **source, eProtocolId protoId, int iStreamId)
+{
 	int iStatus = CSIO_SUCCESS;
-	CREGSTREAM * data = GetStreamFromCustomData(CresDataDB, iStreamId);
     CSIO_LOG(eLogLevel_debug, "%s() protoId = %d", __FUNCTION__, protoId);
+	CREGSTREAM * data = GetStreamFromCustomData(CresDataDB, iStreamId);
 
 	if(!data)
 	{
 		CSIO_LOG(eLogLevel_error, "Could not obtain stream pointer for stream %d", iStreamId);
 		return CSIO_FAILURE;
-	}	
+	}
 
-	csio_jni_CreateMainContext(iStreamId);
+	csio_jni_CreateMainContext(iStreamId);      //@todo: duplicated, rewrite this func, and delete above several lines
 
 	data->pipeline = gst_pipeline_new(NULL);
     
@@ -2131,8 +2135,48 @@ int csio_jni_CreatePipeline(GstElement **pipeline,GstElement **source,eProtocolI
 
 	    	break;
 	    }
-	    case ePROTOCOL_FILE: //stub for now
-	    default:
+        case ePROTOCOL_FILE:
+        {
+            CSIO_LOG( eLogLevel_debug, "%s() in ePROTOCOL_FILE\n", __FUNCTION__ );
+            data->element_zero = gst_element_factory_make("filesrc", NULL);
+            if(!data->element_zero)
+            {
+                iStatus = CSIO_CANNOT_CREATE_ELEMENTS;
+                CSIO_LOG(eLogLevel_error,  "ERROR: Cannot create FILESRC element\n" );
+            }
+
+            char *location = currentSettingsDB->settingsMessage.msg[iStreamId].url;
+            if ( strcasestr(location, file_prefix) )
+            {
+                location += prefixLength7;
+            } else {
+                CSIO_LOG(eLogLevel_error, "ERROR: %s invalid SDP url: %s\n", __FUNCTION__, location);
+            }
+            CSIO_LOG(eLogLevel_debug, "%s() location=%s\n", __FUNCTION__, location);
+
+            g_object_set(G_OBJECT(data->element_zero), "location", location, NULL);
+
+            data->element_av[0] = gst_element_factory_make("sdpdemux", NULL);
+            if(!data->element_av[0])
+            {
+                iStatus = CSIO_CANNOT_CREATE_ELEMENTS;
+                CSIO_LOG(eLogLevel_error,  "ERROR: Cannot create SDPDEMUX element\n" );
+            }
+
+            gst_bin_add_many(GST_BIN(data->pipeline), data->element_zero, data->element_av[0], NULL);
+            if( !gst_element_link_many(data->element_zero, data->element_av[0], NULL))
+            {
+                CSIO_LOG(eLogLevel_error,  "ERROR: Cannot link filesrc to sdpdemux.\n" );
+                iStatus = CSIO_CANNOT_LINK_ELEMENTS;
+            }
+            else
+            CSIO_LOG(eLogLevel_debug, "success linked filesrc and sdpdemux\n");
+            
+            *pipeline = data->pipeline;
+            *source   = data->element_zero;
+            break;
+        }
+        default:
 			CSIO_LOG(eLogLevel_error,  "ERROR: invalid protoID.\n" );
 			iStatus = CSIO_FAILURE;
 			break;
@@ -2234,7 +2278,11 @@ void csio_jni_InitPipeline(eProtocolId protoId, int iStreamId,GstRTSPLowerTrans 
 			//CSIO_LOG(eLogLevel_debug, "ePROTOCOL_MULTICAST pass\n");
 			break;
 		}
-		case ePROTOCOL_FILE: //stub for now
+		case ePROTOCOL_FILE:
+		{
+			g_object_set(G_OBJECT(data->element_av[0]), "latency", currentSettingsDB->videoSettings[iStreamId].streamingBuffer, NULL);
+			break;
+		}
 		default:
 			//iStatus = CSIO_FAILURE;
 			break;
@@ -2245,6 +2293,8 @@ void csio_jni_SetSourceLocation(eProtocolId protoId, char *location, int iStream
 {
 	CREGSTREAM * data = GetStreamFromCustomData(CresDataDB, iStreamId);
     char *url;
+
+	CSIO_LOG(eLogLevel_debug, "%s() location: %s, iStreamId=%d", __FUNCTION__, location, iStreamId);
 	
 	if(!data)
 	{
@@ -2303,7 +2353,11 @@ void csio_jni_SetSourceLocation(eProtocolId protoId, char *location, int iStream
 
 			break;
 		}
-		case ePROTOCOL_FILE: //stub for now
+		case ePROTOCOL_FILE:
+		{
+			//g_object_set(G_OBJECT(data->element_zero), "location", location, NULL);
+			//break;
+		}
 		default:
 			break;
 	}
@@ -2319,7 +2373,7 @@ void csio_jni_SetMsgHandlers(void* obj,eProtocolId protoId, int iStreamId)
 		return;
 	}	
 	
-	CSIO_LOG(eLogLevel_debug, "protoId = %d\n",protoId);
+	CSIO_LOG(eLogLevel_debug, "%s() protoId = %d\n", __FUNCTION__, protoId);
 	switch( protoId )
 	{
 		case ePROTOCOL_RTSP_TCP:
@@ -2381,7 +2435,21 @@ void csio_jni_SetMsgHandlers(void* obj,eProtocolId protoId, int iStreamId)
 			g_signal_connect(data->element_v[2], "pad-added", G_CALLBACK(csio_PadAddedMsgHandler), obj);
 			break;
 
-		case ePROTOCOL_FILE: //stub for now
+		case ePROTOCOL_FILE:
+			CSIO_LOG(eLogLevel_debug, "%s() in ePROTOCOL_FILE\n", __FUNCTION__);
+			if(data->element_zero != NULL)
+			{
+			    g_signal_connect(data->element_av[0], "pad-added", G_CALLBACK(csio_PadAddedMsgHandler), obj);
+			}
+			else
+			{
+				CSIO_LOG(eLogLevel_warning, "Null element zero, no callbacks will be registered");
+			}
+			CSIO_LOG(eLogLevel_debug, "%s() in ePROTOCOL_FILE: Set the pipeline to READY \n", __FUNCTION__);
+			csio_element_set_state(data->pipeline, GST_STATE_READY);   //Set the pipeline to READY
+			data->video_sink = gst_bin_get_by_interface(GST_BIN(data->pipeline), GST_TYPE_VIDEO_OVERLAY);
+
+		    break;
 		default:
 			//iStatus = CSIO_FAILURE;
 			break;
