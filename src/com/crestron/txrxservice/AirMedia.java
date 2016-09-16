@@ -397,12 +397,15 @@ public class AirMedia
     
     public void showSurface(boolean enable)
     {
-    	Intent i = new Intent(commandIntent);        
-        if (enable)
-        	i.putExtra("command", "show_receiver_info");
-        else
-        	i.putExtra("command", "hide_receiver_info");
-        mContext.sendBroadcast(i);
+    	if (Boolean.parseBoolean(mStreamCtl.hdmiOutput.getSyncStatus()))
+    	{
+    		Intent i = new Intent(commandIntent);        
+    		if (enable)
+    			i.putExtra("command", "show_receiver_info");
+    		else
+    			i.putExtra("command", "hide_receiver_info");
+    		mContext.sendBroadcast(i);
+    	}
     }
     
     // Don't use this because it messes up the surfaces

@@ -2457,16 +2457,7 @@ public class CresStreamCtrl extends Service {
     }
 
     public void setHdcpEncrypt(boolean flag, int sessId)
-    {
-    	if(flag)
-    	{
-    		MiscUtils.writeStringToDisk(hdcpEncryptFilePath, String.valueOf(1));
-    	}
-    	else
-    	{
-    		MiscUtils.writeStringToDisk(hdcpEncryptFilePath, String.valueOf(0));
-    	}
-    	
+    {    	
     	if(cam_streaming != null)
     		cam_streaming.setHdcpEncrypt(flag);
     	
@@ -2475,6 +2466,15 @@ public class CresStreamCtrl extends Service {
     	
     	mHDCPEncryptStatus/*[sessId]*/ = flag;
     	mForceHdcpStatusUpdate = true;
+    	
+    	if(flag)
+    	{
+    		MiscUtils.writeStringToDisk(hdcpEncryptFilePath, String.valueOf(1));
+    	}
+    	else
+    	{
+    		MiscUtils.writeStringToDisk(hdcpEncryptFilePath, String.valueOf(0));
+    	}
     }
 
     
@@ -2689,7 +2689,7 @@ public class CresStreamCtrl extends Service {
     		if (mAirMedia == null && AirMedia.checkAirMediaLicense())
     			mAirMedia = new AirMedia(this);
     		int x, y, width, height;
-    		if (fullscreen)
+    		if (fullscreen || ((userSettings.getAirMediaWidth() == 0) && (userSettings.getAirMediaHeight() == 0)))
     		{
     			WindowManager wm = (WindowManager) this.getSystemService(Context.WINDOW_SERVICE);
     			Log.e(TAG, "AirMedia fullscreen true");
@@ -3249,6 +3249,16 @@ public class CresStreamCtrl extends Service {
 
 					        	try { Thread.sleep(3000); } catch (Exception e) {}
 					        	restartStreams(false);
+					        	
+					        	// Show AirMedia window if we acquire HDMI output sync
+					        	if ((mAirMedia != null) && userSettings.getAirMediaLaunch())
+					        		mAirMedia.showSurface(true);
+					        }
+					        else if (haveExternalDisplays)
+					        {
+					        	// Hide AirMedia window if we lose HDMI output sync
+					        	if ((mAirMedia != null) && userSettings.getAirMediaLaunch())
+					        		mAirMedia.showSurface(false);
 					        }
 		                }
 		            }
