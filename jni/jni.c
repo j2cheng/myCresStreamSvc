@@ -893,7 +893,6 @@ JNIEXPORT void JNICALL Java_com_crestron_txrxservice_GstreamIn_nativeSetHdcpEncr
         return;
     }
 
-    // Read if we should do HDCP decryption, TODO: this will be commanded from CSIO through join eventually
     data->doHdcp = (gboolean)flag;
 }
 

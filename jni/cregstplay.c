@@ -620,9 +620,8 @@ int build_video_pipeline(gchar *encoding_name, CREGSTREAM *data, unsigned int st
 		// TODO: this should just connect csio_PadAddedMsgHandler, but we need to add teletext support first!
 		g_signal_connect(data->element_v[i], "pad-added", G_CALLBACK(pad_added_callback2), data);
 	
-		// We will only do HDCP encryption in RTSP modes so only add callback here
-		if (data->doHdcp)
-			g_signal_connect(data->element_v[i], "post-process", G_CALLBACK(ts_demux_post_process_callback), data);
+		// We will only do HDCP encryption in RTSP TS modes so only add callback here
+		g_signal_connect(data->element_v[i], "post-process", G_CALLBACK(ts_demux_post_process_callback), data);
 		i++;
 		data->element_after_tsdemux = i;
 		do_window = 0;
