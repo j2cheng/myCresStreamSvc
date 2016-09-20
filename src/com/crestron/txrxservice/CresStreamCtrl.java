@@ -1783,8 +1783,39 @@ public class CresStreamCtrl extends Service {
     }
 
 	public void refreshOutputResolution() {
+		ProductSpecific.DispayInfo hdmiOutputResolution;
 		//HDMI Out		
-		ProductSpecific.DispayInfo hdmiOutputResolution = mProductSpecific.new DispayInfo();
+		if (haveExternalDisplays)
+		{
+			hdmiOutputResolution = mProductSpecific.new DispayInfo();
+			WindowManager wm = (WindowManager) this.getSystemService(Context.WINDOW_SERVICE);
+			DisplayManager dm = (DisplayManager) getApplicationContext().getSystemService(Context.DISPLAY_SERVICE);
+			if (dm != null){
+				Display dispArray[] = dm.getDisplays();
+				if (dispArray.length>1){
+					Context displayContext = getApplicationContext().createDisplayContext(dispArray[1]);
+					wm = (WindowManager)displayContext.getSystemService(Context.WINDOW_SERVICE);
+				}
+			}
+			else
+			{
+				
+				Log.e(TAG, "Unable to query second display size, using primary display");
+			}
+
+
+			Display display = wm.getDefaultDisplay();
+			Point size = new Point();
+			display.getSize(size);
+
+			hdmiOutputResolution.width = size.x;
+			hdmiOutputResolution.height = size.y;
+			hdmiOutputResolution.refreshRate = display.getRefreshRate();
+		}
+		else
+		{
+			hdmiOutputResolution = mProductSpecific.new DispayInfo();
+		}
 
     	Log.i(TAG, "HDMI Out Resolution " + hdmiOutputResolution.width + " "
     			+ hdmiOutputResolution.height + " "
@@ -2727,9 +2758,16 @@ public class CresStreamCtrl extends Service {
     		}
     		
     		if (haveExternalDisplays)
+    		{
+    			// TODO: Change to priority phone when alpha blending is working
+    			userSettings.setAirMediaWindowFlag(WindowManager.LayoutParams.TYPE_SYSTEM_OVERLAY);
 				userSettings.setAirMediaDisplayScreen(1);
+    		}
 			else
+			{
+				userSettings.setAirMediaWindowFlag(WindowManager.LayoutParams.TYPE_SYSTEM_OVERLAY);
 				userSettings.setAirMediaDisplayScreen(0);
+			}
     		
     		mAirMedia.show(x, y, width, height);
     	}

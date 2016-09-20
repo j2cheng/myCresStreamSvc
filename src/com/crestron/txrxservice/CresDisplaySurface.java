@@ -92,12 +92,23 @@ public class CresDisplaySurface
         // TYPE_PHONE 				= ~31000
         // TYPE_INPUT_METHOD_DIALOG	= ~21015
         // TYPE_APPLICATION 		= ~21000 <- Can't use as a service
+        int windowType;
+        if (haveExternalDisplays)
+        {
+        	// TODO: Change to priority phone when alpha blending is working
+//        	windowType = WindowManager.LayoutParams.TYPE_PRIORITY_PHONE;
+        	windowType = WindowManager.LayoutParams.TYPE_SYSTEM_OVERLAY;
+        }
+        else
+        {
+        	windowType = WindowManager.LayoutParams.TYPE_SYSTEM_OVERLAY;
+        }
         wmLayoutParams = new WindowManager.LayoutParams(
         		windowWidth, 
         		windowHeight, 
-        		WindowManager.LayoutParams.TYPE_SYSTEM_OVERLAY, // See above chart for z order control
+        		windowType, // See above chart for z order control
         		(0 | WindowManager.LayoutParams.FLAG_NOT_TOUCHABLE | WindowManager.LayoutParams.FLAG_NOT_FOCUSABLE), 
-        		PixelFormat.TRANSLUCENT);        
+        		PixelFormat.TRANSLUCENT);
         wmLayoutParams.gravity = Gravity.TOP | Gravity.LEFT; 
         wmLayoutParams.x = 0;
         wmLayoutParams.y = 0;
