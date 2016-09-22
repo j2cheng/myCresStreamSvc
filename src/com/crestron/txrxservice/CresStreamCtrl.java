@@ -1793,7 +1793,7 @@ public class CresStreamCtrl extends Service {
 			if (dm != null){
 				Display dispArray[] = dm.getDisplays();
 				if (dispArray.length>1){
-					Context displayContext = getApplicationContext().createDisplayContext(dispArray[1]);	// querying display 1
+					Context displayContext = getApplicationContext().createDisplayContext(dispArray[1]);
 					wm = (WindowManager)displayContext.getSystemService(Context.WINDOW_SERVICE);
 				}
 			}
@@ -1814,32 +1814,7 @@ public class CresStreamCtrl extends Service {
 		}
 		else
 		{
-//			hdmiOutputResolution = mProductSpecific.new DispayInfo(); // Old Mistral API
-			
 			hdmiOutputResolution = mProductSpecific.new DispayInfo();
-			WindowManager wm = (WindowManager) this.getSystemService(Context.WINDOW_SERVICE);
-			DisplayManager dm = (DisplayManager) getApplicationContext().getSystemService(Context.DISPLAY_SERVICE);
-			if (dm != null){
-				Display dispArray[] = dm.getDisplays();
-				if (dispArray.length>1){
-					Context displayContext = getApplicationContext().createDisplayContext(dispArray[0]); // querying display 0
-					wm = (WindowManager)displayContext.getSystemService(Context.WINDOW_SERVICE);
-				}
-			}
-			else
-			{
-				
-				Log.e(TAG, "Unable to query first display size, using default display");
-			}
-
-
-			Display display = wm.getDefaultDisplay();
-			Point size = new Point();
-			display.getSize(size);
-
-			hdmiOutputResolution.width = size.x;
-			hdmiOutputResolution.height = size.y;
-			hdmiOutputResolution.refreshRate = display.getRefreshRate();
 		}
 
     	Log.i(TAG, "HDMI Out Resolution " + hdmiOutputResolution.width + " "
