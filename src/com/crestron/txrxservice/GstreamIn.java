@@ -197,38 +197,39 @@ public class GstreamIn implements StreamInStrategy, SurfaceHolder.Callback {
     	// This recovery is only applicable for Ducati in OMAP5
     	if (streamCtl.mHwPlatform == CrestronHwPlatform.eHardwarePlatform_OMAP5)
     	{
-    		// Increment gstreamer timeout counter
-    		MiscUtils.writeStringToDisk(CresStreamCtrl.gstreamerTimeoutCountFilePath, String.valueOf(++(streamCtl.mGstreamerTimeoutCount)));
-
-    		long previousRecoverTime = 0;
-    		try {
-    			previousRecoverTime = Long.parseLong(MiscUtils.readStringFromDisk(ducatiRecoverFilePath));
-    		} catch (Exception e) {}    	
-    		long currentTime = MiscUtils.getSystemUptimeMs();
-
-    		// Write current time as most recent ducati recover time
-    		MiscUtils.writeStringToDisk(ducatiRecoverFilePath, String.valueOf(currentTime));
-
-    		// If recovery occurred within of previous recovery, give 10 seconds to let system recover
-    		if ((previousRecoverTime != 0) && (Math.abs(currentTime - previousRecoverTime) <= ducatiRecoverTimeDelta))
-    		{
-    			Log.i(TAG, "Giving system extra 10 seconds to recover");
-    			try {
-    				Thread.sleep(10000);
-    			} catch (Exception e) { e.printStackTrace(); }
-    		}
-
-    		// Delete all surfaces so we dont have a gralloc memory leak
-    		for(int sessionId = 0; sessionId < CresStreamCtrl.NumOfSurfaces; sessionId++)
-    		{
-    			streamCtl.hideStreamInWindow(sessionId);
-    		}
-
-    		streamCtl.RecoverDucati();
-    		try {
-    			Thread.sleep(5000);
-    		} catch (Exception e) { e.printStackTrace(); }
-    		streamCtl.RecoverTxrxService();
+//    		// Increment gstreamer timeout counter
+//    		MiscUtils.writeStringToDisk(CresStreamCtrl.gstreamerTimeoutCountFilePath, String.valueOf(++(streamCtl.mGstreamerTimeoutCount)));
+//
+//    		long previousRecoverTime = 0;
+//    		try {
+//    			previousRecoverTime = Long.parseLong(MiscUtils.readStringFromDisk(ducatiRecoverFilePath));
+//    		} catch (Exception e) {}    	
+//    		long currentTime = MiscUtils.getSystemUptimeMs();
+//
+//    		// Write current time as most recent ducati recover time
+//    		MiscUtils.writeStringToDisk(ducatiRecoverFilePath, String.valueOf(currentTime));
+//
+//    		// If recovery occurred within of previous recovery, give 10 seconds to let system recover
+//    		if ((previousRecoverTime != 0) && (Math.abs(currentTime - previousRecoverTime) <= ducatiRecoverTimeDelta))
+//    		{
+//    			Log.i(TAG, "Giving system extra 10 seconds to recover");
+//    			try {
+//    				Thread.sleep(10000);
+//    			} catch (Exception e) { e.printStackTrace(); }
+//    		}
+//
+//    		// Delete all surfaces so we dont have a gralloc memory leak
+//    		for(int sessionId = 0; sessionId < CresStreamCtrl.NumOfSurfaces; sessionId++)
+//    		{
+//    			streamCtl.hideStreamInWindow(sessionId);
+//    		}
+//
+//    		streamCtl.RecoverDucati();
+//    		try {
+//    			Thread.sleep(5000);
+//    		} catch (Exception e) { e.printStackTrace(); }
+//    		streamCtl.RecoverTxrxService();
+    		streamCtl.RecoverMediaServer();
     	}
 	}
     
