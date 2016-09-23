@@ -15,4 +15,4 @@
 #define DEFAULT_STREAM_NAME "camera"
 
 #define MAX_STR_LEN    126
-#endif __CRESSTREAMOUTCOMMON_DEF_H__
+#endif //__CRESSTREAMOUTCOMMON_DEF_H__

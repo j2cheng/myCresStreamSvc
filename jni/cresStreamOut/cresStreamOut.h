@@ -51,4 +51,4 @@ void Streamout_SetStreamName(char* name);
 #ifdef __cplusplus
 }
 #endif
-#endif __CRESSTREAMOUT_H__
+#endif //__CRESSTREAMOUT_H__

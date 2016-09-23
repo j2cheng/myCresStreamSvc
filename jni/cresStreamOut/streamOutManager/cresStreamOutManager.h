@@ -61,5 +61,5 @@ public:
 private:
     Mutex* mLock;
 };
-#endif __CRESSTREAMOUTMANAGER_H__
+#endif //__CRESSTREAMOUTMANAGER_H__
 

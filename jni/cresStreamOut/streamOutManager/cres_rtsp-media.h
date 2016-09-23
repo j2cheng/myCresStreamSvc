@@ -31,4 +31,4 @@ GType cres_rtsp_media_get_type (void);
 }
 #endif
 
-#endif __CRES_RTSP_MEDIA_H__
+#endif //__CRES_RTSP_MEDIA_H__
