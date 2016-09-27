@@ -13,6 +13,7 @@ import java.io.FileNotFoundException;
 import java.io.FileOutputStream;
 import java.io.FileReader;
 import java.io.IOException;
+import java.io.InputStream;
 import java.io.InputStreamReader;
 import java.io.OutputStreamWriter;
 import java.io.Writer;
@@ -709,6 +710,8 @@ public class CresStreamCtrl extends Service {
     		
     		if (mAirMedia == null && AirMedia.checkAirMediaLicense())
     			mAirMedia = new AirMedia(this);
+    		
+    		initAppFiles();
 
     		// FIXME: this is a temprorary workaround for testing so that we can ignore HDCP state
     		File ignoreHDCPFile = new File ("/data/CresStreamSvc/ignoreHDCP");
@@ -768,6 +771,24 @@ public class CresStreamCtrl extends Service {
     	// Instability and/or crashes can occur if this is not observed
         handler.post(runnable);
     }
+    
+    private void initAppFiles() {
+		// TODO: Lets setup all file folders needed here    	
+		try 
+    	{
+			// Copy Cert file from assets folder
+    		InputStream is = getAssets().open("ca-certificates.crt");
+    		File file = new File(getApplicationInfo().dataDir + "/files/ssl/certs", "ca-certificates.crt");
+    		file.getParentFile().mkdirs();	// make parent dirs if necessary
+    		Log.e(TAG, "RS: " + file.getAbsolutePath());
+    		MiscUtils.copyInputStreamToFile(is, file);
+    	}
+    	catch (Exception ex)
+    	{
+    		Log.w(TAG, "Failed to copy cert file: " + ex);
+    	}
+    }
+    
  
     public SurfaceHolder getCresSurfaceHolder(final int sessionId){
     	SurfaceHolder surfaceHolder = null;
