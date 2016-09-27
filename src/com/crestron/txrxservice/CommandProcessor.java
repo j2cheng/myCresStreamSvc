@@ -2107,6 +2107,7 @@ class UseNewIpAddrCommand extends CrestronCommand {
 	{
             ctrl.stopOnIpAddrChange();
     	    ctrl.userSettings.setDeviceIp(msg);
+    	    ctrl.setAirMediaIpAddressPrompt(ctrl.userSettings.getAirMediaIpAddressPrompt(), 0);
 	}
 	}
 	public String getFeedbackMsg() {
