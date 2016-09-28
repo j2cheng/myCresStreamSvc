@@ -780,7 +780,6 @@ public class CresStreamCtrl extends Service {
     		InputStream is = getAssets().open("ca-certificates.crt");
     		File file = new File(getApplicationInfo().dataDir + "/files/ssl/certs", "ca-certificates.crt");
     		file.getParentFile().mkdirs();	// make parent dirs if necessary
-    		Log.e(TAG, "RS: " + file.getAbsolutePath());
     		MiscUtils.copyInputStreamToFile(is, file);
     	}
     	catch (Exception ex)
@@ -2557,8 +2556,11 @@ public class CresStreamCtrl extends Service {
     
     public void setTxHdcpActive(boolean flag, int sessId)
     {
-    	mTxHdcpActive/*[sessId]*/ = flag;
-    	mForceHdcpStatusUpdate = true;
+    	if (flag != mTxHdcpActive)
+    	{
+    		mTxHdcpActive/*[sessId]*/ = flag;
+    		mForceHdcpStatusUpdate = true;
+    	}
     }
     
     
