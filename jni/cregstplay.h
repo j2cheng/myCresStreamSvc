@@ -110,6 +110,7 @@ typedef struct _CREGSTREAM
     bool dropAudio;
     double audioVolume;
     gboolean mpegtsPresent;
+    eProtocolId	streamProtocolId;
     gboolean doHdcp;
 
 	GSource * g_timer_source;

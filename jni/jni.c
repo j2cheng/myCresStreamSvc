@@ -526,6 +526,7 @@ void csio_jni_cleanup (int iStreamId)
     data->element_valve_v    = NULL;
     data->element_valve_a    = NULL;
     data->element_audiorate  = NULL;
+    data->streamProtocolId = 0;
 
     for (i = 0; i < MAX_ELEMENTS; i++)
     {
@@ -1891,7 +1892,8 @@ int csio_jni_CreatePipeline(GstElement **pipeline, GstElement **source, eProtoco
 	csio_jni_CreateMainContext(iStreamId);      //@todo: duplicated, rewrite this func, and delete above several lines
 
 	data->pipeline = gst_pipeline_new(NULL);
-    
+    data->streamProtocolId = protoId;
+
 	switch( protoId )
 	{
 		case ePROTOCOL_RTSP_TCP:
@@ -2646,14 +2648,14 @@ void csio_jni_initAudio(int iStreamId)
 
     if( data->audio_sink)
     {
-        gint64 tmp = data->audiosink_ts_offset * 1000000;
+    	gint64 tmp = data->audiosink_ts_offset * 1000000;
 
-        // Bug 107700: AV goes haywire when packets are lost when openslessink is set to GST_AUDIO_BASE_SINK_SLAVE_SKEW, resample fixes the problem
-		// Bug 110954: Setting this to 0 caused audio to get messed up, original issue was caused by encoder timestamp problem, leaving mode to GST_AUDIO_BASE_SINK_SLAVE_SKEW 
-//		g_object_set(G_OBJECT(data->audio_sink), "slave-method", 0, NULL); // 0 = GST_AUDIO_BASE_SINK_SLAVE_RESAMPLE
+    	// Bug 107700: AV goes haywire when packets are lost when openslessink is set to GST_AUDIO_BASE_SINK_SLAVE_SKEW, resample fixes the problem
+    	// Bug 110954: Setting this to 0 caused audio to get messed up, original issue was caused by encoder timestamp problem, leaving mode to GST_AUDIO_BASE_SINK_SLAVE_SKEW
+    	//		g_object_set(G_OBJECT(data->audio_sink), "slave-method", 0, NULL); // 0 = GST_AUDIO_BASE_SINK_SLAVE_RESAMPLE
 
-        g_object_set(G_OBJECT(data->audio_sink), "ts-offset", tmp, NULL);
-        CSIO_LOG(eLogLevel_debug, "set audiosink_ts_offset:%lld",tmp);
+    	g_object_set(G_OBJECT(data->audio_sink), "ts-offset", tmp, NULL);
+    	CSIO_LOG(eLogLevel_debug, "set audiosink_ts_offset:%lld",tmp);
     }
 }
 
@@ -2680,7 +2682,8 @@ void csio_jni_initVideo(int iStreamId)
 	    		(!debug_blocking_audio) &&
 				data->audio_sink &&
 				( currentSettingsDB->videoSettings[iStreamId].sessionInitiationMode == 0 ||
-						currentSettingsDB->videoSettings[iStreamId].sessionInitiationMode == 2  ))
+						currentSettingsDB->videoSettings[iStreamId].sessionInitiationMode == 2  )
+						&& (data->streamProtocolId != ePROTOCOL_HTTP) && (data->streamProtocolId != ePROTOCOL_ADAPTIVE_STREAMING) )
 	    {
 	        int tmp = currentSettingsDB->videoSettings[iStreamId].streamingBuffer +
 	                  data->amcviddec_ts_offset;
