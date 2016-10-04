@@ -2146,17 +2146,6 @@ int csio_jni_CreatePipeline(GstElement **pipeline, GstElement **source, eProtoco
                 CSIO_LOG(eLogLevel_error,  "ERROR: Cannot create FILESRC element\n" );
             }
 
-            char *location = currentSettingsDB->settingsMessage.msg[iStreamId].url;
-            if ( strcasestr(location, file_prefix) )
-            {
-                location += prefixLength7;
-            } else {
-                CSIO_LOG(eLogLevel_error, "ERROR: %s invalid SDP url: %s\n", __FUNCTION__, location);
-            }
-            CSIO_LOG(eLogLevel_debug, "%s() location=%s\n", __FUNCTION__, location);
-
-            g_object_set(G_OBJECT(data->element_zero), "location", location, NULL);
-
             data->element_av[0] = gst_element_factory_make("sdpdemux", NULL);
             if(!data->element_av[0])
             {
@@ -2171,12 +2160,34 @@ int csio_jni_CreatePipeline(GstElement **pipeline, GstElement **source, eProtoco
                 iStatus = CSIO_CANNOT_LINK_ELEMENTS;
             }
             else
-            CSIO_LOG(eLogLevel_debug, "success linked filesrc and sdpdemux\n");
+            	CSIO_LOG(eLogLevel_debug, "success linked filesrc and sdpdemux\n");
             
             *pipeline = data->pipeline;
             *source   = data->element_zero;
             break;
         }
+
+	    case ePROTOCOL_UDP_BPT:
+	    {
+	    	data->element_zero  = gst_element_factory_make("rtpbin", NULL);
+			data->element_av[0] = gst_element_factory_make("udpsrc", NULL);
+			data->element_av[1] = gst_element_factory_make( "valve", NULL );
+			data->element_av[2] = gst_element_factory_make("queue", NULL);
+			insert_udpsrc_probe(data,data->element_av[0],"src");
+			gst_bin_add_many( GST_BIN( data->pipeline ), data->element_zero, data->element_av[0], data->element_av[1], data->element_av[2], NULL );
+
+			data->element_v[0] = gst_element_factory_make("rtph264depay", NULL);
+			data->element_v[1] = gst_element_factory_make("h264parse", NULL);
+			data->element_v[2] = gst_element_factory_make("queue", NULL);
+			data->element_v[3] = gst_element_factory_make(product_info()->video_decoder_string, NULL);
+			data->amcvid_dec = data->element_v[3];
+			gst_bin_add_many( GST_BIN( data->pipeline ), data->element_v[0], data->element_v[1], data->element_v[2], data->element_v[3], NULL );
+
+            *pipeline = data->pipeline;
+            *source   = data->element_zero;
+
+	    	break;
+	    }
         default:
 			CSIO_LOG(eLogLevel_error,  "ERROR: invalid protoID.\n" );
 			iStatus = CSIO_FAILURE;
@@ -2185,7 +2196,6 @@ int csio_jni_CreatePipeline(GstElement **pipeline, GstElement **source, eProtoco
 
 	return iStatus;
 }
-
 
 void csio_jni_InitPipeline(eProtocolId protoId, int iStreamId,GstRTSPLowerTrans tcpModeFlags)
 {
@@ -2264,6 +2274,61 @@ void csio_jni_InitPipeline(eProtocolId protoId, int iStreamId,GstRTSPLowerTrans 
 			//CSIO_LOG(eLogLevel_debug, "ePROTOCOL_UDP pass\n");
 			break;
 		}
+
+		case ePROTOCOL_UDP_BPT:
+		{
+			g_object_set(G_OBJECT(data->element_av[0]), "caps", data->caps_v_rtp, NULL);
+			gst_element_link_many(  data->element_av[0], data->element_av[1], data->element_av[2], NULL);
+
+			int i = 3;  //index to decoder
+
+			GstPad *pad;
+			pad = gst_element_get_static_pad( data->element_v[i-1], "src" );	//queue before decoder
+			if( pad != NULL )
+			{
+				guint video_probe_id = gst_pad_add_probe( pad, GST_PAD_PROBE_TYPE_BUFFER, csio_videoProbe, (void *) &data->streamId, NULL );
+				csio_SetVideoProbeId(data->streamId, video_probe_id);
+				gst_object_unref( pad );
+			}
+
+			csio_SetVpuDecoder(data->amcvid_dec, data->streamId);
+
+			//SET OFSSET to zero for now
+			g_object_set(G_OBJECT(data->amcvid_dec), "ts-offset", 0, NULL);
+
+			//pass surface object to the decoder
+			g_object_set(G_OBJECT(data->element_v[i]), "surface-window", data->surface, NULL);
+			CSIO_LOG(eLogLevel_debug, "SET surface-window[0x%x][%d]",data->surface,data->surface);
+
+			if(data->amcvid_dec && csio_GetWaitDecHas1stVidDelay(data->streamId) == 0)
+			{
+				int sigId = 0;
+				sigId = g_signal_connect(data->amcvid_dec, "crestron-vdec-output", G_CALLBACK(csio_DecVideo1stOutputCB), data->streamId);
+				CSIO_LOG(eLogLevel_debug, "connect to crestron-vdec-output: StreamId[%d],sigHandlerId[%d]",data->streamId,sigId);
+
+				if(sigId)
+					csio_SetWaitDecHas1stVidDelay(data->streamId,1);
+			}
+
+			int j;
+			for( j = 0; j < i; j++ )
+			{
+				if(!gst_element_link(  data->element_v[j], data->element_v[j+1]))
+				{
+					CSIO_LOG(eLogLevel_error,  "ERROR: Cannot link video pipeline elements.\n" );
+					break;
+				}
+			}
+
+			if(gst_element_link(  data->element_av[2], data->element_v[0]))
+			{
+				CSIO_LOG(eLogLevel_debug,  "Linked video pipeline.\n" );
+			}
+
+			//skip for now  initVideo();
+
+			break;
+		}
 		case ePROTOCOL_MULTICAST_TS:
 			if (currentSettingsDB->videoSettings[iStreamId].tsEnabled==STREAM_TRANSPORT_MPEG2TS_RTP)
 				g_object_set(G_OBJECT(data->element_av[0]), "buffer-size", DEFAULT_UDP_BUFFER, NULL);
@@ -2337,6 +2402,13 @@ void csio_jni_SetSourceLocation(eProtocolId protoId, char *location, int iStream
 			//CSIO_LOG(eLogLevel_debug, "ePROTOCOL_UDP pass\n");
 			break;
 		}
+
+		case ePROTOCOL_UDP_BPT:
+		{
+			g_object_set( G_OBJECT( data->element_av[0]), "port",
+			currentSettingsDB->videoSettings[iStreamId].rtpVideoPort, NULL );
+			break;
+		}
 		case ePROTOCOL_MULTICAST_TS:
 		case ePROTOCOL_MULTICAST:
 		{
@@ -2355,10 +2427,11 @@ void csio_jni_SetSourceLocation(eProtocolId protoId, char *location, int iStream
 			break;
 		}
 		case ePROTOCOL_FILE:
-		{
-			//g_object_set(G_OBJECT(data->element_zero), "location", location, NULL);
-			//break;
-		}
+            if ( !strcasestr(location, file_prefix) )
+                CSIO_LOG(eLogLevel_error, "ERROR: %s invalid SDP url: %s\n", __FUNCTION__, location);
+            g_object_set(G_OBJECT(data->element_zero), "location", &location[prefixLength7], NULL);
+			break;
+
 		default:
 			break;
 	}
@@ -2451,6 +2524,10 @@ void csio_jni_SetMsgHandlers(void* obj,eProtocolId protoId, int iStreamId)
 			data->video_sink = gst_bin_get_by_interface(GST_BIN(data->pipeline), GST_TYPE_VIDEO_OVERLAY);
 
 		    break;
+
+		case ePROTOCOL_UDP_BPT:
+			break;
+
 		default:
 			//iStatus = CSIO_FAILURE;
 			break;

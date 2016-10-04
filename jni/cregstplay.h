@@ -227,6 +227,7 @@ extern void build_http_pipeline(CREGSTREAM *data, int iStreamId);
 
 extern void csio_PadAddedMsgHandler(GstElement *src, GstPad *new_pad, void *pCstreamer);
 extern void csio_pad_added_callback_hls (GstElement *src, GstPad *new_pad, void *arg);
+extern void csio_DecVideo1stOutputCB(GstElement *src,int id);
 
 extern void set_gst_debug_level(void);
 
