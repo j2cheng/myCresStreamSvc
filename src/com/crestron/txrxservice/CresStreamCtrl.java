@@ -634,7 +634,7 @@ public class CresStreamCtrl extends Service {
     		sendHdmiOutSyncState(); // Send out initial hdmi out resolution info
     		
             // Create a DisplaySurface to handle both preview and stream in
-    		dispSurface = new CresDisplaySurface(this, 1920, 1200, haveExternalDisplays); // set to max output resolution
+    		createCresDisplaySurface();
     		
     		//Get HPDEVent state fromsysfile
     		if (hdmiInputDriverPresent)
@@ -844,6 +844,34 @@ public class CresStreamCtrl extends Service {
     		Log.d(TAG, String.format("returned surface holder %s", surfaceHolder.toString()));
     	
     	return surfaceHolder;
+    }
+    
+    
+    public void createCresDisplaySurface(){
+    	final CresStreamCtrl streamCtrl = this;    	
+    	
+    	// Make sure surface changes are only done in UI (main) thread
+    	if (Looper.myLooper() != Looper.getMainLooper())
+    	{
+    		final CountDownLatch latch = new CountDownLatch(1);
+    		runOnUiThread(new Runnable() {
+       		     @Override
+       		     public void run() {
+       		    	dispSurface = new CresDisplaySurface(streamCtrl, 1920, 1200, haveExternalDisplays); // set to max output resolution
+	                latch.countDown();
+       		     }
+    		});
+    		try { 
+        		if (latch.await(15, TimeUnit.SECONDS) == false)
+        		{
+        			Log.e(TAG, "createCresDisplaySurface: timeout after 15 seconds");
+        			RecoverTxrxService();
+        		}
+        	}
+        	catch (InterruptedException ex) { ex.printStackTrace(); }  
+    	}
+    	else
+    		dispSurface = new CresDisplaySurface(streamCtrl, 1920, 1200, haveExternalDisplays); // set to max output resolution
     }
     
     private void monitorMediaServer()
@@ -3331,7 +3359,7 @@ public class CresStreamCtrl extends Service {
 					        
 					        if (haveExternalDisplays && Boolean.parseBoolean(hdmiOutput.getSyncStatus()))
 					        {
-					        	dispSurface = new CresDisplaySurface(streamCtrl, 1920, 1200, haveExternalDisplays); // set to max output resolution
+					        	createCresDisplaySurface();
 
 					        	try { Thread.sleep(3000); } catch (Exception e) {}
 					        	restartStreams(false);
