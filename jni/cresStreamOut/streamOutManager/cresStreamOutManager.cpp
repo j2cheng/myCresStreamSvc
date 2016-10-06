@@ -252,11 +252,11 @@ void* CStreamoutManager::ThreadEntry()
     if (m_stream_name)
     {
 	    char mountPoint [512];
-        sprintf(mountPoint, "/%s", m_stream_name);
+        sprintf(mountPoint, "/%s.sdp", m_stream_name);
     	gst_rtsp_mount_points_add_factory (mounts, mountPoint, m_factory);
     }
     else
-    	gst_rtsp_mount_points_add_factory (mounts, "/live.sdp", m_factory);
+    	gst_rtsp_mount_points_add_factory (mounts, "/camera.sdp", m_factory);
     g_object_unref (mounts);
 
 //correct way to create source and attatch to mainloop
