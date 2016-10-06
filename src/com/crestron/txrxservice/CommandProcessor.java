@@ -696,8 +696,6 @@ class WindowDimensionCommand extends CrestronCommand {
 					VALIDATE_INT(tokens[3]), 
 					sessId);
 		}
-
-		ctrl.setWindowSizeZ(VALIDATE_INT(msg), sessId);
 	}
 	// Feedbacks will get sent individually when x,y,width,height are queried
 }

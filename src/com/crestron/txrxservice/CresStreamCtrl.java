@@ -1443,7 +1443,7 @@ public class CresStreamCtrl extends Service {
     	userSettings.setYloc(y, sessionId);
     	userSettings.setW(width, sessionId);
     	userSettings.setH(height, sessionId);
-    	updateFullWindow(sessionId);
+    	updateWindow(sessionId);
     }
 
     public void setXCoordinates(int x, int sessionId)
@@ -1622,7 +1622,15 @@ public class CresStreamCtrl extends Service {
 
     }
     
-    public void updateFullWindow(final int sessionId)
+    public void updateWindow(final int sessionId)
+    {
+    	// to avoid bug : we will set window dimensions and then set again after 10 seconds
+    	updateFullWindow(sessionId);
+    	new Timer().schedule(new doubleSendWindowDimensions(sessionId), 10000);
+    }
+    
+    // !!!!!!! Do not call this function use updateWindow instead !!!!!!!
+    private void updateFullWindow(final int sessionId)
     {
         Log.d(TAG, "updateFullWindow " + sessionId + " : Lock");
         windowtLock[sessionId].lock();
@@ -1684,7 +1692,6 @@ public class CresStreamCtrl extends Service {
         	windowtLock[sessionId].unlock();
             Log.d(TAG, "updateFullWindow " + sessionId + " : Unlock");
         }
-
     }
     
     public void hideWindowWithoutDestroy(final int sessionId)
@@ -2610,19 +2617,11 @@ public class CresStreamCtrl extends Service {
 
     public void startStreamIn(int sessId)
     {
-        updateWindow(sessId);
+    	updateWindow(sessId);
         showStreamInWindow(sessId);
         invalidateSurface();
         streamPlay.onStart(sessId);
         //Toast.makeText(this, "StreamIN Started", Toast.LENGTH_LONG).show();
-    }
-
-	/**
-	 * 
-	 */
-    public void updateWindow(int sessId) {
-        updateWH(sessId);
-        updateXY(sessId);
     }
 
     public void stopStreamIn(int sessId)
@@ -3852,6 +3851,19 @@ public class CresStreamCtrl extends Service {
 					mNoVideoTimer = null;
 				}
 			}
+		}
+	}
+	
+	private class doubleSendWindowDimensions extends TimerTask
+	{
+		private int sessionId;
+		doubleSendWindowDimensions(int sessId)
+		{
+			sessionId = sessId;
+		}		
+		@Override
+		public void run() {
+			updateFullWindow(sessionId);
 		}
 	}
 	
