@@ -80,12 +80,14 @@ public class GstreamOut {
     public void start() {
     	if (streamCtl.mCameraDisabled == false)
     	{
+            updateCamStreamUrl();
     		updateNativeDataStruct();
     		nativeRtspServerStart();
     	}
     }
     
     public void stop() {
+		updateCamStreamUrl();
     	nativeRtspServerStop();
     }
     
@@ -147,6 +149,33 @@ public class GstreamOut {
         setCamStreamName(streamCtl.userSettings.getCamStreamName());
         setCamStreamSnapshotName(streamCtl.userSettings.getCamStreamSnapshotName());        
         setCamStreamMulticastAddress(streamCtl.userSettings.getCamStreamMulticastAddress());
+    }
+
+    public String buildCamStreamUrl()
+    {
+    	StringBuilder url = new StringBuilder(1024);
+    	url.append("");
+    
+    	if ( (streamCtl.mCameraDisabled == false) && (streamCtl.userSettings.getCamStreamEnable() == true) )
+    	{
+    		int port = streamCtl.userSettings.getCamStreamPort();
+    		String deviceIp= streamCtl.userSettings.getDeviceIp();
+    		String file = streamCtl.userSettings.getCamStreamName();
+    		
+    		url.append("rtsp://").append(deviceIp).append(":").append(port).append("/").append(file).append(".sdp");
+    	} 
+    	Log.d(TAG, "buildCamStreamUrl() CamStreamUrl = "+url.toString());
+    
+    	return url.toString();
+    }
+    
+    public void updateCamStreamUrl()
+    {
+    	String camUrl = buildCamStreamUrl();
+    	
+        streamCtl.userSettings.setCamStreamUrl(camUrl);
+    
+        streamCtl.sockTask.SendDataToAllClients(String.format("CAMERA_STREAMING_STREAM_URL=%s", camUrl));
     }
     
 ///////////////////////////////////////////////////////////////////////////////

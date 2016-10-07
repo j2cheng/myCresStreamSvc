@@ -96,7 +96,7 @@ public class CresStreamCtrl extends Service {
 
     public UserSettings userSettings;
     AudioManager amanager;
-    TCPInterface sockTask;
+    public TCPInterface sockTask;
    
     HDMIInputInterface hdmiInput;
     HDMIOutputInterface hdmiOutput;
@@ -2410,7 +2410,7 @@ public class CresStreamCtrl extends Service {
         StringBuilder sb = new StringBuilder(512);
 
         SendStreamState(StreamState.CONNECTING, sessId);
-        
+
         // we are starting to streamout so stop confidence preview (unless resuming from pause)
         if (cam_streaming.getConfidencePreviewStatus() == true)
         	cam_streaming.stopConfidencePreview(sessId);
