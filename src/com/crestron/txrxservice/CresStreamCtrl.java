@@ -360,7 +360,10 @@ public class CresStreamCtrl extends Service {
     		
     		// This needs to be done before Gstreamer setup
     		mCameraDisabled = getCameraDisabled();
-    		Log.d(TAG, String.format("Camera disabled is set to %b", mCameraDisabled));
+    		if (mCameraDisabled == true)
+    			Log.w(TAG, "Camera is either disabled or not available, removing access");
+    		else
+    			Log.d(TAG, String.format("Camera is enabled, allowing access"));
 
     		// Wait until 2nd display has settled down.
     		// Android will kill this after 20 seconds!
