@@ -53,26 +53,36 @@ public class AirMedia
     
     public void show(int x, int y, int width, int height)
     {
-    	surfaceDisplayed = true;
-    	
-    	// Set z-order and display
-    	setWindowFlag(mStreamCtl.userSettings.getAirMediaWindowFlag());
-    	setDisplayScreen(mStreamCtl.userSettings.getAirMediaDisplayScreen());
-
-    	// Show/Hide display items based on current settings
-    	intializeDisplay();
-
-    	//show surface
-    	setSurfaceSize(x,y,width,height, true);
+    	if (surfaceDisplayed == false)
+    	{
+	    	surfaceDisplayed = true;
+	    	
+	    	// Set z-order and display
+	    	setWindowFlag(mStreamCtl.userSettings.getAirMediaWindowFlag());
+	    	setDisplayScreen(mStreamCtl.userSettings.getAirMediaDisplayScreen());
+	
+	    	// Show/Hide display items based on current settings
+	    	intializeDisplay();
+	
+	    	//show surface
+	    	setSurfaceSize(x,y,width,height, true);
+    	}
+    	else
+    		Log.i(TAG, "AirMedia already shown, ignoring request");
     }    
     
     public void hide()
     {
-    	surfaceDisplayed = false;
-    	
-    	Intent i = new Intent(commandIntent);
-        i.putExtra("command", "hide_receiver_info");
-        mContext.sendBroadcast(i);
+    	if (surfaceDisplayed == true)
+    	{
+    		surfaceDisplayed = false;
+
+    		Intent i = new Intent(commandIntent);
+    		i.putExtra("command", "hide_receiver_info");
+    		mContext.sendBroadcast(i);
+    	}
+    	else
+    		Log.i(TAG, "AirMedia already hidden, ignoring request");
     }
     
     public boolean getSurfaceDisplayed()

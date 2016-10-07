@@ -3030,10 +3030,7 @@ public class CresStreamCtrl extends Service {
     	userSettings.setAirMediaY(y);
     	userSettings.setAirMediaWidth(width);
     	userSettings.setAirMediaHeight(height);
-    	if ((mAirMedia != null) && (mAirMedia.getSurfaceDisplayed() == true))
-    	{
-    		mAirMedia.setSurfaceSize(x, y, width, height, false);
-    	}
+    	// Just cache the position do not actually send to AirMedia
     }
     
     public void setAirMediaWindowXOffset(int x, int sessId)
