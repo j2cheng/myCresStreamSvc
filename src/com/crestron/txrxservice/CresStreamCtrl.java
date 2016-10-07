@@ -159,6 +159,7 @@ public class CresStreamCtrl extends Service {
     public boolean haveExternalDisplays;
     public boolean hideVideoOnStop = false;
     public CrestronHwPlatform mHwPlatform;
+    public boolean mCameraDisabled = false;
     private final Runnable foregroundRunnable = new Runnable() {
     	@Override
     	public void run() {
@@ -356,6 +357,10 @@ public class CresStreamCtrl extends Service {
     		int windowHeight = 1080;
     		hideVideoOnStop = nativeHideVideoBeforeStop();
     		mHwPlatform = CrestronHwPlatform.fromInteger(nativeGetHWPlatformEnum());
+    		
+    		// This needs to be done before Gstreamer setup
+    		mCameraDisabled = getCameraDisabled();
+    		Log.d(TAG, String.format("Camera disabled is set to %b", mCameraDisabled));
 
     		// Wait until 2nd display has settled down.
     		// Android will kill this after 20 seconds!
@@ -786,6 +791,21 @@ public class CresStreamCtrl extends Service {
     	{
     		Log.w(TAG, "Failed to copy cert file: " + ex);
     	}
+    }
+    
+    public boolean getCameraDisabled()
+    {
+    	Camera c = null;
+		boolean cameraDisabled = false;
+		try {
+			c = Camera.open(); // try to get camera
+			c.release();	// relase camera if obtained
+			cameraDisabled = false;
+		}
+		catch (RuntimeException e){
+			cameraDisabled = true;
+		}
+		return cameraDisabled;
     }
     
  

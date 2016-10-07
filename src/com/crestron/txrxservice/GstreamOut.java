@@ -78,8 +78,11 @@ public class GstreamOut {
     }
     
     public void start() {
-    	updateNativeDataStruct();
-    	nativeRtspServerStart();
+    	if (streamCtl.mCameraDisabled == false)
+    	{
+    		updateNativeDataStruct();
+    		nativeRtspServerStart();
+    	}
     }
     
     public void stop() {
