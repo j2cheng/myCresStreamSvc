@@ -45,6 +45,7 @@ public class CresDisplaySurface
     private void addViewToExternalDisplay(Context app, View view, WindowManager.LayoutParams params){
         DisplayManager dm = (DisplayManager) app.getApplicationContext().getSystemService(Context.DISPLAY_SERVICE);
         if (dm != null){
+        	dm.registerDisplayListener(streamCtl.mDisplayListener, null);
             Display dispArray[] = dm.getDisplays();
             if (dispArray.length>1){
 				Log.e(TAG, "Crestron PEM adding view to 2nd display");
@@ -57,7 +58,7 @@ public class CresDisplaySurface
             }
         }
     }
-
+    
     public CresDisplaySurface(Service app, int windowWidth, int windowHeight, boolean haveExternalDisplays)
     {
         Log.i(TAG, "Creating surface: " + windowWidth + "x" + windowHeight );

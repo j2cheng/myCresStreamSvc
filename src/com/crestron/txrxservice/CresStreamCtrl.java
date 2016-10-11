@@ -41,6 +41,7 @@ import android.view.WindowManager;
 import android.widget.Toast;
 import android.content.Context;
 import android.os.AsyncTask;
+import android.os.Build;
 import android.provider.MediaStore.Files;
 import android.content.Intent;
 import android.content.IntentFilter;
@@ -61,6 +62,7 @@ import android.hardware.Camera;
 import android.app.Activity;
 import android.app.Notification;
 import android.hardware.display.DisplayManager;
+import android.hardware.display.DisplayManager.DisplayListener;
 
 import com.crestron.txrxservice.CresStreamCtrl.StreamState;
 import com.crestron.txrxservice.ProductSpecific;
@@ -160,6 +162,7 @@ public class CresStreamCtrl extends Service {
     public boolean hideVideoOnStop = false;
     public CrestronHwPlatform mHwPlatform;
     public boolean mCameraDisabled = false;
+    public OutputDisplayListener mDisplayListener = new OutputDisplayListener();
     private final Runnable foregroundRunnable = new Runnable() {
     	@Override
     	public void run() {
@@ -759,6 +762,10 @@ public class CresStreamCtrl extends Service {
         unregisterReceiver(resolutionEvent);
         unregisterReceiver(hpdEvent);
         unregisterReceiver(hdmioutResolutionChangedEvent);
+        DisplayManager dm = (DisplayManager) getApplicationContext().getSystemService(Context.DISPLAY_SERVICE);
+        if (dm != null){
+        	dm.unregisterDisplayListener(mDisplayListener);
+        }
         try {
         	cam_streaming.stopRecording(false);
         	cam_preview.stopPlayback(false);
@@ -3363,36 +3370,15 @@ public class CresStreamCtrl extends Service {
             		public void run() {
 		                if (paramAnonymousIntent.getAction().equals("evs.intent.action.hdmi.HDMIOUT_RESOLUTION_CHANGED"))
 		                {
-		            		Log.d(TAG, "receiving intent!!!!");
-		                	
-		                    int hdmiOutResolutionEnum = paramAnonymousIntent.getIntExtra("evs_hdmiout_resolution_changed_id", -1);
-		                    Log.i(TAG, "Received hdmiout resolution changed broadcast ! " + hdmiOutResolutionEnum);
-		                    
-							refreshOutputResolution();									
-		                    
-							// Recheck if HDCP changed
-							mForceHdcpStatusUpdate = true;
-					        
-					        //update with current HDMI output resolution information
-					        sendHdmiOutSyncState();
-					        
-					        if (haveExternalDisplays && Boolean.parseBoolean(hdmiOutput.getSyncStatus()))
-					        {
-					        	createCresDisplaySurface();
+		                	if (!haveExternalDisplays)
+		                	{
+		                		Log.d(TAG, "receiving intent!!!!");
 
-					        	try { Thread.sleep(3000); } catch (Exception e) {}
-					        	restartStreams(false);
-					        	
-					        	// Show AirMedia window if we acquire HDMI output sync
-					        	if ((mAirMedia != null) && userSettings.getAirMediaLaunch())
-					        		mAirMedia.showSurface(true);
-					        }
-					        else if (haveExternalDisplays)
-					        {
-					        	// Hide AirMedia window if we lose HDMI output sync
-					        	if ((mAirMedia != null) && userSettings.getAirMediaLaunch())
-					        		mAirMedia.showSurface(false);
-					        }
+		                		int hdmiOutResolutionEnum = paramAnonymousIntent.getIntExtra("evs_hdmiout_resolution_changed_id", -1);
+		                		Log.i(TAG, "Received hdmiout resolution changed broadcast ! " + hdmiOutResolutionEnum);
+
+		                		handleHdmiOutputChange();
+		                	}
 		                }
 		            }
             	}).start();
@@ -3401,6 +3387,35 @@ public class CresStreamCtrl extends Service {
         IntentFilter hdmioutResolutionIntentFilter = new IntentFilter("evs.intent.action.hdmi.HDMIOUT_RESOLUTION_CHANGED");
         registerReceiver(hdmioutResolutionChangedEvent, hdmioutResolutionIntentFilter);
     }
+    
+    public void handleHdmiOutputChange()
+	{
+		refreshOutputResolution();
+
+		// Recheck if HDCP changed
+		mForceHdcpStatusUpdate = true;
+
+		//update with current HDMI output resolution information
+		sendHdmiOutSyncState();
+
+		if (haveExternalDisplays && Boolean.parseBoolean(hdmiOutput.getSyncStatus()))
+		{
+			createCresDisplaySurface();
+
+			try { Thread.sleep(3000); } catch (Exception e) {}
+			restartStreams(false);
+
+			// Show AirMedia window if we acquire HDMI output sync
+			if ((mAirMedia != null) && userSettings.getAirMediaLaunch())
+				mAirMedia.showSurface(true);
+		}
+		else if (haveExternalDisplays)
+		{
+			// Hide AirMedia window if we lose HDMI output sync
+			if ((mAirMedia != null) && userSettings.getAirMediaLaunch())
+				mAirMedia.showSurface(false);
+		}
+	}
     
 	private void sendHdmiInSyncState() 
 	{
@@ -3908,4 +3923,50 @@ public class CresStreamCtrl extends Service {
 	{
         sockTask.SendDataToAllClients("SET_HDCP_ERROR_COLOR=TRUE");
 	}
+
+	public class OutputDisplayListener implements DisplayListener
+	{
+		@Override
+		public void onDisplayAdded(final int displayId)
+		{
+			new Thread(new Runnable() {
+				public void run() { 
+					DisplayManager dm = 
+							(DisplayManager) getSystemService(DISPLAY_SERVICE);
+					Display dispArray[] = dm.getDisplays();
+					if ( (haveExternalDisplays && (dispArray.length > 1) && (displayId == dispArray[1].getDisplayId())) ||
+							(!haveExternalDisplays && (displayId == dispArray[0].getDisplayId())) )
+					{
+						Log.d(TAG, "HDMI Output display has been added");
+						handleHdmiOutputChange();
+					}
+				}
+			}).start();
+		}
+
+		@Override
+		public void onDisplayChanged(int displayId)
+		{
+			// TODO: I am not seeing this get called, so currently it is unimplemented
+			Log.d(TAG, "HDMI Output display has changed");
+		}
+
+		@Override
+		public void onDisplayRemoved(final int displayId)
+		{
+			new Thread(new Runnable() {
+				public void run() { 
+					DisplayManager dm = 
+							(DisplayManager) getSystemService(DISPLAY_SERVICE);
+					Display dispArray[] = dm.getDisplays();
+					if ( (haveExternalDisplays && (dispArray.length > 1) && (displayId == dispArray[1].getDisplayId())) ||
+							(!haveExternalDisplays && (displayId == dispArray[0].getDisplayId())) )
+					{
+						Log.d(TAG, "HDMI Output display has been removed");
+						handleHdmiOutputChange();
+					}
+				}
+			}).start();
+		}		
+	}	
 }

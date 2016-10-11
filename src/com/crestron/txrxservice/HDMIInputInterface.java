@@ -158,7 +158,7 @@ public class HDMIInputInterface {
     public static int getHdmiHpdEventState(){
     	if (isHdmiDriverPresent == true)
 		{
-	        StringBuilder text = new StringBuilder();
+	        StringBuilder text = new StringBuilder(16);
 	        try {
 	            //File sdcard = Environment.getExternalStorageDirectory();
 	            File file = new File("/sys/class/switch/evs_hdmi_hpd/state");
@@ -184,7 +184,7 @@ public class HDMIInputInterface {
     public static String getHdmiInResolutionSysFs(){
     	if (isHdmiDriverPresent == true)
 		{
-	        StringBuilder text = new StringBuilder();
+	        StringBuilder text = new StringBuilder(64);
 	        try {
 	            File file = new File("/sys/devices/platform/omap_i2c.2/i2c-2/2-000f/hdmi_in_resolution");
 	
@@ -209,7 +209,7 @@ public class HDMIInputInterface {
     	if (isHdmiDriverPresent == true)
 		{
 	        int resolutionIndex = 0;
-	        StringBuilder text = new StringBuilder();
+	        StringBuilder text = new StringBuilder(64);
 	        try {
 	            File file = new File("/sys/class/switch/evs_hdmi_resolution/state");
 	            BufferedReader br = new BufferedReader(new FileReader(file));  
@@ -242,7 +242,7 @@ public class HDMIInputInterface {
     	if (isHdmiDriverPresent == true)
 		{
 	    	boolean hdcpStatus = false;
-	    	StringBuilder text = new StringBuilder();
+	    	StringBuilder text = new StringBuilder(16);
 	        try {
 	            File file = new File("/sys/devices/platform/omap_i2c.2/i2c-2/2-000f/hdcp");
 	
@@ -266,7 +266,7 @@ public class HDMIInputInterface {
     public static boolean readSyncState (){
     	if (isHdmiDriverPresent == true)
 		{
-	    	StringBuilder text = new StringBuilder();
+	    	StringBuilder text = new StringBuilder(16);
 	        try {
 	            File file = new File("/sys/devices/platform/omap_i2c.2/i2c-2/2-000f/sync_state");
 	
@@ -289,7 +289,7 @@ public class HDMIInputInterface {
     public static int readAudioSampleRate (){
     	if (isHdmiDriverPresent == true)
 		{
-	    	StringBuilder text = new StringBuilder();
+	    	StringBuilder text = new StringBuilder(64);
 	        try {
 	            File file = new File("/sys/devices/platform/omap_i2c.2/i2c-2/2-000f/audio_sample_rate");
 	
@@ -311,7 +311,7 @@ public class HDMIInputInterface {
     public static boolean readInterlaced (){
     	if (isHdmiDriverPresent == true)
 		{
-	    	StringBuilder text = new StringBuilder();
+	    	StringBuilder text = new StringBuilder(16);
 	        try {
 	            File file = new File("/sys/devices/platform/omap_i2c.2/i2c-2/2-000f/interlaced");
 	

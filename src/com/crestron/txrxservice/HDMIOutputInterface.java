@@ -37,14 +37,34 @@ public class HDMIOutputInterface {
 	}
 	
 	public void setSyncStatus() {
-		byte[] hdmiOutSyncStatus = ProductSpecific.getEVSHdmiOutSyncStatus();
-		
-		Log.i(TAG, "SyncStatus " + (char)hdmiOutSyncStatus[0]);
+		StringBuilder text = new StringBuilder(16);
+        try {
+            File file = new File("/sys/class/switch/hdmi/state");
 
-		if((char)hdmiOutSyncStatus[0] == '1')
+            BufferedReader br = new BufferedReader(new FileReader(file));  
+            String line;   
+            while ((line = br.readLine()) != null) {
+                text.append(line);
+            }
+            br.close();
+        }catch (Exception e) {
+            text.append("0"); //if error default to no sync
+        }
+        if(Integer.parseInt(text.toString()) == 1)
 			syncStatus = "true";
 		else
 			syncStatus = "false";
+		
+		
+		// Old Mistral API method below
+//		byte[] hdmiOutSyncStatus = ProductSpecific.getEVSHdmiOutSyncStatus();
+//		
+//		Log.i(TAG, "SyncStatus " + (char)hdmiOutSyncStatus[0]);
+//
+//		if((char)hdmiOutSyncStatus[0] == '1')
+//			syncStatus = "true";
+//		else
+//			syncStatus = "false";
 	}
 	
 	public String getSyncStatus() {
@@ -113,7 +133,7 @@ public class HDMIOutputInterface {
 	}
 	
 	public static int readHDCPOutputStatus (){
-    	StringBuilder text = new StringBuilder();
+    	StringBuilder text = new StringBuilder(16);
         try {
             File file = new File("/sys/devices/virtual/misc/hdcp/hdcp_status");
 

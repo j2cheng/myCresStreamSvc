@@ -25,6 +25,9 @@ public class AirMedia
     {
     	mStreamCtl = streamCtl;
     	mContext = (Context)mStreamCtl;
+    	
+    	shutDownAirMedia();	// In case AirMedia was already running shut it down
+    	
     	registerBroadcasts();
     	
     	// Launch service
@@ -44,11 +47,15 @@ public class AirMedia
     	
     	surfaceDisplayed = false;
     	
+    	shutDownAirMedia();
+        
+    	unregisterBroadcasts();
+    }
+    
+    public void shutDownAirMedia(){
     	Intent i = new Intent(commandIntent);
         i.putExtra("command", "close_receiver");
         mContext.sendBroadcast(i);
-        
-    	unregisterBroadcasts();
     }
     
     public void show(int x, int y, int width, int height)
