@@ -8,8 +8,7 @@ public class CommandInvoker{
     }
 
     public void set(){
-        myCmd.execute();
-        CresStreamCtrl.saveSettingsUpdateArrived = true;
+        myCmd.execute();        
     }
     
     public String get(){

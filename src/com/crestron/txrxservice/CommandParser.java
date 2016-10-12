@@ -743,6 +743,18 @@ public class CommandParser {
 	            {
 	                invoke.setCommand(cmd);
 	                invoke.set();
+	                
+	                // Don't save userSettings for these messages since they are not saved in userSettings
+	                switch(CmdTable.valueOf(parseResponse.joinName.toUpperCase())){
+	                case TXHDCPACTIVE:
+	                case PROXYENABLE:
+	                case HDCPENCRYPT:
+	                case HDMI_OUT_EXTERNAL_HDCP_STATUS:
+	                	break;
+	                default:
+	                	CresStreamCtrl.saveSettingsUpdateArrived = true;
+	                	break;
+	                }           
 	            }
 	            
 	            valueResponse = parseResponse.joinValue;
