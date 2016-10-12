@@ -2188,6 +2188,13 @@ int csio_jni_CreatePipeline(GstElement **pipeline, GstElement **source, eProtoco
 
 	    	break;
 	    }
+        case ePROTOCOL_MP4_STREAMING:
+        {
+            build_mp4_pipeline(data, iStreamId);
+            *pipeline = data->pipeline;
+            *source   = data->element_zero;
+            break;
+        }
         default:
 			CSIO_LOG(eLogLevel_error,  "ERROR: invalid protoID.\n" );
 			iStatus = CSIO_FAILURE;
@@ -2349,6 +2356,11 @@ void csio_jni_InitPipeline(eProtocolId protoId, int iStreamId,GstRTSPLowerTrans 
 			g_object_set(G_OBJECT(data->element_av[0]), "latency", currentSettingsDB->videoSettings[iStreamId].streamingBuffer, NULL);
 			break;
 		}
+		case ePROTOCOL_MP4_STREAMING:
+		{
+			CSIO_LOG( eLogLevel_debug, "%s() ePROTOCOL_MP4_STREAMING pass\n", __FUNCTION__ );
+			break;
+		}
 		default:
 			//iStatus = CSIO_FAILURE;
 			break;
@@ -2431,7 +2443,11 @@ void csio_jni_SetSourceLocation(eProtocolId protoId, char *location, int iStream
                 CSIO_LOG(eLogLevel_error, "ERROR: %s invalid SDP url: %s\n", __FUNCTION__, location);
             g_object_set(G_OBJECT(data->element_zero), "location", &location[prefixLength7], NULL);
 			break;
-
+		case ePROTOCOL_MP4_STREAMING:
+		{
+			CSIO_LOG( eLogLevel_debug, "%s() ePROTOCOL_MP4_STREAMING pass\n", __FUNCTION__ );
+			break;
+		}
 		default:
 			break;
 	}
@@ -2526,6 +2542,21 @@ void csio_jni_SetMsgHandlers(void* obj,eProtocolId protoId, int iStreamId)
 		    break;
 
 		case ePROTOCOL_UDP_BPT:
+			break;
+
+		case ePROTOCOL_MP4_STREAMING:
+			CSIO_LOG(eLogLevel_debug, "%s() in ePROTOCOL_MP4_STREAMING\n", __FUNCTION__);
+			if(data->element_zero != NULL)
+			{
+			    g_signal_connect(data->element_v[1], "pad-added", G_CALLBACK(csio_PadAddedMsgHandler), obj);
+			}
+			else
+			{
+			    CSIO_LOG(eLogLevel_warning, "Null element zero, no callbacks will be registered");
+			}
+			CSIO_LOG(eLogLevel_debug, "%s() in ePROTOCOL_MP4_STREAMING: Set the pipeline to READY \n", __FUNCTION__);
+			csio_element_set_state(data->pipeline, GST_STATE_READY);   //Set the pipeline to READY
+			data->video_sink = gst_bin_get_by_interface(GST_BIN(data->pipeline), GST_TYPE_VIDEO_OVERLAY);
 			break;
 
 		default:
