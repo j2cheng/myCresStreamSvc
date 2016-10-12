@@ -962,22 +962,18 @@ void build_mp4_pipeline(CREGSTREAM *data, int iStreamId)
 
     CSIO_LOG(eLogLevel_extraVerbose, "build_mp4_pipeline(), url=%s\n", url);
 
-    if( (g_str_has_prefix(url, "http") && g_str_has_suffix(url, ".mp4")) || 
-        (g_str_has_prefix(url, "https") && strcasestr(url, ".mp4") != NULL))
+    data->element_zero = gst_element_factory_make ("souphttpsrc", NULL);
+    g_object_set(G_OBJECT(data->element_zero), "location", url, NULL);
+    data->element_v[0] = gst_element_factory_make ("typefind",  NULL); 
+    data->element_v[1] = gst_element_factory_make ("qtdemux",  NULL);
+    data->element_after_tsdemux = 3;
+
+    gst_bin_add_many (GST_BIN (data->pipeline), data->element_zero, data->element_v[0], data->element_v[1], NULL);
+
+    if (!gst_element_link_many(data->element_zero,  data->element_v[0], data->element_v[1], NULL))
     {
-        data->element_zero = gst_element_factory_make ("souphttpsrc", NULL);
-        g_object_set(G_OBJECT(data->element_zero), "location", url, NULL);
-        data->element_v[0] = gst_element_factory_make ("typefind",  NULL); 
-        data->element_v[1] = gst_element_factory_make ("qtdemux",  NULL);
-        data->element_after_tsdemux = 3;
-
-        gst_bin_add_many (GST_BIN (data->pipeline), data->element_zero, data->element_v[0], data->element_v[1], NULL);
-
-        if (!gst_element_link_many(data->element_zero,  data->element_v[0], data->element_v[1], NULL))
-        {
-            CSIO_LOG(eLogLevel_error, "ERROR: Cannot link MP4 pipeline.\n");
-            gst_object_unref (data->pipeline);
-        }
+        CSIO_LOG(eLogLevel_error, "ERROR: Cannot link MP4 pipeline.\n");
+        gst_object_unref (data->pipeline);
     }
 }
 
