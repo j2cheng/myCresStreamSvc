@@ -9,9 +9,11 @@ import android.view.SurfaceHolder;
 import android.view.SurfaceView;
 import android.view.View;
 import android.view.WindowManager;
+import android.widget.ImageView;
 import android.widget.RelativeLayout;
 import android.app.Activity;
 import android.app.Service;
+import android.graphics.Color;
 import android.graphics.PixelFormat;
 import android.content.Context;
 
@@ -35,47 +37,50 @@ public class CresDisplaySurface
     CresStreamCtrl streamCtl;
     private RelativeLayout parentlayout;
     private RelativeLayout.LayoutParams viewLayoutParams;
-    private WindowManager wm;
+    private WindowManager wm = null;
+    private DisplayManager dm = null;
     private WindowManager.LayoutParams  wmLayoutParams;
     SurfaceManager sMGR;
+    
+    private RelativeLayout backgroundLayout = null;
+    private RelativeLayout.LayoutParams backgroundLayoutParams = null;
+    private ImageView backgroundView = null;
+    
     String TAG = "CresDisplaySurface";
 
     // PEM - add a view to the 2nd display
     // Needed to pass Service or else can't call getApplicationContext...
     private void addViewToExternalDisplay(Context app, View view, WindowManager.LayoutParams params){
-        DisplayManager dm = (DisplayManager) app.getApplicationContext().getSystemService(Context.DISPLAY_SERVICE);
         if (dm != null){
-        	dm.registerDisplayListener(streamCtl.mDisplayListener, null);
             Display dispArray[] = dm.getDisplays();
             if (dispArray.length>1){
-				Log.e(TAG, "Crestron PEM adding view to 2nd display");
-                Context displayContext = app.getApplicationContext().createDisplayContext(dispArray[1]);
-                WindowManager wm = (WindowManager)displayContext.getSystemService(Context.WINDOW_SERVICE);
-                wm.addView(view, params);
+            	if (wm == null)
+            	{
+	                Context displayContext = app.getApplicationContext().createDisplayContext(dispArray[1]);
+	                wm = (WindowManager)displayContext.getSystemService(Context.WINDOW_SERVICE);
+            	}
+            	wm.addView(view, params);
             }
             else{
-				Log.e(TAG, "Crestron PEM 2nd display not ready yet");
+				Log.e(TAG, "Second display not ready yet");
             }
         }
     }
     
-    public CresDisplaySurface(Service app, int windowWidth, int windowHeight, boolean haveExternalDisplays)
+    public CresDisplaySurface(Service app, int windowWidth, int windowHeight, boolean haveExternalDisplays, int color)
     {
         Log.i(TAG, "Creating surface: " + windowWidth + "x" + windowHeight );
         
-        streamCtl = (CresStreamCtrl)app;
+        streamCtl = (CresStreamCtrl)app;       
 
     	//Relative Layout to handle multiple views
         parentlayout = new RelativeLayout(app);
         
         //Instance for Surfaceholder for StreamIn/Preview
         sMGR = new SurfaceManager(app);
-
+        
         // Create the surface and set the width and height to the display width
         // and height
-        // TODO: Add ability to create multiple surfaces at different width and height
-        // One way to do this is to create AddSurface and RemoveSurface functions
-        // Adjust z-order as well
         for (int i = 0; i < CresStreamCtrl.NumOfSurfaces; i++){
             displaySurface[i] = new SurfaceView(app);
             viewLayoutParams = new RelativeLayout.LayoutParams(
@@ -115,6 +120,11 @@ public class CresDisplaySurface
         wmLayoutParams.y = 0;
 		if(haveExternalDisplays){		
 			Log.d(TAG, "moving streams to 2nd display");
+			dm = (DisplayManager) app.getApplicationContext().getSystemService(Context.DISPLAY_SERVICE);
+	        if (dm != null)
+	        {
+	        	dm.registerDisplayListener(streamCtl.mDisplayListener, null);
+	        }
 			addViewToExternalDisplay(app, parentlayout, wmLayoutParams);
 		}
 		else{
@@ -124,13 +134,15 @@ public class CresDisplaySurface
 		}
 		
         // Force invalidation
-        forceLayoutInvalidation();
+        forceLayoutInvalidation(parentlayout);
         
         // Add callbacks to surfaceviews
         for (int sessId = 0; sessId < CresStreamCtrl.NumOfSurfaces; sessId++)
         {
         	InitSurfaceHolder(sessId);
         }
+        
+        createBackgroundWindow(windowWidth, windowHeight, color, haveExternalDisplays);
     }
     
     /**
@@ -152,7 +164,7 @@ public class CresDisplaySurface
     	viewLayoutParams.setMargins(x, y, 0, 0);
     	displaySurface[idx].setLayoutParams(viewLayoutParams);
 
-    	forceLayoutInvalidation();
+    	forceLayoutInvalidation(parentlayout);
     }
     
     /**
@@ -175,7 +187,7 @@ public class CresDisplaySurface
     	viewLayoutParams = new RelativeLayout.LayoutParams(width, height);
     	displaySurface[idx].setLayoutParams(viewLayoutParams);
 
-    	forceLayoutInvalidation();
+    	forceLayoutInvalidation(parentlayout);
     }
 
     public void UpdateCoordinates(int x, int y, int idx)
@@ -195,16 +207,25 @@ public class CresDisplaySurface
     	viewLayoutParams.setMargins(x, y, 0, 0);
     	displaySurface[idx].setLayoutParams(viewLayoutParams);
 
-    	forceLayoutInvalidation();
+    	forceLayoutInvalidation(parentlayout);
     }
     
 	/**
 	 * Force the invalidation of the layout
 	 */
-    public void forceLayoutInvalidation() {
+    public void forceParentLayoutInvalidation() {
         parentlayout.bringToFront();
         parentlayout.invalidate();
         parentlayout.requestLayout();
+    }
+    
+	/**
+	 * Force the invalidation of the layout
+	 */
+    public void forceLayoutInvalidation(RelativeLayout layout) {
+    	layout.bringToFront();
+    	layout.invalidate();
+        layout.requestLayout();
     }
     
     
@@ -253,7 +274,7 @@ public class CresDisplaySurface
         {
         	parentlayout.addView(displaySurface[zOrder[0][i]], viewLayoutParams);
         }
-        forceLayoutInvalidation();
+        forceLayoutInvalidation(parentlayout);
     }
     
     public Integer[][] createZOrderArray()
@@ -325,5 +346,44 @@ public class CresDisplaySurface
     	int surface2yBottom	= surface2yTop + streamCtl.userSettings.getH(1);
     	
     	return MiscUtils.rectanglesOverlap(surface1xLeft, surface1xRight, surface1yTop, surface1yBottom, surface2xLeft, surface2xRight, surface2yTop, surface2yBottom);
+    }
+    
+    public void createBackgroundWindow(int windowWidth, int windowHeight, int color, boolean haveExternalDisplays)
+    {
+    	// For Devices with external display, put a surface always on background of external display
+    	if(haveExternalDisplays)
+    	{
+    		Context context = (Context)streamCtl;
+    		Log.i(TAG, "Creating background surface: color" + color );
+
+    		//Relative Layout to handle multiple views (if necessary in future)
+    		backgroundLayout = new RelativeLayout(context);
+
+    		// Create and setup view (ImageView)
+    		backgroundView = new ImageView(context);
+    		backgroundView.setBackgroundColor(color);
+    		backgroundView.setVisibility(View.VISIBLE);        	
+    		
+    		// Add in view to layout
+    		RelativeLayout.LayoutParams layoutParams = new RelativeLayout.LayoutParams(windowWidth, windowHeight);
+    		backgroundLayout.addView(backgroundView, layoutParams);
+
+    		//Setting WindowManager and Parameters with system overlay
+    		WindowManager.LayoutParams windowParams = new WindowManager.LayoutParams(
+    				windowWidth, 
+    				windowHeight, 
+    				WindowManager.LayoutParams.TYPE_PHONE,	//TYPE_INPUT_METHOD_DIALOG caused crash
+    				(0 | WindowManager.LayoutParams.FLAG_NOT_TOUCHABLE | WindowManager.LayoutParams.FLAG_NOT_FOCUSABLE), 
+    				PixelFormat.TRANSLUCENT);
+    		windowParams.gravity = Gravity.TOP | Gravity.LEFT; 
+    		windowParams.x = 0;
+    		windowParams.y = 0;
+
+    		// Add layout to window
+    		addViewToExternalDisplay(context, backgroundLayout, windowParams);
+
+    		// Force invalidation
+    		forceLayoutInvalidation(backgroundLayout);
+    	}
     }
 }

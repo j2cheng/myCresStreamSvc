@@ -55,6 +55,7 @@ import android.view.Gravity;
 import android.view.SurfaceHolder;
 import android.view.SurfaceHolder.Callback;
 import android.graphics.Canvas;
+import android.graphics.Color;
 import android.graphics.PixelFormat;
 import android.graphics.Point;
 import android.graphics.Rect;
@@ -162,6 +163,7 @@ public class CresStreamCtrl extends Service {
     public boolean hideVideoOnStop = false;
     public CrestronHwPlatform mHwPlatform;
     public boolean mCameraDisabled = false;
+    private final int backgroundViewColor = Color.argb(255, 0, 0, 0);
     public OutputDisplayListener mDisplayListener = new OutputDisplayListener();
     private final Runnable foregroundRunnable = new Runnable() {
     	@Override
@@ -887,7 +889,7 @@ public class CresStreamCtrl extends Service {
     		runOnUiThread(new Runnable() {
        		     @Override
        		     public void run() {
-       		    	dispSurface = new CresDisplaySurface(streamCtrl, 1920, 1200, haveExternalDisplays); // set to max output resolution
+       		    	dispSurface = new CresDisplaySurface(streamCtrl, 1920, 1200, haveExternalDisplays, backgroundViewColor); // set to max output resolution
 	                latch.countDown();
        		     }
     		});
@@ -901,7 +903,7 @@ public class CresStreamCtrl extends Service {
         	catch (InterruptedException ex) { ex.printStackTrace(); }  
     	}
     	else
-    		dispSurface = new CresDisplaySurface(streamCtrl, 1920, 1200, haveExternalDisplays); // set to max output resolution
+    		dispSurface = new CresDisplaySurface(streamCtrl, 1920, 1200, haveExternalDisplays, backgroundViewColor); // set to max output resolution
     }
     
     private void monitorMediaServer()
@@ -1777,7 +1779,7 @@ public class CresStreamCtrl extends Service {
         		runOnUiThread(new Runnable() {
 	       		     @Override
 	       		     public void run() {
-		                dispSurface.forceLayoutInvalidation();
+		                dispSurface.forceParentLayoutInvalidation();
 		                latch.countDown();
 	       		     }
         		});
@@ -1791,7 +1793,7 @@ public class CresStreamCtrl extends Service {
             	catch (InterruptedException ex) { ex.printStackTrace(); }  
         	}
         	else
-        		dispSurface.forceLayoutInvalidation();        		
+        		dispSurface.forceParentLayoutInvalidation();        		
         }
     }
     
