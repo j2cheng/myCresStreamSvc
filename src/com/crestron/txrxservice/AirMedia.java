@@ -16,7 +16,7 @@ public class AirMedia
     Context mContext;
     String TAG = "TxRx AirMedia"; 
     private final static String commandIntent = "com.awindinc.receiver.airmedia.command";
-	private final static String licenseFilePath = "/dev/shm/airmedia";
+	public final static String licenseFilePath = "/dev/shm/airmedia";
 	private boolean surfaceDisplayed = false;
     
     BroadcastReceiver feedback = null;

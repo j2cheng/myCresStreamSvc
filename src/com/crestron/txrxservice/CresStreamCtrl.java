@@ -721,8 +721,7 @@ public class CresStreamCtrl extends Service {
     		// Monitor Rava Mode
 //    		monitorRavaMode();
     		
-    		if (mAirMedia == null && AirMedia.checkAirMediaLicense())
-    			mAirMedia = new AirMedia(this);
+    		airMediaLicenseThread(this);
     		
     		initAppFiles();
 
@@ -876,6 +875,23 @@ public class CresStreamCtrl extends Service {
     		Log.d(TAG, String.format("returned surface holder %s", surfaceHolder.toString()));
     	
     	return surfaceHolder;
+    }
+    
+    private void airMediaLicenseThread(final CresStreamCtrl streamCtrl)
+    {	
+		new Thread(new Runnable() {
+    		@Override
+    		public void run() { 
+    			// Wait until file exists then check
+    			while ((new File(AirMedia.licenseFilePath)).exists() == false)
+    			{
+    				try { Thread.sleep(5000); } catch (InterruptedException e){}//Poll every 5 seconds
+    			}
+    			
+    			if (mAirMedia == null && AirMedia.checkAirMediaLicense())
+					mAirMedia = new AirMedia(streamCtrl);
+    		}
+    	}).start();
     }
     
     
