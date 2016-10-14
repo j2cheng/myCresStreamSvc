@@ -3134,6 +3134,58 @@ public class CresStreamCtrl extends Service {
     	}
     }
     
+    public void setAirMediaAdaptorSelect(int select, int sessId)
+    {
+    	if (select != userSettings.getAirMediaAdaptorSelect())
+    	{
+    		userSettings.setAirMediaAdaptorSelect(select);
+    		if (mAirMedia != null)
+    		{
+    			mAirMedia.setIpAddressPrompt(userSettings.getAirMediaIpAddressPrompt());
+    		}
+    		
+    		// Update connection address as well
+    		sendAirMediaConnectionAddress(sessId);
+    	}    	
+    }
+    
+    // Will update airMedia IP information when called
+    public void updateAirMediaIpInformation(int sessId)
+    {
+    	if (mAirMedia != null)
+		{
+    		mAirMedia.setIpAddressPrompt(userSettings.getAirMediaIpAddressPrompt());
+		}
+    	
+    	sendAirMediaConnectionAddress(sessId);
+    }
+    
+    public void sendAirMediaConnectionAddress(int sessId)
+    {
+    	sockTask.SendDataToAllClients(String.format("AIRMEDIA_CONNECTION_ADDRESS=%s", getAirMediaConnectionAddress(sessId)));
+    }
+    
+    public String getAirMediaConnectionAddress(int sessId)
+    {
+    	StringBuilder url = new StringBuilder(512);
+        url.append("http://");
+        if (userSettings.getAirMediaAdaptorSelect() == 0)
+        {
+        	url.append(userSettings.getDeviceIp());
+        }
+        else if (userSettings.getAirMediaAdaptorSelect() == 1)
+        {
+        	url.append(userSettings.getAuxiliaryIp());
+        }
+        else
+        {
+        	Log.w(TAG, "Invalid adaptor select value of " + userSettings.getAirMediaAdaptorSelect());
+        	url.append(userSettings.getDeviceIp());
+        }
+        return url.toString();
+    }
+
+    
     public String getAirMediaVersion(int sessId)
     {
     	String versionName = "";

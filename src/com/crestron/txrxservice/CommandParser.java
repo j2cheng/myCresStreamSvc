@@ -116,6 +116,7 @@ public class CommandParser {
         STATISTICS_NUMBEROFAUDIOPACKETS,
         STATISTICS_NUMBEROFAUDIOPACKETSDROPPED,
         MULTICASTTTL,
+        AUXILIARY_IP_ADDRESS,
         //OSD            
         OSD_ENABLE,
         OSD_DISABLE,
@@ -134,6 +135,8 @@ public class CommandParser {
         AIRMEDIA_WINDOW_Y_OFFSET,
         AIRMEDIA_WINDOW_WIDTH,
         AIRMEDIA_WINDOW_HEIGHT,
+        AIRMEDIA_ADAPTOR_SELECT,
+        AIRMEDIA_CONNECTION_ADDRESS,
         
         // AirMedia Layout control
         AIRMEDIA_MODERATOR,
@@ -657,6 +660,12 @@ public class CommandParser {
             case AIRMEDIA_VERSION:
             	cmd = new AirMediaVersionCommand(ctrl, arg, idx);
             	break;
+            case AIRMEDIA_ADAPTOR_SELECT:
+            	cmd = new AirMediaAdaptorSelectCommand(ctrl, arg, idx);            	
+            	break;
+            case AIRMEDIA_CONNECTION_ADDRESS:
+            	cmd = new AirMediaConnectionAddressCommand(ctrl, arg, idx);
+            	break;
             	
         	// Camera Streaming
             case CAMERA_STREAMING_ENABLE:
@@ -695,6 +704,9 @@ public class CommandParser {
             	break;
             case NEW_IPADDR:
             	cmd = new UseNewIpAddrCommand(ctrl, arg);
+            	break;
+            case AUXILIARY_IP_ADDRESS:
+            	cmd = new SetAuxiliaryIpAddressCommand(ctrl, arg);
             	break;
             case FDEBUG_JNI:            	
             	cmd = new FIELDDEBUGJNICommand(ctrl, arg, idx);

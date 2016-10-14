@@ -200,6 +200,7 @@ public class UserSettings
 
 	// Ethernet
 	private String deviceIp;
+	private String auxiliaryIp;
 	private int multicastTTL;
 	
 	// AirMedia
@@ -224,6 +225,7 @@ public class UserSettings
 	private boolean airMediaDisplayLoginCode;
 	private int airMediaDisplayScreen;
 	private int airMediaWindowFlag;
+	private int airMediaAdaptorSelect;
 	
 	// Camera Streaming
 	private boolean camStreamEnable;
@@ -249,6 +251,7 @@ public class UserSettings
 	{
 //		MiscUtils.getDeviceIpAddr();
 		deviceIp 			= "0.0.0.0";//MiscUtils.matcher.group();
+		auxiliaryIp			= "0.0.0.0";
 		versionNum 			= CresStreamCtrl.VersionNumber;
 		rtspPort 			= initIntArray(554);		
 		tsPort 				= initIntArray(4570);		
@@ -316,6 +319,7 @@ public class UserSettings
 		airMediaDisplayLoginCode = false;
 		airMediaDisplayScreen = 0;
 		airMediaWindowFlag	= WindowManager.LayoutParams.TYPE_SYSTEM_OVERLAY;
+		airMediaAdaptorSelect = 0;
 		tcpInterleave       = initIntArray(0);//auto mode
 		camStreamEnable		= false;
 		camStreamMulticastEnable = false;
@@ -479,6 +483,14 @@ public class UserSettings
 		deviceIp = newIpAddr;
 	}
 	
+	public String getAuxiliaryIp() {
+		return auxiliaryIp;
+	}
+
+	public void setAuxiliaryIp(String auxiliaryIp) {
+		this.auxiliaryIp = auxiliaryIp;
+	}
+
 	public int getMulticastTTL() {
 		return multicastTTL;
 	}
@@ -1199,6 +1211,14 @@ public class UserSettings
 		return airMediaWindowFlag;
 	}
 	
+	public int getAirMediaAdaptorSelect() {
+		return airMediaAdaptorSelect;
+	}
+
+	public void setAirMediaAdaptorSelect(int airMediaAdaptorSelect) {
+		this.airMediaAdaptorSelect = airMediaAdaptorSelect;
+	}
+
 	public boolean getCamStreamEnable() {
 		return camStreamEnable;
 	}

@@ -369,9 +369,28 @@ public class AirMedia
     {    	
         if (enable)
         {
+        	String ip;
+        	
+        	if (mStreamCtl.userSettings.getAirMediaAdaptorSelect() == 0)
+        	{       		
+        		// Use adaptor 0
+        		ip = mStreamCtl.userSettings.getDeviceIp();
+        	}
+        	else if (mStreamCtl.userSettings.getAirMediaAdaptorSelect() == 1)
+        	{
+        		// Use adaptor 1
+        		ip = mStreamCtl.userSettings.getAuxiliaryIp();
+        	}
+        	else
+        	{
+        		// Invalid selection setting use adaptor 0
+        		Log.w(TAG, String.format("Invalid adaptor select value of %d, using adaptor 0", mStreamCtl.userSettings.getAirMediaAdaptorSelect()));
+        		ip = mStreamCtl.userSettings.getDeviceIp();
+        	}
+        	
         	Intent i = new Intent(commandIntent);
             i.putExtra("command", "address_prompt");
-        	i.putExtra("value", String.format("IP:%s", mStreamCtl.userSettings.getDeviceIp()));
+        	i.putExtra("value", String.format("IP:%s", ip));
         	mContext.sendBroadcast(i);
         	
         	// Send with no value to make sure IP address displays

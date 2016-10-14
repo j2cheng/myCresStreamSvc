@@ -1955,6 +1955,28 @@ class AirMediaVersionCommand extends CrestronCommand {
 	}
 }
 
+class AirMediaAdaptorSelectCommand extends CrestronCommand {
+	public AirMediaAdaptorSelectCommand(CresStreamCtrl ctrl, String arg, int sessId) {
+		super(ctrl, arg, sessId);
+	}	
+	public void execute() {
+		ctrl.setAirMediaAdaptorSelect(VALIDATE_INT(msg), sessId);
+	}
+	public String getFeedbackMsg() {
+		return Integer.toString(ctrl.userSettings.getAirMediaAdaptorSelect());
+	}
+}
+
+class AirMediaConnectionAddressCommand extends CrestronCommand {
+	public AirMediaConnectionAddressCommand(CresStreamCtrl ctrl, String arg, int sessId) {
+		super(ctrl, arg, sessId);
+	}	
+// No execute: this is feedback only
+	public String getFeedbackMsg() {
+		return ctrl.getAirMediaConnectionAddress(sessId);
+	}
+}
+
 class camStreamEnableCommand extends CrestronCommand {
 	public camStreamEnableCommand(CresStreamCtrl ctrl, String arg) {
 		super(ctrl, arg);
@@ -2101,15 +2123,30 @@ class UseNewIpAddrCommand extends CrestronCommand {
 
 	@Override
 	public void execute() {
-            if(!msg.equals(ctrl.userSettings.getDeviceIp()))
-	{
-            ctrl.stopOnIpAddrChange();
-    	    ctrl.userSettings.setDeviceIp(msg);
-    	    ctrl.setAirMediaIpAddressPrompt(ctrl.userSettings.getAirMediaIpAddressPrompt(), 0);
+		if(!msg.equals(ctrl.userSettings.getDeviceIp()))
+		{
+			ctrl.stopOnIpAddrChange();
+			ctrl.userSettings.setDeviceIp(msg);
+			if (ctrl.userSettings.getAirMediaAdaptorSelect() == 0)
+				ctrl.updateAirMediaIpInformation(0);
+		}
 	}
+}
+
+class SetAuxiliaryIpAddressCommand extends CrestronCommand {
+
+	public SetAuxiliaryIpAddressCommand(CresStreamCtrl ctrl, String arg) {
+		super(ctrl, arg);
 	}
-	public String getFeedbackMsg() {
-		return msg;	//no feedback for this join
+
+	@Override
+	public void execute() {
+		if(!msg.equals(ctrl.userSettings.getAuxiliaryIp()))
+		{
+			ctrl.userSettings.setAuxiliaryIp(msg);
+			if (ctrl.userSettings.getAirMediaAdaptorSelect() == 1)
+				ctrl.updateAirMediaIpInformation(0);
+		}
 	}
 }
 
