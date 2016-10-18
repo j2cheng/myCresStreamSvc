@@ -1,5 +1,7 @@
 package com.crestron.txrxservice;
 
+import com.crestron.txrxservice.CresStreamCtrl.AirMediaLoginMode;
+
 import android.content.BroadcastReceiver;
 import android.content.ContentResolver;
 import android.content.Context;
@@ -220,8 +222,13 @@ public class AirMedia
     public void intializeDisplay()
     {
     	// Show/Hide login code depending on setting
-        setLoginCode(mStreamCtl.userSettings.getAirMediaLoginCode());
-        if (mStreamCtl.userSettings.getAirMediaDisplayLoginCode())
+    	if (mStreamCtl.userSettings.getAirMediaLoginMode() == AirMediaLoginMode.Disabled.ordinal())
+    		setLoginCodeDisable();
+    	else
+    		setLoginCode(mStreamCtl.userSettings.getAirMediaLoginCode());
+    	
+        if (mStreamCtl.userSettings.getAirMediaDisplayLoginCode() && 
+        		mStreamCtl.userSettings.getAirMediaLoginMode() != AirMediaLoginMode.Disabled.ordinal())
         {
         	showLoginCodePrompt(mStreamCtl.userSettings.getAirMediaLoginCode());
         }
@@ -264,6 +271,13 @@ public class AirMedia
     	Intent i = new Intent(commandIntent);
         i.putExtra("command", "login_code");
         i.putExtra("value", loginCode);
+        mContext.sendBroadcast(i);
+    }
+    
+    public void setLoginCodeDisable()
+    {
+    	Intent i = new Intent(commandIntent);
+        i.putExtra("command", "login_code");
         mContext.sendBroadcast(i);
     }
     

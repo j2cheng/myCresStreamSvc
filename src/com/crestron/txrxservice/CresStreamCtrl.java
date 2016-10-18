@@ -2930,7 +2930,7 @@ public class CresStreamCtrl extends Service {
 			userSettings.setAirMediaLoginCode(0);
 			if (mAirMedia != null)
 	    	{
-	    		mAirMedia.setLoginCode(0);
+	    		mAirMedia.setLoginCodeDisable();
 	    		mAirMedia.hideLoginCodePrompt();
 	    	}
     	}
