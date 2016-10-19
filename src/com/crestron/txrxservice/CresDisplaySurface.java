@@ -44,6 +44,7 @@ public class CresDisplaySurface
     
     private RelativeLayout backgroundLayout = null;
     private RelativeLayout.LayoutParams backgroundLayoutParams = null;
+    private WindowManager.LayoutParams backgroundWmParams = null; 
     private ImageView backgroundView = null;
     
     String TAG = "CresDisplaySurface";
@@ -65,6 +66,34 @@ public class CresDisplaySurface
 				Log.e(TAG, "Second display not ready yet");
             }
         }
+    }
+    
+// Prepare the class for destruction
+    public void close()
+    {
+    	if (sMGR != null)
+    		sMGR.close();
+    	if (parentlayout != null)
+    		parentlayout.removeAllViews();
+    	if (backgroundLayout != null)
+    		backgroundLayout.removeAllViews();
+    	if (wm != null)
+    	{
+    		wm.removeView(backgroundLayout);
+    		wm.removeView(parentlayout);
+    	}
+    	dm.unregisterDisplayListener(streamCtl.mDisplayListener);
+    	displaySurface = new SurfaceView[CresStreamCtrl.NumOfSurfaces];
+    	streamCtl = null;
+    	parentlayout = null;
+    	viewLayoutParams = null;
+    	wm = null;
+    	dm = null;
+    	wmLayoutParams = null;
+    	backgroundLayout = null;
+    	backgroundLayoutParams = null;
+    	backgroundWmParams = null; 
+    	backgroundView = null;
     }
     
     public CresDisplaySurface(Service app, int windowWidth, int windowHeight, boolean haveExternalDisplays, int color)
@@ -369,18 +398,21 @@ public class CresDisplaySurface
     		backgroundLayout.addView(backgroundView, layoutParams);
 
     		//Setting WindowManager and Parameters with system overlay
-    		WindowManager.LayoutParams windowParams = new WindowManager.LayoutParams(
-    				windowWidth, 
-    				windowHeight, 
-    				WindowManager.LayoutParams.TYPE_PHONE,	//TYPE_INPUT_METHOD_DIALOG caused crash
-    				(0 | WindowManager.LayoutParams.FLAG_NOT_TOUCHABLE | WindowManager.LayoutParams.FLAG_NOT_FOCUSABLE), 
-    				PixelFormat.TRANSLUCENT);
-    		windowParams.gravity = Gravity.TOP | Gravity.LEFT; 
-    		windowParams.x = 0;
-    		windowParams.y = 0;
+    		if (backgroundWmParams == null)
+    		{
+    			backgroundWmParams = new WindowManager.LayoutParams(
+    					windowWidth, 
+    					windowHeight, 
+    					WindowManager.LayoutParams.TYPE_PHONE,	//TYPE_INPUT_METHOD_DIALOG caused crash
+    					(0 | WindowManager.LayoutParams.FLAG_NOT_TOUCHABLE | WindowManager.LayoutParams.FLAG_NOT_FOCUSABLE), 
+    					PixelFormat.TRANSLUCENT);
+    			backgroundWmParams.gravity = Gravity.TOP | Gravity.LEFT; 
+    			backgroundWmParams.x = 0;
+    			backgroundWmParams.y = 0;
+    		}
 
     		// Add layout to window
-    		addViewToExternalDisplay(context, backgroundLayout, windowParams);
+    		addViewToExternalDisplay(context, backgroundLayout, backgroundWmParams);
 
     		// Force invalidation
     		forceLayoutInvalidation(backgroundLayout);

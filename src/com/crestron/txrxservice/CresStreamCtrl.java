@@ -104,7 +104,7 @@ public class CresStreamCtrl extends Service {
     HDMIInputInterface hdmiInput;
     HDMIOutputInterface hdmiOutput;
 
-    CresDisplaySurface dispSurface;
+    CresDisplaySurface dispSurface = null;
     
     AirMedia mAirMedia = null;
     
@@ -903,11 +903,16 @@ public class CresStreamCtrl extends Service {
     	{
     		final CountDownLatch latch = new CountDownLatch(1);
     		runOnUiThread(new Runnable() {
-       		     @Override
-       		     public void run() {
-       		    	dispSurface = new CresDisplaySurface(streamCtrl, 1920, 1200, haveExternalDisplays, backgroundViewColor); // set to max output resolution
-	                latch.countDown();
-       		     }
+    			@Override
+    			public void run() {
+    				if (dispSurface != null)
+    				{
+    					dispSurface.close();
+    					dispSurface = null;
+    				}
+    				dispSurface = new CresDisplaySurface(streamCtrl, 1920, 1200, haveExternalDisplays, backgroundViewColor); // set to max output resolution
+    				latch.countDown();
+    			}
     		});
     		try { 
         		if (latch.await(15, TimeUnit.SECONDS) == false)
@@ -919,7 +924,14 @@ public class CresStreamCtrl extends Service {
         	catch (InterruptedException ex) { ex.printStackTrace(); }  
     	}
     	else
+    	{
+    		if (dispSurface != null)
+    		{
+    			dispSurface.close();
+    			dispSurface = null;
+    		}
     		dispSurface = new CresDisplaySurface(streamCtrl, 1920, 1200, haveExternalDisplays, backgroundViewColor); // set to max output resolution
+    	}
     }
     
     private void monitorMediaServer()

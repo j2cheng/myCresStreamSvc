@@ -37,6 +37,15 @@ public class SurfaceManager implements SurfaceHolder.Callback {
             Log.d(TAG, "App passed null surface view for stream in");
         }
     }
+
+// Prepare the class for destruction
+    public void close()
+    {
+    	if (crestSurfaceHolder != null)
+    		crestSurfaceHolder.removeCallback(this);
+    	mLock = null;  	
+    	crestSurfaceHolder = null; 
+    }
     
     public SurfaceHolder getCresSurfaceHolder (SurfaceView view) {
     	//TODO: Have one lock per surface
