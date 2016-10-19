@@ -719,7 +719,7 @@ public class CresStreamCtrl extends Service {
     		monitorSystemState();
 
     		// Monitor Rava Mode
-//    		monitorRavaMode();
+    		monitorRavaMode();
     		
     		airMediaLicenseThread(this);
     		
