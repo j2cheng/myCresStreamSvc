@@ -221,18 +221,26 @@ void* CStreamoutManager::ThreadEntry()
     {
     	if (m_multicast_address)	// TODO: Also check that multicast address is valid
     	{
-    		/* make a new address pool for multicast */
-    		GstRTSPAddressPool *pool = gst_rtsp_address_pool_new ();
-    		gst_rtsp_address_pool_add_range (pool,
-    				m_multicast_address, m_multicast_address, 11000, 12000, 64);	// Setting ttl to fixed 64, and fixed port range
-    		gst_rtsp_media_factory_set_address_pool (m_factory, pool);
-		/* only allow multicast */
-		gst_rtsp_media_factory_set_protocols (m_factory,
-		      GST_RTSP_LOWER_TRANS_UDP_MCAST);
-    		g_object_unref (pool);
+    		uint32_t ip = 0;
+    		int ret = inet_pton(AF_INET, m_multicast_address, &ip);
+    		ip = ntohl(ip); // put host byte order
+    		if ( (ret == 1) && ((ip >> 28) == 0xe) )
+    		{
+    			/* make a new address pool for multicast */
+    			GstRTSPAddressPool *pool = gst_rtsp_address_pool_new ();
+    			gst_rtsp_address_pool_add_range (pool,
+    					m_multicast_address, m_multicast_address, 11000, 12000, 64);	// Setting ttl to fixed 64, and fixed port range
+    			gst_rtsp_media_factory_set_address_pool (m_factory, pool);
+    			/* only allow multicast */
+    			gst_rtsp_media_factory_set_protocols (m_factory,
+    					GST_RTSP_LOWER_TRANS_UDP_MCAST);
+    			g_object_unref (pool);
+    		}
+    		else
+    			CSIO_LOG(eLogLevel_error, "Streamout: Invalid multicast address provided");
     	}
     	else
-    		CSIO_LOG(m_debugLevel, "Streamout: Invalid multicast address provided");
+    		CSIO_LOG(eLogLevel_error, "Streamout: No multicast address provided");
     }
 
 
