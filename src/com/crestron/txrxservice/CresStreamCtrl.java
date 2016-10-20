@@ -96,6 +96,8 @@ public class CresStreamCtrl extends Service {
     BroadcastReceiver hpdEvent = null;
     BroadcastReceiver resolutionEvent = null;
     BroadcastReceiver hdmioutResolutionChangedEvent = null;
+    
+    private DisplayManager m_displayManager = null;
 
     public UserSettings userSettings;
     AudioManager amanager;
@@ -362,6 +364,12 @@ public class CresStreamCtrl extends Service {
     		int windowHeight = 1080;
     		hideVideoOnStop = nativeHideVideoBeforeStop();
     		mHwPlatform = CrestronHwPlatform.fromInteger(nativeGetHWPlatformEnum());
+    		
+    		m_displayManager = (DisplayManager) this.getApplicationContext().getSystemService(Context.DISPLAY_SERVICE);
+	        if (m_displayManager != null)
+	        {
+	        	m_displayManager.registerDisplayListener(mDisplayListener, null);
+	        }
     		
     		// This needs to be done before Gstreamer setup
     		mCameraDisabled = getCameraDisabled();
@@ -763,9 +771,8 @@ public class CresStreamCtrl extends Service {
         unregisterReceiver(resolutionEvent);
         unregisterReceiver(hpdEvent);
         unregisterReceiver(hdmioutResolutionChangedEvent);
-        DisplayManager dm = (DisplayManager) getApplicationContext().getSystemService(Context.DISPLAY_SERVICE);
-        if (dm != null){
-        	dm.unregisterDisplayListener(mDisplayListener);
+        if (m_displayManager != null){
+        	m_displayManager.unregisterDisplayListener(mDisplayListener);
         }
         try {
         	cam_streaming.stopRecording(false);
@@ -2903,8 +2910,9 @@ public class CresStreamCtrl extends Service {
 				userSettings.setAirMediaWindowFlag(WindowManager.LayoutParams.TYPE_SYSTEM_OVERLAY);
 				userSettings.setAirMediaDisplayScreen(0);
 			}
-    		
-    		mAirMedia.show(x, y, width, height);
+
+    		if (haveExternalDisplays && Boolean.parseBoolean(hdmiOutput.getSyncStatus()))
+    			mAirMedia.show(x, y, width, height);
     	}
     	else
     	{
@@ -3489,7 +3497,11 @@ public class CresStreamCtrl extends Service {
 
 			// Show AirMedia window if we acquire HDMI output sync
 			if ((mAirMedia != null) && userSettings.getAirMediaLaunch())
-				mAirMedia.showSurface(true);
+			{
+				mAirMedia = null;
+				launchAirMedia(true, 0, false);
+//				mAirMedia.showSurface(true);	// Workaround for Bug 117036
+			}
 		}
 		else if (haveExternalDisplays)
 		{
@@ -4041,8 +4053,8 @@ public class CresStreamCtrl extends Service {
 					DisplayManager dm = 
 							(DisplayManager) getSystemService(DISPLAY_SERVICE);
 					Display dispArray[] = dm.getDisplays();
-					if ( (haveExternalDisplays && (dispArray.length > 1) && (displayId == dispArray[1].getDisplayId())) ||
-							(!haveExternalDisplays && (displayId == dispArray[0].getDisplayId())) )
+					if ( (haveExternalDisplays && (dispArray.length == 1) && (displayId != dispArray[0].getDisplayId())) ||
+							(dispArray.length == 0) )
 					{
 						Log.d(TAG, "HDMI Output display has been removed");
 						handleHdmiOutputChange();

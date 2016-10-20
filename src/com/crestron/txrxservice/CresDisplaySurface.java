@@ -82,7 +82,7 @@ public class CresDisplaySurface
     		wm.removeView(backgroundLayout);
     		wm.removeView(parentlayout);
     	}
-    	dm.unregisterDisplayListener(streamCtl.mDisplayListener);
+//    	dm.unregisterDisplayListener(streamCtl.mDisplayListener);
     	displaySurface = new SurfaceView[CresStreamCtrl.NumOfSurfaces];
     	streamCtl = null;
     	parentlayout = null;
@@ -150,10 +150,10 @@ public class CresDisplaySurface
 		if(haveExternalDisplays){		
 			Log.d(TAG, "moving streams to 2nd display");
 			dm = (DisplayManager) app.getApplicationContext().getSystemService(Context.DISPLAY_SERVICE);
-	        if (dm != null)
-	        {
-	        	dm.registerDisplayListener(streamCtl.mDisplayListener, null);
-	        }
+//	        if (dm != null)
+//	        {
+//	        	dm.registerDisplayListener(streamCtl.mDisplayListener, null);
+//	        }
 			addViewToExternalDisplay(app, parentlayout, wmLayoutParams);
 		}
 		else{
