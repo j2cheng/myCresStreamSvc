@@ -25,6 +25,7 @@ LOCAL_SRC_FILES := \
 	gst_element_print_properties.c \
 	cresStreamOut/streamOutManager/cresStreamOutManager.cpp \
 	cresStreamOut/streamOutManager/cres_rtsp-media.c \
+	cresStreamOut/streamOutManager/cresStreamSnapShot.cpp \
 	cresStreamOut/streamOutDebug/cresStreamOutDebug.cpp \
 	cresStreamOut/cresStreamOutProject.cpp \
 	cresStreamOut/streamOutUtils/cresProjectBaseClass.cpp \

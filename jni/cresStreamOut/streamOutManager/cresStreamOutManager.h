@@ -5,9 +5,11 @@
 
 #include "../cresStreamOutProject.h"
 #include "cres_rtsp-media.h"
+#include "cresStreamSnapShot.h"
 
 #include <arpa/inet.h>
 
+class SnapShot;
 class CStreamoutProject;
 class CStreamoutManager : public CresProjBaseClass
 {
@@ -36,6 +38,8 @@ public:
     void exitThread() ;
 
     GstRTSPMedia * m_pMedia ;
+    GstElement* m_ahcsrc_q;
+    int m_id_probe_ahcsrc_q;
     GMainLoop * getMainLoop(){return m_loop;}
 
     char m_rtsp_port[MAX_STR_LEN];
@@ -47,6 +51,8 @@ public:
     int m_multicast_enable;
     char m_multicast_address[MAX_STR_LEN];
     char m_stream_name[MAX_STR_LEN];
+    SnapShot *m_snapobj;
+    pthread_t m_tSnapShotId;
 
     void setPort(char* p){strcpy(m_rtsp_port, p);}
     void setResX(char* x){strcpy(m_res_x, x);}

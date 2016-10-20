@@ -40,6 +40,15 @@ static bool gst_rtsp_server_get_pipeline(char * pDest, int destSize)
     return false;
 }
 
+static GstPadProbeReturn
+cb_have_raw_data (GstPad *pad, GstPadProbeInfo *buffer, gpointer user_data)
+{
+	CStreamoutManager *pMgr = (CStreamoutManager *) user_data;
+
+	pMgr->m_snapobj->saveRawFrame( pad, buffer, user_data );
+
+    return(GST_PAD_PROBE_OK);
+}
 
 /* called when a new media pipeline is constructed. We can query the
  * pipeline and configure our ahcsrc */
@@ -47,16 +56,37 @@ static void
 media_configure (GstRTSPMediaFactory * factory, GstRTSPMedia * media,
     gpointer user_data)
 {
-  GstElement *element, *ahcsrc;
+  GstElement *element;
+  GstElement *ele;
+  GstPad *pad;
 
   /* get the element used for providing the streams of the media */
   element = gst_rtsp_media_get_element (media);
   gchar * n = gst_element_get_name(element);
   CSIO_LOG(eLogLevel_debug, "Streamout: element name[%s] of media[0x%x]",n,media);
 
-  /* get our ahcsrc, we named it 'cressrc' with the name property */
-  ahcsrc = gst_bin_get_by_name_recurse_up (GST_BIN (element), "cressrc");
-  CSIO_LOG(eLogLevel_debug, "Streamout: get_by_name ahcsrc[%p]",ahcsrc);
+  //work on the first queue
+  {
+      /* get our queue with the name property */
+      ele = gst_bin_get_by_name_recurse_up (GST_BIN (element), "ahcsrc_q");
+      if(ele)
+      {
+		  CSIO_LOG(eLogLevel_debug, "Streamout: get_by_name ahcsrc_q[%p]",ele);
+
+		  //pass our q back to manager
+		  ((CStreamoutManager*)user_data)->m_ahcsrc_q = ele;
+          g_object_set( G_OBJECT(((CStreamoutManager*)user_data)->m_ahcsrc_q), "max-size-bytes", (1920*1080*3), NULL );
+
+		  //get the src pad of the queue
+		  pad = gst_element_get_static_pad (ele, "sink");
+
+		  //create probe to the pad
+		  ((CStreamoutManager*)user_data)->m_id_probe_ahcsrc_q = gst_pad_add_probe (pad, GST_PAD_PROBE_TYPE_BUFFER,
+																(GstPadProbeCallback) cb_have_raw_data, user_data, NULL);
+		  gst_object_unref (pad);
+		  gst_object_unref (ele);
+      }
+  }
 
   CSIO_LOG(eLogLevel_debug, "Streamout: set media reusable to true media[%p]",media);
   gst_rtsp_media_set_reusable (media, TRUE);
@@ -66,7 +96,6 @@ media_configure (GstRTSPMediaFactory * factory, GstRTSPMedia * media,
 
   ((CresRTSPMedia *)media)->m_loop = ((CStreamoutManager*)user_data)->m_loop;
 
-  gst_object_unref (ahcsrc);
   gst_object_unref (element);
   g_free(n);
 }
@@ -81,7 +110,7 @@ filter_cb (GstRTSPStream *stream, GstRTSPStreamTransport *trans,gpointer user_da
 /**********************CStreamoutManager class implementation***************************************/
 CStreamoutManager::CStreamoutManager():
 m_clientConnCnt(0),m_loop(NULL),m_main_loop_is_running(0),
-m_pMedia(NULL)
+m_pMedia(NULL),m_ahcsrc_q(NULL),m_id_probe_ahcsrc_q(0),m_snapobj(NULL)
 {
     m_StreamoutEvent  = new CStreamoutEvent();
 
@@ -104,6 +133,12 @@ CStreamoutManager::~CStreamoutManager()
 
     if(mLock)
         delete mLock;
+
+    if(m_snapobj)
+    {
+    	StopSnapShot(this);	//stop jpeg snapshots
+    	m_snapobj = NULL;
+    }
 }
 void CStreamoutManager::DumpClassPara(int level)
 {
@@ -116,6 +151,9 @@ void CStreamoutManager::DumpClassPara(int level)
 
     CSIO_LOG(eLogLevel_info, "---Streamout: m_loop 0x%x", m_loop);
     CSIO_LOG(eLogLevel_info, "---Streamout: m_pMedia [0x%x]",m_pMedia);
+
+    CSIO_LOG(eLogLevel_info, "---Streamout: m_ahcsrc_q [0x%x]",m_ahcsrc_q);
+    CSIO_LOG(eLogLevel_info, "---Streamout: m_id_probe_ahcsrc_q [%d]",m_id_probe_ahcsrc_q);
 
     CSIO_LOG(eLogLevel_info, "---Streamout: m_rtsp_port %s", m_rtsp_port);
     CSIO_LOG(eLogLevel_info, "---Streamout: m_res_x %s", m_res_x);
@@ -136,6 +174,16 @@ void CStreamoutManager::exitThread()
     {
         if(m_factory)
             gst_rtsp_media_factory_set_eos_shutdown (m_factory, TRUE);
+
+        if(m_ahcsrc_q)
+        {
+            GstPad *pad = gst_element_get_static_pad(m_ahcsrc_q, "sink");
+            if (pad != NULL)
+            {
+                gst_pad_remove_probe(pad, m_id_probe_ahcsrc_q);
+                gst_object_unref(pad);
+            }
+        }
 
         g_main_loop_quit(m_loop);
         CSIO_LOG(m_debugLevel, "Streamout: g_main_loop_quit returned");
@@ -206,7 +254,7 @@ void* CStreamoutManager::ThreadEntry()
         //"( ahcsrc ! videoconvert ! %s ! rtph264pay name=pay0 pt=96 )"
         // Queue before encoder reduces stream latency.
         snprintf(pipeline, sizeof(pipeline), "( ahcsrc name=cressrc ! "
-                                             "video/x-raw,width=%s,height=%s,framerate=%s/1 ! queue ! "
+                                             "video/x-raw,width=%s,height=%s,framerate=%s/1 ! queue name=ahcsrc_q ! "
                                              "%s bitrate=%s i-frame-interval=%s ! "
                                              "rtph264pay name=pay0 pt=96 )",
                                              m_res_x,m_res_y,m_frame_rate,
@@ -291,10 +339,23 @@ void* CStreamoutManager::ThreadEntry()
     }
 
     m_main_loop_is_running = 1;
+    StartSnapShot(this);	//start snapshots
     g_main_loop_run (m_loop);
 
 exitThread:
     /* cleanup */
+
+	StopSnapShot(this);	//stop snapshots
+    if( m_snapobj )
+    {
+    	int   iRtn;
+    	void* tResults;
+        iRtn = pthread_join( m_tSnapShotId, &tResults );
+        CSIO_LOG(eLogLevel_debug,  "snapshot thread returned status = %d\n", iRtn );
+        delete m_snapobj;
+        m_snapobj = NULL;
+    }
+
 
 #ifdef CRES_UNPREPARE_MEDIA
 /*   please check out this bug: https://bugzilla.gnome.org/show_bug.cgi?id=747801
