@@ -239,9 +239,7 @@ public class AirMedia
         
         // Show/Hide IP address depending on setting
         setIpAddressPrompt(mStreamCtl.userSettings.getAirMediaIpAddressPrompt());
-        //Show/Hide domain name depending on setting
-        // TODO:
-        
+
         // Set window display and flag (z order control)
         setDisplayScreen(mStreamCtl.userSettings.getAirMediaDisplayScreen());
         setWindowFlag(mStreamCtl.userSettings.getAirMediaWindowFlag());

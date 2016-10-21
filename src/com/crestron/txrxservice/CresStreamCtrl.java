@@ -2855,68 +2855,78 @@ public class CresStreamCtrl extends Service {
     }
 
     public void launchAirMedia(boolean val, int sessId, boolean fullscreen) {
-    	userSettings.setAirMediaLaunch(val);
-    	if (val == true) // True = launch airmedia app, false = close app
+    	stopStartLock[sessId].lock();
+    	Log.d(TAG, "AirMedia " + sessId + " : Lock");
+    	try
     	{
-    		// Do I need to stop all video here???
-    		if (mAirMedia == null && AirMedia.checkAirMediaLicense())
-    			mAirMedia = new AirMedia(this);
-    		int x, y, width, height;
-    		if (fullscreen || ((userSettings.getAirMediaWidth() == 0) && (userSettings.getAirMediaHeight() == 0)))
+    		userSettings.setAirMediaLaunch(val);
+    		if (val == true) // True = launch airmedia app, false = close app
     		{
-    			WindowManager wm = (WindowManager) this.getSystemService(Context.WINDOW_SERVICE);
-    			Log.e(TAG, "AirMedia fullscreen true");
-    			
+    			// Do I need to stop all video here???
+    			if (mAirMedia == null && AirMedia.checkAirMediaLicense())
+    				mAirMedia = new AirMedia(this);
+    			int x, y, width, height;
+    			if (fullscreen || ((userSettings.getAirMediaWidth() == 0) && (userSettings.getAirMediaHeight() == 0)))
+    			{
+    				WindowManager wm = (WindowManager) this.getSystemService(Context.WINDOW_SERVICE);
+    				Log.e(TAG, "AirMedia fullscreen true");
+
+    				if (haveExternalDisplays)
+    				{
+    					DisplayManager dm = (DisplayManager) getApplicationContext().getSystemService(Context.DISPLAY_SERVICE);
+    					if (dm != null){
+    						Display dispArray[] = dm.getDisplays();
+    						if (dispArray.length>1){
+    							Context displayContext = getApplicationContext().createDisplayContext(dispArray[1]);
+    							wm = (WindowManager)displayContext.getSystemService(Context.WINDOW_SERVICE);
+    						}
+    					}
+    					else
+    					{
+    						Log.e(TAG, "Unable to query second display size, using primary display");
+    					}
+    				}	
+
+    				Display display = wm.getDefaultDisplay();
+    				Point size = new Point();
+    				display.getSize(size);
+
+    				width = size.x;
+    				height = size.y;    			
+    				x = y = 0;
+    			}
+    			else
+    			{
+    				x = userSettings.getAirMediaX();
+    				y = userSettings.getAirMediaY();
+    				width = userSettings.getAirMediaWidth();
+    				height = userSettings.getAirMediaHeight();  	
+    			}
+
     			if (haveExternalDisplays)
     			{
-	    			DisplayManager dm = (DisplayManager) getApplicationContext().getSystemService(Context.DISPLAY_SERVICE);
-	    	        if (dm != null){
-	    	            Display dispArray[] = dm.getDisplays();
-	    	            if (dispArray.length>1){
-	    	                Context displayContext = getApplicationContext().createDisplayContext(dispArray[1]);
-	    	                wm = (WindowManager)displayContext.getSystemService(Context.WINDOW_SERVICE);
-	    	            }
-	    	        }
-	    	        else
-	    	        {
-	    	        	Log.e(TAG, "Unable to query second display size, using primary display");
-	    	        }
-    			}	
-    	
-    			Display display = wm.getDefaultDisplay();
-    			Point size = new Point();
-    			display.getSize(size);
+    				// TODO: Change to priority phone when alpha blending is working
+    				userSettings.setAirMediaWindowFlag(WindowManager.LayoutParams.TYPE_SYSTEM_OVERLAY);
+    				userSettings.setAirMediaDisplayScreen(1);
+    			}
+    			else
+    			{
+    				userSettings.setAirMediaWindowFlag(WindowManager.LayoutParams.TYPE_SYSTEM_OVERLAY);
+    				userSettings.setAirMediaDisplayScreen(0);
+    			}
 
-    			width = size.x;
-    			height = size.y;    			
-	    		x = y = 0;
+    			if (haveExternalDisplays && Boolean.parseBoolean(hdmiOutput.getSyncStatus()))
+    				mAirMedia.show(x, y, width, height);
     		}
     		else
     		{
-    			x = userSettings.getAirMediaX();
-    			y = userSettings.getAirMediaY();
-    			width = userSettings.getAirMediaWidth();
-    			height = userSettings.getAirMediaHeight();  	
+    			mAirMedia.hide();
     		}
-    		
-    		if (haveExternalDisplays)
-    		{
-    			// TODO: Change to priority phone when alpha blending is working
-    			userSettings.setAirMediaWindowFlag(WindowManager.LayoutParams.TYPE_SYSTEM_OVERLAY);
-				userSettings.setAirMediaDisplayScreen(1);
-    		}
-			else
-			{
-				userSettings.setAirMediaWindowFlag(WindowManager.LayoutParams.TYPE_SYSTEM_OVERLAY);
-				userSettings.setAirMediaDisplayScreen(0);
-			}
-
-    		if (haveExternalDisplays && Boolean.parseBoolean(hdmiOutput.getSyncStatus()))
-    			mAirMedia.show(x, y, width, height);
     	}
-    	else
+    	finally
     	{
-    		mAirMedia.hide();
+    		stopStartLock[sessId].unlock();
+        	Log.d(TAG, "AirMedia " + sessId + " : Unlock");
     	}
     }
     
