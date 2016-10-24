@@ -1190,21 +1190,26 @@ public class CresStreamCtrl extends Service {
 			        Writer writer = null;
 	
 		      		File audioDropDoneFile = new File(audioDropDoneFilePath);
-		      		if (audioDropDoneFile.isFile())	//check if file exists
+		      		if (!audioDropDoneFile.isFile())	//check if file exists, create if does not exist
 		            {
-				      	try 
-				      	{
-		            		writer = new BufferedWriter(new OutputStreamWriter(new FileOutputStream(audioDropDoneFilePath), "US-ASCII"));
-				    	    writer.write("1");
-				    	    writer.flush();
-				      	}
-			    	    catch (IOException ex) {
-				    	  Log.e(TAG, "Failed to save audioDropDone to disk: " + ex);
-				    	} finally 
-				    	{
-				    		try {writer.close();} catch (Exception ex) {/*ignore*/}
-				    	}
+		      			try {
+		      				audioDropDoneFile.getParentFile().mkdirs(); 
+		      				audioDropDoneFile.createNewFile();
+		            	} catch (Exception e) {}
 		            }
+		      		
+		      		try 
+			      	{
+	            		writer = new BufferedWriter(new OutputStreamWriter(new FileOutputStream(audioDropDoneFilePath), "US-ASCII"));
+			    	    writer.write("1");
+			    	    writer.flush();
+			      	}
+		    	    catch (IOException ex) {
+			    	  Log.e(TAG, "Failed to save audioDropDone to disk: " + ex);
+			    	} finally 
+			    	{
+			    		try {writer.close();} catch (Exception ex) {/*ignore*/}
+			    	}
 				}
 			}
 		};
