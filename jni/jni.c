@@ -1879,12 +1879,46 @@ void csio_jni_SetOverlayWindow(int iStreamId)
 	}
 }
 
+//================================================================================
+// a unified function to create all HTTP related pipelines, including mjpeg, HLS, mp4, DASH, etc.
+//================================================================================
+int csio_jni_CreateHttpPipeline(void *obj, GstElement **pipeline, GstElement **source, eProtocolId protoId, int iStreamId, eHttpMode httpMode)
+{
+    int iStatus = CSIO_SUCCESS;
+    CSIO_LOG(eLogLevel_debug, "%s() enter ...", __FUNCTION__);
+
+    CREGSTREAM * data = GetStreamFromCustomData(CresDataDB, iStreamId);
+    if(!data)
+    {
+        CSIO_LOG(eLogLevel_error, "Could not obtain stream pointer for stream %d", iStreamId);
+        return CSIO_FAILURE;
+    }
+
+    csio_jni_CreateMainContext(iStreamId);
+
+    data->pipeline = gst_pipeline_new( NULL );
+    if( !data->pipeline )
+    {
+        CSIO_LOG( eLogLevel_error, "ERROR: %s() create pipeline failed\n", __FUNCTION__ );
+        return CSIO_CANNOT_CREATE_ELEMENTS;
+    }
+    data->streamProtocolId = protoId;
+    data->pStreamer = obj;
+    data->httpMode = httpMode;
+
+    build_http_pipeline(data, iStreamId);
+    *pipeline = data->pipeline;
+    *source   = data->element_zero;
+
+    return iStatus;
+}
+
 int csio_jni_CreatePipeline(GstElement **pipeline, GstElement **source, eProtocolId protoId, int iStreamId)
 {
 	int iStatus = CSIO_SUCCESS;
     CSIO_LOG(eLogLevel_debug, "%s() protoId = %d", __FUNCTION__, protoId);
-	CREGSTREAM * data = GetStreamFromCustomData(CresDataDB, iStreamId);
 
+	CREGSTREAM * data = GetStreamFromCustomData(CresDataDB, iStreamId);
 	if(!data)
 	{
 		CSIO_LOG(eLogLevel_error, "Could not obtain stream pointer for stream %d", iStreamId);
@@ -1893,7 +1927,12 @@ int csio_jni_CreatePipeline(GstElement **pipeline, GstElement **source, eProtoco
 
 	csio_jni_CreateMainContext(iStreamId);      //@todo: duplicated, rewrite this func, and delete above several lines
 
-	data->pipeline = gst_pipeline_new(NULL);
+    data->pipeline = gst_pipeline_new( NULL );
+    if( !data->pipeline )
+    {
+        CSIO_LOG( eLogLevel_error, "ERROR: %s() create pipeline failed\n", __FUNCTION__ );
+        return CSIO_CANNOT_CREATE_ELEMENTS;
+    }
     data->streamProtocolId = protoId;
 
 	switch( protoId )
@@ -1905,34 +1944,16 @@ int csio_jni_CreatePipeline(GstElement **pipeline, GstElement **source, eProtoco
 	    case ePROTOCOL_RTSP_TS:
 	    {
 	    	data->element_zero = gst_element_factory_make("rtspsrc", NULL);
-
-	    	gst_bin_add_many(GST_BIN(data->pipeline), data->element_zero, NULL);
-			if( !data->pipeline || !data->element_zero )
+			if( !data->element_zero )
 			{
-				CSIO_LOG(eLogLevel_error, "ERROR: Cannot create source pipeline elements\n");
+				CSIO_LOG(eLogLevel_error, "ERROR: Cannot create rtspsrc element\n");
 				return CSIO_CANNOT_CREATE_ELEMENTS;
 			}
-	
+	    	gst_bin_add_many(GST_BIN(data->pipeline), data->element_zero, NULL);
 			*pipeline = data->pipeline;
 			*source   = data->element_zero;
 			break;
 	    }
-	    case ePROTOCOL_HTTP:
-	    {
-	    	build_http_pipeline(data, iStreamId);
-
-			*pipeline = data->pipeline;
-			*source   = data->element_zero;
-			//CSIO_LOG(eLogLevel_debug, "called build_http_pipeline [0x%x][0x%x]",CresDataDB->pipeline,CresDataDB->element_zero);
-			break;
-	    }
-	    case ePROTOCOL_ADAPTIVE_STREAMING:
-            {
-                build_hls_pipeline(data, iStreamId);
-                *pipeline = data->pipeline;
-                *source   = data->element_zero;
-                break;
-            }
 	    case ePROTOCOL_UDP_TS:
 	    {
 		    if(currentSettingsDB->videoSettings[iStreamId].tsEnabled==STREAM_TRANSPORT_MPEG2TS_RTP)
@@ -2168,7 +2189,6 @@ int csio_jni_CreatePipeline(GstElement **pipeline, GstElement **source, eProtoco
             *source   = data->element_zero;
             break;
         }
-
 	    case ePROTOCOL_UDP_BPT:
 	    {
 	    	data->element_zero  = gst_element_factory_make("rtpbin", NULL);
@@ -2190,13 +2210,6 @@ int csio_jni_CreatePipeline(GstElement **pipeline, GstElement **source, eProtoco
 
 	    	break;
 	    }
-        case ePROTOCOL_MP4_STREAMING:
-        {
-            build_mp4_pipeline(data, iStreamId);
-            *pipeline = data->pipeline;
-            *source   = data->element_zero;
-            break;
-        }
         default:
 			CSIO_LOG(eLogLevel_error,  "ERROR: invalid protoID.\n" );
 			iStatus = CSIO_FAILURE;
@@ -2257,16 +2270,6 @@ void csio_jni_InitPipeline(eProtocolId protoId, int iStreamId,GstRTSPLowerTrans 
 			data->video_sink = NULL;
 			break;
 		}
-
-		case ePROTOCOL_HTTP:
-			//CSIO_LOG(eLogLevel_debug, "ePROTOCOL_HTTP pass\n");
-			break;
-
-		case ePROTOCOL_ADAPTIVE_STREAMING:
-			//CSIO_LOG(eLogLevel_debug, "ePROTOCOL_ADAPTIVE_STREAMING pass\n");
-		    g_object_set(G_OBJECT(data->element_v[1]), "connection-speed", 15000, NULL);
-			break;
-
 		case ePROTOCOL_UDP_TS:
 			if (currentSettingsDB->videoSettings[iStreamId].tsEnabled==STREAM_TRANSPORT_MPEG2TS_RTP)
 				g_object_set(G_OBJECT(data->element_av[0]), "buffer-size", DEFAULT_UDP_BUFFER, NULL);
@@ -2283,7 +2286,6 @@ void csio_jni_InitPipeline(eProtocolId protoId, int iStreamId,GstRTSPLowerTrans 
 			//CSIO_LOG(eLogLevel_debug, "ePROTOCOL_UDP pass\n");
 			break;
 		}
-
 		case ePROTOCOL_UDP_BPT:
 		{
 			g_object_set(G_OBJECT(data->element_av[0]), "caps", data->caps_v_rtp, NULL);
@@ -2358,11 +2360,6 @@ void csio_jni_InitPipeline(eProtocolId protoId, int iStreamId,GstRTSPLowerTrans 
 			g_object_set(G_OBJECT(data->element_av[0]), "latency", currentSettingsDB->videoSettings[iStreamId].streamingBuffer, NULL);
 			break;
 		}
-		case ePROTOCOL_MP4_STREAMING:
-		{
-			CSIO_LOG( eLogLevel_debug, "%s() ePROTOCOL_MP4_STREAMING pass\n", __FUNCTION__ );
-			break;
-		}
 		default:
 			//iStatus = CSIO_FAILURE;
 			break;
@@ -2389,43 +2386,17 @@ void csio_jni_SetSourceLocation(eProtocolId protoId, char *location, int iStream
 		case ePROTOCOL_DEFAULT_RTSP_TCP:
 		case ePROTOCOL_RTSP_UDP_TS:
 		case ePROTOCOL_RTSP_TS:
-		{
-			g_object_set(G_OBJECT(data->element_zero), "location", \
-					location, NULL);
+			g_object_set(G_OBJECT(data->element_zero), "location", location, NULL);
 			break;
-		}
-
-		case ePROTOCOL_HTTP:
-			break;
-
-		case ePROTOCOL_ADAPTIVE_STREAMING:
-			//CSIO_LOG(eLogLevel_debug, "csio_jni_SetSourceLocation: ePROTOCOL_HTTP pass\n");
-		    url = (char *)currentSettingsDB->settingsMessage.msg[iStreamId].url;
-		    CSIO_LOG(eLogLevel_debug, "using url %s", url);
-		    g_object_set(G_OBJECT(data->element_zero), "location", url,  NULL);
-			break;
-
 		case ePROTOCOL_UDP_TS:
-		{
-			//CSIO_LOG(eLogLevel_debug, "ePROTOCOL_UDP_TS pass\n");
-			break;
-		}
-
 		case ePROTOCOL_UDP:
-		{
-			//CSIO_LOG(eLogLevel_debug, "ePROTOCOL_UDP pass\n");
 			break;
-		}
-
 		case ePROTOCOL_UDP_BPT:
-		{
 			g_object_set( G_OBJECT( data->element_av[0]), "port",
 			currentSettingsDB->videoSettings[iStreamId].rtpVideoPort, NULL );
 			break;
-		}
 		case ePROTOCOL_MULTICAST_TS:
 		case ePROTOCOL_MULTICAST:
-		{
 			//CSIO_LOG(eLogLevel_debug, "ePROTOCOL_MULTICAST: location[%s]\n",CresDataDB->multicast_grp);
 			if(currentSettingsDB->videoSettings[iStreamId].tsEnabled==STREAM_TRANSPORT_MPEG2TS_UDP){
 				g_object_set(G_OBJECT(data->element_zero), "address", \
@@ -2437,19 +2408,12 @@ void csio_jni_SetSourceLocation(eProtocolId protoId, char *location, int iStream
 			}
 			//g_object_set(G_OBJECT(CresDataDB->element_av[1]), "address", 
 			//		CresDataDB->multicast_grp, NULL);
-
 			break;
-		}
 		case ePROTOCOL_FILE:
             if ( !strcasestr(location, file_prefix) )
                 CSIO_LOG(eLogLevel_error, "ERROR: %s invalid SDP url: %s\n", __FUNCTION__, location);
             g_object_set(G_OBJECT(data->element_zero), "location", &location[prefixLength7], NULL);
 			break;
-		case ePROTOCOL_MP4_STREAMING:
-		{
-			CSIO_LOG( eLogLevel_debug, "%s() ePROTOCOL_MP4_STREAMING pass\n", __FUNCTION__ );
-			break;
-		}
 		default:
 			break;
 	}
@@ -2486,10 +2450,8 @@ void csio_jni_SetMsgHandlers(void* obj,eProtocolId protoId, int iStreamId)
 			{
 				CSIO_LOG(eLogLevel_warning, "Null element zero, no callbacks will be registered");
 			}
-
 			/* Set the pipeline to READY, so it can already accept a window handle, if we have one */
 			 csio_element_set_state(data->pipeline, GST_STATE_READY);
-
 			 if (data->video_sink)
 			 {
 				 // Try just setting the video sink, because we haven't built the pipeline yet.
@@ -2499,7 +2461,6 @@ void csio_jni_SetMsgHandlers(void* obj,eProtocolId protoId, int iStreamId)
 			 {
 				 data->video_sink = gst_bin_get_by_interface(GST_BIN(data->pipeline), GST_TYPE_VIDEO_OVERLAY);
 			 }
-			 
 			 break;
 		}
 		case ePROTOCOL_UDP_TS:
@@ -2519,14 +2480,12 @@ void csio_jni_SetMsgHandlers(void* obj,eProtocolId protoId, int iStreamId)
 			}
 			break;
 		}
-		case ePROTOCOL_HTTP:
+		case ePROTOCOL_HTTP:         //@todo: in http case, we should avoid call to here, we do nothing here.
+        {
+			CSIO_LOG(eLogLevel_debug, "%s() in ePROTOCOL_HTTP\n", __FUNCTION__);
+            // run to here too quick !!!we haven't built data->element_v[1] yet for Adaptive Streaming
 			break;
-
-		case ePROTOCOL_ADAPTIVE_STREAMING:
-		    g_signal_connect(data->element_v[1], "pad-added", G_CALLBACK(csio_pad_added_callback_hls), (void *) data->element_v[2]);
-			g_signal_connect(data->element_v[2], "pad-added", G_CALLBACK(csio_PadAddedMsgHandler), obj);
-			break;
-
+        }
 		case ePROTOCOL_FILE:
 			CSIO_LOG(eLogLevel_debug, "%s() in ePROTOCOL_FILE\n", __FUNCTION__);
 			if(data->element_zero != NULL)
@@ -2540,28 +2499,11 @@ void csio_jni_SetMsgHandlers(void* obj,eProtocolId protoId, int iStreamId)
 			CSIO_LOG(eLogLevel_debug, "%s() in ePROTOCOL_FILE: Set the pipeline to READY \n", __FUNCTION__);
 			csio_element_set_state(data->pipeline, GST_STATE_READY);   //Set the pipeline to READY
 			data->video_sink = gst_bin_get_by_interface(GST_BIN(data->pipeline), GST_TYPE_VIDEO_OVERLAY);
-
 		    break;
-
 		case ePROTOCOL_UDP_BPT:
 			break;
-
-		case ePROTOCOL_MP4_STREAMING:
-			CSIO_LOG(eLogLevel_debug, "%s() in ePROTOCOL_MP4_STREAMING\n", __FUNCTION__);
-			if(data->element_zero != NULL)
-			{
-			    g_signal_connect(data->element_v[1], "pad-added", G_CALLBACK(csio_PadAddedMsgHandler), obj);
-			}
-			else
-			{
-			    CSIO_LOG(eLogLevel_warning, "Null element zero, no callbacks will be registered");
-			}
-			CSIO_LOG(eLogLevel_debug, "%s() in ePROTOCOL_MP4_STREAMING: Set the pipeline to READY \n", __FUNCTION__);
-			csio_element_set_state(data->pipeline, GST_STATE_READY);   //Set the pipeline to READY
-			data->video_sink = gst_bin_get_by_interface(GST_BIN(data->pipeline), GST_TYPE_VIDEO_OVERLAY);
-			break;
-
 		default:
+			CSIO_LOG(eLogLevel_debug, "%s() not supportted !!\n", __FUNCTION__);
 			//iStatus = CSIO_FAILURE;
 			break;
 	}
@@ -2771,45 +2713,43 @@ void csio_jni_initAudio(int iStreamId)
 
 void csio_jni_initVideo(int iStreamId)
 {
-	CREGSTREAM * data = GetStreamFromCustomData(CresDataDB, iStreamId);
-
-	if(!data)
-	{
-		CSIO_LOG(eLogLevel_error, "Could not obtain stream pointer for stream %d", iStreamId);
-		return;
-	}	
-
-	if(data->using_glimagsink)
-	{
-	    CSIO_LOG(eLogLevel_debug, "qos is set to default");
-	    g_object_set(G_OBJECT(data->video_sink), "force-aspect-ratio", FALSE, NULL);
+    CREGSTREAM * data = GetStreamFromCustomData(CresDataDB, iStreamId);
+    
+    if(!data)
+    {
+        CSIO_LOG(eLogLevel_error, "Could not obtain stream pointer for stream %d", iStreamId);
+        return;
     }
-	else
-	{	    
-	    //SET OFSSET
-		// Bug 113246: For RTSP modes we need to set ts offset, for udp modes we should not or AV sync is off
-	    if( data->amcvid_dec &&
-	    		(!debug_blocking_audio) &&
-				data->audio_sink &&
-				( currentSettingsDB->videoSettings[iStreamId].sessionInitiationMode == 0 ||
-						currentSettingsDB->videoSettings[iStreamId].sessionInitiationMode == 2  )
-						&& (data->streamProtocolId != ePROTOCOL_HTTP) && (data->streamProtocolId != ePROTOCOL_ADAPTIVE_STREAMING) )
-	    {
-	        int tmp = currentSettingsDB->videoSettings[iStreamId].streamingBuffer +
-	                  data->amcviddec_ts_offset;
-	        g_object_set(G_OBJECT(data->amcvid_dec), "ts-offset", tmp, NULL);
-	        CSIO_LOG(eLogLevel_debug, "streamingBuffer or latency is:%d",currentSettingsDB->videoSettings[iStreamId].streamingBuffer);
-	        CSIO_LOG(eLogLevel_debug, "amcviddec_ts_offset:%d",data->amcviddec_ts_offset);
-	        CSIO_LOG(eLogLevel_debug, "total ts_offset:%d",tmp);
-	    }
-
-	    if(data->element_valve_v)
-	        g_object_set(G_OBJECT(data->element_valve_v), "drop", FALSE, NULL);
-
-	    CSIO_LOG(eLogLevel_debug, "qos is turned off for surfaceflingersink!");
-	    if(data->video_sink)
-	        g_object_set(G_OBJECT(data->video_sink), "qos", FALSE, NULL);   
-	}
+    
+    if(data->using_glimagsink)
+    {
+    CSIO_LOG(eLogLevel_debug, "qos is set to default");
+    g_object_set(G_OBJECT(data->video_sink), "force-aspect-ratio", FALSE, NULL);
+    }
+    else
+    {
+        //SET OFSSET
+        // Bug 113246: For RTSP modes we need to set ts offset, for udp modes we should not or AV sync is off
+        if( data->amcvid_dec && (!debug_blocking_audio) && data->audio_sink &&
+            ( currentSettingsDB->videoSettings[iStreamId].sessionInitiationMode == 0 ||
+              currentSettingsDB->videoSettings[iStreamId].sessionInitiationMode == 2  ) && 
+              (data->streamProtocolId != ePROTOCOL_HTTP) )
+        {
+            int tmp = currentSettingsDB->videoSettings[iStreamId].streamingBuffer +
+                      data->amcviddec_ts_offset;
+            g_object_set(G_OBJECT(data->amcvid_dec), "ts-offset", tmp, NULL);
+            CSIO_LOG(eLogLevel_debug, "streamingBuffer or latency is:%d",currentSettingsDB->videoSettings[iStreamId].streamingBuffer);
+            CSIO_LOG(eLogLevel_debug, "amcviddec_ts_offset:%d",data->amcviddec_ts_offset);
+            CSIO_LOG(eLogLevel_debug, "total ts_offset:%d",tmp);
+        }
+    
+        if(data->element_valve_v)
+            g_object_set(G_OBJECT(data->element_valve_v), "drop", FALSE, NULL);
+    
+        CSIO_LOG(eLogLevel_debug, "qos is turned off for surfaceflingersink!");
+        if(data->video_sink)
+            g_object_set(G_OBJECT(data->video_sink), "qos", FALSE, NULL);   
+    }
 }
 
 GstElement * csio_jni_getVideoDecEle(int iStreamId)

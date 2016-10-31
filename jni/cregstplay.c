@@ -376,6 +376,123 @@ static void on_sample_callback_meta (GstElement *src, GstPad *new_pad, CREGSTREA
 }
 
 /**
+ * \author      Leon Yu
+ *
+ * \date        10/16/2016
+ *
+ * \return      void
+ *
+ * \retval      void
+ *
+ * \brief       callback function - called by the have-type signal 
+ *
+ * \param		typefind - 
+ * \param		probability - 
+ * \param		caps -       
+ * \param		data -       
+ * 
+ */
+void csio_TypeFindMsgHandler( GstElement *typefind, guint probability, GstCaps *caps, CREGSTREAM *data )
+{
+    GstStateChangeReturn ret;
+
+    gchar *type = gst_caps_to_string (caps);
+    CSIO_LOG( eLogLevel_debug,"%s() Media type: %s, probability = %d%%\n", __FUNCTION__, type, probability );
+
+    if( strcasestr( type, "x-hls") )
+    {
+        // HLS streaming
+        CSIO_LOG( eLogLevel_debug,"%s() Media type is HLS\n", __FUNCTION__ );
+        data->element_v[1] = gst_element_factory_make( "hlsdemux", NULL );
+        g_assert(data->element_v[1] != NULL);
+
+        // we MUST set this property, otherwise HLS link failed with -2 after playing a few seconds.
+        CSIO_LOG(eLogLevel_debug, "%s() set connection-speed to 15000 \n", __FUNCTION__ );
+        g_object_set(G_OBJECT(data->element_v[1]), "connection-speed", 15000, NULL);
+
+        data->element_v[2] = gst_element_factory_make( "tsdemux", NULL );
+        g_assert(data->element_v[2] != NULL);
+
+        data->element_after_tsdemux = 3;
+
+        gst_bin_add_many (GST_BIN (data->pipeline), data->element_v[1], data->element_v[2], NULL);
+
+        if ( gst_element_link (data->element_v[0], data->element_v[1]) != TRUE )
+        {
+            CSIO_LOG(eLogLevel_error, "ERROR: link hlsdemux failed.\n");
+            gst_object_unref (data->pipeline);
+            return;
+        }
+
+        //Set the pipeline to READY to trigger the signal
+        CSIO_LOG( eLogLevel_debug,"%s() line %d: set state to READY.\n", __FUNCTION__, __LINE__ );
+        ret = csio_element_set_state(data->pipeline, GST_STATE_READY); 
+        if (ret == GST_STATE_CHANGE_FAILURE) {
+            CSIO_LOG(eLogLevel_error, "ERROR: unable to set the pipeline to READY state.\n");
+        }
+
+        // Connect to the pad-added signal
+        CSIO_LOG( eLogLevel_debug,"%s() line %d: Connect to pad-added signal.\n", __FUNCTION__, __LINE__ );
+        g_signal_connect(data->element_v[1], "pad-added", G_CALLBACK(csio_HLS_PadAddedHandler), (void *)data->element_v[2]);
+        g_signal_connect(data->element_v[2], "pad-added", G_CALLBACK(csio_PadAddedMsgHandler), data->pStreamer);
+
+        //Set back the pipeline to PLAYING
+        CSIO_LOG( eLogLevel_debug,"%s() line %d: set back to PLAYING.\n", __FUNCTION__, __LINE__ );
+        ret = csio_element_set_state(data->pipeline, GST_STATE_PLAYING); 
+        if (ret == GST_STATE_CHANGE_FAILURE) {
+            CSIO_LOG(eLogLevel_error, "ERROR: unable to set the pipeline to PLAYING state.\n");
+        }
+    }
+    else if( strcasestr( type, "video/quicktime") )
+    {
+        // MP4 Streaming
+        CSIO_LOG( eLogLevel_debug,"%s() Media type is MP4\n", __FUNCTION__ );
+        data->element_v[1] = gst_element_factory_make( "qtdemux", NULL );
+        g_assert(data->element_v[1] != NULL);
+
+        gst_bin_add(GST_BIN (data->pipeline), data->element_v[1]);
+
+        if( gst_element_link (data->element_v[0], data->element_v[1]) != TRUE ) 
+        {
+            CSIO_LOG( eLogLevel_error,"ERROR: %s() link qtdemux failed\n", __FUNCTION__ );
+            gst_object_unref (data->pipeline);
+            return;
+        }
+
+        //Set the pipeline to READY to trigger the signal
+        CSIO_LOG( eLogLevel_debug,"%s() line %d: set state to READY.\n", __FUNCTION__, __LINE__ );
+        ret = csio_element_set_state(data->pipeline, GST_STATE_READY); 
+        if (ret == GST_STATE_CHANGE_FAILURE) {
+            CSIO_LOG(eLogLevel_error, "ERROR: unable to set the pipeline to READY state.\n");
+        }
+
+        // Connect to the pad-added signal
+        CSIO_LOG( eLogLevel_debug,"%s() line %d: Connect to pad-added signal.\n", __FUNCTION__, __LINE__ );
+        g_signal_connect (data->element_v[1], "pad-added", G_CALLBACK (csio_PadAddedMsgHandler), data->pStreamer);
+
+        //Set back the pipeline to PLAYING
+        CSIO_LOG( eLogLevel_debug,"%s() line %d: set back to PLAYING.\n", __FUNCTION__, __LINE__ );
+        ret = csio_element_set_state(data->pipeline, GST_STATE_PLAYING); 
+        if (ret == GST_STATE_CHANGE_FAILURE) {
+            CSIO_LOG(eLogLevel_error, "ERROR: unable to set the pipeline to PLAYING state.\n");
+        }
+//		data->video_sink = gst_bin_get_by_interface(GST_BIN(data->pipeline), GST_TYPE_VIDEO_OVERLAY);
+    }
+    else if( strcasestr( type, "video/dash") )
+    {
+        // DASH Streaming
+        CSIO_LOG( eLogLevel_debug,"%s() Media type is DASH\n", __FUNCTION__ );
+        //data->element_v[1] = gst_element_factory_make( "dashdemux", NULL );
+    }
+    else
+    {
+        CSIO_LOG( eLogLevel_debug,"%s() Media type is default\n", __FUNCTION__ );
+    }
+
+    g_free (type);
+}
+
+/**
  * \author      Suresh Kumar
  *
  * \date        3/07/2016
@@ -939,249 +1056,69 @@ int build_audio_pipeline(gchar *encoding_name, CREGSTREAM *data, int do_rtp,GstE
 	return CSIO_SUCCESS;
 }
 
-void build_hls_pipeline(CREGSTREAM *data, int iStreamId)
-{
-    data->element_zero = gst_element_factory_make("souphttpsrc", NULL);
-    data->element_v[0]  = gst_element_factory_make ("typefind",  NULL);
-    data->element_v[1]  = gst_element_factory_make ("hlsdemux",  NULL);
-    data->element_v[2]  = gst_element_factory_make ("tsdemux",   NULL);
-    data->element_after_tsdemux = 3;
-    gst_bin_add_many (GST_BIN (data->pipeline), data->element_zero, data->element_v[0], data->element_v[1], data->element_v[2], NULL);
-
-    if (!gst_element_link_many(data->element_zero,  data->element_v[0], data->element_v[1], NULL))
-    {
-    	CSIO_LOG(eLogLevel_error, "Cannot link HLS pipeline.\n");
-        gst_object_unref (data->pipeline);
-        return -1;
-    }
-}
-
-void build_mp4_pipeline(CREGSTREAM *data, int iStreamId)
+//-----------------------------------------------------------------------------
+// Create the http streaming pipeline "on the fly" for Adaptive Streaming
+//-----------------------------------------------------------------------------
+void build_http_pipeline(CREGSTREAM *data, int iStreamId)
 {
     char *url = (char *)currentSettingsDB->settingsMessage.msg[iStreamId].url;
 
-    CSIO_LOG(eLogLevel_extraVerbose, "build_mp4_pipeline(), url=%s\n", url);
+    CSIO_LOG(eLogLevel_debug, "%s() url=%s\n", __FUNCTION__, url);
 
-    data->element_zero = gst_element_factory_make ("souphttpsrc", NULL);
-    g_object_set(G_OBJECT(data->element_zero), "location", url, NULL);
-    data->element_v[0] = gst_element_factory_make ("typefind",  NULL); 
-    data->element_v[1] = gst_element_factory_make ("qtdemux",  NULL);
-    data->element_after_tsdemux = 3;
-
-    gst_bin_add_many (GST_BIN (data->pipeline), data->element_zero, data->element_v[0], data->element_v[1], NULL);
-
-    if (!gst_element_link_many(data->element_zero,  data->element_v[0], data->element_v[1], NULL))
+    // create the source element
+    data->element_zero = gst_element_factory_make("souphttpsrc", NULL);
+    if( data->element_zero == NULL)
     {
-        CSIO_LOG(eLogLevel_error, "ERROR: Cannot link MP4 pipeline.\n");
-        gst_object_unref (data->pipeline);
+      CSIO_LOG(eLogLevel_error,  "ERROR: Unable to create souphttpsrc element\n" );
+      return;
+    }
+    g_object_set(G_OBJECT(data->element_zero), "location", url, NULL);
+
+    CSIO_LOG(eLogLevel_debug, "%s() Stream http type %s \n", __FUNCTION__, GST_ELEMENT_NAME (data->element_zero));
+
+    if( data->httpMode == eHttpMode_MJPEG )
+    {
+        GstElement *sinker = NULL;
+        GstElement *ele0 = NULL;
+        CSIO_LOG( eLogLevel_debug, "%s() it is http mjpeg.\n", __FUNCTION__ );
+        
+        g_object_set(G_OBJECT(data->element_zero), "is-live", 1, NULL);
+        g_object_set(G_OBJECT(data->element_zero), "do-timestamp", 1, NULL);
+        gst_bin_add(GST_BIN(data->pipeline), data->element_zero);
+        build_video_pipeline("image/jpeg", data, 0, 0,&ele0,&sinker);
+        gst_element_link_many(data->element_zero, data->element_v[0], NULL);
+        data->element_zero = NULL;    // no callbacks
+    }
+    else
+    {
+        // create the typefind element
+        data->element_v[0] = gst_element_factory_make( "typefind", NULL );
+        g_assert(data->element_v[0] != NULL);
+
+        // adding elements to pipeline
+        gst_bin_add_many(GST_BIN(data->pipeline), data->element_zero, data->element_v[0], NULL);
+
+        // link elements
+        if (gst_element_link (data->element_zero, data->element_v[0]) != TRUE)
+        {
+            CSIO_LOG(eLogLevel_error, "ERROR: Elements could not be linked.\n");
+            gst_object_unref (data->pipeline);
+            return;
+        }
+
+        // Connect to the have-type signal, streaming type will be found in CALLBACK function
+        CSIO_LOG(eLogLevel_debug, "%s() Connect to have-type signal.\n", __FUNCTION__);
+        g_signal_connect (data->element_v[0], "have-type", G_CALLBACK(csio_TypeFindMsgHandler), data);
+
+        //Set the pipeline to PLAYING
+        CSIO_LOG(eLogLevel_debug, "%s() set state to: PLAYING\n", __FUNCTION__);
+        GstStateChangeReturn ret = csio_element_set_state(data->pipeline, GST_STATE_PLAYING); 
+        if (ret == GST_STATE_CHANGE_FAILURE) {
+            CSIO_LOG(eLogLevel_error, "ERROR: unable to set the pipeline to PLAYING state.\n");
+        }
+        data->video_sink = gst_bin_get_by_interface(GST_BIN(data->pipeline), GST_TYPE_VIDEO_OVERLAY);
     }
 }
-
-// The following file types work, but don't want to support them for now.
-/**
- * \author      Pete McCormick
- *
- * \date        4/23/2015
- *
- * \return      void
- *
- * \retval      void
- *
- * \brief       Gets called back from gstreamer when a pad is added.
- *
- * \param       src
- * \param		new_pad
- * \param		data
- * 
- * \note        For rtspsrc or souphttpsrc.
- *
- */
-// csio_PadAddedMsgHandler is used instead of this.
-// The code is left here as an example.
-// static void pad_added_callback(GstElement *src, GstPad *new_pad, CustomData *data) 
-// {
-//     GstCaps      *new_pad_caps   = gst_pad_query_caps( new_pad, NULL );
-//     GstStructure *new_pad_struct = gst_caps_get_structure( new_pad_caps, 0 );
-//     const gchar  *new_pad_type = gst_value_serialize(gst_structure_get_value( new_pad_struct, "media" ));
-//     GstElement *sinker = NULL;
-//     GstElement *ele0 = NULL;
-// 	gchar        *encoding_name   = NULL;
-// 	const GValue* value = NULL;
-// 	int do_rtp = 0;
-// 	gchar * p_caps_string;
-// 	
-// 	if(new_pad_type == NULL)
-// 	{
-// 		CSIO_LOG(eLogLevel_error, "Null pad type");
-// 		return;
-// 	}
-// 	
-// 	gst_element_set_state( data->pipeline, GST_STATE_PAUSED);
-// 	
-//     value = gst_structure_get_value( new_pad_struct, "encoding-name" );
-//     encoding_name = gst_value_serialize( value );
-// 	p_caps_string = gst_caps_to_string (new_pad_caps);
-// 	if(strncmp(p_caps_string, "application/x-rtp", 17) == 0)
-// 	{
-// 		do_rtp = 1;
-// 	}
-// 	CSIO_LOG(eLogLevel_debug, "Pad added callback, type=%s, encoding_name=%s", new_pad_type, encoding_name);
-// 	CSIO_LOG(eLogLevel_debug, "caps are %" GST_PTR_FORMAT, new_pad_caps);
-// 	
-//     if (strncmp("audio", new_pad_type, 5) == 0)
-//     {
-// 		build_audio_pipeline(encoding_name, data, do_rtp,&ele0,&sinker);
-//         sinker = data->element_a[0];
-// 		CSIO_LOG(eLogLevel_debug, "Completing audio pipeline");
-//     }
-//     else if (strncmp("video", new_pad_type, 5) == 0)
-//     {
-// 		build_video_pipeline(encoding_name, data, 0, do_rtp,&ele0,&sinker);
-//         sinker = data->element_v[0];
-// 		CSIO_LOG(eLogLevel_debug, "Completing video pipeline");
-//     }
-//     else
-//     {
-//         CSIO_LOG(eLogLevel_error, "Unknown stream type: %s", new_pad_type);
-// 		gst_caps_unref( new_pad_caps );
-// 		g_free( encoding_name );
-// 		return;
-//     }
-// 	
-// 	if(sinker == NULL)
-// 	{
-// 		CSIO_LOG(eLogLevel_error, "Empty video pipeline, not linking");
-// 		gst_caps_unref( new_pad_caps );		
-// 		g_free(encoding_name);
-// 		return;
-// 	}
-// 	
-// 	// Get the pad given an element.
-// 	GstPad *sink_pad = gst_element_get_static_pad (sinker, "sink");
-// 	if(gst_pad_is_linked (sink_pad)) 
-// 	{
-// 		CSIO_LOG(eLogLevel_warning, "sink pad is already linked");
-// 		gst_object_unref(sink_pad);
-// 		gst_caps_unref( new_pad_caps );		
-// 		g_free(encoding_name);
-// 		return;
-// 	}
-// 
-// 	// Link rest of pipeline to beginning.
-//     gst_pad_link(new_pad, sink_pad);
-//     
-// 	gst_element_set_state( data->pipeline, GST_STATE_PLAYING);
-// 	
-// 	// cleanup
-// 	gst_object_unref(sink_pad);
-//     gst_caps_unref(new_pad_caps);
-// 	g_free(encoding_name);
-// }
-
-// "souphttpsrc location=http://ssabet.no-ip.org:8084/video.mjpg ! jpegdec ! glimagesink" works with gst_parse_launch,
-// but here we get internal data flow error!?
-void build_http_pipeline(CREGSTREAM *data, int iStreamId)
-{
-	char *url = (char *)currentSettingsDB->settingsMessage.msg[iStreamId].url;
-	
-//	if(g_str_has_suffix(url, ".mjpg") || g_str_has_suffix(url, ".mjpeg") || g_str_has_suffix(url, ".cgi")
-//		|| g_str_has_suffix(url, ".jpg") || g_str_has_suffix(url, ".jpeg"))
-	{		
-		GstElement *sinker = NULL;
-		GstElement *ele0 = NULL;
-
-		data->element_zero = gst_element_factory_make("souphttpsrc", NULL);
-		g_object_set(G_OBJECT(data->element_zero), "location", url, NULL);
-		g_object_set(G_OBJECT(data->element_zero), "is-live", 1, NULL);
-		g_object_set(G_OBJECT(data->element_zero), "do-timestamp", 1, NULL);
-		gst_bin_add(GST_BIN(data->pipeline), data->element_zero);
-		build_video_pipeline("image/jpeg", data, 0, 0,&ele0,&sinker);
-		gst_element_link_many(data->element_zero, data->element_v[0], NULL);
-		data->element_zero = NULL;	// no callbacks
-	}
-// The following file types work, but don't want to support them for now.
-// 	else if(g_str_has_suffix(url, ".mp4"))
-// 	{
-// 		data->element_av[0] = gst_element_factory_make("souphttpsrc", NULL);
-// 		g_object_set(G_OBJECT(data->element_av[0]), "location", url, NULL);
-// 		gst_bin_add(GST_BIN(data->pipeline), data->element_av[0]);
-// 
-// 		data->element_zero = gst_element_factory_make("qtdemux", NULL);
-// 		gst_bin_add(GST_BIN(data->pipeline), data->element_zero);
-// 
-// 		gst_element_link_many(data->element_av[0], data->element_zero, NULL);
-// 	}
-// 	else if(g_str_has_suffix(url, ".flv"))
-// 	{
-// 		data->element_av[0] = gst_element_factory_make("souphttpsrc", NULL);
-// 		g_object_set(G_OBJECT(data->element_av[0]), "location", url, NULL);
-// 		gst_bin_add(GST_BIN(data->pipeline), data->element_av[0]);
-// 
-// 		data->element_zero = gst_element_factory_make("flvdemux", NULL);
-// 		gst_bin_add(GST_BIN(data->pipeline), data->element_zero);
-// 
-// 		gst_element_link_many(data->element_av[0], data->element_zero, NULL);
-// 	}
-//	else
-//	{
-//		CSIO_LOG(eLogLevel_warning, "Unsupported http url %s", url);
-//	}
-}
-
-/**
- * \author      Pete McCormick
- *
- * \date        4/23/2015
- *
- * \return      void 
- *
- * \brief       Retrieve errors from the bus and show them on the UI
- *
- * \param       bus
- * \param		msg
- * \param		data
- */
-// Not used.
-// static void error_callback(GstBus *bus, GstMessage *msg, CustomData *data) 
-// {
-// 	GError *err;
-// 	gchar *debug_info;
-// 	gchar *message_string;
-// 
-// 	gst_message_parse_error (msg, &err, &debug_info);
-// 	message_string = g_strdup_printf ("Error received from element %s: %s", GST_OBJECT_NAME (msg->src), err->message);
-// 	g_clear_error (&err);
-// 	g_free (debug_info);
-// 	set_ui_message (message_string, data);
-// 	g_free (message_string);
-// 	gst_element_set_state (data->pipeline, GST_STATE_NULL);
-// }
-
-/**
- * \author      Pete McCormick
- *
- * \date        4/23/2015
- *
- * \return      void 
- *
- * \brief       Notify UI about pipeline state changes
- *
- * \param       bus
- * \param		msg
- * \param		data
- */
-// static void state_changed_callback (GstBus *bus, GstMessage *msg, CustomData *data) 
-// {
-// 	GstState old_state, new_state, pending_state;
-// 	gst_message_parse_state_changed (msg, &old_state, &new_state, &pending_state);
-// 	/* Only pay attention to messages coming from the pipeline, not its children */
-// 	if (GST_MESSAGE_SRC (msg) == GST_OBJECT (data->pipeline)) 
-// 	{
-// 		gchar *message = g_strdup_printf("State changed to %s", gst_element_state_get_name(new_state));
-// 		set_ui_message(message, data);
-// 		g_free (message);
-// 	}
-// }
 
 /**
  * \author      Pete McCormick
@@ -1253,6 +1190,8 @@ void init_custom_data(CustomData * cdata)
 
 		data->dropAudio = false;
 		data->isStarted = false;
+		data->httpMode  = eHttpMode_UNSPECIFIED;
+		data->pStreamer = NULL;
 	}
 }
 
