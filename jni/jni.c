@@ -894,6 +894,8 @@ JNIEXPORT void JNICALL Java_com_crestron_txrxservice_GstreamIn_nativeSetHdcpEncr
         return;
     }
 
+    csio_SetHDCPEncrypt(sessionId, flag);
+
     data->doHdcp = (gboolean)flag;
 }
 
