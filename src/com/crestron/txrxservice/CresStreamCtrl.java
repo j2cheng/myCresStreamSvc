@@ -305,6 +305,7 @@ public class CresStreamCtrl extends Service {
 
    
     private final ReentrantLock hdmiLock				= new ReentrantLock(true); // fairness=true, makes lock ordered
+    private final ReentrantLock cameraLock				= new ReentrantLock(true); // fairness=true, makes lock ordered
     private final ReentrantLock[] windowtLock			= new ReentrantLock[NumOfSurfaces]; // members will be allocated in constructor
     private final ReentrantLock[] stopStartLock			= new ReentrantLock[NumOfSurfaces]; // members will be allocated in constructor
     private final ReentrantLock[] streamStateLock 		= new ReentrantLock[NumOfSurfaces]; // members will be allocated in constructor
@@ -2456,57 +2457,77 @@ public class CresStreamCtrl extends Service {
 
     public void startStreamOut(int sessId)
     {
-        StringBuilder sb = new StringBuilder(512);
+    	cameraLock.lock();
+    	Log.d(TAG, "Camera : Lock");
+    	try
+    	{
+    		StringBuilder sb = new StringBuilder(512);
 
-        SendStreamState(StreamState.CONNECTING, sessId);
+    		SendStreamState(StreamState.CONNECTING, sessId);
 
-        // we are starting to streamout so stop confidence preview (unless resuming from pause)
-        if (cam_streaming.getConfidencePreviewStatus() == true)
-        	cam_streaming.stopConfidencePreview(sessId);
-        
-        updateWindow(sessId);
-        showPreviewWindow(sessId);
-        out_url = createStreamOutURL(sessId);
-        userSettings.setStreamOutUrl(out_url, sessId);
+    		// we are starting to streamout so stop confidence preview (unless resuming from pause)
+    		if (cam_streaming.getConfidencePreviewStatus() == true)
+    			cam_streaming.stopConfidencePreview(sessId);
 
-        try {
-            cam_streaming.setSessionIndex(sessId);
-            invalidateSurface();
-        	cam_streaming.startRecording();
-			StreamOutstarted = true;
-        } catch(Exception e) {
-            e.printStackTrace();
-        }
-        //Toast.makeText(this, "StreamOut Started", Toast.LENGTH_LONG).show();
-               
-        sb.append("STREAMURL=").append(out_url);
-        sockTask.SendDataToAllClients(sb.toString());        
+    		updateWindow(sessId);
+    		showPreviewWindow(sessId);
+    		out_url = createStreamOutURL(sessId);
+    		userSettings.setStreamOutUrl(out_url, sessId);
+
+    		try {
+    			cam_streaming.setSessionIndex(sessId);
+    			invalidateSurface();
+    			cam_streaming.startRecording();
+    			StreamOutstarted = true;
+    		} catch(Exception e) {
+    			e.printStackTrace();
+    		}
+    		//Toast.makeText(this, "StreamOut Started", Toast.LENGTH_LONG).show();
+
+    		sb.append("STREAMURL=").append(out_url);
+    		sockTask.SendDataToAllClients(sb.toString());    
+    	} 
+    	finally
+    	{
+    		cameraLock.unlock();
+    		Log.d(TAG, "Camera : Unlock");
+    	}
     }
 
     public void stopStreamOut(int sessId, boolean fullStop)
     {
-    	// If in streamout and in By Reciever(0) or Multicast RTSP (2) clear url on stop- Bug 103801
-    	if ( (userSettings.getSessionInitiation(sessId) == 0) || (userSettings.getSessionInitiation(sessId) == 2) )
-    		sockTask.SendDataToAllClients(String.format("STREAMURL%d=", sessId));
-    	
-        cam_streaming.setSessionIndex(sessId);
-        if (cam_streaming.getConfidencePreviewStatus() == true)
-        	cam_streaming.stopConfidencePreview(sessId);
-    	else
-        	cam_streaming.stopRecording(false);
-        StreamOutstarted = false;
-        hidePreviewWindow(sessId);
-        
-        // Make sure that stop stream out was called by stop not a device mode change
-    	// We do not want to restart confidence preview if mode is changing
-        // If fullstop is passed down then do not start confidence preview
-    	if ((!fullStop) && (userSettings.getMode(sessId) == DeviceMode.STREAM_OUT.ordinal()))
+    	cameraLock.lock();
+    	Log.d(TAG, "Camera : Lock");
+    	try
     	{
-    		try {
-    			Thread.sleep(1000);
-    		} catch (Exception e) { }
-    		cam_streaming.startConfidencePreview(sessId);
-    		restartRequired[sessId] = true;
+    		// If in streamout and in By Reciever(0) or Multicast RTSP (2) clear url on stop- Bug 103801
+    		if ( (userSettings.getSessionInitiation(sessId) == 0) || (userSettings.getSessionInitiation(sessId) == 2) )
+    			sockTask.SendDataToAllClients(String.format("STREAMURL%d=", sessId));
+
+    		cam_streaming.setSessionIndex(sessId);
+    		if (cam_streaming.getConfidencePreviewStatus() == true)
+    			cam_streaming.stopConfidencePreview(sessId);
+    		else
+    			cam_streaming.stopRecording(false);
+    		StreamOutstarted = false;
+    		hidePreviewWindow(sessId);
+
+    		// Make sure that stop stream out was called by stop not a device mode change
+    		// We do not want to restart confidence preview if mode is changing
+    		// If fullstop is passed down then do not start confidence preview
+    		if ((!fullStop) && (userSettings.getMode(sessId) == DeviceMode.STREAM_OUT.ordinal()))
+    		{
+    			try {
+    				Thread.sleep(1000);
+    			} catch (Exception e) { }
+    			cam_streaming.startConfidencePreview(sessId);
+    			restartRequired[sessId] = true;
+    		}
+    	} 
+    	finally
+    	{
+    		cameraLock.unlock();
+    		Log.d(TAG, "Camera : Unlock");
     	}
     }
     
@@ -2715,30 +2736,50 @@ public class CresStreamCtrl extends Service {
     //Preview 
     public void startPreview(int sessId)
     {
-    	if (cam_preview != null)
+    	cameraLock.lock();
+    	Log.d(TAG, "Camera : Lock");
+    	try
     	{
-    		SendStreamState(StreamState.CONNECTING, sessId);
-    		updateWindow(sessId);
-    		showPreviewWindow(sessId);
-    		cam_preview.setSessionIndex(sessId);
-    		invalidateSurface();
-    		cam_preview.startPlayback(false);
-    		//Toast.makeText(this, "Preview Started", Toast.LENGTH_LONG).show();
+    		if (cam_preview != null)
+    		{
+    			SendStreamState(StreamState.CONNECTING, sessId);
+    			updateWindow(sessId);
+    			showPreviewWindow(sessId);
+    			cam_preview.setSessionIndex(sessId);
+    			invalidateSurface();
+    			cam_preview.startPlayback(false);
+    			//Toast.makeText(this, "Preview Started", Toast.LENGTH_LONG).show();
+    		}
+    	}
+    	finally
+    	{
+    		cameraLock.unlock();
+    		Log.d(TAG, "Camera : Unlock");
     	}
     }
 
     public void stopPreview(int sessId)
     {
-    	if (cam_preview != null)
+    	cameraLock.lock();
+    	Log.d(TAG, "Camera : Lock");
+    	try
     	{
-    		hidePreviewWindow(sessId);
-    		cam_preview.setSessionIndex(sessId);
-    		//On STOP, there is a chance to get ducati crash which does not save current state
-    		//causes streaming never stops.
-    		//FIXME:Temp Hack for ducati crash to save current state
-    		userSettings.setStreamState(StreamState.STOPPED, sessId);
-    		cam_preview.stopPlayback(false);
-    		//Toast.makeText(this, "Preview Stopped", Toast.LENGTH_LONG).show();
+    		if (cam_preview != null)
+    		{
+    			hidePreviewWindow(sessId);
+    			cam_preview.setSessionIndex(sessId);
+    			//On STOP, there is a chance to get ducati crash which does not save current state
+    			//causes streaming never stops.
+    			//FIXME:Temp Hack for ducati crash to save current state
+    			userSettings.setStreamState(StreamState.STOPPED, sessId);
+    			cam_preview.stopPlayback(false);
+    			//Toast.makeText(this, "Preview Stopped", Toast.LENGTH_LONG).show();
+    		}
+    	}
+    	finally
+    	{
+    		cameraLock.unlock();
+    		Log.d(TAG, "Camera : Unlock");
     	}
     }
     
