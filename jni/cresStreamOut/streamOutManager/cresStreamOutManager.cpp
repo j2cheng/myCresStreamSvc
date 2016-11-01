@@ -134,11 +134,6 @@ CStreamoutManager::~CStreamoutManager()
     if(mLock)
         delete mLock;
 
-    if(m_snapobj)
-    {
-    	StopSnapShot(this);	//stop jpeg snapshots
-    	m_snapobj = NULL;
-    }
 }
 void CStreamoutManager::DumpClassPara(int level)
 {
@@ -344,19 +339,7 @@ void* CStreamoutManager::ThreadEntry()
 
 exitThread:
     /* cleanup */
-
 	StopSnapShot(this);	//stop snapshots
-    if( m_snapobj )
-    {
-    	int   iRtn;
-    	void* tResults;
-        iRtn = pthread_join( m_tSnapShotId, &tResults );
-        CSIO_LOG(eLogLevel_debug,  "snapshot thread returned status = %d\n", iRtn );
-        delete m_snapobj;
-        m_snapobj = NULL;
-    }
-
-
 #ifdef CRES_UNPREPARE_MEDIA
 /*   please check out this bug: https://bugzilla.gnome.org/show_bug.cgi?id=747801
  *   if it is fixed, we should take it. */

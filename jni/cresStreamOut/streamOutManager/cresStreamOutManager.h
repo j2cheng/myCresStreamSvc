@@ -53,6 +53,7 @@ public:
     char m_stream_name[MAX_STR_LEN];
     SnapShot *m_snapobj;
     pthread_t m_tSnapShotId;
+    int  m_snapshot_stat;
 
     void setPort(char* p){strcpy(m_rtsp_port, p);}
     void setResX(char* x){strcpy(m_res_x, x);}
