@@ -152,6 +152,7 @@ typedef struct _CRESSTREAMOUT
     bool multicast_enable;
     char multicast_address[256];
     char stream_name[256];
+    char snapshot_name[256];
 
 } CRESSTREAMOUT;
 

@@ -9,7 +9,6 @@
 
 #define CRES_SNAPSHOT_RAMDISK      		"/dev/shm/crestron/frames"
 #define CRES_SNAPSHOT_WEB_RAMDISK  		"/dev/shm/crestron/jpeg"
-#define CRES_SNAPSHOT_FILENAME_DEFAULT 	"Snapshot"
 #define CRES_SNAPSHOT_FILE_BASE "frame"
 #define CRES_SNAPSHOT_UPDATE_PERIOD_SECS  1
 #define CRES_SNAPSHOT_SNAPSHOT_QUEUE_SIZE 5
@@ -21,8 +20,6 @@ class SnapShot
 		SnapShot(void *arg);
 		~SnapShot();
 
-		void setStreamName(char* name);
-		char* getStreamName(void);
 		void setUpdateRate(int period_in_seconds);
 		int  getUpdateRate(void);
 		void setQueueSize(int snapshot_queue_size);
@@ -61,7 +58,8 @@ class SnapShot
 
 		int        m_update_period_secs;
 		int        m_rawfilesqueue_size;
-		char       m_stream_name[MAX_STR_LEN];
+		char 	   *m_snapshot_name;	// When updating this needs to be locked by mULock
+		bool	   m_snapshot_name_updated;
 
 		gboolean   m_bExit;
 		gboolean   m_bExitClient;

@@ -47,6 +47,7 @@ void Streamout_SetIFrameInterval(char* r);
 void Streamout_EnableMulticast(int enable);
 void Streamout_SetMulticastAddress(char* address);
 void Streamout_SetStreamName(char* name);
+void Streamout_SetSnapshotName(char* name);
 
 #ifdef __cplusplus
 }

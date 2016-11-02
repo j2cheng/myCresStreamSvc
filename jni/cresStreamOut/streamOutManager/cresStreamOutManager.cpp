@@ -399,3 +399,29 @@ exitThread:
 
     return NULL;
 }
+
+void CStreamoutManager::setSnapshotName(char* name)
+{
+	if (m_snapobj)
+	{
+		m_snapobj->mULock->lock();
+		if( name != NULL)
+		{
+			m_snapobj->m_snapshot_name_updated = true;
+			strncpy( m_snapshot_name, name, MAX_STR_LEN );
+		}
+		else
+			CSIO_LOG(eLogLevel_error, "SnapShot: setSnapshotName - name is NULL\n");
+		m_snapobj->mULock->unlock();
+	}
+	else
+	{
+		if( name != NULL)
+			strncpy( m_snapshot_name, name, MAX_STR_LEN );
+	}
+}
+
+char* CStreamoutManager::getSnapshotName(void)
+{
+	return( m_snapshot_name );
+}

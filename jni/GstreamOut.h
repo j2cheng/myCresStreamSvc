@@ -97,6 +97,14 @@ JNIEXPORT void JNICALL Java_com_crestron_txrxservice_GstreamOut_nativeSet_1Multi
 JNIEXPORT void JNICALL Java_com_crestron_txrxservice_GstreamOut_nativeSet_1StreamName
   (JNIEnv *, jobject, jstring, jint);
 
+/*
+ * Class:     com_crestron_txrxservice_GstreamOut
+ * Method:    nativeSet_SnapshotName
+ * Signature: (Ljava/lang/String;I)V
+ */
+JNIEXPORT void JNICALL Java_com_crestron_txrxservice_GstreamOut_nativeSet_1SnapshotName
+  (JNIEnv *, jobject, jstring, jint);
+
 #ifdef __cplusplus
 }
 #endif

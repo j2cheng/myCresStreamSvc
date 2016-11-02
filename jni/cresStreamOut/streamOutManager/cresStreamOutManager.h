@@ -51,6 +51,7 @@ public:
     int m_multicast_enable;
     char m_multicast_address[MAX_STR_LEN];
     char m_stream_name[MAX_STR_LEN];
+    char m_snapshot_name[MAX_STR_LEN];
     SnapShot *m_snapobj;
     pthread_t m_tSnapShotId;
     int  m_snapshot_stat;
@@ -64,6 +65,8 @@ public:
     void setMulticastEnable(int* enable){m_multicast_enable = *enable;}
     void setMulticastAddress(char* address){strcpy(m_multicast_address, address);}
     void setStreamName(char* name){strcpy(m_stream_name, name);}
+    void setSnapshotName(char* name);
+    char* getSnapshotName(void);
 
     GstRTSPMediaFactory *m_factory;
     GMainLoop *  m_loop;

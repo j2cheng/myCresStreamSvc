@@ -87,12 +87,13 @@ m_videoparse(NULL),m_sink(NULL),m_context(NULL),m_bExit(false),
 m_update_period_secs(CRES_SNAPSHOT_UPDATE_PERIOD_SECS),
 m_rawfilesqueue_size(CRES_SNAPSHOT_SNAPSHOT_QUEUE_SIZE),m_bus(NULL),m_bus_id(0),
 m_clientPipeline(NULL),m_bExitClient(false),m_clientLoop(NULL),m_clientSink(NULL),
-m_bNeedData(false),m_lastJpegBuffer_tm({0,0}),m_bStopInProgress(false)
+m_bNeedData(false),m_lastJpegBuffer_tm({0,0}),m_bStopInProgress(false), m_snapshot_name_updated(false)
 {
 	mLock  = new Mutex();
 	mULock = new Mutex();
 
-	strcpy(m_stream_name, CRES_SNAPSHOT_FILENAME_DEFAULT);
+	CStreamoutManager * pMgr = (CStreamoutManager *) arg;
+	m_snapshot_name = pMgr->m_snapshot_name;
 
 	struct stat sb;
 	if( stat( CRES_SNAPSHOT_RAMDISK, &sb ) != 0 )
@@ -106,7 +107,9 @@ m_bNeedData(false),m_lastJpegBuffer_tm({0,0}),m_bStopInProgress(false)
 	else
 	{
 	  //delete all files in frames queue, leave folder
+	    mULock->lock();
 		deleteAllFiles( CRES_SNAPSHOT_RAMDISK );
+	    mULock->unlock();
 	}
 
 	if( stat( CRES_SNAPSHOT_WEB_RAMDISK, &sb ) != 0 )
@@ -116,11 +119,13 @@ m_bNeedData(false),m_lastJpegBuffer_tm({0,0}),m_bStopInProgress(false)
 		{
 			CSIO_LOG(eLogLevel_error, "SnapShot: Cannot create JPEG web buffer - %s", strerror(errno));
 		}
-		else
-		{
-		  //clean snapshot files, leave folder
-			deleteAllFiles( CRES_SNAPSHOT_WEB_RAMDISK );
-		}
+	}
+	else
+	{
+		//clean snapshot files, leave folder
+		mULock->lock();
+		deleteAllFiles( CRES_SNAPSHOT_WEB_RAMDISK );
+		mULock->unlock();
 	}
 }
 
@@ -147,21 +152,6 @@ void *snapshotThread(void *arg)
 	CSIO_LOG(eLogLevel_verbose, "Exiting SnapShot thread...\n");
 	pthread_exit( NULL );
 	return(NULL);
-}
-
-void SnapShot::setStreamName(char* name)
-{
-	mULock->lock();
-	if( name != NULL)
-		strncpy( m_stream_name, name, MAX_STR_LEN );
-	else
-		CSIO_LOG(eLogLevel_error, "SnapShot: setStreamName - name is NULL\n");
-	mULock->unlock();
-}
-
-char* SnapShot::getStreamName(void)
-{
-	return( m_stream_name );
 }
 
 void SnapShot::setUpdateRate(int period_in_seconds)
@@ -409,8 +399,10 @@ void SnapShot::cleanup(void)
 
 	m_lastJpegBuffer_tm = {0,0};
 
+    mULock->lock();
 	deleteAllFiles( CRES_SNAPSHOT_RAMDISK );
 	deleteAllFiles( CRES_SNAPSHOT_WEB_RAMDISK );
+    mULock->unlock();
 
 // TODO: If we ever use eventfd elsewhere we will need to make sure that we dont close it here
 //	 In Gstreamer 1.8.x a anon_inode[eventfd] leak was introduced, we must close these as well
@@ -555,8 +547,15 @@ int SnapShot::updatelink(const gchar *filename)
 
 	mULock->lock();
 
+	// Remove all symlink files in dir if updated
+	if (m_snapshot_name_updated)
+	{
+		m_snapshot_name_updated = false;
+		deleteAllFiles(CRES_SNAPSHOT_WEB_RAMDISK);
+	}
+
 	char *pJpegFile = new char[512];
-	snprintf( pJpegFile, 512, "%s/%s.jpg", CRES_SNAPSHOT_WEB_RAMDISK, m_stream_name );
+	snprintf( pJpegFile, 512, "%s/%s.jpg", CRES_SNAPSHOT_WEB_RAMDISK, m_snapshot_name );
 	if( access( pJpegFile, F_OK ) == 0 )
 	{
 		Rtn = unlink( pJpegFile );
@@ -682,8 +681,6 @@ int SnapShot::deleteAllFiles( const char *dir, bool bRmdirectory )
 
     char *files[] = { (char *) dir, NULL };
 
-    mULock->lock();
-
     ftsp = fts_open( files, FTS_NOCHDIR | FTS_PHYSICAL | FTS_XDEV, NULL );
     if( ftsp )
     {
@@ -731,8 +728,6 @@ int SnapShot::deleteAllFiles( const char *dir, bool bRmdirectory )
     	CSIO_LOG(eLogLevel_error, "%s: fts_open failed: %s\n", dir, strerror(errno) );
         ret = -1;
     }
-
-    mULock->unlock();
 
     return ret;
 }

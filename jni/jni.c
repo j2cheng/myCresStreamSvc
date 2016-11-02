@@ -3037,4 +3037,18 @@ JNIEXPORT void JNICALL Java_com_crestron_txrxservice_GstreamOut_nativeSet_1Strea
 	(*env)->ReleaseStringUTFChars(env, name_jstring, name_cstring);
 }
 
+JNIEXPORT void JNICALL Java_com_crestron_txrxservice_GstreamOut_nativeSet_1SnapshotName(JNIEnv *env, jobject thiz, jstring name_jstring, jint sessionId)
+{
+	const char * name_cstring = (*env)->GetStringUTFChars( env, name_jstring , NULL ) ;
+	if (name_cstring == NULL) return;
+
+	CSIO_LOG(eLogLevel_debug, "rtsp_server: Using snapshot name: '%s'", name_cstring);
+	char* desBuf = CresStreamOutDataDB->streamOut[sessionId].snapshot_name;
+	strcpy(desBuf, name_cstring);
+
+	Streamout_SetSnapshotName(desBuf);
+	CSIO_LOG(eLogLevel_debug, "rtsp_server: snapshot_name in CresStreamOutDataDB: '%s'", CresStreamOutDataDB->streamOut[sessionId].snapshot_name);
+	(*env)->ReleaseStringUTFChars(env, name_jstring, name_cstring);
+}
+
 /***************************** end of rtsp_server for video streaming out *********************************/

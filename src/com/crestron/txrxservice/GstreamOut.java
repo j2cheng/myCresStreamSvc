@@ -47,6 +47,7 @@ public class GstreamOut {
     private native void nativeSet_MulticastEnable(boolean enable, int sessionId);
     private native void nativeSet_MulticastAddress(String address, int sessionId);
     private native void nativeSet_StreamName(String name, int sessionId);
+    private native void nativeSet_SnapshotName(String name, int sessionId);
     
     private final int sessionId = 0; 	// This is currently always 0
     private long native_custom_data;    // Native code will use this to keep private data
@@ -81,6 +82,7 @@ public class GstreamOut {
     	if (streamCtl.mCameraDisabled == false)
     	{
             updateCamStreamUrl();
+            updateCamSnapshotUrl();
     		updateNativeDataStruct();
     		nativeRtspServerStart();
     	}
@@ -88,6 +90,7 @@ public class GstreamOut {
     
     public void stop() {
 		updateCamStreamUrl();
+		updateCamSnapshotUrl();
     	nativeRtspServerStop();
     }
     
@@ -127,12 +130,13 @@ public class GstreamOut {
 		nativeSet_IFrameInterval(iframeinterval, sessionId);
 	}
 			
-    public void setCamStreamName(String name) {
-    	nativeSet_StreamName(name, sessionId);
+    public void setCamStreamName(String name) {    	
+    	nativeSet_StreamName(name, sessionId);    	
     }
     
     public void setCamStreamSnapshotName(String name) {
-    	// TODO: 
+    	nativeSet_SnapshotName(name, sessionId);
+    	updateCamSnapshotUrl();
     }
     
     public void setCamStreamMulticastAddress(String address) {
@@ -169,6 +173,23 @@ public class GstreamOut {
     	return url.toString();
     }
     
+    public String buildCamSnapshotUrl()
+    {
+    	StringBuilder url = new StringBuilder(1024);
+    	url.append("");
+    
+    	if ( (streamCtl.mCameraDisabled == false) && (streamCtl.userSettings.getCamStreamEnable() == true) )
+    	{
+    		String deviceIp= streamCtl.userSettings.getDeviceIp();
+    		String file = streamCtl.userSettings.getCamStreamSnapshotName();
+    		
+    		url.append("http://").append(deviceIp).append("/camera/").append(file).append(".jpg");
+    	} 
+    	Log.d(TAG, "buildCamSnapshotUrl()  = " + url.toString());
+    
+    	return url.toString();
+    }
+    
     public void updateCamStreamUrl()
     {
     	String camUrl = buildCamStreamUrl();
@@ -176,6 +197,15 @@ public class GstreamOut {
         streamCtl.userSettings.setCamStreamUrl(camUrl);
     
         streamCtl.sockTask.SendDataToAllClients(String.format("CAMERA_STREAMING_STREAM_URL=%s", camUrl));
+    }
+    
+    public void updateCamSnapshotUrl()
+    {
+    	String snapshotUrl = buildCamSnapshotUrl();
+    	
+        streamCtl.userSettings.setCamStreamSnapshotUrl(snapshotUrl);
+    
+        streamCtl.sockTask.SendDataToAllClients(String.format("CAMERA_STREAMING_SNAPSHOT_URL=%s", snapshotUrl));
     }
     
 ///////////////////////////////////////////////////////////////////////////////

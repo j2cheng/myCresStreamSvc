@@ -361,6 +361,20 @@ void Streamout_SetStreamName(char * name)
 	CSIO_LOG(StreamOutProjDebugLevel, "Streamout: %s() exit.", __FUNCTION__);
 }
 
+void Streamout_SetSnapshotName(char * name)
+{
+	CSIO_LOG(StreamOutProjDebugLevel, "Streamout: %s() enter", __FUNCTION__);
+
+	gProjectsLock.lock();
+
+	CSIO_LOG(StreamOutProjDebugLevel, "Streamout: set snapshot name to [%s].\n", name);
+
+	StreamoutProjectSendEvent(0, STREAMOUT_EVENT_JNI_CMD_SNAPSHOT_NAME,strlen(name), name);
+
+	gProjectsLock.unlock();
+	CSIO_LOG(StreamOutProjDebugLevel, "Streamout: %s() exit.", __FUNCTION__);
+}
+
 /*********************local static functions **************************/
 static void StreamoutProjectSendEvent(int iId, int evnt, int data_size, void* bufP)
 {
@@ -414,6 +428,7 @@ CStreamoutProject::CStreamoutProject(int iId): m_projectID(iId)
     m_multicast_enable = DEFAULT_MULTICAST_ENABLE;
     strcpy(m_multicast_address, DEFAULT_MULTICAST_ADDRESS);
     strcpy(m_stream_name, DEFAULT_STREAM_NAME);
+    strcpy(m_snapshot_name, DEFAULT_SNAPSHOT_NAME);
 }
 
 CStreamoutProject::~CStreamoutProject()
@@ -531,6 +546,7 @@ void* CStreamoutProject::ThreadEntry()
                             m_StreamoutTaskObjList[id]->setMulticastEnable(&m_multicast_enable);
                             m_StreamoutTaskObjList[id]->setMulticastAddress(m_multicast_address);
                             m_StreamoutTaskObjList[id]->setStreamName(m_stream_name);
+                            m_StreamoutTaskObjList[id]->setSnapshotName(m_snapshot_name);
 
                             m_StreamoutTaskObjList[id]->CreateNewThread();
 
@@ -763,6 +779,44 @@ void* CStreamoutProject::ThreadEntry()
                 	CSIO_LOG(m_debugLevel, "Streamout: STREAMOUT_EVENT_JNI_CMD_STREAM_NAME done.");
                 	break;
                 }
+                case STREAMOUT_EVENT_JNI_CMD_SNAPSHOT_NAME:
+                {
+                	int id = evntQ.streamout_obj_id;
+                	if( evntQ.buf_size && evntQ.buffPtr)
+                	{
+                		CSIO_LOG(m_debugLevel, "Streamout: call setSnapshotName streamId[%d],snapshotName[%s]",
+                				id,evntQ.buffPtr);
+
+                		//save for this project
+                		strcpy(m_snapshot_name, (char*)evntQ.buffPtr);
+
+                		//validate, for now we can only do one stream
+                		if( IsValidStreamOut(id) )
+                		{
+                			//for now we can only do one stream
+                			if(m_StreamoutTaskObjList)
+                			{
+                				if(m_StreamoutTaskObjList[id])
+                				{
+                					m_StreamoutTaskObjList[id]->setSnapshotName(m_snapshot_name);
+                				}
+                			}
+                		}
+                		else
+                		{
+                			CSIO_LOG(eLogLevel_error, "Streamout: obj ID is invalid = %d",id);
+                		}
+
+                		m_projEventQ->del_Q_buf(evntQ.buffPtr);
+                	}
+                	else
+                	{
+                		CSIO_LOG(m_debugLevel, "Streamout: streamId[%d],setSnapshotName string is null",id);
+                	}
+
+                	CSIO_LOG(m_debugLevel, "Streamout: STREAMOUT_EVENT_JNI_CMD_SNAPSHOT_NAME done.");
+                	break;
+                }
 
                 default:
                     break;
@@ -822,6 +876,7 @@ void CStreamoutProject::sendEvent(EventQueueStruct* pEvntQ)
                 case STREAMOUT_EVENT_JNI_CMD_IFRAMEINTERVAL:
 				case STREAMOUT_EVENT_JNI_CMD_MULTICAST_ADDRESS:
 				case STREAMOUT_EVENT_JNI_CMD_STREAM_NAME:
+				case STREAMOUT_EVENT_JNI_CMD_SNAPSHOT_NAME:
                 {
                     evntQ.buffPtr = new char [dataSize + 1];//data might be binary
                     if(evntQ.buffPtr)
