@@ -388,7 +388,8 @@ public class CameraPreview {
     protected void startAudio(){		
     	if ((skipAudio == false) 
 			&& (streamCtl.userSettings.isRavaMode() == false)
-			&& (streamCtl.userSettings.isProcessHdmiInAudio() == true))
+			&& (streamCtl.userSettings.isProcessHdmiInAudio() == true)
+			&& (hdmiIf != null))
     	{
 	        if(!is_audioplaying)
 	        {
