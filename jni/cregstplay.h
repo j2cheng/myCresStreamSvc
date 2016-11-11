@@ -79,6 +79,7 @@ typedef struct _CREGSTREAM
 	GstElement *element_av [MAX_ELEMENTS];
 	GstElement *element_a [MAX_ELEMENTS];
 	GstElement *element_v [MAX_ELEMENTS];
+	guint       av_index;
 	unsigned int element_after_tsdemux;	/* Used to add the rest of the video pipeline */
 	
 	// parameters from control system/platform/java
@@ -230,6 +231,7 @@ extern void build_http_pipeline(CREGSTREAM *data, int iStreamId);
 
 extern void csio_PadAddedMsgHandler(GstElement *src, GstPad *new_pad, void *pCstreamer);
 extern void csio_HLS_PadAddedHandler (GstElement *src, GstPad *new_pad, void *arg);
+extern void csio_DASH_PadAddedHandler( GstElement *src, GstPad *new_pad, CREGSTREAM *data );
 extern void csio_DecVideo1stOutputCB(GstElement *src,int id);
 
 extern void set_gst_debug_level(void);

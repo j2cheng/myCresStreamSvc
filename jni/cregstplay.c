@@ -46,6 +46,7 @@
 #include "csio_jni_if.h"
 #include <gst/net/gstnetaddressmeta.h>
 #include "socketHandler.h"
+
 #ifdef SupportsHDCPEncryption
 	#include "HDCP2xEncryptAPI.h"
 #endif
@@ -72,6 +73,100 @@ static void crestron_set_stride(int stride) {
      }
      fprintf(pf, "%d", stride);
      fclose(pf);
+}
+
+//brief    Set initial values of members of CustomData structure as needed.
+//note    This would be a good place to pull these values 
+//          from The Platform or somewhere else in the system.
+void init_custom_data(CustomData * cdata)
+{
+	int i, j;
+	CREGSTREAM * data;
+	
+	GST_DEBUG_CATEGORY_INIT (debug_category, "cregstplay", 0, "Crestron gstreamer player!");
+	gst_debug_set_threshold_for_name("cregstplay", GST_LEVEL_ERROR);
+
+	for (i=0; i<MAX_STREAMS; i++)
+	{
+		data = &cdata->stream[i];
+		data->streamId = i;
+		data->udp_port = 9700;
+		data->udp_video_port = 2048;
+		data->udp_audio_port = 2049;
+		data->tcp_timeout_usec = 3000000;
+		data->udp_timeout_usec = 3000000;
+		data->protocols = GST_RTSP_LOWER_TRANS_UDP|GST_RTSP_LOWER_TRANS_UDP_MCAST|GST_RTSP_LOWER_TRANS_TCP;
+
+		// Tried keeping these as strings, but would crash when g_object_set was called for udpsrc.
+		data->caps_v_rtp = gst_caps_new_simple(
+			"application/x-rtp",
+			"media",         G_TYPE_STRING, "video",
+			"clock-rate",    G_TYPE_INT,     90000,
+			"encoding-name", G_TYPE_STRING, "H264",
+			NULL );
+
+		data->caps_a_rtp = gst_caps_new_simple  (
+				"application/x-rtp",
+				"media",        G_TYPE_STRING, 	"audio",
+				"clock-rate",   G_TYPE_INT,     48000,
+				"encoding-name",G_TYPE_STRING, 	"MPEG4-GENERIC",
+				"mode",			G_TYPE_STRING,	"AAC-hbr",
+				"config",		G_TYPE_STRING, 	"1190",
+				"sizelength",	G_TYPE_STRING, 	"13",
+				NULL);
+
+		// This is if there's ts encapsulation.
+		data->caps_v_ts = gst_caps_new_simple(
+			"application/x-rtp",
+			"media",         G_TYPE_STRING, "video",
+			"clock-rate",    G_TYPE_INT,     90000,
+			"encoding-name", G_TYPE_STRING, "MP2T",
+			"payload",       G_TYPE_INT,     33,
+			NULL );
+
+		// Pretend ts is on for now
+		data->caps_v = data->caps_v_ts;
+		data->caps_a = NULL;
+		data->amcviddec_ts_offset = DEFAULT_AMCVIDDEC_TS_OFFSET;
+		data->audiosink_ts_offset = 0;
+
+		data->dropAudio = false;
+		data->isStarted = false;
+		data->httpMode  = eHttpMode_UNSPECIFIED;
+		data->pStreamer = NULL;
+
+        for (j=0; j<MAX_ELEMENTS; ++j) 
+        {
+            data->element_av[i] = NULL;
+            data->element_a[i]  = NULL;
+            data->element_v[i]  = NULL;   
+        }
+        data->av_index      = 0;
+	}
+}
+
+void set_gst_debug_level(void)
+{
+	gchar temp[256];
+	FILE * f;
+
+	f = fopen("/dev/crestron/gst_debug", "r");
+	if (f == NULL)
+	{
+		snprintf(temp, sizeof(temp), "%s", "*:1");	// default to errors, warning for all plugins
+	}
+	else
+	{
+		fgets(temp, sizeof(temp), f);
+		fclose(f);
+	}
+	setenv("GST_DEBUG", temp, 1);
+	setenv("GST_DEBUG_NO_COLOR", "1", 1);
+	setenv("GST_PLUGIN_PATH", "/system/lib/gstreamer-1.0", 1);
+	// for x60, but should not harm other platforms - without this change you don't see any video
+	setenv("GST_AMC_IGNORE_UNKNOWN_COLOR_FORMATS", "yes", 1);
+
+	CSIO_LOG(eLogLevel_debug, "Set GST_DEBUG to %s", temp);
 }
 
 /**
@@ -175,7 +270,7 @@ static void pad_added_callback2 (GstElement *src, GstPad *new_pad, CREGSTREAM *d
 	{
 		CSIO_LOG(eLogLevel_info, "sink pad is already linked");
 		gst_object_unref(sink_pad);
-		gst_caps_unref( new_pad_caps );		
+		gst_caps_unref( new_pad_caps );
 		return;
 	}
 
@@ -183,14 +278,14 @@ static void pad_added_callback2 (GstElement *src, GstPad *new_pad, CREGSTREAM *d
     GstPadLinkReturn ret = gst_pad_link(new_pad, sink_pad);
     if (GST_PAD_LINK_FAILED (ret))
     {
-        CSIO_LOG(eLogLevel_error,"Type is '%s' but link failed.\n", new_pad_type);
+        CSIO_LOG(eLogLevel_error,"Type is '%s' but link failed.", new_pad_type);
     	gst_object_unref(sink_pad);
         gst_caps_unref(new_pad_caps);
         return;
     }
     else
     {
-        CSIO_LOG(eLogLevel_debug,"Link succeeded (type '%s').\n", new_pad_type);
+        CSIO_LOG(eLogLevel_debug,"Link succeeded (type '%s').", new_pad_type);
     }
 
     //call initVideo before set to play state when video was added first
@@ -321,10 +416,10 @@ void csio_DecVideo1stOutputCB(GstElement *src,int id)
 { 
     if(csio_GetWaitDecHas1stVidDelay(id))
     {
-        CSIO_LOG(eLogLevel_info, "Sending the playing message\n");
+        CSIO_LOG(eLogLevel_info, "Sending the playing message");
         csio_SaveNetworkProtocol(id);
         csio_SendVideoPlayingStatusMessage(id, STREAMSTATE_STARTED );
-        CSIO_LOG(eLogLevel_info,  "+++SENT ACK TO IPLINK CLIENT Source- %ld\n", id);
+        CSIO_LOG(eLogLevel_info,  "+++SENT ACK TO IPLINK CLIENT Source- %ld", id);
         csio_SetWaitDecHas1stVidDelay(id,0);
     }
     else
@@ -384,7 +479,7 @@ static void on_sample_callback_meta (GstElement *src, GstPad *new_pad, CREGSTREA
  *
  * \retval      void
  *
- * \brief       callback function - called by the have-type signal 
+ * \brief       callback function - handles all 'have-type' signals 
  *
  * \param		typefind - 
  * \param		probability - 
@@ -397,99 +492,274 @@ void csio_TypeFindMsgHandler( GstElement *typefind, guint probability, GstCaps *
     GstStateChangeReturn ret;
 
     gchar *type = gst_caps_to_string (caps);
-    CSIO_LOG( eLogLevel_debug,"%s() Media type: %s, probability = %d%%\n", __FUNCTION__, type, probability );
+    CSIO_LOG( eLogLevel_debug,"TYPEFIND: caps: %s, probability = %d%%", type, probability );
 
+    // HLS streaming
     if( strcasestr( type, "x-hls") )
     {
-        // HLS streaming
-        CSIO_LOG( eLogLevel_debug,"%s() Media type is HLS\n", __FUNCTION__ );
-        data->element_v[1] = gst_element_factory_make( "hlsdemux", NULL );
-        g_assert(data->element_v[1] != NULL);
+        CSIO_LOG( eLogLevel_debug,"%s() Media type is HLS.", __FUNCTION__ );
+        data->httpMode = eHttpMode_HLS;
+        data->element_av[1] = gst_element_factory_make( "hlsdemux", NULL );
+        g_assert(data->element_av[1] != NULL);
 
         // we MUST set this property, otherwise HLS link failed with -2 after playing a few seconds.
-        CSIO_LOG(eLogLevel_debug, "%s() set connection-speed to 15000 \n", __FUNCTION__ );
-        g_object_set(G_OBJECT(data->element_v[1]), "connection-speed", 15000, NULL);
+        CSIO_LOG(eLogLevel_debug, "%s() set connection-speed to 15000", __FUNCTION__ );
+        g_object_set(G_OBJECT(data->element_av[1]), "connection-speed", 15000, NULL);
 
-        data->element_v[2] = gst_element_factory_make( "tsdemux", NULL );
-        g_assert(data->element_v[2] != NULL);
+        data->element_av[2] = gst_element_factory_make( "tsdemux", NULL );
+        g_assert(data->element_av[2] != NULL);
 
         data->element_after_tsdemux = 3;
 
-        gst_bin_add_many (GST_BIN (data->pipeline), data->element_v[1], data->element_v[2], NULL);
+        gst_bin_add_many (GST_BIN (data->pipeline), data->element_av[1], data->element_av[2], NULL);
 
-        if ( gst_element_link (data->element_v[0], data->element_v[1]) != TRUE )
+        if ( gst_element_link (data->element_av[0], data->element_av[1]) != TRUE )
         {
-            CSIO_LOG(eLogLevel_error, "ERROR: link hlsdemux failed.\n");
+            CSIO_LOG(eLogLevel_error, "ERROR: link hlsdemux failed.");
             gst_object_unref (data->pipeline);
             return;
         }
 
-        //Set the pipeline to READY to trigger the signal
-        CSIO_LOG( eLogLevel_debug,"%s() line %d: set state to READY.\n", __FUNCTION__, __LINE__ );
-        ret = csio_element_set_state(data->pipeline, GST_STATE_READY); 
-        if (ret == GST_STATE_CHANGE_FAILURE) {
-            CSIO_LOG(eLogLevel_error, "ERROR: unable to set the pipeline to READY state.\n");
-        }
-
         // Connect to the pad-added signal
-        CSIO_LOG( eLogLevel_debug,"%s() line %d: Connect to pad-added signal.\n", __FUNCTION__, __LINE__ );
-        g_signal_connect(data->element_v[1], "pad-added", G_CALLBACK(csio_HLS_PadAddedHandler), (void *)data->element_v[2]);
-        g_signal_connect(data->element_v[2], "pad-added", G_CALLBACK(csio_PadAddedMsgHandler), data->pStreamer);
+        CSIO_LOG( eLogLevel_debug,"%s(): Connect to pad-added signal.", __FUNCTION__ );
+        g_signal_connect(data->element_av[1], "pad-added", G_CALLBACK(csio_HLS_PadAddedHandler), (void *)data->element_av[2]);
+        g_signal_connect(data->element_av[2], "pad-added", G_CALLBACK(csio_PadAddedMsgHandler), data->pStreamer);
 
-        //Set back the pipeline to PLAYING
-        CSIO_LOG( eLogLevel_debug,"%s() line %d: set back to PLAYING.\n", __FUNCTION__, __LINE__ );
+        //Set the pipeline to PLAYING to trigger the signal
+        CSIO_LOG( eLogLevel_debug,"%s(): set back to PLAYING.", __FUNCTION__ );
         ret = csio_element_set_state(data->pipeline, GST_STATE_PLAYING); 
         if (ret == GST_STATE_CHANGE_FAILURE) {
-            CSIO_LOG(eLogLevel_error, "ERROR: unable to set the pipeline to PLAYING state.\n");
+            CSIO_LOG(eLogLevel_error, "ERROR: unable to set the pipeline to PLAYING state.");
         }
     }
-    else if( strcasestr( type, "video/quicktime") )
+    // generic DASH Streaming, need figure out media format in next level.
+    else if( strcasestr( type, "dash+xml") )
     {
-        // MP4 Streaming
-        CSIO_LOG( eLogLevel_debug,"%s() Media type is MP4\n", __FUNCTION__ );
-        data->element_v[1] = gst_element_factory_make( "qtdemux", NULL );
-        g_assert(data->element_v[1] != NULL);
+      CSIO_LOG( eLogLevel_debug,"TYPEFIND: detecting what type of DASH ..." );
+      data->httpMode = eHttpMode_DASH;
 
-        gst_bin_add(GST_BIN (data->pipeline), data->element_v[1]);
+      if (data->element_av[1] == NULL)
+      {
+        data->element_av[1] = gst_element_factory_make( "dashdemux", NULL );
+        g_assert(data->element_av[1] != NULL);
 
-        if( gst_element_link (data->element_v[0], data->element_v[1]) != TRUE ) 
+        data->element_after_tsdemux = 3;
+
+        gst_bin_add( GST_BIN (data->pipeline), data->element_av[1] );
+
+        if ( gst_element_link (data->element_av[0], data->element_av[1]) != TRUE )
         {
-            CSIO_LOG( eLogLevel_error,"ERROR: %s() link qtdemux failed\n", __FUNCTION__ );
+            CSIO_LOG(eLogLevel_error, "ERROR: link dashdemux failed.");
             gst_object_unref (data->pipeline);
             return;
         }
 
-        //Set the pipeline to READY to trigger the signal
-        CSIO_LOG( eLogLevel_debug,"%s() line %d: set state to READY.\n", __FUNCTION__, __LINE__ );
-        ret = csio_element_set_state(data->pipeline, GST_STATE_READY); 
+        data->av_index = 1;
+
+        // Connect to the pad-added signal
+        CSIO_LOG( eLogLevel_debug,"TYPEFIND: Connect to pad-added signal." );
+        g_signal_connect(data->element_av[data->av_index++], "pad-added", G_CALLBACK(csio_DASH_PadAddedHandler), data);
+
+        //Set back the pipeline to PLAYING
+        CSIO_LOG( eLogLevel_debug,"TYPEFIND: set back to PLAYING." );
+        ret = csio_element_set_state(data->pipeline, GST_STATE_PLAYING); 
         if (ret == GST_STATE_CHANGE_FAILURE) {
-            CSIO_LOG(eLogLevel_error, "ERROR: unable to set the pipeline to READY state.\n");
+            CSIO_LOG(eLogLevel_error, "ERROR: unable to set the pipeline to PLAYING state.");
+        }
+      }
+    }
+    // MP4 Streaming
+    else if( (data->httpMode != eHttpMode_DASH) && strcasestr(type, "video/quicktime") )
+    {
+        CSIO_LOG( eLogLevel_debug,"%s() Media type is MP4.", __FUNCTION__ );
+        data->httpMode = eHttpMode_MP4;
+        data->element_av[1] = gst_element_factory_make( "qtdemux", NULL );
+        g_assert(data->element_av[1] != NULL);
+
+        gst_bin_add(GST_BIN (data->pipeline), data->element_av[1]);
+
+        if( gst_element_link (data->element_av[0], data->element_av[1]) != TRUE ) 
+        {
+            CSIO_LOG( eLogLevel_error,"ERROR: %s() link qtdemux failed.", __FUNCTION__ );
+            gst_object_unref (data->pipeline);
+            return;
         }
 
         // Connect to the pad-added signal
-        CSIO_LOG( eLogLevel_debug,"%s() line %d: Connect to pad-added signal.\n", __FUNCTION__, __LINE__ );
-        g_signal_connect (data->element_v[1], "pad-added", G_CALLBACK (csio_PadAddedMsgHandler), data->pStreamer);
+        CSIO_LOG( eLogLevel_debug,"%s(): Connect to pad-added signal.", __FUNCTION__ );
+        g_signal_connect (data->element_av[1], "pad-added", G_CALLBACK (csio_PadAddedMsgHandler), data->pStreamer);
 
         //Set back the pipeline to PLAYING
-        CSIO_LOG( eLogLevel_debug,"%s() line %d: set back to PLAYING.\n", __FUNCTION__, __LINE__ );
+        CSIO_LOG( eLogLevel_debug,"%s(): set back to PLAYING.", __FUNCTION__ );
         ret = csio_element_set_state(data->pipeline, GST_STATE_PLAYING); 
         if (ret == GST_STATE_CHANGE_FAILURE) {
-            CSIO_LOG(eLogLevel_error, "ERROR: unable to set the pipeline to PLAYING state.\n");
+            CSIO_LOG(eLogLevel_error, "ERROR: unable to set the pipeline to PLAYING state.");
         }
-//		data->video_sink = gst_bin_get_by_interface(GST_BIN(data->pipeline), GST_TYPE_VIDEO_OVERLAY);
     }
-    else if( strcasestr( type, "video/dash") )
+    // MP4/MPEG-DASH Streaming: (Note: For this case dashdemux sends two pad-added signal, i.e. video_00, and audio_00)
+    else if( (data->httpMode == eHttpMode_DASH) && strcasestr(type, "video/quicktime") )
     {
-        // DASH Streaming
-        CSIO_LOG( eLogLevel_debug,"%s() Media type is DASH\n", __FUNCTION__ );
-        //data->element_v[1] = gst_element_factory_make( "dashdemux", NULL );
+        data->httpMode = eHttpMode_DASH_MP4;
+
+        CSIO_LOG( eLogLevel_debug,"TYPEFIND: Media type is 'MP4' DASH, add 'qtdemux' in av_index=%d", data->av_index );
+        data->element_av[data->av_index] = gst_element_factory_make( "qtdemux", NULL );
+        g_assert(data->element_av[data->av_index] != NULL);
+
+        gst_bin_add( GST_BIN(data->pipeline), data->element_av[data->av_index] );
+
+        if( gst_element_link((GstElement *)typefind, data->element_av[data->av_index]) != TRUE )
+        {
+            CSIO_LOG( eLogLevel_error,"ERROR: TYPEFIND: link qtdemux failed." );
+            gst_object_unref (data->pipeline);
+            return;
+        }
+
+        // Connect to the pad-added signal
+        CSIO_LOG( eLogLevel_debug,"TYPEFIND: Connect to pad-added signal." );
+        g_signal_connect (data->element_av[data->av_index++], "pad-added", G_CALLBACK (csio_PadAddedMsgHandler), data->pStreamer);
+
+        //Set back the pipeline to PLAYING
+        CSIO_LOG( eLogLevel_debug,"TYPEFIND: set back to PLAYING." );
+        ret = csio_element_set_state(data->element_av[data->av_index-1], GST_STATE_PLAYING); 
+        if (ret == GST_STATE_CHANGE_FAILURE) {
+            CSIO_LOG(eLogLevel_error, "ERROR: TYPEFIND: unable to set the pipeline to PLAYING.");
+        }
+    }
+    // MPEGTS-DASH Streaming: (Note: For this case dashdemux only sends one pad-added signal, i.e. video_00)
+    else if( (data->httpMode == eHttpMode_DASH) && strcasestr(type, "video/mpegts") )
+    {
+        data->httpMode = eHttpMode_DASH_MPEGTS;
+        CSIO_LOG( eLogLevel_debug,"TYPEFIND: Media type is 'MPEG TS' DASH, add 'tsdemux' in av_index=%d", data->av_index );
+
+        data->element_av[data->av_index] = gst_element_factory_make( "tsdemux", NULL );
+        g_assert(data->element_av[data->av_index] != NULL);
+
+        gst_bin_add( GST_BIN(data->pipeline), data->element_av[data->av_index] );
+
+        if( gst_element_link((GstElement *)typefind, data->element_av[data->av_index]) != TRUE )
+        {
+            CSIO_LOG( eLogLevel_error,"ERROR: TYPEFIND: link tsdemux failed." );
+            gst_object_unref (data->pipeline);
+            return;
+        }
+
+        // Connect to the pad-added signal
+        CSIO_LOG( eLogLevel_debug,"TYPEFIND: Connect to pad-added signal." );
+        g_signal_connect (data->element_av[data->av_index++], "pad-added", G_CALLBACK (csio_PadAddedMsgHandler), data->pStreamer);
+
+        //Set back the pipeline to PLAYING
+        CSIO_LOG( eLogLevel_debug,"TYPEFIND: set back to PLAYING." );
+        ret = csio_element_set_state(data->element_av[data->av_index-1], GST_STATE_PLAYING); 
+        if (ret == GST_STATE_CHANGE_FAILURE) {
+            CSIO_LOG(eLogLevel_error, "ERROR: TYPEFIND: unable to set the pipeline to PLAYING.");
+        }
+    }
+    // Audio caps in DASH streaming
+    else if( strcasestr( type, "audio/x-m4a") )
+    {
+        CSIO_LOG( eLogLevel_debug,"TYPEFIND: Media type is 'audio/x-m4a' for DASH, add 'qtdemux' in av_index=%d", data->av_index );
+        data->element_av[data->av_index] = gst_element_factory_make( "qtdemux", NULL );
+        g_assert(data->element_av[data->av_index] != NULL);
+
+        gst_bin_add( GST_BIN(data->pipeline), data->element_av[data->av_index] );
+
+        if( gst_element_link((GstElement *)typefind, data->element_av[data->av_index]) != TRUE )
+        {
+            CSIO_LOG( eLogLevel_error,"ERROR: TYPEFIND: link qtdemux for AUDIO failed." );
+            gst_object_unref (data->pipeline);
+            return;
+        }
+
+        // Connect to the pad-added signal
+        CSIO_LOG( eLogLevel_debug,"TYPEFIND: Connect to pad-added signal." );
+        g_signal_connect (data->element_av[data->av_index++], "pad-added", G_CALLBACK (csio_PadAddedMsgHandler), data->pStreamer);
+
+        //Set back the pipeline to PLAYING
+        CSIO_LOG( eLogLevel_debug,"TYPEFIND: set back to PLAYING." );
+        ret = csio_element_set_state(data->element_av[data->av_index-1], GST_STATE_PLAYING); 
+        if (ret == GST_STATE_CHANGE_FAILURE) {
+            CSIO_LOG(eLogLevel_error, "ERROR: TYPEFIND: unable to set the pipeline to PLAYING.");
+        }
+    }
+    //@todo: WebM-DASH Streaming (add later, need change the audio and video codec also)
+    else if( (data->httpMode == eHttpMode_DASH) && strcasestr(type, "video/webM") )
+    {
+        data->httpMode = eHttpMode_DASH_WebM;
+        CSIO_LOG( eLogLevel_debug,"TYPEFIND: WARNING: Currently CSIO does not support WebM-DASH streaming." );
     }
     else
     {
-        CSIO_LOG( eLogLevel_debug,"%s() Media type is default\n", __FUNCTION__ );
+        CSIO_LOG( eLogLevel_debug,"%s() Media type is default.", __FUNCTION__ );
+    }
+    g_free (type);
+}
+
+/**
+ * \author      Leon Yu
+ *
+ * \date        11/7/2016
+ *
+ * \return      void
+ *
+ * \retval      void
+ *
+ * \brief       callback function - called by the pad-added signal 
+ *
+ * \param
+ * \param
+ * \param    
+ * 
+ */
+void csio_DASH_PadAddedHandler( GstElement *src, GstPad *new_pad, CREGSTREAM *data )
+{
+    CSIO_LOG(eLogLevel_debug, "DASHDEMUX: Received new pad '%s' from '%s'", GST_PAD_NAME(new_pad), GST_ELEMENT_NAME(src));
+
+    GstCaps      *new_pad_caps   = gst_pad_query_caps( new_pad, NULL );
+    GstStructure *new_pad_struct = gst_caps_get_structure( new_pad_caps, 0 );
+    const gchar  *new_pad_type   = gst_structure_get_name( new_pad_struct );
+    CSIO_LOG(eLogLevel_debug, "DASHDEMUX: caps: '%s' New pads type: '%s'", gst_caps_to_string(new_pad_caps), new_pad_type);
+
+    if ( strcasestr( gst_caps_to_string(new_pad_caps), "ANY") )
+    {
+        //a little trick here, this av_index handles both video_00 and audio_00 pads, and index increases 1.
+        if (data->element_av[data->av_index] == NULL)
+        {
+            CSIO_LOG(eLogLevel_debug, "DASHDEMUX: Add element typefind, av_index = %d", data->av_index);
+            //add another typefind element to find the detail caps of video or audio sources because dashdemux caps outputs ANY.
+            data->element_av[data->av_index] = gst_element_factory_make( "typefind", NULL );
+            g_assert(data->element_av[data->av_index] != NULL);
+        }
+        else
+        {
+            CSIO_LOG(eLogLevel_debug, "ERROR: Unexpected error!");
+        }
+
+        gst_bin_add( GST_BIN(data->pipeline), data->element_av[data->av_index] );
+
+        // notice either element av_index 2 or 3 links to element 1. 
+        if ( gst_element_link (data->element_av[1], data->element_av[data->av_index]) != TRUE )
+        {
+            CSIO_LOG(eLogLevel_error, "ERROR: link dashdemux failed.");
+            gst_object_unref (data->pipeline);
+            gst_caps_unref(new_pad_caps);
+            return;
+        }
+
+        // Connect to the pad-added signal
+        CSIO_LOG( eLogLevel_debug,"DASHDEMUX: Connect to have-type signal." );
+        g_signal_connect(data->element_av[data->av_index++], "have-type", G_CALLBACK(csio_TypeFindMsgHandler), data);
+
+        int ret = csio_element_set_state(data->element_av[data->av_index-1], GST_STATE_PLAYING); 
+        if (ret == GST_STATE_CHANGE_FAILURE) {
+            CSIO_LOG(eLogLevel_error, "ERROR: unable to set the pipeline to PLAYING state.");
+        }
+    }
+    else
+    {
+        CSIO_LOG(eLogLevel_debug, "DASHDEMUX: caps: '%s'", gst_caps_to_string(new_pad_caps));
     }
 
-    g_free (type);
+    gst_caps_unref(new_pad_caps);
 }
 
 /**
@@ -639,8 +909,8 @@ int build_video_pipeline(gchar *encoding_name, CREGSTREAM *data, unsigned int st
 	
     data->using_glimagsink = 0;
     *sink = NULL;
-    //CSIO_LOG(eLogLevel_debug, "encoding_name=%s, native_window=%p, start=%u, do_rtp=%d",
-    //		  encoding_name, data->native_window, start, do_rtp);
+    CSIO_LOG(eLogLevel_extraVerbose, "%s() encoding_name=%s, native_window=%p, start=%u, do_rtp=%d",
+             __FUNCTION__, encoding_name, data->native_window, start, do_rtp);
 
     if((strcmp(encoding_name, "H264") == 0) || (strcmp(encoding_name, "video/x-h264") == 0))
     {
@@ -757,7 +1027,7 @@ int build_video_pipeline(gchar *encoding_name, CREGSTREAM *data, unsigned int st
 		
 		if(product_info()->mjpeg_decoder_string[0])
 		{
-			CSIO_LOG(eLogLevel_debug, "MJPEG: using the Hardware decoder via TI Ducati\n");
+			CSIO_LOG(eLogLevel_debug, "MJPEG: using the Hardware decoder via TI Ducati");
 			// We are using gstreamer androidmedia plugin to decode mjpeg.
 		    //add a probe for loss of video detection.
 			GstPad *pad;
@@ -772,7 +1042,7 @@ int build_video_pipeline(gchar *encoding_name, CREGSTREAM *data, unsigned int st
 			data->element_v[i++] = gst_element_factory_make(product_info()->mjpeg_decoder_string, NULL);
 			data->amcvid_dec = data->element_v[i-1];
 
-			CSIO_LOG(eLogLevel_debug, "MJPEG: invokes SetVpuDecoder\n");
+			CSIO_LOG(eLogLevel_debug, "MJPEG: invokes SetVpuDecoder");
 			csio_SetVpuDecoder(data->amcvid_dec, data->streamId);
 
 			//SET OFFSET to zero for now
@@ -791,13 +1061,13 @@ int build_video_pipeline(gchar *encoding_name, CREGSTREAM *data, unsigned int st
 				CSIO_LOG(eLogLevel_debug, "connect to crestron-vdec-output: StreamId[%d],sigHandlerId[%d]",data->streamId,sigId);
 
 				if(sigId)
-					CSIO_LOG(eLogLevel_debug, "MJPEG:  invokes SetWaitDecHas1stVidDelay\n");
+					CSIO_LOG(eLogLevel_debug, "MJPEG:  invokes SetWaitDecHas1stVidDelay");
 					csio_SetWaitDecHas1stVidDelay(data->streamId,1);
 			}
 		}
 		else // If there is No hardware mjpeg decoder
 		{
-			CSIO_LOG(eLogLevel_debug, "MJPEG: using the software decoder: jpegdec\n");
+			CSIO_LOG(eLogLevel_debug, "MJPEG: using the software decoder: jpegdec");
 			data->element_v[i++] = gst_element_factory_make("jpegdec", NULL);
 			data->element_fake_dec = data->element_v[i-1];
 			*ele0 = data->element_v[0];
@@ -807,7 +1077,7 @@ int build_video_pipeline(gchar *encoding_name, CREGSTREAM *data, unsigned int st
 	else if(strcmp(encoding_name, "MPEG4") == 0)
 	{
 		if(do_rtp)
-		{		
+		{
 			data->element_v[i++] = gst_element_factory_make("rtpmp4vdepay", NULL);
 		}
 		//data->element_v[i++] = gst_element_factory_make("queue", NULL);
@@ -837,7 +1107,7 @@ int build_video_pipeline(gchar *encoding_name, CREGSTREAM *data, unsigned int st
 	}
 		
 	if(do_sink)
-	{		
+	{
 	    if(data->using_glimagsink)
 	    {
 	        data->element_v[i++] = gst_element_factory_make("videoconvert", NULL);
@@ -940,6 +1210,8 @@ int build_audio_pipeline(gchar *encoding_name, CREGSTREAM *data, int do_rtp,GstE
 	unsigned int start = 0;
 	unsigned int i = start;
 	unsigned int num_elements;		
+
+	CSIO_LOG(eLogLevel_extraVerbose, "%s() encoding_name=%s, do_rtp=%d", __FUNCTION__, encoding_name, do_rtp);
 	
 	if((strcmp(encoding_name, "MPEG4-GENERIC") == 0) || (strcmp(encoding_name, "audio/mpeg") == 0)
 		|| (strcmp(encoding_name, "MP4A-LATM") == 0))
@@ -961,10 +1233,13 @@ int build_audio_pipeline(gchar *encoding_name, CREGSTREAM *data, int do_rtp,GstE
 			else
 				data->element_a[i++] = gst_element_factory_make("rtpmp4gdepay", NULL);
 		}
+
+		CSIO_LOG(eLogLevel_extraVerbose, "%s() build rest of the audio pipeline.", __FUNCTION__);
+
 		data->element_a[i++] = gst_element_factory_make("aacparse", NULL);
 		data->element_a[i++] = gst_element_factory_make("queue", NULL);
     	data->element_a[i++] = gst_element_factory_make("faad", NULL);
-		
+
 		*ele0 = data->element_a[0];
 	}
 	else if(strcmp(encoding_name, "PCMU") == 0)
@@ -1063,24 +1338,24 @@ void build_http_pipeline(CREGSTREAM *data, int iStreamId)
 {
     char *url = (char *)currentSettingsDB->settingsMessage.msg[iStreamId].url;
 
-    CSIO_LOG(eLogLevel_debug, "%s() url=%s\n", __FUNCTION__, url);
+    CSIO_LOG(eLogLevel_extraVerbose, "%s() url=%s", __FUNCTION__, url);
 
     // create the source element
     data->element_zero = gst_element_factory_make("souphttpsrc", NULL);
     if( data->element_zero == NULL)
     {
-      CSIO_LOG(eLogLevel_error,  "ERROR: Unable to create souphttpsrc element\n" );
+      CSIO_LOG(eLogLevel_error,  "ERROR: Unable to create souphttpsrc element" );
       return;
     }
     g_object_set(G_OBJECT(data->element_zero), "location", url, NULL);
 
-    CSIO_LOG(eLogLevel_debug, "%s() Stream http type %s \n", __FUNCTION__, GST_ELEMENT_NAME (data->element_zero));
+    CSIO_LOG(eLogLevel_debug, "%s() Stream http type %s", __FUNCTION__, GST_ELEMENT_NAME (data->element_zero));
 
     if( data->httpMode == eHttpMode_MJPEG )
     {
         GstElement *sinker = NULL;
         GstElement *ele0 = NULL;
-        CSIO_LOG( eLogLevel_debug, "%s() it is http mjpeg.\n", __FUNCTION__ );
+        CSIO_LOG( eLogLevel_debug, "%s() it is http mjpeg.", __FUNCTION__ );
         
         g_object_set(G_OBJECT(data->element_zero), "is-live", 1, NULL);
         g_object_set(G_OBJECT(data->element_zero), "do-timestamp", 1, NULL);
@@ -1092,129 +1367,31 @@ void build_http_pipeline(CREGSTREAM *data, int iStreamId)
     else
     {
         // create the typefind element
-        data->element_v[0] = gst_element_factory_make( "typefind", NULL );
-        g_assert(data->element_v[0] != NULL);
+        data->element_av[0] = gst_element_factory_make( "typefind", NULL );
+        g_assert(data->element_av[0] != NULL);
 
         // adding elements to pipeline
-        gst_bin_add_many(GST_BIN(data->pipeline), data->element_zero, data->element_v[0], NULL);
+        gst_bin_add_many(GST_BIN(data->pipeline), data->element_zero, data->element_av[0], NULL);
 
         // link elements
-        if (gst_element_link (data->element_zero, data->element_v[0]) != TRUE)
+        if (gst_element_link (data->element_zero, data->element_av[0]) != TRUE)
         {
-            CSIO_LOG(eLogLevel_error, "ERROR: Elements could not be linked.\n");
+            CSIO_LOG(eLogLevel_error, "ERROR: Elements could not be linked.");
             gst_object_unref (data->pipeline);
             return;
         }
 
         // Connect to the have-type signal, streaming type will be found in CALLBACK function
-        CSIO_LOG(eLogLevel_debug, "%s() Connect to have-type signal.\n", __FUNCTION__);
-        g_signal_connect (data->element_v[0], "have-type", G_CALLBACK(csio_TypeFindMsgHandler), data);
+        CSIO_LOG(eLogLevel_extraVerbose, "%s() Connect to have-type signal.", __FUNCTION__);
+        g_signal_connect (data->element_av[0], "have-type", G_CALLBACK(csio_TypeFindMsgHandler), data);
 
         //Set the pipeline to PLAYING
-        CSIO_LOG(eLogLevel_debug, "%s() set state to: PLAYING\n", __FUNCTION__);
+        CSIO_LOG(eLogLevel_debug, "%s() set state to: PLAYING", __FUNCTION__);
         GstStateChangeReturn ret = csio_element_set_state(data->pipeline, GST_STATE_PLAYING); 
         if (ret == GST_STATE_CHANGE_FAILURE) {
-            CSIO_LOG(eLogLevel_error, "ERROR: unable to set the pipeline to PLAYING state.\n");
+            CSIO_LOG(eLogLevel_error, "ERROR: unable to set the pipeline to PLAYING state.");
         }
         data->video_sink = gst_bin_get_by_interface(GST_BIN(data->pipeline), GST_TYPE_VIDEO_OVERLAY);
     }
 }
 
-/**
- * \author      Pete McCormick
- *
- * \date        4/23/2015
- *
- * \return      void 
- *
- * \retval      void
- *
- * \brief       Set initial values of members of CustomData structure as needed.
- *
- * \param       userdata	
- *
- * \note		This would be a good place to pull these values 
- * 				from The Platform or somewhere else in the system.
- */
-void init_custom_data(CustomData * cdata)
-{
-	int i;
-	CREGSTREAM * data;
-	
-	GST_DEBUG_CATEGORY_INIT (debug_category, "cregstplay", 0, "Crestron gstreamer player!");
-	gst_debug_set_threshold_for_name("cregstplay", GST_LEVEL_ERROR);
-
-	for(i=0; i<MAX_STREAMS; i++)
-	{
-		data = &cdata->stream[i];
-		data->streamId = i;
-		data->udp_port = 9700;
-		data->udp_video_port = 2048;
-		data->udp_audio_port = 2049;
-		data->tcp_timeout_usec = 3000000;
-		data->udp_timeout_usec = 3000000;
-		data->protocols = GST_RTSP_LOWER_TRANS_UDP|GST_RTSP_LOWER_TRANS_UDP_MCAST|GST_RTSP_LOWER_TRANS_TCP;
-
-		// Tried keeping these as strings, but would crash when g_object_set was called for udpsrc.
-		data->caps_v_rtp = gst_caps_new_simple(
-			"application/x-rtp",
-			"media",         G_TYPE_STRING, "video",
-			"clock-rate",    G_TYPE_INT,     90000,
-			"encoding-name", G_TYPE_STRING, "H264",
-			NULL );
-
-		data->caps_a_rtp = gst_caps_new_simple  (
-				"application/x-rtp",
-				"media",        G_TYPE_STRING, 	"audio",
-				"clock-rate",   G_TYPE_INT,     48000,
-				"encoding-name",G_TYPE_STRING, 	"MPEG4-GENERIC",
-				"mode",			G_TYPE_STRING,	"AAC-hbr",
-				"config",		G_TYPE_STRING, 	"1190",
-				"sizelength",	G_TYPE_STRING, 	"13",
-				NULL);
-
-		// This is if there's ts encapsulation.
-		data->caps_v_ts = gst_caps_new_simple(
-			"application/x-rtp",
-			"media",         G_TYPE_STRING, "video",
-			"clock-rate",    G_TYPE_INT,     90000,
-			"encoding-name", G_TYPE_STRING, "MP2T",
-			"payload",       G_TYPE_INT,     33,
-			NULL );
-
-		// Pretend ts is on for now
-		data->caps_v = data->caps_v_ts;
-		data->caps_a = NULL;
-		data->amcviddec_ts_offset = DEFAULT_AMCVIDDEC_TS_OFFSET;
-		data->audiosink_ts_offset = 0;
-
-		data->dropAudio = false;
-		data->isStarted = false;
-		data->httpMode  = eHttpMode_UNSPECIFIED;
-		data->pStreamer = NULL;
-	}
-}
-
-void set_gst_debug_level(void)
-{
-	gchar temp[256];
-	FILE * f;
-
-	f = fopen("/dev/crestron/gst_debug", "r");
-	if (f == NULL)
-	{
-		snprintf(temp, sizeof(temp), "%s", "*:1");	// default to errors, warning for all plugins
-	}
-	else
-	{
-		fgets(temp, sizeof(temp), f);
-		fclose(f);
-	}
-	setenv("GST_DEBUG", temp, 1);
-	setenv("GST_DEBUG_NO_COLOR", "1", 1);
-	setenv("GST_PLUGIN_PATH", "/system/lib/gstreamer-1.0", 1);
-	// for x60, but should not harm other platforms - without this change you don't see any video
-	setenv("GST_AMC_IGNORE_UNKNOWN_COLOR_FORMATS", "yes", 1);
-
-	CSIO_LOG(eLogLevel_debug, "Set GST_DEBUG to %s", temp);
-}
