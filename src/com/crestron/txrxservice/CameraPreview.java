@@ -323,6 +323,10 @@ public class CameraPreview {
     		startThread.interrupt(); //cleanly kill thread
     		startThread = null;
     		streamCtl.RecoverDucati();
+    		try {
+    			Thread.sleep(2000);
+    		} catch (Exception e) {}
+    		streamCtl.RecoverMediaServer();
     	}
 
     }
@@ -382,6 +386,10 @@ public class CameraPreview {
     		stopThread = null;
     		streamCtl.SendStreamState(StreamState.STOPPED, idx);
     		streamCtl.RecoverDucati();
+    		try {
+    			Thread.sleep(2000);
+    		} catch (Exception e) {}
+    		streamCtl.RecoverMediaServer();
     	}
     }
 
