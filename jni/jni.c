@@ -583,7 +583,7 @@ void csio_jni_cleanup (int iStreamId)
 			}
 		}
 
-		closeEventfdLeak();
+//		closeEventfdLeak();
 	}
 }
 
