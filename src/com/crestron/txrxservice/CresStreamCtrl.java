@@ -124,6 +124,7 @@ public class CresStreamCtrl extends Service {
     static String playStatus="false";
     static String stopStatus="true";
     static String pauseStatus="false";
+    private DeviceMode lastHDMImode = DeviceMode.PREVIEW;
     boolean StreamOutstarted = false;
     boolean hdmiInputDriverPresent = false;
     boolean[] restartRequired = new boolean[NumOfSurfaces];
@@ -200,11 +201,12 @@ public class CresStreamCtrl extends Service {
     
     enum CameraMode {
     	Camera(0),
-    	Paused(1),
+    	StreamOutPaused(1),
     	NoVideo(2),
     	HDCPStreamError(3),
     	HDCPAllError(4),
-    	BlackScreen(5);
+    	BlackScreen(5),
+    	PreviewPaused(6);
     	
     	private final int value;
     	
@@ -2462,6 +2464,8 @@ public class CresStreamCtrl extends Service {
     	try
     	{
     		StringBuilder sb = new StringBuilder(512);
+    		
+    		lastHDMImode = DeviceMode.STREAM_OUT;
 
     		SendStreamState(StreamState.CONNECTING, sessId);
 
@@ -2500,6 +2504,8 @@ public class CresStreamCtrl extends Service {
     	Log.d(TAG, "Camera : Lock");
     	try
     	{
+    		lastHDMImode = DeviceMode.PREVIEW;
+    				
     		// If in streamout and in By Reciever(0) or Multicast RTSP (2) clear url on stop- Bug 103801
     		if ( (userSettings.getSessionInitiation(sessId) == 0) || (userSettings.getSessionInitiation(sessId) == 2) )
     			sockTask.SendDataToAllClients(String.format("STREAMURL%d=", sessId));
@@ -2742,6 +2748,7 @@ public class CresStreamCtrl extends Service {
     	{
     		if (cam_preview != null)
     		{
+    			lastHDMImode = DeviceMode.PREVIEW;
     			SendStreamState(StreamState.CONNECTING, sessId);
     			updateWindow(sessId);
     			showPreviewWindow(sessId);
@@ -3692,7 +3699,12 @@ public class CresStreamCtrl extends Service {
 				if ((previousCameraMode == CameraMode.NoVideo.ordinal()) || (previousCameraMode == CameraMode.BlackScreen.ordinal()))
 				{
 					if (Boolean.parseBoolean(pauseStatus) == true)
-						setCameraMode(String.valueOf(CameraMode.Paused.ordinal()));
+					{
+						if (lastHDMImode == DeviceMode.STREAM_OUT)
+							setCameraMode(String.valueOf(CameraMode.StreamOutPaused.ordinal()));
+						else
+							setCameraMode(String.valueOf(CameraMode.PreviewPaused.ordinal()));
+					}
 					else
 						setCameraMode(String.valueOf(CameraMode.Camera.ordinal()));
 				}
@@ -3703,13 +3715,18 @@ public class CresStreamCtrl extends Service {
 		sockTask.SendDataToAllClients(String.format("HDMIInputConnectedState=%b", !enable)); //true means hdmi input connected
 	}
 	
-	public void setPauseVideoImage(boolean enable) 
-	{
-		String cameraMode = "";
+	public void setPauseVideoImage(boolean enable, DeviceMode mode) 
+	{	
 		int previousCameraMode = readCameraMode();
 		if (enable)
-			setCameraMode(String.valueOf(CameraMode.Paused.ordinal()));
-		else if (previousCameraMode == CameraMode.Paused.ordinal())
+		{
+			if (mode == DeviceMode.STREAM_OUT)
+				setCameraMode(String.valueOf(CameraMode.StreamOutPaused.ordinal()));
+			else
+				setCameraMode(String.valueOf(CameraMode.PreviewPaused.ordinal()));
+		}
+		else if ( previousCameraMode == CameraMode.StreamOutPaused.ordinal() || 
+				previousCameraMode == CameraMode.PreviewPaused.ordinal() )
 			setCameraMode(String.valueOf(CameraMode.Camera.ordinal()));
 	}
 	
@@ -3729,7 +3746,12 @@ public class CresStreamCtrl extends Service {
 				(previousCameraMode == CameraMode.HDCPAllError.ordinal()))
 		{
 			if (Boolean.parseBoolean(pauseStatus) == true)
-				setCameraMode(String.valueOf(CameraMode.Paused.ordinal()));
+			{
+				if (lastHDMImode == DeviceMode.STREAM_OUT)
+					setCameraMode(String.valueOf(CameraMode.StreamOutPaused.ordinal()));
+				else
+					setCameraMode(String.valueOf(CameraMode.PreviewPaused.ordinal()));
+			}
 			else
 				setCameraMode(String.valueOf(CameraMode.Camera.ordinal()));
 		}

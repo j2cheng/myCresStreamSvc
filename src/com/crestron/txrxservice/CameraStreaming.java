@@ -12,6 +12,7 @@ import java.util.regex.Matcher;
 import java.util.regex.Pattern;
 
 import com.crestron.txrxservice.AudioPlayback.StreamAudioTask;
+import com.crestron.txrxservice.CresStreamCtrl.DeviceMode;
 import com.crestron.txrxservice.CresStreamCtrl.StreamState;
 import com.crestron.txrxservice.ProductSpecific;
 
@@ -741,7 +742,7 @@ public class CameraStreaming {
     			} catch (Exception e) { e.printStackTrace(); }
     			
     			out_stream_status = false;
-	            streamCtl.setPauseVideoImage(false);
+	            streamCtl.setPauseVideoImage(false, DeviceMode.STREAM_OUT);
 	            is_pause = false;
 	            stopStatisticsTask();
 	            
@@ -792,7 +793,7 @@ public class CameraStreaming {
 	    	Log.d(TAG, "pausePlayback");
 	        try
 	        {
-	        	streamCtl.setPauseVideoImage(true);
+	        	streamCtl.setPauseVideoImage(true, DeviceMode.STREAM_OUT);
 	        	is_pause = true;
 	        	streamCtl.SendStreamState(StreamState.PAUSED, idx);
 	        	return true;
@@ -809,7 +810,7 @@ public class CameraStreaming {
     	Log.d(TAG, "resumePlayback");
         try
         {
-        	streamCtl.setPauseVideoImage(false);
+        	streamCtl.setPauseVideoImage(false, DeviceMode.STREAM_OUT);
         	is_pause = false;
         	streamCtl.SendStreamState(StreamState.STARTED, idx);
         	return true;

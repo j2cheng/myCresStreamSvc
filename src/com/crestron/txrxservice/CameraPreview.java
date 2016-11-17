@@ -5,6 +5,7 @@ import java.util.List;
 import java.util.concurrent.CountDownLatch;
 import java.util.concurrent.TimeUnit;
 
+import com.crestron.txrxservice.CresStreamCtrl.DeviceMode;
 import com.crestron.txrxservice.CresStreamCtrl.StreamState;
 
 import android.hardware.Camera;
@@ -64,7 +65,7 @@ public class CameraPreview {
             if (is_preview)
             {
                 is_pause = true;
-                streamCtl.setPauseVideoImage(true);
+                streamCtl.setPauseVideoImage(true, DeviceMode.PREVIEW);
                 stopAudio();
                 streamCtl.SendStreamState(StreamState.PAUSED, idx);
             }
@@ -85,7 +86,7 @@ public class CameraPreview {
             if (is_preview)
             {
                 is_pause = false;
-                streamCtl.setPauseVideoImage(false);
+                streamCtl.setPauseVideoImage(false, DeviceMode.PREVIEW);
                 startAudio();
             }
             
@@ -349,7 +350,7 @@ public class CameraPreview {
 		            		CresCamera.releaseCamera();
 		                }
 		                is_preview = false;
-		                streamCtl.setPauseVideoImage(false);
+		                streamCtl.setPauseVideoImage(false, DeviceMode.PREVIEW);
 		                is_pause = false;
 		                Log.d(TAG, "Playback stopped !");
 		                
