@@ -539,52 +539,54 @@ void csio_jni_cleanup (int iStreamId)
 
     csio_jni_FreeMainContext(iStreamId);
 
-	if (shouldCloseSockets()) //all streams stopped or near max fd limit
-	{
-		// Close all the AF_UNIX sockets that Android creates when querying DNS
-		// On Jellybean, these sockets were accruing with each connection, eventually exceeding the maximum and crashing csio
-		// Fixes bug#92551
-		// Get the maximum number of file descriptors this process can open
-		struct rlimit limit;
-		getrlimit(RLIMIT_NOFILE, &limit);
-
-		// Don't both checking fd 0, 1, and 2
-		for (index = 3; index < limit.rlim_cur; ++index)
-		{
-			struct sockaddr addr;
-			socklen_t len = sizeof(addr);
-
-			// if ( (this fd is open and is a socket) && (this socket is AF_UNIX) )
-			if ( (getsockname(index, &addr, &len) == 0) && (addr.sa_family == AF_UNIX) )
-			{
-				bool portFound = false;
-
-				for (portIndex =0; portIndex < c_maxNumInitialPorts; portIndex++)
-				{
-					if (initialPorts[portIndex] == index)
-					{
-						portFound = true;
-						break;
-					}
-					else if (initialPorts[portIndex] == 0)
-					{
-						// reached end of initialPorts
-						portFound = false;
-						break;
-					}
-				}
-
-
-				if (!portFound)
-				{
-					CSIO_LOG(eLogLevel_debug, "Closing socket fd %d\n", index);
-					close(index);
-				}
-			}
-		}
-
+// Do not close AF_UNIX sockets or file descriptors since doing so interferes with sockets opened by streamout.
+// These leaks were addressed by a gstreamer check-in for bug #118244.
+//	if (shouldCloseSockets()) //all streams stopped or near max fd limit
+//	{
+//		// Close all the AF_UNIX sockets that Android creates when querying DNS
+//		// On Jellybean, these sockets were accruing with each connection, eventually exceeding the maximum and crashing csio
+//		// Fixes bug#92551
+//		// Get the maximum number of file descriptors this process can open
+//		struct rlimit limit;
+//		getrlimit(RLIMIT_NOFILE, &limit);
+//
+//		// Don't both checking fd 0, 1, and 2
+//		for (index = 3; index < limit.rlim_cur; ++index)
+//		{
+//			struct sockaddr addr;
+//			socklen_t len = sizeof(addr);
+//
+//			// if ( (this fd is open and is a socket) && (this socket is AF_UNIX) )
+//			if ( (getsockname(index, &addr, &len) == 0) && (addr.sa_family == AF_UNIX) )
+//			{
+//				bool portFound = false;
+//
+//				for (portIndex =0; portIndex < c_maxNumInitialPorts; portIndex++)
+//				{
+//					if (initialPorts[portIndex] == index)
+//					{
+//						portFound = true;
+//						break;
+//					}
+//					else if (initialPorts[portIndex] == 0)
+//					{
+//						// reached end of initialPorts
+//						portFound = false;
+//						break;
+//					}
+//				}
+//
+//
+//				if (!portFound)
+//				{
+//					CSIO_LOG(eLogLevel_debug, "Closing socket fd %d\n", index);
+//					close(index);
+//				}
+//			}
+//		}
+//
 //		closeEventfdLeak();
-	}
+//	}
 }
 
 void * jni_stop (void * arg)
