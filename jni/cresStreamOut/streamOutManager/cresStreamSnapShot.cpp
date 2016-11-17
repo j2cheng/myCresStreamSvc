@@ -403,45 +403,6 @@ void SnapShot::cleanup(void)
 	deleteAllFiles( CRES_SNAPSHOT_RAMDISK );
 	deleteAllFiles( CRES_SNAPSHOT_WEB_RAMDISK );
     mULock->unlock();
-
-// TODO: If we ever use eventfd elsewhere we will need to make sure that we dont close it here
-//	 In Gstreamer 1.8.x a anon_inode[eventfd] leak was introduced, we must close these as well
-	DIR *fdFolder;
-	struct dirent *next_file;
-	char tmp[512];
-	char filepath[256];
-	ssize_t ret;
-
-	fdFolder = opendir(PROC_SELF_FD_FILEPATH);
-
-	if (fdFolder != NULL)
-	{
-		while ( (next_file = readdir(fdFolder)) != NULL )
-		{
-			// build the path for each file in the folder
-			sprintf(filepath, "%s/%s", PROC_SELF_FD_FILEPATH, next_file->d_name);
-
-			ret = readlink(filepath, (char *) &tmp[0], sizeof(tmp));
-			if (ret >= 0)
-			{
-				tmp[ret] = '\0';	// readlink will not terminate buf w/ NULL
-
-				if (strstr((char *) &tmp[0], "anon_inode:[eventfd]") != NULL)
-				{
-					char *end;
-
-					int fd = (int)strtol(next_file->d_name, &end, 10);        //10 specifies base-10
-					if (end != next_file->d_name)     //if no characters were converted these pointers are equal
-					{
-						CSIO_LOG(eLogLevel_verbose, "SnapShot: Closing anon_inode fd %d", fd);
-						if (close(fd) == -1)
-							CSIO_LOG(eLogLevel_error, "SnapShot: Could not close fd %d, errno = %d", fd, errno);
-					}
-				}
-			}
-		}
-		closedir(fdFolder);
-	}
 }
 
 int SnapShot::startClient(void *arg)
