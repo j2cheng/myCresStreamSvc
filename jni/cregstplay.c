@@ -680,9 +680,26 @@ void csio_TypeFindMsgHandler( GstElement *typefind, guint probability, GstCaps *
         //@todo: WebM-DASH Streaming (not implemented, need change the audio and video codec also)
         CSIO_LOG( eLogLevel_info,"TYPEFIND: WARNING: Currently CSIO does not support WebM-DASH streaming." );
     }
+    else if( strcasestr(type, "multipart") )
+    {
+		GstElement *sinker = NULL;
+		GstElement *ele0 = NULL;
+		GstStateChangeReturn ret = csio_element_set_state(data->pipeline, GST_STATE_READY);
+
+		g_object_set(G_OBJECT(data->element_zero), "is-live", 1, NULL);
+		g_object_set(G_OBJECT(data->element_zero), "do-timestamp", 1, NULL);
+
+		build_video_pipeline("image/jpeg", data, 0, 0,&ele0,&sinker);
+		gst_element_unlink(data->element_zero, (GstElement *)typefind);
+		if(!gst_element_link_many(data->element_zero, ele0, NULL))
+		{
+			 CSIO_LOG(eLogLevel_error,  "ERROR: Cannot link source.\n" );
+		}
+		ret = csio_element_set_state(data->pipeline, GST_STATE_PLAYING);
+    }
     else
     {
-        CSIO_LOG( eLogLevel_debug,"TYPEFIND: Media type is default." );
+        CSIO_LOG( eLogLevel_warning,"TYPEFIND: Unknown media type." );
     }
     g_free (type);
 }
@@ -1354,7 +1371,6 @@ void build_http_pipeline(CREGSTREAM *data, int iStreamId)
         gst_bin_add(GST_BIN(data->pipeline), data->element_zero);
         build_video_pipeline("image/jpeg", data, 0, 0,&ele0,&sinker);
         gst_element_link_many(data->element_zero, data->element_v[0], NULL);
-        data->element_zero = NULL;    // no callbacks
     }
     else
     {
