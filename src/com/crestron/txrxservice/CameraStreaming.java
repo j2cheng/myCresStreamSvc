@@ -128,7 +128,7 @@ public class CameraStreaming {
 		        }
 		
 		        mrec = new MediaRecorder();
-		        CresCamera.openCamera();
+		        CresCamera.openCamera(streamCtl);
 		        // This is here because moved out of openCamera
 		        ProductSpecific.getHdmiInputStatus();			
 		        if(CresCamera.mCamera != null){

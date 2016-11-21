@@ -123,7 +123,7 @@ public class CameraPreview {
 		        if(is_preview == false){		        	
 		        	Log.d(TAG, "Actual startPlayback");
 
-		        	CresCamera.openCamera();
+		        	CresCamera.openCamera(streamCtl);
 		        	// This is here because moved out of openCamera
 		        	if(hdmiIf != null)
 		        	{

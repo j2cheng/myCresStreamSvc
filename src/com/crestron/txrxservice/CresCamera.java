@@ -24,7 +24,7 @@ public class CresCamera {
 		return cameraId;
 	}
 
-	public static void openCamera(){
+	public static void openCamera(CresStreamCtrl streamCtrl){
 		synchronized (lockObj)
 		{
 			if (mCamera != null)
@@ -43,7 +43,9 @@ public class CresCamera {
 						SystemClock.sleep(1000);
 					}
 				}
-			}			
+			}	
+			if (mCamera == null)
+				streamCtrl.RecoverMediaServer();
 			return;
 		}
 	}
