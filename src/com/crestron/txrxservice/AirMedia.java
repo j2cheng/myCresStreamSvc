@@ -38,6 +38,7 @@ public class AirMedia
     		mContext.startActivity(intent);
     		intent.putExtra("receiver_name", "AirMedia");
     		intializeDisplay();
+    		set4in1ScreenEnable(false); // TODO: Remove this when quad view is eventually enabled
     	}
     	else {
         	Log.e(TAG, "Failed to launch Airmedia!");
