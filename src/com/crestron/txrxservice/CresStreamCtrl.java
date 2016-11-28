@@ -157,6 +157,7 @@ public class CresStreamCtrl extends Service {
     private int numberOfVideoTimeouts = 0; //we will use this to track stop/start timeouts
     private final ProductSpecific mProductSpecific = new ProductSpecific();
     private final static String multicastTTLFilePath = "/dev/shm/crestron/CresStreamSvc/multicast_ttl";
+    private final static String keyFrameIntervalFilePath = "/dev/shm/crestron/CresStreamSvc/keyframe_interval";
     
     private final static String ducatiCrashCountFilePath = "/dev/shm/crestron/CresStreamSvc/ducatiCrashCount";
     public final static String gstreamerTimeoutCountFilePath = "/dev/shm/crestron/CresStreamSvc/gstreamerTimeoutCount";
@@ -2837,6 +2838,11 @@ public class CresStreamCtrl extends Service {
     public void setMulticastTTl(int value){
     	userSettings.setMulticastTTL(value);
     	MiscUtils.writeStringToDisk(multicastTTLFilePath, String.valueOf(value));
+    }
+    
+    public void setKeyFrameInterval(int value){
+    	userSettings.setKeyFrameInterval(value);
+    	MiscUtils.writeStringToDisk(keyFrameIntervalFilePath, String.valueOf(value));
     }
     
     public void setSessionInitiation(int sessionInitiation, int sessionId)

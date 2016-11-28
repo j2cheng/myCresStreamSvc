@@ -194,6 +194,7 @@ public class UserSettings
 	private int streamOutAudioChannels;
 	private String rtspStreamFileName;
 	private String rtspSessionName;
+	private int keyFrameInterval;
 
 	// HDMI OUT
 	private boolean hdmiOutForceHdcp;
@@ -300,6 +301,7 @@ public class UserSettings
 		osdLocation         = 1;  // Upper left
 		osdXLocation        = 0;
 		osdYLocation        = 0;
+		keyFrameInterval    = 1;
 		rtspStreamFileName	= "live.sdp";
 		rtspSessionName		= "CrestronStreamingSession";
 		multicastTTL		= 64;
@@ -898,6 +900,14 @@ public class UserSettings
 
 	public void setStreamOutAspectRatio(int streamOutAspectRatio) {
 		this.streamOutAspectRatio = streamOutAspectRatio;
+	}
+
+	public int getKeyFrameInterval() {
+		return keyFrameInterval;
+	}
+
+	public void setKeyFrameInterval(int keyFrameInterval) {
+		this.keyFrameInterval = keyFrameInterval;
 	}
 
 	public int getStreamOutAudioFormat() {

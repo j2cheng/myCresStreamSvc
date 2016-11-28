@@ -348,7 +348,7 @@ public class TCPInterface extends AsyncTask<Void, Object, Long> {
                     String read = input.readLine();
                     if(read!=null && !(isWhiteSpace=(read.matches("^\\s*$"))))
                     {
-                        Log.d(TAG, "msg recived is "+read);
+                        Log.d(TAG, "msg received is "+read);
                         if((read.trim()).equalsIgnoreCase("help")){
                             String validatedMsg = parserInstance.validateReceivedMessage(read);
                             serverHandler.SendDataToAllClients(validatedMsg);

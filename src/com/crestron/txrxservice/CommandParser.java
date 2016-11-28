@@ -99,6 +99,7 @@ public class CommandParser {
         STREAMOUT_AUDIO_CHANNELS,
         STREAMOUT_RTSP_STREAM_FILENAME,
         STREAMOUT_RTSP_SESSION_NAME,
+        STREAMOUT_KEY_FRAME_INTERVAL,
         //STREAMING
         PROCESSING_FB,
         DEVICE_READY_FB,
@@ -252,6 +253,7 @@ public class CommandParser {
         sb.append("NEW_SINK(=true)\r\n");
         sb.append("STREAMOUT_RTSP_STREAM_FILENAME(=)\r\n");
         sb.append("STREAMOUT_RTSP_SESSION_NAME(=)\r\n");
+        sb.append("STREAMOUT_KEY_FRAME_INTERVAL(=)\r\n");
 
         sb.append("UPDATEREQUEST\r\nType COMMAND for Query |streamstate to know status\r\n");
         
@@ -520,6 +522,9 @@ public class CommandParser {
             case STREAMOUT_RTSP_SESSION_NAME:
             	cmd = new StreamOutRtspSessionName(ctrl, arg); 
                 break; 
+            case STREAMOUT_KEY_FRAME_INTERVAL:
+            	cmd = new StreamOutKeyFrameInterval(ctrl, arg);
+            	break;
             //STREAMING
             case PROCESSING_FB:
                 cmd = new ProcessingCommand(ctrl, arg); 

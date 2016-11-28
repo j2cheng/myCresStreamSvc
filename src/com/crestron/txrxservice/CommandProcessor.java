@@ -1403,6 +1403,22 @@ class StreamOutRtspSessionName extends CrestronCommand {
         }
 }
 
+class StreamOutKeyFrameInterval extends CrestronCommand {
+
+    public StreamOutKeyFrameInterval(CresStreamCtrl ctrl, String arg) {
+        super(ctrl, arg);
+    }
+    
+    @Override
+    public void execute() {
+        int val = Integer.valueOf(msg);
+        ctrl.setKeyFrameInterval(val);
+    }
+    public String getFeedbackMsg() {
+        return String.valueOf(ctrl.userSettings.getKeyFrameInterval());
+    }
+}
+
 class StreamStateCommand extends CrestronCommand {
 
     public StreamStateCommand(CresStreamCtrl ctrl, String arg, int sessId) {
