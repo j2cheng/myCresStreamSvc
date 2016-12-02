@@ -141,7 +141,11 @@ void init_custom_data(CustomData * cdata)
             data->element_a[i]  = NULL;
             data->element_v[i]  = NULL;   
         }
-        data->av_index      = 0;
+        data->av_index = 0;
+        data->typefind = NULL;
+        data->demux = NULL;
+        data->hls_started = false;
+        data->has_typefind = false;
 	}
 }
 
@@ -499,12 +503,15 @@ void csio_TypeFindMsgHandler( GstElement *typefind, guint probability, GstCaps *
     {
         CSIO_LOG( eLogLevel_debug,"TYPEFIND: detecting what type of HLS ..." );
         data->httpMode = eHttpMode_HLS;
+        data->hls_started = FALSE;             //reset it each time we detected the HLS streaming
+        data->has_typefind = FALSE;
+
         data->element_av[1] = gst_element_factory_make( "hlsdemux", NULL );
         g_assert(data->element_av[1] != NULL);
 
-        // we MUST set this property, otherwise HLS link failed with -2 after playing a few seconds.
-        CSIO_LOG(eLogLevel_debug, "TYPEFIND: set connection-speed to 15000" );
-        g_object_set(G_OBJECT(data->element_av[1]), "connection-speed", 15000, NULL);
+        // This is an alternative to make the HLS streaming working, but it limits to use single bitrate. 
+        //CSIO_LOG(eLogLevel_debug, "TYPEFIND: set connection-speed to 15000" );
+        //g_object_set(G_OBJECT(data->element_av[1]), "connection-speed", 15000, NULL);
 
         data->element_after_tsdemux = 3;
 
@@ -601,6 +608,8 @@ void csio_TypeFindMsgHandler( GstElement *typefind, guint probability, GstCaps *
         data->element_av[data->av_index] = gst_element_factory_make( "qtdemux", NULL );
         g_assert(data->element_av[data->av_index] != NULL);
 
+        data->demux = data->element_av[data->av_index];
+
         gst_bin_add( GST_BIN(data->pipeline), data->element_av[data->av_index] );
 
         if( gst_element_link((GstElement *)typefind, data->element_av[data->av_index]) != TRUE )
@@ -627,6 +636,8 @@ void csio_TypeFindMsgHandler( GstElement *typefind, guint probability, GstCaps *
         CSIO_LOG( eLogLevel_debug,"TYPEFIND: Media type is 'MPEG TS', add 'tsdemux' in av_index=%d", data->av_index );
         data->element_av[data->av_index] = gst_element_factory_make( "tsdemux", NULL );
         g_assert(data->element_av[data->av_index] != NULL);
+
+        data->demux = data->element_av[data->av_index];
 
         gst_bin_add( GST_BIN(data->pipeline), data->element_av[data->av_index] );
 
@@ -722,14 +733,16 @@ void csio_TypeFindMsgHandler( GstElement *typefind, guint probability, GstCaps *
  */
 void csio_Adaptive_PadAddedMsgHandler( GstElement *src, GstPad *new_pad, CREGSTREAM *data )
 {
-    CSIO_LOG(eLogLevel_debug, "Adaptive: Received new pad '%s' from '%s'", GST_PAD_NAME(new_pad), GST_ELEMENT_NAME(src));
+    CSIO_LOG(eLogLevel_debug, "Adaptive: Received new pad '%s' from '%s'", 
+             GST_PAD_NAME(new_pad), GST_ELEMENT_NAME(src));
 
     GstCaps      *new_pad_caps   = gst_pad_query_caps( new_pad, NULL );
     GstStructure *new_pad_struct = gst_caps_get_structure( new_pad_caps, 0 );
     const gchar  *new_pad_type   = gst_structure_get_name( new_pad_struct );
-    CSIO_LOG(eLogLevel_debug, "Adaptive: caps: '%s' New pads type: '%s'", gst_caps_to_string(new_pad_caps), new_pad_type);
+    CSIO_LOG(eLogLevel_debug, "Adaptive: caps: '%s' New pads type: '%s' av_index = %d", 
+             gst_caps_to_string(new_pad_caps), new_pad_type, data->av_index);
 
-    if ( strcasestr( gst_caps_to_string(new_pad_caps), "ANY") )
+    if ( strcasestr( gst_caps_to_string(new_pad_caps), "ANY") && data->hls_started == FALSE )
     {
         //a little trick here, this av_index handles both video_00 and audio_00 pads for DASH, and index increases 1, also for src_0 pad for HLS.
         if (data->element_av[data->av_index] == NULL)
@@ -738,6 +751,8 @@ void csio_Adaptive_PadAddedMsgHandler( GstElement *src, GstPad *new_pad, CREGSTR
             //add another typefind element to find the detail caps of video or audio sources because dashdemux caps outputs ANY.
             data->element_av[data->av_index] = gst_element_factory_make( "typefind", NULL );
             g_assert(data->element_av[data->av_index] != NULL);
+
+            data->typefind = data->element_av[data->av_index];
         }
         else
         {
@@ -749,11 +764,12 @@ void csio_Adaptive_PadAddedMsgHandler( GstElement *src, GstPad *new_pad, CREGSTR
         // notice either element av_index 2 or 3 links to element 1. 
         if ( gst_element_link (data->element_av[1], data->element_av[data->av_index]) != TRUE )
         {
+            data->hls_started = FALSE;
             CSIO_LOG(eLogLevel_error, "ERROR: link adaptive demux failed.");
             gst_object_unref (data->pipeline);
             gst_caps_unref(new_pad_caps);
             return;
-        }
+        } 
 
         // Connect to the pad-added signal
         CSIO_LOG( eLogLevel_debug,"Adaptive: Connect to have-type signal." );
@@ -763,11 +779,60 @@ void csio_Adaptive_PadAddedMsgHandler( GstElement *src, GstPad *new_pad, CREGSTR
         if (ret == GST_STATE_CHANGE_FAILURE) {
             CSIO_LOG(eLogLevel_error, "ERROR: unable to set the pipeline to PLAYING state.");
         }
+        
+        if (data->httpMode == eHttpMode_HLS) {
+            data->hls_started = TRUE;
+            data->has_typefind = TRUE;
+        }
+    }
+    //this handles HLS streaming when the bitrate changes. we received the 2nd(src_1) or 3rd(src_2), 4th(src_3), ... , pad-added signals.
+    else if ( (data->httpMode == eHttpMode_HLS) && data->hls_started == TRUE )
+    {
+        if ( data->has_typefind ) {
+          CSIO_LOG(eLogLevel_debug, "Adaptive: unlink the hlsdemux to typefind to demux.\n");
+          gst_element_unlink_many (data->element_av[1], data->typefind, data->demux, NULL);  
+        }
+        else {
+          CSIO_LOG(eLogLevel_debug, "Adaptive: unlink the hlsdemux to demux.\n");
+          gst_element_unlink (data->element_av[1], data->demux);  
+        }
+
+        // get the sinkpad of the demux
+        GstPad *sinkpad  = gst_element_get_static_pad (data->demux, "sink");
+        if (sinkpad == NULL) { 
+            CSIO_LOG(eLogLevel_error, "Adaptive: get sinkpad failed\n");
+            gst_object_unref (data->pipeline);
+            gst_caps_unref(new_pad_caps);
+            return;
+        } 
+
+        // link to the demux directly
+        GstPadLinkReturn PadLinkRet = gst_pad_link (new_pad, sinkpad);
+        if (GST_PAD_LINK_FAILED (PadLinkRet)) {
+            CSIO_LOG(eLogLevel_error, "Adaptive: pad-added link failed %d\n", PadLinkRet);
+            gst_object_unref (data->pipeline);
+            gst_caps_unref(new_pad_caps);
+            return;
+        }
+
+        // set the demux to PLAYING
+        GstStateChangeReturn StateChangeReturn = csio_element_set_state(data->demux, GST_STATE_PLAYING); 
+        if (StateChangeReturn == GST_STATE_CHANGE_FAILURE) {
+            CSIO_LOG(eLogLevel_error, "Adaptive: unable to set the demux to PLAYING state");
+            gst_object_unref (data->pipeline);
+            gst_caps_unref(new_pad_caps);
+            return;
+        }
+        data->has_typefind = FALSE;
+
+        // always remember to release 
+        gst_object_unref(sinkpad);
     }
     else
     {
         CSIO_LOG(eLogLevel_debug, "Adaptive: caps: '%s'", gst_caps_to_string(new_pad_caps));
     }
+
     gst_caps_unref(new_pad_caps);
 }
 

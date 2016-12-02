@@ -80,6 +80,9 @@ typedef struct _CREGSTREAM
 	GstElement *element_a [MAX_ELEMENTS];
 	GstElement *element_v [MAX_ELEMENTS];
 	guint       av_index;
+	GstElement *demux;
+	GstElement *typefind;
+
 	unsigned int element_after_tsdemux;	/* Used to add the rest of the video pipeline */
 	
 	// parameters from control system/platform/java
@@ -123,8 +126,10 @@ typedef struct _CREGSTREAM
 	struct timespec udpsrc_prob_timer;
 	char sourceIP_addr[32];
 
-	bool isStarted;
+    bool isStarted;
     eHttpMode httpMode;
+    bool hls_started;
+    bool has_typefind;
     void *pStreamer;
 } CREGSTREAM;
 
