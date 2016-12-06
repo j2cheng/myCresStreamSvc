@@ -1248,6 +1248,12 @@ public class CresStreamCtrl extends Service {
     {
     	userSettings.setRavaMode(enabled);    		
     	
+// Workaround to mute airmedia during rava call
+    	if ((mAirMedia != null))
+    	{
+    		setStreamMusicMute(enabled);
+    	}
+    	
     	for(int sessionId = 0; sessionId < NumOfSurfaces; sessionId++)
     	{
     		if (userSettings.getUserRequestedStreamState(sessionId) == StreamState.STARTED)
@@ -2111,10 +2117,16 @@ public class CresStreamCtrl extends Service {
     	return hdmiOutput.getAudioChannels();
     }
     
+    // volume 0 - 100%
     public void setSystemVolume(int volume)
     {    	
     	// Stream Out preview audio will be placed on the unused ALARM stream
     	amanager.setStreamVolume(AudioManager.STREAM_ALARM, volume * amanager.getStreamMaxVolume(AudioManager.STREAM_ALARM) / 100, 0);
+    }
+    
+    public void setStreamMusicMute(boolean enabled)
+    {    
+    	amanager.setStreamMute(AudioManager.STREAM_MUSIC, enabled);
     }
     
     private void setPreviewVolume(int volume)
@@ -2755,7 +2767,7 @@ public class CresStreamCtrl extends Service {
     			showPreviewWindow(sessId);
     			cam_preview.setSessionIndex(sessId);
     			invalidateSurface();
-    			cam_preview.startPlayback(false);
+    				cam_preview.startPlayback(false);
     			//Toast.makeText(this, "Preview Started", Toast.LENGTH_LONG).show();
     		}
     	}
@@ -2780,7 +2792,7 @@ public class CresStreamCtrl extends Service {
     			//causes streaming never stops.
     			//FIXME:Temp Hack for ducati crash to save current state
     			userSettings.setStreamState(StreamState.STOPPED, sessId);
-    			cam_preview.stopPlayback(false);
+    				cam_preview.stopPlayback(false);
     			//Toast.makeText(this, "Preview Stopped", Toast.LENGTH_LONG).show();
     		}
     	}
