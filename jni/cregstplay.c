@@ -146,6 +146,8 @@ void init_custom_data(CustomData * cdata)
         data->demux = NULL;
         data->hls_started = false;
         data->has_typefind = false;
+        data->set_video = false;
+        data->set_audio = false;
 	}
 }
 
@@ -477,6 +479,67 @@ static void on_sample_callback_meta (GstElement *src, GstPad *new_pad, CREGSTREA
 /**
  * \author      Leon Yu
  *
+ * \date        12/9/2016
+ *
+ * \return      void
+ *
+ * \retval      void
+ *
+ * \brief       select which adaptive demux  will be used, link and connect it.
+ *
+ * \param     data -       
+ * 
+ */
+void csio_adaptivedemux_selector( CREGSTREAM *data )
+{
+    GstStateChangeReturn ret;
+
+    if ( data->httpMode == eHttpMode_HLS ) {
+        CSIO_LOG(eLogLevel_debug, "DemuxSelect: hlsdemux");
+        data->element_av[1] = gst_element_factory_make( "hlsdemux", NULL );
+        g_assert(data->element_av[1] != NULL);
+    }
+    else if ( data->httpMode == eHttpMode_DASH ) {
+        CSIO_LOG(eLogLevel_debug, "DemuxSelect: dashdemux");
+        data->element_av[1] = gst_element_factory_make( "dashdemux", NULL );
+        g_assert(data->element_av[1] != NULL);
+    }
+    else if ( data->httpMode == eHttpMode_MSS ) {
+        CSIO_LOG(eLogLevel_debug, "DemuxSelect: mssdemux");
+        data->element_av[1] = gst_element_factory_make( "mssdemux", NULL );
+        g_assert(data->element_av[1] != NULL);
+    } 
+    else {
+        CSIO_LOG(eLogLevel_error, "ERROR: invalid httpMode.");
+        gst_object_unref (data->pipeline);
+        return;
+    }
+
+    gst_bin_add(GST_BIN(data->pipeline), data->element_av[1]);
+
+    if ( gst_element_link(data->element_av[0], data->element_av[1]) != TRUE )
+    {
+        CSIO_LOG(eLogLevel_error, "ERROR: link typefind to adaptive-demux failed.");
+        gst_object_unref (data->pipeline);
+        return;
+    }
+    data->av_index = 2; 
+
+    // Connect to the pad-added signal
+    CSIO_LOG( eLogLevel_debug,"DemuxSelect: Connect to pad-added signals." );
+    g_signal_connect( data->element_av[1], "pad-added", G_CALLBACK(csio_Adaptive_PadAddedMsgHandler), data );
+
+    //Set the pipeline to PLAYING state
+    CSIO_LOG( eLogLevel_debug,"DemuxSelect: set the pipeline to PLAYING." );
+    ret = csio_element_set_state(data->pipeline, GST_STATE_PLAYING); 
+    if (ret == GST_STATE_CHANGE_FAILURE) {
+        CSIO_LOG(eLogLevel_error, "ERROR: unable to set the pipeline to PLAYING state.");
+    }
+}
+
+/**
+ * \author      Leon Yu
+ *
  * \date        10/16/2016
  *
  * \return      void
@@ -505,76 +568,35 @@ void csio_TypeFindMsgHandler( GstElement *typefind, guint probability, GstCaps *
         data->httpMode = eHttpMode_HLS;
         data->hls_started = FALSE;             //reset it each time we detected the HLS streaming
         data->has_typefind = FALSE;
-
-        data->element_av[1] = gst_element_factory_make( "hlsdemux", NULL );
-        g_assert(data->element_av[1] != NULL);
-
         // This is an alternative to make the HLS streaming working, but it limits to use single bitrate. 
         //CSIO_LOG(eLogLevel_debug, "TYPEFIND: set connection-speed to 15000" );
         //g_object_set(G_OBJECT(data->element_av[1]), "connection-speed", 15000, NULL);
-
+        csio_adaptivedemux_selector( data );
         data->element_after_tsdemux = 3;
-
-        gst_bin_add( GST_BIN(data->pipeline), data->element_av[1]);
-
-        if ( gst_element_link (data->element_av[0], data->element_av[1]) != TRUE )
-        {
-            CSIO_LOG(eLogLevel_error, "ERROR: link hlsdemux failed.");
-            gst_object_unref (data->pipeline);
-            return;
-        }
-
-        data->av_index = 1;
-
-        // Connect to the pad-added signal
-        CSIO_LOG( eLogLevel_debug,"TYPEFIND: Connect to HLS pad-added signal." );
-        g_signal_connect( data->element_av[data->av_index++], "pad-added", G_CALLBACK(csio_Adaptive_PadAddedMsgHandler), data );
-
-        //Set the pipeline to PLAYING state
-        CSIO_LOG( eLogLevel_debug,"TYPEFIND: set the pipeline to PLAYING." );
-        ret = csio_element_set_state(data->pipeline, GST_STATE_PLAYING); 
-        if (ret == GST_STATE_CHANGE_FAILURE) {
-            CSIO_LOG(eLogLevel_error, "ERROR: unable to set the pipeline to PLAYING state.");
-        }
     }
     // generic DASH Streaming, will figure out media format in next typefind.
     else if( strcasestr( type, "dash+xml") )
     {
       CSIO_LOG( eLogLevel_debug,"TYPEFIND: detecting what type of DASH ..." );
       data->httpMode = eHttpMode_DASH;
-
       if (data->element_av[1] == NULL)
       {
-        data->element_av[1] = gst_element_factory_make( "dashdemux", NULL );
-        g_assert(data->element_av[1] != NULL);
-
+        csio_adaptivedemux_selector( data );
         data->element_after_tsdemux = 3;
-
-        gst_bin_add( GST_BIN (data->pipeline), data->element_av[1] );
-
-        if ( gst_element_link (data->element_av[0], data->element_av[1]) != TRUE )
-        {
-            CSIO_LOG(eLogLevel_error, "ERROR: link dashdemux failed.");
-            gst_object_unref (data->pipeline);
-            return;
-        }
-
-        data->av_index = 1;
-
-        // Connect to the pad-added signal
-        CSIO_LOG( eLogLevel_debug,"TYPEFIND: Connect to DASH pad-added signal." );
-        g_signal_connect( data->element_av[data->av_index++], "pad-added", G_CALLBACK(csio_Adaptive_PadAddedMsgHandler), data );
-
-        //Set the pipeline to PLAYING state
-        CSIO_LOG( eLogLevel_debug,"TYPEFIND: set back to PLAYING." );
-        ret = csio_element_set_state(data->pipeline, GST_STATE_PLAYING); 
-        if (ret == GST_STATE_CHANGE_FAILURE) {
-            CSIO_LOG(eLogLevel_error, "ERROR: unable to set the pipeline to PLAYING state.");
-        }
       }
     }
-    // MP4 Streaming
-    else if( (data->httpMode != eHttpMode_DASH && data->httpMode != eHttpMode_HLS) && strcasestr(type, "video/quicktime") )
+    // MSS streaming
+    else if( strcasestr( type, "ms-sstr+xml") )
+    {
+        CSIO_LOG( eLogLevel_debug,"TYPEFIND: Media type is 'Microsoft Smooth Streaming'" );
+        data->httpMode = eHttpMode_MSS;
+        data->set_video = FALSE;
+        data->set_audio = FALSE;
+        csio_adaptivedemux_selector( data );
+    }
+    // "pure" MP4 Streaming
+    else if( (data->httpMode != eHttpMode_DASH && data->httpMode != eHttpMode_HLS && data->httpMode != eHttpMode_MSS) 
+             && strcasestr(type, "video/quicktime") )
     {
         CSIO_LOG( eLogLevel_debug,"TYPEFIND: Media type is MP4." );
         data->httpMode = eHttpMode_MP4;
@@ -601,8 +623,9 @@ void csio_TypeFindMsgHandler( GstElement *typefind, guint probability, GstCaps *
             CSIO_LOG(eLogLevel_error, "ERROR: unable to set the pipeline to PLAYING state.");
         }
     }
-    // MP4/MPEG Streaming for both HLS and DASH: (Note: dashdemux sends two pad-added signal, i.e. video_00, and audio_00)
-    else if( (data->httpMode == eHttpMode_DASH || data->httpMode == eHttpMode_HLS) && strcasestr(type, "video/quicktime") )
+    // MP4/MPEG Streaming for HLS, DASH, and MSS: (dashdemux recives two pad-added signals, video_00, and audio_00)
+    else if( (data->httpMode == eHttpMode_DASH || data->httpMode == eHttpMode_HLS || data->httpMode == eHttpMode_MSS) 
+            && strcasestr(type, "video/quicktime") )
     {
         CSIO_LOG( eLogLevel_debug,"TYPEFIND: Media type is 'MP4', add 'qtdemux' in av_index=%d", data->av_index );
         data->element_av[data->av_index] = gst_element_factory_make( "qtdemux", NULL );
@@ -724,7 +747,7 @@ void csio_TypeFindMsgHandler( GstElement *typefind, guint probability, GstCaps *
  *
  * \retval      void
  *
- * \brief       callback function - called by adaptive demux (hlsdemux, dashdemux, ...) pad-added signals
+ * \brief       callback function - called by adaptive demux (hlsdemux, dashdemux) pad-added signals
  *
  * \param
  * \param
@@ -733,16 +756,20 @@ void csio_TypeFindMsgHandler( GstElement *typefind, guint probability, GstCaps *
  */
 void csio_Adaptive_PadAddedMsgHandler( GstElement *src, GstPad *new_pad, CREGSTREAM *data )
 {
-    CSIO_LOG(eLogLevel_debug, "Adaptive: Received new pad '%s' from '%s'", 
-             GST_PAD_NAME(new_pad), GST_ELEMENT_NAME(src));
-
     GstCaps      *new_pad_caps   = gst_pad_query_caps( new_pad, NULL );
     GstStructure *new_pad_struct = gst_caps_get_structure( new_pad_caps, 0 );
     const gchar  *new_pad_type   = gst_structure_get_name( new_pad_struct );
-    CSIO_LOG(eLogLevel_debug, "Adaptive: caps: '%s' New pads type: '%s' av_index = %d", 
-             gst_caps_to_string(new_pad_caps), new_pad_type, data->av_index);
 
-    if ( strcasestr( gst_caps_to_string(new_pad_caps), "ANY") && data->hls_started == FALSE )
+    gchar        *pad_name       = gst_pad_get_name(new_pad);
+    gchar        *caps_str       = gst_caps_to_string( new_pad_caps );
+
+    CSIO_LOG(eLogLevel_debug, "Adaptive: Received new pad '%s' from '%s', caps: '%s' pad-type '%s' av_index = %d", 
+             pad_name, GST_ELEMENT_NAME(src), caps_str, new_pad_type, data->av_index);
+
+    if ( strcasestr( caps_str, "ANY" ) && 
+         ( ( data->httpMode == eHttpMode_HLS && !data->hls_started ) || 
+            data->httpMode == eHttpMode_DASH || 
+           ( data->httpMode == eHttpMode_MSS && (!data->set_video || !data->set_audio)) ) )
     {
         //a little trick here, this av_index handles both video_00 and audio_00 pads for DASH, and index increases 1, also for src_0 pad for HLS.
         if (data->element_av[data->av_index] == NULL)
@@ -780,9 +807,21 @@ void csio_Adaptive_PadAddedMsgHandler( GstElement *src, GstPad *new_pad, CREGSTR
             CSIO_LOG(eLogLevel_error, "ERROR: unable to set the pipeline to PLAYING state.");
         }
         
-        if (data->httpMode == eHttpMode_HLS) {
+        if ( data->httpMode == eHttpMode_HLS ) {
             data->hls_started = TRUE;
             data->has_typefind = TRUE;
+        }
+
+        if ( data->httpMode == eHttpMode_MSS ) {
+            if ( strcasestr(pad_name, "video") ) {
+                data->set_video = TRUE;
+            }
+            else if ( strcasestr(pad_name, "audio") ) {
+                data->set_audio = TRUE;
+            }
+            else {
+                CSIO_LOG(eLogLevel_warning, "WARNING: un-supported pad.");  //such as subtitle ...
+            }
         }
     }
     //this handles HLS streaming when the bitrate changes. we received the 2nd(src_1) or 3rd(src_2), 4th(src_3), ... , pad-added signals.
@@ -830,10 +869,12 @@ void csio_Adaptive_PadAddedMsgHandler( GstElement *src, GstPad *new_pad, CREGSTR
     }
     else
     {
-        CSIO_LOG(eLogLevel_debug, "Adaptive: caps: '%s'", gst_caps_to_string(new_pad_caps));
+        CSIO_LOG(eLogLevel_error, "Adaptive: ERROR: caps = '%s'", caps_str);
     }
 
     gst_caps_unref(new_pad_caps);
+    g_free(pad_name);
+    g_free(caps_str);
 }
 
 /**

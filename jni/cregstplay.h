@@ -130,6 +130,8 @@ typedef struct _CREGSTREAM
     eHttpMode httpMode;
     bool hls_started;
     bool has_typefind;
+    bool set_video;
+    bool set_audio;
     void *pStreamer;
 } CREGSTREAM;
 
