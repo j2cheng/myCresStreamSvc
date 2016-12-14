@@ -43,13 +43,14 @@ public class AudioPlayback
 	}
 
 	class StreamAudioTask implements Runnable {
-		private LinkedBlockingQueue<audioBufferQueueObject> audioBufferQueue;
-		private final int audioFormat = AudioFormat.ENCODING_PCM_16BIT;//ENCODING_PCM_16BIT
-		private final int audioChannels= AudioFormat.CHANNEL_OUT_STEREO;//CHANNEL_IN/OUT_STEREO:Default Android Val is 12
-		private final int sampleRate = HDMIInputInterface.readAudioSampleRate();
-		private final int audioSource = AudioSource.CAMCORDER; //Audio Source is CAMCORDER
-		private int bufferSize = AudioRecord.getMinBufferSize(sampleRate, audioChannels,audioFormat);
-
+		private LinkedBlockingQueue<audioBufferQueueObject> audioBufferQueue;		
+		private final int AudioFmt = AudioFormat.ENCODING_PCM_16BIT;//ENCODING_PCM_16BIT
+		private final int AudioChannels= AudioFormat.CHANNEL_OUT_STEREO;//CHANNEL_IN/OUT_STEREO:Default Android Val is 12
+		private final int SampleRate = HDMIInputInterface.readAudioSampleRate();
+		private final int AudioSrc = AudioSource.CAMCORDER; //Audio Source is CAMCORDER
+		private final int BufferSize = AudioRecord.getMinBufferSize(SampleRate, AudioChannels, AudioFmt);
+		private StaticAudioBuffers mAudioBuffers = new StaticAudioBuffers(maxNumOfBuffers + 2);
+		
 		private void addToAudioBufferQueue(audioBufferQueueObject newAudioBuffer)
 		{
 			synchronized (audioBufferQueue)
@@ -59,6 +60,7 @@ public class AudioPlayback
 					// TODO: make sure this doesn't print too much in error condition
 					Log.d(TAG, "Dropping audio buffers because audio buffer queue full!");
 					audioBufferQueue.clear();
+					mAudioBuffers.clearBuffers();
 				}
 				audioBufferQueue.add(newAudioBuffer);
 				audioBufferQueue.notify();
@@ -75,18 +77,18 @@ public class AudioPlayback
 				audioTrackThread = new Thread(new ProcessBufferQueue(audioBufferQueue));
 				audioTrackThread.start();
 
-				mRecorder = new AudioRecord(audioSource, sampleRate, audioChannels, audioFormat, (2 * bufferSize)); // multiple times 2 because 2 byte per sample
+				mRecorder = new AudioRecord(AudioSrc, SampleRate, AudioChannels, AudioFmt, (2 * BufferSize)); // multiple times 2 because 2 byte per sample
 				mRecorder.startRecording();
-				mPlayer = new AudioTrack(AudioManager.STREAM_MUSIC, sampleRate, audioChannels, audioFormat, (2 * bufferSize), AudioTrack.MODE_STREAM);
+				mPlayer = new AudioTrack(AudioManager.STREAM_MUSIC, SampleRate, AudioChannels, AudioFmt, (2 * BufferSize), AudioTrack.MODE_STREAM);
 				mPlayer.play();
 				while(!shouldExit)
 				{
 					int read = 0;
-					ByteBuffer readBuffer = ByteBuffer.allocate(bufferSize);
+					
+					int index = mAudioBuffers.obtainBuffer();
+					read = mRecorder.read(mAudioBuffers.staticBuffer.array(), (index * BufferSize), BufferSize);       
 
-					read = mRecorder.read(readBuffer.array(), 0, bufferSize);       
-
-					addToAudioBufferQueue(new audioBufferQueueObject(readBuffer, read));
+					addToAudioBufferQueue(new audioBufferQueueObject(index, read));
 				}
 			} catch (Exception localException) {
 				Log.e(TAG, "Audio exception caught");
@@ -146,16 +148,17 @@ public class AudioPlayback
 								{
 									if (mPlayer == null)
 									{
-										mPlayer = new AudioTrack(AudioManager.STREAM_MUSIC, sampleRate, audioChannels, audioFormat, (2 * bufferSize), AudioTrack.MODE_STREAM);
+										mPlayer = new AudioTrack(AudioManager.STREAM_MUSIC, SampleRate, AudioChannels, AudioFmt, (2 * BufferSize), AudioTrack.MODE_STREAM);
 										mPlayer.play();
 									}
 
 									// Write to audiotrack
-									if (currentBufferObject.bufferLen > 0)
+									if (currentBufferObject.length > 0)
 									{
 										if (!shouldExit) //write is time intensive function, skip if we are trying to stop
 										{
-											mPlayer.write(currentBufferObject.buffer.array(), 0, currentBufferObject.bufferLen);
+											mPlayer.write(mAudioBuffers.staticBuffer.array(), (currentBufferObject.index * BufferSize), currentBufferObject.length);
+											mAudioBuffers.releaseBuffer(currentBufferObject.index);
 											if (initVolumePending)
 											{
 												setVolume((int)mStreamCtl.userSettings.getVolume());
@@ -172,16 +175,77 @@ public class AudioPlayback
 				}
 			}
 		}
+		
+		class StaticAudioBuffers {
+			public ByteBuffer staticBuffer;
+			private char[] bufferUsed;
+			private Object lock = new Object();
+			
+			public StaticAudioBuffers(int numOfBuffers)
+			{
+				staticBuffer = ByteBuffer.allocate(BufferSize * numOfBuffers);
+				bufferUsed = new char[numOfBuffers];
+				for (int i = 0; i < bufferUsed.length; i++)
+				{
+					bufferUsed[i] = 0;
+				}
+			}
+			
+			public int obtainBuffer()
+			{
+				synchronized(lock)
+				{
+					int availableIndex = -1;
+					for (int i = 0; i < bufferUsed.length; i++)
+					{
+						if (bufferUsed[i] == 0)
+						{
+							availableIndex = i;
+							break;
+						}
+					}
+					if (availableIndex == -1)
+					{
+						// This should never happen because buffers will get dropped before we hit 2 over maxBuffers
+						Log.e(TAG, "No available audio buffers!");
+						availableIndex = 0;
+					}
+
+					bufferUsed[availableIndex] = 1;
+
+					return availableIndex;
+				}
+			}
+			
+			public void releaseBuffer(int index)
+			{
+				synchronized(lock)
+				{
+					bufferUsed[index] = 0;
+				}
+			}
+			
+			public void clearBuffers()
+			{
+				synchronized(lock)
+				{
+					for (int i = 0; i < bufferUsed.length; i++)
+					{
+						bufferUsed[i] = 0;
+					}
+				}
+			}
+		}
 
 		class audioBufferQueueObject
 		{
-			ByteBuffer buffer;
-			int bufferLen;
+			int index;
+			int length;
 
-			audioBufferQueueObject(ByteBuffer buf, int len)
+			audioBufferQueueObject(int idx, int len)
 			{
-				buffer = buf;
-				bufferLen = len;
+				index = idx;
+				length = len;
 			}
 		}
 	}
