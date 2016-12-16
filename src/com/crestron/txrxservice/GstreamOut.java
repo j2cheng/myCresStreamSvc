@@ -48,7 +48,11 @@ public class GstreamOut {
     private native void nativeSet_MulticastAddress(String address, int sessionId);
     private native void nativeSet_StreamName(String name, int sessionId);
     private native void nativeSet_SnapshotName(String name, int sessionId);
-    
+    private native void nativeStartPreview(Object surface, int sessionId);
+    private native void nativePausePreview(int sessionId);
+    private native void nativeStopPreview(int sessionId);
+    private native int  nativeWaitForPreviewAvailable(int sessionId,int timeout_sec);
+   
     private final int sessionId = 0; 	// This is currently always 0
     private long native_custom_data;    // Native code will use this to keep private data
     private Object mSurface;			// We keep surface as just an object because that's how we pass it to jni
@@ -207,7 +211,38 @@ public class GstreamOut {
     
         streamCtl.sockTask.SendDataToAllClients(String.format("CAMERA_STREAMING_SNAPSHOT_URL=%s", snapshotUrl));
     }
+ 
+    protected void startPreview(Object surface, int sessionId) {
+    	if (streamCtl.mCameraDisabled == false)
+    	{
+    		nativeStartPreview(surface,sessionId);
+    	}
+    }
     
+    protected void pausePreview(int sessionId) {
+    	if (streamCtl.mCameraDisabled == false)
+    	{
+    		nativePausePreview(sessionId);
+    	}
+    }
+
+    protected void stopPreview(int sessionId) {
+    	if (streamCtl.mCameraDisabled == false)
+    	{
+    		nativeStopPreview(sessionId);
+    	}
+    }
+    
+    protected int waitForPreviewAvailable(int sessionId,int timeout_sec) {
+        int rtn = -1;	
+    	if (streamCtl.mCameraDisabled == false)
+    	{
+    		rtn = nativeWaitForPreviewAvailable(sessionId,timeout_sec);
+    	}
+    	
+    	return(rtn);
+    }
+
 ///////////////////////////////////////////////////////////////////////////////
     
     protected void onDestroy() {

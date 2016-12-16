@@ -3052,5 +3052,63 @@ JNIEXPORT void JNICALL Java_com_crestron_txrxservice_GstreamOut_nativeSet_1Snaps
 	CSIO_LOG(eLogLevel_debug, "rtsp_server: snapshot_name in CresStreamOutDataDB: '%s'", CresStreamOutDataDB->streamOut[sessionId].snapshot_name);
 	(*env)->ReleaseStringUTFChars(env, name_jstring, name_cstring);
 }
-
 /***************************** end of rtsp_server for video streaming out *********************************/
+
+JNIEXPORT void JNICALL Java_com_crestron_txrxservice_GstreamOut_nativeStartPreview(JNIEnv* env, jobject thiz, jobject surface, jint stream)
+{
+    CSIO_LOG(eLogLevel_verbose, "Preview: Creating jobject surface=%p, stream_id=%d", surface, stream);
+    ANativeWindow *native_window;
+
+    if(surface)
+    {
+		native_window = ANativeWindow_fromSurface(env, surface);
+		if (!native_window)
+		{
+			CSIO_LOG(eLogLevel_error, "Preview: No native window for stream");
+		}
+		else
+		{
+			CSIO_LOG(eLogLevel_verbose, "Preview: Creating native preview window %p for stream %d", native_window, stream);
+			Streamout_StartPreview(stream, native_window);
+		}
+    }
+    else
+    {
+        CSIO_LOG(eLogLevel_error, "Preview: No surface for stream");
+    }
+
+    CSIO_LOG(eLogLevel_verbose, "Preview: startPreview exit.");
+}
+
+JNIEXPORT void JNICALL Java_com_crestron_txrxservice_GstreamOut_nativePausePreview(JNIEnv* env, jobject thiz, jint stream)
+{
+    CSIO_LOG(eLogLevel_verbose, "Preview: Pausing preview stream_id=%d", stream);
+
+    Streamout_PausePreview(stream);
+
+    CSIO_LOG(eLogLevel_verbose, "Preview: pausePreview exit.");
+}
+
+JNIEXPORT void JNICALL Java_com_crestron_txrxservice_GstreamOut_nativeStopPreview(JNIEnv* env, jobject thiz, jint stream)
+{
+    CSIO_LOG(eLogLevel_verbose, "Preview: Stopping preview stream_id=%d", stream);
+
+    Streamout_StopPreview(stream);
+
+    CSIO_LOG(eLogLevel_verbose, "Preview: stopPreview exit.");
+}
+
+JNIEXPORT int JNICALL Java_com_crestron_txrxservice_GstreamOut_nativeWaitForPreviewAvailable(JNIEnv* env, jobject thiz, jint stream, jint timeout_sec)
+{
+    CSIO_LOG(eLogLevel_verbose, "Preview: wait up to %ds for preview stream_id=%d to play", timeout_sec, stream);
+
+    int rtn;
+
+    rtn = Streamout_WaitForPreviewAvailable(stream,timeout_sec);
+
+    CSIO_LOG(eLogLevel_verbose, "Preview: WaitPreview exit. rtn = %d", rtn);
+
+    return(rtn);
+}
+
+/***************************** end of preview with video streaming out *********************************/

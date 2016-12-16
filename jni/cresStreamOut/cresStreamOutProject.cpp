@@ -31,6 +31,7 @@ static void StreamoutProjectSendEvent(int iId, int evnt, int data_size, void* bu
 CStreamoutProject** StreamOutProjList = NULL ;
 int StreamOutProjDebugLevel = CSIO_DEFAULT_LOG_LEVEL;
 Mutex gProjectsLock;
+CStreamoutManager** gStreamoutTaskObjList = NULL;
 
 /*********************fuctions called from jni.c**************************/
 void StreamoutProjectInit()
@@ -375,6 +376,73 @@ void Streamout_SetSnapshotName(char * name)
 	CSIO_LOG(StreamOutProjDebugLevel, "Streamout: %s() exit.", __FUNCTION__);
 }
 
+void Streamout_StartPreview(int streamid, void *native_window)
+{
+	CSIO_LOG(StreamOutProjDebugLevel, "Streamout: %s() enter", __FUNCTION__);
+
+	gProjectsLock.lock();
+
+	StreamoutProjectSendEvent(streamid, STREAMOUT_EVENT_JNI_CMD_START_PREVIEW, 1, native_window);
+
+	gProjectsLock.unlock();
+	CSIO_LOG(StreamOutProjDebugLevel, "Streamout: %s() exit.", __FUNCTION__);
+}
+
+void Streamout_PausePreview(int streamid)
+{
+	CSIO_LOG(StreamOutProjDebugLevel, "Streamout: %s() enter", __FUNCTION__);
+
+	gProjectsLock.lock();
+
+	void *window = NULL;
+	StreamoutProjectSendEvent(streamid, STREAMOUT_EVENT_JNI_CMD_PAUSE_PREVIEW, 1, window);
+
+	gProjectsLock.unlock();
+	CSIO_LOG(StreamOutProjDebugLevel, "Streamout: %s() exit.", __FUNCTION__);
+}
+
+void Streamout_StopPreview(int streamid)
+{
+	CSIO_LOG(StreamOutProjDebugLevel, "Streamout: %s() enter", __FUNCTION__);
+
+	gProjectsLock.lock();
+
+	void *window = NULL;
+	StreamoutProjectSendEvent(streamid, STREAMOUT_EVENT_JNI_CMD_STOP_PREVIEW, 1, window);
+
+	gProjectsLock.unlock();
+	CSIO_LOG(StreamOutProjDebugLevel, "Streamout: %s() exit.", __FUNCTION__);
+}
+
+int  Streamout_WaitForPreviewAvailable(int streamid,int timeout_sec)
+{
+	CSIO_LOG(StreamOutProjDebugLevel, "Streamout: %s() enter", __FUNCTION__);
+
+	int rtn = 0;
+
+	gProjectsLock.lock();
+
+	if( IsValidStreamOut(streamid) )
+	{
+		if(gStreamoutTaskObjList)
+		{
+			if(gStreamoutTaskObjList[streamid])
+			{
+				rtn = gStreamoutTaskObjList[streamid]->waitForPreviewAvailable(timeout_sec);
+			}
+		}
+	}
+	else
+	{
+		CSIO_LOG(eLogLevel_error, "Streamout: obj ID is invalid = %d",streamid);
+	}
+
+	gProjectsLock.unlock();
+	CSIO_LOG(StreamOutProjDebugLevel, "Streamout: %s() exit.", __FUNCTION__);
+
+	return( rtn );
+}
+
 /*********************local static functions **************************/
 static void StreamoutProjectSendEvent(int iId, int evnt, int data_size, void* bufP)
 {
@@ -409,6 +477,7 @@ CStreamoutProject::CStreamoutProject(int iId): m_projectID(iId)
     mLock        = new Mutex();
 
     m_StreamoutTaskObjList = new CStreamoutManager* [MAX_STREAM_OUT];
+    gStreamoutTaskObjList = m_StreamoutTaskObjList;
     for(int i = 0; i < MAX_STREAM_OUT; i++)
     {
         m_StreamoutTaskObjList[i] = NULL;
@@ -818,6 +887,94 @@ void* CStreamoutProject::ThreadEntry()
                 	break;
                 }
 
+                case STREAMOUT_EVENT_JNI_CMD_START_PREVIEW:
+                {
+                	int id = evntQ.streamout_obj_id;
+                	if( evntQ.buf_size )
+                	{
+                		CSIO_LOG(m_debugLevel, "Streamout: call startPreview streamId[%d],native window[%x]",
+                				id,evntQ.buffPtr);
+
+                		if( IsValidStreamOut(id) )
+                		{
+                			if(m_StreamoutTaskObjList)
+                			{
+                				if(m_StreamoutTaskObjList[id])
+                				{
+                					m_StreamoutTaskObjList[id]->startPreview((void*)evntQ.buffPtr);
+                				}
+                			}
+                		}
+                		else
+                		{
+                			CSIO_LOG(eLogLevel_error, "Streamout: obj ID is invalid = %d",id);
+                		}
+
+                		m_projEventQ->del_Q_buf(evntQ.buffPtr);
+                	}
+                	else
+                	{
+                		CSIO_LOG(m_debugLevel, "Streamout: streamId[%d],startPreview message is null",id);
+                	}
+
+                	CSIO_LOG(m_debugLevel, "Streamout: STREAMOUT_EVENT_JNI_CMD_START_PREVIEW done.");
+                	break;
+                }
+
+                case STREAMOUT_EVENT_JNI_CMD_PAUSE_PREVIEW:
+                {
+                	int id = evntQ.streamout_obj_id;
+					CSIO_LOG(m_debugLevel, "Streamout: call pausePreview streamId[%d],native window[%x]",
+							id,evntQ.buffPtr);
+
+					if( IsValidStreamOut(id) )
+					{
+						if(m_StreamoutTaskObjList)
+						{
+							if(m_StreamoutTaskObjList[id])
+							{
+								m_StreamoutTaskObjList[id]->pausePreview((void*)evntQ.buffPtr);
+							}
+						}
+					}
+					else
+					{
+						CSIO_LOG(eLogLevel_error, "Streamout: obj ID is invalid = %d",id);
+					}
+
+					m_projEventQ->del_Q_buf(evntQ.buffPtr);
+
+                	CSIO_LOG(m_debugLevel, "Streamout: STREAMOUT_EVENT_JNI_CMD_PAUSE_PREVIEW done.");
+                	break;
+                }
+
+                case STREAMOUT_EVENT_JNI_CMD_STOP_PREVIEW:
+                {
+                	int id = evntQ.streamout_obj_id;
+					CSIO_LOG(m_debugLevel, "Streamout: call stopPreview streamId[%d],native window[%x]",
+							id,evntQ.buffPtr);
+
+					if( IsValidStreamOut(id) )
+					{
+						if(m_StreamoutTaskObjList)
+						{
+							if(m_StreamoutTaskObjList[id])
+							{
+								m_StreamoutTaskObjList[id]->stopPreview((void*)evntQ.buffPtr);
+							}
+						}
+					}
+					else
+					{
+						CSIO_LOG(eLogLevel_error, "Streamout: obj ID is invalid = %d",id);
+					}
+
+					m_projEventQ->del_Q_buf(evntQ.buffPtr);
+
+                	CSIO_LOG(m_debugLevel, "Streamout: STREAMOUT_EVENT_JNI_CMD_STOP_PREVIEW done.");
+                	break;
+                }
+
                 default:
                     break;
             }
@@ -900,6 +1057,23 @@ void CStreamoutProject::sendEvent(EventQueueStruct* pEvntQ)
 		            {
 						int * destPtr = (int *)evntQ.buffPtr;
 						memcpy(destPtr, (int*)bufP, dataSize);
+						evntQ.buf_size = dataSize;
+					}
+			        else
+			        {
+			            CSIO_LOG(eLogLevel_warning, "Streamout: create buffer failed\n");
+			        }
+					break;
+				}
+
+				case STREAMOUT_EVENT_JNI_CMD_START_PREVIEW:
+				case STREAMOUT_EVENT_JNI_CMD_PAUSE_PREVIEW:
+				case STREAMOUT_EVENT_JNI_CMD_STOP_PREVIEW:
+				{
+					evntQ.buffPtr = new (void *);
+					if(evntQ.buffPtr)
+		            {
+						evntQ.buffPtr  = bufP;
 						evntQ.buf_size = dataSize;
 					}
 			        else

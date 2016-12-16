@@ -105,6 +105,30 @@ JNIEXPORT void JNICALL Java_com_crestron_txrxservice_GstreamOut_nativeSet_1Strea
 JNIEXPORT void JNICALL Java_com_crestron_txrxservice_GstreamOut_nativeSet_1SnapshotName
   (JNIEnv *, jobject, jstring, jint);
 
+/*
+ * Class:     com_crestron_txrxservice_GstreamOut
+ * Method:    nativeStartPreview
+ * Signature: (Ljava/lang/Object;I)V
+ */
+JNIEXPORT void JNICALL Java_com_crestron_txrxservice_GstreamOut_nativeStartPreview
+(JNIEnv *, jobject, jobject, jint);
+
+/*
+ * Class:     com_crestron_txrxservice_GstreamOut
+ * Method:    nativeStopPreview
+ * Signature: (I)V
+ */
+JNIEXPORT void JNICALL Java_com_crestron_txrxservice_GstreamOut_nativeStopPreview
+  (JNIEnv *, jobject, jint);
+
+/*
+ * Class:     com_crestron_txrxservice_GstreamOut
+ * Method:    nativeWaitPreview
+ * Signature: (II)V
+ */
+JNIEXPORT int JNICALL Java_com_crestron_txrxservice_GstreamOut_nativeWaitPreview
+  (JNIEnv *, jobject, jint, jint);
+
 #ifdef __cplusplus
 }
 #endif

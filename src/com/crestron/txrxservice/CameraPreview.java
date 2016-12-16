@@ -43,6 +43,10 @@ public class CameraPreview {
         idx = id;
     }
     
+    public int getSessionIndex(){
+        return(idx);
+    }
+    
     public void restartCamera(boolean confidenceMode)
     {
     	try {

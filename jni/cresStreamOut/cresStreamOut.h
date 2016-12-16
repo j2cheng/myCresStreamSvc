@@ -48,6 +48,10 @@ void Streamout_EnableMulticast(int enable);
 void Streamout_SetMulticastAddress(char* address);
 void Streamout_SetStreamName(char* name);
 void Streamout_SetSnapshotName(char* name);
+void Streamout_StartPreview(int streamID, void* native_window);
+void Streamout_PausePreview(int streamID);
+void Streamout_StopPreview(int streamID);
+int  Streamout_WaitForPreviewAvailable(int streamID,int timeout_sec);
 
 #ifdef __cplusplus
 }

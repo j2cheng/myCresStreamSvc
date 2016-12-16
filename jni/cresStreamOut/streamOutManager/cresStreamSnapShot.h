@@ -25,36 +25,25 @@ class SnapShot
 		void setQueueSize(int snapshot_queue_size);
 		int  getQueueSize(void);
 
-		int  start(void *arg);
-		void stop(void);
+		int  add(void);
+		int  drop(void);
 		int  deleteAllFiles(const char *dir, bool bRmFolder=false);
-		GMainLoop *createMainLoop(void);
-		void createMainContext(void);
-		void freeMainContext(void);
-		GMainLoop  *getMainLoop(void);
-		GstElement *getPipeline(void);
-		int  saveRawFrame(GstPad *pad, GstPadProbeInfo *buffer, gpointer user_data);
 		int  updatelink(const gchar *snapshot);
-		void cleanup(void);
-		int  startClient(void *arg);
-		void stopClient(void);
-		GstElement *getClientPipeline(void);
-		GMainLoop  *getClientMainLoop(void);
+
+		CStreamoutManager *m_pMgr;
 
 		GMainContext *m_context;  /* GLib context used to run the main loop */
 
 		GMainLoop *m_loop;
-		GstBus    *m_bus;
-		guint      m_bus_id;
 
-		GstElement *m_pipeline;
-		GstElement *m_source;
-		GstElement *m_videoparse;
+		GstElement *m_videoconv;
+		GstElement *m_videotee;
+		GstElement *m_snapshotq;
+		GstElement *m_videoscale;
+		GstElement *m_videorate;
+		GstElement *m_videofilter;
 		GstElement *m_encoder;
 		GstElement *m_sink;
-		GstElement *m_clientPipeline;
-		GMainLoop  *m_clientLoop;
-		GstElement *m_clientSink;
 
 		int        m_update_period_secs;
 		int        m_rawfilesqueue_size;
@@ -62,28 +51,16 @@ class SnapShot
 		bool	   m_snapshot_name_updated;
 
 		gboolean   m_bExit;
-		gboolean   m_bExitClient;
-	    gboolean   m_bNeedData;
 	    int        m_bStopInProgress;
-	    struct timespec m_lastJpegBuffer_tm;
 
 	    Mutex   *mLock;
 	    Mutex   *mULock;
+	    CondVar *mCond;
+	    Mutex   *mCond_mtx;
 
 	private:
 
 };
-
-extern "C" int  StartSnapShot(CStreamoutManager *pMgr);
-extern "C" void StopSnapShot(CStreamoutManager *pMgr);
-extern "C" void StopSnapShotClient(CStreamoutManager *pMgr);
-
-extern "C" void    *snapshotThread(void * arg);
-extern "C" gboolean snapshotGstMsgHandler(GstBus *bus, GstMessage *msg, void *arg);
-extern "C" gboolean snapshotClientGstMsgHandler(GstBus *bus, GstMessage *msg, void *arg);
-extern "C" void snapShotClientPadAdded(GstElement *src, GstPad *new_pad, void *arg);
-extern "C" void snapshotNeedData(GstElement *appsrc, guint unused_size, gpointer user_data);
-extern "C" void snapshotEnoughData(GstElement *appsrc, guint unused_size, gpointer user_data);
 
 #endif //__CRESSTREAMOUTSNAPSHOT_H__
 
