@@ -300,7 +300,7 @@ public class AirMedia
     {    	
     	Intent i = new Intent(commandIntent);
         i.putExtra("command", "split_screen");
-        i.putExtra("value", String.valueOf(enable ? 1 : 0));
+        i.putExtra("value", (enable ? 1 : 0));
         mContext.sendBroadcast(i);
     }
     
