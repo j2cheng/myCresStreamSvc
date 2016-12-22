@@ -376,11 +376,35 @@ public class CresStreamCtrl extends Service {
 	        }
     		
     		// This needs to be done before Gstreamer setup
-    		mCameraDisabled = getCameraDisabled();
-    		if (mCameraDisabled == true)
-    			Log.w(TAG, "Camera is either disabled or not available, removing access");
-    		else
-    			Log.d(TAG, String.format("Camera is enabled, allowing access"));
+    		{
+    			// If mediaserver is in bad state this could get stuck
+    			// Load GstreamBase first!
+    			final CountDownLatch latch = new CountDownLatch(1);
+    			Thread checkCameraThread = new Thread(new Runnable() {
+    				public void run() {
+    					mCameraDisabled = getCameraDisabled();
+    					if (mCameraDisabled == true)
+    						Log.w(TAG, "Camera is either disabled or not available, removing access");
+    					else
+    						Log.d(TAG, String.format("Camera is enabled, allowing access"));
+    					latch.countDown();
+    				}
+    			});
+    			checkCameraThread.start();
+
+    			boolean successfulStart = true; //indicates that there was no time out condition
+    			try { successfulStart = latch.await(3000, TimeUnit.MILLISECONDS); }
+    			catch (InterruptedException ex) { ex.printStackTrace(); }
+
+    			// Library failed to load kill mediaserver and restart txrxservice
+    			if (!successfulStart)
+    			{
+    				Log.e(TAG, "Camera failed to initialize, restarting txrxservice and mediaserver");
+
+    				RecoverMediaServer();
+    				RecoverTxrxService();    		
+    			}
+    		}
 
     		// Wait until 2nd display has settled down.
     		// Android will kill this after 20 seconds!
@@ -624,7 +648,6 @@ public class CresStreamCtrl extends Service {
     				// To-do: support platform that has an hdmi input and a real camera.
     				cam_preview = new CameraPreview(this, null);    
     			}
-
     		}
     		else
     			streamPlay = new StreamIn(new NstreamIn(CresStreamCtrl.this));    		
@@ -3111,6 +3134,11 @@ public class CresStreamCtrl extends Service {
     		{
     			mAirMedia.hide();
     		}
+    	}
+    	catch (Exception e)
+    	{
+    		Log.e(TAG, "Exception encountered trying to launch AirMedia");
+    		e.printStackTrace();
     	}
     	finally
     	{
