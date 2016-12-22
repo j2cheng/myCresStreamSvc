@@ -444,7 +444,7 @@ public class AirMedia
         }        
     }
     
-    public void showSurface(boolean enable)
+    private void showSurface(boolean enable)
     {
     	if (Boolean.parseBoolean(mStreamCtl.hdmiOutput.getSyncStatus()))
     	{

@@ -3740,16 +3740,16 @@ public class CresStreamCtrl extends Service {
 			// Show AirMedia window if we acquire HDMI output sync
 			if ((mAirMedia != null) && userSettings.getAirMediaLaunch())
 			{
-				mAirMedia = null;
-				launchAirMedia(true, 0, false);
-//				mAirMedia.showSurface(true);	// Workaround for Bug 117036
+				mAirMedia.show(userSettings.getAirMediaX(), userSettings.getAirMediaY(), userSettings.getAirMediaWidth(), userSettings.getAirMediaHeight());
 			}
 		}
 		else if (haveExternalDisplays)
 		{
 			// Hide AirMedia window if we lose HDMI output sync
 			if ((mAirMedia != null) && userSettings.getAirMediaLaunch())
-				mAirMedia.showSurface(false);
+			{
+				mAirMedia.hide();
+			}
 		}
 	}
     
