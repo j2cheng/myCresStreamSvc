@@ -481,10 +481,11 @@ public class CresStreamCtrl extends Service {
     							Log.e(TAG, "Failed to stop streams on error exit");
     							e.printStackTrace(); 
     						}
-    						if (oldHandler != null)
-    							oldHandler.uncaughtException(paramThread, paramThrowable); //Delegates to Android's error handling
-    						else
-    							System.exit(2); //Prevents the service/app from freezing
+//    						if (oldHandler != null)
+//    							oldHandler.uncaughtException(paramThread, paramThrowable); //Delegates to Android's error handling
+//    						else
+    						// Do not rely on Android error handling, just exit
+							System.exit(2); //Prevents the service/app from freezing							
     					}
     				});
     		
