@@ -39,6 +39,7 @@ public class AirMedia
     		intent.putExtra("receiver_name", "AirMedia");
     		intializeDisplay();
     		set4in1ScreenEnable(false); // TODO: Remove this when quad view is eventually enabled
+    		setStandbyScreen(0);	// We currently do not want the AirMedia OSD to be visible
     	}
     	else {
         	Log.e(TAG, "Failed to launch Airmedia!");
@@ -501,6 +502,15 @@ public class AirMedia
     	Intent i = new Intent(commandIntent);
     	i.putExtra("command", "set_window_flag");
     	i.putExtra("value", (int)windowFlag);
+    	mContext.sendBroadcast(i);
+    }
+    
+    public void setStandbyScreen(int standbyScreen)
+    {
+    	// Set 0 for standby screen disabled, 1 standby screen enabled 
+    	Intent i = new Intent(commandIntent);
+    	i.putExtra("command", "set_standby_screen");
+    	i.putExtra("value", (int)standbyScreen);
     	mContext.sendBroadcast(i);
     }
     
