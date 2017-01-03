@@ -374,38 +374,7 @@ public class CresStreamCtrl extends Service {
 	        {
 	        	m_displayManager.registerDisplayListener(mDisplayListener, null);
 	        }
-    		
-    		// This needs to be done before Gstreamer setup
-    		{
-    			// If mediaserver is in bad state this could get stuck
-    			// Load GstreamBase first!
-    			final CountDownLatch latch = new CountDownLatch(1);
-    			Thread checkCameraThread = new Thread(new Runnable() {
-    				public void run() {
-    					mCameraDisabled = getCameraDisabled();
-    					if (mCameraDisabled == true)
-    						Log.w(TAG, "Camera is either disabled or not available, removing access");
-    					else
-    						Log.d(TAG, String.format("Camera is enabled, allowing access"));
-    					latch.countDown();
-    				}
-    			});
-    			checkCameraThread.start();
-
-    			boolean successfulStart = true; //indicates that there was no time out condition
-    			try { successfulStart = latch.await(3000, TimeUnit.MILLISECONDS); }
-    			catch (InterruptedException ex) { ex.printStackTrace(); }
-
-    			// Library failed to load kill mediaserver and restart txrxservice
-    			if (!successfulStart)
-    			{
-    				Log.e(TAG, "Camera failed to initialize, restarting txrxservice and mediaserver");
-
-    				RecoverMediaServer();
-    				RecoverTxrxService();    		
-    			}
-    		}
-
+	        
     		// Wait until 2nd display has settled down.
     		// Android will kill this after 20 seconds!
     		// Tried waiting for just 10 seconds, didn't work.
@@ -600,6 +569,37 @@ public class CresStreamCtrl extends Service {
     			catch (Exception ex)
     			{
     				Log.e(TAG, "Could not upgrade userSettings: " + ex);
+    			}
+    		}
+    		
+    		// This needs to be done before Gstreamer setup
+    		{
+    			// If mediaserver is in bad state this could get stuck
+    			// Load GstreamBase first!
+    			final CountDownLatch latch = new CountDownLatch(1);
+    			Thread checkCameraThread = new Thread(new Runnable() {
+    				public void run() {
+    					mCameraDisabled = getCameraDisabled();
+    					if (mCameraDisabled == true)
+    						Log.w(TAG, "Camera is either disabled or not available, removing access");
+    					else
+    						Log.d(TAG, String.format("Camera is enabled, allowing access"));
+    					latch.countDown();
+    				}
+    			});
+    			checkCameraThread.start();
+
+    			boolean successfulStart = true; //indicates that there was no time out condition
+    			try { successfulStart = latch.await(3000, TimeUnit.MILLISECONDS); }
+    			catch (InterruptedException ex) { ex.printStackTrace(); }
+
+    			// Library failed to load kill mediaserver and restart txrxservice
+    			if (!successfulStart)
+    			{
+    				Log.e(TAG, "Camera failed to initialize, restarting txrxservice and mediaserver");
+
+    				RecoverMediaServer();
+    				RecoverTxrxService();    		
     			}
     		}
     		
