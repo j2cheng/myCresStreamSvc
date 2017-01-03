@@ -3081,28 +3081,9 @@ public class CresStreamCtrl extends Service {
     			int x, y, width, height;
     			if (fullscreen || ((userSettings.getAirMediaWidth() == 0) && (userSettings.getAirMediaHeight() == 0)))
     			{
-    				WindowManager wm = (WindowManager) this.getSystemService(Context.WINDOW_SERVICE);
     				Log.e(TAG, "AirMedia fullscreen true");
-
-    				if (haveExternalDisplays)
-    				{
-    					DisplayManager dm = (DisplayManager) getApplicationContext().getSystemService(Context.DISPLAY_SERVICE);
-    					if (dm != null){
-    						Display dispArray[] = dm.getDisplays();
-    						if (dispArray.length>1){
-    							Context displayContext = getApplicationContext().createDisplayContext(dispArray[1]);
-    							wm = (WindowManager)displayContext.getSystemService(Context.WINDOW_SERVICE);
-    						}
-    					}
-    					else
-    					{
-    						Log.e(TAG, "Unable to query second display size, using primary display");
-    					}
-    				}	
-
-    				Display display = wm.getDefaultDisplay();
-    				Point size = new Point();
-    				display.getSize(size);
+    				
+    				Point size = getDisplaySize();
 
     				width = size.x;
     				height = size.y;    			
@@ -3769,7 +3750,18 @@ public class CresStreamCtrl extends Service {
 			// Show AirMedia window if we acquire HDMI output sync
 			if ((mAirMedia != null) && userSettings.getAirMediaLaunch())
 			{
-				mAirMedia.show(userSettings.getAirMediaX(), userSettings.getAirMediaY(), userSettings.getAirMediaWidth(), userSettings.getAirMediaHeight());
+				int width = userSettings.getAirMediaWidth();
+				int height = userSettings.getAirMediaHeight();
+//				try { Thread.sleep(7000); } catch (Exception e) {}	// Awind data, they need ~10 seconds before we send show
+				
+				if ((width == 0) && (height == 0))
+				{
+    				Point size = getDisplaySize();
+
+    				width = size.x;
+    				height = size.y;
+    			}
+				mAirMedia.show(userSettings.getAirMediaX(), userSettings.getAirMediaY(), width, height);
 			}
 		}
 		else if (haveExternalDisplays)
@@ -4349,4 +4341,30 @@ public class CresStreamCtrl extends Service {
 			}).start();
 		}		
 	}	
+	
+	public Point getDisplaySize()
+	{
+		Point retVal = new Point();
+		WindowManager wm = (WindowManager) this.getSystemService(Context.WINDOW_SERVICE);
+
+		if (haveExternalDisplays)
+		{
+			DisplayManager dm = (DisplayManager) getApplicationContext().getSystemService(Context.DISPLAY_SERVICE);
+			if (dm != null){
+				Display dispArray[] = dm.getDisplays();
+				if (dispArray.length>1){
+					Context displayContext = getApplicationContext().createDisplayContext(dispArray[1]);
+					wm = (WindowManager)displayContext.getSystemService(Context.WINDOW_SERVICE);
+				}
+			}
+			else
+			{
+				Log.e(TAG, "Unable to query second display size, using primary display");
+			}
+		}	
+
+		Display display = wm.getDefaultDisplay();
+		display.getSize(retVal);
+		return retVal;
+	}
 }
