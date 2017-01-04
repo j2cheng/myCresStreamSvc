@@ -497,6 +497,23 @@ class ProxyEnableCommand extends CrestronCommand {
         }
 }
 
+class DecodeInternalRtspPortCommand extends CrestronCommand {
+	
+    public DecodeInternalRtspPortCommand(CresStreamCtrl ctrl, String arg, int sessId) {
+        super(ctrl, arg, sessId);
+    }
+
+    @Override
+        public void execute() {
+            ctrl.userSettings.setDecodeInternalRtspPort(VALIDATE_INT(msg), sessId);
+        }
+    
+    @Override
+    public String getFeedbackMsg() {
+        return String.valueOf(ctrl.userSettings.getDecodeInternalRtspPort(sessId));
+    }
+}
+
 class HdcpEncryptCommand extends CrestronCommand {
 	
     public HdcpEncryptCommand(CresStreamCtrl ctrl, String arg, int sessId) {

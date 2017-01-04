@@ -148,6 +148,7 @@ public class UserSettings
 	private String[] streamOutUrl;
 	private String[] streamInUrl;
 	private boolean[] proxyEnable;
+	private int[]	decodeInternalRtspPort;
 	private int[] internalRtspPort;
 	private String[] multicastAddress;
 	private String[] userName;
@@ -278,6 +279,7 @@ public class UserSettings
 		streamOutUrl 	 	= initStringArray("");
 		streamInUrl			= initStringArray("");
         proxyEnable         = initBoolArray(false);
+        decodeInternalRtspPort = initIntArray(0);
         internalRtspPort 	= initIntArray(5540);
 		userName 			= initStringArray("");
 		password   			= initStringArray("");
@@ -721,7 +723,7 @@ public class UserSettings
 			//Need to modify url function if proxy enable
 			if(this.getProxyEnable(sessId))
 			{
-	    		newUrl = MiscUtils.getLocalUrl(url);
+	    		newUrl = MiscUtils.getLocalUrl(url, getDecodeInternalRtspPort(sessId));
 			}
 
 			StreamIn.setServerUrl(newUrl, sessId);
@@ -730,6 +732,14 @@ public class UserSettings
 	
 	public void setProxyEnable(boolean flag, int sessId) {
 		this.proxyEnable[sessId] = flag;	
+	}
+	
+	public int getDecodeInternalRtspPort(int sessId) {
+		return this.decodeInternalRtspPort[sessId];
+	}
+	
+	public void setDecodeInternalRtspPort(int rtspPort, int sessId) {
+		this.decodeInternalRtspPort[sessId] = rtspPort;
 	}
 
 	public int getInternalRtspPort(int sessId) {

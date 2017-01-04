@@ -129,13 +129,28 @@ public class MiscUtils {
         return text.toString();
     }
     
-    public static String getLocalUrl(String url)
+    public static String getLocalUrl(String url, int internalPort)
     {
     	String newUrl = url;
     	String matchString = "rtsp://";
-    	String ipRegex = "\\d{1,3}\\.\\d{1,3}\\.\\d{1,3}\\.\\d{1,3}";
+    	
     	if (url.contains(matchString))	// only perform the replacement on rtsp addresses
-    		newUrl = url.replaceFirst(ipRegex, "127.0.0.1");
+    	{  
+    		String ipRegex = "\\d{1,3}\\.\\d{1,3}\\.\\d{1,3}\\.\\d{1,3}";
+	    	String portRegex = ":\\d{1,5}";
+	    	newUrl = newUrl.replaceFirst(portRegex, ":" + internalPort);
+	    	
+	    	// If it doesnt come with port # we put in internal RTSP port
+	    	if (!newUrl.contains(Integer.toString(internalPort)))
+	    	{
+	    		newUrl = newUrl.replaceFirst(ipRegex, "127.0.0.1:" + internalPort);
+	    	}
+	    	else
+	    	{
+	    		newUrl = newUrl.replaceFirst(ipRegex, "127.0.0.1");
+	    	}    		
+    	}
+    	
     	return newUrl;
     }
     

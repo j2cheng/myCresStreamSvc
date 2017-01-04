@@ -322,7 +322,7 @@ public class GstreamIn implements StreamInStrategy, SurfaceHolder.Callback {
     	//Need to modify url function if proxy enable
     	if(streamCtl.userSettings.getProxyEnable(sessionId))
     	{
-    		newUrl = MiscUtils.getLocalUrl(url);
+    		newUrl = MiscUtils.getLocalUrl(url, streamCtl.userSettings.getDecodeInternalRtspPort(sessionId));
     	}
 
     	setServerUrl(newUrl, sessionId); 
