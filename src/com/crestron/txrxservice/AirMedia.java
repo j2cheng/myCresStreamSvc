@@ -198,6 +198,7 @@ public class AirMedia
 		    	if (connected)
 		    		status = 1;
 
+		    	mStreamCtl.userSettings.setAirMediaUserConnected(true, userId);
 		    	mStreamCtl.sendAirMediaUserFeedbacks(userId, cursor.getString(1), cursor.getString(2), cursor.getInt(3), connected);
 		    }while(cursor.moveToNext());
 		  }
@@ -206,7 +207,7 @@ public class AirMedia
 		   return;
 		}
 		
-		mStreamCtl.sendAirMediaStatus(status);
+		mStreamCtl.sendAirMediaStatus(status);		
 		
 		if (sentUserFeedback != null)
 		{
@@ -215,10 +216,13 @@ public class AirMedia
 			{
 				if (sentUserFeedback[i] == false)
 				{
-					mStreamCtl.sendAirMediaUserFeedbacks(i + 1, "", "", 0, false);
+					mStreamCtl.userSettings.setAirMediaUserConnected(false, i + 1);
+					mStreamCtl.sendAirMediaUserFeedbacks(i + 1, "", "", 0, false);					
 				}
 			}
 		}
+		
+		mStreamCtl.sendAirMediaNumberUserConnected();
     }
     
     public void intializeDisplay()
