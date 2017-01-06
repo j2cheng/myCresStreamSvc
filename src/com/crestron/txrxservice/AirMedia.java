@@ -116,6 +116,8 @@ public class AirMedia
     		Intent i = new Intent(commandIntent);
     		i.putExtra("command", "hide_receiver_info");
     		mContext.sendBroadcast(i);
+    		
+    		stopAllSenders(); // Inform senders that stream is stopped/hidden
     	}
     	else
     		Log.i(TAG, "AirMedia already hidden, ignoring request");
@@ -541,6 +543,17 @@ public class AirMedia
     	i.putExtra("command", "set_standby_screen");
     	i.putExtra("value", (int)standbyScreen);
     	mContext.sendBroadcast(i);
+    }
+    
+    private void stopAllSenders()
+    {
+    	for (int i = 1; i <= 32; i++) // We handle airMedia user ID as 1 based
+    	{
+    		if (mStreamCtl.userSettings.getAirMediaUserConnected(i))
+    		{
+    			stopUser(i);
+    		}
+    	}
     }
     
     public static boolean checkAirMediaLicense()
