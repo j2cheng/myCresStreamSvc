@@ -1,5 +1,8 @@
 package com.crestron.txrxservice;
 
+import java.io.DataOutputStream;
+import java.io.IOException;
+
 import com.crestron.txrxservice.CresStreamCtrl.AirMediaLoginMode;
 
 import android.content.BroadcastReceiver;
@@ -61,6 +64,28 @@ public class AirMedia
         i.putExtra("command", "close_receiver");
         mContext.sendBroadcast(i);
     }
+    
+    public void forceStopAirMedia(){
+    	Log.i(TAG, "Force recovering AirMedia");
+    	try {
+    		Process suProcess;
+
+    		suProcess = Runtime.getRuntime().exec("su");
+
+    		DataOutputStream os = new DataOutputStream(suProcess.getOutputStream());
+
+    		os.writeBytes("adb shell" + "\n");
+
+    		os.flush();
+
+    		os.writeBytes("am force-stop com.awindinc.receiver.airmedia" + "\n");
+
+    		os.flush();
+    	} catch (IOException e) {
+    		Log.e(TAG, "Failed to force stop AirMedia");
+    		e.printStackTrace();
+    	}
+    }    
     
     public void show(int x, int y, int width, int height)
     {

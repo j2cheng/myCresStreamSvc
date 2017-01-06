@@ -1062,6 +1062,13 @@ public class CresStreamCtrl extends Service {
     
     private void recoverFromCrash()
     {
+    	if (mAirMedia != null)
+    	{
+    		mAirMedia.forceStopAirMedia();
+    		mAirMedia = new AirMedia(this);
+    		
+    	}
+    	
     	restartStreams(false);
     }
     
