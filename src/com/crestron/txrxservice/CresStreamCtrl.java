@@ -83,6 +83,7 @@ interface myCommand2 {
 }
 
 public class CresStreamCtrl extends Service {
+	private final CresStreamCtrl mCtx = this;
 	Handler handler;
     CameraStreaming cam_streaming;
     CameraPreview cam_preview;
@@ -1062,12 +1063,17 @@ public class CresStreamCtrl extends Service {
     
     private void recoverFromCrash()
     {
-    	if (mAirMedia != null)
-    	{
-    		mAirMedia.forceStopAirMedia();
-    		mAirMedia = new AirMedia(this);
-    		
-    	}
+    	new Thread(new Runnable() {
+    		@Override
+    		public void run() {
+    			try { Thread.sleep(5000); } catch (InterruptedException e) {}	// need 5 seconds before attempting recovery
+    			if (mAirMedia != null)
+    			{
+    				mAirMedia.forceStopAirMedia();
+    				mAirMedia = new AirMedia(mCtx);    		
+    			}
+    		}
+    	}).start();
     	
     	restartStreams(false);
     }
@@ -3108,6 +3114,7 @@ public class CresStreamCtrl extends Service {
     			{
     				// TODO: Change to priority phone when alpha blending is working
     				userSettings.setAirMediaWindowFlag(WindowManager.LayoutParams.TYPE_SYSTEM_OVERLAY);
+//    				userSettings.setAirMediaWindowFlag(WindowManager.LayoutParams.TYPE_PRIORITY_PHONE);
     				userSettings.setAirMediaDisplayScreen(1);
     			}
     			else
