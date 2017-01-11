@@ -150,6 +150,8 @@ public class CresStreamCtrl extends Service {
     private int mPreviousValidHdmiInputResolution = 0;
     private int mPreviousAudioInputSampleRate = 0;
     public CountDownLatch streamingReadyLatch = new CountDownLatch(1);
+    public CountDownLatch audioReadyLatch = new CountDownLatch(1);
+    private FileObserver audioReadyFileObserver;
     public volatile boolean enableRestartMechanism = false; // Until we get a start or platform automatically restarts don't restart streams
     private Object cameraModeLock = new Object();
     private volatile Timer mNoVideoTimer = null;
@@ -758,6 +760,9 @@ public class CresStreamCtrl extends Service {
     		// Monitor Rava Mode
     		monitorRavaMode();
     		
+    		// Monitor Audio Ready flag
+    		monitorAudioReady();
+    		
     		airMediaLicenseThread(this);
     		
     		initAppFiles();
@@ -1313,6 +1318,46 @@ public class CresStreamCtrl extends Service {
     				Log.e(TAG, "ERROR!!!! Rava mode was configured while streaming out!!!!");
     		}
     	}
+    }
+    
+    private void monitorAudioReady()
+    {
+    	final String audioReadyFilePath = "/sys/devices/platform/crestron-mcuctrl/avReady";
+    	final Object audioReadyLock = new Object();
+    	File audioReadyFile = new File (audioReadyFilePath);
+    	// File will exist because kernel creates is on boot
+        
+        // Set initial state, before file observing
+        int initialAudioReady = Integer.parseInt(MiscUtils.readStringFromDisk(audioReadyFilePath));
+
+		// Stop/Start all audio
+        if (initialAudioReady == 1)
+        {
+        	Log.d(TAG, "Audio subsystem is ready");
+        	audioReadyLatch.countDown();
+        	return;
+        }
+        
+        audioReadyFileObserver = new FileObserver(audioReadyFilePath, FileObserver.CLOSE_WRITE) {						
+			@Override
+			public void onEvent(int event, String path) {
+				synchronized (audioReadyLock)
+				{
+					int audioReady = Integer.parseInt(MiscUtils.readStringFromDisk(audioReadyFilePath));
+
+					// Stop/Start all audio
+			        if (audioReady == 1)
+			        {
+			        	Log.d(TAG, "Audio subsystem is ready");
+			        	audioReadyLatch.countDown();
+			        	audioReadyFileObserver.stopWatching(); 		// This is a one shot
+			        	return;
+			        }
+
+				}
+			}
+		};
+		audioReadyFileObserver.startWatching();
     }
     
     public void restartStreams(final boolean skipStreamIn) 
