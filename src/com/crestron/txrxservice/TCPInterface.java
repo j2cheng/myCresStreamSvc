@@ -405,6 +405,13 @@ public class TCPInterface extends AsyncTask<Void, Object, Long> {
     }
     
     private void addJoinToQueue(JoinObject newJoin, int sessionId) {
+    	if ( (streamCtl.userSettings.getMode(sessionId) == CresStreamCtrl.DeviceMode.PREVIEW.ordinal()) ||
+    			(streamCtl.userSettings.getMode(sessionId) == CresStreamCtrl.DeviceMode.STREAM_OUT.ordinal()) )
+    	{
+    		sessionId = 0;	// Fix bug where camera modes could be handled out of order such that device ended in wrong state
+    	}
+    	
+    	
     	if ((sessionId >= 0) && (sessionId < CresStreamCtrl.NumOfSurfaces))
     	{
 	    	synchronized (joinQueue[sessionId])
