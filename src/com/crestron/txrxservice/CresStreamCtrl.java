@@ -3619,6 +3619,12 @@ public class CresStreamCtrl extends Service {
     			numberUserConnected++;
     	}
     	sockTask.SendDataToAllClients(String.format("AIRMEDIA_NUMBER_USER_CONNECTED=%d", numberUserConnected));
+    	
+// Bug 121298: Generate new random code whenever all users disconnect
+    	if ( (userSettings.getAirMediaLoginMode() == AirMediaLoginMode.Random.ordinal()) && (numberUserConnected == 0))
+    	{
+    		setAirMediaLoginMode(userSettings.getAirMediaLoginMode(), 0);
+    	}
     }
 
     //Registering for HPD and Resolution Event detection	
