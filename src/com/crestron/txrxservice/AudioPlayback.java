@@ -71,9 +71,9 @@ public class AudioPlayback
 			initVolumePending = true;
 			
 			try { 
-        		if (mStreamCtl.audioReadyLatch.await(600, TimeUnit.SECONDS) == false)
+        		if (mStreamCtl.audioReadyLatch.await(240, TimeUnit.SECONDS) == false)
         		{
-        			Log.e(TAG, "Audio ready: timeout after 600 seconds");
+        			Log.e(TAG, "Audio ready: timeout after 240 seconds");
         			mStreamCtl.RecoverTxrxService();
         		}
         	}
