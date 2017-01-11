@@ -75,11 +75,14 @@ public class AirMedia
     		DataOutputStream os = new DataOutputStream(suProcess.getOutputStream());
 
     		os.writeBytes("adb shell" + "\n");
-
     		os.flush();
 
     		os.writeBytes("am force-stop com.awindinc.receiver.airmedia" + "\n");
-
+    		os.flush();
+    		
+    		try { Thread.sleep(3000); } catch (InterruptedException e) {};
+    		
+    		os.writeBytes("ps | grep com.awindinc.receiver.airmedia | busybox awk '{print $2}' | busybox xargs kill -9");
     		os.flush();
     	} catch (IOException e) {
     		Log.e(TAG, "Failed to force stop AirMedia");
