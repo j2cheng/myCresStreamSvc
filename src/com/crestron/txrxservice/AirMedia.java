@@ -11,6 +11,7 @@ import android.content.Context;
 import android.content.Intent;
 import android.content.IntentFilter;
 import android.database.Cursor;
+import android.graphics.Point;
 import android.net.Uri;
 import android.os.Bundle;
 import android.util.Log;
@@ -73,11 +74,20 @@ public class AirMedia
 
     		try { Thread.sleep(5000); } catch (InterruptedException e) {};		
 
+    		int width = mStreamCtl.userSettings.getAirMediaWidth();
+			int height = mStreamCtl.userSettings.getAirMediaHeight();
+			
+			if ((width == 0) && (height == 0))
+			{
+				Point size = mStreamCtl.getDisplaySize();
 
+				width = size.x;
+				height = size.y;
+			}
     		show(mStreamCtl.userSettings.getAirMediaX(),
     				mStreamCtl.userSettings.getAirMediaY(),
-    				mStreamCtl.userSettings.getAirMediaWidth(),
-    				mStreamCtl.userSettings.getAirMediaHeight());
+    				width,
+    				height);
     	}
     }    
     
