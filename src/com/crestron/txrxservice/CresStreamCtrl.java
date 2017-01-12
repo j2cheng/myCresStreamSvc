@@ -1074,11 +1074,9 @@ public class CresStreamCtrl extends Service {
     	new Thread(new Runnable() {
     		@Override
     		public void run() {
-    			try { Thread.sleep(5000); } catch (InterruptedException e) {}	// need 5 seconds before attempting recovery
     			if (mAirMedia != null)
     			{
-    				mAirMedia.forceStopAirMedia();
-    				mAirMedia = new AirMedia(mCtx);    		
+    				mAirMedia.recoverAirMedia();   		
     			}
     		}
     	}).start();
@@ -1331,7 +1329,11 @@ public class CresStreamCtrl extends Service {
     	// File will exist because kernel creates is on boot
         
         // Set initial state, before file observing
-        int initialAudioReady = Integer.parseInt(MiscUtils.readStringFromDisk(audioReadyFilePath));
+        int initialAudioReady = 0;
+        try
+        {
+        	initialAudioReady = Integer.parseInt(MiscUtils.readStringFromDisk(audioReadyFilePath));
+        } catch (NumberFormatException e) {}
 
 		// Stop/Start all audio
         if (initialAudioReady == 1)
@@ -1346,7 +1348,11 @@ public class CresStreamCtrl extends Service {
 			public void onEvent(int event, String path) {
 				synchronized (audioReadyLock)
 				{
-					int audioReady = Integer.parseInt(MiscUtils.readStringFromDisk(audioReadyFilePath));
+					int audioReady = 0;
+			        try
+			        {
+			        	audioReady = Integer.parseInt(MiscUtils.readStringFromDisk(audioReadyFilePath));
+			        } catch (NumberFormatException e) {}
 
 					// Stop/Start all audio
 			        if (audioReady == 1)
@@ -3155,7 +3161,7 @@ public class CresStreamCtrl extends Service {
     		}
     		else
     		{
-    			mAirMedia.hide();
+    			mAirMedia.hide(true);
     		}
     	}
     	catch (Exception e)
@@ -3792,7 +3798,7 @@ public class CresStreamCtrl extends Service {
 			// Hide AirMedia window if we lose HDMI output sync
 			if ((mAirMedia != null) && userSettings.getAirMediaLaunch())
 			{
-				mAirMedia.hide();
+				mAirMedia.hide(false);
 			}
 		}
 	}

@@ -65,28 +65,19 @@ public class AirMedia
         mContext.sendBroadcast(i);
     }
     
-    public void forceStopAirMedia(){
-    	Log.i(TAG, "Force recovering AirMedia");
-    	try {
-    		Process suProcess;
+    public void recoverAirMedia(){
+    	if (mStreamCtl.userSettings.getAirMediaLaunch())
+    	{
+    		Log.i(TAG, "Force recovering AirMedia");
+    		hide(true);	// Need to stop sender in order to recover
 
-    		suProcess = Runtime.getRuntime().exec("su");
+    		try { Thread.sleep(5000); } catch (InterruptedException e) {};		
 
-    		DataOutputStream os = new DataOutputStream(suProcess.getOutputStream());
 
-    		os.writeBytes("adb shell" + "\n");
-    		os.flush();
-
-    		os.writeBytes("am force-stop com.awindinc.receiver.airmedia" + "\n");
-    		os.flush();
-    		
-    		try { Thread.sleep(3000); } catch (InterruptedException e) {};
-    		
-    		os.writeBytes("ps | grep com.awindinc.receiver.airmedia | busybox awk '{print $2}' | busybox xargs kill -9");
-    		os.flush();
-    	} catch (IOException e) {
-    		Log.e(TAG, "Failed to force stop AirMedia");
-    		e.printStackTrace();
+    		show(mStreamCtl.userSettings.getAirMediaX(),
+    				mStreamCtl.userSettings.getAirMediaY(),
+    				mStreamCtl.userSettings.getAirMediaWidth(),
+    				mStreamCtl.userSettings.getAirMediaHeight());
     	}
     }    
     
@@ -110,7 +101,7 @@ public class AirMedia
     		Log.i(TAG, "AirMedia already shown, ignoring request");
     }    
     
-    public void hide()
+    public void hide(boolean sendStopToSender)
     {
     	if (surfaceDisplayed == true)
     	{
@@ -120,7 +111,8 @@ public class AirMedia
     		i.putExtra("command", "hide_receiver_info");
     		mContext.sendBroadcast(i);
     		
-    		stopAllSenders(); // Inform senders that stream is stopped/hidden
+    		if (sendStopToSender)
+    			stopAllSenders(); // Inform senders that stream is stopped/hidden
     	}
     	else
     		Log.i(TAG, "AirMedia already hidden, ignoring request");
