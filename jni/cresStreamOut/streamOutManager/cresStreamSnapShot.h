@@ -6,6 +6,7 @@
 #include "../cresStreamOutProject.h"
 #include "cres_rtsp-media.h"
 #include "cresStreamOutManager.h"
+#include "cresPreview.h"
 
 #define CRES_SNAPSHOT_RAMDISK      		"/dev/shm/crestron/frames"
 #define CRES_SNAPSHOT_WEB_RAMDISK  		"/dev/shm/crestron/jpeg"
@@ -14,10 +15,11 @@
 #define CRES_SNAPSHOT_SNAPSHOT_QUEUE_SIZE 5
 
 class CStreamoutManager;
+class CStreamCamera;
 class SnapShot
 {
 	public:
-		SnapShot(void *arg);
+		SnapShot();
 		~SnapShot();
 
 		void setUpdateRate(int period_in_seconds);
@@ -25,12 +27,13 @@ class SnapShot
 		void setQueueSize(int snapshot_queue_size);
 		int  getQueueSize(void);
 
-		int  add(void);
+		int  add(void *arg);
 		int  drop(void);
 		int  deleteAllFiles(const char *dir, bool bRmFolder=false);
 		int  updatelink(const gchar *snapshot);
-
-		CStreamoutManager *m_pMgr;
+		void start(CStreamoutManager *pMgr,CStreamCamera *pCam);
+		void stop(void);
+		void updateSnapShotName(void);
 
 		GMainContext *m_context;  /* GLib context used to run the main loop */
 
@@ -43,11 +46,12 @@ class SnapShot
 		GstElement *m_videorate;
 		GstElement *m_videofilter;
 		GstElement *m_encoder;
+		GstElement *m_valve;
 		GstElement *m_sink;
 
 		int        m_update_period_secs;
 		int        m_rawfilesqueue_size;
-		char 	   *m_snapshot_name;	// When updating this needs to be locked by mULock
+		char       m_snapshot_name[MAX_STR_LEN];	// When updating this needs to be locked by mULock
 		bool	   m_snapshot_name_updated;
 
 		gboolean   m_bExit;

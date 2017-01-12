@@ -28,23 +28,20 @@
 #include <fts.h>
 
 #include "cresStreamOutManager.h"
+#include "cresCamera.h"
 #include "cresStreamSnapShot.h"
 #define PROC_SELF_FD_FILEPATH 	("/proc/self/fd")
 
-SnapShot::SnapShot(void *arg) : m_loop(NULL),m_videotee(NULL),m_videoconv(NULL),m_videoscale(NULL),
+SnapShot::SnapShot() : m_loop(NULL),m_videotee(NULL),m_videoconv(NULL),m_videoscale(NULL),
 m_videorate(NULL), m_videofilter(NULL),m_sink(NULL),m_context(NULL),m_bExit(false),
 m_update_period_secs(CRES_SNAPSHOT_UPDATE_PERIOD_SECS),m_snapshotq(NULL),
-m_rawfilesqueue_size(CRES_SNAPSHOT_SNAPSHOT_QUEUE_SIZE),m_pMgr(NULL),
-m_bStopInProgress(false), m_snapshot_name_updated(false)
+m_rawfilesqueue_size(CRES_SNAPSHOT_SNAPSHOT_QUEUE_SIZE),
+m_bStopInProgress(false), m_snapshot_name_updated(false),m_valve(NULL)
 {
 	mLock  = new Mutex();
 	mULock = new Mutex();
 	mCond  = new CondVar();
 	mCond_mtx = new Mutex();
-
-	CStreamoutManager * pMgr = (CStreamoutManager *) arg;
-	m_snapshot_name = pMgr->m_snapshot_name;
-	m_pMgr = pMgr;
 
 	struct stat sb;
 	if( stat( CRES_SNAPSHOT_RAMDISK, &sb ) != 0 )
@@ -58,9 +55,7 @@ m_bStopInProgress(false), m_snapshot_name_updated(false)
 	else
 	{
 	  //delete all files in frames queue, leave folder
-	    mULock->lock();
 		deleteAllFiles( CRES_SNAPSHOT_RAMDISK );
-	    mULock->unlock();
 	}
 
 	if( stat( CRES_SNAPSHOT_WEB_RAMDISK, &sb ) != 0 )
@@ -74,9 +69,7 @@ m_bStopInProgress(false), m_snapshot_name_updated(false)
 	else
 	{
 		//clean snapshot files, leave folder
-		mULock->lock();
 		deleteAllFiles( CRES_SNAPSHOT_WEB_RAMDISK );
-		mULock->unlock();
 	}
 }
 
@@ -131,10 +124,11 @@ int  SnapShot::getQueueSize(void)
 	return( iSize );
 }
 
-int SnapShot::add(void)
+int SnapShot::add(void *arg)
 {
+	CStreamCamera *pCam = (CStreamCamera *) arg;
 	int  iStatus  = 0;
-	if(m_pMgr)
+	if(pCam)
 	{
 		m_snapshotq   = gst_element_factory_make( "queue",         NULL );
 		m_videoconv   = gst_element_factory_make( "videoconvert",  NULL );
@@ -142,34 +136,35 @@ int SnapShot::add(void)
 		m_videorate   = gst_element_factory_make( "videorate",     NULL );
 		m_videofilter = gst_element_factory_make( "capsfilter",    NULL );
 		m_encoder     = gst_element_factory_make( "jpegenc",       NULL );
+		m_valve       = gst_element_factory_make( "valve",         NULL );
 		m_sink        = gst_element_factory_make( "multifilesink", NULL );
 
 		if( !m_snapshotq || !m_videoconv || !m_videoscale || !m_videorate ||
-		!m_videofilter || !m_encoder || !m_sink )
+		!m_videofilter || !m_encoder || !m_valve || !m_sink )
 		{
 			iStatus = -2;
 			CSIO_LOG(eLogLevel_error, "SnapShot: Cannot create pipeline" );
 		}
 		else
 		{
-			int width  = atoi(m_pMgr->m_res_x);
-			int height = atoi(m_pMgr->m_res_y);
 			int iUpdateInterval = getUpdateRate();
 
 			g_object_set( G_OBJECT(m_videofilter), "caps",
 			gst_caps_new_simple(
 				 "video/x-raw",
 				 "format",    G_TYPE_STRING, "NV21",
-				 "width",     G_TYPE_INT, width,
-				 "height",    G_TYPE_INT, height,
+				 "width",     G_TYPE_INT, c_camera_width,
+				 "height",    G_TYPE_INT, c_camera_height,
 				 "framerate", GST_TYPE_FRACTION, iUpdateInterval, iUpdateInterval,
 				  NULL), NULL );
 
-			gst_bin_add_many( GST_BIN( m_pMgr->m_teePipeline ), m_snapshotq, m_videoconv, m_videoscale, m_videorate, m_videofilter,
-			m_encoder, m_sink, NULL );
+			g_object_set(G_OBJECT(m_valve), "drop", false, NULL);
 
-			if(!gst_element_link_many( m_pMgr->m_tee, m_snapshotq, m_videoconv, m_videoscale, m_videorate, m_videofilter, m_encoder,
-			m_sink, NULL ))
+			gst_bin_add_many( GST_BIN( pCam->m_pipeline ), m_snapshotq, m_videoconv, m_videoscale, m_videorate, m_videofilter,
+			m_encoder, m_valve, m_sink, NULL );
+
+			if(!gst_element_link_many( pCam->m_tee, m_snapshotq, m_videoconv, m_videoscale, m_videorate, m_videofilter, m_encoder,
+			m_valve, m_sink, NULL ))
 			{
 				CSIO_LOG(eLogLevel_error,  "SnapShot: Cannot link elements.\n" );
 				iStatus = -3;
@@ -196,7 +191,7 @@ int SnapShot::add(void)
 	}
 	else
 	{
-		CSIO_LOG(eLogLevel_verbose,  "SnapShot: parent is NULL" );
+		CSIO_LOG(eLogLevel_verbose,  "SnapShot: camera is NULL" );
 		iStatus = -1;
 	}
 
@@ -213,6 +208,7 @@ int SnapShot::drop(void)
 	gst_object_unref( m_videorate );
 	gst_object_unref( m_videofilter );
 	gst_object_unref( m_encoder );
+	gst_object_unref( m_valve );
 	gst_object_unref( m_sink );
 
 	m_snapshotq   = NULL;
@@ -221,6 +217,7 @@ int SnapShot::drop(void)
 	m_videorate   = NULL;
 	m_videofilter = NULL;
 	m_encoder     = NULL;
+	m_valve       = NULL;
 	m_sink        = NULL;
 
 	mULock->lock();
@@ -301,7 +298,7 @@ int SnapShot::deleteAllFiles( const char *dir, bool bRmdirectory )
 				case FTS_NS:
 				case FTS_DNR:
 				case FTS_ERR:
-					CSIO_LOG(eLogLevel_error, "%s: fts_read error: %s\n",
+					CSIO_LOG(eLogLevel_error, "SnapShot: %s: fts_read error: %s\n",
 							curr->fts_accpath, strerror(curr->fts_errno));
 					break;
 
@@ -324,7 +321,7 @@ int SnapShot::deleteAllFiles( const char *dir, bool bRmdirectory )
 				//case FTS_DEFAULT:
 					if( remove( curr->fts_accpath ) < 0 )
 					{
-						CSIO_LOG(eLogLevel_error, "%s: Failed to remove: %s\n",	curr->fts_path, strerror(errno));
+						CSIO_LOG(eLogLevel_error, "SnapShot: %s: Failed to remove: %s\n",	curr->fts_path, strerror(errno));
 						ret = -1;
 					}
 					break;
@@ -335,9 +332,47 @@ int SnapShot::deleteAllFiles( const char *dir, bool bRmdirectory )
     }
     else
     {
-    	CSIO_LOG(eLogLevel_error, "%s: fts_open failed: %s\n", dir, strerror(errno) );
+    	CSIO_LOG(eLogLevel_error, "SnapShot: %s: fts_open failed: %s\n", dir, strerror(errno) );
         ret = -1;
     }
 
     return ret;
+}
+
+void SnapShot::start(CStreamoutManager *pMgr,CStreamCamera *pCam)
+{
+	mULock->lock();
+	strncpy( m_snapshot_name, pMgr->m_snapshot_name, MAX_STR_LEN );
+	m_snapshot_name_updated = true;
+	mULock->unlock();
+
+	pCam->lockCam();
+
+	if(m_valve)
+		g_object_set(G_OBJECT(m_valve), "drop", false, NULL);
+	else
+		CSIO_LOG(eLogLevel_error, "SnapShot: valve is NULL");
+
+	pCam->m_bPushRawFrames = true;
+	pCam->m_pMgr = pMgr;
+
+	pCam->unlockCam();
+}
+
+void SnapShot::stop(void)
+{
+	if(m_valve)
+	{
+		g_object_set(G_OBJECT(m_valve), "drop", true, NULL);
+	}
+	else
+		CSIO_LOG(eLogLevel_error, "SnapShot: valve is NULL");
+}
+
+void SnapShot::updateSnapShotName(void)
+{
+	CSIO_LOG(eLogLevel_verbose, "SnapShot: update snapshot name");
+	mULock->lock();
+	m_snapshot_name_updated = true;
+	mULock->unlock();
 }

@@ -5,12 +5,14 @@
 #include "streamOutUtils/cresStreamOutUtils.h"
 #include "cresStreamOut.h"
 #include "streamOutManager/cresStreamOutManager.h"
+#include "./streamOutManager/cresCamera.h"
 
 #define MAX_STREAM_OUT 1
 
 #define IsValidStreamOut(a)  ( (a >= 0) && (a < MAX_STREAM_OUT) )
 
 class CStreamoutManager;
+class CStreamCamera;
 class CStreamoutProject : public CresProjBaseClass
 {
 public:
@@ -34,6 +36,9 @@ public:
     CStreamoutEventRingBuffer *m_projEventQ;
 
     CStreamoutManager** m_StreamoutTaskObjList;
+
+    pthread_t      m_tCameraId;
+    CStreamCamera *m_cameraobj;
 
     char m_rtsp_port[MAX_STR_LEN];
     char m_frame_rate[MAX_STR_LEN];

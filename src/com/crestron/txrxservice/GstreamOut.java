@@ -52,6 +52,7 @@ public class GstreamOut {
     private native void nativePausePreview(int sessionId);
     private native void nativeStopPreview(int sessionId);
     private native int  nativeWaitForPreviewAvailable(int sessionId,int timeout_sec);
+    private native int  nativeWaitForPreviewClosed(int sessionId,int timeout_sec);
    
     private final int sessionId = 0; 	// This is currently always 0
     private long native_custom_data;    // Native code will use this to keep private data
@@ -243,6 +244,16 @@ public class GstreamOut {
     	return(rtn);
     }
 
+    protected int waitForPreviewClosed(int sessionId,int timeout_sec) {
+        int rtn = -1;	
+    	if (streamCtl.mCameraDisabled == false)
+    	{
+    		rtn = nativeWaitForPreviewClosed(sessionId,timeout_sec);
+    	}
+    	
+    	return(rtn);
+    }
+    
 ///////////////////////////////////////////////////////////////////////////////
     
     protected void onDestroy() {

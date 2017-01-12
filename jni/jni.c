@@ -3111,4 +3111,17 @@ JNIEXPORT int JNICALL Java_com_crestron_txrxservice_GstreamOut_nativeWaitForPrev
     return(rtn);
 }
 
+JNIEXPORT int JNICALL Java_com_crestron_txrxservice_GstreamOut_nativeWaitForPreviewClosed(JNIEnv* env, jobject thiz, jint stream, jint timeout_sec)
+{
+    CSIO_LOG(eLogLevel_verbose, "Preview: wait up to %ds for preview stream_id=%d to close", timeout_sec, stream);
+
+    int rtn;
+
+    rtn = Streamout_WaitForPreviewClosed(stream,timeout_sec);
+
+    CSIO_LOG(eLogLevel_verbose, "Preview: WaitPreview close exit. rtn = %d", rtn);
+
+    return(rtn);
+}
+
 /***************************** end of preview with video streaming out *********************************/

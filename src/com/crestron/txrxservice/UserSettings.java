@@ -242,9 +242,6 @@ public class UserSettings
 	private String camStreamName;
 	private String camStreamSnapshotName;
 	private String camStreamMulticastAddress;
-	private int camPreviewState;
-	private int gstPreviewState;
-	private int gstCurSessionId;
 
 	//Misc
 	private boolean[] useNewSink;
@@ -340,9 +337,6 @@ public class UserSettings
 		camStreamName		= "camera";
 		camStreamSnapshotName = "snapshot";
 		camStreamMulticastAddress = "";
-		camPreviewState    = 0;
-		gstPreviewState    = 0;
-		gstCurSessionId    = 0;
 	}
 	
 	// If there is a version mismatch between current userSettings and the one loaded from file system
@@ -1339,37 +1333,5 @@ public class UserSettings
 
 	public void setCamStreamMulticastAddress(String camStreamMulticastAddress) {
 		this.camStreamMulticastAddress = camStreamMulticastAddress;
-	}
-	
-	public boolean isCamPreviewActive() {
-		return( ((camPreviewState != 0) ? true:false) );
-	}
-
-	public void setCamPreviewState(int State) {
-		this.camPreviewState = State;
-	}
-	
-	public int getCamPreviewState() {
-		return( this.camPreviewState );
-	}
-	
-	public boolean isGstPreviewActive() {
-		return( ((gstPreviewState != 0) ? true:false) );
-	}
-
-	public void setGstPreviewState(int State) {
-		this.gstPreviewState = State;
-	}
-	
-	public int getGstPreviewState() {
-		return( this.gstPreviewState );
-	}
-	
-	public int getGstPreviewId() {
-		return( this.gstCurSessionId );
-	}
-	
-	public void setGstPreviewId(int sessionId) {
-		this.gstCurSessionId = sessionId;
 	}
 }

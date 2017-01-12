@@ -27,6 +27,7 @@ LOCAL_SRC_FILES := \
 	cresStreamOut/streamOutManager/cres_rtsp-media.c \
 	cresStreamOut/streamOutManager/cresStreamSnapShot.cpp \
 	cresStreamOut/streamOutManager/cresPreview.cpp \
+	cresStreamOut/streamOutManager/cresCamera.cpp \
 	cresStreamOut/streamOutDebug/cresStreamOutDebug.cpp \
 	cresStreamOut/cresStreamOutProject.cpp \
 	cresStreamOut/streamOutUtils/cresProjectBaseClass.cpp \

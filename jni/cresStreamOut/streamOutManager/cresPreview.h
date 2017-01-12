@@ -9,22 +9,24 @@
 #include "cresStreamOutManager.h"
 
 class CStreamoutManager;
+class CStreamCamera;
 class Preview
 {
 	public:
-		Preview(void *arg);
+		Preview();
 		~Preview();
 
-		int   add(void);
+		int   add(void *arg);
 		int   drop(void);
 		int   start(void *window);
 		int   pause(void *window);
 		int   stop(void *window);
 		void  setPlaying(void);
 		int   waitForPreviewAvailable(int timeout_sec);
+		int   waitForPreviewClosed(int timeout_sec);
 		int   wakeup(void);
 
-		CStreamoutManager *m_pMgr;
+		CStreamCamera *m_pCam;
 		void         *m_nativeWindow;
 		GMainContext *m_context;  /* GLib context used to run the main loop */
 
@@ -41,6 +43,7 @@ class Preview
 		gboolean   m_bInstallSink;
 		gboolean   m_bPipelineReady;
 		gboolean   m_paused;
+		gboolean   m_bWindowClosed;
 
 	    Mutex   *mLock;
 	    Mutex   *mULock;

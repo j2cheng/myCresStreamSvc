@@ -24,15 +24,13 @@
 #include "cresStreamOutManager.h"
 #include "cresPreview.h"
 
-Preview::Preview(void *arg) : m_previewq(NULL),m_videoconv(NULL),m_valve(NULL), m_previewsink(NULL),
-m_nativeWindow(NULL),m_blockpad(NULL),m_bInstallSink(false),m_pMgr(NULL),m_bPipelineReady(false),
-m_preview_probe_id(0),m_paused(false)
+Preview::Preview() : m_previewq(NULL),m_videoconv(NULL),m_valve(NULL), m_previewsink(NULL),
+m_nativeWindow(NULL),m_blockpad(NULL),m_bInstallSink(false),m_pCam(NULL),m_bPipelineReady(false),
+m_preview_probe_id(0),m_paused(false),m_bWindowClosed(false)
 {
 	mULock = new Mutex();
 	mCond  = new CondVar();
 	mCond_mtx = new Mutex();
-
-	m_pMgr = (CStreamoutManager *) arg;
 }
 
 Preview::~Preview()
@@ -47,12 +45,16 @@ Preview::~Preview()
     	delete mCond_mtx;
 }
 
-int Preview::add(void)
+int Preview::add(void *arg)
 {
+	CStreamCamera *pCam = (CStreamCamera *) arg;
+
 	int  iStatus  = 0;
 
-	if(m_pMgr)
+	if(pCam)
 	{
+		m_pCam = pCam;
+
 		m_previewq    = gst_element_factory_make( "queue",        NULL );
 		m_videoconv   = gst_element_factory_make( "videoconvert", NULL );
 		m_valve       = gst_element_factory_make( "valve",        NULL);
@@ -68,8 +70,8 @@ int Preview::add(void)
 		{
 			m_blockpad = gst_element_get_static_pad (m_prevsinkq, "src");
 
-			gst_bin_add_many( GST_BIN( m_pMgr->m_teePipeline ), m_previewq, m_videoconv, m_valve, m_prevsinkq, m_previewsink, NULL );
-			if(!gst_element_link_many( m_pMgr->m_tee, m_previewq, m_videoconv, m_valve, m_prevsinkq, m_previewsink, NULL ))
+			gst_bin_add_many( GST_BIN( pCam->m_pipeline ), m_previewq, m_videoconv, m_valve, m_prevsinkq, m_previewsink, NULL );
+			if(!gst_element_link_many( pCam->m_tee, m_previewq, m_videoconv, m_valve, m_prevsinkq, m_previewsink, NULL ))
 			{
 				CSIO_LOG(eLogLevel_error,  "Preview: Cannot link to preview elements" );
 				iStatus = -2;
@@ -180,12 +182,43 @@ int Preview::stop(void *window)
 	if( m_previewsink )
 	{
 		m_bInstallSink = false;
+		m_bWindowClosed = false;
 		gst_pad_add_probe( m_blockpad, GST_PAD_PROBE_TYPE_BLOCK_DOWNSTREAM, cb_Prevsink_probe, this, NULL );
 	}
 	else
 	{
 		CSIO_LOG(eLogLevel_error, "Preview: cannot stop. Sink is NULL");
 		rtn = -1;
+	}
+
+	return(rtn);
+}
+
+int Preview::waitForPreviewClosed(int timeout_sec)
+{
+	int rtn = 0;
+
+	if( m_bPipelineReady && !m_bWindowClosed )
+	{
+		int               rc=0;
+		struct timespec   ts;
+
+		clock_gettime(CLOCK_REALTIME, &ts);
+		ts.tv_nsec = 0;
+		ts.tv_sec  += timeout_sec;
+
+		mCond_mtx->lock();
+		pthread_mutex_t *mutex = mCond_mtx->get_mutex_ptr();
+		rc = mCond->waittimedcont( mutex, &ts );
+		if( rc == ETIMEDOUT )
+		{
+			rtn = ETIMEDOUT;
+			CSIO_LOG(eLogLevel_error,  "Preview: cannot stop. Timed out: %d",rc );
+		}
+		else
+			rtn = (rc==0) ?1:0;	//is started or stopped by user
+
+		mCond_mtx->unlock();
 	}
 
 	return(rtn);
@@ -279,7 +312,7 @@ GstPadProbeReturn cb_Prevsink_probe( GstPad * pad, GstPadProbeInfo *info, gpoint
 	}
 
 	gst_element_set_state( pPrev->m_previewsink, GST_STATE_NULL );
-	gst_bin_remove( GST_BIN(pPrev->m_pMgr->m_teePipeline), pPrev->m_previewsink );
+	gst_bin_remove( GST_BIN(pPrev->m_pCam->m_pipeline), pPrev->m_previewsink );
 
 	if(!pPrev->m_bInstallSink)
 	{
@@ -308,16 +341,23 @@ GstPadProbeReturn cb_Prevsink_probe( GstPad * pad, GstPadProbeInfo *info, gpoint
 		CSIO_LOG(eLogLevel_error, "Preview: Cannot re-create sink" );
 	}
 
-	gst_bin_add( GST_BIN(pPrev->m_pMgr->m_teePipeline), pPrev->m_previewsink );
+	gst_bin_add( GST_BIN(pPrev->m_pCam->m_pipeline), pPrev->m_previewsink );
 	if( !gst_element_link_many( pPrev->m_prevsinkq, pPrev->m_previewsink, NULL ) )
 	{
 		CSIO_LOG( eLogLevel_error,  "Preview: Cannot re-link sink" );
 	}
 
-	//if( (gst_element_set_state( pPrev->m_previewsink, GST_STATE_PLAYING)) == GST_STATE_CHANGE_FAILURE )
-	if( gst_element_sync_state_with_parent( pPrev->m_previewsink) )
+	if( (gst_element_set_state( pPrev->m_previewsink, GST_STATE_PLAYING)) == GST_STATE_CHANGE_FAILURE )
 	{
 	   CSIO_LOG(eLogLevel_error,  "Preview: Cannot restart sink" );
+	}
+	else
+		CSIO_LOG(eLogLevel_verbose,  "Preview: restarted sink" );
+
+	if(!pPrev->m_bInstallSink)
+	{
+		pPrev->m_bWindowClosed = true;
+		pPrev->wakeup();
 	}
 
 	return GST_PAD_PROBE_OK;

@@ -810,7 +810,10 @@ public class CresStreamCtrl extends Service {
         }
         try {
         	cam_streaming.stopRecording(false);
-        	cam_preview.stopPlayback(false);
+            if(cam_preview != null)
+            {
+        	   cam_preview.stopPlayback(false);
+            }
 	        for (int i = 0; i < NumOfSurfaces; i++)
 	        {
 	        	streamPlay.onStop(i);
@@ -2841,19 +2844,16 @@ public class CresStreamCtrl extends Service {
     	Log.d(TAG, "Camera : Lock");
     	try
     	{
-    		if (cam_preview != null)
+    		if (gstStreamOut != null)
     		{
     			lastHDMImode = DeviceMode.PREVIEW;
     			SendStreamState(StreamState.CONNECTING, sessId);
     			updateWindow(sessId);
     			showPreviewWindow(sessId);
-    			cam_preview.setSessionIndex(sessId);
     			invalidateSurface();
     			
 				SurfaceHolder sh = getCresSurfaceHolder(sessId);
     			gstStreamOut.startPreview(sh.getSurface(), sessId);
-    			userSettings.setGstPreviewState(1);
-    			userSettings.setCamPreviewState(0);
     		}
     	}
     	finally
@@ -2880,8 +2880,6 @@ public class CresStreamCtrl extends Service {
     			
     			cam_preview.startPlayback(false);
     			//Toast.makeText(this, "Preview Started", Toast.LENGTH_LONG).show();
-    			userSettings.setCamPreviewState(1);
-    			userSettings.setGstPreviewState(0);
     		}
     	}
     	finally
@@ -2893,17 +2891,12 @@ public class CresStreamCtrl extends Service {
 
     public void startPreview(int sessId)
     {
-		if (cam_preview != null)
+    	if(ProductSpecific.hasRealCamera())
 		{
-			if(userSettings.getCamStreamEnable() == true)
-			{
-				startGstPreview(sessId);
-			}
-			else
-			{
-				startNativePreview(sessId);
-			}
+			startGstPreview(sessId);
 		}
+    	else
+    		startNativePreview(sessId);
     }
 
   //Stop gstreamer Preview
@@ -2913,11 +2906,11 @@ public class CresStreamCtrl extends Service {
     	Log.d(TAG, "Camera : Lock");
     	try
     	{
-			cam_preview.setSessionIndex(sessId);
-
     		if (gstStreamOut != null)
     		{
 				gstStreamOut.stopPreview(sessId);
+				int rtn = 0;
+				rtn = gstStreamOut.waitForPreviewClosed(sessId,5);
    			
     			if(hide)
     			{
@@ -2928,11 +2921,6 @@ public class CresStreamCtrl extends Service {
     			//causes streaming never stops.
     			//FIXME:Temp Hack for ducati crash to save current state
     			userSettings.setStreamState(StreamState.STOPPED, sessId);
-    				cam_preview.stopPlayback(false);
-    			
-				userSettings.setGstPreviewState(0);
-				userSettings.setCamPreviewState(0);
-				userSettings.setGstPreviewId(sessId);
     		}
     	}
     	finally
@@ -2964,10 +2952,6 @@ public class CresStreamCtrl extends Service {
     			userSettings.setStreamState(StreamState.STOPPED, sessId);
     			cam_preview.stopPlayback(false);
     			//Toast.makeText(this, "Preview Stopped", Toast.LENGTH_LONG).show();
-    			
-				userSettings.setCamPreviewState(0);
-				userSettings.setGstPreviewState(0);
-				userSettings.setGstPreviewId(sessId);
     		}
     	}
     	finally
@@ -2979,38 +2963,36 @@ public class CresStreamCtrl extends Service {
 
     public void stopPreview(int sessId, boolean hide)
     {
-		if (cam_preview != null)
+    	if(ProductSpecific.hasRealCamera())
 		{
-			if(userSettings.getCamStreamEnable() == true)
-			{
-				stopGstPreview(sessId, hide);
-			}
-			else
-			{
-				stopNativePreview(sessId, hide);
-			}
+			stopGstPreview(sessId, hide);
 		}
+    	else
+    		stopNativePreview(sessId, hide);
     }
 
     public void pausePreview(int sessId)
     {
     	Log.d(TAG, "Camera : pause Preview");
-		if(userSettings.isGstPreviewActive() == true)
+    	if(ProductSpecific.hasRealCamera())
 		{
-			if(gstStreamOut != null)
-			{
-    			Log.d(TAG, "Camera : pause streamout Preview");
-    			userSettings.setGstPreviewId(sessId);
-    			gstStreamOut.pausePreview(sessId);
-			}
+    		if(gstStreamOut != null)
+    		{
+				Log.d(TAG, "Camera : pause streamout Preview");
+				gstStreamOut.pausePreview(sessId);
+    		}
 		}
 		else
 		{
-			Log.d(TAG, "Camera : pause native Preview");
-			cam_preview.setSessionIndex(sessId);
-			cam_preview.pausePlayback();
+			if(cam_preview != null)
+			{
+				Log.d(TAG, "Camera : pause native Preview");
+				cam_preview.setSessionIndex(sessId);
+				cam_preview.pausePlayback();
+			}
 		}
-    }
+    		
+   }
    
    
     //Control Feedback
@@ -3518,37 +3500,13 @@ public class CresStreamCtrl extends Service {
     		if (enable)
     		{
     		  //start streamout
-    			bPreviewState = userSettings.isCamPreviewActive();
-				if( bPreviewState == false )
-				{
-    				gstStreamOut.start();
-    				rtn = gstStreamOut.waitForPreviewAvailable(sessId,5);
-				}
-				else
-				{
-				  //native Preview mode is active. Stop native preview, start streamout, and then
-				  //automatically switch preview player to gstreamer 
-         			stopNativePreview(sessId,false);
-     				gstStreamOut.start();
-    				rtn = gstStreamOut.waitForPreviewAvailable(sessId,5);
-    				startGstPreview(sessId);
-				}
+				gstStreamOut.start();
+				rtn = gstStreamOut.waitForPreviewAvailable(sessId,5);
     		}
     		else
     		{
     		  //stop streamout
-    			bPreviewState = userSettings.isGstPreviewActive();
-				if( bPreviewState == false )
-				{
-    				gstStreamOut.stop();
-				}
-				else
-				{
-				  //gstreamer Preview mode is active. Stop streamout, and then
-				  //automatically switch preview player to native 
-    				gstStreamOut.stop();
-    				startNativePreview(sessId);
-				}
+    			gstStreamOut.stop();
     		}
     		
     		if( rtn == 110 )

@@ -443,6 +443,32 @@ int  Streamout_WaitForPreviewAvailable(int streamid,int timeout_sec)
 	return( rtn );
 }
 
+int  Streamout_WaitForPreviewClosed(int streamid,int timeout_sec)
+{
+	CSIO_LOG(StreamOutProjDebugLevel, "Streamout: %s() enter", __FUNCTION__);
+
+	int rtn = 0;
+
+	gProjectsLock.lock();
+
+	if( IsValidStreamOut(streamid) )
+	{
+		if(gStreamoutTaskObjList)
+		{
+			rtn = WaitForPreviewClosed(timeout_sec);
+		}
+	}
+	else
+	{
+		CSIO_LOG(eLogLevel_error, "Streamout: obj ID is invalid = %d",streamid);
+	}
+
+	gProjectsLock.unlock();
+	CSIO_LOG(StreamOutProjDebugLevel, "Streamout: %s() exit.", __FUNCTION__);
+
+	return( rtn );
+}
+
 /*********************local static functions **************************/
 static void StreamoutProjectSendEvent(int iId, int evnt, int data_size, void* bufP)
 {
@@ -498,6 +524,9 @@ CStreamoutProject::CStreamoutProject(int iId): m_projectID(iId)
     strcpy(m_multicast_address, DEFAULT_MULTICAST_ADDRESS);
     strcpy(m_stream_name, DEFAULT_STREAM_NAME);
     strcpy(m_snapshot_name, DEFAULT_SNAPSHOT_NAME);
+
+    m_cameraobj = new CStreamCamera(this);
+    m_cameraobj->create(this);
 }
 
 CStreamoutProject::~CStreamoutProject()
@@ -505,11 +534,16 @@ CStreamoutProject::~CStreamoutProject()
     removeAllStreamoutTasks();
     CSIO_LOG(m_debugLevel, "--Streamout: ~CStreamoutProject delete m_projEvent is DONE");
 
+    m_cameraobj->remove(this);
+
     if(m_projEvent)
         delete m_projEvent;
 
     if(m_projEventQ)
         delete m_projEventQ;
+
+	if(m_cameraobj)
+		delete m_cameraobj;
 
     if(mLock)
         delete mLock;
@@ -899,10 +933,7 @@ void* CStreamoutProject::ThreadEntry()
                 		{
                 			if(m_StreamoutTaskObjList)
                 			{
-                				if(m_StreamoutTaskObjList[id])
-                				{
-                					m_StreamoutTaskObjList[id]->startPreview((void*)evntQ.buffPtr);
-                				}
+                				StartPreview((void*) evntQ.buffPtr);
                 			}
                 		}
                 		else
@@ -958,10 +989,7 @@ void* CStreamoutProject::ThreadEntry()
 					{
 						if(m_StreamoutTaskObjList)
 						{
-							if(m_StreamoutTaskObjList[id])
-							{
-								m_StreamoutTaskObjList[id]->stopPreview((void*)evntQ.buffPtr);
-							}
+							StopPreview((void*)evntQ.buffPtr);
 						}
 					}
 					else
