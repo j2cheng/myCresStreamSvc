@@ -1326,13 +1326,19 @@ public class CresStreamCtrl extends Service {
     	final String audioReadyFilePath = "/sys/devices/platform/crestron-mcuctrl/avReady";
     	final Object audioReadyLock = new Object();
     	File audioReadyFile = new File (audioReadyFilePath);
-    	// File will exist because kernel creates is on boot
-        
-        // Set initial state, before file observing
-        int initialAudioReady = 0;
-        try
-        {
-        	initialAudioReady = Integer.parseInt(MiscUtils.readStringFromDisk(audioReadyFilePath));
+    	// File will exist because kernel creates is on boot, if dne then assume audio ready
+    	if (!audioReadyFile.isFile())	//check if file exists
+    	{
+    		Log.d(TAG, "Audio subsystem is ready");
+    		audioReadyLatch.countDown();
+    		return;
+    	}
+
+    	// Set initial state, before file observing
+    	int initialAudioReady = 0;
+    	try
+    	{
+    		initialAudioReady = Integer.parseInt(MiscUtils.readStringFromDisk(audioReadyFilePath));
         } catch (NumberFormatException e) {}
 
 		// Stop/Start all audio
