@@ -222,16 +222,19 @@ public class AirMedia
 		    do{
 		    	int userId = cursor.getInt(0);
 		    	
-		    	// If sending all userFeedback mark which users feedback already sent on
-		    	if ((sentUserFeedback != null) && (userId >= 1) && (userId <= 32)) //make sure in range
-		    		sentUserFeedback[userId - 1] = true;
-		    	
-		    	boolean connected = (cursor.getInt(4) == 1);
-		    	if (connected)
-		    		status = 1;
+		    	if ((userId >= 1) && (userId <= 32)) //make sure in range
+		    	{
+		    		// If sending all userFeedback mark which users feedback already sent on
+		    		if (sentUserFeedback != null)
+		    			sentUserFeedback[userId - 1] = true;
 
-		    	mStreamCtl.userSettings.setAirMediaUserConnected(true, userId);
-		    	mStreamCtl.sendAirMediaUserFeedbacks(userId, cursor.getString(1), cursor.getString(2), cursor.getInt(3), connected);
+		    		boolean connected = (cursor.getInt(4) == 1);
+		    		if (connected)
+		    			status = 1;
+
+		    		mStreamCtl.userSettings.setAirMediaUserConnected(true, userId);
+		    		mStreamCtl.sendAirMediaUserFeedbacks(userId, cursor.getString(1), cursor.getString(2), cursor.getInt(3), connected);
+		    	}
 		    }while(cursor.moveToNext());
 		  }
 		}else{
