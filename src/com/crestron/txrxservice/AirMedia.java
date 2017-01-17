@@ -570,7 +570,7 @@ public class AirMedia
     	try
     	{
     		licensed = Integer.parseInt(MiscUtils.readStringFromDisk(licenseFilePath)) == 1;
-    	} catch (Exception e) {} // If file DNE or corrupt not licensed
+    	} catch (NumberFormatException e) {} // If file DNE or corrupt not licensed
     	return licensed;
     }
 }

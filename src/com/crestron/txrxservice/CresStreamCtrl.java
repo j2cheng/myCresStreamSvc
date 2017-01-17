@@ -128,12 +128,14 @@ public class CresStreamCtrl extends Service {
     private DeviceMode lastHDMImode = DeviceMode.PREVIEW;
     boolean StreamOutstarted = false;
     boolean hdmiInputDriverPresent = false;
+    boolean airMediaLicensed = false;
     boolean[] restartRequired = new boolean[NumOfSurfaces];
     public final static String savedSettingsFilePath = "/data/CresStreamSvc/userSettings";
     public final static String savedSettingsOldFilePath = "/data/CresStreamSvc/userSettings.old";
     public final static String cameraModeFilePath = "/dev/shm/crestron/CresStreamSvc/cameraMode";
     public final static String restoreFlagFilePath = "/data/CresStreamSvc/restore";
     public final static String restartStreamsFilePath = "/dev/shm/crestron/CresStreamSvc/restartStreams";
+    public final static String hdmiLicenseFilePath = "/dev/shm/hdmi_licensed";
     public volatile boolean mMediaServerCrash = false;
     public volatile boolean mDucatiCrash = false;
     public volatile boolean mIgnoreAllCrash = false;
@@ -662,25 +664,7 @@ public class CresStreamCtrl extends Service {
     		Thread saveSettingsThread = new Thread(new SaveSettingsTask());    	
     		saveSettingsThread.start();
 
-    		hdmiInputDriverPresent = ProductSpecific.isHdmiDriverPresent();
-    		HDMIInputInterface.setHdmiDriverPresent(hdmiInputDriverPresent);
-
-    		if (hdmiInputDriverPresent)
-    		{
-    			Log.d(TAG, "HDMI input driver is present");
-    			hdmiInput = new HDMIInputInterface();
-    			//refresh resolution on startup
-    			hdmiInput.setResolutionIndex(HDMIInputInterface.readResolutionEnum(true));
-
-    			// Call getHdmiInResolutionSysFs in a separate thread so that if read takes a long time we don't get ANR 
-    			new Thread(new Runnable() {
-    				public void run() {
-    					refreshInputResolution();
-    				}
-    			}).start();
-    		}
-    		else
-    			Log.d(TAG, "HDMI input driver is NOT present");
+    		
 
     		refreshOutputResolution();
     		sendHdmiOutSyncState(); // Send out initial hdmi out resolution info
@@ -700,15 +684,6 @@ public class CresStreamCtrl extends Service {
 
     		//HPD and Resolution Event Registration
     		registerBroadcasts();
-
-    		//Enable StreamIn and CameraPreview 
-    		if (hdmiInputDriverPresent)
-    		{
-    			cam_streaming = new CameraStreaming(this);
-    			cam_preview = new CameraPreview(this, hdmiInput);    
-    			// Set up Ducati
-    			ProductSpecific.getHdmiInputStatus();
-    		}
 
     		//Play Control
     		hm = new HashMap<Integer, Command>();
@@ -741,6 +716,9 @@ public class CresStreamCtrl extends Service {
     		hm3.put(0/*"STREAMIN"*/, new myCommand2() {
     			public void executePause(int sessId) {pauseStreamIn(sessId); };
     		});
+    		
+    		hdmiLicenseThread(this);
+    		airMediaLicenseThread(this);
 
     		// Flag to TCPInterface that streaming can start
     		streamingReadyLatch.countDown();
@@ -762,9 +740,7 @@ public class CresStreamCtrl extends Service {
     		
     		// Monitor Audio Ready flag
     		monitorAudioReady();
-    		
-    		airMediaLicenseThread(this);
-    		
+    		    		
     		initAppFiles();
 
     		// FIXME: this is a temprorary workaround for testing so that we can ignore HDCP state
@@ -932,11 +908,64 @@ public class CresStreamCtrl extends Service {
     				try { Thread.sleep(5000); } catch (InterruptedException e){}//Poll every 5 seconds
     			}
     			
-    			if (mAirMedia == null && AirMedia.checkAirMediaLicense())
+    			airMediaLicensed = AirMedia.checkAirMediaLicense();
+    			
+    			if (mAirMedia == null && airMediaLicensed)
 					mAirMedia = new AirMedia(streamCtrl);
     		}
     	}).start();
     }
+    
+    private void hdmiLicenseThread(final CresStreamCtrl streamCtrl)
+    {	
+		new Thread(new Runnable() {
+    		@Override
+    		public void run() { 
+    			// Wait until file exists then check
+    			while ((new File(hdmiLicenseFilePath)).exists() == false)
+    			{
+    				try { Thread.sleep(1000); } catch (InterruptedException e){}//Poll every 5 seconds
+    			}
+    			
+    			int hdmiLicensed = 0;
+    			try {
+    				hdmiLicensed = Integer.parseInt(MiscUtils.readStringFromDisk(hdmiLicenseFilePath));
+    			} catch (NumberFormatException e) {}
+    			
+    			if (hdmiLicensed == 1)
+    			{
+    				hdmiInputDriverPresent = ProductSpecific.isHdmiDriverPresent();
+    	    		HDMIInputInterface.setHdmiDriverPresent(hdmiInputDriverPresent);
+
+    	    		if (hdmiInputDriverPresent)
+    	    		{
+    	    			Log.d(TAG, "HDMI input driver is present");
+    	    			hdmiInput = new HDMIInputInterface();
+    	    			//refresh resolution on startup
+    	    			hdmiInput.setResolutionIndex(HDMIInputInterface.readResolutionEnum(true));
+
+    	    			// Populate hdmiInput info
+    	    			refreshInputResolution();
+    	    			
+    	    			//Enable StreamIn and CameraPreview 
+    	    			cam_streaming = new CameraStreaming(streamCtrl);
+    	    			cam_preview = new CameraPreview(streamCtrl, hdmiInput);    
+    	    			// Set up Ducati
+    	    			ProductSpecific.getHdmiInputStatus();
+    	    		}
+    	    		else
+    	    			Log.d(TAG, "HDMI input driver is NOT present");
+    			}
+    			else
+    			{
+    				hdmiInputDriverPresent = false;
+    				cam_preview = null;
+    				cam_streaming = null;
+    			}
+    		}
+    	}).start();
+    }
+    
     
     
     public void createCresDisplaySurface(){
@@ -1999,21 +2028,22 @@ public class CresStreamCtrl extends Service {
     
     void refreshInputResolution()
     {
-        Log.i(TAG, "Refresh resolution info");
-        
-        
-    	
-        if (HDMIInputInterface.readSyncState() == true)
-        {
-	    	//HDMI In
-	        String hdmiInputResolution = HDMIInputInterface.getHdmiInResolutionSysFs();	
-	    	readResolutionInfo(hdmiInputResolution);
-        }
-        else
-        {
-        	// If no sync then all values should be zeroed out
-        	hdmiInput.updateResolutionInfo("0x0@0");
-        }
+    	Log.i(TAG, "Refresh resolution info");
+
+    	if (hdmiInputDriverPresent)
+    	{
+    		if (HDMIInputInterface.readSyncState() == true)
+    		{
+    			//HDMI In
+    			String hdmiInputResolution = HDMIInputInterface.getHdmiInResolutionSysFs();	
+    			readResolutionInfo(hdmiInputResolution);
+    		}
+    		else
+    		{
+    			// If no sync then all values should be zeroed out
+    			hdmiInput.updateResolutionInfo("0x0@0");
+    		}
+    	}
     }
 
 	public void refreshOutputResolution() {
@@ -3128,7 +3158,7 @@ public class CresStreamCtrl extends Service {
     		if (val == true) // True = launch airmedia app, false = close app
     		{
     			// Do I need to stop all video here???
-    			if (mAirMedia == null && AirMedia.checkAirMediaLicense())
+    			if (mAirMedia == null && airMediaLicensed)
     				mAirMedia = new AirMedia(this);
     			int x, y, width, height;
     			if (fullscreen || ((userSettings.getAirMediaWidth() == 0) && (userSettings.getAirMediaHeight() == 0)))
@@ -3657,36 +3687,39 @@ public class CresStreamCtrl extends Service {
             			hdmiLock.lock();
 		            	try
 		            	{
-			                if (paramAnonymousIntent.getAction().equals("evs.intent.action.hdmi.RESOLUTION_CHANGED"))
-			                {
-			                	if (hdmiLock.getQueueLength() == 0)
-			                	{
-				                	int resolutionId = paramAnonymousIntent.getIntExtra("evs_hdmi_resolution_id", -1);
-				                	
-				                	int prevResolutionIndex = hdmiInput.getResolutionIndex();
-				                    if (resolutionId != 0)
-				                    	hdmiInput.setResolutionIndex(resolutionId);
-				                    
-				                    // Fix issue where we start video before we setup resolution 
-				                    refreshInputResolution();
-				                	
-				                	setCameraAndRestartStreams(resolutionId); //we need to restart streams for resolution change		                	
+		            		if (hdmiInputDriverPresent)
+		            		{
+		            			if (paramAnonymousIntent.getAction().equals("evs.intent.action.hdmi.RESOLUTION_CHANGED"))
+		            			{
+		            				if (hdmiLock.getQueueLength() == 0)
+		            				{
+		            					int resolutionId = paramAnonymousIntent.getIntExtra("evs_hdmi_resolution_id", -1);
 
-				                    //Wait 5 seconds before sending hdmi in sync state - bug 96552
-				                    new Thread(new Runnable() {
-				                		public void run() { 
-				                			try {
-				                				Thread.sleep(5000);
-				                			} catch (Exception e) { e.printStackTrace(); }				                			
-				                			sendHdmiInSyncState();
-				                		}
-				                    }).start();
-				                	hpdHdmiEvent = 1;
-			                        Log.i(TAG, "HDMI resolutions - HRes:" + hdmiInput.getHorizontalRes() + " Vres:" + hdmiInput.getVerticalRes());
-			                	}
-		                    }
-		                    else
-		                        Log.i(TAG, " Nothing to do!!!");
+		            					int prevResolutionIndex = hdmiInput.getResolutionIndex();
+		            					if (resolutionId != 0)
+		            						hdmiInput.setResolutionIndex(resolutionId);
+
+		            					// Fix issue where we start video before we setup resolution 
+		            					refreshInputResolution();
+
+		            					setCameraAndRestartStreams(resolutionId); //we need to restart streams for resolution change		                	
+
+		            					//Wait 5 seconds before sending hdmi in sync state - bug 96552
+		            					new Thread(new Runnable() {
+		            						public void run() { 
+		            							try {
+		            								Thread.sleep(5000);
+		            							} catch (Exception e) { e.printStackTrace(); }				                			
+		            							sendHdmiInSyncState();
+		            						}
+		            					}).start();
+		            					hpdHdmiEvent = 1;
+		            					Log.i(TAG, "HDMI resolutions - HRes:" + hdmiInput.getHorizontalRes() + " Vres:" + hdmiInput.getVerticalRes());
+		            				}
+		            			}
+		            			else
+		            				Log.i(TAG, " Nothing to do!!!");
+		            		}
 		            	}
 		            	finally
 		            	{
@@ -3709,20 +3742,23 @@ public class CresStreamCtrl extends Service {
             			hdmiLock.lock();
                     	try
                     	{
-        	                if (paramAnonymousIntent.getAction().equals("evs.intent.action.hdmi.HPD"))
-        	                {
-        	                	if ((hdmiLock.getQueueLength() == 0) || (hdmiLock.getQueueLength() == 1))
-        	                	{
-        	                		int i = paramAnonymousIntent.getIntExtra("evs_hdmi_hdp_id", -1);
-        	                		if (i == 0)
-        	                			setNoVideoImage(true);
-	        	                	sendHdmiInSyncState();
-	        	                    
-	        	                    Log.i(TAG, "Received hpd broadcast ! " + i);
-	        	                    hpdHdmiEvent = 1;
-	        	                    mForceHdcpStatusUpdate = true;
-        	                	}
-        	                }
+                    		if (hdmiInputDriverPresent)
+		            		{
+                    			if (paramAnonymousIntent.getAction().equals("evs.intent.action.hdmi.HPD"))
+                    			{
+                    				if ((hdmiLock.getQueueLength() == 0) || (hdmiLock.getQueueLength() == 1))
+                    				{
+                    					int i = paramAnonymousIntent.getIntExtra("evs_hdmi_hdp_id", -1);
+                    					if (i == 0)
+                    						setNoVideoImage(true);
+                    					sendHdmiInSyncState();
+
+                    					Log.i(TAG, "Received hpd broadcast ! " + i);
+                    					hpdHdmiEvent = 1;
+                    					mForceHdcpStatusUpdate = true;
+                    				}
+                    			}
+		            		}
                     	}
                     	finally
                     	{
