@@ -2444,87 +2444,88 @@ public class CresStreamCtrl extends Service {
     //Ctrls
     public void Start(int sessionId)
     {
-		ProductSpecific.doChromakey(true);
-    	enableRestartMechanism = true; //if user starts stream allow restart mechanism
-    	
-    	if ((getCurrentStreamState(sessionId) != StreamState.STARTED) && (userSettings.getStreamState(sessionId) != StreamState.STREAMERREADY))
-    	{	    	
-	    	stopStartLock[sessionId].lock();
-	    	Log.d(TAG, "Start " + sessionId + " : Lock");
-	    	try
-	    	{	    		
-		    	playStatus="true";
-		    	stopStatus="false";
-		        pauseStatus="false";	
-		        restartRequired[sessionId]=true;
-		        hm.get(userSettings.getMode(sessionId)).executeStart(sessionId);
-		        //hm.get(device_mode).executeStart();
-		        // The started state goes back when we actually start
-	    	}
-	    	finally
-	    	{
-	    		stopStartLock[sessionId].unlock();
-	        	Log.d(TAG, "Start " + sessionId + " : Unlock");
-	    	}
+    	stopStartLock[sessionId].lock();
+    	try
+    	{	
+    		Log.d(TAG, "Start " + sessionId + " : Lock");
+    		ProductSpecific.doChromakey(true);
+    		enableRestartMechanism = true; //if user starts stream allow restart mechanism
+
+    		if ((getCurrentStreamState(sessionId) != StreamState.STARTED) && (userSettings.getStreamState(sessionId) != StreamState.STREAMERREADY))
+    		{	   
+    			playStatus="true";
+    			stopStatus="false";
+    			pauseStatus="false";	
+    			restartRequired[sessionId]=true;
+    			hm.get(userSettings.getMode(sessionId)).executeStart(sessionId);
+    			//hm.get(device_mode).executeStart();
+    			// The started state goes back when we actually start
+
+    		}
+    		else if (getCurrentStreamState(sessionId) == StreamState.STARTED)
+    		{
+    			SendStreamState(StreamState.STARTED, sessionId);
+    		}
     	}
-    	else if (getCurrentStreamState(sessionId) == StreamState.STARTED)
+    	finally
     	{
-			SendStreamState(StreamState.STARTED, sessionId);
+    		stopStartLock[sessionId].unlock();
+    		Log.d(TAG, "Start " + sessionId + " : Unlock");
     	}
     }
 
     public void Stop(int sessionId, boolean fullStop)
     {
-    	//csio will send service full stop when it does not want confidence mode started
-    	if ((getCurrentStreamState(sessionId) != StreamState.STOPPED) && ((userSettings.getStreamState(sessionId) != StreamState.CONFIDENCEMODE) || (fullStop == true)))
+    	stopStartLock[sessionId].lock();
+    	Log.d(TAG, "Stop " + sessionId + " : Lock");
+    	try
     	{
-	    	stopStartLock[sessionId].lock();
-	    	Log.d(TAG, "Stop " + sessionId + " : Lock");
-	    	try
-	    	{
-		    	playStatus="false";
-		    	stopStatus="true";
-		        pauseStatus="false";
-		        restartRequired[sessionId]=false;
-		        hm2.get(userSettings.getMode(sessionId)).executeStop(sessionId, fullStop);
-		        // device state will be set in stop callback
-	    	}
-	    	finally
-	    	{
-	    		stopStartLock[sessionId].unlock();
-	    		Log.d(TAG, "Stop " + sessionId + " : Unlock");
-	    	}
-    	}
-    	else
-    	{
-    		if (getCurrentStreamState(sessionId) == StreamState.CONFIDENCEMODE)
-    			SendStreamState(StreamState.CONFIDENCEMODE, sessionId);
+    		//csio will send service full stop when it does not want confidence mode started
+    		if ((getCurrentStreamState(sessionId) != StreamState.STOPPED) && ((userSettings.getStreamState(sessionId) != StreamState.CONFIDENCEMODE) || (fullStop == true)))
+    		{
+    			playStatus="false";
+    			stopStatus="true";
+    			pauseStatus="false";
+    			restartRequired[sessionId]=false;
+    			hm2.get(userSettings.getMode(sessionId)).executeStop(sessionId, fullStop);
+    			// device state will be set in stop callback
+    		}
     		else
-    			SendStreamState(StreamState.STOPPED, sessionId);
+    		{
+    			if (getCurrentStreamState(sessionId) == StreamState.CONFIDENCEMODE)
+    				SendStreamState(StreamState.CONFIDENCEMODE, sessionId);
+    			else
+    				SendStreamState(StreamState.STOPPED, sessionId);
+    		}
+    		ProductSpecific.doChromakey(false);
     	}
-		ProductSpecific.doChromakey(false);
+    	finally
+    	{
+    		stopStartLock[sessionId].unlock();
+    		Log.d(TAG, "Stop " + sessionId + " : Unlock");
+    	}
     }
 
     public void Pause(int sessionId)
-    {
-    	if ((getCurrentStreamState(sessionId) != StreamState.PAUSED) && (userSettings.getStreamState(sessionId) != StreamState.STOPPED))
+    {    	
+    	stopStartLock[sessionId].lock();
+    	try
     	{
-	    	Log.d(TAG, "Pause " + sessionId + " : Lock");
-	    	stopStartLock[sessionId].lock();
-	    	try
-	    	{
-		        pauseStatus="true";
-		    	playStatus="false";
-		    	stopStatus="false";
-		    	restartRequired[sessionId]=false;
-		        hm3.get(userSettings.getMode(sessionId)).executePause(sessionId);
-		        // Device state will be set in pause callback
-	    	}
-	        finally
-	    	{
-	    		Log.d(TAG, "Pause " + sessionId + " : Unlock");
-	    		stopStartLock[sessionId].unlock();
-	    	}
+    		Log.d(TAG, "Pause " + sessionId + " : Lock");
+    		if ((getCurrentStreamState(sessionId) != StreamState.PAUSED) && (userSettings.getStreamState(sessionId) != StreamState.STOPPED))
+    		{
+    			pauseStatus="true";
+    			playStatus="false";
+    			stopStatus="false";
+    			restartRequired[sessionId]=false;
+    			hm3.get(userSettings.getMode(sessionId)).executePause(sessionId);
+    			// Device state will be set in pause callback
+    		}
+    	}
+    	finally
+    	{
+    		Log.d(TAG, "Pause " + sessionId + " : Unlock");
+    		stopStartLock[sessionId].unlock();
     	}
     }
     //StreamOut Ctrl & Config
