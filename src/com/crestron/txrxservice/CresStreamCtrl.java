@@ -128,6 +128,7 @@ public class CresStreamCtrl extends Service {
     private DeviceMode lastHDMImode = DeviceMode.PREVIEW;
     boolean StreamOutstarted = false;
     boolean hdmiInputDriverPresent = false;
+    public boolean alphaBlending = false;
     boolean airMediaLicensed = false;
     boolean[] restartRequired = new boolean[NumOfSurfaces];
     public final static String savedSettingsFilePath = "/data/CresStreamSvc/userSettings";
@@ -136,6 +137,7 @@ public class CresStreamCtrl extends Service {
     public final static String restoreFlagFilePath = "/data/CresStreamSvc/restore";
     public final static String restartStreamsFilePath = "/dev/shm/crestron/CresStreamSvc/restartStreams";
     public final static String hdmiLicenseFilePath = "/dev/shm/hdmi_licensed";
+    public final static String pinpointEnabledFilePath = "/dev/crestron/pinpointuxenable";
     public volatile boolean mMediaServerCrash = false;
     public volatile boolean mDucatiCrash = false;
     public volatile boolean mIgnoreAllCrash = false;
@@ -668,6 +670,18 @@ public class CresStreamCtrl extends Service {
 
     		refreshOutputResolution();
     		sendHdmiOutSyncState(); // Send out initial hdmi out resolution info
+    		
+    		// This must be done before CresDisplaySurface is created   		
+    		// Wait until file exists then check
+			while ((new File(pinpointEnabledFilePath)).exists() == false)
+			{
+				try { Thread.sleep(100); } catch (InterruptedException e){}
+			}			
+			int pinpointEnabled = 0;
+			try {
+				pinpointEnabled = Integer.parseInt(MiscUtils.readStringFromDisk(pinpointEnabledFilePath));
+			} catch (NumberFormatException e) {}			
+			alphaBlending = (pinpointEnabled == 1) ? true : false;
     		
             // Create a DisplaySurface to handle both preview and stream in
     		createCresDisplaySurface();
@@ -3180,18 +3194,8 @@ public class CresStreamCtrl extends Service {
     				height = userSettings.getAirMediaHeight();  	
     			}
 
-    			if (haveExternalDisplays)
-    			{
-    				// TODO: Change to priority phone when alpha blending is working
-    				userSettings.setAirMediaWindowFlag(WindowManager.LayoutParams.TYPE_SYSTEM_OVERLAY);
-//    				userSettings.setAirMediaWindowFlag(WindowManager.LayoutParams.TYPE_PRIORITY_PHONE);
-    				userSettings.setAirMediaDisplayScreen(1);
-    			}
-    			else
-    			{
-    				userSettings.setAirMediaWindowFlag(WindowManager.LayoutParams.TYPE_SYSTEM_OVERLAY);
-    				userSettings.setAirMediaDisplayScreen(0);
-    			}
+    			userSettings.setAirMediaDisplayScreen(haveExternalDisplays ? 1 : 0);
+    			userSettings.setAirMediaWindowFlag(alphaBlending ? WindowManager.LayoutParams.TYPE_PRIORITY_PHONE : WindowManager.LayoutParams.TYPE_SYSTEM_OVERLAY);
 
     			if (haveExternalDisplays && Boolean.parseBoolean(hdmiOutput.getSyncStatus()))
     				mAirMedia.show(x, y, width, height);

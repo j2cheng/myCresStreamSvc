@@ -128,16 +128,12 @@ public class CresDisplaySurface
         // TYPE_INPUT_METHOD_DIALOG	= ~21015
         // TYPE_APPLICATION 		= ~21000 <- Can't use as a service
         int windowType;
-        if (haveExternalDisplays)
-        {
-        	// TODO: Change to priority phone when alpha blending is working
-//        	windowType = WindowManager.LayoutParams.TYPE_PRIORITY_PHONE;
-        	windowType = WindowManager.LayoutParams.TYPE_SYSTEM_OVERLAY;
-        }
+        
+        if (streamCtl.alphaBlending)
+        	windowType = WindowManager.LayoutParams.TYPE_PRIORITY_PHONE;	// For alpha blending
         else
-        {
-        	windowType = WindowManager.LayoutParams.TYPE_SYSTEM_OVERLAY;
-        }
+        	windowType = WindowManager.LayoutParams.TYPE_SYSTEM_OVERLAY;	// For chroma blending
+
         wmLayoutParams = new WindowManager.LayoutParams(
         		windowWidth, 
         		windowHeight, 
