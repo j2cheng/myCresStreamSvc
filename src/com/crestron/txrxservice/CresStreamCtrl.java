@@ -2495,7 +2495,7 @@ public class CresStreamCtrl extends Service {
     	try
     	{
     		//csio will send service full stop when it does not want confidence mode started
-    		if ((getCurrentStreamState(sessionId) != StreamState.STOPPED) && ((userSettings.getStreamState(sessionId) != StreamState.CONFIDENCEMODE) || (fullStop == true)))
+    		if ((userSettings.getStreamState(sessionId) != StreamState.CONFIDENCEMODE) || (fullStop == true))
     		{
     			playStatus="false";
     			stopStatus="true";
