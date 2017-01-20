@@ -2158,8 +2158,8 @@ class UseNewIpAddrCommand extends CrestronCommand {
 	public void execute() {
 		if(!msg.equals(ctrl.userSettings.getDeviceIp()))
 		{
-			ctrl.stopOnIpAddrChange();
 			ctrl.userSettings.setDeviceIp(msg);
+			ctrl.stopOnIpAddrChange();			
 			if (ctrl.userSettings.getAirMediaAdaptorSelect() == 0)
 				ctrl.updateAirMediaIpInformation(0);
 		}
