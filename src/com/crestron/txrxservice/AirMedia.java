@@ -2,6 +2,8 @@ package com.crestron.txrxservice;
 
 import java.io.DataOutputStream;
 import java.io.IOException;
+import java.util.Map;
+import java.util.concurrent.ConcurrentHashMap;
 
 import com.crestron.txrxservice.CresStreamCtrl.AirMediaLoginMode;
 
@@ -24,8 +26,68 @@ public class AirMedia
     private final static String commandIntent = "com.awindinc.receiver.airmedia.command";
 	public final static String licenseFilePath = "/dev/shm/airmedia";
 	private boolean surfaceDisplayed = false;
+	private Map<Integer, Integer> idMap = new ConcurrentHashMap<Integer, Integer>();
     
     BroadcastReceiver feedback = null;
+    
+    private int translateId(int awindId)
+    {
+    	int key = -1;
+    	for (Map.Entry<Integer, Integer> e : idMap.entrySet()) 
+    	{
+    		if ((int)e.getValue() == awindId)
+    		{
+    			key = e.getKey();
+    			break;
+    		}
+    	}
+    	
+    	return key;
+    }
+    
+    private int addIdToMap(int awindId)
+    {
+    	int availableKey = -1;
+    	
+    	// Check if already added first
+    	availableKey = translateId(awindId);
+    	if (availableKey != -1)
+    		return availableKey;
+    	
+    	// Add to map
+    	for (int i = 1; i <= 32; ++i)
+    	{
+    		if (!idMap.containsKey(i))
+    		{
+    			idMap.put(i, awindId); 
+    			availableKey = i;
+    			break;
+    		}
+    	}    	
+    	
+    	if (availableKey == -1)
+    	{
+    		Log.w(TAG, "Max number of AirMedia senders reached!");
+    	}
+    	
+    	return availableKey;
+    }
+    
+    private void removeIdFromMap(int awindId)
+    {
+    	int key = -1;
+    	for (Map.Entry<Integer, Integer> e : idMap.entrySet()) 
+    	{    	  
+    	    if ((int)e.getValue() == awindId)
+    	    {    	    	
+    	    	key = e.getKey();
+    	    	break;
+    	    }
+    	}
+    	
+    	if (key != -1)
+    		idMap.remove(key);
+    }
     
     public AirMedia(CresStreamCtrl streamCtl) 
     {
@@ -154,26 +216,29 @@ public class AirMedia
 
     					if (eventName.equals("sender_login"))
     					{
-    						int senderId = paramAnonymousIntent.getIntExtra("sender_id", -1);
+    						int awindId = paramAnonymousIntent.getIntExtra("sender_id", -1);
+    						int senderId = addIdToMap(awindId);
     						if ((senderId > 0) && (senderId <= 32))
     						{
     							mStreamCtl.userSettings.setAirMediaUserConnected(true, senderId);
     							mStreamCtl.sendAirMediaNumberUserConnected();
     						}
     						else
-    							Log.w(TAG, "Received invalid sender Id of " + senderId);
+    							Log.w(TAG, "Received invalid sender Id of " + awindId);
     						
     					}
     					else if (eventName.equals("sender_logout"))
     					{
-    						int senderId = paramAnonymousIntent.getIntExtra("sender_id", -1);
+    						int awindId = paramAnonymousIntent.getIntExtra("sender_id", -1);
+    						int senderId = translateId(awindId);
+    						removeIdFromMap(awindId);
     						if ((senderId > 0) && (senderId <= 32))
     						{
     							mStreamCtl.userSettings.setAirMediaUserConnected(false, senderId);
     							mStreamCtl.sendAirMediaNumberUserConnected();
     						}
     						else
-    							Log.w(TAG, "Received invalid sender Id of " + senderId);
+    							Log.w(TAG, "Received invalid sender Id of " + awindId);
     					}
     					else if (eventName.equals("start_play_done"))
     					{
@@ -220,8 +285,9 @@ public class AirMedia
 		if(cursor != null){
 		  if(cursor.moveToFirst()){
 		    do{
-		    	int userId = cursor.getInt(0);
+		    	int awindId = cursor.getInt(0);
 		    	
+		    	int userId = addIdToMap(awindId);
 		    	if ((userId >= 1) && (userId <= 32)) //make sure in range
 		    	{
 		    		// If sending all userFeedback mark which users feedback already sent on
@@ -251,6 +317,7 @@ public class AirMedia
 			{
 				if (sentUserFeedback[i] == false)
 				{
+					idMap.remove(i);	// Remove from mapping if existing
 					mStreamCtl.userSettings.setAirMediaUserConnected(false, i + 1);
 					mStreamCtl.sendAirMediaUserFeedbacks(i + 1, "", "", 0, false);					
 				}
