@@ -30,7 +30,7 @@ public class AirMedia
     
     BroadcastReceiver feedback = null;
     
-    private int translateId(int awindId)
+    private int translateAwindId(int awindId)
     {
     	int key = -1;
     	for (Map.Entry<Integer, Integer> e : idMap.entrySet()) 
@@ -45,12 +45,27 @@ public class AirMedia
     	return key;
     }
     
+    private int translateSenderId(int senderId)
+    {
+    	int value = -1;
+    	for (Map.Entry<Integer, Integer> e : idMap.entrySet()) 
+    	{
+    		if ((int)e.getKey() == senderId)
+    		{
+    			value = e.getValue();
+    			break;
+    		}
+    	}
+    	
+    	return value;
+    }
+    
     private int addIdToMap(int awindId)
     {
     	int availableKey = -1;
     	
     	// Check if already added first
-    	availableKey = translateId(awindId);
+    	availableKey = translateAwindId(awindId);
     	if (availableKey != -1)
     		return availableKey;
     	
@@ -230,7 +245,7 @@ public class AirMedia
     					else if (eventName.equals("sender_logout"))
     					{
     						int awindId = paramAnonymousIntent.getIntExtra("sender_id", -1);
-    						int senderId = translateId(awindId);
+    						int senderId = translateAwindId(awindId);
     						removeIdFromMap(awindId);
     						if ((senderId > 0) && (senderId <= 32))
     						{
@@ -626,7 +641,11 @@ public class AirMedia
     	{
     		if (mStreamCtl.userSettings.getAirMediaUserConnected(i))
     		{
-    			stopUser(i);
+    			int awindId = translateSenderId(i);
+    			if (awindId != -1)
+    				stopUser(awindId);
+    			else
+    				Log.w(TAG, "Could not find senderId " + i + "!");
     		}
     	}
     }
