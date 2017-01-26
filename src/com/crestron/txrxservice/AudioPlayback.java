@@ -286,12 +286,17 @@ public class AudioPlayback
 	public void setVolume(int volume) {
 		if (mPlayer != null)
 		{
-			int audioSteps = 101; // 0-100
-			float newVolume = (float)(1 - (Math.log(audioSteps - volume)/Math.log(audioSteps)));
-			newVolume = newVolume * AudioTrack.getMaxVolume();
-			int ret = mPlayer.setStereoVolume(newVolume, newVolume);
-			if (ret < 0) 
-				Log.e(TAG, "Could not change volume, error code = " + ret);
+			try {
+				int audioSteps = 101; // 0-100
+				float newVolume = (float)(1 - (Math.log(audioSteps - volume)/Math.log(audioSteps)));
+				newVolume = newVolume * AudioTrack.getMaxVolume();
+				int ret = mPlayer.setStereoVolume(newVolume, newVolume);
+				if (ret < 0) 
+					Log.e(TAG, "Could not change volume, error code = " + ret);
+			} catch (IllegalStateException e)
+			{
+				Log.e(TAG, "Error when attempting to change volume");
+			}
 		}
 	}
 }
