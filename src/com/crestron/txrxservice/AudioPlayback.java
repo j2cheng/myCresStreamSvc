@@ -167,7 +167,6 @@ public class AudioPlayback
 										if (!shouldExit) //write is time intensive function, skip if we are trying to stop
 										{
 											mPlayer.write(mAudioBuffers.staticBuffer.array(), (currentBufferObject.index * BufferSize), currentBufferObject.length);
-											mAudioBuffers.releaseBuffer(currentBufferObject.index);
 											if (initVolumePending)
 											{
 												setVolume((int)mStreamCtl.userSettings.getVolume());
@@ -176,9 +175,10 @@ public class AudioPlayback
 										}
 									}
 								}
-								else
-									mWaitFrames++;
+								else								
+									mWaitFrames++;								
 							}
+							mAudioBuffers.releaseBuffer(currentBufferObject.index);	// Even if audio is not sent to audiotrack mark as consumed
 						}
 					}
 				}
