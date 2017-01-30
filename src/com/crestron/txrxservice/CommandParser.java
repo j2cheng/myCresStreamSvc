@@ -41,6 +41,7 @@ public class CommandParser {
         AUDIO_MUTE,
         AUDIO_UNMUTE,
         PROCESS_HDMI_IN_AUDIO,
+        AUTOMATIC_INITIATION_MODE,
         LATENCY,
         PASSWORD_ENABLE,
         PASSWORD_DISABLE,
@@ -339,6 +340,9 @@ public class CommandParser {
                 break;
             case PROCESS_HDMI_IN_AUDIO:
                 cmd = new HdmiInAudioCommand(ctrl, arg); 
+                break;
+            case AUTOMATIC_INITIATION_MODE:
+                cmd = new AutomaticInitiationModeCommand(ctrl, arg); 
                 break;
             case LATENCY:
                 cmd = new LatencyCommand(ctrl, arg, idx); 

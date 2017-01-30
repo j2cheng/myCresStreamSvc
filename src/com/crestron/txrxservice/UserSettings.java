@@ -147,6 +147,7 @@ public class UserSettings
 	private int[] streamingBuffer;
 	private String[] streamOutUrl;
 	private String[] streamInUrl;
+	private String[] streamServerUrl;
 	private boolean[] proxyEnable;
 	private int[]	decodeInternalRtspPort;
 	private int[] internalRtspPort;
@@ -275,6 +276,7 @@ public class UserSettings
 		multicastAddress 	= initStringArray("");
 		streamOutUrl 	 	= initStringArray("");
 		streamInUrl			= initStringArray("");
+		streamServerUrl	 	= initStringArray("");
         proxyEnable         = initBoolArray(false);
         decodeInternalRtspPort = initIntArray(0);
         internalRtspPort 	= initIntArray(5540);
@@ -750,6 +752,14 @@ public class UserSettings
 
 	public void setStreamOutUrl(String url, int sessId) {
 		this.streamOutUrl[sessId] = url;	
+	}	
+
+	public String getStreamServerUrl(int sessId) {
+		return streamServerUrl[sessId];
+	}
+
+	public void setStreamServerUrl(String url, int sessId) {
+		this.streamServerUrl[sessId] = url;	
 	}	
 
 	public String getInitiatorAddress() {

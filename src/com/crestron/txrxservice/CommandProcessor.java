@@ -188,7 +188,7 @@ class RtspPortCommand extends CrestronCommand {
 
     @Override
         public void execute() {
-    	ctrl.userSettings.setStreamProfile(UserSettings.VideoEncProfile.fromInteger(VALIDATE_INT(msg)), sessId);
+    	ctrl.userSettings.setRtspPort(VALIDATE_INT(msg), sessId);
         }
         public String getFeedbackMsg() {
             return Integer.toString(ctrl.userSettings.getRtspPort(sessId));
@@ -381,6 +381,22 @@ class HdmiInAudioCommand extends CrestronCommand {
         }
         public String getFeedbackMsg() {
         	return String.valueOf(ctrl.userSettings.isProcessHdmiInAudio());
+        }
+}
+
+class AutomaticInitiationModeCommand extends CrestronCommand {
+
+    public AutomaticInitiationModeCommand(CresStreamCtrl ctrl, String arg) {
+		super(ctrl, arg);
+    }
+
+    @Override
+        public void execute() {
+            boolean val = Boolean.valueOf(msg);
+            ctrl.setAutomaticInitiationModeEnabled(val);
+        }
+        public String getFeedbackMsg() {
+        	return String.valueOf(ctrl.getAutomaticInitiationMode());
         }
 }
 
