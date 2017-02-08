@@ -270,6 +270,10 @@ public class AirMedia
     						int errorCode = paramAnonymousIntent.getIntExtra("value", -1);
     						Log.w(TAG, "Received set_display_error code " + errorCode);
     					}
+    					else if (eventName.equals("restart"))
+    					{
+    						mStreamCtl.RestartAirMedia();
+    					}
     					else
     					{
     						Log.d(TAG, "Received unknown event '" + eventName + "' from airMedia app");

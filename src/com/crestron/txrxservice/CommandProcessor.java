@@ -2026,6 +2026,17 @@ class AirMediaConnectionAddressCommand extends CrestronCommand {
 	}
 }
 
+class AirMediaRestartCommand extends CrestronCommand {
+	public AirMediaRestartCommand(CresStreamCtrl ctrl, String arg, int sessId) {
+		super(ctrl, arg, sessId);
+	}
+	
+	public void execute() {		
+		ctrl.airmediaRestart();
+	}
+	// No feedback
+}
+
 class camStreamEnableCommand extends CrestronCommand {
 	public camStreamEnableCommand(CresStreamCtrl ctrl, String arg) {
 		super(ctrl, arg);

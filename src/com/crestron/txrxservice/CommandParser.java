@@ -140,6 +140,7 @@ public class CommandParser {
         AIRMEDIA_WINDOW_HEIGHT,
         AIRMEDIA_ADAPTOR_SELECT,
         AIRMEDIA_CONNECTION_ADDRESS,
+        AIRMEDIA_RESTART,
         
         // AirMedia Layout control
         AIRMEDIA_MODERATOR,
@@ -678,6 +679,9 @@ public class CommandParser {
             	break;
             case AIRMEDIA_CONNECTION_ADDRESS:
             	cmd = new AirMediaConnectionAddressCommand(ctrl, arg, idx);
+            	break;
+            case AIRMEDIA_RESTART:
+            	cmd = new AirMediaRestartCommand(ctrl, arg, idx);
             	break;
             	
         	// Camera Streaming

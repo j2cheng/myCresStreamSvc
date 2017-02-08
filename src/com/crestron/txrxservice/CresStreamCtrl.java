@@ -3193,6 +3193,23 @@ public class CresStreamCtrl extends Service {
 		Log.e(TAG, "Restarting on device IP Address Change...!");
         restartStreams(false);
     }
+    
+    public void RestartAirMedia() {
+        Log.e(TAG, "Fatal error, restart AirMedia!");
+    	sockTask.SendDataToAllClients("RestartAirMedia=true");
+    }
+    
+    public void airmediaRestart() {
+    	if (mAirMedia != null)
+    	{
+    		Log.d(TAG, "restarting AirMedia!");
+    		mAirMedia = null;
+    		mAirMedia = new AirMedia(this);
+
+    		if (userSettings.getAirMediaLaunch())
+    			launchAirMedia(true, 0, false);
+    	}
+    }
 
     public void launchAirMedia(boolean val, int sessId, boolean fullscreen) {
     	stopStartLock[sessId].lock();
