@@ -132,7 +132,7 @@ public class AirMedia
     	
     	surfaceDisplayed = false;
     	
-    	shutDownAirMedia();
+    	//shutDownAirMedia();
         
     	unregisterBroadcasts();
     }

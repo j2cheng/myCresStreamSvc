@@ -3203,6 +3203,7 @@ public class CresStreamCtrl extends Service {
     	if (mAirMedia != null)
     	{
     		Log.d(TAG, "restarting AirMedia!");
+    		mAirMedia.unregisterBroadcasts();
     		mAirMedia = null;
     		mAirMedia = new AirMedia(this);
 
