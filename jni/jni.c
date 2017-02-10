@@ -646,12 +646,16 @@ void gst_native_stop (JNIEnv* env, jobject thiz, jint sessionId, jint stopTimeou
 {
 	CREGSTREAM * data = GetStreamFromCustomData(CresDataDB, sessionId);
 
-	if (data)
-		data->isStarted = false;
-	else
+	if (!data)
 		CSIO_LOG(eLogLevel_error, "Could not obtain stream pointer for stream %d, failed to set isStarted state", sessionId);
-
-	csio_jni_stop((int)sessionId);
+	else
+	{
+	    if (data->isStarted)
+	    {
+	        data->isStarted = false;
+	        csio_jni_stop((int)sessionId);
+	    }
+	}
 }
 
 /* Static class initializer: retrieve method and field IDs */
