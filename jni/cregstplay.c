@@ -1388,7 +1388,7 @@ int build_audio_pipeline(gchar *encoding_name, CREGSTREAM *data, int do_rtp,GstE
 	{
 		data->element_a[start] = NULL;
 		CSIO_LOG(eLogLevel_error, "Unsupported audio encoding %s", encoding_name);
-		return CSIO_CANNOT_CREATE_ELEMENTS;
+		return CSIO_AUDIO_BLOCKED;	// If we don't support the encoding, just turn off audio
 	}
 	data->element_a[i++] = gst_element_factory_make("valve", NULL);
 	data->element_valve_a = data->element_a[i-1];

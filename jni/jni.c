@@ -2549,6 +2549,8 @@ int csio_jni_AddAudio(GstPad *new_pad,gchar *encoding_name, GstElement **sink, b
 	}
 
 	iStatus = build_audio_pipeline(encoding_name, data, do_rtp,&ele0,sink);
+	if (iStatus == CSIO_AUDIO_BLOCKED)
+		goto doneAddAudio ;
 	if(ele0 == NULL)
 	{
 		iStatus  = CSIO_CANNOT_CREATE_ELEMENTS;
