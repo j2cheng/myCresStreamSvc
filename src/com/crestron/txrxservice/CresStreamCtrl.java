@@ -148,6 +148,7 @@ public class CresStreamCtrl extends Service {
     private boolean mHDCPOutputStatus = false;
     private boolean mHDCPExternalStatus = false;
     private boolean mHDCPInputStatus = false;
+    private boolean mIsHdmiOutExternal = false;
     private boolean/*[]*/ mHDCPEncryptStatus = false;//new boolean[NumOfSurfaces];
     private boolean/*[]*/ mTxHdcpActive = false;//new boolean[NumOfSurfaces];
     private boolean mIgnoreHDCP = false; //FIXME: This is for testing
@@ -2478,24 +2479,35 @@ public class CresStreamCtrl extends Service {
     	try
     	{	
     		Log.d(TAG, "Start " + sessionId + " : Lock");
-    		ProductSpecific.doChromakey(true);
-    		enableRestartMechanism = true; //if user starts stream allow restart mechanism
-
-    		if ((getCurrentStreamState(sessionId) != StreamState.STARTED) && (userSettings.getStreamState(sessionId) != StreamState.STREAMERREADY))
-    		{	   
-    			playStatus="true";
-    			stopStatus="false";
-    			pauseStatus="false";	
-    			restartRequired[sessionId]=true;
-    			hm.get(userSettings.getMode(sessionId)).executeStart(sessionId);
-    			//hm.get(device_mode).executeStart();
-    			// The started state goes back when we actually start
-
-    		}
-    		else if (getCurrentStreamState(sessionId) == StreamState.STARTED)
+    		
+    		// Check if HDMI out is connected before starting stream in or preview, Android gets in bad state otherwise
+    		// Start will be handled by restart streams when HDMI output returns
+    		if ( mIsHdmiOutExternal ||
+    				Boolean.parseBoolean(hdmiOutput.getSyncStatus()) ||
+    				(userSettings.getMode(sessionId) == DeviceMode.STREAM_OUT.ordinal()) )
     		{
-    			SendStreamState(StreamState.STARTED, sessionId);
+
+    			ProductSpecific.doChromakey(true);
+    			enableRestartMechanism = true; //if user starts stream allow restart mechanism
+
+    			if ((getCurrentStreamState(sessionId) != StreamState.STARTED) && (userSettings.getStreamState(sessionId) != StreamState.STREAMERREADY))
+    			{	   
+    				playStatus="true";
+    				stopStatus="false";
+    				pauseStatus="false";	
+    				restartRequired[sessionId]=true;
+    				hm.get(userSettings.getMode(sessionId)).executeStart(sessionId);
+    				//hm.get(device_mode).executeStart();
+    				// The started state goes back when we actually start
+
+    			}
+    			else if (getCurrentStreamState(sessionId) == StreamState.STARTED)
+    			{
+    				SendStreamState(StreamState.STARTED, sessionId);
+    			}
     		}
+    		else
+    			Log.d(TAG, "Filtering out start because hdmi output not connected");
     	}
     	finally
     	{
@@ -3895,6 +3907,17 @@ public class CresStreamCtrl extends Service {
 			{
 				mAirMedia.hide(false);
 			}
+			
+			// Stop HDMI preview and stream in when we lose HDMI sync			
+			for (int sessionId = 0; sessionId < NumOfSurfaces; sessionId++)
+			{
+				if (userSettings.getMode(sessionId) == DeviceMode.PREVIEW.ordinal() || 
+						userSettings.getMode(sessionId) == DeviceMode.STREAM_IN.ordinal())
+				{
+					Log.d(TAG, "Stopping stream because lost HDMI output: " + sessionId);
+					Stop(sessionId, true);
+				}
+			}
 		}
 	}
     
@@ -4345,6 +4368,7 @@ public class CresStreamCtrl extends Service {
 	
 	public void setExternalHdcpStatus(int hdcpStatus)
 	{
+		mIsHdmiOutExternal = true;
 		switch(hdcpStatus)
 		{ 
 		case 50: //unauthenticated
