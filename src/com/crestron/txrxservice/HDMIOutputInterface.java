@@ -16,6 +16,8 @@ import com.crestron.txrxservice.ProductSpecific;
 public class HDMIOutputInterface {
 	static String TAG = "TxRx HDMIOutInterface";
 
+	private boolean hasHdmiOutput = false;
+	
 	private static String syncStatus;
 	private static String interlaced;
    	private static String horizontalRes;
@@ -25,36 +27,58 @@ public class HDMIOutputInterface {
 	private static String audioFormat;
 	private static String audioChannels;
 	
-	public HDMIOutputInterface() {
-		syncStatus = "false";
-		interlaced = "false";	//no interlacing for txrx and dge for now
-		horizontalRes = "0";
-		verticalRes = "0";
-		fps = "0";
-		aspectRatio = "0";
-		audioFormat = "0";	//1=PCM for txrx and dge
-		audioChannels = "0";
+	public HDMIOutputInterface(int hdcpCheckBitmask) {		
+		if (hdcpCheckBitmask != 0)
+		{
+			hasHdmiOutput = true;
+			syncStatus = "false";
+			interlaced = "false";	//no interlacing for txrx and dge for now
+			horizontalRes = "0";
+			verticalRes = "0";
+			fps = "0";
+			aspectRatio = "0";
+			audioFormat = "0";	//1=PCM for txrx and dge
+			audioChannels = "0";
+		}
+		else
+		{
+			// If no HDMI output just set sync to true
+			hasHdmiOutput = false;
+			syncStatus = "true";
+			interlaced = "false";	//no interlacing for txrx and dge for now
+			horizontalRes = "0";
+			verticalRes = "0";
+			fps = "0";
+			aspectRatio = "0";
+			audioFormat = "0";	//1=PCM for txrx and dge
+			audioChannels = "0";
+		}
+		
+		Log.d(TAG, "Device has hdmi output is " + hasHdmiOutput);
 	}
 	
 	public void setSyncStatus() {
-		StringBuilder text = new StringBuilder(16);
-        try {
-            File file = new File("/sys/class/switch/hdmi/state");
+		if (hasHdmiOutput)
+		{
+			Log.e(TAG, "RS: No output just set sync ~!~!~!~! ");
+			StringBuilder text = new StringBuilder(16);
+			try {
+				File file = new File("/sys/class/switch/hdmi/state");
 
-            BufferedReader br = new BufferedReader(new FileReader(file));  
-            String line;   
-            while ((line = br.readLine()) != null) {
-                text.append(line);
-            }
-            br.close();
-        }catch (Exception e) {
-            text.append("0"); //if error default to no sync
-        }
-        if(Integer.parseInt(text.toString()) == 1)
-			syncStatus = "true";
-		else
-			syncStatus = "false";
-		
+				BufferedReader br = new BufferedReader(new FileReader(file));  
+				String line;   
+				while ((line = br.readLine()) != null) {
+					text.append(line);
+				}
+				br.close();
+			}catch (Exception e) {
+				text.append("0"); //if error default to no sync
+			}
+			if(Integer.parseInt(text.toString()) == 1)
+				syncStatus = "true";
+			else
+				syncStatus = "false";
+		}
 		
 		// Old Mistral API method below
 //		byte[] hdmiOutSyncStatus = ProductSpecific.getEVSHdmiOutSyncStatus();

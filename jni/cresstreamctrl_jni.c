@@ -82,3 +82,10 @@ JNIEXPORT jint JNICALL Java_com_crestron_txrxservice_CresStreamCtrl_nativeGetHWP
 
 	return product_info()->hw_platform;
 }
+
+JNIEXPORT jint JNICALL Java_com_crestron_txrxservice_CresStreamCtrl_nativeGetHDMIOutputBitmask(JNIEnv *env, jobject thiz)
+{
+	do_init();
+
+	return product_info()->display_check_hdcp_bitmask;
+}

@@ -189,6 +189,7 @@ public class CresStreamCtrl extends Service {
     public native boolean nativeHaveExternalDisplays();
     public native boolean nativeHideVideoBeforeStop();
     public native int nativeGetHWPlatformEnum();
+    public native int nativeGetHDMIOutputBitmask();
 
     enum DeviceMode {
         STREAM_IN,
@@ -662,7 +663,7 @@ public class CresStreamCtrl extends Service {
     		else
     			streamPlay = new StreamIn(new NstreamIn(CresStreamCtrl.this));    		
 
-    		hdmiOutput = new HDMIOutputInterface();
+    		hdmiOutput = new HDMIOutputInterface(nativeGetHDMIOutputBitmask());
     		setHDCPBypass();
 
     		Thread saveSettingsThread = new Thread(new SaveSettingsTask());    	
