@@ -2807,6 +2807,7 @@ void *csio_SendInitiatorAddressFb( void * arg )
 	pthread_exit( NULL );
 	return(NULL);
 }
+
 void csio_jni_recoverDucati()
 {
     JNIEnv *env = get_jni_env ();
@@ -2816,6 +2817,36 @@ void csio_jni_recoverDucati()
     (*env)->CallVoidMethod(env, CresDataDB->app, recoverDucati);
     if ((*env)->ExceptionCheck (env)) {
         CSIO_LOG(eLogLevel_error, "Failed to call Java method 'recoverDucati'");
+        (*env)->ExceptionClear (env);
+    }
+}
+
+void csio_jni_recoverTxrxService()
+{
+    JNIEnv *env = get_jni_env ();
+    jclass cls = (*env)->GetObjectClass(env, CresStreamOutDataDB->app);
+
+    jmethodID recoverTxrxService = (*env)->GetMethodID(env, (jclass)cls, "recoverTxrxService", "()V");
+    if (recoverTxrxService == NULL) return;
+
+    (*env)->CallVoidMethod(env, CresStreamOutDataDB->app, recoverTxrxService);
+    if ((*env)->ExceptionCheck (env)) {
+        CSIO_LOG(eLogLevel_error, "Failed to call Java method 'recoverTxrxService'");
+        (*env)->ExceptionClear (env);
+    }
+}
+
+void csio_jni_sendCameraStopFb()
+{
+    JNIEnv *env = get_jni_env ();
+    jclass cls = (*env)->GetObjectClass(env, CresStreamOutDataDB->app);
+
+    jmethodID sendCameraStopFb = (*env)->GetMethodID(env, (jclass)cls, "sendCameraStopFb", "()V");
+    if (sendCameraStopFb == NULL) return;
+
+    (*env)->CallVoidMethod(env,CresStreamOutDataDB->app , sendCameraStopFb);
+    if ((*env)->ExceptionCheck (env)) {
+        CSIO_LOG(eLogLevel_error, "Failed to call Java method 'sendCameraStopFb'");
         (*env)->ExceptionClear (env);
     }
 }

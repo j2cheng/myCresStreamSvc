@@ -19,6 +19,7 @@
 
 #include <stdlib.h>
 #include "cresStreamOutManager.h"
+
 #define CRES_OVERLOAD_MEDIA_CLASS 1
 #define CRES_UNPREPARE_MEDIA      1
 
@@ -207,6 +208,66 @@ void CStreamoutManager::exitThread()
         CSIO_LOG(m_debugLevel, "Streamout: g_main_loop is not running");
     }
 }
+
+static pthread_cond_t m_condv;
+
+void *CStreamoutManager::forceUnprepare(void * arg)
+{
+	GstRTSPMedia * pMedia = (GstRTSPMedia *)arg;
+
+    gst_rtsp_media_unprepare_force (pMedia);   //bug122841 - this function hangs.
+
+    pthread_cond_signal(&m_condv); //Flags that stop has completed
+    pthread_exit(NULL);
+    return NULL;
+}
+
+extern "C" void csio_jni_recoverTxrxService();
+extern "C" void csio_jni_sendCameraStopFb();
+
+void CStreamoutManager::forceMediaUnprepare(GstRTSPMedia * pMedia)
+{
+	int result = 0;
+	int timeout_sec = 5;
+	struct timespec ts;
+	pthread_t threadID;
+	pthread_mutex_t  m_mutex;
+
+	//init mutex and thread attributes
+	pthread_cond_init(&m_condv, NULL);
+	pthread_mutex_init(&m_mutex, NULL);
+	pthread_attr_t attr;
+	pthread_attr_init(&attr);
+	pthread_attr_setdetachstate(&attr, PTHREAD_CREATE_DETACHED);
+	clock_gettime(CLOCK_REALTIME, &ts);
+	ts.tv_sec += timeout_sec;
+
+	//Kick off the new thread
+	if (pthread_create(&threadID, &attr, &(CStreamoutManager::forceUnprepare), (void *)pMedia) != 0 )
+	{
+	    CSIO_LOG(eLogLevel_error, "forceMediaUnprepare() create the new thread failed.");
+	}
+
+	//Wait for timeout or completion
+	pthread_mutex_lock(&m_mutex);
+	result = pthread_cond_timedwait(&m_condv, &m_mutex, &ts);
+	pthread_mutex_unlock(&m_mutex);
+
+	//Cleanup pthread objects
+	pthread_attr_destroy(&attr);
+	pthread_cond_destroy(&m_condv);
+	pthread_mutex_destroy(&m_mutex);
+
+	if (result == ETIMEDOUT)
+	{
+		CSIO_LOG(eLogLevel_error, "forceUnprepare timed out after %d seconds, restart txrxservice ...\n", timeout_sec);
+		csio_jni_sendCameraStopFb();
+		csio_jni_recoverTxrxService();
+	}
+	else if (result != 0)
+		CSIO_LOG(eLogLevel_error, "Unknown error occurred while waiting for forceUnprepare to complete, error = %d\n", result);
+}
+
 void* CStreamoutManager::ThreadEntry()
 {
     char pipeline[1024];
@@ -385,8 +446,8 @@ exitThread:
         }
 
         CSIO_LOG(m_debugLevel, "Streamout: -------call gst_rtsp_media_unprepare---");
-        gst_rtsp_media_unprepare_force (m_pMedia);       
-     }
+        forceMediaUnprepare(m_pMedia);
+    }
 #endif
 
 /* You must use g_source_destroy() for sources added to a non-default main context.  */

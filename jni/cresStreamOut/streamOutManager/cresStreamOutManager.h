@@ -78,10 +78,13 @@ public:
     void pausePreview(void* window);
     void stopPreview(void* window);
     int  waitForPreviewAvailable(int timeout_ms);
+    void forceMediaUnprepare(GstRTSPMedia * m_pMedia);
+
+    static void* forceUnprepare (void * arg);
 
     GstRTSPMediaFactory *m_factory;
     GMainLoop *  m_loop;
-	GMainContext *m_context;  /* GLib context used to run the main loop */
+    GMainContext *m_context;  /* GLib context used to run the main loop */
 
 private:
     Mutex* mLock;

@@ -253,6 +253,17 @@ public class GstreamOut {
     	
     	return(rtn);
     }
+
+	public void recoverTxrxService()
+	{
+		streamCtl.RecoverTxrxService();			
+	}
+
+	public void sendCameraStopFb()
+	{
+		streamCtl.sockTask.SendDataToAllClients("CAMERA_STREAMING_ENABLE=false");			
+	}
+		
     
 ///////////////////////////////////////////////////////////////////////////////
     

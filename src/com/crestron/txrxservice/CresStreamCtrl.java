@@ -609,7 +609,7 @@ public class CresStreamCtrl extends Service {
     				Log.e(TAG, "Camera failed to initialize, restarting txrxservice and mediaserver");
 
     				RecoverMediaServer();
-    				RecoverTxrxService();    		
+    				RecoverTxrxService();
     			}
     		}
     		
@@ -3192,8 +3192,9 @@ public class CresStreamCtrl extends Service {
     
     public void RecoverTxrxService(){
     	Log.e(TAG, "Fatal error, kill CresStreamSvc!");
+		saveUserSettings(); // Need to immediately save userSettings so that we remember our state after restarting
     	sockTask.SendDataToAllClients("DEVICE_READY_FB=FALSE");
-//    	sockTask.SendDataToAllClients("KillMePlease=true");
+    	//sockTask.SendDataToAllClients("KillMePlease=true");
     	System.exit(1); //We pick 1 since 0 probably means success
     }
     
@@ -3596,34 +3597,42 @@ public class CresStreamCtrl extends Service {
     }
     
     public void setCamStreamEnable(boolean enable) {
-    	userSettings.setCamStreamEnable(enable);
-    	
-    	if (gstStreamOut != null)
-    	{
-			int sessId;
-			int rtn = 0;
-			boolean bPreviewState;
+
+		stopStartLock[0].lock();
+		try
+		{
+			userSettings.setCamStreamEnable(enable);
 			
-			sessId = cam_preview.getSessionIndex();
-    		if (enable)
-    		{
-    		  //start streamout
-				gstStreamOut.start();
-				rtn = gstStreamOut.waitForPreviewAvailable(sessId,5);
-    		}
-    		else
-    		{
-    		  //stop streamout
-    			gstStreamOut.stop();
-    		}
-    		
-    		if( rtn == 110 )
-    		{
-    			Log.d(TAG, "Timed out waiting for Preview");
-    		}
-    		
-        	userSettings.setCamStreamEnable(enable);
-    	}
+			if (gstStreamOut != null)
+			{
+				int sessId;
+				int rtn = 0;
+				boolean bPreviewState;
+				
+				sessId = cam_preview.getSessionIndex();
+				if (enable)
+				{
+				  //start streamout
+					gstStreamOut.start();
+					rtn = gstStreamOut.waitForPreviewAvailable(sessId,5);
+				}
+				else
+				{
+				  //stop streamout
+					gstStreamOut.stop();
+				}
+				
+				if( rtn == 110 )
+				{
+					Log.d(TAG, "Timed out waiting for Preview");
+					gstStreamOut.recoverTxrxService();
+				}
+			}
+		} finally
+		{
+			stopStartLock[0].unlock();
+		}
+
     }
     
     public void setCamStreamMulticastEnable(boolean enable) {
