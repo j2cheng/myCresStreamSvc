@@ -307,7 +307,7 @@ public class UserSettings
 		osdYLocation        = 0;
 		keyFrameInterval    = 1;
 		rtspStreamFileName	= "live.sdp";
-		rtspSessionName		= "CrestronStreamingSession";
+		rtspSessionName		= "Crestron Streaming";
 		multicastTTL		= 64;
 		airMediaLaunch		= false;
 		airMediaLoginCode	= 1234; //Get default value
