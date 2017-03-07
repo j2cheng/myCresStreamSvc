@@ -60,7 +60,6 @@ public class HDMIOutputInterface {
 	public void setSyncStatus() {
 		if (hasHdmiOutput)
 		{
-			Log.e(TAG, "RS: No output just set sync ~!~!~!~! ");
 			StringBuilder text = new StringBuilder(16);
 			try {
 				File file = new File("/sys/class/switch/hdmi/state");

@@ -1431,6 +1431,8 @@ public class CresStreamCtrl extends Service {
     		writeDucatiState(1);
     		mMediaServerCrash = false;
     		
+    		Log.d(TAG, "Filtering out restartStreams because restart mechanism is currently disabled");
+    		
     		return;
     	}
     	
@@ -2481,16 +2483,17 @@ public class CresStreamCtrl extends Service {
     	{	
     		Log.d(TAG, "Start " + sessionId + " : Lock");
     		
+    		// This needs to be set to true even if we filter out the start
+    		enableRestartMechanism = true; //if user starts stream allow restart mechanism
+    		
     		// Check if HDMI out is connected before starting stream in or preview, Android gets in bad state otherwise
     		// Start will be handled by restart streams when HDMI output returns
     		if ( mIsHdmiOutExternal ||
     				Boolean.parseBoolean(hdmiOutput.getSyncStatus()) ||
     				(userSettings.getMode(sessionId) == DeviceMode.STREAM_OUT.ordinal()) )
     		{
-
     			ProductSpecific.doChromakey(true);
-    			enableRestartMechanism = true; //if user starts stream allow restart mechanism
-
+    			
     			if ((getCurrentStreamState(sessionId) != StreamState.STARTED) && (userSettings.getStreamState(sessionId) != StreamState.STREAMERREADY))
     			{	   
     				playStatus="true";
