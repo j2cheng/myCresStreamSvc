@@ -113,11 +113,13 @@ public class AirMedia
     	
     	registerBroadcasts();
     	
+		String host = MiscUtils.getHostName("AirMedia");
+		    	
     	// Launch service
     	Intent intent = mContext.getPackageManager().getLaunchIntentForPackage("com.awindinc.receiver.airmedia");
     	if (intent != null) {
     		mContext.startActivity(intent);
-    		intent.putExtra("receiver_name", "AirMedia");
+    		intent.putExtra("receiver_name", host);
     		intializeDisplay();
     		set4in1ScreenEnable(false); // TODO: Remove this when quad view is eventually enabled
     		setStandbyScreen(0);	// We currently do not want the AirMedia OSD to be visible

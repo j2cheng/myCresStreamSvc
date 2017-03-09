@@ -6,6 +6,7 @@ import java.io.InputStreamReader;
 import java.io.OutputStream;
 import java.io.OutputStreamWriter;
 import java.io.Writer;
+import java.lang.reflect.Method;
 import java.util.Scanner;
 import java.util.regex.Pattern;
 import java.util.regex.Matcher;
@@ -17,6 +18,7 @@ import java.io.FileOutputStream;
 import java.io.FileReader;
 
 import android.graphics.Rect;
+import android.os.Build;
 import android.os.Bundle;
 import android.util.Log;
 
@@ -176,6 +178,16 @@ public class MiscUtils {
             in.close();
         } catch (Exception e) {
             e.printStackTrace();
+        }
+    }
+    
+    public static String getHostName(String defValue) {
+        try {
+            Method getString = Build.class.getDeclaredMethod("getString", String.class);
+            getString.setAccessible(true);
+            return getString.invoke(null, "net.hostname").toString();
+        } catch (Exception ex) {
+            return defValue;
         }
     }
 }
