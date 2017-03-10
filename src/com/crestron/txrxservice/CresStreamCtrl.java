@@ -657,7 +657,8 @@ public class CresStreamCtrl extends Service {
     				gstStreamOut = new GstreamOut(CresStreamCtrl.this);
     				// PEM - uncomment if you want to enable camera preview for real camera.
     				// To-do: support platform that has an hdmi input and a real camera.
-    				cam_preview = new CameraPreview(this, null);    
+                    // in X60, now use GstPreview, no longer use NativePreview, so comment out below:
+    				//cam_preview = new CameraPreview(this, null);    
     			}
     		}
     		else
@@ -2674,6 +2675,7 @@ public class CresStreamCtrl extends Service {
 
     		try {
     			cam_streaming.setSessionIndex(sessId);
+				gstStreamOut.setSessionIndex(sessId);
     			invalidateSurface();
     			cam_streaming.startRecording();
     			StreamOutstarted = true;
@@ -2942,7 +2944,7 @@ public class CresStreamCtrl extends Service {
     public void startGstPreview(int sessId)
     {
     	cameraLock.lock();
-    	Log.d(TAG, "Camera : Lock");
+	    Log.d(TAG, "Camera : Lock");
     	try
     	{
     		if (gstStreamOut != null)
@@ -2954,6 +2956,7 @@ public class CresStreamCtrl extends Service {
     			invalidateSurface();
     			
 				SurfaceHolder sh = getCresSurfaceHolder(sessId);
+				gstStreamOut.setSessionIndex(sessId);
     			gstStreamOut.startPreview(sh.getSurface(), sessId);
     		}
     	}
@@ -2968,7 +2971,7 @@ public class CresStreamCtrl extends Service {
     public void startNativePreview(int sessId)
     {
     	cameraLock.lock();
-    	Log.d(TAG, "Camera : Lock");
+	    Log.d(TAG, "Camera : Lock");
     	try
     	{
     		if (cam_preview != null)
@@ -3004,7 +3007,7 @@ public class CresStreamCtrl extends Service {
     public void stopGstPreview(int sessId, boolean hide)
     {
     	cameraLock.lock();
-    	Log.d(TAG, "Camera : Lock");
+	    Log.d(TAG, "Camera : Lock");
     	try
     	{
     		if (gstStreamOut != null)
@@ -3035,7 +3038,7 @@ public class CresStreamCtrl extends Service {
     public void stopNativePreview(int sessId, boolean hide)
     {
     	cameraLock.lock();
-    	Log.d(TAG, "Camera : Lock");
+	    Log.d(TAG, "Camera : Lock");
     	try
     	{
     		if (cam_preview != null)
@@ -3080,6 +3083,7 @@ public class CresStreamCtrl extends Service {
     		if(gstStreamOut != null)
     		{
 				Log.d(TAG, "Camera : pause streamout Preview");
+				gstStreamOut.setSessionIndex(sessId);
 				gstStreamOut.pausePreview(sessId);
     		}
 		}
@@ -3612,7 +3616,7 @@ public class CresStreamCtrl extends Service {
 				int rtn = 0;
 				boolean bPreviewState;
 				
-				sessId = cam_preview.getSessionIndex();
+				sessId = gstStreamOut.getSessionIndex();  // sessId was also set by startGstPreview()
 				if (enable)
 				{
 				  //start streamout

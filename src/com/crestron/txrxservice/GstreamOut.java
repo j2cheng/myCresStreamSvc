@@ -58,6 +58,7 @@ public class GstreamOut {
     private long native_custom_data;    // Native code will use this to keep private data
     private Object mSurface;			// We keep surface as just an object because that's how we pass it to jni
     private CresStreamCtrl streamCtl;
+    private int idx;
     
 ///////////////////////////////////////////////////////////////////////////////
 
@@ -76,6 +77,14 @@ public class GstreamOut {
         {
         	start();
         }
+    }
+
+    public void setSessionIndex(int id){
+        idx = id;
+    }
+    
+    public int getSessionIndex(){
+        return(idx);
     }
 
     public void setSurface(Object s) {
