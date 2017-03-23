@@ -2674,8 +2674,7 @@ public class CresStreamCtrl extends Service {
     		userSettings.setStreamOutUrl(out_url, sessId);
 
     		try {
-    			cam_streaming.setSessionIndex(sessId);
-				gstStreamOut.setSessionIndex(sessId);
+    			cam_streaming.setSessionIndex(sessId);				
     			invalidateSurface();
     			cam_streaming.startRecording();
     			StreamOutstarted = true;
