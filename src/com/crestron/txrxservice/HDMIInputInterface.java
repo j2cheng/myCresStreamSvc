@@ -37,11 +37,13 @@ public class HDMIInputInterface {
 	public void setSyncStatus() {
 		if (isHdmiDriverPresent == true)
 		{
-			byte[] hdmiInSyncStatus = ProductSpecific.getEVSHdmiInSyncStatus();
-			
-			Log.i(TAG, "SyncStatus " + (char)hdmiInSyncStatus[0]);
-	
-			if(((char)hdmiInSyncStatus[0] == '1') && (resolutionIndex != 0))
+			// Old Mistral interface
+//			byte[] hdmiInSyncStatus = ProductSpecific.getEVSHdmiInSyncStatus();
+//			
+//			Log.i(TAG, "SyncStatus " + (char)hdmiInSyncStatus[0]);
+//	
+//			if(((char)hdmiInSyncStatus[0] == '1') && (resolutionIndex != 0))
+			if (readResolutionEnum(false) > 0)	// Only send sync status high if valid resolution enum
 				syncStatus = "true";
 			else
 				syncStatus = "false";
