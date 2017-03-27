@@ -338,7 +338,7 @@ public class AirMedia
 			{
 				if (sentUserFeedback[i] == false)
 				{
-					idMap.remove(i);	// Remove from mapping if existing
+					removeIdFromMap(i+1);	// Remove from mapping if existing
 					mStreamCtl.userSettings.setAirMediaUserConnected(false, i + 1);
 					mStreamCtl.sendAirMediaUserFeedbacks(i + 1, "", "", 0, false);					
 				}
