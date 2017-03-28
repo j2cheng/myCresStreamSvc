@@ -235,6 +235,7 @@ public class AirMedia
     					{
     						int awindId = paramAnonymousIntent.getIntExtra("sender_id", -1);
     						int senderId = addIdToMap(awindId);
+    						Log.e(TAG, "Adding Id to map, userId: " + senderId + " awindId: " + awindId);
     						if ((senderId > 0) && (senderId <= 32))
     						{
     							mStreamCtl.userSettings.setAirMediaUserConnected(true, senderId);
@@ -249,6 +250,7 @@ public class AirMedia
     						int awindId = paramAnonymousIntent.getIntExtra("sender_id", -1);
     						int senderId = translateAwindId(awindId);
     						removeIdFromMap(awindId);
+    						Log.e(TAG, "Removing Id from map awindId: " + awindId);
     						if ((senderId > 0) && (senderId <= 32))
     						{
     							mStreamCtl.userSettings.setAirMediaUserConnected(false, senderId);
@@ -309,6 +311,7 @@ public class AirMedia
 		    	int awindId = cursor.getInt(0);
 		    	
 		    	int userId = addIdToMap(awindId);
+		    	Log.e(TAG, "Adding Id to map, userId: " + userId + " awindId: " + awindId);
 		    	if ((userId >= 1) && (userId <= 32)) //make sure in range
 		    	{
 		    		// If sending all userFeedback mark which users feedback already sent on
@@ -338,7 +341,10 @@ public class AirMedia
 			{
 				if (sentUserFeedback[i] == false)
 				{
-					removeIdFromMap(i+1);	// Remove from mapping if existing
+					int awindId = translateSenderId(i + 1);
+					if (awindId != -1)
+						removeIdFromMap(awindId);	// Remove from mapping if existing
+					Log.e(TAG, "Removing Id from map awindId: " + awindId);
 					mStreamCtl.userSettings.setAirMediaUserConnected(false, i + 1);
 					mStreamCtl.sendAirMediaUserFeedbacks(i + 1, "", "", 0, false);					
 				}
