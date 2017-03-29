@@ -405,6 +405,10 @@ public class AirMedia
         i.putExtra("command", "login_code");
         i.putExtra("value", loginCode);
         mContext.sendBroadcast(i);
+		Log.v(TAG, "Sending Login Code " + loginCode);
+        Thread.sleep(1000);
+        mContext.sendBroadcast(i);
+		Log.v(TAG, "Sending Login Code " + loginCode + " again");
     }
     
     public void setLoginCodeDisable()
