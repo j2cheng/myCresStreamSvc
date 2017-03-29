@@ -22,6 +22,7 @@
 
 #define CRES_OVERLOAD_MEDIA_CLASS 1
 #define CRES_UNPREPARE_MEDIA      1
+#define MAX_RTSP_SESSIONS         5
 
 ///////////////////////////////////////////////////////////////////////////////
 // Allow file to override canned pipeline, for debugging...
@@ -276,6 +277,7 @@ void* CStreamoutManager::ThreadEntry()
     GstRTSPServer *      server  = NULL;
     GstRTSPMountPoints * mounts  = NULL;
     GSource *  server_source     = NULL;
+    GstRTSPSessionPool *pool     = NULL;
 
     m_factory = NULL;
 
@@ -301,6 +303,15 @@ void* CStreamoutManager::ThreadEntry()
         CSIO_LOG(eLogLevel_error, "Streamout: Failed to create rtsp server");
         goto exitThread;
     }
+
+    // limit the rtsp sesssions
+    pool = gst_rtsp_server_get_session_pool(server); 
+    if (!pool) {
+        CSIO_LOG(eLogLevel_error, "Streamout: Failed to get the session pool");
+        goto exitThread;
+    }
+    gst_rtsp_session_pool_set_max_sessions(pool, MAX_RTSP_SESSIONS);
+    CSIO_LOG(eLogLevel_debug, "Streamout: max_sessions set to %d", gst_rtsp_session_pool_get_max_sessions(pool));
 
     //setup listening port
     CSIO_LOG(m_debugLevel, "Streamout: set_service to port:%s",m_rtsp_port);
@@ -462,6 +473,7 @@ exitThread:
     if(m_factory) g_object_unref (m_factory);
     if(server) g_object_unref (server);
     if(m_loop) g_main_loop_unref (m_loop);
+    if(pool) g_object_unref (pool);
 
     //need to create a cleanup function and call here
     m_loop = NULL;
