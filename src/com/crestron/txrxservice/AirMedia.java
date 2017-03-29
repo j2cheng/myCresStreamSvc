@@ -401,14 +401,21 @@ public class AirMedia
     
     public void setLoginCode(int loginCode)
     {
-    	Intent i = new Intent(commandIntent);
-        i.putExtra("command", "login_code");
-        i.putExtra("value", loginCode);
-        mContext.sendBroadcast(i);
-		Log.v(TAG, "Sending Login Code " + loginCode);
-        Thread.sleep(1000);
-        mContext.sendBroadcast(i);
-		Log.v(TAG, "Sending Login Code " + loginCode + " again");
+    	try
+    	{
+	    	Intent i = new Intent(commandIntent);
+	        i.putExtra("command", "login_code");
+	        i.putExtra("value", loginCode);
+	        mContext.sendBroadcast(i);
+			Log.v(TAG, "Sending Login Code " + loginCode);
+	        Thread.sleep(1000);
+	        mContext.sendBroadcast(i);
+			Log.v(TAG, "Sending Login Code " + loginCode + " again");
+    	}
+    	catch (Exception e)
+    	{
+    		Log.v(TAG, "Exception setting login code");
+    	}
     }
     
     public void setLoginCodeDisable()
