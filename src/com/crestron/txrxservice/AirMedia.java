@@ -407,14 +407,14 @@ public class AirMedia
 	        i.putExtra("command", "login_code");
 	        i.putExtra("value", loginCode);
 	        mContext.sendBroadcast(i);
-			Log.v(TAG, "Sending Login Code " + loginCode);
+			Log.e(TAG, "Sending Login Code " + loginCode);
 	        Thread.sleep(1000);
 	        mContext.sendBroadcast(i);
-			Log.v(TAG, "Sending Login Code " + loginCode + " again");
+			Log.e(TAG, "Sending Login Code " + loginCode + " again");
     	}
     	catch (Exception e)
     	{
-    		Log.v(TAG, "Exception setting login code");
+    		Log.e(TAG, "Exception setting login code");
     	}
     }
     
