@@ -181,7 +181,7 @@ public class AirMedia
 	    	setDisplayScreen(mStreamCtl.userSettings.getAirMediaDisplayScreen());
 	
 	    	// Show/Hide display items based on current settings
-	    	intializeDisplay();
+//	    	intializeDisplay();
 	
 	    	//show surface
 	    	setSurfaceSize(x,y,width,height, true);
@@ -235,7 +235,7 @@ public class AirMedia
     					{
     						int awindId = paramAnonymousIntent.getIntExtra("sender_id", -1);
     						int senderId = addIdToMap(awindId);
-    						Log.e(TAG, "Adding Id to map, userId: " + senderId + " awindId: " + awindId);
+    						Log.d(TAG, "Adding Id to map, userId: " + senderId + " awindId: " + awindId);
     						if ((senderId > 0) && (senderId <= 32))
     						{
     							mStreamCtl.userSettings.setAirMediaUserConnected(true, senderId);
@@ -250,7 +250,7 @@ public class AirMedia
     						int awindId = paramAnonymousIntent.getIntExtra("sender_id", -1);
     						int senderId = translateAwindId(awindId);
     						removeIdFromMap(awindId);
-    						Log.e(TAG, "Removing Id from map awindId: " + awindId);
+    						Log.d(TAG, "Removing Id from map awindId: " + awindId);
     						if ((senderId > 0) && (senderId <= 32))
     						{
     							mStreamCtl.userSettings.setAirMediaUserConnected(false, senderId);
@@ -311,7 +311,7 @@ public class AirMedia
 		    	int awindId = cursor.getInt(0);
 		    	
 		    	int userId = addIdToMap(awindId);
-		    	Log.e(TAG, "Adding Id to map, userId: " + userId + " awindId: " + awindId);
+		    	Log.d(TAG, "Adding Id to map, userId: " + userId + " awindId: " + awindId);
 		    	if ((userId >= 1) && (userId <= 32)) //make sure in range
 		    	{
 		    		// If sending all userFeedback mark which users feedback already sent on
@@ -343,8 +343,10 @@ public class AirMedia
 				{
 					int awindId = translateSenderId(i + 1);
 					if (awindId != -1)
+					{
 						removeIdFromMap(awindId);	// Remove from mapping if existing
-					Log.e(TAG, "Removing Id from map awindId: " + awindId);
+						Log.d(TAG, "Removing Id from map awindId: " + awindId);
+					}
 					mStreamCtl.userSettings.setAirMediaUserConnected(false, i + 1);
 					mStreamCtl.sendAirMediaUserFeedbacks(i + 1, "", "", 0, false);					
 				}
@@ -407,10 +409,7 @@ public class AirMedia
 	        i.putExtra("command", "login_code");
 	        i.putExtra("value", loginCode);
 	        mContext.sendBroadcast(i);
-			Log.e(TAG, "Sending Login Code " + loginCode);
-	        Thread.sleep(1000);
-	        mContext.sendBroadcast(i);
-			Log.e(TAG, "Sending Login Code " + loginCode + " again");
+			Log.d(TAG, "Sending Login Code " + loginCode);
     	}
     	catch (Exception e)
     	{

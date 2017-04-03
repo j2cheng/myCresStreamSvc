@@ -162,6 +162,7 @@ public class CresStreamCtrl extends Service {
     private Object cameraModeLock = new Object();
     private volatile Timer mNoVideoTimer = null;
     private Object mCameraModeScheduleLock = new Object();
+    private Object mAirMediaLock = new Object();
     private int defaultLoggingLevel = -1;
     private int numberOfVideoTimeouts = 0; //we will use this to track stop/start timeouts
     private final ProductSpecific mProductSpecific = new ProductSpecific();
@@ -3222,13 +3223,15 @@ public class CresStreamCtrl extends Service {
     public void airmediaRestart() {
     	if (mAirMedia != null)
     	{
-    		Log.d(TAG, "restarting AirMedia!");
-    		mAirMedia.unregisterBroadcasts();
-    		mAirMedia = null;
-    		mAirMedia = new AirMedia(this);
+    		synchronized (mAirMediaLock) {
+    			Log.d(TAG, "restarting AirMedia!");
+    			mAirMedia.unregisterBroadcasts();
+    			mAirMedia = null;
+    			mAirMedia = new AirMedia(this);
 
-    		if (userSettings.getAirMediaLaunch())
-    			launchAirMedia(true, 0, false);
+    			if (userSettings.getAirMediaLaunch())
+    				launchAirMedia(true, 0, false);
+    		}
     	}
     }
 
@@ -3237,40 +3240,42 @@ public class CresStreamCtrl extends Service {
     	Log.d(TAG, "AirMedia " + sessId + " : Lock");
     	try
     	{
-    		userSettings.setAirMediaLaunch(val);
-    		if (val == true) // True = launch airmedia app, false = close app
-    		{
-    			// Do I need to stop all video here???
-    			if (mAirMedia == null && airMediaLicensed)
-    				mAirMedia = new AirMedia(this);
-    			int x, y, width, height;
-    			if (fullscreen || ((userSettings.getAirMediaWidth() == 0) && (userSettings.getAirMediaHeight() == 0)))
+    		synchronized (mAirMediaLock) {
+    			userSettings.setAirMediaLaunch(val);
+    			if (val == true) // True = launch airmedia app, false = close app
     			{
-    				Log.e(TAG, "AirMedia fullscreen true");
-    				
-    				Point size = getDisplaySize();
+    				// Do I need to stop all video here???
+    				if (mAirMedia == null && airMediaLicensed)
+    					mAirMedia = new AirMedia(this);
+    				int x, y, width, height;
+    				if (fullscreen || ((userSettings.getAirMediaWidth() == 0) && (userSettings.getAirMediaHeight() == 0)))
+    				{
+    					Log.e(TAG, "AirMedia fullscreen true");
 
-    				width = size.x;
-    				height = size.y;    			
-    				x = y = 0;
+    					Point size = getDisplaySize();
+
+    					width = size.x;
+    					height = size.y;    			
+    					x = y = 0;
+    				}
+    				else
+    				{
+    					x = userSettings.getAirMediaX();
+    					y = userSettings.getAirMediaY();
+    					width = userSettings.getAirMediaWidth();
+    					height = userSettings.getAirMediaHeight();  	
+    				}
+
+    				userSettings.setAirMediaDisplayScreen(haveExternalDisplays ? 1 : 0);
+    				userSettings.setAirMediaWindowFlag(alphaBlending ? WindowManager.LayoutParams.TYPE_PRIORITY_PHONE : WindowManager.LayoutParams.TYPE_SYSTEM_OVERLAY);
+
+    				if (haveExternalDisplays && Boolean.parseBoolean(hdmiOutput.getSyncStatus()))
+    					mAirMedia.show(x, y, width, height);
     			}
     			else
     			{
-    				x = userSettings.getAirMediaX();
-    				y = userSettings.getAirMediaY();
-    				width = userSettings.getAirMediaWidth();
-    				height = userSettings.getAirMediaHeight();  	
+    				mAirMedia.hide(true);
     			}
-
-    			userSettings.setAirMediaDisplayScreen(haveExternalDisplays ? 1 : 0);
-    			userSettings.setAirMediaWindowFlag(alphaBlending ? WindowManager.LayoutParams.TYPE_PRIORITY_PHONE : WindowManager.LayoutParams.TYPE_SYSTEM_OVERLAY);
-
-    			if (haveExternalDisplays && Boolean.parseBoolean(hdmiOutput.getSyncStatus()))
-    				mAirMedia.show(x, y, width, height);
-    		}
-    		else
-    		{
-    			mAirMedia.hide(true);
     		}
     	}
     	catch (Exception e)
@@ -3286,106 +3291,118 @@ public class CresStreamCtrl extends Service {
     }
     
     public void setAirMediaLoginCode(int loginCode, int sessId) {
-    	if ((loginCode < 1) || (loginCode > 9999))
-    		return; //Don't set out of range value
-    		
-    	userSettings.setAirMediaLoginCode(loginCode);
-    	userSettings.setAirMediaLoginMode(AirMediaLoginMode.Fixed.ordinal()); // When loginCode is set auto switch to fixed mode
-    	
-    	if (mAirMedia != null)
-    	{
-	    	mAirMedia.setLoginCode(userSettings.getAirMediaLoginCode());
-	    	
-	    	if (userSettings.getAirMediaDisplayLoginCode())
-			{
-	    		mAirMedia.showLoginCodePrompt(loginCode);
-			}
-    	}
+    	synchronized (mAirMediaLock) {
+    		if ((loginCode < 1) || (loginCode > 9999))
+    			return; //Don't set out of range value
 
-    	// send feedback of login mode since it might have changed
-    	sockTask.SendDataToAllClients(String.format("AIRMEDIA_LOGIN_MODE=%d", AirMediaLoginMode.Fixed.ordinal()));
+    		userSettings.setAirMediaLoginCode(loginCode);
+    		userSettings.setAirMediaLoginMode(AirMediaLoginMode.Fixed.ordinal()); // When loginCode is set auto switch to fixed mode
+
+    		if (mAirMedia != null)
+    		{
+    			mAirMedia.setLoginCode(userSettings.getAirMediaLoginCode());
+
+    			if (userSettings.getAirMediaDisplayLoginCode())
+    			{
+    				mAirMedia.showLoginCodePrompt(loginCode);
+    			}
+    		}
+
+    		// send feedback of login mode since it might have changed
+    		sockTask.SendDataToAllClients(String.format("AIRMEDIA_LOGIN_MODE=%d", AirMediaLoginMode.Fixed.ordinal()));
+    	}
     }
     
     public void setAirMediaLoginMode(int loginMode, int sessId) {
-    	// FIXME: protect against same join val coming in????
-    	userSettings.setAirMediaLoginMode(loginMode);
-    	
-		if (loginMode == AirMediaLoginMode.Disabled.ordinal())
-    	{
-			userSettings.setAirMediaLoginCode(0);
-			if (mAirMedia != null)
-	    	{
-	    		mAirMedia.setLoginCodeDisable();
-	    		mAirMedia.hideLoginCodePrompt();
-	    	}
+    	synchronized (mAirMediaLock) {
+    		// FIXME: protect against same join val coming in????
+    		userSettings.setAirMediaLoginMode(loginMode);
+
+    		if (loginMode == AirMediaLoginMode.Disabled.ordinal())
+    		{
+    			userSettings.setAirMediaLoginCode(0);
+    			if (mAirMedia != null)
+    			{
+    				mAirMedia.setLoginCodeDisable();
+    				mAirMedia.hideLoginCodePrompt();
+    			}
+    		}
+    		else if (loginMode == AirMediaLoginMode.Random.ordinal())
+    		{
+    			int rand = (int)(Math.random() * 9999 + 1); 
+    			userSettings.setAirMediaLoginCode(rand);
+    			if (mAirMedia != null)
+    			{
+    				mAirMedia.setLoginCode(rand);
+    				if (userSettings.getAirMediaDisplayLoginCode())
+    				{
+    					mAirMedia.showLoginCodePrompt(rand);
+    				}
+    			}
+    		}
+    		else if(loginMode == AirMediaLoginMode.Fixed.ordinal())
+    		{
+    			if (mAirMedia != null)
+    			{
+    				mAirMedia.setLoginCode(userSettings.getAirMediaLoginCode());
+    				if (userSettings.getAirMediaDisplayLoginCode())
+    				{
+    					mAirMedia.showLoginCodePrompt(userSettings.getAirMediaLoginCode());
+    				}
+    			}
+    		}
+
+    		sockTask.SendDataToAllClients(String.format("AIRMEDIA_LOGIN_CODE=%d", userSettings.getAirMediaLoginCode()));
     	}
-		else if (loginMode == AirMediaLoginMode.Random.ordinal())
-    	{
-    		int rand = (int)(Math.random() * 9999 + 1); 
-    		userSettings.setAirMediaLoginCode(rand);
-    		if (mAirMedia != null)
-	    	{
-	    		mAirMedia.setLoginCode(rand);
-	    		if (userSettings.getAirMediaDisplayLoginCode())
-	    		{
-	    			mAirMedia.showLoginCodePrompt(rand);
-	    		}
-	    	}
-    	}
-		else if(loginMode == AirMediaLoginMode.Fixed.ordinal())
-    	{
-			if (mAirMedia != null)
-	    	{
-	    		mAirMedia.setLoginCode(userSettings.getAirMediaLoginCode());
-	    		if (userSettings.getAirMediaDisplayLoginCode())
-	    		{
-	    			mAirMedia.showLoginCodePrompt(userSettings.getAirMediaLoginCode());
-	    		}
-	    	}
-    	}
-    		
-		sockTask.SendDataToAllClients(String.format("AIRMEDIA_LOGIN_CODE=%d", userSettings.getAirMediaLoginCode()));
     }
     
     public void setAirMediaDisplayLoginCode(boolean display, int sessid)
     {
-    	userSettings.setAirMediaDisplayLoginCode(display);
-    	if (mAirMedia != null)
-    	{
-	    	if ((display) && (userSettings.getAirMediaLoginMode() != AirMediaLoginMode.Disabled.ordinal()))
-	    	{
-	    		mAirMedia.showLoginCodePrompt(userSettings.getAirMediaLoginCode());
-	    	}
-	    	else
-	    	{
-	    		mAirMedia.hideLoginCodePrompt();
-	    	}
+    	synchronized (mAirMediaLock) {
+    		userSettings.setAirMediaDisplayLoginCode(display);
+    		if (mAirMedia != null)
+    		{
+    			if ((display) && (userSettings.getAirMediaLoginMode() != AirMediaLoginMode.Disabled.ordinal()))
+    			{
+    				mAirMedia.showLoginCodePrompt(userSettings.getAirMediaLoginCode());
+    			}
+    			else
+    			{
+    				mAirMedia.hideLoginCodePrompt();
+    			}
+    		}
     	}
     }
     
     public void setAirMediaModerator(boolean enable, int sessId)
     {
-    	userSettings.setAirMediaModerator(enable);
-    	if (mAirMedia != null)
-    	{
-    		mAirMedia.setModeratorEnable(enable);
+    	synchronized (mAirMediaLock) {
+    		userSettings.setAirMediaModerator(enable);
+    		if (mAirMedia != null)
+    		{
+    			mAirMedia.setModeratorEnable(enable);
+    		}
     	}
     }
     
     public void setAirMediaResetConnections(boolean enable, int sessId)
     {
-    	if ((enable) && (mAirMedia != null))
-    	{
-    		mAirMedia.resetConnections();
+    	synchronized (mAirMediaLock) {
+    		if ((enable) && (mAirMedia != null))
+    		{
+    			mAirMedia.resetConnections();
+    		}
     	}
     }
     
     public void setAirMediaDisconnectUser(int userId, boolean enable, int sessId)
     {
-    	userSettings.setAirMediaDisconnectUser(enable, userId);
-    	if ((enable) && (mAirMedia != null))
-    	{
-    		mAirMedia.disconnectUser(userId);
+    	synchronized (mAirMediaLock) {
+    		userSettings.setAirMediaDisconnectUser(enable, userId);
+    		if ((enable) && (mAirMedia != null))
+    		{
+    			mAirMedia.disconnectUser(userId);
+    		}
     	}
     }
     
@@ -3396,12 +3413,14 @@ public class CresStreamCtrl extends Service {
     
     public void setAirMediaUserPosition(int userId, int position, int sessId)
     {
-    	if (mAirMedia != null)
-    	{
-    		if (position == 0)
-    			mAirMedia.stopUser(userId);
-    		else
-    			mAirMedia.setUserPosition(userId, position);
+    	synchronized (mAirMediaLock) {
+    		if (mAirMedia != null)
+    		{
+    			if (position == 0)
+    				mAirMedia.stopUser(userId);
+    			else
+    				mAirMedia.setUserPosition(userId, position);
+    		}
     	}
     }
     
@@ -3417,30 +3436,36 @@ public class CresStreamCtrl extends Service {
     }
     
     public void setAirMediaIpAddressPrompt(boolean enable, int sessId)
-    {
-    	userSettings.setAirMediaIpAddressPrompt(enable);
-    	if (mAirMedia != null)
-    	{
-    		mAirMedia.setIpAddressPrompt(enable);
+    {    	
+    	synchronized (mAirMediaLock) {
+    		userSettings.setAirMediaIpAddressPrompt(enable);
+    		if (mAirMedia != null)
+    		{
+    			mAirMedia.setIpAddressPrompt(enable);
+    		}
     	}
     }
     
     public void setAirMediaDomainNamePrompt(boolean enable, int sessId)
     {
-    	userSettings.setAirMediaDomainNamePrompt(enable);
-    	if (mAirMedia != null)
-    	{
-    		mAirMedia.setDomainNamePrompt(enable);
+    	synchronized (mAirMediaLock) {
+    		userSettings.setAirMediaDomainNamePrompt(enable);
+    		if (mAirMedia != null)
+    		{
+    			mAirMedia.setDomainNamePrompt(enable);
+    		}
     	}
     }
     
     public void setAirMediaWindowPosition(int x, int y, int width, int height)
     {    	
-    	userSettings.setAirMediaX(x);
-    	userSettings.setAirMediaY(y);
-    	userSettings.setAirMediaWidth(width);
-    	userSettings.setAirMediaHeight(height);
-    	// Just cache the position do not actually send to AirMedia
+    	synchronized (mAirMediaLock) {
+    		userSettings.setAirMediaX(x);
+    		userSettings.setAirMediaY(y);
+    		userSettings.setAirMediaWidth(width);
+    		userSettings.setAirMediaHeight(height);
+    		// Just cache the position do not actually send to AirMedia
+    	}
     }
     
     public void setAirMediaWindowXOffset(int x, int sessId)
@@ -3448,11 +3473,11 @@ public class CresStreamCtrl extends Service {
     	userSettings.setAirMediaX(x);
     	int y = userSettings.getAirMediaY();
     	int width = userSettings.getAirMediaWidth();
-		int height = userSettings.getAirMediaHeight();
-		if ((mAirMedia != null) && (mAirMedia.getSurfaceDisplayed() == true))
+    	int height = userSettings.getAirMediaHeight();
+    	if ((mAirMedia != null) && (mAirMedia.getSurfaceDisplayed() == true))
     	{
     		mAirMedia.setSurfaceSize(x, y, width, height, false);
-    	}
+    	}    	
     }
     
     public void setAirMediaWindowYOffset(int y, int sessId)
