@@ -380,6 +380,11 @@ public class AirMedia
         // Set window display and flag (z order control)
         setDisplayScreen(mStreamCtl.userSettings.getAirMediaDisplayScreen());
         setWindowFlag(mStreamCtl.userSettings.getAirMediaWindowFlag());
+        try {
+        	setReceiverResolution(Integer.parseInt(mStreamCtl.hdmiOutput.getHorizontalRes()), Integer.parseInt(mStreamCtl.hdmiOutput.getVerticalRes()));
+        } catch (NumberFormatException ex) {
+        	Log.i(TAG, "Could not set receiver resolution");
+        }
     }
     
     public void unregisterBroadcasts() {
@@ -654,6 +659,16 @@ public class AirMedia
     	Intent i = new Intent(commandIntent);
     	i.putExtra("command", "set_standby_screen");
     	i.putExtra("value", (int)standbyScreen);
+    	mContext.sendBroadcast(i);
+    }
+    
+    public void setReceiverResolution(int width, int height)
+    {
+    	// Should improve performance by removing unnecessary scaling
+    	Intent i = new Intent(commandIntent);
+    	i.putExtra("command", "set_resolution");
+    	i.putExtra("width", (int)width);
+    	i.putExtra("height", (int)height);
     	mContext.sendBroadcast(i);
     }
     
