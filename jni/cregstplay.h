@@ -133,6 +133,7 @@ typedef struct _CREGSTREAM
     bool set_video;
     bool set_audio;
     void *pStreamer;
+    bool useSWdecoder;
 } CREGSTREAM;
 
 /* Structure to contain all our information, so we can pass it to callbacks */

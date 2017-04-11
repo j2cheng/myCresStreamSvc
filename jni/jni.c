@@ -1888,7 +1888,7 @@ void csio_jni_SetOverlayWindow(int iStreamId)
 //================================================================================
 // a unified function to create all HTTP related pipelines, including mjpeg, HLS, mp4, DASH, etc.
 //================================================================================
-int csio_jni_CreateHttpPipeline(void *obj, GstElement **pipeline, GstElement **source, eProtocolId protoId, int iStreamId, eHttpMode httpMode)
+int csio_jni_CreateHttpPipeline(void *obj, GstElement **pipeline, GstElement **source, eProtocolId protoId, int iStreamId, eHttpMode httpMode, bool useSWdecoder)
 {
     int iStatus = CSIO_SUCCESS;
     CSIO_LOG(eLogLevel_debug, "%s() enter ...", __FUNCTION__);
@@ -1911,6 +1911,7 @@ int csio_jni_CreateHttpPipeline(void *obj, GstElement **pipeline, GstElement **s
     data->streamProtocolId = protoId;
     data->pStreamer = obj;
     data->httpMode = httpMode;
+    data->useSWdecoder = useSWdecoder;
 
     build_http_pipeline(data, iStreamId);
     *pipeline = data->pipeline;

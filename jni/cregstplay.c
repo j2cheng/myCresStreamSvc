@@ -1140,7 +1140,7 @@ int build_video_pipeline(gchar *encoding_name, CREGSTREAM *data, unsigned int st
 		data->element_v[i++] = gst_element_factory_make("queue", NULL);
 		data->element_v[i++] = gst_element_factory_make("jpegparse", NULL);
 
-		if(product_info()->mjpeg_decoder_string[0])
+		if( !(data->useSWdecoder) && product_info()->mjpeg_decoder_string[0] )
 		{
 			CSIO_LOG(eLogLevel_debug, "MJPEG: using the platform specific Hardware mjpeg decoder");
 			// We are using gstreamer androidmedia plugin to decode mjpeg.
@@ -1181,7 +1181,7 @@ int build_video_pipeline(gchar *encoding_name, CREGSTREAM *data, unsigned int st
 					csio_SetWaitDecHas1stVidDelay(data->streamId,1);
 			}
 		}
-		else // If there is No hardware mjpeg decoder
+		else // If there is No hardware mjpeg decoder or specify to use SW decoder
 		{
 			CSIO_LOG(eLogLevel_debug, "MJPEG: using the software decoder: jpegdec");
 			data->element_v[i++] = gst_element_factory_make("jpegdec", NULL);
