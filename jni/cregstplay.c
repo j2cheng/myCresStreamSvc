@@ -1139,10 +1139,10 @@ int build_video_pipeline(gchar *encoding_name, CREGSTREAM *data, unsigned int st
 		}
 		data->element_v[i++] = gst_element_factory_make("queue", NULL);
 		data->element_v[i++] = gst_element_factory_make("jpegparse", NULL);
-		
+
 		if(product_info()->mjpeg_decoder_string[0])
 		{
-			CSIO_LOG(eLogLevel_debug, "MJPEG: using the Hardware decoder via TI Ducati");
+			CSIO_LOG(eLogLevel_debug, "MJPEG: using the platform specific Hardware mjpeg decoder");
 			// We are using gstreamer androidmedia plugin to decode mjpeg.
 		    //add a probe for loss of video detection.
 			GstPad *pad;
@@ -1154,6 +1154,7 @@ int build_video_pipeline(gchar *encoding_name, CREGSTREAM *data, unsigned int st
 				gst_object_unref( pad );
 			}
 
+			CSIO_LOG(eLogLevel_debug, "MJPEG: mjpeg_decoder_string = %s", product_info()->mjpeg_decoder_string);
 			data->element_v[i++] = gst_element_factory_make(product_info()->mjpeg_decoder_string, NULL);
 			data->amcvid_dec = data->element_v[i-1];
 
