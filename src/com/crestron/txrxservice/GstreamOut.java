@@ -23,6 +23,7 @@
 package com.crestron.txrxservice;
 
 import android.util.Log;
+import android.os.SystemClock;
 
 ///////////////////////////////////////////////////////////////////////////////
 
@@ -32,7 +33,7 @@ public class GstreamOut {
 
 ///////////////////////////////////////////////////////////////////////////////
 
-	// Function prototypes for 
+    // Function prototypes for 
     private static native boolean nativeClassInitRtspServer();
     private native void nativeRtspServerStart();
     private native void nativeRtspServerStop();
@@ -54,28 +55,31 @@ public class GstreamOut {
     private native int  nativeWaitForPreviewAvailable(int sessionId,int timeout_sec);
     private native int  nativeWaitForPreviewClosed(int sessionId,int timeout_sec);
    
-    private final int sessionId = 0; 	// This is currently always 0
+    private final int sessionId = 0;    // This is currently always 0
     private long native_custom_data;    // Native code will use this to keep private data
-    private Object mSurface;			// We keep surface as just an object because that's how we pass it to jni
+    private Object mSurface;            // We keep surface as just an object because that's how we pass it to jni
     private CresStreamCtrl streamCtl;
     private int idx;
+    private boolean camStreamActive = false;
+    private boolean previewActive = false;
+    private boolean resReleased = true;   // default need to be true
     
 ///////////////////////////////////////////////////////////////////////////////
 
     static {
-		Log.d(TAG, "class init");
+        Log.d(TAG, "class init");
         nativeClassInitRtspServer();
     }
 
     public GstreamOut(CresStreamCtrl ctl) {
-        Log.d(TAG, "constructor called");
+        Log.d(TAG, "Streamout: JAVA - constructor called");
         streamCtl = ctl;
         //Don't start server until we have a surface to get data from...
-        nativeInitRtspServer(null);
+        //nativeInitRtspServer(null);
         
         if (streamCtl.userSettings.getCamStreamEnable() == true)
         {
-        	start();
+            start();
         }
     }
 
@@ -88,77 +92,95 @@ public class GstreamOut {
     }
 
     public void setSurface(Object s) {
-		//Log.d(TAG, "Set surface to " + s);
-		//mSurface = s;
+        //Log.d(TAG, "Set surface to " + s);
+        //mSurface = s;
     }
     
     public void start() {
-    	if (streamCtl.mCameraDisabled == false)
-    	{
+        if (streamCtl.mCameraDisabled == false)
+        {
+            Log.d(TAG, "Streamout: JAVA - start() call nativeInitRtspServer, previewActive = " + previewActive);
+            if (resReleased) {
+                nativeInitRtspServer(null);
+                resReleased = false;
+            }
+            
             updateCamStreamUrl();
             updateCamSnapshotUrl();
-    		updateNativeDataStruct();
-    		nativeRtspServerStart();
-    	}
+            updateNativeDataStruct();
+            Log.d(TAG, "Streamout: JAVA - start() call nativeRtspServerStart");
+            nativeRtspServerStart();
+            camStreamActive = true;
+        }
     }
     
     public void stop() {
-		updateCamStreamUrl();
-		updateCamSnapshotUrl();
-    	nativeRtspServerStop();
+        updateCamStreamUrl();
+        updateCamSnapshotUrl();
+
+        camStreamActive = false;
+        if (previewActive) {
+            Log.d(TAG, "Streamout: JAVA - stop() RtspServer ONLY");
+            nativeRtspServerStop();
+        } 
+        else { 
+            Log.d(TAG, "Streamout: JAVA - stop() finalize RtspServer");
+            nativeFinalizeRtspServer();
+            resReleased = true;
+        }
     }
     
     public void setPort(int port) {
-    	nativeSetRtspPort(port, sessionId);
+        nativeSetRtspPort(port, sessionId);
     }
     
     public void setMulticastEnable(boolean enable) {
-    	nativeSet_MulticastEnable(enable, sessionId);
+        nativeSet_MulticastEnable(enable, sessionId);
     }
     
     public void setResolution(int resolution) {
-//    	switch (resolution)
-//    	{
-//    	case 10: //1280x720
-    		nativeSet_Res_x(1280, sessionId);
-    		nativeSet_Res_y(720, sessionId);
-//    		break;
-//    	case 17: //1920x1080
-//    		nativeSet_Res_x(1920, sessionId);
-//    		nativeSet_Res_y(1080, sessionId);
-//    		break;
-//    	default:
-//    		break;
-//   	}
+//      switch (resolution)
+//      {
+//      case 10: //1280x720
+            nativeSet_Res_x(1280, sessionId);
+            nativeSet_Res_y(720, sessionId);
+//          break;
+//      case 17: //1920x1080
+//          nativeSet_Res_x(1920, sessionId);
+//          nativeSet_Res_y(1080, sessionId);
+//          break;
+//      default:
+//          break;
+//      }
     }
     
     public void setFramerate(int fps) {
-    	nativeSet_FrameRate(fps, sessionId);
+        nativeSet_FrameRate(fps, sessionId);
     }
     
-	public void setBitrate(int bitrate) {
-		nativeSet_Bitrate(bitrate, sessionId);
-	}
+    public void setBitrate(int bitrate) {
+        nativeSet_Bitrate(bitrate, sessionId);
+    }
 
-	public void setIFrameInterval(int iframeinterval) {
-		nativeSet_IFrameInterval(iframeinterval, sessionId);
-	}
-			
-    public void setCamStreamName(String name) {    	
-    	nativeSet_StreamName(name, sessionId);    	
+    public void setIFrameInterval(int iframeinterval) {
+        nativeSet_IFrameInterval(iframeinterval, sessionId);
+    }
+            
+    public void setCamStreamName(String name) {     
+        nativeSet_StreamName(name, sessionId);      
     }
     
     public void setCamStreamSnapshotName(String name) {
-    	nativeSet_SnapshotName(name, sessionId);
-    	updateCamSnapshotUrl();
+        nativeSet_SnapshotName(name, sessionId);
+        updateCamSnapshotUrl();
     }
     
     public void setCamStreamMulticastAddress(String address) {
-    	nativeSet_MulticastAddress(address, sessionId);
+        nativeSet_MulticastAddress(address, sessionId);
     }
     
     private void updateNativeDataStruct() {
-    	setPort(streamCtl.userSettings.getCamStreamPort());        
+        setPort(streamCtl.userSettings.getCamStreamPort());        
         setMulticastEnable(streamCtl.userSettings.getCamStreamMulticastEnable());        
         setResolution(streamCtl.userSettings.getCamStreamResolution());
         setFramerate(streamCtl.userSettings.getCamStreamFrameRate());        
@@ -171,43 +193,43 @@ public class GstreamOut {
 
     public String buildCamStreamUrl()
     {
-    	StringBuilder url = new StringBuilder(1024);
-    	url.append("");
+        StringBuilder url = new StringBuilder(1024);
+        url.append("");
     
-    	if ( (streamCtl.mCameraDisabled == false) && (streamCtl.userSettings.getCamStreamEnable() == true) )
-    	{
-    		int port = streamCtl.userSettings.getCamStreamPort();
-    		String deviceIp= streamCtl.userSettings.getDeviceIp();
-    		String file = streamCtl.userSettings.getCamStreamName();
-    		
-    		url.append("rtsp://").append(deviceIp).append(":").append(port).append("/").append(file).append(".sdp");
-    	} 
-    	Log.d(TAG, "buildCamStreamUrl() CamStreamUrl = "+url.toString());
+        if ( (streamCtl.mCameraDisabled == false) && (streamCtl.userSettings.getCamStreamEnable() == true) )
+        {
+            int port = streamCtl.userSettings.getCamStreamPort();
+            String deviceIp= streamCtl.userSettings.getDeviceIp();
+            String file = streamCtl.userSettings.getCamStreamName();
+            
+            url.append("rtsp://").append(deviceIp).append(":").append(port).append("/").append(file).append(".sdp");
+        } 
+        Log.d(TAG, "buildCamStreamUrl() CamStreamUrl = "+url.toString());
     
-    	return url.toString();
+        return url.toString();
     }
     
     public String buildCamSnapshotUrl()
     {
-    	StringBuilder url = new StringBuilder(1024);
-    	url.append("");
+        StringBuilder url = new StringBuilder(1024);
+        url.append("");
     
-    	if ( (streamCtl.mCameraDisabled == false) && (streamCtl.userSettings.getCamStreamEnable() == true) )
-    	{
-    		String deviceIp= streamCtl.userSettings.getDeviceIp();
-    		String file = streamCtl.userSettings.getCamStreamSnapshotName();
-    		
-    		url.append("http://").append(deviceIp).append("/camera/").append(file).append(".jpg");
-    	} 
-    	Log.d(TAG, "buildCamSnapshotUrl()  = " + url.toString());
+        if ( (streamCtl.mCameraDisabled == false) && (streamCtl.userSettings.getCamStreamEnable() == true) )
+        {
+            String deviceIp= streamCtl.userSettings.getDeviceIp();
+            String file = streamCtl.userSettings.getCamStreamSnapshotName();
+            
+            url.append("http://").append(deviceIp).append("/camera/").append(file).append(".jpg");
+        } 
+        Log.d(TAG, "buildCamSnapshotUrl()  = " + url.toString());
     
-    	return url.toString();
+        return url.toString();
     }
     
     public void updateCamStreamUrl()
     {
-    	String camUrl = buildCamStreamUrl();
-    	
+        String camUrl = buildCamStreamUrl();
+        
         streamCtl.userSettings.setCamStreamUrl(camUrl);
     
         streamCtl.sockTask.SendDataToAllClients(String.format("CAMERA_STREAMING_STREAM_URL=%s", camUrl));
@@ -215,75 +237,103 @@ public class GstreamOut {
     
     public void updateCamSnapshotUrl()
     {
-    	String snapshotUrl = buildCamSnapshotUrl();
-    	
+        String snapshotUrl = buildCamSnapshotUrl();
+        
         streamCtl.userSettings.setCamStreamSnapshotUrl(snapshotUrl);
     
         streamCtl.sockTask.SendDataToAllClients(String.format("CAMERA_STREAMING_SNAPSHOT_URL=%s", snapshotUrl));
     }
  
     protected void startPreview(Object surface, int sessionId) {
-    	if (streamCtl.mCameraDisabled == false)
-    	{
-    		nativeStartPreview(surface,sessionId);
-    	}
+        Log.d(TAG, "Streamout: startPreview() resReleased = " + resReleased);
+        if (streamCtl.mCameraDisabled == false)
+        {
+            if (resReleased) {
+                Log.d(TAG, "Streamout: startPreview() reinit all resources + waitForPreviewAvailable");
+                nativeInitRtspServer(null);
+                //waitForPreviewAvailable(0, 5);
+                resReleased = false;
+            }
+
+            Log.d(TAG, "Streamout: startPreview() ");
+            nativeStartPreview(surface,sessionId);
+            previewActive = true;
+        }
+        
+        SystemClock.sleep(2000);
+        Log.d(TAG, "Streamout: now getCamStreamEnable = " + streamCtl.userSettings.getCamStreamEnable());
+        if (streamCtl.userSettings.getCamStreamEnable() == false) {
+            stop();
+        }           
+
     }
     
     protected void pausePreview(int sessionId) {
-    	if (streamCtl.mCameraDisabled == false)
-    	{
-    		nativePausePreview(sessionId);
-    	}
+        //Log.d(TAG, "Streamout: pausePreview() is_preview = " + streamCtl.cam_preview.is_preview);
+        if (streamCtl.mCameraDisabled == false)
+        {
+            nativePausePreview(sessionId);
+        }
     }
 
     protected void stopPreview(int sessionId) {
-    	if (streamCtl.mCameraDisabled == false)
-    	{
-    		nativeStopPreview(sessionId);
-    	}
+        if (streamCtl.mCameraDisabled == false)
+        {
+            Log.d(TAG, "Streamout: stopPreview() camStreamActive = " + camStreamActive + ", resReleased = "+ resReleased );
+            nativeStopPreview(sessionId);
+            previewActive = false;
+            
+            if (!camStreamActive && !resReleased) {
+                Log.d(TAG, "Streamout: stopPreview() release all resources");
+                nativeFinalizeRtspServer();
+                resReleased = true;
+            }
+        }
     }
     
     protected int waitForPreviewAvailable(int sessionId,int timeout_sec) {
-        int rtn = -1;	
-    	if (streamCtl.mCameraDisabled == false)
-    	{
-    		rtn = nativeWaitForPreviewAvailable(sessionId,timeout_sec);
-    	}
-    	
-    	return(rtn);
+        int rtn = -1;   
+        if (streamCtl.mCameraDisabled == false)
+        {
+            Log.d(TAG, "Streamout: waitForPreviewAvailable() ");
+            rtn = nativeWaitForPreviewAvailable(sessionId,timeout_sec);
+        }
+        
+        return(rtn);
     }
 
     protected int waitForPreviewClosed(int sessionId,int timeout_sec) {
-        int rtn = -1;	
-    	if (streamCtl.mCameraDisabled == false)
-    	{
-    		rtn = nativeWaitForPreviewClosed(sessionId,timeout_sec);
-    	}
-    	
-    	return(rtn);
+        int rtn = -1;   
+        if (streamCtl.mCameraDisabled == false)
+        {
+            Log.d(TAG, "Streamout: waitForPreviewClosed() ");
+            rtn = nativeWaitForPreviewClosed(sessionId,timeout_sec);
+        }
+        
+        return(rtn);
     }
 
-	public void recoverTxrxService()
-	{
-		streamCtl.RecoverTxrxService();			
-	}
+    public void recoverTxrxService()
+    {
+        streamCtl.RecoverTxrxService();         
+    }
 
-	public void sendCameraStopFb()
-	{
-		streamCtl.sockTask.SendDataToAllClients("CAMERA_STREAMING_ENABLE=false");			
-	}
-		
+    public void sendCameraStopFb()
+    {
+        streamCtl.sockTask.SendDataToAllClients("CAMERA_STREAMING_ENABLE=false");           
+    }
+        
     
 ///////////////////////////////////////////////////////////////////////////////
     
     protected void onDestroy() {
-		Log.d(TAG, "destructor called");
+        Log.d(TAG, "destructor called");
         nativeFinalizeRtspServer();
     }    
     
 ///////////////////////////////////////////////////////////////////////////////
 
     private void setMessage(final String message) {
-		Log.d(TAG, "setMessage " + message);
+        Log.d(TAG, "setMessage " + message);
     }
 }

@@ -71,16 +71,17 @@ void StreamoutProjectDeInit()
         {
             if(StreamOutProjList[i])
             {
+                CSIO_LOG(StreamOutProjDebugLevel, "Streamout: call removeAllStreamoutTasks()");
                 //remove all Streamout tasks this project created.
                 StreamOutProjList[i]->removeAllStreamoutTasks();
 
                 //tell thread to exit
-                StreamOutProjList[i]->exitThread();
+                //StreamOutProjList[i]->exitThread();
 
                 //wait until thread exits
-                CSIO_LOG(StreamOutProjDebugLevel, "Streamout: [%d]call WaitForThreadToExit[0x%x]\n",i,StreamOutProjList[i]);
-                StreamOutProjList[i]->WaitForThreadToExit();
-                CSIO_LOG(StreamOutProjDebugLevel, "Streamout: Wait is done\n");
+                //CSIO_LOG(StreamOutProjDebugLevel, "Streamout: DONE ** [%d]call WaitForThreadToExit[0x%x]\n",i,StreamOutProjList[i]);
+                //StreamOutProjList[i]->WaitForThreadToExit();
+                //CSIO_LOG(StreamOutProjDebugLevel, "Streamout: Wait is done\n");
 
                 //delete the object, and set list to NULL
                 delete StreamOutProjList[i];
@@ -494,6 +495,8 @@ static void StreamoutProjectSendEvent(int iId, int evnt, int data_size, void* bu
 
 CStreamoutProject::CStreamoutProject(int iId): m_projectID(iId)
 {
+    CSIO_LOG(m_debugLevel, "Streamout: create CStreamoutProject object");
+
     m_debugLevel = StreamOutProjDebugLevel;
 
     m_projEvent  = new CStreamoutEvent();
@@ -933,6 +936,36 @@ void* CStreamoutProject::ThreadEntry()
                 		{
                 			if(m_StreamoutTaskObjList)
                 			{
+								if(m_StreamoutTaskObjList[id])
+								{
+									CSIO_LOG(m_debugLevel, "Streamout: START_PREVIEW already exist[0x%x].",
+											m_StreamoutTaskObjList[id]);
+								}
+								else
+								{
+									CSIO_LOG(eLogLevel_error, "Streamout: START_PREVIEW doesn't exist [0x%x]", 
+											m_StreamoutTaskObjList[id]);
+								
+									m_StreamoutTaskObjList[id] = new CStreamoutManager();
+								
+									m_StreamoutTaskObjList[id]->setParent(this);
+									m_StreamoutTaskObjList[id]->setServManagerDebugLevel(m_debugLevel);
+								
+									//init default variables
+									m_StreamoutTaskObjList[id]->setPort(m_rtsp_port);
+									m_StreamoutTaskObjList[id]->setResX(m_res_x);
+									m_StreamoutTaskObjList[id]->setResY(m_res_y);
+									m_StreamoutTaskObjList[id]->setFrameRate(m_frame_rate);
+									m_StreamoutTaskObjList[id]->setBitRate(m_bit_rate);
+									m_StreamoutTaskObjList[id]->setIFrameInterval(m_iframe_interval);
+									m_StreamoutTaskObjList[id]->setMulticastEnable(&m_multicast_enable);
+									m_StreamoutTaskObjList[id]->setMulticastAddress(m_multicast_address);
+									m_StreamoutTaskObjList[id]->setStreamName(m_stream_name);
+									m_StreamoutTaskObjList[id]->setSnapshotName(m_snapshot_name);
+								
+									CSIO_LOG(eLogLevel_error, "Streamout: START_PREVIEW CreateNewThread()");
+									m_StreamoutTaskObjList[id]->CreateNewThread();
+								}
                 				StartPreview((void*) evntQ.buffPtr);
                 			}
                 		}
