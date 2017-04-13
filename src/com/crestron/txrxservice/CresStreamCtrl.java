@@ -1002,7 +1002,22 @@ public class CresStreamCtrl extends Service {
     					dispSurface.close();
     					dispSurface = null;
     				}
-    				dispSurface = new CresDisplaySurface(streamCtrl, 1920, 1200, haveExternalDisplays, backgroundViewColor); // set to max output resolution
+    				
+    				int maxVRes, maxHRes;
+    	    		int rotation = 0;
+    	    		String rotationStr = MiscUtils.readBuildProp("persist.crestron.hwrotation");
+    	    		try { rotation = Integer.parseInt(rotationStr); } catch (NumberFormatException e) {}
+    	    		if (rotation == 3)
+    	    		{
+    	    			maxVRes = 1920;
+    	    			maxHRes = 1200;
+    	    		}
+    	    		else
+    	    		{
+    	    			maxVRes = 1200;
+    	    			maxHRes = 1920;
+    	    		}
+    				dispSurface = new CresDisplaySurface(streamCtrl, maxHRes, maxVRes, haveExternalDisplays, backgroundViewColor); // set to max output resolution
     				latch.countDown();
     			}
     		});
@@ -1022,7 +1037,21 @@ public class CresStreamCtrl extends Service {
     			dispSurface.close();
     			dispSurface = null;
     		}
-    		dispSurface = new CresDisplaySurface(streamCtrl, 1920, 1200, haveExternalDisplays, backgroundViewColor); // set to max output resolution
+    		int maxVRes, maxHRes;
+    		int rotation = 0;
+    		String rotationStr = MiscUtils.readBuildProp("persist.crestron.hwrotation");
+    		try { rotation = Integer.parseInt(rotationStr); } catch (NumberFormatException e) {}
+    		if (rotation == 3)
+    		{
+    			maxVRes = 1920;
+    			maxHRes = 1200;
+    		}
+    		else
+    		{
+    			maxVRes = 1200;
+    			maxHRes = 1920;
+    		}
+    		dispSurface = new CresDisplaySurface(streamCtrl, maxHRes, maxVRes, haveExternalDisplays, backgroundViewColor); // set to max output resolution
     	}
     }
     

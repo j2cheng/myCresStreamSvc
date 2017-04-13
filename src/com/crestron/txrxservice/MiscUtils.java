@@ -190,4 +190,20 @@ public class MiscUtils {
             return defValue;
         }
     }
+    
+    public static String readBuildProp(String buildProp) {
+    	String ret = "";
+    	try {
+    		Process p = new ProcessBuilder("/system/bin/getprop", buildProp).redirectErrorStream(true).start();
+    		BufferedReader br = new BufferedReader(new InputStreamReader(p.getInputStream()));
+    		String line = "";
+    		while ((line=br.readLine()) != null)
+    		{
+    			ret = line;
+    		}
+    		p.destroy();
+    	} catch (IOException e) { e.printStackTrace(); }
+    	
+    	return ret;
+    }
 }
