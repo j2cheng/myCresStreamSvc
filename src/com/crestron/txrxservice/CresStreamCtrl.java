@@ -3299,11 +3299,15 @@ public class CresStreamCtrl extends Service {
     				userSettings.setAirMediaWindowFlag(alphaBlending ? WindowManager.LayoutParams.TYPE_PRIORITY_PHONE : WindowManager.LayoutParams.TYPE_SYSTEM_OVERLAY);
 
     				if (haveExternalDisplays && Boolean.parseBoolean(hdmiOutput.getSyncStatus()))
+    				{
     					mAirMedia.show(x, y, width, height);
+    					SendStreamState(StreamState.STARTED, sessId);
+    				}
     			}
     			else
     			{
     				mAirMedia.hide(true);
+    				SendStreamState(StreamState.STOPPED, sessId);
     			}
     		}
     	}
