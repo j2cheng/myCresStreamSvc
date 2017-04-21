@@ -4438,7 +4438,13 @@ public class CresStreamCtrl extends Service {
 	
 	public void setExternalHdcpStatus(int hdcpStatus)
 	{
-		mIsHdmiOutExternal = true;
+		if (mIsHdmiOutExternal == false)
+		{
+			mIsHdmiOutExternal = true;
+			// call restart streams just in case we missed the starts because of mIsHdmiOutExternal flag
+			restartStreams(false);
+		}
+		
 		switch(hdcpStatus)
 		{ 
 		case 50: //unauthenticated
