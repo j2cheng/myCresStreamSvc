@@ -27,7 +27,7 @@ static void convertMsToTimespec(struct timespec * out_ts,int in_ms)
 
     long nanosecs, secs,ms;
 
-    clock_gettime(CLOCK_REALTIME, out_ts);
+    clock_gettime(CLOCK_MONOTONIC, out_ts);
 
     secs = in_ms/1000;
     ms   = in_ms%1000;
