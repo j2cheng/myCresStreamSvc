@@ -3325,7 +3325,7 @@ public class CresStreamCtrl extends Service {
     
     public void setAirMediaLoginCode(int loginCode, int sessId) {
     	synchronized (mAirMediaLock) {
-    		if ((loginCode < 1) || (loginCode > 9999))
+    		if ((loginCode < 0) || (loginCode > 9999))
     			return; //Don't set out of range value
 
     		userSettings.setAirMediaLoginCode(loginCode);
