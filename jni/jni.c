@@ -655,6 +655,8 @@ void gst_native_stop (JNIEnv* env, jobject thiz, jint sessionId, jint stopTimeou
 	        data->isStarted = false;
 	        csio_jni_stop((int)sessionId);
 	    }
+	    else
+	    	csio_SendVideoPlayingStatusMessage((int)sessionId, STREAMSTATE_STOPPED);
 	}
 }
 
