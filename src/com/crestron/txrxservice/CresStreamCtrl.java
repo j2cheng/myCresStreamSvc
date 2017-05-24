@@ -53,12 +53,15 @@ import android.view.Surface;
 import android.view.Display;
 import android.view.Gravity;
 import android.view.SurfaceHolder;
+import android.view.View;
 import android.view.SurfaceHolder.Callback;
+import android.view.TextureView;
 import android.graphics.Canvas;
 import android.graphics.Color;
 import android.graphics.PixelFormat;
 import android.graphics.Point;
 import android.graphics.Rect;
+import android.graphics.SurfaceTexture;
 import android.hardware.Camera;
 import android.app.Activity;
 import android.app.Notification;
@@ -131,6 +134,8 @@ public class CresStreamCtrl extends Service {
     boolean hdmiInputDriverPresent = false;
     public boolean alphaBlending = false;
     boolean airMediaLicensed = false;
+    private boolean use_splashtop = false;
+    public boolean use_texture = false;
     boolean[] restartRequired = new boolean[NumOfSurfaces];
     public final static String savedSettingsFilePath = "/data/CresStreamSvc/userSettings";
     public final static String savedSettingsOldFilePath = "/data/CresStreamSvc/userSettings.old";
@@ -688,6 +693,10 @@ public class CresStreamCtrl extends Service {
 			} catch (NumberFormatException e) {}			
 			alphaBlending = (pinpointEnabled == 1) ? true : false;
     		
+			// Temporary - to be removed once Awind is removed
+			use_texture = (new File("/data/CresStreamSvc/texture")).exists();
+			Log.i(TAG, "******************  Use_Texture="+String.valueOf(use_texture) + "**************");
+			
             // Create a DisplaySurface to handle both preview and stream in
     		createCresDisplaySurface();
     		
@@ -915,22 +924,43 @@ public class CresStreamCtrl extends Service {
     	
     	return surfaceHolder;
     }
+
+    public TextureView getAirMediaTextureView(){
+        return dispSurface.GetAirMediaTextureView();
+    }
+    
+    public SurfaceTexture getAirMediaSurfaceTexture(){
+        return dispSurface.GetSurfaceTexture();
+    }
     
     private void airMediaLicenseThread(final CresStreamCtrl streamCtrl)
     {	
 		new Thread(new Runnable() {
     		@Override
     		public void run() { 
+				// For debugging only - temporary
+				use_splashtop = (new File("/data/CresStreamSvc/splashtop")).exists();
+				Log.i(TAG, "******************  Use_Splashtop="+String.valueOf(use_splashtop) + "**************");
     			// Wait until file exists then check
-    			while ((new File(AirMedia.licenseFilePath)).exists() == false)
+    			if (!use_splashtop)
     			{
-    				try { Thread.sleep(5000); } catch (InterruptedException e){}//Poll every 5 seconds
+    				while ((new File(AirMedia.licenseFilePath)).exists() == false)
+    				{
+    					try { Thread.sleep(5000); } catch (InterruptedException e){}//Poll every 5 seconds
+    				}
+
+    				airMediaLicensed = AirMediaAwind.checkAirMediaLicense();
+
+    				if (mAirMedia == null && airMediaLicensed)
+    					mAirMedia = new AirMediaAwind(streamCtrl);
     			}
-    			
-    			airMediaLicensed = AirMedia.checkAirMediaLicense();
-    			
-    			if (mAirMedia == null && airMediaLicensed)
-					mAirMedia = new AirMedia(streamCtrl);
+    			else
+    			{
+    				airMediaLicensed = true;
+    				
+    				if (mAirMedia == null && airMediaLicensed)
+    					mAirMedia = new AirMediaSplashtop(streamCtrl);    				
+    			}
     		}
     	}).start();
     }
@@ -1153,7 +1183,7 @@ public class CresStreamCtrl extends Service {
     		public void run() {
     			if (mAirMedia != null)
     			{
-    				mAirMedia.recoverAirMedia();   		
+    				mAirMedia.recover();   		
     			}
     		}
     	}).start();
@@ -1695,6 +1725,15 @@ public class CresStreamCtrl extends Service {
     	mForceHdcpStatusUpdate = true;
     }
     
+    public void setAirMediaWindowDimensions(int x, int y, int width, int height, int sessionId)
+    {
+    	userSettings.setXloc(x, sessionId);
+    	userSettings.setYloc(y, sessionId);
+    	userSettings.setW(width, sessionId);
+    	userSettings.setH(height, sessionId);
+    	updateWindow(sessionId, use_texture);
+    }
+
     public void setWindowDimensions(int x, int y, int width, int height, int sessionId)
     {
     	userSettings.setXloc(x, sessionId);
@@ -1883,12 +1922,19 @@ public class CresStreamCtrl extends Service {
     public void updateWindow(final int sessionId)
     {
     	// to avoid bug : we will set window dimensions and then set again after 10 seconds
-    	updateFullWindow(sessionId);
-    	new Timer().schedule(new doubleSendWindowDimensions(sessionId), 10000);
+    	updateFullWindow(sessionId, false);
+    	new Timer().schedule(new doubleSendWindowDimensions(sessionId, false), 10000);
+    }
+    
+    public void updateWindow(final int sessionId, final boolean use_texture_view)
+    {
+    	// to avoid bug : we will set window dimensions and then set again after 10 seconds
+    	updateFullWindow(sessionId, use_texture_view);
+    	new Timer().schedule(new doubleSendWindowDimensions(sessionId, use_texture_view), 20000);
     }
     
     // !!!!!!! Do not call this function use updateWindow instead !!!!!!!
-    private void updateFullWindow(final int sessionId)
+    private void updateFullWindow(final int sessionId, final boolean use_texture_view)
     {
         Log.d(TAG, "updateFullWindow " + sessionId + " : Lock");
         windowtLock[sessionId].lock();
@@ -1908,7 +1954,8 @@ public class CresStreamCtrl extends Service {
         			tmpHeight = 1080;
         		}
         	}
-        	
+            Log.d(TAG, "****** updateFullWindow x="+String.valueOf(tmpX)+" y="+String.valueOf(tmpY) + " w=" + String.valueOf(tmpWidth) + " h=" + String.valueOf(tmpHeight));
+
         	// Needs to be final so that we can pass to another thread
         	final int width = tmpWidth;
         	final int height = tmpHeight;
@@ -1925,7 +1972,7 @@ public class CresStreamCtrl extends Service {
 	            	runOnUiThread(new Runnable() {
 	            		@Override
 	            		public void run() {
-	            			dispSurface.UpdateWindowSize(x, y, width, height, sessionId);		       		    	 
+	            			dispSurface.UpdateWindowSize(x, y, width, height, sessionId, use_texture_view);		       		    	 
 	            			latch.countDown();
 	            		}
 	            	});	            	
@@ -1941,7 +1988,7 @@ public class CresStreamCtrl extends Service {
             	}
             	else
             	{
-            		dispSurface.UpdateWindowSize(x, y, width, height, sessionId);
+            		dispSurface.UpdateWindowSize(x, y, width, height, sessionId, use_texture_view);
             	}
             }
         }
@@ -2071,6 +2118,75 @@ public class CresStreamCtrl extends Service {
     	}
     }
 
+    public void setVideoTransformation(int sessionId, boolean use_texture_view)
+    {
+    	if (!use_texture_view)
+    		return;
+    	if (mAirMedia == null || !(mAirMedia instanceof AirMediaSplashtop))
+    		return;
+        Log.d(TAG, "setVideoTransformation " + sessionId + " : Lock");
+        windowtLock[sessionId].lock();
+        try
+        {
+        	int tmpWidth = userSettings.getW(sessionId);
+        	int tmpHeight = userSettings.getH(sessionId);
+        	int tmpX = userSettings.getXloc(sessionId);
+        	int tmpY = userSettings.getYloc(sessionId);
+        	if ((tmpWidth == 0) && (tmpHeight == 0))
+        	{
+        		tmpWidth = Integer.parseInt(hdmiOutput.getHorizontalRes());
+        		tmpHeight = Integer.parseInt(hdmiOutput.getVerticalRes());
+        		if ((tmpWidth == 0) && (tmpHeight == 0))
+        		{
+        			tmpWidth = 1920;
+        			tmpHeight = 1080;
+        		}
+        	}
+            Log.d(TAG, "setVideoTransformation x="+String.valueOf(tmpX)+" y="+String.valueOf(tmpY) + " w=" + String.valueOf(tmpWidth) + " h=" + String.valueOf(tmpHeight));
+
+        	// Needs to be final so that we can pass to another thread
+        	final int width = tmpWidth;
+        	final int height = tmpHeight;
+        	final int x = tmpX;
+        	final int y = tmpY;
+        	
+            if (mAirMedia != null)
+            {
+            	// Make sure view transform changes are only done in UI (main) thread
+            	if (Looper.myLooper() != Looper.getMainLooper())
+            	{
+	            	final CountDownLatch latch = new CountDownLatch(1);
+	
+	            	runOnUiThread(new Runnable() {
+	            		@Override
+	            		public void run() {
+	            			mAirMedia.setVideoTransformation(x, y, width, height);		       		    	 
+	            			latch.countDown();
+	            		}
+	            	});	            	
+
+	            	try { 
+	            		if (latch.await(15, TimeUnit.SECONDS) == false)
+	            		{
+	            			Log.e(TAG, "setVideoTransform: Timeout after 15 seconds");
+	            			RecoverTxrxService();
+	            		}
+	            	}
+	            	catch (InterruptedException ex) { ex.printStackTrace(); }  
+            	}
+            	else
+            	{
+        			mAirMedia.setVideoTransformation(x, y, width, height);		       		    	 
+            	}
+            }
+        }
+        finally
+        {
+        	windowtLock[sessionId].unlock();
+            Log.d(TAG, "setVideoTransformation " + sessionId + " : Unlock");
+        }
+    }
+    
     public void readResolutionInfo(String hdmiInputResolution){
     	if (hdmiInputDriverPresent)
     		hdmiInput.updateResolutionInfo(hdmiInputResolution);
@@ -2826,7 +2942,87 @@ public class CresStreamCtrl extends Service {
 	    		dispSurface.ShowWindow(sessId);
     	}
     }
-
+    
+    private void hideTextureWindow (final int sessId)
+    {
+    	if (dispSurface != null)
+    	{
+	    	// Make sure surface changes are only done in UI (main) thread
+	    	if (Looper.myLooper() != Looper.getMainLooper())
+	    	{
+		    	final CountDownLatch latch = new CountDownLatch(1);
+		    	runOnUiThread(new Runnable() {
+				     @Override
+				     public void run() {			    	 
+			    		 dispSurface.HideTextureWindow(sessId);
+				    	 latch.countDown();
+				     }
+		    	});
+		    	try { 
+            		if (latch.await(5, TimeUnit.SECONDS) == false)
+            		{
+            			Log.e(TAG, "hideWindow: timeout after 5 seconds");
+            			RecoverTxrxService();
+            		}
+            	}
+            	catch (InterruptedException ex) { ex.printStackTrace(); }  
+	    	}
+	    	else
+	    		dispSurface.HideTextureWindow(sessId);
+    	}    		
+    }
+    
+    private void showTextureWindow (final int sessId)
+    {
+    	if (dispSurface != null)
+    	{
+	    	// Make sure surface changes are only done in UI (main) thread
+	    	if (Looper.myLooper() != Looper.getMainLooper())
+	    	{
+		    	final CountDownLatch latch = new CountDownLatch(1);
+		    	runOnUiThread(new Runnable() {
+				     @Override
+				     public void run() {
+			    		 dispSurface.ShowTextureWindow(sessId);
+				    	 latch.countDown();
+				     }
+		    	});
+		    	try { 
+            		if (latch.await(5, TimeUnit.SECONDS) == false)
+            		{
+            			Log.e(TAG, "showWindow: Timeout after 5 seconds");
+            			RecoverTxrxService();
+            		}
+            	}
+            	catch (InterruptedException ex) { ex.printStackTrace(); }  
+	    	}
+	    	else
+	    		dispSurface.ShowTextureWindow(sessId);
+    	}
+    }
+    
+    public void showSplashtopWindow(int sessId)
+    {
+    	Log.d(TAG, "Splashtop: Window showing");
+    	if (use_texture)
+    	{
+    		showTextureWindow(sessId);
+    	} else {
+    		showWindow(sessId);
+    	}
+    }
+    
+    public void hideSplashtopWindow(int sessId)
+    {
+    	Log.d(TAG, "Splashtop: Window hidden");
+    	if (use_texture)
+    	{
+    		hideTextureWindow(sessId);
+    	} else {
+    		hideWindow(sessId);
+    	}
+    }
+    
     public void hidePreviewWindow(int sessId)
     {
     	Log.d(TAG, "Preview Window hidden");
@@ -3251,12 +3447,16 @@ public class CresStreamCtrl extends Service {
     
     public void airmediaRestart() {
     	if (mAirMedia != null)
-    	{
-    		synchronized (mAirMediaLock) {
+	    {
+    		synchronized (mAirMediaLock) {	
     			Log.d(TAG, "restarting AirMedia!");
-    			mAirMedia.unregisterBroadcasts();
-    			mAirMedia = null;
-    			mAirMedia = new AirMedia(this);
+    			if (mAirMedia instanceof AirMediaAwind) {
+    				((AirMediaAwind)mAirMedia).unregisterBroadcasts();  		
+    				mAirMedia = null;
+    				mAirMedia = new AirMediaAwind(this);
+    			} else {
+    				Log.e(TAG, "restarting AirMedia must be implemented!");
+    			}
 
     			if (userSettings.getAirMediaLaunch())
     				launchAirMedia(true, 0, false);
@@ -3274,39 +3474,60 @@ public class CresStreamCtrl extends Service {
     			if (val == true) // True = launch airmedia app, false = close app
     			{
     				// Do I need to stop all video here???
-    				if (mAirMedia == null && airMediaLicensed)
-    					mAirMedia = new AirMedia(this);
-    				int x, y, width, height;
-    				if (fullscreen || ((userSettings.getAirMediaWidth() == 0) && (userSettings.getAirMediaHeight() == 0)))
+    				if (mAirMedia == null && airMediaLicensed) {
+    					if (!use_splashtop)
+    						mAirMedia = new AirMediaAwind(this);
+    					else
+    						mAirMedia = new AirMediaSplashtop(this);
+    				}
+    				if (mAirMedia != null)
     				{
-    					Log.e(TAG, "AirMedia fullscreen true");
+    					int x, y, width, height;
+    					if (fullscreen || ((userSettings.getAirMediaWidth() == 0) && (userSettings.getAirMediaHeight() == 0)))
+    					{
+    						Log.e(TAG, "AirMedia fullscreen true");
 
-    					Point size = getDisplaySize();
+    						Point size = getDisplaySize();
 
-    					width = size.x;
-    					height = size.y;    			
-    					x = y = 0;
+    						width = size.x;
+    						height = size.y;
+    						x = y = 0;
+    					}
+    					else
+    					{
+    						x = userSettings.getAirMediaX();
+    						y = userSettings.getAirMediaY();
+    						width = userSettings.getAirMediaWidth();
+    						height = userSettings.getAirMediaHeight();
+    					}
+
+    					userSettings.setAirMediaDisplayScreen(haveExternalDisplays ? 1 : 0);
+    					userSettings.setAirMediaWindowFlag(alphaBlending ? WindowManager.LayoutParams.TYPE_PRIORITY_PHONE : WindowManager.LayoutParams.TYPE_SYSTEM_OVERLAY);
+
+    					if (Boolean.parseBoolean(hdmiOutput.getSyncStatus()))
+    					{
+    						mAirMedia.show(x, y, width, height);
+    						SendStreamState(StreamState.STARTED, sessId);
+    					}
     				}
     				else
     				{
-    					x = userSettings.getAirMediaX();
-    					y = userSettings.getAirMediaY();
-    					width = userSettings.getAirMediaWidth();
-    					height = userSettings.getAirMediaHeight();  	
-    				}
-
-    				userSettings.setAirMediaDisplayScreen(haveExternalDisplays ? 1 : 0);
-    				userSettings.setAirMediaWindowFlag(alphaBlending ? WindowManager.LayoutParams.TYPE_PRIORITY_PHONE : WindowManager.LayoutParams.TYPE_SYSTEM_OVERLAY);
-
-    				if (haveExternalDisplays && Boolean.parseBoolean(hdmiOutput.getSyncStatus()))
-    				{
-    					mAirMedia.show(x, y, width, height);
-    					SendStreamState(StreamState.STARTED, sessId);
+    					if (!airMediaLicensed)
+    					{
+    						Log.i(TAG, "Cannot launch AirMedia - no license");
+    					}
+    					else
+    					{
+    						Log.i(TAG, "Unable to launch AirMedia");
+    					}
     				}
     			}
     			else
     			{
-    				mAirMedia.hide(true);
+    				if (mAirMedia != null)
+    				{
+    					mAirMedia.hide(true);
+    				}
     				SendStreamState(StreamState.STOPPED, sessId);
     			}
     		}
@@ -3654,7 +3875,7 @@ public class CresStreamCtrl extends Service {
 		PackageInfo info = pm.getPackageArchiveInfo(fullPath, 0);
 		if (info != null)
 			versionName = info.versionName;
-		if (AirMedia.checkAirMediaLicense())
+		if (AirMediaAwind.checkAirMediaLicense())
 			MiscUtils.writeStringToDisk("/dev/shm/crestron/CresStreamSvc/airmediaVersion", versionName);
 		
 		return versionName;
@@ -3780,16 +4001,21 @@ public class CresStreamCtrl extends Service {
     public void sendAirMediaUserFeedbacks(int userId, String userName, String ipAddress, int position, boolean status)
     {
     	userSettings.setAirMediaUserPosition(position, userId);
+    	Log.i(TAG, String.format("AIRMEDIA_USER_NAME=%d:%s", userId, userName));
+    	Log.i(TAG, String.format("AIRMEDIA_USER_IP=%d:%s", userId, ipAddress));
+    	Log.i(TAG, String.format("AIRMEDIA_USER_POSITION=%d:%d", userId, position));
+    	Log.i(TAG, String.format("AIRMEDIA_USER_CONNECTED=%d:%s", userId, String.valueOf(status)));
+
     	sockTask.SendDataToAllClients(String.format("AIRMEDIA_USER_NAME=%d:%s", userId, userName));
     	sockTask.SendDataToAllClients(String.format("AIRMEDIA_USER_IP=%d:%s", userId, ipAddress));
     	sockTask.SendDataToAllClients(String.format("AIRMEDIA_USER_POSITION=%d:%d", userId, position));
-    	sockTask.SendDataToAllClients(String.format("AIRMEDIA_USER_CONNECTED=%d:%s", userId, String.valueOf(status)));
-    	
+    	sockTask.SendDataToAllClients(String.format("AIRMEDIA_USER_CONNECTED=%d:%s", userId, String.valueOf(status)));   	
     }
     
     public void sendAirMediaStatus(int status)
     {
     	// TODO: send on update request
+    	Log.i(TAG, String.format(String.format("AIRMEDIA_STATUS=%d", status)));
     	sockTask.SendDataToAllClients(String.format("AIRMEDIA_STATUS=%d", status));
     }
     
@@ -3802,6 +4028,7 @@ public class CresStreamCtrl extends Service {
     		if (userSettings.getAirMediaUserConnected(i))
     			numberUserConnected++;
     	}
+    	Log.i(TAG, String.format("AIRMEDIA_NUMBER_USER_CONNECTED=%d", numberUserConnected));
     	sockTask.SendDataToAllClients(String.format("AIRMEDIA_NUMBER_USER_CONNECTED=%d", numberUserConnected));
     	
 // Bug 121298: Generate new random code whenever all users disconnect
@@ -4492,13 +4719,15 @@ public class CresStreamCtrl extends Service {
 	private class doubleSendWindowDimensions extends TimerTask
 	{
 		private int sessionId;
-		doubleSendWindowDimensions(int sessId)
+		private boolean use_text;
+		doubleSendWindowDimensions(int sessId, final boolean use_texture_view)
 		{
 			sessionId = sessId;
+			use_text = use_texture_view;
 		}		
 		@Override
 		public void run() {
-			updateFullWindow(sessionId);
+			updateFullWindow(sessionId, use_text);
 		}
 	}
 	

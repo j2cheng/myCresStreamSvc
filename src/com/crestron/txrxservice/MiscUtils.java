@@ -96,6 +96,11 @@ public class MiscUtils {
     	return Rect.intersects(surface1, surface2);    		
     }
     
+    public static boolean rectanglesAreEqual(Rect r1, Rect r2)
+    {
+    	return (r1.left == r2.left && r1.right == r2.right && r1.top == r2.top && r2.bottom == r2.bottom);
+    }
+    
     public static void writeStringToDisk(String filePath, String stringToWrite)
     {
     	Writer writer = null;

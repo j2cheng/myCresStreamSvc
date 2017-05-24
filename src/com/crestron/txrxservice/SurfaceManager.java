@@ -27,7 +27,7 @@ public class SurfaceManager implements SurfaceHolder.Callback {
     
     public void initCresSurfaceHolder (SurfaceView view) {
     	if (view != null) {
-            Log.d(TAG, "View is not null");
+            Log.d(TAG, "initCresSurfaceHolder(): View is not null");
             crestSurfaceHolder = view.getHolder();	
             crestSurfaceHolder.addCallback(this);
             crestSurfaceHolder.setType(SurfaceHolder.SURFACE_TYPE_PUSH_BUFFERS);
@@ -61,7 +61,7 @@ public class SurfaceManager implements SurfaceHolder.Callback {
     	}
     	    	
         if (view != null) {
-            Log.d(TAG, "View is not null");
+            Log.d(TAG, "getCresSurfaceHolder(): View is not null");
             crestSurfaceHolder = view.getHolder();
 //            crestSurfaceHolder.setType(SurfaceHolder.SURFACE_TYPE_PUSH_BUFFERS);
 //            view.setZOrderOnTop(true);
@@ -73,18 +73,21 @@ public class SurfaceManager implements SurfaceHolder.Callback {
     }
 
     @Override
-    public void surfaceChanged(SurfaceHolder arg0, int arg1, int arg2, int arg3) {
-    	Log.d(TAG, "######### surfacechanged##############");
+    public void surfaceChanged(SurfaceHolder holder, int format, int w, int h) {
+    	Log.d(TAG, "######### surfacechanged surface="+holder.getSurface()+
+    			"  fmt=" + String.valueOf(format) +
+    			"  wxh=" + String.valueOf(w) + "x" + String.valueOf(h) +
+    			"##############");
     }
 
     @Override
-    public void surfaceCreated(SurfaceHolder arg0) {
-    	Log.d(TAG, "######### surfaceCreated##############");
+    public void surfaceCreated(SurfaceHolder holder) {
+    	Log.d(TAG, "######### surfaceCreated surface="+holder.getSurface()+"##############");
     	mLock.countDown(); //mark that surface has been created and is ready for use
     }
 
     @Override
-    public void surfaceDestroyed(SurfaceHolder arg0) {
-    	Log.d(TAG, "######### surfaceDestroyed##############");
+    public void surfaceDestroyed(SurfaceHolder holder) {
+    	Log.d(TAG, "######### surfaceDestroyed surface="+holder.getSurface()+"##############");
     }
 }
