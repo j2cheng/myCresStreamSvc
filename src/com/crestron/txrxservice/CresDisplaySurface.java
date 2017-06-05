@@ -76,6 +76,7 @@ public class CresDisplaySurface
 // Prepare the class for destruction
     public void close()
     {
+        Log.i(TAG, "CresDisplaySurface::close()");
     	if (sMGR != null)
     		sMGR.close();
     	if (stMGR != null)
@@ -183,9 +184,7 @@ public class CresDisplaySurface
         }
 
 
-        if (streamCtl.use_texture) {
-    		InitSurfaceTextureListener();
-        }
+        InitSurfaceTextureListener();
         
         createBackgroundWindow(windowWidth, windowHeight, color, haveExternalDisplays);
     }

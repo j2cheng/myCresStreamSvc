@@ -46,4 +46,6 @@ public interface AirMedia
     public void setStandbyScreen(int standbyScreen);
     
     public void setVideoTransformation(int x, int y, int w, int h);
+    
+    public void setAdapter(String address);
 }

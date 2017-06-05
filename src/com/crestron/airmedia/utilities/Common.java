@@ -6,7 +6,9 @@ import android.net.wifi.WifiInfo;
 import android.net.wifi.WifiManager;
 import android.os.Build;
 import android.util.Log;
+//import android.util.Size;
 
+import java.lang.reflect.Method;
 import java.net.Inet4Address;
 import java.net.InetAddress;
 import java.net.NetworkInterface;
@@ -201,6 +203,15 @@ public class Common {
 //
 //        //android.net.conn.CONNECTIVITY_CHANGE;
 //    }
+
+    public static String getHostname() {
+        try {
+            Method getString = Build.class.getDeclaredMethod("getString", String.class);
+            getString.setAccessible(true);
+            return getString.invoke(null, "net.hostname").toString();
+        } catch (Exception ignore) { }
+        return "";
+    }
 
     public static String getWifiIpAddress(Context context) {
         return context == null ? null : getWifiIpAddress((WifiManager) context.getSystemService(Context.WIFI_SERVICE));

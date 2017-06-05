@@ -57,7 +57,9 @@ import android.view.SurfaceHolder;
 import android.view.TextureView;
 import android.graphics.Bitmap;
 import android.graphics.SurfaceTexture;
-import android.graphics.Matrix;
+import android.graphics.Matrix; 
+import android.graphics.Canvas;
+import android.graphics.Color;
 
 //public class AirMediaSplashtop 
 public class AirMediaSplashtop implements AirMedia
@@ -71,7 +73,8 @@ public class AirMediaSplashtop implements AirMedia
 	private static final int MAX_USERS = 32;
     public CountDownLatch serviceConnectedLatch=null;
     public CountDownLatch receiverLoadedLatch=null;
-	
+    public CountDownLatch receiverStoppedLatch=null;
+
 	private AirMediaReceiver receiver_;
 	private IAirMediaReceiver service_=null;
 	private AirMediaSessionManager manager_;
@@ -79,8 +82,10 @@ public class AirMediaSplashtop implements AirMedia
 	private AirMediaSession active_session_=null;
 	private SurfaceHolder surfaceHolder_;
 	private TextureView textureView_;
+	private Surface surface_=null;
 	private Rect window_= new Rect();
 	private boolean resume_ = false;
+	private String adapter_ip_address = "";
 
     private Handler handler_;
     private Map<Integer, AirMediaSession> userSessionMap = new ConcurrentHashMap<Integer, AirMediaSession>();
@@ -106,10 +111,11 @@ public class AirMediaSplashtop implements AirMedia
     
     private void startAirMedia()
     {
-		String host = MiscUtils.getHostName("AirMedia");
+		String host = MiscUtils.getHostName("AirMedia");		
+		adapter_ip_address = mStreamCtl.getAirMediaConnectionIpAddress(0);
 
 		// Now start receiver
-        if (startReceiver(host)) {
+        if (!startReceiver(host)) {
 			Log.e(TAG, "Receiver failed to load, restarting txrxservice and m360 service");
 
 			// Library failed to load kill mediaserver and restart txrxservice
@@ -150,7 +156,11 @@ public class AirMediaSplashtop implements AirMedia
 
                 receiver().serverName(serverName);
                 receiver().product(-1); // TODO find out what this is for ?
-                
+                receiver().adapterAddress(adapter_ip_address);
+                receiver().maxResolution(AirMediaReceiverResolutionMode.Max1080P);
+                Point dSize = mStreamCtl.getDisplaySize();
+                receiver().displayResolution(new AirMediaSize(dSize.x, dSize.y));
+
         		registerReceiverEventHandlers(receiver());
 
         		receiverLoadedLatch = new CountDownLatch(1);
@@ -252,6 +262,14 @@ public class AirMediaSplashtop implements AirMedia
     		surfaceDisplayed = false;
     		
     		detachSurface();
+    		
+    		if (mStreamCtl.use_texture)
+    		{
+    			if (Boolean.parseBoolean(mStreamCtl.hdmiOutput.getSyncStatus()))
+    			{
+    				clearSurface();
+    			}
+    		}
     		
     		hideVideo();
     		    		
@@ -426,6 +444,7 @@ public class AirMediaSplashtop implements AirMedia
 		if (surface.isValid())
 		{
 			if (session.videoSurface() != surface) {
+		    	surface_ = surface;
 				Log.d(TAG, "attachSurface: attaching surface: " + surface + " to session: " + AirMediaSession.toDebugString(session));
 				session.attach(surface);
 			}
@@ -433,7 +452,45 @@ public class AirMediaSplashtop implements AirMedia
 			surfaceHolder_.addCallback(video_surface_callback_handler_);
 			Log.w(TAG, "attachSurface: No valid surface at this time");
 		}
+		if (mStreamCtl.use_texture)
+		{
+			setVideoTransformation();
+		}
+		mStreamCtl.dispSurface.stMGR.setInvalidateOnSurfaceTextureUpdate(true);
+    }
+    
+    // TODO move into CresDisplaySurface
+    private void clearSurface()
+    {
+    	Canvas canvas = null;
+    	Surface s = new Surface(mStreamCtl.getAirMediaSurfaceTexture());
+   	 	Log.i(TAG, "clearSurface: clearing surface: " + s);
+    	TextureView textureView = mStreamCtl.dispSurface.GetAirMediaTextureView();
+    	Rect rect = new Rect(0, 0, textureView.getWidth(), textureView.getHeight());    	
+    	try {
+    		canvas = s.lockCanvas(rect);
+    	} catch (android.view.Surface.OutOfResourcesException ex) { ex.printStackTrace(); }
+    	if (canvas!=null)
+    	{
+    		canvas.drawColor(Color.BLACK);
+    		s.unlockCanvasAndPost(canvas);
+    	} else {
+    		Log.i(TAG, "clearSurface: canvas is null");
+    	}
+    	s.release();
+   	 	Log.i(TAG, "clearSurface: released surface: " + s);
+    }
 
+    private void sleep(int msec)
+    {
+    	try        
+    	{
+    		Thread.sleep(msec);
+    	} 
+    	catch(InterruptedException ex) 
+    	{
+    		Thread.currentThread().interrupt();
+    	}
     }
     
     private void detachSurface() {
@@ -445,6 +502,13 @@ public class AirMediaSplashtop implements AirMedia
     	 Log.i(TAG, "detachSurface: detaching surface from session: " + AirMediaSession.toDebugString(session));
     	 if (session.videoSurface() != null) {
     		 session.detach();
+        	 // Must release surface after detaching
+    		 if (mStreamCtl.use_texture)
+    		 {
+    			 // release surface if using textureview
+    	    	 Log.i(TAG, "detachSurface: releasing surface: " + surface_);
+    			 surface_.release();
+    		 }
     	 }
     }
     
@@ -495,7 +559,8 @@ public class AirMediaSplashtop implements AirMedia
     	}
     	
     	// detach surface from session
-    	detachSurface();
+    	if (session().videoSurface() != null)
+    		detachSurface();
     	
     	Log.d(TAG, "removing active session setting active to null" + AirMediaSession.toDebugString(session()));
     	active_session_ = null;
@@ -640,6 +705,33 @@ public class AirMediaSplashtop implements AirMedia
     {
     }
     
+    private void stopReceiver()
+    {
+    	Log.i(TAG, "--------------- Calling stop for receiver");
+    	boolean successfullStop = true;
+		receiverStoppedLatch = new CountDownLatch(1);
+    	receiver_.stop();
+		try { successfullStop = receiverStoppedLatch.await(30000, TimeUnit.MILLISECONDS); }
+		catch (InterruptedException ex) { ex.printStackTrace(); }
+    }
+    
+    public void setAdapter(String address)
+    {
+    	if (receiver_ == null)
+    		return;
+    	if (adapter_ip_address.equals(address))
+    		return;
+    	adapter_ip_address = address;
+    	Log.i(TAG, "--------------- Stopping all senders");
+    	stopAllSenders();
+    	Log.i(TAG, "--------------- Stopping receiver");
+    	stopReceiver();
+    	Log.i(TAG, "--------------- Setting new ip address for receiver: " + address);
+    	receiver_.adapterAddress(address);
+    	Log.i(TAG, "--------------- Starting receiver");
+    	receiver().start();
+    }
+    
     public void setModeratorEnable(boolean enable)
     {    	
 		Log.e(TAG, "Implement ModeratorEnable");
@@ -704,7 +796,7 @@ public class AirMediaSplashtop implements AirMedia
     
     public void startUser(int userId)
     { 
-		Log.i(TAG, "startUser" + String.valueOf(userId));
+		Log.i(TAG, "startUser: " + String.valueOf(userId));
 		AirMediaSession session = user2session(userId);
 		if (session == null) {
 			Log.w(TAG, "Trying to start an unconnected session for user "+ String.valueOf(userId));
@@ -747,7 +839,7 @@ public class AirMediaSplashtop implements AirMedia
     
     public void stopUser(int userId)
     { 
-		Log.i(TAG, "stopUser" + String.valueOf(userId));
+		Log.i(TAG, "stopUser: " + String.valueOf(userId));
 		AirMediaSession session = user2session(userId);
 		if (session == null) {
 			Log.e(TAG, "Trying to stop an unconnected session for user " + String.valueOf(userId));
@@ -808,6 +900,7 @@ public class AirMediaSplashtop implements AirMedia
     
     private void stopAllSenders()
     {
+		Log.i(TAG, "stopAllSenders");
     	for (int i = 1; i <= MAX_USERS; i++) // We handle airMedia user ID as 1 based
     	{
     		if (mStreamCtl.userSettings.getAirMediaUserConnected(i))
@@ -960,6 +1053,12 @@ public class AirMediaSplashtop implements AirMedia
         @Override
         public void onEvent(AirMediaReceiver receiver, AirMediaReceiverState from, AirMediaReceiverState to) {
             Log.v(TAG, "view.receiver.event.state  " + from + "  ==>  " + to);
+            if (to == AirMediaReceiverState.Stopped)
+            {
+            	//Log.v(TAG, "In stateChangedHandler: receiverStoppedLatch="+receiverStoppedLatch+ "     receiver="+receiver);
+            	Log.v(TAG, "In stateChangedHandler: receiverStoppedLatch="+receiverStoppedLatch);
+            	receiverStoppedLatch.countDown();
+            }
         }
     };
     
@@ -1245,5 +1344,4 @@ public class AirMediaSplashtop implements AirMedia
     		detachSurface();
     	}
     };
-
 }

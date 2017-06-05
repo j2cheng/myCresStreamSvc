@@ -939,25 +939,32 @@ public class CresStreamCtrl extends Service {
     		@Override
     		public void run() { 
 				// For debugging only - temporary
+    			airMediaLicensed = (new File("/data/CresStreamSvc/airmedialicense")).exists();
 				use_splashtop = (new File("/data/CresStreamSvc/splashtop")).exists();
 				Log.i(TAG, "******************  Use_Splashtop="+String.valueOf(use_splashtop) + "**************");
-    			// Wait until file exists then check
-    			if (!use_splashtop)
-    			{
+				if (!airMediaLicensed)
+				{
     				while ((new File(AirMedia.licenseFilePath)).exists() == false)
     				{
     					try { Thread.sleep(5000); } catch (InterruptedException e){}//Poll every 5 seconds
     				}
-
-    				airMediaLicensed = AirMediaAwind.checkAirMediaLicense();
-
+    				if (use_splashtop)
+    				{
+        				airMediaLicensed = AirMediaSplashtop.checkAirMediaLicense();
+    				}
+    				else
+    				{
+        				airMediaLicensed = AirMediaAwind.checkAirMediaLicense();
+    				}
+				}
+    			// Wait until file exists then check
+    			if (!use_splashtop)
+    			{
     				if (mAirMedia == null && airMediaLicensed)
     					mAirMedia = new AirMediaAwind(streamCtrl);
     			}
     			else
     			{
-    				airMediaLicensed = true;
-    				
     				if (mAirMedia == null && airMediaLicensed)
     					mAirMedia = new AirMediaSplashtop(streamCtrl);    				
     			}
@@ -2040,6 +2047,7 @@ public class CresStreamCtrl extends Service {
         }
 
     }
+    
     
     public void invalidateSurface()
     {
@@ -3466,7 +3474,7 @@ public class CresStreamCtrl extends Service {
 
     public void launchAirMedia(boolean val, int sessId, boolean fullscreen) {
     	stopStartLock[sessId].lock();
-    	Log.d(TAG, "AirMedia " + sessId + " : Lock");
+    	Log.d(TAG, "AirMedia " + sessId + " : Lock" + "   launch = " + val + "  fullScreen =" + fullscreen);
     	try
     	{
     		synchronized (mAirMediaLock) {
@@ -3680,7 +3688,12 @@ public class CresStreamCtrl extends Service {
     
     public void setAirMediaStopUser(int userId, boolean enable, int sessId)
     {
-    	
+    	Log.i(TAG, "setAirMediaStopuser userId="+userId+"  enable="+enable);
+    	if (enable)
+    	{
+        	Log.i(TAG, "calling stopuser userId="+userId);
+    		mAirMedia.stopUser(userId);
+    	}
     }
     
     public void setAirMediaOsdImage(String filePath, int sessId)
@@ -3821,6 +3834,7 @@ public class CresStreamCtrl extends Service {
     		userSettings.setAirMediaAdaptorSelect(select);
     		if (mAirMedia != null)
     		{
+        		mAirMedia.setAdapter(getAirMediaConnectionIpAddress(sessId));
     			mAirMedia.setIpAddressPrompt(userSettings.getAirMediaIpAddressPrompt());
     		}
     		
@@ -3834,6 +3848,7 @@ public class CresStreamCtrl extends Service {
     {
     	if (mAirMedia != null)
 		{
+    		mAirMedia.setAdapter(getAirMediaConnectionIpAddress(sessId));
     		mAirMedia.setIpAddressPrompt(userSettings.getAirMediaIpAddressPrompt());
 		}
     	
@@ -3849,20 +3864,25 @@ public class CresStreamCtrl extends Service {
     {
     	StringBuilder url = new StringBuilder(512);
         url.append("http://");
+        url.append(getAirMediaConnectionIpAddress(sessId));
+        return url.toString();
+    }
+    
+    public String getAirMediaConnectionIpAddress(int sessId)
+    {
         if (userSettings.getAirMediaAdaptorSelect() == 0)
         {
-        	url.append(userSettings.getDeviceIp());
+        	return userSettings.getDeviceIp();
         }
         else if (userSettings.getAirMediaAdaptorSelect() == 1)
         {
-        	url.append(userSettings.getAuxiliaryIp());
+        	return userSettings.getAuxiliaryIp();
         }
         else
         {
         	Log.w(TAG, "Invalid adaptor select value of " + userSettings.getAirMediaAdaptorSelect());
-        	url.append(userSettings.getDeviceIp());
+        	return userSettings.getDeviceIp();
         }
-        return url.toString();
     }
 
     
@@ -4179,6 +4199,7 @@ public class CresStreamCtrl extends Service {
 
 		if (haveExternalDisplays && Boolean.parseBoolean(hdmiOutput.getSyncStatus()))
 		{
+			Log.d(TAG, "------ Recreate CresDisplaySurface due to regained HDMI sync ------");
 			createCresDisplaySurface();
 
 			try { Thread.sleep(3000); } catch (Exception e) {}
@@ -4198,6 +4219,7 @@ public class CresStreamCtrl extends Service {
     				width = size.x;
     				height = size.y;
     			}
+				Log.d(TAG, "------ Show AirMedia due to regained HDMI sync ------");
 				mAirMedia.show(userSettings.getAirMediaX(), userSettings.getAirMediaY(), width, height);
 			}
 		}
@@ -4206,7 +4228,8 @@ public class CresStreamCtrl extends Service {
 			// Hide AirMedia window if we lose HDMI output sync
 			if ((mAirMedia != null) && userSettings.getAirMediaLaunch())
 			{
-				mAirMedia.hide(false);
+				Log.d(TAG, "------ Hide AirMedia due to lost HDMI output ------");
+				mAirMedia.hide(true);
 			}
 			
 			// Stop HDMI preview and stream in when we lose HDMI sync			

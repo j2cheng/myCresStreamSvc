@@ -157,6 +157,11 @@ public class AirMediaAwind implements AirMedia
     	
     }
     
+    public void setAdapter(String address)
+    {
+    	
+    }
+    
     public void recover(){
     	if (mStreamCtl.userSettings.getAirMediaLaunch())
     	{
