@@ -74,6 +74,7 @@ public class AirMediaSession extends AirMediaBase {
     private final IAirMediaSessionObserver observer_ = new IAirMediaSessionObserver.Stub() {
         @Override
         public void onUsernameChanged(String from, String to) throws RemoteException {
+        	username_ = to;
             scheduler().raise(usernameChanged(), self(), from, to);
         }
 
