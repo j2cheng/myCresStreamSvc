@@ -3,6 +3,7 @@ package com.crestron.airmedia.receiver.m360;
 import android.graphics.Bitmap;
 import android.view.Surface;
 
+import com.crestron.airmedia.receiver.m360.ipc.AirMediaSessionInfo;
 import com.crestron.airmedia.receiver.m360.ipc.AirMediaSessionConnectionState;
 import com.crestron.airmedia.receiver.m360.ipc.AirMediaSessionStreamingState;
 import com.crestron.airmedia.receiver.m360.ipc.AirMediaSessionScreenPosition;
@@ -17,6 +18,10 @@ interface IAirMediaSessionObserver {
     oneway void onUsernameChanged(in String from, in String to);
 
     oneway void onAddressesChanged(in String[] from, in String[] to);
+
+    /// INFO
+
+    oneway void onInfoChanged(in AirMediaSessionInfo from, in AirMediaSessionInfo to);
 
     /// STATE
 

@@ -135,7 +135,6 @@ public class CresStreamCtrl extends Service {
     public boolean alphaBlending = false;
     boolean airMediaLicensed = false;
     private boolean use_splashtop = false;
-    public boolean use_texture = false;
     boolean[] restartRequired = new boolean[NumOfSurfaces];
     public final static String savedSettingsFilePath = "/data/CresStreamSvc/userSettings";
     public final static String savedSettingsOldFilePath = "/data/CresStreamSvc/userSettings.old";
@@ -692,10 +691,6 @@ public class CresStreamCtrl extends Service {
 				pinpointEnabled = Integer.parseInt(MiscUtils.readStringFromDisk(pinpointEnabledFilePath));
 			} catch (NumberFormatException e) {}			
 			alphaBlending = (pinpointEnabled == 1) ? true : false;
-    		
-			// Temporary - to be removed once Awind is removed
-			use_texture = (new File("/data/CresStreamSvc/texture")).exists();
-			Log.i(TAG, "******************  Use_Texture="+String.valueOf(use_texture) + "**************");
 			
             // Create a DisplaySurface to handle both preview and stream in
     		createCresDisplaySurface();
@@ -960,13 +955,21 @@ public class CresStreamCtrl extends Service {
     			// Wait until file exists then check
     			if (!use_splashtop)
     			{
-    				if (mAirMedia == null && airMediaLicensed)
-    					mAirMedia = new AirMediaAwind(streamCtrl);
+    				synchronized(mAirMediaLock)
+    				{
+    					if (mAirMedia == null && airMediaLicensed)
+    						mAirMedia = new AirMediaAwind(streamCtrl);
+    				}
     			}
     			else
     			{
-    				if (mAirMedia == null && airMediaLicensed)
-    					mAirMedia = new AirMediaSplashtop(streamCtrl);    				
+    				synchronized(mAirMediaLock)
+    				{
+    					if (mAirMedia == null && airMediaLicensed) {
+							Log.d(TAG, "Calling AirMediaConstructor from airMediaLicenseThread");
+    						mAirMedia = new AirMediaSplashtop(streamCtrl); 
+    					}
+    				}
     			}
     		}
     	}).start();
@@ -1732,7 +1735,7 @@ public class CresStreamCtrl extends Service {
     	mForceHdcpStatusUpdate = true;
     }
     
-    public void setAirMediaWindowDimensions(int x, int y, int width, int height, int sessionId)
+    public void setAirMediaWindowDimensions(int x, int y, int width, int height, int sessionId, boolean use_texture)
     {
     	userSettings.setXloc(x, sessionId);
     	userSettings.setYloc(y, sessionId);
@@ -3009,7 +3012,7 @@ public class CresStreamCtrl extends Service {
     	}
     }
     
-    public void showSplashtopWindow(int sessId)
+    public void showSplashtopWindow(int sessId, boolean use_texture)
     {
     	Log.d(TAG, "Splashtop: Window showing");
     	if (use_texture)
@@ -3020,7 +3023,7 @@ public class CresStreamCtrl extends Service {
     	}
     }
     
-    public void hideSplashtopWindow(int sessId)
+    public void hideSplashtopWindow(int sessId, boolean use_texture)
     {
     	Log.d(TAG, "Splashtop: Window hidden");
     	if (use_texture)
@@ -3482,11 +3485,16 @@ public class CresStreamCtrl extends Service {
     			if (val == true) // True = launch airmedia app, false = close app
     			{
     				// Do I need to stop all video here???
-    				if (mAirMedia == null && airMediaLicensed) {
-    					if (!use_splashtop)
-    						mAirMedia = new AirMediaAwind(this);
-    					else
-    						mAirMedia = new AirMediaSplashtop(this);
+    				synchronized (mAirMediaLock)
+    				{
+    					if (mAirMedia == null && airMediaLicensed) {
+    						if (!use_splashtop)
+    							mAirMedia = new AirMediaAwind(this);
+    						else {
+    							Log.d(TAG, "Calling AirMediaConstructor from launchAirMedia");
+    							mAirMedia = new AirMediaSplashtop(this);
+    						}
+    					}
     				}
     				if (mAirMedia != null)
     				{
@@ -3825,6 +3833,11 @@ public class CresStreamCtrl extends Service {
     		userSettings.setAirMediaWindowFlag(windowFlag);
     		mAirMedia.setWindowFlag(windowFlag);
     	}
+    }
+    
+    public void setAirMediaDebug(String debugCommand)
+    {
+    	mAirMedia.debugCommand(debugCommand);
     }
     
     public void setAirMediaAdaptorSelect(int select, int sessId)
@@ -4229,7 +4242,7 @@ public class CresStreamCtrl extends Service {
 			if ((mAirMedia != null) && userSettings.getAirMediaLaunch())
 			{
 				Log.d(TAG, "------ Hide AirMedia due to lost HDMI output ------");
-				mAirMedia.hide(true);
+				mAirMedia.hide(true, false);
 			}
 			
 			// Stop HDMI preview and stream in when we lose HDMI sync			

@@ -8,6 +8,7 @@ import android.view.Surface;
 import com.crestron.airmedia.receiver.m360.IAirMediaSession;
 import com.crestron.airmedia.receiver.m360.IAirMediaSessionObserver;
 import com.crestron.airmedia.receiver.m360.ipc.AirMediaSessionConnectionState;
+import com.crestron.airmedia.receiver.m360.ipc.AirMediaSessionInfo;
 import com.crestron.airmedia.receiver.m360.ipc.AirMediaSessionScreenPosition;
 import com.crestron.airmedia.receiver.m360.ipc.AirMediaSessionStreamingState;
 import com.crestron.airmedia.receiver.m360.ipc.AirMediaSize;
@@ -43,6 +44,7 @@ public class AirMediaSession extends AirMediaBase {
             endpoint_ = session.getEndpoint();
             addresses_ = Arrays.asList(session.getAddresses());
             username_ = session.getUsername();
+            info_ = session.getInfo();
             connection_ = session.getConnection();
             streaming_ = session.getStreaming();
             channelState_ = session.getChannelState();
@@ -74,7 +76,7 @@ public class AirMediaSession extends AirMediaBase {
     private final IAirMediaSessionObserver observer_ = new IAirMediaSessionObserver.Stub() {
         @Override
         public void onUsernameChanged(String from, String to) throws RemoteException {
-        	username_ = to;
+            username_ = to;
             scheduler().raise(usernameChanged(), self(), from, to);
         }
 
@@ -84,6 +86,12 @@ public class AirMediaSession extends AirMediaBase {
                 addresses_ =  Arrays.asList(to);
             }
             scheduler().raise(addressesChanged(), self(), Arrays.asList(from), Arrays.asList(to));
+        }
+
+        @Override
+        public void onInfoChanged(AirMediaSessionInfo from, AirMediaSessionInfo to) throws RemoteException {
+            info_ = to;
+            scheduler().raise(infoChanged(), self(), from, to);
         }
 
         @Override
@@ -188,6 +196,7 @@ public class AirMediaSession extends AirMediaBase {
     private List<String> addresses_;
 
     private String username_;
+    private AirMediaSessionInfo info_;
 
     private AirMediaSessionConnectionState connection_ = AirMediaSessionConnectionState.Disconnected;
 
@@ -218,6 +227,7 @@ public class AirMediaSession extends AirMediaBase {
 
     private final MulticastChangedDelegate<AirMediaSession, String> usernameChanged_ = new MulticastChangedDelegate<AirMediaSession, String>();
     private final MulticastChangedDelegate<AirMediaSession, Collection<String>> addressesChanged_ = new MulticastChangedDelegate<AirMediaSession, Collection<String>>();
+    private final MulticastChangedDelegate<AirMediaSession, AirMediaSessionInfo> infoChanged_ = new MulticastChangedDelegate<AirMediaSession, AirMediaSessionInfo>();
 
     private final MulticastChangedDelegate<AirMediaSession, AirMediaSessionConnectionState> connectionChanged_ = new MulticastChangedDelegate<AirMediaSession, AirMediaSessionConnectionState>();
     private final MulticastChangedDelegate<AirMediaSession, AirMediaSessionStreamingState> streamingChanged_ = new MulticastChangedDelegate<AirMediaSession, AirMediaSessionStreamingState>();
@@ -256,6 +266,10 @@ public class AirMediaSession extends AirMediaBase {
     /// USERNAME
 
     public String username() { return username_; }
+
+    /// SENDER INFO
+
+    public AirMediaSessionInfo info() { return info_; }
 
     /// CONNECTION
 
@@ -344,6 +358,10 @@ public class AirMediaSession extends AirMediaBase {
     /// USERNAME
 
     public MulticastChangedDelegate<AirMediaSession, String> usernameChanged() { return usernameChanged_; }
+
+    /// SENDER INFO
+
+    public MulticastChangedDelegate<AirMediaSession, AirMediaSessionInfo> infoChanged() { return infoChanged_; }
 
     /// STATE
 

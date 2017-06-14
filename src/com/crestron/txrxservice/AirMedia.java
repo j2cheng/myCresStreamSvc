@@ -8,6 +8,7 @@ public interface AirMedia
     
     public void show(int x, int y, int width, int height);   
     public void hide(boolean sendStopToSender);   
+    public void hide(boolean sendStopToSender, boolean clear);   
     public boolean getSurfaceDisplayed();
     
     public void querySenderList(boolean sendAllUserFeedback);
@@ -32,7 +33,8 @@ public interface AirMedia
 
     
     public void setOsdImage(String filePath);
-
+    
+    public void debugCommand(String debugCommand);
     
     public void setIpAddressPrompt(boolean enable); 
     public void setDomainNamePrompt(boolean enable);

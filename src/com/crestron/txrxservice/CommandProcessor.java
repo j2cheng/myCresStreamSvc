@@ -2004,6 +2004,16 @@ class AirMediaVersionCommand extends CrestronCommand {
 	}
 }
 
+class AirMediaDebugCommand extends CrestronCommand {
+	public AirMediaDebugCommand(CresStreamCtrl ctrl, String arg, int sessId) {
+		super(ctrl, arg, sessId);
+	}	
+	public void execute() {
+		ctrl.setAirMediaDebug(msg);
+	}
+	// No feedback
+}
+
 class AirMediaAdaptorSelectCommand extends CrestronCommand {
 	public AirMediaAdaptorSelectCommand(CresStreamCtrl ctrl, String arg, int sessId) {
 		super(ctrl, arg, sessId);

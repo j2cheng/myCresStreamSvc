@@ -162,6 +162,11 @@ public class AirMediaAwind implements AirMedia
     	
     }
     
+    public void debugCommand(String debugCommand)
+    {
+    	
+    }
+    
     public void recover(){
     	if (mStreamCtl.userSettings.getAirMediaLaunch())
     	{
@@ -207,7 +212,7 @@ public class AirMediaAwind implements AirMedia
     		Log.i(TAG, "AirMedia already shown, ignoring request");
     }    
     
-    public void hide(boolean sendStopToSender)
+    public void hide(boolean sendStopToSender, boolean clear)
     {
     	if (surfaceDisplayed == true)
     	{
@@ -222,6 +227,11 @@ public class AirMediaAwind implements AirMedia
     	}
     	else
     		Log.i(TAG, "AirMedia already hidden, ignoring request");
+    }
+    
+    public void hide(boolean sendTopToSender)
+    {
+    	hide(sendTopToSender, true);
     }
     
     public boolean getSurfaceDisplayed()

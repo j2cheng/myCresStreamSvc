@@ -6,6 +6,7 @@ import android.view.Surface;
 import com.crestron.airmedia.receiver.m360.IAirMediaReceiver;
 import com.crestron.airmedia.receiver.m360.IAirMediaSessionObserver;
 
+import com.crestron.airmedia.receiver.m360.ipc.AirMediaSessionInfo;
 import com.crestron.airmedia.receiver.m360.ipc.AirMediaSessionConnectionState;
 import com.crestron.airmedia.receiver.m360.ipc.AirMediaSessionStreamingState;
 import com.crestron.airmedia.receiver.m360.ipc.AirMediaSessionScreenPosition;
@@ -22,6 +23,10 @@ interface IAirMediaSession {
     String getEndpoint();
     String getUsername();
     String[] getAddresses();
+
+    /// INFO
+
+    AirMediaSessionInfo getInfo();
 
     /// STATE
 
