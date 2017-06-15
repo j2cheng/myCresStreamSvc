@@ -3524,6 +3524,7 @@ public class CresStreamCtrl extends Service {
     					{
     						mAirMedia.show(x, y, width, height);
     						SendStreamState(StreamState.STARTED, sessId);
+    						sendAirMediaDisplayed(true);
     					}
     				}
     				else
@@ -3545,6 +3546,7 @@ public class CresStreamCtrl extends Service {
     					mAirMedia.hide(true);
     				}
     				SendStreamState(StreamState.STOPPED, sessId);
+					sendAirMediaDisplayed(false);
     			}
     		}
     	}
@@ -4049,7 +4051,13 @@ public class CresStreamCtrl extends Service {
     {
     	// TODO: send on update request
     	Log.i(TAG, String.format(String.format("AIRMEDIA_STATUS=%d", status)));
-    	sockTask.SendDataToAllClients(String.format("AIRMEDIA_STATUS=%d", status));
+		sockTask.SendDataToAllClients(String.format("AIRMEDIA_STATUS=%d", status));
+    }
+    
+    public void sendAirMediaDisplayed(boolean val)
+    {
+    	Log.i(TAG, String.format("AIRMEDIA_DISPLAYED="+val));
+		sockTask.SendDataToAllClients("AIRMEDIA_DISPLAYED="+val);
     }
     
     public void sendAirMediaNumberUserConnected()
