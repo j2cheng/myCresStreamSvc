@@ -329,6 +329,11 @@ public class UserSettings
 		airMediaDisplayScreen = 0;
 		airMediaWindowFlag	= WindowManager.LayoutParams.TYPE_SYSTEM_OVERLAY;
 		airMediaAdaptorSelect = 0;
+		airMediaIpAddressPrompt = true;
+		airMediaDomainNamePrompt = false;
+		airMediaHostNamePrompt = false;
+		airMediaCustomPrompt = false;
+		airMediaCustomPromptString = "";
 		tcpInterleave       = initIntArray(0);//auto mode
 		camStreamEnable		= false;
 		camStreamMulticastEnable = false;

@@ -854,17 +854,9 @@ public class CresStreamCtrl extends Service {
 		hostName = MiscUtils.getHostName(dflt);
     }
     
-    public void setDomainName(final String ipAddress)
+    public void setDomainName(String dflt)
     {
-    	final CountDownLatch latch = new CountDownLatch(1);
-    	new Thread(new Runnable() {
-    	     public void run() {
-    	    	 domainName = MiscUtils.getDomainName(ipAddress);
-    	         latch.countDown();
-    	     }
-    	}).start();
-    	try {latch.await(1000, TimeUnit.MILLISECONDS);}
-    	catch (InterruptedException ex) { ex.printStackTrace(); }
+    	domainName = MiscUtils.getDomainName(dflt);
     }
     
     public boolean getCameraDisabled()
@@ -3752,7 +3744,7 @@ public class CresStreamCtrl extends Service {
     		{
     			mAirMedia.setDomainNamePrompt(enable);
     		}
-    		setDomainName(MiscUtils.getDomainName(getAirMediaConnectionIpAddress(0)));
+    		setDomainName("");
     		sendAirMediaConnectionAddress(sessId);
     	}
     }
@@ -3761,7 +3753,7 @@ public class CresStreamCtrl extends Service {
     {
     	synchronized (mAirMediaLock) {
     		userSettings.setAirMediaHostNamePrompt(enable);
-    		setHostName(MiscUtils.getHostName("AirMedia"));
+    		setHostName("AirMedia");
     		sendAirMediaConnectionAddress(sessId);
     	}
     }

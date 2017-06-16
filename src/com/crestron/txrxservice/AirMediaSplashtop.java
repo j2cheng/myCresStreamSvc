@@ -127,9 +127,10 @@ public class AirMediaSplashtop implements AirMedia
     private void startAirMedia()
     { 
     	mStreamCtl.setHostName("AirMedia");
+    	mStreamCtl.setDomainName("");
+    	Log.d(TAG, "HostName="+mStreamCtl.hostName+"   DomainName="+mStreamCtl.domainName);
+
 		adapter_ip_address = mStreamCtl.getAirMediaConnectionIpAddress(0);
-		mStreamCtl.setDomainName(adapter_ip_address);
-    	Log.d(TAG, "----------    Host="+mStreamCtl.hostName+"   DomainName="+mStreamCtl.domainName+"    ----------------");
 
 		// Now start receiver
         if (!startReceiver(mStreamCtl.hostName)) {

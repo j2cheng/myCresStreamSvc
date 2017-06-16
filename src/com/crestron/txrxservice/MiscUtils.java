@@ -198,24 +198,14 @@ public class MiscUtils {
         }
     }
     
-    public static String getDomainName(String ipAddress) {
-    	InetAddress addr;
-    	String canonicalHostName;
-    	String domainName = null;
-	    Log.w(TAG, "MiscUtils.getDomainName(): IP Address="+ipAddress);
-    	try {
-    	    addr = InetAddress.getByName(ipAddress);
-    	    canonicalHostName = addr.getCanonicalHostName();
-    	    Log.d(TAG, "canonicalHostName="+canonicalHostName+"   IP Address="+ipAddress);
-    	    if (!canonicalHostName.equals(ipAddress))
-    	    {
-    	    	domainName=canonicalHostName.substring(canonicalHostName.indexOf(".")+1);
-    	    }
-    	} 
-    	catch (UnknownHostException e) { 
-    	    Log.i(TAG, "MiscUtils.getDomainName(): Unknown Host Exception thrown for IP Address="+ipAddress);
-    	}
-    	return domainName;
+    public static String getDomainName(String defValue) {
+        try {
+            Method getString = Build.class.getDeclaredMethod("getString", String.class);
+            getString.setAccessible(true);
+            return getString.invoke(null, "net.domain").toString();
+        } catch (Exception ex) {
+            return defValue;
+        }
     }
     
     public static String readBuildProp(String buildProp) {
