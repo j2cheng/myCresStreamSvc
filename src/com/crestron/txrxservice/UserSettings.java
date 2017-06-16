@@ -220,6 +220,9 @@ public class UserSettings
 	private String airMediaOsdImage;
 	private boolean airMediaIpAddressPrompt;
 	private boolean airMediaDomainNamePrompt;
+	private boolean airMediaHostNamePrompt;
+	private boolean airMediaCustomPrompt;
+	private String airMediaCustomPromptString;
 	private int airMediaX;
 	private int airMediaY;
 	private int airMediaWidth;
@@ -1175,6 +1178,30 @@ public class UserSettings
 
 	public void setAirMediaDomainNamePrompt(boolean airMediaDomainNamePrompt) {
 		this.airMediaDomainNamePrompt = airMediaDomainNamePrompt;
+	}
+
+	public boolean getAirMediaHostNamePrompt() {
+		return airMediaHostNamePrompt;
+	}
+
+	public void setAirMediaHostNamePrompt(boolean airMediaHostNamePrompt) {
+		this.airMediaHostNamePrompt = airMediaHostNamePrompt;
+	}
+	
+	public boolean getAirMediaCustomPrompt() {
+		return airMediaCustomPrompt;
+	}
+
+	public void setAirMediaCustomPrompt(boolean airMediaCustomPrompt) {
+		this.airMediaCustomPrompt = airMediaCustomPrompt;
+	}
+
+	public String getAirMediaCustomPromptString() {
+		return airMediaCustomPromptString;
+	}
+
+	public void setAirMediaCustomPromptString(String airMediaCustomPromptString) {
+		this.airMediaCustomPromptString = airMediaCustomPromptString;
 	}
 	
 	public int getAirMediaX() {

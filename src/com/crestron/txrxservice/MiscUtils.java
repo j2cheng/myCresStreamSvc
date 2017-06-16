@@ -7,6 +7,7 @@ import java.io.OutputStream;
 import java.io.OutputStreamWriter;
 import java.io.Writer;
 import java.lang.reflect.Method;
+import java.net.InetAddress;
 import java.util.Scanner;
 import java.util.regex.Pattern;
 import java.util.regex.Matcher;
@@ -16,6 +17,7 @@ import java.io.File;
 import java.io.FileInputStream;
 import java.io.FileOutputStream;
 import java.io.FileReader;
+import java.net.UnknownHostException;
 
 import android.graphics.Rect;
 import android.os.Build;
@@ -194,6 +196,26 @@ public class MiscUtils {
         } catch (Exception ex) {
             return defValue;
         }
+    }
+    
+    public static String getDomainName(String ipAddress) {
+    	InetAddress addr;
+    	String canonicalHostName;
+    	String domainName = null;
+	    Log.w(TAG, "MiscUtils.getDomainName(): IP Address="+ipAddress);
+    	try {
+    	    addr = InetAddress.getByName(ipAddress);
+    	    canonicalHostName = addr.getCanonicalHostName();
+    	    Log.d(TAG, "canonicalHostName="+canonicalHostName+"   IP Address="+ipAddress);
+    	    if (!canonicalHostName.equals(ipAddress))
+    	    {
+    	    	domainName=canonicalHostName.substring(canonicalHostName.indexOf(".")+1);
+    	    }
+    	} 
+    	catch (UnknownHostException e) { 
+    	    Log.i(TAG, "MiscUtils.getDomainName(): Unknown Host Exception thrown for IP Address="+ipAddress);
+    	}
+    	return domainName;
     }
     
     public static String readBuildProp(String buildProp) {

@@ -182,6 +182,8 @@ public class CresStreamCtrl extends Service {
     public CrestronHwPlatform mHwPlatform;
     public boolean mCameraDisabled = false;
     private final int backgroundViewColor = Color.argb(255, 0, 0, 0);
+	public String hostName;
+	public String domainName;
     public OutputDisplayListener mDisplayListener = new OutputDisplayListener();
     private final Runnable foregroundRunnable = new Runnable() {
     	@Override
@@ -845,6 +847,24 @@ public class CresStreamCtrl extends Service {
     	{
     		Log.w(TAG, "Failed to copy cert file: " + ex);
     	}
+    }
+    
+    public void setHostName(String dflt)
+    {
+		hostName = MiscUtils.getHostName(dflt);
+    }
+    
+    public void setDomainName(final String ipAddress)
+    {
+    	final CountDownLatch latch = new CountDownLatch(1);
+    	new Thread(new Runnable() {
+    	     public void run() {
+    	    	 domainName = MiscUtils.getDomainName(ipAddress);
+    	         latch.countDown();
+    	     }
+    	}).start();
+    	try {latch.await(1000, TimeUnit.MILLISECONDS);}
+    	catch (InterruptedException ex) { ex.printStackTrace(); }
     }
     
     public boolean getCameraDisabled()
@@ -3720,6 +3740,7 @@ public class CresStreamCtrl extends Service {
     		{
     			mAirMedia.setIpAddressPrompt(enable);
     		}
+    		sendAirMediaConnectionAddress(sessId);
     	}
     }
     
@@ -3731,6 +3752,34 @@ public class CresStreamCtrl extends Service {
     		{
     			mAirMedia.setDomainNamePrompt(enable);
     		}
+    		setDomainName(MiscUtils.getDomainName(getAirMediaConnectionIpAddress(0)));
+    		sendAirMediaConnectionAddress(sessId);
+    	}
+    }
+
+    public void setAirMediaHostNamePrompt(boolean enable, int sessId)
+    {
+    	synchronized (mAirMediaLock) {
+    		userSettings.setAirMediaHostNamePrompt(enable);
+    		setHostName(MiscUtils.getHostName("AirMedia"));
+    		sendAirMediaConnectionAddress(sessId);
+    	}
+    }
+
+    public void setAirMediaCustomPrompt(boolean enable, int sessId)
+    {
+    	synchronized (mAirMediaLock) {
+    		userSettings.setAirMediaCustomPrompt(enable);
+    		sendAirMediaConnectionAddress(sessId);
+    	}
+    }
+
+    public void setAirMediaCustomPromptString(String promptString, int sessId)
+    {
+    	synchronized (mAirMediaLock) {
+    		userSettings.setAirMediaCustomPromptString(promptString);
+    		if (userSettings.getAirMediaCustomPrompt())
+    			sendAirMediaConnectionAddress(sessId);
     	}
     }
     
@@ -3877,10 +3926,33 @@ public class CresStreamCtrl extends Service {
     
     public String getAirMediaConnectionAddress(int sessId)
     {
+    	boolean showIp = userSettings.getAirMediaIpAddressPrompt();
+    	boolean showHost = userSettings.getAirMediaHostNamePrompt();
+    	boolean showDomain = userSettings.getAirMediaDomainNamePrompt();
+    	boolean showCustom = userSettings.getAirMediaCustomPrompt();
+    	if (!showIp && !showHost && !showDomain && !showCustom)
+    		return "";
+    	if (showCustom)
+    		return userSettings.getAirMediaCustomPromptString();
     	StringBuilder url = new StringBuilder(512);
         url.append("http://");
-        url.append(getAirMediaConnectionIpAddress(sessId));
-        return url.toString();
+        if (showHost && hostName != null) {
+        	url.append(hostName);
+        }
+        if (showDomain && domainName != null) {
+        	url.append(".");
+        	url.append(domainName);
+        }
+        if (showIp) {
+        	if (!showHost && !showDomain) {
+        		url.append(getAirMediaConnectionIpAddress(sessId));
+        	} else {
+        		url.append(" (");
+        		url.append(getAirMediaConnectionIpAddress(sessId));
+        		url.append(")");
+        	}
+        }
+        return url.toString();    	
     }
     
     public String getAirMediaConnectionIpAddress(int sessId)

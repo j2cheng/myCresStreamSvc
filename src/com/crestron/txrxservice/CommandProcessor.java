@@ -1869,6 +1869,42 @@ class AirMediaDomainNamePromptCommand extends CrestronCommand {
 	}
 }
 
+class AirMediaHostNamePromptCommand extends CrestronCommand {
+	public AirMediaHostNamePromptCommand(CresStreamCtrl ctrl, String arg, int sessId) {
+		super(ctrl, arg, sessId);
+	}	
+	public void execute() {
+		ctrl.setAirMediaHostNamePrompt(Boolean.valueOf(msg), sessId);
+	}
+	public String getFeedbackMsg() {
+		return Boolean.toString(ctrl.userSettings.getAirMediaHostNamePrompt());
+	}
+}
+
+class AirMediaCustomPromptCommand extends CrestronCommand {
+	public AirMediaCustomPromptCommand(CresStreamCtrl ctrl, String arg, int sessId) {
+		super(ctrl, arg, sessId);
+	}	
+	public void execute() {
+		ctrl.setAirMediaCustomPrompt(Boolean.valueOf(msg), sessId);
+	}
+	public String getFeedbackMsg() {
+		return Boolean.toString(ctrl.userSettings.getAirMediaCustomPrompt());
+	}
+}
+
+class AirMediaCustomPromptStringCommand extends CrestronCommand {
+	public AirMediaCustomPromptStringCommand(CresStreamCtrl ctrl, String arg, int sessId) {
+		super(ctrl, arg, sessId);
+	}	
+	public void execute() {
+		ctrl.setAirMediaCustomPromptString(msg, sessId);
+	}
+	public String getFeedbackMsg() {
+		return ctrl.userSettings.getAirMediaCustomPromptString();
+	}
+}
+
 class AirMediaWindowPositionCommand extends CrestronCommand {
 	public AirMediaWindowPositionCommand(CresStreamCtrl ctrl, String arg, int sessId) {
 		super(ctrl, arg, sessId);

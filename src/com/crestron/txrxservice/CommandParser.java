@@ -158,6 +158,9 @@ public class CommandParser {
         AIRMEDIA_DISPLAY_LOGIN_CODE,
         AIRMEDIA_IP_ADDRESS_PROMPT,
         AIRMEDIA_DOMAIN_NAME_PROMPT,
+        AIRMEDIA_HOST_NAME_PROMPT,
+        AIRMEDIA_CUSTOM_PROMPT,
+        AIRMEDIA_CUSTOM_PROMPT_STRING,
         AIRMEDIA_DISPLAY_SCREEN,
         AIRMEDIA_WINDOW_FLAG,
         AIRMEDIA_VERSION,
@@ -638,7 +641,16 @@ public class CommandParser {
             	break;
             case AIRMEDIA_DOMAIN_NAME_PROMPT:
             	cmd = new AirMediaDomainNamePromptCommand(ctrl, arg, idx);
-            	break;            	
+            	break;
+            case AIRMEDIA_HOST_NAME_PROMPT:
+            	cmd = new AirMediaHostNamePromptCommand(ctrl, arg, idx);
+            	break;  
+            case AIRMEDIA_CUSTOM_PROMPT:
+            	cmd = new AirMediaCustomPromptCommand(ctrl, arg, idx);
+            	break;  
+            case AIRMEDIA_CUSTOM_PROMPT_STRING:
+            	cmd = new AirMediaCustomPromptStringCommand(ctrl, arg, idx);
+            	break;  
             case AIRMEDIA_WINDOW_POSITION:
             	cmd = new AirMediaWindowPositionCommand(ctrl, arg, idx);
             	break;

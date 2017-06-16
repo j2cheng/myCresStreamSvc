@@ -126,11 +126,13 @@ public class AirMediaSplashtop implements AirMedia
     
     private void startAirMedia()
     { 
-		String host = MiscUtils.getHostName("AirMedia");
+    	mStreamCtl.setHostName("AirMedia");
 		adapter_ip_address = mStreamCtl.getAirMediaConnectionIpAddress(0);
+		mStreamCtl.setDomainName(adapter_ip_address);
+    	Log.d(TAG, "----------    Host="+mStreamCtl.hostName+"   DomainName="+mStreamCtl.domainName+"    ----------------");
 
 		// Now start receiver
-        if (!startReceiver(host)) {
+        if (!startReceiver(mStreamCtl.hostName)) {
 			Log.e(TAG, "Receiver failed to load, restarting txrxservice and m360 service");
 
 			// Library failed to load kill mediaserver and restart txrxservice
