@@ -103,6 +103,33 @@ public class MiscUtils {
     	return (r1.left == r2.left && r1.right == r2.right && r1.top == r2.top && r2.bottom == r2.bottom);
     }
     
+    public static Rect getAspectRatioPreservingRectangle(int x, int y, int w, int h, int videoW, int videoH)
+    {
+    	if (videoW == 0 || videoH == 0)
+    		return new Rect(x, y, x+w, y+h);
+    	       	
+        final float viewWidth = (float)w;
+        final float viewHeight = (float)h;
+        final float videoWidth = (float)videoW;
+        final float videoHeight = (float)videoH;
+
+        final float scale = Math.min(viewWidth/videoWidth, viewHeight/videoHeight);
+        final float finalWidth = videoWidth*scale;
+        final float finalHeight = videoHeight*scale;
+        
+        int aw = (int) finalWidth;
+        int ah = (int) finalHeight;
+        
+        Log.d(TAG, "getAspectRatioPreservingRectangle : x="+x+" y="+y+"   Window wxh="+w+"x"+h+"     video wxh="+videoW+"x"+videoH);
+        Log.d(TAG, "getAspectRatioPreservingRectangle : rescaled wxh="+aw+"x"+ah);
+
+        x += (w-aw)/2;
+        y += (h-ah)/2;
+        Rect r = new Rect(x, y, x+aw, y+ah);
+        Log.d(TAG, "getAspectRatioPreservingRectangle x="+r.left+" y="+r.top+"   wxh="+r.width()+"x"+r.height());
+        return r;
+    }
+    
     public static void writeStringToDisk(String filePath, String stringToWrite)
     {
     	Writer writer = null;

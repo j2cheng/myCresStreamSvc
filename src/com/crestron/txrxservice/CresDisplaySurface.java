@@ -17,6 +17,7 @@ import android.app.Service;
 import android.graphics.Color;
 import android.graphics.PixelFormat;
 import android.graphics.Matrix;
+import android.graphics.Rect;
 import android.graphics.SurfaceTexture;
 import android.content.Context;
 
@@ -202,7 +203,7 @@ public class CresDisplaySurface
      */
     public void UpdateWindowSize(int x, int y, int width, int height, int idx, final boolean use_texture_view)
     {
-    	Log.i(TAG, "UpdateWindowSize: " + x + "," + y + " " + width + "x" + height );
+    	Log.i(TAG, "UpdateWindowSize: " + x + "," + y + " " + width + "x" + height + "    use_texture_view=" + use_texture_view);
 
     	if (use_texture_view) {
     		// only used for AirMedia splashtop
@@ -210,9 +211,9 @@ public class CresDisplaySurface
     		viewLayoutParams.setMargins(x, y, 0, 0);
     		displayTexture.setLayoutParams(viewLayoutParams);
     	} else {
-    		viewLayoutParams = new RelativeLayout.LayoutParams(width, height);
-    		viewLayoutParams.setMargins(x, y, 0, 0);
-    		displaySurface[idx].setLayoutParams(viewLayoutParams);
+			viewLayoutParams = new RelativeLayout.LayoutParams(width, height);
+			viewLayoutParams.setMargins(x, y, 0, 0);
+			displaySurface[idx].setLayoutParams(viewLayoutParams);
     	}
 
     	Log.i(TAG, "UpdateWindowSize: invalidateLayout" );
@@ -456,6 +457,12 @@ public class CresDisplaySurface
     		backgroundLayout.addView(backgroundView, layoutParams);
 
     		//Setting WindowManager and Parameters with system overlay
+    		// Pixel format set to RGB_888 to force backgroundView to be implemented as a HWC layer.  Using Translucent
+    		// would force an alpha layer and then the view is implemented as a GLES layer.  In Mercury, then
+    		// this layer is at the bottom, video layer is in the middle as a HWC layer, and top layer is
+    		// Pinpoint UX which turns transparent.  Sandwiching of HWC between two GLES layers is not handled
+    		// properly in OMAP5 and results in a black screen where the composited background and Pinpoint layers
+    		// occlude the video.  To avoid this problem, forcing backgroundView to be a HWC layer for now.
     		if (backgroundWmParams == null)
     		{
     			backgroundWmParams = new WindowManager.LayoutParams(
@@ -463,7 +470,7 @@ public class CresDisplaySurface
     					windowHeight, 
     					WindowManager.LayoutParams.TYPE_PHONE,	//TYPE_INPUT_METHOD_DIALOG caused crash
     					(0 | WindowManager.LayoutParams.FLAG_NOT_TOUCHABLE | WindowManager.LayoutParams.FLAG_NOT_FOCUSABLE), 
-    					PixelFormat.TRANSLUCENT);
+    					PixelFormat.RGB_888);
     			backgroundWmParams.gravity = Gravity.TOP | Gravity.LEFT; 
     			backgroundWmParams.x = 0;
     			backgroundWmParams.y = 0;

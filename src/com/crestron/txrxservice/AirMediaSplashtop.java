@@ -275,7 +275,7 @@ public class AirMediaSplashtop implements AirMedia
 	    	Log.i(TAG, "show: Show window 0 " + window_);
 	
 	    	//show surface
-	    	setSurfaceSize(x,y,width,height, true);	
+	    	setSurfaceSize(x,y,width,height);	
 	    	
 	    	showVideo(useTextureView(session()));
 	    	
@@ -419,7 +419,28 @@ public class AirMediaSplashtop implements AirMedia
     {
     	if (session() != null)
     	{
-    		mStreamCtl.setVideoTransformation(0, useTextureView(session()));
+    		boolean use_texture_view = useTextureView(session());
+    		if (use_texture_view)
+    		{
+    			mStreamCtl.setVideoTransformation(0, use_texture_view);
+    		}
+    		else
+    		{
+        		int width = mStreamCtl.userSettings.getAirMediaWidth();
+    			int height = mStreamCtl.userSettings.getAirMediaHeight();
+    			
+    			if ((width == 0) && (height == 0))
+    			{
+    				Point size = mStreamCtl.getDisplaySize();
+
+    				width = size.x;
+    				height = size.y;
+    			}
+    			Rect r = MiscUtils.getAspectRatioPreservingRectangle(
+    					mStreamCtl.userSettings.getAirMediaX(), mStreamCtl.userSettings.getAirMediaY(), width, height,
+    					session().videoResolution().width, session().videoResolution().height);
+    			setSurfaceSize(r.left, r.top, r.width(), r.height());
+    		}
     	}
     }
 
@@ -1007,10 +1028,15 @@ public class AirMediaSplashtop implements AirMedia
 			width = size.x;
 			height = size.y;
 		}
-		mStreamCtl.setAirMediaWindowDimensions(x, y, width, height, streamIdx, useTextureView(session()));
+		setSurfaceSize(x, y, width, height);
     }
     
     public void setSurfaceSize(int x, int y, int width, int height, boolean launch)
+    {
+		setSurfaceSize(x, y, width, height);
+    }
+
+    public void setSurfaceSize(int x, int y, int width, int height)
     {		
 		Log.d(TAG, "------------ calling updateWindow --------------");
 		mStreamCtl.setAirMediaWindowDimensions(x, y, width, height, streamIdx, useTextureView(session()));
