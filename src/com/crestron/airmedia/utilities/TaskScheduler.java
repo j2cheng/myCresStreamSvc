@@ -163,6 +163,26 @@ public class TaskScheduler {
     /// EVENTS
     ////////////////////////////////////////////////////////////////////////////////////////////////
 
+    public <T> void raise(PropertyUpdater<T> property, T value) {
+        events_.post(new Runnable() {
+            PropertyUpdater<T> property_;
+            T value_;
+            @Override public void run() { property_.update(value_); }
+            Runnable set(PropertyUpdater<T> p, T v) { property_ = p; value_ = v;  return this; }
+        }.set(property, value));
+    }
+
+    public <T> void raise(PropertyChanged<T> property, T from, T to) {
+        events_.post(new Runnable() {
+            PropertyChanged<T> property_;
+            T from_;
+            T to_;
+            @Override public void run() { property_.update(from_, to_); }
+            Runnable set(PropertyChanged<T> p, T o, T n) { property_ = p; from_ = o; to_ = n; return this; }
+        }.set(property, from, to));
+    }
+
+
     public <SOURCE> void raise(MulticastDelegate<SOURCE> delegate, SOURCE source) {
         events_.post(new Runnable() {
             MulticastDelegate<SOURCE> delegate_;
