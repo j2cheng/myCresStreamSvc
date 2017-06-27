@@ -4359,16 +4359,20 @@ public class CresStreamCtrl extends Service {
 	{
 		new Thread(new Runnable() {
     		public void run() {
-    			while (HDMIOutputInterface.readHDCPOutputStatus() == -1)
+    			while ( (mIsHdmiOutExternal == false) && (HDMIOutputInterface.readHDCPOutputStatus() == -1) )
     			{
     				try {
     					Thread.sleep(100);
     				} catch (Exception e) { e.printStackTrace(); }
     			}
     			
-    			//Set bypass high when hdcp is not authenticated on output, if not in force hdcp mode
-    			boolean setHDCPBypass = ((userSettings.isHdmiOutForceHdcp() == false) && (HDMIOutputInterface.readHDCPOutputStatus() == 0));
-				HDMIOutputInterface.setHDCPBypass(setHDCPBypass);
+    			// No need to set HDCP bypass when handled externally
+    			if (mIsHdmiOutExternal == false)
+    			{
+    				//Set bypass high when hdcp is not authenticated on output, if not in force hdcp mode
+    				boolean setHDCPBypass = ((userSettings.isHdmiOutForceHdcp() == false) && (HDMIOutputInterface.readHDCPOutputStatus() == 0));
+    				HDMIOutputInterface.setHDCPBypass(setHDCPBypass);
+    			}
             }
 		}).start();
 	}
