@@ -80,6 +80,7 @@ public class AirMediaSplashtop implements AirMedia
     public CountDownLatch receiverStartedLatch=null;
     public CountDownLatch startupCompleteLatch=null;
     public CountDownLatch deviceDisconnectedLatch=null;
+    public AirMediaSession sessionRequestingStop=null;
 
 	private AirMediaReceiver receiver_;
 	private IAirMediaReceiver service_=null;
@@ -977,6 +978,7 @@ public class AirMediaSplashtop implements AirMedia
 			Log.e(TAG, "Trying to stop an unconnected session for user " + String.valueOf(userId));
 			return;
 		}
+		Log.i(TAG, "stopUser: " + String.valueOf(userId) + " Session=" + AirMediaSession.toDebugString(session));
 		if (active_session_ != null && !AirMediaSession.isEqual(active_session_, session))
 		{
 			if (session.videoState() == AirMediaSessionStreamingState.Playing)
@@ -985,17 +987,35 @@ public class AirMediaSplashtop implements AirMedia
 				return;
 			}
 		}
-		if (AirMediaSession.isEqual(active_session_, session)) {
-			// session is  started
-			boolean stopStatus=true;
-			deviceDisconnectedLatch = new CountDownLatch(1);
-			session.stop(); 
-			try { stopStatus = deviceDisconnectedLatch.await(15000, TimeUnit.MILLISECONDS); }
-			catch (InterruptedException ex) { ex.printStackTrace(); }
-			if (!stopStatus) {
-				Log.w(TAG, "Unable to stop session " + session + "even after 15 seconds");
+		// Only allow a single 'session' to enter at a time - need to make sure that we have a unique session
+		// requesting a stop and that the callback verifies it is for that specific session before counting
+		// down the latch
+		synchronized(this) {
+			if (session.deviceState() != AirMediaSessionConnectionState.Disconnected) {
+				// session is started
+				stopSession(session);
 			}
 		}
+    }
+    
+    private void stopSession(AirMediaSession session)
+    {
+		boolean stopStatus=true;
+		long begin = System.currentTimeMillis();
+		sessionRequestingStop = session;
+		deviceDisconnectedLatch = new CountDownLatch(1);
+		Log.d(TAG, "Session " + AirMediaSession.toDebugString(session) + " requesting stop ");
+		session.stop(); 
+		try { stopStatus = deviceDisconnectedLatch.await(15000, TimeUnit.MILLISECONDS); }
+		catch (InterruptedException ex) { ex.printStackTrace(); }
+		if (!stopStatus) {
+			Log.w(TAG, "Unable to stop session " + session + "even after 15 seconds");
+		} else {
+			long end = System.currentTimeMillis();
+			Log.d(TAG, "Session " + AirMediaSession.toDebugString(session) + "was successfully stoppped in "
+					+ (end-begin) + " ms");
+		}
+		sessionRequestingStop=null;
     }
     
     public void stopAllUser()
@@ -1389,7 +1409,8 @@ public class AirMediaSplashtop implements AirMedia
                     // TODO Handle device state change
                     if (session.deviceState() == AirMediaSessionConnectionState.Disconnected)
                     {
-                    	deviceDisconnectedLatch.countDown();
+                    	if (AirMediaSession.isEqual(session, sessionRequestingStop))
+                    		deviceDisconnectedLatch.countDown();
                     }
                 }
             };
