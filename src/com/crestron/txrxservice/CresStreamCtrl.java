@@ -142,7 +142,7 @@ public class CresStreamCtrl extends Service {
     public final static String restoreFlagFilePath = "/data/CresStreamSvc/restore";
     public final static String restartStreamsFilePath = "/dev/shm/crestron/CresStreamSvc/restartStreams";
     public final static String hdmiLicenseFilePath = "/dev/shm/hdmi_licensed";
-    public final static String pinpointEnabledFilePath = "/dev/crestron/pinpointuxenable";
+    public final static String pinpointEnabledFilePath = "/dev/crestron/alphablendingenable";
     public volatile boolean mMediaServerCrash = false;
     public volatile boolean mDucatiCrash = false;
     public volatile boolean mIgnoreAllCrash = false;
@@ -2881,7 +2881,10 @@ public class CresStreamCtrl extends Service {
     		else
     			cam_streaming.stopRecording(false);
     		StreamOutstarted = false;
-    		hidePreviewWindow(sessId);
+    		
+    		// Do NOT hide window if being used by AirMedia
+        	if ( (mAirMedia != null) && (mAirMedia.getSurfaceDisplayed() == false) )
+        		hidePreviewWindow(sessId);
 
     		// Make sure that stop stream out was called by stop not a device mode change
     		// We do not want to restart confidence preview if mode is changing
@@ -3180,7 +3183,9 @@ public class CresStreamCtrl extends Service {
 
     	streamPlay.onStop(sessId);   
 
-    	hideStreamInWindow(sessId);
+		// Do NOT hide window if being used by AirMedia
+    	if ( (mAirMedia != null) && (mAirMedia.getSurfaceDisplayed() == false) )
+    		hideStreamInWindow(sessId);
     }
 
     public void pauseStreamIn(int sessId)
@@ -3266,7 +3271,9 @@ public class CresStreamCtrl extends Service {
    			
     			if(hide)
     			{
-    				hidePreviewWindow(sessId);
+    				// Do NOT hide window if being used by AirMedia
+    		    	if ( (mAirMedia != null) && (mAirMedia.getSurfaceDisplayed() == false) )
+    		    		hidePreviewWindow(sessId);
     			}
     			
     			//On STOP, there is a chance to get ducati crash which does not save current state
@@ -3295,7 +3302,9 @@ public class CresStreamCtrl extends Service {
     			
     			if(hide)
     			{
-    				hidePreviewWindow(sessId);
+    				// Do NOT hide window if being used by AirMedia
+    		    	if ( (mAirMedia != null) && (mAirMedia.getSurfaceDisplayed() == false) )
+    		    		hidePreviewWindow(sessId);
     			}
     			
     			//On STOP, there is a chance to get ducati crash which does not save current state

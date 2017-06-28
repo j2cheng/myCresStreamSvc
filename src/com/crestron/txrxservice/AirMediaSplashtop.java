@@ -294,6 +294,9 @@ public class AirMediaSplashtop implements AirMedia
     {
     	if (surfaceDisplayed == true)
     	{
+			// Invalidate rect on hide
+    		window_ = new Rect();
+    		
     		surfaceDisplayed = false;
     	
     		detachSurface();
@@ -303,7 +306,8 @@ public class AirMediaSplashtop implements AirMedia
     			clearSurface();			
     		}
     		
-    		hideVideo(useTextureView(session()));
+    		if (session() != null)
+    			hideVideo(useTextureView(session()));
     		    		    		
     		if (sendStopToSender) {   			
     			stopAllSenders(); // Inform senders that stream is stopped/hidden
@@ -614,13 +618,6 @@ public class AirMediaSplashtop implements AirMedia
 		nowUsingTextureView = useTextureView(session());
 		if (priorSessionExists && (nowUsingTextureView != wasUsingTextureView))
 		{
-			// hide previous SurfaceView or TextureView
-			hideVideo(wasUsingTextureView);
-			// clear surfaceTexture if it was Textureview
-			if (wasUsingTextureView && Boolean.parseBoolean(mStreamCtl.hdmiOutput.getSyncStatus()))
-			{
-				clearSurface();			
-			}
 			// update window dimensions - going to new surfaceView or TextureView
 	    	setSurfaceSize();
 	    	// show the new surfaceView or TextureView
@@ -657,6 +654,13 @@ public class AirMediaSplashtop implements AirMedia
     	// detach surface from session
     	if (session().videoSurface() != null)
     		detachSurface();
+    	
+    	hideVideo(useTextureView(session()));
+		// clear surfaceTexture if it was Textureview
+		if (useTextureView(session()) && Boolean.parseBoolean(mStreamCtl.hdmiOutput.getSyncStatus()))
+		{
+			clearSurface();			
+		}
     	
     	Log.d(TAG, "removing active session setting active to null" + AirMediaSession.toDebugString(session()));
     	active_session_ = null;
@@ -907,7 +911,7 @@ public class AirMediaSplashtop implements AirMedia
             Log.e(TAG, "Got invalid user id: "+String.valueOf(user) + "for " + session);
         }
 		mStreamCtl.sendAirMediaNumberUserConnected();
-        removeSessionFromMap(session);    	
+        removeSessionFromMap(session);
     }
     
     public void resetConnections()
