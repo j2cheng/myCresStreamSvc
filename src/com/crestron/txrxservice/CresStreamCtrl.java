@@ -1547,7 +1547,8 @@ public class CresStreamCtrl extends Service {
 			            {			
 			        		restartStreamsCalled = true;
 
-		    	    		cam_streaming.stopConfidencePreview(sessionId);
+			        		if (cam_streaming != null)
+			        			cam_streaming.stopConfidencePreview(sessionId);
 			    	    	
 		    	    		try {
 		    	    			Thread.sleep(1000);
@@ -1556,7 +1557,8 @@ public class CresStreamCtrl extends Service {
 			    	    	// Clear crash flags after stop completes but before start
 			    	    	clearErrorFlags();
 			    	    	
-		    	    		cam_streaming.startConfidencePreview(sessionId);
+			        		if (cam_streaming != null)
+			        			cam_streaming.startConfidencePreview(sessionId);
 			            } 
 			        	else if (userSettings.getUserRequestedStreamState(sessionId) == StreamState.STARTED)
 			            {
@@ -3979,6 +3981,8 @@ public class CresStreamCtrl extends Service {
     	String versionName = "";
 		final PackageManager pm = getPackageManager();
 		String apkName = "ReceiverAirMedia.apk";
+		if (use_splashtop)
+			apkName = "ReceiverAirMediaSplashtop.apk";
 		String fullPath = "/data/app" + "/" + apkName;        
 		PackageInfo info = pm.getPackageArchiveInfo(fullPath, 0);
 		if (info != null)
