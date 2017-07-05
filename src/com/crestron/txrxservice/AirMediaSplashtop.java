@@ -223,11 +223,13 @@ public class AirMediaSplashtop implements AirMedia
     
     public void showVideo(boolean use_texture)
     {
+		surfaceDisplayed = true;
     	mStreamCtl.showSplashtopWindow(streamIdx, use_texture);
     }
     
     public void hideVideo(boolean use_texture)
     {
+		surfaceDisplayed = false;
     	mStreamCtl.hideSplashtopWindow(streamIdx, use_texture);
     }
     
@@ -269,11 +271,8 @@ public class AirMediaSplashtop implements AirMedia
     {
     	Rect window = new Rect(x, y, x+width-1, y+height-1);
     	if (surfaceDisplayed == false || !MiscUtils.rectanglesAreEqual(window_, window))
-    	{
-	    	surfaceDisplayed = true;
-	    	window_ = window;
-	    		    	
-	    	Log.i(TAG, "show: Show window 0 " + window_);
+    	{	    		    	
+	    	Log.i(TAG, "show: Show window 0 " + window);
 	
 	    	//show surface
 	    	setSurfaceSize(x,y,width,height);	
@@ -295,9 +294,7 @@ public class AirMediaSplashtop implements AirMedia
     	if (surfaceDisplayed == true)
     	{
 			// Invalidate rect on hide
-    		window_ = new Rect();
-    		
-    		surfaceDisplayed = false;
+    		window_ = new Rect();    		
     	
     		detachSurface();
     		
@@ -594,8 +591,7 @@ public class AirMediaSplashtop implements AirMedia
     // set an active session - give it the surface and show the video
     public void setActiveSession(AirMediaSession session)
     {
-    	boolean wasUsingTextureView=false;
-    	boolean nowUsingTextureView=false;
+    	boolean wasShowing=false;
     	boolean priorSessionExists = (session() != null);
 
     	// if we already have an active session, then check if it is same
@@ -607,7 +603,7 @@ public class AirMediaSplashtop implements AirMedia
     	// take surface away from active session if one exists
     	if (priorSessionExists)
     	{
-    		wasUsingTextureView = useTextureView(session());
+    		wasShowing = getSurfaceDisplayed();
         	Log.i(TAG, "setActiveSession: removing prior active session " + AirMediaSession.toDebugString(session()));
     		unsetActiveSession(session(), false);
     	}
@@ -615,13 +611,12 @@ public class AirMediaSplashtop implements AirMedia
     	active_session_ = session;
 		Log.d(TAG, "setActiveSession: setting active session " + AirMediaSession.toDebugString(session()));  
 		
-		nowUsingTextureView = useTextureView(session());
-		if (priorSessionExists && (nowUsingTextureView != wasUsingTextureView))
+		if (wasShowing)
 		{
-			// update window dimensions - going to new surfaceView or TextureView
+			// update window dimensions - may be going to new surfaceView or TextureView
 	    	setSurfaceSize();
 	    	// show the new surfaceView or TextureView
-			showVideo(nowUsingTextureView);
+			showVideo(useTextureView(session));
 		}
 		
 		attachSurface();
@@ -1063,6 +1058,7 @@ public class AirMediaSplashtop implements AirMedia
     public void setSurfaceSize(int x, int y, int width, int height)
     {		
 		Log.d(TAG, "------------ calling updateWindow --------------");
+    	window_ = new Rect(x, y, x+width-1, y+height-1);
 		mStreamCtl.setAirMediaWindowDimensions(x, y, width, height, streamIdx, useTextureView(session()));
 		Log.d(TAG, "------------ finished updateWindow --------------");
     }
