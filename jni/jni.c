@@ -635,8 +635,6 @@ void csio_jni_stop(int sessionId)
 	if (result == ETIMEDOUT)
 	{
 		CSIO_LOG(eLogLevel_error, "Stop timed out after %d seconds\n", timeout_sec);
-		// Fix bug 131977: Must send stop in order to allow next start to work
-		csio_SendVideoPlayingStatusMessage(sessionId, STREAMSTATE_STOPPED);
 		csio_jni_recoverDucati();
 	}
 	else if (result != 0)

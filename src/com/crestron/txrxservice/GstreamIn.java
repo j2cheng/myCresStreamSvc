@@ -7,6 +7,7 @@ import android.view.SurfaceHolder;
 import android.content.Context;
 
 import com.crestron.txrxservice.CresStreamCtrl.CrestronHwPlatform;
+import com.crestron.txrxservice.CresStreamCtrl.DeviceMode;
 import com.crestron.txrxservice.CresStreamCtrl.StreamState;
 
 public class GstreamIn implements StreamInStrategy, SurfaceHolder.Callback {
@@ -229,6 +230,16 @@ public class GstreamIn implements StreamInStrategy, SurfaceHolder.Callback {
 //    			Thread.sleep(5000);
 //    		} catch (Exception e) { e.printStackTrace(); }
 //    		streamCtl.RecoverTxrxService();
+    		
+    		for(int sessionId = 0; sessionId < CresStreamCtrl.NumOfSurfaces; sessionId++)
+    		{
+    			if (streamCtl.userSettings.getMode(sessionId) == DeviceMode.STREAM_IN.ordinal())
+    			{
+    				// Fix bug 131977: Must send stop in order to allow next start to work
+    				streamCtl.SendStreamState(StreamState.STOPPED, sessionId);
+    			}
+    		}    		
+    		
     		streamCtl.RecoverMediaServer();
     	}
 	}
