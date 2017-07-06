@@ -38,7 +38,7 @@ import android.app.Service;
 public class CresDisplaySurface 
 {
     private SurfaceView[] displaySurface = new SurfaceView[CresStreamCtrl.NumOfSurfaces];
-    private TextureView displayTexture;
+    private TextureView[] displayTexture = new TextureView[CresStreamCtrl.NumOfTextures];
     CresStreamCtrl streamCtl;
     private RelativeLayout parentlayout;
     private RelativeLayout.LayoutParams viewLayoutParams;
@@ -131,9 +131,12 @@ public class CresDisplaySurface
             parentlayout.addView(displaySurface[i], viewLayoutParams);
         }
 
-        displayTexture   = new TextureView(app);
-        viewLayoutParams = new RelativeLayout.LayoutParams(windowWidth, windowHeight);
-        parentlayout.addView(displayTexture, viewLayoutParams);
+        for (int i = 0; i < CresStreamCtrl.NumOfTextures; i++){
+        	displayTexture[i] = new TextureView(app);
+        	displayTexture[i].setVisibility(View.INVISIBLE);
+        	viewLayoutParams = new RelativeLayout.LayoutParams(windowWidth, windowHeight);
+        	parentlayout.addView(displayTexture[i], viewLayoutParams);
+        }
         
         //Setting WindowManager and Parameters with system overlay
         // Z-order by type (higher value is higher z order)
@@ -184,8 +187,10 @@ public class CresDisplaySurface
         	InitSurfaceHolder(sessId);
         }
 
-
-        InitSurfaceTextureListener();
+        for (int sessId = 0; sessId < CresStreamCtrl.NumOfTextures; sessId++)
+        {
+        	InitSurfaceTextureListener(sessId);
+        }
         
         createBackgroundWindow(windowWidth, windowHeight, color, haveExternalDisplays);
     }
@@ -209,7 +214,7 @@ public class CresDisplaySurface
     		// only used for AirMedia splashtop
     		viewLayoutParams = new RelativeLayout.LayoutParams(width, height);
     		viewLayoutParams.setMargins(x, y, 0, 0);
-    		displayTexture.setLayoutParams(viewLayoutParams);
+    		displayTexture[idx].setLayoutParams(viewLayoutParams);
     	} else {
 			viewLayoutParams = new RelativeLayout.LayoutParams(width, height);
 			viewLayoutParams.setMargins(x, y, 0, 0);
@@ -238,7 +243,7 @@ public class CresDisplaySurface
     	/*old way of setting params*/
 
     	viewLayoutParams = new RelativeLayout.LayoutParams(width, height);
-    	displaySurface[idx].setLayoutParams(viewLayoutParams);
+		displaySurface[idx].setLayoutParams(viewLayoutParams);
 
     	forceLayoutInvalidation(parentlayout);
     }
@@ -258,7 +263,7 @@ public class CresDisplaySurface
 
     	viewLayoutParams = new RelativeLayout.LayoutParams(viewLayoutParams);
     	viewLayoutParams.setMargins(x, y, 0, 0);
-    	displaySurface[idx].setLayoutParams(viewLayoutParams);
+		displaySurface[idx].setLayoutParams(viewLayoutParams);
 
     	forceLayoutInvalidation(parentlayout);
     }
@@ -302,19 +307,19 @@ public class CresDisplaySurface
     /**
      * Initialize surface texture, set listener
      */
-    public void InitSurfaceTextureListener()
+    public void InitSurfaceTextureListener(int idx)
     {
-        stMGR.initCresSurfaceTextureListener(displayTexture);
+        stMGR.initCresSurfaceTextureListener(displayTexture[idx]);
     }
 	
-    public TextureView GetAirMediaTextureView()
+    public TextureView GetAirMediaTextureView(int idx)
     {
-        return displayTexture;
+        return displayTexture[idx];
     }
     
-    public SurfaceTexture GetSurfaceTexture()
+    public SurfaceTexture GetSurfaceTexture(int idx)
     {
-    	return stMGR.getCresSurfaceTexture(displayTexture);
+    	return stMGR.getCresSurfaceTexture(displayTexture[idx]);
     }
     
     /**
@@ -330,7 +335,7 @@ public class CresDisplaySurface
      */
     public void ShowWindow(int idx)
     {
-    	displaySurface[idx].setVisibility(View.VISIBLE);        	
+    	displaySurface[idx].setVisibility(View.VISIBLE);
     }
     
 	// Call this function with streams stopped
@@ -424,7 +429,7 @@ public class CresDisplaySurface
     public void HideTextureWindow(int idx)
     {
     	//parentlayout.removeView(displayTexture);
-    	displayTexture.setVisibility(View.INVISIBLE);
+    	displayTexture[idx].setVisibility(View.INVISIBLE);
     }
     
     /**
@@ -433,7 +438,7 @@ public class CresDisplaySurface
     public void ShowTextureWindow(int idx)
     {
     	//parentlayout.addView(displayTexture);
-    	displayTexture.setVisibility(View.VISIBLE);        	
+    	displayTexture[idx].setVisibility(View.VISIBLE);        	
     }
     
     public void createBackgroundWindow(int windowWidth, int windowHeight, int color, boolean haveExternalDisplays)

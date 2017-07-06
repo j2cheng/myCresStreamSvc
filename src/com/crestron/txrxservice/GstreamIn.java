@@ -3,6 +3,7 @@ package com.crestron.txrxservice;
 import java.io.IOException;
 
 import android.util.Log;
+import android.view.Surface;
 import android.view.SurfaceHolder;
 import android.content.Context;
 
@@ -304,6 +305,10 @@ public class GstreamIn implements StreamInStrategy, SurfaceHolder.Callback {
     		sh.addCallback(this); //needed?
     		updateNativeDataStruct(sessionId);
     		nativeSurfaceInit(sh.getSurface(), sessionId);
+//    		Code below is for trying TextureView rendering for QuadView
+//    		Log.d(TAG, "*********** passing surface derived from TextureView for sessionId: " + sessionId + " to 'nativeSurfaceInit' ************");
+//    		Surface s = new Surface(streamCtl.getAirMediaSurfaceTexture(sessionId));
+//    		nativeSurfaceInit(s, sessionId);
     		nativePlay(sessionId);    		
     	}
     	catch(Exception e){

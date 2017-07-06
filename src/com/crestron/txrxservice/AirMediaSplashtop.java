@@ -482,7 +482,7 @@ public class AirMediaSplashtop implements AirMedia
 
         Log.d(TAG, "setTransformation  " + AirMediaSession.toDebugString(session()) + "  view=" + w + "x" + h + " @(" + x + "," + y + ")  video=" + session.videoResolution() + "  rotate=" + videoRotation + "°" + "  scale=" + scaleX + " , " + scaleY);
 
-    	textureView_ = mStreamCtl.getAirMediaTextureView();
+    	textureView_ = mStreamCtl.getAirMediaTextureView(streamIdx);
         Matrix matrix = textureView_.getTransform(null);
         matrix.setRotate(videoRotation, viewCenterX, viewCenterY);
         matrix.postScale(scaleX, scaleY, viewCenterX, viewCenterY);
@@ -509,7 +509,7 @@ public class AirMediaSplashtop implements AirMedia
     		surface = surfaceHolder_.getSurface();
     		//surfaceHolder_.addCallback(video_surface_callback_handler_);
     	} else {
-    		surfaceTexture = mStreamCtl.getAirMediaSurfaceTexture();
+    		surfaceTexture = mStreamCtl.getAirMediaSurfaceTexture(streamIdx);
     		surface = new Surface(surfaceTexture);
     	}
 		if (surface.isValid())
@@ -535,13 +535,13 @@ public class AirMediaSplashtop implements AirMedia
     {
     	Canvas canvas = null;
     	Surface s = null;
-    	s = new Surface(mStreamCtl.getAirMediaSurfaceTexture());
+    	s = new Surface(mStreamCtl.getAirMediaSurfaceTexture(streamIdx));
     	if (s == null) {
     		Log.d(TAG, "null surface obtained from SurfaceTexture - nothing to clear");
     		return;
     	}
     	Log.i(TAG, "clearSurface: clearing surface: " + s);
-    	TextureView textureView = mStreamCtl.dispSurface.GetAirMediaTextureView();
+    	TextureView textureView = mStreamCtl.dispSurface.GetAirMediaTextureView(streamIdx);
     	Rect rect = new Rect(0, 0, textureView.getWidth(), textureView.getHeight());    	
     	try {
     		canvas = s.lockCanvas(rect);

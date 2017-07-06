@@ -123,6 +123,7 @@ public class CresStreamCtrl extends Service {
     public static volatile boolean saveSettingsUpdateArrived = false;
 
     public final static int NumOfSurfaces = 3;
+    public final static int NumOfTextures = 1;
     public volatile boolean restartStreamsOnStart = false;
     static String TAG = "TxRx StreamCtrl";
     static String out_url="";
@@ -932,12 +933,12 @@ public class CresStreamCtrl extends Service {
     	return surfaceHolder;
     }
 
-    public TextureView getAirMediaTextureView(){
-        return dispSurface.GetAirMediaTextureView();
+    public TextureView getAirMediaTextureView(int id){
+        return dispSurface.GetAirMediaTextureView(id);
     }
     
-    public SurfaceTexture getAirMediaSurfaceTexture(){
-        return dispSurface.GetSurfaceTexture();
+    public SurfaceTexture getAirMediaSurfaceTexture(int id){
+        return dispSurface.GetSurfaceTexture(id);
     }
     
     private void airMediaLicenseThread(final CresStreamCtrl streamCtrl)
