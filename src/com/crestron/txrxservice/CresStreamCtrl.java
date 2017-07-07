@@ -4679,7 +4679,7 @@ public class CresStreamCtrl extends Service {
 
 				try
 				{
-					Thread.sleep(1000);
+					Thread.sleep(1000 * 60);
 				}
 				catch (Exception e)
 				{
