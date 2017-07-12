@@ -87,11 +87,8 @@ public class AirMediaSplashtop implements AirMedia
 	private AirMediaSessionManager manager_;
 	
 	private AirMediaSession active_session_=null;
-	private SurfaceHolder surfaceHolder_;
-	private TextureView textureView_;
 	private Surface surface_=null;
 	private Rect window_= new Rect();
-	private boolean resume_ = false;
 	private String adapter_ip_address = "";
 	private int lastReturnedAirMediaStatus;
 
@@ -106,23 +103,42 @@ public class AirMediaSplashtop implements AirMedia
     	    	
 //    	shutDownAirMediaSplashtop();	// In case AirMediaSplashtop was already running shut it down
     	    			
-    	connectAndStartReceiverService();
-    	Log.i(TAG, "AirMediaSpashtop constructor exiting receiver=" + receiver() + "  service=" + service() + "  manager=" + manager());
+    	if (connectAndStartReceiverService()) {
+    		Log.i(TAG, "AirMediaSpashtop constructor exiting receiver=" + receiver() + "  service=" + service() + "  manager=" + manager());
+    	} else {
+			Log.e(TAG, "Airmedia startup failed, restarting txrxservice in 5 seconds");
+			sleep(5000);
+			restartCresStreamSvc();
+    	}
     }
     
-    public void connectAndStartReceiverService()
+    public boolean connectAndStartReceiverService()
     {
 		if (!connect2service()) {
-			Log.e(TAG, "Service failed to connect, restarting txrxservice and m360 service");
-
-//			RecoverMediaServer();
-//			RecoverTxrxService();
+			Log.e(TAG, "Service failed to connect, restarting txrxservice");
+			return false;
 		}
 		
 		boolean successfulStart = true; //indicates that there was no time out condition
 		startupCompleteLatch = new CountDownLatch(1);
-		try { successfulStart = startupCompleteLatch.await(5000, TimeUnit.MILLISECONDS); }
+		try { successfulStart = startupCompleteLatch.await(3000, TimeUnit.MILLISECONDS); }
 		catch (InterruptedException ex) { ex.printStackTrace(); }
+		return successfulStart;
+    }
+    
+    private void restartCresStreamSvc()
+    {
+		mStreamCtl.RecoverTxrxService();
+    }
+    
+    private class RestartAirMedia implements Runnable {
+    	public void run() {
+    		receiver_.stop();
+            receiver_.close();
+            receiver_ = null;
+            active_session_ = null;
+    		connectAndStartReceiverService();
+    	}
     }
     
     private void startAirMedia()
@@ -130,16 +146,15 @@ public class AirMediaSplashtop implements AirMedia
     	mStreamCtl.setHostName("AirMedia");
     	mStreamCtl.setDomainName("");
     	Log.d(TAG, "HostName="+mStreamCtl.hostName+"   DomainName="+mStreamCtl.domainName);
+		Log.d(TAG, "startAirMedia: Device IP="+mStreamCtl.userSettings.getDeviceIp()+"   Aux IP="+mStreamCtl.userSettings.getAuxiliaryIp());
 
 		adapter_ip_address = mStreamCtl.getAirMediaConnectionIpAddress(0);
 
 		// Now start receiver
         if (!startReceiver(mStreamCtl.hostName)) {
-			Log.e(TAG, "Receiver failed to load, restarting txrxservice and m360 service");
-
-			// Library failed to load kill mediaserver and restart txrxservice
-//			RecoverMediaServer();
-//			RecoverTxrxService();
+			Log.e(TAG, "Receiver failed to load, restarting txrxservice in 5 seconds");
+			sleep(5000);
+			restartCresStreamSvc();
         }
 
 		manager_ = receiver().sessionManager();
@@ -150,7 +165,6 @@ public class AirMediaSplashtop implements AirMedia
 		intializeDisplay();
 		
 		set4in1ScreenEnable(false); // TODO: Remove this when quad view is eventually enabled
-		resume_ = true;
     }
     
     private boolean connect2service()
@@ -224,12 +238,14 @@ public class AirMediaSplashtop implements AirMedia
     public void showVideo(boolean use_texture)
     {
 		surfaceDisplayed = true;
+    	Log.d(TAG, "showVideo: Splashtop Window showing " + ((use_texture) ? "TextureView" : "SurfaceView"));
     	mStreamCtl.showSplashtopWindow(streamIdx, use_texture);
     }
     
     public void hideVideo(boolean use_texture)
     {
 		surfaceDisplayed = false;
+    	Log.d(TAG, "hideVideo: Splashtop Window hidden " + ((use_texture) ? "TextureView" : "SurfaceView"));
     	mStreamCtl.hideSplashtopWindow(streamIdx, use_texture);
     }
     
@@ -449,6 +465,7 @@ public class AirMediaSplashtop implements AirMedia
     public void setVideoTransformation(int x, int y, int w, int h) {
     	
     	AirMediaSession session = session();
+    	TextureView textureView = null;
     	
     	if (session == null)
     		return;
@@ -482,15 +499,16 @@ public class AirMediaSplashtop implements AirMedia
 
         Log.d(TAG, "setTransformation  " + AirMediaSession.toDebugString(session()) + "  view=" + w + "x" + h + " @(" + x + "," + y + ")  video=" + session.videoResolution() + "  rotate=" + videoRotation + "°" + "  scale=" + scaleX + " , " + scaleY);
 
-    	textureView_ = mStreamCtl.getAirMediaTextureView(streamIdx);
-        Matrix matrix = textureView_.getTransform(null);
+    	textureView = mStreamCtl.getAirMediaTextureView(streamIdx);
+        Matrix matrix = textureView.getTransform(null);
         matrix.setRotate(videoRotation, viewCenterX, viewCenterY);
         matrix.postScale(scaleX, scaleY, viewCenterX, viewCenterY);
-        textureView_.setTransform(matrix);
+        textureView.setTransform(matrix);
         mStreamCtl.dispSurface.forceParentLayoutInvalidation();
     }
 
     private void attachSurface() {
+    	SurfaceHolder surfaceHolder=null;
     	Surface surface;
     	SurfaceTexture surfaceTexture = null;
     	AirMediaSession session = session();
@@ -505,8 +523,8 @@ public class AirMediaSplashtop implements AirMedia
     	}
     	if (!useTextureView(session))
     	{
-    		surfaceHolder_ = mStreamCtl.getCresSurfaceHolder(streamIdx);
-    		surface = surfaceHolder_.getSurface();
+    		surfaceHolder = mStreamCtl.getCresSurfaceHolder(streamIdx);
+    		surface = surfaceHolder.getSurface();
     		//surfaceHolder_.addCallback(video_surface_callback_handler_);
     	} else {
     		surfaceTexture = mStreamCtl.getAirMediaSurfaceTexture(streamIdx);
@@ -520,7 +538,8 @@ public class AirMediaSplashtop implements AirMedia
 				session.attach(surface);
 			}
 		} else {
-			surfaceHolder_.addCallback(video_surface_callback_handler_);
+			if (surfaceHolder != null)
+				surfaceHolder.addCallback(video_surface_callback_handler_);
 			Log.w(TAG, "attachSurface: No valid surface at this time");
 		}
 		if (useTextureView(session))
@@ -535,7 +554,11 @@ public class AirMediaSplashtop implements AirMedia
     {
     	Canvas canvas = null;
     	Surface s = null;
-    	s = new Surface(mStreamCtl.getAirMediaSurfaceTexture(streamIdx));
+    	SurfaceTexture surfaceTexture = null;
+
+    	Log.i(TAG, "clearSurface(): Fetching surfacetexture");
+    	surfaceTexture = mStreamCtl.getAirMediaSurfaceTexture(streamIdx);
+    	s = new Surface(surfaceTexture);
     	if (s == null) {
     		Log.d(TAG, "null surface obtained from SurfaceTexture - nothing to clear");
     		return;
@@ -581,10 +604,12 @@ public class AirMediaSplashtop implements AirMedia
         	 // Must release surface after detaching
     		 if (useTextureView(session))
     		 {
-    			 // release surface if using textureview
+    			 // release surface if we were using textureview
     	    	 Log.i(TAG, "detachSurface: releasing surface: " + surface_);
-    			 surface_.release();
+    	    	 if (surface_ != null)
+    	    		 surface_.release();
     		 }
+			 surface_ = null;
     	 }
     }
     
@@ -597,6 +622,7 @@ public class AirMediaSplashtop implements AirMedia
     	// if we already have an active session, then check if it is same
     	if (AirMediaSession.isEqual(session(), session))
     	{
+        	Log.i(TAG, "setActiveSession: already have same session active: " + AirMediaSession.toDebugString(session()));
     		return;
     	}
     	
@@ -799,13 +825,13 @@ public class AirMediaSplashtop implements AirMedia
     	if (adapter_ip_address.equals(address))
     		return;
     	adapter_ip_address = address;
-    	Log.i(TAG, "--------------- Stopping all senders");
+    	Log.i(TAG, "setAdapter(): Stopping all senders");
     	stopAllSenders();
-    	Log.i(TAG, "--------------- Stopping receiver");
+    	Log.i(TAG, "setAdapter(): Stopping receiver");
     	stopReceiver();
-    	Log.i(TAG, "--------------- Setting new ip address for receiver: " + address);
+    	Log.i(TAG, "setAdapter(): Setting new ip address for receiver: " + address);
     	receiver_.adapterAddress(address);
-    	Log.i(TAG, "--------------- Starting receiver");
+    	Log.i(TAG, "setAdapter(): Starting receiver");
     	receiver().start();
     }
     
@@ -1151,6 +1177,7 @@ public class AirMediaSplashtop implements AirMedia
 		receiver_ = null;
         if (receiver != null) {
             try {
+            	receiver.stop();
                 receiver.close();
             } catch (Exception e) {
                 Log.e(TAG, "close  EXCEPTION  " + e);
@@ -1182,9 +1209,9 @@ public class AirMediaSplashtop implements AirMedia
             		removeSession(session());
             	}
         		mStreamCtl.sendAirMediaStatus(0);
-                receiver_.close();
-                receiver_ = null;
-                connectAndStartReceiverService();
+                RestartAirMedia restarter = new RestartAirMedia();
+                Thread t = new Thread(restarter);
+                t.start();
             } catch (Exception e) {
                 Log.e(TAG, "AirMediaServiceConnection.onServiceDisconnected  EXCEPTION  " + e);
             }

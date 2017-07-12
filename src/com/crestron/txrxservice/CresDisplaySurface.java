@@ -133,7 +133,7 @@ public class CresDisplaySurface
 
         for (int i = 0; i < CresStreamCtrl.NumOfTextures; i++){
         	displayTexture[i] = new TextureView(app);
-        	displayTexture[i].setVisibility(View.INVISIBLE);
+        	//displayTexture[i].setVisibility(View.INVISIBLE);
         	viewLayoutParams = new RelativeLayout.LayoutParams(windowWidth, windowHeight);
         	parentlayout.addView(displayTexture[i], viewLayoutParams);
         }

@@ -8,6 +8,7 @@ import java.util.concurrent.TimeUnit;
 import android.util.Log;
 import android.view.TextureView.SurfaceTextureListener;
 import android.view.TextureView;
+import android.view.View;
 import android.content.Context;
 import android.graphics.SurfaceTexture;
 
@@ -43,13 +44,15 @@ public class SurfaceTextureManager implements TextureView.SurfaceTextureListener
     }
 
     public SurfaceTexture getCresSurfaceTexture(TextureView view) {
+    	//TODO: Have one lock per view
+		//Wait for callback to determine if surfaceTexture is ready to be used
     	boolean stCreatedSuccess = true; //indicates that there was no time out condition
     	try { stCreatedSuccess = mLock.await(stCreateTimeout_ms, TimeUnit.MILLISECONDS); }
     	catch (InterruptedException ex) { ex.printStackTrace(); }
     	
     	if (!stCreatedSuccess)
     	{
-    		Log.e(TAG, String.format("Android failed to create surface texture after %d ms", stCreateTimeout_ms));
+    		Log.e(TAG, String.format("**** Android failed to create surface texture after %d ms ****", stCreateTimeout_ms));
     		streamCtl.RecoverTxrxService();
     	}
     	    	
@@ -70,6 +73,15 @@ public class SurfaceTextureManager implements TextureView.SurfaceTextureListener
     public void onSurfaceTextureAvailable(SurfaceTexture surface, int width, int height) {
 	    Log.d(TAG, "######### surfaceTextureAvailable ##############");
 	    mLock.countDown(); //mark that surfaceTexture has been created and is ready for use
+	    TextureView textureView = null;
+	    for (int i=0; i < streamCtl.NumOfTextures; i++)
+	    {
+	    	textureView = streamCtl.getAirMediaTextureView(i);
+	    	if (textureView.getSurfaceTexture() == surface)
+	    	{
+	    		textureView.setVisibility(View.INVISIBLE);
+	    	}
+	    }
     }
 
     public void onSurfaceTextureSizeChanged(SurfaceTexture surface, int width, int height) {
