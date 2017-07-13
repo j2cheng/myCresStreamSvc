@@ -34,6 +34,7 @@ import com.crestron.airmedia.receiver.m360.ipc.AirMediaSessionInfo;
 import com.crestron.airmedia.utilities.ViewBase;
 import com.crestron.airmedia.utilities.ViewBase.Size;
 import com.crestron.airmedia.utilities.delegates.MulticastChangedDelegate;
+import com.crestron.airmedia.utilities.delegates.MulticastChangedWithReasonDelegate;
 import com.crestron.airmedia.utilities.delegates.MulticastMessageDelegate;
 import com.crestron.airmedia.utilities.TimeSpan;
 
@@ -151,7 +152,7 @@ public class AirMediaSplashtop implements AirMedia
 		adapter_ip_address = mStreamCtl.getAirMediaConnectionIpAddress(0);
 
 		// Now start receiver
-        if (!startReceiver(mStreamCtl.hostName)) {
+        if (!startAirMediaReceiver(mStreamCtl.hostName)) {
 			Log.e(TAG, "Receiver failed to load, restarting txrxservice in 5 seconds");
 			sleep(5000);
 			restartCresStreamSvc();
@@ -179,7 +180,41 @@ public class AirMediaSplashtop implements AirMedia
 		return successfulStart;
     }
     
-    private boolean startReceiver(final String serverName)
+    // synchronous version of receiver stop - waits for completion
+    private boolean stopReceiver()
+    {
+    	Log.i(TAG, "Calling stop for receiver");
+    	boolean successfulStop = true;
+		receiverStoppedLatch = new CountDownLatch(1);
+    	receiver_.stop();
+		try { successfulStop = receiverStoppedLatch.await(30000, TimeUnit.MILLISECONDS); }
+		catch (InterruptedException ex) { ex.printStackTrace(); }
+		return successfulStop;
+    }
+    
+    // synchronous version of receiver start - waits for completion
+    private boolean startReceiver()
+    {
+    	Log.i(TAG, "Calling start for receiver");
+    	boolean successfulStart = true;
+    	receiverStartedLatch = new CountDownLatch(1);
+    	receiver().start();
+    	try { successfulStart = receiverStartedLatch.await(3000, TimeUnit.MILLISECONDS); }
+    	catch (InterruptedException ex) { ex.printStackTrace(); }
+    	return successfulStart;
+    }
+
+    private class RestartReceiver implements Runnable {
+    	public void run() {
+    		if (receiver_.state() != AirMediaReceiverState.Stopped)
+    		{
+    			stopReceiver();			
+    		}
+            startReceiver();
+    	}
+    }
+    
+    private boolean startAirMediaReceiver(final String serverName)
     {
 		boolean successfulStart = true; //indicates receiver was successfully loaded
 
@@ -188,7 +223,7 @@ public class AirMediaSplashtop implements AirMedia
         		receiver_ = new AirMediaReceiver(service_);
 
                 receiver().serverName(serverName);
-                receiver().product(-1); // TODO find out what this is for ?
+                receiver().product(mStreamCtl.mProductName);
                 receiver().adapterAddress(adapter_ip_address);
                 receiver().maxResolution(AirMediaReceiverResolutionMode.Max1080P);
                 Point dSize = mStreamCtl.getDisplaySize();
@@ -225,11 +260,7 @@ public class AirMediaSplashtop implements AirMedia
         		stopReceiver();
         	}
         	Log.i(TAG, "Starting AirMedia Receiver");
-        	receiverStartedLatch = new CountDownLatch(1);
-        	receiver().start();
-        	try { successfulStart = receiverStartedLatch.await(3000, TimeUnit.MILLISECONDS); }
-        	catch (InterruptedException ex) { ex.printStackTrace(); }
-        	Log.i(TAG,"receiver is in started state");
+        	successfulStart = startReceiver();
         }
         startupCompleteLatch.countDown();
 		return successfulStart;
@@ -808,16 +839,6 @@ public class AirMediaSplashtop implements AirMedia
     {
     }
     
-    private void stopReceiver()
-    {
-    	Log.i(TAG, "Calling stop for receiver");
-    	boolean successfullStop = true;
-		receiverStoppedLatch = new CountDownLatch(1);
-    	receiver_.stop();
-		try { successfullStop = receiverStoppedLatch.await(30000, TimeUnit.MILLISECONDS); }
-		catch (InterruptedException ex) { ex.printStackTrace(); }
-    }
-    
     public void setAdapter(String address)
     {
     	if (receiver_ == null)
@@ -1259,14 +1280,22 @@ public class AirMediaSplashtop implements AirMedia
         }
     };
 
-    private final MulticastChangedDelegate.Observer<AirMediaReceiver, AirMediaReceiverState> stateChangedHandler_ = new MulticastChangedDelegate.Observer<AirMediaReceiver, AirMediaReceiverState>() {
+    private final MulticastChangedWithReasonDelegate.Observer<AirMediaReceiver, AirMediaReceiverState, Integer> stateChangedHandler_ = new MulticastChangedWithReasonDelegate.Observer<AirMediaReceiver, AirMediaReceiverState, Integer>() {
         @Override
-        public void onEvent(AirMediaReceiver receiver, AirMediaReceiverState from, AirMediaReceiverState to) {
-            Log.v(TAG, "view.receiver.event.state  " + from + "  ==>  " + to);
+        public void onEvent(AirMediaReceiver receiver, AirMediaReceiverState from, AirMediaReceiverState to, Integer reason) {
+            Log.v(TAG, "view.receiver.event.state  reason=" + reason + "  " + from + "  ==>  " + to);
             if (to == AirMediaReceiverState.Stopped)
             {
             	Log.v(TAG, "In stateChangedHandler: receiverStoppedLatch="+receiverStoppedLatch);
-            	receiverStoppedLatch.countDown();
+				receiverStoppedLatch.countDown();
+				if (reason != 0)
+				{
+					Log.w(TAG, "Receiver stopped with error="+reason+"  Restarting receiver .... ");
+					sleep(1000);
+	                RestartReceiver restarter = new RestartReceiver();
+	                Thread t = new Thread(restarter);
+	                t.start();
+				}
             }
             if (to == AirMediaReceiverState.Started)
             {

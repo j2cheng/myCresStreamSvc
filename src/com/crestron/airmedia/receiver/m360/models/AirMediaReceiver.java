@@ -19,6 +19,7 @@ import com.crestron.airmedia.receiver.m360.ipc.AirMediaSize;
 import com.crestron.airmedia.utilities.Common;
 import com.crestron.airmedia.utilities.TaskScheduler;
 import com.crestron.airmedia.utilities.delegates.MulticastChangedDelegate;
+import com.crestron.airmedia.utilities.delegates.MulticastChangedWithReasonDelegate;
 import com.crestron.airmedia.utilities.delegates.MulticastMessageDelegate;
 import com.crestron.airmedia.utilities.delegates.Observer;
 import com.crestron.airmedia.utilities.TimeSpan;
@@ -69,15 +70,15 @@ public class AirMediaReceiver extends AirMediaBase {
         }
 
         @Override
-        public void onProductChanged(int from, int to) throws RemoteException {
+        public void onProductChanged(String from, String to) throws RemoteException {
             product_ = to;
             scheduler().raise(productChanged(), self(), from, to);
         }
 
         @Override
-        public void onStateChanged(AirMediaReceiverState from, AirMediaReceiverState to) throws RemoteException {
+        public void onStateChanged(AirMediaReceiverState from, AirMediaReceiverState to, int reason) throws RemoteException {
             state_ = to;
-            scheduler().raise(stateChanged(), self(), from, to);
+            scheduler().raise(stateChanged(), self(), from, to, reason);
         }
 
         @Override
@@ -142,7 +143,7 @@ public class AirMediaReceiver extends AirMediaBase {
     private IAirMediaReceiver receiver_;
 
     private String version_;
-    private int product_ = 0;
+    private String product_;
     private AirMediaReceiverLoadedState loaded_ = AirMediaReceiverLoadedState.Unloaded;
 
     private AirMediaReceiverState state_ = AirMediaReceiverState.Stopped;
@@ -161,8 +162,8 @@ public class AirMediaReceiver extends AirMediaBase {
     private AirMediaSessionManager sessionManager_;
 
     private final MulticastChangedDelegate<AirMediaReceiver, AirMediaReceiverLoadedState> loadedChanged_ = new MulticastChangedDelegate<AirMediaReceiver, AirMediaReceiverLoadedState>();
-    private final MulticastChangedDelegate<AirMediaReceiver, Integer> productChanged_ = new MulticastChangedDelegate<AirMediaReceiver, Integer>();
-    private final MulticastChangedDelegate<AirMediaReceiver, AirMediaReceiverState> stateChanged_ = new MulticastChangedDelegate<AirMediaReceiver, AirMediaReceiverState>();
+    private final MulticastChangedDelegate<AirMediaReceiver, String> productChanged_ = new MulticastChangedDelegate<AirMediaReceiver, String>();
+    private final MulticastChangedWithReasonDelegate<AirMediaReceiver, AirMediaReceiverState, Integer> stateChanged_ = new MulticastChangedWithReasonDelegate<AirMediaReceiver, AirMediaReceiverState, Integer>();
     private final MulticastChangedDelegate<AirMediaReceiver, AirMediaReceiverMirroringAssist> mirroringAssistChanged_ = new MulticastChangedDelegate<AirMediaReceiver, AirMediaReceiverMirroringAssist>();
     private final MulticastChangedDelegate<AirMediaReceiver, String> adapterAddressChanged_ = new MulticastChangedDelegate<AirMediaReceiver, String>();
     private final MulticastChangedDelegate<AirMediaReceiver, String> serverNameChanged_ = new MulticastChangedDelegate<AirMediaReceiver, String>();
@@ -181,10 +182,10 @@ public class AirMediaReceiver extends AirMediaBase {
 
     /// PRODUCT
 
-    public int product() { return product_; }
+    public String product() { return product_; }
 
-    public void product(int value) {
-        scheduler().update(new TaskScheduler.PropertyUpdater<Integer>() { @Override public void update(Integer v) { updateProduct(v); } }, value);
+    public void product(String value) {
+        scheduler().update(new TaskScheduler.PropertyUpdater<String>() { @Override public void update(String v) { updateProduct(v); } }, value);
     }
 
     /// APP VERSION
@@ -277,9 +278,9 @@ public class AirMediaReceiver extends AirMediaBase {
 
     public MulticastChangedDelegate<AirMediaReceiver, AirMediaReceiverLoadedState> loadedChanged() { return loadedChanged_; }
 
-    public MulticastChangedDelegate<AirMediaReceiver, Integer> productChanged() { return productChanged_; }
+    public MulticastChangedDelegate<AirMediaReceiver, String> productChanged() { return productChanged_; }
 
-    public MulticastChangedDelegate<AirMediaReceiver, AirMediaReceiverState> stateChanged() { return stateChanged_; }
+    public MulticastChangedWithReasonDelegate<AirMediaReceiver, AirMediaReceiverState, Integer> stateChanged() { return stateChanged_; }
 
     public MulticastChangedDelegate<AirMediaReceiver, AirMediaReceiverMirroringAssist> mirroringAssistChanged() { return mirroringAssistChanged_; }
 
@@ -418,7 +419,7 @@ public class AirMediaReceiver extends AirMediaBase {
         }
     }
 
-    private void updateProduct(int value) {
+    private void updateProduct(String value) {
         try {
             IAirMediaReceiver receiver = receiver_;
             if (receiver == null) return;

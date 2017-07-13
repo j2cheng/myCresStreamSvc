@@ -3,6 +3,7 @@ package com.crestron.airmedia.utilities;
 import android.os.ConditionVariable;
 
 import com.crestron.airmedia.utilities.delegates.MulticastChangedDelegate;
+import com.crestron.airmedia.utilities.delegates.MulticastChangedWithReasonDelegate;
 import com.crestron.airmedia.utilities.delegates.MulticastDelegate;
 import com.crestron.airmedia.utilities.delegates.MulticastMessageDelegate;
 import com.crestron.airmedia.utilities.delegates.Observer;
@@ -214,6 +215,19 @@ public class TaskScheduler {
             public void run() { delegate_.raise(source_, value_); }
             public Runnable set(MulticastMessageDelegate<SOURCE, T> d, SOURCE s, T v) { delegate_ = d; source_ = s; value_ = v;  return this; }
         }.set(delegate, source, value));
+    }
+
+    public <SOURCE, T, REASON> void raise(MulticastChangedWithReasonDelegate<SOURCE, T, REASON> delegate, SOURCE source, T from, T to, REASON reason) {
+        events_.post(new Runnable() {
+            MulticastChangedWithReasonDelegate<SOURCE, T, REASON> delegate_;
+            SOURCE source_;
+            T from_;
+            T to_;
+            REASON reason_;
+            @Override
+            public void run() { delegate_.raise(source_, from_, to_, reason_); }
+            public Runnable set(MulticastChangedWithReasonDelegate<SOURCE, T, REASON> d, SOURCE s, T o, T n, REASON r) { delegate_ = d; source_ = s; from_ = o; to_ = n; reason_ = r; return this; }
+        }.set(delegate, source, from, to, reason));
     }
 
     @SuppressWarnings("unchecked")

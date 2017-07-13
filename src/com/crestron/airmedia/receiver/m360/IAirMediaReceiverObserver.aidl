@@ -14,9 +14,9 @@ interface IAirMediaReceiverObserver {
 
     oneway void onLoadedChanged(in AirMediaReceiverLoadedState from, in AirMediaReceiverLoadedState to);
 
-    oneway void onProductChanged(in int from, in int to);
+    oneway void onProductChanged(in String from, in String to);
 
-    oneway void onStateChanged(in AirMediaReceiverState from, in AirMediaReceiverState to);
+    oneway void onStateChanged(in AirMediaReceiverState from, in AirMediaReceiverState to, in int reason);
 
     oneway void onMirroringAssistChanged(in AirMediaReceiverMirroringAssist from, in AirMediaReceiverMirroringAssist to);
 

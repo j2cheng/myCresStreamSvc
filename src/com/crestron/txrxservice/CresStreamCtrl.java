@@ -181,6 +181,7 @@ public class CresStreamCtrl extends Service {
     public boolean haveExternalDisplays;
     public boolean hideVideoOnStop = false;
     public CrestronHwPlatform mHwPlatform;
+    public String mProductName;
     public boolean mCameraDisabled = false;
     private final int backgroundViewColor = Color.argb(255, 0, 0, 0);
 	public String hostName;
@@ -197,6 +198,7 @@ public class CresStreamCtrl extends Service {
     public native boolean nativeHaveExternalDisplays();
     public native boolean nativeHideVideoBeforeStop();
     public native int nativeGetHWPlatformEnum();
+    public native int nativeGetProductTypeEnum();
     public native int nativeGetHDMIOutputBitmask();
 
     enum DeviceMode {
@@ -324,7 +326,23 @@ public class CresStreamCtrl extends Service {
         }
     }
 
-   
+    // ***********************************************************************************
+    // Keep updated with definitions in trunk/customFiles/src/external/crestron/productNameUtil/productName.h
+    // ***********************************************************************************    
+    private String getProductName(int product_type)
+    {
+    	switch(product_type) {
+    	case 0x1C:
+    		return "DM_TXRX-100-STR";
+    	case 0x20:
+    		return "MERCURY";
+    	case 0x24:
+    		return "DMPS3-4K-STR";
+    	default:
+    		return "Crestron Device";
+    	}
+    }
+
     private final ReentrantLock hdmiLock				= new ReentrantLock(true); // fairness=true, makes lock ordered
     private final ReentrantLock cameraLock				= new ReentrantLock(true); // fairness=true, makes lock ordered
     private final ReentrantLock[] windowtLock			= new ReentrantLock[NumOfSurfaces]; // members will be allocated in constructor
@@ -386,6 +404,7 @@ public class CresStreamCtrl extends Service {
     		int windowHeight = 1080;
     		hideVideoOnStop = nativeHideVideoBeforeStop();
     		mHwPlatform = CrestronHwPlatform.fromInteger(nativeGetHWPlatformEnum());
+    		mProductName = getProductName(nativeGetProductTypeEnum());
     		
     		m_displayManager = (DisplayManager) this.getApplicationContext().getSystemService(Context.DISPLAY_SERVICE);
 	        if (m_displayManager != null)

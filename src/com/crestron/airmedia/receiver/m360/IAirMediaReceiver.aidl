@@ -17,8 +17,8 @@ interface IAirMediaReceiver {
 
     AirMediaReceiverLoadedState getLoadedState();
 
-    int getProduct();
-    void setProduct(in int id);
+    String getProduct();
+    void setProduct(in String name);
 
     //IM360Service service();
 

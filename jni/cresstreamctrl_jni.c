@@ -29,6 +29,7 @@
 	#include<stdbool.h>
 #endif
 
+#include "productName.h"
 #include "csioCommonShare.h"
 #include <android/log.h>
 
@@ -81,6 +82,13 @@ JNIEXPORT jint JNICALL Java_com_crestron_txrxservice_CresStreamCtrl_nativeGetHWP
 	do_init();
 
 	return product_info()->hw_platform;
+}
+
+JNIEXPORT jint JNICALL Java_com_crestron_txrxservice_CresStreamCtrl_nativeGetProductTypeEnum(JNIEnv *env, jobject thiz)
+{
+	do_init();
+
+	return product_info()->product_type;
 }
 
 JNIEXPORT jint JNICALL Java_com_crestron_txrxservice_CresStreamCtrl_nativeGetHDMIOutputBitmask(JNIEnv *env, jobject thiz)
