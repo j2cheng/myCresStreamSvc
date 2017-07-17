@@ -4256,6 +4256,9 @@ public class CresStreamCtrl extends Service {
                     					if (i == 0)
                     						setNoVideoImage(true);
                     					sendHdmiInSyncState();
+                    					
+                    					// This will start CSI bus as well as setup ducati
+                    					ProductSpecific.getHdmiInputStatus();
 
                     					Log.i(TAG, "Received hpd broadcast ! " + i);
                     					hpdHdmiEvent = 1;
