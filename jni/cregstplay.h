@@ -125,6 +125,7 @@ typedef struct _CREGSTREAM
 	GstElement *udpsrc_prob_element;
 	struct timespec udpsrc_prob_timer;
 	char sourceIP_addr[32];
+	char rtcp_dest_ip_addr[32];
 
     bool isStarted;
     eHttpMode httpMode;

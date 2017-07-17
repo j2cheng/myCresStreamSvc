@@ -190,6 +190,51 @@ public class MiscUtils {
     	return newUrl;
     }
     
+    public static String getRTSPIP(String url)
+    {
+    	String ip = "";
+    	String matchString = "rtsp://";
+    	
+    	if (url.contains(matchString))	// only perform the replacement on rtsp addresses
+    	{  
+    		Pattern ipRegex = Pattern.compile("\\d{1,3}\\.\\d{1,3}\\.\\d{1,3}\\.\\d{1,3}");
+	    	
+    		Matcher matcher = ipRegex.matcher(url);
+    		if (matcher.find())
+    		{
+    			ip = matcher.group();
+    		}
+    		else
+    		{
+    			// if no IP must be hostname 
+    			Pattern hostnameRegex;
+    			if (url.contains("@"))
+    			{
+    				hostnameRegex = Pattern.compile("\\@([\\w\\.]+)");
+    			}
+    			else
+    			{
+    				hostnameRegex = Pattern.compile("\\/\\/([\\w\\.]+)");
+    			}
+    			
+    			Matcher hostnameMatcher = hostnameRegex.matcher(url);
+    			if (hostnameMatcher.find())
+    			{
+    				// Resolve Domain/Host name
+    				try {
+    					InetAddress address = InetAddress.getByName(hostnameMatcher.group(1));
+    					ip = address.getHostAddress();
+    				} catch (java.net.UnknownHostException e)
+    				{
+    					e.printStackTrace();
+    				}
+    			}
+    		}
+    	}
+    	
+    	return ip;
+    }
+    
     public static long getSystemUptimeMs() {
         long uptime = -1;
         try {

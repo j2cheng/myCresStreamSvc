@@ -864,6 +864,23 @@ static void gst_native_surface_finalize (JNIEnv *env, jobject thiz, jint stream)
 	//TODO: when this will be called?
 }
 
+JNIEXPORT void JNICALL Java_com_crestron_txrxservice_GstreamIn_nativeSetRTCPDestIP(JNIEnv *env, jobject thiz, jstring rtcpIp_jstring, jint sessionId)
+{
+    const char * rtcpIp_cstring = (*env)->GetStringUTFChars( env, rtcpIp_jstring , NULL ) ;
+    if (rtcpIp_cstring == NULL) return;
+
+    CSIO_LOG(eLogLevel_debug, "RTCP dest ip: '%s'", rtcpIp_cstring);
+
+    CREGSTREAM * data = GetStreamFromCustomData(CresDataDB, sessionId);
+    if (data)
+    {
+        strncpy(data->rtcp_dest_ip_addr, rtcpIp_cstring, 32);
+		data->rtcp_dest_ip_addr[31] = 0;
+    }
+
+    (*env)->ReleaseStringUTFChars(env, rtcpIp_jstring, rtcpIp_cstring);
+}
+
 /* Set Stream URL */
 JNIEXPORT void JNICALL Java_com_crestron_txrxservice_GstreamIn_nativeSetServerUrl(JNIEnv *env, jobject thiz, jstring url_jstring, jint sessionId)
 {
@@ -2274,6 +2291,9 @@ void csio_jni_InitPipeline(eProtocolId protoId, int iStreamId,GstRTSPLowerTrans 
 			g_object_set(G_OBJECT(data->element_zero), "udp-buffer-size", DEFAULT_UDP_BUFFER, NULL);
 			
 			g_object_set(G_OBJECT(data->element_zero), "user-agent", (gchar *)CRESTRON_USER_AGENT, NULL); // TESTING REMOVE
+
+			if(data->rtcp_dest_ip_addr[0])
+			    g_object_set(G_OBJECT(data->element_zero), "rtcp-destination-ip", data->rtcp_dest_ip_addr, NULL);
 
 			// video part
 			data->video_sink = NULL;

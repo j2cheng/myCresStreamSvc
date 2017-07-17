@@ -148,6 +148,8 @@ void init_custom_data(CustomData * cdata)
         data->has_typefind = false;
         data->set_video = false;
         data->set_audio = false;
+
+        data->rtcp_dest_ip_addr[0] = 0;
 	}
 }
 

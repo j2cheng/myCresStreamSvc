@@ -42,6 +42,7 @@ public class GstreamIn implements StreamInStrategy, SurfaceHolder.Callback {
     private long native_custom_data;      // Native code will use this to keep private data
 
     private static native void 	nativeSetServerUrl(String url, int sessionId);
+    private native void			nativeSetRTCPDestIP(String rtcpIp, int sessionId);
     private native void 		nativeSetRtspPort(int port, int sessionId);
     private native void 		nativeSetTsPort(int port, int sessionId);
     private native void 		nativeSetHdcpEncrypt(boolean flag, int sessionId);
@@ -81,6 +82,10 @@ public class GstreamIn implements StreamInStrategy, SurfaceHolder.Callback {
     public static void setServerUrl(String url, int sessionId){
     	nativeSetServerUrl(url, sessionId);	
 	}
+    
+    public void setRTCPDestIP(String rtcpIp, int sessionId) {
+    	nativeSetRTCPDestIP(rtcpIp, sessionId);
+    }
     
     public void setRtspPort(int port, int sessionId){
     	nativeSetRtspPort(port, sessionId);
@@ -338,7 +343,12 @@ public class GstreamIn implements StreamInStrategy, SurfaceHolder.Callback {
     	//Need to modify url function if proxy enable
     	if(streamCtl.userSettings.getProxyEnable(sessionId))
     	{
+    		setRTCPDestIP(MiscUtils.getRTSPIP(url), sessionId);
     		newUrl = MiscUtils.getLocalUrl(url, streamCtl.userSettings.getDecodeInternalRtspPort(sessionId));
+    	}
+    	else
+    	{
+    		setRTCPDestIP("", sessionId);
     	}
 
     	setServerUrl(newUrl, sessionId); 
