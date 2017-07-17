@@ -500,7 +500,8 @@ public class CresStreamCtrl extends Service {
     		boolean fixSettingsVersionMismatch = false;
 
     		File restoreFlagFile = new File(restoreFlagFilePath);
-    		if (restoreFlagFile.isFile())
+    		boolean isRestore = restoreFlagFile.isFile();
+    		if (isRestore)
     		{
     			wipeOutUserSettings = true;
     			boolean deleteSuccess = restoreFlagFile.delete(); //delete restore flag since we handled it by wiping out userSettings
@@ -606,6 +607,24 @@ public class CresStreamCtrl extends Service {
     			catch (Exception ex)
     			{
     				Log.e(TAG, "Could not upgrade userSettings: " + ex);
+    			}
+    		}
+    		// for some products set up the defaults on restore
+    		if (isRestore)
+    		{
+    			switch (nativeGetProductTypeEnum())
+    			{
+    			// DMPS
+    			case 0x24:
+    				// Does not support preview mode, set all to stream in
+    				for (int sessionId = 0; sessionId < NumOfSurfaces; sessionId++)
+    				{
+    					userSettings.setMode(DeviceMode.STREAM_IN.ordinal(), sessionId);
+    				}
+    				break;
+				default:
+					// Do nothing
+					break;
     			}
     		}
     		
