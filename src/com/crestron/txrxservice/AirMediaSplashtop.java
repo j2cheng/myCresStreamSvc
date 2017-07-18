@@ -75,6 +75,7 @@ public class AirMediaSplashtop implements AirMedia
 	private static final boolean DEBUG = true;
 	private static final int streamIdx = 0;
 	private static final int MAX_USERS = 32;
+	private static final int CODEC_ERROR = 1;
     public CountDownLatch serviceConnectedLatch=null;
     public CountDownLatch receiverLoadedLatch=null;
     public CountDownLatch receiverStoppedLatch=null;
@@ -1030,7 +1031,6 @@ public class AirMediaSplashtop implements AirMedia
 			if (session.videoState() == AirMediaSessionStreamingState.Playing)
 			{
 				Log.w(TAG, "Trying to stop a playing session which is not active for user " + String.valueOf(userId));
-				return;
 			}
 		}
 		// Only allow a single 'session' to enter at a time - need to make sure that we have a unique session
@@ -1288,20 +1288,26 @@ public class AirMediaSplashtop implements AirMedia
             {
             	Log.v(TAG, "In stateChangedHandler: receiverStoppedLatch="+receiverStoppedLatch);
 				receiverStoppedLatch.countDown();
-				if (reason != 0)
-				{
-					Log.w(TAG, "Receiver stopped with error="+reason+"  Restarting receiver .... ");
-					sleep(1000);
-	                RestartReceiver restarter = new RestartReceiver();
-	                Thread t = new Thread(restarter);
-	                t.start();
-				}
             }
             if (to == AirMediaReceiverState.Started)
             {
             	Log.v(TAG, "In stateChangedHandler: receiverStartedLatch="+receiverStartedLatch);
             	receiverStartedLatch.countDown();
             }
+			if (reason != 0)
+			{
+				stopAllSenders();
+				if (reason == CODEC_ERROR) {
+					// Force a recovery of the Ducati codec and media server
+					mStreamCtl.RecoverDucati();
+					mStreamCtl.RecoverMediaServer();
+				}
+				Log.w(TAG, "Receiver stopped with error="+reason+"  Restarting receiver .... ");
+				sleep(1000);
+                RestartReceiver restarter = new RestartReceiver();
+                Thread t = new Thread(restarter);
+                t.start();
+			}
         }
     };
     
