@@ -4225,6 +4225,10 @@ public class CresStreamCtrl extends Service {
 		            					int prevResolutionIndex = hdmiInput.getResolutionIndex();
 		            					if (resolutionId != 0)
 		            						hdmiInput.setResolutionIndex(resolutionId);
+		            					
+		            					// This will start CSI bus as well as setup ducati
+                    					ProductSpecific.getHdmiInputStatus();
+                    					Log.d(TAG, "Setup CSI bus");
 
 		            					// Fix issue where we start video before we setup resolution 
 		            					refreshInputResolution();
@@ -4280,9 +4284,6 @@ public class CresStreamCtrl extends Service {
                     						setNoVideoImage(true);
                     					sendHdmiInSyncState();
                     					
-                    					// This will start CSI bus as well as setup ducati
-                    					ProductSpecific.getHdmiInputStatus();
-
                     					Log.i(TAG, "Received hpd broadcast ! " + i);
                     					hpdHdmiEvent = 1;
                     					mForceHdcpStatusUpdate = true;
