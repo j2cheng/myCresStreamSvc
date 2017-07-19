@@ -3976,6 +3976,10 @@ public class CresStreamCtrl extends Service {
     		return "";
     	if (showCustom)
     		return userSettings.getAirMediaCustomPromptString();
+    	if (!showHost) {
+        	// Do not allow display of DomainName if HostName is not displayed
+    		showDomain = false;
+    	}
     	StringBuilder url = new StringBuilder(512);
         url.append("http://");
         if (showHost && hostName != null) {
