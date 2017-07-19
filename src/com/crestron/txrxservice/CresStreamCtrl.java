@@ -3992,6 +3992,8 @@ public class CresStreamCtrl extends Service {
         	// Do not allow display of DomainName if HostName is not displayed
     		showDomain = false;
     	}
+    	if (!showHost && !showIp)
+    		return "";
     	StringBuilder url = new StringBuilder(512);
         url.append("http://");
         if (showHost && hostName != null) {
