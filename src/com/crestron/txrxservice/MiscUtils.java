@@ -207,15 +207,7 @@ public class MiscUtils {
     		else
     		{
     			// if no IP must be hostname 
-    			Pattern hostnameRegex;
-    			if (url.contains("@"))
-    			{
-    				hostnameRegex = Pattern.compile("\\@([\\w\\.]+)");
-    			}
-    			else
-    			{
-    				hostnameRegex = Pattern.compile("\\/\\/([\\w\\.]+)");
-    			}
+    			Pattern hostnameRegex = Pattern.compile("\\/\\/(?:\\w+:\\w+\\@)*([\\w\\.]+)[\\/:]");
     			
     			Matcher hostnameMatcher = hostnameRegex.matcher(url);
     			if (hostnameMatcher.find())
