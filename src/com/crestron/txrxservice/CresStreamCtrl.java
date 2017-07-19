@@ -3620,6 +3620,11 @@ public class CresStreamCtrl extends Service {
 					// Don't send stopped if this index is being used by some other stream type
     				if (userSettings.getUserRequestedStreamState(sessId) == StreamState.STOPPED)
     					SendStreamState(StreamState.STOPPED, sessId);
+    				else
+    				{
+    					userSettings.setStreamState(StreamState.STOPPED, sessId);
+    		        	CresStreamCtrl.saveSettingsUpdateArrived = true; // flag userSettings to save
+    				}
 					sendAirMediaDisplayed(false);
     			}
     		}
