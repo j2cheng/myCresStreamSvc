@@ -207,7 +207,7 @@ public class UserSettings
 	private int multicastTTL;
 	
 	// AirMedia
-	private boolean airMediaLaunch;
+	private boolean[] airMediaLaunch;
 	private int airMediaLoginCode;
 	private int airMediaLoginMode;
 	private boolean airMediaModerator;
@@ -312,7 +312,7 @@ public class UserSettings
 		rtspStreamFileName	= "live.sdp";
 		rtspSessionName		= "Crestron Streaming";
 		multicastTTL		= 64;
-		airMediaLaunch		= false;
+		airMediaLaunch		= initBoolArray(false);
 		airMediaLoginCode	= 1234; //Get default value
 		airMediaDisconnectUser = initBoolArray(false, 32);
 		airMediaStartUser 	= initBoolArray(false, 32);
@@ -1071,12 +1071,12 @@ public class UserSettings
 		this.tcpInterleave[i] = tcpIn;
 	}
 	
-	public boolean getAirMediaLaunch() {
-		return airMediaLaunch;
+	public boolean getAirMediaLaunch(int sessId) {
+		return airMediaLaunch[sessId];
 	}
 	
-	public void setAirMediaLaunch(boolean enable) {
-		this.airMediaLaunch = enable;
+	public void setAirMediaLaunch(boolean enable, int sessId) {
+		this.airMediaLaunch[sessId] = enable;
 	}
 	
 	public int getAirMediaLoginCode() {

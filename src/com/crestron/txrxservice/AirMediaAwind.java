@@ -168,7 +168,7 @@ public class AirMediaAwind implements AirMedia
     }
     
     public void recover(){
-    	if (mStreamCtl.userSettings.getAirMediaLaunch())
+    	if (mStreamCtl.userSettings.getAirMediaLaunch(0))
     	{
     		Log.i(TAG, "Force recovering AirMedia");
     		hide(true);	// Need to stop sender in order to recover

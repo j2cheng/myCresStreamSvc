@@ -2693,6 +2693,10 @@ public class CresStreamCtrl extends Service {
     	try
     	{	
     		Log.d(TAG, "Start " + sessionId + " : Lock");
+    		if (userSettings.getAirMediaLaunch(sessionId)) {
+    			// If we are starting streaming shutoff air media
+    		    launchAirMedia(false, sessionId, false);
+    		}
     		
     		// This needs to be set to true even if we filter out the start
     		enableRestartMechanism = true; //if user starts stream allow restart mechanism
@@ -2864,6 +2868,9 @@ public class CresStreamCtrl extends Service {
 
     public void startStreamOut(int sessId)
     {
+    	if (cam_streaming == null)
+    		return;
+    	
     	cameraLock.lock();
     	Log.d(TAG, "Camera : Lock");
     	try
@@ -2906,6 +2913,9 @@ public class CresStreamCtrl extends Service {
 
     public void stopStreamOut(int sessId, boolean fullStop)
     {
+    	if (cam_streaming == null)
+    		return;
+    	
     	cameraLock.lock();
     	Log.d(TAG, "Camera : Lock");
     	try
@@ -3518,7 +3528,7 @@ public class CresStreamCtrl extends Service {
     	sockTask.SendDataToAllClients("RestartAirMedia=true");
     }
     
-    public void airmediaRestart() {
+    public void airmediaRestart(int sessId) {
     	if (mAirMedia != null)
 	    {
     		synchronized (mAirMediaLock) {	
@@ -3531,7 +3541,7 @@ public class CresStreamCtrl extends Service {
     				Log.e(TAG, "restarting AirMedia must be implemented!");
     			}
 
-    			if (userSettings.getAirMediaLaunch())
+    			if (userSettings.getAirMediaLaunch(sessId))
     				launchAirMedia(true, 0, false);
     		}
     	}
@@ -3543,7 +3553,7 @@ public class CresStreamCtrl extends Service {
     	try
     	{
     		synchronized (mAirMediaLock) {
-    			userSettings.setAirMediaLaunch(val);
+    			userSettings.setAirMediaLaunch(val, sessId);
     			if (val == true) // True = launch airmedia app, false = close app
     			{
     				// Do I need to stop all video here???
@@ -3607,7 +3617,9 @@ public class CresStreamCtrl extends Service {
     				{
     					mAirMedia.hide(true);
     				}
-    				SendStreamState(StreamState.STOPPED, sessId);
+					// Don't send stopped if this index is being used by some other stream type
+    				if (userSettings.getUserRequestedStreamState(sessId) == StreamState.STOPPED)
+    					SendStreamState(StreamState.STOPPED, sessId);
 					sendAirMediaDisplayed(false);
     			}
     		}
@@ -4350,36 +4362,39 @@ public class CresStreamCtrl extends Service {
 			try { Thread.sleep(3000); } catch (Exception e) {}
 			restartStreams(false);
 
-			// Show AirMedia window if we acquire HDMI output sync
-			if ((mAirMedia != null) && userSettings.getAirMediaLaunch())
+			for (int sessionId = 0; sessionId < NumOfSurfaces; sessionId++)
 			{
-				int width = userSettings.getAirMediaWidth();
-				int height = userSettings.getAirMediaHeight();
-//				try { Thread.sleep(7000); } catch (Exception e) {}	// Awind data, they need ~10 seconds before we send show
-				
-				if ((width == 0) && (height == 0))
+				// Show AirMedia window if we acquire HDMI output sync
+				if ((mAirMedia != null) && userSettings.getAirMediaLaunch(sessionId))
 				{
-    				Point size = getDisplaySize();
+					int width = userSettings.getAirMediaWidth();
+					int height = userSettings.getAirMediaHeight();
+					//				try { Thread.sleep(7000); } catch (Exception e) {}	// Awind data, they need ~10 seconds before we send show
 
-    				width = size.x;
-    				height = size.y;
-    			}
-				Log.d(TAG, "------ Show AirMedia due to regained HDMI sync ------");
-				mAirMedia.show(userSettings.getAirMediaX(), userSettings.getAirMediaY(), width, height);
+					if ((width == 0) && (height == 0))
+					{
+						Point size = getDisplaySize();
+
+						width = size.x;
+						height = size.y;
+					}
+					Log.d(TAG, "------ Show AirMedia due to regained HDMI sync ------");
+					mAirMedia.show(userSettings.getAirMediaX(), userSettings.getAirMediaY(), width, height);
+				}
 			}
 		}
 		else if (haveExternalDisplays)
 		{
-			// Hide AirMedia window if we lose HDMI output sync
-			if ((mAirMedia != null) && userSettings.getAirMediaLaunch())
-			{
-				Log.d(TAG, "------ Hide AirMedia due to lost HDMI output ------");
-				mAirMedia.hide(true, false);
-			}
-			
 			// Stop HDMI preview and stream in when we lose HDMI sync			
 			for (int sessionId = 0; sessionId < NumOfSurfaces; sessionId++)
 			{
+				// Hide AirMedia window if we lose HDMI output sync
+				if ((mAirMedia != null) && userSettings.getAirMediaLaunch(sessionId))
+				{
+					Log.d(TAG, "------ Hide AirMedia due to lost HDMI output ------");
+					mAirMedia.hide(true, false);
+				}
+				
 				if (userSettings.getMode(sessionId) == DeviceMode.PREVIEW.ordinal() || 
 						userSettings.getMode(sessionId) == DeviceMode.STREAM_IN.ordinal())
 				{

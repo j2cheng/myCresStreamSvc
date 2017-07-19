@@ -1703,7 +1703,7 @@ class AirMediaLaunchCommand extends CrestronCommand {
 		ctrl.launchAirMedia(val, sessId, true); //ctrl is full screen
 	}
 	public String getFeedbackMsg() {
-		return Boolean.toString(ctrl.userSettings.getAirMediaLaunch());
+		return Boolean.toString(ctrl.userSettings.getAirMediaLaunch(sessId));
 	}
 }
 
@@ -1716,7 +1716,7 @@ class AirMediaWindowLaunchCommand extends CrestronCommand {
 		ctrl.launchAirMedia(val, sessId, false); //Window ctrl is with window parameters
 	}
 	public String getFeedbackMsg() {
-		return Boolean.toString(ctrl.userSettings.getAirMediaLaunch());
+		return Boolean.toString(ctrl.userSettings.getAirMediaLaunch(sessId));
 	}
 }
 
@@ -2078,7 +2078,7 @@ class AirMediaRestartCommand extends CrestronCommand {
 	}
 	
 	public void execute() {		
-		ctrl.airmediaRestart();
+		ctrl.airmediaRestart(sessId);
 	}
 	// No feedback
 }

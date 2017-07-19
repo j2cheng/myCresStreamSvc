@@ -295,23 +295,26 @@ public class AirMediaSplashtop implements AirMedia
     }
     
     public void recover(){
-    	if (mStreamCtl.userSettings.getAirMediaLaunch())
+    	for (int sessId=0; sessId < CresStreamCtrl.NumOfSurfaces; sessId++)
     	{
-    		hide(true);	// Need to stop sender in order to recover
+    		if (mStreamCtl.userSettings.getAirMediaLaunch(sessId))
+    		{
+    			hide(true);	// Need to stop sender in order to recover
 
-    		try { Thread.sleep(5000); } catch (InterruptedException e) {};	
+    			try { Thread.sleep(5000); } catch (InterruptedException e) {};	
 
-    		int width = mStreamCtl.userSettings.getAirMediaWidth();
-			int height = mStreamCtl.userSettings.getAirMediaHeight();
-			
-			if ((width == 0) && (height == 0))
-			{
-				Point size = mStreamCtl.getDisplaySize();
+    			int width = mStreamCtl.userSettings.getAirMediaWidth();
+    			int height = mStreamCtl.userSettings.getAirMediaHeight();
 
-				width = size.x;
-				height = size.y;
-			}
-    		show(mStreamCtl.userSettings.getAirMediaX(), mStreamCtl.userSettings.getAirMediaY(),width,height);
+    			if ((width == 0) && (height == 0))
+    			{
+    				Point size = mStreamCtl.getDisplaySize();
+
+    				width = size.x;
+    				height = size.y;
+    			}
+    			show(mStreamCtl.userSettings.getAirMediaX(), mStreamCtl.userSettings.getAirMediaY(),width,height);
+    		}
     	}
     }    
     
