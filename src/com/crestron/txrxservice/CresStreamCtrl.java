@@ -610,22 +610,24 @@ public class CresStreamCtrl extends Service {
     			}
     		}
     		// for some products set up the defaults on restore
-    		if (isRestore)
+    		// TODO: If we want special restore section do that here    		
+//    		if (isRestore)
+//    		{
+//    			switch (nativeGetProductTypeEnum())
+//				{
+//				default:
+//					break;
+//				}
+//    		}
+    		
+    		// Special case to knock DMPS out of camera modes
+    		if (nativeGetProductTypeEnum() == 0x24)
     		{
-    			switch (nativeGetProductTypeEnum())
-    			{
-    			// DMPS
-    			case 0x24:
-    				// Does not support preview mode, set all to stream in
-    				for (int sessionId = 0; sessionId < NumOfSurfaces; sessionId++)
-    				{
-    					userSettings.setMode(DeviceMode.STREAM_IN.ordinal(), sessionId);
-    				}
-    				break;
-				default:
-					// Do nothing
-					break;
-    			}
+    			// Does not support preview mode, set all to stream in
+				for (int sessionId = 0; sessionId < NumOfSurfaces; sessionId++)
+				{
+					userSettings.setMode(DeviceMode.STREAM_IN.ordinal(), sessionId);
+				}
     		}
     		
     		// This needs to be done before Gstreamer setup
