@@ -826,11 +826,12 @@ public class AirMediaSplashtop implements AirMedia
     public void setLoginCode(int loginCode)
     {
     	Log.i(TAG, "Current login code = " + receiver().serverPassword());
-    	Log.i(TAG, "Set Login Code = " + String.valueOf(loginCode));
+    	String code = String.format("%04d", loginCode);
+    	Log.i(TAG, "Set Login Code = " + code + " (" + String.valueOf(loginCode) + ")");
 		if (loginCode < 0) {
 			receiver().serverPassword("");
 		} else {
-			receiver().serverPassword(String.valueOf(loginCode));	
+			receiver().serverPassword(String.valueOf(code));	
 		}
     }
     
@@ -1306,7 +1307,8 @@ public class AirMediaSplashtop implements AirMedia
 					mStreamCtl.RecoverMediaServer();
 				}
 				Log.w(TAG, "Receiver stopped with error="+reason+"  Restarting receiver .... ");
-				sleep(1000);
+				if (reason != CODEC_ERROR)
+					sleep(5000);
                 RestartReceiver restarter = new RestartReceiver();
                 Thread t = new Thread(restarter);
                 t.start();
