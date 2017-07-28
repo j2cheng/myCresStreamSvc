@@ -3597,8 +3597,15 @@ public class CresStreamCtrl extends Service {
     					if (Boolean.parseBoolean(hdmiOutput.getSyncStatus()))
     					{
     						mAirMedia.show(x, y, width, height);
-    						SendStreamState(StreamState.STARTED, sessId);
-    						sendAirMediaDisplayed(true);
+							// If DMPS send displayed join else use streamstate
+    			    		if (nativeGetProductTypeEnum() == 0x24)
+    			    		{
+    			    			sendAirMediaDisplayed(true);
+    			    		}
+    			    		else
+    			    		{
+    			    			SendStreamState(StreamState.STARTED, sessId);
+    			    		}
     					}
     				}
     				else
@@ -3619,15 +3626,23 @@ public class CresStreamCtrl extends Service {
     				{
     					mAirMedia.hide(true);
     				}
-					// Don't send stopped if this index is being used by some other stream type
-    				if (userSettings.getUserRequestedStreamState(sessId) == StreamState.STOPPED)
-    					SendStreamState(StreamState.STOPPED, sessId);
+    				
+					// If DMPS send displayed join else use streamstate
+    				if (nativeGetProductTypeEnum() == 0x24)
+    				{    					
+    					sendAirMediaDisplayed(false);
+    				}
     				else
     				{
-    					userSettings.setStreamState(StreamState.STOPPED, sessId);
-    		        	CresStreamCtrl.saveSettingsUpdateArrived = true; // flag userSettings to save
+    					// Don't send stopped if this index is being used by some other stream type
+        				if (userSettings.getUserRequestedStreamState(sessId) == StreamState.STOPPED)
+        					SendStreamState(StreamState.STOPPED, sessId);
+        				else
+        				{
+        					userSettings.setStreamState(StreamState.STOPPED, sessId);
+        		        	CresStreamCtrl.saveSettingsUpdateArrived = true; // flag userSettings to save
+        				}    					
     				}
-					sendAirMediaDisplayed(false);
     			}
     		}
     	}
