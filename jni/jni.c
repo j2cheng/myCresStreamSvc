@@ -2766,8 +2766,17 @@ void csio_jni_initVideo(int iStreamId)
               currentSettingsDB->videoSettings[iStreamId].sessionInitiationMode == 2  ) && 
               (data->streamProtocolId != ePROTOCOL_HTTP) )
         {
-            int tmp = currentSettingsDB->videoSettings[iStreamId].streamingBuffer +
-                      data->amcviddec_ts_offset;
+        	int tmp;
+        	if (data->mpegtsPresent)
+        	{
+        		tmp = currentSettingsDB->videoSettings[iStreamId].streamingBuffer +
+									  data->amcviddec_ts_offset + DEFAULT_MPEG_TS_OFFSET;
+        	}
+        	else
+        	{
+        		tmp = currentSettingsDB->videoSettings[iStreamId].streamingBuffer +
+        		                      data->amcviddec_ts_offset;
+        	}
             g_object_set(G_OBJECT(data->amcvid_dec), "ts-offset", tmp, NULL);
             CSIO_LOG(eLogLevel_debug, "streamingBuffer or latency is:%d",currentSettingsDB->videoSettings[iStreamId].streamingBuffer);
             CSIO_LOG(eLogLevel_debug, "amcviddec_ts_offset:%d",data->amcviddec_ts_offset);
