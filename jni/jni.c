@@ -2840,6 +2840,30 @@ void *csio_SendInitiatorAddressFb( void * arg )
 	return(NULL);
 }
 
+void csio_recoverHdcpVideoFailure(int iStreamId)
+{
+	CREGSTREAM * data = GetStreamFromCustomData(CresDataDB, iStreamId);
+	if(!data)
+	{
+		CSIO_LOG(eLogLevel_error, "Could not obtain stream pointer for stream %d", iStreamId);
+		pthread_exit( NULL );
+		return NULL;
+	}
+	if (data->doHdcp)
+	{
+		CSIO_LOG(eLogLevel_warning, "%s:Recovering encrypted video", __FUNCTION__);
+		JNIEnv *env = get_jni_env ();
+		jmethodID recoverDucati = (*env)->GetMethodID(env, (jclass)gStreamIn_javaClass_id, "recoverHdcpVideoFailure", "(I)V");
+		if (recoverDucati == NULL) return;
+
+		(*env)->CallVoidMethod(env, CresDataDB->app, recoverDucati, iStreamId);
+		if ((*env)->ExceptionCheck (env)) {
+			CSIO_LOG(eLogLevel_error, "Failed to call Java method 'recoverDucati'");
+			(*env)->ExceptionClear (env);
+		}
+	}
+}
+
 void csio_jni_recoverDucati()
 {
     JNIEnv *env = get_jni_env ();

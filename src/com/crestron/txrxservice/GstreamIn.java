@@ -199,6 +199,11 @@ public class GstreamIn implements StreamInStrategy, SurfaceHolder.Callback {
     	streamCtl.userSettings.setInitiatorAddress(initiatorFbAddress);
     	streamCtl.sendInitiatorFbAddress(initiatorFbAddress, sessionId);
     }
+    
+    public void recoverHdcpVideoFailure(int sessionId){
+		// Pass to CSIO to restart stream
+    	streamCtl.sockTask.SendDataToAllClients(String.format("RECOVERHDCPVIDEOFAILURE%d=true", sessionId));
+    }
 
     public void recoverDucati(){
     	// This recovery is only applicable for Ducati in OMAP5
