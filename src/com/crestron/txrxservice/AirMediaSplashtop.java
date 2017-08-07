@@ -91,7 +91,7 @@ public class AirMediaSplashtop implements AirMedia
 	private AirMediaSession active_session_=null;
 	private Surface surface_=null;
 	private Rect window_= new Rect();
-	private String adapter_ip_address = "";
+	private String adapter_ip_address = null;
 	private int lastReturnedAirMediaStatus;
 
     private Handler handler_;
@@ -854,11 +854,15 @@ public class AirMediaSplashtop implements AirMedia
     	Log.i(TAG, "setAdapter(): Stopping all senders");
     	stopAllSenders();
     	Log.i(TAG, "setAdapter(): Stopping receiver");
-    	stopReceiver();
-    	Log.i(TAG, "setAdapter(): Setting new ip address for receiver: " + address);
-    	receiver_.adapterAddress(address);
-    	Log.i(TAG, "setAdapter(): Starting receiver");
-    	receiver().start();
+    	if (receiver().state() != AirMediaReceiverState.Stopped)
+    		stopReceiver();
+    	if (!address.equals("None"))
+    	{
+    		Log.i(TAG, "setAdapter(): Setting new ip address for receiver: " + address);
+    		receiver_.adapterAddress(address);
+    		Log.i(TAG, "setAdapter(): Starting receiver");
+    		receiver().start();
+    	}
     }
     
     public void setModeratorEnable(boolean enable)

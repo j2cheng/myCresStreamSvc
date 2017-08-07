@@ -4019,11 +4019,12 @@ public class CresStreamCtrl extends Service {
     		return "";
     	if (showCustom)
     		return userSettings.getAirMediaCustomPromptString();
+    	String ipAddr = getAirMediaConnectionIpAddress(sessId);
     	if (!showHost) {
         	// Do not allow display of DomainName if HostName is not displayed
     		showDomain = false;
     	}
-    	if (!showHost && !showIp)
+    	if ((!showHost && !showIp) || ipAddr.equals("None"))
     		return "";
     	StringBuilder url = new StringBuilder(512);
         url.append("http://");
@@ -4055,6 +4056,10 @@ public class CresStreamCtrl extends Service {
         else if (userSettings.getAirMediaAdaptorSelect() == 1)
         {
         	return userSettings.getAuxiliaryIp();
+        }
+        else if (userSettings.getAirMediaAdaptorSelect() < 0)
+        {
+        	return "None";
         }
         else
         {
