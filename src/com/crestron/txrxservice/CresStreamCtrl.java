@@ -177,6 +177,7 @@ public class CresStreamCtrl extends Service {
     private final static String ducatiCrashCountFilePath = "/dev/shm/crestron/CresStreamSvc/ducatiCrashCount";
     public final static String gstreamerTimeoutCountFilePath = "/dev/shm/crestron/CresStreamSvc/gstreamerTimeoutCount";
     public final static String hdcpEncryptFilePath = "/dev/shm/crestron/CresStreamSvc/HDCPEncrypt";
+    private static long lastRecoveryTime = 0;
     public int mGstreamerTimeoutCount = 0;
     public boolean haveExternalDisplays;
     public boolean hideVideoOnStop = false;
@@ -1567,12 +1568,20 @@ public class CresStreamCtrl extends Service {
     		public void run() {	
     			// Make sure that CresStreamCtrl Constructor finishes before restarting 
     			try { streamingReadyLatch.await(); } catch (Exception e) {}
-    			
+    			    			   			
     			for (int sessionId = 0; sessionId < NumOfSurfaces; sessionId++)
                 {
     				stopStartLock[sessionId].lock();
                 }
     	    	Log.i(TAG, "RestartLock : Lock");
+    	    	long currentTime = MiscUtils.getSystemUptimeMs();
+    			long deltaTime = Math.abs(currentTime - lastRecoveryTime);
+    			if (deltaTime <= 10000)	// Less than 10 seconds
+    			{
+    				Log.i(TAG, "Holding off restart streams for " + (20000 - deltaTime) + "ms");
+    				try { Thread.sleep(20000 - deltaTime); } catch (InterruptedException e) {}
+    			}
+    			
     	    	try
     	    	{	
     	    		boolean restartStreamsCalled = false;
