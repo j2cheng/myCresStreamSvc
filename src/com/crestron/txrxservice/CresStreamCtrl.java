@@ -3635,6 +3635,9 @@ public class CresStreamCtrl extends Service {
     				{
     					mAirMedia.hide(true);
     				}
+    				// Restore default Window once Air Media is stopped
+    				Point size = getDisplaySize();
+    				setWindowDimensions(0, 0, size.x, size.y, sessId);
     				
 					// If DMPS send displayed join else use streamstate
     				if (nativeGetProductTypeEnum() == 0x24)

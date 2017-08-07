@@ -326,7 +326,7 @@ public class AirMediaSplashtop implements AirMedia
 	    	Log.i(TAG, "show: Show window 0 " + window);
 	
 	    	//show surface
-	    	setSurfaceSize(x,y,width,height);	
+	    	setVideoTransformation();
 	    	
 	    	showVideo(useTextureView(session()));
 	    	
@@ -577,10 +577,9 @@ public class AirMediaSplashtop implements AirMedia
 				surfaceHolder.addCallback(video_surface_callback_handler_);
 			Log.w(TAG, "attachSurface: No valid surface at this time");
 		}
-		if (useTextureView(session))
-		{
-			setVideoTransformation();
-		}
+
+		setVideoTransformation();
+
 		mStreamCtl.dispSurface.stMGR.setInvalidateOnSurfaceTextureUpdate(true);
     }
     
