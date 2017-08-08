@@ -3823,6 +3823,10 @@ public class CresStreamCtrl extends Service {
     public void setAirMediaIpAddressPrompt(boolean enable, int sessId)
     {    	
     	synchronized (mAirMediaLock) {
+    		if (userSettings.getAirMediaCustomPrompt())
+    		{
+    			enable = false;
+    		}
     		userSettings.setAirMediaIpAddressPrompt(enable);
     		if (mAirMedia != null)
     		{
@@ -3835,6 +3839,11 @@ public class CresStreamCtrl extends Service {
     public void setAirMediaDomainNamePrompt(boolean enable, int sessId)
     {
     	synchronized (mAirMediaLock) {
+    		// If Host Name Prompt is disabled or custom string is enabled - Domain Name too must be disabled
+    		if (!userSettings.getAirMediaHostNamePrompt() || userSettings.getAirMediaCustomPrompt())
+    		{
+    			enable = false;
+    		}
     		userSettings.setAirMediaDomainNamePrompt(enable);
     		if (mAirMedia != null)
     		{
@@ -3848,7 +3857,16 @@ public class CresStreamCtrl extends Service {
     public void setAirMediaHostNamePrompt(boolean enable, int sessId)
     {
     	synchronized (mAirMediaLock) {
+    		if (userSettings.getAirMediaCustomPrompt())
+    		{
+    			enable = false;
+    		}
     		userSettings.setAirMediaHostNamePrompt(enable);
+    		// If Host Name Prompt is disabled and Domain Name Prompt is enabled, disable latter and send feedback.
+    		if (!userSettings.getAirMediaHostNamePrompt() && userSettings.getAirMediaDomainNamePrompt()) {
+    			userSettings.setAirMediaDomainNamePrompt(false);
+    			sendAirMediaDomainNamePromptFeedback();
+    		}
     		setHostName("AirMedia");
     		sendAirMediaConnectionAddress(sessId);
     	}
@@ -3857,7 +3875,30 @@ public class CresStreamCtrl extends Service {
     public void setAirMediaCustomPrompt(boolean enable, int sessId)
     {
     	synchronized (mAirMediaLock) {
+    		// All other prompt options must be disabled before we allow custom prompt to be enabled
+    		if (userSettings.getAirMediaIpAddressPrompt() || 
+    				userSettings.getAirMediaHostNamePrompt() || 
+    				userSettings.getAirMediaDomainNamePrompt()) {
+    			enable = false;
+    		}
     		userSettings.setAirMediaCustomPrompt(enable);
+    		// If custom prompt is enabled, all other prompts must be forced off (send feedbacks)
+    		// This code will likely be used in future - when we go to the model where last setting wins
+    		// right now it will have no effect due to the the check at the start of this synchronized block.
+    		if (userSettings.getAirMediaCustomPrompt()) {
+    			if (userSettings.getAirMediaIpAddressPrompt()) {
+    				userSettings.setAirMediaIpAddressPrompt(false);
+    				sendAirMediaIpAddressPromptFeedback();
+    			}
+    			if (userSettings.getAirMediaHostNamePrompt()) {
+    				userSettings.setAirMediaHostNamePrompt(false);
+    				sendAirMediaHostNamePromptFeedback();
+    			}
+    			if (userSettings.getAirMediaIpAddressPrompt()) {
+    				userSettings.setAirMediaDomainNamePrompt(false);
+    				sendAirMediaDomainNamePromptFeedback();
+    			}
+    		}
     		sendAirMediaConnectionAddress(sessId);
     	}
     }
@@ -3869,6 +3910,30 @@ public class CresStreamCtrl extends Service {
     		if (userSettings.getAirMediaCustomPrompt())
     			sendAirMediaConnectionAddress(sessId);
     	}
+    }
+    
+    public void sendAirMediaIpAddressPromptFeedback()
+    {
+    	sockTask.SendDataToAllClients(String.format("AIRMEDIA_IP_ADDRESS_PROMPT=%s", 
+    			Boolean.toString(userSettings.getAirMediaIpAddressPrompt())));
+    }
+    
+    public void sendAirMediaHostNamePromptFeedback()
+    {
+    	sockTask.SendDataToAllClients(String.format("AIRMEDIA_HOST_NAME_PROMPT=%s", 
+    			Boolean.toString(userSettings.getAirMediaHostNamePrompt())));
+    }
+    
+    public void sendAirMediaDomainNamePromptFeedback()
+    {
+    	sockTask.SendDataToAllClients(String.format("AIRMEDIA_DOMAIN_NAME_PROMPT=%s", 
+    			Boolean.toString(userSettings.getAirMediaDomainNamePrompt())));
+    }
+    
+    public void sendAirMediaCustomPromptFeedback()
+    {
+    	sockTask.SendDataToAllClients(String.format("AIRMEDIA_CUSTOM_PROMPT=%s", 
+    			Boolean.toString(userSettings.getAirMediaCustomPrompt())));
     }
     
     public void setAirMediaWindowPosition(int x, int y, int width, int height)
