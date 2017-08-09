@@ -2371,6 +2371,19 @@ public class CresStreamCtrl extends Service {
 		}
 
         hdmiOutput.setAspectRatio();
+        
+        // Check if start was filtered out and then start if true
+        if (Boolean.parseBoolean(hdmiOutput.getSyncStatus()) == true)
+        {
+        	for (int sessionId = 0; sessionId < NumOfSurfaces; sessionId++)
+        	{
+        		if (userSettings.getUserRequestedStreamState(sessionId) == StreamState.STARTED)
+        		{
+        			Log.d(TAG, "HDMI output connected, attempting to start stream " + sessionId);
+        			Start(sessionId);
+        		}
+        	}
+        }
 	}
     
     public String getHDMIInSyncStatus()
