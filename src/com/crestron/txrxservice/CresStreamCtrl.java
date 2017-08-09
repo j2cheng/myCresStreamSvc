@@ -187,6 +187,7 @@ public class CresStreamCtrl extends Service {
     private final int backgroundViewColor = Color.argb(255, 0, 0, 0);
 	public String hostName;
 	public String domainName;
+	private final long hdmiBroadcastTimeout_ms = 60000; 
     public OutputDisplayListener mDisplayListener = new OutputDisplayListener();
     private final Runnable foregroundRunnable = new Runnable() {
     	@Override
@@ -4340,6 +4341,7 @@ public class CresStreamCtrl extends Service {
             {
             	// We need to make sure that the broadcastReceiver thread is not stuck processing start/stop requests
             	// Therefore we will run all commands through a worker thread
+            	final CountDownLatch latch = new CountDownLatch(1);
             	new Thread(new Runnable() {
             		public void run() {
             			hdmiLock.lock();
@@ -4395,8 +4397,20 @@ public class CresStreamCtrl extends Service {
 		            	{
 		            		hdmiLock.unlock();
 		            	}
+		            	latch.countDown();
             		}
             	}).start();
+            	
+            	// We launch the stop commands in its own thread and timeout in case it gets hung
+            	boolean successfulStop = true; //indicates that there was no time out condition
+            	try { successfulStop = latch.await(hdmiBroadcastTimeout_ms, TimeUnit.MILLISECONDS); }
+            	catch (InterruptedException ex) { ex.printStackTrace(); }
+            	
+            	if (!successfulStop)
+            	{
+            		Log.e(TAG, "Failed to handle RESOLUTION_CHANGED in " + (hdmiBroadcastTimeout_ms/1000) + " seconds");
+            		RecoverTxrxService();
+            	}
         	}            
         };
         IntentFilter resolutionIntentFilter = new IntentFilter("evs.intent.action.hdmi.RESOLUTION_CHANGED");
@@ -4407,6 +4421,7 @@ public class CresStreamCtrl extends Service {
             {
             	// We need to make sure that the broadcastReceiver thread is not stuck processing start/stop requests
             	// Therefore we will run all commands through a worker thread
+            	final CountDownLatch latch = new CountDownLatch(1);
             	new Thread(new Runnable() {
             		public void run() {
             			hdmiLock.lock();
@@ -4434,8 +4449,20 @@ public class CresStreamCtrl extends Service {
                     	{
                     		hdmiLock.unlock();
                     	}
+                    	latch.countDown();
             		}
-            	}).start();            	
+            	}).start();    
+            	
+            	// We launch the stop commands in its own thread and timeout in case it gets hung
+            	boolean successfulStop = true; //indicates that there was no time out condition
+            	try { successfulStop = latch.await(hdmiBroadcastTimeout_ms, TimeUnit.MILLISECONDS); }
+            	catch (InterruptedException ex) { ex.printStackTrace(); }
+            	
+            	if (!successfulStop)
+            	{
+            		Log.e(TAG, "Failed to handle HPD in " + (hdmiBroadcastTimeout_ms/1000) + " seconds");
+            		RecoverTxrxService();
+            	}
             }
         };
         IntentFilter hpdIntentFilter = new IntentFilter("evs.intent.action.hdmi.HPD");
@@ -4449,6 +4476,7 @@ public class CresStreamCtrl extends Service {
             {
             	// We need to make sure that the broadcastReceiver thread is not stuck processing start/stop requests
             	// Therefore we will run all commands through a worker thread
+            	final CountDownLatch latch = new CountDownLatch(1);
             	new Thread(new Runnable() {
             		public void run() {
 		                if (paramAnonymousIntent.getAction().equals("evs.intent.action.hdmi.HDMIOUT_RESOLUTION_CHANGED"))
@@ -4463,8 +4491,20 @@ public class CresStreamCtrl extends Service {
 		                		handleHdmiOutputChange();
 		                	}
 		                }
+		                latch.countDown();
 		            }
             	}).start();
+            	
+            	// We launch the stop commands in its own thread and timeout in case it gets hung
+            	boolean successfulStop = true; //indicates that there was no time out condition
+            	try { successfulStop = latch.await(hdmiBroadcastTimeout_ms, TimeUnit.MILLISECONDS); }
+            	catch (InterruptedException ex) { ex.printStackTrace(); }
+            	
+            	if (!successfulStop)
+            	{
+            		Log.e(TAG, "Failed to handle HDMIOUT_RESOLUTION_CHANGED in " + (hdmiBroadcastTimeout_ms/1000) + " seconds");
+            		RecoverTxrxService();
+            	}
             }
         };
         IntentFilter hdmioutResolutionIntentFilter = new IntentFilter("evs.intent.action.hdmi.HDMIOUT_RESOLUTION_CHANGED");
