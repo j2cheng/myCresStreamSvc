@@ -25,7 +25,7 @@ public class GstreamIn implements StreamInStrategy, SurfaceHolder.Callback {
     private long statisticsNumAudioPackets = 0;
     private int statisticsNumAudioPacketsDropped = 0;
     private int statisticsBitrate = 0;
-    private final int stopTimeout_sec = 30;
+    private final int stopTimeout_sec = 25;
     private boolean isPlaying = false;
     private final static String ducatiRecoverFilePath = "/dev/shm/crestron/CresStreamSvc/ducatiRecoverTime";
     private final static long ducatiRecoverTimeDelta = (30 * 1000); //30 seconds
