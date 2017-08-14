@@ -1549,6 +1549,11 @@ public class CresStreamCtrl extends Service {
     
     public void restartStreams(final boolean skipStreamIn) 
     {
+    	restartStreams(skipStreamIn, false);
+    }
+    
+    public void restartStreams(final boolean skipStreamIn, final boolean skipPreview) 
+    {
     	// If resolution change or crash occurs we don't want to restart until we know the system is up and stable
     	if (enableRestartMechanism == false)
     	{
@@ -1592,6 +1597,8 @@ public class CresStreamCtrl extends Service {
 			        for (int sessionId = 0; sessionId < NumOfSurfaces; sessionId++)
 			        {
 			        	if (skipStreamIn && (userSettings.getMode(sessionId) == DeviceMode.STREAM_IN.ordinal()))
+			        		continue;
+			        	else if (skipPreview && (userSettings.getMode(sessionId) == DeviceMode.PREVIEW.ordinal()))
 			        		continue;
 			        	if ((userSettings.getMode(sessionId) == DeviceMode.STREAM_OUT.ordinal()) 
 			        			&& (userSettings.getUserRequestedStreamState(sessionId) == StreamState.STOPPED))
@@ -2373,8 +2380,8 @@ public class CresStreamCtrl extends Service {
 
         hdmiOutput.setAspectRatio();
         
-        // Check if start was filtered out and then start if true
-        if (Boolean.parseBoolean(hdmiOutput.getSyncStatus()) == true)
+           // Check if start was filtered out and then start if true
+        if (streamingReadyLatch.getCount() == 0 && Boolean.parseBoolean(hdmiOutput.getSyncStatus()) == true)
         {
         	for (int sessionId = 0; sessionId < NumOfSurfaces; sessionId++)
         	{
@@ -3545,7 +3552,7 @@ public class CresStreamCtrl extends Service {
     
     public void stopOnIpAddrChange(){
 		Log.e(TAG, "Restarting on device IP Address Change...!");
-        restartStreams(false);
+        restartStreams(false, true); 	// Dont restart preview on IP change
     }
     
     public void RestartAirMedia() {
