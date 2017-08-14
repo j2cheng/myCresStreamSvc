@@ -76,6 +76,7 @@ public class AirMediaSplashtop implements AirMedia
 	private static final int streamIdx = 0;
 	private static final int MAX_USERS = 32;
 	private static final int CODEC_ERROR = 1;
+	private final Object stopSessionObjectLock = new Object();
     public CountDownLatch serviceConnectedLatch=null;
     public CountDownLatch receiverLoadedLatch=null;
     public CountDownLatch receiverStoppedLatch=null;
@@ -92,6 +93,8 @@ public class AirMediaSplashtop implements AirMedia
 	private Surface surface_=null;
 	private Rect window_= new Rect();
 	private String adapter_ip_address = null;
+	private String version = null;
+	private String productName = null; 
 	private int lastReturnedAirMediaStatus;
 
     private Handler handler_;
@@ -151,6 +154,10 @@ public class AirMediaSplashtop implements AirMedia
 		Log.d(TAG, "startAirMedia: Device IP="+mStreamCtl.userSettings.getDeviceIp()+"   Aux IP="+mStreamCtl.userSettings.getAuxiliaryIp());
 
 		adapter_ip_address = mStreamCtl.getAirMediaConnectionIpAddress(0);
+		version = mStreamCtl.getAirMediaVersion(streamIdx);
+		Log.d(TAG, "Receiver apk version: " + version);
+		productName = mStreamCtl.mProductName + " " + version;
+		Log.d(TAG, "Product Name: " + productName);
 
 		// Now start receiver
         if (!startAirMediaReceiver(mStreamCtl.hostName)) {
@@ -224,7 +231,7 @@ public class AirMediaSplashtop implements AirMedia
         		receiver_ = new AirMediaReceiver(service_);
 
                 receiver().serverName(serverName);
-                receiver().product(mStreamCtl.mProductName);
+                receiver().product(productName);
                 receiver().adapterAddress(adapter_ip_address);
                 receiver().maxResolution(AirMediaReceiverResolutionMode.Max1080P);
                 Point dSize = mStreamCtl.getDisplaySize();
@@ -1032,7 +1039,7 @@ public class AirMediaSplashtop implements AirMedia
 			Log.e(TAG, "Trying to stop an unconnected session for user " + String.valueOf(userId));
 			return;
 		}
-		Log.i(TAG, "stopUser: " + String.valueOf(userId) + " Session=" + AirMediaSession.toDebugString(session));
+		Log.i(TAG, "stopUser: " + String.valueOf(userId) + " Session=" + AirMediaSession.toDebugString(session) + "  deviceState=" + session.deviceState());
 		if (active_session_ != null && !AirMediaSession.isEqual(active_session_, session))
 		{
 			if (session.videoState() == AirMediaSessionStreamingState.Playing)
@@ -1043,12 +1050,15 @@ public class AirMediaSplashtop implements AirMedia
 		// Only allow a single 'session' to enter at a time - need to make sure that we have a unique session
 		// requesting a stop and that the callback verifies it is for that specific session before counting
 		// down the latch
-		synchronized(this) {
+		synchronized(stopSessionObjectLock) {
 			if (session.deviceState() != AirMediaSessionConnectionState.Disconnected) {
 				// session is started
 				stopSession(session);
+			} else {
+				Log.w(TAG, "Session: " + AirMediaSession.toDebugString(session) + "is already in device disconnected state");
 			}
 		}
+		Log.v(TAG, "stopUser: " + String.valueOf(userId) + "exit");
     }
     
     private void stopSession(AirMediaSession session)
@@ -1059,7 +1069,7 @@ public class AirMediaSplashtop implements AirMedia
 		deviceDisconnectedLatch = new CountDownLatch(1);
 		Log.d(TAG, "Session " + AirMediaSession.toDebugString(session) + " requesting stop ");
 		session.stop(); 
-		try { stopStatus = deviceDisconnectedLatch.await(15000, TimeUnit.MILLISECONDS); }
+		try { stopStatus = deviceDisconnectedLatch.await(10000, TimeUnit.MILLISECONDS); }
 		catch (InterruptedException ex) { ex.printStackTrace(); }
 		if (!stopStatus) {
 			Log.w(TAG, "Unable to stop session " + session + "even after 15 seconds");

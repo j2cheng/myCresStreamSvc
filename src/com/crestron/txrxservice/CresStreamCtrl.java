@@ -335,11 +335,11 @@ public class CresStreamCtrl extends Service {
     {
     	switch(product_type) {
     	case 0x1C:
-    		return "DM_TXRX-100-STR";
+    		return "DM_TXRX";
     	case 0x20:
     		return "MERCURY";
     	case 0x24:
-    		return "DMPS3-4K-STR";
+    		return "DMPS3-4K";
     	default:
     		return "Crestron Device";
     	}
@@ -2747,7 +2747,14 @@ public class CresStreamCtrl extends Service {
     				stopStatus="false";
     				pauseStatus="false";	
     				restartRequired[sessionId]=true;
-    				hm.get(userSettings.getMode(sessionId)).executeStart(sessionId);
+    				if (hm != null)
+    				{
+    					hm.get(userSettings.getMode(sessionId)).executeStart(sessionId);
+    				}
+    				else
+    				{
+    					Log.w(TAG, "Start(): hashmap is null - ignoring start for sessionId="+sessionId);
+    				}
     				//hm.get(device_mode).executeStart();
     				// The started state goes back when we actually start
 
