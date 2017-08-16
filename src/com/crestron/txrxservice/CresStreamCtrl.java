@@ -45,6 +45,7 @@ import android.os.Build;
 import android.provider.MediaStore.Files;
 import android.content.Intent;
 import android.content.IntentFilter;
+import android.content.pm.ApplicationInfo;
 import android.content.pm.PackageInfo;
 import android.content.pm.PackageManager;
 import android.content.BroadcastReceiver;
@@ -4178,6 +4179,14 @@ public class CresStreamCtrl extends Service {
 			versionName = info.versionName;
 		if (AirMediaAwind.checkAirMediaLicense())
 			MiscUtils.writeStringToDisk("/dev/shm/crestron/CresStreamSvc/airmediaVersion", versionName);
+		if (use_splashtop) {
+			ApplicationInfo ai = pm.getApplicationInfo(fullPath, PackageManager.GET_META_DATA);
+			Bundle bundle = ai.metaData;
+			String serverVersion = bundle.getString("serverVersion");
+			if (serverVersion != null && !serverVersion.equals("")) {
+				MiscUtils.writeStringToDisk("/dev/shm/crestron/CresStreamSvc/airmediaServerVersion", serverVersion);
+			}
+		}
 		
 		return versionName;
     }
