@@ -2382,7 +2382,7 @@ public class CresStreamCtrl extends Service {
         hdmiOutput.setAspectRatio();
         
            // Check if start was filtered out and then start if true
-        if (streamingReadyLatch.getCount() == 0 && Boolean.parseBoolean(hdmiOutput.getSyncStatus()) == true)
+        if (streamingReadyLatch.getCount() == 0 && enableRestartMechanism && Boolean.parseBoolean(hdmiOutput.getSyncStatus()) == true)
         {
         	for (int sessionId = 0; sessionId < NumOfSurfaces; sessionId++)
         	{
@@ -3703,7 +3703,7 @@ public class CresStreamCtrl extends Service {
     	synchronized (mAirMediaLock) {
     		if ((loginCode < 0) || (loginCode > 9999))
     			return; //Don't set out of range value
-
+    		
     		userSettings.setAirMediaLoginCode(loginCode);
     		userSettings.setAirMediaLoginMode(AirMediaLoginMode.Fixed.ordinal()); // When loginCode is set auto switch to fixed mode
 
@@ -3715,7 +3715,7 @@ public class CresStreamCtrl extends Service {
     			{
     				mAirMedia.showLoginCodePrompt(loginCode);
     			}
-    		}
+        		}
 
     		// send feedback of login mode since it might have changed
     		sockTask.SendDataToAllClients(String.format("AIRMEDIA_LOGIN_MODE=%d", AirMediaLoginMode.Fixed.ordinal()));
