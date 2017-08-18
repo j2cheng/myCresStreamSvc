@@ -3704,6 +3704,9 @@ public class CresStreamCtrl extends Service {
     		if ((loginCode < 0) || (loginCode > 9999))
     			return; //Don't set out of range value
     		
+    		int prevCode = userSettings.getAirMediaLoginCode();
+    		int prevMode = userSettings.getAirMediaLoginMode();
+
     		userSettings.setAirMediaLoginCode(loginCode);
     		userSettings.setAirMediaLoginMode(AirMediaLoginMode.Fixed.ordinal()); // When loginCode is set auto switch to fixed mode
 
@@ -3715,7 +3718,13 @@ public class CresStreamCtrl extends Service {
     			{
     				mAirMedia.showLoginCodePrompt(loginCode);
     			}
+    			
+    			if ( (prevCode != userSettings.getAirMediaLoginCode()) || (prevMode != userSettings.getAirMediaLoginMode()) )
+        		{
+    				mAirMedia.disconnectAllSenders();
         		}
+    		} 		
+    		
 
     		// send feedback of login mode since it might have changed
     		sockTask.SendDataToAllClients(String.format("AIRMEDIA_LOGIN_MODE=%d", AirMediaLoginMode.Fixed.ordinal()));
@@ -3724,7 +3733,9 @@ public class CresStreamCtrl extends Service {
     
     public void setAirMediaLoginMode(int loginMode, int sessId) {
     	synchronized (mAirMediaLock) {
-    		// FIXME: protect against same join val coming in????
+    		int prevCode = userSettings.getAirMediaLoginCode();
+    		int prevMode = userSettings.getAirMediaLoginMode();
+    		
     		userSettings.setAirMediaLoginMode(loginMode);
 
     		if (loginMode == AirMediaLoginMode.Disabled.ordinal())
@@ -3759,6 +3770,11 @@ public class CresStreamCtrl extends Service {
     					mAirMedia.showLoginCodePrompt(userSettings.getAirMediaLoginCode());
     				}
     			}
+    		}
+    		
+    		if ( (prevCode != userSettings.getAirMediaLoginCode()) || (prevMode != userSettings.getAirMediaLoginMode()) )
+    		{
+				mAirMedia.disconnectAllSenders();
     		}
 
     		sockTask.SendDataToAllClients(String.format("AIRMEDIA_LOGIN_CODE=%d", userSettings.getAirMediaLoginCode()));

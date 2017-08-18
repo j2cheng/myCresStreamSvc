@@ -988,6 +988,19 @@ public class AirMediaSplashtop implements AirMedia
 		}
     }
     
+    public void disconnectAllSenders()
+    {
+    	Log.i(TAG, "disconnectAllSenders");
+    	for (int i = 1; i <= MAX_USERS; i++) // We handle airMedia user ID as 1 based
+    	{
+    		if (mStreamCtl.userSettings.getAirMediaUserConnected(i))
+    		{
+    			disconnectUser(i);
+    		}
+    	}
+    }
+
+    
     public void startUser(int userId)
     { 
 		Log.i(TAG, "startUser: " + String.valueOf(userId));

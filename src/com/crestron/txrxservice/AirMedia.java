@@ -30,6 +30,7 @@ public interface AirMedia
     public void setUserPosition(int userId, int position);
     public void stopUser(int userId);
     public void stopAllUser();
+    public void disconnectAllSenders();
 
     
     public void setOsdImage(String filePath);

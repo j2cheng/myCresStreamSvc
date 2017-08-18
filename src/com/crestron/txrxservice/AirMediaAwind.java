@@ -714,6 +714,21 @@ public class AirMediaAwind implements AirMedia
     	}
     }
     
+    public void disconnectAllSenders()
+    {
+    	for (int i = 1; i <= 32; i++) // We handle airMedia user ID as 1 based
+    	{
+    		if (mStreamCtl.userSettings.getAirMediaUserConnected(i))
+    		{
+    			int awindId = translateSenderId(i);
+    			if (awindId != -1)
+    				disconnectUser(awindId);
+    			else
+    				Log.w(TAG, "Could not find senderId " + i + "!");
+    		}
+    	}
+    }
+    
     public static boolean checkAirMediaLicense()
     {
     	boolean licensed = false;
