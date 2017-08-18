@@ -1118,9 +1118,9 @@ public class CresStreamCtrl extends Service {
     			}
     		});
     		try { 
-        		if (latch.await(15, TimeUnit.SECONDS) == false)
+        		if (latch.await(60, TimeUnit.SECONDS) == false)
         		{
-        			Log.e(TAG, "createCresDisplaySurface: timeout after 15 seconds");
+        			Log.e(TAG, "createCresDisplaySurface: timeout after 60 seconds");
         			RecoverTxrxService();
         		}
         	}
@@ -1968,9 +1968,9 @@ public class CresStreamCtrl extends Service {
 	            	});	            	
 
 	            	try { 
-	            		if (latch.await(15, TimeUnit.SECONDS) == false)
+	            		if (latch.await(60, TimeUnit.SECONDS) == false)
 	            		{
-	            			Log.e(TAG, "updateWH: Timeout after 15 seconds");
+	            			Log.e(TAG, "updateWH: Timeout after 60 seconds");
 	            			RecoverTxrxService();
 	            		}
 	            	}
@@ -2061,9 +2061,9 @@ public class CresStreamCtrl extends Service {
 	            	});	            	
 
 	            	try { 
-	            		if (latch.await(15, TimeUnit.SECONDS) == false)
+	            		if (latch.await(60, TimeUnit.SECONDS) == false)
 	            		{
-	            			Log.e(TAG, "updateFullWindow: Timeout after 15 seconds");
+	            			Log.e(TAG, "updateFullWindow: Timeout after 60 seconds");
 	            			RecoverTxrxService();
 	            		}
 	            	}
@@ -2104,9 +2104,9 @@ public class CresStreamCtrl extends Service {
 	            	});	            	
 
 	            	try { 
-	            		if (latch.await(5, TimeUnit.SECONDS) == false)
+	            		if (latch.await(30, TimeUnit.SECONDS) == false)
 	            		{
-	            			Log.e(TAG, "hideWindowWithoutDestroy: timeout after 5 seconds");
+	            			Log.e(TAG, "hideWindowWithoutDestroy: timeout after 30 seconds");
 	            			RecoverTxrxService();
 	            		}
 	            	}
@@ -2141,9 +2141,9 @@ public class CresStreamCtrl extends Service {
 	       		     }
         		});
         		try { 
-            		if (latch.await(5, TimeUnit.SECONDS) == false)
+            		if (latch.await(30, TimeUnit.SECONDS) == false)
             		{
-            			Log.e(TAG, "invalidateSurface: timeout after 5 seconds");
+            			Log.e(TAG, "invalidateSurface: timeout after 30 seconds");
             			RecoverTxrxService();
             		}
             	}
@@ -2177,9 +2177,9 @@ public class CresStreamCtrl extends Service {
 		       		     }
 	        		});
 	        		try { 
-	            		if (latch.await(5, TimeUnit.SECONDS) == false)
+	            		if (latch.await(30, TimeUnit.SECONDS) == false)
 	            		{
-	            			Log.e(TAG, "updateXY: timeout after 5 seconds");
+	            			Log.e(TAG, "updateXY: timeout after 30 seconds");
 	            			RecoverTxrxService();
 	            		}
 	            	}
@@ -3018,9 +3018,9 @@ public class CresStreamCtrl extends Service {
 				     }
 		    	});
 		    	try { 
-            		if (latch.await(5, TimeUnit.SECONDS) == false)
+            		if (latch.await(30, TimeUnit.SECONDS) == false)
             		{
-            			Log.e(TAG, "hideWindow: timeout after 5 seconds");
+            			Log.e(TAG, "hideWindow: timeout after 30 seconds");
             			RecoverTxrxService();
             		}
             	}
@@ -3047,9 +3047,9 @@ public class CresStreamCtrl extends Service {
 				     }
 		    	});
 		    	try { 
-            		if (latch.await(5, TimeUnit.SECONDS) == false)
+            		if (latch.await(30, TimeUnit.SECONDS) == false)
             		{
-            			Log.e(TAG, "showWindow: Timeout after 5 seconds");
+            			Log.e(TAG, "showWindow: Timeout after 30 seconds");
             			RecoverTxrxService();
             		}
             	}
@@ -3076,9 +3076,9 @@ public class CresStreamCtrl extends Service {
 				     }
 		    	});
 		    	try { 
-            		if (latch.await(5, TimeUnit.SECONDS) == false)
+            		if (latch.await(30, TimeUnit.SECONDS) == false)
             		{
-            			Log.e(TAG, "hideWindow: timeout after 5 seconds");
+            			Log.e(TAG, "hideWindow: timeout after 30 seconds");
             			RecoverTxrxService();
             		}
             	}
@@ -3105,9 +3105,9 @@ public class CresStreamCtrl extends Service {
 				     }
 		    	});
 		    	try { 
-            		if (latch.await(5, TimeUnit.SECONDS) == false)
+            		if (latch.await(30, TimeUnit.SECONDS) == false)
             		{
-            			Log.e(TAG, "showWindow: Timeout after 5 seconds");
+            			Log.e(TAG, "showWindow: Timeout after 30 seconds");
             			RecoverTxrxService();
             		}
             	}
