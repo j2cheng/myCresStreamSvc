@@ -2427,13 +2427,17 @@ void csio_jni_SetSourceLocation(eProtocolId protoId, char *location, int iStream
 		case ePROTOCOL_MULTICAST_TS:
 		case ePROTOCOL_MULTICAST:
 			//CSIO_LOG(eLogLevel_debug, "ePROTOCOL_MULTICAST: location[%s]\n",CresDataDB->multicast_grp);
-			if(currentSettingsDB->videoSettings[iStreamId].tsEnabled==STREAM_TRANSPORT_MPEG2TS_UDP){
-				g_object_set(G_OBJECT(data->element_zero), "address", \
-						location, NULL);
-			}
-			else { //RTP Only and MPEG2TS RTP 
-				g_object_set(G_OBJECT(data->element_av[0]), "address", \
-						location, NULL);
+			// Bug 134988: do not set local host as address because gstreamer needs it to be the default of 0.0.0.0
+			if (strcmp(location, "127.0.0.1") != 0)
+			{
+				if(currentSettingsDB->videoSettings[iStreamId].tsEnabled==STREAM_TRANSPORT_MPEG2TS_UDP){
+					g_object_set(G_OBJECT(data->element_zero), "address", \
+							location, NULL);
+				}
+				else { //RTP Only and MPEG2TS RTP
+					g_object_set(G_OBJECT(data->element_av[0]), "address", \
+							location, NULL);
+				}
 			}
 			//g_object_set(G_OBJECT(CresDataDB->element_av[1]), "address", 
 			//		CresDataDB->multicast_grp, NULL);
