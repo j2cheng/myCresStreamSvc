@@ -164,6 +164,7 @@ public class CresStreamCtrl extends Service {
     public CountDownLatch streamingReadyLatch = new CountDownLatch(1);
     public CountDownLatch audioReadyLatch = new CountDownLatch(1);
     private FileObserver audioReadyFileObserver;
+    private boolean pendingAirMediaLoginCodeChange = false;   
     public volatile boolean enableRestartMechanism = false; // Until we get a start or platform automatically restarts don't restart streams
     private Object cameraModeLock = new Object();
     private volatile Timer mNoVideoTimer = null;
@@ -3703,81 +3704,81 @@ public class CresStreamCtrl extends Service {
     	synchronized (mAirMediaLock) {
     		if ((loginCode < 0) || (loginCode > 9999))
     			return; //Don't set out of range value
-    		
-    		int prevCode = userSettings.getAirMediaLoginCode();
-    		int prevMode = userSettings.getAirMediaLoginMode();
-
+   
     		userSettings.setAirMediaLoginCode(loginCode);
     		userSettings.setAirMediaLoginMode(AirMediaLoginMode.Fixed.ordinal()); // When loginCode is set auto switch to fixed mode
 
-    		if (mAirMedia != null)
+    		if (getAirMediaNumberUserConnected() == 0)
     		{
-    			mAirMedia.setLoginCode(userSettings.getAirMediaLoginCode());
-
-    			if (userSettings.getAirMediaDisplayLoginCode())
+    			if (mAirMedia != null)
     			{
-    				mAirMedia.showLoginCodePrompt(loginCode);
-    			}
-    			
-    			if ( (prevCode != userSettings.getAirMediaLoginCode()) || (prevMode != userSettings.getAirMediaLoginMode()) )
-        		{
-    				mAirMedia.disconnectAllSenders();
-        		}
-    		} 		
-    		
+    				mAirMedia.setLoginCode(userSettings.getAirMediaLoginCode());
 
-    		// send feedback of login mode since it might have changed
-    		sockTask.SendDataToAllClients(String.format("AIRMEDIA_LOGIN_MODE=%d", AirMediaLoginMode.Fixed.ordinal()));
+    				if (userSettings.getAirMediaDisplayLoginCode())
+    				{
+    					mAirMedia.showLoginCodePrompt(loginCode);
+    				}
+    			} 
+    			// send feedback of login mode since it might have changed
+        		sockTask.SendDataToAllClients(String.format("AIRMEDIA_LOGIN_MODE=%d", AirMediaLoginMode.Fixed.ordinal()));
+    		}
+    		else
+    		{
+    			// If users are connected wait until all disconnect before changing code
+    			pendingAirMediaLoginCodeChange = true;
+    			Log.d(TAG, "Filtering out AirMedia login code change to " + loginCode + " because " + getAirMediaNumberUserConnected() + " users are connected, changes will take effect once all user disconnect");
+    		}    		
     	}
     }
     
     public void setAirMediaLoginMode(int loginMode, int sessId) {
     	synchronized (mAirMediaLock) {
-    		int prevCode = userSettings.getAirMediaLoginCode();
-    		int prevMode = userSettings.getAirMediaLoginMode();
-    		
     		userSettings.setAirMediaLoginMode(loginMode);
 
-    		if (loginMode == AirMediaLoginMode.Disabled.ordinal())
+    		if (getAirMediaNumberUserConnected() == 0)
     		{
-    			userSettings.setAirMediaLoginCode(0);
-    			if (mAirMedia != null)
+    			if (loginMode == AirMediaLoginMode.Disabled.ordinal())
     			{
-    				mAirMedia.setLoginCodeDisable();
-    				mAirMedia.hideLoginCodePrompt();
-    			}
-    		}
-    		else if (loginMode == AirMediaLoginMode.Random.ordinal())
-    		{
-    			int rand = (int)(Math.random() * 9999 + 1); 
-    			userSettings.setAirMediaLoginCode(rand);
-    			if (mAirMedia != null)
-    			{
-    				mAirMedia.setLoginCode(rand);
-    				if (userSettings.getAirMediaDisplayLoginCode())
+    				userSettings.setAirMediaLoginCode(0);
+    				if (mAirMedia != null)
     				{
-    					mAirMedia.showLoginCodePrompt(rand);
+    					mAirMedia.setLoginCodeDisable();
+    					mAirMedia.hideLoginCodePrompt();
     				}
     			}
-    		}
-    		else if(loginMode == AirMediaLoginMode.Fixed.ordinal())
-    		{
-    			if (mAirMedia != null)
+    			else if (loginMode == AirMediaLoginMode.Random.ordinal())
     			{
-    				mAirMedia.setLoginCode(userSettings.getAirMediaLoginCode());
-    				if (userSettings.getAirMediaDisplayLoginCode())
+    				int rand = (int)(Math.random() * 9999 + 1); 
+    				userSettings.setAirMediaLoginCode(rand);
+    				if (mAirMedia != null)
     				{
-    					mAirMedia.showLoginCodePrompt(userSettings.getAirMediaLoginCode());
+    					mAirMedia.setLoginCode(rand);
+    					if (userSettings.getAirMediaDisplayLoginCode())
+    					{
+    						mAirMedia.showLoginCodePrompt(rand);
+    					}
     				}
     			}
-    		}
-    		
-    		if ( (prevCode != userSettings.getAirMediaLoginCode()) || (prevMode != userSettings.getAirMediaLoginMode()) )
-    		{
-				mAirMedia.disconnectAllSenders();
-    		}
+    			else if(loginMode == AirMediaLoginMode.Fixed.ordinal())
+    			{
+    				if (mAirMedia != null)
+    				{
+    					mAirMedia.setLoginCode(userSettings.getAirMediaLoginCode());
+    					if (userSettings.getAirMediaDisplayLoginCode())
+    					{
+    						mAirMedia.showLoginCodePrompt(userSettings.getAirMediaLoginCode());
+    					}
+    				}
+    			}
 
-    		sockTask.SendDataToAllClients(String.format("AIRMEDIA_LOGIN_CODE=%d", userSettings.getAirMediaLoginCode()));
+    			sockTask.SendDataToAllClients(String.format("AIRMEDIA_LOGIN_CODE=%d", userSettings.getAirMediaLoginCode()));
+    		}
+    		else
+    		{
+    			// If users are connected wait until all disconnect before changing code
+    			pendingAirMediaLoginCodeChange = true;
+    			Log.d(TAG, "Filtering out AirMedia login mode change to " + loginMode + " because " + getAirMediaNumberUserConnected() + " users are connected, changes will take effect once all user disconnect");
+    		}
     	}
     }
     
@@ -3796,7 +3797,7 @@ public class CresStreamCtrl extends Service {
     				mAirMedia.hideLoginCodePrompt();
     			}
     		}
-    	}
+    	}    		
     }
     
     public void setAirMediaModerator(boolean enable, int sessId)
@@ -4356,15 +4357,23 @@ public class CresStreamCtrl extends Service {
 		sockTask.SendDataToAllClients("AIRMEDIA_DISPLAYED="+val);
     }
     
-    public void sendAirMediaNumberUserConnected()
+    public int getAirMediaNumberUserConnected()
     {
-    	// TODO: send on update request
     	int numberUserConnected = 0;
     	for (int i = 1; i <= 32; i++) // We handle airMedia user ID as 1 based
     	{
     		if (userSettings.getAirMediaUserConnected(i))
     			numberUserConnected++;
     	}
+    	
+    	return numberUserConnected;
+    }
+    
+    public void sendAirMediaNumberUserConnected()
+    {
+    	// TODO: send on update request
+    	int numberUserConnected = getAirMediaNumberUserConnected();
+
     	Log.i(TAG, String.format("AIRMEDIA_NUMBER_USER_CONNECTED=%d", numberUserConnected));
     	sockTask.SendDataToAllClients(String.format("AIRMEDIA_NUMBER_USER_CONNECTED=%d", numberUserConnected));
     	
@@ -4372,6 +4381,16 @@ public class CresStreamCtrl extends Service {
     	if ( (userSettings.getAirMediaLoginMode() == AirMediaLoginMode.Random.ordinal()) && (numberUserConnected == 0))
     	{
     		setAirMediaLoginMode(userSettings.getAirMediaLoginMode(), 0);
+			pendingAirMediaLoginCodeChange = false;
+    	}
+    	else if ( (pendingAirMediaLoginCodeChange == true) && (numberUserConnected == 0) )
+    	{
+    		setAirMediaLoginMode(userSettings.getAirMediaLoginMode(), 0);
+			if (userSettings.getAirMediaLoginMode() == AirMediaLoginMode.Fixed.ordinal())
+			{
+    			setAirMediaLoginCode(userSettings.getAirMediaLoginCode(), 0);
+			}
+    		pendingAirMediaLoginCodeChange = false;
     	}
     }
 
