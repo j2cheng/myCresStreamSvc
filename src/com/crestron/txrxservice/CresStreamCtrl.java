@@ -631,7 +631,8 @@ public class CresStreamCtrl extends Service {
 				for (int sessionId = 0; sessionId < NumOfSurfaces; sessionId++)
 				{
 					userSettings.setMode(DeviceMode.STREAM_IN.ordinal(), sessionId);
-				}
+					setAirMediaAdaptorSelect(0, 0);
+				}				
     		}
     		
     		// This needs to be done before Gstreamer setup
