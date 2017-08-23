@@ -56,6 +56,7 @@ public class AirMediaSession extends AirMediaBase {
             videoResolution_ = session.getVideoResolution();
             videoRotation_ = session.getVideoRotation();
             videoIsDrm_ = session.getVideoIsDrm();
+            videoIsLoading_ = session.getVideoIsLoading();
             videoScreenPosition_ = session.getVideoScreenPosition();
             audioState_ = AirMediaSessionStreamingState.Stopped;
             audioId_ = session.getAudioId();
@@ -152,6 +153,12 @@ public class AirMediaSession extends AirMediaBase {
         }
 
         @Override
+        public void onVideoLoadingChanged(boolean to) throws RemoteException {
+            videoIsLoading_ = to;
+            scheduler().raise(videoLoadingChanged(), self(), to);
+        }
+
+        @Override
         public void onVideoScreenPositionChanged(AirMediaSessionScreenPosition from, AirMediaSessionScreenPosition to) throws RemoteException {
             videoScreenPosition_ = to;
             scheduler().raise(videoScreenPositionChanged(), self(), from, to);
@@ -213,6 +220,7 @@ public class AirMediaSession extends AirMediaBase {
     private AirMediaSize videoResolution_ = AirMediaSize.Zero;
     private int videoRotation_ = 0;
     private boolean videoIsDrm_ = false;
+    private boolean videoIsLoading_ = false;
     private AirMediaSessionScreenPosition videoScreenPosition_ = AirMediaSessionScreenPosition.None;
     private Surface videoSurface_;
 
@@ -241,6 +249,7 @@ public class AirMediaSession extends AirMediaBase {
     private final MulticastChangedDelegate<AirMediaSession, Integer> videoRotationChanged_ = new MulticastChangedDelegate<AirMediaSession, Integer>();
     private final MulticastChangedDelegate<AirMediaSession, Surface> videoSurfaceChanged_ = new MulticastChangedDelegate<AirMediaSession, Surface>();
     private final MulticastMessageDelegate<AirMediaSession, Boolean> videoDrmChanged_ = new MulticastMessageDelegate<AirMediaSession, Boolean>();
+    private final MulticastMessageDelegate<AirMediaSession, Boolean> videoLoadingChanged_ = new MulticastMessageDelegate<AirMediaSession, Boolean>();
     private final MulticastChangedDelegate<AirMediaSession, AirMediaSessionScreenPosition> videoScreenPositionChanged_ = new MulticastChangedDelegate<AirMediaSession, AirMediaSessionScreenPosition>();
 
     private final MulticastChangedDelegate<AirMediaSession, AirMediaSessionStreamingState> audioStateChanged_ = new MulticastChangedDelegate<AirMediaSession, AirMediaSessionStreamingState>();
@@ -308,6 +317,10 @@ public class AirMediaSession extends AirMediaBase {
     /// VIDEO DRM STATUS
 
     public boolean videoIsDrm() { return videoIsDrm_; }
+
+    /// VIDEO LOADING STATUS
+
+    public boolean videoIsLoading() { return videoIsLoading_; }
 
     /// VIDEO SCREEN POSITION
 
@@ -383,6 +396,7 @@ public class AirMediaSession extends AirMediaBase {
     public MulticastChangedDelegate<AirMediaSession, Integer> videoRotationChanged() { return videoRotationChanged_ ; }
     public MulticastChangedDelegate<AirMediaSession, Surface> videoSurfaceChanged() { return videoSurfaceChanged_ ; }
     public MulticastMessageDelegate<AirMediaSession, Boolean> videoDrmChanged() { return videoDrmChanged_; }
+    public MulticastMessageDelegate<AirMediaSession, Boolean> videoLoadingChanged() { return videoLoadingChanged_; }
     public MulticastChangedDelegate<AirMediaSession, AirMediaSessionScreenPosition> videoScreenPositionChanged() { return videoScreenPositionChanged_; }
 
     /// AUDIO

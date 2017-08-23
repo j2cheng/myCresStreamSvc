@@ -216,6 +216,7 @@ public class AirMediaSplashtop implements AirMedia
     	public void run() {
     		if (receiver_.state() != AirMediaReceiverState.Stopped)
     		{
+            	Log.i(TAG, "RestartReceiver(): Stopping receiver");
     			stopReceiver();			
     		}
             startReceiver();
@@ -859,9 +860,10 @@ public class AirMediaSplashtop implements AirMedia
     	adapter_ip_address = address;
     	Log.i(TAG, "setAdapter(): Stopping all senders");
     	stopAllSenders();
-    	Log.i(TAG, "setAdapter(): Stopping receiver");
-    	if (receiver().state() != AirMediaReceiverState.Stopped)
+    	if (receiver().state() != AirMediaReceiverState.Stopped) {
+        	Log.i(TAG, "setAdapter(): Stopping receiver");
     		stopReceiver();
+    	}
     	if (!address.equals("None"))
     	{
     		Log.i(TAG, "setAdapter(): Setting new ip address for receiver: " + address);

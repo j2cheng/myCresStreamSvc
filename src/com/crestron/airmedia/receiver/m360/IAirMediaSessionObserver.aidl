@@ -44,6 +44,7 @@ interface IAirMediaSessionObserver {
     oneway void onVideoRotationChanged(in int from, in int to);
     oneway void onVideoSurfaceChanged(in Surface from, in Surface to);
     oneway void onVideoDrmChanged(in boolean to);
+    oneway void onVideoLoadingChanged(in boolean to);
     oneway void onVideoScreenPositionChanged(in AirMediaSessionScreenPosition from, in AirMediaSessionScreenPosition to);
 
     /// AUDIO

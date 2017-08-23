@@ -50,6 +50,7 @@ interface IAirMediaSession {
     AirMediaSize getVideoResolution();
     int getVideoRotation();
     boolean getVideoIsDrm();
+    boolean getVideoIsLoading();
     AirMediaSessionScreenPosition getVideoScreenPosition();
     void setVideoScreenPosition(in AirMediaSessionScreenPosition value);
 

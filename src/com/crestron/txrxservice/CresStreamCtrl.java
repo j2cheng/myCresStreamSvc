@@ -624,7 +624,7 @@ public class CresStreamCtrl extends Service {
 //				}
 //    		}
     		
-    		// Special case to knock DMPS out of camera modes
+    		// Special case to knock DMPS out of camera modes and force adapter to default value of 0 for each reboot
     		if (nativeGetProductTypeEnum() == 0x24)
     		{
     			// Does not support preview mode, set all to stream in
@@ -4197,19 +4197,19 @@ public class CresStreamCtrl extends Service {
 			versionName = info.versionName;
 		if (AirMediaAwind.checkAirMediaLicense())
 			MiscUtils.writeStringToDisk("/dev/shm/crestron/CresStreamSvc/airmediaVersion", versionName);
-//		if (use_splashtop) {
-//			ApplicationInfo ai=null;
-//			try {
-//				ai = pm.getApplicationInfo(fullPath, PackageManager.GET_META_DATA);
-//			} catch(Exception e) { Log.e(TAG, "Exception encountered trying to get metadata for AirMedia SDK version"); }
-//			if (ai != null) {
-//				Bundle bundle = ai.metaData;
-//				String serverVersion = bundle.getString("serverVersion");
-//				if (serverVersion != null && !serverVersion.equals("")) {
-//					MiscUtils.writeStringToDisk("/dev/shm/crestron/CresStreamSvc/airmediaServerVersion", serverVersion);
-//				}
-//			}
-//		}
+		if (use_splashtop) {
+			ApplicationInfo ai=null;
+			try {
+				ai = pm.getApplicationInfo(fullPath, PackageManager.GET_META_DATA);
+			} catch(Exception e) { Log.e(TAG, "Exception encountered trying to get metadata for AirMedia SDK version");}
+			if (ai != null) {
+				Bundle bundle = ai.metaData;
+				String serverVersion = bundle.getString("serverVersion");
+				if (serverVersion != null && !serverVersion.equals("")) {
+					MiscUtils.writeStringToDisk("/dev/shm/crestron/CresStreamSvc/airmediaServerVersion", serverVersion);
+				}
+			}
+		}
 		
 		return versionName;
     }
