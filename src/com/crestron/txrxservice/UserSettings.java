@@ -313,6 +313,7 @@ public class UserSettings
 		rtspSessionName		= "Crestron Streaming";
 		multicastTTL		= 64;
 		airMediaLaunch		= initBoolArray(false);
+		airMediaLoginMode	= CresStreamCtrl.AirMediaLoginMode.Fixed.ordinal();
 		airMediaLoginCode	= 1234; //Get default value
 		airMediaDisconnectUser = initBoolArray(false, 32);
 		airMediaStartUser 	= initBoolArray(false, 32);
