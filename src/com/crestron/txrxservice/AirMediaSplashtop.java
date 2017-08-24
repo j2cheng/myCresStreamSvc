@@ -96,6 +96,7 @@ public class AirMediaSplashtop implements AirMedia
 	private String version = null;
 	private String productName = null; 
 	private int lastReturnedAirMediaStatus;
+	private boolean pending_adapter_ip_address_change = false;
 
     private Handler handler_;
     private Map<Integer, AirMediaSession> userSessionMap = new ConcurrentHashMap<Integer, AirMediaSession>();
@@ -189,37 +190,54 @@ public class AirMediaSplashtop implements AirMedia
     }
     
     // synchronous version of receiver stop - waits for completion
-    private boolean stopReceiver()
+    private synchronized boolean stopReceiver()
     {
-    	Log.i(TAG, "Calling stop for receiver");
+    	Log.i(TAG, "stopReceiver() enter (thread="+Thread.currentThread().getId()+")");
     	boolean successfulStop = true;
-		receiverStoppedLatch = new CountDownLatch(1);
+    	receiverStoppedLatch = new CountDownLatch(1);
     	receiver_.stop();
-		try { successfulStop = receiverStoppedLatch.await(30000, TimeUnit.MILLISECONDS); }
-		catch (InterruptedException ex) { ex.printStackTrace(); }
-		return successfulStop;
+    	try { successfulStop = receiverStoppedLatch.await(30000, TimeUnit.MILLISECONDS); }
+    	catch (InterruptedException ex) { ex.printStackTrace(); }
+    	Log.i(TAG, "stopReceiver() exit (thread="+Thread.currentThread().getId()+")");
+    	return successfulStop;
     }
     
     // synchronous version of receiver start - waits for completion
-    private boolean startReceiver()
+    // this function does not handle ip adapter changes that may have occurred - for that use
+    // the version that handles it: startReceiverWithPossibleIpAddressChange()
+    private synchronized boolean startReceiver()
     {
-    	Log.i(TAG, "Calling start for receiver");
+    	Log.i(TAG, "startReceiver() enter (thread="+Thread.currentThread().getId()+")");
     	boolean successfulStart = true;
     	receiverStartedLatch = new CountDownLatch(1);
     	receiver().start();
     	try { successfulStart = receiverStartedLatch.await(3000, TimeUnit.MILLISECONDS); }
     	catch (InterruptedException ex) { ex.printStackTrace(); }
+    	Log.i(TAG, "startReceiver() exit (thread="+Thread.currentThread().getId()+")");
     	return successfulStart;
     }
 
+	private synchronized void startReceiverWithPossibleIpAddressChange()
+	{
+		// If there is an IP address change apply it first and 
+		if (pending_adapter_ip_address_change && !adapter_ip_address.equals("None")) {
+			Log.i(TAG, "startReceiverWithPossiblyIpAddressChange(): Setting new ip address for receiver: " + adapter_ip_address);
+			receiver_.adapterAddress(adapter_ip_address);
+			startReceiver();
+		}
+		pending_adapter_ip_address_change = false;
+	}
+	
     private class RestartReceiver implements Runnable {
     	public void run() {
+    		Log.i(TAG, "RestartReceiver(): Entered");
     		if (receiver_.state() != AirMediaReceiverState.Stopped)
     		{
             	Log.i(TAG, "RestartReceiver(): Stopping receiver");
     			stopReceiver();			
     		}
-            startReceiver();
+    		startReceiverWithPossibleIpAddressChange();
+    		Log.i(TAG, "RestartReceiver(): Exited");
     	}
     }
     
@@ -264,11 +282,11 @@ public class AirMediaSplashtop implements AirMedia
         if (successfulStart)
         {
         	if (receiver().state() != AirMediaReceiverState.Stopped) {
-        		Log.i(TAG," Receiver found to be in Started state - calling stop to 'restart' it");
+        		Log.i(TAG,"startAirMediaReceiver: Receiver found to be in Started state - calling stop to 'restart' it");
         		receiver().sessionManager().clear();
         		stopReceiver();
         	}
-        	Log.i(TAG, "Starting AirMedia Receiver");
+        	Log.i(TAG, "startAirMediaReceiver(): Starting AirMedia Receiver");
         	successfulStart = startReceiver();
         }
         startupCompleteLatch.countDown();
@@ -858,19 +876,15 @@ public class AirMediaSplashtop implements AirMedia
     	if (adapter_ip_address.equals(address))
     		return;
     	adapter_ip_address = address;
+    	pending_adapter_ip_address_change = true;
     	Log.i(TAG, "setAdapter(): Stopping all senders");
     	stopAllSenders();
     	if (receiver().state() != AirMediaReceiverState.Stopped) {
         	Log.i(TAG, "setAdapter(): Stopping receiver");
     		stopReceiver();
     	}
-    	if (!address.equals("None"))
-    	{
-    		Log.i(TAG, "setAdapter(): Setting new ip address for receiver: " + address);
-    		receiver_.adapterAddress(address);
-    		Log.i(TAG, "setAdapter(): Starting receiver");
-    		receiver().start();
-    	}
+    	startReceiverWithPossibleIpAddressChange();
+		Log.i(TAG, "setAdapter(): Exiting having set ip address to "+ adapter_ip_address);
     }
     
     public void setModeratorEnable(boolean enable)

@@ -4098,6 +4098,7 @@ public class CresStreamCtrl extends Service {
     		userSettings.setAirMediaAdaptorSelect(select);
     		if (mAirMedia != null)
     		{
+        		Log.d(TAG,"*************** setAirMediaAdaptorSelect -- addr="+getAirMediaConnectionIpAddress(sessId)+"   *********");
         		mAirMedia.setAdapter(getAirMediaConnectionIpAddress(sessId));
     			mAirMedia.setIpAddressPrompt(userSettings.getAirMediaIpAddressPrompt());
     		}
@@ -4112,6 +4113,7 @@ public class CresStreamCtrl extends Service {
     {
     	if (mAirMedia != null)
 		{
+    		Log.d(TAG,"*************** updateAirMediaIpInformation -- addr="+getAirMediaConnectionIpAddress(sessId)+"   *********");
     		mAirMedia.setAdapter(getAirMediaConnectionIpAddress(sessId));
     		mAirMedia.setIpAddressPrompt(userSettings.getAirMediaIpAddressPrompt());
 		}
@@ -4200,7 +4202,7 @@ public class CresStreamCtrl extends Service {
 		if (use_splashtop) {
 			ApplicationInfo ai=null;
 			try {
-				ai = pm.getApplicationInfo(fullPath, PackageManager.GET_META_DATA);
+				ai = pm.getApplicationInfo("com.crestron.airmedia.receiver.m360", PackageManager.GET_META_DATA);
 			} catch(Exception e) { Log.e(TAG, "Exception encountered trying to get metadata for AirMedia SDK version");}
 			if (ai != null) {
 				Bundle bundle = ai.metaData;
