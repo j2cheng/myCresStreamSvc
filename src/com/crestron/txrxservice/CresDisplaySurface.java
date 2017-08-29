@@ -443,6 +443,10 @@ public class CresDisplaySurface
     
     public void createBackgroundWindow(int windowWidth, int windowHeight, int color, boolean haveExternalDisplays)
     {
+    	// Bug 134825: Just create 32x32 window to save memory
+    	windowHeight = 32;
+    	windowWidth = 32;
+    	
     	// For Devices with external display, put a surface always on background of external display
     	if(haveExternalDisplays)
     	{
