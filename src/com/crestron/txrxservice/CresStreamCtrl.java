@@ -145,6 +145,7 @@ public class CresStreamCtrl extends Service {
     public final static String restartStreamsFilePath = "/dev/shm/crestron/CresStreamSvc/restartStreams";
     public final static String hdmiLicenseFilePath = "/dev/shm/hdmi_licensed";
     public final static String pinpointEnabledFilePath = "/dev/crestron/alphablendingenable";
+    private final static String mercuryHdmiOutWaitFilePath = "/dev/shm/crestron/CresStreamSvc/mercuryWait";
     public volatile boolean mMediaServerCrash = false;
     public volatile boolean mDucatiCrash = false;
     public volatile boolean mIgnoreAllCrash = false;
@@ -170,6 +171,7 @@ public class CresStreamCtrl extends Service {
     private volatile Timer mNoVideoTimer = null;
     private Object mCameraModeScheduleLock = new Object();
     private Object mAirMediaLock = new Object();
+    private Object mDisplayChangedLock = new Object();
     private int defaultLoggingLevel = -1;
     private int numberOfVideoTimeouts = 0; //we will use this to track stop/start timeouts
     private final ProductSpecific mProductSpecific = new ProductSpecific();
@@ -4554,7 +4556,10 @@ public class CresStreamCtrl extends Service {
 		                		int hdmiOutResolutionEnum = paramAnonymousIntent.getIntExtra("evs_hdmiout_resolution_changed_id", -1);
 		                		Log.i(TAG, "Received hdmiout resolution changed broadcast ! " + hdmiOutResolutionEnum);
 
-		                		handleHdmiOutputChange();
+		                		synchronized (mDisplayChangedLock) 
+		                		{
+		                			handleHdmiOutputChange();
+		                		}
 		                	}
 		                }
 		                latch.countDown();
@@ -5179,15 +5184,24 @@ public class CresStreamCtrl extends Service {
 		public void onDisplayAdded(final int displayId)
 		{
 			new Thread(new Runnable() {
-				public void run() { 
-					DisplayManager dm = 
-							(DisplayManager) getSystemService(DISPLAY_SERVICE);
-					Display dispArray[] = dm.getDisplays();
-					if ( (haveExternalDisplays && (dispArray.length > 1) && (displayId == dispArray[1].getDisplayId())) ||
-							(!haveExternalDisplays && (displayId == dispArray[0].getDisplayId())) )
+				public void run() { 					
+					synchronized (mDisplayChangedLock) 
 					{
-						Log.d(TAG, "HDMI Output display has been added");
-						handleHdmiOutputChange();
+						// Bug 135322: Need to sleep after powercycle for Mercury because of window became corrupted (size 0 zorder 0)
+						if (haveExternalDisplays && MiscUtils.readStringFromDisk(mercuryHdmiOutWaitFilePath).compareTo("1") != 0)
+						{
+							MiscUtils.writeStringToDisk(mercuryHdmiOutWaitFilePath, "1");
+							try { Thread.sleep(10000);} catch (InterruptedException e) {}
+						}
+						DisplayManager dm = 
+								(DisplayManager) getSystemService(DISPLAY_SERVICE);
+						Display dispArray[] = dm.getDisplays();
+						if ( (haveExternalDisplays && (dispArray.length > 1) && (displayId == dispArray[1].getDisplayId())) ||
+								(!haveExternalDisplays && (displayId == dispArray[0].getDisplayId())) )
+						{
+							Log.d(TAG, "HDMI Output display has been added");
+							handleHdmiOutputChange();
+						}
 					}
 				}
 			}).start();
@@ -5205,14 +5219,17 @@ public class CresStreamCtrl extends Service {
 		{
 			new Thread(new Runnable() {
 				public void run() { 
-					DisplayManager dm = 
-							(DisplayManager) getSystemService(DISPLAY_SERVICE);
-					Display dispArray[] = dm.getDisplays();
-					if ( (haveExternalDisplays && (dispArray.length == 1) && (displayId != dispArray[0].getDisplayId())) ||
-							(dispArray.length == 0) )
+					synchronized (mDisplayChangedLock) 
 					{
-						Log.d(TAG, "HDMI Output display has been removed");
-						handleHdmiOutputChange();
+						DisplayManager dm = 
+								(DisplayManager) getSystemService(DISPLAY_SERVICE);
+						Display dispArray[] = dm.getDisplays();
+						if ( (haveExternalDisplays && (dispArray.length == 1) && (displayId != dispArray[0].getDisplayId())) ||
+								(dispArray.length == 0) )
+						{
+							Log.d(TAG, "HDMI Output display has been removed");
+							handleHdmiOutputChange();
+						}
 					}
 				}
 			}).start();
