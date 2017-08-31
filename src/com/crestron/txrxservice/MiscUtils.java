@@ -258,6 +258,7 @@ public class MiscUtils {
             getString.setAccessible(true);
             return getString.invoke(null, "net.hostname").toString();
         } catch (Exception ex) {
+        	ex.printStackTrace();
             return defValue;
         }
     }

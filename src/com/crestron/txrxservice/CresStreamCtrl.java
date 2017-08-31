@@ -909,6 +909,7 @@ public class CresStreamCtrl extends Service {
     public void setHostName(String dflt)
     {
 		hostName = MiscUtils.getHostName(dflt);
+		Log.d(TAG, "####RH#### setHostName() hostname="+hostName);
     }
     
     public void setDomainName(String dflt)
@@ -4160,6 +4161,7 @@ public class CresStreamCtrl extends Service {
     		return "";
     	StringBuilder url = new StringBuilder(512);
         url.append("http://");
+		Log.d(TAG, "####RH#### getAirMediaConnectionAddress() showHost="+showHost+"  hostname="+hostName);
         if (showHost && hostName != null) {
         	url.append(hostName);
         }
@@ -4176,6 +4178,7 @@ public class CresStreamCtrl extends Service {
         		url.append(")");
         	}
         }
+		Log.d(TAG, "####RH#### getAirMediaConnectionAddress() returning "+url.toString());
         return url.toString();    	
     }
     
