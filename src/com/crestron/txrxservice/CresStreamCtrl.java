@@ -3351,40 +3351,39 @@ public class CresStreamCtrl extends Service {
     		startNativePreview(sessId);
     }
 
-  //Stop gstreamer Preview
+    //Stop gstreamer Preview
     public void stopGstPreview(int sessId, boolean hide)
     {
+	    Log.d(TAG, "stopGstPreview() sessId = " + sessId + ", hide = " + hide);
     	cameraLock.lock();
 	    Log.d(TAG, "Camera : Lock");
-    	try
-    	{
-    		if (gstStreamOut != null)
-    		{
-				gstStreamOut.stopPreview(sessId);
-				int rtn = 0;
-				rtn = gstStreamOut.waitForPreviewClosed(sessId,5);
-   			
-    			if(hide)
-    			{
+    	try {
+    		if (gstStreamOut != null) {
+    			if ( hide ) {
+				    Log.d(TAG, "Hide Preview Window first to enhance the user experience when quickly switching to another UI");
+
     				// Do NOT hide window if being used by AirMedia
-    		    	if ( !((mAirMedia != null) && (mAirMedia.getSurfaceDisplayed() == true)) )
-    		    		hidePreviewWindow(sessId);
+    		    	if ( !((mAirMedia != null) && (mAirMedia.getSurfaceDisplayed() == true)) ) {
+				        hidePreviewWindow(sessId);
+    		    	}	
     			}
-    			
+                // so these are contiuously running in background.
+				gstStreamOut.stopPreview(sessId);
+				gstStreamOut.waitForPreviewClosed(sessId,5);
+
     			//On STOP, there is a chance to get ducati crash which does not save current state
     			//causes streaming never stops.
     			//FIXME:Temp Hack for ducati crash to save current state
     			userSettings.setStreamState(StreamState.STOPPED, sessId);
     		}
     	}
-    	finally
-    	{
+    	finally {
     		cameraLock.unlock();
     		Log.d(TAG, "Camera : Unlock");
     	}
     }
     
-  //Stop native Preview
+    //Stop native Preview
     public void stopNativePreview(int sessId, boolean hide)
     {
     	cameraLock.lock();
