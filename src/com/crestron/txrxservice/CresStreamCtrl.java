@@ -3563,7 +3563,8 @@ public class CresStreamCtrl extends Service {
     
     public void stopOnIpAddrChange(){
 		Log.e(TAG, "Restarting on device IP Address Change...!");
-        restartStreams(false, true); 	// Dont restart preview on IP change
+		// Bug 135405: Do not explicitly call restart streams for stream in, let timeouts handle it
+        restartStreams(true, true); 	// Dont restart preview on IP change
     }
     
     public void RestartAirMedia() {
