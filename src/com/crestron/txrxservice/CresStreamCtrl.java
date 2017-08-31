@@ -146,6 +146,7 @@ public class CresStreamCtrl extends Service {
     public final static String hdmiLicenseFilePath = "/dev/shm/hdmi_licensed";
     public final static String pinpointEnabledFilePath = "/dev/crestron/alphablendingenable";
     private final static String mercuryHdmiOutWaitFilePath = "/dev/shm/crestron/CresStreamSvc/mercuryWait";
+    private final static String initializeSettingsFilePath = "/dev/shm/crestron/CresStreamSvc/initializeSettings";
     public volatile boolean mMediaServerCrash = false;
     public volatile boolean mDucatiCrash = false;
     public volatile boolean mIgnoreAllCrash = false;
@@ -615,26 +616,34 @@ public class CresStreamCtrl extends Service {
     				Log.e(TAG, "Could not upgrade userSettings: " + ex);
     			}
     		}
-    		// for some products set up the defaults on restore
-    		// TODO: If we want special restore section do that here    		
-//    		if (isRestore)
-//    		{
-//    			switch (nativeGetProductTypeEnum())
-//				{
-//				default:
-//					break;
-//				}
-//    		}
     		
-    		// Special case to knock DMPS out of camera modes and force adapter to default value of 0 for each reboot
-    		if (nativeGetProductTypeEnum() == 0x24)
+    		if (MiscUtils.readStringFromDisk(initializeSettingsFilePath).compareTo("1") != 0)
     		{
-    			// Does not support preview mode, set all to stream in
-				for (int sessionId = 0; sessionId < NumOfSurfaces; sessionId++)
-				{
-					userSettings.setMode(DeviceMode.STREAM_IN.ordinal(), sessionId);
-					setAirMediaAdaptorSelect(0, 0);
-				}				
+    			MiscUtils.writeStringToDisk(initializeSettingsFilePath, "1");
+
+    			// for some products set up the defaults on restore
+    			// TODO: If we want special restore section do that here    		
+    			//    		if (isRestore)
+    			//    		{
+    			//    			switch (nativeGetProductTypeEnum())
+    			//				{
+    			//				default:
+    			//					break;
+    			//				}
+    			//    		}
+
+    			// Special case to knock DMPS out of camera modes and force adapter to default value of 0 for each reboot
+    			if (nativeGetProductTypeEnum() == 0x24)
+    			{
+    				// Does not support preview mode, set all to stream in
+    				for (int sessionId = 0; sessionId < NumOfSurfaces; sessionId++)
+    				{
+    					userSettings.setMode(DeviceMode.STREAM_IN.ordinal(), sessionId);
+    					setAirMediaAdaptorSelect(0, 0);
+    					userSettings.setStreamInUrl("", sessionId);
+    					userSettings.setUserRequestedStreamState(StreamState.STOPPED, sessionId);
+    				}				
+    			}
     		}
     		
     		// This needs to be done before Gstreamer setup
