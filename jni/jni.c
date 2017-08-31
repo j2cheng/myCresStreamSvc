@@ -635,6 +635,7 @@ void csio_jni_stop(int sessionId)
 	if (result == ETIMEDOUT)
 	{
 		CSIO_LOG(eLogLevel_error, "Stop timed out after %d seconds\n", timeout_sec);
+		ResetStartedPlay(sessionId);
 		csio_jni_recoverDucati();
 	}
 	else if (result != 0)
