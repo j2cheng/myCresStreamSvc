@@ -9,17 +9,20 @@ import com.crestron.txrxservice.CresStreamCtrl.StreamState;
 class CrestronCommand implements CommandIf {
 	CresStreamCtrl ctrl = null;
     String msg = null;
+    String setFbMsg = null;
     int sessId = 0;
     
     public CrestronCommand(CresStreamCtrl ctrl, String arg, int sessId) {
         this.ctrl = ctrl;
         this.msg = arg;
+        this.setFbMsg = arg;
         this.sessId = sessId;
     }
     
     public CrestronCommand(CresStreamCtrl ctrl, String arg) {
         this.ctrl = ctrl;
         this.msg = arg;
+		this.setFbMsg = arg;
     }
     
     //Should override if join should be be acted upon
@@ -30,6 +33,10 @@ class CrestronCommand implements CommandIf {
     //Should override if join should be included in update request
     public String getFeedbackMsg() {
         return msg;  
+    }
+    
+    public String getSetFbMsg() {
+    	return setFbMsg;
     }
     
     public void setVars(String arg, int sessId)
@@ -1725,7 +1732,7 @@ class AirMediaLoginCodeCommand extends CrestronCommand {
 		super(ctrl, arg, sessId);
 	}
 	public void execute() {
-		ctrl.setAirMediaLoginCode(VALIDATE_INT(msg), sessId);
+		this.setFbMsg = ctrl.setAirMediaLoginCode(VALIDATE_INT(msg), sessId);
 	}
 	public String getFeedbackMsg() {
 		return Integer.toString(ctrl.userSettings.getAirMediaLoginCode());
@@ -1738,7 +1745,7 @@ class AirMediaLoginModeCommand extends CrestronCommand {
 	}
 
 	public void execute() {
-		ctrl.setAirMediaLoginMode(VALIDATE_INT(msg), sessId);
+		this.setFbMsg = ctrl.setAirMediaLoginMode(VALIDATE_INT(msg), sessId);
 	}
 	public String getFeedbackMsg() {
 		return Integer.toString(ctrl.userSettings.getAirMediaLoginMode());

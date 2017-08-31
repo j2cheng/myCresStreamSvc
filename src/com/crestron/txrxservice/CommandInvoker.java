@@ -14,4 +14,8 @@ public class CommandInvoker{
     public String get(){
        return myCmd.getFeedbackMsg();
     }
+    
+    public String getSetFb() {
+    	return myCmd.getSetFbMsg();
+    }
 }

@@ -802,7 +802,7 @@ public class CommandParser {
 	                }           
 	            }
 	            
-	            valueResponse = parseResponse.joinValue;
+	            valueResponse = invoke.getSetFb();
 	        }
 	        else
 	        {
@@ -815,10 +815,13 @@ public class CommandParser {
                 }
 	        }
 	        
-	        if (parseResponse.sessIdSpecified)
-	        	reply = processReplyFbMessage(joinNameWithSessId, valueResponse);
-	        else
-	        	reply = processReplyFbMessage(parseResponse.joinName, valueResponse);
+	        if (valueResponse != null)
+	        {
+	        	if (parseResponse.sessIdSpecified)
+	        		reply = processReplyFbMessage(joinNameWithSessId, valueResponse);
+	        	else
+	        		reply = processReplyFbMessage(parseResponse.joinName, valueResponse);
+	        }
 		}
 
         return reply;
