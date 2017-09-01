@@ -106,7 +106,12 @@ public class AirMediaSplashtop implements AirMedia
     {
     	mStreamCtl = streamCtl;
     	mContext = (Context)mStreamCtl;
-    	    	
+    	
+    	mStreamCtl.setHostName("AirMedia");
+    	mStreamCtl.setDomainName("");
+    	Log.d(TAG, "HostName="+mStreamCtl.hostName+"   DomainName="+mStreamCtl.domainName);
+    	mStreamCtl.sendAirMediaConnectionAddress(streamIdx);  
+    	
 //    	shutDownAirMediaSplashtop();	// In case AirMediaSplashtop was already running shut it down
     	    			
     	if (connectAndStartReceiverService()) {
@@ -149,9 +154,6 @@ public class AirMediaSplashtop implements AirMedia
     
     private void startAirMedia()
     { 
-    	mStreamCtl.setHostName("AirMedia");
-    	mStreamCtl.setDomainName("");
-    	Log.d(TAG, "HostName="+mStreamCtl.hostName+"   DomainName="+mStreamCtl.domainName);
 		Log.d(TAG, "startAirMedia: Device IP="+mStreamCtl.userSettings.getDeviceIp()+"   Aux IP="+mStreamCtl.userSettings.getAuxiliaryIp());
 
 		adapter_ip_address = mStreamCtl.getAirMediaConnectionIpAddress(0);

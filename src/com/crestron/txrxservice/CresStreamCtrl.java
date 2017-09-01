@@ -190,8 +190,8 @@ public class CresStreamCtrl extends Service {
     public String mProductName;
     public boolean mCameraDisabled = false;
     private final int backgroundViewColor = Color.argb(255, 0, 0, 0);
-	public String hostName;
-	public String domainName;
+	public String hostName=null;
+	public String domainName=null;
 	private final long hdmiBroadcastTimeout_ms = 60000; 
     public OutputDisplayListener mDisplayListener = new OutputDisplayListener();
     private final Runnable foregroundRunnable = new Runnable() {
@@ -909,7 +909,6 @@ public class CresStreamCtrl extends Service {
     public void setHostName(String dflt)
     {
 		hostName = MiscUtils.getHostName(dflt);
-		Log.d(TAG, "####RH#### setHostName() hostname="+hostName);
     }
     
     public void setDomainName(String dflt)
@@ -4161,7 +4160,6 @@ public class CresStreamCtrl extends Service {
     		return "";
     	StringBuilder url = new StringBuilder(512);
         url.append("http://");
-		Log.d(TAG, "####RH#### getAirMediaConnectionAddress() showHost="+showHost+"  hostname="+hostName);
         if (showHost && hostName != null) {
         	url.append(hostName);
         }
@@ -4178,7 +4176,7 @@ public class CresStreamCtrl extends Service {
         		url.append(")");
         	}
         }
-		Log.d(TAG, "####RH#### getAirMediaConnectionAddress() returning "+url.toString());
+		Log.d(TAG, "getAirMediaConnectionAddress() returning "+url.toString());
         return url.toString();    	
     }
     

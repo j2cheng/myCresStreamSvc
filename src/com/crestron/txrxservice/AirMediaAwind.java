@@ -110,6 +110,11 @@ public class AirMediaAwind implements AirMedia
     {
     	mStreamCtl = streamCtl;
     	mContext = (Context)mStreamCtl;
+    	
+    	mStreamCtl.setHostName("AirMedia");
+    	mStreamCtl.setDomainName("");
+    	Log.d(TAG, "HostName="+mStreamCtl.hostName+"   DomainName="+mStreamCtl.domainName);
+    	mStreamCtl.sendAirMediaConnectionAddress(0);  
 
     	shutDownAirMediaAwind();	// In case AirMediaAwind was already running shut it down
     	
