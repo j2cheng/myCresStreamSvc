@@ -472,6 +472,21 @@ public class AirMediaSplashtop implements AirMedia
     		userSessionMap.remove(senderId);
     }
     
+    public void removeAllSessionsFromMap()
+    {
+		Log.i(TAG, "removeAllSessions");
+    	for (int user = 1; user <= MAX_USERS; user++) // We handle airMedia user ID as 1 based
+    	{
+    		AirMediaSession session = user2session(user);
+    		if (session != null) {
+    			Log.i(TAG, "removing session for user "+user+" from map");
+    			userSessionMap.remove(user);
+                mStreamCtl.userSettings.setAirMediaUserConnected(false, user);
+                mStreamCtl.sendAirMediaUserFeedbacks(user, "", "", 0, false);
+    		}
+    	}
+    }
+    
     public boolean getSurfaceDisplayed()
     {
     	return surfaceDisplayed;
@@ -1277,6 +1292,8 @@ public class AirMediaSplashtop implements AirMedia
             	{
             		removeSession(session());
             	}
+            	removeAllSessionsFromMap();
+        		querySenderList(false);
         		mStreamCtl.sendAirMediaStatus(0);
                 RestartAirMedia restarter = new RestartAirMedia();
                 Thread t = new Thread(restarter);
