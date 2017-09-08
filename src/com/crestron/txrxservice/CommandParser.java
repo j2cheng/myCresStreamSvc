@@ -787,6 +787,7 @@ public class CommandParser {
 	            if (cmd != null)
 	            {
 	                invoke.setCommand(cmd);
+	                invoke.setFbMsg(parseResponse.joinValue);
 	                invoke.set();
 	                
 	                // Don't save userSettings for these messages since they are not saved in userSettings

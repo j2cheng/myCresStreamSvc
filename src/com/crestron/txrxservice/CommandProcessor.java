@@ -35,6 +35,10 @@ class CrestronCommand implements CommandIf {
         return msg;  
     }
     
+    public void setFbMsg(String arg) {
+    	setFbMsg = arg;
+    }
+    
     public String getSetFbMsg() {
     	return setFbMsg;
     }

@@ -15,6 +15,10 @@ public class CommandInvoker{
        return myCmd.getFeedbackMsg();
     }
     
+    public void setFbMsg(String arg) {
+    	myCmd.setFbMsg(arg);
+    }
+    
     public String getSetFb() {
     	return myCmd.getSetFbMsg();
     }
