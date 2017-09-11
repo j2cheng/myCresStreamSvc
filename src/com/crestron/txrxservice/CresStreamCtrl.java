@@ -639,11 +639,15 @@ public class CresStreamCtrl extends Service {
     				for (int sessionId = 0; sessionId < NumOfSurfaces; sessionId++)
     				{
     					userSettings.setMode(DeviceMode.STREAM_IN.ordinal(), sessionId);
-    					setAirMediaAdaptorSelect(0, 0);
     					userSettings.setStreamInUrl("", sessionId);
     					userSettings.setUserRequestedStreamState(StreamState.STOPPED, sessionId);
     				}				
     			}
+    			setAirMediaAdaptorSelect(0, 0);
+    		}
+    		else
+    		{
+    			setAirMediaAdaptorSelect(0, 0);
     		}
     		
     		// This needs to be done before Gstreamer setup
@@ -3190,17 +3194,17 @@ public class CresStreamCtrl extends Service {
     
     public void setStreamInUrl(String ap_url, int sessionId)
     {
-        userSettings.setStreamInUrl(ap_url, sessionId);
-	if (getAutomaticInitiationMode())
-	    userSettings.setStreamServerUrl(ap_url, sessionId);
+    	userSettings.setStreamInUrl(ap_url, sessionId);
+    	if (getAutomaticInitiationMode())
+    		userSettings.setStreamServerUrl(ap_url, sessionId);
 
-        if(ap_url.startsWith("rtp://@"))
-            streamPlay.setRtpOnlyMode( userSettings.getRtpVideoPort(sessionId),  userSettings.getRtpAudioPort(sessionId), userSettings.getDeviceIp(), sessionId);
-        else if(ap_url.startsWith("http://"))
-            streamPlay.disableLatency(sessionId);
-        else
-            Log.d(TAG, "No conditional Tags for StreamIn");
-        sockTask.SendDataToAllClients(String.format("STREAMURL%d=%s", sessionId, ap_url));
+    	if(ap_url.startsWith("rtp://@"))
+    		streamPlay.setRtpOnlyMode( userSettings.getRtpVideoPort(sessionId),  userSettings.getRtpAudioPort(sessionId), userSettings.getDeviceIp(), sessionId);
+    	else if(ap_url.startsWith("http://"))
+    		streamPlay.disableLatency(sessionId);
+    	else
+    		Log.d(TAG, "No conditional Tags for StreamIn");
+    	sockTask.SendDataToAllClients(String.format("STREAMURL%d=%s", sessionId, ap_url));
     }
     
     public void setStreamOutUrl(String ap_url, int sessionId)
@@ -4697,17 +4701,17 @@ public class CresStreamCtrl extends Service {
 	{
 		new Thread(new Runnable() {
     		public void run() {
-    			while ( (mIsHdmiOutExternal == false) && (HDMIOutputInterface.readHDCPOutputStatus() == -1) )
-    			{
-    				try {
-    					Thread.sleep(100);
-    				} catch (Exception e) { e.printStackTrace(); }
-    			}
-    			
-    			// No need to set HDCP bypass when handled externally
-    			if (mIsHdmiOutExternal == false)
-    			{
-    				//Set bypass high when hdcp is not authenticated on output, if not in force hdcp mode
+    				while ( (mIsHdmiOutExternal == false) && (HDMIOutputInterface.readHDCPOutputStatus() == -1) )
+    				{
+    					try {
+    						Thread.sleep(100);
+    					} catch (Exception e) { e.printStackTrace(); }
+    				}
+
+    				// No need to set HDCP bypass when handled externally
+    				if (mIsHdmiOutExternal == false)
+    				{
+    					//Set bypass high when hdcp is not authenticated on output, if not in force hdcp mode
     				boolean setHDCPBypass = ((userSettings.isHdmiOutForceHdcp() == false) && (HDMIOutputInterface.readHDCPOutputStatus() == 0));
     				HDMIOutputInterface.setHDCPBypass(setHDCPBypass);
     			}
