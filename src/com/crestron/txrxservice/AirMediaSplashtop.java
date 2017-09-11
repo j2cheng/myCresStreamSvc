@@ -132,7 +132,7 @@ public class AirMediaSplashtop implements AirMedia
 		
 		boolean successfulStart = true; //indicates that there was no time out condition
 		startupCompleteLatch = new CountDownLatch(1);
-		try { successfulStart = startupCompleteLatch.await(3000, TimeUnit.MILLISECONDS); }
+		try { successfulStart = startupCompleteLatch.await(5000, TimeUnit.MILLISECONDS); }
 		catch (InterruptedException ex) { ex.printStackTrace(); }
 		return successfulStart;
     }
@@ -185,7 +185,7 @@ public class AirMediaSplashtop implements AirMedia
 		// start service and instantiate receiver class
 		doBindService();
 		boolean successfulStart = true; //indicates that there was no time out condition
-		try { successfulStart = serviceConnectedLatch.await(3000, TimeUnit.MILLISECONDS); }
+		try { successfulStart = serviceConnectedLatch.await(5000, TimeUnit.MILLISECONDS); }
 		catch (InterruptedException ex) { ex.printStackTrace(); }
 
 		return successfulStart;
@@ -262,12 +262,14 @@ public class AirMediaSplashtop implements AirMedia
 
         		if (receiver().loaded() != AirMediaReceiverLoadedState.Loaded)
         		{
+        			Log.d(TAG,"startAirMediaReceiver: loading receiver");
         			receiverLoadedLatch = new CountDownLatch(1);
         			Log.i(TAG,"Calling receiver.initalize()");
         			receiver().initialize();        		
-        			try { successfulStart = receiverLoadedLatch.await(3000, TimeUnit.MILLISECONDS); }
+        			try { successfulStart = receiverLoadedLatch.await(30000, TimeUnit.MILLISECONDS); }
         			catch (InterruptedException ex) { ex.printStackTrace(); }
-        			Log.i(TAG,"receiver is in loaded state");
+        			Log.d(TAG,"startAirMediaReceiver: receiverLoading success="+successfulStart);
+        			Log.i(TAG,"receiver is in " + receiver().loaded() + " state");
         		} else {
         			Log.i(TAG,"Not calling receiver.initalize() because receiver is already loaded");
         		}
@@ -902,6 +904,13 @@ public class AirMediaSplashtop implements AirMedia
     	}
     	startReceiverWithPossibleIpAddressChange();
 		Log.i(TAG, "setAdapter(): Exiting having set ip address to "+ adapter_ip_address);
+    }
+    
+    public void setProjectionLock(boolean enable)
+    {
+    	Log.i(TAG, "setProjectionLock: " + enable);
+    	if (receiver_ != null)
+    		receiver_.projectionLocked(enable);
     }
     
     public void setModeratorEnable(boolean enable)

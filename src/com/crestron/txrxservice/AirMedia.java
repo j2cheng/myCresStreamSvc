@@ -51,4 +51,6 @@ public interface AirMedia
     public void setVideoTransformation(int x, int y, int w, int h);
     
     public void setAdapter(String address);
+    
+    public void setProjectionLock(boolean enable);
 }

@@ -54,6 +54,9 @@ interface IAirMediaReceiver {
     boolean getDebugMode();
     void setDebugMode(in boolean enabled);
 
+    boolean getProjectionLocked();
+    void setProjectionLocked(boolean locked);
+
     AirMediaReceiverMirroringAssist getMirroringAssist();
 
     ////////////////////////////////////////////////////////////////////////////////////////////////

@@ -4106,6 +4106,15 @@ public class CresStreamCtrl extends Service {
     	mAirMedia.debugCommand(debugCommand);
     }
     
+    public void setAirMediaProjectionLock(boolean val, int sessId)
+    {
+    	if (mAirMedia != null)
+    	{
+    		userSettings.setAirMediaProjectionLock(val);
+    		mAirMedia.setProjectionLock(val);
+    	}
+    }
+
     public void setAirMediaAdaptorSelect(int select, int sessId)
     {
     	if (select != userSettings.getAirMediaAdaptorSelect())

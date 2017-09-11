@@ -35,4 +35,6 @@ interface IAirMediaReceiverObserver {
     oneway void onForceCompatibilityChanged(in boolean to);
 
     oneway void onDebugModeChanged(in boolean to);
+
+    oneway void onProjectionLockedChanged(in boolean to);
 }

@@ -2094,6 +2094,18 @@ class AirMediaRestartCommand extends CrestronCommand {
 	// No feedback
 }
 
+class AirMediaProjectionLockCommand extends CrestronCommand {
+	public AirMediaProjectionLockCommand(CresStreamCtrl ctrl, String arg, int sessId) {
+		super(ctrl, arg, sessId);
+	}
+	
+	public void execute() {		
+		boolean val = Boolean.valueOf(msg);
+		ctrl.setAirMediaProjectionLock(val, sessId);
+	}
+	// No feedback
+}
+
 class camStreamEnableCommand extends CrestronCommand {
 	public camStreamEnableCommand(CresStreamCtrl ctrl, String arg) {
 		super(ctrl, arg);

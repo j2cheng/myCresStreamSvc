@@ -49,9 +49,10 @@ public class AirMediaReceiver extends AirMediaBase {
             maxResolution_ = receiver.getMaxResolution();
             forceCompatibility_ = receiver.getForceCompatibility();
             debugMode_ = receiver.getDebugMode();
+            projectionLocked_ = receiver.getProjectionLocked();
             mirroringAssist_ = receiver.getMirroringAssist();
         } catch (RemoteException e) {
-            Log.e(TAG, "");
+            Log.e(TAG, "" + e + "  " + Log.getStackTraceString(e));
         }
     }
 
@@ -134,6 +135,12 @@ public class AirMediaReceiver extends AirMediaBase {
             debugMode_ = to;
             scheduler().raise(debugModeChanged(), self(), to);
         }
+
+        @Override
+        public void onProjectionLockedChanged(boolean to) throws RemoteException {
+            projectionLocked_ = to;
+            scheduler().raise(projectionLockedChanged(), self(), to);
+        }
     };
 
     ////////////////////////////////////////////////////////////////////////////////////////////////
@@ -157,6 +164,7 @@ public class AirMediaReceiver extends AirMediaBase {
     private AirMediaReceiverResolutionMode maxResolution_ = AirMediaReceiverResolutionMode.Max1080P;
     private boolean forceCompatibility_ = false;
     private boolean debugMode_ = false;
+    private boolean projectionLocked_ = false;
     private AirMediaReceiverMirroringAssist mirroringAssist_ = new AirMediaReceiverMirroringAssist();
 
     private AirMediaSessionManager sessionManager_;
@@ -173,6 +181,7 @@ public class AirMediaReceiver extends AirMediaBase {
     private final MulticastChangedDelegate<AirMediaReceiver, AirMediaReceiverResolutionMode> maxResolutionChanged_ = new MulticastChangedDelegate<AirMediaReceiver, AirMediaReceiverResolutionMode>();
     private final MulticastMessageDelegate<AirMediaReceiver, Boolean> forceCompatibilityChanged_ = new MulticastMessageDelegate<AirMediaReceiver, Boolean>();
     private final MulticastMessageDelegate<AirMediaReceiver, Boolean> debugModeChanged_ = new MulticastMessageDelegate<AirMediaReceiver, Boolean>();
+    private final MulticastMessageDelegate<AirMediaReceiver, Boolean> projectionLockedChanged_ = new MulticastMessageDelegate<AirMediaReceiver, Boolean>();
 
     ////////////////////////////////////////////////////////////////////////////////////////////////
     /// PROPERTIES
@@ -268,6 +277,14 @@ public class AirMediaReceiver extends AirMediaBase {
         scheduler().update(new TaskScheduler.PropertyUpdater<Boolean>() { @Override public void update(Boolean v) { updateDebugMode(v); } }, value);
     }
 
+    /// PROJECTION LOCKED
+
+    public boolean projectionLocked() { return projectionLocked_; }
+
+    public void projectionLocked(boolean value) {
+        scheduler().update(new TaskScheduler.PropertyUpdater<Boolean>() { @Override public void update(Boolean v) { updateProjectionLocked(v); } }, value);
+    }
+
     /// MIRRORING ASSIST
 
     public AirMediaReceiverMirroringAssist mirroringAssist() { return mirroringAssist_; }
@@ -298,6 +315,8 @@ public class AirMediaReceiver extends AirMediaBase {
     public MulticastMessageDelegate<AirMediaReceiver, Boolean> forceCompatibilityChanged() { return forceCompatibilityChanged_; }
 
     public MulticastMessageDelegate<AirMediaReceiver, Boolean> debugModeChanged() { return debugModeChanged_; }
+
+    public MulticastMessageDelegate<AirMediaReceiver, Boolean> projectionLockedChanged() { return projectionLockedChanged_; }
 
     ////////////////////////////////////////////////////////////////////////////////////////////////
     /// METHODS
@@ -411,6 +430,7 @@ public class AirMediaReceiver extends AirMediaBase {
                 maxResolution_ = receiver.getMaxResolution();
                 forceCompatibility_ = receiver.getForceCompatibility();
                 debugMode_ = receiver.getDebugMode();
+                projectionLocked_ = receiver.getProjectionLocked();
                 mirroringAssist_ = receiver.getMirroringAssist();
             }
             scheduler().raise(loadedChanged(), self(), from, to);
@@ -514,6 +534,17 @@ public class AirMediaReceiver extends AirMediaBase {
             receiver.setDebugMode(value);
         } catch (RemoteException e) {
             Log.e(TAG, "receiver.debug-mode  value= " + value + "  EXCEPTION  " + e);
+            handleRemoteException();
+        }
+    }
+
+    private void updateProjectionLocked(boolean value) {
+        try {
+            IAirMediaReceiver receiver = receiver_;
+            if (receiver == null) return;
+            receiver.setProjectionLocked(value);
+        } catch (RemoteException e) {
+            Log.e(TAG, "receiver.projection-locked  value= " + value + "  EXCEPTION  " + e);
             handleRemoteException();
         }
     }

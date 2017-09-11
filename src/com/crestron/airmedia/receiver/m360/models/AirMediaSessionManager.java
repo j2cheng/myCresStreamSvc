@@ -93,7 +93,6 @@ public class AirMediaSessionManager extends AirMediaBase {
     private final MulticastChangedDelegate<AirMediaSessionManager, AirMediaSessionScreenPositionLayout> layoutChanged_ = new MulticastChangedDelegate<AirMediaSessionManager, AirMediaSessionScreenPositionLayout>();
     private final MulticastChangedDelegate<AirMediaSessionManager, EnumSet<AirMediaSessionScreenPosition>> occupiedChanged_ = new MulticastChangedDelegate<AirMediaSessionManager, EnumSet<AirMediaSessionScreenPosition>>();
 
-
     ////////////////////////////////////////////////////////////////////////////////////////////////
     /// PROPERTIES
     ////////////////////////////////////////////////////////////////////////////////////////////////
@@ -145,6 +144,28 @@ public class AirMediaSessionManager extends AirMediaBase {
     /// METHODS
     ////////////////////////////////////////////////////////////////////////////////////////////////
 
+    public void close() { close(DefaultTimeout); }
+
+    public void close(TimeSpan timeout) {
+        queue("close", timeout, new Runnable() { @Override public void run() { closeTask(null); } });
+    }
+
+    public void close(Observer<AirMediaSessionManager> observer) {
+        queue(this, "close", observer, new TaskScheduler.ObservableTask<AirMediaSessionManager>() { @Override public void run(Observer<AirMediaSessionManager> value) { closeTask(value); } });
+    }
+
+    private void closeTask(Observer<AirMediaSessionManager> observer) {
+        try {
+            manager_.close();
+            scheduler().raise(observer, this);
+        } catch (RemoteException e) {
+            handleRemoteException();
+            scheduler().raiseError(observer, this, "AirMedia.Manager", -1006, "task.close  REMOTE EXCEPTION  " + e);
+        } catch (Exception e) {
+            scheduler().raiseError(observer, this, "AirMedia.Manager", -1006, "task.close  EXCEPTION  " + e);
+        }
+    }
+
     public void clear() { clear(DefaultTimeout); }
 
     public void clear(TimeSpan timeout) {
@@ -164,6 +185,28 @@ public class AirMediaSessionManager extends AirMediaBase {
             scheduler().raiseError(observer, this, "AirMedia.Manager", -1006, "task.clear  REMOTE EXCEPTION  " + e);
         } catch (Exception e) {
             scheduler().raiseError(observer, this, "AirMedia.Manager", -1006, "task.clear  EXCEPTION  " + e);
+        }
+    }
+
+    public void stop() { stop(DefaultTimeout); }
+
+    public void stop(TimeSpan timeout) {
+        queue("stop", timeout, new Runnable() { @Override public void run() { stopTask(null); } });
+    }
+
+    public void stop(Observer<AirMediaSessionManager> observer) {
+        queue(this, "stop", observer, new TaskScheduler.ObservableTask<AirMediaSessionManager>() { @Override public void run(Observer<AirMediaSessionManager> value) { stopTask(value); } });
+    }
+
+    private void stopTask(Observer<AirMediaSessionManager> observer) {
+        try {
+            manager_.stop();
+            scheduler().raise(observer, this);
+        } catch (RemoteException e) {
+            handleRemoteException();
+            scheduler().raiseError(observer, this, "AirMedia.Manager", -1006, "task.stop  REMOTE EXCEPTION  " + e);
+        } catch (Exception e) {
+            scheduler().raiseError(observer, this, "AirMedia.Manager", -1006, "task.stop  EXCEPTION  " + e);
         }
     }
 

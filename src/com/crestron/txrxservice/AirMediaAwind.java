@@ -734,6 +734,11 @@ public class AirMediaAwind implements AirMedia
     	}
     }
     
+    public void setProjectionLock(boolean enable)
+    {
+    	
+    }
+    
     public static boolean checkAirMediaLicense()
     {
     	boolean licensed = false;

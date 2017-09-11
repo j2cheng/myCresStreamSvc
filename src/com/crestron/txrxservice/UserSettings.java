@@ -211,6 +211,7 @@ public class UserSettings
 	private int airMediaLoginCode;
 	private int airMediaLoginMode;
 	private boolean airMediaModerator;
+	private boolean airMediaProjectionLock;
 	private boolean airMediaResetConnections;
 	private boolean[] airMediaDisconnectUser;
 	private boolean[] airMediaStartUser;
@@ -315,6 +316,7 @@ public class UserSettings
 		airMediaLaunch		= initBoolArray(false);
 		airMediaLoginMode	= CresStreamCtrl.AirMediaLoginMode.Fixed.ordinal();
 		airMediaLoginCode	= 1234; //Get default value
+		airMediaProjectionLock = false;
 		airMediaDisconnectUser = initBoolArray(false, 32);
 		airMediaStartUser 	= initBoolArray(false, 32);
 		airMediaUserPosition = initIntArray(0, 32);
@@ -1104,6 +1106,14 @@ public class UserSettings
 		this.airMediaModerator = enable;
 	}
 	
+	public boolean getAirMediaProjectionLock(boolean enable) {
+		return airMediaProjectionLock;
+	}
+	
+	public void setAirMediaProjectionLock(boolean enable) {
+		this.airMediaProjectionLock = enable;
+	}	
+
 	public boolean getAirMediaResetConnections() {
 		return airMediaResetConnections;
 	}

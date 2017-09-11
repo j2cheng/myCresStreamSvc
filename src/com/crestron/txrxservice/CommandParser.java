@@ -141,6 +141,7 @@ public class CommandParser {
         AIRMEDIA_ADAPTOR_SELECT,
         AIRMEDIA_CONNECTION_ADDRESS,
         AIRMEDIA_RESTART,
+        AIRMEDIA_PROJECTION_LOCK,
         
         // AirMedia Layout control
         AIRMEDIA_MODERATOR,
@@ -698,6 +699,9 @@ public class CommandParser {
             	break;
             case AIRMEDIA_RESTART:
             	cmd = new AirMediaRestartCommand(ctrl, arg, idx);
+            	break;
+            case AIRMEDIA_PROJECTION_LOCK:
+            	cmd = new AirMediaProjectionLockCommand(ctrl, arg, idx);
             	break;
             	
         	// Camera Streaming
