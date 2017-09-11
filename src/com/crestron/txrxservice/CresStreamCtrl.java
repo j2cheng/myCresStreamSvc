@@ -3565,8 +3565,7 @@ public class CresStreamCtrl extends Service {
     	Log.e(TAG, "Fatal error, kill CresStreamSvc!");
 		saveUserSettings(); // Need to immediately save userSettings so that we remember our state after restarting
     	sockTask.SendDataToAllClients("DEVICE_READY_FB=FALSE");
-    	//sockTask.SendDataToAllClients("KillMePlease=true");
-    	System.exit(1); //We pick 1 since 0 probably means success
+    	sockTask.SendDataToAllClients("KillMePlease=true");	// Use kill me Please because sometimes kill -9 is needed
     }
     
     public void RecoverMediaServer() {

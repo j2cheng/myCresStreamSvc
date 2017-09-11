@@ -1,6 +1,8 @@
 package com.crestron.txrxservice;
 
 import java.io.IOException;
+import java.util.concurrent.CountDownLatch;
+import java.util.concurrent.TimeUnit;
 
 import android.util.Log;
 import android.view.Surface;
@@ -26,6 +28,7 @@ public class GstreamIn implements StreamInStrategy, SurfaceHolder.Callback {
     private int statisticsNumAudioPacketsDropped = 0;
     private int statisticsBitrate = 0;
     private final int stopTimeout_sec = 15;
+    private final int startTimeout_ms = 25000;
     private boolean isPlaying = false;
     private final static String ducatiRecoverFilePath = "/dev/shm/crestron/CresStreamSvc/ducatiRecoverTime";
     private final static long ducatiRecoverTimeDelta = (30 * 1000); //30 seconds
@@ -308,24 +311,46 @@ public class GstreamIn implements StreamInStrategy, SurfaceHolder.Callback {
     }
 
     //Play based on based Pause/Actual Playback 
-    public void onStart(int sessionId) {
-    	try {
-    		isPlaying = true;
-			SurfaceHolder sh = streamCtl.getCresSurfaceHolder(sessionId);
-    		sh.addCallback(this); //needed?
-    		updateNativeDataStruct(sessionId);
-    		nativeSurfaceInit(sh.getSurface(), sessionId);
-//    		Code below is for trying TextureView rendering for QuadView
-//    		Log.d(TAG, "*********** passing surface derived from TextureView for sessionId: " + sessionId + " to 'nativeSurfaceInit' ************");
-//    		Surface s = new Surface(streamCtl.getAirMediaSurfaceTexture(sessionId));
-//    		nativeSurfaceInit(s, sessionId);
-    		nativePlay(sessionId);    		
+    public void onStart(final int sessionId) {
+    	final GstreamIn gStreamObj = this;
+    	final CountDownLatch latch = new CountDownLatch(1);
+    	Thread startThread = new Thread(new Runnable() {
+    		public void run() {
+    			try {
+    				isPlaying = true;
+    				SurfaceHolder sh = streamCtl.getCresSurfaceHolder(sessionId);
+    				sh.addCallback(gStreamObj); //needed?
+    				updateNativeDataStruct(sessionId);
+    				nativeSurfaceInit(sh.getSurface(), sessionId);
+    				//    		Code below is for trying TextureView rendering for QuadView
+    				//    		Log.d(TAG, "*********** passing surface derived from TextureView for sessionId: " + sessionId + " to 'nativeSurfaceInit' ************");
+    				//    		Surface s = new Surface(streamCtl.getAirMediaSurfaceTexture(sessionId));
+    				//    		nativeSurfaceInit(s, sessionId);
+    				nativePlay(sessionId);    		
+    			}
+    			catch(Exception e){
+    				// TODO: explore exception handling with better feedback of what went wrong to user
+    				streamCtl.SendStreamState(StreamState.STOPPED, sessionId);
+    				e.printStackTrace();        
+    			}     
+    			latch.countDown();
+    		}
+    	});
+    	startThread.start();
+
+    	// We launch the start command in its own thread and timeout in case mediaserver gets hung
+    	boolean successfulStart = true; //indicates that there was no time out condition
+    	try { successfulStart = latch.await(startTimeout_ms, TimeUnit.MILLISECONDS); }
+    	catch (InterruptedException ex) { ex.printStackTrace(); }
+
+    	streamCtl.checkVideoTimeouts(successfulStart);
+    	if (!successfulStart)
+    	{
+    		Log.e(TAG, String.format("Stream In failed to start after %d ms", startTimeout_ms));
+    		startThread.interrupt(); //cleanly kill thread
+    		startThread = null;
+    		streamCtl.RecoverTxrxService();
     	}
-    	catch(Exception e){
-        	// TODO: explore exception handling with better feedback of what went wrong to user
-            streamCtl.SendStreamState(StreamState.STOPPED, sessionId);
-            e.printStackTrace();        
-        }        
     }
 
     //Pause
