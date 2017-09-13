@@ -84,6 +84,9 @@ public class AirMediaSplashtop implements AirMedia
     public CountDownLatch startupCompleteLatch=null;
     public CountDownLatch deviceDisconnectedLatch=null;
     public AirMediaSession sessionRequestingStop=null;
+    
+    private final Object connectLock = new Object();
+    private final Object startStopReceiverLock = new Object();
 
 	private AirMediaReceiver receiver_;
 	private IAirMediaReceiver service_=null;
@@ -97,6 +100,8 @@ public class AirMediaSplashtop implements AirMedia
 	private String productName = null; 
 	private int lastReturnedAirMediaStatus;
 	private boolean pending_adapter_ip_address_change = false;
+	private boolean isServiceConnected = false;
+	private boolean isReceiverStarted = false;
 
     private Handler handler_;
     private Map<Integer, AirMediaSession> userSessionMap = new ConcurrentHashMap<Integer, AirMediaSession>();
@@ -113,33 +118,52 @@ public class AirMediaSplashtop implements AirMedia
     	mStreamCtl.sendAirMediaConnectionAddress(streamIdx);  
     	
 //    	shutDownAirMediaSplashtop();	// In case AirMediaSplashtop was already running shut it down
-    	    			
-    	if (connectAndStartReceiverService()) {
-    		Log.i(TAG, "AirMediaSpashtop constructor exiting receiver=" + receiver() + "  service=" + service() + "  manager=" + manager());
-    	} else {
-			Log.e(TAG, "Airmedia startup failed, restarting txrxservice in 5 seconds");
-			sleep(5000);
-			restartCresStreamSvc();
+    	boolean serviceSuccessfullyStarted = false;
+    	while (!serviceSuccessfullyStarted)
+    	{
+    		serviceSuccessfullyStarted = connectAndStartReceiverService();
+    		if (serviceSuccessfullyStarted) {
+    			Log.i(TAG, "AirMediaSpashtop constructor exiting receiver=" + receiver() + "  service=" + service() + "  manager=" + manager());
+    		} else {
+    			Log.e(TAG, "Airmedia startup failed, trying again in 5 seconds");
+    			sleep(5000);
+    		}
     	}
     }
     
     public boolean connectAndStartReceiverService()
     {
-		if (!connect2service()) {
-			Log.e(TAG, "Service failed to connect, restarting txrxservice");
-			return false;
-		}
-		
-		boolean successfulStart = true; //indicates that there was no time out condition
-		startupCompleteLatch = new CountDownLatch(1);
-		try { successfulStart = startupCompleteLatch.await(5000, TimeUnit.MILLISECONDS); }
-		catch (InterruptedException ex) { ex.printStackTrace(); }
-		return successfulStart;
+    	synchronized (connectLock) {
+    		boolean successfulStart = true; //indicates that there was no time out condition
+
+    		if (!isServiceConnected)
+    		{
+    			startupCompleteLatch = new CountDownLatch(1);
+
+
+    			if (!connect2service()) {
+    				Log.e(TAG, "Service failed to connect, restarting AirMedia app");
+    				restartAirMedia();
+    				return false;
+    			}		
+
+    			try { successfulStart = startupCompleteLatch.await(50000, TimeUnit.MILLISECONDS); }
+    			catch (InterruptedException ex) { ex.printStackTrace(); }
+    		}
+    		else if (!isReceiverStarted)
+    		{
+    			Log.w(TAG, "Service connected but not started, restarting AirMedia app");
+    			restartAirMedia();
+    		}
+    		else
+    			Log.d(TAG, "Bypassing start because already started");
+    		return successfulStart;
+    	}    	
     }
     
-    private void restartCresStreamSvc()
+    private void restartAirMedia()
     {
-		mStreamCtl.RecoverTxrxService();
+		mStreamCtl.RestartAirMedia();
     }
     
     private class RestartAirMedia implements Runnable {
@@ -164,9 +188,8 @@ public class AirMediaSplashtop implements AirMedia
 
 		// Now start receiver
         if (!startAirMediaReceiver(mStreamCtl.hostName)) {
-			Log.e(TAG, "Receiver failed to load, restarting txrxservice in 5 seconds");
-			sleep(5000);
-			restartCresStreamSvc();
+			Log.e(TAG, "Receiver failed to load, restarting AirMedia app");
+			restartAirMedia();
         }
 
 		manager_ = receiver().sessionManager();
@@ -185,49 +208,55 @@ public class AirMediaSplashtop implements AirMedia
 		// start service and instantiate receiver class
 		doBindService();
 		boolean successfulStart = true; //indicates that there was no time out condition
-		try { successfulStart = serviceConnectedLatch.await(5000, TimeUnit.MILLISECONDS); }
+		try { successfulStart = serviceConnectedLatch.await(20000, TimeUnit.MILLISECONDS); }
 		catch (InterruptedException ex) { ex.printStackTrace(); }
-
+		
 		return successfulStart;
     }
     
     // synchronous version of receiver stop - waits for completion
-    private synchronized boolean stopReceiver()
+    private boolean stopReceiver()
     {
-    	Log.i(TAG, "stopReceiver() enter (thread="+Thread.currentThread().getId()+")");
-    	boolean successfulStop = true;
-    	receiverStoppedLatch = new CountDownLatch(1);
-    	receiver_.stop();
-    	try { successfulStop = receiverStoppedLatch.await(30000, TimeUnit.MILLISECONDS); }
-    	catch (InterruptedException ex) { ex.printStackTrace(); }
-    	Log.i(TAG, "stopReceiver() exit (thread="+Thread.currentThread().getId()+")");
-    	return successfulStop;
+    	synchronized (startStopReceiverLock) {
+    		Log.i(TAG, "stopReceiver() enter (thread="+Thread.currentThread().getId()+")");
+    		boolean successfulStop = true;
+    		receiverStoppedLatch = new CountDownLatch(1);
+    		receiver_.stop();
+    		try { successfulStop = receiverStoppedLatch.await(30000, TimeUnit.MILLISECONDS); }
+    		catch (InterruptedException ex) { ex.printStackTrace(); }
+    		Log.i(TAG, "stopReceiver() exit (thread="+Thread.currentThread().getId()+")");
+    		return successfulStop;
+    	}
     }
     
     // synchronous version of receiver start - waits for completion
     // this function does not handle ip adapter changes that may have occurred - for that use
     // the version that handles it: startReceiverWithPossibleIpAddressChange()
-    private synchronized boolean startReceiver()
+    private boolean startReceiver()
     {
-    	Log.i(TAG, "startReceiver() enter (thread="+Thread.currentThread().getId()+")");
-    	boolean successfulStart = true;
-    	receiverStartedLatch = new CountDownLatch(1);
-    	receiver().start();
-    	try { successfulStart = receiverStartedLatch.await(3000, TimeUnit.MILLISECONDS); }
-    	catch (InterruptedException ex) { ex.printStackTrace(); }
-    	Log.i(TAG, "startReceiver() exit (thread="+Thread.currentThread().getId()+")");
-    	return successfulStart;
+    	synchronized (startStopReceiverLock) {
+    		Log.i(TAG, "startReceiver() enter (thread="+Thread.currentThread().getId()+")");
+    		boolean successfulStart = true;
+    		receiverStartedLatch = new CountDownLatch(1);
+    		receiver().start();
+    		try { successfulStart = receiverStartedLatch.await(45000, TimeUnit.MILLISECONDS); }
+    		catch (InterruptedException ex) { ex.printStackTrace(); }
+    		Log.i(TAG, "startReceiver() exit (thread="+Thread.currentThread().getId()+")");
+    		return successfulStart;
+    	}
     }
 
-	private synchronized void startReceiverWithPossibleIpAddressChange()
+	private void startReceiverWithPossibleIpAddressChange()
 	{
-		// If there is an IP address change apply it first and 
-		if (pending_adapter_ip_address_change && !adapter_ip_address.equals("None")) {
-			Log.i(TAG, "startReceiverWithPossiblyIpAddressChange(): Setting new ip address for receiver: " + adapter_ip_address);
-			receiver_.adapterAddress(adapter_ip_address);
-			startReceiver();
-		}
-		pending_adapter_ip_address_change = false;
+		synchronized (startStopReceiverLock) {
+			// If there is an IP address change apply it first and 
+			if (pending_adapter_ip_address_change && !adapter_ip_address.equals("None")) {
+				Log.i(TAG, "startReceiverWithPossiblyIpAddressChange(): Setting new ip address for receiver: " + adapter_ip_address);
+				receiver_.adapterAddress(adapter_ip_address);
+				startReceiver();
+			}
+			pending_adapter_ip_address_change = false;
+		}		
 	}
 	
     private class RestartReceiver implements Runnable {
@@ -1282,6 +1311,7 @@ public class AirMediaSplashtop implements AirMedia
 		@Override
 		public void onServiceConnected(ComponentName name, IBinder binder) {
             Log.d(TAG, "AirMediaServiceConnection.onServiceConnected  " + name);
+            isServiceConnected = true;
 			try {
                 service_ = IAirMediaReceiver.Stub.asInterface(binder);
                 if (service_ == null) return;
@@ -1295,6 +1325,7 @@ public class AirMediaSplashtop implements AirMedia
 		@Override
 		public void onServiceDisconnected(ComponentName name) {
             Log.d(TAG, "AirMediaServiceConnection.onServiceDisconnected  " + name);
+            isServiceConnected = false;
             try {
             	// remove active session so AirMedia screen pops up until fresh connection made to service
             	if (session() != null)
@@ -1357,15 +1388,17 @@ public class AirMediaSplashtop implements AirMedia
     private final MulticastChangedWithReasonDelegate.Observer<AirMediaReceiver, AirMediaReceiverState, Integer> stateChangedHandler_ = new MulticastChangedWithReasonDelegate.Observer<AirMediaReceiver, AirMediaReceiverState, Integer>() {
         @Override
         public void onEvent(AirMediaReceiver receiver, AirMediaReceiverState from, AirMediaReceiverState to, Integer reason) {
-            Log.v(TAG, "view.receiver.event.state  reason=" + reason + "  " + from + "  ==>  " + to);
+            Log.d(TAG, "view.receiver.event.state  reason=" + reason + "  " + from + "  ==>  " + to);
             if (to == AirMediaReceiverState.Stopped)
             {
-            	Log.v(TAG, "In stateChangedHandler: receiverStoppedLatch="+receiverStoppedLatch);
+            	Log.d(TAG, "In stateChangedHandler: receiverStoppedLatch="+receiverStoppedLatch);
+            	isReceiverStarted = false;
 				receiverStoppedLatch.countDown();
             }
             if (to == AirMediaReceiverState.Started)
             {
-            	Log.v(TAG, "In stateChangedHandler: receiverStartedLatch="+receiverStartedLatch);
+            	Log.d(TAG, "In stateChangedHandler: receiverStartedLatch="+receiverStartedLatch);
+            	isReceiverStarted = true;
             	receiverStartedLatch.countDown();
             }
 			if (reason != 0)

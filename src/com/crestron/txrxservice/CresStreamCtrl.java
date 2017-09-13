@@ -3581,7 +3581,10 @@ public class CresStreamCtrl extends Service {
     
     public void RestartAirMedia() {
         Log.e(TAG, "Fatal error, restart AirMedia!");
-    	sockTask.SendDataToAllClients("RestartAirMedia=true");
+        if (use_splashtop)
+        	sockTask.SendDataToAllClients("RestartAirMedia=splashtop");
+        else
+        	sockTask.SendDataToAllClients("RestartAirMedia=awind");
     }
     
     public void airmediaRestart(int sessId) {
@@ -3593,12 +3596,11 @@ public class CresStreamCtrl extends Service {
     				((AirMediaAwind)mAirMedia).unregisterBroadcasts();  		
     				mAirMedia = null;
     				mAirMedia = new AirMediaAwind(this);
+    				if (userSettings.getAirMediaLaunch(sessId))
+        				launchAirMedia(true, 0, false);
     			} else {
-    				Log.e(TAG, "restarting AirMedia must be implemented!");
-    			}
-
-    			if (userSettings.getAirMediaLaunch(sessId))
-    				launchAirMedia(true, 0, false);
+    				// Intentional do nothing for splashtop (not needed)
+    			}    			
     		}
     	}
     }
