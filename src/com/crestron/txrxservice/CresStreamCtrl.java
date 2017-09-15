@@ -73,6 +73,12 @@ import com.crestron.txrxservice.CresStreamCtrl.StreamState;
 import com.crestron.txrxservice.ProductSpecific;
 import com.google.gson.Gson;
 import com.google.gson.GsonBuilder;
+import com.google.gson.JsonSyntaxException;
+import com.google.gson.TypeAdapter;
+import com.google.gson.TypeAdapterFactory;
+import com.google.gson.reflect.TypeToken;
+import com.google.gson.stream.JsonReader;
+import com.google.gson.stream.JsonWriter;
 
 interface Command {
     void executeStart(int sessId);
@@ -521,7 +527,7 @@ public class CresStreamCtrl extends Service {
     		{
     			// File exists deserialize it into userSettings
     			GsonBuilder builder = new GsonBuilder();
-    			Gson gson = builder.create();
+    			Gson gson = builder.registerTypeAdapterFactory(new LenientTypeAdapterFactory()).create();
     			try
     			{
     				String serializedClass = new Scanner(serializedClassFile, "US-ASCII").useDelimiter("\\A").next();
@@ -554,7 +560,7 @@ public class CresStreamCtrl extends Service {
     				Log.i(TAG, "Deserializing old userSettings file");
     				// File exists deserialize it into userSettings
     				GsonBuilder builder = new GsonBuilder();
-    				Gson gson = builder.create();
+    				Gson gson = builder.registerTypeAdapterFactory(new LenientTypeAdapterFactory()).create();
     				try
     				{
     					String serializedClass = new Scanner(serializedOldClassFile, "US-ASCII").useDelimiter("\\A").next();
@@ -5298,4 +5304,32 @@ public class CresStreamCtrl extends Service {
 		display.getSize(retVal);
 		return retVal;
 	}
+	
+	class LenientTypeAdapterFactory implements TypeAdapterFactory {
+
+		public <T> TypeAdapter<T> create(Gson gson, TypeToken<T> type) {
+
+			final TypeAdapter<T> delegate = gson.getDelegateAdapter(this, type);
+
+			return new TypeAdapter<T>() {
+
+				public void write(JsonWriter out, T value) throws IOException {
+					delegate.write(out, value);
+				}
+
+				public T read(JsonReader in) throws IOException {
+					try { 
+						//Try to read value using default TypeAdapter
+						return delegate.read(in); 
+					} catch (JsonSyntaxException e) {
+						//If we can't in case when we expecting to have an object but array is received (or some other unexpected stuff), we just skip this value in reader and return null
+						Log.w(TAG, "Unable to deserialize " + in.getPath().toString());
+						in.skipValue(); 
+						return null;
+					}
+				}
+			};
+		}
+	}
+
 }
