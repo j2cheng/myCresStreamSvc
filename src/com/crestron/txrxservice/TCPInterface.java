@@ -301,7 +301,7 @@ public class TCPInterface extends AsyncTask<Void, Object, Long> {
             this.serverHandler = server;
 
             try {
-
+            	clientSocket.setSoTimeout(20000);	// Heartbeat should come every 15 seconds at least
                 input = new BufferedReader(new InputStreamReader(clientSocket.getInputStream()));
                 out = new BufferedWriter(new OutputStreamWriter(clientSocket.getOutputStream()));
 
@@ -385,9 +385,18 @@ public class TCPInterface extends AsyncTask<Void, Object, Long> {
                     else{//white space or NULL Commands
                     	serverHandler.SendDataToAllClients("");
                     }
+                } catch (java.net.SocketTimeoutException e)
+                {
+                	Log.w(TAG, "Failed to receive heartbeat, restarting internal connection");
+                	closeClientSocket(clientSocket);
+                    connectionAlive = false;
+                	serverHandler.RemoveClientFromList(this);                	
                 } catch (IOException e) {
                     e.printStackTrace();
-                }
+                    closeClientSocket(clientSocket);
+                    connectionAlive = false;
+                    serverHandler.RemoveClientFromList(this);
+                }                
             }
         }
     }
