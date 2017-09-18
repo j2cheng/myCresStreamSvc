@@ -73,6 +73,8 @@ import com.crestron.txrxservice.CresStreamCtrl.StreamState;
 import com.crestron.txrxservice.ProductSpecific;
 import com.google.gson.Gson;
 import com.google.gson.GsonBuilder;
+import com.google.gson.JsonArray;
+import com.google.gson.JsonElement;
 import com.google.gson.JsonSyntaxException;
 import com.google.gson.TypeAdapter;
 import com.google.gson.TypeAdapterFactory;
@@ -5305,31 +5307,70 @@ public class CresStreamCtrl extends Service {
 		return retVal;
 	}
 	
-	class LenientTypeAdapterFactory implements TypeAdapterFactory {
+	public abstract class CustomizedTypeAdapterFactory<C>
+	implements TypeAdapterFactory {
+		private final Class<C> customizedClass;
 
-		public <T> TypeAdapter<T> create(Gson gson, TypeToken<T> type) {
+		public CustomizedTypeAdapterFactory(Class<C> customizedClass) {
+			this.customizedClass = customizedClass;
+		}
 
-			final TypeAdapter<T> delegate = gson.getDelegateAdapter(this, type);
+		@SuppressWarnings("unchecked") // we use a runtime check to guarantee that 'C' and 'T' are equal
+		public final <T> TypeAdapter<T> create(Gson gson, TypeToken<T> type) {
+			return type.getRawType() == customizedClass
+					? (TypeAdapter<T>) customizeMyClassAdapter(gson, (TypeToken<C>) type)
+							: null;
+		}
 
-			return new TypeAdapter<T>() {
-
-				public void write(JsonWriter out, T value) throws IOException {
-					delegate.write(out, value);
+		private TypeAdapter<C> customizeMyClassAdapter(Gson gson, TypeToken<C> type) {
+			final TypeAdapter<C> delegate = gson.getDelegateAdapter(this, type);
+			final TypeAdapter<JsonElement> elementAdapter = gson.getAdapter(JsonElement.class);
+			return new TypeAdapter<C>() {
+				@Override public void write(JsonWriter out, C value) throws IOException {
+					JsonElement tree = delegate.toJsonTree(value);
+					beforeWrite(value, tree);
+					elementAdapter.write(out, tree);
 				}
-
-				public T read(JsonReader in) throws IOException {
-					try { 
-						//Try to read value using default TypeAdapter
-						return delegate.read(in); 
-					} catch (JsonSyntaxException e) {
-						//If we can't in case when we expecting to have an object but array is received (or some other unexpected stuff), we just skip this value in reader and return null
-						Log.w(TAG, "Unable to deserialize " + in.getPath().toString());
-						in.skipValue(); 
-						return null;
-					}
+				@Override public C read(JsonReader in) throws IOException {
+					JsonElement tree = elementAdapter.read(in);
+					afterRead(tree);
+					return delegate.fromJsonTree(tree);
 				}
 			};
 		}
+
+		/**
+		 * Override this to muck with {@code toSerialize} before it is written to
+		 * the outgoing JSON stream.
+		 */
+		protected void beforeWrite(C source, JsonElement toSerialize) {
+		}
+
+		/**
+		 * Override this to muck with {@code deserialized} before it parsed into
+		 * the application type.
+		 */
+		protected void afterRead(JsonElement deserialized) {
+		}
+	}
+	
+	private class LenientTypeAdapterFactory extends CustomizedTypeAdapterFactory<UserSettings> {
+	    private LenientTypeAdapterFactory() {
+	        super(UserSettings.class);
+	    }
+
+	    // Protect against AirMediaLaunch going from single bool to array
+	    @Override protected void afterRead(JsonElement deserialized) {
+	    	try {
+
+	    		JsonArray jsonArray = deserialized.getAsJsonObject().get("airMediaLaunch").getAsJsonArray();
+	    	}
+	    	catch (Exception e)
+	    	{
+	    		Log.d(TAG, "Failed to deserialize airMediaLaunch");
+	    		deserialized.getAsJsonObject().remove("airMediaLaunch");
+	    	}
+	    }
 	}
 
 }
