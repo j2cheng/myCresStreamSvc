@@ -639,9 +639,9 @@ public class CresStreamCtrl extends Service {
     			//					break;
     			//				}
     			//    		}
-
+    			int productType = nativeGetProductTypeEnum();
     			// Special case to knock DMPS out of camera modes and force adapter to default value of 0 for each reboot
-    			if (nativeGetProductTypeEnum() == 0x24)
+    			if (productType == 0x24)
     			{
     				// Does not support preview mode, set all to stream in
     				for (int sessionId = 0; sessionId < NumOfSurfaces; sessionId++)
@@ -649,20 +649,31 @@ public class CresStreamCtrl extends Service {
     					userSettings.setMode(DeviceMode.STREAM_IN.ordinal(), sessionId);
     					userSettings.setStreamInUrl("", sessionId);
     					userSettings.setUserRequestedStreamState(StreamState.STOPPED, sessionId);
-    				}				
+    				}	
+    				setAirMediaAdaptorSelect(0, 0);
     			}
-    			setAirMediaAdaptorSelect(0, 0);
+    			else if (productType == 0x20)
+    			{
+    				// Bug 136111: For zoom branch this needs to be set to true because user cannot manually set this
+    				userSettings.setAirMediaIpAddressPrompt(true);
+    			}    			
     		}
     		else
     		{
-    			if (nativeGetProductTypeEnum() == 0x24)
+    			int productType = nativeGetProductTypeEnum();
+    			if (productType == 0x24)
     			{
     				for (int sessionId = 0; sessionId < NumOfSurfaces; sessionId++)
     				{
     					userSettings.setMode(DeviceMode.STREAM_IN.ordinal(), sessionId);
     				}
     				setAirMediaAdaptorSelect(0, 0);
-    			}    				
+    			} 
+    			else if (productType == 0x20)
+    			{
+    				// Bug 136111: For zoom branch this needs to be set to true because user cannot manually set this
+    				userSettings.setAirMediaIpAddressPrompt(true);
+    			}
     		}
     		
     		// This needs to be done before Gstreamer setup
