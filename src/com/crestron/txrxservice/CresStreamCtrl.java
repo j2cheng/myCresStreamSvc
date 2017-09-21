@@ -143,6 +143,7 @@ public class CresStreamCtrl extends Service {
     boolean StreamOutstarted = false;
     boolean hdmiInputDriverPresent = false;
     public boolean alphaBlending = false;
+    public boolean csioConnected = false;
     boolean airMediaLicensed = false;
     private boolean use_splashtop = false;
     boolean[] restartRequired = new boolean[NumOfSurfaces];
@@ -1021,6 +1022,7 @@ public class CresStreamCtrl extends Service {
 		new Thread(new Runnable() {
     		@Override
     		public void run() { 
+    			// Wait until CSIO is connected (Bug 135686)
 				// For debugging only - temporary
     			airMediaLicensed = (new File("/data/CresStreamSvc/airmedialicense")).exists();
 				use_splashtop = (new File("/data/CresStreamSvc/splashtop")).exists();
@@ -1040,6 +1042,10 @@ public class CresStreamCtrl extends Service {
         				airMediaLicensed = AirMediaAwind.checkAirMediaLicense();
     				}
 				}
+    			Log.d(TAG, "AirMedia is licensed: try to start AirMedia (csioConnected="+csioConnected+")");
+    			while (!csioConnected) {
+    				try { Thread.sleep(500); } catch (InterruptedException e){}//Poll every 0.5 seconds
+    			}
     			// Wait until file exists then check
     			if (!use_splashtop)
     			{

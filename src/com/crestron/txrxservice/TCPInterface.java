@@ -253,6 +253,10 @@ public class TCPInterface extends AsyncTask<Void, Object, Long> {
 	                streamCtl.streamPlay.initUnixSocketState();
                 }
                 
+                // Mark csio as connected
+                streamCtl.csioConnected = true;
+                Log.d(TAG, "CSIO connected to CresStreamSvc via TCP Interface");
+                
                 // Update csio on hdmi input status
                 if (streamCtl.hdmiInputDriverPresent)
                 	SendDataToAllClients(String.format("HDMIInputConnectedState=%s", streamCtl.hdmiInput.getSyncStatus())); //true means hdmi input connected
