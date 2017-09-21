@@ -197,6 +197,7 @@ public class CommandParser {
     
     public String validateReceivedMessage(String read){
         StringBuilder sb = new StringBuilder(4096);
+        sb.append("DEBUG_MODE : Removes socket timeout\r\n");
         sb.append("MODE (= 0:STREAMIN 1: STREAMOUT 2:HDMIPREVIEW)\r\n");
         sb.append("SessionInitiation (= 0: ByReceiver 1: ByTransmitter 2: MCastviaRTSP 3: MCastviaUDP)\r\n");
         sb.append("TRANSPORTMODE (= 0: RTP 1: TS_RTP 2: TS_UDP)\r\n");

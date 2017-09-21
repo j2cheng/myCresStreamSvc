@@ -305,7 +305,7 @@ public class TCPInterface extends AsyncTask<Void, Object, Long> {
             this.serverHandler = server;
 
             try {
-            	clientSocket.setSoTimeout(20000);	// Heartbeat should come every 15 seconds at least
+            	this.clientSocket.setSoTimeout(20000);	// Heartbeat should come every 15 seconds at least
                 input = new BufferedReader(new InputStreamReader(clientSocket.getInputStream()));
                 out = new BufferedWriter(new OutputStreamWriter(clientSocket.getOutputStream()));
 
@@ -373,6 +373,11 @@ public class TCPInterface extends AsyncTask<Void, Object, Long> {
                         }
                         else if ((read.trim()).equalsIgnoreCase("RESTART_STREAM_ON_START=FALSE")) {
                         	streamCtl.restartStreamsOnStart = false;                        		
+                        }
+                        else if ((read.trim()).equalsIgnoreCase("DEBUG_MODE")) {
+                        	// Remove timeout for debugging
+                        	clientSocket.setSoTimeout(0);
+                        	Log.d(TAG, "Turning telnet debug mode on");
                         }
                         else{
                         	// determine sessionId first so we can add to the right queue
