@@ -175,6 +175,24 @@ public class MiscUtils {
     		String ipRegex = "\\d{1,3}\\.\\d{1,3}\\.\\d{1,3}\\.\\d{1,3}";
 	    	String portRegex = ":\\d{1,5}";
 	    	newUrl = newUrl.replaceFirst(portRegex, ":" + internalPort);
+
+    		Pattern ipReg = Pattern.compile(ipRegex);
+    		Matcher matcher = ipReg.matcher(newUrl);
+    		if (!matcher.find())
+    		{
+    			// if no IP must be hostname 
+    			Pattern hostnameRegex = Pattern.compile("\\/\\/(?:\\w+:\\w+\\@)*([\\w\\-\\.]+)[\\/:]");
+    			
+    			Matcher hostnameMatcher = hostnameRegex.matcher(newUrl);
+    			if (hostnameMatcher.find())
+    			{
+    				ipRegex = hostnameMatcher.group(1);
+    			}
+    			else
+    			{
+    				Log.w( TAG, "Invalid URL syntax " + url);
+    			}
+    		}	    	
 	    	
 	    	// If it doesnt come with port # we put in internal RTSP port
 	    	if (!newUrl.contains(Integer.toString(internalPort)))
@@ -207,7 +225,7 @@ public class MiscUtils {
     		else
     		{
     			// if no IP must be hostname 
-    			Pattern hostnameRegex = Pattern.compile("\\/\\/(?:\\w+:\\w+\\@)*([\\w\\.]+)[\\/:]");
+    			Pattern hostnameRegex = Pattern.compile("\\/\\/(?:\\w+:\\w+\\@)*([\\w\\-\\.]+)[\\/:]");
     			
     			Matcher hostnameMatcher = hostnameRegex.matcher(url);
     			if (hostnameMatcher.find())
