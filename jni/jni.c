@@ -202,6 +202,20 @@ static JNIEnv *get_jni_env (void)
 	return env;
 }
 
+static void dump_jni_reference_table(JNIEnv* env)
+{
+	jclass vm_class = (*env)->FindClass(env, "dalvik/system/VMDebug");
+	jmethodID dump_mid = (*env)->GetStaticMethodID( env, vm_class, "dumpReferenceTables", "()V" );
+	(*env)->CallStaticVoidMethod( env, vm_class, dump_mid );
+}
+
+void csio_dump_jni_reference_table(char *label)
+{
+	JNIEnv *env = get_jni_env ();
+	CSIO_LOG(eLogLevel_debug, "%s: **********************  %s ********************", __FUNCTION__, label);
+	dump_jni_reference_table(env);
+}
+
 /* Change the content of the UI's TextView */
 // void set_ui_message (const gchar *message, CustomData *data) 
 // {
@@ -1787,6 +1801,7 @@ void csio_get_width_and_height_from_mode (uint32_t * width, uint32_t * height)
 
 	(*width) = widthHeight[0];
 	(*height) = widthHeight[1];
+	(*env)->ReleaseIntArrayElements(env, retval, widthHeight, 0);
 	return;
 }
 
