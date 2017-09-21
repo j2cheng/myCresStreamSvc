@@ -255,6 +255,7 @@ public class TCPInterface extends AsyncTask<Void, Object, Long> {
                 
                 // Mark csio as connected
                 streamCtl.csioConnected = true;
+                MiscUtils.writeStringToDisk(CresStreamCtrl.initializeSettingsFilePath, "1");
                 Log.d(TAG, "CSIO connected to CresStreamSvc via TCP Interface");
                 
                 // Update csio on hdmi input status
@@ -298,6 +299,7 @@ public class TCPInterface extends AsyncTask<Void, Object, Long> {
         private BufferedReader input;
         private BufferedWriter out; 
         public TCPInterface serverHandler;
+        private long lastRead = 0;
 
         public CommunicationThread(Socket clientSocket, TCPInterface server) {
 
@@ -346,10 +348,14 @@ public class TCPInterface extends AsyncTask<Void, Object, Long> {
 
         public void run() {
             while (connectionAlive) {
+            	long currentRead = 0;
             	if ((streamCtl.restartStreamsOnStart == true) && (restartStreamsPending   == true))
                 	restartStreams(serverHandler);
                 try {
                     String read = input.readLine();
+                    currentRead = System.nanoTime();
+                    if (lastRead == 0)
+                    	lastRead = currentRead; 
                     if(read!=null && !(isWhiteSpace=(read.matches("^\\s*$"))))
                     {
                         Log.d(TAG, "msg received is "+read);
@@ -396,10 +402,16 @@ public class TCPInterface extends AsyncTask<Void, Object, Long> {
                     }
                 } catch (java.net.SocketTimeoutException e)
                 {
-                	Log.w(TAG, "Failed to receive heartbeat, restarting internal connection");
-                	closeClientSocket(clientSocket);
-                    connectionAlive = false;
-                	serverHandler.RemoveClientFromList(this);                	
+                	if (Math.abs(currentRead - lastRead) >= (20 * 1000000000))
+                	{
+                		Log.w(TAG, "Failed to receive heartbeat, restarting internal connection");
+                		closeClientSocket(clientSocket);
+                		connectionAlive = false;
+                		serverHandler.RemoveClientFromList(this);
+                	}
+                	else
+                		Log.v(TAG, "Spurrious timeout ignored with time delta " + (Math.abs(currentRead - lastRead)) + " ns");
+                	lastRead = currentRead;
                 } catch (IOException e) {
                     e.printStackTrace();
                     closeClientSocket(clientSocket);

@@ -155,7 +155,7 @@ public class CresStreamCtrl extends Service {
     public final static String hdmiLicenseFilePath = "/dev/shm/hdmi_licensed";
     public final static String pinpointEnabledFilePath = "/dev/crestron/alphablendingenable";
     private final static String mercuryHdmiOutWaitFilePath = "/dev/shm/crestron/CresStreamSvc/mercuryWait";
-    private final static String initializeSettingsFilePath = "/dev/shm/crestron/CresStreamSvc/initializeSettings";
+    public final static String initializeSettingsFilePath = "/dev/shm/crestron/CresStreamSvc/initializeSettings";
     public volatile boolean mMediaServerCrash = false;
     public volatile boolean mDucatiCrash = false;
     public volatile boolean mIgnoreAllCrash = false;
@@ -628,8 +628,6 @@ public class CresStreamCtrl extends Service {
     		
     		if (MiscUtils.readStringFromDisk(initializeSettingsFilePath).compareTo("1") != 0)
     		{
-    			MiscUtils.writeStringToDisk(initializeSettingsFilePath, "1");
-
     			// for some products set up the defaults on restore
     			// TODO: If we want special restore section do that here    		
     			//    		if (isRestore)
@@ -648,7 +646,6 @@ public class CresStreamCtrl extends Service {
     				for (int sessionId = 0; sessionId < NumOfSurfaces; sessionId++)
     				{
     					userSettings.setMode(DeviceMode.STREAM_IN.ordinal(), sessionId);
-    					userSettings.setStreamInUrl("", sessionId);
     					userSettings.setUserRequestedStreamState(StreamState.STOPPED, sessionId);
     				}				
     			}
