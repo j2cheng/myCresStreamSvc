@@ -411,13 +411,14 @@ public class TCPInterface extends AsyncTask<Void, Object, Long> {
                 	}
                 	else
                 		Log.v(TAG, "Spurrious timeout ignored with time delta " + (Math.abs(currentRead - lastRead)) + " ns");
-                	lastRead = currentRead;
                 } catch (IOException e) {
                     e.printStackTrace();
                     closeClientSocket(clientSocket);
                     connectionAlive = false;
                     serverHandler.RemoveClientFromList(this);
-                }                
+                }
+                //reset timeout
+                lastRead = currentRead;
             }
         }
     }
