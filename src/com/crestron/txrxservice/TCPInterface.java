@@ -34,7 +34,6 @@ public class TCPInterface extends AsyncTask<Void, Object, Long> {
     public static final String CONSOLEPROMPT = "\r\nTxRx>";
     CommandParser parserInstance;
     boolean isWhiteSpace = false;
-    static boolean connectionAlive = true;
     private CresStreamCtrl streamCtl;
 
     public static final int SERVERPORT = 9876;
@@ -137,6 +136,11 @@ public class TCPInterface extends AsyncTask<Void, Object, Long> {
 	        {
 	        	// Remove all clients that had an error
 	        	CommunicationThread thread = iter.previous();
+	        	if (thread.clientSocket != null)
+	        	{
+	        		closeClientSocket(thread.clientSocket);
+	        		thread.connectionAlive = false;
+	        	}
 	        	thread.serverHandler.RemoveClientFromList(thread);
 	        }
     	}    	
@@ -223,8 +227,8 @@ public class TCPInterface extends AsyncTask<Void, Object, Long> {
                 	Log.e(TAG, "Error disabling nagle: " + ex);
                 }
                 
-                connectionAlive = true;//New Client Connected
                 CommunicationThread commThread = new CommunicationThread(clientSocket, this);
+                commThread.connectionAlive = true; //New Client Connected
                 synchronized (serverLock) {
                 	clientList.add(commThread);
 				}                
@@ -299,6 +303,7 @@ public class TCPInterface extends AsyncTask<Void, Object, Long> {
         private BufferedReader input;
         private BufferedWriter out; 
         public TCPInterface serverHandler;
+        private boolean connectionAlive = false;
         private long lastRead = 0;
 
         public CommunicationThread(Socket clientSocket, TCPInterface server) {
@@ -338,6 +343,7 @@ public class TCPInterface extends AsyncTask<Void, Object, Long> {
                 } 
                 catch (IOException e) 
                 {
+                	e.printStackTrace();
                     Log.d(TAG, "Error sending data to client.  Cleaning up");
 //                    serverHandler.RemoveClientFromList(this);
                     retVal = -1;
@@ -393,9 +399,7 @@ public class TCPInterface extends AsyncTask<Void, Object, Long> {
                     }
                     else if(read == null) {
                         Log.d(TAG, "Client Disconnected..... ");
-                        closeClientSocket(clientSocket);
                         connectionAlive = false;
-                        serverHandler.RemoveClientFromList(this);
                     }
                     else{//white space or NULL Commands
                     	serverHandler.SendDataToAllClients("");
@@ -405,21 +409,21 @@ public class TCPInterface extends AsyncTask<Void, Object, Long> {
                 	if (Math.abs(currentRead - lastRead) >= (20 * 1000000000))
                 	{
                 		Log.w(TAG, "Failed to receive heartbeat, restarting internal connection");
-                		closeClientSocket(clientSocket);
                 		connectionAlive = false;
-                		serverHandler.RemoveClientFromList(this);
                 	}
                 	else
                 		Log.v(TAG, "Spurrious timeout ignored with time delta " + (Math.abs(currentRead - lastRead)) + " ns");
                 } catch (IOException e) {
                     e.printStackTrace();
-                    closeClientSocket(clientSocket);
                     connectionAlive = false;
-                    serverHandler.RemoveClientFromList(this);
                 }
                 //reset timeout
                 lastRead = currentRead;
             }
+            
+            // Cleanup when connection goes to false
+            closeClientSocket(clientSocket);
+            serverHandler.RemoveClientFromList(this);
         }
     }
     
