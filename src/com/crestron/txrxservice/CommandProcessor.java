@@ -1904,6 +1904,30 @@ class AirMediaCustomPromptCommand extends CrestronCommand {
 	}
 }
 
+class AirMediaDisplayConnectionOptionEnableCommand extends CrestronCommand {
+	public AirMediaDisplayConnectionOptionEnableCommand(CresStreamCtrl ctrl, String arg, int sessId) {
+		super(ctrl, arg, sessId);
+	}	
+	public void execute() {
+		ctrl.setAirMediaDisplayConnectionOptionEnable(Boolean.valueOf(msg), sessId);
+	}
+	public String getFeedbackMsg() {
+		return Boolean.toString(ctrl.userSettings.getAirMediaDisplayConnectionOptionEnable());
+	}
+}
+
+class AirMediaDisplayConnectionOptionCommand extends CrestronCommand {
+	public AirMediaDisplayConnectionOptionCommand(CresStreamCtrl ctrl, String arg, int sessId) {
+		super(ctrl, arg, sessId);
+	}	
+	public void execute() {
+		ctrl.setAirMediaDisplayConnectionOption(VALIDATE_INT(msg), sessId);
+	}
+	public String getFeedbackMsg() {
+		return String.valueOf(ctrl.userSettings.getAirMediaDisplayConnectionOption());
+	}
+}
+
 class AirMediaCustomPromptStringCommand extends CrestronCommand {
 	public AirMediaCustomPromptStringCommand(CresStreamCtrl ctrl, String arg, int sessId) {
 		super(ctrl, arg, sessId);

@@ -235,6 +235,13 @@ public class CresStreamCtrl extends Service {
             this.value = value;
         }
     }
+
+    public class AirMediaDisplayConnectionOption {
+    	static final int Ip=1;
+    	static final int Host=2;
+    	static final int HostDomain=3;
+    	static final int Custom=4;
+    }
     
     enum CameraMode {
     	Camera(0),
@@ -3905,6 +3912,7 @@ public class CresStreamCtrl extends Service {
     	userSettings.setAirMediaOsdImage(filePath);
     }
     
+    // Function deprecated - used with old digital joins which are no longer supported
     public void setAirMediaIpAddressPrompt(boolean enable, int sessId)
     {    	
     	synchronized (mAirMediaLock) {
@@ -3921,6 +3929,7 @@ public class CresStreamCtrl extends Service {
     	}
     }
     
+    // Function deprecated - used with old digital joins which are no longer supported
     public void setAirMediaDomainNamePrompt(boolean enable, int sessId)
     {
     	synchronized (mAirMediaLock) {
@@ -3939,6 +3948,7 @@ public class CresStreamCtrl extends Service {
     	}
     }
 
+    // Function deprecated - used with old digital joins which are no longer supported
     public void setAirMediaHostNamePrompt(boolean enable, int sessId)
     {
     	synchronized (mAirMediaLock) {
@@ -3952,11 +3962,12 @@ public class CresStreamCtrl extends Service {
     			userSettings.setAirMediaDomainNamePrompt(false);
     			sendAirMediaDomainNamePromptFeedback();
     		}
-    		setHostName("AirMedia");
+    		setHostName("");
     		sendAirMediaConnectionAddress(sessId);
     	}
     }
 
+    // Function deprecated - used with old digital joins which are no longer supported
     public void setAirMediaCustomPrompt(boolean enable, int sessId)
     {
     	synchronized (mAirMediaLock) {
@@ -3988,33 +3999,54 @@ public class CresStreamCtrl extends Service {
     	}
     }
 
+    public void setAirMediaDisplayConnectionOptionEnable(boolean enable, int sessId)
+    {
+    	synchronized (mAirMediaLock) {
+    		userSettings.setAirMediaDisplayConnectionOptionEnable(enable);
+    		sendAirMediaConnectionAddress(sessId);
+    	}
+    }
+    
+    public void setAirMediaDisplayConnectionOption(int optVal, int sessId)
+    {
+    	synchronized (mAirMediaLock) {
+    		userSettings.setAirMediaDisplayConnectionOption(optVal);
+    		sendAirMediaConnectionAddress(sessId);
+    	}
+    }
+    
     public void setAirMediaCustomPromptString(String promptString, int sessId)
     {
     	synchronized (mAirMediaLock) {
     		userSettings.setAirMediaCustomPromptString(promptString);
-    		if (userSettings.getAirMediaCustomPrompt())
+    		if (userSettings.getAirMediaCustomPrompt() || 
+    				(userSettings.getAirMediaDisplayConnectionOption() == AirMediaDisplayConnectionOption.Custom))
     			sendAirMediaConnectionAddress(sessId);
     	}
     }
     
+    // Function deprecated - used with old digital joins which are no longer supported
     public void sendAirMediaIpAddressPromptFeedback()
     {
     	sockTask.SendDataToAllClients(String.format("AIRMEDIA_IP_ADDRESS_PROMPT=%s", 
     			Boolean.toString(userSettings.getAirMediaIpAddressPrompt())));
     }
     
+    // Function deprecated - used with old digital joins which are no longer supported
     public void sendAirMediaHostNamePromptFeedback()
     {
     	sockTask.SendDataToAllClients(String.format("AIRMEDIA_HOST_NAME_PROMPT=%s", 
     			Boolean.toString(userSettings.getAirMediaHostNamePrompt())));
     }
     
+    // Function deprecated - used with old digital joins which are no longer supported
     public void sendAirMediaDomainNamePromptFeedback()
     {
     	sockTask.SendDataToAllClients(String.format("AIRMEDIA_DOMAIN_NAME_PROMPT=%s", 
     			Boolean.toString(userSettings.getAirMediaDomainNamePrompt())));
     }
     
+    // Function deprecated - used with old digital joins which are no longer supported
     public void sendAirMediaCustomPromptFeedback()
     {
     	sockTask.SendDataToAllClients(String.format("AIRMEDIA_CUSTOM_PROMPT=%s", 
@@ -4175,6 +4207,51 @@ public class CresStreamCtrl extends Service {
     
     public String getAirMediaConnectionAddress(int sessId)
     {
+    	if (!userSettings.getAirMediaDisplayConnectionOptionEnable())
+    	{
+    		Log.d(TAG, "getAirMediaConnectionAddress() returning empty string because DisplayConnectionOptionEnable is false");
+    		return "";
+    	}
+    	StringBuilder url = new StringBuilder(512);
+        url.append("http://");
+    	switch (userSettings.getAirMediaDisplayConnectionOption())
+    	{
+    	case AirMediaDisplayConnectionOption.Ip:
+    		String ipAddr = getAirMediaConnectionIpAddress(sessId);
+    		if (ipAddr.equals("None")) return "";
+    		url.append(getAirMediaConnectionIpAddress(sessId));
+    		break;
+    	case AirMediaDisplayConnectionOption.Host:
+    		setHostName("");
+    		if (hostName == null) return "";
+    		url.append(hostName);
+    		break;
+    	case AirMediaDisplayConnectionOption.HostDomain:
+    		setHostName("");
+    		setDomainName("");
+    		if (hostName == null) return "";
+    		url.append(hostName);
+            if (domainName != null) {
+            	url.append(".");
+            	url.append(domainName);
+            }
+    		break;
+    	case AirMediaDisplayConnectionOption.Custom:
+    		url = new StringBuilder(userSettings.getAirMediaCustomPromptString());
+    		break;
+    	default:
+    		Log.d(TAG, "getAirMediaConnectionAddress() invalid AirMediaDisplayConnectionOption value"+
+    				userSettings.getAirMediaDisplayConnectionOption());
+    		return "";
+    	}
+ 
+		Log.d(TAG, "getAirMediaConnectionAddress() returning "+url.toString());
+        return url.toString();    	
+    }
+    
+    // Function deprecated - used with old digital joins which are no longer supported
+    public String getDigitalJoinAirMediaConnectionAddress(int sessId)
+    {
     	boolean showIp = userSettings.getAirMediaIpAddressPrompt();
     	boolean showHost = userSettings.getAirMediaHostNamePrompt();
     	boolean showDomain = userSettings.getAirMediaDomainNamePrompt();
@@ -4208,7 +4285,7 @@ public class CresStreamCtrl extends Service {
         		url.append(")");
         	}
         }
-		Log.d(TAG, "getAirMediaConnectionAddress() returning "+url.toString());
+		Log.d(TAG, "getDigitalAirMediaConnectionAddress() returning "+url.toString());
         return url.toString();    	
     }
     

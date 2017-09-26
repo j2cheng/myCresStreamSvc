@@ -223,6 +223,8 @@ public class UserSettings
 	private boolean airMediaDomainNamePrompt;
 	private boolean airMediaHostNamePrompt;
 	private boolean airMediaCustomPrompt;
+	private boolean airMediaDisplayConnectionOptionEnable;
+	private int airMediaDisplayConnectionOption;
 	private String airMediaCustomPromptString;
 	private int airMediaX;
 	private int airMediaY;
@@ -336,6 +338,8 @@ public class UserSettings
 		airMediaDomainNamePrompt = false;
 		airMediaHostNamePrompt = false;
 		airMediaCustomPrompt = false;
+		airMediaDisplayConnectionOptionEnable = true;
+		airMediaDisplayConnectionOption = CresStreamCtrl.AirMediaDisplayConnectionOption.Ip;
 		airMediaCustomPromptString = "";
 		tcpInterleave       = initIntArray(0);//auto mode
 		camStreamEnable		= false;
@@ -1212,6 +1216,22 @@ public class UserSettings
 		this.airMediaCustomPrompt = airMediaCustomPrompt;
 	}
 
+	public boolean getAirMediaDisplayConnectionOptionEnable() {
+		return airMediaDisplayConnectionOptionEnable;
+	}
+
+	public void setAirMediaDisplayConnectionOptionEnable(boolean enable) {
+		this.airMediaDisplayConnectionOptionEnable = enable;
+	}
+	
+	public int getAirMediaDisplayConnectionOption() {
+		return airMediaDisplayConnectionOption;
+	}
+
+	public void setAirMediaDisplayConnectionOption(int airMediaDisplayConnectionOption) {
+		this.airMediaDisplayConnectionOption = airMediaDisplayConnectionOption;
+	}
+	
 	public String getAirMediaCustomPromptString() {
 		return airMediaCustomPromptString;
 	}

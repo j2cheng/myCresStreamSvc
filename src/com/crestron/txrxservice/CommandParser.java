@@ -162,6 +162,8 @@ public class CommandParser {
         AIRMEDIA_HOST_NAME_PROMPT,
         AIRMEDIA_CUSTOM_PROMPT,
         AIRMEDIA_CUSTOM_PROMPT_STRING,
+        AIRMEDIA_DISPLAY_CONNECTION_OPTION_ENABLE,
+        AIRMEDIA_DISPLAY_CONNECTION_OPTION,
         AIRMEDIA_DISPLAY_SCREEN,
         AIRMEDIA_WINDOW_FLAG,
         AIRMEDIA_VERSION,
@@ -652,6 +654,12 @@ public class CommandParser {
             	break;  
             case AIRMEDIA_CUSTOM_PROMPT_STRING:
             	cmd = new AirMediaCustomPromptStringCommand(ctrl, arg, idx);
+            	break; 
+            case AIRMEDIA_DISPLAY_CONNECTION_OPTION_ENABLE:
+            	cmd = new AirMediaDisplayConnectionOptionEnableCommand(ctrl, arg, idx);
+            	break;
+            case AIRMEDIA_DISPLAY_CONNECTION_OPTION:
+            	cmd = new AirMediaDisplayConnectionOptionCommand(ctrl, arg, idx);
             	break;  
             case AIRMEDIA_WINDOW_POSITION:
             	cmd = new AirMediaWindowPositionCommand(ctrl, arg, idx);
