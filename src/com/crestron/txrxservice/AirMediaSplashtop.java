@@ -171,7 +171,10 @@ public class AirMediaSplashtop implements AirMedia
     		receiver_.stop();
             receiver_.close();
             receiver_ = null;
+            removeAllSessionsFromMap();
+            mStreamCtl.sendAirMediaNumberUserConnected();
             active_session_ = null;
+            surfaceDisplayed = false;
     		connectAndStartReceiverService();
     	}
     }
@@ -329,14 +332,14 @@ public class AirMediaSplashtop implements AirMedia
     public void showVideo(boolean use_texture)
     {
 		surfaceDisplayed = true;
-    	Log.d(TAG, "showVideo: Splashtop Window showing " + ((use_texture) ? "TextureView" : "SurfaceView"));
+    	Log.d(TAG, "showVideo: Splashtop Window showing " + ((use_texture) ? "TextureView" : "SurfaceView") + "    surfaceDisplayed=" + getSurfaceDisplayed());
     	mStreamCtl.showSplashtopWindow(streamIdx, use_texture);
     }
     
     public void hideVideo(boolean use_texture)
     {
 		surfaceDisplayed = false;
-    	Log.d(TAG, "hideVideo: Splashtop Window hidden " + ((use_texture) ? "TextureView" : "SurfaceView"));
+    	Log.d(TAG, "hideVideo: Splashtop Window hidden " + ((use_texture) ? "TextureView" : "SurfaceView") + "    surfaceDisplayed=" + getSurfaceDisplayed());
     	mStreamCtl.hideSplashtopWindow(streamIdx, use_texture);
     }
     
@@ -345,6 +348,7 @@ public class AirMediaSplashtop implements AirMedia
     	Log.i(TAG, "AirMediaSplashtop Class destroyed!!!");
 
     	surfaceDisplayed = false;
+    	Log.d(TAG, "surfaceDisplayed=" + getSurfaceDisplayed());
 
     	shutDownAirMediaSplashtop();
     }
@@ -389,9 +393,9 @@ public class AirMediaSplashtop implements AirMedia
 	    	
 	    	showVideo(useTextureView(session()));
 	    	
-	    	Log.d(TAG, "show: calling attachSurface");
 	    	if (session() != null && session().videoSurface() == null)
 	    	{
+		    	Log.d(TAG, "show: calling attachSurface");
 	    		attachSurface();	
 	    	}
     	}
@@ -617,14 +621,24 @@ public class AirMediaSplashtop implements AirMedia
     }
 
     private void attachSurface() {
+		Log.d(TAG, "Entered attachSurface");
     	SurfaceHolder surfaceHolder=null;
     	Surface surface;
     	SurfaceTexture surfaceTexture = null;
     	AirMediaSession session = session();
-    	if (session == null) return;
+    	if (session == null) {
+    		Log.d(TAG, "Returning without attaching since no active session");
+    		return;
+    	}
     	AirMediaReceiver receiver = receiver();
-    	if (receiver == null) return;
-    	if (!getSurfaceDisplayed()) return;
+    	if (receiver == null) {
+    		Log.d(TAG, "Returning without attaching since receiver is null");
+    		return;
+    	}
+    	if (!getSurfaceDisplayed()) {
+    		Log.d(TAG, "Returning without attaching since getSurfaceDisplayed is false");
+    		return;
+    	}
     	if (session.videoSurface() != null)
     	{
 			Log.d(TAG, "attachSurface: detach prior surface");
@@ -649,12 +663,13 @@ public class AirMediaSplashtop implements AirMedia
 		} else {
 			if (surfaceHolder != null)
 				surfaceHolder.addCallback(video_surface_callback_handler_);
-			Log.w(TAG, "attachSurface: No valid surface at this time");
+			Log.d(TAG, "attachSurface: No valid surface at this time");
 		}
 
 		setVideoTransformation();
 
 		mStreamCtl.dispSurface.stMGR.setInvalidateOnSurfaceTextureUpdate(true);
+		Log.d(TAG, "Exit from attachSurface");
     }
     
     // TODO move into CresDisplaySurface
@@ -862,6 +877,7 @@ public class AirMediaSplashtop implements AirMedia
     
     public void intializeDisplay()
     {
+    	Log.d(TAG, "InitializeDisplay() entered");
     	// Show/Hide login code depending on setting
     	if (mStreamCtl.userSettings.getAirMediaLoginMode() == AirMediaLoginMode.Disabled.ordinal())
     		setLoginCodeDisable();
@@ -884,6 +900,7 @@ public class AirMediaSplashtop implements AirMedia
         // Set window display and flag (z order control)
         setDisplayScreen(mStreamCtl.userSettings.getAirMediaDisplayScreen());
         setWindowFlag(mStreamCtl.userSettings.getAirMediaWindowFlag());
+    	Log.d(TAG, "InitializeDisplay() exit");
     }
     
     
@@ -1205,7 +1222,7 @@ public class AirMediaSplashtop implements AirMedia
 
     public void setSurfaceSize(int x, int y, int width, int height)
     {		
-		Log.d(TAG, "------------ calling updateWindow --------------");
+		Log.d(TAG, "------------ In setSurfaceSize calling updateWindow (surfaceDisplayed="+getSurfaceDisplayed()+") --------------");
     	window_ = new Rect(x, y, x+width-1, y+height-1);
 		mStreamCtl.setAirMediaWindowDimensions(x, y, width, height, streamIdx, useTextureView(session()));
 		Log.d(TAG, "------------ finished updateWindow --------------");
@@ -1331,6 +1348,7 @@ public class AirMediaSplashtop implements AirMedia
             	if (session() != null)
             	{
             		removeSession(session());
+            		active_session_ = null;
             	}
             	removeAllSessionsFromMap();
         		querySenderList(false);
