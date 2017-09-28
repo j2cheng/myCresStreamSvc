@@ -777,7 +777,9 @@ public class CresStreamCtrl extends Service {
 			
             // Create a DisplaySurface to handle both preview and stream in
     		createCresDisplaySurface();
-    		
+			Point size = getDisplaySize();
+			SetWindowManagerResolution(size.x, size.y, haveExternalDisplays);
+
     		//Get HPDEVent state fromsysfile
     		if (hdmiInputDriverPresent)
     		{
@@ -2313,6 +2315,37 @@ public class CresStreamCtrl extends Service {
         }
     }
     
+    public void SetWindowManagerResolution(final int w, final int h, final boolean haveExternalDisplay)
+    {
+    	final CresStreamCtrl streamCtrl = this;    	
+
+    	if (dispSurface != null)
+        {
+    		// Make sure surface changes are only done in UI (main) thread
+        	if (Looper.myLooper() != Looper.getMainLooper())
+        	{
+        		final CountDownLatch latch = new CountDownLatch(1);
+        		runOnUiThread(new Runnable() {
+	       		     @Override
+	       		     public void run() {
+		                dispSurface.setWindowManagerResolution(streamCtrl, w, h, haveExternalDisplay);
+		                latch.countDown();
+	       		     }
+        		});
+        		try { 
+            		if (latch.await(30, TimeUnit.SECONDS) == false)
+            		{
+            			Log.e(TAG, "invalidateSurface: timeout after 30 seconds");
+            			RecoverTxrxService();
+            		}
+            	}
+            	catch (InterruptedException ex) { ex.printStackTrace(); }  
+        	}
+        	else
+        		dispSurface.setWindowManagerResolution(streamCtrl, w, h, haveExternalDisplay);        		
+        }
+    }
+    
     public void readResolutionInfo(String hdmiInputResolution){
     	if (hdmiInputDriverPresent)
     		hdmiInput.updateResolutionInfo(hdmiInputResolution);
@@ -2411,6 +2444,8 @@ public class CresStreamCtrl extends Service {
 	        hdmiOutput.setFPS(Integer.toString(Math.round(hdmiOutputResolution.refreshRate)));
 	        hdmiOutput.setAudioFormat(Integer.toString(1));
 	        hdmiOutput.setAudioChannels(Integer.toString(2));
+	        // Set window manager to reflect this resolution
+	        SetWindowManagerResolution(hdmiOutputResolution.width, hdmiOutputResolution.height, haveExternalDisplays);
 		}
 		else
 		{
@@ -4592,18 +4627,7 @@ public class CresStreamCtrl extends Service {
 		            	}
 		            	latch.countDown();
             		}
-            	}).start();
-            	
-            	// We launch the stop commands in its own thread and timeout in case it gets hung
-            	boolean successfulStop = true; //indicates that there was no time out condition
-            	try { successfulStop = latch.await(hdmiBroadcastTimeout_ms, TimeUnit.MILLISECONDS); }
-            	catch (InterruptedException ex) { ex.printStackTrace(); }
-            	
-            	if (!successfulStop)
-            	{
-            		Log.e(TAG, "Failed to handle RESOLUTION_CHANGED in " + (hdmiBroadcastTimeout_ms/1000) + " seconds");
-            		RecoverTxrxService();
-            	}
+            	}).start();            	
         	}            
         };
         IntentFilter resolutionIntentFilter = new IntentFilter("evs.intent.action.hdmi.RESOLUTION_CHANGED");
@@ -4645,17 +4669,6 @@ public class CresStreamCtrl extends Service {
                     	latch.countDown();
             		}
             	}).start();    
-            	
-            	// We launch the stop commands in its own thread and timeout in case it gets hung
-            	boolean successfulStop = true; //indicates that there was no time out condition
-            	try { successfulStop = latch.await(hdmiBroadcastTimeout_ms, TimeUnit.MILLISECONDS); }
-            	catch (InterruptedException ex) { ex.printStackTrace(); }
-            	
-            	if (!successfulStop)
-            	{
-            		Log.e(TAG, "Failed to handle HPD in " + (hdmiBroadcastTimeout_ms/1000) + " seconds");
-            		RecoverTxrxService();
-            	}
             }
         };
         IntentFilter hpdIntentFilter = new IntentFilter("evs.intent.action.hdmi.HPD");
@@ -4690,17 +4703,6 @@ public class CresStreamCtrl extends Service {
 		                latch.countDown();
 		            }
             	}).start();
-            	
-            	// We launch the stop commands in its own thread and timeout in case it gets hung
-            	boolean successfulStop = true; //indicates that there was no time out condition
-            	try { successfulStop = latch.await(hdmiBroadcastTimeout_ms, TimeUnit.MILLISECONDS); }
-            	catch (InterruptedException ex) { ex.printStackTrace(); }
-            	
-            	if (!successfulStop)
-            	{
-            		Log.e(TAG, "Failed to handle HDMIOUT_RESOLUTION_CHANGED in " + (hdmiBroadcastTimeout_ms/1000) + " seconds");
-            		RecoverTxrxService();
-            	}
             }
         };
         IntentFilter hdmioutResolutionIntentFilter = new IntentFilter("evs.intent.action.hdmi.HDMIOUT_RESOLUTION_CHANGED");
@@ -4721,6 +4723,8 @@ public class CresStreamCtrl extends Service {
 		{
 			Log.d(TAG, "------ Recreate CresDisplaySurface due to regained HDMI sync ------");
 			createCresDisplaySurface();
+			Point size = getDisplaySize();
+			SetWindowManagerResolution(size.x, size.y, haveExternalDisplays);
 
 			try { Thread.sleep(3000); } catch (Exception e) {}
 			restartStreams(false);
@@ -4736,8 +4740,6 @@ public class CresStreamCtrl extends Service {
 
 					if ((width == 0) && (height == 0))
 					{
-						Point size = getDisplaySize();
-
 						width = size.x;
 						height = size.y;
 					}

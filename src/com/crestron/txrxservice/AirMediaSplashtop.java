@@ -575,6 +575,17 @@ public class AirMediaSplashtop implements AirMedia
     	}
     }
 
+    public void log_matrix(Matrix m)
+    {
+    	float[] values;
+    	
+    	values = new float[9];
+    	m.getValues(values);
+    	Log.d(TAG, "Matrix = { " + values[0] + "   " + values[1] + "   " + values[2]);
+    	Log.d(TAG, "           " + values[3] + "   " + values[4] + "   " + values[5]);
+    	Log.d(TAG, "           " + values[6] + "   " + values[7] + "   " + values[8] + "}");
+   	}
+
     public void setVideoTransformation(int x, int y, int w, int h) {
     	
     	AirMediaSession session = session();
@@ -616,6 +627,7 @@ public class AirMediaSplashtop implements AirMedia
         Matrix matrix = textureView.getTransform(null);
         matrix.setRotate(videoRotation, viewCenterX, viewCenterY);
         matrix.postScale(scaleX, scaleY, viewCenterX, viewCenterY);
+        //log_matrix(matrix);
         textureView.setTransform(matrix);
         mStreamCtl.dispSurface.forceParentLayoutInvalidation();
     }

@@ -74,6 +74,27 @@ public class CresDisplaySurface
         }
     }
     
+    
+    // PEM - update a view to the 2nd display
+    // Needed to pass Service or else can't call getApplicationContext...
+    private void updateViewOnExternalDisplay(Context app, View view, WindowManager.LayoutParams params){
+        if (dm != null){
+            Display dispArray[] = dm.getDisplays();
+            if (dispArray.length>1){
+            	if (wm == null)
+            	{
+	                Context displayContext = app.getApplicationContext().createDisplayContext(dispArray[1]);
+	                wm = (WindowManager)displayContext.getSystemService(Context.WINDOW_SERVICE);
+            	}
+            	wm.updateViewLayout(view, params);
+            }
+            else{
+				Log.e(TAG, "Second display not ready yet");
+            }
+        }
+    }
+    
+    
 // Prepare the class for destruction
     public void close()
     {
@@ -106,6 +127,7 @@ public class CresDisplaySurface
     	backgroundView = null;
     }
     
+
     public CresDisplaySurface(Service app, int windowWidth, int windowHeight, boolean haveExternalDisplays, int color)
     {
         Log.i(TAG, "Creating surface: " + windowWidth + "x" + windowHeight );
@@ -195,6 +217,50 @@ public class CresDisplaySurface
         createBackgroundWindow(windowWidth, windowHeight, color, haveExternalDisplays);
     }
     
+    /**
+     * Call when HDMI resolution changes are detected
+     */   
+    public void setWindowManagerResolution(Service app, int w, int h, boolean haveExternalDisplay)
+    {
+    	// If parentLayout has not yet been created (see CresDisplaySurface) return immediately
+        if (parentlayout == null) {
+        	Log.d(TAG, "exiting setWindowManagerResolution because no parentlayout available");
+        	return;
+        }
+        
+        int windowType;
+                
+        if (streamCtl.alphaBlending)
+        	windowType = WindowManager.LayoutParams.TYPE_PRIORITY_PHONE;	// For alpha blending
+        else
+        	windowType = WindowManager.LayoutParams.TYPE_SYSTEM_OVERLAY;	// For chroma blending
+        
+        wmLayoutParams = new WindowManager.LayoutParams(
+    		w, 
+    		h, 
+    		windowType, // See above chart for z order control
+    		(0 | WindowManager.LayoutParams.FLAG_NOT_TOUCHABLE | WindowManager.LayoutParams.FLAG_NOT_FOCUSABLE | WindowManager.LayoutParams.FLAG_HARDWARE_ACCELERATED), 
+    		PixelFormat.TRANSLUCENT);
+	    
+        wmLayoutParams.gravity = Gravity.TOP | Gravity.LEFT; 
+        wmLayoutParams.x = 0;
+        wmLayoutParams.y = 0;
+		if(haveExternalDisplay){		
+			dm = (DisplayManager) app.getApplicationContext().getSystemService(Context.DISPLAY_SERVICE);
+//	        if (dm != null)
+//	        {
+//	        	dm.registerDisplayListener(streamCtl.mDisplayListener, null);
+//	        }
+			updateViewOnExternalDisplay(app, parentlayout, wmLayoutParams);
+		}
+		else{
+			wm =  (WindowManager) app.getSystemService(Context.WINDOW_SERVICE);
+//			wm = app.getWindowManager();	// getting windowManager in this fashion fills in application binder token automatically
+		    wm.updateViewLayout(parentlayout, wmLayoutParams);
+		}
+    	Log.d(TAG, "setWindowManagerResolution: resolution set to "+w+"x"+h);
+    }
+	
     /**
      * Just remove the parentLayout
      */
