@@ -11,6 +11,7 @@ import com.crestron.airmedia.receiver.m360.ipc.AirMediaSessionConnectionState;
 import com.crestron.airmedia.receiver.m360.ipc.AirMediaSessionStreamingState;
 import com.crestron.airmedia.receiver.m360.ipc.AirMediaSessionScreenPosition;
 import com.crestron.airmedia.receiver.m360.ipc.AirMediaSize;
+import com.crestron.airmedia.receiver.m360.ipc.AirMediaSessionVideoType;
 
 interface IAirMediaSession {
 
@@ -47,6 +48,7 @@ interface IAirMediaSession {
 
     AirMediaSessionStreamingState getVideoState();
     int getVideoId();
+    AirMediaSessionVideoType getVideoType();
     AirMediaSize getVideoResolution();
     int getVideoRotation();
     boolean getVideoIsDrm();

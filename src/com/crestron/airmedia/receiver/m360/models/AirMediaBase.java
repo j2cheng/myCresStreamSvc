@@ -26,7 +26,7 @@ abstract class AirMediaBase {
         try {
             isCompleted = scheduler().queue(timeout, task);
         } catch (Exception e) {
-            Log.e(TAG, name + "  timeout= " + timeout.toString() + "  EXCEPTION  " + e);
+            Log.e(TAG, name + "  timeout= " + timeout.toString() + "  EXCEPTION  " + e + "  " + Log.getStackTraceString(e));
         } finally {
             Log.i(TAG, name + "  timeout= " + timeout.toString() + "  COMPLETE= " + isCompleted + "  " + TimeSpan.getDelta(start));
         }

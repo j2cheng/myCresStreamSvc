@@ -8,6 +8,7 @@ import com.crestron.airmedia.receiver.m360.ipc.AirMediaSessionConnectionState;
 import com.crestron.airmedia.receiver.m360.ipc.AirMediaSessionStreamingState;
 import com.crestron.airmedia.receiver.m360.ipc.AirMediaSessionScreenPosition;
 import com.crestron.airmedia.receiver.m360.ipc.AirMediaSize;
+import com.crestron.airmedia.receiver.m360.ipc.AirMediaSessionVideoType;
 
 interface IAirMediaSessionObserver {
 
@@ -40,6 +41,7 @@ interface IAirMediaSessionObserver {
     /// VIDEO
 
     oneway void onVideoStateChanged(in AirMediaSessionStreamingState from, in AirMediaSessionStreamingState to);
+    oneway void onVideoTypeChanged(in AirMediaSessionVideoType from, in AirMediaSessionVideoType to);
     oneway void onVideoResolutionChanged(in AirMediaSize from, in AirMediaSize to);
     oneway void onVideoRotationChanged(in int from, in int to);
     oneway void onVideoSurfaceChanged(in Surface from, in Surface to);

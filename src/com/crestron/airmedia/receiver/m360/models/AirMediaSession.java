@@ -11,6 +11,7 @@ import com.crestron.airmedia.receiver.m360.ipc.AirMediaSessionConnectionState;
 import com.crestron.airmedia.receiver.m360.ipc.AirMediaSessionInfo;
 import com.crestron.airmedia.receiver.m360.ipc.AirMediaSessionScreenPosition;
 import com.crestron.airmedia.receiver.m360.ipc.AirMediaSessionStreamingState;
+import com.crestron.airmedia.receiver.m360.ipc.AirMediaSessionVideoType;
 import com.crestron.airmedia.receiver.m360.ipc.AirMediaSize;
 import com.crestron.airmedia.utilities.Common;
 import com.crestron.airmedia.utilities.TaskScheduler;
@@ -53,6 +54,7 @@ public class AirMediaSession extends AirMediaBase {
             deviceId_ = session.getDeviceId();
             videoState_ = session.getVideoState();
             videoId_ = session.getVideoId();
+            videoType_ = session.getVideoType();
             videoResolution_ = session.getVideoResolution();
             videoRotation_ = session.getVideoRotation();
             videoIsDrm_ = session.getVideoIsDrm();
@@ -126,6 +128,11 @@ public class AirMediaSession extends AirMediaBase {
             videoState_ = to;
             if (to == AirMediaSessionStreamingState.Starting || to == AirMediaSessionStreamingState.Playing) videoId_ = session_.getVideoId();
             scheduler().raise(videoStateChanged(), self(), from, to);
+        }
+
+        public void onVideoTypeChanged(AirMediaSessionVideoType from, AirMediaSessionVideoType to) throws RemoteException {
+            videoType_ = to;
+            scheduler().raise(videoTypeChanged(), self(), from, to);
         }
 
         @Override
@@ -216,6 +223,7 @@ public class AirMediaSession extends AirMediaBase {
     private String deviceId_;
 
     private AirMediaSessionStreamingState videoState_ = AirMediaSessionStreamingState.Stopped;
+    private AirMediaSessionVideoType videoType_ = AirMediaSessionVideoType.Undefined;
     private int videoId_ = 0;
     private AirMediaSize videoResolution_ = AirMediaSize.Zero;
     private int videoRotation_ = 0;
@@ -245,6 +253,7 @@ public class AirMediaSession extends AirMediaBase {
     private final MulticastChangedDelegate<AirMediaSession, AirMediaSessionConnectionState> deviceStateChanged_ = new MulticastChangedDelegate<AirMediaSession, AirMediaSessionConnectionState>();
 
     private final MulticastChangedDelegate<AirMediaSession, AirMediaSessionStreamingState> videoStateChanged_ = new MulticastChangedDelegate<AirMediaSession, AirMediaSessionStreamingState>();
+    private final MulticastChangedDelegate<AirMediaSession, AirMediaSessionVideoType> videoTypeChanged_ = new MulticastChangedDelegate<AirMediaSession, AirMediaSessionVideoType>();
     private final MulticastChangedDelegate<AirMediaSession, AirMediaSize> videoResolutionChanged_ = new MulticastChangedDelegate<AirMediaSession, AirMediaSize>();
     private final MulticastChangedDelegate<AirMediaSession, Integer> videoRotationChanged_ = new MulticastChangedDelegate<AirMediaSession, Integer>();
     private final MulticastChangedDelegate<AirMediaSession, Surface> videoSurfaceChanged_ = new MulticastChangedDelegate<AirMediaSession, Surface>();
@@ -305,6 +314,10 @@ public class AirMediaSession extends AirMediaBase {
     public AirMediaSessionStreamingState videoState() { return videoState_; }
 
     public int videoId() { return videoId_; }
+
+    /// VIDEO TYPE
+
+    public AirMediaSessionVideoType videoType() { return videoType_; }
 
     /// VIDEO RESOLUTION
 
@@ -392,6 +405,7 @@ public class AirMediaSession extends AirMediaBase {
     /// VIDEO
 
     public MulticastChangedDelegate<AirMediaSession, AirMediaSessionStreamingState> videoStateChanged() { return videoStateChanged_; }
+    public MulticastChangedDelegate<AirMediaSession, AirMediaSessionVideoType> videoTypeChanged() { return videoTypeChanged_; }
     public MulticastChangedDelegate<AirMediaSession, AirMediaSize> videoResolutionChanged() { return videoResolutionChanged_; }
     public MulticastChangedDelegate<AirMediaSession, Integer> videoRotationChanged() { return videoRotationChanged_ ; }
     public MulticastChangedDelegate<AirMediaSession, Surface> videoSurfaceChanged() { return videoSurfaceChanged_ ; }
