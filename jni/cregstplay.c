@@ -1140,6 +1140,8 @@ int build_video_pipeline(gchar *encoding_name, CREGSTREAM *data, unsigned int st
 			data->element_v[i++] = gst_element_factory_make("rtpjpegdepay", NULL);
 		}
 		data->element_v[i++] = gst_element_factory_make("queue", NULL);
+		data->element_v[i++] = gst_element_factory_make("valve", NULL);
+		data->element_valve_v = data->element_v[i-1];
 		data->element_v[i++] = gst_element_factory_make("jpegparse", NULL);
 
 		if( !(data->useSWdecoder) && product_info()->mjpeg_decoder_string[0] )
