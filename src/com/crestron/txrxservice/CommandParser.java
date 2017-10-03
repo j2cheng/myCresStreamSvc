@@ -809,6 +809,7 @@ public class CommandParser {
 	                case PROXYENABLE:
 	                case HDCPENCRYPT:
 	                case HDMI_OUT_EXTERNAL_HDCP_STATUS:
+	                case HDMIOUT_TRANSMIT_CEC_MESSAGE:
 	                	break;
 	                default:
 	                	CresStreamCtrl.saveSettingsUpdateArrived = true;

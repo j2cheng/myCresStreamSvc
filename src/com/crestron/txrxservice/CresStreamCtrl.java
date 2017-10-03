@@ -5023,7 +5023,7 @@ public class CresStreamCtrl extends Service {
 	      	} catch (Exception e) {Log.d(TAG, "Exception in saveUserSettings" + e.toString()); }
 	      	
 	      	// Only update userSettings if it has changed
-	      	if (serializedClass != currentUserSettings)
+	      	if (serializedClass.compareToIgnoreCase(currentUserSettings) != 0)
 	      	{
 		      	try 
 		      	{
