@@ -285,7 +285,7 @@ public class MiscUtils {
         try {
             Method getString = Build.class.getDeclaredMethod("getString", String.class);
             getString.setAccessible(true);
-            return getString.invoke(null, "net.domain").toString();
+            return getString.invoke(null, "net.dns.search").toString();
         } catch (Exception ex) {
             return defValue;
         }
