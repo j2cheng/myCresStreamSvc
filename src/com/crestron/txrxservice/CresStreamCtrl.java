@@ -4543,6 +4543,7 @@ public class CresStreamCtrl extends Service {
 // Bug 121298: Generate new random code whenever all users disconnect
     	if ( (userSettings.getAirMediaLoginMode() == AirMediaLoginMode.Random.ordinal()) && (numberUserConnected == 0))
     	{
+    		sockTask.SendDataToAllClients(String.format("AIRMEDIA_LOGIN_MODE=%d", userSettings.getAirMediaLoginMode()));
     		setAirMediaLoginMode(userSettings.getAirMediaLoginMode(), 0);
 			pendingAirMediaLoginCodeChange = false;
     	}
