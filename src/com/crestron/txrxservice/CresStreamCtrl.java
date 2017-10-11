@@ -654,9 +654,9 @@ public class CresStreamCtrl extends Service {
     				{
     					userSettings.setMode(DeviceMode.STREAM_IN.ordinal(), sessionId);
     					userSettings.setUserRequestedStreamState(StreamState.STOPPED, sessionId);
-    				}				
-    			}
-    			setAirMediaAdaptorSelect(0, 0);
+    				}	
+    				setAirMediaAdaptorSelect(0, 0);
+    			}    			
     		}
     		else
     		{
@@ -4033,7 +4033,7 @@ public class CresStreamCtrl extends Service {
     		sendAirMediaConnectionAddress(sessId);
     	}
     }
-
+    
     public void setAirMediaDisplayConnectionOptionEnable(boolean enable, int sessId)
     {
     	synchronized (mAirMediaLock) {
