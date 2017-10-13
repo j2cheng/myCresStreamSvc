@@ -850,6 +850,9 @@ public class CresStreamCtrl extends Service {
     		monitorAudioReady();
     		    		
     		initAppFiles();
+    		
+    		// Make sure that current Iframe interval is written to disk
+    		setKeyFrameInterval(userSettings.getKeyFrameInterval());
 
     		// FIXME: this is a temprorary workaround for testing so that we can ignore HDCP state
     		File ignoreHDCPFile = new File ("/data/CresStreamSvc/ignoreHDCP");
