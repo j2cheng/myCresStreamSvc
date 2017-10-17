@@ -330,7 +330,7 @@ public class UserSettings
 		airMediaWidth		= 1920;
 		airMediaHeight		= 1080;
 		airMediaLayoutPassword = "";
-		airMediaDisplayLoginCode = false;
+		airMediaDisplayLoginCode = true;
 		airMediaDisplayScreen = 0;
 		airMediaWindowFlag	= WindowManager.LayoutParams.TYPE_SYSTEM_OVERLAY;
 		airMediaAdaptorSelect = 0;
