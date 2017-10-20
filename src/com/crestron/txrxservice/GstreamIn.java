@@ -319,7 +319,6 @@ public class GstreamIn implements StreamInStrategy, SurfaceHolder.Callback {
     			try {
     				isPlaying = true;
     				SurfaceHolder sh = streamCtl.getCresSurfaceHolder(sessionId);
-    				sh.addCallback(gStreamObj); //needed?
     				updateNativeDataStruct(sessionId);
     				nativeSurfaceInit(sh.getSurface(), sessionId);
     				//    		Code below is for trying TextureView rendering for QuadView
@@ -380,7 +379,7 @@ public class GstreamIn implements StreamInStrategy, SurfaceHolder.Callback {
     	{
     		setRTCPDestIP("", sessionId);
     	}
-
+    	
     	setServerUrl(newUrl, sessionId); 
     	setRtspPort(streamCtl.userSettings.getRtspPort(sessionId), sessionId);
     	setTsPort(streamCtl.userSettings.getTsPort(sessionId), sessionId);

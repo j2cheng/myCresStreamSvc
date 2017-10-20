@@ -541,6 +541,8 @@ void csio_jni_cleanup (int iStreamId)
     data->element_valve_a    = NULL;
     data->element_audiorate  = NULL;
     data->streamProtocolId = 0;
+    data->httpMode  = eHttpMode_UNSPECIFIED;
+	data->mpegtsPresent = FALSE;
 
     for (i = 0; i < MAX_ELEMENTS; i++)
     {

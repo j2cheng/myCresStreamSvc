@@ -931,6 +931,40 @@ void clearMetadataConnections()
         sockInst = NULL;
     }
 }
+
+static void setQueueProperties(CREGSTREAM *data, GstElement *queue, guint64 maxTime, guint maxBytes)
+{
+	switch (data->httpMode)
+	{
+	case eHttpMode_UNSPECIFIED:
+	case eHttpMode_MJPEG:
+		// RTSP/MJPEG get set based on time, since live
+		g_object_set(G_OBJECT(queue),
+				"leaky", (gint)2,					//GST_QUEUE_LEAK_DOWNSTREAM
+				"max-size-bytes", (guint)0,
+				"max-size-buffers", (guint)0,
+				"max-size-time", maxTime,	// 200 ms worked well at 25 ms latency
+				"silent", (gboolean)TRUE,
+				NULL);
+		break;
+	case eHttpMode_MP4:
+	case eHttpMode_HLS:
+	case eHttpMode_DASH:
+	case eHttpMode_MSS:
+		// Not live so based on size
+		g_object_set(G_OBJECT(queue),
+				"leaky", (gint)2,					//GST_QUEUE_LEAK_DOWNSTREAM
+				"max-size-bytes", maxBytes,
+				"max-size-buffers", (guint)0,
+				"max-size-time", (guint64)0ll,
+				"silent", (gboolean)TRUE,
+				NULL);
+		break;
+	default:
+		CSIO_LOG(eLogLevel_warning, "Unimplemented http mode %d", data->httpMode);
+	}
+}
+
 /**
  * \author      Robert Secco
  *
@@ -1034,15 +1068,10 @@ int build_video_pipeline(gchar *encoding_name, CREGSTREAM *data, unsigned int st
         //TODO:checking return values.
         //insert queue right after rtspsrc element
         data->element_v[i++] = gst_element_factory_make("queue", NULL);
-        if (data->mpegtsPresent)
+        // HTTP modes that do not use TS should not set queue to these parameters, check: http://dash-mse-test.appspot.com/media.html
+        if (data->mpegtsPresent || data->streamProtocolId != ePROTOCOL_HTTP)
         {
-			g_object_set(G_OBJECT(data->element_v[i - 1]),
-						"leaky", (gint)2,					//GST_QUEUE_LEAK_DOWNSTREAM
-						"max-size-bytes", (guint)16*1024*1024, //16 Mb of buffer
-						"max-size-buffers", (guint)0,
-						"max-size-time", (guint64)0ll,
-						"silent", (gboolean)TRUE,
-						NULL);
+        	setQueueProperties(data, data->element_v[i - 1], (guint64)((1ll + currentSettingsDB->videoSettings[data->streamId].streamingBuffer) * 1000000ll),(guint)16*1024*1024);
         }
         
         if(do_rtp)
@@ -1057,6 +1086,10 @@ int build_video_pipeline(gchar *encoding_name, CREGSTREAM *data, unsigned int st
         data->element_fake_dec = data->element_v[i-1];
 
         data->element_v[i++] = gst_element_factory_make("queue", NULL);
+        // HTTP modes that do not use TS should not set queue to these parameters, check: http://dash-mse-test.appspot.com/media.html
+        if (data->mpegtsPresent || data->streamProtocolId != ePROTOCOL_HTTP)
+        	setQueueProperties(data, data->element_v[i - 1], (guint64)((175ll + currentSettingsDB->videoSettings[data->streamId].streamingBuffer) * 1000000ll),(guint)10*1024*1024);
+
         //add a probe for loss of video detection.
         GstPad *pad;
         pad = gst_element_get_static_pad( data->element_v[i-1], "src" );
@@ -1094,14 +1127,8 @@ int build_video_pipeline(gchar *encoding_name, CREGSTREAM *data, unsigned int st
     else if(strcmp(encoding_name, "MP2T") == 0)
     {
     	//insert queue right after rtspsrc element
-		data->element_v[i] = gst_element_factory_make("queue", NULL);
-		g_object_set(G_OBJECT(data->element_v[i]),
-					"leaky", (gint)2,					//GST_QUEUE_LEAK_DOWNSTREAM
-					"max-size-bytes", (guint)16*1024*1024, //16 Mb of buffer
-					"max-size-buffers", (guint)0,
-					"max-size-time", (guint64)0ll,
-					"silent", (gboolean)TRUE,
-					NULL);
+ 		data->element_v[i] = gst_element_factory_make("queue", NULL);
+ 		setQueueProperties(data, data->element_v[i], (guint64)((175ll + currentSettingsDB->videoSettings[data->streamId].streamingBuffer) * 1000000ll),(guint)16*1024*1024);
 		gst_bin_add(GST_BIN(data->pipeline), data->element_v[i++]);
 
 		// This happens when there's TS encapsulation.  We won't add the video sink yet.
@@ -1140,6 +1167,9 @@ int build_video_pipeline(gchar *encoding_name, CREGSTREAM *data, unsigned int st
 			data->element_v[i++] = gst_element_factory_make("rtpjpegdepay", NULL);
 		}
 		data->element_v[i++] = gst_element_factory_make("queue", NULL);
+		// HTTP modes that do not use TS should not set queue to these parameters, check: http://dash-mse-test.appspot.com/media.html
+		if (data->mpegtsPresent || data->streamProtocolId != ePROTOCOL_HTTP)
+			setQueueProperties(data, data->element_v[i - 1], (guint64)((175ll + currentSettingsDB->videoSettings[data->streamId].streamingBuffer) * 1000000ll),(guint)10*1024*1024);
 		data->element_v[i++] = gst_element_factory_make("valve", NULL);
 		data->element_valve_v = data->element_v[i-1];
 		data->element_v[i++] = gst_element_factory_make("jpegparse", NULL);
@@ -1338,13 +1368,7 @@ int build_audio_pipeline(gchar *encoding_name, CREGSTREAM *data, int do_rtp,GstE
 	{
 	    //insert queue right after rtspsrc element
 	    data->element_a[i++] = gst_element_factory_make("queue", NULL);
-	    g_object_set(G_OBJECT(data->element_a[i - 1]),
-	    		"leaky", (gint)2,					//GST_QUEUE_LEAK_DOWNSTREAM
-	    		"max-size-bytes", (guint)16*1024*1024, //16 Mb of buffer
-				"max-size-buffers", (guint)0,
-				"max-size-time", (guint64)0ll,
-				"silent", (gboolean)TRUE,
-				NULL);
+	    setQueueProperties(data, data->element_a[i - 1], (guint64)((1ll + currentSettingsDB->videoSettings[data->streamId].streamingBuffer) * 1000000ll),(guint)16*1024*1024);
 	    
 		if(do_rtp)
 		{
@@ -1358,7 +1382,10 @@ int build_audio_pipeline(gchar *encoding_name, CREGSTREAM *data, int do_rtp,GstE
 
 		data->element_a[i++] = gst_element_factory_make("aacparse", NULL);
 		data->element_a[i++] = gst_element_factory_make("queue", NULL);
-    	data->element_a[i++] = gst_element_factory_make("faad", NULL);
+		// HTTP modes that do not use TS should not set queue to these parameters, check: http://dash-mse-test.appspot.com/media.html
+		if (data->mpegtsPresent || data->streamProtocolId != ePROTOCOL_HTTP)
+			setQueueProperties(data, data->element_a[i - 1], (guint64)((175ll + currentSettingsDB->videoSettings[data->streamId].streamingBuffer) * 1000000ll),(guint)10*1024*1024);
+		data->element_a[i++] = gst_element_factory_make("faad", NULL);
 
 		*ele0 = data->element_a[0];
 	}
