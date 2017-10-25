@@ -359,10 +359,28 @@ void gst_native_play (JNIEnv* env, jobject thiz, jint sessionId)
     if(GetInPausedState(sessionId))
     {
         CSIO_LOG(eLogLevel_debug, "GetInPausedState is true, resume now");
-        if(data->element_valve_a)
-            g_object_set(G_OBJECT(data->element_valve_a), "drop", FALSE, NULL);
-        if(data->element_valve_v)
-            g_object_set(G_OBJECT(data->element_valve_v), "drop", FALSE, NULL);
+        switch (data->httpMode)
+        {
+        case eHttpMode_UNSPECIFIED:
+        case eHttpMode_MJPEG:
+        	// RTSP/MJPEG are live so use valves to pause
+			CSIO_LOG(eLogLevel_verbose, "Unpausing pipeline with valves");
+        	if(data->element_valve_a)
+        		g_object_set(G_OBJECT(data->element_valve_a), "drop", FALSE, NULL);
+        	if(data->element_valve_v)
+        		g_object_set(G_OBJECT(data->element_valve_v), "drop", FALSE, NULL);
+        	break;
+        case eHttpMode_MP4:
+        case eHttpMode_HLS:
+        case eHttpMode_DASH:
+        case eHttpMode_MSS:
+        	// Not live so pause entire pipeline
+			CSIO_LOG(eLogLevel_verbose, "Unpausing pipeline state");
+        	csio_element_set_state(data->pipeline, GST_STATE_PLAYING);
+        	break;
+        default:
+        	CSIO_LOG(eLogLevel_warning, "Unimplemented http mode %d", data->httpMode);
+        }
     }
 
     SetInPausedState(sessionId, 0);
@@ -384,10 +402,28 @@ static void gst_native_pause (JNIEnv* env, jobject thiz, jint sessionId)
     if(GetInPausedState(sessionId) == 0)
     {
         CSIO_LOG(eLogLevel_debug, "GetInPausedState is false, drop all");
-        if(data->element_valve_a)
-            g_object_set(G_OBJECT(data->element_valve_a), "drop", TRUE, NULL);
-        if(data->element_valve_v)
-            g_object_set(G_OBJECT(data->element_valve_v), "drop", TRUE, NULL);
+        switch (data->httpMode)
+        {
+        case eHttpMode_UNSPECIFIED:
+        case eHttpMode_MJPEG:
+        	// RTSP/MJPEG are live so use valves to pause
+			CSIO_LOG(eLogLevel_verbose, "Pausing pipeline with valves");
+        	if(data->element_valve_a)
+        		g_object_set(G_OBJECT(data->element_valve_a), "drop", TRUE, NULL);
+        	if(data->element_valve_v)
+        		g_object_set(G_OBJECT(data->element_valve_v), "drop", TRUE, NULL);
+        	break;
+        case eHttpMode_MP4:
+        case eHttpMode_HLS:
+        case eHttpMode_DASH:
+        case eHttpMode_MSS:
+        	// Not live so pause entire pipeline
+			CSIO_LOG(eLogLevel_verbose, "Pausing pipeline state");
+        	csio_element_set_state(data->pipeline, GST_STATE_PAUSED);
+        	break;
+        default:
+        	CSIO_LOG(eLogLevel_warning, "Unimplemented http mode %d", data->httpMode);
+        }
     }
 
     SetInPausedState(sessionId, 1);
