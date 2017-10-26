@@ -200,6 +200,12 @@ public class AirMediaSplashtop implements AirMedia
 		{
 			registerSessionManagerEventHandlers(manager_);
 		}
+		// Clear all user status
+		for (int i=1; i < MAX_USERS; i++)
+		{
+			mStreamCtl.userSettings.setAirMediaUserConnected(false, i);
+			mStreamCtl.sendAirMediaUserFeedbacks(i, "", "", 0, false);					
+		}
 		intializeDisplay();
 		
 		set4in1ScreenEnable(false); // TODO: Remove this when quad view is eventually enabled
@@ -912,6 +918,10 @@ public class AirMediaSplashtop implements AirMedia
         // Set window display and flag (z order control)
         setDisplayScreen(mStreamCtl.userSettings.getAirMediaDisplayScreen());
         setWindowFlag(mStreamCtl.userSettings.getAirMediaWindowFlag());
+        
+        // Update connection status
+        querySenderList(false);
+        
     	Log.d(TAG, "InitializeDisplay() exit");
     }
     
