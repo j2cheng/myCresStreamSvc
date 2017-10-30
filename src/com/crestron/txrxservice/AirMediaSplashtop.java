@@ -6,6 +6,7 @@ import java.util.Map;
 import java.util.concurrent.ConcurrentHashMap;
 import java.util.concurrent.CountDownLatch;
 import java.util.concurrent.TimeUnit;
+import java.util.concurrent.locks.ReentrantLock;
 import java.util.Collection;
 import java.util.List;
 import java.util.EnumSet;
@@ -77,6 +78,7 @@ public class AirMediaSplashtop implements AirMedia
 	private static final int MAX_USERS = 32;
 	private static final int CODEC_ERROR = 1;
 	private final Object stopSessionObjectLock = new Object();
+    private final ReentrantLock orderedLock	= new ReentrantLock(true); // fairness=true, makes lock ordered
     public CountDownLatch serviceConnectedLatch=null;
     public CountDownLatch receiverLoadedLatch=null;
     public CountDownLatch receiverStoppedLatch=null;
@@ -152,7 +154,7 @@ public class AirMediaSplashtop implements AirMedia
     		}
     		else if (!isReceiverStarted)
     		{
-    			Log.w(TAG, "Service connected but not started, restarting AirMedia app");
+    			Log.w(TAG, "Service connected but receiver not started, restarting AirMedia app");
     			restartAirMedia();
     		}
     		else
@@ -163,20 +165,33 @@ public class AirMediaSplashtop implements AirMedia
     
     private void restartAirMedia()
     {
+    	// currently is a NOOP for splashtop
 		mStreamCtl.RestartAirMedia();
     }
-    
-    private class RestartAirMedia implements Runnable {
-    	public void run() {
-    		receiver_.stop();
-            receiver_.close();
-            receiver_ = null;
-            removeAllSessionsFromMap();
-            mStreamCtl.sendAirMediaNumberUserConnected();
-            active_session_ = null;
-            surfaceDisplayed = false;
-    		connectAndStartReceiverService();
-    	}
+
+    private void RestartAirMediaAsynchronously()
+    {
+    	Log.d(TAG, "RestartAirMediaAsynchronously........");
+    	new Thread(new Runnable() {
+    		@Override
+    		public void run() {
+    			orderedLock.lock();
+    			try {
+    				receiver_.stop();
+    				receiver_.close();
+    				receiver_ = null;
+    				isReceiverStarted = false;
+    				removeAllSessionsFromMap();
+    				mStreamCtl.sendAirMediaNumberUserConnected();
+    				active_session_ = null;
+    				surfaceDisplayed = false;
+    				connectAndStartReceiverService();
+    			} finally {
+    				orderedLock.unlock();
+    			}
+    		}
+    	}).start();
+    	Log.d(TAG, "RestartAirMediaAsynchronously exit ........");
     }
     
     private void startAirMedia()
@@ -268,17 +283,25 @@ public class AirMediaSplashtop implements AirMedia
 		}		
 	}
 	
-    private class RestartReceiver implements Runnable {
-    	public void run() {
-    		Log.i(TAG, "RestartReceiver(): Entered");
-    		if (receiver_.state() != AirMediaReceiverState.Stopped)
-    		{
-            	Log.i(TAG, "RestartReceiver(): Stopping receiver");
-    			stopReceiver();			
+    private void RestartReceiverAynchronously() {
+    	new Thread(new Runnable() {
+    		@Override
+    		public void run() {
+        		orderedLock.lock();
+        		try {
+        			Log.i(TAG, "RestartReceiverAynchronously(): Entered");
+        			if (receiver_.state() != AirMediaReceiverState.Stopped)
+        			{
+        				Log.i(TAG, "RestartReceiverAynchronously(): Stopping receiver");
+        				stopReceiver();			
+        			}
+        			startReceiverWithPossibleIpAddressChange();
+        		} finally {
+        			orderedLock.unlock();
+        		}
+        		Log.i(TAG, "RestartReceiverAynchronously(): Exited");
     		}
-    		startReceiverWithPossibleIpAddressChange();
-    		Log.i(TAG, "RestartReceiver(): Exited");
-    	}
+    	}).start();
     }
     
     private boolean startAirMediaReceiver(final String serverName)
@@ -335,14 +358,14 @@ public class AirMediaSplashtop implements AirMedia
 		return successfulStart;
     }
     
-    public void showVideo(boolean use_texture)
+    private void showVideo(boolean use_texture)
     {
 		surfaceDisplayed = true;
     	Log.d(TAG, "showVideo: Splashtop Window showing " + ((use_texture) ? "TextureView" : "SurfaceView") + "    surfaceDisplayed=" + getSurfaceDisplayed());
     	mStreamCtl.showSplashtopWindow(streamIdx, use_texture);
     }
     
-    public void hideVideo(boolean use_texture)
+    private void hideVideo(boolean use_texture)
     {
 		//surfaceDisplayed = false;
     	Log.d(TAG, "hideVideo: Splashtop Window hidden " + ((use_texture) ? "TextureView" : "SurfaceView") + "    surfaceDisplayed=" + getSurfaceDisplayed());
@@ -389,51 +412,61 @@ public class AirMediaSplashtop implements AirMedia
     
     public void show(int x, int y, int width, int height)
     {
-    	Rect window = new Rect(x, y, x+width-1, y+height-1);
-    	if (surfaceDisplayed == false || !MiscUtils.rectanglesAreEqual(window_, window))
-    	{	    		    	
-	    	Log.i(TAG, "show: Show window 0 " + window);
-	
-	    	//show surface
-	    	setVideoTransformation();
-	    	
-	    	showVideo(useTextureView(session()));
-	    	
-	    	if (session() != null && session().videoSurface() == null)
-	    	{
-		    	Log.d(TAG, "show: calling attachSurface");
-	    		attachSurface();	
-	    	}
+    	orderedLock.lock();
+    	try {
+    		Rect window = new Rect(x, y, x+width-1, y+height-1);
+    		if (surfaceDisplayed == false || !MiscUtils.rectanglesAreEqual(window_, window))
+    		{	    		    	
+    			Log.i(TAG, "show: Show window 0 " + window);
+
+    			//show surface
+    			setVideoTransformation();
+
+    			showVideo(useTextureView(session()));
+
+    			if (session() != null && session().videoSurface() == null)
+    			{
+    				Log.d(TAG, "show: calling attachSurface");
+    				attachSurface();	
+    			}
+    		}
+    		else
+    			Log.i(TAG, "show: AirMedia already shown, ignoring request");
+    	} finally {
+    		orderedLock.unlock();
     	}
-    	else
-    		Log.i(TAG, "show: AirMedia already shown, ignoring request");
     }    
     
     public void hide(boolean sendStopToSender, boolean clear)
     {
-    	if (surfaceDisplayed == true)
-    	{
-			// Invalidate rect on hide
-    		window_ = new Rect();    		
-    	
-    		detachSurface();
-    		
-    		if (clear && Boolean.parseBoolean(mStreamCtl.hdmiOutput.getSyncStatus()))
+    	orderedLock.lock();
+    	try {
+    		if (surfaceDisplayed == true)
     		{
-    			clearSurface();			
+    			// Invalidate rect on hide
+    			window_ = new Rect();    		
+
+    			detachSurface();
+
+    			if (clear && Boolean.parseBoolean(mStreamCtl.hdmiOutput.getSyncStatus()))
+    			{
+    				clearSurface();			
+    			}
+
+    			if (session() != null)
+    				hideVideo(useTextureView(session()));
+
+    			surfaceDisplayed = false;
+
+    			if (sendStopToSender) {   			
+    				stopAllSenders(); // Inform senders that stream is stopped/hidden
+    			}
     		}
-    		
-    		if (session() != null)
-    			hideVideo(useTextureView(session()));
-    		
-    		surfaceDisplayed = false;
-    		    		    		
-    		if (sendStopToSender) {   			
-    			stopAllSenders(); // Inform senders that stream is stopped/hidden
-    		}
+    		else
+    			Log.i(TAG, "hide: AirMedia already hidden, ignoring request");
+    	} finally {
+    		orderedLock.unlock();
     	}
-    	else
-    		Log.i(TAG, "hide: AirMedia already hidden, ignoring request");
     }
     
     public void hide(boolean sendTopToSender)
@@ -515,7 +548,7 @@ public class AirMediaSplashtop implements AirMedia
     		userSessionMap.remove(senderId);
     }
     
-    public void removeAllSessionsFromMap()
+    private void removeAllSessionsFromMap()
     {
 		Log.i(TAG, "removeAllSessions");
     	for (int user = 1; user <= MAX_USERS; user++) // We handle airMedia user ID as 1 based
@@ -757,7 +790,7 @@ public class AirMediaSplashtop implements AirMedia
     }
     
     // set an active session - give it the surface and show the video
-    public void setActiveSession(AirMediaSession session)
+    private void setActiveSession(AirMediaSession session)
     {
     	boolean wasShowing=false;
     	boolean priorSessionExists = (session() != null);
@@ -795,7 +828,7 @@ public class AirMediaSplashtop implements AirMedia
     } 
     
 	// unset active session - take away its surface and hide the video from it
-    public void unsetActiveSession(AirMediaSession session, boolean sendFeedbackForSession)
+    private void unsetActiveSession(AirMediaSession session, boolean sendFeedbackForSession)
     {
     	Log.d(TAG, "unsetActiveSession: entering removing active session " + AirMediaSession.toDebugString(session()));
 
@@ -837,7 +870,7 @@ public class AirMediaSplashtop implements AirMedia
     	}
     }
     
-    public void sendSessionFeedback(AirMediaSession session)
+    private void sendSessionFeedback(AirMediaSession session)
     {
         int user = session2user(session);
         if (user >= 0)
@@ -851,51 +884,56 @@ public class AirMediaSplashtop implements AirMedia
 
     public void querySenderList(boolean sendAllUserFeedback)
     {
-    	int status = 0;  // 0 = no displayed video, 1 = at least 1 video presenting
-    	boolean[] sentUserFeedback = null;
-		//Log.i(TAG, "Entered querySenderList (sendAllUserFeedback=" + String.valueOf(sendAllUserFeedback) + ")");
-	
-    	if (sendAllUserFeedback)
-    	{
-	    	// Create list of all user slots and mark off which ones are not connected
-	    	sentUserFeedback = new boolean[MAX_USERS+1];
-	    	for (int i = 1; i <= MAX_USERS; i++) { sentUserFeedback[i] = false; } // initialize all to false
-    	}
-    	
-    	for (int i=1; i <= MAX_USERS; i++) {
-    		AirMediaSession session = user2session(i);
-    		if (session != null) {
-    			sendSessionFeedback(session);
-    			if (session.videoState() == AirMediaSessionStreamingState.Playing)
-    				status = 1;
-	    		mStreamCtl.userSettings.setAirMediaUserConnected(true, i);
-    			if (sentUserFeedback != null)
-    				sentUserFeedback[i] = true;
+    	orderedLock.lock();
+    	try {
+    		int status = 0;  // 0 = no displayed video, 1 = at least 1 video presenting
+    		boolean[] sentUserFeedback = null;
+    		//Log.i(TAG, "Entered querySenderList (sendAllUserFeedback=" + String.valueOf(sendAllUserFeedback) + ")");
+
+    		if (sendAllUserFeedback)
+    		{
+    			// Create list of all user slots and mark off which ones are not connected
+    			sentUserFeedback = new boolean[MAX_USERS+1];
+    			for (int i = 1; i <= MAX_USERS; i++) { sentUserFeedback[i] = false; } // initialize all to false
     		}
+
+    		for (int i=1; i <= MAX_USERS; i++) {
+    			AirMediaSession session = user2session(i);
+    			if (session != null) {
+    				sendSessionFeedback(session);
+    				if (session.videoState() == AirMediaSessionStreamingState.Playing)
+    					status = 1;
+    				mStreamCtl.userSettings.setAirMediaUserConnected(true, i);
+    				if (sentUserFeedback != null)
+    					sentUserFeedback[i] = true;
+    			}
+    		}
+
+    		Log.d(TAG, "querySenderList: status = " + String.valueOf(status));
+    		mStreamCtl.sendAirMediaStatus(status);
+    		lastReturnedAirMediaStatus = status;
+
+    		if (sentUserFeedback != null)
+    		{
+    			// Send defaults for all user connections that weren't found in query
+    			for(int i = 1; i <= MAX_USERS; i++)
+    			{
+    				if (sentUserFeedback[i] == false)
+    				{
+    					//idMap.remove(i);	// Remove from mapping if existing
+    					mStreamCtl.userSettings.setAirMediaUserConnected(false, i);
+    					mStreamCtl.sendAirMediaUserFeedbacks(i, "", "", 0, false);					
+    				}
+    			}
+    		}
+
+    		mStreamCtl.sendAirMediaNumberUserConnected();
+    	} finally {
+    		orderedLock.unlock();
     	}
-		
-    	Log.d(TAG, "querySenderList: status = " + String.valueOf(status));
-		mStreamCtl.sendAirMediaStatus(status);
-		lastReturnedAirMediaStatus = status;
-		
-		if (sentUserFeedback != null)
-		{
-			// Send defaults for all user connections that weren't found in query
-			for(int i = 1; i <= MAX_USERS; i++)
-			{
-				if (sentUserFeedback[i] == false)
-				{
-					//idMap.remove(i);	// Remove from mapping if existing
-					mStreamCtl.userSettings.setAirMediaUserConnected(false, i);
-					mStreamCtl.sendAirMediaUserFeedbacks(i, "", "", 0, false);					
-				}
-			}
-		}
-		
-		mStreamCtl.sendAirMediaNumberUserConnected();
     }
     
-    public void intializeDisplay()
+    private void intializeDisplay()
     {
     	Log.d(TAG, "InitializeDisplay() entered");
     	// Show/Hide login code depending on setting
@@ -939,13 +977,18 @@ public class AirMediaSplashtop implements AirMedia
     
     public void setLoginCode(int loginCode)
     {
-    	Log.i(TAG, "Current login code = " + receiver().serverPassword());
-    	String code = String.format("%04d", loginCode);
-    	Log.i(TAG, "Set Login Code = " + code + " (" + String.valueOf(loginCode) + ")");
-		if (loginCode < 0) {
-			receiver().serverPassword("");
-		} else {
-			receiver().serverPassword(String.valueOf(code));	
+    	orderedLock.lock();
+    	try {
+    		Log.i(TAG, "Current login code = " + receiver().serverPassword());
+    		String code = String.format("%04d", loginCode);
+    		Log.i(TAG, "Set Login Code = " + code + " (" + String.valueOf(loginCode) + ")");
+    		if (loginCode < 0) {
+    			receiver().serverPassword("");
+    		} else {
+    			receiver().serverPassword(String.valueOf(code));	
+    		}
+    	} finally {
+			orderedLock.unlock();
 		}
     }
     
@@ -968,12 +1011,9 @@ public class AirMediaSplashtop implements AirMedia
     	pending_adapter_ip_address_change = true;
     	Log.i(TAG, "setAdapter(): Stopping all senders");
     	stopAllSenders();
-    	if (receiver().state() != AirMediaReceiverState.Stopped) {
-        	Log.i(TAG, "setAdapter(): Stopping receiver");
-    		stopReceiver();
-    	}
-    	startReceiverWithPossibleIpAddressChange();
-		Log.i(TAG, "setAdapter(): Exiting having set ip address to "+ adapter_ip_address);
+    	// Launch Stop/Start of receiver in separate thread
+        RestartReceiverAynchronously();
+		Log.i(TAG, "setAdapter(): Exiting having issued restart of receiver with " + adapter_ip_address);
     }
     
     public void setProjectionLock(boolean enable)
@@ -1051,7 +1091,7 @@ public class AirMediaSplashtop implements AirMedia
 		Log.d(TAG, "   audio Volume: "+session.audioVolume());
 	}
     
-    public void addSession(AirMediaSession session)
+    private void addSession(AirMediaSession session)
     {
 		Log.d(TAG, "addSession " + session);
         int user = addSessionToMap(session);
@@ -1068,7 +1108,7 @@ public class AirMediaSplashtop implements AirMedia
 			Log.w(TAG, "Received invalid user id of " + user);
     }
     
-    public void removeSession(AirMediaSession session)
+    private void removeSession(AirMediaSession session)
     {
 		Log.d(TAG, "removeSession " + session);
         int user = session2user(session);
@@ -1197,7 +1237,7 @@ public class AirMediaSplashtop implements AirMedia
 		try { stopStatus = deviceDisconnectedLatch.await(10000, TimeUnit.MILLISECONDS); }
 		catch (InterruptedException ex) { ex.printStackTrace(); }
 		if (!stopStatus) {
-			Log.w(TAG, "Unable to stop session " + session + "even after 15 seconds");
+			Log.w(TAG, "Unable to stop session " + session + "even after 10 seconds");
 		} else {
 			long end = System.currentTimeMillis();
 			Log.d(TAG, "Session " + AirMediaSession.toDebugString(session) + "was successfully stoppped in "
@@ -1377,9 +1417,7 @@ public class AirMediaSplashtop implements AirMedia
             	removeAllSessionsFromMap();
         		querySenderList(false);
         		mStreamCtl.sendAirMediaStatus(0);
-                RestartAirMedia restarter = new RestartAirMedia();
-                Thread t = new Thread(restarter);
-                t.start();
+            	RestartAirMediaAsynchronously();
             } catch (Exception e) {
                 Log.e(TAG, "AirMediaServiceConnection.onServiceDisconnected  EXCEPTION  " + e);
             }
@@ -1454,9 +1492,7 @@ public class AirMediaSplashtop implements AirMedia
 				Log.w(TAG, "Receiver stopped with error="+reason+"  Restarting receiver .... ");
 				if (reason != CODEC_ERROR)
 					sleep(5000);
-                RestartReceiver restarter = new RestartReceiver();
-                Thread t = new Thread(restarter);
-                t.start();
+                RestartReceiverAynchronously();
 			}
         }
     };
