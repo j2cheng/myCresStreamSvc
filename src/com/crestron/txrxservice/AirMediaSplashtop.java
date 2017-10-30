@@ -344,7 +344,7 @@ public class AirMediaSplashtop implements AirMedia
     
     public void hideVideo(boolean use_texture)
     {
-		surfaceDisplayed = false;
+		//surfaceDisplayed = false;
     	Log.d(TAG, "hideVideo: Splashtop Window hidden " + ((use_texture) ? "TextureView" : "SurfaceView") + "    surfaceDisplayed=" + getSurfaceDisplayed());
     	mStreamCtl.hideSplashtopWindow(streamIdx, use_texture);
     }
@@ -425,6 +425,8 @@ public class AirMediaSplashtop implements AirMedia
     		
     		if (session() != null)
     			hideVideo(useTextureView(session()));
+    		
+    		surfaceDisplayed = false;
     		    		    		
     		if (sendStopToSender) {   			
     			stopAllSenders(); // Inform senders that stream is stopped/hidden
