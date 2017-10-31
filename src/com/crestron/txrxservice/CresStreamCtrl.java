@@ -3718,6 +3718,7 @@ public class CresStreamCtrl extends Service {
 
     					if (Boolean.parseBoolean(hdmiOutput.getSyncStatus()))
     					{
+    						Log.i(TAG, "launching AirMedia");
     						mAirMedia.show(x, y, width, height);
 							// If DMPS send displayed join else use streamstate
     			    		if (nativeGetProductTypeEnum() == 0x24)
