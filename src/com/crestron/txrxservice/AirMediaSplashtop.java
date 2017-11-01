@@ -417,6 +417,15 @@ public class AirMediaSplashtop implements AirMedia
     	doUnbindService();
     }
     
+    public void setOrderedLock(boolean lock, String functionName)
+    {
+    	if (lock) {
+    		orderedLock.lock(functionName);
+    	} else {
+    		orderedLock.unlock(functionName);
+    	}
+    }
+    
     public void recover(){
     	for (int sessId=0; sessId < CresStreamCtrl.NumOfSurfaces; sessId++)
     	{
@@ -916,53 +925,50 @@ public class AirMediaSplashtop implements AirMedia
     public void querySenderList(boolean sendAllUserFeedback)
     {
     	Log.d(TAG, "querySenderList() entered");
-    	orderedLock.lock("querySenderList");
-    	try {
-    		int status = 0;  // 0 = no displayed video, 1 = at least 1 video presenting
-    		boolean[] sentUserFeedback = null;
-    		//Log.i(TAG, "Entered querySenderList (sendAllUserFeedback=" + String.valueOf(sendAllUserFeedback) + ")");
 
-    		if (sendAllUserFeedback)
-    		{
-    			// Create list of all user slots and mark off which ones are not connected
-    			sentUserFeedback = new boolean[MAX_USERS+1];
-    			for (int i = 1; i <= MAX_USERS; i++) { sentUserFeedback[i] = false; } // initialize all to false
-    		}
+    	int status = 0;  // 0 = no displayed video, 1 = at least 1 video presenting
+    	boolean[] sentUserFeedback = null;
+    	//Log.i(TAG, "Entered querySenderList (sendAllUserFeedback=" + String.valueOf(sendAllUserFeedback) + ")");
 
-    		for (int i=1; i <= MAX_USERS; i++) {
-    			AirMediaSession session = user2session(i);
-    			if (session != null) {
-    				sendSessionFeedback(session);
-    				if (session.videoState() == AirMediaSessionStreamingState.Playing)
-    					status = 1;
-    				mStreamCtl.userSettings.setAirMediaUserConnected(true, i);
-    				if (sentUserFeedback != null)
-    					sentUserFeedback[i] = true;
-    			}
-    		}
-
-    		Log.d(TAG, "querySenderList: status = " + String.valueOf(status));
-    		mStreamCtl.sendAirMediaStatus(status);
-    		lastReturnedAirMediaStatus = status;
-
-    		if (sentUserFeedback != null)
-    		{
-    			// Send defaults for all user connections that weren't found in query
-    			for(int i = 1; i <= MAX_USERS; i++)
-    			{
-    				if (sentUserFeedback[i] == false)
-    				{
-    					//idMap.remove(i);	// Remove from mapping if existing
-    					mStreamCtl.userSettings.setAirMediaUserConnected(false, i);
-    					mStreamCtl.sendAirMediaUserFeedbacks(i, "", "", 0, false);					
-    				}
-    			}
-    		}
-
-    		mStreamCtl.sendAirMediaNumberUserConnected();
-    	} finally {
-    		orderedLock.unlock("querySenderList");
+    	if (sendAllUserFeedback)
+    	{
+    		// Create list of all user slots and mark off which ones are not connected
+    		sentUserFeedback = new boolean[MAX_USERS+1];
+    		for (int i = 1; i <= MAX_USERS; i++) { sentUserFeedback[i] = false; } // initialize all to false
     	}
+
+    	for (int i=1; i <= MAX_USERS; i++) {
+    		AirMediaSession session = user2session(i);
+    		if (session != null) {
+    			sendSessionFeedback(session);
+    			if (session.videoState() == AirMediaSessionStreamingState.Playing)
+    				status = 1;
+    			mStreamCtl.userSettings.setAirMediaUserConnected(true, i);
+    			if (sentUserFeedback != null)
+    				sentUserFeedback[i] = true;
+    		}
+    	}
+
+    	Log.d(TAG, "querySenderList: status = " + String.valueOf(status));
+    	mStreamCtl.sendAirMediaStatus(status);
+    	lastReturnedAirMediaStatus = status;
+
+    	if (sentUserFeedback != null)
+    	{
+    		// Send defaults for all user connections that weren't found in query
+    		for(int i = 1; i <= MAX_USERS; i++)
+    		{
+    			if (sentUserFeedback[i] == false)
+    			{
+    				//idMap.remove(i);	// Remove from mapping if existing
+    				mStreamCtl.userSettings.setAirMediaUserConnected(false, i);
+    				mStreamCtl.sendAirMediaUserFeedbacks(i, "", "", 0, false);					
+    			}
+    		}
+    	}
+
+    	mStreamCtl.sendAirMediaNumberUserConnected();
+
     	Log.d(TAG, "querySenderList() exit");
     }
     

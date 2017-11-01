@@ -53,4 +53,6 @@ public interface AirMedia
     public void setAdapter(String address);
     
     public void setProjectionLock(boolean enable);
+    
+    public void setOrderedLock(boolean lock, String functionName);
 }

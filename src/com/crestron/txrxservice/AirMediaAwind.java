@@ -748,4 +748,10 @@ public class AirMediaAwind implements AirMedia
     	} catch (NumberFormatException e) {} // If file DNE or corrupt not licensed
     	return licensed;
     }
+    
+    public void setOrderedLock(boolean lock, String functionName)
+    {
+    	// Not needed for Awind
+    }
+
 }

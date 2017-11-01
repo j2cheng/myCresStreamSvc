@@ -4496,7 +4496,12 @@ public class CresStreamCtrl extends Service {
     {
     	if (mAirMedia != null)
     	{
-    		mAirMedia.querySenderList(true);
+    		mAirMedia.setOrderedLock(true, "airMediaUserFeedbackUpdateRequest");
+    		try {
+    			mAirMedia.querySenderList(true);
+    		} finally {
+    			mAirMedia.setOrderedLock(false, "airMediaUserFeedbackUpdateRequest");
+    		}
     	}
     }
     
