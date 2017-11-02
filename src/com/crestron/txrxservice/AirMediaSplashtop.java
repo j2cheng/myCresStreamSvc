@@ -126,14 +126,15 @@ public class AirMediaSplashtop implements AirMedia
     	
     	void lock(String s)
     	{
-    		Log.d(TAG, "ReentrantLock taken by " + s + "   Current owner tid=" + getThreadId() + "  queueLength=" + getQueueLength());
+    		Log.d(TAG, s + " about to take reentrantLock     Current owner tid=" + getThreadId() + "  queueLength=" + getQueueLength());
     		lock();
+    		Log.d(TAG, "reentrantLock taken by " + s + "   Owner tid=" + getThreadId() + "  queueLength=" + getQueueLength());
     	}
     	
     	void unlock(String s)
     	{
     		unlock();
-    		Log.d(TAG, "ReentrantLock released by " + s);
+    		Log.d(TAG, "reentrantLock released by " + s);
     	}
     }
  
@@ -477,8 +478,8 @@ public class AirMediaSplashtop implements AirMedia
     
     public void show(int x, int y, int width, int height)
     {
-//    	orderedLock.lock("show");
-//    	try {
+    	orderedLock.lock("show");
+    	try {
     		Rect window = new Rect(x, y, x+width-1, y+height-1);
     		if (surfaceDisplayed == false || !MiscUtils.rectanglesAreEqual(window_, window))
     		{	    		    	
@@ -497,15 +498,15 @@ public class AirMediaSplashtop implements AirMedia
     		}
     		else
     			Log.i(TAG, "show: AirMedia already shown, ignoring request");
-//    	} finally {
-//    		orderedLock.unlock("show");
-//    	}
+    	} finally {
+    		orderedLock.unlock("show");
+    	}
     }    
     
     public void hide(boolean sendStopToSender, boolean clear)
     {
-//    	orderedLock.lock("hide");
-//    	try {
+    	orderedLock.lock("hide");
+    	try {
     		if (surfaceDisplayed == true)
     		{
     			// Invalidate rect on hide
@@ -529,9 +530,9 @@ public class AirMediaSplashtop implements AirMedia
     		}
     		else
     			Log.i(TAG, "hide: AirMedia already hidden, ignoring request");
-//    	} finally {
-//    		orderedLock.unlock("hide");
-//    	}
+    	} finally {
+    		orderedLock.unlock("hide");
+    	}
     }
     
     public void hide(boolean sendTopToSender)

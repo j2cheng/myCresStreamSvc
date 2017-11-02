@@ -511,7 +511,7 @@ public class TCPInterface extends AsyncTask<Void, Object, Long> {
 	        	        	try { 
 	        	        		if (latch.await(30, TimeUnit.SECONDS) == false)
 	        	        		{
-	        	        			Log.e(TAG, "ProcessJoinTask: timeout after 30 seconds");
+	        	        			Log.e(TAG, "ProcessJoinTask: timeout after 30 seconds - last received message="+receivedMsg);
 	        	        			streamCtl.RecoverTxrxService();
 	        	        		}
 	        	        	}
