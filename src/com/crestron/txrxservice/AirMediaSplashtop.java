@@ -80,6 +80,7 @@ public class AirMediaSplashtop implements AirMedia
 	private final Object stopSessionObjectLock = new Object();
     private final MyReentrantLock orderedLock	= new MyReentrantLock(true); // fairness=true, makes lock ordered
     public CountDownLatch serviceConnectedLatch=null;
+    public CountDownLatch serviceDisconnectedLatch=null;
     public CountDownLatch receiverLoadedLatch=null;
     public CountDownLatch receiverStoppedLatch=null;
     public CountDownLatch receiverStartedLatch=null;
@@ -104,6 +105,7 @@ public class AirMediaSplashtop implements AirMedia
 	private boolean pending_adapter_ip_address_change = false;
 	private boolean isServiceConnected = false;
 	private boolean isReceiverStarted = false;
+	private boolean isAirMediaUp = false;
 
     private Handler handler_;
     private Map<Integer, AirMediaSession> userSessionMap = new ConcurrentHashMap<Integer, AirMediaSession>();
@@ -177,11 +179,21 @@ public class AirMediaSplashtop implements AirMedia
 
     			try { successfulStart = startupCompleteLatch.await(50000, TimeUnit.MILLISECONDS); }
     			catch (InterruptedException ex) { ex.printStackTrace(); }
+    			
+    			if (!isAirMediaUp)
+    			{
+    				successfulStart = false;
+    			}  
+    			if (!successfulStart && isServiceConnected)
+    			{
+    				doUnbindService();
+    			}
     		}
     		else if (!isReceiverStarted)
     		{
-    			Log.w(TAG, "Service connected but receiver not started, restarting AirMedia app");
-    			restartAirMedia();
+    			Log.w(TAG, "Service connected but receiver not started, unbind and try again");
+    	    	doUnbindService();
+    			return false;
     		}
     		else
     			Log.d(TAG, "Bypassing start because already started");
@@ -203,9 +215,13 @@ public class AirMediaSplashtop implements AirMedia
     		public void run() {
     			orderedLock.lock("RestartAirMediaAsynchronously");
     			try {
-    				receiver_.stop();
-    				receiver_.close();
-    				receiver_ = null;
+    				isAirMediaUp = false;
+    				if (receiver() != null)
+    				{
+    					receiver_.stop();
+    					receiver_.close();
+    					receiver_ = null;
+    				}
     				isReceiverStarted = false;
     				removeAllSessionsFromMap();
     				mStreamCtl.sendAirMediaNumberUserConnected();
@@ -232,8 +248,10 @@ public class AirMediaSplashtop implements AirMedia
 
 		// Now start receiver
         if (!startAirMediaReceiver(mStreamCtl.hostName)) {
-			Log.e(TAG, "Receiver failed to load, restarting AirMedia app");
-			restartAirMedia();
+			Log.e(TAG, "Receiver failed to startup, returning - restart will be attempted when service disconnects");
+			isAirMediaUp = false;
+	        startupCompleteLatch.countDown();
+			return;
         }
 
         Log.d(TAG, "startAirMedia(): setup receiver session manager");
@@ -254,6 +272,9 @@ public class AirMediaSplashtop implements AirMedia
 		
 		set4in1ScreenEnable(false); // TODO: Remove this when quad view is eventually enabled
         Log.d(TAG, "startAirMedia(): exit");
+        
+        isAirMediaUp = true;
+        startupCompleteLatch.countDown();
     }
     
     private boolean connect2service()
@@ -266,6 +287,11 @@ public class AirMediaSplashtop implements AirMedia
 		catch (InterruptedException ex) { ex.printStackTrace(); }
 		
 		return successfulStart;
+    }
+    
+    public boolean airMediaIsUp()
+    {
+    	return isAirMediaUp;
     }
     
     // synchronous version of receiver stop - waits for completion
@@ -384,7 +410,6 @@ public class AirMediaSplashtop implements AirMedia
         	Log.i(TAG, "startAirMediaReceiver(): Starting AirMedia Receiver");
         	successfulStart = startReceiver();
         }
-        startupCompleteLatch.countDown();
         Log.d(TAG,"startAirMediaReceiver exiting with rv="+successfulStart);
 		return successfulStart;
     }
@@ -452,8 +477,8 @@ public class AirMediaSplashtop implements AirMedia
     
     public void show(int x, int y, int width, int height)
     {
-    	orderedLock.lock("show");
-    	try {
+//    	orderedLock.lock("show");
+//    	try {
     		Rect window = new Rect(x, y, x+width-1, y+height-1);
     		if (surfaceDisplayed == false || !MiscUtils.rectanglesAreEqual(window_, window))
     		{	    		    	
@@ -472,15 +497,15 @@ public class AirMediaSplashtop implements AirMedia
     		}
     		else
     			Log.i(TAG, "show: AirMedia already shown, ignoring request");
-    	} finally {
-    		orderedLock.unlock("show");
-    	}
+//    	} finally {
+//    		orderedLock.unlock("show");
+//    	}
     }    
     
     public void hide(boolean sendStopToSender, boolean clear)
     {
-    	orderedLock.lock("hide");
-    	try {
+//    	orderedLock.lock("hide");
+//    	try {
     		if (surfaceDisplayed == true)
     		{
     			// Invalidate rect on hide
@@ -504,9 +529,9 @@ public class AirMediaSplashtop implements AirMedia
     		}
     		else
     			Log.i(TAG, "hide: AirMedia already hidden, ignoring request");
-    	} finally {
-    		orderedLock.unlock("hide");
-    	}
+//    	} finally {
+//    		orderedLock.unlock("hide");
+//    	}
     }
     
     public void hide(boolean sendTopToSender)
@@ -1018,13 +1043,16 @@ public class AirMediaSplashtop implements AirMedia
     {
     	orderedLock.lock("setLoginCode");
     	try {
-    		Log.i(TAG, "Current login code = " + receiver().serverPassword());
-    		String code = String.format("%04d", loginCode);
-    		Log.i(TAG, "Set Login Code = " + code + " (" + String.valueOf(loginCode) + ")");
-    		if (loginCode < 0) {
-    			receiver().serverPassword("");
-    		} else {
-    			receiver().serverPassword(String.valueOf(code));	
+    		if (receiver() != null)
+    		{
+    			Log.i(TAG, "Current login code = " + receiver().serverPassword());
+    			String code = String.format("%04d", loginCode);
+    			Log.i(TAG, "Set Login Code = " + code + " (" + String.valueOf(loginCode) + ")");
+    			if (loginCode < 0) {
+    				receiver().serverPassword("");
+    			} else {
+    				receiver().serverPassword(String.valueOf(code));	
+    			}
     		}
     	} finally {
 			orderedLock.unlock("setLoginCode");
@@ -1406,8 +1434,17 @@ public class AirMediaSplashtop implements AirMedia
             close();
             if (service_ != null)
             {
+            	boolean successfulStart = false;
+            	serviceDisconnectedLatch = new CountDownLatch(1);
             	mContext.unbindService(AirMediaServiceConnection);
+    			try { successfulStart = serviceDisconnectedLatch.await(5000, TimeUnit.MILLISECONDS); }
+    			catch (InterruptedException ex) { ex.printStackTrace(); }
             	service_ = null;
+            	if (!successfulStart)
+            	{
+            		Log.w(TAG, "doUnbindService - did not onServiceDisconnect - timeout");
+            		isServiceConnected = false;
+            	}
             }
 		} catch (Exception e) {
             Log.e(TAG, "doUnbindService  EXCEPTION  " + e);
@@ -1429,37 +1466,50 @@ public class AirMediaSplashtop implements AirMedia
 
 	private final ServiceConnection AirMediaServiceConnection = new ServiceConnection() {
 		@Override
-		public void onServiceConnected(ComponentName name, IBinder binder) {
-            Log.d(TAG, "AirMediaServiceConnection.onServiceConnected  " + name);
-            isServiceConnected = true;
-			try {
-                service_ = IAirMediaReceiver.Stub.asInterface(binder);
-                if (service_ == null) return;
-            	startAirMedia();
-            	serviceConnectedLatch.countDown();
-			} catch (Exception e) {
-                Log.e(TAG, "AirMediaServiceConnection.onServiceConnected  EXCEPTION  " + e);
-			}
+		public void onServiceConnected(final ComponentName name, final IBinder binder) {
+//			This comes in on UI thread, move off
+			new Thread(new Runnable() {
+				@Override
+				public void run() {
+					Log.d(TAG, "AirMediaServiceConnection.onServiceConnected  " + name);
+					isServiceConnected = true;
+					try {
+						service_ = IAirMediaReceiver.Stub.asInterface(binder);
+						if (service_ == null) return;            	
+						serviceConnectedLatch.countDown();
+						startAirMedia();
+					} catch (Exception e) {
+						Log.e(TAG, "AirMediaServiceConnection.onServiceConnected  EXCEPTION  " + e);
+					}
+				}
+			}).start();
 		}
 
 		@Override
-		public void onServiceDisconnected(ComponentName name) {
-            Log.d(TAG, "AirMediaServiceConnection.onServiceDisconnected  " + name);
-            isServiceConnected = false;
-            try {
-            	// remove active session so AirMedia screen pops up until fresh connection made to service
-            	if (session() != null)
-            	{
-            		removeSession(session());
-            		active_session_ = null;
-            	}
-            	removeAllSessionsFromMap();
-        		querySenderList(false);
-        		mStreamCtl.sendAirMediaStatus(0);
-            	RestartAirMediaAsynchronously();
-            } catch (Exception e) {
-                Log.e(TAG, "AirMediaServiceConnection.onServiceDisconnected  EXCEPTION  " + e);
-            }
+		public void onServiceDisconnected(final ComponentName name) {
+//			This comes in on UI thread, move off
+			new Thread(new Runnable() {
+				@Override
+				public void run() {
+					Log.d(TAG, "AirMediaServiceConnection.onServiceDisconnected  " + name);
+					isServiceConnected = false;
+					serviceDisconnectedLatch.countDown();
+					try {
+						// remove active session so AirMedia screen pops up until fresh connection made to service
+						if (session() != null)
+						{
+							removeSession(session());
+							active_session_ = null;
+						}
+						removeAllSessionsFromMap();
+						querySenderList(false);
+						mStreamCtl.sendAirMediaStatus(0);
+						RestartAirMediaAsynchronously();
+					} catch (Exception e) {
+						Log.e(TAG, "AirMediaServiceConnection.onServiceDisconnected  EXCEPTION  " + e);
+					}
+				}
+			}).start();
 		}
 	};
 	
@@ -1512,6 +1562,7 @@ public class AirMediaSplashtop implements AirMedia
             {
             	Log.d(TAG, "In stateChangedHandler: receiverStoppedLatch="+receiverStoppedLatch);
             	isReceiverStarted = false;
+		    	Log.d(TAG,"RestartAirMediaAsynchronously() - setting receiver started state to "+isReceiverStarted);
 				receiverStoppedLatch.countDown();
             }
             if (to == AirMediaReceiverState.Started)
