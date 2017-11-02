@@ -1493,7 +1493,10 @@ public class AirMediaSplashtop implements AirMedia
 				public void run() {
 					Log.d(TAG, "AirMediaServiceConnection.onServiceDisconnected  " + name);
 					isServiceConnected = false;
-					serviceDisconnectedLatch.countDown();
+					if (serviceDisconnectedLatch != null)
+					{
+						serviceDisconnectedLatch.countDown();
+					}
 					try {
 						// remove active session so AirMedia screen pops up until fresh connection made to service
 						if (session() != null)
