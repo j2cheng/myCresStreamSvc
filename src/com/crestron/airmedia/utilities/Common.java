@@ -46,6 +46,67 @@ public class Common {
         }
     }
 
+    public static class Logging {
+        private static Handler handler_;
+
+        static {
+        }
+
+        public interface Handler {
+            void log(int type, String tag, String message);
+        }
+
+        public static void add(Handler handler) {
+            handler_ = handler;
+        }
+
+        public static void d(String tag, String message) {
+            log(Log.DEBUG, tag, message);
+        }
+
+        public static void v(String tag, String message) {
+            log(Log.VERBOSE, tag, message);
+        }
+
+        public static void i(String tag, String message) {
+            log(Log.INFO, tag, message);
+        }
+
+        public static void w(String tag, String message) {
+            log(Log.WARN, tag, message);
+        }
+
+        public static void e(String tag, String message) {
+            log(Log.ERROR, tag, message);
+        }
+
+        private static void log(int type, String tag, String message) {
+            Handler handler = handler_;
+            if (handler != null) {
+                try { handler.log(type, tag, message); } catch (Exception ignore) { }
+            } else {
+                message = String.format("<%1$04x>  %2$s", Thread.currentThread().getId(), message);
+                switch (type) {
+                    case Log.DEBUG:
+                        Log.d(tag, message);
+                        break;
+                    case Log.VERBOSE:
+                        Log.v(tag, message);
+                        break;
+                    case Log.INFO:
+                        Log.i(tag, message);
+                        break;
+                    case Log.WARN:
+                        Log.w(tag, message);
+                        break;
+                    case Log.ERROR:
+                        Log.e(tag, message);
+                        break;
+                }
+            }
+        }
+    }
+
     public static boolean isEmulator() {
         if (isEmulator_ == null) {
             isEmulator_ = Build.FINGERPRINT.startsWith("generic")

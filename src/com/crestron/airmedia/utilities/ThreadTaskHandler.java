@@ -25,7 +25,7 @@ public class ThreadTaskHandler extends TaskHandler {
         synchronized (lock_) {
             if (handler() != null) return;
 
-            if (VERBOSE) Log.v(TAG, name_ + ".start");
+            if (VERBOSE) Common.Logging.v(TAG, name_ + ".start");
 
             ConditionVariable started = new ConditionVariable();
 
@@ -38,15 +38,15 @@ public class ThreadTaskHandler extends TaskHandler {
                         closed_ = closed;
                         Looper.prepare();
                         handler(new Handler());
-                        if (VERBOSE) Log.v(TAG, name_ + ".thread  STARTED");
+                        if (VERBOSE) Common.Logging.v(TAG, name_ + ".thread  STARTED");
                         mStarted.open();
                         Looper.loop();
-                        if (VERBOSE) Log.v(TAG, name_ + ".thread  EXITING");
+                        if (VERBOSE) Common.Logging.v(TAG, name_ + ".thread  EXITING");
                     } catch (Exception e) {
-                        Log.e(TAG, name_ + ".thread  EXCEPTION  " + e);
+                        Common.Logging.e(TAG, name_ + ".thread  EXCEPTION  " + e);
                     } finally {
                         closed.open();
-                        if (VERBOSE) Log.v(TAG, name_ + ".thread  COMPLETE");
+                        if (VERBOSE) Common.Logging.v(TAG, name_ + ".thread  COMPLETE");
                     }
                 }
                 public Runnable set(ConditionVariable s) { mStarted = s; return this; }
@@ -60,11 +60,11 @@ public class ThreadTaskHandler extends TaskHandler {
                 double milliseconds = timeout.totalMilliseconds();
                 started.block(TimeSpan.toLong(milliseconds));
             } catch (Exception e) {
-                Log.e(TAG, name_ + ".start  EXCEPTION  " + e);
+                Common.Logging.e(TAG, name_ + ".start  EXCEPTION  " + e);
             }
         }
 
-        if (VERBOSE) Log.v(TAG, name_ + ".start  COMPLETE  timespan= " + TimeSpan.now().subtract(start).toString());
+        if (VERBOSE) Common.Logging.v(TAG, name_ + ".start  COMPLETE  timespan= " + TimeSpan.now().subtract(start).toString());
     }
 
     @Override
@@ -77,7 +77,7 @@ public class ThreadTaskHandler extends TaskHandler {
 
                 start = TimeSpan.now();
 
-                if (VERBOSE) Log.v(TAG, name_ + ".stop");
+                if (VERBOSE) Common.Logging.v(TAG, name_ + ".stop");
 
                 Looper looper = handler().getLooper();
 
@@ -92,14 +92,14 @@ public class ThreadTaskHandler extends TaskHandler {
                     closed_.block(TimeSpan.toLong(timeout.totalMilliseconds()));
                     closed_ = null;
                 } catch (Exception e) {
-                    Log.e(TAG, name_ + ".stop  EXCEPTION  " + e);
+                    Common.Logging.e(TAG, name_ + ".stop  EXCEPTION  " + e);
                 }
             } finally {
                 handler(null);
             }
         }
 
-        if (VERBOSE) Log.v(TAG, name_ + ".stop  COMPLETE  timespan= " + TimeSpan.now().subtract(start).toString());
+        if (VERBOSE) Common.Logging.v(TAG, name_ + ".stop  COMPLETE  timespan= " + TimeSpan.now().subtract(start).toString());
     }
 
     @Override

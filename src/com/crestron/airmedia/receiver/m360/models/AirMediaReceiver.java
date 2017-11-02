@@ -52,7 +52,7 @@ public class AirMediaReceiver extends AirMediaBase {
             projectionLocked_ = receiver.getProjectionLocked();
             mirroringAssist_ = receiver.getMirroringAssist();
         } catch (RemoteException e) {
-            Log.e(TAG, "" + e + "  " + Log.getStackTraceString(e));
+            Common.Logging.e(TAG, "" + e + "  " + Log.getStackTraceString(e));
         }
     }
 
@@ -67,77 +67,90 @@ public class AirMediaReceiver extends AirMediaBase {
     private final IAirMediaReceiverObserver observer_ = new IAirMediaReceiverObserver.Stub() {
         @Override
         public void onLoadedChanged(AirMediaReceiverLoadedState from, AirMediaReceiverLoadedState to) throws RemoteException {
+            Common.Logging.d(TAG, "IAirMediaReceiverObserver.onLoadedChanged  " + from + "  ==>  " + to);
             loaded(from, to);
         }
 
         @Override
         public void onProductChanged(String from, String to) throws RemoteException {
+            Common.Logging.d(TAG, "IAirMediaReceiverObserver.onProductChanged  " + from + "  ==>  " + to);
             product_ = to;
             scheduler().raise(productChanged(), self(), from, to);
         }
 
         @Override
         public void onStateChanged(AirMediaReceiverState from, AirMediaReceiverState to, int reason) throws RemoteException {
+            Common.Logging.d(TAG, "IAirMediaReceiverObserver.onStateChanged  " + from + "  ==>  " + to);
             state_ = to;
             scheduler().raise(stateChanged(), self(), from, to, reason);
         }
 
         @Override
         public void onMirroringAssistChanged(AirMediaReceiverMirroringAssist from, AirMediaReceiverMirroringAssist to) throws RemoteException {
+            Common.Logging.d(TAG, "IAirMediaReceiverObserver.onMirroringAssistChanged  " + from + "  ==>  " + to);
             mirroringAssist_ = to;
             scheduler().raise(mirroringAssistChanged(), self(), from, to);
         }
 
         @Override
         public void onAdapterAddressChanged(String from, String to) throws RemoteException {
+            Common.Logging.d(TAG, "IAirMediaReceiverObserver.onAdapterAddressChanged  " + from + "  ==>  " + to);
             adapterAddress_ = to;
             scheduler().raise(adapterAddressChanged(), self(), from, to);
         }
 
         @Override
         public void onServerNameChanged(String from, String to) throws RemoteException {
+            Common.Logging.d(TAG, "IAirMediaReceiverObserver.onServerNameChanged  " + from + "  ==>  " + to);
             serverName_ = to;
             scheduler().raise(serverNameChanged(), self(), from, to);
         }
 
         @Override
         public void onServerPasswordChanged(String from, String to) throws RemoteException {
+            Common.Logging.d(TAG, "IAirMediaReceiverObserver.onServerPasswordChanged  " + from + "  ==>  " + to);
             serverPassword_ = to;
             scheduler().raise(serverPasswordChanged(), self(), from, to);
         }
 
         @Override
         public void onBonjourChanged(boolean to) throws RemoteException {
+            Common.Logging.d(TAG, "IAirMediaReceiverObserver.onBonjourChanged  " + !to + "  ==>  " + to);
             bonjour_ = to;
             scheduler().raise(bonjourChanged(), self(), to);
         }
 
         @Override
         public void onDisplayResolutionChanged(AirMediaSize from, AirMediaSize to) {
+            Common.Logging.d(TAG, "IAirMediaReceiverObserver.onDisplayResolutionChanged  " + from + "  ==>  " + to);
             displayResolution_ = to;
             scheduler().raise(displayResolutionChanged(), self(), from, to);
         }
 
         @Override
         public void onMaxResolutionChanged(AirMediaReceiverResolutionMode from, AirMediaReceiverResolutionMode to) throws RemoteException {
+            Common.Logging.d(TAG, "IAirMediaReceiverObserver.onMaxResolutionChanged  " + from + "  ==>  " + to);
             maxResolution_ = to;
             scheduler().raise(maxResolutionChanged(), self(), from, to);
         }
 
         @Override
         public void onForceCompatibilityChanged(boolean to) throws RemoteException {
+            Common.Logging.d(TAG, "IAirMediaReceiverObserver.onForceCompatibilityChanged  " + !to + "  ==>  " + to);
             forceCompatibility_ = to;
             scheduler().raise(forceCompatibilityChanged(), self(), to);
         }
 
         @Override
         public void onDebugModeChanged(boolean to) throws RemoteException {
+            Common.Logging.d(TAG, "IAirMediaReceiverObserver.onDebugModeChanged  " + !to + "  ==>  " + to);
             debugMode_ = to;
             scheduler().raise(debugModeChanged(), self(), to);
         }
 
         @Override
         public void onProjectionLockedChanged(boolean to) throws RemoteException {
+            Common.Logging.d(TAG, "IAirMediaReceiverObserver.onProjectionLockedChanged  " + !to + "  ==>  " + to);
             projectionLocked_ = to;
             scheduler().raise(projectionLockedChanged(), self(), to);
         }
@@ -435,7 +448,7 @@ public class AirMediaReceiver extends AirMediaBase {
             }
             scheduler().raise(loadedChanged(), self(), from, to);
         } catch (RemoteException e) {
-            Log.e(TAG, "receiver.loaded  " + from + "  ==>  " + to + "  EXCEPTION  " + e);
+            Common.Logging.e(TAG, "receiver.loaded  " + from + "  ==>  " + to + "  EXCEPTION  " + e);
         }
     }
 
@@ -445,7 +458,7 @@ public class AirMediaReceiver extends AirMediaBase {
             if (receiver == null) return;
             receiver.setProduct(value);
         } catch (RemoteException e) {
-            Log.e(TAG, "receiver.product  value= " + value + "  EXCEPTION  " + e);
+            Common.Logging.e(TAG, "receiver.product  value= " + value + "  EXCEPTION  " + e);
             handleRemoteException();
         }
     }
@@ -456,7 +469,7 @@ public class AirMediaReceiver extends AirMediaBase {
             if (receiver == null) return;
             receiver.setAdapterAddress(value);
         } catch (RemoteException e) {
-            Log.e(TAG, "receiver.adapter-address  value= " + value + "  EXCEPTION  " + e);
+            Common.Logging.e(TAG, "receiver.adapter-address  value= " + value + "  EXCEPTION  " + e);
             handleRemoteException();
         }
     }
@@ -467,7 +480,7 @@ public class AirMediaReceiver extends AirMediaBase {
             if (receiver == null) return;
             receiver.setServerName(value);
         } catch (RemoteException e) {
-            Log.e(TAG, "receiver.server-name  value= " + value + "  EXCEPTION  " + e);
+            Common.Logging.e(TAG, "receiver.server-name  value= " + value + "  EXCEPTION  " + e);
             handleRemoteException();
         }
     }
@@ -478,7 +491,7 @@ public class AirMediaReceiver extends AirMediaBase {
             if (receiver == null) return;
             receiver.setServerPassword(value);
         } catch (RemoteException e) {
-            Log.e(TAG, "receiver.server-password  value= " + value + "  EXCEPTION  " + e);
+            Common.Logging.e(TAG, "receiver.server-password  value= " + value + "  EXCEPTION  " + e);
             handleRemoteException();
         }
     }
@@ -489,7 +502,7 @@ public class AirMediaReceiver extends AirMediaBase {
             if (receiver == null) return;
             receiver.setBonjour(value);
         } catch (RemoteException e) {
-            Log.e(TAG, "receiver.bonjour  value= " + value + "  EXCEPTION  " + e);
+            Common.Logging.e(TAG, "receiver.bonjour  value= " + value + "  EXCEPTION  " + e);
             handleRemoteException();
         }
     }
@@ -500,7 +513,7 @@ public class AirMediaReceiver extends AirMediaBase {
             if (receiver == null) return;
             receiver.setDisplayResolution(value);
         } catch (RemoteException e) {
-            Log.e(TAG, "receiver.resolution-display  value= " + value + "  EXCEPTION  " + e);
+            Common.Logging.e(TAG, "receiver.resolution-display  value= " + value + "  EXCEPTION  " + e);
             handleRemoteException();
         }
     }
@@ -511,7 +524,7 @@ public class AirMediaReceiver extends AirMediaBase {
             if (receiver == null) return;
             receiver.setMaxResolution(value);
         } catch (RemoteException e) {
-            Log.e(TAG, "receiver.resolution-max  value= " + value + "  EXCEPTION  " + e);
+            Common.Logging.e(TAG, "receiver.resolution-max  value= " + value + "  EXCEPTION  " + e);
             handleRemoteException();
         }
     }
@@ -522,7 +535,7 @@ public class AirMediaReceiver extends AirMediaBase {
             if (receiver == null) return;
             receiver.setForceCompatibility(value);
         } catch (RemoteException e) {
-            Log.e(TAG, "receiver.force-compatibility  value= " + value + "  EXCEPTION  " + e);
+            Common.Logging.e(TAG, "receiver.force-compatibility  value= " + value + "  EXCEPTION  " + e);
             handleRemoteException();
         }
     }
@@ -533,7 +546,7 @@ public class AirMediaReceiver extends AirMediaBase {
             if (receiver == null) return;
             receiver.setDebugMode(value);
         } catch (RemoteException e) {
-            Log.e(TAG, "receiver.debug-mode  value= " + value + "  EXCEPTION  " + e);
+            Common.Logging.e(TAG, "receiver.debug-mode  value= " + value + "  EXCEPTION  " + e);
             handleRemoteException();
         }
     }
@@ -544,7 +557,7 @@ public class AirMediaReceiver extends AirMediaBase {
             if (receiver == null) return;
             receiver.setProjectionLocked(value);
         } catch (RemoteException e) {
-            Log.e(TAG, "receiver.projection-locked  value= " + value + "  EXCEPTION  " + e);
+            Common.Logging.e(TAG, "receiver.projection-locked  value= " + value + "  EXCEPTION  " + e);
             handleRemoteException();
         }
     }

@@ -33,7 +33,7 @@ public class TaskHandler {
             Handler handler = handler();
             return handler != null && handler.post(r);
         } catch (Exception e) {
-            Log.e(TAG, "post  EXCEPTION  " + e);
+            Common.Logging.e(TAG, "post  EXCEPTION  " + e);
         }
 
         return false;

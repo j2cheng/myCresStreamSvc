@@ -2,6 +2,8 @@ package com.crestron.airmedia.utilities.delegates;
 
 import android.util.Log;
 
+import com.crestron.airmedia.utilities.Common;
+
 import java.util.ArrayList;
 import java.util.LinkedList;
 import java.util.List;
@@ -44,7 +46,7 @@ public class MulticastDelegate<SOURCE> {
             try {
                 observer.onEvent(source);
             } catch (Exception e) {
-                Log.e(TAG, "raise  source= " + source + "  EXCEPTION  " + e);
+                Common.Logging.e(TAG, "raise  source= " + source + "  EXCEPTION  " + e + "  " + Log.getStackTraceString(e));
             }
         }
     }

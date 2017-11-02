@@ -14,6 +14,7 @@ import com.crestron.airmedia.receiver.m360.ipc.AirMediaSessionScreenPosition;
 import com.crestron.airmedia.receiver.m360.ipc.AirMediaSessionScreenPositionLayout;
 import com.crestron.airmedia.receiver.m360.ipc.AirMediaSessionStreamingState;
 import com.crestron.airmedia.receiver.m360.ipc.AirMediaSize;
+import com.crestron.airmedia.utilities.Common;
 import com.crestron.airmedia.utilities.TaskScheduler;
 import com.crestron.airmedia.utilities.TimeSpan;
 import com.crestron.airmedia.utilities.delegates.MulticastChangedDelegate;
@@ -52,26 +53,26 @@ public class AirMediaSessionManager extends AirMediaBase {
     private final IAirMediaSessionManagerObserver observer_ = new IAirMediaSessionManagerObserver.Stub() {
         @Override
         public void onLayoutChanged(AirMediaSessionScreenPositionLayout from, AirMediaSessionScreenPositionLayout to) throws RemoteException {
-            Log.w(TAG, "IAirMediaSessionManagerObserver.onLayoutChanged  " + from + "  ==>  " + to);
+            Common.Logging.d(TAG, "IAirMediaSessionManagerObserver.onLayoutChanged  " + from + "  ==>  " + to);
             scheduler().raise(layoutChanged(), self(), from, to);
         }
 
         @Override
         public void onOccupiedChanged(int from, int to) throws RemoteException {
-            Log.w(TAG, "IAirMediaSessionManagerObserver.onOccupiedChanged  " + AirMediaSessionScreenPosition.set(from) + "  ==>  " + AirMediaSessionScreenPosition.set(to));
+            Common.Logging.d(TAG, "IAirMediaSessionManagerObserver.onOccupiedChanged  " + AirMediaSessionScreenPosition.set(from) + "  ==>  " + AirMediaSessionScreenPosition.set(to));
             occupied_ = AirMediaSessionScreenPosition.set(to);
             scheduler().raise(occupiedChanged(), self(), AirMediaSessionScreenPosition.set(from), AirMediaSessionScreenPosition.set(to));
         }
 
         @Override
         public void onAdded(IAirMediaSession session) throws RemoteException {
-            Log.w(TAG, "IAirMediaSessionManagerObserver.onAdded  " + session);
+            Common.Logging.d(TAG, "IAirMediaSessionManagerObserver.onAdded  " + session);
             scheduler().update(new TaskScheduler.PropertyUpdater<IAirMediaSession>() { @Override public void update(IAirMediaSession v) { add(v); } }, session);
         }
 
         @Override
         public void onRemoved(IAirMediaSession session) throws RemoteException {
-            Log.w(TAG, "IAirMediaSessionManagerObserver.onRemoved  " + session);
+            Common.Logging.d(TAG, "IAirMediaSessionManagerObserver.onRemoved  " + session);
             scheduler().update(new TaskScheduler.PropertyUpdater<IAirMediaSession>() { @Override public void update(IAirMediaSession v) { remove(v); } }, session);
         }
     };

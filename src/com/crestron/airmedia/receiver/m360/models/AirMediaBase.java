@@ -2,6 +2,7 @@ package com.crestron.airmedia.receiver.m360.models;
 
 import android.util.Log;
 
+import com.crestron.airmedia.utilities.Common;
 import com.crestron.airmedia.utilities.TaskScheduler;
 import com.crestron.airmedia.utilities.TimeSpan;
 import com.crestron.airmedia.utilities.delegates.Observer;
@@ -20,15 +21,15 @@ abstract class AirMediaBase {
     }
 
     void queue(String name, TimeSpan timeout, Runnable task) {
-        Log.i(TAG, name + "  timeout= " + timeout.toString());
+        Common.Logging.i(TAG, name + "  timeout= " + timeout.toString());
         TimeSpan start = TimeSpan.now();
         boolean isCompleted = false;
         try {
             isCompleted = scheduler().queue(timeout, task);
         } catch (Exception e) {
-            Log.e(TAG, name + "  timeout= " + timeout.toString() + "  EXCEPTION  " + e + "  " + Log.getStackTraceString(e));
+            Common.Logging.e(TAG, name + "  timeout= " + timeout.toString() + "  EXCEPTION  " + e + "  " + Log.getStackTraceString(e));
         } finally {
-            Log.i(TAG, name + "  timeout= " + timeout.toString() + "  COMPLETE= " + isCompleted + "  " + TimeSpan.getDelta(start));
+            Common.Logging.i(TAG, name + "  timeout= " + timeout.toString() + "  COMPLETE= " + isCompleted + "  " + TimeSpan.getDelta(start));
         }
     }
 

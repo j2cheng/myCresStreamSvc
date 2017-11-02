@@ -79,12 +79,14 @@ public class AirMediaSession extends AirMediaBase {
     private final IAirMediaSessionObserver observer_ = new IAirMediaSessionObserver.Stub() {
         @Override
         public void onUsernameChanged(String from, String to) throws RemoteException {
+            Common.Logging.v(TAG, "IAirMediaSessionObserver.onUsernameChanged  " + AirMediaSession.toDebugString(self()) + "  " + from + "  ==>  " + to);
             username_ = to;
             scheduler().raise(usernameChanged(), self(), from, to);
         }
 
         @Override
         public void onAddressesChanged(String[] from, String[] to) throws RemoteException {
+            Common.Logging.v(TAG, "IAirMediaSessionObserver.onAddressesChanged  " + AirMediaSession.toDebugString(self()));
             synchronized (lock_) {
                 addresses_ =  Arrays.asList(to);
             }
@@ -93,24 +95,28 @@ public class AirMediaSession extends AirMediaBase {
 
         @Override
         public void onInfoChanged(AirMediaSessionInfo from, AirMediaSessionInfo to) throws RemoteException {
+            Common.Logging.v(TAG, "IAirMediaSessionObserver.onInfoChanged  " + AirMediaSession.toDebugString(self()) + "  " + from + "  ==>  " + to);
             info_ = to;
             scheduler().raise(infoChanged(), self(), from, to);
         }
 
         @Override
         public void onConnectionChanged(AirMediaSessionConnectionState from, AirMediaSessionConnectionState to) throws RemoteException {
+            Common.Logging.v(TAG, "IAirMediaSessionObserver.onConnectionChanged  " + AirMediaSession.toDebugString(self()) + "  " + from + "  ==>  " + to);
             connection_ = to;
             scheduler().raise(connectionChanged(), self(), from, to);
         }
 
         @Override
         public void onStreamingChanged(AirMediaSessionStreamingState from, AirMediaSessionStreamingState to) throws RemoteException {
+            Common.Logging.v(TAG, "IAirMediaSessionObserver.onStreamingChanged  " + AirMediaSession.toDebugString(self()) + "  " + from + "  ==>  " + to);
             streaming_ = to;
             scheduler().raise(streamingChanged(), self(), from, to);
         }
 
         @Override
         public void onChannelStateChanged(AirMediaSessionConnectionState from, AirMediaSessionConnectionState to) throws RemoteException {
+            Common.Logging.v(TAG, "IAirMediaSessionObserver.onChannelStateChanged  " + AirMediaSession.toDebugString(self()) + "  " + from + "  ==>  " + to);
             channelState_ = to;
             if (to == AirMediaSessionConnectionState.Connecting || to == AirMediaSessionConnectionState.Connected) channelId_ = session_.getChannelId();
             scheduler().raise(channelStateChanged(), self(), from, to);
@@ -118,6 +124,7 @@ public class AirMediaSession extends AirMediaBase {
 
         @Override
         public void onDeviceStateChanged(AirMediaSessionConnectionState from, AirMediaSessionConnectionState to) throws RemoteException {
+            Common.Logging.v(TAG, "IAirMediaSessionObserver.onDeviceStateChanged  " + AirMediaSession.toDebugString(self()) + "  " + from + "  ==>  " + to);
             deviceState_ = to;
             if (to == AirMediaSessionConnectionState.Connecting || to == AirMediaSessionConnectionState.Connected) deviceId_ = session_.getDeviceId();
             scheduler().raise(deviceStateChanged(), self(), from, to);
@@ -125,54 +132,63 @@ public class AirMediaSession extends AirMediaBase {
 
         @Override
         public void onVideoStateChanged(AirMediaSessionStreamingState from, AirMediaSessionStreamingState to) throws RemoteException {
+            Common.Logging.v(TAG, "IAirMediaSessionObserver.onVideoStateChanged  " + AirMediaSession.toDebugString(self()) + "  " + from + "  ==>  " + to);
             videoState_ = to;
             if (to == AirMediaSessionStreamingState.Starting || to == AirMediaSessionStreamingState.Playing) videoId_ = session_.getVideoId();
             scheduler().raise(videoStateChanged(), self(), from, to);
         }
 
         public void onVideoTypeChanged(AirMediaSessionVideoType from, AirMediaSessionVideoType to) throws RemoteException {
+            Common.Logging.v(TAG, "IAirMediaSessionObserver.onVideoTypeChanged  " + AirMediaSession.toDebugString(self()) + "  " + from + "  ==>  " + to);
             videoType_ = to;
             scheduler().raise(videoTypeChanged(), self(), from, to);
         }
 
         @Override
         public void onVideoResolutionChanged(AirMediaSize from, AirMediaSize to) throws RemoteException {
+            Common.Logging.v(TAG, "IAirMediaSessionObserver.onVideoResolutionChanged  " + AirMediaSession.toDebugString(self()) + "  " + from + "  ==>  " + to);
             videoResolution_ = to;
             scheduler().raise(videoResolutionChanged(), self(), from, to);
         }
 
         @Override
         public void onVideoRotationChanged(int from, int to) throws RemoteException {
+            Common.Logging.v(TAG, "IAirMediaSessionObserver.onVideoRotationChanged  " + AirMediaSession.toDebugString(self()) + "  " + from + "  ==>  " + to);
             videoRotation_ = to;
             scheduler().raise(videoRotationChanged(), self(), from, to);
         }
 
         @Override
         public void onVideoSurfaceChanged(Surface from, Surface to) throws RemoteException {
+            Common.Logging.v(TAG, "IAirMediaSessionObserver.onVideoSurfaceChanged  " + AirMediaSession.toDebugString(self()) + "  " + from + "  ==>  " + to);
             videoSurface_ = to;
             scheduler().raise(videoSurfaceChanged(), self(), from, to);
         }
 
         @Override
         public void onVideoDrmChanged(boolean to) throws RemoteException {
+            Common.Logging.v(TAG, "IAirMediaSessionObserver.onVideoDrmChanged  " + AirMediaSession.toDebugString(self()) + "  " + !to + "  ==>  " + to);
             videoIsDrm_ = to;
             scheduler().raise(videoDrmChanged(), self(), to);
         }
 
         @Override
         public void onVideoLoadingChanged(boolean to) throws RemoteException {
+            Common.Logging.v(TAG, "IAirMediaSessionObserver.onVideoLoadingChanged  " + AirMediaSession.toDebugString(self()) + "  " + !to + "  ==>  " + to);
             videoIsLoading_ = to;
             scheduler().raise(videoLoadingChanged(), self(), to);
         }
 
         @Override
         public void onVideoScreenPositionChanged(AirMediaSessionScreenPosition from, AirMediaSessionScreenPosition to) throws RemoteException {
+            Common.Logging.v(TAG, "IAirMediaSessionObserver.onVideoScreenPositionChanged  " + AirMediaSession.toDebugString(self()) + "  " + from + "  ==>  " + to);
             videoScreenPosition_ = to;
             scheduler().raise(videoScreenPositionChanged(), self(), from, to);
         }
 
         @Override
         public void onAudioStateChanged(AirMediaSessionStreamingState from, AirMediaSessionStreamingState to) throws RemoteException {
+            Common.Logging.v(TAG, "IAirMediaSessionObserver.onAudioStateChanged  " + AirMediaSession.toDebugString(self()) + "  " + from + "  ==>  " + to);
             audioState_ = to;
             if (to == AirMediaSessionStreamingState.Starting || to == AirMediaSessionStreamingState.Playing) audioId_ = session_.getAudioId();
             scheduler().raise(audioStateChanged(), self(), from, to);
@@ -180,18 +196,21 @@ public class AirMediaSession extends AirMediaBase {
 
         @Override
         public void onAudioMuteChanged(boolean to) throws RemoteException {
+            Common.Logging.v(TAG, "IAirMediaSessionObserver.onAudioMuteChanged  " + AirMediaSession.toDebugString(self()) + "  " + !to + "  ==>  " + to);
             audioMuted_ = to;
             scheduler().raise(audioMuteChanged(), self(), to);
         }
 
         @Override
         public void onAudioVolumeChanged(float from, float to) throws RemoteException {
+            Common.Logging.v(TAG, "IAirMediaSessionObserver.onAudioVolumeChanged  " + AirMediaSession.toDebugString(self()) + "  " + from + "  ==>  " + to);
             audioVolume_ = to;
             scheduler().raise(audioVolumeChanged(), self(), from, to);
         }
 
         @Override
         public void onPhotoChanged(Bitmap from, Bitmap to) throws RemoteException {
+            Common.Logging.v(TAG, "IAirMediaSessionObserver.onPhotoChanged  " + AirMediaSession.toDebugString(self()) + "  " + from + "  ==>  " + to);
             photo_ = to;
             scheduler().raise(photoChanged(), self(), from, to);
         }
@@ -483,7 +502,7 @@ public class AirMediaSession extends AirMediaBase {
             if (session == null) return;
             session.attach(value);
         } catch (RemoteException e) {
-            Log.e(TAG, "session.video.surface.attach  " + toDebugString(self()) + "  value= " + value + "  EXCEPTION  " + e);
+            Common.Logging.e(TAG, "session.video.surface.attach  " + toDebugString(self()) + "  value= " + value + "  EXCEPTION  " + e);
             handleRemoteException();
         }
     }
@@ -494,7 +513,7 @@ public class AirMediaSession extends AirMediaBase {
             if (session == null) return;
             session.detach();
         } catch (RemoteException e) {
-            Log.e(TAG, "session.video.surface.detach  " + toDebugString(self()) + "  EXCEPTION  " + e);
+            Common.Logging.e(TAG, "session.video.surface.detach  " + toDebugString(self()) + "  EXCEPTION  " + e);
             handleRemoteException();
         }
     }
@@ -559,7 +578,7 @@ public class AirMediaSession extends AirMediaBase {
             if (session == null) return;
             session.setVideoScreenPosition(value);
         } catch (RemoteException e) {
-            Log.e(TAG, "session.video.screen-position  " + toDebugString(self()) + "  value= " + value + "  EXCEPTION  " + e);
+            Common.Logging.e(TAG, "session.video.screen-position  " + toDebugString(self()) + "  value= " + value + "  EXCEPTION  " + e);
             handleRemoteException();
         }
     }
@@ -572,7 +591,7 @@ public class AirMediaSession extends AirMediaBase {
             if (session == null) return;
             session.setAudioMute(value);
         } catch (RemoteException e) {
-            Log.e(TAG, "session.audio.mute  " + toDebugString(self()) + "  value= " + value + "  EXCEPTION  " + e);
+            Common.Logging.e(TAG, "session.audio.mute  " + toDebugString(self()) + "  value= " + value + "  EXCEPTION  " + e);
             handleRemoteException();
         }
     }
@@ -585,7 +604,7 @@ public class AirMediaSession extends AirMediaBase {
             if (session == null) return;
             session.setAudioVolume(value);
         } catch (RemoteException e) {
-            Log.e(TAG, "session.audio.volume  " + toDebugString(self()) + "  value= " + value + "  EXCEPTION  " + e);
+            Common.Logging.e(TAG, "session.audio.volume  " + toDebugString(self()) + "  value= " + value + "  EXCEPTION  " + e);
             handleRemoteException();
         }
     }
