@@ -1012,24 +1012,7 @@ public class AirMediaSplashtop implements AirMedia
     		setLoginCodeDisable();
     	else
     		setLoginCode(mStreamCtl.userSettings.getAirMediaLoginCode());
-    	
-        if (mStreamCtl.userSettings.getAirMediaDisplayLoginCode() && 
-        		mStreamCtl.userSettings.getAirMediaLoginMode() != AirMediaLoginMode.Disabled.ordinal())
-        {
-        	showLoginCodePrompt(mStreamCtl.userSettings.getAirMediaLoginCode());
-        }
-        else
-        {
-        	hideLoginCodePrompt();
-        }
-        
-        // Show/Hide IP address depending on setting
-        setIpAddressPrompt(mStreamCtl.userSettings.getAirMediaIpAddressPrompt());
-
-        // Set window display and flag (z order control)
-        setDisplayScreen(mStreamCtl.userSettings.getAirMediaDisplayScreen());
-        setWindowFlag(mStreamCtl.userSettings.getAirMediaWindowFlag());
-        
+    	        
         // Update connection status
         querySenderList(false);
         
@@ -1048,22 +1031,17 @@ public class AirMediaSplashtop implements AirMedia
     
     public void setLoginCode(int loginCode)
     {
-    	orderedLock.lock("setLoginCode");
-    	try {
-    		if (receiver() != null)
-    		{
-    			Log.i(TAG, "Current login code = " + receiver().serverPassword());
-    			String code = String.format("%04d", loginCode);
-    			Log.i(TAG, "Set Login Code = " + code + " (" + String.valueOf(loginCode) + ")");
-    			if (loginCode < 0) {
-    				receiver().serverPassword("");
-    			} else {
-    				receiver().serverPassword(String.valueOf(code));	
-    			}
+    	if (receiver() != null)
+    	{
+    		Log.i(TAG, "Current login code = " + receiver().serverPassword());
+    		String code = String.format("%04d", loginCode);
+    		Log.i(TAG, "Set Login Code = " + code + " (" + String.valueOf(loginCode) + ")");
+    		if (loginCode < 0) {
+    			receiver().serverPassword("");
+    		} else {
+    			receiver().serverPassword(String.valueOf(code));	
     		}
-    	} finally {
-			orderedLock.unlock("setLoginCode");
-		}
+    	}
     }
     
     public void setLoginCodeDisable()
