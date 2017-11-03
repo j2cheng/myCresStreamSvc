@@ -183,8 +183,14 @@ public class AirMediaSplashtop implements AirMedia
     			
     			if (!isAirMediaUp)
     			{
+    				Log.w(TAG, "Error trying to start receiver");
     				successfulStart = false;
-    			}  
+    			}
+    			else if (!successfulStart)
+    			{
+    				Log.w(TAG, "Timeout trying to start receiver");
+    			}
+    			
     			if (!successfulStart && isServiceConnected)
     			{
     				doUnbindService();

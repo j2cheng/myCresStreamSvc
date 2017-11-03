@@ -1736,7 +1736,10 @@ class AirMediaLoginCodeCommand extends CrestronCommand {
 		super(ctrl, arg, sessId);
 	}
 	public void execute() {
-		this.setFbMsg = ctrl.setAirMediaLoginCode(VALIDATE_INT(msg), sessId);
+		// Lock here because setAirMediaLoginCode can be called from constructor
+		synchronized (ctrl.mAirMediaLock) {
+			this.setFbMsg = ctrl.setAirMediaLoginCode(VALIDATE_INT(msg), sessId);
+		}
 	}
 	public String getFeedbackMsg() {
 		return Integer.toString(ctrl.userSettings.getAirMediaLoginCode());
@@ -1749,7 +1752,10 @@ class AirMediaLoginModeCommand extends CrestronCommand {
 	}
 
 	public void execute() {
-		this.setFbMsg = ctrl.setAirMediaLoginMode(VALIDATE_INT(msg), sessId);
+		// Lock here because setAirMediaLoginMode can be called from constructor
+		synchronized (ctrl.mAirMediaLock) {
+			this.setFbMsg = ctrl.setAirMediaLoginMode(VALIDATE_INT(msg), sessId);
+		}
 	}
 	public String getFeedbackMsg() {
 		return Integer.toString(ctrl.userSettings.getAirMediaLoginMode());

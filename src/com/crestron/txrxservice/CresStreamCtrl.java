@@ -180,7 +180,7 @@ public class CresStreamCtrl extends Service {
     private Object cameraModeLock = new Object();
     private volatile Timer mNoVideoTimer = null;
     private Object mCameraModeScheduleLock = new Object();
-    private Object mAirMediaLock = new Object();
+    public Object mAirMediaLock = new Object();
     private Object mDisplayChangedLock = new Object();
     private int defaultLoggingLevel = -1;
     private int numberOfVideoTimeouts = 0; //we will use this to track stop/start timeouts
@@ -1061,21 +1061,15 @@ public class CresStreamCtrl extends Service {
     			// Wait until file exists then check
     			if (!use_splashtop)
     			{
-    				synchronized(mAirMediaLock)
-    				{
-    					if (mAirMedia == null && airMediaLicensed)
-    						mAirMedia = new AirMediaAwind(streamCtrl);
-    				}
+    				if (mAirMedia == null && airMediaLicensed)
+    					mAirMedia = new AirMediaAwind(streamCtrl);
     			}
     			else
     			{
-    				synchronized(mAirMediaLock)
-    				{
-    					if (mAirMedia == null && airMediaLicensed) {
-							Log.d(TAG, "Calling AirMediaConstructor from airMediaLicenseThread");
-    						mAirMedia = new AirMediaSplashtop(streamCtrl); 
-    					}
-    				}
+    				if (mAirMedia == null && airMediaLicensed) {
+    					Log.d(TAG, "Calling AirMediaConstructor from airMediaLicenseThread");
+    					mAirMedia = new AirMediaSplashtop(streamCtrl); 
+    				}    				
     			}
     		}
     	}).start();
@@ -3680,18 +3674,15 @@ public class CresStreamCtrl extends Service {
     			userSettings.setAirMediaLaunch(val, sessId);
     			if (val == true) // True = launch airmedia app, false = close app
     			{
-    				// Do I need to stop all video here???
-    				synchronized (mAirMediaLock)
-    				{
-    					if (mAirMedia == null && airMediaLicensed) {
-    						if (!use_splashtop)
-    							mAirMedia = new AirMediaAwind(this);
-    						else {
-    							Log.d(TAG, "Calling AirMediaConstructor from launchAirMedia");
-    							mAirMedia = new AirMediaSplashtop(this);
-    						}
+    				// Do I need to stop all video here???  
+    				if (mAirMedia == null && airMediaLicensed) {
+    					if (!use_splashtop)
+    						mAirMedia = new AirMediaAwind(this);
+    					else {
+    						Log.d(TAG, "Calling AirMediaConstructor from launchAirMedia");
+    						mAirMedia = new AirMediaSplashtop(this);
     					}
-    				}
+    				}    				
     				if (mAirMedia != null)
     				{
     					int x, y, width, height;
@@ -3785,89 +3776,84 @@ public class CresStreamCtrl extends Service {
     }
     
     public String setAirMediaLoginCode(int loginCode, int sessId) {
-    	synchronized (mAirMediaLock) {
-    		if ((loginCode < 0) || (loginCode > 9999))
-    			return null; //Don't set out of range value
-   
-    		userSettings.setAirMediaLoginCode(loginCode);
-    		userSettings.setAirMediaLoginMode(AirMediaLoginMode.Fixed.ordinal()); // When loginCode is set auto switch to fixed mode
+    	if ((loginCode < 0) || (loginCode > 9999))
+    		return null; //Don't set out of range value
 
-    		if (getAirMediaNumberUserConnected() == 0)
+    	userSettings.setAirMediaLoginCode(loginCode);
+    	userSettings.setAirMediaLoginMode(AirMediaLoginMode.Fixed.ordinal()); // When loginCode is set auto switch to fixed mode
+
+    	if (getAirMediaNumberUserConnected() == 0)
+    	{
+    		if (mAirMedia != null)
+    		{
+    			mAirMedia.setLoginCode(userSettings.getAirMediaLoginCode());
+
+    			if (userSettings.getAirMediaDisplayLoginCode())
+    			{
+    				mAirMedia.showLoginCodePrompt(loginCode);
+    			}
+    		} 
+    		// send feedback of login mode since it might have changed
+    		sockTask.SendDataToAllClients(String.format("AIRMEDIA_LOGIN_MODE=%d", userSettings.getAirMediaLoginMode()));
+    		return String.format("%04d", userSettings.getAirMediaLoginCode());
+    	}
+    	else
+    	{
+    		// If users are connected wait until all disconnect before changing code
+    		pendingAirMediaLoginCodeChange = true;
+    		Log.d(TAG, "Filtering out AirMedia login code change to " + loginCode + " because " + getAirMediaNumberUserConnected() + " users are connected, changes will take effect once all user disconnect");
+    		return null;         // do not send feedback for login code change - sent independently
+    	}    
+    }
+    
+    public String setAirMediaLoginMode(int loginMode, int sessId) {    	
+    	userSettings.setAirMediaLoginMode(loginMode);
+
+    	if (getAirMediaNumberUserConnected() == 0)
+    	{
+    		if (loginMode == AirMediaLoginMode.Disabled.ordinal())
+    		{
+    			userSettings.setAirMediaLoginCode(0);
+    			if (mAirMedia != null)
+    			{
+    				mAirMedia.setLoginCodeDisable();
+    				mAirMedia.hideLoginCodePrompt();
+    			}
+    		}
+    		else if (loginMode == AirMediaLoginMode.Random.ordinal())
+    		{
+    			int rand = (int)(Math.random() * 9999 + 1); 
+    			userSettings.setAirMediaLoginCode(rand);
+    			if (mAirMedia != null)
+    			{
+    				mAirMedia.setLoginCode(rand);
+    				if (userSettings.getAirMediaDisplayLoginCode())
+    				{
+    					mAirMedia.showLoginCodePrompt(rand);
+    				}
+    			}
+    		}
+    		else if(loginMode == AirMediaLoginMode.Fixed.ordinal())
     		{
     			if (mAirMedia != null)
     			{
     				mAirMedia.setLoginCode(userSettings.getAirMediaLoginCode());
-
     				if (userSettings.getAirMediaDisplayLoginCode())
     				{
-    					mAirMedia.showLoginCodePrompt(loginCode);
+    					mAirMedia.showLoginCodePrompt(userSettings.getAirMediaLoginCode());
     				}
-    			} 
-    			// send feedback of login mode since it might have changed
-        		sockTask.SendDataToAllClients(String.format("AIRMEDIA_LOGIN_MODE=%d", userSettings.getAirMediaLoginMode()));
-    			return String.format("%04d", userSettings.getAirMediaLoginCode());
+    			}
     		}
-    		else
-    		{
-    			// If users are connected wait until all disconnect before changing code
-    			pendingAirMediaLoginCodeChange = true;
-    			Log.d(TAG, "Filtering out AirMedia login code change to " + loginCode + " because " + getAirMediaNumberUserConnected() + " users are connected, changes will take effect once all user disconnect");
-    		    return null;         // do not send feedback for login code change - sent independently
-    		}    
-
+    		sockTask.SendDataToAllClients(String.format("AIRMEDIA_LOGIN_CODE=%d", userSettings.getAirMediaLoginCode()));
+    		return String.format("%d", userSettings.getAirMediaLoginMode());
     	}
-    }
-    
-    public String setAirMediaLoginMode(int loginMode, int sessId) {
-    	synchronized (mAirMediaLock) {
-    		userSettings.setAirMediaLoginMode(loginMode);
-
-    		if (getAirMediaNumberUserConnected() == 0)
-    		{
-    			if (loginMode == AirMediaLoginMode.Disabled.ordinal())
-    			{
-    				userSettings.setAirMediaLoginCode(0);
-    				if (mAirMedia != null)
-    				{
-    					mAirMedia.setLoginCodeDisable();
-    					mAirMedia.hideLoginCodePrompt();
-    				}
-    			}
-    			else if (loginMode == AirMediaLoginMode.Random.ordinal())
-    			{
-    				int rand = (int)(Math.random() * 9999 + 1); 
-    				userSettings.setAirMediaLoginCode(rand);
-    				if (mAirMedia != null)
-    				{
-    					mAirMedia.setLoginCode(rand);
-    					if (userSettings.getAirMediaDisplayLoginCode())
-    					{
-    						mAirMedia.showLoginCodePrompt(rand);
-    					}
-    				}
-    			}
-    			else if(loginMode == AirMediaLoginMode.Fixed.ordinal())
-    			{
-    				if (mAirMedia != null)
-    				{
-    					mAirMedia.setLoginCode(userSettings.getAirMediaLoginCode());
-    					if (userSettings.getAirMediaDisplayLoginCode())
-    					{
-    						mAirMedia.showLoginCodePrompt(userSettings.getAirMediaLoginCode());
-    					}
-    				}
-    			}
-    			sockTask.SendDataToAllClients(String.format("AIRMEDIA_LOGIN_CODE=%d", userSettings.getAirMediaLoginCode()));
-        		return String.format("%d", userSettings.getAirMediaLoginMode());
-    		}
-    		else
-    		{
-    			// If users are connected wait until all disconnect before changing code
-    			pendingAirMediaLoginCodeChange = true;
-    			Log.d(TAG, "Filtering out AirMedia login mode change to " + loginMode + " because " + getAirMediaNumberUserConnected() + " users are connected, changes will take effect once all user disconnect");
-     		    return null;         // do not send feedback for login mode change - sent independently
-   			}
-    	}
+    	else
+    	{
+    		// If users are connected wait until all disconnect before changing code
+    		pendingAirMediaLoginCodeChange = true;
+    		Log.d(TAG, "Filtering out AirMedia login mode change to " + loginMode + " because " + getAirMediaNumberUserConnected() + " users are connected, changes will take effect once all user disconnect");
+    		return null;         // do not send feedback for login mode change - sent independently
+    	}    	
     }
     
     public void setAirMediaDisplayLoginCode(boolean display, int sessid)
