@@ -1036,8 +1036,7 @@ public class CresStreamCtrl extends Service {
     			// Wait until CSIO is connected (Bug 135686)
 				// For debugging only - temporary
     			airMediaLicensed = (new File("/data/CresStreamSvc/airmedialicense")).exists();
-    			// Moving over to Splashtop permanently now
-				use_splashtop = true;//(new File("/data/CresStreamSvc/splashtop")).exists();
+				use_splashtop = (new File("/data/CresStreamSvc/splashtop")).exists();
 				Log.i(TAG, "******************  Use_Splashtop="+String.valueOf(use_splashtop) + "**************");
 				if (!airMediaLicensed)
 				{
