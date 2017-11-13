@@ -106,6 +106,7 @@ public class AirMediaSplashtop implements AirMedia
 	private boolean isServiceConnected = false;
 	private boolean isReceiverStarted = false;
 	private boolean isAirMediaUp = false;
+	private boolean requestServiceConnection = false;
 
     private Handler handler_;
     private Map<Integer, AirMediaSession> userSessionMap = new ConcurrentHashMap<Integer, AirMediaSession>();
@@ -222,19 +223,29 @@ public class AirMediaSplashtop implements AirMedia
     		public void run() {
     			orderedLock.lock("RestartAirMediaAsynchronously");
     			try {
-    				isAirMediaUp = false;
-    				if (receiver() != null)
+    				boolean serviceSuccessfullyStarted = false;
+    				while (!serviceSuccessfullyStarted)    		    	
     				{
-    					receiver_.stop();
-    					receiver_.close();
-    					receiver_ = null;
+    					if (isServiceConnected)
+    					{
+    						Log.e(TAG, "Calling unbind because isServiceConnected when RestartAirMediaAsynchronously was called");
+    						doUnbindService();
+    					}
+
+    					isAirMediaUp = false;
+    					if (receiver() != null)
+    					{
+    						receiver_.stop();
+    						receiver_.close();
+    						receiver_ = null;
+    					}
+    					isReceiverStarted = false;
+    					removeAllSessionsFromMap();
+    					mStreamCtl.sendAirMediaNumberUserConnected();
+    					active_session_ = null;
+    					surfaceDisplayed = false;
+    					serviceSuccessfullyStarted = connectAndStartReceiverService();
     				}
-    				isReceiverStarted = false;
-    				removeAllSessionsFromMap();
-    				mStreamCtl.sendAirMediaNumberUserConnected();
-    				active_session_ = null;
-    				surfaceDisplayed = false;
-    				connectAndStartReceiverService();
     			} finally {
     				orderedLock.unlock("RestartAirMediaAsynchronously");
     			}
@@ -286,6 +297,7 @@ public class AirMediaSplashtop implements AirMedia
     
     private boolean connect2service()
     {
+    	requestServiceConnection = true;
     	serviceConnectedLatch = new CountDownLatch(1);
 		// start service and instantiate receiver class
 		doBindService();
@@ -1456,15 +1468,24 @@ public class AirMediaSplashtop implements AirMedia
 			new Thread(new Runnable() {
 				@Override
 				public void run() {
-					Log.d(TAG, "AirMediaServiceConnection.onServiceConnected  " + name);
-					isServiceConnected = true;
-					try {
-						service_ = IAirMediaReceiver.Stub.asInterface(binder);
-						if (service_ == null) return;            	
-						serviceConnectedLatch.countDown();
-						startAirMedia();
-					} catch (Exception e) {
-						Log.e(TAG, "AirMediaServiceConnection.onServiceConnected  EXCEPTION  " + e);
+					if (requestServiceConnection)
+					{
+						Log.d(TAG, "AirMediaServiceConnection.onServiceConnected  " + name);
+						isServiceConnected = true;
+						requestServiceConnection = false;
+						try {
+							service_ = IAirMediaReceiver.Stub.asInterface(binder);
+							if (service_ == null) return;            	
+							serviceConnectedLatch.countDown();
+							startAirMedia();
+						} catch (Exception e) {
+							Log.e(TAG, "AirMediaServiceConnection.onServiceConnected  EXCEPTION  " + e);
+							e.printStackTrace();
+						}
+					}
+					else
+					{
+						Log.d(TAG, "AirMediaServiceConnection.onServiceConnected, ignoring unsolicited" + name);
 					}
 				}
 			}).start();
@@ -1495,6 +1516,7 @@ public class AirMediaSplashtop implements AirMedia
 						RestartAirMediaAsynchronously();
 					} catch (Exception e) {
 						Log.e(TAG, "AirMediaServiceConnection.onServiceDisconnected  EXCEPTION  " + e);
+						e.printStackTrace();
 					}
 				}
 			}).start();
