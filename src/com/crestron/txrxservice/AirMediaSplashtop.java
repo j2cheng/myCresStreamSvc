@@ -77,6 +77,7 @@ public class AirMediaSplashtop implements AirMedia
 	private static final int streamIdx = 0;
 	private static final int MAX_USERS = 32;
 	private static final int CODEC_ERROR = 1;
+	private static final int MEDIA_SERVER_HANG = 2;
 	private final Object stopSessionObjectLock = new Object();
     private final MyReentrantLock orderedLock	= new MyReentrantLock(true); // fairness=true, makes lock ordered
     public CountDownLatch serviceConnectedLatch=null;
@@ -1590,7 +1591,7 @@ public class AirMediaSplashtop implements AirMedia
 					mStreamCtl.RecoverMediaServer();
 				}
 				Log.w(TAG, "Receiver stopped with error="+reason+"  Restarting receiver .... ");
-				if (reason != CODEC_ERROR)
+				if (reason != CODEC_ERROR || reason != MEDIA_SERVER_HANG)
 					sleep(5000);
                 RestartReceiverAynchronously();
 			}
