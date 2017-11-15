@@ -34,6 +34,7 @@ import com.crestron.airmedia.receiver.m360.ipc.AirMediaSessionInfo;
 
 import com.crestron.airmedia.utilities.ViewBase;
 import com.crestron.airmedia.utilities.ViewBase.Size;
+import com.crestron.airmedia.utilities.Common;
 import com.crestron.airmedia.utilities.delegates.MulticastChangedDelegate;
 import com.crestron.airmedia.utilities.delegates.MulticastChangedWithReasonDelegate;
 import com.crestron.airmedia.utilities.delegates.MulticastMessageDelegate;
@@ -128,15 +129,15 @@ public class AirMediaSplashtop implements AirMedia
     	
     	void lock(String s)
     	{
-    		Log.d(TAG, s + " about to take reentrantLock     Current owner tid=" + getThreadId() + "  queueLength=" + getQueueLength());
+    		Common.Logging.d(TAG, s + " about to take reentrantLock     Current owner tid=" + getThreadId() + "  queueLength=" + getQueueLength());
     		lock();
-    		Log.d(TAG, "reentrantLock taken by " + s + "   Owner tid=" + getThreadId() + "  queueLength=" + getQueueLength());
+    		Common.Logging.d(TAG, "reentrantLock taken by " + s + "   Owner tid=" + getThreadId() + "  queueLength=" + getQueueLength());
     	}
     	
     	void unlock(String s)
     	{
     		unlock();
-    		Log.d(TAG, "reentrantLock released by " + s);
+    		Common.Logging.d(TAG, "reentrantLock released by " + s);
     	}
     }
  
@@ -147,7 +148,7 @@ public class AirMediaSplashtop implements AirMedia
     	
     	mStreamCtl.setHostName("");
     	mStreamCtl.setDomainName("");
-    	Log.d(TAG, "HostName="+mStreamCtl.hostName+"   DomainName="+mStreamCtl.domainName);
+    	Common.Logging.d(TAG, "HostName="+mStreamCtl.hostName+"   DomainName="+mStreamCtl.domainName);
     	mStreamCtl.sendAirMediaConnectionAddress(streamIdx);  
     	adapter_ip_address = mStreamCtl.getAirMediaConnectionIpAddress(0);
     	
@@ -157,9 +158,9 @@ public class AirMediaSplashtop implements AirMedia
     	{
     		serviceSuccessfullyStarted = connectAndStartReceiverService();
     		if (serviceSuccessfullyStarted) {
-    			Log.i(TAG, "AirMediaSpashtop constructor exiting receiver=" + receiver() + "  service=" + service() + "  manager=" + manager());
+    			Common.Logging.i(TAG, "AirMediaSpashtop constructor exiting receiver=" + receiver() + "  service=" + service() + "  manager=" + manager());
     		} else {
-    			Log.e(TAG, "Airmedia startup failed, trying again in 5 seconds");
+    			Common.Logging.e(TAG, "Airmedia startup failed, trying again in 5 seconds");
     			sleep(5000);
     		}
     	}
@@ -176,7 +177,7 @@ public class AirMediaSplashtop implements AirMedia
 
 
     			if (!connect2service()) {
-    				Log.e(TAG, "Service failed to connect, restarting AirMedia app");
+    				Common.Logging.e(TAG, "Service failed to connect, restarting AirMedia app");
     				restartAirMedia();
     				return false;
     			}		
@@ -186,12 +187,12 @@ public class AirMediaSplashtop implements AirMedia
     			
     			if (!adapter_ip_address.equals("None") && !isAirMediaUp)
     			{
-    				Log.w(TAG, "Error trying to start receiver");
+    				Common.Logging.w(TAG, "Error trying to start receiver");
     				successfulStart = false;
     			}
     			else if (!successfulStart)
     			{
-    				Log.w(TAG, "Timeout trying to start receiver");
+    				Common.Logging.w(TAG, "Timeout trying to start receiver");
     			}
     			
     			if (!successfulStart && isServiceConnected)
@@ -203,18 +204,18 @@ public class AirMediaSplashtop implements AirMedia
     		{
     			if (adapter_ip_address.equals("None"))
     			{
-    				Log.d(TAG, "None Adapter selected, not starting receiver");
+    				Common.Logging.d(TAG, "None Adapter selected, not starting receiver");
     				return true;
     			}
     			else
     			{
-    				Log.w(TAG, "Service connected but receiver not started, unbind and try again");
+    				Common.Logging.w(TAG, "Service connected but receiver not started, unbind and try again");
     				doUnbindService();
     				return false;
     			}
     		}
     		else
-    			Log.d(TAG, "Bypassing start because already started");
+    			Common.Logging.d(TAG, "Bypassing start because already started");
     		return successfulStart;
     	}    	
     }
@@ -227,7 +228,7 @@ public class AirMediaSplashtop implements AirMedia
 
     private void RestartAirMediaAsynchronously()
     {
-    	Log.d(TAG, "RestartAirMediaAsynchronously........");
+    	Common.Logging.d(TAG, "RestartAirMediaAsynchronously........");
     	new Thread(new Runnable() {
     		@Override
     		public void run() {
@@ -238,17 +239,12 @@ public class AirMediaSplashtop implements AirMedia
     				{
     					if (isServiceConnected)
     					{
-    						Log.e(TAG, "Calling unbind because isServiceConnected when RestartAirMediaAsynchronously was called");
+    						Common.Logging.e(TAG, "Calling unbind because isServiceConnected when RestartAirMediaAsynchronously was called");
     						doUnbindService();
     					}
 
     					isAirMediaUp = false;
-    					if (receiver() != null)
-    					{
-    						receiver_.stop();
-    						receiver_.close();
-    						receiver_ = null;
-    					}
+
     					isReceiverStarted = false;
     					removeAllSessionsFromMap();
     					mStreamCtl.sendAirMediaNumberUserConnected();
@@ -258,7 +254,7 @@ public class AirMediaSplashtop implements AirMedia
     				}
     			} finally {
     				orderedLock.unlock("RestartAirMediaAsynchronously");
-    		    	Log.d(TAG, "RestartAirMediaAsynchronously exit ........");
+    		    	Common.Logging.d(TAG, "RestartAirMediaAsynchronously exit ........");
     			}
     		}
     	}).start();
@@ -266,40 +262,40 @@ public class AirMediaSplashtop implements AirMedia
     
     private void startAirMedia()
     { 
-		Log.d(TAG, "startAirMedia: Device IP="+mStreamCtl.userSettings.getDeviceIp()+"   Aux IP="+mStreamCtl.userSettings.getAuxiliaryIp());
+		Common.Logging.d(TAG, "startAirMedia: Device IP="+mStreamCtl.userSettings.getDeviceIp()+"   Aux IP="+mStreamCtl.userSettings.getAuxiliaryIp());
 
 		adapter_ip_address = mStreamCtl.getAirMediaConnectionIpAddress(0);
 		version = mStreamCtl.getAirMediaVersion(streamIdx);
-		Log.d(TAG, "Receiver apk version: " + version);
+		Common.Logging.d(TAG, "Receiver apk version: " + version);
 		productName = mStreamCtl.mProductName + " " + version;
-		Log.d(TAG, "Product Name: " + productName);
+		Common.Logging.d(TAG, "Product Name: " + productName);
 
 		// Now start receiver
         if (!startAirMediaReceiver(mStreamCtl.hostName)) {
-			Log.e(TAG, "Receiver failed to startup, returning - restart will be attempted when service disconnects");
+			Common.Logging.e(TAG, "Receiver failed to startup, returning - restart will be attempted when service disconnects");
 			isAirMediaUp = false;
 	        startupCompleteLatch.countDown();
 			return;
         }
 
-        Log.d(TAG, "startAirMedia(): setup receiver session manager");
+        Common.Logging.d(TAG, "startAirMedia(): setup receiver session manager");
 		manager_ = receiver().sessionManager();
 		if (manager_ != null)
 		{
 			registerSessionManagerEventHandlers(manager_);
 		}
 		// Clear all user status
-        Log.d(TAG, "startAirMedia(): clear all user status");
+        Common.Logging.d(TAG, "startAirMedia(): clear all user status");
 		for (int i=1; i < MAX_USERS; i++)
 		{
 			mStreamCtl.userSettings.setAirMediaUserConnected(false, i);
 			mStreamCtl.sendAirMediaUserFeedbacks(i, "", "", 0, false);					
 		}
-        Log.d(TAG, "startAirMedia(): initializeDisplay");
+        Common.Logging.d(TAG, "startAirMedia(): initializeDisplay");
 		intializeDisplay();
 		
 		set4in1ScreenEnable(false); // TODO: Remove this when quad view is eventually enabled
-        Log.d(TAG, "startAirMedia(): exit");
+        Common.Logging.d(TAG, "startAirMedia(): exit");
         
         isAirMediaUp = true;
         startupCompleteLatch.countDown();
@@ -327,13 +323,13 @@ public class AirMediaSplashtop implements AirMedia
     private boolean stopReceiver()
     {
     	synchronized (startStopReceiverLock) {
-    		Log.i(TAG, "stopReceiver() enter (thread="+Thread.currentThread().getId()+")");
+    		Common.Logging.i(TAG, "stopReceiver() enter (thread="+Thread.currentThread().getId()+")");
     		boolean successfulStop = true;
     		receiverStoppedLatch = new CountDownLatch(1);
     		receiver_.stop();
     		try { successfulStop = receiverStoppedLatch.await(30000, TimeUnit.MILLISECONDS); }
     		catch (InterruptedException ex) { ex.printStackTrace(); }
-    		Log.i(TAG, "stopReceiver() exit (thread="+Thread.currentThread().getId()+")");
+    		Common.Logging.i(TAG, "stopReceiver() exit (thread="+Thread.currentThread().getId()+")");
     		return successfulStop;
     	}
     }
@@ -344,13 +340,13 @@ public class AirMediaSplashtop implements AirMedia
     private boolean startReceiver()
     {
     	synchronized (startStopReceiverLock) {
-    		Log.i(TAG, "startReceiver() enter (thread="+Thread.currentThread().getId()+")");
+    		Common.Logging.i(TAG, "startReceiver() enter (thread="+Thread.currentThread().getId()+")");
     		boolean successfulStart = true;
     		receiverStartedLatch = new CountDownLatch(1);
     		receiver().start();
     		try { successfulStart = receiverStartedLatch.await(45000, TimeUnit.MILLISECONDS); }
     		catch (InterruptedException ex) { ex.printStackTrace(); }
-    		Log.i(TAG, "startReceiver() exit (thread="+Thread.currentThread().getId()+")");
+    		Common.Logging.i(TAG, "startReceiver() exit (thread="+Thread.currentThread().getId()+")");
     		return successfulStart;
     	}
     }
@@ -360,7 +356,7 @@ public class AirMediaSplashtop implements AirMedia
 		synchronized (startStopReceiverLock) {
 			// If there is an IP address change apply it first and 
 			if (pending_adapter_ip_address_change && !adapter_ip_address.equals("None")) {
-				Log.i(TAG, "startReceiverWithPossiblyIpAddressChange(): Setting new ip address for receiver: " + adapter_ip_address);
+				Common.Logging.i(TAG, "startReceiverWithPossiblyIpAddressChange(): Setting new ip address for receiver: " + adapter_ip_address);
 				if (receiver() != null)
 					receiver_.adapterAddress(adapter_ip_address);
 				startReceiver();
@@ -375,17 +371,17 @@ public class AirMediaSplashtop implements AirMedia
     		public void run() {
         		orderedLock.lock("RestartReceiverAynchronously");
         		try {
-        			Log.i(TAG, "RestartReceiverAynchronously(): Entered");
+        			Common.Logging.i(TAG, "RestartReceiverAynchronously(): Entered");
         			if (receiver() != null && receiver_.state() != AirMediaReceiverState.Stopped)
         			{
-        				Log.i(TAG, "RestartReceiverAynchronously(): Stopping receiver");
+        				Common.Logging.i(TAG, "RestartReceiverAynchronously(): Stopping receiver");
         				stopReceiver();			
         			}
         			startReceiver();
         		} finally {
         			orderedLock.unlock("RestartReceiverAynchronously");
         		}
-        		Log.i(TAG, "RestartReceiverAynchronously(): Exited");
+        		Common.Logging.i(TAG, "RestartReceiverAynchronously(): Exited");
     		}
     	}).start();
     }
@@ -397,15 +393,15 @@ public class AirMediaSplashtop implements AirMedia
     			orderedLock.lock("RestartReceiverForAdapterChange");
     			try {
     				if (pending_adapter_ip_address_change) {
-    					Log.i(TAG, "RestartReceiverForAdapterChange(): Entered");
+    					Common.Logging.i(TAG, "RestartReceiverForAdapterChange(): Entered");
     					if (receiver() != null && receiver_.state() != AirMediaReceiverState.Stopped)
     					{
-    						Log.i(TAG, "RestartReceiverForAdapterChange(): Stopping receiver");
+    						Common.Logging.i(TAG, "RestartReceiverForAdapterChange(): Stopping receiver");
     						stopReceiver();			
     					}
     					// If there is an IP address change apply it first and 
     					if (!adapter_ip_address.equals("None")) {
-    						Log.i(TAG, "startReceiverWithPossiblyIpAddressChange(): Setting new ip address for receiver: " + adapter_ip_address);
+    						Common.Logging.i(TAG, "startReceiverWithPossiblyIpAddressChange(): Setting new ip address for receiver: " + adapter_ip_address);
     						receiver_.adapterAddress(adapter_ip_address);
     						startReceiver();
     					}
@@ -414,7 +410,7 @@ public class AirMediaSplashtop implements AirMedia
     			} finally {
     				orderedLock.unlock("RestartReceiverForAdapterChange");
     			}
-    			Log.i(TAG, "RestartReceiverForAdapterChange(): Exited");
+    			Common.Logging.i(TAG, "RestartReceiverForAdapterChange(): Exited");
     		}
     	}).start();
     }
@@ -438,61 +434,61 @@ public class AirMediaSplashtop implements AirMedia
 
         		if (receiver().loaded() != AirMediaReceiverLoadedState.Loaded)
         		{
-        			Log.d(TAG,"startAirMediaReceiver: loading receiver");
+        			Common.Logging.d(TAG,"startAirMediaReceiver: loading receiver");
         			receiverLoadedLatch = new CountDownLatch(1);
-        			Log.i(TAG,"Calling receiver.initalize()");
+        			Common.Logging.i(TAG,"Calling receiver.initalize()");
         			receiver().initialize();        		
         			try { successfulStart = receiverLoadedLatch.await(30000, TimeUnit.MILLISECONDS); }
         			catch (InterruptedException ex) { ex.printStackTrace(); }
-        			Log.d(TAG,"startAirMediaReceiver: receiverLoading success="+successfulStart);
-        			Log.i(TAG,"receiver is in " + receiver().loaded() + " state");
+        			Common.Logging.d(TAG,"startAirMediaReceiver: receiverLoading success="+successfulStart);
+        			Common.Logging.i(TAG,"receiver is in " + receiver().loaded() + " state");
         		} else {
-        			Log.i(TAG,"Not calling receiver.initalize() because receiver is already loaded");
+        			Common.Logging.i(TAG,"Not calling receiver.initalize() because receiver is already loaded");
         		}
         	} 
         	catch (Exception ex)
         	{
-        		Log.e(TAG, "Exception trying to create receiver");
+        		Common.Logging.e(TAG, "Exception trying to create receiver");
         	}
         	finally
         	{
-        		Log.i(TAG, "Receiver state = " + receiver().loaded());
+        		Common.Logging.i(TAG, "Receiver state = " + receiver().loaded());
         	}
         }
         if (successfulStart)
         {
         	if (receiver().state() != AirMediaReceiverState.Stopped) {
-        		Log.i(TAG,"startAirMediaReceiver: Receiver found to be in Started state - calling stop to 'restart' it");
+        		Common.Logging.i(TAG,"startAirMediaReceiver: Receiver found to be in Started state - calling stop to 'restart' it");
         		receiver().sessionManager().clear();
         		stopReceiver();
         	}
-        	Log.i(TAG, "startAirMediaReceiver(): Starting AirMedia Receiver");
+        	Common.Logging.i(TAG, "startAirMediaReceiver(): Starting AirMedia Receiver");
         	successfulStart = startReceiver();
         }
-        Log.d(TAG,"startAirMediaReceiver exiting with rv="+successfulStart);
+        Common.Logging.d(TAG,"startAirMediaReceiver exiting with rv="+successfulStart);
 		return successfulStart;
     }
     
     private void showVideo(boolean use_texture)
     {
 		surfaceDisplayed = true;
-    	Log.d(TAG, "showVideo: Splashtop Window showing " + ((use_texture) ? "TextureView" : "SurfaceView") + "    surfaceDisplayed=" + getSurfaceDisplayed());
+    	Common.Logging.d(TAG, "showVideo: Splashtop Window showing " + ((use_texture) ? "TextureView" : "SurfaceView") + "    surfaceDisplayed=" + getSurfaceDisplayed());
     	mStreamCtl.showSplashtopWindow(streamIdx, use_texture);
     }
     
     private void hideVideo(boolean use_texture)
     {
 		//surfaceDisplayed = false;
-    	Log.d(TAG, "hideVideo: Splashtop Window hidden " + ((use_texture) ? "TextureView" : "SurfaceView") + "    surfaceDisplayed=" + getSurfaceDisplayed());
+    	Common.Logging.d(TAG, "hideVideo: Splashtop Window hidden " + ((use_texture) ? "TextureView" : "SurfaceView") + "    surfaceDisplayed=" + getSurfaceDisplayed());
     	mStreamCtl.hideSplashtopWindow(streamIdx, use_texture);
     }
     
     
     public void onDestroy(){
-    	Log.i(TAG, "AirMediaSplashtop Class destroyed!!!");
+    	Common.Logging.i(TAG, "AirMediaSplashtop Class destroyed!!!");
 
     	surfaceDisplayed = false;
-    	Log.d(TAG, "surfaceDisplayed=" + getSurfaceDisplayed());
+    	Common.Logging.d(TAG, "surfaceDisplayed=" + getSurfaceDisplayed());
 
     	shutDownAirMediaSplashtop();
     }
@@ -541,7 +537,7 @@ public class AirMediaSplashtop implements AirMedia
     		Rect window = new Rect(x, y, x+width-1, y+height-1);
     		if (surfaceDisplayed == false || !MiscUtils.rectanglesAreEqual(window_, window))
     		{	    		    	
-    			Log.i(TAG, "show: Show window 0 " + window);
+    			Common.Logging.i(TAG, "show: Show window 0 " + window);
 
     			//show surface
     			setVideoTransformation();
@@ -550,12 +546,12 @@ public class AirMediaSplashtop implements AirMedia
 
     			if (session() != null && session().videoSurface() == null)
     			{
-    				Log.d(TAG, "show: calling attachSurface");
+    				Common.Logging.d(TAG, "show: calling attachSurface");
     				attachSurface();	
     			}
     		}
     		else
-    			Log.i(TAG, "show: AirMedia already shown, ignoring request");
+    			Common.Logging.i(TAG, "show: AirMedia already shown, ignoring request");
     	} finally {
     		orderedLock.unlock("show");
     	}
@@ -587,7 +583,7 @@ public class AirMediaSplashtop implements AirMedia
     			}
     		}
     		else
-    			Log.i(TAG, "hide: AirMedia already hidden, ignoring request");
+    			Common.Logging.i(TAG, "hide: AirMedia already hidden, ignoring request");
     	} finally {
     		orderedLock.unlock("hide");
     	}
@@ -650,7 +646,7 @@ public class AirMediaSplashtop implements AirMedia
     	
     	if (senderId == -1)
     	{
-    		Log.w(TAG, "Max number of AirMedia senders reached!");
+    		Common.Logging.w(TAG, "Max number of AirMedia senders reached!");
     	}
     	
     	return senderId;
@@ -674,12 +670,12 @@ public class AirMediaSplashtop implements AirMedia
     
     private void removeAllSessionsFromMap()
     {
-		Log.i(TAG, "removeAllSessions");
+		Common.Logging.i(TAG, "removeAllSessions");
     	for (int user = 1; user <= MAX_USERS; user++) // We handle airMedia user ID as 1 based
     	{
     		AirMediaSession session = user2session(user);
     		if (session != null) {
-    			Log.i(TAG, "removing session for user "+user+" from map");
+    			Common.Logging.i(TAG, "removing session for user "+user+" from map");
     			userSessionMap.remove(user);
                 mStreamCtl.userSettings.setAirMediaUserConnected(false, user);
                 mStreamCtl.sendAirMediaUserFeedbacks(user, "", "", 0, false);
@@ -696,7 +692,7 @@ public class AirMediaSplashtop implements AirMedia
     {
     	if (session() == null)
     	{
-    		Log.w(TAG, "useTextureView: called with no active session");
+    		Common.Logging.w(TAG, "useTextureView: called with no active session");
     		return false;
     	}
     	return (session.info().isRotationSupported && !session.info().isRotationManagedBySender) ? true : false;
@@ -746,9 +742,9 @@ public class AirMediaSplashtop implements AirMedia
     	
     	values = new float[9];
     	m.getValues(values);
-    	Log.d(TAG, "Matrix = { " + values[0] + "   " + values[1] + "   " + values[2]);
-    	Log.d(TAG, "           " + values[3] + "   " + values[4] + "   " + values[5]);
-    	Log.d(TAG, "           " + values[6] + "   " + values[7] + "   " + values[8] + "}");
+    	Common.Logging.d(TAG, "Matrix = { " + values[0] + "   " + values[1] + "   " + values[2]);
+    	Common.Logging.d(TAG, "           " + values[3] + "   " + values[4] + "   " + values[5]);
+    	Common.Logging.d(TAG, "           " + values[6] + "   " + values[7] + "   " + values[8] + "}");
    	}
 
     public void setVideoTransformation(int x, int y, int w, int h) {
@@ -781,12 +777,12 @@ public class AirMediaSplashtop implements AirMedia
         final float scaleY = isLandscape
                 ? (videoWidth * scale) / viewWidth
                 : (videoHeight * scale) / viewHeight;
-        Log.d(TAG, "setTransformation isLandscape="+isLandscape+"    scale"+scale+"  scaleX="+scaleX+"    scaleY="+scaleY );
+        Common.Logging.d(TAG, "setTransformation isLandscape="+isLandscape+"    scale"+scale+"  scaleX="+scaleX+"    scaleY="+scaleY );
 
         final float viewCenterX = viewWidth / 2.0f;
         final float viewCenterY = viewHeight / 2.0f;
 
-        Log.d(TAG, "setTransformation  " + AirMediaSession.toDebugString(session()) + "  view=" + w + "x" + h + " @(" + x + "," + y + ")  video=" + session.videoResolution() + "  rotate=" + videoRotation + "°" + "  scale=" + scaleX + " , " + scaleY);
+        Common.Logging.d(TAG, "setTransformation  " + AirMediaSession.toDebugString(session()) + "  view=" + w + "x" + h + " @(" + x + "," + y + ")  video=" + session.videoResolution() + "  rotate=" + videoRotation + "°" + "  scale=" + scaleX + " , " + scaleY);
 
     	textureView = mStreamCtl.getAirMediaTextureView(streamIdx);
         Matrix matrix = textureView.getTransform(null);
@@ -798,27 +794,27 @@ public class AirMediaSplashtop implements AirMedia
     }
 
     private void attachSurface() {
-		Log.d(TAG, "Entered attachSurface");
+		Common.Logging.d(TAG, "Entered attachSurface");
     	SurfaceHolder surfaceHolder=null;
     	Surface surface;
     	SurfaceTexture surfaceTexture = null;
     	AirMediaSession session = session();
     	if (session == null) {
-    		Log.d(TAG, "Returning without attaching since no active session");
+    		Common.Logging.d(TAG, "Returning without attaching since no active session");
     		return;
     	}
     	AirMediaReceiver receiver = receiver();
     	if (receiver == null) {
-    		Log.d(TAG, "Returning without attaching since receiver is null");
+    		Common.Logging.d(TAG, "Returning without attaching since receiver is null");
     		return;
     	}
     	if (!getSurfaceDisplayed()) {
-    		Log.d(TAG, "Returning without attaching since getSurfaceDisplayed is false");
+    		Common.Logging.d(TAG, "Returning without attaching since getSurfaceDisplayed is false");
     		return;
     	}
     	if (session.videoSurface() != null)
     	{
-			Log.d(TAG, "attachSurface: detach prior surface");
+			Common.Logging.d(TAG, "attachSurface: detach prior surface");
     		session.detach();
     	}
     	if (!useTextureView(session))
@@ -834,19 +830,19 @@ public class AirMediaSplashtop implements AirMedia
 		{
 			if (session.videoSurface() != surface) {
 		    	surface_ = surface;
-				Log.d(TAG, "attachSurface: attaching surface: " + surface + " to session: " + AirMediaSession.toDebugString(session));
+				Common.Logging.d(TAG, "attachSurface: attaching surface: " + surface + " to session: " + AirMediaSession.toDebugString(session));
 				session.attach(surface);
 			}
 		} else {
 			if (surfaceHolder != null)
 				surfaceHolder.addCallback(video_surface_callback_handler_);
-			Log.d(TAG, "attachSurface: No valid surface at this time");
+			Common.Logging.d(TAG, "attachSurface: No valid surface at this time");
 		}
 
 		setVideoTransformation();
 
 		mStreamCtl.dispSurface.stMGR.setInvalidateOnSurfaceTextureUpdate(true);
-		Log.d(TAG, "Exit from attachSurface");
+		Common.Logging.d(TAG, "Exit from attachSurface");
     }
     
     // TODO move into CresDisplaySurface
@@ -856,14 +852,14 @@ public class AirMediaSplashtop implements AirMedia
     	Surface s = null;
     	SurfaceTexture surfaceTexture = null;
 
-    	Log.i(TAG, "clearSurface(): Fetching surfacetexture");
+    	Common.Logging.i(TAG, "clearSurface(): Fetching surfacetexture");
     	surfaceTexture = mStreamCtl.getAirMediaSurfaceTexture(streamIdx);
     	s = new Surface(surfaceTexture);
     	if (s == null) {
-    		Log.d(TAG, "null surface obtained from SurfaceTexture - nothing to clear");
+    		Common.Logging.d(TAG, "null surface obtained from SurfaceTexture - nothing to clear");
     		return;
     	}
-    	Log.i(TAG, "clearSurface: clearing surface: " + s);
+    	Common.Logging.i(TAG, "clearSurface: clearing surface: " + s);
     	TextureView textureView = mStreamCtl.dispSurface.GetAirMediaTextureView(streamIdx);
     	Rect rect = new Rect(0, 0, textureView.getWidth(), textureView.getHeight());    	
     	try {
@@ -874,10 +870,10 @@ public class AirMediaSplashtop implements AirMedia
     		canvas.drawColor(Color.BLACK);
     		s.unlockCanvasAndPost(canvas);
     	} else {
-    		Log.i(TAG, "clearSurface: canvas is null");
+    		Common.Logging.i(TAG, "clearSurface: canvas is null");
     	}
     	s.release();
-   	 	Log.i(TAG, "clearSurface: released surface: " + s);
+   	 	Common.Logging.i(TAG, "clearSurface: released surface: " + s);
     }
 
     private void sleep(int msec)
@@ -898,14 +894,14 @@ public class AirMediaSplashtop implements AirMedia
     	 AirMediaReceiver receiver = receiver();
     	 if (receiver == null) return;
 
-    	 Log.i(TAG, "detachSurface: detaching surface from session: " + AirMediaSession.toDebugString(session));
+    	 Common.Logging.i(TAG, "detachSurface: detaching surface from session: " + AirMediaSession.toDebugString(session));
     	 if (session.videoSurface() != null) {
     		 session.detach();
         	 // Must release surface after detaching
     		 if (useTextureView(session))
     		 {
     			 // release surface if we were using textureview
-    	    	 Log.i(TAG, "detachSurface: releasing surface: " + surface_);
+    	    	 Common.Logging.i(TAG, "detachSurface: releasing surface: " + surface_);
     	    	 if (surface_ != null)
     	    		 surface_.release();
     		 }
@@ -922,7 +918,7 @@ public class AirMediaSplashtop implements AirMedia
     	// if we already have an active session, then check if it is same
     	if (AirMediaSession.isEqual(session(), session))
     	{
-        	Log.i(TAG, "setActiveSession: already have same session active: " + AirMediaSession.toDebugString(session()));
+        	Common.Logging.i(TAG, "setActiveSession: already have same session active: " + AirMediaSession.toDebugString(session()));
     		return;
     	}
     	
@@ -930,12 +926,12 @@ public class AirMediaSplashtop implements AirMedia
     	if (priorSessionExists)
     	{
     		wasShowing = getSurfaceDisplayed();
-        	Log.i(TAG, "setActiveSession: removing prior active session " + AirMediaSession.toDebugString(session()));
+        	Common.Logging.i(TAG, "setActiveSession: removing prior active session " + AirMediaSession.toDebugString(session()));
     		unsetActiveSession(session(), false);
     	}
     	
     	active_session_ = session;
-		Log.d(TAG, "setActiveSession: setting active session " + AirMediaSession.toDebugString(session()));  
+		Common.Logging.d(TAG, "setActiveSession: setting active session " + AirMediaSession.toDebugString(session()));  
 		
 		if (wasShowing)
 		{
@@ -954,21 +950,21 @@ public class AirMediaSplashtop implements AirMedia
 	// unset active session - take away its surface and hide the video from it
     private void unsetActiveSession(AirMediaSession session, boolean sendFeedbackForSession)
     {
-    	Log.d(TAG, "unsetActiveSession: entering removing active session " + AirMediaSession.toDebugString(session()));
+    	Common.Logging.d(TAG, "unsetActiveSession: entering removing active session " + AirMediaSession.toDebugString(session()));
 
     	if (session == null)
     	{
-        	Log.w(TAG, "requesting removal of null session");
+        	Common.Logging.w(TAG, "requesting removal of null session");
         	return;
     	}
     	if (session() == null)
     	{
-        	Log.d(TAG, "nothing to remove - there is no active session");
+        	Common.Logging.d(TAG, "nothing to remove - there is no active session");
         	return;
     	}
     	if (!AirMediaSession.isEqual(session(), session))
     	{
-        	Log.w(TAG, "exiting removing active session without doing anything - incoming session is not the same as the active session" + AirMediaSession.toDebugString(session()));
+        	Common.Logging.w(TAG, "exiting removing active session without doing anything - incoming session is not the same as the active session" + AirMediaSession.toDebugString(session()));
     		return;
     	}
     	
@@ -983,13 +979,13 @@ public class AirMediaSplashtop implements AirMedia
 			clearSurface();			
 		}
     	
-    	Log.d(TAG, "removing active session setting active to null" + AirMediaSession.toDebugString(session()));
+    	Common.Logging.d(TAG, "removing active session setting active to null" + AirMediaSession.toDebugString(session()));
     	active_session_ = null;
 
-    	Log.d(TAG, "detached surface returning from unsetActiveSession" + AirMediaSession.toDebugString(session()));
+    	Common.Logging.d(TAG, "detached surface returning from unsetActiveSession" + AirMediaSession.toDebugString(session()));
 
     	if (sendFeedbackForSession) {
-        	Log.d(TAG, "unsetActiveSessions - calling querySenderList ");
+        	Common.Logging.d(TAG, "unsetActiveSessions - calling querySenderList ");
     		querySenderList(false);
     	}
     }
@@ -1008,11 +1004,11 @@ public class AirMediaSplashtop implements AirMedia
 
     public void querySenderList(boolean sendAllUserFeedback)
     {
-    	Log.d(TAG, "querySenderList() entered");
+    	Common.Logging.d(TAG, "querySenderList() entered");
 
     	int status = 0;  // 0 = no displayed video, 1 = at least 1 video presenting
     	boolean[] sentUserFeedback = null;
-    	//Log.i(TAG, "Entered querySenderList (sendAllUserFeedback=" + String.valueOf(sendAllUserFeedback) + ")");
+    	//Common.Logging.i(TAG, "Entered querySenderList (sendAllUserFeedback=" + String.valueOf(sendAllUserFeedback) + ")");
 
     	if (sendAllUserFeedback)
     	{
@@ -1033,7 +1029,7 @@ public class AirMediaSplashtop implements AirMedia
     		}
     	}
 
-    	Log.d(TAG, "querySenderList: status = " + String.valueOf(status));
+    	Common.Logging.d(TAG, "querySenderList: status = " + String.valueOf(status));
     	mStreamCtl.sendAirMediaStatus(status);
     	lastReturnedAirMediaStatus = status;
 
@@ -1053,12 +1049,12 @@ public class AirMediaSplashtop implements AirMedia
 
     	mStreamCtl.sendAirMediaNumberUserConnected();
 
-    	Log.d(TAG, "querySenderList() exit");
+    	Common.Logging.d(TAG, "querySenderList() exit");
     }
     
     private void intializeDisplay()
     {
-    	Log.d(TAG, "InitializeDisplay() entered");
+    	Common.Logging.d(TAG, "InitializeDisplay() entered");
     	// Show/Hide login code depending on setting
     	if (mStreamCtl.userSettings.getAirMediaLoginMode() == AirMediaLoginMode.Disabled.ordinal())
     		setLoginCodeDisable();
@@ -1068,7 +1064,7 @@ public class AirMediaSplashtop implements AirMedia
         // Update connection status
         querySenderList(false);
         
-    	Log.d(TAG, "InitializeDisplay() exit");
+    	Common.Logging.d(TAG, "InitializeDisplay() exit");
     }
     
     
@@ -1085,9 +1081,9 @@ public class AirMediaSplashtop implements AirMedia
     {
     	if (receiver() != null)
     	{
-    		Log.i(TAG, "Current login code = " + receiver().serverPassword());
+    		Common.Logging.i(TAG, "Current login code = " + receiver().serverPassword());
     		String code = String.format("%04d", loginCode);
-    		Log.i(TAG, "Set Login Code = " + code + " (" + String.valueOf(loginCode) + ")");
+    		Common.Logging.i(TAG, "Set Login Code = " + code + " (" + String.valueOf(loginCode) + ")");
     		if (loginCode < 0) {
     			receiver().serverPassword("");
     		} else {
@@ -1111,33 +1107,33 @@ public class AirMediaSplashtop implements AirMedia
     		return;
     	adapter_ip_address = address;
 		pending_adapter_ip_address_change = true;
-		Log.i(TAG, "setAdapter(): Stopping all senders");
+		Common.Logging.i(TAG, "setAdapter(): Stopping all senders");
 		stopAllSenders();
 		// Launch Stop/Start of receiver in separate thread
 		if (receiver_ == null)
 			startAirMedia();
 		else
 			RestartReceiverForAdapterChange();
-		Log.i(TAG, "setAdapter(): Exiting having issued restart of receiver with " + adapter_ip_address);
+		Common.Logging.i(TAG, "setAdapter(): Exiting having issued restart of receiver with " + adapter_ip_address);
     }
     
     public void setProjectionLock(boolean enable)
     {
-    	Log.i(TAG, "setProjectionLock: " + enable);
+    	Common.Logging.i(TAG, "setProjectionLock: " + enable);
     	if (receiver_ != null)
     		receiver_.projectionLocked(enable);
     }
     
     public void setModeratorEnable(boolean enable)
     {    	
-		Log.e(TAG, "Implement ModeratorEnable");
+		Common.Logging.e(TAG, "Implement ModeratorEnable");
     }
     
     public void set4in1ScreenEnable(boolean enable)
     {
     	if (enable)
     	{
-    		Log.e(TAG, "Implement set4in1ScreenEnable");
+    		Common.Logging.e(TAG, "Implement set4in1ScreenEnable");
     	}
     }
     
@@ -1145,8 +1141,8 @@ public class AirMediaSplashtop implements AirMedia
     {
     	if (debugCommand == null || debugCommand.equalsIgnoreCase(""))
     	{
-    		Log.d(TAG, "Usage: AIRMEDIA_DEBUG=showSessions");
-    		Log.d(TAG, "       AIRMEDIA_DEBUG=showStatus");
+    		Common.Logging.d(TAG, "Usage: AIRMEDIA_DEBUG=showSessions");
+    		Common.Logging.d(TAG, "       AIRMEDIA_DEBUG=showStatus");
     		return;
     	}
     	if (debugCommand.equalsIgnoreCase("showSessions"))
@@ -1154,13 +1150,13 @@ public class AirMediaSplashtop implements AirMedia
     		for (int i=1; i < MAX_USERS; i++) {
     			AirMediaSession s = user2session(i);
     			if (s != null) {
-    				Log.d(TAG, "User: "+i+"  Session: "+s);
+    				Common.Logging.d(TAG, "User: "+i+"  Session: "+s);
     	        	AirMediaSessionScreenPosition screenpos = s.videoScreenPosition();
     	        	int position = (screenpos == AirMediaSessionScreenPosition.None) ? 0 : 128;;
-    		    	Log.i(TAG, String.format("   AIRMEDIA_USER_NAME=%d:%s", i, s.username()));
-    		    	Log.i(TAG, String.format("   AIRMEDIA_USER_IP=%d:%s", i, ((List<String>)s.addresses()).get(0)));
-    		    	Log.i(TAG, String.format("   AIRMEDIA_USER_POSITION=%d:%d", i, position));
-    		    	Log.i(TAG, String.format("   AIRMEDIA_USER_CONNECTED=%d:%s", i, 
+    		    	Common.Logging.i(TAG, String.format("   AIRMEDIA_USER_NAME=%d:%s", i, s.username()));
+    		    	Common.Logging.i(TAG, String.format("   AIRMEDIA_USER_IP=%d:%s", i, ((List<String>)s.addresses()).get(0)));
+    		    	Common.Logging.i(TAG, String.format("   AIRMEDIA_USER_POSITION=%d:%d", i, position));
+    		    	Common.Logging.i(TAG, String.format("   AIRMEDIA_USER_CONNECTED=%d:%s", i, 
     		    			String.valueOf((s.videoState() == AirMediaSessionStreamingState.Playing) ? true : false)));
     				logSession(s);
     			}
@@ -1169,60 +1165,60 @@ public class AirMediaSplashtop implements AirMedia
     	}
     	if (debugCommand.equalsIgnoreCase("showStatus"))
     	{
-    		Log.d(TAG, "Last AIRMEDIA_STATUS="+lastReturnedAirMediaStatus);
+    		Common.Logging.d(TAG, "Last AIRMEDIA_STATUS="+lastReturnedAirMediaStatus);
     		return;
     	}
     }
     
     public void logSession(AirMediaSession session)
     {
-		Log.d(TAG, "   endpoint: "+session.endpoint());
-		Log.d(TAG, "   username: "+session.username());
-		Log.d(TAG, "   connection: "+session.connection());
-		Log.d(TAG, "   streaming: "+session.streaming());
-		Log.d(TAG, "   channelState: "+session.channelState());
-		Log.d(TAG, "   deviceState: "+session.deviceState());
-		Log.d(TAG, "   device ID: "+session.deviceId());
-		Log.d(TAG, "   videoState: "+session.videoState());
-		Log.d(TAG, "   video ID: "+session.videoId());
-		Log.d(TAG, "   videoResolution: "+session.videoResolution());
-		Log.d(TAG, "   videoRotation: "+session.videoRotation());
-		Log.d(TAG, "   videoIsDrm: "+session.videoIsDrm());
-		Log.d(TAG, "   screenPosition: "+session.videoScreenPosition());
-		Log.d(TAG, "   video Surface: "+session.videoSurface());
-		Log.d(TAG, "   audioState: "+session.audioState());
-		Log.d(TAG, "   audio ID: "+session.audioId());
-		Log.d(TAG, "   audio Muted: "+session.audioMuted());
-		Log.d(TAG, "   audio Volume: "+session.audioVolume());
+		Common.Logging.d(TAG, "   endpoint: "+session.endpoint());
+		Common.Logging.d(TAG, "   username: "+session.username());
+		Common.Logging.d(TAG, "   connection: "+session.connection());
+		Common.Logging.d(TAG, "   streaming: "+session.streaming());
+		Common.Logging.d(TAG, "   channelState: "+session.channelState());
+		Common.Logging.d(TAG, "   deviceState: "+session.deviceState());
+		Common.Logging.d(TAG, "   device ID: "+session.deviceId());
+		Common.Logging.d(TAG, "   videoState: "+session.videoState());
+		Common.Logging.d(TAG, "   video ID: "+session.videoId());
+		Common.Logging.d(TAG, "   videoResolution: "+session.videoResolution());
+		Common.Logging.d(TAG, "   videoRotation: "+session.videoRotation());
+		Common.Logging.d(TAG, "   videoIsDrm: "+session.videoIsDrm());
+		Common.Logging.d(TAG, "   screenPosition: "+session.videoScreenPosition());
+		Common.Logging.d(TAG, "   video Surface: "+session.videoSurface());
+		Common.Logging.d(TAG, "   audioState: "+session.audioState());
+		Common.Logging.d(TAG, "   audio ID: "+session.audioId());
+		Common.Logging.d(TAG, "   audio Muted: "+session.audioMuted());
+		Common.Logging.d(TAG, "   audio Volume: "+session.audioVolume());
 	}
     
     private void addSession(AirMediaSession session)
     {
-		Log.d(TAG, "addSession " + session);
+		Common.Logging.d(TAG, "addSession " + session);
         int user = addSessionToMap(session);
-        Log.d(TAG, "User id: "+String.valueOf(user)+"  Connected: "+String.valueOf(session.videoState() == AirMediaSessionStreamingState.Playing));
-		Log.d(TAG, "Adding Id to map, userId: " + user + " session: " + session);
+        Common.Logging.d(TAG, "User id: "+String.valueOf(user)+"  Connected: "+String.valueOf(session.videoState() == AirMediaSessionStreamingState.Playing));
+		Common.Logging.d(TAG, "Adding Id to map, userId: " + user + " session: " + session);
 		if ((user > 0) && (user <= MAX_USERS))
 		{
 			mStreamCtl.userSettings.setAirMediaUserConnected(true, user);
-			Log.i(TAG, "addSession: sending feedback for user: " + String.valueOf(user));
+			Common.Logging.i(TAG, "addSession: sending feedback for user: " + String.valueOf(user));
 			sendSessionFeedback(session);
 			mStreamCtl.sendAirMediaNumberUserConnected();
 		}
 		else
-			Log.w(TAG, "Received invalid user id of " + user);
+			Common.Logging.w(TAG, "Received invalid user id of " + user);
     }
     
     private void removeSession(AirMediaSession session)
     {
-		Log.d(TAG, "removeSession " + session);
+		Common.Logging.d(TAG, "removeSession " + session);
         int user = session2user(session);
         if (user > 0) {
-            Log.i(TAG, "User id: "+String.valueOf(user)+"  Disconnected: "+String.valueOf(false));
+            Common.Logging.i(TAG, "User id: "+String.valueOf(user)+"  Disconnected: "+String.valueOf(false));
             mStreamCtl.userSettings.setAirMediaUserConnected(false, user);
             mStreamCtl.sendAirMediaUserFeedbacks(user, "", "", 0, false);
         } else {
-            Log.e(TAG, "Got invalid user id: "+String.valueOf(user) + "for " + session);
+            Common.Logging.e(TAG, "Got invalid user id: "+String.valueOf(user) + "for " + session);
         }
 		mStreamCtl.sendAirMediaNumberUserConnected();
         removeSessionFromMap(session);
@@ -1230,16 +1226,16 @@ public class AirMediaSplashtop implements AirMedia
     
     public void resetConnections()
     {    	
-		Log.i(TAG, "resetConnections()");
+		Common.Logging.i(TAG, "resetConnections()");
 		manager().clear();
     }
     
     public void disconnectUser(int userId)
     {
-		Log.i(TAG, "disconnectUser" + String.valueOf(userId));
+		Common.Logging.i(TAG, "disconnectUser" + String.valueOf(userId));
 		AirMediaSession session = user2session(userId);
 		if (session == null) {
-			Log.e(TAG, "No session found for userId="+userId);
+			Common.Logging.e(TAG, "No session found for userId="+userId);
 		} else {
 			session.disconnect();			
 		}
@@ -1247,7 +1243,7 @@ public class AirMediaSplashtop implements AirMedia
     
     public void disconnectAllSenders()
     {
-    	Log.i(TAG, "disconnectAllSenders");
+    	Common.Logging.i(TAG, "disconnectAllSenders");
     	for (int i = 1; i <= MAX_USERS; i++) // We handle airMedia user ID as 1 based
     	{
     		if (mStreamCtl.userSettings.getAirMediaUserConnected(i))
@@ -1260,10 +1256,10 @@ public class AirMediaSplashtop implements AirMedia
     
     public void startUser(int userId)
     { 
-		Log.i(TAG, "startUser: " + String.valueOf(userId));
+		Common.Logging.i(TAG, "startUser: " + String.valueOf(userId));
 		AirMediaSession session = user2session(userId);
 		if (session == null) {
-			Log.w(TAG, "Trying to start an unconnected session for user "+ String.valueOf(userId));
+			Common.Logging.w(TAG, "Trying to start an unconnected session for user "+ String.valueOf(userId));
 			return;
 		}
 		if (active_session_ != null && !AirMediaSession.isEqual(active_session_, session))
@@ -1273,7 +1269,7 @@ public class AirMediaSplashtop implements AirMedia
 		} 
 		if (AirMediaSession.isEqual(active_session_, session)) {
 			// session is already started
-			Log.e(TAG, "session already started for userId="+userId);
+			Common.Logging.e(TAG, "session already started for userId="+userId);
 			return; 
 		} else {
 			session.play();
@@ -1303,18 +1299,18 @@ public class AirMediaSplashtop implements AirMedia
     
     public void stopUser(int userId)
     { 
-		Log.i(TAG, "stopUser: " + String.valueOf(userId));
+		Common.Logging.i(TAG, "stopUser: " + String.valueOf(userId));
 		AirMediaSession session = user2session(userId);
 		if (session == null) {
-			Log.e(TAG, "Trying to stop an unconnected session for user " + String.valueOf(userId));
+			Common.Logging.e(TAG, "Trying to stop an unconnected session for user " + String.valueOf(userId));
 			return;
 		}
-		Log.i(TAG, "stopUser: " + String.valueOf(userId) + " Session=" + AirMediaSession.toDebugString(session) + "  deviceState=" + session.deviceState());
+		Common.Logging.i(TAG, "stopUser: " + String.valueOf(userId) + " Session=" + AirMediaSession.toDebugString(session) + "  deviceState=" + session.deviceState());
 		if (active_session_ != null && !AirMediaSession.isEqual(active_session_, session))
 		{
 			if (session.videoState() == AirMediaSessionStreamingState.Playing)
 			{
-				Log.w(TAG, "Trying to stop a playing session which is not active for user " + String.valueOf(userId));
+				Common.Logging.w(TAG, "Trying to stop a playing session which is not active for user " + String.valueOf(userId));
 			}
 		}
 		// Only allow a single 'session' to enter at a time - need to make sure that we have a unique session
@@ -1325,10 +1321,10 @@ public class AirMediaSplashtop implements AirMedia
 				// session is started
 				stopSession(session);
 			} else {
-				Log.w(TAG, "Session: " + AirMediaSession.toDebugString(session) + "is already in device disconnected state");
+				Common.Logging.w(TAG, "Session: " + AirMediaSession.toDebugString(session) + "is already in device disconnected state");
 			}
 		}
-		Log.d(TAG, "stopUser: " + String.valueOf(userId) + "exit");
+		Common.Logging.d(TAG, "stopUser: " + String.valueOf(userId) + "exit");
     }
     
     private void stopSession(AirMediaSession session)
@@ -1337,15 +1333,15 @@ public class AirMediaSplashtop implements AirMedia
 		long begin = System.currentTimeMillis();
 		sessionRequestingStop = session;
 		deviceDisconnectedLatch = new CountDownLatch(1);
-		Log.d(TAG, "Session " + AirMediaSession.toDebugString(session) + " requesting stop ");
+		Common.Logging.d(TAG, "Session " + AirMediaSession.toDebugString(session) + " requesting stop ");
 		session.stop(); 
 		try { stopStatus = deviceDisconnectedLatch.await(10000, TimeUnit.MILLISECONDS); }
 		catch (InterruptedException ex) { ex.printStackTrace(); }
 		if (!stopStatus) {
-			Log.w(TAG, "Unable to stop session " + AirMediaSession.toDebugString(session) + "even after 10 seconds");
+			Common.Logging.w(TAG, "Unable to stop session " + AirMediaSession.toDebugString(session) + "even after 10 seconds");
 		} else {
 			long end = System.currentTimeMillis();
-			Log.d(TAG, "Session " + AirMediaSession.toDebugString(session) + "was successfully stoppped in "
+			Common.Logging.d(TAG, "Session " + AirMediaSession.toDebugString(session) + "was successfully stoppped in "
 					+ (end-begin) + " ms");
 		}
 		sessionRequestingStop=null;
@@ -1391,10 +1387,10 @@ public class AirMediaSplashtop implements AirMedia
 
     public void setSurfaceSize(int x, int y, int width, int height)
     {		
-		Log.d(TAG, "------------ In setSurfaceSize calling updateWindow (surfaceDisplayed="+getSurfaceDisplayed()+") --------------");
+		Common.Logging.d(TAG, "------------ In setSurfaceSize calling updateWindow (surfaceDisplayed="+getSurfaceDisplayed()+") --------------");
     	window_ = new Rect(x, y, x+width-1, y+height-1);
 		mStreamCtl.setAirMediaWindowDimensions(x, y, width, height, streamIdx, useTextureView(session()));
-		Log.d(TAG, "------------ finished updateWindow --------------");
+		Common.Logging.d(TAG, "------------ finished updateWindow --------------");
     }
     
     public void setDisplayScreen(int displayId)
@@ -1411,7 +1407,7 @@ public class AirMediaSplashtop implements AirMedia
     
     private void stopAllSenders()
     {
-		Log.i(TAG, "stopAllSenders");
+		Common.Logging.i(TAG, "stopAllSenders");
     	for (int i = 1; i <= MAX_USERS; i++) // We handle airMedia user ID as 1 based
     	{
     		if (mStreamCtl.userSettings.getAirMediaUserConnected(i))
@@ -1452,22 +1448,22 @@ public class AirMediaSplashtop implements AirMedia
     }
     
 	private void doBindService() {
-        Log.d(TAG, "doBindService");
+        Common.Logging.d(TAG, "doBindService");
         Intent serviceIntent = new Intent(AirMediaReceiver.AIRMEDIA_SERVICE_BIND);
         serviceIntent.setPackage(AirMediaReceiver.AIRMEDIA_SERVICE_PACKAGE);
 		List<ResolveInfo> list = mContext.getPackageManager().queryIntentServices(serviceIntent, 0);
 		if (list == null || list.isEmpty()) {
-        	Log.e(TAG, "doBindService  service does not exist  package= " + AirMediaReceiver.AIRMEDIA_SERVICE_PACKAGE + "  intent= " + AirMediaReceiver.AIRMEDIA_SERVICE_BIND + "------");
+        	Common.Logging.e(TAG, "doBindService  service does not exist  package= " + AirMediaReceiver.AIRMEDIA_SERVICE_PACKAGE + "  intent= " + AirMediaReceiver.AIRMEDIA_SERVICE_BIND + "------");
 		} else {
 			if (!mContext.bindService(serviceIntent, AirMediaServiceConnection, Context.BIND_AUTO_CREATE)) {
-		        Log.e(TAG, "failed to bind to " + AirMediaReceiver.AIRMEDIA_SERVICE_PACKAGE);
+		        Common.Logging.e(TAG, "failed to bind to " + AirMediaReceiver.AIRMEDIA_SERVICE_PACKAGE);
 			}
 		}
-		Log.d(TAG, "doBindService - completed bind BIND=" + AirMediaReceiver.AIRMEDIA_SERVICE_BIND + "   PACKAGE=" + AirMediaReceiver.AIRMEDIA_SERVICE_PACKAGE);
+		Common.Logging.d(TAG, "doBindService - completed bind BIND=" + AirMediaReceiver.AIRMEDIA_SERVICE_BIND + "   PACKAGE=" + AirMediaReceiver.AIRMEDIA_SERVICE_PACKAGE);
 	}
 
 	private void doUnbindService() {
-        Log.d(TAG, "doUnbindService");
+        Common.Logging.d(TAG, "doUnbindService");
 		try {
             close();
             if (service_ != null)
@@ -1480,12 +1476,12 @@ public class AirMediaSplashtop implements AirMedia
             	service_ = null;
             	if (!successfulStart)
             	{
-            		Log.w(TAG, "doUnbindService - did not onServiceDisconnect - timeout");
+            		Common.Logging.w(TAG, "doUnbindService - did not onServiceDisconnect - timeout");
             		isServiceConnected = false;
             	}
             }
 		} catch (Exception e) {
-            Log.e(TAG, "doUnbindService  EXCEPTION  " + e);
+            Common.Logging.e(TAG, "doUnbindService  EXCEPTION  " + e);
 		}
 	}
 
@@ -1497,7 +1493,7 @@ public class AirMediaSplashtop implements AirMedia
             	receiver.stop();
                 receiver.close();
             } catch (Exception e) {
-                Log.e(TAG, "close  EXCEPTION  " + e);
+                Common.Logging.e(TAG, "close  EXCEPTION  " + e);
             }
         }
     }
@@ -1511,7 +1507,7 @@ public class AirMediaSplashtop implements AirMedia
 				public void run() {
 					if (requestServiceConnection)
 					{
-						Log.d(TAG, "AirMediaServiceConnection.onServiceConnected  " + name);
+						Common.Logging.d(TAG, "AirMediaServiceConnection.onServiceConnected  " + name);
 						isServiceConnected = true;
 						requestServiceConnection = false;
 						try {
@@ -1521,7 +1517,7 @@ public class AirMediaSplashtop implements AirMedia
 							
 							if (adapter_ip_address.equals("None"))
 			    			{
-			    				Log.d(TAG, "Service Connected but adapter set to none, not starting receiver");
+			    				Common.Logging.d(TAG, "Service Connected but adapter set to none, not starting receiver");
 			    				startupCompleteLatch.countDown();
 			    			}
 							else
@@ -1529,13 +1525,13 @@ public class AirMediaSplashtop implements AirMedia
 								startAirMedia();
 							}
 						} catch (Exception e) {
-							Log.e(TAG, "AirMediaServiceConnection.onServiceConnected  EXCEPTION  " + e);
+							Common.Logging.e(TAG, "AirMediaServiceConnection.onServiceConnected  EXCEPTION  " + e);
 							e.printStackTrace();
 						}
 					}
 					else
 					{
-						Log.d(TAG, "AirMediaServiceConnection.onServiceConnected, ignoring unsolicited" + name);
+						Common.Logging.d(TAG, "AirMediaServiceConnection.onServiceConnected, ignoring unsolicited" + name);
 					}
 				}
 			}).start();
@@ -1547,7 +1543,7 @@ public class AirMediaSplashtop implements AirMedia
 			new Thread(new Runnable() {
 				@Override
 				public void run() {
-					Log.d(TAG, "AirMediaServiceConnection.onServiceDisconnected  " + name);
+					Common.Logging.d(TAG, "AirMediaServiceConnection.onServiceDisconnected  " + name);
 					isServiceConnected = false;
 					if (serviceDisconnectedLatch != null)
 					{
@@ -1565,7 +1561,7 @@ public class AirMediaSplashtop implements AirMedia
 						mStreamCtl.sendAirMediaStatus(0);
 						RestartAirMediaAsynchronously();
 					} catch (Exception e) {
-						Log.e(TAG, "AirMediaServiceConnection.onServiceDisconnected  EXCEPTION  " + e);
+						Common.Logging.e(TAG, "AirMediaServiceConnection.onServiceDisconnected  EXCEPTION  " + e);
 						e.printStackTrace();
 					}
 				}
@@ -1606,7 +1602,7 @@ public class AirMediaSplashtop implements AirMedia
     private final MulticastChangedDelegate.Observer<AirMediaReceiver, AirMediaReceiverLoadedState> loadedChangedHandler_ = new MulticastChangedDelegate.Observer<AirMediaReceiver, AirMediaReceiverLoadedState>() {
         @Override
         public void onEvent(AirMediaReceiver receiver, AirMediaReceiverLoadedState from, AirMediaReceiverLoadedState to) {
-            Log.d(TAG, "view.receiver.event.loaded  " + from + "  ==>  " + to);
+            Common.Logging.d(TAG, "view.receiver.event.loaded  " + from + "  ==>  " + to);
             if (to == AirMediaReceiverLoadedState.Loaded)
             {
             	receiverLoadedLatch.countDown();
@@ -1617,17 +1613,17 @@ public class AirMediaSplashtop implements AirMedia
     private final MulticastChangedWithReasonDelegate.Observer<AirMediaReceiver, AirMediaReceiverState, Integer> stateChangedHandler_ = new MulticastChangedWithReasonDelegate.Observer<AirMediaReceiver, AirMediaReceiverState, Integer>() {
         @Override
         public void onEvent(AirMediaReceiver receiver, AirMediaReceiverState from, AirMediaReceiverState to, Integer reason) {
-            Log.d(TAG, "view.receiver.event.state  reason=" + reason + "  " + from + "  ==>  " + to);
+            Common.Logging.d(TAG, "view.receiver.event.state  reason=" + reason + "  " + from + "  ==>  " + to);
             if (to == AirMediaReceiverState.Stopped)
             {
-            	Log.d(TAG, "In stateChangedHandler: receiverStoppedLatch="+receiverStoppedLatch);
+            	Common.Logging.d(TAG, "In stateChangedHandler: receiverStoppedLatch="+receiverStoppedLatch);
             	isReceiverStarted = false;
-		    	Log.d(TAG,"RestartAirMediaAsynchronously() - setting receiver started state to "+isReceiverStarted);
+		    	Common.Logging.d(TAG,"RestartAirMediaAsynchronously() - setting receiver started state to "+isReceiverStarted);
 				receiverStoppedLatch.countDown();
             }
             if (to == AirMediaReceiverState.Started)
             {
-            	Log.d(TAG, "In stateChangedHandler: receiverStartedLatch="+receiverStartedLatch);
+            	Common.Logging.d(TAG, "In stateChangedHandler: receiverStartedLatch="+receiverStartedLatch);
             	isReceiverStarted = true;
             	receiverStartedLatch.countDown();
             }
@@ -1639,10 +1635,14 @@ public class AirMediaSplashtop implements AirMedia
 					mStreamCtl.RecoverDucati();
 					mStreamCtl.RecoverMediaServer();
 				}
-				Log.w(TAG, "Receiver " + to + " with error="+reason+"  Restarting receiver .... ");
+				Common.Logging.w(TAG, "Receiver " + to + " with error="+reason+"  Restarting receiver .... ");
 				if (reason != CODEC_ERROR || reason != MEDIA_SERVER_HANG)
 					sleep(5000);
-                RestartReceiverAynchronously();
+				if (reason == MEDIA_SERVER_HANG) {
+					RestartAirMediaAsynchronously();
+				} else {
+					RestartReceiverAynchronously();
+				}
 			}
         }
     };
@@ -1651,7 +1651,7 @@ public class AirMediaSplashtop implements AirMedia
             new MulticastMessageDelegate.Observer<AirMediaSessionManager, AirMediaSession>() {
                 @Override
                 public void onEvent(AirMediaSessionManager manager, final AirMediaSession session) {
-                    Log.d(TAG, "manager.sessions.event.added  " + AirMediaSession.toDebugString(session));
+                    Common.Logging.d(TAG, "manager.sessions.event.added  " + AirMediaSession.toDebugString(session));
                     // Add code here to add session to "table" of sessions and take any action needed
                     registerSessionEventHandlers(session);
                     addSession(session);
@@ -1666,7 +1666,7 @@ public class AirMediaSplashtop implements AirMedia
             new MulticastMessageDelegate.Observer<AirMediaSessionManager, AirMediaSession>() {
                 @Override
                 public void onEvent(AirMediaSessionManager manager, final AirMediaSession session) {
-                    Log.d(TAG, "manager.sessions.event.removed  " + AirMediaSession.toDebugString(session));
+                    Common.Logging.d(TAG, "manager.sessions.event.removed  " + AirMediaSession.toDebugString(session));
                     // Add code here to remove session from "table" of sessions and take any action needed;
                     removeSession(session);
                     if (session.videoState() != AirMediaSessionStreamingState.Playing)
@@ -1680,7 +1680,7 @@ public class AirMediaSplashtop implements AirMedia
     private final MulticastChangedDelegate.Observer<AirMediaSessionManager, AirMediaSessionScreenPositionLayout> layoutChangedHandler_ =
     		new MulticastChangedDelegate.Observer<AirMediaSessionManager, AirMediaSessionScreenPositionLayout>() {
             	@Override public void onEvent(AirMediaSessionManager manager, AirMediaSessionScreenPositionLayout from, AirMediaSessionScreenPositionLayout to) {
-            		Log.d(TAG, "manager.sessions.event.layout  " + from + "  ==>  " + to);
+            		Common.Logging.d(TAG, "manager.sessions.event.layout  " + from + "  ==>  " + to);
             	}
             };
 
@@ -1688,7 +1688,7 @@ public class AirMediaSplashtop implements AirMedia
     		new MulticastChangedDelegate.Observer<AirMediaSessionManager, EnumSet<AirMediaSessionScreenPosition>>() {
             	@Override
             	public void onEvent(AirMediaSessionManager manager, EnumSet<AirMediaSessionScreenPosition> removed, EnumSet<AirMediaSessionScreenPosition> added) {
-            		Log.d(TAG, "manager.sessions.event.occupied  OCCUPIED:  " + manager.occupied() + "  REMOVED: " + removed + "  ADDED: " + added);
+            		Common.Logging.d(TAG, "manager.sessions.event.occupied  OCCUPIED:  " + manager.occupied() + "  REMOVED: " + removed + "  ADDED: " + added);
             	}
             };
             
@@ -1739,7 +1739,7 @@ public class AirMediaSplashtop implements AirMedia
             new MulticastChangedDelegate.Observer<AirMediaSession, String>() {
                 @Override
                 public void onEvent(AirMediaSession session, String from, String to) {
-                    Log.d(TAG, "view.session.event.username  " + AirMediaSession.toDebugString(session) + "  " + from + "  ==>  " + to);
+                    Common.Logging.d(TAG, "view.session.event.username  " + AirMediaSession.toDebugString(session) + "  " + from + "  ==>  " + to);
                     // TODO Handle username changed
                     sendSessionFeedback(session);
                 }
@@ -1749,7 +1749,7 @@ public class AirMediaSplashtop implements AirMedia
     		new MulticastChangedDelegate.Observer<AirMediaSession, Collection<String>>() {
     	@Override
     	public void onEvent(AirMediaSession session, Collection<String> from, Collection<String> to) {
-    		Log.d(TAG, "view.session.event.addresses  " + AirMediaSession.toDebugString(session) + "  " + from + "  ==>  " + to);
+    		Common.Logging.d(TAG, "view.session.event.addresses  " + AirMediaSession.toDebugString(session) + "  " + from + "  ==>  " + to);
     		// TODO Handle addresses changed
     		sendSessionFeedback(session);
     	}
@@ -1759,7 +1759,7 @@ public class AirMediaSplashtop implements AirMedia
     		new MulticastChangedDelegate.Observer<AirMediaSession, AirMediaSessionInfo>() {
     	@Override
     	public void onEvent(AirMediaSession session, AirMediaSessionInfo from, AirMediaSessionInfo to) {
-    		Log.d(TAG, "view.session.event.info  " + AirMediaSession.toDebugString(session) + "  " + from + "  ==>  " + to);
+    		Common.Logging.d(TAG, "view.session.event.info  " + AirMediaSession.toDebugString(session) + "  " + from + "  ==>  " + to);
     	}
     };
 
@@ -1767,7 +1767,7 @@ public class AirMediaSplashtop implements AirMedia
             new MulticastChangedDelegate.Observer<AirMediaSession, AirMediaSessionConnectionState>() {
                 @Override
                 public void onEvent(AirMediaSession session, AirMediaSessionConnectionState from, AirMediaSessionConnectionState to) {
-                    Log.d(TAG, "view.session.event.connection  " + AirMediaSession.toDebugString(session) + "  " + from + "  ==>  " + to);
+                    Common.Logging.d(TAG, "view.session.event.connection  " + AirMediaSession.toDebugString(session) + "  " + from + "  ==>  " + to);
                     // TODO Handle connection state change
                     sendSessionFeedback(session);
                 }
@@ -1777,7 +1777,7 @@ public class AirMediaSplashtop implements AirMedia
             new MulticastChangedDelegate.Observer<AirMediaSession, AirMediaSessionStreamingState>() {
                 @Override
                 public void onEvent(AirMediaSession session, AirMediaSessionStreamingState from, AirMediaSessionStreamingState to) {
-                    Log.d(TAG, "view.session.event.streaming  " + AirMediaSession.toDebugString(session) + "  " + from + "  ==>  " + to);
+                    Common.Logging.d(TAG, "view.session.event.streaming  " + AirMediaSession.toDebugString(session) + "  " + from + "  ==>  " + to);
                     // TODO Handle streaming change
                 }
             };
@@ -1786,7 +1786,7 @@ public class AirMediaSplashtop implements AirMedia
             new MulticastChangedDelegate.Observer<AirMediaSession, AirMediaSessionConnectionState>() {
                 @Override
                 public void onEvent(AirMediaSession session, AirMediaSessionConnectionState from, AirMediaSessionConnectionState to) {
-                    Log.d(TAG, "view.session.event.channel  " + AirMediaSession.toDebugString(session) + "  id= " + Integer.toHexString(session.channelId()) + "  " + from + "  ==>  " + to);
+                    Common.Logging.d(TAG, "view.session.event.channel  " + AirMediaSession.toDebugString(session) + "  id= " + Integer.toHexString(session.channelId()) + "  " + from + "  ==>  " + to);
                     // TODO Handle connection state change
                 }
             };
@@ -1795,7 +1795,7 @@ public class AirMediaSplashtop implements AirMedia
             new MulticastMessageDelegate.Observer<AirMediaSession, byte[]>() {
                 @Override
                 public void onEvent(AirMediaSession session, byte[] message) {
-                    Log.d(TAG, "view.session.event.message  " + AirMediaSession.toDebugString(session) + "  id= " + Integer.toHexString(session.channelId()) + "  " + message.length + " bytes");
+                    Common.Logging.d(TAG, "view.session.event.message  " + AirMediaSession.toDebugString(session) + "  id= " + Integer.toHexString(session.channelId()) + "  " + message.length + " bytes");
                 }
             };
 
@@ -1803,7 +1803,7 @@ public class AirMediaSplashtop implements AirMedia
             new MulticastChangedDelegate.Observer<AirMediaSession, AirMediaSessionConnectionState>() {
                 @Override
                 public void onEvent(AirMediaSession session, AirMediaSessionConnectionState from, AirMediaSessionConnectionState to) {
-                    Log.d(TAG, "view.session.event.device  " + AirMediaSession.toDebugString(session) + "  id= " + session.deviceId() + "  " + from + "  ==>  " + to);
+                    Common.Logging.d(TAG, "view.session.event.device  " + AirMediaSession.toDebugString(session) + "  id= " + session.deviceId() + "  " + from + "  ==>  " + to);
                     // TODO Handle device state change
                     if (session.deviceState() == AirMediaSessionConnectionState.Disconnected)
                     {
@@ -1817,7 +1817,7 @@ public class AirMediaSplashtop implements AirMedia
             new MulticastChangedDelegate.Observer<AirMediaSession, AirMediaSessionStreamingState>() {
                 @Override
                 public void onEvent(AirMediaSession session, AirMediaSessionStreamingState from, AirMediaSessionStreamingState to) {
-                    Log.d(TAG, "view.session.event.video.state  " + AirMediaSession.toDebugString(session) + "  " + from + "  ==>  " + to);
+                    Common.Logging.d(TAG, "view.session.event.video.state  " + AirMediaSession.toDebugString(session) + "  " + from + "  ==>  " + to);
                     // TODO Handle video state change
                       if (session.videoState() == AirMediaSessionStreamingState.Playing)
                       {
@@ -1834,7 +1834,7 @@ public class AirMediaSplashtop implements AirMedia
             new MulticastChangedDelegate.Observer<AirMediaSession, AirMediaSize>() {
                 @Override
                 public void onEvent(AirMediaSession session, AirMediaSize from, AirMediaSize to) {
-                    Log.d(TAG, "view.session.event.video.size  " + AirMediaSession.toDebugString(session) + "  " + 
+                    Common.Logging.d(TAG, "view.session.event.video.size  " + AirMediaSession.toDebugString(session) + "  " + 
                     		from.width + "x" + from.height + "  ==>  " + to.width + "x" + to.height);
                     // TODO Handle video resolution change
                     if (session == session())
@@ -1849,7 +1849,7 @@ public class AirMediaSplashtop implements AirMedia
             new MulticastChangedDelegate.Observer<AirMediaSession, Integer>() {
                 @Override
                 public void onEvent(AirMediaSession session, Integer from, Integer to) {
-                    Log.d(TAG, "view.session.event.video.rotation  " + AirMediaSession.toDebugString(session) + "  " + from + "  ==>  " + to);
+                    Common.Logging.d(TAG, "view.session.event.video.rotation  " + AirMediaSession.toDebugString(session) + "  " + from + "  ==>  " + to);
                     // TODO Handle video rotation change
                     if (session == session())
                     {
@@ -1863,7 +1863,7 @@ public class AirMediaSplashtop implements AirMedia
             new MulticastChangedDelegate.Observer<AirMediaSession, Surface>() {
                 @Override
                 public void onEvent(AirMediaSession session, Surface from, Surface to) {
-                    Log.d(TAG, "view.session.event.video.surface  " + AirMediaSession.toDebugString(session) + "  " + from + "  ==>  " + to);
+                    Common.Logging.d(TAG, "view.session.event.video.surface  " + AirMediaSession.toDebugString(session) + "  " + from + "  ==>  " + to);
                     // TODO Handle video surface change change
                 }
             };
@@ -1872,7 +1872,7 @@ public class AirMediaSplashtop implements AirMedia
             new MulticastMessageDelegate.Observer<AirMediaSession, Boolean>() {
                 @Override
                 public void onEvent(AirMediaSession session, Boolean value) {
-                    Log.d(TAG, "view.session.event.video.drm  " + AirMediaSession.toDebugString(session) + "  " + !value + "  ==>  " + value);
+                    Common.Logging.d(TAG, "view.session.event.video.drm  " + AirMediaSession.toDebugString(session) + "  " + !value + "  ==>  " + value);
                     // TODO Handle video Drm change
                 }
             };
@@ -1881,7 +1881,7 @@ public class AirMediaSplashtop implements AirMedia
             new MulticastChangedDelegate.Observer<AirMediaSession, AirMediaSessionScreenPosition>() {
                 @Override
                 public void onEvent(AirMediaSession session, AirMediaSessionScreenPosition from, AirMediaSessionScreenPosition to) {
-                    Log.d(TAG, "view.session.event.video.screen-position  " + AirMediaSession.toDebugString(session) + "  " + from + "  ==>  " + to);
+                    Common.Logging.d(TAG, "view.session.event.video.screen-position  " + AirMediaSession.toDebugString(session) + "  " + from + "  ==>  " + to);
                     // TODO Handle video screen position change
                     sendSessionFeedback(session);
                 }
@@ -1891,7 +1891,7 @@ public class AirMediaSplashtop implements AirMedia
             new MulticastChangedDelegate.Observer<AirMediaSession, AirMediaSessionStreamingState>() {
                 @Override
                 public void onEvent(AirMediaSession session, AirMediaSessionStreamingState from, AirMediaSessionStreamingState to) {
-                    Log.d(TAG, "view.session.event.audio.state  " + AirMediaSession.toDebugString(session) + "  " + from + "  ==>  " + to);
+                    Common.Logging.d(TAG, "view.session.event.audio.state  " + AirMediaSession.toDebugString(session) + "  " + from + "  ==>  " + to);
                     // TODO Handle audio state change
                 }
             };
@@ -1900,7 +1900,7 @@ public class AirMediaSplashtop implements AirMedia
             new MulticastMessageDelegate.Observer<AirMediaSession, Boolean>() {
                 @Override
                 public void onEvent(AirMediaSession session, Boolean value) {
-                    Log.d(TAG, "view.session.event.audio.mute  " + AirMediaSession.toDebugString(session) + "  " + !value + "  ==>  " + value);
+                    Common.Logging.d(TAG, "view.session.event.audio.mute  " + AirMediaSession.toDebugString(session) + "  " + !value + "  ==>  " + value);
                     // TODO Handle audio mute change
                 }
             };
@@ -1909,7 +1909,7 @@ public class AirMediaSplashtop implements AirMedia
             new MulticastChangedDelegate.Observer<AirMediaSession, Float>() {
                 @Override
                 public void onEvent(AirMediaSession session, Float from, Float to) {
-                    Log.d(TAG, "view.session.event.audio.volume  " + AirMediaSession.toDebugString(session) + "  " + from + "  ==>  " + to);
+                    Common.Logging.d(TAG, "view.session.event.audio.volume  " + AirMediaSession.toDebugString(session) + "  " + from + "  ==>  " + to);
                     // TODO Handle audio volume change
                 }
             };
@@ -1918,7 +1918,7 @@ public class AirMediaSplashtop implements AirMedia
             new MulticastChangedDelegate.Observer<AirMediaSession, Bitmap>() {
                 @Override
                 public void onEvent(AirMediaSession session, Bitmap from, Bitmap to) {
-                    Log.d(TAG, "view.session.event.photo  " + AirMediaSession.toDebugString(session) + "  " + from + "  ==>  " + to);
+                    Common.Logging.d(TAG, "view.session.event.photo  " + AirMediaSession.toDebugString(session) + "  " + from + "  ==>  " + to);
                 }
             };
 
@@ -1928,19 +1928,19 @@ public class AirMediaSplashtop implements AirMedia
     	@Override
     	public void surfaceCreated(SurfaceHolder holder) {
     		Surface surface = holder.getSurface();
-    		Log.d(TAG, "surfaceCreated  surface= " + surface);
+    		Common.Logging.d(TAG, "surfaceCreated  surface= " + surface);
     		attachSurface();
     	}
 
     	@Override
     	public void surfaceChanged(SurfaceHolder holder, int format, int width, int height) {
     		Surface surface = holder.getSurface();
-    		Log.d(TAG, "surfaceChanged  surface= " +  surface + "  format= " + format + "  wxh= " + width + "x" + height);
+    		Common.Logging.d(TAG, "surfaceChanged  surface= " +  surface + "  format= " + format + "  wxh= " + width + "x" + height);
     	}
 
     	@Override
     	public void surfaceDestroyed(SurfaceHolder holder) {
-    		Log.d(TAG, "surfaceDestroyed  surface= " + holder.getSurface());
+    		Common.Logging.d(TAG, "surfaceDestroyed  surface= " + holder.getSurface());
     		detachSurface();
     	}
     };
