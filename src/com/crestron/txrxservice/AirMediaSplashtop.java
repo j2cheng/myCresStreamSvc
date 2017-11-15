@@ -258,10 +258,10 @@ public class AirMediaSplashtop implements AirMedia
     				}
     			} finally {
     				orderedLock.unlock("RestartAirMediaAsynchronously");
+    		    	Log.d(TAG, "RestartAirMediaAsynchronously exit ........");
     			}
     		}
     	}).start();
-    	Log.d(TAG, "RestartAirMediaAsynchronously exit ........");
     }
     
     private void startAirMedia()
@@ -381,11 +381,40 @@ public class AirMediaSplashtop implements AirMedia
         				Log.i(TAG, "RestartReceiverAynchronously(): Stopping receiver");
         				stopReceiver();			
         			}
-        			startReceiverWithPossibleIpAddressChange();
+        			startReceiver();
         		} finally {
         			orderedLock.unlock("RestartReceiverAynchronously");
         		}
         		Log.i(TAG, "RestartReceiverAynchronously(): Exited");
+    		}
+    	}).start();
+    }
+    
+    private void RestartReceiverForAdapterChange() {
+    	new Thread(new Runnable() {
+    		@Override
+    		public void run() {
+    			orderedLock.lock("RestartReceiverForAdapterChange");
+    			try {
+    				if (pending_adapter_ip_address_change) {
+    					Log.i(TAG, "RestartReceiverForAdapterChange(): Entered");
+    					if (receiver() != null && receiver_.state() != AirMediaReceiverState.Stopped)
+    					{
+    						Log.i(TAG, "RestartReceiverForAdapterChange(): Stopping receiver");
+    						stopReceiver();			
+    					}
+    					// If there is an IP address change apply it first and 
+    					if (!adapter_ip_address.equals("None")) {
+    						Log.i(TAG, "startReceiverWithPossiblyIpAddressChange(): Setting new ip address for receiver: " + adapter_ip_address);
+    						receiver_.adapterAddress(adapter_ip_address);
+    						startReceiver();
+    					}
+    					pending_adapter_ip_address_change = false;
+    				}
+    			} finally {
+    				orderedLock.unlock("RestartReceiverForAdapterChange");
+    			}
+    			Log.i(TAG, "RestartReceiverForAdapterChange(): Exited");
     		}
     	}).start();
     }
@@ -1088,7 +1117,7 @@ public class AirMediaSplashtop implements AirMedia
 		if (receiver_ == null)
 			startAirMedia();
 		else
-			RestartReceiverAynchronously();
+			RestartReceiverForAdapterChange();
 		Log.i(TAG, "setAdapter(): Exiting having issued restart of receiver with " + adapter_ip_address);
     }
     
@@ -1313,7 +1342,7 @@ public class AirMediaSplashtop implements AirMedia
 		try { stopStatus = deviceDisconnectedLatch.await(10000, TimeUnit.MILLISECONDS); }
 		catch (InterruptedException ex) { ex.printStackTrace(); }
 		if (!stopStatus) {
-			Log.w(TAG, "Unable to stop session " + session + "even after 10 seconds");
+			Log.w(TAG, "Unable to stop session " + AirMediaSession.toDebugString(session) + "even after 10 seconds");
 		} else {
 			long end = System.currentTimeMillis();
 			Log.d(TAG, "Session " + AirMediaSession.toDebugString(session) + "was successfully stoppped in "
@@ -1610,7 +1639,7 @@ public class AirMediaSplashtop implements AirMedia
 					mStreamCtl.RecoverDucati();
 					mStreamCtl.RecoverMediaServer();
 				}
-				Log.w(TAG, "Receiver stopped with error="+reason+"  Restarting receiver .... ");
+				Log.w(TAG, "Receiver " + to + " with error="+reason+"  Restarting receiver .... ");
 				if (reason != CODEC_ERROR || reason != MEDIA_SERVER_HANG)
 					sleep(5000);
                 RestartReceiverAynchronously();
