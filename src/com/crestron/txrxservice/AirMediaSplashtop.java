@@ -149,6 +149,7 @@ public class AirMediaSplashtop implements AirMedia
     	mStreamCtl.setDomainName("");
     	Log.d(TAG, "HostName="+mStreamCtl.hostName+"   DomainName="+mStreamCtl.domainName);
     	mStreamCtl.sendAirMediaConnectionAddress(streamIdx);  
+    	adapter_ip_address = mStreamCtl.getAirMediaConnectionIpAddress(0);
     	
 //    	shutDownAirMediaSplashtop();	// In case AirMediaSplashtop was already running shut it down
     	boolean serviceSuccessfullyStarted = false;
@@ -183,7 +184,7 @@ public class AirMediaSplashtop implements AirMedia
     			try { successfulStart = startupCompleteLatch.await(50000, TimeUnit.MILLISECONDS); }
     			catch (InterruptedException ex) { ex.printStackTrace(); }
     			
-    			if (!isAirMediaUp)
+    			if (!adapter_ip_address.equals("None") && !isAirMediaUp)
     			{
     				Log.w(TAG, "Error trying to start receiver");
     				successfulStart = false;
@@ -200,9 +201,17 @@ public class AirMediaSplashtop implements AirMedia
     		}
     		else if (!isReceiverStarted)
     		{
-    			Log.w(TAG, "Service connected but receiver not started, unbind and try again");
-    	    	doUnbindService();
-    			return false;
+    			if (adapter_ip_address.equals("None"))
+    			{
+    				Log.d(TAG, "None Adapter selected, not starting receiver");
+    				return true;
+    			}
+    			else
+    			{
+    				Log.w(TAG, "Service connected but receiver not started, unbind and try again");
+    				doUnbindService();
+    				return false;
+    			}
     		}
     		else
     			Log.d(TAG, "Bypassing start because already started");
@@ -352,7 +361,8 @@ public class AirMediaSplashtop implements AirMedia
 			// If there is an IP address change apply it first and 
 			if (pending_adapter_ip_address_change && !adapter_ip_address.equals("None")) {
 				Log.i(TAG, "startReceiverWithPossiblyIpAddressChange(): Setting new ip address for receiver: " + adapter_ip_address);
-				receiver_.adapterAddress(adapter_ip_address);
+				if (receiver() != null)
+					receiver_.adapterAddress(adapter_ip_address);
 				startReceiver();
 			}
 			pending_adapter_ip_address_change = false;
@@ -366,7 +376,7 @@ public class AirMediaSplashtop implements AirMedia
         		orderedLock.lock("RestartReceiverAynchronously");
         		try {
         			Log.i(TAG, "RestartReceiverAynchronously(): Entered");
-        			if (receiver_.state() != AirMediaReceiverState.Stopped)
+        			if (receiver() != null && receiver_.state() != AirMediaReceiverState.Stopped)
         			{
         				Log.i(TAG, "RestartReceiverAynchronously(): Stopping receiver");
         				stopReceiver();			
@@ -1068,16 +1078,17 @@ public class AirMediaSplashtop implements AirMedia
     
     public void setAdapter(String address)
     {
-    	if (receiver_ == null)
-    		return;
     	if (adapter_ip_address.equals(address))
     		return;
     	adapter_ip_address = address;
-    	pending_adapter_ip_address_change = true;
-    	Log.i(TAG, "setAdapter(): Stopping all senders");
-    	stopAllSenders();
-    	// Launch Stop/Start of receiver in separate thread
-        RestartReceiverAynchronously();
+		pending_adapter_ip_address_change = true;
+		Log.i(TAG, "setAdapter(): Stopping all senders");
+		stopAllSenders();
+		// Launch Stop/Start of receiver in separate thread
+		if (receiver_ == null)
+			startAirMedia();
+		else
+			RestartReceiverAynchronously();
 		Log.i(TAG, "setAdapter(): Exiting having issued restart of receiver with " + adapter_ip_address);
     }
     
@@ -1478,7 +1489,16 @@ public class AirMediaSplashtop implements AirMedia
 							service_ = IAirMediaReceiver.Stub.asInterface(binder);
 							if (service_ == null) return;            	
 							serviceConnectedLatch.countDown();
-							startAirMedia();
+							
+							if (adapter_ip_address.equals("None"))
+			    			{
+			    				Log.d(TAG, "Service Connected but adapter set to none, not starting receiver");
+			    				startupCompleteLatch.countDown();
+			    			}
+							else
+							{
+								startAirMedia();
+							}
 						} catch (Exception e) {
 							Log.e(TAG, "AirMediaServiceConnection.onServiceConnected  EXCEPTION  " + e);
 							e.printStackTrace();
