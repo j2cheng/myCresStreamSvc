@@ -222,7 +222,6 @@ public class AirMediaSplashtop implements AirMedia
     
     private void restartAirMedia()
     {
-    	// currently is a NOOP for splashtop
 		mStreamCtl.RestartAirMedia();
     }
 
@@ -1639,7 +1638,7 @@ public class AirMediaSplashtop implements AirMedia
 				if (reason != CODEC_ERROR || reason != MEDIA_SERVER_HANG)
 					sleep(5000);
 				if (reason == MEDIA_SERVER_HANG) {
-					RestartAirMediaAsynchronously();
+					restartAirMedia();
 				} else {
 					RestartReceiverAynchronously();
 				}
