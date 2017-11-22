@@ -245,10 +245,20 @@ public class AirMediaSplashtop implements AirMedia
     					isAirMediaUp = false;
 
     					isReceiverStarted = false;
+    					// if surface displayed is true and airmedia has been launched then we are showing airmedia window
+    					// try to hide it - if we can find an active session.
+    					if (surfaceDisplayed && mStreamCtl.userSettings.getAirMediaLaunch(streamIdx))
+    					{
+    						Common.Logging.e(TAG, "RestartAirMediaAsynchronously(): checking if we have active session");
+    						if (session() != null) {
+        						Common.Logging.e(TAG, "RestartAirMediaAsynchronously(): have session - hiding aidmedia window");
+    							hideVideo(useTextureView(session()));
+    						}
+    					}
+    	    			surfaceDisplayed = false;
     					removeAllSessionsFromMap();
     					mStreamCtl.sendAirMediaNumberUserConnected();
     					active_session_ = null;
-    					surfaceDisplayed = false;
     					serviceSuccessfullyStarted = connectAndStartReceiverService();
     				}
     			} finally {
@@ -479,7 +489,15 @@ public class AirMediaSplashtop implements AirMedia
     {
 		//surfaceDisplayed = false;
     	Common.Logging.d(TAG, "hideVideo: Splashtop Window hidden " + ((use_texture) ? "TextureView" : "SurfaceView") + "    surfaceDisplayed=" + getSurfaceDisplayed());
-    	mStreamCtl.hideSplashtopWindow(streamIdx, use_texture);
+    	if (getSurfaceDisplayed())
+    	{
+    		mStreamCtl.hideSplashtopWindow(streamIdx, use_texture);
+    	}
+    	else
+    	{
+    		// Bug 139366 - do not hide window if AirMedia not showing - streaming may be using it and we could destroy the surface
+        	Common.Logging.d(TAG, "hideVideo(): hideSplashtopWindow not called because surfaceDisplayed is false so AirMedia not showing");
+    	}
     }
     
     
