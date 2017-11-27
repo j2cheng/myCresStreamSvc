@@ -3708,7 +3708,7 @@ public class CresStreamCtrl extends Service {
     					userSettings.setAirMediaDisplayScreen(haveExternalDisplays ? 1 : 0);
     					userSettings.setAirMediaWindowFlag(alphaBlending ? WindowManager.LayoutParams.TYPE_PRIORITY_PHONE : WindowManager.LayoutParams.TYPE_SYSTEM_OVERLAY);
 
-    					if (Boolean.parseBoolean(hdmiOutput.getSyncStatus()))
+    					if (mIsHdmiOutExternal || Boolean.parseBoolean(hdmiOutput.getSyncStatus()))
     					{
     						Log.i(TAG, "launching AirMedia");
     						mAirMedia.show(x, y, width, height);
