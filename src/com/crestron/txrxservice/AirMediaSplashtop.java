@@ -487,11 +487,11 @@ public class AirMediaSplashtop implements AirMedia
     
     private void hideVideo(boolean use_texture)
     {
-		//surfaceDisplayed = false;
     	Common.Logging.d(TAG, "hideVideo: Splashtop Window hidden " + ((use_texture) ? "TextureView" : "SurfaceView") + "    surfaceDisplayed=" + getSurfaceDisplayed());
     	if (getSurfaceDisplayed())
     	{
     		mStreamCtl.hideSplashtopWindow(streamIdx, use_texture);
+    		surfaceDisplayed = false;
     	}
     	else
     	{
