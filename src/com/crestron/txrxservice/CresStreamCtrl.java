@@ -4240,11 +4240,12 @@ public class CresStreamCtrl extends Service {
     
     public String getAirMediaConnectionAddress(int sessId)
     {
-    	if (!userSettings.getAirMediaDisplayConnectionOptionEnable())
-    	{
-    		Log.d(TAG, "getAirMediaConnectionAddress() returning empty string because DisplayConnectionOptionEnable is false");
-    		return "";
-    	}
+    	// When connection option is disabled feedback the same connection URL and rely on AVF/Program 0 to blank out the URL
+//    	if (!userSettings.getAirMediaDisplayConnectionOptionEnable())
+//    	{
+//    		Log.d(TAG, "getAirMediaConnectionAddress() returning empty string because DisplayConnectionOptionEnable is false");
+//    		return "";
+//    	}
     	StringBuilder url = new StringBuilder(512);
         url.append("http://");
     	switch (userSettings.getAirMediaDisplayConnectionOption())
