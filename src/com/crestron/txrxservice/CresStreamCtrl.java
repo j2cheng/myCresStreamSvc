@@ -110,6 +110,8 @@ public class CresStreamCtrl extends Service {
     BroadcastReceiver resolutionEvent = null;
     BroadcastReceiver hdmioutResolutionChangedEvent = null;
     
+    WbsStreamIn wbsStream = null;
+    
     private DisplayManager m_displayManager = null;
 
     public UserSettings userSettings;
@@ -222,7 +224,8 @@ public class CresStreamCtrl extends Service {
     enum DeviceMode {
         STREAM_IN,
         STREAM_OUT,
-        PREVIEW
+        PREVIEW,
+        WBS_STREAM_IN
     }
     
     enum AirMediaLoginMode {
@@ -507,6 +510,8 @@ public class CresStreamCtrl extends Service {
     										streamPlay.onStop(sessionId);
     									else if (userSettings.getMode(sessionId) == DeviceMode.STREAM_OUT.ordinal())
     										cam_streaming.stopRecording(true);//false
+    									else if (userSettings.getMode(sessionId) == DeviceMode.WBS_STREAM_IN.ordinal())
+    										wbsStream.onStop(sessionId);
     								}
     							}
     						}
@@ -754,7 +759,9 @@ public class CresStreamCtrl extends Service {
     			}
     		}
     		else
-    			streamPlay = new StreamIn(new NstreamIn(CresStreamCtrl.this));    		
+    			streamPlay = new StreamIn(new NstreamIn(CresStreamCtrl.this)); 
+    		
+    		wbsStream = new WbsStreamIn(CresStreamCtrl.this);
 
     		hdmiOutput = new HDMIOutputInterface(nativeGetHDMIOutputBitmask());
     		setHDCPBypass();
@@ -799,6 +806,9 @@ public class CresStreamCtrl extends Service {
 
     		//Play Control
     		hm = new HashMap<Integer, Command>();
+    		hm.put(3/*"WBS_STREAMIN"*/, new Command() {
+    			public void executeStart(int sessId) {startWbsStream(sessId); };
+    		});
     		hm.put(2/*"PREVIEW"*/, new Command() {
     			public void executeStart(int sessId) {startPreview(sessId); };
     		});
@@ -809,6 +819,9 @@ public class CresStreamCtrl extends Service {
     			public void executeStart(int sessId) {startStreamIn(sessId); };
     		});
     		hm2 = new HashMap<Integer, myCommand>();
+    		hm2.put(3/*"WBS_STREAMIN"*/, new myCommand() {
+    			public void executeStop(int sessId, boolean fullStop) {stopWbsStream(sessId); };
+    		});
     		hm2.put(2/*"PREVIEW"*/, new myCommand() {
     			public void executeStop(int sessId, boolean fullStop) {stopPreview(sessId,true);};
     		});
@@ -819,6 +832,9 @@ public class CresStreamCtrl extends Service {
     			public void executeStop(int sessId, boolean fullStop) {stopStreamIn(sessId); };
     		});
     		hm3 = new HashMap<Integer, myCommand2>();
+    		hm3.put(3/*"WBS_STREAMIN"*/, new myCommand2() {
+    			public void executePause(int sessId) {pauseWbsStream(sessId); };
+    		});
     		hm3.put(2/*"PREVIEW"*/, new myCommand2() {
     			public void executePause(int sessId) {pausePreview(sessId);};
     		});
@@ -1299,6 +1315,7 @@ public class CresStreamCtrl extends Service {
     		}
     	}).start();
     	
+        Log.d(TAG, "Restarting Streams - recoverFromCrash");
     	restartStreams(false);
     }
     
@@ -1390,6 +1407,7 @@ public class CresStreamCtrl extends Service {
 	    					if (hdmiInSampleRate != mPreviousAudioInputSampleRate)
 	    					{
 	    						mPreviousAudioInputSampleRate = hdmiInSampleRate;
+	    				        Log.d(TAG, "Restarting Streams - hdmi input resolution change");
 	    						restartStreams(true); //skip stream in since it does not use hdmi input
 	    					}
 	    				}
@@ -1642,7 +1660,8 @@ public class CresStreamCtrl extends Service {
 			    	//If streamstate was previously started, restart stream
 			        for (int sessionId = 0; sessionId < NumOfSurfaces; sessionId++)
 			        {
-			        	if (skipStreamIn && (userSettings.getMode(sessionId) == DeviceMode.STREAM_IN.ordinal()))
+			        	if (skipStreamIn && ((userSettings.getMode(sessionId) == DeviceMode.STREAM_IN.ordinal()) ||
+			        			(userSettings.getMode(sessionId) == DeviceMode.WBS_STREAM_IN.ordinal())))
 			        		continue;
 			        	else if (skipPreview && (userSettings.getMode(sessionId) == DeviceMode.PREVIEW.ordinal()))
 			        		continue;
@@ -1734,9 +1753,10 @@ public class CresStreamCtrl extends Service {
         int prevMode = userSettings.getMode(sessionId);
         userSettings.setMode(mode, sessionId);
         
-        // If hdmi input driver is present allow all 3 modes, otherwise only allow stream in mode
+        // If hdmi input driver is present allow all 3 modes, otherwise only allow stream in mode and wbs mode
         // Only if mode actually changed
-        if ((mode != prevMode) && (hdmiInputDriverPresent || (mode == DeviceMode.STREAM_IN.ordinal())))
+        if ((mode != prevMode) && (hdmiInputDriverPresent || (mode == DeviceMode.STREAM_IN.ordinal()) ||
+        		(mode == DeviceMode.WBS_STREAM_IN.ordinal())))
         {
         	// Since this is a user request, mark as stopped requested if mode changes
         	userSettings.setUserRequestedStreamState(StreamState.STOPPED, sessionId);
@@ -1787,6 +1807,10 @@ public class CresStreamCtrl extends Service {
             		sockTask.SendDataToAllClients(String.format("STREAMURL%d=", sessionId));
             	else
             		sockTask.SendDataToAllClients(String.format("STREAMURL%d=%s", sessionId, userSettings.getStreamInUrl(sessionId)));
+            }
+            else if (mode == DeviceMode.WBS_STREAM_IN.ordinal())
+            {
+        		sockTask.SendDataToAllClients(String.format("STREAMURL%d=%s", sessionId, userSettings.getWbsStreamUrl(sessionId)));            	
             }
         }
     }
@@ -1853,7 +1877,7 @@ public class CresStreamCtrl extends Service {
     	mForceHdcpStatusUpdate = true;
     }
     
-    public void setAirMediaWindowDimensions(int x, int y, int width, int height, int sessionId, boolean use_texture)
+    public void setWindowDimensions(int x, int y, int width, int height, int sessionId, boolean use_texture)
     {
     	userSettings.setXloc(x, sessionId);
     	userSettings.setYloc(y, sessionId);
@@ -1864,11 +1888,7 @@ public class CresStreamCtrl extends Service {
 
     public void setWindowDimensions(int x, int y, int width, int height, int sessionId)
     {
-    	userSettings.setXloc(x, sessionId);
-    	userSettings.setYloc(y, sessionId);
-    	userSettings.setW(width, sessionId);
-    	userSettings.setH(height, sessionId);
-    	updateWindow(sessionId);
+    	setWindowDimensions(x, y, width, height, sessionId, false);
     }
 
     public void setXCoordinates(int x, int sessionId)
@@ -1954,6 +1974,7 @@ public class CresStreamCtrl extends Service {
 	        	}
 	        	
 	        	// Start streams back up
+	            Log.d(TAG, "Restarting Streams - z order change");
 	        	restartStreams(false);
 	    	}
     	}
@@ -3243,6 +3264,28 @@ public class CresStreamCtrl extends Service {
         showWindow(sessId);
     }
 
+    public void showWbsWindow(int sessId)
+    {
+    	Log.d(TAG, "Wbs Window showing");
+    	if (wbsStream.useSurfaceTexture)
+    	{
+    		showTextureWindow(sessId);
+    	} else {
+    		showWindow(sessId);
+    	}
+    }
+    
+    public void hideWbsWindow(int sessId)
+    {
+    	Log.d(TAG, "Wbs Window hidden");
+    	if (wbsStream.useSurfaceTexture)
+    	{
+    		hideTextureWindow(sessId);
+    	} else {
+    		hideWindow(sessId);
+    	}
+    }
+    
     public void EnableTcpInterleave(int tcpInterleave,int sessionId){
         userSettings.setTcpInterleave(tcpInterleave,sessionId);
         streamPlay.setRtspTcpInterleave(tcpInterleave, sessionId);
@@ -3276,6 +3319,19 @@ public class CresStreamCtrl extends Service {
     	
     	if (userSettings.getMode(sessionId) == DeviceMode.STREAM_OUT.ordinal())
     		sockTask.SendDataToAllClients(String.format("STREAMURL%d=%s", sessionId, createStreamOutURL(sessionId)));
+    }
+    
+    public void setWbsStreamUrl(String url, int sessionId)
+    {
+        Log.d(TAG, "setWbsStreamUrl invoked with url=" + url);
+        userSettings.setWbsStreamUrl(url, sessionId);
+        if (wbsStream != null)
+        {
+        		wbsStream.setUrl(url, 0);
+        }
+        Log.d(TAG, "WBS Stream URL = " + url);
+    	sockTask.SendDataToAllClients(String.format("STREAMURL%d=%s", sessionId, url));
+    	sockTask.SendDataToAllClients(String.format("WBS_STREAMING_STREAM_URL=%s", url));
     }
     
     public void updateStreamOutUrl_OnIPChange()
@@ -3329,6 +3385,8 @@ public class CresStreamCtrl extends Service {
         //return out_url;
     	if (userSettings.getMode(sessId) == DeviceMode.STREAM_OUT.ordinal())
     		return userSettings.getStreamOutUrl(sessId);
+    	if (userSettings.getMode(sessId) == DeviceMode.WBS_STREAM_IN.ordinal())
+    		return userSettings.getWbsStreamUrl(sessId);
     	else if (userSettings.getMode(sessId) == DeviceMode.STREAM_IN.ordinal())
     		return userSettings.getStreamInUrl(sessId);
     	else
@@ -3362,7 +3420,29 @@ public class CresStreamCtrl extends Service {
         streamPlay.onPause(sessId);
     }
 
-  //Start gstreamer Preview
+    public void startWbsStream(int sessId)
+    {
+    	updateWindow(sessId);
+        showWbsWindow(sessId);
+        invalidateSurface();
+        wbsStream.onStart(sessId);
+    }
+
+    public void stopWbsStream(int sessId)
+    {
+    	wbsStream.onStop(sessId);   
+
+		// Do NOT hide window if being used by AirMedia
+    	if ( !((mAirMedia != null) && (mAirMedia.getSurfaceDisplayed() == true)) )
+    		hideWbsWindow(sessId);
+    }
+
+    public void pauseWbsStream(int sessId)
+    {
+    	wbsStream.onPause(sessId);
+    }
+    
+    //Start gstreamer Preview
     public void startGstPreview(int sessId)
     {
     	cameraLock.lock();
@@ -4458,7 +4538,7 @@ public class CresStreamCtrl extends Service {
     		gstStreamOut.setCamStreamMulticastAddress(address);
     	}
     }
-        
+    
     public String getAirMediaDisconnectUser(int sessId)
     {
     	// Do nothing handled by getAirMediaUserPosition
@@ -4774,7 +4854,8 @@ public class CresStreamCtrl extends Service {
 				}
 				
 				if (userSettings.getMode(sessionId) == DeviceMode.PREVIEW.ordinal() || 
-						userSettings.getMode(sessionId) == DeviceMode.STREAM_IN.ordinal())
+						userSettings.getMode(sessionId) == DeviceMode.STREAM_IN.ordinal() ||
+						userSettings.getMode(sessionId) == DeviceMode.WBS_STREAM_IN.ordinal())
 				{
 					Log.d(TAG, "Stopping stream because lost HDMI output: " + sessionId);
 					Stop(sessionId, true);
@@ -4867,6 +4948,7 @@ public class CresStreamCtrl extends Service {
 		    		try {
             			Thread.sleep(500);
             		} catch (Exception e ) { e.printStackTrace(); }
+		            Log.d(TAG, "Restarting Streams - on firstrun");
 		    		restartStreams(true); //true because we do not need to restart stream in streams
 		    		mIgnoreAllCrash = false;
     			}
@@ -5238,6 +5320,7 @@ public class CresStreamCtrl extends Service {
 		{
 			mIsHdmiOutExternal = true;
 			// call restart streams just in case we missed the starts because of mIsHdmiOutExternal flag
+            Log.d(TAG, "Restarting Streams - mIsHdmiOutExternal");
 			restartStreams(false);
 		}
 		

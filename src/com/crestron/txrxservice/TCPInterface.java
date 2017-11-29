@@ -156,6 +156,7 @@ public class TCPInterface extends AsyncTask<Void, Object, Long> {
 //        	Thread.sleep(3000);
 //        } catch (Exception e) { e.printStackTrace(); }
         
+        Log.d(TAG, "Restarting Streams - tcp interface command");
         streamCtl.restartStreams(false);
     }
     

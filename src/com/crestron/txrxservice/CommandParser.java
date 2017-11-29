@@ -179,6 +179,8 @@ public class CommandParser {
         CAMERA_STREAMING_SNAPSHOT_NAME,
         CAMERA_STREAMING_MULTICAST_ADDRESS,
 
+        WBS_STREAMING_STREAM_URL,
+        
         RESTART_STREAM_ON_START,
 
         USE_GSTREAMER,
@@ -739,6 +741,11 @@ public class CommandParser {
             	cmd = new camStreamMulticastAddressCommand(ctrl, arg);
             	break;
             	
+            	// Whiteboard Streaming
+            case WBS_STREAMING_STREAM_URL:
+            	cmd = new wbsStreamUrlCommand(ctrl, arg, idx);
+            	break;
+            	
             case RESTART_STREAM_ON_START:
             	cmd = new RestartStreamOnStartCommand(ctrl, arg);
             	break;
@@ -826,7 +833,7 @@ public class CommandParser {
                 {
                     invoke.setCommand(cmd);
                     valueResponse = invoke.get();
-                    Log.d(TAG, String.format("Join value response: %s", valueResponse));
+                    Log.d(TAG, String.format("Join %s value response: %s", parseResponse.joinName.toUpperCase(), valueResponse));
                 }
 	        }
 	        

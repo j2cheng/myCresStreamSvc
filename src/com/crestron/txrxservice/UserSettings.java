@@ -148,6 +148,7 @@ public class UserSettings
 	private String[] streamOutUrl;
 	private String[] streamInUrl;
 	private String[] streamServerUrl;
+	private String[] wbsStreamUrl;
 	private boolean[] proxyEnable;
 	private int[]	decodeInternalRtspPort;
 	private int[] internalRtspPort;
@@ -249,7 +250,7 @@ public class UserSettings
 	private String camStreamName;
 	private String camStreamSnapshotName;
 	private String camStreamMulticastAddress;
-
+	
 	//Misc
 	private boolean[] useNewSink;
 	private boolean ravaMode;
@@ -283,6 +284,7 @@ public class UserSettings
 		streamOutUrl 	 	= initStringArray("");
 		streamInUrl			= initStringArray("");
 		streamServerUrl	 	= initStringArray("");
+		wbsStreamUrl	 	= initStringArray("");
         proxyEnable         = initBoolArray(false);
         decodeInternalRtspPort = initIntArray(0);
         internalRtspPort 	= initIntArray(5540);
@@ -777,6 +779,14 @@ public class UserSettings
 		this.streamServerUrl[sessId] = url;	
 	}	
 
+	public String getWbsStreamUrl(int sessId) {
+		return wbsStreamUrl[sessId];
+	}
+
+	public void setWbsStreamUrl(String wbsStreamUrl, int sessId) {
+		this.wbsStreamUrl[sessId] = wbsStreamUrl;
+	}
+	
 	public String getInitiatorAddress() {
 		return initiatorAddress;
 	}

@@ -33,6 +33,8 @@
 #include <jni.h>
 #include "GstreamIn.h"
 #include "GstreamOut.h"
+#include "WbsStreamIn.h"
+#include "Wbs.h"
 #include "csioCommonShare.h"
 #include <gst/video/video.h>
 #include <gst/rtsp-server/rtsp-server.h>
@@ -82,6 +84,7 @@ static jmethodID set_message_method_id_rtsp_server;
 //static jmethodID on_gstreamer_initialized_method_id;
 static jclass *gStreamIn_javaClass_id;
 static jclass *gStreamOut_javaClass_id;
+static jclass *wbsStreamIn_javaClass_id;
 
 pthread_cond_t stop_completed_sig;
 static int stop_timeout_sec = 1000;
@@ -112,6 +115,26 @@ static JNINativeMethod native_methods_rtsp_server[] =
     { "nativeRtspServerStop", "()V",  (void *) gst_native_rtsp_server_stop},
 };
 
+/* wbs client */
+static void wbs_native_init (JNIEnv* env, jobject thiz);
+static void wbs_native_finalize (JNIEnv* env, jobject thiz);
+void wbs_native_stop (JNIEnv* env, jobject thiz, jint sessionId, jint stopTimeout_sec);
+void wbs_native_play (JNIEnv* env, jobject thiz, jint sessionId);
+static void wbs_native_surface_init(JNIEnv *env, jobject thiz, jobject surface, jint stream);
+static void wbs_native_surface_finalize (JNIEnv *env, jobject thiz, jint stream);
+static jboolean wbs_native_class_init (JNIEnv* env, jclass klass);
+
+/* List of implemented native methods */
+static JNINativeMethod native_methods_wbs[] =
+{
+	{ "nativeInit", "()V", (void *) wbs_native_init},
+	{ "nativeFinalize", "()V", (void *) wbs_native_finalize},
+	{ "nativePlay", "(I)V", (void *) wbs_native_play},
+	{ "nativeStop", "(I)V", (void *) wbs_native_stop},
+	{ "nativeSurfaceInit", "(Ljava/lang/Object;I)V", (void *) wbs_native_surface_init},
+	{ "nativeSurfaceFinalize", "(I)V", (void *) wbs_native_surface_finalize},
+	{ "nativeClassInit", "()Z", (void *) wbs_native_class_init}
+};
 
 UINT32 g_lSpecialFieldDebugState[SPECIAL_FIELD_DEBUG_ARRAY_SIZE] = {0};
 const char * const fieldDebugNames[MAX_SPECIAL_FIELD_DEBUG_NUM - 1] =
@@ -779,7 +802,7 @@ static void gst_jni_setup_surface_format(JNIEnv *env,ANativeWindow *new_native_w
     if (err != 0)
     {
         CSIO_LOG(eLogLevel_error, "NATIVE_WINDOW_MIN_UNDEQUEUED_BUFFERS query failed: %s (%d)", strerror(-err), -err);
-        return FALSE;
+        return;
     }
 
     if (data->surface)
@@ -1748,8 +1771,18 @@ jint JNI_OnLoad(JavaVM *vm, void *reserved)
 	}
 	(*env)->RegisterNatives (env, (jclass)gStreamOut_javaClass_id, native_methods_rtsp_server, G_N_ELEMENTS(native_methods_rtsp_server));
 	
-	pthread_key_create (&current_jni_env, detach_current_thread);
+	// Crestron - RH - register jni for WbsStreamIn
+	CSIO_LOG(eLogLevel_error, "wbstream_jni : Registering natives for WbsStreamIn");
+	jclass klass3 = (*env)->FindClass (env, "com/crestron/txrxservice/WbsStreamIn");
+	wbsStreamIn_javaClass_id = (jclass*)(*env)->NewGlobalRef(env, klass3);
+	(*env)->DeleteLocalRef(env, klass3);
+	if (wbsStreamIn_javaClass_id == NULL) {
+		CSIO_LOG(eLogLevel_error, "wbstream_jni", "wbsStreamIn_javaClass_id is still null when it is suppose to be global");
+	     return 0; /* out of memory exception thrown */
+	}
+	(*env)->RegisterNatives (env, (jclass)wbsStreamIn_javaClass_id, native_methods_wbs, G_N_ELEMENTS(native_methods_wbs));
 
+	pthread_key_create (&current_jni_env, detach_current_thread);
 	return JNI_VERSION_1_4;
 }
 
@@ -3276,3 +3309,260 @@ JNIEXPORT int JNICALL Java_com_crestron_txrxservice_GstreamOut_nativeWaitForPrev
 }
 
 /***************************** end of preview with video streaming out *********************************/
+/***************************** start of Kaptivo whiteboard streaming in *********************************/
+
+/* Transition to STOPPED state */
+void wbs_native_stop (JNIEnv* env, jobject thiz, jint sessionId, jint stopTimeout_sec)
+{
+	CSIO_LOG(eLogLevel_verbose, "%s", __FUNCTION__);
+	wbs_stop(sessionId); //TODO may need timeout
+	csio_SendVideoPlayingStatusMessage((int)sessionId, STREAMSTATE_STOPPED);
+}
+
+/* Instruct the native code to create its internal data structure */
+static void wbs_native_init (JNIEnv* env, jobject thiz)
+{
+	CSIO_LOG(eLogLevel_verbose, "%s", __FUNCTION__);
+	jobject app = (*env)->NewGlobalRef (env, thiz);
+	wbs_set_app(app);
+}
+
+/* Free resources */
+static void wbs_native_finalize (JNIEnv* env, jobject thiz)
+{
+	CSIO_LOG(eLogLevel_verbose, "%s", __FUNCTION__);
+	if (wbsStreamIn_javaClass_id != NULL) {
+		CSIO_LOG(eLogLevel_debug, "Deleting GlobalRef for wbsStreamIn_javaClass_id object at %p", wbsStreamIn_javaClass_id);
+		(*env)->DeleteGlobalRef (env, (jobject)wbsStreamIn_javaClass_id);
+	}
+	if (wbs_get_app() != NULL)
+	{
+		CSIO_LOG(eLogLevel_debug, "Deleting GlobalRef for app object at %p", wbs_get_app());
+		(*env)->DeleteGlobalRef (env, wbs_get_app());
+		wbs_set_app(NULL);
+	}
+}
+
+/* Tarnsition to PLAYING state */
+void wbs_native_play (JNIEnv* env, jobject thiz, jint sessionId)
+{
+	CSIO_LOG(eLogLevel_verbose, "%s", __FUNCTION__);
+	wbs_start(sessionId);
+}
+
+/* Static class initializer: retrieve method and field IDs */
+static jboolean wbs_native_class_init (JNIEnv* env, jclass klass)
+{
+	CSIO_LOG(eLogLevel_verbose, "%s", __FUNCTION__);
+	custom_data_field_id = (*env)->GetFieldID (env, klass, "native_custom_data", "J");
+	set_message_method_id = (*env)->GetMethodID (env, klass, "setMessage", "(Ljava/lang/String;)V");
+	//on_gstreamer_initialized_method_id = (*env)->GetMethodID (env, klass, "onGStreamerInitialized", "()V");
+
+	//if (!custom_data_field_id || !set_message_method_id || !on_gstreamer_initialized_method_id) {
+    if (!custom_data_field_id || !set_message_method_id) {
+		/* We emit this message through the Android log instead of the GStreamer log because the later
+		* has not been initialized yet.
+		*/
+		CSIO_LOG(eLogLevel_error, "The calling class does not implement all necessary interface methods");
+		return JNI_FALSE;
+	}
+	return JNI_TRUE;
+}
+
+//this is to set up the surface format
+static void wbs_jni_setup_surface_format(JNIEnv *env,ANativeWindow *new_native_window,Wbs_t *pWbs, jobject surface)
+{
+    int format = WINDOW_FORMAT_RGBA_8888;
+    int err = 0;
+    int usage = 0;
+    int queuesToNativeWindow = 0;
+    int minUndequeuedBufs = 0;
+
+    CSIO_LOG(eLogLevel_debug, "%s: ANativeWindow format was %x", __FUNCTION__, ANativeWindow_getFormat(new_native_window));
+
+    err = native_window_set_buffers_format(new_native_window, format);
+    if (err != 0)
+    {
+        CSIO_LOG(eLogLevel_error, "Failed to set buffers format to %d", format);
+        return;
+    }
+
+    pWbs->format = format;
+    CSIO_LOG(eLogLevel_debug, "ANativeWindow after set buffers format, width=%d, height=%d, format=0x%x",
+            ANativeWindow_getWidth(new_native_window), ANativeWindow_getHeight(new_native_window),
+            ANativeWindow_getFormat(new_native_window));
+
+    usage = GRALLOC_USAGE_PROTECTED | GRALLOC_USAGE_HW_TEXTURE
+            | GRALLOC_USAGE_EXTERNAL_DISP; // Sunita - standard set of flags we set to allow HW acceleration of the layers
+    native_window_set_usage(new_native_window, usage);
+
+    err = native_window_set_scaling_mode(new_native_window,
+            NATIVE_WINDOW_SCALING_MODE_SCALE_TO_WINDOW);
+    if (err != 0)
+    {
+        CSIO_LOG(eLogLevel_error, "Failed to set buffers scaling_mode : %s (%d)",strerror(-err), -err);
+        return;
+    }
+
+    err = new_native_window->query(new_native_window,
+            NATIVE_WINDOW_QUEUES_TO_WINDOW_COMPOSER, &queuesToNativeWindow);
+    if (err != 0)
+    {
+        CSIO_LOG(eLogLevel_error, "error authenticating native window: %d", err);
+        return;
+    }
+
+    err = new_native_window->query(new_native_window,
+            NATIVE_WINDOW_MIN_UNDEQUEUED_BUFFERS, (int*) &minUndequeuedBufs);
+    if (err != 0)
+    {
+        CSIO_LOG(eLogLevel_error, "NATIVE_WINDOW_MIN_UNDEQUEUED_BUFFERS query failed: %s (%d)", strerror(-err), -err);
+        return;
+    }
+
+    if (pWbs->surface)
+    {
+        CSIO_LOG(eLogLevel_debug, "Delete GlobalRef before adding new: %p", pWbs->surface);
+        (*env)->DeleteGlobalRef(env, pWbs->surface);
+        pWbs->surface = NULL;
+    }
+    pWbs->surface = (*env)->NewGlobalRef(env, surface);
+    CSIO_LOG(eLogLevel_debug, "native window = %p,surface[%p],pWbs->surface[%p]", pWbs->native_window,surface,pWbs->surface);
+}
+
+static void wbs_native_surface_init(JNIEnv *env, jobject thiz, jobject surface, jint stream)
+{
+    ANativeWindow *new_native_window;
+	CSIO_LOG(eLogLevel_verbose, "%s", __FUNCTION__);
+
+	Wbs_t *pWbs = wbs_get_stream_data(stream);
+    if (!pWbs)
+    {
+        CSIO_LOG(eLogLevel_error, "Could not access wbs stream data pointer");
+        return;
+    }
+
+    CSIO_LOG(eLogLevel_debug, "%s: pWbs=%p surface=%p, stream=%d", __FUNCTION__, pWbs, surface, stream);
+
+    if (!surface)
+    {
+        CSIO_LOG(eLogLevel_error, "No surface for stream %d", stream);
+        return;
+    }
+
+    new_native_window = ANativeWindow_fromSurface(env, surface);
+    if (!new_native_window)
+    {
+        CSIO_LOG(eLogLevel_error, "No native window for stream %d", stream);
+        return;
+    }
+
+	CSIO_LOG(eLogLevel_debug, "Received surface %p (native window %p) for stream %d",
+			   surface, new_native_window, stream);
+
+    if (pWbs->native_window)
+    {
+        ANativeWindow_release(pWbs->native_window);
+        if (pWbs->native_window == new_native_window)
+        {
+			CSIO_LOG(eLogLevel_debug, "New native window is the same as the previous one %p", pWbs->native_window);
+            return;
+        }
+        else
+        {
+            CSIO_LOG(eLogLevel_debug, "Released previous native window %p", pWbs->native_window);
+        }
+    }
+    pWbs->native_window = new_native_window;
+
+    wbs_jni_setup_surface_format(env, new_native_window, pWbs, surface);
+}
+
+static void wbs_native_surface_finalize (JNIEnv *env, jobject thiz, jint stream)
+{
+	CSIO_LOG(eLogLevel_verbose, "%s", __FUNCTION__);
+
+	Wbs_t *pWbs = wbs_get_stream_data(stream);
+    if (!pWbs)
+    {
+        CSIO_LOG(eLogLevel_error, "Could not access wbs stream data pointer");
+        return;
+    }
+
+	CSIO_LOG(eLogLevel_debug, "Releasing native window %p for stream %d",
+			   pWbs->native_window, stream);
+
+	if (pWbs->native_window != NULL)
+		ANativeWindow_release (pWbs->native_window); //TODO: java seems to already handle this
+	pWbs->native_window = NULL;
+
+	if(pWbs->surface)
+	{
+	    CSIO_LOG(eLogLevel_debug, "Delete GlobalRef %p", pWbs->surface);
+	    (*env)->DeleteGlobalRef(env, pWbs->surface);
+	    pWbs->surface = NULL;
+	}
+	//TODO: when this will be called?
+}
+
+void wbs_update_window(int sessId, int width, int height)
+{
+	JNIEnv *env = get_jni_env ();
+	jint streamId = sessId;
+	jint w = width;
+	jint h = height;
+
+	CSIO_LOG(eLogLevel_debug,  "wbs_update_window for sessionId %d (w=%d h=%d)", streamId, w, h );
+
+	jmethodID update_window = (*env)->GetMethodID(env, (jclass)wbsStreamIn_javaClass_id, "updateWindow", "(III)V");
+	if (update_window == NULL) {
+		CSIO_LOG(eLogLevel_debug,  "Could not find Java method 'updateWindow'");
+		return;
+	}
+
+	(*env)->CallVoidMethod(env, wbs_get_app(), update_window, streamId, w, h);
+	if ((*env)->ExceptionCheck (env)) {
+		CSIO_LOG(eLogLevel_error, "Failed to call Java method 'updateWindow'");
+		(*env)->ExceptionClear (env);
+	}
+	return;
+}
+
+int wbs_SendVideoPlayingStatusMessage(unsigned int source, eStreamState state)
+{
+	JNIEnv *env = get_jni_env ();
+
+	jmethodID updateStreamStatus = (*env)->GetMethodID(env, (jclass)wbsStreamIn_javaClass_id, "updateStreamStatus", "(II)V");
+	if (updateStreamStatus == NULL) {
+		CSIO_LOG(eLogLevel_debug,  "Could not find Java method 'updateStreamStatus'");
+		return -1; // TODO: what is error code here
+	}
+
+	(*env)->CallVoidMethod(env, wbs_get_app(), updateStreamStatus, (jint)state, (jint)source);
+	if ((*env)->ExceptionCheck (env)) {
+		CSIO_LOG(eLogLevel_error, "Failed to call Java method 'updateStreamStatus'");
+		(*env)->ExceptionClear (env);
+	}
+
+	return 0;
+}
+
+
+/* Set Stream URL */
+JNIEXPORT void JNICALL Java_com_crestron_txrxservice_WbsStreamIn_nativeSetUrl(JNIEnv *env, jobject thiz, jstring url_jstring, jint sessionId)
+{
+	int restartStream = 0;
+	const char * url_cstring = (*env)->GetStringUTFChars( env, url_jstring , NULL ) ;
+	if (url_cstring == NULL) return;
+
+	CSIO_LOG(eLogLevel_debug, "Using url: '%s'", url_cstring);
+	wbs_setUrl(url_cstring, sessionId);
+	//csio_SetURL(sessionId, (char *)url_cstring, strlen(url_cstring) + 1);
+
+	(*env)->ReleaseStringUTFChars(env, url_jstring, url_cstring);
+}
+
+JNIEXPORT void JNICALL Java_com_crestron_txrxservice_WbsStreamIn_nativeSetLogLevel(JNIEnv *env, jobject thiz, jint logLevel)
+{
+	CSIO_LOG(eLogLevel_debug, "Setting minimum printed log level to %d", logLevel);
+}

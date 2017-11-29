@@ -1406,7 +1406,7 @@ public class AirMediaSplashtop implements AirMedia
     {		
 		Common.Logging.d(TAG, "------------ In setSurfaceSize calling updateWindow (surfaceDisplayed="+getSurfaceDisplayed()+") --------------");
     	window_ = new Rect(x, y, x+width-1, y+height-1);
-		mStreamCtl.setAirMediaWindowDimensions(x, y, width, height, streamIdx, useTextureView(session()));
+		mStreamCtl.setWindowDimensions(x, y, width, height, streamIdx, useTextureView(session()));
 		Common.Logging.d(TAG, "------------ finished updateWindow --------------");
     }
     

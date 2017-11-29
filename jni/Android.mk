@@ -32,6 +32,8 @@ LOCAL_SRC_FILES := \
 	cresStreamOut/cresStreamOutProject.cpp \
 	cresStreamOut/streamOutUtils/cresProjectBaseClass.cpp \
 	cresStreamOut/streamOutUtils/cresStreamOutUtils.cpp \
+	Wbs.cpp \
+	TileDecoder.cpp \
 	$(CSIO_ROOT)/gstreamer-1.0/csioutils.cpp \
 	$(CSIO_ROOT)/gstreamer-1.0/cstream.cpp \
 	$(CSIO_ROOT)/gstreamer-1.0/cstreamer.cpp \
@@ -54,6 +56,8 @@ LOCAL_SHARED_LIBRARIES := libgstreamer_android liblog libandroid
 LOCAL_SHARED_LIBRARIES += libproductName
 LOCAL_SHARED_LIBRARIES += libLinuxUtil
 LOCAL_SHARED_LIBRARIES += libCresSocketHandler
+LOCAL_SHARED_LIBRARIES += libssl
+LOCAL_SHARED_LIBRARIES += libcrypto
 
 
 # Crestron - why do I have to do this?
@@ -81,6 +85,7 @@ LOCAL_CFLAGS +=\
 	-I$(CSIO_INCLUDE_ROOT)/url_parser \
 	-I$(CSIO_INCLUDE_ROOT)/gstreamer-1.0 \
 	-I$(STREAMOUT_PATH) \
+	-I$(CRESTRON_ROOT)/../openssl/include \
 	-DANDROID_OS
 
 ifeq ($(TARGET_PRODUCT),$(filter $(TARGET_PRODUCT),yushan_one ))

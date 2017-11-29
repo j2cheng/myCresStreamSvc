@@ -500,6 +500,8 @@ class StreamUrlCommand extends CrestronCommand {
     public void execute() {
     	if (ctrl.userSettings.getMode(sessId) == DeviceMode.STREAM_IN.ordinal())
     		ctrl.setStreamInUrl(msg, sessId);
+    	else if (ctrl.userSettings.getMode(sessId) == DeviceMode.WBS_STREAM_IN.ordinal())
+    		ctrl.setWbsStreamUrl(msg, sessId);
     	else
     		ctrl.setStreamOutUrl(msg, sessId);
     }
@@ -2223,6 +2225,18 @@ class camStreamMulticastAddressCommand extends CrestronCommand {
 	}
 	public String getFeedbackMsg() {
 		return ctrl.userSettings.getCamStreamMulticastAddress();
+	}
+}
+
+class wbsStreamUrlCommand extends CrestronCommand {
+	public wbsStreamUrlCommand(CresStreamCtrl ctrl, String arg, int sessId) {
+		super(ctrl, arg, sessId);
+	}	
+	public void execute() {
+		ctrl.setWbsStreamUrl(msg, sessId);
+	}
+	public String getFeedbackMsg() {
+		return ctrl.userSettings.getWbsStreamUrl(sessId);
 	}
 }
 
