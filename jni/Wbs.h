@@ -58,6 +58,7 @@ typedef struct Wbs_t {
 
 	pthread_t wbsTid;
 	bool isStarted;
+	bool isPaused;
 	bool requestStop;
 } Wbs_t;
 
@@ -71,6 +72,8 @@ void wbs_set_app(jobject app);
 void wbs_setUrl(const char *url, int sessId);
 int wbs_start(int sessId);
 void wbs_stop(int sessId);
+void wbs_pause(int sessId);
+void wbs_unpause(int sessId);
 Wbs_t *wbs_get_stream_data(int sessId);
 void wbs_update_window(int sessId, int width, int height);
 int wbs_SendVideoPlayingStatusMessage(unsigned int source, eStreamState state);

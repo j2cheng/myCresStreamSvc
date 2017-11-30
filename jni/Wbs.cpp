@@ -111,11 +111,9 @@ static void wbs_render(Wbs_t *pWbs, unsigned char *frameBuffer, int w, int h)
 
     // Locks the window buffer for drawing.
     if (ANativeWindow_lock(native_window, &windowBuffer, NULL) < 0) {
-        CSIO_LOG(eLogLevel_error, "unable to get lock on window buffer", w, h);
+        CSIO_LOG(eLogLevel_error, "unable to get lock on window buffer");
         return;
     }
-    // Clears the window.
-    //memset(windowBuffer.bits, 0, windowBuffer.stride * windowBuffer.height * sizeof(uint32_t*));
     if (w > windowBuffer.width) w = windowBuffer.width;
     if (h > windowBuffer.height) h = windowBuffer.height;
     if (windowBuffer.stride == w) {
@@ -127,6 +125,28 @@ static void wbs_render(Wbs_t *pWbs, unsigned char *frameBuffer, int w, int h)
     		memcpy(winbuf_line, frmbuf_line, w*sizeof(uint32_t));
     	}
     }
+    // Unlocks the window buffer after drawing.
+    ANativeWindow_unlockAndPost(native_window);
+}
+
+static void wbs_clear_window(Wbs_t *pWbs)
+{
+	ANativeWindow *native_window = (pWbs) ? pWbs->native_window : NULL;
+	ANativeWindow_Buffer windowBuffer;
+	CSIO_LOG(eLogLevel_debug, "%s: clear window", __FUNCTION__);
+	if (native_window == NULL) {
+		CSIO_LOG(eLogLevel_error, "%s: No window attached to stream", __FUNCTION__);
+		return;
+	}
+
+    // Locks the window buffer for drawing.
+    if (ANativeWindow_lock(native_window, &windowBuffer, NULL) < 0) {
+        CSIO_LOG(eLogLevel_error, "unable to get lock on window buffer");
+        return;
+    }
+    // Clears the window.
+    memset(windowBuffer.bits, 0, windowBuffer.stride * windowBuffer.height * sizeof(uint32_t*));
+
     // Unlocks the window buffer after drawing.
     ANativeWindow_unlockAndPost(native_window);
 }
@@ -237,20 +257,26 @@ static void do_live_view(Wbs_t *pWbs, int fd, SSL * pSSL, char const * origin = 
 				if (f & TileDecoder::FLAG_FRAME) {
 					CSIO_LOG(eLogLevel_extraVerbose, "%s: got frame (w=%d h=%d)", __FUNCTION__, deco.getWidth(), deco.getHeight());
 					pWbs->backoffInSecs = 1;		// reduce backoff to min value since we have valid connection now
+					if (!pWbs->isPaused) {			// if paused skip rendering of any new frames
 #ifdef USE_SURFACE
-					wbs_render(pWbs, deco.getBuffer(), deco.getWidth(), deco.getHeight());
+						wbs_render(pWbs, deco.getBuffer(), deco.getWidth(), deco.getHeight());
 #else
-					static int frame_counter = 0;
-					char str[64];
-					sprintf(str, "/logs/ramdiskLogs/image%04d.ppm", frame_counter++);
-					FILE * fpout = fopen(str, "wb");
-					if (fpout) {
-						fprintf(fpout, "P6 %d %d 255\n", deco.getWidth(), deco.getHeight());
-						fwrite(deco.getBuffer(), deco.getWidth()*3, deco.getHeight(), fpout);
-						fclose(fpout);
-						CSIO_LOG(eLogLevel_debug, "%s: Wrote image file %s\n", __FUNCTION__, str);
-					}
+						static int frame_counter = 0;
+						char str[64];
+						sprintf(str, "/logs/ramdiskLogs/image%04d.ppm", frame_counter++);
+						FILE * fpout = fopen(str, "wb");
+						if (fpout) {
+							fprintf(fpout, "P6 %d %d 255\n", deco.getWidth(), deco.getHeight());
+							fwrite(deco.getBuffer(), deco.getWidth()*3, deco.getHeight(), fpout);
+							fclose(fpout);
+							CSIO_LOG(eLogLevel_debug, "%s: Wrote image file %s\n", __FUNCTION__, str);
+						}
 #endif
+					}
+					else
+					{
+						CSIO_LOG(eLogLevel_extraVerbose, "%s: not rendering image - in paused state", __FUNCTION__);
+					}
 				}
 				if (f & (TileDecoder::FLAG_CLOSE | TileDecoder::FLAG_ERROR)) {
 					if (f & TileDecoder::FLAG_ERROR)
@@ -457,6 +483,7 @@ int wbs_start(int sessId)
 	    return(-1);
 	}
 
+	pWbs->isPaused = false;
 	CSIO_LOG(eLogLevel_debug, "%s: Launching WBS thread for sessionId=%d", __FUNCTION__, sessId);
     if( pthread_create(&(pWbs->wbsTid), NULL, wbsThread, pWbs) )
     {
@@ -479,6 +506,7 @@ void wbs_stop(int sessId)
 	if (pWbs->isStarted)
 	{
 		wbs_stop_connection(pWbs);
+		pWbs->isPaused = false;
 
     	int   iRtn;
     	void* tResults;
@@ -486,12 +514,49 @@ void wbs_stop(int sessId)
     	CSIO_LOG(eLogLevel_debug,  "%s: wait for thread to exit", __FUNCTION__);
         iRtn = pthread_join( pWbs->wbsTid, &tResults );
         CSIO_LOG(eLogLevel_debug,  "%s: thread exited. Status = %d", __FUNCTION__, iRtn );
-    	wbs_SendVideoPlayingStatusMessage(sessId, STREAMSTATE_STOPPED);
+    	wbs_clear_window(pWbs);    // Now clear window since we have stopped WBS stream
 	}
 	else
 	{
 		CSIO_LOG(eLogLevel_error, "%s wbs connection was not started\n", __FUNCTION__);
 	}
+	wbs_SendVideoPlayingStatusMessage(sessId, STREAMSTATE_STOPPED);
 }
 
+void wbs_pause(int sessId)
+{
+	Wbs_t *pWbs = (Wbs_t *) &gWbs[sessId];
 
+	if (!pWbs->isStarted)
+	{
+		CSIO_LOG(eLogLevel_error, "%s wbs stream not started - ignoring pause request\n", __FUNCTION__);
+		return;
+	}
+	if (pWbs->isPaused)
+	{
+		CSIO_LOG(eLogLevel_error, "%s wbs stream already in pause mode - ignoring pause request\n", __FUNCTION__);
+		return;
+	}
+	CSIO_LOG(eLogLevel_error, "%s wbs pausing stream\n", __FUNCTION__);
+	pWbs->isPaused = true;
+	wbs_SendVideoPlayingStatusMessage(sessId, STREAMSTATE_PAUSED);
+}
+
+void wbs_unpause(int sessId)
+{
+	Wbs_t *pWbs = (Wbs_t *) &gWbs[sessId];
+
+	if (!pWbs->isStarted)
+	{
+		CSIO_LOG(eLogLevel_error, "%s wbs stream not started - ignoring unpause request\n", __FUNCTION__);
+		return;
+	}
+	if (!pWbs->isPaused)
+	{
+		CSIO_LOG(eLogLevel_error, "%s wbs stream is not in paused state - ignoring unpause request\n", __FUNCTION__);
+		return;
+	}
+	CSIO_LOG(eLogLevel_error, "%s wbs unpausing stream\n", __FUNCTION__);
+	pWbs->isPaused = false;
+	wbs_SendVideoPlayingStatusMessage(sessId, STREAMSTATE_STARTED);
+}

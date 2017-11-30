@@ -26,17 +26,66 @@ extern "C" {
 #endif
 /*
  * Class:     		WbsStreamIn
+ * Method:    		nativeSurfaceInit
+ * Signature: 		(Ljava/lang/Object;I)V
+ */
+JNIEXPORT void JNICALL Java_com_crestron_txrxservice_WbsStreamIn_nativeSurfaceInit(JNIEnv *, jobject, jobject, jint);
+
+/*
+ * Class:     		WbsStreamIn
+ * Method:    		nativeSurfaceFinalize
+ * Signature: 		(I)V
+ */
+JNIEXPORT void JNICALL Java_com_crestron_txrxservice_WbsStreamIn_nativeSurfaceFinalize(JNIEnv *, jobject, jint);
+
+/*
+ * Class:     		WbsStreamIn
+ * Method:    		nativeInit
+ * Signature: 		()V
+ */
+JNIEXPORT void JNICALL Java_com_crestron_txrxservice_WbsStreamIn_nativeInit(JNIEnv *, jobject);
+
+/*
+ * Class:     		WbsStreamIn
+ * Method:    		nativeFinalize
+ * Signature: 		()V
+ */
+JNIEXPORT void JNICALL Java_com_crestron_txrxservice_WbsStreamIn_nativeFinalize(JNIEnv *, jobject);
+
+/*
+ * Class:     		WbsStreamIn
+ * Method:    		nativePlay
+ * Signature: 		(I)V
+ */
+JNIEXPORT void JNICALL Java_com_crestron_txrxservice_WbsStreamIn_nativePlay(JNIEnv *, jobject, jint);
+
+/*
+ * Class:     		WbsStreamIn
+ * Method:    		nativeStop
+ * Signature: 		(I)V
+ */
+JNIEXPORT void JNICALL Java_com_crestron_txrxservice_WbsStreamIn_nativeStop(JNIEnv *, jobject, jint);
+
+/*
+ * Class:     		WbsStreamIn
+ * Method:    		nativePause
+ * Signature: 		(I)V
+ */
+JNIEXPORT void JNICALL Java_com_crestron_txrxservice_WbsStreamIn_nativePause(JNIEnv *, jobject, jint);
+
+/*
+ * Class:     		WbsStreamIn
+ * Method:    		nativeUnpause
+ * Signature: 		(I)V
+ */
+JNIEXPORT void JNICALL Java_com_crestron_txrxservice_WbsStreamIn_nativeUnpause(JNIEnv *, jobject, jint);
+
+/*
+ * Class:     		WbsStreamIn
  * Method:    		nativeSetUrl
  * Signature: 		(Ljava/lang/string; I)V
  */
 JNIEXPORT void JNICALL Java_com_crestron_txrxservice_WbsStreamIn_nativeSetUrl(JNIEnv *, jobject, jstring, jint);
-
-/*
- * Class:     		WbsStreamIn
- * Method:    		nativeSetLogLevel
- * Signature: 		(I)V
- */
-JNIEXPORT void JNICALL Java_com_crestron_txrxservice_WbsStreamIn_nativeSetLogLevel(JNIEnv *env, jobject thiz, jint logLevel);
 
 ///////////////////////////////////////////////////////////////////////////////
 eStreamState nativeGetCurrentStreamState(jint);

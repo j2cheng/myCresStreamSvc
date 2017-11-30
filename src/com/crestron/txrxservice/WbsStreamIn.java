@@ -28,16 +28,14 @@ public class WbsStreamIn implements SurfaceHolder.Callback {
     private static native void 	nativeSetUrl(String url, int sessionId);
     private native void nativeInit();     // Initialize native code, build pipeline, etc
     private native void nativeFinalize(); // Destroy pipeline and shutdown native code
-    private native void nativePlay(int sessionId);     // Set pipeline to PLAYING
-    private native void nativePause(int sessionId);    // Set pipeline to PAUSED
-    private native void nativeStop(int sessionId);    // Set pipeline to NULL
+    private native void nativePlay(int sessionId);     // Go to PLAYING state
+    private native void nativePause(int sessionId);    // Go to PAUSED state (if playing)
+    private native void nativeUnpause(int sessionId);  // Go to PLAYING state (if paused)
+    private native void nativeStop(int sessionId);     // Go to STOPPED state
     private static native boolean nativeClassInit(); // Initialize native class: cache Method IDs for callbacks
     private native void nativeSurfaceInit(Object surface, int sessionId);
     private native void nativeSurfaceFinalize(int sessionId);
-    private long native_custom_data;      // Native code will use this to keep private data
-
-    private native void 	nativeSetWbsUrl(String url, int sessionId);
-    private native void		nativeSetLogLevel(int logLevel);
+    private native void nativeSetWbsUrl(String url, int sessionId);
         
     public WbsStreamIn(CresStreamCtrl mContext) {
         Log.e(TAG, "WbsStreamIn :: Constructor called...!");
@@ -49,10 +47,6 @@ public class WbsStreamIn implements SurfaceHolder.Callback {
     	nativeSetUrl(url, sessionId);	
 	}
     
-    public void setLogLevel(int logLevel) {
-    	nativeSetLogLevel(logLevel);
-    }
-
     public int[] getCurrentWidthHeight(int sessionId){
         int[] widthHeight = new int[2];
         // width in index 0, height in index 1
@@ -82,8 +76,12 @@ public class WbsStreamIn implements SurfaceHolder.Callback {
     	final int startTimeout_ms = 20000;
     	if (isPlaying)
     	{
-    		Log.d(TAG, "onStart(): already playing !!");
-    		return;
+    		if (streamCtl.userSettings.getStreamState(sessionId) == StreamState.PAUSED) {
+    			nativeUnpause(sessionId);
+    		} else {
+    			Log.d(TAG, "onStart(): already playing !!");
+    		}
+			return;
     	}
     	Thread startThread = new Thread(new Runnable() {
     		public void run() {
@@ -160,7 +158,14 @@ public class WbsStreamIn implements SurfaceHolder.Callback {
     
     //Pause
     public void onPause(int sessionId) {
-        nativePause(sessionId);
+    	if (isPlaying)
+    	{
+    		nativePause(sessionId);
+    	}
+    	else
+    	{
+    		Log.d(TAG, "onPause(): cannot pause a stopped stream !!");
+    	}
     }
     
     private void updateNativeDataStruct(int sessionId)
@@ -171,17 +176,9 @@ public class WbsStreamIn implements SurfaceHolder.Callback {
     	setUrl(newUrl, sessionId); 
     }
 
-    private void setMessage(final String message) {
-        Log.d(TAG, "setMessage " + message);
-    }
-    
     protected void onDestroy() {
         nativeFinalize();
 //        super.onDestroy();
-    }
-
-    static {
-        nativeClassInit();
     }
  
 	// Find the session id (aka stream number) given a surface holder.
