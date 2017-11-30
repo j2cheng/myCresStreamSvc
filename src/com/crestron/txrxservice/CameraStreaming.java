@@ -1019,6 +1019,7 @@ public class CameraStreaming {
     public void startConfidencePreview(int sessionId){
     	if (Boolean.parseBoolean(streamCtl.hdmiOutput.getSyncStatus()))
     	{
+    		Log.i(TAG, "startConfidencePreview: calling updateWindow");
 	    	streamCtl.updateWindow(sessionId);
 	    	streamCtl.showPreviewWindow(sessionId);
 	    	streamCtl.cam_preview.setSessionIndex(sessionId);

@@ -55,6 +55,7 @@ typedef struct Wbs_t {
 	int backoffInSecs;
 	int width;
 	int height;
+	int frameCount;
 
 	pthread_t wbsTid;
 	bool isStarted;

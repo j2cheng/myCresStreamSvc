@@ -1779,6 +1779,7 @@ public class CresStreamCtrl extends Service {
                 try
                 {
                 	enableRestartMechanism = true; //enable restart detection
+            		Log.i(TAG, "setDeviceMode: calling updateWindow for sessId="+sessionId);
                 	updateWindow(sessionId);
                     showPreviewWindow(sessionId);
                     invalidateSurface();
@@ -1856,6 +1857,7 @@ public class CresStreamCtrl extends Service {
     		userSettings.setW(0, sessionId);
     		userSettings.setH(0, sessionId);
     		
+    		Log.i(TAG, "resetAllWindows: calling updateWindow for sessId="+sessionId);
     		updateWindow(sessionId);
     	}
     }
@@ -1883,6 +1885,8 @@ public class CresStreamCtrl extends Service {
     	userSettings.setYloc(y, sessionId);
     	userSettings.setW(width, sessionId);
     	userSettings.setH(height, sessionId);
+    	Log.i(TAG, "setWindowDimensions - calling updateWindow for sessId="+sessionId+
+    			" "+width+"x"+height+"@"+x+","+y+"   useTexture="+use_texture);
     	updateWindow(sessionId, use_texture);
     }
 
@@ -2079,7 +2083,7 @@ public class CresStreamCtrl extends Service {
     {
     	// to avoid bug : we will set window dimensions and then set again after 10 seconds
     	updateFullWindow(sessionId, use_texture_view);
-    	new Timer().schedule(new doubleSendWindowDimensions(sessionId, use_texture_view), 20000);
+    	new Timer().schedule(new doubleSendWindowDimensions(sessionId, use_texture_view), 10000);
     }
     
     // !!!!!!! Do not call this function use updateWindow instead !!!!!!!
@@ -3024,6 +3028,7 @@ public class CresStreamCtrl extends Service {
     		if (cam_streaming.getConfidencePreviewStatus() == true)
     			cam_streaming.stopConfidencePreview(sessId);
 
+    		Log.i(TAG, "startStreamOut: calling updateWindow for sessId="+sessId);
     		updateWindow(sessId);
     		showPreviewWindow(sessId);
     		out_url = createStreamOutURL(sessId);
@@ -3395,6 +3400,7 @@ public class CresStreamCtrl extends Service {
 
     public void startStreamIn(int sessId)
     {
+		Log.i(TAG, "startStreamIn: calling updateWindow for sessId="+sessId);
     	updateWindow(sessId);
         showStreamInWindow(sessId);
         invalidateSurface();
@@ -3422,7 +3428,8 @@ public class CresStreamCtrl extends Service {
 
     public void startWbsStream(int sessId)
     {
-    	updateWindow(sessId);
+		Log.i(TAG, "startWbsStream: calling updateWindow for sessId="+sessId);
+    	updateWindow(sessId, wbsStream.useSurfaceTexture);
         showWbsWindow(sessId);
         invalidateSurface();
         wbsStream.onStart(sessId);
@@ -3453,6 +3460,7 @@ public class CresStreamCtrl extends Service {
     		{
     			lastHDMImode = DeviceMode.PREVIEW;
     			SendStreamState(StreamState.CONNECTING, sessId);
+        		Log.i(TAG, "startGstPreview: calling updateWindow for sessId="+sessId);
     			updateWindow(sessId);
     			showPreviewWindow(sessId);
     			invalidateSurface();
@@ -3479,7 +3487,8 @@ public class CresStreamCtrl extends Service {
     		if (cam_preview != null)
     		{
     			SendStreamState(StreamState.CONNECTING, sessId);
-    			updateWindow(sessId);
+        		Log.i(TAG, "startNativePreview: calling updateWindow for sessId="+sessId);
+        		updateWindow(sessId);
     			showPreviewWindow(sessId);
     			cam_preview.setSessionIndex(sessId);
     			invalidateSurface();
@@ -5375,6 +5384,7 @@ public class CresStreamCtrl extends Service {
 		}		
 		@Override
 		public void run() {
+			Log.d(TAG, "delayed call to updateFullWindow");
 			updateFullWindow(sessionId, use_text);
 		}
 	}

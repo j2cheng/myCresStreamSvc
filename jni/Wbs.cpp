@@ -103,7 +103,10 @@ static void wbs_render(Wbs_t *pWbs, unsigned char *frameBuffer, int w, int h)
 {
 	ANativeWindow *native_window = (pWbs) ? pWbs->native_window : NULL;
 	ANativeWindow_Buffer windowBuffer;
-	CSIO_LOG(eLogLevel_extraVerbose, "%s: render image %dx%d", __FUNCTION__, w, h);
+
+	CSIO_LOG((pWbs->frameCount < 10) ? eLogLevel_debug : eLogLevel_extraVerbose, "%s: render image %d of size %dx%d", __FUNCTION__, pWbs->frameCount, w, h);
+	pWbs->frameCount++;
+
 	if (native_window == NULL) {
 		CSIO_LOG(eLogLevel_error, "%s: No window attached to stream", __FUNCTION__);
 		return;
@@ -405,6 +408,7 @@ static void *wbsThread(void *arg)
 	pWbs->isStarted = true;
 	pWbs->requestStop = false;
 	pWbs->backoffInSecs = RESTART_MAX_BACKOFF_SECS;
+	pWbs->frameCount = 0;
 	CSIO_LOG(eLogLevel_debug, "%s: requestStop=%s", __FUNCTION__, (pWbs->requestStop)?"true":"false");
 	while (!wbs_start_connection(pWbs)) {
 		if (!pWbs->requestStop)
