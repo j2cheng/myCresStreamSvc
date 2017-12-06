@@ -140,6 +140,7 @@ public class AirMediaSession extends AirMediaBase {
 
         public void onVideoTypeChanged(AirMediaSessionVideoType from, AirMediaSessionVideoType to) throws RemoteException {
             Common.Logging.v(TAG, "IAirMediaSessionObserver.onVideoTypeChanged  " + AirMediaSession.toDebugString(self()) + "  " + from + "  ==>  " + to);
+            videoId_ = session_.getVideoId();
             videoType_ = to;
             scheduler().raise(videoTypeChanged(), self(), from, to);
         }
