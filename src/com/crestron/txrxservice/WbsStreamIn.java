@@ -79,7 +79,7 @@ public class WbsStreamIn implements SurfaceHolder.Callback {
     		if (streamCtl.userSettings.getStreamState(sessionId) == StreamState.PAUSED) {
     			nativeUnpause(sessionId);
     		} else {
-    			Log.d(TAG, "onStart(): already playing !!");
+    			Log.i(TAG, "onStart(): already playing !!");
     		}
 			return;
     	}
@@ -92,11 +92,11 @@ public class WbsStreamIn implements SurfaceHolder.Callback {
     				if (!useSurfaceTexture) {
     					nativeSurfaceInit(sh.getSurface(), sessionId);
     				} else {
-    					Log.d(TAG, "*********** passing surface derived from TextureView for sessionId: " + sessionId + " to 'nativeSurfaceInit' ************");
+    					Log.i(TAG, "*********** passing surface derived from TextureView for sessionId: " + sessionId + " to 'nativeSurfaceInit' ************");
     					Surface s = new Surface(streamCtl.getAirMediaSurfaceTexture(sessionId));
     					nativeSurfaceInit(s, sessionId);
     				}
-    		    	Log.d(TAG, "Starting WBS Streaming");
+    		    	Log.i(TAG, "Starting WBS Streaming");
     				nativePlay(sessionId);    		
     			}
     			catch(Exception e){
@@ -126,7 +126,7 @@ public class WbsStreamIn implements SurfaceHolder.Callback {
     
     public void updateWindow(int streamId, int wbsWidth, int wbsHeight)
     {
-    	Log.d(TAG, "In update window: streamId="+streamId+"   "+wbsWidth+"x"+wbsHeight);
+    	Log.i(TAG, "In update window: streamId="+streamId+"   "+wbsWidth+"x"+wbsHeight);
     	int width = streamCtl.userSettings.getW(streamId);
     	int height = streamCtl.userSettings.getH(streamId);
 
@@ -140,18 +140,18 @@ public class WbsStreamIn implements SurfaceHolder.Callback {
     	Rect r = MiscUtils.getAspectRatioPreservingRectangle(
     			streamCtl.userSettings.getXloc(streamId), streamCtl.userSettings.getYloc(streamId), width, height,
     			wbsWidth, wbsHeight);
-		Log.d(TAG, "updateWindow: "+r.width()+"x"+r.height()+" @ ("+r.left+","+r.top+")");
+		Log.i(TAG, "updateWindow: "+r.width()+"x"+r.height()+" @ ("+r.left+","+r.top+")");
 		streamCtl.setWindowDimensions(r.left, r.top, r.width(), r.height(), streamId, useSurfaceTexture);
     }    	
 
     public void onStop(final int sessionId) {
     	if (!isPlaying)
     	{
-    		Log.d(TAG, "onStop(): already stopped !!");
+    		Log.i(TAG, "onStop(): already stopped !!");
     		return;
     	}
     	isPlaying = false;
-    	Log.d(TAG, "Stopping WBS Streaming");
+    	Log.i(TAG, "Stopping WBS Streaming");
         //nativeSurfaceFinalize (sessionId);should be called in surfaceDestroyed()
         nativeStop(sessionId);        
     }
@@ -164,7 +164,7 @@ public class WbsStreamIn implements SurfaceHolder.Callback {
     	}
     	else
     	{
-    		Log.d(TAG, "onPause(): cannot pause a stopped stream !!");
+    		Log.i(TAG, "onPause(): cannot pause a stopped stream !!");
     	}
     }
     
@@ -202,10 +202,10 @@ public class WbsStreamIn implements SurfaceHolder.Callback {
 		int sessionId = sessionIdFromSurfaceHolder(holder);     
 		if(sessionId < 0)
 		{
-		    Log.d("WBSStream","Failed to get session id from surface holder");
+		    Log.i("WBSStream","Failed to get session id from surface holder");
 		    return;
 		}
-        Log.d("WBSStream", "Surface for stream " + sessionId + " changed to format " + format + " width "
+        Log.i("WBSStream", "Surface for stream " + sessionId + " changed to format " + format + " width "
                 + width + " height " + height);		
         nativeSurfaceInit (holder.getSurface(), sessionId);
     }
@@ -214,10 +214,10 @@ public class WbsStreamIn implements SurfaceHolder.Callback {
         int sessionId = sessionIdFromSurfaceHolder(holder);        
    		if(sessionId < 0)
 		{
-		    Log.d("WBSStream","Failed to get session id from surface holder");
+		    Log.i("WBSStream","Failed to get session id from surface holder");
 		    return;
 		}
-        Log.d("WBSStream", "Surface for stream " + sessionId + " created: " + holder.getSurface());
+        Log.i("WBSStream", "Surface for stream " + sessionId + " created: " + holder.getSurface());
         nativeSurfaceInit (holder.getSurface(), sessionId);
     }
 
@@ -225,10 +225,10 @@ public class WbsStreamIn implements SurfaceHolder.Callback {
         int sessionId = sessionIdFromSurfaceHolder(holder);        
 		if(sessionId < 0)
 		{
-		    Log.d("WBSStream","Failed to get session id from surface holder");
+		    Log.i("WBSStream","Failed to get session id from surface holder");
 		    return;
 		}        
-		Log.d("WBSStream", "Surface for stream " + sessionId + " destroyed");		
+		Log.i("WBSStream", "Surface for stream " + sessionId + " destroyed");		
         nativeSurfaceFinalize (sessionId);
     }
 }

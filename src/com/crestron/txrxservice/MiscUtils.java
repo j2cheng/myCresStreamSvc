@@ -44,7 +44,7 @@ public class MiscUtils {
 					Pattern pattern = Pattern.compile(IPADDRESS_PATTERN);
 					matcher = pattern.matcher(ipString);
 					if (matcher.find()) {	
-						Log.d(TAG, "ipstring:" + matcher.group());
+						Log.i(TAG, "ipstring:" + matcher.group());
 					}
 				}
 
@@ -120,13 +120,13 @@ public class MiscUtils {
         int aw = (int) finalWidth;
         int ah = (int) finalHeight;
         
-        Log.d(TAG, "getAspectRatioPreservingRectangle : x="+x+" y="+y+"   Window wxh="+w+"x"+h+"     video wxh="+videoW+"x"+videoH);
-        Log.d(TAG, "getAspectRatioPreservingRectangle : rescaled wxh="+aw+"x"+ah);
+        Log.i(TAG, "getAspectRatioPreservingRectangle : x="+x+" y="+y+"   Window wxh="+w+"x"+h+"     video wxh="+videoW+"x"+videoH);
+        Log.i(TAG, "getAspectRatioPreservingRectangle : rescaled wxh="+aw+"x"+ah);
 
         x += (w-aw)/2;
         y += (h-ah)/2;
         Rect r = new Rect(x, y, x+aw, y+ah);
-        Log.d(TAG, "getAspectRatioPreservingRectangle x="+r.left+" y="+r.top+"   wxh="+r.width()+"x"+r.height());
+        Log.i(TAG, "getAspectRatioPreservingRectangle x="+r.left+" y="+r.top+"   wxh="+r.width()+"x"+r.height());
         return r;
     }
     

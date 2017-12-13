@@ -415,9 +415,9 @@ public class CresStreamCtrl extends Service {
     }
     
 	static {
-		Log.d(TAG,"loading csio product info library" );
+		Log.i(TAG,"loading csio product info library" );
 		System.loadLibrary("CsioProdInfo");
-		Log.d(TAG,"loading cresstreamctrl jni library" );
+		Log.i(TAG,"loading cresstreamctrl jni library" );
 		System.loadLibrary("cresstreamctrl_jni");
 	}
     
@@ -458,13 +458,13 @@ public class CresStreamCtrl extends Service {
     			} catch (Exception e) {}
     			if (val == 1)
     			{
-	    			Log.d(TAG, "about to wait for external display(s)");
+	    			Log.i(TAG, "about to wait for external display(s)");
 	    			for(int i=1; i<=15; i++)
 	    			{
 	    				SystemClock.sleep(1000);
-	    				Log.d(TAG, "waited " + i + " sec");
+	    				Log.i(TAG, "waited " + i + " sec");
 	    			}
-	    			Log.d(TAG, "done waiting for external display(s)");
+	    			Log.i(TAG, "done waiting for external display(s)");
 	    			MiscUtils.writeStringToDisk(startUpFilePath, String.valueOf(1));
     			}
     		}
@@ -493,7 +493,7 @@ public class CresStreamCtrl extends Service {
     					@Override
     					public void uncaughtException(Thread paramThread, Throwable paramThrowable) {
     						//Close Camera   
-    						Log.d(TAG,"Global uncaught Exception !!!!!!!!!!!" );
+    						Log.i(TAG,"Global uncaught Exception !!!!!!!!!!!" );
     						paramThrowable.printStackTrace();
 
     						try {
@@ -632,7 +632,7 @@ public class CresStreamCtrl extends Service {
 
     				if (fixSettingsVersionMismatch)
     				{
-    					Log.d(TAG, "Saved userSettings version too old, upgrading settings, saved version: " 
+    					Log.i(TAG, "Saved userSettings version too old, upgrading settings, saved version: " 
     							+ userSettings.getVersionNum() + " required version: " + VersionNumber);
     				}
 
@@ -692,7 +692,7 @@ public class CresStreamCtrl extends Service {
     					if (mCameraDisabled == true)
     						Log.w(TAG, "Camera is either disabled or not available, removing access");
     					else
-    						Log.d(TAG, String.format("Camera is enabled, allowing access"));
+    						Log.i(TAG, String.format("Camera is enabled, allowing access"));
     					latch.countDown();
     				}
     			});
@@ -797,7 +797,7 @@ public class CresStreamCtrl extends Service {
     		if (hdmiInputDriverPresent)
     		{
     			hpdHdmiEvent = HDMIInputInterface.getHdmiHpdEventState();            
-    			Log.d(TAG, "hpdHdmiEvent :" + hpdHdmiEvent);
+    			Log.i(TAG, "hpdHdmiEvent :" + hpdHdmiEvent);
     		}
 
     		//AudioManager
@@ -896,7 +896,7 @@ public class CresStreamCtrl extends Service {
    
     @Override
     public int onStartCommand (Intent intent, int flags, int startId) {
-            Log.d(TAG,"CresStreamCtrl Started !" );            
+            Log.i(TAG,"CresStreamCtrl Started !" );            
             return START_STICKY;	// No longer needed since it is not a service
     }
     
@@ -1035,7 +1035,7 @@ public class CresStreamCtrl extends Service {
     		surfaceHolder = dispSurface.GetSurfaceHolder(sessionId);
     	
     	if (surfaceHolder != null)
-    		Log.d(TAG, String.format("returned surface holder %s", surfaceHolder.toString()));
+    		Log.i(TAG, String.format("returned surface holder %s", surfaceHolder.toString()));
     	
     	return surfaceHolder;
     }
@@ -1073,7 +1073,7 @@ public class CresStreamCtrl extends Service {
         				airMediaLicensed = AirMediaAwind.checkAirMediaLicense();
     				}
 				}
-    			Log.d(TAG, "AirMedia is licensed: try to start AirMedia (csioConnected="+csioConnected+")");
+    			Log.i(TAG, "AirMedia is licensed: try to start AirMedia (csioConnected="+csioConnected+")");
     			while (!csioConnected) {
     				try { Thread.sleep(500); } catch (InterruptedException e){}//Poll every 0.5 seconds
     			}
@@ -1086,7 +1086,7 @@ public class CresStreamCtrl extends Service {
     			else
     			{
     				if (mAirMedia == null && airMediaLicensed) {
-    					Log.d(TAG, "Calling AirMediaConstructor from airMediaLicenseThread");
+    					Log.i(TAG, "Calling AirMediaConstructor from airMediaLicenseThread");
     					mAirMedia = new AirMediaSplashtop(streamCtrl); 
     				}    				
     			}
@@ -1117,7 +1117,7 @@ public class CresStreamCtrl extends Service {
 
     	    		if (hdmiInputDriverPresent)
     	    		{
-    	    			Log.d(TAG, "HDMI input driver is present");
+    	    			Log.i(TAG, "HDMI input driver is present");
     	    			hdmiInput = new HDMIInputInterface();
     	    			//refresh resolution on startup
     	    			hdmiInput.setResolutionIndex(HDMIInputInterface.readResolutionEnum(true));
@@ -1132,7 +1132,7 @@ public class CresStreamCtrl extends Service {
     	    			ProductSpecific.getHdmiInputStatus();
     	    		}
     	    		else
-    	    			Log.d(TAG, "HDMI input driver is NOT present");
+    	    			Log.i(TAG, "HDMI input driver is NOT present");
     			}
     			else
     			{
@@ -1317,7 +1317,7 @@ public class CresStreamCtrl extends Service {
     		}
     	}).start();
     	
-        Log.d(TAG, "Restarting Streams - recoverFromCrash");
+        Log.i(TAG, "Restarting Streams - recoverFromCrash");
     	restartStreams(false);
     }
     
@@ -1409,7 +1409,7 @@ public class CresStreamCtrl extends Service {
 	    					if (hdmiInSampleRate != mPreviousAudioInputSampleRate)
 	    					{
 	    						mPreviousAudioInputSampleRate = hdmiInSampleRate;
-	    				        Log.d(TAG, "Restarting Streams - hdmi input resolution change");
+	    				        Log.i(TAG, "Restarting Streams - hdmi input resolution change");
 	    						restartStreams(true); //skip stream in since it does not use hdmi input
 	    					}
 	    				}
@@ -1567,7 +1567,7 @@ public class CresStreamCtrl extends Service {
     	// File will exist because kernel creates is on boot, if dne then assume audio ready
     	if (!audioReadyFile.isFile())	//check if file exists
     	{
-    		Log.d(TAG, "Audio subsystem is ready");
+    		Log.i(TAG, "Audio subsystem is ready");
     		audioReadyLatch.countDown();
     		return;
     	}
@@ -1582,7 +1582,7 @@ public class CresStreamCtrl extends Service {
 		// Stop/Start all audio
         if (initialAudioReady == 1)
         {
-        	Log.d(TAG, "Audio subsystem is ready");
+        	Log.i(TAG, "Audio subsystem is ready");
         	audioReadyLatch.countDown();
         	return;
         }
@@ -1601,7 +1601,7 @@ public class CresStreamCtrl extends Service {
 					// Stop/Start all audio
 			        if (audioReady == 1)
 			        {
-			        	Log.d(TAG, "Audio subsystem is ready");
+			        	Log.i(TAG, "Audio subsystem is ready");
 			        	audioReadyLatch.countDown();
 			        	audioReadyFileObserver.stopWatching(); 		// This is a one shot
 			        	return;
@@ -1628,7 +1628,7 @@ public class CresStreamCtrl extends Service {
     		writeDucatiState(1);
     		mMediaServerCrash = false;
     		
-    		Log.d(TAG, "Filtering out restartStreams because restart mechanism is currently disabled");
+    		Log.i(TAG, "Filtering out restartStreams because restart mechanism is currently disabled");
     		
     		return;
     	}
@@ -1657,7 +1657,7 @@ public class CresStreamCtrl extends Service {
     	    	try
     	    	{	
     	    		boolean restartStreamsCalled = false;
-			    	Log.d(TAG, "Restarting Streams...");
+			    	Log.i(TAG, "Restarting Streams...");
 			
 			    	//If streamstate was previously started, restart stream
 			        for (int sessionId = 0; sessionId < NumOfSurfaces; sessionId++)
@@ -1751,7 +1751,7 @@ public class CresStreamCtrl extends Service {
     
     public void setDeviceMode(int mode, int sessionId)
     {
-        Log.d(TAG, " setDeviceMode "+ mode);
+        Log.i(TAG, " setDeviceMode "+ mode);
         int prevMode = userSettings.getMode(sessionId);
         userSettings.setMode(mode, sessionId);
         
@@ -1777,7 +1777,7 @@ public class CresStreamCtrl extends Service {
             	
             	// we want confidence image up for stream out, until streamout is actually started
             	stopStartLock[sessionId].lock();
-            	Log.d(TAG, "Start " + sessionId + " : Lock");
+            	Log.i(TAG, "Start " + sessionId + " : Lock");
                 try
                 {
                 	enableRestartMechanism = true; //enable restart detection
@@ -1789,7 +1789,7 @@ public class CresStreamCtrl extends Service {
                 } finally
                 {
                 	stopStartLock[sessionId].unlock();
-                	Log.d(TAG, "Start " + sessionId + " : Unlock");
+                	Log.i(TAG, "Start " + sessionId + " : Unlock");
                 }
             	restartRequired[sessionId] = true;
             }
@@ -1980,7 +1980,7 @@ public class CresStreamCtrl extends Service {
 	        	}
 	        	
 	        	// Start streams back up
-	            Log.d(TAG, "Restarting Streams - z order change");
+	            Log.i(TAG, "Restarting Streams - z order change");
 	        	restartStreams(false);
 	    	}
     	}
@@ -2008,7 +2008,7 @@ public class CresStreamCtrl extends Service {
         
     public void updateWH(final int sessionId)
     {
-        Log.d(TAG, "updateWH " + sessionId + " : Lock");
+        Log.i(TAG, "updateWH " + sessionId + " : Lock");
         windowtLock[sessionId].lock();
         try
         {
@@ -2069,7 +2069,7 @@ public class CresStreamCtrl extends Service {
         finally
         {
         	windowtLock[sessionId].unlock();
-            Log.d(TAG, "updateWH " + sessionId + " : Unlock");
+            Log.i(TAG, "updateWH " + sessionId + " : Unlock");
         }
 
     }
@@ -2091,7 +2091,7 @@ public class CresStreamCtrl extends Service {
     // !!!!!!! Do not call this function use updateWindow instead !!!!!!!
     private void updateFullWindow(final int sessionId, final boolean use_texture_view)
     {
-        Log.d(TAG, "updateFullWindow " + sessionId + " : Lock");
+        Log.i(TAG, "updateFullWindow " + sessionId + " : Lock");
         windowtLock[sessionId].lock();
         try
         {
@@ -2109,7 +2109,7 @@ public class CresStreamCtrl extends Service {
         			tmpHeight = 1080;
         		}
         	}
-            Log.d(TAG, "****** updateFullWindow x="+String.valueOf(tmpX)+" y="+String.valueOf(tmpY) + " w=" + String.valueOf(tmpWidth) + " h=" + String.valueOf(tmpHeight));
+            Log.i(TAG, "****** updateFullWindow x="+String.valueOf(tmpX)+" y="+String.valueOf(tmpY) + " w=" + String.valueOf(tmpWidth) + " h=" + String.valueOf(tmpHeight));
 
         	// Needs to be final so that we can pass to another thread
         	final int width = tmpWidth;
@@ -2150,13 +2150,13 @@ public class CresStreamCtrl extends Service {
         finally
         {
         	windowtLock[sessionId].unlock();
-            Log.d(TAG, "updateFullWindow " + sessionId + " : Unlock");
+            Log.i(TAG, "updateFullWindow " + sessionId + " : Unlock");
         }
     }
     
     public void hideWindowWithoutDestroy(final int sessionId)
     {
-        Log.d(TAG, "updateWH " + sessionId + " : Lock");
+        Log.i(TAG, "updateWH " + sessionId + " : Lock");
         windowtLock[sessionId].lock();
         try
         {
@@ -2191,7 +2191,7 @@ public class CresStreamCtrl extends Service {
         finally
         {
         	windowtLock[sessionId].unlock();
-            Log.d(TAG, "updateWH " + sessionId + " : Unlock");
+            Log.i(TAG, "updateWH " + sessionId + " : Unlock");
         }
 
     }
@@ -2229,7 +2229,7 @@ public class CresStreamCtrl extends Service {
     public void updateXY(final int sessionId)
     {
     	
-    	Log.d(TAG, "updateXY " + sessionId + " : Lock");
+    	Log.i(TAG, "updateXY " + sessionId + " : Lock");
     	windowtLock[sessionId].lock();
     	
     	try
@@ -2270,7 +2270,7 @@ public class CresStreamCtrl extends Service {
     	finally
     	{
     		windowtLock[sessionId].unlock();
-        	Log.d(TAG, "updateXY " + sessionId + " : Unlock");
+        	Log.i(TAG, "updateXY " + sessionId + " : Unlock");
     	}
     }
 
@@ -2280,7 +2280,7 @@ public class CresStreamCtrl extends Service {
     		return;
     	if (mAirMedia == null || !(mAirMedia instanceof AirMediaSplashtop))
     		return;
-        Log.d(TAG, "setVideoTransformation " + sessionId + " : Lock");
+        Log.i(TAG, "setVideoTransformation " + sessionId + " : Lock");
         windowtLock[sessionId].lock();
         try
         {
@@ -2298,7 +2298,7 @@ public class CresStreamCtrl extends Service {
         			tmpHeight = 1080;
         		}
         	}
-            Log.d(TAG, "setVideoTransformation x="+String.valueOf(tmpX)+" y="+String.valueOf(tmpY) + " w=" + String.valueOf(tmpWidth) + " h=" + String.valueOf(tmpHeight));
+            Log.i(TAG, "setVideoTransformation x="+String.valueOf(tmpX)+" y="+String.valueOf(tmpY) + " w=" + String.valueOf(tmpWidth) + " h=" + String.valueOf(tmpHeight));
 
         	// Needs to be final so that we can pass to another thread
         	final int width = tmpWidth;
@@ -2339,7 +2339,7 @@ public class CresStreamCtrl extends Service {
         finally
         {
         	windowtLock[sessionId].unlock();
-            Log.d(TAG, "setVideoTransformation " + sessionId + " : Unlock");
+            Log.i(TAG, "setVideoTransformation " + sessionId + " : Unlock");
         }
     }
     
@@ -2493,7 +2493,7 @@ public class CresStreamCtrl extends Service {
         	{
         		if (userSettings.getUserRequestedStreamState(sessionId) == StreamState.STARTED)
         		{
-        			Log.d(TAG, "HDMI output connected, attempting to start stream " + sessionId);
+        			Log.i(TAG, "HDMI output connected, attempting to start stream " + sessionId);
         			Start(sessionId);
         		}
         	}
@@ -2789,7 +2789,7 @@ public class CresStreamCtrl extends Service {
     public StreamState getCurrentStreamState(int sessionId)
     {
     	StreamState returnStreamState;
-    	Log.d(TAG, "StreamState " + sessionId + " : Lock");
+    	Log.i(TAG, "StreamState " + sessionId + " : Lock");
     	streamStateLock[sessionId].lock();
     	try
     	{
@@ -2798,14 +2798,14 @@ public class CresStreamCtrl extends Service {
     	finally 
     	{
         	streamStateLock[sessionId].unlock();
-        	Log.d(TAG, "StreamState " + sessionId + " : Unlock");
+        	Log.i(TAG, "StreamState " + sessionId + " : Unlock");
     	}
     	return returnStreamState;
     }
     
     public void SendStreamState(StreamState state, int sessionId)
     {
-    	Log.d(TAG, "StreamState " + sessionId + " : Lock");
+    	Log.i(TAG, "StreamState " + sessionId + " : Lock");
     	streamStateLock[sessionId].lock();
     	try
     	{
@@ -2820,7 +2820,7 @@ public class CresStreamCtrl extends Service {
         finally 
     	{
         	streamStateLock[sessionId].unlock();
-        	Log.d(TAG, "StreamState " + sessionId + " : Unlock");
+        	Log.i(TAG, "StreamState " + sessionId + " : Unlock");
     	}
     }
 
@@ -2830,7 +2830,7 @@ public class CresStreamCtrl extends Service {
     	stopStartLock[sessionId].lock();
     	try
     	{	
-    		Log.d(TAG, "Start " + sessionId + " : Lock");
+    		Log.i(TAG, "Start " + sessionId + " : Lock");
     		if (userSettings.getAirMediaLaunch(sessionId)) {
     			// If we are starting streaming shutoff air media
     		    launchAirMedia(false, sessionId, false);
@@ -2871,19 +2871,19 @@ public class CresStreamCtrl extends Service {
     			}
     		}
     		else
-    			Log.d(TAG, "Filtering out start because hdmi output not connected");
+    			Log.i(TAG, "Filtering out start because hdmi output not connected");
     	}
     	finally
     	{
     		stopStartLock[sessionId].unlock();
-    		Log.d(TAG, "Start " + sessionId + " : Unlock");
+    		Log.i(TAG, "Start " + sessionId + " : Unlock");
     	}
     }
 
     public void Stop(int sessionId, boolean fullStop)
     {
     	stopStartLock[sessionId].lock();
-    	Log.d(TAG, "Stop " + sessionId + " : Lock");
+    	Log.i(TAG, "Stop " + sessionId + " : Lock");
     	try
     	{
     		//csio will send service full stop when it does not want confidence mode started
@@ -2908,7 +2908,7 @@ public class CresStreamCtrl extends Service {
     	finally
     	{
     		stopStartLock[sessionId].unlock();
-    		Log.d(TAG, "Stop " + sessionId + " : Unlock");
+    		Log.i(TAG, "Stop " + sessionId + " : Unlock");
     	}
     }
 
@@ -2917,7 +2917,7 @@ public class CresStreamCtrl extends Service {
     	stopStartLock[sessionId].lock();
     	try
     	{
-    		Log.d(TAG, "Pause " + sessionId + " : Lock");
+    		Log.i(TAG, "Pause " + sessionId + " : Lock");
     		if ((getCurrentStreamState(sessionId) != StreamState.PAUSED) && (userSettings.getStreamState(sessionId) != StreamState.STOPPED))
     		{
     			pauseStatus="true";
@@ -2930,7 +2930,7 @@ public class CresStreamCtrl extends Service {
     	}
     	finally
     	{
-    		Log.d(TAG, "Pause " + sessionId + " : Unlock");
+    		Log.i(TAG, "Pause " + sessionId + " : Unlock");
     		stopStartLock[sessionId].unlock();
     	}
     }
@@ -2997,14 +2997,14 @@ public class CresStreamCtrl extends Service {
             file = userSettings.getRtspStreamFileName();;
 
             url.append(proto).append("://").append(l_ipaddr).append(":").append(port).append("/").append(file);
-            Log.d(TAG, "URL is "+url.toString());
+            Log.i(TAG, "URL is "+url.toString());
         }else {
 			if (getAutomaticInitiationMode()) {
 				url.append(userSettings.getStreamServerUrl(sessId));
 			} else {
 				url.append(userSettings.getStreamOutUrl(sessId));
 			}
-			Log.d(TAG, "createStreamOut: URL="+url.toString());
+			Log.i(TAG, "createStreamOut: URL="+url.toString());
 		}
 
 	
@@ -3017,7 +3017,7 @@ public class CresStreamCtrl extends Service {
     		return;
     	
     	cameraLock.lock();
-    	Log.d(TAG, "Camera : Lock");
+    	Log.i(TAG, "Camera : Lock");
     	try
     	{
     		StringBuilder sb = new StringBuilder(512);
@@ -3047,13 +3047,13 @@ public class CresStreamCtrl extends Service {
     		//Toast.makeText(this, "StreamOut Started", Toast.LENGTH_LONG).show();
 
     		sb.append("STREAMURL=").append(out_url);
-			Log.d(TAG, "Sending STREAMURL=" + out_url);
+			Log.i(TAG, "Sending STREAMURL=" + out_url);
     		sockTask.SendDataToAllClients(sb.toString());    
     	} 
     	finally
     	{
     		cameraLock.unlock();
-    		Log.d(TAG, "Camera : Unlock");
+    		Log.i(TAG, "Camera : Unlock");
     	}
     }
 
@@ -3063,7 +3063,7 @@ public class CresStreamCtrl extends Service {
     		return;
     	
     	cameraLock.lock();
-    	Log.d(TAG, "Camera : Lock");
+    	Log.i(TAG, "Camera : Lock");
     	try
     	{
     		lastHDMImode = DeviceMode.PREVIEW;
@@ -3098,7 +3098,7 @@ public class CresStreamCtrl extends Service {
     	finally
     	{
     		cameraLock.unlock();
-    		Log.d(TAG, "Camera : Unlock");
+    		Log.i(TAG, "Camera : Unlock");
     	}
 	}
     
@@ -3226,7 +3226,7 @@ public class CresStreamCtrl extends Service {
     
     public void showSplashtopWindow(int sessId, boolean use_texture)
     {
-    	Log.d(TAG, "Splashtop: Window showing");
+    	Log.i(TAG, "Splashtop: Window showing");
     	if (use_texture)
     	{
     		showTextureWindow(sessId);
@@ -3237,7 +3237,7 @@ public class CresStreamCtrl extends Service {
     
     public void hideSplashtopWindow(int sessId, boolean use_texture)
     {
-    	Log.d(TAG, "Splashtop: Window hidden");
+    	Log.i(TAG, "Splashtop: Window hidden");
     	if (use_texture)
     	{
     		hideTextureWindow(sessId);
@@ -3248,32 +3248,32 @@ public class CresStreamCtrl extends Service {
     
     public void hidePreviewWindow(int sessId)
     {
-    	Log.d(TAG, "Preview Window hidden");
+    	Log.i(TAG, "Preview Window hidden");
     	hideWindow(sessId);
     }
     
     public void showPreviewWindow(int sessId)
     {
-        Log.d(TAG, "Preview Window showing");
+        Log.i(TAG, "Preview Window showing");
         showWindow(sessId);
     }
 
     //StreamIn Ctrls & Config
     public void hideStreamInWindow(int sessId)
     {
-        Log.d(TAG, " streamin Window hidden " + sessId);
+        Log.i(TAG, " streamin Window hidden " + sessId);
         hideWindow(sessId);
     }
 
     private void showStreamInWindow(int sessId)
     {
-        Log.d(TAG, "streamin Window  showing " + sessId);
+        Log.i(TAG, "streamin Window  showing " + sessId);
         showWindow(sessId);
     }
 
     public void showWbsWindow(int sessId)
     {
-    	Log.d(TAG, "Wbs Window showing");
+    	Log.i(TAG, "Wbs Window showing");
     	if (wbsStream.useSurfaceTexture)
     	{
     		showTextureWindow(sessId);
@@ -3284,7 +3284,7 @@ public class CresStreamCtrl extends Service {
     
     public void hideWbsWindow(int sessId)
     {
-    	Log.d(TAG, "Wbs Window hidden");
+    	Log.i(TAG, "Wbs Window hidden");
     	if (wbsStream.useSurfaceTexture)
     	{
     		hideTextureWindow(sessId);
@@ -3314,7 +3314,7 @@ public class CresStreamCtrl extends Service {
     	else if(ap_url.startsWith("http://"))
     		streamPlay.disableLatency(sessionId);
     	else
-    		Log.d(TAG, "No conditional Tags for StreamIn");
+    		Log.i(TAG, "No conditional Tags for StreamIn");
     	sockTask.SendDataToAllClients(String.format("STREAMURL%d=%s", sessionId, ap_url));
     }
     
@@ -3330,13 +3330,13 @@ public class CresStreamCtrl extends Service {
     
     public void setWbsStreamUrl(String url, int sessionId)
     {
-        Log.d(TAG, "setWbsStreamUrl invoked with url=" + url);
+        Log.i(TAG, "setWbsStreamUrl invoked with url=" + url);
         userSettings.setWbsStreamUrl(url, sessionId);
         if (wbsStream != null)
         {
         		wbsStream.setUrl(url, 0);
         }
-        Log.d(TAG, "WBS Stream URL = " + url);
+        Log.i(TAG, "WBS Stream URL = " + url);
     	sockTask.SendDataToAllClients(String.format("STREAMURL%d=%s", sessionId, url));
     	sockTask.SendDataToAllClients(String.format("WBS_STREAMING_STREAM_URL=%s", url));
     }
@@ -3455,7 +3455,7 @@ public class CresStreamCtrl extends Service {
     public void startGstPreview(int sessId)
     {
     	cameraLock.lock();
-	    Log.d(TAG, "Camera : Lock");
+	    Log.i(TAG, "Camera : Lock");
     	try
     	{
     		if (gstStreamOut != null)
@@ -3475,7 +3475,7 @@ public class CresStreamCtrl extends Service {
     	finally
     	{
     		cameraLock.unlock();
-    		Log.d(TAG, "Camera : Unlock");
+    		Log.i(TAG, "Camera : Unlock");
     	}
     }
 
@@ -3483,7 +3483,7 @@ public class CresStreamCtrl extends Service {
     public void startNativePreview(int sessId)
     {
     	cameraLock.lock();
-	    Log.d(TAG, "Camera : Lock");
+	    Log.i(TAG, "Camera : Lock");
     	try
     	{
     		if (cam_preview != null)
@@ -3502,7 +3502,7 @@ public class CresStreamCtrl extends Service {
     	finally
     	{
     		cameraLock.unlock();
-    		Log.d(TAG, "Camera : Unlock");
+    		Log.i(TAG, "Camera : Unlock");
     	}
     }
 
@@ -3519,13 +3519,13 @@ public class CresStreamCtrl extends Service {
     //Stop gstreamer Preview
     public void stopGstPreview(int sessId, boolean hide)
     {
-	    Log.d(TAG, "stopGstPreview() sessId = " + sessId + ", hide = " + hide);
+	    Log.i(TAG, "stopGstPreview() sessId = " + sessId + ", hide = " + hide);
     	cameraLock.lock();
-	    Log.d(TAG, "Camera : Lock");
+	    Log.i(TAG, "Camera : Lock");
     	try {
     		if (gstStreamOut != null) {
     			if ( hide ) {
-				    Log.d(TAG, "Hide Preview Window first to enhance the user experience when quickly switching to another UI");
+				    Log.i(TAG, "Hide Preview Window first to enhance the user experience when quickly switching to another UI");
 
     				// Do NOT hide window if being used by AirMedia
     		    	if ( !((mAirMedia != null) && (mAirMedia.getSurfaceDisplayed() == true)) ) {
@@ -3544,7 +3544,7 @@ public class CresStreamCtrl extends Service {
     	}
     	finally {
     		cameraLock.unlock();
-    		Log.d(TAG, "Camera : Unlock");
+    		Log.i(TAG, "Camera : Unlock");
     	}
     }
     
@@ -3552,7 +3552,7 @@ public class CresStreamCtrl extends Service {
     public void stopNativePreview(int sessId, boolean hide)
     {
     	cameraLock.lock();
-	    Log.d(TAG, "Camera : Lock");
+	    Log.i(TAG, "Camera : Lock");
     	try
     	{
     		if (cam_preview != null)
@@ -3577,7 +3577,7 @@ public class CresStreamCtrl extends Service {
     	finally
     	{
     		cameraLock.unlock();
-    		Log.d(TAG, "Camera : Unlock");
+    		Log.i(TAG, "Camera : Unlock");
     	}
     }
 
@@ -3593,12 +3593,12 @@ public class CresStreamCtrl extends Service {
 
     public void pausePreview(int sessId)
     {
-    	Log.d(TAG, "Camera : pause Preview");
+    	Log.i(TAG, "Camera : pause Preview");
     	if(ProductSpecific.hasRealCamera())
 		{
     		if(gstStreamOut != null)
     		{
-				Log.d(TAG, "Camera : pause streamout Preview");
+				Log.i(TAG, "Camera : pause streamout Preview");
 				gstStreamOut.setSessionIndex(sessId);
 				gstStreamOut.pausePreview(sessId);
     		}
@@ -3607,7 +3607,7 @@ public class CresStreamCtrl extends Service {
 		{
 			if(cam_preview != null)
 			{
-				Log.d(TAG, "Camera : pause native Preview");
+				Log.i(TAG, "Camera : pause native Preview");
 				cam_preview.setSessionIndex(sessId);
 				cam_preview.pausePlayback();
 			}
@@ -3743,7 +3743,7 @@ public class CresStreamCtrl extends Service {
     	if (mAirMedia != null)
 	    {
     		synchronized (mAirMediaLock) {	
-    			Log.d(TAG, "restarting AirMedia!");
+    			Log.i(TAG, "restarting AirMedia!");
     			if (mAirMedia instanceof AirMediaAwind) {
     				((AirMediaAwind)mAirMedia).unregisterBroadcasts();  		
     				mAirMedia = null;
@@ -3759,7 +3759,7 @@ public class CresStreamCtrl extends Service {
 
     public void launchAirMedia(boolean val, int sessId, boolean fullscreen) {
     	stopStartLock[sessId].lock();
-    	Log.d(TAG, "AirMedia " + sessId + " : Lock" + "   launch = " + val + "  fullScreen =" + fullscreen);
+    	Log.i(TAG, "AirMedia " + sessId + " : Lock" + "   launch = " + val + "  fullScreen =" + fullscreen);
     	try
     	{
     		synchronized (mAirMediaLock) {
@@ -3771,7 +3771,7 @@ public class CresStreamCtrl extends Service {
     					if (!use_splashtop)
     						mAirMedia = new AirMediaAwind(this);
     					else {
-    						Log.d(TAG, "Calling AirMediaConstructor from launchAirMedia");
+    						Log.i(TAG, "Calling AirMediaConstructor from launchAirMedia");
     						mAirMedia = new AirMediaSplashtop(this);
     					}
     				}    				
@@ -3863,7 +3863,7 @@ public class CresStreamCtrl extends Service {
     	finally
     	{
     		stopStartLock[sessId].unlock();
-        	Log.d(TAG, "AirMedia " + sessId + " : Unlock");
+        	Log.i(TAG, "AirMedia " + sessId + " : Unlock");
     	}
     }
     
@@ -3894,7 +3894,7 @@ public class CresStreamCtrl extends Service {
     		{
     			// If users are connected wait until all disconnect before changing code
     			pendingAirMediaLoginCodeChange = true;
-    			Log.d(TAG, "Filtering out AirMedia login code change to " + loginCode + " because " + getAirMediaNumberUserConnected() + " users are connected, changes will take effect once all user disconnect");
+    			Log.i(TAG, "Filtering out AirMedia login code change to " + loginCode + " because " + getAirMediaNumberUserConnected() + " users are connected, changes will take effect once all user disconnect");
     			return null;         // do not send feedback for login code change - sent independently
     		}   
     	}
@@ -3946,7 +3946,7 @@ public class CresStreamCtrl extends Service {
         	{
         		// If users are connected wait until all disconnect before changing code
         		pendingAirMediaLoginCodeChange = true;
-        		Log.d(TAG, "Filtering out AirMedia login mode change to " + loginMode + " because " + getAirMediaNumberUserConnected() + " users are connected, changes will take effect once all user disconnect");
+        		Log.i(TAG, "Filtering out AirMedia login mode change to " + loginMode + " because " + getAirMediaNumberUserConnected() + " users are connected, changes will take effect once all user disconnect");
         		return null;         // do not send feedback for login mode change - sent independently
         	}    	
 		}    	
@@ -4301,7 +4301,7 @@ public class CresStreamCtrl extends Service {
     		userSettings.setAirMediaAdaptorSelect(select);
     		if (mAirMedia != null)
     		{
-        		Log.d(TAG,"*************** setAirMediaAdaptorSelect -- addr="+getAirMediaConnectionIpAddress(sessId)+"   *********");
+        		Log.i(TAG,"*************** setAirMediaAdaptorSelect -- addr="+getAirMediaConnectionIpAddress(sessId)+"   *********");
         		mAirMedia.setAdapter(getAirMediaConnectionIpAddress(sessId));
     			mAirMedia.setIpAddressPrompt(userSettings.getAirMediaIpAddressPrompt());
     		}
@@ -4316,7 +4316,7 @@ public class CresStreamCtrl extends Service {
     {
     	if (mAirMedia != null)
 		{
-    		Log.d(TAG,"*************** updateAirMediaIpInformation -- addr="+getAirMediaConnectionIpAddress(sessId)+"   *********");
+    		Log.i(TAG,"*************** updateAirMediaIpInformation -- addr="+getAirMediaConnectionIpAddress(sessId)+"   *********");
     		mAirMedia.setAdapter(getAirMediaConnectionIpAddress(sessId));
     		mAirMedia.setIpAddressPrompt(userSettings.getAirMediaIpAddressPrompt());
 		}
@@ -4334,7 +4334,7 @@ public class CresStreamCtrl extends Service {
     	// When connection option is disabled feedback the same connection URL and rely on AVF/Program 0 to blank out the URL
 //    	if (!userSettings.getAirMediaDisplayConnectionOptionEnable())
 //    	{
-//    		Log.d(TAG, "getAirMediaConnectionAddress() returning empty string because DisplayConnectionOptionEnable is false");
+//    		Log.i(TAG, "getAirMediaConnectionAddress() returning empty string because DisplayConnectionOptionEnable is false");
 //    		return "";
 //    	}
     	StringBuilder url = new StringBuilder(512);
@@ -4365,12 +4365,12 @@ public class CresStreamCtrl extends Service {
     		url = new StringBuilder(userSettings.getAirMediaCustomPromptString());
     		break;
     	default:
-    		Log.d(TAG, "getAirMediaConnectionAddress() invalid AirMediaDisplayConnectionOption value"+
+    		Log.i(TAG, "getAirMediaConnectionAddress() invalid AirMediaDisplayConnectionOption value"+
     				userSettings.getAirMediaDisplayConnectionOption());
     		return "";
     	}
  
-		Log.d(TAG, "getAirMediaConnectionAddress() returning "+url.toString());
+		Log.i(TAG, "getAirMediaConnectionAddress() returning "+url.toString());
         return url.toString();    	
     }
     
@@ -4410,7 +4410,7 @@ public class CresStreamCtrl extends Service {
         		url.append(")");
         	}
         }
-		Log.d(TAG, "getDigitalAirMediaConnectionAddress() returning "+url.toString());
+		Log.i(TAG, "getDigitalAirMediaConnectionAddress() returning "+url.toString());
         return url.toString();    	
     }
     
@@ -4494,7 +4494,7 @@ public class CresStreamCtrl extends Service {
 				
 				if( rtn == 110 )
 				{
-					Log.d(TAG, "Timed out waiting for Preview");
+					Log.i(TAG, "Timed out waiting for Preview");
 					gstStreamOut.recoverTxrxService();
 				}
 			}
@@ -4665,7 +4665,7 @@ public class CresStreamCtrl extends Service {
 
     //Registering for HPD and Resolution Event detection	
     void registerBroadcasts(){
-        Log.d(TAG, "registerBroadcasts !");
+        Log.i(TAG, "registerBroadcasts !");
         
         resolutionEvent = new BroadcastReceiver()
         {
@@ -4693,7 +4693,7 @@ public class CresStreamCtrl extends Service {
 		            					
 		            					// This will start CSI bus as well as setup ducati
                     					ProductSpecific.getHdmiInputStatus();
-                    					Log.d(TAG, "Setup CSI bus");
+                    					Log.i(TAG, "Setup CSI bus");
 
 		            					// Fix issue where we start video before we setup resolution 
 		            					refreshInputResolution();
@@ -4793,7 +4793,7 @@ public class CresStreamCtrl extends Service {
 		                {
 		                	if (!haveExternalDisplays)
 		                	{
-		                		Log.d(TAG, "receiving intent!!!!");
+		                		Log.i(TAG, "receiving intent!!!!");
 
 		                		int hdmiOutResolutionEnum = paramAnonymousIntent.getIntExtra("evs_hdmiout_resolution_changed_id", -1);
 		                		Log.i(TAG, "Received hdmiout resolution changed broadcast ! " + hdmiOutResolutionEnum);
@@ -4825,7 +4825,7 @@ public class CresStreamCtrl extends Service {
 
 		if (haveExternalDisplays && Boolean.parseBoolean(hdmiOutput.getSyncStatus()))
 		{
-			Log.d(TAG, "------ Recreate CresDisplaySurface due to regained HDMI sync ------");
+			Log.i(TAG, "------ Recreate CresDisplaySurface due to regained HDMI sync ------");
 			createCresDisplaySurface();
 			Point size = getDisplaySize();
 			SetWindowManagerResolution(size.x, size.y, haveExternalDisplays);
@@ -4847,7 +4847,7 @@ public class CresStreamCtrl extends Service {
 						width = size.x;
 						height = size.y;
 					}
-					Log.d(TAG, "------ Show AirMedia due to regained HDMI sync ------");
+					Log.i(TAG, "------ Show AirMedia due to regained HDMI sync ------");
 					mAirMedia.show(userSettings.getAirMediaX(), userSettings.getAirMediaY(), width, height);
 				}
 			}
@@ -4860,7 +4860,7 @@ public class CresStreamCtrl extends Service {
 				// Hide AirMedia window if we lose HDMI output sync
 				if ((mAirMedia != null) && userSettings.getAirMediaLaunch(sessionId))
 				{
-					Log.d(TAG, "------ Hide AirMedia due to lost HDMI output ------");
+					Log.i(TAG, "------ Hide AirMedia due to lost HDMI output ------");
 					mAirMedia.hide(true, false);
 				}
 				
@@ -4868,7 +4868,7 @@ public class CresStreamCtrl extends Service {
 						userSettings.getMode(sessionId) == DeviceMode.STREAM_IN.ordinal() ||
 						userSettings.getMode(sessionId) == DeviceMode.WBS_STREAM_IN.ordinal())
 				{
-					Log.d(TAG, "Stopping stream because lost HDMI output: " + sessionId);
+					Log.i(TAG, "Stopping stream because lost HDMI output: " + sessionId);
 					Stop(sessionId, true);
 				}
 			}
@@ -4959,7 +4959,7 @@ public class CresStreamCtrl extends Service {
 		    		try {
             			Thread.sleep(500);
             		} catch (Exception e ) { e.printStackTrace(); }
-		            Log.d(TAG, "Restarting Streams - on firstrun");
+		            Log.i(TAG, "Restarting Streams - on firstrun");
 		    		restartStreams(true); //true because we do not need to restart stream in streams
 		    		mIgnoreAllCrash = false;
     			}
@@ -4975,7 +4975,7 @@ public class CresStreamCtrl extends Service {
 	}
 	
 	public void setNoVideoImage(boolean enable) {
-        Log.d(TAG, String.format("Setting no video format to %s", String.valueOf(enable)));
+        Log.i(TAG, String.format("Setting no video format to %s", String.valueOf(enable)));
 		String cameraMode = "";
 		int previousCameraMode = readCameraMode();
 		if ( (enable) && (previousCameraMode != CameraMode.NoVideo.ordinal() 
@@ -5079,7 +5079,7 @@ public class CresStreamCtrl extends Service {
 	{
 		synchronized(cameraModeLock)
 		{
-			Log.d(TAG, "Writing " + mode + " to camera mode file");
+			Log.i(TAG, "Writing " + mode + " to camera mode file");
 			Writer writer = null;
 			try 
 	      	{
@@ -5126,7 +5126,7 @@ public class CresStreamCtrl extends Service {
 	      	String currentUserSettings = "";
 	      	try {      		
 	      		currentUserSettings = new Scanner(new File (savedSettingsFilePath), "US-ASCII").useDelimiter("\\A").next();
-	      	} catch (Exception e) {Log.d(TAG, "Exception in saveUserSettings" + e.toString()); }
+	      	} catch (Exception e) {Log.i(TAG, "Exception in saveUserSettings" + e.toString()); }
 	      	
 	      	// Only update userSettings if it has changed
 	      	if (serializedClass.compareToIgnoreCase(currentUserSettings) != 0)
@@ -5158,7 +5158,7 @@ public class CresStreamCtrl extends Service {
 		    		syncFileSystem();
 		    	}
 	      	
-		      	Log.d(TAG, "Saved userSettings to disk");
+		      	Log.i(TAG, "Saved userSettings to disk");
 	      	}
 		}
 	}
@@ -5215,7 +5215,7 @@ public class CresStreamCtrl extends Service {
 				}
 				catch (Exception e)
 				{
-					Log.d(TAG, "Save settings task exception" + e.toString());
+					Log.i(TAG, "Save settings task exception" + e.toString());
 				}				
 			}
 		}
@@ -5331,7 +5331,7 @@ public class CresStreamCtrl extends Service {
 		{
 			mIsHdmiOutExternal = true;
 			// call restart streams just in case we missed the starts because of mIsHdmiOutExternal flag
-            Log.d(TAG, "Restarting Streams - mIsHdmiOutExternal");
+            Log.i(TAG, "Restarting Streams - mIsHdmiOutExternal");
 			restartStreams(false);
 		}
 		
@@ -5386,7 +5386,7 @@ public class CresStreamCtrl extends Service {
 		}		
 		@Override
 		public void run() {
-			Log.d(TAG, "delayed call to updateFullWindow");
+			Log.i(TAG, "delayed call to updateFullWindow");
 			updateFullWindow(sessionId, use_text);
 		}
 	}
@@ -5434,7 +5434,7 @@ public class CresStreamCtrl extends Service {
 						if ( (haveExternalDisplays && (dispArray.length > 1) && (displayId == dispArray[1].getDisplayId())) ||
 								(!haveExternalDisplays && (displayId == dispArray[0].getDisplayId())) )
 						{
-							Log.d(TAG, "HDMI Output display has been added");
+							Log.i(TAG, "HDMI Output display has been added");
 							handleHdmiOutputChange();
 						}
 					}
@@ -5446,7 +5446,7 @@ public class CresStreamCtrl extends Service {
 		public void onDisplayChanged(int displayId)
 		{
 			// TODO: I am not seeing this get called, so currently it is unimplemented
-			Log.d(TAG, "HDMI Output display has changed");
+			Log.i(TAG, "HDMI Output display has changed");
 		}
 
 		@Override
@@ -5462,7 +5462,7 @@ public class CresStreamCtrl extends Service {
 						if ( (haveExternalDisplays && (dispArray.length == 1) && (displayId != dispArray[0].getDisplayId())) ||
 								(dispArray.length == 0) )
 						{
-							Log.d(TAG, "HDMI Output display has been removed");
+							Log.i(TAG, "HDMI Output display has been removed");
 							handleHdmiOutputChange();
 						}
 					}
@@ -5557,7 +5557,7 @@ public class CresStreamCtrl extends Service {
 	    	}
 	    	catch (Exception e)
 	    	{
-	    		Log.d(TAG, "Failed to deserialize airMediaLaunch");
+	    		Log.i(TAG, "Failed to deserialize airMediaLaunch");
 	    		deserialized.getAsJsonObject().remove("airMediaLaunch");
 	    	}
 	    }

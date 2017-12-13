@@ -63,7 +63,7 @@ public class CameraPreview {
 
     public boolean pausePlayback()
     {
-        Log.d(TAG, "pausePlayback");
+        Log.i(TAG, "pausePlayback");
         try
         {
             if (is_preview)
@@ -84,7 +84,7 @@ public class CameraPreview {
 
     public boolean resumePlayback(boolean confidenceMode)
     {
-        Log.d(TAG, "resumePlayback");
+        Log.i(TAG, "resumePlayback");
         try
         {
             if (is_preview)
@@ -123,9 +123,9 @@ public class CameraPreview {
     	final CountDownLatch latch = new CountDownLatch(1);
     	Thread startThread = new Thread(new Runnable() {
     		public void run() {
-		        Log.d(TAG, "starting Playback " + is_preview);
+		        Log.i(TAG, "starting Playback " + is_preview);
 		        if(is_preview == false){		        	
-		        	Log.d(TAG, "Actual startPlayback");
+		        	Log.i(TAG, "Actual startPlayback");
 
 		        	CresCamera.openCamera(streamCtl);
 		        	// This is here because moved out of openCamera
@@ -153,7 +153,7 @@ public class CameraPreview {
 		        			Camera.Parameters localParameters = CresCamera.mCamera.getParameters();
 		        			/*mSupportedPreviewSizes = mCamera.getParameters().getSupportedPreviewSizes();
 		                  for (int i = 0; i < mSupportedPreviewSizes.size(); i++) {
-		                  Log.d(TAG, i + ". Supported Resolution = " + mSupportedPreviewSizes.get(i).width + "x" + mSupportedPreviewSizes.get(i).height);
+		                  Log.i(TAG, i + ". Supported Resolution = " + mSupportedPreviewSizes.get(i).width + "x" + mSupportedPreviewSizes.get(i).height);
 		                  }*/
 		        			if(CresStreamCtrl.hpdHdmiEvent==1){
 		        				ProductSpecific.handleHpdHdmiEvent(hdmiIf);
@@ -290,7 +290,7 @@ public class CameraPreview {
 		        			}
 		        			if(validRes)
 		        			{
-		        				Log.d(TAG, "Camera preview size: " + localParameters.getPreviewSize().width + "x" + localParameters.getPreviewSize().height);
+		        				Log.i(TAG, "Camera preview size: " + localParameters.getPreviewSize().width + "x" + localParameters.getPreviewSize().height);
 		        				CresCamera.mCamera.setPreviewCallback(new PreviewCB(confidenceMode));
 		        				CresCamera.mCamera.setErrorCallback(new ErrorCB(confidenceMode));
 		        				CresCamera.mCamera.startPreview();
@@ -342,7 +342,7 @@ public class CameraPreview {
     	Thread stopThread = new Thread(new Runnable() {
     		public void run() {
 		    	// TODO: ioctl crash when input hdmi is plugged in but no video passing
-		        Log.d(TAG, "stopPlayback");
+		        Log.i(TAG, "stopPlayback");
 		        if(is_preview)
 		        {
 		            try
@@ -356,7 +356,7 @@ public class CameraPreview {
 		                is_preview = false;
 		                streamCtl.setPauseVideoImage(false, DeviceMode.PREVIEW);
 		                is_pause = false;
-		                Log.d(TAG, "Playback stopped !");
+		                Log.i(TAG, "Playback stopped !");
 		                
 		                if (!confidenceMode)
 		                	streamCtl.SendStreamState(StreamState.STOPPED, idx);
@@ -371,7 +371,7 @@ public class CameraPreview {
 		            is_preview = false;
 		        }
 		        else
-		            Log.d(TAG, "Playback already stopped");
+		            Log.i(TAG, "Playback already stopped");
 		        
 		        latch.countDown();
     		}
@@ -406,25 +406,25 @@ public class CameraPreview {
     	{
 	        if(!is_audioplaying)
 	        {
-				Log.d(TAG, "starting audio task");
+				Log.i(TAG, "starting audio task");
 	            audio_pb.startAudioTask();
 	        }
 	        else
 	        {
-				Log.d(TAG, "audio task already running");
+				Log.i(TAG, "audio task already running");
 	        }
 	        is_audioplaying = true;
     	}
     	else
     	{
-			Log.d(TAG, "NOT starting audio task");
+			Log.i(TAG, "NOT starting audio task");
     	}
     }
 
     public void stopAudio() {
     	if (skipAudio == false)
     	{
-	        Log.d(TAG, "stoppingAudio");
+	        Log.i(TAG, "stoppingAudio");
 	        if(is_audioplaying){
 	            audio_pb.stopAudioTask();
 	            is_audioplaying = false;

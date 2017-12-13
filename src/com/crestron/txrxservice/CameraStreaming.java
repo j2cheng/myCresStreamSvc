@@ -62,7 +62,7 @@ public class CameraStreaming {
 
     //public CameraStreaming(CresStreamCtrl mContext, SurfaceHolder lpHolder ) {
     public CameraStreaming(CresStreamCtrl mContext) {
-    	Log.d(TAG, "CameraStreaming :: Constructor called.....");
+    	Log.i(TAG, "CameraStreaming :: Constructor called.....");
         streamCtl = mContext;
     }
    
@@ -94,7 +94,7 @@ public class CameraStreaming {
 
 		        if(out_stream_status==true)
 		            stopRecording(false);
-		        Log.d(TAG, "startRecording");
+		        Log.i(TAG, "startRecording");
 		        
 		        streamCtl.setSystemVolume((int)streamCtl.userSettings.getVolume());
 		        
@@ -105,17 +105,17 @@ public class CameraStreaming {
 		        }
 		
 		        filename = "/rec001.mp4";
-		        Log.d(TAG, "CamTest: Camera Recording Filename: " + filename);
+		        Log.i(TAG, "CamTest: Camera Recording Filename: " + filename);
 		
 		        // create empty file it must use
 		        file4Recording = new File(path, filename);
 		        if (file4Recording == null)
 		        {
-		            Log.d(TAG, "CamTest: file() returned null");
+		            Log.i(TAG, "CamTest: file() returned null");
 		        }
 		        else
 		        {
-		            Log.d(TAG, "CamTest: file() didn't return null");
+		            Log.i(TAG, "CamTest: file() didn't return null");
 		        }
 		
 		        if (CheckForValidIp() == false)
@@ -142,7 +142,7 @@ public class CameraStreaming {
 		            mrec.setAudioSamplingRate(audioSampleRate);
 		            mrec.setAudioSource(MediaRecorder.AudioSource.MIC);
 		            mrec.setVideoSource(MediaRecorder.VideoSource.CAMERA);		            
-                            Log.d(TAG, "selected mode is " + getStreamTransportMode());
+                            Log.i(TAG, "selected mode is " + getStreamTransportMode());
 		            ProductSpecific.setStreamTransportMode(mrec, getStreamTransportMode());
 		            		            
 		            //Set Port
@@ -153,13 +153,13 @@ public class CameraStreaming {
 		            {
                                 if(streamCtl.userSettings.isPasswordEnable(idx) && !(streamCtl.userSettings.isPasswordDisable(idx)))
                                 {
-                                    Log.d(TAG, "Auth Enabled " );
+                                    Log.i(TAG, "Auth Enabled " );
                                     ProductSpecific.setRtspAuthentication(mrec, 1);
                                     ProductSpecific.setRtspSessionUserName(mrec, streamCtl.userSettings.getUserName(idx));
                                     ProductSpecific.setRtspSessionPassword(mrec, streamCtl.userSettings.getPassword(idx));
                                 }
                                 else{
-                                    Log.d(TAG, "Auth Disabled " );
+                                    Log.i(TAG, "Auth Disabled " );
                                     ProductSpecific.setRtspAuthentication(mrec, 0);
                                 }
 
@@ -205,12 +205,12 @@ public class CameraStreaming {
 		            
 		            mrec.setOutputFormat(9);//Streamout option set to Stagefright Recorder
 		            if ((currentSessionInitiation == 2) || (currentSessionInitiation == 3))
-		            	Log.d(TAG, "ip addr " + streamCtl.userSettings.getMulticastAddress(idx));
+		            	Log.i(TAG, "ip addr " + streamCtl.userSettings.getMulticastAddress(idx));
 		            else
-		            	Log.d(TAG, "ip addr " + streamCtl.userSettings.getDeviceIp());
-		            Log.d(TAG, "setting profile: " + streamCtl.userSettings.getStreamProfile(idx).getVEncProfile());
-		            Log.d(TAG, "setting video encoder level: " + streamCtl.userSettings.getEncodingLevel(idx));
-		            Log.d(TAG, "setting video frame rate: " + streamCtl.userSettings.getEncodingFramerate(idx));
+		            	Log.i(TAG, "ip addr " + streamCtl.userSettings.getDeviceIp());
+		            Log.i(TAG, "setting profile: " + streamCtl.userSettings.getStreamProfile(idx).getVEncProfile());
+		            Log.i(TAG, "setting video encoder level: " + streamCtl.userSettings.getEncodingLevel(idx));
+		            Log.i(TAG, "setting video frame rate: " + streamCtl.userSettings.getEncodingFramerate(idx));
 		            
 		            setWidthAndHeightFromEncRes(idx);
 		            mrec.setVideoEncodingBitRate(streamCtl.userSettings.getBitrate(idx) * 1000);	//This is in bits per second
@@ -240,7 +240,7 @@ public class CameraStreaming {
 		
 		            if ((currentSessionInitiation != 0) && (currentSessionInitiation != 2) && (currentTransportMode == 0)) {	//TODO: causes crash in RTSP modes currently being worked around
 		            	String sb = ProductSpecific.getSDP(mrec);
-		                Log.d(TAG, "########SDP Dump######\n" + sb);
+		                Log.i(TAG, "########SDP Dump######\n" + sb);
 		            }
 		            
 		            //TS UDP and TS RTP streaming modes do not call PreviewCB so send started state
@@ -628,8 +628,8 @@ public class CameraStreaming {
 		
 		}
 			
-        Log.d(TAG, "setting width: " + streamOutWidth);
-        Log.d(TAG, "setting height: " + streamOutHeight);
+        Log.i(TAG, "setting width: " + streamOutWidth);
+        Log.i(TAG, "setting height: " + streamOutHeight);
         
         //TODO: what if streamOutWidth or streamOutHeight is 0
 			
@@ -690,7 +690,7 @@ public class CameraStreaming {
         if(mrec != null)
         	ProductSpecific.setHdcpEncrypt(mrec, val);
         else
-            Log.d(TAG, "HdcpEncrypt mrec is null");
+            Log.i(TAG, "HdcpEncrypt mrec is null");
 
     }
 
@@ -706,7 +706,7 @@ public class CameraStreaming {
     	final CountDownLatch latch = new CountDownLatch(1);
     	Thread stopThread = new Thread(new Runnable() {
     		public void run() {
-		        Log.d(TAG, "stopRecording");
+		        Log.i(TAG, "stopRecording");
                 int currSessionInitiation = streamCtl.userSettings.getSessionInitiation(idx);
                 try {
 	    			if ((activeClientObserver != null) && ((currSessionInitiation == 0) || (currSessionInitiation == 2)))
@@ -790,7 +790,7 @@ public class CameraStreaming {
     {
     	if (confidencePreviewRunning == false)
     	{
-	    	Log.d(TAG, "pausePlayback");
+	    	Log.i(TAG, "pausePlayback");
 	        try
 	        {
 	        	streamCtl.setPauseVideoImage(true, DeviceMode.STREAM_OUT);
@@ -807,7 +807,7 @@ public class CameraStreaming {
     
     public boolean resumePlayback()
     {
-    	Log.d(TAG, "resumePlayback");
+    	Log.i(TAG, "resumePlayback");
         try
         {
         	streamCtl.setPauseVideoImage(false, DeviceMode.STREAM_OUT);
@@ -976,7 +976,7 @@ public class CameraStreaming {
             }
             catch (Exception e)
             {
-            	Log.d(TAG, "Failed to query statistics from mediaServer");
+            	Log.i(TAG, "Failed to query statistics from mediaServer");
             }
 
     		while(!shouldExit)
@@ -1067,7 +1067,7 @@ public class CameraStreaming {
     {
     	@Override
         public void onError(int error, Camera camera) {
-            Log.d(TAG, "Camera Error callback: " + error + "Camera :" + camera);
+            Log.i(TAG, "Camera Error callback: " + error + "Camera :" + camera);
         }
     }
     
@@ -1076,7 +1076,7 @@ public class CameraStreaming {
 		@Override
 		public void onError(MediaRecorder mr, int what, int extra) {
 			// TODO Auto-generated method stub
-			Log.d(TAG, "MediaRecorder Error callback: " + what + ", " + extra + " MediaRecorder :" + mr);
+			Log.i(TAG, "MediaRecorder Error callback: " + what + ", " + extra + " MediaRecorder :" + mr);
 		}
     }
 }

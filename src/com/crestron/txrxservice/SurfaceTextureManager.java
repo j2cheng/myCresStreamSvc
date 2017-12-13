@@ -30,10 +30,10 @@ public class SurfaceTextureManager implements TextureView.SurfaceTextureListener
     
     public void initCresSurfaceTextureListener (TextureView view) {
     	if (view != null) {
-            Log.d(TAG, "initCresSurfaceTextureListener(): View is not null");
+            Log.i(TAG, "initCresSurfaceTextureListener(): View is not null");
             view.setSurfaceTextureListener(this);	
         } else {
-            Log.d(TAG, "App passed null Texture view for stream in");
+            Log.i(TAG, "App passed null Texture view for stream in");
         }
     }
 
@@ -57,7 +57,7 @@ public class SurfaceTextureManager implements TextureView.SurfaceTextureListener
     	}
     	    	
         if (view != null) {
-            Log.d(TAG, "getCresSurfaceTextureListener(): View is not null");
+            Log.i(TAG, "getCresSurfaceTextureListener(): View is not null");
             CresSurfaceTexture = view.getSurfaceTexture();
         } else {
             Log.e(TAG, "App passed null texture view for stream in");
@@ -71,7 +71,7 @@ public class SurfaceTextureManager implements TextureView.SurfaceTextureListener
     }
     
     public void onSurfaceTextureAvailable(SurfaceTexture surface, int width, int height) {
-	    Log.d(TAG, "######### surfaceTextureAvailable ##############");
+	    Log.i(TAG, "######### surfaceTextureAvailable ##############");
 	    mLock.countDown(); //mark that surfaceTexture has been created and is ready for use
 	    TextureView textureView = null;
 	    for (int i=0; i < streamCtl.NumOfTextures; i++)
@@ -85,20 +85,20 @@ public class SurfaceTextureManager implements TextureView.SurfaceTextureListener
     }
 
     public void onSurfaceTextureSizeChanged(SurfaceTexture surface, int width, int height) {
-	    Log.d(TAG, "######### surfaceTextureSizeChanged ##############");
+	    Log.i(TAG, "######### surfaceTextureSizeChanged ##############");
 	    streamCtl.invalidateSurface();
     }
 
     public boolean onSurfaceTextureDestroyed(SurfaceTexture surface) {
-	    Log.d(TAG, "######### surfaceTextureDestroyed ##############");
+	    Log.i(TAG, "######### surfaceTextureDestroyed ##############");
         mLock = new CountDownLatch(1);
         return true;
     }
 
     public void onSurfaceTextureUpdated(SurfaceTexture surface) {
-	    //Log.d(TAG, "######### surfaceTextureUpdated ##############");
+	    //Log.i(TAG, "######### surfaceTextureUpdated ##############");
 	    if (invalidateOnSurfaceTextureUpdate) {
-	    	Log.d(TAG, "######### Invalidating surface due to SurfaceTextureUpdate ##############");
+	    	Log.i(TAG, "######### Invalidating surface due to SurfaceTextureUpdate ##############");
 	    	streamCtl.invalidateSurface();
 	    	invalidateOnSurfaceTextureUpdate = false;
 	    }

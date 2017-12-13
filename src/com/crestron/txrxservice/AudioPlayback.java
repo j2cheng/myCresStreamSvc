@@ -58,7 +58,7 @@ public class AudioPlayback
 				if (audioBufferQueue.size() >= maxNumOfBuffers)
 				{
 					// TODO: make sure this doesn't print too much in error condition
-					Log.d(TAG, "Dropping audio buffers because audio buffer queue full!");
+					Log.i(TAG, "Dropping audio buffers because audio buffer queue full!");
 					audioBufferQueue.clear();
 					mAudioBuffers.clearBuffers();
 				}
@@ -79,7 +79,7 @@ public class AudioPlayback
         	}
         	catch (InterruptedException ex) { ex.printStackTrace(); }  
 
-			Log.d(TAG, "Streaming Audio task started.... ");
+			Log.i(TAG, "Streaming Audio task started.... ");
 			try
 			{
 				audioBufferQueue = new LinkedBlockingQueue<audioBufferQueueObject>();        		

@@ -44,7 +44,7 @@ public class NstreamIn implements StreamInStrategy, OnPreparedListener, OnComple
 
     //Enable TCP for RTSP Mode
     public void setRtspTcpInterleave(int tcpInterleave, int sessionId){
-        Log.d(TAG, " setRtspTcpInterleave");
+        Log.i(TAG, " setRtspTcpInterleave");
         if(tcpInterleave == 0)
         	tcpInterleaveFlag[sessionId] = false; 
         else
@@ -55,7 +55,7 @@ public class NstreamIn implements StreamInStrategy, OnPreparedListener, OnComple
     public void setRtpOnlyMode(int vport, int aport, String ip, int sessionId){
         rtp_mode[sessionId] = true;
         sb[sessionId] = new StringBuilder(4096);
-        Log.d(TAG, "vport "+vport+ "aport "+aport +"ip "+ip);
+        Log.i(TAG, "vport "+vport+ "aport "+aport +"ip "+ip);
         sb[sessionId].append("v=0\r\n").append("o=- 15545345606659080561 15545345606659080561 IN IP4 cpu000669\r\n").append("s=Sample\r\n").append("i=N/A\r\n").append("c=IN IP4 ").append(ip).append("\r\n").append("t=0 0\r\n").append("a=range:npt=now-\r\n").append("m=audio ").append(Integer.toString(aport)).append(" RTP/AVP 96\r\n").append("a=control:audio\r\n").append("a=rtpmap:96 MP4A-LATM/44100/2\r\n").append("a=fmtp:96 profile-level-id=15; object=2; cpresent=0; config=400024203fc0\r\n").append("m=video ").append(Integer.toString(vport)).append(" RTP/AVP 97\r\n").append("a=control:video\r\n").append("a=rtpmap:97 H264/90000\r\n").append("a=fmtp:97 profile-level-id=64002A;in-band-parameter-sets=1;packetization-mode=1\r\n");
     }
 
@@ -80,7 +80,7 @@ public class NstreamIn implements StreamInStrategy, OnPreparedListener, OnComple
                 //mediaPlayer.setDisplay(vidHolder);
                 String srcUrl = streamCtl.userSettings.getStreamInUrl(sessionId);
                 mediaPlayer[sessionId].setDataSource(srcUrl);	
-                Log.d(TAG, "URL is "+srcUrl);
+                Log.i(TAG, "URL is "+srcUrl);
                 if(tcpInterleaveFlag[sessionId] && srcUrl.startsWith("rtsp://"))
                 	ProductSpecific.setTransportCommunication(mediaPlayer[sessionId], true);
                 //Setting Initial Latency
@@ -118,7 +118,7 @@ public class NstreamIn implements StreamInStrategy, OnPreparedListener, OnComple
     }
 
     public void onStop(int sessionId) {
-        Log.d(TAG, "Stopping MediaPlayer");
+        Log.i(TAG, "Stopping MediaPlayer");
         if(mediaPlayer[sessionId] != null){
             if(mediaPlayer[sessionId].isPlaying()){
                 mediaPlayer[sessionId].stop();
@@ -131,7 +131,7 @@ public class NstreamIn implements StreamInStrategy, OnPreparedListener, OnComple
 
     @Override
         public void onPrepared(MediaPlayer mp) {
-    		Log.d(TAG, "######### OnPrepared##############");
+    		Log.i(TAG, "######### OnPrepared##############");
     		
     		int sessionId = findSessionId(mp);            
             mediaPlayer[sessionId].start();
@@ -179,7 +179,7 @@ public class NstreamIn implements StreamInStrategy, OnPreparedListener, OnComple
         
         int sessionId = findSessionId(mp);
         
-        Log.d(TAG, "Mediaplayer sessionId = " + sessionId);
+        Log.i(TAG, "Mediaplayer sessionId = " + sessionId);
         
         mediaPlayer[sessionId].stop();
         mediaPlayer[sessionId].reset();
@@ -204,13 +204,13 @@ public class NstreamIn implements StreamInStrategy, OnPreparedListener, OnComple
     public void onBufferingUpdate(MediaPlayer mp, int percent) {
     	int sessionId = findSessionId(mp);
         int progress = (int) ((float) mp.getDuration() * ((float) percent/ (float) 100));
-        Log.d(TAG, "####### Buffering percent "+percent);
+        Log.i(TAG, "####### Buffering percent "+percent);
         streamCtl.SendStreamState(StreamState.BUFFERING, sessionId);
     }
 
     public void onCompletion(MediaPlayer mp) {
         //mp.stop();
-        Log.d(TAG, "####### Stopping mediaplayer");
+        Log.i(TAG, "####### Stopping mediaplayer");
     }
 
     public String updateSvcWithPlayerStatistics(){
@@ -263,7 +263,7 @@ public class NstreamIn implements StreamInStrategy, OnPreparedListener, OnComple
     public void setVolume(int volume, int sessId){
     	int audioSteps = 101; // 0-100
     	float newVolume = (float)(1 - (Math.log(audioSteps - volume)/Math.log(audioSteps)));
-    	Log.d(TAG, "New volume = " + newVolume);
+    	Log.i(TAG, "New volume = " + newVolume);
     	mediaPlayer[sessId].setVolume(newVolume, newVolume);
     }
     

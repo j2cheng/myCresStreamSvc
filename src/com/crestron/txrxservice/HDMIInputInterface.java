@@ -176,7 +176,7 @@ public class HDMIInputInterface {
 	            e.printStackTrace();   
 	            text.append("0");
 	        }
-	        Log.d(TAG, "hpdState:" + text.toString());
+	        Log.i(TAG, "hpdState:" + text.toString());
 	        return Integer.parseInt(text.toString());
 		}
     	else
@@ -200,7 +200,7 @@ public class HDMIInputInterface {
 	            e.printStackTrace();
 	            text.append("0x0@0");
 	        }
-	        Log.d(TAG, "HDMI IN Res from sysfs:" + text.toString());
+	        Log.i(TAG, "HDMI IN Res from sysfs:" + text.toString());
 	        return text.toString();
 		}
     	else
@@ -228,7 +228,7 @@ public class HDMIInputInterface {
 	        }
 	        
 	        if (logResult)
-	        	Log.d(TAG, "HDMI IN index from sysfs:" + resolutionIndex);
+	        	Log.i(TAG, "HDMI IN index from sysfs:" + resolutionIndex);
 	        return resolutionIndex;
 		}
     	else
@@ -258,7 +258,7 @@ public class HDMIInputInterface {
 	            e.printStackTrace();
 	            text.append("0"); //if error default to no HDCP
 	        }
-//	        Log.d(TAG, "HDMI IN HDCP status from sysfs:" + text.toString());
+//	        Log.i(TAG, "HDMI IN HDCP status from sysfs:" + text.toString());
 	        return Integer.parseInt(text.toString()) == 57;
 		}
     	else 

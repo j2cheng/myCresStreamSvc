@@ -67,12 +67,12 @@ public class GstreamOut {
 ///////////////////////////////////////////////////////////////////////////////
 
     static {
-        Log.d(TAG, "class init");
+        Log.i(TAG, "class init");
         nativeClassInitRtspServer();
     }
 
     public GstreamOut(CresStreamCtrl ctl) {
-        Log.d(TAG, "Streamout: JAVA - constructor called");
+        Log.i(TAG, "Streamout: JAVA - constructor called");
         streamCtl = ctl;
         //Don't start server until we have a surface to get data from...
         //nativeInitRtspServer(null);
@@ -92,14 +92,14 @@ public class GstreamOut {
     }
 
     public void setSurface(Object s) {
-        //Log.d(TAG, "Set surface to " + s);
+        //Log.i(TAG, "Set surface to " + s);
         //mSurface = s;
     }
     
     public void start() {
         if (streamCtl.mCameraDisabled == false)
         {
-            Log.d(TAG, "Streamout: JAVA - start() call nativeInitRtspServer, previewActive = " + previewActive);
+            Log.i(TAG, "Streamout: JAVA - start() call nativeInitRtspServer, previewActive = " + previewActive);
             if (resReleased) {
                 nativeInitRtspServer(null);
                 resReleased = false;
@@ -108,7 +108,7 @@ public class GstreamOut {
             updateCamStreamUrl();
             updateCamSnapshotUrl();
             updateNativeDataStruct();
-            Log.d(TAG, "Streamout: JAVA - start() call nativeRtspServerStart");
+            Log.i(TAG, "Streamout: JAVA - start() call nativeRtspServerStart");
             nativeRtspServerStart();
             camStreamActive = true;
         }
@@ -120,11 +120,11 @@ public class GstreamOut {
 
         camStreamActive = false;
         if (previewActive) {
-            Log.d(TAG, "Streamout: JAVA - stop() RtspServer ONLY");
+            Log.i(TAG, "Streamout: JAVA - stop() RtspServer ONLY");
             nativeRtspServerStop();
         } 
         else { 
-            Log.d(TAG, "Streamout: JAVA - stop() finalize RtspServer");
+            Log.i(TAG, "Streamout: JAVA - stop() finalize RtspServer");
             nativeFinalizeRtspServer();
             resReleased = true;
         }
@@ -204,7 +204,7 @@ public class GstreamOut {
             
             url.append("rtsp://").append(deviceIp).append(":").append(port).append("/").append(file).append(".sdp");
         } 
-        Log.d(TAG, "buildCamStreamUrl() CamStreamUrl = "+url.toString());
+        Log.i(TAG, "buildCamStreamUrl() CamStreamUrl = "+url.toString());
     
         return url.toString();
     }
@@ -221,7 +221,7 @@ public class GstreamOut {
             
             url.append("http://").append(deviceIp).append("/camera/").append(file).append(".jpg");
         } 
-        Log.d(TAG, "buildCamSnapshotUrl()  = " + url.toString());
+        Log.i(TAG, "buildCamSnapshotUrl()  = " + url.toString());
     
         return url.toString();
     }
@@ -245,23 +245,23 @@ public class GstreamOut {
     }
  
     protected void startPreview(Object surface, int sessionId) {
-        Log.d(TAG, "Streamout: startPreview() resReleased = " + resReleased);
+        Log.i(TAG, "Streamout: startPreview() resReleased = " + resReleased);
         if (streamCtl.mCameraDisabled == false)
         {
             if (resReleased) {
-                Log.d(TAG, "Streamout: startPreview() reinit all resources + waitForPreviewAvailable");
+                Log.i(TAG, "Streamout: startPreview() reinit all resources + waitForPreviewAvailable");
                 nativeInitRtspServer(null);
                 //waitForPreviewAvailable(0, 5);
                 resReleased = false;
             }
 
-            Log.d(TAG, "Streamout: startPreview() ");
+            Log.i(TAG, "Streamout: startPreview() ");
             nativeStartPreview(surface,sessionId);
             previewActive = true;
         }
         
         SystemClock.sleep(2000);
-        Log.d(TAG, "Streamout: now getCamStreamEnable = " + streamCtl.userSettings.getCamStreamEnable());
+        Log.i(TAG, "Streamout: now getCamStreamEnable = " + streamCtl.userSettings.getCamStreamEnable());
         if (streamCtl.userSettings.getCamStreamEnable() == false) {
             stop();
         }           
@@ -269,7 +269,7 @@ public class GstreamOut {
     }
     
     protected void pausePreview(int sessionId) {
-        //Log.d(TAG, "Streamout: pausePreview() is_preview = " + streamCtl.cam_preview.is_preview);
+        //Log.i(TAG, "Streamout: pausePreview() is_preview = " + streamCtl.cam_preview.is_preview);
         if (streamCtl.mCameraDisabled == false)
         {
             nativePausePreview(sessionId);
@@ -279,12 +279,12 @@ public class GstreamOut {
     protected void stopPreview(int sessionId) {
         if (streamCtl.mCameraDisabled == false)
         {
-            Log.d(TAG, "Streamout: stopPreview() camStreamActive = " + camStreamActive + ", resReleased = "+ resReleased );
+            Log.i(TAG, "Streamout: stopPreview() camStreamActive = " + camStreamActive + ", resReleased = "+ resReleased );
             nativeStopPreview(sessionId);
             previewActive = false;
             
             if (!camStreamActive && !resReleased) {
-                Log.d(TAG, "Streamout: stopPreview() release all resources");
+                Log.i(TAG, "Streamout: stopPreview() release all resources");
                 nativeFinalizeRtspServer();
                 resReleased = true;
             }
@@ -295,7 +295,7 @@ public class GstreamOut {
         int rtn = -1;   
         if (streamCtl.mCameraDisabled == false)
         {
-            Log.d(TAG, "Streamout: waitForPreviewAvailable() ");
+            Log.i(TAG, "Streamout: waitForPreviewAvailable() ");
             rtn = nativeWaitForPreviewAvailable(sessionId,timeout_sec);
         }
         
@@ -306,7 +306,7 @@ public class GstreamOut {
         int rtn = -1;   
         if (streamCtl.mCameraDisabled == false)
         {
-            Log.d(TAG, "Streamout: waitForPreviewClosed() ");
+            Log.i(TAG, "Streamout: waitForPreviewClosed() ");
             rtn = nativeWaitForPreviewClosed(sessionId,timeout_sec);
         }
         
@@ -327,13 +327,13 @@ public class GstreamOut {
 ///////////////////////////////////////////////////////////////////////////////
     
     protected void onDestroy() {
-        Log.d(TAG, "destructor called");
+        Log.i(TAG, "destructor called");
         nativeFinalizeRtspServer();
     }    
     
 ///////////////////////////////////////////////////////////////////////////////
 
     private void setMessage(final String message) {
-        Log.d(TAG, "setMessage " + message);
+        Log.i(TAG, "setMessage " + message);
     }
 }

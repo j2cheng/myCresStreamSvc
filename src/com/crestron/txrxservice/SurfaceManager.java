@@ -27,14 +27,14 @@ public class SurfaceManager implements SurfaceHolder.Callback {
     
     public void initCresSurfaceHolder (SurfaceView view) {
     	if (view != null) {
-            Log.d(TAG, "initCresSurfaceHolder(): View is not null");
+            Log.i(TAG, "initCresSurfaceHolder(): View is not null");
             crestSurfaceHolder = view.getHolder();	
             crestSurfaceHolder.addCallback(this);
             crestSurfaceHolder.setType(SurfaceHolder.SURFACE_TYPE_PUSH_BUFFERS);
             view.setZOrderOnTop(true);
 
         } else {
-            Log.d(TAG, "App passed null surface view for stream in");
+            Log.i(TAG, "App passed null surface view for stream in");
         }
     }
 
@@ -61,20 +61,20 @@ public class SurfaceManager implements SurfaceHolder.Callback {
     	}
     	    	
         if (view != null) {
-            Log.d(TAG, "getCresSurfaceHolder(): View is not null");
+            Log.i(TAG, "getCresSurfaceHolder(): View is not null");
             crestSurfaceHolder = view.getHolder();
 //            crestSurfaceHolder.setType(SurfaceHolder.SURFACE_TYPE_PUSH_BUFFERS);
 //            view.setZOrderOnTop(true);
 
         } else {
-            Log.d(TAG, "App passed null surface view for stream in");
+            Log.i(TAG, "App passed null surface view for stream in");
         }
         return crestSurfaceHolder;
     }
 
     @Override
     public void surfaceChanged(SurfaceHolder holder, int format, int w, int h) {
-    	Log.d(TAG, "######### surfacechanged surface="+holder.getSurface()+
+    	Log.i(TAG, "######### surfacechanged surface="+holder.getSurface()+
     			"  fmt=" + String.valueOf(format) +
     			"  wxh=" + String.valueOf(w) + "x" + String.valueOf(h) +
     			"##############");
@@ -82,12 +82,12 @@ public class SurfaceManager implements SurfaceHolder.Callback {
 
     @Override
     public void surfaceCreated(SurfaceHolder holder) {
-    	Log.d(TAG, "######### surfaceCreated surface="+holder.getSurface()+"##############");
+    	Log.i(TAG, "######### surfaceCreated surface="+holder.getSurface()+"##############");
     	mLock.countDown(); //mark that surface has been created and is ready for use
     }
 
     @Override
     public void surfaceDestroyed(SurfaceHolder holder) {
-    	Log.d(TAG, "######### surfaceDestroyed surface="+holder.getSurface()+"##############");
+    	Log.i(TAG, "######### surfaceDestroyed surface="+holder.getSurface()+"##############");
     }
 }

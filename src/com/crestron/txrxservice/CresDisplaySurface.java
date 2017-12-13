@@ -186,7 +186,7 @@ public class CresDisplaySurface
         wmLayoutParams.x = 0;
         wmLayoutParams.y = 0;
 		if(haveExternalDisplays){		
-			Log.d(TAG, "moving streams to 2nd display");
+			Log.i(TAG, "moving streams to 2nd display");
 			dm = (DisplayManager) app.getApplicationContext().getSystemService(Context.DISPLAY_SERVICE);
 //	        if (dm != null)
 //	        {
@@ -224,7 +224,7 @@ public class CresDisplaySurface
     {
     	// If parentLayout has not yet been created (see CresDisplaySurface) return immediately
         if (parentlayout == null) {
-        	Log.d(TAG, "exiting setWindowManagerResolution because no parentlayout available");
+        	Log.i(TAG, "exiting setWindowManagerResolution because no parentlayout available");
         	return;
         }
         
@@ -258,7 +258,7 @@ public class CresDisplaySurface
 //			wm = app.getWindowManager();	// getting windowManager in this fashion fills in application binder token automatically
 		    wm.updateViewLayout(parentlayout, wmLayoutParams);
 		}
-    	Log.d(TAG, "setWindowManagerResolution: resolution set to "+w+"x"+h);
+    	Log.i(TAG, "setWindowManagerResolution: resolution set to "+w+"x"+h);
     }
 	
     /**

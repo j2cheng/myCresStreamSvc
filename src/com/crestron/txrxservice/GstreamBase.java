@@ -24,7 +24,7 @@ public class GstreamBase  {
 	// Moved here from GstreamIn.java,
 	// since gstreamer is used for streaming out as well as in.
 	static {
-		Log.d(TAG,"loading gstreamer_android and gstreamer_jni" );
+		Log.i(TAG,"loading gstreamer_android and gstreamer_jni" );
 		System.loadLibrary("gstreamer_android");
 		System.loadLibrary("gstreamer_jni");                
 	}

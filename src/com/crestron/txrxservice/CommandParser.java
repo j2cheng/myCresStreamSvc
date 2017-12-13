@@ -789,7 +789,7 @@ public class CommandParser {
     public String processReceivedMessage(String receivedMsg){
         String reply = ""; 
         StringTokenizer.ParseResponse parseResponse = tokenizer.Parse(receivedMsg);
-//        Log.d(TAG, "sessId parsed "+ parseResponse.sessId);
+//        Log.i(TAG, "sessId parsed "+ parseResponse.sessId);
         
         if (parseResponse.sessId >= CresStreamCtrl.NumOfSurfaces)
         {
@@ -833,7 +833,7 @@ public class CommandParser {
                 {
                     invoke.setCommand(cmd);
                     valueResponse = invoke.get();
-                    Log.d(TAG, String.format("Join %s value response: %s", parseResponse.joinName.toUpperCase(), valueResponse));
+                    Log.i(TAG, String.format("Join %s value response: %s", parseResponse.joinName.toUpperCase(), valueResponse));
                 }
 	        }
 	        

@@ -113,7 +113,7 @@ public class AirMediaAwind implements AirMedia
     	
     	mStreamCtl.setHostName("");
     	mStreamCtl.setDomainName("");
-    	Log.d(TAG, "HostName="+mStreamCtl.hostName+"   DomainName="+mStreamCtl.domainName);
+    	Log.i(TAG, "HostName="+mStreamCtl.hostName+"   DomainName="+mStreamCtl.domainName);
     	mStreamCtl.sendAirMediaConnectionAddress(0);  
 
     	shutDownAirMediaAwind();	// In case AirMediaAwind was already running shut it down
@@ -245,7 +245,7 @@ public class AirMediaAwind implements AirMedia
     }
     
     public void registerBroadcasts() {
-    	Log.d(TAG, "registerBroadcasts !");
+    	Log.i(TAG, "registerBroadcasts !");
 
     	feedback = new BroadcastReceiver()
     	{
@@ -258,7 +258,7 @@ public class AirMediaAwind implements AirMedia
     					Bundle bundle = paramAnonymousIntent.getExtras();
     					for (String key : bundle.keySet()) {
     					    Object value = bundle.get(key);
-    					    Log.d(TAG, String.format("Received airMedia feedback: %s %s (%s)", key,  
+    					    Log.i(TAG, String.format("Received airMedia feedback: %s %s (%s)", key,  
     					        value.toString(), value.getClass().getName()));
     					}
     					String eventName = paramAnonymousIntent.getStringExtra("event");
@@ -267,7 +267,7 @@ public class AirMediaAwind implements AirMedia
     					{
     						int awindId = paramAnonymousIntent.getIntExtra("sender_id", -1);
     						int senderId = addIdToMap(awindId);
-    						Log.d(TAG, "Adding Id to map, userId: " + senderId + " awindId: " + awindId);
+    						Log.i(TAG, "Adding Id to map, userId: " + senderId + " awindId: " + awindId);
     						if ((senderId > 0) && (senderId <= 32))
     						{
     							mStreamCtl.userSettings.setAirMediaUserConnected(true, senderId);
@@ -282,7 +282,7 @@ public class AirMediaAwind implements AirMedia
     						int awindId = paramAnonymousIntent.getIntExtra("sender_id", -1);
     						int senderId = translateAwindId(awindId);
     						removeIdFromMap(awindId);
-    						Log.d(TAG, "Removing Id from map awindId: " + awindId);
+    						Log.i(TAG, "Removing Id from map awindId: " + awindId);
     						if ((senderId > 0) && (senderId <= 32))
     						{
     							mStreamCtl.userSettings.setAirMediaUserConnected(false, senderId);
@@ -312,7 +312,7 @@ public class AirMediaAwind implements AirMedia
     					}
     					else
     					{
-    						Log.d(TAG, "Received unknown event '" + eventName + "' from airMedia app");
+    						Log.i(TAG, "Received unknown event '" + eventName + "' from airMedia app");
     					}
        				}
     			}).start();
@@ -343,7 +343,7 @@ public class AirMediaAwind implements AirMedia
 		    	int awindId = cursor.getInt(0);
 		    	
 		    	int userId = addIdToMap(awindId);
-		    	Log.d(TAG, "Adding Id to map, userId: " + userId + " awindId: " + awindId);
+		    	Log.i(TAG, "Adding Id to map, userId: " + userId + " awindId: " + awindId);
 		    	if ((userId >= 1) && (userId <= 32)) //make sure in range
 		    	{
 		    		// If sending all userFeedback mark which users feedback already sent on
@@ -377,7 +377,7 @@ public class AirMediaAwind implements AirMedia
                             if (awindId != -1)
                             {
                                     removeIdFromMap(awindId);       // Remove from mapping if existing
-                                    Log.d(TAG, "Removing Id from map awindId: " + awindId);
+                                    Log.i(TAG, "Removing Id from map awindId: " + awindId);
                             }
                             mStreamCtl.userSettings.setAirMediaUserConnected(false, i + 1);
                             mStreamCtl.sendAirMediaUserFeedbacks(i + 1, "", "", 0, false);
@@ -446,7 +446,7 @@ public class AirMediaAwind implements AirMedia
                 i.putExtra("command", "login_code");
                 i.putExtra("value", loginCode);
                 mContext.sendBroadcast(i);
-                        Log.d(TAG, "Sending Login Code " + loginCode);
+                        Log.i(TAG, "Sending Login Code " + loginCode);
         }
         catch (Exception e)
         {

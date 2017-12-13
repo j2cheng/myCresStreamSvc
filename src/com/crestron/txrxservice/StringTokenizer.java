@@ -78,13 +78,13 @@ public class StringTokenizer
         	
 //            if (regexM.group(3) != null)
 //            {
-//                Log.d(TAG, "At Parser::strings are '"+joinNameWithSessId+"' '"+parseRes.joinValue+"'");
+//                Log.i(TAG, "At Parser::strings are '"+joinNameWithSessId+"' '"+parseRes.joinValue+"'");
 //                if(parseRes.joinName.equalsIgnoreCase("start") || parseRes.joinName.equalsIgnoreCase("stop")|| parseRes.joinName.equalsIgnoreCase("pause")){
-//                    Log.d(TAG, "received control cmd");
+//                    Log.i(TAG, "received control cmd");
 //                }
 //            }
 //            else
-//                Log.d(TAG, "Query has been made for '"+joinNameWithSessId+"'");
+//                Log.i(TAG, "Query has been made for '"+joinNameWithSessId+"'");
             
         }
 

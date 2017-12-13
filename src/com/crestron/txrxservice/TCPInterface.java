@@ -156,7 +156,7 @@ public class TCPInterface extends AsyncTask<Void, Object, Long> {
 //        	Thread.sleep(3000);
 //        } catch (Exception e) { e.printStackTrace(); }
         
-        Log.d(TAG, "Restarting Streams - tcp interface command");
+        Log.i(TAG, "Restarting Streams - tcp interface command");
         streamCtl.restartStreams(false);
     }
     
@@ -207,7 +207,7 @@ public class TCPInterface extends AsyncTask<Void, Object, Long> {
         	if (allowedAddress == null)
         	{
         		serverSocket = new ServerSocket(SERVERPORT, 50, null);
-        		Log.d(TAG, "Allowing all tcp connections to debug port");
+        		Log.i(TAG, "Allowing all tcp connections to debug port");
         	}
         	else
         		serverSocket = new ServerSocket(SERVERPORT, 50, InetAddress.getByName(allowedAddress));
@@ -218,7 +218,7 @@ public class TCPInterface extends AsyncTask<Void, Object, Long> {
 
             try {
                 clientSocket = serverSocket.accept();
-                Log.d(TAG, "Client connected to clientSocket: " + clientSocket.toString());
+                Log.i(TAG, "Client connected to clientSocket: " + clientSocket.toString());
                 try
                 {
                 	clientSocket.setTcpNoDelay(true);
@@ -261,7 +261,7 @@ public class TCPInterface extends AsyncTask<Void, Object, Long> {
                 // Mark csio as connected
                 streamCtl.csioConnected = true;
                 MiscUtils.writeStringToDisk(CresStreamCtrl.initializeSettingsFilePath, "1");
-                Log.d(TAG, "CSIO connected to CresStreamSvc via TCP Interface");
+                Log.i(TAG, "CSIO connected to CresStreamSvc via TCP Interface");
                 
                 // Update csio on hdmi input status
                 if (streamCtl.hdmiInputDriverPresent)
@@ -288,7 +288,7 @@ public class TCPInterface extends AsyncTask<Void, Object, Long> {
                         	iter.remove();
                     	}
                     }
-                    Log.d(TAG, "closed down the server socket" );
+                    Log.i(TAG, "closed down the server socket" );
                 } catch (IOException e) {
                     e.printStackTrace();
                 }
@@ -320,7 +320,7 @@ public class TCPInterface extends AsyncTask<Void, Object, Long> {
             } catch (IOException e) {
                 e.printStackTrace();
                 //  Was client socket closed - Clean up
-                Log.d(TAG, "Client cleanup ");
+                Log.i(TAG, "Client cleanup ");
                 serverHandler.RemoveClientFromList(this);
             }
         }
@@ -345,7 +345,7 @@ public class TCPInterface extends AsyncTask<Void, Object, Long> {
                 catch (IOException e) 
                 {
                 	e.printStackTrace();
-                    Log.d(TAG, "Error sending data to client.  Cleaning up");
+                    Log.i(TAG, "Error sending data to client.  Cleaning up");
 //                    serverHandler.RemoveClientFromList(this);
                     retVal = -1;
                 }
@@ -365,7 +365,7 @@ public class TCPInterface extends AsyncTask<Void, Object, Long> {
                     	lastRead = currentRead; 
                     if(read!=null && !(isWhiteSpace=(read.matches("^\\s*$"))))
                     {
-                        Log.d(TAG, "msg received is "+read);
+                        Log.i(TAG, "msg received is "+read);
                         if((read.trim()).equalsIgnoreCase("help")){
                             String validatedMsg = parserInstance.validateReceivedMessage(read);
                             serverHandler.SendDataToAllClients(validatedMsg);
@@ -390,7 +390,7 @@ public class TCPInterface extends AsyncTask<Void, Object, Long> {
                         else if ((read.trim()).equalsIgnoreCase("DEBUG_MODE")) {
                         	// Remove timeout for debugging
                         	clientSocket.setSoTimeout(0);
-                        	Log.d(TAG, "Turning telnet debug mode on");
+                        	Log.i(TAG, "Turning telnet debug mode on");
                         }
                         else{
                         	// determine sessionId first so we can add to the right queue
@@ -399,7 +399,7 @@ public class TCPInterface extends AsyncTask<Void, Object, Long> {
                         }
                     }
                     else if(read == null) {
-                        Log.d(TAG, "Client Disconnected..... ");
+                        Log.i(TAG, "Client Disconnected..... ");
                         connectionAlive = false;
                     }
                     else{//white space or NULL Commands

@@ -54,7 +54,7 @@ public class HDMIOutputInterface {
 			audioChannels = "0";
 		}
 		
-		Log.d(TAG, "Device has hdmi output is " + hasHdmiOutput);
+		Log.i(TAG, "Device has hdmi output is " + hasHdmiOutput);
 	}
 	
 	public void setSyncStatus() {
@@ -170,7 +170,7 @@ public class HDMIOutputInterface {
 //            e.printStackTrace();
             text.append("0"); //if error default to no HDCP
         }
-//        Log.d(TAG, "HDMI OUT HDCP status from sysfs:" + text.toString());
+//        Log.i(TAG, "HDMI OUT HDCP status from sysfs:" + text.toString());
         return Integer.parseInt(text.toString());
     }
 	

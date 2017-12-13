@@ -306,7 +306,7 @@ public class GstreamIn implements StreamInStrategy, SurfaceHolder.Callback {
     public void setRtpOnlyMode(int vport, int aport, String ip, int sessionId){
 //        rtp_mode = true;
 //        sb = new StringBuilder(4096);
-//        Log.d(TAG, "vport "+vport+ "aport "+aport +"ip "+ip);
+//        Log.i(TAG, "vport "+vport+ "aport "+aport +"ip "+ip);
 //        sb.append("v=0\r\n").append("o=- 15545345606659080561 15545345606659080561 IN IP4 cpu000669\r\n").append("s=Sample\r\n").append("i=N/A\r\n").append("c=IN IP4 ").append(ip).append("\r\n").append("t=0 0\r\n").append("a=range:npt=now-\r\n").append("m=audio ").append(Integer.toString(aport)).append(" RTP/AVP 96\r\n").append("a=control:audio\r\n").append("a=rtpmap:96 MP4A-LATM/44100/2\r\n").append("a=fmtp:96 profile-level-id=15; object=2; cpresent=0; config=400024203fc0\r\n").append("m=video ").append(Integer.toString(vport)).append(" RTP/AVP 97\r\n").append("a=control:video\r\n").append("a=rtpmap:97 H264/90000\r\n").append("a=fmtp:97 profile-level-id=64002A;in-band-parameter-sets=1;packetization-mode=1\r\n");
     }
 
@@ -322,7 +322,7 @@ public class GstreamIn implements StreamInStrategy, SurfaceHolder.Callback {
     				updateNativeDataStruct(sessionId);
     				nativeSurfaceInit(sh.getSurface(), sessionId);
     				//    		Code below is for trying TextureView rendering for QuadView
-    				//    		Log.d(TAG, "*********** passing surface derived from TextureView for sessionId: " + sessionId + " to 'nativeSurfaceInit' ************");
+    				//    		Log.i(TAG, "*********** passing surface derived from TextureView for sessionId: " + sessionId + " to 'nativeSurfaceInit' ************");
     				//    		Surface s = new Surface(streamCtl.getAirMediaSurfaceTexture(sessionId));
     				//    		nativeSurfaceInit(s, sessionId);
     				nativePlay(sessionId);    		
@@ -359,7 +359,7 @@ public class GstreamIn implements StreamInStrategy, SurfaceHolder.Callback {
 
     public void onStop(final int sessionId) {
     	isPlaying = false;
-    	Log.d(TAG, "Stopping MediaPlayer");
+    	Log.i(TAG, "Stopping MediaPlayer");
         //nativeSurfaceFinalize (sessionId);should be called in surfaceDestroyed()
         nativeStop(sessionId);        
     }
@@ -485,10 +485,10 @@ public class GstreamIn implements StreamInStrategy, SurfaceHolder.Callback {
 		int sessionId = sessionIdFromSurfaceHolder(holder);     
 		if(sessionId < 0)
 		{
-		    Log.d("GStreamer","Failed to get session id from surface holder");
+		    Log.i("GStreamer","Failed to get session id from surface holder");
 		    return;
 		}
-        Log.d("GStreamer", "Surface for stream " + sessionId + " changed to format " + format + " width "
+        Log.i("GStreamer", "Surface for stream " + sessionId + " changed to format " + format + " width "
                 + width + " height " + height);		
         nativeSurfaceInit (holder.getSurface(), sessionId);
     }
@@ -497,10 +497,10 @@ public class GstreamIn implements StreamInStrategy, SurfaceHolder.Callback {
         int sessionId = sessionIdFromSurfaceHolder(holder);        
    		if(sessionId < 0)
 		{
-		    Log.d("GStreamer","Failed to get session id from surface holder");
+		    Log.i("GStreamer","Failed to get session id from surface holder");
 		    return;
 		}
-        Log.d("GStreamer", "Surface for stream " + sessionId + " created: " + holder.getSurface());
+        Log.i("GStreamer", "Surface for stream " + sessionId + " created: " + holder.getSurface());
         nativeSurfaceInit (holder.getSurface(), sessionId);
     }
 
@@ -508,10 +508,10 @@ public class GstreamIn implements StreamInStrategy, SurfaceHolder.Callback {
         int sessionId = sessionIdFromSurfaceHolder(holder);        
 		if(sessionId < 0)
 		{
-		    Log.d("GStreamer","Failed to get session id from surface holder");
+		    Log.i("GStreamer","Failed to get session id from surface holder");
 		    return;
 		}        
-		Log.d("GStreamer", "Surface for stream " + sessionId + " destroyed");		
+		Log.i("GStreamer", "Surface for stream " + sessionId + " destroyed");		
         nativeSurfaceFinalize (sessionId);
     }
 }
