@@ -172,6 +172,11 @@ public class AirMediaAwind implements AirMedia
     	
     }
     
+    public boolean airMediaIsUp()
+    {
+    	return true;
+    }
+    
     public void recover(){
     	if (mStreamCtl.userSettings.getAirMediaLaunch(0))
     	{

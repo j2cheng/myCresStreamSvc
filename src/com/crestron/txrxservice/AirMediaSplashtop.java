@@ -141,6 +141,33 @@ public class AirMediaSplashtop implements AirMedia
     	}
     }
  
+    public void launchReceiverService()
+    {
+    	Common.Logging.i(TAG, "launchReceiverService........");
+    	new Thread(new Runnable() {
+    		@Override
+    		public void run() {
+    			orderedLock.lock("launchReceiverService");
+    			try {
+    		    	boolean serviceSuccessfullyStarted = false;
+    		    	while (!serviceSuccessfullyStarted)
+    		    	{
+    		    		serviceSuccessfullyStarted = connectAndStartReceiverService();
+    		    		if (serviceSuccessfullyStarted) {
+    		    			Common.Logging.i(TAG, "launchReceiverService exiting receiver=" + receiver() + "  service=" + service() + "  manager=" + manager());
+    		    		} else {
+    		    			Common.Logging.e(TAG, "launchReceiverService failed, trying again in 5 seconds");
+    		    			sleep(5000);
+    		    		}
+    		    	}
+    			} finally {
+    				orderedLock.unlock("launchReceiverService");
+    		    	Common.Logging.i(TAG, "launchReceiverService exit ........");
+    			}
+    		}
+    	}).start();
+    }
+    
     public AirMediaSplashtop(CresStreamCtrl streamCtl) 
     {
     	mStreamCtl = streamCtl;
@@ -152,18 +179,7 @@ public class AirMediaSplashtop implements AirMedia
     	mStreamCtl.sendAirMediaConnectionAddress(streamIdx);  
     	adapter_ip_address = mStreamCtl.getAirMediaConnectionIpAddress(0);
     	
-//    	shutDownAirMediaSplashtop();	// In case AirMediaSplashtop was already running shut it down
-    	boolean serviceSuccessfullyStarted = false;
-    	while (!serviceSuccessfullyStarted)
-    	{
-    		serviceSuccessfullyStarted = connectAndStartReceiverService();
-    		if (serviceSuccessfullyStarted) {
-    			Common.Logging.i(TAG, "AirMediaSpashtop constructor exiting receiver=" + receiver() + "  service=" + service() + "  manager=" + manager());
-    		} else {
-    			Common.Logging.e(TAG, "Airmedia startup failed, trying again in 5 seconds");
-    			sleep(5000);
-    		}
-    	}
+    	launchReceiverService(); // will do its job asynchronously
     }
     
     public boolean connectAndStartReceiverService()

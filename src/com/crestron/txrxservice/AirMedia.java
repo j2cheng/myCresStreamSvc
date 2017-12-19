@@ -10,6 +10,7 @@ public interface AirMedia
     public void hide(boolean sendStopToSender);   
     public void hide(boolean sendStopToSender, boolean clear);   
     public boolean getSurfaceDisplayed();
+    public boolean airMediaIsUp();
     
     public void querySenderList(boolean sendAllUserFeedback);
     

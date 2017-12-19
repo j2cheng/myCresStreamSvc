@@ -3771,8 +3771,16 @@ public class CresStreamCtrl extends Service {
     					if (!use_splashtop)
     						mAirMedia = new AirMediaAwind(this);
     					else {
-    						Log.i(TAG, "Calling AirMediaConstructor from launchAirMedia");
-    						mAirMedia = new AirMediaSplashtop(this);
+    						if (mAirMedia == null)
+    						{
+    							Log.i(TAG, "launchAirMedia: airMedia is null - wait for constructor to be invoked - ignoring command");
+    							return;
+    						}
+    						if (mAirMedia.airMediaIsUp())
+    						{
+    							Log.i(TAG, "launchAirMedia: airMedia is not yet up -ignoring command");
+    							return;
+    						}
     					}
     				}    				
     				if (mAirMedia != null)
@@ -3830,6 +3838,7 @@ public class CresStreamCtrl extends Service {
     			{
     				if (mAirMedia != null)
     				{
+						Log.i(TAG, "hide AirMedia");
     					mAirMedia.hide(true);
     				}
     				// Restore default Window once Air Media is stopped
