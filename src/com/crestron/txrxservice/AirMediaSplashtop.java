@@ -93,9 +93,9 @@ public class AirMediaSplashtop implements AirMedia
     private final Object connectLock = new Object();
     private final Object startStopReceiverLock = new Object();
 
-	private AirMediaReceiver receiver_;
+	private AirMediaReceiver receiver_=null;
 	private IAirMediaReceiver service_=null;
-	private AirMediaSessionManager manager_;
+	private AirMediaSessionManager manager_=null;
 	
 	private AirMediaSession active_session_=null;
 	private Surface surface_=null;
@@ -103,7 +103,7 @@ public class AirMediaSplashtop implements AirMedia
 	private String adapter_ip_address = null;
 	private String version = null;
 	private String productName = null; 
-	private int lastReturnedAirMediaStatus;
+	private int lastReturnedAirMediaStatus = 0;
 	private boolean pending_adapter_ip_address_change = false;
 	private boolean isServiceConnected = false;
 	private boolean isReceiverStarted = false;
@@ -444,6 +444,10 @@ public class AirMediaSplashtop implements AirMedia
     {
 		boolean successfulStart = true; //indicates receiver was successfully loaded
 
+		if (receiver_ != null) {
+			// close any prior receiver if it exists
+			receiver_.close();
+		}
         if (receiver_ == null) {
         	try {
         		receiver_ = new AirMediaReceiver(service_);
@@ -865,6 +869,7 @@ public class AirMediaSplashtop implements AirMedia
 		    	surface_ = surface;
 				Common.Logging.i(TAG, "attachSurface: attaching surface: " + surface + " to session: " + AirMediaSession.toDebugString(session));
 				session.attach(surface);
+				Common.Logging.i(TAG, "attachSurface: attached surface");
 			}
 		} else {
 			if (surfaceHolder != null)
@@ -872,8 +877,10 @@ public class AirMediaSplashtop implements AirMedia
 			Common.Logging.i(TAG, "attachSurface: No valid surface at this time");
 		}
 
+		Common.Logging.i(TAG, "attachSurface: calling setVideoTransform");
 		setVideoTransformation();
 
+		Common.Logging.i(TAG, "attachSurface: calling setInvalidateOnSurfaceTextureUpdate");
 		mStreamCtl.dispSurface.stMGR.setInvalidateOnSurfaceTextureUpdate(true);
 		Common.Logging.i(TAG, "Exit from attachSurface");
     }
@@ -953,7 +960,7 @@ public class AirMediaSplashtop implements AirMedia
     	{
         	Common.Logging.i(TAG, "setActiveSession: already have same session active: " + AirMediaSession.toDebugString(session()));
     		return;
-    	}
+		}
     	
     	// take surface away from active session if one exists
     	if (priorSessionExists)
@@ -964,7 +971,7 @@ public class AirMediaSplashtop implements AirMedia
     	}
     	
     	active_session_ = session;
-		Common.Logging.i(TAG, "setActiveSession: setting active session " + AirMediaSession.toDebugString(session()));  
+    	Common.Logging.i(TAG, "setActiveSession: setting active session " + AirMediaSession.toDebugString(session()));  
 		
 		if (wasShowing)
 		{
@@ -1438,6 +1445,23 @@ public class AirMediaSplashtop implements AirMedia
     {
     }
     
+    private void sendStopToAllSenders()
+    {
+		Common.Logging.i(TAG, "sendStopToAllSenders");
+    	for (int i = 1; i <= MAX_USERS; i++) // We handle airMedia user ID as 1 based
+    	{
+    		if (mStreamCtl.userSettings.getAirMediaUserConnected(i))
+    		{
+    			AirMediaSession session = user2session(i);
+    			if (session != null)
+    			{
+    				Common.Logging.i(TAG, "sendStopToAllSenders: Session " + AirMediaSession.toDebugString(session) + " requesting stop ");
+    				session.stop();
+    			}
+    		}
+    	}
+    }
+    
     private void stopAllSenders()
     {
 		Common.Logging.i(TAG, "stopAllSenders");
@@ -1662,7 +1686,7 @@ public class AirMediaSplashtop implements AirMedia
             }
 			if (reason != 0)
 			{
-				stopAllSenders();
+				sendStopToAllSenders();
 				if (reason == CODEC_ERROR) {
 					// Force a recovery of the Ducati codec and media server
 					mStreamCtl.RecoverDucati();
