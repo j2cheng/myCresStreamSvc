@@ -79,19 +79,21 @@ void wbs_set_app(jobject app)
 static void wbs_set_buffer_size(Wbs_t *pWbs, int w, int h)
 {
 	ANativeWindow_Buffer windowBuffer;
+	int errCode;
+
 	pWbs->width = w;
 	pWbs->height = h;
 	if (pWbs->native_window) {
 		ANativeWindow_setBuffersGeometry(pWbs->native_window, pWbs->width, pWbs->height, pWbs->format);
 		// Needs to lock the window buffer to get its properties.
-		if (ANativeWindow_lock(pWbs->native_window, &windowBuffer, NULL) >= 0) {
+		if ((errCode=ANativeWindow_lock(pWbs->native_window, &windowBuffer, NULL)) >= 0) {
 			int bw = windowBuffer.width;
 			int bh = windowBuffer.height;
 			int stride = windowBuffer.stride;
 			ANativeWindow_unlockAndPost(pWbs->native_window);
 	        CSIO_LOG(eLogLevel_debug, "%s: buffers resized to %dx%d with stride=%d", __FUNCTION__, bw, bh, stride);
 		} else {
-	        CSIO_LOG(eLogLevel_error, "%s: unable to set buffers to size of %dx%d", __FUNCTION__, w, h);
+	        CSIO_LOG(eLogLevel_error, "%s: unable to set buffers to size of %dx%d (errCode=%d)", __FUNCTION__, w, h, errCode);
 		}
     } else {
         CSIO_LOG(eLogLevel_error, "%s: cannot set buffer sizes without native window", __FUNCTION__);
@@ -103,6 +105,7 @@ static void wbs_render(Wbs_t *pWbs, unsigned char *frameBuffer, int w, int h)
 {
 	ANativeWindow *native_window = (pWbs) ? pWbs->native_window : NULL;
 	ANativeWindow_Buffer windowBuffer;
+	int errCode;
 
 	CSIO_LOG((pWbs->frameCount < 10) ? eLogLevel_debug : eLogLevel_extraVerbose, "%s: render image %d of size %dx%d", __FUNCTION__, pWbs->frameCount, w, h);
 	pWbs->frameCount++;
@@ -113,8 +116,8 @@ static void wbs_render(Wbs_t *pWbs, unsigned char *frameBuffer, int w, int h)
 	}
 
     // Locks the window buffer for drawing.
-    if (ANativeWindow_lock(native_window, &windowBuffer, NULL) < 0) {
-        CSIO_LOG(eLogLevel_error, "unable to get lock on window buffer");
+    if ((errCode=ANativeWindow_lock(native_window, &windowBuffer, NULL)) < 0) {
+        CSIO_LOG(eLogLevel_error, "%s: unable to get lock on window buffer: errCode=%d", __FUNCTION__, errCode);
         return;
     }
     if (w > windowBuffer.width) w = windowBuffer.width;
@@ -136,6 +139,8 @@ static void wbs_clear_window(Wbs_t *pWbs)
 {
 	ANativeWindow *native_window = (pWbs) ? pWbs->native_window : NULL;
 	ANativeWindow_Buffer windowBuffer;
+	int errCode;
+
 	CSIO_LOG(eLogLevel_debug, "%s: clear window", __FUNCTION__);
 	if (native_window == NULL) {
 		CSIO_LOG(eLogLevel_error, "%s: No window attached to stream", __FUNCTION__);
@@ -143,8 +148,8 @@ static void wbs_clear_window(Wbs_t *pWbs)
 	}
 
     // Locks the window buffer for drawing.
-    if (ANativeWindow_lock(native_window, &windowBuffer, NULL) < 0) {
-        CSIO_LOG(eLogLevel_error, "unable to get lock on window buffer");
+    if ((errCode=ANativeWindow_lock(native_window, &windowBuffer, NULL)) < 0) {
+        CSIO_LOG(eLogLevel_error, "%s: unable to get lock on window buffer: errCode=%d", __FUNCTION__, errCode);
         return;
     }
     // Clears the window.

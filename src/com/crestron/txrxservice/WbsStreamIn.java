@@ -152,8 +152,10 @@ public class WbsStreamIn implements SurfaceHolder.Callback {
     	}
     	isPlaying = false;
     	Log.i(TAG, "Stopping WBS Streaming");
-        //nativeSurfaceFinalize (sessionId);should be called in surfaceDestroyed()
         nativeStop(sessionId);        
+    	Log.i(TAG, "Finished stop - now calling nativeSurfaceFinalize");
+    	nativeSurfaceFinalize(sessionId); // should be called in surfaceDestroyed()
+    	Log.i(TAG, "Finished nativeSurfaceFinalize - exiting onStop()");
     }
     
     //Pause
