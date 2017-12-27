@@ -184,7 +184,7 @@ public class CresStreamCtrl extends Service {
     private Object mCameraModeScheduleLock = new Object();
     public Object mAirMediaLock = new Object();
     private Object mAirMediaCodeLock = new Object();
-    private int mAirMediaNumberOfUsersConnected = 0;
+    private int mAirMediaNumberOfUsersConnected = -1;	//Bug 141088: Setting to -1 will force code change on reboot if set to random
     private Object mDisplayChangedLock = new Object();
     private int defaultLoggingLevel = -1;
     private int numberOfVideoTimeouts = 0; //we will use this to track stop/start timeouts
