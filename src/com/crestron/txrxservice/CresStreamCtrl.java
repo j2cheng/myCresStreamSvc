@@ -3439,7 +3439,7 @@ public class CresStreamCtrl extends Service {
 
     public void stopWbsStream(int sessId)
     {
-    	wbsStream.onStop(sessId);   
+		wbsStream.onStop(sessId);   
 
 		// Do NOT hide window if being used by AirMedia
     	if ( !((mAirMedia != null) && (mAirMedia.getSurfaceDisplayed() == true)) )
@@ -4308,7 +4308,7 @@ public class CresStreamCtrl extends Service {
     	if (select != userSettings.getAirMediaAdaptorSelect())
     	{
     		userSettings.setAirMediaAdaptorSelect(select);
-    		if (mAirMedia != null)
+    		if (mAirMedia != null && mAirMedia.airMediaIsUp())
     		{
         		Log.i(TAG,"*************** setAirMediaAdaptorSelect -- addr="+getAirMediaConnectionIpAddress(sessId)+"   *********");
         		mAirMedia.setAdapter(getAirMediaConnectionIpAddress(sessId));
@@ -4323,7 +4323,7 @@ public class CresStreamCtrl extends Service {
     // Will update airMedia IP information when called
     public void updateAirMediaIpInformation(int sessId)
     {
-    	if (mAirMedia != null)
+    	if (mAirMedia != null && mAirMedia.airMediaIsUp())
 		{
     		Log.i(TAG,"*************** updateAirMediaIpInformation -- addr="+getAirMediaConnectionIpAddress(sessId)+"   *********");
     		mAirMedia.setAdapter(getAirMediaConnectionIpAddress(sessId));
@@ -4586,7 +4586,7 @@ public class CresStreamCtrl extends Service {
     
     public void airMediaUserFeedbackUpdateRequest(int sessId)
     {
-    	if (mAirMedia != null)
+    	if (mAirMedia != null && mAirMedia.airMediaIsUp())
     	{
     		mAirMedia.setOrderedLock(true, "airMediaUserFeedbackUpdateRequest");
     		try {
@@ -4594,6 +4594,18 @@ public class CresStreamCtrl extends Service {
     		} finally {
     			mAirMedia.setOrderedLock(false, "airMediaUserFeedbackUpdateRequest");
     		}
+    	} 
+    	else if (airMediaLicensed)
+    	{
+    		// Send defaults for all user connections 
+        	Log.i(TAG, "airmedia is not yet up - returning default for airmedia status");
+    		for (int i = 1; i <= 32; i++)
+    		{
+    			userSettings.setAirMediaUserConnected(false, i);
+    			sendAirMediaUserFeedbacks(i, "", "", 0, false);					
+    		}
+    		sendAirMediaStatus(0);
+    		sendAirMediaNumberUserConnected();
     	}
     }
     
