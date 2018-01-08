@@ -23,7 +23,7 @@ public class WbsStreamIn implements SurfaceHolder.Callback {
 
     private CresStreamCtrl streamCtl;
     private boolean isPlaying = false;
-    public final boolean useSurfaceTexture=true;
+    public final boolean useSurfaceTexture=false;
 
     private static native void 	nativeSetUrl(String url, int sessionId);
     private native void nativeInit();     // Initialize native code, build pipeline, etc
