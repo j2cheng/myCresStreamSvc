@@ -149,6 +149,8 @@ public class CresStreamCtrl extends Service {
     boolean airMediaLicensed = false;
     private boolean use_splashtop = false;
     boolean[] restartRequired = new boolean[NumOfSurfaces];
+    private static Object windowTimerLock = new Object();
+    private Timer[] windowTimer = new Timer[NumOfSurfaces];
     public final static String savedSettingsFilePath = "/data/CresStreamSvc/userSettings";
     public final static String savedSettingsOldFilePath = "/data/CresStreamSvc/userSettings.old";
     public final static String cameraModeFilePath = "/dev/shm/crestron/CresStreamSvc/cameraMode";
@@ -2076,19 +2078,14 @@ public class CresStreamCtrl extends Service {
     
     public void updateWindow(final int sessionId)
     {
-    	// to avoid bug : we will set window dimensions and then set again after 10 seconds
     	updateFullWindow(sessionId, false);
-    	new Timer().schedule(new doubleSendWindowDimensions(sessionId, false), 10000);
     }
     
     public void updateWindow(final int sessionId, final boolean use_texture_view)
     {
-    	// to avoid bug : we will set window dimensions and then set again after 10 seconds
     	updateFullWindow(sessionId, use_texture_view);
-    	new Timer().schedule(new doubleSendWindowDimensions(sessionId, use_texture_view), 10000);
     }
     
-    // !!!!!!! Do not call this function use updateWindow instead !!!!!!!
     private void updateFullWindow(final int sessionId, final boolean use_texture_view)
     {
         Log.i(TAG, "updateFullWindow " + sessionId + " : Lock");
@@ -2109,13 +2106,48 @@ public class CresStreamCtrl extends Service {
         			tmpHeight = 1080;
         		}
         	}
-            Log.i(TAG, "****** updateFullWindow x="+String.valueOf(tmpX)+" y="+String.valueOf(tmpY) + " w=" + String.valueOf(tmpWidth) + " h=" + String.valueOf(tmpHeight));
-
+        	updateWindow(tmpX, tmpY, tmpWidth, tmpHeight, sessionId, use_texture_view);
+        }
+        finally
+        {
+        	windowtLock[sessionId].unlock();
+            Log.i(TAG, "updateFullWindow " + sessionId + " : Unlock");
+        }
+    }
+    
+    public void updateWindow(final int x, final int y, final int w, final int h, final int sessionId, final boolean use_texture_view)
+    {
+    	// to avoid bug : we will set window dimensions and then set again after 10 seconds
+    	_updateWindow(x, y, w, h, sessionId, use_texture_view);
+    	synchronized(windowTimerLock)
+    	{
+			Log.v(TAG, "Enter updateWindow: WindowTimer["+sessionId+"]="+windowTimer[sessionId]);
+    		// if there is a pending timer update for this window then cancel it and add a new one.
+    		if (windowTimer[sessionId] != null) {
+    			Log.i(TAG, "canceling prior delayed updateWindow event for sessionId="+sessionId);
+    			windowTimer[sessionId].cancel();
+    			windowTimer[sessionId].purge();
+    		}
+			Log.i(TAG, "scheduling delayed updateWindow event for sessionId="+sessionId+"  use_texture_view="+use_texture_view);
+    		windowTimer[sessionId] = new Timer(String.format("windowTimer-%d", sessionId));
+    		windowTimer[sessionId].schedule(new delayedCallToUpdateWindow(x, y, w, h, sessionId, use_texture_view), 10000);
+			Log.v(TAG, "Exit updateWindow: WindowTimer["+sessionId+"]="+windowTimer[sessionId]);
+    	}
+    }
+    
+    // !!!!!!! Do not call this function use updateWindow instead !!!!!!!
+    public void _updateWindow(int xloc, int yloc, int w, int h, final int sessionId, final boolean use_texture_view)
+    {
+        Log.i(TAG, "_updateWindow " + sessionId + " : Lock");
+        windowtLock[sessionId].lock();
+        try
+        {
+            Log.i(TAG, "****** _updateWindow x="+String.valueOf(xloc)+" y="+String.valueOf(yloc) + " w=" + String.valueOf(w) + " h=" + String.valueOf(h));
         	// Needs to be final so that we can pass to another thread
-        	final int width = tmpWidth;
-        	final int height = tmpHeight;
-        	final int x = tmpX;
-        	final int y = tmpY;
+        	final int width = w;
+        	final int height = h;
+        	final int x = xloc;
+        	final int y = yloc;
         	
             if (dispSurface != null)
             {
@@ -2135,7 +2167,7 @@ public class CresStreamCtrl extends Service {
 	            	try { 
 	            		if (latch.await(60, TimeUnit.SECONDS) == false)
 	            		{
-	            			Log.e(TAG, "updateFullWindow: Timeout after 60 seconds");
+	            			Log.e(TAG, "_updateWindow: Timeout after 60 seconds");
 	            			RecoverTxrxService();
 	            		}
 	            	}
@@ -2150,10 +2182,10 @@ public class CresStreamCtrl extends Service {
         finally
         {
         	windowtLock[sessionId].unlock();
-            Log.i(TAG, "updateFullWindow " + sessionId + " : Unlock");
+            Log.i(TAG, "_updateWindow " + sessionId + " : Unlock");
         }
     }
-    
+
     public void hideWindowWithoutDestroy(final int sessionId)
     {
         Log.i(TAG, "updateWH " + sessionId + " : Lock");
@@ -3430,6 +3462,11 @@ public class CresStreamCtrl extends Service {
 
     public void startWbsStream(int sessId)
     {
+		if (wbsStream.useSurfaceTexture && sessId != 0)
+		{
+			Log.i(TAG, "startWbsStream: sessId="+sessId+" --- only 0 is supported currently changing it to be 0");
+			sessId  = 0;
+		}
 		Log.i(TAG, "startWbsStream: calling updateWindow for sessId="+sessId);
     	updateWindow(sessId, wbsStream.useSurfaceTexture);
         showWbsWindow(sessId);
@@ -3439,6 +3476,12 @@ public class CresStreamCtrl extends Service {
 
     public void stopWbsStream(int sessId)
     {
+		if (wbsStream.useSurfaceTexture && sessId != 0)
+		{
+			Log.i(TAG, "stopWbsStream: sessId="+sessId+" --- only 0 is supported currently changing it to be 0");
+			sessId  = 0;
+		}
+		
 		wbsStream.onStop(sessId);   
 
 		// Do NOT hide window if being used by AirMedia
@@ -5396,19 +5439,34 @@ public class CresStreamCtrl extends Service {
 		}
 	}
 	
-	private class doubleSendWindowDimensions extends TimerTask
+	private class delayedCallToUpdateWindow extends TimerTask
 	{
+		private int x, y, w, h;
 		private int sessionId;
 		private boolean use_text;
-		doubleSendWindowDimensions(int sessId, final boolean use_texture_view)
+		delayedCallToUpdateWindow(int xloc, int yloc, int width, int height, int sessId, final boolean use_texture_view)
 		{
+			x = xloc;
+			y = yloc;
+			w = width;
+			h = height;
 			sessionId = sessId;
 			use_text = use_texture_view;
 		}		
 		@Override
 		public void run() {
-			Log.i(TAG, "delayed call to updateFullWindow");
-			updateFullWindow(sessionId, use_text);
+			Log.i(TAG, "delayed call to _updateWindow");
+			_updateWindow(x, y, w, h, sessionId, use_text);
+			synchronized(windowTimerLock)
+			{
+				Log.v(TAG, "Enter delayedCallToUpdateWindow: WindowTimer["+sessionId+"]="+windowTimer[sessionId]);
+				// end this task and clear the timer
+				windowTimer[sessionId].cancel();
+				windowTimer[sessionId].purge();
+				Log.v(TAG, "setting window timer for sessionId="+sessionId+" to null");
+				windowTimer[sessionId] = null;
+				Log.v(TAG, "Exit delayedCallToUpdateWindow: WindowTimer["+sessionId+"]="+windowTimer[sessionId]);
+			}
 		}
 	}
 	

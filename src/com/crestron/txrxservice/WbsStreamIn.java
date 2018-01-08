@@ -141,7 +141,7 @@ public class WbsStreamIn implements SurfaceHolder.Callback {
     			streamCtl.userSettings.getXloc(streamId), streamCtl.userSettings.getYloc(streamId), width, height,
     			wbsWidth, wbsHeight);
 		Log.i(TAG, "updateWindow: "+r.width()+"x"+r.height()+" @ ("+r.left+","+r.top+")");
-		streamCtl.setWindowDimensions(r.left, r.top, r.width(), r.height(), streamId, useSurfaceTexture);
+		streamCtl.updateWindow(r.left, r.top, r.width(), r.height(), streamId, useSurfaceTexture);
     }    	
 
     public void onStop(final int sessionId) {
