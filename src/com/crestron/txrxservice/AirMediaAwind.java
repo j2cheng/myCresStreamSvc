@@ -20,6 +20,9 @@ import android.net.Uri;
 import android.os.Bundle;
 import android.util.Log;
 
+
+// TODO: THIS INTERFACE IS DEAD AND SHOULD BE REMOVED!!!
+
 //public class AirMediaAwind
 public class AirMediaAwind implements AirMedia
 {
