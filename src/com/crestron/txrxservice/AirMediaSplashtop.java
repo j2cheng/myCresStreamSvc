@@ -76,6 +76,7 @@ public class AirMediaSplashtop implements AirMedia
     Context mContext;
     String TAG = "TxRx Splashtop AirMedia"; 
 	private boolean surfaceDisplayed = false;
+	private boolean doneQuerySenderList = true;
 	private static final boolean DEBUG = true;
 	private static final int streamIdx = 0;
 	private static final int MAX_USERS = 32;
@@ -1046,7 +1047,6 @@ public class AirMediaSplashtop implements AirMedia
     // set an active session - give it the surface and show the video
     private void setActiveSession(AirMediaSession session)
     {
-    	boolean wasShowing=false;
     	boolean priorActiveSessionExists = (getActiveSession() != null);
 
     	// if we already have an active session, then check if it is same
@@ -1066,12 +1066,11 @@ public class AirMediaSplashtop implements AirMedia
     	// take surface away from active session if one exists
     	if (priorActiveSessionExists)
     	{
-    		wasShowing = getSurfaceDisplayed();
         	Common.Logging.i(TAG, "setActiveSession: removing prior active session " + AirMediaSession.toDebugString(getActiveSession()));
     		unsetActiveSession(getActiveSession(), false);
     	}
     	
-    	if (wasShowing) {
+    	if (getSurfaceDisplayed()) {
     		active_session_ = session;
     		Common.Logging.i(TAG, "setActiveSession: setting active session " + AirMediaSession.toDebugString(getActiveSession()));  	
 			// update window dimensions - may be going to new surfaceView or TextureView
@@ -1107,6 +1106,8 @@ public class AirMediaSplashtop implements AirMedia
 				Common.Logging.w(TAG, "remove pending session " + AirMediaSession.toDebugString(session));
 				pending_session_ = null;
 				cancelPendingSessionTimer();
+	    		querySenderList(false);
+				doneQuerySenderList = true;
 				return;
 			}
 		}
@@ -1141,7 +1142,20 @@ public class AirMediaSplashtop implements AirMedia
     	if (sendFeedbackForSession) {
         	Common.Logging.i(TAG, "unsetActiveSessions - calling querySenderList ");
     		querySenderList(false);
+			doneQuerySenderList = true;
     	}
+    }
+    
+    // Always send feedback
+    private void unsetActiveSessionWithFeedback(AirMediaSession session)
+    {
+    	doneQuerySenderList = false;;
+    	unsetActiveSession(session, true);
+    	if (!doneQuerySenderList)
+    	{
+    		querySenderList(false);
+    	}
+		doneQuerySenderList = true;
     }
     
     private void sendSessionFeedback(AirMediaSession session)
@@ -1868,7 +1882,7 @@ public class AirMediaSplashtop implements AirMedia
                     removeSession(session);
                     if (session.videoState() != AirMediaSessionStreamingState.Playing)
                     {
-                    	  unsetActiveSession(session, true);
+                    	  unsetActiveSessionWithFeedback(session);
                     }
                     unregisterSessionEventHandlers(session);
                 }
@@ -2022,7 +2036,7 @@ public class AirMediaSplashtop implements AirMedia
                       } 
                       else if (session.videoState() == AirMediaSessionStreamingState.Stopped)
                       {
-                    	  unsetActiveSession(session, true);
+                    	  unsetActiveSessionWithFeedback(session);
                       }
                 }
             };
