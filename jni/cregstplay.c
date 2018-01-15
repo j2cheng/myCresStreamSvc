@@ -429,6 +429,7 @@ void csio_DecVideo1stOutputCB(GstElement *src,int id)
         csio_SendVideoPlayingStatusMessage(id, STREAMSTATE_STARTED );
         CSIO_LOG(eLogLevel_info,  "+++SENT ACK TO IPLINK CLIENT Source- %ld", id);
         csio_SetWaitDecHas1stVidDelay(id,0);
+        csio_SendVideoInfo(id, src);
     }
     else
     {
@@ -1103,7 +1104,7 @@ int build_video_pipeline(gchar *encoding_name, CREGSTREAM *data, unsigned int st
         data->element_v[i++] = gst_element_factory_make(product_info()->video_decoder_string, NULL);
         data->amcvid_dec = data->element_v[i-1];
 
-        csio_SetVpuDecoder(data->amcvid_dec, data->streamId);
+		csio_SetVpuDecoder(data->amcvid_dec, data->streamId);
 
         //SET OFSSET to zero for now
         g_object_set(G_OBJECT(data->amcvid_dec), "ts-offset", 0, NULL);
