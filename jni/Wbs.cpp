@@ -61,6 +61,13 @@ static char *getHexMessage(char *msg, int msglen)
 	return hexBuffer;
 }
 
+static long getTimeInMsec()
+{
+	struct timeval tp;
+	gettimeofday(&tp, NULL);
+	return (long) tp.tv_sec*1000 + tp.tv_usec/1000;
+}
+
 Wbs_t *wbs_get_stream_data(int sessId)
 {
 	return &gWbs[sessId];
@@ -181,8 +188,11 @@ static void do_live_view(Wbs_t *pWbs, int fd, SSL * pSSL, char const * origin = 
 {
 	char str[65536];
 	char * ptr = str;
+	long begin, end;
+
 	pWbs->width = 0;
 	pWbs->height = 0;
+	begin = getTimeInMsec();
 
 	CSIO_LOG(eLogLevel_debug, "%s: sending http request: resource=%s host=%s", __FUNCTION__, pWbs->resource, pWbs->hostname);
 	// Send the request header
@@ -234,11 +244,34 @@ static void do_live_view(Wbs_t *pWbs, int fd, SSL * pSSL, char const * origin = 
 		FD_ZERO(&fds);
 		FD_SET(fd, &fds);
 		struct timeval tv;
+		int srv = 0;
+		int nSSL = 0;
 		tv.tv_sec  = 0;
 		tv.tv_usec = 200000;
-		if ((pSSL && SSL_pending(pSSL) > 0) || select(fd+1, &fds, 0, 0, &tv) > 0) {
+		if ((pSSL && (nSSL=SSL_pending(pSSL)) > 0) || (srv=select(fd+1, &fds, 0, 0, &tv)) > 0) {
 			int n = pSSL ? SSL_read(pSSL, str, 65536) : read(fd, str, 65536);
-			if (n <= 0) break;
+			CSIO_LOG(eLogLevel_extraVerbose, "%s: read %d bytes pSSL=%p nSSL=%d srv=%d", __FUNCTION__, n, pSSL, nSSL, srv);
+			if (n <= 0) {
+				if (srv == 0)
+				{
+					CSIO_LOG(eLogLevel_debug, "%s: select timeout", __FUNCTION__);
+				}
+				if (pSSL)
+				{
+					int sslerr = SSL_get_error(pSSL, n);
+					CSIO_LOG(eLogLevel_debug, "%s: nSSL=%d n=%d SSL_get_error=%d", __FUNCTION__, nSSL, n, sslerr);
+					if (sslerr == SSL_ERROR_ZERO_RETURN)
+					{
+						CSIO_LOG(eLogLevel_debug, "%s: TLS/SSL connection has been closed", __FUNCTION__);
+					}
+				}
+				if (n < 0)
+				{
+					CSIO_LOG(eLogLevel_debug, "%s: read error n=%d (errno=%d)", __FUNCTION__, n, errno);
+				}
+				CSIO_LOG(eLogLevel_debug, "%s: exiting do_live_view (n<=0) pSSL=%p nSSL=%d srv=%d n=%d", __FUNCTION__, pSSL, nSSL, srv, n);
+				break;
+			}
 			int pos = 0;
 			while (pos < n) {
 				int f;
@@ -249,7 +282,8 @@ static void do_live_view(Wbs_t *pWbs, int fd, SSL * pSSL, char const * origin = 
 				pos += n1;
 				if (deco.dimensionsAvailable() && (pWbs->width != deco.getWidth() || pWbs->height != deco.getHeight()))
 				{
-					CSIO_LOG(eLogLevel_debug, "%s: got new dimensions (w=%d h=%d)", __FUNCTION__, deco.getWidth(), deco.getHeight());
+					end = getTimeInMsec();
+					CSIO_LOG(eLogLevel_debug, "%s: got new dimensions (w=%d h=%d) after %ld msec", __FUNCTION__, deco.getWidth(), deco.getHeight(), (end-begin));
 					wbs_set_buffer_size(pWbs, deco.getWidth(), deco.getHeight());
 			    	wbs_SendVideoPlayingStatusMessage(pWbs->streamId, STREAMSTATE_STARTED);
 				}
@@ -267,6 +301,10 @@ static void do_live_view(Wbs_t *pWbs, int fd, SSL * pSSL, char const * origin = 
 					pWbs->backoffInSecs = 1;		// reduce backoff to min value since we have valid connection now
 					if (!pWbs->isPaused) {			// if paused skip rendering of any new frames
 #ifdef USE_SURFACE
+						if (pWbs->frameCount == 0) {
+							end = getTimeInMsec();
+							CSIO_LOG(eLogLevel_debug, "%s: first frame rendered after %ld msec", __FUNCTION__, (end-begin));
+						}
 						wbs_render(pWbs, deco.getBuffer(), deco.getWidth(), deco.getHeight());
 #else
 						static int frame_counter = 0;
@@ -299,7 +337,10 @@ static void do_live_view(Wbs_t *pWbs, int fd, SSL * pSSL, char const * origin = 
 					break;
 				}
 			}
-			if (pos < 0) break;
+			if (pos < 0) {
+				CSIO_LOG(eLogLevel_debug, "%s: exiting do_live_view (pos=%d < 0)", __FUNCTION__, pos);
+				break;
+			}
 		}
 		else {
 			if (!(++keepalive_counter & 7)) {
@@ -346,14 +387,18 @@ int errcb(const char *str, size_t len, void *u)
 static int wbs_start_connection(Wbs_t *pWbs)
 {
 	int rv=0;
+	long begin, end;
 	wbs_SendVideoPlayingStatusMessage(pWbs->streamId, STREAMSTATE_CONNECTING);
 
 	CSIO_LOG(eLogLevel_debug, "%s: opening socket host=%s port=%d", __FUNCTION__, pWbs->hostname, pWbs->portnumber);
+	begin = getTimeInMsec();
 	int fd = open_socket(pWbs->hostname, pWbs->portnumber);
 	if (fd < 0) {
 		CSIO_LOG(eLogLevel_error, "%s: could not open socket", __FUNCTION__);
 		return 1;
 	}
+	end = getTimeInMsec();
+	CSIO_LOG(eLogLevel_debug, "%s: socket host=%s port=%d opened on fd=%d in %ld msec", __FUNCTION__, pWbs->hostname, pWbs->portnumber, fd, (end-begin));
 
 	SSL_CTX * ctx = 0;
 	SSL * pSSL = 0;
