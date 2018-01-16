@@ -128,6 +128,8 @@ typedef struct _CREGSTREAM
 	char sourceIP_addr[32];
 	char rtcp_dest_ip_addr[32];
 
+	guint video_rate_probe_id;
+	GstElement *video_rate_probe_element;
     bool isStarted;
     eHttpMode httpMode;
     bool hls_started;

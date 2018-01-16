@@ -431,6 +431,38 @@ static void gst_native_pause (JNIEnv* env, jobject thiz, jint sessionId)
     SetInPausedState(sessionId, 1);
 	pause_streaming_cmd(sessionId);
 }
+
+void csio_jni_remove_video_rate_probe(int iStreamId)
+{
+    CREGSTREAM * data = GetStreamFromCustomData(CresDataDB, iStreamId);
+
+    if (!data)
+    {
+        CSIO_LOG(eLogLevel_error, "Could not obtain stream pointer for stream %d", iStreamId);
+        return;
+    }
+
+    if (data->video_rate_probe_id)
+    {
+        GstPad *pad;
+        if (data->video_rate_probe_element == NULL) {
+		    CSIO_LOG(eLogLevel_debug, "%s() video rate element is null even though id is not zero", __FUNCTION__);
+		    data->video_rate_probe_id = 0;
+        }
+        pad = gst_element_get_static_pad(data->video_rate_probe_element, "sink");
+        if (pad != NULL)
+        {
+		    CSIO_LOG(eLogLevel_debug, "%s() removing video rate probe (id=%lu) from element = %s @ %p (pad=%p)", __FUNCTION__,
+		    		data->video_rate_probe_id, GST_ELEMENT_NAME(data->video_rate_probe_element), data->video_rate_probe_element, pad);
+            gst_pad_remove_probe(pad, data->video_rate_probe_id);
+            gst_object_unref(pad);
+            data->video_rate_probe_element = NULL;
+			data->video_rate_probe_id = 0;
+        }
+    }
+}
+
+
 void csio_jni_remove_probe (int iStreamId)
 {
     CREGSTREAM * data = GetStreamFromCustomData(CresDataDB, iStreamId);
@@ -447,7 +479,7 @@ void csio_jni_remove_probe (int iStreamId)
         pad = gst_element_get_static_pad(data->udpsrc_prob_element, "src");
         if (pad != NULL)
         {
-            gst_pad_remove_probe(pad, data->udpsrc_prob_element);
+            gst_pad_remove_probe(pad, data->udpsrc_prob_id);
             gst_object_unref(pad);
             data->udpsrc_prob_id = 0;
         }
@@ -457,6 +489,8 @@ void csio_jni_remove_probe (int iStreamId)
     data->udpsrc_prob_timer.tv_nsec = 0;
     data->udpsrc_prob_element = 0;
     data->udpsrc_prob_id = 0;
+
+    csio_jni_remove_video_rate_probe(iStreamId);
 }
 
 // This is still a current problem as of Android 4.4 and Gstreamer 1.8.2, we leak 2 sockets everytime a new url is connected to

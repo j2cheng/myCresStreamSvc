@@ -1058,7 +1058,8 @@ int build_video_pipeline(gchar *encoding_name, CREGSTREAM *data, unsigned int st
     int do_window = 1;
     int num_elements;
     int do_sink = 1;
-	
+	GstElement *video_rate_probe_element = NULL;
+
     data->using_glimagsink = 0;
     *sink = NULL;
     CSIO_LOG(eLogLevel_extraVerbose, "%s() encoding_name=%s, native_window=%p, start=%u, do_rtp=%d",
@@ -1311,7 +1312,28 @@ int build_video_pipeline(gchar *encoding_name, CREGSTREAM *data, unsigned int st
 			}
 		}
 	}
-	
+
+	// Attach video rate probe to first element in video queue
+	video_rate_probe_element = *ele0;
+	if (video_rate_probe_element)
+	{
+		GstPad *pad = NULL;
+		csio_jni_remove_video_rate_probe(data->streamId);
+		pad = gst_element_get_static_pad(video_rate_probe_element, "sink");
+		if (!pad)
+		{
+			CSIO_LOG(eLogLevel_debug, "Could not retrieve sink pad from element %s\n", GST_ELEMENT_NAME(video_rate_probe_element));
+		}
+		else
+		{
+			data->video_rate_probe_id = gst_pad_add_probe( pad, GST_PAD_PROBE_TYPE_BUFFER, csio_videoRateProbe, (void *) &data->streamId, NULL );
+			data->video_rate_probe_element = video_rate_probe_element;
+		    CSIO_LOG(eLogLevel_debug, "%s() added video rate probe (id=%lu) to element = %s @ %p (pad=%p)", __FUNCTION__,
+		    		data->video_rate_probe_id, GST_ELEMENT_NAME(video_rate_probe_element), video_rate_probe_element, pad);
+			gst_object_unref(pad);
+		}
+	}
+
 	if(!do_window)
 	{
 		CSIO_LOG(eLogLevel_debug, "Not doing window yet");
