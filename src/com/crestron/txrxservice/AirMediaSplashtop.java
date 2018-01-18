@@ -608,7 +608,7 @@ public class AirMediaSplashtop implements AirMedia
     	} finally {
     		orderedLock.unlock("show");
     	}
-    }    
+    } 
     
     public void hide(boolean sendStopToSender, boolean clear)
     {
@@ -977,7 +977,7 @@ public class AirMediaSplashtop implements AirMedia
     
     private void removePendingSession()
     {
-		Common.Logging.i(TAG, "removePendingSession - entered");  	
+		Common.Logging.v(TAG, "removePendingSession - entered");  	
 		if (getPendingSession() != null)
 		{
 			Common.Logging.i(TAG, "removePendingSession: removing pending session " + AirMediaSession.toDebugString(getPendingSession()));  	
@@ -986,7 +986,7 @@ public class AirMediaSplashtop implements AirMedia
 			
 		}
 		cancelPendingSessionTimer();
-		Common.Logging.i(TAG, "removePendingSession - exit");  	
+		Common.Logging.v(TAG, "removePendingSession - exit");  	
 	}
 
 	private class setNoPendingSession extends TimerTask
@@ -1047,6 +1047,7 @@ public class AirMediaSplashtop implements AirMedia
     // set an active session - give it the surface and show the video
     private void setActiveSession(AirMediaSession session)
     {
+    	boolean wasShowing=false;
     	boolean priorActiveSessionExists = (getActiveSession() != null);
 
     	// if we already have an active session, then check if it is same
@@ -1064,13 +1065,14 @@ public class AirMediaSplashtop implements AirMedia
 		}
     	
     	// take surface away from active session if one exists
+		wasShowing = getSurfaceDisplayed();
     	if (priorActiveSessionExists)
     	{
         	Common.Logging.i(TAG, "setActiveSession: removing prior active session " + AirMediaSession.toDebugString(getActiveSession()));
     		unsetActiveSession(getActiveSession(), false);
     	}
     	
-    	if (getSurfaceDisplayed()) {
+    	if (wasShowing) {
     		active_session_ = session;
     		Common.Logging.i(TAG, "setActiveSession: setting active session " + AirMediaSession.toDebugString(getActiveSession()));  	
 			// update window dimensions - may be going to new surfaceView or TextureView
@@ -1106,6 +1108,7 @@ public class AirMediaSplashtop implements AirMedia
 				Common.Logging.w(TAG, "remove pending session " + AirMediaSession.toDebugString(session));
 				pending_session_ = null;
 				cancelPendingSessionTimer();
+	        	Common.Logging.i(TAG, "unsetActiveSession - calling querySenderList after pending session removal");
 	    		querySenderList(false);
 				doneQuerySenderList = true;
 				return;
@@ -1134,16 +1137,15 @@ public class AirMediaSplashtop implements AirMedia
 			clearSurface();			
 		}
     	
-    	Common.Logging.i(TAG, "removing active session setting active session " + AirMediaSession.toDebugString(getActiveSession()) + "to null");
+    	Common.Logging.i(TAG, "removing active session " + AirMediaSession.toDebugString(getActiveSession()) + " setting it to null");
     	active_session_ = null;
-
-    	Common.Logging.i(TAG, "detached surface returning from unsetActiveSession" + AirMediaSession.toDebugString(getActiveSession()));
 
     	if (sendFeedbackForSession) {
         	Common.Logging.i(TAG, "unsetActiveSessions - calling querySenderList ");
     		querySenderList(false);
 			doneQuerySenderList = true;
     	}
+    	Common.Logging.i(TAG, "exit from unsetActiveSession");
     }
     
     // Always send feedback
