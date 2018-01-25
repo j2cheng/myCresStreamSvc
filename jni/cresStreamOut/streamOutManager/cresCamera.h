@@ -10,8 +10,9 @@
 #include <arpa/inet.h>
 
 const int c_camera_width  = 1280;
-const int c_camera_height = 720;
+const int c_camera_height = 960;
 const int c_camera_framerate = 30;
+const int c_cropped_height = 720;
 
 class SnapShot;
 class CStreamoutProject;
@@ -46,6 +47,7 @@ class CStreamCamera
 		GMainLoop  *m_loop;
 		GstElement *m_source;
 		GstElement *m_srcfilter;
+		GstElement *m_crop;
 		GstElement *m_cam_q;
 		int         m_id_probe_cam_q;
 		GstElement *m_tee;

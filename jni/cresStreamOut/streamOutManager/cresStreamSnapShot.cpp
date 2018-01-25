@@ -154,7 +154,7 @@ int SnapShot::add(void *arg)
 				 "video/x-raw",
 				 "format",    G_TYPE_STRING, "NV21",
 				 "width",     G_TYPE_INT, c_camera_width,
-				 "height",    G_TYPE_INT, c_camera_height,
+				 "height",    G_TYPE_INT, c_cropped_height,
 				 "framerate", GST_TYPE_FRACTION, iUpdateInterval, iUpdateInterval,
 				  NULL), NULL );
 

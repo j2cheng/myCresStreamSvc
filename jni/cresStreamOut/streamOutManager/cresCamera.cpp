@@ -319,12 +319,13 @@ int CStreamCamera::start(void)
 			m_pipeline  = gst_pipeline_new( NULL );
 			m_source    = gst_element_factory_make( "ahcsrc",       NULL );
 			m_srcfilter = gst_element_factory_make( "capsfilter",   NULL );
+			m_crop      = gst_element_factory_make( "videocrop",    NULL );
 			m_cam_q     = gst_element_factory_make( "queue",        NULL );
 			m_tee       = gst_element_factory_make( "tee",          NULL );
 			m_teeQ      = gst_element_factory_make( "queue",        NULL );
 			m_sink      = gst_element_factory_make( "fakesink",     NULL );
 
-			if( !m_pipeline || !m_source || !m_srcfilter || !m_cam_q || !m_tee || !m_teeQ || !m_sink )
+			if( !m_pipeline || !m_source || !m_srcfilter || !m_crop || !m_cam_q || !m_tee || !m_teeQ || !m_sink )
 			{
 				iStatus = -1;
 				CSIO_LOG(eLogLevel_error, "cresCamera: Cannot create pipeline" );
@@ -340,6 +341,11 @@ int CStreamCamera::start(void)
 					 "framerate", GST_TYPE_FRACTION, c_camera_framerate, 1,
 					  NULL), NULL );
 
+				g_object_set( G_OBJECT(m_crop), "top", (c_camera_height-c_cropped_height)/2, NULL);
+				g_object_set( G_OBJECT(m_crop), "bottom", (c_camera_height-c_cropped_height)/2, NULL);
+				g_object_set( G_OBJECT(m_crop), "left", 0, NULL);
+				g_object_set( G_OBJECT(m_crop), "right", 0, NULL);
+
 				g_object_set( G_OBJECT(m_cam_q), "max-size-bytes", (1920*1080*3), NULL );
 
 				g_object_set( G_OBJECT(m_sink), "sync", false, NULL );
@@ -351,7 +357,7 @@ int CStreamCamera::start(void)
 				(GstPadProbeCallback) cb_have_raw_data, this, NULL);
 				gst_object_unref (pad);
 
-				gst_bin_add_many( GST_BIN( m_pipeline ), m_source, m_srcfilter, m_cam_q, m_tee, m_teeQ, m_sink, NULL );
+				gst_bin_add_many( GST_BIN( m_pipeline ), m_source, m_srcfilter, m_crop, m_cam_q, m_tee, m_teeQ, m_sink, NULL );
 			}
 
 			if( !iStatus )
@@ -359,7 +365,7 @@ int CStreamCamera::start(void)
 				m_bus    = gst_pipeline_get_bus( GST_PIPELINE( m_pipeline ) );
 				m_bus_id = gst_bus_add_watch( m_bus, cb_GstMsgHandler, this );
 
-				if(!gst_element_link_many( m_source, m_srcfilter, m_cam_q, m_tee, m_teeQ, m_sink, NULL ))
+				if(!gst_element_link_many( m_source, m_srcfilter, m_crop, m_cam_q, m_tee, m_teeQ, m_sink, NULL ))
 				{
 					CSIO_LOG(eLogLevel_error,  "cresCamera: Cannot link elements" );
 					iStatus = -2;
@@ -442,6 +448,7 @@ void CStreamCamera::cleanup(void)
     m_loop     = NULL;
     m_pipeline = NULL;
     m_source   = NULL;
+    m_crop     = NULL;
     m_cam_q    = NULL;
 	m_srcfilter = NULL;
 	m_tee       = NULL;
