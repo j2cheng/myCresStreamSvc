@@ -649,6 +649,21 @@ class PauseCommand extends CrestronCommand {
         }
 }
 
+class StretchVideoCommand extends CrestronCommand {
+
+    public StretchVideoCommand(CresStreamCtrl ctrl, String arg, int sessId) {
+		super(ctrl, arg, sessId);
+    }
+
+    @Override
+        public  void execute() {
+            ctrl.setStretchVideo(VALIDATE_INT(msg), sessId);
+        }
+        public String getFeedbackMsg() {
+            return Integer.toString(ctrl.userSettings.getStretchVideo(sessId));
+        }
+}
+
 class XlocCommand extends CrestronCommand {
 
     public XlocCommand(CresStreamCtrl ctrl, String arg, int sessId) {

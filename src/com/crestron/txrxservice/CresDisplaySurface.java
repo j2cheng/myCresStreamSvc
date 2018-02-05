@@ -8,6 +8,7 @@ import android.view.Gravity;
 import android.view.SurfaceHolder;
 import android.view.SurfaceView;
 import android.view.View;
+import android.view.ViewGroup;
 import android.view.WindowManager;
 import android.view.TextureView;
 import android.widget.ImageView;
@@ -39,6 +40,7 @@ public class CresDisplaySurface
 {
     private SurfaceView[] displaySurface = new SurfaceView[CresStreamCtrl.NumOfSurfaces];
     private TextureView[] displayTexture = new TextureView[CresStreamCtrl.NumOfTextures];
+    private boolean[] useTextureView = new boolean[CresStreamCtrl.NumOfSurfaces];
     CresStreamCtrl streamCtl;
     private RelativeLayout parentlayout;
     private RelativeLayout.LayoutParams viewLayoutParams;
@@ -155,7 +157,6 @@ public class CresDisplaySurface
 
         for (int i = 0; i < CresStreamCtrl.NumOfTextures; i++){
         	displayTexture[i] = new TextureView(app);
-        	//displayTexture[i].setVisibility(View.INVISIBLE);
         	viewLayoutParams = new RelativeLayout.LayoutParams(windowWidth, windowHeight);
         	parentlayout.addView(displayTexture[i], viewLayoutParams);
         }
@@ -292,6 +293,30 @@ public class CresDisplaySurface
     }
     
     /**
+     * Return rectangle representing the current location of the surface
+	 * Does not need to be called on UI thread
+     */
+    public Rect GetWindowSize(int idx, final boolean use_texture_view)
+    {
+    	int x, y, w, h;
+    	RelativeLayout.LayoutParams layout;
+    	if (use_texture_view)
+    	{
+    		layout = (RelativeLayout.LayoutParams)displayTexture[idx].getLayoutParams();
+    	}
+    	else
+    	{
+    		layout = (RelativeLayout.LayoutParams)displaySurface[idx].getLayoutParams();    		
+    	}
+    	
+    	x = layout.leftMargin;
+		y = layout.topMargin;
+		w = layout.width;
+		h = layout.height;
+    	return new Rect(x, y, x + w, y + h);
+    }
+    
+    /**
      * Update the width and height of the surface
      * TODO: Add an index so that the correct surface can be updated
      */
@@ -370,6 +395,11 @@ public class CresDisplaySurface
         sMGR.initCresSurfaceHolder(displaySurface[idx]);
     }
     
+    public SurfaceView GetSurfaceView(int idx)
+    {
+    	return displaySurface[idx];
+    }
+    
     /**
      * Initialize surface texture, set listener
      */
@@ -378,7 +408,7 @@ public class CresDisplaySurface
         stMGR.initCresSurfaceTextureListener(displayTexture[idx]);
     }
 	
-    public TextureView GetAirMediaTextureView(int idx)
+    public TextureView GetTextureView(int idx)
     {
         return displayTexture[idx];
     }
@@ -394,6 +424,8 @@ public class CresDisplaySurface
     public void HideWindow(int idx)
     {
     	displaySurface[idx].setVisibility(View.INVISIBLE);
+    	useTextureView[idx] = false;
+    	LogVisibility(String.format("HideWindow-%d", idx));
     }
     
     /**
@@ -402,7 +434,9 @@ public class CresDisplaySurface
     public void ShowWindow(int idx)
     {
     	displaySurface[idx].setVisibility(View.VISIBLE);
-    }
+    	useTextureView[idx] = false;
+    	LogVisibility(String.format("ShowWindow-%d", idx));
+   }
     
 	// Call this function with streams stopped
     public void updateZOrder(Integer[][] zOrder)
@@ -488,6 +522,41 @@ public class CresDisplaySurface
     	
     	return MiscUtils.rectanglesOverlap(surface1xLeft, surface1xRight, surface1yTop, surface1yBottom, surface2xLeft, surface2xRight, surface2yTop, surface2yBottom);
     }
+
+    private String visibility(int v)
+    {
+    	switch (v) {
+    	case View.VISIBLE:
+    		return "Visible";
+    	case View.INVISIBLE:
+    		return "Invisible";
+    	case View.GONE:
+    		return "Gone";
+    	default:
+    		return "Unknown";
+    	}    		
+    }
+    
+    private void LogVisibility(String s)
+    {
+        StringBuilder sb = new StringBuilder(512);
+        sb.append("SurfaceViews[]=[");
+        for (int i=0; i < CresStreamCtrl.NumOfSurfaces; i++)
+        {
+        	sb.append(visibility(displaySurface[i].getVisibility()));
+        	if (i < (CresStreamCtrl.NumOfSurfaces-1))
+        		sb.append(", ");
+        }
+        sb.append("]   TextureViews[]=[");
+        for (int i=0; i < CresStreamCtrl.NumOfTextures; i++)
+        {
+        	sb.append(visibility(displayTexture[i].getVisibility()));
+        	if (i < (CresStreamCtrl.NumOfTextures-1))
+        		sb.append(", ");
+        }
+        sb.append("]");
+        Log.d(TAG, String.format("%s: %s", s, sb.toString()));
+    }
     
     /**
      * Hide the window by setting the view visibility
@@ -496,6 +565,8 @@ public class CresDisplaySurface
     {
     	//parentlayout.removeView(displayTexture);
     	displayTexture[idx].setVisibility(View.INVISIBLE);
+    	useTextureView[idx] = false;
+    	LogVisibility(String.format("HideTextureWindow-%d", idx));
     }
     
     /**
@@ -505,6 +576,13 @@ public class CresDisplaySurface
     {
     	//parentlayout.addView(displayTexture);
     	displayTexture[idx].setVisibility(View.VISIBLE);        	
+    	useTextureView[idx] = true;
+    	LogVisibility(String.format("ShowTextureWindow-%d", idx));
+    }
+    
+    public boolean getUseTextureView(int idx)
+    {
+    	return useTextureView[idx];
     }
     
     public void createBackgroundWindow(int windowWidth, int windowHeight, int color, boolean haveExternalDisplays)

@@ -264,6 +264,10 @@ public class GstreamIn implements StreamInStrategy, SurfaceHolder.Callback {
 	}
     
     public void sendVideoSourceParams(int source, int width, int height, int framerate, int profile){
+    	// Update window size with new video dimensions
+    	if (streamCtl.mVideoDimensions[source].videoHeight != height || streamCtl.mVideoDimensions[source].videoWidth != width)
+    		streamCtl.updateWindowWithVideoSize(source, false, width, height);
+        
     	streamCtl.userSettings.setStreamInHorizontalResolution(width);
     	streamCtl.userSettings.setStreamInVerticalResolution(height);
     	streamCtl.userSettings.setStreamInFPS(framerate);

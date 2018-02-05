@@ -134,7 +134,7 @@ public class CresStreamCtrl extends Service {
     public static volatile boolean saveSettingsUpdateArrived = false;
 
     public final static int NumOfSurfaces = 3;
-    public final static int NumOfTextures = 1;
+    public final static int NumOfTextures = 3;
     public volatile boolean restartStreamsOnStart = false;
     static String TAG = "TxRx StreamCtrl";
     static String out_url="";
@@ -207,6 +207,7 @@ public class CresStreamCtrl extends Service {
     private final int backgroundViewColor = Color.argb(255, 0, 0, 0);
 	public String hostName=null;
 	public String domainName=null;
+	public videoDimensions[] mVideoDimensions = new videoDimensions[NumOfSurfaces];
 	private final long hdmiBroadcastTimeout_ms = 60000; 
     public OutputDisplayListener mDisplayListener = new OutputDisplayListener();
     private final Runnable foregroundRunnable = new Runnable() {
@@ -482,6 +483,7 @@ public class CresStreamCtrl extends Service {
     			stopStartLock[sessionId] = new ReentrantLock(true);
     			streamStateLock[sessionId] = new ReentrantLock(true);
     			windowtLock[sessionId] =  new ReentrantLock(true);
+    			mVideoDimensions[sessionId] = new videoDimensions(0, 0);
     			//            	mHDCPEncryptStatus[sessionId] = false;          	
     		}
 
@@ -1042,11 +1044,15 @@ public class CresStreamCtrl extends Service {
     	return surfaceHolder;
     }
 
-    public TextureView getAirMediaTextureView(int id){
-        return dispSurface.GetAirMediaTextureView(id);
+    public SurfaceView getSurfaceView(int id){
+        return dispSurface.GetSurfaceView(id);
     }
     
-    public SurfaceTexture getAirMediaSurfaceTexture(int id){
+    public TextureView getTextureView(int id){
+        return dispSurface.GetTextureView(id);
+    }
+    
+    public SurfaceTexture getSurfaceTexture(int id){
         return dispSurface.GetSurfaceTexture(id);
     }
     
@@ -1883,6 +1889,18 @@ public class CresStreamCtrl extends Service {
     	mForceHdcpStatusUpdate = true;
     }
     
+    public void setStretchVideo(int stretch, int sessionId)
+    {
+    	if (userSettings.getStretchVideo(sessionId) != stretch)
+    	{
+    		userSettings.setStretchVideo(stretch, sessionId);
+    		
+			// TODO look at combining textureview and mVideoDimensions when AirMedia is merged in
+    		updateWindowWithVideoSize(sessionId, dispSurface.getUseTextureView(sessionId), 
+    				mVideoDimensions[sessionId].videoWidth, mVideoDimensions[sessionId].videoHeight);
+    	}
+    }
+    
     public void setWindowDimensions(int x, int y, int width, int height, int sessionId, boolean use_texture)
     {
     	userSettings.setXloc(x, sessionId);
@@ -1896,7 +1914,12 @@ public class CresStreamCtrl extends Service {
 
     public void setWindowDimensions(int x, int y, int width, int height, int sessionId)
     {
-    	setWindowDimensions(x, y, width, height, sessionId, false);
+    	if (userSettings.getMode(sessionId) == DeviceMode.WBS_STREAM_IN.ordinal())
+    	{
+    		setWindowDimensions(x, y, width, height, sessionId, wbsStream.useSurfaceTexture);
+    	} else {
+    		setWindowDimensions(x, y, width, height, sessionId, false);
+    	}
     }
 
     public void setXCoordinates(int x, int sessionId)
@@ -2074,6 +2097,68 @@ public class CresStreamCtrl extends Service {
             Log.i(TAG, "updateWH " + sessionId + " : Unlock");
         }
 
+    }
+    
+    public void updateWindowWithVideoSize(int sessionId, boolean use_texture_view, int videoWidth, int videoHeight)
+    {
+    	Log.i(TAG, "updateWindowWithVideoSize " + sessionId + " : Lock");
+        windowtLock[sessionId].lock();
+        try
+        {
+        	mVideoDimensions[sessionId].videoWidth = videoWidth;
+        	mVideoDimensions[sessionId].videoHeight = videoHeight;
+        	int tmpWidth = userSettings.getW(sessionId);
+        	int tmpHeight = userSettings.getH(sessionId);
+        	int tmpX = userSettings.getXloc(sessionId);
+        	int tmpY = userSettings.getYloc(sessionId);
+        	if ((tmpWidth == 0) && (tmpHeight == 0))
+        	{
+        		tmpWidth = Integer.parseInt(hdmiOutput.getHorizontalRes());
+        		tmpHeight = Integer.parseInt(hdmiOutput.getVerticalRes());
+        		if ((tmpWidth == 0) && (tmpHeight == 0))
+        		{
+        			tmpWidth = 1920;
+        			tmpHeight = 1080;
+        		}
+        	}
+       	
+			// TODO Add rotation and textureview scaling when AirMedia is merged in
+        	Rect newWindowSize;
+        	if (userSettings.getStretchVideo(sessionId) == 1)
+        	{
+        		// Stretch video means set all dimensions to exact window size
+        		newWindowSize = new Rect(tmpX, tmpY, tmpX + tmpWidth, tmpY + tmpHeight);
+        	}
+        	else
+        	{
+        		if (videoWidth == 0 || videoHeight == 0)
+        		{
+        			Log.i(TAG, "unable to preserve video aspect ratio, video width = " + videoWidth + " video height = " + videoHeight);
+        			newWindowSize = new Rect(tmpX, tmpY, tmpX + tmpWidth, tmpY + tmpHeight);
+        		}
+        		else 
+        		{
+        			// Don't Stretch means calculate aspect ratio preserving window inside of given window dimensions
+        			newWindowSize = MiscUtils.getAspectRatioPreservingRectangle(tmpX, tmpY, tmpWidth, tmpHeight, videoWidth, videoHeight);
+        		}
+        	}
+        	
+        	// Only update window if there is a change to the current window (this method is no intended to force update the same dimensions)
+        	Rect currentWindowSize = dispSurface.GetWindowSize(sessionId, use_texture_view);
+        	if (	currentWindowSize.left != newWindowSize.left ||
+        			currentWindowSize.top != newWindowSize.top ||
+        			currentWindowSize.width() != newWindowSize.width() ||
+        			currentWindowSize.height() != newWindowSize.height())
+        	{
+        		Log.i(TAG, "updateWindowWithVideoSize:  updating size to "+newWindowSize.width()+"x"+newWindowSize.height()+" @ ("+newWindowSize.left+","+newWindowSize.top+")");
+        		updateWindow(newWindowSize.left, newWindowSize.top, newWindowSize.width(), newWindowSize.height(), sessionId, use_texture_view);
+        	}
+        }
+        finally
+        {
+        	windowtLock[sessionId].unlock();
+            Log.i(TAG, "updateWindowWithVideoSize " + sessionId + " : Unlock");
+        }
     }
     
     public void updateWindow(final int sessionId)
@@ -2326,8 +2411,10 @@ public class CresStreamCtrl extends Service {
         		tmpHeight = Integer.parseInt(hdmiOutput.getVerticalRes());
         		if ((tmpWidth == 0) && (tmpHeight == 0))
         		{
-        			tmpWidth = 1920;
-        			tmpHeight = 1080;
+    				Point size = getDisplaySize();
+    				Log.i(TAG, "Could not get HDMI resolution - using Android display size "+size.x+"x"+size.y);
+    				tmpWidth = size.x;
+    				tmpHeight = size.y;
         		}
         	}
             Log.i(TAG, "setVideoTransformation x="+String.valueOf(tmpX)+" y="+String.valueOf(tmpY) + " w=" + String.valueOf(tmpWidth) + " h=" + String.valueOf(tmpHeight));
@@ -3142,6 +3229,10 @@ public class CresStreamCtrl extends Service {
     
     private void hideWindow (final int sessId)
     {
+    	// Reset video dimensions on hide
+    	mVideoDimensions[sessId].videoWidth = 0;
+    	mVideoDimensions[sessId].videoHeight = 0;
+    	
     	if (dispSurface != null)
     	{
 	    	// Make sure surface changes are only done in UI (main) thread
@@ -3166,7 +3257,7 @@ public class CresStreamCtrl extends Service {
 	    	}
 	    	else
 	    		dispSurface.HideWindow(sessId);
-    	}    		
+    	}
     }
     
     private void showWindow (final int sessId)
@@ -3200,6 +3291,10 @@ public class CresStreamCtrl extends Service {
     
     private void hideTextureWindow (final int sessId)
     {
+    	// Reset video dimensions on hide
+    	mVideoDimensions[sessId].videoWidth = 0;
+    	mVideoDimensions[sessId].videoHeight = 0;
+    	
     	if (dispSurface != null)
     	{
 	    	// Make sure surface changes are only done in UI (main) thread
@@ -3224,7 +3319,7 @@ public class CresStreamCtrl extends Service {
 	    	}
 	    	else
 	    		dispSurface.HideTextureWindow(sessId);
-    	}    		
+    	}  
     }
     
     private void showTextureWindow (final int sessId)
@@ -3462,11 +3557,6 @@ public class CresStreamCtrl extends Service {
 
     public void startWbsStream(int sessId)
     {
-		if (wbsStream.useSurfaceTexture && sessId != 0)
-		{
-			Log.i(TAG, "startWbsStream: sessId="+sessId+" --- only 0 is supported currently changing it to be 0");
-			sessId  = 0;
-		}
 		Log.i(TAG, "startWbsStream: calling updateWindow for sessId="+sessId);
     	updateWindow(sessId, wbsStream.useSurfaceTexture);
         showWbsWindow(sessId);
@@ -3476,12 +3566,6 @@ public class CresStreamCtrl extends Service {
 
     public void stopWbsStream(int sessId)
     {
-		if (wbsStream.useSurfaceTexture && sessId != 0)
-		{
-			Log.i(TAG, "stopWbsStream: sessId="+sessId+" --- only 0 is supported currently changing it to be 0");
-			sessId  = 0;
-		}
-		
 		wbsStream.onStop(sessId);   
 
 		// Do NOT hide window if being used by AirMedia
@@ -3833,6 +3917,7 @@ public class CresStreamCtrl extends Service {
     					{
     						Log.e(TAG, "AirMedia fullscreen true");
 
+							// TODO functionize the lines below
     						Point size = getDisplaySize();
 
     						width = size.x;
@@ -5640,6 +5725,16 @@ public class CresStreamCtrl extends Service {
 	    		deserialized.getAsJsonObject().remove("airMediaLaunch");
 	    	}
 	    }
+	}
+	
+	protected class videoDimensions {
+		public int videoWidth;
+		public int videoHeight;
+		public videoDimensions(int videoWidth, int videoHeight)
+		{
+			this.videoWidth = videoWidth;
+			this.videoHeight = videoHeight;
+		}
 	}
 
 }

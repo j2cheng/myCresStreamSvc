@@ -93,7 +93,7 @@ public class WbsStreamIn implements SurfaceHolder.Callback {
     					nativeSurfaceInit(sh.getSurface(), sessionId);
     				} else {
     					Log.i(TAG, "*********** passing surface derived from TextureView for sessionId: " + sessionId + " to 'nativeSurfaceInit' ************");
-    					Surface s = new Surface(streamCtl.getAirMediaSurfaceTexture(sessionId));
+    					Surface s = new Surface(streamCtl.getSurfaceTexture(sessionId));
     					nativeSurfaceInit(s, sessionId);
     				}
     		    	Log.i(TAG, "Starting WBS Streaming");
@@ -127,21 +127,8 @@ public class WbsStreamIn implements SurfaceHolder.Callback {
     public void updateWindow(int streamId, int wbsWidth, int wbsHeight)
     {
     	Log.i(TAG, "In update window: streamId="+streamId+"   "+wbsWidth+"x"+wbsHeight);
-    	int width = streamCtl.userSettings.getW(streamId);
-    	int height = streamCtl.userSettings.getH(streamId);
-
-    	if ((width == 0) && (height == 0))
-    	{
-    		Point size = streamCtl.getDisplaySize();
-
-    		width = size.x;
-    		height = size.y;
-    	}
-    	Rect r = MiscUtils.getAspectRatioPreservingRectangle(
-    			streamCtl.userSettings.getXloc(streamId), streamCtl.userSettings.getYloc(streamId), width, height,
-    			wbsWidth, wbsHeight);
-		Log.i(TAG, "updateWindow: "+r.width()+"x"+r.height()+" @ ("+r.left+","+r.top+")");
-		streamCtl.updateWindow(r.left, r.top, r.width(), r.height(), streamId, useSurfaceTexture);
+    	
+    	streamCtl.updateWindowWithVideoSize(streamId, useSurfaceTexture, wbsWidth, wbsHeight);
     }    	
 
     public void onStop(final int sessionId) {

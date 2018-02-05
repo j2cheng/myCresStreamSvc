@@ -126,7 +126,12 @@ public class CameraStreaming {
 		        	latch.countDown();
 		        	return;
 		        }
-		
+		        
+		        // Update window size in case the aspect ratio or stretch changes
+		        try {
+		        	streamCtl.updateWindowWithVideoSize(idx, false, Integer.parseInt(streamCtl.hdmiInput.getHorizontalRes()), Integer.parseInt(streamCtl.hdmiInput.getVerticalRes()));
+		        } catch (NumberFormatException e) { e.printStackTrace(); }
+		        
 		        mrec = new MediaRecorder();
 		        CresCamera.openCamera(streamCtl);
 		        // This is here because moved out of openCamera

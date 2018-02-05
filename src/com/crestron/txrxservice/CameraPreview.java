@@ -126,6 +126,11 @@ public class CameraPreview {
 		        Log.i(TAG, "starting Playback " + is_preview);
 		        if(is_preview == false){		        	
 		        	Log.i(TAG, "Actual startPlayback");
+		        	
+		        	// Update window size in case the aspect ratio or stretch changes
+			        try {
+			        	streamCtl.updateWindowWithVideoSize(idx, false, Integer.parseInt(streamCtl.hdmiInput.getHorizontalRes()), Integer.parseInt(streamCtl.hdmiInput.getVerticalRes()));
+			        } catch (NumberFormatException e) { e.printStackTrace(); }
 
 		        	CresCamera.openCamera(streamCtl);
 		        	// This is here because moved out of openCamera

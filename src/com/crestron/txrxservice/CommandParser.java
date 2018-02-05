@@ -51,6 +51,7 @@ public class CommandParser {
         STOP,
         STOPFULL,
         PAUSE,
+        STRETCHVIDEO,
         XLOC,
         YLOC,
         W, 
@@ -400,6 +401,9 @@ public class CommandParser {
             case PAUSE:
                 cmd = new PauseCommand(ctrl, arg, idx); 
                 break;
+            case STRETCHVIDEO:
+            	cmd = new StretchVideoCommand(ctrl, arg, idx);
+            	break;
             case XLOC:
                 cmd = new XlocCommand(ctrl, arg, idx); 
                 break;

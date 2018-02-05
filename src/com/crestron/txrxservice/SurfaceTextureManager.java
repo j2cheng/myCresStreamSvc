@@ -73,13 +73,12 @@ public class SurfaceTextureManager implements TextureView.SurfaceTextureListener
     public void onSurfaceTextureAvailable(SurfaceTexture surface, int width, int height) {
 	    Log.i(TAG, "######### surfaceTextureAvailable ##############");
 	    mLock.countDown(); //mark that surfaceTexture has been created and is ready for use
-	    TextureView textureView = null;
 	    for (int i=0; i < streamCtl.NumOfTextures; i++)
 	    {
-	    	textureView = streamCtl.getAirMediaTextureView(i);
-	    	if (textureView.getSurfaceTexture() == surface)
+	    	TextureView tv = streamCtl.getTextureView(i);
+	    	if (tv.getSurfaceTexture() == surface)
 	    	{
-	    		textureView.setVisibility(View.INVISIBLE);
+	    		tv.setVisibility(View.INVISIBLE);
 	    	}
 	    }
     }

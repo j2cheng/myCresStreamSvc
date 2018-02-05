@@ -133,6 +133,7 @@ public class UserSettings
 	private int[] w;
 	private int[] h;
 	private int[] z;
+	private int[] stretch;
 	private CresStreamCtrl.StreamState[] streamState;
 	private CresStreamCtrl.StreamState[] userRequestedStreamState;
 	private int[] rtspPort;
@@ -273,6 +274,7 @@ public class UserSettings
 		z					= initZOrder();
 		xloc 				= initIntArray(0);
 		yloc				= initIntArray(0);
+		stretch				= initIntArray(0);
 		encodingResolution	= initIntArray(0);
 		encodingFramerate	= initIntArray(60);
 		bitrate				= initIntArray(10000);
@@ -528,6 +530,14 @@ public class UserSettings
 
 	public void setMode(int mode, int sessId) {
 		this.mode[sessId] = mode;
+	}
+	
+	public int getStretchVideo(int sessId) {
+		return stretch[sessId];
+	}
+	
+	public void setStretchVideo(int stretch, int sessId) {
+		this.stretch[sessId] = stretch;
 	}
 
 	public int getXloc(int sessId) {

@@ -2,13 +2,18 @@
 package com.crestron.txrxservice;
 
 import java.io.IOException;
+import java.util.Map;
+import java.util.concurrent.ConcurrentHashMap;
 import java.util.concurrent.CountDownLatch;
 import java.util.concurrent.TimeUnit;
+
+import com.crestron.airmedia.receiver.m360.models.AirMediaSession;
 
 import android.util.Log;
 import android.view.SurfaceHolder;
 import android.view.SurfaceHolder.Callback;
 import android.view.SurfaceView;
+import android.view.View;
 import android.content.Context;
 
 public class SurfaceManager implements SurfaceHolder.Callback {
@@ -17,12 +22,14 @@ public class SurfaceManager implements SurfaceHolder.Callback {
 	private final CresStreamCtrl streamCtl;
 	
     private SurfaceHolder crestSurfaceHolder;
+    private Map<View, Boolean> viewInitializedMap = new ConcurrentHashMap<View, Boolean>();
     String TAG = "TxRx SurfaceMgr"; 
 
     public SurfaceManager(Context mContext){
         Log.e(TAG, "SurfaceManager:: Constructor called...!");
         mLock = new CountDownLatch(1);
         streamCtl = (CresStreamCtrl)mContext;
+        viewInitializedMap.clear();
     }
     
     public void initCresSurfaceHolder (SurfaceView view) {
@@ -32,7 +39,7 @@ public class SurfaceManager implements SurfaceHolder.Callback {
             crestSurfaceHolder.addCallback(this);
             crestSurfaceHolder.setType(SurfaceHolder.SURFACE_TYPE_PUSH_BUFFERS);
             view.setZOrderOnTop(true);
-
+            viewInitializedMap.put(view, false);
         } else {
             Log.i(TAG, "App passed null surface view for stream in");
         }
@@ -43,6 +50,7 @@ public class SurfaceManager implements SurfaceHolder.Callback {
     {
     	if (crestSurfaceHolder != null)
     		crestSurfaceHolder.removeCallback(this);
+    	viewInitializedMap.clear();
     	mLock = null;  	
     	crestSurfaceHolder = null; 
     }
@@ -83,6 +91,21 @@ public class SurfaceManager implements SurfaceHolder.Callback {
     @Override
     public void surfaceCreated(SurfaceHolder holder) {
     	Log.i(TAG, "######### surfaceCreated surface="+holder.getSurface()+"##############");
+	    for (int i=0; i < CresStreamCtrl.NumOfSurfaces; i++)
+	    {
+	    	SurfaceView sv = streamCtl.getSurfaceView(i);
+	    	// For a given view this should only be done only once at startup so surface is created once 
+	    	if (sv.getHolder() == holder)
+	    	{
+	    		Boolean initialized = viewInitializedMap.get(sv);
+	    		if (initialized != null && !initialized)
+	    		{
+	    			sv.setVisibility(View.INVISIBLE);
+	    			viewInitializedMap.put(sv, true);
+					break;
+	    		}
+	    	}
+	    }
     	mLock.countDown(); //mark that surface has been created and is ready for use
     }
 
