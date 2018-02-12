@@ -2908,7 +2908,7 @@ public class CresStreamCtrl extends Service {
     public StreamState getCurrentStreamState(int sessionId)
     {
     	StreamState returnStreamState;
-    	Log.i(TAG, "StreamState " + sessionId + " : Lock");
+    	Log.i(TAG, "getCurrentStreamState(): StreamState " + sessionId + " : Lock");
     	streamStateLock[sessionId].lock();
     	try
     	{
@@ -2917,14 +2917,14 @@ public class CresStreamCtrl extends Service {
     	finally 
     	{
         	streamStateLock[sessionId].unlock();
-        	Log.i(TAG, "StreamState " + sessionId + " : Unlock");
+        	Log.i(TAG, "getCurrentStreamState(): StreamState " + sessionId + " : Unlock");
     	}
     	return returnStreamState;
     }
     
     public void SendStreamState(StreamState state, int sessionId)
     {
-    	Log.i(TAG, "StreamState " + sessionId + " : Lock");
+    	Log.i(TAG, "setCurrentStreamState(): StreamState " + sessionId + " : Lock");
     	streamStateLock[sessionId].lock();
     	try
     	{
@@ -2939,7 +2939,7 @@ public class CresStreamCtrl extends Service {
         finally 
     	{
         	streamStateLock[sessionId].unlock();
-        	Log.i(TAG, "StreamState " + sessionId + " : Unlock");
+        	Log.i(TAG, "setCurrentStreamState(): StreamState " + sessionId + " : Unlock");
     	}
     }
 
