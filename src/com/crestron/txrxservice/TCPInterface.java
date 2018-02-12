@@ -381,7 +381,7 @@ public class TCPInterface extends AsyncTask<Void, Object, Long> {
                         	addJoinToQueue(new JoinObject("DEVICE_READY_FB", serverHandler), 0);
                         }
                         else if((read.trim()).equalsIgnoreCase("RESTART_STREAM_ON_START=TRUE")){
-                        	Log.e(TAG, "RS: RESTART_STREAM_ON_START=TRUE received");
+                        	Log.i(TAG, "RESTART_STREAM_ON_START=TRUE received");
                         	streamCtl.restartStreamsOnStart = true;
                         }
                         else if ((read.trim()).equalsIgnoreCase("RESTART_STREAM_ON_START=FALSE")) {
