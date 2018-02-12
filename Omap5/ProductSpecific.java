@@ -4,6 +4,7 @@ import java.io.File;
 
 import android.view.Surface;
 import android.view.Surface.PhysicalDisplayInfo;
+import android.graphics.ImageFormat;
 import android.hardware.Camera;
 import android.media.MediaRecorder;
 import android.hardware.display.DisplayManager;
@@ -98,6 +99,12 @@ public class ProductSpecific
 	public static String getStatisticsData(MediaRecorder mrec)
 	{
 		return mrec.getStatisticsData();
+	}
+	
+	// ******************* CameraPreview.java *******************
+	public static int getRGB888PixelFormat()
+	{
+		return ImageFormat.RGBA_8888;
 	}
 	
 	// ******************* HDMIInputInterface.java *******************

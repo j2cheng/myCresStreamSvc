@@ -6,7 +6,7 @@ import java.io.FileReader;
 import java.io.IOException;
 
 import android.util.Log;
-
+import android.graphics.ImageFormat;
 import android.hardware.Camera;
 import android.media.MediaPlayer;
 import android.media.MediaRecorder;
@@ -103,6 +103,13 @@ public class ProductSpecific
 	{
 		// Not implmented for this product
 		return "";
+	}
+	
+	// ******************* CameraPreview.java *******************
+	public static int getRGB888PixelFormat()
+	{
+		// RGB 888 not supported on this product
+		return ImageFormat.NV21;
 	}
 	
 	// ******************* HDMIInputInterface.java *******************

@@ -8,7 +8,6 @@ import java.util.concurrent.TimeUnit;
 import com.crestron.txrxservice.CresStreamCtrl.DeviceMode;
 import com.crestron.txrxservice.CresStreamCtrl.StreamState;
 
-import android.graphics.ImageFormat;
 import android.hardware.Camera;
 import android.hardware.Camera.ErrorCallback;
 import android.hardware.Camera.Parameters;
@@ -283,7 +282,7 @@ public class CameraPreview {
 		        					validRes = true;
 		        					localParameters.setPreviewSize(hres, vres);
 		        					localParameters.set("ipp", "off");
-		        					localParameters.setPreviewFormat(ImageFormat.RGBA_8888);
+		        					localParameters.setPreviewFormat(ProductSpecific.getRGB888PixelFormat());
 		        					CresCamera.mCamera.setDisplayOrientation(0);
 		        					try {
 		        						CresCamera.mCamera.setParameters(localParameters);
