@@ -85,6 +85,7 @@ public class CameraStreaming {
     		public void run() {
     			String streamIp = "";
     			
+    			ProductSpecific.setRGB888Mode(false);
     			if (is_pause == true)
     			{
     				resumePlayback();
@@ -1025,6 +1026,7 @@ public class CameraStreaming {
     	if (Boolean.parseBoolean(streamCtl.hdmiOutput.getSyncStatus()))
     	{
     		Log.i(TAG, "startConfidencePreview: calling updateWindow");
+    		streamCtl.getSurfaceView(sessionId).setTag("PreviewVideoLayer");
 	    	streamCtl.updateWindow(sessionId);
 	    	streamCtl.showPreviewWindow(sessionId);
 	    	streamCtl.cam_preview.setSessionIndex(sessionId);
@@ -1038,6 +1040,7 @@ public class CameraStreaming {
     	streamCtl.hidePreviewWindow(sessionId);
     	streamCtl.cam_preview.setSessionIndex(sessionId);
         streamCtl.cam_preview.stopPlayback(true);
+        streamCtl.getSurfaceView(sessionId).setTag("VideoLayer");
         
         confidencePreviewRunning = false;
     }

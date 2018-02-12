@@ -169,6 +169,13 @@ public class ProductSpecific
 		// no java code controlling chromakey in this product
 	}
     
+    public static void setRGB888Mode(boolean enable)
+    {
+    	String setString = enable ? "1" : "0";
+    	MiscUtils.writeStringToDisk("/dev/shm/crestron/CresStreamSvc/previewEnableRGB888", setString);	// For ittiam's changes
+		MiscUtils.writeStringToDisk("/sys/devices/platform/omap_i2c.2/i2c-2/2-000f/evs_prev_rgb888_en", setString);	// For ittiam's changes
+    }
+    
 	public class DispayInfo
 	{
 		public int width;

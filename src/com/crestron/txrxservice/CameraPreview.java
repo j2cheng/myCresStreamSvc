@@ -8,6 +8,7 @@ import java.util.concurrent.TimeUnit;
 import com.crestron.txrxservice.CresStreamCtrl.DeviceMode;
 import com.crestron.txrxservice.CresStreamCtrl.StreamState;
 
+import android.graphics.ImageFormat;
 import android.hardware.Camera;
 import android.hardware.Camera.ErrorCallback;
 import android.hardware.Camera.Parameters;
@@ -33,10 +34,10 @@ public class CameraPreview {
 
     //public CameraPreview(CresStreamCtrl ctl, SurfaceHolder vHolder, HDMIInputInterface hdmiInIface) {
     public CameraPreview(CresStreamCtrl ctl, HDMIInputInterface hdmiInIface) {
-        audio_pb = new AudioPlayback(ctl);
-        //surfaceHolder = vHolder;
-        hdmiIf = hdmiInIface;
-        streamCtl = ctl;
+    	audio_pb = new AudioPlayback(ctl);
+    	//surfaceHolder = vHolder;
+    	hdmiIf = hdmiInIface;
+    	streamCtl = ctl;
     }
     
     public void setSessionIndex(int id){
@@ -118,7 +119,7 @@ public class CameraPreview {
     public boolean IsPauseStatus(){
         return is_pause;
     }
-
+    
     public void startPlayback(final boolean confidenceMode){
     	final CountDownLatch latch = new CountDownLatch(1);
     	Thread startThread = new Thread(new Runnable() {
@@ -126,6 +127,9 @@ public class CameraPreview {
 		        Log.i(TAG, "starting Playback " + is_preview);
 		        if(is_preview == false){		        	
 		        	Log.i(TAG, "Actual startPlayback");
+		        	
+		        	// TODO: create console command to enable/disable rgb888
+		        	ProductSpecific.setRGB888Mode(true);
 		        	
 		        	// Update window size in case the aspect ratio or stretch changes
 			        try {
@@ -279,6 +283,7 @@ public class CameraPreview {
 		        					validRes = true;
 		        					localParameters.setPreviewSize(hres, vres);
 		        					localParameters.set("ipp", "off");
+		        					localParameters.setPreviewFormat(ImageFormat.RGBA_8888);
 		        					CresCamera.mCamera.setDisplayOrientation(0);
 		        					try {
 		        						CresCamera.mCamera.setParameters(localParameters);
@@ -352,10 +357,13 @@ public class CameraPreview {
 		        {
 		            try
 		            {
+						// This should be moved to the below comment once HWC.c is updated to act on mode changes, that way we don't have to set the mode while pipeline is running
+						// Otherwise screen will keep last frame up until a screen update occurs 
+						ProductSpecific.setRGB888Mode(false);
 		                if (CresCamera.mCamera != null)
 		                {
 		                	CresCamera.mCamera.setPreviewCallback(null); //probably not necessary since handled by callback, but doesn't hurt
-		                	CresCamera.mCamera.stopPreview();            		
+		                	CresCamera.mCamera.stopPreview();     
 		            		CresCamera.releaseCamera();
 		                }
 		                is_preview = false;
@@ -377,6 +385,10 @@ public class CameraPreview {
 		        }
 		        else
 		            Log.i(TAG, "Playback already stopped");
+		        
+		        // Reset Tag
+				streamCtl.getSurfaceView(idx).setTag("VideoLayer");
+		        //ProductSpecific.setRGB888Mode(false);
 		        
 		        latch.countDown();
     		}

@@ -188,6 +188,11 @@ public class ProductSpecific
 		{			
 		}
 	}
+    
+    public static void setRGB888Mode(boolean enable)
+    {
+    	// Not implemented for this product
+    }
 
 	// ******************* Classes *******************
 	public class DispayInfo

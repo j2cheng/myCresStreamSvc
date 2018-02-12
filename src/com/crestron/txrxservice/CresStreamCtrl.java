@@ -647,7 +647,7 @@ public class CresStreamCtrl extends Service {
     				Log.e(TAG, "Could not upgrade userSettings: " + ex);
     			}
     		}
-    		
+    		    		
     		if (MiscUtils.readStringFromDisk(initializeSettingsFilePath).compareTo("1") != 0)
     		{
     			// for some products set up the defaults on restore
@@ -985,7 +985,7 @@ public class CresStreamCtrl extends Service {
 		}
 		return cameraDisabled;
     }
-    
+
  
     public SurfaceHolder getCresSurfaceHolder(final int sessionId){
     	SurfaceHolder surfaceHolder = null;
@@ -2950,6 +2950,13 @@ public class CresStreamCtrl extends Service {
     	try
     	{	
     		Log.i(TAG, "Start " + sessionId + " : Lock");
+    		
+    		// For preview mode we need to set layer mark for HWC
+    		if (userSettings.getMode(sessionId) == DeviceMode.PREVIEW.ordinal())
+        		getSurfaceView(sessionId).setTag("PreviewVideoLayer");
+    		else
+    			getSurfaceView(sessionId).setTag("VideoLayer");
+
     		if (userSettings.getAirMediaLaunch(sessionId)) {
     			// If we are starting streaming shutoff air media
     		    launchAirMedia(false, sessionId, false);
@@ -3241,7 +3248,7 @@ public class CresStreamCtrl extends Service {
 		    	final CountDownLatch latch = new CountDownLatch(1);
 		    	runOnUiThread(new Runnable() {
 				     @Override
-				     public void run() {			    	 
+				     public void run() {	
 			    		 dispSurface.HideWindow(sessId);
 				    	 latch.countDown();
 				     }
@@ -4880,7 +4887,7 @@ public class CresStreamCtrl extends Service {
 		            	}
 		            	latch.countDown();
             		}
-            	}).start();            	
+            	}).start();
         	}            
         };
         IntentFilter resolutionIntentFilter = new IntentFilter("evs.intent.action.hdmi.RESOLUTION_CHANGED");

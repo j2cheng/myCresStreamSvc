@@ -151,6 +151,8 @@ public class CresDisplaySurface
         // and height
         for (int i = 0; i < CresStreamCtrl.NumOfSurfaces; i++){
             displaySurface[i] = new SurfaceView(app);
+            String layerMarker = "VideoLayer";
+            displaySurface[i].setTag(layerMarker);
             viewLayoutParams = new RelativeLayout.LayoutParams(windowWidth, windowHeight);
             parentlayout.addView(displaySurface[i], viewLayoutParams);
         }
@@ -376,7 +378,7 @@ public class CresDisplaySurface
     	layout.invalidate();
         layout.requestLayout();
     }
-    
+
     
     /**
      * Return the surface holder for the display surface
@@ -395,6 +397,10 @@ public class CresDisplaySurface
         sMGR.initCresSurfaceHolder(displaySurface[idx]);
     }
     
+    /**
+     * Return the surface view for the display surface
+     * @return SurfaceView
+     */
     public SurfaceView GetSurfaceView(int idx)
     {
     	return displaySurface[idx];
