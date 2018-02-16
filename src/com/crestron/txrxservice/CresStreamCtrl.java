@@ -370,9 +370,9 @@ public class CresStreamCtrl extends Service {
     	case 0x24:
     		return "DMPS3-4K";
     	case 0x2D:
-    		return "CCS-FF-2";
+    		return "AM-300";
     	case 0x2E:
-    		return "CCS-FF-1";
+    		return "AM-200";
     	default:
     		return "Crestron Device";
     	}
