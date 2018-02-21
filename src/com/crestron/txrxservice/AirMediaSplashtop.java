@@ -126,13 +126,13 @@ public class AirMediaSplashtop implements AirMedia
     		super(fair);
     	}
     	
-    	long getThreadId()
+    	String getThreadId()
     	{
     		Thread owner = this.getOwner();
     		if (owner == null)
-    			return 0;
+    			return "null";
     		else
-    			return owner.getId();
+    			return Integer.toHexString((int)(owner.getId()));
     	}
     	
     	void lock(String s)
@@ -195,6 +195,7 @@ public class AirMediaSplashtop implements AirMedia
     	synchronized (connectLock) {
     		boolean successfulStart = true; //indicates that there was no time out condition
 
+	    	Common.Logging.i(TAG, "connectAndStartReceiverService() isServiceConnected="+isServiceConnected+"  isReceieverStarted="+isReceiverStarted);
     		if (!isServiceConnected)
     		{
     			startupCompleteLatch = new CountDownLatch(1);
@@ -357,13 +358,13 @@ public class AirMediaSplashtop implements AirMedia
     private boolean stopReceiver()
     {
     	synchronized (startStopReceiverLock) {
-    		Common.Logging.i(TAG, "stopReceiver() enter (thread="+Thread.currentThread().getId()+")");
+    		Common.Logging.i(TAG, "stopReceiver() enter (thread="+Integer.toHexString((int)(Thread.currentThread().getId()))+")");
     		boolean successfulStop = true;
     		receiverStoppedLatch = new CountDownLatch(1);
     		receiver_.stop();
     		try { successfulStop = receiverStoppedLatch.await(30000, TimeUnit.MILLISECONDS); }
     		catch (InterruptedException ex) { ex.printStackTrace(); }
-    		Common.Logging.i(TAG, "stopReceiver() exit (thread="+Thread.currentThread().getId()+")");
+    		Common.Logging.i(TAG, "stopReceiver() exit (thread="+Integer.toHexString((int)(Thread.currentThread().getId()))+")");
     		return successfulStop;
     	}
     }
@@ -374,13 +375,13 @@ public class AirMediaSplashtop implements AirMedia
     private boolean startReceiver()
     {
     	synchronized (startStopReceiverLock) {
-    		Common.Logging.i(TAG, "startReceiver() enter (thread="+Thread.currentThread().getId()+")");
+    		Common.Logging.i(TAG, "startReceiver() enter (thread="+Integer.toHexString((int)(Thread.currentThread().getId()))+")");
     		boolean successfulStart = true;
     		receiverStartedLatch = new CountDownLatch(1);
     		receiver().start();
     		try { successfulStart = receiverStartedLatch.await(45000, TimeUnit.MILLISECONDS); }
     		catch (InterruptedException ex) { ex.printStackTrace(); }
-    		Common.Logging.i(TAG, "startReceiver() exit (thread="+Thread.currentThread().getId()+")");
+    		Common.Logging.i(TAG, "startReceiver() exit (thread="+Integer.toHexString((int)(Thread.currentThread().getId()))+")");
     		return successfulStart;
     	}
     }
@@ -455,8 +456,7 @@ public class AirMediaSplashtop implements AirMedia
 
 		if (receiver_ != null) {
 			// close any prior receiver if it exists
-			receiver_.close();
-			receiver_ = null;
+			close();
 		}
         if (receiver_ == null) {
         	try {
@@ -558,21 +558,26 @@ public class AirMediaSplashtop implements AirMedia
     	{
     		if (mStreamCtl.userSettings.getAirMediaLaunch(sessId))
     		{
+    			Common.Logging.i(TAG, "recover(): calling hide");
     			hide(true);	// Need to stop sender in order to recover
-
+    			
     			try { Thread.sleep(5000); } catch (InterruptedException e) {};	
 
-    			int width = mStreamCtl.userSettings.getAirMediaWidth();
-    			int height = mStreamCtl.userSettings.getAirMediaHeight();
-
-    			if ((width == 0) && (height == 0))
+    			if (getPendingSession() != null)
     			{
-    				Point size = mStreamCtl.getDisplaySize();
+    				int width = mStreamCtl.userSettings.getAirMediaWidth();
+    				int height = mStreamCtl.userSettings.getAirMediaHeight();
 
-    				width = size.x;
-    				height = size.y;
+    				if ((width == 0) && (height == 0))
+    				{
+    					Point size = mStreamCtl.getDisplaySize();
+
+    					width = size.x;
+    					height = size.y;
+    				}
+    				Common.Logging.i(TAG, "recover(): calling show");
+    				show(mStreamCtl.userSettings.getAirMediaX(), mStreamCtl.userSettings.getAirMediaY(),width,height);
     			}
-    			show(mStreamCtl.userSettings.getAirMediaX(), mStreamCtl.userSettings.getAirMediaY(),width,height);
     		}
     	}
     }    
@@ -1701,15 +1706,22 @@ public class AirMediaSplashtop implements AirMedia
 
     public void close() {
         AirMediaReceiver receiver = receiver_;
-		receiver_ = null;
+        AirMediaSessionManager manager = manager_;
+        
+        Common.Logging.i(TAG, "close(): remove prior event handlers");
+        unregisterSessionManagerEventHandlers(manager_);
+        manager_ = null;
         if (receiver != null) {
+        	unregisterReceiverEventHandlers(receiver_);
             try {
-            	receiver.stop();
-                receiver.close();
+            	receiver.stop(TimeSpan.fromSeconds(10.0));
+                receiver.close(TimeSpan.fromSeconds(10.0));
             } catch (Exception e) {
                 Common.Logging.e(TAG, "close  EXCEPTION  " + e);
             }
         }
+		receiver_ = null;
+        Common.Logging.i(TAG, "close(): completed");
     }
 
 	private final ServiceConnection AirMediaServiceConnection = new ServiceConnection() {
@@ -1719,10 +1731,10 @@ public class AirMediaSplashtop implements AirMedia
 			new Thread(new Runnable() {
 				@Override
 				public void run() {
+					isServiceConnected = true;
 					if (requestServiceConnection)
 					{
 						Common.Logging.i(TAG, "AirMediaServiceConnection.onServiceConnected  " + name);
-						isServiceConnected = true;
 						requestServiceConnection = false;
 						try {
 							service_ = IAirMediaReceiver.Stub.asInterface(binder);
