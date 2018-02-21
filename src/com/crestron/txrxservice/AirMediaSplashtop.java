@@ -456,6 +456,7 @@ public class AirMediaSplashtop implements AirMedia
 		if (receiver_ != null) {
 			// close any prior receiver if it exists
 			receiver_.close();
+			receiver_ = null;
 		}
         if (receiver_ == null) {
         	try {
