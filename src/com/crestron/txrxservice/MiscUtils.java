@@ -7,6 +7,7 @@ import java.io.OutputStream;
 import java.io.OutputStreamWriter;
 import java.io.Writer;
 import java.lang.reflect.Method;
+import java.math.BigInteger;
 import java.net.InetAddress;
 import java.util.Scanner;
 import java.util.regex.Pattern;
@@ -128,6 +129,17 @@ public class MiscUtils {
         Rect r = new Rect(x, y, x+aw, y+ah);
         Log.i(TAG, "getAspectRatioPreservingRectangle x="+r.left+" y="+r.top+"   wxh="+r.width()+"x"+r.height());
         return r;
+    }
+    
+    public static final BigInteger TWO_64 = BigInteger.ONE.shiftLeft(64);
+    
+    public static String asUnsignedDecimalString(long l)
+    {
+    	BigInteger b = BigInteger.valueOf(l);
+    	   if(b.signum() < 0) {
+    	      b = b.add(TWO_64);
+    	   }
+    	   return b.toString();
     }
     
     public static void writeStringToDisk(String filePath, String stringToWrite)

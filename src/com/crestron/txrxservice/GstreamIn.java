@@ -140,8 +140,16 @@ public class GstreamIn implements StreamInStrategy, SurfaceHolder.Callback {
     
     public void sendStatistics(long video_packets_received, int video_packets_lost, long audio_packets_received, int audio_packets_lost, int bitrate){
     	statisticsNumVideoPackets = video_packets_received;
+    	if (video_packets_lost < 0)
+    	{
+    		video_packets_lost = 0;
+    	}
         statisticsNumVideoPacketsDropped = video_packets_lost;
         statisticsNumAudioPackets = audio_packets_received;
+        if (audio_packets_lost < 0)
+        {
+        	audio_packets_lost = 0;
+        }
         statisticsNumAudioPacketsDropped = audio_packets_lost;
         statisticsBitrate = bitrate;
         
