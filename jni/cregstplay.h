@@ -12,6 +12,7 @@
 #include <gst/gst.h>
 #include <gst/video/video.h>
 #include <gst/rtsp/gstrtsptransport.h>
+#include <gst/app/gstappsink.h>
 #include <stdbool.h>
 #include "csioCommonShare.h"
 #include "cresStreamOut_Common_Def.h"
@@ -216,8 +217,7 @@ enum
 //Field debug UINT32 array size
 #define SPECIAL_FIELD_DEBUG_ARRAY_SIZE         ( ((MAX_SPECIAL_FIELD_DEBUG_NUM-1)/32)+1 )
 
-extern UINT32 g_lSpecialFieldDebugState[SPECIAL_FIELD_DEBUG_ARRAY_SIZE];
-extern void csio_jni_printFieldDebugInfo();
+void csio_jni_printFieldDebugInfo();
 
 //Field debug macros
 #define IsSpecialFieldDebugIndexActive(a)      ( g_lSpecialFieldDebugState[((a-1)/32)] & (1<<((a-1)%32)) )
@@ -231,22 +231,48 @@ extern void csio_jni_printFieldDebugInfo();
 **********************************************************************/
 ///////////////////////////////////////////////////////////////////////////////
 
-//extern void *app_function (void *userdata);
-//extern void set_ui_message (const gchar *message, CustomData *data);
-//extern void check_initialization_complete (CustomData *data, int stream);
+//void *app_function (void *userdata);
+//void set_ui_message (const gchar *message, CustomData *data);
+//void check_initialization_complete (CustomData *data, int stream);
 void clearMetadataConnections();
-extern void init_custom_data(CustomData * cdata);
-extern int build_audio_pipeline(gchar *encoding_name, CREGSTREAM *data, int do_rtp,GstElement **ele0,GstElement **sink);
-extern int build_video_pipeline(gchar *encoding_name, CREGSTREAM *data, unsigned int start, int do_rtp,GstElement **ele0,GstElement **sink);
-extern int build_metadata_pipeline(CREGSTREAM *data, GstElement **sink);
-extern void build_http_pipeline(CREGSTREAM *data, int iStreamId);
+void init_custom_data(CustomData * cdata);
+int build_audio_pipeline(gchar *encoding_name, CREGSTREAM *data, int do_rtp,GstElement **ele0,GstElement **sink);
+int build_video_pipeline(gchar *encoding_name, CREGSTREAM *data, unsigned int start, int do_rtp,GstElement **ele0,GstElement **sink);
+int build_metadata_pipeline(CREGSTREAM *data, GstElement **sink);
+void build_http_pipeline(CREGSTREAM *data, int iStreamId);
+extern "C" void insert_udpsrc_probe(CREGSTREAM *data,GstElement *element,const gchar *name);
+extern "C" void csio_jni_remove_video_rate_probe(int iStreamId);
 
-extern void csio_PadAddedMsgHandler(GstElement *src, GstPad *new_pad, void *pCstreamer);
-extern void csio_Adaptive_PadAddedMsgHandler( GstElement *src, GstPad *new_pad, CREGSTREAM *data );
-extern void csio_DecVideo1stOutputCB(GstElement *src,int id);
+void csio_PadAddedMsgHandler(GstElement *src, GstPad *new_pad, void *pCstreamer);
+void csio_Adaptive_PadAddedMsgHandler( GstElement *src, GstPad *new_pad, CREGSTREAM *data );
+void csio_DecVideo1stOutputCB(GstElement *src,int id);
 
-extern void set_gst_debug_level(void);
+// Includes for csioutils.h 
+typedef gint gboolean;
+void     csio_send_stats (uint64_t video_packets_received, int video_packets_lost, uint64_t audio_packets_received, int audio_packets_lost, uint16_t bitrate) ;
+GstStateChangeReturn csio_element_set_state(GstElement *element, GstState state, gboolean bFileUri = false);
+void csio_SetWaitDecHas1stVidDelay(int iStreamId,int v);
+int  csio_GetWaitDecHas1stVidDelay(int iStreamId);
+int  csio_jni_AddAudio(GstPad *,gchar *, GstElement **,bool, int stream);
+int  csio_jni_AddVideo(GstPad *,gchar *, GstElement **,eProtocolId,bool, int stream);
+void csio_jni_initVideo(int stream);
+void csio_SetVpuDecoder(GstElement *vpuDec, int iStreamId);
+int  csio_SetAudioProbeId(int iStreamId,uint Id);
+int  csio_SetVideoProbeId(int iStreamId,uint Id);
+void 	csio_SendVideoSourceParams (unsigned int source, unsigned int width, unsigned int height, unsigned int framerate, unsigned int profile);
+int      csio_SendVideoPlayingStatusMessage(UINT32 source, eStreamState state);
+void csio_SetRtspNetworkMode(int iStreamId, unsigned char ucMode);
+void csio_jni_recoverDucati();
+void csio_jni_initAudio(int iStreamId);
+void csio_SetAudioSink(GstElement *audioSink, int iStreamId);
+void csio_SaveNetworkProtocol(int iStreamId);
+void csio_SendVideoInfo(int id, GstElement *element);
+
+
+
+void set_gst_debug_level(void);
 
 extern guint64 amcviddec_min_threshold_time ;
 extern int debug_blocking_audio;
+extern UINT32 g_lSpecialFieldDebugState[SPECIAL_FIELD_DEBUG_ARRAY_SIZE];
 #endif

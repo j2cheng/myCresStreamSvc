@@ -223,8 +223,8 @@ void *CStreamoutManager::forceUnprepare(void * arg)
     return NULL;
 }
 
-extern "C" void csio_jni_recoverTxrxService();
-extern "C" void csio_jni_sendCameraStopFb();
+void csio_jni_recoverTxrxService();
+void csio_jni_sendCameraStopFb();
 
 void CStreamoutManager::forceMediaUnprepare(GstRTSPMedia * pMedia)
 {

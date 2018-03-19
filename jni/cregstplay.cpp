@@ -95,7 +95,7 @@ void init_custom_data(CustomData * cdata)
 		data->udp_audio_port = 2049;
 		data->tcp_timeout_usec = 3000000;
 		data->udp_timeout_usec = 3000000;
-		data->protocols = GST_RTSP_LOWER_TRANS_UDP|GST_RTSP_LOWER_TRANS_UDP_MCAST|GST_RTSP_LOWER_TRANS_TCP;
+		data->protocols = (GstRTSPLowerTrans)(GST_RTSP_LOWER_TRANS_UDP|GST_RTSP_LOWER_TRANS_UDP_MCAST|GST_RTSP_LOWER_TRANS_TCP);
 
 		// Tried keeping these as strings, but would crash when g_object_set was called for udpsrc.
 		data->caps_v_rtp = gst_caps_new_simple(
@@ -461,13 +461,13 @@ static void on_sample_callback_meta (GstElement *src, GstPad *new_pad, CREGSTREA
     GstMapInfo map;
 
     /* get the sample from appsink */
-    sample = gst_app_sink_pull_sample (src);
+    sample = gst_app_sink_pull_sample ((GstAppSink*)src);
     metadataBuffer = gst_sample_get_buffer (sample);
 
     if (gst_buffer_map (metadataBuffer, &map, GST_MAP_READ)) {
     	gsize metaDataSize = gst_buffer_get_size (metadataBuffer);//csio_buffer);
     	if(sockInst) {
-			socketSend(sockInst, map.data, map.size, 0, false);
+			socketSend(sockInst, (char const*)map.data, map.size, 0, false);
     		CSIO_LOG(eLogLevel_verbose, "sending metadata size %d", metaDataSize);
     		gst_buffer_unmap (metadataBuffer, &map);
     	}
@@ -1119,7 +1119,7 @@ int build_video_pipeline(gchar *encoding_name, CREGSTREAM *data, unsigned int st
         if(data->amcvid_dec && csio_GetWaitDecHas1stVidDelay(data->streamId) == 0)
         {
             int sigId = 0;
-            sigId = g_signal_connect(data->amcvid_dec, "crestron-vdec-output", G_CALLBACK(csio_DecVideo1stOutputCB), data->streamId);
+            sigId = g_signal_connect(data->amcvid_dec, "crestron-vdec-output", G_CALLBACK(csio_DecVideo1stOutputCB), (gpointer)data->streamId);
             CSIO_LOG(eLogLevel_debug, "connect to crestron-vdec-output: StreamId[%d],sigHandlerId[%d]",data->streamId,sigId);
 
             if(sigId)
@@ -1185,7 +1185,7 @@ int build_video_pipeline(gchar *encoding_name, CREGSTREAM *data, unsigned int st
 			pad = gst_element_get_static_pad( data->element_v[i-1], "src" );
 			if( pad != NULL )
 			{
-				guint video_probe_id = gst_pad_add_probe( pad, GST_PAD_PROBE_TYPE_BUFFER, csio_videoProbe, (void *) &data->streamId, NULL );
+				guint video_probe_id = gst_pad_add_probe( pad, GST_PAD_PROBE_TYPE_BUFFER, csio_videoProbe, (gpointer) &data->streamId, NULL );
 				csio_SetVideoProbeId(data->streamId, video_probe_id);
 				gst_object_unref( pad );
 			}
@@ -1209,7 +1209,7 @@ int build_video_pipeline(gchar *encoding_name, CREGSTREAM *data, unsigned int st
 			if(data->amcvid_dec && csio_GetWaitDecHas1stVidDelay(data->streamId) == 0)
 			{
 				int sigId = 0;
-				sigId = g_signal_connect(data->amcvid_dec, "crestron-vdec-output", G_CALLBACK(csio_DecVideo1stOutputCB), data->streamId);
+				sigId = g_signal_connect(data->amcvid_dec, "crestron-vdec-output", G_CALLBACK(csio_DecVideo1stOutputCB), (gpointer)data->streamId);
 				CSIO_LOG(eLogLevel_debug, "connect to crestron-vdec-output: StreamId[%d],sigHandlerId[%d]",data->streamId,sigId);
 
 				if(sigId)
@@ -1326,7 +1326,7 @@ int build_video_pipeline(gchar *encoding_name, CREGSTREAM *data, unsigned int st
 		}
 		else
 		{
-			data->video_rate_probe_id = gst_pad_add_probe( pad, GST_PAD_PROBE_TYPE_BUFFER, csio_videoRateProbe, (void *) &data->streamId, NULL );
+			data->video_rate_probe_id = gst_pad_add_probe( pad, GST_PAD_PROBE_TYPE_BUFFER, csio_videoRateProbe, (gpointer) &data->streamId, NULL );
 			data->video_rate_probe_element = video_rate_probe_element;
 		    CSIO_LOG(eLogLevel_debug, "%s() added video rate probe (id=%lu) to element = %s @ %p (pad=%p)", __FUNCTION__,
 		    		data->video_rate_probe_id, GST_ELEMENT_NAME(video_rate_probe_element), video_rate_probe_element, pad);

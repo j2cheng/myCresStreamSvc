@@ -20,11 +20,11 @@ CRESTRON_ROOT := $(LOCAL_PATH)/../..
 LOCAL_MODULE    := libgstreamer_jni
 STREAMOUT_PATH := $(LOCAL_PATH)/cresStreamOut
 LOCAL_SRC_FILES := \
-	jni.c \
-	cregstplay.c \
-	gst_element_print_properties.c \
+	jni.cpp \
+	cregstplay.cpp \
+	gst_element_print_properties.cpp \
 	cresStreamOut/streamOutManager/cresStreamOutManager.cpp \
-	cresStreamOut/streamOutManager/cres_rtsp-media.c \
+	cresStreamOut/streamOutManager/cres_rtsp-media.cpp \
 	cresStreamOut/streamOutManager/cresStreamSnapShot.cpp \
 	cresStreamOut/streamOutManager/cresPreview.cpp \
 	cresStreamOut/streamOutManager/cresCamera.cpp \
@@ -80,7 +80,7 @@ LOCAL_CFLAGS +=\
 	-I$(CRESTRON_ROOT)/Include/External \
 	-I$(CRESTRON_ROOT)/MJPEGPlayer \
 	-I$(CSIO_INCLUDE_ROOT) \
-        -I$(CSIO_INCLUDE_ROOT)/crestHdcp \
+    -I$(CSIO_INCLUDE_ROOT)/crestHdcp \
 	-I$(CSIO_INCLUDE_ROOT)/txrx \
 	-I$(CSIO_INCLUDE_ROOT)/url_parser \
 	-I$(CSIO_INCLUDE_ROOT)/gstreamer-1.0 \
@@ -126,7 +126,8 @@ LOCAL_CFLAGS +=\
 	-I$(CSIO_INCLUDE_ROOT) \
 	-I$(CRESTRON_ROOT)/productNameUtil \
 	-I$(CRESTRON_ROOT)/common/include \
-	-I$(CRESTRON_ROOT)/Include/External 
+	-I$(CRESTRON_ROOT)/Include/External \
+	-I$(CSIO_INCLUDE_ROOT)/crestHdcp
 	
 #	-I$(CPP_INC_PATH) \
 #	-I$(COMMON_INC_PATH) \
@@ -155,7 +156,7 @@ endif
 
 LOCAL_LDLIBS := -llog
 LOCAL_SHARED_LIBRARIES := libCsioProdInfo
-LOCAL_SRC_FILES := cresstreamctrl_jni.c
+LOCAL_SRC_FILES := cresstreamctrl_jni.cpp
 
 LOCAL_MODULE_TAGS := eng
 LOCAL_PRELINK_MODULE := false

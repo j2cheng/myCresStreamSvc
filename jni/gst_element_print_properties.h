@@ -23,7 +23,7 @@
 #ifndef GST_ELEMENT_PRINT_PROPERTIES_H
 #define GST_ELEMENT_PRINT_PROPERTIES_H
 
-   extern    void       gst_element_print_properties( GstElement * element );
+   extern "C"    void       gst_element_print_properties( GstElement * element );
    extern    void       print_column_titles( guint c2w, guint c3w, guint c4w );
    extern    void       print_element_info( GstElement *element, guint c2w, guint c3w, guint c4w  );
    extern    gchar *    flags_to_string( GFlagsValue * vals, guint flags );
