@@ -36,6 +36,7 @@ public class WbsStreamIn implements SurfaceHolder.Callback {
     private native void nativeSurfaceInit(Object surface, int sessionId);
     private native void nativeSurfaceFinalize(int sessionId);
     private native void nativeSetWbsUrl(String url, int sessionId);
+    private native void nativeSetLogLevel(int level);
         
     public WbsStreamIn(CresStreamCtrl mContext) {
         Log.e(TAG, "WbsStreamIn :: Constructor called...!");
@@ -168,6 +169,11 @@ public class WbsStreamIn implements SurfaceHolder.Callback {
     protected void onDestroy() {
         nativeFinalize();
 //        super.onDestroy();
+    }
+    
+    public void setLogLevel(int level)
+    {
+    	nativeSetLogLevel(level);
     }
  
 	// Find the session id (aka stream number) given a surface holder.

@@ -87,6 +87,13 @@ JNIEXPORT void JNICALL Java_com_crestron_txrxservice_WbsStreamIn_nativeUnpause(J
  */
 JNIEXPORT void JNICALL Java_com_crestron_txrxservice_WbsStreamIn_nativeSetUrl(JNIEnv *, jobject, jstring, jint);
 
+/*
+ * Class:     		WbsStreamIn
+ * Method:    		nativeSetLogLevel
+ * Signature: 		(I)V
+ */
+JNIEXPORT void JNICALL Java_com_crestron_txrxservice_WbsStreamIn_nativeSetLogLevel(JNIEnv *, jobject, jint);
+
 ///////////////////////////////////////////////////////////////////////////////
 eStreamState nativeGetCurrentStreamState(jint);
 

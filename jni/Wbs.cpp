@@ -43,6 +43,8 @@
 
 #define USE_SURFACE 1
 
+static int WbsLogLevel = eLogLevel_extraVerbose;
+
 jobject gWbsApp; // keep global reference for calling functions
 
 Wbs_t gWbs[MAX_STREAMS];
@@ -114,8 +116,9 @@ static void wbs_render(Wbs_t *pWbs, unsigned char *frameBuffer, int w, int h)
 	ANativeWindow_Buffer windowBuffer;
 	int errCode;
 
-	CSIO_LOG((pWbs->frameCount < 10) ? eLogLevel_debug : eLogLevel_extraVerbose, "%s: render image %d of size %dx%d", __FUNCTION__, pWbs->frameCount, w, h);
+	CSIO_LOG((pWbs->frameCount < 10) ? eLogLevel_debug : eLogLevel_extraVerbose, "%s: render image %u(%llu) of size %dx%d", __FUNCTION__, pWbs->frameCount, pWbs->totalFrameCount, w, h);
 	pWbs->frameCount++;
+	pWbs->totalFrameCount++;
 
 	if (native_window == NULL) {
 		CSIO_LOG(eLogLevel_error, "%s: No window attached to stream", __FUNCTION__);
@@ -250,7 +253,7 @@ static void do_live_view(Wbs_t *pWbs, int fd, SSL * pSSL, char const * origin = 
 		tv.tv_usec = 200000;
 		if ((pSSL && (nSSL=SSL_pending(pSSL)) > 0) || (srv=select(fd+1, &fds, 0, 0, &tv)) > 0) {
 			int n = pSSL ? SSL_read(pSSL, str, 65536) : read(fd, str, 65536);
-			CSIO_LOG(eLogLevel_extraVerbose, "%s: read %d bytes pSSL=%p nSSL=%d srv=%d", __FUNCTION__, n, pSSL, nSSL, srv);
+			CSIO_LOG(WbsLogLevel, "%s: read %d bytes pSSL=%p nSSL=%d srv=%d %s", __FUNCTION__, n, pSSL, nSSL, srv, (n > 0 && n < 5)?getHexMessage(str, n):"");
 			if (n <= 0) {
 				if (srv == 0)
 				{
@@ -297,7 +300,7 @@ static void do_live_view(Wbs_t *pWbs, int fd, SSL * pSSL, char const * origin = 
 					}
 				}
 				if (f & TileDecoder::FLAG_FRAME) {
-					CSIO_LOG(eLogLevel_extraVerbose, "%s: got frame (w=%d h=%d)", __FUNCTION__, deco.getWidth(), deco.getHeight());
+					CSIO_LOG(WbsLogLevel, "%s: got frame %llu (w=%d h=%d)", __FUNCTION__, pWbs->totalFrameCount, deco.getWidth(), deco.getHeight());
 					pWbs->backoffInSecs = 1;		// reduce backoff to min value since we have valid connection now
 					if (!pWbs->isPaused) {			// if paused skip rendering of any new frames
 #ifdef USE_SURFACE
@@ -321,7 +324,7 @@ static void do_live_view(Wbs_t *pWbs, int fd, SSL * pSSL, char const * origin = 
 					}
 					else
 					{
-						CSIO_LOG(eLogLevel_extraVerbose, "%s: not rendering image - in paused state", __FUNCTION__);
+						CSIO_LOG(WbsLogLevel, "%s: not rendering image - in paused state", __FUNCTION__);
 					}
 				}
 				if (f & (TileDecoder::FLAG_CLOSE | TileDecoder::FLAG_ERROR)) {
@@ -344,9 +347,15 @@ static void do_live_view(Wbs_t *pWbs, int fd, SSL * pSSL, char const * origin = 
 		}
 		else {
 			if (!(++keepalive_counter & 7)) {
+				CSIO_LOG(WbsLogLevel, "%s: soliciting keepAlive", __FUNCTION__);
 				deco.solicitKeepAlive();
 				int n2send = deco.numBytesToSend();
-				if (n2send) if ((pSSL ? SSL_write(pSSL, deco.getDataToSend(), n2send) : write(fd, deco.getDataToSend(), n2send)) < 1) break;
+				if (n2send) {
+					if ((pSSL ? SSL_write(pSSL, deco.getDataToSend(), n2send) : write(fd, deco.getDataToSend(), n2send)) < 1) {
+						CSIO_LOG(eLogLevel_debug, "%s: error during sending keepalive", __FUNCTION__);
+						break;
+					}
+				}
 			}
 		}
 	}
@@ -360,7 +369,7 @@ bool wbs_verify_url(const char *url, bool *secure, char *hostname, int hostnameL
 	if (!*secure && strncmp(wsurl, "ws://", 5) != 0) {
 		return false;
 	}
-	const char * ptr = wsurl + (secure ? 6 : 5);
+	const char * ptr = wsurl + (*secure ? 6 : 5);
 	int len = 0;
 	while (*ptr && *ptr != '/' && *ptr != ':' && len < hostnameLen) {
 		hostname[len++] = *ptr++;
@@ -458,6 +467,7 @@ static void *wbsThread(void *arg)
 	pWbs->isStarted = true;
 	pWbs->requestStop = false;
 	pWbs->backoffInSecs = RESTART_MAX_BACKOFF_SECS;
+	pWbs->totalFrameCount = 0;
 	pWbs->frameCount = 0;
 	CSIO_LOG(eLogLevel_debug, "%s: requestStop=%s", __FUNCTION__, (pWbs->requestStop)?"true":"false");
 	while (!wbs_start_connection(pWbs)) {
@@ -471,6 +481,7 @@ static void *wbsThread(void *arg)
 		} else {
 			break;
 		}
+		pWbs->frameCount = 0;
 	}
 
 	if (!pWbs->requestStop)
@@ -478,7 +489,7 @@ static void *wbsThread(void *arg)
 		CSIO_LOG(eLogLevel_error, "Exiting Wbs thread prematurely without explicit stop requested\n");
 	}
     pWbs->isStarted = false;
-	CSIO_LOG(eLogLevel_verbose, "Exiting Wbs thread...\n");
+	CSIO_LOG(WbsLogLevel, "Exiting Wbs thread...\n");
 	return(NULL);
 }
 
@@ -613,4 +624,15 @@ void wbs_unpause(int sessId)
 	CSIO_LOG(eLogLevel_error, "%s wbs unpausing stream\n", __FUNCTION__);
 	pWbs->isPaused = false;
 	wbs_SendVideoPlayingStatusMessage(sessId, STREAMSTATE_STARTED);
+}
+
+int wbs_getLogLevel()
+{
+	return WbsLogLevel;
+}
+
+void wbs_setLogLevel(int level)
+{
+	CSIO_LOG(eLogLevel_info, "%s wbs setting log level to %d\n", __FUNCTION__, level);
+	WbsLogLevel = level;
 }

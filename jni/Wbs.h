@@ -55,7 +55,8 @@ typedef struct Wbs_t {
 	int backoffInSecs;
 	int width;
 	int height;
-	int frameCount;
+	uint32_t frameCount;
+	uint64_t totalFrameCount;
 
 	pthread_t wbsTid;
 	bool isStarted;
@@ -78,6 +79,8 @@ void wbs_unpause(int sessId);
 Wbs_t *wbs_get_stream_data(int sessId);
 void wbs_update_window(int sessId, int width, int height);
 int wbs_SendVideoPlayingStatusMessage(unsigned int source, eStreamState state);
+int wbs_getLogLevel();
+void wbs_setLogLevel(int level);
 
 #ifdef __cplusplus
 }

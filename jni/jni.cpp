@@ -3574,3 +3574,9 @@ JNIEXPORT void JNICALL Java_com_crestron_txrxservice_WbsStreamIn_nativeSetUrl(JN
 	env->ReleaseStringUTFChars(url_jstring, url_cstring);
 }
 
+/* Set Stream URL */
+JNIEXPORT void JNICALL Java_com_crestron_txrxservice_WbsStreamIn_nativeSetLogLevel(JNIEnv *env, jobject thiz, jint logLevel)
+{
+	CSIO_LOG(eLogLevel_verbose, "%s", __FUNCTION__);
+	wbs_setLogLevel(logLevel);
+}

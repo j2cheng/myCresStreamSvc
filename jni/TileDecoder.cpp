@@ -33,6 +33,7 @@
 #include <stdio.h>
 #include "csioCommonShare.h"
 #include "TileDecoder.h"
+#include "Wbs.h"
 
 static char *getHexMessage(char *msg, int msglen)
 {
@@ -45,6 +46,25 @@ static char *getHexMessage(char *msg, int msglen)
 		p+=3;
 	}
 	*p = '\0';
+	return hexBuffer;
+}
+
+static char *decodeWebSocketHeader(char *msg, int msglen)
+{
+	static char hexBuffer[4096];
+	int plen=msg[1]&0x7E;
+	if (plen <= 126) {
+		sprintf(hexBuffer, "hdrLen=%d FIN=%d MASK=%d payload_len=%d", msglen, (msg[0]&0x80) ? 1 : 0, (msg[1]&0x80) ? 1 : 0,
+				(plen < 126) ? plen : (((int) msg[2])*256 + (int) msg[3]));
+	}
+	else if (plen == 127)
+	{
+		sprintf(hexBuffer, "hdrLen=%d FIN=%d MASK=%d payload_len=%s", msglen, (msg[0]&0x80) ? 1 : 0, (msg[1]&0x80) ? 1 : 0, "too long");
+	}
+	else
+	{
+		sprintf(hexBuffer, "Malformed websocket header: %s", getHexMessage(msg, (msglen < 16) ? msglen : 16));
+	}
 	return hexBuffer;
 }
 
@@ -127,7 +147,7 @@ int TileDecoder::handleData(unsigned char const * data, int numBytes, int * pFla
 				numBytes--;
 			}
 			if (m_wsHdrLen < hlen) break;
-			CSIO_LOG(eLogLevel_extraVerbose, "%s: WebSocket header: %s", __FUNCTION__, getHexMessage((char *)m_wsHdrBuf, (m_wsHdrLen > 32) ? 32 : m_wsHdrLen));
+			CSIO_LOG(wbs_getLogLevel(), "%s: WebSocket header: %s", __FUNCTION__, decodeWebSocketHeader((char *)m_wsHdrBuf, m_wsHdrLen));
 			m_wsHdrLen = 0; // We have entirely consumed the header; now parse it
 			m_wsRemain = (m_wsHdrBuf[1] & 0x7F);
 			if (m_wsRemain == 0x7E) {
@@ -141,7 +161,7 @@ int TileDecoder::handleData(unsigned char const * data, int numBytes, int * pFla
 				}
 				m_wsRemain = (m_wsHdrBuf[6]<<24) + (m_wsHdrBuf[7]<<16) + (m_wsHdrBuf[8]<<8) + m_wsHdrBuf[9];
 			}
-			CSIO_LOG(eLogLevel_extraVerbose, "%s: msg frame remaining bytes=%d", __FUNCTION__, m_wsRemain);
+			CSIO_LOG(wbs_getLogLevel(), "%s: msg frame remaining bytes=%d", __FUNCTION__, m_wsRemain);
 			if (m_wsHdrBuf[0] == 0x88) { // Handle Close message
 				makeControlMessage(0x8);
 				*pFlags = FLAG_TXDATA | FLAG_CLOSE;
@@ -166,7 +186,7 @@ int TileDecoder::handleData(unsigned char const * data, int numBytes, int * pFla
 		data += n;
 		numBytes -= n;
 		m_wsRemain -= n;
-		CSIO_LOG(eLogLevel_extraVerbose, "%s: used=%d remain=%d", __FUNCTION__, n, m_wsRemain);
+		CSIO_LOG(wbs_getLogLevel(), "%s: used=%d remain=%d", __FUNCTION__, n, m_wsRemain);
 	}
 
 	return data - startPtr;
@@ -208,6 +228,7 @@ int TileDecoder::handleRawData(unsigned char const * data, int numBytes, int * p
         data += n2copy;
         numBytes -= n2copy;
       }
+      CSIO_LOG(wbs_getLogLevel(), "Asssembling Kaptivo message of length %d: have %d bytes", msglen, m_recvLen);
       if (m_recvLen >= msglen) {
         f = handleKaptivoMessage(m_recvBuf, msglen);
         m_recvLen = 0;
@@ -222,7 +243,7 @@ int TileDecoder::handleRawData(unsigned char const * data, int numBytes, int * p
 
 int TileDecoder::handleKaptivoMessage(unsigned char const * ptr, int msglen)
 {
-  CSIO_LOG(eLogLevel_extraVerbose, "Kaptivo message: %s", getHexMessage((char *)ptr, (msglen > 20) ? 20 : msglen));
+  CSIO_LOG(wbs_getLogLevel(), "Kaptivo message (len=%d): %s", msglen, getHexMessage((char *)ptr, (msglen > 20) ? 20 : msglen));
   // Sanity check header
   if (msglen < 4 || ptr[0] != 0x4B || ptr[1] < 0x60 || ptr[1] > 0x7F) {
 	  CSIO_LOG(eLogLevel_error, "%s: Header sanity check failed!", __FUNCTION__);

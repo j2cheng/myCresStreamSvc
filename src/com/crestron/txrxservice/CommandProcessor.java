@@ -2369,6 +2369,23 @@ class ResetAllWindowsCommand extends CrestronCommand {
 	}
 }
 
+class SetWbsLogLevelCommand extends CrestronCommand {
+
+	public SetWbsLogLevelCommand(CresStreamCtrl ctrl, String arg) {
+		super(ctrl, arg);
+	}
+
+	@Override
+	public void execute() {
+		try {
+			ctrl.setWbsLogLevel(Integer.parseInt(msg));
+		} catch (Exception e) {}
+	}
+	public String getFeedbackMsg() {
+		return msg;	//no feedback for this join
+	}
+}
+
 class SetLogLevelCommand extends CrestronCommand {
 
 	public SetLogLevelCommand(CresStreamCtrl ctrl, String arg) {

@@ -1871,6 +1871,14 @@ public class CresStreamCtrl extends Service {
     		updateWindow(sessionId);
     	}
     }
+
+    public void setWbsLogLevel(int logLevel)
+    {
+    	if (wbsStream != null)
+    	{
+    		wbsStream.setLogLevel(logLevel);
+    	}
+    }
     
     public void setLogLevel(int logLevel)
     {
