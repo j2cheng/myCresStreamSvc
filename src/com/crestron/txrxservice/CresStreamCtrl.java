@@ -2954,95 +2954,133 @@ public class CresStreamCtrl extends Service {
     //Ctrls
     public void Start(int sessionId)
     {
-    	stopStartLock[sessionId].lock();
-    	try
-    	{	
-    		Log.i(TAG, "Start " + sessionId + " : Lock");
-    		
-    		// For preview mode we need to set layer mark for HWC
-    		if (userSettings.getMode(sessionId) == DeviceMode.PREVIEW.ordinal())
-        		getSurfaceView(sessionId).setTag("PreviewVideoLayer");
-    		else
-    			getSurfaceView(sessionId).setTag("VideoLayer");
-
-    		if (userSettings.getAirMediaLaunch(sessionId)) {
-    			// If we are starting streaming shutoff air media
-    		    launchAirMedia(false, sessionId, false);
-    		}
-    		
-    		// This needs to be set to true even if we filter out the start
-    		enableRestartMechanism = true; //if user starts stream allow restart mechanism
-    		
-    		// Check if HDMI out is connected before starting stream in or preview, Android gets in bad state otherwise
-    		// Start will be handled by restart streams when HDMI output returns
-    		if ( mIsHdmiOutExternal ||
-    				Boolean.parseBoolean(hdmiOutput.getSyncStatus()) ||
-    				(userSettings.getMode(sessionId) == DeviceMode.STREAM_OUT.ordinal()) )
-    		{
-    			ProductSpecific.doChromakey(true);
-    			
-    			if ((getCurrentStreamState(sessionId) != StreamState.STARTED) && (userSettings.getStreamState(sessionId) != StreamState.STREAMERREADY))
-    			{	   
-    				playStatus="true";
-    				stopStatus="false";
-    				pauseStatus="false";	
-    				restartRequired[sessionId]=true;
-    				if (hm != null)
-    				{
-    					hm.get(userSettings.getMode(sessionId)).executeStart(sessionId);
-    				}
-    				else
-    				{
-    					Log.w(TAG, "Start(): hashmap is null - ignoring start for sessionId="+sessionId);
-    				}
-    				//hm.get(device_mode).executeStart();
-    				// The started state goes back when we actually start
-
-    			}
-    			else if (getCurrentStreamState(sessionId) == StreamState.STARTED)
-    			{
-    				SendStreamState(StreamState.STARTED, sessionId);
-    			}
-    		}
-    		else
-    			Log.i(TAG, "Filtering out start because hdmi output not connected");
-    	}
-    	finally
+    	boolean usingCamera = false;
+    	if (userSettings.getMode(sessionId) == DeviceMode.STREAM_OUT.ordinal() || userSettings.getMode(sessionId) == DeviceMode.PREVIEW.ordinal())
+    		usingCamera= true;
+    	if (usingCamera)
     	{
-    		stopStartLock[sessionId].unlock();
-    		Log.i(TAG, "Start " + sessionId + " : Unlock");
+    		cameraLock.lock();
+    		Log.i(TAG, "Camera : Lock");
+    	}
+    	try
+    	{
+    		stopStartLock[sessionId].lock();
+    		try
+    		{	
+    			Log.i(TAG, "Start " + sessionId + " : Lock");
+
+    			// For preview mode we need to set layer mark for HWC
+    			if (userSettings.getMode(sessionId) == DeviceMode.PREVIEW.ordinal())
+    				getSurfaceView(sessionId).setTag("PreviewVideoLayer");
+    			else
+    				getSurfaceView(sessionId).setTag("VideoLayer");
+
+    			if (userSettings.getAirMediaLaunch(sessionId)) {
+    				// If we are starting streaming shutoff air media
+    				launchAirMedia(false, sessionId, false);
+    			}
+
+    			// This needs to be set to true even if we filter out the start
+    			enableRestartMechanism = true; //if user starts stream allow restart mechanism
+
+    			// Check if HDMI out is connected before starting stream in or preview, Android gets in bad state otherwise
+    			// Start will be handled by restart streams when HDMI output returns
+    			if ( mIsHdmiOutExternal ||
+    					Boolean.parseBoolean(hdmiOutput.getSyncStatus()) ||
+    					(userSettings.getMode(sessionId) == DeviceMode.STREAM_OUT.ordinal()) )
+    			{
+    				ProductSpecific.doChromakey(true);
+
+    				if ((getCurrentStreamState(sessionId) != StreamState.STARTED) && (userSettings.getStreamState(sessionId) != StreamState.STREAMERREADY))
+    				{	   
+    					playStatus="true";
+    					stopStatus="false";
+    					pauseStatus="false";	
+    					restartRequired[sessionId]=true;
+    					if (hm != null)
+    					{
+    						hm.get(userSettings.getMode(sessionId)).executeStart(sessionId);
+    					}
+    					else
+    					{
+    						Log.w(TAG, "Start(): hashmap is null - ignoring start for sessionId="+sessionId);
+    					}
+    					//hm.get(device_mode).executeStart();
+    					// The started state goes back when we actually start
+
+    				}
+    				else if (getCurrentStreamState(sessionId) == StreamState.STARTED)
+    				{
+    					SendStreamState(StreamState.STARTED, sessionId);
+    				}
+    			}
+    			else
+    				Log.i(TAG, "Filtering out start because hdmi output not connected");
+    		}
+    		finally
+    		{
+    			stopStartLock[sessionId].unlock();
+    			Log.i(TAG, "Start " + sessionId + " : Unlock");
+    		}
+    	}
+    	finally 
+    	{
+    		if (usingCamera)
+    		{
+    			cameraLock.unlock();
+    			Log.i(TAG, "Camera : Unlock");
+    		}
     	}
     }
 
     public void Stop(int sessionId, boolean fullStop)
     {
-    	stopStartLock[sessionId].lock();
-    	Log.i(TAG, "Stop " + sessionId + " : Lock");
+    	boolean usingCamera = false;
+    	if (userSettings.getMode(sessionId) == DeviceMode.STREAM_OUT.ordinal() || userSettings.getMode(sessionId) == DeviceMode.PREVIEW.ordinal())
+    		usingCamera= true;
+    	if (usingCamera)
+    	{
+    		cameraLock.lock();
+    		Log.i(TAG, "Camera : Lock");
+    	}
     	try
     	{
-    		//csio will send service full stop when it does not want confidence mode started
-    		if ((userSettings.getStreamState(sessionId) != StreamState.CONFIDENCEMODE) || (fullStop == true))
+    		stopStartLock[sessionId].lock();
+    		Log.i(TAG, "Stop " + sessionId + " : Lock");
+    		try
     		{
-    			playStatus="false";
-    			stopStatus="true";
-    			pauseStatus="false";
-    			restartRequired[sessionId]=false;
-    			hm2.get(userSettings.getMode(sessionId)).executeStop(sessionId, fullStop);
-    			// device state will be set in stop callback
-    		}
-    		else
-    		{
-    			if (getCurrentStreamState(sessionId) == StreamState.CONFIDENCEMODE)
-    				SendStreamState(StreamState.CONFIDENCEMODE, sessionId);
+    			//csio will send service full stop when it does not want confidence mode started
+    			if ((userSettings.getStreamState(sessionId) != StreamState.CONFIDENCEMODE) || (fullStop == true))
+    			{
+    				playStatus="false";
+    				stopStatus="true";
+    				pauseStatus="false";
+    				restartRequired[sessionId]=false;
+    				hm2.get(userSettings.getMode(sessionId)).executeStop(sessionId, fullStop);
+    				// device state will be set in stop callback
+    			}
     			else
-    				SendStreamState(StreamState.STOPPED, sessionId);
+    			{
+    				if (getCurrentStreamState(sessionId) == StreamState.CONFIDENCEMODE)
+    					SendStreamState(StreamState.CONFIDENCEMODE, sessionId);
+    				else
+    					SendStreamState(StreamState.STOPPED, sessionId);
+    			}
+    			ProductSpecific.doChromakey(false);
     		}
-    		ProductSpecific.doChromakey(false);
+    		finally
+    		{
+    			stopStartLock[sessionId].unlock();
+    			Log.i(TAG, "Stop " + sessionId + " : Unlock");
+    		}
     	}
-    	finally
+    	finally 
     	{
-    		stopStartLock[sessionId].unlock();
-    		Log.i(TAG, "Stop " + sessionId + " : Unlock");
+    		if (usingCamera)
+    		{
+    			cameraLock.unlock();
+    			Log.i(TAG, "Camera : Unlock");
+    		}
     	}
     }
 
@@ -3150,45 +3188,35 @@ public class CresStreamCtrl extends Service {
     	if (cam_streaming == null)
     		return;
     	
-    	cameraLock.lock();
-    	Log.i(TAG, "Camera : Lock");
-    	try
-    	{
-    		StringBuilder sb = new StringBuilder(512);
-    		
-    		lastHDMImode = DeviceMode.STREAM_OUT;
+    	StringBuilder sb = new StringBuilder(512);
 
-    		SendStreamState(StreamState.CONNECTING, sessId);
+    	lastHDMImode = DeviceMode.STREAM_OUT;
 
-    		// we are starting to streamout so stop confidence preview (unless resuming from pause)
-    		if (cam_streaming.getConfidencePreviewStatus() == true)
-    			cam_streaming.stopConfidencePreview(sessId);
+    	SendStreamState(StreamState.CONNECTING, sessId);
 
-    		Log.i(TAG, "startStreamOut: calling updateWindow for sessId="+sessId);
-    		updateWindow(sessId);
-    		showPreviewWindow(sessId);
-    		out_url = createStreamOutURL(sessId);
-    		userSettings.setStreamOutUrl(out_url, sessId);
+    	// we are starting to streamout so stop confidence preview (unless resuming from pause)
+    	if (cam_streaming.getConfidencePreviewStatus() == true)
+    		cam_streaming.stopConfidencePreview(sessId);
 
-    		try {
-    			cam_streaming.setSessionIndex(sessId);				
-    			invalidateSurface();
-    			cam_streaming.startRecording();
-    			StreamOutstarted = true;
-    		} catch(Exception e) {
-    			e.printStackTrace();
-    		}
-    		//Toast.makeText(this, "StreamOut Started", Toast.LENGTH_LONG).show();
+    	Log.i(TAG, "startStreamOut: calling updateWindow for sessId="+sessId);
+    	updateWindow(sessId);
+    	showPreviewWindow(sessId);
+    	out_url = createStreamOutURL(sessId);
+    	userSettings.setStreamOutUrl(out_url, sessId);
 
-    		sb.append("STREAMURL=").append(out_url);
-			Log.i(TAG, "Sending STREAMURL=" + out_url);
-    		sockTask.SendDataToAllClients(sb.toString());    
-    	} 
-    	finally
-    	{
-    		cameraLock.unlock();
-    		Log.i(TAG, "Camera : Unlock");
+    	try {
+    		cam_streaming.setSessionIndex(sessId);				
+    		invalidateSurface();
+    		cam_streaming.startRecording();
+    		StreamOutstarted = true;
+    	} catch(Exception e) {
+    		e.printStackTrace();
     	}
+    	//Toast.makeText(this, "StreamOut Started", Toast.LENGTH_LONG).show();
+
+    	sb.append("STREAMURL=").append(out_url);
+    	Log.i(TAG, "Sending STREAMURL=" + out_url);
+    	sockTask.SendDataToAllClients(sb.toString());    
     }
 
     public void stopStreamOut(int sessId, boolean fullStop)
@@ -3196,43 +3224,33 @@ public class CresStreamCtrl extends Service {
     	if (cam_streaming == null)
     		return;
     	
-    	cameraLock.lock();
-    	Log.i(TAG, "Camera : Lock");
-    	try
-    	{
-    		lastHDMImode = DeviceMode.PREVIEW;
-    			
-    		// If in streamout and in By Reciever(0) or Multicast RTSP (2) clear url on stop- Bug 103801
-    		if ( !getAutomaticInitiationMode() && (userSettings.getSessionInitiation(sessId) == 0) || (userSettings.getSessionInitiation(sessId) == 2) )
-    			sockTask.SendDataToAllClients(String.format("STREAMURL%d=", sessId));
+    	lastHDMImode = DeviceMode.PREVIEW;
 
-    		cam_streaming.setSessionIndex(sessId);
-    		if (cam_streaming.getConfidencePreviewStatus() == true)
-    			cam_streaming.stopConfidencePreview(sessId);
-    		else
-    			cam_streaming.stopRecording(false);
-    		StreamOutstarted = false;
-    		
-    		// Do NOT hide window if being used by AirMedia
-        	if ( !((mAirMedia != null) && (mAirMedia.getSurfaceDisplayed() == true)) )
-        		hidePreviewWindow(sessId);
+    	// If in streamout and in By Reciever(0) or Multicast RTSP (2) clear url on stop- Bug 103801
+    	if ( !getAutomaticInitiationMode() && (userSettings.getSessionInitiation(sessId) == 0) || (userSettings.getSessionInitiation(sessId) == 2) )
+    		sockTask.SendDataToAllClients(String.format("STREAMURL%d=", sessId));
 
-    		// Make sure that stop stream out was called by stop not a device mode change
-    		// We do not want to restart confidence preview if mode is changing
-    		// If fullstop is passed down then do not start confidence preview
-    		if ((!fullStop) && (userSettings.getMode(sessId) == DeviceMode.STREAM_OUT.ordinal()))
-    		{
-    			try {
-    				Thread.sleep(1000);
-    			} catch (Exception e) { }
-    			cam_streaming.startConfidencePreview(sessId);
-    			restartRequired[sessId] = true;
-    		}
-    	} 
-    	finally
+    	cam_streaming.setSessionIndex(sessId);
+    	if (cam_streaming.getConfidencePreviewStatus() == true)
+    		cam_streaming.stopConfidencePreview(sessId);
+    	else
+    		cam_streaming.stopRecording(false);
+    	StreamOutstarted = false;
+
+    	// Do NOT hide window if being used by AirMedia
+    	if ( !((mAirMedia != null) && (mAirMedia.getSurfaceDisplayed() == true)) )
+    		hidePreviewWindow(sessId);
+
+    	// Make sure that stop stream out was called by stop not a device mode change
+    	// We do not want to restart confidence preview if mode is changing
+    	// If fullstop is passed down then do not start confidence preview
+    	if ((!fullStop) && (userSettings.getMode(sessId) == DeviceMode.STREAM_OUT.ordinal()))
     	{
-    		cameraLock.unlock();
-    		Log.i(TAG, "Camera : Unlock");
+    		try {
+    			Thread.sleep(1000);
+    		} catch (Exception e) { }
+    		cam_streaming.startConfidencePreview(sessId);
+    		restartRequired[sessId] = true;
     	}
 	}
     
@@ -3596,55 +3614,35 @@ public class CresStreamCtrl extends Service {
     //Start gstreamer Preview
     public void startGstPreview(int sessId)
     {
-    	cameraLock.lock();
-	    Log.i(TAG, "Camera : Lock");
-    	try
+    	if (gstStreamOut != null)
     	{
-    		if (gstStreamOut != null)
-    		{
-    			lastHDMImode = DeviceMode.PREVIEW;
-    			SendStreamState(StreamState.CONNECTING, sessId);
-        		Log.i(TAG, "startGstPreview: calling updateWindow for sessId="+sessId);
-    			updateWindow(sessId);
-    			showPreviewWindow(sessId);
-    			invalidateSurface();
-    			
-				SurfaceHolder sh = getCresSurfaceHolder(sessId);
-				gstStreamOut.setSessionIndex(sessId);
-    			gstStreamOut.startPreview(sh.getSurface(), sessId);
-    		}
-    	}
-    	finally
-    	{
-    		cameraLock.unlock();
-    		Log.i(TAG, "Camera : Unlock");
+    		lastHDMImode = DeviceMode.PREVIEW;
+    		SendStreamState(StreamState.CONNECTING, sessId);
+    		Log.i(TAG, "startGstPreview: calling updateWindow for sessId="+sessId);
+    		updateWindow(sessId);
+    		showPreviewWindow(sessId);
+    		invalidateSurface();
+
+    		SurfaceHolder sh = getCresSurfaceHolder(sessId);
+    		gstStreamOut.setSessionIndex(sessId);
+    		gstStreamOut.startPreview(sh.getSurface(), sessId);
     	}
     }
 
   //Start native Preview
     public void startNativePreview(int sessId)
     {
-    	cameraLock.lock();
-	    Log.i(TAG, "Camera : Lock");
-    	try
+    	if (cam_preview != null)
     	{
-    		if (cam_preview != null)
-    		{
-    			SendStreamState(StreamState.CONNECTING, sessId);
-        		Log.i(TAG, "startNativePreview: calling updateWindow for sessId="+sessId);
-        		updateWindow(sessId);
-    			showPreviewWindow(sessId);
-    			cam_preview.setSessionIndex(sessId);
-    			invalidateSurface();
-    			
-    			cam_preview.startPlayback(false);
-    			//Toast.makeText(this, "Preview Started", Toast.LENGTH_LONG).show();
-    		}
-    	}
-    	finally
-    	{
-    		cameraLock.unlock();
-    		Log.i(TAG, "Camera : Unlock");
+    		SendStreamState(StreamState.CONNECTING, sessId);
+    		Log.i(TAG, "startNativePreview: calling updateWindow for sessId="+sessId);
+    		updateWindow(sessId);
+    		showPreviewWindow(sessId);
+    		cam_preview.setSessionIndex(sessId);
+    		invalidateSurface();
+
+    		cam_preview.startPlayback(false);
+    		//Toast.makeText(this, "Preview Started", Toast.LENGTH_LONG).show();
     	}
     }
 
@@ -3662,64 +3660,46 @@ public class CresStreamCtrl extends Service {
     public void stopGstPreview(int sessId, boolean hide)
     {
 	    Log.i(TAG, "stopGstPreview() sessId = " + sessId + ", hide = " + hide);
-    	cameraLock.lock();
-	    Log.i(TAG, "Camera : Lock");
-    	try {
-    		if (gstStreamOut != null) {
-    			if ( hide ) {
-				    Log.i(TAG, "Hide Preview Window first to enhance the user experience when quickly switching to another UI");
+	    if (gstStreamOut != null) {
+	    	if ( hide ) {
+	    		Log.i(TAG, "Hide Preview Window first to enhance the user experience when quickly switching to another UI");
 
-    				// Do NOT hide window if being used by AirMedia
-    		    	if ( !((mAirMedia != null) && (mAirMedia.getSurfaceDisplayed() == true)) ) {
-				        hidePreviewWindow(sessId);
-    		    	}	
-    			}
-                // so these are contiuously running in background.
-				gstStreamOut.stopPreview(sessId);
-				gstStreamOut.waitForPreviewClosed(sessId,5);
+	    		// Do NOT hide window if being used by AirMedia
+	    		if ( !((mAirMedia != null) && (mAirMedia.getSurfaceDisplayed() == true)) ) {
+	    			hidePreviewWindow(sessId);
+	    		}	
+	    	}
+	    	// so these are contiuously running in background.
+	    	gstStreamOut.stopPreview(sessId);
+	    	gstStreamOut.waitForPreviewClosed(sessId,5);
 
-    			//On STOP, there is a chance to get ducati crash which does not save current state
-    			//causes streaming never stops.
-    			//FIXME:Temp Hack for ducati crash to save current state
-    			userSettings.setStreamState(StreamState.STOPPED, sessId);
-    		}
-    	}
-    	finally {
-    		cameraLock.unlock();
-    		Log.i(TAG, "Camera : Unlock");
-    	}
+	    	//On STOP, there is a chance to get ducati crash which does not save current state
+	    	//causes streaming never stops.
+	    	//FIXME:Temp Hack for ducati crash to save current state
+	    	userSettings.setStreamState(StreamState.STOPPED, sessId);
+	    }
     }
     
     //Stop native Preview
     public void stopNativePreview(int sessId, boolean hide)
     {
-    	cameraLock.lock();
-	    Log.i(TAG, "Camera : Lock");
-    	try
+    	if (cam_preview != null)
     	{
-    		if (cam_preview != null)
+    		cam_preview.setSessionIndex(sessId);
+
+    		if(hide)
     		{
-				cam_preview.setSessionIndex(sessId);
-    			
-    			if(hide)
-    			{
-    				// Do NOT hide window if being used by AirMedia
-    		    	if ( !((mAirMedia != null) && (mAirMedia.getSurfaceDisplayed() == true)) )
-    		    		hidePreviewWindow(sessId);
-    			}
-    			
-    			//On STOP, there is a chance to get ducati crash which does not save current state
-    			//causes streaming never stops.
-    			//FIXME:Temp Hack for ducati crash to save current state
-    			userSettings.setStreamState(StreamState.STOPPED, sessId);
-    			cam_preview.stopPlayback(false);
-    			//Toast.makeText(this, "Preview Stopped", Toast.LENGTH_LONG).show();
+    			// Do NOT hide window if being used by AirMedia
+    			if ( !((mAirMedia != null) && (mAirMedia.getSurfaceDisplayed() == true)) )
+    				hidePreviewWindow(sessId);
     		}
-    	}
-    	finally
-    	{
-    		cameraLock.unlock();
-    		Log.i(TAG, "Camera : Unlock");
+
+    		//On STOP, there is a chance to get ducati crash which does not save current state
+    		//causes streaming never stops.
+    		//FIXME:Temp Hack for ducati crash to save current state
+    		userSettings.setStreamState(StreamState.STOPPED, sessId);
+    		cam_preview.stopPlayback(false);
+    		//Toast.makeText(this, "Preview Stopped", Toast.LENGTH_LONG).show();
     	}
     }
 
