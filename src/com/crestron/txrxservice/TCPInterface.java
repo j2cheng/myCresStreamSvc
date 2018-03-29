@@ -43,6 +43,7 @@ public class TCPInterface extends AsyncTask<Void, Object, Long> {
     public volatile boolean firstRun = true;
     private final StringTokenizer tokenizer = new StringTokenizer();
     private final Object serverLock = new Object();
+    private boolean[] isProcessingMode = new boolean[CresStreamCtrl.NumOfSurfaces];
     
     public ArrayList<CommunicationThread> clientList;
     
@@ -65,6 +66,12 @@ public class TCPInterface extends AsyncTask<Void, Object, Long> {
         parserInstance = new CommandParser (a_crestctrl);
         clientList = new ArrayList<TCPInterface.CommunicationThread>();
         streamCtl = a_crestctrl;
+        
+        for (int i = 0; i < CresStreamCtrl.NumOfSurfaces; ++i)
+        {
+        	isProcessingMode[i] = false;
+        }
+        
         StartJoinThread();
     }
     
@@ -305,8 +312,8 @@ public class TCPInterface extends AsyncTask<Void, Object, Long> {
         private BufferedWriter out; 
         public TCPInterface serverHandler;
         private boolean connectionAlive = false;
-        private long lastRead = 0;
-
+        private long lastRead = 0;        
+        
         public CommunicationThread(Socket clientSocket, TCPInterface server) {
 
             this.clientSocket = clientSocket;
@@ -441,13 +448,19 @@ public class TCPInterface extends AsyncTask<Void, Object, Long> {
     }
     
     private void addJoinToQueue(JoinObject newJoin, int sessionId) {
+    	// Mode change needs to be handled in session 0 as well (plus all joins after until mode completes)
+    	if (newJoin.joinString.toLowerCase().startsWith("mode"))
+    	{
+    		isProcessingMode[sessionId] = true;
+    	}
+    	    	
     	if ( (streamCtl.userSettings.getMode(sessionId) == CresStreamCtrl.DeviceMode.PREVIEW.ordinal()) ||
-    			(streamCtl.userSettings.getMode(sessionId) == CresStreamCtrl.DeviceMode.STREAM_OUT.ordinal()) )
+    			(streamCtl.userSettings.getMode(sessionId) == CresStreamCtrl.DeviceMode.STREAM_OUT.ordinal()) ||
+    			isProcessingMode[sessionId] )	
     	{
     		sessionId = 0;	// Fix bug where camera modes could be handled out of order such that device ended in wrong state
     	}
-    	
-    	
+   	    	
     	if ((sessionId >= 0) && (sessionId < CresStreamCtrl.NumOfSurfaces))
     	{
 	    	synchronized (joinQueue[sessionId])
@@ -498,6 +511,12 @@ public class TCPInterface extends AsyncTask<Void, Object, Long> {
 	        	        		@Override
 	        	        		public void run() {
 	        	        			String tmp_str = parserInstance.processReceivedMessage(receivedMsg); 
+	        	        			
+	        	        			if (receivedMsg.toLowerCase().startsWith("mode"))	// finished processing mode
+	        	        			{		
+	        	        				StringTokenizer.ParseResponse parseResponse = tokenizer.Parse(receivedMsg);
+	        	        				isProcessingMode[parseResponse.sessId] = false;
+	        	        			}
 	        	        			
 	    	        		        try {	        		        	
 	            		        		server.SendDataToAllClients(tmp_str);	        		        	
