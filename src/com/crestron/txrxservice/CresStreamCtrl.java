@@ -4548,13 +4548,22 @@ public class CresStreamCtrl extends Service {
     
     public String getAirMediaConnectionIpAddress(int sessId)
     {
+    	String ipaddr=null;
         if (userSettings.getAirMediaAdaptorSelect() == 0)
         {
-        	return userSettings.getDeviceIp();
+        	ipaddr = userSettings.getDeviceIp();
+        	if (ipaddr.equals("0.0.0.0"))
+        		return "None";
+        	else
+        	    return ipaddr;
         }
         else if (userSettings.getAirMediaAdaptorSelect() == 1)
         {
-        	return userSettings.getAuxiliaryIp();
+        	ipaddr = userSettings.getAuxiliaryIp();
+        	if (ipaddr.equals("0.0.0.0"))
+        		return "None";
+        	else
+        	    return ipaddr;
         }
         else if (userSettings.getAirMediaAdaptorSelect() < 0)
         {
