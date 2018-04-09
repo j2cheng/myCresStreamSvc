@@ -127,7 +127,7 @@ static void wbs_render(Wbs_t *pWbs, unsigned char *frameBuffer, int w, int h)
 
     // Locks the window buffer for drawing.
     if ((errCode=ANativeWindow_lock(native_window, &windowBuffer, NULL)) < 0) {
-        CSIO_LOG(eLogLevel_error, "%s: unable to get lock on window buffer: errCode=%d", __FUNCTION__, errCode);
+        CSIO_LOG(eLogLevel_error, "%s: unable to get lock on window buffer for streamId=%d: errCode=%d", __FUNCTION__, pWbs->streamId, errCode);
         return;
     }
     if (w > windowBuffer.width) w = windowBuffer.width;
@@ -288,7 +288,7 @@ static void do_live_view(Wbs_t *pWbs, int fd, SSL * pSSL, char const * origin = 
 					end = getTimeInMsec();
 					CSIO_LOG(eLogLevel_debug, "%s: got new dimensions (w=%d h=%d) after %ld msec", __FUNCTION__, deco.getWidth(), deco.getHeight(), (end-begin));
 					wbs_set_buffer_size(pWbs, deco.getWidth(), deco.getHeight());
-			    	wbs_SendVideoPlayingStatusMessage(pWbs->streamId, STREAMSTATE_STARTED);
+			    	//wbs_SendVideoPlayingStatusMessage(pWbs->streamId, STREAMSTATE_STARTED);
 				}
 				if (f & TileDecoder::FLAG_TXDATA) {
 					int n2send = deco.numBytesToSend();
@@ -307,6 +307,7 @@ static void do_live_view(Wbs_t *pWbs, int fd, SSL * pSSL, char const * origin = 
 						if (pWbs->frameCount == 0) {
 							end = getTimeInMsec();
 							CSIO_LOG(eLogLevel_debug, "%s: first frame rendered after %ld msec", __FUNCTION__, (end-begin));
+					    	wbs_SendVideoPlayingStatusMessage(pWbs->streamId, STREAMSTATE_STARTED);
 						}
 						wbs_render(pWbs, deco.getBuffer(), deco.getWidth(), deco.getHeight());
 #else
@@ -424,10 +425,13 @@ static int wbs_start_connection(Wbs_t *pWbs)
 		}
 		SSL_set_fd(pSSL, fd);
 		if (SSL_connect(pSSL) < 0) {
-			CSIO_LOG(eLogLevel_error, "%s: error establishing SSL connection");
+			CSIO_LOG(eLogLevel_error, "%s: error establishing SSL connection", __FUNCTION__);
 			ERR_print_errors_cb(errcb, NULL);
 			rv = 1;
 			goto closesocket;
+		}
+		if (pSSL) {
+			CSIO_LOG(eLogLevel_info, "%s: default timeout is %ld seconds", __FUNCTION__, SSL_get_default_timeout(pSSL));
 		}
 	}
 
