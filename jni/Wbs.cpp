@@ -1,3 +1,5 @@
+#line 1 "jni/Wbs.cpp"
+
 /**
  * Copyright (C) 2017 to the present, Crestron Electronics, Inc.
  * All rights reserved.
@@ -211,7 +213,7 @@ static void do_live_view(Wbs_t *pWbs, int fd, SSL * pSSL, char const * origin = 
 	while (ptr0 < ptr) {
 		int n = pSSL ? SSL_write(pSSL, ptr0, ptr-ptr0) : write(fd, ptr0, ptr-ptr0);
 		if (n < 1) {
-			CSIO_LOG(eLogLevel_debug, "%s: Error sending http message %d", errno);
+			CSIO_LOG(eLogLevel_debug, "%s: Error sending http message %d", __FUNCTION__, errno);
 			return;
 		}
 		ptr0 += n;
@@ -223,7 +225,7 @@ static void do_live_view(Wbs_t *pWbs, int fd, SSL * pSSL, char const * origin = 
 		if ((pSSL ? SSL_read(pSSL, ptr, 1) : read(fd, ptr, 1)) > 0)
 			ptr++;
 		else {
-			CSIO_LOG(eLogLevel_debug, "%s: Error reading response message %d", errno);
+			CSIO_LOG(eLogLevel_debug, "%s: Error reading response message %d", __FUNCTION__, errno);
 			return;
 		}
 	}
