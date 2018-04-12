@@ -83,6 +83,7 @@ public class AirMediaSplashtop implements AirMedia
 	private static final int CODEC_ERROR = 1;
 	private static final int MEDIA_SERVER_HANG = 2;
 	private final Object stopSessionObjectLock = new Object();
+	private final Object disconnectSessionObjectLock = new Object();
     private final MyReentrantLock orderedLock	= new MyReentrantLock(true); // fairness=true, makes lock ordered
     public CountDownLatch serviceConnectedLatch=null;
     public CountDownLatch serviceDisconnectedLatch=null;
@@ -91,8 +92,11 @@ public class AirMediaSplashtop implements AirMedia
     public CountDownLatch receiverStartedLatch=null;
     public CountDownLatch startupCompleteLatch=null;
     public CountDownLatch deviceDisconnectedLatch=null;
+    public CountDownLatch sessionDisconnectedLatch=null;
+
     public AirMediaSession sessionRequestingStop=null;
-    
+    public AirMediaSession sessionRequestingDisconnect=null;
+
     private Timer pendingSessionTimer=null;
     private Object pendingSessionLock = new Object();
     long sessionPendingTime;
@@ -117,7 +121,7 @@ public class AirMediaSplashtop implements AirMedia
 	private boolean isReceiverStarted = false;
 	private boolean isAirMediaUp = false;
 	private boolean requestServiceConnection = false;
-
+	
     private Handler handler_;
     private Map<Integer, AirMediaSession> userSessionMap = new ConcurrentHashMap<Integer, AirMediaSession>();
 
@@ -1285,6 +1289,8 @@ public class AirMediaSplashtop implements AirMedia
 		pending_adapter_ip_address_change = true;
 		Common.Logging.i(TAG, "setAdapter(): Stopping all senders");
 		stopAllSenders();
+		Common.Logging.i(TAG, "setAdapter(): Disconnect all senders");
+		disconnectAllSenders();
 		// Launch Stop/Start of receiver in separate thread
 		if (receiver_ == null)
 			startAirMedia();
@@ -1407,16 +1413,48 @@ public class AirMediaSplashtop implements AirMedia
     }
     
     public void disconnectUser(int userId)
-    {
-		Common.Logging.i(TAG, "disconnectUser" + String.valueOf(userId));
+    { 
+		Common.Logging.i(TAG, "disconnectUser: " + String.valueOf(userId));
 		AirMediaSession session = user2session(userId);
 		if (session == null) {
-			Common.Logging.e(TAG, "No session found for userId="+userId);
-		} else {
-			session.disconnect();			
+			Common.Logging.e(TAG, "Trying to stop an unconnected session for user " + String.valueOf(userId));
+			return;
 		}
+		Common.Logging.i(TAG, "disconnectUser: " + String.valueOf(userId) + " Session=" + AirMediaSession.toDebugString(session) + "  connectionState=" + session.connection());
+		// Only allow a single 'session' to enter at a time - need to make sure that we have a unique session
+		// requesting a stop and that the callback verifies it is for that specific session before counting
+		// down the latch
+		synchronized(disconnectSessionObjectLock) {
+			if (session.connection() != AirMediaSessionConnectionState.Disconnected) {
+				// session is connected
+				disconnectSession(session);
+			} else {
+				Common.Logging.w(TAG, "Session: " + AirMediaSession.toDebugString(session) + " is already in connection disconnected state");
+			}
+		}
+		Common.Logging.i(TAG, "disconnectUser: " + String.valueOf(userId) + " - exit");
     }
     
+    private void disconnectSession(AirMediaSession session)
+    {
+		boolean disconnectStatus=true;
+		long begin = System.currentTimeMillis();
+		sessionRequestingDisconnect = session;
+		sessionDisconnectedLatch = new CountDownLatch(1);
+		Common.Logging.i(TAG, "Session " + AirMediaSession.toDebugString(session) + " requesting disconnect ");
+		session.disconnect(); 
+		try { disconnectStatus = sessionDisconnectedLatch.await(10000, TimeUnit.MILLISECONDS); }
+		catch (InterruptedException ex) { ex.printStackTrace(); }
+		if (!disconnectStatus) {
+			Common.Logging.w(TAG, "Unable to disconnect session " + AirMediaSession.toDebugString(session) + "even after 10 seconds");
+		} else {
+			long end = System.currentTimeMillis();
+			Common.Logging.i(TAG, "Session " + AirMediaSession.toDebugString(session) + " was successfully disconnected in "
+					+ (end-begin) + " ms");
+		}
+		sessionRequestingDisconnect=null;
+    }
+        
     public void disconnectAllSenders()
     {
     	Common.Logging.i(TAG, "disconnectAllSenders");
@@ -1497,10 +1535,10 @@ public class AirMediaSplashtop implements AirMedia
 				// session is started
 				stopSession(session);
 			} else {
-				Common.Logging.w(TAG, "Session: " + AirMediaSession.toDebugString(session) + "is already in device disconnected state");
+				Common.Logging.w(TAG, "Session: " + AirMediaSession.toDebugString(session) + " is already in device disconnected state");
 			}
 		}
-		Common.Logging.i(TAG, "stopUser: " + String.valueOf(userId) + "exit");
+		Common.Logging.i(TAG, "stopUser: " + String.valueOf(userId) + " - exit");
     }
     
     private void stopSession(AirMediaSession session)
@@ -1517,7 +1555,7 @@ public class AirMediaSplashtop implements AirMedia
 			Common.Logging.w(TAG, "Unable to stop session " + AirMediaSession.toDebugString(session) + "even after 10 seconds");
 		} else {
 			long end = System.currentTimeMillis();
-			Common.Logging.i(TAG, "Session " + AirMediaSession.toDebugString(session) + "was successfully stoppped in "
+			Common.Logging.i(TAG, "Session " + AirMediaSession.toDebugString(session) + " was successfully stoppped in "
 					+ (end-begin) + " ms");
 		}
 		sessionRequestingStop=null;
@@ -1994,6 +2032,12 @@ public class AirMediaSplashtop implements AirMedia
                 @Override
                 public void onEvent(AirMediaSession session, AirMediaSessionConnectionState from, AirMediaSessionConnectionState to) {
                     Common.Logging.i(TAG, "view.session.event.connection  " + AirMediaSession.toDebugString(session) + "  " + from + "  ==>  " + to);
+                    // TODO Handle device state change
+                    if (session.connection() == AirMediaSessionConnectionState.Disconnected)
+                    {
+                    	if (AirMediaSession.isEqual(session, sessionRequestingDisconnect))
+                    		sessionDisconnectedLatch.countDown();
+                    }
                     // TODO Handle connection state change
                     sendSessionFeedback(session);
                 }
