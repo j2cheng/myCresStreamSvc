@@ -1287,10 +1287,13 @@ public class AirMediaSplashtop implements AirMedia
     		return;
     	adapter_ip_address = address;
 		pending_adapter_ip_address_change = true;
-		Common.Logging.i(TAG, "setAdapter(): Stopping all senders");
-		stopAllSenders();
-		Common.Logging.i(TAG, "setAdapter(): Disconnect all senders");
-		disconnectAllSenders();
+		if (receiver_ != null)
+		{
+			Common.Logging.i(TAG, "setAdapter(): Stopping all senders");
+			stopAllSenders();
+			Common.Logging.i(TAG, "setAdapter(): Disconnect all senders");
+			disconnectAllSenders();
+		}
 		// Launch Stop/Start of receiver in separate thread
 		if (receiver_ == null)
 			startAirMedia();

@@ -4446,7 +4446,7 @@ public class CresStreamCtrl extends Service {
     // Will update airMedia IP information when called
     public void updateAirMediaIpInformation(int sessId)
     {
-    	if (mAirMedia != null && mAirMedia.airMediaIsUp())
+    	if (mAirMedia != null)
 		{
     		Log.i(TAG,"*************** updateAirMediaIpInformation -- addr="+getAirMediaConnectionIpAddress(sessId)+"   *********");
     		mAirMedia.setAdapter(getAirMediaConnectionIpAddress(sessId));
@@ -4475,8 +4475,19 @@ public class CresStreamCtrl extends Service {
     	{
     	case AirMediaDisplayConnectionOption.Ip:
     		String ipAddr = getAirMediaConnectionIpAddress(sessId);
-    		if (ipAddr.equals("None")) return "";
-    		url.append(getAirMediaConnectionIpAddress(sessId));
+    		if (ipAddr.equals("None")) {
+    			if (userSettings.getAirMediaAdaptorSelect() < 0)
+    			{
+    				/* Disabled */
+    				return "";
+    			}
+    			else
+    			{
+    				/* Offline */
+    				return "Device Offline";
+    			}
+    		}
+    		url.append(ipAddr);
     		break;
     	case AirMediaDisplayConnectionOption.Host:
     		setHostName("");
