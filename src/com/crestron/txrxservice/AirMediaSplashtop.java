@@ -380,6 +380,7 @@ public class AirMediaSplashtop implements AirMedia
     {
     	synchronized (startStopReceiverLock) {
     		Common.Logging.i(TAG, "startReceiver() enter (thread="+Integer.toHexString((int)(Thread.currentThread().getId()))+")");
+        	mStreamCtl.setUpdateStreamStateOnFirstFrame(streamIdx, false);
     		boolean successfulStart = true;
     		receiverStartedLatch = new CountDownLatch(1);
     		receiver().start();
@@ -908,6 +909,10 @@ public class AirMediaSplashtop implements AirMedia
 
 		Common.Logging.i(TAG, "attachSurface: calling setInvalidateOnSurfaceTextureUpdate");
 		mStreamCtl.dispSurface.stMGR.setInvalidateOnSurfaceTextureUpdate(true);
+		if (useTextureView(session))
+		{
+    		mStreamCtl.setUpdateStreamStateOnFirstFrame(streamIdx, true);
+		}
 		Common.Logging.i(TAG, "Exit from attachSurface");
     }
     
@@ -1095,9 +1100,10 @@ public class AirMediaSplashtop implements AirMedia
 				setPendingSession(session);
 			}
 		}
-		
-		attachSurface();
 
+    	mStreamCtl.setUpdateStreamStateOnFirstFrame(streamIdx, false);
+		attachSurface();
+    	
  		// Send status of 1 to indicate video is playing
 		querySenderList(false);
     } 

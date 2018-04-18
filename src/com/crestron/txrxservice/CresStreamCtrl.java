@@ -187,6 +187,7 @@ public class CresStreamCtrl extends Service {
     public Object mAirMediaLock = new Object();
     private Object mAirMediaCodeLock = new Object();
     private int mAirMediaNumberOfUsersConnected = -1;	//Bug 141088: Setting to -1 will force code change on reboot if set to random
+    boolean[] updateStreamStateOnFirstFrame = new boolean[NumOfTextures]; // flags to update stream state only on first frame output from MediaCodec - used only in AirMedia currently
     private Object mDisplayChangedLock = new Object();
     private int defaultLoggingLevel = -1;
     private int numberOfVideoTimeouts = 0; //we will use this to track stop/start timeouts
@@ -3878,6 +3879,45 @@ public class CresStreamCtrl extends Service {
     		}
     	}
     }
+    
+    public void setUpdateStreamStateOnFirstFrame(int sessionId, boolean value)
+    {
+    	updateStreamStateOnFirstFrame[sessionId] = value;
+    	Log.i(TAG,"setUpdateStreamStateOnFirstFrame: updateStreamStateOnFirstFrame["+sessionId+"] set to "+updateStreamStateOnFirstFrame[sessionId]);
+    }
+    
+    public void sendAirMediaStoppedState(int sessionId)
+    {
+		// If DMPS send displayed join else use streamstate
+		if (nativeGetProductTypeEnum() == 0x24)
+		{    					
+			sendAirMediaDisplayed(false);
+		}
+		else
+		{
+			// Don't send stopped if this index is being used by some other stream type
+			if (userSettings.getUserRequestedStreamState(sessionId) == StreamState.STOPPED)
+				SendStreamState(StreamState.STOPPED, sessionId);
+			else
+			{
+				userSettings.setStreamState(StreamState.STOPPED, sessionId);
+	        	CresStreamCtrl.saveSettingsUpdateArrived = true; // flag userSettings to save
+			}    					
+		}
+    }
+    
+    public void sendAirMediaStartedState(int sessionId)
+    {
+    	// If DMPS send displayed join else use streamstate
+    	if (nativeGetProductTypeEnum() == 0x24)
+    	{
+    		sendAirMediaDisplayed(true);
+    	}
+    	else
+    	{
+    		SendStreamState(StreamState.STARTED, sessionId);
+    	}
+    }
 
     public void launchAirMedia(boolean val, int sessId, boolean fullscreen) {
     	stopStartLock[sessId].lock();
@@ -3934,15 +3974,8 @@ public class CresStreamCtrl extends Service {
     					{
     						Log.i(TAG, "launching AirMedia");
     						mAirMedia.show(x, y, width, height);
-							// If DMPS send displayed join else use streamstate
-    			    		if (nativeGetProductTypeEnum() == 0x24)
-    			    		{
-    			    			sendAirMediaDisplayed(true);
-    			    		}
-    			    		else
-    			    		{
-    			    			SendStreamState(StreamState.STARTED, sessId);
-    			    		}
+    						if (!updateStreamStateOnFirstFrame[sessId])
+    							sendAirMediaStartedState(sessId);
     					}
     				}
     				else
@@ -3968,22 +4001,7 @@ public class CresStreamCtrl extends Service {
     				Point size = getDisplaySize();
     				setWindowDimensions(0, 0, size.x, size.y, sessId);
     				
-					// If DMPS send displayed join else use streamstate
-    				if (nativeGetProductTypeEnum() == 0x24)
-    				{    					
-    					sendAirMediaDisplayed(false);
-    				}
-    				else
-    				{
-    					// Don't send stopped if this index is being used by some other stream type
-        				if (userSettings.getUserRequestedStreamState(sessId) == StreamState.STOPPED)
-        					SendStreamState(StreamState.STOPPED, sessId);
-        				else
-        				{
-        					userSettings.setStreamState(StreamState.STOPPED, sessId);
-        		        	CresStreamCtrl.saveSettingsUpdateArrived = true; // flag userSettings to save
-        				}    					
-    				}
+					sendAirMediaStoppedState(sessId);
     			}
     		}
     	}

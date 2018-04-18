@@ -96,9 +96,28 @@ public class SurfaceTextureManager implements TextureView.SurfaceTextureListener
 
     public void onSurfaceTextureUpdated(SurfaceTexture surface) {
 	    //Log.i(TAG, "######### surfaceTextureUpdated ##############");
+    	int streamId = 0;
+	    for (streamId=0; streamId < CresStreamCtrl.NumOfTextures; streamId++)
+	    {
+	    	if (streamCtl.getTextureView(streamId).getSurfaceTexture() == surface)
+	    	{
+	    		break;
+	    	}
+	    }
+	    if (streamId == CresStreamCtrl.NumOfTextures)
+	    {
+	    	/* This should not happen - should find a match */
+		    Log.w(TAG, "######### surfaceTextureUpdated event for unknown SurfaceTexture: "+surface+" ##############");
+		    return;
+	    }
+		if (streamCtl.updateStreamStateOnFirstFrame[streamId]) {
+		    Log.i(TAG, "######### First frame based Stream State Started Update for streamId="+streamId+" ##############");
+		    streamCtl.sendAirMediaStartedState(streamId);
+		    streamCtl.setUpdateStreamStateOnFirstFrame(streamId, false);
+		}
 	    if (invalidateOnSurfaceTextureUpdate) {
 	    	Log.i(TAG, "######### Invalidating surface due to SurfaceTextureUpdate ##############");
-	    	streamCtl.invalidateSurface();
+	    	streamCtl.invalidateSurface(); // forces parent layout invalidation - does not need surface as they all have same parent
 	    	invalidateOnSurfaceTextureUpdate = false;
 	    }
     }
