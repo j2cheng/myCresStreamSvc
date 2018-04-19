@@ -230,6 +230,24 @@ static void do_live_view(Wbs_t *pWbs, int fd, SSL * pSSL, char const * origin = 
 		}
 	}
 	*ptr='\0';
+	CSIO_LOG(WbsLogLevel, "%s: http response: %s", __FUNCTION__, str);
+	if (strncmp(str, "HTTP/1.1 403", 12) == 0 || strncmp(str, "HTTP/1.1 504", 12) == 0)
+	{
+		CSIO_LOG(WbsLogLevel, "%s: http response: %s", __FUNCTION__, str);
+		CSIO_LOG(eLogLevel_debug, "%s: websocket open failed %s", __FUNCTION__,
+				(strncmp(str, "HTTP/1.1 403", 12) == 0)?"403 Forbidden":"504 Gateway Time-out");
+		if (strstr(str, "Content-Type: application/json") || strstr(str, "Content-Type: text/html"))
+		{
+			int n = pSSL ? SSL_read(pSSL, str, 65536) : read(fd, str, 65536);
+			if (n > 0 && n < 65536)
+			{
+				str[n]='\0'; // ensure null termination
+				CSIO_LOG(WbsLogLevel, "%s: Content (len=%d): %s", __FUNCTION__, n, str);
+			}
+		}
+		pWbs->backoffInSecs = RESTART_MAX_BACKOFF_SECS; // set backoff to max since websocket failed to open
+		return;
+	}
 
 	// OpenCV uses BGR byte order; but for raw dumping we prefer RGB.
 #ifdef USE_SURFACE
@@ -310,6 +328,7 @@ static void do_live_view(Wbs_t *pWbs, int fd, SSL * pSSL, char const * origin = 
 							end = getTimeInMsec();
 							CSIO_LOG(eLogLevel_debug, "%s: first frame rendered after %ld msec", __FUNCTION__, (end-begin));
 					    	wbs_SendVideoPlayingStatusMessage(pWbs->streamId, STREAMSTATE_STARTED);
+					    	pWbs->logRejectionEventAsError = true;
 						}
 						wbs_render(pWbs, deco.getBuffer(), deco.getWidth(), deco.getHeight());
 #else
@@ -338,6 +357,16 @@ static void do_live_view(Wbs_t *pWbs, int fd, SSL * pSSL, char const * origin = 
 					if (f & TileDecoder::FLAG_CLOSE)
 					{
 						CSIO_LOG(eLogLevel_debug, "%s: got CLOSE event ", __FUNCTION__);
+					}
+					pos = -1;
+					break;
+				}
+				if (f & (TileDecoder::FLAG_REJECTED)) {
+					CSIO_LOG(eLogLevel_info, "%s: Connection rejection event", __FUNCTION__);
+					if (pWbs->logRejectionEventAsError)
+					{
+						CSIO_LOG(eLogLevel_error, "%s: Connection rejected - too many active users", __FUNCTION__);
+						pWbs->logRejectionEventAsError = false; // log once - do not log unless we get a new user start event or success
 					}
 					pos = -1;
 					break;
@@ -433,7 +462,7 @@ static int wbs_start_connection(Wbs_t *pWbs)
 			goto closesocket;
 		}
 		if (pSSL) {
-			CSIO_LOG(eLogLevel_info, "%s: default timeout is %ld seconds", __FUNCTION__, SSL_get_default_timeout(pSSL));
+			CSIO_LOG(WbsLogLevel, "%s: default timeout is %ld seconds", __FUNCTION__, SSL_get_default_timeout(pSSL));
 		}
 	}
 
@@ -475,11 +504,12 @@ static void *wbsThread(void *arg)
 	pWbs->backoffInSecs = RESTART_MAX_BACKOFF_SECS;
 	pWbs->totalFrameCount = 0;
 	pWbs->frameCount = 0;
+	pWbs->logRejectionEventAsError = true;
 	CSIO_LOG(eLogLevel_debug, "%s: requestStop=%s", __FUNCTION__, (pWbs->requestStop)?"true":"false");
 	while (!wbs_start_connection(pWbs)) {
 		if (!pWbs->requestStop)
 		{
-			CSIO_LOG(eLogLevel_error, "Failed to start WBS connection - retry in %d secs\n", pWbs->backoffInSecs);
+			CSIO_LOG(eLogLevel_error, "----- Failed to start WBS connection - retry in %d secs -----\n", pWbs->backoffInSecs);
 			sleep(pWbs->backoffInSecs);
 			pWbs->backoffInSecs *= 2;
 			if (pWbs->backoffInSecs > RESTART_MAX_BACKOFF_SECS)

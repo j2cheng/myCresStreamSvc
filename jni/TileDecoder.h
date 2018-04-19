@@ -41,7 +41,8 @@ class TileDecoder {
     FLAG_FRAME  = 2,  // we have decoded a framebuffer update
     FLAG_TXDATA = 4,  // there are bytes ready to transmit
     FLAG_CLOSE  = 8,  // a WebSocket "close" was received and replied to
-    FLAG_ERROR  = 16  // fatal error; the connection should be closed
+    FLAG_ERROR  = 16,  // fatal error; the connection should be closed
+    FLAG_REJECTED = 32 // Connection rejected; too many connections
   };
 
   // Framebuffer formats. Currently support BGR888, RGB888 and RGBA8888.

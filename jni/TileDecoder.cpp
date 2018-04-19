@@ -286,6 +286,10 @@ int TileDecoder::handleKaptivoMessage(unsigned char const * ptr, int msglen)
     }
     break;
 
+  case 0x63: // Connection Rejected
+    return FLAG_REJECTED;
+    break;
+
   case 0x70: case 0x71: case 0x72: // TileData
     {
       if (m_width > 0 && m_height > 0 && m_fb != 0 && msglen > 6) {

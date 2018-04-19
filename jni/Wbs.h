@@ -62,6 +62,7 @@ typedef struct Wbs_t {
 	bool isStarted;
 	bool isPaused;
 	bool requestStop;
+	bool logRejectionEventAsError;
 } Wbs_t;
 
 #ifdef __cplusplus
