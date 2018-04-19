@@ -157,16 +157,28 @@ m_bExit(false),m_bPushRawFrames(false),m_ahcsrc(NULL),m_camera(NULL)
 CStreamoutManager::~CStreamoutManager()
 {
     if(m_StreamoutEvent)
+    {
         delete m_StreamoutEvent;
+        m_StreamoutEvent = NULL;
+    }
 
     if(m_StreamoutEventQ)
+    {
         delete m_StreamoutEventQ;
+        m_StreamoutEventQ = NULL;
+    }
 
     if(mLock)
+    {
         delete mLock;
+        mLock = NULL;
+    }
 
     if(mTLock)
+    {
     	delete mTLock;
+    	mTLock = NULL;
+    }
 
 }
 void CStreamoutManager::DumpClassPara(int level)

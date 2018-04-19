@@ -53,10 +53,16 @@ CStreamoutEvent::CStreamoutEvent()
 CStreamoutEvent::~CStreamoutEvent()
 {
     if (m_EventMtx != NULL)
+    {
         delete m_EventMtx;
+        m_EventMtx = NULL;
+    }
 
     if (m_EventCondVar != NULL)
+    {
        delete m_EventCondVar;
+       m_EventCondVar = NULL;
+    }
 }
 
 void CStreamoutEvent::signalEvent(int evnt)
@@ -132,10 +138,14 @@ CStreamoutEventRingBuffer::~CStreamoutEventRingBuffer()
             clearQ(&m_ucBufPtr[i]);
 
         delete[] m_ucBufPtr;
+        m_ucBufPtr = NULL;
     }
 
     if (m_EvntQMtx != NULL)
+    {
         delete m_EvntQMtx;
+        m_EvntQMtx = NULL;
+    }
 }
 
 void CStreamoutEventRingBuffer::AddToBuffer( EventQueueStruct evntQueue )
@@ -204,6 +214,7 @@ void CStreamoutEventRingBuffer::del_Q_buf(void* buffPtr)
     {
         char* tmp = (char*)buffPtr;
         delete [] tmp;
+        buffPtr = NULL;
     }
 }
 /************************* end of Queue class ************************/
@@ -225,7 +236,10 @@ LookupTable::~LookupTable()
         {
             next_entry = entry->fNext;
             if (entry)
+            {
                 delete entry;
+                entry = NULL;
+            }
 
             if(--numEntries <= 0)
             {
@@ -286,7 +300,10 @@ bool LookupTable::Add(char * key)
                 //something is very wrong
                 CSIO_LOG(eLogLevel_warning, "Streamout: failed to get to the last item!\n");
                 if(newEntry)
+                {
                     delete newEntry;
+                    newEntry = NULL;
+                }
 
                 break;
             }

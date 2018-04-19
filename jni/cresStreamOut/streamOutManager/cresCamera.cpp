@@ -46,16 +46,28 @@ CStreamCamera::~CStreamCamera()
 	StopCamera(m_parent);
 
     if(m_snapobj)
+    {
     	delete m_snapobj;
+    	m_snapobj = NULL;
+    }
 
     if(m_preview)
+    {
     	delete m_preview;
+    	m_preview = NULL;
+    }
 
     if(mLock)
+    {
         delete mLock;
+        mLock = NULL;
+    }
 
     if(mTLock)
+    {
     	delete mTLock;
+    	mTLock = NULL;
+    }
 }
 
 static gboolean cb_GstMsgHandler(GstBus *bus, GstMessage *msg, void *arg)

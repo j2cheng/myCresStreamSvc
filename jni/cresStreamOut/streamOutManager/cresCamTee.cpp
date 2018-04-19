@@ -12,8 +12,10 @@ m_bExit(false),m_sink(NULL),m_bus(NULL),m_bus_id(-1)
 CamTee::~CamTee()
 {
     if(mTLock)
+    {
     	delete mTLock;
-
+    	mTLock = NULL;
+    }
 }
 
 void cb_teeNeedData (GstElement *appsrc, guint unused_size, gpointer user_data)

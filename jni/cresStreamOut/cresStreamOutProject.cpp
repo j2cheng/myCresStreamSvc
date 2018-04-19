@@ -540,16 +540,28 @@ CStreamoutProject::~CStreamoutProject()
     m_cameraobj->remove(this);
 
     if(m_projEvent)
+    {
         delete m_projEvent;
+        m_projEvent = NULL;
+    }
 
     if(m_projEventQ)
+    {
         delete m_projEventQ;
+        m_projEventQ = NULL;
+    }
 
 	if(m_cameraobj)
+	{
 		delete m_cameraobj;
+		m_cameraobj = NULL;
+	}
 
     if(mLock)
+    {
         delete mLock;
+        mLock = NULL;
+    }
 
     //Note:removeAllStreamoutTasks() should be called before delete this object
 }

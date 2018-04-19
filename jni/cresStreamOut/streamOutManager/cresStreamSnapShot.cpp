@@ -76,16 +76,28 @@ m_bStopInProgress(false), m_snapshot_name_updated(false),m_valve(NULL)
 SnapShot::~SnapShot()
 {
     if(mLock)
+    {
         delete mLock;
+        mLock = NULL;
+    }
 
     if(mULock)
+    {
     	delete mULock;
+    	mULock = NULL;
+    }
 
     if(mCond)
+    {
     	delete mCond;
+    	mCond = NULL;
+    }
 
     if(mCond_mtx)
+    {
     	delete mCond_mtx;
+    	mCond_mtx = NULL;
+    }
 }
 
 void SnapShot::setUpdateRate(int period_in_seconds)

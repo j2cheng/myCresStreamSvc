@@ -36,13 +36,22 @@ m_preview_probe_id(0),m_paused(false),m_bWindowClosed(false)
 Preview::~Preview()
 {
     if(mULock)
+    {
     	delete mULock;
+    	mULock = NULL;
+    }
 
     if(mCond)
+    {
     	delete mCond;
+    	mCond = NULL;
+    }
 
     if(mCond_mtx)
+    {
     	delete mCond_mtx;
+    	mCond_mtx = NULL;
+    }
 }
 
 int Preview::add(void *arg)
