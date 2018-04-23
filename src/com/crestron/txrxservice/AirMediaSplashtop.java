@@ -83,7 +83,9 @@ public class AirMediaSplashtop implements AirMedia
 	private static final int CODEC_ERROR = 1;
 	private static final int MEDIA_SERVER_HANG = 2;
 	private final Object stopSessionObjectLock = new Object();
+	private final Object stopSessionCriticalSectionLock = new Object();
 	private final Object disconnectSessionObjectLock = new Object();
+	private final Object disconnectSessionCriticalSectionLock = new Object();	
     private final MyReentrantLock orderedLock	= new MyReentrantLock(true); // fairness=true, makes lock ordered
     public CountDownLatch serviceConnectedLatch=null;
     public CountDownLatch serviceDisconnectedLatch=null;
@@ -1448,8 +1450,11 @@ public class AirMediaSplashtop implements AirMedia
     {
 		boolean disconnectStatus=true;
 		long begin = System.currentTimeMillis();
-		sessionRequestingDisconnect = session;
-		sessionDisconnectedLatch = new CountDownLatch(1);
+		synchronized(disconnectSessionCriticalSectionLock)
+		{
+			sessionRequestingDisconnect = session;
+			sessionDisconnectedLatch = new CountDownLatch(1);
+		}
 		Common.Logging.i(TAG, "Session " + AirMediaSession.toDebugString(session) + " requesting disconnect ");
 		session.disconnect(); 
 		try { disconnectStatus = sessionDisconnectedLatch.await(10000, TimeUnit.MILLISECONDS); }
@@ -1461,7 +1466,11 @@ public class AirMediaSplashtop implements AirMedia
 			Common.Logging.i(TAG, "Session " + AirMediaSession.toDebugString(session) + " was successfully disconnected in "
 					+ (end-begin) + " ms");
 		}
-		sessionRequestingDisconnect=null;
+		synchronized(disconnectSessionCriticalSectionLock)
+		{
+			sessionRequestingDisconnect=null;
+			sessionDisconnectedLatch=null;
+		}
     }
         
     public void disconnectAllSenders()
@@ -1554,8 +1563,11 @@ public class AirMediaSplashtop implements AirMedia
     {
 		boolean stopStatus=true;
 		long begin = System.currentTimeMillis();
-		sessionRequestingStop = session;
-		deviceDisconnectedLatch = new CountDownLatch(1);
+		synchronized(stopSessionCriticalSectionLock)
+		{
+			sessionRequestingStop = session;
+			deviceDisconnectedLatch = new CountDownLatch(1);
+		}
 		Common.Logging.i(TAG, "Session " + AirMediaSession.toDebugString(session) + " requesting stop ");
 		session.stop(); 
 		try { stopStatus = deviceDisconnectedLatch.await(10000, TimeUnit.MILLISECONDS); }
@@ -1567,7 +1579,11 @@ public class AirMediaSplashtop implements AirMedia
 			Common.Logging.i(TAG, "Session " + AirMediaSession.toDebugString(session) + " was successfully stoppped in "
 					+ (end-begin) + " ms");
 		}
-		sessionRequestingStop=null;
+		synchronized(stopSessionCriticalSectionLock)
+		{
+			sessionRequestingStop=null;
+			deviceDisconnectedLatch=null;
+		}
     }
     
     public void stopAllUser()
@@ -1946,6 +1962,29 @@ public class AirMediaSplashtop implements AirMedia
                     {
                     	  unsetActiveSessionWithFeedback(session);
                     }
+                    // Strictly speaking this should not be needed since we should get deviceDisconnected event before a session removal event
+                    // countdown the latch if for some reason the deviceDisconnected event is not received - seen once in 100 attempts
+                    // with a MAC. (Bug 142802)
+            		synchronized(stopSessionCriticalSectionLock)
+            		{
+            			if (AirMediaSession.isEqual(session, sessionRequestingStop)) {
+            				if (deviceDisconnectedLatch != null && deviceDisconnectedLatch.getCount() > 0) {
+            					Common.Logging.i(TAG, "**** manager.sessions.event.removed  counting down deviceDisconnected latch (normally should not happen) ****");
+            					deviceDisconnectedLatch.countDown();
+            				}
+            			}
+            		}
+                    // Strictly speaking this should not be needed since we should get connectionDisconnected event before a session removal event
+                    // countdown the latch if for some reason the connectionDisconnected event is not received
+            		synchronized(disconnectSessionCriticalSectionLock)
+            		{
+            			if (AirMediaSession.isEqual(session, sessionRequestingDisconnect)) {
+            				if (sessionDisconnectedLatch != null && sessionDisconnectedLatch.getCount() > 0) {
+            					Common.Logging.i(TAG, "**** manager.sessions.event.removed  counting down sessionDisconnected latch (normally should not happen) ****");
+            					sessionDisconnectedLatch.countDown();
+            				}
+            			}
+            		}
                     unregisterSessionEventHandlers(session);
                 }
             };
@@ -2044,8 +2083,15 @@ public class AirMediaSplashtop implements AirMedia
                     // TODO Handle device state change
                     if (session.connection() == AirMediaSessionConnectionState.Disconnected)
                     {
-                    	if (AirMediaSession.isEqual(session, sessionRequestingDisconnect))
-                    		sessionDisconnectedLatch.countDown();
+                		synchronized(disconnectSessionCriticalSectionLock)
+                		{
+                			if (AirMediaSession.isEqual(session, sessionRequestingDisconnect)) {
+                				if (sessionDisconnectedLatch != null && sessionDisconnectedLatch.getCount() > 0) {
+                					Common.Logging.i(TAG, "**** manager.sessions.event.removed  counting down sessionDisconnected latch (normally should not happen) ****");
+                					sessionDisconnectedLatch.countDown();
+                				}
+                			}
+                		}
                     }
                     // TODO Handle connection state change
                     sendSessionFeedback(session);
@@ -2086,8 +2132,14 @@ public class AirMediaSplashtop implements AirMedia
                     // TODO Handle device state change
                     if (session.deviceState() == AirMediaSessionConnectionState.Disconnected)
                     {
-                    	if (AirMediaSession.isEqual(session, sessionRequestingStop))
-                    		deviceDisconnectedLatch.countDown();
+                		synchronized(stopSessionCriticalSectionLock)
+                		{
+                			if (AirMediaSession.isEqual(session, sessionRequestingStop)) {
+                				if (deviceDisconnectedLatch != null && deviceDisconnectedLatch.getCount() > 0) {
+                					deviceDisconnectedLatch.countDown();
+                				}
+                			}
+                		}
                     }
                 }
             };
