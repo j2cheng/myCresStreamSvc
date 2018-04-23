@@ -231,11 +231,15 @@ static void do_live_view(Wbs_t *pWbs, int fd, SSL * pSSL, char const * origin = 
 	}
 	*ptr='\0';
 	CSIO_LOG(WbsLogLevel, "%s: http response: %s", __FUNCTION__, str);
-	if (strncmp(str, "HTTP/1.1 403", 12) == 0 || strncmp(str, "HTTP/1.1 504", 12) == 0)
+	if (strncmp(str, "HTTP/1.1 40", 11) == 0 || strncmp(str, "HTTP/1.1 50", 11) == 0)
 	{
 		CSIO_LOG(WbsLogLevel, "%s: http response: %s", __FUNCTION__, str);
-		CSIO_LOG(eLogLevel_debug, "%s: websocket open failed %s", __FUNCTION__,
-				(strncmp(str, "HTTP/1.1 403", 12) == 0)?"403 Forbidden":"504 Gateway Time-out");
+		char *nextline = strchr(str, '\n');
+		if (nextline) {
+			*nextline = '\0'; // ensure null termination of first line
+			CSIO_LOG(eLogLevel_debug, "%s: websocket open failed: %s", __FUNCTION__, str);
+			*nextline = '\n'; // replace nextline with newline char again
+		}
 		if (strstr(str, "Content-Type: application/json") || strstr(str, "Content-Type: text/html"))
 		{
 			int n = pSSL ? SSL_read(pSSL, str, 65536) : read(fd, str, 65536);
