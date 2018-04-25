@@ -231,7 +231,7 @@ static void do_live_view(Wbs_t *pWbs, int fd, SSL * pSSL, char const * origin = 
 	}
 	*ptr='\0';
 	CSIO_LOG(WbsLogLevel, "%s: http response: %s", __FUNCTION__, str);
-	if (strncmp(str, "HTTP/1.1 40", 11) == 0 || strncmp(str, "HTTP/1.1 50", 11) == 0)
+	if (strncmp(str, "HTTP/1.1 4", 10) == 0 || strncmp(str, "HTTP/1.1 5", 10) == 0)
 	{
 		CSIO_LOG(WbsLogLevel, "%s: http response: %s", __FUNCTION__, str);
 		char *nextline = strchr(str, '\n');
