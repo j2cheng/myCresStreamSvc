@@ -1472,6 +1472,19 @@ public class AirMediaSplashtop implements AirMedia
 			sessionDisconnectedLatch=null;
 		}
     }
+    
+    private void countdownSessionDisconnectLatch(AirMediaSession session)
+    {
+		synchronized(disconnectSessionCriticalSectionLock)
+		{
+			if (AirMediaSession.isEqual(session, sessionRequestingDisconnect)) {
+				if (sessionDisconnectedLatch != null && sessionDisconnectedLatch.getCount() > 0) {
+                    Common.Logging.i(TAG, "countdownSessionDisconnectLatch - counting down session disconnect latch for session="+session);
+					sessionDisconnectedLatch.countDown();
+				}
+			}
+		}
+    }
         
     public void disconnectAllSenders()
     {
@@ -1585,6 +1598,20 @@ public class AirMediaSplashtop implements AirMedia
 			deviceDisconnectedLatch=null;
 		}
     }
+    
+    private void countdownDeviceDisconnectLatch(AirMediaSession session)
+    {
+    	synchronized(stopSessionCriticalSectionLock)
+    	{
+    		if (AirMediaSession.isEqual(session, sessionRequestingStop)) {
+    			if (deviceDisconnectedLatch != null && deviceDisconnectedLatch.getCount() > 0) {
+                    Common.Logging.i(TAG, "countdownDeviceDisconnectLatch - counting down session stop latch for session="+session);
+    				deviceDisconnectedLatch.countDown();
+    			}
+    		}
+    	}
+    }
+    
     
     public void stopAllUser()
     {
@@ -1965,26 +1992,11 @@ public class AirMediaSplashtop implements AirMedia
                     // Strictly speaking this should not be needed since we should get deviceDisconnected event before a session removal event
                     // countdown the latch if for some reason the deviceDisconnected event is not received - seen once in 100 attempts
                     // with a MAC. (Bug 142802)
-            		synchronized(stopSessionCriticalSectionLock)
-            		{
-            			if (AirMediaSession.isEqual(session, sessionRequestingStop)) {
-            				if (deviceDisconnectedLatch != null && deviceDisconnectedLatch.getCount() > 0) {
-            					Common.Logging.i(TAG, "**** manager.sessions.event.removed  counting down deviceDisconnected latch (normally should not happen) ****");
-            					deviceDisconnectedLatch.countDown();
-            				}
-            			}
-            		}
+        			countdownDeviceDisconnectLatch(session);
                     // Strictly speaking this should not be needed since we should get connectionDisconnected event before a session removal event
                     // countdown the latch if for some reason the connectionDisconnected event is not received
-            		synchronized(disconnectSessionCriticalSectionLock)
-            		{
-            			if (AirMediaSession.isEqual(session, sessionRequestingDisconnect)) {
-            				if (sessionDisconnectedLatch != null && sessionDisconnectedLatch.getCount() > 0) {
-            					Common.Logging.i(TAG, "**** manager.sessions.event.removed  counting down sessionDisconnected latch (normally should not happen) ****");
-            					sessionDisconnectedLatch.countDown();
-            				}
-            			}
-            		}
+        			countdownSessionDisconnectLatch(session);
+        			
                     unregisterSessionEventHandlers(session);
                 }
             };
@@ -2080,20 +2092,16 @@ public class AirMediaSplashtop implements AirMedia
                 @Override
                 public void onEvent(AirMediaSession session, AirMediaSessionConnectionState from, AirMediaSessionConnectionState to) {
                     Common.Logging.i(TAG, "view.session.event.connection  " + AirMediaSession.toDebugString(session) + "  " + from + "  ==>  " + to);
-                    // TODO Handle device state change
+                    // Strictly speaking this should not be needed since we should get deviceDisconnected event before a connection disconnected event
+                    // countdown the latch if for some reason the deviceDisconnected event is not received 
+                    if (session.deviceState() == AirMediaSessionConnectionState.Disconnected)
+                    {
+                    	countdownDeviceDisconnectLatch(session);
+                    }
                     if (session.connection() == AirMediaSessionConnectionState.Disconnected)
                     {
-                		synchronized(disconnectSessionCriticalSectionLock)
-                		{
-                			if (AirMediaSession.isEqual(session, sessionRequestingDisconnect)) {
-                				if (sessionDisconnectedLatch != null && sessionDisconnectedLatch.getCount() > 0) {
-                					Common.Logging.i(TAG, "**** manager.sessions.event.removed  counting down sessionDisconnected latch (normally should not happen) ****");
-                					sessionDisconnectedLatch.countDown();
-                				}
-                			}
-                		}
+            			countdownSessionDisconnectLatch(session);
                     }
-                    // TODO Handle connection state change
                     sendSessionFeedback(session);
                 }
             };
@@ -2129,17 +2137,9 @@ public class AirMediaSplashtop implements AirMedia
                 @Override
                 public void onEvent(AirMediaSession session, AirMediaSessionConnectionState from, AirMediaSessionConnectionState to) {
                     Common.Logging.i(TAG, "view.session.event.device  " + AirMediaSession.toDebugString(session) + "  id= " + session.deviceId() + "  " + from + "  ==>  " + to);
-                    // TODO Handle device state change
                     if (session.deviceState() == AirMediaSessionConnectionState.Disconnected)
                     {
-                		synchronized(stopSessionCriticalSectionLock)
-                		{
-                			if (AirMediaSession.isEqual(session, sessionRequestingStop)) {
-                				if (deviceDisconnectedLatch != null && deviceDisconnectedLatch.getCount() > 0) {
-                					deviceDisconnectedLatch.countDown();
-                				}
-                			}
-                		}
+                    	countdownDeviceDisconnectLatch(session);
                     }
                 }
             };
