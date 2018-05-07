@@ -1951,6 +1951,7 @@ public class AirMediaSplashtop implements AirMedia
 					// Force a recovery of the Ducati codec and media server
 					mStreamCtl.RecoverDucati();
 					mStreamCtl.RecoverMediaServer();
+					sleep(5000);
 				}
 				Common.Logging.w(TAG, "Receiver " + to + " with error="+reason+"  Restarting receiver .... ");
 				if (reason == MEDIA_SERVER_HANG || reason == AUDIO_TIMEOUT) {
