@@ -82,6 +82,7 @@ public class AirMediaSplashtop implements AirMedia
 	private static final int MAX_USERS = 32;
 	private static final int CODEC_ERROR = 1;
 	private static final int MEDIA_SERVER_HANG = 2;
+	private static final int AUDIO_TIMEOUT = -32001;
 	private final Object stopSessionObjectLock = new Object();
 	private final Object stopSessionCriticalSectionLock = new Object();
 	private final Object disconnectSessionObjectLock = new Object();
@@ -1952,9 +1953,7 @@ public class AirMediaSplashtop implements AirMedia
 					mStreamCtl.RecoverMediaServer();
 				}
 				Common.Logging.w(TAG, "Receiver " + to + " with error="+reason+"  Restarting receiver .... ");
-				if (reason != CODEC_ERROR || reason != MEDIA_SERVER_HANG)
-					sleep(5000);
-				if (reason == MEDIA_SERVER_HANG) {
+				if (reason == MEDIA_SERVER_HANG || reason == AUDIO_TIMEOUT) {
 					restartAirMedia();
 				} else {
 					RestartReceiverAynchronously();
