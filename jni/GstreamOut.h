@@ -115,6 +115,14 @@ JNIEXPORT void JNICALL Java_com_crestron_txrxservice_GstreamOut_nativeStartPrevi
 
 /*
  * Class:     com_crestron_txrxservice_GstreamOut
+ * Method:    nativePausePreview
+ * Signature: (I)V
+ */
+JNIEXPORT void JNICALL Java_com_crestron_txrxservice_GstreamOut_nativePausePreview
+  (JNIEnv *, jobject, jint);
+
+/*
+ * Class:     com_crestron_txrxservice_GstreamOut
  * Method:    nativeStopPreview
  * Signature: (I)V
  */
@@ -123,10 +131,18 @@ JNIEXPORT void JNICALL Java_com_crestron_txrxservice_GstreamOut_nativeStopPrevie
 
 /*
  * Class:     com_crestron_txrxservice_GstreamOut
- * Method:    nativeWaitPreview
- * Signature: (II)V
+ * Method:    nativeWaitForPreviewAvailable
+ * Signature: (II)I
  */
-JNIEXPORT int JNICALL Java_com_crestron_txrxservice_GstreamOut_nativeWaitPreview
+JNIEXPORT int JNICALL Java_com_crestron_txrxservice_GstreamOut_nativeWaitForPreviewAvailable
+  (JNIEnv *, jobject, jint, jint);
+
+/*
+ * Class:     com_crestron_txrxservice_GstreamOut
+ * Method:    nativeWaitForPreviewAvailable
+ * Signature: (II)I
+ */
+JNIEXPORT int JNICALL Java_com_crestron_txrxservice_GstreamOut_nativeWaitForPreviewClosed
   (JNIEnv *, jobject, jint, jint);
 
 #ifdef __cplusplus
