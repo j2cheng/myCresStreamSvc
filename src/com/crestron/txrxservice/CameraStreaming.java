@@ -85,7 +85,6 @@ public class CameraStreaming {
     		public void run() {
     			String streamIp = "";
     			
-    			ProductSpecific.setRGB888Mode(false);
     			if (is_pause == true)
     			{
     				resumePlayback();
