@@ -19,6 +19,7 @@
 
 #include <stdlib.h>
 #include "cresStreamOutManager.h"
+#include "gst/app/gstappsrc.h"
 
 #define CRES_OVERLOAD_MEDIA_CLASS 1
 #define CRES_UNPREPARE_MEDIA      1
@@ -555,9 +556,7 @@ int CStreamoutManager::saveRawFrame (GstPad *pad, GstPadProbeInfo *buffer, gpoin
 			if( m_bNeedData && m_bPushRawFrames )
 			{
 				GstBuffer *buf;
-				GstMapInfo info;
 				buf = GST_PAD_PROBE_INFO_BUFFER(buffer);
-				gst_buffer_map(buf,&info,GST_MAP_READ);
 
 				guint size;
 				GstFlowReturn ret;
@@ -565,16 +564,18 @@ int CStreamoutManager::saveRawFrame (GstPad *pad, GstPadProbeInfo *buffer, gpoin
 				GstBuffer *DstBuffer;
 				DstBuffer = gst_buffer_copy( buf );	//TODO: See if we can avoid buffer copy
 
-//				CSIO_LOG(eLogLevel_error, "Streamout: saveRawFrame push buffer");
-				g_signal_emit_by_name( m_camera, "push-buffer", DstBuffer, &ret );
-				gst_buffer_unref (DstBuffer);
+                if (currentSettingsDB->csioLogLevel >= eLogLevel_extraVerbose) {
+                	GstMapInfo DstInfo;
+                	gst_buffer_map(DstBuffer, &DstInfo, GST_MAP_WRITE);
+                	CSIO_LOG(eLogLevel_extraVerbose, "Streamout: saveRawFrame() data=%p ref=%d writeable=%d", DstInfo.data, DstBuffer->mini_object.refcount, gst_buffer_is_writable(DstBuffer));
+                	gst_buffer_unmap(DstBuffer, &DstInfo);
+                }
+				gst_app_src_push_buffer((GstAppSrc*)m_camera, DstBuffer);
 
 				if( ret != GST_FLOW_OK )
 				{
 					CSIO_LOG(eLogLevel_error, "Streamout: saveRawFrame buffer push failed");
 				}
-
-				gst_buffer_unmap(buf,&info);
 			}
 		}
 	}

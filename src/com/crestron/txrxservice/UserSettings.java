@@ -349,10 +349,10 @@ public class UserSettings
 		camStreamEnable		= false;
 		camStreamMulticastEnable = false;
 		camStreamResolution = 10;
-		camStreamFrameRate	= 30;
+		camStreamFrameRate	= 15;
 		camStreamPort		= 8554;
 		camStreamBitrate    = 4194304;        //todo: 4Mbps as temp default
-		camStreamIFrameInterval= 15;          //todo: need investigate what unit will be used here
+		camStreamIFrameInterval= 8;          //todo: will be overwritten by the getfunction
 		camStreamUrl		= "";
 		camStreamSnapshotUrl = "";
 		camStreamName		= "camera";
@@ -1357,6 +1357,13 @@ public class UserSettings
 	}
 	
 	public int getCamStreamFrameRate() {
+        // Due to bug 150537 we are reducing maximum frame rate for camera to 15
+        // which seems to be the maximum supported by the AmLogic in X60 series.
+        // Currently this parameter is not user facing but it may be some point in the future
+        // Should be removed once userSettings has been updated to 15 
+		if (camStreamFrameRate > 15) {
+			setCamStreamFrameRate(15);
+		}
 		return camStreamFrameRate;
 	}
 
@@ -1381,6 +1388,13 @@ public class UserSettings
 	}
 	
 	public int getCamStreamIFrameInterval() {
+        // Due to bug 150537 we are reducing maximum frame rate for camera to 15
+        // which seems to be the maximum supported by the AmLogic in X60 series.
+        // Currently this parameter is not user facing but it may be some point in the future
+        // This change is to keep the I frame update rate close to twice a second 
+		if (camStreamIFrameInterval > Math.round(0.5f*camStreamFrameRate)) {
+			setCamStreamIFrameInterval(Math.round(0.5f*camStreamFrameRate));
+		}
 		return camStreamIFrameInterval;
 	}
 

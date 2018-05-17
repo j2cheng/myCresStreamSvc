@@ -11,7 +11,7 @@
 
 const int c_camera_width  = 1280;
 const int c_camera_height = 960;
-const int c_camera_framerate = 30;
+const int c_camera_framerate = 15;
 const int c_cropped_height = 720;
 
 class SnapShot;

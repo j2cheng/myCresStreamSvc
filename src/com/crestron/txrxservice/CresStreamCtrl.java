@@ -205,6 +205,7 @@ public class CresStreamCtrl extends Service {
     public CrestronHwPlatform mHwPlatform;
     public String mProductName;
     public boolean mCameraDisabled = false;
+    public boolean restartMediaServer = false;
     private final int backgroundViewColor = Color.argb(255, 0, 0, 0);
 	public String hostName=null;
 	public String domainName=null;
@@ -693,27 +694,46 @@ public class CresStreamCtrl extends Service {
     			final CountDownLatch latch = new CountDownLatch(1);
     			Thread checkCameraThread = new Thread(new Runnable() {
     				public void run() {
+    					if (mHwPlatform == CrestronHwPlatform.eHardwarePlatform_Amlogic)
+    					{
+    						// sometimes txrxservice starts up too quickly after crash or kill and
+    						// results in camera not closed. (part of bug 150720 - streamout would not restart after crash) 
+    						try { Thread.sleep(500); } catch (InterruptedException e){}
+    					}
     					mCameraDisabled = getCameraDisabled();
     					if (mCameraDisabled == true)
     						Log.w(TAG, "Camera is either disabled or not available, removing access");
     					else
-    						Log.i(TAG, String.format("Camera is enabled, allowing access"));
+    						Log.i(TAG, String.format("Camera is enabled, allowing access restartMediaServer="+restartMediaServer));
     					latch.countDown();
     				}
     			});
     			checkCameraThread.start();
+				Log.i(TAG, String.format("---- Launched checkCameraThread ----"));
 
     			boolean successfulStart = true; //indicates that there was no time out condition
     			try { successfulStart = latch.await(3000, TimeUnit.MILLISECONDS); }
     			catch (InterruptedException ex) { ex.printStackTrace(); }
+				Log.i(TAG, String.format("---- end of wait for checkCameraThread - successfulStart="+successfulStart+" ----"));
 
     			// Library failed to load kill mediaserver and restart txrxservice
-    			if (!successfulStart)
+    			if (!successfulStart || restartMediaServer)
     			{
-    				Log.e(TAG, "Camera failed to initialize, restarting txrxservice and mediaserver");
-
-    				RecoverMediaServer();
-    				RecoverTxrxService();
+    				Log.e(TAG, "Camera failed to initialize successfully, restarting txrxservice and mediaserver");
+    				Thread restartCameraThread = new Thread(new Runnable() {
+        				public void run() {
+                			while (!csioConnected) {
+                				Log.i(TAG, "Waiting for csio connection");
+                				try { Thread.sleep(500); } catch (InterruptedException e){}//Poll every 0.5 seconds
+                			}
+                			
+            				RecoverMediaServer();
+            				RecoverTxrxService();
+            				try { Thread.sleep(3000); } catch (InterruptedException e){}
+        				}
+        			});
+    				restartCameraThread.start();
+    				Log.i(TAG, String.format("---- Launched restart due to camera thread = ----"));
     			}
     		}
     		
@@ -972,16 +992,30 @@ public class CresStreamCtrl extends Service {
     	domainName = MiscUtils.getDomainName(dflt);
     }
     
+    private boolean isCameraDisabledBySecurity()
+    {
+    	String cameraStatus = MiscUtils.readBuildProp("sys.secpolicy.camera.disabled");
+    	Log.i(TAG, "isCameraDisabledBySecurity(): "+cameraStatus);
+    	return (cameraStatus.contains("1")) ? true : false;    	
+    }
+    
     public boolean getCameraDisabled()
     {
     	Camera c = null;
 		boolean cameraDisabled = false;
-		try {
-			c = Camera.open(); // try to get camera
-			c.release();	// relase camera if obtained
-			cameraDisabled = false;
-		}
-		catch (RuntimeException e){
+		
+		if ((Camera.getNumberOfCameras() > 0) && !isCameraDisabledBySecurity()) {
+			try {
+				c = Camera.open(); // try to get camera
+				c.release();	// relase camera if obtained
+				cameraDisabled = false;
+			}
+			catch (RuntimeException e) {
+				Log.i(TAG, "Runtime exception in getCameraDisabled");
+				restartMediaServer = true;
+			}
+		} else {
+			Log.i(TAG, "Camera feature not available according to PackageManager");
 			cameraDisabled = true;
 		}
 		return cameraDisabled;
