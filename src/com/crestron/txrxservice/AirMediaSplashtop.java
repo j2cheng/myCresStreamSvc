@@ -115,11 +115,13 @@ public class AirMediaSplashtop implements AirMedia
 	private AirMediaSession pending_session_=null;
 	private Surface surface_=null;
 	private Rect window_= new Rect();
-	private String adapter_ip_address = null;
+    // next two variables should always be accessed through their getter and setter functions
+    // so that they are locked during access and operations on them are atomic.
+	private String adapter_ip_address = "None"; // must be initialized as it is used for locking/synchronization
+	private String pending_adapter_ip_address = null;
 	private String version = null;
 	private String productName = null; 
 	private int lastReturnedAirMediaStatus = 0;
-	private boolean pending_adapter_ip_address_change = false;
 	private boolean isServiceConnected = false;
 	private boolean isReceiverStarted = false;
 	private boolean isAirMediaUp = false;
@@ -191,8 +193,10 @@ public class AirMediaSplashtop implements AirMedia
     	mStreamCtl.setHostName("");
     	mStreamCtl.setDomainName("");
     	Common.Logging.i(TAG, "HostName="+mStreamCtl.hostName+"   DomainName="+mStreamCtl.domainName);
-    	mStreamCtl.sendAirMediaConnectionAddress(streamIdx);  
-    	adapter_ip_address = mStreamCtl.getAirMediaConnectionIpAddress(0);
+    	mStreamCtl.sendAirMediaConnectionAddress(streamIdx);
+    	Common.Logging.i(TAG, "IP address from CresStreamSvc: "+mStreamCtl.getAirMediaConnectionIpAddress(streamIdx));
+    	set_pending_adapter_ip_address(mStreamCtl.getAirMediaConnectionIpAddress(streamIdx));
+    	set_adapter_ip_address();
     	
     	launchReceiverService(); // will do its job asynchronously
     }
@@ -217,7 +221,7 @@ public class AirMediaSplashtop implements AirMedia
     			try { successfulStart = startupCompleteLatch.await(50000, TimeUnit.MILLISECONDS); }
     			catch (InterruptedException ex) { ex.printStackTrace(); }
     			
-    			if (!adapter_ip_address.equals("None") && !isAirMediaUp)
+    			if (!get_adapter_ip_address().equals("None") && !isAirMediaUp)
     			{
     				Common.Logging.w(TAG, "Error trying to start receiver");
     				successfulStart = false;
@@ -234,7 +238,7 @@ public class AirMediaSplashtop implements AirMedia
     		}
     		else if (!isReceiverStarted)
     		{
-    			if (adapter_ip_address.equals("None"))
+    			if (get_adapter_ip_address().equals("None"))
     			{
     				Common.Logging.i(TAG, "None Adapter selected, not starting receiver");
     				return true;
@@ -306,7 +310,7 @@ public class AirMediaSplashtop implements AirMedia
     { 
 		Common.Logging.i(TAG, "startAirMedia: Device IP="+mStreamCtl.userSettings.getDeviceIp()+"   Aux IP="+mStreamCtl.userSettings.getAuxiliaryIp());
 
-		adapter_ip_address = mStreamCtl.getAirMediaConnectionIpAddress(0);
+		set_adapter_ip_address();
 		version = mStreamCtl.getAirMediaVersion(streamIdx);
 		Common.Logging.i(TAG, "Receiver apk version: " + version);
 		productName = mStreamCtl.mProductName + " " + version;
@@ -368,7 +372,7 @@ public class AirMediaSplashtop implements AirMedia
     		Common.Logging.i(TAG, "stopReceiver() enter (thread="+Integer.toHexString((int)(Thread.currentThread().getId()))+")");
     		boolean successfulStop = true;
     		receiverStoppedLatch = new CountDownLatch(1);
-    		receiver_.stop();
+    		receiver().stop();
     		try { successfulStop = receiverStoppedLatch.await(30000, TimeUnit.MILLISECONDS); }
     		catch (InterruptedException ex) { ex.printStackTrace(); }
     		Common.Logging.i(TAG, "stopReceiver() exit (thread="+Integer.toHexString((int)(Thread.currentThread().getId()))+")");
@@ -393,20 +397,6 @@ public class AirMediaSplashtop implements AirMedia
     		return successfulStart;
     	}
     }
-
-	private void startReceiverWithPossibleIpAddressChange()
-	{
-		synchronized (startStopReceiverLock) {
-			// If there is an IP address change apply it first and 
-			if (pending_adapter_ip_address_change && !adapter_ip_address.equals("None")) {
-				Common.Logging.i(TAG, "startReceiverWithPossiblyIpAddressChange(): Setting new ip address for receiver: " + adapter_ip_address);
-				if (receiver() != null)
-					receiver_.adapterAddress(adapter_ip_address);
-				startReceiver();
-			}
-			pending_adapter_ip_address_change = false;
-		}		
-	}
 	
     private void RestartReceiverAynchronously() {
     	new Thread(new Runnable() {
@@ -429,26 +419,63 @@ public class AirMediaSplashtop implements AirMedia
     	}).start();
     }
     
+    private String get_pending_adapter_ip_address()
+    {
+    	synchronized(adapter_ip_address) {
+    		return pending_adapter_ip_address;
+    	}
+    }
+
+    private void set_pending_adapter_ip_address(String addr)
+    {
+    	synchronized(adapter_ip_address) {
+    		pending_adapter_ip_address = addr;
+    		Log.i(TAG, "Pending adapter IP address set to "+pending_adapter_ip_address+
+    				", Current adapter IP address is "+adapter_ip_address);
+    	}
+    }
+    
+    private String get_adapter_ip_address()
+    {
+    	synchronized(adapter_ip_address) {
+    		return adapter_ip_address;
+    	}
+    }
+    
+    private String set_adapter_ip_address()
+    {
+    	synchronized(adapter_ip_address) {
+    		if (pending_adapter_ip_address == null)
+    		{
+    			pending_adapter_ip_address = mStreamCtl.getAirMediaConnectionIpAddress(streamIdx);
+        		Log.i(TAG, "set_adapter_ip_ddress(): Pending adapter IP address was null, now set to "+pending_adapter_ip_address);
+    		}
+    		adapter_ip_address = pending_adapter_ip_address;
+    		pending_adapter_ip_address = null;
+    		Log.i(TAG, "set_adapter_ip_address(): Current adapter IP address set to "+adapter_ip_address);
+    		return adapter_ip_address;
+    	}
+    }
+    
     private void RestartReceiverForAdapterChange() {
     	new Thread(new Runnable() {
     		@Override
     		public void run() {
     			orderedLock.lock("RestartReceiverForAdapterChange");
     			try {
-    				if (pending_adapter_ip_address_change) {
+    				if (get_pending_adapter_ip_address() != null) {
     					Common.Logging.i(TAG, "RestartReceiverForAdapterChange(): Entered");
     					if (receiver() != null && receiver_.state() != AirMediaReceiverState.Stopped)
     					{
     						Common.Logging.i(TAG, "RestartReceiverForAdapterChange(): Stopping receiver");
     						stopReceiver();			
     					}
-    					// If there is an IP address change apply it first and 
-    					if (!adapter_ip_address.equals("None")) {
-    						Common.Logging.i(TAG, "startReceiverWithPossiblyIpAddressChange(): Setting new ip address for receiver: " + adapter_ip_address);
-    						receiver_.adapterAddress(adapter_ip_address);
+    					String ipaddr = set_adapter_ip_address();
+    					if (!ipaddr.equals("None")) {
+    						Common.Logging.i(TAG, "RestartReceiverForAdapterChange(): Setting new ip address for receiver: " + ipaddr);
+    						receiver().adapterAddress(ipaddr);
     						startReceiver();
     					}
-    					pending_adapter_ip_address_change = false;
     				}
     			} finally {
     				orderedLock.unlock("RestartReceiverForAdapterChange");
@@ -472,7 +499,7 @@ public class AirMediaSplashtop implements AirMedia
 
                 receiver().serverName(serverName);
                 receiver().product(productName);
-                receiver().adapterAddress(adapter_ip_address);
+                receiver().adapterAddress(get_adapter_ip_address());
                 receiver().maxResolution(AirMediaReceiverResolutionMode.Max1080P);
                 Point dSize = mStreamCtl.getDisplaySize();
                 receiver().displayResolution(new AirMediaSize(dSize.x, dSize.y));
@@ -1292,10 +1319,11 @@ public class AirMediaSplashtop implements AirMedia
     
     public void setAdapter(String address)
     {
-    	if (adapter_ip_address.equals(address))
+    	if (get_adapter_ip_address().equals(address) && (get_pending_adapter_ip_address() == null)) {
+    		Common.Logging.i(TAG, "setAdapter(): Exiting without any change since adapter_ip_address is already " + get_adapter_ip_address());
     		return;
-    	adapter_ip_address = address;
-		pending_adapter_ip_address_change = true;
+    	}
+    	set_pending_adapter_ip_address(address);
 		if (receiver_ != null)
 		{
 			Common.Logging.i(TAG, "setAdapter(): Stopping all senders");
@@ -1308,7 +1336,7 @@ public class AirMediaSplashtop implements AirMedia
 			startAirMedia();
 		else
 			RestartReceiverForAdapterChange();
-		Common.Logging.i(TAG, "setAdapter(): Exiting having issued restart of receiver with " + adapter_ip_address);
+		Common.Logging.i(TAG, "setAdapter(): Exiting having issued restart of receiver with " + address);
     }
     
     public void setProjectionLock(boolean enable)
@@ -1832,7 +1860,7 @@ public class AirMediaSplashtop implements AirMedia
 							if (service_ == null) return;            	
 							serviceConnectedLatch.countDown();
 							
-							if (adapter_ip_address.equals("None"))
+							if (get_adapter_ip_address().equals("None"))
 			    			{
 			    				Common.Logging.i(TAG, "Service Connected but adapter set to none, not starting receiver");
 			    				startupCompleteLatch.countDown();
