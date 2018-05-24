@@ -3148,6 +3148,11 @@ void gst_native_rtsp_server_stop (JNIEnv* env, jobject thiz)
 
 JNIEXPORT void JNICALL Java_com_crestron_txrxservice_GstreamOut_nativeSetRtspPort(JNIEnv *env, jobject thiz, jint port, jint sessionId)
 {
+	if (!CresStreamOutDataDB)
+	{
+		CSIO_LOG(eLogLevel_info, "%s: cannot set value, CresStreamOutDataDB is null", __FUNCTION__);
+		return;
+	}
     CSIO_LOG(eLogLevel_debug, "rtsp_server: Using RtspPort: '%d'", port);
     char* desBuf = CresStreamOutDataDB->streamOut[0].rtsp_port;
     sprintf(desBuf, "%d", port);
@@ -3157,6 +3162,11 @@ JNIEXPORT void JNICALL Java_com_crestron_txrxservice_GstreamOut_nativeSetRtspPor
 }
 JNIEXPORT void JNICALL Java_com_crestron_txrxservice_GstreamOut_nativeSet_1Res_1x(JNIEnv *env, jobject thiz, jint Res_x, jint sessionId)
 {
+	if (!CresStreamOutDataDB)
+	{
+		CSIO_LOG(eLogLevel_info, "%s: cannot set value, CresStreamOutDataDB is null", __FUNCTION__);
+	  	return;
+	}
     CSIO_LOG(eLogLevel_debug, "rtsp_server: Using Res_x: '%d'", Res_x);
     char* desBuf = CresStreamOutDataDB->streamOut[0].res_x;
     sprintf(desBuf, "%d", Res_x);
@@ -3166,6 +3176,11 @@ JNIEXPORT void JNICALL Java_com_crestron_txrxservice_GstreamOut_nativeSet_1Res_1
 }
 JNIEXPORT void JNICALL Java_com_crestron_txrxservice_GstreamOut_nativeSet_1Res_1y(JNIEnv *env, jobject thiz, jint Res_y, jint sessionId)
 {
+	if (!CresStreamOutDataDB)
+	{
+		CSIO_LOG(eLogLevel_info, "%s: cannot set value, CresStreamOutDataDB is null", __FUNCTION__);
+		return;
+	}
     CSIO_LOG(eLogLevel_debug, "rtsp_server: Using Res_y: '%d'", Res_y);
     char* desBuf = CresStreamOutDataDB->streamOut[0].res_y;
     sprintf(desBuf, "%d", Res_y);
@@ -3175,6 +3190,11 @@ JNIEXPORT void JNICALL Java_com_crestron_txrxservice_GstreamOut_nativeSet_1Res_1
 }
 JNIEXPORT void JNICALL Java_com_crestron_txrxservice_GstreamOut_nativeSet_1FrameRate(JNIEnv *env, jobject thiz, jint FrameRate, jint sessionId)
 {
+	if (!CresStreamOutDataDB)
+	{
+		CSIO_LOG(eLogLevel_info, "%s: cannot set value, CresStreamOutDataDB is null", __FUNCTION__);
+		return;
+	}
     CSIO_LOG(eLogLevel_debug, "rtsp_server: Using FrameRate: '%d'", FrameRate);
     char* desBuf = CresStreamOutDataDB->streamOut[0].frame_rate;
     sprintf(desBuf, "%d", FrameRate);
@@ -3184,6 +3204,11 @@ JNIEXPORT void JNICALL Java_com_crestron_txrxservice_GstreamOut_nativeSet_1Frame
 }
 JNIEXPORT void JNICALL Java_com_crestron_txrxservice_GstreamOut_nativeSet_1Bitrate(JNIEnv *env, jobject thiz, jint Bitrate, jint sessionId)
 {
+	if (!CresStreamOutDataDB)
+	{
+		CSIO_LOG(eLogLevel_info, "%s: cannot set value, CresStreamOutDataDB is null", __FUNCTION__);
+		return;
+	}
     CSIO_LOG(eLogLevel_debug, "rtsp_server: Using Bitrate: '%d'", Bitrate);
     char* desBuf = CresStreamOutDataDB->streamOut[sessionId].bitrate;
     sprintf(desBuf, "%d", Bitrate);
@@ -3193,6 +3218,11 @@ JNIEXPORT void JNICALL Java_com_crestron_txrxservice_GstreamOut_nativeSet_1Bitra
 }
 JNIEXPORT void JNICALL Java_com_crestron_txrxservice_GstreamOut_nativeSet_1IFrameInterval(JNIEnv *env, jobject thiz, jint IFrameInterval, jint sessionId)
 {
+	if (!CresStreamOutDataDB)
+	{
+		CSIO_LOG(eLogLevel_info, "%s: cannot set value, CresStreamOutDataDB is null", __FUNCTION__);
+		return;
+	}
     CSIO_LOG(eLogLevel_debug, "rtsp_server: Using iFrameInterval: '%d'", IFrameInterval);
     char* desBuf = CresStreamOutDataDB->streamOut[sessionId].iframe_interval;
     sprintf(desBuf, "%d", IFrameInterval);
@@ -3202,6 +3232,11 @@ JNIEXPORT void JNICALL Java_com_crestron_txrxservice_GstreamOut_nativeSet_1IFram
 }
 JNIEXPORT void JNICALL Java_com_crestron_txrxservice_GstreamOut_nativeSet_1MulticastEnable(JNIEnv *env, jobject thiz, jboolean enable, jint sessionId)
 {
+	if (!CresStreamOutDataDB)
+	{
+		CSIO_LOG(eLogLevel_info, "%s: cannot set value, CresStreamOutDataDB is null", __FUNCTION__);
+		return;
+	}
     CSIO_LOG(eLogLevel_debug, "rtsp_server: Using multicast enable: '%d'", enable);
     CresStreamOutDataDB->streamOut[sessionId].multicast_enable = enable;
 
@@ -3211,6 +3246,11 @@ JNIEXPORT void JNICALL Java_com_crestron_txrxservice_GstreamOut_nativeSet_1Multi
 }
 JNIEXPORT void JNICALL Java_com_crestron_txrxservice_GstreamOut_nativeSet_1MulticastAddress(JNIEnv *env, jobject thiz, jstring address_jstring, jint sessionId)
 {
+	if (!CresStreamOutDataDB)
+	{
+		CSIO_LOG(eLogLevel_info, "%s: cannot set value, CresStreamOutDataDB is null", __FUNCTION__);
+		return;
+	}
 	const char * address_cstring = env->GetStringUTFChars( address_jstring , NULL ) ;
 	if (address_cstring == NULL) return;
 
@@ -3225,6 +3265,11 @@ JNIEXPORT void JNICALL Java_com_crestron_txrxservice_GstreamOut_nativeSet_1Multi
 
 JNIEXPORT void JNICALL Java_com_crestron_txrxservice_GstreamOut_nativeSet_1StreamName(JNIEnv *env, jobject thiz, jstring name_jstring, jint sessionId)
 {
+	if (!CresStreamOutDataDB)
+	{
+		CSIO_LOG(eLogLevel_info, "%s: cannot set value, CresStreamOutDataDB is null", __FUNCTION__);
+		return;
+	}
 	const char * name_cstring = env->GetStringUTFChars( name_jstring , NULL ) ;
 	if (name_cstring == NULL) return;
 
@@ -3239,6 +3284,11 @@ JNIEXPORT void JNICALL Java_com_crestron_txrxservice_GstreamOut_nativeSet_1Strea
 
 JNIEXPORT void JNICALL Java_com_crestron_txrxservice_GstreamOut_nativeSet_1SnapshotName(JNIEnv *env, jobject thiz, jstring name_jstring, jint sessionId)
 {
+	if (!CresStreamOutDataDB)
+	{
+		CSIO_LOG(eLogLevel_info, "%s: cannot set value, CresStreamOutDataDB is null", __FUNCTION__);
+		return;
+	}
 	const char * name_cstring = env->GetStringUTFChars( name_jstring , NULL ) ;
 	if (name_cstring == NULL) return;
 
