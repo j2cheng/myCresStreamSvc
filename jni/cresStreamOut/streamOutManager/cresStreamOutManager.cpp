@@ -24,6 +24,7 @@
 #define CRES_OVERLOAD_MEDIA_CLASS 1
 #define CRES_UNPREPARE_MEDIA      1
 #define MAX_RTSP_SESSIONS         5
+#define	UNLIMITED_RTSP_SESSIONS   0
 
 ///////////////////////////////////////////////////////////////////////////////
 // Allow file to override canned pipeline, for debugging...
@@ -323,7 +324,12 @@ void* CStreamoutManager::ThreadEntry()
         CSIO_LOG(eLogLevel_error, "Streamout: Failed to get the session pool");
         goto exitThread;
     }
-    gst_rtsp_session_pool_set_max_sessions(pool, MAX_RTSP_SESSIONS);
+
+    if (m_multicast_enable)
+    	gst_rtsp_session_pool_set_max_sessions(pool, UNLIMITED_RTSP_SESSIONS);	// Allow unlimited connections in multicast mode
+    else
+        gst_rtsp_session_pool_set_max_sessions(pool, MAX_RTSP_SESSIONS);
+
     CSIO_LOG(eLogLevel_debug, "Streamout: max_sessions set to %d", gst_rtsp_session_pool_get_max_sessions(pool));
 
     //setup listening port
