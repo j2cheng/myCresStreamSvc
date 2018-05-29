@@ -1748,6 +1748,19 @@ class AirMediaWindowLaunchCommand extends CrestronCommand {
 	}
 }
 
+class AirMediaEnableCommand extends CrestronCommand {
+	public AirMediaEnableCommand(CresStreamCtrl ctrl, String arg, int sessId) {
+		super(ctrl, arg, sessId);
+	}
+	public void execute() {
+		boolean val = Boolean.valueOf(msg);
+		ctrl.airMediaEnable(val);
+	}
+    public String getFeedbackMsg() {
+    	return msg;	//no feedback for this join
+    }
+}
+
 class AirMediaLoginCodeCommand extends CrestronCommand {
 	public AirMediaLoginCodeCommand(CresStreamCtrl ctrl, String arg, int sessId) {
 		super(ctrl, arg, sessId);

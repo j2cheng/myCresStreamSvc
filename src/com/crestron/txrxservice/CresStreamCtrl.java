@@ -4478,12 +4478,26 @@ public class CresStreamCtrl extends Service {
     	}
     }
 
+    public void airMediaEnable(boolean enable)
+    {
+    	userSettings.setAirMediaEnable(enable);
+    	Log.i(TAG,"AirMedia Enable = "+userSettings.getAirMediaEnable());
+		if (mAirMedia != null)
+		{
+    		Log.i(TAG,"*************** airMediaEnable "+(enable?"enable":"disable")+"   *********");
+            // function getAirMediaConnectionIpAddress returns "None" when airMediaEnable is false
+    		mAirMedia.setAdapter(getAirMediaConnectionIpAddress(0));
+		}
+		
+		sendAirMediaConnectionAddress(0);
+    }
+    
     public void setAirMediaAdaptorSelect(int select, int sessId)
     {
     	if (select != userSettings.getAirMediaAdaptorSelect())
     	{
     		userSettings.setAirMediaAdaptorSelect(select);
-    		if (mAirMedia != null && mAirMedia.airMediaIsUp())
+    		if (mAirMedia != null)
     		{
         		Log.i(TAG,"*************** setAirMediaAdaptorSelect -- addr="+getAirMediaConnectionIpAddress(sessId)+"   *********");
         		mAirMedia.setAdapter(getAirMediaConnectionIpAddress(sessId));
@@ -4521,6 +4535,9 @@ public class CresStreamCtrl extends Service {
 //    		Log.i(TAG, "getAirMediaConnectionAddress() returning empty string because DisplayConnectionOptionEnable is false");
 //    		return "";
 //    	}
+    	if (!userSettings.getAirMediaEnable()) {
+    		return "";
+    	}
     	StringBuilder url = new StringBuilder(512);
         url.append("http://");
     	switch (userSettings.getAirMediaDisplayConnectionOption())
@@ -4612,6 +4629,10 @@ public class CresStreamCtrl extends Service {
     public String getAirMediaConnectionIpAddress(int sessId)
     {
     	String ipaddr=null;
+    	if (!userSettings.getAirMediaEnable())
+    	{
+    		return "None";
+    	}
         if (userSettings.getAirMediaAdaptorSelect() == 0)
         {
         	ipaddr = userSettings.getDeviceIp();

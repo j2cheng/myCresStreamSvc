@@ -132,6 +132,7 @@ public class CommandParser {
         // AirMedia Top slot
         AIRMEDIA_LAUNCH,
         AIRMEDIA_WINDOW_LAUNCH,
+        AIRMEDIA_ENABLE,
         AIRMEDIA_LOGIN_CODE,
         AIRMEDIA_LOGIN_MODE,
         AIRMEDIA_WINDOW_POSITION,
@@ -619,6 +620,9 @@ public class CommandParser {
             	break;
             case AIRMEDIA_WINDOW_LAUNCH:
             	cmd = new AirMediaWindowLaunchCommand(ctrl, arg, idx);
+            	break;
+            case AIRMEDIA_ENABLE:
+            	cmd = new AirMediaEnableCommand(ctrl, arg, idx);
             	break;
             case AIRMEDIA_LOGIN_CODE:
             	cmd = new AirMediaLoginCodeCommand(ctrl, arg, idx);

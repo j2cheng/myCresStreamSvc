@@ -210,6 +210,7 @@ public class UserSettings
 	
 	// AirMedia
 	private boolean[] airMediaLaunch;
+	private boolean airMediaEnable;
 	private int airMediaLoginCode;
 	private int airMediaLoginMode;
 	private boolean airMediaModerator;
@@ -320,6 +321,7 @@ public class UserSettings
 		rtspSessionName		= "Crestron Streaming";
 		multicastTTL		= 64;
 		airMediaLaunch		= initBoolArray(false);
+		airMediaEnable      = true;
 		airMediaLoginMode	= CresStreamCtrl.AirMediaLoginMode.Fixed.ordinal();
 		airMediaLoginCode	= 1234; //Get default value
 		airMediaProjectionLock = false;
@@ -1104,6 +1106,14 @@ public class UserSettings
 	
 	public void setAirMediaLaunch(boolean enable, int sessId) {
 		this.airMediaLaunch[sessId] = enable;
+	}
+	
+	public boolean getAirMediaEnable() {
+		return airMediaEnable;
+	}
+	
+	public void setAirMediaEnable(boolean enable) {
+		this.airMediaEnable = enable;
 	}
 	
 	public int getAirMediaLoginCode() {
