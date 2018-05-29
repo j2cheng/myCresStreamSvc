@@ -4527,6 +4527,20 @@ public class CresStreamCtrl extends Service {
     	sockTask.SendDataToAllClients(String.format("AIRMEDIA_CONNECTION_ADDRESS=%s", getAirMediaConnectionAddress(sessId)));
     }
     
+    private String getAirMediaConnectionAddressWhenNone()
+    {
+    	if (userSettings.getAirMediaAdaptorSelect() < 0)
+    	{
+    		/* Disabled */
+    		return "";
+    	}
+    	else
+    	{
+    		/* Offline */
+    		return "Device Offline";
+    	}
+    }
+    
     public String getAirMediaConnectionAddress(int sessId)
     {
     	// When connection option is disabled feedback the same connection URL and rely on AVF/Program 0 to blank out the URL
@@ -4540,30 +4554,24 @@ public class CresStreamCtrl extends Service {
     	}
     	StringBuilder url = new StringBuilder(512);
         url.append("http://");
+		String ipAddr = getAirMediaConnectionIpAddress(sessId);    		
     	switch (userSettings.getAirMediaDisplayConnectionOption())
     	{
     	case AirMediaDisplayConnectionOption.Ip:
-    		String ipAddr = getAirMediaConnectionIpAddress(sessId);
-    		if (ipAddr.equals("None")) {
-    			if (userSettings.getAirMediaAdaptorSelect() < 0)
-    			{
-    				/* Disabled */
-    				return "";
-    			}
-    			else
-    			{
-    				/* Offline */
-    				return "Device Offline";
-    			}
-    		}
+    		if (ipAddr.equals("None")) 
+    			return getAirMediaConnectionAddressWhenNone();
     		url.append(ipAddr);
     		break;
     	case AirMediaDisplayConnectionOption.Host:
+    		if (ipAddr.equals("None")) 
+    			return getAirMediaConnectionAddressWhenNone();
     		setHostName("");
     		if (hostName == null) return "";
     		url.append(hostName);
     		break;
     	case AirMediaDisplayConnectionOption.HostDomain:
+    		if (ipAddr.equals("None")) 
+    			return getAirMediaConnectionAddressWhenNone();
     		setHostName("");
     		setDomainName("");
     		if (hostName == null) return "";
