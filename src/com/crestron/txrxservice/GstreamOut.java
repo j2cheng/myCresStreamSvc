@@ -232,7 +232,7 @@ public class GstreamOut {
         
         streamCtl.userSettings.setCamStreamUrl(camUrl);
     
-        streamCtl.sockTask.SendDataToAllClients(String.format("CAMERA_STREAMING_STREAM_URL=%s", camUrl));
+        streamCtl.sockTask.SendDataToAllClients(MiscUtils.stringFormat("CAMERA_STREAMING_STREAM_URL=%s", camUrl));
     }
     
     public void updateCamSnapshotUrl()
@@ -241,7 +241,7 @@ public class GstreamOut {
         
         streamCtl.userSettings.setCamStreamSnapshotUrl(snapshotUrl);
     
-        streamCtl.sockTask.SendDataToAllClients(String.format("CAMERA_STREAMING_SNAPSHOT_URL=%s", snapshotUrl));
+        streamCtl.sockTask.SendDataToAllClients(MiscUtils.stringFormat("CAMERA_STREAMING_SNAPSHOT_URL=%s", snapshotUrl));
     }
  
     protected void startPreview(Object surface, int sessionId) {

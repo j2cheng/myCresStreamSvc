@@ -201,7 +201,7 @@ public class GstreamIn implements StreamInStrategy, SurfaceHolder.Callback {
     	// Send stream url again on start fb
     	if (streamStateEnum == CresStreamCtrl.StreamState.STARTED.getValue())
     	{
-    		streamCtl.sockTask.SendDataToAllClients(String.format("STREAMURL%d=%s", sessionId, streamCtl.userSettings.getStreamInUrl(sessionId)));
+    		streamCtl.sockTask.SendDataToAllClients(MiscUtils.stringFormat("STREAMURL%d=%s", sessionId, streamCtl.userSettings.getStreamInUrl(sessionId)));
     	}
     	streamCtl.SendStreamState(StreamState.getStreamStateFromInt(streamStateEnum), sessionId); 
 	}
@@ -213,7 +213,7 @@ public class GstreamIn implements StreamInStrategy, SurfaceHolder.Callback {
     
     public void recoverHdcpVideoFailure(int sessionId){
 		// Pass to CSIO to restart stream
-    	streamCtl.sockTask.SendDataToAllClients(String.format("RECOVERHDCPVIDEOFAILURE%d=true", sessionId));
+    	streamCtl.sockTask.SendDataToAllClients(MiscUtils.stringFormat("RECOVERHDCPVIDEOFAILURE%d=true", sessionId));
     }
 
     public void recoverDucati(){
@@ -357,7 +357,7 @@ public class GstreamIn implements StreamInStrategy, SurfaceHolder.Callback {
     	streamCtl.checkVideoTimeouts(successfulStart);
     	if (!successfulStart)
     	{
-    		Log.e(TAG, String.format("Stream In failed to start after %d ms", startTimeout_ms));
+    		Log.e(TAG, MiscUtils.stringFormat("Stream In failed to start after %d ms", startTimeout_ms));
     		startThread.interrupt(); //cleanly kill thread
     		startThread = null;
     		streamCtl.RecoverTxrxService();

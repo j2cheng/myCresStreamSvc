@@ -333,7 +333,7 @@ public class CameraPreview {
     	streamCtl.checkVideoTimeouts(successfulStart);
     	if (!successfulStart)
     	{
-    		Log.e(TAG, String.format("Preview mode failed to start after %d ms", startTimeout_ms));
+    		Log.e(TAG, MiscUtils.stringFormat("Preview mode failed to start after %d ms", startTimeout_ms));
     		startThread.interrupt(); //cleanly kill thread
     		startThread = null;
     		streamCtl.RecoverDucati();
@@ -402,7 +402,7 @@ public class CameraPreview {
     	streamCtl.checkVideoTimeouts(successfulStop);
     	if (!successfulStop)
     	{
-    		Log.e(TAG, String.format("Preview mode failed to stop after %d ms", stopTimeout_ms));
+    		Log.e(TAG, MiscUtils.stringFormat("Preview mode failed to stop after %d ms", stopTimeout_ms));
     		stopThread.interrupt(); //cleanly kill thread
     		stopThread = null;
     		streamCtl.SendStreamState(StreamState.STOPPED, idx);

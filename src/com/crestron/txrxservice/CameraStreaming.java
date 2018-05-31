@@ -285,7 +285,7 @@ public class CameraStreaming {
     	streamCtl.checkVideoTimeouts(successfulStart);
     	if (!successfulStart)
     	{
-    		Log.e(TAG, String.format("MediaServer failed to start after %d ms", startTimeout_ms));
+    		Log.e(TAG, MiscUtils.stringFormat("MediaServer failed to start after %d ms", startTimeout_ms));
     		startThread.interrupt(); //cleanly kill thread
     		startThread = null;
     		streamCtl.RecoverDucati();
@@ -312,7 +312,7 @@ public class CameraStreaming {
         activeClientObserver = new FileObserver(clientConnectedFilePath, FileObserver.CLOSE_WRITE) {						
 			@Override
 			public void onEvent(int event, String path) {
-				Log.i(TAG, String.format("Received FileObserver event, sending rtspStream State, event = %d, path = %s", event, path)); //my change remove
+				Log.i(TAG, MiscUtils.stringFormat("Received FileObserver event, sending rtspStream State, event = %d, path = %s", event, path)); //my change remove
 				if (event != 32768)//32768 is IN_IGNORED and should not send streamstate
 					sendRtspStreamState(false);
 			}
@@ -369,7 +369,7 @@ public class CameraStreaming {
         		if (regexPattern.matcher(streamIp).matches() == false)
             	{
         			streamCtl.SendStreamState(StreamState.CONNECTREFUSED, idx);
-        			Log.e(TAG, String.format("Tried to stream to invalid address, address = %s", streamIp));
+        			Log.e(TAG, MiscUtils.stringFormat("Tried to stream to invalid address, address = %s", streamIp));
             		streamCtl.SendStreamState(StreamState.STOPPED, idx);
             		return false;
             	}
@@ -394,11 +394,11 @@ public class CameraStreaming {
         else
         	regexPattern = Pattern.compile(IPV4_REGEX);
     	
-    	Log.e(TAG, String.format("Checking address = %s", streamIp));
+    	Log.e(TAG, MiscUtils.stringFormat("Checking address = %s", streamIp));
     	if (regexPattern.matcher(streamIp).matches() == false)
     	{
     		streamCtl.SendStreamState(StreamState.CONNECTREFUSED, idx);
-			Log.e(TAG, String.format("Tried to stream to invalid address, address = %s", streamIp));
+			Log.e(TAG, MiscUtils.stringFormat("Tried to stream to invalid address, address = %s", streamIp));
     		streamCtl.SendStreamState(StreamState.STOPPED, idx);
     		return false;
     	}
@@ -757,7 +757,7 @@ public class CameraStreaming {
 	            {
 	            	boolean deleteSuccess = activeClientConnection.delete();
 	            	if (deleteSuccess == false)
-	            		Log.e(TAG, String.format("Unable to delete %s", clientConnectedFilePath));
+	            		Log.e(TAG, MiscUtils.stringFormat("Unable to delete %s", clientConnectedFilePath));
 	            }
 	            
 	            streamCtl.SendStreamState(StreamState.STOPPED, idx);
@@ -779,7 +779,7 @@ public class CameraStreaming {
     	streamCtl.checkVideoTimeouts(successfulStop);
     	if (!successfulStop)
     	{
-    		Log.e(TAG, String.format("MediaServer failed to stop after %d ms", stopTimeout_ms));
+    		Log.e(TAG, MiscUtils.stringFormat("MediaServer failed to stop after %d ms", stopTimeout_ms));
     		stopThread.interrupt(); //cleanly kill thread
     		stopThread = null;
     		streamCtl.SendStreamState(StreamState.STOPPED, idx);

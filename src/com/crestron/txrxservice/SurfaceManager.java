@@ -64,7 +64,7 @@ public class SurfaceManager implements SurfaceHolder.Callback {
     	
     	if (!surfaceCreatedSuccess)
     	{
-    		Log.e(TAG, String.format("Android failed to create surface after %d ms", surfaceCreateTimeout_ms));
+    		Log.e(TAG, MiscUtils.stringFormat("Android failed to create surface after %d ms", surfaceCreateTimeout_ms));
     		streamCtl.RecoverTxrxService();
     	}
     	    	

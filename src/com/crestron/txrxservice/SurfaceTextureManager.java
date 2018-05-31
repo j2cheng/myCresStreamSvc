@@ -52,7 +52,7 @@ public class SurfaceTextureManager implements TextureView.SurfaceTextureListener
     	
     	if (!stCreatedSuccess)
     	{
-    		Log.e(TAG, String.format("**** Android failed to create surface texture after %d ms ****", stCreateTimeout_ms));
+    		Log.e(TAG, MiscUtils.stringFormat("**** Android failed to create surface texture after %d ms ****", stCreateTimeout_ms));
     		streamCtl.RecoverTxrxService();
     	}
     	    	

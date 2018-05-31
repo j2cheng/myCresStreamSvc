@@ -266,7 +266,7 @@ public class AirMediaAwind implements AirMedia
     					Bundle bundle = paramAnonymousIntent.getExtras();
     					for (String key : bundle.keySet()) {
     					    Object value = bundle.get(key);
-    					    Log.i(TAG, String.format("Received airMedia feedback: %s %s (%s)", key,  
+    					    Log.i(TAG, MiscUtils.stringFormat("Received airMedia feedback: %s %s (%s)", key,  
     					        value.toString(), value.getClass().getName()));
     					}
     					String eventName = paramAnonymousIntent.getStringExtra("event");
@@ -438,7 +438,7 @@ public class AirMediaAwind implements AirMedia
     
     public void showLoginCodePrompt(int loginCode)
     {
-    	setLoginCodePrompt(String.format("Code:%04d", loginCode));
+    	setLoginCodePrompt(MiscUtils.stringFormat("Code:%04d", loginCode));
     	
     	// need to send login_code_prompt intent again with no text to make sure it displays
     	Intent i = new Intent(commandIntent);
@@ -586,13 +586,13 @@ public class AirMediaAwind implements AirMedia
         	else
         	{
         		// Invalid selection setting use adaptor 0
-        		Log.w(TAG, String.format("Invalid adaptor select value of %d, using adaptor 0", mStreamCtl.userSettings.getAirMediaAdaptorSelect()));
+        		Log.w(TAG, MiscUtils.stringFormat("Invalid adaptor select value of %d, using adaptor 0", mStreamCtl.userSettings.getAirMediaAdaptorSelect()));
         		ip = mStreamCtl.userSettings.getDeviceIp();
         	}
         	
         	Intent i = new Intent(commandIntent);
             i.putExtra("command", "address_prompt");
-        	i.putExtra("value", String.format("IP:%s", ip));
+        	i.putExtra("value", MiscUtils.stringFormat("IP:%s", ip));
         	mContext.sendBroadcast(i);
         	
         	// Send with no value to make sure IP address displays

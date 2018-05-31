@@ -805,7 +805,7 @@ public class CommandParser {
         
         if (parseResponse.sessId >= CresStreamCtrl.NumOfSurfaces)
         {
-        	return String.format("Invalid Session id: %d", parseResponse.sessId);
+        	return MiscUtils.stringFormat("Invalid Session id: %d", parseResponse.sessId);
         }
 
         if (validateMsg(parseResponse.joinName.toUpperCase()))
@@ -845,7 +845,7 @@ public class CommandParser {
                 {
                     invoke.setCommand(cmd);
                     valueResponse = invoke.get();
-                    Log.i(TAG, String.format("Join %s value response: %s", parseResponse.joinName.toUpperCase(), valueResponse));
+                    Log.i(TAG, MiscUtils.stringFormat("Join %s value response: %s", parseResponse.joinName.toUpperCase(), valueResponse));
                 }
 	        }
 	        

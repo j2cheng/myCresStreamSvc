@@ -9,6 +9,7 @@ import java.io.Writer;
 import java.lang.reflect.Method;
 import java.math.BigInteger;
 import java.net.InetAddress;
+import java.util.Locale;
 import java.util.Scanner;
 import java.util.regex.Pattern;
 import java.util.regex.Matcher;
@@ -317,5 +318,12 @@ public class MiscUtils {
     	} catch (IOException e) { e.printStackTrace(); }
     	
     	return ret;
+    }
+
+    // USE THIS STRING FORMATTER!!!!!!!!!!!!!
+    // or beware RTL
+    public static String stringFormat(String format, Object... args)
+    {
+    	return String.format(Locale.US, format, args);
     }
 }

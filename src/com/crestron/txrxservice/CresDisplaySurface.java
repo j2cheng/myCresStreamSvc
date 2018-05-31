@@ -431,7 +431,7 @@ public class CresDisplaySurface
     {
     	displaySurface[idx].setVisibility(View.INVISIBLE);
     	useTextureView[idx] = false;
-    	LogVisibility(String.format("HideWindow-%d", idx));
+    	LogVisibility(MiscUtils.stringFormat("HideWindow-%d", idx));
     }
     
     /**
@@ -441,7 +441,7 @@ public class CresDisplaySurface
     {
     	displaySurface[idx].setVisibility(View.VISIBLE);
     	useTextureView[idx] = false;
-    	LogVisibility(String.format("ShowWindow-%d", idx));
+    	LogVisibility(MiscUtils.stringFormat("ShowWindow-%d", idx));
    }
     
 	// Call this function with streams stopped
@@ -561,7 +561,7 @@ public class CresDisplaySurface
         		sb.append(", ");
         }
         sb.append("]");
-        Log.d(TAG, String.format("%s: %s", s, sb.toString()));
+        Log.d(TAG, MiscUtils.stringFormat("%s: %s", s, sb.toString()));
     }
     
     /**
@@ -572,7 +572,7 @@ public class CresDisplaySurface
     	//parentlayout.removeView(displayTexture);
     	displayTexture[idx].setVisibility(View.INVISIBLE);
     	useTextureView[idx] = false;
-    	LogVisibility(String.format("HideTextureWindow-%d", idx));
+    	LogVisibility(MiscUtils.stringFormat("HideTextureWindow-%d", idx));
     }
     
     /**
@@ -583,7 +583,7 @@ public class CresDisplaySurface
     	//parentlayout.addView(displayTexture);
     	displayTexture[idx].setVisibility(View.VISIBLE);        	
     	useTextureView[idx] = true;
-    	LogVisibility(String.format("ShowTextureWindow-%d", idx));
+    	LogVisibility(MiscUtils.stringFormat("ShowTextureWindow-%d", idx));
     }
     
     public boolean getUseTextureView(int idx)

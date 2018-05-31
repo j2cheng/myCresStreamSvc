@@ -353,7 +353,7 @@ public class CresStreamCtrl extends Service {
         	case 4:
         		return eHardwarePlatform_Amlogic;
         	default:
-				Log.i(TAG, String.format("Unknown hardware platform %d, please update enum!!!!!", x));
+				Log.i(TAG, MiscUtils.stringFormat("Unknown hardware platform %d, please update enum!!!!!", x));
         		return eHardwarePlatform_Unknown;
         	}
         }
@@ -704,17 +704,17 @@ public class CresStreamCtrl extends Service {
     					if (mCameraDisabled == true)
     						Log.w(TAG, "Camera is either disabled or not available, removing access");
     					else
-    						Log.i(TAG, String.format("Camera is enabled, allowing access restartMediaServer="+restartMediaServer));
+    						Log.i(TAG, MiscUtils.stringFormat("Camera is enabled, allowing access restartMediaServer="+restartMediaServer));
     					latch.countDown();
     				}
     			});
     			checkCameraThread.start();
-				Log.i(TAG, String.format("---- Launched checkCameraThread ----"));
+				Log.i(TAG, MiscUtils.stringFormat("---- Launched checkCameraThread ----"));
 
     			boolean successfulStart = true; //indicates that there was no time out condition
     			try { successfulStart = latch.await(3000, TimeUnit.MILLISECONDS); }
     			catch (InterruptedException ex) { ex.printStackTrace(); }
-				Log.i(TAG, String.format("---- end of wait for checkCameraThread - successfulStart="+successfulStart+" ----"));
+				Log.i(TAG, MiscUtils.stringFormat("---- end of wait for checkCameraThread - successfulStart="+successfulStart+" ----"));
 
     			// Library failed to load kill mediaserver and restart txrxservice
     			if (!successfulStart || restartMediaServer)
@@ -733,7 +733,7 @@ public class CresStreamCtrl extends Service {
         				}
         			});
     				restartCameraThread.start();
-    				Log.i(TAG, String.format("---- Launched restart due to camera thread = ----"));
+    				Log.i(TAG, MiscUtils.stringFormat("---- Launched restart due to camera thread = ----"));
     			}
     		}
     		
@@ -1074,7 +1074,7 @@ public class CresStreamCtrl extends Service {
     		surfaceHolder = dispSurface.GetSurfaceHolder(sessionId);
     	
     	if (surfaceHolder != null)
-    		Log.i(TAG, String.format("returned surface holder %s", surfaceHolder.toString()));
+    		Log.i(TAG, MiscUtils.stringFormat("returned surface holder %s", surfaceHolder.toString()));
     	
     	return surfaceHolder;
     }
@@ -1385,7 +1385,7 @@ public class CresStreamCtrl extends Service {
     
     private void writeDucatiState(int state) {
     	// we need csio to clear ducati state since sysfs needs root permissions to write
-    	sockTask.SendDataToAllClients(String.format("CLEARDUCATISTATE=%d", state));
+    	sockTask.SendDataToAllClients(MiscUtils.stringFormat("CLEARDUCATISTATE=%d", state));
 	}
     
     private int readRestartStreamsState() {
@@ -1842,21 +1842,21 @@ public class CresStreamCtrl extends Service {
             {
             	// Only clear if in by receiver or multicast via rtsp, if By transmitter send saved url 
             	if ( (userSettings.getSessionInitiation(sessionId) == 0) || (userSettings.getSessionInitiation(sessionId) == 2) )			
-            		sockTask.SendDataToAllClients(String.format("STREAMURL%d=", sessionId));
+            		sockTask.SendDataToAllClients(MiscUtils.stringFormat("STREAMURL%d=", sessionId));
 				else if (userSettings.getSessionInitiation(sessionId) == 1)
-					sockTask.SendDataToAllClients(String.format("STREAMURL%d=%s", sessionId, userSettings.getStreamOutUrl(sessionId)));
+					sockTask.SendDataToAllClients(MiscUtils.stringFormat("STREAMURL%d=%s", sessionId, userSettings.getStreamOutUrl(sessionId)));
             }
             else if (mode == DeviceMode.STREAM_IN.ordinal())
             {
             	// By transmitter clear, else send saved url
             	if (userSettings.getSessionInitiation(sessionId) == 1)
-            		sockTask.SendDataToAllClients(String.format("STREAMURL%d=", sessionId));
+            		sockTask.SendDataToAllClients(MiscUtils.stringFormat("STREAMURL%d=", sessionId));
             	else
-            		sockTask.SendDataToAllClients(String.format("STREAMURL%d=%s", sessionId, userSettings.getStreamInUrl(sessionId)));
+            		sockTask.SendDataToAllClients(MiscUtils.stringFormat("STREAMURL%d=%s", sessionId, userSettings.getStreamInUrl(sessionId)));
             }
             else if (mode == DeviceMode.WBS_STREAM_IN.ordinal())
             {
-        		sockTask.SendDataToAllClients(String.format("STREAMURL%d=%s", sessionId, userSettings.getWbsStreamUrl(sessionId)));            	
+        		sockTask.SendDataToAllClients(MiscUtils.stringFormat("STREAMURL%d=%s", sessionId, userSettings.getWbsStreamUrl(sessionId)));            	
             }
         }
     }
@@ -2257,7 +2257,7 @@ public class CresStreamCtrl extends Service {
     			windowTimer[sessionId].purge();
     		}
 			Log.i(TAG, "scheduling delayed updateWindow event for sessionId="+sessionId+"  use_texture_view="+use_texture_view);
-    		windowTimer[sessionId] = new Timer(String.format("windowTimer-%d", sessionId));
+    		windowTimer[sessionId] = new Timer(MiscUtils.stringFormat("windowTimer-%d", sessionId));
     		windowTimer[sessionId].schedule(new delayedCallToUpdateWindow(x, y, w, h, sessionId, use_texture_view), 10000);
 			Log.v(TAG, "Exit updateWindow: WindowTimer["+sessionId+"]="+windowTimer[sessionId]);
     	}
@@ -2909,11 +2909,11 @@ public class CresStreamCtrl extends Service {
     
     public void SendStreamInVideoFeedbacks(int source, int width, int height, int framerate, int profile)
     {	    
-	    sockTask.SendDataToAllClients(String.format("STREAMIN_HORIZONTAL_RES_FB%d=%s", source, width));
-	    sockTask.SendDataToAllClients(String.format("STREAMIN_VERTICAL_RES_FB%d=%s", source, height));
-	    sockTask.SendDataToAllClients(String.format("STREAMIN_FPS_FB%d=%s", source, framerate));
-	    sockTask.SendDataToAllClients(String.format("STREAMIN_ASPECT_RATIO%d=%s", source, MiscUtils.calculateAspectRatio(width, height)));
-	    sockTask.SendDataToAllClients(String.format("VENCPROFILE%d=%s", source, profile));
+	    sockTask.SendDataToAllClients(MiscUtils.stringFormat("STREAMIN_HORIZONTAL_RES_FB%d=%s", source, width));
+	    sockTask.SendDataToAllClients(MiscUtils.stringFormat("STREAMIN_VERTICAL_RES_FB%d=%s", source, height));
+	    sockTask.SendDataToAllClients(MiscUtils.stringFormat("STREAMIN_FPS_FB%d=%s", source, framerate));
+	    sockTask.SendDataToAllClients(MiscUtils.stringFormat("STREAMIN_ASPECT_RATIO%d=%s", source, MiscUtils.calculateAspectRatio(width, height)));
+	    sockTask.SendDataToAllClients(MiscUtils.stringFormat("VENCPROFILE%d=%s", source, profile));
 
 	    sockTask.SendDataToAllClients("STREAMIN_AUDIO_FORMAT=" + String.valueOf(streamPlay.getMediaPlayerAudioFormatFb()));
 	    sockTask.SendDataToAllClients("STREAMIN_AUDIO_CHANNELS=" + String.valueOf(streamPlay.getMediaPlayerAudiochannelsFb()));
@@ -3152,7 +3152,7 @@ public class CresStreamCtrl extends Service {
     }
 
     public void sendMulticastIpAddress(String ip, int sessId){
-    	sockTask.SendDataToAllClients(String.format("MULTICAST_ADDRESS%d=%s", sessId, ip));
+    	sockTask.SendDataToAllClients(MiscUtils.stringFormat("MULTICAST_ADDRESS%d=%s", sessId, ip));
     }
     
     public void setEncodingResolution(int res, int sessId){
@@ -3263,7 +3263,7 @@ public class CresStreamCtrl extends Service {
 
     	// If in streamout and in By Reciever(0) or Multicast RTSP (2) clear url on stop- Bug 103801
     	if ( !getAutomaticInitiationMode() && (userSettings.getSessionInitiation(sessId) == 0) || (userSettings.getSessionInitiation(sessId) == 2) )
-    		sockTask.SendDataToAllClients(String.format("STREAMURL%d=", sessId));
+    		sockTask.SendDataToAllClients(MiscUtils.stringFormat("STREAMURL%d=", sessId));
 
     	cam_streaming.setSessionIndex(sessId);
     	if (cam_streaming.getConfidencePreviewStatus() == true)
@@ -3510,7 +3510,7 @@ public class CresStreamCtrl extends Service {
     		streamPlay.disableLatency(sessionId);
     	else
     		Log.i(TAG, "No conditional Tags for StreamIn");
-    	sockTask.SendDataToAllClients(String.format("STREAMURL%d=%s", sessionId, ap_url));
+    	sockTask.SendDataToAllClients(MiscUtils.stringFormat("STREAMURL%d=%s", sessionId, ap_url));
     }
     
     public void setStreamOutUrl(String ap_url, int sessionId)
@@ -3520,7 +3520,7 @@ public class CresStreamCtrl extends Service {
 	    userSettings.setStreamServerUrl(ap_url, sessionId);
     	
     	if (userSettings.getMode(sessionId) == DeviceMode.STREAM_OUT.ordinal())
-    		sockTask.SendDataToAllClients(String.format("STREAMURL%d=%s", sessionId, createStreamOutURL(sessionId)));
+    		sockTask.SendDataToAllClients(MiscUtils.stringFormat("STREAMURL%d=%s", sessionId, createStreamOutURL(sessionId)));
     }
     
     public void setWbsStreamUrl(String url, int sessionId)
@@ -3532,8 +3532,8 @@ public class CresStreamCtrl extends Service {
         		wbsStream.setUrl(url, 0);
         }
         Log.i(TAG, "WBS Stream URL = " + url);
-    	sockTask.SendDataToAllClients(String.format("STREAMURL%d=%s", sessionId, url));
-    	sockTask.SendDataToAllClients(String.format("WBS_STREAMING_STREAM_URL=%s", url));
+    	sockTask.SendDataToAllClients(MiscUtils.stringFormat("STREAMURL%d=%s", sessionId, url));
+    	sockTask.SendDataToAllClients(MiscUtils.stringFormat("WBS_STREAMING_STREAM_URL=%s", url));
     }
     
     public void updateStreamOutUrl_OnIPChange()
@@ -3541,7 +3541,7 @@ public class CresStreamCtrl extends Service {
     	for(int sessionId = 0; sessionId < NumOfSurfaces; sessionId++)
     	{
         	if (userSettings.getMode(sessionId) == DeviceMode.STREAM_OUT.ordinal())
-        		sockTask.SendDataToAllClients(String.format("STREAMURL%d=%s", sessionId, createStreamOutURL(sessionId)));
+        		sockTask.SendDataToAllClients(MiscUtils.stringFormat("STREAMURL%d=%s", sessionId, createStreamOutURL(sessionId)));
     	}
     }
 
@@ -3831,18 +3831,18 @@ public class CresStreamCtrl extends Service {
 	    		{
 	    			// Bug 108125: Clear out stream out url when changing initiation modes
 	    			userSettings.setStreamOutUrl("", sessionId);
-	    			sockTask.SendDataToAllClients(String.format("STREAMURL%d=%s", sessionId, userSettings.getStreamOutUrl(sessionId)));
+	    			sockTask.SendDataToAllClients(MiscUtils.stringFormat("STREAMURL%d=%s", sessionId, userSettings.getStreamOutUrl(sessionId)));
 	    		}
 	    		else
-	    			sockTask.SendDataToAllClients(String.format("STREAMURL%d=", sessionId));
+	    			sockTask.SendDataToAllClients(MiscUtils.stringFormat("STREAMURL%d=", sessionId));
 			}
 		    else if (userSettings.getMode(sessionId) == DeviceMode.STREAM_IN.ordinal())
 			{
 	    		// if not by transmitter send currently saved url, else clear
 	    		if (userSettings.getSessionInitiation(sessionId) != 1)
-	    			sockTask.SendDataToAllClients(String.format("STREAMURL%d=%s", sessionId, userSettings.getStreamInUrl(sessionId)));
+	    			sockTask.SendDataToAllClients(MiscUtils.stringFormat("STREAMURL%d=%s", sessionId, userSettings.getStreamInUrl(sessionId)));
 	    		else
-	    			sockTask.SendDataToAllClients(String.format("STREAMURL%d=", sessionId));
+	    			sockTask.SendDataToAllClients(MiscUtils.stringFormat("STREAMURL%d=", sessionId));
 			}
 		}
     	}
@@ -4071,8 +4071,8 @@ public class CresStreamCtrl extends Service {
     				}
     			} 
     			// send feedback of login mode since it might have changed
-    			sockTask.SendDataToAllClients(String.format("AIRMEDIA_LOGIN_MODE=%d", userSettings.getAirMediaLoginMode()));
-    			return String.format("%04d", userSettings.getAirMediaLoginCode());
+    			sockTask.SendDataToAllClients(MiscUtils.stringFormat("AIRMEDIA_LOGIN_MODE=%d", userSettings.getAirMediaLoginMode()));
+    			return MiscUtils.stringFormat("%04d", userSettings.getAirMediaLoginCode());
     		}
     		else
     		{
@@ -4123,8 +4123,8 @@ public class CresStreamCtrl extends Service {
         				}
         			}
         		}
-        		sockTask.SendDataToAllClients(String.format("AIRMEDIA_LOGIN_CODE=%d", userSettings.getAirMediaLoginCode()));
-        		return String.format("%d", userSettings.getAirMediaLoginMode());
+        		sockTask.SendDataToAllClients(MiscUtils.stringFormat("AIRMEDIA_LOGIN_CODE=%d", userSettings.getAirMediaLoginCode()));
+        		return MiscUtils.stringFormat("%d", userSettings.getAirMediaLoginMode());
         	}
         	else
         	{
@@ -4336,28 +4336,28 @@ public class CresStreamCtrl extends Service {
     // Function deprecated - used with old digital joins which are no longer supported
     public void sendAirMediaIpAddressPromptFeedback()
     {
-    	sockTask.SendDataToAllClients(String.format("AIRMEDIA_IP_ADDRESS_PROMPT=%s", 
+    	sockTask.SendDataToAllClients(MiscUtils.stringFormat("AIRMEDIA_IP_ADDRESS_PROMPT=%s", 
     			Boolean.toString(userSettings.getAirMediaIpAddressPrompt())));
     }
     
     // Function deprecated - used with old digital joins which are no longer supported
     public void sendAirMediaHostNamePromptFeedback()
     {
-    	sockTask.SendDataToAllClients(String.format("AIRMEDIA_HOST_NAME_PROMPT=%s", 
+    	sockTask.SendDataToAllClients(MiscUtils.stringFormat("AIRMEDIA_HOST_NAME_PROMPT=%s", 
     			Boolean.toString(userSettings.getAirMediaHostNamePrompt())));
     }
     
     // Function deprecated - used with old digital joins which are no longer supported
     public void sendAirMediaDomainNamePromptFeedback()
     {
-    	sockTask.SendDataToAllClients(String.format("AIRMEDIA_DOMAIN_NAME_PROMPT=%s", 
+    	sockTask.SendDataToAllClients(MiscUtils.stringFormat("AIRMEDIA_DOMAIN_NAME_PROMPT=%s", 
     			Boolean.toString(userSettings.getAirMediaDomainNamePrompt())));
     }
     
     // Function deprecated - used with old digital joins which are no longer supported
     public void sendAirMediaCustomPromptFeedback()
     {
-    	sockTask.SendDataToAllClients(String.format("AIRMEDIA_CUSTOM_PROMPT=%s", 
+    	sockTask.SendDataToAllClients(MiscUtils.stringFormat("AIRMEDIA_CUSTOM_PROMPT=%s", 
     			Boolean.toString(userSettings.getAirMediaCustomPrompt())));
     }
     
@@ -4524,7 +4524,7 @@ public class CresStreamCtrl extends Service {
     
     public void sendAirMediaConnectionAddress(int sessId)
     {
-    	sockTask.SendDataToAllClients(String.format("AIRMEDIA_CONNECTION_ADDRESS=%s", getAirMediaConnectionAddress(sessId)));
+    	sockTask.SendDataToAllClients(MiscUtils.stringFormat("AIRMEDIA_CONNECTION_ADDRESS=%s", getAirMediaConnectionAddress(sessId)));
     }
     
     private String getAirMediaConnectionAddressWhenNone()
@@ -4836,27 +4836,27 @@ public class CresStreamCtrl extends Service {
     public void sendAirMediaUserFeedbacks(int userId, String userName, String ipAddress, int position, boolean status)
     {
     	userSettings.setAirMediaUserPosition(position, userId);
-    	Log.i(TAG, String.format("AIRMEDIA_USER_NAME=%d:%s", userId, userName));
-    	Log.i(TAG, String.format("AIRMEDIA_USER_IP=%d:%s", userId, ipAddress));
-    	Log.i(TAG, String.format("AIRMEDIA_USER_POSITION=%d:%d", userId, position));
-    	Log.i(TAG, String.format("AIRMEDIA_USER_CONNECTED=%d:%s", userId, String.valueOf(status)));
+    	Log.i(TAG, MiscUtils.stringFormat("AIRMEDIA_USER_NAME=%d:%s", userId, userName));
+    	Log.i(TAG, MiscUtils.stringFormat("AIRMEDIA_USER_IP=%d:%s", userId, ipAddress));
+    	Log.i(TAG, MiscUtils.stringFormat("AIRMEDIA_USER_POSITION=%d:%d", userId, position));
+    	Log.i(TAG, MiscUtils.stringFormat("AIRMEDIA_USER_CONNECTED=%d:%s", userId, String.valueOf(status)));
 
-    	sockTask.SendDataToAllClients(String.format("AIRMEDIA_USER_NAME=%d:%s", userId, userName));
-    	sockTask.SendDataToAllClients(String.format("AIRMEDIA_USER_IP=%d:%s", userId, ipAddress));
-    	sockTask.SendDataToAllClients(String.format("AIRMEDIA_USER_POSITION=%d:%d", userId, position));
-    	sockTask.SendDataToAllClients(String.format("AIRMEDIA_USER_CONNECTED=%d:%s", userId, String.valueOf(status)));   	
+    	sockTask.SendDataToAllClients(MiscUtils.stringFormat("AIRMEDIA_USER_NAME=%d:%s", userId, userName));
+    	sockTask.SendDataToAllClients(MiscUtils.stringFormat("AIRMEDIA_USER_IP=%d:%s", userId, ipAddress));
+    	sockTask.SendDataToAllClients(MiscUtils.stringFormat("AIRMEDIA_USER_POSITION=%d:%d", userId, position));
+    	sockTask.SendDataToAllClients(MiscUtils.stringFormat("AIRMEDIA_USER_CONNECTED=%d:%s", userId, String.valueOf(status)));   	
     }
     
     public void sendAirMediaStatus(int status)
     {
     	// TODO: send on update request
-    	Log.i(TAG, String.format(String.format("AIRMEDIA_STATUS=%d", status)));
-		sockTask.SendDataToAllClients(String.format("AIRMEDIA_STATUS=%d", status));
+    	Log.i(TAG, MiscUtils.stringFormat(MiscUtils.stringFormat("AIRMEDIA_STATUS=%d", status)));
+		sockTask.SendDataToAllClients(MiscUtils.stringFormat("AIRMEDIA_STATUS=%d", status));
     }
     
     public void sendAirMediaDisplayed(boolean val)
     {
-    	Log.i(TAG, String.format("AIRMEDIA_DISPLAYED="+val));
+    	Log.i(TAG, MiscUtils.stringFormat("AIRMEDIA_DISPLAYED="+val));
 		sockTask.SendDataToAllClients("AIRMEDIA_DISPLAYED="+val);
     }
     
@@ -4883,13 +4883,13 @@ public class CresStreamCtrl extends Service {
         	{
         		mAirMediaNumberOfUsersConnected = numberUserConnected;
         		
-        		Log.i(TAG, String.format("AIRMEDIA_NUMBER_USER_CONNECTED=%d", numberUserConnected));
-        		sockTask.SendDataToAllClients(String.format("AIRMEDIA_NUMBER_USER_CONNECTED=%d", numberUserConnected));
+        		Log.i(TAG, MiscUtils.stringFormat("AIRMEDIA_NUMBER_USER_CONNECTED=%d", numberUserConnected));
+        		sockTask.SendDataToAllClients(MiscUtils.stringFormat("AIRMEDIA_NUMBER_USER_CONNECTED=%d", numberUserConnected));
 
         		// Bug 121298: Generate new random code whenever all users disconnect
         		if ( (userSettings.getAirMediaLoginMode() == AirMediaLoginMode.Random.ordinal()) && (numberUserConnected == 0))
         		{
-        			sockTask.SendDataToAllClients(String.format("AIRMEDIA_LOGIN_MODE=%d", userSettings.getAirMediaLoginMode()));
+        			sockTask.SendDataToAllClients(MiscUtils.stringFormat("AIRMEDIA_LOGIN_MODE=%d", userSettings.getAirMediaLoginMode()));
         			setAirMediaLoginMode(userSettings.getAirMediaLoginMode(), 0);
         			pendingAirMediaLoginCodeChange = false;
         		}
@@ -4900,7 +4900,7 @@ public class CresStreamCtrl extends Service {
         			{
         				setAirMediaLoginCode(userSettings.getAirMediaLoginCode(), 0);
         			} else {
-        				sockTask.SendDataToAllClients(String.format("AIRMEDIA_LOGIN_MODE=%d", userSettings.getAirMediaLoginMode()));
+        				sockTask.SendDataToAllClients(MiscUtils.stringFormat("AIRMEDIA_LOGIN_MODE=%d", userSettings.getAirMediaLoginMode()));
         			}
         			pendingAirMediaLoginCodeChange = false;
         		}
@@ -5181,7 +5181,7 @@ public class CresStreamCtrl extends Service {
 	
 	private void setCameraHelper(int hdmiInputResolutionEnum, boolean ignoreRestart)
 	{
-		Log.i(TAG, String.format("Setting cameraMode with resolution enum = %d", hdmiInputResolutionEnum));
+		Log.i(TAG, MiscUtils.stringFormat("Setting cameraMode with resolution enum = %d", hdmiInputResolutionEnum));
 		int hdmiInSampleRate = HDMIInputInterface.readAudioSampleRate();
 		// If resolution did not change don't restart streams, ignore 0 enum
 		if ( (hdmiInputResolutionEnum == mPreviousValidHdmiInputResolution) && (hdmiInSampleRate == mPreviousAudioInputSampleRate) )
@@ -5220,7 +5220,7 @@ public class CresStreamCtrl extends Service {
 	}
 	
 	public void setNoVideoImage(boolean enable) {
-        Log.i(TAG, String.format("Setting no video format to %s", String.valueOf(enable)));
+        Log.i(TAG, MiscUtils.stringFormat("Setting no video format to %s", String.valueOf(enable)));
 		String cameraMode = "";
 		int previousCameraMode = readCameraMode();
 		if ( (enable) && (previousCameraMode != CameraMode.NoVideo.ordinal() 
@@ -5263,7 +5263,7 @@ public class CresStreamCtrl extends Service {
 		}
 		
 		// Set hdmi connected states for csio
-		sockTask.SendDataToAllClients(String.format("HDMIInputConnectedState=%b", !enable)); //true means hdmi input connected
+		sockTask.SendDataToAllClients(MiscUtils.stringFormat("HDMIInputConnectedState=%b", !enable)); //true means hdmi input connected
 	}
 	
 	public void setPauseVideoImage(boolean enable, DeviceMode mode) 
@@ -5311,7 +5311,7 @@ public class CresStreamCtrl extends Service {
 	public void sendHDCPLocalOutputBlanking(boolean enable) 
 	{
 		String msg = (enable ? "true" : "false");
-		sockTask.SendDataToAllClients(String.format("HDCP_BLANK_HDMI_OUTPUT=%s", msg));
+		sockTask.SendDataToAllClients(MiscUtils.stringFormat("HDCP_BLANK_HDMI_OUTPUT=%s", msg));
 		
 		// mute/unmute volume as well 
 		if (enable)
@@ -5467,7 +5467,7 @@ public class CresStreamCtrl extends Service {
 	}
 
 	private void recomputeHash() {
-		sockTask.SendDataToAllClients(String.format("RECOMPUTEHASH=%s", savedSettingsFilePath));
+		sockTask.SendDataToAllClients(MiscUtils.stringFormat("RECOMPUTEHASH=%s", savedSettingsFilePath));
 	}
 
 	static private Object mHdcpLock = new Object();
@@ -5530,16 +5530,16 @@ public class CresStreamCtrl extends Service {
 		{		
 			if (mHDCPInputStatus == true)
 			{
-				sockTask.SendDataToAllClients(String.format("%s=%b", "HDMIIN_SOURCEHDCPACTIVE", true));
-				sockTask.SendDataToAllClients(String.format("%s=%d", "HDMIIN_SOURCEHDCPSTATE", 57));
+				sockTask.SendDataToAllClients(MiscUtils.stringFormat("%s=%b", "HDMIIN_SOURCEHDCPACTIVE", true));
+				sockTask.SendDataToAllClients(MiscUtils.stringFormat("%s=%d", "HDMIIN_SOURCEHDCPSTATE", 57));
 			}
 			else
 			{
-				sockTask.SendDataToAllClients(String.format("%s=%b", "HDMIIN_SOURCEHDCPACTIVE", false));
+				sockTask.SendDataToAllClients(MiscUtils.stringFormat("%s=%b", "HDMIIN_SOURCEHDCPACTIVE", false));
 				if (Boolean.parseBoolean(hdmiInput.getSyncStatus()) == true) //Valid input present
-					sockTask.SendDataToAllClients(String.format("%s=%d", "HDMIIN_SOURCEHDCPSTATE", 0));
+					sockTask.SendDataToAllClients(MiscUtils.stringFormat("%s=%d", "HDMIIN_SOURCEHDCPSTATE", 0));
 				else
-					sockTask.SendDataToAllClients(String.format("%s=%d", "HDMIIN_SOURCEHDCPSTATE", 58));
+					sockTask.SendDataToAllClients(MiscUtils.stringFormat("%s=%d", "HDMIIN_SOURCEHDCPSTATE", 58));
 			}
 		}
 		//Send output feedbacks
@@ -5559,15 +5559,15 @@ public class CresStreamCtrl extends Service {
 		// If force HDCP is enabled, blank output if not authenticated
 		// If force HDCP is disabled, blank output if not authenticated and input is authenticated
 		if (((mHDCPInputStatus == true && hdmiContentVisible == true) || (userSettings.isHdmiOutForceHdcp() == true)) && ((mHDCPOutputStatus == false) && (mHDCPExternalStatus == false)))
-			sockTask.SendDataToAllClients(String.format("%s=%b", "HDMIOUT_DISABLEDBYHDCP", true));
+			sockTask.SendDataToAllClients(MiscUtils.stringFormat("%s=%b", "HDMIOUT_DISABLEDBYHDCP", true));
 		// The below case is transmitter which is streaming protected content but can't display on loopout
 		else if (((mHDCPInputStatus == true && hdmiContentVisible == true) && mHDCPEncryptStatus == true && mHDCPOutputStatus == false) && (mIgnoreHDCP == false))	
-			sockTask.SendDataToAllClients(String.format("%s=%b", "HDMIOUT_DISABLEDBYHDCP", true));
+			sockTask.SendDataToAllClients(MiscUtils.stringFormat("%s=%b", "HDMIOUT_DISABLEDBYHDCP", true));
 		// The below case is receiver which is receiving protect stream but can't display on output
 		else if ((mTxHdcpActive == true && mHDCPEncryptStatus == true && mHDCPOutputStatus == false) && (mIgnoreHDCP == false))
-			sockTask.SendDataToAllClients(String.format("%s=%b", "HDMIOUT_DISABLEDBYHDCP", true));
+			sockTask.SendDataToAllClients(MiscUtils.stringFormat("%s=%b", "HDMIOUT_DISABLEDBYHDCP", true));
 		else
-			sockTask.SendDataToAllClients(String.format("%s=%b", "HDMIOUT_DISABLEDBYHDCP", false));
+			sockTask.SendDataToAllClients(MiscUtils.stringFormat("%s=%b", "HDMIOUT_DISABLEDBYHDCP", false));
 	}
 	
 	public void setExternalHdcpStatus(int hdcpStatus)

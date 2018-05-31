@@ -272,7 +272,7 @@ public class TCPInterface extends AsyncTask<Void, Object, Long> {
                 
                 // Update csio on hdmi input status
                 if (streamCtl.hdmiInputDriverPresent)
-                	SendDataToAllClients(String.format("HDMIInputConnectedState=%s", streamCtl.hdmiInput.getSyncStatus())); //true means hdmi input connected
+                	SendDataToAllClients(MiscUtils.stringFormat("HDMIInputConnectedState=%s", streamCtl.hdmiInput.getSyncStatus())); //true means hdmi input connected
                 
                 // Tell CSIO to send update request to control system
                 SendDataToAllClients("UPDATE_REQUEST_TO_CONTROLSYSTEM=");

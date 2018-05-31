@@ -1298,7 +1298,7 @@ public class AirMediaSplashtop implements AirMedia
     	if (receiver() != null)
     	{
     		Common.Logging.i(TAG, "Current login code = " + receiver().serverPassword());
-    		String code = String.format("%04d", loginCode);
+    		String code = MiscUtils.stringFormat("%04d", loginCode);
     		Common.Logging.i(TAG, "Set Login Code = " + code + " (" + String.valueOf(loginCode) + ")");
     		if (loginCode < 0) {
     			receiver().serverPassword("");
@@ -1375,10 +1375,10 @@ public class AirMediaSplashtop implements AirMedia
     				Common.Logging.i(TAG, "User: "+i+"  Session: "+s);
     	        	AirMediaSessionScreenPosition screenpos = s.videoScreenPosition();
     	        	int position = (screenpos == AirMediaSessionScreenPosition.None) ? 0 : 128;;
-    		    	Common.Logging.i(TAG, String.format("   AIRMEDIA_USER_NAME=%d:%s", i, s.username()));
-    		    	Common.Logging.i(TAG, String.format("   AIRMEDIA_USER_IP=%d:%s", i, ((List<String>)s.addresses()).get(0)));
-    		    	Common.Logging.i(TAG, String.format("   AIRMEDIA_USER_POSITION=%d:%d", i, position));
-    		    	Common.Logging.i(TAG, String.format("   AIRMEDIA_USER_CONNECTED=%d:%s", i, 
+    		    	Common.Logging.i(TAG, MiscUtils.stringFormat("   AIRMEDIA_USER_NAME=%d:%s", i, s.username()));
+    		    	Common.Logging.i(TAG, MiscUtils.stringFormat("   AIRMEDIA_USER_IP=%d:%s", i, ((List<String>)s.addresses()).get(0)));
+    		    	Common.Logging.i(TAG, MiscUtils.stringFormat("   AIRMEDIA_USER_POSITION=%d:%d", i, position));
+    		    	Common.Logging.i(TAG, MiscUtils.stringFormat("   AIRMEDIA_USER_CONNECTED=%d:%s", i, 
     		    			String.valueOf((s.videoState() == AirMediaSessionStreamingState.Playing) ? true : false)));
     				logSession(s);
     			}

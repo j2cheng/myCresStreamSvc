@@ -64,8 +64,8 @@ public class WbsStreamIn implements SurfaceHolder.Callback {
     	// Send stream url again on start fb
     	if (streamStateEnum == CresStreamCtrl.StreamState.STARTED.getValue())
     	{
-    		streamCtl.sockTask.SendDataToAllClients(String.format("STREAM_URL%d=%s", sessionId, streamCtl.userSettings.getWbsStreamUrl(sessionId)));
-    		streamCtl.sockTask.SendDataToAllClients(String.format("WBS_STREAMING_STREAM_URL=%s", streamCtl.userSettings.getWbsStreamUrl(sessionId)));
+    		streamCtl.sockTask.SendDataToAllClients(MiscUtils.stringFormat("STREAM_URL%d=%s", sessionId, streamCtl.userSettings.getWbsStreamUrl(sessionId)));
+    		streamCtl.sockTask.SendDataToAllClients(MiscUtils.stringFormat("WBS_STREAMING_STREAM_URL=%s", streamCtl.userSettings.getWbsStreamUrl(sessionId)));
     	}
     	streamCtl.SendStreamState(StreamState.getStreamStateFromInt(streamStateEnum), sessionId); 
 	}
@@ -118,7 +118,7 @@ public class WbsStreamIn implements SurfaceHolder.Callback {
     	streamCtl.checkVideoTimeouts(successfulStart);
     	if (!successfulStart)
     	{
-    		Log.e(TAG, String.format("Stream In failed to start after %d ms", startTimeout_ms));
+    		Log.e(TAG, MiscUtils.stringFormat("Stream In failed to start after %d ms", startTimeout_ms));
     		startThread.interrupt(); //cleanly kill thread
     		startThread = null;
     		streamCtl.RecoverTxrxService();
