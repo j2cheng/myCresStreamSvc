@@ -43,6 +43,7 @@ import android.content.Context;
 import android.os.AsyncTask;
 import android.os.Build;
 import android.provider.MediaStore.Files;
+import android.content.Context;
 import android.content.Intent;
 import android.content.IntentFilter;
 import android.content.pm.ApplicationInfo;
@@ -1256,9 +1257,11 @@ public class CresStreamCtrl extends Service {
     		dispSurface = new CresDisplaySurface(streamCtrl, maxHRes, maxVRes, haveExternalDisplays, backgroundViewColor); // set to max output resolution
     	}
     }
-    
+
     private void monitorMediaServer()
     {
+    	final String commandIntent = "com.crestron.crashObserver";
+    	final Context ctx = (Context)this;		
     	File mediaServerReboot = new File ("/dev/shm/crestron/CresStreamSvc/mediaServerState");
         if (!mediaServerReboot.isFile())	//check if file exists
         {
@@ -1270,6 +1273,11 @@ public class CresStreamCtrl extends Service {
         mediaServerObserver = new FileObserver("/dev/shm/crestron/CresStreamSvc/mediaServerState", FileObserver.CLOSE_WRITE) {						
 			@Override
 			public void onEvent(int event, String path) {
+				// Send broadcast for third party apps
+				Intent i = new Intent(commandIntent);
+				i.putExtra("application", "mediaserver");
+				ctx.sendBroadcast(i);
+				
 				mMediaServerCrash = true;
 			}
 		};
