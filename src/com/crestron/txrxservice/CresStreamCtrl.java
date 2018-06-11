@@ -1851,9 +1851,6 @@ public class CresStreamCtrl extends Service {
                 {
                 	enableRestartMechanism = true; //enable restart detection
             		Log.i(TAG, "setDeviceMode: calling updateWindow for sessId="+sessionId);
-                	updateWindow(sessionId);
-                    showPreviewWindow(sessionId);
-                    invalidateSurface();
                 	cam_streaming.startConfidencePreview(sessionId);
                 } finally
                 {
