@@ -447,6 +447,14 @@ public class CameraPreview {
 	        }
     	}
     }
+    
+    public void restartAudio() {
+    	if (is_audioplaying == true)
+    	{
+    		stopAudio();
+    		startAudio();
+    	}
+    }
 
     public void setVolume(int volume) {
     	audio_pb.setVolume(volume);

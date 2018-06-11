@@ -1460,8 +1460,26 @@ public class CresStreamCtrl extends Service {
 	    					if (hdmiInSampleRate != mPreviousAudioInputSampleRate)
 	    					{
 	    						mPreviousAudioInputSampleRate = hdmiInSampleRate;
-	    				        Log.i(TAG, "Restarting Streams - hdmi input resolution change");
-	    						restartStreams(true); //skip stream in since it does not use hdmi input
+	    				        boolean onlyRestartAudioNeeded = true;	// if streamout is started we need to restart stream
+	    				        for(int sessionId = 0; sessionId < NumOfSurfaces; sessionId++)
+	    				        {
+	    				        	if ( (userSettings.getMode(sessionId) == DeviceMode.STREAM_OUT.ordinal()) &&
+	    				        			(userSettings.getUserRequestedStreamState(sessionId) == StreamState.STARTED) )
+	    				        	{
+	    				        		onlyRestartAudioNeeded = false;
+	    				        		break;
+	    				        	}
+	    				        }
+	    				        if (onlyRestartAudioNeeded)
+	    				        {
+	    				        	Log.i(TAG, "Restarting Audio - sample rate change");
+	    				        	cam_preview.restartAudio();	// Can get away with only restarting audio here
+	    				        }
+	    				        else
+	    				        {
+	    				        	Log.i(TAG, "Restarting Streams - sample rate change");
+	    				        	restartStreams(true); //skip stream in since it does not use hdmi input
+	    				        }
 	    					}
 	    				}
     				} 
