@@ -258,6 +258,7 @@ public class UserSettings
 	private boolean ravaMode;
 	private boolean processHdmiInAudio;
 	private int[] tcpInterleave;
+	private boolean appspaceEnabled;
 	
 	public UserSettings()
 	{
@@ -347,6 +348,7 @@ public class UserSettings
 		airMediaDisplayConnectionOptionEnable = true;
 		airMediaDisplayConnectionOption = CresStreamCtrl.AirMediaDisplayConnectionOption.Ip;
 		airMediaCustomPromptString = "";
+		appspaceEnabled		= false;
 		tcpInterleave       = initIntArray(0);//auto mode
 		camStreamEnable		= false;
 		camStreamMulticastEnable = false;
@@ -1087,6 +1089,14 @@ public class UserSettings
 
 	public boolean isProcessHdmiInAudio() {
 		return processHdmiInAudio;
+	}
+	
+	public boolean isAppspaceEnabled() {
+		return appspaceEnabled;
+	}
+	
+	public void setAppspaceEnabled(boolean isEnabled) {
+		this.appspaceEnabled= isEnabled; 
 	}
 
 	public int getTcpInterleave(int sessId) {		

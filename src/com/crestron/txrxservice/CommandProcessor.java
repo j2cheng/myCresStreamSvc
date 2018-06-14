@@ -2268,6 +2268,20 @@ class wbsStreamUrlCommand extends CrestronCommand {
 	}
 }
 
+class AppspaceIsEnabledCommand extends CrestronCommand {
+
+    public AppspaceIsEnabledCommand(CresStreamCtrl ctrl, String arg) {
+     super(ctrl, arg);
+    }
+
+    @Override
+    public void execute() {
+    	boolean val = Boolean.valueOf(msg);
+    	ctrl.userSettings.setAppspaceEnabled(val);
+    }
+    //no feedback for this join
+}
+
 class RestartStreamOnStartCommand extends CrestronCommand {
 
     public RestartStreamOnStartCommand(CresStreamCtrl ctrl, String arg) {

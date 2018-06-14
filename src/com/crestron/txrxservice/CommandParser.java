@@ -185,6 +185,7 @@ public class CommandParser {
         
         RESTART_STREAM_ON_START,
 
+        APPSPACE_IS_ENABLED,
         USE_GSTREAMER,
         NEW_SINK,
         NEW_IPADDR,
@@ -723,7 +724,7 @@ public class CommandParser {
             case AIRMEDIA_PROJECTION_LOCK:
             	cmd = new AirMediaProjectionLockCommand(ctrl, arg, idx);
             	break;
-            	
+                        	
         	// Camera Streaming
             case CAMERA_STREAMING_ENABLE:
             	cmd = new camStreamEnableCommand(ctrl, arg);
@@ -755,6 +756,9 @@ public class CommandParser {
             	cmd = new wbsStreamUrlCommand(ctrl, arg, idx);
             	break;
             	
+            case APPSPACE_IS_ENABLED:
+            	cmd = new AppspaceIsEnabledCommand(ctrl, arg);
+            	break;
             case RESTART_STREAM_ON_START:
             	cmd = new RestartStreamOnStartCommand(ctrl, arg);
             	break;
