@@ -3480,6 +3480,27 @@ int wbs_SendVideoPlayingStatusMessage(unsigned int source, eStreamState state)
 	return 0;
 }
 
+// Invoke JAVA method forceStop to force a stop of WBS stream - normally requested by WBS thread itself
+// Not used - expect an explicit STOP message from csio before a START is attempted
+int wbs_forceStop(unsigned int source)
+{
+	JNIEnv *env = get_jni_env ();
+
+	jmethodID forceStop = env->GetMethodID((jclass)wbsStreamIn_javaClass_id, "forceStop", "(I)V");
+	if (forceStop == NULL) {
+		CSIO_LOG(eLogLevel_debug,  "Could not find Java method 'forceStop'");
+		return -1; // TODO: what is error code here
+	}
+
+	env->CallVoidMethod(wbs_get_app(), forceStop, (jint)source);
+	if (env->ExceptionCheck ()) {
+		CSIO_LOG(eLogLevel_error, "Failed to call Java method 'forceStop'");
+		env->ExceptionClear ();
+	}
+
+	return 0;
+}
+
 // Initialize the WBS data structure with the incoming surface
 JNIEXPORT void JNICALL Java_com_crestron_txrxservice_WbsStreamIn_nativeSurfaceInit(JNIEnv *env, jobject thiz, jobject surface, jint stream)
 {

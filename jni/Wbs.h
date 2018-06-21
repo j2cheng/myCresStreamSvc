@@ -39,6 +39,13 @@
 
 #define MAX_STREAMS 4
 #define RESTART_MAX_BACKOFF_SECS 10
+#define FORCE_STOP_AFTER_FAILED_RESTARTS 5
+
+typedef struct _ConditionObj
+{
+	pthread_cond_t cond;
+	pthread_mutex_t mutex;
+} ConditionObj;
 
 typedef struct Wbs_t {
     unsigned int streamId;
@@ -63,6 +70,9 @@ typedef struct Wbs_t {
 	bool isPaused;
 	bool requestStop;
 	bool logRejectionEventAsError;
+	int failedRestartAttempts;  // used to do forced stop
+
+    ConditionObj waiter;        // used for timed wait
 } Wbs_t;
 
 #ifdef __cplusplus
@@ -73,6 +83,7 @@ extern "C"
 jobject wbs_get_app();
 void wbs_set_app(jobject app);
 void wbs_setUrl(const char *url, int sessId);
+void wbs_init();
 int wbs_start(int sessId);
 void wbs_stop(int sessId);
 void wbs_pause(int sessId);
@@ -80,8 +91,11 @@ void wbs_unpause(int sessId);
 Wbs_t *wbs_get_stream_data(int sessId);
 void wbs_update_window(int sessId, int width, int height);
 int wbs_SendVideoPlayingStatusMessage(unsigned int source, eStreamState state);
+int wbs_forceStop(unsigned int source);
 int wbs_getLogLevel();
 void wbs_setLogLevel(int level);
+void waitMsec(Wbs_t *pWbs, int msec);
+void signalWaitExit(Wbs_t *pWbs);
 
 #ifdef __cplusplus
 }

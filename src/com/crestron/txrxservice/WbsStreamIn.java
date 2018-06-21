@@ -67,14 +67,43 @@ public class WbsStreamIn implements SurfaceHolder.Callback {
     		streamCtl.sockTask.SendDataToAllClients(MiscUtils.stringFormat("STREAM_URL%d=%s", sessionId, streamCtl.userSettings.getWbsStreamUrl(sessionId)));
     		streamCtl.sockTask.SendDataToAllClients(MiscUtils.stringFormat("WBS_STREAMING_STREAM_URL=%s", streamCtl.userSettings.getWbsStreamUrl(sessionId)));
     	}
-    	streamCtl.SendStreamState(StreamState.getStreamStateFromInt(streamStateEnum), sessionId); 
+    	streamCtl.SendStreamState(StreamState.getStreamStateFromInt(streamStateEnum), sessionId);
 	}
+    
+    public void forceStop(int sessionId)
+    {
+    	final int sessId = sessionId;
+		Log.i(TAG, "forceStop(): force stop requested");
+    	Thread stopThread = new Thread(new Runnable() {
+    		public void run() {
+    			try {
+    				Log.i(TAG, "forceStop(): invoking onStop in async thread");
+    				onStop(sessId); 		
+    			}
+    			catch(Exception e){
+    				// TODO: explore exception handling with better feedback of what went wrong to user
+    				e.printStackTrace();        
+    			}     
+    		}
+    	});
+    	stopThread.start();
+		Log.i(TAG, "forceStop(): force stop thread started - exiting");
+    }
     
     //Play based on based Pause/Actual Playback 
     public void onStart(final int sessionId) {
     	final WbsStreamIn streamObj = this;
     	final CountDownLatch latch = new CountDownLatch(1);
     	final int startTimeout_ms = 20000;
+    	if (streamCtl.userSettings.getWbsStreamUrl(sessionId).length() == 0)
+    	{
+    		// normally should not be used - should have an explicit stop message
+    		if (isPlaying)
+    		{
+    			onStop(sessionId);
+    			return;
+    		}
+    	}
     	if (isPlaying)
     	{
     		if (streamCtl.userSettings.getStreamState(sessionId) == StreamState.PAUSED) {

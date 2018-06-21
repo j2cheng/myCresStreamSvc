@@ -50,6 +50,7 @@ static int WbsLogLevel = eLogLevel_extraVerbose;
 jobject gWbsApp; // keep global reference for calling functions
 
 Wbs_t gWbs[MAX_STREAMS];
+static bool initialized = false;
 
 static char *getHexMessage(char *msg, int msglen)
 {
@@ -70,6 +71,46 @@ static long getTimeInMsec()
 	struct timeval tp;
 	gettimeofday(&tp, NULL);
 	return (long) tp.tv_sec*1000 + tp.tv_usec/1000;
+}
+
+void waitMsec(Wbs_t *pWbs, int msec)
+{
+
+	pthread_mutex_lock(&pWbs->waiter.mutex);
+	if (!pWbs->requestStop)
+	{
+		int sec = msec/1000;
+		msec = msec - sec*1000;
+		timeval now;
+		timespec timeout;
+		gettimeofday(&now,NULL);
+		timeout.tv_sec = now.tv_sec + sec;
+		timeout.tv_nsec = now.tv_usec*1000L + msec*1000000;
+		if (timeout.tv_nsec > 1000000000) {
+			timeout.tv_sec++;
+			timeout.tv_nsec -= 1000000000;
+		}
+		CSIO_LOG(eLogLevel_extraVerbose, "%s: now=%d.%d timeout=%d.%d", __FUNCTION__, now.tv_sec, now.tv_usec*1000, timeout.tv_sec, timeout.tv_nsec);
+		int ret = pthread_cond_timedwait(&pWbs->waiter.cond, &pWbs->waiter.mutex, &timeout);
+		if (ret != 0)
+		{
+			CSIO_LOG(eLogLevel_debug, "pthread_cond_timedwait for socket_init_complete.cond returned %s %d", (ret==110)?"timeout":"error", ret);
+		}
+	}
+	pthread_mutex_unlock(&pWbs->waiter.mutex);
+}
+
+void signalWaitExit(Wbs_t *pWbs)
+{
+	// Signal socket initialization completion
+    pthread_mutex_lock(&pWbs->waiter.mutex);
+	CSIO_LOG(eLogLevel_debug, "%s: requesting stop for streamId %d (requestStop=%d)", __FUNCTION__, pWbs->streamId, pWbs->requestStop);
+    pWbs->requestStop = true;
+	if (pthread_cond_signal(&pWbs->waiter.cond) != 0)
+	{
+		CSIO_LOG(eLogLevel_error, "%s: Failed to signal request stop", __FUNCTION__);
+	}
+	pthread_mutex_unlock(&pWbs->waiter.mutex);
 }
 
 Wbs_t *wbs_get_stream_data(int sessId)
@@ -333,6 +374,7 @@ static void do_live_view(Wbs_t *pWbs, int fd, SSL * pSSL, char const * origin = 
 							CSIO_LOG(eLogLevel_debug, "%s: first frame rendered after %ld msec", __FUNCTION__, (end-begin));
 					    	wbs_SendVideoPlayingStatusMessage(pWbs->streamId, STREAMSTATE_STARTED);
 					    	pWbs->logRejectionEventAsError = true;
+					    	pWbs->failedRestartAttempts = 0;
 						}
 						wbs_render(pWbs, deco.getBuffer(), deco.getWidth(), deco.getHeight());
 #else
@@ -455,14 +497,14 @@ static int wbs_start_connection(Wbs_t *pWbs)
 		ctx = SSL_CTX_new(TLSv1_2_client_method());
 		pSSL = ctx ? SSL_new(ctx) : 0;
 		if (pSSL == 0) {
-			rv = 1;
+			rv = 2;
 			goto closesocket;
 		}
 		SSL_set_fd(pSSL, fd);
 		if (SSL_connect(pSSL) < 0) {
 			CSIO_LOG(eLogLevel_error, "%s: error establishing SSL connection", __FUNCTION__);
 			ERR_print_errors_cb(errcb, NULL);
-			rv = 1;
+			rv = 3;
 			goto closesocket;
 		}
 		if (pSSL) {
@@ -490,8 +532,7 @@ closesocket:
 static void wbs_stop_connection(Wbs_t *pWbs)
 {
 	if (pWbs->isStarted) {
-		pWbs->requestStop = true;
-		CSIO_LOG(eLogLevel_debug, "%s: requesting stop for streamId %d (requestStop=%d)", __FUNCTION__, pWbs->streamId, pWbs->requestStop);
+	    signalWaitExit(pWbs);
 	}
 	else
 	{
@@ -507,14 +548,44 @@ static void *wbsThread(void *arg)
 	pWbs->requestStop = false;
 	pWbs->backoffInSecs = RESTART_MAX_BACKOFF_SECS;
 	pWbs->totalFrameCount = 0;
+	pWbs->failedRestartAttempts = 0;
 	pWbs->frameCount = 0;
 	pWbs->logRejectionEventAsError = true;
 	CSIO_LOG(eLogLevel_debug, "%s: requestStop=%s", __FUNCTION__, (pWbs->requestStop)?"true":"false");
 	while (!wbs_start_connection(pWbs)) {
 		if (!pWbs->requestStop)
 		{
-			CSIO_LOG(eLogLevel_error, "----- Failed to start WBS connection - retry in %d secs -----\n", pWbs->backoffInSecs);
-			sleep(pWbs->backoffInSecs);
+			if (pWbs->totalFrameCount > 0)
+			{
+				// we were connected and decoding since totalFrameCount > 0
+				if (pWbs->frameCount == 0)
+				{
+					// no frames decoded in this attempt
+					pWbs->failedRestartAttempts++;
+					if (pWbs->failedRestartAttempts >= FORCE_STOP_AFTER_FAILED_RESTARTS)
+					{
+	#if 0 // Not used - expect an explicit STOP message from csio before a START is attempted
+						CSIO_LOG(eLogLevel_error, "Exiting Wbs thread due to force stop after %d unsuccessful start attempts\n", pWbs->failedRestartAttempts);
+						wbs_forceStop(pWbs->streamId);
+						return(NULL);
+	#else
+						// relies on control system or some external program to send us a STOP multivideomessage
+						// in response to our state changing to STOPPED. Sent only once after a successful startup
+						// We will almost immediately revert to a stream state of CONNECTING because another
+						// connection attempt will be made right after this.
+						if (pWbs->failedRestartAttempts == FORCE_STOP_AFTER_FAILED_RESTARTS)
+							wbs_SendVideoPlayingStatusMessage(pWbs->streamId, STREAMSTATE_STOPPED);
+	#endif
+					}
+				}
+			}
+
+			CSIO_LOG(eLogLevel_error, "----- Failed to start WBS connection (%d) - retry in %d secs -----\n", pWbs->failedRestartAttempts, pWbs->backoffInSecs);
+			waitMsec(pWbs, pWbs->backoffInSecs*1000);
+			if (pWbs->requestStop)
+				break;
+
+			// increase backoff and retry
 			pWbs->backoffInSecs *= 2;
 			if (pWbs->backoffInSecs > RESTART_MAX_BACKOFF_SECS)
 				pWbs->backoffInSecs = RESTART_MAX_BACKOFF_SECS;
@@ -542,6 +613,9 @@ void wbs_setUrl(const char *url, int sessId)
 	int portnumber;
 	Wbs_t *pWbs = &gWbs[sessId];
 	pWbs->streamId = sessId;
+
+	if (!initialized)
+		wbs_init();
 
 	strncpy(pWbs->url, url, sizeof(pWbs->url));
     CSIO_LOG(eLogLevel_debug, "%s: url='%s'", __FUNCTION__, pWbs->url);
@@ -572,10 +646,36 @@ static bool wbs_useUrl(Wbs_t *pWbs)
 	return true;
 }
 
+void wbs_init()
+{
+	if (!initialized)
+	{
+		int id, rv;
+
+		for (id=0; id < MAX_STREAMS; id++)
+		{
+			Wbs_t *pWbs = (Wbs_t *) &gWbs[id];
+
+		    rv = pthread_mutex_init(&pWbs->waiter.mutex, NULL);
+		    if (rv != 0) {
+		        CSIO_LOG(eLogLevel_error,"%s: id[%d] could not initialize mutex for wait error=%d", __FUNCTION__, id, rv);
+		    }
+			rv = pthread_cond_init(&pWbs->waiter.cond, NULL);
+		    if (rv != 0) {
+		        CSIO_LOG(eLogLevel_error,"%s: id[%d] could not initialize cond variable for wait error=%d", __FUNCTION__, id, rv);
+		    }
+		}
+		initialized = true;
+	}
+}
+
 int wbs_start(int sessId)
 {
 	Wbs_t *pWbs = (Wbs_t *) &gWbs[sessId];
 	pWbs->streamId = sessId;
+
+	if (!initialized)
+		wbs_init();
 
 	if (pWbs->isStarted) {
     	CSIO_LOG(eLogLevel_info, "%s: already started: ignoring request - please stop first", __FUNCTION__);
@@ -606,6 +706,9 @@ void wbs_stop(int sessId)
 	Wbs_t *pWbs = (Wbs_t *) &gWbs[sessId];
 	pWbs->streamId = sessId;
 
+	if (!initialized)
+		wbs_init();
+
 	CSIO_LOG(eLogLevel_debug,  "%s: streamId=%d isStarted=%s requestStop=%s", __FUNCTION__, sessId,
 			(pWbs->isStarted)?"true":"false", (pWbs->requestStop)?"true":"false");
 	if (pWbs->isStarted)
@@ -619,6 +722,7 @@ void wbs_stop(int sessId)
     	CSIO_LOG(eLogLevel_debug,  "%s: wait for thread to exit", __FUNCTION__);
         iRtn = pthread_join( pWbs->wbsTid, &tResults );
         CSIO_LOG(eLogLevel_debug,  "%s: thread exited. Status = %d", __FUNCTION__, iRtn );
+    	pWbs->isStarted = false;
     	wbs_clear_window(pWbs);    // Now clear window since we have stopped WBS stream
 	}
 	else
