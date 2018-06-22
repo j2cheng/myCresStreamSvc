@@ -127,7 +127,9 @@ LOCAL_CFLAGS +=\
 	-I$(CRESTRON_ROOT)/productNameUtil \
 	-I$(CRESTRON_ROOT)/common/include \
 	-I$(CRESTRON_ROOT)/Include/External \
-	-I$(CSIO_INCLUDE_ROOT)/crestHdcp
+	-I$(CSIO_INCLUDE_ROOT)/crestHdcp \
+	-I$(CPP_INC_PATH) \
+	-I$(STL_INC_PATH)
 	
 #	-I$(CPP_INC_PATH) \
 #	-I$(COMMON_INC_PATH) \
