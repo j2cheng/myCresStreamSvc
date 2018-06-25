@@ -1449,7 +1449,7 @@ public class AirMediaSplashtop implements AirMedia
     public void resetConnections()
     {    	
 		Common.Logging.i(TAG, "resetConnections()");
-		manager().clear();
+		disconnectAllSenders();
     }
     
     public void disconnectUser(int userId)
