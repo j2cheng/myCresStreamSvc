@@ -3981,12 +3981,12 @@ public class CresStreamCtrl extends Service {
     	Log.i(TAG, "AirMedia " + sessId + " : Lock" + "   launch = " + val + "  fullScreen =" + fullscreen);
     	try
     	{
-    		// Bug 153417: When in AppSpace mode, allow AppSpace to stop before starting AirMedia
-    		if (userSettings.isAppspaceEnabled())
-    		{
-    			sendAirMediaStartedState(sessId);
-    			try { Thread.sleep(100);} catch (InterruptedException e) {}
-    		}
+//    		// Bug 153417: When in AppSpace mode, allow AppSpace to stop before starting AirMedia
+//    		if (userSettings.isAppspaceEnabled())
+//    		{
+//    			sendAirMediaStartedState(sessId);
+//    			try { Thread.sleep(1000);} catch (InterruptedException e) {}
+//    		}
     		
     		synchronized (mAirMediaLock) {
     			userSettings.setAirMediaLaunch(val, sessId);
