@@ -8,6 +8,7 @@ import java.util.concurrent.TimeUnit;
 import com.crestron.txrxservice.CresStreamCtrl.DeviceMode;
 import com.crestron.txrxservice.CresStreamCtrl.StreamState;
 
+import android.graphics.ImageFormat;
 import android.hardware.Camera;
 import android.hardware.Camera.ErrorCallback;
 import android.hardware.Camera.Parameters;
@@ -128,7 +129,8 @@ public class CameraPreview {
 		        	Log.i(TAG, "Actual startPlayback");
 		        	
 		        	// TODO: create console command to enable/disable rgb888
-		        	ProductSpecific.setRGB888Mode(true);
+		        	if (streamCtl.isRGB888HDMIVideoSupported)
+		        		ProductSpecific.setRGB888Mode(true);
 		        	
 		        	// Update window size in case the aspect ratio or stretch changes
 			        try {
@@ -282,7 +284,10 @@ public class CameraPreview {
 		        					validRes = true;
 		        					localParameters.setPreviewSize(hres, vres);
 		        					localParameters.set("ipp", "off");
-		        					localParameters.setPreviewFormat(ProductSpecific.getRGB888PixelFormat());
+		        					if (streamCtl.isRGB888HDMIVideoSupported)
+		        						localParameters.setPreviewFormat(ProductSpecific.getRGB888PixelFormat());
+		        					else
+		        						localParameters.setPreviewFormat(ImageFormat.NV21);
 		        					CresCamera.mCamera.setDisplayOrientation(0);
 		        					try {
 		        						CresCamera.mCamera.setParameters(localParameters);
@@ -358,7 +363,8 @@ public class CameraPreview {
 		            {
 						// This should be moved to the below comment once HWC.c is updated to act on mode changes, that way we don't have to set the mode while pipeline is running
 						// Otherwise screen will keep last frame up until a screen update occurs 
-						ProductSpecific.setRGB888Mode(false);
+		            	if (streamCtl.isRGB888HDMIVideoSupported)
+		            		ProductSpecific.setRGB888Mode(false);
 		                if (CresCamera.mCamera != null)
 		                {
 		                	CresCamera.mCamera.setPreviewCallback(null); //probably not necessary since handled by callback, but doesn't hurt

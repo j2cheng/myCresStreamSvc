@@ -1025,7 +1025,8 @@ public class CameraStreaming {
     	if (Boolean.parseBoolean(streamCtl.hdmiOutput.getSyncStatus()))
     	{
     		Log.i(TAG, "startConfidencePreview: calling updateWindow");
-    		streamCtl.getSurfaceView(sessionId).setTag("PreviewVideoLayer");
+    		if (streamCtl.isRGB888HDMIVideoSupported)
+    			streamCtl.getSurfaceView(sessionId).setTag("PreviewVideoLayer");
 	    	streamCtl.updateWindow(sessionId);
 	    	streamCtl.showPreviewWindow(sessionId);
 	    	streamCtl.cam_preview.setSessionIndex(sessionId);

@@ -203,6 +203,7 @@ public class CresStreamCtrl extends Service {
     public int mGstreamerTimeoutCount = 0;
     public boolean haveExternalDisplays;
     public boolean hideVideoOnStop = false;
+    public boolean isRGB888HDMIVideoSupported = true;
     public CrestronHwPlatform mHwPlatform;
     public String mProductName;
     public boolean mCameraDisabled = false;
@@ -356,6 +357,59 @@ public class CresStreamCtrl extends Service {
         	default:
 				Log.i(TAG, MiscUtils.stringFormat("Unknown hardware platform %d, please update enum!!!!!", x));
         		return eHardwarePlatform_Unknown;
+        	}
+        }
+    }
+    
+    public enum CrestronProductName
+    {
+    	DMC_STR(0xE4),
+    	TXRX(0x1C),
+    	DGE100(0x19),
+    	DGE200(0x1D),
+    	TS1542(0x17),
+    	TS1542_C(0x18),
+    	X60(0x7E00),
+    	Mercury(0x20),
+    	DMPS_4K_STR(0x24),
+    	AM300(0x2D),
+    	AM200(0x2E),
+    	Unknown(0x0);
+    	
+    	private final int value;
+    	
+    	CrestronProductName(int value) 
+        {
+            this.value = value;
+        }
+    	
+    	public static CrestronProductName fromInteger(int x) {
+        	switch(x) {
+        	case 0xE4:
+        		return DMC_STR;
+        	case 0x1C:
+        		return TXRX;
+        	case 0x19:
+        		return DGE100;
+        	case 0x1D:
+        		return DGE200;
+        	case 0x17:
+        		return TS1542;
+        	case 0x18:
+        		return TS1542_C;
+        	case 0x7E00:
+        		return X60;
+        	case 0x20:
+        		return Mercury;
+        	case 0x24:
+        		return DMPS_4K_STR;
+        	case 0x2D:
+        		return AM300;
+        	case 0x2E:
+            	return AM200;
+        	default:
+				Log.i(TAG, MiscUtils.stringFormat("Unknown product type %d, please update enum!!!!!", x));
+        		return Unknown;
         	}
         }
     }
@@ -687,7 +741,32 @@ public class CresStreamCtrl extends Service {
     				setAirMediaAdaptorSelect(0, 0);
     			}    				
     		}
-    		
+
+			// Product table 
+    		switch (CrestronProductName.fromInteger(nativeGetProductTypeEnum()))
+    		{
+	    		case DGE100:
+				case DGE200:
+				case TS1542:
+	    		case TS1542_C:
+	    		{
+					// Bug 154293: RGB888 on OMAP cannot support simultaneous video, BW limitation
+	    			isRGB888HDMIVideoSupported = false;
+	    			break;
+	    		}
+	    		case DMC_STR:
+	    		case TXRX:
+	    		case X60:
+	    		case Mercury:
+	    		case DMPS_4K_STR:
+	    		case AM300:
+	    		case AM200:
+	    		case Unknown:
+	    		{
+	    			// Todo: Handle when needed
+	    		}
+    		}
+
     		// This needs to be done before Gstreamer setup
     		{
     			// If mediaserver is in bad state this could get stuck
@@ -3028,10 +3107,13 @@ public class CresStreamCtrl extends Service {
     			Log.i(TAG, "Start " + sessionId + " : Lock");
 
     			// For preview mode we need to set layer mark for HWC
-    			if (userSettings.getMode(sessionId) == DeviceMode.PREVIEW.ordinal())
-    				getSurfaceView(sessionId).setTag("PreviewVideoLayer");
-    			else
-    				getSurfaceView(sessionId).setTag("VideoLayer");
+    			if (isRGB888HDMIVideoSupported)
+    			{
+    				if (userSettings.getMode(sessionId) == DeviceMode.PREVIEW.ordinal())
+    					getSurfaceView(sessionId).setTag("PreviewVideoLayer");
+    				else
+    					getSurfaceView(sessionId).setTag("VideoLayer");
+    			}
 
     			if (userSettings.getAirMediaLaunch(sessionId)) {
     				// If we are starting streaming shutoff air media
