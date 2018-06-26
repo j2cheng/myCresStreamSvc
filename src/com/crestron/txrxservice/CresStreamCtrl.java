@@ -107,10 +107,6 @@ public class CresStreamCtrl extends Service {
     public static boolean useGstreamer = true;
     StreamIn streamPlay = null;
     GstreamBase gstreamBase = null;
-    BroadcastReceiver hpdEvent = null;
-    BroadcastReceiver resolutionEvent = null;
-    BroadcastReceiver hdmioutResolutionChangedEvent = null;
-    
     WbsStreamIn wbsStream = null;
     
     private DisplayManager m_displayManager = null;
@@ -161,11 +157,17 @@ public class CresStreamCtrl extends Service {
     public final static String pinpointEnabledFilePath = "/dev/crestron/alphablendingenable";
     private final static String mercuryHdmiOutWaitFilePath = "/dev/shm/crestron/CresStreamSvc/mercuryWait";
     public final static String initializeSettingsFilePath = "/dev/shm/crestron/CresStreamSvc/initializeSettings";
+    public final static String hdmiInputHPDFilePath = "/dev/shm/crestron/hdmi/inputHpd";
+    public final static String hdmiInputResolutionFilePath = "/dev/shm/crestron/hdmi/inputResolution";
+    public final static String hdmiOutputResolutionFilePath = "/dev/shm/crestron/hdmi/outputResolution";
     public volatile boolean mMediaServerCrash = false;
     public volatile boolean mDucatiCrash = false;
     public volatile boolean mIgnoreAllCrash = false;
     private FileObserver mediaServerObserver;
     private FileObserver ravaModeObserver;
+    private FileObserver hdmiInputHpdObserver;
+    private FileObserver hdmiInputResolutionObserver;
+    private FileObserver hdmiOutputResolutionObserver;
     private Thread monitorCrashThread;
     private boolean mHDCPOutputStatus = false;
     private boolean mHDCPExternalStatus = false;
@@ -175,6 +177,7 @@ public class CresStreamCtrl extends Service {
     private boolean/*[]*/ mTxHdcpActive = false;//new boolean[NumOfSurfaces];
     private boolean mIgnoreHDCP = false; //FIXME: This is for testing
     public volatile boolean mForceHdcpStatusUpdate = true;
+    private int mCurrentHdmiInputResolution = 0;
     private int mPreviousValidHdmiInputResolution = 0;
     private int mPreviousAudioInputSampleRate = 0;
     public CountDownLatch streamingReadyLatch = new CountDownLatch(1);
@@ -908,8 +911,8 @@ public class CresStreamCtrl extends Service {
     		//AudioManager
     		amanager=(AudioManager)getSystemService(Context.AUDIO_SERVICE);
 
-    		//HPD and Resolution Event Registration
-    		registerBroadcasts();
+    		// Monitor HDMI for resolution changes
+    		monitorHdmiStates();
 
     		//Play Control
     		hm = new HashMap<Integer, Command>();
@@ -957,7 +960,7 @@ public class CresStreamCtrl extends Service {
 
     		// Flag to TCPInterface that streaming can start
     		streamingReadyLatch.countDown();
-
+    		    		
     		// Monitor mediaserver, if it crashes restart stream
     		monitorMediaServer();
 
@@ -1016,9 +1019,9 @@ public class CresStreamCtrl extends Service {
         saveSettingsShouldExit = true;
         sockTask.cancel(true);
         mediaServerObserver.stopWatching();
-        unregisterReceiver(resolutionEvent);
-        unregisterReceiver(hpdEvent);
-        unregisterReceiver(hdmioutResolutionChangedEvent);
+//		hdmiInputHpdObserver.stopWatching();
+    	hdmiInputResolutionObserver.stopWatching();
+    	hdmiOutputResolutionObserver.stopWatching();
         if (m_displayManager != null){
         	m_displayManager.unregisterDisplayListener(mDisplayListener);
         }
@@ -5019,157 +5022,191 @@ public class CresStreamCtrl extends Service {
         	}
 		}    	
     }
-
-    //Registering for HPD and Resolution Event detection	
-    void registerBroadcasts(){
-        Log.i(TAG, "registerBroadcasts !");
-        
-        resolutionEvent = new BroadcastReceiver()
+    
+    private void checkFileExistsElseCreate(String filePath)
+    {
+    	File file = new File (filePath);
+        if (!file.isFile())	//check if file exists
         {
-            public void onReceive(Context paramAnonymousContext, final Intent paramAnonymousIntent)
-            {
-            	// We need to make sure that the broadcastReceiver thread is not stuck processing start/stop requests
-            	// Therefore we will run all commands through a worker thread
-            	final CountDownLatch latch = new CountDownLatch(1);
-            	new Thread(new Runnable() {
-            		public void run() {
-            			hdmiLock.lock();
-		            	try
-		            	{
-		            		if (hdmiInputDriverPresent)
-		            		{
-		            			if (paramAnonymousIntent.getAction().equals("evs.intent.action.hdmi.RESOLUTION_CHANGED"))
-		            			{
-		            				if (hdmiLock.getQueueLength() == 0)
-		            				{
-		            					int resolutionId = paramAnonymousIntent.getIntExtra("evs_hdmi_resolution_id", -1);
+        	try {
+        		file.getParentFile().mkdirs(); 
+        		file.createNewFile();
+        	} catch (Exception e) {}
+        }
+    }
 
-		            					int prevResolutionIndex = hdmiInput.getResolutionIndex();
-		            					if (resolutionId != 0)
-		            						hdmiInput.setResolutionIndex(resolutionId);
-		            					
-		            					// This will start CSI bus as well as setup ducati
-                    					ProductSpecific.getHdmiInputStatus();
-                    					Log.i(TAG, "Setup CSI bus");
-
-		            					// Fix issue where we start video before we setup resolution 
-		            					refreshInputResolution();
-
-		            					setCameraAndRestartStreams(resolutionId); //we need to restart streams for resolution change		                	
-
-		            					//Wait 5 seconds before sending hdmi in sync state - bug 96552
-		            					if (nativeGetProductTypeEnum() == 0x1C)	// ONLY FOR TXRX, rest immediately send
-		            					{
-		            						new Thread(new Runnable() {
-		            							public void run() { 
-		            								try {
-		            									Thread.sleep(5000);
-		            								} catch (Exception e) { e.printStackTrace(); }				                			
-		            								sendHdmiInSyncState();
-		            							}
-		            						}).start();
-		            					}
-		            					// Dont add 5 seconds to HDMI display time bug 134029
-		            					else
-		            					{
-		            						sendHdmiInSyncState();
-		            					}
-		            					hpdHdmiEvent = 1;
-		            					Log.i(TAG, "HDMI resolutions - HRes:" + hdmiInput.getHorizontalRes() + " Vres:" + hdmiInput.getVerticalRes());
-		            				}
-		            			}
-		            			else
-		            				Log.i(TAG, " Nothing to do!!!");
-		            		}
-		            	}
-		            	finally
-		            	{
-		            		hdmiLock.unlock();
-		            	}
-		            	latch.countDown();
-            		}
-            	}).start();
-        	}            
+    private void monitorHdmiStates()
+    {
+    	final Object hdmiObserverLock = new Object();
+    	// Make sure all files exist before observing
+    	checkFileExistsElseCreate(hdmiInputHPDFilePath);
+    	checkFileExistsElseCreate(hdmiInputResolutionFilePath);
+    	checkFileExistsElseCreate(hdmiOutputResolutionFilePath);
+		       
+    	// Monitor input HPD events
+//        hdmiInputHpdObserver = new FileObserver(hdmiInputHPDFilePath, FileObserver.CLOSE_WRITE) {						
+//			@Override
+//			public void onEvent(int event, String path) {
+//				synchronized (hdmiObserverLock) {
+//					Log.i(TAG, "Received HDMI input HPD event");
+//					int hpdId = 0;
+//					try 
+//					{
+//						hpdId =  Integer.parseInt(MiscUtils.readStringFromDisk(hdmiInputHPDFilePath));
+//						handleHdmiInputHpdEvent(hpdId);
+//					} 
+//					catch (NumberFormatException e)
+//					{
+//						Log.w(TAG, "Invalid HPD id found " + e.toString());
+//					}				
+//					Log.i(TAG, "Finished HDMI input HPD event");
+//				}				
+//			}
+//		};
+//		hdmiInputHpdObserver.startWatching();
+		
+		// Monitor input resolution events
+        hdmiInputResolutionObserver = new FileObserver(hdmiInputResolutionFilePath, FileObserver.CLOSE_WRITE) {						
+			@Override
+			public void onEvent(int event, String path) {
+				try 
+				{
+					synchronized (hdmiObserverLock) {
+						Log.i(TAG, "Received HDMI input resolution event");
+						int resolutionId = 0;
+						try 
+						{
+							resolutionId =  Integer.parseInt(MiscUtils.readStringFromDisk(hdmiInputResolutionFilePath));
+							handleHdmiInputResolutionEvent(resolutionId);
+						} 
+						catch (NumberFormatException e)
+						{
+							Log.w(TAG, "Invalid resolution found " + e.toString());
+						}				
+						Log.i(TAG, "Finished HDMI input resolution event");
+					}
+				}
+				catch (Exception e)
+				{
+					e.printStackTrace();
+				}
+			}
         };
-        IntentFilter resolutionIntentFilter = new IntentFilter("evs.intent.action.hdmi.RESOLUTION_CHANGED");
-        registerReceiver(resolutionEvent, resolutionIntentFilter);
-        hpdEvent = new BroadcastReceiver()
-        {
-            public void onReceive(Context paramAnonymousContext, final Intent paramAnonymousIntent)
-            {
-            	// We need to make sure that the broadcastReceiver thread is not stuck processing start/stop requests
-            	// Therefore we will run all commands through a worker thread
-            	final CountDownLatch latch = new CountDownLatch(1);
-            	new Thread(new Runnable() {
-            		public void run() {
-            			hdmiLock.lock();
-                    	try
-                    	{
-                    		if (hdmiInputDriverPresent)
-		            		{
-                    			if (paramAnonymousIntent.getAction().equals("evs.intent.action.hdmi.HPD"))
-                    			{
-                    				if ((hdmiLock.getQueueLength() == 0) || (hdmiLock.getQueueLength() == 1))
-                    				{
-                    					int i = paramAnonymousIntent.getIntExtra("evs_hdmi_hdp_id", -1);
-                    					if (i == 0)
-                    						setNoVideoImage(true);
-                    					sendHdmiInSyncState();
-                    					
-                    					Log.i(TAG, "Received hpd broadcast ! " + i);
-                    					hpdHdmiEvent = 1;
-                    					mForceHdcpStatusUpdate = true;
-                    				}
-                    			}
-		            		}
-                    	}
-                    	finally
-                    	{
-                    		hdmiLock.unlock();
-                    	}
-                    	latch.countDown();
-            		}
-            	}).start();    
-            }
-        };
-        IntentFilter hpdIntentFilter = new IntentFilter("evs.intent.action.hdmi.HPD");
-        registerReceiver(hpdEvent, hpdIntentFilter);	
-        
-        final CresStreamCtrl streamCtrl = this;
+		hdmiInputResolutionObserver.startWatching();
+		
+		// Monitor output resolution events
+        hdmiOutputResolutionObserver = new FileObserver(hdmiOutputResolutionFilePath, FileObserver.CLOSE_WRITE) {						
+			@Override
+			public void onEvent(int event, String path) {
+				try
+				{
+					synchronized (hdmiObserverLock) {
+						Log.i(TAG, "Received HDMI output resolution");
+						int hdmiOutResolutionEnum = 0;
+						try 
+						{
+							hdmiOutResolutionEnum =  Integer.parseInt(MiscUtils.readStringFromDisk(hdmiOutputResolutionFilePath));
+							Log.i(TAG, "Received hdmiout resolution changed broadcast ! " + hdmiOutResolutionEnum);
 
-        hdmioutResolutionChangedEvent = new BroadcastReceiver()
-        {
-            public void onReceive(Context paramAnonymousContext, final Intent paramAnonymousIntent)
-            {
-            	// We need to make sure that the broadcastReceiver thread is not stuck processing start/stop requests
-            	// Therefore we will run all commands through a worker thread
-            	final CountDownLatch latch = new CountDownLatch(1);
-            	new Thread(new Runnable() {
-            		public void run() {
-		                if (paramAnonymousIntent.getAction().equals("evs.intent.action.hdmi.HDMIOUT_RESOLUTION_CHANGED"))
-		                {
-		                	if (!haveExternalDisplays)
-		                	{
-		                		Log.i(TAG, "receiving intent!!!!");
-
-		                		int hdmiOutResolutionEnum = paramAnonymousIntent.getIntExtra("evs_hdmiout_resolution_changed_id", -1);
-		                		Log.i(TAG, "Received hdmiout resolution changed broadcast ! " + hdmiOutResolutionEnum);
-
-		                		synchronized (mDisplayChangedLock) 
-		                		{
-		                			handleHdmiOutputChange();
-		                		}
-		                	}
-		                }
-		                latch.countDown();
-		            }
-            	}).start();
-            }
-        };
-        IntentFilter hdmioutResolutionIntentFilter = new IntentFilter("evs.intent.action.hdmi.HDMIOUT_RESOLUTION_CHANGED");
-        registerReceiver(hdmioutResolutionChangedEvent, hdmioutResolutionIntentFilter);
+							synchronized (mDisplayChangedLock) 
+							{
+								handleHdmiOutputChange();
+							}
+						} 
+						catch (NumberFormatException e)
+						{
+							Log.w(TAG, "Invalid resolution id found " + e.toString());
+						}
+						Log.i(TAG, "Finished HDMI output resolution event");
+					}
+				}
+				catch (Exception e)
+				{
+					e.printStackTrace();
+				}
+			}
+		};
+		hdmiOutputResolutionObserver.startWatching();
     }
     
+    void handleHdmiInputHpdEvent(int hpdId)
+    {
+    	hdmiLock.lock();
+    	Log.d(TAG, "HDMI lock: locked");
+    	try
+    	{
+    		if (hdmiInputDriverPresent)
+    		{
+				if (hpdId == 0)
+					setNoVideoImage(true);
+				sendHdmiInSyncState();
+
+				Log.i(TAG, "Received hpd broadcast ! " + hpdId);
+				hpdHdmiEvent = 1;
+				mForceHdcpStatusUpdate = true;
+       		}
+    	}
+    	finally
+    	{
+    		hdmiLock.unlock();
+    		Log.d(TAG, "HDMI lock: unlocked");
+    	}
+    }
+    
+    void handleHdmiInputResolutionEvent(int resolutionId)
+    {
+    	hdmiLock.lock();
+    	Log.d(TAG, "HDMI lock: locked");
+    	try
+    	{
+    		if (hdmiInputDriverPresent)
+    		{
+    			if (resolutionId != mCurrentHdmiInputResolution)
+    			{
+    				mCurrentHdmiInputResolution = resolutionId;
+    				int prevResolutionIndex = hdmiInput.getResolutionIndex();
+    				if (resolutionId != 0)
+    					hdmiInput.setResolutionIndex(resolutionId);
+
+    				// This will start CSI bus as well as setup ducati
+    				ProductSpecific.getHdmiInputStatus();
+    				Log.i(TAG, "Setup CSI bus");
+
+    				// Fix issue where we start video before we setup resolution 
+    				refreshInputResolution();
+
+    				setCameraAndRestartStreams(resolutionId); //we need to restart streams for resolution change		                	
+
+    				//Wait 5 seconds before sending hdmi in sync state - bug 96552
+    				if (nativeGetProductTypeEnum() == 0x1C)	// ONLY FOR TXRX, rest immediately send
+    				{
+    					new Thread(new Runnable() {
+    						public void run() { 
+    							try {
+    								Thread.sleep(5000);
+    							} catch (Exception e) { e.printStackTrace(); }				                			
+    							sendHdmiInSyncState();
+    						}
+    					}).start();
+    				}
+    				// Dont add 5 seconds to HDMI display time bug 134029
+    				else
+    				{
+    					sendHdmiInSyncState();
+    				}
+    				hpdHdmiEvent = 1;
+    				mForceHdcpStatusUpdate = true;
+    				Log.i(TAG, "HDMI resolutions - HRes:" + hdmiInput.getHorizontalRes() + " Vres:" + hdmiInput.getVerticalRes());
+    			}
+    		}
+    	}
+    	finally
+    	{
+    		hdmiLock.unlock();
+    		Log.d(TAG, "HDMI lock: unlocked");
+    	}
+    }
+   
     public void handleHdmiOutputChange()
 	{
 		refreshOutputResolution();
