@@ -177,7 +177,7 @@ public class CresStreamCtrl extends Service {
     private boolean/*[]*/ mTxHdcpActive = false;//new boolean[NumOfSurfaces];
     private boolean mIgnoreHDCP = false; //FIXME: This is for testing
     public volatile boolean mForceHdcpStatusUpdate = true;
-    private int mCurrentHdmiInputResolution = 0;
+    private int mCurrentHdmiInputResolution = -1;
     private int mPreviousValidHdmiInputResolution = 0;
     private int mPreviousAudioInputSampleRate = 0;
     public CountDownLatch streamingReadyLatch = new CountDownLatch(1);
