@@ -31,6 +31,7 @@ public class CameraPreview {
     //List<Camera.Size> mSupportedPreviewSizes;
     CresStreamCtrl streamCtl;
     private int idx = 0;
+    private Thread preview_timeout_thread=null;
 
     //public CameraPreview(CresStreamCtrl ctl, SurfaceHolder vHolder, HDMIInputInterface hdmiInIface) {
     public CameraPreview(CresStreamCtrl ctl, HDMIInputInterface hdmiInIface) {
@@ -307,6 +308,12 @@ public class CameraPreview {
 		        				Log.i(TAG, "Camera preview size: " + localParameters.getPreviewSize().width + "x" + localParameters.getPreviewSize().height);
 		        				CresCamera.mCamera.setPreviewCallback(new PreviewCB(confidenceMode));
 		        				CresCamera.mCamera.setErrorCallback(new ErrorCB(confidenceMode));
+		        				if (preview_timeout_thread != null) {
+		        					// if prior thread exists - kill it
+		        					preview_timeout_thread.interrupt();
+		        				}
+		        				preview_timeout_thread = new Thread(new previewTimeout());
+		        				preview_timeout_thread.start();
 		        				CresCamera.mCamera.startPreview();
 
 		        				startAudio(); 
@@ -348,6 +355,20 @@ public class CameraPreview {
     		streamCtl.RecoverMediaServer();
     	}
 
+    }
+    
+    public class previewTimeout implements Runnable {
+    	public void run() {
+			Log.i(TAG, "previewTimeoutThread launched to monitor completion of startCameraPreview()");
+			try {
+				Thread.sleep(30000);
+				Log.i(TAG, " previewTimeoutThread timeout expired - calling RecoverMediaServer");
+				streamCtl.RecoverMediaServer();
+			} catch (InterruptedException e) {
+				Log.i(TAG, "previewTimeoutThread exit before timeout");
+			}
+    		preview_timeout_thread = null;
+    	}
     }
 
     public void stopPlayback(final boolean confidenceMode)
@@ -477,6 +498,11 @@ public class CameraPreview {
     	
 		@Override
 		public void onPreviewFrame(byte[] data, Camera camera) {
+			if (preview_timeout_thread != null)
+			{
+				Log.i(TAG, "got first preview frame - kill preview timeout thread");
+				preview_timeout_thread.interrupt();
+			}
 			if (confidenceMode)
             	streamCtl.SendStreamState(StreamState.CONFIDENCEMODE, idx);
             else
