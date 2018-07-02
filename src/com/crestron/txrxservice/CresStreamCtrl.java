@@ -3090,6 +3090,30 @@ public class CresStreamCtrl extends Service {
         	Log.i(TAG, "setCurrentStreamState(): StreamState " + sessionId + " : Unlock");
     	}
     }
+    
+    public void setForceRgbPreviewMode(boolean enable)
+    {
+    	int sessionId = 0;	// This is debug, assume always id 0
+    	if (enable)
+    	{
+    		// Start
+    		Log.d(TAG, "Starting debug RGB preview mode");    		
+    		getSurfaceView(sessionId).setTag("PreviewVideoLayer");
+	    	updateWindow(sessionId);
+	    	showPreviewWindow(sessionId);
+	    	cam_preview.setSessionIndex(sessionId);
+	    	cam_preview.startPlayback(false, true);
+    	}
+    	else
+    	{
+    		// Stop
+    		Log.d(TAG, "Stopping debug RGB preview mode");
+    		hidePreviewWindow(sessionId);
+        	cam_preview.setSessionIndex(sessionId);
+        	cam_preview.stopPlayback(false, true);
+            getSurfaceView(sessionId).setTag("VideoLayer");
+    	}
+    }
 
     //Ctrls
     public void Start(int sessionId)

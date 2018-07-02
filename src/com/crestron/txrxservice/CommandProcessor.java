@@ -2413,6 +2413,22 @@ class SetWbsLogLevelCommand extends CrestronCommand {
 	}
 }
 
+class ForceRgbPreviewModeCommand extends CrestronCommand {
+
+	public ForceRgbPreviewModeCommand(CresStreamCtrl ctrl, String arg) {
+		super(ctrl, arg);
+	}
+
+	@Override
+	public void execute() {
+		try {
+			boolean val = Boolean.valueOf(msg);
+			ctrl.setForceRgbPreviewMode(val);
+		} catch (Exception e) {}
+	}
+	// no feedback
+}
+
 class SetLogLevelCommand extends CrestronCommand {
 
 	public SetLogLevelCommand(CresStreamCtrl ctrl, String arg) {

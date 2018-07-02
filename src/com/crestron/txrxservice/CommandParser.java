@@ -192,6 +192,7 @@ public class CommandParser {
         FDEBUG_JNI,
         RESET_ALL_WINDOWS,
         WBSLOGLEVEL,
+        FORCE_RGB_PREVIEW_MODE,
     	LOGLEVEL;
     	//UPDATEREQUEST;
     }
@@ -782,6 +783,9 @@ public class CommandParser {
             	break;
             case WBSLOGLEVEL:
             	cmd = new SetWbsLogLevelCommand(ctrl, arg);
+            	break;
+            case FORCE_RGB_PREVIEW_MODE:
+            	cmd = new ForceRgbPreviewModeCommand(ctrl, arg);
             	break;
             case LOGLEVEL:
             	cmd = new SetLogLevelCommand(ctrl, arg);

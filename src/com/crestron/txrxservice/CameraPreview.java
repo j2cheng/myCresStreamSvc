@@ -122,15 +122,20 @@ public class CameraPreview {
     }
     
     public void startPlayback(final boolean confidenceMode){
+		// By default do not force RGB (only used for debugging)
+    	startPlayback(confidenceMode, false);
+    }
+    
+    public void startPlayback(final boolean confidenceMode, final boolean forceRgb){
     	final CountDownLatch latch = new CountDownLatch(1);
     	Thread startThread = new Thread(new Runnable() {
     		public void run() {
 		        Log.i(TAG, "starting Playback " + is_preview);
 		        if(is_preview == false){		        	
-		        	Log.i(TAG, "Actual startPlayback");
+		        	Log.i(TAG, "Actual startPlayback, forceRGB set to " + forceRgb);
 		        	
 		        	// TODO: create console command to enable/disable rgb888
-		        	if (streamCtl.isRGB888HDMIVideoSupported)
+		        	if (forceRgb || streamCtl.isRGB888HDMIVideoSupported)
 		        		ProductSpecific.setRGB888Mode(true);
 		        	
 		        	// Update window size in case the aspect ratio or stretch changes
@@ -285,7 +290,7 @@ public class CameraPreview {
 		        					validRes = true;
 		        					localParameters.setPreviewSize(hres, vres);
 		        					localParameters.set("ipp", "off");
-		        					if (streamCtl.isRGB888HDMIVideoSupported)
+		        					if (forceRgb || streamCtl.isRGB888HDMIVideoSupported)
 		        						localParameters.setPreviewFormat(ProductSpecific.getRGB888PixelFormat());
 		        					else
 		        						localParameters.setPreviewFormat(ImageFormat.NV21);
@@ -356,8 +361,8 @@ public class CameraPreview {
     	}
 
     }
-    
-    public class previewTimeout implements Runnable {
+
+ 	public class previewTimeout implements Runnable {
     	public void run() {
 			Log.i(TAG, "previewTimeoutThread launched to monitor completion of startCameraPreview()");
 			try {
@@ -370,21 +375,26 @@ public class CameraPreview {
     		preview_timeout_thread = null;
     	}
     }
+    
+    public void stopPlayback(final boolean confidenceMode){
+		// By default do not force RGB (only used for debugging)
+    	stopPlayback(confidenceMode, false);
+    }
 
-    public void stopPlayback(final boolean confidenceMode)
+    public void stopPlayback(final boolean confidenceMode, final boolean forceRgb)
     {
     	final CountDownLatch latch = new CountDownLatch(1);
     	Thread stopThread = new Thread(new Runnable() {
     		public void run() {
 		    	// TODO: ioctl crash when input hdmi is plugged in but no video passing
-		        Log.i(TAG, "stopPlayback");
+		        Log.i(TAG, "stopPlayback, forceRgb is set to " + forceRgb);
 		        if(is_preview)
 		        {
 		            try
 		            {
 						// This should be moved to the below comment once HWC.c is updated to act on mode changes, that way we don't have to set the mode while pipeline is running
 						// Otherwise screen will keep last frame up until a screen update occurs 
-		            	if (streamCtl.isRGB888HDMIVideoSupported)
+		            	if (forceRgb || streamCtl.isRGB888HDMIVideoSupported)
 		            		ProductSpecific.setRGB888Mode(false);
 		                if (CresCamera.mCamera != null)
 		                {
@@ -414,7 +424,6 @@ public class CameraPreview {
 		        
 		        // Reset Tag
 				streamCtl.getSurfaceView(idx).setTag("VideoLayer");
-		        //ProductSpecific.setRGB888Mode(false);
 		        
 		        latch.countDown();
     		}
