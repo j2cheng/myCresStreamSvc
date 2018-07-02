@@ -314,6 +314,7 @@ public class CameraPreview {
 		        				CresCamera.mCamera.setPreviewCallback(new PreviewCB(confidenceMode));
 		        				CresCamera.mCamera.setErrorCallback(new ErrorCB(confidenceMode));
 		        				if (preview_timeout_thread != null) {
+			        				Log.i(TAG, "startPlayback(): interrupt existing preview_timeout_thread");
 		        					// if prior thread exists - kill it
 		        					preview_timeout_thread.interrupt();
 		        				}
@@ -396,6 +397,12 @@ public class CameraPreview {
 						// Otherwise screen will keep last frame up until a screen update occurs 
 		            	if (forceRgb || streamCtl.isRGB888HDMIVideoSupported)
 		            		ProductSpecific.setRGB888Mode(false);
+		            	if (preview_timeout_thread != null)
+		            	{
+	        				Log.i(TAG, "stopPlayback(): interrupt existing preview_timeout_thread");
+        					// if prior thread exists - kill it
+        					preview_timeout_thread.interrupt();		            		
+		            	}
 		                if (CresCamera.mCamera != null)
 		                {
 		                	CresCamera.mCamera.setPreviewCallback(null); //probably not necessary since handled by callback, but doesn't hurt
