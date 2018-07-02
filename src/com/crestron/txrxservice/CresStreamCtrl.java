@@ -752,13 +752,13 @@ public class CresStreamCtrl extends Service {
 				case DGE200:
 				case TS1542:
 	    		case TS1542_C:
+	    		case TXRX:
 	    		{
 					// Bug 154293: RGB888 on OMAP cannot support simultaneous video, BW limitation
 	    			isRGB888HDMIVideoSupported = false;
 	    			break;
 	    		}
 	    		case DMC_STR:
-	    		case TXRX:
 	    		case X60:
 	    		case Mercury:
 	    		case DMPS_4K_STR:
