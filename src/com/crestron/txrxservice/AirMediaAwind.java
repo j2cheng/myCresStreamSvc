@@ -117,7 +117,7 @@ public class AirMediaAwind implements AirMedia
     	mStreamCtl.setHostName("");
     	mStreamCtl.setDomainName("");
     	Log.i(TAG, "HostName="+mStreamCtl.hostName+"   DomainName="+mStreamCtl.domainName);
-    	mStreamCtl.sendAirMediaConnectionAddress(0);  
+    	mStreamCtl.sendAirMediaConnectionAddress();  
 
     	shutDownAirMediaAwind();	// In case AirMediaAwind was already running shut it down
     	
@@ -184,7 +184,7 @@ public class AirMediaAwind implements AirMedia
     	if (mStreamCtl.userSettings.getAirMediaLaunch(0))
     	{
     		Log.i(TAG, "Force recovering AirMedia");
-    		hide(true);	// Need to stop sender in order to recover
+    		hide(0, true);	// Need to stop sender in order to recover
 
     		try { Thread.sleep(5000); } catch (InterruptedException e) {};		
 
@@ -198,14 +198,14 @@ public class AirMediaAwind implements AirMedia
 				width = size.x;
 				height = size.y;
 			}
-    		show(mStreamCtl.userSettings.getAirMediaX(),
+    		show(0, mStreamCtl.userSettings.getAirMediaX(),
     				mStreamCtl.userSettings.getAirMediaY(),
     				width,
     				height);
     	}
     }
     
-    public void show(int x, int y, int width, int height)
+    public void show(int sessionId, int x, int y, int width, int height)
     {
     	if (surfaceDisplayed == false)
     	{
@@ -225,7 +225,7 @@ public class AirMediaAwind implements AirMedia
     		Log.i(TAG, "AirMedia already shown, ignoring request");
     }    
     
-    public void hide(boolean sendStopToSender, boolean clear)
+    public void hide(int sessionId, boolean sendStopToSender, boolean clear)
     {
     	if (surfaceDisplayed == true)
     	{
@@ -242,9 +242,9 @@ public class AirMediaAwind implements AirMedia
     		Log.i(TAG, "AirMedia already hidden, ignoring request");
     }
     
-    public void hide(boolean sendTopToSender)
+    public void hide(int sessionId, boolean sendTopToSender)
     {
-    	hide(sendTopToSender, true);
+    	hide(0, sendTopToSender, true);
     }
     
     public boolean getSurfaceDisplayed()

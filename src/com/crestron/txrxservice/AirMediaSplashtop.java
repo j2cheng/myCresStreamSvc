@@ -77,8 +77,8 @@ public class AirMediaSplashtop implements AirMedia
     String TAG = "TxRx Splashtop AirMedia"; 
 	private boolean surfaceDisplayed = false;
 	private boolean doneQuerySenderList = true;
+	private int streamIdx = 0;
 	private static final boolean DEBUG = true;
-	private static final int streamIdx = 0;
 	private static final int MAX_USERS = 32;
 	private static final int CODEC_ERROR = 1;
 	private static final int MEDIA_SERVER_HANG = 2;
@@ -193,9 +193,9 @@ public class AirMediaSplashtop implements AirMedia
     	mStreamCtl.setHostName("");
     	mStreamCtl.setDomainName("");
     	Common.Logging.i(TAG, "HostName="+mStreamCtl.hostName+"   DomainName="+mStreamCtl.domainName);
-    	mStreamCtl.sendAirMediaConnectionAddress(streamIdx);
-    	Common.Logging.i(TAG, "IP address from CresStreamSvc: "+mStreamCtl.getAirMediaConnectionIpAddress(streamIdx));
-    	set_pending_adapter_ip_address(mStreamCtl.getAirMediaConnectionIpAddress(streamIdx));
+    	mStreamCtl.sendAirMediaConnectionAddress();
+    	Common.Logging.i(TAG, "IP address from CresStreamSvc: "+mStreamCtl.getAirMediaConnectionIpAddress());
+    	set_pending_adapter_ip_address(mStreamCtl.getAirMediaConnectionIpAddress());
     	set_adapter_ip_address();
     	
     	launchReceiverService(); // will do its job asynchronously
@@ -311,7 +311,7 @@ public class AirMediaSplashtop implements AirMedia
 		Common.Logging.i(TAG, "startAirMedia: Device IP="+mStreamCtl.userSettings.getDeviceIp()+"   Aux IP="+mStreamCtl.userSettings.getAuxiliaryIp());
 
 		set_adapter_ip_address();
-		version = mStreamCtl.getAirMediaVersion(streamIdx);
+		version = mStreamCtl.getAirMediaVersion();
 		Common.Logging.i(TAG, "Receiver apk version: " + version);
 		productName = mStreamCtl.mProductName + " " + version;
 		Common.Logging.i(TAG, "Product Name: " + productName);
@@ -365,6 +365,15 @@ public class AirMediaSplashtop implements AirMedia
     	return isAirMediaUp;
     }
     
+    private void setSessionId(int sessionId)
+    {
+    	if (sessionId != streamIdx)
+    	{
+    		Common.Logging.i(TAG, "setSessionId() **** sessionId = " + sessionId + " ****");
+    		streamIdx = sessionId;
+    	}
+    }
+    
     // synchronous version of receiver stop - waits for completion
     private boolean stopReceiver()
     {
@@ -387,7 +396,7 @@ public class AirMediaSplashtop implements AirMedia
     {
     	synchronized (startStopReceiverLock) {
     		Common.Logging.i(TAG, "startReceiver() enter (thread="+Integer.toHexString((int)(Thread.currentThread().getId()))+")");
-        	mStreamCtl.setUpdateStreamStateOnFirstFrame(streamIdx, false);
+        	mStreamCtl.initUpdateStreamStateOnFirstFrame(false);
     		boolean successfulStart = true;
     		receiverStartedLatch = new CountDownLatch(1);
     		receiver().start();
@@ -447,7 +456,7 @@ public class AirMediaSplashtop implements AirMedia
     	synchronized(adapter_ip_address) {
     		if (pending_adapter_ip_address == null)
     		{
-    			pending_adapter_ip_address = mStreamCtl.getAirMediaConnectionIpAddress(streamIdx);
+    			pending_adapter_ip_address = mStreamCtl.getAirMediaConnectionIpAddress();
         		Log.i(TAG, "set_adapter_ip_ddress(): Pending adapter IP address was null, now set to "+pending_adapter_ip_address);
     		}
     		adapter_ip_address = pending_adapter_ip_address;
@@ -594,7 +603,7 @@ public class AirMediaSplashtop implements AirMedia
     		if (mStreamCtl.userSettings.getAirMediaLaunch(sessId))
     		{
     			Common.Logging.i(TAG, "recover(): calling hide");
-    			hide(true);	// Need to stop sender in order to recover
+    			hide(sessId, true);	// Need to stop sender in order to recover
     			
     			try { Thread.sleep(5000); } catch (InterruptedException e) {};	
 
@@ -611,15 +620,16 @@ public class AirMediaSplashtop implements AirMedia
     					height = size.y;
     				}
     				Common.Logging.i(TAG, "recover(): calling show");
-    				show(mStreamCtl.userSettings.getAirMediaX(), mStreamCtl.userSettings.getAirMediaY(),width,height);
+    				show(sessId, mStreamCtl.userSettings.getAirMediaX(), mStreamCtl.userSettings.getAirMediaY(),width,height);
     			}
     		}
     	}
     }    
     
-    public void show(int x, int y, int width, int height)
+    public void show(int sessionId, int x, int y, int width, int height)
     {
     	orderedLock.lock("show");
+    	setSessionId(sessionId);
     	try {
     		Rect window = new Rect(x, y, x+width-1, y+height-1);
     		if (surfaceDisplayed == false || !MiscUtils.rectanglesAreEqual(window_, window))
@@ -651,9 +661,10 @@ public class AirMediaSplashtop implements AirMedia
     	}
     } 
     
-    public void hide(boolean sendStopToSender, boolean clear)
+    public void hide(int sessionId, boolean sendStopToSender, boolean clear)
     {
     	orderedLock.lock("hide");
+    	setSessionId(sessionId);
     	try {
     		if (surfaceDisplayed == true)
     		{
@@ -683,9 +694,9 @@ public class AirMediaSplashtop implements AirMedia
     	}
     }
     
-    public void hide(boolean sendTopToSender)
+    public void hide(int sessionId, boolean sendTopToSender)
     {
-    	hide(sendTopToSender, true);
+    	hide(sessionId, sendTopToSender, true);
     }
     
     private int session2user(/*@NonNull */AirMediaSession session)

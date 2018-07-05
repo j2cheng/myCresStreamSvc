@@ -1768,7 +1768,7 @@ class AirMediaLoginCodeCommand extends CrestronCommand {
 	public void execute() {
 		// Lock here because setAirMediaLoginCode can be called from constructor
 		synchronized (ctrl.mAirMediaLock) {
-			this.setFbMsg = ctrl.setAirMediaLoginCode(VALIDATE_INT(msg), sessId);
+			this.setFbMsg = ctrl.setAirMediaLoginCode(VALIDATE_INT(msg));
 		}
 	}
 	public String getFeedbackMsg() {
@@ -1784,7 +1784,7 @@ class AirMediaLoginModeCommand extends CrestronCommand {
 	public void execute() {
 		// Lock here because setAirMediaLoginMode can be called from constructor
 		synchronized (ctrl.mAirMediaLock) {
-			this.setFbMsg = ctrl.setAirMediaLoginMode(VALIDATE_INT(msg), sessId);
+			this.setFbMsg = ctrl.setAirMediaLoginMode(VALIDATE_INT(msg));
 		}
 	}
 	public String getFeedbackMsg() {
@@ -1797,7 +1797,7 @@ class AirMediaModeratorCommand extends CrestronCommand {
 		super(ctrl, arg, sessId);
 	}
 	public void execute() {
-		ctrl.setAirMediaModerator(Boolean.valueOf(msg), sessId);
+		ctrl.setAirMediaModerator(Boolean.valueOf(msg));
 	}
 	public String getFeedbackMsg() {
 		return Boolean.toString(ctrl.userSettings.getAirMediaModerator());
@@ -1809,7 +1809,7 @@ class AirMediaResetConnectionsCommand extends CrestronCommand {
 		super(ctrl, arg, sessId);
 	}
 	public void execute() {
-		ctrl.setAirMediaResetConnections(Boolean.valueOf(msg), sessId);
+		ctrl.setAirMediaResetConnections(Boolean.valueOf(msg));
 	}
 	public String getFeedbackMsg() {
 		return Boolean.toString(ctrl.userSettings.getAirMediaResetConnections());
@@ -1885,7 +1885,7 @@ class AirMediaOsdImageCommand extends CrestronCommand {
 		super(ctrl, arg, sessId);
 	}	
 	public void execute() {
-		ctrl.setAirMediaOsdImage(msg, sessId);
+		ctrl.setAirMediaOsdImage(msg);
 	}
 	public String getFeedbackMsg() {
 		return ctrl.userSettings.getAirMediaOsdImage();
@@ -1897,7 +1897,7 @@ class AirMediaIpAddressPromptCommand extends CrestronCommand {
 		super(ctrl, arg, sessId);
 	}	
 	public void execute() {
-		ctrl.setAirMediaIpAddressPrompt(Boolean.valueOf(msg), sessId);
+		ctrl.setAirMediaIpAddressPrompt(Boolean.valueOf(msg));
 	}
 	public String getFeedbackMsg() {
 		return Boolean.toString(ctrl.userSettings.getAirMediaIpAddressPrompt());
@@ -1909,7 +1909,7 @@ class AirMediaDomainNamePromptCommand extends CrestronCommand {
 		super(ctrl, arg, sessId);
 	}	
 	public void execute() {
-		ctrl.setAirMediaDomainNamePrompt(Boolean.valueOf(msg), sessId);
+		ctrl.setAirMediaDomainNamePrompt(Boolean.valueOf(msg));
 	}
 	public String getFeedbackMsg() {
 		return Boolean.toString(ctrl.userSettings.getAirMediaDomainNamePrompt());
@@ -1921,7 +1921,7 @@ class AirMediaHostNamePromptCommand extends CrestronCommand {
 		super(ctrl, arg, sessId);
 	}	
 	public void execute() {
-		ctrl.setAirMediaHostNamePrompt(Boolean.valueOf(msg), sessId);
+		ctrl.setAirMediaHostNamePrompt(Boolean.valueOf(msg));
 	}
 	public String getFeedbackMsg() {
 		return Boolean.toString(ctrl.userSettings.getAirMediaHostNamePrompt());
@@ -1933,7 +1933,7 @@ class AirMediaCustomPromptCommand extends CrestronCommand {
 		super(ctrl, arg, sessId);
 	}	
 	public void execute() {
-		ctrl.setAirMediaCustomPrompt(Boolean.valueOf(msg), sessId);
+		ctrl.setAirMediaCustomPrompt(Boolean.valueOf(msg));
 	}
 	public String getFeedbackMsg() {
 		return Boolean.toString(ctrl.userSettings.getAirMediaCustomPrompt());
@@ -1945,7 +1945,7 @@ class AirMediaDisplayConnectionOptionEnableCommand extends CrestronCommand {
 		super(ctrl, arg, sessId);
 	}	
 	public void execute() {
-		ctrl.setAirMediaDisplayConnectionOptionEnable(Boolean.valueOf(msg), sessId);
+		ctrl.setAirMediaDisplayConnectionOptionEnable(Boolean.valueOf(msg));
 	}
 	public String getFeedbackMsg() {
 		return Boolean.toString(ctrl.userSettings.getAirMediaDisplayConnectionOptionEnable());
@@ -1957,7 +1957,7 @@ class AirMediaDisplayConnectionOptionCommand extends CrestronCommand {
 		super(ctrl, arg, sessId);
 	}	
 	public void execute() {
-		ctrl.setAirMediaDisplayConnectionOption(VALIDATE_INT(msg), sessId);
+		ctrl.setAirMediaDisplayConnectionOption(VALIDATE_INT(msg));
 	}
 	public String getFeedbackMsg() {
 		return String.valueOf(ctrl.userSettings.getAirMediaDisplayConnectionOption());
@@ -1969,7 +1969,7 @@ class AirMediaCustomPromptStringCommand extends CrestronCommand {
 		super(ctrl, arg, sessId);
 	}	
 	public void execute() {
-		ctrl.setAirMediaCustomPromptString(msg, sessId);
+		ctrl.setAirMediaCustomPromptString(msg);
 	}
 	public String getFeedbackMsg() {
 		return ctrl.userSettings.getAirMediaCustomPromptString();
@@ -1998,7 +1998,7 @@ class AirMediaWindowXOffsetCommand extends CrestronCommand {
 		super(ctrl, arg, sessId);
 	}	
 	public void execute() {
-		ctrl.setAirMediaWindowXOffset(VALIDATE_INT(msg), sessId);
+		ctrl.setAirMediaWindowXOffset(VALIDATE_INT(msg));
 	}
 	public String getFeedbackMsg() {
 		return String.valueOf(ctrl.userSettings.getAirMediaX());
@@ -2010,7 +2010,7 @@ class AirMediaWindowYOffsetCommand extends CrestronCommand {
 		super(ctrl, arg, sessId);
 	}	
 	public void execute() {
-		ctrl.setAirMediaWindowYOffset(VALIDATE_INT(msg), sessId);
+		ctrl.setAirMediaWindowYOffset(VALIDATE_INT(msg));
 	}
 	public String getFeedbackMsg() {
 		return String.valueOf(ctrl.userSettings.getAirMediaY());
@@ -2022,7 +2022,7 @@ class AirMediaWindowWidthCommand extends CrestronCommand {
 		super(ctrl, arg, sessId);
 	}	
 	public void execute() {
-		ctrl.setAirMediaWindowWidth(VALIDATE_INT(msg), sessId);
+		ctrl.setAirMediaWindowWidth(VALIDATE_INT(msg));
 	}
 	public String getFeedbackMsg() {
 		return String.valueOf(ctrl.userSettings.getAirMediaWidth());
@@ -2034,7 +2034,7 @@ class AirMediaWindowHeightCommand extends CrestronCommand {
 		super(ctrl, arg, sessId);
 	}	
 	public void execute() {
-		ctrl.setAirMediaWindowHeight(VALIDATE_INT(msg), sessId);
+		ctrl.setAirMediaWindowHeight(VALIDATE_INT(msg));
 	}
 	public String getFeedbackMsg() {
 		return String.valueOf(ctrl.userSettings.getAirMediaHeight());
@@ -2046,7 +2046,7 @@ class AirMediaApplyLayoutPasswordCommand extends CrestronCommand {
 		super(ctrl, arg, sessId);
 	}	
 	public void execute() {
-		ctrl.airMediaApplyLayoutPassword(Boolean.valueOf(msg), sessId);
+		ctrl.airMediaApplyLayoutPassword(Boolean.valueOf(msg));
 	}
 }
 
@@ -2055,7 +2055,7 @@ class AirMediaLayoutPasswordCommand extends CrestronCommand {
 		super(ctrl, arg, sessId);
 	}	
 	public void execute() {
-		ctrl.setAirMediaLayoutPassword(msg, sessId);
+		ctrl.setAirMediaLayoutPassword(msg);
 	}
 	public String getFeedbackMsg() {
 		return ctrl.userSettings.getAirMediaLayoutPassword();
@@ -2067,7 +2067,7 @@ class AirMediaApplyOsdImageCommand extends CrestronCommand {
 		super(ctrl, arg, sessId);
 	}	
 	public void execute() {
-		ctrl.airMediaApplyOsdImage(Boolean.valueOf(msg), sessId);
+		ctrl.airMediaApplyOsdImage(Boolean.valueOf(msg));
 	}
 }
 
@@ -2076,7 +2076,7 @@ class AirMediaDisplayLoginCodeCommand extends CrestronCommand {
 		super(ctrl, arg, sessId);
 	}	
 	public void execute() {
-		ctrl.setAirMediaDisplayLoginCode(Boolean.valueOf(msg), sessId);
+		ctrl.setAirMediaDisplayLoginCode(Boolean.valueOf(msg));
 	}
 	public String getFeedbackMsg() {
 		return Boolean.toString(ctrl.userSettings.getAirMediaDisplayLoginCode());
@@ -2088,7 +2088,7 @@ class AirMediaDisplayScreenCommand extends CrestronCommand {
 		super(ctrl, arg, sessId);
 	}	
 	public void execute() {
-		ctrl.airMediaSetDisplayScreen(VALIDATE_INT(msg), sessId);
+		ctrl.airMediaSetDisplayScreen(VALIDATE_INT(msg));
 	}
 }
 
@@ -2097,7 +2097,7 @@ class AirMediaWindowFlagCommand extends CrestronCommand {
 		super(ctrl, arg, sessId);
 	}	
 	public void execute() {
-		ctrl.airMediaSetWindowFlag(VALIDATE_INT(msg), sessId);
+		ctrl.airMediaSetWindowFlag(VALIDATE_INT(msg));
 	}
 }
 
@@ -2107,7 +2107,7 @@ class AirMediaVersionCommand extends CrestronCommand {
 	}	
 
 	public String getFeedbackMsg() {
-		return ctrl.getAirMediaVersion(sessId);
+		return ctrl.getAirMediaVersion();
 	}
 }
 
@@ -2126,7 +2126,7 @@ class AirMediaAdaptorSelectCommand extends CrestronCommand {
 		super(ctrl, arg, sessId);
 	}	
 	public void execute() {
-		ctrl.setAirMediaAdaptorSelect(VALIDATE_INT(msg), sessId);
+		ctrl.setAirMediaAdaptorSelect(VALIDATE_INT(msg));
 	}
 	public String getFeedbackMsg() {
 		return Integer.toString(ctrl.userSettings.getAirMediaAdaptorSelect());
@@ -2139,7 +2139,7 @@ class AirMediaConnectionAddressCommand extends CrestronCommand {
 	}	
 // No execute: this is feedback only
 	public String getFeedbackMsg() {
-		return ctrl.getAirMediaConnectionAddress(sessId);
+		return ctrl.getAirMediaConnectionAddress();
 	}
 }
 
@@ -2161,7 +2161,7 @@ class AirMediaProjectionLockCommand extends CrestronCommand {
 	
 	public void execute() {		
 		boolean val = Boolean.valueOf(msg);
-		ctrl.setAirMediaProjectionLock(val, sessId);
+		ctrl.setAirMediaProjectionLock(val);
 	}
 	// No feedback
 }
@@ -2343,7 +2343,7 @@ class UseNewIpAddrCommand extends CrestronCommand {
 			ctrl.userSettings.setDeviceIp(msg);
 			ctrl.stopOnIpAddrChange();			
 			if (ctrl.userSettings.getAirMediaAdaptorSelect() == 0)
-				ctrl.updateAirMediaIpInformation(0);
+				ctrl.updateAirMediaIpInformation();
 		}
 	}
 }
@@ -2360,7 +2360,7 @@ class SetAuxiliaryIpAddressCommand extends CrestronCommand {
 		{
 			ctrl.userSettings.setAuxiliaryIp(msg);
 			if (ctrl.userSettings.getAirMediaAdaptorSelect() == 1)
-				ctrl.updateAirMediaIpInformation(0);
+				ctrl.updateAirMediaIpInformation();
 		}
 	}
 }

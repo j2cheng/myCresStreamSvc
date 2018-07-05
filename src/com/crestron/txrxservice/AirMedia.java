@@ -6,9 +6,10 @@ public interface AirMedia
 
     public void recover();    
     
-    public void show(int x, int y, int width, int height);   
-    public void hide(boolean sendStopToSender);   
-    public void hide(boolean sendStopToSender, boolean clear);   
+    public void show(int sessionId, int x, int y, int width, int height);  
+    public void hide(int sessionId, boolean sendStopToSender);  
+    public void hide(int sessionId, boolean sendStopToSender, boolean clear); 
+
     public boolean getSurfaceDisplayed();
     public boolean airMediaIsUp();
     

@@ -730,7 +730,7 @@ public class CresStreamCtrl extends Service {
     					userSettings.setMode(DeviceMode.STREAM_IN.ordinal(), sessionId);
     					userSettings.setUserRequestedStreamState(StreamState.STOPPED, sessionId);
     				}	
-    				setAirMediaAdaptorSelect(0, 0);
+    				setAirMediaAdaptorSelect(0);
     			}    			
     		}
     		else
@@ -741,7 +741,7 @@ public class CresStreamCtrl extends Service {
     				{
     					userSettings.setMode(DeviceMode.STREAM_IN.ordinal(), sessionId);
     				}
-    				setAirMediaAdaptorSelect(0, 0);
+    				setAirMediaAdaptorSelect(0);
     			}    				
     		}
 
@@ -1011,8 +1011,8 @@ public class CresStreamCtrl extends Service {
     public IBinder onBind(Intent intent)
     {
         return null;
-    } 
-
+    }
+    
     public void onDestroy(){
         super.onDestroy();
         saveUserSettings();
@@ -3061,6 +3061,7 @@ public class CresStreamCtrl extends Service {
     	try
     	{
     		returnStreamState = userSettings.getStreamState(sessionId);
+        	Log.i(TAG, "getCurrentStreamState(): StreamState for sessionId " + sessionId + " is " + returnStreamState);
     	}
     	finally 
     	{
@@ -3077,6 +3078,7 @@ public class CresStreamCtrl extends Service {
     	try
     	{
         	userSettings.setStreamState(state, sessionId);
+        	Log.i(TAG, "sendStreamState(): StreamState for sessionId " + sessionId + " is " + state);
         	CresStreamCtrl.saveSettingsUpdateArrived = true; // flag userSettings to save
 	        StringBuilder sb = new StringBuilder(512);
 	        String streamStateText = "STREAMSTATE" + String.valueOf(sessionId);
@@ -3178,6 +3180,7 @@ public class CresStreamCtrl extends Service {
     				}
     				else if (getCurrentStreamState(sessionId) == StreamState.STARTED)
     				{
+    	    			Log.i(TAG, "Sessionid "+sessionId+" already started in mode "+userSettings.getMode(sessionId));
     					SendStreamState(StreamState.STARTED, sessionId);
     				}
     			}
@@ -4045,6 +4048,14 @@ public class CresStreamCtrl extends Service {
     		}
     	}
     }
+   
+    public void initUpdateStreamStateOnFirstFrame(boolean value)
+    {
+		for (int sessionId = 0; sessionId < NumOfSurfaces; sessionId++)
+		{
+			setUpdateStreamStateOnFirstFrame(sessionId, value);
+		}
+    }
     
     public void setUpdateStreamStateOnFirstFrame(int sessionId, boolean value)
     {
@@ -4146,7 +4157,7 @@ public class CresStreamCtrl extends Service {
     					if (mIsHdmiOutExternal || Boolean.parseBoolean(hdmiOutput.getSyncStatus()))
     					{
     						Log.i(TAG, "launching AirMedia");
-    						mAirMedia.show(x, y, width, height);
+    						mAirMedia.show(sessId, x, y, width, height);
     						if (!updateStreamStateOnFirstFrame[sessId])
     							sendAirMediaStartedState(sessId);
     					}
@@ -4168,7 +4179,7 @@ public class CresStreamCtrl extends Service {
     				if (mAirMedia != null)
     				{
 						Log.i(TAG, "hide AirMedia");
-    					mAirMedia.hide(true);
+    					mAirMedia.hide(sessId, true);
     				}
     				// Restore default Window once Air Media is stopped
     				Point size = getDisplaySize();
@@ -4190,7 +4201,7 @@ public class CresStreamCtrl extends Service {
     	}
     }
     
-    public String setAirMediaLoginCode(int loginCode, int sessId) {
+    public String setAirMediaLoginCode(int loginCode) {
     	synchronized (mAirMediaCodeLock) {
     		if ((loginCode < 0) || (loginCode > 9999))
     			return null; //Don't set out of range value
@@ -4223,7 +4234,7 @@ public class CresStreamCtrl extends Service {
     	}
     }
     
-    public String setAirMediaLoginMode(int loginMode, int sessId) {    	
+    public String setAirMediaLoginMode(int loginMode) {    	
     	synchronized (mAirMediaCodeLock) {
     		userSettings.setAirMediaLoginMode(loginMode);
 
@@ -4275,7 +4286,7 @@ public class CresStreamCtrl extends Service {
 		}    	
     }
     
-    public void setAirMediaDisplayLoginCode(boolean display, int sessid)
+    public void setAirMediaDisplayLoginCode(boolean display)
     {
     	synchronized (mAirMediaLock) {
     		userSettings.setAirMediaDisplayLoginCode(display);
@@ -4293,7 +4304,7 @@ public class CresStreamCtrl extends Service {
     	}    		
     }
     
-    public void setAirMediaModerator(boolean enable, int sessId)
+    public void setAirMediaModerator(boolean enable)
     {
     	synchronized (mAirMediaLock) {
     		userSettings.setAirMediaModerator(enable);
@@ -4304,7 +4315,7 @@ public class CresStreamCtrl extends Service {
     	}
     }
     
-    public void setAirMediaResetConnections(boolean enable, int sessId)
+    public void setAirMediaResetConnections(boolean enable)
     {
     	synchronized (mAirMediaLock) {
     		if ((enable) && (mAirMedia != null))
@@ -4353,14 +4364,14 @@ public class CresStreamCtrl extends Service {
     	}
     }
     
-    public void setAirMediaOsdImage(String filePath, int sessId)
+    public void setAirMediaOsdImage(String filePath)
     {
     	// Image gets sent on apply
     	userSettings.setAirMediaOsdImage(filePath);
     }
     
     // Function deprecated - used with old digital joins which are no longer supported
-    public void setAirMediaIpAddressPrompt(boolean enable, int sessId)
+    public void setAirMediaIpAddressPrompt(boolean enable)
     {    	
     	synchronized (mAirMediaLock) {
     		if (userSettings.getAirMediaCustomPrompt())
@@ -4372,12 +4383,12 @@ public class CresStreamCtrl extends Service {
     		{
     			mAirMedia.setIpAddressPrompt(enable);
     		}
-    		sendAirMediaConnectionAddress(sessId);
+    		sendAirMediaConnectionAddress();
     	}
     }
     
     // Function deprecated - used with old digital joins which are no longer supported
-    public void setAirMediaDomainNamePrompt(boolean enable, int sessId)
+    public void setAirMediaDomainNamePrompt(boolean enable)
     {
     	synchronized (mAirMediaLock) {
     		// If Host Name Prompt is disabled or custom string is enabled - Domain Name too must be disabled
@@ -4391,12 +4402,12 @@ public class CresStreamCtrl extends Service {
     			mAirMedia.setDomainNamePrompt(enable);
     		}
     		setDomainName("");
-    		sendAirMediaConnectionAddress(sessId);
+    		sendAirMediaConnectionAddress();
     	}
     }
 
     // Function deprecated - used with old digital joins which are no longer supported
-    public void setAirMediaHostNamePrompt(boolean enable, int sessId)
+    public void setAirMediaHostNamePrompt(boolean enable)
     {
     	synchronized (mAirMediaLock) {
     		if (userSettings.getAirMediaCustomPrompt())
@@ -4410,12 +4421,12 @@ public class CresStreamCtrl extends Service {
     			sendAirMediaDomainNamePromptFeedback();
     		}
     		setHostName("");
-    		sendAirMediaConnectionAddress(sessId);
+    		sendAirMediaConnectionAddress();
     	}
     }
 
     // Function deprecated - used with old digital joins which are no longer supported
-    public void setAirMediaCustomPrompt(boolean enable, int sessId)
+    public void setAirMediaCustomPrompt(boolean enable)
     {
     	synchronized (mAirMediaLock) {
     		// All other prompt options must be disabled before we allow custom prompt to be enabled
@@ -4442,33 +4453,33 @@ public class CresStreamCtrl extends Service {
     				sendAirMediaDomainNamePromptFeedback();
     			}
     		}
-    		sendAirMediaConnectionAddress(sessId);
+    		sendAirMediaConnectionAddress();
     	}
     }
     
-    public void setAirMediaDisplayConnectionOptionEnable(boolean enable, int sessId)
+    public void setAirMediaDisplayConnectionOptionEnable(boolean enable)
     {
     	synchronized (mAirMediaLock) {
     		userSettings.setAirMediaDisplayConnectionOptionEnable(enable);
-    		sendAirMediaConnectionAddress(sessId);
+    		sendAirMediaConnectionAddress();
     	}
     }
     
-    public void setAirMediaDisplayConnectionOption(int optVal, int sessId)
+    public void setAirMediaDisplayConnectionOption(int optVal)
     {
     	synchronized (mAirMediaLock) {
     		userSettings.setAirMediaDisplayConnectionOption(optVal);
-    		sendAirMediaConnectionAddress(sessId);
+    		sendAirMediaConnectionAddress();
     	}
     }
     
-    public void setAirMediaCustomPromptString(String promptString, int sessId)
+    public void setAirMediaCustomPromptString(String promptString)
     {
     	synchronized (mAirMediaLock) {
     		userSettings.setAirMediaCustomPromptString(promptString);
     		if (userSettings.getAirMediaCustomPrompt() || 
     				(userSettings.getAirMediaDisplayConnectionOption() == AirMediaDisplayConnectionOption.Custom))
-    			sendAirMediaConnectionAddress(sessId);
+    			sendAirMediaConnectionAddress();
     	}
     }
     
@@ -4511,7 +4522,7 @@ public class CresStreamCtrl extends Service {
     	}
     }
     
-    public void setAirMediaWindowXOffset(int x, int sessId)
+    public void setAirMediaWindowXOffset(int x)
     {    	
     	userSettings.setAirMediaX(x);
     	int y = userSettings.getAirMediaY();
@@ -4523,7 +4534,7 @@ public class CresStreamCtrl extends Service {
     	}    	
     }
     
-    public void setAirMediaWindowYOffset(int y, int sessId)
+    public void setAirMediaWindowYOffset(int y)
     {    	
     	userSettings.setAirMediaY(y);
     	int x = userSettings.getAirMediaX();    	
@@ -4535,7 +4546,7 @@ public class CresStreamCtrl extends Service {
     	}
     }
     
-    public void setAirMediaWindowWidth(int width, int sessId)
+    public void setAirMediaWindowWidth(int width)
     {    	
     	userSettings.setAirMediaWidth(width);
     	int x = userSettings.getAirMediaX();    	
@@ -4547,7 +4558,7 @@ public class CresStreamCtrl extends Service {
     	}
     }
     
-    public void setAirMediaWindowHeight(int height, int sessId)
+    public void setAirMediaWindowHeight(int height)
     {    	
     	userSettings.setAirMediaHeight(height);
     	int x = userSettings.getAirMediaX();    	
@@ -4559,7 +4570,7 @@ public class CresStreamCtrl extends Service {
     	}
     }
     
-    public void airMediaApplyLayoutPassword(boolean apply, int sessId)
+    public void airMediaApplyLayoutPassword(boolean apply)
     {
     	if (apply)
     	{
@@ -4568,13 +4579,13 @@ public class CresStreamCtrl extends Service {
     	}
     }
     
-    public void setAirMediaLayoutPassword(String layoutPassword, int sessId)
+    public void setAirMediaLayoutPassword(String layoutPassword)
     {
     	// User needs to send apply join to take effect
     	userSettings.setAirMediaLayoutPassword(layoutPassword);
     }
     
-    public void airMediaApplyOsdImage(boolean apply, int sessId)
+    public void airMediaApplyOsdImage(boolean apply)
     {
     	if (apply)
     	{
@@ -4585,7 +4596,7 @@ public class CresStreamCtrl extends Service {
     	}
     }
     
-    public void airMediaSetDisplayScreen(int displayId, int sessId)
+    public void airMediaSetDisplayScreen(int displayId)
     {
     	if (mAirMedia != null)
     	{
@@ -4594,7 +4605,7 @@ public class CresStreamCtrl extends Service {
     	}
     }
     
-    public void airMediaSetWindowFlag(int windowFlag, int sessId)
+    public void airMediaSetWindowFlag(int windowFlag)
     {
     	if (mAirMedia != null)
     	{
@@ -4608,7 +4619,7 @@ public class CresStreamCtrl extends Service {
     	mAirMedia.debugCommand(debugCommand);
     }
     
-    public void setAirMediaProjectionLock(boolean val, int sessId)
+    public void setAirMediaProjectionLock(boolean val)
     {
     	if (mAirMedia != null)
     	{
@@ -4625,45 +4636,45 @@ public class CresStreamCtrl extends Service {
 		{
     		Log.i(TAG,"*************** airMediaEnable "+(enable?"enable":"disable")+"   *********");
             // function getAirMediaConnectionIpAddress returns "None" when airMediaEnable is false
-    		mAirMedia.setAdapter(getAirMediaConnectionIpAddress(0));
+    		mAirMedia.setAdapter(getAirMediaConnectionIpAddress());
 		}
 		
-		sendAirMediaConnectionAddress(0);
+		sendAirMediaConnectionAddress();
     }
     
-    public void setAirMediaAdaptorSelect(int select, int sessId)
+    public void setAirMediaAdaptorSelect(int select)
     {
     	if (select != userSettings.getAirMediaAdaptorSelect())
     	{
     		userSettings.setAirMediaAdaptorSelect(select);
     		if (mAirMedia != null)
     		{
-        		Log.i(TAG,"*************** setAirMediaAdaptorSelect -- addr="+getAirMediaConnectionIpAddress(sessId)+"   *********");
-        		mAirMedia.setAdapter(getAirMediaConnectionIpAddress(sessId));
+        		Log.i(TAG,"*************** setAirMediaAdaptorSelect -- addr="+getAirMediaConnectionIpAddress()+"   *********");
+        		mAirMedia.setAdapter(getAirMediaConnectionIpAddress());
     			mAirMedia.setIpAddressPrompt(userSettings.getAirMediaIpAddressPrompt());
     		}
     		
     		// Update connection address as well
-    		sendAirMediaConnectionAddress(sessId);
+    		sendAirMediaConnectionAddress();
     	}    	
     }
     
     // Will update airMedia IP information when called
-    public void updateAirMediaIpInformation(int sessId)
+    public void updateAirMediaIpInformation()
     {
     	if (mAirMedia != null)
 		{
-    		Log.i(TAG,"*************** updateAirMediaIpInformation -- addr="+getAirMediaConnectionIpAddress(sessId)+"   *********");
-    		mAirMedia.setAdapter(getAirMediaConnectionIpAddress(sessId));
+    		Log.i(TAG,"*************** updateAirMediaIpInformation -- addr="+getAirMediaConnectionIpAddress()+"   *********");
+    		mAirMedia.setAdapter(getAirMediaConnectionIpAddress());
     		mAirMedia.setIpAddressPrompt(userSettings.getAirMediaIpAddressPrompt());
 		}
     	
-    	sendAirMediaConnectionAddress(sessId);
+    	sendAirMediaConnectionAddress();
     }
     
-    public void sendAirMediaConnectionAddress(int sessId)
+    public void sendAirMediaConnectionAddress()
     {
-    	sockTask.SendDataToAllClients(MiscUtils.stringFormat("AIRMEDIA_CONNECTION_ADDRESS=%s", getAirMediaConnectionAddress(sessId)));
+    	sockTask.SendDataToAllClients(MiscUtils.stringFormat("AIRMEDIA_CONNECTION_ADDRESS=%s", getAirMediaConnectionAddress()));
     }
     
     private String getAirMediaConnectionAddressWhenNone()
@@ -4680,7 +4691,7 @@ public class CresStreamCtrl extends Service {
     	}
     }
     
-    public String getAirMediaConnectionAddress(int sessId)
+    public String getAirMediaConnectionAddress()
     {
     	// When connection option is disabled feedback the same connection URL and rely on AVF/Program 0 to blank out the URL
 //    	if (!userSettings.getAirMediaDisplayConnectionOptionEnable())
@@ -4693,7 +4704,7 @@ public class CresStreamCtrl extends Service {
     	}
     	StringBuilder url = new StringBuilder(512);
         url.append("http://");
-		String ipAddr = getAirMediaConnectionIpAddress(sessId);    		
+		String ipAddr = getAirMediaConnectionIpAddress();    		
     	switch (userSettings.getAirMediaDisplayConnectionOption())
     	{
     	case AirMediaDisplayConnectionOption.Ip:
@@ -4734,7 +4745,7 @@ public class CresStreamCtrl extends Service {
     }
     
     // Function deprecated - used with old digital joins which are no longer supported
-    public String getDigitalJoinAirMediaConnectionAddress(int sessId)
+    public String getDigitalJoinAirMediaConnectionAddress()
     {
     	boolean showIp = userSettings.getAirMediaIpAddressPrompt();
     	boolean showHost = userSettings.getAirMediaHostNamePrompt();
@@ -4744,7 +4755,7 @@ public class CresStreamCtrl extends Service {
     		return "";
     	if (showCustom)
     		return userSettings.getAirMediaCustomPromptString();
-    	String ipAddr = getAirMediaConnectionIpAddress(sessId);
+    	String ipAddr = getAirMediaConnectionIpAddress();
     	if (!showHost) {
         	// Do not allow display of DomainName if HostName is not displayed
     		showDomain = false;
@@ -4762,10 +4773,10 @@ public class CresStreamCtrl extends Service {
         }
         if (showIp) {
         	if (!showHost && !showDomain) {
-        		url.append(getAirMediaConnectionIpAddress(sessId));
+        		url.append(getAirMediaConnectionIpAddress());
         	} else {
         		url.append(" (");
-        		url.append(getAirMediaConnectionIpAddress(sessId));
+        		url.append(getAirMediaConnectionIpAddress());
         		url.append(")");
         	}
         }
@@ -4773,7 +4784,7 @@ public class CresStreamCtrl extends Service {
         return url.toString();    	
     }
     
-    public String getAirMediaConnectionIpAddress(int sessId)
+    public String getAirMediaConnectionIpAddress()
     {
     	String ipaddr=null;
     	if (!userSettings.getAirMediaEnable())
@@ -4808,7 +4819,7 @@ public class CresStreamCtrl extends Service {
     }
 
     
-    public String getAirMediaVersion(int sessId)
+    public String getAirMediaVersion()
     {
     	String versionName = "";
 		final PackageManager pm = getPackageManager();
@@ -5029,15 +5040,15 @@ public class CresStreamCtrl extends Service {
         		if ( (userSettings.getAirMediaLoginMode() == AirMediaLoginMode.Random.ordinal()) && (numberUserConnected == 0))
         		{
         			sockTask.SendDataToAllClients(MiscUtils.stringFormat("AIRMEDIA_LOGIN_MODE=%d", userSettings.getAirMediaLoginMode()));
-        			setAirMediaLoginMode(userSettings.getAirMediaLoginMode(), 0);
+        			setAirMediaLoginMode(userSettings.getAirMediaLoginMode());
         			pendingAirMediaLoginCodeChange = false;
         		}
         		else if ( (pendingAirMediaLoginCodeChange == true) && (numberUserConnected == 0) )
         		{
-        			setAirMediaLoginMode(userSettings.getAirMediaLoginMode(), 0);
+        			setAirMediaLoginMode(userSettings.getAirMediaLoginMode());
         			if (userSettings.getAirMediaLoginMode() == AirMediaLoginMode.Fixed.ordinal())
         			{
-        				setAirMediaLoginCode(userSettings.getAirMediaLoginCode(), 0);
+        				setAirMediaLoginCode(userSettings.getAirMediaLoginCode());
         			} else {
         				sockTask.SendDataToAllClients(MiscUtils.stringFormat("AIRMEDIA_LOGIN_MODE=%d", userSettings.getAirMediaLoginMode()));
         			}
@@ -5249,6 +5260,7 @@ public class CresStreamCtrl extends Service {
 			SetWindowManagerResolution(size.x, size.y, haveExternalDisplays);
 
 			try { Thread.sleep(3000); } catch (Exception e) {}
+            Log.i(TAG, "handleHdmiOutputChange(): Restarting Streams ");
 			restartStreams(false);
 
 			for (int sessionId = 0; sessionId < NumOfSurfaces; sessionId++)
@@ -5266,7 +5278,7 @@ public class CresStreamCtrl extends Service {
 						height = size.y;
 					}
 					Log.i(TAG, "------ Show AirMedia due to regained HDMI sync ------");
-					mAirMedia.show(userSettings.getAirMediaX(), userSettings.getAirMediaY(), width, height);
+					mAirMedia.show(sessionId, userSettings.getAirMediaX(), userSettings.getAirMediaY(), width, height);
 				}
 			}
 		}
@@ -5279,7 +5291,7 @@ public class CresStreamCtrl extends Service {
 				if ((mAirMedia != null) && userSettings.getAirMediaLaunch(sessionId))
 				{
 					Log.i(TAG, "------ Hide AirMedia due to lost HDMI output ------");
-					mAirMedia.hide(true, false);
+					mAirMedia.hide(sessionId, true, false);
 				}
 				
 				if (userSettings.getMode(sessionId) == DeviceMode.PREVIEW.ordinal() || 
