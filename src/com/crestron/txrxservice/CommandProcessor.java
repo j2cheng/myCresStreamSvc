@@ -2121,6 +2121,16 @@ class AirMediaDebugCommand extends CrestronCommand {
 	// No feedback
 }
 
+class AirMediaProcessDebugMessageCommand extends CrestronCommand {
+	public AirMediaProcessDebugMessageCommand(CresStreamCtrl ctrl, String arg) {
+		super(ctrl, arg);
+	}	
+	public void execute() {
+		ctrl.setAirMediaProcessDebugMessage(msg);
+	}
+	// No feedback
+}
+
 class AirMediaAdaptorSelectCommand extends CrestronCommand {
 	public AirMediaAdaptorSelectCommand(CresStreamCtrl ctrl, String arg, int sessId) {
 		super(ctrl, arg, sessId);

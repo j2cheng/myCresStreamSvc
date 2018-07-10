@@ -1370,6 +1370,7 @@ public class AirMediaSplashtop implements AirMedia
     	}
     }
     
+    // Our debug command
     public void debugCommand(String debugCommand)
     {
     	if (debugCommand == null || debugCommand.equalsIgnoreCase(""))
@@ -1401,6 +1402,13 @@ public class AirMediaSplashtop implements AirMedia
     		Common.Logging.i(TAG, "Last AIRMEDIA_STATUS="+lastReturnedAirMediaStatus);
     		return;
     	}
+    }
+    
+	// Debug command for airmedia.receiver/m360
+    public void airmediaProcessDebugCommand(String debugCommand)
+    {
+    	// TODO
+    	Common.Logging.w(TAG, MiscUtils.stringFormat("TODO: command was %s", debugCommand));
     }
     
     public void logSession(AirMediaSession session)

@@ -4616,7 +4616,18 @@ public class CresStreamCtrl extends Service {
     
     public void setAirMediaDebug(String debugCommand)
     {
-    	mAirMedia.debugCommand(debugCommand);
+    	if (mAirMedia != null)
+    	{
+    		mAirMedia.debugCommand(debugCommand);
+    	}
+    }
+    
+    public void setAirMediaProcessDebugMessage(String debugCommand)
+    {
+    	if (mAirMedia != null)
+    	{
+    		mAirMedia.airmediaProcessDebugCommand(debugCommand);
+    	}
     }
     
     public void setAirMediaProjectionLock(boolean val)

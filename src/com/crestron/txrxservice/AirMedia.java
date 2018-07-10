@@ -38,6 +38,7 @@ public interface AirMedia
     public void setOsdImage(String filePath);
     
     public void debugCommand(String debugCommand);
+    public void airmediaProcessDebugCommand(String debugCommand);
     
     public void setIpAddressPrompt(boolean enable); 
     public void setDomainNamePrompt(boolean enable);

@@ -175,6 +175,11 @@ public class AirMediaAwind implements AirMedia
     	
     }
     
+    public void airmediaProcessDebugCommand(String debugCommand)
+    {
+    	
+    }
+    
     public boolean airMediaIsUp()
     {
     	return true;
