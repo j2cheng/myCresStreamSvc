@@ -20,8 +20,6 @@ interface IAirMediaReceiver {
     String getProduct();
     void setProduct(in String name);
 
-    //IM360Service service();
-
     String getVersion();
 
     IAirMediaSessionManager sessionManager();
@@ -75,4 +73,10 @@ interface IAirMediaReceiver {
 
     void register(IAirMediaReceiverObserver observer);
     void unregister(IAirMediaReceiverObserver observer);
+
+    ////////////////////////////////////////////////////////////////////////////////////////////////
+    /// DEBUG
+    ////////////////////////////////////////////////////////////////////////////////////////////////
+
+    oneway void console(in String input);
 }

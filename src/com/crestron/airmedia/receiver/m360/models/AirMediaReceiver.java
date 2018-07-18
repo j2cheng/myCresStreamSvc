@@ -423,6 +423,16 @@ public class AirMediaReceiver extends AirMediaBase {
         }
     }
 
+    public void console(final String input) {
+        try {
+            IAirMediaReceiver receiver = receiver_;
+            if (receiver != null) receiver.console(input);
+        } catch (RemoteException e) {
+            Common.Logging.e(TAG, "receiver.console  input= " + input + "  EXCEPTION  " + e);
+            handleRemoteException();
+        }
+    }
+
     ////////////////////////////////////////////////////////////////////////////////////////////////
     /// INTERNAL
     ////////////////////////////////////////////////////////////////////////////////////////////////
