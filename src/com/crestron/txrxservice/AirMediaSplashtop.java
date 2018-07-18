@@ -1407,8 +1407,8 @@ public class AirMediaSplashtop implements AirMedia
 	// Debug command for airmedia.receiver/m360
     public void airmediaProcessDebugCommand(String debugCommand)
     {
-    	// TODO
-    	Common.Logging.w(TAG, MiscUtils.stringFormat("TODO: command was %s", debugCommand));
+    	if (receiver_ != null)
+    		receiver_.console(debugCommand);
     }
     
     public void logSession(AirMediaSession session)
