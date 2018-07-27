@@ -234,7 +234,7 @@ public class UserSettings
 	private int airMediaWidth;
 	private int airMediaHeight;
 	private String airMediaLayoutPassword;
-	private boolean airMediaDisplayLoginCode;
+	private boolean airMediaDisplayLoginCodeNew;
 	private int airMediaDisplayScreen;
 	private int airMediaWindowFlag;
 	private int airMediaAdaptorSelect;
@@ -337,7 +337,7 @@ public class UserSettings
 		airMediaWidth		= 1920;
 		airMediaHeight		= 1080;
 		airMediaLayoutPassword = "";
-		airMediaDisplayLoginCode = true;
+		airMediaDisplayLoginCodeNew = true;
 		airMediaDisplayScreen = 0;
 		airMediaWindowFlag	= WindowManager.LayoutParams.TYPE_SYSTEM_OVERLAY;
 		airMediaAdaptorSelect = 0;
@@ -1321,11 +1321,11 @@ public class UserSettings
 	}
 
 	public boolean getAirMediaDisplayLoginCode() {
-		return airMediaDisplayLoginCode;
+		return airMediaDisplayLoginCodeNew;
 	}
 
 	public void setAirMediaDisplayLoginCode(boolean airMediaDisplayLoginCode) {
-		this.airMediaDisplayLoginCode = airMediaDisplayLoginCode;
+		this.airMediaDisplayLoginCodeNew = airMediaDisplayLoginCode;
 	}
 	
 	public void setAirMediaDisplayScreen(int displayScreen) {
