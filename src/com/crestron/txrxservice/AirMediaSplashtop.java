@@ -127,6 +127,8 @@ public class AirMediaSplashtop implements AirMedia
 	private boolean isAirMediaUp = false;
 	private boolean requestServiceConnection = false;
 	
+	private boolean quittingAirMediaService = false;
+	
     private Handler handler_;
     private Map<Integer, AirMediaSession> userSessionMap = new ConcurrentHashMap<Integer, AirMediaSession>();
 
@@ -1411,6 +1413,22 @@ public class AirMediaSplashtop implements AirMedia
     		receiver_.console(debugCommand);
     }
     
+    // We need to be restarted after this function is called (should be only done from a restore)
+    public void clearCache()
+    {
+    	// Need to stop AirMedia first before clearing cache
+		// Note: The actual shutting down and clearing is handled by CSIO, because root access is required
+		Common.Logging.i(TAG, "clearCache(): Stopping AirMedia application");
+		quittingAirMediaService = true;
+		stopAllSenders();
+    	if (receiver() != null && receiver_.state() != AirMediaReceiverState.Stopped)
+		{
+			stopReceiver();			
+		}
+    	if (isServiceConnected)
+    		doUnbindService();
+    }
+    
     public void logSession(AirMediaSession session)
     {
 		Common.Logging.i(TAG, "   endpoint: "+session.endpoint());
@@ -1914,16 +1932,21 @@ public class AirMediaSplashtop implements AirMedia
 						serviceDisconnectedLatch.countDown();
 					}
 					try {
-						// remove active session so AirMedia screen pops up until fresh connection made to service
-						if (getActiveSession() != null)
+						if (quittingAirMediaService == false)
 						{
-							removeSession(getActiveSession());
-							active_session_ = null;
+							// remove active session so AirMedia screen pops up until fresh connection made to service
+							if (getActiveSession() != null)
+							{
+								removeSession(getActiveSession());
+								active_session_ = null;
+							}
+							removeAllSessionsFromMap();
+							querySenderList(false);
+							mStreamCtl.sendAirMediaStatus(0);
+							RestartAirMediaAsynchronously();
 						}
-						removeAllSessionsFromMap();
-						querySenderList(false);
-						mStreamCtl.sendAirMediaStatus(0);
-						RestartAirMediaAsynchronously();
+						else
+							Common.Logging.e(TAG, "AirMediaServiceConnection.onServiceDisconnected ignored because quitting");
 					} catch (Exception e) {
 						Common.Logging.e(TAG, "AirMediaServiceConnection.onServiceDisconnected  EXCEPTION  " + e);
 						e.printStackTrace();

@@ -40,6 +40,8 @@ public interface AirMedia
     public void debugCommand(String debugCommand);
     public void airmediaProcessDebugCommand(String debugCommand);
     
+    public void clearCache();
+    
     public void setIpAddressPrompt(boolean enable); 
     public void setDomainNamePrompt(boolean enable);
     

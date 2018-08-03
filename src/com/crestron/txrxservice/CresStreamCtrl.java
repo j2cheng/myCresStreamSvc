@@ -4630,6 +4630,16 @@ public class CresStreamCtrl extends Service {
     	}
     }
     
+    public void setAirMediaClearCache()
+    {
+		// Note that this function does not clear cache (that is handled by CSIO)
+		// This function will prevent AirMedia from being restarted when killed
+    	if (mAirMedia != null)
+    	{
+    		mAirMedia.clearCache();
+    	}
+    }
+    
     public void setAirMediaProjectionLock(boolean val)
     {
     	if (mAirMedia != null)

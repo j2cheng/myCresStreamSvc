@@ -180,6 +180,11 @@ public class AirMediaAwind implements AirMedia
     	
     }
     
+    public void clearCache()
+    {
+    	
+    }
+    
     public boolean airMediaIsUp()
     {
     	return true;

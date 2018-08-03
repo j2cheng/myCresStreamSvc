@@ -171,6 +171,7 @@ public class CommandParser {
         AIRMEDIA_VERSION,
         AIRMEDIA_DEBUG,
         AIRMEDIA_PROCESS_DEBUG_MESSAGE,
+        AIRMEDIA_CLEAR_CACHE,
         
         // Camera Streaming Slot
         CAMERA_STREAMING_ENABLE,
@@ -728,6 +729,9 @@ public class CommandParser {
             	break;
             case AIRMEDIA_PROJECTION_LOCK:
             	cmd = new AirMediaProjectionLockCommand(ctrl, arg, idx);
+            	break;
+            case AIRMEDIA_CLEAR_CACHE:
+            	cmd = new AirMediaClearCacheCommand(ctrl, arg);
             	break;
                         	
         	// Camera Streaming
