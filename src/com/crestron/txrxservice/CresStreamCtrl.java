@@ -215,6 +215,7 @@ public class CresStreamCtrl extends Service {
 	public String hostName=null;
 	public String domainName=null;
 	public videoDimensions[] mVideoDimensions = new videoDimensions[NumOfSurfaces];
+	public boolean[] m_InPause = new boolean[NumOfSurfaces];
 	private final long hdmiBroadcastTimeout_ms = 60000; 
     public OutputDisplayListener mDisplayListener = new OutputDisplayListener();
     private final Runnable foregroundRunnable = new Runnable() {
@@ -544,6 +545,7 @@ public class CresStreamCtrl extends Service {
     			streamStateLock[sessionId] = new ReentrantLock(true);
     			windowtLock[sessionId] =  new ReentrantLock(true);
     			mVideoDimensions[sessionId] = new videoDimensions(0, 0);
+    			m_InPause[sessionId] = false;
     			//            	mHDCPEncryptStatus[sessionId] = false;          	
     		}
 
@@ -3174,6 +3176,7 @@ public class CresStreamCtrl extends Service {
     					{
     						Log.w(TAG, "Start(): hashmap is null - ignoring start for sessionId="+sessionId);
     					}
+    			    	m_InPause[sessionId] = false;
     					//hm.get(device_mode).executeStart();
     					// The started state goes back when we actually start
 
@@ -3227,6 +3230,7 @@ public class CresStreamCtrl extends Service {
     				pauseStatus="false";
     				restartRequired[sessionId]=false;
     				hm2.get(userSettings.getMode(sessionId)).executeStop(sessionId, fullStop);
+    		    	m_InPause[sessionId] = false;
     				// device state will be set in stop callback
     			}
     			else
@@ -3267,6 +3271,7 @@ public class CresStreamCtrl extends Service {
     			stopStatus="false";
     			restartRequired[sessionId]=false;
     			hm3.get(userSettings.getMode(sessionId)).executePause(sessionId);
+    	    	m_InPause[sessionId] = true;
     			// Device state will be set in pause callback
     		}
     	}
@@ -3369,7 +3374,10 @@ public class CresStreamCtrl extends Service {
     		cam_streaming.stopConfidencePreview(sessId);
 
     	Log.i(TAG, "startStreamOut: calling updateWindow for sessId="+sessId);
-    	updateWindow(sessId);
+        if (!m_InPause[sessId])
+        	updateWindow(sessId);
+        else
+		    updateWindowWithVideoSize(sessId, false, mVideoDimensions[sessId].videoWidth, mVideoDimensions[sessId].videoHeight);
     	showPreviewWindow(sessId);
     	out_url = createStreamOutURL(sessId);
     	userSettings.setStreamOutUrl(out_url, sessId);
@@ -3733,7 +3741,10 @@ public class CresStreamCtrl extends Service {
     public void startStreamIn(int sessId)
     {
 		Log.i(TAG, "startStreamIn: calling updateWindow for sessId="+sessId);
-    	updateWindow(sessId);
+		if (!m_InPause[sessId])
+			updateWindow(sessId);
+		else
+		    updateWindowWithVideoSize(sessId, false, mVideoDimensions[sessId].videoWidth, mVideoDimensions[sessId].videoHeight);
         showStreamInWindow(sessId);
         invalidateSurface();
         streamPlay.onStart(sessId);
@@ -3761,7 +3772,10 @@ public class CresStreamCtrl extends Service {
     public void startWbsStream(int sessId)
     {
 		Log.i(TAG, "startWbsStream: calling updateWindow for sessId="+sessId);
-    	updateWindow(sessId, wbsStream.useSurfaceTexture);
+		if (!m_InPause[sessId])
+			updateWindow(sessId, wbsStream.useSurfaceTexture);
+		else
+		    updateWindowWithVideoSize(sessId, wbsStream.useSurfaceTexture, mVideoDimensions[sessId].videoWidth, mVideoDimensions[sessId].videoHeight);
         showWbsWindow(sessId);
         invalidateSurface();
         wbsStream.onStart(sessId);
@@ -3806,7 +3820,10 @@ public class CresStreamCtrl extends Service {
     	{
     		SendStreamState(StreamState.CONNECTING, sessId);
     		Log.i(TAG, "startNativePreview: calling updateWindow for sessId="+sessId);
-    		updateWindow(sessId);
+	        if (!m_InPause[sessId])
+	        	updateWindow(sessId);
+	        else
+			    updateWindowWithVideoSize(sessId, false, mVideoDimensions[sessId].videoWidth, mVideoDimensions[sessId].videoHeight);
     		showPreviewWindow(sessId);
     		cam_preview.setSessionIndex(sessId);
     		invalidateSurface();
@@ -3904,7 +3921,6 @@ public class CresStreamCtrl extends Service {
 				cam_preview.pausePlayback();
 			}
 		}
-    		
    }
    
    
