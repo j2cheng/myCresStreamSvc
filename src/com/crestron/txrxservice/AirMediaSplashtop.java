@@ -441,7 +441,7 @@ public class AirMediaSplashtop implements AirMedia
     {
     	synchronized(adapter_ip_address) {
     		pending_adapter_ip_address = addr;
-    		Log.i(TAG, "Pending adapter IP address set to "+pending_adapter_ip_address+
+    		Common.Logging.i(TAG, "Pending adapter IP address set to "+pending_adapter_ip_address+
     				", Current adapter IP address is "+adapter_ip_address);
     	}
     }
@@ -459,11 +459,11 @@ public class AirMediaSplashtop implements AirMedia
     		if (pending_adapter_ip_address == null)
     		{
     			pending_adapter_ip_address = mStreamCtl.getAirMediaConnectionIpAddress();
-        		Log.i(TAG, "set_adapter_ip_ddress(): Pending adapter IP address was null, now set to "+pending_adapter_ip_address);
+    			Common.Logging.i(TAG, "set_adapter_ip_ddress(): Pending adapter IP address was null, now set to "+pending_adapter_ip_address);
     		}
     		adapter_ip_address = pending_adapter_ip_address;
     		pending_adapter_ip_address = null;
-    		Log.i(TAG, "set_adapter_ip_address(): Current adapter IP address set to "+adapter_ip_address);
+    		Common.Logging.i(TAG, "set_adapter_ip_address(): Current adapter IP address set to "+adapter_ip_address);
     		return adapter_ip_address;
     	}
     }
@@ -821,7 +821,7 @@ public class AirMediaSplashtop implements AirMedia
     		boolean use_texture_view = useTextureView(getActiveSession());
     		if (use_texture_view)
     		{
-    			mStreamCtl.setVideoTransformation(0, use_texture_view);
+    			mStreamCtl.setVideoTransformation(streamIdx, use_texture_view);
     		}
     		else
     		{
@@ -1053,7 +1053,7 @@ public class AirMediaSplashtop implements AirMedia
 		public void run() {
 			synchronized (pendingSessionLock)
 			{
-				Log.i(TAG, "----- removing pending session due to scheduled timeout -----");
+				Common.Logging.i(TAG, "----- removing pending session due to scheduled timeout -----");
 				removePendingSession();
 			}
 		}
@@ -1096,7 +1096,7 @@ public class AirMediaSplashtop implements AirMedia
 			pending_session_ = null;
 			cancelPendingSessionTimer();
 			long now = System.currentTimeMillis();
-			Log.i(TAG,"Session "+AirMediaSession.toDebugString(getActiveSession())+
+			Common.Logging.i(TAG,"Session "+AirMediaSession.toDebugString(getActiveSession())+
 					" made active in "+(now-sessionPendingTime)+" msec.");
 		}
     }
@@ -1721,7 +1721,7 @@ public class AirMediaSplashtop implements AirMedia
     {		
 		Common.Logging.i(TAG, "------------ In setSurfaceSize calling updateWindow (surfaceDisplayed="+getSurfaceDisplayed()+") --------------");
     	window_ = new Rect(x, y, x+width-1, y+height-1);
-    	Log.i(TAG, "setSurfaceSize - calling updateWindow for sessId="+streamIdx+
+    	Common.Logging.i(TAG, "setSurfaceSize - calling updateWindow for sessId="+streamIdx+
     			" "+width+"x"+height+"@"+x+","+y+"   useTexture="+useTextureView(getActiveSession()));
 		mStreamCtl.updateWindow(x, y, width, height, streamIdx, useTextureView(getActiveSession()));
 		Common.Logging.i(TAG, "------------ finished updateWindow --------------");
@@ -1937,6 +1937,8 @@ public class AirMediaSplashtop implements AirMedia
 							// remove active session so AirMedia screen pops up until fresh connection made to service
 							if (getActiveSession() != null)
 							{
+							    // if we are attempting to stop this session countdown latch and treat it as stopped
+							    countdownDeviceDisconnectLatch(getActiveSession());
 								removeSession(getActiveSession());
 								active_session_ = null;
 							}
