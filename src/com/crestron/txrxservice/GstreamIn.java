@@ -330,9 +330,9 @@ public class GstreamIn implements StreamInStrategy, SurfaceHolder.Callback {
     		public void run() {
     			try {
     				isPlaying = true;
-    				SurfaceHolder sh = streamCtl.getCresSurfaceHolder(sessionId);
     				updateNativeDataStruct(sessionId);
-    				nativeSurfaceInit(sh.getSurface(), sessionId);
+    				Surface s = streamCtl.getSurface(sessionId);
+    				nativeSurfaceInit(s, sessionId);
     				//    		Code below is for trying TextureView rendering for QuadView
     				//    		Log.i(TAG, "*********** passing surface derived from TextureView for sessionId: " + sessionId + " to 'nativeSurfaceInit' ************");
     				//    		Surface s = new Surface(streamCtl.getAirMediaSurfaceTexture(sessionId));
@@ -481,10 +481,10 @@ public class GstreamIn implements StreamInStrategy, SurfaceHolder.Callback {
     private int sessionIdFromSurfaceHolder(SurfaceHolder holder) {
 		int i;
 		for(i=0; i<CresStreamCtrl.NumOfSurfaces; i++) {
-			if(streamCtl.getCresSurfaceHolder(i) == null){
+			if(streamCtl.dispSurface.GetSurfaceHolder(i) == null){
 			    continue;
 			}
-			if(streamCtl.getCresSurfaceHolder(i) == holder) {
+			if(streamCtl.dispSurface.GetSurfaceHolder(i) == holder) {
 				return i;
 			}			
 		}    

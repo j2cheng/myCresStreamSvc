@@ -226,7 +226,7 @@ public class CameraStreaming {
 		            ProductSpecific.setVideoEncoderLevel(mrec, streamCtl.userSettings.getEncodingLevel(idx));            
 		            mrec.setOutputFile(path + filename);   
 		
-		            mrec.setPreviewDisplay(streamCtl.getCresSurfaceHolder(idx).getSurface());	//TODO: put back in when preview audio works
+		            mrec.setPreviewDisplay(streamCtl.getSurface(idx));	//TODO: put back in when preview audio works
 		            try
 		            {
 		            	mrec.setOnErrorListener(new ErrorListner());
@@ -1024,9 +1024,9 @@ public class CameraStreaming {
     public void startConfidencePreview(int sessionId){
     	if (Boolean.parseBoolean(streamCtl.hdmiOutput.getSyncStatus()))
     	{
-    		Log.i(TAG, "startConfidencePreview: calling updateWindow");
     		if (streamCtl.isRGB888HDMIVideoSupported)
-    			streamCtl.getSurfaceView(sessionId).setTag("PreviewVideoLayer");
+    			streamCtl.setSurfaceViewTag(sessionId, "PreviewVideoLayer");
+    		Log.d(TAG, "startConfidencePreview: calling updateWindow");
 	    	streamCtl.updateWindow(sessionId);
 	    	streamCtl.showPreviewWindow(sessionId);
 	    	streamCtl.cam_preview.setSessionIndex(sessionId);
@@ -1040,7 +1040,7 @@ public class CameraStreaming {
     	streamCtl.hidePreviewWindow(sessionId);
     	streamCtl.cam_preview.setSessionIndex(sessionId);
         streamCtl.cam_preview.stopPlayback(true);
-        streamCtl.getSurfaceView(sessionId).setTag("VideoLayer");
+        streamCtl.setSurfaceViewTag(sessionId, "VideoLayer");
         
         confidencePreviewRunning = false;
     }

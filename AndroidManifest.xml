@@ -23,7 +23,14 @@
         android:allowBackup="true"
         android:icon="@drawable/ic_launcher"
         android:theme="@android:style/Theme.NoTitleBar.Fullscreen" android:persistent="true">
-		<service android:name=".CresStreamCtrl" android:theme="@android:style/Theme.Translucent.NoTitleBar"/>
+		<service android:name=".CresStreamCtrl" android:theme="@android:style/Theme.Translucent.NoTitleBar"
+		    android:exported="true"
+		    android:enabled="true" >
+		    <!-- android:permission="com.crestron.txrxservice.permission.SERVICE" --> 
+		    <intent-filter>
+		    	<action android:name="com.crestron.txrxservice.BIND"/>
+		    </intent-filter>
+		</service>
     </application>
 	
 </manifest>

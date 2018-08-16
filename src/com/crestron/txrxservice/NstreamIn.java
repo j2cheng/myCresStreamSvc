@@ -76,7 +76,7 @@ public class NstreamIn implements StreamInStrategy, OnPreparedListener, OnComple
                     mediaPlayer[sessionId] = null;
                 }
                 mediaPlayer[sessionId] = new MediaPlayer();
-                mediaPlayer[sessionId].setDisplay(streamCtl.getCresSurfaceHolder(sessionId));
+                mediaPlayer[sessionId].setDisplay(streamCtl.dispSurface.GetSurfaceHolder(sessionId));
                 //mediaPlayer.setDisplay(vidHolder);
                 String srcUrl = streamCtl.userSettings.getStreamInUrl(sessionId);
                 mediaPlayer[sessionId].setDataSource(srcUrl);	

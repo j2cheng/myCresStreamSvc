@@ -19,6 +19,7 @@ public class CommandParser {
 
     public enum CmdTable {
         MODE,
+        SERVICEMODE,
         SESSIONINITIATION,
         TRANSPORTMODE,
         VENCPROFILE,
@@ -210,6 +211,7 @@ public class CommandParser {
         StringBuilder sb = new StringBuilder(4096);
         sb.append("DEBUG_MODE : Removes socket timeout\r\n");
         sb.append("MODE (= 0:STREAMIN 1: STREAMOUT 2:HDMIPREVIEW)\r\n");
+        sb.append("SERVICEMODE (= 0:MASTER 1:SLAVE)\r\n");
         sb.append("SessionInitiation (= 0: ByReceiver 1: ByTransmitter 2: MCastviaRTSP 3: MCastviaUDP)\r\n");
         sb.append("TRANSPORTMODE (= 0: RTP 1: TS_RTP 2: TS_UDP)\r\n");
         sb.append("VENCPROFILE (= 0:HighProfile 1:MainProfile 2:BaseProfile)\r\n");
@@ -310,6 +312,9 @@ public class CommandParser {
         switch(CmdTable.valueOf(msg)){
             case MODE:
                 cmd = new DeviceCommand(ctrl, arg, idx); 
+                break;
+            case SERVICEMODE:
+                cmd = new ServiceModeCommand(ctrl, arg); 
                 break;
             case SESSIONINITIATION:
                 cmd = new SessionInitiationCommand(ctrl, arg, idx); 

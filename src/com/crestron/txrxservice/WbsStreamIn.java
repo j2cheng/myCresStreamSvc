@@ -116,16 +116,16 @@ public class WbsStreamIn implements SurfaceHolder.Callback {
     	Thread startThread = new Thread(new Runnable() {
     		public void run() {
     			try {
+    				Surface s = null;
     				isPlaying = true;
-    				SurfaceHolder sh = streamCtl.getCresSurfaceHolder(sessionId);
     				updateNativeDataStruct(sessionId);
     				if (!useSurfaceTexture) {
-    					nativeSurfaceInit(sh.getSurface(), sessionId);
+    					s = streamCtl.getSurface(sessionId);
     				} else {
     					Log.i(TAG, "*********** passing surface derived from TextureView for sessionId: " + sessionId + " to 'nativeSurfaceInit' ************");
-    					Surface s = new Surface(streamCtl.getSurfaceTexture(sessionId));
-    					nativeSurfaceInit(s, sessionId);
+    					s = new Surface(streamCtl.getSurfaceTexture(sessionId));
     				}
+					nativeSurfaceInit(s, sessionId);
     		    	Log.i(TAG, "Starting WBS Streaming");
     				nativePlay(sessionId);    		
     			}
@@ -210,10 +210,10 @@ public class WbsStreamIn implements SurfaceHolder.Callback {
     private int sessionIdFromSurfaceHolder(SurfaceHolder holder) {
 		int i;
 		for(i=0; i<CresStreamCtrl.NumOfSurfaces; i++) {
-			if(streamCtl.getCresSurfaceHolder(i) == null){
+			if(streamCtl.dispSurface.GetSurfaceHolder(i) == null){
 			    continue;
 			}
-			if(streamCtl.getCresSurfaceHolder(i) == holder) {
+			if(streamCtl.dispSurface.GetSurfaceHolder(i) == holder) {
 				return i;
 			}			
 		}    

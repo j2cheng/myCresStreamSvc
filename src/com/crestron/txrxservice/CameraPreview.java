@@ -15,6 +15,7 @@ import android.hardware.Camera.Parameters;
 import android.hardware.Camera.PreviewCallback;
 import android.hardware.Camera.Size;
 import android.util.Log;
+import android.view.Surface;
 import android.view.SurfaceHolder;
 
 public class CameraPreview {
@@ -158,10 +159,9 @@ public class CameraPreview {
 		        	if(CresCamera.mCamera != null){
 		        		try {
 		        			try {
-		        				SurfaceHolder sh = streamCtl.getCresSurfaceHolder(idx);
-		        				CresCamera.mCamera.setPreviewDisplay(sh);
-
-		        				//mCamera.setPreviewDisplay(surfaceHolder);
+		        				// for this to work a change to added a public method in android.hardware.Camera
+		        				Surface s = streamCtl.getSurface(idx);
+		        				CresCamera.mCamera.setPreviewSurface(s);
 		        			}catch (Exception localException) {
 		        				localException.printStackTrace();
 		        			}
@@ -430,7 +430,7 @@ public class CameraPreview {
 		            Log.i(TAG, "Playback already stopped");
 		        
 		        // Reset Tag
-				streamCtl.getSurfaceView(idx).setTag("VideoLayer");
+				streamCtl.setSurfaceViewTag(idx, "VideoLayer");
 		        
 		        latch.countDown();
     		}

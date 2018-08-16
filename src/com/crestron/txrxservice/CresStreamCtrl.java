@@ -146,8 +146,6 @@ public class CresStreamCtrl extends Service {
     boolean airMediaLicensed = false;
     private boolean use_splashtop = false;
     boolean[] restartRequired = new boolean[NumOfSurfaces];
-    private static Object windowTimerLock = new Object();
-    private Timer[] windowTimer = new Timer[NumOfSurfaces];
     public final static String savedSettingsFilePath = "/data/CresStreamSvc/userSettings";
     public final static String savedSettingsOldFilePath = "/data/CresStreamSvc/userSettings.old";
     public final static String cameraModeFilePath = "/dev/shm/crestron/CresStreamSvc/cameraMode";
@@ -211,6 +209,7 @@ public class CresStreamCtrl extends Service {
     public String mProductName;
     public boolean mCameraDisabled = false;
     public boolean restartMediaServer = false;
+    public ServiceMode serviceMode = ServiceMode.Master;
     private final int backgroundViewColor = Color.argb(255, 0, 0, 0);
 	public String hostName=null;
 	public String domainName=null;
@@ -238,6 +237,44 @@ public class CresStreamCtrl extends Service {
         PREVIEW,
         WBS_STREAM_IN
     }
+    
+    enum ServiceMode {
+    	Master(0),
+    	Slave(1);
+    	
+    	private final int value;
+    	ServiceMode(int value)
+    	{
+    		this.value = value;
+    	}
+        public int getValue() 
+        {
+            return value;
+        }
+        public static String getStringValueFromInt(int i) 
+        {
+            for (ServiceMode mode : ServiceMode.values()) 
+            {
+                if (mode.getValue() == i) 
+                {
+                    return mode.toString();
+                }
+            }
+            return ("Invalid Service Mode.");
+        }
+        
+        public static ServiceMode getServiceModeFromInt(int i) 
+        {
+            for (ServiceMode mode : ServiceMode.values()) 
+            {
+                if (mode.getValue() == i) 
+                {
+                    return mode;
+                }
+            }
+            return ServiceMode.Master;
+        }
+    };
     
     enum AirMediaLoginMode {
     	Disabled(0),
@@ -441,7 +478,6 @@ public class CresStreamCtrl extends Service {
 
     private final ReentrantLock hdmiLock				= new ReentrantLock(true); // fairness=true, makes lock ordered
     private final ReentrantLock cameraLock				= new ReentrantLock(true); // fairness=true, makes lock ordered
-    private final ReentrantLock[] windowtLock			= new ReentrantLock[NumOfSurfaces]; // members will be allocated in constructor
     private final ReentrantLock[] stopStartLock			= new ReentrantLock[NumOfSurfaces]; // members will be allocated in constructor
     private final ReentrantLock[] streamStateLock 		= new ReentrantLock[NumOfSurfaces]; // members will be allocated in constructor
 
@@ -493,6 +529,7 @@ public class CresStreamCtrl extends Service {
         
     @Override
         public void onCreate() {
+    	    super.onCreate();
     		// Create Handler onCreate so that it is always associated with UI thread (main thread)
     		handler = new Handler();
             super.onCreate();
@@ -533,17 +570,11 @@ public class CresStreamCtrl extends Service {
     			}
     		}
     		
-    		//Start service connection
-    		tokenizer = new StringTokenizer();
-    		sockTask = new TCPInterface(this);
-    		sockTask.execute(new Void[0]);  
-
     		// Allocate startStop and streamstate Locks, also initializing array
     		for (int sessionId = 0; sessionId < NumOfSurfaces; sessionId++)
     		{
     			stopStartLock[sessionId] = new ReentrantLock(true);
     			streamStateLock[sessionId] = new ReentrantLock(true);
-    			windowtLock[sessionId] =  new ReentrantLock(true);
     			mVideoDimensions[sessionId] = new videoDimensions(0, 0);
     			m_InPause[sessionId] = false;
     			//            	mHDCPEncryptStatus[sessionId] = false;          	
@@ -709,6 +740,17 @@ public class CresStreamCtrl extends Service {
     				Log.e(TAG, "Could not upgrade userSettings: " + ex);
     			}
     		}
+ 
+    		// This must happen before we receive the initial service mode from csio once TCP interface is up.
+    		// If service mode from csio differs from our setting, a request to restart the service will be sent to csio
+			serviceMode = ServiceMode.getServiceModeFromInt(userSettings.getServiceMode());
+			Log.i(TAG, "===================== CresStreamSvc service mode = " + 
+					((serviceMode == ServiceMode.Slave)?"Slave":"Master") + " =====================");
+			
+    		//Start service connection
+    		tokenizer = new StringTokenizer();
+    		sockTask = new TCPInterface(this);
+    		sockTask.execute(new Void[0]);  
     		    		
     		if (MiscUtils.readStringFromDisk(initializeSettingsFilePath).compareTo("1") != 0)
     		{
@@ -1010,9 +1052,61 @@ public class CresStreamCtrl extends Service {
             return START_STICKY;	// No longer needed since it is not a service
     }
     
+    ////////////////////////////////////////////////////////////////////////////////////////////////
+    /// SERVICE
+    ////////////////////////////////////////////////////////////////////////////////////////////////
+    
+    private final IDecoderService.Stub mBinder = new IDecoderService.Stub() {
+    	public int attachSurface(int id, Surface s)
+    	{
+    		Log.i(TAG,"attachSurface: id="+id+"   surface="+s.toString());
+    		setSurface(id, s);
+    		return 0;
+    	}
+    	
+    	public int detachSurface(int id, Surface s)
+    	{
+    		Log.i(TAG,"detachSurface: id="+id+"   surface="+s.toString());
+    		deleteSurface(id);
+    		return 0;
+    	}
+    	
+    	// Functions below for debugging purposes only
+    	public int masterStartStream(int id, String url)
+    	{
+    		Log.i(TAG, "masterStartStream(): url = " + url + " for sessionId = " + id);
+    		setStreamInUrl(url, id);
+    		Log.i(TAG, "masterStartStream(): calling startStreamIn for sessionId = " + id);
+    		startStreamIn(id);
+    		return 0;
+    	}
+    	
+    	public int masterStopStream(int id)
+    	{
+    		Log.i(TAG, "masterStopStream(): calling stopStreamIn for sessionId = " + id);
+    		stopStreamIn(id);
+    		return 0;
+    	}
+    };
+    
+    @Override
     public IBinder onBind(Intent intent)
     {
-        return null;
+        Log.i(TAG, "onBind  intent= " + intent.toString());
+        return mBinder;
+    } 
+
+    @Override
+    public boolean onUnbind(Intent intent) {
+        Log.i(TAG, "onUnbind  intent= " + intent.toString());
+        return super.onUnbind(intent);
+        // TODO stop all streams
+    }
+
+    @Override
+    public void onRebind(Intent intent) {
+        Log.i(TAG, "onRebind  intent= " + intent.toString());
+        super.onRebind(intent);
     }
     
     public void onDestroy(){
@@ -1045,7 +1139,7 @@ public class CresStreamCtrl extends Service {
         CresCamera.releaseCamera();
     }
     
-    private void runOnUiThread(Runnable runnable) {
+    public void runOnUiThread(Runnable runnable) {
     	// Android wants all surface methods to be run on UI thread, 
     	// Instability and/or crashes can occur if this is not observed
         handler.post(runnable);
@@ -1064,6 +1158,22 @@ public class CresStreamCtrl extends Service {
     	catch (Exception ex)
     	{
     		Log.w(TAG, "Failed to copy cert file: " + ex);
+    	}
+    }
+    
+    public void setServiceMode(int mode)
+    {
+    	if (mode != serviceMode.ordinal())
+    	{
+    		Log.i(TAG, "Service mode needs to change from " + ((serviceMode == ServiceMode.Master) ? "Master" : "Slave") +
+    				" to " + ((mode == ServiceMode.Master.ordinal()) ? "Master" : "Slave") + " - requesting restart .....");
+    		userSettings.setServiceMode(mode);
+    		serviceMode = ServiceMode.getServiceModeFromInt(mode);
+			RestartTxrxService();
+    	}
+    	else
+    	{
+    		Log.i(TAG, "Service mode is already set to " + ((serviceMode == ServiceMode.Master) ? "Master" : "Slave"));
     	}
     }
     
@@ -1106,74 +1216,51 @@ public class CresStreamCtrl extends Service {
 		return cameraDisabled;
     }
 
- 
-    public SurfaceHolder getCresSurfaceHolder(final int sessionId){
-    	SurfaceHolder surfaceHolder = null;
-    	
-    	// Make sure surface changes are only done in UI (main) thread
-    	if (Looper.myLooper() != Looper.getMainLooper())
+    public Surface getSurface(int id) 
+    {
+    	Surface s = null;
+    	if (dispSurface != null)
     	{
-    		// We use a RunnableFuture because you cannot just instantiate a new SurfaceHolder
-    		// This allows us to use the get() method to return the SurfaceHolder from the UI thread
-	    	RunnableFuture<SurfaceHolder> runningThread = new RunnableFuture<SurfaceHolder>() {
-				volatile SurfaceHolder sh;
-				final CountDownLatch latch = new CountDownLatch(1);
-				volatile boolean complete = false;
-			     @Override
-			     public void run() {		    	 		    	
-	    			 sh = dispSurface.GetSurfaceHolder(sessionId);
-		    		 latch.countDown();
-			    	 complete = true;
-			     }
-	
-				@Override
-				public boolean cancel(boolean arg0) { return false; }
-				
-				@Override
-				public SurfaceHolder get() throws InterruptedException,
-						ExecutionException { 
-					if (this.isDone() == false)
-						latch.await();
-					return sh; 
-				}
-	
-				@Override
-				public SurfaceHolder get(long arg0, TimeUnit arg1)
-						throws InterruptedException, ExecutionException,
-						TimeoutException { return sh; }
-	
-				@Override
-				public boolean isCancelled() { return false; }
-	
-				@Override
-				public boolean isDone() { return complete; }
-	    	};
-	    	
-			runOnUiThread(runningThread);
-			
-			try { surfaceHolder = runningThread.get(); }
-			catch (InterruptedException ex) { ex.printStackTrace(); }
-			catch (ExecutionException ex) { ex.printStackTrace(); }
+    		s = dispSurface.getSurface(id);
     	}
-    	else
-    		surfaceHolder = dispSurface.GetSurfaceHolder(sessionId);
-    	
-    	if (surfaceHolder != null)
-    		Log.i(TAG, MiscUtils.stringFormat("returned surface holder %s", surfaceHolder.toString()));
-    	
-    	return surfaceHolder;
-    }
-
-    public SurfaceView getSurfaceView(int id){
-        return dispSurface.GetSurfaceView(id);
+    	if (s == null)
+    	{
+    		Log.w(TAG, "GetSurface(): returning null surface");
+    	}
+    	return s;
     }
     
-    public TextureView getTextureView(int id){
-        return dispSurface.GetTextureView(id);
+    public void setSurface(int id, Surface s)
+    {
+    	if (dispSurface != null)
+    	{
+    		dispSurface.setSurface(id, s);
+    	}
     }
     
-    public SurfaceTexture getSurfaceTexture(int id){
-        return dispSurface.GetSurfaceTexture(id);
+    public void deleteSurface(int id)
+    {
+    	if (dispSurface != null)
+    	{
+    		dispSurface.deleteSurface(id);
+    	}
+    }
+    
+    public SurfaceView getSurfaceView(int id) {
+    	return dispSurface.GetSurfaceView(id);
+    }
+    
+    public TextureView getTextureView(int id) {
+    	return dispSurface.GetTextureView(id);      
+    }
+    
+    public SurfaceTexture getSurfaceTexture(int id) {
+    	return dispSurface.GetSurfaceTexture(id);
+    }
+    
+    public void setSurfaceViewTag(int idx, String tag)
+    {
+    	dispSurface.setTag(idx, tag);
     }
     
     private void airMediaLicenseThread(final CresStreamCtrl streamCtrl)
@@ -1272,8 +1359,6 @@ public class CresStreamCtrl extends Service {
     	}).start();
     }
     
-    
-    
     public void createCresDisplaySurface(){
     	final CresStreamCtrl streamCtrl = this;    	
     	
@@ -1304,7 +1389,12 @@ public class CresStreamCtrl extends Service {
     	    			maxVRes = 1200;
     	    			maxHRes = 1920;
     	    		}
-    				dispSurface = new CresDisplaySurface(streamCtrl, maxHRes, maxVRes, haveExternalDisplays, backgroundViewColor); // set to max output resolution
+    	    		if (serviceMode == ServiceMode.Master)
+    	    		{
+    	    			dispSurface = new CresDisplaySurfaceMaster(streamCtrl, maxHRes, maxVRes, haveExternalDisplays, backgroundViewColor); // set to max output resolution
+    	    		} else {
+    	    			dispSurface = new CresDisplaySurfaceSlave(streamCtrl);
+    	    		}
     				latch.countDown();
     			}
     		});
@@ -1338,7 +1428,12 @@ public class CresStreamCtrl extends Service {
     			maxVRes = 1200;
     			maxHRes = 1920;
     		}
-    		dispSurface = new CresDisplaySurface(streamCtrl, maxHRes, maxVRes, haveExternalDisplays, backgroundViewColor); // set to max output resolution
+    		if (serviceMode == ServiceMode.Master)
+    		{
+    			dispSurface = new CresDisplaySurfaceMaster(streamCtrl, maxHRes, maxVRes, haveExternalDisplays, backgroundViewColor); // set to max output resolution
+    		} else {
+    			dispSurface = new CresDisplaySurfaceSlave(streamCtrl);
+    		}
     	}
     }
 
@@ -2103,26 +2198,97 @@ public class CresStreamCtrl extends Service {
             updateWH(sessionId);
         }
     }
+
+    private Integer[][] createZOrderArray()
+    {
+    	// Index 0 is the sessionId value, Index 1 is the relative Z order saved in userSettings
+    	Integer[][] zOrder = new Integer[2][CresStreamCtrl.NumOfSurfaces];
+    	
+    	for (int sessionId = 0; sessionId < CresStreamCtrl.NumOfSurfaces; sessionId++)
+    	{
+    		zOrder[0][sessionId] = sessionId; 
+    		zOrder[1][sessionId] = userSettings.getZ(sessionId);
+    	}
+    	
+    	return zOrder;
+    }
+    
+    // passing in Integer[][] acts like pass by reference, this is desired in this case
+    private void sortZOrderArray(Integer[][] zOrder)
+    {
+    	//bubble ascending sort, we want zorders to be listed so that lower z order has lower index
+        for (int outerIndex = 0; outerIndex < CresStreamCtrl.NumOfSurfaces; outerIndex++)
+        {
+            for (int innerIndex = (outerIndex + 1); innerIndex < CresStreamCtrl.NumOfSurfaces; innerIndex++)
+            {
+                if (zOrder[1][outerIndex] > zOrder[1][innerIndex])
+                {
+                    int[] temp = new int[2];
+                    temp[0] = zOrder[0][outerIndex];
+                    temp[1] = zOrder[1][outerIndex];
+                    
+                    //Swap innerIndex to outerIndex position
+                    zOrder[0][outerIndex] = zOrder[0][innerIndex];
+                    zOrder[1][outerIndex] = zOrder[1][innerIndex];
+          
+                    zOrder[0][innerIndex] = temp[0];
+                    zOrder[1][innerIndex] = temp[1];
+                }
+            }
+        }   
+    }
+    
+    private boolean didZOrderChange(Integer[][] zOrderOld, Integer[][] zOrderNew)
+    {
+    	boolean updated = false;
+    	for (int i = 0; i < CresStreamCtrl.NumOfSurfaces; i++)
+        {
+    		// Check that order of sessionIds match
+    		if (zOrderOld[0][i] != zOrderNew[0][i])
+    		{
+    			updated = true;
+    			break;
+    		}
+        }
+    	
+    	return updated;
+    }
+    
+    private boolean doWindowsOverlap()
+    {
+    	// TODO: this needs to be updated when we have more than 2 windows
+    	int surface1xLeft 	= userSettings.getXloc(0);
+    	int surface1xRight 	= surface1xLeft + userSettings.getW(0);
+    	int surface1yTop 	= userSettings.getYloc(0);
+    	int surface1yBottom	= surface1yTop + userSettings.getH(0);
+    	
+    	int surface2xLeft 	= userSettings.getXloc(1);
+    	int surface2xRight 	= surface2xLeft + userSettings.getW(1);
+    	int surface2yTop 	= userSettings.getYloc(1);
+    	int surface2yBottom	= surface2yTop + userSettings.getH(1);
+    	
+    	return MiscUtils.rectanglesOverlap(surface1xLeft, surface1xRight, surface1yTop, surface1yBottom, surface2xLeft, surface2xRight, surface2yTop, surface2yBottom);
+    }
     
     public void setWindowSizeZ(int z, int sessionId)
     {
     	if (userSettings.getZ(sessionId) != z)
     	{
     		// Determine current zOrder before change
-    		final Integer[][] zOrderOld = dispSurface.createZOrderArray();
-	    	dispSurface.sortZOrderArray(zOrderOld);
+    		final Integer[][] zOrderOld = createZOrderArray();
+	    	sortZOrderArray(zOrderOld);
 	    	
     		userSettings.setZ(z, sessionId);
     		
     		// Determine whether zorder update is necessary
-	    	boolean overlap = dispSurface.doWindowsOverlap();
+	    	boolean overlap = doWindowsOverlap();
 	
 	    	// Find zOrder after update
 	    	// Index 0 is the sessionId value, Index 1 is the relative Z order saved in userSettings
-	    	final Integer[][] zOrder = dispSurface.createZOrderArray();
-	    	dispSurface.sortZOrderArray(zOrder);
+	    	final Integer[][] zOrder = createZOrderArray();
+	    	sortZOrderArray(zOrder);
 	    	
-	    	boolean zOrderUpdated = dispSurface.didZOrderChange(zOrderOld, zOrder);
+	    	boolean zOrderUpdated = didZOrderChange(zOrderOld, zOrder);
 	    	
 	    	if ((overlap == true) && (zOrderUpdated == true))
 	    	{  
@@ -2181,465 +2347,59 @@ public class CresStreamCtrl extends Service {
         return userSettings.getH(sessId);
     }
         
-    public void updateWH(final int sessionId)
+    private void updateWH(final int sessionId)
     {
-        Log.i(TAG, "updateWH " + sessionId + " : Lock");
-        windowtLock[sessionId].lock();
-        try
-        {
-            if (dispSurface != null)
-            {
-            	// Make sure surface changes are only done in UI (main) thread
-            	if (Looper.myLooper() != Looper.getMainLooper())
-            	{
-	            	final CountDownLatch latch = new CountDownLatch(1);
-	
-	            	runOnUiThread(new Runnable() {
-		       		     @Override
-		       		     public void run() {
-		       		    	 int width = userSettings.getW(sessionId);
-		       		    	 int height = userSettings.getH(sessionId);
-		       		    	 if ((width == 0) && (height == 0))
-		       		    	 {
-		       		    		 width = Integer.parseInt(hdmiOutput.getHorizontalRes());
-		       		    		 height = Integer.parseInt(hdmiOutput.getVerticalRes());
-								 if ((width == 0) && (height == 0))
-								 {
-								 	width = 1920;
-									height = 1080;
-								 }
-		       		    	 }
-		       		    	 dispSurface.UpdateDimensions(width, height, sessionId);
-		       		    	 latch.countDown();
-		       		     }
-	            	});	            	
-
-	            	try { 
-	            		if (latch.await(60, TimeUnit.SECONDS) == false)
-	            		{
-	            			Log.e(TAG, "updateWH: Timeout after 60 seconds");
-	            			RecoverTxrxService();
-	            		}
-	            	}
-	            	catch (InterruptedException ex) { ex.printStackTrace(); }  
-            	}
-            	else
-            	{
-            		int width = userSettings.getW(sessionId);
-            		int height = userSettings.getH(sessionId);
-            		if ((width == 0) && (height == 0))
-            		{
-            			width = Integer.parseInt(hdmiOutput.getHorizontalRes());
-            			height = Integer.parseInt(hdmiOutput.getVerticalRes());
-						if ((width == 0) && (height == 0))
-						{
-						 	width = 1920;
-							height = 1080;
-						}
-            		}
-            		dispSurface.UpdateDimensions(width, height, sessionId);
-            	}
-            }
-        }
-        finally
-        {
-        	windowtLock[sessionId].unlock();
-            Log.i(TAG, "updateWH " + sessionId + " : Unlock");
-        }
-
+    	if (dispSurface != null)
+    	{
+    		dispSurface.updateWH(sessionId);
+    	}
     }
     
     public void updateWindowWithVideoSize(int sessionId, boolean use_texture_view, int videoWidth, int videoHeight)
     {
-    	Log.i(TAG, "updateWindowWithVideoSize " + sessionId + " : Lock");
-        windowtLock[sessionId].lock();
-        try
-        {
-        	mVideoDimensions[sessionId].videoWidth = videoWidth;
-        	mVideoDimensions[sessionId].videoHeight = videoHeight;
-        	int tmpWidth = userSettings.getW(sessionId);
-        	int tmpHeight = userSettings.getH(sessionId);
-        	int tmpX = userSettings.getXloc(sessionId);
-        	int tmpY = userSettings.getYloc(sessionId);
-        	if ((tmpWidth == 0) && (tmpHeight == 0))
-        	{
-        		tmpWidth = Integer.parseInt(hdmiOutput.getHorizontalRes());
-        		tmpHeight = Integer.parseInt(hdmiOutput.getVerticalRes());
-        		if ((tmpWidth == 0) && (tmpHeight == 0))
-        		{
-        			tmpWidth = 1920;
-        			tmpHeight = 1080;
-        		}
-        	}
-       	
-			// TODO Add rotation and textureview scaling when AirMedia is merged in
-        	Rect newWindowSize;
-        	if (userSettings.getStretchVideo(sessionId) == 1)
-        	{
-        		// Stretch video means set all dimensions to exact window size
-        		newWindowSize = new Rect(tmpX, tmpY, tmpX + tmpWidth, tmpY + tmpHeight);
-        	}
-        	else
-        	{
-        		if (videoWidth == 0 || videoHeight == 0)
-        		{
-        			Log.i(TAG, "unable to preserve video aspect ratio, video width = " + videoWidth + " video height = " + videoHeight);
-        			newWindowSize = new Rect(tmpX, tmpY, tmpX + tmpWidth, tmpY + tmpHeight);
-        		}
-        		else 
-        		{
-        			// Don't Stretch means calculate aspect ratio preserving window inside of given window dimensions
-        			newWindowSize = MiscUtils.getAspectRatioPreservingRectangle(tmpX, tmpY, tmpWidth, tmpHeight, videoWidth, videoHeight);
-        		}
-        	}
-        	
-        	// Only update window if there is a change to the current window (this method is no intended to force update the same dimensions)
-        	Rect currentWindowSize = dispSurface.GetWindowSize(sessionId, use_texture_view);
-        	if (	currentWindowSize.left != newWindowSize.left ||
-        			currentWindowSize.top != newWindowSize.top ||
-        			currentWindowSize.width() != newWindowSize.width() ||
-        			currentWindowSize.height() != newWindowSize.height())
-        	{
-        		Log.i(TAG, "updateWindowWithVideoSize:  updating size to "+newWindowSize.width()+"x"+newWindowSize.height()+" @ ("+newWindowSize.left+","+newWindowSize.top+")");
-        		updateWindow(newWindowSize.left, newWindowSize.top, newWindowSize.width(), newWindowSize.height(), sessionId, use_texture_view);
-        	}
-        }
-        finally
-        {
-        	windowtLock[sessionId].unlock();
-            Log.i(TAG, "updateWindowWithVideoSize " + sessionId + " : Unlock");
-        }
+    	mVideoDimensions[sessionId].videoWidth = videoWidth;
+    	mVideoDimensions[sessionId].videoHeight = videoHeight;
+    	if (dispSurface != null)
+    	{
+    		dispSurface.updateWindowWithVideoSize(sessionId, use_texture_view, videoWidth, videoHeight);
+    	}
     }
     
     public void updateWindow(final int sessionId)
     {
-    	updateFullWindow(sessionId, false);
+    	updateWindow(sessionId, false);
     }
     
-    public void updateWindow(final int sessionId, final boolean use_texture_view)
+    public void updateWindow(final int sessionId, boolean use_texture)
     {
-    	updateFullWindow(sessionId, use_texture_view);
-    }
-    
-    private void updateFullWindow(final int sessionId, final boolean use_texture_view)
-    {
-        Log.i(TAG, "updateFullWindow " + sessionId + " : Lock");
-        windowtLock[sessionId].lock();
-        try
-        {
-        	int tmpWidth = userSettings.getW(sessionId);
-        	int tmpHeight = userSettings.getH(sessionId);
-        	int tmpX = userSettings.getXloc(sessionId);
-        	int tmpY = userSettings.getYloc(sessionId);
-        	if ((tmpWidth == 0) && (tmpHeight == 0))
-        	{
-        		tmpWidth = Integer.parseInt(hdmiOutput.getHorizontalRes());
-        		tmpHeight = Integer.parseInt(hdmiOutput.getVerticalRes());
-        		if ((tmpWidth == 0) && (tmpHeight == 0))
-        		{
-        			tmpWidth = 1920;
-        			tmpHeight = 1080;
-        		}
-        	}
-        	updateWindow(tmpX, tmpY, tmpWidth, tmpHeight, sessionId, use_texture_view);
-        }
-        finally
-        {
-        	windowtLock[sessionId].unlock();
-            Log.i(TAG, "updateFullWindow " + sessionId + " : Unlock");
-        }
-    }
-    
-    public void updateWindow(final int x, final int y, final int w, final int h, final int sessionId, final boolean use_texture_view)
-    {
-    	// to avoid bug : we will set window dimensions and then set again after 10 seconds
-    	_updateWindow(x, y, w, h, sessionId, use_texture_view);
-    	synchronized(windowTimerLock)
+    	if (dispSurface != null)
     	{
-			Log.v(TAG, "Enter updateWindow: WindowTimer["+sessionId+"]="+windowTimer[sessionId]);
-    		// if there is a pending timer update for this window then cancel it and add a new one.
-    		if (windowTimer[sessionId] != null) {
-    			Log.i(TAG, "canceling prior delayed updateWindow event for sessionId="+sessionId);
-    			windowTimer[sessionId].cancel();
-    			windowTimer[sessionId].purge();
-    		}
-			Log.i(TAG, "scheduling delayed updateWindow event for sessionId="+sessionId+"  use_texture_view="+use_texture_view);
-    		windowTimer[sessionId] = new Timer(MiscUtils.stringFormat("windowTimer-%d", sessionId));
-    		windowTimer[sessionId].schedule(new delayedCallToUpdateWindow(x, y, w, h, sessionId, use_texture_view), 10000);
-			Log.v(TAG, "Exit updateWindow: WindowTimer["+sessionId+"]="+windowTimer[sessionId]);
+    		dispSurface.updateWindow(sessionId, use_texture);
     	}
     }
-    
-    // !!!!!!! Do not call this function use updateWindow instead !!!!!!!
-    public void _updateWindow(int xloc, int yloc, int w, int h, final int sessionId, final boolean use_texture_view)
-    {
-        Log.i(TAG, "_updateWindow " + sessionId + " : Lock");
-        windowtLock[sessionId].lock();
-        try
-        {
-            Log.i(TAG, "****** _updateWindow x="+String.valueOf(xloc)+" y="+String.valueOf(yloc) + " w=" + String.valueOf(w) + " h=" + String.valueOf(h));
-        	// Needs to be final so that we can pass to another thread
-        	final int width = w;
-        	final int height = h;
-        	final int x = xloc;
-        	final int y = yloc;
-        	
-            if (dispSurface != null)
-            {
-            	// Make sure surface changes are only done in UI (main) thread
-            	if (Looper.myLooper() != Looper.getMainLooper())
-            	{
-	            	final CountDownLatch latch = new CountDownLatch(1);
-	
-	            	runOnUiThread(new Runnable() {
-	            		@Override
-	            		public void run() {
-	            			dispSurface.UpdateWindowSize(x, y, width, height, sessionId, use_texture_view);		       		    	 
-	            			latch.countDown();
-	            		}
-	            	});	            	
-
-	            	try { 
-	            		if (latch.await(60, TimeUnit.SECONDS) == false)
-	            		{
-	            			Log.e(TAG, "_updateWindow: Timeout after 60 seconds");
-	            			RecoverTxrxService();
-	            		}
-	            	}
-	            	catch (InterruptedException ex) { ex.printStackTrace(); }  
-            	}
-            	else
-            	{
-            		dispSurface.UpdateWindowSize(x, y, width, height, sessionId, use_texture_view);
-            	}
-            }
-        }
-        finally
-        {
-        	windowtLock[sessionId].unlock();
-            Log.i(TAG, "_updateWindow " + sessionId + " : Unlock");
-        }
-    }
-
-    public void hideWindowWithoutDestroy(final int sessionId)
-    {
-        Log.i(TAG, "updateWH " + sessionId + " : Lock");
-        windowtLock[sessionId].lock();
-        try
-        {
-            if (dispSurface != null)
-            {
-            	// Make sure surface changes are only done in UI (main) thread
-            	if (Looper.myLooper() != Looper.getMainLooper())
-            	{
-	            	final CountDownLatch latch = new CountDownLatch(1);
-	
-	            	runOnUiThread(new Runnable() {
-		       		     @Override
-		       		     public void run() {
-		       		    	dispSurface.UpdateDimensions(0, 0, sessionId);
-			                latch.countDown();
-		       		     }
-	            	});	            	
-
-	            	try { 
-	            		if (latch.await(30, TimeUnit.SECONDS) == false)
-	            		{
-	            			Log.e(TAG, "hideWindowWithoutDestroy: timeout after 30 seconds");
-	            			RecoverTxrxService();
-	            		}
-	            	}
-	            	catch (InterruptedException ex) { ex.printStackTrace(); }  
-            	}
-            	else
-            		dispSurface.UpdateDimensions(0, 0, sessionId);
-            }
-        }
-        finally
-        {
-        	windowtLock[sessionId].unlock();
-            Log.i(TAG, "updateWH " + sessionId + " : Unlock");
-        }
-
-    }
-    
     
     public void invalidateSurface()
     {
     	if (dispSurface != null)
-        {
-    		// Make sure surface changes are only done in UI (main) thread
-        	if (Looper.myLooper() != Looper.getMainLooper())
-        	{
-        		final CountDownLatch latch = new CountDownLatch(1);
-        		runOnUiThread(new Runnable() {
-	       		     @Override
-	       		     public void run() {
-		                dispSurface.forceParentLayoutInvalidation();
-		                latch.countDown();
-	       		     }
-        		});
-        		try { 
-            		if (latch.await(30, TimeUnit.SECONDS) == false)
-            		{
-            			Log.e(TAG, "invalidateSurface: timeout after 30 seconds");
-            			RecoverTxrxService();
-            		}
-            	}
-            	catch (InterruptedException ex) { ex.printStackTrace(); }  
-        	}
-        	else
-        		dispSurface.forceParentLayoutInvalidation();        		
-        }
-    }
-    
-    public void updateXY(final int sessionId)
-    {
-    	
-    	Log.i(TAG, "updateXY " + sessionId + " : Lock");
-    	windowtLock[sessionId].lock();
-    	
-    	try
     	{
-        	if (dispSurface != null)
-            {
-        		// Make sure surface changes are only done in UI (main) thread
-            	if (Looper.myLooper() != Looper.getMainLooper())
-            	{
-	        		final CountDownLatch latch = new CountDownLatch(1);
-	        		runOnUiThread(new Runnable() {
-		       		     @Override
-		       		     public void run() {
-			                dispSurface.UpdateCoordinates(userSettings.getXloc(sessionId), 
-			                		userSettings.getYloc(sessionId), sessionId); 
-			                latch.countDown();
-		       		     }
-	        		});
-	        		try { 
-	            		if (latch.await(30, TimeUnit.SECONDS) == false)
-	            		{
-	            			Log.e(TAG, "updateXY: timeout after 30 seconds");
-	            			RecoverTxrxService();
-	            		}
-	            	}
-	            	catch (InterruptedException ex) { ex.printStackTrace(); }  
-            	}
-            	else
-            		dispSurface.UpdateCoordinates(userSettings.getXloc(sessionId), 
-	                		userSettings.getYloc(sessionId), sessionId);
-            		
-            }
-        	
-        	// Gstreamer needs X and Y locations and does not update itself like it does for width and height
-        	if (userSettings.getMode(sessionId) == DeviceMode.STREAM_IN.ordinal()) 
-        		streamPlay.updateCurrentXYloc(userSettings.getXloc(sessionId), userSettings.getYloc(sessionId), sessionId);
-    	}
-    	finally
-    	{
-    		windowtLock[sessionId].unlock();
-        	Log.i(TAG, "updateXY " + sessionId + " : Unlock");
+    		dispSurface.invalidateSurface();
     	}
     }
 
-    public void setVideoTransformation(int sessionId, boolean use_texture_view)
+    private void updateXY(final int sessionId)
     {
-    	if (!use_texture_view)
-    		return;
-    	if (mAirMedia == null || !(mAirMedia instanceof AirMediaSplashtop))
-    		return;
-        Log.i(TAG, "setVideoTransformation " + sessionId + " : Lock");
-        windowtLock[sessionId].lock();
-        try
-        {
-        	int tmpWidth = userSettings.getW(sessionId);
-        	int tmpHeight = userSettings.getH(sessionId);
-        	int tmpX = userSettings.getXloc(sessionId);
-        	int tmpY = userSettings.getYloc(sessionId);
-        	if ((tmpWidth == 0) && (tmpHeight == 0))
-        	{
-        		tmpWidth = Integer.parseInt(hdmiOutput.getHorizontalRes());
-        		tmpHeight = Integer.parseInt(hdmiOutput.getVerticalRes());
-        		if ((tmpWidth == 0) && (tmpHeight == 0))
-        		{
-    				Point size = getDisplaySize();
-    				Log.i(TAG, "Could not get HDMI resolution - using Android display size "+size.x+"x"+size.y);
-    				tmpWidth = size.x;
-    				tmpHeight = size.y;
-        		}
-        	}
-            Log.i(TAG, "setVideoTransformation x="+String.valueOf(tmpX)+" y="+String.valueOf(tmpY) + " w=" + String.valueOf(tmpWidth) + " h=" + String.valueOf(tmpHeight));
-
-        	// Needs to be final so that we can pass to another thread
-        	final int width = tmpWidth;
-        	final int height = tmpHeight;
-        	final int x = tmpX;
-        	final int y = tmpY;
-        	
-            if (mAirMedia != null)
-            {
-            	// Make sure view transform changes are only done in UI (main) thread
-            	if (Looper.myLooper() != Looper.getMainLooper())
-            	{
-	            	final CountDownLatch latch = new CountDownLatch(1);
-	
-	            	runOnUiThread(new Runnable() {
-	            		@Override
-	            		public void run() {
-	            			mAirMedia.setVideoTransformation(x, y, width, height);		       		    	 
-	            			latch.countDown();
-	            		}
-	            	});	            	
-
-	            	try { 
-	            		if (latch.await(15, TimeUnit.SECONDS) == false)
-	            		{
-	            			Log.e(TAG, "setVideoTransform: Timeout after 15 seconds");
-	            			RecoverTxrxService();
-	            		}
-	            	}
-	            	catch (InterruptedException ex) { ex.printStackTrace(); }  
-            	}
-            	else
-            	{
-        			mAirMedia.setVideoTransformation(x, y, width, height);		       		    	 
-            	}
-            }
-        }
-        finally
-        {
-        	windowtLock[sessionId].unlock();
-            Log.i(TAG, "setVideoTransformation " + sessionId + " : Unlock");
-        }
+    	if (dispSurface != null)
+    	{
+			dispSurface.updateXY(sessionId);
+    	}
     }
     
     public void SetWindowManagerResolution(final int w, final int h, final boolean haveExternalDisplay)
     {
-    	final CresStreamCtrl streamCtrl = this;    	
-
     	if (dispSurface != null)
         {
-    		// Make sure surface changes are only done in UI (main) thread
-        	if (Looper.myLooper() != Looper.getMainLooper())
-        	{
-        		final CountDownLatch latch = new CountDownLatch(1);
-        		runOnUiThread(new Runnable() {
-	       		     @Override
-	       		     public void run() {
-		                dispSurface.setWindowManagerResolution(streamCtrl, w, h, haveExternalDisplay);
-		                latch.countDown();
-	       		     }
-        		});
-        		try { 
-            		if (latch.await(30, TimeUnit.SECONDS) == false)
-            		{
-            			Log.e(TAG, "invalidateSurface: timeout after 30 seconds");
-            			RecoverTxrxService();
-            		}
-            	}
-            	catch (InterruptedException ex) { ex.printStackTrace(); }  
-        	}
-        	else
-        		dispSurface.setWindowManagerResolution(streamCtrl, w, h, haveExternalDisplay);        		
+			// will be run on UI thread
+    		dispSurface.setWindowManagerResolution(w, h, haveExternalDisplay);		
         }
     }
     
@@ -3102,7 +2862,7 @@ public class CresStreamCtrl extends Service {
     	{
     		// Start
     		Log.d(TAG, "Starting debug RGB preview mode");    		
-    		getSurfaceView(sessionId).setTag("PreviewVideoLayer");
+    		setSurfaceViewTag(sessionId, "PreviewVideoLayer");
 	    	updateWindow(sessionId);
 	    	showPreviewWindow(sessionId);
 	    	cam_preview.setSessionIndex(sessionId);
@@ -3115,7 +2875,7 @@ public class CresStreamCtrl extends Service {
     		hidePreviewWindow(sessionId);
         	cam_preview.setSessionIndex(sessionId);
         	cam_preview.stopPlayback(false, true);
-            getSurfaceView(sessionId).setTag("VideoLayer");
+        	setSurfaceViewTag(sessionId, "VideoLayer");
     	}
     }
 
@@ -3141,9 +2901,9 @@ public class CresStreamCtrl extends Service {
     			if (isRGB888HDMIVideoSupported)
     			{
     				if (userSettings.getMode(sessionId) == DeviceMode.PREVIEW.ordinal())
-    					getSurfaceView(sessionId).setTag("PreviewVideoLayer");
+    					setSurfaceViewTag(sessionId, "PreviewVideoLayer");
     				else
-    					getSurfaceView(sessionId).setTag("VideoLayer");
+    					setSurfaceViewTag(sessionId, "VideoLayer");
     			}
 
     			if (userSettings.getAirMediaLaunch(sessionId)) {
@@ -3394,7 +3154,7 @@ public class CresStreamCtrl extends Service {
 
     	sb.append("STREAMURL=").append(out_url);
     	Log.i(TAG, "Sending STREAMURL=" + out_url);
-    	sockTask.SendDataToAllClients(sb.toString());    
+    	sockTask.SendDataToAllClients(sb.toString());  
     }
 
     public void stopStreamOut(int sessId, boolean fullStop)
@@ -3564,6 +3324,8 @@ public class CresStreamCtrl extends Service {
     
     public void showSplashtopWindow(int sessId, boolean use_texture)
     {
+		if (serviceMode == ServiceMode.Slave)
+			return;
     	Log.i(TAG, "Splashtop: Window showing");
     	if (use_texture)
     	{
@@ -3575,6 +3337,8 @@ public class CresStreamCtrl extends Service {
     
     public void hideSplashtopWindow(int sessId, boolean use_texture)
     {
+		if (serviceMode == ServiceMode.Slave)
+			return;
     	Log.i(TAG, "Splashtop: Window hidden");
     	if (use_texture)
     	{
@@ -3586,12 +3350,16 @@ public class CresStreamCtrl extends Service {
     
     public void hidePreviewWindow(int sessId)
     {
+		if (serviceMode == ServiceMode.Slave)
+			return;
     	Log.i(TAG, "Preview Window hidden");
     	hideWindow(sessId);
     }
     
     public void showPreviewWindow(int sessId)
     {
+		if (serviceMode == ServiceMode.Slave)
+			return;
         Log.i(TAG, "Preview Window showing");
         showWindow(sessId);
     }
@@ -3599,18 +3367,24 @@ public class CresStreamCtrl extends Service {
     //StreamIn Ctrls & Config
     public void hideStreamInWindow(int sessId)
     {
+		if (serviceMode == ServiceMode.Slave)
+			return;
         Log.i(TAG, " streamin Window hidden " + sessId);
         hideWindow(sessId);
     }
 
     private void showStreamInWindow(int sessId)
     {
+		if (serviceMode == ServiceMode.Slave)
+			return;
         Log.i(TAG, "streamin Window  showing " + sessId);
         showWindow(sessId);
     }
 
     public void showWbsWindow(int sessId)
     {
+		if (serviceMode == ServiceMode.Slave)
+			return;
     	Log.i(TAG, "Wbs Window showing");
     	if (wbsStream.useSurfaceTexture)
     	{
@@ -3622,6 +3396,8 @@ public class CresStreamCtrl extends Service {
     
     public void hideWbsWindow(int sessId)
     {
+		if (serviceMode == ServiceMode.Slave)
+			return;
     	Log.i(TAG, "Wbs Window hidden");
     	if (wbsStream.useSurfaceTexture)
     	{
@@ -3740,7 +3516,7 @@ public class CresStreamCtrl extends Service {
 
     public void startStreamIn(int sessId)
     {
-		Log.i(TAG, "startStreamIn: calling updateWindow for sessId="+sessId);
+		Log.i(TAG, "startStreamIn: sessId="+sessId);
 		if (!m_InPause[sessId])
 			updateWindow(sessId);
 		else
@@ -3771,7 +3547,7 @@ public class CresStreamCtrl extends Service {
 
     public void startWbsStream(int sessId)
     {
-		Log.i(TAG, "startWbsStream: calling updateWindow for sessId="+sessId);
+		Log.i(TAG, "startWbsStream: sessId="+sessId);
 		if (!m_InPause[sessId])
 			updateWindow(sessId, wbsStream.useSurfaceTexture);
 		else
@@ -3802,14 +3578,13 @@ public class CresStreamCtrl extends Service {
     	{
     		lastHDMImode = DeviceMode.PREVIEW;
     		SendStreamState(StreamState.CONNECTING, sessId);
-    		Log.i(TAG, "startGstPreview: calling updateWindow for sessId="+sessId);
+    		Log.i(TAG, "startGstPreview: sessId="+sessId);
     		updateWindow(sessId);
     		showPreviewWindow(sessId);
     		invalidateSurface();
 
-    		SurfaceHolder sh = getCresSurfaceHolder(sessId);
     		gstStreamOut.setSessionIndex(sessId);
-    		gstStreamOut.startPreview(sh.getSurface(), sessId);
+    		gstStreamOut.startPreview(getSurface(sessId), sessId);
     	}
     }
 
@@ -3819,7 +3594,7 @@ public class CresStreamCtrl extends Service {
     	if (cam_preview != null)
     	{
     		SendStreamState(StreamState.CONNECTING, sessId);
-    		Log.i(TAG, "startNativePreview: calling updateWindow for sessId="+sessId);
+    		Log.i(TAG, "startNativePreview: sessId="+sessId);
 	        if (!m_InPause[sessId])
 	        	updateWindow(sessId);
 	        else
@@ -3848,13 +3623,16 @@ public class CresStreamCtrl extends Service {
     {
 	    Log.i(TAG, "stopGstPreview() sessId = " + sessId + ", hide = " + hide);
 	    if (gstStreamOut != null) {
-	    	if ( hide ) {
-	    		Log.i(TAG, "Hide Preview Window first to enhance the user experience when quickly switching to another UI");
+	    	if (serviceMode != ServiceMode.Slave)
+	    	{
+	    		if ( hide ) {
+	    			Log.i(TAG, "Hide Preview Window first to enhance the user experience when quickly switching to another UI");
 
-	    		// Do NOT hide window if being used by AirMedia
-	    		if ( !((mAirMedia != null) && (mAirMedia.getSurfaceDisplayed() == true)) ) {
-	    			hidePreviewWindow(sessId);
-	    		}	
+	    			// Do NOT hide window if being used by AirMedia
+	    			if ( !((mAirMedia != null) && (mAirMedia.getSurfaceDisplayed() == true)) ) {
+	    				hidePreviewWindow(sessId);
+	    			}	
+	    		}
 	    	}
 	    	// so these are contiuously running in background.
 	    	gstStreamOut.stopPreview(sessId);
@@ -3874,12 +3652,15 @@ public class CresStreamCtrl extends Service {
     	{
     		cam_preview.setSessionIndex(sessId);
 
-    		if(hide)
-    		{
-    			// Do NOT hide window if being used by AirMedia
-    			if ( !((mAirMedia != null) && (mAirMedia.getSurfaceDisplayed() == true)) )
-    				hidePreviewWindow(sessId);
-    		}
+	    	if (serviceMode != ServiceMode.Slave)
+	    	{
+	    		if(hide)
+	    		{
+	    			// Do NOT hide window if being used by AirMedia
+	    			if ( !((mAirMedia != null) && (mAirMedia.getSurfaceDisplayed() == true)) )
+	    				hidePreviewWindow(sessId);
+	    		}
+	    	}
 
     		//On STOP, there is a chance to get ducati crash which does not save current state
     		//causes streaming never stops.
@@ -4023,6 +3804,10 @@ public class CresStreamCtrl extends Service {
     
     public void RecoverTxrxService(){
     	Log.e(TAG, "Fatal error, kill CresStreamSvc!");
+    	RestartTxrxService();
+    }
+    
+    public void RestartTxrxService(){
 		saveUserSettings(); // Need to immediately save userSettings so that we remember our state after restarting
     	sockTask.SendDataToAllClients("DEVICE_READY_FB=FALSE");
     	sockTask.SendDataToAllClients("KillMePlease=true");	// Use kill me Please because sometimes kill -9 is needed
@@ -5838,37 +5623,6 @@ public class CresStreamCtrl extends Service {
 					mNoVideoTimer.cancel();
 					mNoVideoTimer = null;
 				}
-			}
-		}
-	}
-	
-	private class delayedCallToUpdateWindow extends TimerTask
-	{
-		private int x, y, w, h;
-		private int sessionId;
-		private boolean use_text;
-		delayedCallToUpdateWindow(int xloc, int yloc, int width, int height, int sessId, final boolean use_texture_view)
-		{
-			x = xloc;
-			y = yloc;
-			w = width;
-			h = height;
-			sessionId = sessId;
-			use_text = use_texture_view;
-		}		
-		@Override
-		public void run() {
-			Log.i(TAG, "delayed call to _updateWindow");
-			_updateWindow(x, y, w, h, sessionId, use_text);
-			synchronized(windowTimerLock)
-			{
-				Log.v(TAG, "Enter delayedCallToUpdateWindow: WindowTimer["+sessionId+"]="+windowTimer[sessionId]);
-				// end this task and clear the timer
-				windowTimer[sessionId].cancel();
-				windowTimer[sessionId].purge();
-				Log.v(TAG, "setting window timer for sessionId="+sessionId+" to null");
-				windowTimer[sessionId] = null;
-				Log.v(TAG, "Exit delayedCallToUpdateWindow: WindowTimer["+sessionId+"]="+windowTimer[sessionId]);
 			}
 		}
 	}

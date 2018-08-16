@@ -16,7 +16,7 @@ import java.net.InetAddress;
 import java.net.UnknownHostException;
 
 import com.crestron.txrxservice.CresStreamCtrl.AirMediaLoginMode;
-
+import com.crestron.txrxservice.CresStreamCtrl.ServiceMode;
 import com.crestron.airmedia.receiver.m360.IAirMediaReceiver;
 import com.crestron.airmedia.receiver.m360.models.AirMediaReceiver;
 import com.crestron.airmedia.receiver.m360.ipc.AirMediaSessionScreenPosition;
@@ -59,6 +59,7 @@ import android.net.Uri;
 import android.os.Bundle;
 import android.os.Handler;
 import android.os.IBinder;
+import android.os.Looper;
 import android.util.Log;
 import android.view.Surface;
 import android.view.SurfaceHolder;
@@ -821,7 +822,7 @@ public class AirMediaSplashtop implements AirMedia
     		boolean use_texture_view = useTextureView(getActiveSession());
     		if (use_texture_view)
     		{
-    			mStreamCtl.setVideoTransformation(streamIdx, use_texture_view);
+    			setVideoTransformation(streamIdx, use_texture_view);
     		}
     		else
     		{
@@ -892,12 +893,88 @@ public class AirMediaSplashtop implements AirMedia
         Common.Logging.i(TAG, "setTransformation  " + AirMediaSession.toDebugString(getActiveSession()) + "  view=" + w + "x" + h + " @(" + x + "," + y + ")  video=" + session.videoResolution() + "  rotate=" + videoRotation + "°" + "  scale=" + scaleX + " , " + scaleY);
 
     	textureView = mStreamCtl.getTextureView(streamIdx);
-        Matrix matrix = textureView.getTransform(null);
-        matrix.setRotate(videoRotation, viewCenterX, viewCenterY);
-        matrix.postScale(scaleX, scaleY, viewCenterX, viewCenterY);
-        //log_matrix(matrix);
-        textureView.setTransform(matrix);
-        mStreamCtl.dispSurface.forceParentLayoutInvalidation();
+    	if (textureView != null)
+    	{
+    		Matrix matrix = textureView.getTransform(null);
+    		matrix.setRotate(videoRotation, viewCenterX, viewCenterY);
+    		matrix.postScale(scaleX, scaleY, viewCenterX, viewCenterY);
+    		//log_matrix(matrix);
+    		textureView.setTransform(matrix);
+    		mStreamCtl.dispSurface.forceParentLayoutInvalidation();
+    	}
+    }
+
+    public void setVideoTransformation(int sessionId, boolean use_texture_view)
+    {
+    	if (mStreamCtl.serviceMode == ServiceMode.Slave)
+    		return;
+    	if (!use_texture_view)
+    		return;
+    	if (mStreamCtl.mAirMedia == null || !(mStreamCtl.mAirMedia instanceof AirMediaSplashtop))
+    		return;
+    	Common.Logging.i(TAG, "setVideoTransformation " + sessionId + " : Lock");
+        mStreamCtl.dispSurface.lockWindow(sessionId);
+        try
+        {
+        	int tmpWidth = mStreamCtl.userSettings.getW(sessionId);
+        	int tmpHeight = mStreamCtl.userSettings.getH(sessionId);
+        	int tmpX = mStreamCtl.userSettings.getXloc(sessionId);
+        	int tmpY = mStreamCtl.userSettings.getYloc(sessionId);
+        	if ((tmpWidth == 0) && (tmpHeight == 0))
+        	{
+        		tmpWidth = Integer.parseInt(mStreamCtl.hdmiOutput.getHorizontalRes());
+        		tmpHeight = Integer.parseInt(mStreamCtl.hdmiOutput.getVerticalRes());
+        		if ((tmpWidth == 0) && (tmpHeight == 0))
+        		{
+    				Point size = mStreamCtl.getDisplaySize();
+    				Common.Logging.i(TAG, "Could not get HDMI resolution - using Android display size "+size.x+"x"+size.y);
+    				tmpWidth = size.x;
+    				tmpHeight = size.y;
+        		}
+        	}
+        	Common.Logging.i(TAG, "setVideoTransformation x="+String.valueOf(tmpX)+" y="+String.valueOf(tmpY) + " w=" + String.valueOf(tmpWidth) + " h=" + String.valueOf(tmpHeight));
+
+        	// Needs to be final so that we can pass to another thread
+        	final int width = tmpWidth;
+        	final int height = tmpHeight;
+        	final int x = tmpX;
+        	final int y = tmpY;
+        	
+            if (mStreamCtl.mAirMedia != null)
+            {
+            	// Make sure view transform changes are only done in UI (main) thread
+            	if (Looper.myLooper() != Looper.getMainLooper())
+            	{
+	            	final CountDownLatch latch = new CountDownLatch(1);
+	
+	            	mStreamCtl.runOnUiThread(new Runnable() {
+	            		@Override
+	            		public void run() {
+	            			setVideoTransformation(x, y, width, height);		       		    	 
+	            			latch.countDown();
+	            		}
+	            	});	            	
+
+	            	try { 
+	            		if (latch.await(15, TimeUnit.SECONDS) == false)
+	            		{
+	            			Common.Logging.e(TAG, "setVideoTransform: Timeout after 15 seconds");
+	            			mStreamCtl.RecoverTxrxService();
+	            		}
+	            	}
+	            	catch (InterruptedException ex) { ex.printStackTrace(); }  
+            	}
+            	else
+            	{
+        			setVideoTransformation(x, y, width, height);		       		    	 
+            	}
+            }
+        }
+        finally
+        {
+        	mStreamCtl.dispSurface.unlockWindow(sessionId);
+        	Common.Logging.i(TAG, "setVideoTransformation " + sessionId + " : Unlock");
+        }
     }
 
     private void attachSurface() {
@@ -926,7 +1003,7 @@ public class AirMediaSplashtop implements AirMedia
     	}
     	if (!useTextureView(session))
     	{
-    		surfaceHolder = mStreamCtl.getCresSurfaceHolder(streamIdx);
+    		surfaceHolder = mStreamCtl.dispSurface.GetSurfaceHolder(streamIdx);
     		surface = surfaceHolder.getSurface();
     		//surfaceHolder_.addCallback(video_surface_callback_handler_);
     	} else {
@@ -951,7 +1028,7 @@ public class AirMediaSplashtop implements AirMedia
 		setVideoTransformation();
 
 		Common.Logging.i(TAG, "attachSurface: calling setInvalidateOnSurfaceTextureUpdate");
-		mStreamCtl.dispSurface.stMGR.setInvalidateOnSurfaceTextureUpdate(true);
+		mStreamCtl.dispSurface.setInvalidateOnSurfaceTextureUpdate(true);
 		if (useTextureView(session))
 		{
     		mStreamCtl.setUpdateStreamStateOnFirstFrame(streamIdx, true);
@@ -1723,7 +1800,7 @@ public class AirMediaSplashtop implements AirMedia
     	window_ = new Rect(x, y, x+width-1, y+height-1);
     	Common.Logging.i(TAG, "setSurfaceSize - calling updateWindow for sessId="+streamIdx+
     			" "+width+"x"+height+"@"+x+","+y+"   useTexture="+useTextureView(getActiveSession()));
-		mStreamCtl.updateWindow(x, y, width, height, streamIdx, useTextureView(getActiveSession()));
+		mStreamCtl.dispSurface.updateWindow(x, y, width, height, streamIdx, useTextureView(getActiveSession()));
 		Common.Logging.i(TAG, "------------ finished updateWindow --------------");
     }
     

@@ -5,6 +5,7 @@ package com.crestron.txrxservice;
 
 import android.util.Log;
 import android.view.Gravity;
+import android.view.Surface;
 import android.view.SurfaceHolder;
 import android.view.SurfaceView;
 import android.view.View;
@@ -36,610 +37,108 @@ import android.app.Service;
  * from CresStreamCtrl
  *
  */
-public class CresDisplaySurface 
+public interface CresDisplaySurface 
 {
-    private SurfaceView[] displaySurface = new SurfaceView[CresStreamCtrl.NumOfSurfaces];
-    private TextureView[] displayTexture = new TextureView[CresStreamCtrl.NumOfTextures];
-    private boolean[] useTextureView = new boolean[CresStreamCtrl.NumOfSurfaces];
-    CresStreamCtrl streamCtl;
-    private RelativeLayout parentlayout;
-    private RelativeLayout.LayoutParams viewLayoutParams;
-    private WindowManager wm = null;
-    private DisplayManager dm = null;
-    private WindowManager.LayoutParams  wmLayoutParams;
-    SurfaceManager sMGR;
-    SurfaceTextureManager stMGR;
-    
-    private RelativeLayout backgroundLayout = null;
-    private RelativeLayout.LayoutParams backgroundLayoutParams = null;
-    private WindowManager.LayoutParams backgroundWmParams = null; 
-    private ImageView backgroundView = null;
-    
-    String TAG = "CresDisplaySurface";
 
-    // PEM - add a view to the 2nd display
-    // Needed to pass Service or else can't call getApplicationContext...
-    private void addViewToExternalDisplay(Context app, View view, WindowManager.LayoutParams params){
-        if (dm != null){
-            Display dispArray[] = dm.getDisplays();
-            if (dispArray.length>1){
-            	if (wm == null)
-            	{
-	                Context displayContext = app.getApplicationContext().createDisplayContext(dispArray[1]);
-	                wm = (WindowManager)displayContext.getSystemService(Context.WINDOW_SERVICE);
-            	}
-            	wm.addView(view, params);
-            }
-            else{
-				Log.e(TAG, "Second display not ready yet");
-            }
-        }
-    }
+    // Prepare the class for destruction
+    public void close();
     
-    
-    // PEM - update a view to the 2nd display
-    // Needed to pass Service or else can't call getApplicationContext...
-    private void updateViewOnExternalDisplay(Context app, View view, WindowManager.LayoutParams params){
-        if (dm != null){
-            Display dispArray[] = dm.getDisplays();
-            if (dispArray.length>1){
-            	if (wm == null)
-            	{
-	                Context displayContext = app.getApplicationContext().createDisplayContext(dispArray[1]);
-	                wm = (WindowManager)displayContext.getSystemService(Context.WINDOW_SERVICE);
-            	}
-            	wm.updateViewLayout(view, params);
-            }
-            else{
-				Log.e(TAG, "Second display not ready yet");
-            }
-        }
-    }
-    
-    
-// Prepare the class for destruction
-    public void close()
-    {
-        Log.i(TAG, "CresDisplaySurface::close()");
-    	if (sMGR != null)
-    		sMGR.close();
-    	if (stMGR != null)
-    		stMGR.close();
-    	if (parentlayout != null)
-    		parentlayout.removeAllViews();
-    	if (backgroundLayout != null)
-    		backgroundLayout.removeAllViews();
-    	if (wm != null)
-    	{
-    		wm.removeView(backgroundLayout);
-    		wm.removeView(parentlayout);
-    	}
-//    	dm.unregisterDisplayListener(streamCtl.mDisplayListener);
-    	displaySurface = new SurfaceView[CresStreamCtrl.NumOfSurfaces];
-    	displayTexture = null;
-    	streamCtl = null;
-    	parentlayout = null;
-    	viewLayoutParams = null;
-    	wm = null;
-    	dm = null;
-    	wmLayoutParams = null;
-    	backgroundLayout = null;
-    	backgroundLayoutParams = null;
-    	backgroundWmParams = null; 
-    	backgroundView = null;
-    }
-    
-
-    public CresDisplaySurface(Service app, int windowWidth, int windowHeight, boolean haveExternalDisplays, int color)
-    {
-        Log.i(TAG, "Creating surface: " + windowWidth + "x" + windowHeight );
+    // Take window lock for specific window
+    public void lockWindow(int idx);
         
-        streamCtl = (CresStreamCtrl)app;       
+    // Release window lock for specific window
+    public void unlockWindow(int idx);
 
-    	//Relative Layout to handle multiple views
-        parentlayout = new RelativeLayout(app);
-        
-        //Instance for Surfaceholder for StreamIn/Preview
-        sMGR = new SurfaceManager(app);
-        Log.i(TAG, "Created SurfaceManager");
-        
-        //Instance for Surface Texture
-        stMGR = new SurfaceTextureManager(app);
-        Log.i(TAG, "Created SurfaceTextureManager");
-        
-        // Create the surface and set the width and height to the display width
-        // and height
-        for (int i = 0; i < CresStreamCtrl.NumOfSurfaces; i++){
-            displaySurface[i] = new SurfaceView(app);
-            String layerMarker = "VideoLayer";
-            displaySurface[i].setTag(layerMarker);
-            viewLayoutParams = new RelativeLayout.LayoutParams(windowWidth, windowHeight);
-            parentlayout.addView(displaySurface[i], viewLayoutParams);
-        }
+    // Call when HDMI resolution changes are detected
+    public void setWindowManagerResolution(final int w, final int h, final boolean haveExternalDisplay);
 
-        for (int i = 0; i < CresStreamCtrl.NumOfTextures; i++){
-        	displayTexture[i] = new TextureView(app);
-        	viewLayoutParams = new RelativeLayout.LayoutParams(windowWidth, windowHeight);
-        	parentlayout.addView(displayTexture[i], viewLayoutParams);
-        }
-        
-        //Setting WindowManager and Parameters with system overlay
-        // Z-order by type (higher value is higher z order)
-        // TYPE_SYSTEM_OVERLAY 		= ~181000
-        // TYPE_SYSTEM_ALERT 		= ~91000
-        // TYPE_PRIORITY_PHONE 		= ~71000
-        // TYPE_SEARCH_BAR 			= ~41000
-        // TYPE_PHONE 				= ~31000
-        // TYPE_INPUT_METHOD_DIALOG	= ~21015
-        // TYPE_APPLICATION 		= ~21000 <- Can't use as a service
-        int windowType;
-        
-        if (streamCtl.alphaBlending)
-        	windowType = WindowManager.LayoutParams.TYPE_PRIORITY_PHONE;	// For alpha blending
-        else
-        	windowType = WindowManager.LayoutParams.TYPE_SYSTEM_OVERLAY;	// For chroma blending
+    // Just remove the parentLayout
+    public void RemoveView();
 
-        wmLayoutParams = new WindowManager.LayoutParams(
-        		windowWidth, 
-        		windowHeight, 
-        		windowType, // See above chart for z order control
-        		(0 | WindowManager.LayoutParams.FLAG_NOT_TOUCHABLE | WindowManager.LayoutParams.FLAG_NOT_FOCUSABLE | WindowManager.LayoutParams.FLAG_HARDWARE_ACCELERATED), 
-        		PixelFormat.TRANSLUCENT);
-        wmLayoutParams.gravity = Gravity.TOP | Gravity.LEFT; 
-        wmLayoutParams.x = 0;
-        wmLayoutParams.y = 0;
-		if(haveExternalDisplays){		
-			Log.i(TAG, "moving streams to 2nd display");
-			dm = (DisplayManager) app.getApplicationContext().getSystemService(Context.DISPLAY_SERVICE);
-//	        if (dm != null)
-//	        {
-//	        	dm.registerDisplayListener(streamCtl.mDisplayListener, null);
-//	        }
-			addViewToExternalDisplay(app, parentlayout, wmLayoutParams);
-		}
-		else{
-			wm =  (WindowManager) app.getSystemService(Context.WINDOW_SERVICE);
-//			wm = app.getWindowManager();	// getting windowManager in this fashion fills in application binder token automatically
-			wm.addView(parentlayout, wmLayoutParams); 
-		}
-		
-        // Force invalidation
-        forceLayoutInvalidation(parentlayout);
-        
-        // Add callbacks to surfaceviews
-        for (int sessId = 0; sessId < CresStreamCtrl.NumOfSurfaces; sessId++)
-        {
-        	InitSurfaceHolder(sessId);
-        }
-
-        for (int sessId = 0; sessId < CresStreamCtrl.NumOfTextures; sessId++)
-        {
-        	InitSurfaceTextureListener(sessId);
-        }
-        
-        createBackgroundWindow(windowWidth, windowHeight, color, haveExternalDisplays);
-    }
+    // Update the width and height of the surface
+    public void updateWH(final int idx);
     
-    /**
-     * Call when HDMI resolution changes are detected
-     */   
-    public void setWindowManagerResolution(Service app, int w, int h, boolean haveExternalDisplay)
-    {
-    	// If parentLayout has not yet been created (see CresDisplaySurface) return immediately
-        if (parentlayout == null) {
-        	Log.i(TAG, "exiting setWindowManagerResolution because no parentlayout available");
-        	return;
-        }
-        
-        int windowType;
-                
-        if (streamCtl.alphaBlending)
-        	windowType = WindowManager.LayoutParams.TYPE_PRIORITY_PHONE;	// For alpha blending
-        else
-        	windowType = WindowManager.LayoutParams.TYPE_SYSTEM_OVERLAY;	// For chroma blending
-        
-        wmLayoutParams = new WindowManager.LayoutParams(
-    		w, 
-    		h, 
-    		windowType, // See above chart for z order control
-    		(0 | WindowManager.LayoutParams.FLAG_NOT_TOUCHABLE | WindowManager.LayoutParams.FLAG_NOT_FOCUSABLE | WindowManager.LayoutParams.FLAG_HARDWARE_ACCELERATED), 
-    		PixelFormat.TRANSLUCENT);
-	    
-        wmLayoutParams.gravity = Gravity.TOP | Gravity.LEFT; 
-        wmLayoutParams.x = 0;
-        wmLayoutParams.y = 0;
-		if(haveExternalDisplay){		
-			dm = (DisplayManager) app.getApplicationContext().getSystemService(Context.DISPLAY_SERVICE);
-//	        if (dm != null)
-//	        {
-//	        	dm.registerDisplayListener(streamCtl.mDisplayListener, null);
-//	        }
-			updateViewOnExternalDisplay(app, parentlayout, wmLayoutParams);
-		}
-		else{
-			wm =  (WindowManager) app.getSystemService(Context.WINDOW_SERVICE);
-//			wm = app.getWindowManager();	// getting windowManager in this fashion fills in application binder token automatically
-		    wm.updateViewLayout(parentlayout, wmLayoutParams);
-		}
-    	Log.i(TAG, "setWindowManagerResolution: resolution set to "+w+"x"+h);
-    }
-	
-    /**
-     * Just remove the parentLayout
-     */
-    public void RemoveView()
-    {
-    	wm.removeView(parentlayout);    	
-    }
+    // Update the X, Y location of the surface
+    public void updateXY(final int idx);
+   
+	// invalidates parent layout
+    public void forceParentLayoutInvalidation();
     
-    /**
-     * Update the x, y, width, height of the surface
-     */
-    public void UpdateWindowSize(int x, int y, int width, int height, int idx, final boolean use_texture_view)
-    {
-    	Log.i(TAG, "UpdateWindowSize: " + x + "," + y + " " + width + "x" + height + "    use_texture_view=" + use_texture_view);
+    // update window with a new window size for the video
+    public void updateWindowWithVideoSize(int idx, boolean use_texture_view, int videoWidth, int videoHeight);
 
-    	if (use_texture_view) {
-    		// only used for AirMedia splashtop
-    		viewLayoutParams = new RelativeLayout.LayoutParams(width, height);
-    		viewLayoutParams.setMargins(x, y, 0, 0);
-    		displayTexture[idx].setLayoutParams(viewLayoutParams);
-    	} else {
-			viewLayoutParams = new RelativeLayout.LayoutParams(width, height);
-			viewLayoutParams.setMargins(x, y, 0, 0);
-			displaySurface[idx].setLayoutParams(viewLayoutParams);
-    	}
-
-    	Log.i(TAG, "UpdateWindowSize: invalidateLayout" );
-    	forceLayoutInvalidation(parentlayout);
-    }
+    // invokes parent layout invalidation in UI thread
+    public void invalidateSurface();
     
-    /**
-     * Return rectangle representing the current location of the surface
-	 * Does not need to be called on UI thread
-     */
-    public Rect GetWindowSize(int idx, final boolean use_texture_view)
-    {
-    	int x, y, w, h;
-    	RelativeLayout.LayoutParams layout;
-    	if (use_texture_view)
-    	{
-    		layout = (RelativeLayout.LayoutParams)displayTexture[idx].getLayoutParams();
-    	}
-    	else
-    	{
-    		layout = (RelativeLayout.LayoutParams)displaySurface[idx].getLayoutParams();    		
-    	}
-    	
-    	x = layout.leftMargin;
-		y = layout.topMargin;
-		w = layout.width;
-		h = layout.height;
-    	return new Rect(x, y, x + w, y + h);
-    }
+    // update window for surface
+    public void updateWindow(final int idx, final boolean use_texture_view);
+
+    // update window for surface (this version is public because it is currently used by AirMedia)
+    public void updateWindow(final int x, final int y, final int w, final int h, final int idx, final boolean use_texture_view);
+
+    // get Surface for Window idx
+    public Surface getSurface(int idx);
     
-    /**
-     * Update the width and height of the surface
-     * TODO: Add an index so that the correct surface can be updated
-     */
-    public void UpdateDimensions(int width, int height, int idx)
-    {
-    	Log.i(TAG, "UpdateDimensions: " + width + "x" + height );
-    	//
-    	//    	WindowManager.LayoutParams params = (WindowManager.LayoutParams) parentlayout.getLayoutParams();
-    	//    	params.x = x;
-    	//    	params.y = y;
-    	//    	params.width = width;
-    	//    	params.height = height;
-    	//    	
-
-    	/*old way of setting params*/
-
-    	viewLayoutParams = new RelativeLayout.LayoutParams(width, height);
-		displaySurface[idx].setLayoutParams(viewLayoutParams);
-
-    	forceLayoutInvalidation(parentlayout);
-    }
-
-    public void UpdateCoordinates(int x, int y, int idx)
-    {
-    	Log.i(TAG, "UpdateCoordinates: " + x + "," + y );
-    	//
-    	//    	WindowManager.LayoutParams params = (WindowManager.LayoutParams) parentlayout.getLayoutParams();
-    	//    	params.x = x;
-    	//    	params.y = y;
-    	//    	params.width = width;
-    	//    	params.height = height;
-    	//    	
-
-    	/*old way of setting params*/
-
-    	viewLayoutParams = new RelativeLayout.LayoutParams(viewLayoutParams);
-    	viewLayoutParams.setMargins(x, y, 0, 0);
-		displaySurface[idx].setLayoutParams(viewLayoutParams);
-
-    	forceLayoutInvalidation(parentlayout);
-    }
+    // set Surface for Window idx
+    public void setSurface(int idx, Surface s);
     
-	/**
-	 * Force the invalidation of the layout
-	 */
-    public void forceParentLayoutInvalidation() {
-        parentlayout.bringToFront();
-        parentlayout.invalidate();
-        parentlayout.requestLayout();
-    }
+    // delete Surface for Window idx
+    public void deleteSurface(int idx);
     
-	/**
-	 * Force the invalidation of the layout
-	 */
-    public void forceLayoutInvalidation(RelativeLayout layout) {
-    	layout.bringToFront();
-    	layout.invalidate();
-        layout.requestLayout();
-    }
+    // set tag for Window idx
+	public void setTag(int idx, String tag);
 
-    
     /**
      * Return the surface holder for the display surface
      * @return Surface holder of the surface view
      */
-    public SurfaceHolder GetSurfaceHolder(int idx)
-    {
-        return sMGR.getCresSurfaceHolder(displaySurface[idx]);
-    }
+    public SurfaceHolder GetSurfaceHolder(int idx);
+
     
     /**
      * Initialize surface holder for the display surface, create the surface for use
      */
-    public void InitSurfaceHolder(int idx)
-    {
-        sMGR.initCresSurfaceHolder(displaySurface[idx]);
-    }
+    public void InitSurfaceHolder(int idx);
     
     /**
      * Return the surface view for the display surface
      * @return SurfaceView
      */
-    public SurfaceView GetSurfaceView(int idx)
-    {
-    	return displaySurface[idx];
-    }
+    public SurfaceView GetSurfaceView(int idx);
     
     /**
      * Initialize surface texture, set listener
      */
-    public void InitSurfaceTextureListener(int idx)
-    {
-        stMGR.initCresSurfaceTextureListener(displayTexture[idx]);
-    }
+    public void InitSurfaceTextureListener(int idx);
 	
-    public TextureView GetTextureView(int idx)
-    {
-        return displayTexture[idx];
-    }
+    public TextureView GetTextureView(int idx);
     
-    public SurfaceTexture GetSurfaceTexture(int idx)
-    {
-    	return stMGR.getCresSurfaceTexture(displayTexture[idx]);
-    }
+    public SurfaceTexture GetSurfaceTexture(int idx);
     
     /**
      * Hide the window by setting the view visibility
      */
-    public void HideWindow(int idx)
-    {
-    	displaySurface[idx].setVisibility(View.INVISIBLE);
-    	useTextureView[idx] = false;
-    	LogVisibility(MiscUtils.stringFormat("HideWindow-%d", idx));
-    }
+    public void HideWindow(int idx);
     
     /**
      * Show the window by setting the view visibility
      */
-    public void ShowWindow(int idx)
-    {
-    	displaySurface[idx].setVisibility(View.VISIBLE);
-    	useTextureView[idx] = false;
-    	LogVisibility(MiscUtils.stringFormat("ShowWindow-%d", idx));
-   }
+    public void ShowWindow(int idx);
     
 	// Call this function with streams stopped
-    public void updateZOrder(Integer[][] zOrder)
-    {
-    	Log.i(TAG, "Updating z order");
- 		
-        parentlayout.removeAllViews();
-        //Add from lowest zorder to highest
-        for (int i = 0; i < CresStreamCtrl.NumOfSurfaces; i++)
-        {
-        	parentlayout.addView(displaySurface[zOrder[0][i]], viewLayoutParams);
-        }
-        forceLayoutInvalidation(parentlayout);
-    }
-    
-    public Integer[][] createZOrderArray()
-    {
-    	// Index 0 is the sessionId value, Index 1 is the relative Z order saved in userSettings
-    	Integer[][] zOrder = new Integer[2][CresStreamCtrl.NumOfSurfaces];
-    	
-    	for (int sessionId = 0; sessionId < CresStreamCtrl.NumOfSurfaces; sessionId++)
-    	{
-    		zOrder[0][sessionId] = sessionId; 
-    		zOrder[1][sessionId] = streamCtl.userSettings.getZ(sessionId);
-    	}
-    	
-    	return zOrder;
-    }
-    
-    // passing in Integer[][] acts like pass by reference, this is desired in this case
-    public void sortZOrderArray(Integer[][] zOrder)
-    {
-    	//bubble ascending sort, we want zorders to be listed so that lower z order has lower index
-        for (int outerIndex = 0; outerIndex < CresStreamCtrl.NumOfSurfaces; outerIndex++)
-        {
-            for (int innerIndex = (outerIndex + 1); innerIndex < CresStreamCtrl.NumOfSurfaces; innerIndex++)
-            {
-                if (zOrder[1][outerIndex] > zOrder[1][innerIndex])
-                {
-                    int[] temp = new int[2];
-                    temp[0] = zOrder[0][outerIndex];
-                    temp[1] = zOrder[1][outerIndex];
-                    
-                    //Swap innerIndex to outerIndex position
-                    zOrder[0][outerIndex] = zOrder[0][innerIndex];
-                    zOrder[1][outerIndex] = zOrder[1][innerIndex];
-          
-                    zOrder[0][innerIndex] = temp[0];
-                    zOrder[1][innerIndex] = temp[1];
-                }
-            }
-        }   
-    }
-    
-    public boolean didZOrderChange(Integer[][] zOrderOld, Integer[][] zOrderNew)
-    {
-    	boolean updated = false;
-    	for (int i = 0; i < CresStreamCtrl.NumOfSurfaces; i++)
-        {
-    		// Check that order of sessionIds match
-    		if (zOrderOld[0][i] != zOrderNew[0][i])
-    		{
-    			updated = true;
-    			break;
-    		}
-        }
-    	
-    	return updated;
-    }
-    
-    public boolean doWindowsOverlap()
-    {
-    	// TODO: this needs to be updated when we have more than 2 windows
-    	int surface1xLeft 	= streamCtl.userSettings.getXloc(0);
-    	int surface1xRight 	= surface1xLeft + streamCtl.userSettings.getW(0);
-    	int surface1yTop 	= streamCtl.userSettings.getYloc(0);
-    	int surface1yBottom	= surface1yTop + streamCtl.userSettings.getH(0);
-    	
-    	int surface2xLeft 	= streamCtl.userSettings.getXloc(1);
-    	int surface2xRight 	= surface2xLeft + streamCtl.userSettings.getW(1);
-    	int surface2yTop 	= streamCtl.userSettings.getYloc(1);
-    	int surface2yBottom	= surface2yTop + streamCtl.userSettings.getH(1);
-    	
-    	return MiscUtils.rectanglesOverlap(surface1xLeft, surface1xRight, surface1yTop, surface1yBottom, surface2xLeft, surface2xRight, surface2yTop, surface2yBottom);
-    }
-
-    private String visibility(int v)
-    {
-    	switch (v) {
-    	case View.VISIBLE:
-    		return "Visible";
-    	case View.INVISIBLE:
-    		return "Invisible";
-    	case View.GONE:
-    		return "Gone";
-    	default:
-    		return "Unknown";
-    	}    		
-    }
-    
-    private void LogVisibility(String s)
-    {
-        StringBuilder sb = new StringBuilder(512);
-        sb.append("SurfaceViews[]=[");
-        for (int i=0; i < CresStreamCtrl.NumOfSurfaces; i++)
-        {
-        	sb.append(visibility(displaySurface[i].getVisibility()));
-        	if (i < (CresStreamCtrl.NumOfSurfaces-1))
-        		sb.append(", ");
-        }
-        sb.append("]   TextureViews[]=[");
-        for (int i=0; i < CresStreamCtrl.NumOfTextures; i++)
-        {
-        	sb.append(visibility(displayTexture[i].getVisibility()));
-        	if (i < (CresStreamCtrl.NumOfTextures-1))
-        		sb.append(", ");
-        }
-        sb.append("]");
-        Log.d(TAG, MiscUtils.stringFormat("%s: %s", s, sb.toString()));
-    }
+    public void updateZOrder(Integer[][] zOrder);
     
     /**
      * Hide the window by setting the view visibility
      */
-    public void HideTextureWindow(int idx)
-    {
-    	//parentlayout.removeView(displayTexture);
-    	displayTexture[idx].setVisibility(View.INVISIBLE);
-    	useTextureView[idx] = false;
-    	LogVisibility(MiscUtils.stringFormat("HideTextureWindow-%d", idx));
-    }
+    public void HideTextureWindow(int idx);
     
     /**
      * Show the window by setting the view visibility
      */
-    public void ShowTextureWindow(int idx)
-    {
-    	//parentlayout.addView(displayTexture);
-    	displayTexture[idx].setVisibility(View.VISIBLE);        	
-    	useTextureView[idx] = true;
-    	LogVisibility(MiscUtils.stringFormat("ShowTextureWindow-%d", idx));
-    }
+    public void ShowTextureWindow(int idx);
     
-    public boolean getUseTextureView(int idx)
-    {
-    	return useTextureView[idx];
-    }
+    public boolean getUseTextureView(int idx);
     
-    public void createBackgroundWindow(int windowWidth, int windowHeight, int color, boolean haveExternalDisplays)
-    {
-    	// Bug 134825: Just create 32x32 window to save memory
-    	windowHeight = 32;
-    	windowWidth = 32;
-    	
-    	// For Devices with external display, put a surface always on background of external display
-    	if(haveExternalDisplays)
-    	{
-    		Context context = (Context)streamCtl;
-    		Log.i(TAG, "Creating background surface: color" + color );
-
-    		//Relative Layout to handle multiple views (if necessary in future)
-    		backgroundLayout = new RelativeLayout(context);
-
-    		// Create and setup view (ImageView)
-    		backgroundView = new ImageView(context);
-    		backgroundView.setBackgroundColor(color);
-    		backgroundView.setVisibility(View.VISIBLE);        	
-    		
-    		// Add in view to layout
-    		RelativeLayout.LayoutParams layoutParams = new RelativeLayout.LayoutParams(windowWidth, windowHeight);
-    		backgroundLayout.addView(backgroundView, layoutParams);
-
-    		//Setting WindowManager and Parameters with system overlay
-    		// Pixel format set to RGB_888 to force backgroundView to be implemented as a HWC layer.  Using Translucent
-    		// would force an alpha layer and then the view is implemented as a GLES layer.  In Mercury, then
-    		// this layer is at the bottom, video layer is in the middle as a HWC layer, and top layer is
-    		// Pinpoint UX which turns transparent.  Sandwiching of HWC between two GLES layers is not handled
-    		// properly in OMAP5 and results in a black screen where the composited background and Pinpoint layers
-    		// occlude the video.  To avoid this problem, forcing backgroundView to be a HWC layer for now.
-    		if (backgroundWmParams == null)
-    		{
-    			backgroundWmParams = new WindowManager.LayoutParams(
-    					windowWidth, 
-    					windowHeight, 
-    					WindowManager.LayoutParams.TYPE_PHONE,	//TYPE_INPUT_METHOD_DIALOG caused crash
-    					(0 | WindowManager.LayoutParams.FLAG_NOT_TOUCHABLE | WindowManager.LayoutParams.FLAG_NOT_FOCUSABLE), 
-    					PixelFormat.RGB_888);
-    			backgroundWmParams.gravity = Gravity.TOP | Gravity.LEFT; 
-    			backgroundWmParams.x = 0;
-    			backgroundWmParams.y = 0;
-    		}
-
-    		// Add layout to window
-    		addViewToExternalDisplay(context, backgroundLayout, backgroundWmParams);
-
-    		// Force invalidation
-    		forceLayoutInvalidation(backgroundLayout);
-    	}
-    }
+    public void setInvalidateOnSurfaceTextureUpdate(boolean enable);
 }

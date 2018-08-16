@@ -2,6 +2,7 @@ package com.crestron.txrxservice;
 
 import java.lang.reflect.Array;
 import java.lang.reflect.Field;
+
 import com.crestron.txrxservice.CresStreamCtrl.StreamState;
 import com.crestron.txrxservice.CresStreamCtrl.DeviceMode;
 
@@ -260,6 +261,9 @@ public class UserSettings
 	private int[] tcpInterleave;
 	private boolean appspaceEnabled;
 	
+	//service mode
+	private int serviceMode;
+	
 	public UserSettings()
 	{
 //		MiscUtils.getDeviceIpAddr();
@@ -362,6 +366,7 @@ public class UserSettings
 		camStreamName		= "camera";
 		camStreamSnapshotName = "snapshot";
 		camStreamMulticastAddress = "";
+		serviceMode = CresStreamCtrl.ServiceMode.Master.ordinal();
 	}
 	
 	// If there is a version mismatch between current userSettings and the one loaded from file system
@@ -1460,5 +1465,13 @@ public class UserSettings
 
 	public void setCamStreamMulticastAddress(String camStreamMulticastAddress) {
 		this.camStreamMulticastAddress = camStreamMulticastAddress;
+	}
+	
+	public int getServiceMode() {
+		return serviceMode;
+	}
+	
+	public void setServiceMode(int mode) {
+		this.serviceMode = mode;
 	}
 }
