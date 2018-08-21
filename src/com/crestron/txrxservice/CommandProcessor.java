@@ -142,7 +142,7 @@ class DeviceCommand extends CrestronCommand {
             ctrl.setDeviceMode(VALIDATE_INT(msg), sessId);
         }
         public String getFeedbackMsg() {
-            return Integer.toString(ctrl.userSettings.getServiceMode());
+            return Integer.toString(ctrl.userSettings.getMode(sessId));
         }
 }
 
@@ -157,7 +157,7 @@ class ServiceModeCommand extends CrestronCommand {
     	ctrl.setServiceMode(VALIDATE_INT(msg));
     }
     public String getFeedbackMsg() {
-        return Integer.toString(ctrl.userSettings.getMode(sessId));
+        return Integer.toString(ctrl.userSettings.getServiceMode());
     }
 }
 
