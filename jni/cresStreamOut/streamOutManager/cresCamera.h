@@ -10,7 +10,7 @@
 #include <arpa/inet.h>
 
 const int c_camera_width  = 1280;
-const int c_camera_height = 960;
+const int c_camera_height = 720;	// Camera will now correctly give the right aspect ratio when requesting 720p
 const int c_camera_framerate = 15;
 const int c_cropped_height = 720;
 
