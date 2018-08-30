@@ -33,6 +33,8 @@ public class CameraPreview {
     CresStreamCtrl streamCtl;
     private int idx = 0;
     private Thread preview_timeout_thread=null;
+    private CountDownLatch preview_timeout_latch = null;
+    private Object preview_timeout_lock = new Object();
 
     //public CameraPreview(CresStreamCtrl ctl, SurfaceHolder vHolder, HDMIInputInterface hdmiInIface) {
     public CameraPreview(CresStreamCtrl ctl, HDMIInputInterface hdmiInIface) {
@@ -313,11 +315,7 @@ public class CameraPreview {
 		        				Log.i(TAG, "Camera preview size: " + localParameters.getPreviewSize().width + "x" + localParameters.getPreviewSize().height);
 		        				CresCamera.mCamera.setPreviewCallback(new PreviewCB(confidenceMode));
 		        				CresCamera.mCamera.setErrorCallback(new ErrorCB(confidenceMode));
-		        				if (preview_timeout_thread != null) {
-			        				Log.i(TAG, "startPlayback(): interrupt existing preview_timeout_thread");
-		        					// if prior thread exists - kill it
-		        					preview_timeout_thread.interrupt();
-		        				}
+		        				signalPreviewTimeoutThread();	// kill the previous thread if it exists
 		        				preview_timeout_thread = new Thread(new previewTimeout());
 		        				preview_timeout_thread.start();
 		        				CresCamera.mCamera.startPreview();
@@ -362,6 +360,24 @@ public class CameraPreview {
     	}
 
     }
+    
+    private void signalPreviewTimeoutThread() {
+    	synchronized (preview_timeout_lock) {
+    		if (preview_timeout_thread != null) {
+    			Log.i(TAG, "startPlayback(): interrupt preview_timeout_thread");
+    			// if prior thread exists - kill it
+    			preview_timeout_latch = new CountDownLatch(1);
+    			preview_timeout_thread.interrupt();
+    			try {
+    				boolean success = preview_timeout_latch.await(5, TimeUnit.SECONDS);
+    				if (!success)
+    					Log.e(TAG, "Error: preview_timeout_thread latch timed out");
+    			}
+    			catch (InterruptedException e) { e.printStackTrace(); }
+    			preview_timeout_latch = null;			
+    		}
+		}    	
+    }
 
  	public class previewTimeout implements Runnable {
     	public void run() {
@@ -374,6 +390,10 @@ public class CameraPreview {
 				Log.i(TAG, "previewTimeoutThread exit before timeout");
 			}
     		preview_timeout_thread = null;
+    		if (preview_timeout_latch != null)
+    			preview_timeout_latch.countDown();
+    		else
+    			Log.e(TAG, "Error: previewTimeoutThread set to null but latch is null!");
     	}
     }
     
@@ -397,12 +417,7 @@ public class CameraPreview {
 						// Otherwise screen will keep last frame up until a screen update occurs 
 		            	if (forceRgb || streamCtl.isRGB888HDMIVideoSupported)
 		            		ProductSpecific.setRGB888Mode(false);
-		            	if (preview_timeout_thread != null)
-		            	{
-	        				Log.i(TAG, "stopPlayback(): interrupt existing preview_timeout_thread");
-        					// if prior thread exists - kill it
-        					preview_timeout_thread.interrupt();		            		
-		            	}
+		            	
 		                if (CresCamera.mCamera != null)
 		                {
 		                	CresCamera.mCamera.setPreviewCallback(null); //probably not necessary since handled by callback, but doesn't hurt
@@ -428,6 +443,8 @@ public class CameraPreview {
 		        }
 		        else
 		            Log.i(TAG, "Playback already stopped");
+		        
+		        signalPreviewTimeoutThread();
 		        
 		        // Reset Tag
 				streamCtl.setSurfaceViewTag(idx, "VideoLayer");
@@ -514,11 +531,8 @@ public class CameraPreview {
     	
 		@Override
 		public void onPreviewFrame(byte[] data, Camera camera) {
-			if (preview_timeout_thread != null)
-			{
-				Log.i(TAG, "got first preview frame - kill preview timeout thread");
-				preview_timeout_thread.interrupt();
-			}
+			Log.i(TAG, "got first preview frame - kill preview timeout thread");
+			signalPreviewTimeoutThread();
 			if (confidenceMode)
             	streamCtl.SendStreamState(StreamState.CONFIDENCEMODE, idx);
             else
