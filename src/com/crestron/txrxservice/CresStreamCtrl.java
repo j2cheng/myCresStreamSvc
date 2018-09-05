@@ -5026,8 +5026,12 @@ public class CresStreamCtrl extends Service {
     					hdmiInput.setResolutionIndex(resolutionId);
 
     				// This will start CSI bus as well as setup ducati
-    				ProductSpecific.getHdmiInputStatus();
-    				Log.i(TAG, "Setup CSI bus");
+    				try {
+    					ProductSpecific.getHdmiInputStatus();
+    					Log.i(TAG, "Setup CSI bus");
+    				} catch (RuntimeException e) {
+    					e.printStackTrace();
+    				}
 
     				// Fix issue where we start video before we setup resolution 
     				refreshInputResolution();
