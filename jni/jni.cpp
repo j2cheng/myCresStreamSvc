@@ -44,6 +44,9 @@
 // Android headers
 #include "hardware/gralloc.h"           // for GRALLOC_USAGE_PROTECTED
 #include "android/native_window.h"      // for ANativeWindow_ functions
+#include <cresNextCommonShare.h>
+#include "cresNextDef.h"
+#include <CresNextSerializer.h>
 ///////////////////////////////////////////////////////////////////////////////
 
 extern int  csio_Init(int calledFromCsio);
@@ -96,6 +99,8 @@ static unsigned int *initialPorts = NULL;
 
 static char const* file_prefix = "file://";
 static unsigned const prefixLength7 = 7;
+
+CresNextDef *CresNextDefaults = NULL;
 
 ///////////////////////////////////////////////////////////////////////////////
 void csio_jni_FreeMainContext(int iStreamId);
@@ -277,11 +282,21 @@ void csio_jni_init()
 {
 	int iStatus = CSIO_SUCCESS;
 
+	currentSettingsDB->csioLogLevel = CSIO_DEFAULT_LOG_LEVEL;
 	csio_setup_product_info(0);
-	
+
+	CSIOCnsIntf = new CSIOCnsCommon();
+	CresNextDefaults = new CresNextDef();
+	CSIOCnsIntf->addDefaults(CresNextDef::getDefaults());
+	CSIOCnsIntf->setDefaults();
+
     // MNT - 7.5.15 - Indicate that init is being called from CresStreamSvc so that
     // it does not get SIGUSR2.
 	iStatus = csio_Init(0);
+
+	//TODO: send actual device mode setting down from Java code. Set to receiver for now.
+	CSIOCnsIntf->setDeviceSpec_DEVICEMODE(0,SENDTOCRESSTORE_NONE);
+
 	if(iStatus != CSIO_SUCCESS)
 	{
 		CSIO_LOG(eLogLevel_info, "csio_Init returned error %d\n", iStatus);
@@ -387,7 +402,6 @@ void gst_native_play (JNIEnv* env, jobject thiz, jint sessionId)
     }
 
     SetInPausedState(sessionId, 0);
-	currentSettingsDB->settingsMessage.msg[sessionId].src = sessionId;
 	start_streaming_cmd(sessionId);
 }
 
@@ -987,16 +1001,15 @@ JNIEXPORT void JNICALL Java_com_crestron_txrxservice_GstreamIn_nativeSetServerUr
 JNIEXPORT void JNICALL Java_com_crestron_txrxservice_GstreamIn_nativeSetRtspPort(JNIEnv *env, jobject thiz, jint port, jint sessionId)
 {
 	CSIO_LOG(eLogLevel_debug, "Using RtspPort: '%d'", port);
-	currentSettingsDB->videoSettings[sessionId].rtsp_port = port;
-	CSIO_LOG(eLogLevel_debug, "RtspPort in currentSettingsDB: '%d'", currentSettingsDB->videoSettings[sessionId].rtsp_port);
+	CSIOCnsIntf->setStreamTxRx_RTSPPORT(sessionId, port, SENDTOCRESSTORE_NONE);
+	CSIO_LOG(eLogLevel_debug, "RtspPort in cache: '%d'", CSIOCnsIntf->getStreamTxRx_RTSPPORT(sessionId));
 }
 
 JNIEXPORT void JNICALL Java_com_crestron_txrxservice_GstreamIn_nativeSetTsPort(JNIEnv *env, jobject thiz, jint port, jint sessionId)
 {
 	CSIO_LOG(eLogLevel_debug, "Using tsPort: '%d'", port);
-	//currentSettingsDB->videoSettings[sessionId].tsPort = port;
 	csio_SetPortNumber( sessionId, port, c_TSportNumber );
-	CSIO_LOG(eLogLevel_debug, "tsPort in currentSettingsDB: '%ld'", currentSettingsDB->videoSettings[sessionId].tsPort);
+	CSIO_LOG(eLogLevel_debug, "tsPort in cache: '%ld'", CSIOCnsIntf->getStreamTxRx_TSPORT(sessionId));
 }
 
 JNIEXPORT void JNICALL Java_com_crestron_txrxservice_GstreamIn_nativeSetHdcpEncrypt(JNIEnv *env, jobject thiz, jboolean flag, jint sessionId)
@@ -1017,43 +1030,47 @@ JNIEXPORT void JNICALL Java_com_crestron_txrxservice_GstreamIn_nativeSetHdcpEncr
 JNIEXPORT void JNICALL Java_com_crestron_txrxservice_GstreamIn_nativeSetRtpVideoPort(JNIEnv *env, jobject thiz, jint port, jint sessionId)
 {
 	CSIO_LOG(eLogLevel_debug, "Using rtpVideoPort: '%d'", port);
-	//currentSettingsDB->videoSettings[sessionId].rtpVideoPort = port;
 	csio_SetPortNumber( sessionId, port, c_RTPVideoPortNumber );
-	CSIO_LOG(eLogLevel_debug, "rtpVideoPort in currentSettingsDB: '%ld'", currentSettingsDB->videoSettings[sessionId].rtpVideoPort);
+	CSIO_LOG(eLogLevel_debug, "rtpVideoPort in cache: '%ld'", CSIOCnsIntf->getStreamTxRx_RTPVIDEOPORT(sessionId));
 }
 
 JNIEXPORT void JNICALL Java_com_crestron_txrxservice_GstreamIn_nativeSetRtpAudioPort(JNIEnv *env, jobject thiz, jint port, jint sessionId)
 {
 	CSIO_LOG(eLogLevel_debug, "Using rtpAudioPort: '%d'", port);
-	//currentSettingsDB->videoSettings[sessionId].rtpAudioPort = port;
 	csio_SetPortNumber( sessionId, port, c_RTPAudioPortNumber );
-	CSIO_LOG(eLogLevel_debug, "rtpAudioPort in currentSettingsDB: '%ld'", currentSettingsDB->videoSettings[sessionId].rtpAudioPort);
+	CSIO_LOG(eLogLevel_debug, "rtpAudioPort in cache: '%ld'", CSIOCnsIntf->getStreamTxRx_RTPAUDIOPORT(sessionId));
 }
 
 JNIEXPORT void JNICALL Java_com_crestron_txrxservice_GstreamIn_nativeSetSessionInitiation(JNIEnv *env, jobject thiz, jint initMode, jint sessionId)
 {
 	CSIO_LOG(eLogLevel_debug, "Using sessionInitiationMode: '%d'", initMode);
-	currentSettingsDB->videoSettings[sessionId].sessionInitiationMode = initMode;
+	CSIOCnsIntf->setStreamTxRx_SESSIONINITIATION(sessionId, initMode, SENDTOCRESSTORE_NONE);
 	csio_SetSessionInitiationMode(sessionId,initMode);
-	CSIO_LOG(eLogLevel_debug, "sessionInitiationMode in currentSettingsDB: '%d'", currentSettingsDB->videoSettings[sessionId].sessionInitiationMode);
+	CSIO_LOG(eLogLevel_debug, "sessionInitiationMode in cache: '%d'", CSIOCnsIntf->getStreamTxRx_SESSIONINITIATION(sessionId));
 }
 
 JNIEXPORT void JNICALL Java_com_crestron_txrxservice_GstreamIn_nativeSetTransportMode(JNIEnv *env, jobject thiz, jint transportMode, jint sessionId)
 {
 	CSIO_LOG(eLogLevel_debug, "Using tsEnabled: '%d'", transportMode);
-	currentSettingsDB->videoSettings[sessionId].tsEnabled = transportMode;
+	CSIOCnsIntf->setStreamTxRx_TRANSPORTMODE(sessionId, transportMode, SENDTOCRESSTORE_NONE);
 	csio_SetTransportMode(sessionId,transportMode);
-	CSIO_LOG(eLogLevel_debug, "tsEnabled in currentSettingsDB: '%d'", currentSettingsDB->videoSettings[sessionId].tsEnabled);
+	CSIO_LOG(eLogLevel_debug, "tsEnabled in cache: '%d'", CSIOCnsIntf->getStreamTxRx_TRANSPORTMODE(sessionId));
 }
 
 JNIEXPORT void JNICALL Java_com_crestron_txrxservice_GstreamIn_nativeSetMulticastAddress(JNIEnv *env, jobject thiz, jstring multicastIp_jstring, jint sessionId)
 {
+	char *buf = NULL;
+	
 	const char * multicastIp_cstring = env->GetStringUTFChars( multicastIp_jstring , NULL ) ;
 	if (multicastIp_cstring == NULL) return;
 
 	CSIO_LOG(eLogLevel_debug, "Using multicastAddress: '%s'", multicastIp_cstring);
-	strcpy((char*)currentSettingsDB->videoSettings[sessionId].multicastAddress, multicastIp_cstring);
-	CSIO_LOG(eLogLevel_debug, "multicastAddress in currentSettingsDB: '%s'", currentSettingsDB->videoSettings[sessionId].multicastAddress);
+	std::string strValue = multicastIp_cstring;
+	CSIOCnsIntf->setStreamTxRx_MULTICASTADDRESS(sessionId, strValue, SENDTOCRESSTORE_NONE);
+	buf = (char *) malloc(strlen(multicastIp_cstring)+1);
+	CSIOCnsIntf->getStreamTxRx_MULTICASTADDRESS(sessionId, buf, strlen(multicastIp_cstring)+1);
+	CSIO_LOG(eLogLevel_debug, "multicastAddress in cache: '%s'", buf);
+	free(buf);
 
 	env->ReleaseStringUTFChars(multicastIp_jstring, multicastIp_cstring);
 }
@@ -1073,21 +1090,22 @@ JNIEXPORT void JNICALL Java_com_crestron_txrxservice_GstreamIn_nativeSetStreamin
         CSIO_LOG(eLogLevel_debug, "Clip streamingBuffer to: '%d'", DEFAULT_MIN_STRING_BUFFER);
     }
 
-	currentSettingsDB->videoSettings[sessionId].streamingBuffer = buffer_ms;
-	CSIO_LOG(eLogLevel_debug, "streamingBuffer in currentSettingsDB: '%d'", currentSettingsDB->videoSettings[sessionId].streamingBuffer);
+	CSIOCnsIntf->setStreamRx_BUFFER(sessionId, buffer_ms, SENDTOCRESSTORE_NONE);
+	CSIO_LOG(eLogLevel_debug, "streamingBuffer in cache: '%d'", CSIOCnsIntf->getStreamRx_BUFFER(sessionId));
 }
 
 JNIEXPORT void JNICALL Java_com_crestron_txrxservice_GstreamIn_nativeSetXYlocations(JNIEnv *env, jobject thiz, jint xLocation, jint yLocation, jint sessionId)
 {
-	currentSettingsDB->settingsMessage.msg[sessionId].left = xLocation;
-	currentSettingsDB->settingsMessage.msg[sessionId].top = yLocation;
-	CSIO_LOG(eLogLevel_debug, "xLocation in currentSettingsDB: '%d'", currentSettingsDB->settingsMessage.msg[sessionId].left);
-	CSIO_LOG(eLogLevel_debug, "yLocation in currentSettingsDB: '%d'", currentSettingsDB->settingsMessage.msg[sessionId].top);
+//TODO: delete
+//	currentSettingsDB->settingsMessage.msg[sessionId].left = xLocation;
+//	currentSettingsDB->settingsMessage.msg[sessionId].top = yLocation;
+//	CSIO_LOG(eLogLevel_debug, "xLocation in currentSettingsDB: '%d'", currentSettingsDB->settingsMessage.msg[sessionId].left);
+//	CSIO_LOG(eLogLevel_debug, "yLocation in currentSettingsDB: '%d'", currentSettingsDB->settingsMessage.msg[sessionId].top);
 }
 
 JNIEXPORT void JNICALL Java_com_crestron_txrxservice_GstreamIn_nativeSetStatistics(JNIEnv *env, jobject thiz, jboolean enabled, jint sessionId)
 {
-	currentSettingsDB->videoSettings[sessionId].statisticsEnabled = (UINT8)enabled;
+	CSIOCnsIntf->setStreamTxRx_ISSTATISTICSENABLED(sessionId, (int)enabled, SENDTOCRESSTORE_NONE);
 
 	if (nativeGetCurrentStreamState(sessionId) == STREAMSTATE_STARTED)
 	{
@@ -1096,7 +1114,7 @@ JNIEXPORT void JNICALL Java_com_crestron_txrxservice_GstreamIn_nativeSetStatisti
 		//we will keep thread running all the time.
 	}
 
-	//CSIO_LOG(eLogLevel_debug, "statisticsEnabled in currentSettingsDB: '%d'", currentSettingsDB->videoSettings[sessionId].statisticsEnabled);
+	//CSIO_LOG(eLogLevel_debug, "statisticsEnabled in cache: '%d'", CSIOCnsIntf->getStreamTxRx_ISSTATISTICSENABLED(sessionId));
 }
 
 JNIEXPORT void JNICALL Java_com_crestron_txrxservice_GstreamIn_nativeResetStatistics(JNIEnv *env, jobject thiz, jint sessionId)
@@ -1108,24 +1126,34 @@ JNIEXPORT void JNICALL Java_com_crestron_txrxservice_GstreamIn_nativeResetStatis
 
 JNIEXPORT void JNICALL Java_com_crestron_txrxservice_GstreamIn_nativeSetUserName(JNIEnv *env, jobject thiz, jstring userName_jstring, jint sessionId)
 {
+	char *buf = NULL;
 	const char * userName_cstring = env->GetStringUTFChars( userName_jstring , NULL ) ;
 	if (userName_cstring == NULL) return;
 
 	CSIO_LOG(eLogLevel_debug, "Using UserName: '%s'", userName_cstring);
-	strcpy(currentSettingsDB->videoSettings[sessionId].username, userName_cstring);
-	CSIO_LOG(eLogLevel_debug, "UserName in currentSettingsDB: '%s'", currentSettingsDB->videoSettings[sessionId].username);
+	std::string strValue = userName_cstring;
+	CSIOCnsIntf->setStreamTxRx_USERNAME(sessionId, strValue, SENDTOCRESSTORE_NONE);
+	buf = (char *) malloc(strlen(userName_cstring)+1);
+	CSIOCnsIntf->getStreamTxRx_USERNAME(sessionId, buf, strlen(userName_cstring)+1);
+	CSIO_LOG(eLogLevel_debug, "UserName in cache: '%s'", buf);
+	free(buf);
 
 	env->ReleaseStringUTFChars(userName_jstring, userName_cstring);
 }
 
 JNIEXPORT void JNICALL Java_com_crestron_txrxservice_GstreamIn_nativeSetPassword(JNIEnv *env, jobject thiz, jstring password_jstring, jint sessionId)
 {
+	char *buf = NULL;
 	const char * password_cstring = env->GetStringUTFChars( password_jstring , NULL ) ;
 	if (password_cstring == NULL) return;
 
 	CSIO_LOG(eLogLevel_debug, "Using password: '%s'", password_cstring);
-	strcpy(currentSettingsDB->videoSettings[sessionId].password, password_cstring);
-	CSIO_LOG(eLogLevel_debug, "Password in currentSettingsDB: '%s'", currentSettingsDB->videoSettings[sessionId].password);
+	std::string strValue = password_cstring;
+	CSIOCnsIntf->setStreamTxRx_PASSWORD(sessionId, strValue, SENDTOCRESSTORE_NONE);
+	buf = (char *) malloc(strlen(password_cstring)+1);
+	CSIOCnsIntf->getStreamTxRx_PASSWORD(sessionId, buf, strlen(password_cstring)+1);
+	CSIO_LOG(eLogLevel_debug, "Password in cache: '%s'", buf);
+	free(buf);
 
 	env->ReleaseStringUTFChars(password_jstring, password_cstring);
 }
@@ -1150,8 +1178,9 @@ JNIEXPORT void JNICALL Java_com_crestron_txrxservice_GstreamIn_nativeSetStopTime
 
 JNIEXPORT void JNICALL Java_com_crestron_txrxservice_GstreamIn_nativeSetNewSink(JNIEnv *env, jobject thiz, jboolean enabled, jint sessionId)
 {
-	currentSettingsDB->videoSettings[sessionId].videoSinkSelect = (UINT8)enabled;
-	CSIO_LOG(eLogLevel_debug, "new Sink Enabled in currentSettingsDB: %d", currentSettingsDB->videoSettings[sessionId].videoSinkSelect);
+//TODO: delete
+	//currentSettingsDB->videoSettings[sessionId].videoSinkSelect = (UINT8)enabled;
+	//CSIO_LOG(eLogLevel_debug, "new Sink Enabled in currentSettingsDB: %d", currentSettingsDB->videoSettings[sessionId].videoSinkSelect);
 }
 
 JNIEXPORT void JNICALL Java_com_crestron_txrxservice_GstreamIn_nativeDropAudio(JNIEnv *env, jobject thiz, jboolean enabled, jboolean dropAudioPipeline, jint sessionId)
@@ -1199,8 +1228,8 @@ JNIEXPORT void JNICALL Java_com_crestron_txrxservice_GstreamIn_nativeSetLogLevel
 
 JNIEXPORT void JNICALL Java_com_crestron_txrxservice_GstreamIn_nativeSetTcpMode(JNIEnv *env, jobject thiz, jint tcpMode, jint sessionId)
 {
-    currentSettingsDB->videoSettings[sessionId].rtspTCPMode = tcpMode;
-    CSIO_LOG(eLogLevel_debug, "Setting window{%d] tcpMode to %d", sessionId, tcpMode);
+	CSIOCnsIntf->setStreamRx_TCPMODE(sessionId, tcpMode, SENDTOCRESSTORE_NONE);
+    CSIO_LOG(eLogLevel_debug, "Setting window[%d] tcpMode to %d", sessionId, tcpMode);
 
     csio_SetRtspNetworkMode(sessionId,tcpMode);
 }
@@ -1527,7 +1556,7 @@ JNIEXPORT void JNICALL Java_com_crestron_txrxservice_GstreamIn_nativeSetFieldDeb
                                 {
                                     g_object_set(G_OBJECT(data->element_v[i]), "ts-offset", data->amcviddec_ts_offset, NULL);
 
-                                    data->amcviddec_ts_offset -= currentSettingsDB->videoSettings[sessionId].streamingBuffer;
+                                    data->amcviddec_ts_offset -= CSIOCnsIntf->getStreamRx_BUFFER(sessionId);
                                     CSIO_LOG(eLogLevel_debug, "[%d]set amcviddec_ts_offset:%d",i,data->amcviddec_ts_offset);
                                     break;
                                 }
@@ -1748,7 +1777,9 @@ static JNINativeMethod native_methods[] =
 jint JNI_OnLoad(JavaVM *vm, void *reserved) 
 {
 	JNIEnv *env = NULL;
-    currentSettingsDB = (CSIOSettings*)malloc(sizeof(CSIOSettings));
+//TODO: investigate why there are 2 instances of currentSettingsDB
+	if (currentSettingsDB == NULL)
+		currentSettingsDB = (CSIOSettings*)malloc(sizeof(CSIOSettings));
 	java_vm = vm;
 
 	currentSettingsDB->csioLogLevel = CSIO_DEFAULT_LOG_LEVEL;
@@ -2040,6 +2071,8 @@ int csio_jni_CreateHttpPipeline(void *obj, GstElement **pipeline, GstElement **s
 int csio_jni_CreatePipeline(GstElement **pipeline, GstElement **source, eProtocolId protoId, int iStreamId)
 {
 	int iStatus = CSIO_SUCCESS;
+	char *buf = NULL;
+	
     CSIO_LOG(eLogLevel_debug, "%s() protoId = %d", __FUNCTION__, protoId);
 
 	CREGSTREAM * data = GetStreamFromCustomData(CresDataDB, iStreamId);
@@ -2080,12 +2113,12 @@ int csio_jni_CreatePipeline(GstElement **pipeline, GstElement **source, eProtoco
 	    }
 	    case ePROTOCOL_UDP_TS:
 	    {
-		    if(currentSettingsDB->videoSettings[iStreamId].tsEnabled==STREAM_TRANSPORT_MPEG2TS_RTP)
+		    if(CSIOCnsIntf->getStreamTxRx_TRANSPORTMODE(iStreamId)==STREAM_TRANSPORT_MPEG2TS_RTP)
 		    {
 		        data->element_zero = gst_element_factory_make("rtpbin", NULL);
 			    gst_bin_add(GST_BIN(data->pipeline), data->element_zero);
 
-			    data->udp_port = currentSettingsDB->videoSettings[iStreamId].tsPort;
+			    data->udp_port = CSIOCnsIntf->getStreamTxRx_TSPORT(iStreamId);
 			    data->element_av[0] = gst_element_factory_make("udpsrc", NULL);
 			    insert_udpsrc_probe(data,data->element_av[0],"src");
 
@@ -2102,7 +2135,7 @@ int csio_jni_CreatePipeline(GstElement **pipeline, GstElement **source, eProtoco
 			        CSIO_LOG(eLogLevel_debug,  "link filter to source elements.\n" );
 
 		    }
-		    else if(currentSettingsDB->videoSettings[iStreamId].tsEnabled==STREAM_TRANSPORT_MPEG2TS_UDP)
+		    else if(CSIOCnsIntf->getStreamTxRx_TRANSPORTMODE(iStreamId)==STREAM_TRANSPORT_MPEG2TS_UDP)
 		    {
 		        data->element_zero = gst_element_factory_make("udpsrc", NULL);
 			    if(!data->element_zero)
@@ -2113,7 +2146,7 @@ int csio_jni_CreatePipeline(GstElement **pipeline, GstElement **source, eProtoco
 			    else
 			        insert_udpsrc_probe(data,data->element_zero,"src");
 
-			    data->udp_port = currentSettingsDB->videoSettings[iStreamId].tsPort;
+			    data->udp_port = CSIOCnsIntf->getStreamTxRx_TSPORT(iStreamId);
 			    g_object_set(G_OBJECT(data->element_zero), "port", data->udp_port, NULL);
 
 			    data->element_av[0] = gst_element_factory_make( "queue", NULL );
@@ -2151,7 +2184,7 @@ int csio_jni_CreatePipeline(GstElement **pipeline, GstElement **source, eProtoco
 			gst_bin_add(GST_BIN(data->pipeline), data->element_zero);
 
 			//video
-			data->udp_video_port = currentSettingsDB->videoSettings[iStreamId].rtpVideoPort;
+			data->udp_video_port = CSIOCnsIntf->getStreamTxRx_RTPVIDEOPORT(iStreamId);
 			data->element_av[0] = gst_element_factory_make("udpsrc", NULL);
 			insert_udpsrc_probe(data,data->element_av[0],"src");
 
@@ -2165,7 +2198,7 @@ int csio_jni_CreatePipeline(GstElement **pipeline, GstElement **source, eProtoco
 			{
 			    data->element_av[1] = gst_element_factory_make("udpsrc", NULL);
 
-                data->udp_audio_port = currentSettingsDB->videoSettings[iStreamId].rtpAudioPort;
+                data->udp_audio_port = CSIOCnsIntf->getStreamTxRx_RTPAUDIOPORT(iStreamId);
                 g_object_set(G_OBJECT(data->element_av[1]), "port", data->udp_audio_port, NULL);
                 g_object_set(G_OBJECT(data->element_av[1]), "caps", data->caps_a_rtp, NULL);
                 gst_bin_add(GST_BIN(data->pipeline), data->element_av[1]);
@@ -2179,15 +2212,18 @@ int csio_jni_CreatePipeline(GstElement **pipeline, GstElement **source, eProtoco
 	    }
 	    case ePROTOCOL_MULTICAST_TS:
 	    {
-	    	strcpy(data->multicast_grp, (char*)currentSettingsDB->videoSettings[iStreamId].multicastAddress);
-		    if(currentSettingsDB->videoSettings[iStreamId].tsEnabled==STREAM_TRANSPORT_MPEG2TS_RTP)
+	    	buf = (char *) malloc(MAX_VIDEO_URL_SIZE);
+	    	CSIOCnsIntf->getStreamTxRx_MULTICASTADDRESS(iStreamId, buf, MAX_VIDEO_URL_SIZE);
+	    	strcpy(data->multicast_grp, buf);
+	    	free(buf);
+		    if(CSIOCnsIntf->getStreamTxRx_TRANSPORTMODE(iStreamId)==STREAM_TRANSPORT_MPEG2TS_RTP)
 		    {
 				CSIO_LOG(eLogLevel_debug,  "in STREAM_TRANSPORT_MPEG2TS_RTP\n" );
 
 				data->element_zero = gst_element_factory_make("rtpbin", NULL);
 				gst_bin_add(GST_BIN(data->pipeline), data->element_zero);
 
-				data->udp_port = currentSettingsDB->videoSettings[iStreamId].tsPort;
+				data->udp_port = CSIOCnsIntf->getStreamTxRx_TSPORT(iStreamId);
 				data->element_av[0] = gst_element_factory_make("udpsrc", NULL);
 				insert_udpsrc_probe(data,data->element_av[0],"src");
 
@@ -2202,7 +2238,7 @@ int csio_jni_CreatePipeline(GstElement **pipeline, GstElement **source, eProtoco
 				else
 					CSIO_LOG(eLogLevel_error,  "ERROR: link filter to source elements.\n" );
 		    }
-		    else if(currentSettingsDB->videoSettings[iStreamId].tsEnabled==STREAM_TRANSPORT_MPEG2TS_UDP)
+		    else if(CSIOCnsIntf->getStreamTxRx_TRANSPORTMODE(iStreamId)==STREAM_TRANSPORT_MPEG2TS_UDP)
 		    {
 				CSIO_LOG(eLogLevel_debug,  "in STREAM_TRANSPORT_MPEG2TS_UDP\n" );
 
@@ -2214,7 +2250,7 @@ int csio_jni_CreatePipeline(GstElement **pipeline, GstElement **source, eProtoco
 			    }
 			    insert_udpsrc_probe(data,data->element_zero,"src");
 			    			    
-			    data->udp_port = currentSettingsDB->videoSettings[iStreamId].tsPort;
+			    data->udp_port = CSIOCnsIntf->getStreamTxRx_TSPORT(iStreamId);
 			    g_object_set(G_OBJECT(data->element_zero), "port", data->udp_port, NULL);
 
 			    data->element_av[0] = gst_element_factory_make( "queue", NULL );
@@ -2254,14 +2290,17 @@ int csio_jni_CreatePipeline(GstElement **pipeline, GstElement **source, eProtoco
 	    case ePROTOCOL_MULTICAST:
 	    {
 	    	//CSIO_LOG(eLogLevel_debug, "ePROTOCOL_MULTICAST\n");
-	    	strcpy(data->multicast_grp,(char*)currentSettingsDB->videoSettings[iStreamId].multicastAddress);
+	    	buf = (char *) malloc(MAX_VIDEO_URL_SIZE);
+	    	CSIOCnsIntf->getStreamTxRx_MULTICASTADDRESS(iStreamId, buf, MAX_VIDEO_URL_SIZE);
+	    	strcpy(data->multicast_grp, buf);
+	    	free(buf);
 
 	    	//build_udp_pipeline(data,protoId);
 	    	data->element_zero = gst_element_factory_make("rtpbin", NULL);
 			gst_bin_add(GST_BIN(data->pipeline), data->element_zero);
 
 			//video
-			data->udp_video_port = currentSettingsDB->videoSettings[iStreamId].rtpVideoPort;
+			data->udp_video_port = CSIOCnsIntf->getStreamTxRx_RTPVIDEOPORT(iStreamId);
 			data->element_av[0] = gst_element_factory_make("udpsrc", NULL);
             insert_udpsrc_probe(data,data->element_av[0],"src"); 
 
@@ -2272,7 +2311,7 @@ int csio_jni_CreatePipeline(GstElement **pipeline, GstElement **source, eProtoco
 
 			//audio
 			data->element_av[1] = gst_element_factory_make("udpsrc", NULL);
-			data->udp_audio_port = currentSettingsDB->videoSettings[iStreamId].rtpAudioPort;
+			data->udp_audio_port = CSIOCnsIntf->getStreamTxRx_RTPAUDIOPORT(iStreamId);
 			g_object_set(G_OBJECT(data->element_av[1]), "port", data->udp_audio_port, NULL);
 			g_object_set(G_OBJECT(data->element_av[1]), "caps", data->caps_a_rtp, NULL);
 			gst_bin_add(GST_BIN(data->pipeline), data->element_av[1]);
@@ -2378,8 +2417,8 @@ void csio_jni_InitPipeline(eProtocolId protoId, int iStreamId,GstRTSPLowerTrans 
 		case ePROTOCOL_RTSP_UDP_TS:
 		case ePROTOCOL_RTSP_TS:
 		{
-			g_object_set(G_OBJECT(data->element_zero), "location", currentSettingsDB->settingsMessage.msg[iStreamId].url, NULL);
-			g_object_set(G_OBJECT(data->element_zero), "latency", currentSettingsDB->videoSettings[iStreamId].streamingBuffer, NULL);
+			g_object_set(G_OBJECT(data->element_zero), "location", CSIOCnsIntf->getStreamTxRx_STREAMLOCATION(iStreamId).c_str(), NULL);
+			g_object_set(G_OBJECT(data->element_zero), "latency", CSIOCnsIntf->getStreamRx_BUFFER(iStreamId), NULL);
 			g_object_set(G_OBJECT(data->element_zero), "tcp_timeout", data->tcp_timeout_usec, NULL);
 			g_object_set(G_OBJECT(data->element_zero), "timeout", data->udp_timeout_usec, NULL);
 			// For some reason, this port range must be set for rtsp with multicast to work.
@@ -2398,9 +2437,9 @@ void csio_jni_InitPipeline(eProtocolId protoId, int iStreamId,GstRTSPLowerTrans 
 			break;
 		}
 		case ePROTOCOL_UDP_TS:
-			if (currentSettingsDB->videoSettings[iStreamId].tsEnabled==STREAM_TRANSPORT_MPEG2TS_RTP)
+			if (CSIOCnsIntf->getStreamTxRx_TRANSPORTMODE(iStreamId)==STREAM_TRANSPORT_MPEG2TS_RTP)
 				g_object_set(G_OBJECT(data->element_av[0]), "buffer-size", DEFAULT_UDP_BUFFER, NULL);
-			else if(currentSettingsDB->videoSettings[iStreamId].tsEnabled==STREAM_TRANSPORT_MPEG2TS_UDP)
+			else if(CSIOCnsIntf->getStreamTxRx_TRANSPORTMODE(iStreamId)==STREAM_TRANSPORT_MPEG2TS_UDP)
 				g_object_set(G_OBJECT(data->element_zero), "buffer-size", DEFAULT_UDP_BUFFER, NULL);
 
 			break;
@@ -2468,9 +2507,9 @@ void csio_jni_InitPipeline(eProtocolId protoId, int iStreamId,GstRTSPLowerTrans 
 			break;
 		}
 		case ePROTOCOL_MULTICAST_TS:
-			if (currentSettingsDB->videoSettings[iStreamId].tsEnabled==STREAM_TRANSPORT_MPEG2TS_RTP)
+			if (CSIOCnsIntf->getStreamTxRx_TRANSPORTMODE(iStreamId)==STREAM_TRANSPORT_MPEG2TS_RTP)
 				g_object_set(G_OBJECT(data->element_av[0]), "buffer-size", DEFAULT_UDP_BUFFER, NULL);
-			else if(currentSettingsDB->videoSettings[iStreamId].tsEnabled==STREAM_TRANSPORT_MPEG2TS_UDP)
+			else if(CSIOCnsIntf->getStreamTxRx_TRANSPORTMODE(iStreamId)==STREAM_TRANSPORT_MPEG2TS_UDP)
 				g_object_set(G_OBJECT(data->element_zero), "buffer-size", DEFAULT_UDP_BUFFER, NULL);
 			break;
 
@@ -2484,7 +2523,7 @@ void csio_jni_InitPipeline(eProtocolId protoId, int iStreamId,GstRTSPLowerTrans 
 		}
 		case ePROTOCOL_FILE:
 		{
-			g_object_set(G_OBJECT(data->element_av[0]), "latency", currentSettingsDB->videoSettings[iStreamId].streamingBuffer, NULL);
+			g_object_set(G_OBJECT(data->element_av[0]), "latency", CSIOCnsIntf->getStreamRx_BUFFER(iStreamId), NULL);
 			break;
 		}
 		default:
@@ -2520,7 +2559,7 @@ void csio_jni_SetSourceLocation(eProtocolId protoId, char *location, int iStream
 			break;
 		case ePROTOCOL_UDP_BPT:
 			g_object_set( G_OBJECT( data->element_av[0]), "port",
-			currentSettingsDB->videoSettings[iStreamId].rtpVideoPort, NULL );
+					CSIOCnsIntf->getStreamTxRx_RTPVIDEOPORT(iStreamId), NULL );
 			break;
 		case ePROTOCOL_MULTICAST_TS:
 		case ePROTOCOL_MULTICAST:
@@ -2528,7 +2567,7 @@ void csio_jni_SetSourceLocation(eProtocolId protoId, char *location, int iStream
 			// Bug 134988: do not set local host as address because gstreamer needs it to be the default of 0.0.0.0
 			if (strcmp(location, "127.0.0.1") != 0)
 			{
-				if(currentSettingsDB->videoSettings[iStreamId].tsEnabled==STREAM_TRANSPORT_MPEG2TS_UDP){
+				if(CSIOCnsIntf->getStreamTxRx_TRANSPORTMODE(iStreamId)==STREAM_TRANSPORT_MPEG2TS_UDP){
 					g_object_set(G_OBJECT(data->element_zero), "address", \
 							location, NULL);
 				}
@@ -2599,9 +2638,9 @@ void csio_jni_SetMsgHandlers(void* obj,eProtocolId protoId, int iStreamId)
 		{
 			if(data->element_zero != NULL)
 			{
-		    		if(currentSettingsDB->videoSettings[iStreamId].tsEnabled==STREAM_TRANSPORT_MPEG2TS_RTP){
+		    		if(CSIOCnsIntf->getStreamTxRx_TRANSPORTMODE(iStreamId)==STREAM_TRANSPORT_MPEG2TS_RTP){
 				g_signal_connect(data->element_zero, "pad-added", G_CALLBACK(csio_PadAddedMsgHandler), obj);
-		    		}else if(currentSettingsDB->videoSettings[iStreamId].tsEnabled==STREAM_TRANSPORT_MPEG2TS_UDP){
+		    		}else if(CSIOCnsIntf->getStreamTxRx_TRANSPORTMODE(iStreamId)==STREAM_TRANSPORT_MPEG2TS_UDP){
 				g_signal_connect(data->element_av[1], "pad-added", G_CALLBACK(csio_PadAddedMsgHandler), obj);
 				}
 			}
@@ -2867,23 +2906,23 @@ void csio_jni_initVideo(int iStreamId)
         //SET OFSSET
         // Bug 113246: For RTSP modes we need to set ts offset, for udp modes we should not or AV sync is off
         if( data->amcvid_dec && (!debug_blocking_audio) && data->audio_sink &&
-            ( currentSettingsDB->videoSettings[iStreamId].sessionInitiationMode == 0 ||
-              currentSettingsDB->videoSettings[iStreamId].sessionInitiationMode == 2  ) && 
+            ( CSIOCnsIntf->getStreamTxRx_SESSIONINITIATION(iStreamId) == 0 ||
+              CSIOCnsIntf->getStreamTxRx_SESSIONINITIATION(iStreamId) == 2  ) &&
               (data->streamProtocolId != ePROTOCOL_HTTP) )
         {
         	int tmp;
         	if (data->mpegtsPresent)
         	{
-        		tmp = currentSettingsDB->videoSettings[iStreamId].streamingBuffer +
+        		tmp = CSIOCnsIntf->getStreamRx_BUFFER(iStreamId) +
 									  data->amcviddec_ts_offset + DEFAULT_MPEG_TS_OFFSET;
         	}
         	else
         	{
-        		tmp = currentSettingsDB->videoSettings[iStreamId].streamingBuffer +
+        		tmp = CSIOCnsIntf->getStreamRx_BUFFER(iStreamId) +
         		                      data->amcviddec_ts_offset;
         	}
             g_object_set(G_OBJECT(data->amcvid_dec), "ts-offset", tmp, NULL);
-            CSIO_LOG(eLogLevel_debug, "streamingBuffer or latency is:%d",currentSettingsDB->videoSettings[iStreamId].streamingBuffer);
+            CSIO_LOG(eLogLevel_debug, "streamingBuffer or latency is:%d",CSIOCnsIntf->getStreamRx_BUFFER(iStreamId));
             CSIO_LOG(eLogLevel_debug, "amcviddec_ts_offset:%d",data->amcviddec_ts_offset);
             CSIO_LOG(eLogLevel_debug, "total ts_offset:%d",tmp);
         }

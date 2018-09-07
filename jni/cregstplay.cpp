@@ -46,6 +46,8 @@
 #include "csio_jni_if.h"
 #include <gst/net/gstnetaddressmeta.h>
 #include "socketHandler.h"
+#include "cresNextCommonShare.h"
+#include "cstreamer.h"
 
 #ifdef SupportsHDCPEncryption
 	#include "HDCP2xEncryptAPI.h"
@@ -1073,7 +1075,7 @@ int build_video_pipeline(gchar *encoding_name, CREGSTREAM *data, unsigned int st
         // HTTP modes that do not use TS should not set queue to these parameters, check: http://dash-mse-test.appspot.com/media.html
         if (data->mpegtsPresent || data->streamProtocolId != ePROTOCOL_HTTP)
         {
-        	setQueueProperties(data, data->element_v[i - 1], (guint64)((1ll + currentSettingsDB->videoSettings[data->streamId].streamingBuffer) * 1000000ll),(guint)16*1024*1024);
+        	setQueueProperties(data, data->element_v[i - 1], (guint64)((1ll + CSIOCnsIntf->getStreamRx_BUFFER(data->streamId)) * 1000000ll),(guint)16*1024*1024);
         }
         
         if(do_rtp)
@@ -1090,7 +1092,7 @@ int build_video_pipeline(gchar *encoding_name, CREGSTREAM *data, unsigned int st
         data->element_v[i++] = gst_element_factory_make("queue", NULL);
         // HTTP modes that do not use TS should not set queue to these parameters, check: http://dash-mse-test.appspot.com/media.html
         if (data->mpegtsPresent || data->streamProtocolId != ePROTOCOL_HTTP)
-        	setQueueProperties(data, data->element_v[i - 1], (guint64)((175ll + currentSettingsDB->videoSettings[data->streamId].streamingBuffer) * 1000000ll),(guint)10*1024*1024);
+        	setQueueProperties(data, data->element_v[i - 1], (guint64)((175ll + CSIOCnsIntf->getStreamRx_BUFFER(data->streamId)) * 1000000ll),(guint)10*1024*1024);
 
         //add a probe for loss of video detection.
         GstPad *pad;
@@ -1130,7 +1132,7 @@ int build_video_pipeline(gchar *encoding_name, CREGSTREAM *data, unsigned int st
     {
     	//insert queue right after rtspsrc element
  		data->element_v[i] = gst_element_factory_make("queue", NULL);
- 		setQueueProperties(data, data->element_v[i], (guint64)((175ll + currentSettingsDB->videoSettings[data->streamId].streamingBuffer) * 1000000ll),(guint)16*1024*1024);
+ 		setQueueProperties(data, data->element_v[i], (guint64)((175ll + CSIOCnsIntf->getStreamRx_BUFFER(data->streamId)) * 1000000ll),(guint)16*1024*1024);
 		gst_bin_add(GST_BIN(data->pipeline), data->element_v[i++]);
 
 		// This happens when there's TS encapsulation.  We won't add the video sink yet.
@@ -1171,7 +1173,7 @@ int build_video_pipeline(gchar *encoding_name, CREGSTREAM *data, unsigned int st
 		data->element_v[i++] = gst_element_factory_make("queue", NULL);
 		// HTTP modes that do not use TS should not set queue to these parameters, check: http://dash-mse-test.appspot.com/media.html
 		if (data->mpegtsPresent || data->streamProtocolId != ePROTOCOL_HTTP)
-			setQueueProperties(data, data->element_v[i - 1], (guint64)((175ll + currentSettingsDB->videoSettings[data->streamId].streamingBuffer) * 1000000ll),(guint)10*1024*1024);
+			setQueueProperties(data, data->element_v[i - 1], (guint64)((175ll + CSIOCnsIntf->getStreamRx_BUFFER(data->streamId)) * 1000000ll),(guint)10*1024*1024);
 		data->element_v[i++] = gst_element_factory_make("valve", NULL);
 		data->element_valve_v = data->element_v[i-1];
 		data->element_v[i++] = gst_element_factory_make("jpegparse", NULL);
@@ -1382,7 +1384,7 @@ int build_audio_pipeline(gchar *encoding_name, CREGSTREAM *data, int do_rtp,GstE
 {
 	unsigned int start = 0;
 	unsigned int i = start;
-	unsigned int num_elements;		
+	unsigned int num_elements;
 
 	CSIO_LOG(eLogLevel_extraVerbose, "%s() encoding_name=%s, do_rtp=%d", __FUNCTION__, encoding_name, do_rtp);
 	
@@ -1391,7 +1393,7 @@ int build_audio_pipeline(gchar *encoding_name, CREGSTREAM *data, int do_rtp,GstE
 	{
 	    //insert queue right after rtspsrc element
 	    data->element_a[i++] = gst_element_factory_make("queue", NULL);
-	    setQueueProperties(data, data->element_a[i - 1], (guint64)((1ll + currentSettingsDB->videoSettings[data->streamId].streamingBuffer) * 1000000ll),(guint)16*1024*1024);
+	    setQueueProperties(data, data->element_a[i - 1], (guint64)((1ll + CSIOCnsIntf->getStreamRx_BUFFER(data->streamId)) * 1000000ll),(guint)16*1024*1024);
 	    
 		if(do_rtp)
 		{
@@ -1407,7 +1409,7 @@ int build_audio_pipeline(gchar *encoding_name, CREGSTREAM *data, int do_rtp,GstE
 		data->element_a[i++] = gst_element_factory_make("queue", NULL);
 		// HTTP modes that do not use TS should not set queue to these parameters, check: http://dash-mse-test.appspot.com/media.html
 		if (data->mpegtsPresent || data->streamProtocolId != ePROTOCOL_HTTP)
-			setQueueProperties(data, data->element_a[i - 1], (guint64)((175ll + currentSettingsDB->videoSettings[data->streamId].streamingBuffer) * 1000000ll),(guint)10*1024*1024);
+			setQueueProperties(data, data->element_a[i - 1], (guint64)((175ll + CSIOCnsIntf->getStreamRx_BUFFER(data->streamId)) * 1000000ll),(guint)10*1024*1024);
 		data->element_a[i++] = gst_element_factory_make("faad", NULL);
 
 		*ele0 = data->element_a[0];
@@ -1506,7 +1508,8 @@ int build_audio_pipeline(gchar *encoding_name, CREGSTREAM *data, int do_rtp,GstE
 //-----------------------------------------------------------------------------
 void build_http_pipeline(CREGSTREAM *data, int iStreamId)
 {
-    char *url = (char *)currentSettingsDB->settingsMessage.msg[iStreamId].url;
+	HTTPstreamer *pStreamer = (HTTPstreamer *) data->pStreamer;
+    char *url = pStreamer->m_pCstreamCfg->getUri();
 
     CSIO_LOG(eLogLevel_extraVerbose, "%s() url=%s", __FUNCTION__, url);
 

@@ -43,7 +43,10 @@ LOCAL_SRC_FILES := \
 	$(CSIO_ROOT)/gstreamer-1.0/csiosubs.cpp \
 	$(CSIO_ROOT)/gstreamer-1.0/vputils.cpp \
     $(CSIO_ROOT)/csioCommonShare.cpp \
-    $(CSIO_ROOT)/url_parser/url_parser.cpp
+    $(CSIO_ROOT)/url_parser/url_parser.cpp \
+    $(CSIO_ROOT)/cresNextCommonShare.cpp \
+    $(CSIO_ROOT)/cresNextDef.cpp \
+    $(CSIO_ROOT)/CSIOCommon.cpp
 
 COMMON_INC_PATH := $(CRESTRON_ROOT)/Include
 UTIL_INC_PATH := $(CRESTRON_ROOT)/Utilities
@@ -58,6 +61,10 @@ LOCAL_SHARED_LIBRARIES += libLinuxUtil
 LOCAL_SHARED_LIBRARIES += libCresSocketHandler
 LOCAL_SHARED_LIBRARIES += libssl
 LOCAL_SHARED_LIBRARIES += libcrypto
+LOCAL_SHARED_LIBRARIES += libcresstore_json
+#LOCAL_SHARED_LIBRARIES += libjsoncpp
+LOCAL_SHARED_LIBRARIES += libcresnextserializer
+LOCAL_SHARED_LIBRARIES += libstlport
 
 
 # Crestron - why do I have to do this?
@@ -86,6 +93,12 @@ LOCAL_CFLAGS +=\
 	-I$(CSIO_INCLUDE_ROOT)/gstreamer-1.0 \
 	-I$(STREAMOUT_PATH) \
 	-I$(CRESTRON_ROOT)/../openssl/include \
+	-I$(CRESTRON_ROOT)/CresNextSerializer \
+	-I$(CRESTRON_ROOT)/libcresstore_json\
+	-I$(CRESTRON_ROOT)/CresNextSerializer/cresNextManager \
+	-I$(CRESTRON_ROOT)/CresNextSerializer/CresNextObjects/include \
+	-I$(CRESTRON_ROOT)/../rapidjson/include \
+	-w\
 	-DANDROID_OS
 
 ifeq ($(TARGET_PRODUCT),$(filter $(TARGET_PRODUCT),yushan_one ))
@@ -120,16 +133,26 @@ include $(BUILD_SHARED_LIBRARY)
 include $(CLEAR_VARS)
 CRESTRON_ROOT := $(LOCAL_PATH)/../..
 CSIO_INCLUDE_ROOT := $(LOCAL_PATH)/../../csio
+STL_INC_PATH := $(CRESTRON_ROOT)/../stlport/stlport
+CPP_INC_PATH := $(CRESTRON_ROOT)/../../bionic
 LOCAL_MODULE := libcresstreamctrl_jni
 LOCAL_CFLAGS +=\
 	-DANDROID_OS \
+	-I$(CPP_INC_PATH) \
+	-I$(STL_INC_PATH) \
 	-I$(CSIO_INCLUDE_ROOT) \
+	-I$(CSIO_INCLUDE_ROOT)/crestHdcp \
 	-I$(CRESTRON_ROOT)/productNameUtil \
 	-I$(CRESTRON_ROOT)/common/include \
 	-I$(CRESTRON_ROOT)/Include/External \
 	-I$(CSIO_INCLUDE_ROOT)/crestHdcp \
-	-I$(CPP_INC_PATH) \
-	-I$(STL_INC_PATH)
+	-I$(CRESTRON_ROOT)/libcresstore_json\
+	-I$(CRESTRON_ROOT)/CresNextSerializer \
+	-I$(CRESTRON_ROOT)/CresNextSerializer/cresNextManager \
+	-I$(CRESTRON_ROOT)/CresNextSerializer/CresNextObjects/include \
+ 	-I$(CRESTRON_ROOT)/../rapidjson/include \
+	-w\
+	-DANDROID_OS
 	
 #	-I$(CPP_INC_PATH) \
 #	-I$(COMMON_INC_PATH) \
@@ -156,8 +179,15 @@ LOCAL_CFLAGS +=\
 	-I$(CSIO_INCLUDE_ROOT)/txrx 
 endif	
 
-LOCAL_LDLIBS := -llog
+LOCAL_LDLIBS := -llog -landroid
 LOCAL_SHARED_LIBRARIES := libCsioProdInfo
+LOCAL_SHARED_LIBRARIES += libcresstore_json
+#LOCAL_SHARED_LIBRARIES += libjsoncpp
+LOCAL_SHARED_LIBRARIES += libcresnextserializer
+
+LOCAL_SHARED_LIBRARIES += libstlport
+LOCAL_SHARED_LIBRARIES += liblog libandroid
+
 LOCAL_SRC_FILES := cresstreamctrl_jni.cpp
 
 LOCAL_MODULE_TAGS := eng

@@ -39,7 +39,6 @@
 #define  LOGE(...)  __android_log_print(ANDROID_LOG_ERROR, LOG_TAG, __VA_ARGS__)
 
 int did_init = 0;
-CSIOSettings* currentSettingsDB = NULL;
 
 ///////////////////////////////////////////////////////////////////////////////
 
