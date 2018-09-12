@@ -507,8 +507,8 @@ public class CresDisplaySurfaceMaster implements CresDisplaySurface
     			updateCoordinates(x, y, idx);
 
     		// Gstreamer needs X and Y locations and does not update itself like it does for width and height
-    		if (streamCtl.userSettings.getMode(idx) == DeviceMode.STREAM_IN.ordinal()) 
-    			streamCtl.streamPlay.updateCurrentXYloc(x, y, idx);
+//    		if (streamCtl.userSettings.getMode(idx) == DeviceMode.STREAM_IN.ordinal()) 
+//    			streamCtl.streamPlay.updateCurrentXYloc(x, y, idx);
     	}
     	finally
     	{
