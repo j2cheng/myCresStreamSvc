@@ -2096,7 +2096,7 @@ public class AirMediaSplashtop implements AirMedia
 			if (reason != 0)
 			{
 				sendStopToAllSenders();
-				if (reason == CODEC_ERROR) {
+				if (reason == CODEC_ERROR || reason == MEDIA_SERVER_HANG) {
 					// Force a recovery of the Ducati codec and media server
 					mStreamCtl.RecoverDucati();
 					mStreamCtl.RecoverMediaServer();
