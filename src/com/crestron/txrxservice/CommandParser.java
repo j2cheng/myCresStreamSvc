@@ -196,6 +196,7 @@ public class CommandParser {
         RESET_ALL_WINDOWS,
         WBSLOGLEVEL,
         FORCE_RGB_PREVIEW_MODE,
+        CHROMAKEY_COLOR,
     	LOGLEVEL;
     	//UPDATEREQUEST;
     }
@@ -799,6 +800,9 @@ public class CommandParser {
             	break;
             case FORCE_RGB_PREVIEW_MODE:
             	cmd = new ForceRgbPreviewModeCommand(ctrl, arg);
+            	break;
+            case CHROMAKEY_COLOR:
+            	cmd = new ChromaKeyColorCommand(ctrl, arg);
             	break;
             case LOGLEVEL:
             	cmd = new SetLogLevelCommand(ctrl, arg);

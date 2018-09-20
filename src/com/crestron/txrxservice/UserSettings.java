@@ -260,6 +260,7 @@ public class UserSettings
 	private boolean processHdmiInAudio;
 	private int[] tcpInterleave;
 	private boolean appspaceEnabled;
+	private int chromaKeyColor;
 	
 	//service mode
 	private int serviceMode;
@@ -367,6 +368,7 @@ public class UserSettings
 		camStreamSnapshotName = "snapshot";
 		camStreamMulticastAddress = "";
 		serviceMode = CresStreamCtrl.ServiceMode.Master.ordinal();
+		chromaKeyColor = 0xff0000;
 	}
 	
 	// If there is a version mismatch between current userSettings and the one loaded from file system
@@ -1473,5 +1475,13 @@ public class UserSettings
 	
 	public void setServiceMode(int mode) {
 		this.serviceMode = mode;
+	}
+	
+	public int getChromaKeyColor() {
+		return chromaKeyColor;
+	}
+	
+	public void setChromaKeyColor(int color) {
+		this.chromaKeyColor = color;
 	}
 }

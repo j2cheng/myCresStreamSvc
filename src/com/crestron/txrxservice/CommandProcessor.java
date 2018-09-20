@@ -62,6 +62,19 @@ class CrestronCommand implements CommandIf {
         }
     }
     
+    public static int VALIDATE_HEXINT(String msg){
+    	int index=0;
+    	if (msg.startsWith("0x"))
+    	{
+    		index += 2;
+    	}
+        try {
+            return Integer.parseInt(msg.substring(index), 16);
+        } catch (NumberFormatException e) {
+            return 0;
+        }
+    }
+    
     public String getHresFb(boolean streamIn){
     	if (streamIn)
     		return String.valueOf(ctrl.userSettings.getStreamInHorizontalResolution());
@@ -2459,6 +2472,22 @@ class ForceRgbPreviewModeCommand extends CrestronCommand {
 		try {
 			boolean val = Boolean.valueOf(msg);
 			ctrl.setForceRgbPreviewMode(val);
+		} catch (Exception e) {}
+	}
+	// no feedback
+}
+
+class ChromaKeyColorCommand extends CrestronCommand {
+
+	public ChromaKeyColorCommand(CresStreamCtrl ctrl, String arg) {
+		super(ctrl, arg);
+	}
+
+	@Override
+	public void execute() {
+		try {
+			int val = VALIDATE_HEXINT(msg);
+			ctrl.userSettings.setChromaKeyColor(val);
 		} catch (Exception e) {}
 	}
 	// no feedback

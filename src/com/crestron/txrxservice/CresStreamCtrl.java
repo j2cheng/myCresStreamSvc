@@ -235,7 +235,8 @@ public class CresStreamCtrl extends Service {
         STREAM_IN,
         STREAM_OUT,
         PREVIEW,
-        WBS_STREAM_IN
+        WBS_STREAM_IN,
+        CHROMA_KEY_STREAM,
     }
     
     enum ServiceMode {
@@ -960,6 +961,9 @@ public class CresStreamCtrl extends Service {
 
     		//Play Control
     		hm = new HashMap<Integer, Command>();
+    		hm.put(4/*"CHROMA_KEY_STREAM"*/, new Command() {
+    			public void executeStart(int sessId) {startChromaKeyStream(sessId); };
+    		});
     		hm.put(3/*"WBS_STREAMIN"*/, new Command() {
     			public void executeStart(int sessId) {startWbsStream(sessId); };
     		});
@@ -973,6 +977,9 @@ public class CresStreamCtrl extends Service {
     			public void executeStart(int sessId) {startStreamIn(sessId); };
     		});
     		hm2 = new HashMap<Integer, myCommand>();
+    		hm2.put(4/*"CHROMA_KEY_STREAM"*/, new myCommand() {
+    			public void executeStop(int sessId, boolean fullStop) {stopChromaKeyStream(sessId); };
+    		});
     		hm2.put(3/*"WBS_STREAMIN"*/, new myCommand() {
     			public void executeStop(int sessId, boolean fullStop) {stopWbsStream(sessId); };
     		});
@@ -986,6 +993,9 @@ public class CresStreamCtrl extends Service {
     			public void executeStop(int sessId, boolean fullStop) {stopStreamIn(sessId); };
     		});
     		hm3 = new HashMap<Integer, myCommand2>();
+    		hm3.put(4/*"CHROMA_KEY_STREAM"*/, new myCommand2() {
+    			public void executePause(int sessId) {pauseChromaKeyStream(sessId); };
+    		});
     		hm3.put(3/*"WBS_STREAMIN"*/, new myCommand2() {
     			public void executePause(int sessId) {pauseWbsStream(sessId); };
     		});
@@ -1911,7 +1921,8 @@ public class CresStreamCtrl extends Service {
 			        for (int sessionId = 0; sessionId < NumOfSurfaces; sessionId++)
 			        {
 			        	if (skipStreamIn && ((userSettings.getMode(sessionId) == DeviceMode.STREAM_IN.ordinal()) ||
-			        			(userSettings.getMode(sessionId) == DeviceMode.WBS_STREAM_IN.ordinal())))
+			        			(userSettings.getMode(sessionId) == DeviceMode.WBS_STREAM_IN.ordinal()) ||
+			        			(userSettings.getMode(sessionId) == DeviceMode.CHROMA_KEY_STREAM.ordinal())))
 			        		continue;
 			        	else if (skipPreview && (userSettings.getMode(sessionId) == DeviceMode.PREVIEW.ordinal()))
 			        		continue;
@@ -3569,6 +3580,52 @@ public class CresStreamCtrl extends Service {
     public void pauseWbsStream(int sessId)
     {
     	wbsStream.onPause(sessId);
+    }
+
+    // fillSurface
+    public void fillSurface(int sessId, int color)
+    {
+		Surface s = dispSurface.getSurface(sessId);
+		if (s == null || !s.isValid())
+		{
+			Log.e(TAG, "fillSurface(): invalid or null surface");
+			return;
+		}
+		Canvas canvas = null;
+		try {
+			canvas = s.lockCanvas(null);
+		} catch (Exception e)
+		{
+			Log.e(TAG, "fillSurface(): Exception encountered trying to lock Canvas for rendering");
+			e.printStackTrace();
+		}
+		canvas.drawRGB(Color.red(color), Color.green(color), Color.blue(color));
+		s.unlockCanvasAndPost(canvas);
+    }
+    
+    // Start chroma key
+    public void startChromaKeyStream(int sessId)
+    {
+		Log.i(TAG, "startChromaKeyStream: sessId="+sessId);
+		if (serviceMode != ServiceMode.Slave)
+			return;
+		int chromaKeyColor = userSettings.getChromaKeyColor();
+		fillSurface(sessId, chromaKeyColor);
+		SendStreamState(StreamState.STARTED, sessId);
+    }
+
+    public void stopChromaKeyStream(int sessId)
+    {
+		Log.i(TAG, "stopChromaKeyStream: sessId="+sessId);
+		if (serviceMode != ServiceMode.Slave)
+			return;
+		fillSurface(sessId, 0);
+		SendStreamState(StreamState.STOPPED, sessId);
+    }
+
+    public void pauseChromaKeyStream(int sessId)
+    {
+		Log.i(TAG, "pauseChromaKeyStream: sessId="+sessId);
     }
     
     //Start gstreamer Preview
