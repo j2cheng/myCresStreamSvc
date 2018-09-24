@@ -64,6 +64,7 @@ import android.util.Log;
 import android.view.Surface;
 import android.view.SurfaceHolder;
 import android.view.TextureView;
+import android.view.View;
 import android.graphics.Bitmap;
 import android.graphics.SurfaceTexture;
 import android.graphics.Matrix; 
@@ -2017,6 +2018,27 @@ public class AirMediaSplashtop implements AirMedia
 							    // if we are attempting to stop this session countdown latch and treat it as stopped
 							    countdownDeviceDisconnectLatch(getActiveSession());
 								removeSession(getActiveSession());
+								for (int sessionId=0; sessionId < mStreamCtl.NumOfSurfaces; sessionId++)
+								{
+									if (mStreamCtl.userSettings.getAirMediaLaunch(sessionId))
+									{
+										if (mStreamCtl.getSurfaceView(sessionId).getVisibility() == View.VISIBLE)
+										{
+											hideVideo(false);
+										} 
+										else if (mStreamCtl.getTextureView(sessionId).getVisibility() == View.VISIBLE)
+										{
+							    	    	if (surface_ != null)
+							    	    		surface_.release();
+							    	    	surface_ = null;
+											hideVideo(true);
+										}
+										else
+										{
+											Log.i(TAG, "OnServiceDisconnected(): Neither SurfaceView nor TextureView visible even though AirMediaLaunch is true for streamId="+sessionId);
+										}
+									}
+								}
 								active_session_ = null;
 							}
 							removeAllSessionsFromMap();
