@@ -1071,7 +1071,7 @@ int build_video_pipeline(gchar *encoding_name, CREGSTREAM *data, unsigned int st
     {
         //TODO:checking return values.
         //insert queue right after rtspsrc element
-        data->element_v[i++] = gst_element_factory_make("queue", NULL);
+        data->element_v[i++] = gst_element_factory_make((data->streamProtocolId == ePROTOCOL_FILE)?"queue2":"queue", NULL);
         // HTTP modes that do not use TS should not set queue to these parameters, check: http://dash-mse-test.appspot.com/media.html
         if (data->mpegtsPresent || data->streamProtocolId != ePROTOCOL_HTTP)
         {
@@ -1088,6 +1088,12 @@ int build_video_pipeline(gchar *encoding_name, CREGSTREAM *data, unsigned int st
 
         data->element_v[i++] = gst_element_factory_make("h264parse", NULL);
         data->element_fake_dec = data->element_v[i-1];
+        if (data->streamProtocolId == ePROTOCOL_FILE)
+        {
+        	// try to force insertion of SPS/PPS @ 1 sec intervals - on IDR frames
+        	g_object_set(G_OBJECT(data->element_fake_dec), "config-interval", 1, NULL);
+        	CSIO_LOG(eLogLevel_info, "%s: h264parse - setting config-interval to 1", __FUNCTION__);
+        }
 
         data->element_v[i++] = gst_element_factory_make("queue", NULL);
         // HTTP modes that do not use TS should not set queue to these parameters, check: http://dash-mse-test.appspot.com/media.html
@@ -1114,7 +1120,7 @@ int build_video_pipeline(gchar *encoding_name, CREGSTREAM *data, unsigned int st
 
         //pass surface object to the decoder
         g_object_set(G_OBJECT(data->element_v[i-1]), "surface-window", data->surface, NULL);
-        CSIO_LOG(eLogLevel_debug, "SET surface-window[0x%x][%d]",data->surface,data->surface);
+        CSIO_LOG(eLogLevel_debug, "%s: SET surface-window[0x%x][%d]",__FUNCTION__,data->surface,data->surface);
 
         *ele0 = data->element_v[0];
 
@@ -1122,7 +1128,7 @@ int build_video_pipeline(gchar *encoding_name, CREGSTREAM *data, unsigned int st
         {
             int sigId = 0;
             sigId = g_signal_connect(data->amcvid_dec, "crestron-vdec-output", G_CALLBACK(csio_DecVideo1stOutputCB), (gpointer)data->streamId);
-            CSIO_LOG(eLogLevel_debug, "connect to crestron-vdec-output: StreamId[%d],sigHandlerId[%d]",data->streamId,sigId);
+            CSIO_LOG(eLogLevel_debug, "%s: connect to crestron-vdec-output: StreamId[%d],sigHandlerId[%d]",__FUNCTION__,data->streamId,sigId);
 
             if(sigId)
                 csio_SetWaitDecHas1stVidDelay(data->streamId,1);

@@ -205,7 +205,13 @@ public class GstreamIn implements StreamInStrategy, SurfaceHolder.Callback {
     	}
     	streamCtl.SendStreamState(StreamState.getStreamStateFromInt(streamStateEnum), sessionId); 
 	}
-    
+
+    public void sendDSVideoReady()
+    {
+    	Log.i(TAG, "Send DS Video Ready message to CSIO - for sending of reserved join");
+    	streamCtl.sockTask.SendDataToAllClients(MiscUtils.stringFormat("DS_VIDEO_READY=true"));
+    }
+  
     public void sendInitiatorFbAddress(String initiatorFbAddress, int sessionId){
     	streamCtl.userSettings.setInitiatorAddress(initiatorFbAddress);
     	streamCtl.sendInitiatorFbAddress(initiatorFbAddress, sessionId);

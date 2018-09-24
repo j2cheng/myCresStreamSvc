@@ -1954,6 +1954,21 @@ void csio_SendVideoSourceParams(unsigned int source, unsigned int width, unsigne
 		env->ExceptionClear ();
 	}
 }
+
+void csio_SendDSVideoReady()
+{
+	JNIEnv *env = get_jni_env ();
+
+	jmethodID sendDSVideoReady = env->GetMethodID((jclass)gStreamIn_javaClass_id, "sendDSVideoReady", "()V");
+	if (sendDSVideoReady == NULL) return;
+
+	env->CallVoidMethod(CresDataDB->app, sendDSVideoReady);
+	if (env->ExceptionCheck ()) {
+		CSIO_LOG(eLogLevel_error, "Failed to call Java method 'sendDSVideoReady'");
+		env->ExceptionClear ();
+	}
+}
+
 void csio_signal_that_stream_has_stopped(int iStreamId)
 {
 	//Intentionally left blank
@@ -2669,6 +2684,7 @@ void csio_jni_SetMsgHandlers(void* obj,eProtocolId protoId, int iStreamId)
 			CSIO_LOG(eLogLevel_debug, "%s() in ePROTOCOL_FILE: Set the pipeline to READY \n", __FUNCTION__);
 			csio_element_set_state(data->pipeline, GST_STATE_READY);   //Set the pipeline to READY
 			data->video_sink = gst_bin_get_by_interface(GST_BIN(data->pipeline), GST_TYPE_VIDEO_OVERLAY);
+			csio_SendDSVideoReady();
 		    break;
 		case ePROTOCOL_UDP_BPT:
 			break;
