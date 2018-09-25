@@ -504,7 +504,7 @@ public class AirMediaSession extends AirMediaBase {
             session.attach(value);
         } catch (RemoteException e) {
             Common.Logging.e(TAG, "session.video.surface.attach  " + toDebugString(self()) + "  value= " + value + "  EXCEPTION  " + e);
-            handleRemoteException();
+            handleRemoteException(e);
         }
     }
 
@@ -515,7 +515,7 @@ public class AirMediaSession extends AirMediaBase {
             session.detach();
         } catch (RemoteException e) {
             Common.Logging.e(TAG, "session.video.surface.detach  " + toDebugString(self()) + "  EXCEPTION  " + e);
-            handleRemoteException();
+            handleRemoteException(e);
         }
     }
 
@@ -528,7 +528,7 @@ public class AirMediaSession extends AirMediaBase {
             session_.disconnect();
             scheduler().raise(observer, this);
         } catch (RemoteException e) {
-            handleRemoteException();
+            handleRemoteException(e);
             scheduler().raiseError(observer, this, "AirMedia.Session", -1006, "task.disconnect  REMOTE EXCEPTION  " + e);
         } catch (Exception e) {
             scheduler().raiseError(observer, this, "AirMedia.Session", -1006, "task.disconnect  EXCEPTION  " + e);
@@ -540,7 +540,7 @@ public class AirMediaSession extends AirMediaBase {
             session_.play();
             scheduler().raise(observer, this);
         } catch (RemoteException e) {
-            handleRemoteException();
+            handleRemoteException(e);
             scheduler().raiseError(observer, this, "AirMedia.Session", -1007, "task.play  REMOTE EXCEPTION  " + e);
         } catch (Exception e) {
             scheduler().raiseError(observer, this, "AirMedia.Session", -1007, "task.play  EXCEPTION  " + e);
@@ -552,10 +552,10 @@ public class AirMediaSession extends AirMediaBase {
             session_.pause();
             scheduler().raise(observer, this);
         } catch (RemoteException e) {
-            handleRemoteException();
-            scheduler().raiseError(observer, this, "AirMedia.Session", -1007, "task.pause  REMOTE EXCEPTION  " + e);
+            handleRemoteException(e);
+            scheduler().raiseError(observer, this, "AirMedia.Session", -1008, "task.pause  REMOTE EXCEPTION  " + e);
         } catch (Exception e) {
-            scheduler().raiseError(observer, this, "AirMedia.Session", -1007, "task.pause  EXCEPTION  " + e);
+            scheduler().raiseError(observer, this, "AirMedia.Session", -1008, "task.pause  EXCEPTION  " + e);
         }
     }
 
@@ -564,7 +564,7 @@ public class AirMediaSession extends AirMediaBase {
             session_.stop();
             scheduler().raise(observer, this);
         } catch (RemoteException e) {
-            handleRemoteException();
+            handleRemoteException(e);
             scheduler().raiseError(observer, this, "AirMedia.Session", -1009, "task.stop  REMOTE EXCEPTION  " + e);
         } catch (Exception e) {
             scheduler().raiseError(observer, this, "AirMedia.Session", -1009, "task.stop  EXCEPTION  " + e);
@@ -580,7 +580,7 @@ public class AirMediaSession extends AirMediaBase {
             session.setVideoScreenPosition(value);
         } catch (RemoteException e) {
             Common.Logging.e(TAG, "session.video.screen-position  " + toDebugString(self()) + "  value= " + value + "  EXCEPTION  " + e);
-            handleRemoteException();
+            handleRemoteException(e);
         }
     }
 
@@ -593,7 +593,7 @@ public class AirMediaSession extends AirMediaBase {
             session.setAudioMute(value);
         } catch (RemoteException e) {
             Common.Logging.e(TAG, "session.audio.mute  " + toDebugString(self()) + "  value= " + value + "  EXCEPTION  " + e);
-            handleRemoteException();
+            handleRemoteException(e);
         }
     }
 
@@ -606,13 +606,14 @@ public class AirMediaSession extends AirMediaBase {
             session.setAudioVolume(value);
         } catch (RemoteException e) {
             Common.Logging.e(TAG, "session.audio.volume  " + toDebugString(self()) + "  value= " + value + "  EXCEPTION  " + e);
-            handleRemoteException();
+            handleRemoteException(e);
         }
     }
 
     /// REMOTE CONNECTION
 
-    private void handleRemoteException() {
+    private void handleRemoteException(Exception e) {
+        Common.Logging.v(TAG, "session.exception.remote  " + toDebugString(self()) + "  EXCEPTION  " + e + "  " + Log.getStackTraceString(e));
         session_ = null;
     }
 

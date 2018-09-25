@@ -20,6 +20,7 @@ import java.util.Enumeration;
 import java.util.Iterator;
 import java.util.LinkedList;
 import java.util.List;
+import java.util.Locale;
 
 public class Common {
     private static String TAG = "Utilities.Common";
@@ -37,12 +38,15 @@ public class Common {
         public static double toMegabytes(long bytes) { return (double)bytes/(double)Megabytes; }
         public static double toGigabytes(long bytes) { return (double)bytes/(double)Gigabytes; }
 
-        //@SuppressLint("DefaultLocale")
         public static String toString(long bytes) {
-            if (bytes > (Gigabytes - Kilobytes)) return String.format("%.2f GB", Common.Units.toGigabytes(bytes));
-            else if (bytes > (Megabytes - Kilobytes)) return String.format("%.2f MB", Common.Units.toMegabytes(bytes));
-            else if (bytes > Kilobytes) return String.format("%.2f KB", Common.Units.toKilobytes(bytes));
-            return String.format("%d bytes", bytes);
+            return toString(bytes, Locale.US);
+        }
+
+        public static String toString(long bytes, Locale local) {
+            if (bytes > (Gigabytes - Kilobytes)) return String.format(local, "%.2f GB", Common.Units.toGigabytes(bytes));
+            else if (bytes > (Megabytes - Kilobytes)) return String.format(local, "%.2f MB", Common.Units.toMegabytes(bytes));
+            else if (bytes > Kilobytes) return String.format(local, "%.2f KB", Common.Units.toKilobytes(bytes));
+            return String.format(local, "%d bytes", bytes);
         }
     }
 
@@ -85,7 +89,7 @@ public class Common {
             if (handler != null) {
                 try { handler.log(type, tag, message); } catch (Exception ignore) { }
             } else {
-                message = String.format("<%1$04x>  %2$s", Thread.currentThread().getId(), message);
+                message = String.format(Locale.US, "<%1$04x>  %2$s", Thread.currentThread().getId(), message);
                 switch (type) {
                     case Log.DEBUG:
                         Log.d(tag, message);

@@ -5,6 +5,8 @@ import android.os.Parcelable;
 
 import com.crestron.airmedia.utilities.Common;
 
+import java.util.Locale;
+
 public class AirMediaReceiverMirroringAssist implements Parcelable {
     public final String id;
     public final String description;
@@ -49,7 +51,7 @@ public class AirMediaReceiverMirroringAssist implements Parcelable {
 
     @Override
     public String toString() {
-        return String.format("MirroringAssist[%s]", id);
+        return String.format(Locale.US, "MirroringAssist[%s]", id);
     }
 
     public boolean isEqual(AirMediaReceiverMirroringAssist ma) {

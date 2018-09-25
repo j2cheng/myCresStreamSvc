@@ -15,6 +15,8 @@ import android.widget.ProgressBar;
 import android.widget.SeekBar;
 import android.widget.TextView;
 
+import java.util.Locale;
+
 public abstract class ViewBase extends LinearLayout {
 
     ////////////////////////////////////////////////////////////////////////////////////////////////
@@ -246,7 +248,7 @@ public abstract class ViewBase extends LinearLayout {
     protected void setPercent(TextView view, float value) {
         if (view == null) return;
         value = Common.limit(value, 0.0f, 1.0f);
-        String text = String.format("%d%%", Math.round(100.0f * value));
+        String text = String.format(Locale.US, "%d%%", Math.round(100.0f * value));
         if (isViewThread()) {
             view.setText(text);
         } else {
