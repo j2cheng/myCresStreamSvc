@@ -1071,11 +1071,16 @@ int build_video_pipeline(gchar *encoding_name, CREGSTREAM *data, unsigned int st
     {
         //TODO:checking return values.
         //insert queue right after rtspsrc element
-        data->element_v[i++] = gst_element_factory_make((data->streamProtocolId == ePROTOCOL_FILE)?"queue2":"queue", NULL);
+        data->element_v[i++] = gst_element_factory_make("queue", NULL);
         // HTTP modes that do not use TS should not set queue to these parameters, check: http://dash-mse-test.appspot.com/media.html
         if (data->mpegtsPresent || data->streamProtocolId != ePROTOCOL_HTTP)
         {
         	setQueueProperties(data, data->element_v[i - 1], (guint64)((1ll + CSIOCnsIntf->getStreamRx_BUFFER(data->streamId)) * 1000000ll),(guint)16*1024*1024);
+        }
+        if (data->streamProtocolId == ePROTOCOL_FILE)
+        {
+        	// make queue non-leaky - prevent dropping first few bytes which have SPS/PPS for EarlyMedia case
+        	g_object_set(G_OBJECT(data->element_v[i - 1]), "leaky", (guint) 0, NULL);
         }
         
         if(do_rtp)
