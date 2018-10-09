@@ -76,6 +76,10 @@ typedef struct _CREGSTREAM
 	GstElement *element_valve_v;
 	GstElement *element_valve_a;
 	GstElement *element_audiorate;
+	GstElement *element_video_front_end_queue;
+	GstElement *element_video_decoder_queue;
+	GstElement *element_audio_front_end_queue;
+	GstElement *element_audio_decoder_queue;
 	
 	GstElement *element_zero;
 	GstElement *element_av [MAX_ELEMENTS];
@@ -267,6 +271,7 @@ void csio_jni_initAudio(int iStreamId);
 void csio_SetAudioSink(GstElement *audioSink, int iStreamId);
 void csio_SaveNetworkProtocol(int iStreamId);
 void csio_SendVideoInfo(int id, GstElement *element);
+void csio_jni_change_queues_to_leaky(int id);
 
 
 

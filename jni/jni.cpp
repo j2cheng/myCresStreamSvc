@@ -508,6 +508,30 @@ void csio_jni_remove_probe (int iStreamId)
     csio_jni_remove_video_rate_probe(iStreamId);
 }
 
+static void set_queue_leaky(GstElement *queue, char *queue_id)
+{
+    gint leak;
+
+    if (queue)
+    {
+    	g_object_get(G_OBJECT(queue), "leaky", &leak, NULL);
+    	if (leak != (guint)2 /*GST_QUEUE_LEAK_DOWNSTREAM*/ )
+    	{
+    		g_object_set(G_OBJECT(queue), "leaky", (guint)2 /*GST_QUEUE_LEAK_DOWNSTREAM*/, NULL);
+    		CSIO_LOG(eLogLevel_debug, "set %s leaky property to 'leak downstream'", queue_id);
+    	}
+    }
+}
+
+void csio_jni_change_queues_to_leaky(int id)
+{
+    CREGSTREAM * data = GetStreamFromCustomData(CresDataDB, id);
+    set_queue_leaky(data->element_video_front_end_queue, "video-front-end-queue");
+    set_queue_leaky(data->element_video_decoder_queue, "video-decoder-queue");
+    set_queue_leaky(data->element_audio_front_end_queue, "audio-front-end-queue");
+    set_queue_leaky(data->element_audio_decoder_queue, "audio-decoder-queue");
+}
+
 // This is still a current problem as of Android 4.4 and Gstreamer 1.8.2, we leak 2 sockets everytime a new url is connected to
 static bool shouldCloseSockets()
 {
@@ -622,6 +646,10 @@ void csio_jni_cleanup (int iStreamId)
     data->video_sink   = NULL;
     data->audio_sink   = NULL;
     data->amcvid_dec   = NULL;
+    data->element_video_front_end_queue = NULL;
+    data->element_video_decoder_queue = NULL;
+    data->element_audio_front_end_queue = NULL;
+    data->element_audio_decoder_queue = NULL;
     data->element_fake_dec = NULL;
     data->element_zero     = NULL;
     data->element_valve_v    = NULL;

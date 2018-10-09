@@ -137,6 +137,15 @@ void init_custom_data(CustomData * cdata)
 		data->httpMode  = eHttpMode_UNSPECIFIED;
 		data->pStreamer = NULL;
 
+		data->element_fake_dec = NULL;
+		data->element_valve_v = NULL;
+		data->element_valve_a = NULL;
+		data->element_audiorate = NULL;
+		data->element_video_front_end_queue = NULL;
+		data->element_video_decoder_queue = NULL;
+		data->element_audio_front_end_queue = NULL;
+		data->element_audio_decoder_queue = NULL;
+
         for (j=0; j<MAX_ELEMENTS; ++j) 
         {
             data->element_av[i] = NULL;
@@ -430,6 +439,7 @@ void csio_DecVideo1stOutputCB(GstElement *src,int id)
         csio_SaveNetworkProtocol(id);
         csio_SendVideoPlayingStatusMessage(id, STREAMSTATE_STARTED );
         CSIO_LOG(eLogLevel_info,  "+++SENT ACK TO IPLINK CLIENT Source- %ld", id);
+        csio_jni_change_queues_to_leaky(id);
         csio_SetWaitDecHas1stVidDelay(id,0);
         csio_SendVideoInfo(id, src);
     }
@@ -943,7 +953,7 @@ static void setQueueProperties(CREGSTREAM *data, GstElement *queue, guint64 maxT
 	case eHttpMode_MJPEG:
 		// RTSP/MJPEG get set based on time, since live
 		g_object_set(G_OBJECT(queue),
-				"leaky", (gint)2,					//GST_QUEUE_LEAK_DOWNSTREAM
+				"leaky", (gint)0,					//GST_QUEUE_NO_LEAK
 				"max-size-bytes", (guint)0,
 				"max-size-buffers", (guint)0,
 				"max-size-time", maxTime,	// 200 ms worked well at 25 ms latency
@@ -1075,12 +1085,8 @@ int build_video_pipeline(gchar *encoding_name, CREGSTREAM *data, unsigned int st
         // HTTP modes that do not use TS should not set queue to these parameters, check: http://dash-mse-test.appspot.com/media.html
         if (data->mpegtsPresent || data->streamProtocolId != ePROTOCOL_HTTP)
         {
+            data->element_video_front_end_queue = data->element_v[i-1];
         	setQueueProperties(data, data->element_v[i - 1], (guint64)((1ll + CSIOCnsIntf->getStreamRx_BUFFER(data->streamId)) * 1000000ll),(guint)16*1024*1024);
-        }
-        if (data->streamProtocolId == ePROTOCOL_FILE)
-        {
-        	// make queue non-leaky - prevent dropping first few bytes which have SPS/PPS for EarlyMedia case
-        	g_object_set(G_OBJECT(data->element_v[i - 1]), "leaky", (guint) 0, NULL);
         }
         
         if(do_rtp)
@@ -1102,8 +1108,10 @@ int build_video_pipeline(gchar *encoding_name, CREGSTREAM *data, unsigned int st
 
         data->element_v[i++] = gst_element_factory_make("queue", NULL);
         // HTTP modes that do not use TS should not set queue to these parameters, check: http://dash-mse-test.appspot.com/media.html
-        if (data->mpegtsPresent || data->streamProtocolId != ePROTOCOL_HTTP)
-        	setQueueProperties(data, data->element_v[i - 1], (guint64)((175ll + CSIOCnsIntf->getStreamRx_BUFFER(data->streamId)) * 1000000ll),(guint)10*1024*1024);
+        if (data->mpegtsPresent || data->streamProtocolId != ePROTOCOL_HTTP) {
+            data->element_video_decoder_queue = data->element_v[i - 1];
+            setQueueProperties(data, data->element_v[i - 1], (guint64)((175ll + CSIOCnsIntf->getStreamRx_BUFFER(data->streamId)) * 1000000ll),(guint)10*1024*1024);
+        }
 
         //add a probe for loss of video detection.
         GstPad *pad;
@@ -1143,6 +1151,7 @@ int build_video_pipeline(gchar *encoding_name, CREGSTREAM *data, unsigned int st
     {
     	//insert queue right after rtspsrc element
  		data->element_v[i] = gst_element_factory_make("queue", NULL);
+        data->element_video_front_end_queue = data->element_v[i];
  		setQueueProperties(data, data->element_v[i], (guint64)((175ll + CSIOCnsIntf->getStreamRx_BUFFER(data->streamId)) * 1000000ll),(guint)16*1024*1024);
 		gst_bin_add(GST_BIN(data->pipeline), data->element_v[i++]);
 
@@ -1183,8 +1192,10 @@ int build_video_pipeline(gchar *encoding_name, CREGSTREAM *data, unsigned int st
 		}
 		data->element_v[i++] = gst_element_factory_make("queue", NULL);
 		// HTTP modes that do not use TS should not set queue to these parameters, check: http://dash-mse-test.appspot.com/media.html
-		if (data->mpegtsPresent || data->streamProtocolId != ePROTOCOL_HTTP)
+		if (data->mpegtsPresent || data->streamProtocolId != ePROTOCOL_HTTP) {
+	        data->element_video_front_end_queue = data->element_v[i-1];
 			setQueueProperties(data, data->element_v[i - 1], (guint64)((175ll + CSIOCnsIntf->getStreamRx_BUFFER(data->streamId)) * 1000000ll),(guint)10*1024*1024);
+		}
 		data->element_v[i++] = gst_element_factory_make("valve", NULL);
 		data->element_valve_v = data->element_v[i-1];
 		data->element_v[i++] = gst_element_factory_make("jpegparse", NULL);
@@ -1404,6 +1415,7 @@ int build_audio_pipeline(gchar *encoding_name, CREGSTREAM *data, int do_rtp,GstE
 	{
 	    //insert queue right after rtspsrc element
 	    data->element_a[i++] = gst_element_factory_make("queue", NULL);
+	    data->element_audio_front_end_queue = data->element_a[i - 1];
 	    setQueueProperties(data, data->element_a[i - 1], (guint64)((1ll + CSIOCnsIntf->getStreamRx_BUFFER(data->streamId)) * 1000000ll),(guint)16*1024*1024);
 	    
 		if(do_rtp)
@@ -1419,8 +1431,10 @@ int build_audio_pipeline(gchar *encoding_name, CREGSTREAM *data, int do_rtp,GstE
 		data->element_a[i++] = gst_element_factory_make("aacparse", NULL);
 		data->element_a[i++] = gst_element_factory_make("queue", NULL);
 		// HTTP modes that do not use TS should not set queue to these parameters, check: http://dash-mse-test.appspot.com/media.html
-		if (data->mpegtsPresent || data->streamProtocolId != ePROTOCOL_HTTP)
+		if (data->mpegtsPresent || data->streamProtocolId != ePROTOCOL_HTTP) {
+		    data->element_audio_decoder_queue = data->element_a[i - 1];
 			setQueueProperties(data, data->element_a[i - 1], (guint64)((175ll + CSIOCnsIntf->getStreamRx_BUFFER(data->streamId)) * 1000000ll),(guint)10*1024*1024);
+		}
 		data->element_a[i++] = gst_element_factory_make("faad", NULL);
 
 		*ele0 = data->element_a[0];
