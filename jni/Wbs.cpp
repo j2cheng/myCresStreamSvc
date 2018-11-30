@@ -491,9 +491,13 @@ static int wbs_start_connection(Wbs_t *pWbs)
 	SSL * pSSL = 0;
 
 	if (pWbs->secure) {
+#if OPENSSL_VERSION_NUMBER >= 0x10100000L
+        OPENSSL_init_ssl(0, NULL);
+#else
 		SSL_library_init();
 		OpenSSL_add_all_algorithms();
 		SSL_load_error_strings();
+#endif
 		ctx = SSL_CTX_new(TLSv1_2_client_method());
 		pSSL = ctx ? SSL_new(ctx) : 0;
 		if (pSSL == 0) {

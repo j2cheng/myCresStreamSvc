@@ -59,8 +59,13 @@ LOCAL_SHARED_LIBRARIES := libgstreamer_android liblog libandroid
 LOCAL_SHARED_LIBRARIES += libproductName
 LOCAL_SHARED_LIBRARIES += libLinuxUtil
 LOCAL_SHARED_LIBRARIES += libCresSocketHandler
-LOCAL_SHARED_LIBRARIES += libssl
+ifeq ($(TARGET_PRODUCT),$(filter $(TARGET_PRODUCT),yushan_one full_omap5panda))
+LOCAL_SHARED_LIBRARIES += libcrypto_openssl11
+LOCAL_SHARED_LIBRARIES += libssl_openssl11 
+else
 LOCAL_SHARED_LIBRARIES += libcrypto
+LOCAL_SHARED_LIBRARIES += libssl
+endif
 LOCAL_SHARED_LIBRARIES += libcresstore_json
 #LOCAL_SHARED_LIBRARIES += libjsoncpp
 LOCAL_SHARED_LIBRARIES += libcresnextserializer
@@ -92,7 +97,6 @@ LOCAL_CFLAGS +=\
 	-I$(CSIO_INCLUDE_ROOT)/url_parser \
 	-I$(CSIO_INCLUDE_ROOT)/gstreamer-1.0 \
 	-I$(STREAMOUT_PATH) \
-	-I$(CRESTRON_ROOT)/../openssl/include \
 	-I$(CRESTRON_ROOT)/CresNextSerializer \
 	-I$(CRESTRON_ROOT)/libcresstore_json\
 	-I$(CRESTRON_ROOT)/CresNextSerializer/cresNextManager \
@@ -100,6 +104,12 @@ LOCAL_CFLAGS +=\
 	-I$(CRESTRON_ROOT)/../rapidjson/include \
 	-w\
 	-DANDROID_OS
+
+ifeq ($(TARGET_PRODUCT),$(filter $(TARGET_PRODUCT),yushan_one full_omap5panda))
+LOCAL_C_FLAGS +=  -I$(CRESTRON_ROOT)/../openssl-1.1.1/include
+else
+LOCAL_C_FLAGS +=  -I$(CRESTRON_ROOT)/../openssl/include
+endif
 
 ifeq ($(TARGET_PRODUCT),$(filter $(TARGET_PRODUCT),yushan_one ))
 LOCAL_CFLAGS += -DBIONIC_HAS_STPCPY
