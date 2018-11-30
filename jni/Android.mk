@@ -10,8 +10,6 @@ LOCAL_MODULE_TAGS := eng
 LOCAL_SRC_FILES := ./gstreamer_android/libgstreamer_android.so
 include $(BUILD_PREBUILT)
 
-
-
 include $(CLEAR_VARS)
 GSTREAMER_ROOT_ANDROID := $(LOCAL_PATH)/../../../gstreamer-1.8.1
 CSIO_INCLUDE_ROOT := $(LOCAL_PATH)/../../csio
@@ -203,12 +201,3 @@ LOCAL_SRC_FILES := cresstreamctrl_jni.cpp
 LOCAL_MODULE_TAGS := eng
 LOCAL_PRELINK_MODULE := false
 include $(BUILD_SHARED_LIBRARY)
-
-
-
-
-
-
-
-
-
