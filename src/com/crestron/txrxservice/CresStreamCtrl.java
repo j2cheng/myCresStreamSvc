@@ -158,6 +158,7 @@ public class CresStreamCtrl extends Service {
     public final static String hdmiInputHPDFilePath = "/dev/shm/crestron/hdmi/inputHpd";
     public final static String hdmiInputResolutionFilePath = "/dev/shm/crestron/hdmi/inputResolution";
     public final static String hdmiOutputResolutionFilePath = "/dev/shm/crestron/hdmi/outputResolution";
+    public final static String surfaceFlingerViolationFilePath = "/dev/shm/crestron/CresStreamSvc/SFviolation";
     public volatile boolean mMediaServerCrash = false;
     public volatile boolean mDucatiCrash = false;
     public volatile boolean mIgnoreAllCrash = false;
@@ -166,6 +167,7 @@ public class CresStreamCtrl extends Service {
     private FileObserver hdmiInputHpdObserver;
     private FileObserver hdmiInputResolutionObserver;
     private FileObserver hdmiOutputResolutionObserver;
+    private FileObserver surfaceFlingerViolationObserver;
     private Thread monitorCrashThread;
     private boolean mHDCPOutputStatus = false;
     private boolean mHDCPExternalStatus = false;
@@ -958,6 +960,9 @@ public class CresStreamCtrl extends Service {
 
     		// Monitor HDMI for resolution changes
     		monitorHdmiStates();
+    		
+    		// Monitor surfaceFlinger violations
+    		monitorSurfaceFlingerViolations();
 
     		//Play Control
     		hm = new HashMap<Integer, Command>();
@@ -4947,6 +4952,49 @@ public class CresStreamCtrl extends Service {
         		file.createNewFile();
         	} catch (Exception e) {}
         }
+    }
+    
+    private void handleSurfaceFlingerViolation()
+    {
+		Log.e(TAG, "------ Recreate CresDisplaySurface due to surfaceFlinger Violation ------");
+		RecoverTxrxService();
+    }
+    
+    private void monitorSurfaceFlingerViolations()
+    {
+    	final Object surfaceFlingerObserverLock = new Object();
+    	// Make sure all files exist before observing
+    	checkFileExistsElseCreate(surfaceFlingerViolationFilePath);
+
+		// Monitor surfaceFlinger violation events
+        surfaceFlingerViolationObserver = new FileObserver(surfaceFlingerViolationFilePath, FileObserver.CLOSE_WRITE) {						
+			@Override
+			public void onEvent(int event, String path) {
+				try 
+				{
+					synchronized (surfaceFlingerObserverLock) {
+						Log.i(TAG, "Received surfaceFlinger violation change event");
+						int violation = 0;
+						try 
+						{
+							violation =  Integer.parseInt(MiscUtils.readStringFromDisk(surfaceFlingerViolationFilePath));
+							if (violation != 0)
+								handleSurfaceFlingerViolation();
+						} 
+						catch (NumberFormatException e)
+						{
+							Log.w(TAG, "Invalid surfaceFlinger value found " + e.toString());
+						}				
+						Log.i(TAG, "Finished surfaceFlinger violation change event");
+					}
+				}
+				catch (Exception e)
+				{
+					e.printStackTrace();
+				}
+			}
+        };
+        surfaceFlingerViolationObserver.startWatching();
     }
 
     private void monitorHdmiStates()
