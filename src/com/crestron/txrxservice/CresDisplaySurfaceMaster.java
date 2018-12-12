@@ -115,7 +115,22 @@ public class CresDisplaySurfaceMaster implements CresDisplaySurface
 // Prepare the class for destruction
     public void close()
     {
-        Log.i(TAG, "CresDisplaySurface::close()");
+        Log.i(TAG, "CresDisplaySurfaceMaster::close()");
+        for (int sessionId=0; sessionId < CresStreamCtrl.NumOfSurfaces; sessionId++)
+        {
+			synchronized(windowTimerLock)
+			{
+				if (windowTimer[sessionId] != null)
+				{
+					Log.v(TAG, "CresDisplaySurface:close(): Canceling and purging delayed task for sessionId="+sessionId);
+					// end this task and clear the timer
+					windowTimer[sessionId].cancel();
+					windowTimer[sessionId].purge();
+					Log.v(TAG, "CresDisplaySurface:close(): setting window timer for sessionId="+sessionId+" to null");
+					windowTimer[sessionId] = null;
+				}
+			}
+        }
     	if (sMGR != null)
     		sMGR.close();
     	if (stMGR != null)
@@ -158,8 +173,8 @@ public class CresDisplaySurfaceMaster implements CresDisplaySurface
 
     public CresDisplaySurfaceMaster(Service app, int windowWidth, int windowHeight, boolean haveExternalDisplays, int color)
     {
-        Log.i(TAG, "Creating surface: " + windowWidth + "x" + windowHeight );
-        
+        Log.i(TAG, "CresDisplaySurfaceMaster(): Creating surface: " + windowWidth + "x" + windowHeight );
+
         streamCtl = (CresStreamCtrl)app; 
         
 		// Allocate window Locks

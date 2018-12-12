@@ -479,10 +479,41 @@ public class CresStreamCtrl extends Service {
     	}
     }
 
-    private final ReentrantLock hdmiLock				= new ReentrantLock(true); // fairness=true, makes lock ordered
-    private final ReentrantLock cameraLock				= new ReentrantLock(true); // fairness=true, makes lock ordered
-    private final ReentrantLock[] stopStartLock			= new ReentrantLock[NumOfSurfaces]; // members will be allocated in constructor
-    private final ReentrantLock[] streamStateLock 		= new ReentrantLock[NumOfSurfaces]; // members will be allocated in constructor
+    private class MyReentrantLock extends ReentrantLock {
+    	private String name;
+    	
+    	MyReentrantLock(boolean fair, String id) {
+    		super(fair);
+    		name = id;
+    	}
+    	
+    	String getThreadId()
+    	{
+    		Thread owner = this.getOwner();
+    		if (owner == null)
+    			return "null";
+    		else
+    			return Integer.toHexString((int)(owner.getId()));
+    	}
+    	
+    	void lock(String s)
+    	{
+    		Log.i(TAG, s + ": about to take " + name + "     Current owner tid=" + getThreadId() + "  queueLength=" + getQueueLength());
+    		lock();
+    		Log.i(TAG, s + ": " + name + " taken   Owner tid=" + getThreadId() + "  queueLength=" + getQueueLength() + "  holdCount=" + getHoldCount());
+    	}
+    	
+    	void unlock(String s)
+    	{
+    		unlock();
+    		Log.i(TAG, s + ": " + name + " released   isLocked=" + isLocked() + "  holdCount=" + getHoldCount());
+    	}
+    }
+    
+    private final MyReentrantLock hdmiLock				= new MyReentrantLock(true, "hdmiLock"); // fairness=true, makes lock ordered
+    private final MyReentrantLock cameraLock			= new MyReentrantLock(true, "CameraLock"); // fairness=true, makes lock ordered
+    private final MyReentrantLock[] stopStartLock		= new MyReentrantLock[NumOfSurfaces]; // members will be allocated in constructor
+    private final MyReentrantLock[] streamStateLock 	= new MyReentrantLock[NumOfSurfaces]; // members will be allocated in constructor
 
     private Notification mNote = new Notification( 0, null, System.currentTimeMillis() );
     
@@ -576,8 +607,8 @@ public class CresStreamCtrl extends Service {
     		// Allocate startStop and streamstate Locks, also initializing array
     		for (int sessionId = 0; sessionId < NumOfSurfaces; sessionId++)
     		{
-    			stopStartLock[sessionId] = new ReentrantLock(true);
-    			streamStateLock[sessionId] = new ReentrantLock(true);
+    			stopStartLock[sessionId] = new MyReentrantLock(true, "StopStartLock-"+sessionId);
+    			streamStateLock[sessionId] = new MyReentrantLock(true, "StreamStateLock-"+sessionId);
     			mVideoDimensions[sessionId] = new videoDimensions(0, 0);
     			m_InPause[sessionId] = false;
     			//            	mHDCPEncryptStatus[sessionId] = false;          	
@@ -1903,12 +1934,11 @@ public class CresStreamCtrl extends Service {
     		public void run() {	
     			// Make sure that CresStreamCtrl Constructor finishes before restarting 
     			try { streamingReadyLatch.await(); } catch (Exception e) {}
-    			    			   			
+        		cameraLock.lock("restartStreams");
     			for (int sessionId = 0; sessionId < NumOfSurfaces; sessionId++)
                 {
-    				stopStartLock[sessionId].lock();
+    				stopStartLock[sessionId].lock("restartStreams");
                 }
-    	    	Log.i(TAG, "RestartLock : Lock");
     	    	long currentTime = MiscUtils.getSystemUptimeMs();
     			long deltaTime = Math.abs(currentTime - lastRecoveryTime);
     			if (deltaTime <= 10000)	// Less than 10 seconds
@@ -1978,11 +2008,11 @@ public class CresStreamCtrl extends Service {
 	    		}
 	    		finally
 		    	{
-		    		Log.i(TAG, "RestartLock : Unlock");
 		    		for (int sessionId = 0; sessionId < NumOfSurfaces; sessionId++)
 	                {
-		    			stopStartLock[sessionId].unlock();
+		    			stopStartLock[sessionId].unlock("restartStreams");
 	                }
+	        		cameraLock.unlock("restartStreams");
 		    	}
     	    	
     	    	latch.countDown();
@@ -2027,10 +2057,10 @@ public class CresStreamCtrl extends Service {
         	// Since this is a user request, mark as stopped requested if mode changes
         	userSettings.setUserRequestedStreamState(StreamState.STOPPED, sessionId);
         	
-        	stopStartLock[sessionId].lock(); //Lock here to synchronize with restartStreams
+        	stopStartLock[sessionId].lock("setDeviceMode"); //Lock here to synchronize with restartStreams
         	StreamState currentStreamState = userSettings.getStreamState(sessionId);
         	StreamState currentUserReqStreamState = userSettings.getUserRequestedStreamState(sessionId);
-        	stopStartLock[sessionId].unlock();
+        	stopStartLock[sessionId].unlock("setDeviceMode");
             if ( (currentStreamState != StreamState.STOPPED) || (currentUserReqStreamState != StreamState.STOPPED) )
                 hm2.get(prevMode).executeStop(sessionId, false);
             
@@ -2040,8 +2070,7 @@ public class CresStreamCtrl extends Service {
             	sockTask.SendDataToAllClients("VBITRATE=" + String.valueOf(userSettings.getBitrate(sessionId)));
             	
             	// we want confidence image up for stream out, until streamout is actually started
-            	stopStartLock[sessionId].lock();
-            	Log.i(TAG, "Start " + sessionId + " : Lock");
+            	stopStartLock[sessionId].lock("setDeviceMode");
                 try
                 {
                 	enableRestartMechanism = true; //enable restart detection
@@ -2049,8 +2078,7 @@ public class CresStreamCtrl extends Service {
                 	cam_streaming.startConfidencePreview(sessionId);
                 } finally
                 {
-                	stopStartLock[sessionId].unlock();
-                	Log.i(TAG, "Start " + sessionId + " : Unlock");
+                	stopStartLock[sessionId].unlock("setDeviceMode");
                 }
             	restartRequired[sessionId] = true;
             }
@@ -2834,8 +2862,7 @@ public class CresStreamCtrl extends Service {
     public StreamState getCurrentStreamState(int sessionId)
     {
     	StreamState returnStreamState;
-    	Log.i(TAG, "getCurrentStreamState(): StreamState " + sessionId + " : Lock");
-    	streamStateLock[sessionId].lock();
+    	streamStateLock[sessionId].lock("getCurrentStreamState");
     	try
     	{
     		returnStreamState = userSettings.getStreamState(sessionId);
@@ -2843,16 +2870,14 @@ public class CresStreamCtrl extends Service {
     	}
     	finally 
     	{
-        	streamStateLock[sessionId].unlock();
-        	Log.i(TAG, "getCurrentStreamState(): StreamState " + sessionId + " : Unlock");
+        	streamStateLock[sessionId].unlock("getCurrentStreamState");
     	}
     	return returnStreamState;
     }
     
     public void SendStreamState(StreamState state, int sessionId)
     {
-    	Log.i(TAG, "setCurrentStreamState(): StreamState " + sessionId + " : Lock");
-    	streamStateLock[sessionId].lock();
+    	streamStateLock[sessionId].lock("setCurrentStreamState");
     	try
     	{
         	userSettings.setStreamState(state, sessionId);
@@ -2866,8 +2891,7 @@ public class CresStreamCtrl extends Service {
     	}
         finally 
     	{
-        	streamStateLock[sessionId].unlock();
-        	Log.i(TAG, "setCurrentStreamState(): StreamState " + sessionId + " : Unlock");
+        	streamStateLock[sessionId].unlock("setCurrentStreamState");
     	}
     }
     
@@ -2903,16 +2927,13 @@ public class CresStreamCtrl extends Service {
     		usingCamera= true;
     	if (usingCamera)
     	{
-    		cameraLock.lock();
-    		Log.i(TAG, "Camera : Lock");
+    		cameraLock.lock("Start");
     	}
     	try
     	{
-    		stopStartLock[sessionId].lock();
+    		stopStartLock[sessionId].lock("Start");
     		try
     		{	
-    			Log.i(TAG, "Start " + sessionId + " : Lock");
-
     			// For preview mode we need to set layer mark for HWC
     			if (isRGB888HDMIVideoSupported)
     			{
@@ -2968,16 +2989,14 @@ public class CresStreamCtrl extends Service {
     		}
     		finally
     		{
-    			stopStartLock[sessionId].unlock();
-    			Log.i(TAG, "Start " + sessionId + " : Unlock");
+    			stopStartLock[sessionId].unlock("Start");
     		}
     	}
     	finally 
     	{
     		if (usingCamera)
     		{
-    			cameraLock.unlock();
-    			Log.i(TAG, "Camera : Unlock");
+    			cameraLock.unlock("Start");
     		}
     	}
     }
@@ -2989,13 +3008,11 @@ public class CresStreamCtrl extends Service {
     		usingCamera= true;
     	if (usingCamera)
     	{
-    		cameraLock.lock();
-    		Log.i(TAG, "Camera : Lock");
+    		cameraLock.lock("Stop");
     	}
     	try
     	{
-    		stopStartLock[sessionId].lock();
-    		Log.i(TAG, "Stop " + sessionId + " : Lock");
+    		stopStartLock[sessionId].lock("Stop");
     		try
     		{
     			//csio will send service full stop when it does not want confidence mode started
@@ -3020,26 +3037,23 @@ public class CresStreamCtrl extends Service {
     		}
     		finally
     		{
-    			stopStartLock[sessionId].unlock();
-    			Log.i(TAG, "Stop " + sessionId + " : Unlock");
+    			stopStartLock[sessionId].unlock("Stop");
     		}
     	}
     	finally 
     	{
     		if (usingCamera)
     		{
-    			cameraLock.unlock();
-    			Log.i(TAG, "Camera : Unlock");
+    			cameraLock.unlock("Stop");
     		}
     	}
     }
 
     public void Pause(int sessionId)
     {    	
-    	stopStartLock[sessionId].lock();
+    	stopStartLock[sessionId].lock("Pause");
     	try
     	{
-    		Log.i(TAG, "Pause " + sessionId + " : Lock");
     		if ((getCurrentStreamState(sessionId) != StreamState.PAUSED) && (userSettings.getStreamState(sessionId) != StreamState.STOPPED))
     		{
     			pauseStatus="true";
@@ -3053,8 +3067,7 @@ public class CresStreamCtrl extends Service {
     	}
     	finally
     	{
-    		Log.i(TAG, "Pause " + sessionId + " : Unlock");
-    		stopStartLock[sessionId].unlock();
+    		stopStartLock[sessionId].unlock("Pause");
     	}
     }
     //StreamOut Ctrl & Config
@@ -3960,8 +3973,8 @@ public class CresStreamCtrl extends Service {
     }
 
     public void launchAirMedia(boolean val, int sessId, boolean fullscreen) {
-    	stopStartLock[sessId].lock();
-    	Log.i(TAG, "AirMedia " + sessId + " : Lock" + "   launch = " + val + "  fullScreen =" + fullscreen);
+    	stopStartLock[sessId].lock("launchAirMedia");
+    	Log.i(TAG, "AirMedia " + sessId + "   launch = " + val + "  fullScreen =" + fullscreen);
     	try
     	{
 //    		// Bug 153417: When in AppSpace mode, allow AppSpace to stop before starting AirMedia
@@ -4059,8 +4072,7 @@ public class CresStreamCtrl extends Service {
     	}
     	finally
     	{
-    		stopStartLock[sessId].unlock();
-        	Log.i(TAG, "AirMedia " + sessId + " : Unlock");
+    		stopStartLock[sessId].unlock("launchAirMedia");
     	}
     }
     
@@ -4735,7 +4747,7 @@ public class CresStreamCtrl extends Service {
     
     public void setCamStreamEnable(boolean enable) {
 
-		stopStartLock[0].lock();
+		stopStartLock[0].lock("setCamStreamEnable");
 		try
 		{
 			userSettings.setCamStreamEnable(enable);
@@ -4767,7 +4779,7 @@ public class CresStreamCtrl extends Service {
 			}
 		} finally
 		{
-			stopStartLock[0].unlock();
+			stopStartLock[0].unlock("setCamStreamEnable");
 		}
 
     }
@@ -5093,8 +5105,7 @@ public class CresStreamCtrl extends Service {
     
     void handleHdmiInputHpdEvent(int hpdId)
     {
-    	hdmiLock.lock();
-    	Log.d(TAG, "HDMI lock: locked");
+    	hdmiLock.lock("handleHdmiInputHpdEvent");
     	try
     	{
     		if (hdmiInputDriverPresent)
@@ -5110,15 +5121,13 @@ public class CresStreamCtrl extends Service {
     	}
     	finally
     	{
-    		hdmiLock.unlock();
-    		Log.d(TAG, "HDMI lock: unlocked");
+    		hdmiLock.unlock("handleHdmiInputHpdEvent");
     	}
     }
     
     void handleHdmiInputResolutionEvent(int resolutionId)
     {
-    	hdmiLock.lock();
-    	Log.d(TAG, "HDMI lock: locked");
+    	hdmiLock.lock("handleHdmiInputResolutionEvent");
     	try
     	{
     		if (hdmiInputDriverPresent)
@@ -5168,8 +5177,7 @@ public class CresStreamCtrl extends Service {
     	}
     	finally
     	{
-    		hdmiLock.unlock();
-    		Log.d(TAG, "HDMI lock: unlocked");
+    		hdmiLock.unlock("handleHdmiInputResolutionEvent");
     	}
     }
    
