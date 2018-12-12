@@ -100,8 +100,7 @@ public class SurfaceManager implements SurfaceHolder.Callback {
 	    		Boolean initialized = viewInitializedMap.get(sv);
 	    		if (initialized != null && !initialized)
 	    		{
-	    			// Commenting out the below line because it may have cause issues with SurfaceFlinger (seen in PWC customer site)
-//	    			sv.setVisibility(View.INVISIBLE);
+	    			sv.setVisibility(View.INVISIBLE);
 	    			viewInitializedMap.put(sv, true);
 					break;
 	    		}
