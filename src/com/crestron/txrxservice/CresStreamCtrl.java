@@ -4033,6 +4033,8 @@ public class CresStreamCtrl extends Service {
     					if (mIsHdmiOutExternal || Boolean.parseBoolean(hdmiOutput.getSyncStatus()))
     					{
     						Log.i(TAG, "launching AirMedia");
+    						// Force layer tag to be video to avoid any chance of the wrong type of surface (RGB888) from preview
+    						setSurfaceViewTag(sessId, "VideoLayer");
     						mAirMedia.show(sessId, x, y, width, height);
     						if (!updateStreamStateOnFirstFrame[sessId])
     							sendAirMediaStartedState(sessId);
