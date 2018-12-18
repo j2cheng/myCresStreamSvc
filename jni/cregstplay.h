@@ -55,6 +55,15 @@ typedef struct
 	unsigned int height;
 } CRESTWINDOW;
 
+typedef struct
+{
+	GstElement *pipeline;
+	GstBus *bus;
+	GMainLoop *loop;
+	char *pipelineString;
+	pthread_t threadID;
+} DEBUGLAUNCH;
+
 /* per-stream info */
 typedef struct _CREGSTREAM 
 {
@@ -143,6 +152,8 @@ typedef struct _CREGSTREAM
     bool set_audio;
     void *pStreamer;
     bool useSWdecoder;
+
+    DEBUGLAUNCH debug_launch;	// A structure to hold info for the debug launch pipeline
 } CREGSTREAM;
 
 /* Structure to contain all our information, so we can pass it to callbacks */

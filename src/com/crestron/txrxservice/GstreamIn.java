@@ -172,6 +172,13 @@ public class GstreamIn implements StreamInStrategy, SurfaceHolder.Callback {
     	nativeSetNewSink(enabled, sessId);
     }
     public void setFieldDebugJni(String cmd, int sessionId){
+    	// special launch command which needs a surface, for now just use id 0
+    	if (cmd.contains("LAUNCH_START"))
+    	{
+    		Surface s = streamCtl.getSurface(sessionId);
+			nativeSurfaceInit(s, sessionId);
+    	}
+    	
     	nativeSetFieldDebugJni(cmd, sessionId);
     }
     

@@ -53,6 +53,7 @@ extern int  csio_Init(int calledFromCsio);
 void csio_jni_stop(int sessionId);
 void csio_send_stats_no_bitrate (uint64_t video_packets_received, int video_packets_lost, uint64_t audio_packets_received, int audio_packets_lost);
 void LocalConvertToUpper(char *str);
+static void * debug_launch_pipeline(void *data);
 ///////////////////////////////////////////////////////////////////////////////
 
 /*
@@ -1301,7 +1302,7 @@ JNIEXPORT void JNICALL Java_com_crestron_txrxservice_GstreamIn_nativeSetFieldDeb
     int iEnable = 0;
     char *EndPtr,*CmdPtr;
     int i = 0;
-    char namestring[100];
+    char namestring[1024];
 
     const char * cmd_cstring = env->GetStringUTFChars( cmd_jstring , NULL ) ;
     if (cmd_cstring == NULL)
@@ -1760,6 +1761,62 @@ JNIEXPORT void JNICALL Java_com_crestron_txrxservice_GstreamIn_nativeSetFieldDeb
                 }
 
             }
+            else if (!strcmp(CmdPtr, "LAUNCH_START"))
+            {
+            	char * launchStr = strstr(namestring, " ");
+            	launchStr++;	// Remove preceding space
+            	int strLen = strlen(launchStr);
+
+            	// Stop previous pipeline if running
+            	if (data->debug_launch.pipeline)
+            	{
+            		CSIO_LOG(eLogLevel_debug, "Stopping previous run session, pipeline: %p", data->debug_launch.pipeline);
+            		gst_element_set_state (data->debug_launch.pipeline, GST_STATE_NULL);
+
+            		if (data->debug_launch.loop)
+            			g_main_loop_quit(data->debug_launch.loop);
+            		if (!data->debug_launch.threadID)
+            			pthread_join(data->debug_launch.threadID, NULL);
+            	}
+
+            	// Make sure variables are nulled out
+            	if (data->debug_launch.pipelineString)
+            	{
+            		data->debug_launch.pipelineString = NULL;
+            		free(data->debug_launch.pipelineString);
+            	}
+            	data->debug_launch.threadID = NULL;
+            	data->debug_launch.pipeline = NULL;
+            	data->debug_launch.loop = NULL;
+            	data->debug_launch.bus = NULL;
+
+
+            	CSIO_LOG(eLogLevel_debug, "Launching debug pipeline: %s", namestring, CmdPtr, data->debug_launch.pipelineString);
+
+            	data->debug_launch.pipelineString = (char *)malloc(sizeof(char) * strLen + 1);	// will be freed by thread
+            	strcpy(data->debug_launch.pipelineString, launchStr);
+
+            	//Kick off the new thread
+            	if (pthread_create(&(data->debug_launch.threadID), NULL, debug_launch_pipeline, (void *)data) != 0 )
+            	{
+            	    CSIO_LOG(eLogLevel_error, "Failed to create new thread for debug pipeline.");
+            	}
+            }
+            else if (!strcmp(CmdPtr, "LAUNCH_STOP"))
+            {
+				CSIO_LOG(eLogLevel_debug, "Stopping debug pipeline");
+            	if (data->debug_launch.pipeline)
+            		gst_element_set_state (data->debug_launch.pipeline, GST_STATE_NULL);
+
+            	if (data->debug_launch.loop)
+            		g_main_loop_quit(data->debug_launch.loop);
+
+            	if (data->debug_launch.threadID)
+            	{
+            		pthread_join(data->debug_launch.threadID, NULL);
+            		data->debug_launch.threadID = NULL;
+            	}
+            }
             else
             {
                 CSIO_LOG(eLogLevel_info, "Invalid command:%s\r\n",CmdPtr);
@@ -1769,6 +1826,161 @@ JNIEXPORT void JNICALL Java_com_crestron_txrxservice_GstreamIn_nativeSetFieldDeb
 
     env->ReleaseStringUTFChars(cmd_jstring, cmd_cstring);
 }
+
+static GstElement * find_android_decoder(CREGSTREAM * data)
+{
+	GstIterator *it = gst_bin_iterate_elements(GST_BIN(data->debug_launch.pipeline));
+	GValue item = G_VALUE_INIT;
+	GstElement *decoder = NULL;
+	while (gst_iterator_next(it, &item) == GST_ITERATOR_OK)
+	{
+		GstElement *elem = (GstElement *)g_value_get_object(&item);
+		gchar *elemName = gst_element_get_name(elem);
+		CSIO_LOG(eLogLevel_extraVerbose, "Found element %s", elemName);
+
+		if (strstr(elemName, "amcvideodec") != 0)
+		{
+			// found decoder, now break, currently only handle one android decoder per pipeline
+			decoder = elem;
+			g_free(elemName);
+			break;
+		}
+		g_free(elemName);
+		g_value_reset(&item);
+	}
+	g_value_unset(&item);
+	gst_iterator_free(it);
+
+	return decoder;
+}
+
+static gboolean debug_launch_bus_message (GstBus * bus, GstMessage * message, CREGSTREAM * data)
+{
+	CSIO_LOG(eLogLevel_debug,"got message %s", gst_message_type_get_name (GST_MESSAGE_TYPE (message)));
+
+	switch (GST_MESSAGE_TYPE (message)) {
+	case GST_MESSAGE_ERROR:
+	{
+		GError *err = NULL;
+		gchar *debug = NULL;
+
+		gst_message_parse_error (message, &err, &debug);
+
+		CSIO_LOG(eLogLevel_error, "Error from element %s: %s, quitting loop", GST_OBJECT_NAME (message->src), err->message);
+		CSIO_LOG(eLogLevel_debug, "Debugging info: %s", (debug) ? debug : "none");
+
+		g_error_free(err);
+		g_free(debug);
+		if (data->debug_launch.loop)
+			g_main_loop_quit(data->debug_launch.loop);
+		break;
+	}
+	case GST_MESSAGE_EOS:
+		CSIO_LOG(eLogLevel_debug, "Received EOS from source, quitting loop");
+		if (data->debug_launch.loop)
+			g_main_loop_quit(data->debug_launch.loop);
+		break;
+	case GST_MESSAGE_WARNING:
+	{
+		GError *err = NULL;
+		gchar *debug = NULL;
+
+		gst_message_parse_warning (message, &err , &debug);
+
+		if(message->src && err && err->message)
+		{
+			CSIO_LOG(eLogLevel_warning, "Warning from element %s: %s", GST_OBJECT_NAME (message->src), err->message);
+		}
+
+		CSIO_LOG(eLogLevel_debug, "Debugging info: %s", debug? debug : "none");
+
+		g_error_free(err);
+		g_free(debug);
+		break;
+	}
+	default:
+		break;
+	}
+	return TRUE;
+}
+
+static void * debug_launch_pipeline(void *vData)
+{
+	GError *error = NULL;
+
+	CREGSTREAM * data = (CREGSTREAM *)vData;
+
+	if (!data)
+	{
+		CSIO_LOG(eLogLevel_error, "Failed to launch debug pipeline, data is NULL");
+		return NULL;
+	}
+	else if (!data->debug_launch.pipelineString)
+	{
+		CSIO_LOG(eLogLevel_error, "Failed to launch debug pipeline, pipelineString is NULL");
+		return NULL;
+	}
+
+	data->debug_launch.pipeline = gst_parse_launch ((const gchar *)data->debug_launch.pipelineString, &error);
+	if (!data->debug_launch.pipeline)
+	{
+		CSIO_LOG(eLogLevel_error, "Failed to launch debug pipeline, error: %s", error->message);
+	}
+	else
+	{
+
+		// Set loop
+		data->debug_launch.loop = g_main_loop_new( data->context, FALSE );
+
+		// Setup message handler
+		data->debug_launch.bus = gst_pipeline_get_bus (GST_PIPELINE (data->debug_launch.pipeline));
+		if (data->debug_launch.bus)
+			gst_bus_add_watch (data->debug_launch.bus, (GstBusFunc) debug_launch_bus_message, data);
+
+		// Find decoder element and set the video window to it
+		GstElement *decoder = find_android_decoder(data);
+
+		// If AMC video decoder is found, we need to set surface-window on it to render properly
+		if (decoder)
+		{
+			CSIO_LOG(eLogLevel_debug, "Found AMC decoder, setting surface window %p", data->surface);
+			g_object_set(G_OBJECT(decoder), "surface-window", data->surface, NULL);
+		}
+
+		// Go to playing state
+		gst_element_set_state (data->debug_launch.pipeline, GST_STATE_PLAYING);
+
+		// Set loop to run
+		g_main_loop_run (data->debug_launch.loop);
+
+		CSIO_LOG(eLogLevel_debug, "Exited debug main loop");
+
+		if (data->debug_launch.bus)
+		{
+			gst_object_unref (data->debug_launch.bus);
+			data->debug_launch.bus = NULL;
+		}
+		if (data->debug_launch.loop)
+		{
+			g_main_loop_unref (data->debug_launch.loop);
+			data->debug_launch.loop = NULL;
+		}
+		if (data->debug_launch.pipeline)
+		{
+			gst_object_unref (data->debug_launch.pipeline);
+			data->debug_launch.pipeline = NULL;
+		}
+	}
+
+	if (data->debug_launch.pipelineString)
+	{
+		free(data->debug_launch.pipelineString);
+		data->debug_launch.pipelineString = NULL;
+	}
+	CSIO_LOG(eLogLevel_debug, "Exiting debug pipeline thread");
+	return NULL;
+}
+
 eStreamState nativeGetCurrentStreamState(jint sessionId)
 {
 	eStreamState currentStreamState;

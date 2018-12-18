@@ -2136,7 +2136,21 @@ public class CresStreamCtrl extends Service {
     
     public void setFieldDebugJni(String cmd, int sessId)
     {
+    	if (cmd.contains("LAUNCH_START"))
+    	{
+    		// Setup window needed for this debug command
+    		updateWindow(sessId);
+    		showStreamInWindow(sessId);
+            invalidateSurface();
+    	}
+    	
         streamPlay.setFieldDebugJni(cmd, sessId);
+    	
+    	if (cmd.contains("LAUNCH_STOP"))
+    	{
+    		// Destroy window setup for this debug command
+    		hideStreamInWindow(sessId);
+    	}
     }
     
     public void resetAllWindows()
