@@ -28,6 +28,7 @@
 #include <unistd.h>  // for socket close
 */
 
+#include <errno.h>
 #include <arpa/inet.h> //for inet_addr
 #include "WfdSinkConnection.h"
 
