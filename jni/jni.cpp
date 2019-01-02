@@ -47,6 +47,8 @@
 #include <cresNextCommonShare.h>
 #include "cresNextDef.h"
 #include <CresNextSerializer.h>
+
+#include "cresWifiDisplaySink/WfdCommon.h"
 ///////////////////////////////////////////////////////////////////////////////
 
 extern int  csio_Init(int calledFromCsio);
@@ -1817,6 +1819,12 @@ JNIEXPORT void JNICALL Java_com_crestron_txrxservice_GstreamIn_nativeSetFieldDeb
             		data->debug_launch.threadID = NULL;
             	}
             }
+            else if (!strcmp(CmdPtr, "WFD_FDEBUG"))
+            {
+                CSIO_LOG(eLogLevel_info, "command namestring[%s]\r\n",namestring);
+
+                WfdSinkProj_fdebug(namestring);
+            }
             else
             {
                 CSIO_LOG(eLogLevel_info, "Invalid command:%s\r\n",CmdPtr);
@@ -2067,6 +2075,9 @@ jint JNI_OnLoad(JavaVM *vm, void *reserved)
 	}
 
 	pthread_key_create (&current_jni_env, detach_current_thread);
+
+	WfdSinkProjInit();	
+
 	return JNI_VERSION_1_4;
 }
 
@@ -3946,3 +3957,44 @@ JNIEXPORT void JNICALL Java_com_crestron_txrxservice_WbsStreamIn_nativeSetLogLev
 	CSIO_LOG(eLogLevel_verbose, "%s", __FUNCTION__);
 	wbs_setLogLevel(logLevel);
 }
+/***************************** end of Kaptivo whiteboard streaming in *********************************/
+
+/***************************** start of Miracast(Wifi Display:wfd) streaming in *********************************/
+/* Init. wfd project */
+JNIEXPORT void JNICALL Java_com_crestron_txrxservice_WfdStreamIn_WFD_Init(JNIEnv *env, jobject thiz)
+{
+    CSIO_LOG(eLogLevel_verbose, "%s", __FUNCTION__);
+    WfdSinkProjInit();
+}
+JNIEXPORT void JNICALL Java_com_crestron_txrxservice_WfdStreamIn_WFD_DeInit(JNIEnv *env, jobject thiz)
+{
+    CSIO_LOG(eLogLevel_verbose, "%s", __FUNCTION__);
+    WfdSinkProjDeInit();
+}
+
+/* Start wfd connection */
+JNIEXPORT void JNICALL Java_com_crestron_txrxservice_WfdStreamIn_WFD_Start(JNIEnv *env, jobject thiz, jint windowId,jstring url_jstring,jint port)
+{
+    const char * url_cstring = env->GetStringUTFChars( url_jstring , NULL ) ;
+    if (url_cstring == NULL)
+    {
+        env->ReleaseStringUTFChars(url_jstring, url_cstring);
+        CSIO_LOG(eLogLevel_error, "url_jstring is NULL.");
+        return;
+    }
+
+    env->ReleaseStringUTFChars(url_jstring, url_cstring);
+
+    CSIO_LOG(eLogLevel_verbose, "start TCP connection source url[%s], port[%d]", url_cstring,port);
+
+    WfdSinkProjStart(windowId,url_cstring,port);
+}
+
+/* Stop/Teardown wfd connection */
+JNIEXPORT void JNICALL Java_com_crestron_txrxservice_WfdStreamIn_WFD_Stop(JNIEnv *env, jobject thiz, jint windowId)
+{
+    CSIO_LOG(eLogLevel_verbose, "%s", __FUNCTION__);
+    WfdSinkProjStop(windowId);
+}
+//TODO: get surface from app, report status back to app, resolution setting came from app
+/***************************** end of Miracast(Wifi Display:wfd) streaming in *********************************/

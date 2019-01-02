@@ -21,6 +21,9 @@ LOCAL_SRC_FILES := \
 	jni.cpp \
 	cregstplay.cpp \
 	gst_element_print_properties.cpp \
+	cresWifiDisplaySink/WfdSinkProject.cpp \
+	cresWifiDisplaySink/WfdSinkConnection.cpp \
+	cresWifiDisplaySink/WfdSinkState.cpp \
 	cresStreamOut/streamOutManager/cresStreamOutManager.cpp \
 	cresStreamOut/streamOutManager/cres_rtsp-media.cpp \
 	cresStreamOut/streamOutManager/cresStreamSnapShot.cpp \
@@ -44,8 +47,9 @@ LOCAL_SRC_FILES := \
     $(CSIO_ROOT)/url_parser/url_parser.cpp \
     $(CSIO_ROOT)/cresNextCommonShare.cpp \
     $(CSIO_ROOT)/cresNextDef.cpp \
-    $(CSIO_ROOT)/CSIOCommon.cpp
-
+    $(CSIO_ROOT)/CSIOCommon.cpp \
+    $(CSIO_ROOT)/csioCommBase.cpp
+	
 COMMON_INC_PATH := $(CRESTRON_ROOT)/Include
 UTIL_INC_PATH := $(CRESTRON_ROOT)/Utilities
 STL_INC_PATH := $(CRESTRON_ROOT)/../stlport/stlport
