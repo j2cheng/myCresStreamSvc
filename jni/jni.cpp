@@ -2384,6 +2384,7 @@ int csio_jni_CreatePipeline(GstElement **pipeline, GstElement **source, eProtoco
 		        data->element_zero = gst_element_factory_make("rtpbin", NULL);
 			    gst_bin_add(GST_BIN(data->pipeline), data->element_zero);
 
+#ifdef WIFI_DISPLAY
 			    {
 			        //Note: set mode to none --- only use RTP timestamp(default is 1 -- slave)
 			        g_object_set( G_OBJECT( data->element_zero), "buffer-mode", 0/*RTP_JITTER_BUFFER_MODE_NONE*/, NULL );
@@ -2391,6 +2392,7 @@ int csio_jni_CreatePipeline(GstElement **pipeline, GstElement **source, eProtoco
 			        int jitterbuffer_latency = 100;
 			        g_signal_connect( data->element_zero, "new-jitterbuffer", G_CALLBACK(csio_jni_callback_rtpbin_new_jitterbuffer), (gpointer)jitterbuffer_latency );
 			    }
+#endif
 
 			    data->udp_port = CSIOCnsIntf->getStreamTxRx_TSPORT(iStreamId);
 			    data->element_av[0] = gst_element_factory_make("udpsrc", NULL);
