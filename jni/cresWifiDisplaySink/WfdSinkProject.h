@@ -39,6 +39,10 @@ typedef enum _eWfdSinkProjEvents
     WFD_SINK_EVENTS_JNI_STOP,
     WFD_SINK_EVENTS_JNI_REQ_IDR,
 
+    //events from state machine --> project
+    WFD_SINK_EVENTS_RTSP_IN_SESSION_EVENT ,
+    WFD_SINK_EVENTS_RTSP_LEAVE_SESSION_EVENT,
+
     WFD_SINK_EVENTS_MAX
 }eWfdSinkProjEvents;
 

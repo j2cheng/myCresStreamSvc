@@ -4,6 +4,7 @@
 #include "WfdCommon.h"
 #include "WfdSinkProject.h"
 #include "WfdSinkConnection.h"
+#include "cregstplay.h" //need for MAX_STREAMS
 
 typedef enum _eWfd_States
 {
@@ -111,7 +112,7 @@ typedef enum _eWfd_StMachineThreadTimeStamp
     WFD_SINK_EVENTTIME_STATETHRD_MAX
 }eWfd_StMachineThreadTimeStamp;
 
-#define MAX_WFD_TCP_CONN                   4                                //up to four windows
+#define MAX_WFD_TCP_CONN                   MAX_STREAMS                      //up to four windows
 #define TOTAL_MANAGER_MASTER_FDS           (MAX_WFD_TCP_CONN + 1)           //MAX_WFD_TCP_CONN + m_pipefd
 #define MANAGER_POLL_FDS_SIG_PIPE_INDEX    (TOTAL_MANAGER_MASTER_FDS - 1)   //location of pipefd at the end of array
 
@@ -162,9 +163,11 @@ private:
     const char* getCurentSourceUrl(){ return m_SourceUrl.c_str();}
     void setCurentSourceUrl(std::string& str) { m_SourceUrl = str; }
 
-    int  getCurentSourcePort() { return m_sourcePort; }
-    void setCurentSourcePort(int port) { m_sourcePort = port; }
+    int  getCurentSourcePort() { return m_src_rtsp_port; }
+    void setCurentSourcePort(int port) { m_src_rtsp_port = port; }
 
+    int  getCurentTsPort() { return m_ts_Port; }
+    void setCurentTsPort(int port) { m_ts_Port = port; }
 public:
     const char* getConnTime(){ return m_connTime.c_str();}
 
@@ -245,7 +248,7 @@ private:
 
     int m_debugLevel;
     int m_curentState;
-    int restartFromIdleCnt,m_onTcpConnFlag,m_sourcePort;
+    int restartFromIdleCnt,m_onTcpConnFlag,m_src_rtsp_port,m_ts_Port;
 
     WfdRTSPSinkClient* pRTSPSinkClient;
     int m_seq_i,m_seq_j,m_keepAliveTimeout;

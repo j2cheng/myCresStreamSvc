@@ -367,6 +367,8 @@ static void gst_native_finalize (JNIEnv* env, jobject thiz)
 /* Set pipeline to PLAYING state */
 void gst_native_play (JNIEnv* env, jobject thiz, jint sessionId)
 {
+    return;
+
     CREGSTREAM * data = GetStreamFromCustomData(CresDataDB, sessionId);
 
     if (!data)
@@ -2384,6 +2386,14 @@ int csio_jni_CreatePipeline(GstElement **pipeline, GstElement **source, eProtoco
 		        data->element_zero = gst_element_factory_make("rtpbin", NULL);
 			    gst_bin_add(GST_BIN(data->pipeline), data->element_zero);
 
+			    {
+			        //Note: set mode to none --- only use RTP timestamp(default is 1 -- slave)
+			        g_object_set( G_OBJECT( data->element_zero), "buffer-mode", 0/*RTP_JITTER_BUFFER_MODE_NONE*/, NULL );
+
+			        int jitterbuffer_latency = 100;
+			        g_signal_connect( data->element_zero, "new-jitterbuffer", G_CALLBACK(csio_jni_callback_rtpbin_new_jitterbuffer), (gpointer)jitterbuffer_latency );
+			    }
+
 			    data->udp_port = CSIOCnsIntf->getStreamTxRx_TSPORT(iStreamId);
 			    data->element_av[0] = gst_element_factory_make("udpsrc", NULL);
 			    insert_udpsrc_probe(data,data->element_av[0],"src");
@@ -3972,8 +3982,11 @@ JNIEXPORT void JNICALL Java_com_crestron_txrxservice_WfdStreamIn_WFD_DeInit(JNIE
     WfdSinkProjDeInit();
 }
 
-/* Start wfd connection */
-JNIEXPORT void JNICALL Java_com_crestron_txrxservice_WfdStreamIn_WFD_Start(JNIEnv *env, jobject thiz, jint windowId,jstring url_jstring,jint port)
+/* Start wfd connection .
+ * Note: calling function should call gst_native_surface_init() to setup surface first.
+ *
+ * */
+JNIEXPORT void JNICALL Java_com_crestron_txrxservice_WfdStreamIn_WFD_Start(JNIEnv *env, jobject thiz, jint windowId,jstring url_jstring,jint rtsp_port)
 {
     const char * url_cstring = env->GetStringUTFChars( url_jstring , NULL ) ;
     if (url_cstring == NULL)
@@ -3985,16 +3998,73 @@ JNIEXPORT void JNICALL Java_com_crestron_txrxservice_WfdStreamIn_WFD_Start(JNIEn
 
     env->ReleaseStringUTFChars(url_jstring, url_cstring);
 
-    CSIO_LOG(eLogLevel_verbose, "start TCP connection source url[%s], port[%d]", url_cstring,port);
+    CSIO_LOG(eLogLevel_verbose, "start TCP connection source url[%s], port[%d]", url_cstring,rtsp_port);
 
-    WfdSinkProjStart(windowId,url_cstring,port);
+    /* TODO: calling csio_SetPortNumber( windowId, port, c_TSportNumber ); ???
+     *       port = CSIOCnsIntf->getStreamTxRx_TSPORT(windowId);
+     *
+     * TODO: this function should call csio_jni_stop?
+     *
+     * */
+
+    int ts_port = CSIOCnsIntf->getStreamTxRx_TSPORT(windowId);
+    WfdSinkProjStart(windowId,url_cstring,rtsp_port,ts_port);
 }
 
-/* Stop/Teardown wfd connection */
+/* Stop/Teardown wfd connection
+ *
+ * TODO: should calling function call gst_native_surface_finalize() after this?
+ * TODO: this function should call csio_jni_stop?
+ * */
 JNIEXPORT void JNICALL Java_com_crestron_txrxservice_WfdStreamIn_WFD_Stop(JNIEnv *env, jobject thiz, jint windowId)
 {
     CSIO_LOG(eLogLevel_verbose, "%s", __FUNCTION__);
     WfdSinkProjStop(windowId);
 }
 //TODO: get surface from app, report status back to app, resolution setting came from app
+
+/* called from state machine for : TCP connected/disconnected
+ *
+ * */
+void Wfd_setup_gst_pipeline (int id, int state, int ts_port)
+{
+    if(state)
+    {
+        CSIO_LOG(eLogLevel_debug, "%s enter", __FUNCTION__);
+
+        //TODO: remove the following settings if it is done already
+        csio_SetPortNumber( id, ts_port, c_TSportNumber );
+
+        CSIOCnsIntf->setStreamTxRx_SESSIONINITIATION(id, 1, SENDTOCRESSTORE_NONE);
+        csio_SetSessionInitiationMode(id,1);
+
+        CSIOCnsIntf->setStreamTxRx_TRANSPORTMODE(id, 1, SENDTOCRESSTORE_NONE);
+        csio_SetTransportMode(id,1);
+
+        //TODO: for testing only
+        //gst_native_play(NULL,NULL,id);
+        {
+            CREGSTREAM * data = GetStreamFromCustomData(CresDataDB, id);
+
+            if (!data)
+            {
+                CSIO_LOG(eLogLevel_error, "Could not obtain stream pointer for stream %d", id);
+                return;
+            }
+
+            data->isStarted = true;
+
+            if(GetInPausedState(id))
+            {
+                CSIO_LOG(eLogLevel_debug, "GetInPausedState is true, resume now");
+            }
+
+            SetInPausedState(id, 0);
+            start_streaming_cmd(id);
+        }
+
+        CSIO_LOG(eLogLevel_debug, "%s exit", __FUNCTION__);
+    }
+}
+
 /***************************** end of Miracast(Wifi Display:wfd) streaming in *********************************/

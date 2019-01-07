@@ -1591,4 +1591,36 @@ void build_http_pipeline(CREGSTREAM *data, int iStreamId)
         data->video_sink = gst_bin_get_by_interface(GST_BIN(data->pipeline), GST_TYPE_VIDEO_OVERLAY);
     }
 }
+/**
+ * \author      John Cheng
+ *
+ * \date        1/07/2019
+ *
+ * \return      void
+ *
+ * \retval      void
+ *
+ * \brief       callback when rtpbin creates rtpjitterbuffer element
+ *
+ * \param       void user_function (GstRtpBin  *rtpbin,
+ *                       GstElement *jitterbuffer,
+ *                       guint       session,
+ *                       guint       ssrc,
+ *                       gpointer    user_data)
+ *
+ *
+ */
+void csio_jni_callback_rtpbin_new_jitterbuffer(GstElement *rtpbin,GstElement *jitterbuffer,guint session,guint ssrc,gpointer data)
+{
+    if(rtpbin && jitterbuffer)
+    {
+        int latency = (int)data;
 
+        CSIO_LOG(eLogLevel_debug, "csio_jni_callback_rtpbin_new_jitterbuffer created, latency set to:%d.",latency);
+        g_object_set( G_OBJECT( jitterbuffer ), "latency", latency,  NULL );
+    }
+    else
+    {
+        CSIO_LOG(eLogLevel_debug, "csio_jni_callback_rtpbin_new_jitterbuffer: skip.");
+    }
+}

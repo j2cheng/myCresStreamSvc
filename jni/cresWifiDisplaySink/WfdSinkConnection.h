@@ -11,6 +11,7 @@
 #define DEFAULT_SEQ_NUMBER_INIT 1000
 #define KEEP_ALIVE_TIMEOUT_IN_SEC   30 //15*2 seconds
 #define DEFAULT_SOURCE_RTSP_PORT 7236  //else within 49152 to 65535
+#define DEFAULT_CLIENT_TS_PORT   4570
 
 class wfdSinkStMachineClass;
 

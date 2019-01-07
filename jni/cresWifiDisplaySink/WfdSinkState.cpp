@@ -76,6 +76,21 @@ const WFD_STRNUMPAIR wfd_state_machine_timestamp_names[] =
     {0,0}//terminate the list
 };
 
+const WFD_STRNUMPAIR Wfd_rtsp_msg_type_vs_event_names[] = {
+    {"NONE" ,           WFD_SINK_STM_TIME_TICKS_EVENT},  //Note: not used
+    {"OPTIONS",         WFD_SINK_STM_M1_RQST_RCVD_EVENT},
+    {"200 OK" ,         WFD_SINK_STM_M2_RESP_RCVD_EVENT},
+    {"GET_PARAMETER" ,  WFD_SINK_STM_M3_RQST_RCVD_EVENT},
+    {"SET_PARAMETER" ,  WFD_SINK_STM_M4_RQST_RCVD_EVENT},
+    {"SET_PARAMETER" ,  WFD_SINK_STM_M5_RQST_RCVD_EVENT},
+    {"200 OK" ,         WFD_SINK_STM_M6_RESP_RCVD_EVENT},
+    {"200 OK" ,         WFD_SINK_STM_M7_RESP_RCVD_EVENT},
+
+    {"GET_PARAMETER" ,  WFD_SINK_STM_KEEP_ALIVE_RCVD_EVENT},
+
+    {"200 OK" ,         WFD_SINK_STM_TD_RESP_RCVD_EVENT},
+};
+
 wfdSinkStMachineThread*  wfdSinkStMachineClass::m_wfdSinkStMachineThreadPtr = NULL;
 
 wfdSinkStMachineClass**  wfdSinkStMachineThread::m_wfdSinkStMachineTaskList = NULL;
@@ -91,7 +106,8 @@ m_debugLevel(eLogLevel_debug),
 m_curentState(WFD_SINK_STATES_IDLE),
 restartFromIdleCnt(0),
 m_onTcpConnFlag(0),
-m_sourcePort(DEFAULT_SOURCE_RTSP_PORT),
+m_src_rtsp_port(DEFAULT_SOURCE_RTSP_PORT),
+m_ts_Port(DEFAULT_CLIENT_TS_PORT),
 pRTSPSinkClient(NULL),
 m_seq_i(0),m_seq_j(0),
 m_keepAliveTimeout(WFD_SINK_STATETIMEOUT_DEFAULT_KEEP_ALIVE)//default 60s
@@ -172,7 +188,8 @@ void wfdSinkStMachineClass::DumpClassPara(int l)
     CSIO_LOG(eLogLevel_info, "wfdSinkStMachineClass: m_debugLevel       %d\n", m_debugLevel);
     CSIO_LOG(eLogLevel_info, "wfdSinkStMachineClass: current state      %s\n", getCurentStateName());
     CSIO_LOG(eLogLevel_info, "wfdSinkStMachineClass: CurentSourceUrl    %s\n", getCurentSourceUrl());
-    CSIO_LOG(eLogLevel_info, "wfdSinkStMachineClass: current port       %d\n", getCurentSourcePort());
+    CSIO_LOG(eLogLevel_info, "wfdSinkStMachineClass: source rtsp port   %d\n", getCurentSourcePort());
+    CSIO_LOG(eLogLevel_info, "wfdSinkStMachineClass: client ts port     %d\n", getCurentTsPort());
     CSIO_LOG(eLogLevel_info, "wfdSinkStMachineClass: Restart count      %d\n", getRestartCnt());
     CSIO_LOG(eLogLevel_info, "wfdSinkStMachineClass: keep alive timeout %d\n", m_keepAliveTimeout/1000);
 
@@ -429,7 +446,7 @@ int wfdSinkStMachineClass::idleState(csioEventQueueStruct* pEventQ)
         }
         default:
         {
-            CSIO_LOG(eLogLevel_info,   "wfdSinkStMachineClass[%d]: idleState: unprocessed events[%s].\n",
+            CSIO_LOG(m_debugLevel,   "wfdSinkStMachineClass[%d]: idleState: unprocessed events[%s].\n",
                      m_myId,
                      getThisArrayNames(Wfd_state_event_names,numOfWfdStateEventNamelList,events));
             break;
@@ -521,7 +538,7 @@ int wfdSinkStMachineClass::waitM1RequestState(csioEventQueueStruct* pEventQ)
         }
         default:
         {
-            CSIO_LOG(eLogLevel_info,   "wfdSinkStMachineClass[%d]: waitM1RequestState: unprocessed events[%s].\n",
+            CSIO_LOG(m_debugLevel,   "wfdSinkStMachineClass[%d]: waitM1RequestState: unprocessed events[%s].\n",
                      m_myId,
                      getThisArrayNames(Wfd_state_event_names,numOfWfdStateEventNamelList,events));
             break;
@@ -597,7 +614,7 @@ int wfdSinkStMachineClass::waitM2ResponseState(csioEventQueueStruct* pEventQ)
         }
         default:
         {
-            CSIO_LOG(eLogLevel_info,   "wfdSinkStMachineClass[%d]: waitM2ResponseState: unprocessed events[%s].\n",
+            CSIO_LOG(m_debugLevel,   "wfdSinkStMachineClass[%d]: waitM2ResponseState: unprocessed events[%s].\n",
                      m_myId,
                      getThisArrayNames(Wfd_state_event_names,numOfWfdStateEventNamelList,events));
             break;
@@ -661,6 +678,7 @@ int wfdSinkStMachineClass::waitM3RequestState(csioEventQueueStruct* pEventQ)
 
             if(pRTSPSinkClient)
             {
+                //TODO: use m_ts_Port
                 std::string m3rqst = "RTSP/1.0 200 OK\r\n"
                         "Content-Length: 1028\r\n"
                         "Content-Type: text/parameters\r\n"
@@ -668,7 +686,7 @@ int wfdSinkStMachineClass::waitM3RequestState(csioEventQueueStruct* pEventQ)
                         "wfd_content_protection: none\r\n"
                         "wfd_video_formats: 40 00 01 10 0001bdeb 051557ff 00000fff 10 0000 001f 11 0780 0438, 02 10 0001bdeb 155557ff 00000fff 10 0000 001f 11 0780 0438\r\n"
                         "wfd_audio_codecs: LPCM 00000003 00, AAC 0000000f 00, AC3 00000007 00\r\n"
-                        "wfd_client_rtp_ports: RTP/AVP/UDP;unicast 1991 0 mode=play\r\n"
+                        "wfd_client_rtp_ports: RTP/AVP/UDP;unicast 4570 0 mode=play\r\n"
                         "wfd_content_protection: none\r\n"
                         "wfd_display_edid: 0001 00ffffffffffff0051f38f50010000000e100104a51d10ff2f0000a057499b2610484f000000010101010101010101010101010101011a36809c70381f403020350025a510000018000000fc00496e7465726e616c204c43440a000000fd003c3c9a9a0e00000000000000000000000000000000000000000000000000000030\r\n"
                         "wfd_connector_type: 05\r\n"
@@ -706,7 +724,7 @@ int wfdSinkStMachineClass::waitM3RequestState(csioEventQueueStruct* pEventQ)
         }
         default:
         {
-            CSIO_LOG(eLogLevel_info,   "wfdSinkStMachineClass[%d]: waitM3RequestState: unprocessed events[%s].\n",
+            CSIO_LOG(m_debugLevel,   "wfdSinkStMachineClass[%d]: waitM3RequestState: unprocessed events[%s].\n",
                      m_myId,
                      getThisArrayNames(Wfd_state_event_names,numOfWfdStateEventNamelList,events));
             break;
@@ -772,6 +790,11 @@ int wfdSinkStMachineClass::waitM4RequestState(csioEventQueueStruct* pEventQ)
             {
                 std::string m4resp = "RTSP/1.0 200 OK\r\nCSeq: 3\r\n\r\n";
 
+                //TODO: if M4 response is ok, move on to the next state
+                //      else --->  E.2 RTSP M4 with error case: this should generally
+                //                 be treated as a non-recoverable failure to connect
+                //                 and followed up with a teardown trigger from the WFD Source
+
                 pRTSPSinkClient->sendDataOut((char*)m4resp.c_str(),m4resp.size());
 
                 setTimeout(WFD_SINK_STATETIMEOUT_WAIT_RQST);
@@ -794,7 +817,7 @@ int wfdSinkStMachineClass::waitM4RequestState(csioEventQueueStruct* pEventQ)
         }
         default:
         {
-            CSIO_LOG(eLogLevel_info,   "wfdSinkStMachineClass[%d]: waitM4RequestState: unprocessed events[%s].\n",
+            CSIO_LOG(m_debugLevel,   "wfdSinkStMachineClass[%d]: waitM4RequestState: unprocessed events[%s].\n",
                      m_myId,
                      getThisArrayNames(Wfd_state_event_names,numOfWfdStateEventNamelList,events));
             break;
@@ -887,7 +910,7 @@ int wfdSinkStMachineClass::waitM5RequestState(csioEventQueueStruct* pEventQ)
         }
         default:
         {
-            CSIO_LOG(eLogLevel_info,   "wfdSinkStMachineClass[%d]: waitM5RequestState: unprocessed events[%s].\n",
+            CSIO_LOG(m_debugLevel,   "wfdSinkStMachineClass[%d]: waitM5RequestState: unprocessed events[%s].\n",
                      m_myId,
                      getThisArrayNames(Wfd_state_event_names,numOfWfdStateEventNamelList,events));
             break;
@@ -975,7 +998,7 @@ int wfdSinkStMachineClass::waitM6ResponseState(csioEventQueueStruct* pEventQ)
         }
         default:
         {
-            CSIO_LOG(eLogLevel_info,   "wfdSinkStMachineClass[%d]: waitM6ResponseState: unprocessed events[%s].\n",
+            CSIO_LOG(m_debugLevel,   "wfdSinkStMachineClass[%d]: waitM6ResponseState: unprocessed events[%s].\n",
                      m_myId,
                      getThisArrayNames(Wfd_state_event_names,numOfWfdStateEventNamelList,events));
             break;
@@ -1043,6 +1066,13 @@ int wfdSinkStMachineClass::waitM7ResponseState(csioEventQueueStruct* pEventQ)
 
             nextState = WFD_SINK_STATES_KEEP_ALIVE_LOOP;
 
+            csioEventQueueStruct EvntQ;
+            memset(&EvntQ,0,sizeof(csioEventQueueStruct));
+            EvntQ.obj_id = m_myId;
+            EvntQ.event_type = WFD_SINK_EVENTS_RTSP_IN_SESSION_EVENT;
+            EvntQ.ext_obj = getCurentTsPort();
+            m_parent->sendEvent(&EvntQ);
+
             break;
         }
         case WFD_SINK_STM_START_CONN_EVENT:
@@ -1052,7 +1082,7 @@ int wfdSinkStMachineClass::waitM7ResponseState(csioEventQueueStruct* pEventQ)
         }
         default:
         {
-            CSIO_LOG(eLogLevel_info,   "wfdSinkStMachineClass[%d]: waitM7ResponseState: unprocessed events[%s].\n",
+            CSIO_LOG(m_debugLevel,   "wfdSinkStMachineClass[%d]: waitM7ResponseState: unprocessed events[%s].\n",
                      m_myId,
                      getThisArrayNames(Wfd_state_event_names,numOfWfdStateEventNamelList,events));
             break;
@@ -1119,7 +1149,7 @@ int wfdSinkStMachineClass::waitTDResponseState(csioEventQueueStruct* pEventQ)
         }
         default:
         {
-            CSIO_LOG(eLogLevel_info,   "wfdSinkStMachineClass[%d]: waitTDResponseState: unprocessed events[%s].\n",
+            CSIO_LOG(m_debugLevel,   "wfdSinkStMachineClass[%d]: waitTDResponseState: unprocessed events[%s].\n",
                      m_myId,
                      getThisArrayNames(Wfd_state_event_names,numOfWfdStateEventNamelList,events));
             break;
@@ -1225,7 +1255,7 @@ int wfdSinkStMachineClass::monitorKeepAliveState(csioEventQueueStruct* pEventQ)
         }
         default:
         {
-            CSIO_LOG(eLogLevel_info,   "wfdSinkStMachineClass[%d]: monitorKeepAliveState: unprocessed events[%s].\n",
+            CSIO_LOG(m_debugLevel,   "wfdSinkStMachineClass[%d]: monitorKeepAliveState: unprocessed events[%s].\n",
                     m_myId,getThisArrayNames(Wfd_state_event_names,numOfWfdStateEventNamelList,events));
             break;
         }
@@ -1270,21 +1300,42 @@ void wfdSinkStMachineClass::processThisSockectEvent()
 //called from processThisSockectEvent --->   readSocket()  -->processPackets
 void wfdSinkStMachineClass::processPackets(int size, char* buf)
 {
-    CSIO_LOG(eLogLevel_info, "wfdSinkStMachineClass[%d]: processPackets size[%d][%s]\n", m_myId,size,buf);
+    CSIO_LOG(m_debugLevel, "wfdSinkStMachineClass[%d]: processPackets size[%d][%s]\n", m_myId,size,buf);
+
+    CSIO_LOG(m_debugLevel, "m_curentState[%d]: pStr[%s]\n",
+            m_curentState,Wfd_rtsp_msg_type_vs_event_names[m_curentState].pStr);
 
     //TODO: call other function to get type of the message.
-    int type = m_curentState + 19;//WFD_SINK_STM_M1_RQST_RCVD_EVENT;
+    int type = 0;
 
-    //TODO: clean up, call state directly here
+    csioEventQueueStruct EvntQ;
+    memset(&EvntQ,0,sizeof(csioEventQueueStruct));
+    EvntQ.obj_id = m_myId;
+
+    //use Wfd_rtsp_msg_type_vs_event_names to look for matching events
+    char* msgTypePtr = strcasestr( buf, Wfd_rtsp_msg_type_vs_event_names[m_curentState].pStr );
+
+    if( msgTypePtr )
     {
-        csioEventQueueStruct EvntQ;
-        memset(&EvntQ,0,sizeof(csioEventQueueStruct));
-        EvntQ.obj_id = m_myId;
+        CSIO_LOG(m_debugLevel, "wfdSinkStMachineClass:processPackets: msg type[%s],event[%d]\n",
+                Wfd_rtsp_msg_type_vs_event_names[m_curentState].pStr,
+                Wfd_rtsp_msg_type_vs_event_names[m_curentState].num);
+
+        type = Wfd_rtsp_msg_type_vs_event_names[m_curentState].num;
+
+
         EvntQ.event_type = type;
         EvntQ.buf_size   = size;
         EvntQ.buffPtr    = buf;
 
         stateFunction(&EvntQ);
+    }
+    else
+    {
+        EvntQ.event_type = WFD_SINK_STM_INTERNAL_ERROR_EVENT;
+
+        stateFunction(&EvntQ);
+        CSIO_LOG(m_debugLevel, "wfdSinkStMachineClass[%d]: processPackets issue ERROR_EVENT\n", m_myId);
     }
 }
 //Note: currently this function is not used/called
@@ -1520,6 +1571,7 @@ void* wfdSinkStMachineThread::ThreadEntry()
                                 if( evntQPtr->buf_size && evntQPtr->buffPtr)
                                 {
                                     p->setCurentSourcePort(evntQPtr->ext_obj) ;
+                                    p->setCurentTsPort(evntQPtr->ext_obj2) ;
 
                                     std::string str = (char*)evntQPtr->buffPtr;
                                     p->setCurentSourceUrl(str);
@@ -1564,6 +1616,7 @@ void* wfdSinkStMachineThread::ThreadEntry()
                         {
                             wfdSinkStMachineClass* p = wfdSinkStMachineThread::m_wfdSinkStMachineTaskList[id];
                             p->setCurentSourcePort(evntQPtr->ext_obj) ;
+                            p->setCurentTsPort(evntQPtr->ext_obj2) ;
 
                             std::string str = (char*)evntQPtr->buffPtr;
                             p->setCurentSourceUrl(str);
@@ -1819,6 +1872,7 @@ void wfdSinkStMachineThread::sendEvent(csioEventQueueStruct* pEvntQ)
         evntQ.buf_size      = 0;
         evntQ.buffPtr       = NULL;
         evntQ.ext_obj       = pEvntQ->ext_obj;
+        evntQ.ext_obj2      = pEvntQ->ext_obj2;
         evntQ.voidPtr       = pEvntQ->voidPtr;
 
         CSIO_LOG(m_debugLevel, "wfdSinkStMachineThread::sendEvent: iId[%d],evnt[%d],dataSize[%d],bufP[0x%x]\n",\

@@ -35,6 +35,7 @@ const WFD_STRNUMPAIR wfd_proj_timestamp_names[] =
     {0,0}//terminate the list
 };
 
+extern void Wfd_setup_gst_pipeline (int id, int state, int port);
 
 /*************************** Global functions  ************************************/
 void* WfdSinkProjInit()
@@ -157,11 +158,11 @@ void WfdSinkProjSendEvent(int evnt, int iId, int data_size, void* bufP)
     gProjectsLock.unlock();
 }
 
-void WfdSinkProjStart(int id, const char* url, int port)
+void WfdSinkProjStart(int id, const char* url, int src_rtsp_port, int ts_port)
 {
     if(!url) return;
 
-    CSIO_LOG(gProjectDebug, "WfdSinkProjStart: enter: id[%d], url[%s], port[%d].",id,url,port);
+    CSIO_LOG(gProjectDebug, "WfdSinkProjStart: enter: id[%d], url[%s], port[%d][%d].",id,url,src_rtsp_port,ts_port);
     gProjectsLock.lock();
 
     if(gWFDSinkProjPtr)
@@ -172,7 +173,8 @@ void WfdSinkProjStart(int id, const char* url, int port)
         EvntQ.event_type = WFD_SINK_EVENTS_JNI_START;
         EvntQ.buf_size   = strlen(url);
         EvntQ.buffPtr    = (void*)url;
-        EvntQ.ext_obj    = port;
+        EvntQ.ext_obj    = src_rtsp_port;
+        EvntQ.ext_obj2   = ts_port;
 
         gWFDSinkProjPtr->sendEvent(&EvntQ);
     }
@@ -384,6 +386,7 @@ void wfdSinkProjClass::sendEvent(csioEventQueueStruct* pEvntQ)
         evntQ.buf_size      = 0;
         evntQ.buffPtr       = NULL;
         evntQ.ext_obj       = pEvntQ->ext_obj;
+        evntQ.ext_obj2      = pEvntQ->ext_obj2;
         evntQ.voidPtr       = pEvntQ->voidPtr;
 
         void* bufP = pEvntQ->buffPtr;
@@ -492,6 +495,7 @@ void* wfdSinkProjClass::ThreadEntry()
                                 EvntQ.buf_size   = evntQPtr->buf_size;
                                 EvntQ.buffPtr    = evntQPtr->buffPtr;
                                 EvntQ.ext_obj    = evntQPtr->ext_obj;
+                                EvntQ.ext_obj2   = evntQPtr->ext_obj2;
                                 wfdSinkStMachineClass::m_wfdSinkStMachineThreadPtr->sendEvent(&EvntQ);
                             }//else
 
@@ -517,6 +521,7 @@ void* wfdSinkProjClass::ThreadEntry()
                                     EvntQ.buf_size   = evntQPtr->buf_size;
                                     EvntQ.buffPtr    = evntQPtr->buffPtr;
                                     EvntQ.ext_obj    = evntQPtr->ext_obj;
+                                    EvntQ.ext_obj2   = evntQPtr->ext_obj2;
                                     EvntQ.voidPtr    = (void*)(p);
 
                                     wfdSinkStMachineClass::m_wfdSinkStMachineThreadPtr->sendEvent(&EvntQ);
@@ -607,6 +612,11 @@ void* wfdSinkProjClass::ThreadEntry()
                             wfdSinkProjTimeArray->recordEventTimeStamp(WFD_SINK_PROJ_TIMESTAMP_REQ_IDR);
                     }
 
+                    break;
+                }
+                case WFD_SINK_EVENTS_RTSP_IN_SESSION_EVENT:
+                {
+                    Wfd_setup_gst_pipeline (0, 1,evntQPtr->ext_obj);
                     break;
                 }
                 default:
@@ -722,7 +732,7 @@ void WfdSinkProj_fdebug(char *cmd_cstring)
                     int port = (int) strtol(CmdPtr, &EndPtr, 10);
 
                     CSIO_LOG(eLogLevel_info, "START source addr[%s], port[%d]",addr.c_str(),port);
-                    WfdSinkProjStart(0,addr.c_str(),port);
+                    WfdSinkProjStart(0,addr.c_str(),port,4570);
                 }
             }
         }
@@ -764,4 +774,71 @@ void WfdSinkProj_fdebug(char *cmd_cstring)
 /********** end of WfdSinkProjDebug API, used by jni.cpp *******************/
 
 
+VIDEO_RESOLUTION_RATES cea_resolution_rates[] =
+{
+    { 640, 480,60,1},
+    { 720, 480,60,1}, //p60
+    { 720, 480,60,0}, //i60
+    { 720, 576,50,1}, //p50
+    { 720, 576,50,0}, //i50
+    {1280, 720,30,1},
+    {1280, 720,60,1},
+    {1920,1080,30,1},
+    {1920,1080,60,1},//p60
+    {1920,1080,60,0},//i60
+    {1280, 720,25,1},
+    {1280, 720,50,1},
+    {1920,1080,25,1},
+    {1920,1080,50,1},//p50
+    {1920,1080,50,0},//i50
+    {1280, 720,24,0},
+    {1920,1080,24,0},
+};
 
+VIDEO_RESOLUTION_RATES vesa_resolution_rates[] =
+{
+    { 800, 600,30,1},
+    { 800, 600,60,1}, //p60
+    {1024, 768,30,0}, //i60
+    {1024, 768,60,1}, //p50
+    {1152, 864,60,0}, //i50
+    {1152, 768,30,1},
+    {1280, 768,30,1},
+    {1280, 768,60,1},
+    {1280, 800,30,1},
+    {1280, 800,60,1},
+    {1360, 768,30,1},
+    {1360, 768,60,1},
+    {1366, 768,30,1},
+    {1366, 768,60,1},
+    {1280,1024,30,1},
+    {1280,1024,60,1},
+    {1400,1050,30,1},
+    {1400,1050,60,1},
+    {1440, 900,30,1},
+    {1440, 900,60,1},
+    {1600, 900,30,1},
+    {1600, 900,60,1},
+    {1600,1200,30,1},
+    {1600,1200,60,1},
+    {1680,1024,30,1},
+    {1680,1024,60,1},
+    {1680,1050,30,1},
+    {1680,1050,60,1},
+    {1920,1200,30,1},
+};
+VIDEO_RESOLUTION_RATES hh_resolution_rates[] =
+{
+    { 800, 480,30,1},
+    { 800, 480,60,1}, //p60
+    { 854, 480,30,0}, //i60
+    { 854, 480,60,1}, //p50
+    { 864, 480,30,0}, //i50
+    { 864, 480,60,1},
+    { 640, 360,30,1},
+    { 640, 360,60,1},
+    { 960, 540,30,1},
+    { 960, 540,60,1},
+    { 848, 480,30,1},
+    { 848, 480,60,1},
+};

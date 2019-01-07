@@ -10,7 +10,6 @@
 
 #include "csioCommBase.h"
 
-
 typedef struct
 {
     const char * pStr;
@@ -19,13 +18,22 @@ typedef struct
 
 #define WFD_NUM_OF(a) (sizeof (a) / sizeof *(a))
 
+
+typedef struct VIDEO_RESOLUTION_RATES
+{
+    unsigned long HorTotalSize;
+    unsigned long VerTotalSize;
+    unsigned long rates;
+    unsigned long supported;
+} ;
+
 extern void* WfdSinkProjInit();
 extern void WfdSinkProjDeInit();
 
 extern void WfdSinkProDumpPara();
 extern void WfdSinkProj_fdebug(char *cmd_cstring);
 
-extern void WfdSinkProjStart(int id, const char* url, int port);
+extern void WfdSinkProjStart(int id, const char* url, int src_rtsp_port, int ts_port);
 extern void WfdSinkProjStop(int id);
 
 #endif /* WFDCOMMON_H_ */
