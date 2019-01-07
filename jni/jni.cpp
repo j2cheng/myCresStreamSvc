@@ -367,8 +367,6 @@ static void gst_native_finalize (JNIEnv* env, jobject thiz)
 /* Set pipeline to PLAYING state */
 void gst_native_play (JNIEnv* env, jobject thiz, jint sessionId)
 {
-    return;
-
     CREGSTREAM * data = GetStreamFromCustomData(CresDataDB, sessionId);
 
     if (!data)
