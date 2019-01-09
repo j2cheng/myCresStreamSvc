@@ -38,6 +38,7 @@ const WFD_STRNUMPAIR Wfd_state_event_names[] =
     {"WFD_SINK_STM_KEEP_ALIVE_RCVD_EVENT" , WFD_SINK_STM_KEEP_ALIVE_RCVD_EVENT},
     {"WFD_SINK_STM_INTERNAL_ERROR_EVENT",   WFD_SINK_STM_INTERNAL_ERROR_EVENT},
     {"WFD_SINK_STM_TD_RESP_RCVD_EVENT",     WFD_SINK_STM_TD_RESP_RCVD_EVENT},
+    {"WFD_SINK_STM_RCVD_TEARDOWN_EVENT",    WFD_SINK_STM_RCVD_TEARDOWN_EVENT},
 
     {"WFD_SINK_INSERT_STMACHINE_EVENT",     WFD_SINK_INSERT_STMACHINE_EVENT},
     {"WFD_SINK_REMOVE_STMACHINE_EVENT",     WFD_SINK_REMOVE_STMACHINE_EVENT},
@@ -76,6 +77,7 @@ const WFD_STRNUMPAIR wfd_state_machine_timestamp_names[] =
     {0,0}//terminate the list
 };
 
+//Note: the list must be the same index as eWfd_States (matched with m_curentState)
 const WFD_STRNUMPAIR Wfd_rtsp_msg_type_vs_event_names[] = {
     {"NONE" ,           WFD_SINK_STM_TIME_TICKS_EVENT},  //Note: not used
     {"OPTIONS",         WFD_SINK_STM_M1_RQST_RCVD_EVENT},
@@ -264,6 +266,17 @@ void wfdSinkStMachineClass::prepareForRestart()
 
     CSIO_LOG(m_debugLevel, "wfdSinkStMachineClass[%d]: prepareForRestart\n", m_myId);
 }
+
+void wfdSinkStMachineClass::sendEventToParentProj(int event)
+{
+    csioEventQueueStruct EvntQ;
+    memset(&EvntQ,0,sizeof(csioEventQueueStruct));
+    EvntQ.obj_id = m_myId;
+    EvntQ.event_type = event;
+    EvntQ.ext_obj = getCurentTsPort();
+    m_parent->sendEvent(&EvntQ);
+}
+
 //Note: this is the only place that m_curentState can be changed
 int wfdSinkStMachineClass::stateFunction(csioEventQueueStruct* pEventQ)
 {
@@ -440,6 +453,7 @@ int wfdSinkStMachineClass::idleState(csioEventQueueStruct* pEventQ)
             break;
         }
         case WFD_SINK_STM_START_TEARDOWN_EVENT:
+        case WFD_SINK_STM_RCVD_TEARDOWN_EVENT:
         {
             prepareBeforeIdle();
             break;
@@ -483,6 +497,7 @@ int wfdSinkStMachineClass::waitM1RequestState(csioEventQueueStruct* pEventQ)
         }
         case WFD_SINK_STM_INTERNAL_ERROR_EVENT:
         case WFD_SINK_STM_START_TEARDOWN_EVENT:
+        case WFD_SINK_STM_RCVD_TEARDOWN_EVENT:
         {
             //TODO: send out tear down message
             if(pRTSPSinkClient)
@@ -490,7 +505,8 @@ int wfdSinkStMachineClass::waitM1RequestState(csioEventQueueStruct* pEventQ)
                 std::string M8Tdrqst = "TEARDWON rtsp://10.254.44.15/wfd1.0/streamid=0 RTSP/1.0\r\nSession: 421764282\r\nCSeq: 3\r\n\r\n";
                 pRTSPSinkClient->sendDataOut((char*)M8Tdrqst.c_str(),M8Tdrqst.size());
 
-                if(events == WFD_SINK_STM_START_TEARDOWN_EVENT)
+                if(events == WFD_SINK_STM_START_TEARDOWN_EVENT ||
+                   events ==  WFD_SINK_STM_RCVD_TEARDOWN_EVENT)
                 {
                     resetOnTcpConnFlg();
                     setOnTcpDisconnFlg();
@@ -575,6 +591,7 @@ int wfdSinkStMachineClass::waitM2ResponseState(csioEventQueueStruct* pEventQ)
         }
         case WFD_SINK_STM_INTERNAL_ERROR_EVENT:
         case WFD_SINK_STM_START_TEARDOWN_EVENT:
+        case WFD_SINK_STM_RCVD_TEARDOWN_EVENT:
         {
             //TODO: send out tear down message
             if(pRTSPSinkClient)
@@ -582,7 +599,8 @@ int wfdSinkStMachineClass::waitM2ResponseState(csioEventQueueStruct* pEventQ)
                 std::string M8Tdrqst = "TEARDWON rtsp://10.254.44.15/wfd1.0/streamid=0 RTSP/1.0\r\nSession: 421764282\r\nCSeq: 3\r\n\r\n";
                 pRTSPSinkClient->sendDataOut((char*)M8Tdrqst.c_str(),M8Tdrqst.size());
 
-                if(events == WFD_SINK_STM_START_TEARDOWN_EVENT)
+                if(events == WFD_SINK_STM_START_TEARDOWN_EVENT ||
+                   events ==  WFD_SINK_STM_RCVD_TEARDOWN_EVENT)
                 {
                     resetOnTcpConnFlg();
                     setOnTcpDisconnFlg();
@@ -651,6 +669,7 @@ int wfdSinkStMachineClass::waitM3RequestState(csioEventQueueStruct* pEventQ)
         }
         case WFD_SINK_STM_INTERNAL_ERROR_EVENT:
         case WFD_SINK_STM_START_TEARDOWN_EVENT:
+        case WFD_SINK_STM_RCVD_TEARDOWN_EVENT:
         {
             //TODO: send out tear down message
             if(pRTSPSinkClient)
@@ -658,7 +677,8 @@ int wfdSinkStMachineClass::waitM3RequestState(csioEventQueueStruct* pEventQ)
                 std::string M8Tdrqst = "TEARDWON rtsp://10.254.44.15/wfd1.0/streamid=0 RTSP/1.0\r\nSession: 421764282\r\nCSeq: 3\r\n\r\n";
                 pRTSPSinkClient->sendDataOut((char*)M8Tdrqst.c_str(),M8Tdrqst.size());
 
-                if(events == WFD_SINK_STM_START_TEARDOWN_EVENT)
+                if(events == WFD_SINK_STM_START_TEARDOWN_EVENT ||
+                   events ==  WFD_SINK_STM_RCVD_TEARDOWN_EVENT)
                 {
                     resetOnTcpConnFlg();
                     setOnTcpDisconnFlg();
@@ -761,6 +781,7 @@ int wfdSinkStMachineClass::waitM4RequestState(csioEventQueueStruct* pEventQ)
         }
         case WFD_SINK_STM_INTERNAL_ERROR_EVENT:
         case WFD_SINK_STM_START_TEARDOWN_EVENT:
+        case WFD_SINK_STM_RCVD_TEARDOWN_EVENT:
         {
             //TODO: send out tear down message
             if(pRTSPSinkClient)
@@ -768,7 +789,8 @@ int wfdSinkStMachineClass::waitM4RequestState(csioEventQueueStruct* pEventQ)
                 std::string M8Tdrqst = "TEARDWON rtsp://10.254.44.15/wfd1.0/streamid=0 RTSP/1.0\r\nSession: 421764282\r\nCSeq: 3\r\n\r\n";
                 pRTSPSinkClient->sendDataOut((char*)M8Tdrqst.c_str(),M8Tdrqst.size());
 
-                if(events == WFD_SINK_STM_START_TEARDOWN_EVENT)
+                if(events == WFD_SINK_STM_START_TEARDOWN_EVENT ||
+                   events ==  WFD_SINK_STM_RCVD_TEARDOWN_EVENT)
                 {
                     resetOnTcpConnFlg();
                     setOnTcpDisconnFlg();
@@ -854,6 +876,7 @@ int wfdSinkStMachineClass::waitM5RequestState(csioEventQueueStruct* pEventQ)
         }
         case WFD_SINK_STM_INTERNAL_ERROR_EVENT:
         case WFD_SINK_STM_START_TEARDOWN_EVENT:
+        case WFD_SINK_STM_RCVD_TEARDOWN_EVENT:
         {
             //TODO: send out tear down message
             if(pRTSPSinkClient)
@@ -861,7 +884,8 @@ int wfdSinkStMachineClass::waitM5RequestState(csioEventQueueStruct* pEventQ)
                 std::string M8Tdrqst = "TEARDWON rtsp://10.254.44.15/wfd1.0/streamid=0 RTSP/1.0\r\nSession: 421764282\r\nCSeq: 3\r\n\r\n";
                 pRTSPSinkClient->sendDataOut((char*)M8Tdrqst.c_str(),M8Tdrqst.size());
 
-                if(events == WFD_SINK_STM_START_TEARDOWN_EVENT)
+                if(events == WFD_SINK_STM_START_TEARDOWN_EVENT ||
+                   events ==  WFD_SINK_STM_RCVD_TEARDOWN_EVENT)
                 {
                     resetOnTcpConnFlg();
                     setOnTcpDisconnFlg();
@@ -947,6 +971,7 @@ int wfdSinkStMachineClass::waitM6ResponseState(csioEventQueueStruct* pEventQ)
         }
         case WFD_SINK_STM_INTERNAL_ERROR_EVENT:
         case WFD_SINK_STM_START_TEARDOWN_EVENT:
+        case WFD_SINK_STM_RCVD_TEARDOWN_EVENT:
         {
             //TODO: send out tear down message
             if(pRTSPSinkClient)
@@ -954,7 +979,8 @@ int wfdSinkStMachineClass::waitM6ResponseState(csioEventQueueStruct* pEventQ)
                 std::string M8Tdrqst = "TEARDWON rtsp://10.254.44.15/wfd1.0/streamid=0 RTSP/1.0\r\nSession: 421764282\r\nCSeq: 3\r\n\r\n";
                 pRTSPSinkClient->sendDataOut((char*)M8Tdrqst.c_str(),M8Tdrqst.size());
 
-                if(events == WFD_SINK_STM_START_TEARDOWN_EVENT)
+                if(events == WFD_SINK_STM_START_TEARDOWN_EVENT ||
+                   events ==  WFD_SINK_STM_RCVD_TEARDOWN_EVENT)
                 {
                     resetOnTcpConnFlg();
                     setOnTcpDisconnFlg();
@@ -1035,6 +1061,7 @@ int wfdSinkStMachineClass::waitM7ResponseState(csioEventQueueStruct* pEventQ)
         }
         case WFD_SINK_STM_INTERNAL_ERROR_EVENT:
         case WFD_SINK_STM_START_TEARDOWN_EVENT:
+        case WFD_SINK_STM_RCVD_TEARDOWN_EVENT:
         {
             //TODO: send out tear down message
             if(pRTSPSinkClient)
@@ -1042,7 +1069,8 @@ int wfdSinkStMachineClass::waitM7ResponseState(csioEventQueueStruct* pEventQ)
                 std::string M8Tdrqst = "TEARDWON rtsp://10.254.44.15/wfd1.0/streamid=0 RTSP/1.0\r\nSession: 421764282\r\nCSeq: 3\r\n\r\n";
                 pRTSPSinkClient->sendDataOut((char*)M8Tdrqst.c_str(),M8Tdrqst.size());
 
-                if(events == WFD_SINK_STM_START_TEARDOWN_EVENT)
+                if(events == WFD_SINK_STM_START_TEARDOWN_EVENT ||
+                   events ==  WFD_SINK_STM_RCVD_TEARDOWN_EVENT)
                 {
                     resetOnTcpConnFlg();
                     setOnTcpDisconnFlg();
@@ -1066,12 +1094,7 @@ int wfdSinkStMachineClass::waitM7ResponseState(csioEventQueueStruct* pEventQ)
 
             nextState = WFD_SINK_STATES_KEEP_ALIVE_LOOP;
 
-            csioEventQueueStruct EvntQ;
-            memset(&EvntQ,0,sizeof(csioEventQueueStruct));
-            EvntQ.obj_id = m_myId;
-            EvntQ.event_type = WFD_SINK_EVENTS_RTSP_IN_SESSION_EVENT;
-            EvntQ.ext_obj = getCurentTsPort();
-            m_parent->sendEvent(&EvntQ);
+            sendEventToParentProj(WFD_SINK_EVENTS_RTSP_IN_SESSION_EVENT);
 
             break;
         }
@@ -1116,6 +1139,7 @@ int wfdSinkStMachineClass::waitTDResponseState(csioEventQueueStruct* pEventQ)
                 else
                     prepareBeforeIdle();
 
+                sendEventToParentProj(WFD_SINK_EVENTS_RTSP_LEAVE_SESSION_EVENT);
                 nextState = WFD_SINK_STATES_IDLE;
             }
 
@@ -1132,6 +1156,7 @@ int wfdSinkStMachineClass::waitTDResponseState(csioEventQueueStruct* pEventQ)
             else
                 prepareBeforeIdle();
 
+            sendEventToParentProj(WFD_SINK_EVENTS_RTSP_LEAVE_SESSION_EVENT);
             nextState = WFD_SINK_STATES_IDLE;
 
             break;
@@ -1142,6 +1167,7 @@ int wfdSinkStMachineClass::waitTDResponseState(csioEventQueueStruct* pEventQ)
             break;
         }
         case WFD_SINK_STM_START_TEARDOWN_EVENT:
+        case WFD_SINK_STM_RCVD_TEARDOWN_EVENT:
         {
             resetOnTcpConnFlg();
             setOnTcpDisconnFlg();
@@ -1179,6 +1205,7 @@ int wfdSinkStMachineClass::monitorKeepAliveState(csioEventQueueStruct* pEventQ)
                 //Note: go to idle without teardown
                 prepareForRestart();
 
+                sendEventToParentProj(WFD_SINK_EVENTS_RTSP_LEAVE_SESSION_EVENT);
                 nextState = WFD_SINK_STATES_IDLE;
             }
 
@@ -1224,6 +1251,8 @@ int wfdSinkStMachineClass::monitorKeepAliveState(csioEventQueueStruct* pEventQ)
             {
                 prepareForRestart();
                 CSIO_LOG(m_debugLevel,  "wfdSinkStMachineClass[%d]:pRTSPSinkClient is NULL\n",m_myId);
+
+                sendEventToParentProj(WFD_SINK_EVENTS_RTSP_LEAVE_SESSION_EVENT);
                 nextState = WFD_SINK_STATES_IDLE;
             }
             break;
@@ -1244,6 +1273,8 @@ int wfdSinkStMachineClass::monitorKeepAliveState(csioEventQueueStruct* pEventQ)
             {
                 prepareForRestart();
                 CSIO_LOG(m_debugLevel,  "wfdSinkStMachineClass[%d]:pRTSPSinkClient is NULL\n",m_myId);
+
+                sendEventToParentProj(WFD_SINK_EVENTS_RTSP_LEAVE_SESSION_EVENT);
                 nextState = WFD_SINK_STATES_IDLE;
             }
             break;
@@ -1306,38 +1337,70 @@ void wfdSinkStMachineClass::processPackets(int size, char* buf)
             m_curentState,Wfd_rtsp_msg_type_vs_event_names[m_curentState].pStr);
 
     //TODO: call other function to get type of the message.
-    int type = 0;
+    //parser(buf,(void*)this);
+}
+void wfdSinkStMachineClass::parserCallbackFun(void* pObj, void* buff)
+{
+    wfdSinkStMachineClass* p = (wfdSinkStMachineClass*)pObj;
 
-    csioEventQueueStruct EvntQ;
-    memset(&EvntQ,0,sizeof(csioEventQueueStruct));
-    EvntQ.obj_id = m_myId;
-
-    //use Wfd_rtsp_msg_type_vs_event_names to look for matching events
-    char* msgTypePtr = strcasestr( buf, Wfd_rtsp_msg_type_vs_event_names[m_curentState].pStr );
-
-    if( msgTypePtr )
+    if(p)
     {
-        CSIO_LOG(m_debugLevel, "wfdSinkStMachineClass:processPackets: msg type[%s],event[%d]\n",
-                Wfd_rtsp_msg_type_vs_event_names[m_curentState].pStr,
-                Wfd_rtsp_msg_type_vs_event_names[m_curentState].num);
+        CSIO_LOG(p->m_debugLevel, "wfdSinkStMachineClass[%d]: parserCallbackFun\n", p->m_myId);
 
-        type = Wfd_rtsp_msg_type_vs_event_names[m_curentState].num;
+        int type = 0;
+        csioEventQueueStruct EvntQ;
+        memset(&EvntQ,0,sizeof(csioEventQueueStruct));
+        EvntQ.obj_id = p->m_myId;
+
+        //use Wfd_rtsp_msg_type_vs_event_names to look for matching events
+        char* msgTypePtr = strcasestr( (char*)buff, Wfd_rtsp_msg_type_vs_event_names[p->m_curentState].pStr );
+
+        if( msgTypePtr )
+        {
+            CSIO_LOG(p->m_debugLevel, "wfdSinkStMachineClass:processPackets: msg type[%s],event[%d]\n",
+                    Wfd_rtsp_msg_type_vs_event_names[p->m_curentState].pStr,
+                    Wfd_rtsp_msg_type_vs_event_names[p->m_curentState].num);
+
+            type = Wfd_rtsp_msg_type_vs_event_names[p->m_curentState].num;
 
 
-        EvntQ.event_type = type;
-        EvntQ.buf_size   = size;
-        EvntQ.buffPtr    = buf;
+            EvntQ.event_type = type;
+            EvntQ.buf_size   = strlen((char*)buff);
+            EvntQ.buffPtr    = buff;
 
-        stateFunction(&EvntQ);
+            p->stateFunction(&EvntQ);
+        }
+        else
+        {
+            EvntQ.event_type = WFD_SINK_STM_INTERNAL_ERROR_EVENT;
+
+            /*  source can send teardown request at any time
+             *  if(isThis_SET_PARAMETER)
+             *  {
+             *      if(itHas_trigger_method)
+             *      {
+             *          if(istrigger_teardown)
+             *              EvntQ.event_type = WFD_SINK_STM_RCVD_TEARDOWN_EVENT
+             *      }
+             *  }
+             *  //else if(isThis_RESP_OK)
+             *
+             *
+             * */
+
+
+            p->stateFunction(&EvntQ);
+            CSIO_LOG(p->m_debugLevel, "wfdSinkStMachineClass[%d]: processPackets issue ERROR_EVENT\n", p->m_myId);
+        }
+
+
     }
     else
     {
-        EvntQ.event_type = WFD_SINK_STM_INTERNAL_ERROR_EVENT;
-
-        stateFunction(&EvntQ);
-        CSIO_LOG(m_debugLevel, "wfdSinkStMachineClass[%d]: processPackets issue ERROR_EVENT\n", m_myId);
+        CSIO_LOG(eLogLevel_error, "wfdSinkStMachineClass[%d]: parserCallbackFun pObj is NULL\n", p->m_myId);
     }
 }
+
 //Note: currently this function is not used/called
 //      because we only have event for state machine
 void wfdSinkStMachineClass::processThisCommandEvent()

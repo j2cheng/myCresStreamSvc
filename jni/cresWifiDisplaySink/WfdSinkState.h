@@ -46,6 +46,7 @@ typedef enum _eWfd_Events
     WFD_SINK_STM_KEEP_ALIVE_RCVD_EVENT ,
     WFD_SINK_STM_INTERNAL_ERROR_EVENT,
     WFD_SINK_STM_TD_RESP_RCVD_EVENT,
+    WFD_SINK_STM_RCVD_TEARDOWN_EVENT,
 
     //events from project --> state machine thread
     WFD_SINK_INSERT_STMACHINE_EVENT = 40,
@@ -178,6 +179,7 @@ public:
     int  getDebugLevel()          { return m_debugLevel; }
 
     void processPackets(int size, char* buf);
+    static void parserCallbackFun(void* pObj, void* buff);
 
     //note: this function can only be used by project.
     void removewfdSinkStMachineObj();
@@ -226,6 +228,7 @@ private:
     void resetSystemStatus() ;
     void prepareBeforeIdle();
     void prepareForRestart();
+    void sendEventToParentProj(int event);
 
     const char* getThisArrayNames(const WFD_STRNUMPAIR* array_names,int maxList,int mode);
 
@@ -247,7 +250,9 @@ private:
     std::string m_session;
 
     int m_debugLevel;
+public:
     int m_curentState;
+private:
     int restartFromIdleCnt,m_onTcpConnFlag,m_src_rtsp_port,m_ts_Port;
 
     WfdRTSPSinkClient* pRTSPSinkClient;

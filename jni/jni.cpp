@@ -788,6 +788,11 @@ void gst_native_stop (JNIEnv* env, jobject thiz, jint sessionId, jint stopTimeou
 	    if (data->isStarted)
 	    {
 	        data->isStarted = false;
+
+#ifdef WIFI_DISPLAY
+	        WfdSinkProjStop(sessionId);
+#endif
+
 	        csio_jni_stop((int)sessionId);
 	    }
 	    else
@@ -4062,6 +4067,41 @@ void Wfd_setup_gst_pipeline (int id, int state, int ts_port)
             SetInPausedState(id, 0);
             start_streaming_cmd(id);
         }
+
+
+        //send some status string back to java
+        {
+            jstring wfd_status_jstr;
+            JNIEnv *env = get_jni_env ();
+            jint streamId = id;
+
+            CREGSTREAM * data = GetStreamFromCustomData(CresDataDB, streamId);
+            if(!data)
+            {
+                CSIO_LOG(eLogLevel_error, "Could not obtain stream pointer for stream %d", streamId);
+
+                return ;
+            }
+
+            char *wfd_status_cstr = "wifi display client rtsp connected.\r\n";
+
+            CSIO_LOG(eLogLevel_debug,  "Sent wfd_status_cstr FB %s", wfd_status_cstr );
+
+            wfd_status_jstr = env->NewStringUTF(wfd_status_cstr);
+
+            //TODO: need java method to send some feedback
+            jmethodID send_wfd_status = env->GetMethodID((jclass)gStreamIn_javaClass_id, "sendInitiatorFbAddress", "(Ljava/lang/String;I)V");
+            if (send_wfd_status == NULL)
+                return ;
+
+            env->CallVoidMethod(CresDataDB->app, send_wfd_status, wfd_status_jstr, 0);
+            if (env->ExceptionCheck ()) {
+                CSIO_LOG(eLogLevel_error, "Failed to call Java method 'sendInitiatorAddress'");
+                env->ExceptionClear ();
+            }
+            env->DeleteLocalRef (wfd_status_jstr);
+        }
+
 
         CSIO_LOG(eLogLevel_debug, "%s exit", __FUNCTION__);
     }
