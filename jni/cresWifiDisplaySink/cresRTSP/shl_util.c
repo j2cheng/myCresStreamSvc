@@ -40,6 +40,13 @@
  * to be zero-terminated. We have wrappers which skip this by passing strlen().
  */
 
+
+
+// ***
+char * loc_stpcpy(char * dest, const char * src);
+
+
+
 int shl_ctoi(char ch, unsigned int base)
 {
 	unsigned int v;
@@ -356,7 +363,9 @@ char *shl_strjoin(const char *first, ...) {
 	va_start(args, first);
 
 	for (arg = first, p = str; arg; arg = va_arg(args, const char*))
-		p = stpcpy(p, arg);
+	   // ***
+		// p = stpcpy(p, arg);
+		p = loc_stpcpy(p, arg);
 
 	va_end(args);
 
