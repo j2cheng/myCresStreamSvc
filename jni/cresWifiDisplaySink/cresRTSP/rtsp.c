@@ -247,7 +247,8 @@ bool processCommandLine(int argc, char * argv[]);
 int readMessageFromInput(char * buff, int buffSize);
 int testCallback(RTSPPARSINGRESULTS * parsResPtr, void * appArgument);
 
-char * loc_strchrnul(const char *s, int c);
+char * loc_strchrnul(const char * s, int c);
+char * loc_stpcpy(char * dest, const char * src);
 
 int initRTSPParser(void);
 int deInitRTSPParser(void);
@@ -482,6 +483,24 @@ int cresRTSP_internalCallback(unsigned int messageType,struct rtsp_message * par
    }
 
    return(0);
+}
+
+
+// ----- clib function substitutes -----
+
+char * loc_strchrnul(const char * s, int c)
+{
+   char * retp;
+   retp = strrchr(s,c);
+   if(retp == NULL)
+      retp = s + strlen(s);
+   return(retp);
+}
+
+char * loc_stpcpy(char * dest, const char * src)
+{
+   size_t len = strlen(src);
+   return(memcpy(dest,src,len + 1) + len);
 }
 
 // ***
@@ -1175,7 +1194,15 @@ static int rtsp_message_append_header_line(struct rtsp_message *m,
 	}
 
 	h->line = t;
-	t = stpcpy(t, line);
+
+
+
+	// ***
+	// t = stpcpy(t, line);
+	t = loc_stpcpy(t, line);
+
+
+
 	*t++ = '\r';
 	*t++ = '\n';
 	*t = '\0';
@@ -1186,23 +1213,6 @@ static int rtsp_message_append_header_line(struct rtsp_message *m,
 
 	return 0;
 }
-
-
-
-// ***
-
-char * loc_strchrnul(const char *s, int c)
-{
-   char * retp;
-   retp = strrchr(s,c);
-   if(retp == NULL)
-      retp = s + strlen(s);
-   return(retp);
-}
-
-// ***
-
-
 
 static int rtsp_header_append_token(struct rtsp_header *h, const char *token)
 {
@@ -1244,10 +1254,26 @@ static int rtsp_header_serialize(struct rtsp_header *h)
 		return -ENOMEM;
 
 	h->line = t;
-	t = stpcpy(t, h->key);
+
+
+
+	// ***
+	// t = stpcpy(t, h->key);
+	t = loc_stpcpy(t, h->key);
+
+
+
 	*t++ = ':';
 	*t++ = ' ';
-	t = stpcpy(t, h->value);
+
+
+
+	// ***
+	// t = stpcpy(t, h->value);
+	t = loc_stpcpy(t, h->value);
+
+
+
 	*t++ = '\r';
 	*t++ = '\n';
 	*t = '\0';
@@ -1518,7 +1544,10 @@ static int rtsp_message_serialize_common(struct rtsp_message *m)
 
 		p = (char*)body;
 		for (i = 0; i < m->body_used; ++i)
-			p = stpcpy(p, m->body_headers[i].line);
+	      // ***
+			// p = stpcpy(p, m->body_headers[i].line);
+			p = loc_stpcpy(p, m->body_headers[i].line);
+
 
 		*p = 0;
 
@@ -1611,7 +1640,9 @@ static int rtsp_message_serialize_common(struct rtsp_message *m)
 
 	p = headers;
 	for (i = 0; i < m->header_used; ++i)
-		p = stpcpy(p, m->headers[i].line);
+	   // ***
+		// p = stpcpy(p, m->headers[i].line);
+		p = loc_stpcpy(p, m->headers[i].line);
 
 	*p = 0;
 	rawlen += p - headers;
@@ -1624,8 +1655,17 @@ static int rtsp_message_serialize_common(struct rtsp_message *m)
 		return -ENOMEM;
 
 	p = raw;
-	p = stpcpy(p, head);
-	p = stpcpy(p, headers);
+
+
+
+   // ***
+	// p = stpcpy(p, head);
+	// p = stpcpy(p, headers);
+	p = loc_stpcpy(p, head);
+	p = loc_stpcpy(p, headers);
+
+
+
 	*p++ = '\r';
 	*p++ = '\n';
 	memcpy(p, cbody, body_size);
