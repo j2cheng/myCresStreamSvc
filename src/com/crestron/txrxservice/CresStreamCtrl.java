@@ -4877,6 +4877,7 @@ public class CresStreamCtrl extends Service {
     		mAirMedia.setOrderedLock(true, "airMediaUserFeedbackUpdateRequest");
     		try {
     			mAirMedia.querySenderList(true);
+    			sendAirMediaNumberUserConnectedUpdateRequest(); // Force sending of number of user connected on update request
     		} finally {
     			mAirMedia.setOrderedLock(false, "airMediaUserFeedbackUpdateRequest");
     		}
@@ -4891,7 +4892,7 @@ public class CresStreamCtrl extends Service {
     			sendAirMediaUserFeedbacks(i, "", "", 0, false);					
     		}
     		sendAirMediaStatus(0);
-    		sendAirMediaNumberUserConnected();
+    		sendAirMediaNumberUserConnectedUpdateRequest();
     	}
     }
     
@@ -4968,6 +4969,19 @@ public class CresStreamCtrl extends Service {
         		}
         	}
 		}    	
+    }
+
+	// Force sending here since we do not know if we are out of sync with CS
+    public void sendAirMediaNumberUserConnectedUpdateRequest()
+    {
+        // If mAirMediaNumberOfUsersConnected is -1, that means we never called sendAirMediaNumberUserConnected
+		if (mAirMediaNumberOfUsersConnected == -1)
+			sendAirMediaNumberUserConnected();
+		else
+		{
+			Log.d(TAG, "Sending AIRMEDIA_NUMBER_USER_CONNECTED=" + mAirMediaNumberOfUsersConnected);
+	        sockTask.SendDataToAllClients(MiscUtils.stringFormat("AIRMEDIA_NUMBER_USER_CONNECTED=%d", mAirMediaNumberOfUsersConnected));
+		}
     }
     
     private void checkFileExistsElseCreate(String filePath)
