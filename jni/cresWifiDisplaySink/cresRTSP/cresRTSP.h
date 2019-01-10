@@ -9,6 +9,11 @@
 #include "shl_util.h"
 
 
+#ifdef __cplusplus
+extern "C"
+{
+#endif
+
 typedef struct _rtspparsingresults {
    unsigned int messageType;
    char * request_method;
@@ -153,6 +158,10 @@ struct rtsp_message {
 int initRTSPParser(void);
 int deInitRTSPParser(void);
 int parseRTSPMessage(char * message, RTSPPARSERAPP_CALLBACK callback, void * callbackArg);
+
+#ifdef __cplusplus
+}                               /* End of extern "C" */
+#endif
 
 
 
