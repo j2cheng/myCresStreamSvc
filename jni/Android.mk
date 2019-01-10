@@ -24,6 +24,11 @@ LOCAL_SRC_FILES := \
 	cresWifiDisplaySink/WfdSinkProject.cpp \
 	cresWifiDisplaySink/WfdSinkConnection.cpp \
 	cresWifiDisplaySink/WfdSinkState.cpp \
+	cresWifiDisplaySink/cresRTSP/rtsp.c \
+	cresWifiDisplaySink/cresRTSP/shl_htable.c \
+	cresWifiDisplaySink/cresRTSP/shl_log.c \
+	cresWifiDisplaySink/cresRTSP/shl_ring.c \
+	cresWifiDisplaySink/cresRTSP/shl_util.c \
 	cresStreamOut/streamOutManager/cresStreamOutManager.cpp \
 	cresStreamOut/streamOutManager/cres_rtsp-media.cpp \
 	cresStreamOut/streamOutManager/cresStreamSnapShot.cpp \
@@ -104,6 +109,8 @@ LOCAL_CFLAGS +=\
 	-I$(CRESTRON_ROOT)/CresNextSerializer/cresNextManager \
 	-I$(CRESTRON_ROOT)/CresNextSerializer/CresNextObjects/include \
 	-I$(CRESTRON_ROOT)/../rapidjson/include \
+	-std=gnu11 \
+	-Wimplicit-function-declaration \
 	-w\
 	-DANDROID_OS
 
