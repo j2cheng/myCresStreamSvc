@@ -10,12 +10,31 @@ extern "C"
 {
 #endif
 
+typedef struct _rtspheaderdata {
+   //
+   // members of this structure are valid only under specific, individual
+   // circumstances
+   //
+   int sourceRTPPort;
+   char * session;
+   char * triggerMethod;
+}RTSPHEADERDATA;
+
 typedef struct _rtspparsingresults {
    unsigned int messageType;
+   //
+   // valid with messageType RTSP_MESSAGE_REQUEST
+   //
    char * request_method;
    char * request_uri;
+   //
+   // valid with messageType RTSP_MESSAGE_REPLY
+   //
    char * reply_phrase;
    unsigned int reply_code;
+   //
+   RTSPHEADERDATA headerData;
+   //
    struct rtsp_message * parsedMessagePtr;
 }RTSPPARSINGRESULTS;
 
@@ -43,8 +62,11 @@ struct rtsp {
 
    // session control
    int rtpPort;
+   int sourceRTPPort;
+   char session[32];
+   char triggerMethod[32];
+   char transport[64];
    char presentationURL[256];
-   char trigger[32];
    unsigned int cea_res;
    unsigned int vesa_res;
    unsigned int hh_res;
@@ -178,8 +200,8 @@ struct rtsp_message {
 int initRTSPParser(int rtpPort);
 int deInitRTSPParser(void);
 int parseRTSPMessage(char * message, RTSPPARSERAPP_CALLBACK callback, void * callbackArg);
-int composeRTSPRequest(char * requestMethod, char * session,
-      RTSPPARSERAPP_COMPOSECALLBACK callback,void * callbackArg);
+int composeRTSPRequest(char * requestMethod,RTSPPARSERAPP_COMPOSECALLBACK callback,
+      void * callbackArg);
 int composeRTSPResponse(RTSPPARSINGRESULTS * requestParsingResultsPtr,
       int responseStatus, RTSPPARSERAPP_COMPOSECALLBACK callback, void * callbackArg);
 

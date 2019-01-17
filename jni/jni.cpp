@@ -1824,12 +1824,14 @@ JNIEXPORT void JNICALL Java_com_crestron_txrxservice_GstreamIn_nativeSetFieldDeb
             		data->debug_launch.threadID = NULL;
             	}
             }
+#ifdef WIFI_DISPLAY
             else if (!strcmp(CmdPtr, "WFD_FDEBUG"))
             {
                 CSIO_LOG(eLogLevel_info, "command namestring[%s]\r\n",namestring);
 
                 WfdSinkProj_fdebug(namestring);
             }
+#endif
             else
             {
                 CSIO_LOG(eLogLevel_info, "Invalid command:%s\r\n",CmdPtr);
@@ -2080,9 +2082,9 @@ jint JNI_OnLoad(JavaVM *vm, void *reserved)
 	}
 
 	pthread_key_create (&current_jni_env, detach_current_thread);
-
+#ifdef WIFI_DISPLAY
 	WfdSinkProjInit();	
-
+#endif
 	return JNI_VERSION_1_4;
 }
 
@@ -4009,7 +4011,7 @@ JNIEXPORT void JNICALL Java_com_crestron_txrxservice_WbsStreamIn_nativeSetLogLev
 	wbs_setLogLevel(logLevel);
 }
 /***************************** end of Kaptivo whiteboard streaming in *********************************/
-
+#ifdef WIFI_DISPLAY
 /***************************** start of Miracast(Wifi Display:wfd) streaming in *********************************/
 /* Init. wfd project */
 JNIEXPORT void JNICALL Java_com_crestron_txrxservice_WfdStreamIn_WFD_Init(JNIEnv *env, jobject thiz)
@@ -4142,5 +4144,5 @@ void Wfd_setup_gst_pipeline (int id, int state, int ts_port)
         CSIO_LOG(eLogLevel_debug, "%s exit", __FUNCTION__);
     }
 }
-
+#endif
 /***************************** end of Miracast(Wifi Display:wfd) streaming in *********************************/

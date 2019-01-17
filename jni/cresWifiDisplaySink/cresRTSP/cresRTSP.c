@@ -113,7 +113,6 @@ int main(int argc, char **argv)
 {
    bool        bretv;
    int         retv,msgLen;
-   char *      session;
    char        requestMethod[256];
    char        requestArg0[256];
    char        requestArg1[256];
@@ -175,7 +174,6 @@ int main(int argc, char **argv)
                   requestMethod,retv);
                return(-1);
             }
-            session = NULL;
          }
          else if(!strcmp(requestMethod,"SETUP"))
          {
@@ -185,17 +183,21 @@ int main(int argc, char **argv)
                   requestMethod,retv);
                return(-1);
             }
-            session = NULL;
          }
          else if(!strcmp(requestMethod,"PLAY"))
          {
-            if(retv < 2)
+            if(retv < 1)
             {
                printf("ERROR: method: %s, getRequestInfoFromInputData() returned %d\n",
                   requestMethod,retv);
                return(-1);
             }
-            session = requestArg0;
+            if(retv >= 2)
+            {
+               // store argument as 'session' value
+               strncpy(glRTSPPtr->session,requestArg0,sizeof(glRTSPPtr->session) - 1);
+               glRTSPPtr->session[sizeof(glRTSPPtr->session) - 1] = '\0';
+            }
          }
          else
          {
@@ -203,7 +205,7 @@ int main(int argc, char **argv)
             return(-1);
          }
 
-         retv = composeRTSPRequest(requestMethod,session,testComposeCallback,(void *)12345);
+         retv = composeRTSPRequest(requestMethod,testComposeCallback,(void *)12345);
          if(retv != 0)
          {
             printf("ERROR: composeRTSPRequest() returned %d\n",retv);
@@ -232,7 +234,7 @@ int testCallback(RTSPPARSINGRESULTS * parsingResPtr, void * appArgument)
 {
    int retv;
    unsigned int cea_res, vesa_res, hh_res;
-   const char * trigger;
+   const char * triggerMethod;
    const char * url;
    char * nu;
    struct rtsp_message * msgPtr;
@@ -536,9 +538,17 @@ int initRTSPParser(int rtpPort)
    int         retv;
 
    retv = rtsp_open(&glRTSPPtr,0);
+
    glRTSPPtr->rtpPort = rtpPort;
+
+   glRTSPPtr->sourceRTPPort = 0;
+   glRTSPPtr->session[0] = '\0';
+   glRTSPPtr->triggerMethod[0] = '\0';
+   glRTSPPtr->transport[0] = '\0';
    glRTSPPtr->presentationURL[0] = '\0';
-   glRTSPPtr->trigger[0] = '\0';
+   glRTSPPtr->cea_res = 0;
+   glRTSPPtr->vesa_res = 0;
+   glRTSPPtr->hh_res = 0;
 
    return(retv);
 }
@@ -570,7 +580,7 @@ int parseRTSPMessage(char * message, RTSPPARSERAPP_CALLBACK callback, void * cal
    return(0);
 }
 
-int composeRTSPRequest(char * requestMethod, char * session,RTSPPARSERAPP_COMPOSECALLBACK callback,
+int composeRTSPRequest(char * requestMethod,RTSPPARSERAPP_COMPOSECALLBACK callback,
       void * callbackArg)
 {
    int         retv;
@@ -603,7 +613,7 @@ int composeRTSPRequest(char * requestMethod, char * session,RTSPPARSERAPP_COMPOS
    }
    else if(!strcmp(requestMethod,"SETUP"))
    {
-      if(glRTSPPtr->presentationURL[0] = '\0')
+      if(glRTSPPtr->presentationURL[0] == '\0')
       {
          printf("WARNING: empty presentationURL string in composeRTSPRequest() with method SETUP\n");
       }
@@ -625,7 +635,7 @@ int composeRTSPRequest(char * requestMethod, char * session,RTSPPARSERAPP_COMPOS
    }
    else if(!strcmp(requestMethod,"PLAY"))
    {
-      if(glRTSPPtr->presentationURL[0] = '\0')
+      if(glRTSPPtr->presentationURL[0] == '\0')
       {
          printf("WARNING: empty presentationURL string in composeRTSPRequest() with method PLAY\n");
       }
@@ -636,14 +646,11 @@ int composeRTSPRequest(char * requestMethod, char * session,RTSPPARSERAPP_COMPOS
          printf("ERROR: rtsp_message_new_request failed in composeRTSPRequest() with error code %d\n",retv);
          return(-1);
       }
-
-      if(!session)
+      if(glRTSPPtr->session[0] == '\0')
       {
-         printf("ERROR: NULL session in composeRTSPRequest()\n");
-         return(-1);
+         printf("WARNING: empty session string in composeRTSPRequest() with method PLAY\n");
       }
-
-      retv = rtsp_message_append(rep, "<s>","Session",session);
+      retv = rtsp_message_append(rep, "<s>","Session",glRTSPPtr->session);
       if(retv < 0)
       {
          printf("ERROR: rtsp_message_append() failed in composeRTSPResponse() with error code %d\n",retv);
@@ -815,7 +822,9 @@ int cresRTSP_internalCallback(unsigned int messageType,struct rtsp_message * par
    int                  retv;
    unsigned int         cea_res, vesa_res, hh_res;
    const char *         urlPtr;
-   const char *         trigger;
+   const char *         triggerMethod = NULL;
+   const char *         session = NULL;
+   const char *         transport = NULL;
    RTSPPARSINGRESULTS   parsingResults;
 
    if(!glRTSPPtr || !parsedMessagePtr || (messageType < 0))
@@ -825,6 +834,9 @@ int cresRTSP_internalCallback(unsigned int messageType,struct rtsp_message * par
    switch(messageType)
    {
       case RTSP_MESSAGE_REQUEST:
+         if(!request_method)
+            return(-1);
+
          if(!strcmp(request_method,"SET_PARAMETER"))
          {
             retv = rtsp_message_read(parsedMessagePtr, "{<s>}", "wfd_presentation_URL", &urlPtr);
@@ -851,15 +863,34 @@ int cresRTSP_internalCallback(unsigned int messageType,struct rtsp_message * par
             // !!! must handle audio_codecs headers !!!
 
 
-            retv = rtsp_message_read(parsedMessagePtr, "{<s>}", "wfd_trigger_method", &trigger);
+            retv = rtsp_message_read(parsedMessagePtr, "{<s>}", "wfd_trigger_method", &triggerMethod);
             if (retv >= 0)
             {
-               strncpy(glRTSPPtr->trigger,trigger,sizeof(glRTSPPtr->trigger) - 1);
-               glRTSPPtr->trigger[sizeof(glRTSPPtr->trigger) - 1] = '\0';
+               strncpy(glRTSPPtr->triggerMethod,triggerMethod,sizeof(glRTSPPtr->triggerMethod) - 1);
+               glRTSPPtr->triggerMethod[sizeof(glRTSPPtr->triggerMethod) - 1] = '\0';
             }
          }
          break;
       case RTSP_MESSAGE_REPLY:
+
+         //
+         // for this header data retrieval mechanism to be more precise, these operations
+         // would need to be qualified with the request_method of the request to which
+         // this response corresponds
+         // 
+
+         retv = rtsp_message_read(parsedMessagePtr, "<s>", "Session", &session);
+         if (retv >= 0)
+            {
+               strncpy(glRTSPPtr->session,session,sizeof(glRTSPPtr->session) - 1);
+               glRTSPPtr->session[sizeof(glRTSPPtr->session) - 1] = '\0';
+            }
+         retv = rtsp_message_read(parsedMessagePtr, "<s>", "Transport", &transport);
+         if (retv >= 0)
+            {
+               strncpy(glRTSPPtr->transport,transport,sizeof(glRTSPPtr->transport) - 1);
+               glRTSPPtr->transport[sizeof(glRTSPPtr->transport) - 1] = '\0';
+            }
          break;
       default:
          break;
@@ -873,6 +904,24 @@ int cresRTSP_internalCallback(unsigned int messageType,struct rtsp_message * par
       parsingResults.reply_phrase      = reply_phrase;
       parsingResults.reply_code        = reply_code;
       parsingResults.parsedMessagePtr  = parsedMessagePtr;
+
+      if(session)
+         {
+         parsingResults.headerData.session = glRTSPPtr->session;
+         printf("INFO: cresRTSP_internalCallback(() - session = %s\n",
+            parsingResults.headerData.session);
+         }
+      else parsingResults.headerData.session = NULL;
+      if(triggerMethod)
+         {
+         parsingResults.headerData.triggerMethod = glRTSPPtr->triggerMethod;
+         printf("INFO: cresRTSP_internalCallback(() - triggerMethod = %s\n",
+            parsingResults.headerData.triggerMethod);
+         }
+      else parsingResults.headerData.triggerMethod = NULL;
+
+      if(transport)
+         printf("INFO: cresRTSP_internalCallback(() - transport = %s\n",transport);
 
       retv = glRTSPPtr->crestCallback(&parsingResults,glRTSPPtr->crestCallbackArg);
    }
