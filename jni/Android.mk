@@ -24,11 +24,8 @@ LOCAL_SRC_FILES := \
 	cresWifiDisplaySink/WfdSinkProject.cpp \
 	cresWifiDisplaySink/WfdSinkConnection.cpp \
 	cresWifiDisplaySink/WfdSinkState.cpp \
-	cresWifiDisplaySink/cresRTSP/rtsp.c \
-	cresWifiDisplaySink/cresRTSP/shl_htable.c \
-	cresWifiDisplaySink/cresRTSP/shl_log.c \
-	cresWifiDisplaySink/cresRTSP/shl_ring.c \
-	cresWifiDisplaySink/cresRTSP/shl_util.c \
+	cresWifiDisplaySink/cresRTSP/cresRTSP.c \
+	cresWifiDisplaySink/cresRTSP/cresRTSPUtils.c \
 	cresStreamOut/streamOutManager/cresStreamOutManager.cpp \
 	cresStreamOut/streamOutManager/cres_rtsp-media.cpp \
 	cresStreamOut/streamOutManager/cresStreamSnapShot.cpp \

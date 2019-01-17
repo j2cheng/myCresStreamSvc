@@ -1,12 +1,8 @@
 #ifndef CRESRTSP_H
 #define CRESRTSP_H
 
-#include "rtsp.h"
-#include "shl_dlist.h"
-#include "shl_htable.h"
-#include "shl_macro.h"
-#include "shl_ring.h"
-#include "shl_util.h"
+#include "coreRTSP.h"
+#include "cresRTSPUtils.h"
 
 
 #ifdef __cplusplus
@@ -23,13 +19,37 @@ typedef struct _rtspparsingresults {
    struct rtsp_message * parsedMessagePtr;
 }RTSPPARSINGRESULTS;
 
+typedef struct _rtspcomposingresults {
+   unsigned int messageType;
+   char * request_method;
+   char * request_uri;
+   char * reply_phrase;
+   unsigned int reply_code;
+   char  * composedMessagePtr;
+}RTSPCOMPOSINGRESULTS;
+
 typedef int (* RTSPPARSERAPP_CALLBACK)(RTSPPARSINGRESULTS * parsingResPtr, void * appArgument);
+typedef int (* RTSPPARSERAPP_COMPOSECALLBACK)(RTSPCOMPOSINGRESULTS * composingResPtr, void * appArgument);
 
 
 struct rtsp {
 
-   RTSPPARSERAPP_CALLBACK  crestCallback;
-   void *   crestCallbackArg;
+   RTSPPARSERAPP_CALLBACK crestCallback;
+   void * crestCallbackArg;
+   RTSPPARSERAPP_COMPOSECALLBACK crestComposeCallback;
+   void * crestComposeCallbackArg;
+
+
+
+   // session control
+   int rtpPort;
+   char presentationURL[256];
+   char trigger[32];
+   unsigned int cea_res;
+   unsigned int vesa_res;
+   unsigned int hh_res;
+
+
 
 	unsigned long ref;
 	uint64_t cookies;
@@ -155,9 +175,13 @@ struct rtsp_message {
 };
 
 
-int initRTSPParser(void);
+int initRTSPParser(int rtpPort);
 int deInitRTSPParser(void);
 int parseRTSPMessage(char * message, RTSPPARSERAPP_CALLBACK callback, void * callbackArg);
+int composeRTSPRequest(char * requestMethod, char * session,
+      RTSPPARSERAPP_COMPOSECALLBACK callback,void * callbackArg);
+int composeRTSPResponse(RTSPPARSINGRESULTS * requestParsingResultsPtr,
+      int responseStatus, RTSPPARSERAPP_COMPOSECALLBACK callback, void * callbackArg);
 
 #ifdef __cplusplus
 }                               /* End of extern "C" */

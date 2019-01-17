@@ -1624,3 +1624,59 @@ void csio_jni_callback_rtpbin_new_jitterbuffer(GstElement *rtpbin,GstElement *ji
         CSIO_LOG(eLogLevel_debug, "csio_jni_callback_rtpbin_new_jitterbuffer: skip.");
     }
 }
+/**
+ * \author      John Cheng
+ *
+ * \date        1/07/2019
+ *
+ * \return      void
+ *
+ * \retval      void
+ *
+ * \brief       callback when rtpbin creates decoder element
+ *
+ * \param       GstElement* user_function (GstRtpBin  *rtpbin,
+ *                       guint      session,
+ *                       gpointer    user_data)
+ *
+ *
+ */
+GstElement* csio_jni_callback_rtpbin_new_rtp_decoder(GstElement *rtpbin,guint session,gpointer data)
+{
+    if(rtpbin)
+    {
+        CSIO_LOG(eLogLevel_debug, "csio_jni_callback_rtpbin_new_rtp_decoder created.");
+
+        //Note: insert dtlsdec without key seems also works.
+        GstElement * rtp_dec = gst_element_factory_make("dtlsdec", NULL);
+
+        CSIO_LOG(eLogLevel_debug, "csio_jni_callback_rtpbin_new_rtp_decoder created[%s].",gst_element_get_name(rtp_dec));
+
+        //TODO: dtlsdec has a property : decoder-key that is read only( GstCaps *   decoder-key     Read)
+        if(rtp_dec)
+        {
+            GstCaps * cap_key = NULL;
+
+            g_object_get (G_OBJECT (rtp_dec), "decoder-key", &cap_key, NULL);
+
+            if(cap_key)
+            {
+                gchar * capstring = gst_caps_to_string(cap_key);
+                if(capstring)
+                    CSIO_LOG(eLogLevel_debug, "dtlsdec: get property decoder-key: capstring[%s]\n",capstring);
+                else
+                    CSIO_LOG(eLogLevel_debug, "dtlsdec: get property decoder-key: capstringis null\n");
+            }
+            else
+            {
+                CSIO_LOG(eLogLevel_debug, "dtlsdec: get property: caps is null\n");
+            }
+        }
+
+        return rtp_dec;
+    }
+
+    CSIO_LOG(eLogLevel_error, "csio_jni_callback_rtpbin_new_rtp_decoder: ERROR, this will cause pipeline stop working!!!");
+
+    return NULL;
+}

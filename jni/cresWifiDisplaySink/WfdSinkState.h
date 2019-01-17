@@ -6,6 +6,8 @@
 #include "WfdSinkConnection.h"
 #include "cregstplay.h" //need for MAX_STREAMS
 
+#include "cresRTSP/cresRTSP.h"
+
 typedef enum _eWfd_States
 {
     WFD_SINK_STATES_IDLE,
@@ -87,6 +89,13 @@ typedef enum _eWfd_timeStamp
 
     WFD_SINK_EVENTTIME_MAX
 }eWfd_timeStamp;
+
+typedef enum _eWfd_trigger_methods
+{
+    WFD_SINK_TRIGGER_METHOD_SETUP,
+    WFD_SINK_TRIGGER_METHOD_PLAY,
+    WFD_SINK_TRIGGER_METHOD_TEARDOWN,
+}eWfd_trigger_methods;
 
 /*** used by state machine thread****/
 //Note: STATETHRD_SLEEP is a bit fast than STATETHRD_TICK_TO
@@ -179,7 +188,10 @@ public:
     int  getDebugLevel()          { return m_debugLevel; }
 
     void processPackets(int size, char* buf);
-    static void parserCallbackFun(void* pObj, void* buff);
+
+    static int parserCallbackFun(RTSPPARSINGRESULTS * parsResPtr, void * appArgument);
+    static int parserComposeRespCallback(RTSPCOMPOSINGRESULTS * composingResPtr, void * appArgument);
+    static int parserComposeRequestCallback(RTSPCOMPOSINGRESULTS * composingResPtr, void * appArgument);
 
     //note: this function can only be used by project.
     void removewfdSinkStMachineObj();
@@ -247,10 +259,10 @@ private:
 
     std::string m_SourceUrl;
     std::string m_connTime;
-    std::string m_session;
+public:
+    std::string m_requestString;
 
     int m_debugLevel;
-public:
     int m_curentState;
 private:
     int restartFromIdleCnt,m_onTcpConnFlag,m_src_rtsp_port,m_ts_Port;

@@ -2396,6 +2396,9 @@ int csio_jni_CreatePipeline(GstElement **pipeline, GstElement **source, eProtoco
 
 			        int jitterbuffer_latency = 100;
 			        g_signal_connect( data->element_zero, "new-jitterbuffer", G_CALLBACK(csio_jni_callback_rtpbin_new_jitterbuffer), (gpointer)jitterbuffer_latency );
+
+			        //TODO: if(dtls_encryption_is_on)
+			        //    g_signal_connect( data->element_zero, "request-rtp-decoder", G_CALLBACK(csio_jni_callback_rtpbin_new_rtp_decoder), (gpointer)0 );
 			    }
 #endif
 
@@ -2403,7 +2406,40 @@ int csio_jni_CreatePipeline(GstElement **pipeline, GstElement **source, eProtoco
 			    data->element_av[0] = gst_element_factory_make("udpsrc", NULL);
 			    insert_udpsrc_probe(data,data->element_av[0],"src");
 
-			    g_object_set(G_OBJECT(data->element_av[0]), "caps", data->caps_v_ts, NULL);
+			    /*TODO: if(dtls_encryption_is_on)
+			    {
+                                //TODO: this will inset key like : 3031323334.....???
+                                char key[] = "012345678901234567890123456789012345678901234567890123456789";
+                                int KEY_SIZE = sizeof(key);
+                                GstBuffer *buf = gst_buffer_new_wrapped (key, KEY_SIZE);
+
+                                GstCaps* caps_dtls_ts = gst_caps_new_simple(
+                                        "application/x-srtp",
+                                        "media",         G_TYPE_STRING, "video",
+                                        "clock-rate",    G_TYPE_INT,     90000,
+                                        "encoding-name", G_TYPE_STRING, "MP2T",
+                                        "payload",       G_TYPE_INT,     33,
+                                        "srtp-key",      GST_TYPE_BUFFER,buf,
+                                        NULL );
+
+                                GstCaps* caps_dtls_ts = gst_caps_from_string("application/x-srtp, \
+                                              media=(string)video,\
+                                              clock-rate=(int)90000,\
+                                              encoding-name=(string)MP2T,\
+                                              payload=(int)33, \
+                                              ssrc=(uint)1356955624, \
+                                              srtp-key=(buffer)012345678901234567890123456789012345678901234567890123456789, \
+                                              srtp-cipher=(string)aes-128-icm, \
+                                              srtp-auth=(string)hmac-sha1-80, \
+                                              srtcp-cipher=(string)aes-128-icm, \
+                                              srtcp-auth=(string)hmac-sha1-80");
+
+                                g_object_set(G_OBJECT(data->element_av[0]), "caps", caps_dtls_ts, NULL);
+                                gst_caps_unref (caps_dtls_ts);
+                            }
+                            else g_object_set(G_OBJECT(data->element_av[0]), "caps", data->caps_v_ts, NULL);*/
+                
+                g_object_set(G_OBJECT(data->element_av[0]), "caps", data->caps_v_ts, NULL);
 			    g_object_set(G_OBJECT(data->element_av[0]), "port", data->udp_port, NULL);
 			    gst_bin_add(GST_BIN(data->pipeline), data->element_av[0]);
 			    int ret = gst_element_link(data->element_av[0], data->element_zero);

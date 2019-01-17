@@ -1,22 +1,3 @@
-/*
- * MiracleCast - Wifi-Display/Miracast Implementation
- *
- * Copyright (c) 2013-2014 David Herrmann <dh.herrmann@gmail.com>
- *
- * MiracleCast is free software; you can redistribute it and/or modify it
- * under the terms of the GNU Lesser General Public License as published by
- * the Free Software Foundation; either version 2.1 of the License, or
- * (at your option) any later version.
- *
- * MiracleCast is distributed in the hope that it will be useful, but
- * WITHOUT ANY WARRANTY; without even the implied warranty of
- * MERCHANTABILITY or FITNESS FOR A PARTICULAR PURPOSE. See the GNU
- * Lesser General Public License for more details.
- *
- * You should have received a copy of the GNU Lesser General Public License
- * along with MiracleCast; If not, see <http://www.gnu.org/licenses/>.
- */
-
 
 /*
    To do:
@@ -34,6 +15,7 @@
 #include <stdbool.h>
 #include <stdio.h>
 #include <stdlib.h>
+#include <ctype.h>
 #include <string.h>
 #include <sys/socket.h>
 #include <sys/time.h>
@@ -72,45 +54,70 @@ static int rtsp_incoming_message(struct rtsp_message *m);
 
 static int rtsp_parse_data(struct rtsp *bus,const char *buf,size_t len);
 
+#define check_and_response_option(option, response) \
+   if (check_rtsp_option(orgMsg, option)) { \
+      char option_response[512]; \
+      sprintf(option_response, "%s: %s", option, response); \
+      retv = rtsp_message_append(rep, "{&}", option_response); \
+      if (retv < 0) {\
+         printf("ERROR: rtsp_message_append() failed in check_and_response_option() with error code %d\n",retv); \
+         return(retv); \
+      } \
+   }
+
+bool check_rtsp_option(struct rtsp_message *m, char *option);
+
 int cresRTSP_internalCallback(unsigned int messageType,struct rtsp_message * parsedMessagePtr,
+      char * request_method,char * request_uri,char * reply_phrase,unsigned int reply_code);
+int cresRTSP_internalComposeCallback(unsigned int messageType,char * composedMessagePtr,
       char * request_method,char * request_uri,char * reply_phrase,unsigned int reply_code);
 char * loc_strchrnul(const char * s, int c);
 char * loc_stpcpy(char * dest, const char * src);
 
 bool processCommandLine(int argc, char * argv[]);
-int readMessageFromInput(char * buff, int buffSize);
+int readDataFromInput(char * buff, int buffSize);
+int getRequestInfoFromInputData(char * buff, int buffSize, char * reqMethodBuff,
+      int reqMethodBuffSize, char * reqArg0Buff, int reqArg0BuffSize,
+      char * reqArg1Buff,int reqArg1BuffSize);
+int splitStrOnWS(char * strStart, char ** tokenArr, int tokenArrSize);
+const char * findCharRun(const char * strStart, const char * strEnd, int invertCheck);
+int spaceCheck(char chr, int invertCheck);
+int getLineFromFile(char * buff, int size, int fileHd, int expectCRLF);
 int testCallback(RTSPPARSINGRESULTS * parsResPtr, void * appArgument);
+int testComposeCallback(RTSPCOMPOSINGRESULTS * composingResPtr, void * appArgument);
 
 
-#ifdef BUILD_TEST_APP
-char           glCmdChar = '\0';
-char           glCmdBuff[4096];
-#endif
 struct rtsp *  glRTSPPtr = NULL;
 
-char *         g_cmdLineHelpStr =
-    {
-    "\n"
-    "Usage:                                                                 \n"
-    "   cresrtsp -c <command>                                               \n"
-    "      command:                                                         \n"
-    "         p   - parse input as RTSP request/response message            \n"
-    "         c   - compose RTSP request message using input as method name \n"
-    "                                                                       \n"
-    "   or                                                                  \n"
-    "                                                                       \n"
-    "   cnsTest -h                                                          \n"
-    "      - print this help info                                           \n"
-    "\n"
-    };
-
 
 #ifdef BUILD_TEST_APP
+
+char           glCmdChar = '\0';
+char *         g_cmdLineHelpStr =
+   {
+   "\n"
+   "Usage:                                                                \n"
+   "   cresrtsp -c <command>                                              \n"
+   "      command:                                                        \n"
+   "         p   - parse input as RTSP request/response message           \n"
+   "         c   - compose RTSP request message using info from input     \n"
+   "                                                                      \n"
+   "   or                                                                 \n"
+   "                                                                      \n"
+   "   cnsTest -h                                                         \n"
+   "      - print this help info                                          \n"
+   "\n"
+   };
 
 int main(int argc, char **argv)
 {
-   bool bretv;
-   int retv,msgLen;
+   bool        bretv;
+   int         retv,msgLen;
+   char *      session;
+   char        requestMethod[256];
+   char        requestArg0[256];
+   char        requestArg1[256];
+   char        locBuff[4096];
 
    bretv = processCommandLine(argc,argv);
    if(!bretv)
@@ -118,70 +125,191 @@ int main(int argc, char **argv)
 
    printf("\nINFO: Will execute command <%c>\n",glCmdChar);
 
-   msgLen = readMessageFromInput(glCmdBuff,sizeof(glCmdBuff));
 
-   if(msgLen >= 0)
+
+   // !!! needs to come from the sys_params/jni_interface !!!
+   int rtpPort = 4570;
+
+
+
+   retv = initRTSPParser(rtpPort);
+   if(retv != 0)
    {
-      printf("INFO: Read from stdin a message of %d characters:\n\n",msgLen);
-      printf("%s\n",glCmdBuff);
-      printf("\n");
-
-      retv = initRTSPParser();
-      if(retv != 0)
-      {
-         printf("ERROR: initRTSPParser() returned %d\n",retv);
-	      return(-1);
-      }
-
-      retv = parseRTSPMessage(glCmdBuff,testCallback,(void *)12345);
-      if(retv != 0)
-      {
-         printf("ERROR: parseRTSPMessage() returned %d\n",retv);
-         return(-1);
-      }
-
-      retv = deInitRTSPParser();
-      if(retv != 0)
-      {
-         printf("ERROR: deInitRTSPParser() returned %d\n",retv);
-	      return(-1);
-      }
+      printf("ERROR: initRTSPParser() returned %d\n",retv);
+	   return(-1);
    }
-   else  printf("ERROR: Failed to read message from stdin\n");
+
+   switch(glCmdChar)
+   {
+      case 'p':
+         msgLen = readDataFromInput(locBuff,sizeof(locBuff));
+         if(msgLen < 0)
+         {
+            printf("ERROR: Failed to read input data from stdin\n");
+	         return(-1);
+         }
+
+         printf("INFO: Read from stdin a message of %d characters:\n\n",msgLen);
+         printf("%s\n",locBuff);
+         printf("\n");
+         
+         retv = parseRTSPMessage(locBuff,testCallback,(void *)12345);
+         if(retv != 0)
+         {
+            printf("ERROR: parseRTSPMessage() returned %d\n",retv);
+            return(-1);
+         }
+
+         break;
+      case 'c':
+         requestMethod[0] = '\0';
+         retv = getRequestInfoFromInputData(locBuff,sizeof(locBuff),requestMethod,
+            sizeof(requestMethod),requestArg0,sizeof(requestArg0),requestArg1,
+            sizeof(requestArg1));
+         if(!strcmp(requestMethod,"OPTIONS"))
+         {
+            // no arguments
+            if(retv < 1)
+            {
+               printf("ERROR: method: %s, getRequestInfoFromInputData() returned %d\n",
+                  requestMethod,retv);
+               return(-1);
+            }
+            session = NULL;
+         }
+         else if(!strcmp(requestMethod,"SETUP"))
+         {
+            if(retv < 2)
+            {
+               printf("ERROR: method: %s, getRequestInfoFromInputData() returned %d\n",
+                  requestMethod,retv);
+               return(-1);
+            }
+            session = NULL;
+         }
+         else if(!strcmp(requestMethod,"PLAY"))
+         {
+            if(retv < 2)
+            {
+               printf("ERROR: method: %s, getRequestInfoFromInputData() returned %d\n",
+                  requestMethod,retv);
+               return(-1);
+            }
+            session = requestArg0;
+         }
+         else
+         {
+            printf("ERROR: unexpected requestMethod in main(): %s\n",requestMethod);
+            return(-1);
+         }
+
+         retv = composeRTSPRequest(requestMethod,session,testComposeCallback,(void *)12345);
+         if(retv != 0)
+         {
+            printf("ERROR: composeRTSPRequest() returned %d\n",retv);
+            return(-1);
+         }
+
+         break;
+      default:
+         printf("ERROR: unexpected command %c detected in main\n",glCmdChar);
+         return(-1);
+   }
+
+   retv = deInitRTSPParser();
+   if(retv != 0)
+   {
+      printf("ERROR: deInitRTSPParser() returned %d\n",retv);
+      return(-1);
+   }
 
    printf("INFO: all done !\n");
 
 	return(0);
 }
 
-int testCallback(RTSPPARSINGRESULTS * parsResPtr, void * appArgument)
+int testCallback(RTSPPARSINGRESULTS * parsingResPtr, void * appArgument)
 {
-   if(!parsResPtr || !parsResPtr->parsedMessagePtr)
+   int retv;
+   unsigned int cea_res, vesa_res, hh_res;
+   const char * trigger;
+   const char * url;
+   char * nu;
+   struct rtsp_message * msgPtr;
+	struct rtsp * rtspSession;
+
+   if(!parsingResPtr || !parsingResPtr->parsedMessagePtr)
       return(-1);
    
-   switch(parsResPtr->messageType)
+   switch(parsingResPtr->messageType)
    {
       case RTSP_MESSAGE_REQUEST:
          printf("\nINFO: testCallback() - received parsed request\n");
 
-         if(parsResPtr->request_method)
-            printf("INFO: request_method: %s\n",parsResPtr->request_method);
-         if(parsResPtr->request_uri)
-            printf("INFO: request_uri: %s\n",parsResPtr->request_uri);
-         printf("INFO: number of headers: %d\n",parsResPtr->parsedMessagePtr->header_used);
+         if(parsingResPtr->request_method)
+            printf("INFO: request_method: %s\n",parsingResPtr->request_method);
+         if(parsingResPtr->request_uri)
+            printf("INFO: request_uri: %s\n",parsingResPtr->request_uri);
+         printf("INFO: number of headers: %d\n",parsingResPtr->parsedMessagePtr->header_used);
+
+         //
+         // session control logic - JUST an example
+         //
+         if(!strcmp(parsingResPtr->request_method,"SET_PARAMETER"))
+         {
+            msgPtr = parsingResPtr->parsedMessagePtr;
+	         rtspSession = msgPtr->bus;
+	         if(!rtspSession)
+            {
+               printf("ERROR: NULL rtspSession in testCallback()\n");
+               return(-1);
+            }
+         }
+
+         retv = composeRTSPResponse(parsingResPtr,RTSP_CODE_OK,testComposeCallback,(void *)22222);
+         if(retv != 0)
+         {
+            printf("ERROR: composeRTSPResponse() returned %d\n",retv);
+            return(-1);
+         }
 
          break;
       case RTSP_MESSAGE_REPLY:
          printf("\nINFO: testCallback() - received parsed response\n");
 
-         if(parsResPtr->reply_phrase)
-            printf("INFO: reply_phrase: %s\n",parsResPtr->reply_phrase);
-         printf("INFO: reply_code: %d\n",parsResPtr->reply_code);
-         printf("INFO: number of headers: %d\n",parsResPtr->parsedMessagePtr->header_used);
+         if(parsingResPtr->reply_phrase)
+            printf("INFO: reply_phrase: %s\n",parsingResPtr->reply_phrase);
+         printf("INFO: reply_code: %d\n",parsingResPtr->reply_code);
+         printf("INFO: number of headers: %d\n",parsingResPtr->parsedMessagePtr->header_used);
 
          break;
       default:
-         printf("\nERROR: testCallback() - unexpected message type: %d\n\n",parsResPtr->messageType);
+         printf("\nERROR: testCallback() - unexpected message type: %d\n\n",parsingResPtr->messageType);
+         return(-1);
+   }
+
+   printf("\n");
+   return(0);
+}
+
+int testComposeCallback(RTSPCOMPOSINGRESULTS * composingResPtr, void * appArgument)
+{
+   if(!composingResPtr || !composingResPtr->composedMessagePtr)
+      return(-1);
+
+   switch(composingResPtr->messageType)
+   {
+      case RTSP_MESSAGE_REQUEST:
+         printf("\nINFO: testComposeCallback() - received composed request:\n%s\n",
+            composingResPtr->composedMessagePtr);
+         break;
+      case RTSP_MESSAGE_REPLY:
+         printf("\nINFO: testComposeCallback() - received composed response:\n%s\n",
+            composingResPtr->composedMessagePtr);
+         break;
+      default:
+         printf("\nERROR: testComposeCallback() - unexpected message type: %d\n\n",
+            composingResPtr->messageType);
          return(-1);
    }
 
@@ -191,53 +319,58 @@ int testCallback(RTSPPARSINGRESULTS * parsResPtr, void * appArgument)
 
 bool processCommandLine(int argc, char * argv[])
 {
-    int nn,nextarg;
-
-    if(argc > 1)
-    {
-        if(!strcmp(argv[1],"?") || !strcmp(argv[1],"/?") || !strcmp(argv[1],"/h"))
-        {
-            printf("%s\n",g_cmdLineHelpStr);
-            return false;          // will force program exit in main()
-        }
-        for(nn=1;nn<argc;nn++)
-        {
-            if(argv[nn][0] == '-')
+   int nn,nextarg;
+   
+   if(argc > 1)
+   {
+      if(!strcmp(argv[1],"?") || !strcmp(argv[1],"/?") || !strcmp(argv[1],"/h"))
+      {
+         printf("%s\n",g_cmdLineHelpStr);
+         return false;          // will force program exit in main()
+      }
+      for(nn=1;nn<argc;nn++)
+      {
+         if(argv[nn][0] == '-')
+         {
+            if((argc > (nn + 1)) && (argv[nn+1][0] != '-'))
+                  nextarg = 1;
+            else  nextarg = 0;
+            switch(argv[nn][1])
             {
-                if((argc > (nn + 1)) && (argv[nn+1][0] != '-'))
-                      nextarg = 1;
-                else  nextarg = 0;
-                switch(argv[nn][1])
-                   {
-                   case 'c':
-                       if(nextarg)
-                       {
-                           glCmdChar = argv[nn+1][0];
-                           nn++;
-                       }
-                      break;
-                   case 'h':
-                   case '?':
-                       printf("%s\n",g_cmdLineHelpStr);
-                       return false;           // will force program exit in main()
-                   case '\0':
-                       printf("WARNING: ignoring empty option\n");
-                       break;
-                   default:
-                       printf("WARNING: ignoring unsupported option %s\n",argv[nn]);
-                   }
+               case 'c':
+                  if(nextarg)
+                  {
+                     glCmdChar = argv[nn+1][0];
+                     nn++;
+                  }
+                  break;
+               case 'h':
+               case '?':
+                  printf("%s\n",g_cmdLineHelpStr);
+                  return false;           // will force program exit in main()
+               case '\0':
+                  printf("WARNING: ignoring empty option\n");
+                  break;
+               default:
+                  printf("WARNING: ignoring unsupported option %s\n",argv[nn]);
             }
-            else
-            {
-                printf("WARNING: missing '-' before option %s\n",argv[nn]);
-            }
-        }
-    }
-
-    return true;
+         }
+         else
+         {
+            printf("WARNING: missing '-' before option %s\n",argv[nn]);
+         }
+      }
+   }
+   else
+   {
+      printf("%s\n",g_cmdLineHelpStr);
+      return false;           // will force program exit in main()
+   }
+   
+   return true;
 }
 
-int readMessageFromInput(char * buff, int buffSize)
+int readDataFromInput(char * buff, int buffSize)
 {
    int         retv, nn = 0;
    char        charBuff;
@@ -248,11 +381,11 @@ int readMessageFromInput(char * buff, int buffSize)
       buff[nn] = charBuff;
       nn++;
       if(nn > (buffSize-2))
-         {
-         printf("WARNING: provided test message is too long - dropping the remainder\n");
+      {
+         printf("WARNING: provided test data is too long - dropping the remainder\n");
          buff[nn] = '\0';
          return(nn);
-         }
+      }
    }
    if(retv != 0)
    {
@@ -265,17 +398,150 @@ int readMessageFromInput(char * buff, int buffSize)
    return(nn);
 }
 
-int initRTSPParser(void)
+int getRequestInfoFromInputData(char * buff, int buffSize, char * reqMethodBuff,
+      int reqMethodBuffSize, char * reqArg0Buff, int reqArg0BuffSize,
+      char * reqArg1Buff,int reqArg1BuffSize)
 {
-   int         retv;
+   int         tokenCnt;
+   char *      tokens[64];
 
-   retv = rtsp_open(&glRTSPPtr,0);
+   int charCnt = getLineFromFile(buff, buffSize, STDIN_FILENO, 1);
+   if(charCnt > 0)
+   {
+      tokenCnt = splitStrOnWS(buff, tokens, 64);
 
-   return(retv);
+      printf("DEBUG: splitStrOnWS() returned %d\n",tokenCnt);
+
+      // *** // for testing only
+      // *** int nn;
+      // *** printf("INFO: tokens:\n");
+      // *** for(nn=0;nn<tokenCnt;nn++)
+      // *** {
+      // ***    printf("   %s\n",tokens[nn]);
+      // *** }
+
+      if(tokenCnt > 0)
+      {
+         strncpy(reqMethodBuff,tokens[0],reqMethodBuffSize - 1);
+         reqMethodBuff[reqMethodBuffSize - 1] = '\0';
+         if(tokenCnt > 1)
+         {
+            strncpy(reqArg0Buff,tokens[1],reqArg0BuffSize - 1);
+            reqArg0Buff[reqArg0BuffSize - 1] = '\0';
+            if(tokenCnt > 2)
+            {
+               strncpy(reqArg1Buff,tokens[1],reqArg1BuffSize - 1);
+               reqArg1Buff[reqArg1BuffSize - 1] = '\0';
+               return(3);
+            }
+            return(2);
+         }
+         return(1);
+      }
+      else
+      {
+         printf("ERROR: splitStrOnWS() returned %d\n",tokenCnt);
+      }
+   }
+   else
+   {
+      printf("ERROR: getLineFromFile() returned %d\n",charCnt);
+   }
+
+   return(0);
+}
+
+int splitStrOnWS(char * strStart, char ** tokenArr, int tokenArrSize)
+{
+   int nn = 0;
+   char * strEnd = strStart + strlen(strStart);
+   if(strEnd == strStart)
+      return(0);
+   char * strPtr = strStart;
+   while(strStart < strEnd)
+   {
+      strStart = findCharRun(strStart, strEnd, 0);
+      strPtr = findCharRun(strStart, strEnd, 1);
+      if(strStart >= strPtr)
+         return(nn);
+      if(tokenArr && (nn < tokenArrSize))
+         tokenArr[nn] = strStart;
+      if(strPtr >= strEnd)
+         break;
+      *strPtr = '\0';
+      strStart = strPtr + 1;
+      nn++;
+   }
+   return(nn + 1);
+}
+
+const char * findCharRun(const char * strStart, const char * strEnd, int invertCheck)
+{
+   while((strStart < strEnd) && spaceCheck(*strStart, invertCheck))
+      ++strStart;
+   return strStart;
+}
+
+int spaceCheck(char chr, int invertCheck)
+{
+   if(invertCheck)
+         return(!isspace(chr));
+   else  return(isspace(chr));
+}
+
+int getLineFromFile(char * buff, int size, int fileHd, int expectCRLF)
+{
+   int retv,nn = 0;
+   if(!buff || (fileHd < 0) || (size <= 0))
+      return(-1);
+   while((nn < (size - 1)) && ((retv = read(fileHd, &buff[nn], 1)) > 0))
+   {
+      switch(buff[nn])
+      {
+         case '\r':
+            if(!expectCRLF)
+            {
+	            buff[nn] = '\0';
+               return(nn);
+            }
+            break;
+         case '\n':
+            if((nn > 0) && (buff[nn - 1] == '\r'))
+            {
+	            buff[nn - 1] = '\0';
+               return(nn - 1);
+            }
+            else
+            {
+	            buff[nn] = '\0';
+               return(nn);
+            }
+         case '\0':
+	         buff[nn] = '\0';
+            return(nn);
+         default:
+            break;
+      }
+      nn++;
+   }
+   buff[nn] = '\0';
+   return(nn);
 }
 
 #endif
 
+
+int initRTSPParser(int rtpPort)
+{
+   int         retv;
+
+   retv = rtsp_open(&glRTSPPtr,0);
+   glRTSPPtr->rtpPort = rtpPort;
+   glRTSPPtr->presentationURL[0] = '\0';
+   glRTSPPtr->trigger[0] = '\0';
+
+   return(retv);
+}
 
 int deInitRTSPParser(void)
 {
@@ -304,14 +570,300 @@ int parseRTSPMessage(char * message, RTSPPARSERAPP_CALLBACK callback, void * cal
    return(0);
 }
 
+int composeRTSPRequest(char * requestMethod, char * session,RTSPPARSERAPP_COMPOSECALLBACK callback,
+      void * callbackArg)
+{
+   int         retv;
+   char *      urlPtr;
+   char        locBuff[512];
+   _rtsp_message_unref_ struct rtsp_message * rep = NULL;
+
+   if(!glRTSPPtr || !requestMethod)
+      return(-1);
+
+   glRTSPPtr->crestComposeCallback = callback;
+   glRTSPPtr->crestComposeCallbackArg = callbackArg;
+
+   if(!strcmp(requestMethod,"OPTIONS"))
+   {
+      urlPtr = "*";
+      retv = rtsp_message_new_request(glRTSPPtr,&rep,requestMethod,urlPtr);
+      if(retv < 0)
+      {
+         printf("ERROR: rtsp_message_new_request failed in composeRTSPRequest() with error code %d\n",retv);
+         return(-1);
+      }
+
+      retv = rtsp_message_append(rep, "<s>","Require","org.wfa.wfd1.0");
+      if(retv < 0)
+      {
+         printf("ERROR: rtsp_message_append() failed in composeRTSPResponse() with error code %d\n",retv);
+         return(-1);
+      }
+   }
+   else if(!strcmp(requestMethod,"SETUP"))
+   {
+      if(glRTSPPtr->presentationURL[0] = '\0')
+      {
+         printf("WARNING: empty presentationURL string in composeRTSPRequest() with method SETUP\n");
+      }
+      urlPtr = glRTSPPtr->presentationURL;
+      retv = rtsp_message_new_request(glRTSPPtr,&rep,requestMethod,urlPtr);
+      if(retv < 0)
+      {
+         printf("ERROR: rtsp_message_new_request failed in composeRTSPRequest() with error code %d\n",retv);
+         return(-1);
+      }
+
+      sprintf(locBuff,"RTP/AVP/UDP;unicast;client_port=%d",glRTSPPtr->rtpPort);
+      retv = rtsp_message_append(rep, "<s>","Transport",locBuff);
+      if(retv < 0)
+      {
+         printf("ERROR: rtsp_message_append() failed in composeRTSPResponse() with error code %d\n",retv);
+         return(-1);
+      }
+   }
+   else if(!strcmp(requestMethod,"PLAY"))
+   {
+      if(glRTSPPtr->presentationURL[0] = '\0')
+      {
+         printf("WARNING: empty presentationURL string in composeRTSPRequest() with method PLAY\n");
+      }
+      urlPtr = glRTSPPtr->presentationURL;
+      retv = rtsp_message_new_request(glRTSPPtr,&rep,requestMethod,urlPtr);
+      if(retv < 0)
+      {
+         printf("ERROR: rtsp_message_new_request failed in composeRTSPRequest() with error code %d\n",retv);
+         return(-1);
+      }
+
+      if(!session)
+      {
+         printf("ERROR: NULL session in composeRTSPRequest()\n");
+         return(-1);
+      }
+
+      retv = rtsp_message_append(rep, "<s>","Session",session);
+      if(retv < 0)
+      {
+         printf("ERROR: rtsp_message_append() failed in composeRTSPResponse() with error code %d\n",retv);
+         return(-1);
+      }
+   }
+   else
+   {
+      printf("ERROR: unexpected request method %s in composeRTSPRequest()\n",requestMethod);
+      return(-1);
+   }
+
+   rtsp_message_seal(rep);
+
+   // currently rtsp_message_serialize_common() terminates the message string
+   char * raw_message = (char *)rtsp_message_get_raw(rep);
+   if(raw_message)
+      printf("INFO: raw_message: %s\n",raw_message);
+
+   retv = cresRTSP_internalComposeCallback(RTSP_MESSAGE_REQUEST,raw_message,requestMethod,
+      urlPtr,NULL,-1);
+	if (retv < 0)
+      printf("ERROR: cresRTSP_internalComposeCallback() returned %d in composeRTSPResponse()\n",retv);
+
+   rtsp_message_unref(rep);
+   rep = NULL;
+
+   glRTSPPtr->crestComposeCallback = NULL;
+   glRTSPPtr->crestComposeCallbackArg = NULL;
+
+   return(retv);
+}
+
+int composeRTSPResponse(RTSPPARSINGRESULTS * requestParsingResultsPtr,
+      int responseStatus, RTSPPARSERAPP_COMPOSECALLBACK callback, void * callbackArg)
+{
+   //
+   // Remarks:
+   //    1. Values passed in responseStatus must conform to the RTSP_CODE_XXXX
+   //       enumeration.
+   //    2.
+   // 
+
+
+
+   //
+   // *** temporary - complete it ***
+   //
+   int rstp_port = 1028;
+
+
+
+   int         retv;
+   _rtsp_message_unref_ struct rtsp_message * rep = NULL;
+   struct rtsp_message * orgMsg;
+
+   if(!glRTSPPtr || !requestParsingResultsPtr || !requestParsingResultsPtr->parsedMessagePtr)
+      return(-1);
+
+   orgMsg = requestParsingResultsPtr->parsedMessagePtr;
+
+
+   //
+   // *** temporary - complete it ***
+   //
+   if(responseStatus != RTSP_CODE_OK)
+   {
+      printf("ERROR: composeRTSPResponse() only supports response status RTSP_CODE_OK at this time\n");
+      return(-1);
+   }
+
+
+
+   glRTSPPtr->crestComposeCallback = callback;
+   glRTSPPtr->crestComposeCallbackArg = callbackArg;
+
+   retv = rtsp_message_new_reply_for(orgMsg, &rep, RTSP_CODE_OK, NULL);
+   if(retv < 0)
+   {
+      printf("ERROR: rtsp_message_new_reply_for() failed in composeRTSPResponse() with error code %d\n",retv);
+      return(-1);
+   }
+
+   char * org_request_method = rtsp_message_get_method(orgMsg);
+
+   if(!strcmp(org_request_method,"OPTIONS"))
+   {
+      retv = rtsp_message_append(rep, "<s>","Public","org.wfa.wfd1.0, GET_PARAMETER, SET_PARAMETER");
+      if(retv < 0)
+      {
+         printf("ERROR: rtsp_message_append() failed in composeRTSPResponse() with error code %d\n",retv);
+         return(-1);
+      }
+   }
+   else if(!strcmp(org_request_method,"GET_PARAMETER"))
+   {
+      /* wfd_video_formats */
+      check_and_response_option("wfd_video_formats",
+         "40 00 01 10 0001bdeb 051557ff 00000fff 10 0000 001f 11 0780 0438, "
+         "02 10 0001bdeb 155557ff 00000fff 10 0000 001f 11 0780 0438");
+
+      /* wfd_audio_codecs */
+      check_and_response_option("wfd_audio_codecs", "LPCM 00000003 00, AAC 0000000f 00, AC3 00000007 00");
+
+      /* wfd_client_rtp_ports */
+      char wfd_client_rtp_ports[128];
+      sprintf(wfd_client_rtp_ports, "RTP/AVP/UDP;unicast %d 0 mode=play", rstp_port);
+      check_and_response_option("wfd_client_rtp_ports", wfd_client_rtp_ports);
+
+      /* wfd_content_protection */
+      check_and_response_option("wfd_content_protection", "none");
+
+      /* wfd_display_edid */
+      check_and_response_option("wfd_display_edid", "none");
+
+      /* wfd_coupled_sink */
+      check_and_response_option("wfd_coupled_sink", "none");
+
+      // /* wfd_uibc_capability */
+      // if (uibc_option) {
+      //    check_and_response_option("wfd_uibc_capability",
+      //       "input_category_list=GENERIC, HIDC;"
+      //       "generic_cap_list=Keyboard;"
+      //       "hidc_cap_list=Keyboard/USB, Mouse/USB, MultiTouch/USB, Gesture/USB, RemoteControl/USB;"
+      //       "port=none");
+   }
+   else if(!strcmp(org_request_method,"SET_PARAMETER"))
+   {
+      printf("INFO: not adding anything to the response for SET_PARAMETER\n");
+      // nothing - response has just the response line and CSeq
+   }
+   else
+   {
+      printf("ERROR: unexpected request method %s in composeRTSPResponse()\n",org_request_method);
+      return(-1);
+   }
+
+   rtsp_message_seal(rep);
+
+   char * reply_phrase = rtsp_message_get_phrase(rep);
+   if(reply_phrase)
+      printf("INFO: reply_phrase: %s\n",reply_phrase);
+
+   unsigned int reply_code = rtsp_message_get_code(rep);
+   printf("INFO: reply_code: %d\n",reply_code);
+
+   // currently rtsp_message_serialize_common() terminates the message string
+   char * raw_message = (char *)rtsp_message_get_raw(rep);
+   if(raw_message)
+      printf("INFO: raw_message: %s\n",raw_message);
+
+   retv = cresRTSP_internalComposeCallback(RTSP_MESSAGE_REPLY,raw_message,NULL,NULL,
+      reply_phrase,reply_code);
+	if (retv < 0)
+      printf("ERROR: cresRTSP_internalComposeCallback() returned %d in composeRTSPResponse()\n",retv);
+
+   rtsp_message_unref(rep);
+   rep = NULL;
+
+   glRTSPPtr->crestComposeCallback = NULL;
+   glRTSPPtr->crestComposeCallbackArg = NULL;
+
+   return(retv);
+}
+
 int cresRTSP_internalCallback(unsigned int messageType,struct rtsp_message * parsedMessagePtr,
       char * request_method,char * request_uri,char * reply_phrase,unsigned int reply_code)
 {
    int                  retv;
+   unsigned int         cea_res, vesa_res, hh_res;
+   const char *         urlPtr;
+   const char *         trigger;
    RTSPPARSINGRESULTS   parsingResults;
 
    if(!glRTSPPtr || !parsedMessagePtr || (messageType < 0))
       return(-1);
+
+   // get request header values that need to be stored in the session data
+   switch(messageType)
+   {
+      case RTSP_MESSAGE_REQUEST:
+         if(!strcmp(request_method,"SET_PARAMETER"))
+         {
+            retv = rtsp_message_read(parsedMessagePtr, "{<s>}", "wfd_presentation_URL", &urlPtr);
+            if (retv >= 0)
+            {
+               strncpy(glRTSPPtr->presentationURL,urlPtr,sizeof(glRTSPPtr->presentationURL) - 1);
+               glRTSPPtr->presentationURL[sizeof(glRTSPPtr->presentationURL) - 1] = '\0';
+            }
+
+
+            // !!! must do more important video parameters !!!
+
+
+            retv = rtsp_message_read(parsedMessagePtr, "{<****hhh>}", "wfd_video_formats",
+               &cea_res,&vesa_res,&hh_res);
+            if (retv == 0)
+            {
+               glRTSPPtr->cea_res  = cea_res;
+               glRTSPPtr->vesa_res = vesa_res;
+               glRTSPPtr->hh_res   = hh_res;
+            }
+
+
+            // !!! must handle audio_codecs headers !!!
+
+
+            retv = rtsp_message_read(parsedMessagePtr, "{<s>}", "wfd_trigger_method", &trigger);
+            if (retv >= 0)
+            {
+               strncpy(glRTSPPtr->trigger,trigger,sizeof(glRTSPPtr->trigger) - 1);
+               glRTSPPtr->trigger[sizeof(glRTSPPtr->trigger) - 1] = '\0';
+            }
+         }
+         break;
+      case RTSP_MESSAGE_REPLY:
+         break;
+      default:
+         break;
+   }
 
    if(glRTSPPtr->crestCallback)
    {
@@ -329,7 +881,39 @@ int cresRTSP_internalCallback(unsigned int messageType,struct rtsp_message * par
       retv = -1;
    }
 
-   return(0);
+   return(retv);
+}
+
+int cresRTSP_internalComposeCallback(unsigned int messageType,char * composedMessagePtr,
+   char * request_method,char * request_uri,char * reply_phrase,unsigned int reply_code)
+{
+   int                  retv;
+   RTSPCOMPOSINGRESULTS composingResults;
+
+   if(!glRTSPPtr || !composedMessagePtr || (messageType < 0))
+      return(-1);
+
+   if(glRTSPPtr->crestComposeCallback)
+   {
+      composingResults.messageType        = messageType;
+      composingResults.request_method     = request_method;
+      composingResults.request_uri        = request_uri;
+      composingResults.reply_phrase       = reply_phrase;
+      composingResults.reply_code         = reply_code;
+      composingResults.composedMessagePtr = composedMessagePtr;
+
+      retv = glRTSPPtr->crestComposeCallback(&composingResults,glRTSPPtr->crestComposeCallbackArg);
+   }
+   else
+   {
+      retv = -1;
+   }
+
+   return(retv);
+}
+
+bool check_rtsp_option(struct rtsp_message *m, char *option) {
+	return rtsp_message_read(m, "{<>}", option) >= 0;
 }
 
 
@@ -1518,7 +2102,7 @@ static int rtsp_message_serialize_common(struct rtsp_message *m)
 	memcpy(p, cbody, body_size);
 	p += body_size;
 
-	/* for debugging */
+	/* terminate - mainly for debugging */
 	*p = 0;
 
 	m->raw = (void*)raw;
@@ -2829,89 +3413,89 @@ static int rtsp_parse_data(struct rtsp *bus,
  * supported and will fail silently.
  */
 
-static int rtsp_call_message(struct rtsp_message *m,
-			     struct rtsp_message *reply)
-{
-	int r;
+// *** static int rtsp_call_message(struct rtsp_message *m,
+// *** 			     struct rtsp_message *reply)
+// *** {
+// *** 	int r;
+// *** 
+// *** 	/* protect users by making sure arguments stay around */
+// *** 	rtsp_message_ref(m);
+// *** 	rtsp_message_ref(reply);
+// *** 
+// *** 	if (m->cb_fn)
+// *** 		r = m->cb_fn(m->bus, reply, m->fn_data);
+// *** 	else
+// *** 		r = 0;
+// *** 
+// *** 	rtsp_message_unref(reply);
+// *** 	rtsp_message_unref(m);
+// *** 
+// *** 	return r;
+// *** }
 
-	/* protect users by making sure arguments stay around */
-	rtsp_message_ref(m);
-	rtsp_message_ref(reply);
+// *** static int rtsp_call_reply(struct rtsp *bus, struct rtsp_message *reply)
+// *** {
+// *** 	struct rtsp_message *m;
+// *** 	uint64_t *elem;
+// *** 	int r;
+// *** 
+// *** 	if (!shl_htable_lookup_u64(&bus->waiting,
+// *** 				   reply->cookie & ~RTSP_FLAG_REMOTE_COOKIE,
+// *** 				   &elem))
+// *** 		return 0;
+// *** 
+// *** 	m = rtsp_message_from_htable(elem);
+// *** 	rtsp_message_ref(m);
+// *** 
+// *** 	rtsp_drop_message(m);
+// *** 	r = rtsp_call_message(m, reply);
+// *** 
+// *** 	rtsp_message_unref(m);
+// *** 	return r;
+// *** }
 
-	if (m->cb_fn)
-		r = m->cb_fn(m->bus, reply, m->fn_data);
-	else
-		r = 0;
+// *** static int rtsp_call(struct rtsp *bus, struct rtsp_message *m)
+// *** {
+// *** 	struct rtsp_match *match;
+// *** 	struct shl_dlist *i, *t;
+// *** 	int r;
+// *** 
+// *** 	/* make sure bus and message stay around during any callbacks */
+// *** 	rtsp_ref(bus);
+// *** 	rtsp_message_ref(m);
+// *** 
+// *** 	r = 0;
+// *** 
+// *** 	bus->is_calling = true;
+// *** 	shl_dlist_for_each(i, &bus->matches) {
+// *** 		match = shl_dlist_entry(i, struct rtsp_match, list);
+// *** 		r = match->cb_fn(bus, m, match->data);
+// *** 		if (r != 0)
+// *** 			break;
+// *** 	}
+// *** 	bus->is_calling = false;
+// *** 
+// *** 	shl_dlist_for_each_safe(i, t, &bus->matches) {
+// *** 		match = shl_dlist_entry(i, struct rtsp_match, list);
+// *** 		if (match->is_removed)
+// *** 			rtsp_free_match(match);
+// *** 	}
+// *** 
+// *** 	rtsp_message_unref(m);
+// *** 	rtsp_unref(bus);
+// *** 
+// *** 	return r;
+// *** }
 
-	rtsp_message_unref(reply);
-	rtsp_message_unref(m);
-
-	return r;
-}
-
-static int rtsp_call_reply(struct rtsp *bus, struct rtsp_message *reply)
-{
-	struct rtsp_message *m;
-	uint64_t *elem;
-	int r;
-
-	if (!shl_htable_lookup_u64(&bus->waiting,
-				   reply->cookie & ~RTSP_FLAG_REMOTE_COOKIE,
-				   &elem))
-		return 0;
-
-	m = rtsp_message_from_htable(elem);
-	rtsp_message_ref(m);
-
-	rtsp_drop_message(m);
-	r = rtsp_call_message(m, reply);
-
-	rtsp_message_unref(m);
-	return r;
-}
-
-static int rtsp_call(struct rtsp *bus, struct rtsp_message *m)
-{
-	struct rtsp_match *match;
-	struct shl_dlist *i, *t;
-	int r;
-
-	/* make sure bus and message stay around during any callbacks */
-	rtsp_ref(bus);
-	rtsp_message_ref(m);
-
-	r = 0;
-
-	bus->is_calling = true;
-	shl_dlist_for_each(i, &bus->matches) {
-		match = shl_dlist_entry(i, struct rtsp_match, list);
-		r = match->cb_fn(bus, m, match->data);
-		if (r != 0)
-			break;
-	}
-	bus->is_calling = false;
-
-	shl_dlist_for_each_safe(i, t, &bus->matches) {
-		match = shl_dlist_entry(i, struct rtsp_match, list);
-		if (match->is_removed)
-			rtsp_free_match(match);
-	}
-
-	rtsp_message_unref(m);
-	rtsp_unref(bus);
-
-	return r;
-}
-
-static int rtsp_hup(struct rtsp *bus)
-{
-	if (bus->is_dead)
-		return 0;
-
-	// *** rtsp_detach_event(bus);
-	bus->is_dead = true;
-	return rtsp_call(bus, NULL);
-}
+// *** static int rtsp_hup(struct rtsp *bus)
+// *** {
+// *** 	if (bus->is_dead)
+// *** 		return 0;
+// *** 
+// *** 	// *** rtsp_detach_event(bus);
+// *** 	bus->is_dead = true;
+// *** 	return rtsp_call(bus, NULL);
+// *** }
 
 // *** static int rtsp_timer_fn(sd_event_source *src, uint64_t usec, void *data)
 // *** {
@@ -2983,13 +3567,13 @@ static void rtsp_unlink_waiting(struct rtsp_message *m)
 	}
 }
 
-static void rtsp_link_outgoing(struct rtsp_message *m)
-{
-	shl_dlist_link_tail(&m->bus->outgoing, &m->list);
-	m->is_outgoing = true;
-	++m->bus->outgoing_cnt;
-	rtsp_message_ref(m);
-}
+// *** static void rtsp_link_outgoing(struct rtsp_message *m)
+// *** {
+// *** 	shl_dlist_link_tail(&m->bus->outgoing, &m->list);
+// *** 	m->is_outgoing = true;
+// *** 	++m->bus->outgoing_cnt;
+// *** 	rtsp_message_ref(m);
+// *** }
 
 static void rtsp_unlink_outgoing(struct rtsp_message *m)
 {
@@ -3077,74 +3661,74 @@ static int rtsp_incoming_message(struct rtsp_message *m)
 	return 0;
 }
 
-static int rtsp_read(struct rtsp *bus)
-{
-	char buf[4096];
-	ssize_t res;
+// *** static int rtsp_read(struct rtsp *bus)
+// *** {
+// *** 	char buf[4096];
+// *** 	ssize_t res;
+// *** 
+// *** 	res = recv(bus->fd,
+// *** 		   buf,
+// *** 		   sizeof(buf),
+// *** 		   MSG_DONTWAIT);
+// *** 	if (res < 0) {
+// *** 		if (errno == EAGAIN || errno == EINTR)
+// *** 			return -EAGAIN;
+// *** 
+// *** 		return -errno;
+// *** 	} else if (!res) {
+// *** 		/* there're no 0-length packets on streams; this is EOF */
+// *** 		return -EPIPE;
+// *** 	} else if (res > sizeof(buf)) {
+// *** 		res = sizeof(buf);
+// *** 	}
+// *** 
+// *** 	/* parses all messages and calls rtsp_incoming_message() for each */
+// *** 	return rtsp_parse_data(bus, buf, res);
+// *** }
 
-	res = recv(bus->fd,
-		   buf,
-		   sizeof(buf),
-		   MSG_DONTWAIT);
-	if (res < 0) {
-		if (errno == EAGAIN || errno == EINTR)
-			return -EAGAIN;
+// *** static int rtsp_write_message(struct rtsp_message *m)
+// *** {
+// *** 	size_t remaining;
+// *** 	ssize_t res;
+// *** 
+// *** 	m->is_sending = true;
+// *** 	remaining = m->raw_size - m->sent;
+// *** 	res = send(m->bus->fd,
+// *** 		   &m->raw[m->sent],
+// *** 		   remaining,
+// *** 		   MSG_NOSIGNAL | MSG_DONTWAIT);
+// *** 	if (res < 0) {
+// *** 		if (errno == EAGAIN || errno == EINTR)
+// *** 			return -EAGAIN;
+// *** 
+// *** 		return -errno;
+// *** 	} else if (res > (ssize_t)remaining) {
+// *** 		res = remaining;
+// *** 	}
+// *** 
+// *** 	m->sent += res;
+// *** 	if (m->sent >= m->raw_size) {
+// *** 		/* no need to wait for answer if no-body listens */
+// *** 		if (!m->cb_fn)
+// *** 			rtsp_unlink_waiting(m);
+// *** 
+// *** 		/* might destroy the message */
+// *** 		rtsp_unlink_outgoing(m);
+// *** 	}
+// *** 
+// *** 	return 0;
+// *** }
 
-		return -errno;
-	} else if (!res) {
-		/* there're no 0-length packets on streams; this is EOF */
-		return -EPIPE;
-	} else if (res > sizeof(buf)) {
-		res = sizeof(buf);
-	}
-
-	/* parses all messages and calls rtsp_incoming_message() for each */
-	return rtsp_parse_data(bus, buf, res);
-}
-
-static int rtsp_write_message(struct rtsp_message *m)
-{
-	size_t remaining;
-	ssize_t res;
-
-	m->is_sending = true;
-	remaining = m->raw_size - m->sent;
-	res = send(m->bus->fd,
-		   &m->raw[m->sent],
-		   remaining,
-		   MSG_NOSIGNAL | MSG_DONTWAIT);
-	if (res < 0) {
-		if (errno == EAGAIN || errno == EINTR)
-			return -EAGAIN;
-
-		return -errno;
-	} else if (res > (ssize_t)remaining) {
-		res = remaining;
-	}
-
-	m->sent += res;
-	if (m->sent >= m->raw_size) {
-		/* no need to wait for answer if no-body listens */
-		if (!m->cb_fn)
-			rtsp_unlink_waiting(m);
-
-		/* might destroy the message */
-		rtsp_unlink_outgoing(m);
-	}
-
-	return 0;
-}
-
-static int rtsp_write(struct rtsp *bus)
-{
-	struct rtsp_message *m;
-
-	if (shl_dlist_empty(&bus->outgoing))
-		return 0;
-
-	m = shl_dlist_first_entry(&bus->outgoing, struct rtsp_message, list);
-	return rtsp_write_message(m);
-}
+// *** static int rtsp_write(struct rtsp *bus)
+// *** {
+// *** 	struct rtsp_message *m;
+// *** 
+// *** 	if (shl_dlist_empty(&bus->outgoing))
+// *** 		return 0;
+// *** 
+// *** 	m = shl_dlist_first_entry(&bus->outgoing, struct rtsp_message, list);
+// *** 	return rtsp_write_message(m);
+// *** }
 
 // *** static int rtsp_io_fn(sd_event_source *src, int fd, uint32_t mask, void *data)
 // *** {
@@ -3578,3 +4162,4 @@ void rtsp_call_async_cancel(struct rtsp *bus, uint64_t cookie)
 	m = rtsp_message_from_htable(elem);
 	rtsp_drop_message(m);
 }
+

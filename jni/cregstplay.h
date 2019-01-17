@@ -262,6 +262,7 @@ void csio_PadAddedMsgHandler(GstElement *src, GstPad *new_pad, void *pCstreamer)
 void csio_Adaptive_PadAddedMsgHandler( GstElement *src, GstPad *new_pad, CREGSTREAM *data );
 void csio_DecVideo1stOutputCB(GstElement *src,int id);
 void csio_jni_callback_rtpbin_new_jitterbuffer(GstElement *rtpbin,GstElement *jitterbuffer,guint session,guint ssrc,gpointer data);
+GstElement* csio_jni_callback_rtpbin_new_rtp_decoder(GstElement *rtpbin,guint session,gpointer data);
 
 // Includes for csioutils.h 
 typedef gint gboolean;
