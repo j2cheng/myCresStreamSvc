@@ -276,6 +276,9 @@ void wfdSinkStMachineClass::prepareBeforeIdle()
 //      Making a one second delay (timeout)
 void wfdSinkStMachineClass::prepareForRestart()
 {
+    //TODO: default : we never restart
+    prepareBeforeIdle();
+
     resetAllFlags();
     resetSystemStatus();
 
@@ -523,7 +526,7 @@ int wfdSinkStMachineClass::waitM1RequestState(csioEventQueueStruct* pEventQ)
             //TODO: send out tear down message
             if(pRTSPSinkClient)
             {
-                composeRTSPRequest("TEARDOWN","12345678",parserComposeRequestCallback,(void*)this);
+                composeRTSPRequest("TEARDOWN",parserComposeRequestCallback,(void*)this);
                 pRTSPSinkClient->sendDataOut((char*)m_requestString.c_str(),m_requestString.size());
 
                 if(events == WFD_SINK_STM_START_TEARDOWN_EVENT ||
@@ -558,7 +561,7 @@ int wfdSinkStMachineClass::waitM1RequestState(csioEventQueueStruct* pEventQ)
                              m_myId);
                 }
 
-                composeRTSPRequest("OPTIONS","12345678",parserComposeRequestCallback,(void*)this);
+                composeRTSPRequest("OPTIONS",parserComposeRequestCallback,(void*)this);
                 pRTSPSinkClient->sendDataOut((char*)m_requestString.c_str(),m_requestString.size());
 
                 CSIO_LOG(m_debugLevel,  "wfdSinkStMachineClass[%d]: WFD_SINK_STM_M1_RQST_RCVD_EVENT processed msg size[%d].\n",
@@ -627,7 +630,7 @@ int wfdSinkStMachineClass::waitM2ResponseState(csioEventQueueStruct* pEventQ)
             //TODO: send out tear down message
             if(pRTSPSinkClient)
             {
-                composeRTSPRequest("TEARDOWN","12345678",parserComposeRequestCallback,(void*)this);
+                composeRTSPRequest("TEARDOWN",parserComposeRequestCallback,(void*)this);
                 pRTSPSinkClient->sendDataOut((char*)m_requestString.c_str(),m_requestString.size());
 
                 if(events == WFD_SINK_STM_START_TEARDOWN_EVENT ||
@@ -705,7 +708,7 @@ int wfdSinkStMachineClass::waitM3RequestState(csioEventQueueStruct* pEventQ)
             //TODO: send out tear down message
             if(pRTSPSinkClient)
             {
-                composeRTSPRequest("TEARDOWN","12345678",parserComposeRequestCallback,(void*)this);
+                composeRTSPRequest("TEARDOWN",parserComposeRequestCallback,(void*)this);
                 pRTSPSinkClient->sendDataOut((char*)m_requestString.c_str(),m_requestString.size());
 
                 if(events == WFD_SINK_STM_START_TEARDOWN_EVENT ||
@@ -803,7 +806,7 @@ int wfdSinkStMachineClass::waitM4RequestState(csioEventQueueStruct* pEventQ)
             //TODO: send out tear down message
             if(pRTSPSinkClient)
             {
-                composeRTSPRequest("TEARDOWN","12345678",parserComposeRequestCallback,(void*)this);
+                composeRTSPRequest("TEARDOWN",parserComposeRequestCallback,(void*)this);
                 pRTSPSinkClient->sendDataOut((char*)m_requestString.c_str(),m_requestString.size());
 
                 if(events == WFD_SINK_STM_START_TEARDOWN_EVENT ||
@@ -905,7 +908,7 @@ int wfdSinkStMachineClass::waitM5RequestState(csioEventQueueStruct* pEventQ)
             //TODO: send out tear down message
             if(pRTSPSinkClient)
             {
-                composeRTSPRequest("TEARDOWN","12345678",parserComposeRequestCallback,(void*)this);
+                composeRTSPRequest("TEARDOWN",parserComposeRequestCallback,(void*)this);
                 pRTSPSinkClient->sendDataOut((char*)m_requestString.c_str(),m_requestString.size());
 
                 if(events == WFD_SINK_STM_START_TEARDOWN_EVENT ||
@@ -947,7 +950,7 @@ int wfdSinkStMachineClass::waitM5RequestState(csioEventQueueStruct* pEventQ)
                 //find out the trigger method
                 if(pEventQ->ext_obj == WFD_SINK_TRIGGER_METHOD_SETUP)
                 {
-                    composeRTSPRequest("SETUP","12345678",parserComposeRequestCallback,(void*)this);
+                    composeRTSPRequest("SETUP",parserComposeRequestCallback,(void*)this);
                     pRTSPSinkClient->sendDataOut((char*)m_requestString.c_str(),m_requestString.size());
 
                     setTimeout(WFD_SINK_STATETIMEOUT_WAIT_RESP);
@@ -956,7 +959,7 @@ int wfdSinkStMachineClass::waitM5RequestState(csioEventQueueStruct* pEventQ)
                 }
                 else if(pEventQ->ext_obj == WFD_SINK_TRIGGER_METHOD_PLAY)
                 {
-                    composeRTSPRequest("PLAY","12345678",parserComposeRequestCallback,(void*)this);
+                    composeRTSPRequest("PLAY",parserComposeRequestCallback,(void*)this);
                     pRTSPSinkClient->sendDataOut((char*)m_requestString.c_str(),m_requestString.size());
 
                     setTimeout(WFD_SINK_STATETIMEOUT_WAIT_RESP);
@@ -965,7 +968,7 @@ int wfdSinkStMachineClass::waitM5RequestState(csioEventQueueStruct* pEventQ)
                 }
                 else// WFD_SINK_TRIGGER_METHOD_TEARDOWN
                 {
-                    composeRTSPRequest("TEARDOWN","12345678",parserComposeRequestCallback,(void*)this);
+                    composeRTSPRequest("TEARDOWN",parserComposeRequestCallback,(void*)this);
                     pRTSPSinkClient->sendDataOut((char*)m_requestString.c_str(),m_requestString.size());
 
                     resetOnTcpConnFlg();
@@ -1034,7 +1037,7 @@ int wfdSinkStMachineClass::waitM6ResponseState(csioEventQueueStruct* pEventQ)
             //TODO: send out tear down message
             if(pRTSPSinkClient)
             {
-                composeRTSPRequest("TEARDOWN","12345678",parserComposeRequestCallback,(void*)this);
+                composeRTSPRequest("TEARDOWN",parserComposeRequestCallback,(void*)this);
                 pRTSPSinkClient->sendDataOut((char*)m_requestString.c_str(),m_requestString.size());
 
                 if(events == WFD_SINK_STM_START_TEARDOWN_EVENT ||
@@ -1059,7 +1062,7 @@ int wfdSinkStMachineClass::waitM6ResponseState(csioEventQueueStruct* pEventQ)
 
             if(pRTSPSinkClient)
             {
-                composeRTSPRequest("PLAY","12345678",parserComposeRequestCallback,(void*)this);
+                composeRTSPRequest("PLAY",parserComposeRequestCallback,(void*)this);
                 pRTSPSinkClient->sendDataOut((char*)m_requestString.c_str(),m_requestString.size());
 
                 setTimeout(WFD_SINK_STATETIMEOUT_WAIT_RESP);
@@ -1124,7 +1127,7 @@ int wfdSinkStMachineClass::waitM7ResponseState(csioEventQueueStruct* pEventQ)
             //TODO: send out tear down message
             if(pRTSPSinkClient)
             {
-                composeRTSPRequest("TEARDOWN","12345678",parserComposeRequestCallback,(void*)this);
+                composeRTSPRequest("TEARDOWN",parserComposeRequestCallback,(void*)this);
                 pRTSPSinkClient->sendDataOut((char*)m_requestString.c_str(),m_requestString.size());
 
                 if(events == WFD_SINK_STM_START_TEARDOWN_EVENT ||
@@ -1275,7 +1278,7 @@ int wfdSinkStMachineClass::monitorKeepAliveState(csioEventQueueStruct* pEventQ)
             //TODO: send out tear down message
             if(pRTSPSinkClient)
             {
-                composeRTSPRequest("TEARDOWN","12345678",parserComposeRequestCallback,(void*)this);
+                composeRTSPRequest("TEARDOWN",parserComposeRequestCallback,(void*)this);
                 pRTSPSinkClient->sendDataOut((char*)m_requestString.c_str(),m_requestString.size());
 
                 if(events == WFD_SINK_STM_START_TEARDOWN_EVENT)
@@ -1334,7 +1337,7 @@ int wfdSinkStMachineClass::monitorKeepAliveState(csioEventQueueStruct* pEventQ)
                 pRTSPSinkClient->sendDataOut((char*)m13rqst.c_str(),m13rqst.size());
 
                 /*
-                 *  composeRTSPRequest("SET_PARAMETER","12345678",parserComposeRequestCallback,(void*)this);
+                 *  composeRTSPRequest("SET_PARAMETER",parserComposeRequestCallback,(void*)this);
                     pRTSPSinkClient->sendDataOut((char*)m_requestString.c_str(),m_requestString.size());
                 */
             }
