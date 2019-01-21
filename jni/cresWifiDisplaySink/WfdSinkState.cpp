@@ -127,13 +127,18 @@ m_src_rtsp_port(DEFAULT_SOURCE_RTSP_PORT),
 m_ts_Port(DEFAULT_CLIENT_TS_PORT),
 pRTSPSinkClient(NULL),
 m_seq_i(0),m_seq_j(0),
-m_keepAliveTimeout(WFD_SINK_STATETIMEOUT_DEFAULT_KEEP_ALIVE)//default 60s
+m_keepAliveTimeout(WFD_SINK_STATETIMEOUT_DEFAULT_KEEP_ALIVE),//default 60s
+m_EvntQ(),
+m_rtspParserIntfInfo(),
+m_rtspParserIntfSession()
 {
     wfdSinkStMachineTimeArray = new csioTimerClockBase(WFD_SINK_EVENTTIME_MAX,WFD_SINK_STATE_TIMER_MAX);
 
     m_SourceUrl.clear();
     m_connTime.clear();
     m_requestString.clear();
+
+    m_rtspParserIntfInfo.rtpPort = m_ts_Port;
 
     prepareBeforeIdle();
 
@@ -245,6 +250,12 @@ void wfdSinkStMachineClass::DumpClassPara(int l)
     }
 }
 
+void wfdSinkStMachineClass::setCurentTsPort(int port)
+{
+    m_ts_Port = port;
+    m_rtspParserIntfInfo.rtpPort = m_ts_Port;
+}
+
 void wfdSinkStMachineClass::resetAllFlags()
 {
     m_connTime.clear();
@@ -260,7 +271,7 @@ void wfdSinkStMachineClass::resetSystemStatus()
     if(m_wfdSinkStMachineThreadPtr)
         m_wfdSinkStMachineThreadPtr->removePollFds(m_myId,0,true);
 
-    deInitRTSPParser();
+    deInitRTSPParser(m_rtspParserIntfSession);
 }
 void wfdSinkStMachineClass::prepareBeforeIdle()
 {
@@ -413,7 +424,7 @@ int wfdSinkStMachineClass::idleState(csioEventQueueStruct* pEventQ)
 
                     if(pRTSPSinkClient)
                     {
-                        initRTSPParser(m_ts_Port);
+                        m_rtspParserIntfSession = initRTSPParser(&m_rtspParserIntfInfo);
 
                         pRTSPSinkClient->setSourceAddrPort(getCurentSourceUrl(),getCurentSourcePort());
                         int sock = pRTSPSinkClient->openConn();
@@ -452,7 +463,7 @@ int wfdSinkStMachineClass::idleState(csioEventQueueStruct* pEventQ)
 
             if(pRTSPSinkClient)
             {
-                initRTSPParser(m_ts_Port);
+                m_rtspParserIntfSession = initRTSPParser(&m_rtspParserIntfInfo);
 
                 pRTSPSinkClient->setSourceAddrPort(getCurentSourceUrl(),getCurentSourcePort());
                 int sock = pRTSPSinkClient->openConn();
@@ -526,7 +537,7 @@ int wfdSinkStMachineClass::waitM1RequestState(csioEventQueueStruct* pEventQ)
             //TODO: send out tear down message
             if(pRTSPSinkClient)
             {
-                composeRTSPRequest("TEARDOWN",parserComposeRequestCallback,(void*)this);
+                composeRTSPRequest(m_rtspParserIntfSession,"TEARDOWN",parserComposeRequestCallback,(void*)this);
                 pRTSPSinkClient->sendDataOut((char*)m_requestString.c_str(),m_requestString.size());
 
                 if(events == WFD_SINK_STM_START_TEARDOWN_EVENT ||
@@ -561,7 +572,7 @@ int wfdSinkStMachineClass::waitM1RequestState(csioEventQueueStruct* pEventQ)
                              m_myId);
                 }
 
-                composeRTSPRequest("OPTIONS",parserComposeRequestCallback,(void*)this);
+                composeRTSPRequest(m_rtspParserIntfSession,"OPTIONS",parserComposeRequestCallback,(void*)this);
                 pRTSPSinkClient->sendDataOut((char*)m_requestString.c_str(),m_requestString.size());
 
                 CSIO_LOG(m_debugLevel,  "wfdSinkStMachineClass[%d]: WFD_SINK_STM_M1_RQST_RCVD_EVENT processed msg size[%d].\n",
@@ -630,7 +641,7 @@ int wfdSinkStMachineClass::waitM2ResponseState(csioEventQueueStruct* pEventQ)
             //TODO: send out tear down message
             if(pRTSPSinkClient)
             {
-                composeRTSPRequest("TEARDOWN",parserComposeRequestCallback,(void*)this);
+                composeRTSPRequest(m_rtspParserIntfSession,"TEARDOWN",parserComposeRequestCallback,(void*)this);
                 pRTSPSinkClient->sendDataOut((char*)m_requestString.c_str(),m_requestString.size());
 
                 if(events == WFD_SINK_STM_START_TEARDOWN_EVENT ||
@@ -708,7 +719,7 @@ int wfdSinkStMachineClass::waitM3RequestState(csioEventQueueStruct* pEventQ)
             //TODO: send out tear down message
             if(pRTSPSinkClient)
             {
-                composeRTSPRequest("TEARDOWN",parserComposeRequestCallback,(void*)this);
+                composeRTSPRequest(m_rtspParserIntfSession,"TEARDOWN",parserComposeRequestCallback,(void*)this);
                 pRTSPSinkClient->sendDataOut((char*)m_requestString.c_str(),m_requestString.size());
 
                 if(events == WFD_SINK_STM_START_TEARDOWN_EVENT ||
@@ -806,7 +817,7 @@ int wfdSinkStMachineClass::waitM4RequestState(csioEventQueueStruct* pEventQ)
             //TODO: send out tear down message
             if(pRTSPSinkClient)
             {
-                composeRTSPRequest("TEARDOWN",parserComposeRequestCallback,(void*)this);
+                composeRTSPRequest(m_rtspParserIntfSession,"TEARDOWN",parserComposeRequestCallback,(void*)this);
                 pRTSPSinkClient->sendDataOut((char*)m_requestString.c_str(),m_requestString.size());
 
                 if(events == WFD_SINK_STM_START_TEARDOWN_EVENT ||
@@ -908,7 +919,7 @@ int wfdSinkStMachineClass::waitM5RequestState(csioEventQueueStruct* pEventQ)
             //TODO: send out tear down message
             if(pRTSPSinkClient)
             {
-                composeRTSPRequest("TEARDOWN",parserComposeRequestCallback,(void*)this);
+                composeRTSPRequest(m_rtspParserIntfSession,"TEARDOWN",parserComposeRequestCallback,(void*)this);
                 pRTSPSinkClient->sendDataOut((char*)m_requestString.c_str(),m_requestString.size());
 
                 if(events == WFD_SINK_STM_START_TEARDOWN_EVENT ||
@@ -950,7 +961,7 @@ int wfdSinkStMachineClass::waitM5RequestState(csioEventQueueStruct* pEventQ)
                 //find out the trigger method
                 if(pEventQ->ext_obj == WFD_SINK_TRIGGER_METHOD_SETUP)
                 {
-                    composeRTSPRequest("SETUP",parserComposeRequestCallback,(void*)this);
+                    composeRTSPRequest(m_rtspParserIntfSession,"SETUP",parserComposeRequestCallback,(void*)this);
                     pRTSPSinkClient->sendDataOut((char*)m_requestString.c_str(),m_requestString.size());
 
                     setTimeout(WFD_SINK_STATETIMEOUT_WAIT_RESP);
@@ -959,7 +970,7 @@ int wfdSinkStMachineClass::waitM5RequestState(csioEventQueueStruct* pEventQ)
                 }
                 else if(pEventQ->ext_obj == WFD_SINK_TRIGGER_METHOD_PLAY)
                 {
-                    composeRTSPRequest("PLAY",parserComposeRequestCallback,(void*)this);
+                    composeRTSPRequest(m_rtspParserIntfSession,"PLAY",parserComposeRequestCallback,(void*)this);
                     pRTSPSinkClient->sendDataOut((char*)m_requestString.c_str(),m_requestString.size());
 
                     setTimeout(WFD_SINK_STATETIMEOUT_WAIT_RESP);
@@ -968,7 +979,7 @@ int wfdSinkStMachineClass::waitM5RequestState(csioEventQueueStruct* pEventQ)
                 }
                 else// WFD_SINK_TRIGGER_METHOD_TEARDOWN
                 {
-                    composeRTSPRequest("TEARDOWN",parserComposeRequestCallback,(void*)this);
+                    composeRTSPRequest(m_rtspParserIntfSession,"TEARDOWN",parserComposeRequestCallback,(void*)this);
                     pRTSPSinkClient->sendDataOut((char*)m_requestString.c_str(),m_requestString.size());
 
                     resetOnTcpConnFlg();
@@ -1037,7 +1048,7 @@ int wfdSinkStMachineClass::waitM6ResponseState(csioEventQueueStruct* pEventQ)
             //TODO: send out tear down message
             if(pRTSPSinkClient)
             {
-                composeRTSPRequest("TEARDOWN",parserComposeRequestCallback,(void*)this);
+                composeRTSPRequest(m_rtspParserIntfSession,"TEARDOWN",parserComposeRequestCallback,(void*)this);
                 pRTSPSinkClient->sendDataOut((char*)m_requestString.c_str(),m_requestString.size());
 
                 if(events == WFD_SINK_STM_START_TEARDOWN_EVENT ||
@@ -1062,7 +1073,7 @@ int wfdSinkStMachineClass::waitM6ResponseState(csioEventQueueStruct* pEventQ)
 
             if(pRTSPSinkClient)
             {
-                composeRTSPRequest("PLAY",parserComposeRequestCallback,(void*)this);
+                composeRTSPRequest(m_rtspParserIntfSession,"PLAY",parserComposeRequestCallback,(void*)this);
                 pRTSPSinkClient->sendDataOut((char*)m_requestString.c_str(),m_requestString.size());
 
                 setTimeout(WFD_SINK_STATETIMEOUT_WAIT_RESP);
@@ -1127,7 +1138,7 @@ int wfdSinkStMachineClass::waitM7ResponseState(csioEventQueueStruct* pEventQ)
             //TODO: send out tear down message
             if(pRTSPSinkClient)
             {
-                composeRTSPRequest("TEARDOWN",parserComposeRequestCallback,(void*)this);
+                composeRTSPRequest(m_rtspParserIntfSession,"TEARDOWN",parserComposeRequestCallback,(void*)this);
                 pRTSPSinkClient->sendDataOut((char*)m_requestString.c_str(),m_requestString.size());
 
                 if(events == WFD_SINK_STM_START_TEARDOWN_EVENT ||
@@ -1278,7 +1289,7 @@ int wfdSinkStMachineClass::monitorKeepAliveState(csioEventQueueStruct* pEventQ)
             //TODO: send out tear down message
             if(pRTSPSinkClient)
             {
-                composeRTSPRequest("TEARDOWN",parserComposeRequestCallback,(void*)this);
+                composeRTSPRequest(m_rtspParserIntfSession,"TEARDOWN",parserComposeRequestCallback,(void*)this);
                 pRTSPSinkClient->sendDataOut((char*)m_requestString.c_str(),m_requestString.size());
 
                 if(events == WFD_SINK_STM_START_TEARDOWN_EVENT)
@@ -1337,7 +1348,7 @@ int wfdSinkStMachineClass::monitorKeepAliveState(csioEventQueueStruct* pEventQ)
                 pRTSPSinkClient->sendDataOut((char*)m13rqst.c_str(),m13rqst.size());
 
                 /*
-                 *  composeRTSPRequest("SET_PARAMETER",parserComposeRequestCallback,(void*)this);
+                 *  composeRTSPRequest(m_rtspParserIntfSession,"SET_PARAMETER",parserComposeRequestCallback,(void*)this);
                     pRTSPSinkClient->sendDataOut((char*)m_requestString.c_str(),m_requestString.size());
                 */
             }
@@ -1409,21 +1420,25 @@ void wfdSinkStMachineClass::processPackets(int size, char* buf)
     CSIO_LOG(m_debugLevel, "m_curentState[%d]: expecting RTSP header[%s]\n",
             m_curentState,Wfd_rtsp_msg_string_vs_event_names[m_curentState].pStr);
 
-    int ret = parseRTSPMessage(buf,parserCallbackFun,(void*)this);
+    //Note: reset event queue before we call parseRTSPMessage
+    memset(&m_EvntQ,0,sizeof(csioEventQueueStruct));
+    m_EvntQ.obj_id = m_myId;
+    m_EvntQ.event_type = WFD_SINK_STM_TIME_TICKS_EVENT;
 
-    CSIO_LOG(m_debugLevel, "wfdSinkStMachineClass[%d]: processPackets parseRTSPMessage returns[%d].\n", m_myId,ret);
-    //TODO: delete me!!!!!!!!!!!!!!
-    /*{
-        int type = m_curentState + 19;
-        csioEventQueueStruct EvntQ;
-        memset(&EvntQ,0,sizeof(csioEventQueueStruct));
-        EvntQ.obj_id = m_myId;
-        EvntQ.event_type = type;
-        EvntQ.buf_size   = size;
-        EvntQ.buffPtr    = buf;
+    //two call backs might fill up events into m_EvntQ
+    int ret = parseRTSPMessage(m_rtspParserIntfSession,buf,parserCallbackFun,(void*)this);
 
-        stateFunction(&EvntQ);
-    }*/
+    if(ret == 0)
+    {
+        stateFunction(&m_EvntQ);
+    }//else
+
+    if( m_EvntQ.buf_size && m_EvntQ.buffPtr)
+    {
+        deleteCharArray(m_EvntQ.buffPtr);
+    }
+
+    CSIO_LOG(m_debugLevel, "wfdSinkStMachineClass[%d]: processPackets: called parseRTSPMessage[%d] exits.\n", m_myId,ret);
 }
 
 int wfdSinkStMachineClass::parserCallbackFun(RTSPPARSINGRESULTS * parsResPtr, void * appArgument)
@@ -1438,61 +1453,6 @@ int wfdSinkStMachineClass::parserCallbackFun(RTSPPARSINGRESULTS * parsResPtr, vo
 
     if(p)
     {
-#if 0
-        CSIO_LOG(p->m_debugLevel, "wfdSinkStMachineClass[%d]: parserCallbackFun\n", p->m_myId);
-
-        int type = 0;
-        csioEventQueueStruct EvntQ;
-        memset(&EvntQ,0,sizeof(csioEventQueueStruct));
-        EvntQ.obj_id = p->m_myId;
-
-        //use Wfd_rtsp_msg_string_vs_event_names to look for matching events
-        char* msgTypePtr = strcasestr( (char*)buff, Wfd_rtsp_msg_string_vs_event_names[p->m_curentState].pStr );
-
-        if( msgTypePtr )
-        {
-            CSIO_LOG(p->m_debugLevel, "wfdSinkStMachineClass:processPackets: msg type[%s],event[%d]\n",
-                    Wfd_rtsp_msg_string_vs_event_names[p->m_curentState].pStr,
-                    Wfd_rtsp_msg_string_vs_event_names[p->m_curentState].num);
-
-            type = Wfd_rtsp_msg_string_vs_event_names[p->m_curentState].num;
-
-
-            EvntQ.event_type = type;
-            EvntQ.buf_size   = strlen((char*)buff);
-            EvntQ.buffPtr    = buff;
-
-            p->stateFunction(&EvntQ);
-        }
-        else
-        {
-            EvntQ.event_type = WFD_SINK_STM_INTERNAL_ERROR_EVENT;
-
-            /*  source can send teardown request at any time
-             *  if(isThis_SET_PARAMETER)
-             *  {
-             *      if(itHas_trigger_method)
-             *      {
-             *          if(istrigger_teardown)
-             *              EvntQ.event_type = WFD_SINK_STM_RCVD_TEARDOWN_EVENT
-             *      }
-             *  }
-             *  //else if(isThis_RESP_OK)
-             *
-             *
-             * */
-
-
-            p->stateFunction(&EvntQ);
-            CSIO_LOG(p->m_debugLevel, "wfdSinkStMachineClass[%d]: processPackets issue ERROR_EVENT\n", p->m_myId);
-        }
-#endif
-
-        csioEventQueueStruct EvntQ;
-        memset(&EvntQ,0,sizeof(csioEventQueueStruct));
-        EvntQ.obj_id = p->m_myId;
-        EvntQ.event_type = WFD_SINK_STM_INTERNAL_ERROR_EVENT;
-
         CSIO_LOG(p->m_debugLevel, "wfdSinkStMachineClass[%d]: parserCallbackFun: received parsed messageType[%d]\n", p->m_myId,parsResPtr->messageType);
 
         switch(parsResPtr->messageType)
@@ -1509,23 +1469,29 @@ int wfdSinkStMachineClass::parserCallbackFun(RTSPPARSINGRESULTS * parsResPtr, vo
 
                         if(strcasestr( parsResPtr->request_method, Wfd_rtsp_msg_string_vs_event_names[p->m_curentState].pStr ))
                         {
-                            //if this is set_paramerter
-                            /*if(get_trigger_method() == TEARDOWN)
+                            //if this is set_paramerter TEARDOWN
+                            if(parsResPtr->headerData.triggerMethod)
                             {
-                                EvntQ.event_type = WFD_SINK_STM_RCVD_TEARDOWN_EVENT;
-                                p->stateFunction(&EvntQ);
+                                if(strcasestr( parsResPtr->headerData.triggerMethod, "TEARDOWN" ))
+                                {
+                                    p->m_EvntQ.ext_obj = WFD_SINK_TRIGGER_METHOD_TEARDOWN;
+                                }
+                                else if(strcasestr( parsResPtr->headerData.triggerMethod, "SETUP" ))
+                                {
+                                    p->m_EvntQ.ext_obj = WFD_SINK_TRIGGER_METHOD_SETUP;
+                                }
+                                else if(strcasestr( parsResPtr->headerData.triggerMethod, "PLAY" ))
+                                {
+                                    p->m_EvntQ.ext_obj = WFD_SINK_TRIGGER_METHOD_PLAY;
+                                }//else
                             }
-                            */
 
-                            int retv = composeRTSPResponse(parsResPtr,RTSP_CODE_OK,parserComposeRespCallback,(void *)appArgument);
+                            //TODO: delete me!!!!!!
+                            if( p->m_curentState == WFD_SINK_STATES_WAIT_M5_RQST)
+                                p->m_EvntQ.ext_obj = WFD_SINK_TRIGGER_METHOD_SETUP;
+                            //TODO: delete me!!!!!!
 
-                            if(retv != 0)
-                            {
-                                EvntQ.event_type = WFD_SINK_STM_INTERNAL_ERROR_EVENT;
-                                p->stateFunction(&EvntQ);
-
-                                CSIO_LOG(p->m_debugLevel, "wfdSinkStMachineClass[%d]: parserCallbackFun: composeRTSPResponse return error[%d]\n", p->m_myId,retv);
-                            }
+                            composeRTSPResponse(p->m_rtspParserIntfSession,parsResPtr,RTSP_CODE_OK,parserComposeRespCallback,(void *)appArgument);
                         }
                         else
                         {
@@ -1549,14 +1515,22 @@ int wfdSinkStMachineClass::parserCallbackFun(RTSPPARSINGRESULTS * parsResPtr, vo
                              p->m_myId,p->m_curentState,
                              parsResPtr->request_method? parsResPtr->request_method:"NONE");
 
-                    /*TODO: if this is set_paramerter
-                    if(parsResPtr->request_method)  && it is set_parameter
-                    if(get_trigger_method() == TEARDOWN)
+                    /*if this is set_paramerter*/
+                    if(parsResPtr->request_method)
                     {
-                        EvntQ.event_type = WFD_SINK_STM_RCVD_TEARDOWN_EVENT;
-                        p->stateFunction(&EvntQ);
-                    }
-                    */
+                        if(strcasestr( parsResPtr->request_method, "SET_PARAMETER" ))
+                        {
+                            if(parsResPtr->headerData.triggerMethod)
+                            {
+                                if(strcasestr( parsResPtr->headerData.triggerMethod, "TEARDOWN" ))
+                                {
+                                    p->m_EvntQ.ext_obj = WFD_SINK_TRIGGER_METHOD_TEARDOWN;
+
+                                    composeRTSPResponse(p->m_rtspParserIntfSession,parsResPtr,RTSP_CODE_OK,parserComposeRespCallback,(void *)appArgument);
+                                }
+                            }
+                        }
+                    }//all else do nothing
                 }
 
                 break;
@@ -1575,18 +1549,17 @@ int wfdSinkStMachineClass::parserCallbackFun(RTSPPARSINGRESULTS * parsResPtr, vo
                     CSIO_LOG(p->m_debugLevel, "wfdSinkStMachineClass[%d]: parserCallbackFun: reply_code: %d\n", p->m_myId,parsResPtr->reply_code);
                     CSIO_LOG(p->m_debugLevel, "wfdSinkStMachineClass[%d]: parserCallbackFun: number of headers: %d\n", p->m_myId,parsResPtr->parsedMessagePtr->header_used);
 
-                    //TODO: if it is 200 ok
-                    EvntQ.event_type = Wfd_rtsp_msg_string_vs_event_names[p->m_curentState].num;
-
-                    //TODO: if it is error
-                    //EvntQ.event_type = WFD_SINK_STM_INTERNAL_ERROR_EVENT;
+                    if(parsResPtr->reply_code == 200)
+                    {
+                        p->m_EvntQ.event_type = Wfd_rtsp_msg_string_vs_event_names[p->m_curentState].num;
+                    }
+                    else
+                    {
+                        p->m_EvntQ.event_type = WFD_SINK_STM_INTERNAL_ERROR_EVENT;
+                    }
                 }
-                else
-                {
-                    EvntQ.event_type = WFD_SINK_STM_INTERNAL_ERROR_EVENT;
-                }
-
-                p->stateFunction(&EvntQ);
+                //else TODO:if we received response, but we are waiting for request, shall we just ignore it?
+                //p->m_EvntQ.event_type = WFD_SINK_STM_INTERNAL_ERROR_EVENT;
                 break;
             }
             default:
@@ -1601,6 +1574,8 @@ int wfdSinkStMachineClass::parserCallbackFun(RTSPPARSINGRESULTS * parsResPtr, vo
     {
         CSIO_LOG(eLogLevel_error, "wfdSinkStMachineClass[%d]: parserCallbackFun: parserCallbackFun pObj is NULL\n", p->m_myId);
     }
+
+    return 0;
 }
 int wfdSinkStMachineClass::parserComposeRespCallback(RTSPCOMPOSINGRESULTS * composingResPtr, void * appArgument)
 {
@@ -1614,11 +1589,6 @@ int wfdSinkStMachineClass::parserComposeRespCallback(RTSPCOMPOSINGRESULTS * comp
 
     if(p)
     {
-        csioEventQueueStruct EvntQ;
-        memset(&EvntQ,0,sizeof(csioEventQueueStruct));
-        EvntQ.obj_id = p->m_myId;
-        EvntQ.event_type = WFD_SINK_STM_INTERNAL_ERROR_EVENT;
-
         if(composingResPtr->composedMessagePtr)
         {
             int type = Wfd_rtsp_msg_string_vs_event_names[p->m_curentState].num;
@@ -1626,36 +1596,21 @@ int wfdSinkStMachineClass::parserComposeRespCallback(RTSPCOMPOSINGRESULTS * comp
             CSIO_LOG(p->m_debugLevel, "wfdSinkStMachineClass[%d]: parserComposeRespCallback event_type[%d]\n",
                      p->m_myId,type);
 
-            EvntQ.event_type = type;
-            EvntQ.buf_size   = strlen(composingResPtr->composedMessagePtr);
-            EvntQ.buffPtr    = (char*)composingResPtr->composedMessagePtr;
+            int dataSize = strlen(composingResPtr->composedMessagePtr);
 
-            /*TODO:
-             if(type == WFD_SINK_STM_M5_RQST_RCVD_EVENT)
-             {
-                switch(get_trigger_method())
-                case SETUP:
+            if(composingResPtr->composedMessagePtr && dataSize)
+            {
+                char* tmp = (char*)p->createCharArray(dataSize + 1);
+                if(tmp)
                 {
-                    EvntQ.ext_obj = WFD_SINK_TRIGGER_METHOD_SETUP;
-                    break;
-                }
-                case PLAY:
-                {
-                    EvntQ.ext_obj = WFD_SINK_TRIGGER_METHOD_PLAY;
-                    break;
-                }
-                case TEARDOWN:
-                {
-                    EvntQ.ext_obj = WFD_SINK_TRIGGER_METHOD_TEARDOWN;
-                    break;
-                }
-             }
-             */
-
-            //TODO: delete me!!!
-            EvntQ.ext_obj = WFD_SINK_TRIGGER_METHOD_SETUP;
-
-            p->stateFunction(&EvntQ);
+                    //first copy configure structure
+                    memcpy(tmp,(char*)composingResPtr->composedMessagePtr,dataSize);
+                    tmp[dataSize] = 0;
+                    p->m_EvntQ.event_type = type;
+                    p->m_EvntQ.buffPtr = tmp;
+                    p->m_EvntQ.buf_size = dataSize;
+                }//else
+            }
         }
         else
         {

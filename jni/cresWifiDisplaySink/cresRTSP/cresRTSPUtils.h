@@ -13,6 +13,7 @@
 #include <limits.h>
 #include <stdlib.h>
 #include <string.h>
+#include <stdint.h>
 #include <stdbool.h>
 #include <unistd.h>
 #include <sys/types.h>
@@ -225,6 +226,25 @@ static inline int shl_mult_u(unsigned int *val, unsigned int factor)
 	return shl_mult_ull(val, factor);
 #endif
 }
+
+
+
+// ***
+#ifndef UINT8_MAX
+#define UINT8_MAX (255U)
+#endif
+#ifndef UINT16_MAX
+#define UINT16_MAX (65535U)
+#endif
+#ifndef UINT32_MAX
+#define UINT32_MAX (4294967295U)
+#endif
+#ifndef UINT64_MAX
+#define UINT64_MAX (__UINT64_C(18446744073709551615))
+#endif
+// ***
+
+
 
 static inline int shl_mult_u64(uint64_t *val, uint64_t factor)
 {

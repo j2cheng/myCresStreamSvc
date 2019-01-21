@@ -10,17 +10,30 @@ extern "C"
 {
 #endif
 
-typedef struct _rtspheaderdata {
+typedef struct _rtspsysteminfo
+{
+   int rtpPort;
+   char * preferredVidResRefStr;    // preferred resolution/refresh_rate string
+                                    //    format:     HRESxVRESpRRATE or HRESxVRESiRRATE
+                                    //    examples:   640x480p50 1920x1080i60
+   char * preferredAudioCodecStr;   // preferred audio codec info string
+                                    //    format:     CODECxSAMPLINGFREGxCHANNELS
+                                    //    examples:   LPCMx44_1x2 AACx48x6 AC3x48x4
+} RTSPSYSTEMINFO;
+
+typedef struct _rtspheaderdata
+{
    //
    // members of this structure are valid only under specific, individual
    // circumstances
    //
    int sourceRTPPort;
-   char * session;
+   char * sessionID;
    char * triggerMethod;
-}RTSPHEADERDATA;
+} RTSPHEADERDATA;
 
-typedef struct _rtspparsingresults {
+typedef struct _rtspparsingresults
+{
    unsigned int messageType;
    //
    // valid with messageType RTSP_MESSAGE_REQUEST
@@ -36,23 +49,24 @@ typedef struct _rtspparsingresults {
    RTSPHEADERDATA headerData;
    //
    struct rtsp_message * parsedMessagePtr;
-}RTSPPARSINGRESULTS;
+} RTSPPARSINGRESULTS;
 
-typedef struct _rtspcomposingresults {
+typedef struct _rtspcomposingresults
+{
    unsigned int messageType;
    char * request_method;
    char * request_uri;
    char * reply_phrase;
    unsigned int reply_code;
    char  * composedMessagePtr;
-}RTSPCOMPOSINGRESULTS;
+} RTSPCOMPOSINGRESULTS;
 
 typedef int (* RTSPPARSERAPP_CALLBACK)(RTSPPARSINGRESULTS * parsingResPtr, void * appArgument);
 typedef int (* RTSPPARSERAPP_COMPOSECALLBACK)(RTSPCOMPOSINGRESULTS * composingResPtr, void * appArgument);
 
 
-struct rtsp {
-
+struct rtsp
+{
    RTSPPARSERAPP_CALLBACK crestCallback;
    void * crestCallbackArg;
    RTSPPARSERAPP_COMPOSECALLBACK crestComposeCallback;
@@ -60,10 +74,10 @@ struct rtsp {
 
 
 
-   // session control
+   // *** session control ***
    int rtpPort;
    int sourceRTPPort;
-   char session[32];
+   char sessionID[32];
    char triggerMethod[32];
    char transport[64];
    char presentationURL[256];
@@ -88,12 +102,14 @@ struct rtsp {
 	size_t waiting_cnt;
 
 	/* ring parser */
-	struct rtsp_parser {
+	struct rtsp_parser
+   {
 		struct rtsp_message *m;
 		struct shl_ring buf;
 		size_t buflen;
 
-		enum {
+		enum
+      {
 			STATE_NEW,
 			STATE_HEADER,
 			STATE_HEADER_QUOTE,
@@ -117,7 +133,8 @@ struct rtsp {
 	bool is_calling : 1;
 };
 
-struct rtsp_match {
+struct rtsp_match
+{
 	struct shl_dlist list;
 	rtsp_callback_fn cb_fn;
 	void *data;
@@ -125,7 +142,8 @@ struct rtsp_match {
 	bool is_removed : 1;
 };
 
-struct rtsp_header {
+struct rtsp_header
+{
 	char *key;
 	char *value;
 	size_t token_cnt;
@@ -135,7 +153,8 @@ struct rtsp_header {
 	size_t line_len;
 };
 
-struct rtsp_message {
+struct rtsp_message
+{
 	unsigned long ref;
 	struct rtsp *bus;
 	struct shl_dlist list;
@@ -197,12 +216,13 @@ struct rtsp_message {
 };
 
 
-int initRTSPParser(int rtpPort);
-int deInitRTSPParser(void);
-int parseRTSPMessage(char * message, RTSPPARSERAPP_CALLBACK callback, void * callbackArg);
-int composeRTSPRequest(char * requestMethod,RTSPPARSERAPP_COMPOSECALLBACK callback,
+void * initRTSPParser(RTSPSYSTEMINFO * sysInfo);
+int deInitRTSPParser(void * session);
+int parseRTSPMessage(void * session,char * message, RTSPPARSERAPP_CALLBACK callback,
       void * callbackArg);
-int composeRTSPResponse(RTSPPARSINGRESULTS * requestParsingResultsPtr,
+int composeRTSPRequest(void * session,char * requestMethod,RTSPPARSERAPP_COMPOSECALLBACK callback,
+      void * callbackArg);
+int composeRTSPResponse(void * session,RTSPPARSINGRESULTS * requestParsingResultsPtr,
       int responseStatus, RTSPPARSERAPP_COMPOSECALLBACK callback, void * callbackArg);
 
 #ifdef __cplusplus

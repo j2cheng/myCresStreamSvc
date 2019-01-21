@@ -21,6 +21,11 @@ LOCAL_SRC_FILES := \
 	jni.cpp \
 	cregstplay.cpp \
 	gst_element_print_properties.cpp \
+	cresWifiDisplaySink/WfdSinkProject.cpp \
+	cresWifiDisplaySink/WfdSinkConnection.cpp \
+	cresWifiDisplaySink/WfdSinkState.cpp \
+	cresWifiDisplaySink/cresRTSP/cresRTSP.c \
+	cresWifiDisplaySink/cresRTSP/cresRTSPUtils.c \
 	cresStreamOut/streamOutManager/cresStreamOutManager.cpp \
 	cresStreamOut/streamOutManager/cres_rtsp-media.cpp \
 	cresStreamOut/streamOutManager/cresStreamSnapShot.cpp \

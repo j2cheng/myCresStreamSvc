@@ -92,6 +92,7 @@ typedef enum _eWfd_timeStamp
 
 typedef enum _eWfd_trigger_methods
 {
+    WFD_SINK_TRIGGER_METHOD_NONE = 0,//NONE must be zero
     WFD_SINK_TRIGGER_METHOD_SETUP,
     WFD_SINK_TRIGGER_METHOD_PLAY,
     WFD_SINK_TRIGGER_METHOD_TEARDOWN,
@@ -177,7 +178,7 @@ private:
     void setCurentSourcePort(int port) { m_src_rtsp_port = port; }
 
     int  getCurentTsPort() { return m_ts_Port; }
-    void setCurentTsPort(int port) { m_ts_Port = port; }
+    void setCurentTsPort(int port) ;
 public:
     const char* getConnTime(){ return m_connTime.c_str();}
 
@@ -250,6 +251,16 @@ private:
     int  isOnTcpDisconnSet()     { return (m_onTcpConnFlag & ON_TCP_DISCONN);}
     void setOnTcpDisconnFlg()    { m_onTcpConnFlag |= ON_TCP_DISCONN;}
     void resetOnTcpDisconnFlg()  { m_onTcpConnFlag &= (~ON_TCP_DISCONN);}
+
+    void* createCharArray(int size) { return new char [size]; }
+    void deleteCharArray(void* buf)
+    {
+        if(buf)
+        {
+            char* tmp = (char*)buf;
+            delete [] tmp;
+        }
+    }
 public:
 
     int m_myId;
@@ -269,6 +280,11 @@ private:
 
     WfdRTSPSinkClient* pRTSPSinkClient;
     int m_seq_i,m_seq_j,m_keepAliveTimeout;
+
+    csioEventQueueStruct m_EvntQ;
+
+    RTSPSYSTEMINFO m_rtspParserIntfInfo;
+    void* m_rtspParserIntfSession;
 };
 /********** end of wfdSinkStMachineClass class *******************/
 
