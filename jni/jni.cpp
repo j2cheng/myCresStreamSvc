@@ -4062,8 +4062,29 @@ JNIEXPORT void JNICALL Java_com_crestron_txrxservice_WfdStreamIn_WFD_Start(JNIEn
 JNIEXPORT void JNICALL Java_com_crestron_txrxservice_WfdStreamIn_WFD_Stop(JNIEnv *env, jobject thiz, jint windowId)
 {
     CSIO_LOG(eLogLevel_verbose, "%s", __FUNCTION__);
-    WfdSinkProjStop(windowId);
+
+    //TODO: copy from gst_native_stop()
+    {
+        CREGSTREAM * data = GetStreamFromCustomData(CresDataDB, windowId);
+
+        if (!data)
+            CSIO_LOG(eLogLevel_error, "Could not obtain stream pointer for stream %d, failed to set isStarted state", windowId);
+        else
+        {
+            if (data->isStarted)
+            {
+                data->isStarted = false;
+    
+                WfdSinkProjStop(windowId);
+
+                csio_jni_stop((int)windowId);
+            }
+            else
+                csio_SendVideoPlayingStatusMessage((int)windowId, STREAMSTATE_STOPPED);
+        }
+    }
 }
+#endif
 //TODO: get surface from app, report status back to app, resolution setting came from app
 
 /* called from state machine for : TCP connected/disconnected
@@ -4144,5 +4165,5 @@ void Wfd_setup_gst_pipeline (int id, int state, int ts_port)
         CSIO_LOG(eLogLevel_debug, "%s exit", __FUNCTION__);
     }
 }
-#endif
+
 /***************************** end of Miracast(Wifi Display:wfd) streaming in *********************************/
