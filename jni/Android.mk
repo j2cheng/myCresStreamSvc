@@ -102,7 +102,6 @@ LOCAL_CFLAGS +=\
 	-I$(CRESTRON_ROOT)/CresNextSerializer/CresNextObjects/include \
 	-I$(CRESTRON_ROOT)/../rapidjson/include \
 	-std=gnu99 \
-	-Wimplicit-function-declaration \
 	-w\
 	-DANDROID_OS
 
