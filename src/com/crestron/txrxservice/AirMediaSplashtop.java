@@ -237,6 +237,7 @@ public class AirMediaSplashtop implements AirMedia
     			
     			if (!successfulStart && isServiceConnected)
     			{
+    				Common.Logging.w(TAG, "service connected but unsuccessful start - doUnbindService");
     				doUnbindService();
     			}
     		}
