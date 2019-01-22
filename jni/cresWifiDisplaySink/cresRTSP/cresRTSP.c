@@ -194,6 +194,7 @@ int splitStrOnWS(char * strStart, char ** tokenArr, int tokenArrSize);
 const char * findCharRun(const char * strStart, const char * strEnd, int invertCheck);
 int spaceCheck(char chr, int invertCheck);
 int getLineFromFile(char * buff, int size, int fileHd, int expectCRLF);
+int printParseResults(int messageType, RTSPPARSINGRESULTS * parseResults);
 int testCallback(RTSPPARSINGRESULTS * parsResPtr, void * appArgument);
 int testComposeCallback(RTSPCOMPOSINGRESULTS * composingResPtr, void * appArgument);
 
@@ -353,16 +354,11 @@ int testCallback(RTSPPARSINGRESULTS * parsingResPtr, void * appArgument)
    if(!parsingResPtr || !parsingResPtr->parsedMessagePtr)
       return(-1);
    
+   printf("\nINFO: ***** testCallback *****\n");
+
    switch(parsingResPtr->messageType)
    {
       case RTSP_MESSAGE_REQUEST:
-         printf("\nINFO: testCallback() - received parsed request\n");
-
-         if(parsingResPtr->request_method)
-            printf("INFO: request_method: %s\n",parsingResPtr->request_method);
-         if(parsingResPtr->request_uri)
-            printf("INFO: request_uri: %s\n",parsingResPtr->request_uri);
-         printf("INFO: number of headers: %d\n",parsingResPtr->parsedMessagePtr->header_used);
 
          msgPtr = parsingResPtr->parsedMessagePtr;
 	      rtspSession = msgPtr->bus;
@@ -372,13 +368,16 @@ int testCallback(RTSPPARSINGRESULTS * parsingResPtr, void * appArgument)
             return(-1);
          }
 
+         printParseResults(parsingResPtr->messageType,parsingResPtr);
+
          //
          // session control logic - JUST an example
          //
-         if(!strcmp(parsingResPtr->request_method,"SET_PARAMETER"))
-         {
-            // business logic here ...
-         }
+         // if(!strcmp(parsingResPtr->request_method,"SET_PARAMETER"))
+         // {
+         //    // business logic here ...
+         // }
+         // 
 
          retv = composeRTSPResponse((void *)rtspSession,parsingResPtr,RTSP_CODE_OK,
                testComposeCallback,(void *)22222);
@@ -390,13 +389,7 @@ int testCallback(RTSPPARSINGRESULTS * parsingResPtr, void * appArgument)
 
          break;
       case RTSP_MESSAGE_REPLY:
-         printf("\nINFO: testCallback() - received parsed response\n");
-
-         if(parsingResPtr->reply_phrase)
-            printf("INFO: reply_phrase: %s\n",parsingResPtr->reply_phrase);
-         printf("INFO: reply_code: %d\n",parsingResPtr->reply_code);
-         printf("INFO: number of headers: %d\n",parsingResPtr->parsedMessagePtr->header_used);
-
+         printParseResults(parsingResPtr->messageType,parsingResPtr);
          break;
       default:
          printf("\nERROR: testCallback() - unexpected message type: %d\n\n",parsingResPtr->messageType);
@@ -412,24 +405,60 @@ int testComposeCallback(RTSPCOMPOSINGRESULTS * composingResPtr, void * appArgume
    if(!composingResPtr || !composingResPtr->composedMessagePtr)
       return(-1);
 
+   printf("\nINFO: ***** testComposeCallback *****\n");
+
    switch(composingResPtr->messageType)
    {
       case RTSP_MESSAGE_REQUEST:
-         printf("\nINFO: testComposeCallback() - received composed request:\n%s\n",
+         printf("INFO: received composed request:\n%s\n",
             composingResPtr->composedMessagePtr);
          break;
       case RTSP_MESSAGE_REPLY:
-         printf("\nINFO: testComposeCallback() - received composed response:\n%s\n",
+         printf("INFO: received composed response:\n%s\n",
             composingResPtr->composedMessagePtr);
          break;
       default:
-         printf("\nERROR: testComposeCallback() - unexpected message type: %d\n\n",
+         printf("ERROR: testComposeCallback() - unexpected message type: %d\n\n",
             composingResPtr->messageType);
          return(-1);
    }
 
    printf("\n");
    return(0);
+}
+
+int printParseResults(int messageType, RTSPPARSINGRESULTS * parseResults)
+{
+   printf("INFO: parsing results:\n");
+
+   switch(messageType)
+   {
+      case RTSP_MESSAGE_REQUEST:
+         printf("   type: RTSP_MESSAGE_REQUEST\n");
+         printf("   number of headers: %d\n",parseResults->parsedMessagePtr->header_used);
+         if(parseResults->request_method)
+            printf("   request_method: %s\n",parseResults->request_method);
+         if(parseResults->request_uri)
+            printf("   request_uri: %s\n",parseResults->request_uri);
+         break;
+      case RTSP_MESSAGE_REPLY:
+         printf("   type: RTSP_MESSAGE_REPLY\n");
+         printf("   number of headers: %d\n",parseResults->parsedMessagePtr->header_used);
+         if(parseResults->reply_phrase)
+            printf("   reply_phrase: %s\n",parseResults->reply_phrase);
+         printf("   reply_code: %d\n",parseResults->reply_code);
+         break;
+      default:
+         printf("ERROR: printParseResults() - unexpected message type: %d\n",messageType);
+         return(-1);
+   }
+
+   if(parseResults->headerData.sourceRTPPort >= 0)
+      printf("   sourceRTPPort: %d\n",parseResults->headerData.sourceRTPPort);
+   if(parseResults->headerData.sessionID)
+      printf("   sessionID: %s\n",parseResults->headerData.sessionID);
+   if(parseResults->headerData.triggerMethod)
+      printf("   triggerMethod: %s\n",parseResults->headerData.triggerMethod);
 }
 
 bool processCommandLine(int argc, char * argv[])
@@ -685,7 +714,7 @@ void * initRTSPParser(RTSPSYSTEMINFO * sysInfo)
    rtspSession->preferredAudioCodecStr[
       sizeof(rtspSession->preferredAudioCodecStr)-1] = '\0';
 
-   rtspSession->sourceRTPPort = 0;
+   rtspSession->sourceRTPPort = -1;
    rtspSession->sessionID[0] = '\0';
    rtspSession->triggerMethod[0] = '\0';
    rtspSession->transport[0] = '\0';
