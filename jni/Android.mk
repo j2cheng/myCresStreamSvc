@@ -17,7 +17,6 @@ CSIO_ROOT := ../../csio
 CRESTRON_ROOT := $(LOCAL_PATH)/../..
 LOCAL_MODULE    := libgstreamer_jni
 STREAMOUT_PATH := $(LOCAL_PATH)/cresStreamOut
-SECURE_STORAGE_PATH := $(CRESTRON_ROOT)/SecureStorage
 LOCAL_SRC_FILES := \
 	jni.cpp \
 	cregstplay.cpp \
@@ -74,9 +73,9 @@ endif
 LOCAL_SHARED_LIBRARIES += libcresstore_json
 #LOCAL_SHARED_LIBRARIES += libjsoncpp
 LOCAL_SHARED_LIBRARIES += libcresnextserializer
+ifeq ($(shell test $(PLATFORM_SDK_VERSION) -lt 23 && echo PreMarshmallow),PreMarshmallow)
 LOCAL_SHARED_LIBRARIES += libstlport
-LOCAL_SHARED_LIBRARIES += libSecureStorage
-
+endif
 
 # Crestron - why do I have to do this?
 #LOCAL_LDLIBS := -llog -landroid
@@ -85,7 +84,6 @@ LOCAL_SHARED_LIBRARIES += libSecureStorage
 LOCAL_CFLAGS +=\
 	-I$(CPP_INC_PATH) \
 	-I$(COMMON_INC_PATH) \
-	-I$(STL_INC_PATH) \
 	-I$(GSTREAMER_ROOT_ANDROID)/include/gstreamer-1.0 \
 	-I$(GSTREAMER_ROOT_ANDROID)/include/glib-2.0 \
 	-I$(GSTREAMER_ROOT_ANDROID)/lib/glib-2.0/include \
@@ -108,10 +106,12 @@ LOCAL_CFLAGS +=\
 	-I$(CRESTRON_ROOT)/CresNextSerializer/cresNextManager \
 	-I$(CRESTRON_ROOT)/CresNextSerializer/CresNextObjects/include \
 	-I$(CRESTRON_ROOT)/../rapidjson/include \
-	-I$(SECURE_STORAGE_PATH)/ \
 	-std=gnu99 \
 	-w\
 	-DANDROID_OS
+ifeq ($(shell test $(PLATFORM_SDK_VERSION) -lt 23 && echo PreMarshmallow),PreMarshmallow)
+	LOCAL_CFLAGS += -I$(STL_INC_PATH)
+endif
 
 ifeq ($(TARGET_PRODUCT),$(filter $(TARGET_PRODUCT),yushan_one full_omap5panda))
 LOCAL_C_FLAGS +=  -I$(CRESTRON_ROOT)/../openssl-1.1.1/include
@@ -153,12 +153,10 @@ CRESTRON_ROOT := $(LOCAL_PATH)/../..
 CSIO_INCLUDE_ROOT := $(LOCAL_PATH)/../../csio
 STL_INC_PATH := $(CRESTRON_ROOT)/../stlport/stlport
 CPP_INC_PATH := $(CRESTRON_ROOT)/../../bionic
-SECURE_STORAGE_PATH := $(CRESTRON_ROOT)/SecureStorage
 LOCAL_MODULE := libcresstreamctrl_jni
 LOCAL_CFLAGS +=\
 	-DANDROID_OS \
 	-I$(CPP_INC_PATH) \
-	-I$(STL_INC_PATH) \
 	-I$(CSIO_INCLUDE_ROOT) \
 	-I$(CSIO_INCLUDE_ROOT)/crestHdcp \
 	-I$(CRESTRON_ROOT)/productNameUtil \
@@ -170,9 +168,11 @@ LOCAL_CFLAGS +=\
 	-I$(CRESTRON_ROOT)/CresNextSerializer/cresNextManager \
 	-I$(CRESTRON_ROOT)/CresNextSerializer/CresNextObjects/include \
  	-I$(CRESTRON_ROOT)/../rapidjson/include \
-	-I$(SECURE_STORAGE_PATH)/ \
 	-w\
 	-DANDROID_OS
+ifeq ($(shell test $(PLATFORM_SDK_VERSION) -lt 23 && echo PreMarshmallow),PreMarshmallow)
+	LOCAL_CFLAGS += -I$(STL_INC_PATH)
+endif
 	
 #	-I$(CPP_INC_PATH) \
 #	-I$(COMMON_INC_PATH) \
@@ -204,9 +204,9 @@ LOCAL_SHARED_LIBRARIES := libCsioProdInfo
 LOCAL_SHARED_LIBRARIES += libcresstore_json
 #LOCAL_SHARED_LIBRARIES += libjsoncpp
 LOCAL_SHARED_LIBRARIES += libcresnextserializer
-LOCAL_SHARED_LIBRARIES += libSecureStorage
-
+ifeq ($(shell test $(PLATFORM_SDK_VERSION) -lt 23 && echo PreMarshmallow),PreMarshmallow)
 LOCAL_SHARED_LIBRARIES += libstlport
+endif
 LOCAL_SHARED_LIBRARIES += liblog libandroid
 
 LOCAL_SRC_FILES := cresstreamctrl_jni.cpp
