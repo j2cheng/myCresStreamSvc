@@ -95,6 +95,48 @@ typedef int (*rtsp_callback_fn) (struct rtsp *bus,
 				 struct rtsp_message *m,
 				 void *data);
 
+
+/*
+ * Media format WFD subelement encoding
+ */
+
+typedef struct _wfdVideoSubElemEncEntry
+{
+   int      bitIndex;         // corresponding bit(s)
+   int      hRes;
+   int      vRes;
+   int      vRefrate;
+   char *   encodedValStr;    // interpretation
+} WFDVIDEOSUBELEMENCENTRY;
+
+typedef struct _wfdAudioSubElemEncEntry
+{
+   int      bitIndex;         // corresponding bit(s)
+   float    samplingFreq;
+   int      sampleBits;
+   int      channels;
+   char *   encodedValStr;    // interpretation
+} WFDAUDIOSUBELEMENCENTRY;
+
+#define GETBINFLAG(_index_)             (1 << (_index_))
+#define GETENCTABLEINDEX(_table,_encValStr,_index) \
+{ \
+   int nn; \
+   _index = -1; \
+   if(_table && _encValStr) \
+   { \
+      for(nn = 0;_table[nn].bitIndex >= 0;nn++) \
+      { \
+         if(!strcmp(_table[nn].encodedValStr,_encValStr)) \
+         { \
+	         _index = nn; \
+            break; \
+         } \
+      } \
+   } \
+}
+
+
 /*
  * Bus
  */

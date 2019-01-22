@@ -16,9 +16,19 @@ typedef struct _rtspsysteminfo
    char * preferredVidResRefStr;    // preferred resolution/refresh_rate string
                                     //    format:     HRESxVRESpRRATE or HRESxVRESiRRATE
                                     //    examples:   640x480p50 1920x1080i60
-   char * preferredAudioCodecStr;   // preferred audio codec info string
+                                    //    all admissable string values are provided in
+                                    //    cresRTSP.c in tables:
+                                    //       ceaResRefEnc
+                                    //       vesaResRefEnc
+                                    //       hhResRefEnc
+   char * preferredAudioCodecStr;   // preferred audio codec string
                                     //    format:     CODECxSAMPLINGFREGxCHANNELS
                                     //    examples:   LPCMx44_1x2 AACx48x6 AC3x48x4
+                                    //    all admissable string values are provided in
+                                    //    cresRTSP.c in tables:
+                                    //       lpcmModeEnc
+                                    //       aacModeEnc
+                                    //       ac3ModeEnc
 } RTSPSYSTEMINFO;
 
 typedef struct _rtspheaderdata
@@ -67,15 +77,18 @@ typedef int (* RTSPPARSERAPP_COMPOSECALLBACK)(RTSPCOMPOSINGRESULTS * composingRe
 
 struct rtsp
 {
+   // *** application callback support ***
    RTSPPARSERAPP_CALLBACK crestCallback;
    void * crestCallbackArg;
    RTSPPARSERAPP_COMPOSECALLBACK crestComposeCallback;
    void * crestComposeCallbackArg;
 
-
+   // *** session parameters ***
+   int rtpPort;
+   char preferredVidResRefStr[32];
+   char preferredAudioCodecStr[32];
 
    // *** session control ***
-   int rtpPort;
    int sourceRTPPort;
    char sessionID[32];
    char triggerMethod[32];
@@ -84,8 +97,6 @@ struct rtsp
    unsigned int cea_res;
    unsigned int vesa_res;
    unsigned int hh_res;
-
-
 
 	unsigned long ref;
 	uint64_t cookies;
@@ -216,7 +227,7 @@ struct rtsp_message
 };
 
 
-void * initRTSPParser(RTSPSYSTEMINFO * sysInfo);
+void * initRTSPParser(RTSPSYSTEMINFO * sysInfo);      // it is o.k. to pass NULL for sysInfo
 int deInitRTSPParser(void * session);
 int parseRTSPMessage(void * session,char * message, RTSPPARSERAPP_CALLBACK callback,
       void * callbackArg);

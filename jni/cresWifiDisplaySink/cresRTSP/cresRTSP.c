@@ -44,6 +44,114 @@
 #define RTSP_FIRST_WAITING(_bus) \
 	SHL_HTABLE_FIRST_MACRO(&(_bus)->waiting, rtsp_message_from_htable)
 
+
+// Supported CEA Resolution/Refresh Rates
+WFDVIDEOSUBELEMENCENTRY ceaResRefEnc[] =
+{
+   { 0,   640,  480, 60, "640x480p60"   },
+   { 1,   720,  480, 60, "720x480p60"   },
+   { 2,   720,  480, 60, "720x480i60"   },
+   { 3,   720,  576, 50, "720x576p50"   },
+   { 4,   720,  576, 50, "720x576i50"   },
+   { 5,  1280,  720, 30, "1280x720p30"  },
+   { 6,  1280,  720, 60, "1280x720p60"  },
+   { 7,  1920, 1080, 30, "1920x1080p30" },
+   { 8,  1920, 1080, 60, "1920x1080p60" },
+   { 9,  1920, 1080, 60, "1920x1080i60" },
+   { 10, 1280,  720, 25, "1280x720p25"  },
+   { 11, 1280,  720, 50, "1280x720p50"  },
+   { 12, 1920, 1080, 25, "1920x1080p25" },
+   { 13, 1920, 1080, 50, "1920x1080p50" },
+   { 14, 1920, 1080, 50, "1920x1080i50" },
+   { 15, 1280,  720, 24, "1280x720p24"  },
+   { 16, 1920, 1080, 24, "1920x1080p24" },
+   { -1,    0,    0,  0, NULL           }
+};
+
+// Supported VESA Resolution/Refresh Rates
+WFDVIDEOSUBELEMENCENTRY vesaResRefEnc[] =
+{
+   { 0,   800,  600, 30, "800x600p30"   },
+   { 1,   800,  600, 60, "800x600p60"   },
+   { 2,  1024,  768, 30, "1024x768p30"  },
+   { 3,  1024,  768, 60, "1024x768p60"  },
+   { 4,  1152,  854, 30, "1152x864p30"  },
+   { 5,  1152,  854, 60, "1152x864p60"  },
+   { 6,  1280,  768, 30, "1280x768p30"  },
+   { 7,  1280,  768, 60, "1280x768p60"  },
+   { 8,  1280,  800, 30, "1280x800p30"  },
+   { 9,  1280,  800, 60, "1280x800p60"  },
+   { 10, 1360,  768, 30, "1360x768p30"  },
+   { 11, 1360,  768, 60, "1360x768p60"  },
+   { 12, 1366,  768, 30, "1366x768p30"  },
+   { 13, 1366,  768, 60, "1366x768p60"  },
+   { 14, 1280, 1024, 30, "1280x1024p30" },
+   { 15, 1280, 1024, 60, "1280x1024p60" },
+   { 16, 1440, 1050, 30, "1400x1050p30" },
+   { 17, 1440, 1050, 60, "1400x1050p60" },
+   { 18, 1440,  900, 30, "1440x900p30"  },
+   { 19, 1440,  900, 60, "1440x900p60"  },
+   { 20, 1600,  900, 30, "1600x900p30"  },
+   { 21, 1600,  900, 60, "1600x900p60"  },
+   { 22, 1600, 1200, 30, "1600x1200p30" },
+   { 23, 1600, 1200, 60, "1600x1200p60" },
+   { 24, 1680, 1024, 30, "1680x1024p30" },
+   { 25, 1680, 1024, 60, "1680x1024p60" },
+   { 26, 1680, 1050, 30, "1680x1050p30" },
+   { 27, 1680, 1050, 60, "1680x1050p60" },
+   { 28, 1920, 1200, 30, "1920x1200p30" },
+   { -1,    0,    0,  0, NULL           }
+};
+
+// Supported HH Resolution/Refresh Rates
+WFDVIDEOSUBELEMENCENTRY hhResRefEnc[] =
+{
+   { 0,   800,  480, 30, "800x480p30"   },
+   { 1,   800,  480, 60, "800x480p60"   },
+   { 2,   854,  480, 30, "854x480p30"   },
+   { 3,   854,  480, 60, "854x480p60"   },
+   { 4,   864,  480, 30, "864x480p30"   },
+   { 5,   864,  480, 60, "864x480p60"   },
+   { 6,   640,  360, 30, "640x360p30"   },
+   { 7,   640,  360, 60, "640x360p60"   },
+   { 8,   960,  540, 30, "960x540p30"   },
+   { 9,   960,  540, 60, "960x540p60"   },
+   { 10,  848,  480, 30, "848x480p30"   },
+   { 11,  848,  480, 60, "848x480p60"   },
+   { -1,    0,    0,  0, NULL           } 
+};
+
+// Supported LPCM modes
+WFDAUDIOSUBELEMENCENTRY lpcmModeEnc[] =
+{
+   { 0,    44.1, 16,  2, "LPCMx44_1x2"  },
+   { 1,    48.0, 16,  2, "LPCMx48x2"    },
+   { -1,    0.0,  0,  0, NULL           }
+};
+
+// Supported AAC modes
+WFDAUDIOSUBELEMENCENTRY aacModeEnc[] =
+{
+   { 0,    48.0, 16,  2, "AACx48x2"     },
+   { 1,    48.0, 16,  4, "AACx48x4"     },
+   { 2,    48.0, 16,  6, "AACx48x6"     },
+   { 3,    48.0, 16,  8, "AACx48x8"     },
+   { -1,    0.0,  0,  0, NULL           }
+};
+
+// Supported AC3 modes
+WFDAUDIOSUBELEMENCENTRY ac3ModeEnc[] =
+{
+   { 0,    48.0, 16,  2, "AC3x48x2"     },
+   { 1,    48.0, 16,  4, "AC3x48x4"     },
+   { 2,    48.0, 16,  6, "AC3x48x6"     },
+   { -1,    0.0,  0,  0, NULL           }
+};
+
+
+int rtsp_encodeVideoFormat(char * outBuff, int outBuffSize, char * encodedValStr);
+int rtsp_encodeAudioFormat(char * outBuff, int outBuffSize, char * encodedValStr);
+
 static void rtsp_free_match(struct rtsp_match *match);
 static void rtsp_drop_message(struct rtsp_message *m);
 static int rtsp_incoming_message(struct rtsp_message *m);
@@ -121,7 +229,10 @@ int main(int argc, char **argv)
    char        requestArg1[256];
    char        locBuff[4096];
 
-   sysInfo.rtpPort = 4570;
+   // sysInfo.rtpPort = 4570;
+   // sysInfo.preferredVidResRefStr = "848x480p60";
+   // sysInfo.preferredAudioCodecStr = "AC3x48x6";
+   sysInfo.rtpPort = -1;
    sysInfo.preferredVidResRefStr = NULL;
    sysInfo.preferredAudioCodecStr = NULL;
 
@@ -234,7 +345,6 @@ int testCallback(RTSPPARSINGRESULTS * parsingResPtr, void * appArgument)
 {
    int retv;
    unsigned int cea_res, vesa_res, hh_res;
-   const char * triggerMethod;
    const char * url;
    char * nu;
    struct rtsp_message * msgPtr;
@@ -538,30 +648,42 @@ int getLineFromFile(char * buff, int size, int fileHd, int expectCRLF)
 
 void * initRTSPParser(RTSPSYSTEMINFO * sysInfo)
 {
+   // Remarks:
+   //    1. sysInfo is allowed to be NULL
+   // 
    int         retv;
    int         rtpPort;
    char *      prefResRefStr;
    char *      prefCodecStr;
    struct rtsp * rtspSession;
 
-   if(!sysInfo)
-      return(NULL);
+   rtpPort = 4570;
+   prefResRefStr = "1920x1080i60";
+   prefCodecStr = "LPCMx44_1x2";
 
-   if(sysInfo->rtpPort > 0)
+   if(sysInfo)
+   {
+      if(sysInfo->rtpPort > 0)
          rtpPort = sysInfo->rtpPort;
-   else  rtpPort = 4570;
-   if(sysInfo->preferredVidResRefStr && (sysInfo->preferredVidResRefStr[0] != '\0'))
+      if(sysInfo->preferredVidResRefStr && (sysInfo->preferredVidResRefStr[0] != '\0'))
          prefResRefStr = sysInfo->preferredVidResRefStr;
-   else  prefResRefStr = "1920x1080i60";
-   if(sysInfo->preferredAudioCodecStr && (sysInfo->preferredAudioCodecStr[0] != '\0'))
+      if(sysInfo->preferredAudioCodecStr && (sysInfo->preferredAudioCodecStr[0] != '\0'))
          prefCodecStr = sysInfo->preferredAudioCodecStr;
-   else  prefCodecStr = "LPCMx44_1x2";
+   }
 
    retv = rtsp_open(&rtspSession,0);
    if(retv)
       return(NULL);
 
    rtspSession->rtpPort = rtpPort;
+   strncpy(rtspSession->preferredVidResRefStr,prefResRefStr,
+      sizeof(rtspSession->preferredVidResRefStr));
+   rtspSession->preferredVidResRefStr[
+      sizeof(rtspSession->preferredVidResRefStr)-1] = '\0';
+   strncpy(rtspSession->preferredAudioCodecStr,prefCodecStr,
+      sizeof(rtspSession->preferredAudioCodecStr));
+   rtspSession->preferredAudioCodecStr[
+      sizeof(rtspSession->preferredAudioCodecStr)-1] = '\0';
 
    rtspSession->sourceRTPPort = 0;
    rtspSession->sessionID[0] = '\0';
@@ -730,18 +852,11 @@ int composeRTSPResponse(void * session,RTSPPARSINGRESULTS * requestParsingResult
    //       enumeration.
    //    2.
    // 
-
-
-   //
-   // *** temporary - complete it ***
-   //
-   int rstp_port = 1028;
-
-
    int         retv;
    struct rtsp * rtspSession;
    _rtsp_message_unref_ struct rtsp_message * rep = NULL;
    struct rtsp_message * orgMsg;
+   char        locBuff[512];
 
    if(!session || !requestParsingResultsPtr || !requestParsingResultsPtr->parsedMessagePtr)
       return(-1);
@@ -749,6 +864,7 @@ int composeRTSPResponse(void * session,RTSPPARSINGRESULTS * requestParsingResult
    rtspSession = (struct rtsp *)session;
 
    orgMsg = requestParsingResultsPtr->parsedMessagePtr;
+
 
 
    //
@@ -786,17 +902,38 @@ int composeRTSPResponse(void * session,RTSPPARSINGRESULTS * requestParsingResult
    else if(!strcmp(org_request_method,"GET_PARAMETER"))
    {
       /* wfd_video_formats */
-      check_and_response_option("wfd_video_formats",
-         "40 00 01 10 0001bdeb 051557ff 00000fff 10 0000 001f 11 0780 0438, "
-         "02 10 0001bdeb 155557ff 00000fff 10 0000 001f 11 0780 0438");
+      // *** check_and_response_option("wfd_video_formats",
+      // ***    "40 00 01 10 0001bdeb 051557ff 00000fff 10 0000 001f 11 0780 0438, "
+      // ***    "02 10 0001bdeb 155557ff 00000fff 10 0000 001f 11 0780 0438");
+      retv = rtsp_encodeVideoFormat(locBuff,sizeof(locBuff),
+         rtspSession->preferredVidResRefStr);
+      if(retv)
+      {
+         printf("ERROR: failed to construct video format string from prefString %s\n",
+            rtspSession->preferredVidResRefStr);
+         return(-1);
+      }
+      printf("INFO: video format string (from prefString %s) is : %s\n",
+         rtspSession->preferredVidResRefStr,locBuff);
+      check_and_response_option("wfd_video_formats",locBuff);
 
       /* wfd_audio_codecs */
-      check_and_response_option("wfd_audio_codecs", "LPCM 00000003 00, AAC 0000000f 00, AC3 00000007 00");
+      // *** check_and_response_option("wfd_audio_codecs", "LPCM 00000003 00, AAC 0000000f 00, AC3 00000007 00");
+      retv = rtsp_encodeAudioFormat(locBuff,sizeof(locBuff),
+         rtspSession->preferredAudioCodecStr);
+      if(retv)
+      {
+         printf("ERROR: failed to construct audio format string from prefString %s\n",
+            rtspSession->preferredAudioCodecStr);
+         return(-1);
+      }
+      printf("INFO: video format string (from prefString %s) is : %s\n",
+         rtspSession->preferredAudioCodecStr,locBuff);
+      check_and_response_option("wfd_audio_codecs",locBuff);
 
       /* wfd_client_rtp_ports */
-      char wfd_client_rtp_ports[128];
-      sprintf(wfd_client_rtp_ports, "RTP/AVP/UDP;unicast %d 0 mode=play", rstp_port);
-      check_and_response_option("wfd_client_rtp_ports", wfd_client_rtp_ports);
+      sprintf(locBuff,"RTP/AVP/UDP;unicast %d 0 mode=play",rtspSession->rtpPort);
+      check_and_response_option("wfd_client_rtp_ports",locBuff);
 
       /* wfd_content_protection */
       check_and_response_option("wfd_content_protection", "none");
@@ -1001,8 +1138,109 @@ int cresRTSP_internalComposeCallback(void * session,unsigned int messageType,
    return(retv);
 }
 
+
+// ----- additional rtsp_ functions -----
+
 bool check_rtsp_option(struct rtsp_message *m, char *option) {
 	return rtsp_message_read(m, "{<>}", option) >= 0;
+}
+
+
+// ----- WFD header data encoding / decoding -----
+
+int rtsp_encodeVideoFormat(char * outBuff, int outBuffSize, char * encodedValStr)
+{
+   int index;
+   uint32_t ceaFlags = 0,vesaFlags = 0,hhFlags = 0;
+   char locBuff[128];
+
+   if(!outBuff || !encodedValStr)
+      return(-1);
+
+   GETENCTABLEINDEX(ceaResRefEnc,encodedValStr,index);
+   if(index >= 0)
+      ceaFlags = GETBINFLAG(index);
+   else 
+   {
+      GETENCTABLEINDEX(vesaResRefEnc,encodedValStr,index);
+      if(index >= 0)
+         vesaFlags = GETBINFLAG(index);
+      else
+      {
+         GETENCTABLEINDEX(hhResRefEnc,encodedValStr,index);
+         if(index >= 0)
+            hhFlags = GETBINFLAG(index);
+         else
+         {
+            printf("ERROR: encodeVideoFormat() failed to encode video format%s\n",encodedValStr);
+            return(-1);
+         }
+      }
+   }
+
+   sprintf(locBuff,"00 00 01 01 %08x %08x %08x 00 0000 0000 00 none none",
+      ceaFlags,vesaFlags,hhFlags);
+   if(strlen(locBuff) >= outBuffSize)
+   {
+      printf("ERROR: outBuffSize (%d) too small to hold encoded string %s\n",locBuff);
+      return(-1);
+   }
+
+   strcpy(outBuff,locBuff);
+
+	return(0);
+}
+
+int rtsp_encodeAudioFormat(char * outBuff, int outBuffSize, char * encodedValStr)
+{
+   int index;
+   uint32_t codecFlags = 0;
+   char * codecName;
+   char locBuff[128];
+
+   if(!outBuff || !encodedValStr)
+      return(-1);
+
+   GETENCTABLEINDEX(lpcmModeEnc,encodedValStr,index);
+   if(index >= 0)
+   {
+      codecFlags = GETBINFLAG(index);
+      codecName = "LPCM";
+   }
+   else 
+   {
+      GETENCTABLEINDEX(aacModeEnc,encodedValStr,index);
+      if(index >= 0)
+      {
+         codecFlags = GETBINFLAG(index);
+         codecName = "AAC";
+      }
+      else
+      {
+         GETENCTABLEINDEX(ac3ModeEnc,encodedValStr,index);
+         if(index >= 0)
+         {
+            codecFlags = GETBINFLAG(index);
+            codecName = "AC3";
+         }
+         else
+         {
+            printf("ERROR: encodeAudioFormat() failed to encode video format%s\n",encodedValStr);
+            return(-1);
+         }
+      }
+   }
+
+   sprintf(locBuff,"%s %08x 00",codecName,codecFlags);
+   if(strlen(locBuff) >= outBuffSize)
+   {
+      printf("ERROR: outBuffSize (%d) too small to hold encoded string %s\n",locBuff);
+      return(-1);
+   }
+
+   strcpy(outBuff,locBuff);
+
+	return(0);
 }
 
 
@@ -1702,12 +1940,7 @@ static int rtsp_message_append_header_line(struct rtsp_message *m,
 		--valuelen;
 	}
 
-	r = rtsp_message_append_header(m,
-				       &h,
-				       line,
-				       keylen,
-				       value,
-				       valuelen);
+	r = rtsp_message_append_header(m,&h,line,keylen,value,valuelen);
 	if (r < 0) {
 		free(t);
 		return r;
@@ -1739,9 +1972,7 @@ static int rtsp_header_append_token(struct rtsp_header *h, const char *token)
 	if (!h || !token || h->line || h->value)
 		return -EINVAL;
 
-	if (!SHL_GREEDY_REALLOC0_T(h->tokens,
-				   h->token_cnt,
-				   h->token_used + 2))
+	if (!SHL_GREEDY_REALLOC0_T(h->tokens,h->token_cnt,h->token_used + 2))
 		return -ENOMEM;
 
 	h->tokens[h->token_used] = strdup(token);
@@ -1926,10 +2157,7 @@ int rtsp_message_appendv_basic(struct rtsp_message *m,
 			orig = "";
 
 		if (m->iter_header)
-			return rtsp_header_set_value(m->iter_header,
-						     orig,
-						     strlen(orig),
-						     false);
+			return rtsp_header_set_value(m->iter_header,orig,strlen(orig),false);
 		else
 			return rtsp_message_append_line(m, orig);
 	case RTSP_TYPE_HEADER_START:
@@ -3081,11 +3309,7 @@ static int parser_submit_data(struct rtsp *bus, uint8_t *p)
 
 
 
-	r = rtsp_message_new_data(bus,
-				  &m,
-				  dec->data_channel,
-				  p,
-				  dec->data_size);
+	r = rtsp_message_new_data(bus,&m,dec->data_channel,p,dec->data_size);
 	if (r < 0) {
 		free(p);
 		return r;
@@ -3303,9 +3527,7 @@ static int parser_feed_char_body(struct rtsp *bus, char ch)
 			shl_ring_copy(&dec->buf, line, dec->buflen);
 			line[dec->buflen] = 0;
 
-			r = rtsp_message_append_body(dec->m,
-						     line,
-						     dec->buflen);
+			r = rtsp_message_append_body(dec->m,line,dec->buflen);
 			if (r >= 0)
 				r = parser_submit(bus);
 
