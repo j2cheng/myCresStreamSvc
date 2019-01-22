@@ -42,6 +42,8 @@ public class GstreamIn implements StreamInStrategy, SurfaceHolder.Callback {
     private static native boolean nativeClassInit(); // Initialize native class: cache Method IDs for callbacks
     private native void nativeSurfaceInit(Object surface, int sessionId);
     private native void nativeSurfaceFinalize(int sessionId);
+    private native void nativeWfdStart(int sessionId, String url, int rtsp_port);
+    private native void nativeWfdStop(int sessionId);
     private long native_custom_data;      // Native code will use this to keep private data
 
     private static native void 	nativeSetServerUrl(String url, int sessionId);
@@ -489,6 +491,53 @@ public class GstreamIn implements StreamInStrategy, SurfaceHolder.Callback {
         nativeClassInit();
     }
  
+    
+    public void wfdStart(final int sessionId, final String url, final int rtsp_port)
+    {
+    	final GstreamIn gStreamObj = this;
+    	final CountDownLatch latch = new CountDownLatch(1);
+    	Thread startThread = new Thread(new Runnable() {
+    		public void run() {
+    			try {
+    				isPlaying = true;
+    				Surface s = streamCtl.getSurface(sessionId);
+    				nativeSurfaceInit(s, sessionId);
+    		    	nativeWfdStart(sessionId, url, rtsp_port);
+    			}
+    			catch(Exception e){
+    				// TODO: explore exception handling with better feedback of what went wrong to user
+    				streamCtl.SendStreamState(StreamState.STOPPED, sessionId);
+    				e.printStackTrace();        
+    			}     
+    			latch.countDown();
+    		}
+    	});
+    	startThread.start();
+
+    	// We launch the start command in its own thread and timeout in case mediaserver gets hung
+    	boolean successfulStart = true; //indicates that there was no time out condition
+    	try { successfulStart = latch.await(startTimeout_ms, TimeUnit.MILLISECONDS); }
+    	catch (InterruptedException ex) { ex.printStackTrace(); }
+
+    	streamCtl.checkVideoTimeouts(successfulStart);
+    	if (!successfulStart)
+    	{
+    		Log.e(TAG, MiscUtils.stringFormat("Stream In failed to start after %d ms", startTimeout_ms));
+    		startThread.interrupt(); //cleanly kill thread
+    		startThread = null;
+    		streamCtl.RecoverTxrxService();
+    	}
+    }
+    
+    public void wfdStop(final int sessionId)
+    {
+    	isPlaying = false;
+    	Log.i(TAG, "wfdStop");
+        //nativeSurfaceFinalize (sessionId);should be called in surfaceDestroyed()
+    	nativeWfdStop(sessionId);
+    }
+    
+    
 	// Find the session id (aka stream number) given a surface holder.
 	// Returns <0 for failure.
     private int sessionIdFromSurfaceHolder(SurfaceHolder holder) {

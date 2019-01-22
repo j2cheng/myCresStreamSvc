@@ -363,4 +363,14 @@ public class NstreamIn implements StreamInStrategy, OnPreparedListener, OnComple
     {
     	// Not needed by gallery player
     }
+    
+    public void wfdStart(int sessionId, String url, int rtsp_port)
+    {
+    	// Not needed by gallery player
+    }
+    
+    public void wfdStop(int sessionId)
+    {
+    	// Not needed by gallery player
+    }
 }

@@ -195,6 +195,7 @@ public class CommandParser {
         FDEBUG_JNI,
         RESET_ALL_WINDOWS,
         WBSLOGLEVEL,
+        WFDSTREAM,
         FORCE_RGB_PREVIEW_MODE,
         CHROMAKEY_COLOR,
     	LOGLEVEL;
@@ -797,6 +798,9 @@ public class CommandParser {
             	break;
             case WBSLOGLEVEL:
             	cmd = new SetWbsLogLevelCommand(ctrl, arg);
+            	break;
+            case WFDSTREAM:
+            	cmd = new WfdStreamCommand(ctrl, arg, idx);
             	break;
             case FORCE_RGB_PREVIEW_MODE:
             	cmd = new ForceRgbPreviewModeCommand(ctrl, arg);

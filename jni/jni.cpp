@@ -324,6 +324,8 @@ static void gst_native_init (JNIEnv* env, jobject thiz)
 	cdata->app = env->NewGlobalRef (thiz);
 	init_custom_data(cdata);
 	csio_jni_init();
+
+    WfdSinkProjInit();
 }
 
 // Set up some defaults for streaming out using gstreamer.
@@ -348,7 +350,8 @@ static void gst_native_finalize (JNIEnv* env, jobject thiz)
 	int i;
 	
 	if (!cdata) return;
-		
+
+    WfdSinkProjDeInit();
 	CSIO_LOG(eLogLevel_debug, "Deleting GlobalRef for app object at %p", cdata->app);
     env->DeleteGlobalRef ((jobject)gStreamIn_javaClass_id);
 	env->DeleteGlobalRef (cdata->app);
@@ -4011,25 +4014,13 @@ JNIEXPORT void JNICALL Java_com_crestron_txrxservice_WbsStreamIn_nativeSetLogLev
 	wbs_setLogLevel(logLevel);
 }
 /***************************** end of Kaptivo whiteboard streaming in *********************************/
-#ifdef WIFI_DISPLAY
-/***************************** start of Miracast(Wifi Display:wfd) streaming in *********************************/
-/* Init. wfd project */
-JNIEXPORT void JNICALL Java_com_crestron_txrxservice_WfdStreamIn_WFD_Init(JNIEnv *env, jobject thiz)
-{
-    CSIO_LOG(eLogLevel_verbose, "%s", __FUNCTION__);
-    WfdSinkProjInit();
-}
-JNIEXPORT void JNICALL Java_com_crestron_txrxservice_WfdStreamIn_WFD_DeInit(JNIEnv *env, jobject thiz)
-{
-    CSIO_LOG(eLogLevel_verbose, "%s", __FUNCTION__);
-    WfdSinkProjDeInit();
-}
 
+/***************************** start of Miracast(Wifi Display:wfd) streaming in shares GStreamIn class instance *********************************/
 /* Start wfd connection .
  * Note: calling function should call gst_native_surface_init() to setup surface first.
  *
  * */
-JNIEXPORT void JNICALL Java_com_crestron_txrxservice_WfdStreamIn_WFD_Start(JNIEnv *env, jobject thiz, jint windowId,jstring url_jstring,jint rtsp_port)
+JNIEXPORT void JNICALL Java_com_crestron_txrxservice_GstreamIn_nativeWfdStart(JNIEnv *env, jobject thiz, jint windowId, jstring url_jstring, jint rtsp_port)
 {
     const char * url_cstring = env->GetStringUTFChars( url_jstring , NULL ) ;
     if (url_cstring == NULL)
@@ -4039,9 +4030,7 @@ JNIEXPORT void JNICALL Java_com_crestron_txrxservice_WfdStreamIn_WFD_Start(JNIEn
         return;
     }
 
-    env->ReleaseStringUTFChars(url_jstring, url_cstring);
-
-    CSIO_LOG(eLogLevel_verbose, "start TCP connection source url[%s], port[%d]", url_cstring,rtsp_port);
+    CSIO_LOG(eLogLevel_info, "%s: start TCP connection source url[%s], port[%d]", __FUNCTION__, url_cstring,rtsp_port);
 
     /* TODO: calling csio_SetPortNumber( windowId, port, c_TSportNumber ); ???
      *       port = CSIOCnsIntf->getStreamTxRx_TSPORT(windowId);
@@ -4052,6 +4041,7 @@ JNIEXPORT void JNICALL Java_com_crestron_txrxservice_WfdStreamIn_WFD_Start(JNIEn
 
     int ts_port = CSIOCnsIntf->getStreamTxRx_TSPORT(windowId);
     WfdSinkProjStart(windowId,url_cstring,rtsp_port,ts_port);
+    env->ReleaseStringUTFChars(url_jstring, url_cstring);
 }
 
 /* Stop/Teardown wfd connection
@@ -4059,7 +4049,7 @@ JNIEXPORT void JNICALL Java_com_crestron_txrxservice_WfdStreamIn_WFD_Start(JNIEn
  * TODO: should calling function call gst_native_surface_finalize() after this?
  * TODO: this function should call csio_jni_stop?
  * */
-JNIEXPORT void JNICALL Java_com_crestron_txrxservice_WfdStreamIn_WFD_Stop(JNIEnv *env, jobject thiz, jint windowId)
+JNIEXPORT void JNICALL Java_com_crestron_txrxservice_GstreamIn_nativeWfdStop(JNIEnv *env, jobject thiz, jint windowId)
 {
     CSIO_LOG(eLogLevel_verbose, "%s", __FUNCTION__);
 
@@ -4084,7 +4074,7 @@ JNIEXPORT void JNICALL Java_com_crestron_txrxservice_WfdStreamIn_WFD_Stop(JNIEnv
         }
     }
 }
-#endif
+
 //TODO: get surface from app, report status back to app, resolution setting came from app
 
 /* called from state machine for : TCP connected/disconnected
@@ -4144,7 +4134,7 @@ void Wfd_setup_gst_pipeline (int id, int state, int ts_port)
 
             char *wfd_status_cstr = "wifi display client rtsp connected.\r\n";
 
-            CSIO_LOG(eLogLevel_debug,  "Sent wfd_status_cstr FB %s", wfd_status_cstr );
+            CSIO_LOG(eLogLevel_debug,  "Sent wfd_status_cstr FB = %s", wfd_status_cstr );
 
             wfd_status_jstr = env->NewStringUTF(wfd_status_cstr);
 

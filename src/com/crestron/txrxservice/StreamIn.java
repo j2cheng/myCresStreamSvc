@@ -149,6 +149,16 @@ public class StreamIn {
     public void setLogLevel(int LogLevel) {
     	strategy.setLogLevel(LogLevel);
     }
+    
+    public void wfdStart(int sessionId, String url, int rtsp_port)
+    {
+    	strategy.wfdStart(sessionId, url, rtsp_port);
+    }
+    
+    public void wfdStop(int sessionId)
+    {
+    	strategy.wfdStop(sessionId);
+    }
 }
 
 interface StreamInStrategy{
@@ -184,4 +194,6 @@ interface StreamInStrategy{
     public int getMediaPlayerAudioFormatFb();
     public int getMediaPlayerAudiochannelsFb();
     public void initUnixSocketState();
+    public void wfdStart(int sessionId, String url, int rtsp_port);
+    public void wfdStop(int sessionId);
 }

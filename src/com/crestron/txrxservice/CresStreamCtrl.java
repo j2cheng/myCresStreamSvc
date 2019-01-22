@@ -3635,6 +3635,53 @@ public class CresStreamCtrl extends Service {
 		s.unlockCanvasAndPost(canvas);
     }
     
+    // For testing only - debugging
+    public void wfdStreamCommand(String msg, int sessId)
+    {
+    	String[] args = msg.split(",");
+    	
+    	if (args.length > 0)
+    	{
+    		if (args[0].equalsIgnoreCase("start"))
+    		{
+    			if (args.length < 3)
+    			{
+    				Log.i(TAG, "wfdStreamCommand: command should be 'start,url,rtsp_port'");
+    				return;
+    			}
+    			int rtsp_port = 0;
+    			try {
+    				rtsp_port = Integer.parseInt(args[2]);
+    			} catch (Exception e) {}
+    			updateWindow(sessId, false);
+    			showWindow(sessId);
+    	        invalidateSurface();
+    			startWfdStream(sessId, args[1], rtsp_port);
+    		} 
+    		else if (args[0].equalsIgnoreCase("stop"))
+    		{
+    			stopWfdStream(sessId);
+				hideWindow(sessId); 
+    		}
+    		else
+    		{
+    			Log.e(TAG, "wfdStreamCommand: Invalid command="+args[0]);
+    		}
+    	}
+    }
+    
+    public void startWfdStream(int sessId, String url, int rtsp_port)
+    {
+		Log.i(TAG, "startWfdStream: sessId="+sessId+"   url="+url+"   rtspPort="+rtsp_port);
+        streamPlay.wfdStart(sessId, url, rtsp_port);
+    }
+
+    public void stopWfdStream(int sessId)
+    {
+		Log.i(TAG, "stopWfdStream: sessId="+sessId);
+		streamPlay.wfdStop(sessId); 
+    }
+    
     // Start chroma key
     public void startChromaKeyStream(int sessId)
     {

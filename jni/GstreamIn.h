@@ -192,6 +192,20 @@ JNIEXPORT void JNICALL Java_com_crestron_txrxservice_GstreamIn_nativeInitUnixSoc
  */
 JNIEXPORT void JNICALL Java_com_crestron_txrxservice_GstreamIn_nativeSetRTCPDestIP(JNIEnv *env, jobject thiz, jstring rtcpIp, jint sessionId);
 
+/*
+ * Class:           GstreamIn
+ * Method:          nativeWfdStart
+ * Signature:       (ILjava/lang/string; I)V
+ */
+JNIEXPORT void JNICALL Java_com_crestron_txrxservice_GstreamIn_nativeWfdStart(JNIEnv *env, jobject thiz, jint windowId, jstring url_jstring, jint rtsp_port);
+
+/*
+ * Class:           GstreamIn
+ * Method:          nativeWfdStop
+ * Signature:       (I)V
+ */
+JNIEXPORT void JNICALL Java_com_crestron_txrxservice_GstreamIn_nativeWfdStop(JNIEnv *env, jobject thiz, jint windowId);
+
 ///////////////////////////////////////////////////////////////////////////////
 eStreamState nativeGetCurrentStreamState(jint);
 
