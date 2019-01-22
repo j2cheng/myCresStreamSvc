@@ -1472,6 +1472,9 @@ int wfdSinkStMachineClass::parserCallbackFun(RTSPPARSINGRESULTS * parsResPtr, vo
                             //if this is set_paramerter TEARDOWN
                             if(parsResPtr->headerData.triggerMethod)
                             {
+                                CSIO_LOG(p->m_debugLevel, "wfdSinkStMachineClass[%d]: parserCallbackFun: triggerMethod[%s]\n",
+                                         p->m_myId,parsResPtr->headerData.triggerMethod);
+
                                 if(strcasestr( parsResPtr->headerData.triggerMethod, "TEARDOWN" ))
                                 {
                                     p->m_EvntQ.ext_obj = WFD_SINK_TRIGGER_METHOD_TEARDOWN;
@@ -1485,11 +1488,13 @@ int wfdSinkStMachineClass::parserCallbackFun(RTSPPARSINGRESULTS * parsResPtr, vo
                                     p->m_EvntQ.ext_obj = WFD_SINK_TRIGGER_METHOD_PLAY;
                                 }//else
                             }
+                            else
+                            {
+                                CSIO_LOG(p->m_debugLevel, "wfdSinkStMachineClass[%d]: parserCallbackFun: no triggerMethod\n", p->m_myId);
+                            }
 
-                            //TODO: delete me!!!!!!
-                            if( p->m_curentState == WFD_SINK_STATES_WAIT_M5_RQST)
-                                p->m_EvntQ.ext_obj = WFD_SINK_TRIGGER_METHOD_SETUP;
-                            //TODO: delete me!!!!!!
+                            CSIO_LOG(p->m_debugLevel, "wfdSinkStMachineClass[%d]: parserCallbackFun: triggerMethod: %d\n",
+                                     p->m_myId,p->m_EvntQ.ext_obj);
 
                             composeRTSPResponse(p->m_rtspParserIntfSession,parsResPtr,RTSP_CODE_OK,parserComposeRespCallback,(void *)appArgument);
                         }

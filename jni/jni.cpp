@@ -4116,7 +4116,7 @@ void Wfd_setup_gst_pipeline (int id, int state, int ts_port)
             start_streaming_cmd(id);
         }
 
-
+#ifdef WIFI_DISPLAY
         //send some status string back to java
         {
             jstring wfd_status_jstr;
@@ -4149,7 +4149,7 @@ void Wfd_setup_gst_pipeline (int id, int state, int ts_port)
             }
             env->DeleteLocalRef (wfd_status_jstr);
         }
-
+#endif
 
         CSIO_LOG(eLogLevel_debug, "%s exit", __FUNCTION__);
     }
