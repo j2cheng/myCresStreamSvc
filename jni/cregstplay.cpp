@@ -432,7 +432,7 @@ void insert_udpsrc_probe(CREGSTREAM *data,GstElement *element,const gchar *name)
  * 
  */
 void csio_DecVideo1stOutputCB(GstElement *src,int id)
-{ 
+{
     if(csio_GetWaitDecHas1stVidDelay(id))
     {
         CSIO_LOG(eLogLevel_info, "Sending the playing message");
@@ -442,6 +442,7 @@ void csio_DecVideo1stOutputCB(GstElement *src,int id)
         csio_jni_change_queues_to_leaky(id);
         csio_SetWaitDecHas1stVidDelay(id,0);
         csio_SendVideoInfo(id, src);
+        csio_jni_setAutoBitrate(id);
     }
     else
     {
@@ -583,22 +584,21 @@ void csio_TypeFindMsgHandler( GstElement *typefind, guint probability, GstCaps *
         data->httpMode = eHttpMode_HLS;
         data->hls_started = FALSE;             //reset it each time we detected the HLS streaming
         data->has_typefind = FALSE;
-        // This is an alternative to make the HLS streaming working, but it limits to use single bitrate. 
-        //CSIO_LOG(eLogLevel_debug, "TYPEFIND: set connection-speed to 15000" );
-        //g_object_set(G_OBJECT(data->element_av[1]), "connection-speed", 15000, NULL);
+        // Set to 25 Mbps to select highest quality for first segment (will reset to 0 after first frame decoded)
+        g_object_set(G_OBJECT(data->element_av[1]), "connection-speed", 25000, NULL);
         csio_adaptivedemux_selector( data );
         data->element_after_tsdemux = 3;
     }
     // generic DASH Streaming, will figure out media format in next typefind.
     else if( strcasestr( type, "dash+xml") )
     {
-      CSIO_LOG( eLogLevel_debug,"TYPEFIND: detecting what type of DASH ..." );
-      data->httpMode = eHttpMode_DASH;
-      if (data->element_av[1] == NULL)
-      {
-        csio_adaptivedemux_selector( data );
-        data->element_after_tsdemux = 3;
-      }
+        CSIO_LOG( eLogLevel_debug,"TYPEFIND: detecting what type of DASH ..." );
+        data->httpMode = eHttpMode_DASH;
+        if (data->element_av[1] == NULL)
+        {
+            csio_adaptivedemux_selector( data );
+            data->element_after_tsdemux = 3;
+        }
     }
     // MSS streaming
     else if( strcasestr( type, "ms-sstr+xml") )

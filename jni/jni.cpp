@@ -538,6 +538,14 @@ void csio_jni_change_queues_to_leaky(int id)
     set_queue_leaky(data->element_audio_decoder_queue, "audio-decoder-queue");
 }
 
+void csio_jni_setAutoBitrate(int id)
+{
+    CREGSTREAM * data = GetStreamFromCustomData(CresDataDB, id);
+    if ( data && data->httpMode == eHttpMode_HLS ) {
+        g_object_set(G_OBJECT(data->element_av[1]), "connection-speed", 0, NULL); // Once first frame is decoded, we can set to auto bitrate
+    }
+}
+
 // This is still a current problem as of Android 4.4 and Gstreamer 1.8.2, we leak 2 sockets everytime a new url is connected to
 static bool shouldCloseSockets()
 {
