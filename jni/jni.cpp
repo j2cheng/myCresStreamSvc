@@ -792,10 +792,6 @@ void gst_native_stop (JNIEnv* env, jobject thiz, jint sessionId, jint stopTimeou
 	    {
 	        data->isStarted = false;
 
-#ifdef WIFI_DISPLAY
-	        WfdSinkProjStop(sessionId);
-#endif
-
 	        csio_jni_stop((int)sessionId);
 	    }
 	    else
@@ -1827,14 +1823,12 @@ JNIEXPORT void JNICALL Java_com_crestron_txrxservice_GstreamIn_nativeSetFieldDeb
             		data->debug_launch.threadID = NULL;
             	}
             }
-#ifdef WIFI_DISPLAY
             else if (!strcmp(CmdPtr, "WFD_FDEBUG"))
             {
                 CSIO_LOG(eLogLevel_info, "command namestring[%s]\r\n",namestring);
 
                 WfdSinkProj_fdebug(namestring);
             }
-#endif
             else
             {
                 CSIO_LOG(eLogLevel_info, "Invalid command:%s\r\n",CmdPtr);
@@ -2085,9 +2079,6 @@ jint JNI_OnLoad(JavaVM *vm, void *reserved)
 	}
 
 	pthread_key_create (&current_jni_env, detach_current_thread);
-#ifdef WIFI_DISPLAY
-	WfdSinkProjInit();	
-#endif
 	return JNI_VERSION_1_4;
 }
 
