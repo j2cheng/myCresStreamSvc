@@ -17,6 +17,7 @@ CSIO_ROOT := ../../csio
 CRESTRON_ROOT := $(LOCAL_PATH)/../..
 LOCAL_MODULE    := libgstreamer_jni
 STREAMOUT_PATH := $(LOCAL_PATH)/cresStreamOut
+SECURE_STORAGE_PATH := $(CRESTRON_ROOT)/SecureStorage
 LOCAL_SRC_FILES := \
 	jni.cpp \
 	cregstplay.cpp \
@@ -74,6 +75,7 @@ LOCAL_SHARED_LIBRARIES += libcresstore_json
 #LOCAL_SHARED_LIBRARIES += libjsoncpp
 LOCAL_SHARED_LIBRARIES += libcresnextserializer
 LOCAL_SHARED_LIBRARIES += libstlport
+LOCAL_SHARED_LIBRARIES += libSecureStorage
 
 
 # Crestron - why do I have to do this?
@@ -106,6 +108,7 @@ LOCAL_CFLAGS +=\
 	-I$(CRESTRON_ROOT)/CresNextSerializer/cresNextManager \
 	-I$(CRESTRON_ROOT)/CresNextSerializer/CresNextObjects/include \
 	-I$(CRESTRON_ROOT)/../rapidjson/include \
+	-I$(SECURE_STORAGE_PATH)/ \
 	-std=gnu99 \
 	-w\
 	-DANDROID_OS
@@ -150,6 +153,7 @@ CRESTRON_ROOT := $(LOCAL_PATH)/../..
 CSIO_INCLUDE_ROOT := $(LOCAL_PATH)/../../csio
 STL_INC_PATH := $(CRESTRON_ROOT)/../stlport/stlport
 CPP_INC_PATH := $(CRESTRON_ROOT)/../../bionic
+SECURE_STORAGE_PATH := $(CRESTRON_ROOT)/SecureStorage
 LOCAL_MODULE := libcresstreamctrl_jni
 LOCAL_CFLAGS +=\
 	-DANDROID_OS \
@@ -166,6 +170,7 @@ LOCAL_CFLAGS +=\
 	-I$(CRESTRON_ROOT)/CresNextSerializer/cresNextManager \
 	-I$(CRESTRON_ROOT)/CresNextSerializer/CresNextObjects/include \
  	-I$(CRESTRON_ROOT)/../rapidjson/include \
+	-I$(SECURE_STORAGE_PATH)/ \
 	-w\
 	-DANDROID_OS
 	
@@ -199,6 +204,7 @@ LOCAL_SHARED_LIBRARIES := libCsioProdInfo
 LOCAL_SHARED_LIBRARIES += libcresstore_json
 #LOCAL_SHARED_LIBRARIES += libjsoncpp
 LOCAL_SHARED_LIBRARIES += libcresnextserializer
+LOCAL_SHARED_LIBRARIES += libSecureStorage
 
 LOCAL_SHARED_LIBRARIES += libstlport
 LOCAL_SHARED_LIBRARIES += liblog libandroid
