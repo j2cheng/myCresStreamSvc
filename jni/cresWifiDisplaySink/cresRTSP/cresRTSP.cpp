@@ -182,7 +182,7 @@ int getRequestInfoFromInputData(char * buff, int buffSize, char * reqMethodBuff,
       int reqMethodBuffSize, char * reqArg0Buff, int reqArg0BuffSize,
       char * reqArg1Buff,int reqArg1BuffSize);
 int splitStrOnWS(char * strStart, char ** tokenArr, int tokenArrSize);
-const char * findCharRun(const char * strStart, const char * strEnd, int invertCheck);
+char * findCharRun(char * strStart, char * strEnd, int invertCheck);
 int spaceCheck(char chr, int invertCheck);
 int getLineFromFile(char * buff, int size, int fileHd, int expectCRLF);
 int printParseResults(int messageType, RTSPPARSINGRESULTS * parseResults);
@@ -231,7 +231,7 @@ int main(int argc, char **argv)
 
    bretv = processCommandLine(argc,argv);
    if(!bretv)
-		return;
+      return(-1);
 
    printf("\nINFO: Will execute command <%c>\n",glCmdChar);
 
@@ -611,7 +611,7 @@ int splitStrOnWS(char * strStart, char ** tokenArr, int tokenArrSize)
    return(nn + 1);
 }
 
-const char * findCharRun(const char * strStart, const char * strEnd, int invertCheck)
+char * findCharRun(char * strStart, char * strEnd, int invertCheck)
 {
    while((strStart < strEnd) && spaceCheck(*strStart, invertCheck))
       ++strStart;
@@ -1022,10 +1022,27 @@ int composeRTSPResponse(void * session,RTSPPARSINGRESULTS * requestParsingResult
       check_and_response_option("wfd_content_protection", "none");
 
       /* wfd_display_edid */
+      // different than in captured POC session
       check_and_response_option("wfd_display_edid", "none");
 
       /* wfd_coupled_sink */
       check_and_response_option("wfd_coupled_sink", "none");
+
+      /* --- others --- */
+
+      check_and_response_option("wfd_connector_type", "05");
+      check_and_response_option("wfd_idr_request_capability", "1");
+
+      check_and_response_option("microsoft_cursor", "none");
+      check_and_response_option("microsoft_rtcp_capability", "none");
+      check_and_response_option("microsoft_latency_management_capability", "none");
+      check_and_response_option("microsoft_format_change_capability", "none");
+      check_and_response_option("microsoft_diagnostics_capability", "none");
+
+      check_and_response_option("intel_friendly_name", "miraclecast");
+      check_and_response_option("intel_sink_manufacturer_name", "GNU Linux");
+      check_and_response_option("intel_sink_model_name", "Arch linux");
+      check_and_response_option("intel_sink_device_URL", "http://github.com/albfan/miraclecast");
 
       // /* wfd_uibc_capability */
       // if (uibc_option) {
@@ -3335,11 +3352,7 @@ static int parser_submit_data(struct rtsp *bus, uint8_t *p)
 
 
 
-	r = rtsp_message_new_data(bus,
-				  &m,
-				  dec->data_channel,
-				  p,
-				  dec->data_size);
+	r = rtsp_message_new_data(bus,&m,dec->data_channel,p,dec->data_size);
 	if (r < 0) {
 		free(p);
 		return r;

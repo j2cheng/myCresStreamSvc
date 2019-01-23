@@ -20,6 +20,29 @@
 #include <sys/uio.h>
 
 
+
+// ***
+#define LOCALXSTRINGIFY(s) #s
+#define LOCALSTRINGIFY(s) LOCALXSTRINGIFY(s)
+
+// #pragma message ("SIZE_MAX=" LOCALSTRINGIFY(SIZE_MAX))
+// #pragma message ("UINT_MAX=" LOCALSTRINGIFY(UINT_MAX))
+// #pragma message ("ULONG_MAX=" LOCALSTRINGIFY(ULONG_MAX))
+
+#ifndef SIZE_MAX
+#pragma message ("SIZE_MAX is undefined")
+#define MF_DEFINED_SIZE_MAX     1
+#define SIZE_MAX ULONG_MAX
+#pragma message ("new SIZE_MAX=" LOCALSTRINGIFY(SIZE_MAX))
+#endif
+
+#ifndef static_assert
+#define static_assert(a,b)
+#endif
+// ***
+
+
+
 /* sanity checks required for some macros */
 #if __SIZEOF_POINTER__ != 4 && __SIZEOF_POINTER__ != 8
 #error "Pointer size is neither 4 nor 8 bytes"
@@ -1125,6 +1148,18 @@ struct shl_ratelimit {
 	} while (false)
 
 bool shl_ratelimit_test(struct shl_ratelimit *r);
+
+
+
+// ***
+// #ifdef MF_DEFINED_SIZE_MAX
+// #undef MF_DEFINED_SIZE_MAX
+// #undef SIZE_MAX
+// #pragma message ("undefined (back) SIZE_MAX=" LOCALSTRINGIFY(SIZE_MAX))
+// #endif
+// ***
+
+
 
 #endif  /* CRESRTSP_UTIL_H */
 
