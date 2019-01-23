@@ -114,7 +114,7 @@ static void htable_clear(struct htable *ht,
 
 size_t shl_htable_this_or_next(struct shl_htable *htable, size_t i)
 {
-	struct htable *ht = (void*)&htable->htable;
+	struct htable *ht = (struct htable *)&htable->htable;
 
 	if (ht->table != &ht->perfect_bit)
 		for ( ; i < (size_t)1 << ht->bits; ++i)
@@ -126,7 +126,7 @@ size_t shl_htable_this_or_next(struct shl_htable *htable, size_t i)
 
 void *shl_htable_get_entry(struct shl_htable *htable, size_t i)
 {
-	struct htable *ht = (void*)&htable->htable;
+	struct htable *ht = (struct htable *)&htable->htable;
 
 	if (i < (size_t)1 << ht->bits)
 		if (entry_is_valid(ht->table[i]))
@@ -185,7 +185,7 @@ static void *htable_nextval(const struct htable *ht,
 }
 
 /* This does not expand the hash table, that's up to caller. */
-static void ht_add(struct htable *ht, const void *new, size_t h)
+static void ht_add(struct htable *ht, const void *_new, size_t h)
 {
 	size_t i;
 	uintptr_t perfect = ht->perfect_bit;
@@ -196,7 +196,7 @@ static void ht_add(struct htable *ht, const void *new, size_t h)
 		perfect = 0;
 		i = (i + 1) & ((1 << ht->bits)-1);
 	}
-	ht->table[i] = make_hval(ht, new, get_hash_ptr_bits(ht, h)|perfect);
+	ht->table[i] = make_hval(ht, _new, get_hash_ptr_bits(ht, h)|perfect);
 }
 
 static COLD bool double_table(struct htable *ht)
@@ -206,7 +206,7 @@ static COLD bool double_table(struct htable *ht)
 	uintptr_t *oldtable, e;
 
 	oldtable = ht->table;
-	ht->table = calloc(1 << (ht->bits+1), sizeof(size_t));
+	ht->table = (uintptr_t *)calloc(1 << (ht->bits+1), sizeof(size_t));
 	if (!ht->table) {
 		ht->table = oldtable;
 		return false;
@@ -339,7 +339,7 @@ void shl_htable_init(struct shl_htable *htable,
 		     size_t (*rehash)(const void *elem, void *priv),
 		     void *priv)
 {
-	struct htable *ht = (void*)&htable->htable;
+	struct htable *ht = (struct htable *)&htable->htable;
 
 	htable->compare = compare;
 	htable_init(ht, rehash, priv);
@@ -349,7 +349,7 @@ void shl_htable_clear(struct shl_htable *htable,
 		      void (*free_cb) (void *elem, void *ctx),
 		      void *ctx)
 {
-	struct htable *ht = (void*)&htable->htable;
+	struct htable *ht = (struct htable *)&htable->htable;
 
 	htable_clear(ht, free_cb, ctx);
 }
@@ -358,7 +358,7 @@ void shl_htable_visit(struct shl_htable *htable,
 		      void (*visit_cb) (void *elem, void *ctx),
 		      void *ctx)
 {
-	struct htable *ht = (void*)&htable->htable;
+	struct htable *ht = (struct htable *)&htable->htable;
 
 	htable_visit(ht, visit_cb, ctx);
 }
@@ -366,7 +366,7 @@ void shl_htable_visit(struct shl_htable *htable,
 bool shl_htable_lookup(struct shl_htable *htable, const void *obj, size_t hash,
 		       void **out)
 {
-	struct htable *ht = (void*)&htable->htable;
+	struct htable *ht = (struct htable *)&htable->htable;
 	struct htable_iter i;
 	void *c;
 
@@ -385,7 +385,7 @@ bool shl_htable_lookup(struct shl_htable *htable, const void *obj, size_t hash,
 
 int shl_htable_insert(struct shl_htable *htable, const void *obj, size_t hash)
 {
-	struct htable *ht = (void*)&htable->htable;
+	struct htable *ht = (struct htable *)&htable->htable;
 	bool b;
 
 	b = htable_add(ht, hash, (void*)obj);
@@ -395,7 +395,7 @@ int shl_htable_insert(struct shl_htable *htable, const void *obj, size_t hash)
 bool shl_htable_remove(struct shl_htable *htable, const void *obj, size_t hash,
 		       void **out)
 {
-	struct htable *ht = (void*)&htable->htable;
+	struct htable *ht = (struct htable *)&htable->htable;
 	struct htable_iter i;
 	void *c;
 
@@ -569,18 +569,19 @@ static void log__submit(const char *file,
  * The subsystem, if not NULL, is prepended as "SUBS: " to the message and a
  * newline is always appended by default. Multiline-messages are not allowed.
  */
+static const char *log__sev2str[LOG_SEV_NUM] = {NULL};
+void init_log_codes() {
+	log__sev2str[LOG_TRACE] = "TRACE";
+	log__sev2str[LOG_DEBUG] = "DEBUG";
+	log__sev2str[LOG_INFO] = "INFO";
+	log__sev2str[LOG_NOTICE] = "NOTICE";
+	log__sev2str[LOG_WARNING] = "WARNING";
+	log__sev2str[LOG_ERROR] = "ERROR";
+	log__sev2str[LOG_CRITICAL] = "CRITICAL";
+	log__sev2str[LOG_ALERT] = "ALERT";
+	log__sev2str[LOG_FATAL] = "FATAL";
+}
 
-static const char *log__sev2str[LOG_SEV_NUM] = {
-	[LOG_TRACE] = "TRACE",
-	[LOG_DEBUG] = "DEBUG",
-	[LOG_INFO] = "INFO",
-	[LOG_NOTICE] = "NOTICE",
-	[LOG_WARNING] = "WARNING",
-	[LOG_ERROR] = "ERROR",
-	[LOG_CRITICAL] = "CRITICAL",
-	[LOG_ALERT] = "ALERT",
-	[LOG_FATAL] = "FATAL",
-};
 
 static void log__submit(const char *file,
 			int line,
@@ -830,7 +831,7 @@ static int ring_resize(struct shl_ring *r, size_t nsize)
 	uint8_t *buf;
 	size_t l;
 
-	buf = malloc(nsize);
+	buf = (uint8_t *)malloc(nsize);
 	if (!buf)
 		return -ENOMEM;
 
@@ -944,7 +945,7 @@ void shl_ring_pull(struct shl_ring *r, size_t size)
 
 
 // ***
-char * loc_stpcpy(char * dest, const char * src);
+char * loc_stpcpy(char * dest, char * src);
 
 
 
@@ -1162,7 +1163,7 @@ void *shl_greedy_realloc0(void **mem, size_t *size, size_t need)
 	size_t prev = *size;
 	uint8_t *p;
 
-	p = shl_greedy_realloc(mem, size, need);
+	p = (uint8_t *)shl_greedy_realloc(mem, size, need);
 	if (!p)
 		return NULL;
 
@@ -1200,7 +1201,7 @@ void *shl_greedy_realloc0_t(void **arr, size_t *cnt, size_t need, size_t ts)
 	size_t prev = *cnt;
 	uint8_t *p;
 
-	p = shl_greedy_realloc_t(arr, cnt, need, ts);
+	p = (uint8_t *)shl_greedy_realloc_t(arr, cnt, need, ts);
 	if (!p)
 		return NULL;
 
@@ -1229,7 +1230,7 @@ char *shl_strcat(const char *first, const char *second)
 	if (flen + slen + 1 <= flen)
 		return NULL;
 
-	str = malloc(flen + slen + 1);
+	str = (char *)malloc(flen + slen + 1);
 	if (!str)
 		return NULL;
 
@@ -1257,7 +1258,7 @@ char *shl_strjoin(const char *first, ...) {
 
 	va_end(args);
 
-	str = malloc(len + 1);
+	str = (char *)malloc(len + 1);
 	if (!str)
 		return NULL;
 
@@ -1266,7 +1267,7 @@ char *shl_strjoin(const char *first, ...) {
 	for (arg = first, p = str; arg; arg = va_arg(args, const char*))
 	   // ***
 		// p = stpcpy(p, arg);
-		p = loc_stpcpy(p, arg);
+		p = loc_stpcpy(p, (char *)arg);
 
 	va_end(args);
 
@@ -1287,7 +1288,7 @@ static int shl__split_push(char ***strv,
 	if (!shl_greedy_realloc0((void**)strv, strv_size, strv_need))
 		return -ENOMEM;
 
-	ns = malloc(len + 1);
+	ns = (char *)malloc(len + 1);
 	memcpy(ns, str, len);
 	ns[len] = 0;
 
@@ -1311,7 +1312,7 @@ int shl_strsplit_n(const char *str, size_t len, const char *sep, char ***out)
 
 	strv_num = 0;
 	strv_size = sizeof(*strv);
-	strv = malloc(strv_size);
+	strv = (char **)malloc(strv_size);
 	if (!strv)
 		return -ENOMEM;
 
@@ -1483,7 +1484,7 @@ static int shl__qstr_push(char ***strv,
 	if (!shl_greedy_realloc0((void**)strv, strv_size, strv_need))
 		return -ENOMEM;
 
-	ns = malloc(len + 1);
+	ns = (char *)malloc(len + 1);
 	memcpy(ns, str, len);
 	ns[len] = 0;
 
@@ -1509,7 +1510,7 @@ int shl_qstr_tokenize_n(const char *str, size_t length, char ***out)
 
 	strv_num = 0;
 	strv_size = sizeof(*strv);
-	strv = malloc(strv_size);
+	strv = (char **)malloc(strv_size);
 	if (!strv)
 		return -ENOMEM;
 
@@ -1751,7 +1752,7 @@ int shl__mkdir_parents(const char *prefix, const char *path, mode_t mode)
 	if (r == 0)
 		return -ENOTDIR;
 
-	t = alloca(strlen(path) + 1);
+	t = (char *)alloca(strlen(path) + 1);
 	p = path + strspn(path, "/");
 
 	while (true) {

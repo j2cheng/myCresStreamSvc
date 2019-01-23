@@ -84,7 +84,7 @@ static inline void shl_set_errno(int *r)
 /* get parent pointer by container-type, member and member-pointer */
 #define shl_container_of(_ptr, _type, _member) \
 	({ \
-		const typeof( ((_type *)0)->_member ) *__mptr = (_ptr); \
+		const typeof( ((_type *)0)->_member ) *__mptr = (const typeof( ((_type *)0)->_member ) *)(_ptr); \
 		(_type *)( (char *)__mptr - offsetof(_type, _member) ); \
 	})
 
@@ -446,13 +446,13 @@ void *shl_htable_get_entry(struct shl_htable *htable, size_t i);
 
 #define SHL_HTABLE_FOREACH(_iter, _ht) for ( \
 		size_t htable__i = shl_htable_this_or_next((_ht), 0); \
-		(_iter = shl_htable_get_entry((_ht), htable__i)); \
+		(_iter = (struct rtsp_message *)shl_htable_get_entry((_ht), htable__i)); \
 		htable__i = shl_htable_this_or_next((_ht), htable__i + 1) \
 	)
 
 #define SHL_HTABLE_FOREACH_MACRO(_iter, _ht, _accessor) for ( \
 		size_t htable__i = shl_htable_this_or_next((_ht), 0); \
-		(_iter = shl_htable_get_entry((_ht), htable__i), \
+		(_iter = (struct rtsp_message *)shl_htable_get_entry((_ht), htable__i), \
 		 _iter = _iter ? _accessor((void*)_iter) : NULL); \
 		htable__i = shl_htable_this_or_next((_ht), htable__i + 1) \
 	)
@@ -461,9 +461,9 @@ void *shl_htable_get_entry(struct shl_htable *htable, size_t i);
 	shl_htable_get_entry((_ht), shl_htable_this_or_next((_ht), 0))
 
 #define SHL_HTABLE_FIRST_MACRO(_ht, _accessor) ({ \
-		void *htable__i = shl_htable_get_entry((_ht), \
+		void *htable__i = (void *)shl_htable_get_entry((_ht), \
 					shl_htable_this_or_next((_ht), 0)); \
-		htable__i ? _accessor(htable__i) : NULL; })
+		htable__i ? _accessor((const uint64_t *)htable__i) : NULL; })
 
 /* uint htables */
 
@@ -779,6 +779,8 @@ extern char* gst_debug;
  */
 
 void log_init_time(void);
+
+void init_log_codes(void);
 
 /*
  * Log-Functions

@@ -1,13 +1,4 @@
-
-/*
-   To do:
-      1. Currently the code requires the -std=gnu99 compiler option. It is because it needs
-         the "typeof" name to be treated as keyword, which the gnu extension supports. Presumed
-         way to remove dependency on this extension would be to replace typeof with __typeof__ .
-
-*/
-
-
+#define __STDC_FORMAT_MACROS
 #include <errno.h>
 #include <fcntl.h>
 #include <inttypes.h>
@@ -182,8 +173,8 @@ int cresRTSP_internalComposeCallback(void * session,unsigned int messageType,
       char * composedMessagePtr,char * request_method,char * request_uri,char * reply_phrase,
       unsigned int reply_code);
 
-char * loc_strchrnul(const char * s, int c);
-char * loc_stpcpy(char * dest, const char * src);
+char * loc_strchrnul(char * s, int c);
+char * loc_stpcpy(char * dest, char * src);
 
 bool processCommandLine(int argc, char * argv[]);
 int readDataFromInput(char * buff, int buffSize);
@@ -197,8 +188,9 @@ int getLineFromFile(char * buff, int size, int fileHd, int expectCRLF);
 int printParseResults(int messageType, RTSPPARSINGRESULTS * parseResults);
 int testCallback(RTSPPARSINGRESULTS * parsResPtr, void * appArgument);
 int testComposeCallback(RTSPCOMPOSINGRESULTS * composingResPtr, void * appArgument);
+void init_code_descriptions();
 
-
+static const char *code_descriptions[RTSP_CODE_CNT] = {NULL};
 
 #ifdef BUILD_TEST_APP
 
@@ -355,7 +347,7 @@ int testCallback(RTSPPARSINGRESULTS * parsingResPtr, void * appArgument)
       return(-1);
    
    printf("\nINFO: ***** testCallback *****\n");
-
+   
    switch(parsingResPtr->messageType)
    {
       case RTSP_MESSAGE_REQUEST:
@@ -692,11 +684,11 @@ void * initRTSPParser(RTSPSYSTEMINFO * sysInfo)
 
    if(sysInfo)
    {
-      if(sysInfo->rtpPort > 0)
+   if(sysInfo->rtpPort > 0)
          rtpPort = sysInfo->rtpPort;
-      if(sysInfo->preferredVidResRefStr && (sysInfo->preferredVidResRefStr[0] != '\0'))
+   if(sysInfo->preferredVidResRefStr && (sysInfo->preferredVidResRefStr[0] != '\0'))
          prefResRefStr = sysInfo->preferredVidResRefStr;
-      if(sysInfo->preferredAudioCodecStr && (sysInfo->preferredAudioCodecStr[0] != '\0'))
+   if(sysInfo->preferredAudioCodecStr && (sysInfo->preferredAudioCodecStr[0] != '\0'))
          prefCodecStr = sysInfo->preferredAudioCodecStr;
    }
 
@@ -723,8 +715,70 @@ void * initRTSPParser(RTSPSYSTEMINFO * sysInfo)
    rtspSession->vesa_res = 0;
    rtspSession->hh_res = 0;
 
+   init_code_descriptions();
+
+   init_log_codes();
+
    return((void *)rtspSession);
 }
+
+void init_code_descriptions()
+{
+   code_descriptions[RTSP_CODE_CONTINUE]					= "Continue";
+
+   code_descriptions[RTSP_CODE_OK]						= "OK";
+   code_descriptions[RTSP_CODE_CREATED]					= "Created";
+
+   code_descriptions[RTSP_CODE_LOW_ON_STORAGE_SPACE]			= "Low on Storage Space";
+
+   code_descriptions[RTSP_CODE_MULTIPLE_CHOICES]				= "Multiple Choices";
+   code_descriptions[RTSP_CODE_MOVED_PERMANENTLY]				= "Moved Permanently";
+   code_descriptions[RTSP_CODE_MOVED_TEMPORARILY]				= "Moved Temporarily";
+   code_descriptions[RTSP_CODE_SEE_OTHER]					= "See Other";
+   code_descriptions[RTSP_CODE_NOT_MODIFIED]				= "Not Modified";
+   code_descriptions[RTSP_CODE_USE_PROXY]					= "Use Proxy";
+
+   code_descriptions[RTSP_CODE_BAD_REQUEST]					= "Bad Request";
+   code_descriptions[RTSP_CODE_UNAUTHORIZED]				= "Unauthorized";
+   code_descriptions[RTSP_CODE_PAYMENT_REQUIRED]				= "Payment Required";
+   code_descriptions[RTSP_CODE_FORBIDDEN]					= "Forbidden";
+   code_descriptions[RTSP_CODE_NOT_FOUND]					= "Not Found";
+   code_descriptions[RTSP_CODE_METHOD_NOT_ALLOWED]				= "Method not Allowed";
+   code_descriptions[RTSP_CODE_NOT_ACCEPTABLE]				= "Not Acceptable";
+   code_descriptions[RTSP_CODE_PROXY_AUTHENTICATION_REQUIRED]		= "Proxy Authentication Required";
+   code_descriptions[RTSP_CODE_REQUEST_TIMEOUT]				= "Request Time-out";
+   code_descriptions[RTSP_CODE_GONE]					= "Gone";
+   code_descriptions[RTSP_CODE_LENGTH_REQUIRED]				= "Length Required";
+   code_descriptions[RTSP_CODE_PRECONDITION_FAILED]				= "Precondition Failed";
+   code_descriptions[RTSP_CODE_REQUEST_ENTITY_TOO_LARGE]			= "Request Entity Too Large";
+   code_descriptions[RTSP_CODE_REQUEST_URI_TOO_LARGE]			= "Request-URI too Large";
+   code_descriptions[RTSP_CODE_UNSUPPORTED_MEDIA_TYPE]			= "Unsupported Media Type";
+
+   code_descriptions[RTSP_CODE_PARAMETER_NOT_UNDERSTOOD]			= "Parameter not Understood";
+   code_descriptions[RTSP_CODE_CONFERENCE_NOT_FOUND]			= "Conference not Found";
+   code_descriptions[RTSP_CODE_NOT_ENOUGH_BANDWIDTH]			= "Not Enough Bandwidth";
+   code_descriptions[RTSP_CODE_SESSION_NOT_FOUND]				= "Session not Found";
+   code_descriptions[RTSP_CODE_METHOD_NOT_VALID_IN_THIS_STATE]		= "Method not Valid in this State";
+   code_descriptions[RTSP_CODE_HEADER_FIELD_NOT_VALID_FOR_RESOURCE]		= "Header Field not Valid for Resource";
+   code_descriptions[RTSP_CODE_INVALID_RANGE]				= "Invalid Range";
+   code_descriptions[RTSP_CODE_PARAMETER_IS_READ_ONLY]			= "Parameter is Read-only";
+   code_descriptions[RTSP_CODE_AGGREGATE_OPERATION_NOT_ALLOWED]		= "Aggregate Operation not Allowed";
+   code_descriptions[RTSP_CODE_ONLY_AGGREGATE_OPERATION_ALLOWED]		= "Only Aggregate Operation Allowed";
+   code_descriptions[RTSP_CODE_UNSUPPORTED_TRANSPORT]			= "Unsupported Transport";
+   code_descriptions[RTSP_CODE_DESTINATION_UNREACHABLE]			= "Destination Unreachable";
+
+   code_descriptions[RTSP_CODE_INTERNAL_SERVER_ERROR]			= "Internal Server Error";
+   code_descriptions[RTSP_CODE_NOT_IMPLEMENTED]				= "Not Implemented";
+   code_descriptions[RTSP_CODE_BAD_GATEWAY]					= "Bad Gateway";
+   code_descriptions[RTSP_CODE_SERVICE_UNAVAILABLE]				= "Service Unavailable";
+   code_descriptions[RTSP_CODE_GATEWAY_TIMEOUT]				= "Gateway Time-out";
+   code_descriptions[RTSP_CODE_RTSP_VERSION_NOT_SUPPORTED]			= "RTSP Version not Supported";
+
+   code_descriptions[RTSP_CODE_OPTION_NOT_SUPPORTED]			= "Option not Supported";
+
+   code_descriptions[RTSP_CODE_CNT]						= NULL;
+}
+
 
 int deInitRTSPParser(void * session)
 {
@@ -917,7 +971,7 @@ int composeRTSPResponse(void * session,RTSPPARSINGRESULTS * requestParsingResult
       return(-1);
    }
 
-   char * org_request_method = rtsp_message_get_method(orgMsg);
+   char * org_request_method = (char*)rtsp_message_get_method(orgMsg);
 
    if(!strcmp(org_request_method,"OPTIONS"))
    {
@@ -994,7 +1048,7 @@ int composeRTSPResponse(void * session,RTSPPARSINGRESULTS * requestParsingResult
 
    rtsp_message_seal(rep);
 
-   char * reply_phrase = rtsp_message_get_phrase(rep);
+   char * reply_phrase = (char*)rtsp_message_get_phrase(rep);
    if(reply_phrase)
       printf("INFO: reply_phrase: %s\n",reply_phrase);
 
@@ -1275,7 +1329,7 @@ int rtsp_encodeAudioFormat(char * outBuff, int outBuffSize, char * encodedValStr
 
 // ----- clib function substitutes -----
 
-char * loc_strchrnul(const char * s, int c)
+char * loc_strchrnul( char * s, int c)
 {
    char * retp;
    retp = strrchr(s,c);
@@ -1284,10 +1338,10 @@ char * loc_strchrnul(const char * s, int c)
    return(retp);
 }
 
-char * loc_stpcpy(char * dest, const char * src)
+char * loc_stpcpy(char * dest, char * src)
 {
    size_t len = strlen(src);
-   return(memcpy(dest,src,len + 1) + len);
+   return (char*)(memcpy(dest,src,len + 1) + len);
 }
 
 // ***
@@ -1298,63 +1352,6 @@ char * loc_stpcpy(char * dest, const char * src)
  * Helpers
  * Some helpers that don't really belong into a specific group.
  */
-
-static const char *code_descriptions[] = {
-	[RTSP_CODE_CONTINUE]					= "Continue",
-
-	[RTSP_CODE_OK]						= "OK",
-	[RTSP_CODE_CREATED]					= "Created",
-
-	[RTSP_CODE_LOW_ON_STORAGE_SPACE]			= "Low on Storage Space",
-
-	[RTSP_CODE_MULTIPLE_CHOICES]				= "Multiple Choices",
-	[RTSP_CODE_MOVED_PERMANENTLY]				= "Moved Permanently",
-	[RTSP_CODE_MOVED_TEMPORARILY]				= "Moved Temporarily",
-	[RTSP_CODE_SEE_OTHER]					= "See Other",
-	[RTSP_CODE_NOT_MODIFIED]				= "Not Modified",
-	[RTSP_CODE_USE_PROXY]					= "Use Proxy",
-
-	[RTSP_CODE_BAD_REQUEST]					= "Bad Request",
-	[RTSP_CODE_UNAUTHORIZED]				= "Unauthorized",
-	[RTSP_CODE_PAYMENT_REQUIRED]				= "Payment Required",
-	[RTSP_CODE_FORBIDDEN]					= "Forbidden",
-	[RTSP_CODE_NOT_FOUND]					= "Not Found",
-	[RTSP_CODE_METHOD_NOT_ALLOWED]				= "Method not Allowed",
-	[RTSP_CODE_NOT_ACCEPTABLE]				= "Not Acceptable",
-	[RTSP_CODE_PROXY_AUTHENTICATION_REQUIRED]		= "Proxy Authentication Required",
-	[RTSP_CODE_REQUEST_TIMEOUT]				= "Request Time-out",
-	[RTSP_CODE_GONE]					= "Gone",
-	[RTSP_CODE_LENGTH_REQUIRED]				= "Length Required",
-	[RTSP_CODE_PRECONDITION_FAILED]				= "Precondition Failed",
-	[RTSP_CODE_REQUEST_ENTITY_TOO_LARGE]			= "Request Entity Too Large",
-	[RTSP_CODE_REQUEST_URI_TOO_LARGE]			= "Request-URI too Large",
-	[RTSP_CODE_UNSUPPORTED_MEDIA_TYPE]			= "Unsupported Media Type",
-
-	[RTSP_CODE_PARAMETER_NOT_UNDERSTOOD]			= "Parameter not Understood",
-	[RTSP_CODE_CONFERENCE_NOT_FOUND]			= "Conference not Found",
-	[RTSP_CODE_NOT_ENOUGH_BANDWIDTH]			= "Not Enough Bandwidth",
-	[RTSP_CODE_SESSION_NOT_FOUND]				= "Session not Found",
-	[RTSP_CODE_METHOD_NOT_VALID_IN_THIS_STATE]		= "Method not Valid in this State",
-	[RTSP_CODE_HEADER_FIELD_NOT_VALID_FOR_RESOURCE]		= "Header Field not Valid for Resource",
-	[RTSP_CODE_INVALID_RANGE]				= "Invalid Range",
-	[RTSP_CODE_PARAMETER_IS_READ_ONLY]			= "Parameter is Read-only",
-	[RTSP_CODE_AGGREGATE_OPERATION_NOT_ALLOWED]		= "Aggregate Operation not Allowed",
-	[RTSP_CODE_ONLY_AGGREGATE_OPERATION_ALLOWED]		= "Only Aggregate Operation Allowed",
-	[RTSP_CODE_UNSUPPORTED_TRANSPORT]			= "Unsupported Transport",
-	[RTSP_CODE_DESTINATION_UNREACHABLE]			= "Destination Unreachable",
-
-	[RTSP_CODE_INTERNAL_SERVER_ERROR]			= "Internal Server Error",
-	[RTSP_CODE_NOT_IMPLEMENTED]				= "Not Implemented",
-	[RTSP_CODE_BAD_GATEWAY]					= "Bad Gateway",
-	[RTSP_CODE_SERVICE_UNAVAILABLE]				= "Service Unavailable",
-	[RTSP_CODE_GATEWAY_TIMEOUT]				= "Gateway Time-out",
-	[RTSP_CODE_RTSP_VERSION_NOT_SUPPORTED]			= "RTSP Version not Supported",
-
-	[RTSP_CODE_OPTION_NOT_SUPPORTED]			= "Option not Supported",
-
-	[RTSP_CODE_CNT]						= NULL,
-};
-
 static const char *get_code_description(unsigned int code)
 {
 	const char *error = "Internal Error";
@@ -1462,7 +1459,7 @@ static int rtsp_message_new(struct rtsp *bus,
 	if (!bus || !out)
 		return -EINVAL;
 
-	m = calloc(1, sizeof(*m));
+	m = (struct rtsp_message *)calloc(1, sizeof(*m));
 	if (!m)
 		return -ENOMEM;
 
@@ -1655,7 +1652,7 @@ int rtsp_message_new_data(struct rtsp *bus,
 	m->data_channel = channel;
 	m->data_size = size;
 	if (size > 0) {
-		m->data_payload = malloc(size);
+		m->data_payload = (uint8_t *)malloc(size);
 		if (!m->data_payload)
 			return -ENOMEM;
 
@@ -1937,7 +1934,7 @@ static int rtsp_message_append_header_line(struct rtsp_message *m,
 	if (!line)
 		return -EINVAL;
 
-	t = malloc(strlen(line) + 3);
+	t = (char *)malloc(strlen(line) + 3);
 	if (!t)
 		return -ENOMEM;
 
@@ -1945,7 +1942,7 @@ static int rtsp_message_append_header_line(struct rtsp_message *m,
 
    // ***
 	// value = strchrnul(line, ':');
-	value = loc_strchrnul(line, ':');
+	value = loc_strchrnul((char *)line, ':');
 
 
 
@@ -1981,7 +1978,7 @@ static int rtsp_message_append_header_line(struct rtsp_message *m,
 
 	// ***
 	// t = stpcpy(t, line);
-	t = loc_stpcpy(t, line);
+	t = loc_stpcpy(t, (char *)line);
 
 
 
@@ -2029,7 +2026,7 @@ static int rtsp_header_serialize(struct rtsp_header *h)
 			return r;
 	}
 
-	t = malloc(strlen(h->key) + strlen(h->value) + 5);
+	t = (char *)malloc(strlen(h->key) + strlen(h->value) + 5);
 	if (!t)
 		return -ENOMEM;
 
@@ -2309,13 +2306,13 @@ static int rtsp_message_serialize_common(struct rtsp_message *m)
 
 	if (m->body) {
 		body_size = m->body_size;
-		cbody = (void*)m->body;
+		cbody = (char *)m->body;
 	} else {
 		l = 0;
 		for (i = 0; i < m->body_used; ++i)
 			l += m->body_headers[i].line_len;
 
-		body = malloc(l + 1);
+		body = (char *)malloc(l + 1);
 		if (!body)
 			return -ENOMEM;
 
@@ -2411,7 +2408,7 @@ static int rtsp_message_serialize_common(struct rtsp_message *m)
 	for (i = 0; i < m->header_used; ++i)
 		l += m->headers[i].line_len;
 
-	headers = malloc(l + 1);
+	headers = (char *)malloc(l + 1);
 	if (!headers)
 		return -ENOMEM;
 
@@ -2427,7 +2424,7 @@ static int rtsp_message_serialize_common(struct rtsp_message *m)
 	/* final concat */
 
 	rawlen += 2;
-	raw = malloc(rawlen + 1);
+	raw = (char *)malloc(rawlen + 1);
 	if (!raw)
 		return -ENOMEM;
 
@@ -2451,10 +2448,10 @@ static int rtsp_message_serialize_common(struct rtsp_message *m)
 	/* terminate - mainly for debugging */
 	*p = 0;
 
-	m->raw = (void*)raw;
+	m->raw = (uint8_t *)raw;
 	m->raw_size = rawlen;
 
-	m->body = (void*)cbody;
+	m->body = (uint8_t *)cbody;
 	m->body_size = body_size;
 	body = NULL;
 
@@ -2467,7 +2464,7 @@ static int rtsp_message_serialize_data(struct rtsp_message *m)
 	size_t rawlen;
 
 	rawlen = 1 + 1 + 2 + m->data_size;
-	raw = malloc(rawlen + 1);
+	raw = (uint8_t *)malloc(rawlen + 1);
 	if (!raw)
 		return -ENOMEM;
 
@@ -3067,7 +3064,7 @@ static int rtsp_message_append_body(struct rtsp_message *m,
 			return -ENOMEM;
 
 		free(m->body);
-		m->body = t;
+		m->body = (uint8_t *)t;
 		memcpy(m->body, body, len);
 		m->body_size = len;
 		return 0;
@@ -3077,7 +3074,7 @@ static int rtsp_message_append_body(struct rtsp_message *m,
 	if (r < 0)
 		return r;
 
-	d = body;
+	d = (const char *)body;
 	while (len > 0) {
 		dl = rtsp__strncspn(d, len, "\r\n");
 
@@ -3099,7 +3096,7 @@ static int rtsp_message_append_body(struct rtsp_message *m,
 		/* ignore empty body lines */
 		if (vl > 0) {
 			free(line);
-			line = malloc(vl + 1);
+			line = (char *)malloc(vl + 1);
 			if (!line)
 				return -ENOMEM;
 
@@ -3137,7 +3134,7 @@ int rtsp_message_new_from_raw(struct rtsp *bus,
 	if (len > 0 && !data)
 		return -EINVAL;
 
-	d = data;
+	d = (const char *)data;
 	while (len > 0) {
 		dl = rtsp__strncspn(d, len, "\r\n");
 
@@ -3168,7 +3165,7 @@ int rtsp_message_new_from_raw(struct rtsp *bus,
 			break;
 		} else {
 			free(line);
-			line = malloc(vl + 1);
+			line = (char *)malloc(vl + 1);
 			if (!line)
 				return -ENOMEM;
 
@@ -3224,7 +3221,7 @@ int rtsp_message_new_from_raw(struct rtsp *bus,
 static int parser_append_header(struct rtsp *bus,
 				char *line)
 {
-	struct rtsp_parser *dec = &bus->parser;
+	struct rtsp::rtsp_parser *dec = &bus->parser;
 	struct rtsp_header *h;
 	size_t clen;
 	const char *next;
@@ -3265,11 +3262,11 @@ static int parser_append_header(struct rtsp *bus,
 
 static int parser_finish_header_line(struct rtsp *bus)
 {
-	struct rtsp_parser *dec = &bus->parser;
+	struct rtsp::rtsp_parser *dec = &bus->parser;
 	_shl_free_ char *line = NULL;
 	int r;
 
-	line = malloc(dec->buflen + 1);
+	line = (char *)malloc(dec->buflen + 1);
 	if (!line)
 		return -ENOMEM;
 
@@ -3300,7 +3297,7 @@ static int parser_finish_header_line(struct rtsp *bus)
 static int parser_submit(struct rtsp *bus)
 {
 	_rtsp_message_unref_ struct rtsp_message *m = NULL;
-	struct rtsp_parser *dec = &bus->parser;
+	struct rtsp::rtsp_parser *dec = &bus->parser;
 	int r;
 
 
@@ -3328,7 +3325,7 @@ static int parser_submit(struct rtsp *bus)
 static int parser_submit_data(struct rtsp *bus, uint8_t *p)
 {
 	_rtsp_message_unref_ struct rtsp_message *m = NULL;
-	struct rtsp_parser *dec = &bus->parser;
+	struct rtsp::rtsp_parser *dec = &bus->parser;
 	int r;
 
 
@@ -3338,7 +3335,11 @@ static int parser_submit_data(struct rtsp *bus, uint8_t *p)
 
 
 
-	r = rtsp_message_new_data(bus,&m,dec->data_channel,p,dec->data_size);
+	r = rtsp_message_new_data(bus,
+				  &m,
+				  dec->data_channel,
+				  p,
+				  dec->data_size);
 	if (r < 0) {
 		free(p);
 		return r;
@@ -3355,7 +3356,7 @@ static int parser_submit_data(struct rtsp *bus, uint8_t *p)
 
 static int parser_feed_char_new(struct rtsp *bus, char ch)
 {
-	struct rtsp_parser *dec = &bus->parser;
+	struct rtsp::rtsp_parser *dec = &bus->parser;
 
 	switch (ch) {
 	case '\r':
@@ -3370,7 +3371,7 @@ static int parser_feed_char_new(struct rtsp *bus, char ch)
 	case '$':
 		/* Interleaved data. Followed by 1 byte channel-id and 2-byte
 		 * data-length. */
-		dec->state = STATE_DATA_HEAD;
+		dec->state = rtsp::rtsp_parser::STATE_DATA_HEAD;
 		dec->data_channel = 0;
 		dec->data_size = 0;
 
@@ -3382,7 +3383,7 @@ static int parser_feed_char_new(struct rtsp *bus, char ch)
 		/* Clear any pending data in the ring-buffer and then just
 		 * push the char into the buffer. Any char except LWS is fine
 		 * here. */
-		dec->state = STATE_HEADER;
+		dec->state = rtsp::rtsp_parser::STATE_HEADER;
 		dec->remaining_body = 0;
 
 		shl_ring_pull(&dec->buf, dec->buflen);
@@ -3395,7 +3396,7 @@ static int parser_feed_char_new(struct rtsp *bus, char ch)
 
 static int parser_feed_char_header(struct rtsp *bus, char ch)
 {
-	struct rtsp_parser *dec = &bus->parser;
+	struct rtsp::rtsp_parser *dec = &bus->parser;
 	int r;
 
 	switch (ch) {
@@ -3407,7 +3408,7 @@ static int parser_feed_char_header(struct rtsp *bus, char ch)
 			 * to optionally complete the new-line.
 			 * However, if the body is empty, we need to finish the
 			 * msg early as there might be no \n coming.. */
-			dec->state = STATE_HEADER_NL;
+			dec->state = rtsp::rtsp_parser::STATE_HEADER_NL;
 
 			/* First finish the last header line if any. Don't
 			 * include the current \r as it is already part of the
@@ -3451,9 +3452,9 @@ static int parser_feed_char_header(struct rtsp *bus, char ch)
 			dec->buflen = 0;
 
 			if (dec->remaining_body) {
-				dec->state = STATE_BODY;
+				dec->state = rtsp::rtsp_parser::STATE_BODY;
 			} else {
-				dec->state = STATE_NEW;
+				dec->state = rtsp::rtsp_parser::STATE_NEW;
 				r = parser_submit(bus);
 				if (r < 0)
 					return r;
@@ -3496,7 +3497,7 @@ static int parser_feed_char_header(struct rtsp *bus, char ch)
 		++dec->buflen;
 		if (ch == '"') {
 			/* go to STATE_HEADER_QUOTE */
-			dec->state = STATE_HEADER_QUOTE;
+			dec->state = rtsp::rtsp_parser::STATE_HEADER_QUOTE;
 			dec->quoted = false;
 		}
 
@@ -3508,7 +3509,7 @@ static int parser_feed_char_header(struct rtsp *bus, char ch)
 
 static int parser_feed_char_header_quote(struct rtsp *bus, char ch)
 {
-	struct rtsp_parser *dec = &bus->parser;
+	struct rtsp::rtsp_parser *dec = &bus->parser;
 
 	if (dec->last_chr == '\\' && !dec->quoted) {
 		/* This character is quoted, so copy it unparsed. To handle
@@ -3521,7 +3522,7 @@ static int parser_feed_char_header_quote(struct rtsp *bus, char ch)
 		/* consume character and handle special chars */
 		++dec->buflen;
 		if (ch == '"')
-			dec->state = STATE_HEADER;
+			dec->state = rtsp::rtsp_parser::STATE_HEADER;
 	}
 
 	return 0;
@@ -3529,7 +3530,7 @@ static int parser_feed_char_header_quote(struct rtsp *bus, char ch)
 
 static int parser_feed_char_body(struct rtsp *bus, char ch)
 {
-	struct rtsp_parser *dec = &bus->parser;
+	struct rtsp::rtsp_parser *dec = &bus->parser;
 	char *line;
 	int r;
 
@@ -3538,7 +3539,7 @@ static int parser_feed_char_body(struct rtsp *bus, char ch)
 	 * decoder_submit() here. Simply forward @ch to STATE_NEW.
 	 * @rlen is usually 0. We don't care and forward it, too. */
 	if (!dec->remaining_body) {
-		dec->state = STATE_NEW;
+		dec->state = rtsp::rtsp_parser::STATE_NEW;
 		return parser_feed_char_new(bus, ch);
 	}
 
@@ -3549,7 +3550,7 @@ static int parser_feed_char_body(struct rtsp *bus, char ch)
 		/* full body received, copy it and go to STATE_NEW */
 
 		if (dec->m) {
-			line = malloc(dec->buflen + 1);
+			line = (char *)malloc(dec->buflen + 1);
 			if (!line)
 				return -ENOMEM;
 
@@ -3565,7 +3566,7 @@ static int parser_feed_char_body(struct rtsp *bus, char ch)
 			r = 0;
 		}
 
-		dec->state = STATE_NEW;
+		dec->state = rtsp::rtsp_parser::STATE_NEW;
 		shl_ring_pull(&dec->buf, dec->buflen);
 		dec->buflen = 0;
 
@@ -3578,7 +3579,7 @@ static int parser_feed_char_body(struct rtsp *bus, char ch)
 
 static int parser_feed_char_header_nl(struct rtsp *bus, char ch)
 {
-	struct rtsp_parser *dec = &bus->parser;
+	struct rtsp::rtsp_parser *dec = &bus->parser;
 
 	/* STATE_HEADER_NL means we received an empty line ending with \r. The
 	 * standard requires a following \n but advises implementations to
@@ -3593,9 +3594,9 @@ static int parser_feed_char_header_nl(struct rtsp *bus, char ch)
 		shl_ring_pull(&dec->buf, dec->buflen + 1);
 		dec->buflen = 0;
 
-		dec->state = STATE_BODY;
+		dec->state = rtsp::rtsp_parser::STATE_BODY;
 		if (!dec->remaining_body)
-			dec->state = STATE_NEW;
+			dec->state = rtsp::rtsp_parser::STATE_NEW;
 
 		return 0;
 	} else {
@@ -3603,14 +3604,14 @@ static int parser_feed_char_header_nl(struct rtsp *bus, char ch)
 		shl_ring_pull(&dec->buf, dec->buflen);
 		dec->buflen = 0;
 
-		dec->state = STATE_BODY;
+		dec->state = rtsp::rtsp_parser::STATE_BODY;
 		return parser_feed_char_body(bus, ch);
 	}
 }
 
 static int parser_feed_char_data_head(struct rtsp *bus, char ch)
 {
-	struct rtsp_parser *dec = &bus->parser;
+	struct rtsp::rtsp_parser *dec = &bus->parser;
 	uint8_t buf[3];
 
 	/* Read 1 byte channel-id and 2 byte body length. */
@@ -3622,7 +3623,7 @@ static int parser_feed_char_data_head(struct rtsp *bus, char ch)
 
 		dec->data_channel = buf[0];
 		dec->data_size = (((uint16_t)buf[1]) << 8) | (uint16_t)buf[2];
-		dec->state = STATE_DATA_BODY;
+		dec->state = rtsp::rtsp_parser::STATE_DATA_BODY;
 	}
 
 	return 0;
@@ -3630,14 +3631,14 @@ static int parser_feed_char_data_head(struct rtsp *bus, char ch)
 
 static int parser_feed_char_data_body(struct rtsp *bus, char ch)
 {
-	struct rtsp_parser *dec = &bus->parser;
+	struct rtsp::rtsp_parser *dec = &bus->parser;
 	uint8_t *buf;
 	int r;
 
 	/* Read @dec->data_size bytes of raw data. */
 
 	if (++dec->buflen >= dec->data_size) {
-		buf = malloc(dec->data_size + 1);
+		buf = (uint8_t *)malloc(dec->data_size + 1);
 		if (!buf)
 			return -ENOMEM;
 
@@ -3650,7 +3651,7 @@ static int parser_feed_char_data_body(struct rtsp *bus, char ch)
 		r = parser_submit_data(bus, buf);
 		free(buf);
 
-		dec->state = STATE_NEW;
+		dec->state = rtsp::rtsp_parser::STATE_NEW;
 		shl_ring_pull(&dec->buf, dec->buflen);
 		dec->buflen = 0;
 
@@ -3663,35 +3664,35 @@ static int parser_feed_char_data_body(struct rtsp *bus, char ch)
 
 static int parser_feed_char(struct rtsp *bus, char ch)
 {
-	struct rtsp_parser *dec = &bus->parser;
+	struct rtsp::rtsp_parser *dec = &bus->parser;
 	int r = 0;
 
 	switch (dec->state) {
-	case STATE_NEW:
+	case rtsp::rtsp_parser::STATE_NEW:
 		r = parser_feed_char_new(bus, ch);
       // *** printf("INFO: parser_feed_char_new() returned %d from processing character %c\n",r,ch); */
 		break;
-	case STATE_HEADER:
+	case rtsp::rtsp_parser::STATE_HEADER:
 		r = parser_feed_char_header(bus, ch);
       // *** printf("INFO: parser_feed_char_header() returned %d from processing character %c\n",r,ch); */
 		break;
-	case STATE_HEADER_QUOTE:
+	case rtsp::rtsp_parser::STATE_HEADER_QUOTE:
 		r = parser_feed_char_header_quote(bus, ch);
       // *** printf("INFO: parser_feed_char_header_quote() returned %d from processing character %c\n",r,ch); */
 		break;
-	case STATE_HEADER_NL:
+	case rtsp::rtsp_parser::STATE_HEADER_NL:
 		r = parser_feed_char_header_nl(bus, ch);
       // *** printf("INFO: parser_feed_char_header_nl() returned %d from processing character %c\n",r,ch); */
 		break;
-	case STATE_BODY:
+	case rtsp::rtsp_parser::STATE_BODY:
 		r = parser_feed_char_body(bus, ch);
       // *** printf("INFO: parser_feed_char_body() returned %d from processing character %c\n",r,ch); */
 		break;
-	case STATE_DATA_HEAD:
+	case rtsp::rtsp_parser::STATE_DATA_HEAD:
 		r = parser_feed_char_data_head(bus, ch);
       // *** printf("INFO: parser_feed_char_data_head() returned %d from processing character %c\n",r,ch); */
 		break;
-	case STATE_DATA_BODY:
+	case rtsp::rtsp_parser::STATE_DATA_BODY:
 		r = parser_feed_char_data_body(bus, ch);
       // *** printf("INFO: parser_feed_char_data_body() returned %d from processing character %c\n",r,ch); */
 		break;
@@ -3704,7 +3705,7 @@ static int rtsp_parse_data(struct rtsp *bus,
 			   const char *buf,
 			   size_t len)
 {
-	struct rtsp_parser *dec = &bus->parser;
+	struct rtsp::rtsp_parser *dec = &bus->parser;
 	size_t i;
 	int r;
 
@@ -3942,73 +3943,75 @@ static int rtsp_incoming_message(struct rtsp_message *m)
 
 
 	switch (m->type) {
-	case RTSP_MESSAGE_UNKNOWN:
-	case RTSP_MESSAGE_REQUEST:
-	case RTSP_MESSAGE_DATA:
-		/* simply forward all these to the match-handlers */
+       case RTSP_MESSAGE_UNKNOWN:
+       case RTSP_MESSAGE_REQUEST:
+       case RTSP_MESSAGE_DATA: {
+          /* simply forward all these to the match-handlers */
 
 
 
-      // ***
+          // ***
 
-      printf("INFO: in rtsp_incoming_message() - handling parsed request\n");
+          printf("INFO: in rtsp_incoming_message() - handling parsed request\n");
 
-      char * request_method = rtsp_message_get_method(m);
-      if(request_method)
-         printf("INFO: request_method: %s\n",request_method);
+          char *request_method = (char *) rtsp_message_get_method(m);
+          if (request_method)
+             printf("INFO: request_method: %s\n", request_method);
 
-      char * request_uri = rtsp_message_get_uri(m);
-      if(request_uri)
-         printf("INFO: request_uri: %s\n",request_uri);
+          char *request_uri = (char *) rtsp_message_get_uri(m);
+          if (request_uri)
+             printf("INFO: request_uri: %s\n", request_uri);
 
-      size_t header_used = m->header_used;
-      printf("INFO: header_used: %d\n",(int)header_used);
+          size_t header_used = m->header_used;
+          printf("INFO: header_used: %d\n", (int) header_used);
 
-      bool is_sealed = m->is_sealed;
-      printf("INFO: is_sealed: %d\n",(int)is_sealed);
+          bool is_sealed = m->is_sealed;
+          printf("INFO: is_sealed: %d\n", (int) is_sealed);
 
-		// r = rtsp_call(m->bus, m);
-		// if (r < 0)
-		// 	return r;
-		r = cresRTSP_internalCallback((void *)rtspSession,RTSP_MESSAGE_REQUEST,m,request_method,
-            request_uri,NULL,-1);
-		if (r < 0)
-			return r;
+          // r = rtsp_call(m->bus, m);
+          // if (r < 0)
+          // 	return r;
+          r = cresRTSP_internalCallback((void *) rtspSession, RTSP_MESSAGE_REQUEST, m, request_method,
+                                        request_uri, NULL, -1);
+          if (r < 0)
+             return r;
 
-      // ***
-
-
-
-		break;
-	case RTSP_MESSAGE_REPLY:
-		/* find the waiting request and invoke the handler */
+          // ***
 
 
 
-      // ***
-
-      printf("INFO: in rtsp_incoming_message() - handling parsed response\n");
-
-      char * reply_phrase = rtsp_message_get_phrase(m);
-      if(reply_phrase)
-         printf("INFO: reply_phrase: %s\n",reply_phrase);
-
-      unsigned int reply_code = rtsp_message_get_code(m);
-      printf("INFO: reply_code: %d\n",reply_code);
-
-		// r = rtsp_call_reply(m->bus, m);
-		// if (r < 0)
-		// 	return r;
-		r = cresRTSP_internalCallback((void *)rtspSession,RTSP_MESSAGE_REPLY,m,NULL,NULL,
-            reply_phrase,reply_code);
-		if (r < 0)
-			return r;
-
-      // ***
+          break;
+       }
+       case RTSP_MESSAGE_REPLY: {
+          /* find the waiting request and invoke the handler */
 
 
 
-		break;
+          // ***
+
+          printf("INFO: in rtsp_incoming_message() - handling parsed response\n");
+
+          char *reply_phrase = (char *)rtsp_message_get_phrase(m);
+          if (reply_phrase)
+             printf("INFO: reply_phrase: %s\n", reply_phrase);
+
+          unsigned int reply_code = rtsp_message_get_code(m);
+          printf("INFO: reply_code: %d\n", reply_code);
+
+          // r = rtsp_call_reply(m->bus, m);
+          // if (r < 0)
+          // 	return r;
+          r = cresRTSP_internalCallback((void *) rtspSession, RTSP_MESSAGE_REPLY, m, NULL, NULL,
+                                        reply_phrase, reply_code);
+          if (r < 0)
+             return r;
+
+          // ***
+
+
+
+          break;
+       }
 	}
 
 	return 0;
@@ -4159,7 +4162,7 @@ int rtsp_open(struct rtsp **out, int fd)
 	if (!out || fd < 0)
 		return -EINVAL;
 
-	bus = calloc(1, sizeof(*bus));
+	bus = (struct rtsp *)calloc(1, sizeof(*bus));
 	if (!bus)
 		return -ENOMEM;
 
@@ -4371,7 +4374,7 @@ int rtsp_add_match(struct rtsp *bus, rtsp_callback_fn cb_fn, void *data)
 	if (!bus || !cb_fn)
 		return -EINVAL;
 
-	match = calloc(1, sizeof(*match));
+	match = (struct rtsp_match *)calloc(1, sizeof(*match));
 	if (!match)
 		return -ENOMEM;
 

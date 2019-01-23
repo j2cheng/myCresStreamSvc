@@ -25,8 +25,8 @@ LOCAL_SRC_FILES := \
 	cresWifiDisplaySink/WfdSinkProject.cpp \
 	cresWifiDisplaySink/WfdSinkConnection.cpp \
 	cresWifiDisplaySink/WfdSinkState.cpp \
-	cresWifiDisplaySink/cresRTSP/cresRTSP.c \
-	cresWifiDisplaySink/cresRTSP/cresRTSPUtils.c \
+	cresWifiDisplaySink/cresRTSP/cresRTSP.cpp \
+	cresWifiDisplaySink/cresRTSP/cresRTSPUtils.cpp \
 	cresStreamOut/streamOutManager/cresStreamOutManager.cpp \
 	cresStreamOut/streamOutManager/cres_rtsp-media.cpp \
 	cresStreamOut/streamOutManager/cresStreamSnapShot.cpp \
@@ -109,7 +109,6 @@ LOCAL_CFLAGS +=\
 	-I$(CRESTRON_ROOT)/CresNextSerializer/CresNextObjects/include \
 	-I$(CRESTRON_ROOT)/../rapidjson/include \
 	-I$(SECURE_STORAGE_PATH)/ \
-	-std=gnu99 \
 	-w\
 	-DANDROID_OS
 ifeq ($(shell test $(PLATFORM_SDK_VERSION) -lt 23 && echo PreMarshmallow),PreMarshmallow)
