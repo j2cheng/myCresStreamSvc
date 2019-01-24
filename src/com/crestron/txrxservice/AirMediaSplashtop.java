@@ -507,7 +507,7 @@ public class AirMediaSplashtop implements AirMedia
 			// close any prior receiver if it exists
 			close();
 		}
-        if (receiver_ == null) {
+		if (receiver_ == null) {
         	try {
         		receiver_ = new AirMediaReceiver(service_);
 
@@ -536,7 +536,8 @@ public class AirMediaSplashtop implements AirMedia
         	} 
         	catch (Exception ex)
         	{
-        		Common.Logging.e(TAG, "Exception trying to create receiver");
+        		Common.Logging.e(TAG, "Exception trying to create receiver " + ex);
+        		successfulStart = false;
         	}
         	finally
         	{
@@ -1424,7 +1425,7 @@ public class AirMediaSplashtop implements AirMedia
 			disconnectAllSenders();
 		}
 		// Launch Stop/Start of receiver in separate thread
-		if (receiver_ == null)
+		if (receiver_ == null && service_ != null)
 			startAirMedia();
 		else
 			RestartReceiverForAdapterChange();
