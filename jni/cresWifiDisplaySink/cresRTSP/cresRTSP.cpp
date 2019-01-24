@@ -281,11 +281,17 @@ int main(int argc, char **argv)
          }
          else if(!strcmp(requestMethod,"SETUP"))
          {
-            if(retv < 2)
+            if(retv < 1)
             {
                printf("ERROR: method: %s, getRequestInfoFromInputData() returned %d\n",
                   requestMethod,retv);
                return(-1);
+            }
+            if(retv >= 2)
+            {
+               // store argument as 'presentation_URL' value
+               strncpy(rtspPtr->presentationURL,requestArg0,sizeof(rtspPtr->presentationURL) - 1);
+               rtspPtr->presentationURL[sizeof(rtspPtr->presentationURL) - 1] = '\0';
             }
          }
          else if(!strcmp(requestMethod,"PLAY"))
