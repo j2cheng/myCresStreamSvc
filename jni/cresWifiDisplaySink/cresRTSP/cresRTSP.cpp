@@ -1009,11 +1009,9 @@ int composeRTSPResponse(void * session,RTSPPARSINGRESULTS * requestParsingResult
    else if(!strcmp(org_request_method,"GET_PARAMETER"))
    {
       /* wfd_video_formats */
-      // *** check_and_response_option("wfd_video_formats",
-      // ***    "40 00 01 10 0001bdeb 051557ff 00000fff 10 0000 001f 11 0780 0438, "
-      // ***    "02 10 0001bdeb 155557ff 00000fff 10 0000 001f 11 0780 0438");
-      retv = rtsp_encodeVideoFormat(locBuff,sizeof(locBuff),
-         rtspSession->preferredVidResRefStr);
+      //    40 00 01 10 0001bdeb 051557ff 00000fff 10 0000 001f 11 0780 0438, 
+      //    02 10 0001bdeb 155557ff 00000fff 10 0000 001f 11 0780 0438
+      retv = rtsp_encodeVideoFormat(locBuff,sizeof(locBuff),rtspSession->preferredVidResRefStr);
       if(retv)
       {
          printf("ERROR: failed to construct video format string from prefString %s\n",
@@ -1025,7 +1023,7 @@ int composeRTSPResponse(void * session,RTSPPARSINGRESULTS * requestParsingResult
       check_and_response_option("wfd_video_formats",locBuff);
 
       /* wfd_audio_codecs */
-      // *** check_and_response_option("wfd_audio_codecs", "LPCM 00000003 00, AAC 0000000f 00, AC3 00000007 00");
+      //    LPCM 00000003 00, AAC 0000000f 00, AC3 00000007 00
       retv = rtsp_encodeAudioFormat(locBuff,sizeof(locBuff),
          rtspSession->preferredAudioCodecStr);
       if(retv)
@@ -1047,7 +1045,7 @@ int composeRTSPResponse(void * session,RTSPPARSINGRESULTS * requestParsingResult
 
       /* wfd_display_edid */
       // different than in captured POC session
-      check_and_response_option("wfd_display_edid", "none");
+      check_and_response_option("wfd_display_edid", "0000 none");
 
       /* wfd_coupled_sink */
       check_and_response_option("wfd_coupled_sink", "none");
@@ -1319,7 +1317,8 @@ int rtsp_encodeVideoFormat(char * outBuff, int outBuffSize, char * encodedValStr
       }
    }
 
-   sprintf(locBuff,"00 00 01 01 %08x %08x %08x 00 0000 0000 00 none none",
+   // level 4 has 25Mb/s with the High profile
+   sprintf(locBuff,"00 00 02 04 %08x %08x %08x 00 0000 0000 00 none none",
       ceaFlags,vesaFlags,hhFlags);
    if(strlen(locBuff) >= outBuffSize)
    {
