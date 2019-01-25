@@ -29,6 +29,8 @@ typedef struct _rtspsysteminfo
                                     //       lpcmModeEnc
                                     //       aacModeEnc
                                     //       ac3ModeEnc
+   char * friendlyName;             //
+   char * modelName;                //
 } RTSPSYSTEMINFO;
 
 typedef struct _rtspheaderdata
@@ -87,6 +89,8 @@ struct rtsp
    int rtpPort;
    char preferredVidResRefStr[32];
    char preferredAudioCodecStr[32];
+   char friendlyName[64];
+   char modelName[64];
 
    // *** session control ***
    int sourceRTPPort;
@@ -94,6 +98,9 @@ struct rtsp
    char triggerMethod[32];
    char transport[64];
    char presentationURL[256];
+   char audioFormat[16];
+   unsigned int modes;
+   unsigned int latency;
    unsigned int cea_res;
    unsigned int vesa_res;
    unsigned int hh_res;

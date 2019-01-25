@@ -682,11 +682,15 @@ void * initRTSPParser(RTSPSYSTEMINFO * sysInfo)
    int         rtpPort;
    char *      prefResRefStr;
    char *      prefCodecStr;
+   char *      friendlyName;
+   char *      modelName;
    struct rtsp * rtspSession;
 
    rtpPort = 4570;
-   prefResRefStr = "1920x1080i60";
-   prefCodecStr = "LPCMx44_1x2";
+   prefResRefStr = "1920x1080p60";
+   prefCodecStr = "AACx48x2";
+   friendlyName = "Crestron Miracast Receiver";
+   modelName = "TxRx Miracast";
 
    if(sysInfo)
    {
@@ -696,6 +700,10 @@ void * initRTSPParser(RTSPSYSTEMINFO * sysInfo)
          prefResRefStr = sysInfo->preferredVidResRefStr;
    if(sysInfo->preferredAudioCodecStr && (sysInfo->preferredAudioCodecStr[0] != '\0'))
          prefCodecStr = sysInfo->preferredAudioCodecStr;
+   if(sysInfo->friendlyName && (sysInfo->friendlyName[0] != '\0'))
+         friendlyName = sysInfo->friendlyName;
+   if(sysInfo->modelName && (sysInfo->modelName[0] != '\0'))
+         modelName = sysInfo->modelName;
    }
 
    retv = rtsp_open(&rtspSession,0);
@@ -711,12 +719,22 @@ void * initRTSPParser(RTSPSYSTEMINFO * sysInfo)
       sizeof(rtspSession->preferredAudioCodecStr));
    rtspSession->preferredAudioCodecStr[
       sizeof(rtspSession->preferredAudioCodecStr)-1] = '\0';
-
+   strncpy(rtspSession->friendlyName,friendlyName,
+      sizeof(rtspSession->friendlyName));
+   rtspSession->friendlyName[
+      sizeof(rtspSession->friendlyName)-1] = '\0';
+   strncpy(rtspSession->modelName,modelName,
+      sizeof(rtspSession->modelName));
+   rtspSession->modelName[
+      sizeof(rtspSession->modelName)-1] = '\0';
    rtspSession->sourceRTPPort = -1;
    rtspSession->sessionID[0] = '\0';
    rtspSession->triggerMethod[0] = '\0';
    rtspSession->transport[0] = '\0';
    rtspSession->presentationURL[0] = '\0';
+   rtspSession->audioFormat[0] = '\0';
+   rtspSession->modes = 0;
+   rtspSession->latency = 0;
    rtspSession->cea_res = 0;
    rtspSession->vesa_res = 0;
    rtspSession->hh_res = 0;
@@ -1040,15 +1058,15 @@ int composeRTSPResponse(void * session,RTSPPARSINGRESULTS * requestParsingResult
       check_and_response_option("wfd_idr_request_capability", "1");
 
       check_and_response_option("microsoft_cursor", "none");
-      check_and_response_option("microsoft_rtcp_capability", "none");
+      check_and_response_option("microsoft_rtcp_capability", "yes");
       check_and_response_option("microsoft_latency_management_capability", "none");
       check_and_response_option("microsoft_format_change_capability", "none");
       check_and_response_option("microsoft_diagnostics_capability", "none");
 
-      check_and_response_option("intel_friendly_name", "miraclecast");
-      check_and_response_option("intel_sink_manufacturer_name", "GNU Linux");
-      check_and_response_option("intel_sink_model_name", "Arch linux");
-      check_and_response_option("intel_sink_device_URL", "http://github.com/albfan/miraclecast");
+      check_and_response_option("intel_sink_manufacturer_name", "Crestron Electronics");
+      check_and_response_option("intel_sink_device_URL", "https://www.crestron.com/");
+      check_and_response_option("intel_friendly_name", rtspSession->friendlyName);
+      check_and_response_option("intel_sink_model_name", rtspSession->modelName);
 
       // /* wfd_uibc_capability */
       // if (uibc_option) {
@@ -1103,7 +1121,10 @@ int cresRTSP_internalCallback(void * session,unsigned int messageType,
 {
    int                  retv;
    unsigned int         cea_res, vesa_res, hh_res;
+   unsigned int         modes;
+   int                  latency;
    const char *         urlPtr;
+   const char *         audioFormat = NULL;
    const char *         triggerMethod = NULL;
    const char *         sessionID = NULL;
    const char *         transport = NULL;
@@ -1129,11 +1150,12 @@ int cresRTSP_internalCallback(void * session,unsigned int messageType,
             {
                strncpy(rtspSession->presentationURL,urlPtr,sizeof(rtspSession->presentationURL) - 1);
                rtspSession->presentationURL[sizeof(rtspSession->presentationURL) - 1] = '\0';
+               printf("INFO: set (from wfd_presentation_URL) presentationURL to %s\n",
+                  rtspSession->presentationURL);
             }
 
 
-            // !!! must do more important video parameters !!!
-
+            // !!! must do the more important video parameters !
 
             retv = rtsp_message_read(parsedMessagePtr, "{<****hhh>}", "wfd_video_formats",
                &cea_res,&vesa_res,&hh_res);
@@ -1142,17 +1164,30 @@ int cresRTSP_internalCallback(void * session,unsigned int messageType,
                rtspSession->cea_res  = cea_res;
                rtspSession->vesa_res = vesa_res;
                rtspSession->hh_res   = hh_res;
+               printf("INFO: set (from wfd_video_formats): cea_res = %u, vesa_res = %u, hh_res = %u\n",
+                  (unsigned int)rtspSession->cea_res,(unsigned int)rtspSession->vesa_res,
+                  (unsigned int)rtspSession->hh_res);
             }
 
-
-            // !!! must handle audio_codecs headers !!!
-
+            retv = rtsp_message_read(parsedMessagePtr, "{<shi>}", "wfd_audio_codecs",
+               &audioFormat,&modes,&latency);
+            if (retv == 0)
+            {
+               strncpy(rtspSession->audioFormat,audioFormat,sizeof(rtspSession->audioFormat) - 1);
+               rtspSession->audioFormat[sizeof(rtspSession->audioFormat) - 1] = '\0';
+               rtspSession->modes  = modes;
+               rtspSession->latency = latency;
+               printf("INFO: set (from wfd_audio_codecs): audioFormat = %s, modes = %u, latency = %d\n",
+                  rtspSession->audioFormat,(unsigned int)rtspSession->modes,rtspSession->latency);
+            }
 
             retv = rtsp_message_read(parsedMessagePtr, "{<s>}", "wfd_trigger_method", &triggerMethod);
             if (retv >= 0)
             {
                strncpy(rtspSession->triggerMethod,triggerMethod,sizeof(rtspSession->triggerMethod) - 1);
                rtspSession->triggerMethod[sizeof(rtspSession->triggerMethod) - 1] = '\0';
+               printf("INFO: set (from wfd_trigger_method) triggerMethod to %s\n",
+                  rtspSession->triggerMethod);
             }
          }
          break;
@@ -1355,7 +1390,8 @@ int rtsp_encodeAudioFormat(char * outBuff, int outBuffSize, char * encodedValStr
 char * loc_strchrnul( char * s, int c)
 {
    char * retp;
-   retp = strrchr(s,c);
+   // *** retp = strrchr(s,c);
+   retp = strchr(s,c);
    if(retp == NULL)
       retp = s + strlen(s);
    return(retp);
