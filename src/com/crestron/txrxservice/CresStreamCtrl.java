@@ -5750,7 +5750,7 @@ public class CresStreamCtrl extends Service {
 		{
 			if ((userSettings.getMode(sessionId) == DeviceMode.STREAM_OUT.ordinal()) || 
 					(userSettings.getMode(sessionId) == DeviceMode.PREVIEW.ordinal() &&
-					userSettings.getStreamState(sessionId) == StreamState.STARTED))
+					userSettings.getUserRequestedStreamState(sessionId) == StreamState.STARTED))
 			{
 				hdmiContentVisible = true;
 				break;
