@@ -230,7 +230,28 @@ void WfdSinkProjSendIdrReq(int id)
     gProjectsLock.unlock();
     CSIO_LOG(gProjectDebug, "WfdSinkProjSendIdrReq: return.");
 }
+void WfdSinkProjSendGstReady(int id)
+{
+    CSIO_LOG(gProjectDebug, "WfdSinkProjSendGstReady: enter: id[%d].",id);
+    gProjectsLock.lock();
 
+    if(gWFDSinkProjPtr)
+    {
+        csioEventQueueStruct EvntQ;
+        memset(&EvntQ,0,sizeof(csioEventQueueStruct));
+        EvntQ.obj_id = id;
+        EvntQ.event_type = WFD_SINK_EVENTS_JNI_GST_READY;
+
+        gWFDSinkProjPtr->sendEvent(&EvntQ);
+    }
+    else
+    {
+        CSIO_LOG(gProjectDebug, "WfdSinkProjSendGstReady: no gWFDSinkProjPtr is running\n");
+    }
+
+    gProjectsLock.unlock();
+    CSIO_LOG(gProjectDebug, "WfdSinkProjSendGstReady: return.");
+}
 //Note: used only for debugging, there is no lock here.
 void WfdSinkProjSetDebugLevel(int l)
 {
@@ -619,6 +640,26 @@ void* wfdSinkProjClass::ThreadEntry()
                     Wfd_setup_gst_pipeline (0, 1,evntQPtr->ext_obj);
                     break;
                 }
+                case WFD_SINK_EVENTS_JNI_GST_READY:
+                {
+                    int id = evntQPtr->obj_id;
+                    CSIO_LOG(m_debugLevel, "wfdSinkProjClass: process WFD_SINK_EVENTS_JNI_GST_READY[%d].\n",id);
+
+                    if( !IsValidStreamWindow(id))
+                    {
+                        CSIO_LOG(eLogLevel_info, "wfdSinkProjClass: WFD_SINK_EVENTS_JNI_GST_READY obj ID is invalid = %d",id);
+                    }
+                    else
+                    {
+                        csioEventQueueStruct EvntQ;
+
+                        memset(&EvntQ,0,sizeof(csioEventQueueStruct));
+                        EvntQ.obj_id = id;
+                        EvntQ.event_type = WFD_SINK_GST_READY_EVENT;
+                        wfdSinkStMachineClass::m_wfdSinkStMachineThreadPtr->sendEvent(&EvntQ);
+                    }
+                    break;
+                }
                 default:
                 {
                     CSIO_LOG(eLogLevel_info, "wfdSinkProjClass: unknown type[%d].\n",evntQPtr->event_type);
@@ -772,73 +813,3 @@ void WfdSinkProj_fdebug(char *cmd_cstring)
     CSIO_LOG(eLogLevel_info, "WfdSinkProj_debug: exit\n");
 }
 /********** end of WfdSinkProjDebug API, used by jni.cpp *******************/
-
-
-VIDEO_RESOLUTION_RATES cea_resolution_rates[] =
-{
-    { 640, 480,60,1},
-    { 720, 480,60,1}, //p60
-    { 720, 480,60,0}, //i60
-    { 720, 576,50,1}, //p50
-    { 720, 576,50,0}, //i50
-    {1280, 720,30,1},
-    {1280, 720,60,1},
-    {1920,1080,30,1},
-    {1920,1080,60,1},//p60
-    {1920,1080,60,0},//i60
-    {1280, 720,25,1},
-    {1280, 720,50,1},
-    {1920,1080,25,1},
-    {1920,1080,50,1},//p50
-    {1920,1080,50,0},//i50
-    {1280, 720,24,0},
-    {1920,1080,24,0},
-};
-
-VIDEO_RESOLUTION_RATES vesa_resolution_rates[] =
-{
-    { 800, 600,30,1},
-    { 800, 600,60,1}, //p60
-    {1024, 768,30,0}, //i60
-    {1024, 768,60,1}, //p50
-    {1152, 864,60,0}, //i50
-    {1152, 768,30,1},
-    {1280, 768,30,1},
-    {1280, 768,60,1},
-    {1280, 800,30,1},
-    {1280, 800,60,1},
-    {1360, 768,30,1},
-    {1360, 768,60,1},
-    {1366, 768,30,1},
-    {1366, 768,60,1},
-    {1280,1024,30,1},
-    {1280,1024,60,1},
-    {1400,1050,30,1},
-    {1400,1050,60,1},
-    {1440, 900,30,1},
-    {1440, 900,60,1},
-    {1600, 900,30,1},
-    {1600, 900,60,1},
-    {1600,1200,30,1},
-    {1600,1200,60,1},
-    {1680,1024,30,1},
-    {1680,1024,60,1},
-    {1680,1050,30,1},
-    {1680,1050,60,1},
-    {1920,1200,30,1},
-};
-VIDEO_RESOLUTION_RATES hh_resolution_rates[] =
-{
-    { 800, 480,30,1},
-    { 800, 480,60,1}, //p60
-    { 854, 480,30,0}, //i60
-    { 854, 480,60,1}, //p50
-    { 864, 480,30,0}, //i50
-    { 864, 480,60,1},
-    { 640, 360,30,1},
-    { 640, 360,60,1},
-    { 960, 540,30,1},
-    { 960, 540,60,1},
-    { 848, 480,30,1},
-    { 848, 480,60,1},
-};

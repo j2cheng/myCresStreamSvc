@@ -2306,6 +2306,9 @@ void csio_jni_SetOverlayWindow(int iStreamId)
 	{
 		gst_video_overlay_set_window_handle (GST_VIDEO_OVERLAY (data->video_sink), (guintptr)data->native_window);
 	}
+
+	//send event to wifi display project that gstreamer is ready.
+	WfdSinkProjSendGstReady(iStreamId);
 }
 
 //================================================================================

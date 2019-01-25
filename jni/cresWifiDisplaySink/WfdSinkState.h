@@ -17,6 +17,9 @@ typedef enum _eWfd_States
     WFD_SINK_STATES_WAIT_M3_RQST,
     WFD_SINK_STATES_WAIT_M4_RQST,
     WFD_SINK_STATES_WAIT_M5_RQST,
+
+    WFD_SINK_STATES_WAIT_GSTREAMER_PIPELINE_READY,
+
     WFD_SINK_STATES_WAIT_M6_RESP,
     WFD_SINK_STATES_WAIT_M7_RESP,
 
@@ -43,6 +46,9 @@ typedef enum _eWfd_Events
     WFD_SINK_STM_M3_RQST_RCVD_EVENT ,
     WFD_SINK_STM_M4_RQST_RCVD_EVENT ,
     WFD_SINK_STM_M5_RQST_RCVD_EVENT ,
+
+    WFD_SINK_STM_GST_READY_RCVD_EVENT,
+
     WFD_SINK_STM_M6_RESP_RCVD_EVENT,
     WFD_SINK_STM_M7_RESP_RCVD_EVENT,
     WFD_SINK_STM_KEEP_ALIVE_RCVD_EVENT ,
@@ -57,6 +63,7 @@ typedef enum _eWfd_Events
     WFD_SINK_START_STMACHINE_EVENT,
     WFD_SINK_TEARDOWN_TCP_CONN_EVENT,
     WFD_SINK_SEND_IDR_REQ_EVENT,
+    WFD_SINK_GST_READY_EVENT,
 
     //do not add xxx_MAX here, number jumps
 }eWfd_Events;
@@ -75,6 +82,8 @@ typedef enum _eWfd_StatesTO
 
     WFD_SINK_STATETIMEOUT_WAIT_RQST                   = 6000,      //WAIT FOR REQUEST timeout 6s
     WFD_SINK_STATETIMEOUT_WAIT_RESP                   = 5000,      //WAIT FOR responae timeout 5s
+
+    WFD_SINK_STATETIMEOUT_WAIT_GST_PIPELINE           = 15000,     //WAIT FOR gstreamer pipeline ready timeout 15s
 
     WFD_SINK_STATETIMEOUT_DEFAULT_KEEP_ALIVE          = 60000,     //default 60 seconds(>10s)
 
@@ -205,6 +214,9 @@ private:
     int waitM3RequestState(csioEventQueueStruct* pEventQ);
     int waitM4RequestState(csioEventQueueStruct* pEventQ);
     int waitM5RequestState(csioEventQueueStruct* pEventQ);
+
+    int waitGstPipelineReadyState(csioEventQueueStruct* pEventQ);
+
     int waitM6ResponseState(csioEventQueueStruct* pEventQ);
     int waitM7ResponseState(csioEventQueueStruct* pEventQ);
 
@@ -285,6 +297,7 @@ private:
 
     RTSPSYSTEMINFO m_rtspParserIntfInfo;
     void* m_rtspParserIntfSession;
+    int m_state_after_m5;
 };
 /********** end of wfdSinkStMachineClass class *******************/
 
