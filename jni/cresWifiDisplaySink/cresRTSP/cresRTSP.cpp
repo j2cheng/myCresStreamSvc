@@ -304,8 +304,35 @@ int main(int argc, char **argv)
             }
             if(retv >= 2)
             {
+               // store argument as 'presentation_URL' value
+               strncpy(rtspPtr->presentationURL,requestArg0,sizeof(rtspPtr->presentationURL) - 1);
+               rtspPtr->presentationURL[sizeof(rtspPtr->presentationURL) - 1] = '\0';
+            }
+            if(retv >= 3)
+            {
                // store argument as 'session' value
-               strncpy(rtspPtr->sessionID,requestArg0,sizeof(rtspPtr->sessionID) - 1);
+               strncpy(rtspPtr->sessionID,requestArg1,sizeof(rtspPtr->sessionID) - 1);
+               rtspPtr->sessionID[sizeof(rtspPtr->sessionID) - 1] = '\0';
+            }
+         }
+         else if(!strcmp(requestMethod,"TEARDOWN"))
+         {
+            if(retv < 1)
+            {
+               printf("ERROR: method: %s, getRequestInfoFromInputData() returned %d\n",
+                  requestMethod,retv);
+               return(-1);
+            }
+            if(retv >= 2)
+            {
+               // store argument as 'presentation_URL' value
+               strncpy(rtspPtr->presentationURL,requestArg0,sizeof(rtspPtr->presentationURL) - 1);
+               rtspPtr->presentationURL[sizeof(rtspPtr->presentationURL) - 1] = '\0';
+            }
+            if(retv >= 3)
+            {
+               // store argument as 'session' value
+               strncpy(rtspPtr->sessionID,requestArg1,sizeof(rtspPtr->sessionID) - 1);
                rtspPtr->sessionID[sizeof(rtspPtr->sessionID) - 1] = '\0';
             }
          }
@@ -453,6 +480,8 @@ int printParseResults(int messageType, RTSPPARSINGRESULTS * parseResults)
 
    if(parseResults->headerData.sourceRTPPort >= 0)
       printf("   sourceRTPPort: %d\n",parseResults->headerData.sourceRTPPort);
+   if(parseResults->headerData.keepAliveTimeout >= 0)
+      printf("   keepAliveTimeout: %d\n",parseResults->headerData.keepAliveTimeout);
    if(parseResults->headerData.sessionID)
       printf("   sessionID: %s\n",parseResults->headerData.sessionID);
    if(parseResults->headerData.triggerMethod)
@@ -554,14 +583,6 @@ int getRequestInfoFromInputData(char * buff, int buffSize, char * reqMethodBuff,
 
       printf("DEBUG: splitStrOnWS() returned %d\n",tokenCnt);
 
-      // *** // for testing only
-      // *** int nn;
-      // *** printf("INFO: tokens:\n");
-      // *** for(nn=0;nn<tokenCnt;nn++)
-      // *** {
-      // ***    printf("   %s\n",tokens[nn]);
-      // *** }
-
       if(tokenCnt > 0)
       {
          strncpy(reqMethodBuff,tokens[0],reqMethodBuffSize - 1);
@@ -572,7 +593,7 @@ int getRequestInfoFromInputData(char * buff, int buffSize, char * reqMethodBuff,
             reqArg0Buff[reqArg0BuffSize - 1] = '\0';
             if(tokenCnt > 2)
             {
-               strncpy(reqArg1Buff,tokens[1],reqArg1BuffSize - 1);
+               strncpy(reqArg1Buff,tokens[2],reqArg1BuffSize - 1);
                reqArg1Buff[reqArg1BuffSize - 1] = '\0';
                return(3);
             }
@@ -728,9 +749,9 @@ void * initRTSPParser(RTSPSYSTEMINFO * sysInfo)
    rtspSession->modelName[
       sizeof(rtspSession->modelName)-1] = '\0';
    rtspSession->sourceRTPPort = -1;
+   rtspSession->keepAliveTimeout = -1;
    rtspSession->sessionID[0] = '\0';
    rtspSession->triggerMethod[0] = '\0';
-   rtspSession->transport[0] = '\0';
    rtspSession->presentationURL[0] = '\0';
    rtspSession->audioFormat[0] = '\0';
    rtspSession->modes = 0;
@@ -915,6 +936,30 @@ int composeRTSPRequest(void * session,char * requestMethod,RTSPPARSERAPP_COMPOSE
       if(rtspSession->sessionID[0] == '\0')
       {
          printf("WARNING: empty sessionID string in composeRTSPRequest() with method PLAY\n");
+      }
+      retv = rtsp_message_append(rep, "<s>","Session",rtspSession->sessionID);
+      if(retv < 0)
+      {
+         printf("ERROR: rtsp_message_append() failed in composeRTSPResponse() with error code %d\n",retv);
+         return(-1);
+      }
+   }
+   else if(!strcmp(requestMethod,"TEARDOWN"))
+   {
+      if(rtspSession->presentationURL[0] == '\0')
+      {
+         printf("WARNING: empty presentationURL string in composeRTSPRequest() with method TEARDOWN\n");
+      }
+      urlPtr = rtspSession->presentationURL;
+      retv = rtsp_message_new_request(rtspSession,&rep,requestMethod,urlPtr);
+      if(retv < 0)
+      {
+         printf("ERROR: rtsp_message_new_request failed in composeRTSPRequest() with error code %d\n",retv);
+         return(-1);
+      }
+      if(rtspSession->sessionID[0] == '\0')
+      {
+         printf("WARNING: empty sessionID string in composeRTSPRequest() with method TEARDOWN\n");
       }
       retv = rtsp_message_append(rep, "<s>","Session",rtspSession->sessionID);
       if(retv < 0)
@@ -1118,14 +1163,17 @@ int cresRTSP_internalCallback(void * session,unsigned int messageType,
       char * reply_phrase,unsigned int reply_code)
 {
    int                  retv;
+   int                  keepAliveTimeout = -1;
+   int                  sourceRTPPort = -1;
    unsigned int         cea_res, vesa_res, hh_res;
    unsigned int         modes;
    int                  latency;
-   const char *         urlPtr;
-   const char *         audioFormat = NULL;
-   const char *         triggerMethod = NULL;
-   const char *         sessionID = NULL;
-   const char *         transport = NULL;
+   char *               urlPtr;
+   const char *         orgSessionStr;
+   const char *         orgTransportStr;
+   char *               sessionID = NULL;
+   char *               audioFormat = NULL;
+   char *               triggerMethod = NULL;
    struct rtsp *        rtspSession;
    RTSPPARSINGRESULTS   parsingResults;
 
@@ -1197,18 +1245,82 @@ int cresRTSP_internalCallback(void * session,unsigned int messageType,
          // this response corresponds
          // 
 
-         retv = rtsp_message_read(parsedMessagePtr, "<s>", "Session", &sessionID);
+         retv = rtsp_message_read(parsedMessagePtr, "<s>", "Session", &orgSessionStr);
          if (retv >= 0)
+         {
+            int nn = 0;
+            char * sessionStr;
+
+            sessionStr = strdup(orgSessionStr);
+            if(!sessionStr)
+               return(-1);
+
+            char * token = strtok(sessionStr, ";");
+            while(token)
             {
-               strncpy(rtspSession->sessionID,sessionID,sizeof(rtspSession->sessionID) - 1);
-               rtspSession->sessionID[sizeof(rtspSession->sessionID) - 1] = '\0';
+               if(nn == 0)
+               {
+                  sessionID = token;
+                  strncpy(rtspSession->sessionID,sessionID,sizeof(rtspSession->sessionID) - 1);
+                  rtspSession->sessionID[sizeof(rtspSession->sessionID) - 1] = '\0';
+               }
+               else if(nn == 1)
+               {
+                  char * numberStr = strchr(token,'=');
+                  if(numberStr)
+                  {
+                     retv = sscanf(numberStr + 1, "%d", &keepAliveTimeout);
+                     if(retv != 1)
+                        keepAliveTimeout = -1;
+                     if(keepAliveTimeout >= 0)
+                        rtspSession->keepAliveTimeout = keepAliveTimeout;
+                  }
+               }
+               else
+                  break;       // ignore trailing tokens
+               nn++;
+               token = strtok(0, ";");
             }
-         retv = rtsp_message_read(parsedMessagePtr, "<s>", "Transport", &transport);
+            free(sessionStr);
+         }
+         retv = rtsp_message_read(parsedMessagePtr, "<s>", "Transport", &orgTransportStr);
          if (retv >= 0)
+         {
+            int nn = 0;
+            char * transportStr;
+
+            transportStr = strdup(orgTransportStr);
+            if(!transportStr)
+               return(-1);
+
+            char * token = strtok(transportStr, ";");
+            while(token)
             {
-               strncpy(rtspSession->transport,transport,sizeof(rtspSession->transport) - 1);
-               rtspSession->transport[sizeof(rtspSession->transport) - 1] = '\0';
+               if(nn < 3)
+               {
+                  // ignore protocols
+                  // ignore unicast
+                  // ignore own RTP port
+               }
+               else if(nn == 3)
+               {
+                  char * numberStr = strchr(token,'=');
+                  if(numberStr)
+                  {
+                     retv = sscanf(numberStr + 1, "%d", &sourceRTPPort);
+                     if(retv != 1)
+                        sourceRTPPort = -1;
+                     if(sourceRTPPort >= 0)
+                        rtspSession->sourceRTPPort = sourceRTPPort;
+                  }
+               }
+               else
+                  break;      // ignore trailing tokens
+               nn++;
+               token = strtok(0, ";");
             }
+            free(transportStr);
+         }
          break;
       default:
          break;
@@ -1226,24 +1338,36 @@ int cresRTSP_internalCallback(void * session,unsigned int messageType,
       if(sessionID)
          {
          parsingResults.headerData.sessionID = rtspSession->sessionID;
-         printf("INFO: cresRTSP_internalCallback(() - sessionID = %s\n",
+         printf("INFO: cresRTSP_internalCallback() - sessionID = %s\n",
             parsingResults.headerData.sessionID);
          }
       else parsingResults.headerData.sessionID = NULL;
       if(triggerMethod)
          {
          parsingResults.headerData.triggerMethod = rtspSession->triggerMethod;
-         printf("INFO: cresRTSP_internalCallback(() - triggerMethod = %s\n",
+         printf("INFO: cresRTSP_internalCallback() - triggerMethod = %s\n",
             parsingResults.headerData.triggerMethod);
          }
       else parsingResults.headerData.triggerMethod = NULL;
-
-      if(transport)
-         printf("INFO: cresRTSP_internalCallback(() - transport = %s\n",transport);
+      if(keepAliveTimeout >= 0)
+         {
+         parsingResults.headerData.keepAliveTimeout = rtspSession->keepAliveTimeout;
+         printf("INFO: cresRTSP_internalCallback() - keepAliveTimeout = %d\n",
+            parsingResults.headerData.keepAliveTimeout);
+         }
+      else parsingResults.headerData.keepAliveTimeout = -1;
+      if(sourceRTPPort >= 0)
+         {
+         parsingResults.headerData.sourceRTPPort = rtspSession->sourceRTPPort;
+         printf("INFO: cresRTSP_internalCallback() - sourceRTPPort = %d\n",
+            parsingResults.headerData.sourceRTPPort);
+         }
+      else parsingResults.headerData.sourceRTPPort = -1;
 
       retv = rtspSession->crestCallback(&parsingResults,rtspSession->crestCallbackArg);
    }
-   else retv = -1;
+   // *** else retv = -1;
+   else retv = 0;
 
    return(retv);
 }
@@ -1272,7 +1396,8 @@ int cresRTSP_internalComposeCallback(void * session,unsigned int messageType,
 
       retv = rtspSession->crestComposeCallback(&composingResults,rtspSession->crestComposeCallbackArg);
    }
-   else retv = -1;
+   // *** else retv = -1;
+   else retv = 0;
 
    return(retv);
 }

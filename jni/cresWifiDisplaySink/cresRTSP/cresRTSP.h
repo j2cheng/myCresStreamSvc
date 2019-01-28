@@ -39,9 +39,10 @@ typedef struct _rtspheaderdata
    // members of this structure are valid only under specific, individual
    // circumstances
    //
-   int sourceRTPPort;
-   char * sessionID;
-   char * triggerMethod;
+   int sourceRTPPort;               // -1 if not valid
+   char * sessionID;                // NULL if not valid
+   int keepAliveTimeout;            // -1 if not valid
+   char * triggerMethod;            // NULL if not valid
 } RTSPHEADERDATA;
 
 typedef struct _rtspparsingresults
@@ -94,9 +95,9 @@ struct rtsp
 
    // *** session control ***
    int sourceRTPPort;
+   int keepAliveTimeout;
    char sessionID[32];
    char triggerMethod[32];
-   char transport[64];
    char presentationURL[256];
    char audioFormat[16];
    unsigned int modes;
