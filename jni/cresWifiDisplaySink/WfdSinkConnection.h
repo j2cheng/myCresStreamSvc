@@ -24,7 +24,7 @@ public:
     void setSourceAddrPort(const char* pUrl,int port);
     int openConn();
     void resetReceivedBuffer();
-    void resetSocket() { if(m_sock >= 0) close(m_sock);}
+    void resetSocket() ;
     int getSocket() { return m_sock;}
 
     int handleReceivedBytes(int newbytes);

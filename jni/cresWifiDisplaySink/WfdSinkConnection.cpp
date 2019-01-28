@@ -127,7 +127,13 @@ void WfdRTSPSinkClient::setSourceAddrPort(const char* pUrl,int port)
     CSIO_LOG(m_debugLevel, "WfdRTSPSinkClient: setSourceAddrPort is done,m_sourceAddress(%s),sourcePortNum[%d]\n",
              m_sourceAddress.c_str(),sourcePortNum);
 }
+void WfdRTSPSinkClient::resetSocket()
+{
+    if(m_sock >= 0)
+        close(m_sock);
 
+    m_sock = -1;
+}
 int WfdRTSPSinkClient::openConn()
 {
     int newSocket = socket(AF_INET, SOCK_STREAM, 0);

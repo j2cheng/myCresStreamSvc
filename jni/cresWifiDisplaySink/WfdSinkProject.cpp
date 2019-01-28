@@ -637,7 +637,17 @@ void* wfdSinkProjClass::ThreadEntry()
                 }
                 case WFD_SINK_EVENTS_RTSP_IN_SESSION_EVENT:
                 {
-                    Wfd_setup_gst_pipeline (0, 1,evntQPtr->ext_obj);
+                    int id = evntQPtr->obj_id;
+                    CSIO_LOG(m_debugLevel, "wfdSinkProjClass: process WFD_SINK_EVENTS_RTSP_IN_SESSION_EVENT[%d].\n",id);
+
+                    Wfd_setup_gst_pipeline (id, 1,evntQPtr->ext_obj);
+                    break;
+                }
+                case WFD_SINK_EVENTS_RTSP_LEAVE_SESSION_EVENT:
+                {
+                    int id = evntQPtr->obj_id;
+                    CSIO_LOG(m_debugLevel, "wfdSinkProjClass: process WFD_SINK_EVENTS_RTSP_LEAVE_SESSION_EVENT[%d].\n",id);
+
                     break;
                 }
                 case WFD_SINK_EVENTS_JNI_GST_READY:
