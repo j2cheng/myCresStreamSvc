@@ -1077,23 +1077,25 @@ int wfdSinkStMachineClass::waitM5RequestState(csioEventQueueStruct* pEventQ)
 
                     nextState = WFD_SINK_STATES_WAIT_GSTREAMER_PIPELINE_READY;
                 }
-                else// WFD_SINK_TRIGGER_METHOD_TEARDOWN
+                else// TODO: without/other triggering method
                 {
-                    composeRTSPRequest(m_rtspParserIntfSession,"TEARDOWN",parserComposeRequestCallback,(void*)this);
-                    pRTSPSinkClient->sendDataOut((char*)m_requestString.c_str(),m_requestString.size());
+                    CSIO_LOG(m_debugLevel,  "wfdSinkStMachineClass[%d]:received M5 RQST, without triggering method[%d]\n",
+                             m_myId,pEventQ->ext_obj);
 
-                    resetOnTcpConnFlg();
-                    setOnTcpDisconnFlg();
+                    //Note: for now, treat it as SETUP
+                    m_state_after_m5 = WFD_SINK_STATES_WAIT_M6_RESP;
 
-                    setTimeout(WFD_SINK_STATETIMEOUT_WAIT_RESP);
+                    sendEventToParentProj(WFD_SINK_EVENTS_RTSP_IN_SESSION_EVENT);
 
-                    nextState = WFD_SINK_STATES_WAIT_TD_RESP;
+                    setTimeout(WFD_SINK_STATETIMEOUT_WAIT_GST_PIPELINE);
+
+                    nextState = WFD_SINK_STATES_WAIT_GSTREAMER_PIPELINE_READY;
                 }
             }
             else
             {
                 prepareForRestart();
-                CSIO_LOG(m_debugLevel,  "wfdSinkStMachineClass[%d]:pRTSPSinkClient is NULL\n",m_myId);
+                CSIO_LOG(m_debugLevel,  "wfdSinkStMachineClass[%d]:pRTSPSinkClient is NULL\n",m_myId,pEventQ->ext_obj);
                 nextState = WFD_SINK_STATES_IDLE;
             }
 
