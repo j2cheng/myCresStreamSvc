@@ -81,7 +81,7 @@ typedef enum _eWfd_StatesTO
     WFD_SINK_STATETIMEOUT_IDLE_RESTART                = 60000*5,   //retry timeout 5min
 
     WFD_SINK_STATETIMEOUT_WAIT_RQST                   = 6000,      //WAIT FOR REQUEST timeout 6s
-    WFD_SINK_STATETIMEOUT_WAIT_RESP                   = 5000,      //WAIT FOR responae timeout 5s
+    WFD_SINK_STATETIMEOUT_WAIT_RESP                   = 5000,      //WAIT FOR response timeout 5s
 
     WFD_SINK_STATETIMEOUT_WAIT_GST_PIPELINE           = 15000,     //WAIT FOR gstreamer pipeline ready timeout 15s
 

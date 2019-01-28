@@ -563,8 +563,11 @@ int wfdSinkStMachineClass::waitM1RequestState(csioEventQueueStruct* pEventQ)
             //TODO: send out tear down message
             if(pRTSPSinkClient)
             {
-                composeRTSPRequest(m_rtspParserIntfSession,"TEARDOWN",parserComposeRequestCallback,(void*)this);
-                pRTSPSinkClient->sendDataOut((char*)m_requestString.c_str(),m_requestString.size());
+                int ret = composeRTSPRequest(m_rtspParserIntfSession,"TEARDOWN",parserComposeRequestCallback,(void*)this);
+                if(ret == 0)
+                    pRTSPSinkClient->sendDataOut((char*)m_requestString.c_str(),m_requestString.size());
+                else
+                    CSIO_LOG(m_debugLevel,  "wfdSinkStMachineClass[%d]: composeRTSPRequest failed.\n",m_myId);
 
                 if(events == WFD_SINK_STM_START_TEARDOWN_EVENT)
                 {
@@ -613,8 +616,11 @@ int wfdSinkStMachineClass::waitM1RequestState(csioEventQueueStruct* pEventQ)
                              m_myId);
                 }
 
-                composeRTSPRequest(m_rtspParserIntfSession,"OPTIONS",parserComposeRequestCallback,(void*)this);
-                pRTSPSinkClient->sendDataOut((char*)m_requestString.c_str(),m_requestString.size());
+                int ret = composeRTSPRequest(m_rtspParserIntfSession,"OPTIONS",parserComposeRequestCallback,(void*)this);
+                if(ret == 0)
+                    pRTSPSinkClient->sendDataOut((char*)m_requestString.c_str(),m_requestString.size());
+                else
+                    CSIO_LOG(m_debugLevel,  "wfdSinkStMachineClass[%d]: composeRTSPRequest failed.\n",m_myId);
 
                 CSIO_LOG(m_debugLevel,  "wfdSinkStMachineClass[%d]: WFD_SINK_STM_M1_RQST_RCVD_EVENT processed msg size[%d].\n",
                          m_myId,m_requestString.size());
@@ -681,8 +687,11 @@ int wfdSinkStMachineClass::waitM2ResponseState(csioEventQueueStruct* pEventQ)
             //TODO: send out tear down message
             if(pRTSPSinkClient)
             {
-                composeRTSPRequest(m_rtspParserIntfSession,"TEARDOWN",parserComposeRequestCallback,(void*)this);
-                pRTSPSinkClient->sendDataOut((char*)m_requestString.c_str(),m_requestString.size());
+                int ret = composeRTSPRequest(m_rtspParserIntfSession,"TEARDOWN",parserComposeRequestCallback,(void*)this);
+                if(ret == 0)
+                    pRTSPSinkClient->sendDataOut((char*)m_requestString.c_str(),m_requestString.size());
+                else
+                    CSIO_LOG(m_debugLevel,  "wfdSinkStMachineClass[%d]: composeRTSPRequest failed.\n",m_myId);
 
                 if(events == WFD_SINK_STM_START_TEARDOWN_EVENT)
                 {
@@ -773,8 +782,11 @@ int wfdSinkStMachineClass::waitM3RequestState(csioEventQueueStruct* pEventQ)
             //TODO: send out tear down message
             if(pRTSPSinkClient)
             {
-                composeRTSPRequest(m_rtspParserIntfSession,"TEARDOWN",parserComposeRequestCallback,(void*)this);
-                pRTSPSinkClient->sendDataOut((char*)m_requestString.c_str(),m_requestString.size());
+                int ret = composeRTSPRequest(m_rtspParserIntfSession,"TEARDOWN",parserComposeRequestCallback,(void*)this);
+                if(ret == 0)
+                    pRTSPSinkClient->sendDataOut((char*)m_requestString.c_str(),m_requestString.size());
+                else
+                    CSIO_LOG(m_debugLevel,  "wfdSinkStMachineClass[%d]: composeRTSPRequest failed.\n",m_myId);
 
                 if(events == WFD_SINK_STM_START_TEARDOWN_EVENT)
                 {
@@ -885,8 +897,11 @@ int wfdSinkStMachineClass::waitM4RequestState(csioEventQueueStruct* pEventQ)
             //TODO: send out tear down message
             if(pRTSPSinkClient)
             {
-                composeRTSPRequest(m_rtspParserIntfSession,"TEARDOWN",parserComposeRequestCallback,(void*)this);
-                pRTSPSinkClient->sendDataOut((char*)m_requestString.c_str(),m_requestString.size());
+                int ret = composeRTSPRequest(m_rtspParserIntfSession,"TEARDOWN",parserComposeRequestCallback,(void*)this);
+                if(ret == 0)
+                    pRTSPSinkClient->sendDataOut((char*)m_requestString.c_str(),m_requestString.size());
+                else
+                    CSIO_LOG(m_debugLevel,  "wfdSinkStMachineClass[%d]: composeRTSPRequest failed.\n",m_myId);
 
                 if(events == WFD_SINK_STM_START_TEARDOWN_EVENT)
                 {
@@ -1001,8 +1016,11 @@ int wfdSinkStMachineClass::waitM5RequestState(csioEventQueueStruct* pEventQ)
             //TODO: send out tear down message
             if(pRTSPSinkClient)
             {
-                composeRTSPRequest(m_rtspParserIntfSession,"TEARDOWN",parserComposeRequestCallback,(void*)this);
-                pRTSPSinkClient->sendDataOut((char*)m_requestString.c_str(),m_requestString.size());
+                int ret = composeRTSPRequest(m_rtspParserIntfSession,"TEARDOWN",parserComposeRequestCallback,(void*)this);
+                if(ret == 0)
+                    pRTSPSinkClient->sendDataOut((char*)m_requestString.c_str(),m_requestString.size());
+                else
+                    CSIO_LOG(m_debugLevel,  "wfdSinkStMachineClass[%d]: composeRTSPRequest failed.\n",m_myId);
 
                 if(events == WFD_SINK_STM_START_TEARDOWN_EVENT)
                 {
@@ -1150,8 +1168,11 @@ int wfdSinkStMachineClass::waitGstPipelineReadyState(csioEventQueueStruct* pEven
             //TODO: send out tear down message
             if(pRTSPSinkClient)
             {
-                composeRTSPRequest(m_rtspParserIntfSession,"TEARDOWN",parserComposeRequestCallback,(void*)this);
-                pRTSPSinkClient->sendDataOut((char*)m_requestString.c_str(),m_requestString.size());
+                int ret = composeRTSPRequest(m_rtspParserIntfSession,"TEARDOWN",parserComposeRequestCallback,(void*)this);
+                if(ret == 0)
+                    pRTSPSinkClient->sendDataOut((char*)m_requestString.c_str(),m_requestString.size());
+                else
+                    CSIO_LOG(m_debugLevel,  "wfdSinkStMachineClass[%d]: composeRTSPRequest failed.\n",m_myId);
 
                 if(events == WFD_SINK_STM_START_TEARDOWN_EVENT)
                 {
@@ -1190,7 +1211,10 @@ int wfdSinkStMachineClass::waitGstPipelineReadyState(csioEventQueueStruct* pEven
             if(m_state_after_m5 == WFD_SINK_STATES_WAIT_M6_RESP)
             {
                 int ret = composeRTSPRequest(m_rtspParserIntfSession,"SETUP",parserComposeRequestCallback,(void*)this);
-                pRTSPSinkClient->sendDataOut((char*)m_requestString.c_str(),m_requestString.size());
+                if(ret == 0)
+                    pRTSPSinkClient->sendDataOut((char*)m_requestString.c_str(),m_requestString.size());
+                else
+                    CSIO_LOG(m_debugLevel,  "wfdSinkStMachineClass[%d]: composeRTSPRequest failed.\n",m_myId);
 
                 CSIO_LOG(m_debugLevel,  "wfdSinkStMachineClass[%d]: METHOD_SETUP composed[%s][%d].\n",
                          m_myId,m_requestString.c_str(),ret);
@@ -1203,7 +1227,10 @@ int wfdSinkStMachineClass::waitGstPipelineReadyState(csioEventQueueStruct* pEven
             else if(m_state_after_m5 == WFD_SINK_STATES_WAIT_M7_RESP )
             {
                 int ret =composeRTSPRequest(m_rtspParserIntfSession,"PLAY",parserComposeRequestCallback,(void*)this);
-                pRTSPSinkClient->sendDataOut((char*)m_requestString.c_str(),m_requestString.size());
+                if(ret == 0)
+                    pRTSPSinkClient->sendDataOut((char*)m_requestString.c_str(),m_requestString.size());
+                else
+                    CSIO_LOG(m_debugLevel,  "wfdSinkStMachineClass[%d]: composeRTSPRequest failed.\n",m_myId);
 
                 CSIO_LOG(m_debugLevel,  "wfdSinkStMachineClass[%d]: METHOD_PLAY composed[%s].\n",
                          m_myId,m_requestString.c_str(),ret);
@@ -1274,8 +1301,11 @@ int wfdSinkStMachineClass::waitM6ResponseState(csioEventQueueStruct* pEventQ)
             //TODO: send out tear down message
             if(pRTSPSinkClient)
             {
-                composeRTSPRequest(m_rtspParserIntfSession,"TEARDOWN",parserComposeRequestCallback,(void*)this);
-                pRTSPSinkClient->sendDataOut((char*)m_requestString.c_str(),m_requestString.size());
+                int ret = composeRTSPRequest(m_rtspParserIntfSession,"TEARDOWN",parserComposeRequestCallback,(void*)this);
+                if(ret == 0)
+                    pRTSPSinkClient->sendDataOut((char*)m_requestString.c_str(),m_requestString.size());
+                else
+                    CSIO_LOG(m_debugLevel,  "wfdSinkStMachineClass[%d]: composeRTSPRequest failed.\n",m_myId);
 
                 if(events == WFD_SINK_STM_START_TEARDOWN_EVENT)
                 {
@@ -1314,8 +1344,11 @@ int wfdSinkStMachineClass::waitM6ResponseState(csioEventQueueStruct* pEventQ)
 
             if(pRTSPSinkClient)
             {
-                composeRTSPRequest(m_rtspParserIntfSession,"PLAY",parserComposeRequestCallback,(void*)this);
-                pRTSPSinkClient->sendDataOut((char*)m_requestString.c_str(),m_requestString.size());
+                int ret = composeRTSPRequest(m_rtspParserIntfSession,"PLAY",parserComposeRequestCallback,(void*)this);
+                if(ret == 0)
+                    pRTSPSinkClient->sendDataOut((char*)m_requestString.c_str(),m_requestString.size());
+                else
+                    CSIO_LOG(m_debugLevel,  "wfdSinkStMachineClass[%d]: composeRTSPRequest failed.\n",m_myId);
 
                 setTimeout(WFD_SINK_STATETIMEOUT_WAIT_RESP);
 
@@ -1378,8 +1411,11 @@ int wfdSinkStMachineClass::waitM7ResponseState(csioEventQueueStruct* pEventQ)
             //TODO: send out tear down message
             if(pRTSPSinkClient)
             {
-                composeRTSPRequest(m_rtspParserIntfSession,"TEARDOWN",parserComposeRequestCallback,(void*)this);
-                pRTSPSinkClient->sendDataOut((char*)m_requestString.c_str(),m_requestString.size());
+                int ret = composeRTSPRequest(m_rtspParserIntfSession,"TEARDOWN",parserComposeRequestCallback,(void*)this);
+                if(ret == 0)
+                    pRTSPSinkClient->sendDataOut((char*)m_requestString.c_str(),m_requestString.size());
+                else
+                    CSIO_LOG(m_debugLevel,  "wfdSinkStMachineClass[%d]: composeRTSPRequest failed.\n",m_myId);
 
                 if(events == WFD_SINK_STM_START_TEARDOWN_EVENT)
                 {
@@ -1557,8 +1593,11 @@ int wfdSinkStMachineClass::monitorKeepAliveState(csioEventQueueStruct* pEventQ)
             //TODO: send out tear down message
             if(pRTSPSinkClient)
             {
-                composeRTSPRequest(m_rtspParserIntfSession,"TEARDOWN",parserComposeRequestCallback,(void*)this);
-                pRTSPSinkClient->sendDataOut((char*)m_requestString.c_str(),m_requestString.size());
+                int ret = composeRTSPRequest(m_rtspParserIntfSession,"TEARDOWN",parserComposeRequestCallback,(void*)this);
+                if(ret == 0)
+                    pRTSPSinkClient->sendDataOut((char*)m_requestString.c_str(),m_requestString.size());
+                else
+                    CSIO_LOG(m_debugLevel,  "wfdSinkStMachineClass[%d]: composeRTSPRequest failed.\n",m_myId);
 
                 if(events == WFD_SINK_STM_START_TEARDOWN_EVENT)
                 {
@@ -1632,8 +1671,11 @@ int wfdSinkStMachineClass::monitorKeepAliveState(csioEventQueueStruct* pEventQ)
                 pRTSPSinkClient->sendDataOut((char*)m13rqst.c_str(),m13rqst.size());
 
                 /*
-                 *  composeRTSPRequest(m_rtspParserIntfSession,"SET_PARAMETER",parserComposeRequestCallback,(void*)this);
-                    pRTSPSinkClient->sendDataOut((char*)m_requestString.c_str(),m_requestString.size());
+                 *  int ret = composeRTSPRequest(m_rtspParserIntfSession,"SET_PARAMETER",parserComposeRequestCallback,(void*)this);
+                    if(ret == 0)
+                        pRTSPSinkClient->sendDataOut((char*)m_requestString.c_str(),m_requestString.size());
+                    else
+                        CSIO_LOG(m_debugLevel,  "wfdSinkStMachineClass[%d]: composeRTSPRequest failed.\n",m_myId);
                 */
             }
             else
