@@ -1796,7 +1796,7 @@ int wfdSinkStMachineClass::parserCallbackFun(RTSPPARSINGRESULTS * parsResPtr, vo
 
                         if(strcasestr( parsResPtr->request_method, Wfd_rtsp_msg_string_vs_event_names[p->m_curentState].pStr ))
                         {
-                            //if this is set_paramerter TEARDOWN
+                            //looking for triggerMethod
                             if(parsResPtr->headerData.triggerMethod)
                             {
                                 CSIO_LOG(p->m_debugLevel, "wfdSinkStMachineClass[%d]: parserCallbackFun: triggerMethod[%s]\n",
@@ -1814,11 +1814,7 @@ int wfdSinkStMachineClass::parserCallbackFun(RTSPPARSINGRESULTS * parsResPtr, vo
                                 {
                                     p->m_EvntQ.ext_obj = WFD_SINK_TRIGGER_METHOD_PLAY;
                                 }//else
-                            }
-                            else
-                            {
-                                CSIO_LOG(p->m_debugLevel, "wfdSinkStMachineClass[%d]: parserCallbackFun: no triggerMethod\n", p->m_myId);
-                            }
+                            }//else
 
                             CSIO_LOG(p->m_debugLevel, "wfdSinkStMachineClass[%d]: parserCallbackFun: triggerMethod: %d\n",
                                      p->m_myId,p->m_EvntQ.ext_obj);
@@ -1900,6 +1896,16 @@ int wfdSinkStMachineClass::parserCallbackFun(RTSPPARSINGRESULTS * parsResPtr, vo
                     {
                         p->m_EvntQ.event_type = WFD_SINK_STM_INTERNAL_ERROR_EVENT;
                     }
+
+                    //looking for keepAliveTimeout
+                    if(parsResPtr->headerData.keepAliveTimeout != -1)
+                    {
+                        CSIO_LOG(p->m_debugLevel, "wfdSinkStMachineClass[%d]: parserCallbackFun: keepAliveTimeout[%d]\n",
+                                 p->m_myId,parsResPtr->headerData.keepAliveTimeout);
+
+                        //convert headerData.keepAliveTimeout(in second) to m_keepAliveTimeout(in ms)
+                        p->m_keepAliveTimeout = parsResPtr->headerData.keepAliveTimeout * 1000 ;
+                    }//else
                 }
                 //else TODO:if we received response, but we are waiting for request, shall we just ignore it?
                 //p->m_EvntQ.event_type = WFD_SINK_STM_INTERNAL_ERROR_EVENT;
