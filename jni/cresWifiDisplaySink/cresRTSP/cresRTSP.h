@@ -10,25 +10,62 @@ extern "C"
 {
 #endif
 
+//
+// Prefered video_format / audio_codec_configuration selection strings:
+// 
+//    Selection string is made of 1-3 Selection Parts, joined with ';' character.
+//    There are two methods of constructing selection strings (they can not be mixed for a given
+//    string):
+// 
+//       Method I (direct):
+// 
+//          !!! method NOT yet implemented !!!
+// 
+//          For video formats, the selection parts are a hex representation (4 hex digits - 32 bit
+//          number) of bits (flags) defined in tables ceaResRefEnc,vesaResRefEnc and hhResRefEnc
+//          (found in cresRTSP.c), prefixed with the table identifier - "cea_", "vesa_", "hh_".
+//          For audio codec configurations, the selection parts are a hex representation (4 hex
+//          digits - 32 bit number) of bits (flags) defined in tables lpcmModeEnc, aacModeEncand
+//          and ac3ModeEnc (found in cresRTSP.c), prefixed with the table identifier - "lpcm_",
+//          "aac_", "ac3_".
+// 
+//          Examples:
+//          
+//             "cea_0026"
+//                - selects formats 720x480p60 + 720x480i60 + 1280x720p30
+// 
+//             "cea_0200;vesa_0002;hh_000c"
+//                - selects formats 1920x1080i60 + 800x600p60 + 854x480p30 + 854x480p60
+// 
+//             "aac_0001;lpcm_0002"               
+//                - selects formats AACx48x2 + LPCMx48x2
+// 
+//       Method II (human readable):
+//       
+//          For video formats, the parts are made of strings defined in tables
+//          ceaResRefEnc,vesaResRefEnc and hhResRefEnc found cresRTSP.c. For audio
+//          codecs parts are made of strings defined in tables lpcmModeEnc, aacModeEnc
+//          and ac3ModeEnc, also in cresRTSP.c. Each part string selects just one option
+//          from the corresponding table. Prepending the part string with the 'upto_' prefix
+//          selects all the entries in the corresponding table, up to (and including) the
+//          entry selected by the string.
+//       
+//          Examples:
+//          
+//             "640x480p50"               
+//                - selects just one video format - 640x480p50
+//          
+//             "upto_1920x1080p60;960x540p60"
+//                - selects first 9 formats from the CEA table plus one hand held format 960x540p60
+//          
+//             "upto_LPCMx48x2;upto_AACx48x8;upto_AC3x48x6"
+//                - selects all formats from all 3 codec configuration tables (LPCM,AAC,AC3)
+// 
 typedef struct _rtspsysteminfo
 {
    int rtpPort;
-   char * preferredVidResRefStr;    // preferred resolution/refresh_rate string
-                                    //    format:     HRESxVRESpRRATE or HRESxVRESiRRATE
-                                    //    examples:   640x480p50 1920x1080i60
-                                    //    all admissable string values are provided in
-                                    //    cresRTSP.c in tables:
-                                    //       ceaResRefEnc
-                                    //       vesaResRefEnc
-                                    //       hhResRefEnc
-   char * preferredAudioCodecStr;   // preferred audio codec string
-                                    //    format:     CODECxSAMPLINGFREGxCHANNELS
-                                    //    examples:   LPCMx44_1x2 AACx48x6 AC3x48x4
-                                    //    all admissable string values are provided in
-                                    //    cresRTSP.c in tables:
-                                    //       lpcmModeEnc
-                                    //       aacModeEnc
-                                    //       ac3ModeEnc
+   char * preferredVidResRefStr;    // preferred video format (resolution/refresh_rate) selection string
+   char * preferredAudioCodecStr;   // preferred audio codec configuration selection string
    char * friendlyName;             //
    char * modelName;                //
 } RTSPSYSTEMINFO;
@@ -88,8 +125,8 @@ struct rtsp
 
    // *** session parameters ***
    int rtpPort;
-   char preferredVidResRefStr[32];
-   char preferredAudioCodecStr[32];
+   char preferredVidResRefStr[64];
+   char preferredAudioCodecStr[64];
    char friendlyName[64];
    char modelName[64];
 

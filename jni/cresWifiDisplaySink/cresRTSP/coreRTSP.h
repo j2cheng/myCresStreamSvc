@@ -121,16 +121,18 @@ typedef struct _wfdAudioSubElemEncEntry
 #define GETBINFLAG(_index_)             (1 << (_index_))
 #define GETENCTABLEINDEX(_table,_encValStr,_index) \
 { \
-   int nn; \
-   _index = -1; \
-   if(_table && _encValStr) \
    { \
-      for(nn = 0;_table[nn].bitIndex >= 0;nn++) \
+      int _nn; \
+      _index = -1; \
+      if(_table && (_encValStr)) \
       { \
-         if(!strcmp(_table[nn].encodedValStr,_encValStr)) \
+         for(_nn = 0;_table[_nn].bitIndex >= 0;_nn++) \
          { \
-	         _index = nn; \
-            break; \
+            if(!strcmp(_table[_nn].encodedValStr,(_encValStr))) \
+            { \
+	            _index = _nn; \
+               break; \
+            } \
          } \
       } \
    } \

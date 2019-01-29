@@ -142,6 +142,12 @@ WFDAUDIOSUBELEMENCENTRY ac3ModeEnc[] =
 
 int rtsp_encodeVideoFormat(char * outBuff, int outBuffSize, char * encodedValStr);
 int rtsp_encodeAudioFormat(char * outBuff, int outBuffSize, char * encodedValStr);
+int rtsp_encodeSelectionCommon(char * outBuff, int outBuffSize, char * encodedValStr,
+      int isVideoFormat);
+int rtsp_processVideoFormat(char * outBuff, int outBuffSize, char ** encodedParts,
+      int * isUpTo, int partsCount);
+int rtsp_processAudioFormat(char * outBuff, int outBuffSize, char ** encodedParts,
+      int * isUpTo, int partsCount);
 
 static void rtsp_free_match(struct rtsp_match *match);
 static void rtsp_drop_message(struct rtsp_message *m);
@@ -223,11 +229,9 @@ int main(int argc, char **argv)
    char        locBuff[4096];
 
    // sysInfo.rtpPort = 4570;
-   // sysInfo.preferredVidResRefStr = "848x480p60";
-   // sysInfo.preferredAudioCodecStr = "AC3x48x6";
    sysInfo.rtpPort = -1;
-   sysInfo.preferredVidResRefStr = NULL;
-   sysInfo.preferredAudioCodecStr = NULL;
+   sysInfo.preferredVidResRefStr = "upto_1920x1080p60;1024x768p60;upto_960x540p60";
+   sysInfo.preferredAudioCodecStr = "AC3x48x6;upto_LPCMx48x2";
 
    bretv = processCommandLine(argc,argv);
    if(!bretv)
@@ -708,7 +712,7 @@ void * initRTSPParser(RTSPSYSTEMINFO * sysInfo)
    struct rtsp * rtspSession;
 
    rtpPort = 4570;
-   prefResRefStr = "1920x1080p60";
+   prefResRefStr = "upto_1920x1080p60;upto_960x540p60";
    prefCodecStr = "AACx48x2";
    friendlyName = "Crestron Miracast Receiver";
    modelName = "TxRx Miracast";
@@ -1077,7 +1081,7 @@ int composeRTSPResponse(void * session,RTSPPARSINGRESULTS * requestParsingResult
             rtspSession->preferredAudioCodecStr);
          return(-1);
       }
-      printf("INFO: video format string (from prefString %s) is : %s\n",
+      printf("INFO: audio format string (from prefString %s) is : %s\n",
          rtspSession->preferredAudioCodecStr,locBuff);
       check_and_response_option("wfd_audio_codecs",locBuff);
 
@@ -1414,30 +1418,113 @@ bool check_rtsp_option(struct rtsp_message *m, char *option) {
 
 int rtsp_encodeVideoFormat(char * outBuff, int outBuffSize, char * encodedValStr)
 {
-   int index;
+   int retv;
+   retv = rtsp_encodeSelectionCommon(outBuff,outBuffSize,encodedValStr,1);
+   return(retv);
+}
+
+int rtsp_encodeAudioFormat(char * outBuff, int outBuffSize, char * encodedValStr)
+{
+   int retv;
+   retv = rtsp_encodeSelectionCommon(outBuff,outBuffSize,encodedValStr,0);
+   return(retv);
+}
+
+int rtsp_encodeSelectionCommon(char * outBuff, int outBuffSize, char * encodedValStr,
+   int isVideoFormat)
+{
+   int nn = 0,retv;
+   char * encodedStr, * prefixDelim, * token, * partPtr;
+   int isUpToArr[3];
+   char * encodedPartsArr[3];
+
+   encodedStr = strdup(encodedValStr);
+
+   if(!encodedStr)
+      return(-1);
+
+   partPtr = encodedStr;
+   while((token = strtok(partPtr,";")) != NULL)
+   {
+      partPtr = NULL;
+      prefixDelim = strchr(token,'_');
+      if(prefixDelim)
+         {
+            *prefixDelim = '\0';
+            encodedPartsArr[nn] = prefixDelim + 1;
+            if(!strcmp(token,"upto"))
+                  isUpToArr[nn] = 1;
+            else  isUpToArr[nn] = 0;
+         }
+      else
+         {
+         encodedPartsArr[nn] = token;
+         isUpToArr[nn] = 0;
+         }
+      nn++;
+      if(nn >= 3)
+         break;
+   }
+
+   if(nn > 0)
+   {
+      if(isVideoFormat)
+            retv = rtsp_processVideoFormat(outBuff,outBuffSize,encodedPartsArr,isUpToArr,nn);
+      else  retv = rtsp_processAudioFormat(outBuff,outBuffSize,encodedPartsArr,isUpToArr,nn);
+   }
+   else
+   {
+      retv = -1;
+   }
+
+   free(encodedStr);
+
+   return(retv);
+}
+
+int rtsp_processVideoFormat(char * outBuff, int outBuffSize, char ** encodedParts,
+      int * isUpTo, int partsCount)
+{
+   int nn,index;
    uint32_t ceaFlags = 0,vesaFlags = 0,hhFlags = 0;
    char locBuff[128];
 
-   if(!outBuff || !encodedValStr)
+   if(!outBuff || !encodedParts || !isUpTo)
       return(-1);
 
-   GETENCTABLEINDEX(ceaResRefEnc,encodedValStr,index);
-   if(index >= 0)
-      ceaFlags = GETBINFLAG(index);
-   else 
+   for(nn=0;nn<partsCount;nn++)
    {
-      GETENCTABLEINDEX(vesaResRefEnc,encodedValStr,index);
+      GETENCTABLEINDEX(ceaResRefEnc,encodedParts[nn],index);
       if(index >= 0)
-         vesaFlags = GETBINFLAG(index);
-      else
       {
-         GETENCTABLEINDEX(hhResRefEnc,encodedValStr,index);
+         if(isUpTo[nn])
+               ceaFlags = (1 << (index + 1)) - 1;
+         else  ceaFlags = GETBINFLAG(index);
+      }
+      else 
+      {
+         GETENCTABLEINDEX(vesaResRefEnc,encodedParts[nn],index);
          if(index >= 0)
-            hhFlags = GETBINFLAG(index);
+         {
+            if(isUpTo[nn])
+                  vesaFlags = (1 << (index + 1)) - 1;
+            else  vesaFlags = GETBINFLAG(index);
+         }
          else
          {
-            printf("ERROR: encodeVideoFormat() failed to encode video format%s\n",encodedValStr);
-            return(-1);
+            GETENCTABLEINDEX(hhResRefEnc,encodedParts[nn],index);
+            if(index >= 0)
+            {
+               if(isUpTo[nn])
+                     hhFlags = (1 << (index + 1)) - 1;
+               else  hhFlags = GETBINFLAG(index);
+            }
+            else
+            {
+               printf("ERROR: encodeVideoFormat() failed to encode video format %s\n",
+                  encodedParts[nn]);
+               return(-1);
+            }
          }
       }
    }
@@ -1456,47 +1543,61 @@ int rtsp_encodeVideoFormat(char * outBuff, int outBuffSize, char * encodedValStr
 	return(0);
 }
 
-int rtsp_encodeAudioFormat(char * outBuff, int outBuffSize, char * encodedValStr)
+int rtsp_processAudioFormat(char * outBuff, int outBuffSize, char ** encodedParts,
+      int * isUpTo, int partsCount)
 {
-   int index;
-   uint32_t codecFlags = 0;
+   int nn,index,strLength;
+   uint32_t codecFlags;
    char * codecName;
    char locBuff[128];
 
-   if(!outBuff || !encodedValStr)
+   if(!outBuff || !encodedParts || !isUpTo)
       return(-1);
 
-   GETENCTABLEINDEX(lpcmModeEnc,encodedValStr,index);
-   if(index >= 0)
+   locBuff[0] = '\0';
+
+   for(nn=0;((nn<partsCount) && (nn<3));nn++)
    {
-      codecFlags = GETBINFLAG(index);
-      codecName = "LPCM";
-   }
-   else 
-   {
-      GETENCTABLEINDEX(aacModeEnc,encodedValStr,index);
+      GETENCTABLEINDEX(lpcmModeEnc,encodedParts[nn],index);
       if(index >= 0)
       {
-         codecFlags = GETBINFLAG(index);
-         codecName = "AAC";
+         if(isUpTo[nn])
+               codecFlags = (1 << (index + 1)) - 1;
+         else  codecFlags = GETBINFLAG(index);
+         codecName = "LPCM";
       }
-      else
+      else 
       {
-         GETENCTABLEINDEX(ac3ModeEnc,encodedValStr,index);
+         GETENCTABLEINDEX(aacModeEnc,encodedParts[nn],index);
          if(index >= 0)
          {
-            codecFlags = GETBINFLAG(index);
-            codecName = "AC3";
+            if(isUpTo[nn])
+                  codecFlags = (1 << (index + 1)) - 1;
+            else  codecFlags = GETBINFLAG(index);
+            codecName = "AAC";
          }
          else
          {
-            printf("ERROR: encodeAudioFormat() failed to encode video format%s\n",encodedValStr);
-            return(-1);
+            GETENCTABLEINDEX(ac3ModeEnc,encodedParts[nn],index);
+            if(index >= 0)
+            {
+               if(isUpTo[nn])
+                     codecFlags = (1 << (index + 1)) - 1;
+               else  codecFlags = GETBINFLAG(index);
+               codecName = "AC3";
+            }
+            else
+            {
+               printf("ERROR: encodeAudioFormat() failed to encode video format %s\n",
+                  encodedParts[nn]);
+               return(-1);
+            }
          }
       }
+      sprintf(locBuff + strlen(locBuff),"%s%s %08x 00",((nn == 0) ? "" : ","),
+         codecName,codecFlags);
    }
 
-   sprintf(locBuff,"%s %08x 00",codecName,codecFlags);
    if(strlen(locBuff) >= outBuffSize)
    {
       printf("ERROR: outBuffSize (%d) too small to hold encoded string %s\n",locBuff);
