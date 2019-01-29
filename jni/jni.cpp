@@ -4066,7 +4066,8 @@ JNIEXPORT void JNICALL Java_com_crestron_txrxservice_GstreamIn_nativeWfdStop(JNI
             if (data->isStarted)
             {
                 data->isStarted = false;
-    
+                data->audioSinkSyncProperty = true;
+
                 WfdSinkProjStop(windowId);
 
                 csio_jni_stop((int)windowId);
@@ -4109,6 +4110,7 @@ void Wfd_setup_gst_pipeline (int id, int state, int ts_port)
             }
 
             data->isStarted = true;
+            data->audioSinkSyncProperty = false;
 
             if(GetInPausedState(id))
             {

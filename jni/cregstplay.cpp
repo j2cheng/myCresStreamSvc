@@ -161,6 +161,8 @@ void init_custom_data(CustomData * cdata)
         data->set_audio = false;
 
         data->rtcp_dest_ip_addr[0] = 0;
+
+        data->audioSinkSyncProperty = true;
 	}
 }
 
@@ -1508,6 +1510,9 @@ int build_audio_pipeline(gchar *encoding_name, CREGSTREAM *data, int do_rtp,GstE
 	num_elements = i-start;
     data->audio_sink = gst_element_factory_make("openslessink", NULL);
     *sink = data->audio_sink;
+
+    //set sync property here
+    g_object_set (G_OBJECT(data->audio_sink), "sync", data->audioSinkSyncProperty, NULL);
 
 	for(i=start; i<num_elements; i++)
 	{	

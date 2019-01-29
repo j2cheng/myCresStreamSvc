@@ -154,6 +154,8 @@ typedef struct _CREGSTREAM
     bool useSWdecoder;
 
     DEBUGLAUNCH debug_launch;	// A structure to hold info for the debug launch pipeline
+
+    bool audioSinkSyncProperty;
 } CREGSTREAM;
 
 /* Structure to contain all our information, so we can pass it to callbacks */
