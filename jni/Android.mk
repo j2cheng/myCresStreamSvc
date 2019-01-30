@@ -58,6 +58,12 @@ UTIL_INC_PATH := $(CRESTRON_ROOT)/Utilities
 STL_INC_PATH := $(CRESTRON_ROOT)/../stlport/stlport
 CPP_INC_PATH := $(CRESTRON_ROOT)/../../bionic
 
+ifeq ($(TARGET_PRODUCT),$(filter $(TARGET_PRODUCT),yushan_one full_omap5panda))
+SSL_INC_PATH := $(CRESTRON_ROOT)/../openssl-1.1.1/include
+else
+SSL_INC_PATH := $(CRESTRON_ROOT)/../openssl/include
+endif
+
 # Crestron - name was different
 #LOCAL_SHARED_LIBRARIES := gstreamer_android
 LOCAL_SHARED_LIBRARIES := libgstreamer_android liblog libandroid
@@ -85,6 +91,7 @@ endif
 ### Crestron added - why do I need to do this?
 LOCAL_CFLAGS +=\
 	-I$(CPP_INC_PATH) \
+	-I$(SSL_INC_PATH) \
 	-I$(COMMON_INC_PATH) \
 	-I$(GSTREAMER_ROOT_ANDROID)/include/gstreamer-1.0 \
 	-I$(GSTREAMER_ROOT_ANDROID)/include/glib-2.0 \
@@ -113,12 +120,6 @@ LOCAL_CFLAGS +=\
 	-DANDROID_OS
 ifeq ($(shell test $(PLATFORM_SDK_VERSION) -lt 23 && echo PreMarshmallow),PreMarshmallow)
 	LOCAL_CFLAGS += -I$(STL_INC_PATH)
-endif
-
-ifeq ($(TARGET_PRODUCT),$(filter $(TARGET_PRODUCT),yushan_one full_omap5panda))
-LOCAL_C_FLAGS +=  -I$(CRESTRON_ROOT)/../openssl-1.1.1/include
-else
-LOCAL_C_FLAGS +=  -I$(CRESTRON_ROOT)/../openssl/include
 endif
 
 ifeq ($(TARGET_PRODUCT),$(filter $(TARGET_PRODUCT),yushan_one ))
