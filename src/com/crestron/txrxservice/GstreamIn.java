@@ -12,11 +12,13 @@ import android.content.Context;
 import com.crestron.txrxservice.CresStreamCtrl.CrestronHwPlatform;
 import com.crestron.txrxservice.CresStreamCtrl.DeviceMode;
 import com.crestron.txrxservice.CresStreamCtrl.StreamState;
+import com.crestron.airmedia.receiver.m360.ipc.AirMediaSessionStreamingState;
 
 public class GstreamIn implements StreamInStrategy, SurfaceHolder.Callback {
 
     String TAG = "TxRx GstreamIN";
     StringBuilder sb;
+    boolean[] wfd_mode = new boolean[com.crestron.txrxservice.CresStreamCtrl.NumOfSurfaces];
     boolean rtp_mode = false;
     boolean media_pause = false;
     int     tcpInterleaveFlag = 0;
@@ -75,6 +77,8 @@ public class GstreamIn implements StreamInStrategy, SurfaceHolder.Callback {
     public GstreamIn(CresStreamCtrl mContext) {
         Log.e(TAG, "GstreamIN :: Constructor called...!");
         streamCtl = mContext;
+        for (int i=0; i < CresStreamCtrl.NumOfSurfaces; i++)
+        	wfd_mode[i] = false;
         nativeSetStopTimeout(stopTimeout_sec);
         nativeInit();
     }
@@ -212,8 +216,19 @@ public class GstreamIn implements StreamInStrategy, SurfaceHolder.Callback {
     	{
     		streamCtl.sockTask.SendDataToAllClients(MiscUtils.stringFormat("STREAMURL%d=%s", sessionId, streamCtl.userSettings.getStreamInUrl(sessionId)));
     	}
-    	streamCtl.SendStreamState(StreamState.getStreamStateFromInt(streamStateEnum), sessionId); 
-	}
+    	streamCtl.SendStreamState(StreamState.getStreamStateFromInt(streamStateEnum), sessionId);
+    	if (wfd_mode[sessionId])
+    	{
+    		if (streamStateEnum == CresStreamCtrl.StreamState.STARTED.getValue())
+    		{
+    			//streamCtl.wifidVideoPlayer.stateChanged(sessionId, AirMediaSessionStreamingState.Playing);
+    		} 
+    		else if (streamStateEnum == CresStreamCtrl.StreamState.STOPPED.getValue())
+    		{
+    			//streamCtl.wifidVideoPlayer.stateChanged(sessionId, AirMediaSessionStreamingState.Stopped);
+    		}
+    	}
+    }
 
     public void sendDSVideoReady()
     {
@@ -345,6 +360,7 @@ public class GstreamIn implements StreamInStrategy, SurfaceHolder.Callback {
     		public void run() {
     			try {
     				isPlaying = true;
+    		    	wfd_mode[sessionId] = false;
     				updateNativeDataStruct(sessionId);
     				Surface s = streamCtl.getSurface(sessionId);
     				nativeSurfaceInit(s, sessionId);
@@ -500,6 +516,7 @@ public class GstreamIn implements StreamInStrategy, SurfaceHolder.Callback {
     		public void run() {
     			try {
     				isPlaying = true;
+    				wfd_mode[sessionId] = true;
     				Surface s = streamCtl.getSurface(sessionId);
     				nativeSurfaceInit(s, sessionId);
     		    	nativeWfdStart(sessionId, url, rtsp_port);
@@ -525,6 +542,7 @@ public class GstreamIn implements StreamInStrategy, SurfaceHolder.Callback {
     		Log.e(TAG, MiscUtils.stringFormat("Stream In failed to start after %d ms", startTimeout_ms));
     		startThread.interrupt(); //cleanly kill thread
     		startThread = null;
+    		wfd_mode[sessionId] = false;
     		streamCtl.RecoverTxrxService();
     	}
     }

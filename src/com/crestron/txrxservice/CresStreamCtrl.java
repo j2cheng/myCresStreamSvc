@@ -108,6 +108,7 @@ public class CresStreamCtrl extends Service {
     StreamIn streamPlay = null;
     GstreamBase gstreamBase = null;
     WbsStreamIn wbsStream = null;
+    WifidVideoPlayer wifidVideoPlayer = null;
     
     private DisplayManager m_displayManager = null;
 
@@ -950,6 +951,8 @@ public class CresStreamCtrl extends Service {
     			streamPlay = new StreamIn(new NstreamIn(CresStreamCtrl.this)); 
     		
     		wbsStream = new WbsStreamIn(CresStreamCtrl.this);
+    		
+    		wifidVideoPlayer = new WifidVideoPlayer(CresStreamCtrl.this);
 
     		hdmiOutput = new HDMIOutputInterface(nativeGetHDMIOutputBitmask());
     		setHDCPBypass();
@@ -1290,6 +1293,14 @@ public class CresStreamCtrl extends Service {
     	{
     		dispSurface.deleteSurface(id);
     	}
+    }
+    
+    public int surface2streamId(Surface surface)
+    {
+    	if (dispSurface != null)
+    		return dispSurface.surface2streamId(surface);
+    	else
+    		return -1;
     }
     
     public SurfaceView getSurfaceView(int id) {

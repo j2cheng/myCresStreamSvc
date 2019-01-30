@@ -85,6 +85,9 @@ public interface CresDisplaySurface
     // delete Surface for Window idx
     public void deleteSurface(int idx);
     
+    // get stream id for surface
+	public int surface2streamId(Surface surface);
+
     // set tag for Window idx
 	public void setTag(int idx, String tag);
 

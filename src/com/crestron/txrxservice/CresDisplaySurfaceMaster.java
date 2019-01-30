@@ -788,6 +788,21 @@ public class CresDisplaySurfaceMaster implements CresDisplaySurface
 
     }
     
+	public int surface2streamId(Surface surface)
+	{
+		int streamId = -1;
+		if (surface == null)
+			return streamId;
+		for (int idx=0; idx < CresStreamCtrl.NumOfSurfaces; idx++)
+		{
+			if (sMGR.getCresSurfaceHolder(displaySurface[idx]).getSurface() == surface) {
+				streamId = idx;
+				break;
+			}
+		}
+		return streamId;
+	}
+	
 	public void setTag(int idx, String tag)
 	{
 		displaySurface[idx].setTag(tag);

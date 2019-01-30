@@ -510,7 +510,7 @@ public class AirMediaSplashtop implements AirMedia
 		if (receiver_ == null) {
         	try {
         		receiver_ = new AirMediaReceiver(service_);
-
+        		
                 receiver().serverName(serverName);
                 receiver().product(productName);
                 receiver().adapterAddress(get_adapter_ip_address());
@@ -519,6 +519,7 @@ public class AirMediaSplashtop implements AirMedia
                 receiver().displayResolution(new AirMediaSize(dSize.x, dSize.y));
 
         		registerReceiverEventHandlers(receiver());
+        		mStreamCtl.wifidVideoPlayer.register(receiver_);
 
         		if (receiver().loaded() != AirMediaReceiverLoadedState.Loaded)
         		{

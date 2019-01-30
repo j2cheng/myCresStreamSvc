@@ -147,6 +147,21 @@ public class CresDisplaySurfaceSlave implements CresDisplaySurface
 	{
 		return;
 	}
+	
+	public int surface2streamId(Surface surface)
+	{
+		int streamId = -1;
+		if (surface == null)
+			return streamId;
+		for (Map.Entry<Integer, Surface> entry : surfaceMap.entrySet())
+		{
+			if (entry.getValue() == surface) {
+				streamId = entry.getKey();
+				break;
+			}
+		}
+		return streamId;
+	}
 
     /**
      * Return the surface holder for the display surface
