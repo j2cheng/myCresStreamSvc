@@ -4055,14 +4055,21 @@ JNIEXPORT void JNICALL Java_com_crestron_txrxservice_GstreamIn_nativeWfdStop(JNI
 {
     CSIO_LOG(eLogLevel_verbose, "%s", __FUNCTION__);
 
+    //Note: you can call WfdSinkProjStop multiple times.
+    WfdSinkProjStop(windowId);
+
     //TODO: copy from gst_native_stop()
     {
         CREGSTREAM * data = GetStreamFromCustomData(CresDataDB, windowId);
 
         if (!data)
-            CSIO_LOG(eLogLevel_error, "Could not obtain stream pointer for stream %d, failed to set isStarted state", windowId);
+        {
+        	CSIO_LOG(eLogLevel_error, "Could not obtain stream pointer for stream %d, failed to set isStarted state", windowId);
+        }
         else
         {
+        	CSIO_LOG(eLogLevel_debug, "GstreamIn_nativeWfdSto[%d]: data->isStarted[%d]", windowId,data->isStarted);
+
             if (data->isStarted)
             {
                 data->isStarted = false;
@@ -4073,7 +4080,9 @@ JNIEXPORT void JNICALL Java_com_crestron_txrxservice_GstreamIn_nativeWfdStop(JNI
                 csio_jni_stop((int)windowId);
             }
             else
-                csio_SendVideoPlayingStatusMessage((int)windowId, STREAMSTATE_STOPPED);
+            {
+            	csio_SendVideoPlayingStatusMessage((int)windowId, STREAMSTATE_STOPPED);
+            }
         }
     }
 }

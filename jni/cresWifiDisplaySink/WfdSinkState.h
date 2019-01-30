@@ -78,7 +78,7 @@ enum
 
 typedef enum _eWfd_StatesTO
 {
-    WFD_SINK_STATETIMEOUT_IDLE_RESTART                = 60000*5,   //retry timeout 5min
+    WFD_SINK_STATETIMEOUT_IDLE_RESTART                = 5000,      //retry timeout 5sec
 
     WFD_SINK_STATETIMEOUT_WAIT_RQST                   = 6000,      //WAIT FOR REQUEST timeout 6s
     WFD_SINK_STATETIMEOUT_WAIT_RESP                   = 5000,      //WAIT FOR response timeout 5s
@@ -143,8 +143,7 @@ class wfdSinkStMachineClass;
 class wfdSinkStMachineThread;
 class WfdRTSPSinkClient;
 
-#define ON_TCP_CONN       1
-#define ON_TCP_DISCONN    2
+#define ON_RTSPTCP_CONN       1
 
 class wfdSinkStMachineClass
 {
@@ -257,12 +256,9 @@ private:
 
     const char* getThisArrayNames(const WFD_STRNUMPAIR* array_names,int maxList,int mode);
 
-    int  isOnTcpConnSet()     { return (m_onTcpConnFlag & ON_TCP_CONN);}
-    void setOnTcpConnFlg()    { m_onTcpConnFlag |= ON_TCP_CONN;}
-    void resetOnTcpConnFlg()  { m_onTcpConnFlag &= (~ON_TCP_CONN);}
-    int  isOnTcpDisconnSet()     { return (m_onTcpConnFlag & ON_TCP_DISCONN);}
-    void setOnTcpDisconnFlg()    { m_onTcpConnFlag |= ON_TCP_DISCONN;}
-    void resetOnTcpDisconnFlg()  { m_onTcpConnFlag &= (~ON_TCP_DISCONN);}
+    int  isOnRTSPTcpConnSet()     { return (m_onTcpConnFlag & ON_RTSPTCP_CONN);}
+    void setOnRTSPTcpConnFlg()    { m_onTcpConnFlag |= ON_RTSPTCP_CONN;}
+    void resetOnRTSPTcpConnFlg()  { m_onTcpConnFlag &= (~ON_RTSPTCP_CONN);}
 
     void* createCharArray(int size) { return new char [size]; }
     void deleteCharArray(void* buf)

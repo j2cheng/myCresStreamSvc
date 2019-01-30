@@ -231,8 +231,6 @@ void wfdSinkStMachineClass::DumpClassPara(int l)
     CSIO_LOG(eLogLevel_info, "wfdSinkStMachineClass: Restart count      %d\n", getRestartCnt());
     CSIO_LOG(eLogLevel_info, "wfdSinkStMachineClass: keep alive timeout %d\n", m_keepAliveTimeout/1000);
 
-    CSIO_LOG(eLogLevel_info, "wfdSinkStMachineClass: isOnTcpDisconnSet  %d\n", isOnTcpDisconnSet());
-
     {
         struct timespec currentTm;
         struct timespec evtTm = {0};
@@ -248,7 +246,7 @@ void wfdSinkStMachineClass::DumpClassPara(int l)
         if(evtTm.tv_sec)
             delta = currentTm.tv_sec - evtTm.tv_sec;
 
-        CSIO_LOG(eLogLevel_info, "wfdSinkStMachineClass: isOnTcpConnSet     %d(%d)\n", isOnTcpConnSet(),delta);
+        CSIO_LOG(eLogLevel_info, "wfdSinkStMachineClass: isOnRTSPTcpConnSet     %d(%d)\n", isOnRTSPTcpConnSet(),delta);
     }
 
 
@@ -300,8 +298,7 @@ void wfdSinkStMachineClass::prepareBeforeIdle()
     resetAllFlags();
     resetSystemStatus();
 
-    resetOnTcpConnFlg();
-    resetOnTcpDisconnFlg();
+    resetOnRTSPTcpConnFlg();
     resetTimeout();
     CSIO_LOG(m_debugLevel, "wfdSinkStMachineClass[%d]: prepareBeforeIdle\n", m_myId);
 }
@@ -309,9 +306,6 @@ void wfdSinkStMachineClass::prepareBeforeIdle()
 //      Making a one second delay (timeout)
 void wfdSinkStMachineClass::prepareForRestart()
 {
-    //TODO: default : we never restart
-    prepareBeforeIdle();
-
     resetAllFlags();
     resetSystemStatus();
 
@@ -427,24 +421,16 @@ int wfdSinkStMachineClass::idleState(csioEventQueueStruct* pEventQ)
     int events = pEventQ->event_type;
     int restartNow = 0;
 
-    //Note: if ON_TCP_DISCONN is set, treat as if timeout,
-    //      then check ON_TCP_CONN and reset timer.
-    if(isOnTcpDisconnSet())
-    {
-        resetOnTcpDisconnFlg();
-        restartNow =1;
-    }
-
     switch(events)
     {
         case WFD_SINK_STM_TIME_TICKS_EVENT:
         {
             //Note: if we don't have restart wait state, this will be used as a delay
-            if(isTimeout() || restartNow)
+            if(isTimeout())
             {
                 resetTimeout();
 
-                if(isOnTcpConnSet())
+                if(isOnRTSPTcpConnSet())
                 {
                     CSIO_LOG(m_debugLevel,  "wfdSinkStMachineClass[%d]: idleState: restart now[%d].\n",m_myId,++restartFromIdleCnt);
                     getTimeStamp(WFD_SINK_EVENTTIME_RESTART_FROM_IDLESTATE);
@@ -486,7 +472,7 @@ int wfdSinkStMachineClass::idleState(csioEventQueueStruct* pEventQ)
             CSIO_LOG(m_debugLevel,  "wfdSinkStMachineClass[%d]: start connection: addr[%s],port[%d].\n",
                     m_myId,getCurentSourceUrl(),getCurentSourcePort());
 
-            setOnTcpConnFlg();;
+            setOnRTSPTcpConnFlg();;
 
             if(pRTSPSinkClient)
             {
@@ -571,8 +557,7 @@ int wfdSinkStMachineClass::waitM1RequestState(csioEventQueueStruct* pEventQ)
 
                 if(events == WFD_SINK_STM_START_TEARDOWN_EVENT)
                 {
-                    resetOnTcpConnFlg();
-                    setOnTcpDisconnFlg();
+                    resetOnRTSPTcpConnFlg();
                 }
 
                 setTimeout(WFD_SINK_STATETIMEOUT_WAIT_RESP);
@@ -591,7 +576,7 @@ int wfdSinkStMachineClass::waitM1RequestState(csioEventQueueStruct* pEventQ)
                 pRTSPSinkClient->sendDataOut((char*)pEventQ->buffPtr,pEventQ->buf_size);
             }//else
 
-            prepareForRestart();
+            prepareBeforeIdle();
 
             sendEventToParentProj(WFD_SINK_EVENTS_RTSP_LEAVE_SESSION_EVENT);
             nextState = WFD_SINK_STATES_IDLE;
@@ -641,7 +626,7 @@ int wfdSinkStMachineClass::waitM1RequestState(csioEventQueueStruct* pEventQ)
         }
         case WFD_SINK_STM_START_CONN_EVENT:
         {
-            setOnTcpConnFlg();
+            setOnRTSPTcpConnFlg();
             break;
         }
         default:
@@ -695,8 +680,7 @@ int wfdSinkStMachineClass::waitM2ResponseState(csioEventQueueStruct* pEventQ)
 
                 if(events == WFD_SINK_STM_START_TEARDOWN_EVENT)
                 {
-                    resetOnTcpConnFlg();
-                    setOnTcpDisconnFlg();
+                    resetOnRTSPTcpConnFlg();
                 }
 
                 setTimeout(WFD_SINK_STATETIMEOUT_WAIT_RESP);
@@ -715,7 +699,7 @@ int wfdSinkStMachineClass::waitM2ResponseState(csioEventQueueStruct* pEventQ)
                 pRTSPSinkClient->sendDataOut((char*)pEventQ->buffPtr,pEventQ->buf_size);
             }//else
 
-            prepareForRestart();
+            prepareBeforeIdle();
 
             sendEventToParentProj(WFD_SINK_EVENTS_RTSP_LEAVE_SESSION_EVENT);
             nextState = WFD_SINK_STATES_IDLE;
@@ -736,7 +720,7 @@ int wfdSinkStMachineClass::waitM2ResponseState(csioEventQueueStruct* pEventQ)
         }
         case WFD_SINK_STM_START_CONN_EVENT:
         {
-            setOnTcpConnFlg();
+            setOnRTSPTcpConnFlg();
             break;
         }
         default:
@@ -790,8 +774,7 @@ int wfdSinkStMachineClass::waitM3RequestState(csioEventQueueStruct* pEventQ)
 
                 if(events == WFD_SINK_STM_START_TEARDOWN_EVENT)
                 {
-                    resetOnTcpConnFlg();
-                    setOnTcpDisconnFlg();
+                    resetOnRTSPTcpConnFlg();
                 }
 
                 setTimeout(WFD_SINK_STATETIMEOUT_WAIT_RESP);
@@ -810,7 +793,7 @@ int wfdSinkStMachineClass::waitM3RequestState(csioEventQueueStruct* pEventQ)
                 pRTSPSinkClient->sendDataOut((char*)pEventQ->buffPtr,pEventQ->buf_size);
             }//else
 
-            prepareForRestart();
+            prepareBeforeIdle();
 
             sendEventToParentProj(WFD_SINK_EVENTS_RTSP_LEAVE_SESSION_EVENT);
             nextState = WFD_SINK_STATES_IDLE;
@@ -851,7 +834,7 @@ int wfdSinkStMachineClass::waitM3RequestState(csioEventQueueStruct* pEventQ)
         }
         case WFD_SINK_STM_START_CONN_EVENT:
         {
-            setOnTcpConnFlg();
+            setOnRTSPTcpConnFlg();
             break;
         }
         default:
@@ -905,8 +888,7 @@ int wfdSinkStMachineClass::waitM4RequestState(csioEventQueueStruct* pEventQ)
 
                 if(events == WFD_SINK_STM_START_TEARDOWN_EVENT)
                 {
-                    resetOnTcpConnFlg();
-                    setOnTcpDisconnFlg();
+                    resetOnRTSPTcpConnFlg();
                 }
 
                 setTimeout(WFD_SINK_STATETIMEOUT_WAIT_RESP);
@@ -925,7 +907,7 @@ int wfdSinkStMachineClass::waitM4RequestState(csioEventQueueStruct* pEventQ)
                 pRTSPSinkClient->sendDataOut((char*)pEventQ->buffPtr,pEventQ->buf_size);
             }//else
 
-            prepareForRestart();
+            prepareBeforeIdle();
 
             sendEventToParentProj(WFD_SINK_EVENTS_RTSP_LEAVE_SESSION_EVENT);
             nextState = WFD_SINK_STATES_IDLE;
@@ -970,7 +952,7 @@ int wfdSinkStMachineClass::waitM4RequestState(csioEventQueueStruct* pEventQ)
         }
         case WFD_SINK_STM_START_CONN_EVENT:
         {
-            setOnTcpConnFlg();
+            setOnRTSPTcpConnFlg();
             break;
         }
         default:
@@ -1024,8 +1006,7 @@ int wfdSinkStMachineClass::waitM5RequestState(csioEventQueueStruct* pEventQ)
 
                 if(events == WFD_SINK_STM_START_TEARDOWN_EVENT)
                 {
-                    resetOnTcpConnFlg();
-                    setOnTcpDisconnFlg();
+                    resetOnRTSPTcpConnFlg();
                 }
 
                 setTimeout(WFD_SINK_STATETIMEOUT_WAIT_RESP);
@@ -1044,7 +1025,7 @@ int wfdSinkStMachineClass::waitM5RequestState(csioEventQueueStruct* pEventQ)
                 pRTSPSinkClient->sendDataOut((char*)pEventQ->buffPtr,pEventQ->buf_size);
             }//else
 
-            prepareForRestart();
+            prepareBeforeIdle();
 
             sendEventToParentProj(WFD_SINK_EVENTS_RTSP_LEAVE_SESSION_EVENT);
             nextState = WFD_SINK_STATES_IDLE;
@@ -1121,7 +1102,7 @@ int wfdSinkStMachineClass::waitM5RequestState(csioEventQueueStruct* pEventQ)
         }
         case WFD_SINK_STM_START_CONN_EVENT:
         {
-            setOnTcpConnFlg();
+            setOnRTSPTcpConnFlg();
             break;
         }
         default:
@@ -1176,8 +1157,7 @@ int wfdSinkStMachineClass::waitGstPipelineReadyState(csioEventQueueStruct* pEven
 
                 if(events == WFD_SINK_STM_START_TEARDOWN_EVENT)
                 {
-                    resetOnTcpConnFlg();
-                    setOnTcpDisconnFlg();
+                    resetOnRTSPTcpConnFlg();
                 }
 
                 setTimeout(WFD_SINK_STATETIMEOUT_WAIT_RESP);
@@ -1196,7 +1176,7 @@ int wfdSinkStMachineClass::waitGstPipelineReadyState(csioEventQueueStruct* pEven
                 pRTSPSinkClient->sendDataOut((char*)pEventQ->buffPtr,pEventQ->buf_size);
             }//else
 
-            prepareForRestart();
+            prepareBeforeIdle();
 
             sendEventToParentProj(WFD_SINK_EVENTS_RTSP_LEAVE_SESSION_EVENT);
             nextState = WFD_SINK_STATES_IDLE;
@@ -1254,7 +1234,7 @@ int wfdSinkStMachineClass::waitGstPipelineReadyState(csioEventQueueStruct* pEven
         }
         case WFD_SINK_STM_START_CONN_EVENT:
         {
-            setOnTcpConnFlg();
+            setOnRTSPTcpConnFlg();
             break;
         }
         default:
@@ -1309,8 +1289,7 @@ int wfdSinkStMachineClass::waitM6ResponseState(csioEventQueueStruct* pEventQ)
 
                 if(events == WFD_SINK_STM_START_TEARDOWN_EVENT)
                 {
-                    resetOnTcpConnFlg();
-                    setOnTcpDisconnFlg();
+                    resetOnRTSPTcpConnFlg();
                 }
 
                 setTimeout(WFD_SINK_STATETIMEOUT_WAIT_RESP);
@@ -1329,7 +1308,7 @@ int wfdSinkStMachineClass::waitM6ResponseState(csioEventQueueStruct* pEventQ)
                 pRTSPSinkClient->sendDataOut((char*)pEventQ->buffPtr,pEventQ->buf_size);
             }//else
 
-            prepareForRestart();
+            prepareBeforeIdle();
 
             sendEventToParentProj(WFD_SINK_EVENTS_RTSP_LEAVE_SESSION_EVENT);
             nextState = WFD_SINK_STATES_IDLE;
@@ -1365,7 +1344,7 @@ int wfdSinkStMachineClass::waitM6ResponseState(csioEventQueueStruct* pEventQ)
         }
         case WFD_SINK_STM_START_CONN_EVENT:
         {
-            setOnTcpConnFlg();
+            setOnRTSPTcpConnFlg();
             break;
         }
         default:
@@ -1419,8 +1398,7 @@ int wfdSinkStMachineClass::waitM7ResponseState(csioEventQueueStruct* pEventQ)
 
                 if(events == WFD_SINK_STM_START_TEARDOWN_EVENT)
                 {
-                    resetOnTcpConnFlg();
-                    setOnTcpDisconnFlg();
+                    resetOnRTSPTcpConnFlg();
                 }
 
                 setTimeout(WFD_SINK_STATETIMEOUT_WAIT_RESP);
@@ -1439,7 +1417,7 @@ int wfdSinkStMachineClass::waitM7ResponseState(csioEventQueueStruct* pEventQ)
                 pRTSPSinkClient->sendDataOut((char*)pEventQ->buffPtr,pEventQ->buf_size);
             }//else
 
-            prepareForRestart();
+            prepareBeforeIdle();
 
             sendEventToParentProj(WFD_SINK_EVENTS_RTSP_LEAVE_SESSION_EVENT);
             nextState = WFD_SINK_STATES_IDLE;
@@ -1461,7 +1439,7 @@ int wfdSinkStMachineClass::waitM7ResponseState(csioEventQueueStruct* pEventQ)
         }
         case WFD_SINK_STM_START_CONN_EVENT:
         {
-            setOnTcpConnFlg();
+            setOnRTSPTcpConnFlg();
             break;
         }
         default:
@@ -1495,7 +1473,7 @@ int wfdSinkStMachineClass::waitTDResponseState(csioEventQueueStruct* pEventQ)
                 CSIO_LOG(m_debugLevel,  "wfdSinkStMachineClass[%d]: waitTDResponseState: timeout.\n",m_myId);
 
                 //Note: in transition to idle, only check ON_TCP_CONN flag
-                if(isOnTcpConnSet())
+                if(isOnRTSPTcpConnSet())
                     prepareForRestart();
                 else
                     prepareBeforeIdle();
@@ -1512,7 +1490,7 @@ int wfdSinkStMachineClass::waitTDResponseState(csioEventQueueStruct* pEventQ)
             CSIO_LOG(m_debugLevel,  "wfdSinkStMachineClass[%d]: WFD_SINK_STM_TD_RESP_RCVD_EVENT processed.\n",m_myId);
 
             //Note: in transition to idle, only check ON_TCP_CONN flag
-            if(isOnTcpConnSet())
+            if(isOnRTSPTcpConnSet())
                 prepareForRestart();
             else
                 prepareBeforeIdle();
@@ -1524,13 +1502,12 @@ int wfdSinkStMachineClass::waitTDResponseState(csioEventQueueStruct* pEventQ)
         }
         case WFD_SINK_STM_START_CONN_EVENT:
         {
-            setOnTcpConnFlg();
+            setOnRTSPTcpConnFlg();
             break;
         }
         case WFD_SINK_STM_START_TEARDOWN_EVENT:
         {
-            resetOnTcpConnFlg();
-            setOnTcpDisconnFlg();
+            resetOnRTSPTcpConnFlg();
             break;
         }
         case WFD_SINK_STM_RCVD_TEARDOWN_EVENT:
@@ -1542,7 +1519,7 @@ int wfdSinkStMachineClass::waitTDResponseState(csioEventQueueStruct* pEventQ)
                 pRTSPSinkClient->sendDataOut((char*)pEventQ->buffPtr,pEventQ->buf_size);
             }//else
 
-            prepareForRestart();
+            prepareBeforeIdle();
 
             sendEventToParentProj(WFD_SINK_EVENTS_RTSP_LEAVE_SESSION_EVENT);
             nextState = WFD_SINK_STATES_IDLE;
@@ -1601,8 +1578,7 @@ int wfdSinkStMachineClass::monitorKeepAliveState(csioEventQueueStruct* pEventQ)
 
                 if(events == WFD_SINK_STM_START_TEARDOWN_EVENT)
                 {
-                    resetOnTcpConnFlg();
-                    setOnTcpDisconnFlg();
+                    resetOnRTSPTcpConnFlg();
                 }
 
                 setTimeout(WFD_SINK_STATETIMEOUT_WAIT_RESP);
@@ -1652,7 +1628,7 @@ int wfdSinkStMachineClass::monitorKeepAliveState(csioEventQueueStruct* pEventQ)
                 pRTSPSinkClient->sendDataOut((char*)pEventQ->buffPtr,pEventQ->buf_size);
             }//else
 
-            prepareForRestart();
+            prepareBeforeIdle();
 
             sendEventToParentProj(WFD_SINK_EVENTS_RTSP_LEAVE_SESSION_EVENT);
             nextState = WFD_SINK_STATES_IDLE;
@@ -1690,7 +1666,7 @@ int wfdSinkStMachineClass::monitorKeepAliveState(csioEventQueueStruct* pEventQ)
         }
         case WFD_SINK_STM_START_CONN_EVENT:
         {
-            setOnTcpConnFlg();
+            setOnRTSPTcpConnFlg();
             break;
         }
         default:
