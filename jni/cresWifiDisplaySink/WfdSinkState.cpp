@@ -546,24 +546,30 @@ int wfdSinkStMachineClass::waitM1RequestState(csioEventQueueStruct* pEventQ)
         case WFD_SINK_STM_INTERNAL_ERROR_EVENT:
         case WFD_SINK_STM_START_TEARDOWN_EVENT:
         {
-            //TODO: send out tear down message
-            if(pRTSPSinkClient)
+        	if(events == WFD_SINK_STM_START_TEARDOWN_EVENT)
+			{
+				resetOnRTSPTcpConnFlg();
+			}
+
+        	//Note: composeRTSPRequest will fail(no session yet)
+        	int ret = composeRTSPRequest(m_rtspParserIntfSession,"TEARDOWN",parserComposeRequestCallback,(void*)this);
+
+            if(pRTSPSinkClient && (ret == 0))
             {
-                int ret = composeRTSPRequest(m_rtspParserIntfSession,"TEARDOWN",parserComposeRequestCallback,(void*)this);
-                if(ret == 0)
-                    pRTSPSinkClient->sendDataOut((char*)m_requestString.c_str(),m_requestString.size());
-                else
-                    CSIO_LOG(m_debugLevel,  "wfdSinkStMachineClass[%d]: composeRTSPRequest failed.\n",m_myId);
+				pRTSPSinkClient->sendDataOut((char*)m_requestString.c_str(),m_requestString.size());
 
-                if(events == WFD_SINK_STM_START_TEARDOWN_EVENT)
-                {
-                    resetOnRTSPTcpConnFlg();
-                }
+				setTimeout(WFD_SINK_STATETIMEOUT_WAIT_RESP);
+				nextState = WFD_SINK_STATES_WAIT_TD_RESP;
+            }
+            else
+            {
+            	if(isOnRTSPTcpConnSet())
+					prepareForRestart();
+				else
+					prepareBeforeIdle();
 
-                setTimeout(WFD_SINK_STATETIMEOUT_WAIT_RESP);
-
-                nextState = WFD_SINK_STATES_WAIT_TD_RESP;
-            }//else
+            	nextState = WFD_SINK_STATES_IDLE;
+            }
 
             break;
         }
@@ -578,7 +584,9 @@ int wfdSinkStMachineClass::waitM1RequestState(csioEventQueueStruct* pEventQ)
 
             prepareBeforeIdle();
 
+            //TODO: maybe not needed to issue this event from this state
             sendEventToParentProj(WFD_SINK_EVENTS_RTSP_LEAVE_SESSION_EVENT);
+
             nextState = WFD_SINK_STATES_IDLE;
 
             break;
@@ -669,24 +677,30 @@ int wfdSinkStMachineClass::waitM2ResponseState(csioEventQueueStruct* pEventQ)
         case WFD_SINK_STM_INTERNAL_ERROR_EVENT:
         case WFD_SINK_STM_START_TEARDOWN_EVENT:
         {
-            //TODO: send out tear down message
-            if(pRTSPSinkClient)
-            {
-                int ret = composeRTSPRequest(m_rtspParserIntfSession,"TEARDOWN",parserComposeRequestCallback,(void*)this);
-                if(ret == 0)
-                    pRTSPSinkClient->sendDataOut((char*)m_requestString.c_str(),m_requestString.size());
-                else
-                    CSIO_LOG(m_debugLevel,  "wfdSinkStMachineClass[%d]: composeRTSPRequest failed.\n",m_myId);
+        	if(events == WFD_SINK_STM_START_TEARDOWN_EVENT)
+			{
+				resetOnRTSPTcpConnFlg();
+			}
 
-                if(events == WFD_SINK_STM_START_TEARDOWN_EVENT)
-                {
-                    resetOnRTSPTcpConnFlg();
-                }
+			//Note: composeRTSPRequest will fail(no session yet)
+			int ret = composeRTSPRequest(m_rtspParserIntfSession,"TEARDOWN",parserComposeRequestCallback,(void*)this);
 
-                setTimeout(WFD_SINK_STATETIMEOUT_WAIT_RESP);
+			if(pRTSPSinkClient && (ret == 0))
+			{
+				pRTSPSinkClient->sendDataOut((char*)m_requestString.c_str(),m_requestString.size());
 
-                nextState = WFD_SINK_STATES_WAIT_TD_RESP;
-            }//else
+				setTimeout(WFD_SINK_STATETIMEOUT_WAIT_RESP);
+				nextState = WFD_SINK_STATES_WAIT_TD_RESP;
+			}
+			else
+			{
+				if(isOnRTSPTcpConnSet())
+					prepareForRestart();
+				else
+					prepareBeforeIdle();
+
+				nextState = WFD_SINK_STATES_IDLE;
+			}
 
             break;
         }
@@ -701,7 +715,9 @@ int wfdSinkStMachineClass::waitM2ResponseState(csioEventQueueStruct* pEventQ)
 
             prepareBeforeIdle();
 
+            //TODO: maybe not needed to issue this event from this state
             sendEventToParentProj(WFD_SINK_EVENTS_RTSP_LEAVE_SESSION_EVENT);
+
             nextState = WFD_SINK_STATES_IDLE;
 
             break;
@@ -763,24 +779,30 @@ int wfdSinkStMachineClass::waitM3RequestState(csioEventQueueStruct* pEventQ)
         case WFD_SINK_STM_INTERNAL_ERROR_EVENT:
         case WFD_SINK_STM_START_TEARDOWN_EVENT:
         {
-            //TODO: send out tear down message
-            if(pRTSPSinkClient)
-            {
-                int ret = composeRTSPRequest(m_rtspParserIntfSession,"TEARDOWN",parserComposeRequestCallback,(void*)this);
-                if(ret == 0)
-                    pRTSPSinkClient->sendDataOut((char*)m_requestString.c_str(),m_requestString.size());
-                else
-                    CSIO_LOG(m_debugLevel,  "wfdSinkStMachineClass[%d]: composeRTSPRequest failed.\n",m_myId);
+        	if(events == WFD_SINK_STM_START_TEARDOWN_EVENT)
+			{
+				resetOnRTSPTcpConnFlg();
+			}
 
-                if(events == WFD_SINK_STM_START_TEARDOWN_EVENT)
-                {
-                    resetOnRTSPTcpConnFlg();
-                }
+			//Note: composeRTSPRequest will fail(no session yet)
+			int ret = composeRTSPRequest(m_rtspParserIntfSession,"TEARDOWN",parserComposeRequestCallback,(void*)this);
 
-                setTimeout(WFD_SINK_STATETIMEOUT_WAIT_RESP);
+			if(pRTSPSinkClient && (ret == 0))
+			{
+				pRTSPSinkClient->sendDataOut((char*)m_requestString.c_str(),m_requestString.size());
 
-                nextState = WFD_SINK_STATES_WAIT_TD_RESP;
-            }//else
+				setTimeout(WFD_SINK_STATETIMEOUT_WAIT_RESP);
+				nextState = WFD_SINK_STATES_WAIT_TD_RESP;
+			}
+			else
+			{
+				if(isOnRTSPTcpConnSet())
+					prepareForRestart();
+				else
+					prepareBeforeIdle();
+
+				nextState = WFD_SINK_STATES_IDLE;
+			}
 
             break;
         }
@@ -795,7 +817,9 @@ int wfdSinkStMachineClass::waitM3RequestState(csioEventQueueStruct* pEventQ)
 
             prepareBeforeIdle();
 
+            //TODO: maybe not needed to issue this event from this state
             sendEventToParentProj(WFD_SINK_EVENTS_RTSP_LEAVE_SESSION_EVENT);
+
             nextState = WFD_SINK_STATES_IDLE;
 
             break;
@@ -877,24 +901,30 @@ int wfdSinkStMachineClass::waitM4RequestState(csioEventQueueStruct* pEventQ)
         case WFD_SINK_STM_INTERNAL_ERROR_EVENT:
         case WFD_SINK_STM_START_TEARDOWN_EVENT:
         {
-            //TODO: send out tear down message
-            if(pRTSPSinkClient)
-            {
-                int ret = composeRTSPRequest(m_rtspParserIntfSession,"TEARDOWN",parserComposeRequestCallback,(void*)this);
-                if(ret == 0)
-                    pRTSPSinkClient->sendDataOut((char*)m_requestString.c_str(),m_requestString.size());
-                else
-                    CSIO_LOG(m_debugLevel,  "wfdSinkStMachineClass[%d]: composeRTSPRequest failed.\n",m_myId);
+        	if(events == WFD_SINK_STM_START_TEARDOWN_EVENT)
+			{
+				resetOnRTSPTcpConnFlg();
+			}
 
-                if(events == WFD_SINK_STM_START_TEARDOWN_EVENT)
-                {
-                    resetOnRTSPTcpConnFlg();
-                }
+			//Note: composeRTSPRequest will fail(no session yet)
+			int ret = composeRTSPRequest(m_rtspParserIntfSession,"TEARDOWN",parserComposeRequestCallback,(void*)this);
 
-                setTimeout(WFD_SINK_STATETIMEOUT_WAIT_RESP);
+			if(pRTSPSinkClient && (ret == 0))
+			{
+				pRTSPSinkClient->sendDataOut((char*)m_requestString.c_str(),m_requestString.size());
 
-                nextState = WFD_SINK_STATES_WAIT_TD_RESP;
-            }//else
+				setTimeout(WFD_SINK_STATETIMEOUT_WAIT_RESP);
+				nextState = WFD_SINK_STATES_WAIT_TD_RESP;
+			}
+			else
+			{
+				if(isOnRTSPTcpConnSet())
+					prepareForRestart();
+				else
+					prepareBeforeIdle();
+
+				nextState = WFD_SINK_STATES_IDLE;
+			}
 
             break;
         }
@@ -909,7 +939,9 @@ int wfdSinkStMachineClass::waitM4RequestState(csioEventQueueStruct* pEventQ)
 
             prepareBeforeIdle();
 
+            //TODO: maybe not needed to issue this event from this state
             sendEventToParentProj(WFD_SINK_EVENTS_RTSP_LEAVE_SESSION_EVENT);
+
             nextState = WFD_SINK_STATES_IDLE;
 
             break;
@@ -995,24 +1027,30 @@ int wfdSinkStMachineClass::waitM5RequestState(csioEventQueueStruct* pEventQ)
         case WFD_SINK_STM_INTERNAL_ERROR_EVENT:
         case WFD_SINK_STM_START_TEARDOWN_EVENT:
         {
-            //TODO: send out tear down message
-            if(pRTSPSinkClient)
-            {
-                int ret = composeRTSPRequest(m_rtspParserIntfSession,"TEARDOWN",parserComposeRequestCallback,(void*)this);
-                if(ret == 0)
-                    pRTSPSinkClient->sendDataOut((char*)m_requestString.c_str(),m_requestString.size());
-                else
-                    CSIO_LOG(m_debugLevel,  "wfdSinkStMachineClass[%d]: composeRTSPRequest failed.\n",m_myId);
+        	if(events == WFD_SINK_STM_START_TEARDOWN_EVENT)
+			{
+				resetOnRTSPTcpConnFlg();
+			}
 
-                if(events == WFD_SINK_STM_START_TEARDOWN_EVENT)
-                {
-                    resetOnRTSPTcpConnFlg();
-                }
+			//Note: composeRTSPRequest will fail(no session yet)
+			int ret = composeRTSPRequest(m_rtspParserIntfSession,"TEARDOWN",parserComposeRequestCallback,(void*)this);
 
-                setTimeout(WFD_SINK_STATETIMEOUT_WAIT_RESP);
+			if(pRTSPSinkClient && (ret == 0))
+			{
+				pRTSPSinkClient->sendDataOut((char*)m_requestString.c_str(),m_requestString.size());
 
-                nextState = WFD_SINK_STATES_WAIT_TD_RESP;
-            }//else
+				setTimeout(WFD_SINK_STATETIMEOUT_WAIT_RESP);
+				nextState = WFD_SINK_STATES_WAIT_TD_RESP;
+			}
+			else
+			{
+				if(isOnRTSPTcpConnSet())
+					prepareForRestart();
+				else
+					prepareBeforeIdle();
+
+				nextState = WFD_SINK_STATES_IDLE;
+			}
 
             break;
         }
@@ -1027,7 +1065,9 @@ int wfdSinkStMachineClass::waitM5RequestState(csioEventQueueStruct* pEventQ)
 
             prepareBeforeIdle();
 
+            //TODO: maybe not needed to issue this event from this state
             sendEventToParentProj(WFD_SINK_EVENTS_RTSP_LEAVE_SESSION_EVENT);
+
             nextState = WFD_SINK_STATES_IDLE;
 
             break;
@@ -1146,24 +1186,30 @@ int wfdSinkStMachineClass::waitGstPipelineReadyState(csioEventQueueStruct* pEven
         case WFD_SINK_STM_INTERNAL_ERROR_EVENT:
         case WFD_SINK_STM_START_TEARDOWN_EVENT:
         {
-            //TODO: send out tear down message
-            if(pRTSPSinkClient)
-            {
-                int ret = composeRTSPRequest(m_rtspParserIntfSession,"TEARDOWN",parserComposeRequestCallback,(void*)this);
-                if(ret == 0)
-                    pRTSPSinkClient->sendDataOut((char*)m_requestString.c_str(),m_requestString.size());
-                else
-                    CSIO_LOG(m_debugLevel,  "wfdSinkStMachineClass[%d]: composeRTSPRequest failed.\n",m_myId);
+        	if(events == WFD_SINK_STM_START_TEARDOWN_EVENT)
+			{
+				resetOnRTSPTcpConnFlg();
+			}
 
-                if(events == WFD_SINK_STM_START_TEARDOWN_EVENT)
-                {
-                    resetOnRTSPTcpConnFlg();
-                }
+			//Note: composeRTSPRequest will fail(no session yet)
+			int ret = composeRTSPRequest(m_rtspParserIntfSession,"TEARDOWN",parserComposeRequestCallback,(void*)this);
 
-                setTimeout(WFD_SINK_STATETIMEOUT_WAIT_RESP);
+			if(pRTSPSinkClient && (ret == 0))
+			{
+				pRTSPSinkClient->sendDataOut((char*)m_requestString.c_str(),m_requestString.size());
 
-                nextState = WFD_SINK_STATES_WAIT_TD_RESP;
-            }//else
+				setTimeout(WFD_SINK_STATETIMEOUT_WAIT_RESP);
+				nextState = WFD_SINK_STATES_WAIT_TD_RESP;
+			}
+			else
+			{
+				if(isOnRTSPTcpConnSet())
+					prepareForRestart();
+				else
+					prepareBeforeIdle();
+
+				nextState = WFD_SINK_STATES_IDLE;
+			}
 
             break;
         }
@@ -1278,24 +1324,30 @@ int wfdSinkStMachineClass::waitM6ResponseState(csioEventQueueStruct* pEventQ)
         case WFD_SINK_STM_INTERNAL_ERROR_EVENT:
         case WFD_SINK_STM_START_TEARDOWN_EVENT:
         {
-            //TODO: send out tear down message
-            if(pRTSPSinkClient)
-            {
-                int ret = composeRTSPRequest(m_rtspParserIntfSession,"TEARDOWN",parserComposeRequestCallback,(void*)this);
-                if(ret == 0)
-                    pRTSPSinkClient->sendDataOut((char*)m_requestString.c_str(),m_requestString.size());
-                else
-                    CSIO_LOG(m_debugLevel,  "wfdSinkStMachineClass[%d]: composeRTSPRequest failed.\n",m_myId);
+        	if(events == WFD_SINK_STM_START_TEARDOWN_EVENT)
+			{
+				resetOnRTSPTcpConnFlg();
+			}
 
-                if(events == WFD_SINK_STM_START_TEARDOWN_EVENT)
-                {
-                    resetOnRTSPTcpConnFlg();
-                }
+			//Note: composeRTSPRequest will fail(no session yet)
+			int ret = composeRTSPRequest(m_rtspParserIntfSession,"TEARDOWN",parserComposeRequestCallback,(void*)this);
 
-                setTimeout(WFD_SINK_STATETIMEOUT_WAIT_RESP);
+			if(pRTSPSinkClient && (ret == 0))
+			{
+				pRTSPSinkClient->sendDataOut((char*)m_requestString.c_str(),m_requestString.size());
 
-                nextState = WFD_SINK_STATES_WAIT_TD_RESP;
-            }//else
+				setTimeout(WFD_SINK_STATETIMEOUT_WAIT_RESP);
+				nextState = WFD_SINK_STATES_WAIT_TD_RESP;
+			}
+			else
+			{
+				if(isOnRTSPTcpConnSet())
+					prepareForRestart();
+				else
+					prepareBeforeIdle();
+
+				nextState = WFD_SINK_STATES_IDLE;
+			}
 
             break;
         }
@@ -1387,24 +1439,29 @@ int wfdSinkStMachineClass::waitM7ResponseState(csioEventQueueStruct* pEventQ)
         case WFD_SINK_STM_INTERNAL_ERROR_EVENT:
         case WFD_SINK_STM_START_TEARDOWN_EVENT:
         {
-            //TODO: send out tear down message
-            if(pRTSPSinkClient)
-            {
-                int ret = composeRTSPRequest(m_rtspParserIntfSession,"TEARDOWN",parserComposeRequestCallback,(void*)this);
-                if(ret == 0)
-                    pRTSPSinkClient->sendDataOut((char*)m_requestString.c_str(),m_requestString.size());
-                else
-                    CSIO_LOG(m_debugLevel,  "wfdSinkStMachineClass[%d]: composeRTSPRequest failed.\n",m_myId);
+        	if(events == WFD_SINK_STM_START_TEARDOWN_EVENT)
+			{
+				resetOnRTSPTcpConnFlg();
+			}
 
-                if(events == WFD_SINK_STM_START_TEARDOWN_EVENT)
-                {
-                    resetOnRTSPTcpConnFlg();
-                }
+			int ret = composeRTSPRequest(m_rtspParserIntfSession,"TEARDOWN",parserComposeRequestCallback,(void*)this);
 
-                setTimeout(WFD_SINK_STATETIMEOUT_WAIT_RESP);
+			if(pRTSPSinkClient && (ret == 0))
+			{
+				pRTSPSinkClient->sendDataOut((char*)m_requestString.c_str(),m_requestString.size());
 
-                nextState = WFD_SINK_STATES_WAIT_TD_RESP;
-            }//else
+				setTimeout(WFD_SINK_STATETIMEOUT_WAIT_RESP);
+				nextState = WFD_SINK_STATES_WAIT_TD_RESP;
+			}
+			else
+			{
+				if(isOnRTSPTcpConnSet())
+					prepareForRestart();
+				else
+					prepareBeforeIdle();
+
+				nextState = WFD_SINK_STATES_IDLE;
+			}
 
             break;
         }
@@ -1567,24 +1624,29 @@ int wfdSinkStMachineClass::monitorKeepAliveState(csioEventQueueStruct* pEventQ)
         case WFD_SINK_STM_INTERNAL_ERROR_EVENT:
         case WFD_SINK_STM_START_TEARDOWN_EVENT:
         {
-            //TODO: send out tear down message
-            if(pRTSPSinkClient)
-            {
-                int ret = composeRTSPRequest(m_rtspParserIntfSession,"TEARDOWN",parserComposeRequestCallback,(void*)this);
-                if(ret == 0)
-                    pRTSPSinkClient->sendDataOut((char*)m_requestString.c_str(),m_requestString.size());
-                else
-                    CSIO_LOG(m_debugLevel,  "wfdSinkStMachineClass[%d]: composeRTSPRequest failed.\n",m_myId);
+        	if(events == WFD_SINK_STM_START_TEARDOWN_EVENT)
+			{
+				resetOnRTSPTcpConnFlg();
+			}
 
-                if(events == WFD_SINK_STM_START_TEARDOWN_EVENT)
-                {
-                    resetOnRTSPTcpConnFlg();
-                }
+			int ret = composeRTSPRequest(m_rtspParserIntfSession,"TEARDOWN",parserComposeRequestCallback,(void*)this);
 
-                setTimeout(WFD_SINK_STATETIMEOUT_WAIT_RESP);
+			if(pRTSPSinkClient && (ret == 0))
+			{
+				pRTSPSinkClient->sendDataOut((char*)m_requestString.c_str(),m_requestString.size());
 
-                nextState = WFD_SINK_STATES_WAIT_TD_RESP;
-            }//else
+				setTimeout(WFD_SINK_STATETIMEOUT_WAIT_RESP);
+				nextState = WFD_SINK_STATES_WAIT_TD_RESP;
+			}
+			else
+			{
+				if(isOnRTSPTcpConnSet())
+					prepareForRestart();
+				else
+					prepareBeforeIdle();
+
+				nextState = WFD_SINK_STATES_IDLE;
+			}
 
             break;
         }
