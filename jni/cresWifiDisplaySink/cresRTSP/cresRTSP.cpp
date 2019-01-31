@@ -228,10 +228,13 @@ int main(int argc, char **argv)
    char        requestArg1[256];
    char        locBuff[4096];
 
+   //
+   // effectively, these are the default values
+   // 
    // sysInfo.rtpPort = 4570;
    sysInfo.rtpPort = -1;
-   sysInfo.preferredVidResRefStr = "upto_1920x1080p60;1024x768p60;upto_960x540p60";
-   sysInfo.preferredAudioCodecStr = "AC3x48x6;upto_LPCMx48x2";
+   sysInfo.preferredVidResRefStr = "upto_1920x1080p24;upto_1920x1200p30;upto_848x480p60";
+   sysInfo.preferredAudioCodecStr = "AC3x48x6";
 
    bretv = processCommandLine(argc,argv);
    if(!bretv)
@@ -712,7 +715,8 @@ void * initRTSPParser(RTSPSYSTEMINFO * sysInfo)
    struct rtsp * rtspSession;
 
    rtpPort = 4570;
-   prefResRefStr = "upto_1920x1080p60;upto_960x540p60";
+   // *** prefResRefStr = "upto_1920x1080p60;upto_960x540p60";
+   prefResRefStr = "upto_1920x1080p24;upto_1920x1200p30;upto_848x480p60";
    prefCodecStr = "AACx48x2";
    friendlyName = "Crestron Miracast Receiver";
    modelName = "TxRx Miracast";
