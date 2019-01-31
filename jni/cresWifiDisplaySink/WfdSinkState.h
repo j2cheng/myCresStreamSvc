@@ -290,9 +290,10 @@ private:
     int m_seq_i,m_seq_j,m_keepAliveTimeout;
 
     csioEventQueueStruct m_EvntQ;
-
+public:
     RTSPSYSTEMINFO m_rtspParserIntfInfo;
     void* m_rtspParserIntfSession;
+private:
     int m_state_after_m5;
 };
 /********** end of wfdSinkStMachineClass class *******************/

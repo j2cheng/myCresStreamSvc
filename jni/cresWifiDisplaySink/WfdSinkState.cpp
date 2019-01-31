@@ -152,9 +152,33 @@ m_state_after_m5()
 
     m_rtspParserIntfInfo.rtpPort = m_ts_Port;
 
-    //TODO: keep this here???
-    m_rtspParserIntfInfo.preferredAudioCodecStr = "AACx48x2";
-    m_rtspParserIntfInfo.preferredVidResRefStr  = "1920x1080p60" ;
+    if(g_rtspAudioCodecStr.size())
+    {
+    	m_rtspParserIntfInfo.preferredAudioCodecStr = (char*)g_rtspAudioCodecStr.c_str();
+    }
+    else
+    {
+    	m_rtspParserIntfInfo.preferredAudioCodecStr = "AACx48x2";
+    }
+
+    if(g_rtspVidResRefStr.size())
+    {
+    	m_rtspParserIntfInfo.preferredVidResRefStr  = (char*)g_rtspVidResRefStr.c_str() ;
+    }
+    else
+    {
+    	m_rtspParserIntfInfo.preferredVidResRefStr  = "1920x1080p60" ;
+    }
+
+    if(m_rtspParserIntfInfo.preferredAudioCodecStr)
+    	CSIO_LOG(m_debugLevel, "wfdSinkStMachineClass: preferredAudioCodecStr[%s].\n",m_rtspParserIntfInfo.preferredAudioCodecStr);
+    else
+    	CSIO_LOG(m_debugLevel, "wfdSinkStMachineClass: ERROR: preferredAudioCodecStr not set.\n");
+
+    if(m_rtspParserIntfInfo.preferredVidResRefStr)
+    	CSIO_LOG(m_debugLevel, "wfdSinkStMachineClass: preferredVidResRefStr[%s].\n",m_rtspParserIntfInfo.preferredVidResRefStr);
+    else
+        CSIO_LOG(m_debugLevel, "wfdSinkStMachineClass: ERROR: preferredVidResRefStr not set.\n");
 
     prepareBeforeIdle();
 
@@ -267,6 +291,16 @@ void wfdSinkStMachineClass::DumpClassPara(int l)
     {
         CSIO_LOG(eLogLevel_info, "wfdSinkStMachineClass: pRTSPSinkClient    getSocket(%d)\n", pRTSPSinkClient->getSocket());
     }
+
+    if(m_rtspParserIntfInfo.preferredAudioCodecStr)
+		CSIO_LOG(m_debugLevel, "wfdSinkStMachineClass: preferredAudioCodecStr[%s].\n",m_rtspParserIntfInfo.preferredAudioCodecStr);
+	else
+		CSIO_LOG(m_debugLevel, "wfdSinkStMachineClass: ERROR: preferredAudioCodecStr not set.\n");
+
+	if(m_rtspParserIntfInfo.preferredVidResRefStr)
+		CSIO_LOG(m_debugLevel, "wfdSinkStMachineClass: preferredVidResRefStr[%s].\n",m_rtspParserIntfInfo.preferredVidResRefStr);
+	else
+		CSIO_LOG(m_debugLevel, "wfdSinkStMachineClass: ERROR: preferredVidResRefStr not set.\n");
 }
 
 void wfdSinkStMachineClass::setCurentTsPort(int port)

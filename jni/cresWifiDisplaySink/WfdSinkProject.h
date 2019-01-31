@@ -85,4 +85,7 @@ private:
 };
 /********** end of wfdSinkProjClass class *******************/
 
+extern std::string g_rtspAudioCodecStr;
+extern std::string g_rtspVidResRefStr ;
+
 #endif //WFD_SINK_PROJECT_H_

@@ -35,6 +35,9 @@ const WFD_STRNUMPAIR wfd_proj_timestamp_names[] =
     {0,0}//terminate the list
 };
 
+std::string g_rtspAudioCodecStr = "" ;
+std::string g_rtspVidResRefStr  = "" ;
+
 extern void Wfd_setup_gst_pipeline (int id, int state, int port);
 
 /*************************** Global functions  ************************************/
@@ -813,6 +816,74 @@ void WfdSinkProj_fdebug(char *cmd_cstring)
                 WfdSinkProjSendIdrReq(0);
             }
         }
+        else if(strcasestr(CmdPtr, "SETAUDIOCODECSTR"))
+		{
+			CmdPtr = strtok(NULL, ", ");
+			if(CmdPtr)
+			{
+				g_rtspAudioCodecStr = CmdPtr;
+
+			}
+			else
+			{
+				g_rtspAudioCodecStr = "";
+			}
+
+			CSIO_LOG(eLogLevel_info, "WfdSinkProj_debug: g_rtspAudioCodecStr = [%s]\n",g_rtspAudioCodecStr.c_str());
+
+			//debug only, No lock here
+			if(wfdSinkStMachineThread::m_wfdSinkStMachineTaskList)
+			{
+				for(int i = 0; i < MAX_WFD_TCP_CONN; i++)
+				{
+					if(wfdSinkStMachineThread::m_wfdSinkStMachineTaskList[i])
+					{
+						if(g_rtspAudioCodecStr.size())
+						{
+							wfdSinkStMachineThread::m_wfdSinkStMachineTaskList[i]->m_rtspParserIntfInfo.preferredAudioCodecStr = (char*)g_rtspAudioCodecStr.c_str();
+						}
+						else
+						{
+							wfdSinkStMachineThread::m_wfdSinkStMachineTaskList[i]->m_rtspParserIntfInfo.preferredAudioCodecStr = "AACx48x2";
+						}
+					}
+				}
+			}
+		}
+        else if(strcasestr(CmdPtr, "SETVIDEORESSTR"))
+		{
+			CmdPtr = strtok(NULL, ", ");
+			if(CmdPtr)
+			{
+
+				g_rtspVidResRefStr = CmdPtr;
+			}
+			else
+			{
+				g_rtspVidResRefStr = "";
+			}
+
+			CSIO_LOG(eLogLevel_info, "WfdSinkProj_debug: g_rtspVidResRefStr = [%s]\n",g_rtspVidResRefStr.c_str());
+
+			//debug only, No lock here
+			if(wfdSinkStMachineThread::m_wfdSinkStMachineTaskList)
+			{
+				for(int i = 0; i < MAX_WFD_TCP_CONN; i++)
+				{
+					if(wfdSinkStMachineThread::m_wfdSinkStMachineTaskList[i])
+					{
+						if(g_rtspVidResRefStr.size())
+						{
+							wfdSinkStMachineThread::m_wfdSinkStMachineTaskList[i]->m_rtspParserIntfInfo.preferredVidResRefStr  = (char*)g_rtspVidResRefStr.c_str() ;
+						}
+						else
+						{
+							wfdSinkStMachineThread::m_wfdSinkStMachineTaskList[i]->m_rtspParserIntfInfo.preferredVidResRefStr  = "1920x1080p60" ;
+						}
+					}
+				}
+			}
+		}
         else
         {
            CSIO_LOG(eLogLevel_info, "WfdSinkProj_debug: Unknown command = [%s]\n",CmdPtr);
