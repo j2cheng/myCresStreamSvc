@@ -1775,6 +1775,39 @@ JNIEXPORT void JNICALL Java_com_crestron_txrxservice_GstreamIn_nativeSetFieldDeb
                 }
 
             }
+            else if (!strcmp(CmdPtr, "SET_ELEMENT_PROPERTY"))
+			{
+				CmdPtr = strtok(NULL, ", ");
+				if (CmdPtr == NULL)
+				{
+					CSIO_LOG(eLogLevel_info, "Invalid Format, need element's name\r\n");
+				}
+				else
+				{
+					if(data->pipeline)
+					{
+
+						GstElement *ele = gst_bin_get_by_name(GST_BIN(data->pipeline), CmdPtr);
+						if(ele)
+						{
+							CSIO_LOG(eLogLevel_info, "print properties before setting.\r\n");
+							gst_element_print_properties(ele);
+
+							CmdPtr = strtok(NULL, ", ");
+							if (CmdPtr != NULL)
+							{
+								int tmp = (int) strtol(CmdPtr, &EndPtr, 10);
+
+								g_object_set(G_OBJECT(ele), "discont-threshold", tmp, NULL);
+
+								CSIO_LOG(eLogLevel_info, "print properties after setting.\r\n");
+								gst_element_print_properties(ele);
+							}
+						}
+
+					}
+				}
+			}
             else if (!strcmp(CmdPtr, "LAUNCH_START"))
             {
             	char * launchStr = strstr(namestring, " ");
@@ -4073,7 +4106,7 @@ JNIEXPORT void JNICALL Java_com_crestron_txrxservice_GstreamIn_nativeWfdStop(JNI
             if (data->isStarted)
             {
                 data->isStarted = false;
-                data->audioSinkSyncProperty = true;
+                data->packetizer_pcr_discont_threshold = -1;
 
                 csio_jni_stop((int)windowId);
             }
@@ -4117,7 +4150,7 @@ void Wfd_setup_gst_pipeline (int id, int state, int ts_port)
             }
 
             data->isStarted = true;
-            data->audioSinkSyncProperty = false;
+            data->packetizer_pcr_discont_threshold = 5;
 
             if(GetInPausedState(id))
             {

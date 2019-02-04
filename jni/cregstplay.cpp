@@ -162,7 +162,7 @@ void init_custom_data(CustomData * cdata)
 
         data->rtcp_dest_ip_addr[0] = 0;
 
-        data->audioSinkSyncProperty = true;
+        data->packetizer_pcr_discont_threshold = -1;//default as invalid
 	}
 }
 
@@ -1179,6 +1179,18 @@ int build_video_pipeline(gchar *encoding_name, CREGSTREAM *data, unsigned int st
 	
 		// We will only do HDCP encryption in RTSP TS modes so only add callback here
 		g_signal_connect(data->element_v[i], "post-process", G_CALLBACK(ts_demux_post_process_callback), data);
+
+		//Note: -1 means no need to set this property
+		if(data->packetizer_pcr_discont_threshold != -1)
+		{
+			//Note: validate only from 1 to 100 seconds
+			if(data->packetizer_pcr_discont_threshold >= 0 && data->packetizer_pcr_discont_threshold <= 100)
+			{
+				CSIO_LOG(eLogLevel_debug, "set packetizer_pcr_discont_threshold=%d, ", data->packetizer_pcr_discont_threshold);
+				g_object_set(G_OBJECT(data->element_v[i]), "discont-threshold", data->packetizer_pcr_discont_threshold, NULL);				
+			}
+		}
+
 		i++;
 		data->element_after_tsdemux = i;
 		do_window = 0;
@@ -1510,9 +1522,6 @@ int build_audio_pipeline(gchar *encoding_name, CREGSTREAM *data, int do_rtp,GstE
 	num_elements = i-start;
     data->audio_sink = gst_element_factory_make("openslessink", NULL);
     *sink = data->audio_sink;
-
-    //set sync property here
-    g_object_set (G_OBJECT(data->audio_sink), "sync", data->audioSinkSyncProperty, NULL);
 
 	for(i=start; i<num_elements; i++)
 	{	
