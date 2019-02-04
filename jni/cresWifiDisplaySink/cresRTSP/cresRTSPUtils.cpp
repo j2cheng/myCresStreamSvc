@@ -1,6 +1,22 @@
-/*
- * Crestron RTSP Utility Helpers
- */
+/**
+* Copyright (C) 2019 to the present, Crestron Electronics, Inc.
+* All rights reserved.
+* No part of this software may be reproduced in any form, machine
+* or natural, without the express written consent of Crestron Electronics.
+*
+* \file        
+*     cresRTSPUtils.cpp
+* \brief
+*     Crestron RTSP Utility Helpers
+* \author
+*     Marek Fiuk
+* \date
+*     02/01/2019
+* \note
+*
+*
+*///////////////////////////////////////////////////////////////////////////////
+
 
 #include <assert.h>
 #include <errno.h>
@@ -14,7 +30,13 @@
 #include <sys/time.h>
 #include <sys/types.h>
 #include <time.h>
+
 #include "cresRTSPUtils.h"
+
+
+#ifdef BUILD_TEST_APP
+void RTSPLog(int level, char * format, ...);
+#endif
 
 
 /* shl_htable */
@@ -582,7 +604,6 @@ void init_log_codes() {
 	log__sev2str[LOG_FATAL] = "FATAL";
 }
 
-
 static void log__submit(const char *file,
 			int line,
 			const char *func,
@@ -741,7 +762,6 @@ unsigned int log_parse_arg(char *optarg)
 	}
 	return log_max_sev;
 }
-
 
 
 /* shl_ring */
@@ -922,7 +942,6 @@ void shl_ring_pull(struct shl_ring *r, size_t size)
 }
 
 
-
 /* shl_utils */
 
 /*
@@ -942,12 +961,7 @@ void shl_ring_pull(struct shl_ring *r, size_t size)
  * to be zero-terminated. We have wrappers which skip this by passing strlen().
  */
 
-
-
-// ***
 char * loc_stpcpy(char * dest, char * src);
-
-
 
 int shl_ctoi(char ch, unsigned int base)
 {
@@ -1265,8 +1279,6 @@ char *shl_strjoin(const char *first, ...) {
 	va_start(args, first);
 
 	for (arg = first, p = str; arg; arg = va_arg(args, const char*))
-	   // ***
-		// p = stpcpy(p, arg);
 		p = loc_stpcpy(p, (char *)arg);
 
 	va_end(args);
@@ -1737,14 +1749,7 @@ int shl__mkdir_parents(const char *prefix, const char *path, mode_t mode)
 	if (!e || e == path)
 		return 0;
 
-
-
-   // ***
-	// p = strndupa(path, e - path);
 	p = strndup(path, e - path);
-   // ***
-
-
 
 	r = shl__is_dir(p);
 	if (r > 0)
@@ -1798,49 +1803,4 @@ int shl_mkdir_p_prefix(const char *prefix, const char *path, mode_t mode)
 {
 	return shl__mkdir_p(prefix, path, mode);
 }
-
-/*
- * Time
- */
-
-// *** uint64_t shl_now(clockid_t clock)
-// *** {
-// *** 	struct timespec ts;
-// *** 
-// *** 	clock_gettime(clock, &ts);
-// *** 
-// *** 	return (uint64_t)ts.tv_sec * 1000000LL +
-// *** 	       (uint64_t)ts.tv_nsec / 1000LL;
-// *** }
-
-/*
- * Ratelimit
- * Modelled after Linux' lib/ratelimit.c by Dave Young
- * <hidave.darkstar@gmail.com>, which is licensed GPLv2.
- */
-
-// *** bool shl_ratelimit_test(struct shl_ratelimit *r)
-// *** {
-// *** 	uint64_t ts;
-// *** 
-// *** 	if (!r || r->interval <= 0 || r->burst <= 0)
-// *** 		return true;
-// *** 
-// *** 	ts = shl_now(CLOCK_MONOTONIC);
-// *** 
-// *** 	if (r->begin <= 0 || r->begin + r->interval < ts) {
-// *** 		r->begin = ts;
-// *** 		r->num = 0;
-// *** 		goto good;
-// *** 	} else if (r->num < r->burst) {
-// *** 		goto good;
-// *** 	}
-// *** 
-// *** 	return false;
-// *** 
-// *** good:
-// *** 	++r->num;
-// *** 	return true;
-// *** }
-
 

@@ -114,7 +114,6 @@ typedef struct _rtspcomposingresults
 typedef int (* RTSPPARSERAPP_CALLBACK)(RTSPPARSINGRESULTS * parsingResPtr, void * appArgument);
 typedef int (* RTSPPARSERAPP_COMPOSECALLBACK)(RTSPCOMPOSINGRESULTS * composingResPtr, void * appArgument);
 
-
 struct rtsp
 {
    // *** application callback support ***
@@ -284,8 +283,6 @@ int composeRTSPResponse(void * session,RTSPPARSINGRESULTS * requestParsingResult
 #ifdef __cplusplus
 }                               /* End of extern "C" */
 #endif
-
-
 
 #endif /* CRESRTSP_H */
 

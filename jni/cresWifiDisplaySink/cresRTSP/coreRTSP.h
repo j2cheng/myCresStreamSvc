@@ -5,7 +5,6 @@
 #include <stdarg.h>
 #include <stdbool.h>
 #include <stdlib.h>
-// *** #include <systemd/sd-event.h>
 
 /* types */
 
@@ -155,9 +154,6 @@ static inline void rtsp_unref_p(struct rtsp **bus)
 #define _rtsp_unref_ __attribute__((__cleanup__(rtsp_unref_p)))
 
 bool rtsp_is_dead(struct rtsp *bus);
-
-// *** int rtsp_attach_event(struct rtsp *bus, sd_event *event, int priority);
-// *** void rtsp_detach_event(struct rtsp *bus);
 
 int rtsp_add_match(struct rtsp *bus, rtsp_callback_fn cb_fn, void *data);
 void rtsp_remove_match(struct rtsp *bus, rtsp_callback_fn cb_fn, void *data);
