@@ -150,7 +150,8 @@ m_state_after_m5()
     m_connTime.clear();
     m_requestString.clear();
 
-    m_rtspParserIntfInfo.rtpPort = m_ts_Port;
+    m_rtspParserIntfInfo.rtpPort      = m_ts_Port;
+    m_rtspParserIntfInfo.rtspLogLevel = m_debugLevel;
 
     if(g_rtspAudioCodecStr.size())
     {
