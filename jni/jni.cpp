@@ -1775,7 +1775,7 @@ JNIEXPORT void JNICALL Java_com_crestron_txrxservice_GstreamIn_nativeSetFieldDeb
                 }
 
             }
-            else if (!strcmp(CmdPtr, "SET_ELEMENT_PROPERTY"))
+            else if (!strcmp(CmdPtr, "SET_ELEMENT_PROPERTY_INT"))
 			{
 				CmdPtr = strtok(NULL, ", ");
 				if (CmdPtr == NULL)
@@ -1794,15 +1794,28 @@ JNIEXPORT void JNICALL Java_com_crestron_txrxservice_GstreamIn_nativeSetFieldDeb
 							gst_element_print_properties(ele);
 
 							CmdPtr = strtok(NULL, ", ");
-							if (CmdPtr != NULL)
+							if (CmdPtr == NULL)
 							{
-								int tmp = (int) strtol(CmdPtr, &EndPtr, 10);
-
-								g_object_set(G_OBJECT(ele), "discont-threshold", tmp, NULL);
-
-								CSIO_LOG(eLogLevel_info, "print properties after setting.\r\n");
-								gst_element_print_properties(ele);
+								CSIO_LOG(eLogLevel_info, "Invalid Format, need property name\r\n");
 							}
+							else
+							{
+								char* proName = CmdPtr;
+
+								CmdPtr = strtok(NULL, ", ");
+								if (CmdPtr != NULL)
+								{
+									int tmp = (int) strtol(CmdPtr, &EndPtr, 10);
+
+									g_object_set(G_OBJECT(ele), proName, tmp, NULL);
+
+									CSIO_LOG(eLogLevel_info, "setting properties[%s] setting[%d].\r\n",proName,tmp);
+
+									gst_element_print_properties(ele);
+								}
+							}
+
+
 						}
 
 					}
