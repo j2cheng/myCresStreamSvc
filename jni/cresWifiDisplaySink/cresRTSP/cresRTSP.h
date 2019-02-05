@@ -48,13 +48,17 @@ extern "C"
 //          and ac3ModeEnc, also in cresRTSP.c. Each part string selects just one option
 //          from the corresponding table. Prepending the part string with the 'upto_' prefix
 //          selects all the entries in the corresponding table, up to (and including) the
-//          entry selected by the string.
+//          entry selected by the string. Appending postfix '_noninterlaced' to the part
+//          string eliminates interlaced formats from the selected ones.
 //       
 //          Examples:
 //          
 //             "640x480p50"               
 //                - selects just one video format - 640x480p50
-//          
+// 
+//             "upto_720x576p50_noninterlaced"
+//                - selects formats "640x480p60", "720x480p60" and "720x576p50"
+// 
 //             "upto_1920x1080p60;960x540p60"
 //                - selects first 9 formats from the CEA table plus one hand held format 960x540p60
 //          
@@ -63,7 +67,9 @@ extern "C"
 // 
 typedef struct _rtspsysteminfo
 {
-   int rtpPort;
+   int rtspLogLevel;                // permisable values as per CSIO_LOG with the addition of -1
+                                    // which denotes "use default"
+   int rtpPort;                     // -1 denotes "use default"
    char * preferredVidResRefStr;    // preferred video format (resolution/refresh_rate) selection string
    char * preferredAudioCodecStr;   // preferred audio codec configuration selection string
    char * friendlyName;             //
@@ -124,7 +130,7 @@ struct rtsp
 
    // *** session parameters ***
    int rtpPort;
-   char preferredVidResRefStr[64];
+   char preferredVidResRefStr[128];
    char preferredAudioCodecStr[64];
    char friendlyName[64];
    char modelName[64];

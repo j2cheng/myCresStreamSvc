@@ -39,8 +39,6 @@
 
 
 #ifdef BUILD_TEST_APP
-
-#define  RTSP_LOG       RTSPLog
 typedef enum
 {
 	eLogLevel_error = 0,
@@ -53,15 +51,27 @@ typedef enum
 	// Do not add anything after the Last state
 	eLogLevel_LAST
 }eLogLevel;
-
-void RTSPLog(int level, char * format, ...);
-
+void RTSPLog__(int level, char * format, ...);
 #else
-
 #include "csioCommonShare.h"
-#define  RTSP_LOG       CSIO_LOG
-
 #endif
+
+// To get the most portable behaviour of variadic macro, the token preceding
+// the special ?##? must be a comma, and there must be white space between that
+// comma and whatever comes immediately before it.
+// For the gory details see:
+//    https://gcc.gnu.org/onlinedocs/gcc-4.8.2/cpp/Differences-from-previous-versions.html#Differences-from-previous-versions
+#ifdef BUILD_TEST_APP
+#define RTSPLog(level__,format__, ...) RTSPLog__(level__,format__ , ## __VA_ARGS__)
+#else
+#define RTSPLog(level__,format__, ...) CSIO_LOG(level__,format__ , ## __VA_ARGS__)
+#endif
+
+#define  RTSP_LOG       RTSPLog
+
+// common for all instances
+static int     glRTSPLogLevel = eLogLevel_info;
+
 
 /* 5s default timeout for messages */
 #define RTSP_DEFAULT_TIMEOUT (5ULL * 1000ULL * 1000ULL)
@@ -191,9 +201,11 @@ int rtsp_encodeAudioFormat(char * outBuff, int outBuffSize, char * encodedValStr
 int rtsp_encodeSelectionCommon(char * outBuff, int outBuffSize, char * encodedValStr,
       int isVideoFormat);
 int rtsp_processVideoFormat(char * outBuff, int outBuffSize, char ** encodedParts,
-      int * isUpTo, int partsCount);
+      int * isUpTo, int * isSkipInterlaced, int partsCount);
 int rtsp_processAudioFormat(char * outBuff, int outBuffSize, char ** encodedParts,
       int * isUpTo, int partsCount);
+uint32_t rtsp_removeInterlacedFormats(WFDVIDEOSUBELEMENCENTRY * vfTable,
+      uint32_t formatFlags);
 
 static void rtsp_free_match(struct rtsp_match *match);
 static void rtsp_drop_message(struct rtsp_message *m);
@@ -244,14 +256,17 @@ static const char *code_descriptions[RTSP_CODE_CNT] = {NULL};
 #ifdef BUILD_TEST_APP
 
 char           glCmdChar = '\0';
+int            glLogLevel = -1;
 char *         g_cmdLineHelpStr =
    {
    "\n"
    "Usage:                                                                \n"
-   "   cresrtsp -c <command>                                              \n"
+   "   cresrtsp -c <command> [ -d <log_level]                             \n"
    "      command:                                                        \n"
    "         p   - parse input as RTSP request/response message           \n"
    "         c   - compose RTSP request message using info from input     \n"
+   "      log_level:                                                      \n"
+   "         digit in range 0 - 5                                         \n"
    "                                                                      \n"
    "   or                                                                 \n"
    "                                                                      \n"
@@ -276,14 +291,17 @@ int main(int argc, char **argv)
    // 
    // sysInfo.rtpPort = 4570;
    sysInfo.rtpPort = -1;
-   sysInfo.preferredVidResRefStr = "upto_1920x1080p24;upto_1920x1200p30;upto_848x480p60";
+   sysInfo.preferredVidResRefStr = "upto_1920x1080p24_noninterlaced;upto_1920x1200p30;upto_848x480p60";
    sysInfo.preferredAudioCodecStr = "AC3x48x6";
 
    bretv = processCommandLine(argc,argv);
    if(!bretv)
       return(-1);
 
+   sysInfo.rtspLogLevel = glLogLevel;
+
    printf("\nINFO: Will execute command <%c>\n",glCmdChar);
+   printf("\nINFO: Log level is %d\n",sysInfo.rtspLogLevel);
 
    rtspPtr = (struct rtsp *)initRTSPParser(&sysInfo);
    if(!rtspPtr)
@@ -565,6 +583,13 @@ bool processCommandLine(int argc, char * argv[])
                      nn++;
                   }
                   break;
+               case 'd':
+                  if(nextarg)
+                  {
+                     glLogLevel = atoi(argv[nn+1]);
+                     nn++;
+                  }
+                  break;
                case 'h':
                case '?':
                   printf("%s\n",g_cmdLineHelpStr);
@@ -753,23 +778,26 @@ static char * logLevels[] =
    NULL
 };
 
-void RTSPLog(int level, char * format, ...)
+void RTSPLog__(int level, char * format, ...)
 {
    int      maxValidIndex;
    va_list  args;
    char * levelName;
    char locFormat[256];
 
-   maxValidIndex = (sizeof(logLevels) / sizeof(char *)) - 3;
-   if((level >= 0) && (level <= maxValidIndex))
-         levelName = logLevels[level];
-   else  levelName = logLevels[maxValidIndex + 1];
-   sprintf(locFormat,"%s: %s",levelName,format);
-
-   /* getvariable number of arguments */
-   va_start(args, format);
-   vprintf(format,args);
-   va_end(args);
+   if(level <= glRTSPLogLevel)
+   {
+      maxValidIndex = (sizeof(logLevels) / sizeof(char *)) - 3;
+      if((level >= 0) && (level <= maxValidIndex))
+            levelName = logLevels[level];
+      else  levelName = logLevels[maxValidIndex + 1];
+      sprintf(locFormat,"%s: %s",levelName,format);
+      
+      /* getvariable number of arguments */
+      va_start(args, format);
+      vprintf(locFormat,args);
+      va_end(args);
+   }
 }
 
 #endif
@@ -795,16 +823,18 @@ void * initRTSPParser(RTSPSYSTEMINFO * sysInfo)
 
    if(sysInfo)
    {
+   if((sysInfo->rtspLogLevel >= 0) && (sysInfo->rtspLogLevel < eLogLevel_LAST))
+      glRTSPLogLevel = sysInfo->rtspLogLevel;
    if(sysInfo->rtpPort > 0)
-         rtpPort = sysInfo->rtpPort;
+      rtpPort = sysInfo->rtpPort;
    if(sysInfo->preferredVidResRefStr && (sysInfo->preferredVidResRefStr[0] != '\0'))
-         prefResRefStr = sysInfo->preferredVidResRefStr;
+      prefResRefStr = sysInfo->preferredVidResRefStr;
    if(sysInfo->preferredAudioCodecStr && (sysInfo->preferredAudioCodecStr[0] != '\0'))
-         prefCodecStr = sysInfo->preferredAudioCodecStr;
+      prefCodecStr = sysInfo->preferredAudioCodecStr;
    if(sysInfo->friendlyName && (sysInfo->friendlyName[0] != '\0'))
-         friendlyName = sysInfo->friendlyName;
+      friendlyName = sysInfo->friendlyName;
    if(sysInfo->modelName && (sysInfo->modelName[0] != '\0'))
-         modelName = sysInfo->modelName;
+      modelName = sysInfo->modelName;
    }
 
    retv = rtsp_open(&rtspSession,0);
@@ -934,7 +964,7 @@ int parseRTSPMessage(void * session,char * message, RTSPPARSERAPP_CALLBACK callb
    rtspSession->crestCallbackArg = callbackArg;
 
    retv = rtsp_parse_data(rtspSession,message,strlen(message));
-   RTSP_LOG(eLogLevel_error,"rtsp_parse_data() returned %d\n",retv);
+   RTSP_LOG(eLogLevel_info,"rtsp_parse_data() returned %d\n",retv);
    if(retv != 0)
       return(retv);
 
@@ -1501,8 +1531,9 @@ int rtsp_encodeSelectionCommon(char * outBuff, int outBuffSize, char * encodedVa
    int isVideoFormat)
 {
    int nn = 0,retv;
-   char * encodedStr, * prefixDelim, * token, * partPtr;
+   char * encodedStr, * partPtr, * subPartDelim, * token, * subPart2nd, * subPart3rd;
    int isUpToArr[3];
+   int isSkipInterlacedArr[3];
    char * encodedPartsArr[3];
 
    encodedStr = strdup(encodedValStr);
@@ -1514,20 +1545,31 @@ int rtsp_encodeSelectionCommon(char * outBuff, int outBuffSize, char * encodedVa
    while((token = strtok(partPtr,";")) != NULL)
    {
       partPtr = NULL;
-      prefixDelim = strchr(token,'_');
-      if(prefixDelim)
+      isUpToArr[nn] = 0;               // preset
+      isSkipInterlacedArr[nn] = 0;     // preset
+
+      subPartDelim = strchr(token,'_');
+      if(subPartDelim)
+      {
+         *subPartDelim = '\0';
+         if(!strcmp(token,"upto"))
+               isUpToArr[nn] = 1;
+         subPart2nd = subPartDelim + 1;
+         encodedPartsArr[nn] = subPart2nd;
+   
+         subPartDelim = strchr(subPart2nd,'_');
+         if(subPartDelim)
          {
-            *prefixDelim = '\0';
-            encodedPartsArr[nn] = prefixDelim + 1;
-            if(!strcmp(token,"upto"))
-                  isUpToArr[nn] = 1;
-            else  isUpToArr[nn] = 0;
+            *subPartDelim = '\0';
+            subPart3rd = subPartDelim + 1;
+            if(!strcmp(subPart3rd,"noninterlaced"))
+               isSkipInterlacedArr[nn] = 1;
          }
+      }
       else
-         {
+      {
          encodedPartsArr[nn] = token;
-         isUpToArr[nn] = 0;
-         }
+      }
       nn++;
       if(nn >= 3)
          break;
@@ -1536,7 +1578,8 @@ int rtsp_encodeSelectionCommon(char * outBuff, int outBuffSize, char * encodedVa
    if(nn > 0)
    {
       if(isVideoFormat)
-            retv = rtsp_processVideoFormat(outBuff,outBuffSize,encodedPartsArr,isUpToArr,nn);
+            retv = rtsp_processVideoFormat(outBuff,outBuffSize,encodedPartsArr,isUpToArr,
+               isSkipInterlacedArr,nn);
       else  retv = rtsp_processAudioFormat(outBuff,outBuffSize,encodedPartsArr,isUpToArr,nn);
    }
    else
@@ -1550,7 +1593,7 @@ int rtsp_encodeSelectionCommon(char * outBuff, int outBuffSize, char * encodedVa
 }
 
 int rtsp_processVideoFormat(char * outBuff, int outBuffSize, char ** encodedParts,
-      int * isUpTo, int partsCount)
+      int * isUpTo, int * isSkipInterlaced, int partsCount)
 {
    int nn,index;
    uint32_t ceaFlags = 0,vesaFlags = 0,hhFlags = 0;
@@ -1567,6 +1610,8 @@ int rtsp_processVideoFormat(char * outBuff, int outBuffSize, char ** encodedPart
          if(isUpTo[nn])
                ceaFlags = (1 << (index + 1)) - 1;
          else  ceaFlags = GETBINFLAG(index);
+         if(isSkipInterlaced[nn])
+            ceaFlags = rtsp_removeInterlacedFormats(ceaResRefEnc,ceaFlags);
       }
       else 
       {
@@ -1576,6 +1621,8 @@ int rtsp_processVideoFormat(char * outBuff, int outBuffSize, char ** encodedPart
             if(isUpTo[nn])
                   vesaFlags = (1 << (index + 1)) - 1;
             else  vesaFlags = GETBINFLAG(index);
+            // if(isSkipInterlaced[nn])
+            //    vesaFlags = rtsp_removeInterlacedFormats(vesaResRefEnc,vesaFlags);
          }
          else
          {
@@ -1585,6 +1632,8 @@ int rtsp_processVideoFormat(char * outBuff, int outBuffSize, char ** encodedPart
                if(isUpTo[nn])
                      hhFlags = (1 << (index + 1)) - 1;
                else  hhFlags = GETBINFLAG(index);
+               // if(isSkipInterlaced[nn])
+               //    hhFlags = rtsp_removeInterlacedFormats(hhResRefEnc,hhFlags);
             }
             else
             {
@@ -1608,6 +1657,30 @@ int rtsp_processVideoFormat(char * outBuff, int outBuffSize, char ** encodedPart
    strcpy(outBuff,locBuff);
 
 	return(0);
+}
+
+uint32_t rtsp_removeInterlacedFormats(WFDVIDEOSUBELEMENCENTRY * vfTable, uint32_t formatFlags)
+{
+   int nn = 0;
+   uint32_t newFormatFlags = 0;
+   uint32_t bitMask = 0x01;
+   char * tmpPtr;
+
+   while(formatFlags)
+   {
+      if(formatFlags & bitMask)
+      {
+         char * formatStr = vfTable[nn].encodedValStr;
+         tmpPtr = strchr(formatStr,'i');
+         if(tmpPtr == NULL)
+            newFormatFlags |= bitMask;
+         formatFlags ^= bitMask;
+      }
+      nn++;
+      bitMask = bitMask << 1;
+   }
+
+   return(newFormatFlags);
 }
 
 int rtsp_processAudioFormat(char * outBuff, int outBuffSize, char ** encodedParts,
