@@ -64,7 +64,13 @@ void RTSPLog__(int level, char * format, ...);
 #ifdef BUILD_TEST_APP
 #define RTSPLog(level__,format__, ...) RTSPLog__(level__,format__ , ## __VA_ARGS__)
 #else
-#define RTSPLog(level__,format__, ...) CSIO_LOG(level__,format__ , ## __VA_ARGS__)
+#define RTSPLog(level__,format__, ...) \
+do{ \
+   if((level__) <= glRTSPLogLevel) \
+   { \
+      CSIO_LOG(level__,format__ , ## __VA_ARGS__); \
+   } \
+} while(0)
 #endif
 
 #define  RTSP_LOG       RTSPLog
