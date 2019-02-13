@@ -772,4 +772,8 @@ public class AirMediaAwind implements AirMedia
     	// Not needed for Awind
     }
 
+    public void setAirMediaMiracastWifiDirectMode(boolean enable)
+    {
+    	// Not needed for Awind
+    }
 }

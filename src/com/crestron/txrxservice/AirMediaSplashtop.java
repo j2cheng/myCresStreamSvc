@@ -604,6 +604,11 @@ public class AirMediaSplashtop implements AirMedia
     	}
     }
     
+    public void setAirMediaMiracastWifiDirectMode(boolean enable)
+    {
+		Common.Logging.i(TAG, "setAirMediaMiracastWifiDirectMode(): ***** TODO implement *****");
+    }
+    
     public void recover(){
     	for (int sessId=0; sessId < CresStreamCtrl.NumOfSurfaces; sessId++)
     	{

@@ -2900,9 +2900,23 @@ public class CresStreamCtrl extends Service {
     	return returnStreamState;
     }
     
-    public void SendStreamState(StreamState state, int sessionId)
+    public void setCurrentStreamState(StreamState state, int sessionId)
     {
     	streamStateLock[sessionId].lock("setCurrentStreamState");
+    	try
+    	{
+        	userSettings.setStreamState(state, sessionId);
+        	Log.i(TAG, "sendStreamState(): StreamState for sessionId " + sessionId + " is " + state);
+    	}
+    	finally 
+    	{
+        	streamStateLock[sessionId].unlock("setCurrentStreamState");
+    	}
+    }
+    
+    public void SendStreamState(StreamState state, int sessionId)
+    {
+    	streamStateLock[sessionId].lock("sendCurrentStreamState");
     	try
     	{
         	userSettings.setStreamState(state, sessionId);
@@ -2916,7 +2930,7 @@ public class CresStreamCtrl extends Service {
     	}
         finally 
     	{
-        	streamStateLock[sessionId].unlock("setCurrentStreamState");
+        	streamStateLock[sessionId].unlock("sendCurrentStreamState");
     	}
     }
     
@@ -2984,7 +2998,8 @@ public class CresStreamCtrl extends Service {
     			{
     				ProductSpecific.doChromakey(true);
 
-    				if ((getCurrentStreamState(sessionId) != StreamState.STARTED) && (userSettings.getStreamState(sessionId) != StreamState.STREAMERREADY))
+    				StreamState curStreamState = getCurrentStreamState(sessionId);
+    				if ((curStreamState != StreamState.STARTED) && (curStreamState != StreamState.STREAMERREADY))
     				{	   
     					playStatus="true";
     					stopStatus="false";
@@ -3003,7 +3018,7 @@ public class CresStreamCtrl extends Service {
     					// The started state goes back when we actually start
 
     				}
-    				else if (getCurrentStreamState(sessionId) == StreamState.STARTED)
+    				else if (curStreamState == StreamState.STARTED)
     				{
     	    			Log.i(TAG, "Sessionid "+sessionId+" already started in mode "+userSettings.getMode(sessionId));
     					SendStreamState(StreamState.STARTED, sessionId);
@@ -3041,7 +3056,8 @@ public class CresStreamCtrl extends Service {
     		try
     		{
     			//csio will send service full stop when it does not want confidence mode started
-    			if ((userSettings.getStreamState(sessionId) != StreamState.CONFIDENCEMODE) || (fullStop == true))
+    			StreamState curStreamState = getCurrentStreamState(sessionId);
+    			if ((curStreamState != StreamState.CONFIDENCEMODE) || (fullStop == true))
     			{
     				playStatus="false";
     				stopStatus="true";
@@ -3053,7 +3069,7 @@ public class CresStreamCtrl extends Service {
     			}
     			else
     			{
-    				if (getCurrentStreamState(sessionId) == StreamState.CONFIDENCEMODE)
+    				if (curStreamState == StreamState.CONFIDENCEMODE)
     					SendStreamState(StreamState.CONFIDENCEMODE, sessionId);
     				else
     					SendStreamState(StreamState.STOPPED, sessionId);
@@ -3079,7 +3095,8 @@ public class CresStreamCtrl extends Service {
     	stopStartLock[sessionId].lock("Pause");
     	try
     	{
-    		if ((getCurrentStreamState(sessionId) != StreamState.PAUSED) && (userSettings.getStreamState(sessionId) != StreamState.STOPPED))
+    		StreamState curStreamState = getCurrentStreamState(sessionId);
+    		if ((curStreamState != StreamState.PAUSED) && (curStreamState != StreamState.STOPPED))
     		{
     			pauseStatus="true";
     			playStatus="false";
@@ -3788,7 +3805,7 @@ public class CresStreamCtrl extends Service {
 	    	//On STOP, there is a chance to get ducati crash which does not save current state
 	    	//causes streaming never stops.
 	    	//FIXME:Temp Hack for ducati crash to save current state
-	    	userSettings.setStreamState(StreamState.STOPPED, sessId);
+	    	setCurrentStreamState(StreamState.STOPPED, sessId);
 	    }
     }
     
@@ -3812,7 +3829,7 @@ public class CresStreamCtrl extends Service {
     		//On STOP, there is a chance to get ducati crash which does not save current state
     		//causes streaming never stops.
     		//FIXME:Temp Hack for ducati crash to save current state
-    		userSettings.setStreamState(StreamState.STOPPED, sessId);
+    		setCurrentStreamState(StreamState.STOPPED, sessId);
     		cam_preview.stopPlayback(false);
     		//Toast.makeText(this, "Preview Stopped", Toast.LENGTH_LONG).show();
     	}
@@ -4025,7 +4042,7 @@ public class CresStreamCtrl extends Service {
 				SendStreamState(StreamState.STOPPED, sessionId);
 			else
 			{
-				userSettings.setStreamState(StreamState.STOPPED, sessionId);
+				setCurrentStreamState(StreamState.STOPPED, sessionId);
 	        	CresStreamCtrl.saveSettingsUpdateArrived = true; // flag userSettings to save
 			}    					
 		}
@@ -4817,6 +4834,13 @@ public class CresStreamCtrl extends Service {
 		}
 		
 		return versionName;
+    }
+    
+    public void airMediaMiracastWifiDirectMode(boolean enable)
+    {
+    	userSettings.setAirMediaMiracastWifiDirectMode(enable);
+    	Log.i(TAG, "airMediaMiracastWifiDirectMode(): wifi_direct_mode_enable="+enable);
+    	mAirMedia.setAirMediaMiracastWifiDirectMode(enable);
     }
     
     public void setCamStreamEnable(boolean enable) {

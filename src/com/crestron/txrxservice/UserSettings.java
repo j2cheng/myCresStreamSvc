@@ -239,6 +239,7 @@ public class UserSettings
 	private int airMediaDisplayScreen;
 	private int airMediaWindowFlag;
 	private int airMediaAdaptorSelect;
+	private boolean airMediaMiracastWifiDirectMode;
 	
 	// Camera Streaming
 	private boolean camStreamEnable;
@@ -353,6 +354,7 @@ public class UserSettings
 		airMediaDisplayConnectionOptionEnable = true;
 		airMediaDisplayConnectionOption = CresStreamCtrl.AirMediaDisplayConnectionOption.Ip;
 		airMediaCustomPromptString = "";
+		airMediaMiracastWifiDirectMode = false;
 		appspaceEnabled		= false;
 		tcpInterleave       = initIntArray(0);//auto mode
 		camStreamEnable		= false;
@@ -1359,6 +1361,14 @@ public class UserSettings
 		this.airMediaAdaptorSelect = airMediaAdaptorSelect;
 	}
 
+	public boolean getAirMediaMiracastWifiDirectMode() {
+		return airMediaMiracastWifiDirectMode;
+	}
+	
+	public void setAirMediaMiracastWifiDirectMode(boolean enable) {
+		this.airMediaMiracastWifiDirectMode = enable;
+	}
+	
 	public boolean getCamStreamEnable() {
 		return camStreamEnable;
 	}

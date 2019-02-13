@@ -2129,6 +2129,18 @@ class AirMediaWindowFlagCommand extends CrestronCommand {
 	}
 }
 
+class AirMediaMiracastWifiDirectModeEnableCommand extends CrestronCommand {
+	public AirMediaMiracastWifiDirectModeEnableCommand(CresStreamCtrl ctrl, String arg, int sessId) {
+		super(ctrl, arg, sessId);
+	}	
+	public void execute() {
+		ctrl.airMediaMiracastWifiDirectMode(Boolean.valueOf(msg));
+	}
+	public String getFeedbackMsg() {
+		return Boolean.toString(ctrl.userSettings.getAirMediaMiracastWifiDirectMode());
+	}
+}
+
 class AirMediaVersionCommand extends CrestronCommand {
 	public AirMediaVersionCommand(CresStreamCtrl ctrl, String arg, int sessId) {
 		super(ctrl, arg, sessId);
