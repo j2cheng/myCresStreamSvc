@@ -2065,16 +2065,16 @@ public class CresStreamCtrl extends Service {
         if ((mode != prevMode) && (hdmiInputDriverPresent || (mode == DeviceMode.STREAM_IN.ordinal()) ||
         		(mode == DeviceMode.WBS_STREAM_IN.ordinal())))
         {
-        	// Since this is a user request, mark as stopped requested if mode changes
-        	userSettings.setUserRequestedStreamState(StreamState.STOPPED, sessionId);
-        	
         	stopStartLock[sessionId].lock("setDeviceMode"); //Lock here to synchronize with restartStreams
         	StreamState currentStreamState = userSettings.getStreamState(sessionId);
         	StreamState currentUserReqStreamState = userSettings.getUserRequestedStreamState(sessionId);
+        	// Since this is a user request, mark as stopped requested if mode changes
+            userSettings.setUserRequestedStreamState(StreamState.STOPPED, sessionId);
         	stopStartLock[sessionId].unlock("setDeviceMode");
+
             if ( (currentStreamState != StreamState.STOPPED) || (currentUserReqStreamState != StreamState.STOPPED) )
-                hm2.get(prevMode).executeStop(sessionId, false);
-            
+                hm2.get(prevMode).executeStop(sessionId, true);
+
             if (mode == DeviceMode.STREAM_OUT.ordinal())
             {
             	// Bug 109256: send bitrate when changing to streamout mode
@@ -3260,6 +3260,10 @@ public class CresStreamCtrl extends Service {
     		} catch (Exception e) { }
     		cam_streaming.startConfidencePreview(sessId);
     		restartRequired[sessId] = true;
+    	}
+    	else if (fullStop)
+    	{
+    	    SendStreamState(StreamState.STOPPED, sessId);
     	}
 	}
     
