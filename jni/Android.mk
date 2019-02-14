@@ -71,8 +71,8 @@ LOCAL_SHARED_LIBRARIES += libproductName
 LOCAL_SHARED_LIBRARIES += libLinuxUtil
 LOCAL_SHARED_LIBRARIES += libCresSocketHandler
 ifeq ($(TARGET_PRODUCT),$(filter $(TARGET_PRODUCT),yushan_one full_omap5panda))
-LOCAL_SHARED_LIBRARIES += libcrypto_openssl11
-LOCAL_SHARED_LIBRARIES += libssl_openssl11 
+LOCAL_SHARED_LIBRARIES += libcrypto111
+LOCAL_SHARED_LIBRARIES += libssl111 
 else
 LOCAL_SHARED_LIBRARIES += libcrypto
 LOCAL_SHARED_LIBRARIES += libssl
