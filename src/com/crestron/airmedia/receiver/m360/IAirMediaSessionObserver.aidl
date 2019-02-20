@@ -58,4 +58,9 @@ interface IAirMediaSessionObserver {
     /// PHOTO
 
     oneway void onPhotoChanged(in Bitmap from, in Bitmap to);
+
+    /// REMOTE AUDIO
+
+    oneway void onRemoteAudioMuteChanged(in boolean to);
+    oneway void onRemoteAudioVolumeChanged(in float from, in float to);
 }

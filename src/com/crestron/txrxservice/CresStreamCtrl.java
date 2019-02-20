@@ -3687,7 +3687,7 @@ public class CresStreamCtrl extends Service {
     			updateWindow(sessId, false);
     			showWindow(sessId);
     	        invalidateSurface();
-    			startWfdStream(sessId, args[1], rtsp_port);
+    			startWfdStream(sessId, args[1], rtsp_port, null, null, null, null);
     		} 
     		else if (args[0].equalsIgnoreCase("stop"))
     		{
@@ -3701,10 +3701,11 @@ public class CresStreamCtrl extends Service {
     	}
     }
     
-    public void startWfdStream(int sessId, String url, int rtsp_port)
+    public void startWfdStream(int sessId, String url, int rtsp_port, 
+    		String srtpCipher, String srtpAuthentication, String srtcpCipher, String srtcpAuthentication)
     {
 		Log.i(TAG, "startWfdStream: sessId="+sessId+"   url="+url+"   rtspPort="+rtsp_port);
-        streamPlay.wfdStart(sessId, url, rtsp_port);
+        streamPlay.wfdStart(sessId, url, rtsp_port, srtpCipher, srtpAuthentication, srtcpCipher, srtcpAuthentication);
     }
 
     public void stopWfdStream(int sessId)

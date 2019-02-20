@@ -4066,9 +4066,11 @@ JNIEXPORT void JNICALL Java_com_crestron_txrxservice_WbsStreamIn_nativeSetLogLev
 /***************************** start of Miracast(Wifi Display:wfd) streaming in shares GStreamIn class instance *********************************/
 /* Start wfd connection .
  * Note: calling function should call gst_native_surface_init() to setup surface first.
+ * Note: When DTLS is not used - last four strings will be "null" object.  Check before using.
  *
  * */
-JNIEXPORT void JNICALL Java_com_crestron_txrxservice_GstreamIn_nativeWfdStart(JNIEnv *env, jobject thiz, jint windowId, jstring url_jstring, jint rtsp_port)
+JNIEXPORT void JNICALL Java_com_crestron_txrxservice_GstreamIn_nativeWfdStart(JNIEnv *env, jobject thiz, jint windowId, jstring url_jstring, jint rtsp_port,
+		jstring srtpCipher, jstring srtpAuthentication, jstring srtcpCipher, jstring srtcpAuthentication)
 {
     const char * url_cstring = env->GetStringUTFChars( url_jstring , NULL ) ;
     if (url_cstring == NULL)

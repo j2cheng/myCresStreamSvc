@@ -69,7 +69,7 @@ public class SurfaceManager implements SurfaceHolder.Callback {
     	}
     	    	
         if (view != null) {
-            Log.i(TAG, "getCresSurfaceHolder(): View is not null");
+            Log.v(TAG, "getCresSurfaceHolder(): View is not null");
             crestSurfaceHolder = view.getHolder();
 //            crestSurfaceHolder.setType(SurfaceHolder.SURFACE_TYPE_PUSH_BUFFERS);
 //            view.setZOrderOnTop(true);

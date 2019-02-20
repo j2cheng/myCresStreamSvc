@@ -215,6 +215,16 @@ public class AirMediaSession extends AirMediaBase {
             photo_ = to;
             scheduler().raise(photoChanged(), self(), from, to);
         }
+
+        @Override
+        public void onRemoteAudioMuteChanged(boolean to) throws RemoteException {
+            Common.Logging.v(TAG, "IAirMediaSessionObserver.onRemoteAudioMuteChanged  " + AirMediaSession.toDebugString(self()) + "  " + !to + "  ==>  " + to);
+        }
+
+        @Override
+        public void onRemoteAudioVolumeChanged(float from, float to) throws RemoteException {
+            Common.Logging.v(TAG, "IAirMediaSessionObserver.onRemoteAudioVolumeChanged  " + AirMediaSession.toDebugString(self()) + "  " + from + "  ==>  " + to);
+        }
     };
 
     ////////////////////////////////////////////////////////////////////////////////////////////////

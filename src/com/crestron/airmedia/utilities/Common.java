@@ -183,6 +183,14 @@ public class Common {
         return lhs.equalsIgnoreCase(rhs);
     }
 
+    public static boolean isEqual(float lhs, float rhs, float epsilon) {
+        return Math.abs(lhs - rhs) < epsilon;
+    }
+
+    public static boolean isNotEqual(float lhs, float rhs, float epsilon) {
+        return !isEqual(lhs, rhs, epsilon);
+    }
+
     //@TargetApi(Build.VERSION_CODES.LOLLIPOP)
     //public static boolean isEqual(Size lhs, Size rhs) {
     //    if (lhs == null && rhs == null) return true;

@@ -795,7 +795,8 @@ public class CresDisplaySurfaceMaster implements CresDisplaySurface
 			return streamId;
 		for (int idx=0; idx < CresStreamCtrl.NumOfSurfaces; idx++)
 		{
-			if (sMGR.getCresSurfaceHolder(displaySurface[idx]).getSurface() == surface) {
+			Surface s = sMGR.getCresSurfaceHolder(displaySurface[idx]).getSurface();
+			if ((s != null) && (surface != null) && s.toString().equals(surface.toString())) {
 				streamId = idx;
 				break;
 			}

@@ -1,19 +1,12 @@
 package com.crestron.airmedia.receiver.m360.models;
 
-import android.graphics.Bitmap;
 import android.os.RemoteException;
-import android.util.Log;
-import android.view.Surface;
 
 import com.crestron.airmedia.receiver.m360.IAirMediaSession;
 import com.crestron.airmedia.receiver.m360.IAirMediaSessionManager;
 import com.crestron.airmedia.receiver.m360.IAirMediaSessionManagerObserver;
-import com.crestron.airmedia.receiver.m360.IAirMediaSessionObserver;
-import com.crestron.airmedia.receiver.m360.ipc.AirMediaSessionConnectionState;
+import com.crestron.airmedia.receiver.m360.ipc.AirMediaSessionScreenLayout;
 import com.crestron.airmedia.receiver.m360.ipc.AirMediaSessionScreenPosition;
-import com.crestron.airmedia.receiver.m360.ipc.AirMediaSessionScreenPositionLayout;
-import com.crestron.airmedia.receiver.m360.ipc.AirMediaSessionStreamingState;
-import com.crestron.airmedia.receiver.m360.ipc.AirMediaSize;
 import com.crestron.airmedia.utilities.Common;
 import com.crestron.airmedia.utilities.TaskScheduler;
 import com.crestron.airmedia.utilities.TimeSpan;
@@ -21,7 +14,6 @@ import com.crestron.airmedia.utilities.delegates.MulticastChangedDelegate;
 import com.crestron.airmedia.utilities.delegates.MulticastMessageDelegate;
 import com.crestron.airmedia.utilities.delegates.Observer;
 
-import java.util.Arrays;
 import java.util.Collection;
 import java.util.EnumSet;
 import java.util.LinkedList;
@@ -52,7 +44,7 @@ public class AirMediaSessionManager extends AirMediaBase {
 
     private final IAirMediaSessionManagerObserver observer_ = new IAirMediaSessionManagerObserver.Stub() {
         @Override
-        public void onLayoutChanged(AirMediaSessionScreenPositionLayout from, AirMediaSessionScreenPositionLayout to) throws RemoteException {
+        public void onLayoutChanged(AirMediaSessionScreenLayout from, AirMediaSessionScreenLayout to) throws RemoteException {
             Common.Logging.d(TAG, "IAirMediaSessionManagerObserver.onLayoutChanged  " + from + "  ==>  " + to);
             scheduler().raise(layoutChanged(), self(), from, to);
         }
@@ -87,11 +79,11 @@ public class AirMediaSessionManager extends AirMediaBase {
     private IAirMediaSessionManager manager_;
 
     private EnumSet<AirMediaSessionScreenPosition> occupied_ = EnumSet.noneOf(AirMediaSessionScreenPosition.class);
-    private AirMediaSessionScreenPositionLayout layout_ = AirMediaSessionScreenPositionLayout.None;
+    private AirMediaSessionScreenLayout layout_ = AirMediaSessionScreenLayout.None;
 
     private final MulticastMessageDelegate<AirMediaSessionManager, AirMediaSession> added_ = new MulticastMessageDelegate<AirMediaSessionManager, AirMediaSession>();
     private final MulticastMessageDelegate<AirMediaSessionManager, AirMediaSession> removed_ = new MulticastMessageDelegate<AirMediaSessionManager, AirMediaSession>();
-    private final MulticastChangedDelegate<AirMediaSessionManager, AirMediaSessionScreenPositionLayout> layoutChanged_ = new MulticastChangedDelegate<AirMediaSessionManager, AirMediaSessionScreenPositionLayout>();
+    private final MulticastChangedDelegate<AirMediaSessionManager, AirMediaSessionScreenLayout> layoutChanged_ = new MulticastChangedDelegate<AirMediaSessionManager, AirMediaSessionScreenLayout>();
     private final MulticastChangedDelegate<AirMediaSessionManager, EnumSet<AirMediaSessionScreenPosition>> occupiedChanged_ = new MulticastChangedDelegate<AirMediaSessionManager, EnumSet<AirMediaSessionScreenPosition>>();
 
     ////////////////////////////////////////////////////////////////////////////////////////////////
@@ -100,7 +92,7 @@ public class AirMediaSessionManager extends AirMediaBase {
 
     /// LAYOUT
 
-    public AirMediaSessionScreenPositionLayout layout() {
+    public AirMediaSessionScreenLayout layout() {
         return layout_;
     }
 
@@ -137,7 +129,7 @@ public class AirMediaSessionManager extends AirMediaBase {
 
     public MulticastMessageDelegate<AirMediaSessionManager, AirMediaSession> removed() { return removed_; }
 
-    public MulticastChangedDelegate<AirMediaSessionManager, AirMediaSessionScreenPositionLayout> layoutChanged() { return layoutChanged_; }
+    public MulticastChangedDelegate<AirMediaSessionManager, AirMediaSessionScreenLayout> layoutChanged() { return layoutChanged_; }
 
     public MulticastChangedDelegate<AirMediaSessionManager, EnumSet<AirMediaSessionScreenPosition>> occupiedChanged() { return occupiedChanged_; }
 

@@ -5,6 +5,7 @@ import com.crestron.airmedia.receiver.m360.ipc.AirMediaReceiverMirroringAssist;
 import com.crestron.airmedia.receiver.m360.ipc.AirMediaReceiverResolutionMode;
 import com.crestron.airmedia.receiver.m360.ipc.AirMediaReceiverLoadedState;
 import com.crestron.airmedia.receiver.m360.ipc.AirMediaSize;
+import com.crestron.airmedia.receiver.m360.ipc.AirMediaReceiverVolume;
 
 interface IAirMediaReceiverObserver {
 
@@ -37,4 +38,8 @@ interface IAirMediaReceiverObserver {
     oneway void onDebugModeChanged(in boolean to);
 
     oneway void onProjectionLockedChanged(in boolean to);
+
+    oneway void onVolumeSupportChanged(in boolean to);
+
+    oneway void onVolumePropertiesChanged(in AirMediaReceiverVolume from, in AirMediaReceiverVolume to);
 }

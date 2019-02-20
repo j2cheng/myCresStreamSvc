@@ -15,11 +15,17 @@ interface IVideoPlayer {
     // value (enumeration): Stopped(0), Starting(1), Playing(2), Pausing(3), Paused(4), Stopping(5);
     int getVideoState(in long id);
 
+    //boolean isAudioMuted();
+    //void setAudioMute(in boolean mute);
+
     ////////////////////////////////////////////////////////////////////////////////////////////////
     /// METHODS
 
     // start the video player for the given session ID
     void start(in long id, in String endpoint, in int port, in Surface surface);
+
+    // start the video player for the given session ID
+    void startWithDtls(in long id, in String endpoint, in int port, in Surface surface, in String srtpCipher, in String srtpAuthentication, in String srtcpCipher, in String srtcpAuthentication);
 
     // stop the video player for the given session ID
     void stop(in long id);

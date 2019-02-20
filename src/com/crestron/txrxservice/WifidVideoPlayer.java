@@ -40,6 +40,7 @@ public class WifidVideoPlayer {
     {
     	receiver_ = receiver;
     	// register this class with the receiver as well
+    	receiver.addVideoPlayer(service_);
     }
 
     ////////////////////////////////////////////////////////////////////////////////////////////////
@@ -88,7 +89,7 @@ public class WifidVideoPlayer {
         private void add(IVideoPlayerObserver observer) {
             synchronized (observers_) {
                 IBinder binder = observer.asBinder();
-                Common.Logging.i(TAG, "videplayer.add  observer= " + observer + "  binder= " + binder);
+                Common.Logging.i(TAG, "videoplayer.add  observer= " + observer + "  binder= " + binder);
                 observers_.put(binder, observer);
             }
         }
@@ -156,9 +157,9 @@ public class WifidVideoPlayer {
         	return (session == null) ? 0 : session.state.value;
         }
 
-        /// start
-        @Override
-        public void start(long id, String endpoint, int port, Surface surface)
+        /// base _start function
+        public void _start(long id, String endpoint, int port, Surface surface, 
+        		String srtpCipher, String srtpAuthentication, String srtcpCipher, String srtcpAuthentication)
         {
             Common.Logging.i(TAG, "VideoPlayer.start  id="+id+"  url="+endpoint+"  port="+port+"   Surface="+surface);
             if (surface == null)
@@ -187,10 +188,25 @@ public class WifidVideoPlayer {
             }
             session = new VideoSession(id, streamId, surface, AirMediaSessionStreamingState.Stopped);
             // Start the video player
-            streamCtrl_.startWfdStream(streamId, endpoint, port);
 			// Put session into the map
+            streamCtrl_.startWfdStream(streamId, endpoint, port, srtpCipher, srtpAuthentication, srtcpCipher, srtcpAuthentication);
             sessionMap.put(id, session);
         	stateChanged(id, AirMediaSessionStreamingState.Starting);
+        }
+        
+        /// start
+        @Override
+        public void start(long id, String endpoint, int port, Surface surface)
+        {
+        	_start(id, endpoint, port, surface, null, null, null, null);
+        }
+        
+        // start the video player for the given session ID
+        @Override
+        public void startWithDtls(long id, String endpoint, int port, Surface surface, 
+        		String srtpCipher, String srtpAuthentication, String srtcpCipher, String srtcpAuthentication)
+        {
+        	_start(id, endpoint, port, surface, srtpCipher, srtpAuthentication, srtcpCipher, srtcpAuthentication);
         }
         
         @Override

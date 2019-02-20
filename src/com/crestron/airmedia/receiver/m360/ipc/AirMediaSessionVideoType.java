@@ -4,7 +4,7 @@ import android.os.Parcel;
 import android.os.Parcelable;
 
 public enum AirMediaSessionVideoType implements Parcelable {
-    Undefined(0), Mirror(1), Video(2), WebRTC(3);
+    Undefined(0), Mirror(1), Video(2), WebRTC(3), Miracast(256);
     public final int value;
 
     AirMediaSessionVideoType(int v) {
@@ -33,6 +33,7 @@ public enum AirMediaSessionVideoType implements Parcelable {
             case 1: return Mirror;
             case 2: return Video;
             case 3: return WebRTC;
+            case 256: return Miracast;
         }
         return Undefined;
     }

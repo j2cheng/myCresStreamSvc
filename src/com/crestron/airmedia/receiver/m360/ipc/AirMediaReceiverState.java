@@ -36,3 +36,4 @@ public enum AirMediaReceiverState implements Parcelable {
         return Stopped;
     }
 }
+

@@ -4,17 +4,14 @@ import android.os.IBinder;
 import android.os.RemoteException;
 import android.util.Log;
 
+import com.crestron.airmedia.receiver.IVideoPlayer;
 import com.crestron.airmedia.receiver.m360.IAirMediaReceiver;
 import com.crestron.airmedia.receiver.m360.IAirMediaReceiverObserver;
-import com.crestron.airmedia.receiver.m360.IAirMediaSession;
-import com.crestron.airmedia.receiver.m360.IAirMediaSessionManager;
-import com.crestron.airmedia.receiver.m360.IAirMediaSessionManagerObserver;
 import com.crestron.airmedia.receiver.m360.ipc.AirMediaReceiverLoadedState;
 import com.crestron.airmedia.receiver.m360.ipc.AirMediaReceiverMirroringAssist;
 import com.crestron.airmedia.receiver.m360.ipc.AirMediaReceiverResolutionMode;
 import com.crestron.airmedia.receiver.m360.ipc.AirMediaReceiverState;
-import com.crestron.airmedia.receiver.m360.ipc.AirMediaSessionScreenPosition;
-import com.crestron.airmedia.receiver.m360.ipc.AirMediaSessionScreenPositionLayout;
+import com.crestron.airmedia.receiver.m360.ipc.AirMediaReceiverVolume;
 import com.crestron.airmedia.receiver.m360.ipc.AirMediaSize;
 import com.crestron.airmedia.utilities.Common;
 import com.crestron.airmedia.utilities.TaskScheduler;
@@ -51,6 +48,8 @@ public class AirMediaReceiver extends AirMediaBase {
             debugMode_ = receiver.getDebugMode();
             projectionLocked_ = receiver.getProjectionLocked();
             mirroringAssist_ = receiver.getMirroringAssist();
+            volumeSupported_ = receiver.getVolumeSupported();;
+            volumeProperties_ = receiver.getVolumeProperties();
         } catch (RemoteException e) {
             Common.Logging.e(TAG, "" + e + "  " + Log.getStackTraceString(e));
         }
@@ -154,6 +153,20 @@ public class AirMediaReceiver extends AirMediaBase {
             projectionLocked_ = to;
             scheduler().raise(projectionLockedChanged(), self(), to);
         }
+
+        @Override
+        public void onVolumeSupportChanged(boolean to) throws RemoteException {
+            Common.Logging.d(TAG, "IAirMediaReceiverObserver.onVolumeSupportChanged  " + !to + "  ==>  " + to);
+            volumeSupported_ = to;
+            scheduler().raise(volumeSupportedChanged(), self(), to);
+        }
+
+        @Override
+        public void onVolumePropertiesChanged(AirMediaReceiverVolume from, AirMediaReceiverVolume to) throws RemoteException {
+            Common.Logging.d(TAG, "IAirMediaReceiverObserver.onVolumePropertiesChanged  " + from + "  ==>  " + to);
+            volumeProperties_ = to;
+            scheduler().raise(volumePropertiesChanged(), self(), from, to);
+        }
     };
 
     ////////////////////////////////////////////////////////////////////////////////////////////////
@@ -179,6 +192,8 @@ public class AirMediaReceiver extends AirMediaBase {
     private boolean debugMode_ = false;
     private boolean projectionLocked_ = false;
     private AirMediaReceiverMirroringAssist mirroringAssist_ = new AirMediaReceiverMirroringAssist();
+    private boolean volumeSupported_ = false;
+    private AirMediaReceiverVolume volumeProperties_ = new AirMediaReceiverVolume();
 
     private AirMediaSessionManager sessionManager_;
 
@@ -195,6 +210,8 @@ public class AirMediaReceiver extends AirMediaBase {
     private final MulticastMessageDelegate<AirMediaReceiver, Boolean> forceCompatibilityChanged_ = new MulticastMessageDelegate<AirMediaReceiver, Boolean>();
     private final MulticastMessageDelegate<AirMediaReceiver, Boolean> debugModeChanged_ = new MulticastMessageDelegate<AirMediaReceiver, Boolean>();
     private final MulticastMessageDelegate<AirMediaReceiver, Boolean> projectionLockedChanged_ = new MulticastMessageDelegate<AirMediaReceiver, Boolean>();
+    private final MulticastMessageDelegate<AirMediaReceiver, Boolean> volumeSupportedChanged_ = new MulticastMessageDelegate<AirMediaReceiver, Boolean>();
+    private final MulticastChangedDelegate<AirMediaReceiver, AirMediaReceiverVolume> volumePropertiesChanged_ = new MulticastChangedDelegate<AirMediaReceiver, AirMediaReceiverVolume>();
 
     ////////////////////////////////////////////////////////////////////////////////////////////////
     /// PROPERTIES
@@ -302,6 +319,28 @@ public class AirMediaReceiver extends AirMediaBase {
 
     public AirMediaReceiverMirroringAssist mirroringAssist() { return mirroringAssist_; }
 
+    /// VOLUME SUPPORT
+
+    public boolean isVolumeSupported() { return volumeSupported_; }
+    public void volumeSupported(boolean value) {
+        scheduler().update(new TaskScheduler.PropertyUpdater<Boolean>() { @Override public void update(Boolean v) { updateVolumeSupported(v); } }, value);
+    }
+
+    public AirMediaReceiverVolume volumeProperties() { return volumeProperties_; }
+    public void volumeProperties(final boolean enable, final float min, final float max, final float step) {
+        scheduler().execute(new Runnable() { @Override public void run() { updateVolumeProperties(enable, min, max, step); } });
+    }
+
+    /// VIDEO PLAYER
+
+    public void addVideoPlayer(IVideoPlayer value) {
+        scheduler().update(new TaskScheduler.PropertyUpdater<IVideoPlayer>() { @Override public void update(IVideoPlayer v) { updateVideoPlayer(v, true); } }, value);
+    }
+
+    public void removeVideoPlayer(IVideoPlayer value) {
+        scheduler().update(new TaskScheduler.PropertyUpdater<IVideoPlayer>() { @Override public void update(IVideoPlayer v) { updateVideoPlayer(v, false); } }, value);
+    }
+
     ////////////////////////////////////////////////////////////////////////////////////////////////
     /// EVENTS
     ////////////////////////////////////////////////////////////////////////////////////////////////
@@ -330,6 +369,10 @@ public class AirMediaReceiver extends AirMediaBase {
     public MulticastMessageDelegate<AirMediaReceiver, Boolean> debugModeChanged() { return debugModeChanged_; }
 
     public MulticastMessageDelegate<AirMediaReceiver, Boolean> projectionLockedChanged() { return projectionLockedChanged_; }
+
+    public MulticastMessageDelegate<AirMediaReceiver, Boolean> volumeSupportedChanged() { return volumeSupportedChanged_; }
+
+    public MulticastChangedDelegate<AirMediaReceiver, AirMediaReceiverVolume> volumePropertiesChanged() { return volumePropertiesChanged_; }
 
     ////////////////////////////////////////////////////////////////////////////////////////////////
     /// METHODS
@@ -571,6 +614,42 @@ public class AirMediaReceiver extends AirMediaBase {
             handleRemoteException();
         }
     }
+
+    private void updateVolumeSupported(boolean value) {
+        try {
+            IAirMediaReceiver receiver = receiver_;
+            if (receiver == null) return;
+            receiver.setVolumeSupported(value);
+        } catch (RemoteException e) {
+            Common.Logging.e(TAG, "receiver.volume  value= " + value + "  EXCEPTION  " + e);
+            handleRemoteException();
+        }
+    }
+
+    private void updateVolumeProperties(boolean enable, float min, float max, float step) {
+        try {
+            IAirMediaReceiver receiver = receiver_;
+            if (receiver == null) return;
+            receiver.setVolumeProperties(enable, min, max, step);
+        } catch (RemoteException e) {
+            Common.Logging.e(TAG, "receiver.volume-properties  enable= " + enable + "  min= " + min + "  max= " + max + "  step= " + step + "  EXCEPTION  " + e);
+            handleRemoteException();
+        }
+    }
+
+    private void updateVideoPlayer(IVideoPlayer value, boolean add) {
+        try {
+            IAirMediaReceiver receiver = receiver_;
+            if (receiver == null) return;
+            if (add) receiver.addVideoPlayer(value);
+            else receiver.removeVideoPlayer(value);
+        } catch (RemoteException e) {
+            if (add) Common.Logging.e(TAG, "receiver.video-player.add  EXCEPTION  " + e);
+            else Common.Logging.e(TAG, "receiver.video-player.remove  EXCEPTION  " + e);
+            handleRemoteException();
+        }
+    }
+
 
     /// REMOTE CONNECTION
 

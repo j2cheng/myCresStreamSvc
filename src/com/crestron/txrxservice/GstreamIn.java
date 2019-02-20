@@ -44,7 +44,8 @@ public class GstreamIn implements StreamInStrategy, SurfaceHolder.Callback {
     private static native boolean nativeClassInit(); // Initialize native class: cache Method IDs for callbacks
     private native void nativeSurfaceInit(Object surface, int sessionId);
     private native void nativeSurfaceFinalize(int sessionId);
-    private native void nativeWfdStart(int sessionId, String url, int rtsp_port);
+    private native void nativeWfdStart(int sessionId, String url, int rtsp_port, 
+    		final String srtpCipher, final String srtpAuthentication, final String srtcpCipher, final String srtcpAuthentication);
     private native void nativeWfdStop(int sessionId);
     private long native_custom_data;      // Native code will use this to keep private data
 
@@ -508,7 +509,8 @@ public class GstreamIn implements StreamInStrategy, SurfaceHolder.Callback {
     }
  
     
-    public void wfdStart(final int sessionId, final String url, final int rtsp_port)
+    public void wfdStart(final int sessionId, final String url, final int rtsp_port, 
+    		final String srtpCipher, final String srtpAuthentication, final String srtcpCipher, final String srtcpAuthentication)
     {
     	final GstreamIn gStreamObj = this;
     	final CountDownLatch latch = new CountDownLatch(1);
@@ -519,7 +521,7 @@ public class GstreamIn implements StreamInStrategy, SurfaceHolder.Callback {
     				wfd_mode[sessionId] = true;
     				Surface s = streamCtl.getSurface(sessionId);
     				nativeSurfaceInit(s, sessionId);
-    		    	nativeWfdStart(sessionId, url, rtsp_port);
+    		    	nativeWfdStart(sessionId, url, rtsp_port, srtpCipher, srtpAuthentication, srtcpCipher, srtcpAuthentication);
     			}
     			catch(Exception e){
     				// TODO: explore exception handling with better feedback of what went wrong to user

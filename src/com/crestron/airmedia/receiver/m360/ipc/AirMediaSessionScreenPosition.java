@@ -10,14 +10,16 @@ public enum AirMediaSessionScreenPosition implements Parcelable {
     None(0, false), Auto(1 << 0, false), Fullscreen(1 << 1),
     FourUpperLeft(1 << 2), FourUpperRight(1 << 3), FourLowerLeft(1 << 4), FourLowerRight(1 << 5),
     SixUpperLeft(1 << 6), SixUpperRight(1 << 7), SixCenterRight(1 << 8), SixLowerLeft(1 << 9), SixLowerCenter(1 << 10), SixLowerRight(1 << 11),
-    NineUpperLeft(1 << 12), NineUpperCenter(1 << 13), NineUpperRight(1 << 14), NineCenterLeft(1 << 15), NineCenter(1 << 16), NineCenterRight(1 << 17), NineLowerLeft(1 << 18), NineLowerCenter(1 << 19), NineLowerRight(1 << 20);
+    NineUpperLeft(1 << 12), NineUpperCenter(1 << 13), NineUpperRight(1 << 14), NineCenterLeft(1 << 15), NineCenter(1 << 16), NineCenterRight(1 << 17), NineLowerLeft(1 << 18), NineLowerCenter(1 << 19), NineLowerRight(1 << 20),
+    TwoLeft(1 << 21), TwoRight(1 << 22);
     public final int value;
     public final boolean valid;
-    public static final EnumSet<AirMediaSessionScreenPosition> allScreens = EnumSet.range(Fullscreen, NineLowerRight);
+    public static final EnumSet<AirMediaSessionScreenPosition> allScreens = EnumSet.range(Fullscreen, TwoRight);
     public static final EnumSet<AirMediaSessionScreenPosition> fullScreen = EnumSet.of(Fullscreen);
     public static final EnumSet<AirMediaSessionScreenPosition> fourScreens = EnumSet.range(FourUpperLeft, FourLowerRight);
     public static final EnumSet<AirMediaSessionScreenPosition> sixScreens = EnumSet.range(SixUpperLeft, SixLowerRight);
     public static final EnumSet<AirMediaSessionScreenPosition> nineScreens = EnumSet.range(NineUpperLeft, NineLowerRight);
+    public static final EnumSet<AirMediaSessionScreenPosition> twoScreens = EnumSet.range(TwoLeft, TwoRight);
 
     AirMediaSessionScreenPosition(int v) {
         this(v, true);
@@ -87,6 +89,10 @@ public enum AirMediaSessionScreenPosition implements Parcelable {
                 return NineLowerCenter;
             case 1 << 20:
                 return NineLowerRight;
+            case 1 << 21:
+                return TwoLeft;
+            case 1 << 22:
+                return TwoRight;
         }
         return None;
     }
@@ -127,13 +133,14 @@ public enum AirMediaSessionScreenPosition implements Parcelable {
         return set;
     }
 
-    public static AirMediaSessionScreenPositionLayout layout(EnumSet<AirMediaSessionScreenPosition> set) {
-        if (set.isEmpty()) return AirMediaSessionScreenPositionLayout.None;
-        if (isFullscreenOnly(set)) return AirMediaSessionScreenPositionLayout.Fullscreen;
-        if (isFourScreenOnly(set)) return AirMediaSessionScreenPositionLayout.FourScreen;
-        if (isSixScreenOnly(set)) return AirMediaSessionScreenPositionLayout.SixScreen;
-        if (isNineScreenOnly(set)) return AirMediaSessionScreenPositionLayout.NineScreen;
-        return AirMediaSessionScreenPositionLayout.Mixed;
+    public static AirMediaSessionScreenLayout layout(EnumSet<AirMediaSessionScreenPosition> set) {
+        if (set.isEmpty()) return AirMediaSessionScreenLayout.None;
+        if (isFullscreenOnly(set)) return AirMediaSessionScreenLayout.Fullscreen;
+        if (isFourScreenOnly(set)) return AirMediaSessionScreenLayout.FourScreen;
+        if (isSixScreenOnly(set)) return AirMediaSessionScreenLayout.SixScreen;
+        if (isNineScreenOnly(set)) return AirMediaSessionScreenLayout.NineScreen;
+        if (isTwoScreenOnly(set)) return AirMediaSessionScreenLayout.TwoScreen;
+        return AirMediaSessionScreenLayout.Mixed;
     }
 
     private static boolean isFullscreenOnly(EnumSet<AirMediaSessionScreenPosition> set) { return isFullscreen(set) && !isOtherThanFullscreen((set)); }
@@ -144,13 +151,19 @@ public enum AirMediaSessionScreenPosition implements Parcelable {
 
     private static boolean isNineScreenOnly(EnumSet<AirMediaSessionScreenPosition> set) { return isNineScreen(set) && !isOtherThanNineScreen(set); }
 
-    private static boolean isOtherThanFullscreen(EnumSet<AirMediaSessionScreenPosition> set) { return isFourScreen(set) || isSixScreen(set) || isNineScreen(set); }
+    private static boolean isTwoScreenOnly(EnumSet<AirMediaSessionScreenPosition> set) { return isTwoScreen(set) && !isOtherThanTwoScreen(set); }
 
-    private static boolean isOtherThanFourScreen(EnumSet<AirMediaSessionScreenPosition> set) { return isFullscreen(set) || isSixScreen(set) || isNineScreen(set); }
+    private static boolean isOtherThanFullscreen(EnumSet<AirMediaSessionScreenPosition> set) { return isFourScreen(set) || isSixScreen(set) || isNineScreen(set) || isTwoScreen(set); }
 
-    private static boolean isOtherThanSixScreen(EnumSet<AirMediaSessionScreenPosition> set) { return isFullscreen(set) || isFourScreen(set) || isNineScreen(set); }
+    private static boolean isOtherThanFourScreen(EnumSet<AirMediaSessionScreenPosition> set) { return isFullscreen(set) || isSixScreen(set) || isNineScreen(set) || isTwoScreen(set); }
 
-    private static boolean isOtherThanNineScreen(EnumSet<AirMediaSessionScreenPosition> set) { return isFullscreen(set) || isFourScreen(set) || isSixScreen(set); }
+    private static boolean isOtherThanSixScreen(EnumSet<AirMediaSessionScreenPosition> set) { return isFullscreen(set) || isFourScreen(set) || isNineScreen(set) || isTwoScreen(set); }
+
+    private static boolean isOtherThanNineScreen(EnumSet<AirMediaSessionScreenPosition> set) { return isFullscreen(set) || isFourScreen(set) || isSixScreen(set) || isTwoScreen(set); }
+
+    private static boolean isOtherThanTwoScreen(EnumSet<AirMediaSessionScreenPosition> set) { return isFullscreen(set) || isFourScreen(set) || isSixScreen(set) || isNineScreen(set); }
+
+    private static boolean isNone(EnumSet<AirMediaSessionScreenPosition> set) { return set.isEmpty() || !Collections.disjoint(set, allScreens); }
 
     private static boolean isFullscreen(EnumSet<AirMediaSessionScreenPosition> set) { return !Collections.disjoint(set, fullScreen); }
 
@@ -159,4 +172,6 @@ public enum AirMediaSessionScreenPosition implements Parcelable {
     private static boolean isSixScreen(EnumSet<AirMediaSessionScreenPosition> set) { return !Collections.disjoint(set, sixScreens); }
 
     private static boolean isNineScreen(EnumSet<AirMediaSessionScreenPosition> set) { return !Collections.disjoint(set, nineScreens); }
+
+    private static boolean isTwoScreen(EnumSet<AirMediaSessionScreenPosition> set) { return !Collections.disjoint(set, twoScreens); }
 }

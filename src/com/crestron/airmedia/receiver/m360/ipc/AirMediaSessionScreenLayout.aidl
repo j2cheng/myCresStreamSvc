@@ -1,3 +1,3 @@
 package com.crestron.airmedia.receiver.m360.ipc;
 
-parcelable AirMediaSessionScreenPositionLayout;
+parcelable AirMediaSessionScreenLayout;

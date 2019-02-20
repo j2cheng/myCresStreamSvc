@@ -6,7 +6,7 @@ import android.os.Parcelable;
 import com.crestron.airmedia.utilities.Common;
 
 public class AirMediaSessionInfo implements Parcelable {
-    public final AirMediaSenderPlatforms platform;
+    public final AirMediaPlatforms platform;
     public final String os;
     public final String version;
     public final String manufacturer;
@@ -19,7 +19,7 @@ public class AirMediaSessionInfo implements Parcelable {
     public final boolean isRotationManagedBySender;
 
     public AirMediaSessionInfo() {
-        platform = AirMediaSenderPlatforms.Undefined;
+        platform = AirMediaPlatforms.Undefined;
         os = "";
         version = "";
         manufacturer = "";
@@ -28,12 +28,12 @@ public class AirMediaSessionInfo implements Parcelable {
         hostname = "";
         controlUseragent = "";
         deviceUseragent = "";
-        isRotationSupported = false;
+        isRotationSupported = true;
         isRotationManagedBySender = false;
     }
 
     private AirMediaSessionInfo(Parcel in) {
-        platform = AirMediaSenderPlatforms.from(in.readInt());
+        platform = AirMediaPlatforms.from(in.readInt());
         os = in.readString();
         version = in.readString();
         manufacturer = in.readString();
@@ -47,7 +47,7 @@ public class AirMediaSessionInfo implements Parcelable {
     }
 
     public AirMediaSessionInfo(AirMediaSessionInfo old, AirMediaSessionInfo update) {
-        platform = update != null && update.platform != AirMediaSenderPlatforms.Undefined ? update.platform : old != null ? old.platform : AirMediaSenderPlatforms.Undefined;
+        platform = update != null && update.platform != AirMediaPlatforms.Undefined ? update.platform : old != null ? old.platform : AirMediaPlatforms.Undefined;
         os = update != null && Common.isNotEmpty(update.os) ? update.os : old != null ? old.os : "";
         version = update != null && Common.isNotEmpty(update.version) ? update.version : old != null ? old.version : "";
         manufacturer = update != null && Common.isNotEmpty(update.manufacturer) ? update.manufacturer : old != null ? old.manufacturer : "";
@@ -61,9 +61,9 @@ public class AirMediaSessionInfo implements Parcelable {
     }
 
     protected AirMediaSessionInfo(
-            AirMediaSenderPlatforms inPlatforms, String inOs, String inVersion, String inManufacturer,
+            AirMediaPlatforms inPlatforms, String inOs, String inVersion, String inManufacturer,
             String inModel, String inLanguage, String inHostname,
-            String inControlUseragent, String inDeviceUseragent, boolean inIsRotationSupported, boolean isRotationManagedBySender) {
+            String inControlUseragent, String inDeviceUseragent, boolean inIsRotationSupported, boolean inRotationManagedBySender) {
         platform = inPlatforms;
         os = inOs;
         version = inVersion;
@@ -74,7 +74,7 @@ public class AirMediaSessionInfo implements Parcelable {
         controlUseragent = inControlUseragent;
         deviceUseragent = inDeviceUseragent;
         isRotationSupported = inIsRotationSupported;
-        this.isRotationManagedBySender = isRotationManagedBySender;
+        isRotationManagedBySender = inRotationManagedBySender;
     }
 
     @Override
@@ -143,5 +143,9 @@ public class AirMediaSessionInfo implements Parcelable {
                 && Common.isEqual(lhs.deviceUseragent, rhs.deviceUseragent)
                 && lhs.isRotationSupported == rhs.isRotationSupported
                 && lhs.isRotationManagedBySender == rhs.isRotationManagedBySender;
+    }
+
+    public static boolean platformSupportsVideoPush(AirMediaSessionInfo info) {
+        return info == null || info.platform.supportsVideoPush();
     }
 }

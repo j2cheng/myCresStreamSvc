@@ -19,8 +19,6 @@ import com.crestron.txrxservice.CresStreamCtrl.AirMediaLoginMode;
 import com.crestron.txrxservice.CresStreamCtrl.ServiceMode;
 import com.crestron.airmedia.receiver.m360.IAirMediaReceiver;
 import com.crestron.airmedia.receiver.m360.models.AirMediaReceiver;
-import com.crestron.airmedia.receiver.m360.ipc.AirMediaSessionScreenPosition;
-import com.crestron.airmedia.receiver.m360.ipc.AirMediaSessionScreenPositionLayout;
 import com.crestron.airmedia.receiver.m360.models.AirMediaSession;
 import com.crestron.airmedia.receiver.m360.models.AirMediaSessionManager;
 import com.crestron.airmedia.receiver.m360.ipc.AirMediaReceiverLoadedState;
@@ -29,7 +27,7 @@ import com.crestron.airmedia.receiver.m360.ipc.AirMediaReceiverResolutionMode;
 import com.crestron.airmedia.receiver.m360.ipc.AirMediaReceiverState;
 import com.crestron.airmedia.receiver.m360.ipc.AirMediaSessionConnectionState;
 import com.crestron.airmedia.receiver.m360.ipc.AirMediaSessionScreenPosition;
-import com.crestron.airmedia.receiver.m360.ipc.AirMediaSessionScreenPositionLayout;
+import com.crestron.airmedia.receiver.m360.ipc.AirMediaSessionScreenLayout;
 import com.crestron.airmedia.receiver.m360.ipc.AirMediaSessionStreamingState;
 import com.crestron.airmedia.receiver.m360.ipc.AirMediaSize;
 import com.crestron.airmedia.receiver.m360.ipc.AirMediaSessionInfo;
@@ -2180,9 +2178,9 @@ public class AirMediaSplashtop implements AirMedia
                 }
             };
             
-    private final MulticastChangedDelegate.Observer<AirMediaSessionManager, AirMediaSessionScreenPositionLayout> layoutChangedHandler_ =
-    		new MulticastChangedDelegate.Observer<AirMediaSessionManager, AirMediaSessionScreenPositionLayout>() {
-            	@Override public void onEvent(AirMediaSessionManager manager, AirMediaSessionScreenPositionLayout from, AirMediaSessionScreenPositionLayout to) {
+    private final MulticastChangedDelegate.Observer<AirMediaSessionManager, AirMediaSessionScreenLayout> layoutChangedHandler_ =
+    		new MulticastChangedDelegate.Observer<AirMediaSessionManager, AirMediaSessionScreenLayout>() {
+            	@Override public void onEvent(AirMediaSessionManager manager, AirMediaSessionScreenLayout from, AirMediaSessionScreenLayout to) {
             		Common.Logging.i(TAG, "manager.sessions.event.layout  " + from + "  ==>  " + to);
             	}
             };

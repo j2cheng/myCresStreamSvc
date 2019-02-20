@@ -1,5 +1,7 @@
 package com.crestron.airmedia.receiver.m360;
 
+import com.crestron.airmedia.receiver.IVideoPlayer;
+
 import com.crestron.airmedia.receiver.m360.IAirMediaSessionManager;
 import com.crestron.airmedia.receiver.m360.IAirMediaReceiverObserver;
 
@@ -7,6 +9,7 @@ import com.crestron.airmedia.receiver.m360.ipc.AirMediaReceiverState;
 import com.crestron.airmedia.receiver.m360.ipc.AirMediaReceiverResolutionMode;
 import com.crestron.airmedia.receiver.m360.ipc.AirMediaReceiverMirroringAssist;
 import com.crestron.airmedia.receiver.m360.ipc.AirMediaReceiverLoadedState;
+import com.crestron.airmedia.receiver.m360.ipc.AirMediaReceiverVolume;
 import com.crestron.airmedia.receiver.m360.ipc.AirMediaSize;
 
 interface IAirMediaReceiver {
@@ -53,7 +56,7 @@ interface IAirMediaReceiver {
     void setDebugMode(in boolean enabled);
 
     boolean getProjectionLocked();
-    void setProjectionLocked(boolean locked);
+    void setProjectionLocked(in boolean locked);
 
     AirMediaReceiverMirroringAssist getMirroringAssist();
 
@@ -79,4 +82,17 @@ interface IAirMediaReceiver {
     ////////////////////////////////////////////////////////////////////////////////////////////////
 
     oneway void console(in String input);
+
+    ////////////////////////////////////////////////////////////////////////////////////////////////
+    /// PROPERTIES
+    ////////////////////////////////////////////////////////////////////////////////////////////////
+
+    boolean getVolumeSupported();
+    void setVolumeSupported(in boolean enable);
+
+    AirMediaReceiverVolume getVolumeProperties();
+    void setVolumeProperties(in boolean enable, in float min, in float max, in float step);
+
+    void addVideoPlayer(IVideoPlayer player);
+    void removeVideoPlayer(IVideoPlayer player);
 }

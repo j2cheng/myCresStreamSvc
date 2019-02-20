@@ -6,7 +6,7 @@ import com.crestron.airmedia.receiver.m360.IAirMediaReceiver;
 import com.crestron.airmedia.receiver.m360.IAirMediaSession;
 import com.crestron.airmedia.receiver.m360.IAirMediaSessionManagerObserver;
 
-import com.crestron.airmedia.receiver.m360.ipc.AirMediaSessionScreenPositionLayout;
+import com.crestron.airmedia.receiver.m360.ipc.AirMediaSessionScreenLayout;
 import com.crestron.airmedia.receiver.m360.ipc.AirMediaSessionScreenPosition;
 
 interface IAirMediaSessionManager {
@@ -15,7 +15,7 @@ interface IAirMediaSessionManager {
     /// PROPERTIES
     ////////////////////////////////////////////////////////////////////////////////////////////////
 
-    AirMediaSessionScreenPositionLayout getLayout();
+    AirMediaSessionScreenLayout getLayout();
 
     int getOccupied(); // EnumSet<AirMediaSessionScreenPosition> occupied = AirMediaSessionScreenPosition.set(getOccupied());
     //EnumSet<AirMediaSessionScreenPosition> getOccupied();

@@ -195,9 +195,10 @@ JNIEXPORT void JNICALL Java_com_crestron_txrxservice_GstreamIn_nativeSetRTCPDest
 /*
  * Class:           GstreamIn
  * Method:          nativeWfdStart
- * Signature:       (ILjava/lang/string; I)V
+ * Signature:       (ILjava/lang/string; ILjava/lang/string; Ljava/lang/string; Ljava/lang/string; Ljava/lang/string; )V
  */
-JNIEXPORT void JNICALL Java_com_crestron_txrxservice_GstreamIn_nativeWfdStart(JNIEnv *env, jobject thiz, jint windowId, jstring url_jstring, jint rtsp_port);
+JNIEXPORT void JNICALL Java_com_crestron_txrxservice_GstreamIn_nativeWfdStart(JNIEnv *env, jobject thiz, jint windowId, jstring url_jstring, jint rtsp_port,
+		jstring srtpCipher, jstring srtpAuthentication, jstring srtcpCipher, jstring srtcpAuthentication);
 
 /*
  * Class:           GstreamIn
