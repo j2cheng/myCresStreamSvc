@@ -2056,66 +2056,65 @@ public class CresStreamCtrl extends Service {
     
     public void setDeviceMode(int mode, int sessionId)
     {
-        Log.i(TAG, " setDeviceMode "+ mode);
-        int prevMode = userSettings.getMode(sessionId);
-        userSettings.setMode(mode, sessionId);
-        
-        // If hdmi input driver is present allow all 3 modes, otherwise only allow stream in mode and wbs mode
-        // Only if mode actually changed
-        if ((mode != prevMode) && (hdmiInputDriverPresent || (mode == DeviceMode.STREAM_IN.ordinal()) ||
-        		(mode == DeviceMode.WBS_STREAM_IN.ordinal())))
+    	stopStartLock[sessionId].lock("setDeviceMode");
+    	try
+		{
+		    Log.i(TAG, " setDeviceMode "+ mode);
+		    int prevMode = userSettings.getMode(sessionId);
+		    userSettings.setMode(mode, sessionId);
+		    
+		    // If hdmi input driver is present allow all 3 modes, otherwise only allow stream in mode and wbs mode
+		    // Only if mode actually changed
+		    if ((mode != prevMode) && (hdmiInputDriverPresent || (mode == DeviceMode.STREAM_IN.ordinal()) ||
+		    		(mode == DeviceMode.WBS_STREAM_IN.ordinal())))
+		    {
+		    	StreamState currentStreamState = userSettings.getStreamState(sessionId);
+		    	StreamState currentUserReqStreamState = userSettings.getUserRequestedStreamState(sessionId);
+		    	// Since this is a user request, mark as stopped requested if mode changes
+		        userSettings.setUserRequestedStreamState(StreamState.STOPPED, sessionId);
+
+		        if ( (currentStreamState != StreamState.STOPPED) || (currentUserReqStreamState != StreamState.STOPPED) )
+		            hm2.get(prevMode).executeStop(sessionId, true);
+
+		        if (mode == DeviceMode.STREAM_OUT.ordinal())
+		        {
+		        	// Bug 109256: send bitrate when changing to streamout mode
+		        	sockTask.SendDataToAllClients("VBITRATE=" + String.valueOf(userSettings.getBitrate(sessionId)));
+		        	
+		        	// we want confidence image up for stream out, until streamout is actually started
+		        	enableRestartMechanism = true; //enable restart detection
+		    		Log.i(TAG, "setDeviceMode: calling updateWindow for sessId="+sessionId);
+		        	cam_streaming.startConfidencePreview(sessionId);
+		        	restartRequired[sessionId] = true;
+		        }
+		        
+		        // Since we are changing mode, clear out stream url fb only (Bug 103801)
+		        if (mode == DeviceMode.STREAM_OUT.ordinal() && !getAutomaticInitiationMode())
+		        {
+		        	// Only clear if in by receiver or multicast via rtsp, if By transmitter send saved url 
+		        	if ( (userSettings.getSessionInitiation(sessionId) == 0) || (userSettings.getSessionInitiation(sessionId) == 2) )			
+		        		sockTask.SendDataToAllClients(MiscUtils.stringFormat("STREAMURL%d=", sessionId));
+					else if (userSettings.getSessionInitiation(sessionId) == 1)
+						sockTask.SendDataToAllClients(MiscUtils.stringFormat("STREAMURL%d=%s", sessionId, userSettings.getStreamOutUrl(sessionId)));
+		        }
+		        else if (mode == DeviceMode.STREAM_IN.ordinal())
+		        {
+		        	// By transmitter clear, else send saved url
+		        	if (userSettings.getSessionInitiation(sessionId) == 1)
+		        		sockTask.SendDataToAllClients(MiscUtils.stringFormat("STREAMURL%d=", sessionId));
+		        	else
+		        		sockTask.SendDataToAllClients(MiscUtils.stringFormat("STREAMURL%d=%s", sessionId, userSettings.getStreamInUrl(sessionId)));
+		        }
+		        else if (mode == DeviceMode.WBS_STREAM_IN.ordinal())
+		        {
+		    		sockTask.SendDataToAllClients(MiscUtils.stringFormat("STREAMURL%d=%s", sessionId, userSettings.getWbsStreamUrl(sessionId)));            	
+		        }
+		    }
+		}
+		finally
         {
-        	stopStartLock[sessionId].lock("setDeviceMode"); //Lock here to synchronize with restartStreams
-        	StreamState currentStreamState = userSettings.getStreamState(sessionId);
-        	StreamState currentUserReqStreamState = userSettings.getUserRequestedStreamState(sessionId);
-        	// Since this is a user request, mark as stopped requested if mode changes
-            userSettings.setUserRequestedStreamState(StreamState.STOPPED, sessionId);
         	stopStartLock[sessionId].unlock("setDeviceMode");
-
-            if ( (currentStreamState != StreamState.STOPPED) || (currentUserReqStreamState != StreamState.STOPPED) )
-                hm2.get(prevMode).executeStop(sessionId, true);
-
-            if (mode == DeviceMode.STREAM_OUT.ordinal())
-            {
-            	// Bug 109256: send bitrate when changing to streamout mode
-            	sockTask.SendDataToAllClients("VBITRATE=" + String.valueOf(userSettings.getBitrate(sessionId)));
-            	
-            	// we want confidence image up for stream out, until streamout is actually started
-            	stopStartLock[sessionId].lock("setDeviceMode");
-                try
-                {
-                	enableRestartMechanism = true; //enable restart detection
-            		Log.i(TAG, "setDeviceMode: calling updateWindow for sessId="+sessionId);
-                	cam_streaming.startConfidencePreview(sessionId);
-                } finally
-                {
-                	stopStartLock[sessionId].unlock("setDeviceMode");
-                }
-            	restartRequired[sessionId] = true;
-            }
-            
-            // Since we are changing mode, clear out stream url fb only (Bug 103801)
-            if (mode == DeviceMode.STREAM_OUT.ordinal() && !getAutomaticInitiationMode())
-            {
-            	// Only clear if in by receiver or multicast via rtsp, if By transmitter send saved url 
-            	if ( (userSettings.getSessionInitiation(sessionId) == 0) || (userSettings.getSessionInitiation(sessionId) == 2) )			
-            		sockTask.SendDataToAllClients(MiscUtils.stringFormat("STREAMURL%d=", sessionId));
-				else if (userSettings.getSessionInitiation(sessionId) == 1)
-					sockTask.SendDataToAllClients(MiscUtils.stringFormat("STREAMURL%d=%s", sessionId, userSettings.getStreamOutUrl(sessionId)));
-            }
-            else if (mode == DeviceMode.STREAM_IN.ordinal())
-            {
-            	// By transmitter clear, else send saved url
-            	if (userSettings.getSessionInitiation(sessionId) == 1)
-            		sockTask.SendDataToAllClients(MiscUtils.stringFormat("STREAMURL%d=", sessionId));
-            	else
-            		sockTask.SendDataToAllClients(MiscUtils.stringFormat("STREAMURL%d=%s", sessionId, userSettings.getStreamInUrl(sessionId)));
-            }
-            else if (mode == DeviceMode.WBS_STREAM_IN.ordinal())
-            {
-        		sockTask.SendDataToAllClients(MiscUtils.stringFormat("STREAMURL%d=%s", sessionId, userSettings.getWbsStreamUrl(sessionId)));            	
-            }
-        }
+        }    
     }
     
     public void setUseGstreamer(boolean flag)

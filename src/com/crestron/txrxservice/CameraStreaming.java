@@ -218,8 +218,21 @@ public class CameraStreaming {
 		            Log.i(TAG, "setting video frame rate: " + streamCtl.userSettings.getEncodingFramerate(idx));
 		            
 		            setWidthAndHeightFromEncRes(idx);
-		            mrec.setVideoEncodingBitRate(streamCtl.userSettings.getBitrate(idx) * 1000);	//This is in bits per second
-		            mrec.setVideoFrameRate(streamCtl.userSettings.getEncodingFramerate(idx));//Mistral Propietary API 
+		            int bitrate = streamCtl.userSettings.getBitrate(idx);
+		            if (bitrate <= 0)
+		            {
+		            	Log.w(TAG, "Invalid bitrate set " + bitrate);
+		            	bitrate = 10000;
+		            }
+		            mrec.setVideoEncodingBitRate(bitrate * 1000);	//This is in bits per second
+		            
+		            int framerate = streamCtl.userSettings.getEncodingFramerate(idx);
+		            if (framerate <= 0)
+		            {
+		            	Log.w(TAG, "Invalid framerate set " + framerate);
+		            	framerate = 60;
+		            }
+		            mrec.setVideoFrameRate(framerate);//Mistral Propietary API 
 		            mrec.setAudioEncoder(MediaRecorder.AudioEncoder.AAC);
 		            mrec.setVideoEncoder(MediaRecorder.VideoEncoder.H264);
 		            ProductSpecific.setEncoderProfile(mrec, streamCtl.userSettings.getStreamProfile(idx).getVEncProfile());
