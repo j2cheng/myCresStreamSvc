@@ -25,7 +25,7 @@ interface IVideoPlayer {
     void start(in long id, in String endpoint, in int port, in Surface surface);
 
     // start the video player for the given session ID
-    void startWithDtls(in long id, in String endpoint, in int port, in Surface surface, in String srtpCipher, in String srtpAuthentication, in String srtcpCipher, in String srtcpAuthentication);
+    void startWithDtls(in long id, in String endpoint, in int port, in Surface surface, in String key, in int cipher, in int authentication);
 
     // stop the video player for the given session ID
     void stop(in long id);

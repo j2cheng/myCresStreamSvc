@@ -5,6 +5,7 @@ import android.os.IBinder;
 import android.os.RemoteException;
 import android.util.Log;
 import android.view.Surface;
+import android.view.SurfaceView;
 
 import com.crestron.airmedia.receiver.IVideoPlayer;
 import com.crestron.airmedia.receiver.IVideoPlayerObserver;
@@ -29,6 +30,8 @@ import java.util.Map;
 public class WifidVideoPlayer {
     private static final String TAG = "WifidVideoPlayer";
     private static final long INVALID_SESSION_ID = (long) 0;
+    private final Object startSessionObjectLock = new Object();
+    private final Object stopSessionObjectLock = new Object();
     
     WifidVideoPlayer(CresStreamCtrl streamCtrl) {
         streamCtrl_ = streamCtrl;
@@ -158,8 +161,7 @@ public class WifidVideoPlayer {
         }
 
         /// base _start function
-        public void _start(long id, String endpoint, int port, Surface surface, 
-        		String srtpCipher, String srtpAuthentication, String srtcpCipher, String srtcpAuthentication)
+        public void _start(long id, String endpoint, int port, Surface surface, String key, int cipher, int authentication)
         {
             Common.Logging.i(TAG, "VideoPlayer.start  id="+id+"  url="+endpoint+"  port="+port+"   Surface="+surface);
             if (surface == null)
@@ -186,48 +188,50 @@ public class WifidVideoPlayer {
             		sessionMap.remove(id);
             	}
             }
-            session = new VideoSession(id, streamId, surface, AirMediaSessionStreamingState.Stopped);
-            // Start the video player
-			// Put session into the map
-            streamCtrl_.startWfdStream(streamId, endpoint, port, srtpCipher, srtpAuthentication, srtcpCipher, srtcpAuthentication);
+            synchronized(startSessionObjectLock) {
+            	session = new VideoSession(id, streamId, surface, AirMediaSessionStreamingState.Stopped);
+            	// Start the video player
+            	// Put session into the map
+            	streamCtrl_.startWfdStream(streamId, endpoint, port, key, cipher, authentication);
+            }
             sessionMap.put(id, session);
-        	stateChanged(id, AirMediaSessionStreamingState.Starting);
+            stateChanged(id, AirMediaSessionStreamingState.Starting);
         }
         
         /// start
         @Override
         public void start(long id, String endpoint, int port, Surface surface)
         {
-        	_start(id, endpoint, port, surface, null, null, null, null);
+        	_start(id, endpoint, port, surface, null, 0, 0);
         }
         
         // start the video player for the given session ID
         @Override
-        public void startWithDtls(long id, String endpoint, int port, Surface surface, 
-        		String srtpCipher, String srtpAuthentication, String srtcpCipher, String srtcpAuthentication)
+        public void startWithDtls(long id, String endpoint, int port, Surface surface, String key, int cipher, int authentication)
         {
-        	_start(id, endpoint, port, surface, srtpCipher, srtpAuthentication, srtcpCipher, srtcpAuthentication);
+        	_start(id, endpoint, port, surface, key, cipher, authentication);
         }
         
         @Override
         public void stop(long id)
         {
             Common.Logging.i(TAG, "VideoPlayer.stop  id="+id);
-			// See if prior session exists with the same id
-            VideoSession session = sessionMap.get(id);
-            if (session == null)
-            {
-            	Common.Logging.w(TAG, "There is an no existing session with this id="+id);
-            	return;
+            synchronized(stopSessionObjectLock) {
+            	// See if prior session exists with the same id
+            	VideoSession session = sessionMap.get(id);
+            	if (session == null)
+            	{
+            		Common.Logging.w(TAG, "There is an no existing session with this id="+id);
+            		return;
+            	}
+             	if (session.state != AirMediaSessionStreamingState.Stopped)
+            	{
+            		streamCtrl_.stopWfdStream(session.streamId);
+            		stateChanged(id, AirMediaSessionStreamingState.Stopped);
+            	}
+    			// Remove session from the map
+        		sessionMap.remove(id);
             }
-            if (session.state != AirMediaSessionStreamingState.Stopped)
-            {
-            	stateChanged(id, AirMediaSessionStreamingState.Stopping);
-            	streamCtrl_.stopWfdStream(session.streamId);
-            	stateChanged(id, AirMediaSessionStreamingState.Stopped);
-            }
-			// Remove session from the map
-    		sessionMap.remove(id);
         }
     }
 
@@ -265,17 +269,20 @@ public class WifidVideoPlayer {
 
     public void statusChanged(long id, int code, String reason)
     {
+        Common.Logging.i(TAG, "videoplayer.statusChanged():  sessionId="+id+"  code="+code+"   reason="+reason);
     	service_.statusChanged(id, code, reason);
     }
     
     public void resolutionChanged(long id, int width, int height)
     {
+        Common.Logging.i(TAG, "videoplayer.resolutionChanged():  sessionId="+id+"  wxh="+width+"x"+height);
     	service_.resolutionChanged(id, width, height);
     }
     
     public void stateChanged(int streamId, AirMediaSessionStreamingState value)
     {
     	long sessionId = streamId2sessionId(streamId);
+        Common.Logging.i(TAG, "videoplayer.stateChanged():  streamId=%"+streamId+" sessionId="+sessionId+"  state="+value);
     	if (sessionId != INVALID_SESSION_ID)
     	{
     		VideoSession session = sessionMap.get(sessionId);

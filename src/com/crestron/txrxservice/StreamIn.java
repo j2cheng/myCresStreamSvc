@@ -150,9 +150,9 @@ public class StreamIn {
     	strategy.setLogLevel(LogLevel);
     }
     
-    public void wfdStart(int sessionId, String url, int rtsp_port, String srtpCipher, String srtpAuthentication, String srtcpCipher, String srtcpAuthentication)
+    public void wfdStart(int sessionId, String url, int rtsp_port, String key, int cipher, int authentication)
     {
-    	strategy.wfdStart(sessionId, url, rtsp_port, srtpCipher, srtpAuthentication, srtcpCipher, srtcpAuthentication);
+    	strategy.wfdStart(sessionId, url, rtsp_port, key, cipher, authentication);
     }
     
     public void wfdStop(int sessionId)
@@ -194,6 +194,6 @@ interface StreamInStrategy{
     public int getMediaPlayerAudioFormatFb();
     public int getMediaPlayerAudiochannelsFb();
     public void initUnixSocketState();
-    public void wfdStart(int sessionId, String url, int rtsp_port, String srtpCipher, String srtpAuthentication, String srtcpCipher, String srtcpAuthentication);
+    public void wfdStart(int sessionId, String url, int rtsp_port, String key, int cipher, int authentication);
     public void wfdStop(int sessionId);
 }

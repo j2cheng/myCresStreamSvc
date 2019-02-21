@@ -44,8 +44,7 @@ public class GstreamIn implements StreamInStrategy, SurfaceHolder.Callback {
     private static native boolean nativeClassInit(); // Initialize native class: cache Method IDs for callbacks
     private native void nativeSurfaceInit(Object surface, int sessionId);
     private native void nativeSurfaceFinalize(int sessionId);
-    private native void nativeWfdStart(int sessionId, String url, int rtsp_port, 
-    		final String srtpCipher, final String srtpAuthentication, final String srtcpCipher, final String srtcpAuthentication);
+    private native void nativeWfdStart(int sessionId, String url, int rtsp_port, final String key, final int cipher, final int authentication);
     private native void nativeWfdStop(int sessionId);
     private long native_custom_data;      // Native code will use this to keep private data
 
@@ -213,6 +212,7 @@ public class GstreamIn implements StreamInStrategy, SurfaceHolder.Callback {
     
     public void updateStreamStatus(int streamStateEnum, int sessionId){
     	// Send stream url again on start fb
+    	Log.i(TAG, "updateStreamStatus for streamId="+sessionId+"  state="+streamStateEnum);
     	if (streamStateEnum == CresStreamCtrl.StreamState.STARTED.getValue())
     	{
     		streamCtl.sockTask.SendDataToAllClients(MiscUtils.stringFormat("STREAMURL%d=%s", sessionId, streamCtl.userSettings.getStreamInUrl(sessionId)));
@@ -222,11 +222,11 @@ public class GstreamIn implements StreamInStrategy, SurfaceHolder.Callback {
     	{
     		if (streamStateEnum == CresStreamCtrl.StreamState.STARTED.getValue())
     		{
-    			//streamCtl.wifidVideoPlayer.stateChanged(sessionId, AirMediaSessionStreamingState.Playing);
+    			streamCtl.wifidVideoPlayer.stateChanged(sessionId, AirMediaSessionStreamingState.Playing);
     		} 
     		else if (streamStateEnum == CresStreamCtrl.StreamState.STOPPED.getValue())
     		{
-    			//streamCtl.wifidVideoPlayer.stateChanged(sessionId, AirMediaSessionStreamingState.Stopped);
+    			streamCtl.wifidVideoPlayer.stateChanged(sessionId, AirMediaSessionStreamingState.Stopped);
     		}
     	}
     }
@@ -509,8 +509,7 @@ public class GstreamIn implements StreamInStrategy, SurfaceHolder.Callback {
     }
  
     
-    public void wfdStart(final int sessionId, final String url, final int rtsp_port, 
-    		final String srtpCipher, final String srtpAuthentication, final String srtcpCipher, final String srtcpAuthentication)
+    public void wfdStart(final int sessionId, final String url, final int rtsp_port, final String key, final int cipher, final int authentication)
     {
     	final GstreamIn gStreamObj = this;
     	final CountDownLatch latch = new CountDownLatch(1);
@@ -521,7 +520,7 @@ public class GstreamIn implements StreamInStrategy, SurfaceHolder.Callback {
     				wfd_mode[sessionId] = true;
     				Surface s = streamCtl.getSurface(sessionId);
     				nativeSurfaceInit(s, sessionId);
-    		    	nativeWfdStart(sessionId, url, rtsp_port, srtpCipher, srtpAuthentication, srtcpCipher, srtcpAuthentication);
+    		    	nativeWfdStart(sessionId, url, rtsp_port, key, cipher, authentication);
     			}
     			catch(Exception e){
     				// TODO: explore exception handling with better feedback of what went wrong to user
