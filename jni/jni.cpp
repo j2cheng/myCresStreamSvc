@@ -1883,6 +1883,31 @@ JNIEXPORT void JNICALL Java_com_crestron_txrxservice_GstreamIn_nativeSetFieldDeb
 
                 WfdSinkProj_fdebug(namestring);
             }
+            else if (!strcmp(CmdPtr, "GRAPH"))
+			{
+				char * fileName = strstr(namestring, " ");
+				fileName++;	// Remove preceding space
+				CSIO_LOG(eLogLevel_info, "command graph[%s]", fileName);
+
+				if (fileName && data->pipeline)
+                {
+                    FILE * file;
+                    char filePath [1024];
+                    snprintf(filePath, 1024, "/dev/shm/crestron/CresStreamSvc/%s.dot", fileName);
+					gchar * dotData = gst_debug_bin_to_dot_data(GST_BIN(data->pipeline), GST_DEBUG_GRAPH_SHOW_ALL);
+
+                    file = fopen(filePath, "w");
+                    if (file != NULL)
+                    {
+                        fprintf(file, "%s", dotData);
+                        fclose(file);
+                    }
+                    else
+                    {
+                        CSIO_LOG(eLogLevel_info, "Error writing graph file - %s: %s", filePath, strerror(errno));
+                    }
+				}
+			}
             else
             {
                 CSIO_LOG(eLogLevel_info, "Invalid command:%s\r\n",CmdPtr);
