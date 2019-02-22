@@ -878,7 +878,7 @@ void WfdSinkProj_fdebug(char *cmd_cstring)
 						}
 						else
 						{
-							wfdSinkStMachineThread::m_wfdSinkStMachineTaskList[i]->m_rtspParserIntfInfo.preferredVidResRefStr  = "1920x1080p60" ;
+							wfdSinkStMachineThread::m_wfdSinkStMachineTaskList[i]->m_rtspParserIntfInfo.preferredVidResRefStr  = "upto_1920x1080p24_noninterlaced;upto_1920x1200p30;upto_848x480p60";
 						}
 					}
 				}
