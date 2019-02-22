@@ -1885,16 +1885,30 @@ JNIEXPORT void JNICALL Java_com_crestron_txrxservice_GstreamIn_nativeSetFieldDeb
             }
             else if (!strcmp(CmdPtr, "GRAPH"))
 			{
+			    bool verbose = false;
 				char * fileName = strstr(namestring, " ");
 				fileName++;	// Remove preceding space
-				CSIO_LOG(eLogLevel_info, "command graph[%s]", fileName);
+
+				if (!strncmp(fileName, "-v", 2))
+				{
+				    verbose = true;
+				    fileName = strstr(fileName, " ");
+				    fileName++;	// Remove preceding space
+				}
+
+				CSIO_LOG(eLogLevel_info, "command graph[%s] verbose[%d]", fileName, verbose);
 
 				if (fileName && data->pipeline)
                 {
                     FILE * file;
                     char filePath [1024];
+                    GstDebugGraphDetails graph_option = GST_DEBUG_GRAPH_SHOW_ALL;
                     snprintf(filePath, 1024, "/dev/shm/crestron/CresStreamSvc/%s.dot", fileName);
-					gchar * dotData = gst_debug_bin_to_dot_data(GST_BIN(data->pipeline), GST_DEBUG_GRAPH_SHOW_ALL);
+
+                    if (verbose)
+                        graph_option = GST_DEBUG_GRAPH_SHOW_VERBOSE;
+
+					gchar * dotData = gst_debug_bin_to_dot_data(GST_BIN(data->pipeline), graph_option);
 
                     file = fopen(filePath, "w");
                     if (file != NULL)
