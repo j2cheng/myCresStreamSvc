@@ -168,7 +168,7 @@ m_state_after_m5()
     }
     else
     {
-    	m_rtspParserIntfInfo.preferredVidResRefStr  = "upto_1920x1080p24_noninterlaced;upto_1920x1200p30;upto_848x480p60";
+    	m_rtspParserIntfInfo.preferredVidResRefStr  = "upto_1920x1080p30_noninterlaced;upto_1920x1200p30;upto_848x480p60";
     }
 
     if(m_rtspParserIntfInfo.preferredAudioCodecStr)
