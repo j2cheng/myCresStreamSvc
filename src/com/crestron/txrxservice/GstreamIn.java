@@ -442,6 +442,31 @@ public class GstreamIn implements StreamInStrategy, SurfaceHolder.Callback {
     	setRtspTcpInterleave(streamCtl.userSettings.getTcpInterleave(sessionId), sessionId);
     }
 
+    private void updateNativeWfdDataStruct(int sessionId)
+    {
+    	String url = streamCtl.userSettings.getStreamInUrl(sessionId);
+    	String newUrl = url;
+    	
+    	//Need to modify url function if proxy enable
+    	if(streamCtl.userSettings.getProxyEnable(sessionId))
+    	{
+    		setRTCPDestIP(MiscUtils.getRTSPIP(url), sessionId);
+    		newUrl = MiscUtils.getLocalUrl(url, streamCtl.userSettings.getDecodeInternalRtspPort(sessionId));
+    	}
+    	else
+    	{
+    		setRTCPDestIP("", sessionId);
+    	}
+    	
+    	//setTsPort(streamCtl.userSettings.getTsPort(sessionId), sessionId);
+    	//setStreamingBuffer(200, sessionId);
+    	setStreamingBuffer(streamCtl.userSettings.getStreamingBuffer(sessionId), sessionId);
+    	setStatistics(streamCtl.userSettings.isStatisticsEnable(sessionId), sessionId);
+    	setVolume((int)streamCtl.userSettings.getVolume(), sessionId);
+    	//setNewSink(streamCtl.userSettings.isNewSink(sessionId), sessionId);
+    	//setAudioDrop(streamCtl.userSettings.isRavaMode(), sessionId);
+    }
+    
     //Response to CSIO Layer TODO: these can most likely be deleted handled in jni library
     public boolean getMediaPlayerStatus()
     {
@@ -518,6 +543,7 @@ public class GstreamIn implements StreamInStrategy, SurfaceHolder.Callback {
     			try {
     				isPlaying = true;
     				wfd_mode[sessionId] = true;
+    				updateNativeWfdDataStruct(sessionId);
     				Surface s = streamCtl.getSurface(sessionId);
     				nativeSurfaceInit(s, sessionId);
     		    	nativeWfdStart(sessionId, url, rtsp_port, key, cipher, authentication);

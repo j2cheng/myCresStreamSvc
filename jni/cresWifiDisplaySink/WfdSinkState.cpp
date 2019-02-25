@@ -334,6 +334,8 @@ void wfdSinkStMachineClass::prepareBeforeIdle()
     resetSystemStatus();
 
     resetOnRTSPTcpConnFlg();
+    restartFromIdleCnt = 0;
+
     resetTimeout();
     CSIO_LOG(m_debugLevel, "wfdSinkStMachineClass[%d]: prepareBeforeIdle\n", m_myId);
 }
@@ -454,7 +456,6 @@ int wfdSinkStMachineClass::idleState(csioEventQueueStruct* pEventQ)
 
     int nextState = m_curentState;
     int events = pEventQ->event_type;
-    int restartNow = 0;
 
     switch(events)
     {
@@ -467,9 +468,15 @@ int wfdSinkStMachineClass::idleState(csioEventQueueStruct* pEventQ)
 
                 if(isOnRTSPTcpConnSet())
                 {
-                    CSIO_LOG(m_debugLevel,  "wfdSinkStMachineClass[%d]: idleState: restart now[%d].\n",m_myId,++restartFromIdleCnt);
-                    getTimeStamp(WFD_SINK_EVENTTIME_RESTART_FROM_IDLESTATE);
+                    CSIO_LOG(m_debugLevel,  "wfdSinkStMachineClass[%d]: idleState: restart now[%d].\n",m_myId,restartFromIdleCnt);
 
+                    if(restartFromIdleCnt++ > MAX_WFD_TCP_RETRY)
+                    {
+                        prepareBeforeIdle();
+                        break;
+                    }
+
+                    getTimeStamp(WFD_SINK_EVENTTIME_RESTART_FROM_IDLESTATE);
                     if(pRTSPSinkClient)
                     {
                         m_rtspParserIntfSession = initRTSPParser(&m_rtspParserIntfInfo);

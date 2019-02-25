@@ -138,6 +138,8 @@ typedef enum _eWfd_StMachineThreadTimeStamp
 
 #define IsValidStreamWindow(a)  ( (a >= 0) && (a < MAX_WFD_TCP_CONN) )
 
+#define MAX_WFD_TCP_RETRY   5
+
 class wfdSinkProjClass;
 class wfdSinkStMachineClass;
 class wfdSinkStMachineThread;
@@ -257,7 +259,7 @@ private:
     const char* getThisArrayNames(const WFD_STRNUMPAIR* array_names,int maxList,int mode);
 
     int  isOnRTSPTcpConnSet()     { return (m_onTcpConnFlag & ON_RTSPTCP_CONN);}
-    void setOnRTSPTcpConnFlg()    { m_onTcpConnFlag |= ON_RTSPTCP_CONN;}
+    void setOnRTSPTcpConnFlg()    { m_onTcpConnFlag |= ON_RTSPTCP_CONN; restartFromIdleCnt = 0;}
     void resetOnRTSPTcpConnFlg()  { m_onTcpConnFlag &= (~ON_RTSPTCP_CONN);}
 
     void* createCharArray(int size) { return new char [size]; }
