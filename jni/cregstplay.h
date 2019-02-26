@@ -241,7 +241,7 @@ void csio_jni_printFieldDebugInfo();
 #define EnableSpecialFieldDebugIndex(a)        ( g_lSpecialFieldDebugState[((a-1)/32)] |= (1<<((a-1)%32)) )
 #define DisableSpecialFieldDebugIndex(a)       ( g_lSpecialFieldDebugState[((a-1)/32)] &= ~(1<<((a-1)%32)) )
 
-#define IsValidDebugLevel(a)            ( a > GST_LEVEL_NONE && a < GST_LEVEL_TRACE )
+#define IsValidDebugLevel(a)            ( a > GST_LEVEL_NONE && a < GST_LEVEL_MAX )
 
 /**********************************************************************
 *End of Field debugging command
