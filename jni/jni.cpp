@@ -56,6 +56,7 @@ void csio_jni_stop(int sessionId);
 void csio_send_stats_no_bitrate (uint64_t video_packets_received, int video_packets_lost, uint64_t audio_packets_received, int audio_packets_lost);
 void LocalConvertToUpper(char *str);
 static void * debug_launch_pipeline(void *data);
+static void Wfd_set_firewall_rules (int rtsp_port, int ts_port);
 ///////////////////////////////////////////////////////////////////////////////
 
 /*
@@ -4128,6 +4129,8 @@ JNIEXPORT void JNICALL Java_com_crestron_txrxservice_GstreamIn_nativeWfdStart(JN
      *
      * */
 
+    Wfd_set_firewall_rules(rtsp_port, -1);
+
     int ts_port = CSIOCnsIntf->getStreamTxRx_TSPORT(windowId);
     WfdSinkProjStart(windowId,url_cstring,rtsp_port,ts_port);
     env->ReleaseStringUTFChars(url_jstring, url_cstring);
@@ -4163,6 +4166,8 @@ JNIEXPORT void JNICALL Java_com_crestron_txrxservice_GstreamIn_nativeWfdStop(JNI
                 data->packetizer_pcr_discont_threshold = -1;
 
                 csio_jni_stop((int)windowId);
+
+                Wfd_set_firewall_rules(0, 0);
             }
             else
             {
@@ -4170,6 +4175,22 @@ JNIEXPORT void JNICALL Java_com_crestron_txrxservice_GstreamIn_nativeWfdStop(JNI
             }
         }
     }
+}
+
+// <0 means ignore, 0 means remove rule, >0 means open firewall to that port
+static void Wfd_set_firewall_rules (int rtsp_port, int ts_port)
+{
+    JNIEnv *env = get_jni_env ();
+
+	jmethodID updateStreamStatus = env->GetMethodID((jclass)gStreamIn_javaClass_id, "wfdSetFirewallRules", "(II)V");
+	if (updateStreamStatus == NULL) return;
+
+	env->CallVoidMethod(CresDataDB->app, updateStreamStatus, (jint)rtsp_port, (jint)ts_port);
+	if (env->ExceptionCheck ()) {
+		CSIO_LOG(eLogLevel_error, "Failed to call Java method 'wfdSetFirewallRules'");
+		env->ExceptionClear ();
+	}
+
 }
 
 //TODO: get surface from app, report status back to app, resolution setting came from app
@@ -4182,6 +4203,8 @@ void Wfd_setup_gst_pipeline (int id, int state, int ts_port)
     if(state)
     {
         CSIO_LOG(eLogLevel_debug, "%s enter", __FUNCTION__);
+
+        Wfd_set_firewall_rules(-1, ts_port);
 
         //TODO: remove the following settings if it is done already
         csio_SetPortNumber( id, ts_port, c_TSportNumber );

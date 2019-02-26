@@ -231,6 +231,11 @@ public class GstreamIn implements StreamInStrategy, SurfaceHolder.Callback {
     	}
     }
 
+    public void wfdSetFirewallRules(int rtsp_port, int ts_port)
+	{
+		streamCtl.sockTask.SendDataToAllClients(MiscUtils.stringFormat("WFD_FIREWALL_RULES=%d %d", rtsp_port, ts_port));
+	}
+
     public void sendDSVideoReady()
     {
     	Log.i(TAG, "Send DS Video Ready message to CSIO - for sending of reserved join");
