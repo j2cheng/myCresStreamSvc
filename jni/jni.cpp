@@ -4225,20 +4225,24 @@ JNIEXPORT void JNICALL Java_com_crestron_txrxservice_GstreamIn_nativeWfdStart(JN
     data->cipher = (int)cipher;
     data->authentication = (int)authentication;
 
-    char * locKey = (char *)env->GetStringUTFChars(key, NULL);
-    // *** if(locKey == NULL)
-    // *** {
-    // ***    env->ReleaseStringUTFChars(url_jstring, url_cstring);
-    // ***    env->ReleaseStringUTFChars(key, locKey);
-    // ***    CSIO_LOG(eLogLevel_error, "key is NULL");
-    // ***    return;
-    // *** }
-    // *** data->key = strdup(locKey);
-    // *** env->ReleaseStringUTFChars(key, locKey);
+    // jstring is really _jstring *
+    char * locKey;
+    if(key != NULL)
+    {
+       locKey = (char *)env->GetStringUTFChars(key, NULL);
+    }
+    else
+    {
+       locKey = NULL;
+    }
+
     if(locKey == NULL)
     {
-       env->ReleaseStringUTFChars(key, locKey);
-       CSIO_LOG(eLogLevel_error, "key is NULL, continuing without SRTP ...");
+       if(key != NULL)
+       {
+          env->ReleaseStringUTFChars(key, locKey);
+       }
+       CSIO_LOG(eLogLevel_error, "key is NULL or invalid, continuing without SRTP ...");
        data->key = NULL;
     }
     else
