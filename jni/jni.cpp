@@ -4226,15 +4226,26 @@ JNIEXPORT void JNICALL Java_com_crestron_txrxservice_GstreamIn_nativeWfdStart(JN
     data->authentication = (int)authentication;
 
     char * locKey = (char *)env->GetStringUTFChars(key, NULL);
+    // *** if(locKey == NULL)
+    // *** {
+    // ***    env->ReleaseStringUTFChars(url_jstring, url_cstring);
+    // ***    env->ReleaseStringUTFChars(key, locKey);
+    // ***    CSIO_LOG(eLogLevel_error, "key is NULL");
+    // ***    return;
+    // *** }
+    // *** data->key = strdup(locKey);
+    // *** env->ReleaseStringUTFChars(key, locKey);
     if(locKey == NULL)
     {
-       env->ReleaseStringUTFChars(url_jstring, url_cstring);
        env->ReleaseStringUTFChars(key, locKey);
-       CSIO_LOG(eLogLevel_error, "key is NULL");
-       return;
+       CSIO_LOG(eLogLevel_error, "key is NULL, continuing without SRTP ...");
+       data->key = NULL;
     }
-    data->key = strdup(locKey);
-    env->ReleaseStringUTFChars(key, locKey);
+    else
+    {
+       data->key = strdup(locKey);
+       env->ReleaseStringUTFChars(key, locKey);
+    }
     // ***
 
     int ts_port = CSIOCnsIntf->getStreamTxRx_TSPORT(windowId);
