@@ -142,7 +142,8 @@ m_keepAliveTimeout(WFD_SINK_STATETIMEOUT_DEFAULT_KEEP_ALIVE),//default 60s
 m_EvntQ(),
 m_rtspParserIntfInfo(),
 m_rtspParserIntfSession(),
-m_state_after_m5()
+m_state_after_m5(),
+m_ssrc()
 {
     wfdSinkStMachineTimeArray = new csioTimerClockBase(WFD_SINK_EVENTTIME_MAX,WFD_SINK_STATE_TIMER_MAX);
 
@@ -358,6 +359,7 @@ void wfdSinkStMachineClass::sendEventToParentProj(int event)
     EvntQ.obj_id = m_myId;
     EvntQ.event_type = event;
     EvntQ.ext_obj = getCurentTsPort();
+    EvntQ.ext_obj2 = m_ssrc;
     m_parent->sendEvent(&EvntQ);
 }
 
@@ -1986,6 +1988,8 @@ int wfdSinkStMachineClass::parserCallbackFun(RTSPPARSINGRESULTS * parsResPtr, vo
                         //convert headerData.keepAliveTimeout(in second) to m_keepAliveTimeout(in ms)
                         p->m_keepAliveTimeout = parsResPtr->headerData.keepAliveTimeout * 1000 ;
                     }//else
+
+                    p->m_ssrc = parsResPtr->headerData.ssrc;
                 }
                 //else TODO:if we received response, but we are waiting for request, shall we just ignore it?
                 //p->m_EvntQ.event_type = WFD_SINK_STM_INTERNAL_ERROR_EVENT;

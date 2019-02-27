@@ -643,7 +643,7 @@ void* wfdSinkProjClass::ThreadEntry()
                     int id = evntQPtr->obj_id;
                     CSIO_LOG(m_debugLevel, "wfdSinkProjClass: process WFD_SINK_EVENTS_RTSP_IN_SESSION_EVENT[%d].\n",id);
 
-                    Wfd_setup_gst_pipeline (id, 1,evntQPtr->ext_obj,0);
+                    Wfd_setup_gst_pipeline (id, 1,evntQPtr->ext_obj,evntQPtr->ext_obj2);
                     break;
                 }
                 case WFD_SINK_EVENTS_RTSP_LEAVE_SESSION_EVENT:

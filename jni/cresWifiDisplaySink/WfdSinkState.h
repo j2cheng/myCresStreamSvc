@@ -296,7 +296,7 @@ public:
     RTSPSYSTEMINFO m_rtspParserIntfInfo;
     void* m_rtspParserIntfSession;
 private:
-    int m_state_after_m5;
+    int m_state_after_m5,m_ssrc;
 };
 /********** end of wfdSinkStMachineClass class *******************/
 
