@@ -556,6 +556,8 @@ int printParseResults(int messageType, RTSPPARSINGRESULTS * parseResults)
       printf("   sourceRTPPort: %d\n",parseResults->headerData.sourceRTPPort);
    if(parseResults->headerData.keepAliveTimeout >= 0)
       printf("   keepAliveTimeout: %d\n",parseResults->headerData.keepAliveTimeout);
+   if(parseResults->headerData.ssrc > 0)
+      printf("   ssrc: %x\n",parseResults->headerData.ssrc);
    if(parseResults->headerData.sessionID)
       printf("   sessionID: %s\n",parseResults->headerData.sessionID);
    if(parseResults->headerData.triggerMethod)
@@ -866,6 +868,7 @@ void * initRTSPParser(RTSPSYSTEMINFO * sysInfo)
       sizeof(rtspSession->modelName)-1] = '\0';
    rtspSession->sourceRTPPort = -1;
    rtspSession->keepAliveTimeout = -1;
+   rtspSession->ssrc = 0;
    rtspSession->sessionID[0] = '\0';
    rtspSession->triggerMethod[0] = '\0';
    rtspSession->presentationURL[0] = '\0';
@@ -1274,6 +1277,7 @@ int cresRTSP_internalCallback(void * session,unsigned int messageType,
    int                  retv;
    int                  keepAliveTimeout = -1;
    int                  sourceRTPPort = -1;
+   unsigned int         ssrc = 0;         // 0 assumed to be an invalid SSRC
    unsigned int         cea_res, vesa_res, hh_res;
    unsigned int         modes;
    int                  latency;
@@ -1397,6 +1401,7 @@ int cresRTSP_internalCallback(void * session,unsigned int messageType,
          {
             int nn = 0;
             char * transportStr;
+            char * numberStr;
 
             transportStr = strdup(orgTransportStr);
             if(!transportStr)
@@ -1413,7 +1418,7 @@ int cresRTSP_internalCallback(void * session,unsigned int messageType,
                }
                else if(nn == 3)
                {
-                  char * numberStr = strchr(token,'=');
+                  numberStr = strchr(token,'=');
                   if(numberStr)
                   {
                      retv = sscanf(numberStr + 1, "%d", &sourceRTPPort);
@@ -1421,6 +1426,18 @@ int cresRTSP_internalCallback(void * session,unsigned int messageType,
                         sourceRTPPort = -1;
                      if(sourceRTPPort >= 0)
                         rtspSession->sourceRTPPort = sourceRTPPort;
+                  }
+               }
+               else if(nn == 4)
+               {
+                  numberStr = strchr(token,'=');
+                  if(numberStr)
+                  {
+                     retv = sscanf(numberStr + 1, "%x", &ssrc);
+                     if(retv != 1)
+                        ssrc = 0;
+                     if(ssrc > 0)
+                        rtspSession->ssrc = ssrc;
                   }
                }
                else
@@ -1472,6 +1489,13 @@ int cresRTSP_internalCallback(void * session,unsigned int messageType,
             parsingResults.headerData.sourceRTPPort);
          }
       else parsingResults.headerData.sourceRTPPort = -1;
+      if(ssrc > 0)
+         {
+         parsingResults.headerData.ssrc = rtspSession->ssrc;
+         RTSP_LOG(eLogLevel_debug,"cresRTSP_internalCallback() - ssrc = %x\n",
+            parsingResults.headerData.ssrc);
+         }
+      else parsingResults.headerData.ssrc = 0;
 
       retv = rtspSession->crestCallback(&parsingResults,rtspSession->crestCallbackArg);
    }

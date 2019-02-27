@@ -86,6 +86,7 @@ typedef struct _rtspheaderdata
    char * sessionID;                // NULL if not valid
    int keepAliveTimeout;            // -1 if not valid
    char * triggerMethod;            // NULL if not valid
+   unsigned int ssrc;               // 0 assumed to be an invalid SSRC
 } RTSPHEADERDATA;
 
 typedef struct _rtspparsingresults
@@ -138,6 +139,7 @@ struct rtsp
    // *** session control ***
    int sourceRTPPort;
    int keepAliveTimeout;
+   unsigned int ssrc;
    char sessionID[32];
    char triggerMethod[32];
    char presentationURL[256];

@@ -56,7 +56,7 @@ struct htable {
 };
 
 #define HTABLE_INITIALIZER(name, rehash, priv)				\
-	{ rehash, priv, 0, 0, 0, 0, 0, -1, 0, 0, &name.perfect_bit }
+	{ rehash, priv, 0, 0, 0, 0, 0, (uintptr_t)(-1), 0, 0, &name.perfect_bit }
 
 struct htable_iter {
 	size_t off;

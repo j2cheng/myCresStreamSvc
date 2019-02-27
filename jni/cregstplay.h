@@ -98,6 +98,11 @@ typedef struct _CREGSTREAM
 	GstElement *demux;
 	GstElement *typefind;
 
+
+   // ***
+   GstElement * element_srtp;
+
+
 	unsigned int element_after_tsdemux;	/* Used to add the rest of the video pipeline */
 	
 	// parameters from control system/platform/java
@@ -156,6 +161,15 @@ typedef struct _CREGSTREAM
     DEBUGLAUNCH debug_launch;	// A structure to hold info for the debug launch pipeline
 
     int packetizer_pcr_discont_threshold;
+
+
+    // ***
+    char * key;
+    int cipher;
+    int authentication;
+    unsigned int ssrc;
+
+
 } CREGSTREAM;
 
 /* Structure to contain all our information, so we can pass it to callbacks */

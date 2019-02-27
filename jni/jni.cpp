@@ -2432,6 +2432,58 @@ int csio_jni_CreateHttpPipeline(void *obj, GstElement **pipeline, GstElement **s
     return iStatus;
 }
 
+
+
+
+// ***
+// from John:
+// typedefÿenum
+// {
+//    MS_MICE_SINK_SESSION_DTLS_AUTH_HMAC_SHA1_32 =ÿ1,
+//    MS_MICE_SINK_SESSION_DTLS_AUTH_HMAC_SHA1_80 =ÿ2
+// } ms_mice_sink_session_dtls_auth;
+// typedefÿenum
+// {
+//    MS_MICE_SINK_SESSION_DTLS_CIPHER_AES_128_ICM =ÿ1
+// } ms_mice_sink_session_dtls_cipher;
+// 
+// 
+// no longer used:
+// char * g_cipherNameLookupTable[] =
+// {
+//    NULL,
+//    "aes-128-icm"
+// };
+// char * g_authNameLookupTable[] =
+// {
+//    NULL,
+//    "hmac-sha1-32",
+//    "hmac-sha1-80"
+// };
+// 
+
+char * lookupCipherName(int index)
+{
+   if(index == 1)
+         return("aes-128-icm");
+   else  return(NULL);
+};
+
+char * lookupAuthName(int index)
+{
+   switch(index)
+      {
+      case 1:
+         return("hmac-sha1-32");
+      case 2:
+         return("hmac-sha1-80");
+      }
+   return(NULL);
+};
+// ***
+
+
+
 int csio_jni_CreatePipeline(GstElement **pipeline, GstElement **source, eProtocolId protoId, int iStreamId)
 {
 	int iStatus = CSIO_SUCCESS;
@@ -2499,43 +2551,73 @@ int csio_jni_CreatePipeline(GstElement **pipeline, GstElement **source, eProtoco
 			    data->element_av[0] = gst_element_factory_make("udpsrc", NULL);
 			    insert_udpsrc_probe(data,data->element_av[0],"src");
 
-			    /*TODO: if(dtls_encryption_is_on)
+
+
+             // ***
+             // from my experiments:
+             // gst-launch-1.0 -v udpsrc port=9004
+             //    ! "application/x-srtp, payload=(int)96, ssrc=(uint)112233,
+             //          media=(string)video, clock-rate=(int)90000,
+             //          encoding-name=(string)H264, payload=(int)96,
+             //          srtp-key=(buffer)4142434445464748494A4B4C4D4E4F505152535455565758595A31323334,
+             //          srtp-cipher=(string)aes-128-icm,srtp-auth=(string)hmac-sha1-80,
+             //          srtcp-cipher=(string)aes-128-icm,srtcp-auth=(string)hmac-sha1-80, roc=(uint)0"
+             //    ! srtpdec ! rtpbin ! decodebin ! videoconvert ! autovideosink sync=false
+
+             int ret;
+             int doSRTP = 0;
+             char * cipherName = lookupCipherName(data->cipher);
+             char * authName = lookupAuthName(data->authentication);
+
+             // *** for testing only! ***
+		       CSIO_LOG(eLogLevel_error,
+               "INFO: >>> key=%s, ssrc=%u, cipherName=%s, authName=%s\n",(data->key ? data->key : "NULL"),
+               data->ssrc,(cipherName ? cipherName : "NULL"),(authName ? authName : "NULL"));
+
+             if((data->key != NULL) && (data->key[0] != '\0') && (cipherName != NULL) && (authName != NULL))
+                doSRTP = 1;
+
+             if(doSRTP)
 			    {
-                                //TODO: this will inset key like : 3031323334.....???
-                                char key[] = "012345678901234567890123456789012345678901234567890123456789";
-                                int KEY_SIZE = sizeof(key);
-                                GstBuffer *buf = gst_buffer_new_wrapped (key, KEY_SIZE);
+                // create the caps string
+                gchar * srtp_capsstr = g_strdup_printf(
+                     "application/x-srtp, payload=(int)33, media=(string)video, encoding-name=(string)MP2T,"
+                     " clock-rate=(int)90000, roc=(uint)0,"
+                     " ssrc=(uint)%u,"
+                     " srtp-key=(buffer)%s,"
+                     " srtp-cipher=(string)%s,"
+                     " srtp-auth=(string)%s,"
+                     " srtcp-cipher=(string)%s,"
+                     " srtcp-auth=(string)%s",
+                     data->ssrc,data->key,cipherName,authName,cipherName,authName);
 
-                                GstCaps* caps_dtls_ts = gst_caps_new_simple(
-                                        "application/x-srtp",
-                                        "media",         G_TYPE_STRING, "video",
-                                        "clock-rate",    G_TYPE_INT,     90000,
-                                        "encoding-name", G_TYPE_STRING, "MP2T",
-                                        "payload",       G_TYPE_INT,     33,
-                                        "srtp-key",      GST_TYPE_BUFFER,buf,
-                                        NULL );
-
-                                GstCaps* caps_dtls_ts = gst_caps_from_string("application/x-srtp, \
-                                              media=(string)video,\
-                                              clock-rate=(int)90000,\
-                                              encoding-name=(string)MP2T,\
-                                              payload=(int)33, \
-                                              ssrc=(uint)1356955624, \
-                                              srtp-key=(buffer)012345678901234567890123456789012345678901234567890123456789, \
-                                              srtp-cipher=(string)aes-128-icm, \
-                                              srtp-auth=(string)hmac-sha1-80, \
-                                              srtcp-cipher=(string)aes-128-icm, \
-                                              srtcp-auth=(string)hmac-sha1-80");
-
-                                g_object_set(G_OBJECT(data->element_av[0]), "caps", caps_dtls_ts, NULL);
-                                gst_caps_unref (caps_dtls_ts);
-                            }
-                            else g_object_set(G_OBJECT(data->element_av[0]), "caps", data->caps_v_ts, NULL);*/
+		          CSIO_LOG(eLogLevel_error,"INFO: >>> srtp_capsstr=%s\n",srtp_capsstr);
                 
-                g_object_set(G_OBJECT(data->element_av[0]), "caps", data->caps_v_ts, NULL);
+                // replace caps for the udpsrc element
+                data->caps_v_ts = gst_caps_from_string(srtp_capsstr);
+                g_free(srtp_capsstr);
+                
+                // create and add the SRTP decoder
+                data->element_srtp = gst_element_factory_make("srtpdec", NULL);
+                gst_bin_add(GST_BIN(data->pipeline), data->element_srtp);
+			    }
+             // ***
+
+
+             g_object_set(G_OBJECT(data->element_av[0]), "caps", data->caps_v_ts, NULL);
 			    g_object_set(G_OBJECT(data->element_av[0]), "port", data->udp_port, NULL);
 			    gst_bin_add(GST_BIN(data->pipeline), data->element_av[0]);
-			    int ret = gst_element_link(data->element_av[0], data->element_zero);
+
+
+
+             // ***
+             if(doSRTP)
+			         ret = gst_element_link_many(data->element_av[0], data->element_srtp, data->element_zero, NULL);
+             else ret = gst_element_link(data->element_av[0], data->element_zero);
+             // ***
+
+
+
 			    if(ret==0)
 			    {
 			        CSIO_LOG(eLogLevel_error,  "ERROR:  Cannot link filter to source elements.\n" );
@@ -4131,6 +4213,30 @@ JNIEXPORT void JNICALL Java_com_crestron_txrxservice_GstreamIn_nativeWfdStart(JN
 
     Wfd_set_firewall_rules(rtsp_port, -1);
 
+    // ***
+    CREGSTREAM * data = GetStreamFromCustomData(CresDataDB, windowId);
+    if (!data)
+    {
+       env->ReleaseStringUTFChars(url_jstring, url_cstring);
+       CSIO_LOG(eLogLevel_error, "Could not obtain stream pointer for stream %d", windowId);
+       return;
+    }
+
+    data->cipher = (int)cipher;
+    data->authentication = (int)authentication;
+
+    char * locKey = (char *)env->GetStringUTFChars(key, NULL);
+    if(locKey == NULL)
+    {
+       env->ReleaseStringUTFChars(url_jstring, url_cstring);
+       env->ReleaseStringUTFChars(key, locKey);
+       CSIO_LOG(eLogLevel_error, "key is NULL");
+       return;
+    }
+    data->key = strdup(locKey);
+    env->ReleaseStringUTFChars(key, locKey);
+    // ***
+
     int ts_port = CSIOCnsIntf->getStreamTxRx_TSPORT(windowId);
     WfdSinkProjStart(windowId,url_cstring,rtsp_port,ts_port);
     env->ReleaseStringUTFChars(url_jstring, url_cstring);
@@ -4158,7 +4264,23 @@ JNIEXPORT void JNICALL Java_com_crestron_txrxservice_GstreamIn_nativeWfdStop(JNI
         }
         else
         {
-        	CSIO_LOG(eLogLevel_debug, "GstreamIn_nativeWfdSto[%d]: data->isStarted[%d]", windowId,data->isStarted);
+
+
+
+            // ***
+            if(data->key)
+            {
+                free(data->key);
+                data->key = NULL;
+            }
+            data->cipher = -1;
+            data->authentication = -1;
+            data->ssrc = 0;
+            // ***
+
+
+
+            CSIO_LOG(eLogLevel_debug, "GstreamIn_nativeWfdSto[%d]: data->isStarted[%d]", windowId,data->isStarted);
 
             if (data->isStarted)
             {
@@ -4198,7 +4320,12 @@ static void Wfd_set_firewall_rules (int rtsp_port, int ts_port)
 /* called from state machine for : TCP connected/disconnected
  *
  * */
-void Wfd_setup_gst_pipeline (int id, int state, int ts_port)
+
+
+// ***
+void Wfd_setup_gst_pipeline (int id, int state, int ts_port, unsigned int ssrc)
+
+
 {
     if(state)
     {
@@ -4228,6 +4355,11 @@ void Wfd_setup_gst_pipeline (int id, int state, int ts_port)
 
             data->isStarted = true;
             data->packetizer_pcr_discont_threshold = 5;
+
+
+            // ***
+            data->ssrc = ssrc;
+
 
             if(GetInPausedState(id))
             {
