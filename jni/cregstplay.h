@@ -169,6 +169,7 @@ typedef struct _CREGSTREAM
     int authentication;
     unsigned int ssrc;
 
+    int wfd_jitterbuffer_latency;
 
 } CREGSTREAM;
 

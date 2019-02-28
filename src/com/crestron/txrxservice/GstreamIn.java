@@ -464,8 +464,7 @@ public class GstreamIn implements StreamInStrategy, SurfaceHolder.Callback {
     	}
     	
     	//setTsPort(streamCtl.userSettings.getTsPort(sessionId), sessionId);
-    	//setStreamingBuffer(200, sessionId);
-    	setStreamingBuffer(streamCtl.userSettings.getStreamingBuffer(sessionId), sessionId);
+    	setStreamingBuffer(200, sessionId);    	
     	setStatistics(streamCtl.userSettings.isStatisticsEnable(sessionId), sessionId);
     	setVolume((int)streamCtl.userSettings.getVolume(), sessionId);
     	//setNewSink(streamCtl.userSettings.isNewSink(sessionId), sessionId);

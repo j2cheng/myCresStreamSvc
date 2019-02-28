@@ -163,6 +163,8 @@ void init_custom_data(CustomData * cdata)
         data->rtcp_dest_ip_addr[0] = 0;
 
         data->packetizer_pcr_discont_threshold = -1;//default as invalid
+
+        data->wfd_jitterbuffer_latency = -1;
 	}
 }
 

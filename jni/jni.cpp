@@ -1923,6 +1923,20 @@ JNIEXPORT void JNICALL Java_com_crestron_txrxservice_GstreamIn_nativeSetFieldDeb
                     }
 				}
 			}
+            else if (!strcmp(CmdPtr, "JITTER_LATENCY"))
+            {
+                CmdPtr = strtok(NULL, ", ");
+                if (CmdPtr == NULL)
+                {
+                    CSIO_LOG(eLogLevel_info, "current data->wfd_jitterbuffer_latency: %d\r\n",data->wfd_jitterbuffer_latency);
+                }
+                else
+                {
+                    data->wfd_jitterbuffer_latency = (int) strtol(CmdPtr, &EndPtr, 10);
+
+                    CSIO_LOG(eLogLevel_debug, "set jitterbuffer_latency: %d",data->wfd_jitterbuffer_latency);
+                }
+            }
             else
             {
                 CSIO_LOG(eLogLevel_info, "Invalid command:%s\r\n",CmdPtr);
@@ -2437,14 +2451,14 @@ int csio_jni_CreateHttpPipeline(void *obj, GstElement **pipeline, GstElement **s
 
 // ***
 // from John:
-// typedefÿenum
+// typedefÃ¿enum
 // {
-//    MS_MICE_SINK_SESSION_DTLS_AUTH_HMAC_SHA1_32 =ÿ1,
-//    MS_MICE_SINK_SESSION_DTLS_AUTH_HMAC_SHA1_80 =ÿ2
+//    MS_MICE_SINK_SESSION_DTLS_AUTH_HMAC_SHA1_32 =Ã¿1,
+//    MS_MICE_SINK_SESSION_DTLS_AUTH_HMAC_SHA1_80 =Ã¿2
 // } ms_mice_sink_session_dtls_auth;
-// typedefÿenum
+// typedefÃ¿enum
 // {
-//    MS_MICE_SINK_SESSION_DTLS_CIPHER_AES_128_ICM =ÿ1
+//    MS_MICE_SINK_SESSION_DTLS_CIPHER_AES_128_ICM =Ã¿1
 // } ms_mice_sink_session_dtls_cipher;
 // 
 // 
@@ -2534,18 +2548,10 @@ int csio_jni_CreatePipeline(GstElement **pipeline, GstElement **source, eProtoco
 		        data->element_zero = gst_element_factory_make("rtpbin", NULL);
 			    gst_bin_add(GST_BIN(data->pipeline), data->element_zero);
 
-#ifdef WIFI_DISPLAY
-			    {
-			        //Note: set mode to none --- only use RTP timestamp(default is 1 -- slave)
-			        g_object_set( G_OBJECT( data->element_zero), "buffer-mode", 0/*RTP_JITTER_BUFFER_MODE_NONE*/, NULL );
-
-			        int jitterbuffer_latency = 100;
-			        g_signal_connect( data->element_zero, "new-jitterbuffer", G_CALLBACK(csio_jni_callback_rtpbin_new_jitterbuffer), (gpointer)jitterbuffer_latency );
-
-			        //TODO: if(dtls_encryption_is_on)
-			        //    g_signal_connect( data->element_zero, "request-rtp-decoder", G_CALLBACK(csio_jni_callback_rtpbin_new_rtp_decoder), (gpointer)0 );
-			    }
-#endif
+			    if(data->wfd_jitterbuffer_latency != -1)
+			        g_signal_connect( data->element_zero, "new-jitterbuffer",
+			                          G_CALLBACK(csio_jni_callback_rtpbin_new_jitterbuffer),
+			                          (gpointer)data->wfd_jitterbuffer_latency );
 
 			    data->udp_port = CSIOCnsIntf->getStreamTxRx_TSPORT(iStreamId);
 			    data->element_av[0] = gst_element_factory_make("udpsrc", NULL);
@@ -4204,13 +4210,6 @@ JNIEXPORT void JNICALL Java_com_crestron_txrxservice_GstreamIn_nativeWfdStart(JN
 
     CSIO_LOG(eLogLevel_info, "%s: start TCP connection source url[%s], port[%d]", __FUNCTION__, url_cstring,rtsp_port);
 
-    /* TODO: calling csio_SetPortNumber( windowId, port, c_TSportNumber ); ???
-     *       port = CSIOCnsIntf->getStreamTxRx_TSPORT(windowId);
-     *
-     * TODO: this function should call csio_jni_stop?
-     *
-     * */
-
     Wfd_set_firewall_rules(rtsp_port, -1);
 
     // ***
@@ -4252,6 +4251,8 @@ JNIEXPORT void JNICALL Java_com_crestron_txrxservice_GstreamIn_nativeWfdStart(JN
     }
     // ***
 
+    data->wfd_jitterbuffer_latency = 50;//set latency to 50ms
+
     int ts_port = CSIOCnsIntf->getStreamTxRx_TSPORT(windowId);
     WfdSinkProjStart(windowId,url_cstring,rtsp_port,ts_port);
     env->ReleaseStringUTFChars(url_jstring, url_cstring);
@@ -4279,8 +4280,7 @@ JNIEXPORT void JNICALL Java_com_crestron_txrxservice_GstreamIn_nativeWfdStop(JNI
         }
         else
         {
-
-
+            data->wfd_jitterbuffer_latency = -1;
 
             // ***
             if(data->key)
@@ -4292,8 +4292,6 @@ JNIEXPORT void JNICALL Java_com_crestron_txrxservice_GstreamIn_nativeWfdStop(JNI
             data->authentication = -1;
             data->ssrc = 0;
             // ***
-
-
 
             CSIO_LOG(eLogLevel_debug, "GstreamIn_nativeWfdSto[%d]: data->isStarted[%d]", windowId,data->isStarted);
 
@@ -4384,41 +4382,6 @@ void Wfd_setup_gst_pipeline (int id, int state, int ts_port, unsigned int ssrc)
             SetInPausedState(id, 0);
             start_streaming_cmd(id);
         }
-
-#ifdef WIFI_DISPLAY
-        //send some status string back to java
-        {
-            jstring wfd_status_jstr;
-            JNIEnv *env = get_jni_env ();
-            jint streamId = id;
-
-            CREGSTREAM * data = GetStreamFromCustomData(CresDataDB, streamId);
-            if(!data)
-            {
-                CSIO_LOG(eLogLevel_error, "Could not obtain stream pointer for stream %d", streamId);
-
-                return ;
-            }
-
-            char *wfd_status_cstr = "wifi display client rtsp connected.\r\n";
-
-            CSIO_LOG(eLogLevel_debug,  "Sent wfd_status_cstr FB = %s", wfd_status_cstr );
-
-            wfd_status_jstr = env->NewStringUTF(wfd_status_cstr);
-
-            //TODO: need java method to send some feedback
-            jmethodID send_wfd_status = env->GetMethodID((jclass)gStreamIn_javaClass_id, "sendInitiatorFbAddress", "(Ljava/lang/String;I)V");
-            if (send_wfd_status == NULL)
-                return ;
-
-            env->CallVoidMethod(CresDataDB->app, send_wfd_status, wfd_status_jstr, 0);
-            if (env->ExceptionCheck ()) {
-                CSIO_LOG(eLogLevel_error, "Failed to call Java method 'sendInitiatorAddress'");
-                env->ExceptionClear ();
-            }
-            env->DeleteLocalRef (wfd_status_jstr);
-        }
-#endif
 
         CSIO_LOG(eLogLevel_debug, "%s exit", __FUNCTION__);
     }
