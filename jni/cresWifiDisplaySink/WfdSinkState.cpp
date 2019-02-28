@@ -142,7 +142,6 @@ m_keepAliveTimeout(WFD_SINK_STATETIMEOUT_DEFAULT_KEEP_ALIVE),//default 60s
 m_EvntQ(),
 m_rtspParserIntfInfo(),
 m_rtspParserIntfSession(),
-m_state_after_m5(),
 m_ssrc()
 {
     wfdSinkStMachineTimeArray = new csioTimerClockBase(WFD_SINK_EVENTTIME_MAX,WFD_SINK_STATE_TIMER_MAX);
@@ -314,7 +313,7 @@ void wfdSinkStMachineClass::setCurentTsPort(int port)
 void wfdSinkStMachineClass::resetAllFlags()
 {
     m_connTime.clear();
-    m_state_after_m5 = 0;
+    m_ssrc = 0;
 }
 void wfdSinkStMachineClass::resetSystemStatus()
 {
@@ -1118,11 +1117,8 @@ int wfdSinkStMachineClass::waitM5RequestState(csioEventQueueStruct* pEventQ)
         }
         case WFD_SINK_STM_M5_RQST_RCVD_EVENT:
         {
-            //TODO: send out M5 response
-            //TODO: need to get what kind of trigger.
-            //TODO: send out M6 request
-            CSIO_LOG(m_debugLevel,  "wfdSinkStMachineClass[%d]: WFD_SINK_STM_M5_RQST_RCVD_EVENT processed[%d][%d][%d].\n",
-                     m_myId,pEventQ->buf_size,pEventQ->ext_obj,m_state_after_m5);
+            CSIO_LOG(m_debugLevel,  "wfdSinkStMachineClass[%d]: WFD_SINK_STM_M5_RQST_RCVD_EVENT processed[%d][%d].\n",
+                     m_myId,pEventQ->buf_size,pEventQ->ext_obj);
 
             if(pRTSPSinkClient)
             {
@@ -1139,40 +1135,28 @@ int wfdSinkStMachineClass::waitM5RequestState(csioEventQueueStruct* pEventQ)
                              m_myId);
                 }
 
-                //find out the trigger method
-                if(pEventQ->ext_obj == WFD_SINK_TRIGGER_METHOD_SETUP)
+                if(pEventQ->ext_obj == WFD_SINK_TRIGGER_METHOD_PLAY)
                 {
-                    m_state_after_m5 = WFD_SINK_STATES_WAIT_M6_RESP;
-
                     sendEventToParentProj(WFD_SINK_EVENTS_RTSP_IN_SESSION_EVENT);
 
                     setTimeout(WFD_SINK_STATETIMEOUT_WAIT_GST_PIPELINE);
 
                     nextState = WFD_SINK_STATES_WAIT_GSTREAMER_PIPELINE_READY;
                 }
-                else if(pEventQ->ext_obj == WFD_SINK_TRIGGER_METHOD_PLAY)
+                else
                 {
-                    m_state_after_m5 = WFD_SINK_STATES_WAIT_M7_RESP;
+                    int ret = composeRTSPRequest(m_rtspParserIntfSession,"SETUP",parserComposeRequestCallback,(void*)this);
+                    if(ret == 0)
+                        pRTSPSinkClient->sendDataOut((char*)m_requestString.c_str(),m_requestString.size());
+                    else
+                        CSIO_LOG(m_debugLevel,  "wfdSinkStMachineClass[%d]: composeRTSPRequest failed.\n",m_myId);
 
-                    sendEventToParentProj(WFD_SINK_EVENTS_RTSP_IN_SESSION_EVENT);
+                    CSIO_LOG(m_debugLevel,  "wfdSinkStMachineClass[%d]: METHOD_SETUP composed[%s][%d].\n",
+                             m_myId,m_requestString.c_str(),ret);
 
-                    setTimeout(WFD_SINK_STATETIMEOUT_WAIT_GST_PIPELINE);
+                    setTimeout(WFD_SINK_STATETIMEOUT_WAIT_RESP);
 
-                    nextState = WFD_SINK_STATES_WAIT_GSTREAMER_PIPELINE_READY;
-                }
-                else// TODO: without/other triggering method
-                {
-                    CSIO_LOG(m_debugLevel,  "wfdSinkStMachineClass[%d]:received M5 RQST, without triggering method[%d]\n",
-                             m_myId,pEventQ->ext_obj);
-
-                    //Note: for now, treat it as SETUP
-                    m_state_after_m5 = WFD_SINK_STATES_WAIT_M6_RESP;
-
-                    sendEventToParentProj(WFD_SINK_EVENTS_RTSP_IN_SESSION_EVENT);
-
-                    setTimeout(WFD_SINK_STATETIMEOUT_WAIT_GST_PIPELINE);
-
-                    nextState = WFD_SINK_STATES_WAIT_GSTREAMER_PIPELINE_READY;
+                    nextState = WFD_SINK_STATES_WAIT_M6_RESP;
                 }
             }
             else
@@ -1276,49 +1260,20 @@ int wfdSinkStMachineClass::waitGstPipelineReadyState(csioEventQueueStruct* pEven
         case WFD_SINK_STM_GST_READY_RCVD_EVENT:
         {
             //TODO: move on to the next saved state
-            CSIO_LOG(m_debugLevel,  "wfdSinkStMachineClass[%d]: GST_READY_RCVD_EVENT next state[%d].\n",m_myId,m_state_after_m5);
+            CSIO_LOG(m_debugLevel,  "wfdSinkStMachineClass[%d]: GST_READY_RCVD_EVENT next state.\n",m_myId);
 
-            if(m_state_after_m5 == WFD_SINK_STATES_WAIT_M6_RESP)
-            {
-                int ret = composeRTSPRequest(m_rtspParserIntfSession,"SETUP",parserComposeRequestCallback,(void*)this);
-                if(ret == 0)
-                    pRTSPSinkClient->sendDataOut((char*)m_requestString.c_str(),m_requestString.size());
-                else
-                    CSIO_LOG(m_debugLevel,  "wfdSinkStMachineClass[%d]: composeRTSPRequest failed.\n",m_myId);
+            int ret =composeRTSPRequest(m_rtspParserIntfSession,"PLAY",parserComposeRequestCallback,(void*)this);
+            if(ret == 0)
+                pRTSPSinkClient->sendDataOut((char*)m_requestString.c_str(),m_requestString.size());
+            else
+                CSIO_LOG(m_debugLevel,  "wfdSinkStMachineClass[%d]: composeRTSPRequest failed.\n",m_myId);
 
-                CSIO_LOG(m_debugLevel,  "wfdSinkStMachineClass[%d]: METHOD_SETUP composed[%s][%d].\n",
-                         m_myId,m_requestString.c_str(),ret);
+            CSIO_LOG(m_debugLevel,  "wfdSinkStMachineClass[%d]: METHOD_PLAY composed[%s].\n",
+                     m_myId,m_requestString.c_str(),ret);
 
-                setTimeout(WFD_SINK_STATETIMEOUT_WAIT_RESP);
+            setTimeout(WFD_SINK_STATETIMEOUT_WAIT_RESP);
 
-                nextState = WFD_SINK_STATES_WAIT_M6_RESP;
-
-            }
-            else if(m_state_after_m5 == WFD_SINK_STATES_WAIT_M7_RESP )
-            {
-                int ret =composeRTSPRequest(m_rtspParserIntfSession,"PLAY",parserComposeRequestCallback,(void*)this);
-                if(ret == 0)
-                    pRTSPSinkClient->sendDataOut((char*)m_requestString.c_str(),m_requestString.size());
-                else
-                    CSIO_LOG(m_debugLevel,  "wfdSinkStMachineClass[%d]: composeRTSPRequest failed.\n",m_myId);
-
-                CSIO_LOG(m_debugLevel,  "wfdSinkStMachineClass[%d]: METHOD_PLAY composed[%s].\n",
-                         m_myId,m_requestString.c_str(),ret);
-
-                setTimeout(WFD_SINK_STATETIMEOUT_WAIT_RESP);
-
-                nextState = WFD_SINK_STATES_WAIT_M7_RESP;
-            }
-            else //do not expect this to happen.
-            {
-                resetTimeout();
-
-                CSIO_LOG(m_debugLevel,  "wfdSinkStMachineClass[%d]: ERROR: m_state_after_m5[%d].\n",m_myId,m_state_after_m5);
-
-                prepareForRestart();
-
-                nextState = WFD_SINK_STATES_IDLE;
-            }
+            nextState = WFD_SINK_STATES_WAIT_M7_RESP;
 
             break;
         }
@@ -1417,17 +1372,13 @@ int wfdSinkStMachineClass::waitM6ResponseState(csioEventQueueStruct* pEventQ)
             //TODO: send out M7 request
             CSIO_LOG(m_debugLevel,  "wfdSinkStMachineClass[%d]: WFD_SINK_STM_M6_RESP_RCVD_EVENT processed.\n",m_myId);
 
+            sendEventToParentProj(WFD_SINK_EVENTS_RTSP_IN_SESSION_EVENT);
+
             if(pRTSPSinkClient)
             {
-                int ret = composeRTSPRequest(m_rtspParserIntfSession,"PLAY",parserComposeRequestCallback,(void*)this);
-                if(ret == 0)
-                    pRTSPSinkClient->sendDataOut((char*)m_requestString.c_str(),m_requestString.size());
-                else
-                    CSIO_LOG(m_debugLevel,  "wfdSinkStMachineClass[%d]: composeRTSPRequest failed.\n",m_myId);
-
                 setTimeout(WFD_SINK_STATETIMEOUT_WAIT_RESP);
 
-                nextState = WFD_SINK_STATES_WAIT_M7_RESP;
+                nextState = WFD_SINK_STATES_WAIT_GSTREAMER_PIPELINE_READY;
             }
             else
             {
@@ -1989,7 +1940,9 @@ int wfdSinkStMachineClass::parserCallbackFun(RTSPPARSINGRESULTS * parsResPtr, vo
                         p->m_keepAliveTimeout = parsResPtr->headerData.keepAliveTimeout * 1000 ;
                     }//else
 
-                    p->m_ssrc = parsResPtr->headerData.ssrc;
+                    //ssrc == 0 is not valid
+                    if(parsResPtr->headerData.ssrc)
+                        p->m_ssrc = parsResPtr->headerData.ssrc;
                 }
                 //else TODO:if we received response, but we are waiting for request, shall we just ignore it?
                 //p->m_EvntQ.event_type = WFD_SINK_STM_INTERNAL_ERROR_EVENT;
