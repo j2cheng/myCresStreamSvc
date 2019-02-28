@@ -2557,8 +2557,31 @@ int csio_jni_CreatePipeline(GstElement **pipeline, GstElement **source, eProtoco
 			    data->element_av[0] = gst_element_factory_make("udpsrc", NULL);
 			    insert_udpsrc_probe(data,data->element_av[0],"src");
 
+			    //create the second udpsrc for rtcp
+                data->element_av[1] = gst_element_factory_make("udpsrc", NULL);
+                g_object_set(G_OBJECT(data->element_av[1]), "port", (data->udp_port + 1), NULL);
+                GstCaps *RtcpCaps = gst_caps_new_simple("application/x-rtcp",NULL);
+                if(RtcpCaps)
+                {
+                    g_object_set(G_OBJECT(data->element_av[1]), "caps", RtcpCaps, NULL);
+                    gst_caps_unref( RtcpCaps );
+                }
+                else
+                {
+                    CSIO_LOG(eLogLevel_error, "ERROR: Cannot create RtcpCaps\n");
+                }
 
-
+                gst_bin_add(GST_BIN(data->pipeline), data->element_av[1]);
+                int linkRtcpRet = gst_element_link(data->element_av[1], data->element_zero);
+                if(linkRtcpRet==0)
+                {
+                    CSIO_LOG(eLogLevel_error,  "ERROR:  Cannot link filter to source elements.\n" );
+                    iStatus = CSIO_CANNOT_LINK_ELEMENTS;
+                }
+                else
+                {
+                    CSIO_LOG(eLogLevel_debug,  "link filter to source elements.\n" );
+                }
              // ***
              // from my experiments:
              // gst-launch-1.0 -v udpsrc port=9004
