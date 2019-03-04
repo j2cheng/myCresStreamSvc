@@ -1139,6 +1139,7 @@ int wfdSinkStMachineClass::waitM5RequestState(csioEventQueueStruct* pEventQ)
                 {
                     sendEventToParentProj(WFD_SINK_EVENTS_RTSP_IN_SESSION_EVENT);
 
+                    //Note: although we set 15s time out, source might call tear down early
                     setTimeout(WFD_SINK_STATETIMEOUT_WAIT_GST_PIPELINE);
 
                     nextState = WFD_SINK_STATES_WAIT_GSTREAMER_PIPELINE_READY;
@@ -1376,7 +1377,8 @@ int wfdSinkStMachineClass::waitM6ResponseState(csioEventQueueStruct* pEventQ)
 
             if(pRTSPSinkClient)
             {
-                setTimeout(WFD_SINK_STATETIMEOUT_WAIT_RESP);
+                //Note: although we set 15s time out, source might call tear down early
+                setTimeout(WFD_SINK_STATETIMEOUT_WAIT_GST_PIPELINE);
 
                 nextState = WFD_SINK_STATES_WAIT_GSTREAMER_PIPELINE_READY;
             }
