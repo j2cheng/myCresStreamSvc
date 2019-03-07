@@ -388,6 +388,7 @@ public class AirMediaSplashtop implements AirMedia
     		try { successfulStop = receiverStoppedLatch.await(30000, TimeUnit.MILLISECONDS); }
     		catch (InterruptedException ex) { ex.printStackTrace(); }
     		Common.Logging.i(TAG, "stopReceiver() exit (thread="+Integer.toHexString((int)(Thread.currentThread().getId()))+")");
+    		receiverStoppedLatch = null; // release the latch
     		return successfulStop;
     	}
     }
@@ -2113,7 +2114,10 @@ public class AirMediaSplashtop implements AirMedia
             	Common.Logging.i(TAG, "In stateChangedHandler: receiverStoppedLatch="+receiverStoppedLatch);
             	isReceiverStarted = false;
 		    	Common.Logging.i(TAG,"RestartAirMediaAsynchronously() - setting receiver started state to "+isReceiverStarted);
-				receiverStoppedLatch.countDown();
+		    	if (receiverStoppedLatch != null)
+		    	{
+		    		receiverStoppedLatch.countDown();
+		    	}
             }
             if (to == AirMediaReceiverState.Started)
             {
