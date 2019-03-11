@@ -82,7 +82,7 @@ typedef struct _rtspheaderdata
    // members of this structure are valid only under specific, individual
    // circumstances
    //
-   int sourceRTPPort;               // -1 if not valid
+   int sourceRTPPort[2];               // -1 if not valid, 2 ports for RTP and RTCP
    char * sessionID;                // NULL if not valid
    int keepAliveTimeout;            // -1 if not valid
    char * triggerMethod;            // NULL if not valid
@@ -137,7 +137,7 @@ struct rtsp
    char modelName[64];
 
    // *** session control ***
-   int sourceRTPPort;
+   int sourceRTPPort[2];
    int keepAliveTimeout;
    unsigned int ssrc;
    char sessionID[32];
