@@ -1101,6 +1101,8 @@ void ms_mice_sink_session_connected(ms_mice_sink_session *session, GSocketConnec
 
     session->priv->source_channel = g_io_channel_unix_new(fd);
 
+    GMainContext* context = ms_mice_sink_service_get_context(session->priv->service);
+
     session->priv->source_fd_id = mcast_g_io_add_watch (
             session->priv->source_channel,
             G_PRIORITY_DEFAULT,
@@ -1108,8 +1110,9 @@ void ms_mice_sink_session_connected(ms_mice_sink_session *session, GSocketConnec
             ms_mice_sink_session_io_prepare_fn,
             ms_mice_sink_session_io_fn,
             session,
-            NULL);
-
+            NULL,
+            context);
+    
     session->priv->in_message_active = false;
 
     session->priv->base_in_stream = g_memory_input_stream_new();
@@ -1170,7 +1173,17 @@ void ms_mice_sink_session_close(ms_mice_sink_session *session)
     shl_dlist_unlink(&session->list);
 
     if (session->priv->source_fd_id) {
-        g_source_remove(session->priv->source_fd_id);
+        GMainContext* context = ms_mice_sink_service_get_context(session->priv->service);
+        if(context)
+        {
+            GSource * source = g_main_context_find_source_by_id (context,session->priv->source_fd_id);
+            if(source)
+                g_source_destroy(source);
+        }
+        else
+        {
+            g_source_remove(session->priv->source_fd_id);
+        }
         session->priv->source_fd_id = 0;
     }
 

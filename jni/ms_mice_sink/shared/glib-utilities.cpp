@@ -451,7 +451,8 @@ guint mcast_g_io_add_watch (
         mcast_g_io_watch_prepare_override prepare,
         GIOFunc func,
         gpointer user_data,
-        GDestroyNotify notify)
+        GDestroyNotify notify,
+        GMainContext* context)
 {
     GSource *source;
     guint id;
@@ -466,7 +467,7 @@ guint mcast_g_io_add_watch (
         g_source_set_priority (source, priority);
     g_source_set_callback (source, (GSourceFunc)func, user_data, notify);
 
-    id = g_source_attach (source, NULL);
+    id = g_source_attach (source, context);
 
     g_source_unref (source);
 

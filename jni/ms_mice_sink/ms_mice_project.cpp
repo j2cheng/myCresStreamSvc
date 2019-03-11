@@ -489,13 +489,14 @@ void msMiceSinkServiceClass::DumpClassPara(int id)
     CSIO_LOG(eLogLevel_info, "msMiceSinkServiceClass: m_mice_service      0x%x\n", m_mice_service);
     CSIO_LOG(eLogLevel_info, "msMiceSinkServiceClass: m_mainLoop          0x%x\n", m_mainLoop);
 }
-//#define USE_CONTEXT 1
+
 void* msMiceSinkServiceClass::ThreadEntry()
 {
     CSIO_LOG(ABOVE_DEBUG_VERB(m_debugLevel), "msMiceSinkServiceClass: Enter ThreadEntry.\n");
 
     int wtRtn  = 0;
     csioEventQueueStruct* evntQPtr = NULL;
+    GMainContext* mainLoopContext = NULL;
 
     //log thread init. time stamp
     if(msMiceSinkSevTimeArray)
@@ -519,13 +520,14 @@ void* msMiceSinkServiceClass::ThreadEntry()
             CSIO_LOG(m_debugLevel, "msMiceSinkServiceClass::app_extension_ms_mice_load m_mice_service[0x%x]!\n",m_mice_service);
         }
     }
-#ifdef USE_CONTEXT
-    GMainContext* dMainLoopContext = g_main_context_new ();
 
-    if(dMainLoopContext)
+    //create context, it will be used by ms_mice_sink_service_start() below.
+    mainLoopContext = g_main_context_new ();
+
+    if(mainLoopContext)
     {
-        g_main_context_push_thread_default(dMainLoopContext);
-        m_mainLoop = g_main_loop_new (dMainLoopContext, FALSE);
+        g_main_context_push_thread_default(mainLoopContext);
+        m_mainLoop = g_main_loop_new (mainLoopContext, FALSE);
         if(!m_mainLoop)
         {
             CSIO_LOG(eLogLevel_error, "CresRTSP_gstappserver: Failed to create g_main_loop_new\n");
@@ -537,19 +539,13 @@ void* msMiceSinkServiceClass::ThreadEntry()
         CSIO_LOG(eLogLevel_error, "msMiceSinkServiceClass::g_main_context_new failed!\n");
         goto exit;
     }
-#else
-    m_mainLoop = g_main_loop_new (NULL, FALSE);
-    if(!m_mainLoop)
-    {
-        CSIO_LOG(eLogLevel_error, "CresRTSP_gstappserver: Failed to create g_main_loop_new\n");
-        goto exit;
-    }
-#endif
+
 
     if(m_mice_service)
     {
         g_autoptr(GError) internal_error = NULL;
-        ms_mice_sink_service_start(m_mice_service, &internal_error);
+
+        ms_mice_sink_service_start(m_mice_service, mainLoopContext, &internal_error);
 
         if (internal_error)
         {
@@ -569,14 +565,19 @@ void* msMiceSinkServiceClass::ThreadEntry()
 exit:
     app_extension_ms_mice_unload(this);
 
-#ifdef USE_CONTEXT
-    if(dMainLoopContext)
+    if(m_mainLoop)
     {
-        g_main_context_pop_thread_default(dMainLoopContext);
-        g_main_context_unref (dMainLoopContext);
-        dMainLoopContext = NULL;
+        g_main_loop_unref (m_mainLoop);
+        m_mainLoop = NULL;
     }
-#endif
+
+    //app_extension_ms_mice_unload() was called, it is save to free context now.
+    if(mainLoopContext)
+    {
+        g_main_context_pop_thread_default(mainLoopContext);
+        g_main_context_unref (mainLoopContext);
+        mainLoopContext = NULL;
+    }
 
     CSIO_LOG(m_debugLevel, "msMiceSinkServiceClass: exiting...\n");
 
@@ -621,7 +622,7 @@ void msMiceSinkProjDumpPara()
 {
     gProjectsLock.lock();
 
-    CSIO_LOG(eLogLevel_info, "msMiceSinkProjDeInit  : gProjectDebug:    %d\n",gProjectDebug);
+    CSIO_LOG(eLogLevel_info, "msMiceSinkProjDeInit  : gProjectDebug:   %d\n",gProjectDebug);
     if(g_msMiceSinkProjPtr)
     {
         g_msMiceSinkProjPtr->DumpClassPara(0);

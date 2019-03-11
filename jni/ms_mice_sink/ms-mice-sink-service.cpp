@@ -20,12 +20,14 @@ struct _ms_mice_sink_service_private {
 
     ms_mice_sink_service_observer *observer;
     gpointer observer_data;
+
+    GMainContext* context;
 };
 
 bool ms_mice_sink_service_is_running(ms_mice_sink_service *service) { return service->priv->is_service_started; }
 const char *ms_mice_sink_service_get_address(ms_mice_sink_service *service) { return service->priv->service_address; }
 guint16 ms_mice_sink_service_get_service_port(ms_mice_sink_service *service) { return service->priv->service_port; }
-
+GMainContext* ms_mice_sink_service_get_context(ms_mice_sink_service *service) { return service->priv->context; }
 
 void ms_mice_sink_service_raise_on_service_started(ms_mice_sink_service *service)
 {
@@ -93,7 +95,7 @@ static gboolean ms_mice_sink_service_on_accept_fn(
     return FALSE;
 }
 
-void ms_mice_sink_service_start(ms_mice_sink_service *service, GError **error)
+void ms_mice_sink_service_start(ms_mice_sink_service *service, GMainContext* mainLoopCntext,GError **error)
 {
     g_autoptr(GError) internal_error = NULL;
 
@@ -103,6 +105,8 @@ void ms_mice_sink_service_start(ms_mice_sink_service *service, GError **error)
     }
 
     CSIO_LOG(eLogLevel_info,"ms.mice.sink.service.start { \"service-address\": \"%s\" , \"service-port\": %u }", service->priv->service_address, service->priv->service_port);
+
+    service->priv->context = mainLoopCntext;
 
     service->priv->socket_service = g_socket_service_new();
 
@@ -247,6 +251,7 @@ void ms_mice_sink_service_new(ms_mice_sink_service **out, const gchar *address, 
     s->priv->is_service_started = false;
     s->priv->observer = NULL;
     s->priv->observer_data = NULL;
+    s->priv->context = NULL;
 
 #if ENABLE_DTLS
     ms_mice_initialize_ssl_runtime();

@@ -48,7 +48,7 @@ void ms_mice_sink_service_observer_detach(ms_mice_sink_service *service);
  * -- MS-MICE SINK SERVICE METHODS
  * -- */
 
-void ms_mice_sink_service_start(ms_mice_sink_service *service, GError **error);
+void ms_mice_sink_service_start(ms_mice_sink_service *service, GMainContext* mainLoopCntext , GError **error);
 void ms_mice_sink_service_stop(ms_mice_sink_service *service);
 
 ms_mice_sink_session *ms_mice_sink_service_find_session_by_id(ms_mice_sink_service *service, guint64 id);
@@ -63,5 +63,6 @@ void ms_mice_sink_service_on_session_closed(ms_mice_sink_service *service, ms_mi
 bool ms_mice_sink_service_is_running(ms_mice_sink_service *service);
 const char *ms_mice_sink_service_get_address(ms_mice_sink_service *service);
 guint16 ms_mice_sink_service_get_service_port(ms_mice_sink_service *service);
+GMainContext* ms_mice_sink_service_get_context(ms_mice_sink_service *service);
 
 #endif /* CTL_EXTENSION_MS_MICE_SINK_SERVICE_H */

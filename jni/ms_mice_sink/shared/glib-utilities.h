@@ -53,7 +53,9 @@ const char* g_io_condition_to_string(GIOCondition cond);
 
 typedef gboolean (*mcast_g_io_watch_prepare_override) (GSource *source, gint *timeout, gpointer user_data);
 
-guint mcast_g_io_add_watch (GIOChannel *channel, gint priority, GIOCondition condition, mcast_g_io_watch_prepare_override prepare, GIOFunc func, gpointer user_data, GDestroyNotify notify);
+guint mcast_g_io_add_watch (GIOChannel *channel, gint priority, GIOCondition condition,
+                            mcast_g_io_watch_prepare_override prepare, GIOFunc func,
+                            gpointer user_data, GDestroyNotify notify,GMainContext*);
 
 GSource *mcast_g_io_watch_create(GIOChannel *channel, GIOCondition condition);
 
