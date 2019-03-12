@@ -1888,22 +1888,24 @@ JNIEXPORT void JNICALL Java_com_crestron_txrxservice_GstreamIn_nativeSetFieldDeb
 			{
 			    bool verbose = false;
 				char * fileName = strstr(namestring, " ");
-				fileName++;	// Remove preceding space
-
-				if (!strncmp(fileName, "-v", 2))
-				{
-				    verbose = true;
-				    fileName = strstr(fileName, " ");
-				    fileName++;	// Remove preceding space
-				}
-
-				CSIO_LOG(eLogLevel_info, "command graph[%s] verbose[%d]", fileName, verbose);
 
 				if (fileName && data->pipeline)
                 {
                     FILE * file;
                     char filePath [1024];
                     GstDebugGraphDetails graph_option = GST_DEBUG_GRAPH_SHOW_ALL;
+
+					fileName++;	// Remove preceding space
+
+					if (!strncmp(fileName, "-v", 2))
+					{
+						verbose = true;
+						fileName = strstr(fileName, " ");
+						fileName++;	// Remove preceding space
+					}
+
+					CSIO_LOG(eLogLevel_info, "command graph[%s] verbose[%d]", fileName, verbose);
+					
                     snprintf(filePath, 1024, "/dev/shm/crestron/CresStreamSvc/%s.dot", fileName);
 
                     if (verbose)
@@ -1922,6 +1924,8 @@ JNIEXPORT void JNICALL Java_com_crestron_txrxservice_GstreamIn_nativeSetFieldDeb
                         CSIO_LOG(eLogLevel_info, "Error writing graph file - %s: %s", filePath, strerror(errno));
                     }
 				}
+				else
+				    CSIO_LOG(eLogLevel_warning, "Error: fileName %p, pipeline %p", fileName, data->pipeline);
 			}
             else if (!strcmp(CmdPtr, "JITTER_LATENCY"))
             {
@@ -2542,120 +2546,152 @@ int csio_jni_CreatePipeline(GstElement **pipeline, GstElement **source, eProtoco
 			break;
 	    }
 	    case ePROTOCOL_UDP_TS:
-	    {
-		    if(CSIOCnsIntf->getStreamTxRx_TRANSPORTMODE(iStreamId)==STREAM_TRANSPORT_MPEG2TS_RTP)
-		    {
-		        data->element_zero = gst_element_factory_make("rtpbin", NULL);
-			    gst_bin_add(GST_BIN(data->pipeline), data->element_zero);
+		{
+			if(CSIOCnsIntf->getStreamTxRx_TRANSPORTMODE(iStreamId)==STREAM_TRANSPORT_MPEG2TS_RTP)
+			{
+				data->element_zero = gst_element_factory_make("rtpbin", NULL);
+				gst_bin_add(GST_BIN(data->pipeline), data->element_zero);
 
-			    if(data->wfd_jitterbuffer_latency != -1)
-			        g_signal_connect( data->element_zero, "new-jitterbuffer",
-			                          G_CALLBACK(csio_jni_callback_rtpbin_new_jitterbuffer),
-			                          (gpointer)data->wfd_jitterbuffer_latency );
+				if(data->wfd_jitterbuffer_latency != -1)
+					g_signal_connect( data->element_zero, "new-jitterbuffer",
+									  G_CALLBACK(csio_jni_callback_rtpbin_new_jitterbuffer),
+									  (gpointer)data->wfd_jitterbuffer_latency );
 
-			    data->udp_port = CSIOCnsIntf->getStreamTxRx_TSPORT(iStreamId);
-			    data->element_av[0] = gst_element_factory_make("udpsrc", NULL);
-			    insert_udpsrc_probe(data,data->element_av[0],"src");
+				data->udp_port = CSIOCnsIntf->getStreamTxRx_TSPORT(iStreamId);
+				data->element_av[0] = gst_element_factory_make("udpsrc", NULL);
+				insert_udpsrc_probe(data,data->element_av[0],"src");
 
-			    //create the second udpsrc for rtcp
-                data->element_av[1] = gst_element_factory_make("udpsrc", NULL);
-                g_object_set(G_OBJECT(data->element_av[1]), "port", (data->udp_port + 1), NULL);
-                GstCaps *RtcpCaps = gst_caps_new_simple("application/x-rtcp",NULL);
-                if(RtcpCaps)
-                {
-                    g_object_set(G_OBJECT(data->element_av[1]), "caps", RtcpCaps, NULL);
-                    gst_caps_unref( RtcpCaps );
-                }
-                else
-                {
-                    CSIO_LOG(eLogLevel_error, "ERROR: Cannot create RtcpCaps\n");
-                }
+				//create the second udpsrc for rtcp
+				data->element_av[1] = gst_element_factory_make("udpsrc", NULL);
+				g_object_set(G_OBJECT(data->element_av[1]), "port", (data->udp_port + 1), NULL);
+				GstCaps *RtcpCaps = gst_caps_new_simple("application/x-rtcp",NULL);
+				if(RtcpCaps)
+				{
+					g_object_set(G_OBJECT(data->element_av[1]), "caps", RtcpCaps, NULL);
+					gst_caps_unref( RtcpCaps );
+				}
+				else
+				{
+					CSIO_LOG(eLogLevel_error, "ERROR: Cannot create RtcpCaps\n");
+				}
 
-                gst_bin_add(GST_BIN(data->pipeline), data->element_av[1]);
-                int linkRtcpRet = gst_element_link(data->element_av[1], data->element_zero);
-                if(linkRtcpRet==0)
-                {
-                    CSIO_LOG(eLogLevel_error,  "ERROR:  Cannot link filter to source elements.\n" );
-                    iStatus = CSIO_CANNOT_LINK_ELEMENTS;
-                }
-                else
-                {
-                    CSIO_LOG(eLogLevel_debug,  "link filter to source elements.\n" );
-                }
-             // ***
-             // from my experiments:
-             // gst-launch-1.0 -v udpsrc port=9004
-             //    ! "application/x-srtp, payload=(int)96, ssrc=(uint)112233,
-             //          media=(string)video, clock-rate=(int)90000,
-             //          encoding-name=(string)H264, payload=(int)96,
-             //          srtp-key=(buffer)4142434445464748494A4B4C4D4E4F505152535455565758595A31323334,
-             //          srtp-cipher=(string)aes-128-icm,srtp-auth=(string)hmac-sha1-80,
-             //          srtcp-cipher=(string)aes-128-icm,srtcp-auth=(string)hmac-sha1-80, roc=(uint)0"
-             //    ! srtpdec ! rtpbin ! decodebin ! videoconvert ! autovideosink sync=false
+				gst_bin_add(GST_BIN(data->pipeline), data->element_av[1]);
+				int linkRtcpRet = gst_element_link(data->element_av[1], data->element_zero);
+				if(linkRtcpRet==0)
+				{
+					CSIO_LOG(eLogLevel_error,  "ERROR:  Cannot link filter to source elements.\n" );
+					iStatus = CSIO_CANNOT_LINK_ELEMENTS;
+				}
+				else
+				{
+					CSIO_LOG(eLogLevel_debug,  "link filter to source elements.\n" );
+				}
+				// ***
+				// from my experiments:
+				// gst-launch-1.0 -v udpsrc port=9004
+				//    ! "application/x-srtp, payload=(int)96, ssrc=(uint)112233,
+				//          media=(string)video, clock-rate=(int)90000,
+				//          encoding-name=(string)H264, payload=(int)96,
+				//          srtp-key=(buffer)4142434445464748494A4B4C4D4E4F505152535455565758595A31323334,
+				//          srtp-cipher=(string)aes-128-icm,srtp-auth=(string)hmac-sha1-80,
+				//          srtcp-cipher=(string)aes-128-icm,srtcp-auth=(string)hmac-sha1-80, roc=(uint)0"
+				//    ! srtpdec ! rtpbin ! decodebin ! videoconvert ! autovideosink sync=false
 
-             int ret;
-             int doSRTP = 0;
-             char * cipherName = lookupCipherName(data->cipher);
-             char * authName = lookupAuthName(data->authentication);
+				int ret;
+				int doSRTP = 0;
+				char * cipherName = lookupCipherName(data->cipher);
+				char * authName = lookupAuthName(data->authentication);
 
-             // *** for testing only! ***
-		       CSIO_LOG(eLogLevel_error,
-               "INFO: >>> key=%s, ssrc=%u, cipherName=%s, authName=%s\n",(data->key ? data->key : "NULL"),
-               data->ssrc,(cipherName ? cipherName : "NULL"),(authName ? authName : "NULL"));
+				// *** for testing only! ***
+				CSIO_LOG(eLogLevel_error,
+						 "INFO: >>> key=%s, ssrc=%u, cipherName=%s, authName=%s\n",(data->key ? data->key : "NULL"),
+						 data->ssrc,(cipherName ? cipherName : "NULL"),(authName ? authName : "NULL"));
 
-             if((data->key != NULL) && (data->key[0] != '\0') && (cipherName != NULL) && (authName != NULL))
-                doSRTP = 1;
+				if((data->key != NULL) && (data->key[0] != '\0') && (cipherName != NULL) && (authName != NULL))
+					doSRTP = 1;
 
-             if(doSRTP)
-			    {
-                // create the caps string
-                gchar * srtp_capsstr = g_strdup_printf(
-                     "application/x-srtp, payload=(int)33, media=(string)video, encoding-name=(string)MP2T,"
-                     " clock-rate=(int)90000, roc=(uint)0,"
-                     " ssrc=(uint)%u,"
-                     " srtp-key=(buffer)%s,"
-                     " srtp-cipher=(string)%s,"
-                     " srtp-auth=(string)%s,"
-                     " srtcp-cipher=(string)%s,"
-                     " srtcp-auth=(string)%s",
-                     data->ssrc,data->key,cipherName,authName,cipherName,authName);
+				if(doSRTP)
+				{
+					// create the caps string
+					gchar * srtp_capsstr = g_strdup_printf(
+							"application/x-srtp, payload=(int)33, media=(string)video, encoding-name=(string)MP2T,"
+							" clock-rate=(int)90000, roc=(uint)0,"
+							" ssrc=(uint)%u,"
+							" srtp-key=(buffer)%s,"
+							" srtp-cipher=(string)%s,"
+							" srtp-auth=(string)%s,"
+							" srtcp-cipher=(string)%s,"
+							" srtcp-auth=(string)%s",
+							data->ssrc,data->key,cipherName,authName,cipherName,authName);
 
-		          CSIO_LOG(eLogLevel_error,"INFO: >>> srtp_capsstr=%s\n",srtp_capsstr);
-                
-                // replace caps for the udpsrc element
-                data->caps_v_ts = gst_caps_from_string(srtp_capsstr);
-                g_free(srtp_capsstr);
-                
-                // create and add the SRTP decoder
-                data->element_srtp = gst_element_factory_make("srtpdec", NULL);
-                gst_bin_add(GST_BIN(data->pipeline), data->element_srtp);
-			    }
-             // ***
+					CSIO_LOG(eLogLevel_error,"INFO: >>> srtp_capsstr=%s\n",srtp_capsstr);
+
+					// create and add the SRTP decoder
+					data->element_srtp = gst_element_factory_make("srtpdec", NULL);
+					gst_bin_add(GST_BIN(data->pipeline), data->element_srtp);
+
+					g_object_set(G_OBJECT(data->element_av[0]), "caps", gst_caps_from_string(srtp_capsstr), NULL);
+					g_free(srtp_capsstr);
+				}
+				else
+				{
+					g_object_set(G_OBJECT(data->element_av[0]), "caps", data->caps_v_ts, NULL);
+				}
+
+				g_object_set(G_OBJECT(data->element_av[0]), "port", data->udp_port, NULL);
+				gst_bin_add(GST_BIN(data->pipeline), data->element_av[0]);
+
+				if(doSRTP)
+					ret = gst_element_link_many(data->element_av[0], data->element_srtp, data->element_zero, NULL);
+				else
+					ret = gst_element_link(data->element_av[0], data->element_zero);
+
+				if(ret==0)
+				{
+					CSIO_LOG(eLogLevel_error,  "ERROR:  Cannot link filter to source elements.\n" );
+					iStatus = CSIO_CANNOT_LINK_ELEMENTS;
+				}
+				else
+					CSIO_LOG(eLogLevel_debug,  "link filter to source elements.\n" );
 
 
-             g_object_set(G_OBJECT(data->element_av[0]), "caps", data->caps_v_ts, NULL);
-			    g_object_set(G_OBJECT(data->element_av[0]), "port", data->udp_port, NULL);
-			    gst_bin_add(GST_BIN(data->pipeline), data->element_av[0]);
+				// Set up udpsink for RTCP
+				if (strlen(data->rtcp_dest_ip_addr) != 0 && data->rtcp_dest_port >= 0) {
+					// Need to get socket info from udpsrc
+					GSocket* rtcpUdpSocket = 0;
+					gst_element_set_state (data->element_av[1], GST_STATE_READY);
+					g_object_get(G_OBJECT(data->element_av[1]), "used-socket", &rtcpUdpSocket, NULL);
 
+					data->element_av[2] = gst_element_factory_make("udpsink", NULL);
+					gst_bin_add(GST_BIN(data->pipeline), data->element_av[2]);
 
+					CSIO_LOG(eLogLevel_verbose, "Setting rtcp dst IP as %s:%d", data->rtcp_dest_ip_addr, data->rtcp_dest_port);
+					g_object_set (G_OBJECT(data->element_av[2]), "port", data->rtcp_dest_port,
+							"auto-multicast", FALSE,
+							"host", data->rtcp_dest_ip_addr,
+							"loop", FALSE,
+							"sync", FALSE,
+							"async", FALSE,
+							NULL);
 
-             // ***
-             if(doSRTP)
-			         ret = gst_element_link_many(data->element_av[0], data->element_srtp, data->element_zero, NULL);
-             else ret = gst_element_link(data->element_av[0], data->element_zero);
-             // ***
+					if (rtcpUdpSocket) {
+						g_object_set(G_OBJECT(data->element_av[2]), "socket",
+									 rtcpUdpSocket, 
+									 "close-socket", FALSE,
+									 NULL);
+						g_object_unref(rtcpUdpSocket);
+					}
 
+					GstPad *srcpad = gst_element_get_request_pad(data->element_zero, "send_rtcp_src_0");
+					GstPad *sinkpad = gst_element_get_static_pad(data->element_av[2], "sink");
 
-
-			    if(ret==0)
-			    {
-			        CSIO_LOG(eLogLevel_error,  "ERROR:  Cannot link filter to source elements.\n" );
-				    iStatus = CSIO_CANNOT_LINK_ELEMENTS;
-			    }
-			    else
-			        CSIO_LOG(eLogLevel_debug,  "link filter to source elements.\n" );
-
-		    }
+					if (gst_pad_link(srcpad, sinkpad) != GST_PAD_LINK_OK)
+						CSIO_LOG(eLogLevel_info, "Failed to link rtpbin to udpsink for RTCP");
+					
+					gst_object_unref(srcpad);
+					gst_object_unref(sinkpad);
+				}
+			}
 		    else if(CSIOCnsIntf->getStreamTxRx_TRANSPORTMODE(iStreamId)==STREAM_TRANSPORT_MPEG2TS_UDP)
 		    {
 		        data->element_zero = gst_element_factory_make("udpsrc", NULL);
@@ -4275,6 +4311,7 @@ JNIEXPORT void JNICALL Java_com_crestron_txrxservice_GstreamIn_nativeWfdStart(JN
     // ***
 
     data->wfd_jitterbuffer_latency = 50;//set latency to 50ms
+    strcpy(data->rtcp_dest_ip_addr, url_cstring);	// Set RTSP IP as RTCP IP
 
     int ts_port = CSIOCnsIntf->getStreamTxRx_TSPORT(windowId);
     WfdSinkProjStart(windowId,url_cstring,rtsp_port,ts_port);
@@ -4316,6 +4353,8 @@ JNIEXPORT void JNICALL Java_com_crestron_txrxservice_GstreamIn_nativeWfdStop(JNI
             data->ssrc = 0;
             // ***
 
+			data->rtcp_dest_ip_addr[0] = '\0';
+			data->rtcp_dest_port = -1;
             CSIO_LOG(eLogLevel_debug, "GstreamIn_nativeWfdSto[%d]: data->isStarted[%d]", windowId,data->isStarted);
 
             if (data->isStarted)
@@ -4394,6 +4433,7 @@ void Wfd_setup_gst_pipeline (int id, int state, struct GST_PIPELINE_CONFIG* gst_
 
             // ***
             data->ssrc = gst_config->ssrc;
+            data->rtcp_dest_port = gst_config->rtcp_dest_port;
 
 
             if(GetInPausedState(id))

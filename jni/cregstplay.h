@@ -146,7 +146,7 @@ typedef struct _CREGSTREAM
 	struct timespec udpsrc_prob_timer;
 	char sourceIP_addr[32];
 	char rtcp_dest_ip_addr[32];
-	char rtcp_dest_port;
+	int rtcp_dest_port;
 
 	guint video_rate_probe_id;
 	GstElement *video_rate_probe_element;
