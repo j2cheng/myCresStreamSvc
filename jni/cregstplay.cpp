@@ -161,6 +161,7 @@ void init_custom_data(CustomData * cdata)
         data->set_audio = false;
 
         data->rtcp_dest_ip_addr[0] = 0;
+        data->rtcp_dest_port = -1;
 
         data->packetizer_pcr_discont_threshold = -1;//default as invalid
 

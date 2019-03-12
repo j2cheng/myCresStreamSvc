@@ -142,7 +142,8 @@ m_keepAliveTimeout(WFD_SINK_STATETIMEOUT_DEFAULT_KEEP_ALIVE),//default 60s
 m_EvntQ(),
 m_rtspParserIntfInfo(),
 m_rtspParserIntfSession(),
-m_ssrc()
+m_ssrc(),
+m_rtcpDestPort(-1)
 {
     wfdSinkStMachineTimeArray = new csioTimerClockBase(WFD_SINK_EVENTTIME_MAX,WFD_SINK_STATE_TIMER_MAX);
 
@@ -314,6 +315,7 @@ void wfdSinkStMachineClass::resetAllFlags()
 {
     m_connTime.clear();
     m_ssrc = 0;
+    m_rtcpDestPort = -1;
 }
 void wfdSinkStMachineClass::resetSystemStatus()
 {
@@ -357,8 +359,18 @@ void wfdSinkStMachineClass::sendEventToParentProj(int event)
     memset(&EvntQ,0,sizeof(csioEventQueueStruct));
     EvntQ.obj_id = m_myId;
     EvntQ.event_type = event;
-    EvntQ.ext_obj = getCurentTsPort();
-    EvntQ.ext_obj2 = m_ssrc;
+
+    if(event == WFD_SINK_EVENTS_RTSP_IN_SESSION_EVENT)
+    {
+        struct GST_PIPELINE_CONFIG gst_config;
+        gst_config.ts_port = getCurentTsPort();
+        gst_config.ssrc    = m_ssrc;
+        gst_config.rtcp_dest_port = m_rtcpDestPort;
+
+        EvntQ.buf_size = sizeof(GST_PIPELINE_CONFIG);
+        EvntQ.buffPtr = (void*)&gst_config;
+    }
+
     m_parent->sendEvent(&EvntQ);
 }
 
@@ -1945,6 +1957,9 @@ int wfdSinkStMachineClass::parserCallbackFun(RTSPPARSINGRESULTS * parsResPtr, vo
                     //ssrc == 0 is not valid
                     if(parsResPtr->headerData.ssrc)
                         p->m_ssrc = parsResPtr->headerData.ssrc;
+
+                    if(parsResPtr->headerData.sourceRTPPort[1] != -1)
+                        p->m_rtcpDestPort = parsResPtr->headerData.sourceRTPPort[1];
                 }
                 //else TODO:if we received response, but we are waiting for request, shall we just ignore it?
                 //p->m_EvntQ.event_type = WFD_SINK_STM_INTERNAL_ERROR_EVENT;

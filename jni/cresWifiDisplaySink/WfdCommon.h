@@ -19,12 +19,11 @@ typedef struct
 #define WFD_NUM_OF(a) (sizeof (a) / sizeof *(a))
 
 
-typedef struct VIDEO_RESOLUTION_RATES
+typedef struct GST_PIPELINE_CONFIG
 {
-    unsigned long HorTotalSize;
-    unsigned long VerTotalSize;
-    unsigned long rates;
-    unsigned long supported;
+    unsigned int ts_port;
+    unsigned int ssrc;
+    unsigned int rtcp_dest_port;
 } ;
 
 extern void* WfdSinkProjInit();

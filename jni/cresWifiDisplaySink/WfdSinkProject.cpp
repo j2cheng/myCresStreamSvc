@@ -38,7 +38,7 @@ const WFD_STRNUMPAIR wfd_proj_timestamp_names[] =
 std::string g_rtspAudioCodecStr = "" ;
 std::string g_rtspVidResRefStr  = "" ;
 
-extern void Wfd_setup_gst_pipeline (int id, int state, int port,unsigned int ssrc);
+extern void Wfd_setup_gst_pipeline (int id, int state, struct GST_PIPELINE_CONFIG* gst_config);
 
 /*************************** Global functions  ************************************/
 void* WfdSinkProjInit()
@@ -423,6 +423,21 @@ void wfdSinkProjClass::sendEvent(csioEventQueueStruct* pEvntQ)
         {
             switch (evntQ.event_type)
             {
+                case WFD_SINK_EVENTS_RTSP_IN_SESSION_EVENT:
+                {
+                    GST_PIPELINE_CONFIG* new_config = new GST_PIPELINE_CONFIG();
+                    GST_PIPELINE_CONFIG* gst_config = (GST_PIPELINE_CONFIG*)bufP;
+                    if(gst_config)
+                    {
+                        new_config->ts_port = gst_config->ts_port;
+                        new_config->ssrc    = gst_config->ssrc;
+                        new_config->rtcp_dest_port = gst_config->rtcp_dest_port;
+
+                        evntQ.buffPtr = (void*)new_config;
+                        evntQ.buf_size = sizeof(GST_PIPELINE_CONFIG);
+                    }
+                    break;
+                }
                 default:
                 {
                     char* tmp = (char*)createCharArray(dataSize + 1);
@@ -643,7 +658,13 @@ void* wfdSinkProjClass::ThreadEntry()
                     int id = evntQPtr->obj_id;
                     CSIO_LOG(m_debugLevel, "wfdSinkProjClass: process WFD_SINK_EVENTS_RTSP_IN_SESSION_EVENT[%d].\n",id);
 
-                    Wfd_setup_gst_pipeline (id, 1,evntQPtr->ext_obj,evntQPtr->ext_obj2);
+                    if( evntQPtr->buf_size && evntQPtr->buffPtr)
+                    {
+                        struct GST_PIPELINE_CONFIG* gst_config = (struct GST_PIPELINE_CONFIG*)evntQPtr->buffPtr;
+                        Wfd_setup_gst_pipeline(id, 1,gst_config);
+
+                        delete gst_config;
+                    }
                     break;
                 }
                 case WFD_SINK_EVENTS_RTSP_LEAVE_SESSION_EVENT:
@@ -651,6 +672,7 @@ void* wfdSinkProjClass::ThreadEntry()
                     int id = evntQPtr->obj_id;
                     CSIO_LOG(m_debugLevel, "wfdSinkProjClass: process WFD_SINK_EVENTS_RTSP_LEAVE_SESSION_EVENT[%d].\n",id);
 
+                    Wfd_setup_gst_pipeline(id, 0,NULL);
                     break;
                 }
                 case WFD_SINK_EVENTS_JNI_GST_READY:

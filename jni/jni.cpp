@@ -4359,18 +4359,17 @@ static void Wfd_set_firewall_rules (int rtsp_port, int ts_port)
 
 
 // ***
-void Wfd_setup_gst_pipeline (int id, int state, int ts_port, unsigned int ssrc)
-
-
+void Wfd_setup_gst_pipeline (int id, int state, struct GST_PIPELINE_CONFIG* gst_config)
 {
-    if(state)
+    if(state && gst_config)
     {
-        CSIO_LOG(eLogLevel_debug, "%s enter", __FUNCTION__);
+        CSIO_LOG(eLogLevel_debug, "Wfd_setup_gst_pipeline[%d]: ts_port[%d],ssrc[0x%x],rtcp_dest_port[%d]",
+                 id,gst_config->ts_port, gst_config->ssrc,gst_config->rtcp_dest_port);
 
-        Wfd_set_firewall_rules(-1, ts_port);
+        Wfd_set_firewall_rules(-1, gst_config->ts_port);
 
         //TODO: remove the following settings if it is done already
-        csio_SetPortNumber( id, ts_port, c_TSportNumber );
+        csio_SetPortNumber( id, gst_config->ts_port, c_TSportNumber );
 
         CSIOCnsIntf->setStreamTxRx_SESSIONINITIATION(id, 1, SENDTOCRESSTORE_NONE);
         csio_SetSessionInitiationMode(id,1);
@@ -4394,7 +4393,7 @@ void Wfd_setup_gst_pipeline (int id, int state, int ts_port, unsigned int ssrc)
 
 
             // ***
-            data->ssrc = ssrc;
+            data->ssrc = gst_config->ssrc;
 
 
             if(GetInPausedState(id))
