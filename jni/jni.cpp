@@ -49,6 +49,7 @@
 #include <CresNextSerializer.h>
 
 #include "cresWifiDisplaySink/WfdCommon.h"
+#include "ms_mice_sink/ms_mice_common.h"
 ///////////////////////////////////////////////////////////////////////////////
 
 extern int  csio_Init(int calledFromCsio);
@@ -1883,6 +1884,12 @@ JNIEXPORT void JNICALL Java_com_crestron_txrxservice_GstreamIn_nativeSetFieldDeb
                 CSIO_LOG(eLogLevel_info, "command namestring[%s]\r\n",namestring);
 
                 WfdSinkProj_fdebug(namestring);
+            }
+            else if (!strcmp(CmdPtr, "MSMICE_FDEBUG"))
+            {
+                CSIO_LOG(eLogLevel_info, "command namestring[%s]\r\n",namestring);
+
+                msMiceSinkProj_fdebug(namestring);
             }
             else if (!strcmp(CmdPtr, "GRAPH"))
 			{
@@ -4256,8 +4263,7 @@ JNIEXPORT void JNICALL Java_com_crestron_txrxservice_WbsStreamIn_nativeSetLogLev
  * Note: When DTLS is not used - key string will be a "null" object and the cipher and authentication will be 0.  Check before using.
  *
  * */
-JNIEXPORT void JNICALL Java_com_crestron_txrxservice_GstreamIn_nativeWfdStart(JNIEnv *env, jobject thiz, jint windowId, jstring url_jstring, jint rtsp_port,
-		jstring key, jint cipher, jint authentication)
+JNIEXPORT void JNICALL Java_com_crestron_txrxservice_GstreamIn_nativeWfdStart(JNIEnv *env, jobject thiz, jint windowId, jstring url_jstring, jint rtsp_port)
 {
     const char * url_cstring = env->GetStringUTFChars( url_jstring , NULL ) ;
     if (url_cstring == NULL)
@@ -4279,7 +4285,7 @@ JNIEXPORT void JNICALL Java_com_crestron_txrxservice_GstreamIn_nativeWfdStart(JN
        CSIO_LOG(eLogLevel_error, "Could not obtain stream pointer for stream %d", windowId);
        return;
     }
-
+#if 0
     data->cipher = (int)cipher;
     data->authentication = (int)authentication;
 
@@ -4309,7 +4315,7 @@ JNIEXPORT void JNICALL Java_com_crestron_txrxservice_GstreamIn_nativeWfdStart(JN
        env->ReleaseStringUTFChars(key, locKey);
     }
     // ***
-
+#endif
     data->wfd_jitterbuffer_latency = 50;//set latency to 50ms
     strcpy(data->rtcp_dest_ip_addr, url_cstring);	// Set RTSP IP as RTCP IP
 
@@ -4449,4 +4455,70 @@ void Wfd_setup_gst_pipeline (int id, int state, struct GST_PIPELINE_CONFIG* gst_
     }
 }
 
+JNIEXPORT void JNICALL Java_com_crestron_txrxservice_GstreamIn_nativeMsMiceStart(JNIEnv *env, jobject thiz)
+{
+    msMiceSinkProjInit();
+}
+
+JNIEXPORT void JNICALL Java_com_crestron_txrxservice_GstreamIn_nativeMsMiceStop(JNIEnv *env, jobject thiz)
+{
+    msMiceSinkProjDeInit();
+}
+JNIEXPORT void JNICALL Java_com_crestron_txrxservice_GstreamIn_nativeMsMiceCloseSession(JNIEnv *env, jobject thiz, jlong session_id)
+{
+    msMiceSinkProjStopSession(0,session_id);
+}
+JNIEXPORT void JNICALL Java_com_crestron_txrxservice_GstreamIn_nativeMsMiceSetPin(JNIEnv *env, jobject thiz, jstring pin_jstring)
+{
+    int id = 0;
+
+    char * locPin = NULL;
+    if(pin_jstring != NULL)
+    {
+        locPin = (char *)env->GetStringUTFChars(pin_jstring, NULL);
+    }//else
+
+    if(locPin == NULL)
+    {
+       CSIO_LOG(eLogLevel_error, "pin is NULL or invalid");
+       msMiceSinkProjSetPin(id,-1);
+    }
+    else
+    {
+        int setPin = 0;//TODO
+        msMiceSinkProjSetPin(id,setPin);
+
+        env->ReleaseStringUTFChars(pin_jstring, locPin);
+    }
+}
+void csio_SendMsMiceStateChange(gint64 sessionId, int state, char *device_id, char *device_name, char *device_addr, int rtsp_port)
+{
+    JNIEnv *env = get_jni_env ();
+    jstring deviceId;
+    jstring deviceName;
+    jstring deviceAddress;
+
+    jmethodID sendMsMiceStateChange = env->GetMethodID((jclass)gStreamIn_javaClass_id, "sendMsMiceStateChange", "(JILjava/lang/String;Ljava/lang/String;Ljava/lang/String;I)V");
+    if (sendMsMiceStateChange == NULL) return;
+
+    deviceId = env->NewStringUTF(device_id);
+    deviceName = env->NewStringUTF(device_name);
+    deviceAddress = env->NewStringUTF(device_addr);
+
+    env->CallVoidMethod(CresDataDB->app, sendMsMiceStateChange, (jlong)sessionId, (jint)state, (jstring) deviceId, (jstring) deviceName, (jstring) deviceAddress, (jint)rtsp_port);
+    if (env->ExceptionCheck ()) {
+        CSIO_LOG(eLogLevel_error, "Failed to call Java method 'sendMsMiceStateChange'");
+        env->ExceptionClear ();
+    }
+
+    env->DeleteLocalRef(deviceId);
+    env->DeleteLocalRef(deviceName);
+    env->DeleteLocalRef(deviceAddress);
+}
+void Wfd_ms_mice_signal_raise (gint64 session_id, int state, char *device_id, char *device_name, char *device_addr, int rtsp_port)
+{
+    CSIO_LOG(eLogLevel_debug, "Wfd_ms_mice_signal_raise,session_id[%lld],state[%d],rtsp_port[%d]", session_id,state,rtsp_port);
+
+    csio_SendMsMiceStateChange(session_id,state,"device_id","device_name","device_addr",rtsp_port);
+}
 /***************************** end of Miracast(Wifi Display:wfd) streaming in *********************************/

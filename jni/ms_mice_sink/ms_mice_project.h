@@ -21,6 +21,17 @@ enum
 
     MS_MICE_SINK_PROJ_TIMER_MAX
 };
+
+typedef enum _e_msMiceSinkProjEvents
+{
+    MS_MICE_SINK_EVENTS_JNI_NOP = 0, //let this one to be zero
+
+    MS_MICE_SINK_EVENTS_STOP_SESSION,
+    MS_MICE_SINK_EVENTS_SET_PIN,
+
+    MS_MICE_SINK_EVENTS_MAX
+}e_msMiceSinkProjEvents;
+
 typedef struct
 {
     const char * pStr;
@@ -45,6 +56,7 @@ public:
     void sendEvent(csioEventQueueStruct* pEvntQ);
 
     msMiceSinkServiceClass *m_service_obj;
+    int m_pin;
 private:
     void* ThreadEntry();
 

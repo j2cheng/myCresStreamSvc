@@ -26,15 +26,16 @@ static msMiceSinkProjClass* g_msMiceSinkProjPtr = NULL;
 static Mutex gProjectsLock;
 static int gProjectDebug = eLogLevel_debug;
 
-const MSMICE_STRNUMPAIR wfd_proj_timestamp_names[] =
+const MSMICE_STRNUMPAIR ms_mice_proj_timestamp_names[] =
 {
-    {"ms mice sink project init time" ,   MS_MICE_SINK_PROJ_TIMESTAMP_INIT},
+    {"ms mice sink project init time " ,   MS_MICE_SINK_PROJ_TIMESTAMP_INIT},
+    {"ms mice sink project start time",   MS_MICE_SINK_PROJ_TIMESTAMP_START},
+    {"ms mice sink project stop time ",    MS_MICE_SINK_PROJ_TIMESTAMP_STOP},
 
     {0,0}//terminate the list
 };
 
-void app_extension_ms_mice_load(msMiceSinkProjClass *projPtr,GError **error);
-void app_extension_ms_mice_unload(msMiceSinkProjClass *projPtr);
+int session_observer_disconnect_request_from_app(gpointer user_data);
 
 /*************************** Global functions  ************************************/
 void msMiceSinkProjInit()
@@ -86,7 +87,76 @@ void msMiceSinkProjDeInit()
     }
 }
 
-#if 1
+void msMiceSinkProjStopSession(int id, gint64 session_id)
+{
+    if(!session_id) return;
+
+    CSIO_LOG(gProjectDebug, "msMiceSinkProjStopSession: enter: id[%d], session_id[%d]",id,session_id);
+    gProjectsLock.lock();
+
+    if(g_msMiceSinkProjPtr)
+    {
+        /*csioEventQueueStruct EvntQ;
+        memset(&EvntQ,0,sizeof(csioEventQueueStruct));
+        EvntQ.obj_id = id;
+        EvntQ.event_type = MS_MICE_SINK_EVENTS_STOP_SESSION;
+
+        EvntQ.ext_obj = session_id;
+
+        g_msMiceSinkProjPtr->sendEvent(&EvntQ);*/
+        if(g_msMiceSinkProjPtr->m_service_obj && g_msMiceSinkProjPtr->m_service_obj->m_mice_service)
+        {
+            GMainContext* context = ms_mice_sink_service_get_context(g_msMiceSinkProjPtr->m_service_obj->m_mice_service);
+
+            ms_mice_sink_service_and_sessionid* cmd = new ms_mice_sink_service_and_sessionid();
+            if(cmd)
+            {
+                cmd->service = g_msMiceSinkProjPtr->m_service_obj->m_mice_service;
+                cmd->session_id = session_id;
+                g_main_context_invoke(context,session_observer_disconnect_request_from_app,cmd);
+            }
+            else
+            {
+                CSIO_LOG(gProjectDebug, "msMiceSinkProjClass: failed to create request for[%lld].\n",session_id);
+            }
+        }
+    }
+    else
+    {
+        CSIO_LOG(gProjectDebug, "msMiceSinkProjStopSession: no g_msMiceSinkProjPtr is running\n");
+    }
+
+    gProjectsLock.unlock();
+    CSIO_LOG(gProjectDebug, "msMiceSinkProjStopSession: return.");
+}
+
+void msMiceSinkProjSetPin(int id,int pin)
+{
+    CSIO_LOG(gProjectDebug, "msMiceSinkProjSetPin: enter: id[%d], pin[%d]",id,pin);
+    gProjectsLock.lock();
+
+    if(g_msMiceSinkProjPtr)
+    {
+        csioEventQueueStruct EvntQ;
+        memset(&EvntQ,0,sizeof(csioEventQueueStruct));
+        EvntQ.obj_id = 0;
+        EvntQ.event_type = MS_MICE_SINK_EVENTS_SET_PIN;
+        EvntQ.ext_obj = pin;
+
+        g_msMiceSinkProjPtr->sendEvent(&EvntQ);
+    }
+    else
+    {
+        CSIO_LOG(gProjectDebug, "msMiceSinkProjSetPin: no g_msMiceSinkProjPtr is running\n");
+    }
+
+    gProjectsLock.unlock();
+    CSIO_LOG(gProjectDebug, "msMiceSinkProjSetPin: return.");
+}
+/***************************** start of ms-mice static interface functions ****
+ *  Note: this session must run under one thread,
+ *  currently is in msMiceSinkServiceClass::ThreadEntry()
+ *  ***************************************************************************/
 /* ------------------------------------------------------------------------------------------------------------------
  * -- ms-mice extensions
  * -- */
@@ -94,49 +164,49 @@ void msMiceSinkProjDeInit()
 static void app_extension_ms_mice_session_observer_on_disconnected(ms_mice_sink_session *ms_session, gpointer data)
 {
     guint64 id = ms_mice_sink_session_get_id(ms_session);
-    CSIO_LOG(eLogLevel_warning,"app.ms-mice.session.event.disconnected { \"session-id\": %" G_GUINT64_FORMAT " }", id);
+    CSIO_LOG(eLogLevel_debug,"app.ms-mice.session.event.disconnected { \"session-id\": %" G_GUINT64_FORMAT " }", id);
 
     ms_mice_sink_session_observer_detach(ms_session);
 }
 
 static void app_extension_ms_mice_session_observer_on_state_changed(ms_mice_sink_session *session, MS_MICE_SINK_SESSION_STATE from, MS_MICE_SINK_SESSION_STATE to, gpointer data)
 {
-    CSIO_LOG(eLogLevel_warning,"app.ms-mice.session.event.state { \"session-id\": %"G_GUINT64_FORMAT" , \"from\": \"%s\" , \"to\": \"%s\" }", ms_mice_sink_session_get_id(session), ms_mice_sink_session_state_to_string(from), ms_mice_sink_session_state_to_string(to));
+    CSIO_LOG(eLogLevel_debug,"app.ms-mice.session.event.state { \"session-id\": %"G_GUINT64_FORMAT" , \"from\": \"%s\" , \"to\": \"%s\" }", ms_mice_sink_session_get_id(session), ms_mice_sink_session_state_to_string(from), ms_mice_sink_session_state_to_string(to));
 }
 
 static void app_extension_ms_mice_session_observer_on_source_id_set(ms_mice_sink_session *session, const char *source_id, gpointer data)
 {
-    CSIO_LOG(eLogLevel_info,"app.ms-mice.session.event.source-id { \"session-id\": %"G_GUINT64_FORMAT" , \"source-id\": \"%s\" }", ms_mice_sink_session_get_id(session), source_id);
+    CSIO_LOG(eLogLevel_debug,"app.ms-mice.session.event.source-id { \"session-id\": %"G_GUINT64_FORMAT" , \"source-id\": \"%s\" }", ms_mice_sink_session_get_id(session), source_id);
 }
 
 static void app_extension_ms_mice_session_observer_on_friendly_name_set(ms_mice_sink_session *session, const char *friendly_name, gpointer data)
 {
-    CSIO_LOG(eLogLevel_info,"app.ms-mice.session.event.friendly-name { \"session-id\": %"G_GUINT64_FORMAT" , \"friendly-name\": \"%s\" }", ms_mice_sink_session_get_id(session), friendly_name);
+    CSIO_LOG(eLogLevel_debug,"app.ms-mice.session.event.friendly-name { \"session-id\": %"G_GUINT64_FORMAT" , \"friendly-name\": \"%s\" }", ms_mice_sink_session_get_id(session), friendly_name);
 }
 
 static void app_extension_ms_mice_session_observer_on_source_ready(ms_mice_sink_session *ms_session, guint16 rtsp_port, gpointer data)
 {
-    CSIO_LOG(eLogLevel_warning,"app.ms-mice.session.event.source-ready { \"session-id\": %"G_GUINT64_FORMAT" , \"rtsp-port\": %u }", ms_mice_sink_session_get_id(ms_session), rtsp_port);
+    CSIO_LOG(eLogLevel_debug,"app.ms-mice.session.event.source-ready { \"session-id\": %"G_GUINT64_FORMAT" , \"rtsp-port\": %u }", ms_mice_sink_session_get_id(ms_session), rtsp_port);
 
     //TODO: emit_source_ready to java
-    Wfd_ms_mice_signal_raise (ms_mice_sink_session_get_source_id(ms_session), 1, rtsp_port);
+    Wfd_ms_mice_signal_raise (ms_mice_sink_session_get_id(ms_session), 1, "device_id", "device_name", "device_addr",rtsp_port);
 }
 
 static void app_extension_ms_mice_session_observer_on_source_ready_with_dtls(ms_mice_sink_session *ms_session, guint16 rtsp_port, const char *key, int cipher, int authentication, gpointer data)
 {
-    CSIO_LOG(eLogLevel_warning,"app.ms-mice.session.event.source-ready { \"session-id\": %"G_GUINT64_FORMAT" , \"rtsp-port\": %u , \"key\": \"%s\" , \"cipher\": %d , \"authentication\": %d }",
+    CSIO_LOG(eLogLevel_debug,"app.ms-mice.session.event.source-ready { \"session-id\": %"G_GUINT64_FORMAT" , \"rtsp-port\": %u , \"key\": \"%s\" , \"cipher\": %d , \"authentication\": %d }",
               ms_mice_sink_session_get_id(ms_session), rtsp_port, key, cipher, authentication);
 
     //TODO: emit_source_ready_with_dtls to java
-    Wfd_ms_mice_signal_raise (ms_mice_sink_session_get_source_id(ms_session), 1, rtsp_port);
+    Wfd_ms_mice_signal_raise (ms_mice_sink_session_get_id(ms_session), 1, "device_id", "device_name", "device_addr",rtsp_port);
 }
 
 static void app_extension_ms_mice_session_observer_on_stop_projection(ms_mice_sink_session *ms_session, gpointer data)
 {
-    CSIO_LOG(eLogLevel_warning,"app.ms-mice.session.event.stop-projection { \"session-id\": %"G_GUINT64_FORMAT" }", ms_mice_sink_session_get_id(ms_session));
+    CSIO_LOG(eLogLevel_debug,"app.ms-mice.session.event.stop-projection { \"session-id\": %"G_GUINT64_FORMAT" }", ms_mice_sink_session_get_id(ms_session));
 
     //TODO: emit_stop_projecting to java
-    Wfd_ms_mice_signal_raise (ms_mice_sink_session_get_source_id(ms_session), 0,0);
+    Wfd_ms_mice_signal_raise (ms_mice_sink_session_get_id(ms_session), 0,"device_id", "device_name", "device_addr",0);
 }
 
 ms_mice_sink_session_observer app_extension_ms_mice_session_observer = {
@@ -156,48 +226,65 @@ ms_mice_sink_session_observer app_extension_ms_mice_session_observer = {
 
 static void app_extension_ms_mice_service_observer_on_started(ms_mice_sink_service *service, gpointer data)
 {
-    CSIO_LOG(eLogLevel_warning,"app.ms-mice.service.event.started { }");
+    CSIO_LOG(eLogLevel_debug,"app.ms-mice.service.event.started { }");
 }
 
 static void app_extension_ms_mice_service_observer_on_stopped(ms_mice_sink_service *service, gpointer data)
 {
-    CSIO_LOG(eLogLevel_warning,"app.ms-mice.service.event.stopped { }");
+    CSIO_LOG(eLogLevel_debug,"app.ms-mice.service.event.stopped { }");
 }
 
 //Note: this function replaced app_extension_api_session_observer_disconnect_ms_mice_request()
 //Note: expect project keep track of session_id(string) to ms_session(ms_mice_sink_session*)
-static void session_observer_disconnect_request_from_app(ms_mice_sink_session *ms_session)
+int session_observer_disconnect_request_from_app(gpointer user_data)
 {
-    CSIO_LOG(eLogLevel_warning,"session_observer_disconnect_request_from_app { \"session-id\": %" G_GUINT64_FORMAT " }", ms_mice_sink_session_get_id(ms_session));
+    ms_mice_sink_service_and_sessionid* cmd = (ms_mice_sink_service_and_sessionid*)user_data;
 
-    ms_mice_sink_session_observer_detach(ms_session);
-    ms_mice_sink_session_close(ms_session);
-    ms_mice_sink_session_free(ms_session);
+    if(cmd)
+    {
+        CSIO_LOG(eLogLevel_debug,"session_observer_disconnect_request_from_app session_id[%lld]", cmd->session_id);
+
+        if(cmd->service)
+        {
+            ms_mice_sink_session *ms_session = ms_mice_sink_service_find_session_by_id(cmd->service,cmd->session_id);
+            CSIO_LOG(eLogLevel_debug,"session_observer_disconnect_request_from_app ms_session[0x%x]", ms_session);
+
+            if(ms_session)
+            {
+                ms_mice_sink_session_observer_detach(ms_session);
+
+                //Note: this function will also call ms_mice_sink_session_free()
+                ms_mice_sink_session_close(ms_session);
+
+                //ms_mice_sink_session_free(ms_session);
+            }
+            else
+            {
+                CSIO_LOG(eLogLevel_debug,"session_observer_disconnect_request_from_app could not find session.");
+            }
+        }
+        else
+        {
+            CSIO_LOG(eLogLevel_debug,"session_observer_disconnect_request_from_app cmd->service is NULL");
+        }
+
+        delete cmd;
+    }
+    else
+    {
+        CSIO_LOG(eLogLevel_debug,"session_observer_disconnect_request_from_app cmd is NULL");
+    }
+
+    CSIO_LOG(eLogLevel_debug,"session_observer_disconnect_request_from_app return");
+    return 0;
 }
 
 static void app_extension_ms_mice_service_observer_on_session_connected(ms_mice_sink_service *service, ms_mice_sink_session *ms_session, gpointer data)
 {
     g_autoptr(GError) error = NULL;
-    CSIO_LOG(eLogLevel_warning,"app.ms-mice.service.event.session-connected { \"session-id\": %"G_GUINT64_FORMAT" }", ms_mice_sink_session_get_id(ms_session));
+    CSIO_LOG(eLogLevel_debug,"app.ms-mice.service.event.session-connected { \"session-id\": %"G_GUINT64_FORMAT" }", ms_mice_sink_session_get_id(ms_session));
 
     ms_mice_sink_session_observer_attach(ms_session, &app_extension_ms_mice_session_observer, NULL);
-
-    //TODO: if we need this to sync with wfd_service
-    /*if (!are_extensions_running()) {
-        return;
-    }
-
-    //TODO: I don't think we need these
-    sink_api_session_new(&api_session, ms_mice_sink_session_get_id(ms_session), &error);
-
-    if (!api_session || error) {
-        CSIO_LOG(eLogLevel_error,"app.ms-mice.service.event.session-connected.error { \"message\": \"failed to create Sink API Session\" }");
-        return;
-    }
-
-    ms_mice_sink_session_set_api(ms_session, api_session);
-
-    sink_api_session_observer_attach(api_session, &ms_mice_sink_api_session_observer, ms_session);*/
 }
 
 ms_mice_sink_service_observer ctl_fn_ms_mice_sink_service_observer = {
@@ -211,26 +298,26 @@ ms_mice_sink_service_observer ctl_fn_ms_mice_sink_service_observer = {
  * -- load | unload extensions
  * -- */
 
-void app_extension_ms_mice_unload(msMiceSinkServiceClass *p_servceClass)
+static void app_extension_ms_mice_unload(msMiceSinkServiceClass *p_servceClass)
 {
     if(p_servceClass && p_servceClass->m_mice_service)
     {
-        CSIO_LOG(eLogLevel_warning,"app.ms-mice.unload projPtr->m_mice_service[0x%x]",p_servceClass->m_mice_service);
+        CSIO_LOG(eLogLevel_debug,"app.ms-mice.unload projPtr->m_mice_service[0x%x]",p_servceClass->m_mice_service);
 
         ms_mice_sink_service_stop(p_servceClass->m_mice_service);
         ms_mice_sink_service_observer_detach(p_servceClass->m_mice_service);
         ms_mice_sink_service_free(p_servceClass->m_mice_service);
         p_servceClass->m_mice_service = NULL;
 
-        CSIO_LOG(eLogLevel_warning,"app.ms-mice.unload exit");
+        CSIO_LOG(eLogLevel_debug,"app.ms-mice.unload exit");
     }
 }
 
-void app_extension_ms_mice_load(msMiceSinkServiceClass* p_servceClass,GError **error)
+static void app_extension_ms_mice_load(msMiceSinkServiceClass* p_servceClass,GError **error)
 {
     if(p_servceClass == NULL || error == NULL)
     {
-        CSIO_LOG(eLogLevel_warning,"app.ms-mice.load p_servceClass is NULL");
+        CSIO_LOG(eLogLevel_debug,"app.ms-mice.load p_servceClass is NULL");
         return;
     }
 
@@ -256,13 +343,14 @@ cleanup_error:
         internal_error = NULL;
     }
 }
-#endif
+/***************************** end of ms-mice static interface functions **************************************/
 
 /***************************** msMiceSinkProjClass class **************************************/
 msMiceSinkProjClass::msMiceSinkProjClass():
 msMiceSinkProjTimeArray(NULL),
 m_service_obj(NULL),
-m_projEventQList(NULL)
+m_projEventQList(NULL),
+m_pin()
 {
     m_debugLevel = gProjectDebug;
     m_projEventQList = new csioEventQueueListBase(CSIO_DEFAULT_QUEUE_SIZE);
@@ -274,6 +362,7 @@ m_projEventQList(NULL)
 }
 msMiceSinkProjClass::~msMiceSinkProjClass()
 {
+    CSIO_LOG(eLogLevel_info, "msMiceSinkProjClass::~msMiceSinkProjClass\n");
 }
 
 void msMiceSinkProjClass::exitThread()
@@ -295,10 +384,24 @@ void msMiceSinkProjClass::DumpClassPara(int id)
     CSIO_LOG(eLogLevel_info, "msMiceSinkProjClass: m_debugLevel        %d\n", m_debugLevel);
     CSIO_LOG(eLogLevel_info, "msMiceSinkProjClass: m_ThreadIsRunning   %d\n", m_ThreadIsRunning);
     CSIO_LOG(eLogLevel_info, "msMiceSinkProjClass: m_service_obj       0x%x\n", m_service_obj);
+    CSIO_LOG(eLogLevel_info, "msMiceSinkProjClass: m_pin               %d\n", m_pin);
 
     if(m_projEventQList)
     {
         CSIO_LOG(eLogLevel_info, "msMiceSinkProjClass: Event queued up     %d\n", m_projEventQList->GetEvntQueueCount());
+    }
+
+    if(msMiceSinkProjTimeArray)
+    {
+        char  time_string[40];
+        long  milliseconds;
+
+        for(int i = 0; i < MS_MICE_SINK_PROJ_TIMESTAMP_MAX; i++)
+        {
+            msMiceSinkProjTimeArray->convertTime(i,time_string,40,milliseconds);
+            CSIO_LOG(eLogLevel_info, "msMiceSinkProjClass: %s:  %s.%03ld\n",
+                     ms_mice_proj_timestamp_names[i].pStr, time_string, milliseconds);
+        }
     }
 }
 
@@ -356,7 +459,7 @@ void msMiceSinkProjClass::sendEvent(csioEventQueueStruct* pEvntQ)
     }
     else
     {
-        CSIO_LOG(eLogLevel_info, "msMiceSinkProjClass::sendEvent: pEvntQ is NULL\n");
+        CSIO_LOG(m_debugLevel, "msMiceSinkProjClass::sendEvent: pEvntQ is NULL\n");
     }
 }
 void* msMiceSinkProjClass::ThreadEntry()
@@ -377,7 +480,6 @@ void* msMiceSinkProjClass::ThreadEntry()
         return NULL;
     }
 
-    g_autoptr(GError) internal_error = NULL;
     if(m_service_obj == NULL)
     {
         m_service_obj = new msMiceSinkServiceClass();
@@ -409,10 +511,51 @@ void* msMiceSinkProjClass::ThreadEntry()
             CSIO_LOG(ABOVE_DEBUG_VERB(m_debugLevel), "msMiceSinkProjClass: evntQ is:size[%d],type[%d],iId[%d],GetEvntQueueCount[%d]\n",\
                             evntQPtr->buf_size,evntQPtr->event_type,evntQPtr->obj_id,m_projEventQList->GetEvntQueueCount());
 
-            /*switch (evntQPtr->event_type)
+            switch (evntQPtr->event_type)
             {
+                case MS_MICE_SINK_EVENTS_STOP_SESSION:
+                {
+                    /*CSIO_LOG(m_debugLevel, "msMiceSinkProjClass[%d]: MS_MICE_SINK_EVENTS_STOP_SESSION,session_id[%lld]\n",\
+                             evntQPtr->obj_id,evntQPtr->ext_gint64);
 
-            }*/
+                    if(m_service_obj->m_mice_service)
+                    {
+                        GMainContext* context = ms_mice_sink_service_get_context(m_service_obj->m_mice_service);
+
+                        ms_mice_sink_service_and_sessionid* cmd = new ms_mice_sink_service_and_sessionid();
+                        if(cmd)
+                        {
+                            cmd->service = m_service_obj->m_mice_service;
+                            cmd->session_id = evntQPtr->ext_gint64;
+                            g_main_context_invoke(context,session_observer_disconnect_request_from_app,cmd);
+                        }
+                        else
+                        {
+                            CSIO_LOG(m_debugLevel, "msMiceSinkProjClass: failed to create request for[%lld].\n",evntQPtr->ext_gint64);
+                        }
+                    }
+
+                    CSIO_LOG(m_debugLevel, "msMiceSinkProjClass[%d]: MS_MICE_SINK_EVENTS_STOP_SESSION,done\n");
+*/
+                    break;
+                }
+                case MS_MICE_SINK_EVENTS_SET_PIN:
+                {
+                    CSIO_LOG(m_debugLevel, "msMiceSinkProjClass[%d]: MS_MICE_SINK_EVENTS_SET_PIN,set pin[%d]\n",evntQPtr->ext_obj);
+                    m_pin = evntQPtr->ext_obj;
+                    break;
+                }
+                case MS_MICE_SINK_EVENTS_JNI_NOP:
+                {
+                    CSIO_LOG(m_debugLevel, "msMiceSinkProjClass[%d]: MS_MICE_SINK_EVENTS_JNI_NOP\n");
+                    break;
+                }
+                default:
+                {
+                    CSIO_LOG(m_debugLevel, "msMiceSinkProjClass: unknown type[%d].\n",evntQPtr->event_type);
+                    break;
+                }
+            }
 
             delete evntQPtr;
         }
@@ -422,10 +565,14 @@ void* msMiceSinkProjClass::ThreadEntry()
             //TODO: exit all child thread and wait here
             break;
         }
+
+        CSIO_LOG(ABOVE_DEBUG_XTRVERB(m_debugLevel), "msMiceSinkProjClass loop back\n");
     }
 
     if(m_service_obj)
     {
+        m_service_obj->exitThread();
+
         //wait until thread exits
         CSIO_LOG(m_debugLevel, "msMiceSinkProjClass: call WaitForThreadToExit[0x%x]\n",m_service_obj);
         m_service_obj->WaitForThreadToExit();
@@ -459,7 +606,7 @@ m_mainLoop(NULL)
 }
 msMiceSinkServiceClass::~msMiceSinkServiceClass()
 {
-
+    CSIO_LOG(eLogLevel_info, "msMiceSinkServiceClass::~msMiceSinkServiceClass\n");
 }
 
 void msMiceSinkServiceClass::exitThread()
@@ -622,7 +769,7 @@ void msMiceSinkProjDumpPara()
 {
     gProjectsLock.lock();
 
-    CSIO_LOG(eLogLevel_info, "msMiceSinkProjDeInit  : gProjectDebug:   %d\n",gProjectDebug);
+    CSIO_LOG(eLogLevel_info, "msMiceSinkProjDumpPara: gProjectDebug:   %d\n",gProjectDebug);
     if(g_msMiceSinkProjPtr)
     {
         g_msMiceSinkProjPtr->DumpClassPara(0);
@@ -632,7 +779,7 @@ void msMiceSinkProjDumpPara()
     }
     else
     {
-        CSIO_LOG(eLogLevel_info, "msMiceSinkProjDeInit: no gWFDSinkProjPtr is running\n");
+        CSIO_LOG(eLogLevel_info, "msMiceSinkProjDumpPara: no gWFDSinkProjPtr is running\n");
     }
 
     gProjectsLock.unlock();
@@ -679,6 +826,16 @@ void msMiceSinkProj_fdebug(char *cmd_cstring)
             {
                 int level = strtol(CmdPtr, &EndPtr, 10);
                 msMiceSinkProjSetDebugLevel(level);
+            }
+        }
+        else if(strcasestr(CmdPtr, "SESSIONSTOP"))
+        {
+            CmdPtr = strtok(NULL, ", ");
+            if(CmdPtr)
+            {
+                //id is 64 bit
+                int session_id = strtol(CmdPtr, &EndPtr, 10);
+                msMiceSinkProjStopSession(0,session_id);
             }
         }
         else

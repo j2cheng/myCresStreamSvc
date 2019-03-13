@@ -74,9 +74,8 @@ static void ms_mice_sink_service_on_accept(ms_mice_sink_service *service, GSocke
 {
     ms_mice_sink_session* session = NULL;
 
-    CSIO_LOG(eLogLevel_info,"ms.mice.sink.service.accept { \"service-address\": \"%s\" , \"service-port\": %u }", service->priv->service_address, service->priv->service_port);
+    CSIO_LOG(eLogLevel_debug,"ms.mice.sink.service.accept { \"service-address\": \"%s\" , \"service-port\": %u }", service->priv->service_address, service->priv->service_port);
 
-    //TODO: warning: need to keep track of max clients!!!
     ms_mice_sink_session_new(&session, service, generate_sink_session_id(), error);
 
     ms_mice_sink_session_connected(session, connection, error);
@@ -99,12 +98,14 @@ void ms_mice_sink_service_start(ms_mice_sink_service *service, GMainContext* mai
 {
     g_autoptr(GError) internal_error = NULL;
 
+    if (!service) return;
+
     if (service->priv->is_service_started) {
         CSIO_LOG(eLogLevel_error,"ms.mice.sink.service.start.warning { \"service-address\": \"%s\" , \"service-port\": %u , \"message\": \"service already started!\" }", service->priv->service_address, service->priv->service_port);
         return;
     }
 
-    CSIO_LOG(eLogLevel_info,"ms.mice.sink.service.start { \"service-address\": \"%s\" , \"service-port\": %u }", service->priv->service_address, service->priv->service_port);
+    CSIO_LOG(eLogLevel_debug,"ms.mice.sink.service.start { \"service-address\": \"%s\" , \"service-port\": %u }", service->priv->service_address, service->priv->service_port);
 
     service->priv->context = mainLoopCntext;
 
@@ -134,7 +135,7 @@ void ms_mice_sink_service_start(ms_mice_sink_service *service, GMainContext* mai
     }
 
     service->priv->is_service_started = true;
-    CSIO_LOG(eLogLevel_info,"ms.mice.sink.service.start.complete { \"service-address\": \"%s\" , \"service-port\": %u }", service->priv->service_address, service->priv->service_port);
+    CSIO_LOG(eLogLevel_debug,"ms.mice.sink.service.start.complete { \"service-address\": \"%s\" , \"service-port\": %u }", service->priv->service_address, service->priv->service_port);
 
     ms_mice_sink_service_raise_on_service_started(service);
 }
@@ -148,7 +149,7 @@ void ms_mice_sink_service_stop(ms_mice_sink_service *service)
         return;
 
     if (service->priv->is_service_started)
-        CSIO_LOG(eLogLevel_info,"ms.mice.sink.service.stop { \"service-address\": \"%s\" , \"service-port\": %u }", service->priv->service_address, service->priv->service_port);
+        CSIO_LOG(eLogLevel_debug,"ms.mice.sink.service.stop { \"service-address\": \"%s\" , \"service-port\": %u }", service->priv->service_address, service->priv->service_port);
 
     if (service->priv->incoming_handler_id > 0) {
         g_signal_handler_disconnect(service->priv->socket_service, service->priv->incoming_handler_id);
@@ -241,7 +242,7 @@ void ms_mice_sink_service_new(ms_mice_sink_service **out, const gchar *address, 
 
     s->priv = g_new0(ms_mice_sink_service_private, 1);
 
-    CSIO_LOG(eLogLevel_info,"ms.mice.sink.service.new { \"service-address\": \"%s\" , \"service-port\": %u }", address, port);
+    CSIO_LOG(eLogLevel_debug,"ms.mice.sink.service.new { \"service-address\": \"%s\" , \"service-port\": %u }", address, port);
 
     s->priv->service_address = g_strdup(address);
     s->priv->service_port = port;
@@ -267,7 +268,7 @@ void ms_mice_sink_service_free(ms_mice_sink_service *service)
 
     ms_mice_sink_service_stop(service);
 
-    CSIO_LOG(eLogLevel_info,"ms.mice.sink.service.free { \"service-address\": \"%s\" , \"service-port\": %u }", service->priv->service_address, service->priv->service_port);
+    CSIO_LOG(eLogLevel_debug,"ms.mice.sink.service.free { \"service-address\": \"%s\" , \"service-port\": %u }", service->priv->service_address, service->priv->service_port);
 
     g_free((gpointer)service->priv->service_address);
     service->priv->observer = NULL;

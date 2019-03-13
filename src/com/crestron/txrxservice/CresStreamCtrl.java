@@ -4131,6 +4131,10 @@ public class CresStreamCtrl extends Service {
     						if (!updateStreamStateOnFirstFrame[sessId])
     							sendAirMediaStartedState(sessId);
     					}
+    					else
+    					{
+               	            Log.i(TAG, "Ignoring start, because no output sync");
+                        }
     				}
     				else
     				{

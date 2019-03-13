@@ -115,10 +115,13 @@ static GMutex sesson_id_generator_lock;
 static guint64 sesson_id_generator;
 
 //Note: copy from app-runtime.c
+//      generate only non-zero positive numbers
 guint64 generate_sink_session_id()
 {
     g_mutex_lock(&sesson_id_generator_lock);
     ++sesson_id_generator;
+    sesson_id_generator &= 0x7fffffffffffffff;
+
     if (!sesson_id_generator) ++sesson_id_generator;
     g_mutex_unlock(&sesson_id_generator_lock);
     return sesson_id_generator;

@@ -259,7 +259,7 @@ static void ms_mice_sink_session_message_update_friendly_name(ms_mice_sink_sessi
 
     session->priv->friendly_name = ms_mice_tlv_friendly_name_to_utf8(tlv);
 
-    CSIO_LOG(eLogLevel_info,"ms.mice.sink.session.message.friendly-name.set { \"session-id\": %"G_GUINT64_FORMAT" , \"local-address\": \"%s\" , \"remote-address\": \"%s\" , \"state\": \"%s\" , \"friendly-name\": \"%s\" }",
+    CSIO_LOG(eLogLevel_debug,"ms.mice.sink.session.message.friendly-name.set { \"session-id\": %"G_GUINT64_FORMAT" , \"local-address\": \"%s\" , \"remote-address\": \"%s\" , \"state\": \"%s\" , \"friendly-name\": \"%s\" }",
              session->priv->session_id, session->priv->local_address, session->priv->remote_address, ms_mice_sink_session_state_to_string(session->priv->state), session->priv->friendly_name);
 
     ms_mice_sink_session_raise_on_session_source_friendly_name_set(session, session->priv->friendly_name);
@@ -273,7 +273,7 @@ static void ms_mice_sink_session_tlv_update_source_id(ms_mice_sink_session *sess
         session->priv->source_id_raw[i] = tlv->source_id.value[i];
     }
 
-    CSIO_LOG(eLogLevel_info,"ms.mice.sink.session.message.source-id.set { \"session-id\": %"G_GUINT64_FORMAT" , \"local-address\": \"%s\" , \"remote-address\": \"%s\" , \"state\": \"%s\" , \"source-id\": \"%s\" }",
+    CSIO_LOG(eLogLevel_debug,"ms.mice.sink.session.message.source-id.set { \"session-id\": %"G_GUINT64_FORMAT" , \"local-address\": \"%s\" , \"remote-address\": \"%s\" , \"state\": \"%s\" , \"source-id\": \"%s\" }",
              session->priv->session_id, session->priv->local_address, session->priv->remote_address, ms_mice_sink_session_state_to_string(session->priv->state), session->priv->source_id);
 
     ms_mice_sink_session_raise_on_session_source_id_set(session, session->priv->source_id);
@@ -407,7 +407,7 @@ static void ms_mice_sink_session_handle_source_ready_message(ms_mice_sink_sessio
 
     session->priv->state = MS_MICE_SINK_SESSION_STATE_SOURCE_READY;
 
-    CSIO_LOG(eLogLevel_info,"ms.mice.sink.session.message.received.source-ready { \"session-id\": %"G_GUINT64_FORMAT" , \"local-address\": \"%s\" , \"remote-address\": \"%s\" , \"state\": \"%s\" , \"rtsp-port\": \"%u\" }",
+    CSIO_LOG(eLogLevel_debug,"ms.mice.sink.session.message.received.source-ready { \"session-id\": %"G_GUINT64_FORMAT" , \"local-address\": \"%s\" , \"remote-address\": \"%s\" , \"state\": \"%s\" , \"rtsp-port\": \"%u\" }",
              session->priv->session_id, session->priv->local_address, session->priv->remote_address, ms_mice_sink_session_state_to_string(session->priv->state), session->priv->rtsp_port);
 
     ms_mice_sink_session_raise_on_session_state_changed(session, old_state, session->priv->state);
@@ -515,7 +515,7 @@ static void ms_mice_sink_session_handle_session_request_message(ms_mice_sink_ses
 
     ms_mice_sink_session_raise_on_session_state_changed(session, old_state, session->priv->state);
 
-    CSIO_LOG(eLogLevel_info,"ms.mice.sink.session.message.received.session-request { \"session-id\": %"G_GUINT64_FORMAT" , \"local-address\": \"%s\" , \"remote-address\": \"%s\" , \"state\": \"%s\" , \"sink-display-pin\": \"%s\" , \"use-dtls-encryption\": \"%s\" }",
+    CSIO_LOG(eLogLevel_debug,"ms.mice.sink.session.message.received.session-request { \"session-id\": %"G_GUINT64_FORMAT" , \"local-address\": \"%s\" , \"remote-address\": \"%s\" , \"state\": \"%s\" , \"sink-display-pin\": \"%s\" , \"use-dtls-encryption\": \"%s\" }",
               session->priv->session_id, session->priv->local_address, session->priv->remote_address, ms_mice_sink_session_state_to_string(session->priv->state), BOOL_TO_STRING(tlv->security_options.sink_displays_pin), BOOL_TO_STRING(tlv->security_options.use_dtls_stream_encryption));
 }
 
@@ -562,7 +562,7 @@ static void ms_mice_sink_session_handle_pin_response_message(ms_mice_sink_sessio
 
 static void ms_mice_sink_session_dispatch_message(ms_mice_sink_session *session, ms_mice_message *msg, GError **error)
 {
-    CSIO_LOG(eLogLevel_info,"ms.mice.sink.session.message.received.handle { \"session-id\": %"G_GUINT64_FORMAT" , \"local-address\": \"%s\" , \"remote-address\": \"%s\" , \"state\": \"%s\" , \"ms-mice-size\": \"%u\" , \"ms-mice-version\": %u , \"ms-mice-command\": %s }",
+    CSIO_LOG(eLogLevel_debug,"ms.mice.sink.session.message.received.handle { \"session-id\": %"G_GUINT64_FORMAT" , \"local-address\": \"%s\" , \"remote-address\": \"%s\" , \"state\": \"%s\" , \"ms-mice-size\": \"%u\" , \"ms-mice-version\": %u , \"ms-mice-command\": %s }",
               session->priv->session_id, session->priv->local_address, session->priv->remote_address, ms_mice_sink_session_state_to_string(session->priv->state), msg->size, msg->version, ms_mice_command_to_string(msg->command));
 
     /* validate will also extract source-id and friendly-name */
@@ -646,7 +646,7 @@ static int ms_mice_sink_session_handle_read_data(ms_mice_sink_session *session, 
 
             session->priv->in_message_active = true;
 
-            CSIO_LOG(eLogLevel_info,"ms.mice.sink.session.message.received.header { \"session-id\": %"G_GUINT64_FORMAT" , \"local-address\": \"%s\" , \"remote-address\": \"%s\" , \"state\": \"%s\" , \"ms-mice-size\": \"%u\" , \"ms-mice-version\": %u , \"ms-mice-command\": %s , \"available\": %"G_GSIZE_FORMAT" }",
+            CSIO_LOG(eLogLevel_debug,"ms.mice.sink.session.message.received.header { \"session-id\": %"G_GUINT64_FORMAT" , \"local-address\": \"%s\" , \"remote-address\": \"%s\" , \"state\": \"%s\" , \"ms-mice-size\": \"%u\" , \"ms-mice-version\": %u , \"ms-mice-command\": %s , \"available\": %"G_GSIZE_FORMAT" }",
                       session->priv->session_id, session->priv->local_address, session->priv->remote_address, ms_mice_sink_session_state_to_string(session->priv->state), session->priv->in_message->size, session->priv->in_message->version, ms_mice_command_to_string(session->priv->in_message->command), available);
         }
 
@@ -657,7 +657,7 @@ static int ms_mice_sink_session_handle_read_data(ms_mice_sink_session *session, 
 
         ms_mice_message_unpack(session->priv->in_message, session->priv->in_stream, &error);
 
-        CSIO_LOG(eLogLevel_info,"ms.mice.sink.session.message.received.ready { \"session-id\": %"G_GUINT64_FORMAT" , \"local-address\": \"%s\" , \"remote-address\": \"%s\" , \"state\": \"%s\" , \"ms-mice-size\": \"%u\" , \"ms-mice-version\": %u , \"ms-mice-command\": %s }",
+        CSIO_LOG(eLogLevel_debug,"ms.mice.sink.session.message.received.ready { \"session-id\": %"G_GUINT64_FORMAT" , \"local-address\": \"%s\" , \"remote-address\": \"%s\" , \"state\": \"%s\" , \"ms-mice-size\": \"%u\" , \"ms-mice-version\": %u , \"ms-mice-command\": %s }",
                   session->priv->session_id, session->priv->local_address, session->priv->remote_address, ms_mice_sink_session_state_to_string(session->priv->state), session->priv->in_message->size, session->priv->in_message->version, ms_mice_command_to_string(session->priv->in_message->command));
 
         // TODO [RAL] check for error
@@ -716,7 +716,7 @@ static int ms_mice_sink_session_write_message(ms_mice_sink_session *session, ms_
     if (!entry->is_sending) {
         ms_mice_message_entry_pack(entry, error);
 
-        CSIO_LOG(eLogLevel_info,"ms.mice.sink.session.message.write { \"session-id\": %"G_GUINT64_FORMAT" , \"local-address\": \"%s\" , \"remote-address\": \"%s\" , \"state\": \"%s\" , \"ms-mice-size\": \"%u\" , \"ms-mice-version\": %u , \"ms-mice-command\": \"%s\" , \"send\": %"G_GSIZE_FORMAT" }",
+        CSIO_LOG(eLogLevel_debug,"ms.mice.sink.session.message.write { \"session-id\": %"G_GUINT64_FORMAT" , \"local-address\": \"%s\" , \"remote-address\": \"%s\" , \"state\": \"%s\" , \"ms-mice-size\": \"%u\" , \"ms-mice-version\": %u , \"ms-mice-command\": \"%s\" , \"send\": %"G_GSIZE_FORMAT" }",
                   session->priv->session_id, session->priv->local_address, session->priv->remote_address, ms_mice_sink_session_state_to_string(session->priv->state), entry->msg->size, entry->msg->version, ms_mice_command_to_string(entry->msg->command), entry->raw_size);
     }
 
@@ -733,7 +733,7 @@ static int ms_mice_sink_session_write_message(ms_mice_sink_session *session, ms_
 
     entry->sent += r;
     if (entry->sent >= entry->raw_size) {
-        CSIO_LOG(eLogLevel_info,"ms.mice.sink.session.message.write.complete { \"session-id\": %"G_GUINT64_FORMAT" , \"local-address\": \"%s\" , \"remote-address\": \"%s\" , \"state\": \"%s\" , \"ms-mice-size\": \"%u\" , \"ms-mice-version\": %u , \"ms-mice-command\": %s , \"sent\": %"G_GSIZE_FORMAT" }",
+        CSIO_LOG(eLogLevel_debug,"ms.mice.sink.session.message.write.complete { \"session-id\": %"G_GUINT64_FORMAT" , \"local-address\": \"%s\" , \"remote-address\": \"%s\" , \"state\": \"%s\" , \"ms-mice-size\": \"%u\" , \"ms-mice-version\": %u , \"ms-mice-command\": %s , \"sent\": %"G_GSIZE_FORMAT" }",
                   session->priv->session_id, session->priv->local_address, session->priv->remote_address, ms_mice_sink_session_state_to_string(session->priv->state), entry->msg->size, entry->msg->version, ms_mice_command_to_string(entry->msg->command), entry->sent);
 
         ms_mice_message_entry_free(entry);
@@ -1061,7 +1061,7 @@ void ms_mice_sink_session_connected(ms_mice_sink_session *session, GSocketConnec
     g_autoptr(GSocketAddress) local_socket_address = NULL;
     g_autoptr(GSocketAddress) remote_socket_address = NULL;
 
-    CSIO_LOG(eLogLevel_info,"ms.mice.sink.session.connected");
+    CSIO_LOG(eLogLevel_debug,"ms.mice.sink.session.connected");
 
     if (!ms_mice_sink_session_validate(session, error))
         return;
@@ -1082,7 +1082,7 @@ void ms_mice_sink_session_connected(ms_mice_sink_session *session, GSocketConnec
     remote_socket_address = g_socket_connection_get_remote_address(connection, NULL);
     session->priv->remote_address = socket_address_to_string(remote_socket_address);
 
-    CSIO_LOG(eLogLevel_info,"ms.mice.sink.session.connected { \"session-id\": %"G_GUINT64_FORMAT" , \"local-address\": \"%s\" , \"remote-address\": \"%s\" , \"state\": \"%s\" }",
+    CSIO_LOG(eLogLevel_debug,"ms.mice.sink.session.connected { \"session-id\": %"G_GUINT64_FORMAT" , \"local-address\": \"%s\" , \"remote-address\": \"%s\" , \"state\": \"%s\" }",
               session->priv->session_id, session->priv->local_address, session->priv->remote_address, ms_mice_sink_session_state_to_string(session->priv->state));
 
     if (!ms_mice_sink_session_is_connected(session)) {
@@ -1140,7 +1140,7 @@ void ms_mice_sink_session_connected(ms_mice_sink_session *session, GSocketConnec
 
 static void ms_mice_sink_session_disconnect(ms_mice_sink_session *ms_session)
 {
-    CSIO_LOG(eLogLevel_info,"ms.mice.sink.session.disconnect { \"session-id\": %"G_GUINT64_FORMAT" , \"local-address\": \"%s\" , \"remote-address\": \"%s\" , \"state\": \"%s\" , \"friendly-name\": \"%s\" , \"source-id\": \"%s\" }",
+    CSIO_LOG(eLogLevel_debug,"ms.mice.sink.session.disconnect { \"session-id\": %"G_GUINT64_FORMAT" , \"local-address\": \"%s\" , \"remote-address\": \"%s\" , \"state\": \"%s\" , \"friendly-name\": \"%s\" , \"source-id\": \"%s\" }",
              ms_session->priv->session_id, ms_session->priv->local_address, ms_session->priv->remote_address, ms_mice_sink_session_state_to_string(ms_session->priv->state), ms_session->priv->friendly_name, ms_session->priv->source_id);
 
 #ifdef API_SUPPORTED
@@ -1167,7 +1167,7 @@ void ms_mice_sink_session_close(ms_mice_sink_session *session)
 
     old_state = session->priv->state;
 
-    CSIO_LOG(eLogLevel_info,"ms.mice.sink.session.close { \"session-id\": %"G_GUINT64_FORMAT" , \"local-address\": \"%s\" , \"remote-address\": \"%s\" , \"state\": \"%s\" , \"friendly-name\": \"%s\" , \"source-id\": \"%s\" }",
+    CSIO_LOG(eLogLevel_debug,"ms.mice.sink.session.close { \"session-id\": %"G_GUINT64_FORMAT" , \"local-address\": \"%s\" , \"remote-address\": \"%s\" , \"state\": \"%s\" , \"friendly-name\": \"%s\" , \"source-id\": \"%s\" }",
               session->priv->session_id, session->priv->local_address, session->priv->remote_address, ms_mice_sink_session_state_to_string(session->priv->state), session->priv->friendly_name, session->priv->source_id);
 
     shl_dlist_unlink(&session->list);
@@ -1280,7 +1280,7 @@ void ms_mice_sink_session_new(ms_mice_sink_session **out, ms_mice_sink_service *
 
     s->priv = g_new0(ms_mice_sink_session_private, 1);
 
-    CSIO_LOG(eLogLevel_info,"ms.mice.sink.session.new { \"session-id\": %"G_GUINT64_FORMAT" }", session_id);
+    CSIO_LOG(eLogLevel_debug,"ms.mice.sink.session.new { \"session-id\": %"G_GUINT64_FORMAT" }", session_id);
 
     s->priv->service = service;
     s->priv->session_id = session_id;
@@ -1316,7 +1316,7 @@ void ms_mice_sink_session_free(ms_mice_sink_session *session)
     if (!session)
         return;
 
-    CSIO_LOG(eLogLevel_info,"ms.mice.sink.session.free { \"session-id\": %"G_GUINT64_FORMAT" , \"local-address\": \"%s\" , \"remote-address\": \"%s\" , \"state\": \"%s\" , \"friendly-name\": \"%s\" , \"source-id\": \"%s\" }",
+    CSIO_LOG(eLogLevel_debug,"ms.mice.sink.session.free { \"session-id\": %"G_GUINT64_FORMAT" , \"local-address\": \"%s\" , \"remote-address\": \"%s\" , \"state\": \"%s\" , \"friendly-name\": \"%s\" , \"source-id\": \"%s\" }",
               session->priv->session_id, session->priv->local_address, session->priv->remote_address, ms_mice_sink_session_state_to_string(session->priv->state), session->priv->friendly_name, session->priv->source_id);
 
     g_free((gpointer)session->priv->local_address);

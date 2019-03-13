@@ -53,6 +53,15 @@ LOCAL_SRC_FILES := \
     $(CSIO_ROOT)/CSIOCommon.cpp \
     $(CSIO_ROOT)/csioCommBase.cpp
 	
+LOCAL_SRC_FILES +=\
+	ms_mice_sink/ms-mice-sink-service.cpp \
+	ms_mice_sink/ms-mice-messages.cpp \
+	ms_mice_sink/ms-mice-utilities.cpp \
+	ms_mice_sink/ms-mice-sink-session.cpp \
+	ms_mice_sink/ms-mice-tlv.cpp \
+	ms_mice_sink/shared/glib-utilities.cpp \
+	ms_mice_sink/ms_mice_project.cpp
+
 COMMON_INC_PATH := $(CRESTRON_ROOT)/Include
 UTIL_INC_PATH := $(CRESTRON_ROOT)/Utilities
 STL_INC_PATH := $(CRESTRON_ROOT)/../stlport/stlport

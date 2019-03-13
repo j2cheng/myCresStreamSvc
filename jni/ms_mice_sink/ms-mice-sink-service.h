@@ -33,7 +33,10 @@ typedef struct {
     void (*on_session_connected)(ms_mice_sink_service *service, ms_mice_sink_session *session, gpointer data);
 } ms_mice_sink_service_observer;
 
-
+struct ms_mice_sink_service_and_sessionid {
+    ms_mice_sink_service *service;
+    guint64 session_id;
+};
 /* ------------------------------------------------------------------------------------------------------------------
  * -- MS-MICE SINK SERVICE CONSTRUCTION
  * -- */
