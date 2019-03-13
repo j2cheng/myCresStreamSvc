@@ -4485,7 +4485,7 @@ JNIEXPORT void JNICALL Java_com_crestron_txrxservice_GstreamIn_nativeMsMiceSetPi
     }
     else
     {
-        int setPin = 0;//TODO
+        int setPin = atoi(locPin);
         msMiceSinkProjSetPin(id,setPin);
 
         env->ReleaseStringUTFChars(pin_jstring, locPin);

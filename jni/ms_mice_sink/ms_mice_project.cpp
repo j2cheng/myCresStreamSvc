@@ -350,7 +350,7 @@ msMiceSinkProjClass::msMiceSinkProjClass():
 msMiceSinkProjTimeArray(NULL),
 m_service_obj(NULL),
 m_projEventQList(NULL),
-m_pin()
+m_pin(-1)
 {
     m_debugLevel = gProjectDebug;
     m_projEventQList = new csioEventQueueListBase(CSIO_DEFAULT_QUEUE_SIZE);
