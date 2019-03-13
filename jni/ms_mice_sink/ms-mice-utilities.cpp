@@ -120,7 +120,7 @@ guint64 generate_sink_session_id()
 {
     g_mutex_lock(&sesson_id_generator_lock);
     ++sesson_id_generator;
-    sesson_id_generator &= 0x7fffffffffffffff;
+    sesson_id_generator &= G_MAXINT64;
 
     if (!sesson_id_generator) ++sesson_id_generator;
     g_mutex_unlock(&sesson_id_generator_lock);

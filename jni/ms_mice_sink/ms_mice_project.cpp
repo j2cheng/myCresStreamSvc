@@ -189,7 +189,13 @@ static void app_extension_ms_mice_session_observer_on_source_ready(ms_mice_sink_
     CSIO_LOG(eLogLevel_debug,"app.ms-mice.session.event.source-ready { \"session-id\": %"G_GUINT64_FORMAT" , \"rtsp-port\": %u }", ms_mice_sink_session_get_id(ms_session), rtsp_port);
 
     //TODO: emit_source_ready to java
-    Wfd_ms_mice_signal_raise (ms_mice_sink_session_get_id(ms_session), 1, "device_id", "device_name", "device_addr",rtsp_port);
+    Wfd_ms_mice_signal_raise (
+            ms_mice_sink_session_get_id(ms_session),
+            1,
+            (char*)ms_mice_sink_session_get_source_id(ms_session),
+            (char*)ms_mice_sink_session_get_friendly_name(ms_session),
+            (char*)ms_mice_sink_session_get_remote_address(ms_session),
+            rtsp_port);
 }
 
 static void app_extension_ms_mice_session_observer_on_source_ready_with_dtls(ms_mice_sink_session *ms_session, guint16 rtsp_port, const char *key, int cipher, int authentication, gpointer data)
@@ -198,7 +204,13 @@ static void app_extension_ms_mice_session_observer_on_source_ready_with_dtls(ms_
               ms_mice_sink_session_get_id(ms_session), rtsp_port, key, cipher, authentication);
 
     //TODO: emit_source_ready_with_dtls to java
-    Wfd_ms_mice_signal_raise (ms_mice_sink_session_get_id(ms_session), 1, "device_id", "device_name", "device_addr",rtsp_port);
+    Wfd_ms_mice_signal_raise (
+            ms_mice_sink_session_get_id(ms_session),
+            1,
+            (char*)ms_mice_sink_session_get_source_id(ms_session),
+            (char*)ms_mice_sink_session_get_friendly_name(ms_session),
+            (char*)ms_mice_sink_session_get_remote_address(ms_session),
+            rtsp_port);
 }
 
 static void app_extension_ms_mice_session_observer_on_stop_projection(ms_mice_sink_session *ms_session, gpointer data)
@@ -206,7 +218,13 @@ static void app_extension_ms_mice_session_observer_on_stop_projection(ms_mice_si
     CSIO_LOG(eLogLevel_debug,"app.ms-mice.session.event.stop-projection { \"session-id\": %"G_GUINT64_FORMAT" }", ms_mice_sink_session_get_id(ms_session));
 
     //TODO: emit_stop_projecting to java
-    Wfd_ms_mice_signal_raise (ms_mice_sink_session_get_id(ms_session), 0,"device_id", "device_name", "device_addr",0);
+    Wfd_ms_mice_signal_raise (
+            ms_mice_sink_session_get_id(ms_session),
+            0,
+            (char*)ms_mice_sink_session_get_source_id(ms_session),
+            (char*)ms_mice_sink_session_get_friendly_name(ms_session),
+            (char*)ms_mice_sink_session_get_remote_address(ms_session),
+            0);
 }
 
 ms_mice_sink_session_observer app_extension_ms_mice_session_observer = {
