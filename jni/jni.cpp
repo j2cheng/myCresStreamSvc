@@ -4498,6 +4498,9 @@ void csio_SendMsMiceStateChange(gint64 sessionId, int state, char *device_id, ch
     jstring deviceName;
     jstring deviceAddress;
 
+    CSIO_LOG(eLogLevel_debug, "csio_SendMsMiceStateChange,sessionId[%lld],state[%d],device_id[%s],device_name[%s],device_addr[%s],rtsp_port[%d]",
+            sessionId,state,device_id,device_name,device_addr,rtsp_port);
+
     jmethodID sendMsMiceStateChange = env->GetMethodID((jclass)gStreamIn_javaClass_id, "sendMsMiceStateChange", "(JILjava/lang/String;Ljava/lang/String;Ljava/lang/String;I)V");
     if (sendMsMiceStateChange == NULL) return;
 
@@ -4518,7 +4521,14 @@ void csio_SendMsMiceStateChange(gint64 sessionId, int state, char *device_id, ch
 void Wfd_ms_mice_signal_raise (gint64 session_id, int state, char *device_id, char *device_name, char *device_addr, int rtsp_port)
 {
     CSIO_LOG(eLogLevel_debug, "Wfd_ms_mice_signal_raise,session_id[%lld],state[%d],rtsp_port[%d]", session_id,state,rtsp_port);
-
-    csio_SendMsMiceStateChange(session_id,state,"device_id","device_name","device_addr",rtsp_port);
+    if(device_id && device_name && device_addr)
+    {
+        CSIO_LOG(eLogLevel_debug, "Wfd_ms_mice_signal_raise,device_id[%s],device_name[%s],device_addr[%s]", device_id,device_name,device_addr);
+        csio_SendMsMiceStateChange(session_id,state,device_id,device_name,device_addr,rtsp_port);
+    }
+    else
+    {
+        csio_SendMsMiceStateChange(session_id,state,"device_id","device_name","device_addr",rtsp_port);
+    }
 }
 /***************************** end of Miracast(Wifi Display:wfd) streaming in *********************************/
