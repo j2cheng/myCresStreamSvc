@@ -36,6 +36,7 @@ const MSMICE_STRNUMPAIR ms_mice_proj_timestamp_names[] =
 };
 
 int session_observer_disconnect_request_from_app(gpointer user_data);
+void* msMiceSinkProjFindSession(guint64 session_id);
 
 /*************************** Global functions  ************************************/
 void msMiceSinkProjInit()
@@ -152,6 +153,34 @@ void msMiceSinkProjSetPin(int id,int pin)
 
     gProjectsLock.unlock();
     CSIO_LOG(gProjectDebug, "msMiceSinkProjSetPin: return.");
+}
+
+void* msMiceSinkProjFindSession(guint64 session_id)
+{
+    ms_mice_sink_session* session = NULL;
+    CSIO_LOG(gProjectDebug, "msMiceSinkProjFindSession: enter: session_id[%lld]",session_id);
+    gProjectsLock.lock();
+
+    if(g_msMiceSinkProjPtr && g_msMiceSinkProjPtr->m_service_obj)
+    {
+        if(g_msMiceSinkProjPtr->m_service_obj->m_mice_service)
+        {
+            session = ms_mice_sink_service_find_session_by_id(g_msMiceSinkProjPtr->m_service_obj->m_mice_service,session_id);
+        }
+        else
+        {
+            CSIO_LOG(gProjectDebug, "msMiceSinkProjSetPin: no m_mice_service is NULL\n");
+        }
+    }
+    else
+    {
+        CSIO_LOG(gProjectDebug, "msMiceSinkProjSetPin: no g_msMiceSinkProjPtr is running\n");
+    }
+
+    gProjectsLock.unlock();
+    CSIO_LOG(gProjectDebug, "msMiceSinkProjFindSession: return[0x%x].",session);
+
+    return (void*)session;
 }
 /***************************** start of ms-mice static interface functions ****
  *  Note: this session must run under one thread,
