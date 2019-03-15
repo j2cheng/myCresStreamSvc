@@ -45,6 +45,8 @@ public interface AirMedia
     public void setIpAddressPrompt(boolean enable); 
     public void setDomainNamePrompt(boolean enable);
     
+	public void setAirMediaMiracast(boolean enable);
+
     public void setAirMediaMiracastWifiDirectMode(boolean enable);
     
     public void setSurfaceSize(int x, int y, int width, int height, boolean launch);

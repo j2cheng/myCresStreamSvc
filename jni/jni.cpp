@@ -4260,7 +4260,6 @@ JNIEXPORT void JNICALL Java_com_crestron_txrxservice_WbsStreamIn_nativeSetLogLev
 /***************************** start of Miracast(Wifi Display:wfd) streaming in shares GStreamIn class instance *********************************/
 /* Start wfd connection .
  * Note: calling function should call gst_native_surface_init() to setup surface first.
- * Note: When DTLS is not used - key string will be a "null" object and the cipher and authentication will be 0.  Check before using.
  *
  * */
 JNIEXPORT void JNICALL Java_com_crestron_txrxservice_GstreamIn_nativeWfdStart(JNIEnv *env, jobject thiz, jint windowId, jstring url_jstring, jint rtsp_port)
@@ -4361,7 +4360,7 @@ JNIEXPORT void JNICALL Java_com_crestron_txrxservice_GstreamIn_nativeWfdStop(JNI
 
 			data->rtcp_dest_ip_addr[0] = '\0';
 			data->rtcp_dest_port = -1;
-            CSIO_LOG(eLogLevel_debug, "GstreamIn_nativeWfdSto[%d]: data->isStarted[%d]", windowId,data->isStarted);
+            CSIO_LOG(eLogLevel_debug, "GstreamIn_nativeWfdStop[%d]: data->isStarted[%d]", windowId,data->isStarted);
 
             if (data->isStarted)
             {
@@ -4502,7 +4501,10 @@ void csio_SendMsMiceStateChange(gint64 sessionId, int state, char *device_id, ch
             sessionId,state,device_id,device_name,device_addr,rtsp_port);
 
     jmethodID sendMsMiceStateChange = env->GetMethodID((jclass)gStreamIn_javaClass_id, "sendMsMiceStateChange", "(JILjava/lang/String;Ljava/lang/String;Ljava/lang/String;I)V");
-    if (sendMsMiceStateChange == NULL) return;
+    if (sendMsMiceStateChange == NULL) {
+        CSIO_LOG(eLogLevel_error, "Failed to find Java method 'sendMsMiceStateChange'");
+    	return;
+    }
 
     deviceId = env->NewStringUTF(device_id);
     deviceName = env->NewStringUTF(device_name);

@@ -169,7 +169,9 @@ public class CommandParser {
         AIRMEDIA_DISPLAY_CONNECTION_OPTION,
         AIRMEDIA_DISPLAY_SCREEN,
         AIRMEDIA_WINDOW_FLAG,
+        AIRMEDIA_MIRACAST_ENABLE,
         AIRMEDIA_MIRACAST_WIFI_DIRECT_MODE_ENABLE,
+        MSMICE_ENABLE,        // for VE debugging
         AIRMEDIA_VERSION,
         AIRMEDIA_DEBUG,
         AIRMEDIA_PROCESS_DEBUG_MESSAGE,
@@ -717,8 +719,14 @@ public class CommandParser {
             case AIRMEDIA_WINDOW_FLAG:
             	cmd = new AirMediaWindowFlagCommand(ctrl, arg, idx);
             	break;
+            case AIRMEDIA_MIRACAST_ENABLE:
+            	cmd = new AirMediaMiracastEnableCommand(ctrl, arg, idx);
+            	break;
             case AIRMEDIA_MIRACAST_WIFI_DIRECT_MODE_ENABLE:
             	cmd = new AirMediaMiracastWifiDirectModeEnableCommand(ctrl, arg, idx);
+            	break;
+            case MSMICE_ENABLE:
+            	cmd = new MsMiceEnableCommand(ctrl, arg, idx);
             	break;
             case AIRMEDIA_VERSION:
             	cmd = new AirMediaVersionCommand(ctrl, arg, idx);

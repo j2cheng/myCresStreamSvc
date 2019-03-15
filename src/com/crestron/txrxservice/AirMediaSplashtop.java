@@ -74,7 +74,7 @@ public class AirMediaSplashtop implements AirMedia
 {
     CresStreamCtrl mStreamCtl;
     Context mContext;
-    String TAG = "TxRx Splashtop AirMedia"; 
+    public static final String TAG = "TxRx Splashtop AirMedia"; 
 	private boolean surfaceDisplayed = false;
 	private boolean doneQuerySenderList = true;
 	private int streamIdx = 0;
@@ -180,6 +180,7 @@ public class AirMediaSplashtop implements AirMedia
     		    		}
     		    	}
     			} finally {
+    				mStreamCtl.airMediaMiracastEnable(mStreamCtl.userSettings.getAirMediaMiracastEnable());
     				orderedLock.unlock("launchReceiverService");
     		    	Common.Logging.i(TAG, "launchReceiverService exit ........");
     			}
@@ -603,6 +604,11 @@ public class AirMediaSplashtop implements AirMedia
     	}
     }
     
+	public void setAirMediaMiracast(boolean enable)
+	{
+		Common.Logging.i(TAG, "setAirMediaMiracast(): ***** TODO implement *****");
+	}
+
     public void setAirMediaMiracastWifiDirectMode(boolean enable)
     {
 		Common.Logging.i(TAG, "setAirMediaMiracastWifiDirectMode(): ***** TODO implement *****");

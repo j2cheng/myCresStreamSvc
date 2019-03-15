@@ -197,8 +197,7 @@ JNIEXPORT void JNICALL Java_com_crestron_txrxservice_GstreamIn_nativeSetRTCPDest
  * Method:          nativeWfdStart
  * Signature:       (ILjava/lang/string; ILjava/lang/string; II)V
  */
-JNIEXPORT void JNICALL Java_com_crestron_txrxservice_GstreamIn_nativeWfdStart(JNIEnv *env, jobject thiz, jint windowId, jstring url_jstring, jint rtsp_port,
-		jstring key, jint cipher, jint authentication);
+JNIEXPORT void JNICALL Java_com_crestron_txrxservice_GstreamIn_nativeWfdStart(JNIEnv *env, jobject thiz, jint windowId, jstring url_jstring, jint rtsp_port);
 
 /*
  * Class:           GstreamIn
@@ -206,6 +205,34 @@ JNIEXPORT void JNICALL Java_com_crestron_txrxservice_GstreamIn_nativeWfdStart(JN
  * Signature:       (I)V
  */
 JNIEXPORT void JNICALL Java_com_crestron_txrxservice_GstreamIn_nativeWfdStop(JNIEnv *env, jobject thiz, jint windowId);
+
+/*
+ * Class:           GstreamIn
+ * Method:          nativeMsMiceStart
+ * Signature:       ()V
+ */
+JNIEXPORT void JNICALL Java_com_crestron_txrxservice_GstreamIn_nativeMsMiceStart(JNIEnv *env, jobject thiz);
+
+/*
+ * Class:           GstreamIn
+ * Method:          nativeMsMiceStop
+ * Signature:       ()V
+ */
+JNIEXPORT void JNICALL Java_com_crestron_txrxservice_GstreamIn_nativeMsMiceStop(JNIEnv *env, jobject thiz);
+
+/*
+ * Class:           GstreamIn
+ * Method:          nativeMsMiceCloseSession
+ * Signature:       (J)V
+ */
+JNIEXPORT void JNICALL Java_com_crestron_txrxservice_GstreamIn_nativeMsMiceCloseSession(JNIEnv *env, jobject thiz, jlong session_id);
+
+/*
+ * Class:           GstreamIn
+ * Method:          nativeMsMiceSetPin
+ * Signature:       (Ljava/lang/string;)V
+ */
+JNIEXPORT void JNICALL Java_com_crestron_txrxservice_GstreamIn_nativeMsMiceSetPin(JNIEnv *env, jobject thiz, jstring pin_jstring);
 
 ///////////////////////////////////////////////////////////////////////////////
 eStreamState nativeGetCurrentStreamState(jint);

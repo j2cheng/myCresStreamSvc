@@ -2129,6 +2129,30 @@ class AirMediaWindowFlagCommand extends CrestronCommand {
 	}
 }
 
+class AirMediaMiracastEnableCommand extends CrestronCommand {
+	public AirMediaMiracastEnableCommand(CresStreamCtrl ctrl, String arg, int sessId) {
+		super(ctrl, arg, sessId);
+	}	
+	public void execute() {
+		ctrl.airMediaMiracastEnable(Boolean.valueOf(msg));
+	}
+	public String getFeedbackMsg() {
+		return Boolean.toString(ctrl.userSettings.getAirMediaMiracastEnable());
+	}
+}
+
+class MsMiceEnableCommand extends CrestronCommand {
+	public MsMiceEnableCommand(CresStreamCtrl ctrl, String arg, int sessId) {
+		super(ctrl, arg, sessId);
+	}	
+	public void execute() {
+		ctrl.msMiceEnable(Boolean.valueOf(msg));
+	}
+	public String getFeedbackMsg() {
+		return Boolean.toString(ctrl.userSettings.getMsMiceEnable());
+	}
+}
+
 class AirMediaMiracastWifiDirectModeEnableCommand extends CrestronCommand {
 	public AirMediaMiracastWifiDirectModeEnableCommand(CresStreamCtrl ctrl, String arg, int sessId) {
 		super(ctrl, arg, sessId);

@@ -138,7 +138,7 @@ public class WifidVideoPlayer {
         		}
         	}
         }
-        
+
         public void resolutionChanged(long id, int width, int height)
         {
         	for (IVideoPlayerObserver observer : observers()) {
@@ -150,6 +150,20 @@ public class WifidVideoPlayer {
         		}
         	}
         }
+        
+        public void onSessionReady(long id, String device_id, String device_name, String device_address, int port)
+        {
+        	for (IVideoPlayerObserver observer : observers()) {
+        		try {
+        			observer.onSessionReady(id, device_id, device_name, device_address, port);
+        		} catch (RemoteException e) {
+                    Common.Logging.e(TAG, "videoplayer.observer.onSessionReady  id= " + id + "  device_id= " + device_address + "  device_name=" + device_name +
+                    		"  device_address=" + device_address + "  rtsp_port=" + port + "  EXCEPTION  " + e + "  " + Log.getStackTraceString(e));
+                    remove(observer);
+        		}
+        	}
+        }
+        
         ////////////////////////////////////////////////////////////////////////////////////////////////
         /// METHODS
         ////////////////////////////////////////////////////////////////////////////////////////////////
@@ -159,9 +173,10 @@ public class WifidVideoPlayer {
             VideoSession session = sessionMap.get(id);
         	return (session == null) ? 0 : session.state.value;
         }
-
-        /// base _start function
-        public void _start(long id, String endpoint, int port, Surface surface, String key, int cipher, int authentication)
+        
+        /// start
+        @Override
+        public void start(long id, String endpoint, int port, Surface surface)
         {
             Common.Logging.i(TAG, "VideoPlayer.start  id="+id+"  url="+endpoint+"  port="+port+"   Surface="+surface);
             if (surface == null)
@@ -192,26 +207,18 @@ public class WifidVideoPlayer {
             	session = new VideoSession(id, streamId, surface, AirMediaSessionStreamingState.Stopped);
             	// Start the video player
             	// Put session into the map
-            	streamCtrl_.startWfdStream(streamId, endpoint, port, key, cipher, authentication);
+            	streamCtrl_.startWfdStream(streamId, endpoint, port);
             }
             sessionMap.put(id, session);
             stateChanged(id, AirMediaSessionStreamingState.Starting);
         }
         
-        /// start
-        @Override
-        public void start(long id, String endpoint, int port, Surface surface)
-        {
-        	_start(id, endpoint, port, surface, null, 0, 0);
-        }
-        
-        // start the video player for the given session ID
+        /// startWithDtls
         @Override
         public void startWithDtls(long id, String endpoint, int port, Surface surface, String key, int cipher, int authentication)
         {
-        	_start(id, endpoint, port, surface, key, cipher, authentication);
         }
-        
+
         @Override
         public void stop(long id)
         {
@@ -233,6 +240,13 @@ public class WifidVideoPlayer {
         		sessionMap.remove(id);
             }
         }
+        
+//        @Override
+//        public void setPinCode(String pin)
+//        {
+//            Common.Logging.i(TAG, "VideoPlayer.setPinCode  pin="+pin);
+//            streamCtrl_.streamPlay.msMiceSetPin(pin);
+//        }
     }
 
     private class VideoSession {
@@ -264,6 +278,21 @@ public class WifidVideoPlayer {
 		}
 		return sessionId;
     }
+    
+    public int sessionId2streamId(long sessionId)
+    {
+    	int streamId = -1;
+		for (Map.Entry<Long, VideoSession> entry : sessionMap.entrySet())
+		{
+			VideoSession session = entry.getValue();
+			if (session.sessionId == sessionId)
+			{
+				streamId = session.streamId;
+				break;
+			}
+		}
+		return streamId;
+    }
 
     /// EVENTS
 
@@ -282,7 +311,7 @@ public class WifidVideoPlayer {
     public void stateChanged(int streamId, AirMediaSessionStreamingState value)
     {
     	long sessionId = streamId2sessionId(streamId);
-        Common.Logging.i(TAG, "videoplayer.stateChanged():  streamId=%"+streamId+" sessionId="+sessionId+"  state="+value);
+        Common.Logging.i(TAG, "videoplayer.stateChanged():  streamId="+streamId+" sessionId="+sessionId+"  state="+value);
     	if (sessionId != INVALID_SESSION_ID)
     	{
     		VideoSession session = sessionMap.get(sessionId);
@@ -292,6 +321,17 @@ public class WifidVideoPlayer {
     			service_.stateChanged(sessionId, value);
     		}
     	}
+    }
+    
+    public void onSessionReady(long id, String device_id, String device_name, String device_address, int port) 
+    {
+        Common.Logging.i(TAG, "videoplayer.onSessionReady():  sessionId="+id+" deviceId="+device_id+" deviceName="+device_name+" deviceAddress="+device_address+" rtsp_port="+port);
+    	service_.onSessionReady(id, device_id, device_name, device_address, port);
+    }
+    
+    public void stopSession(long id)
+    {
+    	service_.stop(id);
     }
 
     ////////////////////////////////////////////////////////////////////////////////////////////////

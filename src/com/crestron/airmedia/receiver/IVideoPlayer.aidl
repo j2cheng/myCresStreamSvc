@@ -30,6 +30,9 @@ interface IVideoPlayer {
     // stop the video player for the given session ID
     void stop(in long id);
 
+    // set the PIN code, null clears it
+	//void setPinCode(in String pin);
+	
     ////////////////////////////////////////////////////////////////////////////////////////////////
     /// EVENTS
 

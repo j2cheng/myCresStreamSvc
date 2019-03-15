@@ -15,4 +15,6 @@ interface IVideoPlayerObserver {
     oneway void onStateChanged(in long id, in int value);
 
     oneway void onResolutionChanged(in long id, in int width, in int height);
+    
+    oneway void onSessionReady(in long id, in String device_id, in String device_name, in String device_address, in int port);
 }

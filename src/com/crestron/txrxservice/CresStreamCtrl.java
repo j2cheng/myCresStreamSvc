@@ -192,6 +192,8 @@ public class CresStreamCtrl extends Service {
     public Object mAirMediaLock = new Object();
     private Object mAirMediaCodeLock = new Object();
     private int mAirMediaNumberOfUsersConnected = -1;	//Bug 141088: Setting to -1 will force code change on reboot if set to random
+    private boolean mMsMiceEnabled = false;
+    private boolean mMiracastEnabled = false;
     boolean[] updateStreamStateOnFirstFrame = new boolean[NumOfTextures]; // flags to update stream state only on first frame output from MediaCodec - used only in AirMedia currently
     private Object mDisplayChangedLock = new Object();
     private int defaultLoggingLevel = -1;
@@ -1326,8 +1328,8 @@ public class CresStreamCtrl extends Service {
     		@Override
     		public void run() { 
     			// Wait until CSIO is connected (Bug 135686)
-				// For debugging only - temporary
-    			airMediaLicensed = (new File("/data/CresStreamSvc/airmedialicense")).exists();
+				// next line For debugging only - temporary
+    			// airMediaLicensed = (new File("/data/CresStreamSvc/airmedialicense")).exists();
 				use_splashtop = true;//(new File("/data/CresStreamSvc/splashtop")).exists(); // Going back to forcing splashtop
 				Log.i(TAG, "******************  Use_Splashtop="+String.valueOf(use_splashtop) + "**************");
 				if (!airMediaLicensed)
@@ -1360,7 +1362,16 @@ public class CresStreamCtrl extends Service {
     				if (mAirMedia == null && airMediaLicensed) {
     					Log.i(TAG, "Calling AirMediaConstructor from airMediaLicenseThread");
     					mAirMedia = new AirMediaSplashtop(streamCtrl); 
-    				}    				
+        				msMiceEnable(userSettings.getMsMiceEnable());
+    					// Ensure any existing ms-mice connections that exist are dropped
+        				for (int sessionId = 0; sessionId < NumOfSurfaces; sessionId++)
+        				{
+        					if (userSettings.getAirMediaLaunch(sessionId)) {
+        						userSettings.setAirMediaLaunch(false, sessionId);
+        						streamPlay.wfdStop(sessionId);
+        					}
+        				}
+    				}
     			}
     		}
     	}).start();
@@ -1579,6 +1590,7 @@ public class CresStreamCtrl extends Service {
 						int restartStreamsState = readRestartStreamsState();
 						if (restartStreamsState == 1)
 						{
+						    Log.i(TAG, "monitorCrashState(): restartStreamState is true");
 							recoverFromCrash();
 						}
 					} catch (Exception e) { 
@@ -1920,6 +1932,7 @@ public class CresStreamCtrl extends Service {
     
     public void restartStreams(final boolean skipStreamIn) 
     {
+		Log.i(TAG,"****** restartStreams " + String.valueOf(skipStreamIn) + " *****");
     	restartStreams(skipStreamIn, false);
     }
     
@@ -3687,7 +3700,7 @@ public class CresStreamCtrl extends Service {
     			updateWindow(sessId, false);
     			showWindow(sessId);
     	        invalidateSurface();
-    			startWfdStream(sessId, args[1], rtsp_port, null, 0, 0);
+    			startWfdStream(sessId, args[1], rtsp_port);
     		} 
     		else if (args[0].equalsIgnoreCase("stop"))
     		{
@@ -3701,10 +3714,10 @@ public class CresStreamCtrl extends Service {
     	}
     }
     
-    public void startWfdStream(int sessId, String url, int rtsp_port, String key, int cipher, int authentication)
+    public void startWfdStream(int sessId, String url, int rtsp_port)
     {
 		Log.i(TAG, "startWfdStream: sessId="+sessId+"   url="+url+"   rtspPort="+rtsp_port);
-        streamPlay.wfdStart(sessId, url, rtsp_port, key, cipher, authentication);
+        streamPlay.wfdStart(sessId, url, rtsp_port);
     }
 
     public void stopWfdStream(int sessId)
@@ -4842,6 +4855,44 @@ public class CresStreamCtrl extends Service {
 		
 		return versionName;
     }
+
+    // mMsMiceEnable respresents actual current state - it is needed because at startup the userSettings.getMsMiceEnable() 
+    // does not represent the actual state at startup - it is the desired state at startup.
+    public void msMiceEnable(boolean enable)
+    {
+    	userSettings.setMsMiceEnable(enable);
+    	Log.i(TAG, "msMiceEnable(): requesting msMice " + ((enable)?"enabled":"disabled") + 
+    			" - currently it is " + ((mMsMiceEnabled)?"enabled":"disabled"));
+    	boolean userRequested = userSettings.getMsMiceEnable();
+    	if (userRequested == mMsMiceEnabled)
+    		return;
+    	mMsMiceEnabled = enable;
+    	if (mMsMiceEnabled)
+    	{
+    		// turn on ms mice
+    		streamPlay.msMiceStart();
+    	}
+    	else
+    	{
+    		// turn off ms mice
+    		streamPlay.msMiceStop();
+    	}
+    }
+    
+    // mMiracastEnabled respresents actual current state - it is needed because at startup the userSettings.getAirMediaMiracastEnable() 
+    // does not represent the actual state at startup - it is the desired state at startup.
+    public void airMediaMiracastEnable(boolean enable)
+    {
+    	userSettings.setAirMediaMiracastEnable(enable);
+    	Log.i(TAG, "airMediaMiracastEnable(): requesting enable=" + ((enable)?"enabled":"disabled") +
+    			" - currently it is " + ((mMiracastEnabled)?"enabled":"disabled"));
+    	boolean userRequested = userSettings.getAirMediaMiracastEnable();
+    	if (userRequested == mMiracastEnabled)
+    		return;
+    	mMiracastEnabled = enable;
+    	msMiceEnable(enable);
+    	//mAirMedia.setAirMediaMiracast(enable);
+    }
     
     public void airMediaMiracastWifiDirectMode(boolean enable)
     {
@@ -5447,7 +5498,7 @@ public class CresStreamCtrl extends Service {
 		    		try {
             			Thread.sleep(500);
             		} catch (Exception e ) { e.printStackTrace(); }
-		            Log.i(TAG, "Restarting Streams - on firstrun");
+		            Log.i(TAG, "setCameraHelper(): Restarting Streams - on firstrun");
 		    		restartStreams(true); //true because we do not need to restart stream in streams
 		    		mIgnoreAllCrash = false;
     			}

@@ -150,14 +150,29 @@ public class StreamIn {
     	strategy.setLogLevel(LogLevel);
     }
     
-    public void wfdStart(int sessionId, String url, int rtsp_port, String key, int cipher, int authentication)
+    public void wfdStart(int sessionId, String url, int rtsp_port)
     {
-    	strategy.wfdStart(sessionId, url, rtsp_port, key, cipher, authentication);
+    	strategy.wfdStart(sessionId, url, rtsp_port);
     }
     
     public void wfdStop(int sessionId)
     {
     	strategy.wfdStop(sessionId);
+    }
+    
+    public void msMiceStart()
+    {
+    	strategy.msMiceStart();
+    }
+    
+    public void msMiceStop()
+    {
+    	strategy.msMiceStop();
+    }
+    
+    public void msMiceSetPin(String pin)
+    {
+    	strategy.msMiceSetPin(pin);
     }
 }
 
@@ -194,6 +209,9 @@ interface StreamInStrategy{
     public int getMediaPlayerAudioFormatFb();
     public int getMediaPlayerAudiochannelsFb();
     public void initUnixSocketState();
-    public void wfdStart(int sessionId, String url, int rtsp_port, String key, int cipher, int authentication);
+    public void wfdStart(int sessionId, String url, int rtsp_port);
     public void wfdStop(int sessionId);
+    public void msMiceStart();
+    public void msMiceStop();
+    public void msMiceSetPin(String pin);
 }

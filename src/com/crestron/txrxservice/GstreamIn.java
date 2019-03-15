@@ -44,8 +44,12 @@ public class GstreamIn implements StreamInStrategy, SurfaceHolder.Callback {
     private static native boolean nativeClassInit(); // Initialize native class: cache Method IDs for callbacks
     private native void nativeSurfaceInit(Object surface, int sessionId);
     private native void nativeSurfaceFinalize(int sessionId);
-    private native void nativeWfdStart(int sessionId, String url, int rtsp_port, final String key, final int cipher, final int authentication);
+    private native void nativeWfdStart(int sessionId, String url, int rtsp_port);
     private native void nativeWfdStop(int sessionId);
+    private native void nativeMsMiceStart();
+    private native void nativeMsMiceStop();
+    private native void nativeMsMiceSetPin(String pin);
+    private native void nativeMsMiceStateChange(long sessionId, int state, String device_id, String device_name, String device_address, int rtsp_port);
     private long native_custom_data;      // Native code will use this to keep private data
 
     private static native void 	nativeSetServerUrl(String url, int sessionId);
@@ -319,6 +323,26 @@ public class GstreamIn implements StreamInStrategy, SurfaceHolder.Callback {
     	streamCtl.SendStreamInVideoFeedbacks(source, width, height, framerate, profile); //TODO: see if profile needs to be converted
     }
     
+    public void sendMsMiceStateChange(long sessionId, int state, String deviceId, String deviceName, String deviceAddress, int rtsp_port)
+    {
+    	Log.i(TAG, "sendMsMiceStateChange: sessionId="+sessionId+"  state="+state+"   rtsp_port="+rtsp_port);
+    	if (state == 1) 
+    	{
+    		// signal session is ready to observer
+    		streamCtl.wifidVideoPlayer.onSessionReady(sessionId, deviceId, deviceName, deviceAddress, rtsp_port);
+    	} 
+    	else if (state == 0) 
+    	{
+    		// signal video from session has stopped to observer
+    		int streamId = streamCtl.wifidVideoPlayer.sessionId2streamId(sessionId);
+    		if (streamId >= 0)
+    		{
+    			streamCtl.wifidVideoPlayer.stopSession(sessionId);
+    		}
+    		streamCtl.wifidVideoPlayer.stateChanged(streamId, AirMediaSessionStreamingState.Stopped);
+    	}
+    }
+    
     public long getStreamInNumVideoPackets() {
 		return statisticsNumVideoPackets;
 	}
@@ -538,7 +562,7 @@ public class GstreamIn implements StreamInStrategy, SurfaceHolder.Callback {
     }
  
     
-    public void wfdStart(final int sessionId, final String url, final int rtsp_port, final String key, final int cipher, final int authentication)
+    public void wfdStart(final int sessionId, final String url, final int rtsp_port)
     {
     	final GstreamIn gStreamObj = this;
     	final CountDownLatch latch = new CountDownLatch(1);
@@ -550,7 +574,7 @@ public class GstreamIn implements StreamInStrategy, SurfaceHolder.Callback {
     				updateNativeWfdDataStruct(sessionId);
     				Surface s = streamCtl.getSurface(sessionId);
     				nativeSurfaceInit(s, sessionId);
-    		    	nativeWfdStart(sessionId, url, rtsp_port, key, cipher, authentication);
+    		    	nativeWfdStart(sessionId, url, rtsp_port);
     			}
     			catch(Exception e){
     				// TODO: explore exception handling with better feedback of what went wrong to user
@@ -586,6 +610,23 @@ public class GstreamIn implements StreamInStrategy, SurfaceHolder.Callback {
     	nativeWfdStop(sessionId);
     }
     
+    public void msMiceStart()
+    {
+    	Log.i(TAG, "msMiceStart");
+    	nativeMsMiceStart();
+    }
+ 
+    public void msMiceStop()
+    {
+    	Log.i(TAG, "msMiceStop");
+    	nativeMsMiceStop();
+    }
+    
+    public void msMiceSetPin(String pin)
+    {
+    	Log.i(TAG, "msMiceSetPin - PIN="+pin);
+    	nativeMsMiceSetPin(pin);
+    }
     
 	// Find the session id (aka stream number) given a surface holder.
 	// Returns <0 for failure.
