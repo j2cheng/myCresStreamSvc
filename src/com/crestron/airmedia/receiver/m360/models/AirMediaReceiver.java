@@ -476,6 +476,96 @@ public class AirMediaReceiver extends AirMediaBase {
         }
     }
 
+    public void configureProperty(final String property, final String value) {
+        scheduler().queue(new Runnable() {
+            @Override
+            public void run() {
+                try {
+                    IAirMediaReceiver receiver = receiver_;
+                    if (receiver != null) receiver.configureStringProperty(property, value);
+                } catch (RemoteException e) {
+                    Common.Logging.e(TAG, "receiver.property.configure  property= " + property + "  value= " + value + "  EXCEPTION  " + e);
+                    handleRemoteException();
+                }
+            }
+        });
+    }
+
+    public void configureProperty(final String property, final boolean value) {
+        scheduler().queue(new Runnable() {
+            @Override
+            public void run() {
+                try {
+                    IAirMediaReceiver receiver = receiver_;
+                    if (receiver != null) receiver.configureBooleanProperty(property, value);
+                } catch (RemoteException e) {
+                    Common.Logging.e(TAG, "receiver.property.configure  property= " + property + "  value= " + value + "  EXCEPTION  " + e);
+                    handleRemoteException();
+                }
+            }
+        });
+    }
+
+    public void configureProperty(final String property, final int value) {
+        scheduler().queue(new Runnable() {
+            @Override
+            public void run() {
+                try {
+                    IAirMediaReceiver receiver = receiver_;
+                    if (receiver != null) receiver.configureIntProperty(property, value);
+                } catch (RemoteException e) {
+                    Common.Logging.e(TAG, "receiver.property.configure  property= " + property + "  value= " + value + "  EXCEPTION  " + e);
+                    handleRemoteException();
+                }
+            }
+        });
+    }
+
+    public void configureProperty(final String property, final long value) {
+        scheduler().queue(new Runnable() {
+            @Override
+            public void run() {
+                try {
+                    IAirMediaReceiver receiver = receiver_;
+                    if (receiver != null) receiver.configureLongProperty(property, value);
+                } catch (RemoteException e) {
+                    Common.Logging.e(TAG, "receiver.property.configure  property= " + property + "  value= " + value + "  EXCEPTION  " + e);
+                    handleRemoteException();
+                }
+            }
+        });
+    }
+
+    public void configureProperty(final String property, final float value) {
+        scheduler().queue(new Runnable() {
+            @Override
+            public void run() {
+                try {
+                    IAirMediaReceiver receiver = receiver_;
+                    if (receiver != null) receiver.configureFloatProperty(property, value);
+                } catch (RemoteException e) {
+                    Common.Logging.e(TAG, "receiver.property.configure  property= " + property + "  value= " + value + "  EXCEPTION  " + e);
+                    handleRemoteException();
+                }
+            }
+        });
+    }
+
+    public void configureProperty(final String property, final double value) {
+        scheduler().queue(new Runnable() {
+            @Override
+            public void run() {
+                try {
+                    IAirMediaReceiver receiver = receiver_;
+                    if (receiver != null) receiver.configureDoubleProperty(property, value);
+                } catch (RemoteException e) {
+                    Common.Logging.e(TAG, "receiver.property.configure  property= " + property + "  value= " + value + "  EXCEPTION  " + e);
+                    handleRemoteException();
+                }
+            }
+        });
+    }
+    
     ////////////////////////////////////////////////////////////////////////////////////////////////
     /// INTERNAL
     ////////////////////////////////////////////////////////////////////////////////////////////////

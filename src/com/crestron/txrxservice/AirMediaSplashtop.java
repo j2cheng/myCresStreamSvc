@@ -23,6 +23,7 @@ import com.crestron.airmedia.receiver.m360.models.AirMediaSession;
 import com.crestron.airmedia.receiver.m360.models.AirMediaSessionManager;
 import com.crestron.airmedia.receiver.m360.ipc.AirMediaReceiverLoadedState;
 import com.crestron.airmedia.receiver.m360.ipc.AirMediaReceiverMirroringAssist;
+import com.crestron.airmedia.receiver.m360.ipc.AirMediaReceiverProperties;
 import com.crestron.airmedia.receiver.m360.ipc.AirMediaReceiverResolutionMode;
 import com.crestron.airmedia.receiver.m360.ipc.AirMediaReceiverState;
 import com.crestron.airmedia.receiver.m360.ipc.AirMediaSessionConnectionState;

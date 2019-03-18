@@ -95,4 +95,11 @@ interface IAirMediaReceiver {
 
     void addVideoPlayer(IVideoPlayer player);
     void removeVideoPlayer(IVideoPlayer player);
+    
+    void configureStringProperty(in String property, in String value);
+    void configureBooleanProperty(in String property, in boolean value);
+    void configureIntProperty(in String property, in int value);
+    void configureLongProperty(in String property, in long value);
+    void configureFloatProperty(in String property, in float value);
+    void configureDoubleProperty(in String property, in double value);
 }
