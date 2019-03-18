@@ -44,7 +44,7 @@ class msMiceSinkProjClass : public csioThreadBaseClass
 {
 public:
 
-    msMiceSinkProjClass();
+    msMiceSinkProjClass(char* adapterAddress);
     ~msMiceSinkProjClass();
 
     csioTimerClockBase* msMiceSinkProjTimeArray;
@@ -56,6 +56,11 @@ public:
 
     msMiceSinkServiceClass *m_service_obj;
     int m_pin;
+
+    const char* getadapterAddress(){ return m_adapterAddress.c_str();}
+    void setadapterAddress(std::string& str) { m_adapterAddress = str; }
+
+    std::string m_adapterAddress;
 private:
     void* ThreadEntry();
 
@@ -76,7 +81,7 @@ class msMiceSinkServiceClass : public csioThreadBaseClass
 {
 public:
 
-    msMiceSinkServiceClass();
+    msMiceSinkServiceClass(msMiceSinkProjClass* m_parent);
     ~msMiceSinkServiceClass();
 
     csioTimerClockBase* msMiceSinkSevTimeArray;
@@ -86,6 +91,8 @@ public:
 
     ms_mice_sink_service *m_mice_service;
     GMainLoop* m_mainLoop ;
+
+    msMiceSinkProjClass* m_parent;
 private:
     void* ThreadEntry();
 

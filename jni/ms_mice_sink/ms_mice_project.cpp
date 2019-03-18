@@ -39,14 +39,14 @@ int session_observer_disconnect_request_from_app(gpointer user_data);
 void* msMiceSinkProjFindSession(guint64 session_id);
 
 /*************************** Global functions  ************************************/
-void msMiceSinkProjInit()
+void msMiceSinkProjInit(char* adapterAddress)
 {
     gProjectsLock.lock();
 
     //create project object now
     if(g_msMiceSinkProjPtr == NULL)
     {
-        g_msMiceSinkProjPtr = new msMiceSinkProjClass();
+        g_msMiceSinkProjPtr = new msMiceSinkProjClass(adapterAddress);
         CSIO_LOG(gProjectDebug, "msMiceSinkProjInit: g_msMiceSinkProjPtr:0x%x\n",g_msMiceSinkProjPtr);
     }
 
@@ -335,7 +335,14 @@ static void app_extension_ms_mice_load(msMiceSinkServiceClass* p_servceClass,GEr
 
     g_autoptr(GError) internal_error = NULL;
 
-    ms_mice_sink_service_new(&p_servceClass->m_mice_service, NULL, DEFAULT_MIRACAST_OVER_INFRASTRUCTURE_PORT, &internal_error);
+    if(p_servceClass->m_parent->m_adapterAddress.size())
+    {
+        ms_mice_sink_service_new(&p_servceClass->m_mice_service, p_servceClass->m_parent->getadapterAddress(), DEFAULT_MIRACAST_OVER_INFRASTRUCTURE_PORT, &internal_error);
+    }
+    else
+    {
+        ms_mice_sink_service_new(&p_servceClass->m_mice_service, NULL, DEFAULT_MIRACAST_OVER_INFRASTRUCTURE_PORT, &internal_error);
+    }
 
     if (internal_error || !p_servceClass->m_mice_service)
         goto cleanup_error;
@@ -358,11 +365,12 @@ cleanup_error:
 /***************************** end of ms-mice static interface functions **************************************/
 
 /***************************** msMiceSinkProjClass class **************************************/
-msMiceSinkProjClass::msMiceSinkProjClass():
+msMiceSinkProjClass::msMiceSinkProjClass(char* adapterAddr):
 msMiceSinkProjTimeArray(NULL),
 m_service_obj(NULL),
-m_projEventQList(NULL),
-m_pin(-1)
+m_pin(-1),
+m_adapterAddress(),
+m_projEventQList(NULL)
 {
     m_debugLevel = gProjectDebug;
     m_projEventQList = new csioEventQueueListBase(CSIO_DEFAULT_QUEUE_SIZE);
@@ -371,6 +379,14 @@ m_pin(-1)
 
     if(msMiceSinkProjTimeArray)
         msMiceSinkProjTimeArray->recordEventTimeStamp(MS_MICE_SINK_PROJ_TIMESTAMP_INIT);
+
+    m_adapterAddress.clear();
+
+    if(adapterAddr)
+    {
+        std::string strAddr = (char*)adapterAddr;
+        setadapterAddress(strAddr);
+    }
 }
 msMiceSinkProjClass::~msMiceSinkProjClass()
 {
@@ -494,7 +510,7 @@ void* msMiceSinkProjClass::ThreadEntry()
 
     if(m_service_obj == NULL)
     {
-        m_service_obj = new msMiceSinkServiceClass();
+        m_service_obj = new msMiceSinkServiceClass(this);
 
         if (!m_service_obj)
         {
@@ -578,10 +594,11 @@ void* msMiceSinkProjClass::ThreadEntry()
 /***************************** end of msMiceSinkProjClass class **************************************/
 
 /***************************** msMiceSinkServceClass class **************************************/
-msMiceSinkServiceClass::msMiceSinkServiceClass():
+msMiceSinkServiceClass::msMiceSinkServiceClass(msMiceSinkProjClass* m_parent):
 msMiceSinkSevTimeArray(NULL),
 m_mice_service(NULL),
-m_mainLoop(NULL)
+m_mainLoop(NULL),
+m_parent(m_parent)
 {
     m_debugLevel = gProjectDebug;
 
@@ -795,7 +812,7 @@ void msMiceSinkProj_fdebug(char *cmd_cstring)
         }
         else if(strcasestr(CmdPtr, "PROJINIT"))
         {
-            msMiceSinkProjInit();
+            msMiceSinkProjInit(NULL);
         }
         else if(strcasestr(CmdPtr, "PROJDEINIT"))
         {

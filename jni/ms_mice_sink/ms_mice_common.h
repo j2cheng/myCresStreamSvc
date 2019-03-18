@@ -3,7 +3,7 @@
 
 #include "csioCommBase.h"
 
-extern void msMiceSinkProjInit();
+extern void msMiceSinkProjInit(char*);
 extern void msMiceSinkProjDeInit();
 extern void msMiceSinkProjSetPin(int id,int pin);
 extern void msMiceSinkProjStopSession(int id, long long session_id);

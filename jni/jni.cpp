@@ -4456,9 +4456,31 @@ void Wfd_setup_gst_pipeline (int id, int state, struct GST_PIPELINE_CONFIG* gst_
 
 JNIEXPORT void JNICALL Java_com_crestron_txrxservice_GstreamIn_nativeMsMiceStart(JNIEnv *env, jobject thiz)
 {
-    msMiceSinkProjInit();
+    msMiceSinkProjInit(NULL);
 }
+JNIEXPORT void JNICALL Java_com_crestron_txrxservice_GstreamIn_nativeMsMiceSetAdapterAddress(JNIEnv *env, jobject thiz, jstring address)
+{
+    char * locAddr = NULL;
+    if(address != NULL)
+    {
+        locAddr = (char *)env->GetStringUTFChars(address, NULL);
+    }//else
 
+    if(locAddr == NULL)
+    {
+       CSIO_LOG(eLogLevel_debug, "MsMiceSetAdapterAddress changed to NULL ");
+       msMiceSinkProjDeInit();
+       msMiceSinkProjInit(NULL);
+    }
+    else
+    {
+        CSIO_LOG(eLogLevel_debug, "MsMiceSetAdapterAddress changed to %s ",locAddr);
+        msMiceSinkProjDeInit();
+        msMiceSinkProjInit(locAddr);
+
+        env->ReleaseStringUTFChars(address, locAddr);
+    }
+}
 JNIEXPORT void JNICALL Java_com_crestron_txrxservice_GstreamIn_nativeMsMiceStop(JNIEnv *env, jobject thiz)
 {
     msMiceSinkProjDeInit();
