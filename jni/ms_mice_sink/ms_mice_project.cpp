@@ -413,6 +413,7 @@ void msMiceSinkProjClass::DumpClassPara(int id)
     CSIO_LOG(eLogLevel_info, "msMiceSinkProjClass: m_ThreadIsRunning   %d\n", m_ThreadIsRunning);
     CSIO_LOG(eLogLevel_info, "msMiceSinkProjClass: m_service_obj       0x%x\n", m_service_obj);
     CSIO_LOG(eLogLevel_info, "msMiceSinkProjClass: m_pin               %d\n", m_pin);
+    CSIO_LOG(eLogLevel_info, "msMiceSinkProjClass: m_adapterAddress    %s\n", m_adapterAddress.c_str());
 
     if(m_projEventQList)
     {
