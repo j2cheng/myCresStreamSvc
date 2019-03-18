@@ -241,12 +241,19 @@ public class WifidVideoPlayer {
             }
         }
         
-//        @Override
-//        public void setPinCode(String pin)
-//        {
-//            Common.Logging.i(TAG, "VideoPlayer.setPinCode  pin="+pin);
-//            streamCtrl_.streamPlay.msMiceSetPin(pin);
-//        }
+        @Override
+        public void setAdapterAddress(String address)
+        {
+            Common.Logging.i(TAG, "VideoPlayer.setAdapterAddress  address="+address);
+            streamCtrl_.streamPlay.msMiceSetAdapterAddress(address);
+        }
+        
+        @Override
+        public void setPasscode(String pin)
+        {
+            Common.Logging.i(TAG, "VideoPlayer.setPassCode  pin="+pin);
+            streamCtrl_.streamPlay.msMiceSetPin(pin);
+        }
     }
 
     private class VideoSession {

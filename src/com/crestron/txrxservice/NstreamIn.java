@@ -388,4 +388,9 @@ public class NstreamIn implements StreamInStrategy, OnPreparedListener, OnComple
     {
     	// Not needed by gallery player
     }
+    
+    public void msMiceSetAdapterAddress(String address)
+    {
+    	// Not needed by gallery player
+    }
 }

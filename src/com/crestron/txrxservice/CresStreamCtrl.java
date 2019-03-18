@@ -4891,14 +4891,20 @@ public class CresStreamCtrl extends Service {
     		return;
     	mMiracastEnabled = enable;
     	msMiceEnable(enable);
-    	//mAirMedia.setAirMediaMiracast(enable);
+    	if (mAirMedia != null)
+    	{
+    		mAirMedia.setAirMediaMiracast(enable);
+    	}
     }
     
     public void airMediaMiracastWifiDirectMode(boolean enable)
     {
     	userSettings.setAirMediaMiracastWifiDirectMode(enable);
     	Log.i(TAG, "airMediaMiracastWifiDirectMode(): wifi_direct_mode_enable="+enable);
-    	mAirMedia.setAirMediaMiracastWifiDirectMode(enable);
+    	if (mAirMedia != null)
+    	{
+    		mAirMedia.setAirMediaMiracastWifiDirectMode(enable);
+    	}
     }
     
     public void setCamStreamEnable(boolean enable) {

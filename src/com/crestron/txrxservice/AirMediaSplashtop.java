@@ -518,6 +518,8 @@ public class AirMediaSplashtop implements AirMedia
                 receiver().maxResolution(AirMediaReceiverResolutionMode.Max1080P);
                 Point dSize = mStreamCtl.getDisplaySize();
                 receiver().displayResolution(new AirMediaSize(dSize.x, dSize.y));
+                setAirMediaMiracast(mStreamCtl.userSettings.getAirMediaMiracastEnable());
+                setAirMediaMiracast(mStreamCtl.userSettings.getAirMediaMiracastWifiDirectMode());
 
         		registerReceiverEventHandlers(receiver());
         		mStreamCtl.wifidVideoPlayer.register(receiver_);
@@ -607,12 +609,14 @@ public class AirMediaSplashtop implements AirMedia
     
 	public void setAirMediaMiracast(boolean enable)
 	{
-		Common.Logging.i(TAG, "setAirMediaMiracast(): ***** TODO implement *****");
+		Common.Logging.i(TAG, "setAirMediaMiracast: " + enable);
+		receiver().configureProperty(AirMediaReceiverProperties.Miracast.Enable, enable);
 	}
 
     public void setAirMediaMiracastWifiDirectMode(boolean enable)
     {
-		Common.Logging.i(TAG, "setAirMediaMiracastWifiDirectMode(): ***** TODO implement *****");
+		Common.Logging.i(TAG, "setAirMediaMiracastWifiDirectMode(): " + enable);
+		receiver().configureProperty(AirMediaReceiverProperties.Miracast.AllowWifiDirectConnections, enable);
     }
     
     public void recover(){

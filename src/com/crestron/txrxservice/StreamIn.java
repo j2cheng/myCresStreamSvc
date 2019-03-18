@@ -174,6 +174,11 @@ public class StreamIn {
     {
     	strategy.msMiceSetPin(pin);
     }
+    
+    public void msMiceSetAdapterAddress(String address)
+    {
+    	strategy.msMiceSetAdapterAddress(address);
+    }
 }
 
 interface StreamInStrategy{
@@ -214,4 +219,6 @@ interface StreamInStrategy{
     public void msMiceStart();
     public void msMiceStop();
     public void msMiceSetPin(String pin);
+    public void msMiceSetAdapterAddress(String pin);
+
 }

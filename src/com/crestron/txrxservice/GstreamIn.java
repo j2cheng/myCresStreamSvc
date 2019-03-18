@@ -48,6 +48,7 @@ public class GstreamIn implements StreamInStrategy, SurfaceHolder.Callback {
     private native void nativeWfdStop(int sessionId);
     private native void nativeMsMiceStart();
     private native void nativeMsMiceStop();
+    private native void nativeMsMiceSetAdapterAddress(String address);
     private native void nativeMsMiceSetPin(String pin);
     private native void nativeMsMiceStateChange(long sessionId, int state, String device_id, String device_name, String device_address, int rtsp_port);
     private long native_custom_data;      // Native code will use this to keep private data
@@ -626,6 +627,12 @@ public class GstreamIn implements StreamInStrategy, SurfaceHolder.Callback {
     {
     	Log.i(TAG, "msMiceSetPin - PIN="+pin);
     	nativeMsMiceSetPin(pin);
+    }
+    
+    public void msMiceSetAdapterAddress(String address)
+    {
+    	Log.i(TAG, "msMiceSetAdapterAddress - address="+address);
+    	nativeMsMiceSetAdapterAddress(address);
     }
     
 	// Find the session id (aka stream number) given a surface holder.

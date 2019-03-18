@@ -229,6 +229,13 @@ JNIEXPORT void JNICALL Java_com_crestron_txrxservice_GstreamIn_nativeMsMiceClose
 
 /*
  * Class:           GstreamIn
+ * Method:          nativeMsMiceSetAdapterAddress
+ * Signature:       (Ljava/lang/string;)V
+ */
+JNIEXPORT void JNICALL Java_com_crestron_txrxservice_GstreamIn_nativeMsMiceSetAdapterAddress(JNIEnv *env, jobject thiz, jstring pin_jstring, jstring address);
+
+/*
+ * Class:           GstreamIn
  * Method:          nativeMsMiceSetPin
  * Signature:       (Ljava/lang/string;)V
  */
