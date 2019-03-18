@@ -26,7 +26,6 @@ typedef enum _e_msMiceSinkProjEvents
 {
     MS_MICE_SINK_EVENTS_JNI_NOP = 0, //let this one to be zero
 
-    MS_MICE_SINK_EVENTS_STOP_SESSION,
     MS_MICE_SINK_EVENTS_SET_PIN,
 
     MS_MICE_SINK_EVENTS_MAX

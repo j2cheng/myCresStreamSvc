@@ -97,14 +97,6 @@ void msMiceSinkProjStopSession(int id, gint64 session_id)
 
     if(g_msMiceSinkProjPtr)
     {
-        /*csioEventQueueStruct EvntQ;
-        memset(&EvntQ,0,sizeof(csioEventQueueStruct));
-        EvntQ.obj_id = id;
-        EvntQ.event_type = MS_MICE_SINK_EVENTS_STOP_SESSION;
-
-        EvntQ.ext_obj = session_id;
-
-        g_msMiceSinkProjPtr->sendEvent(&EvntQ);*/
         if(g_msMiceSinkProjPtr->m_service_obj && g_msMiceSinkProjPtr->m_service_obj->m_mice_service)
         {
             GMainContext* context = ms_mice_sink_service_get_context(g_msMiceSinkProjPtr->m_service_obj->m_mice_service);
@@ -155,33 +147,6 @@ void msMiceSinkProjSetPin(int id,int pin)
     CSIO_LOG(gProjectDebug, "msMiceSinkProjSetPin: return.");
 }
 
-void* msMiceSinkProjFindSession(guint64 session_id)
-{
-    ms_mice_sink_session* session = NULL;
-    CSIO_LOG(gProjectDebug, "msMiceSinkProjFindSession: enter: session_id[%lld]",session_id);
-    gProjectsLock.lock();
-
-    if(g_msMiceSinkProjPtr && g_msMiceSinkProjPtr->m_service_obj)
-    {
-        if(g_msMiceSinkProjPtr->m_service_obj->m_mice_service)
-        {
-            session = ms_mice_sink_service_find_session_by_id(g_msMiceSinkProjPtr->m_service_obj->m_mice_service,session_id);
-        }
-        else
-        {
-            CSIO_LOG(gProjectDebug, "msMiceSinkProjSetPin: no m_mice_service is NULL\n");
-        }
-    }
-    else
-    {
-        CSIO_LOG(gProjectDebug, "msMiceSinkProjSetPin: no g_msMiceSinkProjPtr is running\n");
-    }
-
-    gProjectsLock.unlock();
-    CSIO_LOG(gProjectDebug, "msMiceSinkProjFindSession: return[0x%x].",session);
-
-    return (void*)session;
-}
 /***************************** start of ms-mice static interface functions ****
  *  Note: this session must run under one thread,
  *  currently is in msMiceSinkServiceClass::ThreadEntry()
@@ -560,32 +525,6 @@ void* msMiceSinkProjClass::ThreadEntry()
 
             switch (evntQPtr->event_type)
             {
-                case MS_MICE_SINK_EVENTS_STOP_SESSION:
-                {
-                    /*CSIO_LOG(m_debugLevel, "msMiceSinkProjClass[%d]: MS_MICE_SINK_EVENTS_STOP_SESSION,session_id[%lld]\n",\
-                             evntQPtr->obj_id,evntQPtr->ext_gint64);
-
-                    if(m_service_obj->m_mice_service)
-                    {
-                        GMainContext* context = ms_mice_sink_service_get_context(m_service_obj->m_mice_service);
-
-                        ms_mice_sink_service_and_sessionid* cmd = new ms_mice_sink_service_and_sessionid();
-                        if(cmd)
-                        {
-                            cmd->service = m_service_obj->m_mice_service;
-                            cmd->session_id = evntQPtr->ext_gint64;
-                            g_main_context_invoke(context,session_observer_disconnect_request_from_app,cmd);
-                        }
-                        else
-                        {
-                            CSIO_LOG(m_debugLevel, "msMiceSinkProjClass: failed to create request for[%lld].\n",evntQPtr->ext_gint64);
-                        }
-                    }
-
-                    CSIO_LOG(m_debugLevel, "msMiceSinkProjClass[%d]: MS_MICE_SINK_EVENTS_STOP_SESSION,done\n");
-*/
-                    break;
-                }
                 case MS_MICE_SINK_EVENTS_SET_PIN:
                 {
                     CSIO_LOG(m_debugLevel, "msMiceSinkProjClass[%d]: MS_MICE_SINK_EVENTS_SET_PIN,set pin[%d]\n",evntQPtr->ext_obj);

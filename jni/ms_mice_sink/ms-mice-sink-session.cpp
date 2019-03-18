@@ -639,7 +639,12 @@ static int ms_mice_sink_session_handle_read_data(ms_mice_sink_session *session, 
             }
 
             session->priv->in_message = ms_mice_message_new(length, version, command, &error);
-
+            if (error != NULL)
+            {
+                CSIO_LOG(eLogLevel_debug,"Unable to create mew message: %s\n", error->message);
+                g_error_free (error);
+                error = NULL;
+            }
             // TODO [RAL] check for error
 
             available = stream_get_available(session->priv->in_stream);
@@ -656,13 +661,25 @@ static int ms_mice_sink_session_handle_read_data(ms_mice_sink_session *session, 
             return -EAGAIN;
 
         ms_mice_message_unpack(session->priv->in_message, session->priv->in_stream, &error);
+        if (error != NULL)
+        {
+            CSIO_LOG(eLogLevel_debug,"Unable to unpack message: %s\n", error->message);
+            g_error_free (error);
+            error = NULL;
+        }
 
-        CSIO_LOG(eLogLevel_debug,"ms.mice.sink.session.message.received.ready { \"session-id\": %"G_GUINT64_FORMAT" , \"local-address\": \"%s\" , \"remote-address\": \"%s\" , \"state\": \"%s\" , \"ms-mice-size\": \"%u\" , \"ms-mice-version\": %u , \"ms-mice-command\": %s }",
+        CSIO_LOG(eLogLevel_debug,"ms.mice.sink.session.message.received { \"session-id\": %"G_GUINT64_FORMAT" , \"local-address\": \"%s\" , \"remote-address\": \"%s\" , \"state\": \"%s\" , \"ms-mice-size\": \"%u\" , \"ms-mice-version\": %u , \"ms-mice-command\": %s }",
                   session->priv->session_id, session->priv->local_address, session->priv->remote_address, ms_mice_sink_session_state_to_string(session->priv->state), session->priv->in_message->size, session->priv->in_message->version, ms_mice_command_to_string(session->priv->in_message->command));
 
         // TODO [RAL] check for error
 
         ms_mice_sink_session_dispatch_message(session, session->priv->in_message, &error);
+        if (error != NULL)
+        {
+            CSIO_LOG(eLogLevel_debug,"Unable to dispatch message: %s\n", error->message);
+            g_error_free (error);
+            error = NULL;
+        }
 
         ms_mice_message_free(session->priv->in_message);
         session->priv->in_message = NULL;
