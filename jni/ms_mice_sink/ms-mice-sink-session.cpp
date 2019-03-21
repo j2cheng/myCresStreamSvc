@@ -10,29 +10,9 @@
 #include <netinet/in.h>
 #include <netdb.h>
 
-//copy from gstreamer
-#define DTLS_KEY_LEN 16
-#define DTLS_SALT_LEN 14
-
-typedef struct {
-    guint8 v[DTLS_KEY_LEN];
-} dtls_key;
-
-typedef struct {
-    guint8 v[DTLS_SALT_LEN];
-} dtls_salt;
+#include "../shared-ssl/shared-ssl.h"
 
 #define MS_MICE_SINK_SESSION_DTLS_KEY_LENGTH_STRING_LEN ((DTLS_KEY_LEN + DTLS_SALT_LEN)*2 + 1)
-
-typedef enum {
-    MS_MICE_SINK_SESSION_DTLS_AUTH_HMAC_SHA1_32 = 1,
-    MS_MICE_SINK_SESSION_DTLS_AUTH_HMAC_SHA1_80 = 2
-} ms_mice_sink_session_dtls_auth;
-
-typedef enum {
-    MS_MICE_SINK_SESSION_DTLS_CIPHER_AES_128_ICM = 1
-} ms_mice_sink_session_dtls_cipher;
-
 #define MS_MICE_SESSION_ESTABLISHMENT_TIMEOUT_SECONDS (5 * 60) /* units in seconds */
 
 struct _ms_mice_sink_session_private {
@@ -78,14 +58,14 @@ struct _ms_mice_sink_session_private {
     gpointer observer_data;
 #if ENABLE_DTLS
     /*used for openSSL*/
-    ms_mice_dtls* mice_ssl;
+    void * mice_ssl;
     guint8* dtls_client_key;
-
     int dtls_cipher;
     int dtls_auth;
 #endif
 };
 
+void ssl_send_DTLS_handshake(void * session,char * dtlsData,int dtlsDataLen,void ** error);
 void ssl_write_to_BIO_and_check_output(ms_mice_sink_session *session, ms_mice_tlv *tlv, GError **error);
 
 #ifdef API_SUPPORTED
@@ -786,7 +766,7 @@ static void send_out_BIO_data(ms_mice_sink_session* session, char* bug, guint16 
 
     if(msg)
     {
-        ms_mice_message_tlv_security_token_attach(msg, bug, len, error);
+        ms_mice_message_tlv_security_token_attach(msg, (guint8 *)bug, len, error);
 
         ms_mice_message_entry *entry = ms_mice_message_entry_new(msg, error);
 
@@ -800,195 +780,60 @@ static void send_out_BIO_data(ms_mice_sink_session* session, char* bug, guint16 
     }
 }
 
+void ssl_send_DTLS_handshake(void * session,char * dtlsData,int dtlsDataLen,void ** error)
+{
+   send_out_BIO_data((ms_mice_sink_session *)session,dtlsData,dtlsDataLen,(GError **)error);
+}
+
 void ssl_write_to_BIO_and_check_output(ms_mice_sink_session *session, ms_mice_tlv *tlv, GError **error)
 {
-    struct {
-        dtls_key client_key;
-        dtls_key server_key;
-        dtls_salt client_salt;
-        dtls_salt server_salt;
-    } exported_keys;
+    int retv;
+    void * sssl;
+    void * secToken;
+    int secTokenLength;
+    bool * isHandshakeCompletePtr;
+    unsigned char ** clientKeyPtr;
+    int dtlsClientKeyLength;
+    int * cipherPtr;
+    int * authPtr;
 
-    struct {
-        dtls_key key;
-        dtls_salt salt;
-    } client_key, server_key;
+    CSIO_LOG(eLogLevel_debug,"mira: {%s} - ***** entering *****",__FUNCTION__);
 
     if(session && session->priv)
     {
-        ms_mice_dtls* mice_ssl = session->priv->mice_ssl;
+        guint64 sessionID = ms_mice_sink_session_get_id(session);
 
-        if(mice_ssl && mice_ssl->ssl && mice_ssl->rbio && mice_ssl->wbio && tlv)
-        {
-            void* data = tlv->security_token.token;
-            int len = tlv->length;
-            SSL* ssl = mice_ssl->ssl;
-            int status,n,pending;
-            int bioReadBytes = 0;
-            char BIO_read_buf[4096] = {0};
+        CSIO_LOG(eLogLevel_debug, "mira: {%s} - calling sssl_getContextWithSessionID()",__FUNCTION__);
 
-            int writeBytes = BIO_write(mice_ssl->rbio, data, len);
-            CSIO_LOG(eLogLevel_debug,"ssl_write_to_BIO_and_check_output BIO_write return[%d]",writeBytes);
-
-            if(writeBytes <= 0)
-            {
-                CSIO_LOG(eLogLevel_error,"ssl_write_to_BIO_and_check_output BIO_write failed[%d]",writeBytes);
-                return;
+        sssl = sssl_getContextWithSessionID(sessionID);
+        if(sssl == NULL) {
+            if (error) {
+                *error = g_error_new(G_IO_ERROR, G_IO_ERROR_INVALID_DATA,
+                     "ssl_write_to_BIO_and_check_output() - failed to get DTLS context");
             }
+            CSIO_LOG(eLogLevel_error, "mira: {%s} - sssl_getContextWithSessionID() returned NULL",__FUNCTION__);
 
-            if (!SSL_is_init_finished(ssl))
-            {
-                CSIO_LOG(eLogLevel_debug,"ssl_write_to_BIO_and_check_output Handshake not finished,  SSL_get_state[%d]", SSL_get_state(ssl));
-
-                //when SSL_do_handshake returns, data has been processed.
-                n = SSL_do_handshake(ssl);
-                CSIO_LOG(eLogLevel_debug,"ssl_write_to_BIO_and_check_output SSL_do_handshake return[%d]",n);
-
-                //when SSL_do_handshake return 1, we need to read pending data.
-                status = SSL_ERROR_WANT_READ;
-                if(n <= 0)
-                {
-                    status = SSL_get_error(ssl, n);
-                    CSIO_LOG(eLogLevel_debug,"ssl_write_to_BIO_and_check_output SSL_get_error status[%d]",status);
-                }
-
-                //do we really need to check status?
-                if (SSL_ERROR_WANT_READ == status)
-                {
-                    pending = BIO_ctrl_pending(mice_ssl->wbio);
-                    CSIO_LOG(eLogLevel_debug,"ssl_write_to_BIO_and_check_output BIO_ctrl_pending[%d]",pending);
-
-                    if (pending > 0)
-                    {
-                        do
-                        {
-                            memset(BIO_read_buf,0,sizeof(BIO_read_buf));
-                            bioReadBytes = BIO_read(mice_ssl->wbio, BIO_read_buf, sizeof(BIO_read_buf));
-
-                            if (bioReadBytes > 0)
-                            {
-                                send_out_BIO_data(session,BIO_read_buf,(guint16)bioReadBytes,error);
-                            }
-                            else if(!BIO_should_retry(mice_ssl->wbio))
-                            {
-                                CSIO_LOG(eLogLevel_debug,"ssl_write_to_BIO_and_check_output BIO_should_retry is false, return here.");
-                                break;
-                            }
-                        }while(bioReadBytes>0);
-                    }
-                    else
-                    {
-                        CSIO_LOG(eLogLevel_debug,"ssl_write_to_BIO_and_check_output BIO_ctrl_pending is zero, nothing to read.");
-                    }
-                }
-
-                if (!SSL_is_init_finished(ssl))
-                {
-                    CSIO_LOG(eLogLevel_debug,"ssl_write_to_BIO_and_check_output SSL_is_init_finished is not done yet.");
-                    return ;
-                }
-                else
-                {
-                    const char export_string[] = "EXTRACTOR-dtls_srtp";
-
-                    memset(BIO_read_buf,0,sizeof(BIO_read_buf));
-                    int success = SSL_export_keying_material(
-                                     mice_ssl->ssl,
-                                     (gpointer) & exported_keys,60,
-                                     export_string, sizeof(export_string),
-                                     NULL,0, 0);
-                    CSIO_LOG(eLogLevel_debug,"ssl_write_to_BIO_and_check_output SSL_export_keying_material ret[%d]",success);
-
-                    if(!success)
-                    {
-                        CSIO_LOG(eLogLevel_debug,"ssl_write_to_BIO_and_check_output: failed to export keying material from openssl");
-                        return;
-                    }
-
-                    //this is server side, ssvn git statusg
-                    // it o we only need to decoder: uses client_key
-                    client_key.key = exported_keys.client_key;
-                    server_key.key = exported_keys.server_key;
-                    client_key.salt = exported_keys.client_salt;
-                    server_key.salt = exported_keys.server_salt;
-
-                    //send out key &client_key
-                    guint8 *dtls_client_key = g_new0(guint8, MS_MICE_SINK_SESSION_DTLS_KEY_LENGTH_STRING_LEN);
-                    if(!dtls_client_key)
-                    {
-                        CSIO_LOG(eLogLevel_debug,"ssl_write_to_BIO_and_check_output: failed on g_new0");
-                        return;
-                    }
-                    else
-                    {
-                        sprintf(dtls_client_key, "%02X%02X%02X%02X%02X%02X%02X%02X%02X%02X%02X%02X%02X%02X%02X%02X",
-                                client_key.key.v[0], client_key.key.v[1], client_key.key.v[2], client_key.key.v[3],
-                                client_key.key.v[4], client_key.key.v[5], client_key.key.v[6], client_key.key.v[7],
-                                client_key.key.v[8], client_key.key.v[9], client_key.key.v[10], client_key.key.v[11],
-                                client_key.key.v[12], client_key.key.v[13], client_key.key.v[14], client_key.key.v[15]);
-
-                        int stringLen = strlen(dtls_client_key);
-
-                        sprintf(&dtls_client_key[stringLen], "%02X%02X%02X%02X%02X%02X%02X%02X%02X%02X%02X%02X%02X%02X",
-                                client_key.salt.v[0], client_key.salt.v[1], client_key.salt.v[2], client_key.salt.v[3],
-                                client_key.salt.v[4], client_key.salt.v[5], client_key.salt.v[6], client_key.salt.v[7],
-                                client_key.salt.v[8], client_key.salt.v[9], client_key.salt.v[10], client_key.salt.v[11],
-                                client_key.salt.v[12], client_key.salt.v[13]);
-
-                        session->priv->dtls_client_key = dtls_client_key;
-                        session->priv->is_dtls_encryption_handshake_complete = true;
-                    }
-
-                    //send out dtls srtp Auth
-                    SRTP_PROTECTION_PROFILE * profile = SSL_get_selected_srtp_profile(mice_ssl->ssl);
-                    CSIO_LOG(eLogLevel_debug,"ssl_write_to_BIO_and_check_output get_selected_srtp_profile profilePtr[%d]",profile);
-
-                    session->priv->dtls_cipher = MS_MICE_SINK_SESSION_DTLS_CIPHER_AES_128_ICM;
-                    session->priv->dtls_auth = MS_MICE_SINK_SESSION_DTLS_AUTH_HMAC_SHA1_80;
-                    if(profile)
-                    {
-                        if(profile->name)
-                            CSIO_LOG(eLogLevel_debug,"ssl_write_to_BIO_and_check_output: profilePtr[%s]",profile->name);
-
-                        switch (profile->id)
-                        {
-                            case SRTP_AES128_CM_SHA1_80:
-                            {
-                                session->priv->dtls_cipher = MS_MICE_SINK_SESSION_DTLS_CIPHER_AES_128_ICM;
-                                session->priv->dtls_auth = MS_MICE_SINK_SESSION_DTLS_AUTH_HMAC_SHA1_80;
-                                break;
-                            }
-                            case SRTP_AES128_CM_SHA1_32:
-                            {
-                                session->priv->dtls_cipher = MS_MICE_SINK_SESSION_DTLS_CIPHER_AES_128_ICM;
-                                session->priv->dtls_auth = MS_MICE_SINK_SESSION_DTLS_AUTH_HMAC_SHA1_32;
-                              break;
-                            }
-                            default:
-                            {
-                                log_debug ("invalid crypto suite set by handshake");
-                                break;
-                            }
-                        }
-                    }
-                    else
-                    {
-                        CSIO_LOG(eLogLevel_debug,"ssl_write_to_BIO_and_check_output: no SRTP protection profile was negotiated");
-                    }
-                }
-            }
-            else
-            {
-                CSIO_LOG(eLogLevel_debug,"ssl_write_to_BIO_and_check_output SSL_is_init_finished returns true[%d]",writeBytes);
-            }
+            return;
         }
-        else
-        {
-            CSIO_LOG(eLogLevel_debug,"ssl_write_to_BIO_and_check_output ERROR: mice_ssl[0x%x]",mice_ssl);
-        }
+
+        secToken = tlv->security_token.token;
+        secTokenLength = tlv->length;
+        isHandshakeCompletePtr = &session->priv->is_dtls_encryption_handshake_complete;
+        clientKeyPtr = &session->priv->dtls_client_key;
+        dtlsClientKeyLength = MS_MICE_SINK_SESSION_DTLS_KEY_LENGTH_STRING_LEN;
+        cipherPtr = &session->priv->dtls_cipher;
+        authPtr = &session->priv->dtls_auth;
+
+        CSIO_LOG(eLogLevel_debug, "mira: {%s} - calling sssl_runDTLSHandshakeWithSecToken()",__FUNCTION__);
+
+        retv = sssl_runDTLSHandshakeWithSecToken(sssl,secToken,secTokenLength,isHandshakeCompletePtr,
+            clientKeyPtr,dtlsClientKeyLength,cipherPtr,authPtr,ssl_send_DTLS_handshake,
+            (void *)session,(void **)error);
+
+        CSIO_LOG(eLogLevel_debug,"mira: sssl_runDTLSHandshakeWithSecToken() returned %d",retv);
     }
 
-    CSIO_LOG(eLogLevel_debug,"ssl_write_to_BIO_and_check_output exit function");
+    CSIO_LOG(eLogLevel_debug,"mira: {%s} - ===== exiting =====",__FUNCTION__);
 }
 
 #else /* ENABLE_DTLS */
@@ -1145,7 +990,22 @@ void ms_mice_sink_session_connected(ms_mice_sink_session *session, GSocketConnec
     session->priv->source_fd = fd;
 
 #if ENABLE_DTLS
-    session->priv->mice_ssl  = ms_mice_dtls_new();
+    guint64 sessionID = ms_mice_sink_session_get_id(session);
+
+    CSIO_LOG(eLogLevel_debug, "mira: {%s} - ***** calling sssl_createDTLS() *****",__FUNCTION__);
+
+    void * sssl = sssl_createDTLS((unsigned long long)sessionID);
+    if(sssl == NULL) {
+        if (error) {
+            *error = g_error_new(G_IO_ERROR, G_IO_ERROR_INVALID_DATA, "Failed to create DTLS context");
+        }
+
+        CSIO_LOG(eLogLevel_error,"mira: {%s} - sssl_createDTLS() returned NULL",__FUNCTION__);
+        return;
+    }
+
+    CSIO_LOG(eLogLevel_debug,"mira: {%s} - ===== returned from sssl_createDTLS() =====",__FUNCTION__);
+
 #endif
 
     if (old_state != session->priv->state) {
@@ -1341,9 +1201,7 @@ void ms_mice_sink_session_free(ms_mice_sink_session *session)
     g_free((gpointer)session->priv->source_id);
 
 #if ENABLE_DTLS
-    ms_mice_free(session->priv->mice_ssl);
     session->priv->mice_ssl = NULL;
-
     g_free((gpointer)session->priv->dtls_client_key);
     session->priv->dtls_client_key = NULL;
 #endif

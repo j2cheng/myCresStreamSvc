@@ -10,6 +10,8 @@
 //#include "ctl/ctl.h"
 #include "ms-mice.h"
 
+#include "../shared-ssl/shared-ssl.h"
+
 struct _ms_mice_sink_service_private {
     const gchar *service_address;
     guint16 service_port;
@@ -254,10 +256,6 @@ void ms_mice_sink_service_new(ms_mice_sink_service **out, const gchar *address, 
     s->priv->observer_data = NULL;
     s->priv->context = NULL;
 
-#if ENABLE_DTLS
-    ms_mice_initialize_ssl_runtime();
-#endif
-
     *out = s;
 }
 
@@ -276,7 +274,5 @@ void ms_mice_sink_service_free(ms_mice_sink_service *service)
     g_free(service->priv);
     service->priv = NULL;
     g_free(service);
-#if ENABLE_DTLS
-    ms_mice_destroy_ssl_runtime();
-#endif
 }
+

@@ -3700,7 +3700,7 @@ public class CresStreamCtrl extends Service {
     			updateWindow(sessId, false);
     			showWindow(sessId);
     	        invalidateSurface();
-    			startWfdStream(sessId, args[1], rtsp_port);
+    			startWfdStream(sessId, (long) 1, args[1], rtsp_port);
     		} 
     		else if (args[0].equalsIgnoreCase("stop"))
     		{
@@ -3714,16 +3714,16 @@ public class CresStreamCtrl extends Service {
     	}
     }
     
-    public void startWfdStream(int sessId, String url, int rtsp_port)
+    public void startWfdStream(int streamId, long sessionId, String url, int rtsp_port)
     {
-		Log.i(TAG, "startWfdStream: sessId="+sessId+"   url="+url+"   rtspPort="+rtsp_port);
-        streamPlay.wfdStart(sessId, url, rtsp_port);
+		Log.i(TAG, "startWfdStream: streamId="+streamId+"   sessionId="+sessionId+"   url="+url+"   rtspPort="+rtsp_port);
+        streamPlay.wfdStart(streamId, sessionId, url, rtsp_port);
     }
 
-    public void stopWfdStream(int sessId)
+    public void stopWfdStream(int streamId)
     {
-		Log.i(TAG, "stopWfdStream: sessId="+sessId);
-		streamPlay.wfdStop(sessId); 
+		Log.i(TAG, "stopWfdStream: streamId="+streamId);
+		streamPlay.wfdStop(streamId); 
     }
     
     // Start chroma key

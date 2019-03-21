@@ -17,6 +17,7 @@ CSIO_ROOT := ../../csio
 CRESTRON_ROOT := $(LOCAL_PATH)/../..
 LOCAL_MODULE    := libgstreamer_jni
 STREAMOUT_PATH := $(LOCAL_PATH)/cresStreamOut
+SHAREDSSL_PATH := $(LOCAL_PATH)/shared-ssl
 SECURE_STORAGE_PATH := $(CRESTRON_ROOT)/SecureStorage
 LOCAL_SRC_FILES := \
 	jni.cpp \
@@ -60,7 +61,8 @@ LOCAL_SRC_FILES +=\
 	ms_mice_sink/ms-mice-sink-session.cpp \
 	ms_mice_sink/ms-mice-tlv.cpp \
 	ms_mice_sink/shared/glib-utilities.cpp \
-	ms_mice_sink/ms_mice_project.cpp
+	ms_mice_sink/ms_mice_project.cpp \
+	shared-ssl/shared-ssl.cpp
 
 COMMON_INC_PATH := $(CRESTRON_ROOT)/Include
 UTIL_INC_PATH := $(CRESTRON_ROOT)/Utilities
@@ -125,7 +127,9 @@ LOCAL_CFLAGS +=\
 	-I$(CRESTRON_ROOT)/CresNextSerializer/CresNextObjects/include \
 	-I$(CRESTRON_ROOT)/../rapidjson/include \
 	-I$(SECURE_STORAGE_PATH)/ \
+	-I$(SHAREDSSL_PATH) \
 	-w\
+	-DENABLE_DTLS \
 	-DANDROID_OS
 ifeq ($(shell test $(PLATFORM_SDK_VERSION) -lt 23 && echo PreMarshmallow),PreMarshmallow)
 	LOCAL_CFLAGS += -I$(STL_INC_PATH)

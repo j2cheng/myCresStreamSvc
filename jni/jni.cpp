@@ -27,6 +27,7 @@
 #include <stdlib.h>		/* for setenv */
 #include <unistd.h>
 #include <sys/resource.h>
+#include <arpa/inet.h>
 #include <sys/socket.h>
 #include <sys/time.h>
 #include <ctype.h>
@@ -50,6 +51,8 @@
 
 #include "cresWifiDisplaySink/WfdCommon.h"
 #include "ms_mice_sink/ms_mice_common.h"
+#include "shared-ssl/shared-ssl.h"
+
 ///////////////////////////////////////////////////////////////////////////////
 
 extern int  csio_Init(int calledFromCsio);
@@ -58,6 +61,9 @@ void csio_send_stats_no_bitrate (uint64_t video_packets_received, int video_pack
 void LocalConvertToUpper(char *str);
 static void * debug_launch_pipeline(void *data);
 static void Wfd_set_firewall_rules (int rtsp_port, int ts_port);
+int csio_jni_StartRTPMediaStreamThread(int iStreamId, GstElement *appSource, unsigned int udpPort);
+void * rtpMediaStreamThread(void * threadData);
+
 ///////////////////////////////////////////////////////////////////////////////
 
 /*
@@ -743,10 +749,12 @@ void * jni_stop (void * arg)
 	stop_streaming_cmd(sessionId);
 	csio_jni_cleanup(sessionId);
 
-    pthread_cond_broadcast(&stop_completed_sig); //Flags that stop has completed
-	pthread_exit(NULL);
+   CSIO_LOG(eLogLevel_debug,"mira: {%s} - ***** calling sssl_waitDTLSAppThCancel() *****",__FUNCTION__);
+   sssl_waitDTLSAppThCancel(sessionId);
+   CSIO_LOG(eLogLevel_debug,"mira: {%s} - ===== returned from sssl_waitDTLSAppThCancel() =====",__FUNCTION__);
 
-	return NULL;
+   pthread_cond_broadcast(&stop_completed_sig); //Flags that stop has completed
+	pthread_exit(NULL);
 }
 
 void csio_jni_stop(int sessionId)
@@ -1902,17 +1910,17 @@ JNIEXPORT void JNICALL Java_com_crestron_txrxservice_GstreamIn_nativeSetFieldDeb
                     char filePath [1024];
                     GstDebugGraphDetails graph_option = GST_DEBUG_GRAPH_SHOW_ALL;
 
-					fileName++;	// Remove preceding space
+				fileName++;	// Remove preceding space
 
-					if (!strncmp(fileName, "-v", 2))
-					{
-						verbose = true;
-						fileName = strstr(fileName, " ");
-						fileName++;	// Remove preceding space
-					}
+				if (!strncmp(fileName, "-v", 2))
+				{
+				    verbose = true;
+				    fileName = strstr(fileName, " ");
+				    fileName++;	// Remove preceding space
+				}
 
-					CSIO_LOG(eLogLevel_info, "command graph[%s] verbose[%d]", fileName, verbose);
-					
+				CSIO_LOG(eLogLevel_info, "command graph[%s] verbose[%d]", fileName, verbose);
+
                     snprintf(filePath, 1024, "/dev/shm/crestron/CresStreamSvc/%s.dot", fileName);
 
                     if (verbose)
@@ -2461,38 +2469,13 @@ int csio_jni_CreateHttpPipeline(void *obj, GstElement **pipeline, GstElement **s
 
 
 // ***
-// from John:
-// typedefÿenum
-// {
-//    MS_MICE_SINK_SESSION_DTLS_AUTH_HMAC_SHA1_32 =ÿ1,
-//    MS_MICE_SINK_SESSION_DTLS_AUTH_HMAC_SHA1_80 =ÿ2
-// } ms_mice_sink_session_dtls_auth;
-// typedefÿenum
-// {
-//    MS_MICE_SINK_SESSION_DTLS_CIPHER_AES_128_ICM =ÿ1
-// } ms_mice_sink_session_dtls_cipher;
-// 
-// 
-// no longer used:
-// char * g_cipherNameLookupTable[] =
-// {
-//    NULL,
-//    "aes-128-icm"
-// };
-// char * g_authNameLookupTable[] =
-// {
-//    NULL,
-//    "hmac-sha1-32",
-//    "hmac-sha1-80"
-// };
-// 
 
 char * lookupCipherName(int index)
 {
    if(index == 1)
          return("aes-128-icm");
    else  return(NULL);
-};
+}
 
 char * lookupAuthName(int index)
 {
@@ -2504,9 +2487,318 @@ char * lookupAuthName(int index)
          return("hmac-sha1-80");
       }
    return(NULL);
-};
-// ***
+}
 
+typedef struct {
+   int sockFD;
+   int streamID;
+   GstElement * appSource;
+   pthread_t mediaRTPThread;
+   pthread_cond_t initComplCondVar;
+	pthread_mutex_t initComplMutex;
+} MEDIARTPTHREADCONTEXT;
+
+
+int csio_jni_StartRTPMediaStreamThread(int iStreamId, GstElement * appSource, unsigned int udpPort)
+{
+	int retv;
+   struct sockaddr_in servaddr;
+   MEDIARTPTHREADCONTEXT rtpMedStrContext;
+
+   // !!!!!!!
+   // Check if it is still valid, correct if needed
+   // 
+   //    locking arrangement:
+   //       - access to sssl context storage API needs a global lock
+   //       - since the only entity deleting the SSL context is going to be the RTP thread,
+   //         there is no need for individual locks, per ssl context. The context deletion must
+   //         follow the sequence
+   //             - get the global sssl context storage lock
+   //             - find entry's index from the key
+   //             - delete SSL context at the given index
+   //             - delete sssl context storage at the given index
+   //             - release the global lock
+   //    
+   // !!!!!!!
+
+
+   CSIO_LOG(eLogLevel_debug,"mira: {%s} - entering",__FUNCTION__);
+
+   memset((void *)&rtpMedStrContext, 0, sizeof(rtpMedStrContext)); 
+
+   void * sssl = sssl_getContextWithStreamID(iStreamId);
+   if(sssl == NULL)
+   {
+      CSIO_LOG(eLogLevel_error, "mira: could not obtain sssl context for iStreamId = %d",iStreamId);
+      return(-1);
+   }
+   rtpMedStrContext.streamID = iStreamId;
+   rtpMedStrContext.appSource = appSource;
+
+   rtpMedStrContext.sockFD = socket(AF_INET, SOCK_DGRAM, IPPROTO_UDP);
+   if(rtpMedStrContext.sockFD < 0)
+   {
+      CSIO_LOG(eLogLevel_error, "mira: could not create RTP socket");
+      return(-1);
+   }
+
+   memset((void *)&servaddr, 0, sizeof(servaddr)); 
+
+   // bind the socket with the server address 
+   servaddr.sin_family        = AF_INET;           // IPv4 
+   servaddr.sin_addr.s_addr   = INADDR_ANY; 
+   servaddr.sin_port          = htons(udpPort);
+   if(bind(rtpMedStrContext.sockFD, (const struct sockaddr *)&servaddr, sizeof(servaddr)) < 0) 
+   { 
+      CSIO_LOG(eLogLevel_error, "mira: could not bind RTP socket");
+      return(-1);
+   } 
+
+   // may want to set these socket level options:
+   //    SO_RCVBUF
+   //    SO_DEBUG
+
+   pthread_cond_init(&rtpMedStrContext.initComplCondVar, NULL);
+   pthread_mutex_init(&rtpMedStrContext.initComplMutex, NULL);
+
+   sssl_initDTLSAppThCancCondVar(iStreamId);
+
+   pthread_attr_t attr;
+   pthread_attr_init(&attr);
+   pthread_attr_setdetachstate(&attr, PTHREAD_CREATE_DETACHED);
+	retv = pthread_create(&rtpMedStrContext.mediaRTPThread, &attr, rtpMediaStreamThread,
+         (void *)&rtpMedStrContext);
+   if(retv)
+   {
+      CSIO_LOG(eLogLevel_error, "mira: failed to create media RTP thread, retv = %d", retv);
+      return(-1);
+   }
+
+	struct timespec initTimeout;
+   clock_gettime(CLOCK_REALTIME, &initTimeout);
+   initTimeout.tv_sec += 5;
+
+   // wait for thread to initialize
+   pthread_mutex_lock(&rtpMedStrContext.initComplMutex);
+   retv = pthread_cond_timedwait(&rtpMedStrContext.initComplCondVar,&rtpMedStrContext.initComplMutex,
+      &initTimeout);
+   pthread_mutex_unlock(&rtpMedStrContext.initComplMutex);
+
+   if(retv == ETIMEDOUT)
+   {
+      CSIO_LOG(eLogLevel_warning, "mira: csio_jni_StartRTPMediaStreamThread() - pthread_cond_timedwait() returned with timeout");
+   }
+
+   // cleanup pthread objects
+   // should not destroy if timeout ???
+   pthread_attr_destroy(&attr);
+   pthread_cond_destroy(&rtpMedStrContext.initComplCondVar);
+   pthread_mutex_destroy(&rtpMedStrContext.initComplMutex);
+
+   CSIO_LOG(eLogLevel_debug,"mira: {%s} - exiting",__FUNCTION__);
+
+   return(0);
+}
+
+
+#define DTLSPACKETMAXSIZE           4096           // more than twice the MTU
+
+void * rtpMediaStreamThread(void * threadData)
+{
+	int retv,retv1,nn,doLog;
+   int rtpDataSize;
+   int dtlsDataSize;
+   void * sssl;
+   GstFlowReturn ret;
+   GstBuffer * buffer;
+   guchar * rtpData;
+   GstMapInfo map;
+   GstClockTime now;
+   GstClock * theclock;
+   MEDIARTPTHREADCONTEXT rtpMedStrContext;
+   unsigned char dtlsPacketBuff[DTLSPACKETMAXSIZE];
+   unsigned char rtpPacketBuff[DTLSPACKETMAXSIZE];
+
+   CSIO_LOG(eLogLevel_debug,"mira: {%s} - ***** entering *****",__FUNCTION__);
+
+   memcpy((void *)&rtpMedStrContext,(const void *)threadData,sizeof(MEDIARTPTHREADCONTEXT));
+
+   // signal initialization completed
+   pthread_cond_broadcast(&((MEDIARTPTHREADCONTEXT *)threadData)->initComplCondVar);
+
+   retv = sssl_setDTLSAppThInitialized(rtpMedStrContext.streamID, 1);
+   if(retv < 0)
+   {
+      CSIO_LOG(eLogLevel_error, "mira: rtpMediaStreamThread() - sssl_setDTLSAppThInitialized() returned %d",retv);
+      goto earlyreturn;
+   }
+   // may want to warn upon retv == 1
+
+   sssl = sssl_getContextWithStreamID(rtpMedStrContext.streamID);
+   if(sssl == NULL)
+   {
+      // this should never happen
+      CSIO_LOG(eLogLevel_error,"mira: rtpMediaStreamThread() - could not obtain sssl context for iStreamId = %d",
+         rtpMedStrContext.streamID);
+      goto threadreturn;
+   }
+
+   // TCP:
+   //    Send: AA BBBB CCC DDDDDD E         Recv: A ABB B BCC CDDD DDDE
+   //    All data sent is received in order, but not necessarily in the same chunks.
+   // UDP:
+   //    Send: AA BBBB CCC DDDDDD E         Recv: CCC AA E
+   //    Data is not necessarily in the same order, and not necessarily received at all, but
+   //    messages are preserved in their entirety.
+
+   struct timeval recvTimeout;
+   recvTimeout.tv_sec = 0;
+   recvTimeout.tv_usec = 250000;          // 250ms timeout
+   retv = setsockopt(rtpMedStrContext.sockFD, SOL_SOCKET, SO_RCVTIMEO, &recvTimeout,
+      sizeof(recvTimeout));
+   if(retv < 0)
+   {
+      CSIO_LOG(eLogLevel_error, "mira: setsockopt failed, errno = %d", errno);
+      goto threadreturn;
+   }
+
+   // get the clock
+   theclock = gst_element_get_clock(rtpMedStrContext.appSource);
+
+	nn = 0;
+
+   while(1==1)
+   {
+	   if((nn < 3) || (nn%50 == 0))
+	         doLog = 1;
+      else  doLog = 0;
+
+      // blocking read
+      dtlsDataSize = recv(rtpMedStrContext.sockFD, (char *)dtlsPacketBuff, DTLSPACKETMAXSIZE, 0);
+      if(doLog)
+      {
+         CSIO_LOG(eLogLevel_debug,"mira: RTP loop: received %d bytes from socket",dtlsDataSize);
+      }
+
+      //   TLS Record Type Values     dec      hex
+      //   ------------------------------------------
+      //      CHANGE_CIPHER_SPEC      20       0x14
+      //      ALERT                   21       0x15
+      //      HANDSHAKE               22       0x16
+      //      APPLICATION_DATA        23       0x17
+      // 
+      unsigned char tlsType = dtlsPacketBuff[0];
+      if(tlsType != 0x17)
+      {
+         CSIO_LOG(eLogLevel_error,"mira: RTP loop: received packet of %d bytes with bad TLS type 0x%x",
+            dtlsDataSize,(int)tlsType);
+         CSIO_LOG(eLogLevel_error,"mira: continuing anyway ...");
+	      nn++;
+         continue;
+      }
+
+      retv = sssl_getDTLSAppThInitialized(rtpMedStrContext.streamID);
+      if(retv != 1)
+      {
+         // we are asked to exit
+         CSIO_LOG(eLogLevel_error,"mira: RTP loop: sssl_getDTLSAppThInitialized() returned %d",retv);
+         break;
+      }
+
+      rtpDataSize = sssl_decryptDTLS(sssl,(void *)dtlsPacketBuff,dtlsDataSize,(void *)rtpPacketBuff,
+            DTLSPACKETMAXSIZE);
+      if(rtpDataSize <= 0)
+      {
+         // something went wrong
+         CSIO_LOG(eLogLevel_error,"mira: RTP loop: sssl_decryptDTLS() returned %d",rtpDataSize);
+         CSIO_LOG(eLogLevel_error,"mira: continuing anyway ...");
+	      nn++;
+         continue;
+      }
+      if(doLog)
+      {
+         CSIO_LOG(eLogLevel_debug,"mira: RTP loop: received %d bytes after DTLS dcryption",rtpDataSize);
+      }
+
+      // create a new empty buffer
+      buffer = gst_buffer_new_and_alloc(rtpDataSize);
+      if(buffer == NULL)
+      {
+         // something went wrong
+         CSIO_LOG(eLogLevel_error,"mira: RTP loop: gst_buffer_new_and_alloc() returned NULL");
+         break;
+      }
+
+      // set its timestamp and duration
+      now = gst_clock_get_time(theclock);
+      GST_BUFFER_TIMESTAMP(buffer) = now;
+      GST_BUFFER_DURATION(buffer) = GST_CLOCK_TIME_NONE;
+
+      gst_buffer_map(buffer, &map, GST_MAP_WRITE);
+
+      // copy RTP data to GStreamer's buffer
+      memcpy((void *)map.data,(const void *)rtpPacketBuff,rtpDataSize);
+
+      gst_buffer_unmap(buffer, &map);
+
+      // push the buffer into the appsrc
+      // 
+      // ..... make sure it is blocking write !
+      // 
+      g_signal_emit_by_name(rtpMedStrContext.appSource, "push-buffer", buffer, &ret);
+
+      // free the buffer now that we are done with it
+      gst_buffer_unref(buffer);
+
+      if(ret != GST_FLOW_OK)
+      {
+         // we got some error, stop sending data
+         CSIO_LOG(eLogLevel_error,"mira: RTP loop: g_signal_emit_by_name() returned error %d",(int)ret);
+         break;
+      }
+
+      if(doLog)
+      {
+         CSIO_LOG(eLogLevel_debug,"mira: RTP loop: submitted buffer to AppSrc with g_signal_emit_by_name() [nn = %d]",nn);
+      }
+
+	   nn++;
+   }
+
+threadreturn:
+   CSIO_LOG(eLogLevel_debug,"mira: {%s} - commencing normal exit",__FUNCTION__);
+   retv = sssl_setDTLSAppThInitialized(rtpMedStrContext.streamID, 0);
+   if(retv >= 0)
+   {
+      CSIO_LOG(eLogLevel_debug,"mira: {%s} - calling sssl_signalDTLSAppThCanceled()",__FUNCTION__);
+      sssl_signalDTLSAppThCanceled(rtpMedStrContext.streamID);
+      if(retv > 0)
+      {
+         CSIO_LOG(eLogLevel_debug,"mira: {%s} - calling sssl_destroyDTLSWithStreamID()",__FUNCTION__);
+         sssl_destroyDTLSWithStreamID(rtpMedStrContext.streamID, 0);
+         //
+         // ... is this safe (does the waiting thread need it after broadcast ?)
+         //     study pthread_cond_broadcast()
+         // 
+
+      }
+   }
+
+   close(rtpMedStrContext.sockFD);
+
+   CSIO_LOG(eLogLevel_debug,"mira: {%s} - ===== exiting =====",__FUNCTION__);
+
+	pthread_exit(NULL);
+
+earlyreturn:
+   // no sssl destruction
+
+   close(rtpMedStrContext.sockFD);
+
+   CSIO_LOG(eLogLevel_debug,"mira: {%s} - ===== exiting (early) =====",__FUNCTION__);
+
+	pthread_exit(NULL);
+}
 
 
 int csio_jni_CreatePipeline(GstElement **pipeline, GstElement **source, eProtocolId protoId, int iStreamId)
@@ -2553,113 +2845,103 @@ int csio_jni_CreatePipeline(GstElement **pipeline, GstElement **source, eProtoco
 			break;
 	    }
 	    case ePROTOCOL_UDP_TS:
-		{
-			if(CSIOCnsIntf->getStreamTxRx_TRANSPORTMODE(iStreamId)==STREAM_TRANSPORT_MPEG2TS_RTP)
-			{
-				data->element_zero = gst_element_factory_make("rtpbin", NULL);
-				gst_bin_add(GST_BIN(data->pipeline), data->element_zero);
+	    {
+		    if(CSIOCnsIntf->getStreamTxRx_TRANSPORTMODE(iStreamId)==STREAM_TRANSPORT_MPEG2TS_RTP)
+		    {
+		        data->element_zero = gst_element_factory_make("rtpbin", NULL);
+			    gst_bin_add(GST_BIN(data->pipeline), data->element_zero);
 
-				if(data->wfd_jitterbuffer_latency != -1)
-					g_signal_connect( data->element_zero, "new-jitterbuffer",
-									  G_CALLBACK(csio_jni_callback_rtpbin_new_jitterbuffer),
-									  (gpointer)data->wfd_jitterbuffer_latency );
+			    if(data->wfd_jitterbuffer_latency != -1)
+			        g_signal_connect( data->element_zero, "new-jitterbuffer",
+			                          G_CALLBACK(csio_jni_callback_rtpbin_new_jitterbuffer),
+			                          (gpointer)data->wfd_jitterbuffer_latency );
 
-				data->udp_port = CSIOCnsIntf->getStreamTxRx_TSPORT(iStreamId);
-				data->element_av[0] = gst_element_factory_make("udpsrc", NULL);
-				insert_udpsrc_probe(data,data->element_av[0],"src");
+			    data->udp_port = CSIOCnsIntf->getStreamTxRx_TSPORT(iStreamId);
+			    data->element_av[0] = gst_element_factory_make("udpsrc", NULL);
+			    insert_udpsrc_probe(data,data->element_av[0],"src");
 
-				//create the second udpsrc for rtcp
-				data->element_av[1] = gst_element_factory_make("udpsrc", NULL);
-				g_object_set(G_OBJECT(data->element_av[1]), "port", (data->udp_port + 1), NULL);
-				GstCaps *RtcpCaps = gst_caps_new_simple("application/x-rtcp",NULL);
-				if(RtcpCaps)
-				{
-					g_object_set(G_OBJECT(data->element_av[1]), "caps", RtcpCaps, NULL);
-					gst_caps_unref( RtcpCaps );
-				}
-				else
-				{
-					CSIO_LOG(eLogLevel_error, "ERROR: Cannot create RtcpCaps\n");
-				}
+			    //create the second udpsrc for rtcp
+             data->element_av[1] = gst_element_factory_make("udpsrc", NULL);
+             g_object_set(G_OBJECT(data->element_av[1]), "port", (data->udp_port + 1), NULL);
+             GstCaps *RtcpCaps = gst_caps_new_simple("application/x-rtcp",NULL);
+             if(RtcpCaps)
+             {
+                 g_object_set(G_OBJECT(data->element_av[1]), "caps", RtcpCaps, NULL);
+                 gst_caps_unref( RtcpCaps );
+             }
+             else
+             {
+                 CSIO_LOG(eLogLevel_error, "ERROR: Cannot create RtcpCaps\n");
+             }
 
-				gst_bin_add(GST_BIN(data->pipeline), data->element_av[1]);
-				int linkRtcpRet = gst_element_link(data->element_av[1], data->element_zero);
-				if(linkRtcpRet==0)
-				{
-					CSIO_LOG(eLogLevel_error,  "ERROR:  Cannot link filter to source elements.\n" );
-					iStatus = CSIO_CANNOT_LINK_ELEMENTS;
-				}
-				else
-				{
-					CSIO_LOG(eLogLevel_debug,  "link filter to source elements.\n" );
-				}
-				// ***
-				// from my experiments:
-				// gst-launch-1.0 -v udpsrc port=9004
-				//    ! "application/x-srtp, payload=(int)96, ssrc=(uint)112233,
-				//          media=(string)video, clock-rate=(int)90000,
-				//          encoding-name=(string)H264, payload=(int)96,
-				//          srtp-key=(buffer)4142434445464748494A4B4C4D4E4F505152535455565758595A31323334,
-				//          srtp-cipher=(string)aes-128-icm,srtp-auth=(string)hmac-sha1-80,
-				//          srtcp-cipher=(string)aes-128-icm,srtcp-auth=(string)hmac-sha1-80, roc=(uint)0"
-				//    ! srtpdec ! rtpbin ! decodebin ! videoconvert ! autovideosink sync=false
+             gst_bin_add(GST_BIN(data->pipeline), data->element_av[1]);
+             int linkRtcpRet = gst_element_link(data->element_av[1], data->element_zero);
+             if(linkRtcpRet==0)
+             {
+                 CSIO_LOG(eLogLevel_error,  "ERROR:  Cannot link filter to source elements.\n" );
+                 iStatus = CSIO_CANNOT_LINK_ELEMENTS;
+             }
+             else
+             {
+                 CSIO_LOG(eLogLevel_debug,  "link filter to source elements.\n" );
+             }
 
-				int ret;
-				int doSRTP = 0;
-				char * cipherName = lookupCipherName(data->cipher);
-				char * authName = lookupAuthName(data->authentication);
+             // ***
+             int ret;
+             int ret1 = 0;
+             int doSRTP = 0;
 
-				// *** for testing only! ***
-				CSIO_LOG(eLogLevel_error,
-						 "INFO: >>> key=%s, ssrc=%u, cipherName=%s, authName=%s\n",(data->key ? data->key : "NULL"),
-						 data->ssrc,(cipherName ? cipherName : "NULL"),(authName ? authName : "NULL"));
+             void * sssl = sssl_getDTLSWithStreamID(iStreamId);
+             if(sssl != NULL)
+             {
+                 CSIO_LOG(eLogLevel_debug,"mira: {%s} - DTLS context detected",__FUNCTION__);
+                 doSRTP = 1;
+             }
+             else
+             {
+                 CSIO_LOG(eLogLevel_debug,"mira: {%s} - DTLS context NOT detected",__FUNCTION__);
+             }
 
-				if((data->key != NULL) && (data->key[0] != '\0') && (cipherName != NULL) && (authName != NULL))
-					doSRTP = 1;
+             if(doSRTP)
+			    {
+                data->element_appsrc = gst_element_factory_make("appsrc", NULL);
+                gst_bin_add(GST_BIN(data->pipeline), data->element_appsrc);
 
-				if(doSRTP)
-				{
-					// create the caps string
-					gchar * srtp_capsstr = g_strdup_printf(
-							"application/x-srtp, payload=(int)33, media=(string)video, encoding-name=(string)MP2T,"
-							" clock-rate=(int)90000, roc=(uint)0,"
-							" ssrc=(uint)%u,"
-							" srtp-key=(buffer)%s,"
-							" srtp-cipher=(string)%s,"
-							" srtp-auth=(string)%s,"
-							" srtcp-cipher=(string)%s,"
-							" srtcp-auth=(string)%s",
-							data->ssrc,data->key,cipherName,authName,cipherName,authName);
 
-					CSIO_LOG(eLogLevel_error,"INFO: >>> srtp_capsstr=%s\n",srtp_capsstr);
+                // ... I don't think so ...
+                g_object_set(G_OBJECT(data->element_appsrc), "caps", data->caps_v_ts, NULL);
+			    }
+             else
+             {
+                g_object_set(G_OBJECT(data->element_av[0]), "caps", data->caps_v_ts, NULL);
+			       g_object_set(G_OBJECT(data->element_av[0]), "port", data->udp_port, NULL);
+			       gst_bin_add(GST_BIN(data->pipeline), data->element_av[0]);
+             }
 
-					// create and add the SRTP decoder
-					data->element_srtp = gst_element_factory_make("srtpdec", NULL);
-					gst_bin_add(GST_BIN(data->pipeline), data->element_srtp);
+             if(doSRTP)
+             {
+			       ret = gst_element_link(data->element_appsrc, data->element_zero);
 
-					g_object_set(G_OBJECT(data->element_av[0]), "caps", gst_caps_from_string(srtp_capsstr), NULL);
-					g_free(srtp_capsstr);
-				}
-				else
-				{
-					g_object_set(G_OBJECT(data->element_av[0]), "caps", data->caps_v_ts, NULL);
-				}
+                CSIO_LOG(eLogLevel_debug,"mira: {%s} - linked DTLS GStreamer pipeline",__FUNCTION__);
 
-				g_object_set(G_OBJECT(data->element_av[0]), "port", data->udp_port, NULL);
-				gst_bin_add(GST_BIN(data->pipeline), data->element_av[0]);
+                CSIO_LOG(eLogLevel_debug,"mira: {%s} - ***** starting RTP thread *****",__FUNCTION__);
 
-				if(doSRTP)
-					ret = gst_element_link_many(data->element_av[0], data->element_srtp, data->element_zero, NULL);
-				else
-					ret = gst_element_link(data->element_av[0], data->element_zero);
+                ret1 = csio_jni_StartRTPMediaStreamThread(iStreamId,data->element_appsrc,
+                     (unsigned int)data->udp_port);
 
-				if(ret==0)
-				{
-					CSIO_LOG(eLogLevel_error,  "ERROR:  Cannot link filter to source elements.\n" );
-					iStatus = CSIO_CANNOT_LINK_ELEMENTS;
-				}
-				else
-					CSIO_LOG(eLogLevel_debug,  "link filter to source elements.\n" );
+                CSIO_LOG(eLogLevel_debug,"mira: {%s} - ===== RTP thread started =====",__FUNCTION__);
+             }
+             else ret = gst_element_link(data->element_av[0], data->element_zero);
+
+			    if((ret == 0) || (ret1 != 0))
+			    {
+			        CSIO_LOG(eLogLevel_error,"mira: Cannot link pipeline elements.\n" );
+				     iStatus = CSIO_CANNOT_LINK_ELEMENTS;
+			    }
+			    else
+			        CSIO_LOG(eLogLevel_debug,"mira: linked pipeline elements.\n" );
+
+             // ***
 
 
 				// Set up udpsink for RTCP
@@ -2698,7 +2980,7 @@ int csio_jni_CreatePipeline(GstElement **pipeline, GstElement **source, eProtoco
 					gst_object_unref(srcpad);
 					gst_object_unref(sinkpad);
 				}
-			}
+		    }
 		    else if(CSIOCnsIntf->getStreamTxRx_TRANSPORTMODE(iStreamId)==STREAM_TRANSPORT_MPEG2TS_UDP)
 		    {
 		        data->element_zero = gst_element_factory_make("udpsrc", NULL);
@@ -2945,6 +3227,7 @@ int csio_jni_CreatePipeline(GstElement **pipeline, GstElement **source, eProtoco
 
 	return iStatus;
 }
+
 
 void csio_jni_InitPipeline(eProtocolId protoId, int iStreamId,GstRTSPLowerTrans tcpModeFlags)
 {
@@ -4262,7 +4545,7 @@ JNIEXPORT void JNICALL Java_com_crestron_txrxservice_WbsStreamIn_nativeSetLogLev
  * Note: calling function should call gst_native_surface_init() to setup surface first.
  *
  * */
-JNIEXPORT void JNICALL Java_com_crestron_txrxservice_GstreamIn_nativeWfdStart(JNIEnv *env, jobject thiz, jint windowId, jstring url_jstring, jint rtsp_port)
+JNIEXPORT void JNICALL Java_com_crestron_txrxservice_GstreamIn_nativeWfdStart(JNIEnv *env, jobject thiz, jint windowId, jlong sessionId, jstring url_jstring, jint rtsp_port)
 {
     const char * url_cstring = env->GetStringUTFChars( url_jstring , NULL ) ;
     if (url_cstring == NULL)
@@ -4272,11 +4555,15 @@ JNIEXPORT void JNICALL Java_com_crestron_txrxservice_GstreamIn_nativeWfdStart(JN
         return;
     }
 
-    CSIO_LOG(eLogLevel_info, "%s: start TCP connection source url[%s], port[%d]", __FUNCTION__, url_cstring,rtsp_port);
+    CSIO_LOG(eLogLevel_info, "%s: start TCP connection source windowId[%d] sessionId[%lld] url[%s], port[%d]", __FUNCTION__, windowId, (long long) sessionId, url_cstring,rtsp_port);
+
+    int retv = sssl_setContextStreamID((unsigned long long)sessionId, windowId);
+
+    CSIO_LOG(eLogLevel_debug,"mira: {%s} - sssl_setContextStreamID() called with sessionID = 0x%x, streamID = %d returned %d",
+      __FUNCTION__,sessionId,windowId,retv);
 
     Wfd_set_firewall_rules(rtsp_port, -1);
 
-    // ***
     CREGSTREAM * data = GetStreamFromCustomData(CresDataDB, windowId);
     if (!data)
     {
@@ -4313,13 +4600,15 @@ JNIEXPORT void JNICALL Java_com_crestron_txrxservice_GstreamIn_nativeWfdStart(JN
        data->key = strdup(locKey);
        env->ReleaseStringUTFChars(key, locKey);
     }
-    // ***
 #endif
     data->wfd_jitterbuffer_latency = 50;//set latency to 50ms
     strcpy(data->rtcp_dest_ip_addr, url_cstring);	// Set RTSP IP as RTCP IP
 
     int ts_port = CSIOCnsIntf->getStreamTxRx_TSPORT(windowId);
     WfdSinkProjStart(windowId,url_cstring,rtsp_port,ts_port);
+
+    CSIO_LOG(eLogLevel_debug,"mira: {%s} - exiting",__FUNCTION__);
+
     env->ReleaseStringUTFChars(url_jstring, url_cstring);
 }
 
@@ -4330,7 +4619,7 @@ JNIEXPORT void JNICALL Java_com_crestron_txrxservice_GstreamIn_nativeWfdStart(JN
  * */
 JNIEXPORT void JNICALL Java_com_crestron_txrxservice_GstreamIn_nativeWfdStop(JNIEnv *env, jobject thiz, jint windowId)
 {
-    CSIO_LOG(eLogLevel_verbose, "%s", __FUNCTION__);
+    CSIO_LOG(eLogLevel_debug,"mira: {%s} - stop Wfd", __FUNCTION__);
 
     //Note: you can call WfdSinkProjStop multiple times.
     WfdSinkProjStop(windowId);
@@ -4341,22 +4630,12 @@ JNIEXPORT void JNICALL Java_com_crestron_txrxservice_GstreamIn_nativeWfdStop(JNI
 
         if (!data)
         {
-        	CSIO_LOG(eLogLevel_error, "Could not obtain stream pointer for stream %d, failed to set isStarted state", windowId);
+        	CSIO_LOG(eLogLevel_error, "mira: Could not obtain stream pointer for stream %d, failed to set isStarted state", windowId);
         }
         else
         {
             data->wfd_jitterbuffer_latency = -1;
-
-            // ***
-            if(data->key)
-            {
-                free(data->key);
-                data->key = NULL;
-            }
-            data->cipher = -1;
-            data->authentication = -1;
             data->ssrc = 0;
-            // ***
 
 			data->rtcp_dest_ip_addr[0] = '\0';
 			data->rtcp_dest_port = -1;
@@ -4377,6 +4656,9 @@ JNIEXPORT void JNICALL Java_com_crestron_txrxservice_GstreamIn_nativeWfdStop(JNI
             }
         }
     }
+
+    CSIO_LOG(eLogLevel_debug,"mira: {%s} - exiting",__FUNCTION__);
+
 }
 
 // <0 means ignore, 0 means remove rule, >0 means open firewall to that port
@@ -4402,13 +4684,13 @@ static void Wfd_set_firewall_rules (int rtsp_port, int ts_port)
  * */
 
 
-// ***
 void Wfd_setup_gst_pipeline (int id, int state, struct GST_PIPELINE_CONFIG* gst_config)
 {
     if(state && gst_config)
     {
-        CSIO_LOG(eLogLevel_debug, "Wfd_setup_gst_pipeline[%d]: ts_port[%d],ssrc[0x%x],rtcp_dest_port[%d]",
-                 id,gst_config->ts_port, gst_config->ssrc,gst_config->rtcp_dest_port);
+
+        CSIO_LOG(eLogLevel_debug, "mira: {%s} - id[%d], ts_port[%d], ssrc[0x%x], rtcp_dest_port[%d]",
+                 __FUNCTION__,id,gst_config->ts_port,gst_config->ssrc,gst_config->rtcp_dest_port);
 
         Wfd_set_firewall_rules(-1, gst_config->ts_port);
 
@@ -4435,11 +4717,8 @@ void Wfd_setup_gst_pipeline (int id, int state, struct GST_PIPELINE_CONFIG* gst_
             data->isStarted = true;
             data->packetizer_pcr_discont_threshold = 5;
 
-
-            // ***
             data->ssrc = gst_config->ssrc;
             data->rtcp_dest_port = gst_config->rtcp_dest_port;
-
 
             if(GetInPausedState(id))
             {
@@ -4452,17 +4731,25 @@ void Wfd_setup_gst_pipeline (int id, int state, struct GST_PIPELINE_CONFIG* gst_
 
         CSIO_LOG(eLogLevel_debug, "%s exit", __FUNCTION__);
     }
+
+    CSIO_LOG(eLogLevel_debug, "mira: {%s} - exiting",__FUNCTION__);
 }
 
 JNIEXPORT void JNICALL Java_com_crestron_txrxservice_GstreamIn_nativeMsMiceStart(JNIEnv *env, jobject thiz)
 {
+#if ENABLE_DTLS
+    CSIO_LOG(eLogLevel_debug,"mira: {%s} - ***** calling sssl_initialize() *****",__FUNCTION__);
+    sssl_initialize();
+    CSIO_LOG(eLogLevel_debug, "mira: {%s} - ===== returned from sssl_initialize() =====",__FUNCTION__);
+#endif
+
     msMiceSinkProjInit(NULL);
 }
 JNIEXPORT void JNICALL Java_com_crestron_txrxservice_GstreamIn_nativeMsMiceSetAdapterAddress(JNIEnv *env, jobject thiz, jstring address)
 {
     char * locAddr = NULL;
     if(address != NULL)
-    {
+{
         locAddr = (char *)env->GetStringUTFChars(address, NULL);
     }//else
 
@@ -4484,13 +4771,20 @@ JNIEXPORT void JNICALL Java_com_crestron_txrxservice_GstreamIn_nativeMsMiceSetAd
 JNIEXPORT void JNICALL Java_com_crestron_txrxservice_GstreamIn_nativeMsMiceStop(JNIEnv *env, jobject thiz)
 {
     msMiceSinkProjDeInit();
+
+#if ENABLE_DTLS
+    CSIO_LOG(eLogLevel_debug,"mira: {%s} - ***** calling sssl_deinitialize() *****",__FUNCTION__);
+    sssl_deinitialize();
+    CSIO_LOG(eLogLevel_debug,"mira: {%s} - ===== returned from sssl_deinitialize() =====",__FUNCTION__);
+#endif
+
 }
 JNIEXPORT void JNICALL Java_com_crestron_txrxservice_GstreamIn_nativeMsMiceCloseSession(JNIEnv *env, jobject thiz, jlong session_id)
 {
     msMiceSinkProjStopSession(0,session_id);
 }
 JNIEXPORT void JNICALL Java_com_crestron_txrxservice_GstreamIn_nativeMsMiceSetPin(JNIEnv *env, jobject thiz, jstring pin_jstring)
-{
+        {
     int id = 0;
 
     char * locPin = NULL;
@@ -4525,7 +4819,7 @@ void csio_SendMsMiceStateChange(gint64 sessionId, int state, char *device_id, ch
     jmethodID sendMsMiceStateChange = env->GetMethodID((jclass)gStreamIn_javaClass_id, "sendMsMiceStateChange", "(JILjava/lang/String;Ljava/lang/String;Ljava/lang/String;I)V");
     if (sendMsMiceStateChange == NULL) {
         CSIO_LOG(eLogLevel_error, "Failed to find Java method 'sendMsMiceStateChange'");
-    	return;
+        return;
     }
 
     deviceId = env->NewStringUTF(device_id);
@@ -4535,8 +4829,8 @@ void csio_SendMsMiceStateChange(gint64 sessionId, int state, char *device_id, ch
     env->CallVoidMethod(CresDataDB->app, sendMsMiceStateChange, (jlong)sessionId, (jint)state, (jstring) deviceId, (jstring) deviceName, (jstring) deviceAddress, (jint)rtsp_port);
     if (env->ExceptionCheck ()) {
         CSIO_LOG(eLogLevel_error, "Failed to call Java method 'sendMsMiceStateChange'");
-        env->ExceptionClear ();
-    }
+            env->ExceptionClear ();
+        }
 
     env->DeleteLocalRef(deviceId);
     env->DeleteLocalRef(deviceName);

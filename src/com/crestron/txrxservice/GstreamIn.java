@@ -44,8 +44,8 @@ public class GstreamIn implements StreamInStrategy, SurfaceHolder.Callback {
     private static native boolean nativeClassInit(); // Initialize native class: cache Method IDs for callbacks
     private native void nativeSurfaceInit(Object surface, int sessionId);
     private native void nativeSurfaceFinalize(int sessionId);
-    private native void nativeWfdStart(int sessionId, String url, int rtsp_port);
-    private native void nativeWfdStop(int sessionId);
+    private native void nativeWfdStart(int streamId, long sessionId, String url, int rtsp_port);
+    private native void nativeWfdStop(int streamId);
     private native void nativeMsMiceStart();
     private native void nativeMsMiceStop();
     private native void nativeMsMiceSetAdapterAddress(String address);
@@ -563,7 +563,7 @@ public class GstreamIn implements StreamInStrategy, SurfaceHolder.Callback {
     }
  
     
-    public void wfdStart(final int sessionId, final String url, final int rtsp_port)
+    public void wfdStart(final int streamId, final long sessionId, final String url, final int rtsp_port)
     {
     	final GstreamIn gStreamObj = this;
     	final CountDownLatch latch = new CountDownLatch(1);
@@ -571,15 +571,15 @@ public class GstreamIn implements StreamInStrategy, SurfaceHolder.Callback {
     		public void run() {
     			try {
     				isPlaying = true;
-    				wfd_mode[sessionId] = true;
-    				updateNativeWfdDataStruct(sessionId);
-    				Surface s = streamCtl.getSurface(sessionId);
-    				nativeSurfaceInit(s, sessionId);
-    		    	nativeWfdStart(sessionId, url, rtsp_port);
+    				wfd_mode[streamId] = true;
+    				updateNativeWfdDataStruct(streamId);
+    				Surface s = streamCtl.getSurface(streamId);
+    				nativeSurfaceInit(s, streamId);
+    		    	nativeWfdStart(streamId, sessionId, url, rtsp_port);
     			}
     			catch(Exception e){
     				// TODO: explore exception handling with better feedback of what went wrong to user
-    				streamCtl.SendStreamState(StreamState.STOPPED, sessionId);
+    				streamCtl.SendStreamState(StreamState.STOPPED, streamId);
     				e.printStackTrace();        
     			}     
     			latch.countDown();
@@ -598,17 +598,17 @@ public class GstreamIn implements StreamInStrategy, SurfaceHolder.Callback {
     		Log.e(TAG, MiscUtils.stringFormat("Stream In failed to start after %d ms", startTimeout_ms));
     		startThread.interrupt(); //cleanly kill thread
     		startThread = null;
-    		wfd_mode[sessionId] = false;
+    		wfd_mode[streamId] = false;
     		streamCtl.RecoverTxrxService();
     	}
     }
     
-    public void wfdStop(final int sessionId)
+    public void wfdStop(final int streamId)
     {
     	isPlaying = false;
     	Log.i(TAG, "wfdStop");
         //nativeSurfaceFinalize (sessionId);should be called in surfaceDestroyed()
-    	nativeWfdStop(sessionId);
+    	nativeWfdStop(streamId);
     }
     
     public void msMiceStart()

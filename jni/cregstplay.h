@@ -99,8 +99,7 @@ typedef struct _CREGSTREAM
 	GstElement *typefind;
 
 
-   // ***
-   GstElement * element_srtp;
+   GstElement * element_appsrc;
 
 
 	unsigned int element_after_tsdemux;	/* Used to add the rest of the video pipeline */
@@ -164,10 +163,6 @@ typedef struct _CREGSTREAM
     int packetizer_pcr_discont_threshold;
 
 
-    // ***
-    char * key;
-    int cipher;
-    int authentication;
     unsigned int ssrc;
 
     int wfd_jitterbuffer_latency;

@@ -207,7 +207,7 @@ public class WifidVideoPlayer {
             	session = new VideoSession(id, streamId, surface, AirMediaSessionStreamingState.Stopped);
             	// Start the video player
             	// Put session into the map
-            	streamCtrl_.startWfdStream(streamId, endpoint, port);
+            	streamCtrl_.startWfdStream(streamId, id, endpoint, port);
             }
             sessionMap.put(id, session);
             stateChanged(id, AirMediaSessionStreamingState.Starting);
