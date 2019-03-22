@@ -56,7 +56,7 @@
 ///////////////////////////////////////////////////////////////////////////////
 
 extern int  csio_Init(int calledFromCsio);
-void csio_jni_stop(int sessionId);
+void csio_jni_stop(int streamId);
 void csio_send_stats_no_bitrate (uint64_t video_packets_received, int video_packets_lost, uint64_t audio_packets_received, int audio_packets_lost);
 void LocalConvertToUpper(char *str);
 static void * debug_launch_pipeline(void *data);
@@ -376,19 +376,19 @@ static void gst_native_finalize (JNIEnv* env, jobject thiz)
 }
 
 /* Set pipeline to PLAYING state */
-void gst_native_play (JNIEnv* env, jobject thiz, jint sessionId)
+void gst_native_play (JNIEnv* env, jobject thiz, jint streamId)
 {
-    CREGSTREAM * data = GetStreamFromCustomData(CresDataDB, sessionId);
+    CREGSTREAM * data = GetStreamFromCustomData(CresDataDB, streamId);
 
     if (!data)
     {
-        CSIO_LOG(eLogLevel_error, "Could not obtain stream pointer for stream %d", sessionId);
+        CSIO_LOG(eLogLevel_error, "Could not obtain stream pointer for stream %d", streamId);
         return;
     }
 
     data->isStarted = true;
 
-    if(GetInPausedState(sessionId))
+    if(GetInPausedState(streamId))
     {
         CSIO_LOG(eLogLevel_debug, "GetInPausedState is true, resume now");
         switch (data->httpMode)
@@ -415,22 +415,22 @@ void gst_native_play (JNIEnv* env, jobject thiz, jint sessionId)
         }
     }
 
-    SetInPausedState(sessionId, 0);
-	start_streaming_cmd(sessionId);
+    SetInPausedState(streamId, 0);
+	start_streaming_cmd(streamId);
 }
 
 /* Set pipeline to PAUSED state */
-static void gst_native_pause (JNIEnv* env, jobject thiz, jint sessionId)
+static void gst_native_pause (JNIEnv* env, jobject thiz, jint streamId)
 {
-    CREGSTREAM * data = GetStreamFromCustomData(CresDataDB, sessionId);
+    CREGSTREAM * data = GetStreamFromCustomData(CresDataDB, streamId);
 
     if (!data)
     {
-        CSIO_LOG(eLogLevel_error, "Could not obtain stream pointer for stream %d", sessionId);
+        CSIO_LOG(eLogLevel_error, "Could not obtain stream pointer for stream %d", streamId);
         return;
     }
     
-    if(GetInPausedState(sessionId) == 0)
+    if(GetInPausedState(streamId) == 0)
     {
         CSIO_LOG(eLogLevel_debug, "GetInPausedState is false, drop all");
         switch (data->httpMode)
@@ -457,8 +457,8 @@ static void gst_native_pause (JNIEnv* env, jobject thiz, jint sessionId)
         }
     }
 
-    SetInPausedState(sessionId, 1);
-	pause_streaming_cmd(sessionId);
+    SetInPausedState(streamId, 1);
+	pause_streaming_cmd(streamId);
 }
 
 void csio_jni_remove_video_rate_probe(int iStreamId)
@@ -744,20 +744,20 @@ void csio_jni_cleanup (int iStreamId)
 
 void * jni_stop (void * arg)
 {
-	jint sessionId = (*(jint *)arg);
-	SetInPausedState(sessionId,0);
-	stop_streaming_cmd(sessionId);
-	csio_jni_cleanup(sessionId);
+	jint streamId = (*(jint *)arg);
+	SetInPausedState(streamId,0);
+	stop_streaming_cmd(streamId);
+	csio_jni_cleanup(streamId);
 
    CSIO_LOG(eLogLevel_debug,"mira: {%s} - ***** calling sssl_waitDTLSAppThCancel() *****",__FUNCTION__);
-   sssl_waitDTLSAppThCancel(sessionId);
+   sssl_waitDTLSAppThCancel(streamId);
    CSIO_LOG(eLogLevel_debug,"mira: {%s} - ===== returned from sssl_waitDTLSAppThCancel() =====",__FUNCTION__);
 
    pthread_cond_broadcast(&stop_completed_sig); //Flags that stop has completed
 	pthread_exit(NULL);
 }
 
-void csio_jni_stop(int sessionId)
+void csio_jni_stop(int streamId)
 {
 	jint timeout_sec = stop_timeout_sec;
 	struct timespec stopTimeout;
@@ -775,7 +775,7 @@ void csio_jni_stop(int sessionId)
 	stopTimeout.tv_sec += timeout_sec;
 
 	//Kick off stop thread
-	pthread_create(&gst_stop_thread, &attr, jni_stop, &sessionId);
+	pthread_create(&gst_stop_thread, &attr, jni_stop, &streamId);
 
 	//Wait for timeout or completion
 	pthread_mutex_lock(&stop_completed_lock);
@@ -790,7 +790,7 @@ void csio_jni_stop(int sessionId)
 	if (result == ETIMEDOUT)
 	{
 		CSIO_LOG(eLogLevel_error, "Stop timed out after %d seconds\n", timeout_sec);
-		ResetStartedPlay(sessionId);
+		ResetStartedPlay(streamId);
 		csio_jni_recoverDucati();
 	}
 	else if (result != 0)
@@ -798,22 +798,22 @@ void csio_jni_stop(int sessionId)
 }
 
 /* Set pipeline to PAUSED state */
-void gst_native_stop (JNIEnv* env, jobject thiz, jint sessionId, jint stopTimeout_sec)
+void gst_native_stop (JNIEnv* env, jobject thiz, jint streamId, jint stopTimeout_sec)
 {
-	CREGSTREAM * data = GetStreamFromCustomData(CresDataDB, sessionId);
+	CREGSTREAM * data = GetStreamFromCustomData(CresDataDB, streamId);
 
 	if (!data)
-		CSIO_LOG(eLogLevel_error, "Could not obtain stream pointer for stream %d, failed to set isStarted state", sessionId);
+		CSIO_LOG(eLogLevel_error, "Could not obtain stream pointer for stream %d, failed to set isStarted state", streamId);
 	else
 	{
 	    if (data->isStarted)
 	    {
 	        data->isStarted = false;
 
-	        csio_jni_stop((int)sessionId);
+	        csio_jni_stop((int)streamId);
 	    }
 	    else
-	    	csio_SendVideoPlayingStatusMessage((int)sessionId, STREAMSTATE_STOPPED);
+	    	csio_SendVideoPlayingStatusMessage((int)streamId, STREAMSTATE_STOPPED);
 	}
 }
 
@@ -1021,14 +1021,14 @@ static void gst_native_surface_finalize (JNIEnv *env, jobject thiz, jint stream)
 	//TODO: when this will be called?
 }
 
-JNIEXPORT void JNICALL Java_com_crestron_txrxservice_GstreamIn_nativeSetRTCPDestIP(JNIEnv *env, jobject thiz, jstring rtcpIp_jstring, jint sessionId)
+JNIEXPORT void JNICALL Java_com_crestron_txrxservice_GstreamIn_nativeSetRTCPDestIP(JNIEnv *env, jobject thiz, jstring rtcpIp_jstring, jint streamId)
 {
     const char * rtcpIp_cstring = env->GetStringUTFChars( rtcpIp_jstring , NULL ) ;
     if (rtcpIp_cstring == NULL) return;
 
     CSIO_LOG(eLogLevel_debug, "RTCP dest ip: '%s'", rtcpIp_cstring);
 
-    CREGSTREAM * data = GetStreamFromCustomData(CresDataDB, sessionId);
+    CREGSTREAM * data = GetStreamFromCustomData(CresDataDB, streamId);
     if (data)
     {
         strncpy(data->rtcp_dest_ip_addr, rtcpIp_cstring, 32);
@@ -1039,78 +1039,78 @@ JNIEXPORT void JNICALL Java_com_crestron_txrxservice_GstreamIn_nativeSetRTCPDest
 }
 
 /* Set Stream URL */
-JNIEXPORT void JNICALL Java_com_crestron_txrxservice_GstreamIn_nativeSetServerUrl(JNIEnv *env, jobject thiz, jstring url_jstring, jint sessionId)
+JNIEXPORT void JNICALL Java_com_crestron_txrxservice_GstreamIn_nativeSetServerUrl(JNIEnv *env, jobject thiz, jstring url_jstring, jint streamId)
 {
 	int restartStream = 0;
 	const char * url_cstring = env->GetStringUTFChars( url_jstring , NULL ) ;
 	if (url_cstring == NULL) return;
 
 	CSIO_LOG(eLogLevel_debug, "Using server url: '%s'", url_cstring);
-	csio_SetURL(sessionId, (char *)url_cstring, strlen(url_cstring) + 1);
+	csio_SetURL(streamId, (char *)url_cstring, strlen(url_cstring) + 1);
 
 	env->ReleaseStringUTFChars(url_jstring, url_cstring);
 }
 
-JNIEXPORT void JNICALL Java_com_crestron_txrxservice_GstreamIn_nativeSetRtspPort(JNIEnv *env, jobject thiz, jint port, jint sessionId)
+JNIEXPORT void JNICALL Java_com_crestron_txrxservice_GstreamIn_nativeSetRtspPort(JNIEnv *env, jobject thiz, jint port, jint streamId)
 {
 	CSIO_LOG(eLogLevel_debug, "Using RtspPort: '%d'", port);
-	CSIOCnsIntf->setStreamTxRx_RTSPPORT(sessionId, port, SENDTOCRESSTORE_NONE);
-	CSIO_LOG(eLogLevel_debug, "RtspPort in cache: '%d'", CSIOCnsIntf->getStreamTxRx_RTSPPORT(sessionId));
+	CSIOCnsIntf->setStreamTxRx_RTSPPORT(streamId, port, SENDTOCRESSTORE_NONE);
+	CSIO_LOG(eLogLevel_debug, "RtspPort in cache: '%d'", CSIOCnsIntf->getStreamTxRx_RTSPPORT(streamId));
 }
 
-JNIEXPORT void JNICALL Java_com_crestron_txrxservice_GstreamIn_nativeSetTsPort(JNIEnv *env, jobject thiz, jint port, jint sessionId)
+JNIEXPORT void JNICALL Java_com_crestron_txrxservice_GstreamIn_nativeSetTsPort(JNIEnv *env, jobject thiz, jint port, jint streamId)
 {
 	CSIO_LOG(eLogLevel_debug, "Using tsPort: '%d'", port);
-	csio_SetPortNumber( sessionId, port, c_TSportNumber );
-	CSIO_LOG(eLogLevel_debug, "tsPort in cache: '%ld'", CSIOCnsIntf->getStreamTxRx_TSPORT(sessionId));
+	csio_SetPortNumber( streamId, port, c_TSportNumber );
+	CSIO_LOG(eLogLevel_debug, "tsPort in cache: '%ld'", CSIOCnsIntf->getStreamTxRx_TSPORT(streamId));
 }
 
-JNIEXPORT void JNICALL Java_com_crestron_txrxservice_GstreamIn_nativeSetHdcpEncrypt(JNIEnv *env, jobject thiz, jboolean flag, jint sessionId)
+JNIEXPORT void JNICALL Java_com_crestron_txrxservice_GstreamIn_nativeSetHdcpEncrypt(JNIEnv *env, jobject thiz, jboolean flag, jint streamId)
 {
-    CREGSTREAM * data = GetStreamFromCustomData(CresDataDB, sessionId);
+    CREGSTREAM * data = GetStreamFromCustomData(CresDataDB, streamId);
 
     if(!data)
     {
-        CSIO_LOG(eLogLevel_error, "Could not obtain stream pointer for stream %d", sessionId);
+        CSIO_LOG(eLogLevel_error, "Could not obtain stream pointer for stream %d", streamId);
         return;
     }
 
-    csio_SetHDCPEncrypt(sessionId, flag);
+    csio_SetHDCPEncrypt(streamId, flag);
 
     data->doHdcp = (gboolean)flag;
 }
 
-JNIEXPORT void JNICALL Java_com_crestron_txrxservice_GstreamIn_nativeSetRtpVideoPort(JNIEnv *env, jobject thiz, jint port, jint sessionId)
+JNIEXPORT void JNICALL Java_com_crestron_txrxservice_GstreamIn_nativeSetRtpVideoPort(JNIEnv *env, jobject thiz, jint port, jint streamId)
 {
 	CSIO_LOG(eLogLevel_debug, "Using rtpVideoPort: '%d'", port);
-	csio_SetPortNumber( sessionId, port, c_RTPVideoPortNumber );
-	CSIO_LOG(eLogLevel_debug, "rtpVideoPort in cache: '%ld'", CSIOCnsIntf->getStreamTxRx_RTPVIDEOPORT(sessionId));
+	csio_SetPortNumber( streamId, port, c_RTPVideoPortNumber );
+	CSIO_LOG(eLogLevel_debug, "rtpVideoPort in cache: '%ld'", CSIOCnsIntf->getStreamTxRx_RTPVIDEOPORT(streamId));
 }
 
-JNIEXPORT void JNICALL Java_com_crestron_txrxservice_GstreamIn_nativeSetRtpAudioPort(JNIEnv *env, jobject thiz, jint port, jint sessionId)
+JNIEXPORT void JNICALL Java_com_crestron_txrxservice_GstreamIn_nativeSetRtpAudioPort(JNIEnv *env, jobject thiz, jint port, jint streamId)
 {
 	CSIO_LOG(eLogLevel_debug, "Using rtpAudioPort: '%d'", port);
-	csio_SetPortNumber( sessionId, port, c_RTPAudioPortNumber );
-	CSIO_LOG(eLogLevel_debug, "rtpAudioPort in cache: '%ld'", CSIOCnsIntf->getStreamTxRx_RTPAUDIOPORT(sessionId));
+	csio_SetPortNumber( streamId, port, c_RTPAudioPortNumber );
+	CSIO_LOG(eLogLevel_debug, "rtpAudioPort in cache: '%ld'", CSIOCnsIntf->getStreamTxRx_RTPAUDIOPORT(streamId));
 }
 
-JNIEXPORT void JNICALL Java_com_crestron_txrxservice_GstreamIn_nativeSetSessionInitiation(JNIEnv *env, jobject thiz, jint initMode, jint sessionId)
+JNIEXPORT void JNICALL Java_com_crestron_txrxservice_GstreamIn_nativeSetSessionInitiation(JNIEnv *env, jobject thiz, jint initMode, jint streamId)
 {
 	CSIO_LOG(eLogLevel_debug, "Using sessionInitiationMode: '%d'", initMode);
-	CSIOCnsIntf->setStreamTxRx_SESSIONINITIATION(sessionId, initMode, SENDTOCRESSTORE_NONE);
-	csio_SetSessionInitiationMode(sessionId,initMode);
-	CSIO_LOG(eLogLevel_debug, "sessionInitiationMode in cache: '%d'", CSIOCnsIntf->getStreamTxRx_SESSIONINITIATION(sessionId));
+	CSIOCnsIntf->setStreamTxRx_SESSIONINITIATION(streamId, initMode, SENDTOCRESSTORE_NONE);
+	csio_SetSessionInitiationMode(streamId,initMode);
+	CSIO_LOG(eLogLevel_debug, "sessionInitiationMode in cache: '%d'", CSIOCnsIntf->getStreamTxRx_SESSIONINITIATION(streamId));
 }
 
-JNIEXPORT void JNICALL Java_com_crestron_txrxservice_GstreamIn_nativeSetTransportMode(JNIEnv *env, jobject thiz, jint transportMode, jint sessionId)
+JNIEXPORT void JNICALL Java_com_crestron_txrxservice_GstreamIn_nativeSetTransportMode(JNIEnv *env, jobject thiz, jint transportMode, jint streamId)
 {
 	CSIO_LOG(eLogLevel_debug, "Using tsEnabled: '%d'", transportMode);
-	CSIOCnsIntf->setStreamTxRx_TRANSPORTMODE(sessionId, transportMode, SENDTOCRESSTORE_NONE);
-	csio_SetTransportMode(sessionId,transportMode);
-	CSIO_LOG(eLogLevel_debug, "tsEnabled in cache: '%d'", CSIOCnsIntf->getStreamTxRx_TRANSPORTMODE(sessionId));
+	CSIOCnsIntf->setStreamTxRx_TRANSPORTMODE(streamId, transportMode, SENDTOCRESSTORE_NONE);
+	csio_SetTransportMode(streamId,transportMode);
+	CSIO_LOG(eLogLevel_debug, "tsEnabled in cache: '%d'", CSIOCnsIntf->getStreamTxRx_TRANSPORTMODE(streamId));
 }
 
-JNIEXPORT void JNICALL Java_com_crestron_txrxservice_GstreamIn_nativeSetMulticastAddress(JNIEnv *env, jobject thiz, jstring multicastIp_jstring, jint sessionId)
+JNIEXPORT void JNICALL Java_com_crestron_txrxservice_GstreamIn_nativeSetMulticastAddress(JNIEnv *env, jobject thiz, jstring multicastIp_jstring, jint streamId)
 {
 	char *buf = NULL;
 	
@@ -1119,16 +1119,16 @@ JNIEXPORT void JNICALL Java_com_crestron_txrxservice_GstreamIn_nativeSetMulticas
 
 	CSIO_LOG(eLogLevel_debug, "Using multicastAddress: '%s'", multicastIp_cstring);
 	std::string strValue = multicastIp_cstring;
-	CSIOCnsIntf->setStreamTxRx_MULTICASTADDRESS(sessionId, strValue, SENDTOCRESSTORE_NONE);
+	CSIOCnsIntf->setStreamTxRx_MULTICASTADDRESS(streamId, strValue, SENDTOCRESSTORE_NONE);
 	buf = (char *) malloc(strlen(multicastIp_cstring)+1);
-	CSIOCnsIntf->getStreamTxRx_MULTICASTADDRESS(sessionId, buf, strlen(multicastIp_cstring)+1);
+	CSIOCnsIntf->getStreamTxRx_MULTICASTADDRESS(streamId, buf, strlen(multicastIp_cstring)+1);
 	CSIO_LOG(eLogLevel_debug, "multicastAddress in cache: '%s'", buf);
 	free(buf);
 
 	env->ReleaseStringUTFChars(multicastIp_jstring, multicastIp_cstring);
 }
 
-JNIEXPORT void JNICALL Java_com_crestron_txrxservice_GstreamIn_nativeSetStreamingBuffer(JNIEnv *env, jobject thiz, jint buffer_ms, jint sessionId)
+JNIEXPORT void JNICALL Java_com_crestron_txrxservice_GstreamIn_nativeSetStreamingBuffer(JNIEnv *env, jobject thiz, jint buffer_ms, jint streamId)
 {
     CSIO_LOG(eLogLevel_debug, "Using streamingBuffer: '%d'", buffer_ms);
 	if(buffer_ms < DEFAULT_MIN_STRING_BUFFER)
@@ -1143,38 +1143,38 @@ JNIEXPORT void JNICALL Java_com_crestron_txrxservice_GstreamIn_nativeSetStreamin
         CSIO_LOG(eLogLevel_debug, "Clip streamingBuffer to: '%d'", DEFAULT_MIN_STRING_BUFFER);
     }
 
-	CSIOCnsIntf->setStreamRx_BUFFER(sessionId, buffer_ms, SENDTOCRESSTORE_NONE);
-	CSIO_LOG(eLogLevel_debug, "streamingBuffer in cache: '%d'", CSIOCnsIntf->getStreamRx_BUFFER(sessionId));
+	CSIOCnsIntf->setStreamRx_BUFFER(streamId, buffer_ms, SENDTOCRESSTORE_NONE);
+	CSIO_LOG(eLogLevel_debug, "streamingBuffer in cache: '%d'", CSIOCnsIntf->getStreamRx_BUFFER(streamId));
 }
 
-JNIEXPORT void JNICALL Java_com_crestron_txrxservice_GstreamIn_nativeSetXYlocations(JNIEnv *env, jobject thiz, jint xLocation, jint yLocation, jint sessionId)
+JNIEXPORT void JNICALL Java_com_crestron_txrxservice_GstreamIn_nativeSetXYlocations(JNIEnv *env, jobject thiz, jint xLocation, jint yLocation, jint streamId)
 {
 //TODO: delete
-//	currentSettingsDB->settingsMessage.msg[sessionId].left = xLocation;
-//	currentSettingsDB->settingsMessage.msg[sessionId].top = yLocation;
-//	CSIO_LOG(eLogLevel_debug, "xLocation in currentSettingsDB: '%d'", currentSettingsDB->settingsMessage.msg[sessionId].left);
-//	CSIO_LOG(eLogLevel_debug, "yLocation in currentSettingsDB: '%d'", currentSettingsDB->settingsMessage.msg[sessionId].top);
+//	currentSettingsDB->settingsMessage.msg[streamId].left = xLocation;
+//	currentSettingsDB->settingsMessage.msg[streamId].top = yLocation;
+//	CSIO_LOG(eLogLevel_debug, "xLocation in currentSettingsDB: '%d'", currentSettingsDB->settingsMessage.msg[streamId].left);
+//	CSIO_LOG(eLogLevel_debug, "yLocation in currentSettingsDB: '%d'", currentSettingsDB->settingsMessage.msg[streamId].top);
 }
 
-JNIEXPORT void JNICALL Java_com_crestron_txrxservice_GstreamIn_nativeSetStatistics(JNIEnv *env, jobject thiz, jboolean enabled, jint sessionId)
+JNIEXPORT void JNICALL Java_com_crestron_txrxservice_GstreamIn_nativeSetStatistics(JNIEnv *env, jobject thiz, jboolean enabled, jint streamId)
 {
-	CSIOCnsIntf->setStreamTxRx_ISSTATISTICSENABLED(sessionId, (int)enabled, SENDTOCRESSTORE_NONE);
+	CSIOCnsIntf->setStreamTxRx_ISSTATISTICSENABLED(streamId, (int)enabled, SENDTOCRESSTORE_NONE);
 
-	if (nativeGetCurrentStreamState(sessionId) == STREAMSTATE_STARTED)
+	if (nativeGetCurrentStreamState(streamId) == STREAMSTATE_STARTED)
 	{
 		if (enabled)
-			start_sending_stream_statistics(sessionId);
+			start_sending_stream_statistics(streamId);
 		//we will keep thread running all the time.
 	}
 
-	//CSIO_LOG(eLogLevel_debug, "statisticsEnabled in cache: '%d'", CSIOCnsIntf->getStreamTxRx_ISSTATISTICSENABLED(sessionId));
+	//CSIO_LOG(eLogLevel_debug, "statisticsEnabled in cache: '%d'", CSIOCnsIntf->getStreamTxRx_ISSTATISTICSENABLED(streamId));
 }
 
-JNIEXPORT void JNICALL Java_com_crestron_txrxservice_GstreamIn_nativeResetStatistics(JNIEnv *env, jobject thiz, jint sessionId)
+JNIEXPORT void JNICALL Java_com_crestron_txrxservice_GstreamIn_nativeResetStatistics(JNIEnv *env, jobject thiz, jint streamId)
 {
 	csio_send_stats_no_bitrate(0, 0, 0, 0); //omit bitrate so that it won't be sent to control system
 
-	reset_statistics(sessionId);
+	reset_statistics(streamId);
 }
 
 JNIEXPORT void JNICALL Java_com_crestron_txrxservice_GstreamIn_nativeSetUserName(JNIEnv *env, jobject thiz, jstring userName_jstring, jint sessionId)
