@@ -45,7 +45,6 @@ typedef struct {
     void (*on_session_source_friendly_name_set)(ms_mice_sink_session *session, const char* friendly_name, gpointer data);
 
     void (*on_session_source_ready)(ms_mice_sink_session *session, guint16 rtsp_port, gpointer data);
-    void (*on_session_source_ready_with_dtls)(ms_mice_sink_session *session, guint16 rtsp_port, const char* key, int cipher, int authentication, gpointer data);
     void (*on_session_stop_projecting)(ms_mice_sink_session *session, gpointer data);
 } ms_mice_sink_session_observer;
 

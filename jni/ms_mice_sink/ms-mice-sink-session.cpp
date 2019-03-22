@@ -56,13 +56,6 @@ struct _ms_mice_sink_session_private {
 
     ms_mice_sink_session_observer *observer;
     gpointer observer_data;
-#if ENABLE_DTLS
-    /*used for openSSL*/
-    void * mice_ssl;
-    guint8* dtls_client_key;
-    int dtls_cipher;
-    int dtls_auth;
-#endif
 };
 
 void ssl_send_DTLS_handshake(void * session,char * dtlsData,int dtlsDataLen,void ** error);
@@ -190,18 +183,6 @@ static void ms_mice_sink_session_raise_on_session_source_ready(ms_mice_sink_sess
         void (*func)(ms_mice_sink_session *, guint16, gpointer) = observer->on_session_source_ready;
         if (func)
             func(session, rtsp_port, data);
-    }
-}
-
-static void ms_mice_sink_session_raise_on_session_source_ready_with_dtls(ms_mice_sink_session *session, guint16 rtsp_port, const char* key, int cipher, int authentication)
-{
-    //void (*on_session_source_ready_with_dtls)(ms_mice_sink_session *session, guint16 rtsp_port, const char* srtpCipher, const char* srtpAuthentication, const char* srtcpCipher, const char* srtcpAuthentication, gpointer data);
-    ms_mice_sink_session_observer *observer = session->priv->observer;
-    gpointer data = session->priv->observer_data;
-    if (observer) {
-        void (*func)(ms_mice_sink_session *, guint16, const char*, int, int, gpointer) = observer->on_session_source_ready_with_dtls;
-        if (func)
-            func(session, rtsp_port, key, cipher, authentication, data);
     }
 }
 
@@ -392,15 +373,7 @@ static void ms_mice_sink_session_handle_source_ready_message(ms_mice_sink_sessio
 
     ms_mice_sink_session_raise_on_session_state_changed(session, old_state, session->priv->state);
 
-#if ENABLE_DTLS
-    if (session->priv->is_dtls_encryption_handshake_complete && session->priv->dtls_client_key != NULL) {
-        ms_mice_sink_session_raise_on_session_source_ready_with_dtls(session, session->priv->rtsp_port, (const char *)session->priv->dtls_client_key, session->priv->dtls_cipher, session->priv->dtls_auth);
-    } else {
-        ms_mice_sink_session_raise_on_session_source_ready(session, session->priv->rtsp_port);
-    }
-#else
     ms_mice_sink_session_raise_on_session_source_ready(session, session->priv->rtsp_port);
-#endif
 }
 
 static void ms_mice_sink_session_handle_stop_projecting_message(ms_mice_sink_session *session, ms_mice_message *msg, GError **error)
@@ -754,9 +727,6 @@ static int ms_mice_sink_session_write(ms_mice_sink_session *session, GError **er
 /* ------------------------------------------------------------------------------------------------------------------
  * -- MS-MICE SINK SESSION SOCKET EVENTS
  * -- */
-
-#if ENABLE_DTLS
-
 static void send_out_BIO_data(ms_mice_sink_session* session, char* bug, guint16 len, GError **error)
 {
     MS_MICE_MESSAGE_COMMANDS command = MS_MICE_MESSAGE_SECURITY_HANDSHAKE;
@@ -792,10 +762,6 @@ void ssl_write_to_BIO_and_check_output(ms_mice_sink_session *session, ms_mice_tl
     void * secToken;
     int secTokenLength;
     bool * isHandshakeCompletePtr;
-    unsigned char ** clientKeyPtr;
-    int dtlsClientKeyLength;
-    int * cipherPtr;
-    int * authPtr;
 
     CSIO_LOG(eLogLevel_debug,"mira: {%s} - ***** entering *****",__FUNCTION__);
 
@@ -819,36 +785,22 @@ void ssl_write_to_BIO_and_check_output(ms_mice_sink_session *session, ms_mice_tl
         secToken = tlv->security_token.token;
         secTokenLength = tlv->length;
         isHandshakeCompletePtr = &session->priv->is_dtls_encryption_handshake_complete;
-        clientKeyPtr = &session->priv->dtls_client_key;
-        dtlsClientKeyLength = MS_MICE_SINK_SESSION_DTLS_KEY_LENGTH_STRING_LEN;
-        cipherPtr = &session->priv->dtls_cipher;
-        authPtr = &session->priv->dtls_auth;
 
         CSIO_LOG(eLogLevel_debug, "mira: {%s} - calling sssl_runDTLSHandshakeWithSecToken()",__FUNCTION__);
 
-        retv = sssl_runDTLSHandshakeWithSecToken(sssl,secToken,secTokenLength,isHandshakeCompletePtr,
-            clientKeyPtr,dtlsClientKeyLength,cipherPtr,authPtr,ssl_send_DTLS_handshake,
-            (void *)session,(void **)error);
+        retv = sssl_runDTLSHandshakeWithSecToken(sssl,
+                                                secToken,
+                                                secTokenLength,
+                                                isHandshakeCompletePtr,
+                                                ssl_send_DTLS_handshake,
+                                                (void *)session,
+                                                (void **)error);
 
         CSIO_LOG(eLogLevel_debug,"mira: sssl_runDTLSHandshakeWithSecToken() returned %d",retv);
     }
 
     CSIO_LOG(eLogLevel_debug,"mira: {%s} - ===== exiting =====",__FUNCTION__);
 }
-
-#else /* ENABLE_DTLS */
-
-void send_out_BIO_data(ms_mice_sink_session* session, char* bug, guint16 len, GError **error)
-{
-    RAISE_NOT_IMPLEMENTED();
-}
-
-void ssl_write_to_BIO_and_check_output(ms_mice_sink_session *session, ms_mice_tlv *tlv, GError **error)
-{
-    RAISE_NOT_IMPLEMENTED();
-}
-
-#endif /* ENABLE_DTLS */
 
 static gboolean ms_mice_sink_session_io_fn(GIOChannel *channel, GIOCondition cond, gpointer data)
 {
@@ -989,7 +941,6 @@ void ms_mice_sink_session_connected(ms_mice_sink_session *session, GSocketConnec
 
     session->priv->source_fd = fd;
 
-#if ENABLE_DTLS
     guint64 sessionID = ms_mice_sink_session_get_id(session);
 
     CSIO_LOG(eLogLevel_debug, "mira: {%s} - ***** calling sssl_createDTLS() *****",__FUNCTION__);
@@ -1005,8 +956,6 @@ void ms_mice_sink_session_connected(ms_mice_sink_session *session, GSocketConnec
     }
 
     CSIO_LOG(eLogLevel_debug,"mira: {%s} - ===== returned from sssl_createDTLS() =====",__FUNCTION__);
-
-#endif
 
     if (old_state != session->priv->state) {
         ms_mice_sink_session_raise_on_session_state_changed(session, old_state, session->priv->state);
@@ -1176,13 +1125,6 @@ void ms_mice_sink_session_new(ms_mice_sink_session **out, ms_mice_sink_service *
     s->priv->security_options_use_dtls_encryption = false;
     s->priv->source_establishment_timeout = 0;
 
-#if ENABLE_DTLS
-    s->priv->mice_ssl = NULL;
-    s->priv->dtls_client_key = NULL;
-    s->priv->dtls_cipher = MS_MICE_SINK_SESSION_DTLS_CIPHER_AES_128_ICM;
-    s->priv->dtls_auth = MS_MICE_SINK_SESSION_DTLS_AUTH_HMAC_SHA1_80;
-#endif
-
     shl_dlist_init(&s->priv->outgoing);
 
     *out = s;
@@ -1199,12 +1141,6 @@ void ms_mice_sink_session_free(ms_mice_sink_session *session)
     g_free((gpointer)session->priv->local_address);
     g_free((gpointer)session->priv->remote_address);
     g_free((gpointer)session->priv->source_id);
-
-#if ENABLE_DTLS
-    session->priv->mice_ssl = NULL;
-    g_free((gpointer)session->priv->dtls_client_key);
-    session->priv->dtls_client_key = NULL;
-#endif
 
     g_free(session->priv);
     g_free(session);

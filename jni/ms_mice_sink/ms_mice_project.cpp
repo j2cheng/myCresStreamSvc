@@ -192,21 +192,6 @@ static void app_extension_ms_mice_session_observer_on_source_ready(ms_mice_sink_
             rtsp_port);
 }
 
-static void app_extension_ms_mice_session_observer_on_source_ready_with_dtls(ms_mice_sink_session *ms_session, guint16 rtsp_port, const char *key, int cipher, int authentication, gpointer data)
-{
-    CSIO_LOG(eLogLevel_debug,"app.ms-mice.session.event.source-ready { \"session-id\": %"G_GUINT64_FORMAT" , \"rtsp-port\": %u , \"key\": \"%s\" , \"cipher\": %d , \"authentication\": %d }",
-              ms_mice_sink_session_get_id(ms_session), rtsp_port, key, cipher, authentication);
-
-    //TODO: emit_source_ready_with_dtls to java
-    Wfd_ms_mice_signal_raise (
-            ms_mice_sink_session_get_id(ms_session),
-            1,
-            (char*)ms_mice_sink_session_get_source_id(ms_session),
-            (char*)ms_mice_sink_session_get_friendly_name(ms_session),
-            (char*)ms_mice_sink_session_get_remote_address(ms_session),
-            rtsp_port);
-}
-
 static void app_extension_ms_mice_session_observer_on_stop_projection(ms_mice_sink_session *ms_session, gpointer data)
 {
     CSIO_LOG(eLogLevel_debug,"app.ms-mice.session.event.stop-projection { \"session-id\": %"G_GUINT64_FORMAT" }", ms_mice_sink_session_get_id(ms_session));
@@ -227,7 +212,6 @@ ms_mice_sink_session_observer app_extension_ms_mice_session_observer = {
         app_extension_ms_mice_session_observer_on_source_id_set,
         app_extension_ms_mice_session_observer_on_friendly_name_set,
         app_extension_ms_mice_session_observer_on_source_ready,
-        app_extension_ms_mice_session_observer_on_source_ready_with_dtls,
         app_extension_ms_mice_session_observer_on_stop_projection
 };
 
@@ -813,7 +797,7 @@ void msMiceSinkProj_fdebug(char *cmd_cstring)
         }
         else if(strcasestr(CmdPtr, "PROJINIT"))
         {
-            msMiceSinkProjInit(NULL);
+            msMiceSinkProjInit("0.0.0.0");
         }
         else if(strcasestr(CmdPtr, "PROJDEINIT"))
         {

@@ -129,7 +129,6 @@ LOCAL_CFLAGS +=\
 	-I$(SECURE_STORAGE_PATH)/ \
 	-I$(SHAREDSSL_PATH) \
 	-w\
-	-DENABLE_DTLS \
 	-DANDROID_OS
 ifeq ($(shell test $(PLATFORM_SDK_VERSION) -lt 23 && echo PreMarshmallow),PreMarshmallow)
 	LOCAL_CFLAGS += -I$(STL_INC_PATH)

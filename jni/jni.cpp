@@ -4545,7 +4545,7 @@ JNIEXPORT void JNICALL Java_com_crestron_txrxservice_WbsStreamIn_nativeSetLogLev
  * Note: calling function should call gst_native_surface_init() to setup surface first.
  *
  * */
-JNIEXPORT void JNICALL Java_com_crestron_txrxservice_GstreamIn_nativeWfdStart(JNIEnv *env, jobject thiz, jint windowId, jlong sessionId, jstring url_jstring, jint rtsp_port)
+JNIEXPORT void JNICALL Java_com_crestron_txrxservice_GstreamIn_nativeWfdStart(JNIEnv *env, jobject thiz, jint windowId, jlong msMiceSessionId, jstring url_jstring, jint rtsp_port)
 {
     const char * url_cstring = env->GetStringUTFChars( url_jstring , NULL ) ;
     if (url_cstring == NULL)
@@ -4555,12 +4555,12 @@ JNIEXPORT void JNICALL Java_com_crestron_txrxservice_GstreamIn_nativeWfdStart(JN
         return;
     }
 
-    CSIO_LOG(eLogLevel_info, "%s: start TCP connection source windowId[%d] sessionId[%lld] url[%s], port[%d]", __FUNCTION__, windowId, (long long) sessionId, url_cstring,rtsp_port);
+    CSIO_LOG(eLogLevel_info, "%s: start TCP connection source windowId[%d] sessionId[%lld] url[%s], port[%d]", __FUNCTION__, windowId, (long long) msMiceSessionId, url_cstring,rtsp_port);
 
-    int retv = sssl_setContextStreamID((unsigned long long)sessionId, windowId);
+    int retv = sssl_setContextStreamID((unsigned long long)msMiceSessionId, windowId);
 
-    CSIO_LOG(eLogLevel_debug,"mira: {%s} - sssl_setContextStreamID() called with sessionID = 0x%x, streamID = %d returned %d",
-      __FUNCTION__,sessionId,windowId,retv);
+    CSIO_LOG(eLogLevel_debug,"mira: {%s} - sssl_setContextStreamID() called with ms mice sessionID = 0x%x, streamID = %d returned %d",
+      __FUNCTION__,msMiceSessionId,windowId,retv);
 
     Wfd_set_firewall_rules(rtsp_port, -1);
 
@@ -4571,36 +4571,7 @@ JNIEXPORT void JNICALL Java_com_crestron_txrxservice_GstreamIn_nativeWfdStart(JN
        CSIO_LOG(eLogLevel_error, "Could not obtain stream pointer for stream %d", windowId);
        return;
     }
-#if 0
-    data->cipher = (int)cipher;
-    data->authentication = (int)authentication;
 
-    // jstring is really _jstring *
-    char * locKey;
-    if(key != NULL)
-    {
-       locKey = (char *)env->GetStringUTFChars(key, NULL);
-    }
-    else
-    {
-       locKey = NULL;
-    }
-
-    if(locKey == NULL)
-    {
-       if(key != NULL)
-       {
-          env->ReleaseStringUTFChars(key, locKey);
-       }
-       CSIO_LOG(eLogLevel_error, "key is NULL or invalid, continuing without SRTP ...");
-       data->key = NULL;
-    }
-    else
-    {
-       data->key = strdup(locKey);
-       env->ReleaseStringUTFChars(key, locKey);
-    }
-#endif
     data->wfd_jitterbuffer_latency = 50;//set latency to 50ms
     strcpy(data->rtcp_dest_ip_addr, url_cstring);	// Set RTSP IP as RTCP IP
 
@@ -4737,11 +4708,9 @@ void Wfd_setup_gst_pipeline (int id, int state, struct GST_PIPELINE_CONFIG* gst_
 
 JNIEXPORT void JNICALL Java_com_crestron_txrxservice_GstreamIn_nativeMsMiceStart(JNIEnv *env, jobject thiz)
 {
-#if ENABLE_DTLS
     CSIO_LOG(eLogLevel_debug,"mira: {%s} - ***** calling sssl_initialize() *****",__FUNCTION__);
     sssl_initialize();
     CSIO_LOG(eLogLevel_debug, "mira: {%s} - ===== returned from sssl_initialize() =====",__FUNCTION__);
-#endif
 
     msMiceSinkProjInit(NULL);
 }
@@ -4772,16 +4741,13 @@ JNIEXPORT void JNICALL Java_com_crestron_txrxservice_GstreamIn_nativeMsMiceStop(
 {
     msMiceSinkProjDeInit();
 
-#if ENABLE_DTLS
     CSIO_LOG(eLogLevel_debug,"mira: {%s} - ***** calling sssl_deinitialize() *****",__FUNCTION__);
     sssl_deinitialize();
     CSIO_LOG(eLogLevel_debug,"mira: {%s} - ===== returned from sssl_deinitialize() =====",__FUNCTION__);
-#endif
-
 }
-JNIEXPORT void JNICALL Java_com_crestron_txrxservice_GstreamIn_nativeMsMiceCloseSession(JNIEnv *env, jobject thiz, jlong session_id)
+JNIEXPORT void JNICALL Java_com_crestron_txrxservice_GstreamIn_nativeMsMiceCloseSession(JNIEnv *env, jobject thiz, jlong msMiceSessionId)
 {
-    msMiceSinkProjStopSession(0,session_id);
+    msMiceSinkProjStopSession(0,msMiceSessionId);
 }
 JNIEXPORT void JNICALL Java_com_crestron_txrxservice_GstreamIn_nativeMsMiceSetPin(JNIEnv *env, jobject thiz, jstring pin_jstring)
         {

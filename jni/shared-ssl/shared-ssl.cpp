@@ -410,8 +410,7 @@ int sssl_decryptDTLS(void * sssl,void * inBuff,int inBuffSize,void * outBuff,int
 
 
 int sssl_runDTLSHandshakeWithSecToken(void * sssl,void * secToken,int secTokenLength,
-   bool * isDTLSHandshakeCompletePtr,unsigned char ** clientKeyPtr,int dtlsClientKeyLength,
-   int * cipherPtr,int * authPtr,DTLS_MSGSENDER sendOutDTLSHandshake,void * arg1,void ** arg2)
+   bool * isDTLSHandshakeCompletePtr,DTLS_MSGSENDER sendOutDTLSHandshake,void * arg1,void ** arg2)
 {
     // assumed to be executed at an early stage where no locking is needed
 
@@ -513,6 +512,7 @@ int sssl_runDTLSHandshakeWithSecToken(void * sssl,void * secToken,int secTokenLe
             }
             else
             {
+#if 0
                 const char export_string[] = "EXTRACTOR-dtls_srtp";
 
                 memset(BIO_read_buf,0,sizeof(BIO_read_buf));
@@ -610,6 +610,7 @@ int sssl_runDTLSHandshakeWithSecToken(void * sssl,void * secToken,int secTokenLe
                     sssl_log(LOGLEV_debug,
                         "mira: sssl_commenceDTLSHandshakeWithSecToken() - no SRTP protection profile was negotiated");
                 }
+#endif
             }
         }
         else

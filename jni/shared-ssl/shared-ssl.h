@@ -42,8 +42,7 @@ int sssl_encryptDTLS(void * sssl,void * inBuff,int inBuffSize,void * outBuff,int
 int sssl_decryptDTLS(void * sssl,void * inBuff,int inBuffSize,void * outBuff,int outBuffSize);
 
 int sssl_runDTLSHandshakeWithSecToken(void * sssl,void * secToken,int secTokenLength,
-   bool * isDTLSHandshakeCompletePtr,unsigned char ** clientKeyPtr,int dtlsClientKeyLength,
-   int * cipherPtr,int * authPtr,DTLS_MSGSENDER sendOutDTLSHandshake,void * arg1,void ** arg2);
+   bool * isDTLSHandshakeCompletePtr,DTLS_MSGSENDER sendOutDTLSHandshake,void * arg1,void ** arg2);
 
 
 // --- DTLS app thread (media thread) cancelation facility ---
