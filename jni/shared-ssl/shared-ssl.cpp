@@ -512,105 +512,10 @@ int sssl_runDTLSHandshakeWithSecToken(void * sssl,void * secToken,int secTokenLe
             }
             else
             {
-#if 0
-                const char export_string[] = "EXTRACTOR-dtls_srtp";
+                *isDTLSHandshakeCompletePtr = true;
 
-                memset(BIO_read_buf,0,sizeof(BIO_read_buf));
-                int success = SSL_export_keying_material(
-                                 ssslContext->ssl,
-                                 // (void *)&exported_keys,60,
-                                 (unsigned char *)&exported_keys,60,
-                                 export_string, sizeof(export_string),
-                                 NULL,0, 0);
                 sssl_log(LOGLEV_debug,
-                     "mira: sssl_commenceDTLSHandshakeWithSecToken() - SSL_export_keying_material() returned [%d]",success);
-                if(!success)
-                {
-                    sssl_log(LOGLEV_error,
-                        "mira: sssl_commenceDTLSHandshakeWithSecToken() - failed to export keying material from openssl");
-                    return(-1);
-                }
-
-                //this is server side, ssvn git statusg
-                // it o we only need to decoder: uses client_key
-                client_key.key = exported_keys.client_key;
-                server_key.key = exported_keys.server_key;
-                client_key.salt = exported_keys.client_salt;
-                server_key.salt = exported_keys.server_salt;
-
-                //send out key &client_key
-                unsigned char * dtls_client_key = (unsigned char *)malloc(dtlsClientKeyLength);
-                if(!dtls_client_key)
-                {
-                    sssl_log(LOGLEV_error,
-                        "sssl_commenceDTLSHandshakeWithSecToken() - failed to allocate dtls_client_key");
-                    return(-1);
-                }
-                else
-                {
-                    memset(dtls_client_key,0,dtlsClientKeyLength);
-
-                    sprintf((char *)dtls_client_key, "%02X%02X%02X%02X%02X%02X%02X%02X%02X%02X%02X%02X%02X%02X%02X%02X",
-                            client_key.key.v[0], client_key.key.v[1], client_key.key.v[2], client_key.key.v[3],
-                            client_key.key.v[4], client_key.key.v[5], client_key.key.v[6], client_key.key.v[7],
-                            client_key.key.v[8], client_key.key.v[9], client_key.key.v[10], client_key.key.v[11],
-                            client_key.key.v[12], client_key.key.v[13], client_key.key.v[14], client_key.key.v[15]);
-
-                    int stringLen = strlen((char *)dtls_client_key);
-
-                    sprintf((char *)&dtls_client_key[stringLen], "%02X%02X%02X%02X%02X%02X%02X%02X%02X%02X%02X%02X%02X%02X",
-                            client_key.salt.v[0], client_key.salt.v[1], client_key.salt.v[2], client_key.salt.v[3],
-                            client_key.salt.v[4], client_key.salt.v[5], client_key.salt.v[6], client_key.salt.v[7],
-                            client_key.salt.v[8], client_key.salt.v[9], client_key.salt.v[10], client_key.salt.v[11],
-                            client_key.salt.v[12], client_key.salt.v[13]);
-
-                    *clientKeyPtr = dtls_client_key;
-                    *isDTLSHandshakeCompletePtr = true;
-
-                    sssl_log(LOGLEV_debug,
-                        "mira: sssl_commenceDTLSHandshakeWithSecToken() - set isDTLSHandshakeComplete flag to true");
-
-                }
-
-                //send out dtls srtp Auth
-                SRTP_PROTECTION_PROFILE * profile = SSL_get_selected_srtp_profile(ssslContext->ssl);
-                sssl_log(LOGLEV_debug,
-                     "mira: sssl_commenceDTLSHandshakeWithSecToken() - srtp profile is [%d]",profile);
-                *cipherPtr = MS_MICE_SINK_SESSION_DTLS_CIPHER_AES_128_ICM;
-                *authPtr = MS_MICE_SINK_SESSION_DTLS_AUTH_HMAC_SHA1_80;
-                if(profile)
-                {
-                    if(profile->name)
-                        sssl_log(LOGLEV_debug,
-                           "mira: sssl_commenceDTLSHandshakeWithSecToken() - profile name is [%s]",profile->name);
-                    switch (profile->id)
-                    {
-                        case SRTP_AES128_CM_SHA1_80:
-                        {
-                            *cipherPtr = MS_MICE_SINK_SESSION_DTLS_CIPHER_AES_128_ICM;
-                            *authPtr = MS_MICE_SINK_SESSION_DTLS_AUTH_HMAC_SHA1_80;
-                            break;
-                        }
-                        case SRTP_AES128_CM_SHA1_32:
-                        {
-                            *cipherPtr = MS_MICE_SINK_SESSION_DTLS_CIPHER_AES_128_ICM;
-                            *authPtr = MS_MICE_SINK_SESSION_DTLS_AUTH_HMAC_SHA1_32;
-                          break;
-                        }
-                        default:
-                        {
-                            sssl_log(LOGLEV_error,
-                                 "mira: sssl_commenceDTLSHandshakeWithSecToken() - invalid crypto suite set by handshake");
-                            break;
-                        }
-                    }
-                }
-                else
-                {
-                    sssl_log(LOGLEV_debug,
-                        "mira: sssl_commenceDTLSHandshakeWithSecToken() - no SRTP protection profile was negotiated");
-                }
-#endif
+                    "mira: sssl_commenceDTLSHandshakeWithSecToken() - set isDTLSHandshakeComplete flag to true");
             }
         }
         else
@@ -709,7 +614,7 @@ int sssl_waitDTLSAppThCancel(unsigned long long sessionID)
     simpleLockGet(&gContextStorageMutex);
 
     retv = 2;
-    void * sssl = sssl_getContextWithSessionID(sessionID);
+    void * sssl = sssl_getContextWithStreamID(sessionID);//sssl_getContextWithSessionID(sessionID);
     if(sssl != NULL)
     {
         retv = 1;
