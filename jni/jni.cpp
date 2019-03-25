@@ -748,11 +748,6 @@ void * jni_stop (void * arg)
 	SetInPausedState(streamId,0);
 	stop_streaming_cmd(streamId);
 	csio_jni_cleanup(streamId);
-
-   CSIO_LOG(eLogLevel_debug,"mira: {%s} - ***** calling sssl_waitDTLSAppThCancel() *****",__FUNCTION__);
-   sssl_waitDTLSAppThCancel(streamId);
-   CSIO_LOG(eLogLevel_debug,"mira: {%s} - ===== returned from sssl_waitDTLSAppThCancel() =====",__FUNCTION__);
-
    pthread_cond_broadcast(&stop_completed_sig); //Flags that stop has completed
 	pthread_exit(NULL);
 }
@@ -2626,30 +2621,15 @@ void * rtpMediaStreamThread(void * threadData)
    // signal initialization completed
    pthread_cond_broadcast(&((MEDIARTPTHREADCONTEXT *)threadData)->initComplCondVar);
 
-   retv = sssl_setDTLSAppThInitialized(rtpMedStrContext.streamID, 1);
-   if(retv < 0)
+   retv = sssl_setDTLSAppThInitializedWithStreamID(rtpMedStrContext.streamID, 1, &sssl);
+   if(retv != 0)
    {
-      CSIO_LOG(eLogLevel_error, "mira: rtpMediaStreamThread() - sssl_setDTLSAppThInitialized() returned %d",retv);
+      // Since the assumption here is that at this time nobody else should have this sssl context,
+      // inability to get exclusive access to that context (retv == 1) is also an error.
+      // Destruction of the sssl context will not be attempted in that case.
+      CSIO_LOG(eLogLevel_error, "mira: rtpMediaStreamThread() - sssl_setDTLSAppThInitialized() returned %d, exiting ...",retv);
       goto earlyreturn;
    }
-   // may want to warn upon retv == 1
-
-   sssl = sssl_getContextWithStreamID(rtpMedStrContext.streamID);
-   if(sssl == NULL)
-   {
-      // this should never happen
-      CSIO_LOG(eLogLevel_error,"mira: rtpMediaStreamThread() - could not obtain sssl context for iStreamId = %d",
-         rtpMedStrContext.streamID);
-      goto threadreturn;
-   }
-
-   // TCP:
-   //    Send: AA BBBB CCC DDDDDD E         Recv: A ABB B BCC CDDD DDDE
-   //    All data sent is received in order, but not necessarily in the same chunks.
-   // UDP:
-   //    Send: AA BBBB CCC DDDDDD E         Recv: CCC AA E
-   //    Data is not necessarily in the same order, and not necessarily received at all, but
-   //    messages are preserved in their entirety.
 
    struct timeval recvTimeout;
    recvTimeout.tv_sec = 0;
@@ -2672,6 +2652,14 @@ void * rtpMediaStreamThread(void * threadData)
 	   if((nn < 3) || (nn%50 == 0))
 	         doLog = 1;
       else  doLog = 0;
+
+      // TCP:
+      //    Send: AA BBBB CCC DDDDDD E         Recv: A ABB B BCC CDDD DDDE
+      //    All data sent is received in order, but not necessarily in the same chunks.
+      // UDP:
+      //    Send: AA BBBB CCC DDDDDD E         Recv: CCC AA E
+      //    Data is not necessarily in the same order, and not necessarily received at all, but
+      //    messages are preserved in their entirety.
 
       // blocking read
       dtlsDataSize = recv(rtpMedStrContext.sockFD, (char *)dtlsPacketBuff, DTLSPACKETMAXSIZE, 0);
@@ -2697,7 +2685,7 @@ void * rtpMediaStreamThread(void * threadData)
          continue;
       }
 
-      retv = sssl_getDTLSAppThInitialized(rtpMedStrContext.streamID);
+      retv = sssl_getDTLSAppThInitializedWithStreamID(rtpMedStrContext.streamID, NULL);
       if(retv != 1)
       {
          // we are asked to exit
@@ -2705,7 +2693,7 @@ void * rtpMediaStreamThread(void * threadData)
          break;
       }
 
-      rtpDataSize = sssl_decryptDTLS(sssl,(void *)dtlsPacketBuff,dtlsDataSize,(void *)rtpPacketBuff,
+      rtpDataSize = sssl_decryptDTLSInner(sssl,(void *)dtlsPacketBuff,dtlsDataSize,(void *)rtpPacketBuff,
             DTLSPACKETMAXSIZE);
       if(rtpDataSize <= 0)
       {
@@ -2767,11 +2755,12 @@ void * rtpMediaStreamThread(void * threadData)
 
 threadreturn:
    CSIO_LOG(eLogLevel_debug,"mira: {%s} - commencing normal exit",__FUNCTION__);
-   retv = sssl_setDTLSAppThInitialized(rtpMedStrContext.streamID, 0);
+
+   retv = sssl_setDTLSAppThInitializedWithStreamID(rtpMedStrContext.streamID, 0, NULL);
    if(retv >= 0)
    {
       CSIO_LOG(eLogLevel_debug,"mira: {%s} - calling sssl_signalDTLSAppThCanceled()",__FUNCTION__);
-      sssl_signalDTLSAppThCanceled(rtpMedStrContext.streamID);
+      sssl_signalDTLSAppThCanceledWithStreamID(rtpMedStrContext.streamID);
       if(retv > 0)
       {
          CSIO_LOG(eLogLevel_debug,"mira: {%s} - calling sssl_destroyDTLSWithStreamID()",__FUNCTION__);
@@ -4590,7 +4579,9 @@ JNIEXPORT void JNICALL Java_com_crestron_txrxservice_GstreamIn_nativeWfdStart(JN
  * */
 JNIEXPORT void JNICALL Java_com_crestron_txrxservice_GstreamIn_nativeWfdStop(JNIEnv *env, jobject thiz, jint windowId)
 {
-    CSIO_LOG(eLogLevel_debug,"mira: {%s} - stop Wfd", __FUNCTION__);
+    CSIO_LOG(eLogLevel_debug,"mira: {%s} - ***** calling sssl_waitDTLSAppThCancel() *****",__FUNCTION__);
+    sssl_waitDTLSAppThCancel(windowId);
+    CSIO_LOG(eLogLevel_debug,"mira: {%s} - ===== returned from sssl_waitDTLSAppThCancel() =====",__FUNCTION__);
 
     //Note: you can call WfdSinkProjStop multiple times.
     WfdSinkProjStop(windowId);

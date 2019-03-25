@@ -38,8 +38,10 @@ int sssl_destroyDTLSWithStreamID(int streamID, int doNotLock);
 void * sssl_getDTLSWithSessionID(unsigned long long sessionID);
 void * sssl_getDTLSWithStreamID(int streamID);
 
-int sssl_encryptDTLS(void * sssl,void * inBuff,int inBuffSize,void * outBuff,int outBuffSize);
-int sssl_decryptDTLS(void * sssl,void * inBuff,int inBuffSize,void * outBuff,int outBuffSize);
+int sssl_encryptDTLSInner(void * sssl,void * inBuff,int inBuffSize,void * outBuff,int outBuffSize);
+int sssl_decryptDTLSInner(void * sssl,void * inBuff,int inBuffSize,void * outBuff,int outBuffSize);
+int sssl_decryptDTLS(unsigned long long sessionID,void * inBuff,int inBuffSize,void * outBuff,
+      int outBuffSize);
 
 int sssl_runDTLSHandshakeWithSecToken(void * sssl,void * secToken,int secTokenLength,
    bool * isDTLSHandshakeCompletePtr,DTLS_MSGSENDER sendOutDTLSHandshake,void * arg1,void ** arg2);
@@ -47,11 +49,20 @@ int sssl_runDTLSHandshakeWithSecToken(void * sssl,void * secToken,int secTokenLe
 
 // --- DTLS app thread (media thread) cancelation facility ---
 
-int sssl_setDTLSAppThInitialized(int streamID, int flagValue);
-int sssl_getDTLSAppThInitialized(int streamID);
-int sssl_waitDTLSAppThCancel(unsigned long long sessionID);
+int sssl_setDTLSAppThInitializedWithSessionID(unsigned long long sessionID, int flagValue,
+      void ** ssslPtr);
+int sssl_setDTLSAppThInitializedWithStreamID(int streamID, int flagValue, void ** ssslPtr);
+int sssl_setDTLSAppThInitializedCommon(int streamID, unsigned long long sessionID, int flagValue,
+      void ** ssslPtr);
+int sssl_getDTLSAppThInitializedWithSessionID(unsigned long long sessionID, void ** ssslPtr);
+int sssl_getDTLSAppThInitializedWithStreamID(int streamID, void ** ssslPtr);
+int sssl_getDTLSAppThInitializedCommon(int streamID, unsigned long long sessionID,
+      void ** ssslPtr);
+int sssl_signalDTLSAppThCanceledWithSessionID(unsigned long long sessionID);
+int sssl_signalDTLSAppThCanceledWithStreamID(int streamID);
+int sssl_signalDTLSAppThCanceledCommon(int streamID, unsigned long long sessionID);
+int sssl_waitDTLSAppThCancel(int streamID);
 int sssl_initDTLSAppThCancCondVar(int streamID);
-int sssl_signalDTLSAppThCanceled(int streamID);
 
 
 // --- shared context storage management facility ---

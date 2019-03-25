@@ -1,4 +1,5 @@
 #include <stdio.h>
+#include <unistd.h>
 #include <sys/types.h>
 
 #include <openssl/bio.h>
@@ -58,7 +59,6 @@ typedef struct {
    BIO * rbio;       // for writing encrypted
    BIO * wbio;       // for reading encrypted
    int appThInitialized;
-   // int appThKeepRunning;
    pthread_cond_t appThCancelComplCondVar;
 } SHARED_SSL_CONTEXT;
 
@@ -92,7 +92,7 @@ int sssl_initialize()
 {
     if(gCommonSSLServerContext)
     {
-        sssl_log(LOGLEV_error,"sssl_initialize: gCommonSSLServerContext is NOT NULL - exiting");
+        sssl_log(LOGLEV_error,"mira: sssl_initialize() - gCommonSSLServerContext is NOT NULL - exiting");
         return(-1);
     }
 
@@ -100,7 +100,7 @@ int sssl_initialize()
          = (COMMON_SSL_SERVER_CONTEXT *)malloc(sizeof(COMMON_SSL_SERVER_CONTEXT));
     if(!sslServerContext)
     {
-        sssl_log(LOGLEV_error,"allocating COMMON_SSL_SERVER_CONTEXT failed.");
+        sssl_log(LOGLEV_error,"mira: allocating COMMON_SSL_SERVER_CONTEXT failed.");
         return(-1);
     }
     memset(sslServerContext,0,sizeof(COMMON_SSL_SERVER_CONTEXT));
@@ -121,7 +121,7 @@ int sssl_initialize()
         sslServerContext->pKey = generate_key();
         if(!sslServerContext->pKey)
         {
-            sssl_log(LOGLEV_error,"initialize_SSL: generate_key failed.");
+            sssl_log(LOGLEV_error,"mira: initialize_SSL: generate_key failed.");
             return(-1);
         }
         else
@@ -130,20 +130,21 @@ int sssl_initialize()
             if(!sslServerContext->pX509)
             {
                 EVP_PKEY_free(sslServerContext->pKey);
-                sssl_log(LOGLEV_error,"initialize_SSL: generate_x509 failed.");
+                sssl_log(LOGLEV_error,"mira: initialize_SSL: generate_x509 failed.");
                 return(-1);
             }
             else
             {
                 bool ret = write_to_disk(sslServerContext->pKey, sslServerContext->pX509);
-                sssl_log(LOGLEV_debug,"initialize_SSL: writing key and certificate to disk....[%d]",ret);
+                sssl_log(LOGLEV_debug,"mira: initialize_SSL: writing key and certificate to disk....[%d]",ret);
             }
         }
     }
 #endif
 
     sslServerContext->common_SSL_CTX = CreateNewSSLContext();
-    sssl_log(LOGLEV_debug,"initialize_SSL: CreateNewSSLContext return[0x%x]",sslServerContext->common_SSL_CTX);
+    sssl_log(LOGLEV_debug,"mira: initialize_SSL() -CreateNewSSLContext return[0x%x]",
+        sslServerContext->common_SSL_CTX);
 
     gCommonSSLServerContext = sslServerContext;
 
@@ -155,7 +156,7 @@ int sssl_deinitialize()
 {
     if(!gCommonSSLServerContext)
     {
-        sssl_log(LOGLEV_error,"sssl_deinitialize: gCommonSSLServerContext is already NULL");
+        sssl_log(LOGLEV_error,"mira: sssl_deinitialize: gCommonSSLServerContext is already NULL");
         return(-1);
     }
 
@@ -189,23 +190,23 @@ void * sssl_createDTLS(unsigned long long sessionID)
     if(!ssslContext)
     {
         simpleLockRelease(&gContextStorageMutex);
-        sssl_log(LOGLEV_error,"sssl_createDTLS() - could not get SHARED_SSL_CONTEXT");
+        sssl_log(LOGLEV_error,"mira: sssl_createDTLS() - could not get SHARED_SSL_CONTEXT");
         return(NULL);
     }
     memset(ssslContext,0,sizeof(SHARED_SSL_CONTEXT));
     // so ssslContext->ssslInitialized == 0
 
     ssslContext->commonServerContext = gCommonSSLServerContext;
-    sssl_log(LOGLEV_debug,"sssl_createDTLS() ssslContext[0x%x] ",ssslContext);
+    sssl_log(LOGLEV_debug,"mira: sssl_createDTLS() ssslContext[0x%x] ",ssslContext);
 
-    sssl_log(LOGLEV_debug,"sssl_createDTLS() ssslContext->commonServerContext->common_SSL_CTX = [0x%x] ",
+    sssl_log(LOGLEV_debug,"mira: sssl_createDTLS() ssslContext->commonServerContext->common_SSL_CTX = [0x%x] ",
       ssslContext->commonServerContext->common_SSL_CTX);
 
     if(ssslContext->commonServerContext->common_SSL_CTX)
     {
         SSL * ssl = SSL_new(ssslContext->commonServerContext->common_SSL_CTX);
         ssslContext->ssl = ssl;
-        sssl_log(LOGLEV_debug,"sssl_createDTLS() ssl[0x%x] ",ssl);
+        sssl_log(LOGLEV_debug,"mira: sssl_createDTLS() ssl[0x%x] ",ssl);
 
         //uncomment for the callback
         //SSL_set_info_callback(ssl, ssl_info_callback);
@@ -215,14 +216,14 @@ void * sssl_createDTLS(unsigned long long sessionID)
         //BIO_set_mem_eof_return(rbio, -1);
         BIO_set_nbio(rbio, 1);
         ssslContext->rbio = rbio;
-        sssl_log(LOGLEV_debug,"sssl_createDTLS() rbio[0x%x] ",rbio);
+        sssl_log(LOGLEV_debug,"mira: sssl_createDTLS() rbio[0x%x] ",rbio);
 
         BIO *wbio = BIO_new(BIO_s_mem());
         BIO_set_close(wbio, BIO_CLOSE);
         //BIO_set_mem_eof_return(wbio, -1);
         BIO_set_nbio(wbio, 1);
         ssslContext->wbio = wbio;
-        sssl_log(LOGLEV_debug,"sssl_createDTLS() wbio[0x%x] ",wbio);
+        sssl_log(LOGLEV_debug,"mira: sssl_createDTLS() wbio[0x%x] ",wbio);
 
         SSL_set_bio(ssl, rbio, wbio);
         SSL_set_accept_state(ssl); // The server uses SSL_set_accept_state
@@ -249,7 +250,7 @@ int sssl_destroyDTLSWithSessionID(unsigned long long sessionID, int doNotLock)
         {
             simpleLockRelease(&gContextStorageMutex);
         }
-        sssl_log(LOGLEV_error,"sssl_destroyDTLS() - could not get SHARED_SSL_CONTEXT");
+        sssl_log(LOGLEV_error,"mira: sssl_destroyDTLS() - could not get SHARED_SSL_CONTEXT");
         return(-1);
     }
 
@@ -287,7 +288,7 @@ int sssl_destroyDTLSWithStreamID(int streamID, int doNotLock)
         {
             simpleLockRelease(&gContextStorageMutex);
         }
-        sssl_log(LOGLEV_error,"sssl_destroyDTLSWithStreamID() - could not get index with stream ID");
+        sssl_log(LOGLEV_error,"mira: sssl_destroyDTLSWithStreamID() - could not get index with stream ID");
         return(-1);
     }
 
@@ -322,7 +323,7 @@ void * sssl_getDTLSWithStreamID(int streamID)
 }
 
 
-int sssl_encryptDTLS(void * sssl,void * inBuff,int inBuffSize,void * outBuff,int outBuffSize)
+int sssl_encryptDTLSInner(void * sssl,void * inBuff,int inBuffSize,void * outBuff,int outBuffSize)
 {
     // due to the assumed single user, no locking needed
 
@@ -339,12 +340,12 @@ int sssl_encryptDTLS(void * sssl,void * inBuff,int inBuffSize,void * outBuff,int
     retv = SSL_write(ssslContext->ssl,inBuff,inBuffSize);
     if(retv < 0)
     {
-        sssl_log(LOGLEV_error,"ERROR: SSL_write() failed, retv = %d",retv);
+        sssl_log(LOGLEV_error,"mira: SSL_write() failed, retv = %d",retv);
         return(retv);
     }
     if(retv != inBuffSize)
     {
-        sssl_log(LOGLEV_error,"ERROR: SSL_write() wrote only %d bytes out of requested %d",retv,inBuffSize);
+        sssl_log(LOGLEV_error,"mira: SSL_write() wrote only %d bytes out of requested %d",retv,inBuffSize);
         return(-1);
     }
 
@@ -352,12 +353,12 @@ int sssl_encryptDTLS(void * sssl,void * inBuff,int inBuffSize,void * outBuff,int
     if(retv <= 0)
     {
         // treat 0 as failure
-        sssl_log(LOGLEV_error,"ERROR: BIO_read() failed, retv = %d",retv);
+        sssl_log(LOGLEV_error,"mira: BIO_read() failed, retv = %d",retv);
         return(-1);
     }
     if(retv >= outBuffSize)
     {
-        sssl_log(LOGLEV_warning,"WARNING: probably insufficient buffer for BIO_read(), retv = %d, outBuffSize = %d",
+        sssl_log(LOGLEV_warning,"mira: probably insufficient buffer for BIO_read(), retv = %d, outBuffSize = %d",
             retv,outBuffSize);
     }
 
@@ -365,7 +366,7 @@ int sssl_encryptDTLS(void * sssl,void * inBuff,int inBuffSize,void * outBuff,int
 }
 
 
-int sssl_decryptDTLS(void * sssl,void * inBuff,int inBuffSize,void * outBuff,int outBuffSize)
+int sssl_decryptDTLSInner(void * sssl,void * inBuff,int inBuffSize,void * outBuff,int outBuffSize)
 {
     // due to the assumed single user, no locking needed
 
@@ -373,21 +374,37 @@ int sssl_decryptDTLS(void * sssl,void * inBuff,int inBuffSize,void * outBuff,int
     // records are being submitted in inBuff and that under such conditions SSL makes entire
     // decrypted 'records' (payload chunks) available to SSL_read() right away.
 
-
-    // make SSL_read() blocking ?!
+    int retv;
 
     SHARED_SSL_CONTEXT * ssslContext = (SHARED_SSL_CONTEXT *)sssl;
 
-    int retv;
-    retv = BIO_write(ssslContext->rbio,inBuff,inBuffSize);
-    if(retv < 0)
+    int retryCount = 10;
+    while(retryCount > 0)
     {
-        sssl_log(LOGLEV_error,"ERROR: {%s} - BIO_write() failed, retv = %d",__FUNCTION__,retv);
-        return(retv);
+        retv = BIO_write(ssslContext->rbio,inBuff,inBuffSize);
+        if(retv <= 0)
+        {
+            if(BIO_should_retry(ssslContext->rbio))  
+            {
+                usleep(5*1000);     // 5 msec
+                retryCount--;
+                sssl_log(LOGLEV_debug,"mira: {%s} - retrying BIO_write(), retries left = %d",
+                    __FUNCTION__,retryCount);
+                continue;
+            }
+            sssl_log(LOGLEV_error,"mira: {%s} - BIO_write() failed, retv = %d",__FUNCTION__,retv);
+            return(-1);
+        }
+        break;
+    }
+    if(retryCount <= 0)
+    {
+        sssl_log(LOGLEV_error,"mira: {%s} - BIO_write() failed despite 10 retries",__FUNCTION__);
+        return(-1);
     }
     if(retv != inBuffSize)
     {
-        sssl_log(LOGLEV_error,"ERROR: {%s} - BIO_write() wrote only %d bytes out of requested %d",
+        sssl_log(LOGLEV_error,"mira: {%s} - BIO_write() wrote only %d bytes out of requested %d",
             __FUNCTION__,retv,inBuffSize);
         return(-1);
     }
@@ -396,13 +413,46 @@ int sssl_decryptDTLS(void * sssl,void * inBuff,int inBuffSize,void * outBuff,int
     if(retv <= 0)
     {
         // treat 0 as failure
-        sssl_log(LOGLEV_error,"ERROR: {%s} - SSL_read() failed, retv = %d",__FUNCTION__,retv);
+        int errcode = SSL_get_error(ssslContext->ssl,retv);
+        sssl_log(LOGLEV_error,"mira: {%s} - SSL_read() failed, retv = %d, errcode = %d",__FUNCTION__,retv,errcode);
         return(-1);
     }
     if(retv >= outBuffSize)
     {
-        sssl_log(LOGLEV_debug,"WARNING: {%s} - probably insufficient buffer for SSL_read(), retv = %d, outBuffSize = %d",
+        sssl_log(LOGLEV_warning,"mira: {%s} - probably insufficient buffer for SSL_read(), retv = %d, outBuffSize = %d",
             __FUNCTION__,retv,outBuffSize);
+    }
+
+    return(retv);
+}
+
+
+int sssl_decryptDTLS(unsigned long long sessionID,void * inBuff,int inBuffSize,void * outBuff,int outBuffSize)
+{
+    int retv,retv1;
+    void * sssl;
+
+    retv = sssl_setDTLSAppThInitializedWithSessionID(sessionID,1,&sssl);
+    if(retv != 0)
+    {
+        // Since the assumption here is that at this time nobody else should have this sssl context,
+        // inability to get exclusive access to that context (retv == 1) is also an error.
+        sssl_log(LOGLEV_error,"mira: {%s} - sssl_setDTLSAppThInitialized() returned %d",__FUNCTION__,retv);
+        if(retv > 0)
+               return(-2);
+        else   return(retv);
+    }
+
+    retv = sssl_decryptDTLSInner(sssl,inBuff,inBuffSize,outBuff,outBuffSize);
+
+    retv1 = sssl_setDTLSAppThInitializedWithSessionID(sessionID,0,NULL);
+    if(retv1 >= 0)
+    {
+        sssl_log(LOGLEV_error,"mira: {%s} - calling sssl_signalDTLSAppThCanceled()",__FUNCTION__);
+        sssl_signalDTLSAppThCanceledWithSessionID(sessionID);
+        // this function does not call sssl_destroyDTLSWithStreamID(). The assumption is that
+        // under normal conditions sssl_waitDTLSAppThCancel() will not be invoked when this function is
+        // in progress.
     }
 
     return(retv);
@@ -494,13 +544,13 @@ int sssl_runDTLSHandshakeWithSecToken(void * sssl,void * secToken,int secTokenLe
                               "mira: sssl_commenceDTLSHandshakeWithSecToken() -  BIO_should_retry is false, returning ...");
                             break;
                         }
+                        else continue;
                     }while(bioReadBytes>0);
                 }
                 else
                 {
                     sssl_log(LOGLEV_debug,
                         "mira: sssl_commenceDTLSHandshakeWithSecToken() - BIO_ctrl_pending is zero, nothing to read.");
-
                 }
             }
 
@@ -539,20 +589,53 @@ int sssl_runDTLSHandshakeWithSecToken(void * sssl,void * secToken,int secTokenLe
 
 // --- DTLS app thread (media thread) cancelation facility ---
 
-int sssl_setDTLSAppThInitialized(int streamID, int flagValue)
+int sssl_setDTLSAppThInitializedWithSessionID(unsigned long long sessionID, int flagValue,
+      void ** ssslPtr)
+{
+    int retv = sssl_setDTLSAppThInitializedCommon(-1,sessionID,flagValue,ssslPtr);
+    return(retv);
+}
+
+
+int sssl_setDTLSAppThInitializedWithStreamID(int streamID, int flagValue, void ** ssslPtr)
+{
+    int retv = sssl_setDTLSAppThInitializedCommon(streamID,0,flagValue,ssslPtr);
+    return(retv);
+}
+
+
+int sssl_setDTLSAppThInitializedCommon(int streamID, unsigned long long sessionID, int flagValue,
+      void ** ssslPtr)
 {
     // return values:
     //  >= 0 - appThInitialized was set as requested. Its previous value is returned.
     //  -1 - corresponding sssl did not exist when this function was invoked.
+    // 
+    // Remarks:
+    //   1. May pass NULL for ssslPtr.
+    //   2. *ssslPtr only valid when return value >= 0.
+    //   3. When returning 0 while seting appThInitialized to 0, the caller must not destroy
+    //      sssl upon exit.
+    // 
 
     int retv;
+    void * sssl;
 
     simpleLockGet(&gContextStorageMutex);
-    void * sssl = sssl_getContextWithStreamID(streamID);
+    if(streamID >= 0)
+    {
+        sssl = sssl_getContextWithStreamID(streamID);
+    }
+    else
+    {
+        sssl = sssl_getContextWithSessionID(sessionID);
+    }
     if(sssl != NULL)
     {
         retv = ((SHARED_SSL_CONTEXT *)sssl)->appThInitialized;
         ((SHARED_SSL_CONTEXT *)sssl)->appThInitialized = ((flagValue != 0) ? 1 : 0);
+        if(ssslPtr)
+            *ssslPtr = sssl;
     }
     else
     {
@@ -560,30 +643,52 @@ int sssl_setDTLSAppThInitialized(int streamID, int flagValue)
     }
     simpleLockRelease(&gContextStorageMutex);
 
-
-    // !!!
-    // if returning 0 when media thread sets it back to 0, media thread must not destroy
-    // sssl upon exit
-    // !!!
-
-
     return(retv);
 }
 
 
-int sssl_getDTLSAppThInitialized(int streamID)
+int sssl_getDTLSAppThInitializedWithSessionID(unsigned long long sessionID, void ** ssslPtr)
+{
+    int retv = sssl_getDTLSAppThInitializedCommon(-1,sessionID,ssslPtr);
+    return(retv);
+}
+
+
+int sssl_getDTLSAppThInitializedWithStreamID(int streamID, void ** ssslPtr)
+{
+    int retv = sssl_getDTLSAppThInitializedCommon(streamID,0,ssslPtr);
+    return(retv);
+}
+
+
+int sssl_getDTLSAppThInitializedCommon(int streamID, unsigned long long sessionID, void ** ssslPtr)
 {
     // return values:
     //  >= 0 - value of appThInitialized
     //  -1 - corresponding sssl did not exist when this function was invoked.
+    // 
+    // Remarks:
+    //   1. May pass NULL for ssslPtr.
+    //   2. *ssslPtr only valid when return value >= 0.
+    // 
 
     int retv;
+    void * sssl;
 
     simpleLockGet(&gContextStorageMutex);
-    void * sssl = sssl_getContextWithStreamID(streamID);
+    if(streamID >= 0)
+    {
+        sssl = sssl_getContextWithStreamID(streamID);
+    }
+    else
+    {
+        sssl = sssl_getContextWithSessionID(sessionID);
+    }
     if(sssl != NULL)
     {
         retv = ((SHARED_SSL_CONTEXT *)sssl)->appThInitialized;
+        if(ssslPtr)
+            *ssslPtr = sssl;
     }
     else
     {
@@ -595,26 +700,29 @@ int sssl_getDTLSAppThInitialized(int streamID)
 }
 
 
-int sssl_waitDTLSAppThCancel(unsigned long long sessionID)
+int sssl_waitDTLSAppThCancel(int streamID)
 {
     // return values:
     //   0 - normal return. Media thread cancelection was indeed initiated by this function
     //       and it successfully completed.
-    //   1 - Media thread cancelection was already in progress when this function was invoked,
-    //       nevertheless, it successfully completed.
-    //   2 - Media thread was already canceled when this function was invoked.
+    //   1 - Media thread cancelection was already in progress when this function was invoked.
+    //       This condition means that the media thread was between 
+    //       sssl_setDTLSAppThInitialized(..., 0) and sssl_destroyDTLSWithStreamID().
+    //   2 - Media thread was already canceled (or was never started) when this function was
+    //       invoked.
     //  -1 - general error.
     //  -2 - Media thread cancelection was indeed initiated by this function but it did not
     //       complete before timeout.
-    //  -3 - Media thread cancelection was already in progress when this function was invoked
-    //       and it did not complete before timeout.
+    //  // this condition doesn't exist
+    //  // -3 - Media thread cancelection was already in progress when this function was invoked
+    //  //      and it did not complete before timeout (*).
 
     int retv,retv1;
 
     simpleLockGet(&gContextStorageMutex);
 
     retv = 2;
-    void * sssl = sssl_getContextWithStreamID(sessionID);//sssl_getContextWithSessionID(sessionID);
+    void * sssl = sssl_getContextWithStreamID(streamID);
     if(sssl != NULL)
     {
         retv = 1;
@@ -625,32 +733,54 @@ int sssl_waitDTLSAppThCancel(unsigned long long sessionID)
             retv = 0;
         }
 
-	     struct timespec stopTimeout;
-        stopTimeout.tv_sec += 10;
-	     // ! pthread_mutex_lock(&gContextStorageMutex);
-	     retv1 = pthread_cond_timedwait(&((SHARED_SSL_CONTEXT *)sssl)->appThCancelComplCondVar,
-            &gContextStorageMutex, &stopTimeout);
-        // ! pthread_mutex_unlock(&gContextStorageMutex);
+        //
+        // A condition variable allows one thread to wake another up from a wait. They work only if there is
+        // a thread waiting at the moment when you trigger the condition. The way to ensure that this is
+        // the case is for the waiting thread to lock a mutex which is linked to the condition, and for
+        // the signalling thread to lock that mutex before triggering the condition. In other words,
+        // the signalling thread can only lock the mutex and trigger the condition if the other thread had
+        // the mutex locked but is now waiting.
+        //
+        // To signal a condition variable when there is no corresponding wait is a logical error because
+        // nothing will ever receive the signal.
+        // 
+        // !!! Condition variables don't remain in a signalled state !!!
+        // 
 
-        if((retv == 0) && (retv1 == 0))         // play safe
+        if(retv == 0)
         {
-            // destroy sssl here only if media thread cancelection was indeed initiated by
-            // this function
-            sssl_destroyDTLSWithSessionID(sessionID,1);
-        }
+            // in this case thread is guaranteed to signal
 
-	     if(retv1 != 0)
-        {
-	         if(retv1 == ETIMEDOUT)
+	         struct timespec stopTimeout;
+            stopTimeout.tv_sec += 10;
+
+	         // ! pthread_mutex_lock(&gContextStorageMutex);
+	         retv1 = pthread_cond_timedwait(&((SHARED_SSL_CONTEXT *)sssl)->appThCancelComplCondVar,
+               &gContextStorageMutex, &stopTimeout);
+            // ! pthread_mutex_unlock(&gContextStorageMutex);
+
+	         if(retv1 == 0)    // play safe 
             {
-                retv = ((retv == 0) ? -2 : -3);
+                // destroy sssl here only if media thread cancelection was indeed initiated by
+                // this function
+                sssl_destroyDTLSWithStreamID(streamID,1);
+                // retv is 0
             }
             else
             {
-                retv = -1;
+	             if(retv1 == ETIMEDOUT)
+                {
+                    retv = -2;
+                }
+                else
+                {
+                    retv = -1;
+                }
             }
         }
+        // else - retv is 1 
     }
+    // else - retv is 2
 
     simpleLockRelease(&gContextStorageMutex);
     return(retv);
@@ -670,10 +800,32 @@ int sssl_initDTLSAppThCancCondVar(int streamID)
 }
 
 
-int sssl_signalDTLSAppThCanceled(int streamID)
+int sssl_signalDTLSAppThCanceledWithSessionID(unsigned long long sessionID)
 {
+    int retv = sssl_signalDTLSAppThCanceledCommon(-1,sessionID);
+    return(retv);
+}
+
+
+int sssl_signalDTLSAppThCanceledWithStreamID(int streamID)
+{
+    int retv = sssl_signalDTLSAppThCanceledCommon(streamID,0);
+    return(retv);
+}
+
+
+int sssl_signalDTLSAppThCanceledCommon(int streamID, unsigned long long sessionID)
+{
+    void * sssl;
     simpleLockGet(&gContextStorageMutex);
-    void * sssl = sssl_getContextWithStreamID(streamID);
+    if(streamID >= 0)
+    {
+        sssl = sssl_getContextWithStreamID(streamID);
+    }
+    else
+    {
+        sssl = sssl_getContextWithSessionID(sessionID);
+    }
     if(sssl != NULL)
     {
         pthread_cond_broadcast(&((SHARED_SSL_CONTEXT *)sssl)->appThCancelComplCondVar);
@@ -760,7 +912,7 @@ void * sssl_contextCreate(unsigned long long sessionID)
     retv = sssl_getIndexGetWithSessionID((unsigned long long)sessionID);
     if(retv >= 0)
     {
-        sssl_log(LOGLEV_error,"sssl_contextCreate() - context already exists for sessionID = %" G_GUINT64_FORMAT,
+        sssl_log(LOGLEV_error,"mira: sssl_contextCreate() - context already exists for sessionID = %" G_GUINT64_FORMAT,
             sessionID);
         return(NULL);
     }
@@ -885,11 +1037,11 @@ SSL_CTX * CreateNewSSLContext()
         {
             SSL_CTX_free(ctx);
             ctx = NULL;
-            sssl_log(LOGLEV_error,"CreateNewSSLContext server load certificate failed");
+            sssl_log(LOGLEV_error,"mira: CreateNewSSLContext server load certificate failed");
         }
     }
 
-    sssl_log(LOGLEV_debug,"CreateNewSSLContext ret[0x%x]\n", ctx);
+    sssl_log(LOGLEV_debug,"mira: CreateNewSSLContext ret[0x%x]\n", ctx);
     return ctx;
 }
 
@@ -910,7 +1062,7 @@ SSL_CTX * InitServerCTX()
         SSL_CTX_set_read_ahead (ctx, 1);
     }
 
-    sssl_log(LOGLEV_debug,"InitServerCTX ret[0x%x]\n", ctx);
+    sssl_log(LOGLEV_debug,"mira: InitServerCTX ret[0x%x]\n", ctx);
     return ctx;
 }
 
@@ -921,32 +1073,32 @@ bool LoadCertificates(SSL_CTX* ctx, char* CertFile, char* KeyFile)
     if (SSL_CTX_use_certificate_file(ctx, CertFile, SSL_FILETYPE_PEM) <= 0)
     {
         sssl_log(LOGLEV_error,
-            "LoadCertificates SSL_CTX_use_certificate_file: ERROR: %s\n",
+            "mira: LoadCertificates SSL_CTX_use_certificate_file: ERROR: %s\n",
             ERR_error_string(ERR_get_error(), NULL));
         return false;
     }
-    sssl_log(LOGLEV_debug,"InitClientCTX use_certificate_file:%s\n",CertFile);
+    sssl_log(LOGLEV_debug,"mira: InitClientCTX use_certificate_file:%s\n",CertFile);
 
     /* set the private key from KeyFile (may be the same as CertFile) */
     if (SSL_CTX_use_PrivateKey_file(ctx, KeyFile, SSL_FILETYPE_PEM) <= 0)
     {
         sssl_log(LOGLEV_error,
-            "LoadCertificates SSL_CTX_use_PrivateKey_file: ERROR: %s\n",
+            "mira: LoadCertificates SSL_CTX_use_PrivateKey_file: ERROR: %s\n",
             ERR_error_string(ERR_get_error(), NULL));
         return false;
     }
-    sssl_log(LOGLEV_debug,"InitClientCTX use_PrivateKey_file:%s\n",KeyFile);
+    sssl_log(LOGLEV_debug,"mira: InitClientCTX use_PrivateKey_file:%s\n",KeyFile);
 
     /* verify private key */
     if (!SSL_CTX_check_private_key(ctx))
     {
-        sssl_log(LOGLEV_error,"LoadCertificates Private key does not match the public certificate");
+        sssl_log(LOGLEV_error,"mira: LoadCertificates Private key does not match the public certificate");
         return false;
     }
 
     SSL_CTX_set_verify(ctx, SSL_VERIFY_NONE, NULL);
 
-    sssl_log(LOGLEV_debug,"LoadCertificates exit");
+    sssl_log(LOGLEV_debug,"mira: LoadCertificates exit");
     return true;
 }
 
