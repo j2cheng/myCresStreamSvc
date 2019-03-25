@@ -192,6 +192,7 @@ public class CresStreamCtrl extends Service {
     public Object mAirMediaLock = new Object();
     private Object mAirMediaCodeLock = new Object();
     private int mAirMediaNumberOfUsersConnected = -1;	//Bug 141088: Setting to -1 will force code change on reboot if set to random
+    private String mPreviousSessionType = "";
     private boolean mMsMiceEnabled = false;
     private boolean mMiracastEnabled = false;
     boolean[] updateStreamStateOnFirstFrame = new boolean[NumOfTextures]; // flags to update stream state only on first frame output from MediaCodec - used only in AirMedia currently
@@ -4301,6 +4302,16 @@ public class CresStreamCtrl extends Service {
     	}
     }
     
+    public void sendAirMediaSessionType(String sessionType)
+    {
+    	if (!mPreviousSessionType.equalsIgnoreCase(sessionType))
+    	{
+    		Log.i(TAG, "sendAirMediaSessionType(): sessionType = " + sessionType);
+    		sockTask.SendDataToAllClients(MiscUtils.stringFormat("AIRMEDIA_SESSION_TYPE=%s", sessionType));
+    		mPreviousSessionType = sessionType;
+    	}
+    }
+    
     public void setAirMediaResetConnections(boolean enable)
     {
     	synchronized (mAirMediaLock) {
@@ -4597,6 +4608,24 @@ public class CresStreamCtrl extends Service {
     	{
     		userSettings.setAirMediaWindowFlag(windowFlag);
     		mAirMedia.setWindowFlag(windowFlag);
+    	}
+    }
+    
+    public void setAirMediaIsCertificateRequired(boolean enable)
+    {
+    	if (mAirMedia != null)
+    	{
+    		userSettings.setAirMediaIsCertificateRequired(enable);
+    		mAirMedia.setAirMediaIsCertificateRequired(enable);
+    	}
+    }
+    
+    public void setAirMediaOnlyAllowSecureConnections(boolean enable)
+    {
+    	if (mAirMedia != null)
+    	{
+    		userSettings.setAirMediaOnlyAllowSecureConnections(enable);
+    		mAirMedia.setAirMediaOnlyAllowSecureConnections(enable);
     	}
     }
     

@@ -175,6 +175,8 @@ public class CommandParser {
         AIRMEDIA_VERSION,
         AIRMEDIA_DEBUG,
         AIRMEDIA_PROCESS_DEBUG_MESSAGE,
+        AIRMEDIA_IS_CERTIFICATE_REQUIRED,
+        AIRMEDIA_ONLY_ALLOW_SECURE_CONNECTIONS,
         AIRMEDIA_CLEAR_CACHE,
         
         // Camera Streaming Slot
@@ -748,6 +750,12 @@ public class CommandParser {
             	break;
             case AIRMEDIA_PROJECTION_LOCK:
             	cmd = new AirMediaProjectionLockCommand(ctrl, arg, idx);
+            	break;
+            case AIRMEDIA_IS_CERTIFICATE_REQUIRED:
+            	cmd = new AirMediaIsCertificateRequiredCommand(ctrl, arg);
+            	break;
+            case AIRMEDIA_ONLY_ALLOW_SECURE_CONNECTIONS:
+            	cmd = new AirMediaOnlyAllowSecureConnectionsCommand(ctrl, arg);
             	break;
             case AIRMEDIA_CLEAR_CACHE:
             	cmd = new AirMediaClearCacheCommand(ctrl, arg);

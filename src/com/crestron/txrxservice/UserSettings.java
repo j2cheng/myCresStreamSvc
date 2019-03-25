@@ -222,6 +222,8 @@ public class UserSettings
 	private boolean[] airMediaUserConnected;
 	private int[] airMediaUserPosition;
 	private boolean[] airMediaStopUser;
+	boolean airMediaIsCertificateRequired;
+	boolean airMediaOnlyAllowSecureConnections;
 	private String airMediaOsdImage;
 	private boolean airMediaIpAddressPrompt;
 	private boolean airMediaDomainNamePrompt;
@@ -339,6 +341,8 @@ public class UserSettings
 		airMediaUserPosition = initIntArray(0, 32);
 		airMediaStopUser 	= initBoolArray(true, 32);
 		airMediaUserConnected = initBoolArray(false, 32);
+		airMediaIsCertificateRequired = false;
+		airMediaOnlyAllowSecureConnections = false;
 		airMediaOsdImage	= "";
 		airMediaX			= 0;
 		airMediaY			= 0;
@@ -1163,12 +1167,28 @@ public class UserSettings
 		this.airMediaModerator = enable;
 	}
 	
-	public boolean getAirMediaProjectionLock(boolean enable) {
+	public boolean getAirMediaProjectionLock() {
 		return airMediaProjectionLock;
 	}
 	
 	public void setAirMediaProjectionLock(boolean enable) {
 		this.airMediaProjectionLock = enable;
+	}	
+
+	public boolean getAirMediaIsCertificateRequired() {
+		return airMediaIsCertificateRequired;
+	}
+	
+	public void setAirMediaIsCertificateRequired(boolean enable) {
+		this.airMediaIsCertificateRequired = enable;
+	}	
+
+	public boolean getAirMediaOnlyAllowSecureConnections() {
+		return airMediaOnlyAllowSecureConnections;
+	}
+	
+	public void setAirMediaOnlyAllowSecureConnections(boolean enable) {
+		this.airMediaOnlyAllowSecureConnections = enable;
 	}	
 
 	public boolean getAirMediaResetConnections() {

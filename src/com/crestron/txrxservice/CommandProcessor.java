@@ -2195,6 +2195,26 @@ class AirMediaProcessDebugMessageCommand extends CrestronCommand {
 	// No feedback
 }
 
+class AirMediaIsCertificateRequiredCommand extends CrestronCommand {
+	public AirMediaIsCertificateRequiredCommand(CresStreamCtrl ctrl, String arg) {
+		super(ctrl, arg);
+	}	
+	public void execute() {
+		ctrl.setAirMediaIsCertificateRequired(Boolean.valueOf(msg));
+	}
+	// No feedback
+}
+
+class AirMediaOnlyAllowSecureConnectionsCommand extends CrestronCommand {
+	public AirMediaOnlyAllowSecureConnectionsCommand(CresStreamCtrl ctrl, String arg) {
+		super(ctrl, arg);
+	}	
+	public void execute() {
+		ctrl.setAirMediaOnlyAllowSecureConnections(Boolean.valueOf(msg));
+	}
+	// No feedback
+}
+
 class AirMediaClearCacheCommand extends CrestronCommand {
 	public AirMediaClearCacheCommand(CresStreamCtrl ctrl, String arg) {
 		super(ctrl, arg);

@@ -64,4 +64,8 @@ public interface AirMedia
     public void setProjectionLock(boolean enable);
     
     public void setOrderedLock(boolean lock, String functionName);
+    
+    public void setAirMediaIsCertificateRequired(boolean enable);
+    
+    public void setAirMediaOnlyAllowSecureConnections(boolean enable);
 }

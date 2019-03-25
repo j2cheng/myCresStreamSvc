@@ -782,4 +782,13 @@ public class AirMediaAwind implements AirMedia
     	// Not needed for Awind
     }
 
+    public void setAirMediaIsCertificateRequired(boolean enable)
+    {
+    	// Not needed for Awind
+    }
+
+    public void setAirMediaOnlyAllowSecureConnections(boolean enable)
+    {
+    	// Not needed for Awind
+    }
 }
