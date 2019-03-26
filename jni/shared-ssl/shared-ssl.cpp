@@ -281,7 +281,7 @@ int sssl_destroyDTLSWithStreamID(int streamID, int doNotLock)
         simpleLockGet(&gContextStorageMutex);
     }
 
-    int index = sssl_getIndexGetWithStreamID(streamID);
+    int index = sssl_getIndexWithStreamID(streamID);
     if(index < 0)
     {
         if(doNotLock == 0)
@@ -325,18 +325,16 @@ void * sssl_getDTLSWithStreamID(int streamID)
 
 int sssl_encryptDTLSInner(void * sssl,void * inBuff,int inBuffSize,void * outBuff,int outBuffSize)
 {
-    // due to the assumed single user, no locking needed
+    // Remarks:
+    //   1. May require external locking.
+    //   2. This initial implementation makes an optimistic accumption that for each unencrypted 'record'
+    //      (payload chunk) submitted in inBuff the SSL will make an entire encrypted SSL/TLS record
+    //      available to BIO_read() right away.
 
-    // This initial implementation makes an optimistic accumption that for each unencrypted 'record'
-    // (payload chunk) submitted in inBuff the SSL will make an entire encrypted SSL/TLS record
-    // available to BIO_read() right away.
-
-
-    // make SSL_write() blocking ?!
+    int retv;
 
     SHARED_SSL_CONTEXT * ssslContext = (SHARED_SSL_CONTEXT *)sssl;
 
-    int retv;
     retv = SSL_write(ssslContext->ssl,inBuff,inBuffSize);
     if(retv < 0)
     {
@@ -368,11 +366,11 @@ int sssl_encryptDTLSInner(void * sssl,void * inBuff,int inBuffSize,void * outBuf
 
 int sssl_decryptDTLSInner(void * sssl,void * inBuff,int inBuffSize,void * outBuff,int outBuffSize)
 {
-    // due to the assumed single user, no locking needed
-
-    // This initial implementation makes an optimistic accumption that entire SSL/TLS encrypted
-    // records are being submitted in inBuff and that under such conditions SSL makes entire
-    // decrypted 'records' (payload chunks) available to SSL_read() right away.
+    // Remarks:
+    //   1. May require external locking.
+    //   2. This initial implementation makes an optimistic accumption that entire SSL/TLS encrypted
+    //      records are being submitted in inBuff and that under such conditions SSL makes entire
+    //      decrypted 'records' (payload chunks) available to SSL_read() right away.
 
     int retv;
 
@@ -421,6 +419,38 @@ int sssl_decryptDTLSInner(void * sssl,void * inBuff,int inBuffSize,void * outBuf
     {
         sssl_log(LOGLEV_warning,"mira: {%s} - probably insufficient buffer for SSL_read(), retv = %d, outBuffSize = %d",
             __FUNCTION__,retv,outBuffSize);
+    }
+
+    return(retv);
+}
+
+
+int sssl_encryptDTLS(unsigned long long sessionID,void * inBuff,int inBuffSize,void * outBuff,int outBuffSize)
+{
+    int retv,retv1;
+    void * sssl;
+
+    retv = sssl_setDTLSAppThInitializedWithSessionID(sessionID,1,&sssl);
+    if(retv != 0)
+    {
+        // Since the assumption here is that at this time nobody else should have this sssl context,
+        // inability to get exclusive access to that context (retv == 1) is also an error.
+        sssl_log(LOGLEV_error,"mira: {%s} - sssl_setDTLSAppThInitialized() returned %d",__FUNCTION__,retv);
+        if(retv > 0)
+               return(-2);
+        else   return(retv);
+    }
+
+    retv = sssl_encryptDTLSInner(sssl,inBuff,inBuffSize,outBuff,outBuffSize);
+
+    retv1 = sssl_setDTLSAppThInitializedWithSessionID(sessionID,0,NULL);
+    if(retv1 >= 0)
+    {
+        sssl_log(LOGLEV_error,"mira: {%s} - calling sssl_signalDTLSAppThCanceled()",__FUNCTION__);
+        sssl_signalDTLSAppThCanceledWithSessionID(sessionID);
+        // this function does not call sssl_destroyDTLSWithStreamID(). The assumption is that
+        // under normal conditions sssl_waitDTLSAppThCancel() will not be invoked when this function is
+        // in progress.
     }
 
     return(retv);
@@ -717,7 +747,7 @@ int sssl_waitDTLSAppThCancel(int streamID)
     //  // -3 - Media thread cancelection was already in progress when this function was invoked
     //  //      and it did not complete before timeout (*).
 
-    int retv,retv1;
+    int retv,retv1,retv2;
 
     simpleLockGet(&gContextStorageMutex);
 
@@ -731,6 +761,10 @@ int sssl_waitDTLSAppThCancel(int streamID)
         {
             ((SHARED_SSL_CONTEXT *)sssl)->appThInitialized = 0;
             retv = 0;
+        }
+        else
+        {
+            sssl_log(LOGLEV_debug,"mira: {%s} - appThInitialized was already 0",__FUNCTION__);
         }
 
         //
@@ -752,15 +786,20 @@ int sssl_waitDTLSAppThCancel(int streamID)
             // in this case thread is guaranteed to signal
 
 	         struct timespec stopTimeout;
+            struct timeval tp;
+
+            retv2 = gettimeofday(&tp,NULL);
+            stopTimeout.tv_sec  = tp.tv_sec;
+            stopTimeout.tv_nsec = tp.tv_usec * 1000;
             stopTimeout.tv_sec += 10;
 
-	         // ! pthread_mutex_lock(&gContextStorageMutex);
+	         // lock obtained up top
 	         retv1 = pthread_cond_timedwait(&((SHARED_SSL_CONTEXT *)sssl)->appThCancelComplCondVar,
-               &gContextStorageMutex, &stopTimeout);
-            // ! pthread_mutex_unlock(&gContextStorageMutex);
+               &gContextStorageMutex,&stopTimeout);
 
 	         if(retv1 == 0)    // play safe 
             {
+                sssl_log(LOGLEV_debug,"mira: {%s} - calling sssl_destroyDTLSWithStreamID()",__FUNCTION__);
                 // destroy sssl here only if media thread cancelection was indeed initiated by
                 // this function
                 sssl_destroyDTLSWithStreamID(streamID,1);
@@ -768,6 +807,7 @@ int sssl_waitDTLSAppThCancel(int streamID)
             }
             else
             {
+                sssl_log(LOGLEV_debug,"mira: {%s} - pthread_cond_timedwait() returned %d",__FUNCTION__,retv1);
 	             if(retv1 == ETIMEDOUT)
                 {
                     retv = -2;
@@ -909,7 +949,7 @@ void * sssl_contextCreate(unsigned long long sessionID)
     int nn,retv;
     SHARED_SSL_CONTEXT * retp;
 
-    retv = sssl_getIndexGetWithSessionID((unsigned long long)sessionID);
+    retv = sssl_getIndexWithSessionID((unsigned long long)sessionID);
     if(retv >= 0)
     {
         sssl_log(LOGLEV_error,"mira: sssl_contextCreate() - context already exists for sessionID = %" G_GUINT64_FORMAT,
@@ -934,7 +974,7 @@ void * sssl_contextCreate(unsigned long long sessionID)
 
 int sssl_contextRemove(unsigned long long sessionID)
 {
-    int index = sssl_getIndexGetWithSessionID(sessionID);
+    int index = sssl_getIndexWithSessionID(sessionID);
     if(index < 0)
     {
         return(-1);
@@ -950,7 +990,7 @@ int sssl_contextRemove(unsigned long long sessionID)
 
 void * sssl_getContextWithSessionID(unsigned long long sessionID)
 {
-    int index = sssl_getIndexGetWithSessionID(sessionID);
+    int index = sssl_getIndexWithSessionID(sessionID);
     if(index < 0)
     {
         return(NULL);
@@ -961,7 +1001,7 @@ void * sssl_getContextWithSessionID(unsigned long long sessionID)
 
 void * sssl_getContextWithStreamID(int streamID)
 {
-    int index = sssl_getIndexGetWithStreamID(streamID);
+    int index = sssl_getIndexWithStreamID(streamID);
     if(index < 0)
     {
         return(NULL);
@@ -973,7 +1013,7 @@ void * sssl_getContextWithStreamID(int streamID)
 
 int sssl_setContextStreamID(unsigned long long sessionID,int streamID)
 {
-    int index = sssl_getIndexGetWithSessionID(sessionID);
+    int index = sssl_getIndexWithSessionID(sessionID);
     if(index < 0)
     {
         return(-1);
@@ -990,7 +1030,7 @@ int sssl_setContextStreamID(unsigned long long sessionID,int streamID)
 }
 
 
-int sssl_getIndexGetWithSessionID(unsigned long long sessionID)
+int sssl_getIndexWithSessionID(unsigned long long sessionID)
 {
     int nn;
 
@@ -1006,7 +1046,7 @@ int sssl_getIndexGetWithSessionID(unsigned long long sessionID)
 }
 
 
-int sssl_getIndexGetWithStreamID(int streamID)
+int sssl_getIndexWithStreamID(int streamID)
 {
     int nn;
 

@@ -73,9 +73,8 @@ int sssl_contextRemove(unsigned long long sessionID);
 void * sssl_getContextWithSessionID(unsigned long long sessionID);
 void * sssl_getContextWithStreamID(int streamID);
 int sssl_setContextStreamID(unsigned long long sessionID,int streamID);
-
-int sssl_getIndexGetWithSessionID(unsigned long long sessionID);
-int sssl_getIndexGetWithStreamID(int streamID);
+int sssl_getIndexWithSessionID(unsigned long long sessionID);
+int sssl_getIndexWithStreamID(int streamID);
 
 
 // --- shared context simple lock facility ---

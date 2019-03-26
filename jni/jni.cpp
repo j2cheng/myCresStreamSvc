@@ -2665,7 +2665,7 @@ void * rtpMediaStreamThread(void * threadData)
       dtlsDataSize = recv(rtpMedStrContext.sockFD, (char *)dtlsPacketBuff, DTLSPACKETMAXSIZE, 0);
       if(doLog)
       {
-         CSIO_LOG(eLogLevel_debug,"mira: RTP loop: received %d bytes from socket",dtlsDataSize);
+         CSIO_LOG(eLogLevel_extraVerbose,"mira: RTP loop: received %d bytes from socket",dtlsDataSize);
       }
 
       //   TLS Record Type Values     dec      hex
@@ -2705,7 +2705,7 @@ void * rtpMediaStreamThread(void * threadData)
       }
       if(doLog)
       {
-         CSIO_LOG(eLogLevel_debug,"mira: RTP loop: received %d bytes after DTLS dcryption",rtpDataSize);
+         CSIO_LOG(eLogLevel_extraVerbose,"mira: RTP loop: received %d bytes after DTLS dcryption",rtpDataSize);
       }
 
       // create a new empty buffer
@@ -2747,7 +2747,7 @@ void * rtpMediaStreamThread(void * threadData)
 
       if(doLog)
       {
-         CSIO_LOG(eLogLevel_debug,"mira: RTP loop: submitted buffer to AppSrc with g_signal_emit_by_name() [nn = %d]",nn);
+         CSIO_LOG(eLogLevel_extraVerbose,"mira: RTP loop: submitted buffer to AppSrc with g_signal_emit_by_name() [nn = %d]",nn);
       }
 
 	   nn++;
@@ -2759,7 +2759,7 @@ threadreturn:
    retv = sssl_setDTLSAppThInitializedWithStreamID(rtpMedStrContext.streamID, 0, NULL);
    if(retv >= 0)
    {
-      CSIO_LOG(eLogLevel_debug,"mira: {%s} - calling sssl_signalDTLSAppThCanceled()",__FUNCTION__);
+      CSIO_LOG(eLogLevel_debug,"mira: {%s} - calling sssl_signalDTLSAppThCanceledWithStreamID()",__FUNCTION__);
       sssl_signalDTLSAppThCanceledWithStreamID(rtpMedStrContext.streamID);
       if(retv > 0)
       {
