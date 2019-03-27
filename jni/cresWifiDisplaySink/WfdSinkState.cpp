@@ -182,10 +182,10 @@ m_rtcpDestPort(-1)
     else
         CSIO_LOG(m_debugLevel, "wfdSinkStMachineClass: ERROR: preferredVidResRefStr not set.\n");
 
-    prepareBeforeIdle();
-
     getTimeStamp(WFD_SINK_EVENTTIME_STATEMACHINE_CREATED);
 
+    //Note: do not call prepareBeforeIdle here
+    resetSystemStatus();
     resetTimeout();
 
     pRTSPSinkClient = new WfdRTSPSinkClient(this);
@@ -329,8 +329,6 @@ void wfdSinkStMachineClass::resetSystemStatus()
         m_wfdSinkStMachineThreadPtr->removePollFds(m_myId,0,true);
 
     deInitRTSPParser(m_rtspParserIntfSession);
-
-    sendEventToParentProj(WFD_SINK_EVENTS_RTSP_LEAVE_SESSION_EVENT);
 }
 void wfdSinkStMachineClass::prepareBeforeIdle()
 {
@@ -341,6 +339,7 @@ void wfdSinkStMachineClass::prepareBeforeIdle()
     restartFromIdleCnt = 0;
 
     resetTimeout();
+    sendEventToParentProj(WFD_SINK_EVENTS_RTSP_LEAVE_SESSION_EVENT);
     CSIO_LOG(m_debugLevel, "wfdSinkStMachineClass[%d]: prepareBeforeIdle\n", m_myId);
 }
 //Note: should be called only inside states function.
@@ -357,26 +356,23 @@ void wfdSinkStMachineClass::prepareForRestart()
 
 void wfdSinkStMachineClass::sendEventToParentProj(int event)
 {
-    if(m_curentState != WFD_SINK_STATES_IDLE)
+    csioEventQueueStruct EvntQ;
+    memset(&EvntQ,0,sizeof(csioEventQueueStruct));
+    EvntQ.obj_id = m_myId;
+    EvntQ.event_type = event;
+
+    if(event == WFD_SINK_EVENTS_RTSP_IN_SESSION_EVENT)
     {
-        csioEventQueueStruct EvntQ;
-        memset(&EvntQ,0,sizeof(csioEventQueueStruct));
-        EvntQ.obj_id = m_myId;
-        EvntQ.event_type = event;
+        struct GST_PIPELINE_CONFIG gst_config;
+        gst_config.ts_port = getCurentTsPort();
+        gst_config.ssrc    = m_ssrc;
+        gst_config.rtcp_dest_port = m_rtcpDestPort;
 
-        if(event == WFD_SINK_EVENTS_RTSP_IN_SESSION_EVENT)
-        {
-            struct GST_PIPELINE_CONFIG gst_config;
-            gst_config.ts_port = getCurentTsPort();
-            gst_config.ssrc    = m_ssrc;
-            gst_config.rtcp_dest_port = m_rtcpDestPort;
+        EvntQ.buf_size = sizeof(GST_PIPELINE_CONFIG);
+        EvntQ.buffPtr = (void*)&gst_config;
+    }
 
-            EvntQ.buf_size = sizeof(GST_PIPELINE_CONFIG);
-            EvntQ.buffPtr = (void*)&gst_config;
-        }
-
-        m_parent->sendEvent(&EvntQ);
-    }//else
+    m_parent->sendEvent(&EvntQ);
 }
 
 //Note: this is the only place that m_curentState can be changed
