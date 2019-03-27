@@ -4694,6 +4694,12 @@ void Wfd_setup_gst_pipeline (int id, int state, struct GST_PIPELINE_CONFIG* gst_
         CSIO_LOG(eLogLevel_debug, "%s exit", __FUNCTION__);
     }
 
+    if(state == 0)
+    {
+        csio_SendVideoPlayingStatusMessage(id, STREAMSTATE_STOPPED);
+        CSIO_LOG(eLogLevel_error, "stream %d set STREAMSTATE_STOPPED", id);
+    }
+
     CSIO_LOG(eLogLevel_debug, "mira: {%s} - exiting",__FUNCTION__);
 }
 

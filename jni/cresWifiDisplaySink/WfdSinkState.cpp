@@ -329,6 +329,8 @@ void wfdSinkStMachineClass::resetSystemStatus()
         m_wfdSinkStMachineThreadPtr->removePollFds(m_myId,0,true);
 
     deInitRTSPParser(m_rtspParserIntfSession);
+
+    sendEventToParentProj(WFD_SINK_EVENTS_RTSP_LEAVE_SESSION_EVENT);
 }
 void wfdSinkStMachineClass::prepareBeforeIdle()
 {
@@ -355,23 +357,26 @@ void wfdSinkStMachineClass::prepareForRestart()
 
 void wfdSinkStMachineClass::sendEventToParentProj(int event)
 {
-    csioEventQueueStruct EvntQ;
-    memset(&EvntQ,0,sizeof(csioEventQueueStruct));
-    EvntQ.obj_id = m_myId;
-    EvntQ.event_type = event;
-
-    if(event == WFD_SINK_EVENTS_RTSP_IN_SESSION_EVENT)
+    if(m_curentState != WFD_SINK_STATES_IDLE)
     {
-        struct GST_PIPELINE_CONFIG gst_config;
-        gst_config.ts_port = getCurentTsPort();
-        gst_config.ssrc    = m_ssrc;
-        gst_config.rtcp_dest_port = m_rtcpDestPort;
+        csioEventQueueStruct EvntQ;
+        memset(&EvntQ,0,sizeof(csioEventQueueStruct));
+        EvntQ.obj_id = m_myId;
+        EvntQ.event_type = event;
 
-        EvntQ.buf_size = sizeof(GST_PIPELINE_CONFIG);
-        EvntQ.buffPtr = (void*)&gst_config;
-    }
+        if(event == WFD_SINK_EVENTS_RTSP_IN_SESSION_EVENT)
+        {
+            struct GST_PIPELINE_CONFIG gst_config;
+            gst_config.ts_port = getCurentTsPort();
+            gst_config.ssrc    = m_ssrc;
+            gst_config.rtcp_dest_port = m_rtcpDestPort;
 
-    m_parent->sendEvent(&EvntQ);
+            EvntQ.buf_size = sizeof(GST_PIPELINE_CONFIG);
+            EvntQ.buffPtr = (void*)&gst_config;
+        }
+
+        m_parent->sendEvent(&EvntQ);
+    }//else
 }
 
 //Note: this is the only place that m_curentState can be changed
@@ -639,9 +644,6 @@ int wfdSinkStMachineClass::waitM1RequestState(csioEventQueueStruct* pEventQ)
 
             prepareBeforeIdle();
 
-            //TODO: maybe not needed to issue this event from this state
-            sendEventToParentProj(WFD_SINK_EVENTS_RTSP_LEAVE_SESSION_EVENT);
-
             nextState = WFD_SINK_STATES_IDLE;
 
             break;
@@ -770,9 +772,6 @@ int wfdSinkStMachineClass::waitM2ResponseState(csioEventQueueStruct* pEventQ)
 
             prepareBeforeIdle();
 
-            //TODO: maybe not needed to issue this event from this state
-            sendEventToParentProj(WFD_SINK_EVENTS_RTSP_LEAVE_SESSION_EVENT);
-
             nextState = WFD_SINK_STATES_IDLE;
 
             break;
@@ -871,9 +870,6 @@ int wfdSinkStMachineClass::waitM3RequestState(csioEventQueueStruct* pEventQ)
             }//else
 
             prepareBeforeIdle();
-
-            //TODO: maybe not needed to issue this event from this state
-            sendEventToParentProj(WFD_SINK_EVENTS_RTSP_LEAVE_SESSION_EVENT);
 
             nextState = WFD_SINK_STATES_IDLE;
 
@@ -993,9 +989,6 @@ int wfdSinkStMachineClass::waitM4RequestState(csioEventQueueStruct* pEventQ)
             }//else
 
             prepareBeforeIdle();
-
-            //TODO: maybe not needed to issue this event from this state
-            sendEventToParentProj(WFD_SINK_EVENTS_RTSP_LEAVE_SESSION_EVENT);
 
             nextState = WFD_SINK_STATES_IDLE;
 
@@ -1119,9 +1112,6 @@ int wfdSinkStMachineClass::waitM5RequestState(csioEventQueueStruct* pEventQ)
             }//else
 
             prepareBeforeIdle();
-
-            //TODO: maybe not needed to issue this event from this state
-            sendEventToParentProj(WFD_SINK_EVENTS_RTSP_LEAVE_SESSION_EVENT);
 
             nextState = WFD_SINK_STATES_IDLE;
 
@@ -1265,7 +1255,6 @@ int wfdSinkStMachineClass::waitGstPipelineReadyState(csioEventQueueStruct* pEven
 
             prepareBeforeIdle();
 
-            sendEventToParentProj(WFD_SINK_EVENTS_RTSP_LEAVE_SESSION_EVENT);
             nextState = WFD_SINK_STATES_IDLE;
 
             break;
@@ -1374,7 +1363,6 @@ int wfdSinkStMachineClass::waitM6ResponseState(csioEventQueueStruct* pEventQ)
 
             prepareBeforeIdle();
 
-            sendEventToParentProj(WFD_SINK_EVENTS_RTSP_LEAVE_SESSION_EVENT);
             nextState = WFD_SINK_STATES_IDLE;
 
             break;
@@ -1485,7 +1473,6 @@ int wfdSinkStMachineClass::waitM7ResponseState(csioEventQueueStruct* pEventQ)
 
             prepareBeforeIdle();
 
-            sendEventToParentProj(WFD_SINK_EVENTS_RTSP_LEAVE_SESSION_EVENT);
             nextState = WFD_SINK_STATES_IDLE;
 
             break;
@@ -1544,7 +1531,6 @@ int wfdSinkStMachineClass::waitTDResponseState(csioEventQueueStruct* pEventQ)
                 else
                     prepareBeforeIdle();
 
-                sendEventToParentProj(WFD_SINK_EVENTS_RTSP_LEAVE_SESSION_EVENT);
                 nextState = WFD_SINK_STATES_IDLE;
             }
 
@@ -1561,7 +1547,6 @@ int wfdSinkStMachineClass::waitTDResponseState(csioEventQueueStruct* pEventQ)
             else
                 prepareBeforeIdle();
 
-            sendEventToParentProj(WFD_SINK_EVENTS_RTSP_LEAVE_SESSION_EVENT);
             nextState = WFD_SINK_STATES_IDLE;
 
             break;
@@ -1587,7 +1572,6 @@ int wfdSinkStMachineClass::waitTDResponseState(csioEventQueueStruct* pEventQ)
 
             prepareBeforeIdle();
 
-            sendEventToParentProj(WFD_SINK_EVENTS_RTSP_LEAVE_SESSION_EVENT);
             nextState = WFD_SINK_STATES_IDLE;
 
             break;
@@ -1624,7 +1608,6 @@ int wfdSinkStMachineClass::monitorKeepAliveState(csioEventQueueStruct* pEventQ)
                 //Note: go to idle without teardown
                 prepareForRestart();
 
-                sendEventToParentProj(WFD_SINK_EVENTS_RTSP_LEAVE_SESSION_EVENT);
                 nextState = WFD_SINK_STATES_IDLE;
             }
 
@@ -1685,7 +1668,6 @@ int wfdSinkStMachineClass::monitorKeepAliveState(csioEventQueueStruct* pEventQ)
                 prepareForRestart();
                 CSIO_LOG(m_debugLevel,  "wfdSinkStMachineClass[%d]:pRTSPSinkClient is NULL\n",m_myId);
 
-                sendEventToParentProj(WFD_SINK_EVENTS_RTSP_LEAVE_SESSION_EVENT);
                 nextState = WFD_SINK_STATES_IDLE;
             }
             break;
@@ -1701,7 +1683,6 @@ int wfdSinkStMachineClass::monitorKeepAliveState(csioEventQueueStruct* pEventQ)
 
             prepareBeforeIdle();
 
-            sendEventToParentProj(WFD_SINK_EVENTS_RTSP_LEAVE_SESSION_EVENT);
             nextState = WFD_SINK_STATES_IDLE;
 
             break;
@@ -1730,7 +1711,6 @@ int wfdSinkStMachineClass::monitorKeepAliveState(csioEventQueueStruct* pEventQ)
                 prepareForRestart();
                 CSIO_LOG(m_debugLevel,  "wfdSinkStMachineClass[%d]:pRTSPSinkClient is NULL\n",m_myId);
 
-                sendEventToParentProj(WFD_SINK_EVENTS_RTSP_LEAVE_SESSION_EVENT);
                 nextState = WFD_SINK_STATES_IDLE;
             }
             break;
