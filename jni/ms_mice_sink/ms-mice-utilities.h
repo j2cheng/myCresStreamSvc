@@ -126,4 +126,6 @@ static inline bool shl_isempty(const char *str)
 
 guint64 generate_sink_session_id();
 
+void ms_mice_sink_convertIP(char *pIPAddress, unsigned int& ldata);
+
 #endif /* CTL_EXTENSION_MS_MICE_UTILITIES_H */

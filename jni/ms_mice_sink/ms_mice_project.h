@@ -55,10 +55,12 @@ public:
     void sendEvent(csioEventQueueStruct* pEvntQ);
 
     msMiceSinkServiceClass *m_service_obj;
-    int m_pin;
+    std::string m_pinStr;
 
     const char* getadapterAddress(){ return m_adapterAddress.c_str();}
     void setadapterAddress(std::string& str) { m_adapterAddress = str; }
+
+    const char* getSessionPin(){ return m_pinStr.c_str();}
 
     std::string m_adapterAddress;
 private:

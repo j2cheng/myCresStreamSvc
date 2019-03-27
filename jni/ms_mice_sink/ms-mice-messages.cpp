@@ -3,7 +3,7 @@
 #include "ms-mice-utilities.h"
 #include "ms-mice.h"
 #include <gio/gio.h>
-
+#include "../shared-ssl/shared-ssl.h"
 const char *ms_mice_command_to_string(guint8 type)
 {
     switch (type) {
@@ -177,8 +177,19 @@ void ms_mice_message_tlv_security_token_attach(ms_mice_message *msg, guint8 *tok
 {
     ms_mice_tlv *tlv = ms_mice_tlv_security_token_new(token, length,error);
     ms_mice_message_tlv_attach(msg, tlv);
+    
+}
+void ms_mice_message_tlv_pin_response_reason_attach(ms_mice_message *msg, guint8 reason,GError **error)
+{
+    ms_mice_tlv *tlv = ms_mice_tlv_pin_response_reason_new(reason,error);
+    ms_mice_message_tlv_attach(msg, tlv);
 }
 
+void ms_mice_message_tlv_pin_challenge_attach(ms_mice_message *msg, guint8 * challenge, guint16 length,GError **error)
+{
+    ms_mice_tlv *tlv = ms_mice_tlv_pin_challenge_new(challenge,length,error);
+    ms_mice_message_tlv_attach(msg, tlv);
+}
 /* ------------------ */
 /* -- CONSTRUCTION -- */
 
@@ -231,6 +242,74 @@ void ms_mice_message_entry_pack(ms_mice_message_entry *entry, GError **error)
     g_object_unref(out_stream);
 }
 
+void ms_mice_message_entry_encrypt_pack(void *session, ms_mice_message_entry *entry, GError **error)
+{
+    guint8 *raw = NULL;
+    size_t raw_size = 0;
+    unsigned char* encryptedOutBuf = NULL;
+    int cryptBufSize = MS_MICE_MIN_DTLS_CRYPTBUF_SIZE;
+
+    GOutputStream *base_out_stream = g_memory_output_stream_new_resizable();
+
+    GDataOutputStream *out_stream = g_data_output_stream_new(base_out_stream);
+    g_data_output_stream_set_byte_order(out_stream, G_DATA_STREAM_BYTE_ORDER_BIG_ENDIAN);
+
+    ms_mice_message_pack(entry->msg, out_stream, error);
+    g_output_stream_flush(G_OUTPUT_STREAM(out_stream), NULL, NULL);
+
+    raw_size = g_memory_output_stream_get_data_size(G_MEMORY_OUTPUT_STREAM(base_out_stream));
+    raw = (guint8*)g_memory_output_stream_get_data(G_MEMORY_OUTPUT_STREAM(base_out_stream));
+
+    //Note: data inside 'raw' contains message header
+    //      skip 4 bytes to encrypt data in 'raw'
+
+    //need to find out buff size here
+    if( (raw_size * 2 ) > MS_MICE_MIN_DTLS_CRYPTBUF_SIZE )
+        cryptBufSize = raw_size * 2;
+
+    //create new buffer here
+    encryptedOutBuf = g_new(guint8, cryptBufSize);
+    CSIO_LOG(eLogLevel_debug,"ms_mice_message_entry_encrypt_pack created buff[0x%x] of size[%d]\r\n",
+             encryptedOutBuf,cryptBufSize);
+
+    if(encryptedOutBuf)
+    {
+        encryptedOutBuf[0] = 0;
+        encryptedOutBuf[1] = 0;
+        encryptedOutBuf[2] = raw[2];//copy version
+        encryptedOutBuf[3] = raw[3];//copy message command
+
+        guint64 sessionID = ms_mice_sink_session_get_id((ms_mice_sink_session*)session);
+        int encryptedsize = sssl_encryptDTLS(sessionID,
+                                             &raw[MS_MICE_HEADER_SIZE],
+                                             (raw_size - MS_MICE_HEADER_SIZE),
+                                             &encryptedOutBuf[MS_MICE_HEADER_SIZE],
+                                             cryptBufSize);
+        CSIO_LOG(eLogLevel_debug,"sssl_encryptDTLS return : %d\r\n",encryptedsize);
+
+        if(encryptedsize > 0)
+        {
+            //adding size of message header
+            encryptedsize += MS_MICE_HEADER_SIZE;
+
+            //update new size of the message
+            encryptedOutBuf[0] = (encryptedsize & 0xff00) >> 8;
+            encryptedOutBuf[1] = encryptedsize & 0xff;
+
+            ms_mice_message_entry_copy_raw(entry, encryptedOutBuf, encryptedsize);
+            CSIO_LOG(eLogLevel_debug,"ms_mice_message_entry_copy_raw raw_size[%d] encryptedsize[%d]\r\n",
+                     raw_size,encryptedsize);
+        }//else
+    }
+
+    g_output_stream_close(base_out_stream, NULL, NULL);
+    g_object_unref(base_out_stream);
+
+    g_output_stream_close(G_OUTPUT_STREAM(out_stream), NULL, NULL);
+    g_object_unref(out_stream);
+
+    g_free(encryptedOutBuf);
+}
 void ms_mice_message_entry_copy_raw(ms_mice_message_entry *entry, guint8 *data, size_t data_size)
 {
     if (!entry)

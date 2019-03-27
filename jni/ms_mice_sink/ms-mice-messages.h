@@ -54,6 +54,7 @@ void ms_mice_message_entry_free(ms_mice_message_entry *entry);
 
 void ms_mice_message_entry_pack(ms_mice_message_entry *entry, GError **error);
 void ms_mice_message_entry_copy_raw(ms_mice_message_entry *entry, guint8 *data, size_t data_size);
+void ms_mice_message_entry_encrypt_pack(void *session,ms_mice_message_entry *entry, GError **error);
 
 ms_mice_message *ms_mice_message_new(guint16 size, guint8 version, guint8 command, GError **error);
 void ms_mice_message_free(ms_mice_message *msg);
@@ -64,6 +65,8 @@ void ms_mice_message_tlv_source_id_attach(ms_mice_message *msg, const gchar *sou
 void ms_mice_message_tlv_rtsp_port_attach(ms_mice_message *msg, guint16 port, GError **error);
 void ms_mice_message_tlv_security_options_attach(ms_mice_message *msg, bool sink_displays_pin, bool use_dtls_encryption, GError **error);
 void ms_mice_message_tlv_security_token_attach(ms_mice_message *msg, guint8 *token, guint16 length, GError **error);
+void ms_mice_message_tlv_pin_response_reason_attach(ms_mice_message *msg, guint8 reason, GError **error);
+void ms_mice_message_tlv_pin_challenge_attach(ms_mice_message *msg, guint8 * challenge,guint16 length,GError **error);
 
 void ms_mice_message_unpack(ms_mice_message *msg, GDataInputStream *stream, GError **error);
 void ms_mice_message_pack(ms_mice_message *msg, GDataOutputStream *stream, GError **error);

@@ -92,6 +92,9 @@ ms_mice_tlv *ms_mice_tlv_source_id_new(const gchar *value, GError **error);
 ms_mice_tlv *ms_mice_tlv_rtsp_port_new(guint16 port, GError **error);
 ms_mice_tlv *ms_mice_tlv_security_options_new(bool sink_displays_pin, bool use_dtls_encryption, GError **error);
 ms_mice_tlv *ms_mice_tlv_security_token_new(const guint8 *t, guint16 length, GError **error);
+ms_mice_tlv *ms_mice_tlv_pin_response_reason_new(guint8 t, GError **error);
+ms_mice_tlv *ms_mice_tlv_pin_challenge_new(const guint8 *t, guint16 length, GError **error);
+
 void ms_mice_tlv_free(ms_mice_tlv *tlv);
 
 /* ------------------------------------------------------------------------------------------------------------------

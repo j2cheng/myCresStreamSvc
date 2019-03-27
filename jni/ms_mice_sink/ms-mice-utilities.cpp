@@ -126,3 +126,34 @@ guint64 generate_sink_session_id()
     g_mutex_unlock(&sesson_id_generator_lock);
     return sesson_id_generator;
 }
+/* convert ASCII IP address to hex format
+ * Assumes ASCII format is 192.168.0.1
+ *
+ * return:  ldata = 0xc0a80001
+*/
+void ms_mice_sink_convertIP(char *pIPAddress, unsigned int& ldata)
+{
+    int index = 0;
+    char cval[5] = {0};
+
+    if(!pIPAddress)
+        return;
+
+    CSIO_LOG(eLogLevel_debug,"csio_convertIP[%s]\r\n", pIPAddress? pIPAddress:"NULL");
+
+    while (*pIPAddress) {
+        if ('.' != (*pIPAddress)) {
+            cval[index] *= 10;
+            cval[index] += *pIPAddress - '0';
+        } else {
+            index++;
+        }
+        pIPAddress++;
+    }
+
+    ldata = cval[0]<<24 | cval[1]<<16 | cval[2]<<8 | cval[3];
+
+    CSIO_LOG(eLogLevel_debug,"csio_convertIP: ldata[0x%x]\r\n", ldata);
+
+    return ;
+}

@@ -105,8 +105,11 @@ void msMiceSinkProjStopSession(int id, gint64 session_id)
             if(cmd)
             {
                 cmd->service = g_msMiceSinkProjPtr->m_service_obj->m_mice_service;
-                cmd->session_id = session_id;
+                cmd->session_id  = session_id;
+                cmd->session_pin = NULL;
                 g_main_context_invoke(context,session_observer_disconnect_request_from_app,cmd);
+
+                //Note: cmd will be deleted in session_observer_disconnect_request_from_app
             }
             else
             {
@@ -123,9 +126,9 @@ void msMiceSinkProjStopSession(int id, gint64 session_id)
     CSIO_LOG(gProjectDebug, "msMiceSinkProjStopSession: return.");
 }
 
-void msMiceSinkProjSetPin(int id,int pin)
+void msMiceSinkProjSetPin(int id,char* pin)
 {
-    CSIO_LOG(gProjectDebug, "msMiceSinkProjSetPin: enter: id[%d], pin[%d]",id,pin);
+    CSIO_LOG(gProjectDebug, "msMiceSinkProjSetPin: enter: id[%d]",id);
     gProjectsLock.lock();
 
     if(g_msMiceSinkProjPtr)
@@ -134,7 +137,13 @@ void msMiceSinkProjSetPin(int id,int pin)
         memset(&EvntQ,0,sizeof(csioEventQueueStruct));
         EvntQ.obj_id = 0;
         EvntQ.event_type = MS_MICE_SINK_EVENTS_SET_PIN;
-        EvntQ.ext_obj = pin;
+
+        if(pin)
+        {
+            EvntQ.buf_size   = strlen(pin);
+            EvntQ.buffPtr    = pin;
+            CSIO_LOG(gProjectDebug, "msMiceSinkProjSetPin: pin:[%s]",pin);
+        }
 
         g_msMiceSinkProjPtr->sendEvent(&EvntQ);
     }
@@ -290,6 +299,40 @@ ms_mice_sink_service_observer ctl_fn_ms_mice_sink_service_observer = {
 };
 
 
+int app_extension_ms_mice_service_set_session_pin(gpointer user_data)
+{
+    ms_mice_sink_service_and_sessionid* cmd = (ms_mice_sink_service_and_sessionid*)user_data;
+    ms_mice_sink_service *s = NULL;
+
+    if(cmd)
+    {
+        CSIO_LOG(eLogLevel_debug,"app_extension_ms_mice_service_set_session_pin: service[0x%x]",cmd->service);
+
+        if(cmd->service)
+        {
+            if(cmd->session_pin)
+            {
+                ms_mice_sink_service_set_session_pin(cmd->service,cmd->session_pin);
+
+                CSIO_LOG(eLogLevel_debug,"app_extension_ms_mice_service_set_session_pin: get_session_pin[0x%x]",
+                         ms_mice_sink_service_get_session_pin(cmd->service));
+            }//else
+
+            CSIO_LOG(eLogLevel_debug,"app_extension_ms_mice_service_set_session_pin %s",cmd->session_pin? cmd->session_pin : "NULL");
+        }
+        else
+        {
+            CSIO_LOG(eLogLevel_debug,"app_extension_ms_mice_service_set_session_pin cmd->service is NULL");
+        }
+
+        g_free((gpointer)cmd->session_pin);
+        delete cmd;
+    }
+    else
+    {
+        CSIO_LOG(eLogLevel_debug,"app_extension_ms_mice_service_set_session_pin cmd is NULL");
+    }
+}
 /* ------------------------------------------------------------------------------------------------------------------
  * -- load | unload extensions
  * -- */
@@ -321,11 +364,19 @@ static void app_extension_ms_mice_load(msMiceSinkServiceClass* p_servceClass,GEr
 
     if(p_servceClass->m_parent->m_adapterAddress.size())
     {
-        ms_mice_sink_service_new(&p_servceClass->m_mice_service, p_servceClass->m_parent->getadapterAddress(), DEFAULT_MIRACAST_OVER_INFRASTRUCTURE_PORT, &internal_error);
+        ms_mice_sink_service_new(&p_servceClass->m_mice_service,
+                                 p_servceClass->m_parent->getadapterAddress(),
+                                 DEFAULT_MIRACAST_OVER_INFRASTRUCTURE_PORT,
+                                 p_servceClass->m_parent->getSessionPin(),
+                                 &internal_error);
     }
     else
     {
-        ms_mice_sink_service_new(&p_servceClass->m_mice_service, NULL, DEFAULT_MIRACAST_OVER_INFRASTRUCTURE_PORT, &internal_error);
+        ms_mice_sink_service_new(&p_servceClass->m_mice_service,
+                                 NULL,
+                                 DEFAULT_MIRACAST_OVER_INFRASTRUCTURE_PORT,
+                                 p_servceClass->m_parent->getSessionPin(),
+                                 &internal_error);
     }
 
     if (internal_error || !p_servceClass->m_mice_service)
@@ -352,7 +403,7 @@ cleanup_error:
 msMiceSinkProjClass::msMiceSinkProjClass(char* adapterAddr):
 msMiceSinkProjTimeArray(NULL),
 m_service_obj(NULL),
-m_pin(-1),
+m_pinStr(),
 m_adapterAddress(),
 m_projEventQList(NULL)
 {
@@ -365,6 +416,7 @@ m_projEventQList(NULL)
         msMiceSinkProjTimeArray->recordEventTimeStamp(MS_MICE_SINK_PROJ_TIMESTAMP_INIT);
 
     m_adapterAddress.clear();
+    m_pinStr.clear();
 
     if(adapterAddr)
     {
@@ -396,7 +448,7 @@ void msMiceSinkProjClass::DumpClassPara(int id)
     CSIO_LOG(eLogLevel_info, "msMiceSinkProjClass: m_debugLevel        %d\n", m_debugLevel);
     CSIO_LOG(eLogLevel_info, "msMiceSinkProjClass: m_ThreadIsRunning   %d\n", m_ThreadIsRunning);
     CSIO_LOG(eLogLevel_info, "msMiceSinkProjClass: m_service_obj       0x%x\n", m_service_obj);
-    CSIO_LOG(eLogLevel_info, "msMiceSinkProjClass: m_pin               %d\n", m_pin);
+    CSIO_LOG(eLogLevel_info, "msMiceSinkProjClass: m_pinStr            %s\n", m_pinStr.c_str());
     CSIO_LOG(eLogLevel_info, "msMiceSinkProjClass: m_adapterAddress    %s\n", m_adapterAddress.c_str());
 
     if(m_projEventQList)
@@ -528,8 +580,43 @@ void* msMiceSinkProjClass::ThreadEntry()
             {
                 case MS_MICE_SINK_EVENTS_SET_PIN:
                 {
-                    CSIO_LOG(m_debugLevel, "msMiceSinkProjClass[%d]: MS_MICE_SINK_EVENTS_SET_PIN,set pin[%d]\n",evntQPtr->ext_obj);
-                    m_pin = evntQPtr->ext_obj;
+                    CSIO_LOG(m_debugLevel, "msMiceSinkProjClass[%d]: MS_MICE_SINK_EVENTS_SET_PIN,buf_size[%d]\n",
+                             evntQPtr->obj_id,evntQPtr->buf_size);
+
+                    m_pinStr.clear();
+                    if( evntQPtr->buf_size && evntQPtr->buffPtr)
+                    {
+
+                        m_pinStr = (char*)evntQPtr->buffPtr;
+                        deleteCharArray(evntQPtr->buffPtr);
+
+                        CSIO_LOG(m_debugLevel, "msMiceSinkProjClass: MS_MICE_SINK_EVENTS_SET_PIN,set pin[%s]\n",m_pinStr.c_str());
+                    }//else
+
+                    //send it to m_mice_service context
+                    {
+                        GMainContext* context = ms_mice_sink_service_get_context(g_msMiceSinkProjPtr->m_service_obj->m_mice_service);
+
+                        ms_mice_sink_service_and_sessionid* cmd = new ms_mice_sink_service_and_sessionid();
+                        if(cmd)
+                        {
+                            cmd->service = g_msMiceSinkProjPtr->m_service_obj->m_mice_service;
+
+                            if(m_pinStr.size())
+                            {
+                                cmd->session_pin = g_strdup(m_pinStr.c_str());
+                                CSIO_LOG(m_debugLevel, "msMiceSinkProjClass: MS_MICE_SINK_EVENTS_SET_PIN cmd->session_pin[0x%x][%d]\n",
+                                         cmd->session_pin,strlen(cmd->session_pin));
+                            }
+                            else
+                            {
+                                cmd->session_pin = NULL;
+                            }
+                            g_main_context_invoke(context,app_extension_ms_mice_service_set_session_pin,cmd);
+
+                            //Note: cmd will be deleted in app_extension_ms_mice_service_set_session_pin
+                        }//else
+                    }
                     break;
                 }
                 case MS_MICE_SINK_EVENTS_JNI_NOP:
@@ -824,6 +911,20 @@ void msMiceSinkProj_fdebug(char *cmd_cstring)
                 //id is 64 bit
                 int session_id = strtol(CmdPtr, &EndPtr, 10);
                 msMiceSinkProjStopSession(0,session_id);
+            }
+        }
+        else if(strcasestr(CmdPtr, "SETPIN"))
+        {
+            CmdPtr = strtok(NULL, ", ");
+            if(CmdPtr)
+            {
+                CSIO_LOG(eLogLevel_info, "msMiceSinkProj_fdebug: SETPIN command = [%s]\n",CmdPtr);
+                msMiceSinkProjSetPin(0,CmdPtr);
+            }
+            else
+            {
+                CSIO_LOG(eLogLevel_info, "msMiceSinkProj_fdebug: SETPIN command = NULL\n");
+                msMiceSinkProjSetPin(0,NULL);
             }
         }
         else

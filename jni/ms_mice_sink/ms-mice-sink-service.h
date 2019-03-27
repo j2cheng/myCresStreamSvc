@@ -36,12 +36,13 @@ typedef struct {
 struct ms_mice_sink_service_and_sessionid {
     ms_mice_sink_service *service;
     guint64 session_id;
+    gchar *session_pin;
 };
 /* ------------------------------------------------------------------------------------------------------------------
  * -- MS-MICE SINK SERVICE CONSTRUCTION
  * -- */
 
-void ms_mice_sink_service_new(ms_mice_sink_service **out, const gchar *address, guint16 port, GError **error);
+void ms_mice_sink_service_new(ms_mice_sink_service **out, const gchar *address, guint16 port, const gchar *session_pin, GError **error);
 void ms_mice_sink_service_free(ms_mice_sink_service *service);
 
 void ms_mice_sink_service_observer_attach(ms_mice_sink_service *service, ms_mice_sink_service_observer *observer, gpointer data);
@@ -67,5 +68,7 @@ bool ms_mice_sink_service_is_running(ms_mice_sink_service *service);
 const char *ms_mice_sink_service_get_address(ms_mice_sink_service *service);
 guint16 ms_mice_sink_service_get_service_port(ms_mice_sink_service *service);
 GMainContext* ms_mice_sink_service_get_context(ms_mice_sink_service *service);
+const char *ms_mice_sink_service_get_session_pin(ms_mice_sink_service *service);
+void ms_mice_sink_service_set_session_pin(ms_mice_sink_service *service,const char* pin);
 
 #endif /* CTL_EXTENSION_MS_MICE_SINK_SERVICE_H */

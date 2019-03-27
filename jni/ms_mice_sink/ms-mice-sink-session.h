@@ -8,6 +8,8 @@
 #include <gio/gio.h>
 //#include <ctl/extensions/sink-api.h>
 
+#define MS_MICE_MIN_DTLS_CRYPTBUF_SIZE (256)
+
 /* ------------------------------------------------------------------------------------------------------------------
  * -- MS-MICE SINK SESSION CONSTANTS
  * -- */

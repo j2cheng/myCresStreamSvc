@@ -24,13 +24,21 @@ struct _ms_mice_sink_service_private {
     gpointer observer_data;
 
     GMainContext* context;
+
+    gchar *session_pin;
 };
 
 bool ms_mice_sink_service_is_running(ms_mice_sink_service *service) { return service->priv->is_service_started; }
 const char *ms_mice_sink_service_get_address(ms_mice_sink_service *service) { return service->priv->service_address; }
 guint16 ms_mice_sink_service_get_service_port(ms_mice_sink_service *service) { return service->priv->service_port; }
 GMainContext* ms_mice_sink_service_get_context(ms_mice_sink_service *service) { return service->priv->context; }
+const char *ms_mice_sink_service_get_session_pin(ms_mice_sink_service *service) { return service->priv->session_pin; }
 
+void ms_mice_sink_service_set_session_pin(ms_mice_sink_service *service,const char* pin)
+{
+    g_free((gpointer)service->priv->session_pin);
+    service->priv->session_pin = g_strdup(pin);
+}
 void ms_mice_sink_service_raise_on_service_started(ms_mice_sink_service *service)
 {
     ms_mice_sink_service_observer *observer = service->priv->observer;
@@ -223,7 +231,7 @@ void ms_mice_sink_service_observer_detach(ms_mice_sink_service *service)
 /* ------------------ */
 /* -- CONSTRUCTION -- */
 
-void ms_mice_sink_service_new(ms_mice_sink_service **out, const gchar *address, guint16 port, GError **error)
+void ms_mice_sink_service_new(ms_mice_sink_service **out, const gchar *address, guint16 port, const gchar *session_pin,GError **error)
 {
     ms_mice_sink_service *s = NULL;
 
@@ -255,6 +263,7 @@ void ms_mice_sink_service_new(ms_mice_sink_service **out, const gchar *address, 
     s->priv->observer = NULL;
     s->priv->observer_data = NULL;
     s->priv->context = NULL;
+    s->priv->session_pin = g_strdup(session_pin);
 
     *out = s;
 }
@@ -269,6 +278,7 @@ void ms_mice_sink_service_free(ms_mice_sink_service *service)
     CSIO_LOG(eLogLevel_debug,"ms.mice.sink.service.free { \"service-address\": \"%s\" , \"service-port\": %u }", service->priv->service_address, service->priv->service_port);
 
     g_free((gpointer)service->priv->service_address);
+    g_free((gpointer)service->priv->session_pin);
     service->priv->observer = NULL;
     service->priv->observer_data = NULL;
     g_free(service->priv);

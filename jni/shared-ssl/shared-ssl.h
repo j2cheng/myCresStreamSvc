@@ -42,6 +42,7 @@ int sssl_encryptDTLSInner(void * sssl,void * inBuff,int inBuffSize,void * outBuf
 int sssl_decryptDTLSInner(void * sssl,void * inBuff,int inBuffSize,void * outBuff,int outBuffSize);
 int sssl_decryptDTLS(unsigned long long sessionID,void * inBuff,int inBuffSize,void * outBuff,
       int outBuffSize);
+int sssl_encryptDTLS(unsigned long long sessionID,void * inBuff,int inBuffSize,void * outBuff,int outBuffSize);
 
 int sssl_runDTLSHandshakeWithSecToken(void * sssl,void * secToken,int secTokenLength,
    bool * isDTLSHandshakeCompletePtr,DTLS_MSGSENDER sendOutDTLSHandshake,void * arg1,void ** arg2);

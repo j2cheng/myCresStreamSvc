@@ -4709,7 +4709,7 @@ JNIEXPORT void JNICALL Java_com_crestron_txrxservice_GstreamIn_nativeMsMiceSetAd
 {
     char * locAddr = NULL;
     if(address != NULL)
-{
+    {
         locAddr = (char *)env->GetStringUTFChars(address, NULL);
     }//else
 
@@ -4741,7 +4741,7 @@ JNIEXPORT void JNICALL Java_com_crestron_txrxservice_GstreamIn_nativeMsMiceClose
     msMiceSinkProjStopSession(0,msMiceSessionId);
 }
 JNIEXPORT void JNICALL Java_com_crestron_txrxservice_GstreamIn_nativeMsMiceSetPin(JNIEnv *env, jobject thiz, jstring pin_jstring)
-        {
+{
     int id = 0;
 
     char * locPin = NULL;
@@ -4753,12 +4753,11 @@ JNIEXPORT void JNICALL Java_com_crestron_txrxservice_GstreamIn_nativeMsMiceSetPi
     if(locPin == NULL)
     {
        CSIO_LOG(eLogLevel_error, "pin is NULL or invalid");
-       msMiceSinkProjSetPin(id,-1);
+       msMiceSinkProjSetPin(id,NULL);
     }
     else
     {
-        int setPin = atoi(locPin);
-        msMiceSinkProjSetPin(id,setPin);
+        msMiceSinkProjSetPin(id,locPin);
 
         env->ReleaseStringUTFChars(pin_jstring, locPin);
     }

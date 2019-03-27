@@ -9,6 +9,7 @@
 #include <sys/socket.h>
 #include <netinet/in.h>
 #include <netdb.h>
+#include "openssl/sha.h"
 
 #include "../shared-ssl/shared-ssl.h"
 
@@ -60,6 +61,8 @@ struct _ms_mice_sink_session_private {
 
 void ssl_send_DTLS_handshake(void * session,char * dtlsData,int dtlsDataLen,void ** error);
 void ssl_write_to_BIO_and_check_output(ms_mice_sink_session *session, ms_mice_tlv *tlv, GError **error);
+static void ms_mice_sink_session_queue_outgoing_message(ms_mice_sink_session *session, ms_mice_message_entry *entry);
+static int ms_mice_sink_session_write(ms_mice_sink_session *session, GError **error, bool needEncrypt = false);
 
 #ifdef API_SUPPORTED
 sink_api_session *ms_mice_sink_session_get_api(ms_mice_sink_session *session) { return session->priv->api_session_; }
@@ -127,6 +130,94 @@ static void ms_mice_sink_session_stop_establishment_timeout(ms_mice_sink_session
     session->priv->source_establishment_timeout = 0;
 }
 
+static bool ms_mice_sink_session_validate_pin(ms_mice_sink_session *session,ms_mice_tlv* tlv)
+{
+    SHA256_CTX sha256;
+    SHA256_Init(&sha256);
+    unsigned char hash[SHA256_DIGEST_LENGTH];
+    unsigned int ipAddr = 0;
+
+    char tmp[256] ;
+    const char* remoteAddrPtr = ms_mice_sink_session_get_remote_address(session);//10.254.46.247 c0000264
+    const char* SessionPinPtr = ms_mice_sink_service_get_session_pin(session->priv->service);
+    int sessionPinLen = strlen(SessionPinPtr);
+
+    CSIO_LOG(eLogLevel_debug,"ms_mice_sink_session_validate_pin session->priv->service[0x%x],SessionPinPtr[0x%x]",session->priv->service,SessionPinPtr);
+
+    if(!remoteAddrPtr || !SessionPinPtr || (sessionPinLen == 0))
+    {
+        CSIO_LOG(eLogLevel_debug,"ms_mice_sink_session_validate_pin remoteAddrPtr[0x%x] or SessionPinPtr[0x%x][0x%x][0x%x][0x%x][%d] is NULL",
+                remoteAddrPtr,SessionPinPtr, SessionPinPtr[0],SessionPinPtr[1],SessionPinPtr[2],SessionPinPtr[3],sessionPinLen);
+        return false;
+    }    
+    
+    //insert string of pin into buffer
+    for(int i = 0 ; i < sessionPinLen; i++)
+    {
+        tmp[i] = SessionPinPtr[i];
+    }
+    
+    //convert ip address from string to int
+    ms_mice_sink_convertIP((char*)remoteAddrPtr, ipAddr);
+
+    //insert ip address here
+    tmp[sessionPinLen++] = (ipAddr & 0xff000000) >> 24;
+    tmp[sessionPinLen++] = (ipAddr & 0xff0000)   >> 16;
+    tmp[sessionPinLen++] = (ipAddr & 0xff00)     >> 8;
+    tmp[sessionPinLen++] = (ipAddr & 0xff)  ;    
+    
+    SHA256_Update(&sha256, tmp, sessionPinLen);
+    SHA256_Final(hash, &sha256);
+
+    for(int i = 0; i < SHA256_DIGEST_LENGTH; i++)
+    {
+        if( tlv->pin_challenge.pin[i] != hash[i])
+            return false;
+    }
+
+    return true;
+}
+static bool ms_mice_sink_session_generate_pin_challenge(ms_mice_sink_session *session,unsigned char* hashbuf)
+{
+    SHA256_CTX sha256;
+    SHA256_Init(&sha256);
+    unsigned int ipAddr = 0;
+    char tmp[256] ;
+
+    if(!session)
+        return false;
+
+    const char* localAddrPtr = ms_mice_sink_session_get_local_address(session);//10.254.45.69 0afe2d45
+    const char* SessionPinPtr = ms_mice_sink_service_get_session_pin(session->priv->service);
+    int sessionPinLen = strlen(SessionPinPtr);
+
+    if(!localAddrPtr || !SessionPinPtr || !hashbuf|| (sessionPinLen == 0))
+    {
+        CSIO_LOG(eLogLevel_debug,"ms_mice_sink_session_generate_pin_challenge remoteAddrPtr[0x%x] or SessionPinPtr[0x%x][%d] is NULL",
+                localAddrPtr,SessionPinPtr, sessionPinLen);
+        return false;
+    }
+
+    //insert string of pin into buffer
+    for(int i = 0 ; i < sessionPinLen; i++)
+    {
+        tmp[i] = SessionPinPtr[i];
+    }
+
+    //convert ip address from string to int
+    ms_mice_sink_convertIP((char*)localAddrPtr, ipAddr);
+
+    //insert ip address here
+    tmp[sessionPinLen++] = (ipAddr & 0xff000000) >> 24;
+    tmp[sessionPinLen++] = (ipAddr & 0xff0000)   >> 16;
+    tmp[sessionPinLen++] = (ipAddr & 0xff00)     >> 8;
+    tmp[sessionPinLen++] = (ipAddr & 0xff)  ;
+
+    SHA256_Update(&sha256, tmp, sessionPinLen);
+    SHA256_Final(hashbuf, &sha256);
+
+    return true;
+}
 /* ------------------------------------------------------------------------------------------------------------------
  * -- MS-MICE SINK SESSION RAISE EVENTS
  * -- */
@@ -495,7 +586,67 @@ static void ms_mice_sink_session_handle_pin_challenge_message(ms_mice_sink_sessi
      * 1. Source ID TLV (section 2.2.7.3)
      * 2. PIN Challenge TLV (section 2.2.7.6)
      */
-    RAISE_NOT_IMPLEMENTED();
+    MS_MICE_SINK_SESSION_STATE old_state = session->priv->state;
+
+    ms_mice_tlv *tlv = ms_mice_tlv_find(&msg->tlvs, MS_MICE_TLV_PIN_CHALLENGE);
+
+    if (!tlv) {
+        CSIO_LOG(eLogLevel_error,"ms.mice.sink.session.message.received.session-pin-challenge.error { \"session-id\": %"G_GUINT64_FORMAT" , \"local-address\": \"%s\" , \"remote-address\": \"%s\" , \"state\": \"%s\" , \"message\": \"pin challenge missing!\" }",
+                 session->priv->session_id, session->priv->local_address, session->priv->remote_address, ms_mice_sink_session_state_to_string(session->priv->state));
+        return;
+    }
+
+    session->priv->state = MS_MICE_SINK_SESSION_STATE_PIN_CHALLENGE;
+
+    ms_mice_sink_session_raise_on_session_state_changed(session, old_state, session->priv->state);
+
+    CSIO_LOG(eLogLevel_debug,"ms.mice.sink.session.message.received.pin-challenge { \"session-id\": %"G_GUINT64_FORMAT" , \"local-address\": \"%s\" , \"remote-address\": \"%s\" , \"state\": \"%s\" }",
+             session->priv->session_id, session->priv->local_address, session->priv->remote_address, ms_mice_sink_session_state_to_string(session->priv->state));
+
+    bool ret = ms_mice_sink_session_validate_pin(session,tlv);
+    CSIO_LOG(eLogLevel_debug,"ms_mice_sink_session_validate_pin return : %d\r\n",ret);
+
+    //create pin response reason message and send out
+    MS_MICE_MESSAGE_COMMANDS command = MS_MICE_MESSAGE_PIN_RESPONSE;
+
+    ms_mice_message *response_msg = ms_mice_message_new(1, MS_MICE_MESSAGE_VERSION_1, command, error);
+    CSIO_LOG(eLogLevel_debug,"ms_mice_message_new PIN_RESPONSE[0x%x]",response_msg);
+
+    if(response_msg)
+    {
+        int reason = 0;
+
+        if(ret == false)
+            reason = 1;
+
+        //Note: according to the spec, if reason is false, don't need source-id
+        //      and pin challenge. but based on our example(laptop--laptop),
+        //      we are going to include all.
+        //1. source-id
+        ms_mice_message_tlv_source_id_attach(response_msg,session->priv->source_id,error);
+
+        //2. pin challenge
+        unsigned char challengeHash[SHA256_DIGEST_LENGTH];
+        ms_mice_sink_session_generate_pin_challenge(session,challengeHash);
+        ms_mice_message_tlv_pin_challenge_attach(response_msg, challengeHash, SHA256_DIGEST_LENGTH,error);
+
+        //3. pin response reason
+        ms_mice_message_tlv_pin_response_reason_attach(response_msg, reason, error);
+
+        ms_mice_message_entry *entry = ms_mice_message_entry_new(response_msg, error);
+
+        if(entry)
+        {
+            ms_mice_sink_session_queue_outgoing_message(session, entry);
+
+            int ret = ms_mice_sink_session_write(session, error,true);
+            CSIO_LOG(eLogLevel_debug,"pin_challenge_message: ms_mice_sink_session_write ret[0x%x]",ret);
+        }
+        else
+        {
+            CSIO_LOG(eLogLevel_error,"pin_challenge_message: ms_mice_message_entry_new failed");
+        }
+    }
 }
 
 static void ms_mice_sink_session_handle_pin_response_message(ms_mice_sink_session *session, ms_mice_message *msg, GError **error)
@@ -609,29 +760,122 @@ static int ms_mice_sink_session_handle_read_data(ms_mice_sink_session *session, 
         }
 
         required = session->priv->in_message->size - MS_MICE_HEADER_SIZE;
+        CSIO_LOG(eLogLevel_debug,"ms.mice.sink.session.message.received { \"session-id\": %"G_GUINT64_FORMAT" , \"state\": \"%s\" , \"ms-mice-size\": \"%u\" , \"required\": %"G_GSIZE_FORMAT",\"available\": %"G_GSIZE_FORMAT" , \"handshake_complete\": \"%u\"}",
+                 session->priv->session_id, ms_mice_sink_session_state_to_string(session->priv->state), session->priv->in_message->size, required,available,session->priv->is_dtls_encryption_handshake_complete);
 
         if (required > available)
             return -EAGAIN;
 
-        ms_mice_message_unpack(session->priv->in_message, session->priv->in_stream, &error);
-        if (error != NULL)
+        if(session->priv->is_dtls_encryption_handshake_complete)
         {
-            CSIO_LOG(eLogLevel_debug,"Unable to unpack message: %s\n", error->message);
-            g_error_free (error);
-            error = NULL;
+            guint8 *value = g_new0(guint8, required);
+            stream_read_bytes(session->priv->in_stream, value, required);
+
+            guint64 sessionID = ms_mice_sink_session_get_id(session);
+
+            //SHA-256 of pin + ip :  “12345678”  + 192.0.2.100   >>> 31 32 33 34 35 36 37 38    c0 00 02 64
+            //     SHA-256 hash is:  60 54 09 f8 32 30 8a d0   b8 93 a7 f9 1b e4 2b 26
+            //                       4c 73 72 b3 6e 90 77 50   6e 1b 4c c1 83 de 79 da
+            if(sessionID)
+            {
+                int cryptBufSize = MS_MICE_MIN_DTLS_CRYPTBUF_SIZE;
+                //need to find out buff size here
+                if( (required * 2 ) > MS_MICE_MIN_DTLS_CRYPTBUF_SIZE )
+                {
+                    cryptBufSize = required * 2;
+                }
+
+                guint8 *decryptBuf = g_new0(guint8, cryptBufSize);
+                CSIO_LOG(eLogLevel_debug,"ms_mice_message_entry_encrypt_pack created decryptBuf[0x%x] of size[%d]\r\n",
+                         decryptBuf,cryptBufSize);
+
+                if(decryptBuf)
+                {
+                    int decryptSize = sssl_decryptDTLS(sessionID,(void*)value,required,(void*)decryptBuf,cryptBufSize);
+
+                    if(decryptSize > 0)
+                    {
+                        //update message size
+                        session->priv->in_message->size = decryptSize + MS_MICE_HEADER_SIZE;
+
+                        GInputStream *base_in_stream = g_memory_input_stream_new();
+                        GDataInputStream * in_stream;
+
+                        in_stream = g_data_input_stream_new(base_in_stream);
+                        g_data_input_stream_set_byte_order(in_stream, G_DATA_STREAM_BYTE_ORDER_BIG_ENDIAN);
+
+                        g_memory_input_stream_add_data(G_MEMORY_INPUT_STREAM(base_in_stream), decryptBuf, decryptSize, NULL);
+                        g_buffered_input_stream_fill(G_BUFFERED_INPUT_STREAM(in_stream), decryptSize, NULL, NULL);
+
+                        ms_mice_message_unpack(session->priv->in_message, in_stream, &error);
+                        if (error != NULL)
+                        {
+                            CSIO_LOG(eLogLevel_debug,"Unable to dispatch message: %s\n", error->message);
+                            g_error_free (error);
+                            error = NULL;
+                        }
+
+                        ms_mice_sink_session_dispatch_message(session, session->priv->in_message, &error);
+                        if (error != NULL)
+                        {
+                            CSIO_LOG(eLogLevel_debug,"Unable to dispatch message: %s\n", error->message);
+                            g_error_free (error);
+                            error = NULL;
+                        }
+
+                        CSIO_LOG(eLogLevel_debug,"available after unpack[%d]\n",stream_get_available(in_stream));
+
+                        if (in_stream)
+                        {
+                            g_input_stream_close(G_INPUT_STREAM(in_stream), NULL, NULL);
+                            g_object_unref(in_stream);
+                            in_stream = NULL;
+                        }
+
+                        if (base_in_stream)
+                        {
+                            g_input_stream_close(G_INPUT_STREAM(base_in_stream), NULL, NULL);
+                            g_object_unref(base_in_stream);
+                            base_in_stream = NULL;
+                        }
+                    }
+                    else
+                    {
+                        CSIO_LOG(eLogLevel_debug,"error: sssl_decryptDTLS return: %d\n",decryptSize);
+                    }
+                    g_free((gpointer)decryptBuf);
+                }
+                else
+                {
+                    CSIO_LOG(eLogLevel_debug,"error: failed to create decryptBuf\n");
+                }
+            }//else
+
+            g_free((gpointer)value);
         }
-
-        CSIO_LOG(eLogLevel_debug,"ms.mice.sink.session.message.received { \"session-id\": %"G_GUINT64_FORMAT" , \"local-address\": \"%s\" , \"remote-address\": \"%s\" , \"state\": \"%s\" , \"ms-mice-size\": \"%u\" , \"ms-mice-version\": %u , \"ms-mice-command\": %s }",
-                  session->priv->session_id, session->priv->local_address, session->priv->remote_address, ms_mice_sink_session_state_to_string(session->priv->state), session->priv->in_message->size, session->priv->in_message->version, ms_mice_command_to_string(session->priv->in_message->command));
-
-        // TODO [RAL] check for error
-
-        ms_mice_sink_session_dispatch_message(session, session->priv->in_message, &error);
-        if (error != NULL)
+        else
         {
-            CSIO_LOG(eLogLevel_debug,"Unable to dispatch message: %s\n", error->message);
-            g_error_free (error);
-            error = NULL;
+            ms_mice_message_unpack(session->priv->in_message, session->priv->in_stream, &error);
+
+            if (error != NULL)
+            {
+                CSIO_LOG(eLogLevel_debug,"Unable to unpack message: %s\n", error->message);
+                g_error_free (error);
+                error = NULL;
+            }
+
+            CSIO_LOG(eLogLevel_debug,"ms.mice.sink.session.message.received { \"session-id\": %"G_GUINT64_FORMAT" , \"local-address\": \"%s\" , \"remote-address\": \"%s\" , \"state\": \"%s\" , \"ms-mice-size\": \"%u\" , \"ms-mice-version\": %u , \"ms-mice-command\": %s }",
+                      session->priv->session_id, session->priv->local_address, session->priv->remote_address, ms_mice_sink_session_state_to_string(session->priv->state), session->priv->in_message->size, session->priv->in_message->version, ms_mice_command_to_string(session->priv->in_message->command));
+
+            // TODO [RAL] check for error
+
+            ms_mice_sink_session_dispatch_message(session, session->priv->in_message, &error);
+            if (error != NULL)
+            {
+                CSIO_LOG(eLogLevel_debug,"Unable to dispatch message: %s\n", error->message);
+                g_error_free (error);
+                error = NULL;
+            }
         }
 
         ms_mice_message_free(session->priv->in_message);
@@ -642,6 +886,8 @@ static int ms_mice_sink_session_handle_read_data(ms_mice_sink_session *session, 
         session->priv->in_message_active = false;
 
         available = stream_get_available(session->priv->in_stream);
+
+        CSIO_LOG(eLogLevel_debug,"handle_read_data end of while loop: in_stream available: %d\n", available);
     }
 
     return -EAGAIN;
@@ -676,7 +922,7 @@ static void ms_mice_sink_session_queue_outgoing_message(ms_mice_sink_session *se
     shl_dlist_link_tail(&session->priv->outgoing, &entry->list);
 }
 
-static int ms_mice_sink_session_write_message(ms_mice_sink_session *session, ms_mice_message_entry *entry, GError **error)
+static int ms_mice_sink_session_write_message(ms_mice_sink_session *session, ms_mice_message_entry *entry, bool needEncrypt,GError **error)
 {
     size_t remaining;
     ssize_t r;
@@ -684,7 +930,11 @@ static int ms_mice_sink_session_write_message(ms_mice_sink_session *session, ms_
     g_assert(session && entry);
 
     if (!entry->is_sending) {
-        ms_mice_message_entry_pack(entry, error);
+
+        if(needEncrypt)
+            ms_mice_message_entry_encrypt_pack(session,entry, error);
+        else
+            ms_mice_message_entry_pack(entry, error);
 
         CSIO_LOG(eLogLevel_debug,"ms.mice.sink.session.message.write { \"session-id\": %"G_GUINT64_FORMAT" , \"local-address\": \"%s\" , \"remote-address\": \"%s\" , \"state\": \"%s\" , \"ms-mice-size\": \"%u\" , \"ms-mice-version\": %u , \"ms-mice-command\": \"%s\" , \"send\": %"G_GSIZE_FORMAT" }",
                   session->priv->session_id, session->priv->local_address, session->priv->remote_address, ms_mice_sink_session_state_to_string(session->priv->state), entry->msg->size, entry->msg->version, ms_mice_command_to_string(entry->msg->command), entry->raw_size);
@@ -712,7 +962,7 @@ static int ms_mice_sink_session_write_message(ms_mice_sink_session *session, ms_
     return 0;
 }
 
-static int ms_mice_sink_session_write(ms_mice_sink_session *session, GError **error)
+static int ms_mice_sink_session_write(ms_mice_sink_session *session,GError **error, bool needEncrypt)
 {
     ms_mice_message_entry *m;
 
@@ -721,13 +971,13 @@ static int ms_mice_sink_session_write(ms_mice_sink_session *session, GError **er
 
     m = shl_dlist_first_entry(&session->priv->outgoing, ms_mice_message_entry, list);
 
-    return ms_mice_sink_session_write_message(session, m, error);
+    return ms_mice_sink_session_write_message(session, m, needEncrypt,error);
 }
 
 /* ------------------------------------------------------------------------------------------------------------------
  * -- MS-MICE SINK SESSION SOCKET EVENTS
  * -- */
-static void send_out_BIO_data(ms_mice_sink_session* session, char* bug, guint16 len, GError **error)
+static void send_out_BIO_data(ms_mice_sink_session* session, char* buf, guint16 len, GError **error)
 {
     MS_MICE_MESSAGE_COMMANDS command = MS_MICE_MESSAGE_SECURITY_HANDSHAKE;
 
@@ -736,7 +986,7 @@ static void send_out_BIO_data(ms_mice_sink_session* session, char* bug, guint16 
 
     if(msg)
     {
-        ms_mice_message_tlv_security_token_attach(msg, (guint8 *)bug, len, error);
+        ms_mice_message_tlv_security_token_attach(msg, (guint8 *)buf, len, error);
 
         ms_mice_message_entry *entry = ms_mice_message_entry_new(msg, error);
 

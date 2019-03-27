@@ -190,8 +190,8 @@ static void ms_mice_tlv_pack_source_id(ms_mice_tlv *tlv, GDataOutputStream *stre
     stream_write_bytes(stream, (guint8 *)tlv->source_id.value, tlv->length);
 }
 
-#define MS_MICE_TLV_SECURITY_OPTIONS_SINK_DISPLAYS_PIN_FLAG (1 << 6)
-#define MS_MICE_TLV_SECURITY_OPTIONS_USE_DTLS_STREAM_ENCRYPTION_FLAG (1 << 7)
+#define MS_MICE_TLV_SECURITY_OPTIONS_SINK_DISPLAYS_PIN_FLAG (1)
+#define MS_MICE_TLV_SECURITY_OPTIONS_USE_DTLS_STREAM_ENCRYPTION_FLAG (2)
 
 static void ms_mice_tlv_unpack_security_options(ms_mice_tlv *tlv, GDataInputStream *stream, GError **error)
 {
@@ -236,6 +236,19 @@ static void ms_mice_tlv_unpack_security_token(ms_mice_tlv *tlv, GDataInputStream
 
     CSIO_LOG(eLogLevel_debug,"ms_mice_tlv_unpack_security_token value[0x%x], tlv->length[%d]\r\n",value[0],tlv->length);
 }
+static void ms_mice_tlv_unpack_pin_challenge(ms_mice_tlv *tlv, GDataInputStream *stream, GError **error)
+{
+    if (tlv->length < 1) {
+        CSIO_LOG(eLogLevel_error,"miracast.tlv.unpack.pin.challenge { \"message\": \"Not expecting 0 length\" }");
+        return;
+    }
+
+    guint8 *value = g_new0(guint8, tlv->length);
+    stream_read_bytes(stream, value, tlv->length);
+    tlv->pin_challenge.pin = value;
+
+    CSIO_LOG(eLogLevel_debug,"ms_mice_tlv_unpack_pin_challenge value[0x%x], tlv->length[%d]\r\n",value,tlv->length);
+}
 
 static void ms_mice_tlv_pack_security_token(ms_mice_tlv *tlv, GDataOutputStream *stream, GError **error)
 {
@@ -244,6 +257,22 @@ static void ms_mice_tlv_pack_security_token(ms_mice_tlv *tlv, GDataOutputStream 
     stream_write_bytes(stream, tlv->security_token.token,tlv->length);
 
     CSIO_LOG(eLogLevel_debug,"ms_mice_tlv_pack_security_token token[0x%x], tlv->length[%d]\r\n",tlv->security_token.token[0],tlv->length);
+}
+static void ms_mice_tlv_pack_pin_challenge(ms_mice_tlv *tlv, GDataOutputStream *stream, GError **error)
+{
+    ms_mice_tlv_pack_header(tlv, stream, error);
+
+    stream_write_bytes(stream, tlv->pin_challenge.pin,tlv->length);
+
+    CSIO_LOG(eLogLevel_debug,"ms_mice_tlv_pack_pin_challenge pin[0x%x], tlv->length[%d]\r\n",tlv->pin_challenge.pin[0],tlv->length);
+}
+static void ms_mice_tlv_pack_pin_response_reason(ms_mice_tlv *tlv, GDataOutputStream *stream, GError **error)
+{
+    ms_mice_tlv_pack_header(tlv, stream, error);
+
+    stream_write_byte(stream, tlv->pin_response.reason);
+
+    CSIO_LOG(eLogLevel_debug,"ms_mice_tlv_pack_pin_response_reason reason[0x%x], tlv->length[%d]\r\n",tlv->pin_response.reason,tlv->length);
 }
 void ms_mice_tlv_pack(ms_mice_tlv *tlv, GDataOutputStream *stream, GError **error)
 {
@@ -278,7 +307,10 @@ void ms_mice_tlv_pack(ms_mice_tlv *tlv, GDataOutputStream *stream, GError **erro
             ms_mice_tlv_pack_security_token(tlv, stream, error);
             break;
         case MS_MICE_TLV_PIN_CHALLENGE:
+            ms_mice_tlv_pack_pin_challenge(tlv, stream, error);
+            break;
         case MS_MICE_TLV_PIN_RESPONSE_REASON:
+            ms_mice_tlv_pack_pin_response_reason(tlv, stream, error);
             break;
         default:
             if (error) {
@@ -344,10 +376,10 @@ void ms_mice_tlv_unpack(ms_mice_tlv *tlv, GDataInputStream *stream, GError **err
             CSIO_LOG(eLogLevel_debug,"miracast.tlv.unpack { \"type\": \"%s\" , \"length\": %u , \"friendly-name\": \"%s\" }", ms_mice_tlv_type_to_string(tlv->type), tlv->length, value);
             break;
         case MS_MICE_TLV_PIN_CHALLENGE:
-        case MS_MICE_TLV_PIN_RESPONSE_REASON:
-            stream_advance(stream, tlv->length);
+            ms_mice_tlv_unpack_pin_challenge(tlv, stream, error);
             CSIO_LOG(eLogLevel_debug,"miracast.tlv.unpack { \"type\": \"%s\" , \"length\": %u }", ms_mice_tlv_type_to_string(tlv->type), tlv->length);
             break;
+        case MS_MICE_TLV_PIN_RESPONSE_REASON:
         default:
             stream_advance(stream, tlv->length);
             CSIO_LOG(eLogLevel_error,"miracast.tlv.unpack.error { \"message\": \"Unknown Miracast TLV type= %u (0x%x)\" }", tlv->type, tlv->type);
@@ -450,6 +482,37 @@ ms_mice_tlv *ms_mice_tlv_security_token_new(const guint8 *t, guint16 length, GEr
     return tlv;
 }
 
+ms_mice_tlv *ms_mice_tlv_pin_response_reason_new(guint8 t, GError **error)
+{
+    ms_mice_tlv *tlv = NULL;
+
+    tlv = ms_mice_tlv_new(MS_MICE_TLV_PIN_RESPONSE_REASON,sizeof(t),error);
+    if (!tlv) {
+        return NULL;
+    }
+
+    tlv->pin_response.reason = t;
+
+    return tlv;
+}
+
+ms_mice_tlv *ms_mice_tlv_pin_challenge_new(const guint8 *t, guint16 length, GError **error)
+{
+    ms_mice_tlv *tlv = NULL;
+
+    guint8 *challenge = g_new0(guint8, length);
+
+    tlv = ms_mice_tlv_new(MS_MICE_TLV_PIN_CHALLENGE, length, error);
+    if (!tlv) {
+        g_free((gpointer)challenge);
+        return NULL;
+    }
+
+    memcpy(challenge,t,length);
+    tlv->pin_challenge.pin = challenge;
+
+    return tlv;
+}
 ms_mice_tlv *ms_mice_tlv_new(guint8 type, guint16 length, GError **error)
 {
     ms_mice_tlv *t = g_new0(ms_mice_tlv, 1);
@@ -486,8 +549,12 @@ void ms_mice_tlv_free(ms_mice_tlv *tlv)
             g_free((gpointer)tlv->security_token.token);
             break;
         case MS_MICE_TLV_SECURITY_OPTIONS:
+            break;
         case MS_MICE_TLV_PIN_CHALLENGE:
+            g_free((gpointer)tlv->pin_challenge.pin);
+            break;
         case MS_MICE_TLV_PIN_RESPONSE_REASON:
+            break;
         case MS_MICE_TLV_RTSP_PORT:
         default:
             break;

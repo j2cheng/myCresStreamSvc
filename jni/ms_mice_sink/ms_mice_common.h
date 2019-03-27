@@ -5,7 +5,7 @@
 
 extern void msMiceSinkProjInit(char*);
 extern void msMiceSinkProjDeInit();
-extern void msMiceSinkProjSetPin(int id,int pin);
+extern void msMiceSinkProjSetPin(int id,char* pin);
 extern void msMiceSinkProjStopSession(int id, long long session_id);
 
 extern void  msMiceSinkProjDumpPara();
