@@ -4710,6 +4710,25 @@ JNIEXPORT void JNICALL Java_com_crestron_txrxservice_GstreamIn_nativeMsMiceStart
     CSIO_LOG(eLogLevel_debug, "mira: {%s} - ===== returned from sssl_initialize() =====",__FUNCTION__);
 
     msMiceSinkProjInit(NULL);
+
+    //to set ms mice pin after msMiceSinkProjInit
+    CREGSTREAM * data = GetStreamFromCustomData(CresDataDB, 0);
+
+    if (!data)
+    {
+        CSIO_LOG(eLogLevel_error, "mira: Could not obtain stream pointer for stream %d, failed to set isStarted state", 0);
+    }
+    else
+    {
+        if(data->ms_mice_pin[0])
+        {
+            msMiceSinkProjSetPin(0,data->ms_mice_pin);
+        }
+        else
+        {
+            msMiceSinkProjSetPin(0,NULL);
+        }
+    }
 }
 JNIEXPORT void JNICALL Java_com_crestron_txrxservice_GstreamIn_nativeMsMiceSetAdapterAddress(JNIEnv *env, jobject thiz, jstring address)
 {
@@ -4732,6 +4751,25 @@ JNIEXPORT void JNICALL Java_com_crestron_txrxservice_GstreamIn_nativeMsMiceSetAd
         msMiceSinkProjInit(locAddr);
 
         env->ReleaseStringUTFChars(address, locAddr);
+    }
+
+    //to set ms mice pin after msMiceSinkProjInit
+    CREGSTREAM * data = GetStreamFromCustomData(CresDataDB, 0);
+
+    if (!data)
+    {
+        CSIO_LOG(eLogLevel_error, "mira: Could not obtain stream pointer for stream %d, failed to set isStarted state", 0);
+    }
+    else
+    {
+        if(data->ms_mice_pin[0])
+        {
+            msMiceSinkProjSetPin(0,data->ms_mice_pin);
+        }
+        else
+        {
+            msMiceSinkProjSetPin(0,NULL);
+        }
     }
 }
 JNIEXPORT void JNICALL Java_com_crestron_txrxservice_GstreamIn_nativeMsMiceStop(JNIEnv *env, jobject thiz)
@@ -4756,14 +4794,38 @@ JNIEXPORT void JNICALL Java_com_crestron_txrxservice_GstreamIn_nativeMsMiceSetPi
         locPin = (char *)env->GetStringUTFChars(pin_jstring, NULL);
     }//else
 
+    CREGSTREAM * data = GetStreamFromCustomData(CresDataDB, 0);
+
+    if (!data)
+    {
+        CSIO_LOG(eLogLevel_error, "mira: Could not obtain stream pointer for stream %d, failed to set isStarted state", 0);
+    }
+
     if(locPin == NULL)
     {
        CSIO_LOG(eLogLevel_error, "pin is NULL or invalid");
        msMiceSinkProjSetPin(id,NULL);
+
+       if (data)
+           data->ms_mice_pin[0] = 0;
     }
     else
     {
-        msMiceSinkProjSetPin(id,locPin);
+        if (data)
+        {
+            data->ms_mice_pin[0] = 0;
+            int pinSize = strlen(locPin);
+            if(pinSize < sizeof(data->ms_mice_pin))
+            {
+                memcpy(data->ms_mice_pin,locPin,pinSize);
+                msMiceSinkProjSetPin(id,locPin);
+            }
+            else
+            {
+                CSIO_LOG(eLogLevel_info, "pin is too long[%d]",pinSize);
+                msMiceSinkProjSetPin(id,NULL);
+            }
+        }
 
         env->ReleaseStringUTFChars(pin_jstring, locPin);
     }

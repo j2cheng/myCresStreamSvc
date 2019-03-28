@@ -166,6 +166,8 @@ void init_custom_data(CustomData * cdata)
         data->packetizer_pcr_discont_threshold = -1;//default as invalid
 
         data->wfd_jitterbuffer_latency = -1;
+
+        data->ms_mice_pin[0] = 0;
 	}
 }
 

@@ -1,13 +1,8 @@
 #include <gio/gio.h>
-//#include <shl_log.h>
 #include "shared/glib-utilities.h"
 #include "ms-mice.h"
 
 #define MS_MICE_TLV_FRIENDLY_NAME_MAX_LENGTH_BYTES 520
-
-//#include <sys/ioctl.h>
-//#include <sys/socket.h>
-//#include <arpa/inet.h>
 
 /* ------------------------------------------------------------------------------------------------------------------
  * -- MIRACAST TLV

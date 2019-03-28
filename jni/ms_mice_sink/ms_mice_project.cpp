@@ -36,7 +36,6 @@ const MSMICE_STRNUMPAIR ms_mice_proj_timestamp_names[] =
 };
 
 int session_observer_disconnect_request_from_app(gpointer user_data);
-void* msMiceSinkProjFindSession(guint64 session_id);
 
 /*************************** Global functions  ************************************/
 void msMiceSinkProjInit(char* adapterAddress)
@@ -558,6 +557,22 @@ void* msMiceSinkProjClass::ThreadEntry()
         else
         {
             m_service_obj->CreateNewThread("MSMICE_SRV0",NULL);
+
+            //Note: to make sure ms mice service is set before processing any commands below:
+            //      such as set pin.
+            for(int i = 0; i < 10 ; i++)
+            {
+                if(m_service_obj->m_mainLoop)
+                {
+                    CSIO_LOG(m_debugLevel, "msMiceSinkProjClass:: m_service_obj->m_mainLoop is set.\n");
+                    break;
+                }
+                else
+                {
+                    CSIO_LOG(m_debugLevel, "msMiceSinkProjClass:: waiting for m_service_obj->m_mainLoop!\n");
+                    usleep(50000);//wait for 50ms
+                }
+            }
         }
     }
 

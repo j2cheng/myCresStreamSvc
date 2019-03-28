@@ -166,7 +166,7 @@ typedef struct _CREGSTREAM
     unsigned int ssrc;
 
     int wfd_jitterbuffer_latency;
-
+    char ms_mice_pin[32];
 } CREGSTREAM;
 
 /* Structure to contain all our information, so we can pass it to callbacks */
