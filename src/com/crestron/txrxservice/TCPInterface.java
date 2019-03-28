@@ -452,27 +452,29 @@ public class TCPInterface extends AsyncTask<Void, Object, Long> {
     }
     
     private void addJoinToQueue(JoinObject newJoin, int sessionId) {
-    	// Mode change needs to be handled in session 0 as well (plus all joins after until mode completes)
-    	if (newJoin.joinString.toLowerCase().startsWith("mode"))
-    	{
-    		isProcessingMode[sessionId] = true;
-    	}
-    	    	
-    	if ( (streamCtl.userSettings.getMode(sessionId) == CresStreamCtrl.DeviceMode.PREVIEW.ordinal()) ||
-    			(streamCtl.userSettings.getMode(sessionId) == CresStreamCtrl.DeviceMode.STREAM_OUT.ordinal()) ||
-    			isProcessingMode[sessionId] )	
-    	{
-    		sessionId = 0;	// Fix bug where camera modes could be handled out of order such that device ended in wrong state
-    	}
-   	    	
-    	if ((sessionId >= 0) && (sessionId < CresStreamCtrl.NumOfSurfaces))
-    	{
+        if ((sessionId >= 0) && (sessionId < CresStreamCtrl.NumOfSurfaces))
+        {
+            // Mode change needs to be handled in session 0 as well (plus all joins after until mode completes)
+            if (newJoin.joinString.toLowerCase().startsWith("mode"))
+            {
+                isProcessingMode[sessionId] = true;
+            }
+
+            if ( (streamCtl.userSettings.getMode(sessionId) == CresStreamCtrl.DeviceMode.PREVIEW.ordinal()) ||
+                    (streamCtl.userSettings.getMode(sessionId) == CresStreamCtrl.DeviceMode.STREAM_OUT.ordinal()) ||
+                    isProcessingMode[sessionId] )
+            {
+                sessionId = 0;	// Fix bug where camera modes could be handled out of order such that device ended in wrong state
+            }
+
 	    	synchronized (joinQueue[sessionId])
 	    	{
 	    		joinQueue[sessionId].add(newJoin);
 	    		joinQueue[sessionId].notify();
 	    	}
     	}
+        else
+            Log.w(TAG, "Invalid stream ID "+ sessionId);
     }
     
     class ProcessJoinTask implements Runnable {
