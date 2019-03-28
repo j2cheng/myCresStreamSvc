@@ -609,13 +609,14 @@ void* msMiceSinkProjClass::ThreadEntry()
                     }//else
 
                     //send it to m_mice_service context
+                    if(m_service_obj->m_mice_service)
                     {
-                        GMainContext* context = ms_mice_sink_service_get_context(g_msMiceSinkProjPtr->m_service_obj->m_mice_service);
+                        GMainContext* context = ms_mice_sink_service_get_context(m_service_obj->m_mice_service);
 
                         ms_mice_sink_service_and_sessionid* cmd = new ms_mice_sink_service_and_sessionid();
                         if(cmd)
                         {
-                            cmd->service = g_msMiceSinkProjPtr->m_service_obj->m_mice_service;
+                            cmd->service = m_service_obj->m_mice_service;
 
                             if(m_pinStr.size())
                             {
@@ -632,11 +633,15 @@ void* msMiceSinkProjClass::ThreadEntry()
                             //Note: cmd will be deleted in app_extension_ms_mice_service_set_session_pin
                         }//else
                     }
+                    else
+                    {
+                        CSIO_LOG(m_debugLevel, "msMiceSinkProjClass[%d]: m_service_obj->m_mice_service is NULL, pin lost.\n");
+                    }
                     break;
                 }
                 case MS_MICE_SINK_EVENTS_JNI_NOP:
                 {
-                    CSIO_LOG(m_debugLevel, "msMiceSinkProjClass[%d]: MS_MICE_SINK_EVENTS_JNI_NOP\n");
+                    CSIO_LOG(m_debugLevel, "msMiceSinkProjClass: MS_MICE_SINK_EVENTS_JNI_NOP\n");
                     break;
                 }
                 default:
