@@ -372,7 +372,7 @@ static void app_extension_ms_mice_load(msMiceSinkServiceClass* p_servceClass,GEr
     else
     {
         ms_mice_sink_service_new(&p_servceClass->m_mice_service,
-                                 NULL,
+                                 "0.0.0.0",
                                  DEFAULT_MIRACAST_OVER_INFRASTRUCTURE_PORT,
                                  p_servceClass->m_parent->getSessionPin(),
                                  &internal_error);
