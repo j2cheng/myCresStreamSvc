@@ -40,6 +40,7 @@ void * sssl_getDTLSWithStreamID(int streamID);
 
 int sssl_encryptDTLSInner(void * sssl,void * inBuff,int inBuffSize,void * outBuff,int outBuffSize);
 int sssl_decryptDTLSInner(void * sssl,void * inBuff,int inBuffSize,void * outBuff,int outBuffSize);
+int sssl_decryptDTLSLocal(void * sssl,void * inBuff,int inBuffSize,void * outBuff,int outBuffSize);
 int sssl_decryptDTLS(unsigned long long sessionID,void * inBuff,int inBuffSize,void * outBuff,
       int outBuffSize);
 int sssl_encryptDTLS(unsigned long long sessionID,void * inBuff,int inBuffSize,void * outBuff,int outBuffSize);
@@ -62,7 +63,8 @@ int sssl_getDTLSAppThInitializedCommon(int streamID, unsigned long long sessionI
 int sssl_signalDTLSAppThCanceledWithSessionID(unsigned long long sessionID);
 int sssl_signalDTLSAppThCanceledWithStreamID(int streamID);
 int sssl_signalDTLSAppThCanceledCommon(int streamID, unsigned long long sessionID);
-int sssl_waitDTLSAppThCancel(int streamID);
+int sssl_cancelDTLSAppThAndWait(int streamID);
+int sssl_handleDTLSAppThCancelation(int streamID);
 int sssl_initDTLSAppThCancCondVar(int streamID);
 
 

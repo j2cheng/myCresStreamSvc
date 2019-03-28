@@ -44,6 +44,23 @@
 #define CRESTRON_CA_CERTIFICATE_FILE         "/dev/shm/ca-cert.pem"
 #endif
 
+
+
+// ***
+#define LOCKSLEEPTIME      10          // seconds
+
+int gOneTimeBeforeLockDelay = 0;
+int gOneTimeAfterLockDelay = 0;
+int gOneTimeBeforeUnlockDelay = 0;
+int gOneTimeAfterUnlockDelay = 0;
+int gCurrentStreamID = -1;
+unsigned long long gCurrentSessionID = 0;
+int gDelayValue = LOCKSLEEPTIME;
+int gDelaySkipCnt = 1;
+// ***
+
+
+
 typedef struct {
    SSL_CTX * common_SSL_CTX;
 #ifdef GEN_KEY
@@ -60,6 +77,7 @@ typedef struct {
    BIO * wbio;       // for reading encrypted
    int appThInitialized;
    pthread_cond_t appThCancelComplCondVar;
+   pthread_mutex_t innerDTLSMutex;
 } SHARED_SSL_CONTEXT;
 
 #define SSL_CONTEXT_STORAGE_SIZE    16
@@ -197,7 +215,16 @@ void * sssl_createDTLS(unsigned long long sessionID)
     // so ssslContext->ssslInitialized == 0
 
     ssslContext->commonServerContext = gCommonSSLServerContext;
-    sssl_log(LOGLEV_debug,"mira: sssl_createDTLS() ssslContext[0x%x] ",ssslContext);
+    sssl_log(LOGLEV_debug,"mira: sssl_createDTLS(sessionID = 0x%x) ssslContext[0x%x] ",(int)sessionID,ssslContext);
+
+    simpleLockInit(&ssslContext->innerDTLSMutex);
+
+
+
+    // ***
+    gCurrentSessionID = sessionID;
+
+
 
     sssl_log(LOGLEV_debug,"mira: sssl_createDTLS() ssslContext->commonServerContext->common_SSL_CTX = [0x%x] ",
       ssslContext->commonServerContext->common_SSL_CTX);
@@ -250,7 +277,7 @@ int sssl_destroyDTLSWithSessionID(unsigned long long sessionID, int doNotLock)
         {
             simpleLockRelease(&gContextStorageMutex);
         }
-        sssl_log(LOGLEV_error,"mira: sssl_destroyDTLS() - could not get SHARED_SSL_CONTEXT");
+        sssl_log(LOGLEV_error,"mira: sssl_destroyDTLSWithSessionID() - could not get SHARED_SSL_CONTEXT");
         return(-1);
     }
 
@@ -260,6 +287,8 @@ int sssl_destroyDTLSWithSessionID(unsigned long long sessionID, int doNotLock)
         SSL_free(ssslContext->ssl);
         ssslContext->ssl = NULL;
     }
+
+    simpleLockDeInit(&ssslContext->innerDTLSMutex);
 
     sssl_contextRemove(sessionID);
 
@@ -425,33 +454,40 @@ int sssl_decryptDTLSInner(void * sssl,void * inBuff,int inBuffSize,void * outBuf
 }
 
 
+int sssl_decryptDTLSLocal(void * sssl,void * inBuff,int inBuffSize,void * outBuff,int outBuffSize)
+{
+    int retv;
+
+    simpleLockGet(&((SHARED_SSL_CONTEXT *)sssl)->innerDTLSMutex);
+    retv = sssl_decryptDTLSInner(sssl,inBuff,inBuffSize,outBuff,outBuffSize);
+    simpleLockRelease(&((SHARED_SSL_CONTEXT *)sssl)->innerDTLSMutex);
+
+    return(retv);
+}
+
+
 int sssl_encryptDTLS(unsigned long long sessionID,void * inBuff,int inBuffSize,void * outBuff,int outBuffSize)
 {
-    int retv,retv1;
+    int retv;
     void * sssl;
 
-    retv = sssl_setDTLSAppThInitializedWithSessionID(sessionID,1,&sssl);
-    if(retv != 0)
+    // assumed to be invoked after handsake completes!
+
+    simpleLockGet(&gContextStorageMutex);
+    sssl = sssl_getContextWithSessionID(sessionID);
+    if(sssl == NULL)
     {
-        // Since the assumption here is that at this time nobody else should have this sssl context,
-        // inability to get exclusive access to that context (retv == 1) is also an error.
-        sssl_log(LOGLEV_error,"mira: {%s} - sssl_setDTLSAppThInitialized() returned %d",__FUNCTION__,retv);
-        if(retv > 0)
-               return(-2);
-        else   return(retv);
+        simpleLockRelease(&gContextStorageMutex);
+        return(-1);
     }
+    simpleLockGet(&((SHARED_SSL_CONTEXT *)sssl)->innerDTLSMutex);
+    simpleLockRelease(&gContextStorageMutex);
 
     retv = sssl_encryptDTLSInner(sssl,inBuff,inBuffSize,outBuff,outBuffSize);
 
-    retv1 = sssl_setDTLSAppThInitializedWithSessionID(sessionID,0,NULL);
-    if(retv1 >= 0)
-    {
-        sssl_log(LOGLEV_error,"mira: {%s} - calling sssl_signalDTLSAppThCanceled()",__FUNCTION__);
-        sssl_signalDTLSAppThCanceledWithSessionID(sessionID);
-        // this function does not call sssl_destroyDTLSWithStreamID(). The assumption is that
-        // under normal conditions sssl_waitDTLSAppThCancel() will not be invoked when this function is
-        // in progress.
-    }
+    // no global lock wrapping here!
+    // nobody will delete sssl context before this
+    simpleLockRelease(&((SHARED_SSL_CONTEXT *)sssl)->innerDTLSMutex);
 
     return(retv);
 }
@@ -459,31 +495,26 @@ int sssl_encryptDTLS(unsigned long long sessionID,void * inBuff,int inBuffSize,v
 
 int sssl_decryptDTLS(unsigned long long sessionID,void * inBuff,int inBuffSize,void * outBuff,int outBuffSize)
 {
-    int retv,retv1;
+    int retv;
     void * sssl;
 
-    retv = sssl_setDTLSAppThInitializedWithSessionID(sessionID,1,&sssl);
-    if(retv != 0)
+    // assumed to be invoked after handsake completes!
+
+    simpleLockGet(&gContextStorageMutex);
+    sssl = sssl_getContextWithSessionID(sessionID);
+    if(sssl == NULL)
     {
-        // Since the assumption here is that at this time nobody else should have this sssl context,
-        // inability to get exclusive access to that context (retv == 1) is also an error.
-        sssl_log(LOGLEV_error,"mira: {%s} - sssl_setDTLSAppThInitialized() returned %d",__FUNCTION__,retv);
-        if(retv > 0)
-               return(-2);
-        else   return(retv);
+        simpleLockRelease(&gContextStorageMutex);
+        return(-1);
     }
+    simpleLockGet(&((SHARED_SSL_CONTEXT *)sssl)->innerDTLSMutex);
+    simpleLockRelease(&gContextStorageMutex);
 
     retv = sssl_decryptDTLSInner(sssl,inBuff,inBuffSize,outBuff,outBuffSize);
 
-    retv1 = sssl_setDTLSAppThInitializedWithSessionID(sessionID,0,NULL);
-    if(retv1 >= 0)
-    {
-        sssl_log(LOGLEV_error,"mira: {%s} - calling sssl_signalDTLSAppThCanceled()",__FUNCTION__);
-        sssl_signalDTLSAppThCanceledWithSessionID(sessionID);
-        // this function does not call sssl_destroyDTLSWithStreamID(). The assumption is that
-        // under normal conditions sssl_waitDTLSAppThCancel() will not be invoked when this function is
-        // in progress.
-    }
+    // no global lock wrapping here!
+    // nobody will delete sssl context before this
+    simpleLockRelease(&((SHARED_SSL_CONTEXT *)sssl)->innerDTLSMutex);
 
     return(retv);
 }
@@ -644,9 +675,8 @@ int sssl_setDTLSAppThInitializedCommon(int streamID, unsigned long long sessionI
     // Remarks:
     //   1. May pass NULL for ssslPtr.
     //   2. *ssslPtr only valid when return value >= 0.
-    //   3. When returning 0 while seting appThInitialized to 0, the caller must not destroy
-    //      sssl upon exit.
-    // 
+    //   3. This function does not handle sssl context destruction or signaling through
+    //      appThCancelComplCondVar!
 
     int retv;
     void * sssl;
@@ -663,7 +693,7 @@ int sssl_setDTLSAppThInitializedCommon(int streamID, unsigned long long sessionI
     if(sssl != NULL)
     {
         retv = ((SHARED_SSL_CONTEXT *)sssl)->appThInitialized;
-        ((SHARED_SSL_CONTEXT *)sssl)->appThInitialized = ((flagValue != 0) ? 1 : 0);
+        ((SHARED_SSL_CONTEXT *)sssl)->appThInitialized = flagValue;
         if(ssslPtr)
             *ssslPtr = sssl;
     }
@@ -730,97 +760,170 @@ int sssl_getDTLSAppThInitializedCommon(int streamID, unsigned long long sessionI
 }
 
 
-int sssl_waitDTLSAppThCancel(int streamID)
+// int sssl_waitDTLSAppThCancel(int streamID)
+int sssl_cancelDTLSAppThAndWait(int streamID)
 {
     // return values:
-    //   0 - normal return. Media thread cancelection was indeed initiated by this function
-    //       and it successfully completed.
-    //   1 - Media thread cancelection was already in progress when this function was invoked.
-    //       This condition means that the media thread was between 
-    //       sssl_setDTLSAppThInitialized(..., 0) and sssl_destroyDTLSWithStreamID().
-    //   2 - Media thread was already canceled (or was never started) when this function was
-    //       invoked.
-    //  -1 - general error.
-    //  -2 - Media thread cancelection was indeed initiated by this function but it did not
-    //       complete before timeout.
-    //  // this condition doesn't exist
-    //  // -3 - Media thread cancelection was already in progress when this function was invoked
-    //  //      and it did not complete before timeout (*).
+    //   0 - Normal return. The media thread was running, the cancelection was initiated by this
+    //       function and it successfully completed.
+    //   1 - Media thread wasn't initialized yet, however the sssl context was already established.
+    //   2 - The sssl context was not yet established (or was already destroyed).
+    //  -1 - General error.
+    //  -2 - The media thread was running, the cancelection was initiated by this
+    //       function but it did not complete before timeout.
 
-    int retv,retv1,retv2;
+    // It will only delete sssl context in cases '0' and '1'
+
+    int retv,retv1,prev,deleteContext;
 
     simpleLockGet(&gContextStorageMutex);
 
-    retv = 2;
     void * sssl = sssl_getContextWithStreamID(streamID);
     if(sssl != NULL)
     {
-        retv = 1;
+        deleteContext = 0;
 
-        if(((SHARED_SSL_CONTEXT *)sssl)->appThInitialized != 0)
+        prev = ((SHARED_SSL_CONTEXT *)sssl)->appThInitialized;
+        if(prev != 0)
         {
-            ((SHARED_SSL_CONTEXT *)sssl)->appThInitialized = 0;
-            retv = 0;
-        }
-        else
-        {
-            sssl_log(LOGLEV_debug,"mira: {%s} - appThInitialized was already 0",__FUNCTION__);
-        }
-
-        //
-        // A condition variable allows one thread to wake another up from a wait. They work only if there is
-        // a thread waiting at the moment when you trigger the condition. The way to ensure that this is
-        // the case is for the waiting thread to lock a mutex which is linked to the condition, and for
-        // the signalling thread to lock that mutex before triggering the condition. In other words,
-        // the signalling thread can only lock the mutex and trigger the condition if the other thread had
-        // the mutex locked but is now waiting.
-        //
-        // To signal a condition variable when there is no corresponding wait is a logical error because
-        // nothing will ever receive the signal.
-        // 
-        // !!! Condition variables don't remain in a signalled state !!!
-        // 
-
-        if(retv == 0)
-        {
-            // in this case thread is guaranteed to signal
-
-	         struct timespec stopTimeout;
-            struct timeval tp;
-
-            retv2 = gettimeofday(&tp,NULL);
-            stopTimeout.tv_sec  = tp.tv_sec;
-            stopTimeout.tv_nsec = tp.tv_usec * 1000;
-            stopTimeout.tv_sec += 10;
-
-	         // lock obtained up top
-	         retv1 = pthread_cond_timedwait(&((SHARED_SSL_CONTEXT *)sssl)->appThCancelComplCondVar,
-               &gContextStorageMutex,&stopTimeout);
-
-	         if(retv1 == 0)    // play safe 
+            ((SHARED_SSL_CONTEXT *)sssl)->appThInitialized = 1;
+            if(prev == 2)
             {
-                sssl_log(LOGLEV_debug,"mira: {%s} - calling sssl_destroyDTLSWithStreamID()",__FUNCTION__);
-                // destroy sssl here only if media thread cancelection was indeed initiated by
-                // this function
-                sssl_destroyDTLSWithStreamID(streamID,1);
-                // retv is 0
-            }
-            else
-            {
-                sssl_log(LOGLEV_debug,"mira: {%s} - pthread_cond_timedwait() returned %d",__FUNCTION__,retv1);
-	             if(retv1 == ETIMEDOUT)
+                // in this case thread is guaranteed to signal
+
+                //
+                // A condition variable allows one thread to wake another up from a wait. They work only
+                // if there is a thread waiting at the moment when you trigger the condition. The way to
+                // ensure that this is the case is for the waiting thread to lock a mutex which is linked
+                // to the condition, and for the signalling thread to lock that mutex before triggering
+                // the condition. In other words, the signalling thread can only lock the mutex and trigger
+                // the condition if the other thread had the mutex locked but is now waiting.
+                //
+                // To signal a condition variable when there is no corresponding wait is a logical error
+                // because nothing will ever receive the signal.
+                // 
+                // !!! Condition variables don't remain in a signalled state !!!
+                // 
+
+	             struct timespec stopTimeout;
+                struct timeval tp;
+                
+                retv1 = gettimeofday(&tp,NULL);
+                stopTimeout.tv_sec  = tp.tv_sec;
+                stopTimeout.tv_nsec = tp.tv_usec * 1000;
+                stopTimeout.tv_sec += 10;
+                
+	             // lock obtained up top
+	             retv1 = pthread_cond_timedwait(&((SHARED_SSL_CONTEXT *)sssl)->appThCancelComplCondVar,
+                   &gContextStorageMutex,&stopTimeout);
+	             if(retv1 != 0)
                 {
-                    retv = -2;
+                    sssl_log(LOGLEV_debug,"mira: {%s} - pthread_cond_timedwait() returned %d",__FUNCTION__,retv1);
+	                 if(retv1 == ETIMEDOUT)
+                    {
+                        retv = -2;
+                    }
+                    else
+                    {
+                        retv = -1;
+                    }
                 }
                 else
                 {
-                    retv = -1;
+                    deleteContext = 1;
+                    retv = 0;
                 }
             }
+            else
+            {
+                sssl_log(LOGLEV_warning,"mira: {%s} - unexpected value of appThInitialized = %d",__FUNCTION__,prev);
+                retv = -1;
+            }
         }
-        // else - retv is 1 
+        else
+        {
+            deleteContext = 1;
+            retv = 1;
+        }
+
+        if(deleteContext)
+        {
+            sssl_log(LOGLEV_debug,"mira: {%s} - obtaining innerDTLSMutex()",__FUNCTION__);
+            // After we get the inner lock, we know no 'outer' encrypt/decrypt call is in
+            // progress, and since we hold the global lock here, no 'outer' encrypt/decrypt
+            // will be able to commence.
+            simpleLockGet(&((SHARED_SSL_CONTEXT *)sssl)->innerDTLSMutex);
+            sssl_log(LOGLEV_debug,"mira: {%s} - releasing innerDTLSMutex()",__FUNCTION__);
+            simpleLockRelease(&((SHARED_SSL_CONTEXT *)sssl)->innerDTLSMutex);        // may as well
+
+            sssl_log(LOGLEV_debug,"mira: {%s} - calling sssl_destroyDTLSWithStreamID()",__FUNCTION__);
+            // destroy sssl here only if media thread cancelection was indeed initiated by
+            // this function or media thread was never initialized
+            sssl_destroyDTLSWithStreamID(streamID,1);       // do not lock
+        }
     }
-    // else - retv is 2
+    else
+    {
+        retv = 2;
+    }
+
+    simpleLockRelease(&gContextStorageMutex);
+    return(retv);
+}
+
+
+int sssl_handleDTLSAppThCancelation(int streamID)
+{
+    // return values:
+    //   0 - normal return.
+    //  -1 - failure (including non-existing sssl context)
+
+    // It will always delete sssl context - except when cancelation was already requested
+    // (appThInitialized == 1), because in that case somebody may be waiting on
+    // appThCancelComplCondVar, which is located in the sssl context.
+
+    int retv,prev;
+    void * sssl;
+
+    simpleLockGet(&gContextStorageMutex);
+
+    sssl = sssl_getContextWithStreamID(streamID);
+    if(sssl != NULL)
+    {
+        prev = ((SHARED_SSL_CONTEXT *)sssl)->appThInitialized;
+        ((SHARED_SSL_CONTEXT *)sssl)->appThInitialized = 0;
+
+        pthread_cond_broadcast(&((SHARED_SSL_CONTEXT *)sssl)->appThCancelComplCondVar);
+
+        sssl_log(LOGLEV_debug,"mira: {%s} - found appThInitialized = %d",__FUNCTION__,prev);
+
+        retv = 0;
+        if(prev == 2)
+        {
+            sssl_log(LOGLEV_debug,"mira: {%s} - obtaining innerDTLSMutex()",__FUNCTION__);
+            // After we get the inner lock, we know no 'outer' encrypt/decrypt call is in
+            // progress, and since we hold the global lock here, no 'outer' encrypt/decrypt
+            // will be able to commence.
+            simpleLockGet(&((SHARED_SSL_CONTEXT *)sssl)->innerDTLSMutex);
+            sssl_log(LOGLEV_debug,"mira: {%s} - releasing innerDTLSMutex()",__FUNCTION__);
+            simpleLockRelease(&((SHARED_SSL_CONTEXT *)sssl)->innerDTLSMutex);        // may as well
+
+            sssl_log(LOGLEV_debug,"mira: {%s} - calling sssl_destroyDTLSWithStreamID() for streamID %d",
+                __FUNCTION__,streamID);
+            retv = sssl_destroyDTLSWithStreamID(streamID,1);     // do not lock
+        }
+        else if(prev != 1)
+        {
+            // abnormal condition
+            sssl_log(LOGLEV_warning,"mira: {%s} - unexpected value of appThInitialized = %d",__FUNCTION__,prev);
+            retv = -1;
+        }
+    }
+    else
+    {
+        sssl_log(LOGLEV_debug,"mira: {%s} - sssl context not found for streamID %d",__FUNCTION__,streamID);
+        retv = -1;
+    }
 
     simpleLockRelease(&gContextStorageMutex);
     return(retv);
@@ -911,7 +1014,43 @@ void simpleLockDeInit(pthread_mutex_t * slMutexPtr)
 
 int simpleLockGet(pthread_mutex_t * slMutexPtr)
 {
+    // ***
+    // int retv = pthread_mutex_lock(slMutexPtr);
+    // ***
+    int delayValue;
+    if(gOneTimeBeforeLockDelay > 0)
+    {
+        if(gDelaySkipCnt > 0)
+        {
+            gDelaySkipCnt--;
+        }
+        else 
+        {
+            delayValue = gOneTimeBeforeLockDelay * 1000000;    // usec
+            gOneTimeBeforeLockDelay = 0;
+            sssl_log(LOGLEV_debug,"mira: {%s} - before lock, before sleeping",__FUNCTION__);
+            usleep(delayValue);
+            sssl_log(LOGLEV_debug,"mira: {%s} - before lock, after sleeping",__FUNCTION__);
+        }
+    }
     int retv = pthread_mutex_lock(slMutexPtr);
+    if(gOneTimeAfterLockDelay > 0)
+    {
+        if(gDelaySkipCnt > 0)
+        {
+            gDelaySkipCnt--;
+        }
+        else 
+        {
+            delayValue = gOneTimeAfterLockDelay * 1000000;    // usec
+            gOneTimeAfterLockDelay = 0;
+            sssl_log(LOGLEV_debug,"mira: {%s} - after lock, before sleeping",__FUNCTION__);
+            usleep(delayValue);
+            sssl_log(LOGLEV_debug,"mira: {%s} - after lock, after sleeping",__FUNCTION__);
+        }
+    }
+    // ***
+
     return(retv);
 }
 
@@ -925,7 +1064,43 @@ int simpleLockTryGet(pthread_mutex_t * slMutexPtr)
 
 int simpleLockRelease(pthread_mutex_t * slMutexPtr)
 {
+    // ***
+    // int retv = pthread_mutex_unlock(slMutexPtr);
+    // ***
+    int delayValue;
+    if(gOneTimeBeforeUnlockDelay > 0)
+    {
+        if(gDelaySkipCnt > 0)
+        {
+            gDelaySkipCnt--;
+        }
+        else 
+        {
+            delayValue = gOneTimeBeforeUnlockDelay * 1000000;    // usec
+            gOneTimeBeforeUnlockDelay = 0;
+            sssl_log(LOGLEV_debug,"mira: {%s} - before unlock, before sleeping",__FUNCTION__);
+            usleep(delayValue);
+            sssl_log(LOGLEV_debug,"mira: {%s} - before unlock, after sleeping",__FUNCTION__);
+        }
+    }
     int retv = pthread_mutex_unlock(slMutexPtr);
+    if(gOneTimeAfterUnlockDelay > 0)
+    {
+        if(gDelaySkipCnt > 0)
+        {
+            gDelaySkipCnt--;
+        }
+        else 
+        {
+            delayValue = gOneTimeAfterUnlockDelay * 1000000;    // usec
+            gOneTimeAfterUnlockDelay = 0;
+            sssl_log(LOGLEV_debug,"mira: {%s} - after unlock, before sleeping",__FUNCTION__);
+            usleep(delayValue);
+            sssl_log(LOGLEV_debug,"mira: {%s} - after unlock, after sleeping",__FUNCTION__);
+        }
+    }
+    // ***
+
     return(retv);
 }
 
@@ -984,6 +1159,15 @@ int sssl_contextRemove(unsigned long long sessionID)
     gSSLContextStorage[index].sessionID = (unsigned long long)0;
     gSSLContextStorage[index].inUse = 0;
 
+
+
+    // ***
+    gCurrentSessionID = 0;
+    gCurrentStreamID = -1;
+    gDelaySkipCnt = 1;
+
+
+
     return(0);
 }
 
@@ -1018,6 +1202,14 @@ int sssl_setContextStreamID(unsigned long long sessionID,int streamID)
     {
         return(-1);
     }
+
+
+
+    // ***
+    gCurrentSessionID = sessionID;
+    gCurrentStreamID = streamID;
+
+
 
     if(gSSLContextStorage[index].streamID != -1)
     {
@@ -1284,3 +1476,48 @@ bool write_to_disk(EVP_PKEY * pkey, X509 * x509)
 
 
 
+// ***
+
+int sssl_Test(int arg)
+{
+    int retv;
+
+    sssl_log(LOGLEV_debug,"mira: {%s} - executing with arg = %d",__FUNCTION__,arg);
+
+    switch(arg)
+    {
+        case 1:
+            gOneTimeBeforeLockDelay    = gDelayValue;
+            break;
+        case 2:
+            gOneTimeAfterLockDelay     = gDelayValue;
+            break;
+        case 3:
+            gOneTimeBeforeUnlockDelay  = gDelayValue;
+            break;
+        case 4:
+            gOneTimeAfterUnlockDelay   = gDelayValue;
+            break;
+        case 5:
+            gDelayValue = 3;
+            break;
+        case 6:
+            gDelaySkipCnt = 1;
+            break;
+        case 7:
+            if(gCurrentStreamID >= 0)
+            {
+                sssl_log(LOGLEV_debug,"mira: {%s} - calling sssl_cancelDTLSAppThAndWait()",__FUNCTION__);
+                retv = sssl_cancelDTLSAppThAndWait(gCurrentStreamID);
+                sssl_log(LOGLEV_debug,"mira: {%s} - returned from sssl_waitDTLSAppThCancel(), retv = %d"
+                    ,__FUNCTION__,retv);
+            }
+            else
+            {
+                sssl_log(LOGLEV_error,"mira: {%s} - invalid gCurrentStreamID",__FUNCTION__);
+            }
+            break;
+        default:
+            sssl_log(LOGLEV_error,"mira: {%s} - invalid value of arg - %d",__FUNCTION__,arg);
+    }
+}

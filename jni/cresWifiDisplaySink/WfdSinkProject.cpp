@@ -21,6 +21,11 @@
 #include "WfdCommon.h"
 #include "WfdSinkProject.h"
 
+
+// ***
+int sssl_Test(int arg);
+
+
 static wfdSinkProjClass* gWFDSinkProjPtr = NULL;
 static Mutex gProjectsLock;
 static int gProjectDebug = eLogLevel_debug;
@@ -906,6 +911,25 @@ void WfdSinkProj_fdebug(char *cmd_cstring)
 				}
 			}
 		}
+
+
+      // ***
+        else if(strcasestr(CmdPtr, "sssltest"))
+        {
+            CmdPtr = strtok(NULL, ", ");
+            if(CmdPtr)
+            {
+                int arg = strtol(CmdPtr, &EndPtr, 10);
+                sssl_Test(arg);
+            }
+            else
+            {
+                sssl_Test(-1);
+            }
+        }
+      // ***
+
+
         else
         {
            CSIO_LOG(eLogLevel_info, "WfdSinkProj_debug: Unknown command = [%s]\n",CmdPtr);
