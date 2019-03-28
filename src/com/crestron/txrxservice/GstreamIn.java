@@ -215,23 +215,23 @@ public class GstreamIn implements StreamInStrategy, SurfaceHolder.Callback {
     	return (streamCtl.getCurrentStreamState(sessionId)).getValue();
 	}
     
-    public void updateStreamStatus(int streamStateEnum, int sessionId){
+    public void updateStreamStatus(int streamStateEnum, int streamId){
     	// Send stream url again on start fb
-    	Log.i(TAG, "updateStreamStatus for streamId="+sessionId+"  state="+streamStateEnum);
+    	Log.i(TAG, "updateStreamStatus for streamId="+streamId+"  state="+streamStateEnum);
     	if (streamStateEnum == CresStreamCtrl.StreamState.STARTED.getValue())
     	{
-    		streamCtl.sockTask.SendDataToAllClients(MiscUtils.stringFormat("STREAMURL%d=%s", sessionId, streamCtl.userSettings.getStreamInUrl(sessionId)));
+    		streamCtl.sockTask.SendDataToAllClients(MiscUtils.stringFormat("STREAMURL%d=%s", streamId, streamCtl.userSettings.getStreamInUrl(streamId)));
     	}
-    	streamCtl.SendStreamState(StreamState.getStreamStateFromInt(streamStateEnum), sessionId);
-    	if (wfd_mode[sessionId])
+    	streamCtl.SendStreamState(StreamState.getStreamStateFromInt(streamStateEnum), streamId);
+    	if (wfd_mode[streamId])
     	{
     		if (streamStateEnum == CresStreamCtrl.StreamState.STARTED.getValue())
     		{
-    			streamCtl.wifidVideoPlayer.stateChanged(sessionId, AirMediaSessionStreamingState.Playing);
+    			streamCtl.wifidVideoPlayer.stateChanged(streamId, AirMediaSessionStreamingState.Playing);
     		} 
     		else if (streamStateEnum == CresStreamCtrl.StreamState.STOPPED.getValue())
     		{
-    			streamCtl.wifidVideoPlayer.stateChanged(sessionId, AirMediaSessionStreamingState.Stopped);
+    			streamCtl.wifidVideoPlayer.stopSessionWithStreamId(streamId);
     		}
     	}
     }
@@ -340,7 +340,6 @@ public class GstreamIn implements StreamInStrategy, SurfaceHolder.Callback {
     		{
     			streamCtl.wifidVideoPlayer.stopSession(sessionId);
     		}
-    		streamCtl.wifidVideoPlayer.stateChanged(streamId, AirMediaSessionStreamingState.Stopped);
     	}
     }
     

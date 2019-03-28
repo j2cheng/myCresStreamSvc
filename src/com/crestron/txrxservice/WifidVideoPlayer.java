@@ -178,7 +178,7 @@ public class WifidVideoPlayer {
         @Override
         public void start(long id, String endpoint, int port, Surface surface)
         {
-            Common.Logging.i(TAG, "VideoPlayer.start  id="+id+"  url="+endpoint+"  port="+port+"   Surface="+surface);
+            Common.Logging.i(TAG, "VideoPlayer.start  sessionId="+id+"  url="+endpoint+"  port="+port+"   Surface="+surface);
             if (surface == null)
             {
                 Common.Logging.w(TAG, "Cannot start player with null surface");
@@ -222,23 +222,8 @@ public class WifidVideoPlayer {
         @Override
         public void stop(long id)
         {
-            Common.Logging.i(TAG, "VideoPlayer.stop  id="+id);
-            synchronized(stopSessionObjectLock) {
-            	// See if prior session exists with the same id
-            	VideoSession session = sessionMap.get(id);
-            	if (session == null)
-            	{
-            		Common.Logging.w(TAG, "There is an no existing session with this id="+id);
-            		return;
-            	}
-             	if (session.state != AirMediaSessionStreamingState.Stopped)
-            	{
-            		streamCtrl_.stopWfdStream(session.streamId);
-            		stateChanged(id, AirMediaSessionStreamingState.Stopped);
-            	}
-    			// Remove session from the map
-        		sessionMap.remove(id);
-            }
+            Common.Logging.i(TAG, "VideoPlayer.stop  sessionId="+id);
+            stopSession(id);
         }
         
         @Override
@@ -338,7 +323,30 @@ public class WifidVideoPlayer {
     
     public void stopSession(long id)
     {
-    	service_.stop(id);
+        Common.Logging.i(TAG, "VideoPlayer.stopSession  sessionId="+id);
+        synchronized(stopSessionObjectLock) {
+        	// See if prior session exists with the same id
+        	VideoSession session = sessionMap.get(id);
+        	if (session == null)
+        	{
+        		Common.Logging.w(TAG, "There is an no existing session with this id="+id+" was it stopped earlier?");
+        		return;
+        	}
+         	if (session.state != AirMediaSessionStreamingState.Stopped)
+        	{
+        		streamCtrl_.stopWfdStream(session.streamId);
+        		stateChanged(session.streamId, AirMediaSessionStreamingState.Stopped);
+        	}
+			// Remove session from the map
+    		sessionMap.remove(id);
+        }
+    }
+    
+    public void stopSessionWithStreamId(int streamId)
+    {
+        Common.Logging.i(TAG, "VideoPlayer.stopSessionWithStreamId  streamId="+streamId);
+        long sessionId =  streamId2sessionId(streamId);
+        stopSession(sessionId);
     }
 
     ////////////////////////////////////////////////////////////////////////////////////////////////
