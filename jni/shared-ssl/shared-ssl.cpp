@@ -161,7 +161,7 @@ int sssl_initialize()
 #endif
 
     sslServerContext->common_SSL_CTX = CreateNewSSLContext();
-    sssl_log(LOGLEV_debug,"mira: initialize_SSL() -CreateNewSSLContext return[0x%x]",
+    sssl_log(LOGLEV_debug,"mira: initialize_SSL() - CreateNewSSLContext() returned [0x%x]",
         sslServerContext->common_SSL_CTX);
 
     gCommonSSLServerContext = sslServerContext;
@@ -208,7 +208,7 @@ void * sssl_createDTLS(unsigned long long sessionID)
     if(!ssslContext)
     {
         simpleLockRelease(&gContextStorageMutex);
-        sssl_log(LOGLEV_error,"mira: sssl_createDTLS() - could not get SHARED_SSL_CONTEXT");
+        sssl_log(LOGLEV_error,"mira: sssl_createDTLS(sessionID = 0x%x) - could not get SHARED_SSL_CONTEXT",(int)sessionID);
         return(NULL);
     }
     memset(ssslContext,0,sizeof(SHARED_SSL_CONTEXT));
@@ -266,6 +266,8 @@ void * sssl_createDTLS(unsigned long long sessionID)
 
 int sssl_destroyDTLSWithSessionID(unsigned long long sessionID, int doNotLock)
 {
+    sssl_log(LOGLEV_debug,"mira: sssl_destroyDTLSWithSessionID(sessionID = 0x%x)",(int)sessionID);
+
     if(doNotLock == 0)
     {
         simpleLockGet(&gContextStorageMutex);
@@ -352,6 +354,8 @@ void * sssl_getDTLSWithStreamID(int streamID)
 }
 
 
+#define BIORETRYCOUNT      10
+
 int sssl_encryptDTLSInner(void * sssl,void * inBuff,int inBuffSize,void * outBuff,int outBuffSize)
 {
     // Remarks:
@@ -361,14 +365,44 @@ int sssl_encryptDTLSInner(void * sssl,void * inBuff,int inBuffSize,void * outBuf
     //      available to BIO_read() right away.
 
     int retv;
+    int retryCount;
 
     SHARED_SSL_CONTEXT * ssslContext = (SHARED_SSL_CONTEXT *)sssl;
 
-    retv = SSL_write(ssslContext->ssl,inBuff,inBuffSize);
-    if(retv < 0)
+    retryCount = BIORETRYCOUNT;
+    while(retryCount > 0)
     {
-        sssl_log(LOGLEV_error,"mira: SSL_write() failed, retv = %d",retv);
-        return(retv);
+        retv = SSL_write(ssslContext->ssl,inBuff,inBuffSize);
+        if(retv <= 0)
+        {
+            // treat 0 as failure
+            int errcode = SSL_get_error(ssslContext->ssl,retv);
+            if(errcode == SSL_ERROR_WANT_WRITE)
+            {
+                usleep(5*1000);     // 5 msec
+                retryCount--;
+                sssl_log(eLogLevel_extraVerbose,"mira: {%s} - retrying SSL_write(), retries left = %d",
+                    __FUNCTION__,retryCount);
+                continue;
+            }
+            else if(errcode == SSL_ERROR_WANT_READ)
+            {
+                sssl_log(LOGLEV_error,"mira: {%s} - SSL_write() failed, retv = %d, unexpected errcode = SSL_ERROR_WANT_READ",
+                  __FUNCTION__,retv);
+            }
+            else
+            {
+                sssl_log(LOGLEV_error,"mira: {%s} - SSL_write() failed, retv = %d, errcode = %d",__FUNCTION__,retv,errcode);
+            }
+            return(-1);
+        }
+        break;
+    }
+    if(retryCount <= 0)
+    {
+        // for now - at the debug level
+        sssl_log(LOGLEV_debug,"mira: {%s} - SSL_write() failed despite 10 retries",__FUNCTION__);
+        return(-1);
     }
     if(retv != inBuffSize)
     {
@@ -376,11 +410,30 @@ int sssl_encryptDTLSInner(void * sssl,void * inBuff,int inBuffSize,void * outBuf
         return(-1);
     }
 
-    retv = BIO_read(ssslContext->wbio,outBuff,outBuffSize);
-    if(retv <= 0)
+    retryCount = BIORETRYCOUNT;
+    while(retryCount > 0)
     {
-        // treat 0 as failure
-        sssl_log(LOGLEV_error,"mira: BIO_read() failed, retv = %d",retv);
+        retv = BIO_read(ssslContext->wbio,outBuff,outBuffSize);
+        if(retv <= 0)
+        {
+            // treat 0 as potential failure
+            if(BIO_should_retry(ssslContext->wbio))  
+            {
+                usleep(5*1000);     // 5 msec
+                retryCount--;
+                sssl_log(eLogLevel_extraVerbose,"mira: {%s} - retrying BIO_read(), retries left = %d",
+                    __FUNCTION__,retryCount);
+                continue;
+            }
+            sssl_log(LOGLEV_error,"mira: {%s} - BIO_read() failed, retv = %d",__FUNCTION__,retv);
+            return(-1);
+        }
+        break;
+    }
+    if(retryCount <= 0)
+    {
+        // for now - at the debug level
+        sssl_log(LOGLEV_debug,"mira: {%s} - BIO_read() failed despite 10 retries",__FUNCTION__);
         return(-1);
     }
     if(retv >= outBuffSize)
@@ -402,20 +455,22 @@ int sssl_decryptDTLSInner(void * sssl,void * inBuff,int inBuffSize,void * outBuf
     //      decrypted 'records' (payload chunks) available to SSL_read() right away.
 
     int retv;
+    int retryCount;
 
     SHARED_SSL_CONTEXT * ssslContext = (SHARED_SSL_CONTEXT *)sssl;
 
-    int retryCount = 10;
+    retryCount = BIORETRYCOUNT;
     while(retryCount > 0)
     {
         retv = BIO_write(ssslContext->rbio,inBuff,inBuffSize);
         if(retv <= 0)
         {
+            // treat 0 as potential failure
             if(BIO_should_retry(ssslContext->rbio))  
             {
                 usleep(5*1000);     // 5 msec
                 retryCount--;
-                sssl_log(LOGLEV_debug,"mira: {%s} - retrying BIO_write(), retries left = %d",
+                sssl_log(eLogLevel_extraVerbose,"mira: {%s} - retrying BIO_write(), retries left = %d",
                     __FUNCTION__,retryCount);
                 continue;
             }
@@ -426,7 +481,8 @@ int sssl_decryptDTLSInner(void * sssl,void * inBuff,int inBuffSize,void * outBuf
     }
     if(retryCount <= 0)
     {
-        sssl_log(LOGLEV_error,"mira: {%s} - BIO_write() failed despite 10 retries",__FUNCTION__);
+        // for now - at the debug level
+        sssl_log(LOGLEV_debug,"mira: {%s} - BIO_write() failed despite 10 retries",__FUNCTION__);
         return(-1);
     }
     if(retv != inBuffSize)
@@ -436,12 +492,39 @@ int sssl_decryptDTLSInner(void * sssl,void * inBuff,int inBuffSize,void * outBuf
         return(-1);
     }
 
-    retv = SSL_read(ssslContext->ssl,outBuff,outBuffSize);
-    if(retv <= 0)
+    retryCount = BIORETRYCOUNT;
+    while(retryCount > 0)
     {
-        // treat 0 as failure
-        int errcode = SSL_get_error(ssslContext->ssl,retv);
-        sssl_log(LOGLEV_error,"mira: {%s} - SSL_read() failed, retv = %d, errcode = %d",__FUNCTION__,retv,errcode);
+        retv = SSL_read(ssslContext->ssl,outBuff,outBuffSize);
+        if(retv <= 0)
+        {
+            // treat 0 as failure
+            int errcode = SSL_get_error(ssslContext->ssl,retv);
+            if(errcode == SSL_ERROR_WANT_READ)
+            {
+                usleep(5*1000);     // 5 msec
+                retryCount--;
+                sssl_log(eLogLevel_extraVerbose,"mira: {%s} - retrying SSL_read(), retries left = %d",
+                    __FUNCTION__,retryCount);
+                continue;
+            }
+            else if(errcode == SSL_ERROR_WANT_WRITE)
+            {
+                sssl_log(LOGLEV_error,"mira: {%s} - SSL_read() failed, retv = %d, unexpected errcode = SSL_ERROR_WANT_WRITE",
+                  __FUNCTION__,retv);
+            }
+            else
+            {
+                sssl_log(LOGLEV_error,"mira: {%s} - SSL_read() failed, retv = %d, errcode = %d",__FUNCTION__,retv,errcode);
+            }
+            return(-1);
+        }
+        break;
+    }
+    if(retryCount <= 0)
+    {
+        // for now - at the debug level
+        sssl_log(LOGLEV_debug,"mira: {%s} - SSL_read() failed despite 10 retries",__FUNCTION__);
         return(-1);
     }
     if(retv >= outBuffSize)
@@ -473,11 +556,14 @@ int sssl_encryptDTLS(unsigned long long sessionID,void * inBuff,int inBuffSize,v
 
     // assumed to be invoked after handsake completes!
 
+    sssl_log(LOGLEV_debug,"mira: {%s} - entering",__FUNCTION__);
+
     simpleLockGet(&gContextStorageMutex);
     sssl = sssl_getContextWithSessionID(sessionID);
     if(sssl == NULL)
     {
         simpleLockRelease(&gContextStorageMutex);
+        sssl_log(LOGLEV_error,"mira: {%s} - could not get sssl context",__FUNCTION__);
         return(-1);
     }
     simpleLockGet(&((SHARED_SSL_CONTEXT *)sssl)->innerDTLSMutex);
@@ -488,6 +574,8 @@ int sssl_encryptDTLS(unsigned long long sessionID,void * inBuff,int inBuffSize,v
     // no global lock wrapping here!
     // nobody will delete sssl context before this
     simpleLockRelease(&((SHARED_SSL_CONTEXT *)sssl)->innerDTLSMutex);
+
+    sssl_log(LOGLEV_debug,"mira: {%s} - exiting",__FUNCTION__);
 
     return(retv);
 }
@@ -500,11 +588,14 @@ int sssl_decryptDTLS(unsigned long long sessionID,void * inBuff,int inBuffSize,v
 
     // assumed to be invoked after handsake completes!
 
+    sssl_log(LOGLEV_debug,"mira: {%s} - entering",__FUNCTION__);
+
     simpleLockGet(&gContextStorageMutex);
     sssl = sssl_getContextWithSessionID(sessionID);
     if(sssl == NULL)
     {
         simpleLockRelease(&gContextStorageMutex);
+        sssl_log(LOGLEV_error,"mira: {%s} - could not get sssl context",__FUNCTION__);
         return(-1);
     }
     simpleLockGet(&((SHARED_SSL_CONTEXT *)sssl)->innerDTLSMutex);
@@ -515,6 +606,8 @@ int sssl_decryptDTLS(unsigned long long sessionID,void * inBuff,int inBuffSize,v
     // no global lock wrapping here!
     // nobody will delete sssl context before this
     simpleLockRelease(&((SHARED_SSL_CONTEXT *)sssl)->innerDTLSMutex);
+
+    sssl_log(LOGLEV_debug,"mira: {%s} - exiting",__FUNCTION__);
 
     return(retv);
 }
@@ -818,7 +911,7 @@ int sssl_cancelDTLSAppThAndWait(int streamID)
                    &gContextStorageMutex,&stopTimeout);
 	             if(retv1 != 0)
                 {
-                    sssl_log(LOGLEV_debug,"mira: {%s} - pthread_cond_timedwait() returned %d",__FUNCTION__,retv1);
+                    sssl_log(LOGLEV_warning,"mira: {%s} - pthread_cond_timedwait() returned %d",__FUNCTION__,retv1);
 	                 if(retv1 == ETIMEDOUT)
                     {
                         retv = -2;

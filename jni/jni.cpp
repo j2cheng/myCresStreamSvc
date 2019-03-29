@@ -64,6 +64,7 @@ static void Wfd_set_firewall_rules (int rtsp_port, int ts_port);
 int csio_jni_StartRTPMediaStreamThread(int iStreamId, GstElement *appSource, unsigned int udpPort);
 void updateProbeInfo(int streamID, struct timespec * currentTimePtr, char * srcIPAddress);
 void * rtpMediaStreamThread(void * threadData);
+static bool loopShouldLog(int * errorCountPtr, int * logLevelPtr);
 
 ///////////////////////////////////////////////////////////////////////////////
 
@@ -2467,6 +2468,7 @@ int csio_jni_CreateHttpPipeline(void *obj, GstElement **pipeline, GstElement **s
 // ***
 
 #define DTLSPACKETMAXSIZE           4096           // more than twice the MTU
+#define LOOPERRORTHRESHOLD          100
 
 char * lookupCipherName(int index)
 {
@@ -2632,18 +2634,40 @@ void updateProbeInfo(int streamID, struct timespec * currentTimePtr, char * srcI
     strncpy(data->sourceIP_addr,srcIPAddress,sizeof(data->sourceIP_addr)-1);
     data->sourceIP_addr[sizeof(data->sourceIP_addr)-1] = '\0';
 
-    CSIO_LOG(eLogLevel_debug, "mira: {%s} - updated stream data for streamID %d with timestamp = %u, IPAddress = %s",
+    CSIO_LOG(eLogLevel_extraVerbose, "mira: {%s} - updated stream data for streamID %d with timestamp = %u, IPAddress = %s",
         __FUNCTION__,streamID,(unsigned int)currentTimePtr->tv_sec,data->sourceIP_addr);
 
     return;
 }
 
 
+static bool loopShouldLog(int * errorCountPtr, int * logLevelPtr)
+{
+   bool doPrint = false;
+   
+   *logLevelPtr = eLogLevel_extraVerbose;
+	if(*errorCountPtr < 3)
+   {
+      doPrint = true;
+      *logLevelPtr = eLogLevel_debug;
+   }
+	else if(*errorCountPtr > LOOPERRORTHRESHOLD)
+   {
+      doPrint = true;
+	   *errorCountPtr = 0;
+      *logLevelPtr = eLogLevel_debug;
+   }
+	(*errorCountPtr)++;
+
+   return(doPrint);
+}
+
+
 void * rtpMediaStreamThread(void * threadData)
 {
-	int retv,retv1,nn,doLog;
-   int rtpDataSize;
-   int dtlsDataSize;
+	int retv,retv1,nn;
+	int timeoutErrorCount,typeErrorCount,decryptErrorCount,llev;
+   int rtpDataSize,dtlsDataSize;
    void * sssl;
    struct sockaddr senderAddr;
    int addrLen;
@@ -2688,13 +2712,12 @@ void * rtpMediaStreamThread(void * threadData)
    // get the clock
    theclock = gst_element_get_clock(rtpMedStrContext.appSource);
 
-	nn = 0;
+	nn = -1;
+	timeoutErrorCount = typeErrorCount = decryptErrorCount = 0;
 
    while(1==1)
    {
-	   if((nn < 3) || (nn%50 == 0))
-	         doLog = 1;
-      else  doLog = 0;
+	   nn++;
 
       // TCP:
       //    Send: AA BBBB CCC DDDDDD E         Recv: A ABB B BCC CDDD DDDE
@@ -2703,13 +2726,6 @@ void * rtpMediaStreamThread(void * threadData)
       //    Send: AA BBBB CCC DDDDDD E         Recv: CCC AA E
       //    Data is not necessarily in the same order, and not necessarily received at all, but
       //    messages are preserved in their entirety.
-
-      // *** // blocking read with timeout
-      // *** dtlsDataSize = recv(rtpMedStrContext.sockFD, (char *)dtlsPacketBuff, DTLSPACKETMAXSIZE, 0);
-      // *** if(doLog)
-      // *** {
-      // ***    CSIO_LOG(eLogLevel_extraVerbose,"mira: RTP loop: received %d bytes from socket",dtlsDataSize);
-      // *** }
 
       // blocking read with timeout
       memset((void *)&senderAddr,0,sizeof(senderAddr));
@@ -2727,8 +2743,10 @@ void * rtpMediaStreamThread(void * threadData)
                CSIO_LOG(eLogLevel_debug,"mira: RTP loop: {recv tmo} sssl_getDTLSAppThInitializedWithStreamID() returned %d",retv);
                break;
             }
-            CSIO_LOG(eLogLevel_debug,"mira: RTP loop: receive timeout, continuing ...");
-	         nn++;
+            if(loopShouldLog(&timeoutErrorCount, &llev))
+            {
+               CSIO_LOG(llev,"mira: RTP loop: receive timeout, continuing anyway ...");
+            }
             continue;
          }
          else
@@ -2738,9 +2756,8 @@ void * rtpMediaStreamThread(void * threadData)
          }
       }
 
-      if(doLog)
+      if(nn < 3)
       {
-         // *** CSIO_LOG(eLogLevel_extraVerbose,"mira: RTP loop: received %d bytes from IP address %s",
          CSIO_LOG(eLogLevel_debug,"mira: RTP loop: received %d bytes from IP address %s",
             dtlsDataSize,inet_ntoa(((struct sockaddr_in *)&senderAddr)->sin_addr));
       }
@@ -2755,10 +2772,11 @@ void * rtpMediaStreamThread(void * threadData)
       unsigned char tlsType = dtlsPacketBuff[0];
       if(tlsType != 0x17)
       {
-         CSIO_LOG(eLogLevel_error,"mira: RTP loop: received packet of %d bytes with bad TLS type 0x%x",
-            dtlsDataSize,(int)tlsType);
-         CSIO_LOG(eLogLevel_error,"mira: continuing anyway ...");
-	      nn++;
+         if(loopShouldLog(&typeErrorCount, &llev))
+         {
+            CSIO_LOG(llev,"mira: RTP loop: received packet of %d bytes with bad TLS type 0x%x, continuing anyway ...",
+               dtlsDataSize,(int)tlsType);
+         }
          continue;
       }
 
@@ -2766,7 +2784,7 @@ void * rtpMediaStreamThread(void * threadData)
       if(retv != 2)
       {
          // we are asked to exit
-         CSIO_LOG(eLogLevel_error,"mira: RTP loop: sssl_getDTLSAppThInitializedWithStreamID() returned %d",retv);
+         CSIO_LOG(eLogLevel_debug,"mira: RTP loop: sssl_getDTLSAppThInitializedWithStreamID() returned %d",retv);
          break;
       }
 
@@ -2775,14 +2793,15 @@ void * rtpMediaStreamThread(void * threadData)
       if(rtpDataSize <= 0)
       {
          // something went wrong
-         CSIO_LOG(eLogLevel_error,"mira: RTP loop: sssl_decryptDTLS() returned %d",rtpDataSize);
-         CSIO_LOG(eLogLevel_error,"mira: continuing anyway ...");
-	      nn++;
+         if(loopShouldLog(&decryptErrorCount, &llev))
+         {
+            CSIO_LOG(llev,"mira: RTP loop: sssl_decryptDTLS() returned %d, continuing anyway ...",rtpDataSize);
+         }
          continue;
       }
-      if(doLog)
+      if(nn < 3)
       {
-         CSIO_LOG(eLogLevel_extraVerbose,"mira: RTP loop: received %d bytes after DTLS dcryption",rtpDataSize);
+         CSIO_LOG(eLogLevel_debug,"mira: RTP loop: received %d bytes after DTLS dcryption",rtpDataSize);
       }
 
       clock_gettime(CLOCK_REALTIME,&currentTime);
@@ -2826,34 +2845,14 @@ void * rtpMediaStreamThread(void * threadData)
          break;
       }
 
-      if(doLog)
+      if(nn < 3)
       {
-         CSIO_LOG(eLogLevel_extraVerbose,"mira: RTP loop: submitted buffer to AppSrc with g_signal_emit_by_name() [nn = %d]",nn);
+         CSIO_LOG(eLogLevel_debug,"mira: RTP loop: submitted buffer to AppSrc, nn = %d",nn);
       }
-
-	   nn++;
    }
 
 threadreturn:
    CSIO_LOG(eLogLevel_debug,"mira: {%s} - commencing normal exit",__FUNCTION__);
-
-   // *** retv = sssl_setDTLSAppThInitializedWithStreamID(rtpMedStrContext.streamID, 0, NULL);
-   // *** if(retv >= 0)
-   // *** {
-   // ***    CSIO_LOG(eLogLevel_debug,"mira: {%s} - calling sssl_signalDTLSAppThCanceledWithStreamID()",__FUNCTION__);
-   // ***    sssl_signalDTLSAppThCanceledWithStreamID(rtpMedStrContext.streamID);
-   // ***    if(retv > 0)
-   // ***    {
-   // ***       CSIO_LOG(eLogLevel_debug,"mira: {%s} - calling sssl_destroyDTLSWithStreamID()",__FUNCTION__);
-   // ***       sssl_destroyDTLSWithStreamID(rtpMedStrContext.streamID, 0);
-   // ***       //
-   // ***       // ... is this safe (does the waiting thread need it after broadcast ?)
-   // ***       //     study pthread_cond_broadcast()
-   // ***       // 
-   // *** 
-   // ***    }
-   // *** }
-
    // will destroy sssl context
    retv = sssl_handleDTLSAppThCancelation(rtpMedStrContext.streamID);
    close(rtpMedStrContext.sockFD);
