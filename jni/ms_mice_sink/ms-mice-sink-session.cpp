@@ -604,7 +604,22 @@ static void ms_mice_sink_session_handle_pin_challenge_message(ms_mice_sink_sessi
              session->priv->session_id, session->priv->local_address, session->priv->remote_address, ms_mice_sink_session_state_to_string(session->priv->state));
 
     bool ret = ms_mice_sink_session_validate_pin(session,tlv);
-    CSIO_LOG(eLogLevel_debug,"ms_mice_sink_session_validate_pin return : %d\r\n",ret);
+
+    if(ret)
+    {
+        CSIO_LOG(eLogLevel_debug,"ms_mice_sink_session_validate_pin passed\r\n");
+    }
+    else
+    {
+        char string_buffer[SHA256_DIGEST_LENGTH*2 + 1] = {0};//64 bytes of string
+
+        for(int i = 0; i < SHA256_DIGEST_LENGTH; i++)        //32 bytes of binary
+        {
+            sprintf(&string_buffer[i*2],"%02X",tlv->pin_challenge.pin[i]);
+        }
+
+        CSIO_LOG(eLogLevel_warning,"Rejecting connection due to PIN mismatch Hash:%s IP:%s \r\n",string_buffer,ms_mice_sink_session_get_remote_address(session));
+    }
 
     //create pin response reason message and send out
     MS_MICE_MESSAGE_COMMANDS command = MS_MICE_MESSAGE_PIN_RESPONSE;
