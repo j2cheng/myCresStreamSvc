@@ -4626,7 +4626,7 @@ JNIEXPORT void JNICALL Java_com_crestron_txrxservice_GstreamIn_nativeWfdStart(JN
 
     int retv = sssl_setContextStreamID((unsigned long long)msMiceSessionId, windowId);
 
-    CSIO_LOG(eLogLevel_debug,"mira: {%s} - sssl_setContextStreamID() called with ms mice sessionID = 0x%x, streamID = %d returned %d",
+    CSIO_LOG(eLogLevel_debug,"mira: {%s} - sssl_setContextStreamID() called with ms mice sessionID = %lld, streamID = %d returned %d",
       __FUNCTION__,msMiceSessionId,windowId,retv);
 
     Wfd_set_firewall_rules(rtsp_port, -1);
