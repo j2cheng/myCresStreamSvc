@@ -2522,7 +2522,7 @@ int csio_jni_StartRTPMediaStreamThread(int iStreamId, GstElement * appSource, un
    // !!!!!!!
 
 
-   CSIO_LOG(eLogLevel_debug,"mira: {%s} - entering",__FUNCTION__);
+   CSIO_LOG(eLogLevel_debug,"mira: {%s} - entering with iStreamId = %d",__FUNCTION__,iStreamId);
 
    memset((void *)&rtpMedStrContext, 0, sizeof(rtpMedStrContext)); 
 

@@ -208,14 +208,14 @@ void * sssl_createDTLS(unsigned long long sessionID)
     if(!ssslContext)
     {
         simpleLockRelease(&gContextStorageMutex);
-        sssl_log(LOGLEV_error,"mira: sssl_createDTLS(sessionID = 0x%x) - could not get SHARED_SSL_CONTEXT",(int)sessionID);
+        sssl_log(LOGLEV_error,"mira: sssl_createDTLS(sessionID = 0x%llx) - could not get SHARED_SSL_CONTEXT",sessionID);
         return(NULL);
     }
     memset(ssslContext,0,sizeof(SHARED_SSL_CONTEXT));
     // so ssslContext->ssslInitialized == 0
 
     ssslContext->commonServerContext = gCommonSSLServerContext;
-    sssl_log(LOGLEV_debug,"mira: sssl_createDTLS(sessionID = 0x%x) ssslContext[0x%x] ",(int)sessionID,ssslContext);
+    sssl_log(LOGLEV_debug,"mira: sssl_createDTLS(sessionID = 0x%llx)",sessionID);
 
     simpleLockInit(&ssslContext->innerDTLSMutex);
 
@@ -226,7 +226,7 @@ void * sssl_createDTLS(unsigned long long sessionID)
 
 
 
-    sssl_log(LOGLEV_debug,"mira: sssl_createDTLS() ssslContext->commonServerContext->common_SSL_CTX = [0x%x] ",
+    sssl_log(LOGLEV_debug,"mira: sssl_createDTLS() ssslContext->commonServerContext->common_SSL_CTX = [0x%x]",
       ssslContext->commonServerContext->common_SSL_CTX);
 
     if(ssslContext->commonServerContext->common_SSL_CTX)
@@ -266,7 +266,7 @@ void * sssl_createDTLS(unsigned long long sessionID)
 
 int sssl_destroyDTLSWithSessionID(unsigned long long sessionID, int doNotLock)
 {
-    sssl_log(LOGLEV_debug,"mira: sssl_destroyDTLSWithSessionID(sessionID = 0x%x)",(int)sessionID);
+    sssl_log(LOGLEV_debug,"mira: sssl_destroyDTLSWithSessionID(sessionID = 0x%llx)",sessionID);
 
     if(doNotLock == 0)
     {
@@ -319,7 +319,7 @@ int sssl_destroyDTLSWithStreamID(int streamID, int doNotLock)
         {
             simpleLockRelease(&gContextStorageMutex);
         }
-        sssl_log(LOGLEV_error,"mira: sssl_destroyDTLSWithStreamID() - could not get index with stream ID");
+        sssl_log(LOGLEV_error,"mira: sssl_destroyDTLSWithStreamID() - could not get index for streamID %d",streamID);
         return(-1);
     }
 
@@ -556,7 +556,7 @@ int sssl_encryptDTLS(unsigned long long sessionID,void * inBuff,int inBuffSize,v
 
     // assumed to be invoked after handsake completes!
 
-    sssl_log(LOGLEV_debug,"mira: {%s} - entering",__FUNCTION__);
+    sssl_log(LOGLEV_debug,"mira: {%s} - entering with sessionID = 0x%llx",__FUNCTION__,sessionID);
 
     simpleLockGet(&gContextStorageMutex);
     sssl = sssl_getContextWithSessionID(sessionID);
@@ -588,7 +588,7 @@ int sssl_decryptDTLS(unsigned long long sessionID,void * inBuff,int inBuffSize,v
 
     // assumed to be invoked after handsake completes!
 
-    sssl_log(LOGLEV_debug,"mira: {%s} - entering",__FUNCTION__);
+    sssl_log(LOGLEV_debug,"mira: {%s} - entering with sessionID = 0x%llx",__FUNCTION__,sessionID);
 
     simpleLockGet(&gContextStorageMutex);
     sssl = sssl_getContextWithSessionID(sessionID);
@@ -853,7 +853,6 @@ int sssl_getDTLSAppThInitializedCommon(int streamID, unsigned long long sessionI
 }
 
 
-// int sssl_waitDTLSAppThCancel(int streamID)
 int sssl_cancelDTLSAppThAndWait(int streamID)
 {
     // return values:
@@ -868,6 +867,8 @@ int sssl_cancelDTLSAppThAndWait(int streamID)
     // It will only delete sssl context in cases '0' and '1'
 
     int retv,retv1,prev,deleteContext;
+
+    sssl_log(LOGLEV_debug,"mira: {%s} - entering with streamID = %d",__FUNCTION__,streamID);
 
     simpleLockGet(&gContextStorageMutex);
 
@@ -961,6 +962,9 @@ int sssl_cancelDTLSAppThAndWait(int streamID)
     }
 
     simpleLockRelease(&gContextStorageMutex);
+
+    sssl_log(LOGLEV_debug,"mira: {%s} - exiting",__FUNCTION__);
+
     return(retv);
 }
 
@@ -977,6 +981,8 @@ int sssl_handleDTLSAppThCancelation(int streamID)
 
     int retv,prev;
     void * sssl;
+
+    sssl_log(LOGLEV_debug,"mira: {%s} - entering with streamID = %d",__FUNCTION__,streamID);
 
     simpleLockGet(&gContextStorageMutex);
 
@@ -1019,6 +1025,9 @@ int sssl_handleDTLSAppThCancelation(int streamID)
     }
 
     simpleLockRelease(&gContextStorageMutex);
+
+    sssl_log(LOGLEV_debug,"mira: {%s} - exiting",__FUNCTION__);
+
     return(retv);
 }
 
@@ -1220,8 +1229,7 @@ void * sssl_contextCreate(unsigned long long sessionID)
     retv = sssl_getIndexWithSessionID((unsigned long long)sessionID);
     if(retv >= 0)
     {
-        sssl_log(LOGLEV_error,"mira: sssl_contextCreate() - context already exists for sessionID = %" G_GUINT64_FORMAT,
-            sessionID);
+        sssl_log(LOGLEV_error,"mira: sssl_contextCreate() - context already exists for sessionID = 0x%llx",sessionID);
         return(NULL);
     }
 
@@ -1306,8 +1314,8 @@ int sssl_setContextStreamID(unsigned long long sessionID,int streamID)
 
     if(gSSLContextStorage[index].streamID != -1)
     {
-        sssl_log(LOGLEV_warning,"mira: sssl_setContextStreamID() - overwriting streamID %d with %d for sessionID %" G_GUINT64_FORMAT,
-           gSSLContextStorage[index].streamID,streamID,sessionID);
+        sssl_log(LOGLEV_warning,"mira: sssl_setContextStreamID() - overwriting streamID %d with %d for sessionID 0x%llx",
+            gSSLContextStorage[index].streamID,streamID,sessionID);
     }
     gSSLContextStorage[index].streamID = streamID;
 
