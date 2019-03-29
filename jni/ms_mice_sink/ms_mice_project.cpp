@@ -796,7 +796,7 @@ void* msMiceSinkServiceClass::ThreadEntry()
         }
         else
         {
-            CSIO_LOG(eLogLevel_error, "msMiceSinkServiceClass::ms_mice_sink_service_start[0x%x]\n",m_mice_service);
+            CSIO_LOG(eLogLevel_debug, "msMiceSinkServiceClass::ms_mice_sink_service_start[0x%x]\n",m_mice_service);
         }
     }
 
