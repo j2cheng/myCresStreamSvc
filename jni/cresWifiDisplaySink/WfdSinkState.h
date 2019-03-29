@@ -252,7 +252,7 @@ private:
     //reset flags when it goes to idle
     void resetAllFlags();
     void resetSystemStatus() ;
-    void prepareBeforeIdle();
+    void prepareBeforeIdle(bool signalParent);
     void prepareForRestart();
     void sendEventToParentProj(int event);
 

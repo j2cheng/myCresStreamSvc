@@ -184,9 +184,7 @@ m_rtcpDestPort(-1)
 
     getTimeStamp(WFD_SINK_EVENTTIME_STATEMACHINE_CREATED);
 
-    //Note: do not call prepareBeforeIdle here
-    resetSystemStatus();
-    resetTimeout();
+    prepareBeforeIdle(false);
 
     pRTSPSinkClient = new WfdRTSPSinkClient(this);
 
@@ -330,7 +328,7 @@ void wfdSinkStMachineClass::resetSystemStatus()
 
     deInitRTSPParser(m_rtspParserIntfSession);
 }
-void wfdSinkStMachineClass::prepareBeforeIdle()
+void wfdSinkStMachineClass::prepareBeforeIdle(bool signalParent = true)
 {
     resetAllFlags();
     resetSystemStatus();
@@ -339,8 +337,11 @@ void wfdSinkStMachineClass::prepareBeforeIdle()
     restartFromIdleCnt = 0;
 
     resetTimeout();
-    sendEventToParentProj(WFD_SINK_EVENTS_RTSP_LEAVE_SESSION_EVENT);
-    CSIO_LOG(m_debugLevel, "wfdSinkStMachineClass[%d]: prepareBeforeIdle\n", m_myId);
+
+    if(signalParent)
+        sendEventToParentProj(WFD_SINK_EVENTS_RTSP_LEAVE_SESSION_EVENT);
+
+    CSIO_LOG(m_debugLevel, "wfdSinkStMachineClass[%d]: prepareBeforeIdle signalParent[%d]\n", m_myId,signalParent);
 }
 //Note: should be called only inside states function.
 //      Making a one second delay (timeout)
@@ -559,7 +560,7 @@ int wfdSinkStMachineClass::idleState(csioEventQueueStruct* pEventQ)
         case WFD_SINK_STM_START_TEARDOWN_EVENT:
         case WFD_SINK_STM_RCVD_TEARDOWN_EVENT:
         {
-            prepareBeforeIdle();
+            prepareBeforeIdle(false);
             break;
         }
         default:

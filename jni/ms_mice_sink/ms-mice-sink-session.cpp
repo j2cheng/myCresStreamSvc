@@ -1080,7 +1080,7 @@ static gboolean ms_mice_sink_session_io_fn(GIOChannel *channel, GIOCondition con
 
 error:
     cond_string = g_io_condition_to_string(cond);
-    CSIO_LOG(eLogLevel_error,"ms.mice.sink.session.io.event.error { \"session-id\": %"G_GUINT64_FORMAT" , \"local-address\": \"%s\" , \"remote-address\": \"%s\" , \"state\": \"%s\" , \"condition\": \"%s\" , \"write\": %d , \"read\": %d }",
+    CSIO_LOG(eLogLevel_info,"ms.mice.sink.session.io.event.info { \"session-id\": %"G_GUINT64_FORMAT" , \"local-address\": \"%s\" , \"remote-address\": \"%s\" , \"state\": \"%s\" , \"condition\": \"%s\" , \"write\": %d , \"read\": %d }",
               session->priv->session_id, session->priv->local_address, session->priv->remote_address, ms_mice_sink_session_state_to_string(session->priv->state), cond_string, write_r, read_r);
     ms_mice_sink_session_close(session);
     return G_SOURCE_REMOVE;
