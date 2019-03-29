@@ -345,8 +345,11 @@ public class WifidVideoPlayer {
     public void stopSessionWithStreamId(int streamId)
     {
         Common.Logging.i(TAG, "VideoPlayer.stopSessionWithStreamId  streamId="+streamId);
-        long sessionId =  streamId2sessionId(streamId);
-        stopSession(sessionId);
+        synchronized(stopSessionObjectLock) {
+        	long sessionId =  streamId2sessionId(streamId);
+        	if (sessionId != INVALID_SESSION_ID)
+        		stopSession(sessionId);
+        }
     }
 
     ////////////////////////////////////////////////////////////////////////////////////////////////

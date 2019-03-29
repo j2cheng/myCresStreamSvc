@@ -442,7 +442,7 @@ void csio_DecVideo1stOutputCB(GstElement *src,int id)
 {
     if(csio_GetWaitDecHas1stVidDelay(id))
     {
-        CSIO_LOG(eLogLevel_info, "Sending the playing message");
+        CSIO_LOG(eLogLevel_info, "%s: Sending the playing message for streamId=%d", __FUNCTION__, id);
         csio_SaveNetworkProtocol(id);
         csio_SendVideoPlayingStatusMessage(id, STREAMSTATE_STARTED );
         CSIO_LOG(eLogLevel_info,  "+++SENT ACK TO IPLINK CLIENT Source- %ld", id);

@@ -216,8 +216,15 @@ public class GstreamIn implements StreamInStrategy, SurfaceHolder.Callback {
 	}
     
     public void updateStreamStatus(int streamStateEnum, int streamId){
+    	int curStreamState = 0;
     	// Send stream url again on start fb
-    	Log.i(TAG, "updateStreamStatus for streamId="+streamId+"  state="+streamStateEnum);
+    	Log.i(TAG, "updateStreamStatus: for streamId="+streamId+"  state="+streamStateEnum);
+    	// For wfd_mode case get current stream state so that stopSession is not called multiple times when we get "STOPPED" state
+    	// Note: new state MUST be saved so that the subsequent check for state changing to STOPPED works properly
+    	if (wfd_mode[streamId] && streamStateEnum == CresStreamCtrl.StreamState.STOPPED.getValue())
+    	{
+    		curStreamState = getCurrentStreamState(streamId);
+    	}
     	if (streamStateEnum == CresStreamCtrl.StreamState.STARTED.getValue())
     	{
     		streamCtl.sockTask.SendDataToAllClients(MiscUtils.stringFormat("STREAMURL%d=%s", streamId, streamCtl.userSettings.getStreamInUrl(streamId)));
@@ -231,7 +238,15 @@ public class GstreamIn implements StreamInStrategy, SurfaceHolder.Callback {
     		} 
     		else if (streamStateEnum == CresStreamCtrl.StreamState.STOPPED.getValue())
     		{
-    			streamCtl.wifidVideoPlayer.stopSessionWithStreamId(streamId);
+    			if (streamStateEnum != curStreamState)
+    			{
+    				streamCtl.wifidVideoPlayer.stopSessionWithStreamId(streamId);
+    				wfd_mode[streamId] = false; // Safe to do here because STOPPED state already signaled to IVideoPlayerObserver by this time
+    			}
+    			else
+    			{
+    		    	Log.i(TAG, "updateStreamStatus: for streamId="+streamId+": state was already stopped");
+    			}
     		}
     	}
     }
@@ -339,6 +354,7 @@ public class GstreamIn implements StreamInStrategy, SurfaceHolder.Callback {
     		if (streamId >= 0)
     		{
     			streamCtl.wifidVideoPlayer.stopSession(sessionId);
+    			wfd_mode[streamId] = false;
     		}
     	}
     }
