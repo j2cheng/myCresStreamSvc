@@ -2295,14 +2295,14 @@ void csio_get_width_and_height_from_mode (uint32_t * width, uint32_t * height)
 	return;
 }
 
-int csio_SendVideoPlayingStatusMessage(unsigned int source, eStreamState state)
+int csio_SendVideoPlayingStatusMessage(unsigned int streamId, eStreamState state)
 {
 	JNIEnv *env = get_jni_env ();
 
 	jmethodID updateStreamStatus = env->GetMethodID((jclass)gStreamIn_javaClass_id, "updateStreamStatus", "(II)V");
 	if (updateStreamStatus == NULL) return -1; // TODO: what is error code here
 
-	env->CallVoidMethod(CresDataDB->app, updateStreamStatus, (jint)state, (jint)source);
+	env->CallVoidMethod(CresDataDB->app, updateStreamStatus, (jint)state, (jint)streamId);
 	if (env->ExceptionCheck ()) {
 		CSIO_LOG(eLogLevel_error, "Failed to call Java method 'updateStreamStatus'");
 		env->ExceptionClear ();
@@ -2311,7 +2311,7 @@ int csio_SendVideoPlayingStatusMessage(unsigned int source, eStreamState state)
 	// Reset source parameters when stopped - Bug 88712
 	if (state == STREAMSTATE_STOPPED)
 	{
-		csio_SendVideoSourceParams(source,0,0,0,0);
+		csio_SendVideoSourceParams(streamId,0,0,0,0);
 	}
 	
 	return 0;
