@@ -801,7 +801,7 @@ static int ms_mice_sink_session_handle_read_data(ms_mice_sink_session *session, 
                 }
 
                 guint8 *decryptBuf = g_new0(guint8, cryptBufSize);
-                CSIO_LOG(eLogLevel_debug,"ms_mice_message_entry_encrypt_pack created decryptBuf[0x%x] of size[%d]\r\n",
+                CSIO_LOG(eLogLevel_debug,"ms_mice_sink_session_handle_read_data created decryptBuf[0x%x] of size[%d]\r\n",
                          decryptBuf,cryptBufSize);
 
                 if(decryptBuf)
