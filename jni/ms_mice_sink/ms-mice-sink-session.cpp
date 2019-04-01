@@ -781,7 +781,8 @@ static int ms_mice_sink_session_handle_read_data(ms_mice_sink_session *session, 
         if (required > available)
             return -EAGAIN;
 
-        if(session->priv->is_dtls_encryption_handshake_complete)
+        //Note: if pin option is false, the message from source is not encrypted.
+        if(ms_mice_sink_session_get_display_pin_option(session) && session->priv->is_dtls_encryption_handshake_complete)
         {
             guint8 *value = g_new0(guint8, required);
             stream_read_bytes(session->priv->in_stream, value, required);
