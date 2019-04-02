@@ -31,6 +31,7 @@ public class GstreamIn implements StreamInStrategy, SurfaceHolder.Callback {
     private final int stopTimeout_sec = 15;
     private final int startTimeout_ms = 25000;
     private boolean isPlaying = false;
+    boolean[] wfdIsPlaying = new boolean[com.crestron.txrxservice.CresStreamCtrl.NumOfSurfaces];
     private final static String ducatiRecoverFilePath = "/dev/shm/crestron/CresStreamSvc/ducatiRecoverTime";
     private final static long ducatiRecoverTimeDelta = (30 * 1000); //30 seconds
 
@@ -81,6 +82,8 @@ public class GstreamIn implements StreamInStrategy, SurfaceHolder.Callback {
     public GstreamIn(CresStreamCtrl mContext) {
         Log.e(TAG, "GstreamIN :: Constructor called...!");
         streamCtl = mContext;
+        for (int i=0; i < CresStreamCtrl.NumOfSurfaces; i++)
+        	wfdIsPlaying[i] = false;
         nativeSetStopTimeout(stopTimeout_sec);
         nativeInit();
     }
@@ -584,10 +587,18 @@ public class GstreamIn implements StreamInStrategy, SurfaceHolder.Callback {
     		public void run() {
     			try {
     				isPlaying = true;
-    				updateNativeWfdDataStruct(streamId);
-    				Surface s = streamCtl.getSurface(streamId);
-    				nativeSurfaceInit(s, streamId);
-    		    	nativeWfdStart(streamId, sessionId, url, rtsp_port);
+    				if (!wfdIsPlaying[streamId])
+    				{
+    					wfdIsPlaying[streamId] = true;
+    					updateNativeWfdDataStruct(streamId);
+    					Surface s = streamCtl.getSurface(streamId);
+    					nativeSurfaceInit(s, streamId);
+    					nativeWfdStart(streamId, sessionId, url, rtsp_port);
+    				}
+    				else
+    				{
+    		    		Log.w(TAG, MiscUtils.stringFormat("Trying to restart stream that was not stopped in wfdStart for streamId=", streamId));
+    				}
     			}
     			catch(Exception e){
     				// TODO: explore exception handling with better feedback of what went wrong to user
@@ -616,10 +627,17 @@ public class GstreamIn implements StreamInStrategy, SurfaceHolder.Callback {
     
     public void wfdStop(final int streamId)
     {
+		Log.i(TAG, "wfdStop");
     	isPlaying = false;
-    	Log.i(TAG, "wfdStop");
-        //nativeSurfaceFinalize (sessionId);should be called in surfaceDestroyed()
-    	nativeWfdStop(streamId);
+    	if (wfdIsPlaying[streamId])
+    	{
+    		wfdIsPlaying[streamId] = false;
+    		nativeWfdStop(streamId);
+    	}
+    	else
+    	{
+	    	Log.i(TAG, MiscUtils.stringFormat("Trying to stop stream that was not started in wfdStop for streamId=", streamId));
+    	}
     }
     
     public void msMiceStart()
