@@ -195,6 +195,7 @@ public class CresStreamCtrl extends Service {
     private String mPreviousSessionType = "";
     private boolean mMsMiceEnabled = false;
     private boolean mMiracastEnabled = false;
+	public boolean[] mUsedForAirMedia = new boolean[NumOfSurfaces];
     boolean[] updateStreamStateOnFirstFrame = new boolean[NumOfTextures]; // flags to update stream state only on first frame output from MediaCodec - used only in AirMedia currently
     private Object mDisplayChangedLock = new Object();
     private int defaultLoggingLevel = -1;
@@ -615,6 +616,7 @@ public class CresStreamCtrl extends Service {
     			streamStateLock[sessionId] = new MyReentrantLock(true, "StreamStateLock-"+sessionId);
     			mVideoDimensions[sessionId] = new videoDimensions(0, 0);
     			m_InPause[sessionId] = false;
+    			mUsedForAirMedia[sessionId] = false;
     			//            	mHDCPEncryptStatus[sessionId] = false;          	
     		}
 
@@ -4142,6 +4144,7 @@ public class CresStreamCtrl extends Service {
     						// Force layer tag to be video to avoid any chance of the wrong type of surface (RGB888) from preview
     						setSurfaceViewTag(sessId, "VideoLayer");
     						mAirMedia.show(sessId, x, y, width, height);
+    	    				mUsedForAirMedia[sessId] = true;
     						if (!updateStreamStateOnFirstFrame[sessId])
     							sendAirMediaStartedState(sessId);
     					}
@@ -4174,6 +4177,7 @@ public class CresStreamCtrl extends Service {
     				setWindowDimensions(0, 0, size.x, size.y, sessId);
     				
 					sendAirMediaStoppedState(sessId);
+    				mUsedForAirMedia[sessId] = false;
     			}
     		}
     	}

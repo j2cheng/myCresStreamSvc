@@ -18,7 +18,6 @@ public class GstreamIn implements StreamInStrategy, SurfaceHolder.Callback {
 
     String TAG = "TxRx GstreamIN";
     StringBuilder sb;
-    boolean[] wfd_mode = new boolean[com.crestron.txrxservice.CresStreamCtrl.NumOfSurfaces];
     boolean rtp_mode = false;
     boolean media_pause = false;
     int     tcpInterleaveFlag = 0;
@@ -82,8 +81,6 @@ public class GstreamIn implements StreamInStrategy, SurfaceHolder.Callback {
     public GstreamIn(CresStreamCtrl mContext) {
         Log.e(TAG, "GstreamIN :: Constructor called...!");
         streamCtl = mContext;
-        for (int i=0; i < CresStreamCtrl.NumOfSurfaces; i++)
-        	wfd_mode[i] = false;
         nativeSetStopTimeout(stopTimeout_sec);
         nativeInit();
     }
@@ -219,19 +216,23 @@ public class GstreamIn implements StreamInStrategy, SurfaceHolder.Callback {
     	int curStreamState = 0;
     	// Send stream url again on start fb
     	Log.i(TAG, "updateStreamStatus: for streamId="+streamId+"  state="+streamStateEnum);
-    	// For wfd_mode case get current stream state so that stopSession is not called multiple times when we get "STOPPED" state
-    	// Note: new state MUST be saved so that the subsequent check for state changing to STOPPED works properly
-    	if (wfd_mode[streamId] && streamStateEnum == CresStreamCtrl.StreamState.STOPPED.getValue())
+    	if (!streamCtl.mUsedForAirMedia[streamId])
     	{
-    		curStreamState = getCurrentStreamState(streamId);
+    		if (streamStateEnum == CresStreamCtrl.StreamState.STARTED.getValue())
+    		{
+    			streamCtl.sockTask.SendDataToAllClients(MiscUtils.stringFormat("STREAMURL%d=%s", streamId, streamCtl.userSettings.getStreamInUrl(streamId)));
+    		}
+    		streamCtl.SendStreamState(StreamState.getStreamStateFromInt(streamStateEnum), streamId);
     	}
-    	if (streamStateEnum == CresStreamCtrl.StreamState.STARTED.getValue())
+    	else
     	{
-    		streamCtl.sockTask.SendDataToAllClients(MiscUtils.stringFormat("STREAMURL%d=%s", streamId, streamCtl.userSettings.getStreamInUrl(streamId)));
-    	}
-    	streamCtl.SendStreamState(StreamState.getStreamStateFromInt(streamStateEnum), streamId);
-    	if (wfd_mode[streamId])
-    	{
+        	// For miracast case get current stream state so that stopSession is not called multiple times when we get "STOPPED" state
+        	// Note: new state MUST be saved so that the subsequent check for state changing to STOPPED works properly
+        	if (streamStateEnum == CresStreamCtrl.StreamState.STOPPED.getValue())
+        	{
+        		curStreamState = getCurrentStreamState(streamId);
+        	}
+        	streamCtl.setCurrentStreamState(StreamState.getStreamStateFromInt(streamStateEnum), streamId);
     		if (streamStateEnum == CresStreamCtrl.StreamState.STARTED.getValue())
     		{
     			streamCtl.wifidVideoPlayer.stateChanged(streamId, AirMediaSessionStreamingState.Playing);
@@ -241,7 +242,6 @@ public class GstreamIn implements StreamInStrategy, SurfaceHolder.Callback {
     			if (streamStateEnum != curStreamState)
     			{
     				streamCtl.wifidVideoPlayer.stopSessionWithStreamId(streamId);
-    				wfd_mode[streamId] = false; // Safe to do here because STOPPED state already signaled to IVideoPlayerObserver by this time
     			}
     			else
     			{
@@ -354,7 +354,6 @@ public class GstreamIn implements StreamInStrategy, SurfaceHolder.Callback {
     		if (streamId >= 0)
     		{
     			streamCtl.wifidVideoPlayer.stopSession(sessionId);
-    			wfd_mode[streamId] = false;
     		}
     	}
     }
@@ -406,7 +405,6 @@ public class GstreamIn implements StreamInStrategy, SurfaceHolder.Callback {
     		public void run() {
     			try {
     				isPlaying = true;
-    		    	wfd_mode[sessionId] = false;
     				updateNativeDataStruct(sessionId);
     				Surface s = streamCtl.getSurface(sessionId);
     				nativeSurfaceInit(s, sessionId);
@@ -586,7 +584,6 @@ public class GstreamIn implements StreamInStrategy, SurfaceHolder.Callback {
     		public void run() {
     			try {
     				isPlaying = true;
-    				wfd_mode[streamId] = true;
     				updateNativeWfdDataStruct(streamId);
     				Surface s = streamCtl.getSurface(streamId);
     				nativeSurfaceInit(s, streamId);
@@ -613,7 +610,6 @@ public class GstreamIn implements StreamInStrategy, SurfaceHolder.Callback {
     		Log.e(TAG, MiscUtils.stringFormat("Stream In failed to start after %d ms", startTimeout_ms));
     		startThread.interrupt(); //cleanly kill thread
     		startThread = null;
-    		wfd_mode[streamId] = false;
     		streamCtl.RecoverTxrxService();
     	}
     }

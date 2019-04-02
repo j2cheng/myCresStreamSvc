@@ -528,6 +528,7 @@ public class AirMediaSplashtop implements AirMedia
                 setAirMediaOnlyAllowSecureConnections(mStreamCtl.userSettings.getAirMediaOnlyAllowSecureConnections());
 
         		registerReceiverEventHandlers(receiver());
+        		Common.Logging.i(TAG, "Registering receiver with videoplayer");
         		mStreamCtl.wifidVideoPlayer.register(receiver_);
 
         		if (receiver().loaded() != AirMediaReceiverLoadedState.Loaded)

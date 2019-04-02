@@ -43,6 +43,7 @@ public class WifidVideoPlayer {
     {
     	receiver_ = receiver;
     	// register this class with the receiver as well
+		Common.Logging.i(TAG, "Registering videoplayer with receiver");
     	receiver.addVideoPlayer(service_);
     }
 
