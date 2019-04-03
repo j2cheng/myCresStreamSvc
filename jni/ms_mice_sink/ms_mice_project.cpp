@@ -40,6 +40,8 @@ int session_observer_disconnect_request_from_app(gpointer user_data);
 /*************************** Global functions  ************************************/
 void msMiceSinkProjInit(char* adapterAddress)
 {
+    CSIO_LOG(gProjectDebug, "msMiceSinkProjInit: enter\n");
+
     gProjectsLock.lock();
 
     //create project object now
@@ -57,11 +59,16 @@ void msMiceSinkProjInit(char* adapterAddress)
 
     gProjectsLock.unlock();
 
+    CSIO_LOG(gProjectDebug, "msMiceSinkProjInit: exit\n");
     return ;
 }
 
 void msMiceSinkProjDeInit()
 {
+    CSIO_LOG(gProjectDebug, "msMiceSinkProjDeInit: enter\n");
+
+    gProjectsLock.lock();
+
     if(g_msMiceSinkProjPtr)
     {
         g_msMiceSinkProjPtr->exitThread();
@@ -72,12 +79,8 @@ void msMiceSinkProjDeInit()
         CSIO_LOG(gProjectDebug, "msMiceSinkProjDeInit: Wait is done\n");
 
         //delete the object, and set list to NULL
-        gProjectsLock.lock();
-
         delete g_msMiceSinkProjPtr;
         g_msMiceSinkProjPtr = NULL;
-
-        gProjectsLock.unlock();
 
         CSIO_LOG(gProjectDebug, "msMiceSinkProjDeInit: delete HYDRGNProjObjPtr is DONE\n");
     }
@@ -85,13 +88,23 @@ void msMiceSinkProjDeInit()
     {
         CSIO_LOG(gProjectDebug, "msMiceSinkProjDeInit: no g_msMiceSinkProjPtrcreated.\n");
     }
+
+    gProjectsLock.unlock();
+
+    CSIO_LOG(gProjectDebug, "msMiceSinkProjDeInit: exit\n");
 }
 
 void msMiceSinkProjStopSession(int id, gint64 session_id)
 {
-    if(!session_id) return;
+    CSIO_LOG(gProjectDebug, "msMiceSinkProjStopSession: enter: id[%d], session_id[%lld]",id,session_id);
 
-    CSIO_LOG(gProjectDebug, "msMiceSinkProjStopSession: enter: id[%d], session_id[%d]",id,session_id);
+    //only non-zero positive numbers are valid
+    if(!session_id || (session_id & G_MININT64))
+    {
+        CSIO_LOG(gProjectDebug, "msMiceSinkProjStopSession: invalid session id: id[%d], session_id[%lld]",id,session_id);
+        return;
+    }
+
     gProjectsLock.lock();
 
     if(g_msMiceSinkProjPtr)
@@ -425,6 +438,47 @@ m_projEventQList(NULL)
 }
 msMiceSinkProjClass::~msMiceSinkProjClass()
 {
+    if(m_projEventQList)
+    {
+        //get list counts
+        int cnt = m_projEventQList->GetEvntQueueCount();
+
+        //remove lists
+        if(cnt > 0)
+        {
+            //loop through all contents of the list
+            for(int i = 0; i < cnt; i++)
+            {
+                csioEventQueueStruct* evntQPtr = NULL;
+                if(m_projEventQList->GetFromQueueList(&evntQPtr) && evntQPtr)
+                {
+                    switch (evntQPtr->event_type)
+                    {
+                        case MS_MICE_SINK_EVENTS_SET_PIN:
+                        {
+                            if( evntQPtr->buf_size && evntQPtr->buffPtr)
+                            {
+                                deleteCharArray(evntQPtr->buffPtr);
+                            }
+                            break;
+                        }
+                    }
+
+                    //delete event queue
+                    delete evntQPtr;
+                }
+            }
+        }
+
+        delete m_projEventQList;
+        m_projEventQList = NULL;
+    }
+
+    if(msMiceSinkProjTimeArray)
+    {
+        delete msMiceSinkProjTimeArray;
+        msMiceSinkProjTimeArray = NULL;
+    }
     CSIO_LOG(eLogLevel_info, "msMiceSinkProjClass::~msMiceSinkProjClass\n");
 }
 
@@ -701,6 +755,12 @@ m_parent(m_parent)
 }
 msMiceSinkServiceClass::~msMiceSinkServiceClass()
 {
+    if(msMiceSinkSevTimeArray)
+    {
+        delete msMiceSinkSevTimeArray;
+        msMiceSinkSevTimeArray = NULL;
+    }
+
     CSIO_LOG(eLogLevel_info, "msMiceSinkServiceClass::~msMiceSinkServiceClass\n");
 }
 
