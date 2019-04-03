@@ -178,6 +178,20 @@ int sssl_deinitialize()
         return(-1);
     }
 
+    // it would be unexpected if control comes to this point on two different
+    // threads, in which case we need to relay on pthread to gently handle
+    // using of deinitialized mutex. This can not be cleanly avoided. Also, for
+    // this practically impossible case there is this check bellow.
+
+    simpleLockGet(&gContextStorageMutex);
+
+    if(!gCommonSSLServerContext)
+    {
+        simpleLockRelease(&gContextStorageMutex);
+        sssl_log(LOGLEV_error,"mira: sssl_deinitialize: gCommonSSLServerContext is NULL after lock");
+        return(-1);
+    }
+
     ERR_free_strings();
     EVP_cleanup();
 
@@ -188,10 +202,15 @@ int sssl_deinitialize()
     }
 #ifdef GEN_KEY
     EVP_PKEY_free(gCommonSSLServerContext->pKey);
-    X509_free(gCommonSSLServerContext->pX509);
+
+    // *** X509_free(gCommonSSLServerContext->pX509);
+
 #endif
 
     gCommonSSLServerContext = NULL;
+
+    simpleLockRelease(&gContextStorageMutex);
+
     simpleLockDeInit(&gContextStorageMutex);
 
     return(0);
@@ -204,6 +223,7 @@ void * sssl_createDTLS(unsigned long long sessionID)
         return(NULL);
 
     simpleLockGet(&gContextStorageMutex);
+
     SHARED_SSL_CONTEXT * ssslContext = (SHARED_SSL_CONTEXT *)sssl_contextCreate(sessionID);
     if(!ssslContext)
     {
@@ -1275,6 +1295,9 @@ int sssl_contextRemove(unsigned long long sessionID)
 
 void * sssl_getContextWithSessionID(unsigned long long sessionID)
 {
+    if(!gCommonSSLServerContext)
+        return(NULL);
+
     int index = sssl_getIndexWithSessionID(sessionID);
     if(index < 0)
     {
@@ -1286,6 +1309,9 @@ void * sssl_getContextWithSessionID(unsigned long long sessionID)
 
 void * sssl_getContextWithStreamID(int streamID)
 {
+    if(!gCommonSSLServerContext)
+        return(NULL);
+
     int index = sssl_getIndexWithStreamID(streamID);
     if(index < 0)
     {
@@ -1298,6 +1324,9 @@ void * sssl_getContextWithStreamID(int streamID)
 
 int sssl_setContextStreamID(unsigned long long sessionID,int streamID)
 {
+    if(!gCommonSSLServerContext)
+        return(-1);
+
     int index = sssl_getIndexWithSessionID(sessionID);
     if(index < 0)
     {
