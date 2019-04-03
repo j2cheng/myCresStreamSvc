@@ -523,7 +523,7 @@ public class AirMediaSplashtop implements AirMedia
                 Point dSize = mStreamCtl.getDisplaySize();
                 receiver().displayResolution(new AirMediaSize(dSize.x, dSize.y));
                 setAirMediaMiracast(mStreamCtl.userSettings.getAirMediaMiracastEnable());
-                setAirMediaMiracast(mStreamCtl.userSettings.getAirMediaMiracastWifiDirectMode());
+                setAirMediaMiracastWifiDirectMode(mStreamCtl.userSettings.getAirMediaMiracastWifiDirectMode());
                 setAirMediaIsCertificateRequired(mStreamCtl.userSettings.getAirMediaIsCertificateRequired());
                 setAirMediaOnlyAllowSecureConnections(mStreamCtl.userSettings.getAirMediaOnlyAllowSecureConnections());
 
