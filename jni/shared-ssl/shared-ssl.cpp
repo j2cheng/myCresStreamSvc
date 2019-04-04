@@ -70,7 +70,6 @@ typedef struct {
 } COMMON_SSL_SERVER_CONTEXT;
 
 typedef struct {
-   int ssslInitialized;
    COMMON_SSL_SERVER_CONTEXT * commonServerContext;
    SSL * ssl;
    BIO * rbio;       // for writing encrypted
@@ -84,6 +83,20 @@ typedef struct {
 
 typedef struct {
    int inUse;
+
+   int ready;
+      // this flag needs to be checked on following occasions:
+      //
+      //    int csio_jni_CreatePipeline()                       
+      //       sssl = sssl_getDTLSWithStreamID(iStreamId);      
+      //                                                        
+      //    int sssl_encryptDTLS()                              
+      //        sssl = sssl_getContextWithSessionID(sessionID); 
+      //                                                        
+      //    int sssl_decryptDTLS()                              
+      //        sssl = sssl_getContextWithSessionID(sessionID); 
+      // 
+
    unsigned long long sessionID;
    int streamID;
    SHARED_SSL_CONTEXT ssslContext;
@@ -201,10 +214,22 @@ int sssl_deinitialize()
         gCommonSSLServerContext->common_SSL_CTX = NULL;
     }
 #ifdef GEN_KEY
-    EVP_PKEY_free(gCommonSSLServerContext->pKey);
-
-    X509_free(gCommonSSLServerContext->pX509);
-
+    if(!gCommonSSLServerContext->pKey)
+    {
+        sssl_log(LOGLEV_error,"mira: sssl_deinitialize: NULL gCommonSSLServerContext->pKey");
+        // complete deinit anyway
+    }
+    else if(!gCommonSSLServerContext->pX509)
+    {
+        sssl_log(LOGLEV_error,"mira: sssl_deinitialize: NULL gCommonSSLServerContext->pX509");
+        // complete deinit anyway
+    }
+    else
+    {
+        sssl_log(LOGLEV_debug,"mira: before calling EVP_PKEY_free(gCommonSSLServerContext->pKey)");
+        EVP_PKEY_free(gCommonSSLServerContext->pKey);
+        X509_free(gCommonSSLServerContext->pX509);
+    }
 #endif
 
     gCommonSSLServerContext = NULL;
@@ -232,7 +257,6 @@ void * sssl_createDTLS(unsigned long long sessionID)
         return(NULL);
     }
     memset(ssslContext,0,sizeof(SHARED_SSL_CONTEXT));
-    // so ssslContext->ssslInitialized == 0
 
     ssslContext->commonServerContext = gCommonSSLServerContext;
     sssl_log(LOGLEV_debug,"mira: sssl_createDTLS(sessionID = 0x%llx)",sessionID);
@@ -890,6 +914,13 @@ int sssl_cancelDTLSAppThAndWait(int streamID)
 
     sssl_log(LOGLEV_debug,"mira: {%s} - entering with streamID = %d",__FUNCTION__,streamID);
 
+    if(!gCommonSSLServerContext)
+    {
+        sssl_log(LOGLEV_warning,"mira: {%s} - null gCommonSSLServerContext (is Mice disabled ?)",__FUNCTION__);
+        sssl_log(LOGLEV_debug,"mira: {%s} - exiting (with potential warning)",__FUNCTION__);
+        return(-1);
+    }
+
     simpleLockGet(&gContextStorageMutex);
 
     void * sssl = sssl_getContextWithStreamID(streamID);
@@ -1259,6 +1290,7 @@ void * sssl_contextCreate(unsigned long long sessionID)
         {
             gSSLContextStorage[nn].streamID = -1;
             gSSLContextStorage[nn].sessionID = sessionID;
+            gSSLContextStorage[nn].ready = 0;
             gSSLContextStorage[nn].inUse = 1;
             return((void *)&(gSSLContextStorage[nn].ssslContext));
         }
@@ -1278,6 +1310,7 @@ int sssl_contextRemove(unsigned long long sessionID)
 
     gSSLContextStorage[index].streamID = -1;
     gSSLContextStorage[index].sessionID = (unsigned long long)0;
+    gSSLContextStorage[index].ready = 0;
     gSSLContextStorage[index].inUse = 0;
 
 
