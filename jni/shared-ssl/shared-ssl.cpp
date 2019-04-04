@@ -203,7 +203,7 @@ int sssl_deinitialize()
 #ifdef GEN_KEY
     EVP_PKEY_free(gCommonSSLServerContext->pKey);
 
-    // *** X509_free(gCommonSSLServerContext->pX509);
+    X509_free(gCommonSSLServerContext->pX509);
 
 #endif
 
