@@ -74,29 +74,20 @@ typedef struct {
    SSL * ssl;
    BIO * rbio;       // for writing encrypted
    BIO * wbio;       // for reading encrypted
-   int appThInitialized;
+   int appThInitialized;      // this is NOT a binary value
    pthread_cond_t appThCancelComplCondVar;
    pthread_mutex_t innerDTLSMutex;
+   int ready;        // this flag gets checked in the following locations:
+                     //    sssl_getDTLSWithSessionID()
+                     //    sssl_getDTLSWithStreamID()
+                     //    sssl_encryptDTLS()
+                     //    sssl_decryptDTLS()
 } SHARED_SSL_CONTEXT;
 
 #define SSL_CONTEXT_STORAGE_SIZE    16
 
 typedef struct {
    int inUse;
-
-   int ready;
-      // this flag needs to be checked on following occasions:
-      //
-      //    int csio_jni_CreatePipeline()                       
-      //       sssl = sssl_getDTLSWithStreamID(iStreamId);      
-      //                                                        
-      //    int sssl_encryptDTLS()                              
-      //        sssl = sssl_getContextWithSessionID(sessionID); 
-      //                                                        
-      //    int sssl_decryptDTLS()                              
-      //        sssl = sssl_getContextWithSessionID(sessionID); 
-      // 
-
    unsigned long long sessionID;
    int streamID;
    SHARED_SSL_CONTEXT ssslContext;
@@ -228,7 +219,7 @@ int sssl_deinitialize()
     {
         sssl_log(LOGLEV_debug,"mira: before calling EVP_PKEY_free(gCommonSSLServerContext->pKey)");
         EVP_PKEY_free(gCommonSSLServerContext->pKey);
-        X509_free(gCommonSSLServerContext->pX509);
+        // *** X509_free(gCommonSSLServerContext->pX509);
     }
 #endif
 
@@ -380,19 +371,43 @@ int sssl_destroyDTLSWithStreamID(int streamID, int doNotLock)
 }
 
 
-void * sssl_getDTLSWithSessionID(unsigned long long sessionID)
+void * sssl_getDTLSWithSessionID(unsigned long long sessionID,int checkHandshake)
 {
+    if(!gCommonSSLServerContext)
+    {
+        sssl_log(LOGLEV_debug,"mira: {%s} - null gCommonSSLServerContext",__FUNCTION__);
+        return(NULL);
+    }
     simpleLockGet(&gContextStorageMutex);
     void * sssl = sssl_getContextWithSessionID(sessionID);
+    if(checkHandshake && sssl) 
+    {
+        if(((SHARED_SSL_CONTEXT *)sssl)->ready != 1)
+        {
+            sssl = NULL;
+        }
+    }
     simpleLockRelease(&gContextStorageMutex);
     return(sssl);
 }
 
 
-void * sssl_getDTLSWithStreamID(int streamID)
+void * sssl_getDTLSWithStreamID(int streamID,int checkHandshake)
 {
+    if(!gCommonSSLServerContext)
+    {
+        sssl_log(LOGLEV_debug,"mira: {%s} - null gCommonSSLServerContext",__FUNCTION__);
+        return(NULL);
+    }
     simpleLockGet(&gContextStorageMutex);
     void * sssl = sssl_getContextWithStreamID(streamID);
+    if(checkHandshake && sssl) 
+    {
+        if(((SHARED_SSL_CONTEXT *)sssl)->ready != 1)
+        {
+            sssl = NULL;
+        }
+    }
     simpleLockRelease(&gContextStorageMutex);
     return(sssl);
 }
@@ -610,6 +625,12 @@ int sssl_encryptDTLS(unsigned long long sessionID,void * inBuff,int inBuffSize,v
         sssl_log(LOGLEV_error,"mira: {%s} - could not get sssl context",__FUNCTION__);
         return(-1);
     }
+    if(((SHARED_SSL_CONTEXT *)sssl)->ready != 1)
+    {
+        simpleLockRelease(&gContextStorageMutex);
+        sssl_log(LOGLEV_debug,"mira: {%s} - sssl context not ready",__FUNCTION__);
+        return(-1);
+    }
     simpleLockGet(&((SHARED_SSL_CONTEXT *)sssl)->innerDTLSMutex);
     simpleLockRelease(&gContextStorageMutex);
 
@@ -640,6 +661,12 @@ int sssl_decryptDTLS(unsigned long long sessionID,void * inBuff,int inBuffSize,v
     {
         simpleLockRelease(&gContextStorageMutex);
         sssl_log(LOGLEV_error,"mira: {%s} - could not get sssl context",__FUNCTION__);
+        return(-1);
+    }
+    if(((SHARED_SSL_CONTEXT *)sssl)->ready != 1)
+    {
+        simpleLockRelease(&gContextStorageMutex);
+        sssl_log(LOGLEV_debug,"mira: {%s} - sssl context not ready",__FUNCTION__);
         return(-1);
     }
     simpleLockGet(&((SHARED_SSL_CONTEXT *)sssl)->innerDTLSMutex);
@@ -761,7 +788,7 @@ int sssl_runDTLSHandshakeWithSecToken(void * sssl,void * secToken,int secTokenLe
             else
             {
                 *isDTLSHandshakeCompletePtr = true;
-
+                ssslContext->ready = 1;
                 sssl_log(LOGLEV_debug,
                     "mira: sssl_commenceDTLSHandshakeWithSecToken() - set isDTLSHandshakeComplete flag to true");
             }
@@ -1290,8 +1317,8 @@ void * sssl_contextCreate(unsigned long long sessionID)
         {
             gSSLContextStorage[nn].streamID = -1;
             gSSLContextStorage[nn].sessionID = sessionID;
-            gSSLContextStorage[nn].ready = 0;
             gSSLContextStorage[nn].inUse = 1;
+            gSSLContextStorage[nn].ssslContext.ready = 0;
             return((void *)&(gSSLContextStorage[nn].ssslContext));
         }
     }
@@ -1310,8 +1337,8 @@ int sssl_contextRemove(unsigned long long sessionID)
 
     gSSLContextStorage[index].streamID = -1;
     gSSLContextStorage[index].sessionID = (unsigned long long)0;
-    gSSLContextStorage[index].ready = 0;
     gSSLContextStorage[index].inUse = 0;
+    gSSLContextStorage[index].ssslContext.ready = 0;
 
 
 

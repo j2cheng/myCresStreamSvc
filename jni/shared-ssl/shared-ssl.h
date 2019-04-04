@@ -35,8 +35,8 @@ void * sssl_createDTLS(unsigned long long sessionID);
    // returns pointer to SHARED_SSL_CONTEXT
 int sssl_destroyDTLSWithSessionID(unsigned long long sessionID, int doNotLock);
 int sssl_destroyDTLSWithStreamID(int streamID, int doNotLock);
-void * sssl_getDTLSWithSessionID(unsigned long long sessionID);
-void * sssl_getDTLSWithStreamID(int streamID);
+void * sssl_getDTLSWithSessionID(unsigned long long sessionID,int checkHandshake);
+void * sssl_getDTLSWithStreamID(int streamID,int checkHandshake);
 
 int sssl_encryptDTLSInner(void * sssl,void * inBuff,int inBuffSize,void * outBuff,int outBuffSize);
 int sssl_decryptDTLSInner(void * sssl,void * inBuff,int inBuffSize,void * outBuff,int outBuffSize);

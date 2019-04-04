@@ -2955,27 +2955,26 @@ int csio_jni_CreatePipeline(GstElement **pipeline, GstElement **source, eProtoco
              // ***
              int ret;
              int ret1 = 0;
-             int doSRTP = 0;
+             int doDTLS = 0;
 
              // it is safe - we do not actually use the sssl
-             void * sssl = sssl_getDTLSWithStreamID(iStreamId);
+             void * sssl = sssl_getDTLSWithStreamID(iStreamId,1);
              if(sssl != NULL)
              {
                  CSIO_LOG(eLogLevel_debug,"mira: {%s} - DTLS context detected",__FUNCTION__);
-                 doSRTP = 1;
+                 doDTLS = 1;
              }
              else
              {
                  CSIO_LOG(eLogLevel_debug,"mira: {%s} - DTLS context NOT detected",__FUNCTION__);
              }
 
-             if(doSRTP)
+             if(doDTLS)
 			    {
                 data->element_appsrc = gst_element_factory_make("appsrc", NULL);
                 gst_bin_add(GST_BIN(data->pipeline), data->element_appsrc);
 
-
-                // ... I don't think so ...
+                // do I need this ? ...
                 g_object_set(G_OBJECT(data->element_appsrc), "caps", data->caps_v_ts, NULL);
 			    }
              else
@@ -2985,7 +2984,7 @@ int csio_jni_CreatePipeline(GstElement **pipeline, GstElement **source, eProtoco
 			       gst_bin_add(GST_BIN(data->pipeline), data->element_av[0]);
              }
 
-             if(doSRTP)
+             if(doDTLS)
              {
 			       ret = gst_element_link(data->element_appsrc, data->element_zero);
 
