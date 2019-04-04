@@ -11,5 +11,6 @@ public final class AirMediaReceiverProperties {
         public static String Enable = "miracast.enable";
         public static String AllowWifiDirectConnections = "miracast.wifi-direct.connection.allow";
         public static String AutonomousGO = "miracast.wifi-direct.go.autonomous";
+        public static String WifiDirectCountryCode = "miracast.wifi-direct.country-code";
     }
 }

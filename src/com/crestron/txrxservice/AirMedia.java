@@ -49,6 +49,8 @@ public interface AirMedia
 
     public void setAirMediaMiracastWifiDirectMode(boolean enable);
     
+    public void setAirMediaMiracastWirelessOperatingRegion(int regionCode);
+
     public void setSurfaceSize(int x, int y, int width, int height, boolean launch);
     
     public void setDisplayScreen(int displayId);

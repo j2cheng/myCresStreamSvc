@@ -524,6 +524,7 @@ public class AirMediaSplashtop implements AirMedia
                 receiver().displayResolution(new AirMediaSize(dSize.x, dSize.y));
                 setAirMediaMiracast(mStreamCtl.userSettings.getAirMediaMiracastEnable());
                 setAirMediaMiracastWifiDirectMode(mStreamCtl.userSettings.getAirMediaMiracastWifiDirectMode());
+                setAirMediaMiracastWirelessOperatingRegion(mStreamCtl.userSettings.getAirMediaMiracastWirelessOperatingRegion());
                 setAirMediaIsCertificateRequired(mStreamCtl.userSettings.getAirMediaIsCertificateRequired());
                 setAirMediaOnlyAllowSecureConnections(mStreamCtl.userSettings.getAirMediaOnlyAllowSecureConnections());
 
@@ -631,6 +632,23 @@ public class AirMediaSplashtop implements AirMedia
 			receiver().configureProperty(AirMediaReceiverProperties.Miracast.AllowWifiDirectConnections, enable);
 		}
     }
+    
+    public void setAirMediaMiracastWirelessOperatingRegion(int regionCode)
+    {
+    	String[] regions = {"00", "US", "JA"};
+		Common.Logging.i(TAG, "setAirMediaMiracastWirelessOperatingRegion(): " + regionCode);
+		if (receiver() != null)
+		{
+			if (regionCode >= regions.length)
+			{
+				Common.Logging.i(TAG, "setAirMediaMiracastWirelessOperatingRegion(): invalid region code: " + regionCode);
+			}
+			else
+			{
+				receiver().configureProperty(AirMediaReceiverProperties.Miracast.WifiDirectCountryCode, regions[regionCode]);
+			}
+		}
+	}
     
     public void setAirMediaIsCertificateRequired(boolean enable)
     {

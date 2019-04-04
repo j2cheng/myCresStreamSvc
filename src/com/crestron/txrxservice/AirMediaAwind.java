@@ -782,6 +782,11 @@ public class AirMediaAwind implements AirMedia
     	// Not needed for Awind
     }
 
+    public void setAirMediaMiracastWirelessOperatingRegion(int regionCode)
+    {
+    	// Not needed for Awind
+    }
+    
     public void setAirMediaIsCertificateRequired(boolean enable)
     {
     	// Not needed for Awind

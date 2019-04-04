@@ -4940,6 +4940,16 @@ public class CresStreamCtrl extends Service {
     	}
     }
     
+    public void airMediaMiracastWirelessOperatingRegion(int value)
+    {
+    	userSettings.setAirMediaMiracastWirelessOperatingRegion(value);
+    	Log.i(TAG, "airMediaMiracastWirelessOperatingRegion(): wireless operating region="+value);
+    	if (mAirMedia != null)
+    	{
+    		mAirMedia.setAirMediaMiracastWirelessOperatingRegion(value);
+    	}
+    }
+    
     public void setCamStreamEnable(boolean enable) {
 
 		stopStartLock[0].lock("setCamStreamEnable");

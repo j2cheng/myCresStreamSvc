@@ -171,6 +171,7 @@ public class CommandParser {
         AIRMEDIA_WINDOW_FLAG,
         AIRMEDIA_MIRACAST_ENABLE,
         AIRMEDIA_MIRACAST_WIFI_DIRECT_MODE_ENABLE,
+        AIRMEDIA_MIRACAST_WIRELESS_OPERATING_REGION,
         MSMICE_ENABLE,        // for VE debugging
         AIRMEDIA_VERSION,
         AIRMEDIA_DEBUG,
@@ -726,6 +727,9 @@ public class CommandParser {
             	break;
             case AIRMEDIA_MIRACAST_WIFI_DIRECT_MODE_ENABLE:
             	cmd = new AirMediaMiracastWifiDirectModeEnableCommand(ctrl, arg, idx);
+            	break;
+            case AIRMEDIA_MIRACAST_WIRELESS_OPERATING_REGION:
+            	cmd = new AirMediaMiracastWirelessOperatingRegionCommand(ctrl, arg, idx);
             	break;
             case MSMICE_ENABLE:
             	cmd = new MsMiceEnableCommand(ctrl, arg, idx);

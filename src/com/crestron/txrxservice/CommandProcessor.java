@@ -2165,6 +2165,18 @@ class AirMediaMiracastWifiDirectModeEnableCommand extends CrestronCommand {
 	}
 }
 
+class AirMediaMiracastWirelessOperatingRegionCommand extends CrestronCommand {
+	public AirMediaMiracastWirelessOperatingRegionCommand(CresStreamCtrl ctrl, String arg, int sessId) {
+		super(ctrl, arg, sessId);
+	}	
+	public void execute() {
+		ctrl.airMediaMiracastWirelessOperatingRegion(VALIDATE_INT(msg));
+	}
+	public String getFeedbackMsg() {
+		return String.valueOf(ctrl.userSettings.getAirMediaMiracastWirelessOperatingRegion());
+	}
+}
+
 class AirMediaVersionCommand extends CrestronCommand {
 	public AirMediaVersionCommand(CresStreamCtrl ctrl, String arg, int sessId) {
 		super(ctrl, arg, sessId);
