@@ -218,7 +218,7 @@ int sssl_deinitialize()
     else
     {
         sssl_log(LOGLEV_debug,"mira: before calling EVP_PKEY_free(gCommonSSLServerContext->pKey)");
-        EVP_PKEY_free(gCommonSSLServerContext->pKey);
+
         // *** X509_free(gCommonSSLServerContext->pX509);
     }
 #endif
