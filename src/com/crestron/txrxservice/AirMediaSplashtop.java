@@ -72,11 +72,12 @@ import android.graphics.Canvas;
 import android.graphics.Color;
 
 //public class AirMediaSplashtop 
-public class AirMediaSplashtop implements AirMedia
+public class AirMediaSplashtop
 {
     CresStreamCtrl mStreamCtl;
     Context mContext;
     public static final String TAG = "TxRx Splashtop AirMedia"; 
+	public final static String licenseFilePath = "/dev/shm/airmedia";
 	private boolean surfaceDisplayed = false;
 	private boolean doneQuerySenderList = true;
 	private int streamIdx = 0;

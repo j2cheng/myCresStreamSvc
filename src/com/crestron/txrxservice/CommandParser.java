@@ -802,9 +802,6 @@ public class CommandParser {
             case RESTART_STREAM_ON_START:
             	cmd = new RestartStreamOnStartCommand(ctrl, arg);
             	break;
-            case USE_GSTREAMER:
-            	cmd = new UseGstreamerCommand(ctrl, arg);
-            	break;
             case NEW_SINK:
             	cmd = new UseNewSinkCommand(ctrl, arg, idx);
             	break;

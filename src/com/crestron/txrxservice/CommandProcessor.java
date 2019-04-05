@@ -2414,22 +2414,6 @@ class RestartStreamOnStartCommand extends CrestronCommand {
     }
 }
 
-class UseGstreamerCommand extends CrestronCommand {
-	
-    public UseGstreamerCommand(CresStreamCtrl ctrl, String arg) {
-		super(ctrl, arg);
-    }
-
-    @Override
-    public void execute() {
-    	boolean val = Boolean.valueOf(msg);
-        ctrl.setUseGstreamer(val);
-    }
-    public String getFeedbackMsg() {
-    	return msg;	//no feedback for this join
-    }
-}
-
 class UseNewSinkCommand extends CrestronCommand {
 	
 	public UseNewSinkCommand(CresStreamCtrl ctrl, String arg, int sessId) {

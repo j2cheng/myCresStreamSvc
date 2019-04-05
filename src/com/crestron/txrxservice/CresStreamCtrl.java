@@ -104,8 +104,7 @@ public class CresStreamCtrl extends Service {
     StringTokenizer tokenizer;
     public static int VersionNumber = 2;
     
-    public static boolean useGstreamer = true;
-    StreamIn streamPlay = null;
+    GstreamIn streamPlay = null;
     GstreamBase gstreamBase = null;
     WbsStreamIn wbsStream = null;
     WifidVideoPlayer wifidVideoPlayer = null;
@@ -122,7 +121,7 @@ public class CresStreamCtrl extends Service {
 
     CresDisplaySurface dispSurface = null;
     
-    AirMedia mAirMedia = null;
+    AirMediaSplashtop mAirMedia = null;
     
     final int cameraRestartTimout = 1000;//msec
     static int hpdHdmiEvent = 0;
@@ -145,7 +144,6 @@ public class CresStreamCtrl extends Service {
     public boolean alphaBlending = false;
     public boolean csioConnected = false;
     boolean airMediaLicensed = false;
-    private boolean use_splashtop = false;
     boolean[] restartRequired = new boolean[NumOfSurfaces];
     public final static String savedSettingsFilePath = "/data/CresStreamSvc/userSettings";
     public final static String savedSettingsOldFilePath = "/data/CresStreamSvc/userSettings.old";
@@ -905,55 +903,50 @@ public class CresStreamCtrl extends Service {
     		}
     		
     		//Input Streamout Config
-    		if (useGstreamer)
+    		// If mediaserver is in bad state this could get stuck
+    		// Load GstreamBase first!
+    		final CountDownLatch latch = new CountDownLatch(1);
+    		Thread startGstreamerThread = new Thread(new Runnable() {
+    			public void run() {
+    				gstreamBase = new GstreamBase(CresStreamCtrl.this);
+    				latch.countDown();
+    			}
+    		});
+    		startGstreamerThread.start();
+
+    		boolean successfulStart = true; //indicates that there was no time out condition
+    		try { successfulStart = latch.await(3000, TimeUnit.MILLISECONDS); }
+    		catch (InterruptedException ex) { ex.printStackTrace(); }
+
+    		// Library failed to load kill mediaserver and restart txrxservice
+    		if (!successfulStart)
     		{
-    			// If mediaserver is in bad state this could get stuck
-    			// Load GstreamBase first!
-    			final CountDownLatch latch = new CountDownLatch(1);
-    			Thread startGstreamerThread = new Thread(new Runnable() {
-    				public void run() {
-    					gstreamBase = new GstreamBase(CresStreamCtrl.this);
-    					latch.countDown();
-    				}
-    			});
-    			startGstreamerThread.start();
+    			Log.e(TAG, "Gstreamer failed to initialize, restarting txrxservice and mediaserver");
 
-    			boolean successfulStart = true; //indicates that there was no time out condition
-    			try { successfulStart = latch.await(3000, TimeUnit.MILLISECONDS); }
-    			catch (InterruptedException ex) { ex.printStackTrace(); }
-
-    			// Library failed to load kill mediaserver and restart txrxservice
-    			if (!successfulStart)
-    			{
-    				Log.e(TAG, "Gstreamer failed to initialize, restarting txrxservice and mediaserver");
-
-    				RecoverMediaServer();
-    				RecoverTxrxService();    		
-    			}
-    			else
-    			{            		
-    				if (defaultLoggingLevel != -1) //-1 means that value still has not been set
-    				{
-    					streamPlay.setLogLevel(defaultLoggingLevel);
-    				}
-    			}
-
-    			// After gstreamer is initialized we can load gstreamIn and gstreamOut
-    			streamPlay = new StreamIn(new GstreamIn(CresStreamCtrl.this));
-
-    			// Added for real camera on x60
-    			// to-do: support having both hdmi input and a real camera at the same time...
-    			if(ProductSpecific.hasRealCamera())
-    			{
-    				gstStreamOut = new GstreamOut(CresStreamCtrl.this);
-    				// PEM - uncomment if you want to enable camera preview for real camera.
-    				// To-do: support platform that has an hdmi input and a real camera.
-                    // in X60, now use GstPreview, no longer use NativePreview, so comment out below:
-    				//cam_preview = new CameraPreview(this, null);    
-    			}
+    			RecoverMediaServer();
+    			RecoverTxrxService();    		
     		}
     		else
-    			streamPlay = new StreamIn(new NstreamIn(CresStreamCtrl.this)); 
+    		{            		
+    			if (defaultLoggingLevel != -1) //-1 means that value still has not been set
+    			{
+    				streamPlay.setLogLevel(defaultLoggingLevel);
+    			}
+    		}
+
+    		// After gstreamer is initialized we can load gstreamIn and gstreamOut
+    		streamPlay = new GstreamIn(CresStreamCtrl.this);
+
+    		// Added for real camera on x60
+    		// to-do: support having both hdmi input and a real camera at the same time...
+    		if(ProductSpecific.hasRealCamera())
+    		{
+    			gstStreamOut = new GstreamOut(CresStreamCtrl.this);
+    			// PEM - uncomment if you want to enable camera preview for real camera.
+    			// To-do: support platform that has an hdmi input and a real camera.
+    			// in X60, now use GstPreview, no longer use NativePreview, so comment out below:
+    			//cam_preview = new CameraPreview(this, null);    
+    		}
     		
     		wbsStream = new WbsStreamIn(CresStreamCtrl.this);
     		
@@ -1333,47 +1326,31 @@ public class CresStreamCtrl extends Service {
     			// Wait until CSIO is connected (Bug 135686)
 				// next line For debugging only - temporary
     			// airMediaLicensed = (new File("/data/CresStreamSvc/airmedialicense")).exists();
-				use_splashtop = true;//(new File("/data/CresStreamSvc/splashtop")).exists(); // Going back to forcing splashtop
-				Log.i(TAG, "******************  Use_Splashtop="+String.valueOf(use_splashtop) + "**************");
+				Log.i(TAG, "******************  Airmedia Startup **************");
 				if (!airMediaLicensed)
 				{
-    				while ((new File(AirMedia.licenseFilePath)).exists() == false)
+    				while ((new File(AirMediaSplashtop.licenseFilePath)).exists() == false)
     				{
     					try { Thread.sleep(5000); } catch (InterruptedException e){}//Poll every 5 seconds
     				}
-    				if (use_splashtop)
-    				{
-        				airMediaLicensed = AirMediaSplashtop.checkAirMediaLicense();
-    				}
-    				else
-    				{
-        				airMediaLicensed = AirMediaAwind.checkAirMediaLicense();
-    				}
+    				airMediaLicensed = AirMediaSplashtop.checkAirMediaLicense();
 				}
     			Log.i(TAG, "AirMedia is licensed: try to start AirMedia (csioConnected="+csioConnected+")");
     			while (!csioConnected) {
     				try { Thread.sleep(500); } catch (InterruptedException e){}//Poll every 0.5 seconds
     			}
     			// Wait until file exists then check
-    			if (!use_splashtop)
-    			{
-    				if (mAirMedia == null && airMediaLicensed)
-    					mAirMedia = new AirMediaAwind(streamCtrl);
-    			}
-    			else
-    			{
-    				if (mAirMedia == null && airMediaLicensed) {
-    					Log.i(TAG, "Calling AirMediaConstructor from airMediaLicenseThread");
-    					mAirMedia = new AirMediaSplashtop(streamCtrl); 
-        				msMiceEnable(userSettings.getMsMiceEnable());
-    					// Ensure any existing ms-mice connections that exist are dropped
-        				for (int sessionId = 0; sessionId < NumOfSurfaces; sessionId++)
-        				{
-        					if (userSettings.getAirMediaLaunch(sessionId)) {
-        						userSettings.setAirMediaLaunch(false, sessionId);
-        						streamPlay.wfdStop(sessionId);
-        					}
-        				}
+    			if (mAirMedia == null && airMediaLicensed) {
+    				Log.i(TAG, "Calling AirMediaConstructor from airMediaLicenseThread");
+    				mAirMedia = new AirMediaSplashtop(streamCtrl); 
+    				msMiceEnable(userSettings.getMsMiceEnable());
+    				// Ensure any existing ms-mice connections that exist are dropped
+    				for (int sessionId = 0; sessionId < NumOfSurfaces; sessionId++)
+    				{
+    					if (userSettings.getAirMediaLaunch(sessionId)) {
+    						userSettings.setAirMediaLaunch(false, sessionId);
+    						streamPlay.wfdStop(sessionId);
+    					}
     				}
     			}
     		}
@@ -2131,27 +2108,6 @@ public class CresStreamCtrl extends Service {
         {
         	stopStartLock[sessionId].unlock("setDeviceMode");
         }    
-    }
-    
-    public void setUseGstreamer(boolean flag)
-    {
-    	if (flag != useGstreamer)
-    	{
-	    	for (int sessionId = 0; sessionId < NumOfSurfaces; sessionId++)
-	    	{
-	    		if ((userSettings.getMode(sessionId) == DeviceMode.STREAM_IN.ordinal())
-	    				&& (getCurrentStreamState(sessionId) != StreamState.STOPPED))
-	    		{
-	    			Stop(sessionId, false);
-	    		}
-	    	}
-	    	
-	    	if (flag)
-            	streamPlay = new StreamIn(new GstreamIn(CresStreamCtrl.this));
-            else
-            	streamPlay = new StreamIn(new NstreamIn(CresStreamCtrl.this));
-	    	useGstreamer = flag;
-    	}
     }
     
     public void setNewSink(boolean flag, int sessionId)
@@ -4009,10 +3965,7 @@ public class CresStreamCtrl extends Service {
     
     public void RestartAirMedia() {
         Log.e(TAG, "Fatal error, restart AirMedia!");
-        if (use_splashtop)
-        	sockTask.SendDataToAllClients("RestartAirMedia=splashtop");
-        else
-        	sockTask.SendDataToAllClients("RestartAirMedia=awind");
+        sockTask.SendDataToAllClients("RestartAirMedia=splashtop");
     }
     
     public void airmediaRestart(int sessId) {
@@ -4020,15 +3973,7 @@ public class CresStreamCtrl extends Service {
 	    {
     		synchronized (mAirMediaLock) {	
     			Log.i(TAG, "restarting AirMedia!");
-    			if (mAirMedia instanceof AirMediaAwind) {
-    				((AirMediaAwind)mAirMedia).unregisterBroadcasts();  		
-    				mAirMedia = null;
-    				mAirMedia = new AirMediaAwind(this);
-    				if (userSettings.getAirMediaLaunch(sessId))
-        				launchAirMedia(true, 0, false);
-    			} else {
-    				// Intentional do nothing for splashtop (not needed)
-    			}    			
+    			// Intentional do nothing for splashtop (not needed)
     		}
     	}
     }
@@ -4097,20 +4042,17 @@ public class CresStreamCtrl extends Service {
     			if (val == true) // True = launch airmedia app, false = close app
     			{
     				// Do I need to stop all video here???  
-    				if (mAirMedia == null && airMediaLicensed) {
-    					if (!use_splashtop)
-    						mAirMedia = new AirMediaAwind(this);
-    					else {
-    						if (mAirMedia == null)
-    						{
-    							Log.i(TAG, "launchAirMedia: airMedia is null - wait for constructor to be invoked - ignoring command");
-    							return;
-    						}
-    						if (mAirMedia.airMediaIsUp())
-    						{
-    							Log.i(TAG, "launchAirMedia: airMedia is not yet up -ignoring command");
-    							return;
-    						}
+    				if (mAirMedia == null && airMediaLicensed) 
+    				{
+    					if (mAirMedia == null)
+    					{
+    						Log.i(TAG, "launchAirMedia: airMedia is null - wait for constructor to be invoked - ignoring command");
+    						return;
+    					}
+    					if (mAirMedia.airMediaIsUp())
+    					{
+    						Log.i(TAG, "launchAirMedia: airMedia is not yet up -ignoring command");
+    						return;
     					}
     				}    				
     				if (mAirMedia != null)
@@ -4863,17 +4805,13 @@ public class CresStreamCtrl extends Service {
     {
     	String versionName = "";
 		final PackageManager pm = getPackageManager();
-		String apkName = "ReceiverAirMedia.apk";
-		if (use_splashtop)
-			apkName = "ReceiverAirMediaSplashtop.apk";
+		String apkName = "ReceiverAirMediaSplashtop.apk";
 		String fullPath = "/data/app" + "/" + apkName;        
 		PackageInfo info = pm.getPackageArchiveInfo(fullPath, 0);
 		if (info != null)
-			versionName = info.versionName;
-		if (AirMediaAwind.checkAirMediaLicense())
-			MiscUtils.writeStringToDisk("/dev/shm/crestron/CresStreamSvc/airmediaVersion", versionName);
-		if (use_splashtop) {
+		{
 			ApplicationInfo ai=null;
+			versionName = info.versionName;
 			try {
 				ai = pm.getApplicationInfo("com.crestron.airmedia.receiver.m360", PackageManager.GET_META_DATA);
 			} catch(Exception e) { Log.e(TAG, "Exception encountered trying to get metadata for AirMedia SDK version");}
@@ -5428,7 +5366,6 @@ public class CresStreamCtrl extends Service {
 				{
 					int width = userSettings.getAirMediaWidth();
 					int height = userSettings.getAirMediaHeight();
-					//				try { Thread.sleep(7000); } catch (Exception e) {}	// Awind data, they need ~10 seconds before we send show
 
 					if ((width == 0) && (height == 0))
 					{

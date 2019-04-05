@@ -772,7 +772,7 @@ public class UserSettings
 	    		newUrl = MiscUtils.getLocalUrl(url, getDecodeInternalRtspPort(sessId));
 			}
 
-			StreamIn.setServerUrl(newUrl, sessId);
+			GstreamIn.setServerUrl(newUrl, sessId);
 		}
 	}
 	
@@ -1036,7 +1036,7 @@ public class UserSettings
 		this.statisticsEnable[sessId] = statisticsEnable;
 
 		if ((this.mode[sessId] == DeviceMode.STREAM_IN.ordinal()) && (statisticsEnable))
-			StreamIn.setStatistics(statisticsEnable, sessId);
+			GstreamIn.setStatistics(statisticsEnable, sessId);
 	}
 
 	public boolean isStatisticsDisable(int sessId) {
@@ -1047,7 +1047,7 @@ public class UserSettings
 		this.statisticsDisable[sessId] = statisticsDisable;
 
 		if ((this.mode[sessId] == DeviceMode.STREAM_IN.ordinal()) && (statisticsDisable))
-			StreamIn.setStatistics(!statisticsDisable, sessId);
+			GstreamIn.setStatistics(!statisticsDisable, sessId);
 	}
 
 	public int getRtspPort(int sessId) {

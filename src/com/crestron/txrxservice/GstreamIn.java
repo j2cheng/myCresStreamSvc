@@ -14,7 +14,7 @@ import com.crestron.txrxservice.CresStreamCtrl.DeviceMode;
 import com.crestron.txrxservice.CresStreamCtrl.StreamState;
 import com.crestron.airmedia.receiver.m360.ipc.AirMediaSessionStreamingState;
 
-public class GstreamIn implements StreamInStrategy, SurfaceHolder.Callback {
+public class GstreamIn implements SurfaceHolder.Callback {
 
     String TAG = "TxRx GstreamIN";
     StringBuilder sb;
