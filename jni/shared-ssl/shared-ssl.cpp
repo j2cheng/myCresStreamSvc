@@ -219,7 +219,7 @@ int sssl_deinitialize()
     {
         sssl_log(LOGLEV_debug,"mira: before calling EVP_PKEY_free(gCommonSSLServerContext->pKey)");
         EVP_PKEY_free(gCommonSSLServerContext->pKey);
-        // *** X509_free(gCommonSSLServerContext->pX509);
+        X509_free(gCommonSSLServerContext->pX509);
     }
 #endif
 
@@ -1567,14 +1567,22 @@ EVP_PKEY * generate_key()
     }
 
     /* Generate the RSA key and assign it to pkey. */
-    RSA * rsa = RSA_generate_key(2048, RSA_F4, NULL, NULL);
+    //RSA * rsa = RSA_generate_key(2048, RSA_F4, NULL, NULL);
+    //There were big changes OpenSSL/crypto 1.1.1 and they are not fully source compatible
+    BIGNUM *e = BN_new();
+    BN_set_word(e, 17);
+    RSA *rsa = RSA_new();
+    RSA_generate_key_ex(rsa, 2048, e, NULL);
+
     if(!EVP_PKEY_assign_RSA(pkey, rsa))
     {
         sssl_log(LOGLEV_error,"Unable to generate 2048-bit RSA key.");
         EVP_PKEY_free(pkey);
+        BN_free(e);
         return NULL;
     }
 
+    BN_free(e);
     /* The key has been generated, return it. */
     return pkey;
 }
