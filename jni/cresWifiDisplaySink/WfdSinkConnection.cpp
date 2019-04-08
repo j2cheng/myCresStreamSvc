@@ -124,7 +124,7 @@ void WfdRTSPSinkClient::setSourceAddrPort(const char* pUrl,int port)
             CSIO_LOG(m_debugLevel, "ERROR:");
     }
 
-    CSIO_LOG(m_debugLevel, "WfdRTSPSinkClient: setSourceAddrPort is done,m_sourceAddress(%s),sourcePortNum[%d]\n",
+    CSIO_LOG(ABOVE_DEBUG_VERB(m_debugLevel), "WfdRTSPSinkClient: setSourceAddrPort is done,m_sourceAddress(%s),sourcePortNum[%d]\n",
              m_sourceAddress.c_str(),sourcePortNum);
 }
 void WfdRTSPSinkClient::resetSocket()
@@ -385,17 +385,17 @@ int WfdRTSPSinkClient::sendDataOut(char* msg, int size)
 {
     int result = -1;
 
-    CSIO_LOG(m_debugLevel, "WfdRTSPSinkClient: sendDataout size[%d]",size);
+    CSIO_LOG(ABOVE_DEBUG_XTRVERB(m_debugLevel), "WfdRTSPSinkClient: sendDataout size[%d]",size);
 
     if(m_sock >= 0 && msg)
     {
         result = send(m_sock, msg, size, 0);
 
-        CSIO_LOG(m_debugLevel, "WfdRTSPSinkClient to m_sock[%d],size[%d],result[%d]",
+        CSIO_LOG(ABOVE_DEBUG_XTRVERB(m_debugLevel), "WfdRTSPSinkClient to m_sock[%d],size[%d],result[%d]",
                  m_sock,size,result);
     }
 
-    CSIO_LOG(m_debugLevel, "WfdRTSPSinkClient: sendDataout result[%d]",result);
+    CSIO_LOG(ABOVE_DEBUG_XTRVERB(m_debugLevel), "WfdRTSPSinkClient: sendDataout result[%d]",result);
 
     return 0;
 }

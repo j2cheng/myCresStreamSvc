@@ -385,7 +385,7 @@ int wfdSinkStMachineClass::stateFunction(csioEventQueueStruct* pEventQ)
     int currenState = m_curentState;
 
     if(pEventQ->event_type != WFD_SINK_STM_TIME_TICKS_EVENT)
-        CSIO_LOG(m_debugLevel,   "wfdSinkStMachineClass[%d]: stateFunction: m_curentState[%s], event_type[%s][%d]\n",
+        CSIO_LOG(ABOVE_DEBUG_VERB(m_debugLevel),   "wfdSinkStMachineClass[%d]: stateFunction: m_curentState[%s], event_type[%s][%d]\n",
                   m_myId,
                   getThisArrayNames(Wfd_Sink_states_names,numOfWfd_SinkStateNamelList, m_curentState),
                   getThisArrayNames(Wfd_state_event_names,numOfWfdStateEventNamelList,pEventQ->event_type),
@@ -459,7 +459,7 @@ int wfdSinkStMachineClass::stateFunction(csioEventQueueStruct* pEventQ)
 
     if(pEventQ->event_type != WFD_SINK_STM_TIME_TICKS_EVENT || currenState != m_curentState)
     {
-        CSIO_LOG((m_debugLevel), "wfdSinkStMachineClass[%d]: stateFunction: new state[%s]\n",
+        CSIO_LOG(ABOVE_DEBUG_VERB(m_debugLevel), "wfdSinkStMachineClass[%d]: stateFunction: new state[%s]\n",
                   m_myId,getThisArrayNames(Wfd_Sink_states_names,numOfWfd_SinkStateNamelList, m_curentState));
     }
     return 0;
@@ -1644,13 +1644,13 @@ int wfdSinkStMachineClass::monitorKeepAliveState(csioEventQueueStruct* pEventQ)
             setTimeout(m_keepAliveTimeout);
 
             //TODO: send out response
-            CSIO_LOG(m_debugLevel,  "wfdSinkStMachineClass[%d]: WFD_SINK_STM_KEEP_ALIVE_RCVD_EVENT processed.\n",m_myId);
+            CSIO_LOG(ABOVE_DEBUG_VERB(m_debugLevel),  "wfdSinkStMachineClass[%d]: WFD_SINK_STM_KEEP_ALIVE_RCVD_EVENT processed.\n",m_myId);
 
             if(pRTSPSinkClient)
             {
                 if( pEventQ->buf_size && pEventQ->buffPtr)
                 {
-                    CSIO_LOG(m_debugLevel,  "wfdSinkStMachineClass[%d]: WFD_SINK_STM_KEEP_ALIVE_RCVD_EVENT composed[%s][%d].\n",
+                    CSIO_LOG(ABOVE_DEBUG_VERB(m_debugLevel),  "wfdSinkStMachineClass[%d]: WFD_SINK_STM_KEEP_ALIVE_RCVD_EVENT composed[%s][%d].\n",
                             m_myId,pEventQ->buffPtr,pEventQ->buf_size);
                     pRTSPSinkClient->sendDataOut((char*)pEventQ->buffPtr,pEventQ->buf_size);
                 }
@@ -1765,9 +1765,9 @@ void wfdSinkStMachineClass::processThisSockectEvent()
 //called from processThisSockectEvent --->   readSocket()  -->processPackets
 void wfdSinkStMachineClass::processPackets(int size, char* buf)
 {
-    CSIO_LOG(m_debugLevel, "wfdSinkStMachineClass[%d]: processPackets size[%d][%s]\n", m_myId,size,buf);
+    CSIO_LOG(ABOVE_DEBUG_XTRVERB(m_debugLevel), "wfdSinkStMachineClass[%d]: processPackets size[%d][%s]\n", m_myId,size,buf);
 
-    CSIO_LOG(m_debugLevel, "m_curentState[%d]: expecting RTSP header[%s]\n",
+    CSIO_LOG(ABOVE_DEBUG_XTRVERB(m_debugLevel), "m_curentState[%d]: expecting RTSP header[%s]\n",
             m_curentState,Wfd_rtsp_msg_string_vs_event_names[m_curentState].pStr);
 
     //Note: we are using wfdSinkStMachineClass::m_EvntQ here,
@@ -1789,7 +1789,7 @@ void wfdSinkStMachineClass::processPackets(int size, char* buf)
         deleteCharArray(m_EvntQ.buffPtr);
     }
 
-    CSIO_LOG(m_debugLevel, "wfdSinkStMachineClass[%d]: processPackets: called parseRTSPMessage[%d] exits.\n", m_myId,ret);
+    CSIO_LOG(ABOVE_DEBUG_XTRVERB(m_debugLevel), "wfdSinkStMachineClass[%d]: processPackets: called parseRTSPMessage[%d] exits.\n", m_myId,ret);
 }
 
 int wfdSinkStMachineClass::parserCallbackFun(RTSPPARSINGRESULTS * parsResPtr, void * appArgument)
@@ -1804,26 +1804,26 @@ int wfdSinkStMachineClass::parserCallbackFun(RTSPPARSINGRESULTS * parsResPtr, vo
 
     if(p)
     {
-        CSIO_LOG(p->m_debugLevel, "wfdSinkStMachineClass[%d]: parserCallbackFun: received parsed messageType[%d]\n", p->m_myId,parsResPtr->messageType);
+        CSIO_LOG(ABOVE_DEBUG_XTRVERB(p->m_debugLevel), "wfdSinkStMachineClass[%d]: parserCallbackFun: received parsed messageType[%d]\n", p->m_myId,parsResPtr->messageType);
 
         switch(parsResPtr->messageType)
         {
             case RTSP_MESSAGE_REQUEST:
             {
-                CSIO_LOG(p->m_debugLevel, "wfdSinkStMachineClass[%d]: parserCallbackFun: received parsed request\n", p->m_myId);
+                CSIO_LOG(ABOVE_DEBUG_XTRVERB(p->m_debugLevel), "wfdSinkStMachineClass[%d]: parserCallbackFun: received parsed request\n", p->m_myId);
 
                 if(Wfd_rtsp_msg_type_vs_event_names[p->m_curentState][0] == RTSP_MESSAGE_REQUEST)
                 {
                     if(parsResPtr->request_method)
                     {
-                        CSIO_LOG(p->m_debugLevel, "wfdSinkStMachineClass[%d]: parserCallbackFun: request_method: %s\n", p->m_myId,parsResPtr->request_method);
+                        CSIO_LOG(ABOVE_DEBUG_XTRVERB(p->m_debugLevel), "wfdSinkStMachineClass[%d]: parserCallbackFun: request_method: %s\n", p->m_myId,parsResPtr->request_method);
 
                         if(strcasestr( parsResPtr->request_method, Wfd_rtsp_msg_string_vs_event_names[p->m_curentState].pStr ))
                         {
                             //looking for triggerMethod
                             if(parsResPtr->headerData.triggerMethod)
                             {
-                                CSIO_LOG(p->m_debugLevel, "wfdSinkStMachineClass[%d]: parserCallbackFun: triggerMethod[%s]\n",
+                                CSIO_LOG(ABOVE_DEBUG_XTRVERB(p->m_debugLevel), "wfdSinkStMachineClass[%d]: parserCallbackFun: triggerMethod[%s]\n",
                                          p->m_myId,parsResPtr->headerData.triggerMethod);
 
                                 if(strcasestr( parsResPtr->headerData.triggerMethod, "TEARDOWN" ))
@@ -1840,14 +1840,14 @@ int wfdSinkStMachineClass::parserCallbackFun(RTSPPARSINGRESULTS * parsResPtr, vo
                                 }//else
                             }//else
 
-                            CSIO_LOG(p->m_debugLevel, "wfdSinkStMachineClass[%d]: parserCallbackFun: triggerMethod: %d\n",
+                            CSIO_LOG(ABOVE_DEBUG_XTRVERB(p->m_debugLevel), "wfdSinkStMachineClass[%d]: parserCallbackFun: triggerMethod: %d\n",
                                      p->m_myId,p->m_EvntQ.ext_obj);
 
                             composeRTSPResponse(p->m_rtspParserIntfSession,parsResPtr,RTSP_CODE_OK,parserComposeRespCallback,(void *)appArgument);
                         }
                         else
                         {
-                            CSIO_LOG(p->m_debugLevel, "wfdSinkStMachineClass[%d]: parserCallbackFun: request_method[%s] not match[%s]\n",
+                            CSIO_LOG(ABOVE_DEBUG_XTRVERB(p->m_debugLevel), "wfdSinkStMachineClass[%d]: parserCallbackFun: request_method[%s] not match[%s]\n",
                                     p->m_myId,
                                     parsResPtr->request_method,
                                     Wfd_rtsp_msg_string_vs_event_names[p->m_curentState].pStr);
@@ -1869,12 +1869,12 @@ int wfdSinkStMachineClass::parserCallbackFun(RTSPPARSINGRESULTS * parsResPtr, vo
                     }
                     else
                     {
-                        CSIO_LOG(p->m_debugLevel, "wfdSinkStMachineClass[%d]: parserCallbackFun: REQUEST without request_method\n", p->m_myId);
+                        CSIO_LOG(ABOVE_DEBUG_XTRVERB(p->m_debugLevel), "wfdSinkStMachineClass[%d]: parserCallbackFun: REQUEST without request_method\n", p->m_myId);
                     }
                 }
                 else
                 {
-                    CSIO_LOG(p->m_debugLevel, "wfdSinkStMachineClass[%d]: parserCallbackFun: m_curentState[%d] not waiting for request[%s].\n",
+                    CSIO_LOG(ABOVE_DEBUG_XTRVERB(p->m_debugLevel), "wfdSinkStMachineClass[%d]: parserCallbackFun: m_curentState[%d] not waiting for request[%s].\n",
                              p->m_myId,p->m_curentState,
                              parsResPtr->request_method? parsResPtr->request_method:"NONE");
 
@@ -1900,17 +1900,17 @@ int wfdSinkStMachineClass::parserCallbackFun(RTSPPARSINGRESULTS * parsResPtr, vo
             }
             case RTSP_MESSAGE_REPLY:
             {
-                CSIO_LOG(p->m_debugLevel, "wfdSinkStMachineClass[%d]: parserCallbackFun: received parsed response\n", p->m_myId);
+                CSIO_LOG(ABOVE_DEBUG_XTRVERB(p->m_debugLevel), "wfdSinkStMachineClass[%d]: parserCallbackFun: received parsed response\n", p->m_myId);
 
                 if(Wfd_rtsp_msg_type_vs_event_names[p->m_curentState][0] == RTSP_MESSAGE_REPLY)
                 {
                     if(parsResPtr->reply_phrase)
                     {
-                        CSIO_LOG(p->m_debugLevel, "wfdSinkStMachineClass[%d]: parserCallbackFun: reply_phrase: %s\n", p->m_myId,parsResPtr->reply_phrase);
+                        CSIO_LOG(ABOVE_DEBUG_XTRVERB(p->m_debugLevel), "wfdSinkStMachineClass[%d]: parserCallbackFun: reply_phrase: %s\n", p->m_myId,parsResPtr->reply_phrase);
                     }
 
-                    CSIO_LOG(p->m_debugLevel, "wfdSinkStMachineClass[%d]: parserCallbackFun: reply_code: %d\n", p->m_myId,parsResPtr->reply_code);
-                    CSIO_LOG(p->m_debugLevel, "wfdSinkStMachineClass[%d]: parserCallbackFun: number of headers: %d\n", p->m_myId,parsResPtr->parsedMessagePtr->header_used);
+                    CSIO_LOG(ABOVE_DEBUG_XTRVERB(p->m_debugLevel), "wfdSinkStMachineClass[%d]: parserCallbackFun: reply_code: %d\n", p->m_myId,parsResPtr->reply_code);
+                    CSIO_LOG(ABOVE_DEBUG_XTRVERB(p->m_debugLevel), "wfdSinkStMachineClass[%d]: parserCallbackFun: number of headers: %d\n", p->m_myId,parsResPtr->parsedMessagePtr->header_used);
 
                     if(parsResPtr->reply_code == 200)
                     {
@@ -1924,7 +1924,7 @@ int wfdSinkStMachineClass::parserCallbackFun(RTSPPARSINGRESULTS * parsResPtr, vo
                     //looking for keepAliveTimeout
                     if(parsResPtr->headerData.keepAliveTimeout != -1)
                     {
-                        CSIO_LOG(p->m_debugLevel, "wfdSinkStMachineClass[%d]: parserCallbackFun: keepAliveTimeout[%d]\n",
+                        CSIO_LOG(ABOVE_DEBUG_XTRVERB(p->m_debugLevel), "wfdSinkStMachineClass[%d]: parserCallbackFun: keepAliveTimeout[%d]\n",
                                  p->m_myId,parsResPtr->headerData.keepAliveTimeout);
 
                         //convert headerData.keepAliveTimeout(in second) to m_keepAliveTimeout(in ms)
@@ -1979,7 +1979,7 @@ int wfdSinkStMachineClass::parserComposeRespCallback(RTSPCOMPOSINGRESULTS * comp
                 type = WFD_SINK_STM_RCVD_TEARDOWN_EVENT;
             }//else
 
-            CSIO_LOG(p->m_debugLevel, "wfdSinkStMachineClass[%d]: parserComposeRespCallback event_type[%d]\n",
+            CSIO_LOG(ABOVE_DEBUG_XTRVERB(p->m_debugLevel), "wfdSinkStMachineClass[%d]: parserComposeRespCallback event_type[%d]\n",
                      p->m_myId,type);
 
             int dataSize = strlen(composingResPtr->composedMessagePtr);
