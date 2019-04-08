@@ -70,7 +70,9 @@ STL_INC_PATH := $(CRESTRON_ROOT)/../stlport/stlport
 CPP_INC_PATH := $(CRESTRON_ROOT)/../../bionic
 
 ifeq ($(TARGET_PRODUCT),$(filter $(TARGET_PRODUCT),yushan_one full_omap5panda))
-SSL_INC_PATH := $(CRESTRON_ROOT)/../openssl-1.1.1/include
+#SSL_INC_PATH := $(CRESTRON_ROOT)/../openssl-1.1.1/include
+#we are going to use nwer version of libs that comes with gstreamer
+SSL_INC_PATH := $(GSTREAMER_ROOT_ANDROID)/include
 else
 SSL_INC_PATH := $(CRESTRON_ROOT)/../openssl/include
 endif
