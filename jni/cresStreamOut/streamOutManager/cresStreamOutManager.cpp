@@ -363,7 +363,7 @@ void* CStreamoutManager::ThreadEntry()
 				 "queue ! "
 				 "%s bitrate=%s i-frame-interval=%s ! "
 				 "rtph264pay name=pay0 pt=96 )",
-				 product_info()->video_encoder_string,
+				 product_info()->H264_encoder_string,
 				 m_bit_rate,m_iframe_interval);
     }
     CSIO_LOG(m_debugLevel, "Streamout: rtsp server pipeline: [%s]", pipeline);
