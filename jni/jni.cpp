@@ -3276,7 +3276,7 @@ int csio_jni_CreatePipeline(GstElement **pipeline, GstElement **source, eProtoco
 			data->element_v[0] = gst_element_factory_make("rtph264depay", NULL);
 			data->element_v[1] = gst_element_factory_make("h264parse", NULL);
 			data->element_v[2] = gst_element_factory_make("queue", NULL);
-			data->element_v[3] = gst_element_factory_make(product_info()->video_decoder_string, NULL);
+			data->element_v[3] = gst_element_factory_make(product_info()->H264_decoder_string, NULL);
 			data->amcvid_dec = data->element_v[3];
 			gst_bin_add_many( GST_BIN( data->pipeline ), data->element_v[0], data->element_v[1], data->element_v[2], data->element_v[3], NULL );
 

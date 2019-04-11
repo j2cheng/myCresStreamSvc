@@ -1130,7 +1130,7 @@ int build_video_pipeline(gchar *encoding_name, CREGSTREAM *data, unsigned int st
         	gst_object_unref( pad );
         }
 
-        data->element_v[i++] = gst_element_factory_make(product_info()->video_decoder_string, NULL);
+        data->element_v[i++] = gst_element_factory_make(product_info()->H264_decoder_string, NULL);
         data->amcvid_dec = data->element_v[i-1];
 
 		csio_SetVpuDecoder(data->amcvid_dec, data->streamId);
@@ -1282,7 +1282,7 @@ int build_video_pipeline(gchar *encoding_name, CREGSTREAM *data, unsigned int st
 		data->element_v[i++] = gst_element_factory_make("mpeg4videoparse", NULL);
 		data->element_fake_dec = data->element_v[i-1];
 
-		data->element_v[i++] = gst_element_factory_make(product_info()->video_decoder_string, NULL);
+		data->element_v[i++] = gst_element_factory_make(product_info()->H264_decoder_string, NULL);
 		data->amcvid_dec = data->element_v[i-1];
 
 		//SET OFSSET to zero for now
