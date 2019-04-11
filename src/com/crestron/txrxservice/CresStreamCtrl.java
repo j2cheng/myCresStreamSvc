@@ -190,7 +190,6 @@ public class CresStreamCtrl extends Service {
     public Object mAirMediaLock = new Object();
     private Object mAirMediaCodeLock = new Object();
     private int mAirMediaNumberOfUsersConnected = -1;	//Bug 141088: Setting to -1 will force code change on reboot if set to random
-    private String mPreviousSessionType = "";
     private boolean mMsMiceEnabled = false;
     private boolean mMiracastEnabled = false;
 	public boolean[] mUsedForAirMedia = new boolean[NumOfSurfaces];
@@ -300,6 +299,11 @@ public class CresStreamCtrl extends Service {
     	static final int Host=2;
     	static final int HostDomain=3;
     	static final int Custom=4;
+    }
+    
+    public class CresstoreOptions {
+    	static final int Publish=1;
+    	static final int PublishAndSave=2;
     }
     
     enum CameraMode {
@@ -3963,6 +3967,14 @@ public class CresStreamCtrl extends Service {
         restartStreams(true, true); 	// Dont restart preview on IP change
     }
     
+    public void SendToCresstore(String json, int option)
+    {
+    	String command = "CRESSTORE_PUBLISH";
+    	if (option == CresstoreOptions.PublishAndSave)
+    		command = "CRESSTORE_PUBLISH_AND_SAVE";
+    	sockTask.SendDataToAllClients(command + "=" + json);
+    }
+
     public void RestartAirMedia() {
         Log.e(TAG, "Fatal error, restart AirMedia!");
         sockTask.SendDataToAllClients("RestartAirMedia=splashtop");
@@ -4245,16 +4257,6 @@ public class CresStreamCtrl extends Service {
     		{
     			mAirMedia.setModeratorEnable(enable);
     		}
-    	}
-    }
-    
-    public void sendAirMediaSessionType(String sessionType)
-    {
-    	if (!mPreviousSessionType.equalsIgnoreCase(sessionType))
-    	{
-    		Log.i(TAG, "sendAirMediaSessionType(): sessionType = " + sessionType);
-    		sockTask.SendDataToAllClients(MiscUtils.stringFormat("AIRMEDIA_SESSION_TYPE=%s", sessionType));
-    		mPreviousSessionType = sessionType;
     	}
     }
     
