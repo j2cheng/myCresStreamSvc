@@ -242,7 +242,7 @@ public class GstreamIn implements SurfaceHolder.Callback {
     		} 
     		else if (streamStateEnum == CresStreamCtrl.StreamState.STOPPED.getValue())
     		{
-    			if (streamStateEnum != curStreamState)
+    			if (streamStateEnum != curStreamState && wfdIsPlaying[streamId])
     			{
     				streamCtl.wifidVideoPlayer.stopSessionWithStreamId(streamId);
     			}
