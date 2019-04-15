@@ -34,7 +34,7 @@ public class HDMIInputInterface {
 		isHdmiDriverPresent = (isHdmiDriverPresent | false); //set isHdmiDriverPresentH to false if not set
 	}
 	
-	public void setSyncStatus() {
+	public void setSyncStatus(int resEnum) {
 		if (isHdmiDriverPresent == true)
 		{
 			// Old Mistral interface
@@ -43,7 +43,7 @@ public class HDMIInputInterface {
 //			Log.i(TAG, "SyncStatus " + (char)hdmiInSyncStatus[0]);
 //	
 //			if(((char)hdmiInSyncStatus[0] == '1') && (resolutionIndex != 0))
-			if (readResolutionEnum(false) > 0)	// Only send sync status high if valid resolution enum
+			if ( resEnum > 0)	// Only send sync status high if valid resolution enum
 				syncStatus = "true";
 			else
 				syncStatus = "false";
@@ -128,14 +128,17 @@ public class HDMIInputInterface {
 		return Integer.toString(readAudioSampleRate());
 	}
 	
-    public void updateResolutionInfo(String hdmiInResolution) 
+    public void updateResolutionInfo() 
     {
+        setSyncStatus(readResolutionEnum(false));
+        
         String delims = "[x@]+";
+        String hdmiInResolution = "0x0@0";
+        if (Boolean.parseBoolean(getSyncStatus()) == true)
+        	hdmiInResolution = getHdmiInResolutionSysFs();
+		Log.i(TAG, "updateResolutionInfo(): sync="+getSyncStatus()+"    HDMI In Resolution=" + hdmiInResolution);
         String tokens[] = hdmiInResolution.split(delims);
-        for (int tokenIndex = 0; tokenIndex < tokens.length; tokenIndex++)
-            Log.i(TAG, " " + tokens[tokenIndex]);
-
-        setSyncStatus();
+        
         setHorizontalRes(tokens[0]);
         setVerticalRes(tokens[1]);
         setFPS(tokens[2].trim());

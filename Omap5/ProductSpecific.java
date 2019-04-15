@@ -127,9 +127,7 @@ public class ProductSpecific
 
     public static void handleHpdHdmiEvent(HDMIInputInterface hdmiIf)
     {
-		String resInfo = HDMIInputInterface.getHdmiInResolutionSysFs();//Reading From SysFs
-		Log.i(TAG, "HDMI In Resolution API " + resInfo);
-		hdmiIf.updateResolutionInfo(resInfo);
+		hdmiIf.updateResolutionInfo();
 	}
 	
 	// ******************* HDMIOutputInterface.java *******************

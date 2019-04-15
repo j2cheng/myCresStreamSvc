@@ -2447,28 +2447,12 @@ public class CresStreamCtrl extends Service {
         }
     }
     
-    public void readResolutionInfo(String hdmiInputResolution){
-    	if (hdmiInputDriverPresent)
-    		hdmiInput.updateResolutionInfo(hdmiInputResolution);
-    }
-    
     void refreshInputResolution()
     {
     	Log.i(TAG, "Refresh resolution info");
-
     	if (hdmiInputDriverPresent)
     	{
-    		if (HDMIInputInterface.readSyncState() == true)
-    		{
-    			//HDMI In
-    			String hdmiInputResolution = HDMIInputInterface.getHdmiInResolutionSysFs();	
-    			readResolutionInfo(hdmiInputResolution);
-    		}
-    		else
-    		{
-    			// If no sync then all values should be zeroed out
-    			hdmiInput.updateResolutionInfo("0x0@0");
-    		}
+    		hdmiInput.updateResolutionInfo();
     	}
     }
 
@@ -5286,7 +5270,7 @@ public class CresStreamCtrl extends Service {
     
     void handleHdmiInputResolutionEvent(int resolutionId)
     {
-    	hdmiLock.lock("handleHdmiInputResolutionEvent");
+    	hdmiLock.lock("handleHdmiInputResolutionEvent - got resolution id: " + resolutionId);
     	try
     	{
     		if (hdmiInputDriverPresent)
@@ -5336,7 +5320,7 @@ public class CresStreamCtrl extends Service {
     	}
     	finally
     	{
-    		hdmiLock.unlock("handleHdmiInputResolutionEvent");
+    		hdmiLock.unlock("handleHdmiInputResolutionEvent for resolution id: " + resolutionId);
     	}
     }
    
