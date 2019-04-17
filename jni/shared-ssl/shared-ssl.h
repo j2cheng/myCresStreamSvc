@@ -63,7 +63,11 @@ int sssl_getDTLSAppThInitializedCommon(int streamID, unsigned long long sessionI
 int sssl_signalDTLSAppThCanceledWithSessionID(unsigned long long sessionID);
 int sssl_signalDTLSAppThCanceledWithStreamID(int streamID);
 int sssl_signalDTLSAppThCanceledCommon(int streamID, unsigned long long sessionID);
-int sssl_cancelDTLSAppThAndWait(int streamID);
+
+int sssl_cancelDTLSAppThWithSessionIDAndWait(unsigned long long sessionID);
+int sssl_cancelDTLSAppThWithStreamIDAndWait(int streamID);
+int sssl_cancelDTLSAppThAndWaitCommon(unsigned long long sessionID,int streamID);
+
 int sssl_handleDTLSAppThCancelation(int streamID);
 int sssl_initDTLSAppThCancCondVar(int streamID);
 

@@ -1235,6 +1235,14 @@ static void ms_mice_sink_session_disconnect(ms_mice_sink_session *ms_session)
     CSIO_LOG(eLogLevel_debug,"ms.mice.sink.session.disconnect { \"session-id\": %"G_GUINT64_FORMAT" , \"local-address\": \"%s\" , \"remote-address\": \"%s\" , \"state\": \"%s\" , \"friendly-name\": \"%s\" , \"source-id\": \"%s\" }",
              ms_session->priv->session_id, ms_session->priv->local_address, ms_session->priv->remote_address, ms_mice_sink_session_state_to_string(ms_session->priv->state), ms_session->priv->friendly_name, ms_session->priv->source_id);
 
+    // ***
+    CSIO_LOG(eLogLevel_debug,"mira: {%s} - ***** calling sssl_cancelDTLSAppThWithSessionIDAndWait() *****",__FUNCTION__);
+    int retv = sssl_cancelDTLSAppThWithSessionIDAndWait(ms_session->priv->session_id);
+    CSIO_LOG(eLogLevel_debug,"mira: {%s} - ===== returned from sssl_cancelDTLSAppThWithSessionIDAndWait(), retv = %d =====",
+        __FUNCTION__,retv);
+    // ***
+
+
 #ifdef API_SUPPORTED
     sink_api_session *api_session = ms_mice_sink_session_get_api(ms_session);
 
@@ -1246,6 +1254,9 @@ static void ms_mice_sink_session_disconnect(ms_mice_sink_session *ms_session)
 
     sink_api_session_close(api_session);
 #endif
+
+    // ***
+    CSIO_LOG(eLogLevel_debug,"mira: {%s} - exiting",__FUNCTION__);
 }
 
 void ms_mice_sink_session_close(ms_mice_sink_session *session)

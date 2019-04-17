@@ -924,7 +924,21 @@ int sssl_getDTLSAppThInitializedCommon(int streamID, unsigned long long sessionI
 }
 
 
-int sssl_cancelDTLSAppThAndWait(int streamID)
+int sssl_cancelDTLSAppThWithSessionIDAndWait(unsigned long long sessionID)
+{
+    int retv = sssl_cancelDTLSAppThAndWaitCommon(sessionID,-1);
+    return(retv);
+}
+
+
+int sssl_cancelDTLSAppThWithStreamIDAndWait(int streamID)
+{
+    int retv = sssl_cancelDTLSAppThAndWaitCommon((unsigned long long)0,streamID);
+    return(retv);
+}
+
+
+int sssl_cancelDTLSAppThAndWaitCommon(unsigned long long sessionID,int streamID)
 {
     // return values:
     //   0 - Normal return. The media thread was running, the cancelection was initiated by this
@@ -938,8 +952,10 @@ int sssl_cancelDTLSAppThAndWait(int streamID)
     // It will only delete sssl context in cases '0' and '1'
 
     int retv,retv1,prev,deleteContext;
+    void * sssl;
 
-    sssl_log(LOGLEV_debug,"mira: {%s} - entering with streamID = %d",__FUNCTION__,streamID);
+    sssl_log(LOGLEV_debug,"mira: {%s} - entering with sessionID = 0x%llx, streamID = %d",__FUNCTION__,
+        sessionID,streamID);
 
     if(!gCommonSSLServerContext)
     {
@@ -950,7 +966,14 @@ int sssl_cancelDTLSAppThAndWait(int streamID)
 
     simpleLockGet(&gContextStorageMutex);
 
-    void * sssl = sssl_getContextWithStreamID(streamID);
+    if(streamID >= 0)
+    {
+        sssl = sssl_getContextWithStreamID(streamID);
+    }
+    else
+    {
+        sssl = sssl_getContextWithSessionID(sessionID);
+    }
     if(sssl != NULL)
     {
         deleteContext = 0;
@@ -1031,7 +1054,14 @@ int sssl_cancelDTLSAppThAndWait(int streamID)
             sssl_log(LOGLEV_debug,"mira: {%s} - calling sssl_destroyDTLSWithStreamID()",__FUNCTION__);
             // destroy sssl here only if media thread cancelection was indeed initiated by
             // this function or media thread was never initialized
-            sssl_destroyDTLSWithStreamID(streamID,1);       // do not lock
+            if(streamID >= 0)
+            {
+                sssl_destroyDTLSWithStreamID(streamID,1);       // do not lock
+            }
+            else
+            {
+                sssl_destroyDTLSWithSessionID(sessionID,1);     // do not lock
+            }
         }
     }
     else
@@ -1706,7 +1736,7 @@ int sssl_Test(int arg)
             if(gCurrentStreamID >= 0)
             {
                 sssl_log(LOGLEV_debug,"mira: {%s} - calling sssl_cancelDTLSAppThAndWait()",__FUNCTION__);
-                retv = sssl_cancelDTLSAppThAndWait(gCurrentStreamID);
+                retv = sssl_cancelDTLSAppThWithStreamIDAndWait(gCurrentStreamID);
                 sssl_log(LOGLEV_debug,"mira: {%s} - returned from sssl_waitDTLSAppThCancel(), retv = %d"
                     ,__FUNCTION__,retv);
             }

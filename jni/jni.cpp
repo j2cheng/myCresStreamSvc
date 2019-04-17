@@ -4656,10 +4656,10 @@ JNIEXPORT void JNICALL Java_com_crestron_txrxservice_GstreamIn_nativeWfdStart(JN
  * */
 JNIEXPORT void JNICALL Java_com_crestron_txrxservice_GstreamIn_nativeWfdStop(JNIEnv *env, jobject thiz, jint windowId)
 {
-    CSIO_LOG(eLogLevel_debug,"mira: {%s} - ***** calling sssl_cancelDTLSAppThAndWait() *****",__FUNCTION__);
-    int retv = sssl_cancelDTLSAppThAndWait(windowId);
-    CSIO_LOG(eLogLevel_debug,"mira: {%s} - ===== returned from sssl_cancelDTLSAppThAndWait(), retv = %d =====",
-        __FUNCTION__,retv);
+    // *** CSIO_LOG(eLogLevel_debug,"mira: {%s} - ***** calling sssl_cancelDTLSAppThWithStreamIDAndWait() *****",__FUNCTION__);
+    // *** int retv = sssl_cancelDTLSAppThWithStreamIDAndWait(windowId);
+    // *** CSIO_LOG(eLogLevel_debug,"mira: {%s} - ===== returned from sssl_cancelDTLSAppThWithStreamIDAndWait(), retv = %d =====",
+    // ***     __FUNCTION__,retv);
 
     //Note: you can call WfdSinkProjStop multiple times.
     WfdSinkProjStop(windowId);
@@ -4697,8 +4697,7 @@ JNIEXPORT void JNICALL Java_com_crestron_txrxservice_GstreamIn_nativeWfdStop(JNI
         }
     }
 
-    CSIO_LOG(eLogLevel_debug,"mira: {%s} - exiting",__FUNCTION__);
-
+    // *** CSIO_LOG(eLogLevel_debug,"mira: {%s} - exiting",__FUNCTION__);
 }
 
 // <0 means ignore, 0 means remove rule, >0 means open firewall to that port

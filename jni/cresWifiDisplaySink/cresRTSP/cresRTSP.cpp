@@ -212,6 +212,10 @@ int rtsp_processAudioFormat(char * outBuff, int outBuffSize, char ** encodedPart
       int * isUpTo, int partsCount);
 uint32_t rtsp_removeInterlacedFormats(WFDVIDEOSUBELEMENCENTRY * vfTable,
       uint32_t formatFlags);
+int rtsp_processVideoFormatDirect(char * outBuff, int outBuffSize, char ** tableNames,
+      char ** encodedParts, int partsCount);
+int rtsp_processAudioFormatDirect(char * outBuff, int outBuffSize, char ** tableNames,
+      char ** encodedParts, int partsCount);
 
 static void rtsp_free_match(struct rtsp_match *match);
 static void rtsp_drop_message(struct rtsp_message *m);
@@ -1585,10 +1589,12 @@ int rtsp_encodeSelectionCommon(char * outBuff, int outBuffSize, char * encodedVa
    int isVideoFormat)
 {
    int nn = 0,retv;
+   int isDirectMethod = 0;
    char * encodedStr, * partPtr, * subPartDelim, * token, * subPart2nd, * subPart3rd;
    int isUpToArr[3];
    int isSkipInterlacedArr[3];
    char * encodedPartsArr[3];
+   char * tableNamesArr[3];
 
    encodedStr = strdup(encodedValStr);
 
@@ -1601,6 +1607,7 @@ int rtsp_encodeSelectionCommon(char * outBuff, int outBuffSize, char * encodedVa
       partPtr = NULL;
       isUpToArr[nn] = 0;               // preset
       isSkipInterlacedArr[nn] = 0;     // preset
+      tableNamesArr[nn] = NULL;        // preset
 
       subPartDelim = strchr(token,'_');
       if(subPartDelim)
@@ -1608,6 +1615,19 @@ int rtsp_encodeSelectionCommon(char * outBuff, int outBuffSize, char * encodedVa
          *subPartDelim = '\0';
          if(!strcmp(token,"upto"))
                isUpToArr[nn] = 1;
+         else if(
+               !strcmp(token,"cea")
+            || !strcmp(token,"vesa")
+            || !strcmp(token,"hh")
+            || !strcmp(token,"lpcm")
+            || !strcmp(token,"aac")
+            || !strcmp(token,"ac3")
+            )
+         {
+            isDirectMethod = 1;
+            tableNamesArr[nn] = token;
+         }
+
          subPart2nd = subPartDelim + 1;
          encodedPartsArr[nn] = subPart2nd;
    
@@ -1631,10 +1651,19 @@ int rtsp_encodeSelectionCommon(char * outBuff, int outBuffSize, char * encodedVa
 
    if(nn > 0)
    {
-      if(isVideoFormat)
-            retv = rtsp_processVideoFormat(outBuff,outBuffSize,encodedPartsArr,isUpToArr,
-               isSkipInterlacedArr,nn);
-      else  retv = rtsp_processAudioFormat(outBuff,outBuffSize,encodedPartsArr,isUpToArr,nn);
+      if(isDirectMethod)
+      {
+         if(isVideoFormat)
+               retv = rtsp_processVideoFormatDirect(outBuff,outBuffSize,tableNamesArr,encodedPartsArr,nn);
+         else  retv = rtsp_processAudioFormatDirect(outBuff,outBuffSize,tableNamesArr,encodedPartsArr,nn);
+      }
+      else
+      {
+         if(isVideoFormat)
+               retv = rtsp_processVideoFormat(outBuff,outBuffSize,encodedPartsArr,isUpToArr,
+                  isSkipInterlacedArr,nn);
+         else  retv = rtsp_processAudioFormat(outBuff,outBuffSize,encodedPartsArr,isUpToArr,nn);
+      }
    }
    else
    {
@@ -1782,11 +1811,107 @@ int rtsp_processAudioFormat(char * outBuff, int outBuffSize, char ** encodedPart
             }
             else
             {
-               RTSP_LOG(eLogLevel_error,"encodeAudioFormat() failed to encode video format %s\n",
+               RTSP_LOG(eLogLevel_error,"encodeAudioFormat() failed to encode audio format %s\n",
                   encodedParts[nn]);
                return(-1);
             }
          }
+      }
+      sprintf(locBuff + strlen(locBuff),"%s%s %08x 00",((nn == 0) ? "" : ","),
+         codecName,codecFlags);
+   }
+
+   if(strlen(locBuff) >= outBuffSize)
+   {
+      RTSP_LOG(eLogLevel_error,"outBuffSize (%d) too small to hold encoded string %s\n",locBuff);
+      return(-1);
+   }
+
+   strcpy(outBuff,locBuff);
+
+	return(0);
+}
+
+int rtsp_processVideoFormatDirect(char * outBuff, int outBuffSize, char ** tableNames,
+      char ** encodedParts, int partsCount)
+{
+   int nn;
+   uint32_t ceaFlags = 0,vesaFlags = 0,hhFlags = 0;
+   unsigned int codecFlagsValue;
+   char locBuff[128];
+
+   if(!outBuff || !tableNames || !encodedParts)
+      return(-1);
+
+   for(nn=0;nn<partsCount;nn++)
+   {
+      if(!strcmp(tableNames[nn],"cea"))
+      {
+         sscanf(encodedParts[nn],"%x",&codecFlagsValue);
+         ceaFlags = (uint32_t)codecFlagsValue;
+      }
+      else if(!strcmp(tableNames[nn],"vesa"))
+      {
+         sscanf(encodedParts[nn],"%x",&codecFlagsValue);
+         vesaFlags = (uint32_t)codecFlagsValue;
+      }
+      else if(!strcmp(tableNames[nn],"hh"))
+      {
+         sscanf(encodedParts[nn],"%x",&codecFlagsValue);
+         hhFlags = (uint32_t)codecFlagsValue;
+      }
+   }
+
+   // level 4 has 25Mb/s with the High profile
+   sprintf(locBuff,"00 00 02 04 %08x %08x %08x 00 0000 0000 00 none none",
+      ceaFlags,vesaFlags,hhFlags);
+   if(strlen(locBuff) >= outBuffSize)
+   {
+      RTSP_LOG(eLogLevel_error,"outBuffSize (%d) too small to hold encoded string %s\n",locBuff);
+      return(-1);
+   }
+
+   strcpy(outBuff,locBuff);
+
+	return(0);
+}
+
+int rtsp_processAudioFormatDirect(char * outBuff, int outBuffSize, char ** tableNames,
+      char ** encodedParts, int partsCount)
+{
+   int nn,index,strLength;
+   uint32_t codecFlags;
+   unsigned int codecFlagsValue;
+   char * codecName;
+   char locBuff[128];
+
+   if(!outBuff || !tableNames || !encodedParts)
+      return(-1);
+
+   locBuff[0] = '\0';
+
+   for(nn=0;((nn<partsCount) && (nn<3));nn++)
+   {
+      sscanf(encodedParts[nn],"%x",&codecFlagsValue);
+      codecFlags = (uint32_t)codecFlagsValue;
+
+      if(!strcmp(tableNames[nn],"lpcm"))
+      {
+         codecName = "LPCM";
+      }
+      else if(!strcmp(tableNames[nn],"aac"))
+      {
+         codecName = "AAC";
+      }
+      else if(!strcmp(tableNames[nn],"ac3"))
+      {
+         codecName = "AC3";
+      }
+      else
+      {
+         RTSP_LOG(eLogLevel_error,"encodeAudioFormat() failed to encode audio format %s\n",
+            encodedParts[nn]);
+         return(-1);
       }
       sprintf(locBuff + strlen(locBuff),"%s%s %08x 00",((nn == 0) ? "" : ","),
          codecName,codecFlags);
