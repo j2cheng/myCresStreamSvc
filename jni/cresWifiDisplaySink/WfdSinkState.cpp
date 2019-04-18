@@ -124,6 +124,7 @@ wfdSinkStMachineThread*  wfdSinkStMachineClass::m_wfdSinkStMachineThreadPtr = NU
 wfdSinkStMachineClass**  wfdSinkStMachineThread::m_wfdSinkStMachineTaskList = NULL;
 int  wfdSinkStMachineThread::m_wfdSinkStMachineTaskListCnt = 0;
 
+#define DEFAULT_VIDEO_RES "cea_19ceb"
 /********** wfdSinkStMachineClass class, used by wfdSinkProjClass *******************/
 wfdSinkStMachineClass::wfdSinkStMachineClass(int iId,wfdSinkProjClass* parent):
 m_myId(iId),
@@ -169,7 +170,7 @@ m_rtcpDestPort(-1)
     }
     else
     {
-    	m_rtspParserIntfInfo.preferredVidResRefStr  = "upto_1920x1080p30_noninterlaced;upto_1920x1200p30;upto_848x480p60";
+    	m_rtspParserIntfInfo.preferredVidResRefStr  = DEFAULT_VIDEO_RES;
     }
 
     if(m_rtspParserIntfInfo.preferredAudioCodecStr)
