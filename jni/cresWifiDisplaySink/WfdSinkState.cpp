@@ -2443,8 +2443,7 @@ void* wfdSinkStMachineThread::ThreadEntry()
         if( wfdSinkStMachineThreadTimeArray && wfdSinkStMachineThreadTimeArray->isTimeout(WFD_SINK_STATETHRD_TICKS_TIMER) )
         {
             wfdSinkStMachineThreadTimeArray->setTimeout(WFD_SINK_STATETHRD_TICKS_TIMER,WFD_SINK_STATETHRD_TICK_TO);
-            CSIO_LOG(ABOVE_DEBUG_XTRVERB(m_debugLevel), "wfdSinkStMachineThread: tick all state machine[%d]\n",
-                    wfdSinkStMachineThreadTimeArray->pTimeoutWaitEvents[WFD_SINK_STATETHRD_TICK_TO].tv_sec);
+            CSIO_LOG(ABOVE_DEBUG_XTRVERB(m_debugLevel), "wfdSinkStMachineThread: tick all state machine\n");
 
             csioEventQueueStruct evntQ;
             memset(&evntQ,0,sizeof(csioEventQueueStruct));
