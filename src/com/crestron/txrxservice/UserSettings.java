@@ -334,7 +334,7 @@ public class UserSettings
 		multicastTTL		= 64;
 		airMediaLaunch		= initBoolArray(false);
 		airMediaEnable      = true;
-		airMediaLoginMode	= CresStreamCtrl.AirMediaLoginMode.Fixed.ordinal();
+		airMediaLoginMode	= CresStreamCtrl.AirMediaLoginMode.Random.ordinal();
 		airMediaLoginCode	= 1234; //Get default value
 		airMediaProjectionLock = false;
 		airMediaDisconnectUser = initBoolArray(false, 32);

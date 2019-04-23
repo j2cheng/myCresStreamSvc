@@ -676,6 +676,7 @@ public class CresStreamCtrl extends Service {
     		boolean isRestore = restoreFlagFile.isFile();
     		if (isRestore)
     		{
+    			Log.i(TAG, "restore flag is set");
     			wipeOutUserSettings = true;
     			boolean deleteSuccess = restoreFlagFile.delete(); //delete restore flag since we handled it by wiping out userSettings
     			if (deleteSuccess == false)
