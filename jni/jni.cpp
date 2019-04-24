@@ -4731,6 +4731,9 @@ void Wfd_setup_gst_pipeline (int id, int state, struct GST_PIPELINE_CONFIG* gst_
         CSIO_LOG(eLogLevel_debug, "mira: {%s} - id[%d], ts_port[%d], ssrc[0x%x], rtcp_dest_port[%d]",
                  __FUNCTION__,id,gst_config->ts_port,gst_config->ssrc,gst_config->rtcp_dest_port);
 
+        if(gst_config->pSrcVersionStr)
+            CSIO_LOG(eLogLevel_debug,"source OS version is:%s.",gst_config->pSrcVersionStr);
+
         Wfd_set_firewall_rules(-1, gst_config->ts_port);
 
         //TODO: remove the following settings if it is done already

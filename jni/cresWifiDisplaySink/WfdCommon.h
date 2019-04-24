@@ -24,6 +24,7 @@ typedef struct GST_PIPELINE_CONFIG
     unsigned int ts_port;
     unsigned int ssrc;
     unsigned int rtcp_dest_port;
+    char * pSrcVersionStr;
 } ;
 
 extern void* WfdSinkProjInit();

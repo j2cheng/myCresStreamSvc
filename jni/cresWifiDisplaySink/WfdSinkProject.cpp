@@ -437,6 +437,19 @@ void wfdSinkProjClass::sendEvent(csioEventQueueStruct* pEvntQ)
                         new_config->ts_port = gst_config->ts_port;
                         new_config->ssrc    = gst_config->ssrc;
                         new_config->rtcp_dest_port = gst_config->rtcp_dest_port;
+                        new_config->pSrcVersionStr = NULL;
+
+                        if(gst_config->pSrcVersionStr)
+                        {
+                            int strSize = strlen(gst_config->pSrcVersionStr);
+                            char* tmp = (char*)createCharArray(strSize + 1);
+                            if(tmp)
+                            {
+                                memcpy(tmp,gst_config->pSrcVersionStr,strSize);
+                                tmp[strSize] = 0;
+                                new_config->pSrcVersionStr = tmp;
+                            }
+                        }
 
                         evntQ.buffPtr = (void*)new_config;
                         evntQ.buf_size = sizeof(GST_PIPELINE_CONFIG);
@@ -668,6 +681,11 @@ void* wfdSinkProjClass::ThreadEntry()
                         struct GST_PIPELINE_CONFIG* gst_config = (struct GST_PIPELINE_CONFIG*)evntQPtr->buffPtr;
                         Wfd_setup_gst_pipeline(id, 1,gst_config);
 
+                        //to delete gst_config->pSrcVersionStr first 
+                        if(gst_config->pSrcVersionStr)
+                            deleteCharArray((void*)gst_config->pSrcVersionStr);
+
+                        //now delete gst_config 
                         delete gst_config;
                     }
                     break;

@@ -280,6 +280,7 @@ private:
 
     std::string m_SourceUrl;
     std::string m_connTime;
+    std::string m_srcVersionStr;
 public:
     std::string m_requestString;
 

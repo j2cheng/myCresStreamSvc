@@ -130,7 +130,8 @@ wfdSinkStMachineClass::wfdSinkStMachineClass(int iId,wfdSinkProjClass* parent):
 m_myId(iId),
 wfdSinkStMachineTimeArray(NULL),
 m_parent(parent),
-m_SourceUrl(),m_connTime(),m_requestString(),
+m_SourceUrl(),m_connTime(),m_srcVersionStr(),
+m_requestString(),
 m_debugLevel(eLogLevel_debug),
 m_curentState(WFD_SINK_STATES_IDLE),
 restartFromIdleCnt(0),
@@ -151,6 +152,7 @@ m_rtcpDestPort(-1)
     m_SourceUrl.clear();
     m_connTime.clear();
     m_requestString.clear();
+    m_srcVersionStr.clear();
 
     m_rtspParserIntfInfo.rtpPort      = m_ts_Port;
     m_rtspParserIntfInfo.rtspLogLevel = m_debugLevel;
@@ -313,6 +315,7 @@ void wfdSinkStMachineClass::setCurentTsPort(int port)
 void wfdSinkStMachineClass::resetAllFlags()
 {
     m_connTime.clear();
+    m_srcVersionStr.clear();;
     m_ssrc = 0;
     m_rtcpDestPort = -1;
 }
@@ -369,6 +372,11 @@ void wfdSinkStMachineClass::sendEventToParentProj(int event)
         gst_config.ts_port = getCurentTsPort();
         gst_config.ssrc    = m_ssrc;
         gst_config.rtcp_dest_port = m_rtcpDestPort;
+
+        if(m_srcVersionStr.size())
+            gst_config.pSrcVersionStr = (char*)m_srcVersionStr.c_str();
+        else
+            gst_config.pSrcVersionStr = NULL;
 
         EvntQ.buf_size = sizeof(GST_PIPELINE_CONFIG);
         EvntQ.buffPtr = (void*)&gst_config;
@@ -1938,6 +1946,10 @@ int wfdSinkStMachineClass::parserCallbackFun(RTSPPARSINGRESULTS * parsResPtr, vo
 
                     if(parsResPtr->headerData.sourceRTPPort[1] != -1)
                         p->m_rtcpDestPort = parsResPtr->headerData.sourceRTPPort[1];
+
+                    //looking for source OS version
+                    if(parsResPtr->headerData.srcVersionStr)
+                        p->m_srcVersionStr = parsResPtr->headerData.srcVersionStr;
                 }
                 //else TODO:if we received response, but we are waiting for request, shall we just ignore it?
                 //p->m_EvntQ.event_type = WFD_SINK_STM_INTERNAL_ERROR_EVENT;
