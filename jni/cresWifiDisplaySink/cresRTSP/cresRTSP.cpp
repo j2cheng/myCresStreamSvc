@@ -538,7 +538,7 @@ int printParseResults(int messageType, RTSPPARSINGRESULTS * parseResults)
    {
       case RTSP_MESSAGE_REQUEST:
          printf("   type: RTSP_MESSAGE_REQUEST\n");
-         printf("   number of headers: %d\n",parseResults->parsedMessagePtr->header_used);
+         printf("   number of headers: %d\n",(int)parseResults->parsedMessagePtr->header_used);
          if(parseResults->request_method)
             printf("   request_method: %s\n",parseResults->request_method);
          if(parseResults->request_uri)
@@ -546,7 +546,7 @@ int printParseResults(int messageType, RTSPPARSINGRESULTS * parseResults)
          break;
       case RTSP_MESSAGE_REPLY:
          printf("   type: RTSP_MESSAGE_REPLY\n");
-         printf("   number of headers: %d\n",parseResults->parsedMessagePtr->header_used);
+         printf("   number of headers: %d\n",(int)parseResults->parsedMessagePtr->header_used);
          if(parseResults->reply_phrase)
             printf("   reply_phrase: %s\n",parseResults->reply_phrase);
          printf("   reply_code: %d\n",parseResults->reply_code);
@@ -568,6 +568,8 @@ int printParseResults(int messageType, RTSPPARSINGRESULTS * parseResults)
       printf("   sessionID: %s\n",parseResults->headerData.sessionID);
    if(parseResults->headerData.triggerMethod)
       printf("   triggerMethod: %s\n",parseResults->headerData.triggerMethod);
+   if(parseResults->headerData.srcVersionStr)
+      printf("   srcVersionStr: %s\n",parseResults->headerData.srcVersionStr);
 }
 
 bool processCommandLine(int argc, char * argv[])
@@ -878,6 +880,7 @@ void * initRTSPParser(RTSPSYSTEMINFO * sysInfo)
    rtspSession->ssrc = 0;
    rtspSession->sessionID[0] = '\0';
    rtspSession->triggerMethod[0] = '\0';
+   rtspSession->srcVersionStr[0] = '\0';
    rtspSession->presentationURL[0] = '\0';
    rtspSession->audioFormat[0] = '\0';
    rtspSession->modes = 0;
@@ -1291,9 +1294,11 @@ int cresRTSP_internalCallback(void * session,unsigned int messageType,
    char *               urlPtr;
    const char *         orgSessionStr;
    const char *         orgTransportStr;
+   const char *         orgServerStr;
    char *               sessionID = NULL;
    char *               audioFormat = NULL;
    char *               triggerMethod = NULL;
+   char *               srcVersionStr = NULL;
    struct rtsp *        rtspSession;
    RTSPPARSINGRESULTS   parsingResults;
 
@@ -1468,6 +1473,29 @@ int cresRTSP_internalCallback(void * session,unsigned int messageType,
             }
             free(transportStr);
          }
+         retv = rtsp_message_read(parsedMessagePtr, "<s>", "Server", &orgServerStr);
+         if (retv >= 0)
+         {
+            int nn = 0;
+            char * serverStr;
+
+            serverStr = strdup(orgServerStr);
+            if(!serverStr)
+               return(-1);
+            // 'Server' header elements separated by space
+            char * token = strtok(serverStr, " ");
+            if(token)
+            {
+               srcVersionStr = strchr(token,'/');
+               if(srcVersionStr)
+               {
+                  srcVersionStr += 1;
+                  strncpy(rtspSession->srcVersionStr,srcVersionStr,sizeof(rtspSession->srcVersionStr) - 1);
+                  rtspSession->srcVersionStr[sizeof(rtspSession->srcVersionStr) - 1] = '\0';
+               }
+            }
+            free(serverStr);
+         }
          break;
       default:
          break;
@@ -1496,6 +1524,13 @@ int cresRTSP_internalCallback(void * session,unsigned int messageType,
             parsingResults.headerData.triggerMethod);
          }
       else parsingResults.headerData.triggerMethod = NULL;
+      if(srcVersionStr)
+         {
+         parsingResults.headerData.srcVersionStr = rtspSession->srcVersionStr;
+         RTSP_LOG(eLogLevel_debug,"cresRTSP_internalCallback() - srcVersionStr = %s\n",
+            parsingResults.headerData.srcVersionStr);
+         }
+      else parsingResults.headerData.srcVersionStr = NULL;
       if(keepAliveTimeout >= 0)
          {
          parsingResults.headerData.keepAliveTimeout = rtspSession->keepAliveTimeout;
@@ -1943,7 +1978,7 @@ char * loc_strchrnul( char * s, int c)
 char * loc_stpcpy(char * dest, char * src)
 {
    size_t len = strlen(src);
-   return (char*)(memcpy(dest,src,len + 1) + len);
+   return (char *)((char *)memcpy(dest,src,len + 1) + len);
 }
 
 

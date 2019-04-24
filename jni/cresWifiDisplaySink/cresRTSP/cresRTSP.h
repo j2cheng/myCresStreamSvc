@@ -87,6 +87,7 @@ typedef struct _rtspheaderdata
    int keepAliveTimeout;            // -1 if not valid
    char * triggerMethod;            // NULL if not valid
    unsigned int ssrc;               // 0 assumed to be an invalid SSRC
+   char * srcVersionStr;            // NULL if not valid
 } RTSPHEADERDATA;
 
 typedef struct _rtspparsingresults
@@ -142,6 +143,7 @@ struct rtsp
    unsigned int ssrc;
    char sessionID[32];
    char triggerMethod[32];
+   char srcVersionStr[64];
    char presentationURL[256];
    char audioFormat[16];
    unsigned int modes;
