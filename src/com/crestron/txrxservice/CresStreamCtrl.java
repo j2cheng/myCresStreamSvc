@@ -3207,7 +3207,7 @@ public class CresStreamCtrl extends Service {
     	StreamOutstarted = false;
 
     	// Do NOT hide window if being used by AirMedia
-    	if ( !((mAirMedia != null) && (mAirMedia.getSurfaceDisplayed() == true)) )
+    	if ( !(mUsedForAirMedia[sessId]) )
     		hidePreviewWindow(sessId);
 
     	// Make sure that stop stream out was called by stop not a device mode change
@@ -3571,7 +3571,7 @@ public class CresStreamCtrl extends Service {
     	streamPlay.onStop(sessId);   
 
 		// Do NOT hide window if being used by AirMedia
-    	if ( !((mAirMedia != null) && (mAirMedia.getSurfaceDisplayed() == true)) )
+    	if ( !(mUsedForAirMedia[sessId]) )
     		hideStreamInWindow(sessId);
     }
 
@@ -3597,7 +3597,7 @@ public class CresStreamCtrl extends Service {
 		wbsStream.onStop(sessId);   
 
 		// Do NOT hide window if being used by AirMedia
-    	if ( !((mAirMedia != null) && (mAirMedia.getSurfaceDisplayed() == true)) )
+    	if ( !(mUsedForAirMedia[sessId]) )
     		hideWbsWindow(sessId);
     }
 
@@ -3757,7 +3757,7 @@ public class CresStreamCtrl extends Service {
 	    			Log.i(TAG, "Hide Preview Window first to enhance the user experience when quickly switching to another UI");
 
 	    			// Do NOT hide window if being used by AirMedia
-	    			if ( !((mAirMedia != null) && (mAirMedia.getSurfaceDisplayed() == true)) ) {
+	    			if ( !(mUsedForAirMedia[sessId]) ) {
 	    				hidePreviewWindow(sessId);
 	    			}	
 	    		}
@@ -3785,7 +3785,7 @@ public class CresStreamCtrl extends Service {
 	    		if(hide)
 	    		{
 	    			// Do NOT hide window if being used by AirMedia
-	    			if ( !((mAirMedia != null) && (mAirMedia.getSurfaceDisplayed() == true)) )
+	    			if ( !(mUsedForAirMedia[sessId]) )
 	    				hidePreviewWindow(sessId);
 	    		}
 	    	}
