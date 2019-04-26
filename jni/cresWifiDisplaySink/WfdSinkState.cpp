@@ -134,7 +134,7 @@ m_SourceUrl(),m_connTime(),m_srcVersionStr(),
 m_requestString(),
 m_debugLevel(eLogLevel_debug),
 m_curentState(WFD_SINK_STATES_IDLE),
-restartFromIdleCnt(0),
+restartFromIdleCnt(0),m_max_restartCnt(MAX_WFD_TCP_RETRY),
 m_onTcpConnFlag(0),
 m_src_rtsp_port(DEFAULT_SOURCE_RTSP_PORT),
 m_ts_Port(DEFAULT_CLIENT_TS_PORT),
@@ -256,6 +256,7 @@ void wfdSinkStMachineClass::DumpClassPara(int l)
     CSIO_LOG(eLogLevel_info, "wfdSinkStMachineClass: source rtsp port   %d\n", getCurentSourcePort());
     CSIO_LOG(eLogLevel_info, "wfdSinkStMachineClass: client ts port     %d\n", getCurentTsPort());
     CSIO_LOG(eLogLevel_info, "wfdSinkStMachineClass: Restart count      %d\n", getRestartCnt());
+    CSIO_LOG(eLogLevel_info, "wfdSinkStMachineClass: Max Restart count  %d\n", m_max_restartCnt);
     CSIO_LOG(eLogLevel_info, "wfdSinkStMachineClass: keep alive timeout %d\n", m_keepAliveTimeout/1000);
 
     {
@@ -355,6 +356,7 @@ void wfdSinkStMachineClass::prepareForRestart()
     resetSystemStatus();
 
     setTimeout(WFD_SINK_STATETIMEOUT_IDLE_RESTART);
+    m_max_restartCnt = MAX_WFD_TCP_RETRY;
 
     CSIO_LOG(m_debugLevel, "wfdSinkStMachineClass[%d]: prepareForRestart\n", m_myId);
 }
@@ -494,7 +496,7 @@ int wfdSinkStMachineClass::idleState(csioEventQueueStruct* pEventQ)
                 {
                     CSIO_LOG(m_debugLevel,  "wfdSinkStMachineClass[%d]: idleState: restart now[%d].\n",m_myId,restartFromIdleCnt);
 
-                    if(restartFromIdleCnt++ > MAX_WFD_TCP_RETRY)
+                    if(restartFromIdleCnt++ > m_max_restartCnt)
                     {
                         prepareBeforeIdle();
                         break;
@@ -522,6 +524,12 @@ int wfdSinkStMachineClass::idleState(csioEventQueueStruct* pEventQ)
                             prepareForRestart();
                             CSIO_LOG(m_debugLevel,  "wfdSinkStMachineClass[%d]:RTSP connection failed\n",m_myId);
                             nextState = WFD_SINK_STATES_IDLE;
+
+                            //Note: failed to connect to the port 7250.sometimes port 7250 is not ready soon enough.
+                            //      if we wait 5 seconds to reconnect, seems to very long to the user.
+                            //      so adjust restart time(500ms) and max restart count(30) here.
+                            setTimeout(500);//Note: our tick is set to one second!!!
+                            m_max_restartCnt = 30;
                         }
                     }//else
                 }

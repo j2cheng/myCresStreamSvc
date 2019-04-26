@@ -287,7 +287,7 @@ public:
     int m_debugLevel;
     int m_curentState;
 private:
-    int restartFromIdleCnt,m_onTcpConnFlag,m_src_rtsp_port,m_ts_Port;
+    int restartFromIdleCnt,m_max_restartCnt,m_onTcpConnFlag,m_src_rtsp_port,m_ts_Port;
 
     WfdRTSPSinkClient* pRTSPSinkClient;
     int m_seq_i,m_seq_j,m_keepAliveTimeout;
