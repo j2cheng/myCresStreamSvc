@@ -570,6 +570,8 @@ int printParseResults(int messageType, RTSPPARSINGRESULTS * parseResults)
       printf("   triggerMethod: %s\n",parseResults->headerData.triggerMethod);
    if(parseResults->headerData.srcVersionStr)
       printf("   srcVersionStr: %s\n",parseResults->headerData.srcVersionStr);
+   if(parseResults->headerData.msLatencyCapStr)
+      printf("   msLatencyCapStr: %s\n",parseResults->headerData.msLatencyCapStr);
 }
 
 bool processCommandLine(int argc, char * argv[])
@@ -881,6 +883,7 @@ void * initRTSPParser(RTSPSYSTEMINFO * sysInfo)
    rtspSession->sessionID[0] = '\0';
    rtspSession->triggerMethod[0] = '\0';
    rtspSession->srcVersionStr[0] = '\0';
+   rtspSession->msLatencyCapStr[0] = '\0';
    rtspSession->presentationURL[0] = '\0';
    rtspSession->audioFormat[0] = '\0';
    rtspSession->modes = 0;
@@ -1224,7 +1227,7 @@ int composeRTSPResponse(void * session,RTSPPARSINGRESULTS * requestParsingResult
 
       check_and_response_option("microsoft_cursor", "none");
       check_and_response_option("microsoft_rtcp_capability", "supported");
-      check_and_response_option("microsoft_latency_management_capability", "none");
+      check_and_response_option("microsoft_latency_management_capability", "supported");
       check_and_response_option("microsoft_format_change_capability", "none");
       check_and_response_option("microsoft_diagnostics_capability", "none");
 
@@ -1232,6 +1235,7 @@ int composeRTSPResponse(void * session,RTSPPARSINGRESULTS * requestParsingResult
       check_and_response_option("intel_sink_device_URL", "https://www.crestron.com/");
       check_and_response_option("intel_friendly_name", rtspSession->friendlyName);
       check_and_response_option("intel_sink_model_name", rtspSession->modelName);
+      check_and_response_option("microsoft_max_bitrate", "25000000");
 
       // /* wfd_uibc_capability */
       // if (uibc_option) {
@@ -1299,6 +1303,7 @@ int cresRTSP_internalCallback(void * session,unsigned int messageType,
    char *               audioFormat = NULL;
    char *               triggerMethod = NULL;
    char *               srcVersionStr = NULL;
+   char *               msLatencyCapStr = NULL;
    struct rtsp *        rtspSession;
    RTSPPARSINGRESULTS   parsingResults;
 
@@ -1359,6 +1364,15 @@ int cresRTSP_internalCallback(void * session,unsigned int messageType,
                rtspSession->triggerMethod[sizeof(rtspSession->triggerMethod) - 1] = '\0';
                RTSP_LOG(eLogLevel_debug,"set (from wfd_trigger_method) triggerMethod to %s\n",
                   rtspSession->triggerMethod);
+            }
+
+            retv = rtsp_message_read(parsedMessagePtr, "{<s>}", "microsoft_latency_management_capability", &msLatencyCapStr);
+            if (retv >= 0)
+            {
+               strncpy(rtspSession->msLatencyCapStr,msLatencyCapStr,sizeof(rtspSession->msLatencyCapStr) - 1);
+               rtspSession->msLatencyCapStr[sizeof(rtspSession->msLatencyCapStr) - 1] = '\0';
+               RTSP_LOG(eLogLevel_debug,"set (from microsoft_latency_management_capability) msLatencyCapStr to %s\n",
+                  rtspSession->msLatencyCapStr);
             }
          }
          break;
@@ -1531,6 +1545,18 @@ int cresRTSP_internalCallback(void * session,unsigned int messageType,
             parsingResults.headerData.srcVersionStr);
          }
       else parsingResults.headerData.srcVersionStr = NULL;
+
+      if (msLatencyCapStr)
+      {
+          parsingResults.headerData.msLatencyCapStr = rtspSession->msLatencyCapStr;
+          RTSP_LOG(eLogLevel_debug,"cresRTSP_internalCallback() - msLatencyCapStr = %s\n",
+                    parsingResults.headerData.msLatencyCapStr);
+      }
+      else
+      {
+          parsingResults.headerData.msLatencyCapStr = NULL;
+      }
+
       if(keepAliveTimeout >= 0)
          {
          parsingResults.headerData.keepAliveTimeout = rtspSession->keepAliveTimeout;

@@ -4953,4 +4953,132 @@ void Wfd_ms_mice_signal_raise (gint64 session_id, int state, char *device_id, ch
         csio_SendMsMiceStateChange(session_id,state,"device_id","device_name","device_addr",rtsp_port);
     }
 }
+
+//called from WifiDisplaySink project to set latency
+void Wfd_set_latency_by_the_source (int id, int latency)
+{
+    CSIO_LOG(eLogLevel_debug, "Wfd_set_latency_by_the_source,id[%d],latency[%d]", id,latency);
+
+    //Warning: setting properties here might cause crash if it is deleted!!!
+    CREGSTREAM * data = GetStreamFromCustomData(CresDataDB, id);
+    if(!data)
+    {
+        CSIO_LOG(eLogLevel_error, "Could not obtain stream pointer for stream %d", id);
+        return ;
+    }
+
+    //validate new latency setting
+    int locLatency = 200;
+
+    if(latency == WFD_SINK_MS_LATENCY_CAP_LOW)
+        locLatency = 200;
+    else if(latency == WFD_SINK_MS_LATENCY_CAP_NORMAL)
+        locLatency = 300;
+    else if(latency == WFD_SINK_MS_LATENCY_CAP_HIGH)
+        locLatency = 750;
+    else
+        return;
+
+    CSIO_LOG(eLogLevel_verbose, "Wfd_set_latency_by_the_source,new latency setting[%d]", locLatency);
+
+    //existing latency in DB
+    guint64 userSetting = CSIOCnsIntf->getStreamRx_BUFFER(data->streamId) * 1000000ll;
+    CSIOCnsIntf->setStreamRx_BUFFER( id, locLatency, SENDTOCRESSTORE_PUBLISH_AND_SAVE);
+    CSIO_LOG(eLogLevel_verbose, "Wfd_set_latency_by_the_source,get current value from DB[%lld], set new value[%d]", userSetting,locLatency);
+
+    //set rtpbin
+    if(data->element_zero)
+    {
+        g_object_set(G_OBJECT(data->element_zero), "latency", locLatency, NULL);
+        CSIO_LOG(eLogLevel_verbose, "Wfd_set_latency_by_the_source,set rtpbin latency[%d]", locLatency);
+    }
+
+    //set video queues
+    for(int i = 0; i < MAX_ELEMENTS; i++)
+    {
+        if(data->element_v[i])
+        {
+            gchar * n = gst_element_get_name(data->element_v[i]);
+
+            if(strstr(n,"queue"))
+            {
+                guint64 maxSizeTime = 0;
+                g_object_get(G_OBJECT(data->element_v[i]), "max-size-time", &maxSizeTime, NULL);
+
+                CSIO_LOG(eLogLevel_verbose, "[%d]get maxSizeTime:%lld",i,maxSizeTime);
+
+                //Note: we only use two value: 1M or 175M
+                guint64 diff = maxSizeTime - userSetting;
+                if(diff == 1000000)
+                {
+                    CSIO_LOG(eLogLevel_verbose, "video low diff of maxSizeTime:%lld",diff);
+
+                    //Recalculate the value
+                    maxSizeTime = (1ll + locLatency) * 1000000ll;
+                    g_object_set(G_OBJECT(data->element_v[i]), "max-size-time", maxSizeTime, NULL);
+                    CSIO_LOG(eLogLevel_verbose, "set new maxSizeTime:%lld",maxSizeTime);
+                }
+                else
+                {
+                    CSIO_LOG(eLogLevel_verbose, "video high diff of maxSizeTime:%lld",diff);
+
+                    //Recalculate the value
+                    maxSizeTime = (175ll + locLatency) * 1000000ll;
+                    g_object_set(G_OBJECT(data->element_v[i]), "max-size-time", maxSizeTime, NULL);
+                    CSIO_LOG(eLogLevel_verbose, "set new maxSizeTime:%lld",maxSizeTime);
+                }
+            }
+        }
+        else
+        {
+            CSIO_LOG(eLogLevel_verbose, "[%d]break",i);
+            break;
+        }
+    }
+
+    //set audio queues
+    for(int i = 0; i < MAX_ELEMENTS; i++)
+    {
+        if(data->element_a[i])
+        {
+            gchar * n = gst_element_get_name(data->element_a[i]);
+
+            if(strstr(n,"queue"))
+            {
+                guint64 maxSizeTime = 0;
+                g_object_get(G_OBJECT(data->element_a[i]), "max-size-time", &maxSizeTime, NULL);
+
+                CSIO_LOG(eLogLevel_debug, "[%d]get maxSizeTime:%lld",i,maxSizeTime);
+
+                //Note: we only use two value: 1M or 175M
+                guint64 diff = maxSizeTime - userSetting;
+                if(diff == 1000000)
+                {
+                    CSIO_LOG(eLogLevel_verbose, "audio low diff of maxSizeTime:%lld",diff);
+
+                    //Recalculate the value
+                    maxSizeTime = (1ll + locLatency) * 1000000ll;
+                    g_object_set(G_OBJECT(data->element_a[i]), "max-size-time", maxSizeTime, NULL);
+                    CSIO_LOG(eLogLevel_verbose, "set new maxSizeTime:%lld",maxSizeTime);
+                }
+                else
+                {
+                    CSIO_LOG(eLogLevel_verbose, "audio high diff of maxSizeTime:%lld",diff);
+
+                    //Recalculate the value
+                    maxSizeTime = (175ll + locLatency) * 1000000ll;
+                    g_object_set(G_OBJECT(data->element_a[i]), "max-size-time", maxSizeTime, NULL);
+                    CSIO_LOG(eLogLevel_debug, "set new maxSizeTime:%lld",maxSizeTime);
+                }
+            }
+        }
+        else
+        {
+            CSIO_LOG(eLogLevel_verbose, "[%d]break",i);
+            break;
+        }
+    }
+
+    CSIO_LOG(eLogLevel_debug, "Wfd_set_latency_by_the_source,id[%d] exit", id);
+}
 /***************************** end of Miracast(Wifi Display:wfd) streaming in *********************************/

@@ -44,6 +44,7 @@ std::string g_rtspAudioCodecStr = "" ;
 std::string g_rtspVidResRefStr  = "" ;
 
 extern void Wfd_setup_gst_pipeline (int id, int state, struct GST_PIPELINE_CONFIG* gst_config);
+extern void Wfd_set_latency_by_the_source (int id, int latency);
 
 /*************************** Global functions  ************************************/
 void* WfdSinkProjInit()
@@ -696,6 +697,15 @@ void* wfdSinkProjClass::ThreadEntry()
                     CSIO_LOG(m_debugLevel, "wfdSinkProjClass: process WFD_SINK_EVENTS_RTSP_LEAVE_SESSION_EVENT[%d].\n",id);
 
                     Wfd_setup_gst_pipeline(id, 0,NULL);
+                    break;
+                }
+                case WFD_SINK_EVENTS_RTSP_SET_LATENCY_EVENT:
+                {
+                    int id = evntQPtr->obj_id;
+                    int latency = evntQPtr->ext_obj;
+                    CSIO_LOG(m_debugLevel, "wfdSinkProjClass: process WFD_SINK_EVENTS_RTSP_SET_LATENCY_EVENT[%d]: latency:%d.\n",id,latency);
+
+                    Wfd_set_latency_by_the_source(id, latency);
                     break;
                 }
                 case WFD_SINK_EVENTS_JNI_GST_READY:

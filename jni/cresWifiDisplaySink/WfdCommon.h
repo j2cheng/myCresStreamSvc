@@ -27,6 +27,17 @@ typedef struct GST_PIPELINE_CONFIG
     char * pSrcVersionStr;
 } ;
 
+enum
+{
+    WFD_SINK_MS_LATENCY_CAP_INVALID = -1,
+
+    WFD_SINK_MS_LATENCY_CAP_LOW = 1,
+
+    WFD_SINK_MS_LATENCY_CAP_NORMAL = 2,
+
+    WFD_SINK_MS_LATENCY_CAP_HIGH = 3,
+};
+
 extern void* WfdSinkProjInit();
 extern void WfdSinkProjDeInit();
 

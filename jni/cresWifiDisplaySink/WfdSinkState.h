@@ -286,6 +286,7 @@ public:
 
     int m_debugLevel;
     int m_curentState;
+    int m_msLatency;
 private:
     int restartFromIdleCnt,m_max_restartCnt,m_onTcpConnFlag,m_src_rtsp_port,m_ts_Port;
 

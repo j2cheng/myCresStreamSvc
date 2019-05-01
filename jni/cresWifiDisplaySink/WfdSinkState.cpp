@@ -134,6 +134,7 @@ m_SourceUrl(),m_connTime(),m_srcVersionStr(),
 m_requestString(),
 m_debugLevel(eLogLevel_debug),
 m_curentState(WFD_SINK_STATES_IDLE),
+m_msLatency(-1),
 restartFromIdleCnt(0),m_max_restartCnt(MAX_WFD_TCP_RETRY),
 m_onTcpConnFlag(0),
 m_src_rtsp_port(DEFAULT_SOURCE_RTSP_PORT),
@@ -319,6 +320,7 @@ void wfdSinkStMachineClass::resetAllFlags()
     m_srcVersionStr.clear();;
     m_ssrc = 0;
     m_rtcpDestPort = -1;
+    m_msLatency = -1;
 }
 void wfdSinkStMachineClass::resetSystemStatus()
 {
@@ -526,7 +528,7 @@ int wfdSinkStMachineClass::idleState(csioEventQueueStruct* pEventQ)
                             nextState = WFD_SINK_STATES_IDLE;
 
                             //Note: failed to connect to the port 7250.sometimes port 7250 is not ready soon enough.
-                            //      if we wait 5 seconds to reconnect, seems to very long to the user.
+                            //      if we wait 5 seconds to reconnect, seems to be very long to the user.
                             //      so adjust restart time(500ms) and max restart count(30) here.
                             setTimeout(500);//Note: our tick is set to one second!!!
                             m_max_restartCnt = 30;
@@ -1880,6 +1882,44 @@ int wfdSinkStMachineClass::parserCallbackFun(RTSPPARSINGRESULTS * parsResPtr, vo
 
                                         composeRTSPResponse(p->m_rtspParserIntfSession,parsResPtr,RTSP_CODE_OK,parserComposeRespCallback,(void *)appArgument);
                                     }
+                                }
+                                else if(parsResPtr->headerData.msLatencyCapStr)
+                                {
+                                    p->m_msLatency = WFD_SINK_MS_LATENCY_CAP_INVALID;
+                                    if(strcasestr( parsResPtr->headerData.msLatencyCapStr, "low" ))
+                                    {
+                                        p->m_msLatency = WFD_SINK_MS_LATENCY_CAP_LOW;
+                                        composeRTSPResponse(p->m_rtspParserIntfSession,parsResPtr,RTSP_CODE_OK,parserComposeRespCallback,(void *)appArgument);
+                                    }
+                                    else if(strcasestr( parsResPtr->headerData.msLatencyCapStr, "normal" ))
+                                    {
+                                        p->m_msLatency = WFD_SINK_MS_LATENCY_CAP_NORMAL;
+                                        composeRTSPResponse(p->m_rtspParserIntfSession,parsResPtr,RTSP_CODE_OK,parserComposeRespCallback,(void *)appArgument);
+                                    }
+                                    else if(strcasestr( parsResPtr->headerData.msLatencyCapStr, "high" ))
+                                    {
+                                        p->m_msLatency = WFD_SINK_MS_LATENCY_CAP_HIGH;
+                                        composeRTSPResponse(p->m_rtspParserIntfSession,parsResPtr,RTSP_CODE_OK,parserComposeRespCallback,(void *)appArgument);
+                                    }
+                                    else
+                                    {
+                                        p->m_msLatency = WFD_SINK_MS_LATENCY_CAP_INVALID;
+                                        composeRTSPResponse(p->m_rtspParserIntfSession,parsResPtr,RTSP_CODE_BAD_REQUEST,parserComposeRespCallback,(void *)appArgument);
+                                    }
+
+                                    //sendEventToParentProj(WFD_SINK_EVENTS_RTSP_SET_LATENCY_EVENT);
+                                    {
+                                        csioEventQueueStruct EvntQ;
+                                        memset(&EvntQ,0,sizeof(csioEventQueueStruct));
+                                        EvntQ.obj_id = p->m_myId;
+                                        EvntQ.event_type = WFD_SINK_EVENTS_RTSP_SET_LATENCY_EVENT;
+                                        EvntQ.ext_obj = p->m_msLatency;
+
+                                        p->m_parent->sendEvent(&EvntQ);
+                                    }
+
+                                    CSIO_LOG(ABOVE_DEBUG_VERB(p->m_debugLevel), "wfdSinkStMachineClass[%d]: parserCallbackFun: received ms latency[%d]\n",
+                                             p->m_myId,p->m_msLatency);
                                 }
                             }//else: stay in the same states until next message
                         }

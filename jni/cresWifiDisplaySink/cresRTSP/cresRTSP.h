@@ -88,6 +88,7 @@ typedef struct _rtspheaderdata
    char * triggerMethod;            // NULL if not valid
    unsigned int ssrc;               // 0 assumed to be an invalid SSRC
    char * srcVersionStr;            // NULL if not valid
+   char * msLatencyCapStr;          // NULL if not valid
 } RTSPHEADERDATA;
 
 typedef struct _rtspparsingresults
@@ -144,6 +145,7 @@ struct rtsp
    char sessionID[32];
    char triggerMethod[32];
    char srcVersionStr[64];
+   char msLatencyCapStr[64];
    char presentationURL[256];
    char audioFormat[16];
    unsigned int modes;
