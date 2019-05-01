@@ -65,6 +65,7 @@ int csio_jni_StartRTPMediaStreamThread(int iStreamId, GstElement *appSource, uns
 void updateProbeInfo(int streamID, struct timespec * currentTimePtr, char * srcIPAddress);
 void * rtpMediaStreamThread(void * threadData);
 static bool loopShouldLog(int * errorCountPtr, int * logLevelPtr);
+static Mutex gGstStopLock;//used to prevent multiple threads accessing pipeline while stop gstreamer.
 
 ///////////////////////////////////////////////////////////////////////////////
 
@@ -4686,7 +4687,9 @@ JNIEXPORT void JNICALL Java_com_crestron_txrxservice_GstreamIn_nativeWfdStop(JNI
                 data->isStarted = false;
                 data->packetizer_pcr_discont_threshold = -1;
 
+                gGstStopLock.lock();
                 csio_jni_stop((int)windowId);
+                gGstStopLock.unlock();
 
                 Wfd_set_firewall_rules(0, 0);
             }
@@ -4979,12 +4982,16 @@ void Wfd_set_latency_by_the_source (int id, int latency)
     else
         return;
 
+    gGstStopLock.lock();
+
     CSIO_LOG(eLogLevel_verbose, "Wfd_set_latency_by_the_source,new latency setting[%d]", locLatency);
 
     //existing latency in DB
     guint64 userSetting = CSIOCnsIntf->getStreamRx_BUFFER(data->streamId) * 1000000ll;
     CSIOCnsIntf->setStreamRx_BUFFER( id, locLatency, SENDTOCRESSTORE_PUBLISH_AND_SAVE);
     CSIO_LOG(eLogLevel_verbose, "Wfd_set_latency_by_the_source,get current value from DB[%lld], set new value[%d]", userSetting,locLatency);
+
+    //Note: if the setting comes too early(we don't have pipeline yet), the value will be set into DB, and used later.
 
     //set rtpbin
     if(data->element_zero)
@@ -5078,6 +5085,8 @@ void Wfd_set_latency_by_the_source (int id, int latency)
             break;
         }
     }
+
+    gGstStopLock.unlock();
 
     CSIO_LOG(eLogLevel_debug, "Wfd_set_latency_by_the_source,id[%d] exit", id);
 }
