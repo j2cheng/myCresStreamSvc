@@ -212,6 +212,7 @@ public class WifidVideoPlayer {
             }
             sessionMap.put(id, session);
             stateChanged(id, AirMediaSessionStreamingState.Starting);
+            Common.Logging.i(TAG, "VideoPlayer.start  sessionId="+id+"  exiting...");
         }
         
         /// startWithDtls
@@ -337,10 +338,13 @@ public class WifidVideoPlayer {
         	{
         		streamCtrl_.stopWfdStream(session.streamId);
         		stateChanged(session.streamId, AirMediaSessionStreamingState.Stopped);
+        	} else {
+        		Common.Logging.i(TAG, "Session with this id="+id+" is already stopped");
         	}
 			// Remove session from the map
     		sessionMap.remove(id);
         }
+        Common.Logging.i(TAG, "VideoPlayer.stopSession for sessionId="+id+" exiting...");
     }
     
     public void stopSessionWithStreamId(int streamId)
@@ -350,7 +354,10 @@ public class WifidVideoPlayer {
         	long sessionId =  streamId2sessionId(streamId);
         	if (sessionId != INVALID_SESSION_ID)
         		stopSession(sessionId);
+        	else
+        		Common.Logging.i(TAG, "Session for streamId " + streamId +" has invalid streamId");
         }
+        Common.Logging.i(TAG, "VideoPlayer.stopSessionWithStreamId  streamId="+streamId+" exiting...");
     }
 
     ////////////////////////////////////////////////////////////////////////////////////////////////
