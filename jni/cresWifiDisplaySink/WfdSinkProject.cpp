@@ -89,26 +89,7 @@ void* WfdSinkProjInit()
 
 void WfdSinkProjDeInit()
 {
-    if(gWFDSinkProjPtr)
-    {
-        gWFDSinkProjPtr->exitThread();
-
-        //wait until thread exits
-        CSIO_LOG(gProjectDebug, "WfdSinkProjDeInit: call WaitForThreadToExit[0x%x]\n",gWFDSinkProjPtr);
-        gWFDSinkProjPtr->WaitForThreadToExit();
-        CSIO_LOG(gProjectDebug, "WfdSinkProjDeInit: Wait is done\n");
-
-        //delete the object, and set list to NULL
-        gProjectsLock.lock();
-
-        delete gWFDSinkProjPtr;
-        gWFDSinkProjPtr = NULL;
-
-        gProjectsLock.unlock();
-
-        CSIO_LOG(gProjectDebug, "WfdSinkProDeInit: delete HYDRGNProjObjPtr is DONE\n");
-    }
-
+    //1. close SinkStMachineThread first
     if(wfdSinkStMachineClass::m_wfdSinkStMachineThreadPtr)
     {
         wfdSinkStMachineClass::m_wfdSinkStMachineThreadPtr->exitThread();
@@ -140,6 +121,27 @@ void WfdSinkProjDeInit()
         gProjectsLock.unlock();
 
         CSIO_LOG(gProjectDebug, "WfdSinkProDeInit: delete m_wfdSinkStMachineThreadPtr is DONE\n");
+    }
+
+    //2. close WFDSinkProj at the end
+    if(gWFDSinkProjPtr)
+    {
+        gWFDSinkProjPtr->exitThread();
+
+        //wait until thread exits
+        CSIO_LOG(gProjectDebug, "WfdSinkProjDeInit: call WaitForThreadToExit[0x%x]\n",gWFDSinkProjPtr);
+        gWFDSinkProjPtr->WaitForThreadToExit();
+        CSIO_LOG(gProjectDebug, "WfdSinkProjDeInit: Wait is done\n");
+
+        //delete the object, and set list to NULL
+        gProjectsLock.lock();
+
+        delete gWFDSinkProjPtr;
+        gWFDSinkProjPtr = NULL;
+
+        gProjectsLock.unlock();
+
+        CSIO_LOG(gProjectDebug, "WfdSinkProDeInit: delete HYDRGNProjObjPtr is DONE\n");
     }
 }
 void WfdSinkProjSendEvent(int evnt, int iId, int data_size, void* bufP)

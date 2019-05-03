@@ -2866,7 +2866,7 @@ public class CresStreamCtrl extends Service {
     	try
     	{
         	userSettings.setStreamState(state, sessionId);
-        	Log.i(TAG, "sendStreamState(): StreamState for sessionId " + sessionId + " is " + state);
+        	Log.i(TAG, "setStreamState(): StreamState for sessionId " + sessionId + " is " + state);
     	}
     	finally 
     	{

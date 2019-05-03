@@ -2543,6 +2543,27 @@ int csio_jni_StartRTPMediaStreamThread(int iStreamId, GstElement * appSource, un
       return(-1);
    }
 
+   //to set SO_RCVBUF size to DEFAULT_UDP_BUFFER
+   {
+        int rcvbuf_len_val = DEFAULT_UDP_BUFFER;
+        int rcvbuf_len = sizeof(rcvbuf_len_val);
+
+        if (setsockopt(rtpMedStrContext.sockFD, SOL_SOCKET, SO_RCVBUF, &rcvbuf_len_val, rcvbuf_len) < 0)
+        {
+            CSIO_LOG(eLogLevel_error, "mira: getsockopt could not set SO_RCVBUF");
+        }
+        else
+        {
+            if (getsockopt(rtpMedStrContext.sockFD, SOL_SOCKET, SO_RCVBUF, &rcvbuf_len_val, &rcvbuf_len) < 0)
+            {
+                CSIO_LOG(eLogLevel_error, "mira: getsockopt could not get SO_RCVBUF");
+            }
+            else
+            {
+                CSIO_LOG(eLogLevel_debug, "mira: set SO_RCVBUF to %d",rcvbuf_len_val);
+            }
+        }
+   }
    memset((void *)&servaddr, 0, sizeof(servaddr)); 
 
    // bind the socket with the server address 
