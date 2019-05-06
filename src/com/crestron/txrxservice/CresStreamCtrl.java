@@ -4024,7 +4024,7 @@ public class CresStreamCtrl extends Service {
 
     public void launchAirMedia(boolean val, int sessId, boolean fullscreen) {
     	stopStartLock[sessId].lock("launchAirMedia");
-    	Log.i(TAG, "AirMedia " + sessId + "   launch = " + val + "  fullScreen =" + fullscreen);
+    	Log.i(TAG, "AirMedia sessionId=" + sessId + "   launch = " + val + "  fullScreen =" + fullscreen);
     	try
     	{
 //    		// Bug 153417: When in AppSpace mode, allow AppSpace to stop before starting AirMedia
@@ -4108,8 +4108,13 @@ public class CresStreamCtrl extends Service {
     			{
     				if (mAirMedia != null)
     				{
-						Log.i(TAG, "hide AirMedia");
+						Log.i(TAG, "hide AirMedia on streamId "+sessId);
     					mAirMedia.hide(sessId, true);
+        				if (getSurfaceView(sessId).getVisibility() == View.VISIBLE)
+        				{
+            				Log.i(TAG, "Hiding window "+sessId+" because airmedia is turned off");
+            	    		hideSplashtopWindow(sessId, false);
+        				}
     				}
     				// Restore default Window once Air Media is stopped
     				Point size = getDisplaySize();
@@ -4127,6 +4132,7 @@ public class CresStreamCtrl extends Service {
     	}
     	finally
     	{
+        	Log.i(TAG, "launchAirMedia exit for sessionId=" + sessId + "   launch = " + val);
     		stopStartLock[sessId].unlock("launchAirMedia");
     	}
     }
@@ -5746,6 +5752,9 @@ public class CresStreamCtrl extends Service {
 			// Only send new status when hdcp status changes for either input or output, or if force status update is called
 			if ((mHDCPInputStatus != currentHDCPInputStatus) || (mHDCPOutputStatus != currentHDCPOutputStatus) || (mForceHdcpStatusUpdate == true))
 			{
+				Log.v(TAG, "checkHdcpStatus(): InputHdcpStatus prev: " + mHDCPInputStatus + " cur: " + currentHDCPInputStatus +
+						"OutputHdcpStatus prev: " + mHDCPOutputStatus + " cur: " + currentHDCPOutputStatus +
+						" HDCPExternalStatus=" + mHDCPExternalStatus + " forceHdcpStatusUpdate=" + mForceHdcpStatusUpdate + " HDCPEncryptStatus=" + mHDCPEncryptStatus);
 				boolean outputHDCPstatus = currentHDCPOutputStatus || mHDCPExternalStatus;
 				hdcpStatusChanged = true;
 				mHDCPInputStatus = currentHDCPInputStatus;

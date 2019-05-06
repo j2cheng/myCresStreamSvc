@@ -806,6 +806,11 @@ public class CresDisplaySurfaceMaster implements CresDisplaySurface
 	
 	public void setTag(int idx, String tag)
 	{
+		Log.i(TAG, "CresDisplaySurfaceMaster::setTag: idx=" + idx + " setting tag to "+tag);
+		if (displaySurface[idx].getVisibility() == View.VISIBLE)
+		{
+			Log.w(TAG, "CresDisplaySurfaceMaster::setTag: idx=" + idx + " setting tag when view is visible");
+		}
 		displaySurface[idx].setTag(tag);
 	}
 

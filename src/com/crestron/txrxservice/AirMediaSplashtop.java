@@ -706,24 +706,31 @@ public class AirMediaSplashtop
     		Rect window = new Rect(x, y, x+width-1, y+height-1);
     		if (surfaceDisplayed == false || !MiscUtils.rectanglesAreEqual(window_, window))
     		{	    		    	
-    			Common.Logging.i(TAG, "show: Show window 0 " + window);
+    			Common.Logging.i(TAG, "show: Show window " +sessionId + " " + window);
 
     			// if we have a pending session let it take over now
     			makePendingSessionActive();
     			
     			//show surface
     			setVideoTransformation();
-
-    			showVideo(useTextureView(getActiveSession()));
-
-    			if (getActiveSession() != null && getActiveSession().videoSurface() == null)
+    			
+    			if (mStreamCtl.userSettings.getAirMediaLaunch(sessionId))
     			{
-    				Common.Logging.i(TAG, "show: calling attachSurface");
-    				attachSurface();	
-    			} 
-    			else if (getActiveSession() != null)
+    				// show window provided someone upstream has requested it
+    				showVideo(useTextureView(getActiveSession()));
+    			}
+
+    			if (getActiveSession() != null)
     			{
-    				Common.Logging.w(TAG, "show: no active session - cannot attach surface");    				
+    				if (getActiveSession().videoSurface() == null)
+    				{
+    					Common.Logging.i(TAG, "show: calling attachSurface");
+    					attachSurface();	
+    				} 
+    				else
+    				{
+    					Common.Logging.w(TAG, "show: have active session - but already has surface");    				
+    				}
     			}
     		}
     		else

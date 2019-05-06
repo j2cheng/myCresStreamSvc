@@ -446,9 +446,6 @@ public class CameraPreview {
 		        
 		        signalPreviewTimeoutThread();
 		        
-		        // Reset Tag
-				streamCtl.setSurfaceViewTag(idx, "VideoLayer");
-		        
 		        latch.countDown();
     		}
     	});
@@ -458,8 +455,11 @@ public class CameraPreview {
     	boolean successfulStop = true; //indicates that there was no time out condition
     	try { successfulStop = latch.await(stopTimeout_ms, TimeUnit.MILLISECONDS); }
     	catch (InterruptedException ex) { ex.printStackTrace(); }
-    	
-    	streamCtl.checkVideoTimeouts(successfulStop);
+    	    	
+        // Reset Tag
+		streamCtl.setSurfaceViewTag(idx, "VideoLayer");
+		
+    	streamCtl.checkVideoTimeouts(successfulStop);       
     	if (!successfulStop)
     	{
     		Log.e(TAG, MiscUtils.stringFormat("Preview mode failed to stop after %d ms", stopTimeout_ms));
