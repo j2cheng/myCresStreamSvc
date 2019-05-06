@@ -5981,12 +5981,14 @@ public class CresStreamCtrl extends Service {
 					Context displayContext = getApplicationContext().createDisplayContext(dispArray[1]);
 					wm = (WindowManager)displayContext.getSystemService(Context.WINDOW_SERVICE);
 				}
+				else
+				    Log.e(TAG, "Unable to query second display size, length <= 1, using primary display");
 			}
 			else
-			{
-				Log.e(TAG, "Unable to query second display size, using primary display");
-			}
-		}	
+				Log.e(TAG, "Unable to query second display size, dm == null, using primary display");
+		}
+		else
+		    Log.d(TAG, "Device does not have second display, using primary");
 
 		Display display = wm.getDefaultDisplay();
 		display.getSize(retVal);
