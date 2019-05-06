@@ -69,12 +69,13 @@ UTIL_INC_PATH := $(CRESTRON_ROOT)/Utilities
 STL_INC_PATH := $(CRESTRON_ROOT)/../stlport/stlport
 CPP_INC_PATH := $(CRESTRON_ROOT)/../../bionic
 
-ifeq ($(TARGET_PRODUCT),$(filter $(TARGET_PRODUCT),yushan_one full_omap5panda))
-#SSL_INC_PATH := $(CRESTRON_ROOT)/../openssl-1.1.1/include
-#we are going to use nwer version of libs that comes with gstreamer
-SSL_INC_PATH := $(GSTREAMER_ROOT_ANDROID)/include
+
+# for now Gstreamer 1.14 products are using OpenSSL from Gstreamer, except for x60 which uses Gstreamer 1.8
+ifeq ($(TARGET_PRODUCT),$(filter $(TARGET_PRODUCT),yushan_one))
+SSL_INC_PATH := $(CRESTRON_ROOT)/../openssl-1.1.1/include
 else
-SSL_INC_PATH := $(CRESTRON_ROOT)/../openssl/include
+# we are going to use nwer version of libs that comes with gstreamer
+SSL_INC_PATH := $(GSTREAMER_ROOT_ANDROID)/include
 endif
 
 # Crestron - name was different
@@ -83,14 +84,14 @@ LOCAL_SHARED_LIBRARIES := libgstreamer_android liblog libandroid
 LOCAL_SHARED_LIBRARIES += libproductName
 LOCAL_SHARED_LIBRARIES += libLinuxUtil
 LOCAL_SHARED_LIBRARIES += libCresSocketHandler
-ifeq ($(TARGET_PRODUCT),$(filter $(TARGET_PRODUCT),yushan_one full_omap5panda))
+
+# for now Gstreamer 1.14 products are using OpenSSL from Gstreamer, except for x60 which uses Gstreamer 1.8
+ifeq ($(TARGET_PRODUCT),$(filter $(TARGET_PRODUCT),yushan_one))
 #we are going to use nwer version of libs that comes with gstreamer
-#LOCAL_SHARED_LIBRARIES += libcrypto111
-#LOCAL_SHARED_LIBRARIES += libssl111 
-else
-LOCAL_SHARED_LIBRARIES += libcrypto
-LOCAL_SHARED_LIBRARIES += libssl
+LOCAL_SHARED_LIBRARIES += libcrypto111
+LOCAL_SHARED_LIBRARIES += libssl111
 endif
+
 LOCAL_SHARED_LIBRARIES += libcresstore_json
 #LOCAL_SHARED_LIBRARIES += libjsoncpp
 LOCAL_SHARED_LIBRARIES += libcresnextserializer
