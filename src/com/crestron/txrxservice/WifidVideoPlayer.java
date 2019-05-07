@@ -211,7 +211,7 @@ public class WifidVideoPlayer {
             	streamCtrl_.startWfdStream(streamId, id, endpoint, port);
             }
             sessionMap.put(id, session);
-            stateChanged(id, AirMediaSessionStreamingState.Starting);
+            WifidVideoPlayer.this.stateChanged(streamId, AirMediaSessionStreamingState.Starting);
             Common.Logging.i(TAG, "VideoPlayer.start  sessionId="+id+"  exiting...");
         }
         
