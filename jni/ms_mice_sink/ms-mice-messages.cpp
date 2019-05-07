@@ -37,7 +37,7 @@ void ms_mice_message_unpack(ms_mice_message *msg, GDataInputStream *stream, GErr
         return;
     } else if (msg->size <= (MS_MICE_HEADER_SIZE + MS_MICE_TLV_HEADER_SIZE)) {
         if (error) {
-            *error = g_error_new(G_IO_ERROR, G_IO_ERROR_INVALID_ARGUMENT, "No Miracast TLVs, expecting message greater than %"G_GSIZE_FORMAT" bytes", (gsize)(MS_MICE_HEADER_SIZE + MS_MICE_TLV_HEADER_SIZE));
+            *error = g_error_new(G_IO_ERROR, G_IO_ERROR_INVALID_ARGUMENT, "No Miracast TLVs, expecting message greater than %" G_GSIZE_FORMAT " bytes", (gsize)(MS_MICE_HEADER_SIZE + MS_MICE_TLV_HEADER_SIZE));
         }
         return;
     }
@@ -54,7 +54,7 @@ void ms_mice_message_unpack(ms_mice_message *msg, GDataInputStream *stream, GErr
 
     if (stream_available < payload_size) {
         if (error) {
-            *error = g_error_new(G_IO_ERROR, G_IO_ERROR_INVALID_ARGUMENT, "Available stream size (%"G_GSIZE_FORMAT" bytes) not enough for a payload (%"G_GSIZE_FORMAT" bytes)", stream_available, payload_size);
+            *error = g_error_new(G_IO_ERROR, G_IO_ERROR_INVALID_ARGUMENT, "Available stream size (%" G_GSIZE_FORMAT " bytes) not enough for a payload (%" G_GSIZE_FORMAT " bytes)", stream_available, payload_size);
             // TODO: bad condition, should probably close socket
         }
         return;
@@ -80,7 +80,7 @@ void ms_mice_message_unpack(ms_mice_message *msg, GDataInputStream *stream, GErr
 
         if (payload_size < tlv->length) {
             if (error) {
-                *error = g_error_new(G_IO_ERROR, G_IO_ERROR_INVALID_ARGUMENT, "Payload size (%"G_GSIZE_FORMAT" bytes) not enough for TVL length (%"G_GUINT16_FORMAT" bytes)", payload_size, tlv->length);
+                *error = g_error_new(G_IO_ERROR, G_IO_ERROR_INVALID_ARGUMENT, "Payload size (%" G_GSIZE_FORMAT " bytes) not enough for TVL length (%" G_GUINT16_FORMAT " bytes)", payload_size, tlv->length);
                 // TODO: bad condition, should probably close socket
             }
             return;

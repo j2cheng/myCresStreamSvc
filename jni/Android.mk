@@ -4,6 +4,10 @@ LOCAL_PATH := $(call my-dir)
 # /system/lib
 ########################
 include $(CLEAR_VARS)
+ifeq ($(TARGET_PRODUCT),$(filter $(TARGET_PRODUCT),msm8953_64))
+LOCAL_MULTILIB := 32
+LOCAL_MODULE_PATH  := $(TARGET_OUT_VENDOR)/lib/
+endif
 LOCAL_MODULE := libgstreamer_android.so
 LOCAL_MODULE_CLASS := SHARED_LIBRARIES
 LOCAL_MODULE_TAGS := eng
@@ -11,6 +15,13 @@ LOCAL_SRC_FILES := ./gstreamer_android/libgstreamer_android.so
 include $(BUILD_PREBUILT)
 
 include $(CLEAR_VARS)
+ifeq ($(TARGET_PRODUCT),$(filter $(TARGET_PRODUCT),msm8953_64))
+LOCAL_MULTILIB := 32
+LOCAL_MODULE_PATH  := $(TARGET_OUT_VENDOR)/lib/
+
+LOCAL_CFLAGS += -DANDROID_OREO_OR_LATER
+endif
+
 GSTREAMER_ROOT_ANDROID := $(LOCAL_PATH)/../../../gstreamer-1.8.1
 CSIO_INCLUDE_ROOT := $(LOCAL_PATH)/../../csio
 CSIO_ROOT := ../../csio
@@ -138,7 +149,7 @@ ifeq ($(shell test $(PLATFORM_SDK_VERSION) -lt 23 && echo PreMarshmallow),PreMar
 	LOCAL_CFLAGS += -I$(STL_INC_PATH)
 endif
 
-ifeq ($(TARGET_PRODUCT),$(filter $(TARGET_PRODUCT),yushan_one ))
+ifeq ($(TARGET_PRODUCT),$(filter $(TARGET_PRODUCT),yushan_one msm8953_64 ))
 LOCAL_CFLAGS += -DBIONIC_HAS_STPCPY
 endif
 
@@ -168,6 +179,11 @@ include $(BUILD_SHARED_LIBRARY)
 
 ### library for CresStreamCtrl jni functions
 include $(CLEAR_VARS)
+ifeq ($(TARGET_PRODUCT),$(filter $(TARGET_PRODUCT),msm8953_64))
+LOCAL_MULTILIB := 32
+LOCAL_MODULE_PATH  := $(TARGET_OUT_VENDOR)/lib/
+endif
+
 CRESTRON_ROOT := $(LOCAL_PATH)/../..
 CSIO_INCLUDE_ROOT := $(LOCAL_PATH)/../../csio
 STL_INC_PATH := $(CRESTRON_ROOT)/../stlport/stlport
@@ -215,7 +231,7 @@ LOCAL_CFLAGS +=\
 endif
 # AM Logic #
 # For now just use the txrx code.  Move this out if needed
-ifeq ($(TARGET_PRODUCT),$(filter $(TARGET_PRODUCT),yushan_one))
+ifeq ($(TARGET_PRODUCT),$(filter $(TARGET_PRODUCT),yushan_one msm8953_64))
 LOCAL_CFLAGS +=\
 	-I$(CSIO_INCLUDE_ROOT)/txrx 
 endif	

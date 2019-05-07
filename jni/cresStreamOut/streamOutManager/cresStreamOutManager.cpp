@@ -151,6 +151,9 @@ m_bExit(false),m_bPushRawFrames(false),m_ahcsrc(NULL),m_camera(NULL)
     mLock            = new Mutex();
     mTLock           = new Mutex();
 
+    m_multicast_address[0] = '\0';
+    m_stream_name[0] = '\0';
+
     if(!m_StreamoutEvent || !m_StreamoutEventQ || !mLock)
         CSIO_LOG(eLogLevel_error, "--Streamout: CStreamoutManager malloc failed:[0x%x][0x%x][0x%x]",\
                 m_StreamoutEvent,m_StreamoutEventQ,mLock);
@@ -372,7 +375,7 @@ void* CStreamoutManager::ThreadEntry()
 
     if (m_multicast_enable)
     {
-    	if (m_multicast_address)	// TODO: Also check that multicast address is valid
+    	if (m_multicast_address[0])	// TODO: Also check that multicast address is valid
     	{
     		uint32_t ip = 0;
     		int ret = inet_pton(AF_INET, m_multicast_address, &ip);
@@ -410,7 +413,7 @@ void* CStreamoutManager::ThreadEntry()
     gst_rtsp_media_factory_set_media_gtype (m_factory, CRES_TYPE_RTSP_MEDIA);
 #endif
 
-    if (m_stream_name)
+    if (m_stream_name[0])
     {
 	    char mountPoint [512];
         sprintf(mountPoint, "/%s.sdp", m_stream_name);

@@ -338,9 +338,9 @@ void ms_mice_tlv_unpack(ms_mice_tlv *tlv, GDataInputStream *stream, GError **err
     stream_available = stream_get_available(stream);
 
     if (stream_available < tlv->length) {
-        CSIO_LOG(eLogLevel_error,"miracast.tlv.unpack.error { \"message\": \"Available stream size (%"G_GSIZE_FORMAT" bytes) not enough for TLV length (%"G_GUINT16_FORMAT" bytes)\" }", stream_available, tlv->length);
+        CSIO_LOG(eLogLevel_error,"miracast.tlv.unpack.error { \"message\": \"Available stream size (%" G_GSIZE_FORMAT " bytes) not enough for TLV length (%" G_GUINT16_FORMAT " bytes)\" }", stream_available, tlv->length);
         if (error) {
-            *error = g_error_new(G_IO_ERROR, G_IO_ERROR_INVALID_ARGUMENT, "Available stream size (%"G_GSIZE_FORMAT" bytes) not enough for TLV length (%"G_GUINT16_FORMAT" bytes)", stream_available, tlv->length);
+            *error = g_error_new(G_IO_ERROR, G_IO_ERROR_INVALID_ARGUMENT, "Available stream size (%" G_GSIZE_FORMAT " bytes) not enough for TLV length (%" G_GUINT16_FORMAT " bytes)", stream_available, tlv->length);
             // TODO: bad condition, should probably close socket
         }
         return;

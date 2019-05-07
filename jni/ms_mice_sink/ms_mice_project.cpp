@@ -186,22 +186,22 @@ static void app_extension_ms_mice_session_observer_on_disconnected(ms_mice_sink_
 
 static void app_extension_ms_mice_session_observer_on_state_changed(ms_mice_sink_session *session, MS_MICE_SINK_SESSION_STATE from, MS_MICE_SINK_SESSION_STATE to, gpointer data)
 {
-    CSIO_LOG(eLogLevel_debug,"app.ms-mice.session.event.state { \"session-id\": %"G_GUINT64_FORMAT" , \"from\": \"%s\" , \"to\": \"%s\" }", ms_mice_sink_session_get_id(session), ms_mice_sink_session_state_to_string(from), ms_mice_sink_session_state_to_string(to));
+    CSIO_LOG(eLogLevel_debug,"app.ms-mice.session.event.state { \"session-id\": %" G_GUINT64_FORMAT " , \"from\": \"%s\" , \"to\": \"%s\" }", ms_mice_sink_session_get_id(session), ms_mice_sink_session_state_to_string(from), ms_mice_sink_session_state_to_string(to));
 }
 
 static void app_extension_ms_mice_session_observer_on_source_id_set(ms_mice_sink_session *session, const char *source_id, gpointer data)
 {
-    CSIO_LOG(eLogLevel_debug,"app.ms-mice.session.event.source-id { \"session-id\": %"G_GUINT64_FORMAT" , \"source-id\": \"%s\" }", ms_mice_sink_session_get_id(session), source_id);
+    CSIO_LOG(eLogLevel_debug,"app.ms-mice.session.event.source-id { \"session-id\": %" G_GUINT64_FORMAT " , \"source-id\": \"%s\" }", ms_mice_sink_session_get_id(session), source_id);
 }
 
 static void app_extension_ms_mice_session_observer_on_friendly_name_set(ms_mice_sink_session *session, const char *friendly_name, gpointer data)
 {
-    CSIO_LOG(eLogLevel_debug,"app.ms-mice.session.event.friendly-name { \"session-id\": %"G_GUINT64_FORMAT" , \"friendly-name\": \"%s\" }", ms_mice_sink_session_get_id(session), friendly_name);
+    CSIO_LOG(eLogLevel_debug,"app.ms-mice.session.event.friendly-name { \"session-id\": %" G_GUINT64_FORMAT " , \"friendly-name\": \"%s\" }", ms_mice_sink_session_get_id(session), friendly_name);
 }
 
 static void app_extension_ms_mice_session_observer_on_source_ready(ms_mice_sink_session *ms_session, guint16 rtsp_port, gpointer data)
 {
-    CSIO_LOG(eLogLevel_debug,"app.ms-mice.session.event.source-ready { \"session-id\": %"G_GUINT64_FORMAT" , \"rtsp-port\": %u }", ms_mice_sink_session_get_id(ms_session), rtsp_port);
+    CSIO_LOG(eLogLevel_debug,"app.ms-mice.session.event.source-ready { \"session-id\": %" G_GUINT64_FORMAT " , \"rtsp-port\": %u }", ms_mice_sink_session_get_id(ms_session), rtsp_port);
 
     //TODO: emit_source_ready to java
     Wfd_ms_mice_signal_raise (
@@ -215,7 +215,7 @@ static void app_extension_ms_mice_session_observer_on_source_ready(ms_mice_sink_
 
 static void app_extension_ms_mice_session_observer_on_stop_projection(ms_mice_sink_session *ms_session, gpointer data)
 {
-    CSIO_LOG(eLogLevel_debug,"app.ms-mice.session.event.stop-projection { \"session-id\": %"G_GUINT64_FORMAT" }", ms_mice_sink_session_get_id(ms_session));
+    CSIO_LOG(eLogLevel_debug,"app.ms-mice.session.event.stop-projection { \"session-id\": %" G_GUINT64_FORMAT " }", ms_mice_sink_session_get_id(ms_session));
 
     //TODO: emit_stop_projecting to java
     Wfd_ms_mice_signal_raise (
@@ -299,7 +299,7 @@ int session_observer_disconnect_request_from_app(gpointer user_data)
 static void app_extension_ms_mice_service_observer_on_session_connected(ms_mice_sink_service *service, ms_mice_sink_session *ms_session, gpointer data)
 {
     g_autoptr(GError) error = NULL;
-    CSIO_LOG(eLogLevel_debug,"app.ms-mice.service.event.session-connected { \"session-id\": %"G_GUINT64_FORMAT" }", ms_mice_sink_session_get_id(ms_session));
+    CSIO_LOG(eLogLevel_debug,"app.ms-mice.service.event.session-connected { \"session-id\": %" G_GUINT64_FORMAT " }", ms_mice_sink_session_get_id(ms_session));
 
     ms_mice_sink_session_observer_attach(ms_session, &app_extension_ms_mice_session_observer, NULL);
 }

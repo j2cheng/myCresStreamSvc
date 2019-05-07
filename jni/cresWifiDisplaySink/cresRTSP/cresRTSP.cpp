@@ -2004,7 +2004,10 @@ char * loc_strchrnul( char * s, int c)
 char * loc_stpcpy(char * dest, char * src)
 {
    size_t len = strlen(src);
-   return (char *)((char *)memcpy(dest,src,len + 1) + len);
+   char *ptr = dest;
+   memcpy(dest,src,len + 1);
+   ptr+= len;
+   return (ptr);
 }
 
 

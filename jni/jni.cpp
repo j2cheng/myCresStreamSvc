@@ -845,6 +845,9 @@ static void gst_jni_setup_surface_format(JNIEnv *env,ANativeWindow *new_native_w
 
     CSIO_LOG(eLogLevel_debug, "ANativeWindow format was %x", ANativeWindow_getFormat(new_native_window));
 
+#ifndef ANDROID_OREO_OR_LATER
+//native_xxx functions were deprecated at android version 8.
+//Rajesh: window parameters are handled elsewhere by wps calls. TODO: need to test
     err = native_window_set_buffers_format(new_native_window, format);
     if (err != 0)
     {
@@ -883,6 +886,7 @@ static void gst_jni_setup_surface_format(JNIEnv *env,ANativeWindow *new_native_w
         CSIO_LOG(eLogLevel_error, "NATIVE_WINDOW_MIN_UNDEQUEUED_BUFFERS query failed: %s (%d)", strerror(-err), -err);
         return;
     }
+#endif
 
     if (data->surface)
     {
@@ -2570,7 +2574,7 @@ int csio_jni_StartRTPMediaStreamThread(int iStreamId, GstElement * appSource, un
    servaddr.sin_family        = AF_INET;           // IPv4 
    servaddr.sin_addr.s_addr   = INADDR_ANY; 
    servaddr.sin_port          = htons(udpPort);
-   if(bind(rtpMedStrContext.sockFD, (const struct sockaddr *)&servaddr, sizeof(servaddr)) < 0) 
+   if(bind((int) rtpMedStrContext.sockFD, (const struct sockaddr *)&servaddr, (int) (sizeof(servaddr))) < 0)
    { 
       CSIO_LOG(eLogLevel_error, "mira: could not bind RTP socket");
       return(-1);
@@ -4361,6 +4365,9 @@ static void wbs_jni_setup_surface_format(JNIEnv *env,ANativeWindow *new_native_w
 
     CSIO_LOG(eLogLevel_debug, "%s: ANativeWindow format was %x", __FUNCTION__, ANativeWindow_getFormat(new_native_window));
 
+#ifndef ANDROID_OREO_OR_LATER
+//native_xxx functions were deprecated at android version 8.
+//Rajesh: window parameters are handled elsewhere by wps calls. TODO: need to test
     err = native_window_set_buffers_format(new_native_window, format);
     if (err != 0)
     {
@@ -4400,6 +4407,7 @@ static void wbs_jni_setup_surface_format(JNIEnv *env,ANativeWindow *new_native_w
         CSIO_LOG(eLogLevel_error, "NATIVE_WINDOW_MIN_UNDEQUEUED_BUFFERS query failed: %s (%d)", strerror(-err), -err);
         return;
     }
+#endif
 
     if (pWbs->surface)
     {
