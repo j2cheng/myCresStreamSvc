@@ -1340,8 +1340,12 @@ public class CresStreamCtrl extends Service {
     				}
     				airMediaLicensed = AirMediaSplashtop.checkAirMediaLicense();
 				}
-    			Log.i(TAG, "AirMedia is licensed: try to start AirMedia (csioConnected="+csioConnected+")");
+				if (airMediaLicensed)
+				{
+					Log.i(TAG, MiscUtils.stringFormat("AirMedia is %s licensed", ((airMediaLicensed) ? "" : "not")));
+				}
     			while (!csioConnected) {
+        			Log.v(TAG, "AirMedia is licensed: try to start AirMedia - waiting for csio to connect");
     				try { Thread.sleep(500); } catch (InterruptedException e){}//Poll every 0.5 seconds
     			}
     			// Wait until file exists then check
@@ -4143,6 +4147,7 @@ public class CresStreamCtrl extends Service {
     			return null; //Don't set out of range value
 
     		userSettings.setAirMediaLoginCode(loginCode);
+			Log.i(TAG, "Incoming login code forces loginCodeMode to 'Fixed'");
     		userSettings.setAirMediaLoginMode(AirMediaLoginMode.Fixed.ordinal()); // When loginCode is set auto switch to fixed mode
 
     		if (getAirMediaNumberUserConnected() == 0)
