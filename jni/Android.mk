@@ -12,6 +12,7 @@ LOCAL_MODULE := libgstreamer_android
 LOCAL_MODULE_CLASS := SHARED_LIBRARIES
 LOCAL_MODULE_TAGS := eng
 LOCAL_SRC_FILES := ./gstreamer_android/libgstreamer_android.so
+LOCAL_MODULE_SUFFIX := .so
 include $(BUILD_PREBUILT)
 
 include $(CLEAR_VARS)
