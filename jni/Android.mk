@@ -8,7 +8,7 @@ ifeq ($(TARGET_PRODUCT),$(filter $(TARGET_PRODUCT),msm8953_64))
 LOCAL_MULTILIB := 32
 LOCAL_MODULE_PATH  := $(TARGET_OUT_VENDOR)/lib/
 endif
-LOCAL_MODULE := libgstreamer_android.so
+LOCAL_MODULE := libgstreamer_android
 LOCAL_MODULE_CLASS := SHARED_LIBRARIES
 LOCAL_MODULE_TAGS := eng
 LOCAL_SRC_FILES := ./gstreamer_android/libgstreamer_android.so
