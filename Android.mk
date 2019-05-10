@@ -41,7 +41,10 @@ LOCAL_SHARED_LIBRARIES := libgstreamer_jni
 LOCAL_STATIC_JAVA_LIBRARIES := gson
 
 ifeq ($(TARGET_PRODUCT),$(filter $(TARGET_PRODUCT),yushan_one full_omap5panda msm8953_64))
+#TODO: Re-enable x70. For now, do not include CresStreamSvc APK in the image until tested.
+ifneq ($(TARGET_PRODUCT),$(filter $(TARGET_PRODUCT),msm8953_64))
 include $(BUILD_PACKAGE)
+endif
 include $(LOCAL_PATH)/jni/Android.mk
 
 include $(CLEAR_VARS)
