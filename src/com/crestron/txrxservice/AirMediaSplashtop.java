@@ -564,8 +564,16 @@ public class AirMediaSplashtop
         		receiver().sessionManager().clear();
         		stopReceiver();
         	}
-        	Common.Logging.i(TAG, "startAirMediaReceiver(): Starting AirMedia Receiver");
-        	successfulStart = startReceiver();
+        	if (!get_adapter_ip_address().equals("None"))
+        	{
+            	Common.Logging.i(TAG, "startAirMediaReceiver(): Starting AirMedia Receiver");
+        		successfulStart = startReceiver();
+        	}
+        	else
+        	{
+            	Common.Logging.i(TAG, "startAirMediaReceiver(): Not starting AirMedia Receiver because adapter ip address is 'None'");
+
+        	}
         }
         Common.Logging.i(TAG,"startAirMediaReceiver exiting with rv="+successfulStart);
 		return successfulStart;
@@ -1502,10 +1510,15 @@ public class AirMediaSplashtop
 		}
 		// Launch Stop/Start of receiver in separate thread
 		if (receiver_ == null && service_ != null)
+		{
 			startAirMedia();
+			Common.Logging.i(TAG, "setAdapter(): Exiting having issued started air media with " + address);
+		}
 		else
+		{
 			RestartReceiverForAdapterChange();
-		Common.Logging.i(TAG, "setAdapter(): Exiting having issued restart of receiver with " + address);
+			Common.Logging.i(TAG, "setAdapter(): Exiting having issued restart of receiver with " + address);
+		}
     }
     
     public void setProjectionLock(boolean enable)
