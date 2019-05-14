@@ -163,9 +163,7 @@ void init_custom_data(CustomData * cdata)
         data->rtcp_dest_ip_addr[0] = 0;
         data->rtcp_dest_port = -1;
 
-        data->packetizer_pcr_discont_threshold = -1;//default as invalid
-
-        data->wfd_jitterbuffer_latency = -1;
+        data->packetizer_pcr_discont_threshold = -1;//default as invalid        
 
         data->ms_mice_pin[0] = 0;
 	}
@@ -1608,39 +1606,6 @@ void build_http_pipeline(CREGSTREAM *data, int iStreamId)
             CSIO_LOG(eLogLevel_error, "ERROR: unable to set the pipeline to PLAYING state.");
         }
         data->video_sink = gst_bin_get_by_interface(GST_BIN(data->pipeline), GST_TYPE_VIDEO_OVERLAY);
-    }
-}
-/**
- * \author      John Cheng
- *
- * \date        1/07/2019
- *
- * \return      void
- *
- * \retval      void
- *
- * \brief       callback when rtpbin creates rtpjitterbuffer element
- *
- * \param       void user_function (GstRtpBin  *rtpbin,
- *                       GstElement *jitterbuffer,
- *                       guint       session,
- *                       guint       ssrc,
- *                       gpointer    user_data)
- *
- *
- */
-void csio_jni_callback_rtpbin_new_jitterbuffer(GstElement *rtpbin,GstElement *jitterbuffer,guint session,guint ssrc,gpointer data)
-{
-    if(rtpbin && jitterbuffer)
-    {
-        int latency = (int)data;
-
-        CSIO_LOG(eLogLevel_debug, "csio_jni_callback_rtpbin_new_jitterbuffer created, latency set to:%d.",latency);
-        g_object_set( G_OBJECT( jitterbuffer ), "latency", latency,  NULL );
-    }
-    else
-    {
-        CSIO_LOG(eLogLevel_debug, "csio_jni_callback_rtpbin_new_jitterbuffer: skip.");
     }
 }
 /**

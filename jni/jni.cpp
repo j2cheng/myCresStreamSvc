@@ -1944,20 +1944,6 @@ JNIEXPORT void JNICALL Java_com_crestron_txrxservice_GstreamIn_nativeSetFieldDeb
 				else
 				    CSIO_LOG(eLogLevel_warning, "Error: fileName %p, pipeline %p", fileName, data->pipeline);
 			}
-            else if (!strcmp(CmdPtr, "JITTER_LATENCY"))
-            {
-                CmdPtr = strtok(NULL, ", ");
-                if (CmdPtr == NULL)
-                {
-                    CSIO_LOG(eLogLevel_info, "current data->wfd_jitterbuffer_latency: %d\r\n",data->wfd_jitterbuffer_latency);
-                }
-                else
-                {
-                    data->wfd_jitterbuffer_latency = (int) strtol(CmdPtr, &EndPtr, 10);
-
-                    CSIO_LOG(eLogLevel_debug, "set jitterbuffer_latency: %d",data->wfd_jitterbuffer_latency);
-                }
-            }
             else
             {
                 CSIO_LOG(eLogLevel_info, "Invalid command:%s\r\n",CmdPtr);
@@ -2943,11 +2929,6 @@ int csio_jni_CreatePipeline(GstElement **pipeline, GstElement **source, eProtoco
 		        data->element_zero = gst_element_factory_make("rtpbin", NULL);
 			    gst_bin_add(GST_BIN(data->pipeline), data->element_zero);
 
-			    if(data->wfd_jitterbuffer_latency != -1)
-			        g_signal_connect( data->element_zero, "new-jitterbuffer",
-			                          G_CALLBACK(csio_jni_callback_rtpbin_new_jitterbuffer),
-			                          (gpointer)data->wfd_jitterbuffer_latency );
-
 			    data->udp_port = CSIOCnsIntf->getStreamTxRx_TSPORT(iStreamId);
 			    data->element_av[0] = gst_element_factory_make("udpsrc", NULL);
 			    insert_udpsrc_probe(data,data->element_av[0],"src");
@@ -3376,6 +3357,8 @@ void csio_jni_InitPipeline(eProtocolId protoId, int iStreamId,GstRTSPLowerTrans 
 			break;
 		}
 		case ePROTOCOL_UDP_TS:
+		    g_object_set(G_OBJECT(data->element_zero), "latency", CSIOCnsIntf->getStreamRx_BUFFER(iStreamId), NULL);
+
 			if (CSIOCnsIntf->getStreamTxRx_TRANSPORTMODE(iStreamId)==STREAM_TRANSPORT_MPEG2TS_RTP)
 				g_object_set(G_OBJECT(data->element_av[0]), "buffer-size", DEFAULT_UDP_BUFFER, NULL);
 			else if(CSIOCnsIntf->getStreamTxRx_TRANSPORTMODE(iStreamId)==STREAM_TRANSPORT_MPEG2TS_UDP)
@@ -4668,7 +4651,6 @@ JNIEXPORT void JNICALL Java_com_crestron_txrxservice_GstreamIn_nativeWfdStart(JN
        return;
     }
 
-    data->wfd_jitterbuffer_latency = 50;//set latency to 50ms
     strcpy(data->rtcp_dest_ip_addr, url_cstring);	// Set RTSP IP as RTCP IP
 
     int ts_port = CSIOCnsIntf->getStreamTxRx_TSPORT(windowId);
@@ -4704,7 +4686,6 @@ JNIEXPORT void JNICALL Java_com_crestron_txrxservice_GstreamIn_nativeWfdStop(JNI
         }
         else
         {
-            data->wfd_jitterbuffer_latency = -1;
             data->ssrc = 0;
 
 			data->rtcp_dest_ip_addr[0] = '\0';

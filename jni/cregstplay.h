@@ -165,7 +165,6 @@ typedef struct _CREGSTREAM
 
     unsigned int ssrc;
 
-    int wfd_jitterbuffer_latency;
     char ms_mice_pin[32];
 } CREGSTREAM;
 
