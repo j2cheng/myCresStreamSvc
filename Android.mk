@@ -21,11 +21,17 @@ LOCAL_AIDL_INCLUDES := $(call all-Iaidl-files-under, src)
 
 ifeq ($(TARGET_PRODUCT),$(filter $(TARGET_PRODUCT),msm8953_64))
 	LOCAL_MULTILIB := 32
-	LOCAL_MODULE_PATH := $(TARGET_OUT_VENDOR)/app/
+	LOCAL_MODULE_PATH := $(TARGET_OUT_VENDOR)/app
 	LOCAL_SRC_FILES += $(call all-java-files-under, Snapdragon)
 	
 #	In AOSP(8.0), Surface.aidl moved from frameworks/base... to frameworks/native...	
 	LOCAL_AIDL_INCLUDES += frameworks/native/aidl/gui
+	
+#	APP_API := armeabi-v7a
+	LOCAL_MODULE_TARGET_ARCH := arm
+	LOCAL_PREBUILT_JNI_LIBS_arm := /../../../${PRODUCT_OUT}/vendor/lib/libgstreamer_jni.so
+	LOCAL_PREBUILT_JNI_LIBS_arm += /../../../${PRODUCT_OUT}/vendor/lib/libcresstreamctrl_jni.so
+	LOCAL_PREBUILT_JNI_LIBS_arm += /../../../${PRODUCT_OUT}/vendor/lib/libCsioProdInfo.so
 	
 endif
         
@@ -41,10 +47,7 @@ LOCAL_SHARED_LIBRARIES := libgstreamer_jni
 LOCAL_STATIC_JAVA_LIBRARIES := gson
 
 ifeq ($(TARGET_PRODUCT),$(filter $(TARGET_PRODUCT),yushan_one full_omap5panda msm8953_64))
-#TODO: Re-enable x70. For now, do not include CresStreamSvc APK in the image until tested.
-ifneq ($(TARGET_PRODUCT),$(filter $(TARGET_PRODUCT),msm8953_64))
 include $(BUILD_PACKAGE)
-endif
 include $(LOCAL_PATH)/jni/Android.mk
 
 include $(CLEAR_VARS)
