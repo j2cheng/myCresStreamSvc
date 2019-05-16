@@ -4666,7 +4666,7 @@ JNIEXPORT void JNICALL Java_com_crestron_txrxservice_GstreamIn_nativeWfdStart(JN
  * TODO: should calling function call gst_native_surface_finalize() after this?
  * TODO: this function should call csio_jni_stop?
  * */
-JNIEXPORT void JNICALL Java_com_crestron_txrxservice_GstreamIn_nativeWfdStop(JNIEnv *env, jobject thiz, jint windowId)
+JNIEXPORT void JNICALL Java_com_crestron_txrxservice_GstreamIn_nativeWfdStop(JNIEnv *env, jobject thiz, jint windowId, jlong msMiceSessionId)
 {
     // *** CSIO_LOG(eLogLevel_debug,"mira: {%s} - ***** calling sssl_cancelDTLSAppThWithStreamIDAndWait() *****",__FUNCTION__);
     // *** int retv = sssl_cancelDTLSAppThWithStreamIDAndWait(windowId);
@@ -4675,6 +4675,8 @@ JNIEXPORT void JNICALL Java_com_crestron_txrxservice_GstreamIn_nativeWfdStop(JNI
 
     //Note: you can call WfdSinkProjStop multiple times.
     WfdSinkProjStop(windowId);
+
+    msMiceSinkProjStopSession(0,msMiceSessionId);
 
     //TODO: copy from gst_native_stop()
     {

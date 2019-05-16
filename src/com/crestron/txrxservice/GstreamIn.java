@@ -45,7 +45,7 @@ public class GstreamIn implements SurfaceHolder.Callback {
     private native void nativeSurfaceInit(Object surface, int sessionId);
     private native void nativeSurfaceFinalize(int sessionId);
     private native void nativeWfdStart(int streamId, long sessionId, String url, int rtsp_port);
-    private native void nativeWfdStop(int streamId);
+    private native void nativeWfdStop(int streamId, long sessionId);
     private native void nativeMsMiceStart();
     private native void nativeMsMiceStop();
     private native void nativeMsMiceSetAdapterAddress(String address);
@@ -625,14 +625,14 @@ public class GstreamIn implements SurfaceHolder.Callback {
     	}
     }
     
-    public void wfdStop(final int streamId)
+    public void wfdStop(final int streamId, long sessionId)
     {
 		Log.i(TAG, "wfdStop");
     	isPlaying = false;
     	if (wfdIsPlaying[streamId])
     	{
     		wfdIsPlaying[streamId] = false;
-    		nativeWfdStop(streamId);
+    		nativeWfdStop(streamId, sessionId);
     	}
     	else
     	{

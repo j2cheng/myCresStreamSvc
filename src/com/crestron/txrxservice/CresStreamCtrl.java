@@ -1358,7 +1358,7 @@ public class CresStreamCtrl extends Service {
     				{
     					if (userSettings.getAirMediaLaunch(sessionId)) {
     						userSettings.setAirMediaLaunch(false, sessionId);
-    						streamPlay.wfdStop(sessionId);
+    						streamPlay.wfdStop(sessionId, 0);
     					}
     				}
     			}
@@ -3656,7 +3656,7 @@ public class CresStreamCtrl extends Service {
     		} 
     		else if (args[0].equalsIgnoreCase("stop"))
     		{
-    			stopWfdStream(sessId);
+    			stopWfdStream(sessId, (long) 1);
 				hideWindow(sessId); 
     		}
     		else
@@ -3672,10 +3672,10 @@ public class CresStreamCtrl extends Service {
         streamPlay.wfdStart(streamId, sessionId, url, rtsp_port);
     }
 
-    public void stopWfdStream(int streamId)
+    public void stopWfdStream(int streamId, long sessionId)
     {
-		Log.i(TAG, "stopWfdStream: streamId="+streamId);
-		streamPlay.wfdStop(streamId); 
+		Log.i(TAG, "stopWfdStream: streamId="+streamId+" sessionId="+sessionId);
+		streamPlay.wfdStop(streamId, sessionId); 
     }
     
     // Start chroma key

@@ -202,9 +202,9 @@ JNIEXPORT void JNICALL Java_com_crestron_txrxservice_GstreamIn_nativeWfdStart(JN
 /*
  * Class:           GstreamIn
  * Method:          nativeWfdStop
- * Signature:       (I)V
+ * Signature:       (IJ)V
  */
-JNIEXPORT void JNICALL Java_com_crestron_txrxservice_GstreamIn_nativeWfdStop(JNIEnv *env, jobject thiz, jint windowId);
+JNIEXPORT void JNICALL Java_com_crestron_txrxservice_GstreamIn_nativeWfdStop(JNIEnv *env, jobject thiz, jint windowId, jlong sessionId);
 
 /*
  * Class:           GstreamIn

@@ -336,7 +336,7 @@ public class WifidVideoPlayer {
         	}
          	if (session.state != AirMediaSessionStreamingState.Stopped)
         	{
-        		streamCtrl_.stopWfdStream(session.streamId);
+        		streamCtrl_.stopWfdStream(session.streamId, id);
         		stateChanged(session.streamId, AirMediaSessionStreamingState.Stopped);
         	} else {
         		Common.Logging.i(TAG, "Session with this id="+id+" is already stopped");
