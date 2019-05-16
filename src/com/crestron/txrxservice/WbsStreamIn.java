@@ -22,7 +22,7 @@ public class WbsStreamIn implements SurfaceHolder.Callback {
     StringBuilder sb;
 
     private CresStreamCtrl streamCtl;
-    private boolean isPlaying = false;
+    private boolean[] isPlaying = new boolean[CresStreamCtrl.NumOfSurfaces];
     public final boolean useSurfaceTexture=false;
 
     private static native void 	nativeSetUrl(String url, int sessionId);
@@ -41,6 +41,8 @@ public class WbsStreamIn implements SurfaceHolder.Callback {
     public WbsStreamIn(CresStreamCtrl mContext) {
         Log.e(TAG, "WbsStreamIn :: Constructor called...!");
         streamCtl = mContext;
+		for (int streamId=0; streamId < CresStreamCtrl.NumOfSurfaces; streamId++)
+			isPlaying[streamId] = false;
         nativeInit();
     }
 
@@ -98,18 +100,18 @@ public class WbsStreamIn implements SurfaceHolder.Callback {
     	if (streamCtl.userSettings.getWbsStreamUrl(sessionId).length() == 0)
     	{
     		// normally should not be used - should have an explicit stop message
-    		if (isPlaying)
+    		if (isPlaying[sessionId])
     		{
     			onStop(sessionId);
     			return;
     		}
     	}
-    	if (isPlaying)
+    	if (isPlaying[sessionId])
     	{
     		if (streamCtl.userSettings.getStreamState(sessionId) == StreamState.PAUSED) {
     			nativeUnpause(sessionId);
     		} else {
-    			Log.i(TAG, "onStart(): already playing !!");
+    			Log.i(TAG, "onStart(): streamId " + sessionId + " already playing !!");
     		}
 			return;
     	}
@@ -117,7 +119,7 @@ public class WbsStreamIn implements SurfaceHolder.Callback {
     		public void run() {
     			try {
     				Surface s = null;
-    				isPlaying = true;
+    				isPlaying[sessionId] = true;
     				updateNativeDataStruct(sessionId);
     				if (!useSurfaceTexture) {
     					s = streamCtl.getSurface(sessionId);
@@ -162,12 +164,12 @@ public class WbsStreamIn implements SurfaceHolder.Callback {
     }    	
 
     public void onStop(final int sessionId) {
-    	if (!isPlaying)
+    	if (!isPlaying[sessionId])
     	{
-    		Log.i(TAG, "onStop(): already stopped !!");
+    		Log.i(TAG, "onStop(): streamId " + sessionId + " already stopped !!");
     		return;
     	}
-    	isPlaying = false;
+    	isPlaying[sessionId] = false;
     	Log.i(TAG, "Stopping WBS Streaming");
         nativeStop(sessionId);        
     	Log.i(TAG, "Finished stop - now calling nativeSurfaceFinalize");
@@ -177,7 +179,7 @@ public class WbsStreamIn implements SurfaceHolder.Callback {
     
     //Pause
     public void onPause(int sessionId) {
-    	if (isPlaying)
+    	if (isPlaying[sessionId])
     	{
     		nativePause(sessionId);
     	}

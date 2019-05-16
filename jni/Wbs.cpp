@@ -224,7 +224,7 @@ static int open_socket(char const * hostname, int portnumber)
   inaddr.sin_addr.s_addr = *(uint32_t *)(server->h_addr);
   inaddr.sin_port = htons(port);
   if (connect(fd, (struct sockaddr *)&inaddr, sizeof(inaddr)) < 0) {
-	  CSIO_LOG(eLogLevel_debug, "%s: Failed to connect websock host=%s port=%d", __FUNCTION__, hostname, portnumber);
+	  CSIO_LOG(eLogLevel_debug, "%s: Failed to connect websock host=%s port=%d errno=%d", __FUNCTION__, hostname, portnumber, errno);
 	  return -1;
   }
   return fd;
@@ -577,8 +577,13 @@ static void *wbsThread(void *arg)
 						// in response to our state changing to STOPPED. Sent only once after a successful startup
 						// We will almost immediately revert to a stream state of CONNECTING because another
 						// connection attempt will be made right after this.
+						// Sending STOPPED state should cause our screen to be hidden - PPUX should overlay us
+						// Will not STOP trying to connect until we get an explicit STOP.
 						if (pWbs->failedRestartAttempts == FORCE_STOP_AFTER_FAILED_RESTARTS)
+						{
+							CSIO_LOG(eLogLevel_warning, "sending stop 'status' upstream after %d unsuccessful start attempts\n", pWbs->failedRestartAttempts);
 							wbs_SendVideoPlayingStatusMessage(pWbs->streamId, STREAMSTATE_STOPPED);
+						}
 	#endif
 					}
 				}
