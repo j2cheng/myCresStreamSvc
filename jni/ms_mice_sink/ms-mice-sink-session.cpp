@@ -10,6 +10,7 @@
 #include <netinet/in.h>
 #include <netdb.h>
 #include "openssl/sha.h"
+#include <netinet/tcp.h>
 
 #include "../shared-ssl/shared-ssl.h"
 
@@ -1176,6 +1177,40 @@ void ms_mice_sink_session_connected(ms_mice_sink_session *session, GSocketConnec
     g_object_ref(connection);
 
     socket = g_socket_connection_get_socket(connection);
+
+    if(socket)
+    {
+        gint optionValue = 1;
+        g_socket_set_option(socket,SOL_SOCKET,SO_KEEPALIVE,optionValue,error);
+
+        gboolean ret = g_socket_get_option(socket,SOL_SOCKET,SO_KEEPALIVE ,&optionValue,error);
+        CSIO_LOG(eLogLevel_verbose, "ms_mice_sink_session_connected: set SO_KEEPALIVE to  %d, ret[%d]",optionValue,ret);
+
+        /*https://www.tldp.org/HOWTO/TCP-Keepalive-HOWTO/programming.html
+           There are also three other socket options you can set for keepalive when you write your application.
+           They all use the SOL_TCP level instead of SOL_SOCKET, and they override system-wide variables only
+           for the current socket. If you read without writing first, the current system-wide parameters will be returned.
+
+           TCP_KEEPCNT: overrides tcp_keepalive_probes
+           TCP_KEEPIDLE: overrides tcp_keepalive_time
+           TCP_KEEPINTVL: overrides tcp_keepalive_intvl*/
+
+        /* Start keeplives after this period */
+        ret = g_socket_get_option(socket,SOL_TCP,TCP_KEEPIDLE ,&optionValue,error);
+        CSIO_LOG(eLogLevel_verbose, "ms_mice_sink_session_connected: get TCP_KEEPIDLE to  %d, ret[%d]",optionValue,ret);
+
+        /* Number of keepalives before death */
+        ret = g_socket_get_option(socket, SOL_TCP, TCP_KEEPCNT, &optionValue, error);
+        CSIO_LOG(eLogLevel_verbose, "ms_mice_sink_session_connected: get TCP_KEEPCNT to  %d, ret[%d]",optionValue,ret);
+
+        /* Interval between keepalives */
+        ret = g_socket_get_option(socket, SOL_TCP, TCP_KEEPINTVL, &optionValue, error);
+        CSIO_LOG(eLogLevel_verbose, "ms_mice_sink_session_connected: get TCP_KEEPINTVL to  %d, ret[%d]",optionValue,ret);
+    }
+    else
+    {
+        CSIO_LOG(eLogLevel_error, "ms_mice_sink_session_connected: socket is NULL\n");
+    }
 
     fd = g_socket_get_fd(socket);
 
