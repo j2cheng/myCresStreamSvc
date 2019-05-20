@@ -986,7 +986,7 @@ int parseRTSPMessage(void * session,char * message, RTSPPARSERAPP_CALLBACK callb
    rtspSession->crestCallbackArg = callbackArg;
 
    retv = rtsp_parse_data(rtspSession,message,strlen(message));
-   RTSP_LOG(eLogLevel_info,"rtsp_parse_data() returned %d\n",retv);
+   RTSP_LOG(eLogLevel_verbose,"rtsp_parse_data() returned %d\n",retv);
    if(retv != 0)
       return(retv);
 
@@ -1188,7 +1188,7 @@ int composeRTSPResponse(void * session,RTSPPARSINGRESULTS * requestParsingResult
             rtspSession->preferredVidResRefStr);
          return(-1);
       }
-      RTSP_LOG(eLogLevel_debug,"video format string (from prefString %s) is : %s\n",
+      RTSP_LOG(eLogLevel_verbose,"video format string (from prefString %s) is : %s\n",
          rtspSession->preferredVidResRefStr,locBuff);
       check_and_response_option("wfd_video_formats",locBuff);
 
@@ -1202,7 +1202,7 @@ int composeRTSPResponse(void * session,RTSPPARSINGRESULTS * requestParsingResult
             rtspSession->preferredAudioCodecStr);
          return(-1);
       }
-      RTSP_LOG(eLogLevel_debug,"audio format string (from prefString %s) is : %s\n",
+      RTSP_LOG(eLogLevel_verbose,"audio format string (from prefString %s) is : %s\n",
          rtspSession->preferredAudioCodecStr,locBuff);
       check_and_response_option("wfd_audio_codecs",locBuff);
 
@@ -1260,15 +1260,15 @@ int composeRTSPResponse(void * session,RTSPPARSINGRESULTS * requestParsingResult
 
    char * reply_phrase = (char*)rtsp_message_get_phrase(rep);
    if(reply_phrase)
-      RTSP_LOG(eLogLevel_debug,"reply_phrase: %s\n",reply_phrase);
+      RTSP_LOG(eLogLevel_verbose,"reply_phrase: %s\n",reply_phrase);
 
    unsigned int reply_code = rtsp_message_get_code(rep);
-   RTSP_LOG(eLogLevel_debug,"reply_code: %d\n",reply_code);
+   RTSP_LOG(eLogLevel_verbose,"reply_code: %d\n",reply_code);
 
    // currently rtsp_message_serialize_common() terminates the message string
    char * raw_message = (char *)rtsp_message_get_raw(rep);
    if(raw_message)
-      RTSP_LOG(eLogLevel_debug,"raw_message: %s\n",raw_message);
+      RTSP_LOG(eLogLevel_verbose,"raw_message: %s\n",raw_message);
 
    retv = cresRTSP_internalComposeCallback(session,RTSP_MESSAGE_REPLY,raw_message,NULL,NULL,
       reply_phrase,reply_code);
@@ -4373,21 +4373,21 @@ static int rtsp_incoming_message(struct rtsp_message *m)
 
           /* simply forward all these to the match-handlers */
 
-          RTSP_LOG(eLogLevel_debug,"in rtsp_incoming_message() - handling parsed request\n");
+          RTSP_LOG(eLogLevel_verbose,"in rtsp_incoming_message() - handling parsed request\n");
 
           char *request_method = (char *) rtsp_message_get_method(m);
           if (request_method)
-             RTSP_LOG(eLogLevel_debug,"request_method: %s\n", request_method);
+             RTSP_LOG(eLogLevel_verbose,"request_method: %s\n", request_method);
 
           char *request_uri = (char *) rtsp_message_get_uri(m);
           if (request_uri)
-             RTSP_LOG(eLogLevel_debug,"request_uri: %s\n", request_uri);
+             RTSP_LOG(eLogLevel_verbose,"request_uri: %s\n", request_uri);
 
           size_t header_used = m->header_used;
-          RTSP_LOG(eLogLevel_debug,"header_used: %d\n", (int) header_used);
+          RTSP_LOG(eLogLevel_verbose,"header_used: %d\n", (int) header_used);
 
           bool is_sealed = m->is_sealed;
-          RTSP_LOG(eLogLevel_debug,"is_sealed: %d\n", (int) is_sealed);
+          RTSP_LOG(eLogLevel_verbose,"is_sealed: %d\n", (int) is_sealed);
 
           // r = rtsp_call(m->bus, m);
           // if (r < 0)
@@ -4402,14 +4402,14 @@ static int rtsp_incoming_message(struct rtsp_message *m)
        case RTSP_MESSAGE_REPLY: {
           /* find the waiting request and invoke the handler */
 
-          RTSP_LOG(eLogLevel_debug,"in rtsp_incoming_message() - handling parsed response\n");
+          RTSP_LOG(eLogLevel_verbose,"in rtsp_incoming_message() - handling parsed response\n");
 
           char *reply_phrase = (char *)rtsp_message_get_phrase(m);
           if (reply_phrase)
-             RTSP_LOG(eLogLevel_debug,"reply_phrase: %s\n", reply_phrase);
+             RTSP_LOG(eLogLevel_verbose,"reply_phrase: %s\n", reply_phrase);
 
           unsigned int reply_code = rtsp_message_get_code(m);
-          RTSP_LOG(eLogLevel_debug,"reply_code: %d\n", reply_code);
+          RTSP_LOG(eLogLevel_verbose,"reply_code: %d\n", reply_code);
 
           // r = rtsp_call_reply(m->bus, m);
           // if (r < 0)
