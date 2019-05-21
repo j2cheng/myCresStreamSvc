@@ -66,7 +66,7 @@ void updateProbeInfo(int streamID, struct timespec * currentTimePtr, char * srcI
 void * rtpMediaStreamThread(void * threadData);
 static bool loopShouldLog(int * errorCountPtr, int * logLevelPtr);
 static Mutex gGstStopLock;//used to prevent multiple threads accessing pipeline while stop gstreamer.
-
+extern unsigned short debugPrintSeqNum;
 ///////////////////////////////////////////////////////////////////////////////
 
 /*
@@ -1944,6 +1944,18 @@ JNIEXPORT void JNICALL Java_com_crestron_txrxservice_GstreamIn_nativeSetFieldDeb
 				else
 				    CSIO_LOG(eLogLevel_warning, "Error: fileName %p, pipeline %p", fileName, data->pipeline);
 			}
+            else if (!strcmp(CmdPtr, "PRINT_RTP_SEQUENCE_NUMBER"))
+            {
+                CmdPtr = strtok(NULL, ", ");
+                if (CmdPtr == NULL)
+                {
+                    CSIO_LOG(eLogLevel_info, "PRINT_RTP_SEQUENCE_NUMBER is: %d\r\n",debugPrintSeqNum);
+                }
+                else
+                {
+                    debugPrintSeqNum = (int) strtol(CmdPtr, &EndPtr, 10);
+                }
+            }
             else
             {
                 CSIO_LOG(eLogLevel_info, "Invalid command:%s\r\n",CmdPtr);

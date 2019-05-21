@@ -322,7 +322,8 @@ static void pad_added_callback2 (GstElement *src, GstPad *new_pad, CREGSTREAM *d
 	gst_object_unref(sink_pad);
     gst_caps_unref(new_pad_caps);
 }
-
+unsigned short savedSeqNum = 0;
+unsigned short debugPrintSeqNum = 0;
 GstPadProbeReturn udpsrcProbe(GstPad *pad, GstPadProbeInfo *info, gpointer user_data)
 {
     CREGSTREAM * data = (CREGSTREAM *)user_data;
@@ -330,6 +331,46 @@ GstPadProbeReturn udpsrcProbe(GstPad *pad, GstPadProbeInfo *info, gpointer user_
 
     if( user_data == NULL )
         return GST_PAD_PROBE_OK;
+
+    if(debugPrintSeqNum)
+    {
+        GstBuffer * lpsBuffer = GST_PAD_PROBE_INFO_BUFFER(info);
+        if(lpsBuffer)
+        {
+            GstMapInfo lsMap;
+            if(gst_buffer_map(lpsBuffer, &lsMap, GST_MAP_READ))
+            {
+
+                unsigned short lnSeqNum;
+                int lnSize = 2;
+                int lnRetVal = gst_buffer_extract(lpsBuffer, 2, (gpointer)&lnSeqNum, lnSize);
+
+                if(lnRetVal == lnSize)
+                {
+                    //
+                    // reverse the bits of the sequence number
+                    //
+
+                    char * lpnReversedSeqNum = (char*)&lnSeqNum;
+
+                     unsigned short lnNewSeqNum = 0;
+                     ((char*)&lnNewSeqNum)[0] = lpnReversedSeqNum[1];
+                     ((char*)&lnNewSeqNum)[1] = lpnReversedSeqNum[0];
+
+
+                     if( savedSeqNum != 65535 && (lnNewSeqNum - savedSeqNum) != 1)
+                     {
+                         CSIO_LOG(eLogLevel_debug,"Error expect sequence number: %d, gap is [%d]\n",
+                                  savedSeqNum+1,(lnNewSeqNum - savedSeqNum));
+                     }
+
+                     savedSeqNum = lnNewSeqNum;
+                }
+
+                gst_buffer_unmap(lpsBuffer, &lsMap);
+            }
+        }
+    }
 
     static struct timespec   currentTime;
     clock_gettime(CLOCK_REALTIME, &currentTime);
