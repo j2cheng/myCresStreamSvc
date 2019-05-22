@@ -11,6 +11,7 @@ import android.hardware.Camera;
 import android.media.MediaPlayer;
 import android.media.MediaRecorder;
 import android.view.Surface;
+import com.droideic.app.DisplaySettingManager;
 
 public class ProductSpecific
 {	
@@ -162,8 +163,37 @@ public class ProductSpecific
 		// Not implmented for this product
 	}
 
-    public static void doChromakey(boolean enable)
-    {
+	public static void doChromakey(boolean enable)
+	{
+		DisplaySettingManager.setDisplayDiscardColorEnable(0);				
+		if(!enable)
+		{
+			return;
+		}
+		File file = new File("/dev/crestron/gstreamerChromaKey");		
+		try
+		{
+			int value;
+			int red;
+			int green;
+			int blue;
+			BufferedReader br = new BufferedReader(new FileReader(file));
+			String line = br.readLine();
+			if(line != null)
+			{
+				value = Integer.decode(line);
+				red = (value >> 16) & 0xff;
+				green = (value >> 8) & 0xff;
+				blue = value & 0xff;
+				Log.e(TAG,"X70 Setting chromakey color to " + red + "," + green + "," + blue);
+				DisplaySettingManager.setDisplayDiscardColor(red, green, blue);
+				DisplaySettingManager.setDisplayDiscardColorEnable(1);				
+			}
+			br.close();
+		}
+		catch(IOException e)
+		{			
+		}
 	}
     
     public static void setRGB888Mode(boolean enable)

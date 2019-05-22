@@ -53,6 +53,9 @@
 #include "ms_mice_sink/ms_mice_common.h"
 #include "shared-ssl/shared-ssl.h"
 
+#ifdef ANDROID_OREO_OR_LATER    //TODO: replace this Define in Android.mk with preprocessor __ANDROID_API__ version check macro
+#include "system/window.h"
+#endif
 ///////////////////////////////////////////////////////////////////////////////
 
 extern int  csio_Init(int calledFromCsio);
@@ -845,10 +848,8 @@ static void gst_jni_setup_surface_format(JNIEnv *env,ANativeWindow *new_native_w
 
     CSIO_LOG(eLogLevel_debug, "ANativeWindow format was %x", ANativeWindow_getFormat(new_native_window));
 
-#ifndef ANDROID_OREO_OR_LATER
-//native_xxx functions were deprecated at android version 8.
-//Rajesh: window parameters are handled elsewhere by wps calls. TODO: need to test
-    err = native_window_set_buffers_format(new_native_window, format);
+    err = ANativeWindow_setBuffersGeometry(new_native_window, ANativeWindow_getWidth(new_native_window),
+	ANativeWindow_getHeight(new_native_window), format);
     if (err != 0)
     {
         CSIO_LOG(eLogLevel_error, "Failed to set buffers format to %d", format);
@@ -886,7 +887,6 @@ static void gst_jni_setup_surface_format(JNIEnv *env,ANativeWindow *new_native_w
         CSIO_LOG(eLogLevel_error, "NATIVE_WINDOW_MIN_UNDEQUEUED_BUFFERS query failed: %s (%d)", strerror(-err), -err);
         return;
     }
-#endif
 
     if (data->surface)
     {
@@ -4360,10 +4360,8 @@ static void wbs_jni_setup_surface_format(JNIEnv *env,ANativeWindow *new_native_w
 
     CSIO_LOG(eLogLevel_debug, "%s: ANativeWindow format was %x", __FUNCTION__, ANativeWindow_getFormat(new_native_window));
 
-#ifndef ANDROID_OREO_OR_LATER
-//native_xxx functions were deprecated at android version 8.
-//Rajesh: window parameters are handled elsewhere by wps calls. TODO: need to test
-    err = native_window_set_buffers_format(new_native_window, format);
+    err = ANativeWindow_setBuffersGeometry(new_native_window, ANativeWindow_getWidth(new_native_window),
+	ANativeWindow_getHeight(new_native_window), format);
     if (err != 0)
     {
         CSIO_LOG(eLogLevel_error, "Failed to set buffers format to %d", format);
@@ -4402,7 +4400,6 @@ static void wbs_jni_setup_surface_format(JNIEnv *env,ANativeWindow *new_native_w
         CSIO_LOG(eLogLevel_error, "NATIVE_WINDOW_MIN_UNDEQUEUED_BUFFERS query failed: %s (%d)", strerror(-err), -err);
         return;
     }
-#endif
 
     if (pWbs->surface)
     {
