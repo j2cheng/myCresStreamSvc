@@ -40,6 +40,12 @@ int session_observer_disconnect_request_from_app(gpointer user_data);
 /*************************** Global functions  ************************************/
 void msMiceSinkProjInit(char* adapterAddress)
 {
+    if(!adapterAddress)
+    {
+        CSIO_LOG(gProjectDebug, "msMiceSinkProjInit: ERROR adapterAddress is NULL\n");
+        return;
+    }
+
     CSIO_LOG(gProjectDebug, "msMiceSinkProjInit: enter\n");
 
     gProjectsLock.lock();

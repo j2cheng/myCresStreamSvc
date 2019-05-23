@@ -162,7 +162,7 @@ const char * const fieldDebugNames[MAX_SPECIAL_FIELD_DEBUG_NUM - 1] =
     "19 SET_AUDIO_PAD_OFFSET        ",
     "20 DROP_AUDIO_PACKETS          ",
     "21 INSERT_AUDIO_PROBE          ",
-    "22 PRINT_BACKWDS_TS            ",
+    "22 PRINT_RTP_SEQUENCE_NUMBER   ",
     
 };
 int amcviddec_debug_level    = GST_LEVEL_ERROR;
@@ -4037,6 +4037,11 @@ void csio_jni_printFieldDebugInfo()
         {
             CSIO_LOG(eLogLevel_debug, "FieldDebugInfo   %s",fieldDebugNames[i]);
         }
+        else if((i+1) == FIELD_DEBUG_PRINT_RTP_SEQUENCE_NUMBER)
+        {
+            CSIO_LOG(eLogLevel_debug, "FieldDebugInfo   %s  -- %d", \
+                                       fieldDebugNames[i], debugPrintSeqNum);
+        }
         else
         {
             CSIO_LOG(eLogLevel_debug, "FieldDebugInfo   %s%s", \
@@ -4807,32 +4812,12 @@ void Wfd_setup_gst_pipeline (int id, int state, struct GST_PIPELINE_CONFIG* gst_
     CSIO_LOG(eLogLevel_debug, "mira: {%s} - exiting",__FUNCTION__);
 }
 
+//Note: it is not allowed to pass NULL for msMiceSinkProjInit
 JNIEXPORT void JNICALL Java_com_crestron_txrxservice_GstreamIn_nativeMsMiceStart(JNIEnv *env, jobject thiz)
 {
     CSIO_LOG(eLogLevel_debug,"mira: {%s} - ***** calling sssl_initialize() *****",__FUNCTION__);
     sssl_initialize();
     CSIO_LOG(eLogLevel_debug, "mira: {%s} - ===== returned from sssl_initialize() =====",__FUNCTION__);
-
-    msMiceSinkProjInit(NULL);
-
-    //to set ms mice pin after msMiceSinkProjInit
-    CREGSTREAM * data = GetStreamFromCustomData(CresDataDB, 0);
-
-    if (!data)
-    {
-        CSIO_LOG(eLogLevel_error, "mira: Could not obtain stream pointer for stream %d, failed to set isStarted state", 0);
-    }
-    else
-    {
-        if(data->ms_mice_pin[0])
-        {
-            msMiceSinkProjSetPin(0,data->ms_mice_pin);
-        }
-        else
-        {
-            msMiceSinkProjSetPin(0,NULL);
-        }
-    }
 }
 JNIEXPORT void JNICALL Java_com_crestron_txrxservice_GstreamIn_nativeMsMiceSetAdapterAddress(JNIEnv *env, jobject thiz, jstring address)
 {
@@ -4844,13 +4829,12 @@ JNIEXPORT void JNICALL Java_com_crestron_txrxservice_GstreamIn_nativeMsMiceSetAd
 
     if(locAddr == NULL)
     {
-       CSIO_LOG(eLogLevel_debug, "MsMiceSetAdapterAddress changed to NULL ");
+       CSIO_LOG(eLogLevel_debug, "MsMiceSetAdapterAddress changed to NULL, stop ms mice.");
        msMiceSinkProjDeInit();
-       msMiceSinkProjInit(NULL);
     }
     else
     {
-        CSIO_LOG(eLogLevel_debug, "MsMiceSetAdapterAddress changed to %s ",locAddr);
+        CSIO_LOG(eLogLevel_debug, "MsMiceSetAdapterAddress changed to %s, start ms mice.",locAddr);
         msMiceSinkProjDeInit();
         msMiceSinkProjInit(locAddr);
 
