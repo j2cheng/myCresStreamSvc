@@ -1009,15 +1009,9 @@ public class AirMediaSplashtop
         	int tmpY = mStreamCtl.userSettings.getYloc(sessionId);
         	if ((tmpWidth == 0) && (tmpHeight == 0))
         	{
-        		tmpWidth = Integer.parseInt(mStreamCtl.hdmiOutput.getHorizontalRes());
-        		tmpHeight = Integer.parseInt(mStreamCtl.hdmiOutput.getVerticalRes());
-        		if ((tmpWidth == 0) && (tmpHeight == 0))
-        		{
-    				Point size = mStreamCtl.getDisplaySize();
-    				Common.Logging.i(TAG, "Could not get HDMI resolution - using Android display size "+size.x+"x"+size.y);
-    				tmpWidth = size.x;
-    				tmpHeight = size.y;
-        		}
+        		Point size = mStreamCtl.getDisplaySize();
+        		tmpWidth = size.x;
+        		tmpHeight = size.y;
         	}
         	Common.Logging.i(TAG, "setVideoTransformation x="+String.valueOf(tmpX)+" y="+String.valueOf(tmpY) + " w=" + String.valueOf(tmpWidth) + " h=" + String.valueOf(tmpHeight));
 

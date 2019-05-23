@@ -30,6 +30,7 @@ import android.app.Service;
 import android.graphics.Color;
 import android.graphics.PixelFormat;
 import android.graphics.Matrix;
+import android.graphics.Point;
 import android.graphics.Rect;
 import android.graphics.SurfaceTexture;
 import android.content.Context;
@@ -363,7 +364,7 @@ public class CresDisplaySurfaceMaster implements CresDisplaySurface
     
     // Return rectangle representing the current location of the surface
 	// Does not need to be called on UI thread
-    private Rect getWindowSize(int idx, final boolean use_texture_view)
+    private Rect getCurrentWindowSize(int idx, final boolean use_texture_view)
     {
     	int x, y, w, h;
     	RelativeLayout.LayoutParams layout;
@@ -417,19 +418,8 @@ public class CresDisplaySurfaceMaster implements CresDisplaySurface
         		streamCtl.runOnUiThread(new Runnable() {
         			@Override
         			public void run() {
-        				int width = streamCtl.userSettings.getW(idx);
-        				int height = streamCtl.userSettings.getH(idx);
-        				if ((width == 0) && (height == 0))
-        				{
-        					width = Integer.parseInt(streamCtl.hdmiOutput.getHorizontalRes());
-        					height = Integer.parseInt(streamCtl.hdmiOutput.getVerticalRes());
-        					if ((width == 0) && (height == 0))
-        					{
-        						width = 1920;
-        						height = 1080;
-        					}
-        				}
-        				updateDimensions(width, height, idx);
+        				Point windowSize = streamCtl.getWindowSize(idx);
+        				updateDimensions(windowSize.x, windowSize.y, idx);
         				latch.countDown();
         			}
         		});	            	
@@ -445,19 +435,8 @@ public class CresDisplaySurfaceMaster implements CresDisplaySurface
         	}
         	else
         	{
-        		int width = streamCtl.userSettings.getW(idx);
-        		int height = streamCtl.userSettings.getH(idx);
-        		if ((width == 0) && (height == 0))
-        		{
-        			width = Integer.parseInt(streamCtl.hdmiOutput.getHorizontalRes());
-        			height = Integer.parseInt(streamCtl.hdmiOutput.getVerticalRes());
-        			if ((width == 0) && (height == 0))
-        			{
-        				width = 1920;
-        				height = 1080;
-        			}
-        		}
-        		updateDimensions(width, height, idx);
+				Point windowSize = streamCtl.getWindowSize(idx);
+				updateDimensions(windowSize.x, windowSize.y, idx);
         	}
         }
         finally
@@ -539,44 +518,33 @@ public class CresDisplaySurfaceMaster implements CresDisplaySurface
         lockWindow(idx);
         try
         {
-        	int tmpWidth = streamCtl.userSettings.getW(idx);
-        	int tmpHeight = streamCtl.userSettings.getH(idx);
         	int tmpX = streamCtl.userSettings.getXloc(idx);
         	int tmpY = streamCtl.userSettings.getYloc(idx);
-        	if ((tmpWidth == 0) && (tmpHeight == 0))
-        	{
-        		tmpWidth = Integer.parseInt(streamCtl.hdmiOutput.getHorizontalRes());
-        		tmpHeight = Integer.parseInt(streamCtl.hdmiOutput.getVerticalRes());
-        		if ((tmpWidth == 0) && (tmpHeight == 0))
-        		{
-        			tmpWidth = 1920;
-        			tmpHeight = 1080;
-        		}
-        	}
+        	Point windowSize = streamCtl.getWindowSize(idx);
        	
 			// TODO Add rotation and textureview scaling when AirMedia is merged in
         	Rect newWindowSize;
         	if (streamCtl.userSettings.getStretchVideo(idx) == 1)
         	{
         		// Stretch video means set all dimensions to exact window size
-        		newWindowSize = new Rect(tmpX, tmpY, tmpX + tmpWidth, tmpY + tmpHeight);
+        		newWindowSize = new Rect(tmpX, tmpY, tmpX + windowSize.x, tmpY + windowSize.y);
         	}
         	else
         	{
         		if (videoWidth == 0 || videoHeight == 0)
         		{
         			Log.i(TAG, "unable to preserve video aspect ratio, video width = " + videoWidth + " video height = " + videoHeight);
-        			newWindowSize = new Rect(tmpX, tmpY, tmpX + tmpWidth, tmpY + tmpHeight);
+        			newWindowSize = new Rect(tmpX, tmpY, tmpX + windowSize.x, tmpY + windowSize.y);
         		}
         		else 
         		{
         			// Don't Stretch means calculate aspect ratio preserving window inside of given window dimensions
-        			newWindowSize = MiscUtils.getAspectRatioPreservingRectangle(tmpX, tmpY, tmpWidth, tmpHeight, videoWidth, videoHeight);
+        			newWindowSize = MiscUtils.getAspectRatioPreservingRectangle(tmpX, tmpY, windowSize.x, windowSize.y, videoWidth, videoHeight);
         		}
         	}
         	
         	// Only update window if there is a change to the current window (this method is no intended to force update the same dimensions)
-        	Rect currentWindowSize = getWindowSize(idx, use_texture_view);
+        	Rect currentWindowSize = getCurrentWindowSize(idx, use_texture_view);
         	if (	currentWindowSize.left != newWindowSize.left ||
         			currentWindowSize.top != newWindowSize.top ||
         			currentWindowSize.width() != newWindowSize.width() ||
@@ -605,21 +573,10 @@ public class CresDisplaySurfaceMaster implements CresDisplaySurface
         lockWindow(idx);
         try
         {
-        	int tmpWidth = streamCtl.userSettings.getW(idx);
-        	int tmpHeight = streamCtl.userSettings.getH(idx);
         	int tmpX = streamCtl.userSettings.getXloc(idx);
         	int tmpY = streamCtl.userSettings.getYloc(idx);
-        	if ((tmpWidth == 0) && (tmpHeight == 0))
-        	{
-        		tmpWidth = Integer.parseInt(streamCtl.hdmiOutput.getHorizontalRes());
-        		tmpHeight = Integer.parseInt(streamCtl.hdmiOutput.getVerticalRes());
-        		if ((tmpWidth == 0) && (tmpHeight == 0))
-        		{
-        			tmpWidth = 1920;
-        			tmpHeight = 1080;
-        		}
-        	}
-        	updateWindow(tmpX, tmpY, tmpWidth, tmpHeight, idx, use_texture_view);
+        	Point windowSize = streamCtl.getWindowSize(idx);
+        	updateWindow(tmpX, tmpY, windowSize.x, windowSize.y, idx, use_texture_view);
         }
         finally
         {

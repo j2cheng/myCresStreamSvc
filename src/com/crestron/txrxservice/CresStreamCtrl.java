@@ -2248,6 +2248,16 @@ public class CresStreamCtrl extends Service {
         }
     }
 
+    public Point getWindowSize(int sessionId)
+    {
+    	Point size = new Point(userSettings.getW(sessionId), userSettings.getH(sessionId));
+    	if (size.x == 0 && size.y == 0)
+    	{
+    		size = getDisplaySize();
+    	}
+    	return size;
+    }
+    
     private Integer[][] createZOrderArray()
     {
     	// Index 0 is the sessionId value, Index 1 is the relative Z order saved in userSettings
@@ -2462,12 +2472,12 @@ public class CresStreamCtrl extends Service {
     }
 
 	public void refreshOutputResolution() {
-		ProductSpecific.DispayInfo hdmiOutputResolution;
+		ProductSpecific.DispayInfo hdmiOutputResolution = mProductSpecific.new DispayInfo();
+		WindowManager wm = null;
+
 		//HDMI Out		
 		if (haveExternalDisplays)
 		{
-			hdmiOutputResolution = mProductSpecific.new DispayInfo();
-			WindowManager wm = (WindowManager) this.getSystemService(Context.WINDOW_SERVICE);
 			DisplayManager dm = (DisplayManager) getApplicationContext().getSystemService(Context.DISPLAY_SERVICE);
 			if (dm != null){
 				Display dispArray[] = dm.getDisplays();
@@ -2476,42 +2486,26 @@ public class CresStreamCtrl extends Service {
 					wm = (WindowManager)displayContext.getSystemService(Context.WINDOW_SERVICE);
 				}
 			}
+
+			Point size = new Point(0,0);
+			if (wm == null)
+			{
+				Log.e(TAG, "Unable to find second display - setting resolution to 0x0@0");
+				hdmiOutputResolution.refreshRate = 0;
+			}
 			else
 			{
-				
-				Log.e(TAG, "Unable to query second display size, using primary display");
+				Display display = wm.getDefaultDisplay();
+				display.getSize(size);
+				hdmiOutputResolution.refreshRate = display.getRefreshRate();
 			}
-
-
-			Display display = wm.getDefaultDisplay();
-			Point size = new Point();
-			display.getSize(size);
 
 			hdmiOutputResolution.width = size.x;
 			hdmiOutputResolution.height = size.y;
-			hdmiOutputResolution.refreshRate = display.getRefreshRate();
 		}
 		else
-		{
-//			hdmiOutputResolution = mProductSpecific.new DispayInfo(); // Old Mistral API
-			
-			hdmiOutputResolution = mProductSpecific.new DispayInfo();
-			WindowManager wm = (WindowManager) this.getSystemService(Context.WINDOW_SERVICE);
-			DisplayManager dm = (DisplayManager) getApplicationContext().getSystemService(Context.DISPLAY_SERVICE);
-			if (dm != null){
-				Display dispArray[] = dm.getDisplays();
-				if (dispArray.length>1){
-					Context displayContext = getApplicationContext().createDisplayContext(dispArray[0]); // querying display 0
-					wm = (WindowManager)displayContext.getSystemService(Context.WINDOW_SERVICE);
-				}
-			}
-			else
-			{
-				
-				Log.e(TAG, "Unable to query first display size, using default display");
-			}
-
-
+		{			
+			wm = (WindowManager) this.getSystemService(Context.WINDOW_SERVICE);
 			Display display = wm.getDefaultDisplay();
 			Point size = new Point();
 			display.getSize(size);
@@ -2535,7 +2529,10 @@ public class CresStreamCtrl extends Service {
 	        hdmiOutput.setAudioFormat(Integer.toString(1));
 	        hdmiOutput.setAudioChannels(Integer.toString(2));
 	        // Set window manager to reflect this resolution
-	        SetWindowManagerResolution(hdmiOutputResolution.width, hdmiOutputResolution.height, haveExternalDisplays);
+	        if (hdmiOutputResolution.width == 0 && hdmiOutputResolution.height == 0)
+		        SetWindowManagerResolution(1920, 1080, haveExternalDisplays);
+	        else
+	        	SetWindowManagerResolution(hdmiOutputResolution.width, hdmiOutputResolution.height, haveExternalDisplays);
 		}
 		else
 		{
@@ -5338,6 +5335,7 @@ public class CresStreamCtrl extends Service {
    
     public void handleHdmiOutputChange()
 	{
+		Log.i(TAG, "handleHdmiOutputChange() - entered");
 		refreshOutputResolution();
 
 		// Recheck if HDCP changed
@@ -5396,6 +5394,7 @@ public class CresStreamCtrl extends Service {
 				}
 			}
 		}
+		Log.i(TAG, "handleHdmiOutputChange() - exited");
 	}
     
 	private void sendHdmiInSyncState() 
@@ -5984,7 +5983,7 @@ public class CresStreamCtrl extends Service {
 	public Point getDisplaySize()
 	{
 		Point retVal = new Point();
-		WindowManager wm = (WindowManager) this.getSystemService(Context.WINDOW_SERVICE);
+		WindowManager wm = null;
 
 		if (haveExternalDisplays)
 		{
@@ -5996,16 +5995,27 @@ public class CresStreamCtrl extends Service {
 					wm = (WindowManager)displayContext.getSystemService(Context.WINDOW_SERVICE);
 				}
 				else
-				    Log.e(TAG, "Unable to query second display size, length <= 1, using primary display");
+				    Log.e(TAG, "Unable to query second display size, length <= 1");
 			}
 			else
-				Log.e(TAG, "Unable to query second display size, dm == null, using primary display");
+				Log.e(TAG, "Unable to query second display size, dm == null");
 		}
 		else
+		{
+			wm = (WindowManager) this.getSystemService(Context.WINDOW_SERVICE);
 		    Log.d(TAG, "Device does not have second display, using primary");
+		}
 
-		Display display = wm.getDefaultDisplay();
-		display.getSize(retVal);
+		if (wm != null)
+		{
+			Display display = wm.getDefaultDisplay();
+			display.getSize(retVal);
+		}
+		else
+		{
+			retVal.set(1920, 1080);
+		    Log.e(TAG, "Could not find display - setting size to 1920x1080");
+		}
 		return retVal;
 	}
 	
