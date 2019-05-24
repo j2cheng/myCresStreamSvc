@@ -4837,12 +4837,16 @@ public class CresStreamCtrl extends Service {
     	{
     		// turn on ms mice
     		streamPlay.msMiceStart();
+    		String ipaddr = getAirMediaConnectionIpAddress();
+    		if (ipaddr.equals("None"))
+    			ipaddr = null;
+    		streamPlay.msMiceSetAdapterAddress(ipaddr);
     	}
     	else
     	{
     		// turn off ms mice
     		streamPlay.msMiceStop();
-    	}
+    		streamPlay.msMiceSetAdapterAddress(null);    	}
     }
     
     // mMiracastEnabled respresents actual current state - it is needed because at startup the userSettings.getAirMediaMiracastEnable() 

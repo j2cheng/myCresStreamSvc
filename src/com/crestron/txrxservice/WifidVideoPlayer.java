@@ -232,7 +232,7 @@ public class WifidVideoPlayer {
         public void setAdapterAddress(String address)
         {
             Common.Logging.i(TAG, "VideoPlayer.setAdapterAddress  address="+address);
-            streamCtrl_.streamPlay.msMiceSetAdapterAddress(address);
+        	streamCtrl_.streamPlay.msMiceSetAdapterAddress(streamCtrl_.userSettings.getMsMiceEnable() ? address : null);
         }
         
         @Override
