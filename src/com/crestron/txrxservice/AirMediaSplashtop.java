@@ -213,7 +213,7 @@ public class AirMediaSplashtop
     	synchronized (connectLock) {
     		boolean successfulStart = true; //indicates that there was no time out condition
 
-	    	Common.Logging.i(TAG, "connectAndStartReceiverService() isServiceConnected="+isServiceConnected+"  isReceieverStarted="+isReceiverStarted);
+	    	Common.Logging.i(TAG, "connectAndStartReceiverService() isServiceConnected="+isServiceConnected+"  isReceiverStarted="+isReceiverStarted);
     		if (!isServiceConnected)
     		{
     			startupCompleteLatch = new CountDownLatch(1);
@@ -304,6 +304,12 @@ public class AirMediaSplashtop
     					mStreamCtl.sendAirMediaNumberUserConnected();
     					setActiveSession(null);
     					removePendingSession();
+    					// RestartAirMediaAsynchronously is called to force a restart due to disconnect of receiver service.
+    					if (receiver() != null && !isServiceConnected)
+    					{
+    						Common.Logging.i(TAG, "RestartAirMediaAsynchronously(): close");
+    						close();
+    					}
     					serviceSuccessfullyStarted = connectAndStartReceiverService();
     				}
     			} finally {
@@ -572,7 +578,6 @@ public class AirMediaSplashtop
         	else
         	{
             	Common.Logging.i(TAG, "startAirMediaReceiver(): Not starting AirMedia Receiver because adapter ip address is 'None'");
-
         	}
         }
         Common.Logging.i(TAG,"startAirMediaReceiver exiting with rv="+successfulStart);
@@ -1505,8 +1510,8 @@ public class AirMediaSplashtop
 		// Launch Stop/Start of receiver in separate thread
 		if (receiver_ == null && service_ != null)
 		{
+			Common.Logging.i(TAG, "setAdapter(): calling startAirMedia with ip address " + address);
 			startAirMedia();
-			Common.Logging.i(TAG, "setAdapter(): Exiting having issued started air media with " + address);
 		}
 		else
 		{
@@ -2220,9 +2225,12 @@ public class AirMediaSplashtop
         AirMediaReceiver receiver = receiver_;
         AirMediaSessionManager manager = manager_;
         
-        Common.Logging.i(TAG, "close(): remove prior event handlers");
-        unregisterSessionManagerEventHandlers(manager_);
-        manager_ = null;
+        if (manager_ != null)
+        {
+        	Common.Logging.i(TAG, "close(): remove prior event handlers");
+        	unregisterSessionManagerEventHandlers(manager_);
+        	manager_ = null;
+        }
         if (receiver != null) {
         	unregisterReceiverEventHandlers(receiver_);
             try {
@@ -2252,16 +2260,7 @@ public class AirMediaSplashtop
 							service_ = IAirMediaReceiver.Stub.asInterface(binder);
 							if (service_ == null) return;            	
 							serviceConnectedLatch.countDown();
-							
-							if (get_adapter_ip_address().equals("None"))
-			    			{
-			    				Common.Logging.i(TAG, "Service Connected but adapter set to none, not starting receiver");
-			    				startupCompleteLatch.countDown();
-			    			}
-							else
-							{
-								startAirMedia();
-							}
+							startAirMedia();
 						} catch (Exception e) {
 							Common.Logging.e(TAG, "AirMediaServiceConnection.onServiceConnected  EXCEPTION  " + e);
 							e.printStackTrace();
