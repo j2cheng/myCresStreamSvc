@@ -4807,6 +4807,8 @@ public class CresStreamCtrl extends Service {
 		{
 			ApplicationInfo ai=null;
 			versionName = info.versionName;
+			if (AirMediaSplashtop.checkAirMediaLicense())
+				MiscUtils.writeStringToDisk("/dev/shm/crestron/CresStreamSvc/airmediaVersion", versionName);
 			try {
 				ai = pm.getApplicationInfo("com.crestron.airmedia.receiver.m360", PackageManager.GET_META_DATA);
 			} catch(Exception e) { Log.e(TAG, "Exception encountered trying to get metadata for AirMedia SDK version");}
