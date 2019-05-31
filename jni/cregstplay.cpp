@@ -166,6 +166,7 @@ void init_custom_data(CustomData * cdata)
         data->packetizer_pcr_discont_threshold = -1;//default as invalid        
 
         data->ms_mice_pin[0] = 0;
+        data->wfd_start = 0;
 	}
 }
 
@@ -1474,8 +1475,16 @@ int build_audio_pipeline(gchar *encoding_name, CREGSTREAM *data, int do_rtp,GstE
 	    //insert queue right after rtspsrc element
 	    data->element_a[i++] = gst_element_factory_make("queue", NULL);
 	    data->element_audio_front_end_queue = data->element_a[i - 1];
-	    setQueueProperties(data, data->element_a[i - 1], (guint64)((1ll + CSIOCnsIntf->getStreamRx_BUFFER(data->streamId)) * 1000000ll),(guint)16*1024*1024);
-	    
+	    if(data->wfd_start)
+        {
+            //bug # MERC-768 fix.Seems like we need to increase a lot more.
+            setQueueProperties(data, data->element_a[i - 1], (guint64)(1000ll * 1000000ll),(guint)10*1024*1024);
+        }
+        else
+        {
+            setQueueProperties(data, data->element_a[i - 1], (guint64)((1ll + CSIOCnsIntf->getStreamRx_BUFFER(data->streamId)) * 1000000ll),(guint)16*1024*1024);
+	    }
+
 		if(do_rtp)
 		{
 			if (strcmp(encoding_name, "MP4A-LATM") == 0)
@@ -1489,9 +1498,18 @@ int build_audio_pipeline(gchar *encoding_name, CREGSTREAM *data, int do_rtp,GstE
 		data->element_a[i++] = gst_element_factory_make("aacparse", NULL);
 		data->element_a[i++] = gst_element_factory_make("queue", NULL);
 		// HTTP modes that do not use TS should not set queue to these parameters, check: http://dash-mse-test.appspot.com/media.html
-		if (data->mpegtsPresent || data->streamProtocolId != ePROTOCOL_HTTP) {
+		if (data->mpegtsPresent || data->streamProtocolId != ePROTOCOL_HTTP)
+        {
 		    data->element_audio_decoder_queue = data->element_a[i - 1];
-			setQueueProperties(data, data->element_a[i - 1], (guint64)((175ll + CSIOCnsIntf->getStreamRx_BUFFER(data->streamId)) * 1000000ll),(guint)10*1024*1024);
+		    if(data->wfd_start)
+		    {
+                //bug # MERC-768 fix.Seems like we need to increase a lot more.
+                setQueueProperties(data, data->element_a[i - 1], (guint64)(1000ll * 1000000ll),(guint)10*1024*1024);
+		    }
+            else
+		    {
+                setQueueProperties(data, data->element_a[i - 1], (guint64)((175ll + CSIOCnsIntf->getStreamRx_BUFFER(data->streamId)) * 1000000ll),(guint)10*1024*1024);
+            }
 		}
 		data->element_a[i++] = gst_element_factory_make("faad", NULL);
 

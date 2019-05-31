@@ -4667,6 +4667,9 @@ JNIEXPORT void JNICALL Java_com_crestron_txrxservice_GstreamIn_nativeWfdStart(JN
 
     strcpy(data->rtcp_dest_ip_addr, url_cstring);	// Set RTSP IP as RTCP IP
 
+    data->wfd_start = 1;
+    data->audiosink_ts_offset = -300;
+
     int ts_port = CSIOCnsIntf->getStreamTxRx_TSPORT(windowId);
     WfdSinkProjStart(windowId,url_cstring,rtsp_port,ts_port);
 
@@ -4702,7 +4705,9 @@ JNIEXPORT void JNICALL Java_com_crestron_txrxservice_GstreamIn_nativeWfdStop(JNI
         }
         else
         {
+            data->wfd_start = 0;
             data->ssrc = 0;
+            data->audiosink_ts_offset = 0;
 
 			data->rtcp_dest_ip_addr[0] = '\0';
 			data->rtcp_dest_port = -1;
@@ -5046,50 +5051,7 @@ void Wfd_set_latency_by_the_source (int id, int latency)
             CSIO_LOG(eLogLevel_verbose, "[%d]break",i);
             break;
         }
-    }
-
-    //set audio queues
-    for(int i = 0; i < MAX_ELEMENTS; i++)
-    {
-        if(data->element_a[i])
-        {
-            gchar * n = gst_element_get_name(data->element_a[i]);
-
-            if(strstr(n,"queue"))
-            {
-                guint64 maxSizeTime = 0;
-                g_object_get(G_OBJECT(data->element_a[i]), "max-size-time", &maxSizeTime, NULL);
-
-                CSIO_LOG(eLogLevel_debug, "[%d]get maxSizeTime:%lld",i,maxSizeTime);
-
-                //Note: we only use two value: 1M or 175M
-                guint64 diff = maxSizeTime - userSetting;
-                if(diff == 1000000)
-                {
-                    CSIO_LOG(eLogLevel_verbose, "audio low diff of maxSizeTime:%lld",diff);
-
-                    //Recalculate the value
-                    maxSizeTime = (1ll + locLatency) * 1000000ll;
-                    g_object_set(G_OBJECT(data->element_a[i]), "max-size-time", maxSizeTime, NULL);
-                    CSIO_LOG(eLogLevel_verbose, "set new maxSizeTime:%lld",maxSizeTime);
-                }
-                else
-                {
-                    CSIO_LOG(eLogLevel_verbose, "audio high diff of maxSizeTime:%lld",diff);
-
-                    //Recalculate the value
-                    maxSizeTime = (175ll + locLatency) * 1000000ll;
-                    g_object_set(G_OBJECT(data->element_a[i]), "max-size-time", maxSizeTime, NULL);
-                    CSIO_LOG(eLogLevel_debug, "set new maxSizeTime:%lld",maxSizeTime);
-                }
-            }
-        }
-        else
-        {
-            CSIO_LOG(eLogLevel_verbose, "[%d]break",i);
-            break;
-        }
-    }
+    }    
 
     gGstStopLock.unlock();
 

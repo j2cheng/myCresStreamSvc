@@ -162,10 +162,9 @@ typedef struct _CREGSTREAM
 
     int packetizer_pcr_discont_threshold;
 
-
     unsigned int ssrc;
-
     char ms_mice_pin[32];
+    int wfd_start;
 } CREGSTREAM;
 
 /* Structure to contain all our information, so we can pass it to callbacks */
