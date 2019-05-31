@@ -1139,16 +1139,17 @@ public class AirMediaSplashtop
     	Common.Logging.i(TAG, "clearSurface: clearing surface: " + s);
     	TextureView textureView = mStreamCtl.dispSurface.GetTextureView(streamIdx);
     	Rect rect = new Rect(0, 0, textureView.getWidth(), textureView.getHeight());    	
-    	try {
-    		canvas = s.lockCanvas(rect);
-    	} catch (android.view.Surface.OutOfResourcesException ex) { ex.printStackTrace(); }
-    	if (canvas!=null)
-    	{
-    		canvas.drawColor(Color.BLACK);
-    		s.unlockCanvasAndPost(canvas);
-    	} else {
-    		Common.Logging.i(TAG, "clearSurface: canvas is null");
-    	}
+        try {
+            try {
+                Common.Logging.i(TAG, "clearSurface locking canvas");
+                canvas = s.lockCanvas(null);
+                if (canvas != null) canvas.drawColor(Color.BLACK);
+            } finally {
+                if (canvas != null) s.unlockCanvasAndPost(canvas);
+            }
+        } catch (Exception e) {
+            Common.Logging.e(TAG, "clearSurface:  EXCEPTION  " + e);
+        }
     	s.release();
    	 	Common.Logging.i(TAG, "clearSurface: released surface: " + s);
     }
