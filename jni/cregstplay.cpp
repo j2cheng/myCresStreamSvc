@@ -1194,6 +1194,76 @@ int build_video_pipeline(gchar *encoding_name, CREGSTREAM *data, unsigned int st
                 csio_SetWaitDecHas1stVidDelay(data->streamId,1);
         }
     }
+    else if((strcmp(encoding_name, "H265") == 0) || (strcmp(encoding_name, "video/x-h265") == 0))
+    {
+        //TODO:checking return values.
+        //insert queue right after rtspsrc element
+        data->element_v[i++] = gst_element_factory_make("queue", NULL);
+        // HTTP modes that do not use TS should not set queue to these parameters, check: http://dash-mse-test.appspot.com/media.html
+        if (data->mpegtsPresent || data->streamProtocolId != ePROTOCOL_HTTP)
+        {
+            data->element_video_front_end_queue = data->element_v[i-1];
+            setQueueProperties(data, data->element_v[i - 1], (guint64)((1ll + CSIOCnsIntf->getStreamRx_BUFFER(data->streamId)) * 1000000ll),(guint)16*1024*1024);
+        }
+
+        if(do_rtp)
+        {
+            data->element_v[i++] = gst_element_factory_make("rtph265depay", NULL);
+        }
+
+        data->element_v[i++] = gst_element_factory_make("valve", NULL);
+        data->element_valve_v = data->element_v[i-1];
+
+        data->element_v[i++] = gst_element_factory_make("h265parse", NULL);
+        data->element_fake_dec = data->element_v[i-1];
+        if (data->streamProtocolId == ePROTOCOL_FILE)
+        {
+            // try to force insertion of SPS/PPS @ 1 sec intervals - on IDR frames
+            g_object_set(G_OBJECT(data->element_fake_dec), "config-interval", 1, NULL);
+            CSIO_LOG(eLogLevel_info, "%s: h265parse - setting config-interval to 1", __FUNCTION__);
+        }
+
+        data->element_v[i++] = gst_element_factory_make("queue", NULL);
+        // HTTP modes that do not use TS should not set queue to these parameters, check: http://dash-mse-test.appspot.com/media.html
+        if (data->mpegtsPresent || data->streamProtocolId != ePROTOCOL_HTTP) {
+            data->element_video_decoder_queue = data->element_v[i - 1];
+            setQueueProperties(data, data->element_v[i - 1], (guint64)((175ll + CSIOCnsIntf->getStreamRx_BUFFER(data->streamId)) * 1000000ll),(guint)10*1024*1024);
+        }
+
+        //add a probe for loss of video detection.
+        GstPad *pad;
+        pad = gst_element_get_static_pad( data->element_v[i-1], "src" );
+        if( pad != NULL )
+        {
+            guint video_probe_id = gst_pad_add_probe( pad, GST_PAD_PROBE_TYPE_BUFFER, csio_videoProbe, (void *) &data->streamId, NULL );
+            csio_SetVideoProbeId(data->streamId, video_probe_id);
+            gst_object_unref( pad );
+        }
+
+        data->element_v[i++] = gst_element_factory_make(product_info()->H265_decoder_string, NULL);
+        data->amcvid_dec = data->element_v[i-1];
+
+        csio_SetVpuDecoder(data->amcvid_dec, data->streamId);
+
+        //SET OFSSET to zero for now
+        g_object_set(G_OBJECT(data->amcvid_dec), "ts-offset", 0, NULL);
+
+        //pass surface object to the decoder
+        g_object_set(G_OBJECT(data->element_v[i-1]), "surface-window", data->surface, NULL);
+        CSIO_LOG(eLogLevel_debug, "%s: SET surface-window[0x%x][%d]",__FUNCTION__,data->surface,data->surface);
+
+        *ele0 = data->element_v[0];
+
+        if(data->amcvid_dec && csio_GetWaitDecHas1stVidDelay(data->streamId) == 0)
+        {
+            int sigId = 0;
+            sigId = g_signal_connect(data->amcvid_dec, "crestron-vdec-output", G_CALLBACK(csio_DecVideo1stOutputCB), (gpointer)data->streamId);
+            CSIO_LOG(eLogLevel_debug, "%s: connect to crestron-vdec-output: StreamId[%d],sigHandlerId[%d]",__FUNCTION__,data->streamId,sigId);
+
+            if(sigId)
+                csio_SetWaitDecHas1stVidDelay(data->streamId,1);
+        }
+    }
     else if(strcmp(encoding_name, "MP2T") == 0)
     {
     	//insert queue right after rtspsrc element
