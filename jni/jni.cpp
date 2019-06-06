@@ -53,9 +53,6 @@
 #include "ms_mice_sink/ms_mice_common.h"
 #include "shared-ssl/shared-ssl.h"
 
-#ifdef ANDROID_OREO_OR_LATER    //TODO: replace this Define in Android.mk with preprocessor __ANDROID_API__ version check macro
-#include "system/window.h"
-#endif
 ///////////////////////////////////////////////////////////////////////////////
 
 extern int  csio_Init(int calledFromCsio);
@@ -846,6 +843,7 @@ static void gst_jni_setup_surface_format(JNIEnv *env,ANativeWindow *new_native_w
     int queuesToNativeWindow = 0;
     int minUndequeuedBufs = 0;
 
+#ifndef ANDROID_OREO_OR_LATER
     CSIO_LOG(eLogLevel_debug, "ANativeWindow format was %x", ANativeWindow_getFormat(new_native_window));
 
     err = ANativeWindow_setBuffersGeometry(new_native_window, ANativeWindow_getWidth(new_native_window),
@@ -887,6 +885,7 @@ static void gst_jni_setup_surface_format(JNIEnv *env,ANativeWindow *new_native_w
         CSIO_LOG(eLogLevel_error, "NATIVE_WINDOW_MIN_UNDEQUEUED_BUFFERS query failed: %s (%d)", strerror(-err), -err);
         return;
     }
+#endif
 
     if (data->surface)
     {
@@ -4363,6 +4362,7 @@ static void wbs_jni_setup_surface_format(JNIEnv *env,ANativeWindow *new_native_w
     int queuesToNativeWindow = 0;
     int minUndequeuedBufs = 0;
 
+#ifndef ANDROID_OREO_OR_LATER
     CSIO_LOG(eLogLevel_debug, "%s: ANativeWindow format was %x", __FUNCTION__, ANativeWindow_getFormat(new_native_window));
 
     err = ANativeWindow_setBuffersGeometry(new_native_window, ANativeWindow_getWidth(new_native_window),
@@ -4405,6 +4405,7 @@ static void wbs_jni_setup_surface_format(JNIEnv *env,ANativeWindow *new_native_w
         CSIO_LOG(eLogLevel_error, "NATIVE_WINDOW_MIN_UNDEQUEUED_BUFFERS query failed: %s (%d)", strerror(-err), -err);
         return;
     }
+#endif
 
     if (pWbs->surface)
     {
