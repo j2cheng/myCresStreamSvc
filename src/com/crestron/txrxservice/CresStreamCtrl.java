@@ -130,8 +130,8 @@ public class CresStreamCtrl extends Service {
     public static Object saveSettingsLock = new Object();
     public static volatile boolean saveSettingsUpdateArrived = false;
 
-    public final static int NumOfSurfaces = 3;
-    public final static int NumOfTextures = 3;
+    public final static int NumOfSurfaces = 4;	//TODO: set as per product
+    public final static int NumOfTextures = 4;	//TODO: set as per product
     public volatile boolean restartStreamsOnStart = false;
     static String TAG = "TxRx StreamCtrl";
     static String out_url="";
