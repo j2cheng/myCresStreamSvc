@@ -4825,7 +4825,7 @@ JNIEXPORT void JNICALL Java_com_crestron_txrxservice_GstreamIn_nativeMsMiceStart
     sssl_initialize();
     CSIO_LOG(eLogLevel_debug, "mira: {%s} - ===== returned from sssl_initialize() =====",__FUNCTION__);
 }
-JNIEXPORT void JNICALL Java_com_crestron_txrxservice_GstreamIn_nativeMsMiceSetAdapterAddress(JNIEnv *env, jobject thiz, jstring address)
+JNIEXPORT void JNICALL Java_com_crestron_txrxservice_GstreamIn_nativeMsMiceSetAdapterAddress(JNIEnv *env, jobject thiz, jstring address, jstring ifc)
 {
     char * locAddr = NULL;
     if(address != NULL)

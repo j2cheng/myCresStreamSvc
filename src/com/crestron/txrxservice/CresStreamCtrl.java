@@ -158,6 +158,7 @@ public class CresStreamCtrl extends Service {
     public final static String hdmiInputResolutionFilePath = "/dev/shm/crestron/hdmi/inputResolution";
     public final static String hdmiOutputResolutionFilePath = "/dev/shm/crestron/hdmi/outputResolution";
     public final static String surfaceFlingerViolationFilePath = "/dev/shm/crestron/CresStreamSvc/SFviolation";
+	private static final String [] InterfaceNames = {"eth0", "eth1"};
     public volatile boolean mMediaServerCrash = false;
     public volatile boolean mDucatiCrash = false;
     public volatile boolean mIgnoreAllCrash = false;
@@ -4649,6 +4650,12 @@ public class CresStreamCtrl extends Service {
     	sendAirMediaConnectionAddress();
     }
     
+    public String getAirMediaInterface()
+    {	
+    	return InterfaceNames[userSettings.getAirMediaAdaptorSelect()];
+    }
+
+    
     public void sendAirMediaConnectionAddress()
     {
     	sockTask.SendDataToAllClients(MiscUtils.stringFormat("AIRMEDIA_CONNECTION_ADDRESS=%s", getAirMediaConnectionAddress()));
@@ -4842,13 +4849,13 @@ public class CresStreamCtrl extends Service {
     		String ipaddr = getAirMediaConnectionIpAddress();
     		if (ipaddr.equals("None"))
     			ipaddr = null;
-    		streamPlay.msMiceSetAdapterAddress(ipaddr);
+    		streamPlay.msMiceSetAdapterAddress(ipaddr, getAirMediaInterface());
     	}
     	else
     	{
     		// turn off ms mice
     		streamPlay.msMiceStop();
-    		streamPlay.msMiceSetAdapterAddress(null);    	}
+    		streamPlay.msMiceSetAdapterAddress(null, getAirMediaInterface());    	}
     }
     
     // mMiracastEnabled respresents actual current state - it is needed because at startup the userSettings.getAirMediaMiracastEnable() 

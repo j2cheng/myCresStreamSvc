@@ -48,7 +48,7 @@ public class GstreamIn implements SurfaceHolder.Callback {
     private native void nativeWfdStop(int streamId, long sessionId);
     private native void nativeMsMiceStart();
     private native void nativeMsMiceStop();
-    private native void nativeMsMiceSetAdapterAddress(String address);
+    private native void nativeMsMiceSetAdapterAddress(String address, String ifc);
     private native void nativeMsMiceSetPin(String pin);
     private native void nativeMsMiceStateChange(long sessionId, int state, String device_id, String device_name, String device_address, int rtsp_port);
     private long native_custom_data;      // Native code will use this to keep private data
@@ -658,10 +658,10 @@ public class GstreamIn implements SurfaceHolder.Callback {
     	nativeMsMiceSetPin(pin);
     }
     
-    public void msMiceSetAdapterAddress(String address)
+    public void msMiceSetAdapterAddress(String address, String ifc)
     {
-    	Log.i(TAG, "msMiceSetAdapterAddress - address="+address);
-    	nativeMsMiceSetAdapterAddress(address);
+    	Log.i(TAG, "msMiceSetAdapterAddress - address="+address+" on "+ifc+" ethernet interface");
+    	nativeMsMiceSetAdapterAddress(address, ifc);
     }
     
 	// Find the session id (aka stream number) given a surface holder.
