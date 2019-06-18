@@ -5575,6 +5575,7 @@ public class CresStreamCtrl extends Service {
 	{
 		String cameraMode = "";
 		int previousCameraMode = readCameraMode();
+		Log.i(TAG, "setHDCPErrorImage: enable="+enable+"  previousCameraMode="+previousCameraMode);
 		if (enable)
 		{
 			//Check HDCP output status
@@ -5769,9 +5770,9 @@ public class CresStreamCtrl extends Service {
 			// Only send new status when hdcp status changes for either input or output, or if force status update is called
 			if ((mHDCPInputStatus != currentHDCPInputStatus) || (mHDCPOutputStatus != currentHDCPOutputStatus) || (mForceHdcpStatusUpdate == true))
 			{
-				Log.v(TAG, "checkHdcpStatus(): InputHdcpStatus prev: " + mHDCPInputStatus + " cur: " + currentHDCPInputStatus +
-						"OutputHdcpStatus prev: " + mHDCPOutputStatus + " cur: " + currentHDCPOutputStatus +
-						" HDCPExternalStatus=" + mHDCPExternalStatus + " forceHdcpStatusUpdate=" + mForceHdcpStatusUpdate + " HDCPEncryptStatus=" + mHDCPEncryptStatus);
+				Log.i(TAG, "checkHdcpStatus(): InputHdcpStatus prev: " + mHDCPInputStatus + " cur: " + currentHDCPInputStatus +
+						", OutputHdcpStatus prev: " + mHDCPOutputStatus + " cur: " + currentHDCPOutputStatus +
+						", HDCPExternalStatus=" + mHDCPExternalStatus + ", forceHdcpStatusUpdate=" + mForceHdcpStatusUpdate + ", HDCPEncryptStatus=" + mHDCPEncryptStatus);
 				boolean outputHDCPstatus = currentHDCPOutputStatus || mHDCPExternalStatus;
 				hdcpStatusChanged = true;
 				mHDCPInputStatus = currentHDCPInputStatus;
@@ -5889,6 +5890,7 @@ public class CresStreamCtrl extends Service {
 		}
 
 		mForceHdcpStatusUpdate = true;
+		Log.i(TAG, "setExternalHdcpStatus(): mHDCPExternalStatus="+mHDCPExternalStatus);
 	}
 	
 	private class setNoVideoImage extends TimerTask
