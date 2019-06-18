@@ -9,6 +9,7 @@
 #define WFDCOMMON_H_
 
 #include "csioCommBase.h"
+#include "cregstplay.h" //need for MAX_STREAMS
 
 typedef struct
 {
@@ -18,6 +19,7 @@ typedef struct
 
 #define WFD_NUM_OF(a) (sizeof (a) / sizeof *(a))
 
+#define MAX_WFD_TCP_CONN     MAX_STREAMS   //up to four windows
 
 typedef struct GST_PIPELINE_CONFIG
 {

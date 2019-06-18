@@ -68,7 +68,7 @@ public:
 
     void sendEvent(csioEventQueueStruct* pEvntQ);
 
-    char localIPName[4][32];
+    char localIPName[MAX_WFD_TCP_CONN][32];
 
     const char* getLocIPName(int id){return localIPName[id];}
 private:

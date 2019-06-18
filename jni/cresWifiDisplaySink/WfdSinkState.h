@@ -4,7 +4,6 @@
 #include "WfdCommon.h"
 #include "WfdSinkProject.h"
 #include "WfdSinkConnection.h"
-#include "cregstplay.h" //need for MAX_STREAMS
 
 #include "cresRTSP/cresRTSP.h"
 
@@ -132,7 +131,6 @@ typedef enum _eWfd_StMachineThreadTimeStamp
     WFD_SINK_EVENTTIME_STATETHRD_MAX
 }eWfd_StMachineThreadTimeStamp;
 
-#define MAX_WFD_TCP_CONN                   MAX_STREAMS                      //up to four windows
 #define TOTAL_MANAGER_MASTER_FDS           (MAX_WFD_TCP_CONN + 1)           //MAX_WFD_TCP_CONN + m_pipefd
 #define MANAGER_POLL_FDS_SIG_PIPE_INDEX    (TOTAL_MANAGER_MASTER_FDS - 1)   //location of pipefd at the end of array
 

@@ -778,15 +778,12 @@ void* wfdSinkProjClass::ThreadEntry()
                         {
                             if(evntQPtr->buf_size < sizeof(localIPName[id]))
                             {
-                                memset(localIPName[0],0,sizeof(localIPName[id]));
-                                memset(localIPName[1],0,sizeof(localIPName[id]));
-                                memset(localIPName[2],0,sizeof(localIPName[id]));
-                                memset(localIPName[3],0,sizeof(localIPName[id]));
-
-                                memcpy(localIPName[0],evntQPtr->buffPtr,evntQPtr->buf_size);
-                                memcpy(localIPName[1],evntQPtr->buffPtr,evntQPtr->buf_size);
-                                memcpy(localIPName[2],evntQPtr->buffPtr,evntQPtr->buf_size);
-                                memcpy(localIPName[3],evntQPtr->buffPtr,evntQPtr->buf_size);
+                                //Note: all stream will take the same ip for now.
+                                for(int i = 0; i < MAX_WFD_TCP_CONN; i++)
+                                {
+                                    memset(localIPName[i],0,sizeof(localIPName[id]));
+                                    memcpy(localIPName[i],evntQPtr->buffPtr,evntQPtr->buf_size);
+                                }
 
                                 CSIO_LOG(m_debugLevel, "wfdSinkProjClass: WFD_SINK_EVENTS_JNI_CONFIG local ip is %s",localIPName[id]);
                             }
