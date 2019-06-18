@@ -46,6 +46,7 @@ extern void WfdSinkProj_fdebug(char *cmd_cstring);
 
 extern void WfdSinkProjStart(int id, const char* url, int src_rtsp_port, int ts_port);
 extern void WfdSinkProjStop(int id);
+extern void WfdSinkProjSetLocalIPAddr(int id, const char* intfName);
 
 extern void WfdSinkProjSendGstReady(int id);
 

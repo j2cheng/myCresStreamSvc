@@ -275,9 +275,9 @@ public:
 
     int m_myId;
     csioTimerClockBase* wfdSinkStMachineTimeArray;
-private:
-    wfdSinkProjClass* m_parent;
 
+    wfdSinkProjClass* m_parent;
+private:
     std::string m_SourceUrl;
     std::string m_connTime;
     std::string m_srcVersionStr;

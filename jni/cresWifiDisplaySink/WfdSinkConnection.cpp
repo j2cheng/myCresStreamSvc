@@ -17,17 +17,7 @@
  *
  * \todo
  */
-/*
-#include <fcntl.h>
-#include <netinet/in.h>
-#include <errno.h>
-#include <stdio.h>     //for sscanf
-#include <arpa/inet.h> //for inet_addr
-#include <string>
-#include <sys/time.h>  // for gettimeofday
-#include <unistd.h>  // for socket close
-*/
-
+#include <net/if.h>
 #include <errno.h>
 #include <arpa/inet.h> //for inet_addr
 #include "WfdSinkConnection.h"
@@ -137,6 +127,20 @@ void WfdRTSPSinkClient::resetSocket()
 int WfdRTSPSinkClient::openConn()
 {
     int newSocket = socket(AF_INET, SOCK_STREAM, 0);
+
+    if (newSocket >= 0)
+    {
+        const char *opt = m_parent->m_parent->getLocIPName(m_parent->getId());        
+
+        /* bind to an address */
+        struct sockaddr_in localaddr = {0};
+        localaddr.sin_family    = AF_INET;
+        localaddr.sin_port  = htons(0);//any port
+        localaddr.sin_addr.s_addr = inet_addr(opt);
+        int rc = bind(newSocket, (struct sockaddr*) &localaddr, sizeof(struct sockaddr_in));
+        CSIO_LOG(m_debugLevel, "WfdRTSPSinkClient: openConn bind[%s] return: %d",opt,rc);
+    }
+
     if (!makeNonBlocking(newSocket) || newSocket < 0)
     {
         if(newSocket >= 0)

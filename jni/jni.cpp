@@ -2568,8 +2568,20 @@ int csio_jni_StartRTPMediaStreamThread(int iStreamId, GstElement * appSource, un
    memset((void *)&servaddr, 0, sizeof(servaddr)); 
 
    // bind the socket with the server address 
-   servaddr.sin_family        = AF_INET;           // IPv4 
-   servaddr.sin_addr.s_addr   = INADDR_ANY; 
+   //get local ip
+   CREGSTREAM * data = GetStreamFromCustomData(CresDataDB, 0);
+   if(data)
+   {
+       CSIO_LOG(eLogLevel_debug, "mira: csio_jni_StartRTPMediaStreamThread: data->loc_ip_addr[%s]",data->loc_ip_addr);
+       servaddr.sin_addr.s_addr = inet_addr(data->loc_ip_addr);
+   }
+   else
+   {
+       CSIO_LOG(eLogLevel_error, "mira: Could not obtain stream pointer for stream %d", iStreamId);
+       servaddr.sin_addr.s_addr   = INADDR_ANY; 
+   }
+
+   servaddr.sin_family        = AF_INET;           // IPv4
    servaddr.sin_port          = htons(udpPort);
    if(bind((int) rtpMedStrContext.sockFD, (const struct sockaddr *)&servaddr, (int) (sizeof(servaddr))) < 0)
    { 
@@ -4828,9 +4840,16 @@ JNIEXPORT void JNICALL Java_com_crestron_txrxservice_GstreamIn_nativeMsMiceStart
 JNIEXPORT void JNICALL Java_com_crestron_txrxservice_GstreamIn_nativeMsMiceSetAdapterAddress(JNIEnv *env, jobject thiz, jstring address, jstring ifc)
 {
     char * locAddr = NULL;
+    char * locIfc = NULL;
+
     if(address != NULL)
     {
         locAddr = (char *)env->GetStringUTFChars(address, NULL);
+    }//else
+
+    if(ifc != NULL)
+    {
+        locIfc = (char *)env->GetStringUTFChars(ifc, NULL);
     }//else
 
     if(locAddr == NULL)
@@ -4844,7 +4863,7 @@ JNIEXPORT void JNICALL Java_com_crestron_txrxservice_GstreamIn_nativeMsMiceSetAd
         msMiceSinkProjDeInit();
         msMiceSinkProjInit(locAddr);
 
-        env->ReleaseStringUTFChars(address, locAddr);
+        WfdSinkProjSetLocalIPAddr(0, locAddr);
     }
 
     //to set ms mice pin after msMiceSinkProjInit
@@ -4864,6 +4883,55 @@ JNIEXPORT void JNICALL Java_com_crestron_txrxservice_GstreamIn_nativeMsMiceSetAd
         {
             msMiceSinkProjSetPin(0,NULL);
         }
+
+        if(locAddr)
+        {
+            CSIO_LOG(eLogLevel_debug, "MsMiceSetAdapterAddress locAddr set to %s",locAddr);
+
+            int nameSize = strlen(locAddr);
+            if(nameSize < sizeof(data->loc_ip_addr))
+            {
+                memset(data->loc_ip_addr,0,sizeof(data->loc_ip_addr));
+                memcpy(data->loc_ip_addr,locAddr,nameSize);
+
+                CSIO_LOG(eLogLevel_debug, "MsMiceSetAdapterAddress data->loc_ip_addr set to %s",data->loc_ip_addr);
+            }
+            else
+            {
+                CSIO_LOG(eLogLevel_info, "ip address is too long[%d]",nameSize);
+            }
+        }
+
+        if(locIfc)
+        {
+            CSIO_LOG(eLogLevel_debug, "MsMiceSetAdapterAddress locIfc set to %s",locIfc);
+
+            int nameSize = strlen(locIfc);
+            if(nameSize < sizeof(data->intf_name))
+            {
+                memset(data->intf_name,0,sizeof(data->intf_name));
+                memcpy(data->intf_name,locIfc,nameSize);
+            }
+            else
+            {
+                CSIO_LOG(eLogLevel_info, "interface name is too long[%d]",nameSize);
+            }
+        }
+        else
+        {
+            memset(data->intf_name,0,sizeof(data->intf_name));
+            memcpy(data->intf_name,"eth0",4);
+        }
+    }
+
+    if(locIfc)
+    {
+        env->ReleaseStringUTFChars(ifc, locIfc);
+    }
+
+    if(locAddr)
+    {
+        env->ReleaseStringUTFChars(address, locAddr);
     }
 }
 JNIEXPORT void JNICALL Java_com_crestron_txrxservice_GstreamIn_nativeMsMiceStop(JNIEnv *env, jobject thiz)
@@ -5059,3 +5127,18 @@ void Wfd_set_latency_by_the_source (int id, int latency)
     CSIO_LOG(eLogLevel_debug, "Wfd_set_latency_by_the_source,id[%d] exit", id);
 }
 /***************************** end of Miracast(Wifi Display:wfd) streaming in *********************************/
+
+const char* csio_jni_get_interface_name(int id)
+{
+    CREGSTREAM * data = GetStreamFromCustomData(CresDataDB, 0);
+    if(!data)
+    {
+        CSIO_LOG(eLogLevel_error, "Could not obtain stream pointer for stream %d", id);
+        return "eth0";
+    }
+    else
+    {
+        return data->intf_name;
+    }    
+}
+

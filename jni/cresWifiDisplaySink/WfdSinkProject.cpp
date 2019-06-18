@@ -219,6 +219,34 @@ void WfdSinkProjStop(int id)
     gProjectsLock.unlock();
     CSIO_LOG(gProjectDebug, "WfdSinkProjStop: return.");
 }
+
+//Note: id is not used here
+void WfdSinkProjSetLocalIPAddr(int id, const char* ip_addr)
+{
+    if(!ip_addr) return;
+
+    CSIO_LOG(gProjectDebug, "WfdSinkProjSetLocalIPAddr: enter: id[%d], ip_addr[%s].",id,ip_addr);
+    gProjectsLock.lock();
+
+    if(gWFDSinkProjPtr)
+    {
+        csioEventQueueStruct EvntQ;
+        memset(&EvntQ,0,sizeof(csioEventQueueStruct));
+        EvntQ.obj_id = id;
+        EvntQ.event_type = WFD_SINK_EVENTS_JNI_CONFIG;
+        EvntQ.buf_size   = strlen(ip_addr);
+        EvntQ.buffPtr    = (void*)ip_addr;
+
+        gWFDSinkProjPtr->sendEvent(&EvntQ);
+    }
+    else
+    {
+        CSIO_LOG(gProjectDebug, "WfdSinkProjSetLocalIPAddr: no gWFDSinkProjPtr is running\n");
+    }
+
+    gProjectsLock.unlock();
+    CSIO_LOG(gProjectDebug, "WfdSinkProjSetLocalIPAddr: return.");
+}
 void WfdSinkProjSendIdrReq(int id)
 {
     CSIO_LOG(gProjectDebug, "WfdSinkProjSendIdrReq: enter: id[%d].",id);
@@ -326,6 +354,11 @@ m_projEventQList(NULL)
 
     if(wfdSinkProjTimeArray)
         wfdSinkProjTimeArray->recordEventTimeStamp(WFD_SINK_PROJ_TIMESTAMP_INIT);
+
+    for(int i = 0; i < MAX_WFD_TCP_CONN; i++)
+    {
+        localIPName[i][0] = 0;
+    }
 
     CSIO_LOG(ABOVE_DEBUG_VERB(m_debugLevel), "wfdSinkProjClass: creating WfdSinkProject.\n");
 }
@@ -728,6 +761,45 @@ void* wfdSinkProjClass::ThreadEntry()
                         EvntQ.event_type = WFD_SINK_GST_READY_EVENT;
                         wfdSinkStMachineClass::m_wfdSinkStMachineThreadPtr->sendEvent(&EvntQ);
                     }
+                    break;
+                }
+                case WFD_SINK_EVENTS_JNI_CONFIG:
+                {
+                    int id = evntQPtr->obj_id;
+                    CSIO_LOG(m_debugLevel, "wfdSinkProjClass: process WFD_SINK_EVENTS_JNI_CONFIG[%d].\n",id);
+
+                    if( !IsValidStreamWindow(id))
+                    {
+                        CSIO_LOG(m_debugLevel, "wfdSinkProjClass: WFD_SINK_EVENTS_JNI_CONFIG obj ID is invalid = %d",id);
+                    }
+                    else
+                    {
+                        if( evntQPtr->buf_size && evntQPtr->buffPtr)
+                        {
+                            if(evntQPtr->buf_size < sizeof(localIPName[id]))
+                            {
+                                memset(localIPName[0],0,sizeof(localIPName[id]));
+                                memset(localIPName[1],0,sizeof(localIPName[id]));
+                                memset(localIPName[2],0,sizeof(localIPName[id]));
+                                memset(localIPName[3],0,sizeof(localIPName[id]));
+
+                                memcpy(localIPName[0],evntQPtr->buffPtr,evntQPtr->buf_size);
+                                memcpy(localIPName[1],evntQPtr->buffPtr,evntQPtr->buf_size);
+                                memcpy(localIPName[2],evntQPtr->buffPtr,evntQPtr->buf_size);
+                                memcpy(localIPName[3],evntQPtr->buffPtr,evntQPtr->buf_size);
+
+                                CSIO_LOG(m_debugLevel, "wfdSinkProjClass: WFD_SINK_EVENTS_JNI_CONFIG local ip is %s",localIPName[id]);
+                            }
+                            else
+                            {
+                                CSIO_LOG(m_debugLevel, "wfdSinkProjClass: WFD_SINK_EVENTS_JNI_CONFIG local ip is too long");
+                            }
+                        }//else
+                    }
+
+                    if( evntQPtr->buf_size && evntQPtr->buffPtr)
+                        deleteCharArray(evntQPtr->buffPtr);
+
                     break;
                 }
                 default:

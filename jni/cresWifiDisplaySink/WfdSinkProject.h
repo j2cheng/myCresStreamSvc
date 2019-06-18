@@ -39,6 +39,7 @@ typedef enum _eWfdSinkProjEvents
     WFD_SINK_EVENTS_JNI_STOP,
     WFD_SINK_EVENTS_JNI_REQ_IDR,
     WFD_SINK_EVENTS_JNI_GST_READY,
+    WFD_SINK_EVENTS_JNI_CONFIG,
 
     //events from state machine --> project
     WFD_SINK_EVENTS_RTSP_IN_SESSION_EVENT ,
@@ -67,6 +68,9 @@ public:
 
     void sendEvent(csioEventQueueStruct* pEvntQ);
 
+    char localIPName[4][32];
+
+    const char* getLocIPName(int id){return localIPName[id];}
 private:
     void* ThreadEntry();
 
