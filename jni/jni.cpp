@@ -2956,9 +2956,22 @@ int csio_jni_CreatePipeline(GstElement **pipeline, GstElement **source, eProtoco
 			    data->element_av[0] = gst_element_factory_make("udpsrc", NULL);
 			    insert_udpsrc_probe(data,data->element_av[0],"src");
 
+			    //for miracast, we need to bind to ip address from index 0
+			    CREGSTREAM * data_for_address = GetStreamFromCustomData(CresDataDB, 0);
+			    if(data->wfd_start && data_for_address && data_for_address->loc_ip_addr[0])
+			    {
+			        //g_object_set(G_OBJECT(data->element_av[0]), "address", data_for_address->loc_ip_addr, NULL);
+			        g_object_set(G_OBJECT(data->element_av[0]), "address", data_for_address->loc_ip_addr, NULL);
+			    }
+
 			    //create the second udpsrc for rtcp
              data->element_av[1] = gst_element_factory_make("udpsrc", NULL);
              g_object_set(G_OBJECT(data->element_av[1]), "port", (data->udp_port + 1), NULL);
+             if(data->wfd_start && data_for_address && data_for_address->loc_ip_addr[0])
+             {
+                 g_object_set(G_OBJECT(data->element_av[1]), "address", data_for_address->loc_ip_addr, NULL);
+             }
+
              GstCaps *RtcpCaps = gst_caps_new_simple("application/x-rtcp",NULL);
              if(RtcpCaps)
              {
