@@ -209,28 +209,93 @@ static void app_extension_ms_mice_session_observer_on_source_ready(ms_mice_sink_
 {
     CSIO_LOG(eLogLevel_debug,"app.ms-mice.session.event.source-ready { \"session-id\": %" G_GUINT64_FORMAT " , \"rtsp-port\": %u }", ms_mice_sink_session_get_id(ms_session), rtsp_port);
 
-    //TODO: emit_source_ready to java
-    Wfd_ms_mice_signal_raise (
+    //Note: emit_source_ready to java
+    /*Wfd_ms_mice_signal_raise (
             ms_mice_sink_session_get_id(ms_session),
             1,
             (char*)ms_mice_sink_session_get_source_id(ms_session),
             (char*)ms_mice_sink_session_get_friendly_name(ms_session),
             (char*)ms_mice_sink_session_get_remote_address(ms_session),
-            rtsp_port);
+            rtsp_port);*/
+
+    //Note: do not call Wfd_ms_mice_signal_raise() inside current thread
+    gProjectsLock.lock();
+
+    if(g_msMiceSinkProjPtr)
+    {
+        csioEventQueueStruct EvntQ;
+        memset(&EvntQ,0,sizeof(csioEventQueueStruct));
+        EvntQ.obj_id = 0;
+        EvntQ.event_type = MS_MICE_SINK_EVENTS_MICE_SIGNAL_RAISE;
+
+        msMiceSignalRaiseCmd NewCmd;
+        NewCmd.session_id  = ms_mice_sink_session_get_id(ms_session);
+        NewCmd.state       = 1;
+        NewCmd.device_id   = (char*)ms_mice_sink_session_get_source_id(ms_session);
+        NewCmd.device_name = (char*)ms_mice_sink_session_get_friendly_name(ms_session);
+        NewCmd.device_addr = (char*)ms_mice_sink_session_get_remote_address(ms_session);
+        NewCmd.rtsp_port   = rtsp_port;
+
+        EvntQ.buf_size   = sizeof(msMiceSignalRaiseCmd);
+        EvntQ.buffPtr    = &NewCmd;
+        CSIO_LOG(gProjectDebug, "observer_on_source_ready: send msMiceSignalRaiseCmd");
+
+        g_msMiceSinkProjPtr->sendEvent(&EvntQ);
+    }
+    else
+    {
+        CSIO_LOG(gProjectDebug, "observer_on_source_ready: no g_msMiceSinkProjPtr is running\n");
+    }
+
+    gProjectsLock.unlock();
+    CSIO_LOG(gProjectDebug, "observer_on_source_ready: exit.");
 }
 
 static void app_extension_ms_mice_session_observer_on_stop_projection(ms_mice_sink_session *ms_session, gpointer data)
 {
     CSIO_LOG(eLogLevel_debug,"app.ms-mice.session.event.stop-projection { \"session-id\": %" G_GUINT64_FORMAT " }", ms_mice_sink_session_get_id(ms_session));
 
-    //TODO: emit_stop_projecting to java
-    Wfd_ms_mice_signal_raise (
+    //Note: emit_stop_projecting to java
+    /*Wfd_ms_mice_signal_raise (
             ms_mice_sink_session_get_id(ms_session),
             0,
             (char*)ms_mice_sink_session_get_source_id(ms_session),
             (char*)ms_mice_sink_session_get_friendly_name(ms_session),
             (char*)ms_mice_sink_session_get_remote_address(ms_session),
-            0);
+            0);*/
+
+    //Note: do not call Wfd_ms_mice_signal_raise() inside current thread
+    gProjectsLock.lock();
+
+    if(g_msMiceSinkProjPtr)
+    {
+        csioEventQueueStruct EvntQ;
+        memset(&EvntQ,0,sizeof(csioEventQueueStruct));
+        EvntQ.obj_id = 0;
+        EvntQ.event_type = MS_MICE_SINK_EVENTS_MICE_SIGNAL_RAISE;
+
+        msMiceSignalRaiseCmd NewCmd;
+        NewCmd.session_id  = ms_mice_sink_session_get_id(ms_session);
+        NewCmd.state       = 0;
+        NewCmd.device_id   = (char*)ms_mice_sink_session_get_source_id(ms_session);
+        NewCmd.device_name = (char*)ms_mice_sink_session_get_friendly_name(ms_session);
+        NewCmd.device_addr = (char*)ms_mice_sink_session_get_remote_address(ms_session);
+        NewCmd.rtsp_port   = 0;
+
+        EvntQ.buf_size   = sizeof(msMiceSignalRaiseCmd);
+        EvntQ.buffPtr    = &NewCmd;
+        CSIO_LOG(gProjectDebug, "observer_on_stop_projection: send msMiceSignalRaiseCmd");
+
+        g_msMiceSinkProjPtr->sendEvent(&EvntQ);
+
+    }
+    else
+    {
+        CSIO_LOG(gProjectDebug, "observer_on_stop_projection: no g_msMiceSinkProjPtr is running\n");
+    }
+
+    gProjectsLock.unlock();
+    CSIO_LOG(gProjectDebug, "observer_on_stop_projection: exit.");
 }
 
 ms_mice_sink_session_observer app_extension_ms_mice_session_observer = {
@@ -553,6 +618,74 @@ void msMiceSinkProjClass::sendEvent(csioEventQueueStruct* pEvntQ)
         {
             switch (evntQ.event_type)
             {
+                case MS_MICE_SINK_EVENTS_MICE_SIGNAL_RAISE:
+                {
+                    evntQ.buffPtr = new msMiceSignalRaiseCmd;
+                    if(evntQ.buffPtr)
+                    {
+                        //first copy configure structure
+                        memcpy(evntQ.buffPtr,(char*)bufP,sizeof(msMiceSignalRaiseCmd));
+                        evntQ.buf_size = sizeof(msMiceSignalRaiseCmd);
+
+                        //next fix device_id,device_name and device_addr
+                        msMiceSignalRaiseCmd* pConfig = (msMiceSignalRaiseCmd*)evntQ.buffPtr;
+                        if(pConfig->device_id)
+                        {
+                            int devIdLen = strlen(pConfig->device_id);
+                            char* newDevIdStr = new char[devIdLen + 1];
+                            if(newDevIdStr)
+                            {
+                                memcpy(newDevIdStr,pConfig->device_id,devIdLen);
+                                newDevIdStr[devIdLen] = 0;
+                                pConfig->device_id = newDevIdStr;
+                            }
+                            else
+                            {
+                                pConfig->device_id = NULL;
+                                CSIO_LOG(eLogLevel_warning, "msMiceSinkProjClass: create string buffer failed\n");
+                            }
+                        }
+
+                        if(pConfig->device_name)
+                        {
+                            int devNameLen = strlen(pConfig->device_name);
+                            char* newDevNamePtr = new char [devNameLen + 1];
+                            if(newDevNamePtr)
+                            {
+                                memcpy(newDevNamePtr,pConfig->device_name,devNameLen);
+                                newDevNamePtr[devNameLen] = 0;
+                                pConfig->device_name = newDevNamePtr;
+                            }
+                            else
+                            {
+                                pConfig->device_name = NULL;
+                                CSIO_LOG(eLogLevel_warning, "CresRTSP_project: create string buffer failed\n");
+                            }
+                        }
+
+                        if(pConfig->device_addr)
+                        {
+                            int devAddrLen = strlen(pConfig->device_addr);
+                            char* newDevNamePtr = new char [devAddrLen + 1];
+                            if(newDevNamePtr)
+                            {
+                                memcpy(newDevNamePtr,pConfig->device_addr,devAddrLen);
+                                newDevNamePtr[devAddrLen] = 0;
+                                pConfig->device_addr = newDevNamePtr;
+                            }
+                            else
+                            {
+                                pConfig->device_addr = NULL;
+                                CSIO_LOG(eLogLevel_warning, "CresRTSP_project: create string buffer failed\n");
+                            }
+                        }
+                    }
+                    else
+                    {
+                        CSIO_LOG(eLogLevel_warning, "CresRTSP_project: create buffer failed\n");
+                    }
+                    break;
+                }
                 default:
                 {
                     char* tmp = (char*)createCharArray(dataSize + 1);
@@ -696,6 +829,43 @@ void* msMiceSinkProjClass::ThreadEntry()
                     else
                     {
                         CSIO_LOG(m_debugLevel, "msMiceSinkProjClass[%d]: m_service_obj->m_mice_service is NULL, pin lost.\n");
+                    }
+                    break;
+                }
+                case MS_MICE_SINK_EVENTS_MICE_SIGNAL_RAISE:
+                {
+                    msMiceSignalRaiseCmd* pConfig = (msMiceSignalRaiseCmd*)evntQPtr->buffPtr;
+                    CSIO_LOG(m_debugLevel, "msMiceSinkProjClass: pConfig[0x%x]\n",pConfig);
+
+                    if(pConfig && evntQPtr->buf_size)
+                    {
+                        CSIO_LOG(m_debugLevel, "msMiceSinkProjClass: call saveConfig\n");
+                        if(pConfig->device_addr && pConfig->device_id && pConfig->device_name)
+                        {
+                            Wfd_ms_mice_signal_raise (
+                                    pConfig->session_id,
+                                    pConfig->state,
+                                    pConfig->device_id,
+                                    pConfig->device_name,
+                                    pConfig->device_addr,
+                                    pConfig->rtsp_port);
+                        }
+
+                        if(pConfig->device_addr)
+                        {
+                            delete [] pConfig->device_addr;
+                        }
+
+                        if(pConfig->device_id)
+                        {
+                            delete [] pConfig->device_id;
+                        }
+
+                        if(pConfig->device_name)
+                        {
+                            delete [] pConfig->device_name;
+                        }
+                        delete pConfig;
                     }
                     break;
                 }

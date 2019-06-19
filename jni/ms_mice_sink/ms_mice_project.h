@@ -28,6 +28,8 @@ typedef enum _e_msMiceSinkProjEvents
 
     MS_MICE_SINK_EVENTS_SET_PIN,
 
+    MS_MICE_SINK_EVENTS_MICE_SIGNAL_RAISE,
+
     MS_MICE_SINK_EVENTS_MAX
 }e_msMiceSinkProjEvents;
 
@@ -37,6 +39,16 @@ typedef struct
     unsigned int num;
 } MSMICE_STRNUMPAIR;
 #define WFD_NUM_OF(a) (sizeof (a) / sizeof *(a))
+
+typedef struct _msMiceSignalRaiseCmd
+{
+    gint64 session_id;
+    int  state;
+    char *device_id;
+    char *device_name;
+    char *device_addr;
+    int rtsp_port;
+}msMiceSignalRaiseCmd;
 
 class msMiceSinkServiceClass;
 
