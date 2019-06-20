@@ -1,6 +1,7 @@
 
 package com.crestron.txrxservice;
 
+import android.util.Log;
 
 import com.crestron.txrxservice.CresStreamCtrl;
 import com.crestron.txrxservice.CresStreamCtrl.DeviceMode;
@@ -11,6 +12,7 @@ class CrestronCommand implements CommandIf {
     String msg = null;
     String setFbMsg = null;
     int sessId = 0;
+    protected static final String TAG="TxRx Command Processor";
     
     public CrestronCommand(CresStreamCtrl ctrl, String arg, int sessId) {
         this.ctrl = ctrl;
@@ -2440,6 +2442,7 @@ class UseNewIpAddrCommand extends CrestronCommand {
 	public void execute() {
 		if(!msg.equals(ctrl.userSettings.getDeviceIp()))
 		{
+			Log.i(TAG, "UseNewIpAddrCommand: set device primary ip address="+msg);
 			ctrl.userSettings.setDeviceIp(msg);
 			ctrl.stopOnIpAddrChange();			
 			if (ctrl.userSettings.getAirMediaAdaptorSelect() == 0)
@@ -2458,6 +2461,7 @@ class SetAuxiliaryIpAddressCommand extends CrestronCommand {
 	public void execute() {
 		if(!msg.equals(ctrl.userSettings.getAuxiliaryIp()))
 		{
+			Log.i(TAG, "SetAuxiliaryIpAddressCommand: set device auxiliary ip address="+msg);
 			ctrl.userSettings.setAuxiliaryIp(msg);
 			if (ctrl.userSettings.getAirMediaAdaptorSelect() == 1)
 				ctrl.updateAirMediaIpInformation();
