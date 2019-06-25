@@ -1115,10 +1115,12 @@ public class AirMediaSplashtop
 
 		Common.Logging.i(TAG, "attachSurface: calling setInvalidateOnSurfaceTextureUpdate");
 		mStreamCtl.dispSurface.setInvalidateOnSurfaceTextureUpdate(true);
-		if (useTextureView(session))
-		{
-    		mStreamCtl.setUpdateStreamStateOnFirstFrame(streamIdx, true);
-		}
+
+	    // Reset video dimensions so that when we get first set of non-zero video dimensions start message sent to PPUX
+		mStreamCtl.mVideoDimensions[streamIdx].videoWidth = 0;
+		mStreamCtl.mVideoDimensions[streamIdx].videoHeight = 0;
+    	mStreamCtl.setUpdateStreamStateOnFirstFrame(streamIdx, true);
+
 		Common.Logging.i(TAG, "Exit from attachSurface");
     }
     
@@ -2632,6 +2634,11 @@ public class AirMediaSplashtop
                 public void onEvent(AirMediaSession session, AirMediaSize from, AirMediaSize to) {
                     Common.Logging.i(TAG, "view.session.event.video.size  " + AirMediaSession.toDebugString(session) + "  " + 
                     		from.width + "x" + from.height + "  ==>  " + to.width + "x" + to.height);
+                    if (mStreamCtl.updateStreamStateOnFirstFrame[streamIdx]) {
+                    	Log.i(TAG, "######### First frame based Stream State Started Update for streamId="+streamIdx+" ##############");
+                    	mStreamCtl.sendAirMediaStartedState(streamIdx);
+                    	mStreamCtl.setUpdateStreamStateOnFirstFrame(streamIdx, false);
+                    }
                     // TODO Handle video resolution change
                     sendClientDataVideoResolution(session);
                     if (session == getActiveSession())

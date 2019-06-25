@@ -296,10 +296,15 @@ public class WifidVideoPlayer {
     	service_.statusChanged(id, code, reason);
     }
     
-    public void resolutionChanged(long id, int width, int height)
+    public void resolutionChanged(int streamId, int width, int height)
     {
-        Common.Logging.i(TAG, "videoplayer.resolutionChanged():  sessionId="+id+"  wxh="+width+"x"+height);
-    	service_.resolutionChanged(id, width, height);
+    	long sessionId = streamId2sessionId(streamId);
+        Common.Logging.i(TAG, "videoplayer.resolutionChanged(): streamId="+streamId+" sessionId="+sessionId+"  wxh="+width+"x"+height);
+    	service_.resolutionChanged(sessionId, width, height);
+    	if (sessionId != INVALID_SESSION_ID)
+    	{
+    		service_.resolutionChanged(sessionId, width, height);
+    	}
     }
     
     public void stateChanged(int streamId, AirMediaSessionStreamingState value)

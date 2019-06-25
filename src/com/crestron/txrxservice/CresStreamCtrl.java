@@ -2419,7 +2419,12 @@ public class CresStreamCtrl extends Service {
     {
     	mVideoDimensions[sessionId].videoWidth = videoWidth;
     	mVideoDimensions[sessionId].videoHeight = videoHeight;
-    	if (dispSurface != null)
+    	if (mUsedForAirMedia[sessionId])
+    	{
+    		// inform wifivideoplayer of change in resolution
+    		wifidVideoPlayer.resolutionChanged(sessionId, videoWidth, videoHeight);
+    	}
+    	else if (dispSurface != null) // For Airmedia - the step below will get done through callback from service for resolution change
     	{
     		dispSurface.updateWindowWithVideoSize(sessionId, use_texture_view, videoWidth, videoHeight);
     	}
