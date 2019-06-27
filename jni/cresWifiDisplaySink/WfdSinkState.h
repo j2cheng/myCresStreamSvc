@@ -269,8 +269,11 @@ private:
             delete [] tmp;
         }
     }
-public:
 
+    void m_setMiceSession(int s){m_is_mice_session = s;}
+
+public:
+    int  m_getMiceSession(){return m_is_mice_session ;}
     int m_myId;
     csioTimerClockBase* wfdSinkStMachineTimeArray;
 
@@ -296,7 +299,7 @@ public:
     RTSPSYSTEMINFO m_rtspParserIntfInfo;
     void* m_rtspParserIntfSession;
 private:
-    int m_ssrc,m_rtcpDestPort;
+    int m_ssrc,m_rtcpDestPort,m_is_mice_session;
 };
 /********** end of wfdSinkStMachineClass class *******************/
 

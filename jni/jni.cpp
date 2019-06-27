@@ -2958,7 +2958,7 @@ int csio_jni_CreatePipeline(GstElement **pipeline, GstElement **source, eProtoco
 
 			    //for miracast, we need to bind to ip address from index 0
 			    CREGSTREAM * data_for_address = GetStreamFromCustomData(CresDataDB, 0);
-			    if(data->wfd_start && data_for_address && data_for_address->loc_ip_addr[0])
+			    if(data->wfd_start && data->wfd_is_mice_session && data_for_address && data_for_address->loc_ip_addr[0])
 			    {
 			        //g_object_set(G_OBJECT(data->element_av[0]), "address", data_for_address->loc_ip_addr, NULL);
 			        g_object_set(G_OBJECT(data->element_av[0]), "address", data_for_address->loc_ip_addr, NULL);
@@ -2967,7 +2967,7 @@ int csio_jni_CreatePipeline(GstElement **pipeline, GstElement **source, eProtoco
 			    //create the second udpsrc for rtcp
              data->element_av[1] = gst_element_factory_make("udpsrc", NULL);
              g_object_set(G_OBJECT(data->element_av[1]), "port", (data->udp_port + 1), NULL);
-             if(data->wfd_start && data_for_address && data_for_address->loc_ip_addr[0])
+             if(data->wfd_start && data->wfd_is_mice_session && data_for_address && data_for_address->loc_ip_addr[0])
              {
                  g_object_set(G_OBJECT(data->element_av[1]), "address", data_for_address->loc_ip_addr, NULL);
              }
@@ -4694,10 +4694,15 @@ JNIEXPORT void JNICALL Java_com_crestron_txrxservice_GstreamIn_nativeWfdStart(JN
     strcpy(data->rtcp_dest_ip_addr, url_cstring);	// Set RTSP IP as RTCP IP
 
     data->wfd_start = 1;
+    if(msMiceSessionId > 0)
+        data->wfd_is_mice_session = 1;
+    else
+        data->wfd_is_mice_session = 0;
+
     data->audiosink_ts_offset = -300;
 
     int ts_port = CSIOCnsIntf->getStreamTxRx_TSPORT(windowId);
-    WfdSinkProjStart(windowId,url_cstring,rtsp_port,ts_port);
+    WfdSinkProjStart(windowId,url_cstring,rtsp_port,ts_port,data->wfd_is_mice_session);
 
     CSIO_LOG(eLogLevel_debug,"mira: {%s} - exiting",__FUNCTION__);
 
@@ -4732,6 +4737,7 @@ JNIEXPORT void JNICALL Java_com_crestron_txrxservice_GstreamIn_nativeWfdStop(JNI
         else
         {
             data->wfd_start = 0;
+            data->wfd_is_mice_session = 0;
             data->ssrc = 0;
             data->audiosink_ts_offset = 0;
 

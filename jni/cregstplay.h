@@ -165,6 +165,7 @@ typedef struct _CREGSTREAM
     unsigned int ssrc;
     char ms_mice_pin[32];
     int wfd_start;
+    int wfd_is_mice_session;
 
     char intf_name[32];
     char loc_ip_addr[32];

@@ -169,7 +169,7 @@ void WfdSinkProjSendEvent(int evnt, int iId, int data_size, void* bufP)
     gProjectsLock.unlock();
 }
 
-void WfdSinkProjStart(int id, const char* url, int src_rtsp_port, int ts_port)
+void WfdSinkProjStart(int id, const char* url, int src_rtsp_port, int ts_port,int is_mice_session)
 {
     if(!url) return;
 
@@ -186,7 +186,7 @@ void WfdSinkProjStart(int id, const char* url, int src_rtsp_port, int ts_port)
         EvntQ.buffPtr    = (void*)url;
         EvntQ.ext_obj    = src_rtsp_port;
         EvntQ.ext_obj2   = ts_port;
-
+        EvntQ.voidPtr    = (void*)is_mice_session;
         gWFDSinkProjPtr->sendEvent(&EvntQ);
     }
     else
@@ -589,6 +589,7 @@ void* wfdSinkProjClass::ThreadEntry()
                                 EvntQ.buffPtr    = evntQPtr->buffPtr;
                                 EvntQ.ext_obj    = evntQPtr->ext_obj;
                                 EvntQ.ext_obj2   = evntQPtr->ext_obj2;
+                                EvntQ.voidPtr    = evntQPtr->voidPtr;
                                 wfdSinkStMachineClass::m_wfdSinkStMachineThreadPtr->sendEvent(&EvntQ);
                             }//else
 
@@ -912,7 +913,7 @@ void WfdSinkProj_fdebug(char *cmd_cstring)
                     int port = (int) strtol(CmdPtr, &EndPtr, 10);
 
                     CSIO_LOG(eLogLevel_info, "START source addr[%s], port[%d]",addr.c_str(),port);
-                    WfdSinkProjStart(0,addr.c_str(),port,4570);
+                    WfdSinkProjStart(0,addr.c_str(),port,4570,1);
                 }
             }
         }

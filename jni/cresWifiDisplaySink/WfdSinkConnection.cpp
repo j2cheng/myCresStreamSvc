@@ -128,7 +128,7 @@ int WfdRTSPSinkClient::openConn()
 {
     int newSocket = socket(AF_INET, SOCK_STREAM, 0);
 
-    if (newSocket >= 0)
+    if (m_parent->m_getMiceSession() && newSocket >= 0)
     {
         const char *opt = m_parent->m_parent->getLocIPName(m_parent->getId());        
 

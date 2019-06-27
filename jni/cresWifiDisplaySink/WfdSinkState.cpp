@@ -146,7 +146,8 @@ m_EvntQ(),
 m_rtspParserIntfInfo(),
 m_rtspParserIntfSession(),
 m_ssrc(),
-m_rtcpDestPort(-1)
+m_rtcpDestPort(-1),
+m_is_mice_session(0)
 {
     wfdSinkStMachineTimeArray = new csioTimerClockBase(WFD_SINK_EVENTTIME_MAX,WFD_SINK_STATE_TIMER_MAX);
 
@@ -259,6 +260,7 @@ void wfdSinkStMachineClass::DumpClassPara(int l)
     CSIO_LOG(eLogLevel_info, "wfdSinkStMachineClass: Restart count      %d\n", getRestartCnt());
     CSIO_LOG(eLogLevel_info, "wfdSinkStMachineClass: Max Restart count  %d\n", m_max_restartCnt);
     CSIO_LOG(eLogLevel_info, "wfdSinkStMachineClass: keep alive timeout %d\n", m_keepAliveTimeout/1000);
+    CSIO_LOG(eLogLevel_info, "wfdSinkStMachineClass: m_is_mice_session  %d\n", m_is_mice_session);
 
     {
         struct timespec currentTm;
@@ -2380,6 +2382,7 @@ void* wfdSinkStMachineThread::ThreadEntry()
 
                             std::string str = (char*)evntQPtr->buffPtr;
                             p->setCurentSourceUrl(str);
+                            p->m_setMiceSession((int)evntQPtr->voidPtr);
 
                             csioEventQueueStruct evntQ;
                             memset(&evntQ,0,sizeof(csioEventQueueStruct));
