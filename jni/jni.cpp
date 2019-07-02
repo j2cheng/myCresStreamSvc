@@ -5157,6 +5157,14 @@ const char* csio_jni_get_interface_name(int id)
     }
     else
     {
+        if(!data->intf_name[id])
+        {
+            CSIO_LOG(eLogLevel_error, "Could not obtain interface name for stream %d. Using default eth0.", id);
+            return "eth0";
+        }
+
+        CSIO_LOG(eLogLevel_debug, "stream[%d] interface = %s", id, (char *) &data->intf_name[id]);
+
         return data->intf_name;
     }    
 }
