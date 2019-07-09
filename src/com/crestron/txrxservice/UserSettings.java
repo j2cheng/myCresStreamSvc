@@ -243,6 +243,7 @@ public class UserSettings
 	private int airMediaAdaptorSelect;
 	private boolean airMediaMiracastEnable;
 	private boolean airMediaMiracastWifiDirectMode;
+	private boolean airMediaMiracastPreferWifiDirect;
 	private int airMediaMiracastWirelessOperatingRegion;
 	private boolean msMiceEnable;
 
@@ -363,6 +364,7 @@ public class UserSettings
 		airMediaCustomPromptString = "";
 		airMediaMiracastEnable = false;
 		airMediaMiracastWifiDirectMode = true;
+		airMediaMiracastPreferWifiDirect = false; 
 		airMediaMiracastWirelessOperatingRegion = 0;
 		msMiceEnable = false;
 		appspaceEnabled		= false;
@@ -1409,6 +1411,14 @@ public class UserSettings
 	
 	public void setAirMediaMiracastWifiDirectMode(boolean enable) {
 		this.airMediaMiracastWifiDirectMode = enable;
+	}
+	
+	public boolean getAirMediaMiracastPreferWifiDirect() {
+		return airMediaMiracastPreferWifiDirect;
+	}
+	
+	public void setAirMediaMiracastPreferWifiDirect(boolean enable) {
+		this.airMediaMiracastPreferWifiDirect = enable;
 	}
 	
 	public int getAirMediaMiracastWirelessOperatingRegion() {

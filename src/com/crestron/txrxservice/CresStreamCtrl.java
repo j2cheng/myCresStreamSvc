@@ -4891,6 +4891,16 @@ public class CresStreamCtrl extends Service {
     	}
     }
     
+    public void airMediaMiracastPreferWifiDirect(boolean enable)
+    {
+    	userSettings.setAirMediaMiracastPreferWifiDirect(enable);
+    	Log.i(TAG, "airMediaMiracastPreferWifiDirect(): prefer_wifi_direct="+enable);
+    	if (mAirMedia != null)
+    	{
+    		mAirMedia.setAirMediaMiracastPreferWifiDirect(enable);
+    	}
+    }
+    
     public void airMediaMiracastWirelessOperatingRegion(int value)
     {
     	userSettings.setAirMediaMiracastWirelessOperatingRegion(value);

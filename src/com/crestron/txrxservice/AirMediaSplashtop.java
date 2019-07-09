@@ -647,6 +647,15 @@ public class AirMediaSplashtop
 		}
     }
     
+    public void setAirMediaMiracastPreferWifiDirect(boolean enable)
+    {
+		Common.Logging.i(TAG, "setAirMediaMiracastPreferWifiDirect(): " + enable);
+		if (receiver() != null)
+		{
+			receiver().configureProperty(AirMediaReceiverProperties.Miracast.PreferWifiDirect, enable);
+		}
+    }
+    
     public void setAirMediaMiracastWirelessOperatingRegion(int regionCode)
     {
     	String[] regions = {"00", "US", "JA"};
