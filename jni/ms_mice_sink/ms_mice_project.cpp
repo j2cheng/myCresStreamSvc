@@ -898,6 +898,22 @@ void* msMiceSinkProjClass::ThreadEntry()
         m_service_obj->exitThread();
 
         //wait until thread exits
+        for(int i = 0; i < (20*60*10); i++)//wait for 50 ms * 20*60 = 1 min
+        {
+            //Note: msMiceSinkServiceClass calls g_main_loop_run.
+            //      can't call g_main_loop_quit() before calling loop_run.
+            if(m_service_obj->m_ThreadIsRunning)
+            {
+                CSIO_LOG(m_debugLevel, "msMiceSinkProjClass: msMiceSinkServiceClass[0x%x] is running\n",m_service_obj);
+                m_service_obj->exitThread();
+                usleep( 50000L); //wait for 50 ms
+            }
+            else
+            {
+                break;
+            }
+        }
+
         CSIO_LOG(m_debugLevel, "msMiceSinkProjClass: call WaitForThreadToExit[0x%x]\n",m_service_obj);
         m_service_obj->WaitForThreadToExit();
         CSIO_LOG(m_debugLevel, "msMiceSinkProjClass: Wait is done\n");
@@ -1034,6 +1050,12 @@ void* msMiceSinkServiceClass::ThreadEntry()
         {
             CSIO_LOG(eLogLevel_debug, "msMiceSinkServiceClass::ms_mice_sink_service_start[0x%x]\n",m_mice_service);
         }
+    }
+
+    if(m_forceThreadExit)
+    {
+        CSIO_LOG(m_debugLevel,"msMiceSinkServiceClass: m_forceThreadExit is true before calling g_main_loop_run.\n");
+        goto exit;
     }
 
     //main loop run
