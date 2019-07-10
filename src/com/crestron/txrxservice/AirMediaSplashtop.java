@@ -535,6 +535,7 @@ public class AirMediaSplashtop
                 receiver().displayResolution(new AirMediaSize(dSize.x, dSize.y));
                 setAirMediaMiracast(mStreamCtl.userSettings.getAirMediaMiracastEnable());
                 setAirMediaMiracastWifiDirectMode(mStreamCtl.userSettings.getAirMediaMiracastWifiDirectMode());
+                setAirMediaMiracastMsMiceMode(mStreamCtl.userSettings.getAirMediaMiracastMsMiceMode());
                 setAirMediaMiracastWirelessOperatingRegion(mStreamCtl.userSettings.getAirMediaMiracastWirelessOperatingRegion());
                 setAirMediaIsCertificateRequired(mStreamCtl.userSettings.getAirMediaIsCertificateRequired());
                 setAirMediaOnlyAllowSecureConnections(mStreamCtl.userSettings.getAirMediaOnlyAllowSecureConnections());
@@ -648,6 +649,15 @@ public class AirMediaSplashtop
 		if (receiver() != null)
 		{
 			receiver().configureProperty(AirMediaReceiverProperties.Miracast.AllowWifiDirectConnections, enable);
+		}
+    }
+    
+    public void setAirMediaMiracastMsMiceMode(boolean enable)
+    {
+		Common.Logging.i(TAG, "setAirMediaMiracastMsMiceMode(): " + enable);
+		if (receiver() != null)
+		{
+			receiver().configureProperty(AirMediaReceiverProperties.Miracast.AllowMsMiceConnections, enable);
 		}
     }
     

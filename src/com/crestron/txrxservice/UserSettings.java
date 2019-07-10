@@ -245,7 +245,7 @@ public class UserSettings
 	private boolean airMediaMiracastWifiDirectMode;
 	private boolean airMediaMiracastPreferWifiDirect;
 	private int airMediaMiracastWirelessOperatingRegion;
-	private boolean msMiceEnable;
+	private boolean airMediaMiracastMsMiceMode;
 
 	// Camera Streaming
 	private boolean camStreamEnable;
@@ -366,7 +366,7 @@ public class UserSettings
 		airMediaMiracastWifiDirectMode = true;
 		airMediaMiracastPreferWifiDirect = false; 
 		airMediaMiracastWirelessOperatingRegion = 0;
-		msMiceEnable = false;
+		airMediaMiracastMsMiceMode = true;
 		appspaceEnabled		= false;
 		tcpInterleave       = initIntArray(0);//auto mode
 		camStreamEnable		= false;
@@ -1397,12 +1397,12 @@ public class UserSettings
 		this.airMediaMiracastEnable = enable;
 	}
 
-	public boolean getMsMiceEnable() {
-		return msMiceEnable;
+	public boolean getAirMediaMiracastMsMiceMode() {
+		return airMediaMiracastMsMiceMode;
 	}
 	
-	public void setMsMiceEnable(boolean enable) {
-		this.msMiceEnable = enable;
+	public void setAirMediaMiracastMsMiceMode(boolean enable) {
+		this.airMediaMiracastMsMiceMode = enable;
 	}
 	
 	public boolean getAirMediaMiracastWifiDirectMode() {

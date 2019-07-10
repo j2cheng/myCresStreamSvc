@@ -2151,7 +2151,7 @@ class MsMiceEnableCommand extends CrestronCommand {
 		ctrl.msMiceEnable(Boolean.valueOf(msg));
 	}
 	public String getFeedbackMsg() {
-		return Boolean.toString(ctrl.userSettings.getMsMiceEnable());
+		return Boolean.toString(ctrl.userSettings.getAirMediaMiracastMsMiceMode());
 	}
 }
 

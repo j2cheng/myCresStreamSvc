@@ -1353,7 +1353,7 @@ public class CresStreamCtrl extends Service {
     			if (mAirMedia == null && airMediaLicensed) {
     				Log.i(TAG, "Calling AirMediaConstructor from airMediaLicenseThread");
     				mAirMedia = new AirMediaSplashtop(streamCtrl); 
-    				msMiceEnable(userSettings.getMsMiceEnable());
+    				msMiceEnable(userSettings.getAirMediaMiracastMsMiceMode());
     				// Ensure any existing ms-mice connections that exist are dropped
     				for (int sessionId = 0; sessionId < NumOfSurfaces; sessionId++)
     				{
@@ -4840,10 +4840,10 @@ public class CresStreamCtrl extends Service {
     // does not represent the actual state at startup - it is the desired state at startup.
     public void msMiceEnable(boolean enable)
     {
-    	userSettings.setMsMiceEnable(enable);
+    	userSettings.setAirMediaMiracastMsMiceMode(enable);
     	Log.i(TAG, "msMiceEnable(): requesting msMice " + ((enable)?"enabled":"disabled") + 
     			" - currently it is " + ((mMsMiceEnabled)?"enabled":"disabled"));
-    	boolean userRequested = userSettings.getMsMiceEnable();
+    	boolean userRequested = userSettings.getAirMediaMiracastMsMiceMode();
     	if (userRequested == mMsMiceEnabled)
     		return;
     	mMsMiceEnabled = enable;
@@ -4860,7 +4860,9 @@ public class CresStreamCtrl extends Service {
     	{
     		// turn off ms mice
     		streamPlay.msMiceStop();
-    		streamPlay.msMiceSetAdapterAddress(null, getAirMediaInterface());    	}
+    		streamPlay.msMiceSetAdapterAddress(null, getAirMediaInterface());    	
+    	}
+    	mAirMedia.setAirMediaMiracastMsMiceMode(mMsMiceEnabled);
     }
     
     // mMiracastEnabled respresents actual current state - it is needed because at startup the userSettings.getAirMediaMiracastEnable() 
