@@ -226,6 +226,7 @@ public class WifidVideoPlayer {
         {
             Common.Logging.i(TAG, "VideoPlayer.stop  sessionId="+id);
             stopSession(id);
+            Common.Logging.i(TAG, "VideoPlayer.stop exit - sessionId="+id);
         }
         
         @Override
@@ -233,13 +234,15 @@ public class WifidVideoPlayer {
         {
             Common.Logging.i(TAG, "VideoPlayer.setAdapterAddress  address="+address);
         	streamCtrl_.streamPlay.msMiceSetAdapterAddress(streamCtrl_.userSettings.getMsMiceEnable() ? address : null, streamCtrl_.getAirMediaInterface());
+            Common.Logging.i(TAG, "VideoPlayer.setAdapterAddress exit - address set to "+address);
         }
         
         @Override
         public void setPasscode(String pin)
         {
-            Common.Logging.i(TAG, "VideoPlayer.setPassCode  pin="+pin);
+            Common.Logging.i(TAG, "VideoPlayer.setPasscode  pin="+pin);
             streamCtrl_.streamPlay.msMiceSetPin(pin);
+            Common.Logging.i(TAG, "VideoPlayer.setPasscode exit - pin set to "+pin);
         }
     }
 

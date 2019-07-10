@@ -85,7 +85,11 @@ public class AirMediaSplashtop
 	private static final int MAX_USERS = 32;
 	private static final int CODEC_ERROR = 1;
 	private static final int MEDIA_SERVER_HANG = 2;
-	private static final int AUDIO_TIMEOUT = -32001;
+	private static final int M360_TIMEOUT = -32001;
+	private static final int MIRACAST_API_TIMEOUT = -32002;
+	private static final int VIDEOPLAYER_API_TIMEOUT = -32003;
+	private static final int VIDEOPLAYER_REMOTE_EXCEPTION = -32004;
+
 	private final Object stopSessionObjectLock = new Object();
 	private final Object stopSessionCriticalSectionLock = new Object();
 	private final Object disconnectSessionObjectLock = new Object();
@@ -2395,7 +2399,7 @@ public class AirMediaSplashtop
             {
             	Common.Logging.i(TAG, "In stateChangedHandler: receiverStoppedLatch="+receiverStoppedLatch);
             	isReceiverStarted = false;
-		    	Common.Logging.i(TAG,"RestartAirMediaAsynchronously() - setting receiver started state to "+isReceiverStarted);
+		    	Common.Logging.i(TAG,"In stateChangedHandler: - setting receiver started state to "+isReceiverStarted);
 		    	if (receiverStoppedLatch != null)
 		    	{
 		    		receiverStoppedLatch.countDown();
@@ -2416,12 +2420,15 @@ public class AirMediaSplashtop
 					mStreamCtl.RecoverMediaServer();
 					sleep(5000);
 				}
-				Common.Logging.w(TAG, "Receiver " + to + " with error="+reason+"  Restarting receiver .... ");
-				if (reason == MEDIA_SERVER_HANG || reason == AUDIO_TIMEOUT) {
+				if (reason == MEDIA_SERVER_HANG || reason == M360_TIMEOUT || reason == MIRACAST_API_TIMEOUT || 
+						reason == VIDEOPLAYER_API_TIMEOUT || reason == VIDEOPLAYER_REMOTE_EXCEPTION) {
+					Common.Logging.w(TAG, "Receiver " + to + " with error="+reason+"  Restarting receiver service .... ");
 					restartAirMedia();
 				} else {
+					Common.Logging.w(TAG, "Receiver " + to + " with error="+reason+"  Restarting receiver asynchronously .... ");
 					RestartReceiverAynchronously();
 				}
+				Common.Logging.w(TAG, "Exit from stateChangedHandler for error="+reason);
 			}
         }
     };
