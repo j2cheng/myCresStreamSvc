@@ -857,6 +857,12 @@ public class CresStreamCtrl extends Service {
 	    			// Todo: Handle when needed
 	    		}
     		}
+            File disableRGB888File = new File ("/data/CresStreamSvc/disableRgb");
+            if (disableRGB888File.isFile())	//check if file exists
+            {
+                Log.e(TAG, "Disabling RGB888");
+                isRGB888HDMIVideoSupported = false;
+            }
 
     		// This needs to be done before Gstreamer setup
     		{
