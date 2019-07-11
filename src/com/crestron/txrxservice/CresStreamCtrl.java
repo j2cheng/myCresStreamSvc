@@ -4868,7 +4868,14 @@ public class CresStreamCtrl extends Service {
     		streamPlay.msMiceStop();
     		streamPlay.msMiceSetAdapterAddress(null, getAirMediaInterface());    	
     	}
-    	mAirMedia.setAirMediaMiracastMsMiceMode(mMsMiceEnabled);
+    	if (mAirMedia != null)
+    	{
+    		mAirMedia.setAirMediaMiracastMsMiceMode(mMsMiceEnabled);
+    	}
+    	else
+    	{
+        	Log.i(TAG, "msMiceEnable(): cannot set msMiceMode on receiver service since AirMedia not yet initialized");
+    	}
     }
     
     // mMiracastEnabled respresents actual current state - it is needed because at startup the userSettings.getAirMediaMiracastEnable() 
