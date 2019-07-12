@@ -854,7 +854,9 @@ public class CresStreamCtrl extends Service {
 	    		case AM200:
 	    		case Unknown:
 	    		{
-	    			// Todo: Handle when needed
+                    isRGB888HDMIVideoSupported = userSettings.getRgb888Enabled();
+                    Log.i(TAG, "RGB888 Mode is " + isRGB888HDMIVideoSupported);
+                    break;
 	    		}
     		}
             File disableRGB888File = new File ("/data/CresStreamSvc/disableRgb");
@@ -2905,6 +2907,12 @@ public class CresStreamCtrl extends Service {
     	{
         	streamStateLock[sessionId].unlock("sendCurrentStreamState");
     	}
+    }
+
+    public void setRgb888Mode (boolean enable)
+    {
+        Log.i(TAG, "Setting RGB888 mode to " + enable);
+        userSettings.setRgb888Enabled(enable);
     }
     
     public void setForceRgbPreviewMode(boolean enable)

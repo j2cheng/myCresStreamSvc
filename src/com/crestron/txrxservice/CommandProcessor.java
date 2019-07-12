@@ -2559,6 +2559,21 @@ class ForceRgbPreviewModeCommand extends CrestronCommand {
 	// no feedback
 }
 
+class Rgb888ModeCommand extends CrestronCommand {
+    public Rgb888ModeCommand(CresStreamCtrl ctrl, String arg) {
+        super(ctrl, arg);
+    }
+
+    @Override
+    public void execute() {
+        try {
+            boolean val = Boolean.valueOf(msg);
+            ctrl.setRgb888Mode(val);
+        } catch (Exception e) {}
+    }
+    // no feedback
+}
+
 class ChromaKeyColorCommand extends CrestronCommand {
 
 	public ChromaKeyColorCommand(CresStreamCtrl ctrl, String arg) {

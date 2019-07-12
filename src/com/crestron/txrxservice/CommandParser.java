@@ -204,6 +204,7 @@ public class CommandParser {
         WBSLOGLEVEL,
         WFDSTREAM,
         FORCE_RGB_PREVIEW_MODE,
+        RGB_MODE,
         CHROMAKEY_COLOR,
     	LOGLEVEL;
     	//UPDATEREQUEST;
@@ -311,7 +312,7 @@ public class CommandParser {
     	
     	CommandIf cmd = null;
     	cmd = ProcCommandSwitchTable(msg, arg, idx);		//if not in hashMap, use switch table to add to hashmap
-    	cmdHashMap.put(temp, cmd);			
+    	cmdHashMap.put(temp, cmd);
     	return cmd;								
     }
 
@@ -830,6 +831,9 @@ public class CommandParser {
             case FORCE_RGB_PREVIEW_MODE:
             	cmd = new ForceRgbPreviewModeCommand(ctrl, arg);
             	break;
+            case RGB_MODE:
+                cmd = new Rgb888ModeCommand(ctrl, arg);
+                break;
             case CHROMAKEY_COLOR:
             	cmd = new ChromaKeyColorCommand(ctrl, arg);
             	break;

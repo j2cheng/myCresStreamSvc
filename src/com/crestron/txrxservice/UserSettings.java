@@ -268,6 +268,7 @@ public class UserSettings
 	private int[] tcpInterleave;
 	private boolean appspaceEnabled;
 	private int chromaKeyColor;
+	private boolean rgb888Enabled;
 	
 	//service mode
 	private int serviceMode;
@@ -383,6 +384,7 @@ public class UserSettings
 		camStreamMulticastAddress = "";
 		serviceMode = CresStreamCtrl.ServiceMode.Master.ordinal();
 		chromaKeyColor = 0xff0000;
+		rgb888Enabled = true;
 	}
 	
 	// If there is a version mismatch between current userSettings and the one loaded from file system
@@ -1554,4 +1556,8 @@ public class UserSettings
 	public void setChromaKeyColor(int color) {
 		this.chromaKeyColor = color;
 	}
+
+	public boolean getRgb888Enabled() { return rgb888Enabled; }
+
+	public void setRgb888Enabled(boolean enable) { this.rgb888Enabled = enable; }
 }
