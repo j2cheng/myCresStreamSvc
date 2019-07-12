@@ -4695,9 +4695,9 @@ JNIEXPORT void JNICALL Java_com_crestron_txrxservice_GstreamIn_nativeWfdStart(JN
 
     data->wfd_start = 1;
     if(msMiceSessionId > 0)
-        data->wfd_is_mice_session = 1;
+        data->wfd_is_mice_session = true;
     else
-        data->wfd_is_mice_session = 0;
+        data->wfd_is_mice_session = false;
 
     data->audiosink_ts_offset = -300;
 

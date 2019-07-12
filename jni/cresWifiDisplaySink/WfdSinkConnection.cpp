@@ -128,6 +128,8 @@ int WfdRTSPSinkClient::openConn()
 {
     int newSocket = socket(AF_INET, SOCK_STREAM, 0);
 
+    CSIO_LOG(m_debugLevel, "WfdRTSPSinkClient:m_getMiceSession[%d],newSocket[%d]\n",m_parent->m_getMiceSession(),newSocket);
+
     if (m_parent->m_getMiceSession() && newSocket >= 0)
     {
         const char *opt = m_parent->m_parent->getLocIPName(m_parent->getId());        

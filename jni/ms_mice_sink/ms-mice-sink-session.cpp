@@ -895,7 +895,10 @@ static int ms_mice_sink_session_handle_read_data(ms_mice_sink_session *session, 
             }
         }
 
-        ms_mice_message_free(session->priv->in_message);
+        //inserted for bug MERC-1304 to see if it works.
+        if(session->priv->in_message)
+            ms_mice_message_free(session->priv->in_message);
+
         session->priv->in_message = NULL;
 
         // TODO [RAL] check for error

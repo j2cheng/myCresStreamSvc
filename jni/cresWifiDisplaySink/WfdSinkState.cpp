@@ -2337,6 +2337,8 @@ void* wfdSinkStMachineThread::ThreadEntry()
 
                                     std::string str = (char*)evntQPtr->buffPtr;
                                     p->setCurentSourceUrl(str);
+                                    p->m_setMiceSession((int)evntQPtr->reserved[0]);
+                                    CSIO_LOG(m_debugLevel, "wfdSinkStMachineThread:m_getMiceSession[%d]\n",p->m_getMiceSession());
 
                                     csioEventQueueStruct evntQ;
                                     memset(&evntQ,0,sizeof(csioEventQueueStruct));
@@ -2382,7 +2384,8 @@ void* wfdSinkStMachineThread::ThreadEntry()
 
                             std::string str = (char*)evntQPtr->buffPtr;
                             p->setCurentSourceUrl(str);
-                            p->m_setMiceSession((int)evntQPtr->voidPtr);
+                            p->m_setMiceSession((int)evntQPtr->reserved[0]);
+                            CSIO_LOG(m_debugLevel, "wfdSinkStMachineThread:m_getMiceSession[%d]\n",p->m_getMiceSession());
 
                             csioEventQueueStruct evntQ;
                             memset(&evntQ,0,sizeof(csioEventQueueStruct));
@@ -2655,6 +2658,7 @@ void wfdSinkStMachineThread::sendEvent(csioEventQueueStruct* pEvntQ)
         evntQ.ext_obj       = pEvntQ->ext_obj;
         evntQ.ext_obj2      = pEvntQ->ext_obj2;
         evntQ.voidPtr       = pEvntQ->voidPtr;
+        memcpy(evntQ.reserved,pEvntQ->reserved,sizeof(pEvntQ->reserved));
 
         CSIO_LOG(m_debugLevel, "wfdSinkStMachineThread::sendEvent: iId[%d],evnt[%d],dataSize[%d],bufP[0x%x]\n",\
                  iId,evnt,pEvntQ->buf_size,bufP);

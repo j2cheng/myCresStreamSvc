@@ -169,11 +169,11 @@ void WfdSinkProjSendEvent(int evnt, int iId, int data_size, void* bufP)
     gProjectsLock.unlock();
 }
 
-void WfdSinkProjStart(int id, const char* url, int src_rtsp_port, int ts_port,int is_mice_session)
+void WfdSinkProjStart(int id, const char* url, int src_rtsp_port, int ts_port,bool is_mice_session)
 {
     if(!url) return;
 
-    CSIO_LOG(gProjectDebug, "WfdSinkProjStart: enter: id[%d], url[%s], port[%d][%d].",id,url,src_rtsp_port,ts_port);
+    CSIO_LOG(gProjectDebug, "WfdSinkProjStart: enter: id[%d], url[%s], port[%d][%d],is_mice_session[%d].",id,url,src_rtsp_port,ts_port,is_mice_session);
     gProjectsLock.lock();
 
     if(gWFDSinkProjPtr)
@@ -181,12 +181,12 @@ void WfdSinkProjStart(int id, const char* url, int src_rtsp_port, int ts_port,in
         csioEventQueueStruct EvntQ;
         memset(&EvntQ,0,sizeof(csioEventQueueStruct));
         EvntQ.obj_id = id;
-        EvntQ.event_type = WFD_SINK_EVENTS_JNI_START;
-        EvntQ.buf_size   = strlen(url);
-        EvntQ.buffPtr    = (void*)url;
-        EvntQ.ext_obj    = src_rtsp_port;
-        EvntQ.ext_obj2   = ts_port;
-        EvntQ.voidPtr    = (void*)is_mice_session;
+        EvntQ.event_type  = WFD_SINK_EVENTS_JNI_START;
+        EvntQ.buf_size    = strlen(url);
+        EvntQ.buffPtr     = (void*)url;
+        EvntQ.ext_obj     = src_rtsp_port;
+        EvntQ.ext_obj2    = ts_port;
+        EvntQ.reserved[0] = is_mice_session;
         gWFDSinkProjPtr->sendEvent(&EvntQ);
     }
     else
@@ -453,6 +453,8 @@ void wfdSinkProjClass::sendEvent(csioEventQueueStruct* pEvntQ)
         evntQ.ext_obj       = pEvntQ->ext_obj;
         evntQ.ext_obj2      = pEvntQ->ext_obj2;
         evntQ.voidPtr       = pEvntQ->voidPtr;
+        memcpy(evntQ.reserved,pEvntQ->reserved,sizeof(pEvntQ->reserved));
+        CSIO_LOG((m_debugLevel), "wfdSinkProjClass: evntQ.reserved[0]=%d,pEvntQ->reserved[0]=%d.\n", evntQ.reserved[0],pEvntQ->reserved[0]);
 
         void* bufP = pEvntQ->buffPtr;
         int dataSize = pEvntQ->buf_size;
@@ -589,8 +591,10 @@ void* wfdSinkProjClass::ThreadEntry()
                                 EvntQ.buffPtr    = evntQPtr->buffPtr;
                                 EvntQ.ext_obj    = evntQPtr->ext_obj;
                                 EvntQ.ext_obj2   = evntQPtr->ext_obj2;
-                                EvntQ.voidPtr    = evntQPtr->voidPtr;
+                                EvntQ.reserved[0]   = evntQPtr->reserved[0];
                                 wfdSinkStMachineClass::m_wfdSinkStMachineThreadPtr->sendEvent(&EvntQ);
+
+                                CSIO_LOG(m_debugLevel, "wfdSinkProjClass: EvntQ.reserved[%d].\n",EvntQ.reserved[0]);
                             }//else
 
                             CSIO_LOG(m_debugLevel, "wfdSinkProjClass: process with existing wfdSinkStMachineClass object is done.\n");
@@ -617,6 +621,9 @@ void* wfdSinkProjClass::ThreadEntry()
                                     EvntQ.ext_obj    = evntQPtr->ext_obj;
                                     EvntQ.ext_obj2   = evntQPtr->ext_obj2;
                                     EvntQ.voidPtr    = (void*)(p);
+                                    EvntQ.reserved[0]   = evntQPtr->reserved[0];
+
+                                    CSIO_LOG(m_debugLevel, "wfdSinkProjClass: EvntQ.reserved[%d].\n",EvntQ.reserved[0]);
 
                                     wfdSinkStMachineClass::m_wfdSinkStMachineThreadPtr->sendEvent(&EvntQ);
                                 }//else
