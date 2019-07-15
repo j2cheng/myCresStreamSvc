@@ -244,6 +244,14 @@ public class WifidVideoPlayer {
             streamCtrl_.streamPlay.msMiceSetPin(pin);
             Common.Logging.i(TAG, "VideoPlayer.setPasscode exit - pin set to "+pin);
         }
+        
+        @Override
+        public void disconnect(long id)
+        {
+            Common.Logging.i(TAG, "VideoPlayer.disconnect  sessionId="+id);
+            //streamCtrl_.streamPlay.msMiceSetCloseSession(id);
+            Common.Logging.i(TAG, "VideoPlayer.disconnect exit - sessionId="+id);
+        }
     }
 
     private class VideoSession {

@@ -38,4 +38,10 @@ interface IVideoPlayer {
     
     void setAdapterAddress(in String address);
     void setPasscode(in String code);
+    
+    ////////////////////////////////////////////////////////////////////////////////////////////////
+    /// METHODS
+
+    // disconnect the session for the given session ID
+    void disconnect(in long id);
 }
