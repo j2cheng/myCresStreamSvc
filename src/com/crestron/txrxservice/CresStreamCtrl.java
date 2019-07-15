@@ -1072,8 +1072,14 @@ public class CresStreamCtrl extends Service {
     		// Monitor Crash State
     		monitorCrashState();
 
-    		// Set HDCP error color to red
-    		setHDCPErrorColor();
+    		// Set HDCP error color to red, needs to be in a thread for NetworkOnMainThreadException
+            new Thread(new Runnable() {
+                @Override
+                public void run() {
+                    setHDCPErrorColor();
+                }
+            }).start();
+
 
     		// Monitor System State
     		monitorSystemState();
