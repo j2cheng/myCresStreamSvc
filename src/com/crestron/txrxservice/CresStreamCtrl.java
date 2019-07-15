@@ -972,10 +972,15 @@ public class CresStreamCtrl extends Service {
     		Thread saveSettingsThread = new Thread(new SaveSettingsTask());    	
     		saveSettingsThread.start();
 
-    		
 
-    		refreshOutputResolution();
-    		sendHdmiOutSyncState(); // Send out initial hdmi out resolution info
+            new Thread(new Runnable() {
+                @Override
+                public void run() {
+                    refreshOutputResolution();
+                    sendHdmiOutSyncState(); // Send out initial hdmi out resolution info, needs to be in separate thread for NetworkOnMainThreadException
+                }
+            }).start();
+
     		
     		// This must be done before CresDisplaySurface is created   		
     		// Wait until file exists then check
