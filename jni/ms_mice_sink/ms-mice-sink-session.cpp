@@ -734,19 +734,26 @@ static int ms_mice_sink_session_handle_read_data(ms_mice_sink_session *session, 
     gsize available = 0;
     gsize required = 0;
 
+    CSIO_LOG(eLogLevel_debug,"ms.mice.sink handle_read_data enter\n");
+
     g_memory_input_stream_add_data(G_MEMORY_INPUT_STREAM(session->priv->base_in_stream), buffer, buffer_size, NULL);
     g_buffered_input_stream_fill(G_BUFFERED_INPUT_STREAM(session->priv->in_stream), buffer_size, NULL, NULL);
 
     available = stream_get_available(session->priv->in_stream);
 
-    while (available > 0) {
-        if (!session->priv->in_message_active) {
+    while (available > 0)
+    {
+        if (!session->priv->in_message_active)
+        {
             guint16 length;
             guint8 version;
             guint8 command;
 
             if (available < MS_MICE_HEADER_SIZE)
+            {
+                CSIO_LOG(eLogLevel_debug,"ms.mice.sink handle_read_data return\n");
                 return -EAGAIN;
+            }
 
             length = stream_read_uint16(session->priv->in_stream);
             version = stream_read_byte(session->priv->in_stream);
@@ -761,7 +768,7 @@ static int ms_mice_sink_session_handle_read_data(ms_mice_sink_session *session, 
             session->priv->in_message = ms_mice_message_new(length, version, command, &error);
             if (error != NULL)
             {
-                CSIO_LOG(eLogLevel_debug,"Unable to create mew message: %s\n", error->message);
+                CSIO_LOG(eLogLevel_debug,"ms.mice.sink.session.message Unable to create mew message: %s\n", error->message);
                 g_error_free (error);
                 error = NULL;
             }
@@ -780,7 +787,10 @@ static int ms_mice_sink_session_handle_read_data(ms_mice_sink_session *session, 
                  session->priv->session_id, ms_mice_sink_session_state_to_string(session->priv->state), session->priv->in_message->size, required,available,session->priv->is_dtls_encryption_handshake_complete);
 
         if (required > available)
+        {
+            CSIO_LOG(eLogLevel_debug,"ms.mice.sink handle_read_data return\n");
             return -EAGAIN;
+        }
 
         //Note: if pin option is false, the message from source is not encrypted.
         if(ms_mice_sink_session_get_display_pin_option(session) && session->priv->is_dtls_encryption_handshake_complete)
@@ -803,7 +813,7 @@ static int ms_mice_sink_session_handle_read_data(ms_mice_sink_session *session, 
                 }
 
                 guint8 *decryptBuf = g_new0(guint8, cryptBufSize);
-                CSIO_LOG(eLogLevel_debug,"ms_mice_sink_session_handle_read_data created decryptBuf[0x%x] of size[%d]\r\n",
+                CSIO_LOG(eLogLevel_debug,"ms.mice.sink ms_mice_sink_session_handle_read_data created decryptBuf[0x%x] of size[%d]\r\n",
                          decryptBuf,cryptBufSize);
 
                 if(decryptBuf)
@@ -827,7 +837,7 @@ static int ms_mice_sink_session_handle_read_data(ms_mice_sink_session *session, 
                         ms_mice_message_unpack(session->priv->in_message, in_stream, &error);
                         if (error != NULL)
                         {
-                            CSIO_LOG(eLogLevel_debug,"Unable to dispatch message: %s\n", error->message);
+                            CSIO_LOG(eLogLevel_debug,"ms.mice.sink Unable to unpack message: %s\n", error->message);
                             g_error_free (error);
                             error = NULL;
                         }
@@ -835,12 +845,12 @@ static int ms_mice_sink_session_handle_read_data(ms_mice_sink_session *session, 
                         ms_mice_sink_session_dispatch_message(session, session->priv->in_message, &error);
                         if (error != NULL)
                         {
-                            CSIO_LOG(eLogLevel_debug,"Unable to dispatch message: %s\n", error->message);
+                            CSIO_LOG(eLogLevel_debug,"ms.mice.sink Unable to dispatch message: %s\n", error->message);
                             g_error_free (error);
                             error = NULL;
                         }
 
-                        CSIO_LOG(eLogLevel_debug,"available after unpack[%d]\n",stream_get_available(in_stream));
+                        CSIO_LOG(eLogLevel_debug,"ms.mice.sink available after unpack[%d]\n",stream_get_available(in_stream));
 
                         if (in_stream)
                         {
@@ -858,13 +868,13 @@ static int ms_mice_sink_session_handle_read_data(ms_mice_sink_session *session, 
                     }
                     else
                     {
-                        CSIO_LOG(eLogLevel_debug,"error: sssl_decryptDTLS return: %d\n",decryptSize);
+                        CSIO_LOG(eLogLevel_debug,"ms.mice.sink error: sssl_decryptDTLS return: %d\n",decryptSize);
                     }
                     g_free((gpointer)decryptBuf);
                 }
                 else
                 {
-                    CSIO_LOG(eLogLevel_debug,"error: failed to create decryptBuf\n");
+                    CSIO_LOG(eLogLevel_debug,"ms.mice.sink error: failed to create decryptBuf\n");
                 }
             }//else
 
@@ -889,7 +899,7 @@ static int ms_mice_sink_session_handle_read_data(ms_mice_sink_session *session, 
             ms_mice_sink_session_dispatch_message(session, session->priv->in_message, &error);
             if (error != NULL)
             {
-                CSIO_LOG(eLogLevel_debug,"Unable to dispatch message: %s\n", error->message);
+                CSIO_LOG(eLogLevel_debug,"ms.mice.sink Unable to dispatch message: %s\n", error->message);
                 g_error_free (error);
                 error = NULL;
             }
@@ -907,9 +917,10 @@ static int ms_mice_sink_session_handle_read_data(ms_mice_sink_session *session, 
 
         available = stream_get_available(session->priv->in_stream);
 
-        CSIO_LOG(eLogLevel_debug,"handle_read_data end of while loop: in_stream available: %d\n", available);
+        CSIO_LOG(eLogLevel_debug,"ms.mice.sink handle_read_data end of while loop: in_stream available: %d\n", available);
     }
 
+    CSIO_LOG(eLogLevel_debug,"ms.mice.sink handle_read_data return\n");
     return -EAGAIN;
 }
 
@@ -1315,9 +1326,13 @@ void ms_mice_sink_session_close(ms_mice_sink_session *session)
 
     if (session->priv->source_fd_id) {
         GMainContext* context = ms_mice_sink_service_get_context(session->priv->service);
+        CSIO_LOG(eLogLevel_debug,"ms.mice.sink.session.close { \"context\": 0x%x }" , context);
+
         if(context)
         {
             GSource * source = g_main_context_find_source_by_id (context,session->priv->source_fd_id);
+            CSIO_LOG(eLogLevel_debug,"ms.mice.sink.session.close { \"source\": 0x%x }" , source);
+
             if(source)
                 g_source_destroy(source);
         }

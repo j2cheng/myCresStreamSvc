@@ -5152,20 +5152,21 @@ const char* csio_jni_get_interface_name(int id)
     CREGSTREAM * data = GetStreamFromCustomData(CresDataDB, 0);
     if(!data)
     {
-        CSIO_LOG(eLogLevel_error, "Could not obtain stream pointer for stream %d", id);
+        CSIO_LOG(eLogLevel_error, "Could not obtain stream data for stream %d", id);
         return "eth0";
     }
     else
     {
-        if(!data->intf_name[id])
+        if(data->intf_name[0] == 0)
         {
-            CSIO_LOG(eLogLevel_error, "Could not obtain interface name for stream %d. Using default eth0.", id);
+            CSIO_LOG(eLogLevel_debug, "Could not obtain interface name. Using default eth0.");
             return "eth0";
         }
-
-        CSIO_LOG(eLogLevel_debug, "stream[%d] interface = %s", id, (char *) &data->intf_name[id]);
-
-        return data->intf_name;
+        else
+        {
+            CSIO_LOG(eLogLevel_debug, "get_interface_name: intf_name = %s", data->intf_name);
+            return data->intf_name;
+        }
     }    
 }
 
