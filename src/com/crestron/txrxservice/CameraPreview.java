@@ -140,7 +140,9 @@ public class CameraPreview {
 		        	// TODO: create console command to enable/disable rgb888
 		        	if (forceRgb || streamCtl.isRGB888HDMIVideoSupported)
 		        		ProductSpecific.setRGB888Mode(true);
-		        	
+					else
+						ProductSpecific.setRGB888Mode(false);
+					
 		        	// Update window size in case the aspect ratio or stretch changes
 			        try {
 			        	streamCtl.updateWindowWithVideoSize(idx, false, Integer.parseInt(streamCtl.hdmiInput.getHorizontalRes()), Integer.parseInt(streamCtl.hdmiInput.getVerticalRes()));
@@ -415,8 +417,8 @@ public class CameraPreview {
 		            {
 						// This should be moved to the below comment once HWC.c is updated to act on mode changes, that way we don't have to set the mode while pipeline is running
 						// Otherwise screen will keep last frame up until a screen update occurs 
-		            	if (forceRgb || streamCtl.isRGB888HDMIVideoSupported)
-		            		ProductSpecific.setRGB888Mode(false);
+//		            	if (forceRgb || streamCtl.isRGB888HDMIVideoSupported)
+//		            		ProductSpecific.setRGB888Mode(false);
 		            	
 		                if (CresCamera.mCamera != null)
 		                {
