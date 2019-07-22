@@ -1089,7 +1089,7 @@ public class AirMediaSplashtop
     private void attachSurface() {
 		Common.Logging.i(TAG, "Entered attachSurface");
     	SurfaceHolder surfaceHolder=null;
-    	Surface surface;
+    	Surface surface = null;
     	SurfaceTexture surfaceTexture = null;
     	AirMediaSession session = getActiveSession();
     	if (session == null) {
@@ -1113,13 +1113,15 @@ public class AirMediaSplashtop
     	if (!useTextureView(session))
     	{
     		surfaceHolder = mStreamCtl.dispSurface.GetSurfaceHolder(streamIdx);
-    		surface = surfaceHolder.getSurface();
+    		if (surfaceHolder != null)
+    			surface = surfaceHolder.getSurface();
     		//surfaceHolder_.addCallback(video_surface_callback_handler_);
     	} else {
     		surfaceTexture = mStreamCtl.getSurfaceTexture(streamIdx);
-    		surface = new Surface(surfaceTexture);
+    		if (surfaceTexture != null)
+    			surface = new Surface(surfaceTexture);
     	}
-		if (surface.isValid())
+		if ((surface != null) && surface.isValid())
 		{
 			if (session.videoSurface() != surface) {
 		    	surface_ = surface;
@@ -1156,7 +1158,8 @@ public class AirMediaSplashtop
 
     	Common.Logging.i(TAG, "clearSurface(): Fetching surfacetexture");
     	surfaceTexture = mStreamCtl.getSurfaceTexture(streamIdx);
-    	s = new Surface(surfaceTexture);
+    	if (surfaceTexture != null)
+    		s = new Surface(surfaceTexture);
     	if (s == null) {
     		Common.Logging.i(TAG, "null surface obtained from SurfaceTexture - nothing to clear");
     		return;

@@ -1327,20 +1327,35 @@ public class CresStreamCtrl extends Service {
     }
     
     public SurfaceView getSurfaceView(int id) {
-    	return dispSurface.GetSurfaceView(id);
+    	if (dispSurface != null)
+    		return dispSurface.GetSurfaceView(id);
+    	else
+    		return null;
     }
     
     public TextureView getTextureView(int id) {
-    	return dispSurface.GetTextureView(id);      
+    	if (dispSurface != null)
+    		return dispSurface.GetTextureView(id);
+    	else
+    		return null;
     }
     
     public SurfaceTexture getSurfaceTexture(int id) {
-    	return dispSurface.GetSurfaceTexture(id);
+    	if (dispSurface != null)
+    		return dispSurface.GetSurfaceTexture(id);
+    	else
+    		return null;
     }
     
     public void setSurfaceViewTag(int idx, String tag)
     {
-    	dispSurface.setTag(idx, tag);
+		try
+		{
+	    	if (dispSurface != null)
+	    		dispSurface.setTag(idx, tag);
+	    	else
+				Log.i(TAG, "setSurfaceViewTag(): couldn't set tag - dispSurface is null");
+		} catch (Exception ex) { ex.printStackTrace(); }  
     }
     
     private void airMediaLicenseThread(final CresStreamCtrl streamCtrl)

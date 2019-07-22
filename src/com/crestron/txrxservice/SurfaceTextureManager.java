@@ -76,7 +76,7 @@ public class SurfaceTextureManager implements TextureView.SurfaceTextureListener
 	    for (int i=0; i < streamCtl.NumOfTextures; i++)
 	    {
 	    	TextureView tv = streamCtl.getTextureView(i);
-	    	if (tv.getSurfaceTexture() == surface)
+	    	if ((tv != null) && (tv.getSurfaceTexture() == surface))
 	    	{
 	    		tv.setVisibility(View.INVISIBLE);
 	    	}
@@ -99,7 +99,8 @@ public class SurfaceTextureManager implements TextureView.SurfaceTextureListener
     	int streamId = 0;
 	    for (streamId=0; streamId < CresStreamCtrl.NumOfTextures; streamId++)
 	    {
-	    	if (streamCtl.getTextureView(streamId).getSurfaceTexture() == surface)
+	    	TextureView tv = streamCtl.getTextureView(streamId);
+	    	if ((tv != null) && (tv.getSurfaceTexture() == surface))
 	    	{
 	    		break;
 	    	}
