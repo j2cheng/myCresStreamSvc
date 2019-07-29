@@ -192,6 +192,7 @@ public class CresStreamCtrl extends Service {
     private Object mAirMediaCodeLock = new Object();
     private int mAirMediaNumberOfUsersConnected = -1;	//Bug 141088: Setting to -1 will force code change on reboot if set to random
     private boolean mMsMiceEnabled = false;
+	private boolean mMsMiceModeInitialized = false;
     private boolean mMiracastEnabled = false;
 	public boolean[] mUsedForAirMedia = new boolean[NumOfSurfaces];
     boolean[] updateStreamStateOnFirstFrame = new boolean[NumOfTextures]; // flags to update stream state only on first frame output from MediaCodec - used only in AirMedia currently
@@ -4883,10 +4884,17 @@ public class CresStreamCtrl extends Service {
     	userSettings.setAirMediaMiracastMsMiceMode(enable);
     	Log.i(TAG, "msMiceEnable(): requesting msMice " + ((enable)?"enabled":"disabled") + 
     			" - currently it is " + ((mMsMiceEnabled)?"enabled":"disabled"));
+    	setMsMiceMode();
+    }
+    
+    public void setMsMiceMode()
+    {
     	boolean userRequested = userSettings.getAirMediaMiracastMsMiceMode();
-    	if (userRequested == mMsMiceEnabled)
+    	if (mMsMiceModeInitialized && userRequested == mMsMiceEnabled)
     		return;
-    	mMsMiceEnabled = enable;
+    	Log.i(TAG, "setMsMiceMode(): mode=" + ((userRequested)?"enabled":"disabled"));
+    	mMsMiceModeInitialized = true;
+    	mMsMiceEnabled = userRequested;
     	if (mMsMiceEnabled)
     	{
     		// turn on ms mice
@@ -4923,7 +4931,7 @@ public class CresStreamCtrl extends Service {
     	if (userRequested == mMiracastEnabled)
     		return;
     	mMiracastEnabled = enable;
-    	msMiceEnable(enable);
+    	setMsMiceMode();
     	if (mAirMedia != null)
     	{
     		mAirMedia.setAirMediaMiracast(enable);
