@@ -4889,15 +4889,16 @@ public class CresStreamCtrl extends Service {
     
     public void setMsMiceMode()
     {
-    	boolean userRequested = userSettings.getAirMediaMiracastMsMiceMode();
-    	if (mMsMiceModeInitialized && userRequested == mMsMiceEnabled)
+    	boolean requestedMode = mMiracastEnabled && userSettings.getAirMediaMiracastMsMiceMode();
+    	if (mMsMiceModeInitialized && requestedMode == mMsMiceEnabled)
     		return;
-    	Log.i(TAG, "setMsMiceMode(): mode=" + ((userRequested)?"enabled":"disabled"));
+    	Log.i(TAG, "setMsMiceMode(): mode=" + ((requestedMode)?"enabled":"disabled"));
     	mMsMiceModeInitialized = true;
-    	mMsMiceEnabled = userRequested;
+    	mMsMiceEnabled = requestedMode;
     	if (mMsMiceEnabled)
     	{
     		// turn on ms mice
+        	Log.i(TAG, "Start msMice");
     		streamPlay.msMiceStart();
     		String ipaddr = getAirMediaConnectionIpAddress();
     		if (ipaddr.equals("None"))
@@ -4907,6 +4908,7 @@ public class CresStreamCtrl extends Service {
     	else
     	{
     		// turn off ms mice
+        	Log.i(TAG, "Stop msMice");
     		streamPlay.msMiceStop();
     		streamPlay.msMiceSetAdapterAddress(null, getAirMediaInterface());    	
     	}

@@ -232,8 +232,9 @@ public class WifidVideoPlayer {
         @Override
         public void setAdapterAddress(String address)
         {
-            Common.Logging.i(TAG, "VideoPlayer.setAdapterAddress  address="+address);
-        	streamCtrl_.streamPlay.msMiceSetAdapterAddress(streamCtrl_.userSettings.getAirMediaMiracastMsMiceMode() ? address : null, streamCtrl_.getAirMediaInterface());
+            boolean msMiceOn = streamCtrl_.userSettings.getAirMediaMiracastEnable() && streamCtrl_.userSettings.getAirMediaMiracastMsMiceMode();
+            Common.Logging.i(TAG, "VideoPlayer.setAdapterAddress  address="+address+"     msMiceOn = "+msMiceOn);
+        	streamCtrl_.streamPlay.msMiceSetAdapterAddress(msMiceOn ? address : null, streamCtrl_.getAirMediaInterface());
             Common.Logging.i(TAG, "VideoPlayer.setAdapterAddress exit - address set to "+address);
         }
         
