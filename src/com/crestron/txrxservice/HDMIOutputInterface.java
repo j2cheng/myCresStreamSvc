@@ -62,7 +62,7 @@ public class HDMIOutputInterface {
 		{
 			StringBuilder text = new StringBuilder(16);
 			try {
-				File file = new File("/sys/class/switch/hdmi/state");
+				File file = new File("/sys/class/switch/hdmi_true_hpd/state");
 
 				BufferedReader br = new BufferedReader(new FileReader(file));  
 				String line;   
@@ -77,6 +77,7 @@ public class HDMIOutputInterface {
 				syncStatus = "true";
 			else
 				syncStatus = "false";
+			Log.i(TAG, "setSyncStatus: "+syncStatus);
 		}
 		
 		// Old Mistral API method below
@@ -98,6 +99,18 @@ public class HDMIOutputInterface {
 		return interlaced;
 	}
 
+	private static int parseToInt(String value, int defaultValue)
+	{
+		int ret;
+		try {
+			ret = Integer.parseInt(value);
+		} catch(NumberFormatException ex)
+		{
+			ret = defaultValue;
+		}
+		return ret;
+	}
+	
 	public void setHorizontalRes(String _horizontalRes) { 
 		horizontalRes = _horizontalRes; 
 	}
@@ -106,6 +119,10 @@ public class HDMIOutputInterface {
 		return horizontalRes;
 	}
 
+	public int getWidth() {
+		return parseToInt(horizontalRes, 0);	
+	}
+	
 	public void setVerticalRes(String _verticalRes) { 
 		verticalRes = _verticalRes; 
 	}
@@ -114,6 +131,10 @@ public class HDMIOutputInterface {
 		return verticalRes;
 	}
 
+	public int getHeight() {
+		return parseToInt(verticalRes, 0);	
+	}
+	
 	public void setFPS(String _fps) { 
 		fps = _fps; 
 	}

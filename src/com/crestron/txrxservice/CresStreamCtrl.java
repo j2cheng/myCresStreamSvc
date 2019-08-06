@@ -180,6 +180,7 @@ public class CresStreamCtrl extends Service {
     private int mCurrentHdmiInputResolution = -1;
     private int mPreviousValidHdmiInputResolution = 0;
     private int mPreviousAudioInputSampleRate = 0;
+    private Resolution mPreviousHdmiOutResolution = new Resolution(0, 0);
     public CountDownLatch streamingReadyLatch = new CountDownLatch(1);
     public CountDownLatch audioReadyLatch = new CountDownLatch(1);
     private FileObserver audioReadyFileObserver;
@@ -999,6 +1000,7 @@ public class CresStreamCtrl extends Service {
     		createCresDisplaySurface();
 			Point size = getDisplaySize();
 			SetWindowManagerResolution(size.x, size.y, haveExternalDisplays);
+			mPreviousHdmiOutResolution = new Resolution(size.x, size.y);
 
     		//Get HPDEVent state fromsysfile
     		if (hdmiInputDriverPresent)
@@ -2587,7 +2589,7 @@ public class CresStreamCtrl extends Service {
         hdmiOutput.setAspectRatio();
         
            // Check if start was filtered out and then start if true
-        if (streamingReadyLatch.getCount() == 0 && enableRestartMechanism && Boolean.parseBoolean(hdmiOutput.getSyncStatus()) == true)
+        if (streamingReadyLatch.getCount() == 0 && enableRestartMechanism && haveOutputSyncAndResolution())
         {
         	for (int sessionId = 0; sessionId < NumOfSurfaces; sessionId++)
         	{
@@ -5420,6 +5422,15 @@ public class CresStreamCtrl extends Service {
     	}
     }
    
+    public boolean haveOutputSyncAndResolution()
+    {
+    	boolean haveSync = Boolean.parseBoolean(hdmiOutput.getSyncStatus());
+    	int w = hdmiOutput.getWidth();
+    	int h = hdmiOutput.getHeight();
+    	boolean haveRes = (w != 0) && (h != 0);
+    	return haveSync && haveRes;
+    }
+    
     public void handleHdmiOutputChange()
 	{
 		Log.i(TAG, "handleHdmiOutputChange() - entered");
@@ -5431,53 +5442,40 @@ public class CresStreamCtrl extends Service {
 		//update with current HDMI output resolution information
 		sendHdmiOutSyncState();
 
-		if (haveExternalDisplays && Boolean.parseBoolean(hdmiOutput.getSyncStatus()))
+        Resolution currentHdmiOutResolution = new Resolution(hdmiOutput.getWidth(), hdmiOutput.getHeight());
+		Log.i(TAG, "handleHdmiOutputChange() - sync=" + Boolean.parseBoolean(hdmiOutput.getSyncStatus()) + "  HDMI resolution=" + hdmiOutput.getWidth()+"x"+hdmiOutput.getHeight()
+				+ "  Previous HDMI resolution=" + mPreviousHdmiOutResolution.width + "x" + mPreviousHdmiOutResolution.height);
+		if (haveExternalDisplays && !currentHdmiOutResolution.equals(0,0))
 		{
-			Log.i(TAG, "------ Recreate CresDisplaySurface due to regained HDMI sync ------");
-			createCresDisplaySurface();
-			Point size = getDisplaySize();
-			SetWindowManagerResolution(size.x, size.y, haveExternalDisplays);
-
-			try { Thread.sleep(3000); } catch (Exception e) {}
-            Log.i(TAG, "handleHdmiOutputChange(): Restarting Streams ");
-			restartStreams(false);
-
-			for (int sessionId = 0; sessionId < NumOfSurfaces; sessionId++)
+			if (!currentHdmiOutResolution.equals(mPreviousHdmiOutResolution))
 			{
-				// Show AirMedia window if we acquire HDMI output sync
-				if ((mAirMedia != null) && userSettings.getAirMediaLaunch(sessionId))
-				{
-					int width = userSettings.getAirMediaWidth();
-					int height = userSettings.getAirMediaHeight();
+				Log.i(TAG, "------ Recreate CresDisplaySurface due to regained HDMI sync ------");
+				createCresDisplaySurface();
+				mPreviousHdmiOutResolution = currentHdmiOutResolution;
+				Log.i(TAG, "handleHdmiOutputChange: setWinowManagerResolution");
+				Point size = getDisplaySize();
+				SetWindowManagerResolution(size.x, size.y, haveExternalDisplays);
 
-					if ((width == 0) && (height == 0))
+				//try { Thread.sleep(3000); } catch (Exception e) {}
+				Log.i(TAG, "handleHdmiOutputChange(): Restarting Streams ");
+				restartStreams(false);
+
+				for (int sessionId = 0; sessionId < NumOfSurfaces; sessionId++)
+				{
+					// Show AirMedia window if we acquire HDMI output sync
+					if ((mAirMedia != null) && userSettings.getAirMediaLaunch(sessionId))
 					{
-						width = size.x;
-						height = size.y;
+						int width = userSettings.getAirMediaWidth();
+						int height = userSettings.getAirMediaHeight();
+
+						if ((width == 0) && (height == 0))
+						{
+							width = size.x;
+							height = size.y;
+						}
+						Log.i(TAG, "------ Show AirMedia due to regained HDMI sync ------");
+						mAirMedia.show(sessionId, userSettings.getAirMediaX(), userSettings.getAirMediaY(), width, height);
 					}
-					Log.i(TAG, "------ Show AirMedia due to regained HDMI sync ------");
-					mAirMedia.show(sessionId, userSettings.getAirMediaX(), userSettings.getAirMediaY(), width, height);
-				}
-			}
-		}
-		else if (haveExternalDisplays)
-		{
-			// Stop HDMI preview and stream in when we lose HDMI sync			
-			for (int sessionId = 0; sessionId < NumOfSurfaces; sessionId++)
-			{
-				// Hide AirMedia window if we lose HDMI output sync
-				if ((mAirMedia != null) && userSettings.getAirMediaLaunch(sessionId))
-				{
-					Log.i(TAG, "------ Hide AirMedia due to lost HDMI output ------");
-					mAirMedia.hide(sessionId, true, false);
-				}
-				
-				if (userSettings.getMode(sessionId) == DeviceMode.PREVIEW.ordinal() || 
-						userSettings.getMode(sessionId) == DeviceMode.STREAM_IN.ordinal() ||
-						userSettings.getMode(sessionId) == DeviceMode.WBS_STREAM_IN.ordinal())
-				{
-					Log.i(TAG, "Stopping stream because lost HDMI output: " + sessionId);
-					Stop(sessionId, true);
 				}
 			}
 		}
@@ -6184,4 +6182,21 @@ public class CresStreamCtrl extends Service {
 		}
 	}
 
+	protected class Resolution {
+		public int width;
+		public int height;
+		public Resolution(int w, int h)
+		{
+			this.width = w;
+			this.height = h;
+		}
+		public boolean equals(Resolution other)
+		{
+			return this.equals(other.width, other.height);
+		}
+		public boolean equals(int w, int h)
+		{
+			return (this.width == w && this.height == h);
+		}
+	}
 }
