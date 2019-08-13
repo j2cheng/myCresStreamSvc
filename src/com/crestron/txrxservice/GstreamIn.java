@@ -640,6 +640,12 @@ public class GstreamIn implements SurfaceHolder.Callback {
     	}
     }
     
+    public void sendMiracastOsVersion(final int streamId, String osVersion)
+    {
+    	Log.i(TAG, "sendMiracastOsVersion():   streamId="+streamId+"   OS version="+osVersion);
+		streamCtl.wifidVideoPlayer.infoChanged(streamId, osVersion);
+    }
+    
     public void msMiceStart()
     {
     	Log.i(TAG, "msMiceStart");

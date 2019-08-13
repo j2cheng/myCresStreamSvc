@@ -4766,6 +4766,27 @@ JNIEXPORT void JNICALL Java_com_crestron_txrxservice_GstreamIn_nativeWfdStop(JNI
     // *** CSIO_LOG(eLogLevel_debug,"mira: {%s} - exiting",__FUNCTION__);
 }
 
+static void Wfd_send_osVersion(jint streamId, char *osVersion)
+{
+	jstring osVersion_jstr;
+	JNIEnv *env = get_jni_env ();
+
+	osVersion_jstr = env->NewStringUTF(osVersion);
+
+	jmethodID sendOsVersion = env->GetMethodID((jclass)gStreamIn_javaClass_id, "sendMiracastOsVersion", "(ILjava/lang/String;)V");
+	if (sendOsVersion == NULL) {
+		CSIO_LOG(eLogLevel_error, "Could not find Java method 'sendOsVersion'");
+		return;
+	}
+
+	env->CallVoidMethod(CresDataDB->app, sendOsVersion, streamId, osVersion_jstr);
+	if (env->ExceptionCheck ()) {
+		CSIO_LOG(eLogLevel_error, "Failed to call Java method 'sendOsVersion'");
+		env->ExceptionClear ();
+	}
+	env->DeleteLocalRef (osVersion_jstr);
+}
+
 // <0 means ignore, 0 means remove rule, >0 means open firewall to that port
 static void Wfd_set_firewall_rules (int rtsp_port, int ts_port)
 {
@@ -4798,7 +4819,10 @@ void Wfd_setup_gst_pipeline (int id, int state, struct GST_PIPELINE_CONFIG* gst_
                  __FUNCTION__,id,gst_config->ts_port,gst_config->ssrc,gst_config->rtcp_dest_port);
 
         if(gst_config->pSrcVersionStr)
+        {
             CSIO_LOG(eLogLevel_debug,"source OS version is:%s.",gst_config->pSrcVersionStr);
+            Wfd_send_osVersion( id, gst_config->pSrcVersionStr);
+        }
 
         Wfd_set_firewall_rules(-1, gst_config->ts_port);
 

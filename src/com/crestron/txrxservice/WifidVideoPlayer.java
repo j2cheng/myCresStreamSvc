@@ -10,6 +10,7 @@ import android.view.SurfaceView;
 import com.crestron.airmedia.receiver.IVideoPlayer;
 import com.crestron.airmedia.receiver.IVideoPlayerObserver;
 import com.crestron.airmedia.receiver.m360.models.AirMediaReceiver;
+import com.crestron.airmedia.receiver.m360.ipc.AirMediaPlatforms;
 import com.crestron.airmedia.receiver.m360.ipc.AirMediaSessionStreamingState;
 import com.crestron.txrxservice.CresStreamCtrl;
 import com.crestron.airmedia.utilities.Common;
@@ -165,6 +166,19 @@ public class WifidVideoPlayer {
         	}
         }
         
+        public void infoChanged(long id, AirMediaPlatforms platform, String os, String version)
+        {
+        	for (IVideoPlayerObserver observer : observers()) {        		
+        		try {
+        			observer.infoChanged(id, platform, os, version);
+        		} catch (RemoteException e) {
+                    Common.Logging.e(TAG, "videoplayer.observer.infoChanged  id= " + id + "  platform= " + platform.toString() + "  os=" + os +
+                    		"  version=" + version + "  EXCEPTION  " + e + "  " + Log.getStackTraceString(e));
+                    remove(observer);
+        		}
+        	}
+        }
+        
         ////////////////////////////////////////////////////////////////////////////////////////////////
         /// METHODS
         ////////////////////////////////////////////////////////////////////////////////////////////////
@@ -260,6 +274,7 @@ public class WifidVideoPlayer {
     	public AirMediaSessionStreamingState state;
     	public Surface surface;
     	public int streamId;
+    	public String osVersion;
     	
     	public VideoSession(long id, int streamIdx, Surface s, AirMediaSessionStreamingState curState)
     	{
@@ -267,6 +282,7 @@ public class WifidVideoPlayer {
     		streamId = streamIdx;
     		surface = s;
     		state = curState;
+    		osVersion = null;
     	}
     }
     
@@ -338,6 +354,24 @@ public class WifidVideoPlayer {
     {
         Common.Logging.i(TAG, "videoplayer.onSessionReady():  sessionId="+id+" deviceId="+device_id+" deviceName="+device_name+" deviceAddress="+device_address+" rtsp_port="+port);
     	service_.onSessionReady(id, device_id, device_name, device_address, port);
+    }
+    
+    public void infoChanged(int streamId, String osVersion)
+    {
+    	long sessionId = streamId2sessionId(streamId);
+        Common.Logging.i(TAG, "videoplayer.infoChanged():  streamId="+streamId+" sessionId="+sessionId+"  osVersion="+osVersion);
+    	if (sessionId != INVALID_SESSION_ID)
+    	{
+    		VideoSession session = sessionMap.get(sessionId);
+    		if ((session.osVersion == null) || !session.osVersion.equals(osVersion))
+    		{
+    			session.osVersion = osVersion;
+    			if (session.osVersion.startsWith("10."))
+    			{
+    				service_.infoChanged(sessionId, AirMediaPlatforms.Windows, "Win 10", session.osVersion);
+    			}
+    		}
+    	}
     }
     
     public void stopSession(long id)
