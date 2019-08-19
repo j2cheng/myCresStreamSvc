@@ -17,6 +17,7 @@ public class AirMediaSessionInfo implements Parcelable {
     public final String deviceUseragent;
     public final boolean isRotationSupported;
     public final boolean isRotationManagedBySender;
+    public final AirMediaSessionVideoSource[] videoSources;
 
     public AirMediaSessionInfo() {
         platform = AirMediaPlatforms.Undefined;
@@ -30,6 +31,7 @@ public class AirMediaSessionInfo implements Parcelable {
         deviceUseragent = "";
         isRotationSupported = true;
         isRotationManagedBySender = false;
+        videoSources = AirMediaSessionVideoSource.CREATOR.newArray(0);
     }
 
     private AirMediaSessionInfo(Parcel in) {
@@ -44,6 +46,11 @@ public class AirMediaSessionInfo implements Parcelable {
         deviceUseragent = in.readString();
         isRotationSupported = in.readInt() != 0;
         isRotationManagedBySender = in.readInt() != 0;
+        int videoSourcesSize = in.readInt();
+        videoSources = AirMediaSessionVideoSource.CREATOR.newArray(videoSourcesSize);
+        for (int i = 0; i < videoSourcesSize; i++) {
+            videoSources[i] = AirMediaSessionVideoSource.CREATOR.createFromParcel(in);
+        }
     }
 
     public AirMediaSessionInfo(AirMediaSessionInfo old, AirMediaSessionInfo update) {
@@ -58,12 +65,28 @@ public class AirMediaSessionInfo implements Parcelable {
         deviceUseragent = update != null && Common.isNotEmpty(update.deviceUseragent) ? update.deviceUseragent : old != null ? old.deviceUseragent : "";
         isRotationSupported = update != null ? update.isRotationSupported : old == null || old.isRotationSupported;
         isRotationManagedBySender = update != null ? update.isRotationManagedBySender : old == null || old.isRotationManagedBySender;
+        AirMediaSessionVideoSource[] videoSourcesToUse = null;
+        if (update != null && old != null) {
+            if (update.videoSources != null && old.videoSources != null) {
+                videoSourcesToUse = update.videoSources.length > old.videoSources.length ? update.videoSources : old.videoSources;
+            } else if (update.videoSources != null) {
+                videoSourcesToUse = update.videoSources;
+            } else {
+                videoSourcesToUse = old.videoSources;
+            }
+        } else if (update != null) {
+            videoSourcesToUse = update.videoSources;
+        } else if (old != null) {
+            videoSourcesToUse = old.videoSources;
+        }
+        videoSources = videoSourcesToUse != null ? videoSourcesToUse : AirMediaSessionVideoSource.CREATOR.newArray(0);
     }
 
     protected AirMediaSessionInfo(
             AirMediaPlatforms inPlatforms, String inOs, String inVersion, String inManufacturer,
             String inModel, String inLanguage, String inHostname,
-            String inControlUseragent, String inDeviceUseragent, boolean inIsRotationSupported, boolean inRotationManagedBySender) {
+            String inControlUseragent, String inDeviceUseragent, boolean inIsRotationSupported, boolean inRotationManagedBySender,
+            AirMediaSessionVideoSource[] inVideoSources) {
         platform = inPlatforms;
         os = inOs;
         version = inVersion;
@@ -75,6 +98,7 @@ public class AirMediaSessionInfo implements Parcelable {
         deviceUseragent = inDeviceUseragent;
         isRotationSupported = inIsRotationSupported;
         isRotationManagedBySender = inRotationManagedBySender;
+        videoSources = inVideoSources;
     }
 
     @Override
@@ -90,6 +114,12 @@ public class AirMediaSessionInfo implements Parcelable {
         dest.writeString(deviceUseragent);
         dest.writeInt(isRotationSupported ? 1 : 0);
         dest.writeInt(isRotationManagedBySender ? 1 : 0);
+        dest.writeInt(videoSources != null ? videoSources.length : 0);
+        if (videoSources != null) {
+            for (AirMediaSessionVideoSource videoSource : videoSources) {
+                videoSource.writeToParcel(dest, flags);
+            }
+        }
     }
 
     @Override
@@ -122,7 +152,8 @@ public class AirMediaSessionInfo implements Parcelable {
                 + " control-user-agent= " + controlUseragent + Common.Delimiter
                 + " device-user-agent= " + deviceUseragent + Common.Delimiter
                 + " rotation-supported= " + isRotationSupported + Common.Delimiter
-                + " rotation-by-sender= " + isRotationManagedBySender
+                + " rotation-by-sender= " + isRotationManagedBySender + Common.Delimiter
+                + " video-sources= " + AirMediaSessionVideoSource.toString(videoSources)
                 + " ]";
     }
 
@@ -142,7 +173,8 @@ public class AirMediaSessionInfo implements Parcelable {
                 && Common.isEqual(lhs.controlUseragent, rhs.controlUseragent)
                 && Common.isEqual(lhs.deviceUseragent, rhs.deviceUseragent)
                 && lhs.isRotationSupported == rhs.isRotationSupported
-                && lhs.isRotationManagedBySender == rhs.isRotationManagedBySender;
+                && lhs.isRotationManagedBySender == rhs.isRotationManagedBySender
+                && AirMediaSessionVideoSource.isEqual(lhs.videoSources, rhs.videoSources);
     }
 
     public static boolean platformSupportsVideoPush(AirMediaSessionInfo info) {

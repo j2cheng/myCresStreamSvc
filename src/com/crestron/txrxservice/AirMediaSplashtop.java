@@ -3,6 +3,7 @@ package com.crestron.txrxservice;
 import java.io.DataOutputStream;
 import java.io.IOException;
 import java.util.Map;
+import java.util.LinkedHashMap;
 import java.util.concurrent.ConcurrentHashMap;
 import java.util.concurrent.CountDownLatch;
 import java.util.concurrent.TimeUnit;
@@ -14,6 +15,9 @@ import java.util.Timer;
 import java.util.TimerTask;
 import java.net.InetAddress;
 import java.net.UnknownHostException;
+
+import com.google.gson.Gson;
+import com.google.gson.GsonBuilder;
 
 import com.crestron.txrxservice.CresStreamCtrl.AirMediaLoginMode;
 import com.crestron.txrxservice.CresStreamCtrl.ServiceMode;
@@ -31,6 +35,7 @@ import com.crestron.airmedia.receiver.m360.ipc.AirMediaSessionConnectionState;
 import com.crestron.airmedia.receiver.m360.ipc.AirMediaSessionScreenPosition;
 import com.crestron.airmedia.receiver.m360.ipc.AirMediaSessionScreenLayout;
 import com.crestron.airmedia.receiver.m360.ipc.AirMediaSessionStreamingState;
+import com.crestron.airmedia.receiver.m360.ipc.AirMediaSessionVideoSource;
 import com.crestron.airmedia.receiver.m360.ipc.AirMediaSessionVideoType;
 import com.crestron.airmedia.receiver.m360.ipc.AirMediaSize;
 import com.crestron.airmedia.receiver.m360.ipc.AirMediaSessionInfo;
@@ -138,6 +143,8 @@ public class AirMediaSplashtop
 	
     private Handler handler_;
     private Map<Integer, AirMediaSession> userSessionMap = new ConcurrentHashMap<Integer, AirMediaSession>();
+    
+	Gson gson = new GsonBuilder().create();
 
     private class MyReentrantLock extends ReentrantLock {
     	MyReentrantLock(boolean fair) {
@@ -913,9 +920,14 @@ public class AirMediaSplashtop
 
     public boolean useTextureView(AirMediaSession session)
     {
-    	if (getActiveSession() == null)
+    	if (session == null)
     	{
-    		Common.Logging.w(TAG, "useTextureView: called with no active session");
+    		Common.Logging.w(TAG, "useTextureView: called with a null session");
+    		return false;
+    	}
+    	if (session.info() == null)
+    	{
+    		Common.Logging.w(TAG, "useTextureView: called with null session info (session="+session+")");
     		return false;
     	}
     	return (session.info().isRotationSupported && !session.info().isRotationManagedBySender) ? true : false;
@@ -1877,7 +1889,7 @@ public class AirMediaSplashtop
     	}
     }
     
-	public String getSessionType(AirMediaSession session)
+	private String getSessionType(AirMediaSession session)
 	{
 		String sessionType = "None";
 
@@ -1917,56 +1929,154 @@ public class AirMediaSplashtop
 
 		return sessionType;
 	}
-	
-    private void ClientDatatoJSON(int client, boolean isClientActive, String sessionType, String platform, String senderVersion, String osVersion, String manufacturer, String model, 
-    		String deviceUseragent, String deviceId, String language, String resolution)
-    {
-    	StringBuilder strBldr = new StringBuilder();
-    	strBldr.append("{\"Device\":{\"AirMedia\":{\"ClientData\":{\"ConnectedClients\":{\"Client" + client + "\":{" 
-        		+ "\"IsClientActive\":" + isClientActive + ","
-        		+ "\"SessionType\":\"" + sessionType + "\"");
-    	if (!platform.equals("") && !platform.equals("Undefined"))
-    		strBldr.append(",\"Platform\":\"" + platform + "\"");
-    	if (!senderVersion.equals(""))
-    		strBldr.append(",\"SenderVersion\":\"" + senderVersion + "\"");
-    	if (!osVersion.equals(""))
-    		strBldr.append(",\"OsVersion\":\"" + osVersion + "\"");
-    	if (!manufacturer.equals(""))
-    		strBldr.append(",\"Manufacturer\":\"" + manufacturer + "\"");
-    	if (!model.equals(""))
-    		strBldr.append(",\"Model\":\"" + model + "\"");
-    	if (!deviceUseragent.equals(""))
-    		strBldr.append(",\"AirPlayVersion\":\"" + deviceUseragent + "\"");
-    	if (!deviceId.equals(""))
-    		strBldr.append(",\"DeviceId\":\"" + deviceId + "\"");
-    	if (!language.equals(""))
-    		strBldr.append(",\"Language\":\"" + language + "\"");
-    	if (!resolution.equals("") && !resolution.equals("0x0"))
-    		strBldr.append(",\"VideoResolution\":\"" + resolution + "\"");
-    	strBldr.append("}}}}}}");
-        
-    	String json = strBldr.toString();
-		Common.Logging.i(TAG,  "ClientDatatoJSON: JSON=" + json);
-		mStreamCtl.SendToCresstore(json, CresStreamCtrl.CresstoreOptions.Publish);
-    }
     
-    public void sendClientData(AirMediaSession session)
-    {
+
+	class Display {
+		private boolean IsPrimary;
+		private String Resolution;
+		private int Dpi;
+
+		public Display(AirMediaSessionVideoSource source)
+		{
+			this.IsPrimary = source.isPrimary;
+			this.Resolution = source.resolution.toString();
+			this.Dpi = source.dpi.width;
+		}
+	}
+	
+
+	class Client {
+		private String SessionType;
+		private Boolean IsClientActive;
+		private String Platform;
+		private String SenderVersion;
+		private String OsVersion;
+		private String Manufacturer;
+		private String Model;
+		private String AirPlayVersion;
+		private String DeviceId;
+		private String Language;
+		private String Resolution;
+		private Map<String, Display> VideoDisplays;
+
+
+		public Client(AirMediaSession session) 
+		{
+			AirMediaSessionInfo info = session.info();
+			this.SessionType = getSessionType(session);
+			this.IsClientActive = Boolean.valueOf(session == getActiveSession());
+			String platform = info.platform.toString();
+			if (!platform.equals("") && !platform.equals("Undefined"))
+			{
+				this.Platform = platform;
+			}
+			if (!info.version.equals(""))
+				this.SenderVersion = info.version;
+			if (!info.os.equals(""))
+				this.OsVersion = info.os;
+			if (!info.manufacturer.equals(""))
+				this.Manufacturer = info.manufacturer;
+			if (!info.model.equals(""))
+				this.Model = info.model;
+			if (info.os.equals("iOS") || info.os.equals("Mac"))
+				this.AirPlayVersion = info.deviceUseragent;
+			if (!session.deviceId().equals(""))
+				this.DeviceId = session.deviceId();
+			if (!info.language.equals(""))
+				this.Language = info.language;
+			String resolution = session.videoResolution().toString();
+			if (!resolution.equals("") && !resolution.equals("0x0"))
+				this.Resolution = resolution;
+			if (info.videoSources != null && info.videoSources.length > 0)
+			{
+				this.VideoDisplays = new LinkedHashMap<String, Display>();
+				for (int i=0; i < info.videoSources.length; i++)
+				{
+					this.VideoDisplays.put("Display"+i, new Display(info.videoSources[i]));
+				}
+			}
+		}
+		
+		public Client()
+		{
+		}
+		
+		public Client(AirMediaSize videoResolution)
+		{
+			Resolution = videoResolution.toString();
+		}
+		
+		public Client(boolean isActive)
+		{
+			this.IsClientActive = new Boolean(isActive);
+		}
+		
+		public Client(String sessionType)
+		{
+			this.SessionType = sessionType;
+		}
+	}
+
+	class DeviceObject {
+		Device Device;		
+		class Device {
+			private AirMedia AirMedia;			
+			class AirMedia {
+				private ClientData ClientData;				
+				class ClientData {
+					private Map<String, Client> ConnectedClients;
+					
+					public ClientData()
+					{
+						ConnectedClients = new LinkedHashMap<String, Client>();
+					}
+				}
+
+				public AirMedia()
+				{
+					ClientData = new ClientData();
+				}
+			}
+			
+			public Device()
+			{
+				AirMedia = new AirMedia();
+			}
+		}
+		
+		public DeviceObject()
+		{
+			Device = new Device();
+		}
+	}
+
+	private void sendClientData(int client, Client clientData)
+	{
+		if (clientData == null)
+			return;
+		
+		DeviceObject dev = new DeviceObject();
+		dev.Device.AirMedia.ClientData.ConnectedClients.put("Client"+client, clientData);
+
+		String sessionClientData = gson.toJson(dev);
+		Common.Logging.i(TAG,  "sendClientData: ClientDataJSON=" + sessionClientData);
+		mStreamCtl.SendToCresstore(sessionClientData, CresStreamCtrl.CresstoreOptions.Publish);
+	}
+	
+	private void sendClientData(AirMediaSession session)
+	{
+		if (session == null)
+			return;
 		int client = session2user(session);
 		AirMediaSessionInfo info = session.info();
 		
 		if (client < 0 || info == null)
 			return;
 		Common.Logging.i(TAG,  "sendClientData for client " + client + " session=" + session);
-		String sessionType = getSessionType(session);
-		ClientDatatoJSON(client, (session == getActiveSession()), sessionType,
-				info.platform.toString(), info.version, info.os, 
-				info.manufacturer, info.model, 
-				(info.os.equals("iOS") || info.os.equals("Mac")) ? info.deviceUseragent : "", 
-				session.deviceId(), info.language, session.videoResolution().toString());
-    }
-    
-    public void sendClientData(AirMediaSession session, AirMediaSessionInfo from, AirMediaSessionInfo to)
+		sendClientData(client, new Client(session));
+	}
+	
+    private void sendClientData(AirMediaSession session, AirMediaSessionInfo from, AirMediaSessionInfo to)
     {
 		int client = session2user(session);
 		
@@ -2002,6 +2112,10 @@ public class AirMediaSplashtop
 			{
 				Common.Logging.i(TAG,  "sendClientData() language: " + from.language + " ---> " + to.language);
 			}
+			if (AirMediaSessionVideoSource.isEqual(from.videoSources, to.videoSources))
+			{
+				Common.Logging.i(TAG,  "sendClientData() video sources changed: " + from.videoSources + " ---> " + to.videoSources);
+			}
 			if (!AirMediaSessionInfo.isEqual(from, to))
 			{
 				sendClientData(session);
@@ -2009,51 +2123,42 @@ public class AirMediaSplashtop
 		}
     }
     
-    public void removeClientData(AirMediaSession session)
+    private void sendClientDataIsActiveSession(AirMediaSession session, boolean isActiveSession)
     {
 		int client = session2user(session);
 		if (client < 0)
 			return;
 		
-		Common.Logging.i(TAG,  "removeClientData for client "+ client + " session=" + session);
-        String json = "{\"Device\":{\"AirMedia\":{\"ClientData\":{\"ConnectedClients\":{\"Client" + client + "\":{}}}}}}";
-		Common.Logging.i(TAG,  "removeClientData: JSON=" + json);
-		mStreamCtl.SendToCresstore(json, CresStreamCtrl.CresstoreOptions.Publish);
+		sendClientData(client, new Client(isActiveSession));
     }
     
-    public void sendClientDataIsActiveSession(AirMediaSession session, boolean isActiveSession)
-    {
-		int client = session2user(session);
-		if (client < 0)
-			return;
-		
-        String json = "{\"Device\":{\"AirMedia\":{\"ClientData\":{\"ConnectedClients\":{\"Client" + client + "\":{" + "\"IsClientActive\":" + isActiveSession + "}}}}}}";
-		Common.Logging.i(TAG,  "sendClientDataIsActiveSession: JSON=" + json);
-		mStreamCtl.SendToCresstore(json, CresStreamCtrl.CresstoreOptions.Publish);
-    }
-    
-	public void sendClientDataSessionType(AirMediaSession session)
+	private void sendClientDataSessionType(AirMediaSession session)
 	{
 		int client = session2user(session);
 		if (client < 0)
 			return;
 		
 		String sessionType = getSessionType(session);
-        String json = "{\"Device\":{\"AirMedia\":{\"ClientData\":{\"ConnectedClients\":{\"Client" + client + "\":{" + "\"SessionType\":\"" + sessionType + "\"}}}}}}";
-		Common.Logging.i(TAG,  "sendClientDataSessionType: JSON=" + json);
-		mStreamCtl.SendToCresstore(json, CresStreamCtrl.CresstoreOptions.Publish);
+		sendClientData(client, new Client(sessionType));
 	}
 	
-	public void sendClientDataVideoResolution(AirMediaSession session)
+	private void sendClientDataVideoResolution(AirMediaSession session)
 	{
 		int client = session2user(session);
 		if (client < 0)
 			return;
 		
-		String videoResolution = session.videoResolution().toString();
-        String json = "{\"Device\":{\"AirMedia\":{\"ClientData\":{\"ConnectedClients\":{\"Client" + client + "\":{" + "\"VideoResolution\":\"" + videoResolution + "\"}}}}}}";
-		Common.Logging.i(TAG,  "sendClientDataVideoResolution: JSON=" + json);
-		mStreamCtl.SendToCresstore(json, CresStreamCtrl.CresstoreOptions.Publish);
+		sendClientData(client, new Client(session.videoResolution()));
+	}
+	
+	private void removeClientData(AirMediaSession session)
+	{
+		int client = session2user(session);
+		if (client < 0)
+			return;
+
+		Common.Logging.i(TAG,  "removeClientData for client "+ client + " session=" + session);
+		sendClientData(client, new Client());
 	}
 	
     public void stopAllUser()
