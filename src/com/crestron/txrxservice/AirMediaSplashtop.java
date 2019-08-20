@@ -1956,7 +1956,7 @@ public class AirMediaSplashtop
 		private String AirPlayVersion;
 		private String DeviceId;
 		private String Language;
-		private String Resolution;
+		private String VideoResolution;
 		private Map<String, Display> VideoDisplays;
 
 
@@ -1986,7 +1986,7 @@ public class AirMediaSplashtop
 				this.Language = info.language;
 			String resolution = session.videoResolution().toString();
 			if (!resolution.equals("") && !resolution.equals("0x0"))
-				this.Resolution = resolution;
+				this.VideoResolution = resolution;
 			if (info.videoSources != null && info.videoSources.length > 0)
 			{
 				this.VideoDisplays = new LinkedHashMap<String, Display>();
@@ -2003,7 +2003,7 @@ public class AirMediaSplashtop
 		
 		public Client(AirMediaSize videoResolution)
 		{
-			Resolution = videoResolution.toString();
+			this.VideoResolution = videoResolution.toString();
 		}
 		
 		public Client(boolean isActive)
