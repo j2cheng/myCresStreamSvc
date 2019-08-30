@@ -411,7 +411,7 @@ public class AirMediaSplashtop
     		try { successfulStop = receiverStoppedLatch.await(30000, TimeUnit.MILLISECONDS); }
     		catch (InterruptedException ex) { ex.printStackTrace(); }
         	setActiveSession(null);
-    		Common.Logging.i(TAG, "stopReceiver() exit (thread="+Integer.toHexString((int)(Thread.currentThread().getId()))+")");
+    		Common.Logging.i(TAG, "stopReceiver() exit (thread="+Integer.toHexString((int)(Thread.currentThread().getId()))+") successfulStop="+successfulStop);
     		receiverStoppedLatch = null; // release the latch
     		return successfulStop;
     	}
@@ -430,7 +430,7 @@ public class AirMediaSplashtop
     		receiver().start();
     		try { successfulStart = receiverStartedLatch.await(45000, TimeUnit.MILLISECONDS); }
     		catch (InterruptedException ex) { ex.printStackTrace(); }
-    		Common.Logging.i(TAG, "startReceiver() exit (thread="+Integer.toHexString((int)(Thread.currentThread().getId()))+")");
+    		Common.Logging.i(TAG, "startReceiver() exit (thread="+Integer.toHexString((int)(Thread.currentThread().getId()))+") successfulStart="+successfulStart);
     		return successfulStart;
     	}
     }

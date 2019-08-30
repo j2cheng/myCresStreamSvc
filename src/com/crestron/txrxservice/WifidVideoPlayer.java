@@ -43,6 +43,7 @@ public class WifidVideoPlayer {
     public void register(AirMediaReceiver receiver)
     {
     	receiver_ = receiver;
+		service_.clear(); // clear observer list in service
     	// register this class with the receiver as well
 		Common.Logging.i(TAG, "Registering videoplayer with receiver");
     	receiver.addVideoPlayer(service_);
@@ -107,13 +108,20 @@ public class WifidVideoPlayer {
             }
         }
         
+        private void clear() {
+            Common.Logging.i(TAG, "videoplayer.clear  clearing observer list");
+        	observers_.clear();
+        }
+        
         @Override
         public void register(IVideoPlayerObserver observer) throws RemoteException {
+            Common.Logging.i(TAG, "videoplayer.register  observer= " + observer);
             add(observer);
         }
 
         @Override
         public void unregister(IVideoPlayerObserver observer) throws RemoteException {
+            Common.Logging.i(TAG, "videoplayer.unregister  observer= " + observer);
             remove(observer);
         }
         
