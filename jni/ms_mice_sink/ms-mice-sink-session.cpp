@@ -1468,11 +1468,15 @@ void ms_mice_sink_session_free(ms_mice_sink_session *session)
     CSIO_LOG(eLogLevel_debug,"ms.mice.sink.session.free { \"session-id\": %" G_GUINT64_FORMAT " , \"local-address\": \"%s\" , \"remote-address\": \"%s\" , \"state\": \"%s\" , \"friendly-name\": \"%s\" , \"source-id\": \"%s\" }",
               session->priv->session_id, session->priv->local_address, session->priv->remote_address, ms_mice_sink_session_state_to_string(session->priv->state), session->priv->friendly_name, session->priv->source_id);
 
-    g_free((gpointer)session->priv->local_address);
-    g_free((gpointer)session->priv->remote_address);
-    g_free((gpointer)session->priv->source_id);
+    if (!session->priv->local_address)
+    	g_free((gpointer)session->priv->local_address);
+    if (!session->priv->remote_address)
+    	g_free((gpointer)session->priv->remote_address);
+    if (!session->priv->source_id)
+    	g_free((gpointer)session->priv->source_id);
 
-    g_free(session->priv);
+    if (!session->priv)
+    	g_free(session->priv);
     g_free(session);
 }
 
