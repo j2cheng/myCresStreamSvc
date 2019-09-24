@@ -144,6 +144,8 @@ public class AirMediaSplashtop
     private Handler handler_;
     private Map<Integer, AirMediaSession> userSessionMap = new ConcurrentHashMap<Integer, AirMediaSession>();
     
+    private Map<AirMediaSession, AirMediaSessionStreamingState> videoStateMap = new ConcurrentHashMap<AirMediaSession, AirMediaSessionStreamingState>();
+    
 	Gson gson = new GsonBuilder().create();
 
     private class MyReentrantLock extends ReentrantLock {
@@ -174,6 +176,48 @@ public class AirMediaSplashtop
     	}
     }
  
+    private void removeSessionVideoState(AirMediaSession session)
+    {
+    	if (session != null)
+    	{
+    		synchronized (videoStateMap) {	
+    			if (videoStateMap.containsKey(session))
+    			{
+    				Common.Logging.e(TAG, "removeSessionVideoState session="+session);
+    				videoStateMap.remove(session);
+    			}
+    		}
+    	}
+    }
+    
+    private AirMediaSessionStreamingState getSessionVideoState(AirMediaSession session)
+    {
+    	AirMediaSessionStreamingState state = AirMediaSessionStreamingState.Stopped;
+    	if (session != null)
+    	{
+    		synchronized (videoStateMap) {	
+    			Object v = videoStateMap.get(session);
+    			if (v != null)
+    			{
+    				state = (AirMediaSessionStreamingState) v; 
+    				Common.Logging.e(TAG, "getSessionVideoState session="+session+"  video streaming state="+state);
+    			}
+    		}
+    	}
+    	return state;
+    }
+    
+    private void setSessionVideoState(AirMediaSession session, AirMediaSessionStreamingState state)
+    {
+    	if (session != null)
+    	{
+    		synchronized (videoStateMap) {	
+    			Common.Logging.e(TAG, "setSessionVideoState session="+session+"  video streaming state="+state);
+    			videoStateMap.put(session, state);
+    		}
+    	}
+    }
+    
     public void launchReceiverService()
     {
     	Common.Logging.i(TAG, "launchReceiverService........");
@@ -1336,7 +1380,7 @@ public class AirMediaSplashtop
     		deleteActiveSession(getActiveSession(), false);
     	}
     	
-    	if (wasShowing || surfaceDisplayed == true) {
+    	if (wasShowing) {
     		setActiveSession(session);
     		Common.Logging.i(TAG, "addActiveSession: setting active session " + AirMediaSession.toDebugString(getActiveSession()));  	
 			// update window dimensions - may be going to new surfaceView or TextureView
@@ -1433,7 +1477,7 @@ public class AirMediaSplashtop
         	AirMediaSessionScreenPosition screenpos = session.videoScreenPosition();
         	int position = (screenpos == AirMediaSessionScreenPosition.None) ? 0 : 128;;
         	mStreamCtl.sendAirMediaUserFeedbacks(user, session.username(), ((List<String>)session.addresses()).get(0), position, 
-        			(session.videoState() == AirMediaSessionStreamingState.Playing) ? true : false);
+        			(getSessionVideoState(session) == AirMediaSessionStreamingState.Playing) ? true : false);
         }
     }
 
@@ -1456,7 +1500,7 @@ public class AirMediaSplashtop
     		AirMediaSession session = user2session(i);
     		if (session != null) {
     			sendSessionFeedback(session);
-    			if (session.videoState() == AirMediaSessionStreamingState.Playing)
+    			if (getSessionVideoState(session) == AirMediaSessionStreamingState.Playing)
     				status = 1;
     			mStreamCtl.userSettings.setAirMediaUserConnected(true, i);
     			if (sentUserFeedback != null)
@@ -1604,7 +1648,7 @@ public class AirMediaSplashtop
     		    	Common.Logging.i(TAG, MiscUtils.stringFormat("   AIRMEDIA_USER_IP=%d:%s", i, ((List<String>)s.addresses()).get(0)));
     		    	Common.Logging.i(TAG, MiscUtils.stringFormat("   AIRMEDIA_USER_POSITION=%d:%d", i, position));
     		    	Common.Logging.i(TAG, MiscUtils.stringFormat("   AIRMEDIA_USER_CONNECTED=%d:%s", i, 
-    		    			String.valueOf((s.videoState() == AirMediaSessionStreamingState.Playing) ? true : false)));
+    		    			String.valueOf((getSessionVideoState(s) == AirMediaSessionStreamingState.Playing) ? true : false)));
     				logSession(s);
     			}
     		}
@@ -1666,7 +1710,7 @@ public class AirMediaSplashtop
     {
 		Common.Logging.i(TAG, "addSession " + session);
         int user = addSessionToMap(session);
-        Common.Logging.i(TAG, "User id: "+String.valueOf(user)+"  Connected: "+String.valueOf(session.videoState() == AirMediaSessionStreamingState.Playing));
+        Common.Logging.i(TAG, "User id: "+String.valueOf(user)+"  Connected: "+String.valueOf(getSessionVideoState(session) == AirMediaSessionStreamingState.Playing));
 		Common.Logging.i(TAG, "Adding Id to map, userId: " + user + " session: " + session);
 		if ((user > 0) && (user <= MAX_USERS))
 		{
@@ -1689,6 +1733,7 @@ public class AirMediaSplashtop
             mStreamCtl.userSettings.setAirMediaUserConnected(false, user);
             mStreamCtl.sendAirMediaUserFeedbacks(user, "", "", 0, false);
 			removeClientData(session);
+			removeSessionVideoState(session);
         } else {
             Common.Logging.e(TAG, "Got invalid user id: "+String.valueOf(user) + "for " + session);
         }
@@ -1832,7 +1877,7 @@ public class AirMediaSplashtop
 		Common.Logging.i(TAG, "stopUser: " + String.valueOf(userId) + " Session=" + AirMediaSession.toDebugString(session) + "  deviceState=" + session.deviceState());
 		if (getActiveSession() != null && !AirMediaSession.isEqual(getActiveSession(), session))
 		{
-			if (session.videoState() == AirMediaSessionStreamingState.Playing)
+			if (getSessionVideoState(session) == AirMediaSessionStreamingState.Playing)
 			{
 				Common.Logging.w(TAG, "Trying to stop a playing session which is not active for user " + String.valueOf(userId));
 			}
@@ -2561,7 +2606,7 @@ public class AirMediaSplashtop
                     // Add code here to add session to "table" of sessions and take any action needed
                     registerSessionEventHandlers(session);
                     addSession(session);
-                    if (session.videoState() == AirMediaSessionStreamingState.Playing)
+                    if (getSessionVideoState(session) == AirMediaSessionStreamingState.Playing)
                     {
                     	addActiveSession(session);
                     }
@@ -2575,7 +2620,7 @@ public class AirMediaSplashtop
                     Common.Logging.i(TAG, "manager.sessions.event.removed  " + AirMediaSession.toDebugString(session));
                     // Add code here to remove session from "table" of sessions and take any action needed;
                     removeSession(session);
-                    if (session.videoState() != AirMediaSessionStreamingState.Playing)
+                    if (getSessionVideoState(session) != AirMediaSessionStreamingState.Playing)
                     {
                     	  deleteActiveSessionWithFeedback(session);
                     }
@@ -2743,11 +2788,12 @@ public class AirMediaSplashtop
                 public void onEvent(AirMediaSession session, AirMediaSessionStreamingState from, AirMediaSessionStreamingState to) {
                     Common.Logging.i(TAG, "view.session.event.video.state  " + AirMediaSession.toDebugString(session) + "  " + from + "  ==>  " + to);
                     // TODO Handle video state change
-                      if (session.videoState() == AirMediaSessionStreamingState.Playing)
+                      setSessionVideoState(session, session.videoState());
+                      if (getSessionVideoState(session) == AirMediaSessionStreamingState.Playing)
                       {
                     	  addActiveSession(session);
                       } 
-                      else if (session.videoState() == AirMediaSessionStreamingState.Stopped)
+                      else if (getSessionVideoState(session) == AirMediaSessionStreamingState.Stopped)
                       {
                     	  deleteActiveSessionWithFeedback(session);
                       }
