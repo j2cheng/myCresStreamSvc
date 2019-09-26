@@ -169,6 +169,7 @@ public class CresStreamCtrl extends Service {
     private FileObserver hdmiOutputResolutionObserver;
     private FileObserver surfaceFlingerViolationObserver;
     private Thread monitorCrashThread;
+    private boolean mIsBound = false;
     private boolean mHDCPOutputStatus = false;
     private boolean mHDCPExternalStatus = false;
     private boolean mHDCPInputStatus = false;
@@ -1167,20 +1168,44 @@ public class CresStreamCtrl extends Service {
     @Override
     public IBinder onBind(Intent intent)
     {
-        Log.i(TAG, "onBind  intent= " + intent.toString());
+        Log.i(TAG, "-------------- onBind:  intent= " + intent.toString());
+        if (mIsBound)
+        {
+        	// if we get here even though we were bound - reset slave streams
+        	Log.w(TAG, "onBind:  should not get here - already bound);
+        	resetAllSlaveStreams();
+        }
+        mIsBound = true;
         return mBinder;
     } 
 
+    private void resetAllSlaveStreams()
+    {
+        Log.i(TAG, "resetAllSlaveStreams: ask csio to stop all streams");
+		sockTask.SendDataToAllClients("RESET_SLAVE_MODE=true");
+        Log.i(TAG, "resetAllSlaveStreams: clearing all prior surfaces");
+		for (int idx = 0; idx < NumOfSurfaces; idx++)
+			deleteSurface(idx);
+    }
+    
     @Override
     public boolean onUnbind(Intent intent) {
-        Log.i(TAG, "onUnbind  intent= " + intent.toString());
-        return super.onUnbind(intent);
-        // TODO stop all streams
+        Log.i(TAG, "-------------- onUnbind: intent= " + intent.toString());
+        resetAllSlaveStreams();
+        Log.i(TAG, "onUnbind: exit");
+        super.onUnbind(intent);
+        mIsBound = false;
+        return true;
     }
 
     @Override
     public void onRebind(Intent intent) {
-        Log.i(TAG, "onRebind  intent= " + intent.toString());
+        Log.i(TAG, "-------------- onRebind:  intent= " + intent.toString());
+        if (mIsBound)
+        {
+        	// if we get here even though we were bound - reset slave streams
+        	resetAllSlaveStreams();
+        }
         super.onRebind(intent);
     }
     
