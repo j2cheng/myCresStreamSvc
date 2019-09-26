@@ -1172,7 +1172,7 @@ public class CresStreamCtrl extends Service {
         if (mIsBound)
         {
         	// if we get here even though we were bound - reset slave streams
-        	Log.w(TAG, "onBind:  should not get here - already bound);
+        	Log.w(TAG, "onBind:  should not get here - already bound");
         	resetAllSlaveStreams();
         }
         mIsBound = true;
