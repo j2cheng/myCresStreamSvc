@@ -1773,7 +1773,8 @@ public class CresStreamCtrl extends Service {
 	    				        if (onlyRestartAudioNeeded)
 	    				        {
 	    				        	Log.i(TAG, "Restarting Audio - sample rate change");
-	    				        	cam_preview.restartAudio();	// Can get away with only restarting audio here
+	    				        	if (cam_preview != null)
+	    				        	    cam_preview.restartAudio();	// Can get away with only restarting audio here
 	    				        }
 	    				        else
 	    				        {
