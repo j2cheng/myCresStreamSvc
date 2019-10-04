@@ -94,6 +94,8 @@ public class AirMediaSplashtop
 	private static final int MIRACAST_API_TIMEOUT = -32002;
 	private static final int VIDEOPLAYER_API_TIMEOUT = -32003;
 	private static final int VIDEOPLAYER_REMOTE_EXCEPTION = -32004;
+	private static final int RECEIVER_FAILED_TO_START_EXCEPTION = -32005;
+	private static final int RECEIVER_FAILED_TO_STOP_EXCEPTION = -32006;
 
 	private final Object stopSessionObjectLock = new Object();
 	private final Object stopSessionCriticalSectionLock = new Object();
@@ -2586,7 +2588,8 @@ public class AirMediaSplashtop
 					sleep(5000);
 				}
 				if (reason == MEDIA_SERVER_HANG || reason == M360_TIMEOUT || reason == MIRACAST_API_TIMEOUT || 
-						reason == VIDEOPLAYER_API_TIMEOUT || reason == VIDEOPLAYER_REMOTE_EXCEPTION) {
+						reason == VIDEOPLAYER_API_TIMEOUT || reason == VIDEOPLAYER_REMOTE_EXCEPTION ||
+						reason == RECEIVER_FAILED_TO_START_EXCEPTION || reason == RECEIVER_FAILED_TO_STOP_EXCEPTION) {
 					Common.Logging.w(TAG, "Receiver " + to + " with error="+reason+"  Restarting receiver service .... ");
 					restartAirMedia();
 				} else {
