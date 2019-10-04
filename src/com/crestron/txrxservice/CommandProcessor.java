@@ -629,6 +629,7 @@ class StartCommand extends CrestronCommand {
     @Override
         public void execute() {
             boolean val = Boolean.valueOf(msg);
+    		Log.i(TAG, "executeStart: sessId="+sessId+"  val="+val);
             if(val){
 				ctrl.userSettings.setUserRequestedStreamState(StreamState.STARTED, sessId);
 				ctrl.Start(sessId);
@@ -650,7 +651,8 @@ class StopCommand extends CrestronCommand {
     @Override
         public void execute() {
             boolean val = Boolean.valueOf(msg);
-            if(val){		
+			Log.i(TAG, "executeStop: sessId="+sessId+"  val="+val);
+            if(val){
 				ctrl.userSettings.setUserRequestedStreamState(StreamState.STOPPED, sessId);
 				ctrl.Stop(sessId, fullStop);
 			}
@@ -669,6 +671,7 @@ class PauseCommand extends CrestronCommand {
     @Override
         public void execute() {
             boolean val = Boolean.valueOf(msg);
+			Log.i(TAG, "executePause: sessId="+sessId+"  val="+val);
             if(val){
 				ctrl.userSettings.setUserRequestedStreamState(StreamState.PAUSED, sessId);
 				ctrl.Pause(sessId);

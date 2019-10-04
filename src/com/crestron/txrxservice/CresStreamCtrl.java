@@ -4262,7 +4262,7 @@ public class CresStreamCtrl extends Service {
         				mAirMedia.hideLoginCodePrompt();
         			}
         		}
-        		else if (loginMode == AirMediaLoginMode.Random.ordinal())
+        		else if (loginMode == AirMediaLoginMode.Random.ordinal() && userSettings.getAirMediaEnable())
         		{
         			int rand = (int)(Math.random() * 9999 + 1); 
         			userSettings.setAirMediaLoginCode(rand);
