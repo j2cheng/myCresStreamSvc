@@ -673,8 +673,13 @@ class PauseCommand extends CrestronCommand {
             boolean val = Boolean.valueOf(msg);
 			Log.i(TAG, "executePause: sessId="+sessId+"  val="+val);
             if(val){
-				ctrl.userSettings.setUserRequestedStreamState(StreamState.PAUSED, sessId);
-				ctrl.Pause(sessId);
+            	// A user requested pause is only expected when user has requested the stream to be started
+            	if (ctrl.userSettings.getUserRequestedStreamState(sessId) == StreamState.STARTED) {
+            		ctrl.userSettings.setUserRequestedStreamState(StreamState.PAUSED, sessId);
+            		ctrl.Pause(sessId);
+            	} else {
+        			Log.i(TAG, "executePause: ignoring for sessId="+sessId+" we are not in STARTED state");
+            	}
 			}
         }
         public String getFeedbackMsg() {
