@@ -357,8 +357,7 @@ public class AirMediaSplashtop
     						}
     					}
     	    			surfaceDisplayed = false;
-    					removeAllSessionsFromMap();
-    					mStreamCtl.sendAirMediaNumberUserConnected();
+    					removeAllSessionsFromMap(false, "RestartAirMediaAsynchronously()");
     					setActiveSession(null);
     					removePendingSession();
     					// RestartAirMediaAsynchronously is called to force a restart due to disconnect of receiver service.
@@ -403,11 +402,8 @@ public class AirMediaSplashtop
 		}
 		// Clear all user status
         Common.Logging.i(TAG, "startAirMedia(): clear all user status");
-		for (int i=1; i < MAX_USERS; i++)
-		{
-			mStreamCtl.userSettings.setAirMediaUserConnected(false, i);
-			mStreamCtl.sendAirMediaUserFeedbacks(i, "", "", 0, false);					
-		}
+        removeAllSessionsFromMap(true, "startAirMedia()");
+
         Common.Logging.i(TAG, "startAirMedia(): initializeDisplay");
 		intializeDisplay();
 		
@@ -626,6 +622,7 @@ public class AirMediaSplashtop
         	if (receiver().state() != AirMediaReceiverState.Stopped) {
         		Common.Logging.i(TAG,"startAirMediaReceiver: Receiver found to be in Started state - calling stop to 'restart' it");
         		receiver().sessionManager().clear();
+        		removeAllSessionsFromMap(false, "startAirMediaReceiver() - clearing prior sessions");
         		stopReceiver();
         	}
         	if (!get_adapter_ip_address().equals("None"))
@@ -944,19 +941,24 @@ public class AirMediaSplashtop
     		userSessionMap.remove(senderId);
     }
     
-    private void removeAllSessionsFromMap()
+    // forceSendingFeeback=true implies send feedback for all users - even if no session exists for user
+    // calledFrom string is for debug purposes - so log can show where the function was called from
+    private void removeAllSessionsFromMap(boolean forceSendingFeedback, String calledFrom)
     {
-		Common.Logging.i(TAG, "removeAllSessions");
+		Common.Logging.i(TAG, calledFrom+": removeAllSessions");
     	for (int user = 1; user <= MAX_USERS; user++) // We handle airMedia user ID as 1 based
     	{
     		AirMediaSession session = user2session(user);
     		if (session != null) {
     			Common.Logging.i(TAG, "removing session for user "+user+" from map");
     			userSessionMap.remove(user);
+    		}
+    		if (forceSendingFeedback || session != null) {
                 mStreamCtl.userSettings.setAirMediaUserConnected(false, user);
                 mStreamCtl.sendAirMediaUserFeedbacks(user, "", "", 0, false);
     		}
     	}
+    	querySenderList(false); // force sending of AIRMEDIA_STATUS=0
     }
     
     public boolean getSurfaceDisplayed()
@@ -1736,6 +1738,7 @@ public class AirMediaSplashtop
             mStreamCtl.sendAirMediaUserFeedbacks(user, "", "", 0, false);
 			removeClientData(session);
 			removeSessionVideoState(session);
+			querySenderList(false); // force update of AIRMEDIA_STATUS
         } else {
             Common.Logging.e(TAG, "Got invalid user id: "+String.valueOf(user) + "for " + session);
         }
@@ -2501,9 +2504,7 @@ public class AirMediaSplashtop
 								}
 								setActiveSession(null);
 							}
-							removeAllSessionsFromMap();
-							querySenderList(false);
-							mStreamCtl.sendAirMediaStatus(0);
+							removeAllSessionsFromMap(false, "onServiceDisconnected()");
 							RestartAirMediaAsynchronously();
 						}
 						else
