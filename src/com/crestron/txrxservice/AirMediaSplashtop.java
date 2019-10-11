@@ -146,7 +146,7 @@ public class AirMediaSplashtop
     private Handler handler_;
     private Map<Integer, AirMediaSession> userSessionMap = new ConcurrentHashMap<Integer, AirMediaSession>();
     
-    private Map<AirMediaSession, AirMediaSessionStreamingState> videoStateMap = new ConcurrentHashMap<AirMediaSession, AirMediaSessionStreamingState>();
+    private Map<Long, AirMediaSessionStreamingState> videoStateMap = new ConcurrentHashMap<Long, AirMediaSessionStreamingState>();
     
 	Gson gson = new GsonBuilder().create();
 
@@ -182,11 +182,12 @@ public class AirMediaSplashtop
     {
     	if (session != null)
     	{
+    		Long sessionId = session.id();
     		synchronized (videoStateMap) {	
-    			if (videoStateMap.containsKey(session))
+    			if (videoStateMap.containsKey(sessionId))
     			{
-    				Common.Logging.e(TAG, "removeSessionVideoState session="+session);
-    				videoStateMap.remove(session);
+    				Common.Logging.i(TAG, "removeSessionVideoState session="+session+"  sessionId="+sessionId);
+    				videoStateMap.remove(sessionId);
     			}
     		}
     	}
@@ -197,14 +198,15 @@ public class AirMediaSplashtop
     	AirMediaSessionStreamingState state = AirMediaSessionStreamingState.Stopped;
     	if (session != null)
     	{
+    		Long sessionId = session.id();
     		synchronized (videoStateMap) {	
-    			Object v = videoStateMap.get(session);
+    			Object v = videoStateMap.get(sessionId);
     			if (v != null)
     			{
     				state = (AirMediaSessionStreamingState) v; 
-    				Common.Logging.e(TAG, "getSessionVideoState session="+session+"  video streaming state="+state);
     			}
     		}
+			Common.Logging.i(TAG, "getSessionVideoState session="+session+"  sssionId="+sessionId+"  video streaming state="+state+" rxSvcState="+session.videoState());
     	}
     	return state;
     }
@@ -213,9 +215,10 @@ public class AirMediaSplashtop
     {
     	if (session != null)
     	{
+    		Long sessionId = session.id();
     		synchronized (videoStateMap) {	
-    			Common.Logging.e(TAG, "setSessionVideoState session="+session+"  video streaming state="+state);
-    			videoStateMap.put(session, state);
+    			Common.Logging.i(TAG, "setSessionVideoState session="+session+"  sssionId="+sessionId+"  video streaming state="+state+" rxSvcState="+session.videoState());
+    			videoStateMap.put(sessionId, state);
     		}
     	}
     }
@@ -1714,6 +1717,7 @@ public class AirMediaSplashtop
     {
 		Common.Logging.i(TAG, "addSession " + session);
         int user = addSessionToMap(session);
+        setSessionVideoState(session, session.videoState());
         Common.Logging.i(TAG, "User id: "+String.valueOf(user)+"  Connected: "+String.valueOf(getSessionVideoState(session) == AirMediaSessionStreamingState.Playing));
 		Common.Logging.i(TAG, "Adding Id to map, userId: " + user + " session: " + session);
 		if ((user > 0) && (user <= MAX_USERS))
