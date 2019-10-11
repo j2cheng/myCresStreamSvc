@@ -167,6 +167,7 @@ public class WbsStreamIn implements SurfaceHolder.Callback {
     	if (!isPlaying[sessionId])
     	{
     		Log.i(TAG, "onStop(): streamId " + sessionId + " already stopped !!");
+			streamCtl.SendStreamState(StreamState.STOPPED, sessionId);
     		return;
     	}
     	isPlaying[sessionId] = false;
