@@ -6,6 +6,8 @@ import android.os.Parcelable;
 import com.crestron.airmedia.utilities.Common;
 import com.google.gson.annotations.SerializedName;
 
+import java.util.EnumSet;
+
 public enum AirMediaSessionScreenLayout implements Parcelable {
     @SerializedName("0") None(0),
     @SerializedName("1") Mixed(1),
@@ -45,6 +47,42 @@ public enum AirMediaSessionScreenLayout implements Parcelable {
             case 6: return TwoScreen;
         }
         return None;
+    }
+
+    public static AirMediaSessionScreenLayout from(final String in) {
+        if (Common.isNotEmpty(in)) {
+            String value = in.toLowerCase();
+            if (value.contains("full")) return Fullscreen;
+            if (value.contains("two")) return TwoScreen;
+            if (value.contains("four")) return FourScreen;
+            if (value.contains("six")) return SixScreen;
+            if (value.contains("nine")) return NineScreen;
+        }
+        return Fullscreen;
+    }
+
+    public EnumSet<AirMediaSessionScreenPosition> positions() {
+        return positions(this);
+    }
+
+    public static EnumSet<AirMediaSessionScreenPosition> positions(AirMediaSessionScreenLayout layout) {
+        switch (layout) {
+            case None:
+            case Mixed:
+                return AirMediaSessionScreenPosition.allScreens;
+            case Fullscreen:
+                return AirMediaSessionScreenPosition.fullScreen;
+            case FourScreen:
+                return AirMediaSessionScreenPosition.fourScreens;
+            case SixScreen:
+                return AirMediaSessionScreenPosition.sixScreens;
+            case NineScreen:
+                return AirMediaSessionScreenPosition.nineScreens;
+            case TwoScreen:
+                return AirMediaSessionScreenPosition.twoScreens;
+        }
+
+        return AirMediaSessionScreenPosition.allScreens;
     }
 
     public static String toString(AirMediaSessionScreenLayout[] layouts) {

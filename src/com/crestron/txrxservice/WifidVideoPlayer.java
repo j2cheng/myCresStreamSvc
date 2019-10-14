@@ -178,9 +178,9 @@ public class WifidVideoPlayer {
         {
         	for (IVideoPlayerObserver observer : observers()) {        		
         		try {
-        			observer.infoChanged(id, platform, os, version);
+        			observer.onInfoChanged(id, platform, os, version);
         		} catch (RemoteException e) {
-                    Common.Logging.e(TAG, "videoplayer.observer.infoChanged  id= " + id + "  platform= " + platform.toString() + "  os=" + os +
+                    Common.Logging.e(TAG, "videoplayer.observer.onInfoChanged  id= " + id + "  platform= " + platform.toString() + "  os=" + os +
                     		"  version=" + version + "  EXCEPTION  " + e + "  " + Log.getStackTraceString(e));
                     remove(observer);
         		}

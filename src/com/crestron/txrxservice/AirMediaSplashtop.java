@@ -2774,7 +2774,7 @@ public class AirMediaSplashtop
             new MulticastChangedDelegate.Observer<AirMediaSession, AirMediaSessionConnectionState>() {
                 @Override
                 public void onEvent(AirMediaSession session, AirMediaSessionConnectionState from, AirMediaSessionConnectionState to) {
-                    Common.Logging.i(TAG, "view.session.event.channel  " + AirMediaSession.toDebugString(session) + "  id= " + Integer.toHexString(session.channelId()) + "  " + from + "  ==>  " + to);
+                    Common.Logging.i(TAG, "view.session.event.channel  " + AirMediaSession.toDebugString(session) + "  id= " + Long.toHexString(session.channelId()) + "  " + from + "  ==>  " + to);
                     // TODO Handle connection state change
                 }
             };
@@ -2783,7 +2783,7 @@ public class AirMediaSplashtop
             new MulticastMessageDelegate.Observer<AirMediaSession, byte[]>() {
                 @Override
                 public void onEvent(AirMediaSession session, byte[] message) {
-                    Common.Logging.i(TAG, "view.session.event.message  " + AirMediaSession.toDebugString(session) + "  id= " + Integer.toHexString(session.channelId()) + "  " + message.length + " bytes");
+                    Common.Logging.i(TAG, "view.session.event.message  " + AirMediaSession.toDebugString(session) + "  id= " + Long.toHexString(session.channelId()) + "  " + message.length + " bytes");
                 }
             };
 

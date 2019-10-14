@@ -37,7 +37,7 @@ interface IAirMediaSession {
     /// CHANNEL
 
     AirMediaSessionConnectionState getChannelState();
-    int getChannelId();
+    long getChannelId();
 
     /// DEVICE
 

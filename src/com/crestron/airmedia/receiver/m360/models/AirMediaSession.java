@@ -33,7 +33,7 @@ public class AirMediaSession extends AirMediaBase {
     public static AirMediaSize from(ViewBase.Size input) { return new AirMediaSize(input.Width, input.Height); }
 
     public static String toDebugString(AirMediaSession session) {
-        return session == null ? "<none>" : "session[" + session.endpoint() + Common.Delimiter + "dev:" + session.deviceId() + Common.Delimiter + "ch:" + Integer.toHexString(session.channelId()) + "]";
+        return session == null ? "<none>" : "session[" + session.endpoint() + Common.Delimiter + "dev:" + session.deviceId() + Common.Delimiter + "ch:" + Long.toHexString(session.channelId()) + "]";
     }
 
     AirMediaSession(IAirMediaSession session, TaskScheduler scheduler) {
@@ -130,19 +130,29 @@ public class AirMediaSession extends AirMediaBase {
             scheduler().raise(deviceStateChanged(), self(), from, to);
         }
 
+        private synchronized void updateVideoType(AirMediaSessionVideoType old, AirMediaSessionVideoType type) {
+            if (old == type) return;
+            Common.Logging.v(TAG, "IAirMediaSessionObserver.updateVideoType  " + AirMediaSession.toDebugString(self()) + "  " + old + "  ==>  " + type);
+        }
+
         @Override
         public void onVideoStateChanged(AirMediaSessionStreamingState from, AirMediaSessionStreamingState to) throws RemoteException {
             Common.Logging.v(TAG, "IAirMediaSessionObserver.onVideoStateChanged  " + AirMediaSession.toDebugString(self()) + "  " + from + "  ==>  " + to);
             videoState_ = to;
-            if (to == AirMediaSessionStreamingState.Starting || to == AirMediaSessionStreamingState.Playing) videoId_ = session_.getVideoId();
+            AirMediaSessionVideoType old = videoType_;
+            videoType_ = session_.getVideoType();
+            if (to == AirMediaSessionStreamingState.Starting || to == AirMediaSessionStreamingState.Playing) {
+                videoId_ = session_.getVideoId();
+            }
             scheduler().raise(videoStateChanged(), self(), from, to);
+            updateVideoType(old, videoType_);
         }
 
         public void onVideoTypeChanged(AirMediaSessionVideoType from, AirMediaSessionVideoType to) throws RemoteException {
             Common.Logging.v(TAG, "IAirMediaSessionObserver.onVideoTypeChanged  " + AirMediaSession.toDebugString(self()) + "  " + from + "  ==>  " + to);
             videoId_ = session_.getVideoId();
             videoType_ = to;
-            scheduler().raise(videoTypeChanged(), self(), from, to);
+            updateVideoType(from, to);
         }
 
         @Override
@@ -247,7 +257,7 @@ public class AirMediaSession extends AirMediaBase {
     private AirMediaSessionStreamingState streaming_ = AirMediaSessionStreamingState.Stopped;
 
     private AirMediaSessionConnectionState channelState_ = AirMediaSessionConnectionState.Disconnected;
-    private int channelId_ = 0;
+    private long channelId_ = 0;
 
     private AirMediaSessionConnectionState deviceState_ = AirMediaSessionConnectionState.Disconnected;
     private String deviceId_;
@@ -331,7 +341,7 @@ public class AirMediaSession extends AirMediaBase {
 
     public AirMediaSessionConnectionState channelState() { return channelState_; }
 
-    public int channelId() { return channelId_; }
+    public long channelId() { return channelId_; }
 
     /// DEVICE
 

@@ -1,7 +1,7 @@
 package com.crestron.airmedia.receiver;
 
-import com.crestron.airmedia.receiver.m360.ipc.AirMediaPlatforms;
 import android.view.Surface;
+import com.crestron.airmedia.receiver.m360.ipc.AirMediaPlatforms;
 
 interface IVideoPlayerObserver {
 
@@ -16,8 +16,8 @@ interface IVideoPlayerObserver {
     oneway void onStateChanged(in long id, in int value);
 
     oneway void onResolutionChanged(in long id, in int width, in int height);
-    
+
     oneway void onSessionReady(in long id, in String device_id, in String device_name, in String device_address, in int port);
-    
-    oneway void infoChanged(in long id, in AirMediaPlatforms platform, in String os, in String version);
+
+    oneway void onInfoChanged(in long id, in AirMediaPlatforms platform, in String os, in String version);
 }
