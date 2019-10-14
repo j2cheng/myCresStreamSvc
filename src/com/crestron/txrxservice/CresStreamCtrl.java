@@ -5168,6 +5168,11 @@ public class CresStreamCtrl extends Service {
     		if (userSettings.getAirMediaUserConnected(i))
     			numberUserConnected++;
     	}
+    	if (numberUserConnected == 0)
+    	{
+    		if (mAirMedia != null)
+    			mAirMedia.clearVideoStateMap();
+    	}
     	
     	return numberUserConnected;
     }
@@ -5178,6 +5183,7 @@ public class CresStreamCtrl extends Service {
     	synchronized (mAirMediaCodeLock) {
     		// TODO: send on update request
         	int numberUserConnected = getAirMediaNumberUserConnected();
+        	Log.v(TAG, "sendAirMediaNumberUserConnected(): airmedia_number_of_users_connected="+numberUserConnected+"    prior number:"+mAirMediaNumberOfUsersConnected);
         	// Dont call if number of users did not change
         	if (numberUserConnected != mAirMediaNumberOfUsersConnected)
         	{

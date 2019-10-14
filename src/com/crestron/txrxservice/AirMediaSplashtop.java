@@ -223,6 +223,16 @@ public class AirMediaSplashtop
     	}
     }
     
+    public void clearVideoStateMap()
+    {
+		synchronized (videoStateMap) {	
+			if (!videoStateMap.isEmpty()) {
+				Common.Logging.w(TAG, "clearVideoStateMap clearing video state map - it should have been empty");
+				videoStateMap.clear();
+			}
+		}
+    }
+    
     public void launchReceiverService()
     {
     	Common.Logging.i(TAG, "launchReceiverService........");
@@ -1742,12 +1752,11 @@ public class AirMediaSplashtop
             mStreamCtl.sendAirMediaUserFeedbacks(user, "", "", 0, false);
 			removeClientData(session);
 			removeSessionVideoState(session);
-			querySenderList(false); // force update of AIRMEDIA_STATUS
         } else {
             Common.Logging.e(TAG, "Got invalid user id: "+String.valueOf(user) + "for " + session);
         }
-		mStreamCtl.sendAirMediaNumberUserConnected();
         removeSessionFromMap(session);
+		querySenderList(false); // force update of AIRMEDIA_STATUS as well as AIRMEDIA_NUMBER_OF_USERS_CONNECTED
     }
     
     public void resetConnections()
