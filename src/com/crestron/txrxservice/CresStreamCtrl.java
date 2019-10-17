@@ -1289,9 +1289,14 @@ public class CresStreamCtrl extends Service {
     
     private boolean isCameraDisabledBySecurity()
     {
-    	String cameraStatus = MiscUtils.readBuildProp("sys.secpolicy.camera.disabled");
-    	Log.i(TAG, "isCameraDisabledBySecurity(): "+cameraStatus);
-    	return (cameraStatus.contains("1")) ? true : false;    	
+    	String cameraCheck1 = MiscUtils.readBuildProp("sys.secpolicy.camera.disabled");
+    	boolean check1 = (cameraCheck1.contains("1")) ? true : false;
+
+        String cameraCheck2 = MiscUtils.readBuildProp("persist.sys.app.camera.disabled");
+        boolean check2 = (cameraCheck2.contains("1")) ? true : false;
+
+        Log.i(TAG, "isCameraDisabledBySecurity(): check 1 " + cameraCheck1 + ", check 2 " + cameraCheck2);
+    	return check1 || check2;
     }
     
     public boolean getCameraDisabled()
