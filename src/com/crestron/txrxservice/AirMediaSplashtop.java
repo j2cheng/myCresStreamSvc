@@ -1504,6 +1504,7 @@ public class AirMediaSplashtop
 
     	int status = 0;  // 0 = no displayed video, 1 = at least 1 video presenting
     	boolean[] sentUserFeedback = null;
+    	AirMediaSessionStreamingState sessionVideoState;
     	//Common.Logging.i(TAG, "Entered querySenderList (sendAllUserFeedback=" + String.valueOf(sendAllUserFeedback) + ")");
 
     	if (sendAllUserFeedback)
@@ -1517,7 +1518,8 @@ public class AirMediaSplashtop
     		AirMediaSession session = user2session(i);
     		if (session != null) {
     			sendSessionFeedback(session);
-    			if (getSessionVideoState(session) == AirMediaSessionStreamingState.Playing)
+    			sessionVideoState = getSessionVideoState(session);
+    			if ((sessionVideoState != AirMediaSessionStreamingState.Stopped) && (sessionVideoState != AirMediaSessionStreamingState.Stopping))
     				status = 1;
     			mStreamCtl.userSettings.setAirMediaUserConnected(true, i);
     			if (sentUserFeedback != null)
