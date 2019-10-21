@@ -11,13 +11,13 @@ interface IAirMediaSessionManagerObserver {
     /// EVENTS
     ////////////////////////////////////////////////////////////////////////////////////////////////
 
-    oneway void onLayoutChanged(in AirMediaSessionScreenLayout from, in AirMediaSessionScreenLayout to);
+    void onLayoutChanged(in AirMediaSessionScreenLayout from, in AirMediaSessionScreenLayout to);
 
     // EnumSet<AirMediaSessionScreenPosition> from = AirMediaSessionScreenPosition.set(from);
     // EnumSet<AirMediaSessionScreenPosition> to = AirMediaSessionScreenPosition.set(to);
-    oneway void onOccupiedChanged(in int from, in int to);
+    void onOccupiedChanged(in int from, in int to);
 
-    oneway void onAdded(in IAirMediaSession session);
+    void onAdded(in IAirMediaSession session);
 
-    oneway void onRemoved(in IAirMediaSession session);
+    void onRemoved(in IAirMediaSession session);
 }

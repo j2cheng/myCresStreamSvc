@@ -110,8 +110,8 @@ public class AirMediaSession extends AirMediaBase {
         @Override
         public void onStreamingChanged(AirMediaSessionStreamingState from, AirMediaSessionStreamingState to) throws RemoteException {
             Common.Logging.v(TAG, "IAirMediaSessionObserver.onStreamingChanged  " + AirMediaSession.toDebugString(self()) + "  " + from + "  ==>  " + to);
-            streaming_ = to;
-            scheduler().raise(streamingChanged(), self(), from, to);
+                streaming_ = to;
+                scheduler().raise(streamingChanged(), self(), from, to);
         }
 
         @Override
@@ -137,15 +137,15 @@ public class AirMediaSession extends AirMediaBase {
 
         @Override
         public void onVideoStateChanged(AirMediaSessionStreamingState from, AirMediaSessionStreamingState to) throws RemoteException {
-            Common.Logging.v(TAG, "IAirMediaSessionObserver.onVideoStateChanged  " + AirMediaSession.toDebugString(self()) + "  " + from + "  ==>  " + to);
-            videoState_ = to;
-            AirMediaSessionVideoType old = videoType_;
-            videoType_ = session_.getVideoType();
-            if (to == AirMediaSessionStreamingState.Starting || to == AirMediaSessionStreamingState.Playing) {
-                videoId_ = session_.getVideoId();
-            }
-            scheduler().raise(videoStateChanged(), self(), from, to);
-            updateVideoType(old, videoType_);
+                Common.Logging.v(TAG, "IAirMediaSessionObserver.onVideoStateChanged  " + AirMediaSession.toDebugString(self()) + "  " + from + "  ==>  " + to);
+                videoState_ = to;
+                AirMediaSessionVideoType old = videoType_;
+                videoType_ = session_.getVideoType();
+                if (to == AirMediaSessionStreamingState.Starting || to == AirMediaSessionStreamingState.Playing) {
+                    videoId_ = session_.getVideoId();
+                }
+                scheduler().raise(videoStateChanged(), self(), from, to);
+                updateVideoType(old, videoType_);
         }
 
         public void onVideoTypeChanged(AirMediaSessionVideoType from, AirMediaSessionVideoType to) throws RemoteException {

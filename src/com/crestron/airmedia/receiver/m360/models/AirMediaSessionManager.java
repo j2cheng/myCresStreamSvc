@@ -21,6 +21,7 @@ import java.util.List;
 
 public class AirMediaSessionManager extends AirMediaBase {
     private static final String TAG = "airmedia.manager";
+    public static final boolean USE_SYNCHRONOUS_ADD_SESSION_EVENT = true;
 
     AirMediaSessionManager(IAirMediaSessionManager manager, TaskScheduler scheduler) {
         super(scheduler);
@@ -59,7 +60,12 @@ public class AirMediaSessionManager extends AirMediaBase {
         @Override
         public void onAdded(IAirMediaSession session) throws RemoteException {
             Common.Logging.d(TAG, "IAirMediaSessionManagerObserver.onAdded  " + session);
-            scheduler().update(new TaskScheduler.PropertyUpdater<IAirMediaSession>() { @Override public void update(IAirMediaSession v) { add(v); } }, session);
+            // need to add immediately, to allow systems down-path to register incoming events
+            if (USE_SYNCHRONOUS_ADD_SESSION_EVENT) {
+                add(session);
+            } else {
+                scheduler().update(new TaskScheduler.PropertyUpdater<IAirMediaSession>() { @Override public void update(IAirMediaSession v) { add(v); } }, session);
+            }
         }
 
         @Override
@@ -212,7 +218,11 @@ public class AirMediaSessionManager extends AirMediaBase {
             session = new AirMediaSession(aidlSession, scheduler());
             sessions_.add(session);
         }
-        scheduler().raise(added(), self(), session);
+        if (USE_SYNCHRONOUS_ADD_SESSION_EVENT) {
+            added().raise(this, session);
+        } else {
+            scheduler().raise(added(), self(), session);
+        }
     }
 
     private void remove(IAirMediaSession aidlSession) {

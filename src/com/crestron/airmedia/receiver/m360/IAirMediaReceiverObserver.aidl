@@ -13,33 +13,33 @@ interface IAirMediaReceiverObserver {
     /// EVENTS
     ////////////////////////////////////////////////////////////////////////////////////////////////
 
-    oneway void onLoadedChanged(in AirMediaReceiverLoadedState from, in AirMediaReceiverLoadedState to);
+    void onLoadedChanged(in AirMediaReceiverLoadedState from, in AirMediaReceiverLoadedState to);
 
-    oneway void onProductChanged(in String from, in String to);
+    void onProductChanged(in String from, in String to);
 
-    oneway void onStateChanged(in AirMediaReceiverState from, in AirMediaReceiverState to, in int reason);
+    void onStateChanged(in AirMediaReceiverState from, in AirMediaReceiverState to, in int reason);
 
-    oneway void onMirroringAssistChanged(in AirMediaReceiverMirroringAssist from, in AirMediaReceiverMirroringAssist to);
+    void onMirroringAssistChanged(in AirMediaReceiverMirroringAssist from, in AirMediaReceiverMirroringAssist to);
 
-    oneway void onAdapterAddressChanged(in String from, in String to);
+    void onAdapterAddressChanged(in String from, in String to);
 
-    oneway void onServerNameChanged(in String from, in String to);
+    void onServerNameChanged(in String from, in String to);
 
-    oneway void onServerPasswordChanged(in String from, in String to);
+    void onServerPasswordChanged(in String from, in String to);
 
-    oneway void onBonjourChanged(in boolean to);
+    void onBonjourChanged(in boolean to);
 
-    oneway void onDisplayResolutionChanged(in AirMediaSize from, in AirMediaSize to);
+    void onDisplayResolutionChanged(in AirMediaSize from, in AirMediaSize to);
 
-    oneway void onMaxResolutionChanged(in AirMediaReceiverResolutionMode from, in AirMediaReceiverResolutionMode to);
+    void onMaxResolutionChanged(in AirMediaReceiverResolutionMode from, in AirMediaReceiverResolutionMode to);
 
-    oneway void onForceCompatibilityChanged(in boolean to);
+    void onForceCompatibilityChanged(in boolean to);
 
-    oneway void onDebugModeChanged(in boolean to);
+    void onDebugModeChanged(in boolean to);
 
-    oneway void onProjectionLockedChanged(in boolean to);
+    void onProjectionLockedChanged(in boolean to);
 
-    oneway void onVolumeSupportChanged(in boolean to);
+    void onVolumeSupportChanged(in boolean to);
 
-    oneway void onVolumePropertiesChanged(in AirMediaReceiverVolume from, in AirMediaReceiverVolume to);
+    void onVolumePropertiesChanged(in AirMediaReceiverVolume from, in AirMediaReceiverVolume to);
 }

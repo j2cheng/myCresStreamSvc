@@ -4,7 +4,7 @@ import android.os.Parcel;
 import android.os.Parcelable;
 
 public enum AirMediaSessionStreamingState implements Parcelable {
-    Stopped(0), Starting(1), Playing(2), Pausing(3), Paused(4), Stopping(5);
+    Stopped(0), Starting(1), Playing(2), Pausing(3), Paused(4), Stopping(5), UnPausing(6);
     public final int value;
 
     AirMediaSessionStreamingState(int v) { value = v; }
@@ -33,6 +33,7 @@ public enum AirMediaSessionStreamingState implements Parcelable {
             case 3: return Pausing;
             case 4: return Paused;
             case 5: return Stopping;
+            case 6: return UnPausing;
         }
         return Stopped;
     }

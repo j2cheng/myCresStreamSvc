@@ -16,51 +16,51 @@ interface IAirMediaSessionObserver {
     /// EVENTS
     ////////////////////////////////////////////////////////////////////////////////////////////////
 
-    oneway void onUsernameChanged(in String from, in String to);
+    void onUsernameChanged(in String from, in String to);
 
-    oneway void onAddressesChanged(in String[] from, in String[] to);
+    void onAddressesChanged(in String[] from, in String[] to);
 
     /// INFO
 
-    oneway void onInfoChanged(in AirMediaSessionInfo from, in AirMediaSessionInfo to);
+    void onInfoChanged(in AirMediaSessionInfo from, in AirMediaSessionInfo to);
 
     /// STATE
 
-    oneway void onConnectionChanged(in AirMediaSessionConnectionState from, in AirMediaSessionConnectionState to);
+    void onConnectionChanged(in AirMediaSessionConnectionState from, in AirMediaSessionConnectionState to);
 
-    oneway void onStreamingChanged(in AirMediaSessionStreamingState from, in AirMediaSessionStreamingState to);
+    void onStreamingChanged(in AirMediaSessionStreamingState from, in AirMediaSessionStreamingState to);
 
     /// CHANNEL
 
-    oneway void onChannelStateChanged(in AirMediaSessionConnectionState from, in AirMediaSessionConnectionState to);
+    void onChannelStateChanged(in AirMediaSessionConnectionState from, in AirMediaSessionConnectionState to);
 
     /// DEVICE
 
-    oneway void onDeviceStateChanged(in AirMediaSessionConnectionState from, in AirMediaSessionConnectionState to);
+    void onDeviceStateChanged(in AirMediaSessionConnectionState from, in AirMediaSessionConnectionState to);
 
     /// VIDEO
 
-    oneway void onVideoStateChanged(in AirMediaSessionStreamingState from, in AirMediaSessionStreamingState to);
-    oneway void onVideoTypeChanged(in AirMediaSessionVideoType from, in AirMediaSessionVideoType to);
-    oneway void onVideoResolutionChanged(in AirMediaSize from, in AirMediaSize to);
-    oneway void onVideoRotationChanged(in int from, in int to);
-    oneway void onVideoSurfaceChanged(in Surface from, in Surface to);
-    oneway void onVideoDrmChanged(in boolean to);
-    oneway void onVideoLoadingChanged(in boolean to);
-    oneway void onVideoScreenPositionChanged(in AirMediaSessionScreenPosition from, in AirMediaSessionScreenPosition to);
+    void onVideoStateChanged(in AirMediaSessionStreamingState from, in AirMediaSessionStreamingState to);
+    void onVideoTypeChanged(in AirMediaSessionVideoType from, in AirMediaSessionVideoType to);
+    void onVideoResolutionChanged(in AirMediaSize from, in AirMediaSize to);
+    void onVideoRotationChanged(in int from, in int to);
+    void onVideoSurfaceChanged(in Surface from, in Surface to);
+    void onVideoDrmChanged(in boolean to);
+    void onVideoLoadingChanged(in boolean to);
+    void onVideoScreenPositionChanged(in AirMediaSessionScreenPosition from, in AirMediaSessionScreenPosition to);
 
     /// AUDIO
 
-    oneway void onAudioStateChanged(in AirMediaSessionStreamingState from, in AirMediaSessionStreamingState to);
-    oneway void onAudioMuteChanged(in boolean to);
-    oneway void onAudioVolumeChanged(in float from, in float to);
+    void onAudioStateChanged(in AirMediaSessionStreamingState from, in AirMediaSessionStreamingState to);
+    void onAudioMuteChanged(in boolean to);
+    void onAudioVolumeChanged(in float from, in float to);
 
     /// PHOTO
 
-    oneway void onPhotoChanged(in Bitmap from, in Bitmap to);
+    void onPhotoChanged(in Bitmap from, in Bitmap to);
 
     /// REMOTE AUDIO
 
-    oneway void onRemoteAudioMuteChanged(in boolean to);
-    oneway void onRemoteAudioVolumeChanged(in float from, in float to);
+    void onRemoteAudioMuteChanged(in boolean to);
+    void onRemoteAudioVolumeChanged(in float from, in float to);
 }

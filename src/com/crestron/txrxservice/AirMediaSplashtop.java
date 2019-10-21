@@ -1729,7 +1729,9 @@ public class AirMediaSplashtop
     {
 		Common.Logging.i(TAG, "addSession " + session);
         int user = addSessionToMap(session);
-        setSessionVideoState(session, session.videoState());
+        // To avoid JIRA AMX00-1138 when AirMediaSessionManager.USE_SYNCHRONOUS_ADD_SESSION_EVENT is false
+        if (!AirMediaSessionManager.USE_SYNCHRONOUS_ADD_SESSION_EVENT)
+        	setSessionVideoState(session, session.videoState());
         Common.Logging.i(TAG, "User id: "+String.valueOf(user)+"  Connected: "+String.valueOf(getSessionVideoState(session) == AirMediaSessionStreamingState.Playing));
 		Common.Logging.i(TAG, "Adding Id to map, userId: " + user + " session: " + session);
 		if ((user > 0) && (user <= MAX_USERS))
