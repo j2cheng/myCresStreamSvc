@@ -1706,6 +1706,7 @@ void build_http_pipeline(CREGSTREAM *data, int iStreamId)
         
         g_object_set(G_OBJECT(data->element_zero), "is-live", 1, NULL);
         g_object_set(G_OBJECT(data->element_zero), "do-timestamp", 1, NULL);
+		g_object_set(G_OBJECT(data->element_zero), "iradio-mode", 0, NULL ); // to stop icy-metadata header in GET request
         gst_bin_add(GST_BIN(data->pipeline), data->element_zero);
         build_video_pipeline("image/jpeg", data, 0, 0,&ele0,&sinker);
         gst_element_link_many(data->element_zero, data->element_v[0], NULL);
