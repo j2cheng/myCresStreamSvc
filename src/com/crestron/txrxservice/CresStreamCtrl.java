@@ -3763,6 +3763,7 @@ public class CresStreamCtrl extends Service {
 			return;
 		int chromaKeyColor = userSettings.getChromaKeyColor();
 		fillSurface(sessId, chromaKeyColor);
+		Log.v(TAG, "startChromaKeyStream: sessId="+sessId+" chromaKeyColor= 0x"+Integer.toHexString(chromaKeyColor));
 		SendStreamState(StreamState.STARTED, sessId);
     }
 
@@ -3772,6 +3773,7 @@ public class CresStreamCtrl extends Service {
 		if (serviceMode != ServiceMode.Slave)
 			return;
 		fillSurface(sessId, 0);
+		Log.v(TAG, "stopChromaKeyStream: sessId="+sessId+" chromaKeyColor= 0");
 		SendStreamState(StreamState.STOPPED, sessId);
     }
 

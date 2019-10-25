@@ -168,6 +168,7 @@ public class ProductSpecific
 		DisplaySettingManager.setDisplayDiscardColorEnable(0);				
 		if(!enable)
 		{
+		    Log.i(TAG,"X70 Set chromakey enable to false.");
 			return;
 		}
 		File file = new File("/dev/crestron/gstreamerChromaKey");		
@@ -185,7 +186,7 @@ public class ProductSpecific
 				red = (value >> 16) & 0xff;
 				green = (value >> 8) & 0xff;
 				blue = value & 0xff;
-				Log.e(TAG,"X70 Setting chromakey color to " + red + "," + green + "," + blue);
+				Log.i(TAG,"X70 Setting chromakey color to " + red + "," + green + "," + blue);
 				DisplaySettingManager.setDisplayDiscardColor(red, green, blue);
 				DisplaySettingManager.setDisplayDiscardColorEnable(1);				
 			}
