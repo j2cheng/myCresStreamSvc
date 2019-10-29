@@ -2570,7 +2570,7 @@ public class CresStreamCtrl extends Service {
 			else
 			{
 				Display display = wm.getDefaultDisplay();
-				display.getSize(size);
+				display.getRealSize(size);
 				hdmiOutputResolution.refreshRate = display.getRefreshRate();
 			}
 
@@ -2582,7 +2582,7 @@ public class CresStreamCtrl extends Service {
 			wm = (WindowManager) this.getSystemService(Context.WINDOW_SERVICE);
 			Display display = wm.getDefaultDisplay();
 			Point size = new Point();
-			display.getSize(size);
+			display.getRealSize(size);
 
 			hdmiOutputResolution.width = size.x;
 			hdmiOutputResolution.height = size.y;
@@ -6135,7 +6135,7 @@ public class CresStreamCtrl extends Service {
 		if (wm != null)
 		{
 			Display display = wm.getDefaultDisplay();
-			display.getSize(retVal);
+			display.getRealSize(retVal);
 		}
 		else
 		{
