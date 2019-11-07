@@ -3037,7 +3037,7 @@ public class CresStreamCtrl extends Service {
     					Boolean.parseBoolean(hdmiOutput.getSyncStatus()) ||
     					(userSettings.getMode(sessionId) == DeviceMode.STREAM_OUT.ordinal()) )
     			{
-    				ProductSpecific.doChromakey(true);
+    				ProductSpecific.doChromakey((serviceMode != ServiceMode.Slave) ? true : false);
 
     				StreamState curStreamState = getCurrentStreamState(sessionId);
     				if ((curStreamState != StreamState.STARTED) && (curStreamState != StreamState.STREAMERREADY))
