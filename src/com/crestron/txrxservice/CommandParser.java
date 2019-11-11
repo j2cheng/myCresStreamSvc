@@ -15,7 +15,7 @@ public class CommandParser {
     CommandInvoker invoke;
     CommandIf cmd ; 
     CresStreamCtrl ctrl;
-    HashMap <CmdTable, CommandIf> cmdHashMap;
+    HashMap <String, CommandIf> cmdHashMap;
 
     public enum CmdTable {
         MODE,
@@ -214,7 +214,7 @@ public class CommandParser {
         tokenizer = new StringTokenizer();
         invoke = new CommandInvoker();
         ctrl = a_crestctrl;
-        cmdHashMap = new HashMap<CmdTable, CommandIf>();	//update request will fill in hashmap values
+        cmdHashMap = new HashMap<String, CommandIf>();	//update request will fill in hashmap values
     }
     
     public String validateReceivedMessage(String read){
@@ -300,9 +300,11 @@ public class CommandParser {
     
     CommandIf ProcCommand (String msg, String arg, int idx){
     	CmdTable temp = CmdTable.valueOf(msg);	//check if command is in hashMap
-    	if (cmdHashMap.containsKey(temp))		//if so, return value
+        // Need to make sure each streamId has a unique object since the streamId joinQueues are processed in parallel
+    	String key=String.valueOf(temp)+String.valueOf(idx);
+    	if (cmdHashMap.containsKey(key))		//if so, return value
     	{
-    		CrestronCommand cmd = (CrestronCommand)cmdHashMap.get(temp);
+    		CrestronCommand cmd = (CrestronCommand)cmdHashMap.get(key);
     		if (cmd != null)
     		{
     			cmd.setVars(arg, idx);				// Make sure to set new value and stream ID
@@ -312,7 +314,7 @@ public class CommandParser {
     	
     	CommandIf cmd = null;
     	cmd = ProcCommandSwitchTable(msg, arg, idx);		//if not in hashMap, use switch table to add to hashmap
-    	cmdHashMap.put(temp, cmd);
+    	cmdHashMap.put(key, cmd);
     	return cmd;								
     }
 

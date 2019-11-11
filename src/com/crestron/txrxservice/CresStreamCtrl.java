@@ -3442,7 +3442,7 @@ public class CresStreamCtrl extends Service {
     {
 		if (serviceMode == ServiceMode.Slave)
 			return;
-    	Log.i(TAG, "Splashtop: Window showing");
+    	Log.i(TAG, "Splashtop: Window showing " + sessId);
     	if (use_texture)
     	{
     		showTextureWindow(sessId);
@@ -3455,7 +3455,7 @@ public class CresStreamCtrl extends Service {
     {
 		if (serviceMode == ServiceMode.Slave)
 			return;
-    	Log.i(TAG, "Splashtop: Window hidden");
+    	Log.i(TAG, "Splashtop: Window hidden " + sessId);
     	if (use_texture)
     	{
     		hideTextureWindow(sessId);
@@ -3468,7 +3468,7 @@ public class CresStreamCtrl extends Service {
     {
 		if (serviceMode == ServiceMode.Slave)
 			return;
-    	Log.i(TAG, "Preview Window hidden");
+    	Log.i(TAG, "Preview Window hidden " + sessId);
     	hideWindow(sessId);
     }
     
@@ -3476,7 +3476,7 @@ public class CresStreamCtrl extends Service {
     {
 		if (serviceMode == ServiceMode.Slave)
 			return;
-        Log.i(TAG, "Preview Window showing");
+        Log.i(TAG, "Preview Window showing " + sessId);
         showWindow(sessId);
     }
 
@@ -3501,7 +3501,7 @@ public class CresStreamCtrl extends Service {
     {
 		if (serviceMode == ServiceMode.Slave)
 			return;
-    	Log.i(TAG, "Wbs Window showing");
+    	Log.i(TAG, "Wbs Window showing " + sessId);
     	if (wbsStream.useSurfaceTexture)
     	{
     		showTextureWindow(sessId);
@@ -3514,7 +3514,7 @@ public class CresStreamCtrl extends Service {
     {
 		if (serviceMode == ServiceMode.Slave)
 			return;
-    	Log.i(TAG, "Wbs Window hidden");
+    	Log.i(TAG, "Wbs Window hidden " + sessId);
     	if (wbsStream.useSurfaceTexture)
     	{
     		hideTextureWindow(sessId);

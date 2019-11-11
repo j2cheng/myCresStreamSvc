@@ -634,6 +634,7 @@ class StartCommand extends CrestronCommand {
 				ctrl.userSettings.setUserRequestedStreamState(StreamState.STARTED, sessId);
 				ctrl.Start(sessId);
 			}
+    		Log.i(TAG, "executeStart: sessId="+sessId+"  completed");
         }
         public String getFeedbackMsg() {
             return ctrl.getStartStatus();
@@ -656,6 +657,7 @@ class StopCommand extends CrestronCommand {
 				ctrl.userSettings.setUserRequestedStreamState(StreamState.STOPPED, sessId);
 				ctrl.Stop(sessId, fullStop);
 			}
+    		Log.i(TAG, "executeStop: sessId="+sessId+"  completed");
         }
         public String getFeedbackMsg() {
             return ctrl.getStopStatus();
