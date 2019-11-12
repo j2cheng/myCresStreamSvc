@@ -326,7 +326,7 @@ static void pad_added_callback2 (GstElement *src, GstPad *new_pad, CREGSTREAM *d
 	gst_object_unref(sink_pad);
     gst_caps_unref(new_pad_caps);
 }
-unsigned short savedSeqNum = 0;
+unsigned short savedSeqNum[4] = {0};
 unsigned short debugPrintSeqNum = 0;
 GstPadProbeReturn udpsrcProbe(GstPad *pad, GstPadProbeInfo *info, gpointer user_data)
 {
@@ -361,14 +361,16 @@ GstPadProbeReturn udpsrcProbe(GstPad *pad, GstPadProbeInfo *info, gpointer user_
                      ((char*)&lnNewSeqNum)[0] = lpnReversedSeqNum[1];
                      ((char*)&lnNewSeqNum)[1] = lpnReversedSeqNum[0];
 
-
-                     if( savedSeqNum != 65535 && (lnNewSeqNum - savedSeqNum) != 1)
+                     if(data->streamId < 4)
                      {
-                         CSIO_LOG(eLogLevel_debug,"Error expect sequence number: %d, gap is [%d]\n",
-                                  savedSeqNum+1,(lnNewSeqNum - savedSeqNum));
-                     }
+                         if( savedSeqNum[data->streamId] != 65535 && (lnNewSeqNum - savedSeqNum[data->streamId]) != 1)
+                         {
+                             CSIO_LOG(eLogLevel_debug,"Stream[%d]: Error expect sequence number: %d, actual number: %d, gap is [%d]\n",
+                                 data->streamId, savedSeqNum[data->streamId]+1, lnNewSeqNum, (lnNewSeqNum - savedSeqNum[data->streamId]));
+                         }
 
-                     savedSeqNum = lnNewSeqNum;
+                         savedSeqNum[data->streamId] = lnNewSeqNum;
+                     }
                 }
 
                 gst_buffer_unmap(lpsBuffer, &lsMap);
@@ -1255,6 +1257,11 @@ int build_video_pipeline(gchar *encoding_name, CREGSTREAM *data, unsigned int st
         g_object_set(G_OBJECT(data->element_v[i-1]), "surface-window", data->surface, NULL);
         CSIO_LOG(eLogLevel_debug, "%s: SET surface-window[0x%x][%d]",__FUNCTION__,data->surface,data->surface);
 
+        //Disable frame delay limit
+        guint64 push_delay_max = 0;
+        g_object_set(G_OBJECT(data->amcvid_dec), "push-delay-max", push_delay_max, NULL);
+        CSIO_LOG(eLogLevel_debug, "%s: SET push-delay-max to [%llu]",__FUNCTION__, push_delay_max);
+
         *ele0 = data->element_v[0];
 
         if(data->amcvid_dec && csio_GetWaitDecHas1stVidDelay(data->streamId) == 0)
@@ -1360,6 +1367,11 @@ int build_video_pipeline(gchar *encoding_name, CREGSTREAM *data, unsigned int st
 			g_object_set(G_OBJECT(data->element_v[i-1]), "surface-window", data->surface, NULL);
 			CSIO_LOG(eLogLevel_debug, "SET surface-window[0x%x][%d]",data->surface,data->surface);
 
+	        //Disable frame delay limit
+	        guint64 push_delay_max = 0;
+	        g_object_set(G_OBJECT(data->amcvid_dec), "push-delay-max", push_delay_max, NULL);
+	        CSIO_LOG(eLogLevel_debug, "%s: SET push-delay-max to [%llu]",__FUNCTION__, push_delay_max);
+
 			*ele0 = data->element_v[0];
 
 			if(data->amcvid_dec && csio_GetWaitDecHas1stVidDelay(data->streamId) == 0)
@@ -1404,6 +1416,11 @@ int build_video_pipeline(gchar *encoding_name, CREGSTREAM *data, unsigned int st
 		//pass surface object to the decoder
 		g_object_set(G_OBJECT(data->element_v[i-1]), "surface-window", data->surface, NULL);
 		CSIO_LOG(eLogLevel_debug, "SET surface-window[0x%x][%d]",data->surface,data->surface);
+
+        //Disable frame delay limit
+        guint64 push_delay_max = 0;
+        g_object_set(G_OBJECT(data->amcvid_dec), "push-delay-max", push_delay_max, NULL);
+        CSIO_LOG(eLogLevel_debug, "%s: SET push-delay-max to [%llu]",__FUNCTION__, push_delay_max);
 
 		*ele0 = data->element_v[0];
 	}
