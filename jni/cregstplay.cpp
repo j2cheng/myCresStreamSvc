@@ -1257,11 +1257,6 @@ int build_video_pipeline(gchar *encoding_name, CREGSTREAM *data, unsigned int st
         g_object_set(G_OBJECT(data->element_v[i-1]), "surface-window", data->surface, NULL);
         CSIO_LOG(eLogLevel_debug, "%s: SET surface-window[0x%x][%d]",__FUNCTION__,data->surface,data->surface);
 
-        //Disable frame delay limit
-        guint64 push_delay_max = 0;
-        g_object_set(G_OBJECT(data->amcvid_dec), "push-delay-max", push_delay_max, NULL);
-        CSIO_LOG(eLogLevel_debug, "%s: SET push-delay-max to [%llu]",__FUNCTION__, push_delay_max);
-
         *ele0 = data->element_v[0];
 
         if(data->amcvid_dec && csio_GetWaitDecHas1stVidDelay(data->streamId) == 0)
@@ -1367,11 +1362,6 @@ int build_video_pipeline(gchar *encoding_name, CREGSTREAM *data, unsigned int st
 			g_object_set(G_OBJECT(data->element_v[i-1]), "surface-window", data->surface, NULL);
 			CSIO_LOG(eLogLevel_debug, "SET surface-window[0x%x][%d]",data->surface,data->surface);
 
-	        //Disable frame delay limit
-	        guint64 push_delay_max = 0;
-	        g_object_set(G_OBJECT(data->amcvid_dec), "push-delay-max", push_delay_max, NULL);
-	        CSIO_LOG(eLogLevel_debug, "%s: SET push-delay-max to [%llu]",__FUNCTION__, push_delay_max);
-
 			*ele0 = data->element_v[0];
 
 			if(data->amcvid_dec && csio_GetWaitDecHas1stVidDelay(data->streamId) == 0)
@@ -1416,11 +1406,6 @@ int build_video_pipeline(gchar *encoding_name, CREGSTREAM *data, unsigned int st
 		//pass surface object to the decoder
 		g_object_set(G_OBJECT(data->element_v[i-1]), "surface-window", data->surface, NULL);
 		CSIO_LOG(eLogLevel_debug, "SET surface-window[0x%x][%d]",data->surface,data->surface);
-
-        //Disable frame delay limit
-        guint64 push_delay_max = 0;
-        g_object_set(G_OBJECT(data->amcvid_dec), "push-delay-max", push_delay_max, NULL);
-        CSIO_LOG(eLogLevel_debug, "%s: SET push-delay-max to [%llu]",__FUNCTION__, push_delay_max);
 
 		*ele0 = data->element_v[0];
 	}
