@@ -687,14 +687,19 @@ public class CresDisplaySurfaceMaster implements CresDisplaySurface
     
 	// invalidates parent layout
     public void forceParentLayoutInvalidation() {
-        parentlayout.bringToFront();
+    	// Removing bringToFront for X70 onwards
+    	if (android.os.Build.VERSION.SDK_INT < android.os.Build.VERSION_CODES.O_MR1) {
+    		parentlayout.bringToFront();
+    	}
         parentlayout.invalidate();
         parentlayout.requestLayout();
     }
     
 	// invalidates layout
     private void forceLayoutInvalidation(RelativeLayout layout) {
-    	layout.bringToFront();
+    	if (android.os.Build.VERSION.SDK_INT < android.os.Build.VERSION_CODES.O_MR1) {
+    		layout.bringToFront();
+    	}
     	layout.invalidate();
         layout.requestLayout();
     }
@@ -820,7 +825,12 @@ public class CresDisplaySurfaceMaster implements CresDisplaySurface
      */
     public void HideWindow(int idx)
     {
-    	displaySurface[idx].setVisibility(View.INVISIBLE);
+    	if (android.os.Build.VERSION.SDK_INT >= android.os.Build.VERSION_CODES.O_MR1) {
+    		Log.i(TAG, "HideWindow() move surfaceview off screen");
+    		updateWindow(-32, -20, 32, 18, idx, false);
+    	} else {
+    		displaySurface[idx].setVisibility(View.INVISIBLE);
+    	}
     	useTextureView[idx] = false;
     	LogVisibility(MiscUtils.stringFormat("HideWindow-%d", idx));
     }
@@ -833,7 +843,7 @@ public class CresDisplaySurfaceMaster implements CresDisplaySurface
     	displaySurface[idx].setVisibility(View.VISIBLE);
     	useTextureView[idx] = false;
     	LogVisibility(MiscUtils.stringFormat("ShowWindow-%d", idx));
-   }
+    }
     
 	// Call this function with streams stopped
     public void updateZOrder(Integer[][] zOrder)
