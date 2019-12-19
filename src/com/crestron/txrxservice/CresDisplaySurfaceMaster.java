@@ -688,7 +688,7 @@ public class CresDisplaySurfaceMaster implements CresDisplaySurface
 	// invalidates parent layout
     public void forceParentLayoutInvalidation() {
     	// Removing bringToFront for X70 onwards
-    	if (android.os.Build.VERSION.SDK_INT < android.os.Build.VERSION_CODES.O_MR1) {
+    	if (android.os.Build.VERSION.SDK_INT < 27 /*android.os.Build.VERSION_CODES.O_MR1*/) {
     		parentlayout.bringToFront();
     	}
         parentlayout.invalidate();
@@ -697,7 +697,7 @@ public class CresDisplaySurfaceMaster implements CresDisplaySurface
     
 	// invalidates layout
     private void forceLayoutInvalidation(RelativeLayout layout) {
-    	if (android.os.Build.VERSION.SDK_INT < android.os.Build.VERSION_CODES.O_MR1) {
+    	if (android.os.Build.VERSION.SDK_INT < 27 /*android.os.Build.VERSION_CODES.O_MR1*/) {
     		layout.bringToFront();
     	}
     	layout.invalidate();
@@ -825,7 +825,7 @@ public class CresDisplaySurfaceMaster implements CresDisplaySurface
      */
     public void HideWindow(int idx)
     {
-    	if (android.os.Build.VERSION.SDK_INT >= android.os.Build.VERSION_CODES.O_MR1) {
+    	if (android.os.Build.VERSION.SDK_INT >= 27 /*android.os.Build.VERSION_CODES.O_MR1*/) {
     		Log.i(TAG, "HideWindow() move surfaceview off screen");
     		updateWindow(-32, -20, 32, 18, idx, false);
     	} else {
