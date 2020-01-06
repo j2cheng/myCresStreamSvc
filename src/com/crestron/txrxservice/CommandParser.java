@@ -179,6 +179,7 @@ public class CommandParser {
         AIRMEDIA_PROCESS_DEBUG_MESSAGE,
         AIRMEDIA_IS_CERTIFICATE_REQUIRED,
         AIRMEDIA_ONLY_ALLOW_SECURE_CONNECTIONS,
+        AIRMEDIA_SECURE_LANDING_PAGE_ENABLED,
         AIRMEDIA_CLEAR_CACHE,
         
         // Camera Streaming Slot
@@ -767,6 +768,9 @@ public class CommandParser {
             	break;
             case AIRMEDIA_ONLY_ALLOW_SECURE_CONNECTIONS:
             	cmd = new AirMediaOnlyAllowSecureConnectionsCommand(ctrl, arg);
+            	break;
+            case AIRMEDIA_SECURE_LANDING_PAGE_ENABLED:
+            	cmd = new AirMediaSecureLandingPageEnabledCommand(ctrl, arg);
             	break;
             case AIRMEDIA_CLEAR_CACHE:
             	cmd = new AirMediaClearCacheCommand(ctrl, arg);

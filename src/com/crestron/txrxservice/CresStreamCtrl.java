@@ -4652,6 +4652,12 @@ public class CresStreamCtrl extends Service {
     	}
     }
     
+    public void setAirMediaSecureLandingPageEnabled(boolean enable)
+    {
+    	userSettings.setAirMediaSecureLandingPageEnabled(enable);
+    	sendAirMediaConnectionAddress();
+    }
+    
     public void setAirMediaDebug(String debugCommand)
     {
     	if (mAirMedia != null)
@@ -4768,7 +4774,7 @@ public class CresStreamCtrl extends Service {
     		return "";
     	}
     	StringBuilder url = new StringBuilder(512);
-        url.append("http://");
+        url.append(userSettings.getAirMediaSecureLandingPageEnabled() ? "https://" : "http://");
 		String ipAddr = getAirMediaConnectionIpAddress();    		
     	switch (userSettings.getAirMediaDisplayConnectionOption())
     	{

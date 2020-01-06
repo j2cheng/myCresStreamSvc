@@ -224,6 +224,7 @@ public class UserSettings
 	private boolean[] airMediaStopUser;
 	boolean airMediaIsCertificateRequired;
 	boolean airMediaOnlyAllowSecureConnections;
+	boolean airMediaSecureLandingPageEnabled;
 	private String airMediaOsdImage;
 	private boolean airMediaIpAddressPrompt;
 	private boolean airMediaDomainNamePrompt;
@@ -346,6 +347,7 @@ public class UserSettings
 		airMediaUserConnected = initBoolArray(false, 32);
 		airMediaIsCertificateRequired = false;
 		airMediaOnlyAllowSecureConnections = false;
+		airMediaSecureLandingPageEnabled = false;
 		airMediaOsdImage	= "";
 		airMediaX			= 0;
 		airMediaY			= 0;
@@ -1197,6 +1199,14 @@ public class UserSettings
 		this.airMediaOnlyAllowSecureConnections = enable;
 	}	
 
+	public boolean getAirMediaSecureLandingPageEnabled() {
+		return airMediaSecureLandingPageEnabled;
+	}
+	
+	public void setAirMediaSecureLandingPageEnabled(boolean enable) {
+		this.airMediaSecureLandingPageEnabled = enable;
+	}	
+	
 	public boolean getAirMediaResetConnections() {
 		return airMediaResetConnections;
 	}

@@ -2251,6 +2251,16 @@ class AirMediaOnlyAllowSecureConnectionsCommand extends CrestronCommand {
 	// No feedback
 }
 
+class AirMediaSecureLandingPageEnabledCommand extends CrestronCommand {
+	public AirMediaSecureLandingPageEnabledCommand(CresStreamCtrl ctrl, String arg) {
+		super(ctrl, arg);
+	}	
+	public void execute() {
+		ctrl.setAirMediaSecureLandingPageEnabled(Boolean.valueOf(msg));
+	}
+	// No feedback
+}
+
 class AirMediaClearCacheCommand extends CrestronCommand {
 	public AirMediaClearCacheCommand(CresStreamCtrl ctrl, String arg) {
 		super(ctrl, arg);
