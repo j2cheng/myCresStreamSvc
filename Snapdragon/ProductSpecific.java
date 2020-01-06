@@ -5,6 +5,9 @@ import java.io.File;
 import java.io.FileReader;
 import java.io.IOException;
 
+import android.content.Context;
+import android.content.Intent;
+import android.os.Build;
 import android.util.Log;
 import android.graphics.ImageFormat;
 import android.hardware.Camera;
@@ -16,6 +19,17 @@ import com.droideic.app.DisplaySettingManager;
 public class ProductSpecific
 {	
     static String TAG = "Snapdragon ProductSpecific";
+
+	// ******************* LaunchApp.java *******************
+	public static void startForegroundService(Context ctx, Intent intent)
+	{
+		if (Build.VERSION.SDK_INT >= 27 /*Build.VERSION_CODES.O*/) {
+			ctx.startForegroundService(intent);
+		}
+		else {
+			ctx.startService(intent);
+		}
+	}
 
 	// ******************* CameraStreaming.java *******************
 	public static void setEncoderFps(Camera camera, int encoderFps, int hdmiInFps)

@@ -2,6 +2,8 @@ package com.crestron.txrxservice;
 
 import java.io.File;
 
+import android.content.Context;
+import android.content.Intent;
 import android.view.Surface;
 import android.view.Surface.PhysicalDisplayInfo;
 import android.graphics.ImageFormat;
@@ -14,6 +16,12 @@ import android.util.Log;
 public class ProductSpecific
 {
     static String TAG = "OMAP5 ProductSpecific";
+
+	// ******************* LaunchApp.java *******************
+	public static void startForegroundService(Context ctx, Intent intent)
+	{
+		ctx.startService(intent);
+	}
 
 	// ******************* CameraStreaming.java *******************
 	public static void setEncoderFps(Camera camera, int encoderFps, int hdmiInFps)

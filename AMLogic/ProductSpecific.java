@@ -5,6 +5,8 @@ import java.io.File;
 import java.io.FileReader;
 import java.io.IOException;
 
+import android.content.Context;
+import android.content.Intent;
 import android.util.Log;
 import android.graphics.ImageFormat;
 import android.hardware.Camera;
@@ -16,6 +18,12 @@ import com.droidlogic.app.DisplaySettingManager;
 public class ProductSpecific
 {	
     static String TAG = "X60 ProductSpecific";
+
+	/// ******************* LaunchApp.java *******************
+	public static void startForegroundService(Context ctx, Intent intent)
+	{
+		ctx.startService(intent);
+	}
 
 	// ******************* CameraStreaming.java *******************
 	public static void setEncoderFps(Camera camera, int encoderFps, int hdmiInFps)
