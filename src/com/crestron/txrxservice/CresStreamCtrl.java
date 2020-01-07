@@ -788,6 +788,9 @@ public class CresStreamCtrl extends Service {
     			}
     		}
  
+    		// initialize display manager for static access
+    		mProductSpecific.getInstance().initialize(this);
+ 
     		// This must happen before we receive the initial service mode from csio once TCP interface is up.
     		// If service mode from csio differs from our setting, a request to restart the service will be sent to csio
 			serviceMode = ServiceMode.getServiceModeFromInt(userSettings.getServiceMode());

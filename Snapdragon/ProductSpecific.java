@@ -14,10 +14,45 @@ import android.hardware.Camera;
 import android.media.MediaPlayer;
 import android.media.MediaRecorder;
 import android.view.Surface;
+import android.content.Context;
+import android.app.Activity;
 import com.droideic.app.DisplaySettingManager;
 
 public class ProductSpecific
 {	
+    private static ProductSpecific mInstance;
+    private Context context;
+
+    public static ProductSpecific getInstance()
+    {
+        if (mInstance == null) 
+        {
+            mInstance = getSync();
+        }
+        
+        return mInstance;
+    }
+
+    private static synchronized ProductSpecific getSync()
+    {
+        if (mInstance == null) 
+        {
+            mInstance = new ProductSpecific();
+        }
+        
+        return mInstance;
+    }
+
+    public void initialize(Context context) 
+    {
+        this.context = context;
+    }
+
+    public Context getApplicationContext() 
+    {
+        return context;
+    }
+    
     static String TAG = "Snapdragon ProductSpecific";
 
 	// ******************* LaunchApp.java *******************
@@ -179,7 +214,14 @@ public class ProductSpecific
 
 	public static void doChromakey(boolean enable)
 	{
-		DisplaySettingManager.setDisplayDiscardColorEnable(0);				
+		if(mInstance == null)
+		{
+			Log.e(TAG,"X70 instance is not initialized.");
+			return;
+		}
+		
+		DisplaySettingManager m_dsm = new DisplaySettingManager(getInstance().getApplicationContext());
+		m_dsm.setDisplayDiscardColorEnable(0);
 		if(!enable)
 		{
 		    Log.i(TAG,"X70 Set chromakey enable to false.");
@@ -201,8 +243,8 @@ public class ProductSpecific
 				green = (value >> 8) & 0xff;
 				blue = value & 0xff;
 				Log.i(TAG,"X70 Setting chromakey color to " + red + "," + green + "," + blue);
-				DisplaySettingManager.setDisplayDiscardColor(red, green, blue);
-				DisplaySettingManager.setDisplayDiscardColorEnable(1);				
+				m_dsm.setDisplayDiscardColor(red, green, blue);
+				m_dsm.setDisplayDiscardColorEnable(1);				
 			}
 			br.close();
 		}
