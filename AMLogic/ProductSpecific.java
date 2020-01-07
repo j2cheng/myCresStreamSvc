@@ -14,10 +14,13 @@ import android.media.MediaPlayer;
 import android.media.MediaRecorder;
 import android.view.Surface;
 import com.droidlogic.app.DisplaySettingManager;
+import android.content.Context;
 
 public class ProductSpecific
 {	
     static String TAG = "X60 ProductSpecific";
+    private static ProductSpecific mInstance;
+    private Context context;
 
 	/// ******************* LaunchApp.java *******************
 	public static void startForegroundService(Context ctx, Intent intent)
@@ -26,6 +29,31 @@ public class ProductSpecific
 	}
 
 	// ******************* CameraStreaming.java *******************
+    public static ProductSpecific getInstance()
+    {
+        if (mInstance == null) 
+        {
+            mInstance = getSync();
+        }
+        
+        return mInstance;
+    }
+
+    private static synchronized ProductSpecific getSync()
+    {
+        if (mInstance == null) 
+        {
+            mInstance = new ProductSpecific();
+        }
+        
+        return mInstance;
+    }
+
+    public void initialize(Context context) 
+    {
+        this.context = context;
+    }
+    
 	public static void setEncoderFps(Camera camera, int encoderFps, int hdmiInFps)
 	{
 		// Not implmented for this product
