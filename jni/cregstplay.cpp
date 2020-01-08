@@ -1646,18 +1646,27 @@ int build_audio_pipeline(gchar *encoding_name, CREGSTREAM *data, int do_rtp,GstE
 	gst_caps_unref (caps);
 
 
-	//add a probe for loss of audio detection.  Probe fires as long as buffers continue to push
-	//onto on source pad.
-	GstPad *pad;
-	pad = gst_element_get_static_pad( data->element_a[i-1], "src" );
-	if( pad != NULL )
+	if(csio_IsAudioSupported())
 	{
-		guint audio_probe_id = gst_pad_add_probe( pad, GST_PAD_PROBE_TYPE_BUFFER, csio_audioProbe, (void *) &data->streamId, NULL );
-		csio_SetAudioProbeId(data->streamId, audio_probe_id);
-	   gst_object_unref( pad );
-   }
+        //add a probe for loss of audio detection.  Probe fires as long as buffers continue to push
+        //onto on source pad.
+        GstPad *pad;
+        pad = gst_element_get_static_pad( data->element_a[i-1], "src" );
+        if( pad != NULL )
+        {
+            guint audio_probe_id = gst_pad_add_probe( pad, GST_PAD_PROBE_TYPE_BUFFER, csio_audioProbe, (void *) &data->streamId, NULL );
+            csio_SetAudioProbeId(data->streamId, audio_probe_id);
+           gst_object_unref( pad );
+        }
+        data->audio_sink = gst_element_factory_make("openslessink", NULL);
+	}
+	else
+    {
+        CSIO_LOG(eLogLevel_info, "Invalid media type for this device. Audio stream not supported.");
+        data->audio_sink = gst_element_factory_make("fakesink", NULL);
+    }
+
 	num_elements = i-start;
-    data->audio_sink = gst_element_factory_make("openslessink", NULL);
     *sink = data->audio_sink;
 
 	for(i=start; i<num_elements; i++)
