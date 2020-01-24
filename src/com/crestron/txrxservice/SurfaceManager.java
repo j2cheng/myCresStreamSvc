@@ -38,10 +38,6 @@ public class SurfaceManager implements SurfaceHolder.Callback {
             crestSurfaceHolder = view.getHolder();	
             crestSurfaceHolder.addCallback(this);
             crestSurfaceHolder.setType(SurfaceHolder.SURFACE_TYPE_PUSH_BUFFERS);
-		//Commented lines are where work is being done to support multivideo windows
-        	//if (android.os.Build.VERSION.SDK_INT < 27 /*android.os.Build.VERSION_CODES.O_MR1*/) {
-        		view.setZOrderOnTop(true);
-        	//}
             viewInitializedMap.put(view, false);
         } else {
             Log.i(TAG, "App passed null surface view for stream in");
@@ -74,8 +70,6 @@ public class SurfaceManager implements SurfaceHolder.Callback {
         if (view != null) {
             Log.v(TAG, "getCresSurfaceHolder(): View is not null");
             crestSurfaceHolder = view.getHolder();
-//            crestSurfaceHolder.setType(SurfaceHolder.SURFACE_TYPE_PUSH_BUFFERS);
-//            view.setZOrderOnTop(true);
 
         } else {
             Log.i(TAG, "App passed null surface view for stream in");

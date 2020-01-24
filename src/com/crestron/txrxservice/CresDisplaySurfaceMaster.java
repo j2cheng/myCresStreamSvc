@@ -202,6 +202,11 @@ public class CresDisplaySurfaceMaster implements CresDisplaySurface
             String layerMarker = "VideoLayer";
             displaySurface[i].setTag(layerMarker);
             viewLayoutParams = new RelativeLayout.LayoutParams(windowWidth, windowHeight);
+            // See https://developer.android.com/reference/android/view/SurfaceView.html#setZOrderMediaOverlay(boolean)
+            if (i > 0)
+        	displaySurface[i].setZOrderMediaOverlay(true);
+            else
+        	displaySurface[i].setZOrderMediaOverlay(false);
             parentlayout.addView(displaySurface[i], viewLayoutParams);
         }
 
