@@ -203,10 +203,13 @@ public class CresDisplaySurfaceMaster implements CresDisplaySurface
             displaySurface[i].setTag(layerMarker);
             viewLayoutParams = new RelativeLayout.LayoutParams(windowWidth, windowHeight);
             // See https://developer.android.com/reference/android/view/SurfaceView.html#setZOrderMediaOverlay(boolean)
-            if (i > 0)
-        	displaySurface[i].setZOrderMediaOverlay(true);
+            boolean enable = true;
+			if (CresStreamCtrl.CrestronProductName.fromInteger(streamCtl.nativeGetProductTypeEnum()) == CresStreamCtrl.CrestronProductName.X70)
+				enable = false;	// see TSW70-586: for some reason x70 seems to do the opposite of the API documentation
+			if (i > 0)
+        		displaySurface[i].setZOrderMediaOverlay(enable);
             else
-        	displaySurface[i].setZOrderMediaOverlay(false);
+        		displaySurface[i].setZOrderMediaOverlay(!enable);
             parentlayout.addView(displaySurface[i], viewLayoutParams);
         }
 

@@ -429,6 +429,7 @@ public class CresStreamCtrl extends Service {
     	DMPS_4K_STR(0x24),
     	AM300(0x2D),
     	AM200(0x2E),
+        X70(0x7900),
     	Unknown(0x0);
     	
     	private final int value;
@@ -462,6 +463,8 @@ public class CresStreamCtrl extends Service {
         		return AM300;
         	case 0x2E:
             	return AM200;
+            case 0x7900:
+                return X70;
         	default:
 				Log.i(TAG, MiscUtils.stringFormat("Unknown product type %d, please update enum!!!!!", x));
         		return Unknown;
@@ -858,6 +861,7 @@ public class CresStreamCtrl extends Service {
 	    		case DMPS_4K_STR:
 	    		case AM300:
 	    		case AM200:
+                case X70:
 	    		case Unknown:
 	    		{
                     isRGB888HDMIVideoSupported = userSettings.getRgb888Enabled();
