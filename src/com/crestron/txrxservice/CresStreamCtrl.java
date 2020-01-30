@@ -876,6 +876,22 @@ public class CresStreamCtrl extends Service {
                 isRGB888HDMIVideoSupported = false;
             }
 
+     		switch (CrestronProductName.fromInteger(nativeGetProductTypeEnum()))
+    		{
+	    		case X70:
+	    		{
+		            if (serviceMode != ServiceMode.Slave)
+		            {
+		            	ProductSpecific.doChromakey(true);
+		            }
+		            break;
+	    		}
+	    		
+	    		default:
+	    			ProductSpecific.doChromakey(false);
+	    			break;
+    		}
+    		
     		// This needs to be done before Gstreamer setup
     		{
     			// If mediaserver is in bad state this could get stuck

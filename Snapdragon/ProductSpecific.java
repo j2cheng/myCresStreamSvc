@@ -22,6 +22,7 @@ public class ProductSpecific
 {	
     private static ProductSpecific mInstance;
     private Context context;
+    private static boolean oneShot = false;
 
     public static ProductSpecific getInstance()
     {
@@ -220,11 +221,20 @@ public class ProductSpecific
 			return;
 		}
 		
+		//Configure chromakey once on the x70 to prevent flicker due to enabling and disabling on feature on every stream start/stop.
+		//See bug TSW70-762.
+		if (oneShot)
+		{
+			Log.v(TAG,"X70 Set chromakey " + enable + " ignored. Chromakey is already configured.");
+			return;
+		}
+		oneShot = true;
+		
 		DisplaySettingManager m_dsm = new DisplaySettingManager(getInstance().getApplicationContext());
-		m_dsm.setDisplayDiscardColorEnable(0);
 		if(!enable)
 		{
-		    Log.i(TAG,"X70 Set chromakey enable to false.");
+			m_dsm.setDisplayDiscardColorEnable(0);
+			Log.i(TAG,"X70 Set chromakey enable to false.");
 			return;
 		}
 		File file = new File("/dev/crestron/gstreamerChromaKey");		
@@ -249,7 +259,8 @@ public class ProductSpecific
 			br.close();
 		}
 		catch(IOException e)
-		{			
+		{	
+			oneShot = false;		
 		}
 	}
     
