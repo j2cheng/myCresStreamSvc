@@ -1228,6 +1228,12 @@ int build_video_pipeline(gchar *encoding_name, CREGSTREAM *data, unsigned int st
             CSIO_LOG(eLogLevel_info, "%s: h265parse - setting config-interval to 1", __FUNCTION__);
         }
 
+        //These caps are required by omxqcomvideodecoderhevc to stream from some cameras (e.g. Dahua, Bosch)
+        data->element_v[i++] = gst_element_factory_make("capsfilter", NULL);
+        GstCaps *capsRate = gst_caps_from_string( "video/x-h265,framerate=(fraction)[ 0/1, 2147483647/1 ]");
+        g_object_set ( data->element_v[i-1], "caps", capsRate, NULL);
+        gst_caps_unref(capsRate);
+
         data->element_v[i++] = gst_element_factory_make("queue", NULL);
         // HTTP modes that do not use TS should not set queue to these parameters, check: http://dash-mse-test.appspot.com/media.html
         if (data->mpegtsPresent || data->streamProtocolId != ePROTOCOL_HTTP) {
