@@ -26,6 +26,7 @@ import java.util.concurrent.RunnableFuture;
 import java.util.concurrent.TimeUnit;
 import java.util.concurrent.TimeoutException;
 import java.util.concurrent.locks.*;
+import java.lang.reflect.Method;
 
 import android.net.Uri;
 import android.os.Bundle;
@@ -894,7 +895,17 @@ public class CresStreamCtrl extends Service {
 	    		{
 		            if (serviceMode != ServiceMode.Slave)
 		            {
-		            	ProductSpecific.doChromakey(true);
+		                // Temporary workaround: disable chromakey until EIC has fix for MJPEG flicker
+	    			try {
+	    				Class<?> c = Class.forName("android.os.SystemProperties");
+	    				Method set = c.getMethod("set", String.class, String.class);
+	    				set.invoke(c, "vendor.chroma.discardcolor.enable", "0" );
+	    			} catch (Exception e) {
+	    				Log.d(TAG, "setProperty====exception=");
+	    				e.printStackTrace();
+	    			}
+
+		            	ProductSpecific.doChromakey(false);  // when EIC fixes this it should be true
 		            }
 		            break;
 	    		}
