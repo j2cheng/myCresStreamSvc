@@ -109,6 +109,7 @@ static int stop_timeout_sec = 1000;
 
 const int c_minSocketLeft = 20;
 const int c_maxNumInitialPorts	= 100;
+const int c_default_client_ts_port = 4570;
 static unsigned int *initialPorts = NULL;
 
 static char const* file_prefix = "file://";
@@ -3038,7 +3039,7 @@ int csio_jni_CreatePipeline(GstElement **pipeline, GstElement **source, eProtoco
                 ret1 = csio_jni_StartRTPMediaStreamThread(iStreamId,data->element_appsrc,
                      (unsigned int)data->udp_port);
 
-                CSIO_LOG(eLogLevel_debug,"mira: {%s} - ===== RTP thread started =====",__FUNCTION__);
+                CSIO_LOG(eLogLevel_debug,"mira: {%s} - ===== RTP thread started (udp port %d) =====",__FUNCTION__, data->udp_port + 2*iStreamId);
              }
              else ret = gst_element_link(data->element_av[0], data->element_zero);
 
@@ -4701,7 +4702,7 @@ JNIEXPORT void JNICALL Java_com_crestron_txrxservice_GstreamIn_nativeWfdStart(JN
 
     data->audiosink_ts_offset = -300;
 
-    int ts_port = CSIOCnsIntf->getStreamTxRx_TSPORT(windowId);
+    int ts_port = c_default_client_ts_port + 2*windowId;
     WfdSinkProjStart(windowId,url_cstring,rtsp_port,ts_port,data->wfd_is_mice_session);
 
     CSIO_LOG(eLogLevel_debug,"mira: {%s} - exiting",__FUNCTION__);

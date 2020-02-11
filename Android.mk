@@ -29,6 +29,7 @@ LOCAL_SHARED_LIBRARIES := libgstreamer_jni
 	
 
 LOCAL_STATIC_JAVA_LIBRARIES := gson
+LOCAL_STATIC_JAVA_LIBRARIES += CresStoreJsonJNI
 
 ifeq ($(TARGET_PRODUCT),$(filter $(TARGET_PRODUCT),msm8953_64))
 	LOCAL_MULTILIB := 32
@@ -69,6 +70,7 @@ include $(LOCAL_PATH)/jni/Android.mk
 
 include $(CLEAR_VARS)
 LOCAL_PREBUILT_STATIC_JAVA_LIBRARIES := gson:../libs/gson-2.3.1.jar
+LOCAL_PREBUILT_STATIC_JAVA_LIBRARIES += CresStoreJsonJNI:../libs/CresStoreJsonJNI.jar
 include $(BUILD_MULTI_PREBUILT)
 endif
 

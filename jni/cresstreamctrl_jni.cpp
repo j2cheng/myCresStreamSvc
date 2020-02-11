@@ -76,6 +76,16 @@ JNIEXPORT jboolean JNICALL Java_com_crestron_txrxservice_CresStreamCtrl_nativeHi
 		return JNI_FALSE;
 }
 
+JNIEXPORT jboolean JNICALL Java_com_crestron_txrxservice_CresStreamCtrl_nativeHasCanvas(JNIEnv *env, jobject thiz)
+{
+	do_init();
+
+	if(product_info()->doesProductHaveCanvas)
+		return JNI_TRUE;
+	else
+		return JNI_FALSE;
+}
+
 JNIEXPORT jint JNICALL Java_com_crestron_txrxservice_CresStreamCtrl_nativeGetHWPlatformEnum(JNIEnv *env, jobject thiz)
 {
 	do_init();
@@ -95,4 +105,11 @@ JNIEXPORT jint JNICALL Java_com_crestron_txrxservice_CresStreamCtrl_nativeGetHDM
 	do_init();
 
 	return product_info()->display_check_hdcp_bitmask;
+}
+
+JNIEXPORT jint JNICALL Java_com_crestron_txrxservice_CresStreamCtrl_nativeGetDmInputCount(JNIEnv *env, jobject thiz)
+{
+	do_init();
+
+	return product_info()->dm_input_cnt;
 }

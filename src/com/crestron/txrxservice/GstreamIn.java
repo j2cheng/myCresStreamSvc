@@ -221,6 +221,7 @@ public class GstreamIn implements SurfaceHolder.Callback {
     	Log.i(TAG, "updateStreamStatus: for streamId="+streamId+"  state="+streamStateEnum);
     	if (!streamCtl.mUsedForAirMedia[streamId])
     	{
+        	Log.v(TAG, "updateStreamStatus: streamId " + streamId + " not being used for airmedia");
     		if (streamStateEnum == CresStreamCtrl.StreamState.STARTED.getValue())
     		{
     			streamCtl.sockTask.SendDataToAllClients(MiscUtils.stringFormat("STREAMURL%d=%s", streamId, streamCtl.userSettings.getStreamInUrl(streamId)));
@@ -229,6 +230,7 @@ public class GstreamIn implements SurfaceHolder.Callback {
     	}
     	else
     	{
+        	Log.v(TAG, "updateStreamStatus: streamId " + streamId + " used for airmedia");
         	// For miracast case get current stream state so that stopSession is not called multiple times when we get "STOPPED" state
         	// Note: new state MUST be saved so that the subsequent check for state changing to STOPPED works properly
         	if (streamStateEnum == CresStreamCtrl.StreamState.STOPPED.getValue())
@@ -238,10 +240,12 @@ public class GstreamIn implements SurfaceHolder.Callback {
         	streamCtl.setCurrentStreamState(StreamState.getStreamStateFromInt(streamStateEnum), streamId);
     		if (streamStateEnum == CresStreamCtrl.StreamState.STARTED.getValue())
     		{
+                Log.v(TAG, "updateStreamStatus: inform wifiVideoPlayer streamstate changed to Playing");
     			streamCtl.wifidVideoPlayer.stateChanged(streamId, AirMediaSessionStreamingState.Playing);
     		} 
     		else if (streamStateEnum == CresStreamCtrl.StreamState.STOPPED.getValue())
     		{
+                Log.v(TAG, "updateStreamStatus: newStreamState="+streamStateEnum+" oldStreamState="+curStreamState+" wfdIsPlaying="+wfdIsPlaying[streamId]);
     			if (streamStateEnum != curStreamState && wfdIsPlaying[streamId])
     			{
     				streamCtl.wifidVideoPlayer.stopSessionWithStreamId(streamId);
@@ -252,6 +256,7 @@ public class GstreamIn implements SurfaceHolder.Callback {
     			}
     		}
     	}
+    	Log.v(TAG, "updateStreamStatus: exit");
     }
 
     public void wfdSetFirewallRules(int rtsp_port, int ts_port)

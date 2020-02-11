@@ -176,6 +176,21 @@ class ServiceModeCommand extends CrestronCommand {
     }
 }
 
+class CanvasModeEnabledCommand extends CrestronCommand {
+	
+    public CanvasModeEnabledCommand(CresStreamCtrl ctrl, String arg) {
+		super (ctrl, arg);
+    }
+
+    @Override
+    public void execute() {
+    	ctrl.setCanvasMode(Boolean.valueOf(msg));
+    }
+    public String getFeedbackMsg() {
+        return Boolean.toString(ctrl.userSettings.getCanvasModeEnabled());
+    }
+}
+
 class SessionInitiationCommand extends CrestronCommand {
     
     public SessionInitiationCommand(CresStreamCtrl ctrl, String arg, int sessId) {
@@ -2016,6 +2031,42 @@ class AirMediaCustomPromptStringCommand extends CrestronCommand {
 	}
 }
 
+class AirMediaDisplayWirelessConnectionOptionEnableCommand extends CrestronCommand {
+	public AirMediaDisplayWirelessConnectionOptionEnableCommand(CresStreamCtrl ctrl, String arg, int sessId) {
+		super(ctrl, arg, sessId);
+	}	
+	public void execute() {
+		ctrl.setAirMediaDisplayWirelessConnectionOptionEnable(Boolean.valueOf(msg));
+	}
+	public String getFeedbackMsg() {
+		return Boolean.toString(ctrl.userSettings.getAirMediaDisplayWirelessConnectionOptionEnable());
+	}
+}
+
+class AirMediaDisplayWirelessConnectionOptionCommand extends CrestronCommand {
+	public AirMediaDisplayWirelessConnectionOptionCommand(CresStreamCtrl ctrl, String arg, int sessId) {
+		super(ctrl, arg, sessId);
+	}	
+	public void execute() {
+		ctrl.setAirMediaDisplayWirelessConnectionOption(VALIDATE_INT(msg));
+	}
+	public String getFeedbackMsg() {
+		return String.valueOf(ctrl.userSettings.getAirMediaDisplayWirelessConnectionOption());
+	}
+}
+
+class AirMediaPersistsConnectionInfoEnableCommand extends CrestronCommand {
+	public AirMediaPersistsConnectionInfoEnableCommand(CresStreamCtrl ctrl, String arg, int sessId) {
+		super(ctrl, arg, sessId);
+	}	
+	public void execute() {
+		ctrl.setAirMediaConnectionOverlay(Boolean.valueOf(msg));
+	}
+	public String getFeedbackMsg() {
+		return Boolean.toString(ctrl.userSettings.getAirMediaConnectionOverlay());
+	}
+}
+
 class AirMediaWindowPositionCommand extends CrestronCommand {
 	public AirMediaWindowPositionCommand(CresStreamCtrl ctrl, String arg, int sessId) {
 		super(ctrl, arg, sessId);
@@ -2314,6 +2365,42 @@ class AirMediaProjectionLockCommand extends CrestronCommand {
 		ctrl.setAirMediaProjectionLock(val);
 	}
 	// No feedback
+}
+
+class AirMediaWifiSsidCommand extends CrestronCommand {
+	public AirMediaWifiSsidCommand(CresStreamCtrl ctrl, String arg) {
+		super(ctrl, arg);
+	}	
+	public void execute() {
+		ctrl.setAirMediaWifiSsid(msg);
+	}
+	public String getFeedbackMsg() {
+		return ctrl.userSettings.getAirMediaWifiSsid();
+	}
+}
+
+class AirMediaWifiPskKeyCommand extends CrestronCommand {
+	public AirMediaWifiPskKeyCommand(CresStreamCtrl ctrl, String arg) {
+		super(ctrl, arg);
+	}	
+	public void execute() {
+		ctrl.setAirMediaWifiPskKey(msg);
+	}
+	public String getFeedbackMsg() {
+		return ctrl.userSettings.getAirMediaWifiPskKey();
+	}
+}
+
+class AirMediaWifiAutoLaunchAirMediaLandingPageEnabledCommand extends CrestronCommand {
+	public AirMediaWifiAutoLaunchAirMediaLandingPageEnabledCommand(CresStreamCtrl ctrl, String arg) {
+		super(ctrl, arg);
+	}	
+	public void execute() {
+		ctrl.setAirMediaWifiAutoLaunchAirMediaLandingPageEnabled(Boolean.valueOf(msg));
+	}
+	public String getFeedbackMsg() {
+		return Boolean.toString(ctrl.userSettings.getAirMediaWifiAutoLaunchAirMediaLandingPageEnabled());
+	}
 }
 
 class camStreamEnableCommand extends CrestronCommand {
@@ -2625,4 +2712,50 @@ class SetLogLevelCommand extends CrestronCommand {
 	public String getFeedbackMsg() {
 		return msg;	//no feedback for this join
 	}
+}
+
+class DmSyncCommand extends CrestronCommand {
+    
+    public DmSyncCommand(CresStreamCtrl ctrl, String arg, int inputNumber) {
+		super(ctrl, arg, inputNumber);
+    }
+
+    @Override
+    public void execute() {
+    	ctrl.setDmSync(Boolean.valueOf(msg), sessId);
+    }
+    // no feedback
+}
+
+class DmHdcpBlankCommand extends CrestronCommand {
+    
+    public DmHdcpBlankCommand(CresStreamCtrl ctrl, String arg, int inputNumber) {
+		super(ctrl, arg, inputNumber);
+    }
+
+    @Override
+    public void execute() {
+    	ctrl.setDmHdcpBlank(Boolean.valueOf(msg), sessId);
+    }
+    // no feedback
+}
+
+class DmResolutionCommand extends CrestronCommand {
+    
+    public DmResolutionCommand(CresStreamCtrl ctrl, String arg, int inputNumber) {
+		super(ctrl, arg, inputNumber);
+    }
+
+    @Override
+    public void execute() {
+    	String[] tokens = msg.split("[,]"); // Format should be "X,Y,Width,Height"
+    	if (tokens.length == 2)
+    	{
+    		ctrl.setDmResolution(
+    				VALIDATE_INT(tokens[0]), 
+    				VALIDATE_INT(tokens[1]),
+    				sessId);
+    	}
+    	// no feedback
+    }
 }

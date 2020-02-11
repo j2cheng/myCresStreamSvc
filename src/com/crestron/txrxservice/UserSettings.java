@@ -3,6 +3,7 @@ package com.crestron.txrxservice;
 import java.lang.reflect.Array;
 import java.lang.reflect.Field;
 
+import com.crestron.airmedia.receiver.m360.ipc.AirMediaSize;
 import com.crestron.txrxservice.CresStreamCtrl.StreamState;
 import com.crestron.txrxservice.CresStreamCtrl.DeviceMode;
 
@@ -233,6 +234,9 @@ public class UserSettings
 	private boolean airMediaDisplayConnectionOptionEnable;
 	private int airMediaDisplayConnectionOption;
 	private String airMediaCustomPromptString;
+	private boolean airMediaConnectionOverlay;
+	private boolean airMediaDisplayWirelessConnectionOptionEnable;
+	private int airMediaDisplayWirelessConnectionOption;
 	private int airMediaX;
 	private int airMediaY;
 	private int airMediaWidth;
@@ -247,6 +251,9 @@ public class UserSettings
 	private boolean airMediaMiracastPreferWifiDirect;
 	private int airMediaMiracastWirelessOperatingRegion;
 	private boolean airMediaMiracastMsMiceMode;
+	private String airMediaWifiSsid;
+	private String airMediaWifiPskKey;
+	private boolean airMediaWifiAutoLaunchAirMediaLandingPageEnable;
 
 	// Camera Streaming
 	private boolean camStreamEnable;
@@ -274,6 +281,14 @@ public class UserSettings
 	//service mode
 	private int serviceMode;
 	
+	// canvas mode
+	boolean canvasModeEnabled;
+	
+	// DM in products with canvas mode
+	private boolean[] dmSync;
+	private boolean[] dmHdcpBlank;
+	private CresStreamCtrl.Resolution[] dmResolution;
+
 	public UserSettings()
 	{
 //		MiscUtils.getDeviceIpAddr();
@@ -365,11 +380,17 @@ public class UserSettings
 		airMediaDisplayConnectionOptionEnable = true;
 		airMediaDisplayConnectionOption = CresStreamCtrl.AirMediaDisplayConnectionOption.Ip;
 		airMediaCustomPromptString = "";
+		airMediaConnectionOverlay = true;
+		airMediaDisplayWirelessConnectionOptionEnable = true;
+		airMediaDisplayWirelessConnectionOption = CresStreamCtrl.AirMediaDisplayConnectionOption.Ip;
 		airMediaMiracastEnable = false;
 		airMediaMiracastWifiDirectMode = true;
 		airMediaMiracastPreferWifiDirect = false; 
 		airMediaMiracastWirelessOperatingRegion = 0;
 		airMediaMiracastMsMiceMode = true;
+		airMediaWifiSsid = "";
+		airMediaWifiPskKey = "";
+		airMediaWifiAutoLaunchAirMediaLandingPageEnable = true;
 		appspaceEnabled		= false;
 		tcpInterleave       = initIntArray(0);//auto mode
 		camStreamEnable		= false;
@@ -385,6 +406,10 @@ public class UserSettings
 		camStreamSnapshotName = "snapshot";
 		camStreamMulticastAddress = "";
 		serviceMode = CresStreamCtrl.ServiceMode.Master.ordinal();
+		canvasModeEnabled = false;
+		dmSync = initBoolArray(false,CresStreamCtrl.NumDmInputs);
+		dmHdcpBlank = initBoolArray(false, CresStreamCtrl.NumDmInputs);
+		dmResolution = new CresStreamCtrl.Resolution[CresStreamCtrl.NumDmInputs];
 		chromaKeyColor = 0xff0000;
 		rgb888Enabled = true;
 	}
@@ -1329,6 +1354,30 @@ public class UserSettings
 		this.airMediaCustomPromptString = airMediaCustomPromptString;
 	}
 	
+	public boolean getAirMediaConnectionOverlay() {
+		return airMediaConnectionOverlay;
+	}
+	
+	public void setAirMediaConnectionOverlay(boolean enable) {
+		this.airMediaConnectionOverlay = enable;
+	}
+	
+	public boolean getAirMediaDisplayWirelessConnectionOptionEnable() {
+		return airMediaDisplayWirelessConnectionOptionEnable;
+	}
+
+	public void setAirMediaDisplayWirelessConnectionOptionEnable(boolean enable) {
+		this.airMediaDisplayWirelessConnectionOptionEnable = enable;
+	}
+	
+	public int getAirMediaDisplayWirelessConnectionOption() {
+		return airMediaDisplayWirelessConnectionOption;
+	}
+
+	public void setAirMediaDisplayWirelessConnectionOption(int airMediaDisplayConnectionOption) {
+		this.airMediaDisplayWirelessConnectionOption = airMediaDisplayConnectionOption;
+	}
+	
 	public int getAirMediaX() {
 		return airMediaX;
 	}
@@ -1439,6 +1488,30 @@ public class UserSettings
 	
 	public void setAirMediaMiracastWirelessOperatingRegion(int value) {
 		this.airMediaMiracastWirelessOperatingRegion = value;
+	}
+	
+	public void setAirMediaWifiSsid(String ssid) {
+		this.airMediaWifiSsid = ssid;
+	}
+
+	public String getAirMediaWifiSsid() {
+		return airMediaWifiSsid;
+	}
+	
+	public void setAirMediaWifiPskKey(String key) {
+		this.airMediaWifiPskKey = key;
+	}
+
+	public String getAirMediaWifiPskKey() {
+		return airMediaWifiPskKey;
+	}
+	
+	public void setAirMediaWifiAutoLaunchAirMediaLandingPageEnabled(boolean enable) {
+		this.airMediaWifiAutoLaunchAirMediaLandingPageEnable = enable;
+	}
+	
+	public boolean getAirMediaWifiAutoLaunchAirMediaLandingPageEnabled() {
+		return airMediaWifiAutoLaunchAirMediaLandingPageEnable;
 	}
 	
 	public boolean getCamStreamEnable() {
@@ -1557,6 +1630,38 @@ public class UserSettings
 	
 	public void setServiceMode(int mode) {
 		this.serviceMode = mode;
+	}
+	
+	public boolean getCanvasModeEnabled() {
+		return canvasModeEnabled;
+	}
+	
+	public void setCanvasModeEnabled(boolean enable) {
+		this.canvasModeEnabled = enable;
+	}
+	
+	public boolean getDmSync(int inputNum) {
+		return dmSync[inputNum];
+	}
+	
+	public void setDmSync(boolean enable, int inputNum) {
+		this.dmSync[inputNum] = enable;
+	}
+	
+	public boolean getDmHdcpBlank(int inputNum) {
+		return dmHdcpBlank[inputNum];
+	}
+	
+	public void setDmHdcpBlank(boolean enable, int inputNum) {
+		this.dmHdcpBlank[inputNum] = enable;
+	}
+	
+	public CresStreamCtrl.Resolution getDmResolution(int inputNum) {
+		return dmResolution[inputNum];
+	}
+	
+	public void setDmResolution(CresStreamCtrl.Resolution resolution, int inputNum) {
+		this.dmResolution[inputNum] = resolution;
 	}
 	
 	public int getChromaKeyColor() {

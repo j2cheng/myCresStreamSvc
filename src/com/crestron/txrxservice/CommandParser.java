@@ -167,7 +167,11 @@ public class CommandParser {
         AIRMEDIA_CUSTOM_PROMPT_STRING,
         AIRMEDIA_DISPLAY_CONNECTION_OPTION_ENABLE,
         AIRMEDIA_DISPLAY_CONNECTION_OPTION,
+        AIRMEDIA_WIRELESS_CUSTOM_PROMPT_STRING,
+        AIRMEDIA_DISPLAY_WIRELESS_CONNECTION_OPTION_ENABLE,
+        AIRMEDIA_DISPLAY_WIRELESS_CONNECTION_OPTION,
         AIRMEDIA_DISPLAY_SCREEN,
+        AIRMEDIA_PERSIST_CONNECTION_INFO_ENABLE,
         AIRMEDIA_WINDOW_FLAG,
         AIRMEDIA_MIRACAST_ENABLE,
         AIRMEDIA_MIRACAST_WIFI_DIRECT_MODE_ENABLE,
@@ -180,6 +184,10 @@ public class CommandParser {
         AIRMEDIA_IS_CERTIFICATE_REQUIRED,
         AIRMEDIA_ONLY_ALLOW_SECURE_CONNECTIONS,
         AIRMEDIA_SECURE_LANDING_PAGE_ENABLED,
+        AIRMEDIA_CANVAS_MODE_ENABLED,
+        AIRMEDIA_WIFI_SSID,
+        AIRMEDIA_WIFI_PSKKEY,
+        AIRMEDIA_WIFI_AUTOLAUNCHAIRMEDIALANDINGPAGEENABLED,
         AIRMEDIA_CLEAR_CACHE,
         
         // Camera Streaming Slot
@@ -206,6 +214,9 @@ public class CommandParser {
         WFDSTREAM,
         FORCE_RGB_PREVIEW_MODE,
         RGB_MODE,
+        DM_SYNC,
+        DM_HDCP_BLANK,
+        DM_RESOLUTION,
         CHROMAKEY_COLOR,
     	LOGLEVEL;
     	//UPDATEREQUEST;
@@ -693,7 +704,16 @@ public class CommandParser {
             	break;
             case AIRMEDIA_DISPLAY_CONNECTION_OPTION:
             	cmd = new AirMediaDisplayConnectionOptionCommand(ctrl, arg, idx);
-            	break;  
+            	break;
+            case AIRMEDIA_DISPLAY_WIRELESS_CONNECTION_OPTION_ENABLE:
+            	cmd = new AirMediaDisplayWirelessConnectionOptionEnableCommand(ctrl, arg, idx);
+            	break;
+            case AIRMEDIA_DISPLAY_WIRELESS_CONNECTION_OPTION:
+            	cmd = new AirMediaDisplayWirelessConnectionOptionCommand(ctrl, arg, idx);
+            	break;
+            case AIRMEDIA_PERSIST_CONNECTION_INFO_ENABLE:
+            	cmd = new AirMediaPersistsConnectionInfoEnableCommand(ctrl, arg, idx);
+            	break;
             case AIRMEDIA_WINDOW_POSITION:
             	cmd = new AirMediaWindowPositionCommand(ctrl, arg, idx);
             	break;
@@ -772,6 +792,18 @@ public class CommandParser {
             case AIRMEDIA_SECURE_LANDING_PAGE_ENABLED:
             	cmd = new AirMediaSecureLandingPageEnabledCommand(ctrl, arg);
             	break;
+            case AIRMEDIA_CANVAS_MODE_ENABLED:
+            	cmd = new CanvasModeEnabledCommand(ctrl, arg);
+            	break;
+            case AIRMEDIA_WIFI_SSID:
+            	cmd = new AirMediaWifiSsidCommand(ctrl, arg);
+            	break;
+            case AIRMEDIA_WIFI_PSKKEY:
+            	cmd = new AirMediaWifiPskKeyCommand(ctrl, arg);
+            	break;
+            case AIRMEDIA_WIFI_AUTOLAUNCHAIRMEDIALANDINGPAGEENABLED:
+            	cmd = new AirMediaWifiAutoLaunchAirMediaLandingPageEnabledCommand(ctrl, arg);
+            	break;
             case AIRMEDIA_CLEAR_CACHE:
             	cmd = new AirMediaClearCacheCommand(ctrl, arg);
             	break;
@@ -842,6 +874,15 @@ public class CommandParser {
                 break;
             case CHROMAKEY_COLOR:
             	cmd = new ChromaKeyColorCommand(ctrl, arg);
+            	break;
+            case DM_SYNC:
+            	cmd = new DmSyncCommand(ctrl, arg, idx);
+            	break;
+            case DM_HDCP_BLANK:
+            	cmd = new DmHdcpBlankCommand(ctrl, arg, idx);
+            	break;
+            case DM_RESOLUTION:
+            	cmd = new DmResolutionCommand(ctrl, arg, idx);
             	break;
             case LOGLEVEL:
             	cmd = new SetLogLevelCommand(ctrl, arg);

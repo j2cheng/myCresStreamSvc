@@ -21,6 +21,11 @@ import com.google.gson.GsonBuilder;
 
 import com.crestron.txrxservice.CresStreamCtrl.AirMediaLoginMode;
 import com.crestron.txrxservice.CresStreamCtrl.ServiceMode;
+import com.crestron.txrxservice.canvas.CresCanvas;
+import com.crestron.txrxservice.canvas.Originator;
+import com.crestron.txrxservice.canvas.RequestOrigin;
+import com.crestron.txrxservice.canvas.Session;
+import com.crestron.airmedia.canvas.channels.ipc.CanvasPlatformType;
 import com.crestron.airmedia.receiver.m360.IAirMediaReceiver;
 import com.crestron.airmedia.receiver.m360.models.AirMediaReceiver;
 import com.crestron.airmedia.receiver.m360.models.AirMediaSession;
@@ -81,6 +86,7 @@ public class AirMediaSplashtop
 {
     CresStreamCtrl mStreamCtl;
     Context mContext;
+    CresCanvas mCanvas;
     public static final String TAG = "TxRx Splashtop AirMedia"; 
 	public final static String licenseFilePath = "/dev/shm/airmedia";
 	private boolean surfaceDisplayed = false;
@@ -143,10 +149,13 @@ public class AirMediaSplashtop
 	
 	private boolean quittingAirMediaService = false;
 	
+	private String clientDataStatus = "Uninitialized";
+	private int clientDataTotalUsers = -1;
     private Handler handler_;
     private Map<Integer, AirMediaSession> userSessionMap = new ConcurrentHashMap<Integer, AirMediaSession>();
     
     private Map<Long, AirMediaSessionStreamingState> videoStateMap = new ConcurrentHashMap<Long, AirMediaSessionStreamingState>();
+    private Map<Long, com.crestron.txrxservice.canvas.AirMediaSession> canvasSessionMap = new ConcurrentHashMap<Long, com.crestron.txrxservice.canvas.AirMediaSession>();
     
 	Gson gson = new GsonBuilder().create();
 
@@ -265,6 +274,7 @@ public class AirMediaSplashtop
     {
     	mStreamCtl = streamCtl;
     	mContext = (Context)mStreamCtl;
+    	mCanvas = mStreamCtl.mCanvas;
     	
     	mStreamCtl.setHostName("");
     	mStreamCtl.setDomainName("");
@@ -799,6 +809,7 @@ public class AirMediaSplashtop
     
     public void show(int sessionId, int x, int y, int width, int height)
     {
+    	if (mCanvas != null) return;
     	orderedLock.lock("show");
     	setSessionId(sessionId);
     	try {
@@ -841,6 +852,7 @@ public class AirMediaSplashtop
     
     public void hide(int sessionId, boolean sendStopToSender, boolean clear)
     {
+    	if (mCanvas != null) return;
     	orderedLock.lock("hide");
     	setSessionId(sessionId);
     	try {
@@ -971,6 +983,8 @@ public class AirMediaSplashtop
                 mStreamCtl.sendAirMediaUserFeedbacks(user, "", "", 0, false);
     		}
     	}
+    	canvasSessionMap.clear();
+    	removeAllConnectedClients();
     	querySenderList(false); // force sending of AIRMEDIA_STATUS=0
     }
     
@@ -1734,6 +1748,19 @@ public class AirMediaSplashtop
         	setSessionVideoState(session, session.videoState());
         Common.Logging.i(TAG, "User id: "+String.valueOf(user)+"  Connected: "+String.valueOf(getSessionVideoState(session) == AirMediaSessionStreamingState.Playing));
 		Common.Logging.i(TAG, "Adding Id to map, userId: " + user + " session: " + session);
+		if (mCanvas != null) {
+			com.crestron.txrxservice.canvas.AirMediaSession s = new com.crestron.txrxservice.canvas.AirMediaSession(session, "AM-"+String.valueOf(user));	
+			if (s.connectRequest(new Originator(RequestOrigin.Receiver, s)))
+			{
+				canvasSessionMap.put(session.id(), s);
+			}
+			else
+			{
+				s.detachFromManager(); // failed to connect session remove from session manager
+			}
+        	sendClientData();
+        	mCanvas.mSessionMgr.logSessionStates("AirMediaSplashtop::addSession");
+		}
 		if ((user > 0) && (user <= MAX_USERS))
 		{
 			mStreamCtl.userSettings.setAirMediaUserConnected(true, user);
@@ -1760,6 +1787,17 @@ public class AirMediaSplashtop
             Common.Logging.e(TAG, "Got invalid user id: "+String.valueOf(user) + "for " + session);
         }
         removeSessionFromMap(session);
+        if (mCanvas != null)
+        {
+        	com.crestron.txrxservice.canvas.AirMediaSession s = canvasSessionMap.get(session.id());
+        	if (s != null)
+        	{
+        		s.disconnectRequest(new Originator(RequestOrigin.Receiver, s));
+        		canvasSessionMap.remove(session.id());
+        	}
+        	sendClientData();
+        	mCanvas.mSessionMgr.logSessionStates("AirMediaSplashtop::removeSession");
+        }
 		querySenderList(false); // force update of AIRMEDIA_STATUS as well as AIRMEDIA_NUMBER_OF_USERS_CONNECTED
     }
     
@@ -2033,7 +2071,10 @@ public class AirMediaSplashtop
 		{
 			AirMediaSessionInfo info = session.info();
 			this.SessionType = getSessionType(session);
-			this.IsClientActive = Boolean.valueOf(session == getActiveSession());
+			if (mCanvas != null)
+				this.IsClientActive = Boolean.valueOf(session.videoState() == AirMediaSessionStreamingState.Playing);
+			else
+				this.IsClientActive = Boolean.valueOf(session == getActiveSession());
 			String platform = info.platform.toString();
 			if (!platform.equals("") && !platform.equals("Undefined"))
 			{
@@ -2077,7 +2118,7 @@ public class AirMediaSplashtop
 		
 		public Client(boolean isActive)
 		{
-			this.IsClientActive = new Boolean(isActive);
+			this.IsClientActive = Boolean.valueOf(isActive);
 		}
 		
 		public Client(String sessionType)
@@ -2093,11 +2134,36 @@ public class AirMediaSplashtop
 			class AirMedia {
 				private ClientData ClientData;				
 				class ClientData {
+					String Status; // "Idle", "Active", "Presenting"
+					Integer TotalUsers;
 					private Map<String, Client> ConnectedClients;
 					
-					public ClientData()
+					void updateStatusAndTotalUsers()
 					{
-						ConnectedClients = new LinkedHashMap<String, Client>();
+						int totalUsers = canvasSessionMap.size();
+						String status = (totalUsers == 0) ? "Idle" : "Active";
+						if (totalUsers > 0)
+						{
+							for (Map.Entry<Long, com.crestron.txrxservice.canvas.AirMediaSession> e : canvasSessionMap.entrySet()) {
+								com.crestron.txrxservice.canvas.AirMediaSession cs = e.getValue();
+								if (cs.videoState == AirMediaSessionStreamingState.Playing)
+								{
+									status = "Presenting";
+									break;
+								}
+							}
+						}
+						if (totalUsers != clientDataTotalUsers)
+						{
+							clientDataTotalUsers = totalUsers;
+							this.TotalUsers = Integer.valueOf(clientDataTotalUsers);
+						}
+						if (!status.equalsIgnoreCase(clientDataStatus))
+						{
+							clientDataStatus = status;
+							this.Status = clientDataStatus;
+						}
+						Common.Logging.i("TAG", "updateStatusAndTotalUsers(): status ="+clientDataStatus+" totalUsers="+clientDataTotalUsers);
 					}
 				}
 
@@ -2121,15 +2187,28 @@ public class AirMediaSplashtop
 
 	private void sendClientData(int client, Client clientData)
 	{
-		if (clientData == null)
-			return;
-		
 		DeviceObject dev = new DeviceObject();
-		dev.Device.AirMedia.ClientData.ConnectedClients.put("Client"+client, clientData);
-
+		if (mCanvas != null) {
+			dev.Device.AirMedia.ClientData.updateStatusAndTotalUsers();
+		}
+		if (clientData != null)
+		{
+			dev.Device.AirMedia.ClientData.ConnectedClients = new LinkedHashMap<String, Client>();
+			dev.Device.AirMedia.ClientData.ConnectedClients.put("Client"+client, clientData);
+		}
+		if (client < 0)
+		{
+			// set map to empty
+			dev.Device.AirMedia.ClientData.ConnectedClients = new LinkedHashMap<String, Client>();
+		}
 		String sessionClientData = gson.toJson(dev);
 		Common.Logging.i(TAG,  "sendClientData: ClientDataJSON=" + sessionClientData);
-		mStreamCtl.SendToCresstore(sessionClientData, CresStreamCtrl.CresstoreOptions.Publish);
+		mStreamCtl.SendToCresstore(sessionClientData, CresStreamCtrl.CresstoreOptions.PublishAndSave);
+	}
+	
+	private void sendClientData()
+	{
+		sendClientData(0, null); // just update status and totalusers;
 	}
 	
 	private void sendClientData(AirMediaSession session)
@@ -2188,6 +2267,27 @@ public class AirMediaSplashtop
 			if (!AirMediaSessionInfo.isEqual(from, to))
 			{
 				sendClientData(session);
+				if (from.platform != to.platform)
+				{
+					setPlatformType(session, to.platform);
+				}
+			}
+		}
+		else if (from == null && to != null)
+		{
+			sendClientData(session);
+			setPlatformType(session, to.platform);
+		}
+    }
+    
+    private void setPlatformType(AirMediaSession session, AirMediaPlatforms platform)
+    {
+		if (mCanvas != null)
+		{
+			com.crestron.txrxservice.canvas.AirMediaSession s = canvasSessionMap.get(session.id());
+			if (s != null)
+			{
+				s.setPlatformType(platform);
 			}
 		}
     }
@@ -2228,6 +2328,12 @@ public class AirMediaSplashtop
 
 		Common.Logging.i(TAG,  "removeClientData for client "+ client + " session=" + session);
 		sendClientData(client, new Client());
+	}
+	
+	private void removeAllConnectedClients()
+	{
+		Common.Logging.i(TAG,  "removeAllConnectedClients ");
+		sendClientData(-1, null);
 	}
 	
     public void stopAllUser()
@@ -2627,7 +2733,7 @@ public class AirMediaSplashtop
                     // Add code here to add session to "table" of sessions and take any action needed
                     registerSessionEventHandlers(session);
                     addSession(session);
-                    if (getSessionVideoState(session) == AirMediaSessionStreamingState.Playing)
+                    if ((mCanvas ==null) && (getSessionVideoState(session) == AirMediaSessionStreamingState.Playing))
                     {
                     	addActiveSession(session);
                     }
@@ -2812,11 +2918,31 @@ public class AirMediaSplashtop
                       setSessionVideoState(session, session.videoState());
                       if (getSessionVideoState(session) == AirMediaSessionStreamingState.Playing)
                       {
-                    	  addActiveSession(session);
+                    	  if (mCanvas != null)
+                    	  {
+                    		  com.crestron.txrxservice.canvas.AirMediaSession s = canvasSessionMap.get(session.id());
+                    		  if (s != null)
+                    		  {
+                    			  s.setVideoState(AirMediaSessionStreamingState.Playing);
+                    		  }
+                  			  sendClientDataIsActiveSession(session, true);	
+                    	  } else {
+                    		  addActiveSession(session);
+                    	  }
                       } 
                       else if (getSessionVideoState(session) == AirMediaSessionStreamingState.Stopped)
                       {
-                    	  deleteActiveSessionWithFeedback(session);
+                    	  if (mCanvas != null)
+                    	  {
+                    		  com.crestron.txrxservice.canvas.AirMediaSession s = canvasSessionMap.get(session.id());
+                    		  if (s != null)
+                    		  {
+                    			  s.setVideoState(AirMediaSessionStreamingState.Stopped);
+                    		  }
+                  			  sendClientDataIsActiveSession(session, false);	
+                    	  } else {
+                        	  deleteActiveSessionWithFeedback(session);
+                    	  }
                       }
                 }
             };
@@ -2843,6 +2969,14 @@ public class AirMediaSplashtop
                     	mStreamCtl.setUpdateStreamStateOnFirstFrame(streamIdx, false);
                     }
                     // TODO Handle video resolution change
+                    if (mCanvas != null)
+                    {
+                    	com.crestron.txrxservice.canvas.AirMediaSession s = canvasSessionMap.get(session.id());
+                    	if (s != null)
+                    	{
+                    		s.setVideoResolution(session.videoResolution());
+                    	}
+                    }
                     sendClientDataVideoResolution(session);
                     if (session == getActiveSession())
                     {

@@ -5,6 +5,7 @@ import java.util.List;
 import java.util.concurrent.CountDownLatch;
 import java.util.concurrent.TimeUnit;
 
+import com.crestron.airmedia.receiver.m360.ipc.AirMediaSize;
 import com.crestron.txrxservice.CresStreamCtrl.DeviceMode;
 import com.crestron.txrxservice.CresStreamCtrl.StreamState;
 
@@ -13,7 +14,6 @@ import android.hardware.Camera;
 import android.hardware.Camera.ErrorCallback;
 import android.hardware.Camera.Parameters;
 import android.hardware.Camera.PreviewCallback;
-import android.hardware.Camera.Size;
 import android.util.Log;
 import android.view.Surface;
 import android.view.SurfaceHolder;
@@ -35,6 +35,7 @@ public class CameraPreview {
     private Thread preview_timeout_thread=null;
     private CountDownLatch preview_timeout_latch = null;
     private Object preview_timeout_lock = new Object();
+    private AirMediaSize resolution = new AirMediaSize(0,0);
 
     //public CameraPreview(CresStreamCtrl ctl, SurfaceHolder vHolder, HDMIInputInterface hdmiInIface) {
     public CameraPreview(CresStreamCtrl ctl, HDMIInputInterface hdmiInIface) {
@@ -146,6 +147,7 @@ public class CameraPreview {
 		        	// Update window size in case the aspect ratio or stretch changes
 			        try {
 			        	streamCtl.updateWindowWithVideoSize(idx, false, Integer.parseInt(streamCtl.hdmiInput.getHorizontalRes()), Integer.parseInt(streamCtl.hdmiInput.getVerticalRes()));
+        				resolution = new AirMediaSize(Integer.parseInt(streamCtl.hdmiInput.getHorizontalRes()), Integer.parseInt(streamCtl.hdmiInput.getVerticalRes()));
 			        } catch (NumberFormatException e) { e.printStackTrace(); }
 
 		        	CresCamera.openCamera(streamCtl);
@@ -315,6 +317,7 @@ public class CameraPreview {
 		        			if(validRes)
 		        			{
 		        				Log.i(TAG, "Camera preview size: " + localParameters.getPreviewSize().width + "x" + localParameters.getPreviewSize().height);
+		        				resolution = new AirMediaSize(localParameters.getPreviewSize().width, localParameters.getPreviewSize().height);
 		        				CresCamera.mCamera.setPreviewCallback(new PreviewCB(confidenceMode));
 		        				CresCamera.mCamera.setErrorCallback(new ErrorCB(confidenceMode));
 		        				signalPreviewTimeoutThread();	// kill the previous thread if it exists
@@ -426,6 +429,7 @@ public class CameraPreview {
 		                	CresCamera.mCamera.stopPreview();     
 		            		CresCamera.releaseCamera();
 		                }
+		                resolution = new AirMediaSize(0,0);
 		                is_preview = false;
 		                streamCtl.setPauseVideoImage(false, DeviceMode.PREVIEW);
 		                is_pause = false;
@@ -520,6 +524,10 @@ public class CameraPreview {
 
     public void setVolume(int volume) {
     	audio_pb.setVolume(volume);
+    }
+    
+    public AirMediaSize getResolution() {
+    	return resolution;
     }
     
     private class PreviewCB implements PreviewCallback
