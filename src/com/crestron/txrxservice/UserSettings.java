@@ -1641,26 +1641,38 @@ public class UserSettings
 	}
 	
 	public boolean getDmSync(int inputNum) {
+		if (CresStreamCtrl.NumDmInputs <= 0)
+			return false;
 		return dmSync[inputNum];
 	}
 	
 	public void setDmSync(boolean enable, int inputNum) {
+		if (CresStreamCtrl.NumDmInputs <= 0)
+			return;
 		this.dmSync[inputNum] = enable;
 	}
 	
 	public boolean getDmHdcpBlank(int inputNum) {
+		if (CresStreamCtrl.NumDmInputs <= 0)
+			return false;
 		return dmHdcpBlank[inputNum];
 	}
 	
 	public void setDmHdcpBlank(boolean enable, int inputNum) {
+		if (CresStreamCtrl.NumDmInputs <= 0)
+			return;
 		this.dmHdcpBlank[inputNum] = enable;
 	}
 	
 	public CresStreamCtrl.Resolution getDmResolution(int inputNum) {
+		if (CresStreamCtrl.NumDmInputs <= 0)
+			return null;
 		return dmResolution[inputNum];
 	}
 	
 	public void setDmResolution(CresStreamCtrl.Resolution resolution, int inputNum) {
+		if (CresStreamCtrl.NumDmInputs <= 0)
+			return;
 		this.dmResolution[inputNum] = resolution;
 	}
 	
