@@ -35,10 +35,10 @@ public class DMSession extends Session
 	
 	public void doStop(boolean replace)
 	{
-		Common.Logging.i(TAG, "-----------------------DM Session "+this+" stop request");
+		Common.Logging.i(TAG, "DM Session "+this+" stop request");
 		if (streamId >= 0)
 		{
-			Common.Logging.i(TAG, "-----------------------DM Session "+this+" sending stop to csio");
+			Common.Logging.i(TAG, "DM Session "+this+" sending stop to csio");
 			mStreamCtl.sendDmStart(inputNumber, false);
 			if (!replace)
 			{
@@ -53,7 +53,7 @@ public class DMSession extends Session
 		Runnable r = new Runnable() { public void run() { doStop(replace); } };
         TimeSpan start = TimeSpan.now();
 		boolean completed = executeWithTimeout(r, TimeSpan.fromSeconds(timeoutInSeconds));
-		Common.Logging.i(TAG, "-----------------------DM Session stop completed in "+TimeSpan.now().subtract(start).toString()+" seconds");
+		Common.Logging.i(TAG, "DM Session stop completed in "+TimeSpan.now().subtract(start).toString()+" seconds");
 		if (completed) {
 			streamId = -1;
 			setState(SessionState.Stopped);
@@ -97,7 +97,7 @@ public class DMSession extends Session
 	
 	public void doPlay(int replaceStreamId)
 	{		
-		Common.Logging.i(TAG, "-----------------------DM Session "+this+" play request");
+		Common.Logging.i(TAG, "DM Session "+this+" play request");
 		if (replaceStreamId > 0)
 		{
 			streamId = replaceStreamId;
@@ -106,16 +106,16 @@ public class DMSession extends Session
 			streamId = mCanvas.mSurfaceMgr.getUnusedStreamId();
 			mCanvas.showWindow(streamId); // TODO remove once real canvas app available
 		}
-		Common.Logging.i(TAG, "-----------------------DM Session "+this+" got streamId "+streamId);
+		Common.Logging.i(TAG, "DM Session "+this+" got streamId "+streamId);
 		Surface surface = acquireSurface();
-		Common.Logging.i(TAG, "-----------------------DM Session "+this+" sending start to csio");
+		Common.Logging.i(TAG, "DM Session "+this+" sending start to csio");
 		mStreamCtl.sendDmStart(inputNumber, true);
         if (mStreamCtl.hasCanvasMode) {
         	mStreamCtl.setFormat(streamId, PixelFormat.RGBA_8888);
         }
 		if (surface != null && surface.isValid())
 		{
-			Common.Logging.i(TAG, "-----------------------DM Session "+this+" drawing to surface");
+			Common.Logging.i(TAG, "DM Session "+this+" drawing to surface");
 			drawChromaKeyColor(surface, mStreamCtl.userSettings.getDmHdcpBlank(inputNumber));
 			Rect window = getWindow(surface);
 			mStreamCtl.sendDmWindow(inputNumber, window.left, window.top, window.width(), window.height());
@@ -131,7 +131,7 @@ public class DMSession extends Session
 		Runnable r = new Runnable() { public void run() { doPlay(replaceStreamId); } };
         TimeSpan start = TimeSpan.now();
 		boolean completed = executeWithTimeout(r, TimeSpan.fromSeconds(timeoutInSeconds));
-		Common.Logging.i(TAG, "-----------------------DM Session play completed in "+TimeSpan.now().subtract(start).toString()+" seconds");
+		Common.Logging.i(TAG, "DM Session play completed in "+TimeSpan.now().subtract(start).toString()+" seconds");
 		if (completed)
 		{
 			setState(SessionState.Playing);
@@ -159,27 +159,11 @@ public class DMSession extends Session
 	public void setHdcpBlank(boolean blank)
 	{
 		// TODO canvas implement
-		Common.Logging.i(TAG, "-----------------------DM Session setHdcpBlank called ");
+		Common.Logging.i(TAG, "DM Session setHdcpBlank called ");
 		Surface s = mCanvas.mSurfaceMgr.streamId2Surface(streamId);
 		if (s != null)
 		{
 			drawChromaKeyColor(s, blank);
 		}
 	}
-	
-	// returns true if successful completion, false for timeout
-    public boolean executeWithTimeout(Runnable r, TimeSpan timeout)
-    {
-    	 ConditionVariable completed = new ConditionVariable();
-
-         Thread t = new Thread(new Runnable() {
-        	 private ConditionVariable c_;
-        	 private Runnable r_;
-        	 @Override public void run() { try { r_.run(); } finally { c_.open(); } }
-        	 public Runnable set(Runnable t, ConditionVariable c) { r_ = t; c_ = c; return this; }
-         }.set(r, completed));
-         t.start();
-
-         return completed.block(TimeSpan.toLong(timeout.totalMilliseconds()));
-    }    
 }

@@ -4993,12 +4993,18 @@ public class CresStreamCtrl extends Service {
     
     public void sendAirMediaConnectionAddress()
     {
-    	sockTask.SendDataToAllClients(MiscUtils.stringFormat("AIRMEDIA_CONNECTION_ADDRESS=%s", getAirMediaConnectionAddress()));
+    	String connectionInfo = getAirMediaConnectionAddress();
+    	sockTask.SendDataToAllClients(MiscUtils.stringFormat("AIRMEDIA_CONNECTION_ADDRESS=%s", connectionInfo));
+    	if (mCanvas != null)
+    		mCanvas.getCrestore().setCurrentConnectionInfo(connectionInfo);
     }
     
     public void sendAirMediaWirelessConnectionAddress()
     {
+    	String connectionInfo = getAirMediaWirelessConnectionAddress();
     	sockTask.SendDataToAllClients(MiscUtils.stringFormat("AIRMEDIA_WIRELESS_CONNECTION_ADDRESS=%s", getAirMediaWirelessConnectionAddress()));
+    	if (mCanvas != null)
+    		mCanvas.getCrestore().setCurrentWirelessConnectionInfo(connectionInfo);
     }
     
     private String getAirMediaConnectionAddressWhenNone()

@@ -46,8 +46,8 @@ public class CanvasCrestore
 	com.crestron.txrxservice.canvas.SessionManager mSessionMgr;
 	SimulatedAVF mAVF;
 	
-	TaskScheduler scheduler_;
-	TaskScheduler scheduler() { return scheduler_; }
+	Scheduler sessionResponseScheduler_;
+	Scheduler sessionResponseScheduler() { return sessionResponseScheduler_; }
 	
 	private final ReentrantLock sessionEventLock = new ReentrantLock();
 	Map<String, TransactionData> transactionMap= new ConcurrentHashMap<String, TransactionData>();
@@ -56,21 +56,6 @@ public class CanvasCrestore
     private com.crestron.cresstoreredis.CresStoreWrapper wrapper = null;
 	private Gson gson = null;
 	public Gson getGson() { return gson; }
-
-	
-	boolean queue(String name, TimeSpan timeout, Runnable task) {
-		Common.Logging.i(TAG, name + "  timeout= " + timeout.toString());
-		TimeSpan start = TimeSpan.now();
-		boolean isCompleted = false;
-		try {
-			isCompleted = scheduler().queue(timeout, task);
-		} catch (Exception e) {
-			Common.Logging.e(TAG, name + "  timeout= " + timeout.toString() + "  EXCEPTION  " + e + "  " + Log.getStackTraceString(e));
-		} finally {
-			Common.Logging.i(TAG, name + "  timeout= " + timeout.toString() + "  COMPLETE= " + isCompleted + "  " + TimeSpan.getDelta(start));
-		}
-		return isCompleted;
-	}
 
 	public class TransactionData 
 	{
@@ -106,7 +91,7 @@ public class CanvasCrestore
 		mCanvas = canvas;
 		mSessionMgr = sessionManager;
 		mAVF = new SimulatedAVF(this);
-		scheduler_ = new com.crestron.airmedia.utilities.TaskScheduler(TAG);
+		sessionResponseScheduler_ = new Scheduler("sessionResponse");
 
         Common.Logging.i(TAG, "CanvasCrestore: create Crestore wrapper");
         try {
@@ -227,6 +212,18 @@ public class CanvasCrestore
 		wrapper.set(jsonStr, false);
 	}
 	
+	public void setCurrentWirelessConnectionInfo(String connectionInfo)
+	{
+		Root root = new Root();
+		root.device = new Device();
+		root.device.internal = new Internal();
+		root.device.internal.airMedia = new InternalAirMedia();
+		root.device.internal.airMedia.osd = new Osd();
+		root.device.internal.airMedia.osd.currentWirelessConnectionInfo = connectionInfo;
+		String jsonStr = "{\"Pending\":" + gson.toJson(root) + "}";
+		wrapper.set(jsonStr, false);
+	}
+	
 	public void processSessionStateChange(SessionStateChange s)
 	{
 		Common.Logging.v(TAG, "Processing Session State Change Message "+gson.toJson(s));
@@ -286,7 +283,7 @@ public class CanvasCrestore
 		final com.crestron.airmedia.utilities.TimeSpan timeout = com.crestron.airmedia.utilities.TimeSpan.fromSeconds(60.0);
 		final Failure f = new Failure();
 		//scheduler().queue(timeout, new Runnable() { @Override public void run() { enqueueSessionResponse(transactionId, actionList); } } );
-		queue("doSessionResponse", timeout, new Runnable() { @Override public void run() { enqueueSessionResponse(transactionId, actionList, f); } } );
+		sessionResponseScheduler().queue(TAG, "doSessionResponse", timeout, new Runnable() { @Override public void run() { enqueueSessionResponse(transactionId, actionList, f); } } );
 	}
 		
 	public void enqueueSessionResponse(String transactionId, List<String> actionList, Failure failure)
@@ -891,6 +888,8 @@ public class CanvasCrestore
     public class Osd {
     	@SerializedName ("CurrentConnectionInfo")
     	String currentConnectionInfo;
+    	@SerializedName ("CurrentWirelessConnectionInfo")
+    	String currentWirelessConnectionInfo;
     	@SerializedName ("VideoDisplayed")
     	Boolean videoDisplayed;
     }

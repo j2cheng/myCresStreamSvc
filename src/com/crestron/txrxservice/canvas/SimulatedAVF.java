@@ -1,43 +1,16 @@
 package com.crestron.txrxservice.canvas;
 
-import java.io.DataOutputStream;
-import java.io.IOException;
-import java.util.ArrayList;
 import java.util.Map;
 import java.util.HashMap;
-import java.util.LinkedHashMap;
 import java.util.concurrent.ConcurrentHashMap;
-import java.util.concurrent.CountDownLatch;
-import java.util.concurrent.ConcurrentLinkedQueue;
-import java.util.concurrent.TimeUnit;
-import java.util.concurrent.locks.ReentrantLock;
-import java.util.Collection;
 import java.util.List;
 import java.util.LinkedList;
-import java.util.Queue;
-import java.util.regex.Matcher;
-import java.util.regex.Pattern;
-import java.util.EnumSet;
-import java.util.Timer;
-import java.util.TimerTask;
-import java.util.UUID;
-import java.net.InetAddress;
-import java.net.UnknownHostException;
 
-import android.content.Context;
 import android.util.Log;
 
-import com.crestron.airmedia.canvas.channels.ipc.CanvasResponse;
-import com.crestron.airmedia.canvas.channels.ipc.CanvasSourceAction;
-import com.crestron.airmedia.canvas.channels.ipc.CanvasSourceRequest;
-import com.crestron.airmedia.canvas.channels.ipc.CanvasSourceTransaction;
+
 import com.crestron.airmedia.utilities.Common;
-import com.crestron.airmedia.utilities.TimeSpan;
-import com.crestron.airmedia.utilities.TaskScheduler;
-import com.crestron.txrxservice.CresStreamCtrl.StreamState;
 import com.google.gson.Gson;
-import com.google.gson.GsonBuilder;
-import com.google.gson.annotations.SerializedName;
 
 public class SimulatedAVF
 {

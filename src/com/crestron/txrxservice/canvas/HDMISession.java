@@ -34,15 +34,15 @@ public class HDMISession extends Session
 	
 	public void doStop(boolean replace)
 	{
-		Common.Logging.i(TAG, "-----------------------HDMI Session "+this+" stop request");
+		Common.Logging.i(TAG, "HDMI Session "+this+" stop request");
 		if (streamId >= 0)
 		{
 			// set device mode for this streamId to preview
 			mStreamCtl.setDeviceMode(2, streamId);
 			//start the preview mode
-			Common.Logging.i(TAG, "-----------------------HDMI Session "+this+" calling Stop()");
+			Common.Logging.i(TAG, "HDMI Session "+this+" calling Stop()");
 			mStreamCtl.Stop(streamId, false);
-			Common.Logging.i(TAG, "-----------------------HDMI Session "+this+" back from Stop()");
+			Common.Logging.i(TAG, "HDMI Session "+this+" back from Stop()");
 			if (!replace)
 			{
 				mCanvas.hideWindow(streamId); // TODO remove once real canvas app available
@@ -56,7 +56,7 @@ public class HDMISession extends Session
 		Runnable r = new Runnable() { public void run() { doStop(replace); } };
         TimeSpan start = TimeSpan.now();
 		boolean completed = executeWithTimeout(r, TimeSpan.fromSeconds(timeoutInSeconds));
-		Common.Logging.i(TAG, "-----------------------HDMI Session stop completed in "+TimeSpan.now().subtract(start).toString()+" seconds");
+		Common.Logging.i(TAG, "HDMI Session stop completed in "+TimeSpan.now().subtract(start).toString()+" seconds");
 		if (completed) {
 			streamId = -1;
 			setState(SessionState.Stopped);
@@ -75,7 +75,7 @@ public class HDMISession extends Session
 	
 	public void doPlay(int replaceStreamId)
 	{		
-		Common.Logging.i(TAG, "-----------------------HDMI Session "+this+" play request");
+		Common.Logging.i(TAG, "HDMI Session "+this+" play request");
 		if (replaceStreamId > 0)
 		{
 			streamId = replaceStreamId;
@@ -84,14 +84,14 @@ public class HDMISession extends Session
 			streamId = mCanvas.mSurfaceMgr.getUnusedStreamId();
 			mCanvas.showWindow(streamId); // TODO remove once real canvas app available
 		}
-		Common.Logging.i(TAG, "-----------------------HDMI Session "+this+" got streamId "+streamId);
+		Common.Logging.i(TAG, "HDMI Session "+this+" got streamId "+streamId);
 		acquireSurface();
 		// set device mode for this streamId to preview
 		mStreamCtl.setDeviceMode(2, streamId);
 		//start the preview mode
-		Common.Logging.i(TAG, "-----------------------HDMI Session "+this+" calling Start()");
+		Common.Logging.i(TAG, "HDMI Session "+this+" calling Start()");
 		mStreamCtl.Start(streamId);
-		Common.Logging.i(TAG, "-----------------------HDMI Session "+this+" back from Start()");
+		Common.Logging.i(TAG, "HDMI Session "+this+" back from Start()");
 	}
 	
 	public void play(Originator originator, final int replaceStreamId, int timeoutInSeconds)
@@ -99,7 +99,7 @@ public class HDMISession extends Session
 		Runnable r = new Runnable() { public void run() { doPlay(replaceStreamId); } };
         TimeSpan start = TimeSpan.now();
 		boolean completed = executeWithTimeout(r, TimeSpan.fromSeconds(timeoutInSeconds));
-		Common.Logging.i(TAG, "-----------------------HDMI Session play completed in "+TimeSpan.now().subtract(start).toString()+" seconds");
+		Common.Logging.i(TAG, "HDMI Session play completed in "+TimeSpan.now().subtract(start).toString()+" seconds");
 		if (completed)
 		{
 			setState(SessionState.Playing);
@@ -123,20 +123,4 @@ public class HDMISession extends Session
 		AirMediaSize res = mStreamCtl.getPreviewResolution();
 		super.setResolution(res);
 	}
-				
-	// returns true if successful completion, false for timeout
-    public boolean executeWithTimeout(Runnable r, TimeSpan timeout)
-    {
-    	 ConditionVariable completed = new ConditionVariable();
-
-         Thread t = new Thread(new Runnable() {
-        	 private ConditionVariable c_;
-        	 private Runnable r_;
-        	 @Override public void run() { try { r_.run(); } finally { c_.open(); } }
-        	 public Runnable set(Runnable t, ConditionVariable c) { r_ = t; c_ = c; return this; }
-         }.set(r, completed));
-         t.start();
-
-         return completed.block(TimeSpan.toLong(timeout.totalMilliseconds()));
-    }    
 }

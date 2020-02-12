@@ -1,16 +1,11 @@
 package com.crestron.txrxservice.canvas;
 
 import com.crestron.airmedia.receiver.m360.ipc.AirMediaSessionStreamingState;
-import com.crestron.airmedia.receiver.m360.ipc.AirMediaSize;
 import com.crestron.airmedia.utilities.Common;
 import com.crestron.airmedia.utilities.TimeSpan;
-import com.crestron.txrxservice.CresStreamCtrl.StreamState;
 
-import android.util.Log;
 import android.view.Surface;
 
-import java.util.concurrent.CountDownLatch;
-import java.util.concurrent.TimeUnit;
 
 public class AirMediaSession extends Session
 {
@@ -163,7 +158,7 @@ public class AirMediaSession extends Session
 		mStreamCtl.mUsedForAirMedia[streamId] = false;
 		if (!replace)
 		{
-			Common.Logging.i(TAG, "----RHRHRH---- AirMediaSession::doStop(): AirMediaSession "+this+" calling hideWindow with streamId="+streamId);
+			Common.Logging.i(TAG, "AirMediaSession::doStop(): AirMediaSession "+this+" calling hideWindow with streamId="+streamId);
 			mCanvas.hideWindow(streamId); // TODO remove once real canvas app available
 			// release surface
 			streamId = -1;
@@ -238,7 +233,7 @@ public class AirMediaSession extends Session
 		  {
 			  final Originator originator = new Originator(RequestOrigin.Receiver, this);
 			  Runnable r = new Runnable() { @Override public void run() { stopRequest(originator); } };
-			  queue("stopRequest", TimeSpan.fromSeconds(10), r);
+			  scheduler().queue(TAG, "stopRequest", TimeSpan.fromSeconds(10), r);
 		  }
 		} 
 		else if (s == AirMediaSessionStreamingState.Playing)
@@ -252,7 +247,7 @@ public class AirMediaSession extends Session
   		  {
 			  final Originator originator = new Originator(RequestOrigin.Receiver, this);
 			  Runnable r = new Runnable() { @Override public void run() { playRequest(originator); } };
-			  queue("playRequest", TimeSpan.fromSeconds(10), r);
+			  scheduler().queue(TAG, "playRequest", TimeSpan.fromSeconds(10), r);
   		  }
 		}
 	}

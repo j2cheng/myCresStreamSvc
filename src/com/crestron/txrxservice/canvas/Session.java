@@ -21,6 +21,7 @@ import android.view.Surface;
 
 public class Session
 {
+	public final static boolean useCanvasSurface = false;
 	com.crestron.txrxservice.canvas.CresCanvas mCanvas;
 	public static CresStreamCtrl mStreamCtl;
 	public SessionManager mSessionMgr;
@@ -38,22 +39,9 @@ public class Session
     public boolean [] permissions = new boolean[PermissionType.size];
     //public SessionInfo info_;
     public static long nextId = 0;
-	TaskScheduler scheduler_;
-	
-	TaskScheduler scheduler() { return scheduler_; }
-	
-	void queue(String name, TimeSpan timeout, Runnable task) {
-		Common.Logging.i(TAG, name + "  timeout= " + timeout.toString());
-		TimeSpan start = TimeSpan.now();
-		boolean isCompleted = false;
-		try {
-			isCompleted = scheduler().queue(timeout, task);
-		} catch (Exception e) {
-			Common.Logging.e(TAG, name + "  timeout= " + timeout.toString() + "  EXCEPTION  " + e + "  " + Log.getStackTraceString(e));
-		} finally {
-			Common.Logging.i(TAG, name + "  timeout= " + timeout.toString() + "  COMPLETE= " + isCompleted + "  " + TimeSpan.getDelta(start));
-		}
-	}
+	Scheduler scheduler_;
+
+	Scheduler scheduler() { return scheduler_; }
 	
 	public Session()
 	{
@@ -69,7 +57,7 @@ public class Session
 		inputNumber = 0;
 		url = null;
 		resolution = new AirMediaSize(0,0);
-		scheduler_ = new com.crestron.airmedia.utilities.TaskScheduler(TAG);
+		scheduler_ = new Scheduler(sessionId());
 		setSourceUserPermission(false);
 		setCanvasUserPermission(false);
 		setModeratorPermission(true);
@@ -244,13 +232,19 @@ public class Session
 	
 	public Surface acquireSurface()
 	{
-		Surface surface = mStreamCtl.getSurface(streamId);
+		Surface surface = null;
+		if (useCanvasSurface)
+			surface = mCanvas.acquireSurface(sessionId());
+		else
+			surface = mStreamCtl.getSurface(streamId);
 		mCanvas.mSurfaceMgr.addSurface(streamId, surface);
 		return surface;
 	}
 	
 	public void releaseSurface()
 	{
+		if (useCanvasSurface)
+			mCanvas.releaseSurface(sessionId());
 		mCanvas.mSurfaceMgr.removeSurface(streamId);
 	}
 	
@@ -287,53 +281,21 @@ public class Session
         return lhs == rhs || !(lhs == null || rhs == null) && lhs.id == rhs.id;
     }
     
-//    @Override
-//    public int hashCode()
-//    {
-//    	int prime = 31;
-//    	int result = 1;
-//    	result = prime*result + Long.valueOf(id).hashCode();
-//    	result = prime*result + sessionId().hashCode();
-//    	result = prime*result + state.hashCode();
-//    	result = prime*result + type.hashCode();
-//    	result = prime*result + airMediaType.hashCode();
-//    	result = prime*result + Integer.valueOf(inputNumber).hashCode();
-//    	result = prime*result + resolution.hashCode();
-//    	return result;
-//    }
-//    
-//    @Override
-//    public boolean equals(Object obj)
-//    {
-//    	Session s = (Session) obj;
-//    	
-//    	if (this.hashCode() != s.hashCode())
-//    		return false;
-//    	
-//    	return (this.id == s.id &&
-//    			this.sessionId().equals(s.sessionId()) && 
-//    			this.state == s.state &&
-//    			this.type == s.type &&
-//    			this.airMediaType == s.airMediaType &&
-//    			this.inputNumber == s.inputNumber &&
-//    			this.resolution.equals(s.resolution));
-//    }
-//    
-//	// returns true if successful completion, false for timeout
-//    public boolean executeWithTimeout(Runnable r, TimeSpan timeout)
-//    {
-//    	 ConditionVariable completed = new ConditionVariable();
-//
-//         Thread t = new Thread(new Runnable() {
-//        	 private ConditionVariable c_;
-//        	 private Runnable r_;
-//        	 @Override public void run() { try { r_.run(); } finally { c_.open(); } }
-//        	 public Runnable set(Runnable t, ConditionVariable c) { r_ = t; c_ = c; return this; }
-//         }.set(r, completed));
-//         t.start();
-//
-//         return completed.block(TimeSpan.toLong(timeout.totalMilliseconds()));
-//    }    
+	// returns true if successful completion, false for timeout
+    public boolean executeWithTimeout(Runnable r, TimeSpan timeout)
+    {
+    	 ConditionVariable completed = new ConditionVariable();
+
+         Thread t = new Thread(new Runnable() {
+        	 private ConditionVariable c_;
+        	 private Runnable r_;
+        	 @Override public void run() { try { r_.run(); } finally { c_.open(); } }
+        	 public Runnable set(Runnable t, ConditionVariable c) { r_ = t; c_ = c; return this; }
+         }.set(r, completed));
+         t.start();
+
+         return completed.block(TimeSpan.toLong(timeout.totalMilliseconds()));
+    }    
     
     public enum PermissionType {
         SourceUser(0), CanvasUser(1), Moderator(2);

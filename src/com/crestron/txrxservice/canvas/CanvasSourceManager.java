@@ -14,15 +14,12 @@ import android.util.Log;
 
 public class CanvasSourceManager {
     private static final String TAG = "CanvasSourceManager";
-    private static final long INVALID_SESSION_ID = (long) 0;
     
     CanvasSourceManager(CresStreamCtrl streamCtrl) {
     	mStreamCtl = streamCtrl;
         
     }
     
-    private CanvasSourceManager self() { return this; }
-
     ////////////////////////////////////////////////////////////////////////////////////////////////
     /// FIELDS
     ////////////////////////////////////////////////////////////////////////////////////////////////
@@ -30,7 +27,7 @@ public class CanvasSourceManager {
     private final Object mLock = new Object();
     private CresStreamCtrl mStreamCtl = null;
     private CresCanvas mCanvas = mStreamCtl.mCanvas;
-    private CanvasCrestore mCresStore = mCanvas.mCrestore;
+    private CanvasCrestore mCresStore = mCanvas.getCrestore();
 
     ////////////////////////////////////////////////////////////////////////////////////////////////
     /// PROPERTIES

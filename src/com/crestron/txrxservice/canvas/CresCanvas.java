@@ -1,5 +1,7 @@
 package com.crestron.txrxservice.canvas;
 
+import com.crestron.airmedia.canvas.channels.ipc.CanvasResponse;
+import com.crestron.airmedia.canvas.channels.ipc.CanvasSurfaceAcquireResponse;
 import com.crestron.airmedia.utilities.Common;
 import com.crestron.airmedia.utilities.TimeSpan;
 import com.crestron.txrxservice.HDMIInputInterface;
@@ -116,27 +118,33 @@ public class CresCanvas
 				Common.Logging.e(TAG, "HDMI sync is true yet resolution is 0x0");
 				return;
 			}
-//			// if session is playing it should be stopped
-//			if (session != null)
-//			{
-//				
-//				Common.Logging.e(TAG, "HDMI sync is true with existing HDMI session in state "+session.state);
-//	            mCrestore.sendSessionEvent(UUID.randomUUID().toString(), session.sessionId(), "Disconnect", "HDMI", null, Integer.valueOf(1));
-//			}
-			session = com.crestron.txrxservice.canvas.Session.createSession("HDMI", "HDMI"+inputNumber, null, 1, null);
-			((HDMISession) session).setHdmiInput(hdmiInput);
+			// if session is playing it should be stopped
 			if (session != null)
 			{
-				Common.Logging.i(TAG, "Adding session " + session + " to sessionManager");
-				mSessionMgr.add(session);
+				
+				Common.Logging.e(TAG, "HDMI sync is true with existing HDMI session in state "+session.state);
+				if (session.isPlaying())
+				{
+		            mCrestore.doSessionEvent(session, "Stop", new Originator(RequestOrigin.Hardware));
+				}
 			}
 			else
 			{
-				Common.Logging.i(TAG, "Connect not create requested session for connect command");
+				session = com.crestron.txrxservice.canvas.Session.createSession("HDMI", "HDMI"+inputNumber, null, 1, null);
+				((HDMISession) session).setHdmiInput(hdmiInput);
+				if (session != null)
+				{
+					Common.Logging.i(TAG, "Adding session " + session + " to sessionManager");
+					mSessionMgr.add(session);
+				}
+				else
+				{
+					Common.Logging.i(TAG, "Connect not create requested session for connect command");
+				}
+				mCrestore.doSessionEvent(session, "Connect", new Originator(RequestOrigin.Hardware));
 			}
-            mCrestore.doSessionEvent(session, "Connect", new Originator(RequestOrigin.Unknown));
             // For now HDMI sessions should immediately be transitioned to Play
-            mCrestore.doSessionEvent(session, "Play", new Originator(RequestOrigin.Unknown));
+            mCrestore.doSessionEvent(session, "Play", new Originator(RequestOrigin.Hardware));
 		}
 		else
 		{
@@ -145,7 +153,7 @@ public class CresCanvas
 			{
 				
 				Common.Logging.e(TAG, "HDMI sync is false with existing HDMI session in state "+session.state);
-	            mCrestore.doSessionEvent(session, "Disconnect", new Originator(RequestOrigin.Unknown));
+	            mCrestore.doSessionEvent(session, "Disconnect", new Originator(RequestOrigin.Hardware));
 			}
 			else
 			{
@@ -169,7 +177,7 @@ public class CresCanvas
 			{
 				
 				Common.Logging.e(TAG, "DM sync is true with existing DM session in state "+session.state);
-	            mCrestore.sendSessionEvent(UUID.randomUUID().toString(), session, "disconnect");
+	            mCrestore.doSessionEvent(session, "Disconnect", new Originator(RequestOrigin.Hardware));
 			}
 			session = com.crestron.txrxservice.canvas.Session.createSession("DM", "DM"+inputNumber, null, inputNumber, null);
 			if (session != null)
@@ -181,9 +189,9 @@ public class CresCanvas
 			{
 				Common.Logging.i(TAG, "Connect not create requested DM session for connect command");
 			}
-            mCrestore.doSessionEvent(session, "Connect", new Originator(RequestOrigin.Unknown));
+            mCrestore.doSessionEvent(session, "Connect", new Originator(RequestOrigin.Hardware));
             // For now DM sessions should immediately be transitioned to Play
-            mCrestore.doSessionEvent(session, "Play", new Originator(RequestOrigin.Unknown));
+            mCrestore.doSessionEvent(session, "Play", new Originator(RequestOrigin.Hardware));
 		}
 		else
 		{
@@ -192,7 +200,7 @@ public class CresCanvas
 			{
 				
 				Common.Logging.e(TAG, "HDMI sync is false with existing DM session in state "+session.state);
-	            mCrestore.doSessionEvent(session, "Disconnect", new Originator(RequestOrigin.Unknown));
+	            mCrestore.doSessionEvent(session, "Disconnect", new Originator(RequestOrigin.Hardware));
 			}
 			else
 			{
@@ -215,6 +223,25 @@ public class CresCanvas
 		}
 	}
 	
+	public Surface acquireSurface(String sessionId)
+	{
+//		CanvasSurfaceAcquireResponse response = AirMediaCanvas.surfaceAcquire(sessionId);
+//		if (response.isSucceeded())
+//			return response.surface;
+//		else
+//		{
+//			Common.Logging.e(TAG, "getSurface was unable to get surface from Canvas App for session: "+sessionId);
+//			return null;
+//		}
+		return null;
+	}
+	
+	public void releaseSurface(String sessionId)
+	{
+//		CanvasResponse response = AirMediaCanvas.surfaceRelease(sessionId);
+//		if (!response.isSucceeded())
+//			Common.Logging.e(TAG, "Canvas App failed to release surface for session: "+sessionId);
+	}
 	
 	public class SurfaceManager {
 		Surface surfaces[] = new Surface[MAX_PRESENTING];
@@ -225,7 +252,7 @@ public class CresCanvas
 				surfaces[i] = null;
 		}
 		
-		public Surface streamId2Surface(int streamId)
+		public synchronized Surface streamId2Surface(int streamId)
 		{
 			if (streamId >= MAX_PRESENTING)
 			{
@@ -235,7 +262,7 @@ public class CresCanvas
 			return surfaces[streamId];
 		}
 		
-		public int surface2StreamId(Surface s)
+		public synchronized int surface2StreamId(Surface s)
 		{
 			for (int i = 0; i < MAX_PRESENTING; i++)
 			{
@@ -245,7 +272,7 @@ public class CresCanvas
 			return -1;
 		}
 		
-		public int getUnusedStreamId()
+		public synchronized int getUnusedStreamId()
 		{
 			for (int i=0; i < MAX_PRESENTING; i++)
 			{
@@ -257,7 +284,7 @@ public class CresCanvas
 			return -1;
 		}
 		
-		public int addSurface(Surface s)
+		public synchronized int addSurface(Surface s)
 		{
 
 			int streamId = getUnusedStreamId();
@@ -268,12 +295,12 @@ public class CresCanvas
 			return streamId;
 		}
 		
-		public void addSurface(int streamId, Surface s)
+		public synchronized void addSurface(int streamId, Surface s)
 		{
 			surfaces[streamId] = s;
 		}
 		
-		public void removeSurface(Surface s)
+		public synchronized void removeSurface(Surface s)
 		{
 			for (int i=0; i < MAX_PRESENTING; i++)
 			{
@@ -282,7 +309,7 @@ public class CresCanvas
 			}
 		}
 		
-		public void removeSurface(int streamId)
+		public synchronized void removeSurface(int streamId)
 		{
 			if (streamId >= MAX_PRESENTING)
 			{
