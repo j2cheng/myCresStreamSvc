@@ -11,9 +11,6 @@ import android.util.Log;
 public class CommandParser {
 
     String TAG = "TxRx CmdParser";
-    StringTokenizer tokenizer; 
-    CommandInvoker invoke;
-    CommandIf cmd ; 
     CresStreamCtrl ctrl;
     HashMap <String, CommandIf> cmdHashMap;
 
@@ -223,8 +220,6 @@ public class CommandParser {
     }
 
     public  CommandParser(CresStreamCtrl a_crestctrl){
-        tokenizer = new StringTokenizer();
-        invoke = new CommandInvoker();
         ctrl = a_crestctrl;
         cmdHashMap = new HashMap<String, CommandIf>();	//update request will fill in hashmap values
     }
@@ -309,8 +304,8 @@ public class CommandParser {
         sb.append(msg1).append("=").append(msg2);
         return (sb.toString());
     }
-    
-    CommandIf ProcCommand (String msg, String arg, int idx){
+
+    private synchronized CommandIf ProcCommand (String msg, String arg, int idx){
     	CmdTable temp = CmdTable.valueOf(msg);	//check if command is in hashMap
         // Need to make sure each streamId has a unique object since the streamId joinQueues are processed in parallel
     	String key=String.valueOf(temp)+String.valueOf(idx);
@@ -331,7 +326,7 @@ public class CommandParser {
     }
 
     // TODO: These joins should be organized by slots
-    CommandIf ProcCommandSwitchTable (String msg, String arg, int idx){
+    private synchronized CommandIf ProcCommandSwitchTable (String msg, String arg, int idx){
         CommandIf cmd = null;
         switch(CmdTable.valueOf(msg)){
             case MODE:
@@ -894,7 +889,7 @@ public class CommandParser {
     }
     
     //Validating received command
-    private boolean validateMsg (String msg){
+    private synchronized boolean validateMsg (String msg){
         try {
             CmdTable validatecmd = CmdTable.valueOf(msg);
             return true;
@@ -904,13 +899,14 @@ public class CommandParser {
     }
 
     public String processReceivedMessage(String receivedMsg){
-        String reply = ""; 
-        StringTokenizer.ParseResponse parseResponse = tokenizer.Parse(receivedMsg);
-//        Log.i(TAG, "sessId parsed "+ parseResponse.sessId);
-        
-        if (parseResponse.sessId >= CresStreamCtrl.NumOfSurfaces)
-        {
-        	return MiscUtils.stringFormat("Invalid Session id: %d", parseResponse.sessId);
+        String reply = "";
+        CommandIf cmd;
+        CommandInvoker invoke = new CommandInvoker();
+        StringTokenizer.ParseResponse parseResponse = new StringTokenizer().Parse(receivedMsg);
+        //        Log.i(TAG, "sessId parsed "+ parseResponse.sessId);
+
+        if (parseResponse.sessId >= CresStreamCtrl.NumOfSurfaces) {
+            return MiscUtils.stringFormat("Invalid Session id: %d", parseResponse.sessId);
         }
 
         if (validateMsg(parseResponse.joinName.toUpperCase()))

@@ -9,9 +9,7 @@ import android.util.Log;
 public class StringTokenizer 
 {
 	String TAG = "TxRx Tokenizer";
-	Pattern pattern;
-	Matcher matcher;
-	
+
 	public class ParseResponse
 	{
 		public String joinName;
@@ -42,7 +40,7 @@ public class StringTokenizer
         return sb.toString();
     }
 
-	public ParseResponse Parse(String str)
+	public synchronized ParseResponse Parse(String str)
     {
         ParseResponse parseRes = new ParseResponse();
         Pattern regexP = Pattern.compile("([^=\\r\\n\\d]+)(\\d+)?(?:(=)([^\\r\\n]+)?)?");	//Group1=JoinName, Group2=SessId, Group3=EqualSign, Group4=JoinVal

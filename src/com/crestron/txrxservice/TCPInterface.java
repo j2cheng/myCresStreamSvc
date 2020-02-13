@@ -41,7 +41,6 @@ public class TCPInterface extends AsyncTask<Void, Object, Long> {
     private ServerSocket serverSocket;
     private volatile boolean restartStreamsPending = true;
     public volatile boolean firstRun = true;
-    private final StringTokenizer tokenizer = new StringTokenizer();
     private final Object serverLock = new Object();
     private boolean[] isProcessingMode = new boolean[CresStreamCtrl.NumOfSurfaces];
     
@@ -405,7 +404,7 @@ public class TCPInterface extends AsyncTask<Void, Object, Long> {
                         }
                         else{
                         	// determine sessionId first so we can add to the right queue
-                        	StringTokenizer.ParseResponse parseResponse = tokenizer.Parse(read.trim());
+                        	StringTokenizer.ParseResponse parseResponse = new StringTokenizer().Parse(read.trim());
                         	addJoinToQueue(new JoinObject(read.trim(), serverHandler), parseResponse.sessId);
                         }
                     }
@@ -520,7 +519,7 @@ public class TCPInterface extends AsyncTask<Void, Object, Long> {
 	        	        			
 	        	        			if (receivedMsg.toLowerCase().startsWith("mode"))	// finished processing mode
 	        	        			{		
-	        	        				StringTokenizer.ParseResponse parseResponse = tokenizer.Parse(receivedMsg);
+	        	        				StringTokenizer.ParseResponse parseResponse = new StringTokenizer().Parse(receivedMsg);
 	        	        				isProcessingMode[parseResponse.sessId] = false;
 	        	        			}
 	        	        			
