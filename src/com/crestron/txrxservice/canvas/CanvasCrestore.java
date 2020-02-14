@@ -108,7 +108,7 @@ public class CanvasCrestore
         {
         	Common.Logging.i(TAG,"Could not set up Crestore Callback for subscription to "+s+": " + rv);
         }
-        s = "{\"Device\":{\"Internal\":{\"AirMedia\":{\"Canvas\":{}}}}}";
+        s = "{\"Internal\":{\"AirMedia\":{\"Canvas\":{}}}}";
         rv = wrapper.subscribeCallback(s, crestoreCallback);
         if (rv != com.crestron.cresstoreredis.CresStoreResult.CRESSTORE_SUCCESS)
         {
@@ -120,7 +120,7 @@ public class CanvasCrestore
         {
         	Common.Logging.i(TAG,"Could not set up Crestore Callback for subscription to "+s+": " + rv);
         }
-        s = "{\"Pending\":{\"Device\":{\"Internal\":{\"AirMedia\":{\"Canvas\":{}}}}}}";
+        s = "{\"Pending\":{\"Internal\":{\"AirMedia\":{\"Canvas\":{}}}}}";
         rv = wrapper.subscribeCallback(s, crestoreCallback);
         if (rv != com.crestron.cresstoreredis.CresStoreResult.CRESSTORE_SUCCESS)
         {
@@ -178,11 +178,10 @@ public class CanvasCrestore
 	private SessionEvent sendSessionEvent(SessionEvent e)
 	{
 		Root root = new Root();
-		root.device = new Device();
-		root.device.internal = new Internal();
-		root.device.internal.airMedia = new InternalAirMedia();
-		root.device.internal.airMedia.canvas = new InternalAirMediaCanvas();
-		root.device.internal.airMedia.canvas.sessionEvent = e;
+		root.internal = new Internal();
+		root.internal.airMedia = new InternalAirMedia();
+		root.internal.airMedia.canvas = new InternalAirMediaCanvas();
+		root.internal.airMedia.canvas.sessionEvent = e;
 		String jsonStr = "{\"Pending\":" + gson.toJson(root) + "}";
 		wrapper.set(jsonStr, false);
 		return e;
@@ -191,11 +190,10 @@ public class CanvasCrestore
 	public void setVideoDisplayed(boolean value)
 	{
 		Root root = new Root();
-		root.device = new Device();
-		root.device.internal = new Internal();
-		root.device.internal.airMedia = new InternalAirMedia();
-		root.device.internal.airMedia.osd = new Osd();
-		root.device.internal.airMedia.osd.videoDisplayed = Boolean.valueOf(value);
+		root.internal = new Internal();
+		root.internal.airMedia = new InternalAirMedia();
+		root.internal.airMedia.osd = new Osd();
+		root.internal.airMedia.osd.videoDisplayed = Boolean.valueOf(value);
 		String jsonStr = "{\"Pending\":" + gson.toJson(root) + "}";
 		wrapper.set(jsonStr, false);
 	}
@@ -203,11 +201,10 @@ public class CanvasCrestore
 	public void setCurrentConnectionInfo(String connectionInfo)
 	{
 		Root root = new Root();
-		root.device = new Device();
-		root.device.internal = new Internal();
-		root.device.internal.airMedia = new InternalAirMedia();
-		root.device.internal.airMedia.osd = new Osd();
-		root.device.internal.airMedia.osd.currentConnectionInfo = connectionInfo;
+		root.internal = new Internal();
+		root.internal.airMedia = new InternalAirMedia();
+		root.internal.airMedia.osd = new Osd();
+		root.internal.airMedia.osd.currentConnectionInfo = connectionInfo;
 		String jsonStr = "{\"Pending\":" + gson.toJson(root) + "}";
 		wrapper.set(jsonStr, false);
 	}
@@ -215,11 +212,10 @@ public class CanvasCrestore
 	public void setCurrentWirelessConnectionInfo(String connectionInfo)
 	{
 		Root root = new Root();
-		root.device = new Device();
-		root.device.internal = new Internal();
-		root.device.internal.airMedia = new InternalAirMedia();
-		root.device.internal.airMedia.osd = new Osd();
-		root.device.internal.airMedia.osd.currentWirelessConnectionInfo = connectionInfo;
+		root.internal = new Internal();
+		root.internal.airMedia = new InternalAirMedia();
+		root.internal.airMedia.osd = new Osd();
+		root.internal.airMedia.osd.currentWirelessConnectionInfo = connectionInfo;
 		String jsonStr = "{\"Pending\":" + gson.toJson(root) + "}";
 		wrapper.set(jsonStr, false);
 	}
@@ -503,11 +499,10 @@ public class CanvasCrestore
 	private SessionStateFeedback sendSessionStateFeedback(SessionStateFeedback f)
 	{
 		Root root = new Root();
-		root.device = new Device();
-		root.device.internal = new Internal();
-		root.device.internal.airMedia = new InternalAirMedia();
-		root.device.internal.airMedia.canvas = new InternalAirMediaCanvas();
-		root.device.internal.airMedia.canvas.sessionStateFeedback = f;
+		root.internal = new Internal();
+		root.internal.airMedia = new InternalAirMedia();
+		root.internal.airMedia.canvas = new InternalAirMediaCanvas();
+		root.internal.airMedia.canvas.sessionStateFeedback = f;
 		String jsonStr = "{\"Pending\":" + gson.toJson(root) + "}";
 		wrapper.set(jsonStr, false);
 		return f;
@@ -517,11 +512,10 @@ public class CanvasCrestore
 	public void sendSessionResponse(SessionResponse response)
 	{
 		Root root = new Root();
-		root.device = new Device();
-		root.device.internal = new Internal();
-		root.device.internal.airMedia = new InternalAirMedia();
-		root.device.internal.airMedia.canvas = new InternalAirMediaCanvas();
-		root.device.internal.airMedia.canvas.sessionResponse = response;
+		root.internal = new Internal();
+		root.internal.airMedia = new InternalAirMedia();
+		root.internal.airMedia.canvas = new InternalAirMediaCanvas();
+		root.internal.airMedia.canvas.sessionResponse = response;
 		String jsonStr = "{\"Pending\":" + gson.toJson(root) + "}";
 		wrapper.set(jsonStr, false);
 	}
@@ -543,27 +537,27 @@ public class CanvasCrestore
 
     		if (root == null)
     			Common.Logging.i(TAG, "Got null object for root");
-    		else if (root.device == null)
-    			Common.Logging.i(TAG, "Got null object for device");
+    		else if (root.device == null && root.internal == null)
+    			Common.Logging.i(TAG, "Got null object for device and internal");
 
-    		if (root.device.internal != null && root.device.internal.airMedia != null && root.device.internal.airMedia.canvas != null) {
+    		if (root.internal != null && root.internal.airMedia != null && root.internal.airMedia.canvas != null) {
     			parsed = true;
     			//Common.Logging.v(TAG, "Device/Internal/Canvas parsed from json string");
     			//Common.Logging.v(TAG, "Device string is "+gson.toJson(root));
-    			if (root.device.internal.airMedia.canvas.sessionEvent != null)
+    			if (root.internal.airMedia.canvas.sessionEvent != null)
     			{
-    				mAVF.processSessionEvent(root.device.internal.airMedia.canvas.sessionEvent);
+    				mAVF.processSessionEvent(root.internal.airMedia.canvas.sessionEvent);
     			}
-    			if (root.device.internal.airMedia.canvas.sessionStateChange != null)
+    			if (root.internal.airMedia.canvas.sessionStateChange != null)
     			{
-    				processSessionStateChange(root.device.internal.airMedia.canvas.sessionStateChange);
+    				processSessionStateChange(root.internal.airMedia.canvas.sessionStateChange);
     			}
-    			if (root.device.internal.airMedia.canvas.sessionResponse != null)
+    			if (root.internal.airMedia.canvas.sessionResponse != null)
     			{
-    				processSessionResponse(root.device.internal.airMedia.canvas.sessionResponse);
+    				processSessionResponse(root.internal.airMedia.canvas.sessionResponse);
     			}
     		}
-    		if (root.device.airMedia != null && root.device.airMedia.canvas != null) {
+    		if (root.device != null && root.device.airMedia != null && root.device.airMedia.canvas != null) {
     			parsed = true;
     			Common.Logging.i(TAG, "Device/AirMedia/AirMediaCanvas parsed from json string");
     			Common.Logging.i(TAG, "Device string is "+gson.toJson(root));
@@ -625,10 +619,20 @@ public class CanvasCrestore
     		boolean pending = false;
 			//Common.Logging.i(TAG, "Device Callback: "+json);
 
-    		if (json.contains("Pending"))
+    		if (json.contains("\"Pending\":"))
     		{
         		int start=json.indexOf("\"Device\":");
-        		//Log.v(TAG, "Device found at offset"+start+"   charAt(start)="+json.charAt(start));
+        		if (start != -1) {
+        			//Log.v(TAG, "Device found at offset"+start+"   charAt(start)="+json.charAt(start));
+        		} else {
+        			start=json.indexOf("\"Internal\":");
+        			if (start != -1) {
+            			//Log.v(TAG, "Internal found at offset"+start+"   charAt(start)="+json.charAt(start));
+        			} else {
+        				Common.Logging.w(TAG, "Could not decipher Device Callback: "+json);
+        				return;
+        			}
+        		}
         		for(start--; (start>=0) && Character.isWhitespace(json.charAt(start)); start--)
         		{
             		//Log.v(TAG, "start="+start+"   charAt(start)="+json.charAt(start));
@@ -924,17 +928,12 @@ public class CanvasCrestore
     public class Device {
         @SerializedName ("AirMedia")
     	AirMedia airMedia;
-        @SerializedName ("Internal")
-        Internal internal;
-        
-//        public Device() {
-//        	airMedia = new AirMedia();
-//        	internal = new Internal();
-//        }
     }
     
     public class Root {
         @SerializedName ("Device")
     	Device device;
+        @SerializedName ("Internal")
+        Internal internal;
     }
 }
