@@ -1926,8 +1926,11 @@ public class CresStreamCtrl extends Service {
 	    					{
 	    						mPreviousAudioInputSampleRate = hdmiInSampleRate;
 	    				        boolean onlyRestartAudioNeeded = true;	// if streamout is started we need to restart stream
+                                int previewId = 0;  // if we ever go to more than 1 camera this will need to be modified
 	    				        for(int sessionId = 0; sessionId < NumOfSurfaces; sessionId++)
 	    				        {
+	    				            if (userSettings.getMode(sessionId) == DeviceMode.PREVIEW.ordinal())
+	    				                previewId = sessionId;
 	    				        	if ( (userSettings.getMode(sessionId) == DeviceMode.STREAM_OUT.ordinal()) &&
 	    				        			(userSettings.getUserRequestedStreamState(sessionId) == StreamState.STARTED) )
 	    				        	{
@@ -1939,7 +1942,15 @@ public class CresStreamCtrl extends Service {
 	    				        {
 	    				        	Log.i(TAG, "Restarting Audio - sample rate change");
 	    				        	if (cam_preview != null)
-	    				        	    cam_preview.restartAudio();	// Can get away with only restarting audio here
+	    				        	{
+	    				        	    try {
+                                            stopStartLock[previewId].lock("restartAudio_SampleRate");
+                                            cam_preview.restartAudio();    // Can get away with only restarting audio here
+                                        }
+	    				        	    finally {
+                                            stopStartLock[previewId].unlock("restartAudio_SampleRate");
+                                        }
+                                    }
 	    				        }
 	    				        else
 	    				        {
