@@ -1940,11 +1940,11 @@ public class CresStreamCtrl extends Service {
 	    				        }
 	    				        if (onlyRestartAudioNeeded)
 	    				        {
-	    				        	Log.i(TAG, "Restarting Audio - sample rate change");
 	    				        	if (cam_preview != null)
 	    				        	{
 	    				        	    try {
                                             stopStartLock[previewId].lock("restartAudio_SampleRate");
+                                            Log.i(TAG, "Restarting Audio - sample rate change");
                                             cam_preview.restartAudio();    // Can get away with only restarting audio here
                                         }
 	    				        	    finally {
