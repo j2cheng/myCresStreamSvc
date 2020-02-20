@@ -84,6 +84,7 @@ import com.google.gson.TypeAdapterFactory;
 import com.google.gson.reflect.TypeToken;
 import com.google.gson.stream.JsonReader;
 import com.google.gson.stream.JsonWriter;
+import com.crestron.txrxservice.CresLog;
 
 interface Command {
     void executeStart(int sessId);
@@ -112,6 +113,7 @@ public class CresStreamCtrl extends Service {
     WifidVideoPlayer wifidVideoPlayer = null;
     
     private DisplayManager m_displayManager = null;
+    private CresLog ccresLog = null;
 
     public UserSettings userSettings;
     AudioManager amanager;
@@ -999,6 +1001,7 @@ public class CresStreamCtrl extends Service {
 
     		// After gstreamer is initialized we can load gstreamIn and gstreamOut
     		streamPlay = new GstreamIn(CresStreamCtrl.this);
+     		ccresLog = new CresLog(CresStreamCtrl.this);
 
     		// Added for real camera on x60
     		// to-do: support having both hdmi input and a real camera at the same time...

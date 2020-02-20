@@ -52,6 +52,7 @@
 #include "cresWifiDisplaySink/WfdCommon.h"
 #include "ms_mice_sink/ms_mice_common.h"
 #include "shared-ssl/shared-ssl.h"
+#include "CresLog.h"
 
 ///////////////////////////////////////////////////////////////////////////////
 
@@ -103,6 +104,9 @@ static jmethodID set_message_method_id_rtsp_server;
 static jclass *gStreamIn_javaClass_id;
 static jclass *gStreamOut_javaClass_id;
 static jclass *wbsStreamIn_javaClass_id;
+static jclass *gCresLog_javaClass_id;
+
+static jobject gCresLogApp;
 
 pthread_cond_t stop_completed_sig;
 static int stop_timeout_sec = 1000;
@@ -2172,6 +2176,16 @@ jint JNI_OnLoad(JavaVM *vm, void *reserved)
 		CSIO_LOG(eLogLevel_error, "gstreamer_jni", "Could not retrieve JNIEnv");
 		return 0;
 	}
+
+    //Get gCresLog_javaClass_id for JNI to be able to call JAVA class CresLog functions
+    jclass klass0 = env->FindClass ("com/crestron/txrxservice/CresLog");
+    gCresLog_javaClass_id = (jclass*)env->NewGlobalRef(klass0);
+    env->DeleteLocalRef(klass0);
+    if (gCresLog_javaClass_id == NULL) {
+        CSIO_LOG(eLogLevel_error, "cresLog_jni", "gCresLog_javaClass_id is still null when it is suppose to be global");
+         return 0; /* out of memory exception thrown */
+    }
+
 	//jclass klass = env->FindClass ("com/gst_sdk_tutorials/tutorial_3/Tutorial3");
 	jclass klass = env->FindClass ("com/crestron/txrxservice/GstreamIn");
 	/* Create a global reference to GstreamIn class Id, because it gets lost when pthread is created */
@@ -5036,6 +5050,33 @@ JNIEXPORT void JNICALL Java_com_crestron_txrxservice_GstreamIn_nativeMsMiceSetPi
         env->ReleaseStringUTFChars(pin_jstring, locPin);
     }
 }
+
+//Save reference to log class instance
+JNIEXPORT void JNICALL Java_com_crestron_txrxservice_CresLog_nativeInit(JNIEnv *env, jobject thiz)
+{
+    CSIO_LOG(eLogLevel_verbose, "%s", __FUNCTION__);
+
+    gCresLogApp = (jobject) thiz;
+}
+
+//Free resources
+JNIEXPORT void JNICALL Java_com_crestron_txrxservice_CresLog_nativeFinalize(JNIEnv *env, jobject thiz)
+{
+    CSIO_LOG(eLogLevel_verbose, "%s", __FUNCTION__);
+    if (gCresLog_javaClass_id != NULL) {
+        CSIO_LOG(eLogLevel_debug, "Deleting GlobalRef for gCresLog_javaClass_id object at %p", gCresLog_javaClass_id);
+        env->DeleteGlobalRef ((jobject)gCresLog_javaClass_id);
+        gCresLog_javaClass_id = NULL;
+    }
+
+    if(gCresLogApp != NULL)
+    {
+        env->DeleteGlobalRef ((jobject)gCresLogApp);
+    }
+
+    CSIO_LOG(eLogLevel_debug, "cresLog: Done finalizing");
+}
+
 void csio_SendMsMiceStateChange(gint64 sessionId, int state, char *device_id, char *device_name, char *device_addr, int rtsp_port)
 {
     JNIEnv *env = get_jni_env ();
@@ -5193,5 +5234,30 @@ const char* csio_jni_get_interface_name(int id)
             return data->intf_name;
         }
     }    
+}
+
+void csio_sendErrorStatusMessage(int errorCode, std::string diagnosticMessage, int streamId, int sendto)
+{
+    if(gCresLogApp == NULL)
+        return;
+
+    jstring diagnosticMessage_jstr;
+    JNIEnv *env = get_jni_env ();
+
+    diagnosticMessage_jstr = env->NewStringUTF(diagnosticMessage.c_str());
+
+    jmethodID sendErrorStatusMessageId = env->GetMethodID((jclass)gCresLog_javaClass_id, "sendErrorStatus", "(IIILjava/lang/String;)V");
+    if (sendErrorStatusMessageId == NULL)
+    {
+        CSIO_LOG(eLogLevel_error, "Failed to find ID of Java class 'CresLog'");
+        return;
+    }
+
+    env->CallVoidMethod(gCresLogApp, sendErrorStatusMessageId, (jint) sendto, (jint) streamId, (jint) errorCode, diagnosticMessage_jstr);
+    if (env->ExceptionCheck ()) {
+        CSIO_LOG(eLogLevel_error, "Failed to call Java method 'sendErrorStatus'");
+        env->ExceptionClear ();
+    }
+    env->DeleteLocalRef (diagnosticMessage_jstr);
 }
 
