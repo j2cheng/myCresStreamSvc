@@ -4885,6 +4885,15 @@ public class CresStreamCtrl extends Service {
     	sendAirMediaConnectionAddress();
     }
     
+    public void setAirMediaChromeExtension(boolean enable)
+    {
+    	if (mAirMedia != null)
+    	{
+    		userSettings.setAirMediaChromeExtension(enable);
+    		mAirMedia.setAirMediaChromeExtension(enable);
+    	}
+    }
+    
     public void setAirMediaConnectionOverlay(boolean enable)
     {
     	if (mAirMedia != null)

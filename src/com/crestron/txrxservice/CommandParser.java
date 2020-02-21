@@ -181,6 +181,7 @@ public class CommandParser {
         AIRMEDIA_IS_CERTIFICATE_REQUIRED,
         AIRMEDIA_ONLY_ALLOW_SECURE_CONNECTIONS,
         AIRMEDIA_SECURE_LANDING_PAGE_ENABLED,
+        AIRMEDIA_CHROME_EXTENSION_ENABLED,
         AIRMEDIA_CANVAS_MODE_ENABLED,
         AIRMEDIA_WIFI_SSID,
         AIRMEDIA_WIFI_PSKKEY,
@@ -786,6 +787,9 @@ public class CommandParser {
             	break;
             case AIRMEDIA_SECURE_LANDING_PAGE_ENABLED:
             	cmd = new AirMediaSecureLandingPageEnabledCommand(ctrl, arg);
+            	break;
+            case AIRMEDIA_CHROME_EXTENSION_ENABLED:
+            	cmd = new AirMediaChromeExtensionEnabledCommand(ctrl, arg);
             	break;
             case AIRMEDIA_CANVAS_MODE_ENABLED:
             	cmd = new CanvasModeEnabledCommand(ctrl, arg);

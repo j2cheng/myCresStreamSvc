@@ -5,6 +5,7 @@ public final class AirMediaReceiverProperties {
     public static class Splashtop {
         public static String SecureChannelOnly = "splashtop.channels.secure";
         public static String UseThirdPartyCertificate = "splashtop.certificate.use-third-party";
+        public static String AllowChromeExtension = "splashtop.chrome-extension.allow";
     }
 
     public static class Miracast {

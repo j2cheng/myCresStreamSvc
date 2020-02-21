@@ -2312,6 +2312,21 @@ class AirMediaSecureLandingPageEnabledCommand extends CrestronCommand {
 	// No feedback
 }
 
+class AirMediaChromeExtensionEnabledCommand extends CrestronCommand {
+	
+    public AirMediaChromeExtensionEnabledCommand(CresStreamCtrl ctrl, String arg) {
+		super (ctrl, arg);
+    }
+
+    @Override
+    public void execute() {
+    	ctrl.setAirMediaChromeExtension(Boolean.valueOf(msg));
+    }
+    public String getFeedbackMsg() {
+        return Boolean.toString(ctrl.userSettings.getAirMediaChromeExtension());
+    }
+}
+
 class AirMediaClearCacheCommand extends CrestronCommand {
 	public AirMediaClearCacheCommand(CresStreamCtrl ctrl, String arg) {
 		super(ctrl, arg);

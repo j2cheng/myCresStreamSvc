@@ -226,6 +226,7 @@ public class UserSettings
 	boolean airMediaIsCertificateRequired;
 	boolean airMediaOnlyAllowSecureConnections;
 	boolean airMediaSecureLandingPageEnabled;
+	boolean airMediaChromeExtension;
 	private String airMediaOsdImage;
 	private boolean airMediaIpAddressPrompt;
 	private boolean airMediaDomainNamePrompt;
@@ -363,6 +364,7 @@ public class UserSettings
 		airMediaIsCertificateRequired = false;
 		airMediaOnlyAllowSecureConnections = false;
 		airMediaSecureLandingPageEnabled = false;
+		airMediaChromeExtension = true;
 		airMediaOsdImage	= "";
 		airMediaX			= 0;
 		airMediaY			= 0;
@@ -1230,6 +1232,14 @@ public class UserSettings
 	
 	public void setAirMediaSecureLandingPageEnabled(boolean enable) {
 		this.airMediaSecureLandingPageEnabled = enable;
+	}	
+	
+	public boolean getAirMediaChromeExtension() {
+		return airMediaChromeExtension;
+	}
+	
+	public void setAirMediaChromeExtension(boolean enable) {
+		this.airMediaChromeExtension = enable;
 	}	
 	
 	public boolean getAirMediaResetConnections() {

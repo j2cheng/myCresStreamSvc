@@ -611,6 +611,7 @@ public class AirMediaSplashtop
                 setAirMediaMiracastWirelessOperatingRegion(mStreamCtl.userSettings.getAirMediaMiracastWirelessOperatingRegion());
                 setAirMediaIsCertificateRequired(mStreamCtl.userSettings.getAirMediaIsCertificateRequired());
                 setAirMediaOnlyAllowSecureConnections(mStreamCtl.userSettings.getAirMediaOnlyAllowSecureConnections());
+                setAirMediaOnlyAllowSecureConnections(mStreamCtl.userSettings.getAirMediaChromeExtension());
 
         		registerReceiverEventHandlers(receiver());
         		Common.Logging.i(TAG, "Registering receiver with videoplayer");
@@ -775,6 +776,15 @@ public class AirMediaSplashtop
 		if (receiver() != null)
 		{
 			receiver().configureProperty(AirMediaReceiverProperties.Splashtop.SecureChannelOnly, enable);
+		}
+    }
+    
+    public void setAirMediaChromeExtension(boolean enable)
+    {
+		Common.Logging.i(TAG, "setAirMediaChromeExtension: " + enable);
+		if (receiver() != null)
+		{
+			receiver().configureProperty(AirMediaReceiverProperties.Splashtop.AllowChromeExtension, enable);
 		}
     }
     
