@@ -162,7 +162,7 @@ public class ProductSpecific
 		return ImageFormat.NV21;
 	}
 
-	public static void setPreviewSurface(Camera camera, Surface surface)
+	public static void setPreviewSurface(Camera camera, Surface surface) throws java.io.IOException
 	{
 		camera.setPreviewSurface(surface);
 	}

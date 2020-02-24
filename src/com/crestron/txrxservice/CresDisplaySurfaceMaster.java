@@ -233,7 +233,7 @@ public class CresDisplaySurfaceMaster implements CresDisplaySurface
         
         if (streamCtl.alphaBlending) {
         	if (Build.VERSION.SDK_INT >= 28 /*Build.VERSION_CODES.M*/)
-				windowType = WindowManager.LayoutParams.TYPE_APPLICATION_OVERLAY;    // For alpha blending
+				windowType = 2038; // WindowManager.LayoutParams.TYPE_APPLICATION_OVERLAY - For alpha blending
 			else
 				windowType = WindowManager.LayoutParams.TYPE_PRIORITY_PHONE;    // For alpha blending
 		}
@@ -294,7 +294,7 @@ public class CresDisplaySurfaceMaster implements CresDisplaySurface
                 
         if (streamCtl.alphaBlending) {
 			if (Build.VERSION.SDK_INT >= 28 /*Build.VERSION_CODES.M*/)
-				windowType = WindowManager.LayoutParams.TYPE_APPLICATION_OVERLAY;    // For alpha blending
+				windowType = 2038; // WindowManager.LayoutParams.TYPE_APPLICATION_OVERLAY - For alpha blending
 			else
 				windowType = WindowManager.LayoutParams.TYPE_PRIORITY_PHONE;    // For alpha blending
 		}
