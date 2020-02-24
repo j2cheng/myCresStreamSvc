@@ -611,7 +611,7 @@ public class AirMediaSplashtop
                 setAirMediaMiracastWirelessOperatingRegion(mStreamCtl.userSettings.getAirMediaMiracastWirelessOperatingRegion());
                 setAirMediaIsCertificateRequired(mStreamCtl.userSettings.getAirMediaIsCertificateRequired());
                 setAirMediaOnlyAllowSecureConnections(mStreamCtl.userSettings.getAirMediaOnlyAllowSecureConnections());
-                setAirMediaOnlyAllowSecureConnections(mStreamCtl.userSettings.getAirMediaChromeExtension());
+                setAirMediaChromeExtension(mStreamCtl.userSettings.getAirMediaChromeExtension());
 
         		registerReceiverEventHandlers(receiver());
         		Common.Logging.i(TAG, "Registering receiver with videoplayer");
