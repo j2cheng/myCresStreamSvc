@@ -20,6 +20,9 @@
 #include <sys/uio.h>
 
 
+#ifdef STANDALONE	// needed because clang does not support typeof keyword
+#define typeof decltype
+#endif
 
 // ***
 #define LOCALXSTRINGIFY(s) #s
@@ -36,12 +39,15 @@
 #pragma message ("new SIZE_MAX=" LOCALSTRINGIFY(SIZE_MAX))
 #endif
 
+// TODO: remove Standalone from here and just declare oreo or later in Android.mk
 #ifndef ANDROID_OREO_OR_LATER
+#ifndef STANDALONE
 //Note: C11+ compiler does not allow NULL macros. See error below:
 //	external/libcxx/include/tuple:1013:46: error: too many arguments provided to function-like macro invocation
 //    static_assert(!is_same<_T1, _T1>::value, "type not in empty type list");
 #ifndef static_assert
 #define static_assert(a,b)
+#endif
 #endif
 #endif
 // ***

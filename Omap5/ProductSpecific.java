@@ -142,6 +142,11 @@ public class ProductSpecific
 	{
 		return ImageFormat.RGBA_8888;
 	}
+
+	public static void setPreviewSurface(Camera camera, Surface surface)
+	{
+		camera.setPreviewSurface(surface);
+	}
 	
 	// ******************* HDMIInputInterface.java *******************
 	public static byte[] getEVSHdmiInSyncStatus()

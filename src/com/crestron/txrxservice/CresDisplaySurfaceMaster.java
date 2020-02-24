@@ -13,6 +13,7 @@ import com.crestron.txrxservice.CresStreamCtrl.DeviceMode;
 import com.crestron.txrxservice.CresStreamCtrl.ServiceMode;
 import com.crestron.txrxservice.CresStreamCtrl.videoDimensions;
 
+import android.os.Build;
 import android.os.Looper;
 import android.util.Log;
 import android.view.Gravity;
@@ -230,8 +231,12 @@ public class CresDisplaySurfaceMaster implements CresDisplaySurface
         // TYPE_APPLICATION 		= ~21000 <- Can't use as a service
         int windowType;
         
-        if (streamCtl.alphaBlending)
-        	windowType = WindowManager.LayoutParams.TYPE_PRIORITY_PHONE;	// For alpha blending
+        if (streamCtl.alphaBlending) {
+        	if (Build.VERSION.SDK_INT >= 28 /*Build.VERSION_CODES.M*/)
+				windowType = WindowManager.LayoutParams.TYPE_APPLICATION_OVERLAY;    // For alpha blending
+			else
+				windowType = WindowManager.LayoutParams.TYPE_PRIORITY_PHONE;    // For alpha blending
+		}
         else
         	windowType = WindowManager.LayoutParams.TYPE_SYSTEM_OVERLAY;	// For chroma blending
 
@@ -287,8 +292,12 @@ public class CresDisplaySurfaceMaster implements CresDisplaySurface
         
         int windowType;
                 
-        if (streamCtl.alphaBlending)
-        	windowType = WindowManager.LayoutParams.TYPE_PRIORITY_PHONE;	// For alpha blending
+        if (streamCtl.alphaBlending) {
+			if (Build.VERSION.SDK_INT >= 28 /*Build.VERSION_CODES.M*/)
+				windowType = WindowManager.LayoutParams.TYPE_APPLICATION_OVERLAY;    // For alpha blending
+			else
+				windowType = WindowManager.LayoutParams.TYPE_PRIORITY_PHONE;    // For alpha blending
+		}
         else
         	windowType = WindowManager.LayoutParams.TYPE_SYSTEM_OVERLAY;	// For chroma blending
         
@@ -970,10 +979,15 @@ public class CresDisplaySurfaceMaster implements CresDisplaySurface
     		// occlude the video.  To avoid this problem, forcing backgroundView to be a HWC layer for now.
     		if (backgroundWmParams == null)
     		{
+				int windowType;
+				if (Build.VERSION.SDK_INT >= 28 /*Build.VERSION_CODES.M*/)
+					windowType = WindowManager.LayoutParams.TYPE_BASE_APPLICATION;
+				else
+					windowType = WindowManager.LayoutParams.TYPE_PHONE;
     			backgroundWmParams = new WindowManager.LayoutParams(
     					windowWidth, 
-    					windowHeight, 
-    					WindowManager.LayoutParams.TYPE_PHONE,	//TYPE_INPUT_METHOD_DIALOG caused crash
+    					windowHeight,
+						windowType,
     					(0 | WindowManager.LayoutParams.FLAG_NOT_TOUCHABLE | WindowManager.LayoutParams.FLAG_NOT_FOCUSABLE), 
     					PixelFormat.RGB_888);
     			backgroundWmParams.gravity = Gravity.TOP | Gravity.LEFT; 

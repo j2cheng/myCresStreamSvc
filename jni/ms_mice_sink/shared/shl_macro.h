@@ -34,6 +34,10 @@
 #define UINT64_MAX (__UINT64_C(18446744073709551615))
 #endif
 
+#ifdef STANDALONE	// needed for standalone because of studio compiles with clang and clang does not support typeof
+#define typeof decltype
+#endif
+
 /* sanity checks required for some macros */
 #if __SIZEOF_POINTER__ != 4 && __SIZEOF_POINTER__ != 8
 #error "Pointer size is neither 4 nor 8 bytes"

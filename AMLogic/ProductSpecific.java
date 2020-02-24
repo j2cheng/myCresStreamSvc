@@ -147,6 +147,11 @@ public class ProductSpecific
 		// RGB 888 not supported on this product
 		return ImageFormat.NV21;
 	}
+
+	public static void setPreviewSurface(Camera camera, Surface surface)
+	{
+		camera.setPreviewSurface(surface);
+	}
 	
 	// ******************* HDMIInputInterface.java *******************
 	public static byte[] getEVSHdmiInSyncStatus()
