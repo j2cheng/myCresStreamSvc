@@ -90,7 +90,8 @@ public class CanvasCrestore
 		gson = new GsonBuilder().setPrettyPrinting().create();
 		mCanvas = canvas;
 		mSessionMgr = sessionManager;
-		mAVF = new SimulatedAVF(this);
+		if (CresCanvas.Standalone)
+			mAVF = new SimulatedAVF(this);
 		sessionResponseScheduler_ = new Scheduler("sessionResponse");
 
         Common.Logging.i(TAG, "CanvasCrestore: create Crestore wrapper");
@@ -100,7 +101,7 @@ public class CanvasCrestore
             Log.e(TAG, "failed to create wrapper" , e);
             return;
         }
-        com.crestron.cresstoreredis.CresStoreResult rv = wrapper.setIgnoreOwnSets(false);
+        com.crestron.cresstoreredis.CresStoreResult rv = wrapper.setIgnoreOwnSets(!CresCanvas.Standalone);
         CresStoreCallback crestoreCallback = new CresStoreCallback();
         String s = "{\"Device\":{\"AirMedia\":{\"AirMediaCanvas\":{}}}}";
         rv = wrapper.subscribeCallback(s, crestoreCallback);
@@ -304,7 +305,15 @@ public class CanvasCrestore
 			if (Common.isEqualIgnoreCase(tokens[0], "replace"))
 			{
 				Common.Logging.i(TAG, "enqueSessionResponse(): replacing "+tokens[1]+" with "+tokens[2]);
-				(mSessionMgr.getSession(tokens[1])).replace(originator, mSessionMgr.getSession(tokens[2]));
+				if (CresCanvas.Standalone)
+					(mSessionMgr.getSession(tokens[1])).replace(originator, mSessionMgr.getSession(tokens[2]));
+				else
+				{
+					session = mSessionMgr.getSession(tokens[1]);
+					session.stop(originator);
+					session = mSessionMgr.getSession(tokens[2]);
+					session.play(originator);
+				}
 			} 
 			else if (Common.isEqualIgnoreCase(tokens[0], "stop"))
 			{
@@ -546,7 +555,10 @@ public class CanvasCrestore
     			//Common.Logging.v(TAG, "Device string is "+gson.toJson(root));
     			if (root.internal.airMedia.canvas.sessionEvent != null)
     			{
-    				mAVF.processSessionEvent(root.internal.airMedia.canvas.sessionEvent);
+    				if (CresCanvas.Standalone)
+    					mAVF.processSessionEvent(root.internal.airMedia.canvas.sessionEvent);
+    				else
+    					Common.Logging.i(TAG, "Received a Session Event message - should not happen in normal mode");
     			}
     			if (root.internal.airMedia.canvas.sessionStateChange != null)
     			{

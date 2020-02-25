@@ -1,6 +1,9 @@
 package com.crestron.txrxservice.canvas;
 
 import com.crestron.airmedia.canvas.channels.ipc.CanvasPlatformType;
+import com.crestron.airmedia.receiver.m360.ipc.AirMediaSize;
+import com.crestron.airmedia.utilities.Common;
+import com.crestron.airmedia.utilities.TimeSpan;
 
 import android.util.Log;
 
@@ -54,5 +57,90 @@ public class AirBoardSession extends Session
 	public String toString()
 	{
 		return ("Session: "+type.toString()+"-"+url+"  sessionId="+sessionId());
+	}
+	
+	public void doStop(boolean replace)
+	{
+		Common.Logging.i(TAG, "AirBoard Session "+this+" stop request");
+		if (streamId >= 0)
+		{
+			// set device mode for this streamId to preview
+			mStreamCtl.setDeviceMode(4, streamId);
+			//start the preview mode
+			Common.Logging.i(TAG, "AirBoard Session "+this+" calling Stop()");
+			mStreamCtl.Stop(streamId, false);
+			Common.Logging.i(TAG, "AirBoard Session "+this+" back from Stop()");
+			if (!replace)
+			{
+				mCanvas.hideWindow(streamId); // TODO remove once real canvas app available
+				releaseSurface();
+			}
+		}
+	}
+	
+	public void stop(final boolean replace, int timeoutInSeconds)
+	{
+		Runnable r = new Runnable() { public void run() { doStop(replace); } };
+        TimeSpan start = TimeSpan.now();
+		boolean completed = executeWithTimeout(r, TimeSpan.fromSeconds(timeoutInSeconds));
+		Common.Logging.i(TAG, "AirBoard Session stop completed in "+TimeSpan.now().subtract(start).toString()+" seconds");
+		if (completed) {
+			streamId = -1;
+			setState(SessionState.Stopped);
+		}
+	}
+	
+	public void stop(Originator originator)
+	{
+		stop(false, 10);
+	}
+	
+	public void stop(Originator originator, boolean replace)
+	{
+		stop(replace, 10);
+	}
+	
+	public void doPlay(int replaceStreamId)
+	{		
+		Common.Logging.i(TAG, "AirBoard Session "+this+" play request");
+		if (replaceStreamId > 0)
+		{
+			streamId = replaceStreamId;
+		} else {
+			// get unused streamId and associate a surface with it
+			streamId = mCanvas.mSurfaceMgr.getUnusedStreamId();
+			mCanvas.showWindow(streamId); // TODO remove once real canvas app available
+		}
+		Common.Logging.i(TAG, "AirBoard Session "+this+" got streamId "+streamId);
+		acquireSurface();
+		// set device mode for this streamId to preview
+		mStreamCtl.setDeviceMode(4, streamId);
+		//start the preview mode
+		Common.Logging.i(TAG, "AirBoard Session "+this+" calling Start()");
+		mStreamCtl.Start(streamId);
+		Common.Logging.i(TAG, "AirBoard Session "+this+" back from Start()");
+	}
+	
+	public void play(Originator originator, final int replaceStreamId, int timeoutInSeconds)
+	{
+		Runnable r = new Runnable() { public void run() { doPlay(replaceStreamId); } };
+        TimeSpan start = TimeSpan.now();
+		boolean completed = executeWithTimeout(r, TimeSpan.fromSeconds(timeoutInSeconds));
+		Common.Logging.i(TAG, "AirBoard Session play completed in "+TimeSpan.now().subtract(start).toString()+" seconds");
+		if (completed)
+		{
+			setState(SessionState.Playing);
+			setResolution(new AirMediaSize(0, 0));
+		}
+	}
+	
+	public void play(Originator originator, int replaceStreamId)
+	{
+		play(originator, replaceStreamId, 10);
+	}
+	
+	public void play(Originator originator)
+	{
+		play(originator, -1, 10);
 	}
 }

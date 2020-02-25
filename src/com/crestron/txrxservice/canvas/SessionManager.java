@@ -127,6 +127,20 @@ public class SessionManager
         return session;
     }
     
+    public Session findSession(int streamId)
+    {
+    	Session session = null;
+        synchronized (lock_) {
+            for (Session entry : sessions_) {
+            	if (entry.streamId == streamId) {
+            		session = entry;
+            		break;
+            	}
+            }
+        }
+        return session;
+    }
+    
     public List<String> getSessionIds()
     {
     	List<String> idList = new LinkedList<String>();

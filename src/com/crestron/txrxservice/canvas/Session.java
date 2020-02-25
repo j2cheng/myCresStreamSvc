@@ -21,7 +21,6 @@ import android.view.Surface;
 
 public class Session
 {
-	public final static boolean useCanvasSurface = false;
 	com.crestron.txrxservice.canvas.CresCanvas mCanvas;
 	public static CresStreamCtrl mStreamCtl;
 	public SessionManager mSessionMgr;
@@ -233,7 +232,7 @@ public class Session
 	public Surface acquireSurface()
 	{
 		Surface surface = null;
-		if (useCanvasSurface)
+		if (!mCanvas.Standalone)
 			surface = mCanvas.acquireSurface(sessionId());
 		else
 			surface = mStreamCtl.getSurface(streamId);
@@ -243,7 +242,7 @@ public class Session
 	
 	public void releaseSurface()
 	{
-		if (useCanvasSurface)
+		if (!mCanvas.Standalone)
 			mCanvas.releaseSurface(sessionId());
 		mCanvas.mSurfaceMgr.removeSurface(streamId);
 	}

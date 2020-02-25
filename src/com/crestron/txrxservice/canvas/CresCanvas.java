@@ -2,6 +2,7 @@ package com.crestron.txrxservice.canvas;
 
 import com.crestron.airmedia.canvas.channels.ipc.CanvasResponse;
 import com.crestron.airmedia.canvas.channels.ipc.CanvasSurfaceAcquireResponse;
+import com.crestron.airmedia.receiver.m360.ipc.AirMediaSize;
 import com.crestron.airmedia.utilities.Common;
 import com.crestron.airmedia.utilities.TimeSpan;
 import com.crestron.txrxservice.HDMIInputInterface;
@@ -23,6 +24,8 @@ public class CresCanvas
 	public com.crestron.txrxservice.CresStreamCtrl mStreamCtl;
     public CanvasCrestore mCrestore = null;
     public SessionManager mSessionMgr = null;
+
+	public static final boolean Standalone = true;  // will be removed for integration
 
     public static final String TAG = "TxRx Canvas"; 
 	private static final int MAX_HDMI_INPUTS = 1;
@@ -74,7 +77,8 @@ public class CresCanvas
 	
 	public void setWindows()
 	{
-		mStreamCtl.setCanvasWindows();
+		if (CresCanvas.Standalone)
+			mStreamCtl.setCanvasWindows();
 	}
 	
 	public Rect getWindow(int streamId)
@@ -84,12 +88,14 @@ public class CresCanvas
 	
 	public void showWindow(int streamId)
 	{
-		mStreamCtl.showCanvasWindow(streamId);
+		if (CresCanvas.Standalone)
+			mStreamCtl.showCanvasWindow(streamId);
 	}
 	
 	public void hideWindow(int streamId)
 	{
-		mStreamCtl.hideCanvasWindow(streamId);
+		if (CresCanvas.Standalone)
+			mStreamCtl.hideCanvasWindow(streamId);
 	}
 	
 	public synchronized void handlePossibleHdmiSyncStateChange(int inputNumber, HDMIInputInterface hdmiInput)
@@ -220,6 +226,15 @@ public class CresCanvas
 		if (session != null)
 		{
 			((DMSession) session).setHdcpBlank(blank);
+		}
+	}
+	
+	public void setSessionResolution(int streamId, int width, int height)
+	{
+		Session session = mSessionMgr.findSession(streamId);
+		if (session != null && session instanceof AirBoardSession)
+		{
+			session.setResolution(new AirMediaSize(width, height));
 		}
 	}
 	

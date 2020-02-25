@@ -6546,6 +6546,14 @@ public class CresStreamCtrl extends Service {
 		sockTask.SendDataToAllClients(MiscUtils.stringFormat("DM_WINDOW%d=%d,%d,%d,%d", inputNumber, left, top, width, height));
 	}
 	
+	public void setWbsResolution(int streamId, int width, int height)
+	{
+		if (mCanvas != null)
+		{
+			mCanvas.setSessionResolution(streamId, width, height);
+		}
+	}
+	
 	public abstract class CustomizedTypeAdapterFactory<C>
 	implements TypeAdapterFactory {
 		private final Class<C> customizedClass;
