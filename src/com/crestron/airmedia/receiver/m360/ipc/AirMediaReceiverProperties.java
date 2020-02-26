@@ -16,4 +16,10 @@ public final class AirMediaReceiverProperties {
         public static String WifiDirectCountryCode = "miracast.wifi-direct.country-code";
         public static String PreferWifiDirect = "miracast.wifi-direct.prefer";
     }
+    
+    public static class WirlessAccessPoint {
+        public static String Enable = "wifi.enable";
+        public static String WifiSsid = "wifi.ssid";
+        public static String WifiKey = "wifi.key";
+    }
 }

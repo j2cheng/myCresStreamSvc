@@ -375,12 +375,18 @@ public class TCPInterface extends AsyncTask<Void, Object, Long> {
                     	lastRead = currentRead; 
                     if(read!=null && !(isWhiteSpace=(read.matches("^\\s*$"))))
                     {
-                        Log.i(TAG, "msg received is "+read);
-                        if((read.trim()).equalsIgnoreCase("help")){
+                		read = read.trim();
+                    	if (!read.startsWith("*")) 
+                    	{
+                    		Log.i(TAG, "msg received is "+read);
+                    	} else {
+                    		read = read.substring(1); // strip of '*'
+                    	}
+                        if(read.equalsIgnoreCase("help")){
                             String validatedMsg = parserInstance.validateReceivedMessage(read);
                             serverHandler.SendDataToAllClients(validatedMsg);
                         }
-                        else if (read.trim().equalsIgnoreCase("updaterequest")) {
+                        else if (read.equalsIgnoreCase("updaterequest")) {
                         	for(CommandParser.CmdTable ct: CommandParser.CmdTable.values()){
                         		// Send device ready as last join
                         		if (!ct.name().equals("DEVICE_READY_FB"))
@@ -390,22 +396,22 @@ public class TCPInterface extends AsyncTask<Void, Object, Long> {
                         	// Tell CSIO that update request is complete
                         	addJoinToQueue(new JoinObject("DEVICE_READY_FB", serverHandler), 0);
                         }
-                        else if((read.trim()).equalsIgnoreCase("RESTART_STREAM_ON_START=TRUE")){
+                        else if(read.equalsIgnoreCase("RESTART_STREAM_ON_START=TRUE")){
                         	Log.i(TAG, "RESTART_STREAM_ON_START=TRUE received");
                         	streamCtl.restartStreamsOnStart = true;
                         }
-                        else if ((read.trim()).equalsIgnoreCase("RESTART_STREAM_ON_START=FALSE")) {
+                        else if (read.equalsIgnoreCase("RESTART_STREAM_ON_START=FALSE")) {
                         	streamCtl.restartStreamsOnStart = false;                        		
                         }
-                        else if ((read.trim()).equalsIgnoreCase("DEBUG_MODE")) {
+                        else if (read.equalsIgnoreCase("DEBUG_MODE")) {
                         	// Remove timeout for debugging
                         	clientSocket.setSoTimeout(0);
                         	Log.i(TAG, "Turning telnet debug mode on");
                         }
                         else{
                         	// determine sessionId first so we can add to the right queue
-                        	StringTokenizer.ParseResponse parseResponse = new StringTokenizer().Parse(read.trim());
-                        	addJoinToQueue(new JoinObject(read.trim(), serverHandler), parseResponse.sessId);
+                        	StringTokenizer.ParseResponse parseResponse = new StringTokenizer().Parse(read);
+                        	addJoinToQueue(new JoinObject(read, serverHandler), parseResponse.sessId);
                         }
                     }
                     else if(read == null) {

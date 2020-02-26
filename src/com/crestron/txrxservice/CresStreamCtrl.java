@@ -4937,12 +4937,21 @@ public class CresStreamCtrl extends Service {
     	}
     }
 
+    public void setAirMediaWifiEnabled(boolean val)
+    {
+    	if (mAirMedia != null)
+    	{
+    		userSettings.setAirMediaWifiEnabled(val);
+    		mAirMedia.setAirMediaWifiEnabled(val);
+    	}
+    }
+    
     public void setAirMediaWifiSsid(String val)
     {
     	if (mAirMedia != null)
     	{
     		userSettings.setAirMediaWifiSsid(val);
-    		//mAirMedia.setProjectionLock(val);
+    		mAirMedia.setAirMediaWifiSsid(val);
     	}
     }
     
@@ -4951,7 +4960,7 @@ public class CresStreamCtrl extends Service {
     	if (mAirMedia != null)
     	{
     		userSettings.setAirMediaWifiPskKey(val);
-    		//mAirMedia.setProjectionLock(val);
+    		mAirMedia.setAirMediaWifiKey(val);
     	}
     }
     

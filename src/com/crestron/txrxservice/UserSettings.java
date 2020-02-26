@@ -227,6 +227,7 @@ public class UserSettings
 	boolean airMediaOnlyAllowSecureConnections;
 	boolean airMediaSecureLandingPageEnabled;
 	boolean airMediaChromeExtension;
+	boolean airMediaWifiEnabled;
 	private String airMediaOsdImage;
 	private boolean airMediaIpAddressPrompt;
 	private boolean airMediaDomainNamePrompt;
@@ -253,7 +254,7 @@ public class UserSettings
 	private int airMediaMiracastWirelessOperatingRegion;
 	private boolean airMediaMiracastMsMiceMode;
 	private String airMediaWifiSsid;
-	private String airMediaWifiPskKey;
+	private transient String airMediaWifiPskKey; // transient keyword prevents serialization of field when saving 
 	private boolean airMediaWifiAutoLaunchAirMediaLandingPageEnable;
 
 	// Camera Streaming
@@ -365,6 +366,7 @@ public class UserSettings
 		airMediaOnlyAllowSecureConnections = false;
 		airMediaSecureLandingPageEnabled = false;
 		airMediaChromeExtension = true;
+		airMediaWifiEnabled = true;
 		airMediaOsdImage	= "";
 		airMediaX			= 0;
 		airMediaY			= 0;
@@ -1240,6 +1242,14 @@ public class UserSettings
 	
 	public void setAirMediaChromeExtension(boolean enable) {
 		this.airMediaChromeExtension = enable;
+	}	
+	
+	public boolean getAirMediaWifiEnabled() {
+		return airMediaWifiEnabled;
+	}	
+	
+	public void setAirMediaWifiEnabled(boolean enable) {
+		this.airMediaWifiEnabled = enable;
 	}	
 	
 	public boolean getAirMediaResetConnections() {

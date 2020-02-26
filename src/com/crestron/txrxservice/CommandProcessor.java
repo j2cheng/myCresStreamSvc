@@ -2382,6 +2382,21 @@ class AirMediaProjectionLockCommand extends CrestronCommand {
 	// No feedback
 }
 
+class AirMediaWifiEnabledCommand extends CrestronCommand {
+	
+    public AirMediaWifiEnabledCommand(CresStreamCtrl ctrl, String arg) {
+		super (ctrl, arg);
+    }
+
+    @Override
+    public void execute() {
+    	ctrl.setAirMediaWifiEnabled(Boolean.valueOf(msg));
+    }
+    public String getFeedbackMsg() {
+        return Boolean.toString(ctrl.userSettings.getAirMediaWifiEnabled());
+    }
+}
+
 class AirMediaWifiSsidCommand extends CrestronCommand {
 	public AirMediaWifiSsidCommand(CresStreamCtrl ctrl, String arg) {
 		super(ctrl, arg);
@@ -2402,7 +2417,10 @@ class AirMediaWifiPskKeyCommand extends CrestronCommand {
 		ctrl.setAirMediaWifiPskKey(msg);
 	}
 	public String getFeedbackMsg() {
-		return ctrl.userSettings.getAirMediaWifiPskKey();
+		return "********";
+	}
+	public String getSetFbMsg() {
+		return "********";
 	}
 }
 
