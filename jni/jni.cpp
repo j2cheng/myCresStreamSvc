@@ -108,7 +108,6 @@ static jclass *gCresLog_javaClass_id;
 
 static jobject gCresLogApp;
 
-pthread_cond_t stop_completed_sig;
 static int stop_timeout_sec = 1000;
 
 const int c_minSocketLeft = 20;
@@ -752,11 +751,18 @@ void csio_jni_cleanup (int iStreamId)
 
 void * jni_stop (void * arg)
 {
-	jint streamId = (*(jint *)arg);
-	SetInPausedState(streamId,0);
-	stop_streaming_cmd(streamId);
-	csio_jni_cleanup(streamId);
-   pthread_cond_broadcast(&stop_completed_sig); //Flags that stop has completed
+	jint streamId = (*(jint *) arg);
+	CREGSTREAM * data = GetStreamFromCustomData(CresDataDB, streamId);
+	if (!data)
+		CSIO_LOG(eLogLevel_error, "Could not obtain stream pointer for stream %d, failed to set stop", streamId);
+	else
+	{
+		SetInPausedState(streamId, 0);
+		stop_streaming_cmd(streamId);
+		csio_jni_cleanup(streamId);
+
+		pthread_cond_broadcast(&(data->stop_completed_sig)); //Flags that stop has completed
+	}
 	pthread_exit(NULL);
 }
 
@@ -769,35 +775,41 @@ void csio_jni_stop(int streamId)
 	pthread_mutex_t stop_completed_lock;
 
 	//init mutex and thread attributes
-	pthread_cond_init(&stop_completed_sig, NULL);
-	pthread_mutex_init(&stop_completed_lock, NULL);
-	pthread_attr_t attr;
-	pthread_attr_init(&attr);
-	pthread_attr_setdetachstate(&attr, PTHREAD_CREATE_DETACHED);
-	clock_gettime(CLOCK_REALTIME, &stopTimeout);
-	stopTimeout.tv_sec += timeout_sec;
-
-	//Kick off stop thread
-	pthread_create(&gst_stop_thread, &attr, jni_stop, &streamId);
-
-	//Wait for timeout or completion
-	pthread_mutex_lock(&stop_completed_lock);
-	result = pthread_cond_timedwait(&stop_completed_sig, &stop_completed_lock, &stopTimeout);
-	pthread_mutex_unlock(&stop_completed_lock);
-
-	//Cleanup pthread objects
-	pthread_attr_destroy(&attr);
-	pthread_cond_destroy(&stop_completed_sig);
-	pthread_mutex_destroy(&stop_completed_lock);
-
-	if (result == ETIMEDOUT)
+	CREGSTREAM * data = GetStreamFromCustomData(CresDataDB, streamId);
+	if (!data)
+		CSIO_LOG(eLogLevel_error, "Could not obtain stream pointer for stream %d, failed to stop", streamId);
+	else
 	{
-		CSIO_LOG(eLogLevel_error, "Stop timed out after %d seconds\n", timeout_sec);
-		ResetStartedPlay(streamId);
-		csio_jni_recoverDucati();
+		pthread_cond_init(&(data->stop_completed_sig), NULL);
+		pthread_mutex_init(&stop_completed_lock, NULL);
+		pthread_attr_t attr;
+		pthread_attr_init(&attr);
+		pthread_attr_setdetachstate(&attr, PTHREAD_CREATE_DETACHED);
+		clock_gettime(CLOCK_REALTIME, &stopTimeout);
+		stopTimeout.tv_sec += timeout_sec;
+
+		//Kick off stop thread
+		pthread_create(&gst_stop_thread, &attr, jni_stop, &streamId);
+
+		//Wait for timeout or completion
+		pthread_mutex_lock(&stop_completed_lock);
+		result = pthread_cond_timedwait(&(data->stop_completed_sig), &stop_completed_lock, &stopTimeout);
+		pthread_mutex_unlock(&stop_completed_lock);
+
+		//Cleanup pthread objects
+		pthread_attr_destroy(&attr);
+		pthread_cond_destroy(&(data->stop_completed_sig));
+		pthread_mutex_destroy(&stop_completed_lock);
+
+		if (result == ETIMEDOUT) {
+			CSIO_LOG(eLogLevel_error, "Stop timed out after %d seconds, streamId = %d\n", timeout_sec, streamId);
+			ResetStartedPlay(streamId);
+			csio_jni_recoverDucati();
+		} else if (result != 0)
+			CSIO_LOG(eLogLevel_error,
+					 "Unknown error occurred while waiting for stop to complete, error = %d, streamId = %d\n",
+					 result, streamId);
 	}
-	else if (result != 0)
-		CSIO_LOG(eLogLevel_error, "Unknown error occurred while waiting for stop to complete, error = %d\n", result);
 }
 
 /* Set pipeline to PAUSED state */

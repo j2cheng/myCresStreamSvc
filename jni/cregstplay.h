@@ -72,6 +72,7 @@ typedef struct _CREGSTREAM
 
 	//pthread_mutex_t ready_to_start_playing_lock;
 	//pthread_cond_t ready_to_start_playing_signal;
+	pthread_cond_t stop_completed_sig;
 
 	GstElement *pipeline;   /* The running pipeline */
 	GMainContext *context;  /* GLib context used to run the main loop */
