@@ -170,6 +170,7 @@ void init_custom_data(CustomData * cdata)
         data->wfd_is_mice_session = 0;
         data->intf_name[0] = 0;
         data->loc_ip_addr[0] = 0;
+        data->sourceIP_addr[0] = 0;
 	}
 }
 
