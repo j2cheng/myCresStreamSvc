@@ -26,6 +26,8 @@ import android.os.Build;
 import android.os.Bundle;
 import android.util.Log;
 
+import com.crestron.txrxservice.CresLog;
+
 public class MiscUtils {	
 	static Matcher matcher;
     static String TAG = "TxRx Utils";
@@ -204,6 +206,7 @@ public class MiscUtils {
     			else
     			{
     				Log.w( TAG, "Invalid URL syntax " + url);
+    				CresLog.sendErrorStatusMessage(CresLog.Error_Generic_No_Retry, String.format("Invalid stream URL format. URL: " + url));
     			}
     		}	    	
 	    	

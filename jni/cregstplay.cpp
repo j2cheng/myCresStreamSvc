@@ -802,6 +802,33 @@ void csio_TypeFindMsgHandler( GstElement *typefind, guint probability, GstCaps *
     else
     {
         CSIO_LOG( eLogLevel_warning,"TYPEFIND: Unknown media type." );
+
+        char *c_typeMsg = "Unknown media type";
+        char *typeMsg   = c_typeMsg;
+        char *tag = NULL;
+        int size  = strlen(type);
+        char *typeBuf = new char[size];
+        memcpy(typeBuf, type, size);
+        typeBuf[size] = '\0';
+        char *rest = typeBuf;
+        if((tag = strcasestr(type, "application/")) || (tag = strcasestr(type, "video/")) ||
+        (tag = strcasestr(type, "audio/")) || (tag = strcasestr(type, "multipart/")))
+        {
+            //intentional blank
+        }
+        if(tag)
+        {
+            char *unKnownType = NULL;
+            if( (unKnownType = strtok_r(rest, ", ", &rest)))
+            {
+                typeMsg = unKnownType;
+            }
+        }
+
+        csio_sendErrorStatusMessage(CCresLogCode::Error_Unsupported_Codec,
+        STR2CSTR("Failed to start streaming due to unsupported media type. Detected media type: %s", typeMsg), data->streamId);
+
+        delete [] typeBuf;
     }
     g_free (type);
 }
@@ -1176,28 +1203,39 @@ int build_video_pipeline(gchar *encoding_name, CREGSTREAM *data, unsigned int st
         	gst_object_unref( pad );
         }
 
-        data->element_v[i++] = gst_element_factory_make(product_info()->H264_decoder_string, NULL);
-        data->amcvid_dec = data->element_v[i-1];
-
-		csio_SetVpuDecoder(data->amcvid_dec, data->streamId);
-
-        //SET OFSSET to zero for now
-        g_object_set(G_OBJECT(data->amcvid_dec), "ts-offset", 0, NULL);
-
-        //pass surface object to the decoder
-        g_object_set(G_OBJECT(data->element_v[i-1]), "surface-window", data->surface, NULL);
-        CSIO_LOG(eLogLevel_debug, "%s: SET surface-window[0x%x][%d]",__FUNCTION__,data->surface,data->surface);
-
-        *ele0 = data->element_v[0];
-
-        if(data->amcvid_dec && csio_GetWaitDecHas1stVidDelay(data->streamId) == 0)
+        if(product_info()->H264_decoder_string[0])
         {
-            int sigId = 0;
-            sigId = g_signal_connect(data->amcvid_dec, "crestron-vdec-output", G_CALLBACK(csio_DecVideo1stOutputCB), (gpointer)data->streamId);
-            CSIO_LOG(eLogLevel_debug, "%s: connect to crestron-vdec-output: StreamId[%d],sigHandlerId[%d]",__FUNCTION__,data->streamId,sigId);
+            data->element_v[i++] = gst_element_factory_make(product_info()->H264_decoder_string, NULL);
+            data->amcvid_dec = data->element_v[i-1];
 
-            if(sigId)
-                csio_SetWaitDecHas1stVidDelay(data->streamId,1);
+            csio_SetVpuDecoder(data->amcvid_dec, data->streamId);
+
+            //SET OFSSET to zero for now
+            g_object_set(G_OBJECT(data->amcvid_dec), "ts-offset", 0, NULL);
+
+            //pass surface object to the decoder
+            g_object_set(G_OBJECT(data->element_v[i-1]), "surface-window", data->surface, NULL);
+            CSIO_LOG(eLogLevel_debug, "%s: SET surface-window[0x%x][%d]",__FUNCTION__,data->surface,data->surface);
+
+            *ele0 = data->element_v[0];
+
+            if(data->amcvid_dec && csio_GetWaitDecHas1stVidDelay(data->streamId) == 0)
+            {
+                int sigId = 0;
+                sigId = g_signal_connect(data->amcvid_dec, "crestron-vdec-output", G_CALLBACK(csio_DecVideo1stOutputCB), (gpointer)data->streamId);
+                CSIO_LOG(eLogLevel_debug, "%s: connect to crestron-vdec-output: StreamId[%d],sigHandlerId[%d]",__FUNCTION__,data->streamId,sigId);
+
+                if(sigId)
+                    csio_SetWaitDecHas1stVidDelay(data->streamId,1);
+            }
+        }
+        else
+        {
+            data->element_v[i++] = gst_element_factory_make("fakesink", NULL);
+            *ele0 = data->element_v[0];
+            CSIO_LOG(eLogLevel_warning, "Unknown stream encoding format: %s", encoding_name);
+            csio_sendErrorStatusMessage(CCresLogCode::Error_Unsupported_Codec,
+            STR2CSTR("Failed to start streaming due to unsupported media type. Detected media type: %s", encoding_name), data->streamId);
         }
     }
     else if((strcmp(encoding_name, "H265") == 0) || (strcmp(encoding_name, "video/x-h265") == 0))
@@ -1252,28 +1290,39 @@ int build_video_pipeline(gchar *encoding_name, CREGSTREAM *data, unsigned int st
             gst_object_unref( pad );
         }
 
-        data->element_v[i++] = gst_element_factory_make(product_info()->H265_decoder_string, NULL);
-        data->amcvid_dec = data->element_v[i-1];
-
-        csio_SetVpuDecoder(data->amcvid_dec, data->streamId);
-
-        //SET OFSSET to zero for now
-        g_object_set(G_OBJECT(data->amcvid_dec), "ts-offset", 0, NULL);
-
-        //pass surface object to the decoder
-        g_object_set(G_OBJECT(data->element_v[i-1]), "surface-window", data->surface, NULL);
-        CSIO_LOG(eLogLevel_debug, "%s: SET surface-window[0x%x][%d]",__FUNCTION__,data->surface,data->surface);
-
-        *ele0 = data->element_v[0];
-
-        if(data->amcvid_dec && csio_GetWaitDecHas1stVidDelay(data->streamId) == 0)
+        if(product_info()->H265_decoder_string[0])
         {
-            int sigId = 0;
-            sigId = g_signal_connect(data->amcvid_dec, "crestron-vdec-output", G_CALLBACK(csio_DecVideo1stOutputCB), (gpointer)data->streamId);
-            CSIO_LOG(eLogLevel_debug, "%s: connect to crestron-vdec-output: StreamId[%d],sigHandlerId[%d]",__FUNCTION__,data->streamId,sigId);
+            data->element_v[i++] = gst_element_factory_make(product_info()->H265_decoder_string, NULL);
+            data->amcvid_dec = data->element_v[i-1];
 
-            if(sigId)
-                csio_SetWaitDecHas1stVidDelay(data->streamId,1);
+            csio_SetVpuDecoder(data->amcvid_dec, data->streamId);
+
+            //SET OFSSET to zero for now
+            g_object_set(G_OBJECT(data->amcvid_dec), "ts-offset", 0, NULL);
+
+            //pass surface object to the decoder
+            g_object_set(G_OBJECT(data->element_v[i-1]), "surface-window", data->surface, NULL);
+            CSIO_LOG(eLogLevel_debug, "%s: SET surface-window[0x%x][%d]",__FUNCTION__,data->surface,data->surface);
+
+            *ele0 = data->element_v[0];
+
+            if(data->amcvid_dec && csio_GetWaitDecHas1stVidDelay(data->streamId) == 0)
+            {
+                int sigId = 0;
+                sigId = g_signal_connect(data->amcvid_dec, "crestron-vdec-output", G_CALLBACK(csio_DecVideo1stOutputCB), (gpointer)data->streamId);
+                CSIO_LOG(eLogLevel_debug, "%s: connect to crestron-vdec-output: StreamId[%d],sigHandlerId[%d]",__FUNCTION__,data->streamId,sigId);
+
+                if(sigId)
+                    csio_SetWaitDecHas1stVidDelay(data->streamId,1);
+            }
+        }
+        else
+        {
+            data->element_v[i++] = gst_element_factory_make("fakesink", NULL);
+            *ele0 = data->element_v[0];
+            CSIO_LOG(eLogLevel_warning, "Unknown stream encoding format: %s", encoding_name);
+            csio_sendErrorStatusMessage(CCresLogCode::Error_Unsupported_Codec,
+            STR2CSTR("Failed to start streaming due to unsupported media type. Detected media type: %s", encoding_name), data->streamId);
         }
     }
     else if(strcmp(encoding_name, "MP2T") == 0)
@@ -1404,22 +1453,35 @@ int build_video_pipeline(gchar *encoding_name, CREGSTREAM *data, unsigned int st
 		data->element_v[i++] = gst_element_factory_make("mpeg4videoparse", NULL);
 		data->element_fake_dec = data->element_v[i-1];
 
-		data->element_v[i++] = gst_element_factory_make(product_info()->H264_decoder_string, NULL);
-		data->amcvid_dec = data->element_v[i-1];
+		if(product_info()->H264_decoder_string[0])
+		{
+            data->element_v[i++] = gst_element_factory_make(product_info()->H264_decoder_string, NULL);
+            data->amcvid_dec = data->element_v[i-1];
 
-		//SET OFSSET to zero for now
-		g_object_set(G_OBJECT(data->amcvid_dec), "ts-offset", 0, NULL);
+            //SET OFSSET to zero for now
+            g_object_set(G_OBJECT(data->amcvid_dec), "ts-offset", 0, NULL);
 
-		//pass surface object to the decoder
-		g_object_set(G_OBJECT(data->element_v[i-1]), "surface-window", data->surface, NULL);
-		CSIO_LOG(eLogLevel_debug, "SET surface-window[0x%x][%d]",data->surface,data->surface);
+            //pass surface object to the decoder
+            g_object_set(G_OBJECT(data->element_v[i-1]), "surface-window", data->surface, NULL);
+            CSIO_LOG(eLogLevel_debug, "SET surface-window[0x%x][%d]",data->surface,data->surface);
 
-		*ele0 = data->element_v[0];
+            *ele0 = data->element_v[0];
+		}
+		else
+		{
+            data->element_v[i++] = gst_element_factory_make("fakesink", NULL);
+            *ele0 = data->element_v[0];
+            CSIO_LOG(eLogLevel_warning, "Unknown stream encoding format: %s", encoding_name);
+            csio_sendErrorStatusMessage(CCresLogCode::Error_Unsupported_Codec,
+            STR2CSTR("Failed to start streaming due to unsupported encoding format by this device. Detected: %s", encoding_name), data->streamId);
+		}
 	}
 	else
 	{
 		data->element_v[start] = NULL;
 		CSIO_LOG(eLogLevel_error, "Unsupported video encoding %s", encoding_name);
+		csio_sendErrorStatusMessage(CCresLogCode::Error_Unsupported_Codec,
+        STR2CSTR("Failed to start streaming due to unsupported media type. Detected media type: %s", encoding_name), data->streamId);
 		return CSIO_CANNOT_CREATE_ELEMENTS;
 	}
 		
@@ -1628,6 +1690,8 @@ int build_audio_pipeline(gchar *encoding_name, CREGSTREAM *data, int do_rtp,GstE
 	{
 		data->element_a[start] = NULL;
 		CSIO_LOG(eLogLevel_error, "Unsupported audio encoding %s", encoding_name);
+        csio_sendErrorStatusMessage(CCresLogCode::Error_Unsupported_Codec,
+        STR2CSTR("Failed to start streaming due to unsupported encoding format. Detected: %s", encoding_name), data->streamId);
 		return CSIO_AUDIO_BLOCKED;	// If we don't support the encoding, just turn off audio
 	}
 	data->element_a[i++] = gst_element_factory_make("valve", NULL);
@@ -1776,7 +1840,7 @@ void build_http_pipeline(CREGSTREAM *data, int iStreamId)
  *
  *
  */
-GstElement* csio_jni_callback_rtpbin_new_rtp_decoder(GstElement *rtpbin,guint session,gpointer data)
+GstElement* csio_jni_callback_rtpbin_new_rtp_decoder(GstElement *rtpbin,guint session,CREGSTREAM *data)
 {
     if(rtpbin)
     {
@@ -1812,6 +1876,8 @@ GstElement* csio_jni_callback_rtpbin_new_rtp_decoder(GstElement *rtpbin,guint se
     }
 
     CSIO_LOG(eLogLevel_error, "csio_jni_callback_rtpbin_new_rtp_decoder: ERROR, this will cause pipeline stop working!!!");
+    csio_sendErrorStatusMessage(CCresLogCode::Error_Generic_Retry,
+    STR2CSTR("Streaming failed due to invalid stream protocol. Detected invalid RTP packet."), data->streamId);
 
     return NULL;
 }
