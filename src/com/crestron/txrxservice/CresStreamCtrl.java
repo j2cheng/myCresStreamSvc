@@ -559,15 +559,26 @@ public class CresStreamCtrl extends Service {
     {
     	new Thread(new Runnable() {
     		public void run() {
-		    	while (true)
-		    	{
-			    	runOnUiThread(foregroundRunnable);
-			    	try {
-			    		Thread.sleep(5000);
-			    	} catch (Exception e) {
-			    		e.printStackTrace();
-			    	}
-		    	}
+    		    // In later versions of Android it is not necessary to continuously tell Android
+                // that you want to be in the foreground
+    		    if (Build.VERSION.SDK_INT >= 27 /*Build.VERSION_CODES.O*/)
+                {
+                    runOnUiThread(foregroundRunnable);
+                }
+    		    else
+                {
+                    while (true)
+                    {
+                        runOnUiThread(foregroundRunnable);
+                        try
+                        {
+                            Thread.sleep(5000);
+                        } catch (Exception e)
+                        {
+                            e.printStackTrace();
+                        }
+                    }
+                }
     		}
     	}).start();
     }
@@ -1929,11 +1940,8 @@ public class CresStreamCtrl extends Service {
 	    					{
 	    						mPreviousAudioInputSampleRate = hdmiInSampleRate;
 	    				        boolean onlyRestartAudioNeeded = true;	// if streamout is started we need to restart stream
-                                int previewId = 0;  // if we ever go to more than 1 camera this will need to be modified
 	    				        for(int sessionId = 0; sessionId < NumOfSurfaces; sessionId++)
 	    				        {
-	    				            if (userSettings.getMode(sessionId) == DeviceMode.PREVIEW.ordinal())
-	    				                previewId = sessionId;
 	    				        	if ( (userSettings.getMode(sessionId) == DeviceMode.STREAM_OUT.ordinal()) &&
 	    				        			(userSettings.getUserRequestedStreamState(sessionId) == StreamState.STARTED) )
 	    				        	{
@@ -1945,6 +1953,7 @@ public class CresStreamCtrl extends Service {
 	    				        {
 	    				        	if (cam_preview != null)
 	    				        	{
+                                        int previewId = cam_preview.getSessionIndex();
 	    				        	    try {
                                             stopStartLock[previewId].lock("restartAudio_SampleRate");
                                             Log.i(TAG, "Restarting Audio - sample rate change");
