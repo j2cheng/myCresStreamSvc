@@ -66,9 +66,8 @@ public class CresLog
         if(m_instance == null)
         {
             m_instance = this;
+            nativeInit();
         }
-		
-        nativeInit();
     }
  
     public CresLog()
@@ -77,9 +76,8 @@ public class CresLog
         if(m_instance == null)
         {
             m_instance = this;
+            nativeInit();
         }
-        
-        nativeInit();
     }
     
     public static void sendErrorStatusMessage(int error, String msg)

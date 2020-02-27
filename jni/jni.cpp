@@ -5068,7 +5068,7 @@ JNIEXPORT void JNICALL Java_com_crestron_txrxservice_CresLog_nativeInit(JNIEnv *
 {
     CSIO_LOG(eLogLevel_verbose, "%s", __FUNCTION__);
 
-    gCresLogApp = (jobject) thiz;
+    gCresLogApp = env->NewGlobalRef (thiz);
 }
 
 //Free resources
@@ -5084,6 +5084,7 @@ JNIEXPORT void JNICALL Java_com_crestron_txrxservice_CresLog_nativeFinalize(JNIE
     if(gCresLogApp != NULL)
     {
         env->DeleteGlobalRef ((jobject)gCresLogApp);
+        gCresLogApp = NULL;
     }
 
     CSIO_LOG(eLogLevel_debug, "cresLog: Done finalizing");
