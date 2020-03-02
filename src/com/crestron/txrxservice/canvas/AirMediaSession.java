@@ -221,6 +221,9 @@ public class AirMediaSession extends Session
 		{
 			Common.Logging.i(TAG, "Session "+this+" changing video state from "+videoState+" to "+s);
 			videoState = s;
+		} else {
+			Common.Logging.i(TAG, "Session "+this+" ignoring incoming video state change to "+videoState+" already in that state");
+			return;
 		}
 		if (s == AirMediaSessionStreamingState.Stopped)
 		{

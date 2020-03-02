@@ -157,10 +157,6 @@ public class CommandParser {
         AIRMEDIA_APPLY_OSD_IMAGE,
         AIRMEDIA_OSD_IMAGE,
         AIRMEDIA_DISPLAY_LOGIN_CODE,
-        AIRMEDIA_IP_ADDRESS_PROMPT,
-        AIRMEDIA_DOMAIN_NAME_PROMPT,
-        AIRMEDIA_HOST_NAME_PROMPT,
-        AIRMEDIA_CUSTOM_PROMPT,
         AIRMEDIA_CUSTOM_PROMPT_STRING,
         AIRMEDIA_DISPLAY_CONNECTION_OPTION_ENABLE,
         AIRMEDIA_DISPLAY_CONNECTION_OPTION,
@@ -217,6 +213,7 @@ public class CommandParser {
         DM_HDCP_BLANK,
         DM_RESOLUTION,
         CHROMAKEY_COLOR,
+        CANVASCMD,
     	LOGLEVEL;
     	//UPDATEREQUEST;
     }
@@ -681,18 +678,6 @@ public class CommandParser {
             case AIRMEDIA_OSD_IMAGE:
             	cmd = new AirMediaOsdImageCommand(ctrl, arg, idx);
             	break;
-            case AIRMEDIA_IP_ADDRESS_PROMPT:
-            	cmd = new AirMediaIpAddressPromptCommand(ctrl, arg, idx);
-            	break;
-            case AIRMEDIA_DOMAIN_NAME_PROMPT:
-            	cmd = new AirMediaDomainNamePromptCommand(ctrl, arg, idx);
-            	break;
-            case AIRMEDIA_HOST_NAME_PROMPT:
-            	cmd = new AirMediaHostNamePromptCommand(ctrl, arg, idx);
-            	break;  
-            case AIRMEDIA_CUSTOM_PROMPT:
-            	cmd = new AirMediaCustomPromptCommand(ctrl, arg, idx);
-            	break;  
             case AIRMEDIA_CUSTOM_PROMPT_STRING:
             	cmd = new AirMediaCustomPromptStringCommand(ctrl, arg, idx);
             	break; 
@@ -889,6 +874,9 @@ public class CommandParser {
             	break;
             case LOGLEVEL:
             	cmd = new SetLogLevelCommand(ctrl, arg);
+            	break;
+            case CANVASCMD:
+            	cmd = new CanvasConsoleCommand(ctrl, arg);
             	break;
             default:
                 break;

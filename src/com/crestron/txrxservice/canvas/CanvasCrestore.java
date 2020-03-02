@@ -701,7 +701,7 @@ public class CanvasCrestore
         	else
         	{
             	this.state = state;
-            	this.type = "AirMedia";
+            	this.type = type.toString();
             	this.airMediaType = null;
             	this.inputNumber = inputNumber;
         	}
@@ -774,6 +774,8 @@ public class CanvasCrestore
     	}
     	return e;
     }
+    
+
     
     public class SessionResponseMapEntry {
         @SerializedName ("State")

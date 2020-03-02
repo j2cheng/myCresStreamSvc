@@ -52,15 +52,16 @@ public class SimulatedAVF
 			Common.Logging.i(TAG, "Session Event Map is null or empty "+gson.toJson(event));
 			return;
 		}
-		if (map.size() > 1)
-		{
-			Common.Logging.i(TAG, "Session Event Map has more than one entry - this AVF cannot handle "+gson.toJson(event));
-			return;
-		}
+//		if (map.size() > 1)
+//		{
+//			Common.Logging.i(TAG, "Session Event Map has more than one entry - this AVF cannot handle "+gson.toJson(event));
+//			return;
+//		}
 		for (Map.Entry<String,CanvasCrestore.SessionEventMapEntry> entry : map.entrySet())
 		{
 			String sessionId = entry.getKey();
 			CanvasCrestore.SessionEventMapEntry e = entry.getValue();
+			Log.i(TAG, "sessionId="+sessionId+" state requested is "+e.state);
 			if (e.state.equalsIgnoreCase("Connect")) {
 				// Allow incoming connections as long as number of connected sessions is < MaxConnected
 				if (sessions.containsKey(sessionId))
@@ -102,23 +103,36 @@ public class SimulatedAVF
 					failureReason = 3;
 				}
 				AVFSession s = sessions.get(sessionId);
-				if (!s.state.equalsIgnoreCase("Play"))
-				{
-					Log.i(TAG, "Ignoring stop message for sessionId="+sessionId+" it is not in a playing state");
-					failureReason = 1;
-				}
+//				if (!s.state.equalsIgnoreCase("Play"))
+//				{
+//					Log.i(TAG, "Ignoring stop message for sessionId="+sessionId+" it is not in a playing state");
+//					failureReason = 1;
+//				}
 				if (failureReason == 0)
 				{
 					s.state = "Stop";
 					s.playTime = 0;
 					// If we stop a non-HDMI session and there is HDMI connected then start playing HDMI
+					// unless a stop has been requested for that in the incoming message
 					if (s.type != SessionType.HDMI)
 					{
-						for (Map.Entry<String,AVFSession> se : sessions.entrySet()) {
-							if (se.getValue().type == SessionType.HDMI && se.getValue().state.equalsIgnoreCase("Stop"))
+						boolean stopRequestedOnHDMI = false;
+						for (Map.Entry<String,CanvasCrestore.SessionEventMapEntry> me : map.entrySet())
+						{
+							CanvasCrestore.SessionEventMapEntry ese = me.getValue();
+							if (ese.type.equalsIgnoreCase("HDMI") && ese.state.equalsIgnoreCase("stop"))
 							{
-								se.getValue().state = "Play";
-								se.getValue().playTime = System.currentTimeMillis();
+								stopRequestedOnHDMI = true; // found HDMI that has requested stop
+							}								
+						}
+						if (!stopRequestedOnHDMI)
+						{
+							for (Map.Entry<String,AVFSession> se : sessions.entrySet()) {
+								if (se.getValue().type == SessionType.HDMI && se.getValue().state.equalsIgnoreCase("Stop"))
+								{
+									se.getValue().state = "Play";
+									se.getValue().playTime = System.currentTimeMillis();
+								}
 							}
 						}
 					}

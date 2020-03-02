@@ -333,4 +333,29 @@ public class CresCanvas
 			surfaces[streamId] = null;
 		}
 	}
+	
+	public void CanvasConsoleCommand(String cmd)
+	{
+		Log.i(TAG, "CanvasConsoleCommand: cmd="+cmd);
+		String[] args = cmd.split("\\s+");
+		if (args.length == 0)
+			return;
+		if (args[0].equalsIgnoreCase("show"))
+		{
+			mSessionMgr.logSessionStates("CanvasConsoleCmd");
+		} else if (args[0].equalsIgnoreCase("stop"))
+		{
+			String sessionId = (args.length == 1) ? "all" : args[1];
+			if (sessionId.equalsIgnoreCase("all"))
+			{
+				mSessionMgr.stopAllSessions(new Originator(RequestOrigin.ConsoleCommand));
+			}
+			else
+			{
+				Session session = mSessionMgr.findSession(sessionId);
+				if (session != null)
+	            	getCrestore().doSessionEvent(session, "stop", new Originator(RequestOrigin.ConsoleCommand));
+			}
+		}
+	}
 }

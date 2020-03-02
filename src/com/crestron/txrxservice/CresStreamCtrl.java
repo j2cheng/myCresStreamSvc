@@ -4610,93 +4610,6 @@ public class CresStreamCtrl extends Service {
     	userSettings.setAirMediaOsdImage(filePath);
     }
     
-    // Function deprecated - used with old digital joins which are no longer supported
-    public void setAirMediaIpAddressPrompt(boolean enable)
-    {    	
-    	synchronized (mAirMediaLock) {
-    		if (userSettings.getAirMediaCustomPrompt())
-    		{
-    			enable = false;
-    		}
-    		userSettings.setAirMediaIpAddressPrompt(enable);
-    		if (mAirMedia != null)
-    		{
-    			mAirMedia.setIpAddressPrompt(enable);
-    		}
-    		sendAirMediaConnectionAddress();
-    	}
-    }
-    
-    // Function deprecated - used with old digital joins which are no longer supported
-    public void setAirMediaDomainNamePrompt(boolean enable)
-    {
-    	synchronized (mAirMediaLock) {
-    		// If Host Name Prompt is disabled or custom string is enabled - Domain Name too must be disabled
-    		if (!userSettings.getAirMediaHostNamePrompt() || userSettings.getAirMediaCustomPrompt())
-    		{
-    			enable = false;
-    		}
-    		userSettings.setAirMediaDomainNamePrompt(enable);
-    		if (mAirMedia != null)
-    		{
-    			mAirMedia.setDomainNamePrompt(enable);
-    		}
-    		setDomainName("");
-    		sendAirMediaConnectionAddress();
-    	}
-    }
-
-    // Function deprecated - used with old digital joins which are no longer supported
-    public void setAirMediaHostNamePrompt(boolean enable)
-    {
-    	synchronized (mAirMediaLock) {
-    		if (userSettings.getAirMediaCustomPrompt())
-    		{
-    			enable = false;
-    		}
-    		userSettings.setAirMediaHostNamePrompt(enable);
-    		// If Host Name Prompt is disabled and Domain Name Prompt is enabled, disable latter and send feedback.
-    		if (!userSettings.getAirMediaHostNamePrompt() && userSettings.getAirMediaDomainNamePrompt()) {
-    			userSettings.setAirMediaDomainNamePrompt(false);
-    			sendAirMediaDomainNamePromptFeedback();
-    		}
-    		setHostName("");
-    		sendAirMediaConnectionAddress();
-    	}
-    }
-
-    // Function deprecated - used with old digital joins which are no longer supported
-    public void setAirMediaCustomPrompt(boolean enable)
-    {
-    	synchronized (mAirMediaLock) {
-    		// All other prompt options must be disabled before we allow custom prompt to be enabled
-    		if (userSettings.getAirMediaIpAddressPrompt() || 
-    				userSettings.getAirMediaHostNamePrompt() || 
-    				userSettings.getAirMediaDomainNamePrompt()) {
-    			enable = false;
-    		}
-    		userSettings.setAirMediaCustomPrompt(enable);
-    		// If custom prompt is enabled, all other prompts must be forced off (send feedbacks)
-    		// This code will likely be used in future - when we go to the model where last setting wins
-    		// right now it will have no effect due to the the check at the start of this synchronized block.
-    		if (userSettings.getAirMediaCustomPrompt()) {
-    			if (userSettings.getAirMediaIpAddressPrompt()) {
-    				userSettings.setAirMediaIpAddressPrompt(false);
-    				sendAirMediaIpAddressPromptFeedback();
-    			}
-    			if (userSettings.getAirMediaHostNamePrompt()) {
-    				userSettings.setAirMediaHostNamePrompt(false);
-    				sendAirMediaHostNamePromptFeedback();
-    			}
-    			if (userSettings.getAirMediaIpAddressPrompt()) {
-    				userSettings.setAirMediaDomainNamePrompt(false);
-    				sendAirMediaDomainNamePromptFeedback();
-    			}
-    		}
-    		sendAirMediaConnectionAddress();
-    	}
-    }
-    
     public void setAirMediaDisplayConnectionOptionEnable(boolean enable)
     {
     	synchronized (mAirMediaLock) {
@@ -4717,8 +4630,7 @@ public class CresStreamCtrl extends Service {
     {
     	synchronized (mAirMediaLock) {
     		userSettings.setAirMediaCustomPromptString(promptString);
-    		if (userSettings.getAirMediaCustomPrompt() || 
-    				(userSettings.getAirMediaDisplayConnectionOption() == AirMediaDisplayConnectionOption.Custom))
+    		if (userSettings.getAirMediaDisplayConnectionOption() == AirMediaDisplayConnectionOption.Custom)
     			sendAirMediaConnectionAddress();
     	}
     }
@@ -4737,34 +4649,6 @@ public class CresStreamCtrl extends Service {
     		userSettings.setAirMediaDisplayWirelessConnectionOption(optVal);
     		sendAirMediaWirelessConnectionAddress();
     	}
-    }
-    
-    // Function deprecated - used with old digital joins which are no longer supported
-    public void sendAirMediaIpAddressPromptFeedback()
-    {
-    	sockTask.SendDataToAllClients(MiscUtils.stringFormat("AIRMEDIA_IP_ADDRESS_PROMPT=%s", 
-    			Boolean.toString(userSettings.getAirMediaIpAddressPrompt())));
-    }
-    
-    // Function deprecated - used with old digital joins which are no longer supported
-    public void sendAirMediaHostNamePromptFeedback()
-    {
-    	sockTask.SendDataToAllClients(MiscUtils.stringFormat("AIRMEDIA_HOST_NAME_PROMPT=%s", 
-    			Boolean.toString(userSettings.getAirMediaHostNamePrompt())));
-    }
-    
-    // Function deprecated - used with old digital joins which are no longer supported
-    public void sendAirMediaDomainNamePromptFeedback()
-    {
-    	sockTask.SendDataToAllClients(MiscUtils.stringFormat("AIRMEDIA_DOMAIN_NAME_PROMPT=%s", 
-    			Boolean.toString(userSettings.getAirMediaDomainNamePrompt())));
-    }
-    
-    // Function deprecated - used with old digital joins which are no longer supported
-    public void sendAirMediaCustomPromptFeedback()
-    {
-    	sockTask.SendDataToAllClients(MiscUtils.stringFormat("AIRMEDIA_CUSTOM_PROMPT=%s", 
-    			Boolean.toString(userSettings.getAirMediaCustomPrompt())));
     }
     
     public void setAirMediaWindowPosition(int x, int y, int width, int height)
@@ -5005,7 +4889,6 @@ public class CresStreamCtrl extends Service {
     		{
         		Log.i(TAG,"*************** setAirMediaAdaptorSelect -- addr="+getAirMediaConnectionIpAddress()+"   *********");
         		mAirMedia.setAdapter(getAirMediaConnectionIpAddress());
-    			mAirMedia.setIpAddressPrompt(userSettings.getAirMediaIpAddressPrompt());
     		}
     		
     		// Update connection address as well
@@ -5020,7 +4903,6 @@ public class CresStreamCtrl extends Service {
 		{
     		Log.i(TAG,"*************** updateAirMediaIpInformation -- addr="+getAirMediaConnectionIpAddress()+"   *********");
     		mAirMedia.setAdapter(getAirMediaConnectionIpAddress());
-    		mAirMedia.setIpAddressPrompt(userSettings.getAirMediaIpAddressPrompt());
 		}
     	
     	sendAirMediaConnectionAddress();
@@ -5162,46 +5044,6 @@ public class CresStreamCtrl extends Service {
     	}
  
 		Log.i(TAG, "getAirMediaConnectionAddress() returning "+url.toString());
-        return url.toString();    	
-    }
-    
-    // Function deprecated - used with old digital joins which are no longer supported
-    public String getDigitalJoinAirMediaConnectionAddress()
-    {
-    	boolean showIp = userSettings.getAirMediaIpAddressPrompt();
-    	boolean showHost = userSettings.getAirMediaHostNamePrompt();
-    	boolean showDomain = userSettings.getAirMediaDomainNamePrompt();
-    	boolean showCustom = userSettings.getAirMediaCustomPrompt();
-    	if (!showIp && !showHost && !showDomain && !showCustom)
-    		return "";
-    	if (showCustom)
-    		return userSettings.getAirMediaCustomPromptString();
-    	String ipAddr = getAirMediaConnectionIpAddress();
-    	if (!showHost) {
-        	// Do not allow display of DomainName if HostName is not displayed
-    		showDomain = false;
-    	}
-    	if ((!showHost && !showIp) || ipAddr.equals("None"))
-    		return "";
-    	StringBuilder url = new StringBuilder(512);
-        url.append("http://");
-        if (showHost && hostName != null) {
-        	url.append(hostName);
-        }
-        if (showDomain && domainName != null) {
-        	url.append(".");
-        	url.append(domainName);
-        }
-        if (showIp) {
-        	if (!showHost && !showDomain) {
-        		url.append(getAirMediaConnectionIpAddress());
-        	} else {
-        		url.append(" (");
-        		url.append(getAirMediaConnectionIpAddress());
-        		url.append(")");
-        	}
-        }
-		Log.i(TAG, "getDigitalAirMediaConnectionAddress() returning "+url.toString());
         return url.toString();    	
     }
     
@@ -6569,6 +6411,18 @@ public class CresStreamCtrl extends Service {
 		if (mCanvas != null)
 		{
 			mCanvas.setSessionResolution(streamId, width, height);
+		}
+	}
+	
+	public void CanvasConsoleCommand(String cmd)
+	{
+		if (mCanvas != null)
+		{
+			mCanvas.CanvasConsoleCommand(cmd);
+		}
+		else
+		{
+			Log.i(TAG, "CanvasConsoleCommand(): canvas does not exist");
 		}
 	}
 	

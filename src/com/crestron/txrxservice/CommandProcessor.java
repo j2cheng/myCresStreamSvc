@@ -1947,54 +1947,6 @@ class AirMediaOsdImageCommand extends CrestronCommand {
 	}
 }
 
-class AirMediaIpAddressPromptCommand extends CrestronCommand {
-	public AirMediaIpAddressPromptCommand(CresStreamCtrl ctrl, String arg, int sessId) {
-		super(ctrl, arg, sessId);
-	}	
-	public void execute() {
-		ctrl.setAirMediaIpAddressPrompt(Boolean.valueOf(msg));
-	}
-	public String getFeedbackMsg() {
-		return Boolean.toString(ctrl.userSettings.getAirMediaIpAddressPrompt());
-	}
-}
-
-class AirMediaDomainNamePromptCommand extends CrestronCommand {
-	public AirMediaDomainNamePromptCommand(CresStreamCtrl ctrl, String arg, int sessId) {
-		super(ctrl, arg, sessId);
-	}	
-	public void execute() {
-		ctrl.setAirMediaDomainNamePrompt(Boolean.valueOf(msg));
-	}
-	public String getFeedbackMsg() {
-		return Boolean.toString(ctrl.userSettings.getAirMediaDomainNamePrompt());
-	}
-}
-
-class AirMediaHostNamePromptCommand extends CrestronCommand {
-	public AirMediaHostNamePromptCommand(CresStreamCtrl ctrl, String arg, int sessId) {
-		super(ctrl, arg, sessId);
-	}	
-	public void execute() {
-		ctrl.setAirMediaHostNamePrompt(Boolean.valueOf(msg));
-	}
-	public String getFeedbackMsg() {
-		return Boolean.toString(ctrl.userSettings.getAirMediaHostNamePrompt());
-	}
-}
-
-class AirMediaCustomPromptCommand extends CrestronCommand {
-	public AirMediaCustomPromptCommand(CresStreamCtrl ctrl, String arg, int sessId) {
-		super(ctrl, arg, sessId);
-	}	
-	public void execute() {
-		ctrl.setAirMediaCustomPrompt(Boolean.valueOf(msg));
-	}
-	public String getFeedbackMsg() {
-		return Boolean.toString(ctrl.userSettings.getAirMediaCustomPrompt());
-	}
-}
-
 class AirMediaDisplayConnectionOptionEnableCommand extends CrestronCommand {
 	public AirMediaDisplayConnectionOptionEnableCommand(CresStreamCtrl ctrl, String arg, int sessId) {
 		super(ctrl, arg, sessId);
@@ -2791,4 +2743,18 @@ class DmResolutionCommand extends CrestronCommand {
     	}
     	// no feedback
     }
+}
+
+class CanvasConsoleCommand extends CrestronCommand {
+
+	public CanvasConsoleCommand(CresStreamCtrl ctrl, String arg) {
+		super(ctrl, arg);
+	}
+
+	@Override
+	public void execute() {
+		try {
+			ctrl.CanvasConsoleCommand(msg);
+		} catch (Exception e) {}
+	}
 }

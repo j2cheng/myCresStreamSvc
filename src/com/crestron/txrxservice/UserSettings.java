@@ -229,10 +229,6 @@ public class UserSettings
 	boolean airMediaChromeExtension;
 	boolean airMediaWifiEnabled;
 	private String airMediaOsdImage;
-	private boolean airMediaIpAddressPrompt;
-	private boolean airMediaDomainNamePrompt;
-	private boolean airMediaHostNamePrompt;
-	private boolean airMediaCustomPrompt;
 	private boolean airMediaDisplayConnectionOptionEnable;
 	private int airMediaDisplayConnectionOption;
 	private String airMediaCustomPromptString;
@@ -377,10 +373,6 @@ public class UserSettings
 		airMediaDisplayScreen = 0;
 		airMediaWindowFlag	= WindowManager.LayoutParams.TYPE_SYSTEM_OVERLAY;
 		airMediaAdaptorSelect = 0;
-		airMediaIpAddressPrompt = true;
-		airMediaDomainNamePrompt = false;
-		airMediaHostNamePrompt = false;
-		airMediaCustomPrompt = false;
 		airMediaDisplayConnectionOptionEnable = true;
 		airMediaDisplayConnectionOption = CresStreamCtrl.AirMediaDisplayConnectionOption.Ip;
 		airMediaCustomPromptString = "";
@@ -1316,38 +1308,6 @@ public class UserSettings
 
 	public void setAirMediaOsdImage(String airMediaOsdImage) {
 		this.airMediaOsdImage = airMediaOsdImage;
-	}
-
-	public boolean getAirMediaIpAddressPrompt() {
-		return airMediaIpAddressPrompt;
-	}
-
-	public void setAirMediaIpAddressPrompt(boolean airMediaIpAddressPrompt) {
-		this.airMediaIpAddressPrompt = airMediaIpAddressPrompt;
-	}
-
-	public boolean getAirMediaDomainNamePrompt() {
-		return airMediaDomainNamePrompt;
-	}
-
-	public void setAirMediaDomainNamePrompt(boolean airMediaDomainNamePrompt) {
-		this.airMediaDomainNamePrompt = airMediaDomainNamePrompt;
-	}
-
-	public boolean getAirMediaHostNamePrompt() {
-		return airMediaHostNamePrompt;
-	}
-
-	public void setAirMediaHostNamePrompt(boolean airMediaHostNamePrompt) {
-		this.airMediaHostNamePrompt = airMediaHostNamePrompt;
-	}
-	
-	public boolean getAirMediaCustomPrompt() {
-		return airMediaCustomPrompt;
-	}
-
-	public void setAirMediaCustomPrompt(boolean airMediaCustomPrompt) {
-		this.airMediaCustomPrompt = airMediaCustomPrompt;
 	}
 
 	public boolean getAirMediaDisplayConnectionOptionEnable() {

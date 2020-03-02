@@ -11,11 +11,16 @@ import java.util.concurrent.ConcurrentHashMap;
 import java.util.concurrent.atomic.AtomicBoolean;
 
 import com.crestron.airmedia.canvas.channels.ipc.CanvasPlatformType;
+import com.crestron.airmedia.canvas.channels.ipc.CanvasResponse;
 import com.crestron.airmedia.canvas.channels.ipc.CanvasSessionState;
+import com.crestron.airmedia.canvas.channels.ipc.CanvasSourceAction;
 import com.crestron.airmedia.canvas.channels.ipc.CanvasSourceSession;
+import com.crestron.airmedia.canvas.channels.ipc.CanvasSourceTransaction;
 import com.crestron.airmedia.canvas.channels.ipc.CanvasSourceType;
 import com.crestron.airmedia.receiver.m360.models.AirMediaSession;
 import com.crestron.airmedia.utilities.Common;
+import com.crestron.txrxservice.canvas.CanvasCrestore.SessionEvent;
+import com.crestron.txrxservice.canvas.CanvasCrestore.SessionEventMapEntry;
 
 import android.util.Log;
 
@@ -141,6 +146,20 @@ public class SessionManager
         return session;
     }
     
+    public Session findSession(String sessionId)
+    {
+    	Session session = null;
+        synchronized (lock_) {
+            for (Session entry : sessions_) {
+            	if (entry.sessionId().equalsIgnoreCase(sessionId)) {
+            		session = entry;
+            		break;
+            	}
+            }
+        }
+        return session;
+    }
+    
     public List<String> getSessionIds()
     {
     	List<String> idList = new LinkedList<String>();
@@ -150,6 +169,19 @@ public class SessionManager
             }
     	}
     	return idList;
+    }
+    
+    public void stopAllSessions(Originator origin)
+    {
+    	CanvasCrestore crestore = mCanvas.getCrestore();
+    	SessionEvent e = crestore.new SessionEvent(UUID.randomUUID().toString());
+    	synchronized (lock_) { 
+            for (Session session : sessions_) {
+    			e.add(session.sessionId(), crestore.new SessionEventMapEntry("stop", session));
+            }
+    	}
+    	if (e.sessionEventMap.size() > 0)
+    		crestore.doSessionEvent(e, origin, null);
     }
     
     public void logSessionStates(String tag)
