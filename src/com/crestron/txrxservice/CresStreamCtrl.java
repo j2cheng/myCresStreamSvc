@@ -866,26 +866,34 @@ public class CresStreamCtrl extends Service {
     			}    				
     		}
 
-			// Product table 
+    		// Check if in Teams Video mode and disable RGB 888 (anomalies OMAP otherwise)
+    		if ("rigel".compareTo(MiscUtils.readStringFromDisk("/sdcard/ROMDISK/User/systemmode")) == 0)
+    		{
+	    		// We are in teams video mode disable RGB888 mode
+	    		setRgb888Mode(false);
+	    		Log.i(TAG, "Disabling RGB888 because we are in Teams video mode");
+    		}
+
+    		// Product table
     		switch (CrestronProductName.fromInteger(nativeGetProductTypeEnum()))
     		{
 	    		case DGE100:
 				case DGE200:
 				case TS1542:
 	    		case TS1542_C:
-	    		case TXRX:
 	    		{
 					// Bug 154293: RGB888 on OMAP cannot support simultaneous video, BW limitation
 	    			isRGB888HDMIVideoSupported = false;
 	    			break;
 	    		}
+	    		case TXRX:
 	    		case DMC_STR:
 	    		case X60:
 	    		case Mercury:
 	    		case DMPS_4K_STR:
 	    		case AM300:
 	    		case AM200:
-                case X70:
+	    		case X70:
 	    		case Unknown:
 	    		{
                     isRGB888HDMIVideoSupported = userSettings.getRgb888Enabled();
