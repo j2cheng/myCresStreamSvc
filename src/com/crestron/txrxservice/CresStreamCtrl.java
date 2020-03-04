@@ -873,6 +873,11 @@ public class CresStreamCtrl extends Service {
                 setRgb888Mode(false);
                 Log.i(TAG, "Disabling RGB888 because we are in Teams video mode");
             }
+            else if (CrestronProductName.fromInteger(nativeGetProductTypeEnum()) == CrestronProductName.Mercury)
+            {
+                setRgb888Mode(true);
+                Log.i(TAG, "Enabling RGB888 because we are NOT in Teams video mode");
+            }
 
             // Product table
             switch (CrestronProductName.fromInteger(nativeGetProductTypeEnum()))
