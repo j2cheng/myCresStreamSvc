@@ -279,7 +279,7 @@ public class AirMediaSplashtop
     	mStreamCtl.setHostName("");
     	mStreamCtl.setDomainName("");
     	Common.Logging.i(TAG, "HostName="+mStreamCtl.hostName+"   DomainName="+mStreamCtl.domainName);
-    	mStreamCtl.sendAirMediaConnectionAddress();
+    	mStreamCtl.sendAirMediaConnectionInfo();
     	Common.Logging.i(TAG, "IP address from CresStreamSvc: "+mStreamCtl.getAirMediaConnectionIpAddress());
     	set_pending_adapter_ip_address(mStreamCtl.getAirMediaConnectionIpAddress());
     	set_adapter_ip_address();

@@ -138,7 +138,7 @@ public class CommandParser {
         AIRMEDIA_WINDOW_Y_OFFSET,
         AIRMEDIA_WINDOW_WIDTH,
         AIRMEDIA_WINDOW_HEIGHT,
-        AIRMEDIA_ADAPTOR_SELECT,
+        AIRMEDIA_ADAPTERS,
         AIRMEDIA_CONNECTION_ADDRESS,
         AIRMEDIA_RESTART,
         AIRMEDIA_PROJECTION_LOCK,
@@ -203,6 +203,7 @@ public class CommandParser {
         USE_GSTREAMER,
         NEW_SINK,
         NEW_IPADDR,
+        WIFI_IPADDR,
         FDEBUG_JNI,
         RESET_ALL_WINDOWS,
         WBSLOGLEVEL,
@@ -753,8 +754,8 @@ public class CommandParser {
             case AIRMEDIA_PROCESS_DEBUG_MESSAGE:
             	cmd = new AirMediaProcessDebugMessageCommand(ctrl, arg);
             	break;
-            case AIRMEDIA_ADAPTOR_SELECT:
-            	cmd = new AirMediaAdaptorSelectCommand(ctrl, arg, idx);            	
+            case AIRMEDIA_ADAPTERS:
+            	cmd = new AirMediaAdaptersCommand(ctrl, arg);            	
             	break;
             case AIRMEDIA_CONNECTION_ADDRESS:
             	cmd = new AirMediaConnectionAddressCommand(ctrl, arg, idx);
@@ -841,6 +842,9 @@ public class CommandParser {
             	break;
             case AUXILIARY_IP_ADDRESS:
             	cmd = new SetAuxiliaryIpAddressCommand(ctrl, arg);
+            	break;
+            case WIFI_IPADDR:
+            	cmd = new SetWifiIpAddressCommand(ctrl, arg);
             	break;
             case FDEBUG_JNI:            	
             	cmd = new FIELDDEBUGJNICommand(ctrl, arg, idx);

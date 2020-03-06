@@ -2,6 +2,8 @@ package com.crestron.txrxservice;
 
 import java.lang.reflect.Array;
 import java.lang.reflect.Field;
+import java.util.Set;
+import java.util.HashSet;
 
 import com.crestron.airmedia.receiver.m360.ipc.AirMediaSize;
 import com.crestron.txrxservice.CresStreamCtrl.StreamState;
@@ -208,6 +210,7 @@ public class UserSettings
 	// Ethernet
 	private String deviceIp;
 	private String auxiliaryIp;
+	private String wifiIp;
 	private int multicastTTL;
 	
 	// AirMedia
@@ -243,7 +246,7 @@ public class UserSettings
 	private boolean airMediaDisplayLoginCodeNew;
 	private int airMediaDisplayScreen;
 	private int airMediaWindowFlag;
-	private int airMediaAdaptorSelect;
+	private Set<String> airMediaAdapters = new HashSet<String>(20);
 	private boolean airMediaMiracastEnable;
 	private boolean airMediaMiracastWifiDirectMode;
 	private boolean airMediaMiracastPreferWifiDirect;
@@ -292,6 +295,7 @@ public class UserSettings
 //		MiscUtils.getDeviceIpAddr();
 		deviceIp 			= "0.0.0.0";//MiscUtils.matcher.group();
 		auxiliaryIp			= "0.0.0.0";
+		wifiIp              = "0.0.0.0";
 		versionNum 			= CresStreamCtrl.VersionNumber;
 		rtspPort 			= initIntArray(554);		
 		tsPort 				= initIntArray(4570);		
@@ -372,7 +376,7 @@ public class UserSettings
 		airMediaDisplayLoginCodeNew = true;
 		airMediaDisplayScreen = 0;
 		airMediaWindowFlag	= WindowManager.LayoutParams.TYPE_SYSTEM_OVERLAY;
-		airMediaAdaptorSelect = 0;
+		airMediaAdapters.add("eth0");
 		airMediaDisplayConnectionOptionEnable = true;
 		airMediaDisplayConnectionOption = CresStreamCtrl.AirMediaDisplayConnectionOption.Ip;
 		airMediaCustomPromptString = "";
@@ -566,6 +570,14 @@ public class UserSettings
 		this.auxiliaryIp = auxiliaryIp;
 	}
 
+	public String getWifiIp() {
+		return wifiIp;
+	}
+	
+	public void setWifiIp(String wifiIp) {
+		this.wifiIp = wifiIp;
+	}
+	
 	public int getMulticastTTL() {
 		return multicastTTL;
 	}
@@ -1421,15 +1433,15 @@ public class UserSettings
 	public int getAirMediaWindowFlag() {
 		return airMediaWindowFlag;
 	}
+
+	public Set<String> getAirMediaAdapters() {
+		return airMediaAdapters;
+	}
+
+	public void setAirMediaAdapters(Set<String> adapters) {
+		this.airMediaAdapters = adapters;
+	}
 	
-	public int getAirMediaAdaptorSelect() {
-		return airMediaAdaptorSelect;
-	}
-
-	public void setAirMediaAdaptorSelect(int airMediaAdaptorSelect) {
-		this.airMediaAdaptorSelect = airMediaAdaptorSelect;
-	}
-
 	public boolean getAirMediaMiracastEnable() {
 		return airMediaMiracastEnable;
 	}

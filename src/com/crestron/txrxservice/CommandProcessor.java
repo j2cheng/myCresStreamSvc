@@ -2289,15 +2289,15 @@ class AirMediaClearCacheCommand extends CrestronCommand {
 	// No feedback
 }
 
-class AirMediaAdaptorSelectCommand extends CrestronCommand {
-	public AirMediaAdaptorSelectCommand(CresStreamCtrl ctrl, String arg, int sessId) {
-		super(ctrl, arg, sessId);
+class AirMediaAdaptersCommand extends CrestronCommand {
+	public AirMediaAdaptersCommand(CresStreamCtrl ctrl, String arg) {
+		super(ctrl, arg);
 	}	
 	public void execute() {
-		ctrl.setAirMediaAdaptorSelect(VALIDATE_INT(msg));
+		ctrl.setAirMediaAdapters(msg);
 	}
 	public String getFeedbackMsg() {
-		return Integer.toString(ctrl.userSettings.getAirMediaAdaptorSelect());
+		return ctrl.userSettings.getAirMediaAdapters().toString().replaceAll("\\s+", "");
 	}
 }
 
@@ -2549,7 +2549,7 @@ class UseNewIpAddrCommand extends CrestronCommand {
 			Log.i(TAG, "UseNewIpAddrCommand: set device primary ip address="+msg);
 			ctrl.userSettings.setDeviceIp(msg);
 			ctrl.stopOnIpAddrChange();			
-			if (ctrl.userSettings.getAirMediaAdaptorSelect() == 0)
+			if (ctrl.userSettings.getAirMediaAdapters().contains("eth0"))
 				ctrl.updateAirMediaIpInformation();
 		}
 	}
@@ -2567,7 +2567,25 @@ class SetAuxiliaryIpAddressCommand extends CrestronCommand {
 		{
 			Log.i(TAG, "SetAuxiliaryIpAddressCommand: set device auxiliary ip address="+msg);
 			ctrl.userSettings.setAuxiliaryIp(msg);
-			if (ctrl.userSettings.getAirMediaAdaptorSelect() == 1)
+			if (ctrl.userSettings.getAirMediaAdapters().contains("eth1"))
+				ctrl.updateAirMediaIpInformation();
+		}
+	}
+}
+
+class SetWifiIpAddressCommand extends CrestronCommand {
+
+	public SetWifiIpAddressCommand(CresStreamCtrl ctrl, String arg) {
+		super(ctrl, arg);
+	}
+
+	@Override
+	public void execute() {
+		if(!msg.equals(ctrl.userSettings.getWifiIp()))
+		{
+			Log.i(TAG, "SetWifiIpAddressCommand: set device wifi ip address="+msg);
+			ctrl.userSettings.setWifiIp(msg);
+			if (ctrl.userSettings.getAirMediaAdapters().contains("wlan0"))
 				ctrl.updateAirMediaIpInformation();
 		}
 	}

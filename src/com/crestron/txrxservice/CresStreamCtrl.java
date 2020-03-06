@@ -1,8 +1,11 @@
 package com.crestron.txrxservice;
 
 import java.util.HashMap;
+import java.util.HashSet;
 import java.util.Map;
 import java.util.Scanner;
+import java.util.Set;
+import java.util.StringTokenizer;
 import java.util.Timer;
 import java.util.TimerTask;
 import java.io.BufferedReader;
@@ -104,7 +107,7 @@ public class CresStreamCtrl extends Service {
     CameraStreaming cam_streaming;
     CameraPreview cam_preview;
     GstreamOut gstStreamOut;
-    StringTokenizer tokenizer;
+    com.crestron.txrxservice.StringTokenizer tokenizer;
     public static int VersionNumber = 2;
     
     GstreamIn streamPlay = null;
@@ -189,6 +192,8 @@ public class CresStreamCtrl extends Service {
     private int mPreviousValidHdmiInputResolution = 0;
     private int mPreviousAudioInputSampleRate = 0;
     private Resolution mPreviousHdmiOutResolution = new Resolution(0, 0);
+    private String mPreviousConnectionInfo = "";
+    private String mPreviousWirelessConnectionInfo = "";
     public CountDownLatch streamingReadyLatch = new CountDownLatch(1);
     public CountDownLatch audioReadyLatch = new CountDownLatch(1);
     private FileObserver audioReadyFileObserver;
@@ -825,7 +830,7 @@ public class CresStreamCtrl extends Service {
                     ((serviceMode == ServiceMode.Slave)?"Slave":"Master") + " =====================");
 
             //Start service connection
-            tokenizer = new StringTokenizer();
+            tokenizer = new com.crestron.txrxservice.StringTokenizer();
             sockTask = new TCPInterface(this);
             sockTask.execute(new Void[0]);
 
@@ -851,7 +856,7 @@ public class CresStreamCtrl extends Service {
                         userSettings.setMode(DeviceMode.STREAM_IN.ordinal(), sessionId);
                         userSettings.setUserRequestedStreamState(StreamState.STOPPED, sessionId);
                     }
-                    setAirMediaAdaptorSelect(0);
+                    setAirMediaAdapters("eth0");
                 }
             }
             else
@@ -862,7 +867,7 @@ public class CresStreamCtrl extends Service {
                     {
                         userSettings.setMode(DeviceMode.STREAM_IN.ordinal(), sessionId);
                     }
-                    setAirMediaAdaptorSelect(0);
+                    setAirMediaAdapters("eth0");
                 }
             }
 
@@ -4617,7 +4622,7 @@ public class CresStreamCtrl extends Service {
     {
         synchronized (mAirMediaLock) {
             userSettings.setAirMediaDisplayConnectionOptionEnable(enable);
-            sendAirMediaConnectionAddress();
+            sendAirMediaConnectionInfo();
         }
     }
     
@@ -4625,7 +4630,7 @@ public class CresStreamCtrl extends Service {
     {
         synchronized (mAirMediaLock) {
             userSettings.setAirMediaDisplayConnectionOption(optVal);
-            sendAirMediaConnectionAddress();
+            sendAirMediaConnectionInfo();
         }
     }
     
@@ -4634,7 +4639,7 @@ public class CresStreamCtrl extends Service {
         synchronized (mAirMediaLock) {
             userSettings.setAirMediaCustomPromptString(promptString);
             if (userSettings.getAirMediaDisplayConnectionOption() == AirMediaDisplayConnectionOption.Custom)
-                sendAirMediaConnectionAddress();
+            	sendAirMediaConnectionInfo();
         }
     }
     
@@ -4642,7 +4647,7 @@ public class CresStreamCtrl extends Service {
     {
         synchronized (mAirMediaLock) {
             userSettings.setAirMediaDisplayWirelessConnectionOptionEnable(enable);
-            sendAirMediaWirelessConnectionAddress();
+            sendAirMediaConnectionInfo();
         }
     }
     
@@ -4650,7 +4655,7 @@ public class CresStreamCtrl extends Service {
     {
         synchronized (mAirMediaLock) {
             userSettings.setAirMediaDisplayWirelessConnectionOption(optVal);
-            sendAirMediaWirelessConnectionAddress();
+            sendAirMediaConnectionInfo();
         }
     }
     
@@ -4778,7 +4783,7 @@ public class CresStreamCtrl extends Service {
     public void setAirMediaSecureLandingPageEnabled(boolean enable)
     {
         userSettings.setAirMediaSecureLandingPageEnabled(enable);
-        sendAirMediaConnectionAddress();
+        sendAirMediaConnectionInfo();
     }
     
     public void setAirMediaChromeExtension(boolean enable)
@@ -4880,14 +4885,28 @@ public class CresStreamCtrl extends Service {
             mAirMedia.setAdapter(getAirMediaConnectionIpAddress());
         }
 
-        sendAirMediaConnectionAddress();
+        sendAirMediaConnectionInfo();
     }
     
-    public void setAirMediaAdaptorSelect(int select)
+    public void setAirMediaAdapters(String adapterListString)
     {
-        if (select != userSettings.getAirMediaAdaptorSelect())
+    	Set<String> adapters = new HashSet<String>(20);
+    	adapters.clear();
+        Log.i(TAG,"setAirMediaAdapters: "+adapterListString);
+		if (!adapterListString.contains("Disabled"))
+		{
+			java.util.StringTokenizer st = new StringTokenizer(adapterListString, ",");
+			while (st.hasMoreTokens())
+				adapters.add(st.nextToken());
+	        Log.i(TAG,"setAirMediaAdapters: incoming set="+adapters.toString());
+		} else {
+	        Log.i(TAG,"setAirMediaAdapters: set has disabled");
+		}
+        Log.i(TAG,"setAirMediaAdapters: previous set = "+userSettings.getAirMediaAdapters().toString());
+		if (!adapters.equals(userSettings.getAirMediaAdapters()))
         {
-            userSettings.setAirMediaAdaptorSelect(select);
+	        Log.i(TAG,"setAirMediaAdapters: setting adapters to updated set");
+            userSettings.setAirMediaAdapters(adapters);
             if (mAirMedia != null)
             {
                 Log.i(TAG,"*************** setAirMediaAdaptorSelect -- addr="+getAirMediaConnectionIpAddress()+"   *********");
@@ -4895,7 +4914,7 @@ public class CresStreamCtrl extends Service {
             }
 
             // Update connection address as well
-            sendAirMediaConnectionAddress();
+            sendAirMediaConnectionInfo();
         }
     }
     
@@ -4908,34 +4927,76 @@ public class CresStreamCtrl extends Service {
             mAirMedia.setAdapter(getAirMediaConnectionIpAddress());
         }
 
-        sendAirMediaConnectionAddress();
+        sendAirMediaConnectionInfo();
     }
     
     public String getAirMediaInterface()
     {	
-        return InterfaceNames[userSettings.getAirMediaAdaptorSelect()];
+    	Set<String> adapters = userSettings.getAirMediaAdapters();
+    	if (adapters.isEmpty())
+    		return null;
+    	if (adapters.size() == 1)
+    	{
+    		if (adapters.contains("eth0"))
+    			return "eth0";
+    		else if (adapters.contains("eth1"))
+    			return "eth1";
+    		else if (adapters.contains("wlan0"))
+    			return "wlan0";
+    		else if (adapters.contains("Disabled"))
+    			return null;
+    	}
+    	return "all";
     }
 
+    public void sendAirMediaConnectionInfo()
+    {
+    	sendAirMediaConnectionAddress();
+    	sendAirMediaWirelessConnectionAddress();
+    }
     
     public void sendAirMediaConnectionAddress()
     {
         String connectionInfo = getAirMediaConnectionAddress();
-        sockTask.SendDataToAllClients(MiscUtils.stringFormat("AIRMEDIA_CONNECTION_ADDRESS=%s", connectionInfo));
-        if (mCanvas != null)
-            mCanvas.getCrestore().setCurrentConnectionInfo(connectionInfo);
+        if (!mPreviousConnectionInfo.equals(connectionInfo))
+        {
+        	sockTask.SendDataToAllClients(MiscUtils.stringFormat("AIRMEDIA_CONNECTION_ADDRESS=%s", connectionInfo));
+        	if (mCanvas != null)
+        		mCanvas.getCrestore().setCurrentConnectionInfo(connectionInfo);
+        	mPreviousConnectionInfo = connectionInfo;
+        }
     }
     
     public void sendAirMediaWirelessConnectionAddress()
     {
         String connectionInfo = getAirMediaWirelessConnectionAddress();
-        sockTask.SendDataToAllClients(MiscUtils.stringFormat("AIRMEDIA_WIRELESS_CONNECTION_ADDRESS=%s", getAirMediaWirelessConnectionAddress()));
-        if (mCanvas != null)
-            mCanvas.getCrestore().setCurrentWirelessConnectionInfo(connectionInfo);
+        Log.i(TAG, "sendAirMediaWirelessConnectionAddress(): connectionInfo="+connectionInfo);
+        if (!mPreviousWirelessConnectionInfo.equals(connectionInfo))
+        {
+        	sockTask.SendDataToAllClients(MiscUtils.stringFormat("AIRMEDIA_WIRELESS_CONNECTION_ADDRESS=%s", getAirMediaWirelessConnectionAddress()));
+        	if (mCanvas != null)
+        		mCanvas.getCrestore().setCurrentWirelessConnectionInfo(connectionInfo);
+        	mPreviousWirelessConnectionInfo = connectionInfo;
+        }
     }
     
-    private String getAirMediaConnectionAddressWhenNone()
+    private boolean oneOfAdaptersSelected(String adapterListString)
     {
-        if (userSettings.getAirMediaAdaptorSelect() < 0)
+		if (!adapterListString.contains("Disabled"))
+		{
+			java.util.StringTokenizer st = new StringTokenizer(adapterListString, ",");
+			while (st.hasMoreTokens())
+			{
+				if (userSettings.getAirMediaAdapters().contains(st.nextToken()))
+					return true;
+			}
+		}
+		return false;
+    }
+    
+    private String getAirMediaConnectionAddressWhenNone(String adapterListString)
+    {
+        if (oneOfAdaptersSelected(adapterListString))
         {
             /* Disabled */
             return "";
@@ -4960,24 +5021,24 @@ public class CresStreamCtrl extends Service {
         }
         StringBuilder url = new StringBuilder(512);
         url.append(userSettings.getAirMediaSecureLandingPageEnabled() ? "https://" : "http://");
-        String ipAddr = getAirMediaConnectionIpAddress();
+        String ipAddr = getAirMediaConnectionIpAddress("eth0,eth1");
         switch (userSettings.getAirMediaDisplayConnectionOption())
         {
         case AirMediaDisplayConnectionOption.Ip:
             if (ipAddr.equals("None"))
-                return getAirMediaConnectionAddressWhenNone();
+                return getAirMediaConnectionAddressWhenNone("eth0,eth1");
             url.append(ipAddr);
             break;
         case AirMediaDisplayConnectionOption.Host:
             if (ipAddr.equals("None"))
-                return getAirMediaConnectionAddressWhenNone();
+                return getAirMediaConnectionAddressWhenNone("eth0,eth1");
             setHostName("");
             if (hostName == null) return "";
             url.append(hostName);
             break;
         case AirMediaDisplayConnectionOption.HostDomain:
             if (ipAddr.equals("None"))
-                return getAirMediaConnectionAddressWhenNone();
+                return getAirMediaConnectionAddressWhenNone("eth0,eth1");
             setHostName("");
             setDomainName("");
             if (hostName == null) return "";
@@ -5013,24 +5074,24 @@ public class CresStreamCtrl extends Service {
         }
         StringBuilder url = new StringBuilder(512);
         url.append(userSettings.getAirMediaSecureLandingPageEnabled() ? "https://" : "http://");
-        String ipAddr = getAirMediaConnectionIpAddress();
+        String ipAddr = getAirMediaConnectionIpAddress("wlan0");
         switch (userSettings.getAirMediaDisplayWirelessConnectionOption())
         {
         case AirMediaDisplayConnectionOption.Ip:
             if (ipAddr.equals("None"))
-                return getAirMediaConnectionAddressWhenNone();
+                return getAirMediaConnectionAddressWhenNone("wlan0");
             url.append(ipAddr);
             break;
         case AirMediaDisplayConnectionOption.Host:
             if (ipAddr.equals("None"))
-                return getAirMediaConnectionAddressWhenNone();
+                return getAirMediaConnectionAddressWhenNone("wlan0");
             setHostName("");
             if (hostName == null) return "";
             url.append(hostName);
             break;
         case AirMediaDisplayConnectionOption.HostDomain:
             if (ipAddr.equals("None"))
-                return getAirMediaConnectionAddressWhenNone();
+                return getAirMediaConnectionAddressWhenNone("wlan0");
             setHostName("");
             setDomainName("");
             if (hostName == null) return "";
@@ -5046,18 +5107,24 @@ public class CresStreamCtrl extends Service {
             return "";
         }
  
-        Log.i(TAG, "getAirMediaConnectionAddress() returning "+url.toString());
+        Log.i(TAG, "getAirMediaWirelessConnectionAddress() returning "+url.toString());
         return url.toString();    	
     }
     
     public String getAirMediaConnectionIpAddress()
     {
+    	return getAirMediaConnectionIpAddress("eth0,eth1,wlan0");
+    }
+    
+    public String getAirMediaConnectionIpAddress(String adaptersSelectionString)
+    {
+    	Set<String> adapters = userSettings.getAirMediaAdapters();
         String ipaddr=null;
-        if (!userSettings.getAirMediaEnable())
+        if (!userSettings.getAirMediaEnable() || adapters.contains("Disabled"))
         {
             return "None";
         }
-        if (userSettings.getAirMediaAdaptorSelect() == 0)
+        if (adapters.contains("eth0") && adaptersSelectionString.contains("eth0"))
         {
             ipaddr = userSettings.getDeviceIp();
             if (ipaddr.equals("0.0.0.0"))
@@ -5065,7 +5132,7 @@ public class CresStreamCtrl extends Service {
             else
                 return ipaddr;
         }
-        else if (userSettings.getAirMediaAdaptorSelect() == 1)
+        else if (adapters.contains("eth1") && adaptersSelectionString.contains("eth1"))
         {
             ipaddr = userSettings.getAuxiliaryIp();
             if (ipaddr.equals("0.0.0.0"))
@@ -5073,18 +5140,21 @@ public class CresStreamCtrl extends Service {
             else
                 return ipaddr;
         }
-        else if (userSettings.getAirMediaAdaptorSelect() < 0)
+        else if (adapters.contains("wlan0") && adaptersSelectionString.contains("wlan0"))
         {
-            return "None";
+            ipaddr = userSettings.getWifiIp();
+            if (ipaddr.equals("0.0.0.0"))
+                return "None";
+            else
+                return ipaddr;
         }
         else
         {
-            Log.w(TAG, "Invalid adaptor select value of " + userSettings.getAirMediaAdaptorSelect());
-            return userSettings.getDeviceIp();
+            Log.w(TAG, "Invalid adapters set: " + adapters.toString());
+            return "None";
         }
     }
 
-    
     public String getAirMediaVersion()
     {
         String versionName = "";
