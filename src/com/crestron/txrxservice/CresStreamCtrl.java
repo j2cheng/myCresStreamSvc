@@ -4973,7 +4973,7 @@ public class CresStreamCtrl extends Service {
         Log.i(TAG, "sendAirMediaWirelessConnectionAddress(): connectionInfo="+connectionInfo);
         if (!mPreviousWirelessConnectionInfo.equals(connectionInfo))
         {
-        	sockTask.SendDataToAllClients(MiscUtils.stringFormat("AIRMEDIA_WIRELESS_CONNECTION_ADDRESS=%s", getAirMediaWirelessConnectionAddress()));
+        	sockTask.SendDataToAllClients(MiscUtils.stringFormat("AIRMEDIA_WIRELESS_CONNECTION_ADDRESS=%s", connectionInfo));
         	if (mCanvas != null)
         		mCanvas.getCrestore().setCurrentWirelessConnectionInfo(connectionInfo);
         	mPreviousWirelessConnectionInfo = connectionInfo;
@@ -5150,7 +5150,6 @@ public class CresStreamCtrl extends Service {
         }
         else
         {
-            Log.w(TAG, "Invalid adapters set: " + adapters.toString());
             return "None";
         }
     }
