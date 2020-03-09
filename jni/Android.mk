@@ -4,7 +4,7 @@ LOCAL_PATH := $(call my-dir)
 # /system/lib
 ########################
 include $(CLEAR_VARS)
-ifeq ($(TARGET_PRODUCT),$(filter $(TARGET_PRODUCT),msm8953_64))
+ifeq ($(TARGET_PRODUCT),$(filter $(TARGET_PRODUCT),msm8953_64 rk3399_mid))
 LOCAL_MULTILIB := 32
 LOCAL_MODULE_PATH  := $(TARGET_OUT_VENDOR)/lib/
 endif
@@ -16,7 +16,7 @@ LOCAL_MODULE_SUFFIX := .so
 include $(BUILD_PREBUILT)
 
 include $(CLEAR_VARS)
-ifeq ($(TARGET_PRODUCT),$(filter $(TARGET_PRODUCT),msm8953_64))
+ifeq ($(TARGET_PRODUCT),$(filter $(TARGET_PRODUCT),msm8953_64 rk3399_mid))
 LOCAL_MULTILIB := 32
 LOCAL_MODULE_PATH  := $(TARGET_OUT_VENDOR)/lib/
 
@@ -150,7 +150,7 @@ ifeq ($(shell test $(PLATFORM_SDK_VERSION) -lt 23 && echo PreMarshmallow),PreMar
 	LOCAL_CFLAGS += -I$(STL_INC_PATH)
 endif
 
-ifeq ($(TARGET_PRODUCT),$(filter $(TARGET_PRODUCT),yushan_one msm8953_64 ))
+ifeq ($(TARGET_PRODUCT),$(filter $(TARGET_PRODUCT),yushan_one msm8953_64 rk3399_mid ))
 LOCAL_CFLAGS += -DBIONIC_HAS_STPCPY
 endif
 
@@ -180,7 +180,7 @@ include $(BUILD_SHARED_LIBRARY)
 
 ### library for CresStreamCtrl jni functions
 include $(CLEAR_VARS)
-ifeq ($(TARGET_PRODUCT),$(filter $(TARGET_PRODUCT),msm8953_64))
+ifeq ($(TARGET_PRODUCT),$(filter $(TARGET_PRODUCT),msm8953_64 rk3399_mid))
 LOCAL_MULTILIB := 32
 LOCAL_MODULE_PATH  := $(TARGET_OUT_VENDOR)/lib/
 endif
@@ -232,7 +232,7 @@ LOCAL_CFLAGS +=\
 endif
 # AM Logic #
 # For now just use the txrx code.  Move this out if needed
-ifeq ($(TARGET_PRODUCT),$(filter $(TARGET_PRODUCT),yushan_one msm8953_64))
+ifeq ($(TARGET_PRODUCT),$(filter $(TARGET_PRODUCT),yushan_one msm8953_64 rk3399_mid))
 LOCAL_CFLAGS +=\
 	-I$(CSIO_INCLUDE_ROOT)/txrx 
 endif	
