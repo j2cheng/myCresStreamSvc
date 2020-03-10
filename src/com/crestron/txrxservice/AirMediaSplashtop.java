@@ -2111,10 +2111,7 @@ public class AirMediaSplashtop
 		{
 			AirMediaSessionInfo info = session.info();
 			this.SessionType = getSessionType(session);
-			if (mCanvas != null)
-				this.IsClientActive = Boolean.valueOf(session.videoState() == AirMediaSessionStreamingState.Playing);
-			else
-				this.IsClientActive = Boolean.valueOf(session == getActiveSession());
+			this.IsClientActive = Boolean.valueOf(session.videoState() == AirMediaSessionStreamingState.Playing);
 			String platform = info.platform.toString();
 			if (!platform.equals("") && !platform.equals("Undefined"))
 			{
@@ -2228,9 +2225,7 @@ public class AirMediaSplashtop
 	private void sendClientData(int client, Client clientData)
 	{
 		DeviceObject dev = new DeviceObject();
-		if (mCanvas != null) {
-			dev.Device.AirMedia.ClientData.updateStatusAndTotalUsers();
-		}
+		dev.Device.AirMedia.ClientData.updateStatusAndTotalUsers();
 		if (clientData != null)
 		{
 			dev.Device.AirMedia.ClientData.ConnectedClients = new LinkedHashMap<String, Client>();
@@ -2773,7 +2768,7 @@ public class AirMediaSplashtop
                     // Add code here to add session to "table" of sessions and take any action needed
                     registerSessionEventHandlers(session);
                     addSession(session);
-                    if ((mCanvas ==null) && (getSessionVideoState(session) == AirMediaSessionStreamingState.Playing))
+                    if ((mCanvas==null) && (getSessionVideoState(session) == AirMediaSessionStreamingState.Playing))
                     {
                     	addActiveSession(session);
                     }
