@@ -803,12 +803,15 @@ void csio_jni_stop(int streamId)
 
 		if (result == ETIMEDOUT) {
 			CSIO_LOG(eLogLevel_error, "Stop timed out after %d seconds, streamId = %d\n", timeout_sec, streamId);
+			csio_SendVideoPlayingStatusMessage(streamId, STREAMSTATE_STOPPED);
 			ResetStartedPlay(streamId);
 			csio_jni_recoverDucati();
-		} else if (result != 0)
+		} else if (result != 0) {
 			CSIO_LOG(eLogLevel_error,
 					 "Unknown error occurred while waiting for stop to complete, error = %d, streamId = %d\n",
 					 result, streamId);
+			csio_SendVideoPlayingStatusMessage(streamId, STREAMSTATE_STOPPED);
+		}
 	}
 }
 
@@ -4018,6 +4021,23 @@ void csio_jni_recoverTxrxService()
     env->CallVoidMethod(CresStreamOutDataDB->app, recoverTxrxService);
     if (env->ExceptionCheck ()) {
         CSIO_LOG(eLogLevel_error, "Failed to call Java method 'recoverTxrxService'");
+        env->ExceptionClear ();
+    }
+}
+
+void csio_jni_recoverMediaServer()
+{
+    JNIEnv *env = get_jni_env ();
+    jmethodID recoverMediaServer = env->GetMethodID((jclass)gStreamIn_javaClass_id, "recoverMediaServer", "()V");
+    if (recoverMediaServer == NULL)
+    {
+        CSIO_LOG(eLogLevel_error, "Failed to find Java method 'recoverMediaServer' in GStreamIn class");
+    	return;
+    }
+
+    env->CallVoidMethod(CresDataDB->app, recoverMediaServer);
+    if (env->ExceptionCheck ()) {
+        CSIO_LOG(eLogLevel_error, "Failed to call Java method 'recoverMediaServer'");
         env->ExceptionClear ();
     }
 }

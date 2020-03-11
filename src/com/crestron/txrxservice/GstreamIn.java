@@ -330,6 +330,18 @@ public class GstreamIn implements SurfaceHolder.Callback {
     	}
 	}
     
+    public void recoverMediaServer(){
+    	for(int sessionId = 0; sessionId < CresStreamCtrl.NumOfSurfaces; sessionId++)
+    	{
+    		if (streamCtl.userSettings.getMode(sessionId) == DeviceMode.STREAM_IN.ordinal())
+    		{
+    			streamCtl.SendStreamState(StreamState.STOPPED, sessionId);
+    		}
+    	}    		
+
+    	streamCtl.RecoverMediaServer();
+	}
+    
     public void sendMulticastAddress(String multicastAddress, int sessionId){
     	streamCtl.userSettings.setMulticastAddress(multicastAddress, sessionId);
     	streamCtl.sendMulticastIpAddress(multicastAddress, sessionId);
