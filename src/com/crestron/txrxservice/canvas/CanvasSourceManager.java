@@ -15,9 +15,9 @@ import android.util.Log;
 public class CanvasSourceManager {
     private static final String TAG = "CanvasSourceManager";
     
-    CanvasSourceManager(CresStreamCtrl streamCtrl) {
+    CanvasSourceManager(CresStreamCtrl streamCtrl, CanvasCrestore crestore) {
     	mStreamCtl = streamCtrl;
-        
+    	mCresStore = crestore;
     }
     
     ////////////////////////////////////////////////////////////////////////////////////////////////
@@ -26,8 +26,7 @@ public class CanvasSourceManager {
 
     private final Object mLock = new Object();
     private CresStreamCtrl mStreamCtl = null;
-    private CresCanvas mCanvas = mStreamCtl.mCanvas;
-    private CanvasCrestore mCresStore = mCanvas.getCrestore();
+    private CanvasCrestore mCresStore = null;
 
     ////////////////////////////////////////////////////////////////////////////////////////////////
     /// PROPERTIES
@@ -45,7 +44,7 @@ public class CanvasSourceManager {
     /// SERVICE
     ////////////////////////////////////////////////////////////////////////////////////////////////
     
-    ICanvasSourceManager service() { return mService; }
+    public ICanvasSourceManager service() { return mService; }
     
     private final CanvasSourceManagerService mService = new CanvasSourceManagerService();
     

@@ -346,9 +346,14 @@ public class SessionManager
     
     public void doCanvasSessionsUpdate(List<CanvasSourceSession> sessions)
     {
-    	for (CanvasSourceSession s : sessions)
+    	if (sessions.isEmpty())
     	{
-    		Common.Logging.i("doCanvasSessionsUpdate: ", "\nSession "+mCanvas.getCrestore().getGson().toJson(s));
+    		Common.Logging.i(TAG, "doSessionsUpdate: empty sessions list");
+    	} else {
+    		for (CanvasSourceSession s : sessions)
+    		{
+    			Common.Logging.i("doCanvasSessionsUpdate: ", "\nSession "+mCanvas.getCrestore().getGson().toJson(s));
+    		}
     	}
     }
 }

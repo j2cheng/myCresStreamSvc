@@ -24,6 +24,7 @@ public class CresCanvas
 	public com.crestron.txrxservice.CresStreamCtrl mStreamCtl;
     public CanvasCrestore mCrestore = null;
     public SessionManager mSessionMgr = null;
+    public CanvasSourceManager mCanvasSourceManager = null;
 
 	public static final boolean Standalone = true;  // will be removed for integration
 
@@ -43,6 +44,7 @@ public class CresCanvas
 		mStreamCtl = streamCtl;
 		mSessionMgr = new SessionManager(this);
 		mCrestore = new CanvasCrestore(mStreamCtl, this, mSessionMgr);
+		mCanvasSourceManager = new CanvasSourceManager(mStreamCtl, mCrestore);
 		for (int i=0; i <= MAX_HDMI_INPUTS; i++)
 		{
 			prevHdmiResolution[i] = "0x0";
@@ -75,10 +77,28 @@ public class CresCanvas
 		return mCrestore;
 	}
 	
+	public CanvasSourceManager getCanvasSourceManager()
+	{
+		return mCanvasSourceManager;
+	}
+	
 	public void setWindows()
 	{
 		if (CresCanvas.Standalone)
 			mStreamCtl.setCanvasWindows();
+	}
+	
+	public void startAirMediaCanvas()
+	{
+		Common.Logging.i(TAG, "startAirMediaCanvas(): calling constructor");
+		AirMediaCanvas airMediaCanvas = new AirMediaCanvas(mStreamCtl);
+		if (airMediaCanvas.IsAirMediaCanvasUp())
+		{
+			// send an empty list in layout update to indicate no sessions
+			mSessionMgr.doLayoutUpdate();
+			return;
+		} else
+			Common.Logging.i(TAG, "startAirMediaCanvas(): service not connected");
 	}
 	
 	public Rect getWindow(int streamId)

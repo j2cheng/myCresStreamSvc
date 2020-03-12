@@ -127,6 +127,28 @@ public class CanvasCrestore
         {
         	Common.Logging.i(TAG,"Could not set up Crestore Callback for subscription to "+s+": " + rv);
         }
+        
+        // TODO just for debugging - remove eventually: print existing map read from crestore
+        s = "{\"Internal\":{\"AirMedia\":{\"Canvas\":{\"SessionResponse\":{\"SessionResponseMap\":{}}}}}}";
+        String sessionResponseMapString = null;
+        try {
+        	sessionResponseMapString = wrapper.get(false, s);
+        } catch (Exception e) {
+        	Common.Logging.i(TAG, "Exception while reading "+s+" from cresstore");
+        	e.printStackTrace();
+        }
+        if (sessionResponseMapString != null)
+        {
+        	Root r = gson.fromJson(sessionResponseMapString, Root.class);
+        	Common.Logging.i(TAG, "Current Session Response Map in Crestore="+gson.toJson(r));
+        }
+        // At startup make session response map empty 
+        Root r = getRootedInternalAirMediaCanvas();
+        r.internal.airMedia.canvas.sessionResponse = new SessionResponse();
+        r.internal.airMedia.canvas.sessionResponse.sessionResponseMap = new HashMap<String, SessionResponseMapEntry>();
+        s = gson.toJson(r);
+    	Common.Logging.i(TAG, "Clearing Session Response Map in Crestore="+s);
+    	wrapper.set(s, true);
 	}
 	
 	public synchronized void doSessionEvent(Session s, String requestedState, Originator originator)
@@ -178,10 +200,7 @@ public class CanvasCrestore
 	
 	private SessionEvent sendSessionEvent(SessionEvent e)
 	{
-		Root root = new Root();
-		root.internal = new Internal();
-		root.internal.airMedia = new InternalAirMedia();
-		root.internal.airMedia.canvas = new InternalAirMediaCanvas();
+		Root root = getRootedInternalAirMediaCanvas();
 		root.internal.airMedia.canvas.sessionEvent = e;
 		String jsonStr = "{\"Pending\":" + gson.toJson(root) + "}";
 		wrapper.set(jsonStr, false);
@@ -190,10 +209,7 @@ public class CanvasCrestore
 	
 	public void setVideoDisplayed(boolean value)
 	{
-		Root root = new Root();
-		root.internal = new Internal();
-		root.internal.airMedia = new InternalAirMedia();
-		root.internal.airMedia.osd = new Osd();
+		Root root = getRootedInternalAirMediaOsd();
 		root.internal.airMedia.osd.videoDisplayed = Boolean.valueOf(value);
 		String jsonStr = "{\"Pending\":" + gson.toJson(root) + "}";
 		wrapper.set(jsonStr, false);
@@ -201,10 +217,7 @@ public class CanvasCrestore
 	
 	public void setCurrentConnectionInfo(String connectionInfo)
 	{
-		Root root = new Root();
-		root.internal = new Internal();
-		root.internal.airMedia = new InternalAirMedia();
-		root.internal.airMedia.osd = new Osd();
+		Root root = getRootedInternalAirMediaOsd();
 		root.internal.airMedia.osd.currentConnectionInfo = connectionInfo;
 		String jsonStr = "{\"Pending\":" + gson.toJson(root) + "}";
 		wrapper.set(jsonStr, false);
@@ -212,10 +225,7 @@ public class CanvasCrestore
 	
 	public void setCurrentWirelessConnectionInfo(String connectionInfo)
 	{
-		Root root = new Root();
-		root.internal = new Internal();
-		root.internal.airMedia = new InternalAirMedia();
-		root.internal.airMedia.osd = new Osd();
+		Root root = getRootedInternalAirMediaOsd();
 		root.internal.airMedia.osd.currentWirelessConnectionInfo = connectionInfo;
 		String jsonStr = "{\"Pending\":" + gson.toJson(root) + "}";
 		wrapper.set(jsonStr, false);
@@ -507,10 +517,7 @@ public class CanvasCrestore
 
 	private SessionStateFeedback sendSessionStateFeedback(SessionStateFeedback f)
 	{
-		Root root = new Root();
-		root.internal = new Internal();
-		root.internal.airMedia = new InternalAirMedia();
-		root.internal.airMedia.canvas = new InternalAirMediaCanvas();
+		Root root = getRootedInternalAirMediaCanvas();
 		root.internal.airMedia.canvas.sessionStateFeedback = f;
 		String jsonStr = "{\"Pending\":" + gson.toJson(root) + "}";
 		wrapper.set(jsonStr, false);
@@ -520,10 +527,7 @@ public class CanvasCrestore
     //TODO remove once real AVF sends the responses
 	public void sendSessionResponse(SessionResponse response)
 	{
-		Root root = new Root();
-		root.internal = new Internal();
-		root.internal.airMedia = new InternalAirMedia();
-		root.internal.airMedia.canvas = new InternalAirMediaCanvas();
+		Root root = getRootedInternalAirMediaCanvas();
 		root.internal.airMedia.canvas.sessionResponse = response;
 		String jsonStr = "{\"Pending\":" + gson.toJson(root) + "}";
 		wrapper.set(jsonStr, false);
@@ -566,7 +570,20 @@ public class CanvasCrestore
     			}
     			if (root.internal.airMedia.canvas.sessionResponse != null)
     			{
-    				processSessionResponse(root.internal.airMedia.canvas.sessionResponse);
+    				if (pending)
+    				{
+    					// First write to crestore
+    					Root localroot = getRootedInternalAirMediaCanvas();
+    					localroot.internal.airMedia.canvas.sessionResponse = new SessionResponse();
+    					localroot.internal.airMedia.canvas.sessionResponse.sessionResponseMap = root.internal.airMedia.canvas.sessionResponse.sessionResponseMap;
+    					wrapper.set(gson.toJson(localroot), true);
+    					// Now process response
+    					processSessionResponse(root.internal.airMedia.canvas.sessionResponse);
+    				}
+    				else if (!CresCanvas.Standalone)
+    				{
+    					Common.Logging.i(TAG, "Received a Session Response message with no pending flag - should not happen in normal mode");
+    				}
     			}
     		}
     		if (root.device != null && root.device.airMedia != null && root.device.airMedia.canvas != null) {
@@ -671,6 +688,28 @@ public class CanvasCrestore
     	}
     }
     
+	private Root getRootedInternalAirMedia()
+	{
+		Root root = new Root();
+		root.internal = new Internal();
+		root.internal.airMedia = new InternalAirMedia();
+		return root;
+	}
+	
+	private Root getRootedInternalAirMediaCanvas()
+	{
+		Root root = getRootedInternalAirMedia();
+		root.internal.airMedia.canvas = new InternalAirMediaCanvas();
+		return root;
+	}
+	
+	private Root getRootedInternalAirMediaOsd()
+	{
+		Root root = getRootedInternalAirMedia();
+		root.internal.airMedia.osd = new Osd();
+		return root;
+	}
+	
     public class SessionEventMapEntry {
         @SerializedName ("State")
     	String state;
