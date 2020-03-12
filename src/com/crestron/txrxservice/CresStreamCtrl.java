@@ -3246,7 +3246,9 @@ public class CresStreamCtrl extends Service {
                         hasCanvasMode ||
                         (userSettings.getMode(sessionId) == DeviceMode.STREAM_OUT.ordinal()) )
                 {
-                    ProductSpecific.doChromakey((serviceMode != ServiceMode.Slave) ? true : false);
+                    // For X70, for performance reasons, we leave chromakey enabled or disabled based on mode
+                    if (CrestronProductName.fromInteger(nativeGetProductTypeEnum()) != CrestronProductName.X70)
+                        ProductSpecific.doChromakey((serviceMode != ServiceMode.Slave) ? true : false);
 
                     StreamState curStreamState = getCurrentStreamState(sessionId);
                     if ((curStreamState != StreamState.STARTED) && (curStreamState != StreamState.STREAMERREADY))
@@ -3324,7 +3326,9 @@ public class CresStreamCtrl extends Service {
                     else
                         SendStreamState(StreamState.STOPPED, sessionId);
                 }
-                ProductSpecific.doChromakey(false);
+                // For X70, for performance reasons, we leave chromakey enabled or disabled based on mode
+                if (CrestronProductName.fromInteger(nativeGetProductTypeEnum()) != CrestronProductName.X70)
+                    ProductSpecific.doChromakey(false);
             }
             finally
             {
