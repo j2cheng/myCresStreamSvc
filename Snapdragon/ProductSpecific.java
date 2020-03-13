@@ -22,7 +22,6 @@ public class ProductSpecific
 {	
     private static ProductSpecific mInstance;
     private Context context;
-    private static boolean oneShot = false;
 
     public static ProductSpecific getInstance()
     {
@@ -225,16 +224,7 @@ public class ProductSpecific
 			Log.e(TAG,"X70 instance is not initialized.");
 			return;
 		}
-		
-		//Configure chromakey once on the x70 to prevent flicker due to enabling and disabling on feature on every stream start/stop.
-		//See bug TSW70-762.
-		if (oneShot)
-		{
-			Log.v(TAG,"X70 Set chromakey " + enable + " ignored. Chromakey is already configured.");
-			return;
-		}
-		oneShot = true;
-		
+
 		DisplaySettingManager m_dsm = new DisplaySettingManager(getInstance().getApplicationContext());
 		if(!enable)
 		{
@@ -265,7 +255,6 @@ public class ProductSpecific
 		}
 		catch(IOException e)
 		{	
-			oneShot = false;		
 		}
 	}
     

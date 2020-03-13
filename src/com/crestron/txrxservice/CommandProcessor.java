@@ -6,6 +6,7 @@ import android.util.Log;
 import com.crestron.txrxservice.CresStreamCtrl;
 import com.crestron.txrxservice.CresStreamCtrl.DeviceMode;
 import com.crestron.txrxservice.CresStreamCtrl.StreamState;
+import com.crestron.txrxservice.ProductSpecific;
 
 class CrestronCommand implements CommandIf {
 	CresStreamCtrl ctrl = null;
@@ -2679,6 +2680,22 @@ class Rgb888ModeCommand extends CrestronCommand {
         try {
             boolean val = Boolean.valueOf(msg);
             ctrl.setRgb888Mode(val);
+        } catch (Exception e) {}
+    }
+    // no feedback
+}
+
+class ChromakeyModeCommand extends CrestronCommand {
+    public ChromakeyModeCommand(CresStreamCtrl ctrl, String arg) {
+        super(ctrl, arg);
+    }
+
+    @Override
+    public void execute() {
+        try {
+            boolean val = Boolean.valueOf(msg);
+            Log.d(TAG, "setting chromakey to " + val);
+            ProductSpecific.doChromakey(val);
         } catch (Exception e) {}
     }
     // no feedback

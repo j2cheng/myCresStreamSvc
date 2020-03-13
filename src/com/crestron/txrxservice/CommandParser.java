@@ -210,6 +210,7 @@ public class CommandParser {
         WFDSTREAM,
         FORCE_RGB_PREVIEW_MODE,
         RGB_MODE,
+        CHROMAKEY_MODE,
         DM_SYNC,
         DM_HDCP_BLANK,
         DM_RESOLUTION,
@@ -863,6 +864,9 @@ public class CommandParser {
             	break;
             case RGB_MODE:
                 cmd = new Rgb888ModeCommand(ctrl, arg);
+                break;
+            case CHROMAKEY_MODE:
+                cmd = new ChromakeyModeCommand(ctrl, arg);
                 break;
             case CHROMAKEY_COLOR:
             	cmd = new ChromaKeyColorCommand(ctrl, arg);
