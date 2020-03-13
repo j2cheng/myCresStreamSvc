@@ -443,7 +443,12 @@ public class CanvasCrestore
 			for (int i=0; i < disconnectList.size(); i++)
 			{
 				actionList.add("disconnect "+disconnectList.get(i));
-			}
+				// add this key to the map with empty value so when written to cresstore it will delete the key from the cresstore map
+				map.put(disconnectList.get(i), new SessionResponseMapEntry());
+			}			
+			// First update crestore map
+			updateCresstoreMap(map);
+     
 			doSessionResponse(response.transactionId, actionList);		
 		}
 		else
@@ -484,6 +489,44 @@ public class CanvasCrestore
 			}
 		}
 		Common.Logging.v(TAG, "Finished processing Session Response Message "+gson.toJson(response));
+	}
+	
+	public void updateCresstoreMap(Map<String, SessionResponseMapEntry> map)
+	{
+		// "Out of an abundance of caution" add deletion for any session that existed in Cresstore version of map but is not in this map
+		Map<String, SessionResponseMapEntry> cresstoreMap = null;
+		String s = "{\"Internal\":{\"AirMedia\":{\"Canvas\":{\"SessionResponse\":{\"SessionResponseMap\":{}}}}}}";
+		String sessionResponseMapString = null;
+		try {
+			sessionResponseMapString = wrapper.get(false, s);
+		} catch (Exception e) {
+			Common.Logging.i(TAG, "Exception while reading "+s+" from cresstore");
+			e.printStackTrace();
+		}
+		if (sessionResponseMapString != null)
+		{
+			Root r = gson.fromJson(sessionResponseMapString, Root.class);
+			Common.Logging.v(TAG, "Cresstore Session Response Map in Crestore="+gson.toJson(r));
+			cresstoreMap = r.internal.airMedia.canvas.sessionResponse.sessionResponseMap;
+		}
+		if (cresstoreMap != null && !cresstoreMap.isEmpty())
+		{
+			for (Map.Entry<String, SessionResponseMapEntry> entry : cresstoreMap.entrySet())
+			{
+				if (!map.containsKey(entry.getKey()))
+				{				
+					Common.Logging.w(TAG, "Cresstore Session Response Map key "+entry.getKey()+ " not found in incoming map - insert delete entry");
+					map.put(entry.getKey(), new SessionResponseMapEntry());
+				}
+			}
+		}
+				
+		// Now update cresstore with the map
+		Root localroot = getRootedInternalAirMediaCanvas();
+		localroot.internal.airMedia.canvas.sessionResponse = new SessionResponse();
+		localroot.internal.airMedia.canvas.sessionResponse.sessionResponseMap = map;
+		Common.Logging.v(TAG, "Writing "+gson.toJson(localroot)+" to cresstore");
+		wrapper.set(gson.toJson(localroot), true);
 	}
 
 	private void ack(String transactionId)
@@ -572,11 +615,6 @@ public class CanvasCrestore
     			{
     				if (pending)
     				{
-    					// First write to crestore
-    					Root localroot = getRootedInternalAirMediaCanvas();
-    					localroot.internal.airMedia.canvas.sessionResponse = new SessionResponse();
-    					localroot.internal.airMedia.canvas.sessionResponse.sessionResponseMap = root.internal.airMedia.canvas.sessionResponse.sessionResponseMap;
-    					wrapper.set(gson.toJson(localroot), true);
     					// Now process response
     					processSessionResponse(root.internal.airMedia.canvas.sessionResponse);
     				}
