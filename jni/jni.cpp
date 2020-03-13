@@ -87,6 +87,7 @@ extern unsigned short debugPrintSeqNum;
 
 #define CRESTRON_USER_AGENT 	("Crestron/1.8.2")
 #define PROC_SELF_FD_FILEPATH 	("/proc/self/fd")
+#define DEFAULT_MAX_FRAME_PUSH_DELAY  250000000
 ///////////////////////////////////////////////////////////////////////////////
 CustomData *CresDataDB = NULL; //
 CustomStreamOutData *CresStreamOutDataDB = NULL; //
@@ -3921,7 +3922,13 @@ void csio_jni_initVideo(int iStreamId)
     
         CSIO_LOG(eLogLevel_debug, "qos is turned off for surfaceflingersink!");
         if(data->video_sink)
-            g_object_set(G_OBJECT(data->video_sink), "qos", FALSE, NULL);   
+            g_object_set(G_OBJECT(data->video_sink), "qos", FALSE, NULL);
+
+        if(data->amcvid_dec && (product_info()->hw_platform == eHardwarePlatform_Snapdragon))
+        {
+            g_object_set(G_OBJECT(data->amcvid_dec), "push-delay-max", G_GUINT64_CONSTANT (0), NULL);
+            CSIO_LOG(eLogLevel_debug, "Stream[%d] push-delay-max is disabled", iStreamId);
+        }
     }
 }
 
@@ -5294,3 +5301,16 @@ void csio_sendErrorStatusMessage(int errorCode, std::string diagnosticMessage, i
     env->DeleteLocalRef (diagnosticMessage_jstr);
 }
 
+void csio_jni_setFramePushDelay(int id)
+{
+    if(product_info()->hw_platform == eHardwarePlatform_Snapdragon)
+    {
+        CREGSTREAM * data = GetStreamFromCustomData(CresDataDB, id);
+
+        if(data && data->amcvid_dec)
+        {
+            g_object_set(G_OBJECT(data->amcvid_dec), "push-delay-max", (guint64) DEFAULT_MAX_FRAME_PUSH_DELAY, NULL);
+            CSIO_LOG(eLogLevel_debug, "Set stream[%d] push-delay-max to: %lluns", id, (guint64) DEFAULT_MAX_FRAME_PUSH_DELAY);
+        }
+    }
+}

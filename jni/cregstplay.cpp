@@ -496,6 +496,7 @@ void csio_DecVideo1stOutputCB(GstElement *src,int id)
         csio_SetWaitDecHas1stVidDelay(id,0);
         csio_SendVideoInfo(id, src);
         csio_jni_setAutoBitrate(id);
+        csio_jni_setFramePushDelay(id);
     }
     else
     {
