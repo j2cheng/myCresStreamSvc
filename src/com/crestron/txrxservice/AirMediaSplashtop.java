@@ -2104,6 +2104,8 @@ public class AirMediaSplashtop
 		private String DeviceId;
 		private String Language;
 		private String VideoResolution;
+		private String Username;
+		private String IpAddress;
 		private Map<String, Display> VideoDisplays;
 
 
@@ -2112,6 +2114,14 @@ public class AirMediaSplashtop
 			AirMediaSessionInfo info = session.info();
 			this.SessionType = getSessionType(session);
 			this.IsClientActive = Boolean.valueOf(session.videoState() == AirMediaSessionStreamingState.Playing);
+			this.IpAddress = "127.0.0.1";
+			if (session.username() != null)
+			{
+				if (Username==null || !Username.equals(session.username()))
+					this.Username = session.username();
+			} else {
+				this.Username = "";
+			}
 			String platform = info.platform.toString();
 			if (!platform.equals("") && !platform.equals("Undefined"))
 			{
@@ -2353,6 +2363,28 @@ public class AirMediaSplashtop
 			return;
 		
 		sendClientData(client, new Client(session.videoResolution()));
+	}
+	
+	private void sendClientDataUsername(AirMediaSession session, String username)
+	{
+		int client = session2user(session);
+		if (client < 0)
+			return;
+		
+		Client c = new Client();
+		c.Username = username;
+		sendClientData(client, c);
+	}
+	
+	private void sendClientDataIpAddress(AirMediaSession session, String ipAddress)
+	{
+		int client = session2user(session);
+		if (client < 0)
+			return;
+		
+		Client c = new Client();
+		c.IpAddress = ipAddress;
+		sendClientData(client, c);
 	}
 	
 	private void removeClientData(AirMediaSession session)
@@ -2865,6 +2897,7 @@ public class AirMediaSplashtop
                     Common.Logging.i(TAG, "view.session.event.username  " + AirMediaSession.toDebugString(session) + "  " + from + "  ==>  " + to);
                     // TODO Handle username changed
                     sendSessionFeedback(session);
+                    sendClientDataUsername(session, to);
                 }
             };
 
@@ -2875,6 +2908,11 @@ public class AirMediaSplashtop
     		Common.Logging.i(TAG, "view.session.event.addresses  " + AirMediaSession.toDebugString(session) + "  " + from + "  ==>  " + to);
     		// TODO Handle addresses changed
     		sendSessionFeedback(session);
+    		for (String s: to)
+    		{
+    			sendClientDataIpAddress(session, s);
+    			break;
+    		}
     	}
     };
 
