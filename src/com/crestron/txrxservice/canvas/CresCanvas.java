@@ -25,8 +25,10 @@ public class CresCanvas
     public CanvasCrestore mCrestore = null;
     public SessionManager mSessionMgr = null;
     public CanvasSourceManager mCanvasSourceManager = null;
+    AirMediaCanvas mAirMediaCanvas = null;
 
-	public static final boolean Standalone = true;  // will be removed for integration
+	public static final boolean useCanvasSurfaces = false;  // will be removed for integration
+	public static final boolean useSimulatedAVF = true;  // will be removed for integration
 
     public static final String TAG = "TxRx Canvas"; 
 	private static final int MAX_HDMI_INPUTS = 1;
@@ -84,21 +86,36 @@ public class CresCanvas
 	
 	public void setWindows()
 	{
-		if (CresCanvas.Standalone)
+		if (!CresCanvas.useCanvasSurfaces)
 			mStreamCtl.setCanvasWindows();
 	}
 	
 	public void startAirMediaCanvas()
 	{
 		Common.Logging.i(TAG, "startAirMediaCanvas(): calling constructor");
-		AirMediaCanvas airMediaCanvas = new AirMediaCanvas(mStreamCtl);
-		if (airMediaCanvas.IsAirMediaCanvasUp())
-		{
-			// send an empty list in layout update to indicate no sessions
-			mSessionMgr.doLayoutUpdate();
-			return;
-		} else
+		mAirMediaCanvas = new AirMediaCanvas(mStreamCtl);
+		if (mAirMediaCanvas.IsAirMediaCanvasUp())
+			canvasHasStarted();
+		else
 			Common.Logging.i(TAG, "startAirMediaCanvas(): service not connected");
+	}
+	
+	public boolean IsAirMediaCanvasUp()
+	{
+		boolean rv = (mAirMediaCanvas != null && mAirMediaCanvas.IsAirMediaCanvasUp());
+		Common.Logging.i(TAG, "------- IsAirMediaCanvasUp(): rv="+rv);
+		return (mAirMediaCanvas != null && mAirMediaCanvas.IsAirMediaCanvasUp());
+	}
+	
+	public void canvasHasStarted()
+	{
+		Common.Logging.i(TAG, "canvasHasStarted(): ------ canvas is ready -------");
+		// send an empty list in layout update to indicate no sessions
+		Common.Logging.i(TAG, "canvasHasStarted(): ------ doing layout update -------");
+		mSessionMgr.doLayoutUpdate();
+		// start possible hdmi and dm sessions
+		Common.Logging.i(TAG, "canvasHasStarted(): ------ doing HDMI sync update -------");
+		mStreamCtl.canvasHdmiSyncStateChange();
 	}
 	
 	public Rect getWindow(int streamId)
@@ -108,18 +125,23 @@ public class CresCanvas
 	
 	public void showWindow(int streamId)
 	{
-		if (CresCanvas.Standalone)
+		if (!CresCanvas.useCanvasSurfaces)
 			mStreamCtl.showCanvasWindow(streamId);
 	}
 	
 	public void hideWindow(int streamId)
 	{
-		if (CresCanvas.Standalone)
+		if (!CresCanvas.useCanvasSurfaces)
 			mStreamCtl.hideCanvasWindow(streamId);
 	}
 	
 	public synchronized void handlePossibleHdmiSyncStateChange(int inputNumber, HDMIInputInterface hdmiInput)
 	{
+		if (!IsAirMediaCanvasUp())
+		{
+			Common.Logging.i(TAG, "handlePossibleHdmiSyncStateChange(): AirMediaCanvas not up - cannot display HDMI yet");
+			return;
+		}
 		if (inputNumber > MAX_HDMI_INPUTS)
 		{
 			Common.Logging.e(TAG, "HDMI input number is "+inputNumber+"   Max allowed is "+MAX_HDMI_INPUTS);
@@ -190,6 +212,11 @@ public class CresCanvas
 	
 	public synchronized void handleDmSyncStateChange(int inputNumber)
 	{
+		if (IsAirMediaCanvasUp())
+		{
+			Common.Logging.e(TAG, "AirMediaCanvas not up - cannot display DM yet");
+			return;
+		}
 		if (inputNumber > MAX_DM_INPUTS)
 		{
 			Common.Logging.e(TAG, "DM input number is "+inputNumber+"   Max allowed is "+MAX_DM_INPUTS);
@@ -260,22 +287,42 @@ public class CresCanvas
 	
 	public Surface acquireSurface(String sessionId)
 	{
-//		CanvasSurfaceAcquireResponse response = AirMediaCanvas.surfaceAcquire(sessionId);
-//		if (response.isSucceeded())
-//			return response.surface;
-//		else
-//		{
-//			Common.Logging.e(TAG, "getSurface was unable to get surface from Canvas App for session: "+sessionId);
-//			return null;
-//		}
-		return null;
+		CanvasSurfaceAcquireResponse response = null;
+		try {
+			response = mAirMediaCanvas.service().surfaceAcquire(sessionId);
+		} catch(android.os.RemoteException ex)
+		{
+			Common.Logging.e(TAG, "exception encountered while calling surfaceAcquire for session: "+sessionId);
+			return null;
+		}
+		if (response != null && response.isSucceeded())
+		{
+			if (response.surface == null)
+			{
+				Log.e(TAG, "acquireSurface for "+sessionId+" returned null surface from Canvas");
+			}
+			if (!response.surface.isValid())
+			{
+				Log.e(TAG, "acquireSurface for "+sessionId+" returned surface "+response.surface+" invalid surface");
+			}
+			return response.surface;
+		} else {
+			Common.Logging.e(TAG, "getSurface was unable to get surface from Canvas App for session: "+sessionId);
+			return null;
+		}
 	}
 	
 	public void releaseSurface(String sessionId)
 	{
-//		CanvasResponse response = AirMediaCanvas.surfaceRelease(sessionId);
-//		if (!response.isSucceeded())
-//			Common.Logging.e(TAG, "Canvas App failed to release surface for session: "+sessionId);
+		CanvasResponse response = null;
+		try {
+			response = mAirMediaCanvas.service().surfaceRelease(sessionId);
+		} catch(android.os.RemoteException ex)
+		{
+			Common.Logging.e(TAG, "exception encountered while calling surfaceRelease for session: "+sessionId);
+		}
+		if (response == null || !response.isSucceeded())
+			Common.Logging.e(TAG, "Canvas App failed to release surface for session: "+sessionId);
 	}
 	
 	public class SurfaceManager {

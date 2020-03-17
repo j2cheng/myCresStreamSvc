@@ -355,5 +355,15 @@ public class SessionManager
     			Common.Logging.i("doCanvasSessionsUpdate: ", "\nSession "+mCanvas.getCrestore().getGson().toJson(s));
     		}
     	}
+		if (mCanvas.IsAirMediaCanvasUp())
+		{
+			try {
+				mCanvas.mAirMediaCanvas.service().sessionsUpdate(sessions);
+			} catch (android.os.RemoteException ex)
+			{
+				Log.i(TAG, "Remote exceptione encountered while doign sessions update");
+				ex.printStackTrace();
+			}
+		}
     }
 }

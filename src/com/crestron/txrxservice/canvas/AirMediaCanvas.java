@@ -304,11 +304,16 @@ public class AirMediaCanvas
 						Common.Logging.i(TAG, "AirMediaCanvasServiceConnection.onServiceConnected  " + name);
 						requestServiceConnection = false;
 						try {
+							Common.Logging.i(TAG, "AirMediaCanvasServiceConnection.onServiceConnected getting IAirMediaCanvas");
 							service_ = IAirMediaCanvas.Stub.asInterface(binder);
-							if (service_ == null) return;            	
+							if (service_ == null) {
+								Common.Logging.e(TAG, "AirMediaCanvasServiceConnection.onServiceConnected getting IAirMediaCanvas.Stub.asInterface failed");
+								return;            	
+							}
 							serviceConnectedLatch.countDown();
 							service().setSourceManager(mStreamCtl.mCanvas.getCanvasSourceManager().service());
 							isAirMediaCanvasUp = true;
+							mStreamCtl.mCanvas.canvasHasStarted();
 						} catch (Exception e) {
 							Common.Logging.e(TAG, "AirMediaCanvasServiceConnection.onServiceConnected  EXCEPTION  " + e);
 							e.printStackTrace();

@@ -90,7 +90,7 @@ public class CanvasCrestore
 		gson = new GsonBuilder().setPrettyPrinting().create();
 		mCanvas = canvas;
 		mSessionMgr = sessionManager;
-		if (CresCanvas.Standalone)
+		if (CresCanvas.useSimulatedAVF)
 			mAVF = new SimulatedAVF(this);
 		sessionResponseScheduler_ = new Scheduler("sessionResponse");
 
@@ -101,7 +101,7 @@ public class CanvasCrestore
             Log.e(TAG, "failed to create wrapper" , e);
             return;
         }
-        com.crestron.cresstoreredis.CresStoreResult rv = wrapper.setIgnoreOwnSets(!CresCanvas.Standalone);
+        com.crestron.cresstoreredis.CresStoreResult rv = wrapper.setIgnoreOwnSets(!CresCanvas.useSimulatedAVF);
         CresStoreCallback crestoreCallback = new CresStoreCallback();
         String s = "{\"Device\":{\"AirMedia\":{\"AirMediaCanvas\":{}}}}";
         rv = wrapper.subscribeCallback(s, crestoreCallback);
@@ -315,7 +315,7 @@ public class CanvasCrestore
 			if (Common.isEqualIgnoreCase(tokens[0], "replace"))
 			{
 				Common.Logging.i(TAG, "enqueSessionResponse(): replacing "+tokens[1]+" with "+tokens[2]);
-				if (CresCanvas.Standalone)
+				if (!CresCanvas.useCanvasSurfaces)
 					(mSessionMgr.getSession(tokens[1])).replace(originator, mSessionMgr.getSession(tokens[2]));
 				else
 				{
@@ -495,19 +495,20 @@ public class CanvasCrestore
 	{
 		// "Out of an abundance of caution" add deletion for any session that existed in Cresstore version of map but is not in this map
 		Map<String, SessionResponseMapEntry> cresstoreMap = null;
-		String s = "{\"Internal\":{\"AirMedia\":{\"Canvas\":{\"SessionResponse\":{\"SessionResponseMap\":{}}}}}}";
-		String sessionResponseMapString = null;
+		String s = "{\"Internal\":{\"AirMedia\":{\"Canvas\":{\"SessionResponse\":{}}}}}";
+		String sessionResponseString = null;
 		try {
-			sessionResponseMapString = wrapper.get(false, s);
+			sessionResponseString = wrapper.get(false, s);
 		} catch (Exception e) {
 			Common.Logging.i(TAG, "Exception while reading "+s+" from cresstore");
 			e.printStackTrace();
 		}
-		if (sessionResponseMapString != null)
+		if (sessionResponseString != null)
 		{
-			Root r = gson.fromJson(sessionResponseMapString, Root.class);
-			Common.Logging.v(TAG, "Cresstore Session Response Map in Crestore="+gson.toJson(r));
-			cresstoreMap = r.internal.airMedia.canvas.sessionResponse.sessionResponseMap;
+			Root r = gson.fromJson(sessionResponseString, Root.class);
+			Common.Logging.v(TAG, "Cresstore Session Response in Crestore="+gson.toJson(r));
+			if (r.internal.airMedia.canvas.sessionResponse.sessionResponseMap != null)
+				cresstoreMap = r.internal.airMedia.canvas.sessionResponse.sessionResponseMap;
 		}
 		if (cresstoreMap != null && !cresstoreMap.isEmpty())
 		{
@@ -602,7 +603,7 @@ public class CanvasCrestore
     			//Common.Logging.v(TAG, "Device string is "+gson.toJson(root));
     			if (root.internal.airMedia.canvas.sessionEvent != null)
     			{
-    				if (CresCanvas.Standalone)
+    				if (CresCanvas.useSimulatedAVF)
     					mAVF.processSessionEvent(root.internal.airMedia.canvas.sessionEvent);
     				else
     					Common.Logging.i(TAG, "Received a Session Event message - should not happen in normal mode");
@@ -618,7 +619,7 @@ public class CanvasCrestore
     					// Now process response
     					processSessionResponse(root.internal.airMedia.canvas.sessionResponse);
     				}
-    				else if (!CresCanvas.Standalone)
+    				else if (!CresCanvas.useSimulatedAVF)
     				{
     					Common.Logging.i(TAG, "Received a Session Response message with no pending flag - should not happen in normal mode");
     				}
