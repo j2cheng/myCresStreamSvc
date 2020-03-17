@@ -224,7 +224,7 @@ public class CresStreamCtrl extends Service {
     public int mGstreamerTimeoutCount = 0;
     public boolean haveExternalDisplays;
     public boolean hideVideoOnStop = false;
-    public boolean hasCanvasMode = false;
+    public boolean airMediav21 = false;
     public boolean isRGB888HDMIVideoSupported = true;
     public CrestronHwPlatform mHwPlatform;
     public String mProductName;
@@ -248,7 +248,6 @@ public class CresStreamCtrl extends Service {
     // JNI prototype
     public native boolean nativeHaveExternalDisplays();
     public native boolean nativeHideVideoBeforeStop();
-    public native boolean nativeHasCanvas();
     public native int nativeGetHWPlatformEnum();
     public native int nativeGetProductTypeEnum();
     public native int nativeGetHDMIOutputBitmask();
@@ -610,8 +609,8 @@ public class CresStreamCtrl extends Service {
             int windowWidth = 1920;
             int windowHeight = 1080;
             hideVideoOnStop = nativeHideVideoBeforeStop();
-            hasCanvasMode = nativeHasCanvas();
-            Log.i(TAG, "product " + ((hasCanvasMode)?"has":"does not have") + " Canvas Mode");
+            airMediav21 = MiscUtils.readStringFromDisk("/data/CresStreamSvc/airMediav2.1").equals("1");
+            Log.i(TAG, "device " + ((airMediav21)?"is in":"is not in") + " airMedia2.1 Mode");
             NumDmInputs = nativeGetDmInputCount();
             mHwPlatform = CrestronHwPlatform.fromInteger(nativeGetHWPlatformEnum());
             mProductName = getProductName(nativeGetProductTypeEnum());
@@ -1055,8 +1054,8 @@ public class CresStreamCtrl extends Service {
             SetWindowManagerResolution(size.x, size.y, haveExternalDisplays);
             mPreviousHdmiOutResolution = new Resolution(size.x, size.y);
 
-            // Canvas
-            if (hasCanvasMode)
+            // AirMedia v2.1 onwards
+            if (airMediav21)
             {
                 mCanvas = com.crestron.txrxservice.canvas.CresCanvas.getInstance(this);
                 resetDmSettings();
@@ -1586,7 +1585,7 @@ public class CresStreamCtrl extends Service {
                             streamPlay.wfdStop(sessionId, 0);
                         }
                     }
-                    if (hasCanvasMode && mCanvas != null)
+                    if (airMediav21 && mCanvas != null)
                     {
                         Log.i(TAG, "Calling startAirMediaCanvas");
 
@@ -1716,7 +1715,7 @@ public class CresStreamCtrl extends Service {
                 maxVRes = 1200;
                 maxHRes = 1920;
             }
-            if (hasCanvasMode)
+            if (airMediav21)
             {
                 //TODO when integration done use CresDisplaySurfaceCanvas()
                 //dispSurface = new CresDisplaySurfaceCanvas(streamCtrl);
@@ -2730,10 +2729,15 @@ public class CresStreamCtrl extends Service {
         if (hdmiInputDriverPresent)
         {
             hdmiInput.updateResolutionInfo();
-            if (mCanvas != null)
-            {
-                mCanvas.handlePossibleHdmiSyncStateChange(1, hdmiInput);
-            }
+            canvasHdmiSyncStateChange();
+        }
+    }
+    
+    public void canvasHdmiSyncStateChange()
+    {
+        if (hdmiInputDriverPresent && (mCanvas != null))
+        {
+            mCanvas.handlePossibleHdmiSyncStateChange(1, hdmiInput);
         }
     }
 
@@ -3227,7 +3231,7 @@ public class CresStreamCtrl extends Service {
                 // Start will be handled by restart streams when HDMI output returns
                 if ( mIsHdmiOutExternal ||
                         Boolean.parseBoolean(hdmiOutput.getSyncStatus()) ||
-                        hasCanvasMode ||
+                        airMediav21 ||
                         (userSettings.getMode(sessionId) == DeviceMode.STREAM_OUT.ordinal()) )
                 {
                     // For X70, for performance reasons, we leave chromakey enabled or disabled based on mode

@@ -110,7 +110,7 @@ public class DMSession extends Session
 		Surface surface = acquireSurface();
 		Common.Logging.i(TAG, "DM Session "+this+" sending start to csio");
 		mStreamCtl.sendDmStart(inputNumber, true);
-        if (mStreamCtl.hasCanvasMode) {
+        if (mStreamCtl.airMediav21) {
         	mStreamCtl.setFormat(streamId, PixelFormat.RGBA_8888);
         }
 		if (surface != null && surface.isValid())

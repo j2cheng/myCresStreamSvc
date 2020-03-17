@@ -76,16 +76,6 @@ JNIEXPORT jboolean JNICALL Java_com_crestron_txrxservice_CresStreamCtrl_nativeHi
 		return JNI_FALSE;
 }
 
-JNIEXPORT jboolean JNICALL Java_com_crestron_txrxservice_CresStreamCtrl_nativeHasCanvas(JNIEnv *env, jobject thiz)
-{
-	do_init();
-
-	if(product_info()->doesProductHaveCanvas)
-		return JNI_TRUE;
-	else
-		return JNI_FALSE;
-}
-
 JNIEXPORT jint JNICALL Java_com_crestron_txrxservice_CresStreamCtrl_nativeGetHWPlatformEnum(JNIEnv *env, jobject thiz)
 {
 	do_init();
