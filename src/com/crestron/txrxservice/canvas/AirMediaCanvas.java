@@ -313,6 +313,7 @@ public class AirMediaCanvas
 							serviceConnectedLatch.countDown();
 							service().setSourceManager(mStreamCtl.mCanvas.getCanvasSourceManager().service());
 							isAirMediaCanvasUp = true;
+							Common.Logging.i(TAG, "AirMediaCanvasServiceConnection.onServiceConnected  calling canvasHasStarted()" + name);
 							mStreamCtl.mCanvas.canvasHasStarted();
 						} catch (Exception e) {
 							Common.Logging.e(TAG, "AirMediaCanvasServiceConnection.onServiceConnected  EXCEPTION  " + e);

@@ -88,6 +88,7 @@ import com.google.gson.reflect.TypeToken;
 import com.google.gson.stream.JsonReader;
 import com.google.gson.stream.JsonWriter;
 import com.crestron.txrxservice.CresLog;
+import com.crestron.txrxservice.canvas.CresCanvas;
 
 interface Command {
     void executeStart(int sessId);
@@ -1048,6 +1049,15 @@ public class CresStreamCtrl extends Service {
             } catch (NumberFormatException e) {}
             alphaBlending = (pinpointEnabled == 1) ? true : false;
 
+            // AirMedia v2.1 onwards
+            if (airMediav21)
+            {
+                mCanvas = com.crestron.txrxservice.canvas.CresCanvas.getInstance(this);
+                resetDmSettings();
+                //TODO will go away once we have a canvas app
+                setCanvasWindows();
+            }
+            
             // Create a DisplaySurface to handle both preview and stream in
             createCresDisplaySurface();
             Point size = getDisplaySize();
@@ -1646,6 +1656,29 @@ public class CresStreamCtrl extends Service {
         }).start();
     }
     
+    public void _createCresDisplaySurface(int maxHRes, int maxVRes)
+    {
+        final CresStreamCtrl streamCtrl = this;
+
+        if (airMediav21)
+        {
+            //TODO when integration done use CresDisplaySurfaceCanvas()
+        	if (mCanvas!=null && CresCanvas.useCanvasSurfaces)
+        		dispSurface = new CresDisplaySurfaceCanvas(streamCtrl);
+        	else
+        		dispSurface = new CresDisplaySurfaceMaster(streamCtrl, maxHRes, maxVRes, haveExternalDisplays, backgroundViewColor); // set to max output resolution
+        }
+        else
+        {
+        	if (serviceMode == ServiceMode.Master)
+        	{
+        		dispSurface = new CresDisplaySurfaceMaster(streamCtrl, maxHRes, maxVRes, haveExternalDisplays, backgroundViewColor); // set to max output resolution
+        	} else {
+        		dispSurface = new CresDisplaySurfaceSlave(streamCtrl);
+        	}
+        }
+    }
+    
     public void createCresDisplaySurface(){
         final CresStreamCtrl streamCtrl = this;
 
@@ -1676,12 +1709,7 @@ public class CresStreamCtrl extends Service {
                         maxVRes = 1200;
                         maxHRes = 1920;
                     }
-                    if (serviceMode == ServiceMode.Master)
-                    {
-                        dispSurface = new CresDisplaySurfaceMaster(streamCtrl, maxHRes, maxVRes, haveExternalDisplays, backgroundViewColor); // set to max output resolution
-                    } else {
-                        dispSurface = new CresDisplaySurfaceSlave(streamCtrl);
-                    }
+                    _createCresDisplaySurface(maxHRes, maxVRes);
                     latch.countDown();
                 }
             });
@@ -1715,21 +1743,7 @@ public class CresStreamCtrl extends Service {
                 maxVRes = 1200;
                 maxHRes = 1920;
             }
-            if (airMediav21)
-            {
-                //TODO when integration done use CresDisplaySurfaceCanvas()
-                //dispSurface = new CresDisplaySurfaceCanvas(streamCtrl);
-                dispSurface = new CresDisplaySurfaceMaster(streamCtrl, maxHRes, maxVRes, haveExternalDisplays, backgroundViewColor); // set to max output resolution
-            }
-            else
-            {
-                if (serviceMode == ServiceMode.Master)
-                {
-                    dispSurface = new CresDisplaySurfaceMaster(streamCtrl, maxHRes, maxVRes, haveExternalDisplays, backgroundViewColor); // set to max output resolution
-                } else {
-                    dispSurface = new CresDisplaySurfaceSlave(streamCtrl);
-                }
-            }
+            _createCresDisplaySurface(maxHRes, maxVRes);
         }
     }
 
@@ -4355,7 +4369,7 @@ public class CresStreamCtrl extends Service {
                             Log.i(TAG, "launchAirMedia: airMedia is null - wait for constructor to be invoked - ignoring command");
                             return;
                         }
-                        if (mAirMedia.airMediaIsUp())
+                        if (airMediaIsUp())
                         {
                             Log.i(TAG, "launchAirMedia: airMedia is not yet up -ignoring command");
                             return;
@@ -5401,9 +5415,14 @@ public class CresStreamCtrl extends Service {
         return "";
     }
     
+    public boolean airMediaIsUp()
+    {
+    	return (mAirMedia != null && mAirMedia.airMediaIsUp());
+    }
+    
     public void airMediaUserFeedbackUpdateRequest(int sessId)
     {
-        if (mAirMedia != null && mAirMedia.airMediaIsUp())
+        if (airMediaIsUp())
         {
             mAirMedia.setOrderedLock(true, "airMediaUserFeedbackUpdateRequest");
             try {

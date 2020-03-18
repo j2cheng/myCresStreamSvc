@@ -436,6 +436,11 @@ public class AirMediaSplashtop
         
         isAirMediaUp = true;
         startupCompleteLatch.countDown();
+        if (mCanvas != null)
+        {
+        	Log.i(TAG, "Receiver startup is complete - calling canvasHasStarted()");
+        	mCanvas.canvasHasStarted();
+        }
     }
     
     private boolean connect2service()

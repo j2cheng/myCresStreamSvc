@@ -94,21 +94,24 @@ public class CresCanvas
 	{
 		Common.Logging.i(TAG, "startAirMediaCanvas(): calling constructor");
 		mAirMediaCanvas = new AirMediaCanvas(mStreamCtl);
-		if (mAirMediaCanvas.IsAirMediaCanvasUp())
+		if (IsAirMediaCanvasUp()) {
+			Common.Logging.i(TAG, "startAirMediaCanvas(): calling canvasHasStarted()");
 			canvasHasStarted();
-		else
-			Common.Logging.i(TAG, "startAirMediaCanvas(): service not connected");
+		} else
+			Common.Logging.i(TAG, "startAirMediaCanvas(): canvas has not yet started completely");
 	}
 	
 	public boolean IsAirMediaCanvasUp()
 	{
-		boolean rv = (mAirMediaCanvas != null && mAirMediaCanvas.IsAirMediaCanvasUp());
-		Common.Logging.i(TAG, "------- IsAirMediaCanvasUp(): rv="+rv);
-		return (mAirMediaCanvas != null && mAirMediaCanvas.IsAirMediaCanvasUp());
+		boolean rv = (mAirMediaCanvas != null && mAirMediaCanvas.IsAirMediaCanvasUp() && mStreamCtl.airMediaIsUp());
+		Common.Logging.v(TAG, "------- IsAirMediaCanvasUp(): rv="+rv);
+		return rv;
 	}
 	
 	public void canvasHasStarted()
 	{
+		if (!IsAirMediaCanvasUp())
+			return;
 		Common.Logging.i(TAG, "canvasHasStarted(): ------ canvas is ready -------");
 		// send an empty list in layout update to indicate no sessions
 		Common.Logging.i(TAG, "canvasHasStarted(): ------ doing layout update -------");

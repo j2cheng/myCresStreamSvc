@@ -234,6 +234,7 @@ public class Session
 		Surface surface = null;
 		if (mCanvas.useCanvasSurfaces) {
 			surface = mCanvas.acquireSurface(sessionId());
+            mStreamCtl.setSurface(streamId, surface);
 		} else
 			surface = mStreamCtl.getSurface(streamId);
 		mCanvas.mSurfaceMgr.addSurface(streamId, surface);
@@ -243,7 +244,10 @@ public class Session
 	public void releaseSurface()
 	{
 		if (mCanvas.useCanvasSurfaces)
+		{
 			mCanvas.releaseSurface(sessionId());
+			mStreamCtl.deleteSurface(streamId);
+		}
 		mCanvas.mSurfaceMgr.removeSurface(streamId);
 	}
 	

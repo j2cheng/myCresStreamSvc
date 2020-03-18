@@ -4,7 +4,7 @@ import android.os.Parcel;
 import android.os.Parcelable;
 
 public enum RequestOrigin implements Parcelable {
-    Unknown(0), Hardware(1), Receiver(2), CanvasSourceRequest(3), CanvasUser(4), Moderator(5), StateChangeMessage(6), ConsoleCommand(7);
+    Unknown(0), Error(1), Hardware(2), Receiver(3), CanvasSourceRequest(4), CanvasUser(5), Moderator(6), StateChangeMessage(7), ConsoleCommand(8);
     public final int value;
 
     RequestOrigin(int v) { value = v; }
@@ -28,13 +28,14 @@ public enum RequestOrigin implements Parcelable {
     public static RequestOrigin from(int v) {
         switch (v) {
             case 0: return Unknown;
-            case 1: return Hardware;
-            case 2: return Receiver;
-            case 3: return CanvasSourceRequest;
-            case 4: return CanvasUser;
-            case 5: return Moderator;
-            case 6: return StateChangeMessage;
-            case 7: return ConsoleCommand;
+            case 1: return Error;
+            case 2: return Hardware;
+            case 3: return Receiver;
+            case 4: return CanvasSourceRequest;
+            case 5: return CanvasUser;
+            case 6: return Moderator;
+            case 7: return StateChangeMessage;
+            case 8: return ConsoleCommand;
         }
         return Unknown;
     }
