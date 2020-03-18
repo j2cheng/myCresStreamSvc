@@ -688,6 +688,7 @@ void csio_jni_cleanup (int iStreamId)
     data->streamProtocolId = (eProtocolId)0;
     data->httpMode  = eHttpMode_UNSPECIFIED;
 	data->mpegtsPresent = FALSE;
+	data->isDoorStation = FALSE;
 
     for (i = 0; i < MAX_ELEMENTS; i++)
     {
@@ -1068,6 +1069,16 @@ JNIEXPORT void JNICALL Java_com_crestron_txrxservice_GstreamIn_nativeSetServerUr
 	if (url_cstring == NULL) return;
 
 	CSIO_LOG(eLogLevel_debug, "Using server url: '%s'", url_cstring);
+	if(strcasestr(url_cstring, "DOOR_STATION") != NULL)
+	{
+	    CREGSTREAM * data = GetStreamFromCustomData(CresDataDB, streamId);
+
+	    if(data)
+	    {
+	        data->isDoorStation = TRUE;
+	    }
+	}
+
 	csio_SetURL(streamId, (char *)url_cstring, strlen(url_cstring) + 1);
 
 	env->ReleaseStringUTFChars(url_jstring, url_cstring);
@@ -3382,6 +3393,9 @@ void csio_jni_InitPipeline(eProtocolId protoId, int iStreamId,GstRTSPLowerTrans 
 	// Reset TS flag
 	data->mpegtsPresent = FALSE;
 
+	//reset doorstation stream flag
+	data->isDoorStation = FALSE;
+
 	// Read if we should do HDCP decryption, TODO: this will be commanded from CSIO through join eventually
 	//Set dynamically from CSIO now
 /*	data->doHdcp = FALSE;
@@ -5309,8 +5323,19 @@ void csio_jni_setFramePushDelay(int id)
 
         if(data && data->amcvid_dec)
         {
-            g_object_set(G_OBJECT(data->amcvid_dec), "push-delay-max", (guint64) DEFAULT_MAX_FRAME_PUSH_DELAY, NULL);
-            CSIO_LOG(eLogLevel_debug, "Set stream[%d] push-delay-max to: %lluns", id, (guint64) DEFAULT_MAX_FRAME_PUSH_DELAY);
+            guint64 max_delay = (guint64) DEFAULT_MAX_FRAME_PUSH_DELAY;
+
+            //Workaround for bug TSW70-1211
+            if(data->isDoorStation)
+            {
+                //Accept all frames if Door Station stream, even if the decoder detects that
+                //timestamps of those output frames say it's too late to display them.
+                max_delay = 0;
+            }
+            //---------------------
+
+            g_object_set(G_OBJECT(data->amcvid_dec), "push-delay-max", max_delay, NULL);
+            CSIO_LOG(eLogLevel_debug, "Set stream[%d] push-delay-max to: %lluns", id, max_delay);
         }
     }
 }

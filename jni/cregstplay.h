@@ -136,6 +136,7 @@ typedef struct _CREGSTREAM
     gboolean mpegtsPresent;
     eProtocolId	streamProtocolId;
     gboolean doHdcp;
+    gboolean isDoorStation;
 
 	GSource * g_timer_source;
 	guint m_elem_prob_id[MAX_ELEMENTS];
