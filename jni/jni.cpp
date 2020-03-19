@@ -688,7 +688,6 @@ void csio_jni_cleanup (int iStreamId)
     data->streamProtocolId = (eProtocolId)0;
     data->httpMode  = eHttpMode_UNSPECIFIED;
 	data->mpegtsPresent = FALSE;
-	data->isDoorStation = FALSE;
 
     for (i = 0; i < MAX_ELEMENTS; i++)
     {
@@ -1076,6 +1075,12 @@ JNIEXPORT void JNICALL Java_com_crestron_txrxservice_GstreamIn_nativeSetServerUr
 	    if(data)
 	    {
 	        data->isDoorStation = TRUE;
+	        CSIO_LOG(eLogLevel_debug, "%s: Set isDoorStation to TRUE", __FUNCTION__);
+	    }
+	    else
+	    {
+            data->isDoorStation = FALSE;
+            CSIO_LOG(eLogLevel_debug, "%s: Set isDoorStation to FALSE", __FUNCTION__);
 	    }
 	}
 
@@ -3393,9 +3398,6 @@ void csio_jni_InitPipeline(eProtocolId protoId, int iStreamId,GstRTSPLowerTrans 
 	// Reset TS flag
 	data->mpegtsPresent = FALSE;
 
-	//reset doorstation stream flag
-	data->isDoorStation = FALSE;
-
 	// Read if we should do HDCP decryption, TODO: this will be commanded from CSIO through join eventually
 	//Set dynamically from CSIO now
 /*	data->doHdcp = FALSE;
@@ -5335,7 +5337,8 @@ void csio_jni_setFramePushDelay(int id)
             //---------------------
 
             g_object_set(G_OBJECT(data->amcvid_dec), "push-delay-max", max_delay, NULL);
-            CSIO_LOG(eLogLevel_debug, "Set stream[%d] push-delay-max to: %lluns", id, max_delay);
+            CSIO_LOG(eLogLevel_debug, "Set stream[%d] push-delay-max to: %lluns, isDoorStation[%s]",
+            id, max_delay, (data->isDoorStation) ? "true":"false");
         }
     }
 }

@@ -171,6 +171,8 @@ void init_custom_data(CustomData * cdata)
         data->intf_name[0] = 0;
         data->loc_ip_addr[0] = 0;
         data->sourceIP_addr[0] = 0;
+        data->isDoorStation = FALSE; //reset doorstation stream flag
+        CSIO_LOG(eLogLevel_debug, "%s: Set isDoorStation to FALSE", __FUNCTION__);
 	}
 }
 
