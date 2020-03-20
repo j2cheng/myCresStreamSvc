@@ -169,10 +169,16 @@ public class AirMediaCanvas
     	mContext = (Context)mStreamCtl;
     	
     	Common.Logging.i(TAG, "AirMediaCanvas constructor called....");
-    	
 
-    	launchCanvasService(); // will do its job asynchronously
-    	Common.Logging.i(TAG, "AirMediaCanvas constructor completed");
+    	if (CresCanvas.useCanvasSurfaces) // needed only until new apk is added that supports canvas
+    	{
+    		launchCanvasService(); // will do its job asynchronously
+    		Common.Logging.i(TAG, "AirMediaCanvas constructor completed");
+    	}
+    	else
+    	{
+    		isAirMediaCanvasUp = true;
+    	}
     }
     
     public boolean IsAirMediaCanvasUp()

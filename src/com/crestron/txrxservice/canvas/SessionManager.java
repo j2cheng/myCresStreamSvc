@@ -367,7 +367,7 @@ public class SessionManager
     			Common.Logging.i("doCanvasSessionsUpdate: ", "\nSession "+mCanvas.getCrestore().getGson().toJson(s));
     		}
     	}
-		if (mCanvas.IsAirMediaCanvasUp())
+		if ((mCanvas.mAirMediaCanvas.service() != null) && mCanvas.IsAirMediaCanvasUp())
 		{
 			try {
 				mCanvas.mAirMediaCanvas.service().sessionsUpdate(sessions);
