@@ -27,8 +27,8 @@ public class CresCanvas
     public CanvasSourceManager mCanvasSourceManager = null;
     AirMediaCanvas mAirMediaCanvas = null;
 
-	public static final boolean useCanvasSurfaces = false;  // will be removed for integration
-	public static final boolean useSimulatedAVF = true;  // will be removed for integration
+	public static boolean useCanvasSurfaces = false;     // will be removed after integration
+	public static final boolean useSimulatedAVF = true;  // will be removed after integration
 
     public static final String TAG = "TxRx Canvas"; 
 	private static final int MAX_HDMI_INPUTS = 1;
@@ -114,11 +114,13 @@ public class CresCanvas
 			return;
 		Common.Logging.i(TAG, "canvasHasStarted(): ------ canvas is ready -------");
 		// send an empty list in layout update to indicate no sessions
-		Common.Logging.i(TAG, "canvasHasStarted(): ------ doing layout update -------");
+		Common.Logging.i(TAG, "canvasHasStarted(): Layout update");
 		mSessionMgr.doLayoutUpdate();
 		// start possible hdmi and dm sessions
-		Common.Logging.i(TAG, "canvasHasStarted(): ------ doing HDMI sync update -------");
+		Common.Logging.i(TAG, "canvasHasStarted(): HDMI sync update");
 		mStreamCtl.canvasHdmiSyncStateChange();
+		Common.Logging.i(TAG, "canvasHasStarted(): DM sync update");
+		mStreamCtl.canvasDmSyncStateChange();
 	}
 	
 	public Rect getWindow(int streamId)
@@ -138,7 +140,25 @@ public class CresCanvas
 			mStreamCtl.hideCanvasWindow(streamId);
 	}
 	
-	public synchronized void handlePossibleHdmiSyncStateChange(int inputNumber, HDMIInputInterface hdmiInput)
+	public synchronized void handleCodecFailure()
+	{
+		// What do we do to handle ducati or media codec failure
+		// Stop all sessions
+		mSessionMgr.stopAllSessions(new Originator(RequestOrigin.Error));
+		//try { Thread.sleep(100); } catch (Exception ex) {};
+		// Restart HDMI/DM if possible
+		Common.Logging.i(TAG, "handleCodecFailure(): restarting HDMI if needed");
+		mStreamCtl.canvasHdmiSyncStateChange();
+		Common.Logging.i(TAG, "handleCodecFailure(): restarting DM if needed");
+		mStreamCtl.canvasDmSyncStateChange();
+	}
+	
+	public void handlePossibleHdmiSyncStateChange(int inputNumber, HDMIInputInterface hdmiInput)
+	{
+		handlePossibleHdmiSyncStateChange(inputNumber, hdmiInput, true);
+	}
+	
+	public synchronized void handlePossibleHdmiSyncStateChange(int inputNumber, HDMIInputInterface hdmiInput, boolean changeCheck)
 	{
 		if (!IsAirMediaCanvasUp())
 		{
@@ -153,14 +173,16 @@ public class CresCanvas
 		String res = hdmiInput.getHorizontalRes() + "x" + hdmiInput.getVerticalRes();
 		Session session = mSessionMgr.findSession("HDMI", "", "", inputNumber);
 		Common.Logging.i(TAG, "handlePossibleHdmiSyncStateChange(): syncStatus="+hdmiInput.getSyncStatus()+"    resolution="+res);
-		if (hdmiInput.getSyncStatus().equalsIgnoreCase(prevHdmiSyncStatus[inputNumber]) &&
-				res.equalsIgnoreCase(prevHdmiResolution[inputNumber]))
+		if (changeCheck && (hdmiInput.getSyncStatus().equalsIgnoreCase(prevHdmiSyncStatus[inputNumber]) &&
+				res.equalsIgnoreCase(prevHdmiResolution[inputNumber])))
 		{
 			Common.Logging.e(TAG, "handlePossibleHdmiSyncStateChange(): no change in resolution or sync status");
 			return;
 		}
 		prevHdmiSyncStatus[inputNumber] = hdmiInput.getSyncStatus();
 		prevHdmiResolution[inputNumber] = res;
+		int timeout = 5; // seconds
+		Originator origin = new Originator(RequestOrigin.Hardware);
 		if (hdmiInput.getSyncStatus().equalsIgnoreCase("true"))
 		{
 			// HDMI sync is true 
@@ -176,7 +198,7 @@ public class CresCanvas
 				Common.Logging.e(TAG, "HDMI sync is true with existing HDMI session in state "+session.state);
 				if (session.isPlaying())
 				{
-		            mCrestore.doSessionEvent(session, "Stop", new Originator(RequestOrigin.Hardware));
+		            mCrestore.doSynchronousSessionEvent(session, "Stop", origin, timeout);
 				}
 			}
 			else
@@ -192,10 +214,10 @@ public class CresCanvas
 				{
 					Common.Logging.i(TAG, "Connect not create requested session for connect command");
 				}
-				mCrestore.doSessionEvent(session, "Connect", new Originator(RequestOrigin.Hardware));
+				mCrestore.doSynchronousSessionEvent(session, "Connect", origin, timeout);
 			}
             // For now HDMI sessions should immediately be transitioned to Play
-            mCrestore.doSessionEvent(session, "Play", new Originator(RequestOrigin.Hardware));
+            mCrestore.doSynchronousSessionEvent(session, "Play", origin, timeout);
 		}
 		else
 		{
@@ -204,7 +226,7 @@ public class CresCanvas
 			{
 				
 				Common.Logging.e(TAG, "HDMI sync is false with existing HDMI session in state "+session.state);
-	            mCrestore.doSessionEvent(session, "Disconnect", new Originator(RequestOrigin.Hardware));
+	            mCrestore.doSynchronousSessionEvent(session, "Disconnect", origin, timeout);
 			}
 			else
 			{
@@ -215,7 +237,7 @@ public class CresCanvas
 	
 	public synchronized void handleDmSyncStateChange(int inputNumber)
 	{
-		if (IsAirMediaCanvasUp())
+		if (!IsAirMediaCanvasUp())
 		{
 			Common.Logging.e(TAG, "AirMediaCanvas not up - cannot display DM yet");
 			return;
@@ -226,6 +248,8 @@ public class CresCanvas
 			return;
 		}
 		Session session = mSessionMgr.findSession("DM", "", "", inputNumber);
+		int timeout = 5; // seconds
+		Originator origin = new Originator(RequestOrigin.Hardware);
 		if (mStreamCtl.userSettings.getDmSync(inputNumber))
 		{
 			// if session is playing it should be stopped
@@ -233,7 +257,7 @@ public class CresCanvas
 			{
 				
 				Common.Logging.e(TAG, "DM sync is true with existing DM session in state "+session.state);
-	            mCrestore.doSessionEvent(session, "Disconnect", new Originator(RequestOrigin.Hardware));
+	            mCrestore.doSynchronousSessionEvent(session, "Disconnect", origin, timeout);
 			}
 			session = com.crestron.txrxservice.canvas.Session.createSession("DM", "DM"+inputNumber, null, inputNumber, null);
 			if (session != null)
@@ -245,9 +269,9 @@ public class CresCanvas
 			{
 				Common.Logging.i(TAG, "Connect not create requested DM session for connect command");
 			}
-            mCrestore.doSessionEvent(session, "Connect", new Originator(RequestOrigin.Hardware));
+            mCrestore.doSynchronousSessionEvent(session, "Connect", origin, timeout);
             // For now DM sessions should immediately be transitioned to Play
-            mCrestore.doSessionEvent(session, "Play", new Originator(RequestOrigin.Hardware));
+            mCrestore.doSynchronousSessionEvent(session, "Play", origin, timeout);
 		}
 		else
 		{
@@ -255,12 +279,12 @@ public class CresCanvas
 			if (session != null)
 			{
 				
-				Common.Logging.e(TAG, "HDMI sync is false with existing DM session in state "+session.state);
-	            mCrestore.doSessionEvent(session, "Disconnect", new Originator(RequestOrigin.Hardware));
+				Common.Logging.e(TAG, "DM sync is false with existing DM session in state "+session.state);
+	            mCrestore.doSynchronousSessionEvent(session, "Disconnect", origin, timeout);
 			}
 			else
 			{
-				Common.Logging.e(TAG, "No existing DM session");
+				Common.Logging.w(TAG, "No existing DM session");
 			}
 		}
 	}
@@ -413,7 +437,8 @@ public class CresCanvas
 		if (args[0].equalsIgnoreCase("show"))
 		{
 			mSessionMgr.logSessionStates("CanvasConsoleCmd");
-		} else if (args[0].equalsIgnoreCase("stop"))
+		} 
+		else if (args[0].equalsIgnoreCase("stop"))
 		{
 			String sessionId = (args.length == 1) ? "all" : args[1];
 			if (sessionId.equalsIgnoreCase("all"))
@@ -426,6 +451,10 @@ public class CresCanvas
 				if (session != null)
 	            	getCrestore().doSessionEvent(session, "stop", new Originator(RequestOrigin.ConsoleCommand));
 			}
+		}
+		else if (args[0].equalsIgnoreCase("fail"))
+		{
+			handleCodecFailure();
 		}
 	}
 }

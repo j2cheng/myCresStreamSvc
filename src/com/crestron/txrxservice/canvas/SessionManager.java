@@ -19,6 +19,7 @@ import com.crestron.airmedia.canvas.channels.ipc.CanvasSourceTransaction;
 import com.crestron.airmedia.canvas.channels.ipc.CanvasSourceType;
 import com.crestron.airmedia.receiver.m360.models.AirMediaSession;
 import com.crestron.airmedia.utilities.Common;
+import com.crestron.airmedia.utilities.TimeSpan;
 import com.crestron.txrxservice.canvas.CanvasCrestore.SessionEvent;
 import com.crestron.txrxservice.canvas.CanvasCrestore.SessionEventMapEntry;
 
@@ -181,7 +182,18 @@ public class SessionManager
             }
     	}
     	if (e.sessionEventMap.size() > 0)
-    		crestore.doSessionEvent(e, origin, null);
+    	{
+        	TimeSpan timeout = TimeSpan.fromSeconds(15);
+        	boolean timedout = false;
+    		TimeSpan startTime = TimeSpan.now();
+        	Waiter waiter = new Waiter();
+        	crestore.doSessionEvent(e, origin, waiter);
+        	timedout = waiter.waitForSignal(timeout);
+        	if (timedout)
+        		Common.Logging.i(TAG,"stopAllSessions(): Timeout while stopping all Sessions"+e.transactionId);
+        	else
+        		Common.Logging.i(TAG,"stopAllSessions(): completed in "+TimeSpan.now().subtract(startTime).toString());
+    	}
     }
     
     public void logSessionStates(String tag)

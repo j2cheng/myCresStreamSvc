@@ -612,6 +612,16 @@ public class CresStreamCtrl extends Service {
             hideVideoOnStop = nativeHideVideoBeforeStop();
             airMediav21 = MiscUtils.readStringFromDisk("/data/CresStreamSvc/airMediav2.1").equals("1");
             Log.i(TAG, "device " + ((airMediav21)?"is in":"is not in") + " airMedia2.1 Mode");
+            //TODO remove once integration is over
+            if (airMediav21)
+            {
+            	File f = new File("/data/CresStreamSvc/useCanvasSurfaces");
+            	if (f.exists())
+            	{
+                	CresCanvas.useCanvasSurfaces = MiscUtils.readStringFromDisk("/data/CresStreamSvc/useCanvasSurfaces").equals("1");
+            	}
+                Log.i(TAG, "device using "+((CresCanvas.useCanvasSurfaces)?"canvas":"internal")+" surfacviews");
+            }
             NumDmInputs = nativeGetDmInputCount();
             mHwPlatform = CrestronHwPlatform.fromInteger(nativeGetHWPlatformEnum());
             mProductName = getProductName(nativeGetProductTypeEnum());
@@ -2744,14 +2754,6 @@ public class CresStreamCtrl extends Service {
         {
             hdmiInput.updateResolutionInfo();
             canvasHdmiSyncStateChange();
-        }
-    }
-    
-    public void canvasHdmiSyncStateChange()
-    {
-        if (hdmiInputDriverPresent && (mCanvas != null))
-        {
-            mCanvas.handlePossibleHdmiSyncStateChange(1, hdmiInput);
         }
     }
 
@@ -6451,6 +6453,22 @@ public class CresStreamCtrl extends Service {
         return retVal;
     }
 
+    public void canvasHdmiSyncStateChange()
+    {
+        if (hdmiInputDriverPresent && (mCanvas != null))
+        {
+            mCanvas.handlePossibleHdmiSyncStateChange(1, hdmiInput, false);
+        }
+    }
+    
+    public void canvasDmSyncStateChange()
+    {
+        if (mCanvas != null)
+        {
+            processDmSyncEvent(1);
+        }
+    }
+
     public void resetDmSettings()
     {
         for (int i=0; i < NumDmInputs; i++)
@@ -6461,22 +6479,26 @@ public class CresStreamCtrl extends Service {
         }
     }
 
+    public void processDmSyncEvent(final int inputNumber)
+    {
+        if (mCanvas != null)
+        {
+            new Thread(new Runnable() {
+                public void run() {
+                    Log.i(TAG, "setDmSync(): calling handleDmSyncStateChange for DM input "+inputNumber);
+                    mCanvas.handleDmSyncStateChange(inputNumber);
+                }
+            }).start();
+        }
+    }
+    
     public void setDmSync(boolean value, int inputNumber)
     {
         Log.i(TAG, "setDmSync(): sync="+value+" for DM input "+inputNumber);
         if (userSettings.getDmSync(inputNumber) != value)
         {
             userSettings.setDmSync(value, inputNumber);
-            if (mCanvas != null)
-            {
-                final int iNum = inputNumber;
-                new Thread(new Runnable() {
-                    public void run() {
-                        Log.i(TAG, "setDmSync(): calling handleDmSyncStateChange for DM input "+iNum);
-                        mCanvas.handleDmSyncStateChange(iNum);
-                    }
-                }).start();
-            }
+            processDmSyncEvent(inputNumber);
         }
     }
 

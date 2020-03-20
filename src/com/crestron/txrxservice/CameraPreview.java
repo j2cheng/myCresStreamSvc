@@ -167,6 +167,7 @@ public class CameraPreview {
 		        			try {
 		        				// for this to work a change to added a public method in android.hardware.Camera
 		        				Surface s = streamCtl.getSurface(idx);
+		        				Log.i(TAG,"setPreviewSurface streamId="+idx+" surface: "+((s!=null)?s:"null")+" isValid="+((s!=null)?s.isValid():"false"));
 								ProductSpecific.setPreviewSurface(CresCamera.mCamera, s);
 		        			}catch (Exception localException) {
 		        				localException.printStackTrace();

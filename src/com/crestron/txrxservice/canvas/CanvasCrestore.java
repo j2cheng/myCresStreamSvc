@@ -159,6 +159,11 @@ public class CanvasCrestore
 		t.se = sendSessionEvent(transactionId, s.sessionId(), requestedState, s.type, s.airMediaType, s.inputNumber);
 	}
 	
+	public synchronized boolean doSynchronousSessionEvent(Session s, String requestedState, Originator originator, int timeoutInSecs)
+	{
+		return doSessionEventWithCompletionTimeout(s, requestedState, originator, TimeSpan.fromSeconds(timeoutInSecs));
+	}
+	
 	public synchronized boolean doSessionEventWithCompletionTimeout(Session s, String requestedState, Originator originator, TimeSpan timeout)
 	{
 		boolean timedout = false;
@@ -250,7 +255,7 @@ public class CanvasCrestore
 				{
 					Common.Logging.i(TAG, "Adding session " + session + " to sessionManager");
 					mSessionMgr.add(session);
-					doSessionEvent(session, "Connect", new Originator(RequestOrigin.StateChangeMessage, session));
+					doSynchronousSessionEvent(session, "Connect", new Originator(RequestOrigin.StateChangeMessage, session), 10);
 				}
 				else
 				{

@@ -26,6 +26,7 @@ public class AirMediaReceiver extends AirMediaBase {
     public static final String TAG = "airmedia.receiver";
     public static final String AIRMEDIA_SERVICE_PACKAGE = "com.crestron.airmedia.receiver.m360";
     public static final String AIRMEDIA_SERVICE_BIND = "com.crestron.airmedia.receiver.m360.BIND";
+    public static final String AIRMEDIA_SERVICE_CANVAS_BIND = "com.crestron.airmedia.receiver.canvas.BIND";
 
     public AirMediaReceiver(IAirMediaReceiver receiver) {
         super(new TaskScheduler(TAG));

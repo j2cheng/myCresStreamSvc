@@ -2471,6 +2471,10 @@ public class AirMediaSplashtop
     private void sendStopToAllSenders()
     {
 		Common.Logging.i(TAG, "sendStopToAllSenders");
+		if (mCanvas != null)
+		{
+			mCanvas.handleCodecFailure();
+		}
     	for (int i = 1; i <= MAX_USERS; i++) // We handle airMedia user ID as 1 based
     	{
     		if (mStreamCtl.userSettings.getAirMediaUserConnected(i))
@@ -2566,7 +2570,8 @@ public class AirMediaSplashtop
     
 	private void doBindService() {
         Common.Logging.i(TAG, "doBindService");
-        Intent serviceIntent = new Intent(AirMediaReceiver.AIRMEDIA_SERVICE_BIND);
+        String bindString = ((mCanvas==null || CresCanvas.useCanvasSurfaces==false) ? AirMediaReceiver.AIRMEDIA_SERVICE_BIND : AirMediaReceiver.AIRMEDIA_SERVICE_CANVAS_BIND);
+        Intent serviceIntent = new Intent(bindString);
         serviceIntent.setPackage(AirMediaReceiver.AIRMEDIA_SERVICE_PACKAGE);
 		List<ResolveInfo> list = mContext.getPackageManager().queryIntentServices(serviceIntent, 0);
 		if (list == null || list.isEmpty()) {
@@ -2576,7 +2581,7 @@ public class AirMediaSplashtop
 		        Common.Logging.e(TAG, "failed to bind to " + AirMediaReceiver.AIRMEDIA_SERVICE_PACKAGE);
 			}
 		}
-		Common.Logging.i(TAG, "doBindService - completed bind BIND=" + AirMediaReceiver.AIRMEDIA_SERVICE_BIND + "   PACKAGE=" + AirMediaReceiver.AIRMEDIA_SERVICE_PACKAGE);
+		Common.Logging.i(TAG, "doBindService - completed bind BIND=" + bindString + "   PACKAGE=" + AirMediaReceiver.AIRMEDIA_SERVICE_PACKAGE);
 	}
 
 	private void doUnbindService() {
