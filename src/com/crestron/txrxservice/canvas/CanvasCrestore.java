@@ -129,19 +129,19 @@ public class CanvasCrestore
         }
         
         // TODO just for debugging - remove eventually: print existing map read from crestore
-        s = "{\"Internal\":{\"AirMedia\":{\"Canvas\":{\"SessionResponse\":{\"SessionResponseMap\":{}}}}}}";
-        String sessionResponseMapString = null;
-        try {
-        	sessionResponseMapString = wrapper.get(false, s);
-        } catch (Exception e) {
-        	Common.Logging.i(TAG, "Exception while reading "+s+" from cresstore");
-        	e.printStackTrace();
-        }
-        if (sessionResponseMapString != null)
-        {
-        	Root r = gson.fromJson(sessionResponseMapString, Root.class);
-        	Common.Logging.i(TAG, "Current Session Response Map in Crestore="+gson.toJson(r));
-        }
+//        s = "{\"Internal\":{\"AirMedia\":{\"Canvas\":{\"SessionResponse\":{\"SessionResponseMap\":{}}}}}}";
+//        String sessionResponseMapString = null;
+//        try {
+//        	sessionResponseMapString = wrapper.get(false, s);
+//        } catch (Exception e) {
+//        	Common.Logging.i(TAG, "Exception while reading "+s+" from cresstore");
+//        	e.printStackTrace();
+//        }
+//        if (sessionResponseMapString != null)
+//        {
+//        	Root r = gson.fromJson(sessionResponseMapString, Root.class);
+//        	Common.Logging.i(TAG, "Current Session Response Map in Crestore="+gson.toJson(r));
+//        }
         // At startup make session response map empty 
         Root r = getRootedInternalAirMediaCanvas();
         r.internal.airMedia.canvas.sessionResponse = new SessionResponse();

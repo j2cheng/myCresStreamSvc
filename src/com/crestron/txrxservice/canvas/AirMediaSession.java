@@ -230,12 +230,14 @@ public class AirMediaSession extends Session
 		  if (waiterForStopRequestToUser.isWaiting())
 		  {
 			  // user has already requested stop so simply signal that session is now stopped
+			  Common.Logging.i(TAG, "Session "+this+" signaling stoppage to waiter");
 			  waiterForStopRequestToUser.signal();
 		  }
 		  else
 		  {
 			  final Originator originator = new Originator(RequestOrigin.Receiver, this);
 			  Runnable r = new Runnable() { @Override public void run() { stopRequest(originator); } };
+			  Common.Logging.i(TAG, "Session "+this+" scheduling stop request");
 			  scheduler().queue(TAG, "stopRequest", TimeSpan.fromSeconds(10), r);
 		  }
 		} 

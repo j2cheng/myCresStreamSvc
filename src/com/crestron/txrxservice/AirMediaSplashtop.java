@@ -2215,7 +2215,7 @@ public class AirMediaSplashtop
 							clientDataStatus = status;
 							this.Status = clientDataStatus;
 						}
-						Common.Logging.i("TAG", "updateStatusAndTotalUsers(): status ="+clientDataStatus+" totalUsers="+clientDataTotalUsers);
+						Common.Logging.i(TAG, "updateStatusAndTotalUsers(): status ="+clientDataStatus+" totalUsers="+clientDataTotalUsers);
 					}
 				}
 

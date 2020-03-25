@@ -620,7 +620,7 @@ public class CresStreamCtrl extends Service {
             	{
                 	CresCanvas.useCanvasSurfaces = MiscUtils.readStringFromDisk("/data/CresStreamSvc/useCanvasSurfaces").equals("1");
             	}
-                Log.i(TAG, "device using "+((CresCanvas.useCanvasSurfaces)?"canvas":"internal")+" surfacviews");
+                Log.i(TAG, "device using "+((CresCanvas.useCanvasSurfaces)?"canvas":"internal")+" surfaceviews");
             }
             NumDmInputs = nativeGetDmInputCount();
             mHwPlatform = CrestronHwPlatform.fromInteger(nativeGetHWPlatformEnum());
@@ -1064,8 +1064,6 @@ public class CresStreamCtrl extends Service {
             {
                 mCanvas = com.crestron.txrxservice.canvas.CresCanvas.getInstance(this);
                 resetDmSettings();
-                //TODO will go away once we have a canvas app
-                setCanvasWindows();
             }
             
             // Create a DisplaySurface to handle both preview and stream in
@@ -1075,10 +1073,9 @@ public class CresStreamCtrl extends Service {
             mPreviousHdmiOutResolution = new Resolution(size.x, size.y);
 
             // AirMedia v2.1 onwards
-            if (airMediav21)
+            if (airMediav21 && !CresCanvas.useCanvasSurfaces)
             {
-                mCanvas = com.crestron.txrxservice.canvas.CresCanvas.getInstance(this);
-                resetDmSettings();
+                Log.i(TAG, MiscUtils.stringFormat("---- Setup canvas windows ----"));
                 //TODO will go away once we have a canvas app
                 setCanvasWindows();
             }
@@ -3235,7 +3232,7 @@ public class CresStreamCtrl extends Service {
                         setSurfaceViewTag(sessionId, "VideoLayer");
                 }
 
-                if (userSettings.getAirMediaLaunch(sessionId)) {
+                if (!airMediav21 && userSettings.getAirMediaLaunch(sessionId)) {
                     // If we are starting streaming shutoff air media
                     launchAirMedia(false, sessionId, false);
                 }
