@@ -1,6 +1,9 @@
 package com.crestron.txrxservice.canvas;
 
 import com.crestron.airmedia.canvas.channels.ipc.CanvasPlatformType;
+import com.crestron.airmedia.canvas.channels.ipc.CanvasSessionState;
+import com.crestron.airmedia.canvas.channels.ipc.CanvasSourceSession;
+import com.crestron.airmedia.canvas.channels.ipc.CanvasSourceType;
 import com.crestron.airmedia.receiver.m360.ipc.AirMediaSize;
 import com.crestron.airmedia.receiver.m360.ipc.AirMediaPlatforms;
 import com.crestron.airmedia.receiver.m360.models.*;
@@ -31,6 +34,8 @@ public class Session
     public SessionType type;
     public SessionAirMediaType airMediaType;
     public CanvasPlatformType platform;
+    public boolean isVideoLoading;
+    public boolean isAudioMuted;
     public String userLabel;
     public int inputNumber;
     public String url;
@@ -56,6 +61,8 @@ public class Session
 		inputNumber = 0;
 		url = null;
 		resolution = new AirMediaSize(0,0);
+		isVideoLoading = false;
+		isAudioMuted = false;
 		scheduler_ = new Scheduler(sessionId());
 		setSourceUserPermission(false);
 		setCanvasUserPermission(false);
@@ -276,8 +283,84 @@ public class Session
 		setResolution(resolution);
 	}
 	
+	public void setIsVideoLoading(boolean value)
+	{
+		if (value != isVideoLoading)
+		{
+			isVideoLoading = value;
+			canvasSessionUpdate(this);
+		}
+	}
 	
+	public void setIsAudioMuted(boolean value)
+	{
+		if (value != isAudioMuted)
+		{
+			isAudioMuted = value;
+			canvasSessionUpdate(this);
+		}
+	}
 	
+    public static CanvasSourceSession session2CanvasSourceSession(Session s)
+    {
+	    CanvasSessionState state = CanvasSessionState.Stopped;
+	    CanvasSourceType type;
+	    CanvasPlatformType platform;
+
+	    if (s.isStopped())
+	    	state  = CanvasSessionState.Stopped;
+	    else if (s.isPlaying())
+	    	state  = CanvasSessionState.Playing;
+	    else if (s.isPaused())
+	    	state = CanvasSessionState.Paused;
+	    
+	    switch (s.type)
+	    {
+		case AirBoard:
+			type = CanvasSourceType.Airboard;
+			break;
+		case AirMedia:
+			type = CanvasSourceType.AirMedia;
+			break;
+		case DM:
+			type = CanvasSourceType.DM;
+			break;
+		case HDMI:
+			type = CanvasSourceType.HDMI;
+			break;
+		case Unknown:
+		default:
+			type = CanvasSourceType.Unknown;
+			break;	    	
+	    }
+	    
+	    platform = s.getPlatformType();
+
+	    CanvasSourceSession css = new CanvasSourceSession(s.sessionId(), s.getUserLabel(), state, type, 
+	    		platform, s.getResolution().width, s.getResolution().height);
+
+	    return css;
+    }
+    
+    public void canvasSessionUpdate(Session s)
+    {
+    	if (s == null)
+    		return;
+    	
+		CanvasSourceSession css = session2CanvasSourceSession(s);
+		Common.Logging.i("canvasSessionUpdate: ", "\nSession "+mCanvas.getCrestore().getGson().toJson(css));
+//		if ((mCanvas.mAirMediaCanvas.service() != null) && mCanvas.IsAirMediaCanvasUp())
+//		{
+//			try {
+//				mCanvas.mAirMediaCanvas.service().sessionUpdate(css);
+//			} catch (android.os.RemoteException ex)
+//			{
+//				Log.i(TAG, "Remote exceptione encountered while doing canvasSessionUpdate");
+//				ex.printStackTrace();
+//			}
+//		}
+    }
+    
     /// EQUALITY
 
     public static boolean isEqual(Session lhs, Session rhs) {

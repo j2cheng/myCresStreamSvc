@@ -2871,6 +2871,7 @@ public class AirMediaSplashtop
     	session.videoRotationChanged().register(videoRotationChangedHandler_);
     	session.videoSurfaceChanged().register(videoSurfaceChangedHandler_);
     	session.videoDrmChanged().register(videoDrmChangedHandler_);
+    	session.videoLoadingChanged().register(videoLoadingChangedHandler_);
     	session.videoScreenPositionChanged().register(videoScreenPositionHandler_);
     	session.audioStateChanged().register(audioStateChangedHandler_);
     	session.audioMuteChanged().register(audioMuteChangedHandler_);
@@ -3101,6 +3102,22 @@ public class AirMediaSplashtop
                 }
             };
 
+    private final MulticastMessageDelegate.Observer<AirMediaSession, Boolean> videoLoadingChangedHandler_ =
+		   new MulticastMessageDelegate.Observer<AirMediaSession, Boolean>() {
+	           @Override
+	           public void onEvent(AirMediaSession session, Boolean value) {
+	        	   Common.Logging.i(TAG, "view.session.event.video.loading  " + AirMediaSession.toDebugString(session) + "  " + !value + "  ==>  " + value);
+	        	   // TODO Handle video loading change
+	        	   if (mCanvas != null) {
+	        		   com.crestron.txrxservice.canvas.AirMediaSession s = canvasSessionMap.get(session.id());
+	        		   if (s != null)
+	        		   {
+	        			   s.setIsVideoLoading(value);
+	        		   }
+	        	   }
+	           }
+           };
+                    
     private final MulticastChangedDelegate.Observer<AirMediaSession, AirMediaSessionScreenPosition> videoScreenPositionHandler_ =
             new MulticastChangedDelegate.Observer<AirMediaSession, AirMediaSessionScreenPosition>() {
                 @Override
@@ -3126,6 +3143,13 @@ public class AirMediaSplashtop
                 public void onEvent(AirMediaSession session, Boolean value) {
                     Common.Logging.i(TAG, "view.session.event.audio.mute  " + AirMediaSession.toDebugString(session) + "  " + !value + "  ==>  " + value);
                     // TODO Handle audio mute change
+ 	        	   if (mCanvas != null) {
+	        		   com.crestron.txrxservice.canvas.AirMediaSession s = canvasSessionMap.get(session.id());
+	        		   if (s != null)
+	        		   {
+	        			   s.setIsAudioMuted(value);
+	        		   }
+	        	   }
                 }
             };
 

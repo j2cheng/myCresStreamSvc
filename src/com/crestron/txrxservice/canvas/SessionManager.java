@@ -314,42 +314,9 @@ public class SessionManager
     		for (Session s : sessions_) {
     			if (s.state == SessionState.Connecting || s.state == SessionState.Disconnecting)
     				continue;
-    		    CanvasSessionState state = CanvasSessionState.Stopped;
-    		    CanvasSourceType type;
-    		    CanvasPlatformType platform;
-
-    		    if (s.isStopped())
-    		    	state  = CanvasSessionState.Stopped;
-    		    else if (s.isPlaying())
-    		    	state  = CanvasSessionState.Playing;
-    		    else if (s.isPaused())
-    		    	state = CanvasSessionState.Paused;
-    		    
-    		    switch (s.type)
-    		    {
-				case AirBoard:
-					type = CanvasSourceType.Airboard;
-					break;
-				case AirMedia:
-					type = CanvasSourceType.AirMedia;
-					break;
-				case DM:
-					type = CanvasSourceType.DM;
-					break;
-				case HDMI:
-					type = CanvasSourceType.HDMI;
-					break;
-				case Unknown:
-				default:
-					type = CanvasSourceType.Unknown;
-					break;	    	
-    		    }
-    		    
-    		    platform = s.getPlatformType();
-
-    		    CanvasSourceSession css = new CanvasSourceSession(s.sessionId(), s.getUserLabel(), state, type, 
-    		    		platform, s.getResolution().width, s.getResolution().height);
-
+    			
+    			CanvasSourceSession css = Session.session2CanvasSourceSession(s);
+    			
     			sList.add(css);
     		}
     		doCanvasSessionsUpdate(sList);
@@ -373,7 +340,7 @@ public class SessionManager
 				mCanvas.mAirMediaCanvas.service().sessionsUpdate(sessions);
 			} catch (android.os.RemoteException ex)
 			{
-				Log.i(TAG, "Remote exceptione encountered while doign sessions update");
+				Log.i(TAG, "Remote exceptione encountered while doing sessions update");
 				ex.printStackTrace();
 			}
 		}
