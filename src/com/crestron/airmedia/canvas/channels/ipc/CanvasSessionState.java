@@ -41,4 +41,10 @@ public enum CanvasSessionState implements Parcelable {
         }
         return Disconnected;
     }
+
+    public boolean isDisconnected() { return this == CanvasSessionState.Disconnected; }
+
+    public boolean isStopped() { return !isStreaming(); }
+
+    public boolean isStreaming() { return this == CanvasSessionState.Playing || this == CanvasSessionState.Paused; }
 }

@@ -337,7 +337,7 @@ public class Session
 	    platform = s.getPlatformType();
 
 	    CanvasSourceSession css = new CanvasSourceSession(s.sessionId(), s.getUserLabel(), state, type, 
-	    		platform, s.getResolution().width, s.getResolution().height);
+	    		platform, s.getResolution().width, s.getResolution().height, s.isVideoLoading, s.isAudioMuted);
 
 	    return css;
     }
@@ -349,16 +349,16 @@ public class Session
     	
 		CanvasSourceSession css = session2CanvasSourceSession(s);
 		Common.Logging.i("canvasSessionUpdate: ", "\nSession "+mCanvas.getCrestore().getGson().toJson(css));
-//		if ((mCanvas.mAirMediaCanvas.service() != null) && mCanvas.IsAirMediaCanvasUp())
-//		{
-//			try {
-//				mCanvas.mAirMediaCanvas.service().sessionUpdate(css);
-//			} catch (android.os.RemoteException ex)
-//			{
-//				Log.i(TAG, "Remote exceptione encountered while doing canvasSessionUpdate");
-//				ex.printStackTrace();
-//			}
-//		}
+		if ((mCanvas.mAirMediaCanvas.service() != null) && mCanvas.IsAirMediaCanvasUp())
+		{
+			try {
+				mCanvas.mAirMediaCanvas.service().sessionUpdate(css);
+			} catch (android.os.RemoteException ex)
+			{
+				Log.i(TAG, "Remote exceptione encountered while doing canvasSessionUpdate");
+				ex.printStackTrace();
+			}
+		}
     }
     
     /// EQUALITY
