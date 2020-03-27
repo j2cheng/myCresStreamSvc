@@ -888,6 +888,7 @@ public class CresStreamCtrl extends Service {
             {
                 // We are in teams video mode disable RGB888 mode
                 setRgb888Mode(false);
+                setAirMediaAdapters("None");
                 airMediaEnable(false);
                 Log.i(TAG, "Disabling RGB888 and AirMedia because we are in Teams video mode");
             }
@@ -5145,8 +5146,8 @@ public class CresStreamCtrl extends Service {
         	// TODO remove this once wifi address is actually populated
             ipaddr = "0.0.0.0";
         }
-        if (ipaddr == null)
-        	return "None";
+        if (ipaddr == nNoneull)
+        	return "";
         else
         	return ipaddr;
     }
