@@ -14,7 +14,7 @@ import com.google.gson.Gson;
 
 public class SimulatedAVF
 {
-    public static final String TAG = "SimulatedAVF";
+    public static final String TAG = "TxRx.canvas.simulatedAVF";
 	int failureReason = 0;
 	CanvasCrestore mCrestore = null;
 	Gson gson;

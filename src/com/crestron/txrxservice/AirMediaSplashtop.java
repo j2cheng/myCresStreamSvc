@@ -3028,6 +3028,18 @@ public class AirMediaSplashtop
                         	  deleteActiveSessionWithFeedback(session);
                     	  }
                       }
+                      else if (getSessionVideoState(session) == AirMediaSessionStreamingState.Paused)
+                      {
+                    	  if (mCanvas != null)
+                    	  {
+                    		  com.crestron.txrxservice.canvas.AirMediaSession s = canvasSessionMap.get(session.id());
+                    		  if (s != null)
+                    		  {
+                    			  s.setVideoState(AirMediaSessionStreamingState.Paused);
+                    		  }
+                  			  sendClientDataIsActiveSession(session, false);	
+                    	  }
+                      }
                 }
             };
 

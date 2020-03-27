@@ -52,7 +52,7 @@ public class CanvasCrestore
 	private final ReentrantLock sessionEventLock = new ReentrantLock();
 	Map<String, TransactionData> transactionMap= new ConcurrentHashMap<String, TransactionData>();
 
-    public static final String TAG = "TxRx CanvasCrestore";
+    public static final String TAG = "TxRx.canvas.crestore";
     private com.crestron.cresstoreredis.CresStoreWrapper wrapper = null;
 	private Gson gson = null;
 	public Gson getGson() { return gson; }

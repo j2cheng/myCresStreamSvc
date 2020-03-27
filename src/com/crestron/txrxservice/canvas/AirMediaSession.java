@@ -10,7 +10,7 @@ import android.view.Surface;
 public class AirMediaSession extends Session
 {
 	com.crestron.airmedia.receiver.m360.models.AirMediaSession airMediaReceiverSession;
-    public static final String TAG = "TxRxAirMediaSession"; 
+    public static final String TAG = "TxRx.canvas.airmedia.session"; 
     public AirMediaSessionStreamingState videoState;
     public Waiter waiterForPlayRequestToUser = null;
     public Waiter waiterForStopRequestToUser = null;
@@ -248,12 +248,26 @@ public class AirMediaSession extends Session
   			  // user has already requested play so simply signal that session is now playing
   			  waiterForPlayRequestToUser.signal();
   		  }
-  		  else
+  		  else 
   		  {
-			  final Originator originator = new Originator(RequestOrigin.Receiver, this);
-			  Runnable r = new Runnable() { @Override public void run() { playRequest(originator); } };
-			  scheduler().queue(TAG, "playRequest", TimeSpan.fromSeconds(10), r);
+  			  SessionState prevState = getState();
+  			  if (prevState == SessionState.Stopped)
+  			  {
+  				  final Originator originator = new Originator(RequestOrigin.Receiver, this);
+  				  Runnable r = new Runnable() { @Override public void run() { playRequest(originator); } };
+  				  scheduler().queue(TAG, "playRequest", TimeSpan.fromSeconds(10), r);
+  			  }
+  			  else if (prevState == SessionState.Paused)
+  			  {
+  				  setState(SessionState.Playing);
+  				  canvasSessionUpdate(this);
+  			  }
   		  }
+		}
+		else if (s == AirMediaSessionStreamingState.Paused)
+		{
+			setState(SessionState.Paused);
+			canvasSessionUpdate(this);
 		}
 	}
 	

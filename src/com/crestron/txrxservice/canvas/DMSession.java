@@ -16,7 +16,7 @@ import android.view.Surface;
 
 public class DMSession extends Session
 {
-    public static final String TAG = "TxRxDMSession"; 
+    public static final String TAG = "TxRx.canvas.DM.session"; 
 
 	public DMSession(int inputNumber) {
 		super(); // will assign id;

@@ -27,7 +27,7 @@ public class Session
 	com.crestron.txrxservice.canvas.CresCanvas mCanvas;
 	public static CresStreamCtrl mStreamCtl;
 	public SessionManager mSessionMgr;
-    public static final String TAG = "TxRxSession"; 
+    public static final String TAG = "TxRx.canvas.session"; 
     public long id;
     public int streamId;
     public SessionState state;
@@ -348,7 +348,7 @@ public class Session
     		return;
     	
 		CanvasSourceSession css = session2CanvasSourceSession(s);
-		Common.Logging.i("canvasSessionUpdate: ", "\nSession "+mCanvas.getCrestore().getGson().toJson(css));
+		Common.Logging.i("TxRx.canvas.sessionupdate: ", "\nSession "+mCanvas.getCrestore().getGson().toJson(css));
 		if ((mCanvas.mAirMediaCanvas.service() != null) && mCanvas.IsAirMediaCanvasUp())
 		{
 			try {

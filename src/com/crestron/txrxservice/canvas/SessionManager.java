@@ -30,7 +30,7 @@ import android.util.Log;
 public class SessionManager
 {
 	com.crestron.txrxservice.canvas.CresCanvas mCanvas;
-    public static final String TAG = "TxRxSessionManager"; 
+    public static final String TAG = "TxRx.canvas.sessionmanager"; 
     private final Object lock_ = new Object();
     private final Object layoutUpdateLock = new Object();
     private final List<Session> sessions_ = new LinkedList<Session>();
@@ -331,7 +331,7 @@ public class SessionManager
     	} else {
     		for (CanvasSourceSession s : sessions)
     		{
-    			Common.Logging.i("doCanvasSessionsUpdate: ", "\nSession "+mCanvas.getCrestore().getGson().toJson(s));
+    			Common.Logging.i("TxRx.canvas.sessionsupdate: ", "\nSession "+mCanvas.getCrestore().getGson().toJson(s));
     		}
     	}
 		if ((mCanvas.mAirMediaCanvas.service() != null) && mCanvas.IsAirMediaCanvasUp())

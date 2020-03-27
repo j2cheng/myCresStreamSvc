@@ -13,7 +13,7 @@ import com.crestron.txrxservice.canvas.CanvasCrestore.TransactionData;
 import android.util.Log;
 
 public class CanvasSourceManager {
-    private static final String TAG = "CanvasSourceManager";
+    private static final String TAG = "TxRx.canvas.sourcemanager";
     
     CanvasSourceManager(CresStreamCtrl streamCtrl, CanvasCrestore crestore) {
     	mStreamCtl = streamCtrl;

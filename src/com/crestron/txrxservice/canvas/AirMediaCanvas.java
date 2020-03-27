@@ -85,7 +85,7 @@ public class AirMediaCanvas
 {
     CresStreamCtrl mStreamCtl;
     Context mContext;
-    public static final String TAG = "TxRx AirMediaCanvas"; 
+    public static final String TAG = "TxRx.canvas.airmedia.canvas"; 
     public static final String AIRMEDIA_CANVAS_PACKAGE = "com.crestron.airmedia.receiver.m360"; // will likely change to different app
     public static final String AIRMEDIA_CANVAS_BIND = "com.crestron.airmedia.canvas.BIND";
 	private static final boolean DEBUG = false;

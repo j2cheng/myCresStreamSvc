@@ -30,7 +30,7 @@ public class CresCanvas
 	public static boolean useCanvasSurfaces = false;     // will be removed after integration
 	public static final boolean useSimulatedAVF = true;  // will be removed after integration
 
-    public static final String TAG = "TxRx Canvas"; 
+    public static final String TAG = "TxRx.canvas"; 
 	private static final int MAX_HDMI_INPUTS = 1;
 	private static final int MAX_DM_INPUTS = 1;
 	public static final int MAX_CONNECTED = 10;

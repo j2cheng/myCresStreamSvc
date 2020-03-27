@@ -12,7 +12,7 @@ import android.view.Surface;
 
 public class HDMISession extends Session
 {
-    public static final String TAG = "TxRxHDMISession";
+    public static final String TAG = "TxRx.canvas.HDMI.session";
     private HDMIInputInterface hdmiInput;
 
 	public HDMISession(int inputNumber) {
