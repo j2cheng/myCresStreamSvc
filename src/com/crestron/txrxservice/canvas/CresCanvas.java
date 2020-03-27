@@ -144,8 +144,18 @@ public class CresCanvas
 			mStreamCtl.hideCanvasWindow(streamId);
 	}
 	
+	public synchronized void handleReceiverDisconnected()
+	{
+		Common.Logging.i(TAG, "*********************** handleReceiverDisconnected ***********************");
+		// What do we do to handle ducati or media codec failure
+		// Stop all sessions
+		mSessionMgr.stopAllSessions(new Originator(RequestOrigin.Error));
+		mSessionMgr.disconnectAllAirMediaSessions(new Originator(RequestOrigin.Error));
+	}
+	
 	public synchronized void handleCodecFailure()
 	{
+		Common.Logging.i(TAG, "*********************** handleCodecFailure ***********************");
 		// What do we do to handle ducati or media codec failure
 		// Stop all sessions
 		mSessionMgr.stopAllSessions(new Originator(RequestOrigin.Error));

@@ -239,6 +239,11 @@ public class CanvasCrestore
 	public void processSessionStateChange(SessionStateChange s)
 	{
 		Common.Logging.v(TAG, "Processing Session State Change Message "+gson.toJson(s));
+		if (!mCanvas.IsAirMediaCanvasUp())
+		{
+			Common.Logging.i(TAG, "processSessionStateChange(): AirMediaCanvas not up - cannot handle message yet");
+			return;
+		}
 		Session session = mSessionMgr.findSession(s.type, s.userLabel, s.url, (s.inputNumber==null)?0:s.inputNumber.intValue());
 		if (s.state.equalsIgnoreCase("Connect"))
 		{

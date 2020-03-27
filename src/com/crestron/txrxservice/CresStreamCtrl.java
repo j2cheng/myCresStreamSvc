@@ -1409,6 +1409,8 @@ public class CresStreamCtrl extends Service {
                     " needs to change to " + ((enable) ? "enabled" : "disabled") /*+ " - requesting restart ....."*/);
             userSettings.setCanvasModeEnabled(enable);
             isRGB888HDMIVideoSupported = getRGB888VideoSupportState();
+            if (mAirMedia != null)
+            	mAirMedia.setAirMediaReceiverMaxResolution();
             //RestartTxrxService();
         }
         else

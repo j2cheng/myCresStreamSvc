@@ -174,11 +174,12 @@ public class AirMediaSession extends Session
 		setState(SessionState.Stopping);
 		if (getVideoState() != AirMediaSessionStreamingState.Stopped)
 		{
-			Common.Logging.i(TAG, "Session "+this+" calling sensStopCommand to source user");
+			Common.Logging.i(TAG, "Session "+this+" calling sendStopCommand to source user");
 			boolean success = sendStopCommandToSourceUser();  // make synchronous must wait for videoState to go to Playing
 			if (!success)
 			{
 				Common.Logging.i(TAG, "Session "+this+" stop command to AirMedia receiver failed or timed out");
+				return;
 			}
 		}
 		if (doStop(replace))
@@ -203,6 +204,14 @@ public class AirMediaSession extends Session
 			return false;
 		if (getVideoState() == AirMediaSessionStreamingState.Stopped)
 			return true;
+		if (!mCanvas.IsAirMediaCanvasUp())
+		{
+			Common.Logging.i(TAG, "stopAllSessions(): AirMediaCanvas not up set state to stopped for session "+sessionId());
+			setState(SessionState.Stopped);
+			releaseSurface();
+			mStreamCtl.mUsedForAirMedia[streamId] = false;
+			return false;
+		}
 		Common.Logging.i(TAG, "Session "+this+" sending stop command to receiver");
 		waiterForStopRequestToUser.prepForWait();
 		airMediaReceiverSession.stop();

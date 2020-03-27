@@ -18,8 +18,8 @@ import java.net.UnknownHostException;
 
 import com.google.gson.Gson;
 import com.google.gson.GsonBuilder;
-
 import com.crestron.txrxservice.CresStreamCtrl.AirMediaLoginMode;
+import com.crestron.txrxservice.CresStreamCtrl.CrestronHwPlatform;
 import com.crestron.txrxservice.CresStreamCtrl.ServiceMode;
 import com.crestron.txrxservice.canvas.CresCanvas;
 import com.crestron.txrxservice.canvas.Originator;
@@ -607,7 +607,7 @@ public class AirMediaSplashtop
                 receiver().serverName(serverName);
                 receiver().product(productName);
                 receiver().adapterAddress(get_adapter_ip_address());
-                receiver().maxResolution(AirMediaReceiverResolutionMode.Max1080P);
+                setAirMediaReceiverMaxResolution();
                 Point dSize = mStreamCtl.getDisplaySize();
                 receiver().displayResolution(new AirMediaSize(dSize.x, dSize.y));
                 setAirMediaMiracast(mStreamCtl.userSettings.getAirMediaMiracastEnable());
@@ -714,6 +714,18 @@ public class AirMediaSplashtop
     	} else {
     		orderedLock.unlock(functionName);
     	}
+    }
+    
+    public void setAirMediaReceiverMaxResolution()
+    {
+        AirMediaReceiverResolutionMode res = AirMediaReceiverResolutionMode.Max1080P;
+        if (mStreamCtl.airMediav21 && (mCanvas != null) && (mStreamCtl.userSettings.canvasModeEnabled) && 
+        		(mStreamCtl.mHwPlatform == CrestronHwPlatform.eHardwarePlatform_OMAP5))
+        {
+        	res = AirMediaReceiverResolutionMode.Max720P;
+        }
+    	Common.Logging.i(TAG, "setAirMediaReceiverMaxResolution(): max resolutions set to "+res);
+        receiver().maxResolution(res);
     }
     
 	public void setAirMediaMiracast(boolean enable)
@@ -2703,6 +2715,11 @@ public class AirMediaSplashtop
 									}
 								}
 								setActiveSession(null);
+							}
+							if (mCanvas != null)
+							{
+								Log.i(TAG, "OnServiceDisconnected(): call handleReceiverDisconnected");
+								mCanvas.handleReceiverDisconnected();
 							}
 							removeAllSessionsFromMap(false, "onServiceDisconnected()");
 							RestartAirMediaAsynchronously();

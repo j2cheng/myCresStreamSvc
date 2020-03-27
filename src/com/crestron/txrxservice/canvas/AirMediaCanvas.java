@@ -350,6 +350,7 @@ public class AirMediaCanvas
 					try {
 						if (quittingAirMediaCanvasService == false)
 						{
+					    	requestServiceConnection = true;
 						}
 						else
 							Common.Logging.e(TAG, "AirMediaCanvasServiceConnection.onServiceDisconnected ignored because quitting");

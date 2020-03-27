@@ -196,6 +196,31 @@ public class SessionManager
     	}
     }
     
+    public void disconnectAllAirMediaSessions(Originator origin)
+    {
+    	CanvasCrestore crestore = mCanvas.getCrestore();
+    	SessionEvent e = crestore.new SessionEvent(UUID.randomUUID().toString());
+    	synchronized (lock_) { 
+            for (Session session : sessions_) {
+            	if (session.type == SessionType.AirMedia)
+            		e.add(session.sessionId(), crestore.new SessionEventMapEntry("disconnect", session));
+            }
+    	}
+    	if (e.sessionEventMap.size() > 0)
+    	{
+        	TimeSpan timeout = TimeSpan.fromSeconds(15);
+        	boolean timedout = false;
+    		TimeSpan startTime = TimeSpan.now();
+        	Waiter waiter = new Waiter();
+        	crestore.doSessionEvent(e, origin, waiter);
+        	timedout = waiter.waitForSignal(timeout);
+        	if (timedout)
+        		Common.Logging.i(TAG,"disconnectAllAirMediaSessions(): Timeout while disconnecting all airmedia Sessions"+e.transactionId);
+        	else
+        		Common.Logging.i(TAG,"disconnectAllAirMediaSessions(): completed in "+TimeSpan.now().subtract(startTime).toString());
+    	}
+    }
+    
     public void logSessionStates(String tag)
     {
     	synchronized (lock_) {

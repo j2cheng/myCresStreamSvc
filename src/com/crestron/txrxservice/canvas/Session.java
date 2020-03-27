@@ -177,6 +177,7 @@ public class Session
 	
 	public void disconnect()
 	{
+		mSessionMgr.remove(this);
 	}
 	
 	public void stop(Originator originator)
@@ -239,9 +240,15 @@ public class Session
 	public Surface acquireSurface()
 	{
 		Surface surface = null;
-		if (mCanvas.useCanvasSurfaces) {
-			surface = mCanvas.acquireSurface(sessionId());
-            mStreamCtl.setSurface(streamId, surface);
+		if (CresCanvas.useCanvasSurfaces) {
+			if (mCanvas.IsAirMediaCanvasUp()) {
+				surface = mCanvas.acquireSurface(sessionId());
+				mStreamCtl.setSurface(streamId, surface);
+			} else {
+				Common.Logging.w(TAG, "Canvas is not up - cannot acquireSurface for "+sessionId());
+				return null;
+			}
+				
 		} else
 			surface = mStreamCtl.getSurface(streamId);
 		mCanvas.mSurfaceMgr.addSurface(streamId, surface);
@@ -250,9 +257,12 @@ public class Session
 	
 	public void releaseSurface()
 	{
-		if (mCanvas.useCanvasSurfaces)
+		if (CresCanvas.useCanvasSurfaces)
 		{
-			mCanvas.releaseSurface(sessionId());
+			if (mCanvas.IsAirMediaCanvasUp())
+				mCanvas.releaseSurface(sessionId());
+			else
+				Common.Logging.w(TAG, "Canvas is not up - bypassing releaseSurface for "+sessionId());
 			mStreamCtl.deleteSurface(streamId);
 		}
 		mCanvas.mSurfaceMgr.removeSurface(streamId);
