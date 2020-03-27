@@ -882,7 +882,9 @@ public class CresStreamCtrl extends Service {
             }
 
             // Check if in Teams Video mode and disable RGB 888 (anomalies OMAP otherwise)
-            if ("rigel".compareTo(MiscUtils.readStringFromDisk("/sdcard/ROMDISK/User/systemmode")) == 0)
+            String systemMode = MiscUtils.readStringFromDisk("/sdcard/ROMDISK/User/systemmode");
+            Log.d(TAG, "Current system mode is '" + systemMode + "'");
+            if (systemMode.contains("rigel"))
             {
                 // We are in teams video mode disable RGB888 mode
                 setRgb888Mode(false);
