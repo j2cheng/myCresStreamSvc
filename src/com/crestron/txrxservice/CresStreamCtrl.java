@@ -5146,7 +5146,7 @@ public class CresStreamCtrl extends Service {
         	// TODO remove this once wifi address is actually populated
             ipaddr = "0.0.0.0";
         }
-        if (ipaddr == nNoneull)
+        if (ipaddr == null)
         	return "";
         else
         	return ipaddr;
