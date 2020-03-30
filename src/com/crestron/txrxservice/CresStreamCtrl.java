@@ -5132,6 +5132,10 @@ public class CresStreamCtrl extends Service {
     {
     	Set<String> adapters = userSettings.getAirMediaAdapters();
     	String ipaddr = null;
+        if (!userSettings.getAirMediaEnable() || adapters.contains("Disabled"))
+        {
+            return "None";
+        }
     	if (adapters.contains("eth0") && !userSettings.getDeviceIp().contentEquals("0.0.0.0"))
     		ipaddr = userSettings.getDeviceIp();
     	if (adapters.contains("eth1") && !userSettings.getAuxiliaryIp().contentEquals("0.0.0.0"))
