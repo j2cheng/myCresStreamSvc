@@ -621,6 +621,12 @@ public class CresStreamCtrl extends Service {
                 	CresCanvas.useCanvasSurfaces = MiscUtils.readStringFromDisk("/data/CresStreamSvc/useCanvasSurfaces").equals("1");
             	}
                 Log.i(TAG, "device using "+((CresCanvas.useCanvasSurfaces)?"canvas":"internal")+" surfaceviews");
+            	f = new File("/data/CresStreamSvc/useSimulatedAVF");
+            	if (f.exists())
+            	{
+                	CresCanvas.useSimulatedAVF = MiscUtils.readStringFromDisk("/data/CresStreamSvc/useSimulatedAVF").equals("1");
+            	}
+                Log.i(TAG, "device using "+((CresCanvas.useSimulatedAVF)?"simulated":"normal")+" AVF");
             }
             NumDmInputs = nativeGetDmInputCount();
             mHwPlatform = CrestronHwPlatform.fromInteger(nativeGetHWPlatformEnum());
