@@ -308,7 +308,7 @@ public class AirMediaSplashtop
     			try { successfulStart = startupCompleteLatch.await(50000, TimeUnit.MILLISECONDS); }
     			catch (InterruptedException ex) { ex.printStackTrace(); }
     			
-    			if (!get_adapter_ip_address().equals("None") && !isAirMediaUp)
+    			if (!isIpAddrNone(get_adapter_ip_address()) && !isAirMediaUp)
     			{
     				Common.Logging.w(TAG, "Error trying to start receiver");
     				successfulStart = false;
@@ -326,7 +326,7 @@ public class AirMediaSplashtop
     		}
     		else if (!isReceiverStarted)
     		{
-    			if (get_adapter_ip_address().equals("None"))
+    			if (isIpAddrNone(get_adapter_ip_address()))
     			{
     				Common.Logging.i(TAG, "None Adapter selected, not starting receiver");
     				return true;
@@ -526,6 +526,20 @@ public class AirMediaSplashtop
     	}).start();
     }
     
+    private boolean isIpAddrNone(String ipaddr)
+    {
+    	if (ipaddr.equals(""))
+    	{
+    		Common.Logging.e(TAG, "isIpAddrNone(): empty IP address string");
+    		return true;
+    	}
+    	if (ipaddr.equals("None"))
+    		return true;
+    	if (ipaddr.startsWith("169.254.")) // filter out link local addresses
+    		return true;
+    	return false;
+    }
+    
     private String get_pending_adapter_ip_address()
     {
     	synchronized(adapter_ip_address) {
@@ -578,7 +592,7 @@ public class AirMediaSplashtop
     						stopReceiver();			
     					}
     					String ipaddr = set_adapter_ip_address();
-    					if (!ipaddr.equals("None")) {
+    					if (!isIpAddrNone(ipaddr)) {
     						Common.Logging.i(TAG, "RestartReceiverForAdapterChange(): Setting new ip address for receiver: " + ipaddr);
     						receiver().adapterAddress(ipaddr);
     						startReceiver();
@@ -657,7 +671,7 @@ public class AirMediaSplashtop
         		removeAllSessionsFromMap(false, "startAirMediaReceiver() - clearing prior sessions");
         		stopReceiver();
         	}
-        	if (!get_adapter_ip_address().equals("None"))
+        	if (!isIpAddrNone(get_adapter_ip_address()))
         	{
             	Common.Logging.i(TAG, "startAirMediaReceiver(): Starting AirMedia Receiver");
         		successfulStart = startReceiver();
@@ -2121,7 +2135,7 @@ public class AirMediaSplashtop
 		private String DeviceId;
 		private String Language;
 		private String VideoResolution;
-		private String Username;
+		private String UserName;
 		private String IpAddress;
 		private Map<String, Display> VideoDisplays;
 
@@ -2134,10 +2148,10 @@ public class AirMediaSplashtop
 			this.IpAddress = "127.0.0.1";
 			if (session.username() != null)
 			{
-				if (Username==null || !Username.equals(session.username()))
-					this.Username = session.username();
+				if (UserName==null || !UserName.equals(session.username()))
+					this.UserName = session.username();
 			} else {
-				this.Username = "";
+				this.UserName = "";
 			}
 			String platform = info.platform.toString();
 			if (!platform.equals("") && !platform.equals("Undefined"))
@@ -2389,7 +2403,7 @@ public class AirMediaSplashtop
 			return;
 		
 		Client c = new Client();
-		c.Username = username;
+		c.UserName = username;
 		sendClientData(client, c);
 	}
 	

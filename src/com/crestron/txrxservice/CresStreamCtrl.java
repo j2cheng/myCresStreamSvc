@@ -5154,9 +5154,10 @@ public class CresStreamCtrl extends Service {
         	// TODO remove this once wifi address is actually populated
             ipaddr = "0.0.0.0";
         }
-        if (ipaddr == null)
-        	return "";
-        else
+        if (ipaddr == null) {
+            Log.i(TAG, "getAirMediaConnectionIpAddress(): no adapters have a valid ip address - adapters="+adapters);
+        	return "None";
+        } else
         	return ipaddr;
     }
     
@@ -6476,7 +6477,7 @@ public class CresStreamCtrl extends Service {
     {
         if (mCanvas != null)
         {
-            processDmSyncEvent(1);
+            processDmSyncEvent(0);
         }
     }
 
