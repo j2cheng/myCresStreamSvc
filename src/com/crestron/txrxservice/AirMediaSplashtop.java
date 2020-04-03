@@ -1821,14 +1821,8 @@ public class AirMediaSplashtop
 		Common.Logging.i(TAG, "Adding Id to map, userId: " + user + " session: " + session);
 		if (mCanvas != null) {
 			com.crestron.txrxservice.canvas.AirMediaSession s = new com.crestron.txrxservice.canvas.AirMediaSession(session, "AM-"+String.valueOf(user));	
-			if (s.connectRequest(new Originator(RequestOrigin.Receiver, s)))
-			{
-				canvasSessionMap.put(session.id(), s);
-			}
-			else
-			{
-				s.detachFromManager(); // failed to connect session remove from session manager
-			}
+			s.connectRequest(new Originator(RequestOrigin.Receiver, s));
+			canvasSessionMap.put(session.id(), s);
         	sendClientData();
         	mCanvas.mSessionMgr.logSessionStates("AirMediaSplashtop::addSession");
 		}
@@ -2497,10 +2491,6 @@ public class AirMediaSplashtop
     private void sendStopToAllSenders()
     {
 		Common.Logging.i(TAG, "sendStopToAllSenders");
-		if (mCanvas != null)
-		{
-			mCanvas.handleCodecFailure();
-		}
     	for (int i = 1; i <= MAX_USERS; i++) // We handle airMedia user ID as 1 based
     	{
     		if (mStreamCtl.userSettings.getAirMediaUserConnected(i))

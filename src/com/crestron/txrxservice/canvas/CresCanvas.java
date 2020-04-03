@@ -37,6 +37,7 @@ public class CresCanvas
 	public static final int MAX_PRESENTING = 2;
 	private String prevHdmiResolution[] = new String[MAX_HDMI_INPUTS+1];
 	private String prevHdmiSyncStatus[] = new String[MAX_HDMI_INPUTS+1];
+	private boolean codecFailure = false;
 	public SurfaceManager mSurfaceMgr=null;
 
 	public CresCanvas(com.crestron.txrxservice.CresStreamCtrl streamCtl)
@@ -52,6 +53,7 @@ public class CresCanvas
 			prevHdmiResolution[i] = "0x0";
 			prevHdmiResolution[i] = "false";
 		}
+		//clearAVF();
 	}
 	
 	public static CresCanvas getInstance(com.crestron.txrxservice.CresStreamCtrl streamCtl) {
@@ -112,6 +114,11 @@ public class CresCanvas
 		return rv;
 	}
 	
+	public boolean IsInCodecFailureRecovery()
+	{
+		return codecFailure;
+	}
+	
 	public void canvasHasStarted()
 	{
 		if (!IsAirMediaCanvasUp())
@@ -120,9 +127,11 @@ public class CresCanvas
 		// send an empty list in layout update to indicate no sessions
 		Common.Logging.i(TAG, "canvasHasStarted(): Layout update");
 		mSessionMgr.doLayoutUpdate();
+		// send an empty event map in session event to indicate no sessions to AVF
+		//clearAVF();
 		// start possible hdmi and dm sessions
 		Common.Logging.i(TAG, "canvasHasStarted(): HDMI sync update");
-		mStreamCtl.canvasHdmiSyncStateChange();
+		mStreamCtl.canvasHdmiSyncStateChange(false);
 		Common.Logging.i(TAG, "canvasHasStarted(): DM sync update");
 		mStreamCtl.canvasDmSyncStateChange();
 	}
@@ -144,25 +153,48 @@ public class CresCanvas
 			mStreamCtl.hideCanvasWindow(streamId);
 	}
 	
+	public void clearAVF()
+	{
+		if (CresCanvas.useSimulatedAVF)
+			getCrestore().mAVF.clearAllSessions();
+		else
+			getCrestore().doClearAllSessionEvent();
+	}
+	
+	public void clear()
+	{
+		// Stop and remove all sessions
+		mSessionMgr.clearAllSessions();
+		// clear all surfaces and streamIds
+		mSurfaceMgr.releaseAllSurfaces();
+		clearAVF();
+	}
+	
 	public synchronized void handleReceiverDisconnected()
 	{
 		Common.Logging.i(TAG, "*********************** handleReceiverDisconnected ***********************");
-		// What do we do to handle ducati or media codec failure
 		// Stop all sessions
-		mSessionMgr.stopAllSessions(new Originator(RequestOrigin.Error));
-		mSessionMgr.disconnectAllAirMediaSessions(new Originator(RequestOrigin.Error));
+		clear();
+		// Restart HDMI/DM if possible
+		Common.Logging.i(TAG, "handleCodecFailure(): restarting HDMI if needed");
+		mStreamCtl.canvasHdmiSyncStateChange(false);
+		Common.Logging.i(TAG, "handleCodecFailure(): restarting DM if needed");
+		mStreamCtl.canvasDmSyncStateChange();
 	}
 	
 	public synchronized void handleCodecFailure()
 	{
 		Common.Logging.i(TAG, "*********************** handleCodecFailure ***********************");
+		codecFailure = true;
 		// What do we do to handle ducati or media codec failure
 		// Stop all sessions
 		mSessionMgr.stopAllSessions(new Originator(RequestOrigin.Error));
-		//try { Thread.sleep(100); } catch (Exception ex) {};
+		// Disconnect all airmedia sessions
+		mSessionMgr.disconnectAllAirMediaSessions(new Originator(RequestOrigin.Error));
+		codecFailure = false;
 		// Restart HDMI/DM if possible
 		Common.Logging.i(TAG, "handleCodecFailure(): restarting HDMI if needed");
-		mStreamCtl.canvasHdmiSyncStateChange();
+		mStreamCtl.canvasHdmiSyncStateChange(false);
 		Common.Logging.i(TAG, "handleCodecFailure(): restarting DM if needed");
 		mStreamCtl.canvasDmSyncStateChange();
 	}
@@ -186,7 +218,8 @@ public class CresCanvas
 		}
 		String res = hdmiInput.getHorizontalRes() + "x" + hdmiInput.getVerticalRes();
 		Session session = mSessionMgr.findSession("HDMI", "", "", inputNumber);
-		Common.Logging.i(TAG, "handlePossibleHdmiSyncStateChange(): syncStatus="+hdmiInput.getSyncStatus()+"    resolution="+res);
+		Common.Logging.i(TAG, "handlePossibleHdmiSyncStateChange(): syncStatus="+hdmiInput.getSyncStatus()+"    resolution="+res+
+				"     checkForChange="+changeCheck);
 		if (changeCheck && (hdmiInput.getSyncStatus().equalsIgnoreCase(prevHdmiSyncStatus[inputNumber]) &&
 				res.equalsIgnoreCase(prevHdmiResolution[inputNumber])))
 		{
@@ -219,19 +252,14 @@ public class CresCanvas
 			{
 				session = com.crestron.txrxservice.canvas.Session.createSession("HDMI", "HDMI"+inputNumber, null, 1, null);
 				((HDMISession) session).setHdmiInput(hdmiInput);
-				if (session != null)
-				{
-					Common.Logging.i(TAG, "Adding session " + session + " to sessionManager");
-					mSessionMgr.add(session);
-				}
-				else
-				{
-					Common.Logging.i(TAG, "Connect not create requested session for connect command");
-				}
+				Common.Logging.i(TAG, "Adding session " + session + " to sessionManager");
+				mSessionMgr.add(session);
 				mCrestore.doSynchronousSessionEvent(session, "Connect", origin, timeout);
 			}
             // For now HDMI sessions should immediately be transitioned to Play
-            mCrestore.doSynchronousSessionEvent(session, "Play", origin, timeout);
+			// Eventually it will be up to AVF to decide play ot stop on connect
+			if (session.isStopped())
+				mCrestore.doSynchronousSessionEvent(session, "Play", origin, timeout);
 		}
 		else
 		{
@@ -440,6 +468,19 @@ public class CresCanvas
 			}
 			surfaces[streamId] = null;
 		}
+		
+	    public void releaseAllSurfaces()
+	    {
+			for (int i=0; i < MAX_PRESENTING; i++)
+			{
+				if (streamId2Surface(i) != null)
+				{
+					if (CresCanvas.useCanvasSurfaces)
+						mStreamCtl.deleteSurface(i);
+					removeSurface(i);
+				}
+			}
+	    }
 	}
 	
 	public void CanvasConsoleCommand(String cmd)

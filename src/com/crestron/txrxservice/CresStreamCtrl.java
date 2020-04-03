@@ -1875,8 +1875,17 @@ public class CresStreamCtrl extends Service {
             }
         }).start();
 
-        Log.i(TAG, "Restarting Streams - recoverFromCrash");
-        restartStreams(false);
+        if (mCanvas != null)
+        {
+        	mCanvas.handleCodecFailure();
+            writeDucatiState(1);
+            mMediaServerCrash = false;
+        } 
+        else
+        {
+        	Log.i(TAG, "Restarting Streams - recoverFromCrash");
+        	restartStreams(false);
+        }
     }
     
     private int readDucatiState() {
@@ -2760,7 +2769,7 @@ public class CresStreamCtrl extends Service {
         if (hdmiInputDriverPresent)
         {
             hdmiInput.updateResolutionInfo();
-            canvasHdmiSyncStateChange();
+            canvasHdmiSyncStateChange(true);
         }
     }
 
@@ -6465,11 +6474,11 @@ public class CresStreamCtrl extends Service {
         return retVal;
     }
 
-    public void canvasHdmiSyncStateChange()
+    public void canvasHdmiSyncStateChange(boolean checkForChange)
     {
         if (hdmiInputDriverPresent && (mCanvas != null))
         {
-            mCanvas.handlePossibleHdmiSyncStateChange(1, hdmiInput, false);
+            mCanvas.handlePossibleHdmiSyncStateChange(1, hdmiInput, checkForChange);
         }
     }
     

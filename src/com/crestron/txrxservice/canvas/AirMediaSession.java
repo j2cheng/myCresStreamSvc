@@ -1,7 +1,9 @@
 package com.crestron.txrxservice.canvas;
 
 import com.crestron.airmedia.receiver.m360.ipc.AirMediaSessionStreamingState;
+import com.crestron.airmedia.receiver.m360.models.AirMediaReceiver;
 import com.crestron.airmedia.utilities.Common;
+import com.crestron.airmedia.utilities.TaskScheduler;
 import com.crestron.airmedia.utilities.TimeSpan;
 
 import android.view.Surface;
@@ -32,11 +34,44 @@ public class AirMediaSession extends Session
 	}
 	
 	// Requests
-	public boolean connectRequest(Originator originator)
+	public void doSessionEvent(String r, Originator o, TimeSpan t)
+	{
+		// When this event actually runs - is popped from the handler's queue we check the state of the session
+		// if it matches request exit
+		boolean done = false;
+		if (r.equalsIgnoreCase("Play") && isPlaying())
+		{
+			Common.Logging.i(TAG, this+" play request discarded - already in "+state+" state");
+			done = true;
+		} 
+		else if (r.equalsIgnoreCase("Stop") && isStopped()) 
+		{
+			Common.Logging.i(TAG, this+" stop request discarded - already in "+state+" state");
+			done = true;
+		}
+		if (!done)
+		{
+			Common.Logging.i(TAG, this+" starting processing of "+r+" request");
+			boolean success = mCanvas.getCrestore().doSessionEventWithCompletionTimeout(this, r, o, t);
+			Common.Logging.i(TAG, this+" completed processing of "+r+" request: "+((success)?"success":"failed - timeout"));
+		}
+	}
+	
+	public void scheduleRequest(String request, Originator originator, TimeSpan timeout)
+	{
+		final String r_ = request;
+		final TimeSpan t_ = timeout;
+		final Originator o_ = originator;
+		Common.Logging.i(TAG, "Session "+this+" scheduling "+request+" request");
+		Runnable r = new Runnable() { @Override public void run() { doSessionEvent(r_, o_, t_); } };
+		scheduler().queue(r);
+	}
+	
+	public void connectRequest(Originator originator)
 	{
 		Common.Logging.i(TAG, "Session "+this+" connect request from "+originator);
 		mSessionMgr.add(this);
-		return mCanvas.getCrestore().doSessionEventWithCompletionTimeout(this, "Connect", originator, TimeSpan.fromSeconds(5));
+		scheduleRequest("Connect", originator, TimeSpan.fromSeconds(5));
 	}
 	
 	public void disconnectRequest(Originator originator)
@@ -51,16 +86,16 @@ public class AirMediaSession extends Session
 		mSessionMgr.remove(this);
 	}
 	
-	public boolean playRequest(Originator originator)
+	public void playRequest(Originator originator)
 	{
 		Common.Logging.i(TAG, "Session "+this+" play request from "+originator);
-		return mCanvas.getCrestore().doSessionEventWithCompletionTimeout(this, "Play", originator, TimeSpan.fromSeconds(5));
+		scheduleRequest("Play", originator, TimeSpan.fromSeconds(5));
 	}
 	
-	public boolean stopRequest(Originator originator)
+	public void stopRequest(Originator originator)
 	{
 		Common.Logging.i(TAG, "Session "+this+" stop request from "+originator);
-		return mCanvas.getCrestore().doSessionEventWithCompletionTimeout(this, "Stop", originator, TimeSpan.fromSeconds(5));
+		scheduleRequest("Stop", originator, TimeSpan.fromSeconds(5));
 	}
 	
 	// Play action
@@ -77,8 +112,15 @@ public class AirMediaSession extends Session
 			// get unused streamId and associate a surface with it
 			streamId = mCanvas.mSurfaceMgr.getUnusedStreamId();
 			Common.Logging.i(TAG, "AirMediaSession "+this+" assigned streamId "+streamId);
-			mCanvas.showWindow(streamId); // TODO remove once real canvas app available
-			surface = acquireSurface();
+			if (streamId >= 0)
+			{
+				mCanvas.showWindow(streamId); // TODO remove once real canvas app available
+				surface = acquireSurface();
+			}
+			else
+			{
+				Common.Logging.e(TAG, "doPlay(): ****** AirMediaSession "+this+" invalid streamId "+streamId+" *****");
+			}
 		}
 		else
 		{
@@ -170,7 +212,10 @@ public class AirMediaSession extends Session
 	{
 		Common.Logging.i(TAG, "Session "+this+" stop entered originator="+originator);
 		if (isStopped())
+		{
+			Common.Logging.i(TAG, "Session "+this+" current state is "+state+"  exiting");
 			return;
+		}
 		setState(SessionState.Stopping);
 		if (getVideoState() != AirMediaSessionStreamingState.Stopped)
 		{
@@ -204,9 +249,12 @@ public class AirMediaSession extends Session
 			return false;
 		if (getVideoState() == AirMediaSessionStreamingState.Stopped)
 			return true;
-		if (!mCanvas.IsAirMediaCanvasUp())
+		if (!mCanvas.IsAirMediaCanvasUp() || mCanvas.IsInCodecFailureRecovery())
 		{
-			Common.Logging.i(TAG, "stopAllSessions(): AirMediaCanvas not up set state to stopped for session "+sessionId());
+			if (mCanvas.IsInCodecFailureRecovery())
+				Common.Logging.i(TAG, "stopAllSessions(): in codec failure recovery mode set state to stopped for session "+sessionId());
+			else
+				Common.Logging.i(TAG, "stopAllSessions(): AirMediaCanvas not up set state to stopped for session "+sessionId());
 			setState(SessionState.Stopped);
 			releaseSurface();
 			mStreamCtl.mUsedForAirMedia[streamId] = false;
@@ -228,56 +276,61 @@ public class AirMediaSession extends Session
 	{
 		if (videoState != s)
 		{
-			Common.Logging.i(TAG, "Session "+this+" changing video state from "+videoState+" to "+s);
+			Common.Logging.i(TAG, "setVideoState(): Session "+this+" changing video state from "+videoState+" to "+s+"   sesion state="+getState());
 			videoState = s;
 		} else {
-			Common.Logging.i(TAG, "Session "+this+" ignoring incoming video state change to "+videoState+" already in that state");
+			Common.Logging.i(TAG, "setVideoState(): Session "+this+" ignoring incoming video state change to "+videoState+" already in that state");
 			return;
 		}
+		Common.Logging.i(TAG, "setVideoState(): Session "+this+" starting to check if processing is needed");
 		if (s == AirMediaSessionStreamingState.Stopped)
 		{
-		  if (waiterForStopRequestToUser.isWaiting())
-		  {
-			  // user has already requested stop so simply signal that session is now stopped
-			  Common.Logging.i(TAG, "Session "+this+" signaling stoppage to waiter");
-			  waiterForStopRequestToUser.signal();
-		  }
-		  else
-		  {
-			  final Originator originator = new Originator(RequestOrigin.Receiver, this);
-			  Runnable r = new Runnable() { @Override public void run() { stopRequest(originator); } };
-			  Common.Logging.i(TAG, "Session "+this+" scheduling stop request");
-			  scheduler().queue(TAG, "stopRequest", TimeSpan.fromSeconds(10), r);
-		  }
+			if (waiterForStopRequestToUser.isWaiting())
+			{
+				// user has already requested stop so simply signal that session is now stopped
+				Common.Logging.i(TAG, "setVideoState(): Session "+this+" signaling stoppage to waiter");
+				waiterForStopRequestToUser.signal();
+			}
+			else
+			{
+				final Originator originator = new Originator(RequestOrigin.Receiver, this);
+				Common.Logging.i(TAG, "setVideoState(): Session "+this+" stop request");
+				stopRequest(originator);
+			}
 		} 
 		else if (s == AirMediaSessionStreamingState.Playing)
 		{
-  		  if (waiterForPlayRequestToUser.isWaiting())
-  		  {
-  			  // user has already requested play so simply signal that session is now playing
-  			  waiterForPlayRequestToUser.signal();
-  		  }
-  		  else 
-  		  {
-  			  SessionState prevState = getState();
-  			  if (prevState == SessionState.Stopped)
-  			  {
-  				  final Originator originator = new Originator(RequestOrigin.Receiver, this);
-  				  Runnable r = new Runnable() { @Override public void run() { playRequest(originator); } };
-  				  scheduler().queue(TAG, "playRequest", TimeSpan.fromSeconds(10), r);
-  			  }
-  			  else if (prevState == SessionState.Paused)
-  			  {
-  				  setState(SessionState.Playing);
-  				  canvasSessionUpdate(this);
-  			  }
-  		  }
+			if (waiterForPlayRequestToUser.isWaiting())
+			{
+				// user has already requested play so simply signal that session is now playing
+				Common.Logging.i(TAG, "setVideoState(): Session "+this+" signaling playing to waiter");
+				waiterForPlayRequestToUser.signal();
+			}
+			else 
+			{
+				SessionState prevState = getState();
+				if (prevState == SessionState.Stopped)
+				{
+					Originator originator = new Originator(RequestOrigin.Receiver, this);
+					Common.Logging.i(TAG, "setVideoState(): Session "+this+" play request");
+					playRequest(originator);
+				}
+				else if (prevState == SessionState.Paused)
+				{
+					Common.Logging.i(TAG, "setVideoState(): Session "+this+" resume from pause");
+					setState(SessionState.Playing);
+					Common.Logging.i(TAG, "setVideoState(): Session "+this+" calling canvasSessionUpdate()");
+					canvasSessionUpdate(this);
+				}
+			}
 		}
 		else if (s == AirMediaSessionStreamingState.Paused)
 		{
+			Common.Logging.i(TAG, "setVideoState(): Session "+this+" processing paused case");
 			setState(SessionState.Paused);
 			canvasSessionUpdate(this);
 		}
+		Common.Logging.i(TAG, "setVideoState(): Session "+this+" exit");
 	}
 	
 	public String toString()

@@ -42,6 +42,7 @@ public class Waiter
 	{
 		if (latch != null)
 		{
+			is_waiting = false;
 			latch.countDown();
 		}
 	}

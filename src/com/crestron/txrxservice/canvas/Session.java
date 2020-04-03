@@ -247,8 +247,7 @@ public class Session
 			} else {
 				Common.Logging.w(TAG, "Canvas is not up - cannot acquireSurface for "+sessionId());
 				return null;
-			}
-				
+			}				
 		} else
 			surface = mStreamCtl.getSurface(streamId);
 		mCanvas.mSurfaceMgr.addSurface(streamId, surface);

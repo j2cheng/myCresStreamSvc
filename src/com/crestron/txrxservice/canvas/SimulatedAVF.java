@@ -25,6 +25,11 @@ public class SimulatedAVF
 		mCrestore = crestore;
 		gson = mCrestore.getGson();
 	}
+	
+	public void clearAllSessions()
+	{
+		sessions.clear();
+	}
 
 	public class AVFSession {
 		SessionType type;
@@ -44,8 +49,8 @@ public class SimulatedAVF
 	
 	public void processSessionEvent(CanvasCrestore.SessionEvent event)
 	{
-
 		Common.Logging.i(TAG, "SimulatedAVF processing Session Event Message "+mCrestore.getGson().toJson(event));
+		failureReason = 0;
 		Map<String,CanvasCrestore.SessionEventMapEntry> map = event.sessionEventMap;
 		if (map == null || map.isEmpty())
 		{
@@ -80,6 +85,8 @@ public class SimulatedAVF
 					AVFSession s = new AVFSession(e.type, "Stop", (String)null, e.inputNumber);
 					Log.i(TAG, "Add session sessionId="+sessionId+" to AVF sessions map");
 					sessions.put(sessionId, s);
+					if (s.type == SessionType.HDMI || s.type == SessionType.DM || s.type == SessionType.AirMedia)
+						setSessionToPlay(s);
 				}
 			} 
 			else if (e.state.equalsIgnoreCase("Disconnect"))
@@ -153,37 +160,42 @@ public class SimulatedAVF
 				}
 				if (failureReason == 0)
 				{
-					// Make a list of playing sessions
-					List<Map.Entry<String,AVFSession>> playingList = new LinkedList<Map.Entry<String,AVFSession>>();
-					for (Map.Entry<String,AVFSession> se : sessions.entrySet())
-					{
-						if (se.getValue().state.equalsIgnoreCase("Play"))
-							playingList.add(se);
-					}
-					if (playingList.size() >= CresCanvas.MAX_PRESENTING)
-					{
-						// get oldest playing session
-						Map.Entry<String,AVFSession> oldest = playingList.get(0);
-						for (int i=1; i < playingList.size(); i++)
-						{
-							if (oldest.getValue().playTime > playingList.get(i).getValue().playTime)
-							{
-								oldest = playingList.get(i);
-							}
-						}
-						// Force stop of oldest session
-						oldest.getValue().state = "Stop";
-						oldest.getValue().playTime = 0;
-					}
-					// change state to play for this session
-					s.state = "Play";
-					s.playTime = System.currentTimeMillis();
+					setSessionToPlay(s);
 				}
 			}
 		}
 		sendSessionResponse(event.transactionId, failureReason);
 	}
 
+	public void setSessionToPlay(AVFSession s)
+	{
+		// Make a list of playing sessions
+		List<Map.Entry<String,AVFSession>> playingList = new LinkedList<Map.Entry<String,AVFSession>>();
+		for (Map.Entry<String,AVFSession> se : sessions.entrySet())
+		{
+			if (se.getValue().state.equalsIgnoreCase("Play"))
+				playingList.add(se);
+		}
+		if (playingList.size() >= CresCanvas.MAX_PRESENTING)
+		{
+			// get oldest playing session
+			Map.Entry<String,AVFSession> oldest = playingList.get(0);
+			for (int i=1; i < playingList.size(); i++)
+			{
+				if (oldest.getValue().playTime > playingList.get(i).getValue().playTime)
+				{
+					oldest = playingList.get(i);
+				}
+			}
+			// Force stop of oldest session
+			oldest.getValue().state = "Stop";
+			oldest.getValue().playTime = 0;
+		}
+		// change state to play for this session
+		s.state = "Play";
+		s.playTime = System.currentTimeMillis();
+	}
+	
 	public void sendSessionResponse(String transactionId, int failureReason)
 	{
 		CanvasCrestore.SessionResponse r = mCrestore.new SessionResponse();

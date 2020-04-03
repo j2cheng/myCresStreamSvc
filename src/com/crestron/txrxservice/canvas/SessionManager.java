@@ -196,6 +196,30 @@ public class SessionManager
     	}
     }
     
+    public void disconnectAllSessions(Originator origin)
+    {
+    	CanvasCrestore crestore = mCanvas.getCrestore();
+    	SessionEvent e = crestore.new SessionEvent(UUID.randomUUID().toString());
+    	synchronized (lock_) { 
+            for (Session session : sessions_) {
+            	e.add(session.sessionId(), crestore.new SessionEventMapEntry("disconnect", session));
+            }
+    	}
+    	if (e.sessionEventMap.size() > 0)
+    	{
+        	TimeSpan timeout = TimeSpan.fromSeconds(15);
+        	boolean timedout = false;
+    		TimeSpan startTime = TimeSpan.now();
+        	Waiter waiter = new Waiter();
+        	crestore.doSessionEvent(e, origin, waiter);
+        	timedout = waiter.waitForSignal(timeout);
+        	if (timedout)
+        		Common.Logging.i(TAG,"disconnectAllAirMediaSessions(): Timeout while disconnecting all airmedia Sessions"+e.transactionId);
+        	else
+        		Common.Logging.i(TAG,"disconnectAllAirMediaSessions(): completed in "+TimeSpan.now().subtract(startTime).toString());
+    	}
+    }
+    
     public void disconnectAllAirMediaSessions(Originator origin)
     {
     	CanvasCrestore crestore = mCanvas.getCrestore();
@@ -221,6 +245,31 @@ public class SessionManager
     	}
     }
     
+    public void clearAllSessions()
+    {
+		Common.Logging.i(TAG,"clearAllSessions() entered");
+        for (Session session : sessions()) {
+            if (session == null) return;
+            if (session.type != SessionType.AirMedia)
+            {
+        		Common.Logging.i(TAG,"clearAllSessions() stopping session:"+session.sessionId());
+        		session.stop(new Originator(RequestOrigin.Error));
+        		Common.Logging.i(TAG,"clearAllSessions() stopped session:"+session.sessionId());
+        		Common.Logging.i(TAG,"clearAllSessions() disconnecting session:"+session.sessionId());
+            	session.disconnect(new Originator(RequestOrigin.Error));
+        		Common.Logging.i(TAG,"clearAllSessions() disconnected session:"+session.sessionId());
+            }
+            else // AirMedia Sessions should have gone away due to receiver crash
+            {
+            	Common.Logging.i(TAG,"clearAllSessions() removing session:"+session.sessionId()+" from map");
+            	remove(session.sessionId());
+        		Common.Logging.i(TAG,"clearAllSessions() removed session:"+session.sessionId());
+            }
+        }
+		Common.Logging.i(TAG,"clearAllSessions() clear list");
+        sessions_.clear();
+    }
+    
     public void logSessionStates(String tag)
     {
     	synchronized (lock_) {
@@ -238,7 +287,7 @@ public class SessionManager
     	boolean videoPresenting = false;
     	synchronized (lock_) {
             for (Session session : sessions_) {
-            	Common.Logging.i(TAG, "SessionManager::updateVideoStatus(): session="+session+" state="+session.getState());
+            	//Common.Logging.i(TAG, "SessionManager::updateVideoStatus(): session="+session+" state="+session.getState());
             	if (session.getState() == SessionState.Playing)
             	{
             		videoPresenting = true;

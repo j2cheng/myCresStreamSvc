@@ -87,7 +87,7 @@ public class CanvasCrestore
 	{
 		Common.Logging.i(TAG, "Creating CresCanvasCrestore");
 	    mStreamCtl = streamCtl;
-		gson = new GsonBuilder().setPrettyPrinting().create();
+		gson = new GsonBuilder().create();
 		mCanvas = canvas;
 		mSessionMgr = sessionManager;
 		if (CresCanvas.useSimulatedAVF)
@@ -191,6 +191,12 @@ public class CanvasCrestore
 		t.se = sendSessionEvent(e);
 	}
 	
+	public void doClearAllSessionEvent()
+	{
+    	SessionEvent e = new CanvasCrestore.SessionEvent(UUID.randomUUID().toString()); 
+    	sendSessionEvent(e);
+	}
+	
 	public void sendSessionEvent(String transactionId, Session s, String requestedState)
 	{
 		sendSessionEvent(transactionId, s.sessionId(), requestedState, s.type, s.airMediaType, s.inputNumber);
@@ -208,6 +214,7 @@ public class CanvasCrestore
 		Root root = getRootedInternalAirMediaCanvas();
 		root.internal.airMedia.canvas.sessionEvent = e;
 		String jsonStr = "{\"Pending\":" + gson.toJson(root) + "}";
+		Common.Logging.i(TAG,"sendSessionEvent: "+jsonStr);
 		wrapper.set(jsonStr, false);
 		return e;
 	}
@@ -297,14 +304,15 @@ public class CanvasCrestore
 	
 	public void doSessionResponse(final String transactionId, final List<String> actionList) 
 	{
-		final com.crestron.airmedia.utilities.TimeSpan timeout = com.crestron.airmedia.utilities.TimeSpan.fromSeconds(60.0);
+		final com.crestron.airmedia.utilities.TimeSpan timeout = com.crestron.airmedia.utilities.TimeSpan.fromSeconds(30.0);
 		final Failure f = new Failure();
-		//scheduler().queue(timeout, new Runnable() { @Override public void run() { enqueueSessionResponse(transactionId, actionList); } } );
 		sessionResponseScheduler().queue(TAG, "doSessionResponse", timeout, new Runnable() { @Override public void run() { enqueueSessionResponse(transactionId, actionList, f); } } );
+		//enqueueSessionResponse(transactionId, actionList, f);
 	}
-		
+	
 	public void enqueueSessionResponse(String transactionId, List<String> actionList, Failure failure)
 	{
+		Common.Logging.w(TAG, "enqueSessionResponse(): entered for transactionId="+((transactionId==null)?"null":transactionId));
 		TransactionData tData = null;
 		Originator originator = new Originator(RequestOrigin.Unknown);
 		if (transactionId != null)
@@ -418,10 +426,20 @@ public class CanvasCrestore
 						Common.Logging.i(TAG, "Adding "+sessionId+" to stopList");
 						stopList.add(sessionId);
 					}
-					if (Common.isEqualIgnoreCase(value.state, "Stop") && session.isConnecting())
+					if (session.isConnecting())
 					{
-						Common.Logging.i(TAG, "Changing "+sessionId+" to connected state");
-						session.setState(SessionState.Stopped);
+						if (Common.isEqualIgnoreCase(value.state, "Stop"))
+						{
+							Common.Logging.i(TAG, "Changing "+sessionId+" to connected state");
+							session.setState(SessionState.Stopped);
+						} 
+						else if (Common.isEqualIgnoreCase(value.state, "Play"))
+						{
+							Common.Logging.i(TAG, "Changing "+sessionId+" to stopped state");
+							session.setState(SessionState.Stopped);
+							// set it up to be played
+							playList.add(sessionId);
+						}
 					}
 				} else if (value.state == null && session != null) {
 			    	Common.Logging.i(TAG," Existing sessionId="+sessionId+" incoming state is null");
