@@ -306,8 +306,8 @@ public class CanvasCrestore
 	{
 		final com.crestron.airmedia.utilities.TimeSpan timeout = com.crestron.airmedia.utilities.TimeSpan.fromSeconds(30.0);
 		final Failure f = new Failure();
-		sessionResponseScheduler().queue(TAG, "doSessionResponse", timeout, new Runnable() { @Override public void run() { enqueueSessionResponse(transactionId, actionList, f); } } );
-		//enqueueSessionResponse(transactionId, actionList, f);
+		//sessionResponseScheduler().queue(TAG, "doSessionResponse", timeout, new Runnable() { @Override public void run() { enqueueSessionResponse(transactionId, actionList, f); } } );
+		enqueueSessionResponse(transactionId, actionList, f);
 	}
 	
 	public void enqueueSessionResponse(String transactionId, List<String> actionList, Failure failure)
@@ -369,8 +369,11 @@ public class CanvasCrestore
 			}
 		}
 		// handle reporting of completion of session response
-		// send message with Ack for transactionId
-		ack(transactionId);
+		if (transactionId != null)
+		{
+			// send message with Ack for transactionId
+			ack(transactionId);
+		}
 		mSessionMgr.doLayoutUpdate();
 		// wake up anyone waiting for completion of this transactionId and remove it from map
 		if (tData != null) {
@@ -560,6 +563,8 @@ public class CanvasCrestore
 
 	private void ack(String transactionId)
 	{
+		if (transactionId == null)
+			return;
 		Common.Logging.i(TAG, "Transaction id:"+transactionId+"  success");
 		TransactionData tData = transactionMap.get(transactionId);
 		if (tData != null)
