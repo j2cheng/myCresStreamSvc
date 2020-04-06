@@ -9,6 +9,8 @@ import java.util.LinkedHashMap;
 import java.util.concurrent.ConcurrentHashMap;
 import java.util.concurrent.CountDownLatch;
 import java.util.concurrent.ConcurrentLinkedQueue;
+import java.util.concurrent.LinkedBlockingQueue;
+import java.util.concurrent.ThreadPoolExecutor;
 import java.util.concurrent.TimeUnit;
 import java.util.concurrent.locks.ReentrantLock;
 import java.util.Collection;
@@ -31,9 +33,9 @@ import com.crestron.airmedia.canvas.channels.ipc.CanvasResponse;
 import com.crestron.airmedia.canvas.channels.ipc.CanvasSourceAction;
 import com.crestron.airmedia.canvas.channels.ipc.CanvasSourceRequest;
 import com.crestron.airmedia.canvas.channels.ipc.CanvasSourceTransaction;
+import com.crestron.airmedia.receiver.m360.ipc.AirMediaSessionStreamingState;
 import com.crestron.airmedia.utilities.Common;
 import com.crestron.airmedia.utilities.TimeSpan;
-import com.crestron.airmedia.utilities.TaskScheduler;
 import com.crestron.txrxservice.CresStreamCtrl.StreamState;
 import com.google.gson.Gson;
 import com.google.gson.GsonBuilder;
@@ -46,8 +48,7 @@ public class CanvasCrestore
 	com.crestron.txrxservice.canvas.SessionManager mSessionMgr;
 	SimulatedAVF mAVF;
 	
-	Scheduler sessionResponseScheduler_;
-	Scheduler sessionResponseScheduler() { return sessionResponseScheduler_; }
+    public Scheduler sessionResponseScheduler = null;
 	
 	private final ReentrantLock sessionEventLock = new ReentrantLock();
 	Map<String, TransactionData> transactionMap= new ConcurrentHashMap<String, TransactionData>();
@@ -69,6 +70,21 @@ public class CanvasCrestore
 			originator = o;
 		}
 	}
+	
+	public enum FailureCodes {
+		Success,
+		PowerOff,
+		InvalidSession,
+		MaxSessionCountExceeded,
+		MaxFailureCodes
+	};
+	
+	public String[] FailureMessages = new String[] {
+		"Success",
+		"Power is off",
+		"Cannot find session",
+		"Maximum session count exceeded",
+	};
 	
 	public class Failure {
 		int failureReason;
@@ -92,7 +108,7 @@ public class CanvasCrestore
 		mSessionMgr = sessionManager;
 		if (CresCanvas.useSimulatedAVF)
 			mAVF = new SimulatedAVF(this);
-		sessionResponseScheduler_ = new Scheduler("sessionResponse");
+		sessionResponseScheduler = new Scheduler("TxRx.canvas.crestore.processSesionResponse");
 
         Common.Logging.i(TAG, "CanvasCrestore: create Crestore wrapper");
         try {
@@ -302,16 +318,17 @@ public class CanvasCrestore
 		mSessionMgr.logSessionStates("processSessionStateChange");
 	}
 	
-	public void doSessionResponse(final String transactionId, final List<String> actionList) 
+	public void doSessionResponse(final SessionResponse response, final List<String> actionList) 
 	{
 		final com.crestron.airmedia.utilities.TimeSpan timeout = com.crestron.airmedia.utilities.TimeSpan.fromSeconds(30.0);
 		final Failure f = new Failure();
 		//sessionResponseScheduler().queue(TAG, "doSessionResponse", timeout, new Runnable() { @Override public void run() { enqueueSessionResponse(transactionId, actionList, f); } } );
-		enqueueSessionResponse(transactionId, actionList, f);
+		enqueueSessionResponse(response, actionList, f);
 	}
 	
-	public void enqueueSessionResponse(String transactionId, List<String> actionList, Failure failure)
+	public void enqueueSessionResponse(SessionResponse response, List<String> actionList, Failure failure)
 	{
+		String transactionId = response.transactionId;
 		Common.Logging.w(TAG, "enqueSessionResponse(): entered for transactionId="+((transactionId==null)?"null":transactionId));
 		TransactionData tData = null;
 		Originator originator = new Originator(RequestOrigin.Unknown);
@@ -359,21 +376,31 @@ public class CanvasCrestore
 			{
 				Common.Logging.i(TAG, "enqueSessionResponse(): disconnect "+tokens[1]);
 				session = mSessionMgr.getSession(tokens[1]);
-				if (session.isPlaying())
+				if (session != null)
 				{
-					Common.Logging.i(TAG, "enqueueSessionResponse(): must stop session "+session+" before disconnecting it");
-					session.stop(originator);
+					if (session.isPlaying())
+					{
+						Common.Logging.i(TAG, "enqueueSessionResponse(): must stop session "+session+" before disconnecting it");
+						session.stop(originator);
+					}
+					session.disconnect(originator);
+					mSessionMgr.remove(session.sessionId());
 				}
-				session.disconnect(originator);
-				mSessionMgr.remove(session.sessionId());
+				else
+				{
+					if (originator.origin == RequestOrigin.Receiver)
+					{
+						Common.Logging.i(TAG, "enqueueSessionResponse(): receiver initiated sessionevent for session "+tokens[1]+" - session is already disconnected");
+					}
+					else
+					{
+						Common.Logging.i(TAG, "session "+tokens[1]+" - session mot found in sessionMgr - already disconected");
+					}
+				}
 			}
 		}
 		// handle reporting of completion of session response
-		if (transactionId != null)
-		{
-			// send message with Ack for transactionId
-			ack(transactionId);
-		}
+		reportSessionResponseResult(response);
 		mSessionMgr.doLayoutUpdate();
 		// wake up anyone waiting for completion of this transactionId and remove it from map
 		if (tData != null) {
@@ -386,7 +413,7 @@ public class CanvasCrestore
 	
 	public void processSessionResponse(SessionResponse response)
 	{
-		Common.Logging.v(TAG, "Processing Session Response Message "+gson.toJson(response));
+		Common.Logging.v(TAG, "Start processing Session Response Message "+gson.toJson(response));
         if (response.transactionId != null)
         {
         	// is a response to an earlier SessionEvent sent earlier
@@ -419,7 +446,7 @@ public class CanvasCrestore
 				{
 					Common.Logging.i(TAG, "session="+((session==null)?"null":session)+" state="+session.state+"   value.state="+value.state);
 					// does requested state match the current state
-					if (Common.isEqualIgnoreCase(value.state, "Play") && session.isStopped())
+					if (Common.isEqualIgnoreCase(value.state, "Play") && session.isStopped()) 
 					{
 						Common.Logging.i(TAG, "Adding "+sessionId+" to playList");
 						playList.add(sessionId);
@@ -449,6 +476,59 @@ public class CanvasCrestore
 			    } else if (value.state != null && session == null) {
 			    	Common.Logging.i(TAG," sessionId="+sessionId+" state is "+value.state+" but session does not exist in list of sessions");
 			    }
+			}
+			if (response.failureReason != null && response.failureReason != FailureCodes.Success.ordinal())
+			{
+				// Verify a receiver initiated request puts receiver into a consistent state with AVF request
+				if (response.transactionId != null)
+				{
+					Log.e(TAG, "Got failure message '"+getFailureMessage(response.failureReason)+"' for transactionId="+response.transactionId);
+					Originator originator = null;
+					TransactionData tData = transactionMap.get(response.transactionId);
+					if (tData != null)
+					   originator = tData.originator;
+					Log.e(TAG, "Originator="+originator.origin);
+					if (originator.origin==RequestOrigin.Receiver)
+					{
+						Session s = originator.getSession();
+						if (s == null)
+						{
+							Log.w(TAG, "Can't find session for receiver initiated event transactionId="+response.transactionId);
+						}
+						else if (s instanceof AirMediaSession)
+						{
+							String sessionId = s.sessionId();
+							Log.e(TAG, "handling failure of receiver originated response message from session "+s+" with transactionId="+response.transactionId);
+							if (!stopList.contains(sessionId) && !playList.contains(sessionId) && !disconnectList.contains(sessionId))
+							{
+								Log.e(TAG, "handling failure of receiver originated response message from session "+s+" with transactionId="+response.transactionId);
+								// session has not been handled in any list yet - ensure its videoState is consistent with
+								// the response demanded state
+								SessionResponseMapEntry value = map.get(sessionId);
+								if (value != null)
+								{
+									Log.e(TAG, "response message from requests state: "+value.state);
+									if (value.state.equalsIgnoreCase("Play") && ((AirMediaSession) s).isVideoStopped())
+									{
+										playList.add(s.sessionId());
+									}
+									else if (value.state.equalsIgnoreCase("Stop") && ((AirMediaSession) s).isVideoPlaying())
+									{
+										stopList.add(s.sessionId());
+									}
+								}
+								else
+								{
+									Log.e(TAG, "receiver origination session "+s+" not found in session response map");	
+								}
+							}
+						}
+						else
+						{
+							Log.w(TAG, "Session "+s+" receiver initiated event transactionId="+response.transactionId+" is of incorrect sessionType: "+s.type);
+						}
+					}
+				}
 			}
 			Common.Logging.i(TAG," playList: "+playList);
 			Common.Logging.i(TAG," stopList: "+stopList);
@@ -480,45 +560,9 @@ public class CanvasCrestore
 			// First update crestore map
 			updateCresstoreMap(map);
      
-			doSessionResponse(response.transactionId, actionList);		
+			doSessionResponse(response, actionList);		
 		}
-		else
-		{
-			if (response.failureReason == null)
-			{
-				Common.Logging.i(TAG, "Empty session response map!!!");
-				// should we remove all existing sessions????  How???
-			}
-			else
-			{
-				// Need to forward this failure downstream
-				nack(response.transactionId, response.failureReason);
-				if (response.transactionId != null)
-				{
-					Originator originator = null;
-					TransactionData tData = transactionMap.get(response.transactionId);
-					if (tData != null)
-					   originator = tData.originator;
-					if (originator!=null)
-					{
-						if (originator.origin == RequestOrigin.StateChangeMessage)
-						{
-							Session s = originator.getSession();
-							sendSessionFeedbackMessage(s.type, s.state, s.userLabel, response.failureReason);
-						}
-						else if (originator.origin == RequestOrigin.CanvasSourceRequest)
-						{
-							CanvasSourceResponse r = originator.getCanvasResponse();
-							if (r != null)
-							{
-								r.setErrorCode(response.failureReason);
-							}
-						}
-					}
-					transactionMap.remove(response.transactionId);
-				}
-			}
-		}
+
 		Common.Logging.v(TAG, "Finished processing Session Response Message "+gson.toJson(response));
 	}
 	
@@ -565,7 +609,7 @@ public class CanvasCrestore
 	{
 		if (transactionId == null)
 			return;
-		Common.Logging.i(TAG, "Transaction id:"+transactionId+"  success");
+		Common.Logging.i(TAG, "ack(): Transaction id:"+transactionId+"  success");
 		TransactionData tData = transactionMap.get(transactionId);
 		if (tData != null)
 		{
@@ -575,7 +619,7 @@ public class CanvasCrestore
 	
 	private void nack(String transactionId, int failureReason)
 	{
-		Common.Logging.i(TAG, "Transaction id:"+transactionId+"  failureReason="+failureReason);
+		Common.Logging.i(TAG, "nack(): Transaction id:"+transactionId+"  failureReason="+failureReason);
 		TransactionData tData = transactionMap.get(transactionId);
 		if (tData != null)
 		{
@@ -583,6 +627,57 @@ public class CanvasCrestore
 		}
 	}
 	
+	public String getFailureMessage(int failureReason)
+	{
+		if (failureReason > FailureCodes.Success.ordinal() && failureReason < FailureCodes.MaxFailureCodes.ordinal())
+		{
+			return FailureMessages[failureReason];
+		}
+		else
+			return "Unknown failure code "+failureReason;
+	}
+	
+	private void reportSessionResponseResult(SessionResponse response)
+	{
+		String transactionId = response.transactionId;
+		if ((response.failureReason == null) || response.failureReason == FailureCodes.Success.ordinal())
+		{
+			if (transactionId != null)
+			{
+				// send message with Ack for transactionId
+				ack(transactionId);
+			}
+		}
+		else
+		{
+			// Need to forward this failure downstream
+			if (response.transactionId != null)
+			{
+				nack(response.transactionId, response.failureReason);
+				Originator originator = null;
+				TransactionData tData = transactionMap.get(response.transactionId);
+				if (tData != null)
+				   originator = tData.originator;
+				if (originator!=null)
+				{
+					if (originator.origin == RequestOrigin.StateChangeMessage)
+					{
+						Session s = originator.getSession();
+						sendSessionFeedbackMessage(s.type, s.state, s.userLabel, response.failureReason);
+					}
+					else if (originator.origin == RequestOrigin.CanvasSourceRequest)
+					{
+						CanvasSourceResponse r = originator.getCanvasResponse();
+						if (r != null)
+						{
+							r.setErrorCode(response.failureReason);
+						}
+					}
+				}
+				transactionMap.remove(response.transactionId);
+			}
+		}
+	}
 	public void sendSessionFeedbackMessage(SessionType type, SessionState state, String userLabel, Integer failureReason) {
 		SessionStateFeedback f = new SessionStateFeedback();
 		f.type = type.toString();
@@ -614,104 +709,112 @@ public class CanvasCrestore
     	
     	public void message(boolean pending, String json)
     	{
-    		Root root = null;
-    		boolean parsed=false;
     		    		
     		try
     		{
-    			root = gson.fromJson(json, Root.class);
+    			final Root root = gson.fromJson(json, Root.class);
+        		boolean parsed=false;
+
+        		if (root == null)
+        			Common.Logging.i(TAG, "Got null object for root");
+        		else if (root.device == null && root.internal == null)
+        			Common.Logging.i(TAG, "Got null object for device and internal");
+
+        		if (root.internal != null && root.internal.airMedia != null && root.internal.airMedia.canvas != null) {
+        			parsed = true;
+        			//Common.Logging.v(TAG, "Device/Internal/Canvas parsed from json string");
+        			//Common.Logging.v(TAG, "Device string is "+gson.toJson(root));
+        			if (root.internal.airMedia.canvas.sessionEvent != null)
+        			{
+        				if (CresCanvas.useSimulatedAVF)
+        					mAVF.processSessionEvent(root.internal.airMedia.canvas.sessionEvent);
+        				else
+        					Common.Logging.i(TAG, "Received a Session Event message - should not happen in normal mode");
+        			}
+        			if (root.internal.airMedia.canvas.sessionStateChange != null)
+        			{
+        				processSessionStateChange(root.internal.airMedia.canvas.sessionStateChange);
+        			}
+        			if (root.internal.airMedia.canvas.sessionResponse != null)
+        			{
+        				if (pending)
+        				{
+        					// Session response messages are queued on a Scheduler so we do not block incoming message from cresstore
+        					final SessionResponse sessionResponse = root.internal.airMedia.canvas.sessionResponse;
+        					// Now process response
+        					Common.Logging.i(TAG,"RHRHRH  -- submitted processSessionResponse job to scheduler");
+        					sessionResponseScheduler.queue(new Runnable() { 
+        						@Override public void run() { 
+        							processSessionResponse(sessionResponse); 
+        						}; 
+        					});
+        					//processSessionResponse(root.internal.airMedia.canvas.sessionResponse);
+        				}
+        				else if (!CresCanvas.useSimulatedAVF)
+        				{
+        					Common.Logging.i(TAG, "Received a Session Response message with no pending flag - should not happen in normal mode");
+        				}
+        			}
+        		}
+        		if (root.device != null && root.device.airMedia != null && root.device.airMedia.canvas != null) {
+        			parsed = true;
+        			Common.Logging.i(TAG, "Device/AirMedia/AirMediaCanvas parsed from json string");
+        			Common.Logging.i(TAG, "Device string is "+gson.toJson(root));
+        			if (root.device.airMedia.canvas.canvasUserLayoutChangeRequest != null)
+        			{
+        				Common.Logging.i(TAG, "Canvas User Layout Change Request "+gson.toJson(root.device.airMedia.canvas.canvasUserLayoutChangeRequest));
+        				Map<String, SessionPositionEntry> map = root.device.airMedia.canvas.canvasUserLayoutChangeRequest.sessionPositions;
+        				if (map != null)
+        				{
+        					if (!map.isEmpty())
+        					{
+        						for (Map.Entry<String, SessionPositionEntry> entry : map.entrySet())
+        						{
+        							SessionPositionEntry value = entry.getValue();
+        							String valStr = gson.toJson(value);
+        							Common.Logging.i(TAG, "Key="+entry.getKey()+":  "+valStr);
+        						}
+        					} else {
+        						Common.Logging.i(TAG, "Empty session position map!!! - destroy all sessons");
+        					}
+        				}
+        				else
+        				{
+        					Common.Logging.i(TAG, "No session position map!!!");
+        				}
+        			}
+        			if (root.device.airMedia.canvas.canvasUserResponse != null)
+        			{
+        				Common.Logging.i(TAG, "Canvas User Response "+gson.toJson(root.device.airMedia.canvas.canvasUserResponse));
+        			}
+        			if (root.device.airMedia.canvas.canvasUserLayoutUpdate != null)
+        			{
+        				Common.Logging.i(TAG, "Canvas User Layout Update "+gson.toJson(root.device.airMedia.canvas.canvasUserLayoutUpdate));
+        				Map<String, SessionLayoutEntry> map = root.device.airMedia.canvas.canvasUserLayoutUpdate.sessionLayout;
+        				if (map != null)
+        				{
+        					for (Map.Entry<String, SessionLayoutEntry> entry : map.entrySet())
+        					{
+        						SessionLayoutEntry value = entry.getValue();
+        						String valStr = gson.toJson(value);
+        						Common.Logging.i(TAG, "Key="+entry.getKey()+":  "+valStr);
+        					}
+        				}
+        				else
+        				{
+        					Common.Logging.i(TAG, "Empty session layout map!!!");
+        				}
+        			}
+        		}
+
+        		if (!parsed) {
+        			Common.Logging.i(TAG, "Device could not be parsed from json string");
+        			Common.Logging.i(TAG, "Device string is "+gson.toJson(root));
+        		}
     		} catch (Exception ex) {
+    			Common.Logging.i(TAG, "CresStoreCallback(): Could not deserialize "+json);
     			Common.Logging.i(TAG, "Exception: "+ex);
     			ex.printStackTrace();
-    		}
-
-    		if (root == null)
-    			Common.Logging.i(TAG, "Got null object for root");
-    		else if (root.device == null && root.internal == null)
-    			Common.Logging.i(TAG, "Got null object for device and internal");
-
-    		if (root.internal != null && root.internal.airMedia != null && root.internal.airMedia.canvas != null) {
-    			parsed = true;
-    			//Common.Logging.v(TAG, "Device/Internal/Canvas parsed from json string");
-    			//Common.Logging.v(TAG, "Device string is "+gson.toJson(root));
-    			if (root.internal.airMedia.canvas.sessionEvent != null)
-    			{
-    				if (CresCanvas.useSimulatedAVF)
-    					mAVF.processSessionEvent(root.internal.airMedia.canvas.sessionEvent);
-    				else
-    					Common.Logging.i(TAG, "Received a Session Event message - should not happen in normal mode");
-    			}
-    			if (root.internal.airMedia.canvas.sessionStateChange != null)
-    			{
-    				processSessionStateChange(root.internal.airMedia.canvas.sessionStateChange);
-    			}
-    			if (root.internal.airMedia.canvas.sessionResponse != null)
-    			{
-    				if (pending)
-    				{
-    					// Now process response
-    					processSessionResponse(root.internal.airMedia.canvas.sessionResponse);
-    				}
-    				else if (!CresCanvas.useSimulatedAVF)
-    				{
-    					Common.Logging.i(TAG, "Received a Session Response message with no pending flag - should not happen in normal mode");
-    				}
-    			}
-    		}
-    		if (root.device != null && root.device.airMedia != null && root.device.airMedia.canvas != null) {
-    			parsed = true;
-    			Common.Logging.i(TAG, "Device/AirMedia/AirMediaCanvas parsed from json string");
-    			Common.Logging.i(TAG, "Device string is "+gson.toJson(root));
-    			if (root.device.airMedia.canvas.canvasUserLayoutChangeRequest != null)
-    			{
-    				Common.Logging.i(TAG, "Canvas User Layout Change Request "+gson.toJson(root.device.airMedia.canvas.canvasUserLayoutChangeRequest));
-    				Map<String, SessionPositionEntry> map = root.device.airMedia.canvas.canvasUserLayoutChangeRequest.sessionPositions;
-    				if (map != null)
-    				{
-    					if (!map.isEmpty())
-    					{
-    						for (Map.Entry<String, SessionPositionEntry> entry : map.entrySet())
-    						{
-    							SessionPositionEntry value = entry.getValue();
-    							String valStr = gson.toJson(value);
-    							Common.Logging.i(TAG, "Key="+entry.getKey()+":  "+valStr);
-    						}
-    					} else {
-        					Common.Logging.i(TAG, "Empty session position map!!! - destroy all sessons");
-    					}
-    				}
-    				else
-    				{
-    					Common.Logging.i(TAG, "No session position map!!!");
-    				}
-    			}
-    			if (root.device.airMedia.canvas.canvasUserResponse != null)
-    			{
-    				Common.Logging.i(TAG, "Canvas User Response "+gson.toJson(root.device.airMedia.canvas.canvasUserResponse));
-    			}
-    			if (root.device.airMedia.canvas.canvasUserLayoutUpdate != null)
-    			{
-    				Common.Logging.i(TAG, "Canvas User Layout Update "+gson.toJson(root.device.airMedia.canvas.canvasUserLayoutUpdate));
-    				Map<String, SessionLayoutEntry> map = root.device.airMedia.canvas.canvasUserLayoutUpdate.sessionLayout;
-    				if (map != null)
-    				{
-    					for (Map.Entry<String, SessionLayoutEntry> entry : map.entrySet())
-    					{
-    						SessionLayoutEntry value = entry.getValue();
-    						String valStr = gson.toJson(value);
-    						Common.Logging.i(TAG, "Key="+entry.getKey()+":  "+valStr);
-    					}
-    				}
-    				else
-    				{
-    					Common.Logging.i(TAG, "Empty session layout map!!!");
-    				}
-    			}
-    		}
-    		
-    		if (!parsed) {
-    			Common.Logging.i(TAG, "Device could not be parsed from json string");
-    			Common.Logging.i(TAG, "Device string is "+gson.toJson(root));
     		}
     	}
     	

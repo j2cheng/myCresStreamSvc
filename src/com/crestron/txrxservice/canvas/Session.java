@@ -43,9 +43,6 @@ public class Session
     public boolean [] permissions = new boolean[PermissionType.size];
     //public SessionInfo info_;
     public static long nextId = 0;
-	Scheduler scheduler_;
-
-	Scheduler scheduler() { return scheduler_; }
 	
 	public Session()
 	{
@@ -63,7 +60,6 @@ public class Session
 		resolution = new AirMediaSize(0,0);
 		isVideoLoading = false;
 		isAudioMuted = false;
-		scheduler_ = new Scheduler(sessionId());
 		setSourceUserPermission(false);
 		setCanvasUserPermission(false);
 		setModeratorPermission(true);

@@ -1,13 +1,14 @@
 package com.crestron.txrxservice.canvas;
 
+import java.util.concurrent.LinkedBlockingQueue;
+import java.util.concurrent.ThreadPoolExecutor;
+import java.util.concurrent.TimeUnit;
+
 import com.crestron.airmedia.receiver.m360.ipc.AirMediaSessionStreamingState;
-import com.crestron.airmedia.receiver.m360.models.AirMediaReceiver;
 import com.crestron.airmedia.utilities.Common;
-import com.crestron.airmedia.utilities.TaskScheduler;
 import com.crestron.airmedia.utilities.TimeSpan;
 
 import android.view.Surface;
-
 
 public class AirMediaSession extends Session
 {
@@ -16,7 +17,9 @@ public class AirMediaSession extends Session
     public AirMediaSessionStreamingState videoState;
     public Waiter waiterForPlayRequestToUser = null;
     public Waiter waiterForStopRequestToUser = null;
-
+    public Scheduler stopPlayScheduler = new Scheduler("TxRx.airmedia.session.stopOrPlay");
+    public Scheduler requestScheduler = new Scheduler("TxRx.airmedia.session.request");
+    		
 	public AirMediaSession(com.crestron.airmedia.receiver.m360.models.AirMediaSession session, String label) {
 		super(); // will assign id;
 		state = SessionState.Connecting;
@@ -33,7 +36,8 @@ public class AirMediaSession extends Session
 		waiterForStopRequestToUser = new Waiter();
 	}
 	
-	// Requests
+	// Receiver initiated requests - handled on thread of requestScheduler - will be called when state changes are signaled by receiver
+	// Must be run async so we do not block receiver events thread
 	public void doSessionEvent(String r, Originator o, TimeSpan t)
 	{
 		// When this event actually runs - is popped from the handler's queue we check the state of the session
@@ -64,14 +68,14 @@ public class AirMediaSession extends Session
 		final Originator o_ = originator;
 		Common.Logging.i(TAG, "Session "+this+" scheduling "+request+" request");
 		Runnable r = new Runnable() { @Override public void run() { doSessionEvent(r_, o_, t_); } };
-		scheduler().queue(r);
+		requestScheduler.queue(r);
 	}
 	
 	public void connectRequest(Originator originator)
 	{
 		Common.Logging.i(TAG, "Session "+this+" connect request from "+originator);
 		mSessionMgr.add(this);
-		scheduleRequest("Connect", originator, TimeSpan.fromSeconds(5));
+		scheduleRequest("Connect", originator, TimeSpan.fromSeconds(15));
 	}
 	
 	public void disconnectRequest(Originator originator)
@@ -80,23 +84,29 @@ public class AirMediaSession extends Session
 			Common.Logging.i(TAG, "Session "+this+" is already disconnecting");
 			return;
 		}
-		Common.Logging.i(TAG, "Session "+this+" disconnect request from "+originator);
 		setState(SessionState.Disconnecting);
-		mCanvas.getCrestore().doSessionEventWithCompletionTimeout(this, "Disconnect", originator, TimeSpan.fromSeconds(5));
+		Common.Logging.i(TAG, "Session "+this+" disconnect request from "+originator);
+		scheduleRequest("Disconnect", originator, TimeSpan.fromSeconds(15));
 		mSessionMgr.remove(this);
 	}
 	
 	public void playRequest(Originator originator)
 	{
 		Common.Logging.i(TAG, "Session "+this+" play request from "+originator);
-		scheduleRequest("Play", originator, TimeSpan.fromSeconds(5));
+		scheduleRequest("Play", originator, TimeSpan.fromSeconds(15));
 	}
 	
 	public void stopRequest(Originator originator)
 	{
 		Common.Logging.i(TAG, "Session "+this+" stop request from "+originator);
-		scheduleRequest("Stop", originator, TimeSpan.fromSeconds(5));
+		scheduleRequest("Stop", originator, TimeSpan.fromSeconds(15));
 	}
+	
+	// Stop and Play actions below are always initiated by the AVF sending a sessionResponse message.  Therefore these functions
+	// will always run on the thread of the sessionResponseScheduler
+	// If the session is not in the correct state, a stop or play request may need to be sent to the receiver.  In this case we
+	// send the command to the receiver on a different thread - that of the stopPlayScheduler and wait for success to be signaled
+	// by the receiver via an event state change or we timeout.
 	
 	// Play action
 	public boolean doPlay(int replaceStreamId)
@@ -127,22 +137,24 @@ public class AirMediaSession extends Session
 			streamId = replaceStreamId;
 			surface = mStreamCtl.getSurface(streamId);
 		}
-		mStreamCtl.mUsedForAirMedia[streamId] = true;
 		Common.Logging.i(TAG, "AirMediaSession "+this+" using surface "+surface+" isValid="+surface.isValid());
 		if (airMediaReceiverSession  == null)
 		{
 			Common.Logging.i(TAG, "AirMediaSession::doPlay(): AirMediaSession "+this+" has a null receiver session ");
+			streamId = -1;
+			releaseSurface();		
 			return false;
 		}
 		Common.Logging.i(TAG, "AirMediaSession "+this+" attaching surface "+surface);
 		airMediaReceiverSession.attach(surface);
+		mStreamCtl.mUsedForAirMedia[streamId] = true;
 		return true;
 	}
 	
 	public void play(Originator originator, int replaceStreamId)
 	{
 		Common.Logging.i(TAG, "Session "+this+" play entered originator="+originator+"  repalceStreamId="+replaceStreamId);
-		if (isPlaying())
+		if (isPlaying() && isVideoPlaying())
 			return;
 		setState(SessionState.Starting);
 		if (getVideoState() != AirMediaSessionStreamingState.Playing)
@@ -175,9 +187,11 @@ public class AirMediaSession extends Session
 			return false;
 		if (getVideoState() == AirMediaSessionStreamingState.Playing)
 			return true;
+		// Command sent on separate thread and then we wait for the receiver event thread to invoke the setVideoState - when the video
+		// state changes or we timeout.
 		Common.Logging.w(TAG, "Session "+this+" sending play command to receiver");
 		waiterForPlayRequestToUser.prepForWait();
-		airMediaReceiverSession.play();
+		stopPlayScheduler.queue(new Runnable() { @Override public void run() { airMediaReceiverSession.play(); }; });	
 		boolean timeout = waiterForPlayRequestToUser.waitForSignal(TimeSpan.fromSeconds(5));
 		return !timeout;
 	}
@@ -187,8 +201,8 @@ public class AirMediaSession extends Session
 	{
 		if (streamId == -1)
 		{
-			Common.Logging.i(TAG, "AirMediaSession::doStop(): AirMediaSession "+this+" already has streamId="+streamId);
-			return false;
+			Common.Logging.i(TAG, "AirMediaSession::doStop(): AirMediaSession "+this+" already has streamId="+streamId+" must never had started");
+			return true;
 		}
 		if (airMediaReceiverSession  == null)
 		{
@@ -211,7 +225,7 @@ public class AirMediaSession extends Session
 	public void stop(Originator originator, boolean replace)
 	{
 		Common.Logging.i(TAG, "Session "+this+" stop entered originator="+originator);
-		if (isStopped())
+		if (isStopped() && isVideoStopped())
 		{
 			Common.Logging.i(TAG, "Session "+this+" current state is "+state+"  exiting");
 			return;
@@ -260,16 +274,30 @@ public class AirMediaSession extends Session
 			mStreamCtl.mUsedForAirMedia[streamId] = false;
 			return false;
 		}
+		// Command sent on separate thread and then we wait for the receiver event thread to invoke the setVideoState - when the video
+		// state changes or we timeout.
 		Common.Logging.i(TAG, "Session "+this+" sending stop command to receiver");
 		waiterForStopRequestToUser.prepForWait();
-		airMediaReceiverSession.stop();
-		boolean timeout = waiterForStopRequestToUser.waitForSignal(TimeSpan.fromSeconds(5));
+		stopPlayScheduler.queue(new Runnable() { @Override public void run() { airMediaReceiverSession.stop(); }; });	
+        boolean timeout = waiterForStopRequestToUser.waitForSignal(TimeSpan.fromSeconds(5));
 		return !timeout;
 	}
 	
 	public AirMediaSessionStreamingState getVideoState()
 	{
 		return videoState;
+	}
+	
+	public boolean isVideoPlaying()
+	{
+		Common.Logging.i(TAG, "isVideoPlaying(): Session "+this+" videoState="+videoState);
+		return (videoState == AirMediaSessionStreamingState.Playing || videoState == AirMediaSessionStreamingState.Paused);
+	}
+	
+	public boolean isVideoStopped()
+	{
+		Common.Logging.i(TAG, "isVideoStopped(): Session "+this+" videoState="+videoState);
+		return (videoState == AirMediaSessionStreamingState.Stopped);
 	}
 	
 	public void setVideoState(AirMediaSessionStreamingState s)
