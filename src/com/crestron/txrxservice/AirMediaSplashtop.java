@@ -1857,7 +1857,7 @@ public class AirMediaSplashtop
         	com.crestron.txrxservice.canvas.AirMediaSession s = canvasSessionMap.get(session.id());
         	if (s != null)
         	{
-        		s.disconnectRequest(new Originator(RequestOrigin.Receiver, s));
+        		s.setDisconnected();
         		canvasSessionMap.remove(session.id());
         	}
         	sendClientData();

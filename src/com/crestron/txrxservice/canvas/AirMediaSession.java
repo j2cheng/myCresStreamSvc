@@ -17,7 +17,8 @@ public class AirMediaSession extends Session
     public AirMediaSessionStreamingState videoState;
     public Waiter waiterForPlayRequestToUser = null;
     public Waiter waiterForStopRequestToUser = null;
-    public Scheduler stopPlayScheduler = new Scheduler("TxRx.airmedia.session.stopOrPlay");
+    public Waiter waiterForDisconnectRequestToUser = null;
+    public Scheduler receiverCmdScheduler = new Scheduler("TxRx.airmedia.session.receiverCmd");
     public Scheduler requestScheduler = new Scheduler("TxRx.airmedia.session.request");
     		
 	public AirMediaSession(com.crestron.airmedia.receiver.m360.models.AirMediaSession session, String label) {
@@ -34,6 +35,7 @@ public class AirMediaSession extends Session
 		}
 		waiterForPlayRequestToUser = new Waiter();
 		waiterForStopRequestToUser = new Waiter();
+		waiterForDisconnectRequestToUser = new Waiter();
 	}
 	
 	// Receiver initiated requests - handled on thread of requestScheduler - will be called when state changes are signaled by receiver
@@ -191,7 +193,7 @@ public class AirMediaSession extends Session
 		// state changes or we timeout.
 		Common.Logging.w(TAG, "Session "+this+" sending play command to receiver");
 		waiterForPlayRequestToUser.prepForWait();
-		stopPlayScheduler.queue(new Runnable() { @Override public void run() { airMediaReceiverSession.play(); }; });	
+		receiverCmdScheduler.queue(new Runnable() { @Override public void run() { airMediaReceiverSession.play(); }; });	
 		boolean timeout = waiterForPlayRequestToUser.waitForSignal(TimeSpan.fromSeconds(5));
 		return !timeout;
 	}
@@ -278,11 +280,46 @@ public class AirMediaSession extends Session
 		// state changes or we timeout.
 		Common.Logging.i(TAG, "Session "+this+" sending stop command to receiver");
 		waiterForStopRequestToUser.prepForWait();
-		stopPlayScheduler.queue(new Runnable() { @Override public void run() { airMediaReceiverSession.stop(); }; });	
+		receiverCmdScheduler.queue(new Runnable() { @Override public void run() { airMediaReceiverSession.stop(); }; });	
         boolean timeout = waiterForStopRequestToUser.waitForSignal(TimeSpan.fromSeconds(5));
 		return !timeout;
 	}
 	
+	public void disconnect(Originator originator)
+	{
+		if (state == SessionState.Disconnecting)
+			return;
+		setState(SessionState.Disconnecting);
+		sendDisconnectCommandToSourceUser();
+	}
+	
+	public boolean sendDisconnectCommandToSourceUser()
+	{
+		Common.Logging.w(TAG, "Session "+this+" sending disconnect command to receiver");
+		waiterForDisconnectRequestToUser.prepForWait();
+		receiverCmdScheduler.queue(new Runnable() { @Override public void run() { airMediaReceiverSession.disconnect(); }; });	
+		boolean timeout = waiterForDisconnectRequestToUser.waitForSignal(TimeSpan.fromSeconds(5));
+		return !timeout;
+	}
+	
+	public void setDisconnected()
+	{
+		Common.Logging.i(TAG, "setDisconnected(): Session "+this+" starting to check if processing is needed");
+		if (waiterForDisconnectRequestToUser.isWaiting())
+		{
+			// user has already requested stop so simply signal that session is now stopped
+			Common.Logging.i(TAG, "setDisconnected(): Session "+this+" signaling disconnect to waiter");
+			waiterForDisconnectRequestToUser.signal();
+		}
+		else
+		{
+			final Originator originator = new Originator(RequestOrigin.Receiver, this);
+			Common.Logging.i(TAG, "setVideoState(): Session "+this+" disconnect request");
+			disconnectRequest(originator);
+		}
+		Common.Logging.i(TAG, "setDisconnected(): Session "+this+" exit");
+	}
+
 	public AirMediaSessionStreamingState getVideoState()
 	{
 		return videoState;
