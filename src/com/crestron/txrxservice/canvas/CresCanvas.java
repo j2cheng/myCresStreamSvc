@@ -53,6 +53,7 @@ public class CresCanvas
 			prevHdmiResolution[i] = "0x0";
 			prevHdmiResolution[i] = "false";
 		}
+		mCrestore.sendCssRestart();
 		//clearAVF();
 	}
 	
@@ -176,9 +177,9 @@ public class CresCanvas
 		// Stop all sessions
 		clear();
 		// Restart HDMI/DM if possible
-		Common.Logging.i(TAG, "handleCodecFailure(): restarting HDMI if needed");
+		Common.Logging.i(TAG, "handleReceiverDisconnected(): restarting HDMI if needed");
 		mStreamCtl.canvasHdmiSyncStateChange(false);
-		Common.Logging.i(TAG, "handleCodecFailure(): restarting DM if needed");
+		Common.Logging.i(TAG, "handleReceiverDisconnected(): restarting DM if needed");
 		mStreamCtl.canvasDmSyncStateChange();
 	}
 	
@@ -197,6 +198,12 @@ public class CresCanvas
 		mStreamCtl.canvasHdmiSyncStateChange(false);
 		Common.Logging.i(TAG, "handleCodecFailure(): restarting DM if needed");
 		mStreamCtl.canvasDmSyncStateChange();
+	}
+	
+	public void handleAvfRestart()
+	{
+		Common.Logging.i(TAG, "*********************** handleAvfRestart ***********************");
+		mSessionMgr.sendAllSessionsInSessionEvent(new Originator(RequestOrigin.Error));
 	}
 	
 	public void handlePossibleHdmiSyncStateChange(int inputNumber, HDMIInputInterface hdmiInput)
@@ -504,7 +511,7 @@ public class CresCanvas
 			{
 				Session session = mSessionMgr.findSession(sessionId);
 				if (session != null)
-	            	getCrestore().doSessionEvent(session, "stop", new Originator(RequestOrigin.ConsoleCommand));
+	            	getCrestore().doSynchronousSessionEvent(session, "stop", new Originator(RequestOrigin.ConsoleCommand), 60);
 			}
 		}
 		else if (args[0].equalsIgnoreCase("fail"))

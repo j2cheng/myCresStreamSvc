@@ -38,7 +38,7 @@ public class AirMediaSession extends Session
 	
 	// Receiver initiated requests - handled on thread of requestScheduler - will be called when state changes are signaled by receiver
 	// Must be run async so we do not block receiver events thread
-	public void doSessionEvent(String r, Originator o, TimeSpan t)
+	public void doSessionEvent(String r, Originator o, int t)
 	{
 		// When this event actually runs - is popped from the handler's queue we check the state of the session
 		// if it matches request exit
@@ -56,15 +56,15 @@ public class AirMediaSession extends Session
 		if (!done)
 		{
 			Common.Logging.i(TAG, this+" starting processing of "+r+" request");
-			boolean success = mCanvas.getCrestore().doSessionEventWithCompletionTimeout(this, r, o, t);
+			boolean success = mCanvas.getCrestore().doSynchronousSessionEvent(this, r, o, t);
 			Common.Logging.i(TAG, this+" completed processing of "+r+" request: "+((success)?"success":"failed - timeout"));
 		}
 	}
 	
-	public void scheduleRequest(String request, Originator originator, TimeSpan timeout)
+	public void scheduleRequest(String request, Originator originator, int timeout)
 	{
 		final String r_ = request;
-		final TimeSpan t_ = timeout;
+		final int t_ = timeout;
 		final Originator o_ = originator;
 		Common.Logging.i(TAG, "Session "+this+" scheduling "+request+" request");
 		Runnable r = new Runnable() { @Override public void run() { doSessionEvent(r_, o_, t_); } };
@@ -75,7 +75,7 @@ public class AirMediaSession extends Session
 	{
 		Common.Logging.i(TAG, "Session "+this+" connect request from "+originator);
 		mSessionMgr.add(this);
-		scheduleRequest("Connect", originator, TimeSpan.fromSeconds(15));
+		scheduleRequest("Connect", originator, 15);
 	}
 	
 	public void disconnectRequest(Originator originator)
@@ -86,20 +86,20 @@ public class AirMediaSession extends Session
 		}
 		setState(SessionState.Disconnecting);
 		Common.Logging.i(TAG, "Session "+this+" disconnect request from "+originator);
-		scheduleRequest("Disconnect", originator, TimeSpan.fromSeconds(15));
+		scheduleRequest("Disconnect", originator, 15);
 		mSessionMgr.remove(this);
 	}
 	
 	public void playRequest(Originator originator)
 	{
 		Common.Logging.i(TAG, "Session "+this+" play request from "+originator);
-		scheduleRequest("Play", originator, TimeSpan.fromSeconds(15));
+		scheduleRequest("Play", originator, 15);
 	}
 	
 	public void stopRequest(Originator originator)
 	{
 		Common.Logging.i(TAG, "Session "+this+" stop request from "+originator);
-		scheduleRequest("Stop", originator, TimeSpan.fromSeconds(15));
+		scheduleRequest("Stop", originator, 15);
 	}
 	
 	// Stop and Play actions below are always initiated by the AVF sending a sessionResponse message.  Therefore these functions

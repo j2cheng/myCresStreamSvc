@@ -183,14 +183,10 @@ public class SessionManager
     	}
     	if (e.sessionEventMap.size() > 0)
     	{
-        	TimeSpan timeout = TimeSpan.fromSeconds(15);
-        	boolean timedout = false;
     		TimeSpan startTime = TimeSpan.now();
-        	Waiter waiter = new Waiter();
-        	crestore.doSessionEvent(e, origin, waiter);
-        	timedout = waiter.waitForSignal(timeout);
+        	boolean timedout = crestore.doSynchronousSessionEvent(e, origin, 60);
         	if (timedout)
-        		Common.Logging.i(TAG,"stopAllSessions(): Timeout while stopping all Sessions"+e.transactionId);
+        		Common.Logging.i(TAG,"stopAllSessions(): Timeout while disconnecting all airmedia Sessions"+e.transactionId);
         	else
         		Common.Logging.i(TAG,"stopAllSessions(): completed in "+TimeSpan.now().subtract(startTime).toString());
     	}
@@ -207,16 +203,12 @@ public class SessionManager
     	}
     	if (e.sessionEventMap.size() > 0)
     	{
-        	TimeSpan timeout = TimeSpan.fromSeconds(15);
-        	boolean timedout = false;
     		TimeSpan startTime = TimeSpan.now();
-        	Waiter waiter = new Waiter();
-        	crestore.doSessionEvent(e, origin, waiter);
-        	timedout = waiter.waitForSignal(timeout);
+        	boolean timedout = crestore.doSynchronousSessionEvent(e, origin, 60);
         	if (timedout)
-        		Common.Logging.i(TAG,"disconnectAllAirMediaSessions(): Timeout while disconnecting all airmedia Sessions"+e.transactionId);
+        		Common.Logging.i(TAG,"disconnectAllSessions(): Timeout while disconnecting all airmedia Sessions"+e.transactionId);
         	else
-        		Common.Logging.i(TAG,"disconnectAllAirMediaSessions(): completed in "+TimeSpan.now().subtract(startTime).toString());
+        		Common.Logging.i(TAG,"disconnectAllSessions(): completed in "+TimeSpan.now().subtract(startTime).toString());
     	}
     }
     
@@ -232,12 +224,8 @@ public class SessionManager
     	}
     	if (e.sessionEventMap.size() > 0)
     	{
-        	TimeSpan timeout = TimeSpan.fromSeconds(15);
-        	boolean timedout = false;
     		TimeSpan startTime = TimeSpan.now();
-        	Waiter waiter = new Waiter();
-        	crestore.doSessionEvent(e, origin, waiter);
-        	timedout = waiter.waitForSignal(timeout);
+        	boolean timedout = crestore.doSynchronousSessionEvent(e, origin, 60);
         	if (timedout)
         		Common.Logging.i(TAG,"disconnectAllAirMediaSessions(): Timeout while disconnecting all airmedia Sessions"+e.transactionId);
         	else
@@ -268,6 +256,35 @@ public class SessionManager
         }
 		Common.Logging.i(TAG,"clearAllSessions() clear list");
         sessions_.clear();
+    }
+    
+    public void sendAllSessionsInSessionEvent(Originator origin)
+    {
+    	CanvasCrestore crestore = mCanvas.getCrestore();
+    	SessionEvent e = crestore.new SessionEvent(UUID.randomUUID().toString());
+    	synchronized (lock_) { 
+            for (Session session : sessions_) {
+            	String request = "Disconnect";
+            	if (session.isConnecting())
+            		request = "Connect";
+            	else if (session.isPlaying())
+            		request = "Play";
+               	else if (session.isStopped())
+            		request = "Stop";   
+               	else
+            		request = "Disconnect"; 
+            	e.add(session.sessionId(), crestore.new SessionEventMapEntry(request, session));
+            }
+    	}
+    	if (e.sessionEventMap.size() > 0)
+    	{
+    		TimeSpan startTime = TimeSpan.now();
+        	boolean timedout = crestore.doSynchronousSessionEvent(e, origin, 60);
+        	if (timedout)
+        		Common.Logging.i(TAG,"sendAllSessionsInSessionEvent(): Timeout while disconnecting all airmedia Sessions"+e.transactionId);
+        	else
+        		Common.Logging.i(TAG,"sendAllSessionsInSessionEvent(): completed in "+TimeSpan.now().subtract(startTime).toString());
+    	}
     }
     
     public void logSessionStates(String tag)

@@ -167,12 +167,23 @@ public class CanvasCrestore
     	wrapper.set(s, true);
 	}
 	
-	public synchronized void doSessionEvent(Session s, String requestedState, Originator originator)
+	public synchronized boolean doSynchronousSessionEvent(SessionEvent e, Originator originator, int timeoutInSecs)
 	{
-		TransactionData t = new TransactionData(null, originator);
-		String transactionId = UUID.randomUUID().toString();
-		transactionMap.put(transactionId, t);
-		t.se = sendSessionEvent(transactionId, s.sessionId(), requestedState, s.type, s.airMediaType, s.inputNumber);
+		return doSessionEventWithCompletionTimeout(e, originator, TimeSpan.fromSeconds(timeoutInSecs));
+	}
+	
+	public synchronized boolean doSessionEventWithCompletionTimeout(SessionEvent e, Originator originator, TimeSpan timeout)
+	{
+		boolean timedout = false;
+		Waiter waiter = new Waiter();
+		TimeSpan startTime = TimeSpan.now();
+		doSessionEvent(e, originator, waiter);
+		timedout = waiter.waitForSignal(timeout);
+		if (timedout)
+			Common.Logging.i(TAG,"Timeout seen on sessionEvent with transactionId="+((e.transactionId==null)?"null":e.transactionId));
+		else
+			Common.Logging.i(TAG, "sessionEvent with transactionId="+((e.transactionId==null)?"null":e.transactionId)+" completed in "+TimeSpan.now().subtract(startTime).toString()+" seconds");
+		return !timedout;
 	}
 	
 	public synchronized boolean doSynchronousSessionEvent(Session s, String requestedState, Originator originator, int timeoutInSecs)
@@ -184,12 +195,10 @@ public class CanvasCrestore
 	{
 		boolean timedout = false;
 		Waiter waiter = new Waiter();
-		waiter.prepForWait();
-		TransactionData t = new TransactionData(waiter, originator);
 		TimeSpan startTime = TimeSpan.now();
 		String transactionId = UUID.randomUUID().toString();
-		transactionMap.put(transactionId, t);
-		t.se = sendSessionEvent(transactionId, s.sessionId(), requestedState, s.type, s.airMediaType, s.inputNumber);
+		SessionEvent e = createSessionEvent(transactionId, s, requestedState);
+		doSessionEvent(e, originator, waiter);
 		timedout = waiter.waitForSignal(timeout);
 		if (timedout)
 			Common.Logging.i(TAG,"Timeout seen on "+requestedState+" event for "+s);
@@ -198,13 +207,22 @@ public class CanvasCrestore
 		return !timedout;
 	}
 
+	public synchronized boolean doSessionEvent(Session s, String requestedState, Originator originator)
+	{
+		String transactionId = UUID.randomUUID().toString();
+		SessionEvent e = createSessionEvent(transactionId, s, requestedState);
+		doSessionEvent(e, originator, null);
+		return true;
+	}
+	
 	public synchronized void doSessionEvent(SessionEvent e, Originator originator, Waiter waiter)
 	{
 		if (waiter != null)
 			waiter.prepForWait();
 		TransactionData t = new TransactionData(waiter, originator);
+		t.se = e;
 		transactionMap.put(e.transactionId, t);
-		t.se = sendSessionEvent(e);
+		sendSessionEvent(e);
 	}
 	
 	public void doClearAllSessionEvent()
@@ -213,16 +231,16 @@ public class CanvasCrestore
     	sendSessionEvent(e);
 	}
 	
-	public void sendSessionEvent(String transactionId, Session s, String requestedState)
+	public SessionEvent createSessionEvent(String transactionId, Session s, String requestedState)
 	{
-		sendSessionEvent(transactionId, s.sessionId(), requestedState, s.type, s.airMediaType, s.inputNumber);
+		return createSessionEvent(transactionId, s.sessionId(), requestedState, s.type, s.airMediaType, s.inputNumber);
 	}
 	
-	private SessionEvent sendSessionEvent(String transactionId, String sessionId, String status, SessionType type, SessionAirMediaType amType, int inputNumber)
+	private SessionEvent createSessionEvent(String transactionId, String sessionId, String status, SessionType type, SessionAirMediaType amType, int inputNumber)
 	{
 		SessionEvent e = new SessionEvent(transactionId, sessionId, status, type.toString(), 
 				(amType!=null)?amType.toString():null, (inputNumber==0)?null:Integer.valueOf(inputNumber));
-		return sendSessionEvent(e);
+		return e;
 	}
 	
 	private SessionEvent sendSessionEvent(SessionEvent e)
@@ -233,6 +251,14 @@ public class CanvasCrestore
 		Common.Logging.i(TAG,"sendSessionEvent: "+jsonStr);
 		wrapper.set(jsonStr, false);
 		return e;
+	}
+	
+	public void sendCssRestart()
+	{
+		Root root = getRootedInternalAirMediaCanvasRestartSignal();
+		root.internal.airMedia.canvas.restartSignal.css = Boolean.valueOf(true);
+		String jsonStr = "{\"Pending\":" + gson.toJson(root) + "}";
+		wrapper.set(jsonStr, false);
 	}
 	
 	public void setVideoDisplayed(boolean value)
@@ -742,17 +768,29 @@ public class CanvasCrestore
         					// Session response messages are queued on a Scheduler so we do not block incoming message from cresstore
         					final SessionResponse sessionResponse = root.internal.airMedia.canvas.sessionResponse;
         					// Now process response
-        					Common.Logging.i(TAG,"RHRHRH  -- submitted processSessionResponse job to scheduler");
+        					Common.Logging.i(TAG,"processSessionResponse job to scheduler: "+gson.toJson(sessionResponse));
         					sessionResponseScheduler.queue(new Runnable() { 
         						@Override public void run() { 
         							processSessionResponse(sessionResponse); 
         						}; 
         					});
-        					//processSessionResponse(root.internal.airMedia.canvas.sessionResponse);
         				}
         				else if (!CresCanvas.useSimulatedAVF)
         				{
         					Common.Logging.i(TAG, "Received a Session Response message with no pending flag - should not happen in normal mode");
+        				}
+        			}
+        			if (root.internal.airMedia.canvas.restartSignal != null)
+        			{
+        				if (pending)
+        				{
+        					Boolean avfRestart = root.internal.airMedia.canvas.restartSignal.avf;
+        					
+        					if (avfRestart != null && avfRestart.booleanValue())
+        					{
+            					Common.Logging.i(TAG, "Received a AVF restart message");
+            					mCanvas.handleAvfRestart();
+        					}
         				}
         			}
         		}
@@ -875,6 +913,13 @@ public class CanvasCrestore
 	{
 		Root root = getRootedInternalAirMedia();
 		root.internal.airMedia.canvas = new InternalAirMediaCanvas();
+		return root;
+	}
+	
+	private Root getRootedInternalAirMediaCanvasRestartSignal()
+	{
+		Root root = getRootedInternalAirMediaCanvas();
+		root.internal.airMedia.canvas.restartSignal = new RestartSignal();
 		return root;
 	}
 	
@@ -1031,6 +1076,13 @@ public class CanvasCrestore
         Integer failureReason;
     }
     
+    public class RestartSignal {
+        @SerializedName ("Avf")
+        Boolean avf;
+        @SerializedName ("Css")
+        Boolean css;
+    }
+    
     public class SessionWindow {
     	@SerializedName ("Left")
     	Integer left;
@@ -1135,6 +1187,8 @@ public class CanvasCrestore
         SessionStateChange sessionStateChange;
         @SerializedName ("SessionStateFeedback")
         SessionStateFeedback sessionStateFeedback;
+        @SerializedName ("RestartSignal")
+        RestartSignal restartSignal;
     }
     
     public class InternalAirMedia {
