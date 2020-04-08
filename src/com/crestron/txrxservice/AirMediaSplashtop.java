@@ -733,11 +733,6 @@ public class AirMediaSplashtop
     public void setAirMediaReceiverMaxResolution()
     {
         AirMediaReceiverResolutionMode res = AirMediaReceiverResolutionMode.Max1080P;
-        if (mStreamCtl.airMediav21 && (mCanvas != null) && (mStreamCtl.userSettings.canvasModeEnabled) && 
-        		(mStreamCtl.mHwPlatform == CrestronHwPlatform.eHardwarePlatform_OMAP5))
-        {
-        	res = AirMediaReceiverResolutionMode.Max720P;
-        }
     	Common.Logging.i(TAG, "setAirMediaReceiverMaxResolution(): max resolutions set to "+res);
         receiver().maxResolution(res);
     }
