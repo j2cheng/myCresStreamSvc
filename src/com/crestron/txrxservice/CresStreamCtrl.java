@@ -3201,6 +3201,7 @@ public class CresStreamCtrl extends Service {
     {
         Log.i(TAG, "Setting RGB888 mode to " + enable);
         userSettings.setRgb888Enabled(enable);
+        isRGB888HDMIVideoSupported = enable;
     }
     
     public void setForceRgbPreviewMode(boolean enable)
