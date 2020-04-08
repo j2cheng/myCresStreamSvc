@@ -28,6 +28,7 @@ public class CresCanvas
     public SessionManager mSessionMgr = null;
     public CanvasSourceManager mCanvasSourceManager = null;
     AirMediaCanvas mAirMediaCanvas = null;
+    private Scheduler scheduler = new Scheduler("CresCanvasScheduler");
 
 	public static boolean useCanvasSurfaces = true;     // will be removed after integration
 	public static boolean useSimulatedAVF = false;  // will be removed after integration
@@ -211,7 +212,9 @@ public class CresCanvas
 	public void handleAvfRestart()
 	{
 		Common.Logging.i(TAG, "*********************** handleAvfRestart ***********************");
-		mSessionMgr.sendAllSessionsInSessionEvent(new Originator(RequestOrigin.Error));
+		// called from cresstore callback thread and so must be run asynchronously so sessionResponse is not blocked
+		Runnable r = new Runnable() { @Override public void run() { mSessionMgr.sendAllSessionsInSessionEvent(new Originator(RequestOrigin.Error)); } };
+		scheduler.execute(r);
 	}
 	
 	public void handlePossibleHdmiSyncStateChange(int inputNumber, HDMIInputInterface hdmiInput)
