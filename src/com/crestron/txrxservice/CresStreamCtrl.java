@@ -225,7 +225,7 @@ public class CresStreamCtrl extends Service {
     public int mGstreamerTimeoutCount = 0;
     public boolean haveExternalDisplays;
     public boolean hideVideoOnStop = false;
-    public boolean airMediav21 = false;
+    public boolean airMediav21 = true;
     public boolean isRGB888HDMIVideoSupported = true;
     public CrestronHwPlatform mHwPlatform;
     public String mProductName;
@@ -610,12 +610,16 @@ public class CresStreamCtrl extends Service {
             int windowWidth = 1920;
             int windowHeight = 1080;
             hideVideoOnStop = nativeHideVideoBeforeStop();
-            airMediav21 = MiscUtils.readStringFromDisk("/data/CresStreamSvc/airMediav2.1").equals("1");
-            Log.i(TAG, "device " + ((airMediav21)?"is in":"is not in") + " airMedia2.1 Mode");
             //TODO remove once integration is over
+            File f = new File("/data/CresStreamSvc/airMediav2.1");
+            if (f.exists())
+            {
+            	airMediav21 = MiscUtils.readStringFromDisk("/data/CresStreamSvc/airMediav2.1").equals("1");
+            }
+            Log.i(TAG, "device " + ((airMediav21)?"is in":"is not in") + " airMedia2.1 Mode");
             if (airMediav21)
             {
-            	File f = new File("/data/CresStreamSvc/useCanvasSurfaces");
+            	f = new File("/data/CresStreamSvc/useCanvasSurfaces");
             	if (f.exists())
             	{
                 	CresCanvas.useCanvasSurfaces = MiscUtils.readStringFromDisk("/data/CresStreamSvc/useCanvasSurfaces").equals("1");

@@ -29,8 +29,8 @@ public class CresCanvas
     public CanvasSourceManager mCanvasSourceManager = null;
     AirMediaCanvas mAirMediaCanvas = null;
 
-	public static boolean useCanvasSurfaces = false;     // will be removed after integration
-	public static boolean useSimulatedAVF = true;  // will be removed after integration
+	public static boolean useCanvasSurfaces = true;     // will be removed after integration
+	public static boolean useSimulatedAVF = false;  // will be removed after integration
 
     public static final String TAG = "TxRx.canvas"; 
 	private static final int MAX_HDMI_INPUTS = 1;
