@@ -193,6 +193,7 @@ public class CresCanvas
         	Log.i(TAG, "handleCodecFailure() - existing playing AirMedia session - restart receiver service");
 			// force receiver service restart
 			mStreamCtl.RestartAirMedia();
+			codecFailure = false;
 			return;
 		}
 		else
