@@ -293,7 +293,8 @@ public class Session
 		if (value != isVideoLoading)
 		{
 			isVideoLoading = value;
-			canvasSessionUpdate(this);
+			if (!mSessionMgr.getPendingLayoutUpdate())
+				canvasSessionUpdate(this);
 		}
 	}
 	
@@ -302,7 +303,8 @@ public class Session
 		if (value != isAudioMuted)
 		{
 			isAudioMuted = value;
-			canvasSessionUpdate(this);
+			if (!mSessionMgr.getPendingLayoutUpdate())
+				canvasSessionUpdate(this);
 		}
 	}
 	

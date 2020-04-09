@@ -381,7 +381,8 @@ public class AirMediaSession extends Session
 					Common.Logging.i(TAG, "setVideoState(): Session "+this+" resume from pause");
 					setState(SessionState.Playing);
 					Common.Logging.i(TAG, "setVideoState(): Session "+this+" calling canvasSessionUpdate()");
-					canvasSessionUpdate(this);
+					if (!mSessionMgr.getPendingLayoutUpdate())
+						canvasSessionUpdate(this);
 				}
 			}
 		}
@@ -389,7 +390,8 @@ public class AirMediaSession extends Session
 		{
 			Common.Logging.i(TAG, "setVideoState(): Session "+this+" processing paused case");
 			setState(SessionState.Paused);
-			canvasSessionUpdate(this);
+			if (!mSessionMgr.getPendingLayoutUpdate())
+				canvasSessionUpdate(this);
 		}
 		Common.Logging.i(TAG, "setVideoState(): Session "+this+" exit");
 	}

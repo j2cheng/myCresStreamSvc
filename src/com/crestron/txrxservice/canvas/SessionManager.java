@@ -341,6 +341,14 @@ public class SessionManager
     	}
     }
         
+    public boolean getPendingLayoutUpdate()
+    {
+    	synchronized(layoutUpdateLock)
+    	{
+    		return pendingLayoutUpdate;
+    	}
+    }
+    
     public void updateLayoutIfNotPending()
     {
     	// do a layout update if one is not already scheduled
