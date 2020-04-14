@@ -364,10 +364,10 @@ public class CanvasCrestore
 			if (tData != null)
 			   originator = tData.originator;
 		} else {
-			Common.Logging.w(TAG, "enqueSessionResponse(): no transaction data found");
+			Common.Logging.w(TAG, "enqueueSessionResponse(): no transaction data found");
 		}
 		
-		Common.Logging.i(TAG, "enqueSessionResponse(): ActionList ="+actionList);
+		Common.Logging.i(TAG, "enqueueSessionResponse(): ActionList ="+actionList);
 		
 		for (int i=0; i < actionList.size(); i++)
 		{
@@ -375,7 +375,7 @@ public class CanvasCrestore
 			String[] tokens = actionList.get(i).split(" ");
 			if (Common.isEqualIgnoreCase(tokens[0], "replace"))
 			{
-				Common.Logging.i(TAG, "enqueSessionResponse(): replacing "+tokens[1]+" with "+tokens[2]);
+				Common.Logging.i(TAG, "enqueueSessionResponse(): replacing "+tokens[1]+" with "+tokens[2]);
 				if (!CresCanvas.useCanvasSurfaces)
 					(mSessionMgr.getSession(tokens[1])).replace(originator, mSessionMgr.getSession(tokens[2]));
 				else
@@ -388,15 +388,29 @@ public class CanvasCrestore
 			} 
 			else if (Common.isEqualIgnoreCase(tokens[0], "stop"))
 			{
-				Common.Logging.i(TAG, "enqueSessionResponse(): stop "+tokens[1]);
+				Common.Logging.i(TAG, "enqueueSessionResponse(): stop "+tokens[1]);
 				session = mSessionMgr.getSession(tokens[1]);
-				session.stop(originator);
+				if (session != null)
+				{
+					session.stop(originator);
+				}
+				else
+				{
+					Common.Logging.i(TAG, "enqueueSessionResponse(): cannot find session "+tokens[1]);
+				}
 			}
 			else if (Common.isEqualIgnoreCase(tokens[0], "play"))
 			{
-				Common.Logging.i(TAG, "enqueSessionResponse(): play "+tokens[1]);
+				Common.Logging.i(TAG, "enqueueSessionResponse(): play "+tokens[1]);
 				session = mSessionMgr.getSession(tokens[1]);
-				session.play(originator);
+				if (session != null)
+				{
+					session.play(originator);
+				}
+				else
+				{
+					Common.Logging.i(TAG, "enqueueSessionResponse(): cannot find session "+tokens[1]);
+				}
 			}
 			else if (Common.isEqualIgnoreCase(tokens[0], "disconnect"))
 			{
@@ -409,7 +423,9 @@ public class CanvasCrestore
 						Common.Logging.i(TAG, "enqueueSessionResponse(): must stop session "+session+" before disconnecting it");
 						session.stop(originator);
 					}
+					Common.Logging.i(TAG, "enqueueSessionResponse(): calling disconnect for "+session);
 					session.disconnect(originator);
+					Common.Logging.i(TAG, "enqueueSessionResponse(): removimg "+session+" from list of sessions in session manager");
 					mSessionMgr.remove(session.sessionId());
 				}
 				else
@@ -420,26 +436,30 @@ public class CanvasCrestore
 					}
 					else
 					{
-						Common.Logging.i(TAG, "session "+tokens[1]+" - session mot found in sessionMgr - already disconected");
+						Common.Logging.i(TAG, "enqueueSessionResponse(): session "+tokens[1]+" - session not found in sessionMgr - already disconected");
 					}
 				}
 			}
 		}
 		// handle reporting of completion of session response
+		Common.Logging.i(TAG, "enqueueSessionResponse(): reportSessionResponseResult");
 		reportSessionResponseResult(response);
+		Common.Logging.i(TAG, "enqueueSessionResponse(): doLayoutUpdate");
 		mSessionMgr.doLayoutUpdate();
 		// wake up anyone waiting for completion of this transactionId and remove it from map
 		if (tData != null) {
 			if (tData.waiter != null) tData.waiter.signal();
+			Common.Logging.i(TAG, "enqueueSessionResponse(): remove "+transactionId+" from transaction map");
 			transactionMap.remove(transactionId);
 		}
 
+		Common.Logging.i(TAG, "enqueueSessionResponse(): logSessionStates");
 		mSessionMgr.logSessionStates("enqueueSessionResponse");
 	}
 	
 	public void processSessionResponse(SessionResponse response)
 	{
-		Common.Logging.v(TAG, "Start processing Session Response Message "+gson.toJson(response));
+		Common.Logging.v(TAG, "----- Start processing Session Response Message "+gson.toJson(response));
         if (response.transactionId != null)
         {
         	// is a response to an earlier SessionEvent sent earlier
@@ -559,6 +579,12 @@ public class CanvasCrestore
 			Common.Logging.i(TAG," playList: "+playList);
 			Common.Logging.i(TAG," stopList: "+stopList);
 			List<String> actionList = new LinkedList<String>();
+			for (int i=0; i < disconnectList.size(); i++)
+			{
+				actionList.add("disconnect "+disconnectList.get(i));
+				// add this key to the map with empty value so when written to cresstore it will delete the key from the cresstore map
+				map.put(disconnectList.get(i), new SessionResponseMapEntry());
+			}		
 			int nr = Math.min(playList.size(), stopList.size());
 			for (int i=0; i < nr; i++)
 			{
@@ -577,19 +603,13 @@ public class CanvasCrestore
 			{
 				actionList.add("play "+playList.get(i));
 			}
-			for (int i=0; i < disconnectList.size(); i++)
-			{
-				actionList.add("disconnect "+disconnectList.get(i));
-				// add this key to the map with empty value so when written to cresstore it will delete the key from the cresstore map
-				map.put(disconnectList.get(i), new SessionResponseMapEntry());
-			}			
 			// First update crestore map
 			updateCresstoreMap(map);
      
 			doSessionResponse(response, actionList);		
 		}
 
-		Common.Logging.v(TAG, "Finished processing Session Response Message "+gson.toJson(response));
+		Common.Logging.v(TAG, "----- Finished processing Session Response Message "+gson.toJson(response));
 	}
 	
 	public void updateCresstoreMap(Map<String, SessionResponseMapEntry> map)
@@ -768,7 +788,7 @@ public class CanvasCrestore
         					// Session response messages are queued on a Scheduler so we do not block incoming message from cresstore
         					final SessionResponse sessionResponse = root.internal.airMedia.canvas.sessionResponse;
         					// Now process response
-        					Common.Logging.i(TAG,"processSessionResponse job to scheduler: "+gson.toJson(sessionResponse));
+        					Common.Logging.i(TAG,"----- processSessionResponse job to scheduler: "+gson.toJson(sessionResponse));
         					sessionResponseScheduler.queue(new Runnable() { 
         						@Override public void run() { 
         							processSessionResponse(sessionResponse); 

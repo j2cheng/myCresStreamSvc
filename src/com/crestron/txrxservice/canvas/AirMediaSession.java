@@ -16,6 +16,7 @@ public class AirMediaSession extends Session
     public Waiter waiterForDisconnectRequestToUser = null;
     public Scheduler receiverCmdScheduler = new Scheduler("TxRx.airmedia.session.receiverCmd");
     public Scheduler requestScheduler = new Scheduler("TxRx.airmedia.session.request");
+    Surface surface=null;
     		
 	public AirMediaSession(com.crestron.airmedia.receiver.m360.models.AirMediaSession session, String label) {
 		super(); // will assign id;
@@ -85,7 +86,6 @@ public class AirMediaSession extends Session
 		setState(SessionState.Disconnecting);
 		Common.Logging.i(TAG, "Session "+this+" disconnect request from "+originator);
 		scheduleRequest("Disconnect", originator, 15);
-		mSessionMgr.remove(this);
 	}
 	
 	public void playRequest(Originator originator)
@@ -109,7 +109,6 @@ public class AirMediaSession extends Session
 	// Play action
 	public boolean doPlay(int replaceStreamId)
 	{
-		Surface surface = null;
 		if (streamId != -1)
 		{
 			Common.Logging.i(TAG, "AirMediaSession::doPlay(): AirMediaSession "+this+" already has a valid streamId="+streamId);
@@ -267,9 +266,7 @@ public class AirMediaSession extends Session
 				Common.Logging.i(TAG, "stopAllSessions(): in codec failure recovery mode set state to stopped for session "+sessionId());
 			else
 				Common.Logging.i(TAG, "stopAllSessions(): AirMediaCanvas not up set state to stopped for session "+sessionId());
-			setState(SessionState.Stopped);
-			releaseSurface();
-			mStreamCtl.mUsedForAirMedia[streamId] = false;
+			doForceStop();
 			return false;
 		}
 		// Command sent on separate thread and then we wait for the receiver event thread to invoke the setVideoState - when the video
@@ -281,12 +278,34 @@ public class AirMediaSession extends Session
 		return !timeout;
 	}
 	
+	public void doForceStop()
+	{
+		Common.Logging.v(TAG, "doForceStop(): force stop for session "+sessionId()+" entered");
+		if (state != SessionState.Disconnecting)
+			setState(SessionState.Stopped);
+		if (surface != null)
+		{
+			releaseSurface();
+		}
+		if (streamId != -1) {
+			mStreamCtl.mUsedForAirMedia[streamId] = false;
+			streamId = -1;
+		}
+		Common.Logging.v(TAG, "doForceStop(): force stop for session "+sessionId()+" exit");
+	}
+	
 	public void disconnect(Originator originator)
 	{
-		if (state == SessionState.Disconnecting)
-			return;
-		setState(SessionState.Disconnecting);
-		sendDisconnectCommandToSourceUser();
+		if (state != SessionState.Disconnecting)
+		{
+			setState(SessionState.Disconnecting);
+			sendDisconnectCommandToSourceUser();
+		}
+		else
+		{
+			//ensure we release surface if not done and reset streamId
+			doForceStop();
+		}
 	}
 	
 	public boolean sendDisconnectCommandToSourceUser()
@@ -401,14 +420,15 @@ public class AirMediaSession extends Session
 		return ("Session: "+type.toString()+"-"+airMediaType.toString()+" "+com.crestron.airmedia.receiver.m360.models.AirMediaSession.toDebugString(airMediaReceiverSession)+"  sessionId="+sessionId());
 	}
 	
-	public Surface acquireSurface()
+	public synchronized Surface acquireSurface()
 	{
 		return super.acquireSurface();
 	}
 	
-	public void releaseSurface()
+	public synchronized void releaseSurface()
 	{
 		super.releaseSurface();
+		surface = null;
 	}
 	
 	public String getAirMediaUserName()
