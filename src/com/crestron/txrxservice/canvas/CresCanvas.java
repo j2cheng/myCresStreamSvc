@@ -11,6 +11,7 @@ import com.crestron.txrxservice.canvas.HDMISession;
 import com.crestron.txrxservice.canvas.DMSession;
 
 import java.util.concurrent.*;
+import java.util.concurrent.atomic.AtomicBoolean;
 import java.util.ArrayList;
 import java.util.Arrays;
 import java.util.UUID;
@@ -40,7 +41,8 @@ public class CresCanvas
 	public static final int MAX_PRESENTING = 2;
 	private String prevHdmiResolution[] = new String[MAX_HDMI_INPUTS+1];
 	private String prevHdmiSyncStatus[] = new String[MAX_HDMI_INPUTS+1];
-	private boolean codecFailure = false;
+	private AtomicBoolean codecFailure = new AtomicBoolean(false);
+	private AtomicBoolean avfRestart = new AtomicBoolean(false);
 	public SurfaceManager mSurfaceMgr=null;
 
 	public CresCanvas(com.crestron.txrxservice.CresStreamCtrl streamCtl)
@@ -120,7 +122,7 @@ public class CresCanvas
 	
 	public boolean IsInCodecFailureRecovery()
 	{
-		return codecFailure;
+		return codecFailure.get();
 	}
 	
 	public void canvasHasStarted()
@@ -185,7 +187,7 @@ public class CresCanvas
 	public synchronized void handleCodecFailure()
 	{
 		Common.Logging.i(TAG, "*********************** handleCodecFailure ***********************");
-		codecFailure = true;
+		codecFailure.set(true);
 		// What do we do to handle ducati or media codec failure
 		// Stop all sessions
 		if (mSessionMgr.havePlayingAirMediaSession())
@@ -193,16 +195,23 @@ public class CresCanvas
         	Log.i(TAG, "handleCodecFailure() - existing playing AirMedia session - restart receiver service");
 			// force receiver service restart
 			mStreamCtl.RestartAirMedia();
-			codecFailure = false;
+			codecFailure.set(false);
 			return;
 		}
 		else
 		{
+        	Log.i(TAG, "handleCodecFailure() - stop all HDMI and AirMedia sessions");
 			mSessionMgr.stopAllSessions(new Originator(RequestOrigin.Error), new ArrayList<SessionType>(Arrays.asList(SessionType.AirMedia, SessionType.HDMI)));
 			// Disconnect all airmedia sessions
+        	Log.i(TAG, "handleCodecFailure() - disconnect all AirMedia sessions");
 			mSessionMgr.disconnectAllSessions(new Originator(RequestOrigin.Error), new ArrayList<SessionType>(Arrays.asList(SessionType.AirMedia)));
 		}
-		codecFailure = false;
+		if (avfRestart.get()) {
+			// send AVF a message disconnecting all sessions if it happened to restart while we were dealing with a codec failure
+        	Log.i(TAG, "handleCodecFailure() - disconnect all sessions due to AVF restart during codec failure");
+			mSessionMgr.disconnectAllSessions(new Originator(RequestOrigin.Error));
+		}
+		codecFailure.set(false);
 		// Restart HDMI/DM if possible
 		Common.Logging.i(TAG, "handleCodecFailure(): restarting HDMI if needed");
 		mStreamCtl.canvasHdmiSyncStateChange(false);
@@ -213,9 +222,16 @@ public class CresCanvas
 	public void handleAvfRestart()
 	{
 		Common.Logging.i(TAG, "*********************** handleAvfRestart ***********************");
-		// called from cresstore callback thread and so must be run asynchronously so sessionResponse is not blocked
-		Runnable r = new Runnable() { @Override public void run() { mSessionMgr.sendAllSessionsInSessionEvent(new Originator(RequestOrigin.Error)); } };
-		scheduler.execute(r);
+		if (!codecFailure.get())
+		{
+			// called from cresstore callback thread and so must be run asynchronously so sessionResponse is not blocked
+			Runnable r = new Runnable() { @Override public void run() { mSessionMgr.sendAllSessionsInSessionEvent(new Originator(RequestOrigin.Error)); } };
+			scheduler.execute(r);
+		}
+		else
+		{
+			avfRestart.set(true);
+		}
 	}
 	
 	public void handlePossibleHdmiSyncStateChange(int inputNumber, HDMIInputInterface hdmiInput)

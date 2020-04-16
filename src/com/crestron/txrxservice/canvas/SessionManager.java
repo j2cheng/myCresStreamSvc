@@ -37,6 +37,9 @@ public class SessionManager
     private Map<String, Session> sessionMap = new ConcurrentHashMap<String, Session>();
     private boolean pendingLayoutUpdate = false;
     private boolean videoDisplayed = false;
+    public static final int SEND_ALL_SESSION_TIMEOUT = 30;
+    public static final int STOP_ALL_SESSION_TIMEOUT = 30;
+    public static final int DISCONNECT_ALL_SESSION_TIMEOUT = 30;
 
 	public SessionManager(com.crestron.txrxservice.canvas.CresCanvas canvas)
 	{
@@ -191,7 +194,7 @@ public class SessionManager
     	if (e.sessionEventMap.size() > 0)
     	{
     		TimeSpan startTime = TimeSpan.now();
-        	boolean success = crestore.doSynchronousSessionEvent(e, origin, 60);
+        	boolean success = crestore.doSynchronousSessionEvent(e, origin, STOP_ALL_SESSION_TIMEOUT);
         	if (!success)
         		Common.Logging.i(TAG,"stopAllSessions(): Timeout while stopping all sessions"+e.transactionId);
         	else
@@ -218,7 +221,7 @@ public class SessionManager
     	if (e.sessionEventMap.size() > 0)
     	{
     		TimeSpan startTime = TimeSpan.now();
-        	boolean success = crestore.doSynchronousSessionEvent(e, origin, 60);
+        	boolean success = crestore.doSynchronousSessionEvent(e, origin, DISCONNECT_ALL_SESSION_TIMEOUT);
         	if (!success)
         		Common.Logging.i(TAG,"disconnectAllSessions(): Timeout while disconnecting all sessions"+e.transactionId);
         	else
@@ -273,9 +276,9 @@ public class SessionManager
     	if (e.sessionEventMap.size() > 0)
     	{
     		TimeSpan startTime = TimeSpan.now();
-        	boolean success = crestore.doSynchronousSessionEvent(e, origin, 60);
+        	boolean success = crestore.doSynchronousSessionEvent(e, origin, SEND_ALL_SESSION_TIMEOUT);
         	if (!success)
-        		Common.Logging.i(TAG,"sendAllSessionsInSessionEvent(): Timeout while disconnecting all airmedia Sessions"+e.transactionId);
+        		Common.Logging.i(TAG,"sendAllSessionsInSessionEvent(): Timeout while doing allSessionsEvent "+e.transactionId);
         	else
         		Common.Logging.i(TAG,"sendAllSessionsInSessionEvent(): completed in "+TimeSpan.now().subtract(startTime).toString());
     	}
