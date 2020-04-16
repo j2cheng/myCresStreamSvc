@@ -226,6 +226,7 @@ public class CresStreamCtrl extends Service {
     public boolean haveExternalDisplays;
     public boolean hideVideoOnStop = false;
     public boolean airMediav21 = true;
+    public boolean useFauxPPUX = true;
     public boolean isRGB888HDMIVideoSupported = true;
     public CrestronHwPlatform mHwPlatform;
     public String mProductName;
@@ -631,6 +632,12 @@ public class CresStreamCtrl extends Service {
                 	CresCanvas.useSimulatedAVF = MiscUtils.readStringFromDisk("/data/CresStreamSvc/useSimulatedAVF").equals("1");
             	}
                 Log.i(TAG, "device using "+((CresCanvas.useSimulatedAVF)?"simulated":"normal")+" AVF");
+            	f = new File("/data/CresStreamSvc/useFauxPPUX");
+            	if (f.exists())
+            	{
+                	useFauxPPUX = MiscUtils.readStringFromDisk("/data/CresStreamSvc/useFauxPPUX").equals("1");
+            	}
+                Log.i(TAG, "device using "+((useFauxPPUX)?"Faux PPUX":"Real PPUX"));
             }
             NumDmInputs = nativeGetDmInputCount();
             mHwPlatform = CrestronHwPlatform.fromInteger(nativeGetHWPlatformEnum());

@@ -2581,7 +2581,14 @@ public class AirMediaSplashtop
     
 	private void doBindService() {
         Common.Logging.i(TAG, "doBindService");
-        String bindString = ((mCanvas==null || CresCanvas.useCanvasSurfaces==false) ? AirMediaReceiver.AIRMEDIA_SERVICE_BIND : AirMediaReceiver.AIRMEDIA_SERVICE_CANVAS_BIND);
+        String bindString = AirMediaReceiver.AIRMEDIA_SERVICE_BIND;
+        if ((mCanvas!=null && CresCanvas.useCanvasSurfaces!=false))
+        {
+        	if (mStreamCtl.useFauxPPUX)
+        		bindString = AirMediaReceiver.AIRMEDIA_SERVICE_CANVAS_BIND;
+        	else
+        		bindString = AirMediaReceiver.AIRMEDIA_SERVICE_CANVAS_LAUNCHER_BIND;
+        }
         Intent serviceIntent = new Intent(bindString);
         serviceIntent.setPackage(AirMediaReceiver.AIRMEDIA_SERVICE_PACKAGE);
 		List<ResolveInfo> list = mContext.getPackageManager().queryIntentServices(serviceIntent, 0);

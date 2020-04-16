@@ -425,7 +425,7 @@ public class CanvasCrestore
 					}
 					Common.Logging.i(TAG, "enqueueSessionResponse(): calling disconnect for "+session);
 					session.disconnect(originator);
-					Common.Logging.i(TAG, "enqueueSessionResponse(): removimg "+session+" from list of sessions in session manager");
+					Common.Logging.i(TAG, "enqueueSessionResponse(): removing "+session+" from list of sessions in session manager");
 					mSessionMgr.remove(session.sessionId());
 				}
 				else
@@ -459,7 +459,7 @@ public class CanvasCrestore
 	
 	public void processSessionResponse(SessionResponse response)
 	{
-		Common.Logging.v(TAG, "----- Start processing Session Response Message "+gson.toJson(response));
+		Common.Logging.v(TAG, "----- processSessionResponse: Start processing Session Response Message "+gson.toJson(response));
         if (response.transactionId != null)
         {
         	// is a response to an earlier SessionEvent sent earlier
