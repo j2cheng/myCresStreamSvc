@@ -265,6 +265,7 @@ public class CanvasCrestore
 	{
 		Root root = getRootedInternalAirMediaOsd();
 		root.internal.airMedia.osd.videoDisplayed = Boolean.valueOf(value);
+		wrapper.set(gson.toJson(root), true);
 		String jsonStr = "{\"Pending\":" + gson.toJson(root) + "}";
 		wrapper.set(jsonStr, false);
 	}
@@ -273,6 +274,7 @@ public class CanvasCrestore
 	{
 		Root root = getRootedInternalAirMediaOsd();
 		root.internal.airMedia.osd.currentConnectionInfo = connectionInfo;
+		wrapper.set(gson.toJson(root), true);
 		String jsonStr = "{\"Pending\":" + gson.toJson(root) + "}";
 		wrapper.set(jsonStr, false);
 	}
@@ -281,6 +283,7 @@ public class CanvasCrestore
 	{
 		Root root = getRootedInternalAirMediaOsd();
 		root.internal.airMedia.osd.currentWirelessConnectionInfo = connectionInfo;
+		wrapper.set(gson.toJson(root), true);
 		String jsonStr = "{\"Pending\":" + gson.toJson(root) + "}";
 		wrapper.set(jsonStr, false);
 	}
