@@ -1,5 +1,7 @@
 package com.crestron.txrxservice.canvas;
 
+import java.util.concurrent.atomic.AtomicBoolean;
+
 import com.crestron.airmedia.receiver.m360.ipc.AirMediaSessionStreamingState;
 import com.crestron.airmedia.utilities.Common;
 import com.crestron.airmedia.utilities.TimeSpan;
@@ -16,6 +18,7 @@ public class AirMediaSession extends Session
     public Waiter waiterForDisconnectRequestToUser = null;
     public Scheduler receiverCmdScheduler = new Scheduler("TxRx.airmedia.session.receiverCmd");
     public Scheduler requestScheduler = new Scheduler("TxRx.airmedia.session.request");
+    private AtomicBoolean alreadyDisconnected = null;         // receiver has already disconnected sessopm
     Surface surface=null;
     		
 	public AirMediaSession(com.crestron.airmedia.receiver.m360.models.AirMediaSession session, String label) {
@@ -33,6 +36,7 @@ public class AirMediaSession extends Session
 		waiterForPlayRequestToUser = new Waiter();
 		waiterForStopRequestToUser = new Waiter();
 		waiterForDisconnectRequestToUser = new Waiter();
+		alreadyDisconnected = new AtomicBoolean(false);
 	}
 	
 	// Receiver initiated requests - handled on thread of requestScheduler - will be called when state changes are signaled by receiver
@@ -296,16 +300,23 @@ public class AirMediaSession extends Session
 	
 	public void disconnect(Originator originator)
 	{
-		if (state != SessionState.Disconnecting)
+		Common.Logging.i(TAG, "disconnect(): entered for session "+sessionId()+" state="+state);
+		if (state != SessionState.Disconnecting && !alreadyDisconnected.get())
 		{
 			setState(SessionState.Disconnecting);
-			sendDisconnectCommandToSourceUser();
+			boolean success = sendDisconnectCommandToSourceUser();
+			if (!success)
+			{
+				Common.Logging.i(TAG, "Session "+this+" disconnect command to AirMedia receiver failed or timed out");
+				return;
+			}
 		}
 		else
 		{
 			//ensure we release surface if not done and reset streamId
 			doForceStop();
 		}
+		Common.Logging.i(TAG, "disconnect(): exit for session "+sessionId()+" state="+state);
 	}
 	
 	public boolean sendDisconnectCommandToSourceUser()
@@ -322,7 +333,7 @@ public class AirMediaSession extends Session
 		Common.Logging.i(TAG, "setDisconnected(): Session "+this+" starting to check if processing is needed");
 		if (waiterForDisconnectRequestToUser.isWaiting())
 		{
-			// user has already requested stop so simply signal that session is now stopped
+			// user has already requested disconnect so simply signal that session is now disconnected
 			Common.Logging.i(TAG, "setDisconnected(): Session "+this+" signaling disconnect to waiter");
 			waiterForDisconnectRequestToUser.signal();
 		}
@@ -330,6 +341,7 @@ public class AirMediaSession extends Session
 		{
 			final Originator originator = new Originator(RequestOrigin.Receiver, this);
 			Common.Logging.i(TAG, "setVideoState(): Session "+this+" disconnect request");
+			alreadyDisconnected.set(true);
 			disconnectRequest(originator);
 		}
 		Common.Logging.i(TAG, "setDisconnected(): Session "+this+" exit");
