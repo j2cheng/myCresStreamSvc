@@ -1108,7 +1108,11 @@ public class CresStreamCtrl extends Service {
 
             //AudioManager
             amanager=(AudioManager)getSystemService(Context.AUDIO_SERVICE);
-
+            if (systemMode.contains("rigel")))
+            {
+                Log.d(TAG, "In rigel mode: set music volume to 100");
+                setMusicVolume(100);
+            }
             // Monitor HDMI for resolution changes
             monitorHdmiStates();
 
@@ -2989,6 +2993,11 @@ public class CresStreamCtrl extends Service {
     {    	
         // Stream Out preview audio will be placed on the unused ALARM stream
         amanager.setStreamVolume(AudioManager.STREAM_ALARM, volume * amanager.getStreamMaxVolume(AudioManager.STREAM_ALARM) / 100, 0);
+    }
+
+    public void setMusicVolume(int volume)
+    {
+        amanager.setStreamVolume(AudioManager.STREAM_MUSIC, volume * amanager.getStreamMaxVolume(AudioManager.STREAM_ALARM) / 100, 0);
     }
     
     public void setStreamMusicMute(boolean enabled)
