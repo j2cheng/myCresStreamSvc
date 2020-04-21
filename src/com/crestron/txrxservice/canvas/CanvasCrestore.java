@@ -165,6 +165,8 @@ public class CanvasCrestore
         s = gson.toJson(r);
     	Common.Logging.i(TAG, "Clearing Session Response Map in Crestore="+s);
     	wrapper.set(s, true);
+    	Common.Logging.i(TAG, "Clearing video displayed flag in Cresstore"+s);
+    	setVideoDisplayed(false);
 	}
 	
 	public synchronized boolean doSynchronousSessionEvent(SessionEvent e, Originator originator, int timeoutInSecs)

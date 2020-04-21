@@ -128,18 +128,21 @@ public class CresDisplaySurfaceCanvas implements CresDisplaySurface
     // get Surface for Window idx
     public Surface getSurface(int idx)
     {
+    	Log.v(TAG, "getSurface - streamId="+idx+"  surface="+((surfaceMap.get(idx) != null)?surfaceMap.get(idx):"null"));
     	return surfaceMap.get(idx);
     }
     
     // set Surface for Window idx
     public void setSurface(int idx, Surface s)
     {
+    	Log.v(TAG, "setSurface - streamId="+idx+"  surface="+((s != null)?s:"null"));
 		surfaceMap.put(idx, s);
     }
     
     // delete Surface for Window idx
     public void deleteSurface(int idx)
     {
+    	Log.v(TAG, "deleteSurface - streamId="+idx);
 		surfaceMap.remove(idx);
     }
     
@@ -155,7 +158,8 @@ public class CresDisplaySurfaceCanvas implements CresDisplaySurface
 			return streamId;
 		for (Map.Entry<Integer, Surface> entry : surfaceMap.entrySet())
 		{
-			if (entry.getValue() == surface) {
+	    	//Log.v(TAG, "surface2streamId - surface="+surface+"   map entry: key="+entry.getKey()+"  value="+entry.getValue());
+			if (entry.getValue().toString().equals(surface.toString())) {
 				streamId = entry.getKey();
 				break;
 			}
