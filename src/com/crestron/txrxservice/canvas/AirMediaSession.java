@@ -154,7 +154,7 @@ public class AirMediaSession extends Session
 	
 	public void play(Originator originator, int replaceStreamId)
 	{
-		Common.Logging.i(TAG, "Session "+this+" play entered originator="+originator+"  repalceStreamId="+replaceStreamId);
+		Common.Logging.i(TAG, "Session "+this+" play entered originator="+originator+"  replaceStreamId="+replaceStreamId);
 		if (isPlaying() && isVideoPlaying())
 			return;
 		setState(SessionState.Starting);
@@ -190,13 +190,30 @@ public class AirMediaSession extends Session
 			return true;
 		// Command sent on separate thread and then we wait for the receiver event thread to invoke the setVideoState - when the video
 		// state changes or we timeout.
-		Common.Logging.w(TAG, "Session "+this+" sending play command to receiver");
+		Common.Logging.w(TAG, "Session "+this+" calling _play() asynchronously");
 		waiterForPlayRequestToUser.prepForWait();
-		receiverCmdScheduler.queue(new Runnable() { @Override public void run() { airMediaReceiverSession.play(); }; });	
+		receiverCmdScheduler.queue(new Runnable() { @Override public void run() { _play(); }; });	
 		boolean timeout = waiterForPlayRequestToUser.waitForSignal(TimeSpan.fromSeconds(5));
 		return !timeout;
 	}
 	
+	// check we are not already in playing state before calling receiver session play() command
+	public void _play()
+	{
+		if (getVideoState() == AirMediaSessionStreamingState.Playing)
+		{
+			if (waiterForPlayRequestToUser.signal())
+			{
+				Common.Logging.i(TAG, "_play(): Session "+this+" signaled playing to waiter");
+			}
+		}
+		else
+		{
+			Common.Logging.w(TAG, "Session "+this+" sending play command to receiver");
+			airMediaReceiverSession.play();
+		}
+	}
+		
 	// Stop action
 	public boolean doStop(boolean replace)
 	{
@@ -275,11 +292,28 @@ public class AirMediaSession extends Session
 		}
 		// Command sent on separate thread and then we wait for the receiver event thread to invoke the setVideoState - when the video
 		// state changes or we timeout.
-		Common.Logging.i(TAG, "Session "+this+" sending stop command to receiver");
+		Common.Logging.i(TAG, "Session "+this+" calling _stop() asynchronously");
 		waiterForStopRequestToUser.prepForWait();
-		receiverCmdScheduler.queue(new Runnable() { @Override public void run() { airMediaReceiverSession.stop(); }; });	
+		receiverCmdScheduler.queue(new Runnable() { @Override public void run() { _stop(); }; });	
         boolean timeout = waiterForStopRequestToUser.waitForSignal(TimeSpan.fromSeconds(5));
 		return !timeout;
+	}
+	
+	// check we are not already in stopped state before calling receiver session stop() command
+	public void _stop()
+	{
+		if (getVideoState() == AirMediaSessionStreamingState.Stopped)
+		{
+			if (waiterForStopRequestToUser.signal())
+			{
+				Common.Logging.i(TAG, "_stop(): Session "+this+" signaling stopped to waiter");
+			}
+		}
+		else
+		{
+			Common.Logging.i(TAG, "Session "+this+" sending stop command to receiver");
+			airMediaReceiverSession.stop();
+		}
 	}
 	
 	public void doForceStop()
@@ -331,11 +365,10 @@ public class AirMediaSession extends Session
 	public void setDisconnected()
 	{
 		Common.Logging.i(TAG, "setDisconnected(): Session "+this+" starting to check if processing is needed");
-		if (waiterForDisconnectRequestToUser.isWaiting())
+		if (waiterForDisconnectRequestToUser.signal())
 		{
 			// user has already requested disconnect so simply signal that session is now disconnected
-			Common.Logging.i(TAG, "setDisconnected(): Session "+this+" signaling disconnect to waiter");
-			waiterForDisconnectRequestToUser.signal();
+			Common.Logging.i(TAG, "setDisconnected(): Session "+this+" signaled disconnect to waiter");
 		}
 		else
 		{
@@ -377,11 +410,10 @@ public class AirMediaSession extends Session
 		Common.Logging.i(TAG, "setVideoState(): Session "+this+" starting to check if processing is needed");
 		if (s == AirMediaSessionStreamingState.Stopped)
 		{
-			if (waiterForStopRequestToUser.isWaiting())
+			if (waiterForStopRequestToUser.signal())
 			{
 				// user has already requested stop so simply signal that session is now stopped
-				Common.Logging.i(TAG, "setVideoState(): Session "+this+" signaling stoppage to waiter");
-				waiterForStopRequestToUser.signal();
+				Common.Logging.i(TAG, "setVideoState(): Session "+this+" signaled stoppage to waiter");
 			}
 			else
 			{
@@ -392,10 +424,10 @@ public class AirMediaSession extends Session
 		} 
 		else if (s == AirMediaSessionStreamingState.Playing)
 		{
-			if (waiterForPlayRequestToUser.isWaiting())
+			if (waiterForPlayRequestToUser.signal())
 			{
 				// user has already requested play so simply signal that session is now playing
-				Common.Logging.i(TAG, "setVideoState(): Session "+this+" signaling playing to waiter");
+				Common.Logging.i(TAG, "setVideoState(): Session "+this+" signaled playing to waiter");
 				waiterForPlayRequestToUser.signal();
 			}
 			else 

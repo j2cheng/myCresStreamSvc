@@ -8,42 +8,32 @@ import com.crestron.airmedia.utilities.TimeSpan;
 public class Waiter
 {
 	private CountDownLatch latch = null;
-	private boolean is_waiting = false;
 	
-	public void prepForWait()
+	public synchronized void prepForWait()
 	{
-		if (latch == null || (latch.getCount() != 1))
-		{
-			latch = new CountDownLatch(1);
-		}
-	}
-	
-	public boolean isWaiting()
-	{
-		return is_waiting;
+		latch = new CountDownLatch(1);
 	}
 	
 	public boolean waitForSignal(TimeSpan timeout)
 	{
 	    boolean retVal=true;
-		if (latch == null)
-		{
-			latch = new CountDownLatch(1);
-		}
 		try 
 		{
-			is_waiting = true;
 			retVal = latch.await(TimeSpan.toLong(timeout.totalMicroseconds()), TimeUnit.MICROSECONDS);
 		} catch (InterruptedException ex) {};
 		return !retVal; // true returned on timeout
 	}
 	
-	public void signal()
+	// returns true if latch needed to be counted down else return false
+	public synchronized boolean signal()
 	{
+		boolean retVal = false;
 		if (latch != null)
 		{
-			is_waiting = false;
+			if (latch.getCount() == 1)
+				retVal = true;
 			latch.countDown();
 		}
+		return retVal;
 	}
 }
