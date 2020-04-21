@@ -1108,7 +1108,7 @@ public class CresStreamCtrl extends Service {
 
             //AudioManager
             amanager=(AudioManager)getSystemService(Context.AUDIO_SERVICE);
-            if (systemMode.contains("rigel")))
+            if (systemMode.contains("rigel"))
             {
                 Log.d(TAG, "In rigel mode: set music volume to 100");
                 setMusicVolume(100);
