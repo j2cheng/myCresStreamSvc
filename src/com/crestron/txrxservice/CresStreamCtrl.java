@@ -226,7 +226,7 @@ public class CresStreamCtrl extends Service {
     public boolean haveExternalDisplays;
     public boolean hideVideoOnStop = false;
     public boolean airMediav21 = true;
-    public boolean useFauxPPUX = true;
+    public boolean useFauxPPUX = false;
     public boolean isRGB888HDMIVideoSupported = true;
     public CrestronHwPlatform mHwPlatform;
     public String mProductName;
