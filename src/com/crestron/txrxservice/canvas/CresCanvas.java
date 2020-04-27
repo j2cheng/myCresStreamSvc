@@ -278,23 +278,13 @@ public class CresCanvas
 			{
 				
 				Common.Logging.e(TAG, "HDMI sync is true with existing HDMI session in state "+session.state);
-				if (session.isPlaying())
-				{
-		            mCrestore.doSynchronousSessionEvent(session, "Stop", origin, timeout);
-				}
+				mCrestore.doSynchronousSessionEvent(session, "Disconnect", origin, timeout);
 			}
-			else
-			{
-				session = com.crestron.txrxservice.canvas.Session.createSession("HDMI", "HDMI"+inputNumber, null, 1, null);
-				((HDMISession) session).setHdmiInput(hdmiInput);
-				Common.Logging.i(TAG, "Adding session " + session + " to sessionManager");
-				mSessionMgr.add(session);
-				mCrestore.doSynchronousSessionEvent(session, "Connect", origin, timeout);
-			}
-            // For now HDMI sessions should immediately be transitioned to Play
-			// Eventually it will be up to AVF to decide play ot stop on connect
-			if (session.isStopped())
-				mCrestore.doSynchronousSessionEvent(session, "Play", origin, timeout);
+			session = com.crestron.txrxservice.canvas.Session.createSession("HDMI", "HDMI"+inputNumber, null, 1, null);
+			((HDMISession) session).setHdmiInput(hdmiInput);
+			Common.Logging.i(TAG, "Adding session " + session + " to sessionManager");
+			mSessionMgr.add(session);
+			mCrestore.doSynchronousSessionEvent(session, "Connect", origin, timeout);
 		}
 		else
 		{
@@ -334,21 +324,12 @@ public class CresCanvas
 			{
 				
 				Common.Logging.e(TAG, "DM sync is true with existing DM session in state "+session.state);
-	            mCrestore.doSynchronousSessionEvent(session, "Disconnect", origin, timeout);
+				mCrestore.doSynchronousSessionEvent(session, "Disconnect", origin, timeout);
 			}
 			session = com.crestron.txrxservice.canvas.Session.createSession("DM", "DM"+inputNumber, null, inputNumber, null);
-			if (session != null)
-			{
-				Common.Logging.i(TAG, "Adding session " + session + " to sessionManager");
-				mSessionMgr.add(session);
-			}
-			else
-			{
-				Common.Logging.i(TAG, "Connect not create requested DM session for connect command");
-			}
-            mCrestore.doSynchronousSessionEvent(session, "Connect", origin, timeout);
-            // For now DM sessions should immediately be transitioned to Play
-            mCrestore.doSynchronousSessionEvent(session, "Play", origin, timeout);
+			Common.Logging.i(TAG, "Adding session " + session + " to sessionManager");
+			mSessionMgr.add(session);
+			mCrestore.doSynchronousSessionEvent(session, "Connect", origin, timeout);
 		}
 		else
 		{

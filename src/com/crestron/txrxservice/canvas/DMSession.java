@@ -117,8 +117,11 @@ public class DMSession extends Session
 		{
 			Common.Logging.i(TAG, "DM Session "+this+" drawing to surface");
 			drawChromaKeyColor(surface, mStreamCtl.userSettings.getDmHdcpBlank(inputNumber));
-			Rect window = getWindow(surface);
-			mStreamCtl.sendDmWindow(inputNumber, window.left, window.top, window.width(), window.height());
+			if (!CresCanvas.useCanvasSurfaces)
+			{
+				Rect window = getWindow(surface);
+				mStreamCtl.sendDmWindow(inputNumber, window.left, window.top, window.width(), window.height());
+			}
 		}
 		else
 		{

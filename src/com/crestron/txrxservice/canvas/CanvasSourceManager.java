@@ -1,5 +1,6 @@
 package com.crestron.txrxservice.canvas;
 
+import java.util.List;
 import java.util.UUID;
 
 import com.crestron.airmedia.canvas.channels.ipc.*;
@@ -63,6 +64,12 @@ public class CanvasSourceManager {
                 return processRequest(request);
             }
         }
+        
+        public void sourceLayout(CanvasLayout layout)
+        {
+	    	Common.Logging.i(TAG, "canvassourcemanager.sourcelayout  ----- CanvasSourceLayout event -----");
+            processLayout(layout.sources);
+        }
     }
 
     ////////////////////////////////////////////////////////////////////////////////////////////////
@@ -96,6 +103,19 @@ public class CanvasSourceManager {
     	return response;
     }
     
+    void processLayout(final List<CanvasSourceLayout> sources)
+    {
+    	for (CanvasSourceLayout srcLayout : sources)
+    	{
+    		Session s = mCresStore.mSessionMgr.findSession(srcLayout.sessionId);
+    		if (s != null && s.type == SessionType.DM)
+    		{
+    	    	Common.Logging.i(TAG, "send DM window for session "+s+" inputNumber="+s.inputNumber+
+    	    			" ("+srcLayout.width+","+srcLayout.height+")@("+srcLayout.left+","+srcLayout.top);    	
+				mStreamCtl.sendDmWindow(s.inputNumber, srcLayout.left, srcLayout.top, srcLayout.width, srcLayout.height);
+    		}
+    	}
+    }
     ////////////////////////////////////////////////////////////////////////////////////////////////
     /// EVENTS
     ////////////////////////////////////////////////////////////////////////////////////////////////
