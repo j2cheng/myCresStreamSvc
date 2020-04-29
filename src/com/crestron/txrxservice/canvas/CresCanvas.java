@@ -527,5 +527,18 @@ public class CresCanvas
 		{
 			handleCodecFailure();
 		}
+		else if (args[0].equalsIgnoreCase("dm"))
+		{
+			String sessionId = args[1];
+			Session session = mSessionMgr.findSession(sessionId);
+			int r = Integer.parseInt(args[2]);
+			int g = Integer.parseInt(args[3]);
+			int b = Integer.parseInt(args[4]);
+			if (session != null)
+			{
+				if (session.type == SessionType.DM)
+					((DMSession)session).drawColor(r, g, b);
+			}
+		}
 	}
 }

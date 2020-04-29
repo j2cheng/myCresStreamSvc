@@ -17,6 +17,7 @@ import android.view.Surface;
 public class DMSession extends Session
 {
     public static final String TAG = "TxRx.canvas.DM.session"; 
+    private Surface surface = null;
 
 	public DMSession(int inputNumber) {
 		super(); // will assign id;
@@ -75,14 +76,13 @@ public class DMSession extends Session
 		canvas.drawRGB(r, g, b);
 	}
 	
-	public synchronized void drawChromaKeyColor(Surface surface, boolean blank)
+	public synchronized void drawColor(int r, int g, int b)
 	{
+		Common.Logging.i(TAG, "drawColor(): Painting DM surface surface="+surface+"  r="+r+" g="+g+" b="+b);
         Canvas canvas = null;
-        int r = (blank) ? 0xff : 0x09;
-        int g = (blank) ? 0x00 : 0x00;
-        int b = (blank) ? 0x00 : 0x09;
         try {
             canvas = surface.lockCanvas(null);
+    		Common.Logging.i(TAG, "drawColor(): canvas width="+canvas.getWidth()+" height="+canvas.getHeight());
             synchronized(surface) {
                 draw(canvas, r, g, b);
             }
@@ -93,6 +93,20 @@ public class DMSession extends Session
                 surface.unlockCanvasAndPost(canvas);
             }
         }
+	}
+	
+	public synchronized void drawChromaKeyColor(boolean blank)
+	{
+		Common.Logging.i(TAG, "Painting DM surface "+((blank)?"Blank":"ChromaKey")+" color");
+        int r = (blank) ? 0xff : 0x09;
+        int g = (blank) ? 0x00 : 0x00;
+        int b = (blank) ? 0x00 : 0x09;
+		drawColor(r, g, b);
+	}
+	
+	public void drawChromaKeyColor()
+	{
+		drawChromaKeyColor(mStreamCtl.userSettings.getDmHdcpBlank(inputNumber));
 	}
 	
 	public void doPlay(int replaceStreamId)
@@ -107,16 +121,16 @@ public class DMSession extends Session
 			mCanvas.showWindow(streamId); // TODO remove once real canvas app available
 		}
 		Common.Logging.i(TAG, "DM Session "+this+" got streamId "+streamId);
-		Surface surface = acquireSurface();
+		surface = acquireSurface();
 		Common.Logging.i(TAG, "DM Session "+this+" sending start to csio");
 		mStreamCtl.sendDmStart(inputNumber, true);
-        if (mStreamCtl.airMediav21) {
+        if (!CresCanvas.useCanvasSurfaces) {
         	mStreamCtl.setFormat(streamId, PixelFormat.RGBA_8888);
         }
 		if (surface != null && surface.isValid())
 		{
-			Common.Logging.i(TAG, "DM Session "+this+" drawing to surface");
-			drawChromaKeyColor(surface, mStreamCtl.userSettings.getDmHdcpBlank(inputNumber));
+			Common.Logging.i(TAG, "DM Session "+this+" drawing to surface: "+surface);
+			drawChromaKeyColor();
 			if (!CresCanvas.useCanvasSurfaces)
 			{
 				Rect window = getWindow(surface);
@@ -163,10 +177,9 @@ public class DMSession extends Session
 	{
 		// TODO canvas implement
 		Common.Logging.i(TAG, "DM Session setHdcpBlank called ");
-		Surface s = mCanvas.mSurfaceMgr.streamId2Surface(streamId);
-		if (s != null)
+		if (surface != null)
 		{
-			drawChromaKeyColor(s, blank);
+			drawChromaKeyColor(blank);
 		}
 	}
 }

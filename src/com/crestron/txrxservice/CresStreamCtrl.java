@@ -6527,7 +6527,7 @@ public class CresStreamCtrl extends Service {
         {
             new Thread(new Runnable() {
                 public void run() {
-                    Log.i(TAG, "setDmSync(): calling handleDmSyncStateChange for DM input "+inputNumber);
+                    Log.i(TAG, "processDmSyncEvent(): calling handleDmSyncStateChange for DM input "+inputNumber);
                     mCanvas.handleDmSyncStateChange(inputNumber);
                 }
             }).start();
