@@ -21,7 +21,7 @@ public:
     virtual ~CresProjBaseClass() {/* empty */}
 
     /** Returns true if created, false otherwise */
-    bool CreateNewThread()
+    int CreateNewThread()
     {
         m_ThreadIsRunning = 1;
         return (pthread_create(&_thread, NULL, ThreadEntryFunc, this) == 0);

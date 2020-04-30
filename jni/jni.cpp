@@ -103,7 +103,7 @@ static jmethodID set_message_method_id_rtsp_server;
 // not used
 //static jmethodID on_gstreamer_initialized_method_id;
 static jclass *gStreamIn_javaClass_id;
-static jclass *gStreamOut_javaClass_id;
+static jclass *gStreamOut_javaClass_id = NULL;
 static jclass *wbsStreamIn_javaClass_id;
 static jclass *gCresLog_javaClass_id;
 
@@ -4195,9 +4195,20 @@ static void gstNativeFinalizeRtspServer (JNIEnv* env, jobject thiz)
     //turn off project and all stream out first
     StreamoutProjectDeInit();
 
-    CSIO_LOG(eLogLevel_debug, "rtsp_server: Deleting GlobalRef for app object at %p", cdata->app);
-    env->DeleteGlobalRef ((jobject)gStreamOut_javaClass_id);
-    env->DeleteGlobalRef ((jobject)cdata->app);
+    if (gStreamOut_javaClass_id != NULL)
+    {
+        CSIO_LOG(eLogLevel_debug, "rtsp_server: Deleting GlobalRef for registered app object at %p", gStreamOut_javaClass_id);
+        env->DeleteGlobalRef ((jobject)gStreamOut_javaClass_id);
+        gStreamOut_javaClass_id = NULL;
+    }
+
+    if (cdata->app != NULL)
+    {
+        CSIO_LOG(eLogLevel_debug, "rtsp_server: Deleting GlobalRef for app object at %p", cdata->app);
+        env->DeleteGlobalRef ((jobject)cdata->app);
+        cdata->app = NULL;
+    }
+
     CSIO_LOG(eLogLevel_debug, "Freeing CustomData at %p", cdata);
     g_free (cdata);
     CresStreamOutDataDB = NULL;

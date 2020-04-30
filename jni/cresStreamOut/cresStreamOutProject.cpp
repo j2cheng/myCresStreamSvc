@@ -76,12 +76,12 @@ void StreamoutProjectDeInit()
                 StreamOutProjList[i]->removeAllStreamoutTasks();
 
                 //tell thread to exit
-                //StreamOutProjList[i]->exitThread();
+                StreamOutProjList[i]->exitThread();
 
                 //wait until thread exits
-                //CSIO_LOG(StreamOutProjDebugLevel, "Streamout: DONE ** [%d]call WaitForThreadToExit[0x%x]\n",i,StreamOutProjList[i]);
-                //StreamOutProjList[i]->WaitForThreadToExit();
-                //CSIO_LOG(StreamOutProjDebugLevel, "Streamout: Wait is done\n");
+                CSIO_LOG(StreamOutProjDebugLevel, "Streamout: DONE ** [%d]call WaitForThreadToExit[0x%x]\n",i,StreamOutProjList[i]);
+                StreamOutProjList[i]->WaitForThreadToExit();
+                CSIO_LOG(StreamOutProjDebugLevel, "Streamout: Wait is done\n");
 
                 //delete the object, and set list to NULL
                 delete StreamOutProjList[i];
@@ -91,7 +91,6 @@ void StreamoutProjectDeInit()
             }
         }
 
-        delete[] StreamOutProjList;
         StreamOutProjList = NULL;
     }
     else
@@ -618,8 +617,9 @@ void* CStreamoutProject::ThreadEntry()
         //CSIO_LOG(eLogLevel_extraVerbose, "Streamout: waitForEvent return:%d, event ID:%d\n",wtRtn,evntId);
 
         EventQueueStruct evntQ;
+        bool eventReceived = false;
 
-        if(m_projEventQ->GetFromBuffer(&evntQ))
+        if((eventReceived = m_projEventQ->GetFromBuffer(&evntQ)))
         {
             CSIO_LOG(m_debugLevel, "Streamout: evntQ is:size[%d],type[%d],iId[%d],buffPtr[0x%x]\n",\
                      evntQ.buf_size,evntQ.event_type,evntQ.streamout_obj_id,evntQ.buffPtr);
@@ -649,6 +649,8 @@ void* CStreamoutProject::ThreadEntry()
                         }
                         else
                         {
+                            CSIO_LOG(m_debugLevel, "Streamout: create new gst_rtsp_server_start at id[%d].",
+                                    id);
                             m_StreamoutTaskObjList[id] = new CStreamoutManager();
 
                             m_StreamoutTaskObjList[id]->setParent(this);
@@ -1057,13 +1059,16 @@ void* CStreamoutProject::ThreadEntry()
             //CSIO_LOG(eLogLevel_extraVerbose, "Streamout: evntQ is empty\n");
         }
 
-        //check to see if we need to restart task
-        restartStreamoutIfMainLoopEnded();
-
         if(m_forceThreadExit)
         {
+            CSIO_LOG(m_debugLevel, "Streamout: m_projectID ID:%d, forced exit\n",m_projectID);
             //TODO: exit all child thread and wait here
             break;
+        }
+        else if(eventReceived)
+        {
+            //check to see if we need to restart task
+            restartStreamoutIfMainLoopEnded();
         }
     }
 
@@ -1185,12 +1190,12 @@ void CStreamoutProject::restartStreamoutIfMainLoopEnded()
 
                     //this should return right away
                     m_StreamoutTaskObjList[i]->WaitForThreadToExit();
-
-                    CSIO_LOG(eLogLevel_warning, "Streamout: try to restart a new stream out thread.\n");
+                    CSIO_LOG(m_debugLevel, "Streamout: Wait for task[%d] threads DONE.\n", i);
+                    CSIO_LOG(eLogLevel_warning, "Streamout: task[%d] try to restart a new stream out thread.\n", i);
                     //as long as this object exist, restart it
-                    m_StreamoutTaskObjList[i]->CreateNewThread();
+                    int ret = m_StreamoutTaskObjList[i]->CreateNewThread();
 
-                    CSIO_LOG(eLogLevel_warning, "Streamout: restarts a new stream out thread.\n");
+                    CSIO_LOG(eLogLevel_warning, "Streamout: ret[%d]. restarts a new stream out thread for task[%d].\n", ret, i);
                 }
             }
         }
@@ -1218,7 +1223,6 @@ void CStreamoutProject::removeAllStreamoutTasks()
             }
         }
 
-        delete[] m_StreamoutTaskObjList;
         m_StreamoutTaskObjList = NULL;
     }
 }
