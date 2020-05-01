@@ -42,6 +42,8 @@ public class HDMISession extends Session
 			//start the preview mode
 			Common.Logging.i(TAG, "HDMI Session "+this+" calling Stop()");
 			mStreamCtl.Stop(streamId, false);
+			Common.Logging.i(TAG, "HDMI Session "+this+" sending stop to csio for audio on AM-300");
+			mStreamCtl.sendHdmiStart(streamId, false);
 			Common.Logging.i(TAG, "HDMI Session "+this+" back from Stop()");
 			if (!replace)
 			{
@@ -91,6 +93,9 @@ public class HDMISession extends Session
 		//start the preview mode
 		Common.Logging.i(TAG, "HDMI Session "+this+" calling Start()");
 		mStreamCtl.Start(streamId);
+		// signal to csio to start audio for HDMI via audiomux
+		Common.Logging.i(TAG, "HDMI Session "+this+" sending HDMI Start signal to csio fur audio on AM-300");
+		mStreamCtl.sendHdmiStart(streamId, true);
 		Common.Logging.i(TAG, "HDMI Session "+this+" back from Start()");
 	}
 	

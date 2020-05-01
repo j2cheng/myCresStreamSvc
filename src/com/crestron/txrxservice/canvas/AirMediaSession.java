@@ -148,6 +148,8 @@ public class AirMediaSession extends Session
 		}
 		Common.Logging.i(TAG, "AirMediaSession "+this+" attaching surface "+surface);
 		airMediaReceiverSession.attach(surface);
+		Common.Logging.i(TAG, "AirMediaSession "+this+" send start to csio");
+		mStreamCtl.sendAirMediaStart(streamId, true);
 		mStreamCtl.mUsedForAirMedia[streamId] = true;
 		return true;
 	}
@@ -229,6 +231,8 @@ public class AirMediaSession extends Session
 		}
 		airMediaReceiverSession.detach();
 		releaseSurface();
+		Common.Logging.i(TAG, "AirMediaSession "+this+" send stop to csio");
+		mStreamCtl.sendAirMediaStart(streamId, false);
 		mStreamCtl.mUsedForAirMedia[streamId] = false;
 		if (!replace)
 		{

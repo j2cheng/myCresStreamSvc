@@ -40,7 +40,7 @@ public class DMSession extends Session
 		if (streamId >= 0)
 		{
 			Common.Logging.i(TAG, "DM Session "+this+" sending stop to csio");
-			mStreamCtl.sendDmStart(inputNumber, false);
+			mStreamCtl.sendDmStart(streamId, false);
 			if (!replace)
 			{
 				mCanvas.hideWindow(streamId); // TODO remove once real canvas app available
@@ -123,7 +123,8 @@ public class DMSession extends Session
 		Common.Logging.i(TAG, "DM Session "+this+" got streamId "+streamId);
 		surface = acquireSurface();
 		Common.Logging.i(TAG, "DM Session "+this+" sending start to csio");
-		mStreamCtl.sendDmStart(inputNumber, true);
+		// signal to csio to start audio for DM via audiomux
+		mStreamCtl.sendDmStart(streamId, true);
         if (!CresCanvas.useCanvasSurfaces) {
         	mStreamCtl.setFormat(streamId, PixelFormat.RGBA_8888);
         }
@@ -134,7 +135,7 @@ public class DMSession extends Session
 			if (!CresCanvas.useCanvasSurfaces)
 			{
 				Rect window = getWindow(surface);
-				mStreamCtl.sendDmWindow(inputNumber, window.left, window.top, window.width(), window.height());
+				mStreamCtl.sendDmWindow(streamId, window.left, window.top, window.width(), window.height());
 			}
 		}
 		else

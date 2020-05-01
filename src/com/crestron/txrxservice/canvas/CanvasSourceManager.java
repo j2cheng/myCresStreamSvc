@@ -113,7 +113,7 @@ public class CanvasSourceManager {
     	    	Common.Logging.i(TAG, "send DM window for session "+s+" inputNumber="+s.inputNumber+
     	    			" ("+srcLayout.width+","+srcLayout.height+")@("+srcLayout.left+","+srcLayout.top+")");
     			((DMSession)s).drawChromaKeyColor();
-				mStreamCtl.sendDmWindow(s.inputNumber, srcLayout.left, srcLayout.top, srcLayout.width, srcLayout.height);
+				mStreamCtl.sendDmWindow(s.streamId, srcLayout.left, srcLayout.top, srcLayout.width, srcLayout.height);
     		}
     	}
     }

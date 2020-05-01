@@ -1672,6 +1672,7 @@ public class CresStreamCtrl extends Service {
                         //Enable StreamIn and CameraPreview
                         cam_streaming = new CameraStreaming(streamCtrl);
                         cam_preview = new CameraPreview(streamCtrl, hdmiInput);
+                        canvasHdmiSyncStateChange(true);
                         // Set up Ducati
                         ProductSpecific.getHdmiInputStatus();
                     }
@@ -2784,7 +2785,6 @@ public class CresStreamCtrl extends Service {
         if (hdmiInputDriverPresent)
         {
             hdmiInput.updateResolutionInfo();
-            canvasHdmiSyncStateChange(true);
         }
     }
 
@@ -5883,6 +5883,7 @@ public class CresStreamCtrl extends Service {
         sockTask.SendDataToAllClients("HDMIIN_AUDIO_FORMAT=" + hdmiInput.getAudioFormat());
         sockTask.SendDataToAllClients("HDMIIN_AUDIO_CHANNELS=" + hdmiInput.getAudioChannels());
         sockTask.SendDataToAllClients("HDMIIN_AUDIO_SAMPLE_RATE=" + hdmiInput.getAudioSampleRate());
+        canvasHdmiSyncStateChange(true);
     }
 
     private void sendHdmiOutSyncState()
@@ -6567,17 +6568,27 @@ public class CresStreamCtrl extends Service {
         userSettings.setDmResolution(r, inputNumber);
     }
 
-    public void sendDmStart(int inputNumber, boolean value)
+    public void sendDmStart(int streamId, boolean value)
     {
-        sockTask.SendDataToAllClients(MiscUtils.stringFormat("DM_VIDEO_START%d=%s", inputNumber, (value)?"TRUE":"FALSE"));
+        sockTask.SendDataToAllClients(MiscUtils.stringFormat("DM_VIDEO_START%d=%s", streamId, (value)?"TRUE":"FALSE"));
     }
 
-    public void sendDmWindow(int inputNumber, int left, int top, int width, int height)
+    public void sendDmWindow(int streamId, int left, int top, int width, int height)
     {
-        Log.i(TAG, "sendDmWindow(): window="+width+"x"+height+"@"+left+","+top+" for DM input "+inputNumber);
-        sockTask.SendDataToAllClients(MiscUtils.stringFormat("DM_WINDOW%d=%d,%d,%d,%d", inputNumber, left, top, width, height));
+        Log.i(TAG, "sendDmWindow(): window="+width+"x"+height+"@"+left+","+top+" for streamId "+streamId);
+        sockTask.SendDataToAllClients(MiscUtils.stringFormat("DM_WINDOW%d=%d,%d,%d,%d", streamId, left, top, width, height));
     }
 
+    public void sendHdmiStart(int streamId, boolean value)
+    {
+        sockTask.SendDataToAllClients(MiscUtils.stringFormat("HDMI_VIDEO_START%d=%s", streamId, (value)?"TRUE":"FALSE"));
+    }
+
+    public void sendAirMediaStart(int streamId, boolean value)
+    {
+        sockTask.SendDataToAllClients(MiscUtils.stringFormat("AIRMEDIA_VIDEO_START%d=%s", streamId, (value)?"TRUE":"FALSE"));
+    }
+    
     public void setWbsResolution(int streamId, int width, int height)
     {
         if (mCanvas != null)
