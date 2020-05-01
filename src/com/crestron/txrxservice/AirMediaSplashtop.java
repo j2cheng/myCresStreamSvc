@@ -2134,7 +2134,11 @@ public class AirMediaSplashtop
 			AirMediaSessionInfo info = session.info();
 			this.SessionType = getSessionType(session);
 			this.IsClientActive = Boolean.valueOf(session.videoState() == AirMediaSessionStreamingState.Playing);
-			this.IpAddress = "127.0.0.1";
+			this.IpAddress = ((List<String>)session.addresses()).get(0);
+			if (this.IpAddress == null)
+			{
+				this.IpAddress = "";
+			}
 			if (session.username() != null)
 			{
 				if (UserName==null || !UserName.equals(session.username()))
