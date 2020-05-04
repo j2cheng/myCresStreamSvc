@@ -241,6 +241,8 @@ public class CresCanvas
 	
 	public synchronized void handlePossibleHdmiSyncStateChange(int inputNumber, HDMIInputInterface hdmiInput, boolean changeCheck)
 	{
+		final int HdmiTimeout = 15; // seconds
+
 		if (!IsAirMediaCanvasUp())
 		{
 			Common.Logging.i(TAG, "handlePossibleHdmiSyncStateChange(): AirMediaCanvas not up - cannot display HDMI yet");
@@ -263,7 +265,6 @@ public class CresCanvas
 		}
 		prevHdmiSyncStatus[inputNumber] = hdmiInput.getSyncStatus();
 		prevHdmiResolution[inputNumber] = res;
-		int timeout = 5; // seconds
 		Originator origin = new Originator(RequestOrigin.Hardware);
 		if (hdmiInput.getSyncStatus().equalsIgnoreCase("true"))
 		{
@@ -278,13 +279,13 @@ public class CresCanvas
 			{
 				
 				Common.Logging.e(TAG, "HDMI sync is true with existing HDMI session in state "+session.state);
-				mCrestore.doSynchronousSessionEvent(session, "Disconnect", origin, timeout);
+				mCrestore.doSynchronousSessionEvent(session, "Disconnect", origin, HdmiTimeout);
 			}
 			session = com.crestron.txrxservice.canvas.Session.createSession("HDMI", "HDMI"+inputNumber, null, 1, null);
 			((HDMISession) session).setHdmiInput(hdmiInput);
 			Common.Logging.i(TAG, "Adding session " + session + " to sessionManager");
 			mSessionMgr.add(session);
-			mCrestore.doSynchronousSessionEvent(session, "Connect", origin, timeout);
+			mCrestore.doSynchronousSessionEvent(session, "Connect", origin, HdmiTimeout);
 		}
 		else
 		{
@@ -293,7 +294,7 @@ public class CresCanvas
 			{
 				
 				Common.Logging.e(TAG, "HDMI sync is false with existing HDMI session in state "+session.state);
-	            mCrestore.doSynchronousSessionEvent(session, "Disconnect", origin, timeout);
+	            mCrestore.doSynchronousSessionEvent(session, "Disconnect", origin, HdmiTimeout);
 			}
 			else
 			{
@@ -304,6 +305,8 @@ public class CresCanvas
 	
 	public synchronized void handleDmSyncStateChange(int inputNumber)
 	{
+		final int DmTimeout = 15; // seconds
+
 		if (!IsAirMediaCanvasUp())
 		{
 			Common.Logging.e(TAG, "AirMediaCanvas not up - cannot display DM yet");
@@ -315,7 +318,6 @@ public class CresCanvas
 			return;
 		}
 		Session session = mSessionMgr.findSession("DM", "", "", inputNumber);
-		int timeout = 5; // seconds
 		Originator origin = new Originator(RequestOrigin.Hardware);
 		if (mStreamCtl.userSettings.getDmSync(inputNumber))
 		{
@@ -324,12 +326,12 @@ public class CresCanvas
 			{
 				
 				Common.Logging.e(TAG, "DM sync is true with existing DM session in state "+session.state);
-				mCrestore.doSynchronousSessionEvent(session, "Disconnect", origin, timeout);
+				mCrestore.doSynchronousSessionEvent(session, "Disconnect", origin, DmTimeout);
 			}
 			session = com.crestron.txrxservice.canvas.Session.createSession("DM", "DM"+inputNumber, null, inputNumber, null);
 			Common.Logging.i(TAG, "Adding session " + session + " to sessionManager");
 			mSessionMgr.add(session);
-			mCrestore.doSynchronousSessionEvent(session, "Connect", origin, timeout);
+			mCrestore.doSynchronousSessionEvent(session, "Connect", origin, DmTimeout);
 		}
 		else
 		{
@@ -338,7 +340,7 @@ public class CresCanvas
 			{
 				
 				Common.Logging.e(TAG, "DM sync is false with existing DM session in state "+session.state);
-	            mCrestore.doSynchronousSessionEvent(session, "Disconnect", origin, timeout);
+	            mCrestore.doSynchronousSessionEvent(session, "Disconnect", origin, DmTimeout);
 			}
 			else
 			{

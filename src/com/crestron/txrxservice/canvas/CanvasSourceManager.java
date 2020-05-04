@@ -15,6 +15,7 @@ import android.util.Log;
 
 public class CanvasSourceManager {
     private static final String TAG = "TxRx.canvas.sourcemanager";
+    private static final int CanvasSourceRequestTimeout = 60;
     
     CanvasSourceManager(CresStreamCtrl streamCtrl, CanvasCrestore crestore) {
     	mStreamCtl = streamCtrl;
@@ -80,7 +81,7 @@ public class CanvasSourceManager {
     {
     	CanvasSourceResponse response = new CanvasSourceResponse();
     	CanvasCrestore.SessionEvent e = mCresStore.sourceRequestToEvent(request, response); 
-    	TimeSpan timeout = TimeSpan.fromSeconds(60);
+    	TimeSpan timeout = TimeSpan.fromSeconds(CanvasSourceRequestTimeout);
  
     	if (e == null)
     		return response;

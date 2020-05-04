@@ -12,6 +12,10 @@ public class AirMediaSession extends Session
 {
 	com.crestron.airmedia.receiver.m360.models.AirMediaSession airMediaReceiverSession;
     public static final String TAG = "TxRx.canvas.airmedia.session"; 
+    public static final int ConnectTimeout = 30; 
+    public static final int DisconnectTimeout = 30; 
+    public static final int StopTimeout = 30; 
+    public static final int PlayTimeout = 30; 
     public AirMediaSessionStreamingState videoState;
     public Waiter waiterForPlayRequestToUser = null;
     public Waiter waiterForStopRequestToUser = null;
@@ -78,7 +82,7 @@ public class AirMediaSession extends Session
 	{
 		Common.Logging.i(TAG, "Session "+this+" connect request from "+originator);
 		mSessionMgr.add(this);
-		scheduleRequest("Connect", originator, 15);
+		scheduleRequest("Connect", originator, ConnectTimeout);
 	}
 	
 	public void disconnectRequest(Originator originator)
@@ -89,19 +93,19 @@ public class AirMediaSession extends Session
 		}
 		setState(SessionState.Disconnecting);
 		Common.Logging.i(TAG, "Session "+this+" disconnect request from "+originator);
-		scheduleRequest("Disconnect", originator, 15);
+		scheduleRequest("Disconnect", originator, DisconnectTimeout);
 	}
 	
 	public void playRequest(Originator originator)
 	{
 		Common.Logging.i(TAG, "Session "+this+" play request from "+originator);
-		scheduleRequest("Play", originator, 15);
+		scheduleRequest("Play", originator, PlayTimeout);
 	}
 	
 	public void stopRequest(Originator originator)
 	{
 		Common.Logging.i(TAG, "Session "+this+" stop request from "+originator);
-		scheduleRequest("Stop", originator, 15);
+		scheduleRequest("Stop", originator, StopTimeout);
 	}
 	
 	// Stop and Play actions below are always initiated by the AVF sending a sessionResponse message.  Therefore these functions

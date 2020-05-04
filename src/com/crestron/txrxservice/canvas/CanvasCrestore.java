@@ -63,11 +63,13 @@ public class CanvasCrestore
 		Waiter waiter;
 		Originator originator;
 		SessionEvent se;
+		boolean gotAvfResponse;
 		
 		public TransactionData(Waiter w, Originator o)
 		{
 			waiter = w;
 			originator = o;
+			gotAvfResponse = false;
 		}
 	}
 	
@@ -169,54 +171,26 @@ public class CanvasCrestore
     	setVideoDisplayed(false);
 	}
 	
-	public synchronized boolean doSynchronousSessionEvent(SessionEvent e, Originator originator, int timeoutInSecs)
+	public synchronized boolean doSynchronousSessionEvent(Session s, String requestedState, Originator originator, int timeoutInSecs)
 	{
-		return doSessionEventWithCompletionTimeout(e, originator, TimeSpan.fromSeconds(timeoutInSecs));
+		String transactionId = UUID.randomUUID().toString();
+		SessionEvent e = createSessionEvent(transactionId, s, requestedState);
+		return doSynchronousSessionEvent(e, originator, timeoutInSecs);
 	}
 	
-	public synchronized boolean doSessionEventWithCompletionTimeout(SessionEvent e, Originator originator, TimeSpan timeout)
+	public synchronized boolean doSynchronousSessionEvent(SessionEvent e, Originator originator, int timeoutInSecs)
 	{
 		boolean timedout = false;
 		Waiter waiter = new Waiter();
 		TimeSpan startTime = TimeSpan.now();
 		doSessionEvent(e, originator, waiter);
-		timedout = waiter.waitForSignal(timeout);
-		if (timedout)
-			Common.Logging.i(TAG,"Timeout seen on sessionEvent with transactionId="+((e.transactionId==null)?"null":e.transactionId));
-		else
+		timedout = waiter.waitForSignal(TimeSpan.fromSeconds(timeoutInSecs));
+		processSessionEventCompletion(timedout, e);
+		if (!timedout)
 			Common.Logging.i(TAG, "sessionEvent with transactionId="+((e.transactionId==null)?"null":e.transactionId)+" completed in "+TimeSpan.now().subtract(startTime).toString()+" seconds");
 		return !timedout;
 	}
-	
-	public synchronized boolean doSynchronousSessionEvent(Session s, String requestedState, Originator originator, int timeoutInSecs)
-	{
-		return doSessionEventWithCompletionTimeout(s, requestedState, originator, TimeSpan.fromSeconds(timeoutInSecs));
-	}
-	
-	public synchronized boolean doSessionEventWithCompletionTimeout(Session s, String requestedState, Originator originator, TimeSpan timeout)
-	{
-		boolean timedout = false;
-		Waiter waiter = new Waiter();
-		TimeSpan startTime = TimeSpan.now();
-		String transactionId = UUID.randomUUID().toString();
-		SessionEvent e = createSessionEvent(transactionId, s, requestedState);
-		doSessionEvent(e, originator, waiter);
-		timedout = waiter.waitForSignal(timeout);
-		if (timedout)
-			Common.Logging.i(TAG,"Timeout seen on "+requestedState+" event for "+s);
-		else
-			Common.Logging.i(TAG, requestedState+" event for "+s+" completed in "+TimeSpan.now().subtract(startTime).toString()+" seconds");
-		return !timedout;
-	}
 
-	public synchronized boolean doSessionEvent(Session s, String requestedState, Originator originator)
-	{
-		String transactionId = UUID.randomUUID().toString();
-		SessionEvent e = createSessionEvent(transactionId, s, requestedState);
-		doSessionEvent(e, originator, null);
-		return true;
-	}
-	
 	public synchronized void doSessionEvent(SessionEvent e, Originator originator, Waiter waiter)
 	{
 		if (waiter != null)
@@ -344,18 +318,10 @@ public class CanvasCrestore
 		mSessionMgr.logSessionStates("processSessionStateChange");
 	}
 	
-	public void doSessionResponse(final SessionResponse response, final List<String> actionList) 
-	{
-		final com.crestron.airmedia.utilities.TimeSpan timeout = com.crestron.airmedia.utilities.TimeSpan.fromSeconds(30.0);
-		final Failure f = new Failure();
-		//sessionResponseScheduler().queue(TAG, "doSessionResponse", timeout, new Runnable() { @Override public void run() { enqueueSessionResponse(transactionId, actionList, f); } } );
-		enqueueSessionResponse(response, actionList, f);
-	}
-	
-	public void enqueueSessionResponse(SessionResponse response, List<String> actionList, Failure failure)
+	public void doSessionResponse(SessionResponse response, List<String> actionList) 
 	{
 		String transactionId = response.transactionId;
-		Common.Logging.w(TAG, "enqueSessionResponse(): entered for transactionId="+((transactionId==null)?"null":transactionId));
+		Common.Logging.w(TAG, "doSessionResponse(): entered for transactionId="+((transactionId==null)?"null":transactionId));
 		TransactionData tData = null;
 		Originator originator = new Originator(RequestOrigin.Unknown);
 		if (transactionId != null)
@@ -364,10 +330,10 @@ public class CanvasCrestore
 			if (tData != null)
 			   originator = tData.originator;
 		} else {
-			Common.Logging.w(TAG, "enqueueSessionResponse(): no transaction data found");
+			Common.Logging.w(TAG, "doSessionResponse(): no transaction data found");
 		}
 		
-		Common.Logging.i(TAG, "enqueueSessionResponse(): ActionList ="+actionList);
+		Common.Logging.i(TAG, "doSessionResponse(): ActionList ="+actionList);
 		
 		for (int i=0; i < actionList.size(); i++)
 		{
@@ -375,7 +341,7 @@ public class CanvasCrestore
 			String[] tokens = actionList.get(i).split(" ");
 			if (Common.isEqualIgnoreCase(tokens[0], "replace"))
 			{
-				Common.Logging.i(TAG, "enqueueSessionResponse(): replacing "+tokens[1]+" with "+tokens[2]);
+				Common.Logging.i(TAG, "doSessionResponse(): replacing "+tokens[1]+" with "+tokens[2]);
 				if (!CresCanvas.useCanvasSurfaces)
 					(mSessionMgr.getSession(tokens[1])).replace(originator, mSessionMgr.getSession(tokens[2]));
 				else
@@ -388,7 +354,7 @@ public class CanvasCrestore
 			} 
 			else if (Common.isEqualIgnoreCase(tokens[0], "stop"))
 			{
-				Common.Logging.i(TAG, "enqueueSessionResponse(): stop "+tokens[1]);
+				Common.Logging.i(TAG, "doSessionResponse(): stop "+tokens[1]);
 				session = mSessionMgr.getSession(tokens[1]);
 				if (session != null)
 				{
@@ -396,12 +362,12 @@ public class CanvasCrestore
 				}
 				else
 				{
-					Common.Logging.i(TAG, "enqueueSessionResponse(): cannot find session "+tokens[1]);
+					Common.Logging.i(TAG, "doSessionResponse(): cannot find session "+tokens[1]);
 				}
 			}
 			else if (Common.isEqualIgnoreCase(tokens[0], "play"))
 			{
-				Common.Logging.i(TAG, "enqueueSessionResponse(): play "+tokens[1]);
+				Common.Logging.i(TAG, "doSessionResponse(): play "+tokens[1]);
 				session = mSessionMgr.getSession(tokens[1]);
 				if (session != null)
 				{
@@ -409,52 +375,51 @@ public class CanvasCrestore
 				}
 				else
 				{
-					Common.Logging.i(TAG, "enqueueSessionResponse(): cannot find session "+tokens[1]);
+					Common.Logging.i(TAG, "doSessionResponse(): cannot find session "+tokens[1]);
 				}
 			}
 			else if (Common.isEqualIgnoreCase(tokens[0], "disconnect"))
 			{
-				Common.Logging.i(TAG, "enqueSessionResponse(): disconnect "+tokens[1]);
+				Common.Logging.i(TAG, "doSessionResponse(): disconnect "+tokens[1]);
 				session = mSessionMgr.getSession(tokens[1]);
 				if (session != null)
 				{
 					if (session.isPlaying())
 					{
-						Common.Logging.i(TAG, "enqueueSessionResponse(): must stop session "+session+" before disconnecting it");
+						Common.Logging.i(TAG, "doSessionResponse(): must stop session "+session+" before disconnecting it");
 						session.stop(originator);
 					}
-					Common.Logging.i(TAG, "enqueueSessionResponse(): calling disconnect for "+session);
+					Common.Logging.i(TAG, "doSessionResponse(): calling disconnect for "+session);
 					session.disconnect(originator);
-					Common.Logging.i(TAG, "enqueueSessionResponse(): removing "+session+" from list of sessions in session manager");
+					Common.Logging.i(TAG, "doSessionResponse(): removing "+session+" from list of sessions in session manager");
 					mSessionMgr.remove(session.sessionId());
 				}
 				else
 				{
 					if (originator.origin == RequestOrigin.Receiver)
 					{
-						Common.Logging.i(TAG, "enqueueSessionResponse(): receiver initiated sessionevent for session "+tokens[1]+" - session is already disconnected");
+						Common.Logging.i(TAG, "doSessionResponse(): receiver initiated sessionevent for session "+tokens[1]+" - session is already disconnected");
 					}
 					else
 					{
-						Common.Logging.i(TAG, "enqueueSessionResponse(): session "+tokens[1]+" - session not found in sessionMgr - already disconected");
+						Common.Logging.i(TAG, "doSessionResponse(): session "+tokens[1]+" - session not found in sessionMgr - already disconected");
 					}
 				}
 			}
 		}
 		// handle reporting of completion of session response
-		Common.Logging.i(TAG, "enqueueSessionResponse(): reportSessionResponseResult");
+		Common.Logging.i(TAG, "doSessionResponse(): reportSessionResponseResult");
 		reportSessionResponseResult(response);
-		Common.Logging.i(TAG, "enqueueSessionResponse(): doLayoutUpdate");
+		Common.Logging.i(TAG, "doSessionResponse(): doLayoutUpdate");
 		mSessionMgr.doLayoutUpdate();
 		// wake up anyone waiting for completion of this transactionId and remove it from map
 		if (tData != null) {
-			if (tData.waiter != null) tData.waiter.signal();
-			Common.Logging.i(TAG, "enqueueSessionResponse(): remove "+transactionId+" from transaction map");
-			transactionMap.remove(transactionId);
+			if (tData.waiter != null) 
+				tData.waiter.signal();
 		}
 
-		Common.Logging.i(TAG, "enqueueSessionResponse(): logSessionStates");
-		mSessionMgr.logSessionStates("enqueueSessionResponse");
+		Common.Logging.i(TAG, "doSessionResponse(): logSessionStates");
+		mSessionMgr.logSessionStates("doSessionResponse");
 	}
 	
 	public void processSessionResponse(SessionResponse response)
@@ -465,7 +430,8 @@ public class CanvasCrestore
         	// is a response to an earlier SessionEvent sent earlier
         	Common.Logging.i(TAG, "Got session response for transactionId: "+response.transactionId+
         			((response.failureReason!=null)?" failureReason="+response.failureReason.intValue():""));
-        	// remove any pending timeout for this transactionId??
+        	// mark AVF response as received
+        	avfResponseReceived(response.transactionId);
         }
         // set the flag to indicate a layout update will be done once session response is processed
 		Map<String, SessionResponseMapEntry> map = response.sessionResponseMap;
@@ -724,6 +690,66 @@ public class CanvasCrestore
 			}
 		}
 	}
+	
+	private void avfResponseReceived(String transactionId)
+	{
+		if (transactionId != null)
+		{
+			TransactionData tData = transactionMap.get(transactionId);
+			if (tData != null)
+			{
+				tData.gotAvfResponse = true;
+			}
+		}
+	}
+	
+	private void processSessionEventCompletion(boolean timedout, SessionEvent e)
+	{
+		String transactionId = e.transactionId;
+		if (transactionId == null)
+		{
+			if (timedout)
+				Common.Logging.i(TAG,"Timeout seen on sessionEvent with transactionId="+((e.transactionId==null)?"null":e.transactionId));
+			return;
+		}
+		if (!timedout)
+		{
+			// Normal exit - no timeout just remove from map
+			transactionMap.remove(transactionId);
+			return;
+		}
+		
+		// timedout - try to handle errors
+		Originator originator = new Originator(RequestOrigin.Unknown);
+		TransactionData tData = transactionMap.get(transactionId);
+		if (tData != null)
+			originator = tData.originator;
+		if (!tData.gotAvfResponse)
+		{
+			// Never got AVF response for this transaction
+			Common.Logging.w(TAG, "processSessionEventCompletion(): ******* no AVF response for SessionEvent transactionId="+transactionId);
+			// unroll event - mainly connect requests should be rejected as disconnected
+	        Map<String, SessionEventMapEntry> sessionEventMap = e.sessionEventMap;
+			for (Map.Entry<String, SessionEventMapEntry> entry : sessionEventMap.entrySet())
+			{
+				SessionEventMapEntry en = entry.getValue();
+				Session s = mSessionMgr.findSession(entry.getKey());
+				if (en.state.equalsIgnoreCase("Connect"))
+				{
+					if (s != null)
+					{
+						Common.Logging.i(TAG, "processSessionEventCompletion(): Disconnecting session "+s.sessionId()+" due to no AVF response");
+						s.disconnect();
+					}
+				}
+			}
+		}
+		else
+		{
+			Common.Logging.w(TAG, "processSessionEventCompletion(): ******* timeout while processing AVF response for transactionId="+transactionId);
+		}
+	}
+	
 	public void sendSessionFeedbackMessage(SessionType type, SessionState state, String userLabel, Integer failureReason) {
 		SessionStateFeedback f = new SessionStateFeedback();
 		f.type = type.toString();
