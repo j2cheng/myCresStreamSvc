@@ -724,6 +724,7 @@ public class CanvasCrestore
 		TransactionData tData = transactionMap.get(transactionId);
 		if (tData != null)
 			originator = tData.originator;
+		boolean avfHasStarted = mCanvas.avfHasStarted.get();
 		if (!tData.gotAvfResponse)
 		{
 			// Never got AVF response for this transaction
@@ -738,7 +739,30 @@ public class CanvasCrestore
 				{
 					if (s != null)
 					{
+						if ((s.type == SessionType.HDMI || s.type == SessionType.DM))
+						{
+							if (avfHasStarted)
+							{
+								Common.Logging.i(TAG, "processSessionEventCompletion(): Disconnecting HDMI/DM session "+s.sessionId()+" due to no AVF response");
+								s.disconnect();
+							}
+						}
+						else // non HDMI or DM session
+						{
+							Common.Logging.i(TAG, "processSessionEventCompletion(): Disconnecting session "+s.sessionId()+" due to no AVF response");
+							s.disconnect();
+						}
+					}
+				}
+				else if (en.state.equalsIgnoreCase("Disconnect"))
+				{
+					if (s != null)
+					{
 						Common.Logging.i(TAG, "processSessionEventCompletion(): Disconnecting session "+s.sessionId()+" due to no AVF response");
+						if (s.isPlaying())
+						{
+							s.stop();
+						}
 						s.disconnect();
 					}
 				}
@@ -794,8 +818,8 @@ public class CanvasCrestore
 
         		if (root.internal != null && root.internal.airMedia != null && root.internal.airMedia.canvas != null) {
         			parsed = true;
-        			//Common.Logging.v(TAG, "Device/Internal/Canvas parsed from json string");
-        			//Common.Logging.v(TAG, "Device string is "+gson.toJson(root));
+        			//Common.Logging.v(TAG, "Internal/AirMedia/Canvas parsed from json string");
+        			//Common.Logging.v(TAG, "JSON string is "+gson.toJson(root));
         			if (root.internal.airMedia.canvas.sessionEvent != null)
         			{
         				if (CresCanvas.useSimulatedAVF)
@@ -811,6 +835,7 @@ public class CanvasCrestore
         			{
         				if (pending)
         				{
+        					mCanvas.avfHasStarted.compareAndSet(false, true);
         					// Session response messages are queued on a Scheduler so we do not block incoming message from cresstore
         					final SessionResponse sessionResponse = root.internal.airMedia.canvas.sessionResponse;
         					// Now process response

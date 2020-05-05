@@ -43,6 +43,7 @@ public class CresCanvas
 	private String prevHdmiSyncStatus[] = new String[MAX_HDMI_INPUTS+1];
 	private AtomicBoolean codecFailure = new AtomicBoolean(false);
 	private AtomicBoolean avfRestart = new AtomicBoolean(false);
+	AtomicBoolean avfHasStarted = new AtomicBoolean(false);
 	public SurfaceManager mSurfaceMgr=null;
 
 	public CresCanvas(com.crestron.txrxservice.CresStreamCtrl streamCtl)
@@ -59,7 +60,6 @@ public class CresCanvas
 			prevHdmiResolution[i] = "false";
 		}
 		mCrestore.sendCssRestart();
-		//clearAVF();
 	}
 	
 	public static CresCanvas getInstance(com.crestron.txrxservice.CresStreamCtrl streamCtl) {
@@ -128,7 +128,10 @@ public class CresCanvas
 	public void canvasHasStarted()
 	{
 		if (!IsAirMediaCanvasUp())
+		{
+			Common.Logging.i(TAG, "canvasHasStarted(): canvas not ready");
 			return;
+		}
 		Common.Logging.i(TAG, "canvasHasStarted(): ------ canvas is ready -------");
 		// send an empty list in layout update to indicate no sessions
 		Common.Logging.i(TAG, "canvasHasStarted(): Layout update");
@@ -210,6 +213,7 @@ public class CresCanvas
 			// send AVF a message disconnecting all sessions if it happened to restart while we were dealing with a codec failure
         	Log.i(TAG, "handleCodecFailure() - disconnect all sessions due to AVF restart during codec failure");
 			mSessionMgr.disconnectAllSessions(new Originator(RequestOrigin.Error));
+			avfRestart.set(false);
 		}
 		codecFailure.set(false);
 		// Restart HDMI/DM if possible
@@ -222,6 +226,7 @@ public class CresCanvas
 	public void handleAvfRestart()
 	{
 		Common.Logging.i(TAG, "*********************** handleAvfRestart ***********************");
+		avfHasStarted.compareAndSet(false, true);
 		if (!codecFailure.get())
 		{
 			// called from cresstore callback thread and so must be run asynchronously so sessionResponse is not blocked
