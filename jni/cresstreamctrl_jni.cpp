@@ -103,3 +103,11 @@ JNIEXPORT jint JNICALL Java_com_crestron_txrxservice_CresStreamCtrl_nativeGetDmI
 
 	return product_info()->dm_input_cnt;
 }
+
+JNIEXPORT jboolean JNICALL Java_com_crestron_txrxservice_CresStreamCtrl_nativeGetIsAirMediaEnabledEnum(JNIEnv *env, jobject thiz)
+{
+    do_init();
+
+    return product_info()->airMedia_enabled;
+}
+

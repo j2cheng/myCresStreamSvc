@@ -225,7 +225,7 @@ public class CresStreamCtrl extends Service {
     public int mGstreamerTimeoutCount = 0;
     public boolean haveExternalDisplays;
     public boolean hideVideoOnStop = false;
-    public boolean airMediav21 = true;
+    public boolean airMediav21 = false;
     public boolean useFauxPPUX = false;
     public boolean isRGB888HDMIVideoSupported = true;
     public CrestronHwPlatform mHwPlatform;
@@ -254,6 +254,7 @@ public class CresStreamCtrl extends Service {
     public native int nativeGetProductTypeEnum();
     public native int nativeGetHDMIOutputBitmask();
     public native int nativeGetDmInputCount();
+    public native boolean nativeGetIsAirMediaEnabledEnum();
 
     enum DeviceMode {
         STREAM_IN,
@@ -611,33 +612,38 @@ public class CresStreamCtrl extends Service {
             int windowWidth = 1920;
             int windowHeight = 1080;
             hideVideoOnStop = nativeHideVideoBeforeStop();
-            //TODO remove once integration is over
-            File f = new File("/data/CresStreamSvc/airMediav2.1");
-            if (f.exists())
+            if (nativeGetIsAirMediaEnabledEnum())
             {
-            	airMediav21 = MiscUtils.readStringFromDisk("/data/CresStreamSvc/airMediav2.1").equals("1");
-            }
-            Log.i(TAG, "device " + ((airMediav21)?"is in":"is not in") + " airMedia2.1 Mode");
-            if (airMediav21)
-            {
-            	f = new File("/data/CresStreamSvc/useCanvasSurfaces");
-            	if (f.exists())
-            	{
-                	CresCanvas.useCanvasSurfaces = MiscUtils.readStringFromDisk("/data/CresStreamSvc/useCanvasSurfaces").equals("1");
-            	}
-                Log.i(TAG, "device using "+((CresCanvas.useCanvasSurfaces)?"canvas":"internal")+" surfaceviews");
-            	f = new File("/data/CresStreamSvc/useSimulatedAVF");
-            	if (f.exists())
-            	{
-                	CresCanvas.useSimulatedAVF = MiscUtils.readStringFromDisk("/data/CresStreamSvc/useSimulatedAVF").equals("1");
-            	}
-                Log.i(TAG, "device using "+((CresCanvas.useSimulatedAVF)?"simulated":"normal")+" AVF");
-            	f = new File("/data/CresStreamSvc/useFauxPPUX");
-            	if (f.exists())
-            	{
-                	useFauxPPUX = MiscUtils.readStringFromDisk("/data/CresStreamSvc/useFauxPPUX").equals("1");
-            	}
-                Log.i(TAG, "device using "+((useFauxPPUX)?"Faux PPUX":"Real PPUX"));
+            	airMediav21 = true;	//default
+            	
+	            //TODO remove once integration is over
+	            File f = new File("/data/CresStreamSvc/airMediav2.1");
+	            if (f.exists())
+	            {
+	            	airMediav21 = MiscUtils.readStringFromDisk("/data/CresStreamSvc/airMediav2.1").equals("1");
+	            }
+	            Log.i(TAG, "device " + ((airMediav21)?"is in":"is not in") + " airMedia2.1 Mode");
+	            if (airMediav21)
+	            {
+	            	f = new File("/data/CresStreamSvc/useCanvasSurfaces");
+	            	if (f.exists())
+	            	{
+	                	CresCanvas.useCanvasSurfaces = MiscUtils.readStringFromDisk("/data/CresStreamSvc/useCanvasSurfaces").equals("1");
+	            	}
+	                Log.i(TAG, "device using "+((CresCanvas.useCanvasSurfaces)?"canvas":"internal")+" surfaceviews");
+	            	f = new File("/data/CresStreamSvc/useSimulatedAVF");
+	            	if (f.exists())
+	            	{
+	                	CresCanvas.useSimulatedAVF = MiscUtils.readStringFromDisk("/data/CresStreamSvc/useSimulatedAVF").equals("1");
+	            	}
+	                Log.i(TAG, "device using "+((CresCanvas.useSimulatedAVF)?"simulated":"normal")+" AVF");
+	            	f = new File("/data/CresStreamSvc/useFauxPPUX");
+	            	if (f.exists())
+	            	{
+	                	useFauxPPUX = MiscUtils.readStringFromDisk("/data/CresStreamSvc/useFauxPPUX").equals("1");
+	            	}
+	                Log.i(TAG, "device using "+((useFauxPPUX)?"Faux PPUX":"Real PPUX"));
+	            }
             }
             NumDmInputs = nativeGetDmInputCount();
             mHwPlatform = CrestronHwPlatform.fromInteger(nativeGetHWPlatformEnum());
