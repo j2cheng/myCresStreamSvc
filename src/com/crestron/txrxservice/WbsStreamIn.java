@@ -160,7 +160,14 @@ public class WbsStreamIn implements SurfaceHolder.Callback {
     {
     	Log.i(TAG, "In update window: streamId="+streamId+"   "+wbsWidth+"x"+wbsHeight);
     	
-    	streamCtl.updateWindowWithVideoSize(streamId, useSurfaceTexture, wbsWidth, wbsHeight);
+    	if (streamCtl.mCanvas != null)
+    	{
+    		streamCtl.setWbsResolution(streamId, wbsWidth, wbsHeight);
+    	}
+    	else
+    	{
+    		streamCtl.updateWindowWithVideoSize(streamId, useSurfaceTexture, wbsWidth, wbsHeight);
+    	}
     }    	
 
     public void onStop(final int sessionId) {

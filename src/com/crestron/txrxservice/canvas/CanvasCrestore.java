@@ -49,7 +49,8 @@ public class CanvasCrestore
 	SimulatedAVF mAVF;
 	
     public Scheduler sessionResponseScheduler = null;
-	
+    public Scheduler sessionStateChangeScheduler = null;
+
 	private final ReentrantLock sessionEventLock = new ReentrantLock();
 	Map<String, TransactionData> transactionMap= new ConcurrentHashMap<String, TransactionData>();
 
@@ -111,6 +112,7 @@ public class CanvasCrestore
 		if (CresCanvas.useSimulatedAVF)
 			mAVF = new SimulatedAVF(this);
 		sessionResponseScheduler = new Scheduler("TxRx.canvas.crestore.processSesionResponse");
+		sessionStateChangeScheduler = new Scheduler("TxRx.canvas.crestore.processSesionStateChange");
 
         Common.Logging.i(TAG, "CanvasCrestore: create Crestore wrapper");
         try {
@@ -301,15 +303,13 @@ public class CanvasCrestore
 			{
 				if (s.state.equalsIgnoreCase("Play") && session.isStopped())
 				{
-					Common.Logging.i(TAG, "Need to send a play request for session "+session);
+					doSynchronousSessionEvent(session, "Play", new Originator(RequestOrigin.StateChangeMessage, session), 10);
 				}
 				else if (s.state.equalsIgnoreCase("Stop") && session.isPlaying())
 				{
-					Common.Logging.i(TAG, "Need to send a stop request for session "+session);
+					doSynchronousSessionEvent(session, "Stop", new Originator(RequestOrigin.StateChangeMessage, session), 10);
 				} else if (s.state.equalsIgnoreCase("Disconnect")) {
-					if (session.isPlaying()) {
-						Common.Logging.i(TAG, "Need to send a stop session "+session+" before disconnecting it");
-					}
+					doSynchronousSessionEvent(session, "Disconnect", new Originator(RequestOrigin.StateChangeMessage, session), 10);
 					Common.Logging.i(TAG, "Removing session " + session + " from sessionManager");
 					mSessionMgr.remove(session);
 				}
@@ -829,7 +829,15 @@ public class CanvasCrestore
         			}
         			if (root.internal.airMedia.canvas.sessionStateChange != null)
         			{
-        				processSessionStateChange(root.internal.airMedia.canvas.sessionStateChange);
+    					// Session response messages are queued on a Scheduler so we do not block incoming message from cresstore
+    					final SessionStateChange sessionStateChange = root.internal.airMedia.canvas.sessionStateChange;
+    					// Now process session state change
+    					Common.Logging.i(TAG,"----- processSessionStateChange job to scheduler: "+gson.toJson(sessionStateChange));
+    					sessionStateChangeScheduler.queue(new Runnable() { 
+    						@Override public void run() { 
+    							processSessionStateChange(sessionStateChange); 
+    						}; 
+    					});
         			}
         			if (root.internal.airMedia.canvas.sessionResponse != null)
         			{

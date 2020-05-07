@@ -113,8 +113,10 @@ public class AirBoardSession extends Session
 		}
 		Common.Logging.i(TAG, "AirBoard Session "+this+" got streamId "+streamId);
 		acquireSurface();
-		// set device mode for this streamId to preview
-		mStreamCtl.setDeviceMode(4, streamId);
+		// set device mode for this streamId to WBS_STREAM_IN
+		mStreamCtl.setDeviceMode(3, streamId);
+		// set the url
+		mStreamCtl.setWbsStreamUrl(url, streamId);
 		//start the preview mode
 		Common.Logging.i(TAG, "AirBoard Session "+this+" calling Start()");
 		mStreamCtl.Start(streamId);

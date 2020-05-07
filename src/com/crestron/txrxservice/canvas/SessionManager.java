@@ -121,7 +121,7 @@ public class SessionManager
             for (Session entry : sessions_) {
                 if (!entry.type.toString().equalsIgnoreCase(type)) continue;
                 if (entry.type == SessionType.AirBoard) {
-                	if (!entry.url.equalsIgnoreCase(url)) continue;
+                	if (!entry.userLabel.equalsIgnoreCase(label)) continue;
                 } else if (entry.type == SessionType.HDMI) {
                 	if (entry.inputNumber != inputNumber) continue;
                 } else if (entry.type == SessionType.DM) {
