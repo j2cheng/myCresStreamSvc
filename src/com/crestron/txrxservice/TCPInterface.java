@@ -387,6 +387,7 @@ public class TCPInterface extends AsyncTask<Void, Object, Long> {
                             serverHandler.SendDataToAllClients(validatedMsg);
                         }
                         else if (read.equalsIgnoreCase("updaterequest")) {
+                        	Log.v(TAG, "--updaterequest being processed--");
                             for(CommandParser.CmdTable ct: CommandParser.CmdTable.values()){
                                 // Send device ready as last join
                                 if (!ct.name().equals("DEVICE_READY_FB"))
@@ -395,6 +396,7 @@ public class TCPInterface extends AsyncTask<Void, Object, Long> {
 
                             // Tell CSIO that update request is complete
                             addJoinToQueue(new JoinObject("DEVICE_READY_FB", serverHandler), 0);
+                        	Log.v(TAG, "--updaterequest completed--");
                         }
                         else if(read.equalsIgnoreCase("RESTART_STREAM_ON_START=TRUE")){
                             Log.i(TAG, "RESTART_STREAM_ON_START=TRUE received");

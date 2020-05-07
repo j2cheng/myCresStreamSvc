@@ -416,6 +416,7 @@ public class AirMediaSession extends Session
 			return;
 		}
 		Common.Logging.i(TAG, "setVideoState(): Session "+this+" starting to check if processing is needed");
+		SessionState prevState = getState();
 		if (s == AirMediaSessionStreamingState.Stopped)
 		{
 			if (waiterForStopRequestToUser.signal())
@@ -425,9 +426,12 @@ public class AirMediaSession extends Session
 			}
 			else
 			{
-				final Originator originator = new Originator(RequestOrigin.Receiver, this);
-				Common.Logging.i(TAG, "setVideoState(): Session "+this+" stop request");
-				stopRequest(originator);
+				if ((prevState == SessionState.Paused) || (prevState == SessionState.Playing) || (prevState == SessionState.Starting))
+				{
+					final Originator originator = new Originator(RequestOrigin.Receiver, this);
+					Common.Logging.i(TAG, "setVideoState(): Session "+this+" stop request");
+					stopRequest(originator);
+				}
 			}
 		} 
 		else if (s == AirMediaSessionStreamingState.Playing)
@@ -440,8 +444,7 @@ public class AirMediaSession extends Session
 			}
 			else 
 			{
-				SessionState prevState = getState();
-				if (prevState == SessionState.Stopped)
+				if ((prevState == SessionState.Stopped) || (prevState == SessionState.Stopping))
 				{
 					Originator originator = new Originator(RequestOrigin.Receiver, this);
 					Common.Logging.i(TAG, "setVideoState(): Session "+this+" play request");

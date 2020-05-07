@@ -1815,7 +1815,8 @@ public class AirMediaSplashtop
         Common.Logging.i(TAG, "User id: "+String.valueOf(user)+"  Connected: "+String.valueOf(getSessionVideoState(session) == AirMediaSessionStreamingState.Playing));
 		Common.Logging.i(TAG, "Adding Id to map, userId: " + user + " session: " + session);
 		if (mCanvas != null) {
-			com.crestron.txrxservice.canvas.AirMediaSession s = new com.crestron.txrxservice.canvas.AirMediaSession(session, "AM-"+String.valueOf(user));	
+			String name = ((session.username() != null) ? session.username() : ("AM-"+String.valueOf(user)));
+			com.crestron.txrxservice.canvas.AirMediaSession s = new com.crestron.txrxservice.canvas.AirMediaSession(session, name);	
 			s.connectRequest(new Originator(RequestOrigin.Receiver, s));
 			canvasSessionMap.put(session.id(), s);
         	sendClientData();
@@ -2936,6 +2937,14 @@ public class AirMediaSplashtop
                     // TODO Handle username changed
                     sendSessionFeedback(session);
                     sendClientDataUsername(session, to);
+                    if (mCanvas != null)
+                    {
+                    	com.crestron.txrxservice.canvas.AirMediaSession s = canvasSessionMap.get(session.id());
+                    	if (s != null)
+                    	{
+                    		s.setUserLabel(to);
+                    	}
+                    }
                 }
             };
 

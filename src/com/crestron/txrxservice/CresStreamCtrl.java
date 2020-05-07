@@ -337,6 +337,7 @@ public class CresStreamCtrl extends Service {
         PreviewPaused(6);
 
         private final int value;
+        public static final CameraMode values[] = values();
 
         CameraMode(int value)
         {
@@ -6083,7 +6084,8 @@ public class CresStreamCtrl extends Service {
     {
         synchronized(cameraModeLock)
         {
-            Log.i(TAG, "Writing " + mode + " to camera mode file");
+        	CameraMode cmode = CameraMode.values[Integer.valueOf(mode)];
+            Log.i(TAG, "Writing " + cmode + "(" + mode + ")" + " to camera mode file");
             Writer writer = null;
             try
             {
