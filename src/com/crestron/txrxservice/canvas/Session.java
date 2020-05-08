@@ -1,5 +1,7 @@
 package com.crestron.txrxservice.canvas;
 
+import java.util.concurrent.atomic.AtomicBoolean;
+
 import com.crestron.airmedia.canvas.channels.ipc.CanvasPlatformType;
 import com.crestron.airmedia.canvas.channels.ipc.CanvasSessionState;
 import com.crestron.airmedia.canvas.channels.ipc.CanvasSourceSession;
@@ -43,6 +45,7 @@ public class Session
     public boolean [] permissions = new boolean[PermissionType.size];
     //public SessionInfo info_;
     public static long nextId = 0;
+    public AtomicBoolean sentToAvf = new AtomicBoolean(false);
 	
 	public Session()
 	{

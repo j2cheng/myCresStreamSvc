@@ -195,6 +195,7 @@ public class CanvasCrestore
 
 	public synchronized void doSessionEvent(SessionEvent e, Originator originator, Waiter waiter)
 	{
+		markSessionsSentToAvf(e);
 		if (waiter != null)
 			waiter.prepForWait();
 		TransactionData t = new TransactionData(waiter, originator);
@@ -261,6 +262,19 @@ public class CanvasCrestore
 		wrapper.set(gson.toJson(root), true);
 	}
 	
+	public void markSessionsSentToAvf(SessionEvent e)
+	{
+		for (Map.Entry<String, SessionEventMapEntry> entry : e.sessionEventMap.entrySet())
+		{
+			Session session = mSessionMgr.getSession(entry.getKey());
+			if (session != null)
+			{
+				// mark session as sent to avf with an action
+				session.sentToAvf.compareAndSet(false, true);
+			}
+		}
+	}
+
 	public void processSessionStateChange(SessionStateChange s)
 	{
 		Common.Logging.v(TAG, "Processing Session State Change Message "+gson.toJson(s));
@@ -442,9 +456,15 @@ public class CanvasCrestore
 			List<String> stopList = new LinkedList<String>();
 			List<String> disconnectList = new LinkedList<String>();
 			List<String> existingSessionIds = mSessionMgr.getSessionIds();
+			// Create the disconnect list as sessions that exist but are not in the map received from AVF
 			for (String id: existingSessionIds) {
-				if (!map.containsKey(id))
-					disconnectList.add(id);
+				Session session = mSessionMgr.getSession(id);
+				// Disconnect only sessions whose connection sessionEvent has previously been sent to AVF
+				if (session != null && session.sentToAvf.get())
+				{
+					if (!map.containsKey(id))
+						disconnectList.add(id);
+				}
 			}
 			for (Map.Entry<String, SessionResponseMapEntry> entry : map.entrySet())
 			{

@@ -44,6 +44,7 @@ public class CresCanvas
 	private AtomicBoolean codecFailure = new AtomicBoolean(false);
 	private AtomicBoolean avfRestart = new AtomicBoolean(false);
 	AtomicBoolean avfHasStarted = new AtomicBoolean(false);
+	public boolean cssRestart = true;
 	public SurfaceManager mSurfaceMgr=null;
 
 	public CresCanvas(com.crestron.txrxservice.CresStreamCtrl streamCtl)
@@ -59,7 +60,6 @@ public class CresCanvas
 			prevHdmiResolution[i] = "0x0";
 			prevHdmiResolution[i] = "false";
 		}
-		mCrestore.sendCssRestart();
 	}
 	
 	public static CresCanvas getInstance(com.crestron.txrxservice.CresStreamCtrl streamCtl) {
@@ -136,8 +136,17 @@ public class CresCanvas
 		// send an empty list in layout update to indicate no sessions
 		Common.Logging.i(TAG, "canvasHasStarted(): Layout update");
 		mSessionMgr.doLayoutUpdate();
-		// send an empty event map in session event to indicate no sessions to AVF
-		//clearAVF();
+		// send Css restart signal to AVF if it is a fresh startup of CSS
+		if (cssRestart)
+		{
+			cssRestart = false;
+			mCrestore.sendCssRestart();
+		}
+		else
+		{
+			// Clear any existing AVF sessions if a resync
+			clearAVF();
+		}
 		// start possible hdmi and dm sessions
 		Common.Logging.i(TAG, "canvasHasStarted(): HDMI sync update");
 		mStreamCtl.canvasHdmiSyncStateChange(false);
