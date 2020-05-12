@@ -394,6 +394,7 @@ public class CresCanvas
 		} catch(android.os.RemoteException ex)
 		{
 			Common.Logging.e(TAG, "exception encountered while calling surfaceAcquire for session: "+sessionId);
+			ex.printStackTrace();
 			return null;
 		}
 		if (response != null && response.isSucceeded())
@@ -421,6 +422,7 @@ public class CresCanvas
 		} catch(android.os.RemoteException ex)
 		{
 			Common.Logging.e(TAG, "exception encountered while calling surfaceRelease for session: "+sessionId);
+			ex.printStackTrace();
 		}
 		if (response == null || !response.isSucceeded())
 			Common.Logging.e(TAG, "Canvas App failed to release surface for session: "+sessionId);

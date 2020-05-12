@@ -53,7 +53,7 @@ public class HDMISession extends Session
 		}
 	}
 	
-	public void stop(final boolean replace, int timeoutInSeconds)
+	public void stop(final Originator originator, final boolean replace, int timeoutInSeconds)
 	{
 		Runnable r = new Runnable() { public void run() { doStop(replace); } };
         TimeSpan start = TimeSpan.now();
@@ -62,20 +62,23 @@ public class HDMISession extends Session
 		if (completed) {
 			streamId = -1;
 			setState(SessionState.Stopped);
+		} else {
+			Common.Logging.w(TAG, "HDMI Session "+this+" stop failed");		
+			originator.failedSessionList.add(this);
 		}
 	}
 	
 	public void stop(Originator originator)
 	{
-		stop(false, 10);
+		stop(originator, false, 10);
 	}
 	
 	public void stop(Originator originator, boolean replace)
 	{
-		stop(replace, 10);
+		stop(originator, replace, 10);
 	}
 	
-	public void doPlay(int replaceStreamId)
+	public void doPlay(final Originator originator, int replaceStreamId)
 	{		
 		Common.Logging.i(TAG, "HDMI Session "+this+" play request");
 		if (replaceStreamId > 0)
@@ -87,21 +90,26 @@ public class HDMISession extends Session
 			mCanvas.showWindow(streamId); // TODO remove once real canvas app available
 		}
 		Common.Logging.i(TAG, "HDMI Session "+this+" got streamId "+streamId);
-		acquireSurface();
-		// set device mode for this streamId to preview
-		mStreamCtl.setDeviceMode(2, streamId);
-		//start the preview mode
-		Common.Logging.i(TAG, "HDMI Session "+this+" calling Start()");
-		mStreamCtl.Start(streamId);
-		// signal to csio to start audio for HDMI via audiomux
-		Common.Logging.i(TAG, "HDMI Session "+this+" sending HDMI Start signal to csio fur audio on AM-300");
-		mStreamCtl.sendHdmiStart(streamId, true);
-		Common.Logging.i(TAG, "HDMI Session "+this+" back from Start()");
+		if (acquireSurface() != null)
+		{
+			// set device mode for this streamId to preview
+			mStreamCtl.setDeviceMode(2, streamId);
+			//start the preview mode
+			Common.Logging.i(TAG, "HDMI Session "+this+" calling Start()");
+			mStreamCtl.Start(streamId);
+			// signal to csio to start audio for HDMI via audiomux
+			Common.Logging.i(TAG, "HDMI Session "+this+" sending HDMI Start signal to csio fur audio on AM-300");
+			mStreamCtl.sendHdmiStart(streamId, true);
+			Common.Logging.i(TAG, "HDMI Session "+this+" back from Start()");
+		} else {
+			Common.Logging.w(TAG, "HDMI Session "+this+" doPlay() got null surface");
+			originator.failedSessionList.add(this);
+		}
 	}
 	
-	public void play(Originator originator, final int replaceStreamId, int timeoutInSeconds)
+	public void play(final Originator originator, final int replaceStreamId, int timeoutInSeconds)
 	{
-		Runnable r = new Runnable() { public void run() { doPlay(replaceStreamId); } };
+		Runnable r = new Runnable() { public void run() { doPlay(originator, replaceStreamId); } };
         TimeSpan start = TimeSpan.now();
 		boolean completed = executeWithTimeout(r, TimeSpan.fromSeconds(timeoutInSeconds));
 		Common.Logging.i(TAG, "HDMI Session play completed in "+TimeSpan.now().subtract(start).toString()+" seconds");
@@ -109,6 +117,11 @@ public class HDMISession extends Session
 		{
 			setState(SessionState.Playing);
 			setResolution();
+		}
+		else
+		{
+			Common.Logging.w(TAG, "HDMI Session "+this+" play failed - timeout");		
+			originator.failedSessionList.add(this);
 		}
 	}
 	

@@ -110,7 +110,6 @@ public class Session
 	public void setType(SessionType type) { this.type = type; }	
 	public SessionType getType() {return type;}
 	
-	public void setAirMediaType(SessionAirMediaType airMediaType) { this.airMediaType = airMediaType; }	
 	public SessionAirMediaType getAirMediaType() {return airMediaType;}
 	
 	public void setPlatformType(CanvasPlatformType platform) { this.platform = platform; }	

@@ -252,6 +252,7 @@ public class SessionManager
         }
 		Common.Logging.i(TAG,"clearAllSessions() clear list");
         sessions_.clear();
+        updateVideoStatus();
     }
     
     public void sendAllSessionsInSessionEvent(Originator origin)

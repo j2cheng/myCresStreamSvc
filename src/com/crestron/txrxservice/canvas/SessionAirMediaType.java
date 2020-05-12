@@ -4,7 +4,7 @@ import android.os.Parcel;
 import android.os.Parcelable;
 
 public enum SessionAirMediaType implements Parcelable {
-    App(0), AirPlay(1), Miracast(2), WebRTC(3);
+    Undefined(-1), App(0), AirPlay(1), Miracast(2), WebRtc(3);
     public final int value;
 
     SessionAirMediaType(int v) { value = v; }
@@ -27,11 +27,12 @@ public enum SessionAirMediaType implements Parcelable {
 
     public static SessionAirMediaType from(int v) {
         switch (v) {
+            case -1: return Undefined;
             case 0: return App;
             case 1: return AirPlay;
             case 2: return Miracast;
-            case 3: return WebRTC;
+            case 3: return WebRtc;
         }
-        return App;
+        return Undefined;
     }
 }

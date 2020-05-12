@@ -49,7 +49,7 @@ public class DMSession extends Session
 		}
 	}
 	
-	public void stop(final boolean replace, int timeoutInSeconds)
+	public void stop(final Originator originator, final boolean replace, int timeoutInSeconds)
 	{
 		Runnable r = new Runnable() { public void run() { doStop(replace); } };
         TimeSpan start = TimeSpan.now();
@@ -58,17 +58,20 @@ public class DMSession extends Session
 		if (completed) {
 			streamId = -1;
 			setState(SessionState.Stopped);
+		} else {
+			Common.Logging.w(TAG, "DM Session "+this+" stop failed");		
+			originator.failedSessionList.add(this);
 		}
 	}
 	
 	public void stop(Originator originator)
 	{
-		stop(false, 10);
+		stop(originator, false, 10);
 	}
 	
 	public void stop(Originator originator, boolean replace)
 	{
-		stop(replace, 10);
+		stop(originator, replace, 10);
 	}
 	
 	public void draw(Canvas canvas, int r, int g, int b)
@@ -109,7 +112,7 @@ public class DMSession extends Session
 		drawChromaKeyColor(mStreamCtl.userSettings.getDmHdcpBlank(inputNumber));
 	}
 	
-	public void doPlay(int replaceStreamId)
+	public void doPlay(final Originator originator, int replaceStreamId)
 	{		
 		Common.Logging.i(TAG, "DM Session "+this+" play request");
 		if (replaceStreamId > 0)
@@ -122,14 +125,14 @@ public class DMSession extends Session
 		}
 		Common.Logging.i(TAG, "DM Session "+this+" got streamId "+streamId);
 		surface = acquireSurface();
-		Common.Logging.i(TAG, "DM Session "+this+" sending start to csio");
-		// signal to csio to start audio for DM via audiomux
-		mStreamCtl.sendDmStart(streamId, true);
-        if (!CresCanvas.useCanvasSurfaces) {
-        	mStreamCtl.setFormat(streamId, PixelFormat.RGBA_8888);
-        }
 		if (surface != null && surface.isValid())
 		{
+			Common.Logging.i(TAG, "DM Session "+this+" sending start to csio");
+			// signal to csio to start audio for DM via audiomux
+			mStreamCtl.sendDmStart(streamId, true);
+	        if (!CresCanvas.useCanvasSurfaces) {
+	        	mStreamCtl.setFormat(streamId, PixelFormat.RGBA_8888);
+	        }
 			Common.Logging.i(TAG, "DM Session "+this+" drawing to surface: "+surface);
 			drawChromaKeyColor();
 			if (!CresCanvas.useCanvasSurfaces)
@@ -140,13 +143,14 @@ public class DMSession extends Session
 		}
 		else
 		{
-			Common.Logging.e(TAG, "DM Session "+this+" doPlay() got null or invalid surface");
+			Common.Logging.w(TAG, "DM Session "+this+" doPlay() got null or invalid surface");
+			originator.failedSessionList.add(this);
 		}
 	}
 	
-	public void play(Originator originator, final int replaceStreamId, int timeoutInSeconds)
+	public void play(final Originator originator, final int replaceStreamId, int timeoutInSeconds)
 	{
-		Runnable r = new Runnable() { public void run() { doPlay(replaceStreamId); } };
+		Runnable r = new Runnable() { public void run() { doPlay(originator, replaceStreamId); } };
         TimeSpan start = TimeSpan.now();
 		boolean completed = executeWithTimeout(r, TimeSpan.fromSeconds(timeoutInSeconds));
 		Common.Logging.i(TAG, "DM Session play completed in "+TimeSpan.now().subtract(start).toString()+" seconds");
@@ -154,6 +158,11 @@ public class DMSession extends Session
 		{
 			setState(SessionState.Playing);
 			setResolution();
+		}
+		else
+		{
+			Common.Logging.w(TAG, "DM Session "+this+" play failed - timeout");		
+			originator.failedSessionList.add(this);
 		}
 	}
 	

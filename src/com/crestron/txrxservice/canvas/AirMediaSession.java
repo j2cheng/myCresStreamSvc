@@ -2,7 +2,10 @@ package com.crestron.txrxservice.canvas;
 
 import java.util.concurrent.atomic.AtomicBoolean;
 
+import com.crestron.airmedia.canvas.channels.ipc.CanvasPlatformType;
+import com.crestron.airmedia.receiver.m360.ipc.AirMediaPlatforms;
 import com.crestron.airmedia.receiver.m360.ipc.AirMediaSessionStreamingState;
+import com.crestron.airmedia.receiver.m360.ipc.AirMediaSessionVideoType;
 import com.crestron.airmedia.utilities.Common;
 import com.crestron.airmedia.utilities.TimeSpan;
 
@@ -29,7 +32,7 @@ public class AirMediaSession extends Session
 		super(); // will assign id;
 		state = SessionState.Connecting;
 		type = SessionType.AirMedia;
-		airMediaType = SessionAirMediaType.App;
+		airMediaType = SessionAirMediaType.Undefined;
 		airMediaReceiverSession = session;
 		userLabel = label;
 		videoState = AirMediaSessionStreamingState.Stopped;
@@ -37,11 +40,49 @@ public class AirMediaSession extends Session
 		{
 			setPlatformType(session.info().platform);
 		}
+		else
+		{
+			Common.Logging.i(TAG, this+" has null session info() or platform");
+		}
+		Common.Logging.i(TAG, this+" has AirMediaType set to "+airMediaType);
 		waiterForPlayRequestToUser = new Waiter();
 		waiterForStopRequestToUser = new Waiter();
 		waiterForDisconnectRequestToUser = new Waiter();
 		alreadyDisconnected = new AtomicBoolean(false);
 	}
+	
+	public static SessionAirMediaType getAirMediaType(com.crestron.airmedia.receiver.m360.models.AirMediaSession session) { 
+		if (session.videoType() == AirMediaSessionVideoType.Miracast)
+			return SessionAirMediaType.Miracast;
+		if (session.videoType() == AirMediaSessionVideoType.WebRTC)
+			return SessionAirMediaType.WebRtc;
+		switch(session.info().platform) 
+		{
+		case Windows:
+			return (session.videoType() == AirMediaSessionVideoType.Miracast) ? SessionAirMediaType.Miracast : SessionAirMediaType.App;
+		case Mac:
+		case iOS:
+			return SessionAirMediaType.AirPlay;
+		case Android:
+			return (session.videoType() == AirMediaSessionVideoType.Miracast) ? SessionAirMediaType.Miracast : SessionAirMediaType.App;
+		case Chromebook:
+			return SessionAirMediaType.WebRtc;
+		case Linux:
+		case Undefined:
+		default:
+			return SessionAirMediaType.Undefined;
+		}
+	}
+	
+	public void setAirMediaType(com.crestron.airmedia.receiver.m360.models.AirMediaSession s) 
+	{
+		SessionAirMediaType amType = getAirMediaType(s);
+		if (amType != SessionAirMediaType.Undefined)
+		{
+			this.airMediaType = amType; 
+			connectRequest(new Originator(RequestOrigin.Receiver, this));
+		}
+	}	
 	
 	// Receiver initiated requests - handled on thread of requestScheduler - will be called when state changes are signaled by receiver
 	// Must be run async so we do not block receiver events thread
@@ -142,6 +183,11 @@ public class AirMediaSession extends Session
 			streamId = replaceStreamId;
 			surface = mStreamCtl.getSurface(streamId);
 		}
+		if (surface == null || !surface.isValid())
+		{
+			Common.Logging.w(TAG, "AirMediaSession "+this+" got null or invalid surface");
+			return false;
+		}
 		Common.Logging.i(TAG, "AirMediaSession "+this+" using surface "+surface+" isValid="+surface.isValid());
 		if (airMediaReceiverSession  == null)
 		{
@@ -179,7 +225,8 @@ public class AirMediaSession extends Session
 		}
 		else
 		{
-			Common.Logging.i(TAG, "Session "+this+" play command failed");
+			Common.Logging.w(TAG, "Session "+this+" play command failed");
+			originator.failedSessionList.add(this);
 		}
 	}
 	
@@ -275,6 +322,7 @@ public class AirMediaSession extends Session
 		else
 		{
 			Common.Logging.w(TAG, "Session "+this+" stop command failed");
+			originator.failedSessionList.add(this);
 		}
 	}
 	

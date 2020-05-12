@@ -78,7 +78,7 @@ public class AirBoardSession extends Session
 		}
 	}
 	
-	public void stop(final boolean replace, int timeoutInSeconds)
+	public void stop(final Originator originator, final boolean replace, int timeoutInSeconds)
 	{
 		Runnable r = new Runnable() { public void run() { doStop(replace); } };
         TimeSpan start = TimeSpan.now();
@@ -87,20 +87,23 @@ public class AirBoardSession extends Session
 		if (completed) {
 			streamId = -1;
 			setState(SessionState.Stopped);
+		} else {
+			Common.Logging.w(TAG, "AirBoard Session "+this+" stop failed");		
+			originator.failedSessionList.add(this);
 		}
 	}
 	
 	public void stop(Originator originator)
 	{
-		stop(false, 10);
+		stop(originator, false, 10);
 	}
 	
 	public void stop(Originator originator, boolean replace)
 	{
-		stop(replace, 10);
+		stop(originator, replace, 10);
 	}
 	
-	public void doPlay(int replaceStreamId)
+	public void doPlay(Originator originator, int replaceStreamId)
 	{		
 		Common.Logging.i(TAG, "AirBoard Session "+this+" play request");
 		if (replaceStreamId > 0)
@@ -111,21 +114,26 @@ public class AirBoardSession extends Session
 			streamId = mCanvas.mSurfaceMgr.getUnusedStreamId();
 			mCanvas.showWindow(streamId); // TODO remove once real canvas app available
 		}
-		Common.Logging.i(TAG, "AirBoard Session "+this+" got streamId "+streamId);
-		acquireSurface();
-		// set device mode for this streamId to WBS_STREAM_IN
-		mStreamCtl.setDeviceMode(3, streamId);
-		// set the url
-		mStreamCtl.setWbsStreamUrl(url, streamId);
-		//start the preview mode
-		Common.Logging.i(TAG, "AirBoard Session "+this+" calling Start()");
-		mStreamCtl.Start(streamId);
-		Common.Logging.i(TAG, "AirBoard Session "+this+" back from Start()");
+		Common.Logging.i(TAG, "AirBoard Session "+this+" got streamId "+streamId);		
+		if (acquireSurface() != null)
+		{
+			// set device mode for this streamId to WBS_STREAM_IN
+			mStreamCtl.setDeviceMode(3, streamId);
+			// set the url
+			mStreamCtl.setWbsStreamUrl(url, streamId);
+			//start the preview mode
+			Common.Logging.i(TAG, "AirBoard Session "+this+" calling Start()");
+			mStreamCtl.Start(streamId);
+			Common.Logging.i(TAG, "AirBoard Session "+this+" back from Start()");
+		} else {
+			Common.Logging.w(TAG, "AirBoard Session "+this+" play failed");		
+			originator.failedSessionList.add(this);
+		}
 	}
 	
-	public void play(Originator originator, final int replaceStreamId, int timeoutInSeconds)
+	public void play(final Originator originator, final int replaceStreamId, int timeoutInSeconds)
 	{
-		Runnable r = new Runnable() { public void run() { doPlay(replaceStreamId); } };
+		Runnable r = new Runnable() { public void run() { doPlay(originator, replaceStreamId); } };
         TimeSpan start = TimeSpan.now();
 		boolean completed = executeWithTimeout(r, TimeSpan.fromSeconds(timeoutInSeconds));
 		Common.Logging.i(TAG, "AirBoard Session play completed in "+TimeSpan.now().subtract(start).toString()+" seconds");
