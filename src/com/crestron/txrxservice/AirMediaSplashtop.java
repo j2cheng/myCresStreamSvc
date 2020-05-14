@@ -3054,7 +3054,8 @@ public class AirMediaSplashtop
                     		  {
                     			  s.setVideoState(AirMediaSessionStreamingState.Playing);
                     		  }
-                  			  sendClientDataIsActiveSession(session, true);	
+                  			  sendClientDataIsActiveSession(session, true);
+                  			  querySenderList(false);
                     	  } else {
                     		  addActiveSession(session);
                     	  }
@@ -3068,7 +3069,8 @@ public class AirMediaSplashtop
                     		  {
                     			  s.setVideoState(AirMediaSessionStreamingState.Stopped);
                     		  }
-                  			  sendClientDataIsActiveSession(session, false);	
+                  			  sendClientDataIsActiveSession(session, false);
+                  			  querySenderList(false);
                     	  } else {
                         	  deleteActiveSessionWithFeedback(session);
                     	  }
