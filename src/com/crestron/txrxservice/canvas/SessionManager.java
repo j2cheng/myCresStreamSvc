@@ -319,7 +319,8 @@ public class SessionManager
     	synchronized (lock_) {
             for (Session session : sessions_) {
             	//Common.Logging.i(TAG, "SessionManager::updateVideoStatus(): session="+session+" state="+session.getState());
-            	if (session.getState() == SessionState.Playing)
+            	SessionState state = session.getState();
+            	if (state == SessionState.Playing || state == SessionState.Paused)
             	{
             		videoPresenting = true;
             		break;
