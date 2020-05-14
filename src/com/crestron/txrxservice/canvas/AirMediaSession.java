@@ -24,7 +24,6 @@ public class AirMediaSession extends Session
     public Waiter waiterForStopRequestToUser = null;
     public Waiter waiterForDisconnectRequestToUser = null;
     public Scheduler receiverCmdScheduler = new Scheduler("TxRx.airmedia.session.receiverCmd");
-    public Scheduler requestScheduler = new Scheduler("TxRx.airmedia.session.request");
     private AtomicBoolean alreadyDisconnected = null;         // receiver has already disconnected sessopm
     Surface surface=null;
     		
@@ -56,6 +55,8 @@ public class AirMediaSession extends Session
 			return SessionAirMediaType.Miracast;
 		if (session.videoType() == AirMediaSessionVideoType.WebRTC)
 			return SessionAirMediaType.WebRtc;
+		if (session.info() == null)
+			return SessionAirMediaType.Undefined;
 		switch(session.info().platform) 
 		{
 		case Windows:
@@ -77,7 +78,7 @@ public class AirMediaSession extends Session
 	public void setAirMediaType(com.crestron.airmedia.receiver.m360.models.AirMediaSession s) 
 	{
 		SessionAirMediaType amType = getAirMediaType(s);
-		if (amType != SessionAirMediaType.Undefined)
+		if (amType != SessionAirMediaType.Undefined  && this.airMediaType == SessionAirMediaType.Undefined)
 		{
 			this.airMediaType = amType; 
 			connectRequest(new Originator(RequestOrigin.Receiver, this));
@@ -86,7 +87,7 @@ public class AirMediaSession extends Session
 	
 	// Receiver initiated requests - handled on thread of requestScheduler - will be called when state changes are signaled by receiver
 	// Must be run async so we do not block receiver events thread
-	public void doSessionEvent(String r, Originator o, int t)
+	public void doSessionEvent(String r, Originator o, int t, TimeSpan startTime)
 	{
 		// When this event actually runs - is popped from the handler's queue we check the state of the session
 		// if it matches request exit
@@ -104,8 +105,13 @@ public class AirMediaSession extends Session
 		if (!done)
 		{
 			Common.Logging.i(TAG, this+" starting processing of "+r+" request");
-			boolean success = mCanvas.getCrestore().doSynchronousSessionEvent(this, r, o, t);
-			Common.Logging.i(TAG, this+" completed processing of "+r+" request: "+((success)?"success":"failed - timeout"));
+			boolean success = mCanvas.getCrestore().executeSynchronousSessionEvent(this, r, o, t);
+			if (success)
+			{
+				Common.Logging.i(TAG, this+" completed processing of "+r+" request in " + TimeSpan.now().subtract(startTime).toString() + "seconds");
+			} else {
+				Common.Logging.i(TAG, this+" processing of "+r+" request timedout in " + TimeSpan.now().subtract(startTime).toString() + "seconds");
+			}
 		}
 	}
 	
@@ -114,9 +120,10 @@ public class AirMediaSession extends Session
 		final String r_ = request;
 		final int t_ = timeout;
 		final Originator o_ = originator;
+		final TimeSpan startTime = TimeSpan.now();
 		Common.Logging.i(TAG, "Session "+this+" scheduling "+request+" request");
-		Runnable r = new Runnable() { @Override public void run() { doSessionEvent(r_, o_, t_); } };
-		requestScheduler.queue(r);
+		Runnable r = new Runnable() { @Override public void run() { doSessionEvent(r_, o_, t_, startTime); } };
+		mCanvas.getCrestore().sessionScheduler.queue(r);
 	}
 	
 	public void connectRequest(Originator originator)

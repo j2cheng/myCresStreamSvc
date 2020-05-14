@@ -1,5 +1,6 @@
 package com.crestron.txrxservice.canvas;
 
+import java.util.concurrent.Callable;
 import java.util.concurrent.CancellationException;
 import java.util.concurrent.ExecutionException;
 import java.util.concurrent.Future;
@@ -52,6 +53,26 @@ public class Scheduler extends ThreadPoolExecutor
 	void queue(Runnable task) 
 	{
 		submit(task);
+		Common.Logging.v(TAG, "Pending tasks in scheduler queue "+getQueue().size());
+	}
+	
+    // This is a synchronous method.  It will run on the thread of the scheduler but should have an internal timeout
+	// because the caller is going to be blocked
+	Boolean queue(Callable<Boolean> task) 
+	{
+		Boolean timeout = false;
+		Future<Boolean> f = submit(task);
+		Common.Logging.v(TAG, "Pending tasks in scheduler queue "+getQueue().size());
+		try {
+			timeout = f.get();
+		} catch (InterruptedException e) {
+			// TODO Auto-generated catch block
+			e.printStackTrace();
+		} catch (ExecutionException e) {
+			// TODO Auto-generated catch block
+			e.printStackTrace();
+		}
+		return timeout;
 	}
 	
 	@Override 

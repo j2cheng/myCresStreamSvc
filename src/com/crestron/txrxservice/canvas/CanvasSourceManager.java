@@ -81,26 +81,21 @@ public class CanvasSourceManager {
     {
     	CanvasSourceResponse response = new CanvasSourceResponse();
     	CanvasCrestore.SessionEvent e = mCresStore.sourceRequestToEvent(request, response); 
-    	TimeSpan timeout = TimeSpan.fromSeconds(CanvasSourceRequestTimeout);
  
     	if (e == null)
     		return response;
-    	
-    	boolean timedout = false;
-		TimeSpan startTime = TimeSpan.now();
-    	Waiter waiter = new Waiter();
+ 
+    	Common.Logging.i(TAG, "processing canvas source request");    	
     	Originator originator = new Originator(RequestOrigin.CanvasSourceRequest, response);
-    	mCresStore.doSessionEvent(e, originator, waiter);
-    	timedout = waiter.waitForSignal(timeout);
+    	boolean success = mCresStore.doSynchronousSessionEvent(e, originator, CanvasSourceRequestTimeout);
     	if (response.getErrorCode() == CanvasResponse.ErrorCodes.OK)
     	{
-    		if (timedout)
+    		if (!success)
     		{
     			Common.Logging.i(TAG,"Timeout while processing canvas source request with transactionId="+e.transactionId);
-    			response.setError(CanvasResponse.ErrorCodes.TimedOut, "Timedout after "+timeout.seconds()+" seconds");
+    			response.setError(CanvasResponse.ErrorCodes.TimedOut, "Timedout after "+CanvasSourceRequestTimeout+" seconds");
     		}
     	}
-    	Common.Logging.i(TAG, "Canvas source request completed in "+TimeSpan.now().subtract(startTime).toString()+" seconds");    	
     	return response;
     }
     

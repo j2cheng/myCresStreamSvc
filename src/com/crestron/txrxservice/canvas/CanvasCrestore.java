@@ -6,6 +6,7 @@ import java.util.ArrayList;
 import java.util.Map;
 import java.util.HashMap;
 import java.util.LinkedHashMap;
+import java.util.concurrent.Callable;
 import java.util.concurrent.ConcurrentHashMap;
 import java.util.concurrent.CountDownLatch;
 import java.util.concurrent.ConcurrentLinkedQueue;
@@ -49,7 +50,7 @@ public class CanvasCrestore
 	SimulatedAVF mAVF;
 	
     public Scheduler sessionResponseScheduler = null;
-    public Scheduler sessionStateChangeScheduler = null;
+    public Scheduler sessionScheduler = null; // handle sessionEvent and sessionStateChange scheduled requests
 
 	private final ReentrantLock sessionEventLock = new ReentrantLock();
 	Map<String, TransactionData> transactionMap= new ConcurrentHashMap<String, TransactionData>();
@@ -112,7 +113,7 @@ public class CanvasCrestore
 		if (CresCanvas.useSimulatedAVF)
 			mAVF = new SimulatedAVF(this);
 		sessionResponseScheduler = new Scheduler("TxRx.canvas.crestore.processSesionResponse");
-		sessionStateChangeScheduler = new Scheduler("TxRx.canvas.crestore.processSesionStateChange");
+		sessionScheduler = new Scheduler("TxRx.canvas.crestore.sessionScheduler");
 
         Common.Logging.i(TAG, "CanvasCrestore: create Crestore wrapper");
         try {
@@ -173,26 +174,85 @@ public class CanvasCrestore
     	setVideoDisplayed(false);
 	}
 	
-	public synchronized boolean doSynchronousSessionEvent(Session s, String requestedState, Originator originator, int timeoutInSecs)
+	public void restartSchedulers()
+	{
+		Common.Logging.i(TAG, "restart sessionResponseScheduler");
+		sessionResponseScheduler.shutdownNow();
+		Common.Logging.i(TAG, "restart sessionScheduler");
+		sessionScheduler.shutdownNow();
+		
+		try {
+			sessionResponseScheduler.awaitTermination(60, TimeUnit.SECONDS);
+		} catch (InterruptedException e) {
+			// TODO Auto-generated catch block
+			e.printStackTrace();
+		}
+		
+		try {
+			sessionScheduler.awaitTermination(60, TimeUnit.SECONDS);
+		} catch (InterruptedException e) {
+			// TODO Auto-generated catch block
+			e.printStackTrace();
+		}
+
+		Common.Logging.i(TAG, "clear transaction map");
+		transactionMap.clear();
+		
+		Common.Logging.i(TAG, "create new schedulers");
+		sessionResponseScheduler = new Scheduler("TxRx.canvas.crestore.processSesionResponse");
+		sessionScheduler = new Scheduler("TxRx.canvas.crestore.sessionScheduler");
+		
+		Common.Logging.i(TAG, "create new schedulers");
+	}
+	
+	public void doClearAllSessionEvent()
+	{
+		Originator originator = new Originator(RequestOrigin.Error);
+    	SessionEvent e = new CanvasCrestore.SessionEvent(UUID.randomUUID().toString()); 
+    	doSynchronousSessionEvent(e, originator, 30);
+	}
+	
+	// will be processed in context of current thread - not queued for future execution on the scheduler
+	// should normally be called when we have begun execution in the scheduler 
+	public boolean executeSynchronousSessionEvent(Session s, String requestedState, Originator originator, int timeoutInSecs)
+	{
+		String transactionId = UUID.randomUUID().toString();
+		SessionEvent e = createSessionEvent(transactionId, s, requestedState);
+		return !_doSynchronousSessionEvent(e, originator, timeoutInSecs);	
+	}
+	
+	public boolean doSynchronousSessionEvent(Session s, String requestedState, Originator originator, int timeoutInSecs)
 	{
 		String transactionId = UUID.randomUUID().toString();
 		SessionEvent e = createSessionEvent(transactionId, s, requestedState);
 		return doSynchronousSessionEvent(e, originator, timeoutInSecs);
 	}
 	
-	public synchronized boolean doSynchronousSessionEvent(SessionEvent e, Originator originator, int timeoutInSecs)
+	public boolean doSynchronousSessionEvent(final SessionEvent e, final Originator originator, final int timeoutInSecs)
 	{
-		boolean timedout = false;
-		Waiter waiter = new Waiter();
 		TimeSpan startTime = TimeSpan.now();
-		doSessionEvent(e, originator, waiter);
-		timedout = waiter.waitForSignal(TimeSpan.fromSeconds(timeoutInSecs));
-		processSessionEventCompletion(timedout, e);
+		Callable<Boolean> c = new Callable<Boolean>() 
+		{ 
+			@Override 
+			public Boolean call() { 
+				return _doSynchronousSessionEvent(e, originator, timeoutInSecs);
+			}
+		};
+		Boolean timedout = sessionScheduler.queue(c);
 		if (!timedout)
 			Common.Logging.i(TAG, "sessionEvent with transactionId="+((e.transactionId==null)?"null":e.transactionId)+" completed in "+TimeSpan.now().subtract(startTime).toString()+" seconds");
 		return !timedout;
 	}
-
+	
+	private boolean _doSynchronousSessionEvent(final SessionEvent e, final Originator originator, final int timeoutInSecs)
+	{
+		Waiter waiter = new Waiter();
+		doSessionEvent(e, originator, waiter);
+		Boolean timedout = waiter.waitForSignal(TimeSpan.fromSeconds(timeoutInSecs));
+		processSessionEventCompletion(timedout, e);
+		return timedout;
+	}
+	
 	public synchronized void doSessionEvent(SessionEvent e, Originator originator, Waiter waiter)
 	{
 		markSessionsSentToAvf(e);
@@ -202,12 +262,6 @@ public class CanvasCrestore
 		t.se = e;
 		transactionMap.put(e.transactionId, t);
 		sendSessionEvent(e);
-	}
-	
-	public void doClearAllSessionEvent()
-	{
-    	SessionEvent e = new CanvasCrestore.SessionEvent(UUID.randomUUID().toString()); 
-    	sendSessionEvent(e);
 	}
 	
 	public SessionEvent createSessionEvent(String transactionId, Session s, String requestedState)
@@ -853,7 +907,7 @@ public class CanvasCrestore
     					final SessionStateChange sessionStateChange = root.internal.airMedia.canvas.sessionStateChange;
     					// Now process session state change
     					Common.Logging.i(TAG,"----- processSessionStateChange job to scheduler: "+gson.toJson(sessionStateChange));
-    					sessionStateChangeScheduler.queue(new Runnable() { 
+    					sessionScheduler.queue(new Runnable() { 
     						@Override public void run() { 
     							processSessionStateChange(sessionStateChange); 
     						}; 

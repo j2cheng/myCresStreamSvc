@@ -181,6 +181,8 @@ public class CresCanvas
 	
 	public void clear()
 	{
+		Common.Logging.i(TAG, "clear(): restart sessionResponseScheduler");
+		mCrestore.restartSchedulers();
 		// Stop and remove all sessions
 		mSessionMgr.clearAllSessions();
 		// clear all surfaces and streamIds
