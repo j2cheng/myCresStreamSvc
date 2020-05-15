@@ -228,6 +228,7 @@ public class CresStreamCtrl extends Service {
     public boolean airMediav21 = false;
     public boolean useFauxPPUX = false;
     public boolean isRGB888HDMIVideoSupported = true;
+    public boolean mCanvasHdmiIsPlaying = false;
     public CrestronHwPlatform mHwPlatform;
     public String mProductName;
     public boolean mCameraDisabled = false;
@@ -6254,17 +6255,8 @@ public class CresStreamCtrl extends Service {
                     setHDCPErrorImage(false);
 
                 // Check if HDMI content is visible on screen
-                boolean hdmiContentVisible = false;
-                for (int sessionId = 0; sessionId < NumOfSurfaces; sessionId++)
-                {
-                    if ((userSettings.getMode(sessionId) == DeviceMode.STREAM_OUT.ordinal()) ||
-                            (userSettings.getMode(sessionId) == DeviceMode.PREVIEW.ordinal() &&
-                            userSettings.getStreamState(sessionId) == StreamState.STARTED))
-                    {
-                        hdmiContentVisible = true;
-                        break;
-                    }
-                }
+                boolean hdmiContentVisible = hdmiIsVisible();
+
                 // The below case is transmitter which is streaming protected content but can't display on loopout
                 if (((mHDCPInputStatus == true && hdmiContentVisible == true) && mHDCPEncryptStatus == true && outputHDCPstatus == false) && (mIgnoreHDCP == false))
                     sendHDCPLocalOutputBlanking(true);
@@ -6287,6 +6279,32 @@ public class CresStreamCtrl extends Service {
         return hdcpStatusChanged;
     }
 
+    private boolean hdmiIsVisible()
+    {
+        boolean hdmiContentVisible = false;
+        if (mCanvas != null)
+        {
+        	if (mCanvasHdmiIsPlaying)
+        	{
+        		hdmiContentVisible = true;
+        	}
+        } 
+        else 
+        {
+        	for (int sessionId = 0; sessionId < NumOfSurfaces; sessionId++)
+        	{
+        		if ((userSettings.getMode(sessionId) == DeviceMode.STREAM_OUT.ordinal()) ||
+        				(userSettings.getMode(sessionId) == DeviceMode.PREVIEW.ordinal() &&  
+        				userSettings.getUserRequestedStreamState(sessionId) == StreamState.STARTED))
+        		{
+        			hdmiContentVisible = true;
+        			break;
+        		}
+        	}
+        }
+        return hdmiContentVisible;
+    }
+    
     private void sendHDCPFeedbacks()
     {
         //Send input feedbacks
@@ -6308,17 +6326,7 @@ public class CresStreamCtrl extends Service {
         }
         //Send output feedbacks
         // Check if HDMI content is visible on screen
-        boolean hdmiContentVisible = false;
-        for (int sessionId = 0; sessionId < NumOfSurfaces; sessionId++)
-        {
-            if ((userSettings.getMode(sessionId) == DeviceMode.STREAM_OUT.ordinal()) ||
-                    (userSettings.getMode(sessionId) == DeviceMode.PREVIEW.ordinal() &&
-                    userSettings.getUserRequestedStreamState(sessionId) == StreamState.STARTED))
-            {
-                hdmiContentVisible = true;
-                break;
-            }
-        }
+        boolean hdmiContentVisible = hdmiIsVisible();
 
         // If force HDCP is enabled, blank output if not authenticated
         // If force HDCP is disabled, blank output if not authenticated and input is authenticated
@@ -6590,6 +6598,8 @@ public class CresStreamCtrl extends Service {
     public void sendHdmiStart(int streamId, boolean value)
     {
         sockTask.SendDataToAllClients(MiscUtils.stringFormat("HDMI_VIDEO_START%d=%s", streamId, (value)?"TRUE":"FALSE"));
+        mCanvasHdmiIsPlaying = value;
+        mForceHdcpStatusUpdate = true;
     }
 
     public void sendAirMediaStart(int streamId, boolean value)
