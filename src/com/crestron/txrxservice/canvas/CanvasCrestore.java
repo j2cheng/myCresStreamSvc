@@ -212,15 +212,6 @@ public class CanvasCrestore
     	doSynchronousSessionEvent(e, originator, 30);
 	}
 	
-	// will be processed in context of current thread - not queued for future execution on the scheduler
-	// should normally be called when we have begun execution in the scheduler 
-	public boolean executeSynchronousSessionEvent(Session s, String requestedState, Originator originator, int timeoutInSecs)
-	{
-		String transactionId = UUID.randomUUID().toString();
-		SessionEvent e = createSessionEvent(transactionId, s, requestedState);
-		return !_doSynchronousSessionEvent(e, originator, timeoutInSecs);	
-	}
-	
 	public boolean doSynchronousSessionEvent(Session s, String requestedState, Originator originator, int timeoutInSecs)
 	{
 		String transactionId = UUID.randomUUID().toString();
@@ -231,37 +222,38 @@ public class CanvasCrestore
 	public boolean doSynchronousSessionEvent(final SessionEvent e, final Originator originator, final int timeoutInSecs)
 	{
 		TimeSpan startTime = TimeSpan.now();
-		Callable<Boolean> c = new Callable<Boolean>() 
-		{ 
-			@Override 
-			public Boolean call() { 
-				return _doSynchronousSessionEvent(e, originator, timeoutInSecs);
-			}
-		};
-		Boolean timedout = sessionScheduler.queue(c);
+		Boolean timedout = null;
+		if (!sessionScheduler.inOwnThread())
+		{
+			// being called from a thread outside the scheduler.  Put the event on the queue and let scheduler process it in order
+			Callable<Boolean> c = new Callable<Boolean>() {
+				@Override 
+				public Boolean call() { 
+					return doSessionEvent(e, originator, timeoutInSecs);
+				}
+			};
+			timedout = sessionScheduler.queue(c);
+		} else {
+			// already called from within a task running on the scheduler.  Process the event inline since putting on queue will deadlock
+			timedout = doSessionEvent(e, originator, timeoutInSecs);
+		}
 		if (!timedout)
 			Common.Logging.i(TAG, "sessionEvent with transactionId="+((e.transactionId==null)?"null":e.transactionId)+" completed in "+TimeSpan.now().subtract(startTime).toString()+" seconds");
 		return !timedout;
 	}
 	
-	private boolean _doSynchronousSessionEvent(final SessionEvent e, final Originator originator, final int timeoutInSecs)
+	private synchronized boolean doSessionEvent(final SessionEvent e, final Originator originator, final int timeoutInSecs)
 	{
 		Waiter waiter = new Waiter();
-		doSessionEvent(e, originator, waiter);
-		Boolean timedout = waiter.waitForSignal(TimeSpan.fromSeconds(timeoutInSecs));
-		processSessionEventCompletion(timedout, e);
-		return timedout;
-	}
-	
-	public synchronized void doSessionEvent(SessionEvent e, Originator originator, Waiter waiter)
-	{
-		markSessionsSentToAvf(e);
-		if (waiter != null)
-			waiter.prepForWait();
 		TransactionData t = new TransactionData(waiter, originator);
 		t.se = e;
 		transactionMap.put(e.transactionId, t);
+		markSessionsSentToAvf(e);
+		waiter.prepForWait();
 		sendSessionEvent(e);
+		Boolean timedout = waiter.waitForSignal(TimeSpan.fromSeconds(timeoutInSecs));
+		processSessionEventCompletion(timedout, e);
+		return timedout;
 	}
 	
 	public SessionEvent createSessionEvent(String transactionId, Session s, String requestedState)

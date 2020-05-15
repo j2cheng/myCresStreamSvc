@@ -105,7 +105,7 @@ public class AirMediaSession extends Session
 		if (!done)
 		{
 			Common.Logging.i(TAG, this+" starting processing of "+r+" request");
-			boolean success = mCanvas.getCrestore().executeSynchronousSessionEvent(this, r, o, t);
+			boolean success = mCanvas.getCrestore().doSynchronousSessionEvent(this, r, o, t);
 			if (success)
 			{
 				Common.Logging.i(TAG, this+" completed processing of "+r+" request in " + TimeSpan.now().subtract(startTime).toString() + "seconds");

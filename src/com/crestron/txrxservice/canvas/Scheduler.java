@@ -18,11 +18,17 @@ public class Scheduler extends ThreadPoolExecutor
 {
     public String TAG = "TxRx.canvas.scheduler"; 
     TimeSpan start;
+    public long ownThreadId = 0;
 
     public Scheduler(String tag)
     {
     	super(1, 1, 0L, TimeUnit.MILLISECONDS, new LinkedBlockingQueue<Runnable>());
     	TAG = tag;
+    }
+    
+    public boolean inOwnThread()
+    {
+    	return Thread.currentThread().getId() == ownThreadId;
     }
     
     // This is a synchronous method and will block calling thread to completion or timeout
@@ -79,6 +85,7 @@ public class Scheduler extends ThreadPoolExecutor
 	protected void beforeExecute(Thread thread, Runnable run)
 	{
 		super.beforeExecute(thread, run);
+		ownThreadId = thread.getId();
 		start = TimeSpan.now();
 	}
 	
