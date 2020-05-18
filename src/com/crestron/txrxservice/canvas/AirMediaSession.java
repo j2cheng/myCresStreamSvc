@@ -3,6 +3,7 @@ package com.crestron.txrxservice.canvas;
 import java.util.concurrent.atomic.AtomicBoolean;
 
 import com.crestron.airmedia.canvas.channels.ipc.CanvasPlatformType;
+import com.crestron.airmedia.canvas.channels.ipc.CanvasVideoType;
 import com.crestron.airmedia.receiver.m360.ipc.AirMediaPlatforms;
 import com.crestron.airmedia.receiver.m360.ipc.AirMediaSessionStreamingState;
 import com.crestron.airmedia.receiver.m360.ipc.AirMediaSessionVideoType;
@@ -544,5 +545,24 @@ public class AirMediaSession extends Session
 	public String getAirMediaUserName()
 	{
 		return (airMediaReceiverSession != null) ? airMediaReceiverSession.username() : "";
+	}
+	
+	public CanvasVideoType getVideoType() {
+		if (airMediaReceiverSession == null || airMediaReceiverSession.videoType() == null)
+			return CanvasVideoType.Hardware;
+		AirMediaSessionVideoType videoType = airMediaReceiverSession.videoType();
+		switch (videoType)
+		{
+		case Mirror:
+			return CanvasVideoType.AirPlayMirror;
+		case Video:
+			return CanvasVideoType.AirPlayVideo;
+		case WebRTC:
+			return CanvasVideoType.WebRTC;
+		case Miracast:
+			return CanvasVideoType.Miracast;
+		default:
+			return CanvasVideoType.Hardware;
+		}
 	}
 }

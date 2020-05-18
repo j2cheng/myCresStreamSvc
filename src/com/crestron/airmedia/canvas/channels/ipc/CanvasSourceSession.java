@@ -12,6 +12,7 @@ public class CanvasSourceSession implements Parcelable {
     public final CanvasSessionState state;
     public final CanvasSourceType type;
     public final CanvasPlatformType platform;
+    public final CanvasVideoType videoType;
     public final int width;
     public final int height;
     public final boolean isLoading;
@@ -23,17 +24,19 @@ public class CanvasSourceSession implements Parcelable {
             CanvasSessionState state,
             CanvasSourceType type,
             CanvasPlatformType platform,
+            CanvasVideoType videoType,
             int width,
             int height,
             boolean isLoading,
             boolean isMuted
     ) {
-        this.contents = 1;
+        this.contents = 2;
         this.sessionId = sessionId;
         this.state = state;
         this.username = username;
         this.type = type;
         this.platform = platform;
+        this.videoType = videoType;
         this.width = width;
         this.height = height;
         this.isLoading = isLoading;
@@ -51,6 +54,7 @@ public class CanvasSourceSession implements Parcelable {
         this.height = in.readInt();
         this.isLoading = (this.contents > 0) && (in.readInt() != 0);
         this.isMuted = (this.contents > 0) && (in.readInt() != 0);
+        this.videoType = (this.contents > 1) ? CanvasVideoType.from(in) : CanvasVideoType.Undefined;
     }
 
     public boolean isDisconnected() { return state.isDisconnected(); }
@@ -88,6 +92,7 @@ public class CanvasSourceSession implements Parcelable {
         dest.writeInt(this.height);
         dest.writeInt(this.isLoading ? -1 : 0);
         dest.writeInt(this.isMuted ? -1 : 0);
+        this.videoType.writeToParcel(dest, flags);
     }
 
 //    public final boolean isLoading;
@@ -101,9 +106,9 @@ public class CanvasSourceSession implements Parcelable {
                 + " · state= " + state
                 + " · type= " + type
                 + " · platform= " + platform
+                + " · video-type= " + videoType
                 + " · wxh= " + width + "x" + height
                 + " · loading= " + isLoading
                 + " · muted= " + isMuted;
     }
 }
-

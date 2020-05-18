@@ -2,6 +2,8 @@ package com.crestron.txrxservice.canvas;
 
 import com.crestron.airmedia.canvas.channels.ipc.CanvasResponse;
 import com.crestron.airmedia.canvas.channels.ipc.CanvasSurfaceAcquireResponse;
+import com.crestron.airmedia.canvas.channels.ipc.CanvasSurfaceMode;
+import com.crestron.airmedia.canvas.channels.ipc.CanvasSurfaceOptions;
 import com.crestron.airmedia.receiver.m360.ipc.AirMediaSize;
 import com.crestron.airmedia.utilities.Common;
 import com.crestron.airmedia.utilities.TimeSpan;
@@ -388,11 +390,17 @@ public class CresCanvas
 		}
 	}
 	
-	public Surface acquireSurface(String sessionId)
+	public Surface acquireSurface(String sessionId, SessionType type)
 	{
 		CanvasSurfaceAcquireResponse response = null;
+		CanvasSurfaceOptions options = new CanvasSurfaceOptions();
+		if (type == SessionType.HDMI && mStreamCtl.isRGB888HDMIVideoSupported)
+		{
+			options = new CanvasSurfaceOptions(CanvasSurfaceMode.TagVideoLayer, "PreviewVideoLayer");
+		}
 		try {
-			response = mAirMediaCanvas.service().surfaceAcquire(sessionId);
+			Common.Logging.e(TAG, "calling surfaceAcquire for session: "+sessionId+" with options="+options);
+			response = mAirMediaCanvas.service().surfaceAcquire(sessionId, options);
 		} catch(android.os.RemoteException ex)
 		{
 			Common.Logging.e(TAG, "exception encountered while calling surfaceAcquire for session: "+sessionId);

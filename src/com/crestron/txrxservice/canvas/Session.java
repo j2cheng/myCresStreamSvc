@@ -6,6 +6,7 @@ import com.crestron.airmedia.canvas.channels.ipc.CanvasPlatformType;
 import com.crestron.airmedia.canvas.channels.ipc.CanvasSessionState;
 import com.crestron.airmedia.canvas.channels.ipc.CanvasSourceSession;
 import com.crestron.airmedia.canvas.channels.ipc.CanvasSourceType;
+import com.crestron.airmedia.canvas.channels.ipc.CanvasVideoType;
 import com.crestron.airmedia.receiver.m360.ipc.AirMediaSize;
 import com.crestron.airmedia.receiver.m360.ipc.AirMediaPlatforms;
 import com.crestron.airmedia.receiver.m360.models.*;
@@ -112,7 +113,6 @@ public class Session
 	
 	public SessionAirMediaType getAirMediaType() {return airMediaType;}
 	
-	public void setPlatformType(CanvasPlatformType platform) { this.platform = platform; }	
 	public void setPlatformType(AirMediaPlatforms platform) { 
 		Common.Logging.i(TAG, "setPlatformType: "+platform);
 		CanvasPlatformType p;
@@ -142,6 +142,8 @@ public class Session
 	}
 	public CanvasPlatformType getPlatformType() {return platform;}
 	
+	public CanvasVideoType getVideoType() {return CanvasVideoType.Hardware;}
+
 	public void setUserLabel(String label) { this.userLabel = label; }	
 	public String getUserLabel() {return userLabel;}
 	
@@ -240,7 +242,7 @@ public class Session
 		Surface surface = null;
 		if (CresCanvas.useCanvasSurfaces) {
 			if (mCanvas.IsAirMediaCanvasUp()) {
-				surface = mCanvas.acquireSurface(sessionId());
+				surface = mCanvas.acquireSurface(sessionId(), getType());
 				mStreamCtl.setSurface(streamId, surface);
 			} else {
 				Common.Logging.w(TAG, "Canvas is not up - cannot acquireSurface for "+sessionId());
@@ -315,6 +317,7 @@ public class Session
 	    CanvasSessionState state = CanvasSessionState.Stopped;
 	    CanvasSourceType type;
 	    CanvasPlatformType platform;
+	    CanvasVideoType videoType;
 
 	    if (s.isStopped())
 	    	state  = CanvasSessionState.Stopped;
@@ -344,9 +347,10 @@ public class Session
 	    }
 	    
 	    platform = s.getPlatformType();
+	    videoType = s.getVideoType();
 
 	    CanvasSourceSession css = new CanvasSourceSession(s.sessionId(), s.getUserLabel(), state, type, 
-	    		platform, s.getResolution().width, s.getResolution().height, s.isVideoLoading, s.isAudioMuted);
+	    		platform, videoType, s.getResolution().width, s.getResolution().height, s.isVideoLoading, s.isAudioMuted);
 
 	    return css;
     }
