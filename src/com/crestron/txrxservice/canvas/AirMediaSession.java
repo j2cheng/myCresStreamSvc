@@ -231,6 +231,9 @@ public class AirMediaSession extends Session
 		{
 			//mStreamCtl.SendStreamState(StreamState.STARTED, 0);
 			setState(SessionState.Playing);
+			// in case it was transitioned to pause from the point the play request was issued
+			if (videoState == AirMediaSessionStreamingState.Paused)
+				setState(SessionState.Paused);
 		}
 		else
 		{
