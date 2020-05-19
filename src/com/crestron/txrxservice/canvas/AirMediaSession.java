@@ -214,19 +214,20 @@ public class AirMediaSession extends Session
 	
 	public void play(Originator originator, int replaceStreamId)
 	{
+		boolean success = true;
 		Common.Logging.i(TAG, "Session "+this+" play entered originator="+originator+"  replaceStreamId="+replaceStreamId);
 		if (isPlaying() && isVideoPlaying())
 			return;
 		setState(SessionState.Starting);
 		if (getVideoState() != AirMediaSessionStreamingState.Playing)
 		{
-			boolean success = sendPlayCommandToSourceUser();  // make synchronous must wait for videoState to go to Playing
+			success = sendPlayCommandToSourceUser();  // make synchronous must wait for videoState to go to Playing
 			if (!success)
 			{
 				Common.Logging.i(TAG, "Session "+this+" play command to AirMedia receiver timed out");
 			}
 		}
-		if (doPlay(replaceStreamId))
+		if (success && doPlay(replaceStreamId))
 		{
 			//mStreamCtl.SendStreamState(StreamState.STARTED, 0);
 			setState(SessionState.Playing);
@@ -234,6 +235,7 @@ public class AirMediaSession extends Session
 		else
 		{
 			Common.Logging.w(TAG, "Session "+this+" play command failed");
+			setState(SessionState.Stopped);
 			originator.failedSessionList.add(this);
 		}
 	}

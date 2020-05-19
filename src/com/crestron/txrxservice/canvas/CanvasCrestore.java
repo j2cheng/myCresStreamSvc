@@ -472,14 +472,57 @@ public class CanvasCrestore
 		reportSessionResponseResult(response);
 		Common.Logging.i(TAG, "doSessionResponse(): doLayoutUpdate");
 		mSessionMgr.doLayoutUpdate();
+
+		Common.Logging.i(TAG, "doSessionResponse(): logSessionStates");
+		mSessionMgr.logSessionStates("doSessionResponse");
+		
+		// if failed session list is not empty - handle it
+		handleSessionResponseSessionFailures(originator, response);
+		
 		// wake up anyone waiting for completion of this transactionId and remove it from map
 		if (tData != null) {
 			if (tData.waiter != null) 
 				tData.waiter.signal();
 		}
-
-		Common.Logging.i(TAG, "doSessionResponse(): logSessionStates");
-		mSessionMgr.logSessionStates("doSessionResponse");
+	}
+	
+	public void handleSessionResponseSessionFailures(Originator originator, SessionResponse response)
+	{
+		if (response.sessionResponseMap != null)
+		{
+			if (originator != null)
+			{
+				// handle any failed sessions
+				if (originator.failedSessionList != null && originator.failedSessionList.size() > 0)
+				{
+					SessionEvent se = null;
+					for (Session s : originator.failedSessionList)
+					{
+						SessionResponseMapEntry srme = response.sessionResponseMap.get(s.sessionId());
+						if (srme != null)
+						{
+							Common.Logging.i(TAG, "handleSessionResponseSessionFailures(): failed session "+s+" requested state="+srme.state);
+							if (srme.state.equalsIgnoreCase("Play"))
+							{
+								// play request failed - put event into stopped state
+								if (se == null)
+								{
+									se = new SessionEvent(UUID.randomUUID().toString());
+								}
+								se.add(s.sessionId(), new SessionEventMapEntry("Stop", s));
+							}
+						}
+					}
+					if (se != null)
+					{
+						Common.Logging.i(TAG, "handleSessionResponseSessionFailures(): sessionEvent="+se);
+						final SessionEvent fse = se;
+						final Originator o = new Originator(RequestOrigin.Error);
+						sessionScheduler.queue(new Runnable() { @Override public void run() { doSynchronousSessionEvent(fse, o, 30); }; });	
+					}
+				}
+			}
+		}
 	}
 	
 	public void processSessionResponse(SessionResponse response)
