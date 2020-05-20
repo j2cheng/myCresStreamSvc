@@ -1277,8 +1277,7 @@ public class AirMediaSplashtop
 
     	// Fix bug : once surface is attached, first frame can come in, so make sure dimensions are reset prior to attaching
 		// Reset video dimensions so that when we get first set of non-zero video dimensions start message sent to PPUX
-		mStreamCtl.mVideoDimensions[streamIdx].videoWidth = 0;
-		mStreamCtl.mVideoDimensions[streamIdx].videoHeight = 0;
+		mStreamCtl.setVideoDimensions(streamIdx, 0, 0);
 		mStreamCtl.setUpdateStreamStateOnFirstFrame(streamIdx, true);
 
 		if ((surface != null) && surface.isValid())

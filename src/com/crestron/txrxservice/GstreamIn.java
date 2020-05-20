@@ -259,9 +259,9 @@ public class GstreamIn implements SurfaceHolder.Callback {
     	Log.v(TAG, "updateStreamStatus: exit");
     }
 
-    public void wfdSetFirewallRules(int rtsp_port, int ts_port)
+    public void wfdSetFirewallRules(int streamId, int rtsp_port, int ts_port)
 	{
-		streamCtl.sockTask.SendDataToAllClients(MiscUtils.stringFormat("WFD_FIREWALL_RULES=%d %d", rtsp_port, ts_port));
+		streamCtl.sockTask.SendDataToAllClients(MiscUtils.stringFormat("WFD_FIREWALL_RULES%d=%d %d", streamId, rtsp_port, ts_port));
 	}
 
     public void sendDSVideoReady()
@@ -349,6 +349,8 @@ public class GstreamIn implements SurfaceHolder.Callback {
     
     public void sendVideoSourceParams(int source, int width, int height, int framerate, int profile){
     	// Update window size with new video dimensions
+    	Log.v(TAG, "sendVideoSourceParams: streamId="+source+"  wxh="+width+"x"+height+
+    			"   old="+streamCtl.mVideoDimensions[source].videoHeight+"x"+streamCtl.mVideoDimensions[source].videoWidth);
     	if (streamCtl.mVideoDimensions[source].videoHeight != height || streamCtl.mVideoDimensions[source].videoWidth != width)
     		streamCtl.updateWindowWithVideoSize(source, false, width, height);
         

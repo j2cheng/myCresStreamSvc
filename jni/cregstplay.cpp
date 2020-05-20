@@ -233,7 +233,7 @@ static void pad_added_callback2 (GstElement *src, GstPad *new_pad, CREGSTREAM *d
 	
 	csio_element_set_state( data->pipeline, GST_STATE_PAUSED);
 	
-	CSIO_LOG(eLogLevel_debug, "caps are %" GST_PTR_FORMAT, new_pad_caps);
+	CSIO_LOG(eLogLevel_debug, "(streamid=%d) caps are %" GST_PTR_FORMAT, data->streamId, new_pad_caps);
 	
 	p_caps_string = gst_caps_to_string (new_pad_caps);
 	p = p_caps_string;
@@ -267,30 +267,30 @@ static void pad_added_callback2 (GstElement *src, GstPad *new_pad, CREGSTREAM *d
 		}
 
         sinker = data->element_a[0];
-		CSIO_LOG(eLogLevel_debug, "Completing audio pipeline");
+		CSIO_LOG(eLogLevel_debug, "Completing audio pipeline for streamId=%d", data->streamId);
     }
     else if (strncmp("video", p_caps_string, 5) == 0)
     {
 		build_video_pipeline(p_caps_string, data, data->element_after_tsdemux, do_rtp,&ele0,&sinker);
         sinker = data->element_v[data->element_after_tsdemux];
-		CSIO_LOG(eLogLevel_debug, "Completing video pipeline");
+		CSIO_LOG(eLogLevel_debug, "Completing video pipeline for streamId=%d", data->streamId);
     }
     else if (strncmp("application/x-teletext", p_caps_string, 22) == 0){
         CSIO_LOG(eLogLevel_debug, "found  metadata in the tsdemux");
         build_metadata_pipeline(data, &sinker);
         sinker = data->app_sink;;
-        CSIO_LOG(eLogLevel_debug, "Completing metadata pipeline");
+        CSIO_LOG(eLogLevel_debug, "Completing metadata pipeline for streamId=%d", data->streamId);
     }
     else
     {
-        CSIO_LOG(eLogLevel_warning, "Unknown stream type: %s", p_caps_string);
+        CSIO_LOG(eLogLevel_warning, "Unknown stream type: %s for streamId=%d", p_caps_string, data->streamId);
 		gst_caps_unref( new_pad_caps );
 		return;
     }
 	
 	if(sinker == NULL)
 	{
-		CSIO_LOG(eLogLevel_error, "Empty video pipeline, not linking");
+		CSIO_LOG(eLogLevel_error, "Empty video pipeline, not linking for streamId=%d", data->streamId);
 		gst_caps_unref( new_pad_caps );		
 		return;
 	}
@@ -299,7 +299,7 @@ static void pad_added_callback2 (GstElement *src, GstPad *new_pad, CREGSTREAM *d
 	GstPad *sink_pad = gst_element_get_static_pad (sinker, "sink");
 	if(gst_pad_is_linked(sink_pad)) 
 	{
-		CSIO_LOG(eLogLevel_info, "sink pad is already linked");
+		CSIO_LOG(eLogLevel_info, "sink pad is already linked for streamId=%d", data->streamId);
 		gst_object_unref(sink_pad);
 		gst_caps_unref( new_pad_caps );
 		return;
@@ -309,14 +309,14 @@ static void pad_added_callback2 (GstElement *src, GstPad *new_pad, CREGSTREAM *d
     GstPadLinkReturn ret = gst_pad_link(new_pad, sink_pad);
     if (GST_PAD_LINK_FAILED (ret))
     {
-        CSIO_LOG(eLogLevel_error,"Type is '%s' but link failed.", new_pad_type);
+        CSIO_LOG(eLogLevel_error,"Type is '%s' but link failed for streamId=%d.", new_pad_type, data->streamId);
     	gst_object_unref(sink_pad);
         gst_caps_unref(new_pad_caps);
         return;
     }
     else
     {
-        CSIO_LOG(eLogLevel_debug,"Link succeeded (type '%s').", new_pad_type);
+        CSIO_LOG(eLogLevel_debug,"Link succeeded (type '%s') for streamId=%d.", new_pad_type, data->streamId);
     }
 
     //call initVideo before set to play state when video was added first

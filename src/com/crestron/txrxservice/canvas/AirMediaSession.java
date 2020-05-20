@@ -206,9 +206,10 @@ public class AirMediaSession extends Session
 		}
 		Common.Logging.i(TAG, "AirMediaSession "+this+" attaching surface "+surface);
 		airMediaReceiverSession.attach(surface);
+		mStreamCtl.mUsedForAirMedia[streamId] = true;
+		mStreamCtl.setVideoDimensions(streamId, 0, 0);
 		Common.Logging.i(TAG, "AirMediaSession "+this+" send start to csio");
 		mStreamCtl.sendAirMediaStart(streamId, true);
-		mStreamCtl.mUsedForAirMedia[streamId] = true;
 		return true;
 	}
 	

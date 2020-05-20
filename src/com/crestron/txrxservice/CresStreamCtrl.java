@@ -2496,6 +2496,12 @@ public class CresStreamCtrl extends Service {
         mForceHdcpStatusUpdate = true;
     }
     
+    public void setVideoDimensions(int streamId, int w, int h)
+    {
+		mVideoDimensions[streamId].videoWidth = w;
+		mVideoDimensions[streamId].videoHeight = h;
+    }
+    
     public void setStretchVideo(int stretch, int sessionId)
     {
         if (userSettings.getStretchVideo(sessionId) != stretch)
@@ -2736,8 +2742,7 @@ public class CresStreamCtrl extends Service {
     
     public void updateWindowWithVideoSize(int sessionId, boolean use_texture_view, int videoWidth, int videoHeight)
     {
-        mVideoDimensions[sessionId].videoWidth = videoWidth;
-        mVideoDimensions[sessionId].videoHeight = videoHeight;
+    	setVideoDimensions(sessionId, videoWidth, videoHeight);
         if (mUsedForAirMedia[sessionId])
         {
             // inform wifivideoplayer of change in resolution
@@ -3596,8 +3601,7 @@ public class CresStreamCtrl extends Service {
     private void hideWindow (final int sessId)
     {
         // Reset video dimensions on hide
-        mVideoDimensions[sessId].videoWidth = 0;
-        mVideoDimensions[sessId].videoHeight = 0;
+        setVideoDimensions(sessId, 0, 0);
 
         if (dispSurface != null)
         {
@@ -3658,8 +3662,7 @@ public class CresStreamCtrl extends Service {
     private void hideTextureWindow (final int sessId)
     {
         // Reset video dimensions on hide
-        mVideoDimensions[sessId].videoWidth = 0;
-        mVideoDimensions[sessId].videoHeight = 0;
+        setVideoDimensions(sessId, 0, 0);
 
         if (dispSurface != null)
         {

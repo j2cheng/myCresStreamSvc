@@ -61,7 +61,7 @@ void csio_jni_stop(int streamId);
 void csio_send_stats_no_bitrate (uint64_t video_packets_received, int video_packets_lost, uint64_t audio_packets_received, int audio_packets_lost);
 void LocalConvertToUpper(char *str);
 static void * debug_launch_pipeline(void *data);
-static void Wfd_set_firewall_rules (int rtsp_port, int ts_port);
+static void Wfd_set_firewall_rules (int streamId, int rtsp_port, int ts_port);
 int csio_jni_StartRTPMediaStreamThread(int iStreamId, GstElement *appSource, unsigned int udpPort);
 void updateProbeInfo(int streamID, struct timespec * currentTimePtr, char * srcIPAddress);
 void * rtpMediaStreamThread(void * threadData);
@@ -2370,6 +2370,7 @@ void csio_SendVideoSourceParams(unsigned int source, unsigned int width, unsigne
 {
 	JNIEnv *env = get_jni_env ();	
 
+	CSIO_LOG(eLogLevel_debug, "%s: streamId=%d res=%dx%d@%d profile=0x%x", __FUNCTION__, source, width, height, framerate, profile);
 	jmethodID sendVideoSourceParams = env->GetMethodID((jclass)gStreamIn_javaClass_id, "sendVideoSourceParams", "(IIIII)V");
 	if (sendVideoSourceParams == NULL) return;
 
@@ -2954,7 +2955,7 @@ int csio_jni_CreatePipeline(GstElement **pipeline, GstElement **source, eProtoco
 	int iStatus = CSIO_SUCCESS;
 	char *buf = NULL;
 	
-    CSIO_LOG(eLogLevel_debug, "%s() protoId = %d", __FUNCTION__, protoId);
+    CSIO_LOG(eLogLevel_debug, "%s() protoId = %d [streamId=%d] entered", __FUNCTION__, protoId, iStreamId);
 
 	CREGSTREAM * data = GetStreamFromCustomData(CresDataDB, iStreamId);
 	if(!data)
@@ -2984,7 +2985,7 @@ int csio_jni_CreatePipeline(GstElement **pipeline, GstElement **source, eProtoco
 	    	data->element_zero = gst_element_factory_make("rtspsrc", NULL);
 			if( !data->element_zero )
 			{
-				CSIO_LOG(eLogLevel_error, "ERROR: Cannot create rtspsrc element\n");
+				CSIO_LOG(eLogLevel_error, "ERROR: Cannot create rtspsrc element [streamId=%d]\n", iStreamId);
 				return CSIO_CANNOT_CREATE_ELEMENTS;
 			}
 	    	gst_bin_add_many(GST_BIN(data->pipeline), data->element_zero, NULL);
@@ -3381,6 +3382,7 @@ int csio_jni_CreatePipeline(GstElement **pipeline, GstElement **source, eProtoco
 			break;
 	}
 
+    CSIO_LOG(eLogLevel_debug, "%s() protoId = %d [streamId=%d] exit with iStatus=%d", __FUNCTION__, protoId, iStreamId, iStatus);
 	return iStatus;
 }
 
@@ -4755,14 +4757,14 @@ JNIEXPORT void JNICALL Java_com_crestron_txrxservice_GstreamIn_nativeWfdStart(JN
         return;
     }
 
-    CSIO_LOG(eLogLevel_info, "%s: start TCP connection source windowId[%d] sessionId[%lld] url[%s], port[%d]", __FUNCTION__, windowId, (long long) msMiceSessionId, url_cstring,rtsp_port);
+    CSIO_LOG(eLogLevel_info, "%s: start TCP connection source windowId[%d] sessionId[%lld] url[%s], rtsp_port[%d]", __FUNCTION__, windowId, (long long) msMiceSessionId, url_cstring,rtsp_port);
 
     int retv = sssl_setContextStreamID((unsigned long long)msMiceSessionId, windowId);
 
     CSIO_LOG(eLogLevel_debug,"mira: {%s} - sssl_setContextStreamID() called with ms mice sessionID = %lld, streamID = %d returned %d",
       __FUNCTION__,msMiceSessionId,windowId,retv);
 
-    Wfd_set_firewall_rules(rtsp_port, -1);
+    Wfd_set_firewall_rules(windowId, rtsp_port, -1);
 
     CREGSTREAM * data = GetStreamFromCustomData(CresDataDB, windowId);
     if (!data)
@@ -4835,7 +4837,7 @@ JNIEXPORT void JNICALL Java_com_crestron_txrxservice_GstreamIn_nativeWfdStop(JNI
                 csio_jni_stop((int)windowId);
                 gGstStopLock.unlock();
 
-                Wfd_set_firewall_rules(0, 0);
+                Wfd_set_firewall_rules(windowId, 0, 0);
             }
             else
             {
@@ -4869,14 +4871,14 @@ static void Wfd_send_osVersion(jint streamId, char *osVersion)
 }
 
 // <0 means ignore, 0 means remove rule, >0 means open firewall to that port
-static void Wfd_set_firewall_rules (int rtsp_port, int ts_port)
+static void Wfd_set_firewall_rules (int streamId, int rtsp_port, int ts_port)
 {
     JNIEnv *env = get_jni_env ();
 
-	jmethodID updateStreamStatus = env->GetMethodID((jclass)gStreamIn_javaClass_id, "wfdSetFirewallRules", "(II)V");
+	jmethodID updateStreamStatus = env->GetMethodID((jclass)gStreamIn_javaClass_id, "wfdSetFirewallRules", "(III)V");
 	if (updateStreamStatus == NULL) return;
 
-	env->CallVoidMethod(CresDataDB->app, updateStreamStatus, (jint)rtsp_port, (jint)ts_port);
+	env->CallVoidMethod(CresDataDB->app, updateStreamStatus, (jint) streamId, (jint)rtsp_port, (jint)ts_port);
 	if (env->ExceptionCheck ()) {
 		CSIO_LOG(eLogLevel_error, "Failed to call Java method 'wfdSetFirewallRules'");
 		env->ExceptionClear ();
@@ -4905,7 +4907,7 @@ void Wfd_setup_gst_pipeline (int id, int state, struct GST_PIPELINE_CONFIG* gst_
             Wfd_send_osVersion( id, gst_config->pSrcVersionStr);
         }
 
-        Wfd_set_firewall_rules(-1, gst_config->ts_port);
+        Wfd_set_firewall_rules(id, -1, gst_config->ts_port);
 
         //TODO: remove the following settings if it is done already
         csio_SetPortNumber( id, gst_config->ts_port, c_TSportNumber );
