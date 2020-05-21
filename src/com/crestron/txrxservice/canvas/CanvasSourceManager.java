@@ -71,6 +71,11 @@ public class CanvasSourceManager {
 	    	Common.Logging.i(TAG, "canvassourcemanager.sourcelayout  ----- CanvasSourceLayout event -----");
             processLayout(layout.sources);
         }
+        
+        public void status(CanvasStatus status)
+        {
+        	mStreamCtl.mCanvas.mAirMediaCanvas.canvasIsReady(status.isReady);
+        }
     }
 
     ////////////////////////////////////////////////////////////////////////////////////////////////

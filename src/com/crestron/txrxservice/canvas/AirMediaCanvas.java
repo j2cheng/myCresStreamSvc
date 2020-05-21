@@ -186,6 +186,16 @@ public class AirMediaCanvas
     	return isAirMediaCanvasUp;
     }
     
+    public void canvasIsReady(boolean ready)
+    {
+    	if (isAirMediaCanvasUp != ready)
+    	{
+    		isAirMediaCanvasUp = ready;
+    		if (isAirMediaCanvasUp)
+				mStreamCtl.mCanvas.canvasHasStarted();
+    	}
+    }
+    
     public boolean connectAndStartCanvasService()
     {
     	synchronized (connectLock) {
@@ -318,9 +328,6 @@ public class AirMediaCanvas
 							}
 							serviceConnectedLatch.countDown();
 							service().setSourceManager(mStreamCtl.mCanvas.getCanvasSourceManager().service());
-							isAirMediaCanvasUp = true;
-							Common.Logging.i(TAG, "AirMediaCanvasServiceConnection.onServiceConnected  calling canvasHasStarted()" + name);
-							mStreamCtl.mCanvas.canvasHasStarted();
 						} catch (Exception e) {
 							Common.Logging.e(TAG, "AirMediaCanvasServiceConnection.onServiceConnected  EXCEPTION  " + e);
 							e.printStackTrace();
@@ -346,7 +353,7 @@ public class AirMediaCanvas
 					{
 						serviceDisconnectedLatch.countDown();
 					}
-					isAirMediaCanvasUp = false;
+					canvasIsReady(false);
 					try {
 						if (quittingAirMediaCanvasService == false)
 						{

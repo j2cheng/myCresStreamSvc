@@ -47,6 +47,7 @@ public class CresCanvas
 	private AtomicBoolean avfRestart = new AtomicBoolean(false);
 	AtomicBoolean avfHasStarted = new AtomicBoolean(false);
 	public boolean cssRestart = true;
+	public boolean canvasReady = false;
 	public SurfaceManager mSurfaceMgr=null;
 
 	public CresCanvas(com.crestron.txrxservice.CresStreamCtrl streamCtl)
@@ -189,7 +190,7 @@ public class CresCanvas
 		mSessionMgr.clearAllSessions();
 		// clear all surfaces and streamIds
 		mSurfaceMgr.releaseAllSurfaces();
-		clearAVF();
+		Common.Logging.i(TAG, "clear(): exit");
 	}
 	
 	public synchronized void handleReceiverDisconnected()
@@ -198,6 +199,7 @@ public class CresCanvas
 		// Stop all sessions
 		clear();
 		// Restart of HDMI/DM will be handled when service reconnects by canvasHasStarted()
+		Common.Logging.i(TAG, "handleReceiverDisconnected(): exit");
 	}
 	
 	public synchronized void handleCodecFailure()
@@ -240,14 +242,16 @@ public class CresCanvas
 	{
 		Common.Logging.i(TAG, "*********************** handleAvfRestart ***********************");
 		avfHasStarted.compareAndSet(false, true);
-		if (!codecFailure.get())
+		if (!codecFailure.get() && IsAirMediaCanvasUp())
 		{
+			Common.Logging.i(TAG, "handleAvfRestart(): not in codec failure recovery mode - send all current sessions to AVF");
 			// called from cresstore callback thread and so must be run asynchronously so sessionResponse is not blocked
 			Runnable r = new Runnable() { @Override public void run() { mSessionMgr.sendAllSessionsInSessionEvent(new Originator(RequestOrigin.Error)); } };
 			scheduler.execute(r);
 		}
 		else
 		{
+			Common.Logging.i(TAG, "handleAvfRestart(): in codec failure/receiver restart - don't send any sessions to AVF - will be sent by codec failure handler");
 			avfRestart.set(true);
 		}
 	}

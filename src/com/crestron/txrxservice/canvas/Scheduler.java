@@ -1,7 +1,10 @@
 package com.crestron.txrxservice.canvas;
 
+import java.util.Map;
+import java.util.UUID;
 import java.util.concurrent.Callable;
 import java.util.concurrent.CancellationException;
+import java.util.concurrent.ConcurrentHashMap;
 import java.util.concurrent.ExecutionException;
 import java.util.concurrent.Future;
 import java.util.concurrent.LinkedBlockingQueue;
@@ -19,7 +22,39 @@ public class Scheduler extends ThreadPoolExecutor
     public String TAG = "TxRx.canvas.scheduler"; 
     TimeSpan start;
     public long ownThreadId = 0;
+    Future<?> currentFuture;
+	Map<UUID, Future<?>> futureMap= new ConcurrentHashMap<UUID, Future<?>>();
+	
+	public class RunnableWithId implements Runnable
+	{
+		private UUID uuid;
+		Runnable task;
+		
+		public RunnableWithId(UUID id, Runnable r)
+		{
+			uuid = id;
+			task = r;
+		}
+		
+		public void run() {
+			try {
+				currentFuture = futureMap.get(uuid);
+				task.run();
+				futureMap.remove(uuid);
+			} catch (Exception e) {
+				e.printStackTrace();
+			}
+		}
+	}
 
+	public void cancel()
+	{
+		if (currentFuture != null)
+			currentFuture.cancel(true);
+		else
+			Common.Logging.i(TAG, "null future - cannot cancel");
+	}
+	
     public Scheduler(String tag)
     {
     	super(1, 1, 0L, TimeUnit.MILLISECONDS, new LinkedBlockingQueue<Runnable>());
@@ -58,7 +93,10 @@ public class Scheduler extends ThreadPoolExecutor
 	// otherwise if it hangs, so does the scheduler
 	void queue(Runnable task) 
 	{
-		submit(task);
+		UUID uuid = UUID.randomUUID();
+		RunnableWithId r = new RunnableWithId(uuid, task);
+		Future<?> future = submit(r);
+		futureMap.put(uuid, future);
 		Common.Logging.v(TAG, "Pending tasks in scheduler queue "+getQueue().size());
 	}
 	

@@ -65,6 +65,7 @@ public class CanvasCrestore
 		Waiter waiter;
 		Originator originator;
 		SessionEvent se;
+		SessionResponse sr;
 		boolean gotAvfResponse;
 		
 		public TransactionData(Waiter w, Originator o)
@@ -378,6 +379,11 @@ public class CanvasCrestore
 		mSessionMgr.logSessionStates("processSessionStateChange");
 	}
 	
+	public void cancelSessionResponse(String when, SessionResponse response)
+	{
+		Common.Logging.v(TAG, "processSessionResponse(): "+when+":Early interrupted exit for Session Response Message "+gson.toJson(response));
+	}
+	
 	public void doSessionResponse(SessionResponse response, List<String> actionList) 
 	{
 		String transactionId = response.transactionId;
@@ -397,6 +403,11 @@ public class CanvasCrestore
 		
 		for (int i=0; i < actionList.size(); i++)
 		{
+			if (Thread.currentThread().isInterrupted())
+			{
+				cancelSessionResponse("inSessionLoop", response);
+				return;
+			}
 			Session session;
 			String[] tokens = actionList.get(i).split(" ");
 			if (Common.isEqualIgnoreCase(tokens[0], "replace"))
@@ -475,7 +486,11 @@ public class CanvasCrestore
 
 		Common.Logging.i(TAG, "doSessionResponse(): logSessionStates");
 		mSessionMgr.logSessionStates("doSessionResponse");
-		
+		if (Thread.currentThread().isInterrupted())
+		{
+			cancelSessionResponse("handleFailures", response);
+			return;
+		}
 		// if failed session list is not empty - handle it
 		handleSessionResponseSessionFailures(originator, response);
 		
@@ -534,7 +549,7 @@ public class CanvasCrestore
         	Common.Logging.i(TAG, "Got session response for transactionId: "+response.transactionId+
         			((response.failureReason!=null)?" failureReason="+response.failureReason.intValue():""));
         	// mark AVF response as received
-        	avfResponseReceived(response.transactionId);
+        	avfResponseReceived(response);
         }
         // set the flag to indicate a layout update will be done once session response is processed
 		Map<String, SessionResponseMapEntry> map = response.sessionResponseMap;
@@ -679,8 +694,13 @@ public class CanvasCrestore
 				actionList.add("play "+playList.get(i));
 			}
 			// First update crestore map
-			updateCresstoreMap(map);
-     
+			if (Thread.currentThread().isInterrupted())
+			{
+				cancelSessionResponse("updateCresstoreMap", response);
+				return;
+			}
+			//updateCresstoreMap(map);
+
 			doSessionResponse(response, actionList);		
 		}
 
@@ -800,14 +820,15 @@ public class CanvasCrestore
 		}
 	}
 	
-	private void avfResponseReceived(String transactionId)
+	private void avfResponseReceived(SessionResponse response)
 	{
-		if (transactionId != null)
+		if (response.transactionId != null)
 		{
-			TransactionData tData = transactionMap.get(transactionId);
+			TransactionData tData = transactionMap.get(response.transactionId);
 			if (tData != null)
 			{
 				tData.gotAvfResponse = true;
+				tData.sr = response;
 			}
 		}
 	}
@@ -817,8 +838,9 @@ public class CanvasCrestore
 		String transactionId = e.transactionId;
 		if (transactionId == null)
 		{
+			// should never have a null transactionId
 			if (timedout)
-				Common.Logging.i(TAG,"Timeout seen on sessionEvent with transactionId="+((e.transactionId==null)?"null":e.transactionId));
+				Common.Logging.i(TAG,"Timeout seen on sessionEvent with null transactionId");
 			return;
 		}
 		if (!timedout)
@@ -830,57 +852,104 @@ public class CanvasCrestore
 		
 		// timedout - try to handle errors
 		Originator originator = new Originator(RequestOrigin.Unknown);
+		SessionResponse response = null;
 		TransactionData tData = transactionMap.get(transactionId);
 		if (tData != null)
+		{
 			originator = tData.originator;
-		boolean avfHasStarted = mCanvas.avfHasStarted.get();
-		if (!tData.gotAvfResponse)
+			response = tData.sr;
+		}
+		if (tData != null && !tData.gotAvfResponse)
 		{
 			// Never got AVF response for this transaction
-			Common.Logging.w(TAG, "processSessionEventCompletion(): ******* no AVF response for SessionEvent transactionId="+transactionId);
-			// unroll event - mainly connect requests should be rejected as disconnected
-	        Map<String, SessionEventMapEntry> sessionEventMap = e.sessionEventMap;
-			for (Map.Entry<String, SessionEventMapEntry> entry : sessionEventMap.entrySet())
-			{
-				SessionEventMapEntry en = entry.getValue();
-				Session s = mSessionMgr.findSession(entry.getKey());
-				if (en.state.equalsIgnoreCase("Connect"))
-				{
-					if (s != null)
-					{
-						if ((s.type == SessionType.HDMI || s.type == SessionType.DM))
-						{
-							if (avfHasStarted)
-							{
-								Common.Logging.i(TAG, "processSessionEventCompletion(): Disconnecting HDMI/DM session "+s.sessionId()+" due to no AVF response");
-								s.disconnect();
-							}
-						}
-						else // non HDMI or DM session
-						{
-							Common.Logging.i(TAG, "processSessionEventCompletion(): Disconnecting session "+s.sessionId()+" due to no AVF response");
-							s.disconnect();
-						}
-					}
-				}
-				else if (en.state.equalsIgnoreCase("Disconnect"))
-				{
-					if (s != null)
-					{
-						Common.Logging.i(TAG, "processSessionEventCompletion(): Disconnecting session "+s.sessionId()+" due to no AVF response");
-						if (s.isPlaying())
-						{
-							s.stop();
-						}
-						s.disconnect();
-					}
-				}
-			}
+			handleNoAvfResponse(e, tData, originator);
 		}
 		else
 		{
-			Common.Logging.w(TAG, "processSessionEventCompletion(): ******* timeout while processing AVF response for transactionId="+transactionId);
+			handleSessionEventTimeout(e, tData, originator, response);
 		}
+		transactionMap.remove(e.transactionId);
+	}
+	
+	private void handleNoAvfResponse(SessionEvent e, TransactionData tData, Originator originator)
+	{
+		Common.Logging.w(TAG, "handleNoAvfResponse(): ******* no AVF response for SessionEvent transactionId="+e.transactionId);
+		boolean avfHasStarted = mCanvas.avfHasStarted.get();
+		// unroll event - mainly connect requests should be rejected as disconnected
+        Map<String, SessionEventMapEntry> sessionEventMap = e.sessionEventMap;
+		for (Map.Entry<String, SessionEventMapEntry> entry : sessionEventMap.entrySet())
+		{
+			Session s = mSessionMgr.findSession(entry.getKey());
+			if (s != null)
+			{
+				if (entry.getValue().state.equalsIgnoreCase("Connect"))
+				{
+					if ((s.type == SessionType.HDMI || s.type == SessionType.DM))
+					{
+						if (avfHasStarted)
+						{
+							Common.Logging.i(TAG, "handleNoAvfResponse(): Disconnecting HDMI/DM session "+s.sessionId()+" due to no AVF response");
+							s.disconnect(originator);
+						}
+					}
+					else // non HDMI or DM session
+					{
+						Common.Logging.i(TAG, "handleNoAvfResponse(): Disconnecting session "+s.sessionId()+" due to no AVF response");
+						s.disconnect(originator);
+					}
+				}
+				else if (entry.getValue().state.equalsIgnoreCase("Stop"))
+				{
+					if (originator != null && originator.origin == RequestOrigin.Receiver)
+					{
+						// session has been stopped already must follow through and release surface and let canvas know
+						Common.Logging.i(TAG, "handleNoAvfResponse(): Stopping session "+s.sessionId()+" due to no AVF response");
+						s.stop(originator);
+					}					
+				}
+				else if (entry.getValue().state.equalsIgnoreCase("Disconnect"))
+				{
+					Common.Logging.i(TAG, "handleNoAvfResponse(): Disconnecting session "+s.sessionId()+" due to no AVF response");
+					if (s.isPlaying())
+					{
+						s.stop(originator);
+					}
+					s.disconnect(originator);
+				}
+			}
+		}
+	}
+	
+	private void handleSessionEventTimeout(SessionEvent e, TransactionData tData, Originator originator, SessionResponse response)
+	{
+		Common.Logging.w(TAG, "processSessionEventCompletion(): ******* timeout while processing AVF response for transactionId="+e.transactionId);
+		// Assume we stop the sessionResponse somehow
+		sessionResponseScheduler.cancel();
+		// create a syncevent to be sent to AVF to bring it back into sync
+    	final SessionEvent syncEvent = new SessionEvent(UUID.randomUUID().toString());
+		for (Map.Entry<String, SessionResponseMapEntry> entry : response.sessionResponseMap.entrySet())
+		{
+			// for each event in the response map if state does not agree with requested state
+			Session s = mSessionMgr.findSession(entry.getKey());
+			if (s != null)
+			{
+				if (entry.getValue().state.equalsIgnoreCase("Play") && !s.isPlaying())
+				{
+					Common.Logging.i(TAG, "handleSessionEventTimeout(): Force Stopping session "+s.sessionId()+" due to session event timeout");
+					s.stop();
+					syncEvent.add(s.sessionId(), new SessionEventMapEntry("Stop", s));
+				}
+				else if (entry.getValue().state.equalsIgnoreCase("Stop") && !s.isStopped())
+				{
+					Common.Logging.i(TAG, "handleSessionEventTimeout(): Stopping session "+s.sessionId()+" due to session event timeout");
+					s.stop();
+					syncEvent.add(s.sessionId(), new SessionEventMapEntry("Stop", s));
+				}
+			}
+		}
+		Common.Logging.i(TAG, "handleSessionEventTimeout(): queueing "+gson.toJson(syncEvent)+" due to session event timeout");
+		Runnable r = new Runnable() { @Override public void run() { doSessionEvent(syncEvent, new Originator(RequestOrigin.Error), 30); } };
+		sessionScheduler.queue(r);
 	}
 	
 	public void sendSessionFeedbackMessage(SessionType type, SessionState state, String userLabel, Integer failureReason) {
