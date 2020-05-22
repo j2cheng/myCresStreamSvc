@@ -46,6 +46,7 @@ public class CresCanvas
 	private AtomicBoolean codecFailure = new AtomicBoolean(false);
 	private AtomicBoolean avfRestart = new AtomicBoolean(false);
 	AtomicBoolean avfHasStarted = new AtomicBoolean(false);
+	AtomicBoolean avfRestarting = new AtomicBoolean(false);
 	public boolean cssRestart = true;
 	public boolean canvasReady = false;
 	public SurfaceManager mSurfaceMgr=null;
@@ -182,12 +183,12 @@ public class CresCanvas
 			getCrestore().doClearAllSessionEvent();
 	}
 	
-	public void clear()
+	public void clear(boolean force)
 	{
 		Common.Logging.i(TAG, "clear(): restart sessionResponseScheduler");
 		mCrestore.restartSchedulers();
 		// Stop and remove all sessions
-		mSessionMgr.clearAllSessions();
+		mSessionMgr.clearAllSessions(force);
 		// clear all surfaces and streamIds
 		mSurfaceMgr.releaseAllSurfaces();
 		Common.Logging.i(TAG, "clear(): exit");
@@ -197,7 +198,7 @@ public class CresCanvas
 	{
 		Common.Logging.i(TAG, "*********************** handleReceiverDisconnected ***********************");
 		// Stop all sessions
-		clear();
+		clear(false);
 		// Restart of HDMI/DM will be handled when service reconnects by canvasHasStarted()
 		Common.Logging.i(TAG, "handleReceiverDisconnected(): exit");
 	}
@@ -238,21 +239,48 @@ public class CresCanvas
 		mStreamCtl.canvasDmSyncStateChange();
 	}
 	
-	public void handleAvfRestart()
+	public void handleAvfRestart(boolean restart)
 	{
-		Common.Logging.i(TAG, "*********************** handleAvfRestart ***********************");
-		avfHasStarted.compareAndSet(false, true);
-		if (!codecFailure.get() && IsAirMediaCanvasUp())
+		if (restart)
 		{
-			Common.Logging.i(TAG, "handleAvfRestart(): not in codec failure recovery mode - send all current sessions to AVF");
-			// called from cresstore callback thread and so must be run asynchronously so sessionResponse is not blocked
-			Runnable r = new Runnable() { @Override public void run() { mSessionMgr.sendAllSessionsInSessionEvent(new Originator(RequestOrigin.Error)); } };
-			scheduler.execute(r);
+			Common.Logging.i(TAG, "*********************** handleAvfRestart ***********************");
+			final boolean isInAvfRestart = avfRestarting.get();
+			//final boolean isInAvfRestart = false; // force full startup on AVF restart
+			avfRestarting.compareAndSet(true, false);
+			avfHasStarted.compareAndSet(false, true);
+			if (!codecFailure.get() && IsAirMediaCanvasUp())
+			{
+				// called from cresstore callback thread and so must be run asynchronously so sessionResponse is not blocked
+				Runnable r = new Runnable() { @Override public void run() { avfForcedStartup(isInAvfRestart, "handleAvfRestart"); } };
+				scheduler.execute(r);
+			}
+			else
+			{
+				Common.Logging.i(TAG, "handleAvfRestart(): in codec failure/receiver restart - don't send any sessions to AVF - will be sent by codec failure handler");
+				avfRestart.set(true);
+			}
 		}
 		else
 		{
-			Common.Logging.i(TAG, "handleAvfRestart(): in codec failure/receiver restart - don't send any sessions to AVF - will be sent by codec failure handler");
-			avfRestart.set(true);
+			Common.Logging.i(TAG, "*********************** AVF stopping to restart ***********************");
+			avfRestarting.compareAndSet(false, true);
+		}
+	}
+	
+	public void avfForcedStartup(boolean restart, String from)
+	{
+		if (restart)
+		{
+			Common.Logging.i(TAG, "avfForcedStartup(): (restart=true) - send all current sessions to AVF");
+			mSessionMgr.sendAllSessionsInSessionEvent(new Originator(RequestOrigin.Error));
+		} else {
+			Common.Logging.i(TAG, "avfForcedStartup(): (restart=false) - clear all sessions");
+			clear(true);
+			// Restart HDMI/DM if possible
+			Common.Logging.i(TAG, from+": restarting HDMI if needed");
+			mStreamCtl.canvasHdmiSyncStateChange(false);
+			Common.Logging.i(TAG, from+": restarting DM if needed");
+			mStreamCtl.canvasDmSyncStateChange();
 		}
 	}
 	

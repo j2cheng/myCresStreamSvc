@@ -247,13 +247,18 @@ public class CanvasCrestore
 	{
 		Waiter waiter = new Waiter();
 		TransactionData t = new TransactionData(waiter, originator);
-		t.se = e;
-		transactionMap.put(e.transactionId, t);
-		markSessionsSentToAvf(e);
-		waiter.prepForWait();
-		sendSessionEvent(e);
-		Boolean timedout = waiter.waitForSignal(TimeSpan.fromSeconds(timeoutInSecs));
-		processSessionEventCompletion(timedout, e);
+		Boolean timedout = true;
+		if (!mCanvas.avfRestarting.get())
+		{
+			t.se = e;
+			transactionMap.put(e.transactionId, t);
+			waiter.prepForWait();
+			sendSessionEvent(e);
+			timedout = waiter.waitForSignal(TimeSpan.fromSeconds(timeoutInSecs));
+			processSessionEventCompletion(timedout, e);
+		} else {
+			handleNoAvfResponse(e, originator);
+		}
 		return timedout;
 	}
 	
@@ -828,6 +833,8 @@ public class CanvasCrestore
 			if (tData != null)
 			{
 				tData.gotAvfResponse = true;
+				if (tData.se != null)
+					markSessionsSentToAvf(tData.se);
 				tData.sr = response;
 			}
 		}
@@ -862,7 +869,7 @@ public class CanvasCrestore
 		if (tData != null && !tData.gotAvfResponse)
 		{
 			// Never got AVF response for this transaction
-			handleNoAvfResponse(e, tData, originator);
+			handleNoAvfResponse(e, originator);
 		}
 		else
 		{
@@ -871,10 +878,13 @@ public class CanvasCrestore
 		transactionMap.remove(e.transactionId);
 	}
 	
-	private void handleNoAvfResponse(SessionEvent e, TransactionData tData, Originator originator)
+	private void handleNoAvfResponse(SessionEvent e, Originator originator)
 	{
-		Common.Logging.w(TAG, "handleNoAvfResponse(): ******* no AVF response for SessionEvent transactionId="+e.transactionId);
 		boolean avfHasStarted = mCanvas.avfHasStarted.get();
+		if (!mCanvas.avfRestarting.get())
+			Common.Logging.w(TAG, "handleNoAvfResponse(): ******* no AVF response for SessionEvent transactionId="+e.transactionId);
+		else
+			Common.Logging.w(TAG, "handleNoAvfResponse(): ******* AVF is restarting and cannot process SessionEvent transactionId="+e.transactionId);
 		// unroll event - mainly connect requests should be rejected as disconnected
         Map<String, SessionEventMapEntry> sessionEventMap = e.sessionEventMap;
 		for (Map.Entry<String, SessionEventMapEntry> entry : sessionEventMap.entrySet())
@@ -886,7 +896,8 @@ public class CanvasCrestore
 				{
 					if ((s.type == SessionType.HDMI || s.type == SessionType.DM))
 					{
-						if (avfHasStarted)
+						// If AVF has started and is not in process of restarting disconnect the HDMI/DM session if no response
+						if (avfHasStarted && !mCanvas.avfRestarting.get())
 						{
 							Common.Logging.i(TAG, "handleNoAvfResponse(): Disconnecting HDMI/DM session "+s.sessionId()+" due to no AVF response");
 							s.disconnect(originator);
@@ -1043,10 +1054,10 @@ public class CanvasCrestore
         				{
         					Boolean avfRestart = root.internal.airMedia.canvas.restartSignal.avf;
         					
-        					if (avfRestart != null && avfRestart.booleanValue())
+        					if (avfRestart != null)
         					{
-            					Common.Logging.i(TAG, "Received a AVF restart message");
-            					mCanvas.handleAvfRestart();
+            					Common.Logging.i(TAG, "Received a AVF restartSignal="+avfRestart+" message");
+            					mCanvas.handleAvfRestart(avfRestart.booleanValue());
         					}
         				}
         			}

@@ -192,7 +192,15 @@ public class AirMediaCanvas
     	{
     		isAirMediaCanvasUp = ready;
     		if (isAirMediaCanvasUp)
-				mStreamCtl.mCanvas.canvasHasStarted();
+    		{
+    	        new Thread(new Runnable() {
+    	            @Override
+    	            public void run() {
+    	        		Common.Logging.i(TAG, "AirMediaCanvas canvas is ready!");
+    					mStreamCtl.mCanvas.canvasHasStarted();
+    	            }
+    	        }).start();
+    		}
     	}
     }
     

@@ -229,12 +229,12 @@ public class SessionManager
     	}
     }
     
-    public void clearAllSessions()
+    public void clearAllSessions(boolean force)
     {
 		Common.Logging.i(TAG,"clearAllSessions() entered");
         for (Session session : sessions()) {
             if (session == null) continue;
-            if (session.type != SessionType.AirMedia)
+            if (session.type != SessionType.AirMedia || force)
             {
         		Common.Logging.i(TAG,"clearAllSessions() stopping session:"+session.sessionId());
         		session.stop(new Originator(RequestOrigin.Error));
