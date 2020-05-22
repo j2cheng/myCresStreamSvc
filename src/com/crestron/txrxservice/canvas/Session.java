@@ -47,6 +47,7 @@ public class Session
     //public SessionInfo info_;
     public static long nextId = 0;
     public AtomicBoolean sentToAvf = new AtomicBoolean(false);
+    public boolean playTimedout = false;
 	
 	public Session()
 	{
@@ -243,7 +244,8 @@ public class Session
 		if (CresCanvas.useCanvasSurfaces) {
 			if (mCanvas.IsAirMediaCanvasUp()) {
 				surface = mCanvas.acquireSurface(sessionId(), getType());
-				mStreamCtl.setSurface(streamId, surface);
+				if (surface != null)
+					mStreamCtl.setSurface(streamId, surface);
 			} else {
 				Common.Logging.w(TAG, "Canvas is not up - cannot acquireSurface for "+sessionId());
 				return null;

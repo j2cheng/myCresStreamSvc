@@ -422,6 +422,14 @@ public class CresCanvas
 		}
 	}
 	
+	public boolean sessionPlayTimedout(String sessionId)
+	{
+		Session session = mSessionMgr.findSession(sessionId);
+		if (session == null)
+			return true;
+		return session.playTimedout;
+	}
+	
 	public Surface acquireSurface(String sessionId, SessionType type)
 	{
 		CanvasSurfaceAcquireResponse response = null;
@@ -433,10 +441,18 @@ public class CresCanvas
 		try {
 			Common.Logging.e(TAG, "calling surfaceAcquire for session: "+sessionId+" with options="+options);
 			response = mAirMediaCanvas.service().surfaceAcquire(sessionId, options);
-		} catch(android.os.RemoteException ex)
+		} 
+		catch(android.os.RemoteException ex)
 		{
 			Common.Logging.e(TAG, "exception encountered while calling surfaceAcquire for session: "+sessionId);
 			ex.printStackTrace();
+			return null;
+		}
+		if (sessionPlayTimedout(sessionId))
+		{
+			// release the surface - it is too late for us to use it
+			Common.Logging.e(TAG, "Timed out while calling surfaceAcquire for session: "+sessionId);
+			releaseSurface(sessionId);
 			return null;
 		}
 		if (response != null && response.isSucceeded())

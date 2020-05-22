@@ -133,6 +133,7 @@ public class AirBoardSession extends Session
 	
 	public void play(final Originator originator, final int replaceStreamId, int timeoutInSeconds)
 	{
+		playTimedout = false;
 		Runnable r = new Runnable() { public void run() { doPlay(originator, replaceStreamId); } };
         TimeSpan start = TimeSpan.now();
 		boolean completed = executeWithTimeout(r, TimeSpan.fromSeconds(timeoutInSeconds));
@@ -141,6 +142,12 @@ public class AirBoardSession extends Session
 		{
 			setState(SessionState.Playing);
 			setResolution(new AirMediaSize(0, 0));
+		}
+		else
+		{
+			Common.Logging.w(TAG, "AirBoard Session "+this+" play failed - timeout");
+			playTimedout = true;
+			originator.failedSessionList.add(this);
 		}
 	}
 	

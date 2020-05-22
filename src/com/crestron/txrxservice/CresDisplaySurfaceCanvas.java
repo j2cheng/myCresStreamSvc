@@ -136,6 +136,10 @@ public class CresDisplaySurfaceCanvas implements CresDisplaySurface
     public void setSurface(int idx, Surface s)
     {
     	Log.v(TAG, "setSurface - streamId="+idx+"  surface="+((s != null)?s:"null"));
+    	if (s == null)
+    	{
+    		deleteSurface(idx);
+    	}
 		surfaceMap.put(idx, s);
     }
     

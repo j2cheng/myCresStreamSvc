@@ -125,7 +125,7 @@ public class DMSession extends Session
 		}
 		Common.Logging.i(TAG, "DM Session "+this+" got streamId "+streamId);
 		surface = acquireSurface();
-		if (surface != null && surface.isValid())
+		if (surface != null)
 		{
 			Common.Logging.i(TAG, "DM Session "+this+" sending start to csio");
 			// signal to csio to start audio for DM via audiomux
@@ -150,6 +150,7 @@ public class DMSession extends Session
 	
 	public void play(final Originator originator, final int replaceStreamId, int timeoutInSeconds)
 	{
+		playTimedout = false;
 		Runnable r = new Runnable() { public void run() { doPlay(originator, replaceStreamId); } };
         TimeSpan start = TimeSpan.now();
 		boolean completed = executeWithTimeout(r, TimeSpan.fromSeconds(timeoutInSeconds));
@@ -161,7 +162,8 @@ public class DMSession extends Session
 		}
 		else
 		{
-			Common.Logging.w(TAG, "DM Session "+this+" play failed - timeout");		
+			Common.Logging.w(TAG, "DM Session "+this+" play failed - timeout");
+			playTimedout = true;
 			originator.failedSessionList.add(this);
 		}
 	}
