@@ -380,7 +380,7 @@ public class UserSettings
 		airMediaDisplayConnectionOptionEnable = true;
 		airMediaDisplayConnectionOption = CresStreamCtrl.AirMediaDisplayConnectionOption.Ip;
 		airMediaCustomPromptString = "";
-		airMediaConnectionOverlay = true;
+		airMediaConnectionOverlay = false;
 		airMediaDisplayWirelessConnectionOptionEnable = true;
 		airMediaDisplayWirelessConnectionOption = CresStreamCtrl.AirMediaDisplayConnectionOption.Ip;
 		airMediaMiracastEnable = false;
