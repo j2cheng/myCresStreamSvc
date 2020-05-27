@@ -418,15 +418,7 @@ public class CanvasCrestore
 			if (Common.isEqualIgnoreCase(tokens[0], "replace"))
 			{
 				Common.Logging.i(TAG, "doSessionResponse(): replacing "+tokens[1]+" with "+tokens[2]);
-				if (!CresCanvas.useCanvasSurfaces)
-					(mSessionMgr.getSession(tokens[1])).replace(originator, mSessionMgr.getSession(tokens[2]));
-				else
-				{
-					session = mSessionMgr.getSession(tokens[1]);
-					session.stop(originator);
-					session = mSessionMgr.getSession(tokens[2]);
-					session.play(originator);
-				}
+				(mSessionMgr.getSession(tokens[1])).replace(originator, mSessionMgr.getSession(tokens[2]));
 			} 
 			else if (Common.isEqualIgnoreCase(tokens[0], "stop"))
 			{
@@ -535,7 +527,7 @@ public class CanvasCrestore
 					}
 					if (se != null)
 					{
-						Common.Logging.i(TAG, "handleSessionResponseSessionFailures(): sessionEvent="+se);
+						Common.Logging.i(TAG, "handleSessionResponseSessionFailures(): sessionEvent="+gson.toJson(se));
 						final SessionEvent fse = se;
 						final Originator o = new Originator(RequestOrigin.Error);
 						sessionScheduler.queue(new Runnable() { @Override public void run() { doSynchronousSessionEvent(fse, o, 30); }; });	
@@ -947,13 +939,13 @@ public class CanvasCrestore
 				if (entry.getValue().state.equalsIgnoreCase("Play") && !s.isPlaying())
 				{
 					Common.Logging.i(TAG, "handleSessionEventTimeout(): Force Stopping session "+s.sessionId()+" due to session event timeout");
-					s.stop();
+					s.stop(new Originator(RequestOrigin.Error));
 					syncEvent.add(s.sessionId(), new SessionEventMapEntry("Stop", s));
 				}
 				else if (entry.getValue().state.equalsIgnoreCase("Stop") && !s.isStopped())
 				{
 					Common.Logging.i(TAG, "handleSessionEventTimeout(): Stopping session "+s.sessionId()+" due to session event timeout");
-					s.stop();
+					s.stop(new Originator(RequestOrigin.Error));
 					syncEvent.add(s.sessionId(), new SessionEventMapEntry("Stop", s));
 				}
 			}

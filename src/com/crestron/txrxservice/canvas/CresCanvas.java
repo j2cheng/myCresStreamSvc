@@ -439,8 +439,13 @@ public class CresCanvas
 			options = new CanvasSurfaceOptions(CanvasSurfaceMode.TagVideoLayer, "PreviewVideoLayer");
 		}
 		try {
-			Common.Logging.e(TAG, "calling surfaceAcquire for session: "+sessionId+" with options="+options);
-			response = mAirMediaCanvas.service().surfaceAcquire(sessionId, options);
+			if (Session.replace.streamId < 0) {
+				Common.Logging.i(TAG, "surfaceAcquire for session: "+sessionId+" with options="+options);
+				response = mAirMediaCanvas.service().surfaceAcquire(sessionId, options);
+			} else {
+				Common.Logging.i(TAG, "surfaceReplace for session: "+sessionId+" old sessionId="+Session.replace.oldSessionId+" with options="+options);
+				response = mAirMediaCanvas.service().surfaceReplace(Session.replace.oldSessionId, sessionId, options);
+			}
 		} 
 		catch(android.os.RemoteException ex)
 		{

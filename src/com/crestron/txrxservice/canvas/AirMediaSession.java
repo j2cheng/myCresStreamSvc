@@ -164,33 +164,19 @@ public class AirMediaSession extends Session
 	// by the receiver via an event state change or we timeout.
 	
 	// Play action
-	public boolean doPlay(int replaceStreamId)
+	public boolean doPlay()
 	{
 		if (streamId != -1)
 		{
 			Common.Logging.i(TAG, "AirMediaSession::doPlay(): AirMediaSession "+this+" already has a valid streamId="+streamId);
 			return false;
 		}
-		if (replaceStreamId < 0)
-		{
-			// get unused streamId and associate a surface with it
-			streamId = mCanvas.mSurfaceMgr.getUnusedStreamId();
-			Common.Logging.i(TAG, "AirMediaSession "+this+" assigned streamId "+streamId);
-			if (streamId >= 0)
-			{
-				mCanvas.showWindow(streamId); // TODO remove once real canvas app available
-				surface = acquireSurface();
-			}
-			else
-			{
-				Common.Logging.e(TAG, "doPlay(): ****** AirMediaSession "+this+" invalid streamId "+streamId+" *****");
-			}
-		}
+		setStreamId();
+		if (streamId >= 0)
+			Common.Logging.i(TAG, "AirMediaSession Session "+this+" got streamId "+streamId);
 		else
-		{
-			streamId = replaceStreamId;
-			surface = mStreamCtl.getSurface(streamId);
-		}
+			Common.Logging.e(TAG, "doPlay(): ****** AirMediaSession "+this+" invalid streamId "+streamId+" *****");
+		surface = acquireSurface();
 		if (surface == null || !surface.isValid())
 		{
 			Common.Logging.w(TAG, "AirMediaSession "+this+" got null or invalid surface");
@@ -213,10 +199,10 @@ public class AirMediaSession extends Session
 		return true;
 	}
 	
-	public void play(Originator originator, int replaceStreamId)
+	public void play(Originator originator)
 	{
 		boolean success = true;
-		Common.Logging.i(TAG, "Session "+this+" play entered originator="+originator+"  replaceStreamId="+replaceStreamId);
+		Common.Logging.i(TAG, "Session "+this+" play entered originator="+originator);
 		if (isPlaying() && isVideoPlaying())
 			return;
 		setState(SessionState.Starting);
@@ -228,7 +214,7 @@ public class AirMediaSession extends Session
 				Common.Logging.i(TAG, "Session "+this+" play command to AirMedia receiver timed out");
 			}
 		}
-		if (success && doPlay(replaceStreamId))
+		if (success && doPlay())
 		{
 			//mStreamCtl.SendStreamState(StreamState.STARTED, 0);
 			setState(SessionState.Playing);
@@ -242,11 +228,6 @@ public class AirMediaSession extends Session
 			setState(SessionState.Stopped);
 			originator.failedSessionList.add(this);
 		}
-	}
-	
-	public void play(Originator originator)
-	{
-		play(originator, -1);
 	}
 	
 	public synchronized boolean sendPlayCommandToSourceUser()
@@ -282,7 +263,7 @@ public class AirMediaSession extends Session
 	}
 		
 	// Stop action
-	public boolean doStop(boolean replace)
+	public boolean doStop()
 	{
 		if (streamId == -1)
 		{
@@ -299,17 +280,11 @@ public class AirMediaSession extends Session
 		Common.Logging.i(TAG, "AirMediaSession "+this+" send stop to csio");
 		mStreamCtl.sendAirMediaStart(streamId, false);
 		mStreamCtl.mUsedForAirMedia[streamId] = false;
-		if (!replace)
-		{
-			Common.Logging.i(TAG, "AirMediaSession::doStop(): AirMediaSession "+this+" calling hideWindow with streamId="+streamId);
-			mCanvas.hideWindow(streamId); // TODO remove once real canvas app available
-			// release surface
-			streamId = -1;
-		}
+		streamId = -1;
 		return true;
 	}
 	
-	public void stop(Originator originator, boolean replace)
+	public void stop(Originator originator)
 	{
 		Common.Logging.i(TAG, "Session "+this+" stop entered originator="+originator);
 		if (isStopped() && isVideoStopped())
@@ -328,7 +303,7 @@ public class AirMediaSession extends Session
 				return;
 			}
 		}
-		if (doStop(replace))
+		if (doStop())
 		{
 			//mStreamCtl.SendStreamState(StreamState.STOPPED, 0);
 			setState(SessionState.Stopped);
@@ -340,10 +315,6 @@ public class AirMediaSession extends Session
 		}
 	}
 	
-	public void stop(Originator originator)
-	{
-		stop(originator, false);
-	}
 	
 	public boolean sendStopCommandToSourceUser()
 	{

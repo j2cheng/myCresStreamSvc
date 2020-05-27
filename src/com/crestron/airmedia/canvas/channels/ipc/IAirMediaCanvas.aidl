@@ -17,4 +17,6 @@ interface IAirMediaCanvas {
     CanvasResponse surfaceRelease(in String sessionId);
     
     void sessionUpdate(in CanvasSourceSession sessions);
+    
+    CanvasSurfaceAcquireResponse surfaceReplace(in String oldSessionId, in String newSessionId, in CanvasSurfaceOptions options);
 }

@@ -25,7 +25,7 @@ import android.os.Parcelable.Creator;
 import android.util.Log;
 import android.view.Surface;
 
-public class Session
+public abstract class Session
 {
 	com.crestron.txrxservice.canvas.CresCanvas mCanvas;
 	public static CresStreamCtrl mStreamCtl;
@@ -48,7 +48,21 @@ public class Session
     public static long nextId = 0;
     public AtomicBoolean sentToAvf = new AtomicBoolean(false);
     public boolean playTimedout = false;
+    public static Session.Replace replace;
 	
+    public class Replace {
+    	public int streamId;
+    	public String oldSessionId;
+    	public String newSessionId;
+    	
+    	public void set(int streamId, String oldSessionId, String newSessionId)
+    	{
+    		this.streamId = streamId;
+    		this.oldSessionId = oldSessionId;
+    		this.newSessionId = newSessionId;
+    	}
+    }
+    
 	public Session()
 	{
 		mCanvas = com.crestron.txrxservice.canvas.CresCanvas.getInstance();
@@ -65,6 +79,9 @@ public class Session
 		resolution = new AirMediaSize(0,0);
 		isVideoLoading = false;
 		isAudioMuted = false;
+		if (replace == null)
+			replace = new Replace();
+		replace.set(streamId, null, null);
 		setSourceUserPermission(false);
 		setCanvasUserPermission(false);
 		setModeratorPermission(true);
@@ -181,61 +198,41 @@ public class Session
 		mSessionMgr.remove(this);
 	}
 	
-	public void stop(Originator originator)
-	{
-		stop();
-	}
+	public abstract void stop(Originator originator);
+	public abstract void play(Originator originator);
 	
-	public void stop(Originator originator, boolean replace)
+	public boolean inReplace()
 	{
-		stop();
+		return (replace.streamId >= 0);
 	}
-	
-	public void stop()
-	{
-		Common.Logging.i(TAG, "Session "+this+" stop request");
-		setState(SessionState.Stopped);
-	}
-	
-
-
-	public void play(Originator originator)
-	{
-		play(originator, -1);
-	}
-	
-	public void play(Originator originator, int assignedStreamId)
-	{
-		play();
-	}
-	
-	public void play()
-	{
-		Common.Logging.i(TAG, "Session "+this+" play request");
-		setState(SessionState.Playing);
-	}
-	
-//	public void replace(Originator originator, Session next)
-//	{
-//		boolean canReplace = false;
-//		int commonStreamId = -1;
-//		if (type == SessionType.AirMedia && next.type == SessionType.AirMedia)
-//		{
-//			commonStreamId = streamId;
-//			canReplace = true;
-//		}
-//		
-//		stop(originator, canReplace);
-//		streamId = -1;
-//		next.play(originator, commonStreamId);
-//	}
 	
 	public void replace(Originator originator, Session next)
 	{
-		int origStreamId = streamId;
-		stop(originator, true);
+		if (next == null)
+		{
+			Common.Logging.w(TAG, "replace(): next session to replace "+sessionId()+" is null");
+			stop(originator);
+			return;
+		}
+		Session.replace.set(streamId, sessionId(), next.sessionId());
+		replace.streamId = streamId;
+		Common.Logging.i(TAG, "replace(): stopping "+sessionId()+" streamId="+replace.streamId);
+		stop(originator);
 		streamId = -1;
-		next.play(originator, origStreamId);
+		Common.Logging.i(TAG, "replace(): starting "+next.sessionId()+" streamId="+replace.streamId);
+		next.play(originator);
+		Session.replace.set(-1, null, null);
+	}
+	
+	public void setStreamId()
+	{
+		if (inReplace())
+		{
+			streamId = replace.streamId;
+		} else {
+			// get unused streamId and associate a surface with it
+			streamId = mCanvas.mSurfaceMgr.getUnusedStreamId();
+		}
 	}
 	
 	public Surface acquireSurface()
@@ -243,6 +240,11 @@ public class Session
 		Surface surface = null;
 		if (CresCanvas.useCanvasSurfaces) {
 			if (mCanvas.IsAirMediaCanvasUp()) {
+				if ((inReplace()) && !replace.newSessionId.equals(sessionId())) // session id must match
+				{
+					Common.Logging.w(TAG, "in replacement but session id for new session does not match "+sessionId());
+					return null;
+				}
 				surface = mCanvas.acquireSurface(sessionId(), getType());
 				if (surface != null)
 					mStreamCtl.setSurface(streamId, surface);
@@ -250,8 +252,13 @@ public class Session
 				Common.Logging.w(TAG, "Canvas is not up - cannot acquireSurface for "+sessionId());
 				return null;
 			}				
-		} else
+		} else {
+			if (!inReplace())
+			{
+				mCanvas.showWindow(streamId); // TODO remove once real canvas app available
+			}
 			surface = mStreamCtl.getSurface(streamId);
+		}
 		mCanvas.mSurfaceMgr.addSurface(streamId, surface);
 		return surface;
 	}
@@ -261,10 +268,23 @@ public class Session
 		if (CresCanvas.useCanvasSurfaces)
 		{
 			if (mCanvas.IsAirMediaCanvasUp())
-				mCanvas.releaseSurface(sessionId());
-			else
+			{
+				if (!inReplace())
+				{
+					mCanvas.releaseSurface(sessionId());
+				}
+				else
+				{
+					// will be handled in acquireSurface for replacing session with renewSurface()
+				}
+			} else
 				Common.Logging.w(TAG, "Canvas is not up - bypassing releaseSurface for "+sessionId());
 			mStreamCtl.deleteSurface(streamId);
+		}
+		else
+		{
+			if (!inReplace())
+				mCanvas.hideWindow(streamId); // TODO remove once real canvas app available
 		}
 		mCanvas.mSurfaceMgr.removeSurface(streamId);
 	}

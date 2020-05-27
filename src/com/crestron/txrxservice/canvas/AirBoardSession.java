@@ -59,7 +59,7 @@ public class AirBoardSession extends Session
 		return ("Session: "+type.toString()+"-"+url+"  sessionId="+sessionId());
 	}
 	
-	public void doStop(boolean replace)
+	public void doStop()
 	{
 		Common.Logging.i(TAG, "AirBoard Session "+this+" stop request");
 		if (streamId >= 0)
@@ -70,17 +70,13 @@ public class AirBoardSession extends Session
 			Common.Logging.i(TAG, "AirBoard Session "+this+" calling Stop()");
 			mStreamCtl.Stop(streamId, false);
 			Common.Logging.i(TAG, "AirBoard Session "+this+" back from Stop()");
-			if (!replace)
-			{
-				mCanvas.hideWindow(streamId); // TODO remove once real canvas app available
-				releaseSurface();
-			}
+			releaseSurface();
 		}
 	}
 	
-	public void stop(final Originator originator, final boolean replace, int timeoutInSeconds)
+	public void stop(final Originator originator, int timeoutInSeconds)
 	{
-		Runnable r = new Runnable() { public void run() { doStop(replace); } };
+		Runnable r = new Runnable() { public void run() { doStop(); } };
         TimeSpan start = TimeSpan.now();
 		boolean completed = executeWithTimeout(r, TimeSpan.fromSeconds(timeoutInSeconds));
 		Common.Logging.i(TAG, "AirBoard Session stop completed in "+TimeSpan.now().subtract(start).toString()+" seconds");
@@ -95,25 +91,13 @@ public class AirBoardSession extends Session
 	
 	public void stop(Originator originator)
 	{
-		stop(originator, false, 10);
+		stop(originator, 10);
 	}
 	
-	public void stop(Originator originator, boolean replace)
-	{
-		stop(originator, replace, 10);
-	}
-	
-	public void doPlay(Originator originator, int replaceStreamId)
+	public void doPlay(Originator originator)
 	{		
 		Common.Logging.i(TAG, "AirBoard Session "+this+" play request");
-		if (replaceStreamId > 0)
-		{
-			streamId = replaceStreamId;
-		} else {
-			// get unused streamId and associate a surface with it
-			streamId = mCanvas.mSurfaceMgr.getUnusedStreamId();
-			mCanvas.showWindow(streamId); // TODO remove once real canvas app available
-		}
+		setStreamId();
 		Common.Logging.i(TAG, "AirBoard Session "+this+" got streamId "+streamId);		
 		if (acquireSurface() != null)
 		{
@@ -131,10 +115,10 @@ public class AirBoardSession extends Session
 		}
 	}
 	
-	public void play(final Originator originator, final int replaceStreamId, int timeoutInSeconds)
+	public void play(final Originator originator, int timeoutInSeconds)
 	{
 		playTimedout = false;
-		Runnable r = new Runnable() { public void run() { doPlay(originator, replaceStreamId); } };
+		Runnable r = new Runnable() { public void run() { doPlay(originator); } };
         TimeSpan start = TimeSpan.now();
 		boolean completed = executeWithTimeout(r, TimeSpan.fromSeconds(timeoutInSeconds));
 		Common.Logging.i(TAG, "AirBoard Session play completed in "+TimeSpan.now().subtract(start).toString()+" seconds");
@@ -151,13 +135,8 @@ public class AirBoardSession extends Session
 		}
 	}
 	
-	public void play(Originator originator, int replaceStreamId)
-	{
-		play(originator, replaceStreamId, 10);
-	}
-	
 	public void play(Originator originator)
 	{
-		play(originator, -1, 10);
+		play(originator, 10);
 	}
 }
