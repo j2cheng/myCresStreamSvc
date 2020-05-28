@@ -50,7 +50,7 @@ public class CanvasCrestore
 	SimulatedAVF mAVF;
 	
     public Scheduler sessionResponseScheduler = null;
-    public Scheduler sessionScheduler = null; // handle sessionEvent and sessionStateChange scheduled requests
+    public PriorityScheduler sessionScheduler = null; // handle sessionEvent and sessionStateChange scheduled requests
 
 	private final ReentrantLock sessionEventLock = new ReentrantLock();
 	Map<String, TransactionData> transactionMap= new ConcurrentHashMap<String, TransactionData>();
@@ -60,6 +60,14 @@ public class CanvasCrestore
 	private Gson gson = null;
 	public Gson getGson() { return gson; }
 
+	public class SessionEventReturnStatus {
+		boolean timedout;
+		
+		public SessionEventReturnStatus() {
+			timedout = false;
+		}
+	}
+	
 	public class TransactionData 
 	{
 		Waiter waiter;
@@ -114,7 +122,7 @@ public class CanvasCrestore
 		if (CresCanvas.useSimulatedAVF)
 			mAVF = new SimulatedAVF(this);
 		sessionResponseScheduler = new Scheduler("TxRx.canvas.crestore.processSesionResponse");
-		sessionScheduler = new Scheduler("TxRx.canvas.crestore.sessionScheduler");
+		sessionScheduler = new PriorityScheduler("TxRx.canvas.crestore.sessionScheduler");
 
         Common.Logging.i(TAG, "CanvasCrestore: create Crestore wrapper");
         try {
@@ -188,20 +196,13 @@ public class CanvasCrestore
 			// TODO Auto-generated catch block
 			e.printStackTrace();
 		}
-		
-		try {
-			sessionScheduler.awaitTermination(60, TimeUnit.SECONDS);
-		} catch (InterruptedException e) {
-			// TODO Auto-generated catch block
-			e.printStackTrace();
-		}
 
 		Common.Logging.i(TAG, "clear transaction map");
 		transactionMap.clear();
 		
 		Common.Logging.i(TAG, "create new schedulers");
 		sessionResponseScheduler = new Scheduler("TxRx.canvas.crestore.processSesionResponse");
-		sessionScheduler = new Scheduler("TxRx.canvas.crestore.sessionScheduler");
+		sessionScheduler = new PriorityScheduler("TxRx.canvas.crestore.sessionScheduler");
 		
 		Common.Logging.i(TAG, "create new schedulers");
 	}
@@ -223,43 +224,43 @@ public class CanvasCrestore
 	public boolean doSynchronousSessionEvent(final SessionEvent e, final Originator originator, final int timeoutInSecs)
 	{
 		TimeSpan startTime = TimeSpan.now();
-		Boolean timedout = null;
+		final SessionEventReturnStatus status = new SessionEventReturnStatus();
 		if (!sessionScheduler.inOwnThread())
 		{
 			// being called from a thread outside the scheduler.  Put the event on the queue and let scheduler process it in order
-			Callable<Boolean> c = new Callable<Boolean>() {
+			Runnable r = new Runnable() {
 				@Override 
-				public Boolean call() { 
-					return doSessionEvent(e, originator, timeoutInSecs);
+				public void run() { 
+					doSessionEvent(e, originator, timeoutInSecs, status);
 				}
 			};
-			timedout = sessionScheduler.queue(c);
+			sessionScheduler.queue(r, PriorityScheduler.NORMAL_PRIORITY);
 		} else {
 			// already called from within a task running on the scheduler.  Process the event inline since putting on queue will deadlock
-			timedout = doSessionEvent(e, originator, timeoutInSecs);
+			doSessionEvent(e, originator, timeoutInSecs, status);
 		}
+		boolean timedout = status.timedout;
 		if (!timedout)
 			Common.Logging.i(TAG, "sessionEvent with transactionId="+((e.transactionId==null)?"null":e.transactionId)+" completed in "+TimeSpan.now().subtract(startTime).toString()+" seconds");
 		return !timedout;
 	}
 	
-	private synchronized boolean doSessionEvent(final SessionEvent e, final Originator originator, final int timeoutInSecs)
+	private synchronized void doSessionEvent(final SessionEvent e, final Originator originator, final int timeoutInSecs, final SessionEventReturnStatus status)
 	{
 		Waiter waiter = new Waiter();
 		TransactionData t = new TransactionData(waiter, originator);
-		Boolean timedout = true;
+		status.timedout = true;
 		if (!mCanvas.avfRestarting.get())
 		{
 			t.se = e;
 			transactionMap.put(e.transactionId, t);
 			waiter.prepForWait();
 			sendSessionEvent(e);
-			timedout = waiter.waitForSignal(TimeSpan.fromSeconds(timeoutInSecs));
-			processSessionEventCompletion(timedout, e);
+			status.timedout = waiter.waitForSignal(TimeSpan.fromSeconds(timeoutInSecs));
+			processSessionEventCompletion(status.timedout, e);
 		} else {
 			handleNoAvfResponse(e, originator);
 		}
-		return timedout;
 	}
 	
 	public SessionEvent createSessionEvent(String transactionId, Session s, String requestedState)
@@ -418,7 +419,15 @@ public class CanvasCrestore
 			if (Common.isEqualIgnoreCase(tokens[0], "replace"))
 			{
 				Common.Logging.i(TAG, "doSessionResponse(): replacing "+tokens[1]+" with "+tokens[2]);
-				(mSessionMgr.getSession(tokens[1])).replace(originator, mSessionMgr.getSession(tokens[2]));
+				session = mSessionMgr.getSession(tokens[1]);
+				if (session != null)
+				{
+					session.replace(originator, mSessionMgr.getSession(tokens[2]));
+				}
+				else
+				{
+					Common.Logging.i(TAG, "doSessionResponse(): cannot find session "+tokens[1]);
+				}
 			} 
 			else if (Common.isEqualIgnoreCase(tokens[0], "stop"))
 			{
@@ -530,7 +539,7 @@ public class CanvasCrestore
 						Common.Logging.i(TAG, "handleSessionResponseSessionFailures(): sessionEvent="+gson.toJson(se));
 						final SessionEvent fse = se;
 						final Originator o = new Originator(RequestOrigin.Error);
-						sessionScheduler.queue(new Runnable() { @Override public void run() { doSynchronousSessionEvent(fse, o, 30); }; });	
+						sessionScheduler.queue(new Runnable() { @Override public void run() { doSynchronousSessionEvent(fse, o, 30); }; }, PriorityScheduler.HIGH_PRIORITY);	
 					}
 				}
 			}
@@ -951,8 +960,13 @@ public class CanvasCrestore
 			}
 		}
 		Common.Logging.i(TAG, "handleSessionEventTimeout(): queueing "+gson.toJson(syncEvent)+" due to session event timeout");
-		Runnable r = new Runnable() { @Override public void run() { doSessionEvent(syncEvent, new Originator(RequestOrigin.Error), 30); } };
-		sessionScheduler.queue(r);
+		Runnable r = new Runnable() { 
+			@Override public void run() { 
+				final SessionEventReturnStatus status = new SessionEventReturnStatus();
+				doSessionEvent(syncEvent, new Originator(RequestOrigin.Error), 30, status); 
+			} 
+		};
+		sessionScheduler.queue(r, PriorityScheduler.NORMAL_PRIORITY);
 	}
 	
 	public void sendSessionFeedbackMessage(SessionType type, SessionState state, String userLabel, Integer failureReason) {
@@ -1018,7 +1032,7 @@ public class CanvasCrestore
     						@Override public void run() { 
     							processSessionStateChange(sessionStateChange); 
     						}; 
-    					});
+    					}, PriorityScheduler.NORMAL_PRIORITY);
         			}
         			if (root.internal.airMedia.canvas.sessionResponse != null)
         			{

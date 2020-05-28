@@ -93,7 +93,7 @@ public class Scheduler extends ThreadPoolExecutor
 	// otherwise if it hangs, so does the scheduler
 	void queue(Runnable task) 
 	{
-		Common.Logging.i(TAG, "Pending tasks in scheduler queue "+getQueue().size());
+		Common.Logging.v(TAG, "Pending tasks in scheduler queue "+getQueue().size());
 		UUID uuid = UUID.randomUUID();
 		RunnableWithId r = new RunnableWithId(uuid, task);
 		Future<?> future = submit(r);
@@ -104,7 +104,7 @@ public class Scheduler extends ThreadPoolExecutor
 	// because the caller is going to be blocked
 	Boolean queue(Callable<Boolean> task) 
 	{
-		Common.Logging.i(TAG, "Pending tasks in scheduler queue "+getQueue().size());
+		Common.Logging.v(TAG, "Pending tasks in scheduler queue "+getQueue().size());
 		Boolean timeout = false;
 		Future<Boolean> f = submit(task);
 		try {

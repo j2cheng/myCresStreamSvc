@@ -621,5 +621,26 @@ public class CresCanvas
 					((DMSession)session).drawColor(r, g, b);
 			}
 		}
+		else if (args[0].equalsIgnoreCase("testPriorityScheduler"))
+		{
+			for (int i=0; i < 10; i++)
+			{
+				final int jobNo = i;
+				Runnable r = new Runnable () {
+					@Override
+					public void run()
+					{
+						int sleepTime = (int) (Math.random()*10 + 0.5);
+						Log.i("testPriorityScheduler", "Running job "+jobNo+" sleepTime="+sleepTime);
+						try { Thread.sleep(sleepTime*1000); } catch (Exception ex) {};
+					}
+				};
+				mCrestore.sessionScheduler.queue(r, jobNo%2);
+			}
+			try { Thread.sleep(15*1000); } catch (Exception ex) {};
+			Log.i("testPriorityScheduler", "shutting down the scheduler");
+			mCrestore.sessionScheduler.shutdownNow();
+			mCrestore.sessionScheduler = new PriorityScheduler("TxRx.canvas.crestore.sessionScheduler");;
+		}
 	}
 }

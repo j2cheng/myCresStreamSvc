@@ -124,7 +124,7 @@ public class AirMediaSession extends Session
 		final TimeSpan startTime = TimeSpan.now();
 		Common.Logging.i(TAG, "Session "+this+" scheduling "+request+" request");
 		Runnable r = new Runnable() { @Override public void run() { doSessionEvent(r_, o_, t_, startTime); } };
-		mCanvas.getCrestore().sessionScheduler.queue(r);
+		mCanvas.getCrestore().sessionScheduler.queue(r, PriorityScheduler.NORMAL_PRIORITY);
 	}
 	
 	public void connectRequest(Originator originator)

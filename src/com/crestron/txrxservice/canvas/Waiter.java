@@ -21,6 +21,7 @@ public class Waiter
 		{
 			retVal = latch.await(TimeSpan.toLong(timeout.totalMicroseconds()), TimeUnit.MICROSECONDS);
 		} catch (InterruptedException ex) {};
+		latch = null;
 		return !retVal; // true returned on timeout
 	}
 	

@@ -231,7 +231,7 @@ public class SessionManager
     
     public void clearAllSessions(boolean force)
     {
-		Common.Logging.i(TAG,"clearAllSessions() entered");
+		Common.Logging.i(TAG,"clearAllSessions() entered force="+force);
         for (Session session : sessions()) {
             if (session == null) continue;
             if (session.type != SessionType.AirMedia || force)
