@@ -123,8 +123,16 @@ public abstract class Session
 	public boolean isPaused() { return (state == SessionState.Pausing || state == SessionState.Paused); }
 	public boolean isConnecting() { return state == SessionState.Connecting;}
 
-	public void setState(SessionState state) { this.state = state; mSessionMgr.updateVideoStatus();}	
 	public SessionState getState() {return state;}
+	public void setState(SessionState state) 
+	{ 
+		this.state = state;
+		// if we are dealing with the old session in a replace operation no need to update status - will be updated after new session is started
+		if (inReplace() && sessionId().equalsIgnoreCase(replace.oldSessionId) && isStopped())
+			return;
+		mSessionMgr.updateVideoStatus();
+	}	
+
 	
 	public void setType(SessionType type) { this.type = type; }	
 	public SessionType getType() {return type;}

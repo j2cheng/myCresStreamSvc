@@ -140,7 +140,10 @@ public class CresDisplaySurfaceCanvas implements CresDisplaySurface
     	{
     		deleteSurface(idx);
     	}
-		surfaceMap.put(idx, s);
+    	else
+    	{
+    		surfaceMap.put(idx, s);
+    	}
     }
     
     // delete Surface for Window idx
