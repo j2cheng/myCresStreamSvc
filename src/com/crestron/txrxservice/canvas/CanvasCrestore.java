@@ -523,7 +523,7 @@ public class CanvasCrestore
 						if (srme != null)
 						{
 							Common.Logging.i(TAG, "handleSessionResponseSessionFailures(): failed session "+s+" requested state="+srme.state);
-							if (srme.state.equalsIgnoreCase("Play"))
+							if ((srme.state != null) && srme.state.equalsIgnoreCase("Play"))
 							{
 								// play request failed - put event into stopped state
 								if (se == null)
