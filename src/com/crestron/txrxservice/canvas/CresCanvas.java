@@ -545,6 +545,16 @@ public class CresCanvas
 		
 		public synchronized void addSurface(int streamId, Surface s)
 		{
+			if (streamId < 0 || streamId >= MAX_PRESENTING)
+			{
+				Common.Logging.w(TAG, "invalid streamId "+streamId+" passed to addSurface");
+				return;
+			}
+			if (s == null || !s.isValid())
+			{
+				Common.Logging.w(TAG, "null or invalid surface passed to addSurface for streamId "+streamId);
+				return;
+			}
 			surfaces[streamId] = s;
 		}
 		
@@ -563,7 +573,10 @@ public class CresCanvas
 			{
 				Log.e(TAG, "removeSurface: invalid streamId="+streamId);
 			}
-			surfaces[streamId] = null;
+			else
+			{
+				surfaces[streamId] = null;
+			}
 		}
 		
 	    public void releaseAllSurfaces()

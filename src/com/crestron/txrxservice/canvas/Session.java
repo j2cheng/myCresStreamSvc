@@ -254,8 +254,14 @@ public abstract class Session
 					return null;
 				}
 				surface = mCanvas.acquireSurface(sessionId(), getType());
-				if (surface != null)
+				if (surface != null && surface.isValid()) {
 					mStreamCtl.setSurface(streamId, surface);
+				} 
+				else
+				{
+					Common.Logging.w(TAG, "acquireSurface(): null or invalid surface acquired for "+sessionId());
+					return null;
+				}
 			} else {
 				Common.Logging.w(TAG, "Canvas is not up - cannot acquireSurface for "+sessionId());
 				return null;
@@ -294,6 +300,13 @@ public abstract class Session
 			if (!inReplace())
 				mCanvas.hideWindow(streamId); // TODO remove once real canvas app available
 		}
+		mCanvas.mSurfaceMgr.removeSurface(streamId);
+	}
+	
+	public void releaseSurface(int streamId, String sessionId)
+	{
+		mCanvas.releaseSurface(sessionId);
+		mStreamCtl.deleteSurface(streamId);
 		mCanvas.mSurfaceMgr.removeSurface(streamId);
 	}
 	
