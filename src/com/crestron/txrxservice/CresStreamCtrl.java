@@ -616,7 +616,9 @@ public class CresStreamCtrl extends Service {
             hideVideoOnStop = nativeHideVideoBeforeStop();
             if (nativeGetIsAirMediaEnabledEnum())
             {
-            	airMediav21 = true;	//default
+            	int productType = nativeGetProductTypeEnum();
+            	airMediav21 = ((CrestronProductName.fromInteger(productType) == CrestronProductName.Mercury) || 
+            			(CrestronProductName.fromInteger(productType) == CrestronProductName.DMPS_4K_STR)) ? false : true;	//default
             	
 	            //TODO remove once integration is over
 	            File f = new File("/data/CresStreamSvc/airMediav2.1");
@@ -883,7 +885,7 @@ public class CresStreamCtrl extends Service {
                 //    		}
 
                 // Special case to knock DMPS out of camera modes and force adapter to default value of 0 for each reboot
-                if (nativeGetProductTypeEnum() == 0x24)
+                if (CrestronProductName.fromInteger(nativeGetProductTypeEnum()) == CrestronProductName.DMPS_4K_STR)
                 {
                     // Does not support preview mode, set all to stream in
                     for (int sessionId = 0; sessionId < NumOfSurfaces; sessionId++)
@@ -896,7 +898,7 @@ public class CresStreamCtrl extends Service {
             }
             else
             {
-                if (nativeGetProductTypeEnum() == 0x24)
+                if (CrestronProductName.fromInteger(nativeGetProductTypeEnum()) == CrestronProductName.DMPS_4K_STR)
                 {
                     for (int sessionId = 0; sessionId < NumOfSurfaces; sessionId++)
                     {
@@ -4366,7 +4368,7 @@ public class CresStreamCtrl extends Service {
     public void sendAirMediaStoppedState(int sessionId)
     {
         // If DMPS send displayed join else use streamstate
-        if (nativeGetProductTypeEnum() == 0x24)
+        if (CrestronProductName.fromInteger(nativeGetProductTypeEnum()) == CrestronProductName.DMPS_4K_STR)
         {
             sendAirMediaDisplayed(false);
         }
@@ -4386,7 +4388,7 @@ public class CresStreamCtrl extends Service {
     public void sendAirMediaStartedState(int sessionId)
     {
         // If DMPS send displayed join else use streamstate
-        if (nativeGetProductTypeEnum() == 0x24)
+        if (CrestronProductName.fromInteger(nativeGetProductTypeEnum()) == CrestronProductName.DMPS_4K_STR)
         {
             sendAirMediaDisplayed(true);
         }
@@ -5795,7 +5797,7 @@ public class CresStreamCtrl extends Service {
                     setCameraAndRestartStreams(resolutionId); //we need to restart streams for resolution change
 
                     //Wait 5 seconds before sending hdmi in sync state - bug 96552
-                    if (nativeGetProductTypeEnum() == 0x1C)	// ONLY FOR TXRX, rest immediately send
+                    if (CrestronProductName.fromInteger(nativeGetProductTypeEnum()) == CrestronProductName.TXRX)	// ONLY FOR TXRX, rest immediately send
                     {
                         new Thread(new Runnable() {
                             public void run() {
