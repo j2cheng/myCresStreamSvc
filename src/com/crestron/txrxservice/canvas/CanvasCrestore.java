@@ -1000,7 +1000,7 @@ public class CanvasCrestore
     	
     	public void message(boolean pending, String json)
     	{
-    		    		
+    		Common.Logging.v(TAG, "message(): pending="+pending+"   json="+json);    		
     		try
     		{
     			final Root root = gson.fromJson(json, Root.class);
@@ -1013,8 +1013,8 @@ public class CanvasCrestore
 
         		if (root.internal != null && root.internal.airMedia != null && root.internal.airMedia.canvas != null) {
         			parsed = true;
-        			//Common.Logging.v(TAG, "Internal/AirMedia/Canvas parsed from json string");
-        			//Common.Logging.v(TAG, "JSON string is "+gson.toJson(root));
+        			Common.Logging.v(TAG, "Internal/AirMedia/Canvas parsed from json string");
+        			Common.Logging.v(TAG, "JSON string is "+gson.toJson(root));
         			if (root.internal.airMedia.canvas.sessionEvent != null)
         			{
         				if (CresCanvas.useSimulatedAVF)
@@ -1070,8 +1070,8 @@ public class CanvasCrestore
         		}
         		if (root.device != null && root.device.airMedia != null && root.device.airMedia.canvas != null) {
         			parsed = true;
-        			Common.Logging.i(TAG, "Device/AirMedia/AirMediaCanvas parsed from json string");
-        			Common.Logging.i(TAG, "Device string is "+gson.toJson(root));
+        			Common.Logging.v(TAG, "Device/AirMedia/AirMediaCanvas parsed from json string");
+        			Common.Logging.v(TAG, "Device string is "+gson.toJson(root));
         			if (root.device.airMedia.canvas.canvasUserLayoutChangeRequest != null)
         			{
         				Common.Logging.i(TAG, "Canvas User Layout Change Request "+gson.toJson(root.device.airMedia.canvas.canvasUserLayoutChangeRequest));
@@ -1120,8 +1120,8 @@ public class CanvasCrestore
         		}
 
         		if (!parsed) {
-        			Common.Logging.i(TAG, "Device could not be parsed from json string");
-        			Common.Logging.i(TAG, "Device string is "+gson.toJson(root));
+        			Common.Logging.v(TAG, "Could not be parse json string:" + json);
+        			Common.Logging.v(TAG, "String is "+gson.toJson(root));
         		}
     		} catch (Exception ex) {
     			Common.Logging.i(TAG, "CresStoreCallback(): Could not deserialize "+json);
@@ -1133,7 +1133,7 @@ public class CanvasCrestore
     	public void update(String json)
     	{
     		boolean pending = false;
-			//Common.Logging.i(TAG, "Device Callback: "+json);
+			Common.Logging.v(TAG, "Device Callback: "+json);
 
     		if (json.contains("\"Pending\":"))
     		{
@@ -1165,7 +1165,8 @@ public class CanvasCrestore
         		json = subStr;
     		}
 
-    		message(pending, json);   		
+    		message(pending, json);  
+    		Common.Logging.v(TAG, "exit from device callback: json="+json);    		
     	}
     	
     	
