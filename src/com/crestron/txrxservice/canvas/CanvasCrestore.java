@@ -593,7 +593,7 @@ public class CanvasCrestore
 						Common.Logging.i(TAG, "Adding "+sessionId+" to playList");
 						playList.add(sessionId);
 					}
-					if (Common.isEqualIgnoreCase(value.state, "Stop") && session.isPlaying())
+					if (Common.isEqualIgnoreCase(value.state, "Stop") && (session.isPlaying() || session.isPaused()))
 					{
 						Common.Logging.i(TAG, "Adding "+sessionId+" to stopList");
 						stopList.add(sessionId);
