@@ -174,8 +174,10 @@ public class AirMediaSession extends Session
 		setStreamId();
 		if (streamId >= 0)
 			Common.Logging.i(TAG, "AirMediaSession Session "+this+" got streamId "+streamId);
-		else
+		else {
 			Common.Logging.e(TAG, "doPlay(): ****** AirMediaSession "+this+" invalid streamId "+streamId+" *****");
+			return false;
+		}
 		surface = acquireSurface();
 		if (surface == null || !surface.isValid())
 		{
@@ -186,8 +188,8 @@ public class AirMediaSession extends Session
 		if (airMediaReceiverSession  == null)
 		{
 			Common.Logging.i(TAG, "AirMediaSession::doPlay(): AirMediaSession "+this+" has a null receiver session ");
+			releaseSurface();
 			streamId = -1;
-			releaseSurface();		
 			return false;
 		}
 		Common.Logging.i(TAG, "AirMediaSession "+this+" attaching surface "+surface);
@@ -230,7 +232,13 @@ public class AirMediaSession extends Session
 		else
 		{
 			Common.Logging.w(TAG, "Session "+this+" play command failed");
-			setState(SessionState.Stopped);
+			if (getVideoState() != AirMediaSessionStreamingState.Stopped)
+			{
+				setState(SessionState.Playing);
+			} else
+			{
+				setState(SessionState.Stopped);
+			}
 			originator.failedSessionList.add(this);
 		}
 	}
@@ -281,8 +289,13 @@ public class AirMediaSession extends Session
 			Common.Logging.i(TAG, "AirMediaSession::doStop(): AirMediaSession "+this+" has a null receiver session ");
 			return false;
 		}
-		airMediaReceiverSession.detach();
-		releaseSurface();
+		if (surface != null)
+		{
+			airMediaReceiverSession.detach();
+			releaseSurface();
+		} else {
+			Common.Logging.i(TAG, "AirMediaSession::doStop(): AirMediaSession "+this+" has a null surface - nothing to detach and release ");
+		}
 		Common.Logging.i(TAG, "AirMediaSession "+this+" send stop to csio");
 		mStreamCtl.sendAirMediaStart(streamId, false);
 		mStreamCtl.mUsedForAirMedia[streamId] = false;
@@ -522,7 +535,8 @@ public class AirMediaSession extends Session
 	
 	public synchronized void releaseSurface()
 	{
-		super.releaseSurface();
+		if (surface != null)
+			super.releaseSurface();
 		surface = null;
 	}
 	

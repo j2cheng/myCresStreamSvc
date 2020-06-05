@@ -260,6 +260,8 @@ public abstract class Session
 				else
 				{
 					Common.Logging.w(TAG, "acquireSurface(): null or invalid surface acquired for "+sessionId());
+					if (surface != null)
+						releaseSurface(streamId, sessionId());
 					return null;
 				}
 			} else {
