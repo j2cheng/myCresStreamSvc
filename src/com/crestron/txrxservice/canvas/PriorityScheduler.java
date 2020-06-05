@@ -6,6 +6,7 @@ import java.util.UUID;
 import java.util.concurrent.Callable;
 import java.util.concurrent.CancellationException;
 import java.util.concurrent.ConcurrentHashMap;
+import java.util.concurrent.CountDownLatch;
 import java.util.concurrent.ExecutionException;
 import java.util.concurrent.Future;
 import java.util.concurrent.LinkedBlockingQueue;
@@ -54,12 +55,22 @@ public class PriorityScheduler
 		public int priority;
 		public long insertionTime;
 		Runnable task;
+		CountDownLatch latch;
 		
 		public PriorityRunnable(Runnable r, int priority, long insertionTime)
 		{
 			this.priority = priority;
 			this.insertionTime = insertionTime;
 			this.task = r;
+			this.latch = null;
+		}
+		
+		public PriorityRunnable(Runnable r, int priority, CountDownLatch latch, long insertionTime)
+		{
+			this.priority = priority;
+			this.insertionTime = insertionTime;
+			this.task = r;
+			this.latch = latch;
 		}
 	}
 
@@ -79,9 +90,10 @@ public class PriorityScheduler
 	
     public void execute()
     {
+    	PriorityRunnable pr = null;
     	while (!shutDown) {
     		try {
-    			PriorityRunnable pr = priorityQueue.take();
+    			pr = priorityQueue.take();
     			Future<?> future = scheduler.submit(pr.task);
     			future.get();
     		} catch (InterruptedException e) {
@@ -89,6 +101,11 @@ public class PriorityScheduler
     		} catch (ExecutionException e) {
 				Common.Logging.e(TAG, "  EXCEPTION  " + e + "  " + Log.getStackTraceString(e));
     		}
+			if (pr != null && pr.latch != null)
+			{
+				pr.latch.countDown();
+				pr.latch = null;
+			}
     	}
 		Common.Logging.i(TAG, "exit from execute thread");
     }
@@ -114,6 +131,19 @@ public class PriorityScheduler
 		long insertionTime = System.nanoTime();
 		priorityQueue.add(new PriorityRunnable(task, priority, insertionTime));
 		Common.Logging.i(TAG, "Pending tasks in queue: "+priorityQueue.size());
+	}
+	
+	public void execute(Runnable task, int priority) 
+	{
+		CountDownLatch latch = new CountDownLatch(1);
+		long insertionTime = System.nanoTime();
+		priorityQueue.add(new PriorityRunnable(task, priority, latch, insertionTime));
+		Common.Logging.i(TAG, "Pending tasks in queue: "+priorityQueue.size());
+        try {
+            latch.await();
+        } catch (InterruptedException e) {
+            e.printStackTrace();
+        }
 	}
 	
 	public class Scheduler extends ThreadPoolExecutor

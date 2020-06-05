@@ -234,7 +234,7 @@ public class CanvasCrestore
 					doSessionEvent(e, originator, timeoutInSecs, status);
 				}
 			};
-			sessionScheduler.queue(r, PriorityScheduler.NORMAL_PRIORITY);
+			sessionScheduler.execute(r, PriorityScheduler.NORMAL_PRIORITY);
 		} else {
 			// already called from within a task running on the scheduler.  Process the event inline since putting on queue will deadlock
 			doSessionEvent(e, originator, timeoutInSecs, status);

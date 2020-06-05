@@ -90,9 +90,10 @@ public class CanvasSourceManager {
     	if (e == null)
     		return response;
  
-    	Common.Logging.i(TAG, "processing canvas source request");    	
+    	Common.Logging.i(TAG, "processRequest(): processing canvas source request");    	
     	Originator originator = new Originator(RequestOrigin.CanvasSourceRequest, response);
     	boolean success = mCresStore.doSynchronousSessionEvent(e, originator, CanvasSourceRequestTimeout);
+		Common.Logging.i(TAG,"processRequest(): completed canvas source request - success="+success);
     	if (response.getErrorCode() == CanvasResponse.ErrorCodes.OK)
     	{
     		if (!success)
