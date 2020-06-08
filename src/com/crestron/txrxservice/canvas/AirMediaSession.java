@@ -255,7 +255,7 @@ public class AirMediaSession extends Session
 		waiterForPlayRequestToUser.prepForWait();
 		receiverCmdScheduler.queue(new Runnable() { @Override public void run() { _play(); }; });	
 		boolean timeout = waiterForPlayRequestToUser.waitForSignal(TimeSpan.fromSeconds(5));
-		Common.Logging.i(TAG, "Session "+this+" play signal received (timeout=%d)"+timeout);
+		Common.Logging.i(TAG, "Session "+this+" play signal received (timeout="+timeout+")");
 		return !timeout;
 	}
 	
@@ -356,7 +356,7 @@ public class AirMediaSession extends Session
 		waiterForStopRequestToUser.prepForWait();
 		receiverCmdScheduler.queue(new Runnable() { @Override public void run() { _stop(); }; });	
         boolean timeout = waiterForStopRequestToUser.waitForSignal(TimeSpan.fromSeconds(5));
-		Common.Logging.i(TAG, "Session "+this+" stop signal received (timeout=%d)"+timeout);
+		Common.Logging.i(TAG, "Session "+this+" stop signal received (timeout="+timeout+")");
 		return !timeout;
 	}
 	

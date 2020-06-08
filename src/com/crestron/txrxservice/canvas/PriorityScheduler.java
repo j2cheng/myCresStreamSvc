@@ -27,6 +27,7 @@ public class PriorityScheduler
     public long ownThreadId = 0;
     Scheduler scheduler;
 	private PriorityBlockingQueue<PriorityRunnable> priorityQueue;
+	Thread executeThread;
 	private boolean shutDown = false;
 	public final static int HIGH_PRIORITY=0;
 	public final static int NORMAL_PRIORITY=1;
@@ -55,22 +56,12 @@ public class PriorityScheduler
 		public int priority;
 		public long insertionTime;
 		Runnable task;
-		CountDownLatch latch;
 		
 		public PriorityRunnable(Runnable r, int priority, long insertionTime)
 		{
 			this.priority = priority;
 			this.insertionTime = insertionTime;
 			this.task = r;
-			this.latch = null;
-		}
-		
-		public PriorityRunnable(Runnable r, int priority, CountDownLatch latch, long insertionTime)
-		{
-			this.priority = priority;
-			this.insertionTime = insertionTime;
-			this.task = r;
-			this.latch = latch;
 		}
 	}
 
@@ -79,7 +70,7 @@ public class PriorityScheduler
     	scheduler = new Scheduler();
     	TAG = tag;
     	priorityQueue = new PriorityBlockingQueue<PriorityRunnable>(21, new PrioritySchedulerComparator());
-    	Thread executeThread = new Thread(new Runnable() { @Override public void run() { execute(); } } );
+    	executeThread = new Thread(new Runnable() { @Override public void run() { execute(); } } );
     	executeThread.start();
     }
     
@@ -90,22 +81,19 @@ public class PriorityScheduler
 	
     public void execute()
     {
-    	PriorityRunnable pr = null;
     	while (!shutDown) {
     		try {
-    			pr = priorityQueue.take();
+    			PriorityRunnable pr = priorityQueue.take();
     			Future<?> future = scheduler.submit(pr.task);
     			future.get();
     		} catch (InterruptedException e) {
-				Common.Logging.e(TAG, "  EXCEPTION  " + e + "  " + Log.getStackTraceString(e));
+    			if (!shutDown)
+    				Common.Logging.e(TAG, "  EXCEPTION  " + e + "  " + Log.getStackTraceString(e));
+    			else
+    				Common.Logging.e(TAG, " shutdown interrupt causing exit from execute thread");
     		} catch (ExecutionException e) {
 				Common.Logging.e(TAG, "  EXCEPTION  " + e + "  " + Log.getStackTraceString(e));
     		}
-			if (pr != null && pr.latch != null)
-			{
-				pr.latch.countDown();
-				pr.latch = null;
-			}
     	}
 		Common.Logging.i(TAG, "exit from execute thread");
     }
@@ -121,6 +109,7 @@ public class PriorityScheduler
     		scheduler.shutdownNow();
     	}
     	priorityQueue.clear();
+    	executeThread.interrupt();
 		Common.Logging.i(TAG, "shutdown completed");
     }
     
@@ -131,19 +120,6 @@ public class PriorityScheduler
 		long insertionTime = System.nanoTime();
 		priorityQueue.add(new PriorityRunnable(task, priority, insertionTime));
 		Common.Logging.i(TAG, "Pending tasks in queue: "+priorityQueue.size());
-	}
-	
-	public void execute(Runnable task, int priority) 
-	{
-		CountDownLatch latch = new CountDownLatch(1);
-		long insertionTime = System.nanoTime();
-		priorityQueue.add(new PriorityRunnable(task, priority, latch, insertionTime));
-		Common.Logging.i(TAG, "Pending tasks in queue: "+priorityQueue.size());
-        try {
-            latch.await();
-        } catch (InterruptedException e) {
-            e.printStackTrace();
-        }
 	}
 	
 	public class Scheduler extends ThreadPoolExecutor

@@ -644,15 +644,49 @@ public class CresCanvas
 					public void run()
 					{
 						int sleepTime = (int) (Math.random()*10 + 0.5);
-						Log.i("testPriorityScheduler", "Running job "+jobNo+" sleepTime="+sleepTime);
+						Log.i(TAG, "testPriorityScheduler(): Running job "+jobNo+" sleepTime="+sleepTime);
 						try { Thread.sleep(sleepTime*1000); } catch (Exception ex) {};
 					}
 				};
 				mCrestore.sessionScheduler.queue(r, jobNo%2);
 			}
 			try { Thread.sleep(15*1000); } catch (Exception ex) {};
-			Log.i("testPriorityScheduler", "shutting down the scheduler");
+			Log.i(TAG, "testPriorityScheduler(): shutting down the scheduler");
 			mCrestore.sessionScheduler.shutdownNow();
+			mCrestore.sessionScheduler = new PriorityScheduler("TxRx.canvas.crestore.sessionScheduler");;
+		}
+		else if (args[0].equalsIgnoreCase("testPrioritySchedulerShutDown"))
+		{
+			new Thread(new Runnable() {
+				@Override 
+				public void run()
+				{
+					final CountDownLatch latch = new CountDownLatch(1);
+					Runnable r = new Runnable () {
+						@Override
+						public void run()
+						{
+							int sleepTime = 100;
+							Log.i(TAG, "testPrioritySchedulerShutDown(): Running job sleepTime="+sleepTime);
+							try { Thread.sleep(sleepTime*1000); } catch (Exception ex) {};
+							Log.i(TAG, "testPrioritySchedulerShutDown():doing countdown on latch");
+							latch.countDown();
+						}
+					};
+					mCrestore.sessionScheduler.queue(r, PriorityScheduler.NORMAL_PRIORITY);
+					try {
+						latch.await();
+					} 
+					catch(Exception e)
+					{
+						Common.Logging.i(TAG,  "testPrioritySchedulerShutDown(): interrupted exception for latch await");
+					}
+				}
+			}).start();
+			try { Thread.sleep(5*1000); } catch (Exception ex) {};
+			Log.i(TAG, "testPrioritySchedulerShutDown(): shutting down the scheduler");
+			mCrestore.sessionScheduler.shutdownNow();
+			Log.i(TAG, "testPrioritySchedulerShutDown(): shutdown complete");
 			mCrestore.sessionScheduler = new PriorityScheduler("TxRx.canvas.crestore.sessionScheduler");;
 		}
 	}

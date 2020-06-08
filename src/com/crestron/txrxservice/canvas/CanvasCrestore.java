@@ -228,13 +228,19 @@ public class CanvasCrestore
 		if (!sessionScheduler.inOwnThread())
 		{
 			// being called from a thread outside the scheduler.  Put the event on the queue and let scheduler process it in order
+			// but wait for completion since it is synchronous
+			final CountDownLatch completedLatch = new CountDownLatch(1);
 			Runnable r = new Runnable() {
 				@Override 
 				public void run() { 
 					doSessionEvent(e, originator, timeoutInSecs, status);
+					completedLatch.countDown();
 				}
 			};
-			sessionScheduler.execute(r, PriorityScheduler.NORMAL_PRIORITY);
+			sessionScheduler.queue(r, PriorityScheduler.NORMAL_PRIORITY);
+			try {
+				completedLatch.await();
+			} catch (InterruptedException ex) {}
 		} else {
 			// already called from within a task running on the scheduler.  Process the event inline since putting on queue will deadlock
 			doSessionEvent(e, originator, timeoutInSecs, status);
