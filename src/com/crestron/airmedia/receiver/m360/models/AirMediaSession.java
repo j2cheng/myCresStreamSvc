@@ -17,6 +17,7 @@ import com.crestron.airmedia.utilities.Common;
 import com.crestron.airmedia.utilities.TaskScheduler;
 import com.crestron.airmedia.utilities.ViewBase;
 import com.crestron.airmedia.utilities.delegates.MulticastChangedDelegate;
+import com.crestron.airmedia.utilities.delegates.MulticastDelegate;
 import com.crestron.airmedia.utilities.delegates.MulticastMessageDelegate;
 import com.crestron.airmedia.utilities.delegates.Observer;
 import com.crestron.airmedia.utilities.TimeSpan;
@@ -200,7 +201,7 @@ public class AirMediaSession extends AirMediaBase {
         @Override
         public int onVideoSurfaceRenewRequest() throws RemoteException {
             Common.Logging.v(TAG, "IAirMediaSessionObserver.onVideoSurfaceRenewRequest  " + AirMediaSession.toDebugString(self()));
-            videoSurfaceRenewRequest().raise(AirMediaSession.this, null);
+            scheduler().raise(videoSurfaceRenewRequest(), self());
             return -2;
         }
         
@@ -307,7 +308,7 @@ public class AirMediaSession extends AirMediaBase {
     private final MulticastMessageDelegate<AirMediaSession, Boolean> videoDrmChanged_ = new MulticastMessageDelegate<AirMediaSession, Boolean>();
     private final MulticastMessageDelegate<AirMediaSession, Boolean> videoLoadingChanged_ = new MulticastMessageDelegate<AirMediaSession, Boolean>();
     private final MulticastChangedDelegate<AirMediaSession, AirMediaSessionScreenPosition> videoScreenPositionChanged_ = new MulticastChangedDelegate<AirMediaSession, AirMediaSessionScreenPosition>();
-    private final MulticastMessageDelegate<AirMediaSession, Object> videoSurfaceRenewRequest_ = new MulticastMessageDelegate<AirMediaSession, Object>();
+    private final MulticastDelegate<AirMediaSession> videoSurfaceRenewRequest_ = new MulticastDelegate<AirMediaSession>();
 
     private final MulticastChangedDelegate<AirMediaSession, AirMediaSessionStreamingState> audioStateChanged_ = new MulticastChangedDelegate<AirMediaSession, AirMediaSessionStreamingState>();
     private final MulticastMessageDelegate<AirMediaSession, Boolean> audioMuteChanged_ = new MulticastMessageDelegate<AirMediaSession, Boolean>();
@@ -460,7 +461,7 @@ public class AirMediaSession extends AirMediaBase {
     public MulticastMessageDelegate<AirMediaSession, Boolean> videoDrmChanged() { return videoDrmChanged_; }
     public MulticastMessageDelegate<AirMediaSession, Boolean> videoLoadingChanged() { return videoLoadingChanged_; }
     public MulticastChangedDelegate<AirMediaSession, AirMediaSessionScreenPosition> videoScreenPositionChanged() { return videoScreenPositionChanged_; }
-    public MulticastMessageDelegate<AirMediaSession, Object> videoSurfaceRenewRequest() { return videoSurfaceRenewRequest_; }
+    public MulticastDelegate<AirMediaSession> videoSurfaceRenewRequest() { return videoSurfaceRenewRequest_; }
 
     /// AUDIO
 

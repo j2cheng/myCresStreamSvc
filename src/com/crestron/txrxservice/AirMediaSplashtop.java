@@ -49,6 +49,7 @@ import com.crestron.airmedia.utilities.ViewBase.Size;
 import com.crestron.airmedia.utilities.Common;
 import com.crestron.airmedia.utilities.delegates.MulticastChangedDelegate;
 import com.crestron.airmedia.utilities.delegates.MulticastChangedWithReasonDelegate;
+import com.crestron.airmedia.utilities.delegates.MulticastDelegate;
 import com.crestron.airmedia.utilities.delegates.MulticastMessageDelegate;
 import com.crestron.airmedia.utilities.TimeSpan;
 
@@ -3188,10 +3189,10 @@ public class AirMediaSplashtop
                 }
             };
 
-    private final MulticastMessageDelegate.Observer<AirMediaSession, Object> videoSurfaceRenewRequestHandler_ =
-            		new MulticastMessageDelegate.Observer<AirMediaSession, Object>() {
+    private final MulticastDelegate.Observer<AirMediaSession> videoSurfaceRenewRequestHandler_ =
+            		new MulticastDelegate.Observer<AirMediaSession>() {
             	@Override
-            	public void onEvent(AirMediaSession session, Object o) {
+            	public void onEvent(AirMediaSession session) {
             		Common.Logging.i(TAG, "view.session.event.video.surface.renew.request  " + AirMediaSession.toDebugString(session));
             		// TODO Handle video screen position change
  	        	   if (mCanvas != null) {
