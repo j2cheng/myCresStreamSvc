@@ -3,6 +3,8 @@ package com.crestron.txrxservice.canvas;
 import java.util.concurrent.atomic.AtomicBoolean;
 
 import com.crestron.airmedia.canvas.channels.ipc.CanvasPlatformType;
+import com.crestron.airmedia.canvas.channels.ipc.CanvasResponse;
+import com.crestron.airmedia.canvas.channels.ipc.CanvasSurfaceAcquireResponse;
 import com.crestron.airmedia.canvas.channels.ipc.CanvasVideoType;
 import com.crestron.airmedia.receiver.m360.ipc.AirMediaPlatforms;
 import com.crestron.airmedia.receiver.m360.ipc.AirMediaSessionStreamingState;
@@ -26,6 +28,7 @@ public class AirMediaSession extends Session
     public Waiter waiterForDisconnectRequestToUser = null;
     public Scheduler receiverCmdScheduler = new Scheduler("TxRx.airmedia.session.receiverCmd");
     private AtomicBoolean alreadyDisconnected = null;         // receiver has already disconnected sessopm
+    private CanvasSurfaceAcquireResponse surfaceRenewRequestResponse;
     Surface surface=null;
     		
 	public AirMediaSession(com.crestron.airmedia.receiver.m360.models.AirMediaSession session, String label) {
@@ -439,6 +442,62 @@ public class AirMediaSession extends Session
 			disconnectRequest(originator);
 		}
 		Common.Logging.i(TAG, "setDisconnected(): Session "+this+" exit");
+	}
+
+	public void renewSurfaceRequest()
+	{
+		Runnable processSurfaceRenewRequest = new Runnable() {
+			@Override
+			public void run()
+			{
+				try {
+					surfaceRenewRequestResponse = mCanvas.mAirMediaCanvas.service().surfaceRenew(sessionId());
+				} catch(android.os.RemoteException ex)
+				{
+					Common.Logging.e(TAG, "exception encountered while calling surfaceRenew for session: "+sessionId());
+					ex.printStackTrace();
+				}
+				if (surfaceRenewRequestResponse == null || !surfaceRenewRequestResponse.isSucceeded()) {
+					Common.Logging.e(TAG, "Canvas App failed to renew surface for session: "+sessionId());
+					return;
+				}
+				final Surface s = surfaceRenewRequestResponse.surface;
+				if (s == null || !s.isValid())
+				{
+					Common.Logging.e(TAG, "renew request response returned null or invalid surface for session: "+sessionId());
+					return;
+				}
+				// schedule processing of the response on the same scheduler as sessionResponses from AVF
+				Runnable processSurfaceRenewResponse = new Runnable() { @Override public void run() { renewSurfaceResponse(s); }};
+				mCanvas.mCrestore.sessionResponseScheduler.queue(processSurfaceRenewResponse);
+			}
+		};	
+		// schedule processing of the request on the session scheduler
+		mCanvas.mCrestore.sessionScheduler.queue(processSurfaceRenewRequest, PriorityScheduler.NORMAL_PRIORITY);
+	}
+	
+	public void renewSurfaceResponse(Surface s)
+	{
+		if (getVideoState() == AirMediaSessionStreamingState.Stopped)
+		{
+			Common.Logging.i(TAG, "renewSurfaceResponse(): AirMediaSession "+this+" video state is stopped");
+			return;
+		}
+		if (!(isPlaying() || isPaused()))
+		{
+			Common.Logging.i(TAG, "renewSurfaceResponse(): AirMediaSession "+this+" state is "+getState());
+			return;
+		}
+		if (airMediaReceiverSession == null)
+		{
+			Common.Logging.i(TAG, "renewSurfaceResponse(): AirMediaSession "+this+" has a null receiver session ");
+			return;
+		}
+		Common.Logging.i(TAG, "renewSurfaceResponse(): AirMediaSession "+this+" renewed surface="+s);
+		this.surface = s;
+		super.renewSurface(s);
+		Common.Logging.i(TAG, "renewSurfaceResponse(): AirMediaSession "+this+" attaching surface "+s);
+		airMediaReceiverSession.attach(surface);
 	}
 
 	public AirMediaSessionStreamingState getVideoState()

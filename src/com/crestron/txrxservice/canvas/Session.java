@@ -312,6 +312,14 @@ public abstract class Session
 		mCanvas.mSurfaceMgr.removeSurface(streamId);
 	}
 	
+	public void renewSurface(Surface surface)
+	{
+		if (surface != null && surface.isValid()) {
+			mStreamCtl.setSurface(streamId, surface);
+		}
+		mCanvas.mSurfaceMgr.addSurface(streamId, surface);
+	}
+	
 	public Rect getWindow(Surface s)
 	{
 		return mCanvas.getWindow(mCanvas.mSurfaceMgr.surface2StreamId(s));

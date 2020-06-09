@@ -63,4 +63,8 @@ interface IAirMediaSessionObserver {
 
     void onRemoteAudioMuteChanged(in boolean to);
     void onRemoteAudioVolumeChanged(in float from, in float to);
+    
+    /// VIDEO
+
+    int onVideoSurfaceRenewRequest();
 }

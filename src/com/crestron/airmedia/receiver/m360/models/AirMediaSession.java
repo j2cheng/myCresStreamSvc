@@ -198,6 +198,13 @@ public class AirMediaSession extends AirMediaBase {
         }
 
         @Override
+        public int onVideoSurfaceRenewRequest() throws RemoteException {
+            Common.Logging.v(TAG, "IAirMediaSessionObserver.onVideoSurfaceRenewRequest  " + AirMediaSession.toDebugString(self()));
+            videoSurfaceRenewRequest().raise(AirMediaSession.this, null);
+            return -2;
+        }
+        
+        @Override
         public void onAudioStateChanged(AirMediaSessionStreamingState from, AirMediaSessionStreamingState to) throws RemoteException {
             Common.Logging.v(TAG, "IAirMediaSessionObserver.onAudioStateChanged  " + AirMediaSession.toDebugString(self()) + "  " + from + "  ==>  " + to);
             audioState_ = to;
@@ -300,6 +307,7 @@ public class AirMediaSession extends AirMediaBase {
     private final MulticastMessageDelegate<AirMediaSession, Boolean> videoDrmChanged_ = new MulticastMessageDelegate<AirMediaSession, Boolean>();
     private final MulticastMessageDelegate<AirMediaSession, Boolean> videoLoadingChanged_ = new MulticastMessageDelegate<AirMediaSession, Boolean>();
     private final MulticastChangedDelegate<AirMediaSession, AirMediaSessionScreenPosition> videoScreenPositionChanged_ = new MulticastChangedDelegate<AirMediaSession, AirMediaSessionScreenPosition>();
+    private final MulticastMessageDelegate<AirMediaSession, Object> videoSurfaceRenewRequest_ = new MulticastMessageDelegate<AirMediaSession, Object>();
 
     private final MulticastChangedDelegate<AirMediaSession, AirMediaSessionStreamingState> audioStateChanged_ = new MulticastChangedDelegate<AirMediaSession, AirMediaSessionStreamingState>();
     private final MulticastMessageDelegate<AirMediaSession, Boolean> audioMuteChanged_ = new MulticastMessageDelegate<AirMediaSession, Boolean>();
@@ -452,6 +460,7 @@ public class AirMediaSession extends AirMediaBase {
     public MulticastMessageDelegate<AirMediaSession, Boolean> videoDrmChanged() { return videoDrmChanged_; }
     public MulticastMessageDelegate<AirMediaSession, Boolean> videoLoadingChanged() { return videoLoadingChanged_; }
     public MulticastChangedDelegate<AirMediaSession, AirMediaSessionScreenPosition> videoScreenPositionChanged() { return videoScreenPositionChanged_; }
+    public MulticastMessageDelegate<AirMediaSession, Object> videoSurfaceRenewRequest() { return videoSurfaceRenewRequest_; }
 
     /// AUDIO
 

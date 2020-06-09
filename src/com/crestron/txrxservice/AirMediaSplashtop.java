@@ -2900,6 +2900,7 @@ public class AirMediaSplashtop
     	session.videoDrmChanged().register(videoDrmChangedHandler_);
     	session.videoLoadingChanged().register(videoLoadingChangedHandler_);
     	session.videoScreenPositionChanged().register(videoScreenPositionHandler_);
+    	session.videoSurfaceRenewRequest().register(videoSurfaceRenewRequestHandler_);
     	session.audioStateChanged().register(audioStateChangedHandler_);
     	session.audioMuteChanged().register(audioMuteChangedHandler_);
     	session.audioVolumeChanged().register(audioVolumeChangedHandler_);
@@ -2922,6 +2923,7 @@ public class AirMediaSplashtop
     	session.videoSurfaceChanged().unregister(videoSurfaceChangedHandler_);
     	session.videoDrmChanged().unregister(videoDrmChangedHandler_);
     	session.videoScreenPositionChanged().unregister(videoScreenPositionHandler_);
+    	session.videoSurfaceRenewRequest().unregister(videoSurfaceRenewRequestHandler_);
     	session.audioStateChanged().unregister(audioStateChangedHandler_);
     	session.audioMuteChanged().unregister(audioMuteChangedHandler_);
     	session.audioVolumeChanged().unregister(audioVolumeChangedHandler_);
@@ -3186,6 +3188,22 @@ public class AirMediaSplashtop
                 }
             };
 
+    private final MulticastMessageDelegate.Observer<AirMediaSession, Object> videoSurfaceRenewRequestHandler_ =
+            		new MulticastMessageDelegate.Observer<AirMediaSession, Object>() {
+            	@Override
+            	public void onEvent(AirMediaSession session, Object o) {
+            		Common.Logging.i(TAG, "view.session.event.video.surface.renew.request  " + AirMediaSession.toDebugString(session));
+            		// TODO Handle video screen position change
+ 	        	   if (mCanvas != null) {
+	        		   com.crestron.txrxservice.canvas.AirMediaSession s = canvasSessionMap.get(session.id());
+	        		   if (s != null)
+	        		   {
+	        			   s.renewSurfaceRequest();
+	        		   }
+	        	   }
+            	}
+            };
+                    
     private final MulticastChangedDelegate.Observer<AirMediaSession, AirMediaSessionStreamingState> audioStateChangedHandler_ =
             new MulticastChangedDelegate.Observer<AirMediaSession, AirMediaSessionStreamingState>() {
                 @Override
