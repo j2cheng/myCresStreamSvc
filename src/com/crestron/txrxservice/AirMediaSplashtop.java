@@ -2134,7 +2134,8 @@ public class AirMediaSplashtop
 		{
 			AirMediaSessionInfo info = session.info();
 			this.SessionType = getSessionType(session);
-			this.IsClientActive = Boolean.valueOf(session.videoState() == AirMediaSessionStreamingState.Playing);
+			this.IsClientActive = Boolean.valueOf((session.videoState() == AirMediaSessionStreamingState.Playing) ||
+					(session.videoState() == AirMediaSessionStreamingState.Paused));
 			this.IpAddress = ((List<String>)session.addresses()).get(0);
 			if (this.IpAddress == null)
 			{
@@ -2218,7 +2219,7 @@ public class AirMediaSplashtop
 						{
 							for (Map.Entry<Long, com.crestron.txrxservice.canvas.AirMediaSession> e : canvasSessionMap.entrySet()) {
 								com.crestron.txrxservice.canvas.AirMediaSession cs = e.getValue();
-								if (cs.videoState == AirMediaSessionStreamingState.Playing)
+								if (cs.videoState == AirMediaSessionStreamingState.Playing || cs.videoState == AirMediaSessionStreamingState.Paused)
 								{
 									status = "Presenting";
 									break;
@@ -3086,7 +3087,7 @@ public class AirMediaSplashtop
                     		  {
                     			  s.setVideoState(AirMediaSessionStreamingState.Paused);
                     		  }
-                  			  sendClientDataIsActiveSession(session, false);	
+                  			  sendClientDataIsActiveSession(session, true);	
                     	  }
                       }
                 }
