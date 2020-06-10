@@ -130,6 +130,8 @@ public abstract class Session
 		// if we are dealing with the old session in a replace operation no need to update status - will be updated after new session is started
 		if (inReplace() && sessionId().equalsIgnoreCase(replace.oldSessionId) && isStopped())
 			return;
+		if (inReplace() && sessionId().equalsIgnoreCase(replace.oldSessionId) && (state == SessionState.Disconnecting))
+			return;
 		// in a replace while session is starting do not want to pop-up PPUX
 		if (inReplace() && sessionId().equalsIgnoreCase(replace.newSessionId) && (state == SessionState.Starting))
 			return;
