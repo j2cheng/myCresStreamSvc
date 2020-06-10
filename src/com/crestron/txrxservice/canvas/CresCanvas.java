@@ -330,12 +330,14 @@ public class CresCanvas
 				
 				Common.Logging.e(TAG, "HDMI sync is true with existing HDMI session in state "+session.state);
 				mCrestore.doSynchronousSessionEvent(session, "Disconnect", origin, HdmiTimeout);
+				Common.Logging.v(TAG, "HDMI session "+session+" disconnected");
 			}
 			session = com.crestron.txrxservice.canvas.Session.createSession("HDMI", "HDMI"+inputNumber, null, 1, null);
 			((HDMISession) session).setHdmiInput(hdmiInput);
 			Common.Logging.i(TAG, "Adding session " + session + " to sessionManager");
 			mSessionMgr.add(session);
 			mCrestore.doSynchronousSessionEvent(session, "Connect", origin, HdmiTimeout);
+			Common.Logging.v(TAG, "HDMI session "+session+" connected");
 		}
 		else
 		{
@@ -345,12 +347,14 @@ public class CresCanvas
 				
 				Common.Logging.e(TAG, "HDMI sync is false with existing HDMI session in state "+session.state);
 	            mCrestore.doSynchronousSessionEvent(session, "Disconnect", origin, HdmiTimeout);
+				Common.Logging.v(TAG, "HDMI session "+session+" disconnected");
 			}
 			else
 			{
 				Common.Logging.e(TAG, "No existing HDMI session");
 			}
 		}
+		Common.Logging.v(TAG, "handlePossibleHdmiSyncStateChange(): exit");
 	}
 	
 	public synchronized void handleDmSyncStateChange(int inputNumber)
@@ -377,11 +381,13 @@ public class CresCanvas
 				
 				Common.Logging.e(TAG, "DM sync is true with existing DM session in state "+session.state);
 				mCrestore.doSynchronousSessionEvent(session, "Disconnect", origin, DmTimeout);
+				Common.Logging.v(TAG, "DM session "+session+" disconnected");			
 			}
 			session = com.crestron.txrxservice.canvas.Session.createSession("DM", "DM"+inputNumber, null, inputNumber, null);
 			Common.Logging.i(TAG, "Adding session " + session + " to sessionManager");
 			mSessionMgr.add(session);
 			mCrestore.doSynchronousSessionEvent(session, "Connect", origin, DmTimeout);
+			Common.Logging.v(TAG, "DM session "+session+" connected");
 		}
 		else
 		{
@@ -391,12 +397,14 @@ public class CresCanvas
 				
 				Common.Logging.e(TAG, "DM sync is false with existing DM session in state "+session.state);
 	            mCrestore.doSynchronousSessionEvent(session, "Disconnect", origin, DmTimeout);
+				Common.Logging.v(TAG, "DM session "+session+" disconnected");
 			}
 			else
 			{
 				Common.Logging.w(TAG, "No existing DM session");
 			}
 		}
+		Common.Logging.v(TAG, "handleDmSyncStateChange(): exit");
 	}
 	
 	public synchronized void handleDmHdcpBlankChange(boolean blank, int inputNumber)

@@ -5956,6 +5956,17 @@ public class CresStreamCtrl extends Service {
             mPreviousValidHdmiInputResolution = hdmiInputResolutionEnum;
             mPreviousAudioInputSampleRate = hdmiInSampleRate;
         }
+        if (mCanvas != null)
+        {
+            Log.i(TAG, "setCameraHelper - ignore restart due to canvas mode");
+        	ignoreRestart = true;
+        	// mute preview audio if bad resolution - HDMI will be stopped by canvas - sometimes get "jitter" noise during stoppage
+        	// unmute previiew audio if good resolution - HDMI will be restarted by canvas
+            if (hdmiInputResolutionEnum == 0)
+            	setPreviewVolume(-1);
+            else
+            	setPreviewVolume((int)userSettings.getUserRequestedVolume());
+        }
 
         //Set ignore restart to true if you want to set camera mode but do not want to restart any streams
         boolean validResolution = (hdmiInputResolutionEnum != 0);
