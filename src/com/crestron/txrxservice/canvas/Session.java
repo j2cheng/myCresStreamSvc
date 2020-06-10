@@ -130,6 +130,9 @@ public abstract class Session
 		// if we are dealing with the old session in a replace operation no need to update status - will be updated after new session is started
 		if (inReplace() && sessionId().equalsIgnoreCase(replace.oldSessionId) && isStopped())
 			return;
+		// in a replace while session is starting do not want to pop-up PPUX
+		if (inReplace() && sessionId().equalsIgnoreCase(replace.newSessionId) && (state == SessionState.Starting))
+			return;
 		mSessionMgr.updateVideoStatus();
 	}	
 
@@ -334,6 +337,7 @@ public abstract class Session
 	{ 
 		if (!r.equals(resolution))
 		{
+	        Log.i(TAG, "setResolution(): session="+this+" wxh="+r.width+"x"+r.height);
 			resolution = r;
 			layoutUpdate();
 		}
