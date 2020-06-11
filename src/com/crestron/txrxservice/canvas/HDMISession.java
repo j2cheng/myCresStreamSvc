@@ -94,6 +94,7 @@ public class HDMISession extends Session
 	public void play(final Originator originator, int timeoutInSeconds)
 	{
 		playTimedout = false;
+		setState(SessionState.Starting);
 		Runnable r = new Runnable() { public void run() { doPlay(originator); } };
         TimeSpan start = TimeSpan.now();
 		boolean completed = executeWithTimeout(r, TimeSpan.fromSeconds(timeoutInSeconds));
