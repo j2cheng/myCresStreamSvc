@@ -426,7 +426,15 @@ public class CresCanvas
 		Session session = mSessionMgr.findSession(streamId);
 		if (session != null && session instanceof AirBoardSession)
 		{
+	        Log.i(TAG, "setSessionResolution(): streamId="+streamId+" session="+session+" wxh="+width+"x"+height);
 			session.setResolution(new AirMediaSize(width, height));
+		}
+		else
+		{
+			if (session == null)
+				Log.e(TAG, "setSessionResolution(): streamId="+streamId+" could not find session");
+			else
+				Log.e(TAG, "setSessionResolution(): streamId="+streamId+" session="+this+" is not an Airboard session");
 		}
 	}
 	

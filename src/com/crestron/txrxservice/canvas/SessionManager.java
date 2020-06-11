@@ -361,6 +361,8 @@ public class SessionManager
     	{
     		if (!pendingLayoutUpdate)
     			doLayoutUpdate();
+    		else
+    			Log.i(TAG, "updateLayoutIfNotPending(): Already have a pending layout update");
     	}
     }
     

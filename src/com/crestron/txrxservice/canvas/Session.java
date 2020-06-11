@@ -397,7 +397,7 @@ public abstract class Session
 			type = CanvasSourceType.DM;
 			break;
 		case HDMI:
-			type = CanvasSourceType.HDMI;
+			type = CanvasSourceType.HDMI;	
 			break;
 		case Unknown:
 		default:
