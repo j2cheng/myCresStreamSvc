@@ -2211,7 +2211,7 @@ public class AirMediaSplashtop
 					Integer TotalUsers;
 					private Map<String, Client> ConnectedClients;
 					
-					void updateStatusAndTotalUsers()
+					void updateStatusAndTotalUsers(boolean force)
 					{
 						int totalUsers = canvasSessionMap.size();
 						String status = (totalUsers == 0) ? "Idle" : "Active";
@@ -2234,6 +2234,13 @@ public class AirMediaSplashtop
 						if (!status.equalsIgnoreCase(clientDataStatus))
 						{
 							clientDataStatus = status;
+							this.Status = clientDataStatus;
+						}
+						// Adding due to bug AMX00-1813 but root cause from logs was something else (getting added events for sessions twice)
+						// Rob LoPresti - said must have two handlers registered for add event
+						if (force)
+						{
+							this.TotalUsers = Integer.valueOf(clientDataTotalUsers);
 							this.Status = clientDataStatus;
 						}
 						Common.Logging.i(TAG, "updateStatusAndTotalUsers(): status ="+clientDataStatus+" totalUsers="+clientDataTotalUsers);
@@ -2261,7 +2268,7 @@ public class AirMediaSplashtop
 	private void sendClientData(int client, Client clientData)
 	{
 		DeviceObject dev = new DeviceObject();
-		dev.Device.AirMedia.ClientData.updateStatusAndTotalUsers();
+		dev.Device.AirMedia.ClientData.updateStatusAndTotalUsers(client==0);
 		if (clientData != null)
 		{
 			dev.Device.AirMedia.ClientData.ConnectedClients = new LinkedHashMap<String, Client>();
@@ -2750,6 +2757,7 @@ public class AirMediaSplashtop
 	//  Receiver events
 	private void registerReceiverEventHandlers(AirMediaReceiver receiver) {
         if (receiver == null) return;
+        unregisterReceiverEventHandlers(receiver);
         receiver.loadedChanged().register(loadedChangedHandler_);
         receiver.stateChanged().register(stateChangedHandler_);
 	}
@@ -2763,6 +2771,7 @@ public class AirMediaSplashtop
 	//  SessionManager Events
     private void registerSessionManagerEventHandlers(AirMediaSessionManager manager) {
         if (manager == null) return;
+        unregisterSessionManagerEventHandlers(manager);
         manager.layoutChanged().register(layoutChangedHandler_);
         manager.occupiedChanged().register(occupiedChangedHandler_);
         manager.added().register(addedHandler_);
@@ -2887,6 +2896,7 @@ public class AirMediaSplashtop
     //	Session Events
     private void registerSessionEventHandlers(AirMediaSession session) {
     	if (session == null) return;
+    	unregisterSessionEventHandlers(session);
     	session.usernameChanged().register(usernameChangedHandler_);
     	session.addressesChanged().register(addressesChangedHandler_);
     	session.infoChanged().register(infoChangedHandler_);
