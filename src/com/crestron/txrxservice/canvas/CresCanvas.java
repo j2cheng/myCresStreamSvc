@@ -12,6 +12,7 @@ import com.crestron.txrxservice.canvas.Session;
 import com.crestron.txrxservice.canvas.HDMISession;
 import com.crestron.txrxservice.canvas.DMSession;
 
+import java.io.IOException;
 import java.util.concurrent.*;
 import java.util.concurrent.atomic.AtomicBoolean;
 import java.util.ArrayList;
@@ -57,7 +58,12 @@ public class CresCanvas
 		Log.i(TAG, "Creating CresCanvas");
 		mStreamCtl = streamCtl;
 		mSessionMgr = new SessionManager(this);
-		mCrestore = new CanvasCrestore(mStreamCtl, this, mSessionMgr);
+		try {
+			mCrestore = new CanvasCrestore(mStreamCtl, this, mSessionMgr);
+		} catch (IOException e) {
+			Common.Logging.i(TAG, "CresCanvas(): exception trying to set up cresstore connection");
+			mStreamCtl.RecoverTxrxService();
+		}
 		mCanvasSourceManager = new CanvasSourceManager(mStreamCtl, mCrestore);
 		for (int i=0; i <= MAX_HDMI_INPUTS; i++)
 		{
@@ -608,7 +614,7 @@ public class CresCanvas
 			}
 	    }
 	}
-	
+    
 	public void CanvasConsoleCommand(String cmd)
 	{
 		Log.i(TAG, "CanvasConsoleCommand: cmd="+cmd);
@@ -704,6 +710,13 @@ public class CresCanvas
 			mCrestore.sessionScheduler.shutdownNow();
 			Log.i(TAG, "testPrioritySchedulerShutDown(): shutdown complete");
 			mCrestore.sessionScheduler = new PriorityScheduler("TxRx.canvas.crestore.sessionScheduler");;
+		}
+		else if (args[0].equalsIgnoreCase("verifysubscription"))
+		{
+			if (mCrestore.verifyCrestore())
+				Log.i(TAG,"verified subscription successfully");
+			else
+				Log.i(TAG,"faield to verify subscription");
 		}
 	}
 }

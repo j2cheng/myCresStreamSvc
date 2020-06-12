@@ -57,6 +57,7 @@ public class CanvasCrestore
 
     public static final String TAG = "TxRx.canvas.crestore";
     private com.crestron.cresstoreredis.CresStoreWrapper wrapper = null;
+    private CountDownLatch verifyCrestoreLatch = null;
 	private Gson gson = null;
 	public Gson getGson() { return gson; }
 
@@ -112,7 +113,7 @@ public class CanvasCrestore
 	
 	public CanvasCrestore(com.crestron.txrxservice.CresStreamCtrl streamCtl,
 			com.crestron.txrxservice.canvas.CresCanvas canvas,
-			com.crestron.txrxservice.canvas.SessionManager sessionManager)
+			com.crestron.txrxservice.canvas.SessionManager sessionManager) throws IOException
 	{
 		Common.Logging.i(TAG, "Creating CresCanvasCrestore");
 	    mStreamCtl = streamCtl;
@@ -124,63 +125,141 @@ public class CanvasCrestore
 		sessionResponseScheduler = new Scheduler("TxRx.canvas.crestore.processSesionResponse");
 		sessionScheduler = new PriorityScheduler("TxRx.canvas.crestore.sessionScheduler");
 
+		int attempts = 0;
+		while (!startCrestore())
+		{
+			Log.w(TAG, "---------- cresstore start failed -----------");
+			if (wrapper != null)
+			{
+				Log.i(TAG, "disposing wrapper");
+				wrapper.dispose();
+			}
+			if (++attempts > 20)
+				throw new IOException();
+			try {
+				Thread.sleep(5000);
+			} catch (Exception e) {};
+		}
+
+        // At startup make session response map empty 
+//        Root r = getRootedInternalAirMediaCanvas();
+//        r.internal.airMedia.canvas.sessionResponse = new SessionResponse();
+//        r.internal.airMedia.canvas.sessionResponse.sessionResponseMap = new HashMap<String, SessionResponseMapEntry>();
+//        String s = gson.toJson(r);
+//    	  Common.Logging.i(TAG, "Clearing Session Response Map in Crestore="+s);
+//    	  wrapper.set(s, true);
+    	Common.Logging.i(TAG, "Clearing video displayed flag in Cresstore");
+    	setVideoDisplayed(false);
+	}
+	
+	public boolean startCrestore()
+	{
+		boolean success = true;
+		com.crestron.cresstoreredis.CresStoreResult rv;
+		
         Common.Logging.i(TAG, "CanvasCrestore: create Crestore wrapper");
         try {
             wrapper = com.crestron.cresstoreredis.CresStoreWrapper.createInstance();
         } catch (com.crestron.cresstoreredis.CresStoreException e) {
             Log.e(TAG, "failed to create wrapper" , e);
-            return;
+            return false;
         }
-        com.crestron.cresstoreredis.CresStoreResult rv = wrapper.setIgnoreOwnSets(!CresCanvas.useSimulatedAVF);
+               
         CresStoreCallback crestoreCallback = new CresStoreCallback();
-        String s = "{\"Device\":{\"AirMedia\":{\"AirMediaCanvas\":{}}}}";
-        rv = wrapper.subscribeCallback(s, crestoreCallback);
+        String sPendingInternalAirMediaCanvas = "{\"Pending\":{\"Internal\":{\"AirMedia\":{\"Canvas\":{}}}}}";
+        rv = wrapper.subscribeCallback(sPendingInternalAirMediaCanvas, crestoreCallback);
         if (rv != com.crestron.cresstoreredis.CresStoreResult.CRESSTORE_SUCCESS)
         {
-        	Common.Logging.i(TAG,"Could not set up Crestore Callback for subscription to "+s+": " + rv);
-        }
-        s = "{\"Internal\":{\"AirMedia\":{\"Canvas\":{}}}}";
-        rv = wrapper.subscribeCallback(s, crestoreCallback);
-        if (rv != com.crestron.cresstoreredis.CresStoreResult.CRESSTORE_SUCCESS)
-        {
-        	Common.Logging.i(TAG,"Could not set up Crestore Callback for subscription to "+s+": " + rv);
-        }
-        s = "{\"Pending\":{\"Device\":{\"AirMedia\":{\"AirMediaCanvas\":{}}}}}";
-        rv = wrapper.subscribeCallback(s, crestoreCallback);
-        if (rv != com.crestron.cresstoreredis.CresStoreResult.CRESSTORE_SUCCESS)
-        {
-        	Common.Logging.i(TAG,"Could not set up Crestore Callback for subscription to "+s+": " + rv);
-        }
-        s = "{\"Pending\":{\"Internal\":{\"AirMedia\":{\"Canvas\":{}}}}}";
-        rv = wrapper.subscribeCallback(s, crestoreCallback);
-        if (rv != com.crestron.cresstoreredis.CresStoreResult.CRESSTORE_SUCCESS)
-        {
-        	Common.Logging.i(TAG,"Could not set up Crestore Callback for subscription to "+s+": " + rv);
+        	Common.Logging.i(TAG,"Could not set up Crestore Callback for subscription to "+sPendingInternalAirMediaCanvas+": " + rv);
+        	return false;
+        } else {
+        	Common.Logging.i(TAG,"Successfully subscribed to "+sPendingInternalAirMediaCanvas);
         }
         
-        // TODO just for debugging - remove eventually: print existing map read from crestore
-//        s = "{\"Internal\":{\"AirMedia\":{\"Canvas\":{\"SessionResponse\":{\"SessionResponseMap\":{}}}}}}";
-//        String sessionResponseMapString = null;
-//        try {
-//        	sessionResponseMapString = wrapper.get(false, s);
-//        } catch (Exception e) {
-//        	Common.Logging.i(TAG, "Exception while reading "+s+" from cresstore");
-//        	e.printStackTrace();
-//        }
-//        if (sessionResponseMapString != null)
-//        {
-//        	Root r = gson.fromJson(sessionResponseMapString, Root.class);
-//        	Common.Logging.i(TAG, "Current Session Response Map in Crestore="+gson.toJson(r));
-//        }
-        // At startup make session response map empty 
-        Root r = getRootedInternalAirMediaCanvas();
-        r.internal.airMedia.canvas.sessionResponse = new SessionResponse();
-        r.internal.airMedia.canvas.sessionResponse.sessionResponseMap = new HashMap<String, SessionResponseMapEntry>();
-        s = gson.toJson(r);
-    	Common.Logging.i(TAG, "Clearing Session Response Map in Crestore="+s);
-    	wrapper.set(s, true);
-    	Common.Logging.i(TAG, "Clearing video displayed flag in Cresstore"+s);
-    	setVideoDisplayed(false);
+        if (!verifyCrestore())
+        {
+        	Common.Logging.i(TAG,"Could not verify crestore wrapper is working");
+        	return false;
+        } else {
+        	Common.Logging.i(TAG,"Verified subscription is working");
+        }
+        
+        rv = wrapper.setIgnoreOwnSets(!CresCanvas.useSimulatedAVF);
+        if (rv != com.crestron.cresstoreredis.CresStoreResult.CRESSTORE_SUCCESS)
+        {
+        	Common.Logging.i(TAG,"Could not setIgnoreOwnSets" + rv);
+        	return false;
+        }
+        
+		return success;
+	}
+	
+	public void recoverCrestore()
+	{
+		boolean recovered = false;
+		for (int attempts = 0; attempts < 5; attempts++)
+		{
+			if (wrapper != null)
+			{
+				Log.i(TAG, "disposing wrapper");
+				wrapper.dispose();
+			}
+			if (startCrestore())
+			{
+				recovered = true;
+				break;
+			}
+			Log.w(TAG, "---------- cresstore reconnect failed -----------");
+			try {
+				Thread.sleep(5000);
+			} catch (Exception e) {};
+		}
+		if (recovered)
+			Common.Logging.i(TAG,  "Recovered by reconnecting to cresstore");
+		else
+			mStreamCtl.RecoverTxrxService(); // force restart of txrxservice
+	}
+	
+	boolean verifyCrestore()
+	{
+		boolean success = false;
+		com.crestron.cresstoreredis.CresStoreResult rv;
+
+		verifyCrestoreLatch = new CountDownLatch(1);
+		boolean ignoreOwnSetsOriginal = wrapper.getIgnoreOwnSets();
+		rv = wrapper.setIgnoreOwnSets(false);
+        if (rv != com.crestron.cresstoreredis.CresStoreResult.CRESSTORE_SUCCESS)
+        {
+        	Common.Logging.i(TAG,"verifyCrestore(): Could not setIgnoreOwnSets to false: rv=" + rv);
+        	return false;
+        }
+        Root root = getRootedInternalAirMediaCanvasRestartSignal();
+		root.internal.airMedia.canvas.restartSignal.crestoreVerify = Boolean.valueOf(true);
+		String jsonStr = "{\"Pending\":" + gson.toJson(root) + "}";
+		cresstoreSet(jsonStr, false);
+		try {
+			success = verifyCrestoreLatch.await(2000, TimeUnit.SECONDS);
+		} catch (InterruptedException e) {
+			Log.i(TAG, "Interrupted while waiting for verification of crestore transaction");
+		}
+		rv = wrapper.setIgnoreOwnSets(ignoreOwnSetsOriginal);
+        if (rv != com.crestron.cresstoreredis.CresStoreResult.CRESSTORE_SUCCESS)
+        {
+        	Common.Logging.i(TAG,"verifyCrestore(): Could not setIgnoreOwnSets to "+ignoreOwnSetsOriginal+": rv=" + rv);
+        	return false;
+        }
+		return success;
+	}
+	
+	public boolean cresstoreSet(String json, boolean save)
+	{
+		com.crestron.cresstoreredis.CresStoreResult rv = wrapper.set(json, save);
+        if (rv != com.crestron.cresstoreredis.CresStoreResult.CRESSTORE_SUCCESS)
+        {
+        	Common.Logging.e(TAG," ------------ Could not write " + json + " to cresstore - got result = " + rv + "-----------");
+        	return false;
+        }
+        return true;
 	}
 	
 	public void restartSchedulers()
@@ -287,7 +366,7 @@ public class CanvasCrestore
 		root.internal.airMedia.canvas.sessionEvent = e;
 		String jsonStr = "{\"Pending\":" + gson.toJson(root) + "}";
 		Common.Logging.i(TAG,"sendSessionEvent: "+jsonStr);
-		wrapper.set(jsonStr, false);
+		cresstoreSet(jsonStr, false);
 		return e;
 	}
 	
@@ -296,7 +375,7 @@ public class CanvasCrestore
 		Root root = getRootedInternalAirMediaCanvasRestartSignal();
 		root.internal.airMedia.canvas.restartSignal.css = Boolean.valueOf(true);
 		String jsonStr = "{\"Pending\":" + gson.toJson(root) + "}";
-		wrapper.set(jsonStr, false);
+		cresstoreSet(jsonStr, false);
 	}
 	
 	public void setVideoDisplayed(boolean value)
@@ -304,21 +383,21 @@ public class CanvasCrestore
 		Root root = getRootedInternalAirMediaOsd();
 		Log.i(TAG, "==== videoDisplayed = "+value+" ====");
 		root.internal.airMedia.osd.videoDisplayed = Boolean.valueOf(value);
-		wrapper.set(gson.toJson(root), true);
+		cresstoreSet(gson.toJson(root), true);
 	}
 	
 	public void setCurrentConnectionInfo(String connectionInfo)
 	{
 		Root root = getRootedInternalAirMediaOsd();
 		root.internal.airMedia.osd.currentConnectionInfo = connectionInfo;
-		wrapper.set(gson.toJson(root), true);
+		cresstoreSet(gson.toJson(root), true);
 	}
 	
 	public void setCurrentWirelessConnectionInfo(String connectionInfo)
 	{
 		Root root = getRootedInternalAirMediaOsd();
 		root.internal.airMedia.osd.currentWirelessConnectionInfo = connectionInfo;
-		wrapper.set(gson.toJson(root), true);
+		cresstoreSet(gson.toJson(root), true);
 	}
 	
 	public void markSessionsSentToAvf(SessionEvent e)
@@ -755,7 +834,7 @@ public class CanvasCrestore
 		localroot.internal.airMedia.canvas.sessionResponse = new SessionResponse();
 		localroot.internal.airMedia.canvas.sessionResponse.sessionResponseMap = map;
 		Common.Logging.v(TAG, "Writing "+gson.toJson(localroot)+" to cresstore");
-		wrapper.set(gson.toJson(localroot), true);
+		cresstoreSet(gson.toJson(localroot), true);
 	}
 
 	private void ack(String transactionId)
@@ -989,7 +1068,7 @@ public class CanvasCrestore
 		Root root = getRootedInternalAirMediaCanvas();
 		root.internal.airMedia.canvas.sessionStateFeedback = f;
 		String jsonStr = "{\"Pending\":" + gson.toJson(root) + "}";
-		wrapper.set(jsonStr, false);
+		cresstoreSet(jsonStr, false);
 		return f;
 	}
 	
@@ -999,7 +1078,7 @@ public class CanvasCrestore
 		Root root = getRootedInternalAirMediaCanvas();
 		root.internal.airMedia.canvas.sessionResponse = response;
 		String jsonStr = "{\"Pending\":" + gson.toJson(root) + "}";
-		wrapper.set(jsonStr, false);
+		cresstoreSet(jsonStr, false);
 	}
 	
     public class CresStoreCallback implements com.crestron.cresstoreredis.CresStoreClientCallback {
@@ -1071,6 +1150,12 @@ public class CanvasCrestore
             					Common.Logging.i(TAG, "Received a AVF restartSignal="+avfRestart+" message");
             					mCanvas.handleAvfRestart(avfRestart.booleanValue());
         					}
+        					
+        					if (root.internal.airMedia.canvas.restartSignal.crestoreVerify != null)
+        					{
+            					Common.Logging.i(TAG, "Received a crestoreVerify message");
+            					verifyCrestoreLatch.countDown();
+        					}
         				}
         			}
         		}
@@ -1126,7 +1211,7 @@ public class CanvasCrestore
         		}
 
         		if (!parsed) {
-        			Common.Logging.v(TAG, "Could not be parse json string:" + json);
+        			Common.Logging.v(TAG, "Could not parse json string:" + json);
         			Common.Logging.v(TAG, "String is "+gson.toJson(root));
         		}
     		} catch (Exception ex) {
@@ -1178,7 +1263,8 @@ public class CanvasCrestore
     	
     	public void onError()
     	{
-    		Common.Logging.i(TAG, "Callback - onError");
+    		Common.Logging.i(TAG, "***************************** Callback - onError *******************************");
+    		recoverCrestore();
     	}
     }
     
@@ -1362,6 +1448,8 @@ public class CanvasCrestore
         Boolean avf;
         @SerializedName ("Css")
         Boolean css;
+        @SerializedName ("CrestoreVerify")
+        Boolean crestoreVerify;
     }
     
     public class SessionWindow {

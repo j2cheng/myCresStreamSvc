@@ -6626,6 +6626,7 @@ public class CresStreamCtrl extends Service {
     
     public void setWbsResolution(int streamId, int width, int height)
     {
+        Log.i(TAG, "setWbsResolution(): streamId="+streamId+" wxh="+width+"x"+height);
         if (mCanvas != null)
         {
             mCanvas.setSessionResolution(streamId, width, height);
