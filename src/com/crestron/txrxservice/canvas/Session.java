@@ -6,6 +6,8 @@ import com.crestron.airmedia.canvas.channels.ipc.CanvasPlatformType;
 import com.crestron.airmedia.canvas.channels.ipc.CanvasSessionState;
 import com.crestron.airmedia.canvas.channels.ipc.CanvasSourceSession;
 import com.crestron.airmedia.canvas.channels.ipc.CanvasSourceType;
+import com.crestron.airmedia.canvas.channels.ipc.CanvasSurfaceMode;
+import com.crestron.airmedia.canvas.channels.ipc.CanvasSurfaceOptions;
 import com.crestron.airmedia.canvas.channels.ipc.CanvasVideoType;
 import com.crestron.airmedia.receiver.m360.ipc.AirMediaSize;
 import com.crestron.airmedia.receiver.m360.ipc.AirMediaPlatforms;
@@ -384,7 +386,8 @@ public abstract class Session
 	    	state  = CanvasSessionState.Playing;
 	    else if (s.isPaused())
 	    	state = CanvasSessionState.Paused;
-	    
+
+	    CanvasSurfaceOptions options = new CanvasSurfaceOptions();
 	    switch (s.type)
 	    {
 		case AirBoard:
@@ -397,7 +400,11 @@ public abstract class Session
 			type = CanvasSourceType.DM;
 			break;
 		case HDMI:
-			type = CanvasSourceType.HDMI;	
+			type = CanvasSourceType.HDMI;
+			if (mStreamCtl.isRGB888HDMIVideoSupported)
+			{
+				options = new CanvasSurfaceOptions(CanvasSurfaceMode.TagVideoLayer, "PreviewVideoLayer");
+			}     
 			break;
 		case Unknown:
 		default:
@@ -409,7 +416,7 @@ public abstract class Session
 	    videoType = s.getVideoType();
 
 	    CanvasSourceSession css = new CanvasSourceSession(s.sessionId(), s.getUserLabel(), state, type, 
-	    		platform, videoType, s.getResolution().width, s.getResolution().height, s.isVideoLoading, s.isAudioMuted);
+	    		platform, videoType, s.getResolution().width, s.getResolution().height, s.isVideoLoading, s.isAudioMuted, options);
 
 	    return css;
     }

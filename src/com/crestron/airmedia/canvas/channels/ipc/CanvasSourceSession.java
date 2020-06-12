@@ -17,6 +17,7 @@ public class CanvasSourceSession implements Parcelable {
     public final int height;
     public final boolean isLoading;
     public final boolean isMuted;
+    public final CanvasSurfaceOptions options;
 
     public CanvasSourceSession(
             String sessionId,
@@ -28,9 +29,10 @@ public class CanvasSourceSession implements Parcelable {
             int width,
             int height,
             boolean isLoading,
-            boolean isMuted
+            boolean isMuted,
+            CanvasSurfaceOptions options
     ) {
-        this.contents = 2;
+        this.contents = 3;
         this.sessionId = sessionId;
         this.state = state;
         this.username = username;
@@ -41,6 +43,7 @@ public class CanvasSourceSession implements Parcelable {
         this.height = height;
         this.isLoading = isLoading;
         this.isMuted = isMuted;
+        this.options = options;
     }
 
     private CanvasSourceSession(Parcel in) {
@@ -55,6 +58,7 @@ public class CanvasSourceSession implements Parcelable {
         this.isLoading = (this.contents > 0) && (in.readInt() != 0);
         this.isMuted = (this.contents > 0) && (in.readInt() != 0);
         this.videoType = (this.contents > 1) ? CanvasVideoType.from(in) : CanvasVideoType.Undefined;
+        this.options = (this.contents > 2) ? CanvasSurfaceOptions.CREATOR.createFromParcel(in) : new CanvasSurfaceOptions();
     }
 
     public boolean isDisconnected() { return state.isDisconnected(); }
@@ -93,6 +97,11 @@ public class CanvasSourceSession implements Parcelable {
         dest.writeInt(this.isLoading ? -1 : 0);
         dest.writeInt(this.isMuted ? -1 : 0);
         this.videoType.writeToParcel(dest, flags);
+        if (this.options != null) {
+            this.options.writeToParcel(dest, flags);
+        } else {
+            new CanvasSurfaceOptions().writeToParcel(dest, flags);
+        }
     }
 
 //    public final boolean isLoading;
