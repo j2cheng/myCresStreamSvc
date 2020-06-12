@@ -137,7 +137,8 @@ public abstract class Session
 		// in a replace while session is starting do not want to pop-up PPUX
 		if (inReplace() && sessionId().equalsIgnoreCase(replace.newSessionId) && (state == SessionState.Starting))
 			return;
-		mSessionMgr.updateVideoStatus();
+		// we will handle update of video status at end of session response processing
+		//mSessionMgr.updateVideoStatus();
 	}	
 
 	

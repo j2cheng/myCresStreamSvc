@@ -569,6 +569,9 @@ public class CanvasCrestore
 				}
 			}
 		}
+		// updateVideoStatus after finishing processing of sessionresponse
+		mSessionMgr.updateVideoStatus();
+
 		// handle reporting of completion of session response
 		Common.Logging.i(TAG, "doSessionResponse(): reportSessionResponseResult");
 		reportSessionResponseResult(response);
@@ -962,6 +965,7 @@ public class CanvasCrestore
 			handleSessionEventTimeout(e, tData, originator, response);
 		}
 		transactionMap.remove(e.transactionId);
+		mSessionMgr.updateVideoStatus();
 	}
 	
 	private void handleNoAvfResponse(SessionEvent e, Originator originator)
