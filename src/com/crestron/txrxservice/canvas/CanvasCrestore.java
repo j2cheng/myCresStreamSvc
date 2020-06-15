@@ -253,13 +253,18 @@ public class CanvasCrestore
 	
 	public boolean cresstoreSet(String json, boolean save)
 	{
-		com.crestron.cresstoreredis.CresStoreResult rv = wrapper.set(json, save);
-        if (rv != com.crestron.cresstoreredis.CresStoreResult.CRESSTORE_SUCCESS)
-        {
-        	Common.Logging.e(TAG," ------------ Could not write " + json + " to cresstore - got result = " + rv + "-----------");
-        	return false;
-        }
-        return true;
+		for (int tries=0; tries < 2; tries++)
+		{
+			com.crestron.cresstoreredis.CresStoreResult rv = wrapper.set(json, save);
+			if (rv == com.crestron.cresstoreredis.CresStoreResult.CRESSTORE_SUCCESS)
+			{
+				return true;
+			}
+			Common.Logging.e(TAG," ------------ Could not write " + json + " to cresstore - got result = " + rv + "-----------");
+		}
+		Common.Logging.i(TAG, "***************************** cresstoreSet failed - trying to recover *******************************");
+		recoverCrestore();
+        return false;
 	}
 	
 	public void restartSchedulers()
