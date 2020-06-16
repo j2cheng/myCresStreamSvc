@@ -370,7 +370,7 @@ public class CameraPreview {
     private void signalPreviewTimeoutThread() {
     	synchronized (preview_timeout_lock) {
     		if (preview_timeout_thread != null) {
-    			Log.i(TAG, "startPlayback(): interrupt preview_timeout_thread");
+    			Log.i(TAG, "signalPreviewTimeoutThread(): interrupt preview_timeout_thread");
     			// if prior thread exists - kill it
     			preview_timeout_latch = new CountDownLatch(1);
     			preview_timeout_thread.interrupt();

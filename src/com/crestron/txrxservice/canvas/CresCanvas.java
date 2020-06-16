@@ -494,7 +494,7 @@ public class CresCanvas
 			}
 			return response.surface;
 		} else {
-			Common.Logging.e(TAG, "getSurface was unable to get surface from Canvas App for session: "+sessionId);
+			Common.Logging.e(TAG, "acquireSurface was unable to get surface from Canvas App for session: "+sessionId);
 			return null;
 		}
 	}

@@ -292,10 +292,10 @@ public class AudioPlayback
 				newVolume = newVolume * AudioTrack.getMaxVolume();
 				int ret = mPlayer.setStereoVolume(newVolume, newVolume);
 				if (ret < 0) 
-					Log.e(TAG, "Could not change volume, error code = " + ret);
+					Log.e(TAG, "Could not change volume to "+volume+", error code = " + ret);
 			} catch (IllegalStateException e)
 			{
-				Log.e(TAG, "Error when attempting to change volume");
+				Log.e(TAG, "Error when attempting to change volume to "+volume);
 			}
 		}
 	}
