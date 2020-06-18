@@ -273,13 +273,6 @@ public class CanvasCrestore
 		sessionResponseScheduler.shutdownNow();
 		Common.Logging.i(TAG, "restart sessionScheduler");
 		sessionScheduler.shutdownNow();
-		
-		try {
-			sessionResponseScheduler.awaitTermination(60, TimeUnit.SECONDS);
-		} catch (InterruptedException e) {
-			// TODO Auto-generated catch block
-			e.printStackTrace();
-		}
 
 		Common.Logging.i(TAG, "clear transaction map");
 		transactionMap.clear();

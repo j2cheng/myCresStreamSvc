@@ -274,7 +274,7 @@ public class SessionManager
             	e.add(session.sessionId(), crestore.new SessionEventMapEntry(request, session));
             }
     	}
-    	if (e.sessionEventMap.size() > 0)
+    	if (e.sessionEventMap.size() >= 0)
     	{
     		TimeSpan startTime = TimeSpan.now();
         	boolean success = crestore.doSynchronousSessionEvent(e, origin, SEND_ALL_SESSION_TIMEOUT);

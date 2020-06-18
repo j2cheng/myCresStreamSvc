@@ -282,6 +282,8 @@ public class CresCanvas
 		} else {
 			Common.Logging.i(TAG, "avfForcedStartup(): (restart=false) - clear all sessions");
 			clear(true);
+			Common.Logging.i(TAG, "avfForcedStartup() - send empty session event list to AVF");
+			mSessionMgr.sendAllSessionsInSessionEvent(new Originator(RequestOrigin.Error));
 			// Restart HDMI/DM if possible
 			Common.Logging.i(TAG, from+": restarting HDMI if needed");
 			mStreamCtl.canvasHdmiSyncStateChange(false);

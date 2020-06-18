@@ -1,5 +1,6 @@
 package com.crestron.txrxservice.canvas;
 
+import java.util.List;
 import java.util.Map;
 import java.util.UUID;
 import java.util.concurrent.Callable;
@@ -139,4 +140,16 @@ public class Scheduler extends ThreadPoolExecutor
 			Common.Logging.e(TAG, " EXCEPTION  " + e + "  " + Log.getStackTraceString(e));
 		}
 	}
+	
+    public List<Runnable> shutdownNow()
+    {
+    	cancel();
+    	super.shutdown();
+    	try {
+    		super.awaitTermination(500, TimeUnit.MILLISECONDS);
+    		return super.shutdownNow();
+    	} catch (InterruptedException e) {
+    		return super.shutdownNow();
+    	}
+    }
 }
