@@ -294,7 +294,9 @@ public class AirMediaSession extends Session
 		}
 		if (surface != null)
 		{
+			Common.Logging.i(TAG, "AirMediaSession::doStop(): AirMediaSession "+this+" detaching surface ");
 			airMediaReceiverSession.detach();
+			Common.Logging.i(TAG, "AirMediaSession::doStop(): AirMediaSession "+this+" releasing surface ");
 			releaseSurface();
 		} else {
 			Common.Logging.i(TAG, "AirMediaSession::doStop(): AirMediaSession "+this+" has a null surface - nothing to detach and release ");

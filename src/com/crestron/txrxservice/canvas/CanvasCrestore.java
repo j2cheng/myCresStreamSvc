@@ -473,6 +473,96 @@ public class CanvasCrestore
 		Common.Logging.v(TAG, "processSessionResponse(): "+when+":Early interrupted exit for Session Response Message "+gson.toJson(response));
 	}
 	
+	public String doActionOnSession(String action, Originator originator, SessionManager sMgr)
+	{
+		TimeSpan start = TimeSpan.now();
+		Session session;
+		String[] tokens = action.split(" ");
+		if (Common.isEqualIgnoreCase(tokens[0], "replace"))
+		{
+			Common.Logging.i(TAG, "doActionOnSession(): replacing "+tokens[1]+" with "+tokens[2]);
+			session = sMgr.getSession(tokens[1]);
+			if (session != null)
+			{
+				session.replace(originator, sMgr.getSession(tokens[2]));
+			}
+			else
+			{
+				Common.Logging.i(TAG, "doActionOnSession(): cannot find session "+tokens[1]);
+			}
+		} 
+		else if (Common.isEqualIgnoreCase(tokens[0], "stop"))
+		{
+			Common.Logging.i(TAG, "doActionOnSession(): stop "+tokens[1]);
+			session = sMgr.getSession(tokens[1]);
+			if (session != null)
+			{
+				session.stop(originator);
+			}
+			else
+			{
+				Common.Logging.i(TAG, "doActionOnSession(): cannot find session "+tokens[1]);
+			}
+		}
+		else if (Common.isEqualIgnoreCase(tokens[0], "play"))
+		{
+			Common.Logging.i(TAG, "doActionOnSession(): play "+tokens[1]);
+			session = sMgr.getSession(tokens[1]);
+			if (session != null)
+			{
+				session.play(originator);
+			}
+			else
+			{
+				Common.Logging.i(TAG, "doActionOnSession(): cannot find session "+tokens[1]);
+			}
+		}
+		else if (Common.isEqualIgnoreCase(tokens[0], "disconnect"))
+		{
+			Common.Logging.i(TAG, "doActionOnSession(): disconnect "+tokens[1]);
+			session = sMgr.getSession(tokens[1]);
+			if (session != null)
+			{
+				if (session.isPlaying())
+				{
+					Common.Logging.i(TAG, "doActionOnSession(): must stop session "+session+" before disconnecting it");
+					session.stop(originator);
+				}
+				Common.Logging.i(TAG, "doActionOnSession(): calling disconnect for "+session);
+				session.disconnect(originator);
+				Common.Logging.i(TAG, "doActionOnSession(): removing "+session+" from list of sessions in session manager");
+				sMgr.remove(session.sessionId());
+			}
+			else
+			{
+				if (originator.origin == RequestOrigin.Receiver)
+				{
+					Common.Logging.i(TAG, "doActionOnSession(): receiver initiated sessionevent for session "+tokens[1]+" - session is already disconnected");
+				}
+				else
+				{
+					Common.Logging.i(TAG, "doActionOnSession(): session "+tokens[1]+" - session not found in sessionMgr - already disconected");
+				}
+			}
+		}
+		return action+" processed in "+TimeSpan.getDelta(start);
+	}
+	
+	public void processSessionActionList(List<String> actionList, Originator originator, SessionManager sMgr, SessionResponse response)
+	{
+		Common.Logging.i(TAG, "processSessionActionList(): ActionList ="+actionList);
+		
+		for (int i=0; i < actionList.size(); i++)
+		{
+			if (Thread.currentThread().isInterrupted())
+			{
+				cancelSessionResponse("inSessionActionLoop", response);
+				return;
+			}
+			doActionOnSession(actionList.get(i), originator, sMgr);
+		}
+	}
+	
 	public void doSessionResponse(SessionResponse response, List<String> actionList) 
 	{
 		String transactionId = response.transactionId;
@@ -488,85 +578,9 @@ public class CanvasCrestore
 			Common.Logging.w(TAG, "doSessionResponse(): no transaction data found");
 		}
 		
-		Common.Logging.i(TAG, "doSessionResponse(): ActionList ="+actionList);
-		
-		for (int i=0; i < actionList.size(); i++)
-		{
-			if (Thread.currentThread().isInterrupted())
-			{
-				cancelSessionResponse("inSessionLoop", response);
-				return;
-			}
-			Session session;
-			String[] tokens = actionList.get(i).split(" ");
-			if (Common.isEqualIgnoreCase(tokens[0], "replace"))
-			{
-				Common.Logging.i(TAG, "doSessionResponse(): replacing "+tokens[1]+" with "+tokens[2]);
-				session = mSessionMgr.getSession(tokens[1]);
-				if (session != null)
-				{
-					session.replace(originator, mSessionMgr.getSession(tokens[2]));
-				}
-				else
-				{
-					Common.Logging.i(TAG, "doSessionResponse(): cannot find session "+tokens[1]);
-				}
-			} 
-			else if (Common.isEqualIgnoreCase(tokens[0], "stop"))
-			{
-				Common.Logging.i(TAG, "doSessionResponse(): stop "+tokens[1]);
-				session = mSessionMgr.getSession(tokens[1]);
-				if (session != null)
-				{
-					session.stop(originator);
-				}
-				else
-				{
-					Common.Logging.i(TAG, "doSessionResponse(): cannot find session "+tokens[1]);
-				}
-			}
-			else if (Common.isEqualIgnoreCase(tokens[0], "play"))
-			{
-				Common.Logging.i(TAG, "doSessionResponse(): play "+tokens[1]);
-				session = mSessionMgr.getSession(tokens[1]);
-				if (session != null)
-				{
-					session.play(originator);
-				}
-				else
-				{
-					Common.Logging.i(TAG, "doSessionResponse(): cannot find session "+tokens[1]);
-				}
-			}
-			else if (Common.isEqualIgnoreCase(tokens[0], "disconnect"))
-			{
-				Common.Logging.i(TAG, "doSessionResponse(): disconnect "+tokens[1]);
-				session = mSessionMgr.getSession(tokens[1]);
-				if (session != null)
-				{
-					if (session.isPlaying())
-					{
-						Common.Logging.i(TAG, "doSessionResponse(): must stop session "+session+" before disconnecting it");
-						session.stop(originator);
-					}
-					Common.Logging.i(TAG, "doSessionResponse(): calling disconnect for "+session);
-					session.disconnect(originator);
-					Common.Logging.i(TAG, "doSessionResponse(): removing "+session+" from list of sessions in session manager");
-					mSessionMgr.remove(session.sessionId());
-				}
-				else
-				{
-					if (originator.origin == RequestOrigin.Receiver)
-					{
-						Common.Logging.i(TAG, "doSessionResponse(): receiver initiated sessionevent for session "+tokens[1]+" - session is already disconnected");
-					}
-					else
-					{
-						Common.Logging.i(TAG, "doSessionResponse(): session "+tokens[1]+" - session not found in sessionMgr - already disconected");
-					}
-				}
-			}
-		}
+		// process the requested actions in the list
+		processSessionActionList(actionList, originator, mSessionMgr, response);
+
 		// updateVideoStatus after finishing processing of sessionresponse
 		mSessionMgr.updateVideoStatus();
 
