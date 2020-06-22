@@ -5889,7 +5889,12 @@ public class CresStreamCtrl extends Service {
     {
         refreshInputResolution();
         sockTask.SendDataToAllClients("hdmiin_sync_detected=" + hdmiInput.getSyncStatus());
-        sockTask.SendDataToAllClients("HDMIIN_INTERLACED=" + hdmiInput.getInterlacing());
+        // AMX00-1858 when DM routed HDMI input is used (from a DM-TX say) and the HDMI output from DM is disabled the 
+        // getInterlacing call can hang for 13 seconds so we do not check for getInterlacing when sync is false
+        if (hdmiInput.getSyncStatus().equalsIgnoreCase("true"))
+        	sockTask.SendDataToAllClients("HDMIIN_INTERLACED=" + hdmiInput.getInterlacing());
+        else 
+        	sockTask.SendDataToAllClients("HDMIIN_INTERLACED=false");
         sockTask.SendDataToAllClients("HDMIIN_HORIZONTAL_RES_FB=" + hdmiInput.getHorizontalRes());
         sockTask.SendDataToAllClients("HDMIIN_VERTICAL_RES_FB=" + hdmiInput.getVerticalRes());
         sockTask.SendDataToAllClients("HDMIIN_FPS_FB=" + hdmiInput.getFPS());
