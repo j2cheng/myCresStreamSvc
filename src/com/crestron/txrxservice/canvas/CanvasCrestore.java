@@ -10,6 +10,7 @@ import java.util.concurrent.Callable;
 import java.util.concurrent.ConcurrentHashMap;
 import java.util.concurrent.CountDownLatch;
 import java.util.concurrent.ConcurrentLinkedQueue;
+import java.util.concurrent.Future;
 import java.util.concurrent.LinkedBlockingQueue;
 import java.util.concurrent.ThreadPoolExecutor;
 import java.util.concurrent.TimeUnit;
@@ -55,6 +56,8 @@ public class CanvasCrestore
 	private final ReentrantLock sessionEventLock = new ReentrantLock();
 	Map<String, TransactionData> transactionMap= new ConcurrentHashMap<String, TransactionData>();
 
+	public ActionExecutor actionExecutor = null;
+	
     public static final String TAG = "TxRx.canvas.crestore";
     private com.crestron.cresstoreredis.CresStoreWrapper wrapper = null;
     private CountDownLatch verifyCrestoreLatch = null;
@@ -124,7 +127,8 @@ public class CanvasCrestore
 			mAVF = new SimulatedAVF(this);
 		sessionResponseScheduler = new Scheduler("TxRx.canvas.crestore.processSesionResponse");
 		sessionScheduler = new PriorityScheduler("TxRx.canvas.crestore.sessionScheduler");
-
+		actionExecutor = new ActionExecutor("Txrx.canvas.crestore.actionExecutor", 2);
+		
 		int attempts = 0;
 		while (!startCrestore())
 		{
@@ -561,6 +565,66 @@ public class CanvasCrestore
 			}
 			doActionOnSession(actionList.get(i), originator, sMgr);
 		}
+	}
+	
+	public void processListInParallel(List<String> actionList, final Originator originator, final SessionManager sMgr)
+	{
+		if (actionList.size() > 0)
+		{
+			List<Callable<String>> taskList = new ArrayList<Callable<String>>();
+			for (int i = 0; i < actionList.size(); i++)
+			{
+				final String action = actionList.get(i);
+				Callable<String> c = new Callable<String>() { @Override public String call() { return doActionOnSession(action, originator, sMgr); }};
+				taskList.add(c);
+			}
+			
+			List<Future<String>> futureList = null;
+			
+			try {
+				futureList = actionExecutor.invokeAll(taskList);
+			} 
+			catch (Exception e)
+			{
+				Common.Logging.i(TAG, "processListInParallel(): Got Exception in invokeAll()"+e);
+				e.printStackTrace();
+			}
+			
+			for (int i=0; i < futureList.size(); i++)
+			{
+				try {
+					String result = futureList.get(i).get();
+					Common.Logging.i(TAG, "processListInParallel(): "+result);
+				}
+				catch (Exception e)
+				{
+					Common.Logging.i(TAG, "processListInParallel(): Got Exception processing futureList"+e);
+					e.printStackTrace();
+				}
+			}
+		}
+	}
+	
+	public void processSessionActionListInParallel(List<String> actionList, final Originator originator, final SessionManager sMgr, final SessionResponse response)
+	{
+		Common.Logging.i(TAG, "processSessionActionListInParallel(): ActionList ="+actionList);
+		
+		// separate list into two pieces - a playList and the rest
+		List<String> playList = new LinkedList<String>();
+		List<String> restList = new LinkedList<String>();
+		for (int i=0; i < actionList.size(); i++)
+		{
+			if (actionList.get(i).contains("play"))
+				playList.add(actionList.get(i));
+			else
+				restList.add(actionList.get(i));
+		}
+		
+		// first process restList actions in parallel
+		processListInParallel(restList, originator, sMgr);
+		
+		// now process playList actions in parallel
+		processListInParallel(playList, originator, sMgr);
 	}
 	
 	public void doSessionResponse(SessionResponse response, List<String> actionList) 
