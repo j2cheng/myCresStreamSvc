@@ -50,12 +50,18 @@ public abstract class Session
     public static long nextId = 0;
     public AtomicBoolean sentToAvf = new AtomicBoolean(false);
     public boolean playTimedout = false;
-    public static Session.Replace replace;
+    public static Session.Replace replace = new Replace();
 	
-    public class Replace {
+    public static class Replace {
     	public int streamId;
     	public String oldSessionId;
     	public String newSessionId;
+    	
+    	public Replace() {
+    		streamId = -1;
+    		oldSessionId = null;
+    		newSessionId = null;
+    	}
     	
     	public void set(int streamId, String oldSessionId, String newSessionId)
     	{
@@ -81,9 +87,6 @@ public abstract class Session
 		resolution = new AirMediaSize(0,0);
 		isVideoLoading = false;
 		isAudioMuted = false;
-		if (replace == null)
-			replace = new Replace();
-		replace.set(streamId, null, null);
 		setSourceUserPermission(false);
 		setCanvasUserPermission(false);
 		setModeratorPermission(true);
@@ -231,7 +234,7 @@ public abstract class Session
 			return;
 		}
 		Session.replace.set(streamId, sessionId(), next.sessionId());
-		replace.streamId = streamId;
+		//replace.streamId = streamId;
 		Common.Logging.i(TAG, "replace(): stopping "+sessionId()+" streamId="+replace.streamId);
 		stop(originator);
 		streamId = -1;
