@@ -1067,12 +1067,16 @@ public class CanvasCrestore
 						{
 							Common.Logging.i(TAG, "handleNoAvfResponse(): Disconnecting HDMI/DM session "+s.sessionId()+" due to no AVF response");
 							s.disconnect(originator);
+							Common.Logging.i(TAG, "handleNoAvfResponse(): removing "+s+" from list of sessions in session manager");
+							mSessionMgr.remove(s.sessionId());
 						}
 					}
 					else // non HDMI or DM session
 					{
 						Common.Logging.i(TAG, "handleNoAvfResponse(): Disconnecting session "+s.sessionId()+" due to no AVF response");
 						s.disconnect(originator);
+						Common.Logging.i(TAG, "handleNoAvfResponse(): removing "+s+" from list of sessions in session manager");
+						mSessionMgr.remove(s.sessionId());
 					}
 				}
 				else if (entry.getValue().state.equalsIgnoreCase("Stop"))
@@ -1092,6 +1096,8 @@ public class CanvasCrestore
 						s.stop(originator);
 					}
 					s.disconnect(originator);
+					Common.Logging.i(TAG, "handleNoAvfResponse(): removing "+s+" from list of sessions in session manager");
+					mSessionMgr.remove(s.sessionId());
 				}
 			}
 		}
