@@ -5187,16 +5187,18 @@ public class CresStreamCtrl extends Service {
     	if (adapters.contains("eth0") && !userSettings.getDeviceIp().contentEquals("0.0.0.0"))
     		ipaddr = userSettings.getDeviceIp();
     	if (adapters.contains("eth1") && !userSettings.getAuxiliaryIp().contentEquals("0.0.0.0"))
+    	{
+    		if (ipaddr == null)
+    			ipaddr = userSettings.getAuxiliaryIp();
+    		else
     		ipaddr += "," + userSettings.getAuxiliaryIp();
+    	}
         if (adapters.contains("wlan0") && !userSettings.getWifiIp().contentEquals("0.0.0.0"))
         {
         	if (ipaddr == null)
         		ipaddr = userSettings.getWifiIp();
         	else
-        		ipaddr = "0.0.0.0"; // indicate all adapters
-        } else if (adapters.contains("wlan0") && ipaddr != null) {
-        	// TODO remove this once wifi address is actually populated
-            ipaddr = "0.0.0.0";
+    			ipaddr += "," + userSettings.getWifiIp();
         }
         if (ipaddr == null) {
             Log.i(TAG, "getAirMediaConnectionIpAddress(): no adapters have a valid ip address - adapters="+adapters);

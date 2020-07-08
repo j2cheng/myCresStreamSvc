@@ -21,6 +21,9 @@ import com.crestron.airmedia.utilities.delegates.MulticastMessageDelegate;
 import com.crestron.airmedia.utilities.delegates.Observer;
 import com.crestron.airmedia.utilities.TimeSpan;
 
+import java.util.LinkedList;
+import java.util.List;
+
 
 public class AirMediaReceiver extends AirMediaBase {
     public static final String TAG = "airmedia.receiver";
@@ -184,6 +187,7 @@ public class AirMediaReceiver extends AirMediaBase {
     private AirMediaReceiverState state_ = AirMediaReceiverState.Stopped;
 
     private String adapterAddress_ = null;
+    private List<String> adapterAddresses_ = new LinkedList<String>();
     private String serverVersion_ = "0.0.0.0";
     private String serverName_ = "";
     private String serverPassword_ = "";
@@ -247,6 +251,10 @@ public class AirMediaReceiver extends AirMediaBase {
 
     public void adapterAddress(String value) {
         scheduler().update(new TaskScheduler.PropertyUpdater<String>() { @Override public void update(String v) { updateAdapterAddress(v); } }, value);
+    }
+
+    public void adapterAddresses(List<String> value) {
+        scheduler().update(new TaskScheduler.PropertyUpdater<List<String>>() { @Override public void update(List<String> v) { updateAdapterAddresses(v); } }, value);
     }
 
     /// SERVER VERSION
@@ -615,6 +623,17 @@ public class AirMediaReceiver extends AirMediaBase {
             receiver.setAdapterAddress(value);
         } catch (RemoteException e) {
             Common.Logging.e(TAG, "receiver.adapter-address  value= " + value + "  EXCEPTION  " + e);
+            handleRemoteException();
+        }
+    }
+
+    private void updateAdapterAddresses(List<String> value) {
+        try {
+            IAirMediaReceiver receiver = receiver_;
+            if (receiver == null) return;
+            receiver.setAdapterAddresses(value);
+        } catch (RemoteException e) {
+            Common.Logging.e(TAG, "receiver.adapter-addresses  value= " + value + "  EXCEPTION  " + e);
             handleRemoteException();
         }
     }

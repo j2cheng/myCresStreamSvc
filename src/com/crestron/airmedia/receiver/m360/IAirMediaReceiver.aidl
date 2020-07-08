@@ -102,4 +102,7 @@ interface IAirMediaReceiver {
     void configureLongProperty(in String property, in long value);
     void configureFloatProperty(in String property, in float value);
     void configureDoubleProperty(in String property, in double value);
+
+    List<String> getAdapterAddresses();
+    void setAdapterAddresses(in List<String> addresses);
 }

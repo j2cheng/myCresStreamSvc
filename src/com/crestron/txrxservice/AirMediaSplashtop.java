@@ -15,6 +15,8 @@ import java.util.Timer;
 import java.util.TimerTask;
 import java.net.InetAddress;
 import java.net.UnknownHostException;
+import java.util.List;
+import java.util.Arrays;
 
 import com.google.gson.Gson;
 import com.google.gson.GsonBuilder;
@@ -578,6 +580,12 @@ public class AirMediaSplashtop
     		return adapter_ip_address;
     	}
     }
+
+    private List<String> get_adapter_ip_address_as_list(String ipaddr)
+    {
+        List<String> ipaddrList = Arrays.asList(ipaddr.split(","));
+        return ipaddrList;
+    }
     
     private void RestartReceiverForAdapterChange() {
     	new Thread(new Runnable() {
@@ -595,7 +603,7 @@ public class AirMediaSplashtop
     					String ipaddr = set_adapter_ip_address();
     					if (!isIpAddrNone(ipaddr)) {
     						Common.Logging.i(TAG, "RestartReceiverForAdapterChange(): Setting new ip address for receiver: " + ipaddr);
-    						receiver().adapterAddress(ipaddr);
+    						receiver().adapterAddresses(get_adapter_ip_address_as_list(ipaddr));
     						startReceiver();
     					}
     				}
@@ -621,7 +629,8 @@ public class AirMediaSplashtop
         		
                 receiver().serverName(serverName);
                 receiver().product(productName);
-                receiver().adapterAddress(get_adapter_ip_address());
+                Common.Logging.i(TAG, "startAirMediaReceiver: get list of ip address for receiver= " + get_adapter_ip_address());
+                receiver().adapterAddresses(get_adapter_ip_address_as_list(get_adapter_ip_address()));
                 setAirMediaReceiverMaxResolution();
                 Point dSize = mStreamCtl.getDisplaySize();
                 receiver().displayResolution(new AirMediaSize(dSize.x, dSize.y));
