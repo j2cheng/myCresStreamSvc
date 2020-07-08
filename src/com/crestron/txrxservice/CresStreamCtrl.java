@@ -4014,7 +4014,7 @@ public class CresStreamCtrl extends Service {
                 updateWindow(sessId, false);
                 showWindow(sessId);
                 invalidateSurface();
-                startWfdStream(sessId, (long) 1, args[1], rtsp_port);
+                startWfdStream(sessId, (long) 1, args[1], rtsp_port,"0.0.0.0");
             }
             else if (args[0].equalsIgnoreCase("stop"))
             {
@@ -4028,10 +4028,27 @@ public class CresStreamCtrl extends Service {
         }
     }
     
-    public void startWfdStream(int streamId, long sessionId, String url, int rtsp_port)
+    public String getIfcName(String address)
     {
-        Log.i(TAG, "startWfdStream: streamId="+streamId+"   sessionId="+sessionId+"   url="+url+"   rtspPort="+rtsp_port);
-        streamPlay.wfdStart(streamId, sessionId, url, rtsp_port);
+    	if (address.equalsIgnoreCase("0.0.0.0"))
+    		return "eth0";
+    	if (address.equalsIgnoreCase(userSettings.getDeviceIp()))
+    		return "eth0";
+    	if (address.equalsIgnoreCase(userSettings.getAuxiliaryIp()))
+    		return "eth1";
+    	if (address.equalsIgnoreCase(userSettings.getWifiIp()))
+    		return "wlan0";
+    	else {
+            Log.e(TAG, "getIfcName: no interface found for ip address "+address);
+            return "eth0";
+    	}
+    }
+    
+    public void startWfdStream(int streamId, long sessionId, String url, int rtsp_port, String localAddress)
+    {
+        Log.i(TAG, "startWfdStream: streamId="+streamId+"   sessionId="+sessionId+"   url="+url+"   rtspPort="+rtsp_port+"   localAddress="+localAddress);
+        String localIfc = getIfcName(localAddress);
+        streamPlay.wfdStart(streamId, sessionId, url, rtsp_port, localAddress, localIfc);
     }
 
     public void stopWfdStream(int streamId, long sessionId)
@@ -5299,14 +5316,14 @@ public class CresStreamCtrl extends Service {
             String ipaddr = getAirMediaConnectionIpAddress();
             if (ipaddr.equals("None"))
                 ipaddr = null;
-            streamPlay.msMiceSetAdapterAddress(ipaddr, getAirMediaInterface());
+            streamPlay.msMiceSetAdapterAddress(ipaddr);
         }
         else
         {
             // turn off ms mice
             Log.i(TAG, "Stop msMice");
             streamPlay.msMiceStop();
-            streamPlay.msMiceSetAdapterAddress(null, getAirMediaInterface());
+            streamPlay.msMiceSetAdapterAddress(null);
         }
         if (mAirMedia != null)
         {

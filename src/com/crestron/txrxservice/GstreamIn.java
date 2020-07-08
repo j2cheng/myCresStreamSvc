@@ -44,13 +44,12 @@ public class GstreamIn implements SurfaceHolder.Callback {
     private static native boolean nativeClassInit(); // Initialize native class: cache Method IDs for callbacks
     private native void nativeSurfaceInit(Object surface, int sessionId);
     private native void nativeSurfaceFinalize(int sessionId);
-    private native void nativeWfdStart(int streamId, long sessionId, String url, int rtsp_port);
+    private native void nativeWfdStart(int streamId, long sessionId, String url, int rtsp_port, String localAddress, String localIfc);
     private native void nativeWfdStop(int streamId, long sessionId);
     private native void nativeMsMiceStart();
     private native void nativeMsMiceStop();
-    private native void nativeMsMiceSetAdapterAddress(String address, String ifc);
+    private native void nativeMsMiceSetAdapterAddress(String address);
     private native void nativeMsMiceSetPin(String pin);
-    private native void nativeMsMiceStateChange(long sessionId, int state, String device_id, String device_name, String device_address, int rtsp_port);
     private long native_custom_data;      // Native code will use this to keep private data
 
     private static native void 	nativeSetServerUrl(String url, int sessionId);
@@ -361,13 +360,13 @@ public class GstreamIn implements SurfaceHolder.Callback {
     	streamCtl.SendStreamInVideoFeedbacks(source, width, height, framerate, profile); //TODO: see if profile needs to be converted
     }
     
-    public void sendMsMiceStateChange(long sessionId, int state, String deviceId, String deviceName, String deviceAddress, int rtsp_port)
+    public void sendMsMiceStateChange(long sessionId, int state, String localAddress, String deviceId, String deviceName, String deviceAddress, int rtsp_port)
     {
     	Log.i(TAG, "sendMsMiceStateChange: sessionId="+sessionId+"  state="+state+"   rtsp_port="+rtsp_port);
     	if (state == 1) 
     	{
     		// signal session is ready to observer
-    		streamCtl.wifidVideoPlayer.onSessionReady(sessionId, deviceId, deviceName, deviceAddress, rtsp_port);
+    		streamCtl.wifidVideoPlayer.onSessionReady(sessionId, localAddress, deviceId, deviceName, deviceAddress, rtsp_port);
     	} 
     	else if (state == 0) 
     	{
@@ -598,7 +597,7 @@ public class GstreamIn implements SurfaceHolder.Callback {
     }
  
     
-    public void wfdStart(final int streamId, final long sessionId, final String url, final int rtsp_port)
+    public void wfdStart(final int streamId, final long sessionId, final String url, final int rtsp_port, final String localAddress, final String localIfc)
     {
     	final GstreamIn gStreamObj = this;
     	final CountDownLatch latch = new CountDownLatch(1);
@@ -612,7 +611,7 @@ public class GstreamIn implements SurfaceHolder.Callback {
     					updateNativeWfdDataStruct(streamId);
     					Surface s = streamCtl.getSurface(streamId);
     					nativeSurfaceInit(s, streamId);
-    					nativeWfdStart(streamId, sessionId, url, rtsp_port);
+    					nativeWfdStart(streamId, sessionId, url, rtsp_port, localAddress, localIfc);
     				}
     				else
     				{
@@ -683,10 +682,10 @@ public class GstreamIn implements SurfaceHolder.Callback {
     	nativeMsMiceSetPin(pin);
     }
     
-    public void msMiceSetAdapterAddress(String address, String ifc)
+    public void msMiceSetAdapterAddress(String address)
     {
-    	Log.i(TAG, "msMiceSetAdapterAddress - address="+address+" on "+ifc+" ethernet interface");
-    	nativeMsMiceSetAdapterAddress(address, ifc);
+    	Log.i(TAG, "msMiceSetAdapterAddress - address="+address);
+    	nativeMsMiceSetAdapterAddress(address);
     }
     
 	// Find the session id (aka stream number) given a surface holder.

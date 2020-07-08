@@ -195,9 +195,9 @@ JNIEXPORT void JNICALL Java_com_crestron_txrxservice_GstreamIn_nativeSetRTCPDest
 /*
  * Class:           GstreamIn
  * Method:          nativeWfdStart
- * Signature:       (IJLjava/lang/string; ILjava/lang/string; II)V
+ * Signature:       (IJLjava/lang/string; ILjava/lang/string; Ljava/lang/string;)V
  */
-JNIEXPORT void JNICALL Java_com_crestron_txrxservice_GstreamIn_nativeWfdStart(JNIEnv *env, jobject thiz, jint windowId, jlong sessionId, jstring url_jstring, jint rtsp_port);
+JNIEXPORT void JNICALL Java_com_crestron_txrxservice_GstreamIn_nativeWfdStart(JNIEnv *env, jobject thiz, jint windowId, jlong sessionId, jstring url_jstring, jint rtsp_port, jstring localAddress, jstring localIfc);
 
 /*
  * Class:           GstreamIn
@@ -230,9 +230,9 @@ JNIEXPORT void JNICALL Java_com_crestron_txrxservice_GstreamIn_nativeMsMiceClose
 /*
  * Class:           GstreamIn
  * Method:          nativeMsMiceSetAdapterAddress
- * Signature:       (Ljava/lang/string;Ljava/lang/string)V
+ * Signature:       (Ljava/lang/string;)V
  */
-JNIEXPORT void JNICALL Java_com_crestron_txrxservice_GstreamIn_nativeMsMiceSetAdapterAddress(JNIEnv *env, jobject thiz, jstring address, jstring ifc);
+JNIEXPORT void JNICALL Java_com_crestron_txrxservice_GstreamIn_nativeMsMiceSetAdapterAddress(JNIEnv *env, jobject thiz, jstring address);
 
 /*
  * Class:           GstreamIn

@@ -22,7 +22,7 @@ interface IVideoPlayer {
     /// METHODS
 
     // start the video player for the given session ID
-    void start(in long id, in String endpoint, in int port, in Surface surface);
+    void start(in long id, in String endpoint, in int port, in Surface surface, in String local_address);
 
     // start the video player for the given session ID
     void startWithDtls(in long id, in String endpoint, in int port, in Surface surface, in String key, in int cipher, in int authentication);
@@ -38,6 +38,8 @@ interface IVideoPlayer {
 
     void setAdapterAddress(in String address);
     void setPasscode(in String code);
+    
+    void setAdapterAddresses(in List<String> address);
 
     ////////////////////////////////////////////////////////////////////////////////////////////////
     /// METHODS

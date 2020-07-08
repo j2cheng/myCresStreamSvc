@@ -17,7 +17,7 @@ interface IVideoPlayerObserver {
 
     void onResolutionChanged(in long id, in int width, in int height);
 
-    void onSessionReady(in long id, in String device_id, in String device_name, in String device_address, in int port);
+    void onSessionReady(in long id, in String device_id, in String device_name, in String device_address, in int port, in String local_address);
 
     void onInfoChanged(in long id, in AirMediaPlatforms platform, in String os, in String version);
 }

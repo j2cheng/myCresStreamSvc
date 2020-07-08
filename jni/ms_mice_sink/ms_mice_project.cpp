@@ -21,6 +21,7 @@
 #include "ms_mice_common.h"
 #include "ms_mice_project.h"
 #include "ms-mice.h"
+#include <sstream>
 
 static msMiceSinkProjClass* g_msMiceSinkProjPtr = NULL;
 static Mutex gProjectsLock;
@@ -47,6 +48,7 @@ void msMiceSinkProjInit(char* adapterAddress)
     }
 
     CSIO_LOG(gProjectDebug, "msMiceSinkProjInit: enter\n");
+    CSIO_LOG(gProjectDebug, "msMiceSinkProjInit: adapter address is %s", adapterAddress);
 
     gProjectsLock.lock();
 
@@ -115,14 +117,25 @@ void msMiceSinkProjStopSession(int id, gint64 session_id)
 
     if(g_msMiceSinkProjPtr)
     {
-        if(g_msMiceSinkProjPtr->m_service_obj && g_msMiceSinkProjPtr->m_service_obj->m_mice_service)
+    	// find service for session
+    	ms_mice_sink_service *ms_mice_sink_service = NULL;
+    	for (int idx=0; idx < g_msMiceSinkProjPtr->m_service_obj.size(); idx++)
+    	{
+            ms_mice_sink_session *ms_session = ms_mice_sink_service_find_session_by_id(g_msMiceSinkProjPtr->m_service_obj[idx]->m_mice_service, session_id);
+            if (ms_session)
+            {
+            	ms_mice_sink_service = (g_msMiceSinkProjPtr->m_service_obj[idx])->m_mice_service;
+            	break;
+            }
+    	}
+        if(ms_mice_sink_service)
         {
-            GMainContext* context = ms_mice_sink_service_get_context(g_msMiceSinkProjPtr->m_service_obj->m_mice_service);
+            GMainContext* context = ms_mice_sink_service_get_context(ms_mice_sink_service);
 
             ms_mice_sink_service_and_sessionid* cmd = new ms_mice_sink_service_and_sessionid();
             if(cmd)
             {
-                cmd->service = g_msMiceSinkProjPtr->m_service_obj->m_mice_service;
+                cmd->service = ms_mice_sink_service;
                 cmd->session_id  = session_id;
                 cmd->session_pin = NULL;
                 g_main_context_invoke(context,session_observer_disconnect_request_from_app,cmd);
@@ -231,6 +244,7 @@ static void app_extension_ms_mice_session_observer_on_source_ready(ms_mice_sink_
         msMiceSignalRaiseCmd NewCmd;
         NewCmd.session_id  = ms_mice_sink_session_get_id(ms_session);
         NewCmd.state       = 1;
+        NewCmd.local_addr  = (char*)ms_mice_sink_session_get_local_address(ms_session);
         NewCmd.device_id   = (char*)ms_mice_sink_session_get_source_id(ms_session);
         NewCmd.device_name = (char*)ms_mice_sink_session_get_friendly_name(ms_session);
         NewCmd.device_addr = (char*)ms_mice_sink_session_get_remote_address(ms_session);
@@ -277,6 +291,7 @@ static void app_extension_ms_mice_session_observer_on_stop_projection(ms_mice_si
         msMiceSignalRaiseCmd NewCmd;
         NewCmd.session_id  = ms_mice_sink_session_get_id(ms_session);
         NewCmd.state       = 0;
+        NewCmd.local_addr  = (char*)ms_mice_sink_session_get_local_address(ms_session);
         NewCmd.device_id   = (char*)ms_mice_sink_session_get_source_id(ms_session);
         NewCmd.device_name = (char*)ms_mice_sink_session_get_friendly_name(ms_session);
         NewCmd.device_addr = (char*)ms_mice_sink_session_get_remote_address(ms_session);
@@ -448,7 +463,7 @@ static void app_extension_ms_mice_load(msMiceSinkServiceClass* p_servceClass,GEr
     if(p_servceClass->m_parent->m_adapterAddress.size())
     {
         ms_mice_sink_service_new(&p_servceClass->m_mice_service,
-                                 p_servceClass->m_parent->getadapterAddress(),
+                                 p_servceClass->m_parent->getadapterAddress(p_servceClass->m_idx),
                                  DEFAULT_MIRACAST_OVER_INFRASTRUCTURE_PORT,
                                  p_servceClass->m_parent->getSessionPin(),
                                  &internal_error);
@@ -483,11 +498,9 @@ cleanup_error:
 /***************************** end of ms-mice static interface functions **************************************/
 
 /***************************** msMiceSinkProjClass class **************************************/
-msMiceSinkProjClass::msMiceSinkProjClass(char* adapterAddr):
+msMiceSinkProjClass::msMiceSinkProjClass(char* adapterAddrList):
 msMiceSinkProjTimeArray(NULL),
-m_service_obj(NULL),
 m_pinStr(),
-m_adapterAddress(),
 m_projEventQList(NULL)
 {
     m_debugLevel = gProjectDebug;
@@ -498,14 +511,18 @@ m_projEventQList(NULL)
     if(msMiceSinkProjTimeArray)
         msMiceSinkProjTimeArray->recordEventTimeStamp(MS_MICE_SINK_PROJ_TIMESTAMP_INIT);
 
+    m_service_obj.clear();
     m_adapterAddress.clear();
     m_pinStr.clear();
 
-    if(adapterAddr)
-    {
-        std::string strAddr = (char*)adapterAddr;
-        setadapterAddress(strAddr);
-    }
+    std::stringstream ss;
+    std::string token;
+    ss << adapterAddrList;
+	while (getline(ss, token, ','))
+	{
+	    CSIO_LOG(eLogLevel_info, "msMiceSinkProj: adding adapter address %s\n", token.c_str());
+    	m_adapterAddress.push_back(token);
+	}
 }
 msMiceSinkProjClass::~msMiceSinkProjClass()
 {
@@ -550,6 +567,8 @@ msMiceSinkProjClass::~msMiceSinkProjClass()
         delete msMiceSinkProjTimeArray;
         msMiceSinkProjTimeArray = NULL;
     }
+    if (m_adapterAddress.size() > 0)
+    	m_adapterAddress.clear();
     CSIO_LOG(eLogLevel_info, "msMiceSinkProjClass::~msMiceSinkProjClass\n");
 }
 
@@ -571,9 +590,15 @@ void msMiceSinkProjClass::DumpClassPara(int id)
     CSIO_LOG(eLogLevel_info, "msMiceSinkProjClass: ThreadId            0x%x\n", (unsigned long int)getThredId());
     CSIO_LOG(eLogLevel_info, "msMiceSinkProjClass: m_debugLevel        %d\n", m_debugLevel);
     CSIO_LOG(eLogLevel_info, "msMiceSinkProjClass: m_ThreadIsRunning   %d\n", m_ThreadIsRunning);
-    CSIO_LOG(eLogLevel_info, "msMiceSinkProjClass: m_service_obj       0x%x\n", m_service_obj);
     CSIO_LOG(eLogLevel_info, "msMiceSinkProjClass: m_pinStr            %s\n", m_pinStr.c_str());
-    CSIO_LOG(eLogLevel_info, "msMiceSinkProjClass: m_adapterAddress    %s\n", m_adapterAddress.c_str());
+    for (int i=0; i < m_service_obj.size(); i++)
+    {
+    	CSIO_LOG(eLogLevel_info, "msMiceSinkProjClass: m_service_obj[%d]       0x%x\n", i, m_service_obj[i]);
+    }
+    for (int i=0; i < m_adapterAddress.size(); i++)
+    {
+    	CSIO_LOG(eLogLevel_info, "msMiceSinkProjClass: m_adapterAddress[%d]    %s\n", i, m_adapterAddress[i].c_str());
+    }
 
     if(m_projEventQList)
     {
@@ -627,8 +652,25 @@ void msMiceSinkProjClass::sendEvent(csioEventQueueStruct* pEvntQ)
                         memcpy(evntQ.buffPtr,(char*)bufP,sizeof(msMiceSignalRaiseCmd));
                         evntQ.buf_size = sizeof(msMiceSignalRaiseCmd);
 
-                        //next fix device_id,device_name and device_addr
+                        //next fix local_aadr,device_id,device_name and device_addr
                         msMiceSignalRaiseCmd* pConfig = (msMiceSignalRaiseCmd*)evntQ.buffPtr;
+                        if(pConfig->local_addr)
+                        {
+                            int localAddrLen = strlen(pConfig->local_addr);
+                            char* newLocalAddrStr = new char[localAddrLen + 1];
+                            if(newLocalAddrStr)
+                            {
+                                memcpy(newLocalAddrStr,pConfig->local_addr,localAddrLen);
+                                newLocalAddrStr[localAddrLen] = 0;
+                                pConfig->local_addr = newLocalAddrStr;
+                            }
+                            else
+                            {
+                                pConfig->local_addr = NULL;
+                                CSIO_LOG(eLogLevel_warning, "msMiceSinkProjClass: create string buffer failed\n");
+                            }
+                        }
+
                         if(pConfig->device_id)
                         {
                             int devIdLen = strlen(pConfig->device_id);
@@ -659,7 +701,7 @@ void msMiceSinkProjClass::sendEvent(csioEventQueueStruct* pEvntQ)
                             else
                             {
                                 pConfig->device_name = NULL;
-                                CSIO_LOG(eLogLevel_warning, "CresRTSP_project: create string buffer failed\n");
+                                CSIO_LOG(eLogLevel_warning, "msMiceSinkProjClass: create string buffer failed\n");
                             }
                         }
 
@@ -676,13 +718,13 @@ void msMiceSinkProjClass::sendEvent(csioEventQueueStruct* pEvntQ)
                             else
                             {
                                 pConfig->device_addr = NULL;
-                                CSIO_LOG(eLogLevel_warning, "CresRTSP_project: create string buffer failed\n");
+                                CSIO_LOG(eLogLevel_warning, "msMiceSinkProjClass: create string buffer failed\n");
                             }
                         }
                     }
                     else
                     {
-                        CSIO_LOG(eLogLevel_warning, "CresRTSP_project: create buffer failed\n");
+                        CSIO_LOG(eLogLevel_warning, "msMiceSinkProjClass: create buffer failed\n");
                     }
                     break;
                 }
@@ -737,36 +779,44 @@ void* msMiceSinkProjClass::ThreadEntry()
         return NULL;
     }
 
-    if(m_service_obj == NULL)
+    if (m_service_obj.size() == 0)
     {
-        m_service_obj = new msMiceSinkServiceClass(this);
+        CSIO_LOG(ABOVE_DEBUG_VERB(m_debugLevel), "msMiceSinkProjClass: creating service class objects - size=%d\n", m_adapterAddress.size());
+    	for (int i=0; i < m_adapterAddress.size(); i++)
+    	{
+            msMiceSinkServiceClass *p_ms_mice_service = new msMiceSinkServiceClass(this, i);
 
-        if (!m_service_obj)
-        {
-            CSIO_LOG(eLogLevel_error, "msMiceSinkProjClass::create m_service_obj failed!\n");
-            m_ThreadIsRunning = 0;
-            return NULL;
-        }
-        else
-        {
-            m_service_obj->CreateNewThread("MSMICE_SRV0",NULL);
+    		if (!p_ms_mice_service)
+    		{
+    			CSIO_LOG(eLogLevel_error, "msMiceSinkProjClass::create m_service_obj[%d] failed!\n", i);
+    			m_ThreadIsRunning = 0;
+    			return NULL;
+    		}
+    		else
+    		{
+        		m_service_obj.push_back(p_ms_mice_service);
+    			char thread_name[20];
+    			sprintf(thread_name, "MSMICE_SRV_%d", i);
+    			p_ms_mice_service->CreateNewThread(thread_name,NULL);
 
-            //Note: to make sure ms mice service is set before processing any commands below:
-            //      such as set pin.
-            for(int i = 0; i < 10 ; i++)
-            {
-                if(m_service_obj->m_mainLoop)
-                {
-                    CSIO_LOG(m_debugLevel, "msMiceSinkProjClass:: m_service_obj->m_mainLoop is set.\n");
-                    break;
-                }
-                else
-                {
-                    CSIO_LOG(m_debugLevel, "msMiceSinkProjClass:: waiting for m_service_obj->m_mainLoop!\n");
-                    usleep(50000);//wait for 50ms
-                }
-            }
-        }
+    			//Note: to make sure ms mice service is set before processing any commands below:
+    			//      such as set pin.
+    			for(int i = 0; i < 10 ; i++)
+    			{
+    				if(p_ms_mice_service->m_mainLoop)
+    				{
+    					CSIO_LOG(m_debugLevel, "msMiceSinkProjClass:: m_service_obj[%d]->m_mainLoop is set.\n", i);
+    					break;
+    				}
+    				else
+    				{
+    					CSIO_LOG(m_debugLevel, "msMiceSinkProjClass:: waiting for m_service_obj[%d]->m_mainLoop!\n", i);
+    					usleep(50000);//wait for 50ms
+    				}
+    			}
+                CSIO_LOG(ABOVE_DEBUG_VERB(m_debugLevel), "msMiceSinkProjClass: mainloop set for service %d\n", i);
+    		}
+    	}
     }
 
     for(;;)
@@ -801,36 +851,39 @@ void* msMiceSinkProjClass::ThreadEntry()
                         CSIO_LOG(m_debugLevel, "msMiceSinkProjClass: MS_MICE_SINK_EVENTS_SET_PIN,set pin[%s]\n",m_pinStr.c_str());
                     }//else
 
-                    //send it to m_mice_service context
-                    if(m_service_obj->m_mice_service)
+                    for (int i=0; i < m_service_obj.size(); i++)
                     {
-                        GMainContext* context = ms_mice_sink_service_get_context(m_service_obj->m_mice_service);
+                    	//send it to m_mice_service context
+                    	if(m_service_obj[i]->m_mice_service)
+                    	{
+                    		GMainContext* context = ms_mice_sink_service_get_context(m_service_obj[i]->m_mice_service);
 
-                        ms_mice_sink_service_and_sessionid* cmd = new ms_mice_sink_service_and_sessionid();
-                        if(cmd)
-                        {
-                            cmd->service = m_service_obj->m_mice_service;
+                    		ms_mice_sink_service_and_sessionid* cmd = new ms_mice_sink_service_and_sessionid();
+                    		if(cmd)
+                    		{
+                    			cmd->service = m_service_obj[i]->m_mice_service;
 
-                            if(m_pinStr.size())
-                            {
-                                cmd->session_pin = g_strdup(m_pinStr.c_str());
-                                CSIO_LOG(m_debugLevel, "msMiceSinkProjClass: MS_MICE_SINK_EVENTS_SET_PIN cmd->session_pin[0x%x][%d]\n",
-                                         cmd->session_pin,strlen(cmd->session_pin));
-                            }
-                            else
-                            {
-                                cmd->session_pin = NULL;
-                            }
-                            g_main_context_invoke(context,app_extension_ms_mice_service_set_session_pin,cmd);
+                    			if(m_pinStr.size())
+                    			{
+                    				cmd->session_pin = g_strdup(m_pinStr.c_str());
+                    				CSIO_LOG(m_debugLevel, "msMiceSinkProjClass: MS_MICE_SINK_EVENTS_SET_PIN cmd->session_pin[0x%x][%d]\n",
+                    						cmd->session_pin,strlen(cmd->session_pin));
+                    			}
+                    			else
+                    			{
+                    				cmd->session_pin = NULL;
+                    			}
+                    			g_main_context_invoke(context,app_extension_ms_mice_service_set_session_pin,cmd);
 
-                            //Note: cmd will be deleted in app_extension_ms_mice_service_set_session_pin
-                        }//else
+                    			//Note: cmd will be deleted in app_extension_ms_mice_service_set_session_pin
+                    		}//else
+                    	}
+                    	else
+                    	{
+                    		CSIO_LOG(m_debugLevel, "msMiceSinkProjClass: m_service_obj[%s]->m_mice_service is NULL, pin lost.\n", i);
+                    	}
                     }
-                    else
-                    {
-                        CSIO_LOG(m_debugLevel, "msMiceSinkProjClass[%d]: m_service_obj->m_mice_service is NULL, pin lost.\n");
-                    }
-                    break;
+                	break;
                 }
                 case MS_MICE_SINK_EVENTS_MICE_SIGNAL_RAISE:
                 {
@@ -845,10 +898,16 @@ void* msMiceSinkProjClass::ThreadEntry()
                             Wfd_ms_mice_signal_raise (
                                     pConfig->session_id,
                                     pConfig->state,
+                                    pConfig->local_addr,
                                     pConfig->device_id,
                                     pConfig->device_name,
                                     pConfig->device_addr,
                                     pConfig->rtsp_port);
+                        }
+
+                        if(pConfig->local_addr)
+                        {
+                            delete [] pConfig->local_addr;
                         }
 
                         if(pConfig->device_addr)
@@ -887,25 +946,29 @@ void* msMiceSinkProjClass::ThreadEntry()
         if(m_forceThreadExit)
         {
             //TODO: exit all child thread and wait here
+            CSIO_LOG(m_debugLevel, "msMiceSinkProj: force thread exit in ThreadEntry()\n");
             break;
         }
 
         CSIO_LOG(ABOVE_DEBUG_XTRVERB(m_debugLevel), "msMiceSinkProjClass loop back\n");
     }
 
-    if(m_service_obj)
+    CSIO_LOG(m_debugLevel, "msMiceSinkProj: looping to exit service threads\n");
+    for (int idx=0; idx < m_service_obj.size(); idx++)
     {
-        m_service_obj->exitThread();
+        msMiceSinkServiceClass *p_ms_mice_service = m_service_obj[idx];
+        CSIO_LOG(m_debugLevel, "msMiceSinkProj: calling service %d thread exit\n", idx);
+        p_ms_mice_service->exitThread();
 
         //wait until thread exits
         for(int i = 0; i < (20*60*10); i++)//wait for 50 ms * 20*60 = 1 min
         {
             //Note: msMiceSinkServiceClass calls g_main_loop_run.
             //      can't call g_main_loop_quit() before calling loop_run.
-            if(m_service_obj->m_ThreadIsRunning)
+            if(p_ms_mice_service->m_ThreadIsRunning)
             {
-                CSIO_LOG(m_debugLevel, "msMiceSinkProjClass: msMiceSinkServiceClass[0x%x] is running\n",m_service_obj);
-                m_service_obj->exitThread();
+                CSIO_LOG(m_debugLevel, "msMiceSinkProjClass: msMiceSinkServiceClass[0x%x] (service %d) is running\n",p_ms_mice_service, idx);
+                p_ms_mice_service->exitThread();
                 usleep( 50000L); //wait for 50 ms
             }
             else
@@ -913,14 +976,17 @@ void* msMiceSinkProjClass::ThreadEntry()
                 break;
             }
         }
+        CSIO_LOG(m_debugLevel, "msMiceSinkProj: done with wait loop for service %d\n", idx);
 
-        CSIO_LOG(m_debugLevel, "msMiceSinkProjClass: call WaitForThreadToExit[0x%x]\n",m_service_obj);
-        m_service_obj->WaitForThreadToExit();
-        CSIO_LOG(m_debugLevel, "msMiceSinkProjClass: Wait is done\n");
+        CSIO_LOG(m_debugLevel, "msMiceSinkProj: waiting for thread to exit for service %d\n", idx);
+        p_ms_mice_service->WaitForThreadToExit();
+        CSIO_LOG(m_debugLevel, "msMiceSinkProj: wait done for service %d\n", idx);
 
-        delete m_service_obj;
-        m_service_obj = NULL;
+        delete p_ms_mice_service;
+        CSIO_LOG(m_debugLevel, "msMiceSinkProj: deleted service object %d\n", idx);
+        m_service_obj[idx] = NULL;
     }
+    m_service_obj.clear();
 
     CSIO_LOG(m_debugLevel, "msMiceSinkProjClass: exiting...\n");
 
@@ -932,11 +998,12 @@ void* msMiceSinkProjClass::ThreadEntry()
 /***************************** end of msMiceSinkProjClass class **************************************/
 
 /***************************** msMiceSinkServceClass class **************************************/
-msMiceSinkServiceClass::msMiceSinkServiceClass(msMiceSinkProjClass* m_parent):
+msMiceSinkServiceClass::msMiceSinkServiceClass(msMiceSinkProjClass* m_parent, int i):
 msMiceSinkSevTimeArray(NULL),
 m_mice_service(NULL),
 m_mainLoop(NULL),
-m_parent(m_parent)
+m_parent(m_parent),
+m_idx(i)
 {
     m_debugLevel = gProjectDebug;
 
@@ -1127,8 +1194,9 @@ void msMiceSinkProjDumpPara()
     {
         g_msMiceSinkProjPtr->DumpClassPara(0);
 
-        if(g_msMiceSinkProjPtr->m_service_obj)
-            g_msMiceSinkProjPtr->m_service_obj->DumpClassPara(0);
+        for (int i=0; i < (g_msMiceSinkProjPtr->m_service_obj).size(); i++) {
+            (g_msMiceSinkProjPtr->m_service_obj[i])->DumpClassPara(0);
+        }
     }
     else
     {

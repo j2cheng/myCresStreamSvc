@@ -3,6 +3,7 @@
 
 #include "csioCommBase.h"
 #include "ms-mice.h"
+#include <vector>
 
 #define MSMICE_PROJ_EVNT_POLL_SLEEP_MS   1000   //1000ms
 
@@ -44,6 +45,7 @@ typedef struct _msMiceSignalRaiseCmd
 {
     gint64 session_id;
     int  state;
+    char *local_addr;
     char *device_id;
     char *device_name;
     char *device_addr;
@@ -66,15 +68,14 @@ public:
 
     void sendEvent(csioEventQueueStruct* pEvntQ);
 
-    msMiceSinkServiceClass *m_service_obj;
+    std::vector<msMiceSinkServiceClass *> m_service_obj;
     std::string m_pinStr;
 
-    const char* getadapterAddress(){ return m_adapterAddress.c_str();}
-    void setadapterAddress(std::string& str) { m_adapterAddress = str; }
+    const char* getadapterAddress(int i) { return m_adapterAddress[i].c_str();}
 
     const char* getSessionPin(){ return m_pinStr.c_str();}
 
-    std::string m_adapterAddress;
+    std::vector<std::string> m_adapterAddress;
 private:
     void* ThreadEntry();
 
@@ -95,7 +96,7 @@ class msMiceSinkServiceClass : public csioThreadBaseClass
 {
 public:
 
-    msMiceSinkServiceClass(msMiceSinkProjClass* m_parent);
+    msMiceSinkServiceClass(msMiceSinkProjClass* m_parent, int i);
     ~msMiceSinkServiceClass();
 
     csioTimerClockBase* msMiceSinkSevTimeArray;
@@ -107,6 +108,7 @@ public:
     GMainLoop* m_mainLoop ;
 
     msMiceSinkProjClass* m_parent;
+    int m_idx; // index in parent service array
 private:
     void* ThreadEntry();
 

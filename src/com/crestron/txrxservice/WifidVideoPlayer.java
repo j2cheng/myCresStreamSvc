@@ -161,14 +161,14 @@ public class WifidVideoPlayer {
         	}
         }
         
-        public void onSessionReady(long id, String device_id, String device_name, String device_address, int port)
+        public void onSessionReady(long id, String device_id, String device_name, String device_address, int port, String local_address)
         {
         	for (IVideoPlayerObserver observer : observers()) {
         		try {
-        			observer.onSessionReady(id, device_id, device_name, device_address, port);
+        			observer.onSessionReady(id, device_id, device_name, device_address, port, local_address);
         		} catch (RemoteException e) {
                     Common.Logging.e(TAG, "videoplayer.observer.onSessionReady  id= " + id + "  device_id= " + device_address + "  device_name=" + device_name +
-                    		"  device_address=" + device_address + "  rtsp_port=" + port + "  EXCEPTION  " + e + "  " + Log.getStackTraceString(e));
+                    		"  device_address=" + device_address + "  rtsp_port=" + port + "  local_address=" + local_address+ "  EXCEPTION  " + e + "  " + Log.getStackTraceString(e));
                     remove(observer);
         		}
         	}
@@ -199,9 +199,9 @@ public class WifidVideoPlayer {
         
         /// start
         @Override
-        public void start(long id, String endpoint, int port, Surface surface)
+        public void start(long id, String endpoint, int port, Surface surface, String localAddress)
         {
-            Common.Logging.i(TAG, "VideoPlayer.start  sessionId="+id+"  url="+endpoint+"  port="+port+"   Surface="+surface);
+            Common.Logging.i(TAG, "VideoPlayer.start  sessionId="+id+"  url="+endpoint+"  port="+port+"   Surface="+surface+"   localAddress="+localAddress);
             if (surface == null)
             {
                 Common.Logging.w(TAG, "Cannot start player with null surface");
@@ -230,7 +230,7 @@ public class WifidVideoPlayer {
             	session = new VideoSession(id, streamId, surface, AirMediaSessionStreamingState.Stopped);
             	// Start the video player
             	// Put session into the map
-            	streamCtrl_.startWfdStream(streamId, id, endpoint, port);
+            	streamCtrl_.startWfdStream(streamId, id, endpoint, port, localAddress);
             }
             sessionMap.put(id, session);
             WifidVideoPlayer.this.stateChanged(streamId, AirMediaSessionStreamingState.Starting);
@@ -256,7 +256,7 @@ public class WifidVideoPlayer {
         {
             boolean msMiceOn = streamCtrl_.userSettings.getAirMediaMiracastEnable() && streamCtrl_.userSettings.getAirMediaMiracastMsMiceMode();
             Common.Logging.i(TAG, "VideoPlayer.setAdapterAddress  address="+address+"     msMiceOn = "+msMiceOn);
-        	streamCtrl_.streamPlay.msMiceSetAdapterAddress(msMiceOn ? address : null, streamCtrl_.getAirMediaInterface());
+        	streamCtrl_.streamPlay.msMiceSetAdapterAddress(msMiceOn ? address : null);
             Common.Logging.i(TAG, "VideoPlayer.setAdapterAddress exit - address set to "+address);
         }
         
@@ -266,6 +266,28 @@ public class WifidVideoPlayer {
             Common.Logging.i(TAG, "VideoPlayer.setPasscode  pin="+pin);
             streamCtrl_.streamPlay.msMiceSetPin(pin);
             Common.Logging.i(TAG, "VideoPlayer.setPasscode exit - pin set to "+pin);
+        }
+        
+        private String list2String(List<String> addresses, String separator)
+        {
+        	StringBuilder addressStringBuilder = new StringBuilder();
+        	for (String address : addresses) {
+        		addressStringBuilder.append(address);
+        		addressStringBuilder.append(separator);
+        	}
+            String addressString = addressStringBuilder.toString();
+            // remove last separator
+            return addressString.substring(0, addressString.length()-separator.length());
+        }
+        
+        @Override
+        public void setAdapterAddresses(List<String> addresses)
+        {
+            boolean msMiceOn = streamCtrl_.userSettings.getAirMediaMiracastEnable() && streamCtrl_.userSettings.getAirMediaMiracastMsMiceMode();
+            Common.Logging.i(TAG, "VideoPlayer.setAdapterAddresses  address="+addresses+"     msMiceOn = "+msMiceOn);
+            String addressesString = list2String(addresses,",");
+        	streamCtrl_.streamPlay.msMiceSetAdapterAddress(msMiceOn ? addressesString : null);
+            Common.Logging.i(TAG, "VideoPlayer.setAdapterAddresses exit - address set to "+addressesString);
         }
         
         @Override
@@ -358,10 +380,10 @@ public class WifidVideoPlayer {
     	}
     }
     
-    public void onSessionReady(long id, String device_id, String device_name, String device_address, int port) 
+    public void onSessionReady(long id, String local_address, String device_id, String device_name, String device_address, int port) 
     {
-        Common.Logging.i(TAG, "videoplayer.onSessionReady():  sessionId="+id+" deviceId="+device_id+" deviceName="+device_name+" deviceAddress="+device_address+" rtsp_port="+port);
-    	service_.onSessionReady(id, device_id, device_name, device_address, port);
+        Common.Logging.i(TAG, "videoplayer.onSessionReady():  sessionId="+id+" deviceId="+device_id+" deviceName="+device_name+" deviceAddress="+device_address+" rtsp_port="+port+" local_address="+local_address);
+    	service_.onSessionReady(id, device_id, device_name, device_address, port, local_address);
     }
     
     public void infoChanged(int streamId, String osVersion)

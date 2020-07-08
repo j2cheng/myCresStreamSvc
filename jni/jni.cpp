@@ -2617,7 +2617,7 @@ int csio_jni_StartRTPMediaStreamThread(int iStreamId, GstElement * appSource, un
 
    // bind the socket with the server address 
    //get local ip
-   CREGSTREAM * data = GetStreamFromCustomData(CresDataDB, 0);
+   CREGSTREAM * data = GetStreamFromCustomData(CresDataDB, iStreamId);
    if(data)
    {
        CSIO_LOG(eLogLevel_debug, "mira: csio_jni_StartRTPMediaStreamThread: data->loc_ip_addr[%s]",data->loc_ip_addr);
@@ -3005,10 +3005,13 @@ int csio_jni_CreatePipeline(GstElement **pipeline, GstElement **source, eProtoco
 			    insert_udpsrc_probe(data,data->element_av[0],"src");
 
 			    //for miracast, we need to bind to ip address from index 0
-			    CREGSTREAM * data_for_address = GetStreamFromCustomData(CresDataDB, 0);
+			    CREGSTREAM * data_for_address = GetStreamFromCustomData(CresDataDB, iStreamId);
+				CSIO_LOG(eLogLevel_info, "%s: [streamId=%d] [data_for_address=%x]\n", __FUNCTION__, iStreamId, data_for_address);
 			    if(data->wfd_start && data->wfd_is_mice_session && data_for_address && data_for_address->loc_ip_addr[0])
 			    {
 			        //g_object_set(G_OBJECT(data->element_av[0]), "address", data_for_address->loc_ip_addr, NULL);
+			    	if (data_for_address && data_for_address->loc_ip_addr[0])
+			    		CSIO_LOG(eLogLevel_info, "%s: [streamId=%d] [loc_ip_addr=%s]\n", __FUNCTION__, iStreamId, data_for_address->loc_ip_addr);
 			        g_object_set(G_OBJECT(data->element_av[0]), "address", data_for_address->loc_ip_addr, NULL);
 			    }
 
@@ -4747,8 +4750,9 @@ JNIEXPORT void JNICALL Java_com_crestron_txrxservice_WbsStreamIn_nativeSetLogLev
  * Note: calling function should call gst_native_surface_init() to setup surface first.
  *
  * */
-JNIEXPORT void JNICALL Java_com_crestron_txrxservice_GstreamIn_nativeWfdStart(JNIEnv *env, jobject thiz, jint windowId, jlong msMiceSessionId, jstring url_jstring, jint rtsp_port)
+JNIEXPORT void JNICALL Java_com_crestron_txrxservice_GstreamIn_nativeWfdStart(JNIEnv *env, jobject thiz, jint windowId, jlong msMiceSessionId, jstring url_jstring, jint rtsp_port, jstring localAddress, jstring localIfc)
 {
+    CSIO_LOG(eLogLevel_debug,"%s(): streamId[%d] sessionId[%lld]",__FUNCTION__, windowId, msMiceSessionId);
     const char * url_cstring = env->GetStringUTFChars( url_jstring , NULL ) ;
     if (url_cstring == NULL)
     {
@@ -4756,8 +4760,26 @@ JNIEXPORT void JNICALL Java_com_crestron_txrxservice_GstreamIn_nativeWfdStart(JN
         CSIO_LOG(eLogLevel_error, "url_jstring is NULL.");
         return;
     }
+    const char * localAddress_cstring = env->GetStringUTFChars( localAddress , NULL ) ;
+    if (localAddress_cstring == NULL)
+    {
+        env->ReleaseStringUTFChars(url_jstring, url_cstring);
+        env->ReleaseStringUTFChars(localAddress, localAddress_cstring);
+        CSIO_LOG(eLogLevel_error, "localAddress is NULL.");
+        return;
+    }
+    const char * localIfc_cstring = env->GetStringUTFChars( localIfc , NULL ) ;
+    if (localIfc_cstring == NULL)
+    {
+        env->ReleaseStringUTFChars(url_jstring, url_cstring);
+        env->ReleaseStringUTFChars(localAddress, localAddress_cstring);
+        env->ReleaseStringUTFChars(localIfc, localIfc_cstring);
+        CSIO_LOG(eLogLevel_error, "localIfc is NULL.");
+        return;
+    }
 
-    CSIO_LOG(eLogLevel_info, "%s: start TCP connection source windowId[%d] sessionId[%lld] url[%s], rtsp_port[%d]", __FUNCTION__, windowId, (long long) msMiceSessionId, url_cstring,rtsp_port);
+    CSIO_LOG(eLogLevel_info, "%s: start TCP connection source windowId[%d] sessionId[%lld] url[%s], rtsp_port[%d] localAddress[%s] localIfc[%s]",
+    		__FUNCTION__, windowId, (long long) msMiceSessionId, url_cstring,rtsp_port, localAddress_cstring, localIfc_cstring);
 
     int retv = sssl_setContextStreamID((unsigned long long)msMiceSessionId, windowId);
 
@@ -4770,11 +4792,21 @@ JNIEXPORT void JNICALL Java_com_crestron_txrxservice_GstreamIn_nativeWfdStart(JN
     if (!data)
     {
        env->ReleaseStringUTFChars(url_jstring, url_cstring);
+       env->ReleaseStringUTFChars(localAddress, localAddress_cstring);
+       env->ReleaseStringUTFChars(localIfc, localIfc_cstring);
        CSIO_LOG(eLogLevel_error, "Could not obtain stream pointer for stream %d", windowId);
        return;
     }
 
     strcpy(data->rtcp_dest_ip_addr, url_cstring);	// Set RTSP IP as RTCP IP
+    if (strcmp(localAddress_cstring,"0.0.0.0") != 0)
+    {
+        strcpy(data->loc_ip_addr, localAddress_cstring);	// Set local ip address
+    }
+    if (msMiceSessionId > 0)
+    {
+        strcpy(data->intf_name, localIfc_cstring);	        // Set local interface name
+    }
 
     data->wfd_start = 1;
     if(msMiceSessionId > 0)
@@ -4790,6 +4822,8 @@ JNIEXPORT void JNICALL Java_com_crestron_txrxservice_GstreamIn_nativeWfdStart(JN
     CSIO_LOG(eLogLevel_debug,"mira: {%s} - exiting",__FUNCTION__);
 
     env->ReleaseStringUTFChars(url_jstring, url_cstring);
+    env->ReleaseStringUTFChars(localAddress, localAddress_cstring);
+    env->ReleaseStringUTFChars(localIfc, localIfc_cstring);
 }
 
 /* Stop/Teardown wfd connection
@@ -4799,6 +4833,7 @@ JNIEXPORT void JNICALL Java_com_crestron_txrxservice_GstreamIn_nativeWfdStart(JN
  * */
 JNIEXPORT void JNICALL Java_com_crestron_txrxservice_GstreamIn_nativeWfdStop(JNIEnv *env, jobject thiz, jint windowId, jlong msMiceSessionId)
 {
+    CSIO_LOG(eLogLevel_debug,"%s(): streamId[%d]  sessionId[%lld]",__FUNCTION__, windowId, msMiceSessionId);
     // *** CSIO_LOG(eLogLevel_debug,"mira: {%s} - ***** calling sssl_cancelDTLSAppThWithStreamIDAndWait() *****",__FUNCTION__);
     // *** int retv = sssl_cancelDTLSAppThWithStreamIDAndWait(windowId);
     // *** CSIO_LOG(eLogLevel_debug,"mira: {%s} - ===== returned from sssl_cancelDTLSAppThWithStreamIDAndWait(), retv = %d =====",
@@ -4851,6 +4886,7 @@ JNIEXPORT void JNICALL Java_com_crestron_txrxservice_GstreamIn_nativeWfdStop(JNI
 
 static void Wfd_send_osVersion(jint streamId, char *osVersion)
 {
+    CSIO_LOG(eLogLevel_debug,"%s(): streamId[%d], rtsp_port[%s]",__FUNCTION__, streamId, osVersion);
 	jstring osVersion_jstr;
 	JNIEnv *env = get_jni_env ();
 
@@ -4873,6 +4909,7 @@ static void Wfd_send_osVersion(jint streamId, char *osVersion)
 // <0 means ignore, 0 means remove rule, >0 means open firewall to that port
 static void Wfd_set_firewall_rules (int streamId, int rtsp_port, int ts_port)
 {
+    CSIO_LOG(eLogLevel_debug,"%s(): streamId[%d], rtsp_port[%d], ts_port[%d]",__FUNCTION__, streamId, rtsp_port, ts_port);
     JNIEnv *env = get_jni_env ();
 
 	jmethodID updateStreamStatus = env->GetMethodID((jclass)gStreamIn_javaClass_id, "wfdSetFirewallRules", "(III)V");
@@ -4895,6 +4932,7 @@ static void Wfd_set_firewall_rules (int streamId, int rtsp_port, int ts_port)
 
 void Wfd_setup_gst_pipeline (int id, int state, struct GST_PIPELINE_CONFIG* gst_config)
 {
+    CSIO_LOG(eLogLevel_debug,"%s(): streamId[%d] state[%d]",__FUNCTION__, id, state);
     if(state && gst_config)
     {
 
@@ -4963,7 +5001,7 @@ JNIEXPORT void JNICALL Java_com_crestron_txrxservice_GstreamIn_nativeMsMiceStart
     sssl_initialize();
     CSIO_LOG(eLogLevel_debug, "mira: {%s} - ===== returned from sssl_initialize() =====",__FUNCTION__);
 }
-JNIEXPORT void JNICALL Java_com_crestron_txrxservice_GstreamIn_nativeMsMiceSetAdapterAddress(JNIEnv *env, jobject thiz, jstring address, jstring ifc)
+JNIEXPORT void JNICALL Java_com_crestron_txrxservice_GstreamIn_nativeMsMiceSetAdapterAddress(JNIEnv *env, jobject thiz, jstring address)
 {
     char * locAddr = NULL;
     char * locIfc = NULL;
@@ -4973,10 +5011,7 @@ JNIEXPORT void JNICALL Java_com_crestron_txrxservice_GstreamIn_nativeMsMiceSetAd
         locAddr = (char *)env->GetStringUTFChars(address, NULL);
     }//else
 
-    if(ifc != NULL)
-    {
-        locIfc = (char *)env->GetStringUTFChars(ifc, NULL);
-    }//else
+    CSIO_LOG(eLogLevel_debug,"%s(): address[%s]",__FUNCTION__, locAddr);
 
     if(locAddr == NULL)
     {
@@ -5009,50 +5044,6 @@ JNIEXPORT void JNICALL Java_com_crestron_txrxservice_GstreamIn_nativeMsMiceSetAd
         {
             msMiceSinkProjSetPin(0,NULL);
         }
-
-        if(locAddr)
-        {
-            CSIO_LOG(eLogLevel_debug, "MsMiceSetAdapterAddress locAddr set to %s",locAddr);
-
-            int nameSize = strlen(locAddr);
-            if(nameSize < sizeof(data->loc_ip_addr))
-            {
-                memset(data->loc_ip_addr,0,sizeof(data->loc_ip_addr));
-                memcpy(data->loc_ip_addr,locAddr,nameSize);
-
-                CSIO_LOG(eLogLevel_debug, "MsMiceSetAdapterAddress data->loc_ip_addr set to %s",data->loc_ip_addr);
-            }
-            else
-            {
-                CSIO_LOG(eLogLevel_info, "ip address is too long[%d]",nameSize);
-            }
-        }
-
-        if(locIfc)
-        {
-            CSIO_LOG(eLogLevel_debug, "MsMiceSetAdapterAddress locIfc set to %s",locIfc);
-
-            int nameSize = strlen(locIfc);
-            if(nameSize < sizeof(data->intf_name))
-            {
-                memset(data->intf_name,0,sizeof(data->intf_name));
-                memcpy(data->intf_name,locIfc,nameSize);
-            }
-            else
-            {
-                CSIO_LOG(eLogLevel_info, "interface name is too long[%d]",nameSize);
-            }
-        }
-        else
-        {
-            memset(data->intf_name,0,sizeof(data->intf_name));
-            memcpy(data->intf_name,"eth0",4);
-        }
-    }
-
-    if(locIfc)
-    {
-        env->ReleaseStringUTFChars(ifc, locIfc);
     }
 
     if(locAddr)
@@ -5062,6 +5053,7 @@ JNIEXPORT void JNICALL Java_com_crestron_txrxservice_GstreamIn_nativeMsMiceSetAd
 }
 JNIEXPORT void JNICALL Java_com_crestron_txrxservice_GstreamIn_nativeMsMiceStop(JNIEnv *env, jobject thiz)
 {
+    CSIO_LOG(eLogLevel_debug,"%s(): calling msMiceSinkProjDeInit",__FUNCTION__);
     msMiceSinkProjDeInit();
 
     CSIO_LOG(eLogLevel_debug,"mira: {%s} - ***** calling sssl_deinitialize() *****",__FUNCTION__);
@@ -5070,6 +5062,7 @@ JNIEXPORT void JNICALL Java_com_crestron_txrxservice_GstreamIn_nativeMsMiceStop(
 }
 JNIEXPORT void JNICALL Java_com_crestron_txrxservice_GstreamIn_nativeMsMiceCloseSession(JNIEnv *env, jobject thiz, jlong msMiceSessionId)
 {
+    CSIO_LOG(eLogLevel_debug,"%s(): sessionId[%lld] ",__FUNCTION__, msMiceSessionId);
     msMiceSinkProjStopSession(0,msMiceSessionId);
 }
 JNIEXPORT void JNICALL Java_com_crestron_txrxservice_GstreamIn_nativeMsMiceSetPin(JNIEnv *env, jobject thiz, jstring pin_jstring)
@@ -5081,6 +5074,7 @@ JNIEXPORT void JNICALL Java_com_crestron_txrxservice_GstreamIn_nativeMsMiceSetPi
     {
         locPin = (char *)env->GetStringUTFChars(pin_jstring, NULL);
     }//else
+    CSIO_LOG(eLogLevel_debug,"%s(): pin[%s]",__FUNCTION__, ((locPin==NULL)?"null":locPin));
 
     CREGSTREAM * data = GetStreamFromCustomData(CresDataDB, 0);
 
@@ -5146,47 +5140,50 @@ JNIEXPORT void JNICALL Java_com_crestron_txrxservice_CresLog_nativeFinalize(JNIE
     CSIO_LOG(eLogLevel_debug, "cresLog: Done finalizing");
 }
 
-void csio_SendMsMiceStateChange(gint64 sessionId, int state, char *device_id, char *device_name, char *device_addr, int rtsp_port)
+void csio_SendMsMiceStateChange(gint64 sessionId, int state, char *local_addr, char *device_id, char *device_name, char *device_addr, int rtsp_port)
 {
     JNIEnv *env = get_jni_env ();
     jstring deviceId;
     jstring deviceName;
     jstring deviceAddress;
+    jstring localAddress;
 
-    CSIO_LOG(eLogLevel_debug, "csio_SendMsMiceStateChange,sessionId[%lld],state[%d],device_id[%s],device_name[%s],device_addr[%s],rtsp_port[%d]",
-            sessionId,state,device_id,device_name,device_addr,rtsp_port);
+    CSIO_LOG(eLogLevel_debug, "csio_SendMsMiceStateChange,sessionId[%lld],state[%d],local_addr[%s],device_id[%s],device_name[%s],device_addr[%s],rtsp_port[%d]",
+            sessionId,state,local_addr,device_id,device_name,device_addr,rtsp_port);
 
-    jmethodID sendMsMiceStateChange = env->GetMethodID((jclass)gStreamIn_javaClass_id, "sendMsMiceStateChange", "(JILjava/lang/String;Ljava/lang/String;Ljava/lang/String;I)V");
+    jmethodID sendMsMiceStateChange = env->GetMethodID((jclass)gStreamIn_javaClass_id, "sendMsMiceStateChange", "(JILjava/lang/String;Ljava/lang/String;Ljava/lang/String;Ljava/lang/String;I)V");
     if (sendMsMiceStateChange == NULL) {
         CSIO_LOG(eLogLevel_error, "Failed to find Java method 'sendMsMiceStateChange'");
         return;
     }
 
+    localAddress = env->NewStringUTF(local_addr);
     deviceId = env->NewStringUTF(device_id);
     deviceName = env->NewStringUTF(device_name);
     deviceAddress = env->NewStringUTF(device_addr);
 
-    env->CallVoidMethod(CresDataDB->app, sendMsMiceStateChange, (jlong)sessionId, (jint)state, (jstring) deviceId, (jstring) deviceName, (jstring) deviceAddress, (jint)rtsp_port);
+    env->CallVoidMethod(CresDataDB->app, sendMsMiceStateChange, (jlong)sessionId, (jint)state, (jstring) localAddress, (jstring) deviceId, (jstring) deviceName, (jstring) deviceAddress, (jint)rtsp_port);
     if (env->ExceptionCheck ()) {
         CSIO_LOG(eLogLevel_error, "Failed to call Java method 'sendMsMiceStateChange'");
             env->ExceptionClear ();
         }
 
+    env->DeleteLocalRef(localAddress);
     env->DeleteLocalRef(deviceId);
     env->DeleteLocalRef(deviceName);
     env->DeleteLocalRef(deviceAddress);
 }
-void Wfd_ms_mice_signal_raise (gint64 session_id, int state, char *device_id, char *device_name, char *device_addr, int rtsp_port)
+void Wfd_ms_mice_signal_raise (gint64 session_id, int state, char *local_addr, char *device_id, char *device_name, char *device_addr, int rtsp_port)
 {
     CSIO_LOG(eLogLevel_debug, "Wfd_ms_mice_signal_raise,session_id[%lld],state[%d],rtsp_port[%d]", session_id,state,rtsp_port);
-    if(device_id && device_name && device_addr)
+    if(device_id && device_name && device_addr && local_addr)
     {
-        CSIO_LOG(eLogLevel_debug, "Wfd_ms_mice_signal_raise,device_id[%s],device_name[%s],device_addr[%s]", device_id,device_name,device_addr);
-        csio_SendMsMiceStateChange(session_id,state,device_id,device_name,device_addr,rtsp_port);
+        CSIO_LOG(eLogLevel_debug, "Wfd_ms_mice_signal_raise,local_addr[%s],device_id[%s],device_name[%s],device_addr[%s]", local_addr,device_id,device_name,device_addr);
+        csio_SendMsMiceStateChange(session_id,state,local_addr,device_id,device_name,device_addr,rtsp_port);
     }
     else
     {
-        csio_SendMsMiceStateChange(session_id,state,"device_id","device_name","device_addr",rtsp_port);
+        csio_SendMsMiceStateChange(session_id,state,"0.0.0.0","device_id","device_name","device_addr",rtsp_port);
     }
 }
 
@@ -5284,7 +5281,8 @@ void Wfd_set_latency_by_the_source (int id, int latency)
 
 const char* csio_jni_get_interface_name(int id)
 {
-    CREGSTREAM * data = GetStreamFromCustomData(CresDataDB, 0);
+    CREGSTREAM * data = GetStreamFromCustomData(CresDataDB, id);
+    CSIO_LOG(eLogLevel_debug,"%s() streamId[%d]", __FUNCTION__, id);
     if(!data)
     {
         CSIO_LOG(eLogLevel_error, "Could not obtain stream data for stream %d", id);

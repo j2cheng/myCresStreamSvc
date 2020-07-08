@@ -43,6 +43,7 @@ public class AirMediaReceiver extends AirMediaBase {
             product_ = receiver.getProduct();
             state_ = receiver.getState();
             adapterAddress_ = receiver.getAdapterAddress();
+            adapterAddresses_ = receiver.getAdapterAddresses();
             serverVersion_ = receiver.getServerVersion();
             serverName_ = receiver.getServerName();
             serverPassword_ = receiver.getServerPassword();
@@ -253,6 +254,8 @@ public class AirMediaReceiver extends AirMediaBase {
         scheduler().update(new TaskScheduler.PropertyUpdater<String>() { @Override public void update(String v) { updateAdapterAddress(v); } }, value);
     }
 
+    public List<String> adapterAddresses() { return adapterAddresses_; }
+    
     public void adapterAddresses(List<String> value) {
         scheduler().update(new TaskScheduler.PropertyUpdater<List<String>>() { @Override public void update(List<String> v) { updateAdapterAddresses(v); } }, value);
     }
