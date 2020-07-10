@@ -950,7 +950,10 @@ public class CommandParser {
                 {
                     invoke.setCommand(cmd);
                     valueResponse = invoke.get();
-                    Log.i(TAG, MiscUtils.stringFormat("Join %s value response: %s", parseResponse.joinName.toUpperCase(), valueResponse));
+                    if (!parseResponse.joinName.toUpperCase().equals("AIRMEDIA_LOGIN_CODE"))
+                    	Log.i(TAG, MiscUtils.stringFormat("Join %s value response: %s", parseResponse.joinName.toUpperCase(), valueResponse));
+                    else
+                    	Log.v(TAG, MiscUtils.stringFormat("Join %s value response: %s", parseResponse.joinName.toUpperCase(), valueResponse));
                 }
 	        }
 	        

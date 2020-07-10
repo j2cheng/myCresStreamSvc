@@ -263,9 +263,9 @@ public class WifidVideoPlayer {
         @Override
         public void setPasscode(String pin)
         {
-            Common.Logging.i(TAG, "VideoPlayer.setPasscode  pin="+pin);
+            Common.Logging.v(TAG, "VideoPlayer.setPasscode pin="+pin);
             streamCtrl_.streamPlay.msMiceSetPin(pin);
-            Common.Logging.i(TAG, "VideoPlayer.setPasscode exit - pin set to "+pin);
+            Common.Logging.v(TAG, "VideoPlayer.setPasscode exit - pin set to "+pin);
         }
         
         private String list2String(List<String> addresses, String separator)

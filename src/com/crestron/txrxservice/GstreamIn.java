@@ -678,7 +678,7 @@ public class GstreamIn implements SurfaceHolder.Callback {
     
     public void msMiceSetPin(String pin)
     {
-    	Log.i(TAG, "msMiceSetPin - PIN="+pin);
+    	Log.v(TAG, "msMiceSetPin - PIN="+pin);
     	nativeMsMiceSetPin(pin);
     }
     

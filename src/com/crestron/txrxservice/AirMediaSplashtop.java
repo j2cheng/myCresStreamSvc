@@ -1667,9 +1667,18 @@ public class AirMediaSplashtop
     {
     	if (receiver() != null)
     	{
-    		Common.Logging.i(TAG, "Current login code = " + receiver().serverPassword());
+    		String curCodeStr = receiver().serverPassword();
+    		int curCode = -1;
+    		if (curCodeStr != null && !curCodeStr.equalsIgnoreCase("")) {
+    			try {
+    				curCode = Integer.valueOf(curCodeStr);
+    			} catch (Exception ex) {
+    				curCode = -1;
+    			}
+    		}
+    		Common.Logging.i(TAG, MiscUtils.stringFormat("Current Login Code = <0x%x>", MiscUtils.hash(curCode)));
     		String code = MiscUtils.stringFormat("%04d", loginCode);
-    		Common.Logging.i(TAG, "Set Login Code = " + code + " (" + String.valueOf(loginCode) + ")");
+    		Common.Logging.i(TAG, MiscUtils.stringFormat("Set Login Code = <0x%x>", MiscUtils.hash(Integer.valueOf(code))));
     		if (loginCode < 0) {
     			receiver().serverPassword("");
     		} else {

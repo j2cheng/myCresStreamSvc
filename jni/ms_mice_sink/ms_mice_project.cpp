@@ -37,6 +37,7 @@ const MSMICE_STRNUMPAIR ms_mice_proj_timestamp_names[] =
 };
 
 int session_observer_disconnect_request_from_app(gpointer user_data);
+extern char *csio_jni_hashPin(char *pin);
 
 /*************************** Global functions  ************************************/
 void msMiceSinkProjInit(char* adapterAddress)
@@ -173,7 +174,7 @@ void msMiceSinkProjSetPin(int id,char* pin)
         {
             EvntQ.buf_size   = strlen(pin);
             EvntQ.buffPtr    = pin;
-            CSIO_LOG(gProjectDebug, "msMiceSinkProjSetPin: pin:[%s]",pin);
+            CSIO_LOG(gProjectDebug, "msMiceSinkProjSetPin: pin:[%s]",csio_jni_hashPin(pin));
         }
 
         g_msMiceSinkProjPtr->sendEvent(&EvntQ);
@@ -416,7 +417,7 @@ int app_extension_ms_mice_service_set_session_pin(gpointer user_data)
                          ms_mice_sink_service_get_session_pin(cmd->service));
             }//else
 
-            CSIO_LOG(eLogLevel_debug,"app_extension_ms_mice_service_set_session_pin %s",cmd->session_pin? cmd->session_pin : "NULL");
+            CSIO_LOG(eLogLevel_debug,"app_extension_ms_mice_service_set_session_pin %s",csio_jni_hashPin(cmd->session_pin));
         }
         else
         {

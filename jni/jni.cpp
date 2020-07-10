@@ -66,6 +66,9 @@ int csio_jni_StartRTPMediaStreamThread(int iStreamId, GstElement *appSource, uns
 void updateProbeInfo(int streamID, struct timespec * currentTimePtr, char * srcIPAddress);
 void * rtpMediaStreamThread(void * threadData);
 static bool loopShouldLog(int * errorCountPtr, int * logLevelPtr);
+static unsigned int _hash(unsigned int x);
+static unsigned int _unhash(unsigned int x);
+char *csio_jni_hashPin(char *pin);
 static Mutex gGstStopLock;//used to prevent multiple threads accessing pipeline while stop gstreamer.
 extern unsigned short debugPrintSeqNum;
 ///////////////////////////////////////////////////////////////////////////////
@@ -5074,7 +5077,7 @@ JNIEXPORT void JNICALL Java_com_crestron_txrxservice_GstreamIn_nativeMsMiceSetPi
     {
         locPin = (char *)env->GetStringUTFChars(pin_jstring, NULL);
     }//else
-    CSIO_LOG(eLogLevel_debug,"%s(): pin[%s]",__FUNCTION__, ((locPin==NULL)?"null":locPin));
+    CSIO_LOG(eLogLevel_info,"%s(): pin[%s]",__FUNCTION__, csio_jni_hashPin((char*) locPin));
 
     CREGSTREAM * data = GetStreamFromCustomData(CresDataDB, 0);
 
@@ -5353,3 +5356,30 @@ void csio_jni_setFramePushDelay(int id)
         }
     }
 }
+
+static unsigned int _hash(unsigned int x) {
+    x = ((x >> 16) ^ x) * 0x45d9f3b;
+    x = ((x >> 16) ^ x) * 0x45d9f3b;
+    x = (x >> 16) ^ x;
+    return x;
+}
+
+static unsigned int _unhash(unsigned int x) {
+    x = ((x >> 16) ^ x) * 0x119de1f3;
+    x = ((x >> 16) ^ x) * 0x119de1f3;
+    x = (x >> 16) ^ x;
+    return x;
+}
+
+char *csio_jni_hashPin(char *pin)
+{
+	static char cbuffer[20];
+	if (!pin || *pin == 0)
+		return NULL;
+	int pinVal = strtol(pin, NULL, 10);
+	int hashedVal = _hash(pinVal);
+	snprintf(cbuffer, sizeof(cbuffer), "<0x%x>", hashedVal);
+	return cbuffer;
+}
+
+

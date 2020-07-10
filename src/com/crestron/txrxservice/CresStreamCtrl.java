@@ -4558,7 +4558,7 @@ public class CresStreamCtrl extends Service {
             {
                 // If users are connected wait until all disconnect before changing code
                 pendingAirMediaLoginCodeChange = true;
-                Log.i(TAG, "Filtering out AirMedia login code change to " + loginCode + " because " + getAirMediaNumberUserConnected() + " users are connected, changes will take effect once all user disconnect");
+                Log.i(TAG, MiscUtils.stringFormat("Filtering out AirMedia login code change to <0x%x> because %d users are connected, changes will take effect once all user disconnect", MiscUtils.hash(loginCode), getAirMediaNumberUserConnected()));
                 return null;         // do not send feedback for login code change - sent independently
             }
         }

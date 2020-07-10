@@ -322,7 +322,22 @@ public class MiscUtils {
     	
     	return ret;
     }
+    
+    public static int hash(int x)
+    {
+        x = ((x >>> 16) ^ x) * 0x45d9f3b;
+        x = ((x >>> 16) ^ x) * 0x45d9f3b;
+        x = (x >>> 16) ^ x;
+        return x;
+    }
 
+    public static int unhash(int x)
+    {
+        x = ((x >>> 16) ^ x) * 0x119de1f3;
+        x = ((x >>> 16) ^ x) * 0x119de1f3;
+        x = (x >>> 16) ^ x;
+        return x;
+    }
     // USE THIS STRING FORMATTER!!!!!!!!!!!!!
     // or beware RTL
     public static String stringFormat(String format, Object... args)
