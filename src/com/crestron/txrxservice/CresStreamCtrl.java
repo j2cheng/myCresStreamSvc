@@ -5080,13 +5080,13 @@ public class CresStreamCtrl extends Service {
     {
         if (oneOfAdaptersSelected(adapterListString))
         {
-            /* Disabled */
-            return "";
+            /* Offline */
+            return "Device Offline";
         }
         else
         {
-            /* Offline */
-            return "Device Offline";
+            /* Disabled */
+            return "";
         }
     }
     
