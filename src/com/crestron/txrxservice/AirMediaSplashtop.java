@@ -640,8 +640,11 @@ public class AirMediaSplashtop
                 setAirMediaIsCertificateRequired(mStreamCtl.userSettings.getAirMediaIsCertificateRequired());
                 setAirMediaOnlyAllowSecureConnections(mStreamCtl.userSettings.getAirMediaOnlyAllowSecureConnections());
                 setAirMediaChromeExtension(mStreamCtl.userSettings.getAirMediaChromeExtension());
+                Common.Logging.d(TAG, "startAirMediaReceiver: setting wifienabled= " + mStreamCtl.userSettings.getAirMediaWifiEnabled());
                 setAirMediaWifiEnabled(mStreamCtl.userSettings.getAirMediaWifiEnabled());
+                Common.Logging.d(TAG, "startAirMediaReceiver: setting wifissid= " + mStreamCtl.userSettings.getAirMediaWifiSsid());
                 setAirMediaWifiSsid(mStreamCtl.userSettings.getAirMediaWifiSsid());
+                Common.Logging.d(TAG, "startAirMediaReceiver: setting wifikey= " + mStreamCtl.userSettings.getAirMediaWifiPskKey());
                 setAirMediaWifiKey(mStreamCtl.userSettings.getAirMediaWifiPskKey());
 
         		registerReceiverEventHandlers(receiver());
@@ -840,15 +843,16 @@ public class AirMediaSplashtop
 		Common.Logging.i(TAG, "setAirMediaWifiSsid: " + ssid);
 		if (receiver() != null)
 		{
+            Common.Logging.d(TAG,"configureStringProperty " + AirMediaReceiverProperties.WirlessAccessPoint.WifiSsid + "=" + ssid);
 			receiver().configureProperty(AirMediaReceiverProperties.WirlessAccessPoint.WifiSsid, ssid);
 		}
     }
     
     public void setAirMediaWifiKey(String key)
     {
-		Common.Logging.i(TAG, "setAirMediaWifiKey: " + "********");
 		if (receiver() != null)
 		{
+            Common.Logging.d(TAG,"configureStringProperty " + AirMediaReceiverProperties.WirlessAccessPoint.WifiKey + "=" + key);
 			receiver().configureProperty(AirMediaReceiverProperties.WirlessAccessPoint.WifiKey, key);
 		}
     }
