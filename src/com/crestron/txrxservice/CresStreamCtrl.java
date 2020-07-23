@@ -4880,6 +4880,15 @@ public class CresStreamCtrl extends Service {
         }
     }
     
+    public void setAirMediaDiscoveryEnable(boolean enable)
+    {
+        if (mAirMedia != null)
+        {
+            userSettings.setAirMediaDiscoveryEnable(enable);
+            mAirMedia.setAirMediaDiscoveryEnable(enable);
+        }
+    }
+    
     public void setAirMediaConnectionOverlay(boolean enable)
     {
         if (mAirMedia != null)
@@ -4947,6 +4956,15 @@ public class CresStreamCtrl extends Service {
         {
             userSettings.setAirMediaWifiPskKey(val);
             mAirMedia.setAirMediaWifiKey(val);
+        }
+    }
+    
+    public void setAirMediaWifiFrequencyBand(int val)
+    {
+        if (mAirMedia != null)
+        {
+            userSettings.setAirMediaWifiFrequencyBand(val);
+            mAirMedia.setAirMediaWifiFrequencyBand(val);
         }
     }
     

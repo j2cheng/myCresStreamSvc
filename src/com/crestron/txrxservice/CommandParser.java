@@ -178,10 +178,12 @@ public class CommandParser {
         AIRMEDIA_ONLY_ALLOW_SECURE_CONNECTIONS,
         AIRMEDIA_SECURE_LANDING_PAGE_ENABLED,
         AIRMEDIA_CHROME_EXTENSION_ENABLED,
+        AIRMEDIA_DISCOVERY_ENABLED,
         AIRMEDIA_CANVAS_MODE_ENABLED,
         AIRMEDIA_WIFI_ENABLED,
         AIRMEDIA_WIFI_SSID,
         AIRMEDIA_WIFI_PSKKEY,
+        AIRMEDIA_WIFI_FREQUENCYBAND,
         AIRMEDIA_WIFI_AUTOLAUNCHAIRMEDIALANDINGPAGEENABLED,
         AIRMEDIA_CLEAR_CACHE,
         
@@ -779,6 +781,9 @@ public class CommandParser {
             case AIRMEDIA_CHROME_EXTENSION_ENABLED:
             	cmd = new AirMediaChromeExtensionEnabledCommand(ctrl, arg);
             	break;
+            case AIRMEDIA_DISCOVERY_ENABLED:
+            	cmd = new AirMediaDiscoveryEnabledCommand(ctrl, arg);
+            	break;
             case AIRMEDIA_CANVAS_MODE_ENABLED:
             	cmd = new CanvasModeEnabledCommand(ctrl, arg);
             	break;
@@ -790,6 +795,9 @@ public class CommandParser {
             	break;
             case AIRMEDIA_WIFI_PSKKEY:
             	cmd = new AirMediaWifiPskKeyCommand(ctrl, arg);
+            	break;
+            case AIRMEDIA_WIFI_FREQUENCYBAND:
+            	cmd = new AirMediaWifiFrequencyBandCommand(ctrl, arg);
             	break;
             case AIRMEDIA_WIFI_AUTOLAUNCHAIRMEDIALANDINGPAGEENABLED:
             	cmd = new AirMediaWifiAutoLaunchAirMediaLandingPageEnabledCommand(ctrl, arg);

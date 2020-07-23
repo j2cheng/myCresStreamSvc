@@ -230,6 +230,7 @@ public class UserSettings
 	boolean airMediaOnlyAllowSecureConnections;
 	boolean airMediaSecureLandingPageEnabled;
 	boolean airMediaChromeExtension;
+	boolean airMediaDiscoveryEnable;
 	boolean airMediaWifiEnabled;
 	private String airMediaOsdImage;
 	private boolean airMediaDisplayConnectionOptionEnable;
@@ -254,6 +255,7 @@ public class UserSettings
 	private boolean airMediaMiracastMsMiceMode;
 	private String airMediaWifiSsid;
 	private transient String airMediaWifiPskKey; // transient keyword prevents serialization of field when saving 
+	private int airMediaWifiFrequencyBand;
 	private boolean airMediaWifiAutoLaunchAirMediaLandingPageEnable;
 
 	// Camera Streaming
@@ -366,6 +368,7 @@ public class UserSettings
 		airMediaOnlyAllowSecureConnections = false;
 		airMediaSecureLandingPageEnabled = false;
 		airMediaChromeExtension = true;
+		airMediaDiscoveryEnable = true;
 		airMediaWifiEnabled = true;
 		airMediaOsdImage	= "";
 		airMediaX			= 0;
@@ -390,6 +393,7 @@ public class UserSettings
 		airMediaMiracastMsMiceMode = true;
 		airMediaWifiSsid = "";
 		airMediaWifiPskKey = "";
+		airMediaWifiFrequencyBand = 1; // 5 Ghz
 		airMediaWifiAutoLaunchAirMediaLandingPageEnable = true;
 		appspaceEnabled		= false;
 		tcpInterleave       = initIntArray(0);//auto mode
@@ -1248,6 +1252,14 @@ public class UserSettings
 		this.airMediaChromeExtension = enable;
 	}	
 	
+	public boolean getAirMediaDiscoveryEnable() {
+		return airMediaDiscoveryEnable;
+	}
+	
+	public void setAirMediaDiscoveryEnable(boolean enable) {
+		this.airMediaDiscoveryEnable = enable;
+	}	
+	
 	public boolean getAirMediaWifiEnabled() {
 		return airMediaWifiEnabled;
 	}	
@@ -1496,6 +1508,14 @@ public class UserSettings
 
 	public String getAirMediaWifiPskKey() {
 		return airMediaWifiPskKey;
+	}
+	
+	public void setAirMediaWifiFrequencyBand(int val) {
+		this.airMediaWifiFrequencyBand = val;
+	}
+	
+	public int getAirMediaWifiFrequencyBand() {
+		return airMediaWifiFrequencyBand;
 	}
 	
 	public void setAirMediaWifiAutoLaunchAirMediaLandingPageEnabled(boolean enable) {

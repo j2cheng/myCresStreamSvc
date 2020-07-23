@@ -411,6 +411,7 @@ public class AirMediaSplashtop
 		productName = mStreamCtl.mProductName + " " + version;
 		Common.Logging.i(TAG, "Product Name: " + productName);
 
+		sendClientDataWifiUsers(0);
 		// Now start receiver
         if (!startAirMediaReceiver(mStreamCtl.hostName)) {
 			Common.Logging.e(TAG, "Receiver failed to startup, returning - restart will be attempted when service disconnects");
@@ -640,6 +641,8 @@ public class AirMediaSplashtop
                 setAirMediaIsCertificateRequired(mStreamCtl.userSettings.getAirMediaIsCertificateRequired());
                 setAirMediaOnlyAllowSecureConnections(mStreamCtl.userSettings.getAirMediaOnlyAllowSecureConnections());
                 setAirMediaChromeExtension(mStreamCtl.userSettings.getAirMediaChromeExtension());
+                setAirMediaDiscoveryEnable(mStreamCtl.userSettings.getAirMediaDiscoveryEnable());
+                setAirMediaWifiFrequencyBand(mStreamCtl.userSettings.getAirMediaWifiFrequencyBand());
                 Common.Logging.d(TAG, "startAirMediaReceiver: setting wifienabled= " + mStreamCtl.userSettings.getAirMediaWifiEnabled());
                 setAirMediaWifiEnabled(mStreamCtl.userSettings.getAirMediaWifiEnabled());
                 Common.Logging.d(TAG, "startAirMediaReceiver: setting wifissid= " + mStreamCtl.userSettings.getAirMediaWifiSsid());
@@ -829,6 +832,15 @@ public class AirMediaSplashtop
 		}
     }
     
+    public void setAirMediaDiscoveryEnable(boolean enable)
+    {
+		Common.Logging.i(TAG, "setAirMediaDiscoveryEnable: " + enable);
+		if (receiver() != null)
+		{
+			receiver().bonjour(enable);;
+		}
+    }
+    
     public void setAirMediaWifiEnabled(boolean enable)
     {
 		Common.Logging.i(TAG, "setAirMediaWifiEnabled: " + enable);
@@ -854,6 +866,23 @@ public class AirMediaSplashtop
 		{
             Common.Logging.d(TAG,"configureStringProperty " + AirMediaReceiverProperties.WirlessAccessPoint.WifiKey + "=" + key);
 			receiver().configureProperty(AirMediaReceiverProperties.WirlessAccessPoint.WifiKey, key);
+		}
+    }
+    
+    public void setAirMediaWifiFrequencyBand(int val)
+    {
+    	int freq;
+		if (receiver() != null)
+		{
+			switch (val) {
+			case 0: freq = 2; break;
+			case 1: freq = 5; break;
+			default:
+				Common.Logging.d(TAG, "setAirMediaWifiFrequencyBand(): Invalid wifi mode value: "+val);
+				return;
+			}
+            Common.Logging.d(TAG,"configureStringProperty " + AirMediaReceiverProperties.WirlessAccessPoint.WifiFrequency + "=" + freq);
+			//receiver().configureProperty(AirMediaReceiverProperties.WirlessAccessPoint.WifiFrequency, Integer.toString(freq));
 		}
     }
     
@@ -2230,6 +2259,7 @@ public class AirMediaSplashtop
 				class ClientData {
 					String Status; // "Idle", "Active", "Presenting"
 					Integer TotalUsers;
+					Boolean IsAnyWiFiUserConnected;
 					private Map<String, Client> ConnectedClients;
 					
 					void updateStatusAndTotalUsers(boolean force)
@@ -2286,6 +2316,15 @@ public class AirMediaSplashtop
 		}
 	}
 
+	public void sendClientDataWifiUsers(int n)
+	{
+		DeviceObject dev = new DeviceObject();
+		dev.Device.AirMedia.ClientData.IsAnyWiFiUserConnected = (n > 0) ? true : false;
+		String sessionClientData = gson.toJson(dev);
+		Common.Logging.i(TAG,  "sendClientWifiUsers: ClientDataJSON=" + sessionClientData);
+		mStreamCtl.SendToCresstore(sessionClientData, CresStreamCtrl.CresstoreOptions.PublishAndSave);
+	}
+	
 	private void sendClientData(int client, Client clientData)
 	{
 		DeviceObject dev = new DeviceObject();

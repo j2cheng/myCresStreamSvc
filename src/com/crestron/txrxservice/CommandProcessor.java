@@ -2280,6 +2280,21 @@ class AirMediaChromeExtensionEnabledCommand extends CrestronCommand {
     }
 }
 
+class AirMediaDiscoveryEnabledCommand extends CrestronCommand {
+	
+    public AirMediaDiscoveryEnabledCommand(CresStreamCtrl ctrl, String arg) {
+		super (ctrl, arg);
+    }
+
+    @Override
+    public void execute() {
+    	ctrl.setAirMediaDiscoveryEnable(Boolean.valueOf(msg));
+    }
+    public String getFeedbackMsg() {
+        return Boolean.toString(ctrl.userSettings.getAirMediaDiscoveryEnable());
+    }
+}
+
 class AirMediaClearCacheCommand extends CrestronCommand {
 	public AirMediaClearCacheCommand(CresStreamCtrl ctrl, String arg) {
 		super(ctrl, arg);
@@ -2374,6 +2389,18 @@ class AirMediaWifiPskKeyCommand extends CrestronCommand {
 	}
 	public String getSetFbMsg() {
 		return "********";
+	}
+}
+
+class AirMediaWifiFrequencyBandCommand extends CrestronCommand {
+	public AirMediaWifiFrequencyBandCommand(CresStreamCtrl ctrl, String arg) {
+		super(ctrl, arg);
+	}	
+	public void execute() {
+		ctrl.setAirMediaWifiFrequencyBand(Integer.valueOf(msg));
+	}
+	public String getFeedbackMsg() {
+		return Integer.toString(ctrl.userSettings.getAirMediaWifiFrequencyBand());
 	}
 }
 

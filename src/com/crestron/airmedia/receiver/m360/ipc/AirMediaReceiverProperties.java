@@ -21,5 +21,6 @@ public final class AirMediaReceiverProperties {
         public static String Enable = "wifi.enable";
         public static String WifiSsid = "wifi.ssid";
         public static String WifiKey = "wifi.key";
+        public static String WifiFrequency = "wifi.frequency";
     }
 }
