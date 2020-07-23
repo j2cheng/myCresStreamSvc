@@ -1415,6 +1415,11 @@ public class CresStreamCtrl extends Service {
             Log.e(TAG, "Disabling RGB888 because canvas mode is enabled");
             rv = false;
         }
+        if (userSettings.getHdmiOutUnderscan() > 0)
+        {
+            Log.e(TAG, "Disabling RGB888 because underscan is on");
+            rv = false;
+        }
 
         return rv;
     }
@@ -1443,7 +1448,7 @@ public class CresStreamCtrl extends Service {
                     " needs to change to " + ((enable) ? "enabled" : "disabled"));
             userSettings.setCanvasModeEnabled(enable);
             isRGB888HDMIVideoSupported = getRGB888VideoSupportState();
-            Log.i(TAG, "RGB888VideoSupported = "+isRGB888HDMIVideoSupported);
+            Log.i(TAG, "setCanvasMode(): RGB888VideoSupported = "+isRGB888HDMIVideoSupported);
             if (mAirMedia != null)
             	mAirMedia.setAirMediaReceiverMaxResolution();
             //RestartTxrxService();
@@ -2500,6 +2505,12 @@ public class CresStreamCtrl extends Service {
     public void setHdmiOutForceHdcp(boolean enabled) {
         userSettings.setHdmiOutForceHdcp(enabled);
         mForceHdcpStatusUpdate = true;
+    }
+    
+    public void setHdmiOutUnderscan(int percent) {
+        userSettings.setHdmiOutUnderscan(percent);
+        isRGB888HDMIVideoSupported = getRGB888VideoSupportState();
+        Log.i(TAG, "setHdmiOutUnderscan(): RGB888VideoSupported = "+isRGB888HDMIVideoSupported);
     }
     
     public void setVideoDimensions(int streamId, int w, int h)

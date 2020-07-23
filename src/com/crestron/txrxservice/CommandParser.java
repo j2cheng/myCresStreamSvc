@@ -75,6 +75,7 @@ public class CommandParser {
         HDMIOUT_SYNC_DETECTED,
         HDMIOUT_INTERLACED,
         HDMIOUT_CEC_ERROR,
+        HDMIOUT_UNDERSCAN,
         HDMIOUT_HORIZONTAL_RES_FB,
         HDMIOUT_VERTICAL_RES_FB,
         HDMIOUT_FPS_FB,
@@ -506,6 +507,9 @@ public class CommandParser {
                 break;
             case HDMIOUT_CEC_ERROR:
                 cmd = new OutCecCommand(ctrl, arg); 
+                break;
+            case HDMIOUT_UNDERSCAN:
+                cmd = new OutUnderscan(ctrl, arg); 
                 break;
             case HDMIOUT_HORIZONTAL_RES_FB:
                 cmd = new OutHresCommand(ctrl, arg); 

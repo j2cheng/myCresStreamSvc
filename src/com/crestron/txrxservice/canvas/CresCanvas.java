@@ -454,14 +454,9 @@ public class CresCanvas
 		return session.playTimedout;
 	}
 	
-	public Surface acquireSurface(String sessionId, SessionType type)
+	public Surface acquireSurface(String sessionId, CanvasSurfaceOptions options)
 	{
 		CanvasSurfaceAcquireResponse response = null;
-		CanvasSurfaceOptions options = new CanvasSurfaceOptions();
-		if (type == SessionType.HDMI && mStreamCtl.isRGB888HDMIVideoSupported)
-		{
-			options = new CanvasSurfaceOptions(CanvasSurfaceMode.TagVideoLayer, "PreviewVideoLayer");
-		}
 		try {
 			if (Session.replace.streamId < 0) {
 				Common.Logging.i(TAG, "surfaceAcquire for session: "+sessionId+" with options="+options);

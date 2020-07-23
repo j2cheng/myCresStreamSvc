@@ -1,6 +1,8 @@
 package com.crestron.txrxservice.canvas;
 
 import com.crestron.airmedia.canvas.channels.ipc.CanvasPlatformType;
+import com.crestron.airmedia.canvas.channels.ipc.CanvasSurfaceMode;
+import com.crestron.airmedia.canvas.channels.ipc.CanvasSurfaceOptions;
 import com.crestron.airmedia.receiver.m360.ipc.AirMediaSize;
 import com.crestron.airmedia.utilities.Common;
 import com.crestron.airmedia.utilities.TimeSpan;
@@ -23,6 +25,10 @@ public class HDMISession extends Session
 		this.inputNumber = inputNumber;
 		userLabel = "HDMI-"+String.valueOf(inputNumber);
 		platform = CanvasPlatformType.Hardware;
+		if (mStreamCtl.isRGB888HDMIVideoSupported)
+		{
+			options = new CanvasSurfaceOptions(CanvasSurfaceMode.TagVideoLayer, "PreviewVideoLayer");
+		}
 	}
 	
 	public void setHdmiInput(HDMIInputInterface h) { hdmiInput = h; }

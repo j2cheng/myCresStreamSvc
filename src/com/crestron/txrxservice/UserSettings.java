@@ -206,6 +206,7 @@ public class UserSettings
 
 	// HDMI OUT
 	private boolean hdmiOutForceHdcp;
+	private int hdmiOutUnderscan;
 
 	// Ethernet
 	private String deviceIp;
@@ -343,6 +344,7 @@ public class UserSettings
 		ravaMode			= false;
 		processHdmiInAudio  = true; 
 		hdmiOutForceHdcp 	= false;
+		hdmiOutUnderscan    = 0;
 		initiatorAddress 	= "";
 		osdText 			= "";
 		osdEnable           = false;
@@ -1071,6 +1073,14 @@ public class UserSettings
 		this.hdmiOutForceHdcp = enabled;
 	}
 
+	public void setHdmiOutUnderscan(int percent) {
+		this.hdmiOutUnderscan = percent;
+	}
+
+	public int getHdmiOutUnderscan() {
+		return hdmiOutUnderscan;
+	}
+	
 	public boolean isStatisticsEnable(int sessId) {
 		return statisticsEnable[sessId];
 	}

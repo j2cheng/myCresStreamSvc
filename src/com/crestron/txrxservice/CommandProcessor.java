@@ -1085,6 +1085,21 @@ class OutCecCommand extends CrestronCommand {
         }
 }
 
+class OutUnderscan extends CrestronCommand {
+
+    public OutUnderscan(CresStreamCtrl ctrl, String arg) {
+        super(ctrl, arg);
+    }
+
+    @Override
+        public void execute() {
+    		int val = Integer.valueOf(msg);
+            ctrl.setHdmiOutUnderscan(val);
+        }
+        public String getFeedbackMsg() {
+            return String.valueOf(ctrl.userSettings.getHdmiOutUnderscan());
+        }
+}
 
 class OutHresCommand extends CrestronCommand {
 

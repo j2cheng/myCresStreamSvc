@@ -50,6 +50,7 @@ public abstract class Session
     public static long nextId = 0;
     public AtomicBoolean sentToAvf = new AtomicBoolean(false);
     public boolean playTimedout = false;
+    CanvasSurfaceOptions options = null;
     public static Session.Replace replace = new Replace();
 	
     public static class Replace {
@@ -87,6 +88,7 @@ public abstract class Session
 		resolution = new AirMediaSize(0,0);
 		isVideoLoading = false;
 		isAudioMuted = false;
+		options = new CanvasSurfaceOptions();
 		setSourceUserPermission(false);
 		setCanvasUserPermission(false);
 		setModeratorPermission(true);
@@ -254,6 +256,17 @@ public abstract class Session
 		}
 	}
 	
+	public void setSurfaceOptions()
+	{
+		if (type == SessionType.HDMI)
+		{
+			if (mStreamCtl.isRGB888HDMIVideoSupported && options.mode == CanvasSurfaceMode.Normal)
+				options = new CanvasSurfaceOptions(CanvasSurfaceMode.TagVideoLayer, "PreviewVideoLayer");
+			else if (!mStreamCtl.isRGB888HDMIVideoSupported && options.mode == CanvasSurfaceMode.TagVideoLayer)
+				options = new CanvasSurfaceOptions();
+		}
+	}
+	
 	public Surface acquireSurface()
 	{
 		Surface surface = null;
@@ -264,7 +277,8 @@ public abstract class Session
 					Common.Logging.w(TAG, "in replacement but session id for new session does not match "+sessionId());
 					return null;
 				}
-				surface = mCanvas.acquireSurface(sessionId(), getType());
+				setSurfaceOptions();                   // will set to request RGB888 surface if needed
+				surface = mCanvas.acquireSurface(sessionId(), options);
 				if (surface != null && surface.isValid()) {
 					mStreamCtl.setSurface(streamId, surface);
 				} 
@@ -391,7 +405,7 @@ public abstract class Session
 	    else if (s.isPaused())
 	    	state = CanvasSessionState.Paused;
 
-	    CanvasSurfaceOptions options = new CanvasSurfaceOptions();
+	    CanvasSurfaceOptions options = s.options;	    	
 	    switch (s.type)
 	    {
 		case AirBoard:
@@ -405,10 +419,6 @@ public abstract class Session
 			break;
 		case HDMI:
 			type = CanvasSourceType.HDMI;
-			if (mStreamCtl.isRGB888HDMIVideoSupported)
-			{
-				options = new CanvasSurfaceOptions(CanvasSurfaceMode.TagVideoLayer, "PreviewVideoLayer");
-			}     
 			break;
 		case Unknown:
 		default:
