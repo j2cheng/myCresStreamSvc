@@ -305,7 +305,7 @@ void csio_jni_init()
 	int iStatus = CSIO_SUCCESS;
 
 	currentSettingsDB->csioLogLevel = CSIO_DEFAULT_LOG_LEVEL;
-	csio_setup_product_info(0);
+	csio_setup_product_info(1);
 
 	CSIOCnsIntf = new CSIOCnsCommon();
 	CresNextDefaults = new CresNextDef();

@@ -50,7 +50,7 @@ static void do_init()
 		did_init = 1;
 		if (currentSettingsDB == NULL)
 			currentSettingsDB = (CSIOSettings*)malloc(sizeof(CSIOSettings));
-		csio_setup_product_info(0);
+		csio_setup_product_info(1);
 	}
 }
 

@@ -414,6 +414,7 @@ public class CresStreamCtrl extends Service {
         eHardwarePlatform_OMAP5,
         eHardwarePlatform_Arria10,
         eHardwarePlatform_Amlogic,
+        eHardwarePlatform_Snapdragon,
         eHardwarePlatform_Unknown;
 
         public static CrestronHwPlatform fromInteger(int x) {
@@ -428,6 +429,8 @@ public class CresStreamCtrl extends Service {
                 return eHardwarePlatform_Arria10;
             case 4:
                 return eHardwarePlatform_Amlogic;
+            case 5:
+            	return eHardwarePlatform_Snapdragon;
             default:
                 Log.i(TAG, MiscUtils.stringFormat("Unknown hardware platform %d, please update enum!!!!!", x));
                 return eHardwarePlatform_Unknown;
