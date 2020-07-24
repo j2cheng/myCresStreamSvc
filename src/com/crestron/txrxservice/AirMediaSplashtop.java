@@ -2259,7 +2259,7 @@ public class AirMediaSplashtop
 				class ClientData {
 					String Status; // "Idle", "Active", "Presenting"
 					Integer TotalUsers;
-					Boolean IsAnyWiFiUserConnected;
+					Boolean IsAnyWifiUserConnected;
 					private Map<String, Client> ConnectedClients;
 					
 					void updateStatusAndTotalUsers(boolean force)
@@ -2319,7 +2319,7 @@ public class AirMediaSplashtop
 	public void sendClientDataWifiUsers(int n)
 	{
 		DeviceObject dev = new DeviceObject();
-		dev.Device.AirMedia.ClientData.IsAnyWiFiUserConnected = (n > 0) ? true : false;
+		dev.Device.AirMedia.ClientData.IsAnyWifiUserConnected = (n > 0) ? true : false;
 		String sessionClientData = gson.toJson(dev);
 		Common.Logging.i(TAG,  "sendClientWifiUsers: ClientDataJSON=" + sessionClientData);
 		mStreamCtl.SendToCresstore(sessionClientData, CresStreamCtrl.CresstoreOptions.PublishAndSave);
