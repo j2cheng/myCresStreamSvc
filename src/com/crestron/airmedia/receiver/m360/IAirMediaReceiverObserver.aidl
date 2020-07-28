@@ -42,4 +42,6 @@ interface IAirMediaReceiverObserver {
     void onVolumeSupportChanged(in boolean to);
 
     void onVolumePropertiesChanged(in AirMediaReceiverVolume from, in AirMediaReceiverVolume to);
+    
+    void onWiFiApUsersCountChanged(in int from, in int to);
 }

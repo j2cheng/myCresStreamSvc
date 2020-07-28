@@ -45,6 +45,7 @@ public abstract class Session
     public int inputNumber;
     public String url;
     public AirMediaSize resolution;
+    public long airmediaId;
     public boolean [] permissions = new boolean[PermissionType.size];
     //public SessionInfo info_;
     public static long nextId = 0;
@@ -82,6 +83,7 @@ public abstract class Session
 		state = SessionState.Connecting;
 		type = SessionType.Unknown;
 		airMediaType = null;
+		airmediaId = 0;
 		platform = CanvasPlatformType.Undefined;
 		inputNumber = 0;
 		url = null;
@@ -405,7 +407,7 @@ public abstract class Session
 	    else if (s.isPaused())
 	    	state = CanvasSessionState.Paused;
 
-	    CanvasSurfaceOptions options = s.options;	    	
+	    CanvasSurfaceOptions options = s.options;
 	    switch (s.type)
 	    {
 		case AirBoard:
@@ -430,7 +432,7 @@ public abstract class Session
 	    videoType = s.getVideoType();
 
 	    CanvasSourceSession css = new CanvasSourceSession(s.sessionId(), s.getUserLabel(), state, type, 
-	    		platform, videoType, s.getResolution().width, s.getResolution().height, s.isVideoLoading, s.isAudioMuted, options);
+	    		platform, videoType, s.getResolution().width, s.getResolution().height, s.isVideoLoading, s.isAudioMuted, options, s.airmediaId);
 
 	    return css;
     }

@@ -38,6 +38,7 @@ public class AirMediaSession extends Session
 		airMediaType = SessionAirMediaType.Undefined;
 		airMediaReceiverSession = session;
 		userLabel = label;
+		airmediaId = session.id();
 		videoState = AirMediaSessionStreamingState.Stopped;
 		if (session.info() != null)
 		{

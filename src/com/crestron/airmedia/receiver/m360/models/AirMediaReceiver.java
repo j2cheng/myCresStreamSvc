@@ -173,6 +173,13 @@ public class AirMediaReceiver extends AirMediaBase {
             volumeProperties_ = to;
             scheduler().raise(volumePropertiesChanged(), self(), from, to);
         }
+        
+        @Override
+        public void onWiFiApUsersCountChanged(int from, int to) throws RemoteException {
+            Common.Logging.d(TAG, "IAirMediaReceiverObserver.onWiFiApUsersCountChanged  " + from + "  ==>  " + to);
+            wifiApUsersCount_ = to;
+            scheduler().raise(wifiApUsersCountChanged(), self(), from, to);
+        }
     };
 
     ////////////////////////////////////////////////////////////////////////////////////////////////
@@ -201,6 +208,7 @@ public class AirMediaReceiver extends AirMediaBase {
     private AirMediaReceiverMirroringAssist mirroringAssist_ = new AirMediaReceiverMirroringAssist();
     private boolean volumeSupported_ = false;
     private AirMediaReceiverVolume volumeProperties_ = new AirMediaReceiverVolume();
+    private int wifiApUsersCount_ = 0;
 
     private AirMediaSessionManager sessionManager_;
 
@@ -219,6 +227,7 @@ public class AirMediaReceiver extends AirMediaBase {
     private final MulticastMessageDelegate<AirMediaReceiver, Boolean> projectionLockedChanged_ = new MulticastMessageDelegate<AirMediaReceiver, Boolean>();
     private final MulticastMessageDelegate<AirMediaReceiver, Boolean> volumeSupportedChanged_ = new MulticastMessageDelegate<AirMediaReceiver, Boolean>();
     private final MulticastChangedDelegate<AirMediaReceiver, AirMediaReceiverVolume> volumePropertiesChanged_ = new MulticastChangedDelegate<AirMediaReceiver, AirMediaReceiverVolume>();
+    private final MulticastChangedDelegate<AirMediaReceiver, Integer> wifiApUsersCountChanged_ = new MulticastChangedDelegate<AirMediaReceiver, Integer>();
 
     ////////////////////////////////////////////////////////////////////////////////////////////////
     /// PROPERTIES
@@ -386,6 +395,8 @@ public class AirMediaReceiver extends AirMediaBase {
     public MulticastMessageDelegate<AirMediaReceiver, Boolean> volumeSupportedChanged() { return volumeSupportedChanged_; }
 
     public MulticastChangedDelegate<AirMediaReceiver, AirMediaReceiverVolume> volumePropertiesChanged() { return volumePropertiesChanged_; }
+
+    public MulticastChangedDelegate<AirMediaReceiver, Integer> wifiApUsersCountChanged() { return wifiApUsersCountChanged_; }
 
     ////////////////////////////////////////////////////////////////////////////////////////////////
     /// METHODS

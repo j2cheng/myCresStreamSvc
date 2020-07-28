@@ -18,6 +18,7 @@ public class CanvasSourceSession implements Parcelable {
     public final boolean isLoading;
     public final boolean isMuted;
     public final CanvasSurfaceOptions options;
+    public final long airmediaId;
 
     public CanvasSourceSession(
             String sessionId,
@@ -30,9 +31,10 @@ public class CanvasSourceSession implements Parcelable {
             int height,
             boolean isLoading,
             boolean isMuted,
-            CanvasSurfaceOptions options
+            CanvasSurfaceOptions options,
+            long airmediaId
     ) {
-        this.contents = 3;
+        this.contents = 4;
         this.sessionId = sessionId;
         this.state = state;
         this.username = username;
@@ -44,6 +46,7 @@ public class CanvasSourceSession implements Parcelable {
         this.isLoading = isLoading;
         this.isMuted = isMuted;
         this.options = options;
+        this.airmediaId = airmediaId;
     }
 
     private CanvasSourceSession(Parcel in) {
@@ -59,6 +62,8 @@ public class CanvasSourceSession implements Parcelable {
         this.isMuted = (this.contents > 0) && (in.readInt() != 0);
         this.videoType = (this.contents > 1) ? CanvasVideoType.from(in) : CanvasVideoType.Undefined;
         this.options = (this.contents > 2) ? CanvasSurfaceOptions.CREATOR.createFromParcel(in) : new CanvasSurfaceOptions();
+        this.airmediaId = (this.contents > 3) ? in.readLong() : 0;
+        
     }
 
     public boolean isDisconnected() { return state.isDisconnected(); }
@@ -102,10 +107,8 @@ public class CanvasSourceSession implements Parcelable {
         } else {
             new CanvasSurfaceOptions().writeToParcel(dest, flags);
         }
+        dest.writeLong(this.airmediaId);
     }
-
-//    public final boolean isLoading;
-//    public final boolean isMuted;
 
 //    @NonNull
     @Override
@@ -118,6 +121,7 @@ public class CanvasSourceSession implements Parcelable {
                 + " · video-type= " + videoType
                 + " · wxh= " + width + "x" + height
                 + " · loading= " + isLoading
-                + " · muted= " + isMuted;
-    }
+                + " · muted= " + isMuted
+                + " · airmedia-id= " + airmediaId;    
+        }
 }

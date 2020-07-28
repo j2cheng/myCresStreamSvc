@@ -882,7 +882,7 @@ public class AirMediaSplashtop
 				return;
 			}
             Common.Logging.d(TAG,"configureStringProperty " + AirMediaReceiverProperties.WirlessAccessPoint.WifiFrequency + "=" + freq);
-			//receiver().configureProperty(AirMediaReceiverProperties.WirlessAccessPoint.WifiFrequency, Integer.toString(freq));
+			receiver().configureProperty(AirMediaReceiverProperties.WirlessAccessPoint.WifiFrequency, Integer.toString(freq));
 		}
     }
     
@@ -2820,12 +2820,14 @@ public class AirMediaSplashtop
         unregisterReceiverEventHandlers(receiver);
         receiver.loadedChanged().register(loadedChangedHandler_);
         receiver.stateChanged().register(stateChangedHandler_);
+        receiver.wifiApUsersCountChanged().register(wifiApUsersCountChangedHandler_);
 	}
 	
 	private void unregisterReceiverEventHandlers(AirMediaReceiver receiver) {
         if (receiver == null) return;
         receiver.loadedChanged().unregister(loadedChangedHandler_);
         receiver.stateChanged().unregister(stateChangedHandler_);
+        receiver.wifiApUsersCountChanged().unregister(wifiApUsersCountChangedHandler_);
 	}
 	
 	//  SessionManager Events
@@ -2897,6 +2899,14 @@ public class AirMediaSplashtop
 				}
 				Common.Logging.w(TAG, "Exit from stateChangedHandler for error="+reason);
 			}
+        }
+    };
+    
+    private final MulticastChangedDelegate.Observer<AirMediaReceiver, Integer> wifiApUsersCountChangedHandler_ = new MulticastChangedDelegate.Observer<AirMediaReceiver, Integer>() {
+        @Override
+        public void onEvent(AirMediaReceiver receiver, Integer from, Integer to) {
+            Common.Logging.i(TAG, "view.receiver.event.wifiApUsersCount  " + from + "  ==>  " + to);
+            sendClientDataWifiUsers(to);
         }
     };
     
