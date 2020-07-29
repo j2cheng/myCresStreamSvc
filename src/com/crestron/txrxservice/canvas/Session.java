@@ -280,7 +280,7 @@ public abstract class Session
 					return null;
 				}
 				setSurfaceOptions();                   // will set to request RGB888 surface if needed
-				surface = mCanvas.acquireSurface(sessionId(), options);
+				surface = mCanvas.acquireSurface(this);
 				if (surface != null && surface.isValid()) {
 					mStreamCtl.setSurface(streamId, surface);
 				} 

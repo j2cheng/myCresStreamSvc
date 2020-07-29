@@ -1,6 +1,7 @@
 package com.crestron.txrxservice.canvas;
 
 import com.crestron.airmedia.canvas.channels.ipc.CanvasResponse;
+import com.crestron.airmedia.canvas.channels.ipc.CanvasSourceSession;
 import com.crestron.airmedia.canvas.channels.ipc.CanvasSurfaceAcquireResponse;
 import com.crestron.airmedia.canvas.channels.ipc.CanvasSurfaceMode;
 import com.crestron.airmedia.canvas.channels.ipc.CanvasSurfaceOptions;
@@ -454,44 +455,53 @@ public class CresCanvas
 		return session.playTimedout;
 	}
 	
-	public Surface acquireSurface(String sessionId, CanvasSurfaceOptions options)
+	public String getSessionId(Session session)
+	{
+		if (session != null)
+			return session.sessionId();
+		else
+			return "Session Does Not Exist";
+	}
+	
+	public Surface acquireSurface(Session session)
 	{
 		CanvasSurfaceAcquireResponse response = null;
+		CanvasSourceSession canvasSourceSession = Session.session2CanvasSourceSession(session);
 		try {
 			if (Session.replace.streamId < 0) {
-				Common.Logging.i(TAG, "surfaceAcquire for session: "+sessionId+" with options="+options);
-				response = mAirMediaCanvas.service().surfaceAcquire(sessionId, options);
+				Common.Logging.i(TAG, "surfaceAcquire for session: "+getSessionId(session)+" with options="+session.options);
+				response = mAirMediaCanvas.service().surfaceAcquireWithSession(canvasSourceSession);
 			} else {
-				Common.Logging.i(TAG, "surfaceReplace for session: "+sessionId+" old sessionId="+Session.replace.oldSessionId+" with options="+options);
-				response = mAirMediaCanvas.service().surfaceReplace(Session.replace.oldSessionId, sessionId, options);
+				Common.Logging.i(TAG, "surfaceReplace for session: "+getSessionId(session)+" old sessionId="+Session.replace.oldSessionId+" with options="+session.options);
+				response = mAirMediaCanvas.service().surfaceReplaceWithSession(Session.replace.oldSessionId, canvasSourceSession);
 			}
 		} 
 		catch(android.os.RemoteException ex)
 		{
-			Common.Logging.e(TAG, "exception encountered while calling surfaceAcquire for session: "+sessionId);
+			Common.Logging.e(TAG, "exception encountered while calling surfaceAcquire for session: "+getSessionId(session));
 			ex.printStackTrace();
 			return null;
 		}
-		if (sessionPlayTimedout(sessionId))
+		if (sessionPlayTimedout(getSessionId(session)))
 		{
 			// release the surface - it is too late for us to use it
-			Common.Logging.e(TAG, "Timed out while calling surfaceAcquire for session: "+sessionId);
-			releaseSurface(sessionId);
+			Common.Logging.e(TAG, "Timed out while calling surfaceAcquire for session: "+getSessionId(session));
+			releaseSurface(getSessionId(session));
 			return null;
 		}
 		if (response != null && response.isSucceeded())
 		{
 			if (response.surface == null)
 			{
-				Log.e(TAG, "acquireSurface for "+sessionId+" returned null surface from Canvas");
+				Log.e(TAG, "acquireSurface for "+getSessionId(session)+" returned null surface from Canvas");
 			}
 			if (!response.surface.isValid())
 			{
-				Log.e(TAG, "acquireSurface for "+sessionId+" returned surface "+response.surface+" invalid surface");
+				Log.e(TAG, "acquireSurface for "+getSessionId(session)+" returned surface "+response.surface+" invalid surface");
 			}
 			return response.surface;
 		} else {
-			Common.Logging.e(TAG, "acquireSurface was unable to get surface from Canvas App for session: "+sessionId);
+			Common.Logging.e(TAG, "acquireSurface was unable to get surface from Canvas App for session: "+getSessionId(session));
 			return null;
 		}
 	}
