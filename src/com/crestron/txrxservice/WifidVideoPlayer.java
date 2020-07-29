@@ -256,8 +256,9 @@ public class WifidVideoPlayer {
         {
             boolean msMiceOn = streamCtrl_.userSettings.getAirMediaMiracastEnable() && streamCtrl_.userSettings.getAirMediaMiracastMsMiceMode();
             Common.Logging.i(TAG, "VideoPlayer.setAdapterAddress  address="+address+"     msMiceOn = "+msMiceOn);
-        	streamCtrl_.streamPlay.msMiceSetAdapterAddress(msMiceOn ? address : null);
-            Common.Logging.i(TAG, "VideoPlayer.setAdapterAddress exit - address set to "+address);
+            Common.Logging.i(TAG, "This function is deprecated - no action");
+        	//streamCtrl_.streamPlay.msMiceSetAdapterAddress(msMiceOn ? address : null);
+            //Common.Logging.i(TAG, "VideoPlayer.setAdapterAddress exit - address set to "+address);
         }
         
         @Override

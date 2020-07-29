@@ -882,7 +882,7 @@ public class AirMediaSplashtop
 				return;
 			}
             Common.Logging.d(TAG,"configureStringProperty " + AirMediaReceiverProperties.WirlessAccessPoint.WifiFrequency + "=" + freq);
-			receiver().configureProperty(AirMediaReceiverProperties.WirlessAccessPoint.WifiFrequency, Integer.toString(freq));
+			receiver().configureProperty(AirMediaReceiverProperties.WirlessAccessPoint.WifiFrequency, freq);
 		}
     }
     
