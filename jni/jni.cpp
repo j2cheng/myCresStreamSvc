@@ -4809,6 +4809,9 @@ JNIEXPORT void JNICALL Java_com_crestron_txrxservice_GstreamIn_nativeWfdStart(JN
     if (msMiceSessionId > 0)
     {
         strcpy(data->intf_name, localIfc_cstring);	        // Set local interface name
+        WfdSinkProjSetLocalIPAddr(windowId, data->loc_ip_addr);
+    } else {
+        WfdSinkProjSetLocalIPAddr(windowId, "0.0.0.0");
     }
 
     data->wfd_start = 1;
@@ -5026,8 +5029,6 @@ JNIEXPORT void JNICALL Java_com_crestron_txrxservice_GstreamIn_nativeMsMiceSetAd
         CSIO_LOG(eLogLevel_debug, "MsMiceSetAdapterAddress changed to %s, start ms mice.",locAddr);
         msMiceSinkProjDeInit();
         msMiceSinkProjInit(locAddr);
-
-        WfdSinkProjSetLocalIPAddr(0, locAddr);
     }
 
     //to set ms mice pin after msMiceSinkProjInit
@@ -5375,10 +5376,13 @@ char *csio_jni_hashPin(char *pin)
 {
 	static char cbuffer[20];
 	if (!pin || *pin == 0)
-		return NULL;
-	int pinVal = strtol(pin, NULL, 10);
-	int hashedVal = _hash(pinVal);
-	snprintf(cbuffer, sizeof(cbuffer), "<0x%x>", hashedVal);
+	{
+		snprintf(cbuffer, sizeof(cbuffer), "<null>");
+	} else {
+		int pinVal = strtol(pin, NULL, 10);
+		int hashedVal = _hash(pinVal);
+		snprintf(cbuffer, sizeof(cbuffer), "<0x%x>", hashedVal);
+	}
 	return cbuffer;
 }
 

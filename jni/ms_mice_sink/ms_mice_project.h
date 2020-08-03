@@ -90,6 +90,8 @@ private:
             delete [] tmp;
         }
     }
+
+    void destroyService(msMiceSinkServiceClass *p);
 };
 
 class msMiceSinkServiceClass : public csioThreadBaseClass

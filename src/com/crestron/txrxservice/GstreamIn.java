@@ -31,6 +31,7 @@ public class GstreamIn implements SurfaceHolder.Callback {
     private final int stopTimeout_sec = 15;
     private final int startTimeout_ms = 25000;
     private boolean isPlaying = false;
+    private String priorAddress = null;
     boolean[] wfdIsPlaying = new boolean[com.crestron.txrxservice.CresStreamCtrl.NumOfSurfaces];
     private final static String ducatiRecoverFilePath = "/dev/shm/crestron/CresStreamSvc/ducatiRecoverTime";
     private final static long ducatiRecoverTimeDelta = (30 * 1000); //30 seconds
@@ -685,7 +686,29 @@ public class GstreamIn implements SurfaceHolder.Callback {
     public void msMiceSetAdapterAddress(String address)
     {
     	Log.i(TAG, "msMiceSetAdapterAddress - address="+address);
-    	nativeMsMiceSetAdapterAddress(address);
+    	boolean change = false;
+    	if (priorAddress == null && address == null)
+    		return;
+    	else if (priorAddress == null && address != null)
+    	{
+    		priorAddress = address;
+    		change = true;
+    	}
+    	else if (priorAddress != null && address == null)
+    	{
+    		priorAddress = address;
+    		change = true;
+    	}
+    	else if (!priorAddress.equals(address))
+    	{
+    		priorAddress = address;
+    		change = true;
+    	}
+    	if (change)
+    	{
+        	Log.i(TAG, "address has changed - calling msMiceSetAdapterAddress with address="+address);
+        	nativeMsMiceSetAdapterAddress(address);
+    	}
     }
     
 	// Find the session id (aka stream number) given a surface holder.

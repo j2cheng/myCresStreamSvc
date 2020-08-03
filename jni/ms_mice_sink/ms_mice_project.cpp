@@ -762,6 +762,38 @@ void msMiceSinkProjClass::sendEvent(csioEventQueueStruct* pEvntQ)
         CSIO_LOG(m_debugLevel, "msMiceSinkProjClass::sendEvent: pEvntQ is NULL\n");
     }
 }
+
+void msMiceSinkProjClass::destroyService(msMiceSinkServiceClass *p_ms_mice_service)
+{
+	int idx = p_ms_mice_service->m_idx;
+    CSIO_LOG(m_debugLevel, "msMiceSinkProj::%s: calling service %d thread exit\n", __FUNCTION__, idx);
+    p_ms_mice_service->exitThread();
+
+    //wait until thread exits
+    for(int i = 0; i < (20*60*10); i++)//wait for 50 ms * 20*60 = 1 min
+    {
+        //Note: msMiceSinkServiceClass calls g_main_loop_run.
+        //      can't call g_main_loop_quit() before calling loop_run.
+        if(p_ms_mice_service->m_ThreadIsRunning)
+        {
+            CSIO_LOG(m_debugLevel, "msMiceSinkProjClass::%s: msMiceSinkServiceClass[0x%x] (service %d) is running\n",__FUNCTION__, p_ms_mice_service, idx);
+            p_ms_mice_service->exitThread();
+            usleep( 50000L); //wait for 50 ms
+        }
+        else
+        {
+            break;
+        }
+    }
+    CSIO_LOG(m_debugLevel, "msMiceSinkProj::%s: done with wait loop for service %d\n", __FUNCTION__, idx);
+
+    CSIO_LOG(m_debugLevel, "msMiceSinkProj::%s: waiting for thread to exit for service %d\n", __FUNCTION__, idx);
+    p_ms_mice_service->WaitForThreadToExit();
+    CSIO_LOG(m_debugLevel, "msMiceSinkProj::%s: wait done for service %d\n", __FUNCTION__, idx);
+
+    delete p_ms_mice_service;
+}
+
 void* msMiceSinkProjClass::ThreadEntry()
 {
     CSIO_LOG(ABOVE_DEBUG_VERB(m_debugLevel), "msMiceSinkProjClass: Enter ThreadEntry.\n");
@@ -783,41 +815,59 @@ void* msMiceSinkProjClass::ThreadEntry()
     if (m_service_obj.size() == 0)
     {
         CSIO_LOG(ABOVE_DEBUG_VERB(m_debugLevel), "msMiceSinkProjClass: creating service class objects - size=%d\n", m_adapterAddress.size());
-    	for (int i=0; i < m_adapterAddress.size(); i++)
-    	{
-            msMiceSinkServiceClass *p_ms_mice_service = new msMiceSinkServiceClass(this, i);
+        for (int i=0; i < m_adapterAddress.size(); i++)
+        {
+        	msMiceSinkServiceClass *p_ms_mice_service = NULL;
+        	int retry = 0;
+        	do {
+        		p_ms_mice_service = new msMiceSinkServiceClass(this, i);
 
-    		if (!p_ms_mice_service)
-    		{
-    			CSIO_LOG(eLogLevel_error, "msMiceSinkProjClass::create m_service_obj[%d] failed!\n", i);
-    			m_ThreadIsRunning = 0;
-    			return NULL;
-    		}
-    		else
-    		{
-        		m_service_obj.push_back(p_ms_mice_service);
-    			char thread_name[20];
-    			sprintf(thread_name, "MSMICE_SRV_%d", i);
-    			p_ms_mice_service->CreateNewThread(thread_name,NULL);
+        		if (!p_ms_mice_service)
+        		{
+        			CSIO_LOG(eLogLevel_error, "msMiceSinkProjClass::create m_service_obj[%d] failed!\n", i);
+        			m_ThreadIsRunning = 0;
+        			return NULL;
+        		}
+        		else
+        		{
+        			m_service_obj.push_back(p_ms_mice_service);
+        			char thread_name[20];
+        			sprintf(thread_name, "MSMICE_SRV_%d", i);
+        			p_ms_mice_service->CreateNewThread(thread_name,NULL);
 
-    			//Note: to make sure ms mice service is set before processing any commands below:
-    			//      such as set pin.
-    			for(int i = 0; i < 10 ; i++)
-    			{
-    				if(p_ms_mice_service->m_mainLoop)
-    				{
-    					CSIO_LOG(m_debugLevel, "msMiceSinkProjClass:: m_service_obj[%d]->m_mainLoop is set.\n", i);
-    					break;
-    				}
-    				else
-    				{
-    					CSIO_LOG(m_debugLevel, "msMiceSinkProjClass:: waiting for m_service_obj[%d]->m_mainLoop!\n", i);
-    					usleep(50000);//wait for 50ms
-    				}
-    			}
-                CSIO_LOG(ABOVE_DEBUG_VERB(m_debugLevel), "msMiceSinkProjClass: mainloop set for service %d\n", i);
-    		}
-    	}
+        			//Note: to make sure ms mice service is set before processing any commands below:
+        			//      such as set pin.
+        			for(int iter = 0; iter < 10 ; iter++)
+        			{
+        				if(p_ms_mice_service->m_mainLoop)
+        				{
+        					CSIO_LOG(m_debugLevel, "msMiceSinkProjClass:: m_service_obj[%d]->m_mainLoop is set.\n", i);
+        					break;
+        				}
+        				else
+        				{
+        					CSIO_LOG(m_debugLevel, "msMiceSinkProjClass:: waiting for m_service_obj[%d]->m_mainLoop!\n", i);
+        					usleep(50000);//wait for 50ms
+        				}
+        			}
+        			if (p_ms_mice_service->m_mainLoop)
+        			{
+        				CSIO_LOG(m_debugLevel, "msMiceSinkProjClass: mainloop set for service %d\n", i);
+        				break;
+        			} else {
+        				CSIO_LOG(m_debugLevel, "-----------   msMiceSinkProjClass: mainloop could not be set for service %d ------------\n", i);
+        				CSIO_LOG(m_debugLevel, "     m_mice_service[0x%x]\n", p_ms_mice_service->m_mice_service);
+        				retry++;
+        				if (retry < 10)
+        				{
+        					delete(p_ms_mice_service);
+        					m_service_obj.pop_back();
+        					usleep(2000000); // sleep for 2 seconds and try again
+        				}
+        			}
+        		}
+        	} while (retry < 10);
+        }
     }
 
     for(;;)
@@ -855,7 +905,7 @@ void* msMiceSinkProjClass::ThreadEntry()
                     for (int i=0; i < m_service_obj.size(); i++)
                     {
                     	//send it to m_mice_service context
-                    	if(m_service_obj[i]->m_mice_service)
+                    	if(m_service_obj[i]->m_mice_service && m_service_obj[i]->m_mainLoop)
                     	{
                     		GMainContext* context = ms_mice_sink_service_get_context(m_service_obj[i]->m_mice_service);
 
@@ -874,7 +924,10 @@ void* msMiceSinkProjClass::ThreadEntry()
                     			{
                     				cmd->session_pin = NULL;
                     			}
+                                CSIO_LOG(m_debugLevel, "msMiceSinkProjClass: MS_MICE_SINK_EVENTS_SET_PIN service %d svc=[0x%x] invoking cmd=[0x%x] context=[0x%x]",
+                                		i, m_service_obj[i]->m_mice_service, cmd, context);
                     			g_main_context_invoke(context,app_extension_ms_mice_service_set_session_pin,cmd);
+                                CSIO_LOG(m_debugLevel, "msMiceSinkProjClass: MS_MICE_SINK_EVENTS_SET_PIN invoked cmd");
 
                     			//Note: cmd will be deleted in app_extension_ms_mice_service_set_session_pin
                     		}//else
@@ -958,32 +1011,7 @@ void* msMiceSinkProjClass::ThreadEntry()
     for (int idx=0; idx < m_service_obj.size(); idx++)
     {
         msMiceSinkServiceClass *p_ms_mice_service = m_service_obj[idx];
-        CSIO_LOG(m_debugLevel, "msMiceSinkProj: calling service %d thread exit\n", idx);
-        p_ms_mice_service->exitThread();
-
-        //wait until thread exits
-        for(int i = 0; i < (20*60*10); i++)//wait for 50 ms * 20*60 = 1 min
-        {
-            //Note: msMiceSinkServiceClass calls g_main_loop_run.
-            //      can't call g_main_loop_quit() before calling loop_run.
-            if(p_ms_mice_service->m_ThreadIsRunning)
-            {
-                CSIO_LOG(m_debugLevel, "msMiceSinkProjClass: msMiceSinkServiceClass[0x%x] (service %d) is running\n",p_ms_mice_service, idx);
-                p_ms_mice_service->exitThread();
-                usleep( 50000L); //wait for 50 ms
-            }
-            else
-            {
-                break;
-            }
-        }
-        CSIO_LOG(m_debugLevel, "msMiceSinkProj: done with wait loop for service %d\n", idx);
-
-        CSIO_LOG(m_debugLevel, "msMiceSinkProj: waiting for thread to exit for service %d\n", idx);
-        p_ms_mice_service->WaitForThreadToExit();
-        CSIO_LOG(m_debugLevel, "msMiceSinkProj: wait done for service %d\n", idx);
-
-        delete p_ms_mice_service;
+    	destroyService(p_ms_mice_service);
         CSIO_LOG(m_debugLevel, "msMiceSinkProj: deleted service object %d\n", idx);
         m_service_obj[idx] = NULL;
     }
