@@ -934,7 +934,7 @@ void* msMiceSinkProjClass::ThreadEntry()
                     	}
                     	else
                     	{
-                    		CSIO_LOG(m_debugLevel, "msMiceSinkProjClass: m_service_obj[%s]->m_mice_service is NULL, pin lost.\n", i);
+                    		CSIO_LOG(m_debugLevel, "msMiceSinkProjClass: m_service_obj[%d]->m_mice_service is NULL, pin lost.\n", i);
                     	}
                     }
                 	break;

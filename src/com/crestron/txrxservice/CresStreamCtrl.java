@@ -193,8 +193,8 @@ public class CresStreamCtrl extends Service {
     private int mPreviousValidHdmiInputResolution = 0;
     private int mPreviousAudioInputSampleRate = 0;
     private Resolution mPreviousHdmiOutResolution = new Resolution(0, 0);
-    private String mPreviousConnectionInfo = "";
-    private String mPreviousWirelessConnectionInfo = "";
+    private String mPreviousConnectionInfo = null;
+    private String mPreviousWirelessConnectionInfo = null;
     public CountDownLatch streamingReadyLatch = new CountDownLatch(1);
     public CountDownLatch audioReadyLatch = new CountDownLatch(1);
     private FileObserver audioReadyFileObserver;
@@ -5072,7 +5072,7 @@ public class CresStreamCtrl extends Service {
     public void sendAirMediaConnectionAddress()
     {
         String connectionInfo = getAirMediaConnectionAddress();
-        if (!mPreviousConnectionInfo.equals(connectionInfo))
+        if (mPreviousConnectionInfo == null || !mPreviousConnectionInfo.equals(connectionInfo))
         {
         	sockTask.SendDataToAllClients(MiscUtils.stringFormat("AIRMEDIA_CONNECTION_ADDRESS=%s", connectionInfo));
         	if (mCanvas != null)
@@ -5085,7 +5085,7 @@ public class CresStreamCtrl extends Service {
     {
         String connectionInfo = getAirMediaWirelessConnectionAddress();
         Log.i(TAG, "sendAirMediaWirelessConnectionAddress(): connectionInfo="+connectionInfo);
-        if (!mPreviousWirelessConnectionInfo.equals(connectionInfo))
+        if (mPreviousWirelessConnectionInfo == null || !mPreviousWirelessConnectionInfo.equals(connectionInfo))
         {
         	sockTask.SendDataToAllClients(MiscUtils.stringFormat("AIRMEDIA_WIRELESS_CONNECTION_ADDRESS=%s", connectionInfo));
         	if (mCanvas != null)
