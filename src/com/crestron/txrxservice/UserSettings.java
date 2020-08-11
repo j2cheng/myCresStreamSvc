@@ -240,6 +240,7 @@ public class UserSettings
 	private boolean airMediaConnectionOverlay;
 	private boolean airMediaDisplayWirelessConnectionOptionEnable;
 	private int airMediaDisplayWirelessConnectionOption;
+	private String airMediaWirelessCustomPromptString;
 	private int airMediaX;
 	private int airMediaY;
 	private int airMediaWidth;
@@ -388,6 +389,7 @@ public class UserSettings
 		airMediaConnectionOverlay = false;
 		airMediaDisplayWirelessConnectionOptionEnable = true;
 		airMediaDisplayWirelessConnectionOption = CresStreamCtrl.AirMediaDisplayConnectionOption.Ip;
+		airMediaWirelessCustomPromptString = "";
 		airMediaMiracastEnable = false;
 		airMediaMiracastWifiDirectMode = true;
 		airMediaMiracastPreferWifiDirect = false; 
@@ -1390,6 +1392,14 @@ public class UserSettings
 
 	public void setAirMediaDisplayWirelessConnectionOption(int airMediaDisplayConnectionOption) {
 		this.airMediaDisplayWirelessConnectionOption = airMediaDisplayConnectionOption;
+	}
+
+	public String getAirMediaWirelessCustomPromptString() {
+		return airMediaWirelessCustomPromptString;
+	}
+
+	public void setAirMediaWirelessCustomPromptString(String airMediaWirelessCustomPromptString) {
+		this.airMediaWirelessCustomPromptString = airMediaWirelessCustomPromptString;
 	}
 	
 	public int getAirMediaX() {

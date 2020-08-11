@@ -694,7 +694,10 @@ public class CommandParser {
             	break;
             case AIRMEDIA_DISPLAY_CONNECTION_OPTION:
             	cmd = new AirMediaDisplayConnectionOptionCommand(ctrl, arg, idx);
-            	break;
+                break;
+            case AIRMEDIA_WIRELESS_CUSTOM_PROMPT_STRING:
+            	cmd = new AirMediaWirelessCustomPromptStringCommand(ctrl, arg, idx);
+            	break; 
             case AIRMEDIA_DISPLAY_WIRELESS_CONNECTION_OPTION_ENABLE:
             	cmd = new AirMediaDisplayWirelessConnectionOptionEnableCommand(ctrl, arg, idx);
             	break;

@@ -864,7 +864,7 @@ public class AirMediaSplashtop
     {
 		if (receiver() != null)
 		{
-            Common.Logging.d(TAG,"configureStringProperty " + AirMediaReceiverProperties.WirlessAccessPoint.WifiKey + "=" + key);
+            Common.Logging.d(TAG,"configureStringProperty " + AirMediaReceiverProperties.WirlessAccessPoint.WifiKey);
 			receiver().configureProperty(AirMediaReceiverProperties.WirlessAccessPoint.WifiKey, key);
 		}
     }

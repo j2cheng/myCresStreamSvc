@@ -4754,6 +4754,15 @@ public class CresStreamCtrl extends Service {
             sendAirMediaConnectionInfo();
         }
     }
+
+    public void setAirMediaWirelessCustomPromptString(String promptString)
+    {
+        synchronized (mAirMediaLock) {
+            userSettings.setAirMediaWirelessCustomPromptString(promptString);
+            if (userSettings.getAirMediaDisplayWirelessConnectionOption() == AirMediaDisplayConnectionOption.Custom)
+            	sendAirMediaConnectionInfo();
+        }
+    }
     
     public void setAirMediaWindowPosition(int x, int y, int width, int height)
     {    	
@@ -5214,6 +5223,9 @@ public class CresStreamCtrl extends Service {
                 url.append(".");
                 url.append(domainName);
             }
+            break;
+        case AirMediaDisplayConnectionOption.Custom:
+            url = new StringBuilder(userSettings.getAirMediaWirelessCustomPromptString());
             break;
         default:
             Log.i(TAG, "getAirMediaWirelessConnectionAddress() invalid AirMediaDisplayWirelessConnectionOption value"+

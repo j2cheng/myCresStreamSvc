@@ -2023,6 +2023,18 @@ class AirMediaDisplayWirelessConnectionOptionCommand extends CrestronCommand {
 	}
 }
 
+class AirMediaWirelessCustomPromptStringCommand extends CrestronCommand {
+	public AirMediaWirelessCustomPromptStringCommand(CresStreamCtrl ctrl, String arg, int sessId) {
+		super(ctrl, arg, sessId);
+	}	
+	public void execute() {
+		ctrl.setAirMediaWirelessCustomPromptString(msg);
+	}
+	public String getFeedbackMsg() {
+		return ctrl.userSettings.getAirMediaWirelessCustomPromptString();
+	}
+}
+
 class AirMediaPersistsConnectionInfoEnableCommand extends CrestronCommand {
 	public AirMediaPersistsConnectionInfoEnableCommand(CresStreamCtrl ctrl, String arg, int sessId) {
 		super(ctrl, arg, sessId);
