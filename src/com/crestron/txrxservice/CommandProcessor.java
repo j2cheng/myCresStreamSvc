@@ -2847,3 +2847,17 @@ class CanvasConsoleCommand extends CrestronCommand {
 		} catch (Exception e) {}
 	}
 }
+
+class ServiceConnectionInitializationCompleteCmd extends CrestronCommand {
+
+	public ServiceConnectionInitializationCompleteCmd(CresStreamCtrl ctrl, String arg) {
+		super(ctrl, arg);
+	}
+
+	@Override
+	public void execute() {
+        Log.i(TAG, "----- ServiceConnectionInitializationComplete -----");
+		ctrl.csioConnectionInitializationComplete = true;
+    }
+    // no feedback
+}

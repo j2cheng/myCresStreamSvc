@@ -154,6 +154,7 @@ public class CresStreamCtrl extends Service {
     boolean hdmiInputDriverPresent = false;
     public boolean alphaBlending = false;
     public boolean csioConnected = false;
+    public boolean csioConnectionInitializationComplete = false;
     boolean airMediaLicensed = false;
     boolean[] restartRequired = new boolean[NumOfSurfaces];
     public final static String savedSettingsFilePath = "/data/CresStreamSvc/userSettings";
@@ -1629,8 +1630,8 @@ public class CresStreamCtrl extends Service {
                 {
                     Log.i(TAG, MiscUtils.stringFormat("AirMedia is %s licensed", ((airMediaLicensed) ? "" : "not")));
                 }
-                while (!csioConnected) {
-                    Log.v(TAG, "AirMedia is licensed: try to start AirMedia - waiting for csio to connect");
+                while (!csioConnected || !csioConnectionInitializationComplete) {
+                    Log.v(TAG, "AirMedia is licensed: waiting for csio connection to complete initialization");
                     try { Thread.sleep(500); } catch (InterruptedException e){}//Poll every 0.5 seconds
                 }
                 // Wait until file exists then check
@@ -4851,36 +4852,36 @@ public class CresStreamCtrl extends Service {
     
     public void airMediaSetDisplayScreen(int displayId)
     {
+        userSettings.setAirMediaDisplayScreen(displayId);
         if (mAirMedia != null)
         {
-            userSettings.setAirMediaDisplayScreen(displayId);
             mAirMedia.setDisplayScreen(displayId);
         }
     }
     
     public void airMediaSetWindowFlag(int windowFlag)
     {
+        userSettings.setAirMediaWindowFlag(windowFlag);
         if (mAirMedia != null)
         {
-            userSettings.setAirMediaWindowFlag(windowFlag);
             mAirMedia.setWindowFlag(windowFlag);
         }
     }
     
     public void setAirMediaIsCertificateRequired(boolean enable)
     {
+        userSettings.setAirMediaIsCertificateRequired(enable);
         if (mAirMedia != null)
         {
-            userSettings.setAirMediaIsCertificateRequired(enable);
             mAirMedia.setAirMediaIsCertificateRequired(enable);
         }
     }
     
     public void setAirMediaOnlyAllowSecureConnections(boolean enable)
     {
+        userSettings.setAirMediaOnlyAllowSecureConnections(enable);
         if (mAirMedia != null)
         {
-            userSettings.setAirMediaOnlyAllowSecureConnections(enable);
             mAirMedia.setAirMediaOnlyAllowSecureConnections(enable);
         }
     }
@@ -4893,18 +4894,18 @@ public class CresStreamCtrl extends Service {
     
     public void setAirMediaChromeExtension(boolean enable)
     {
+        userSettings.setAirMediaChromeExtension(enable);
         if (mAirMedia != null)
         {
-            userSettings.setAirMediaChromeExtension(enable);
             mAirMedia.setAirMediaChromeExtension(enable);
         }
     }
     
     public void setAirMediaDiscoveryEnable(boolean enable)
     {
+        userSettings.setAirMediaDiscoveryEnable(enable);
         if (mAirMedia != null)
         {
-            userSettings.setAirMediaDiscoveryEnable(enable);
             mAirMedia.setAirMediaDiscoveryEnable(enable);
         }
     }
@@ -4945,54 +4946,54 @@ public class CresStreamCtrl extends Service {
     
     public void setAirMediaProjectionLock(boolean val)
     {
+        userSettings.setAirMediaProjectionLock(val);
         if (mAirMedia != null)
         {
-            userSettings.setAirMediaProjectionLock(val);
             mAirMedia.setProjectionLock(val);
         }
     }
 
     public void setAirMediaWifiEnabled(boolean val)
     {
+        userSettings.setAirMediaWifiEnabled(val);
         if (mAirMedia != null)
         {
-            userSettings.setAirMediaWifiEnabled(val);
             mAirMedia.setAirMediaWifiEnabled(val);
         }
     }
     
     public void setAirMediaWifiSsid(String val)
     {
+        userSettings.setAirMediaWifiSsid(val);
         if (mAirMedia != null)
         {
-            userSettings.setAirMediaWifiSsid(val);
             mAirMedia.setAirMediaWifiSsid(val);
         }
     }
     
     public void setAirMediaWifiPskKey(String val)
     {
+        userSettings.setAirMediaWifiPskKey(val);
         if (mAirMedia != null)
         {
-            userSettings.setAirMediaWifiPskKey(val);
             mAirMedia.setAirMediaWifiKey(val);
         }
     }
     
     public void setAirMediaWifiFrequencyBand(int val)
     {
+        userSettings.setAirMediaWifiFrequencyBand(val);
         if (mAirMedia != null)
         {
-            userSettings.setAirMediaWifiFrequencyBand(val);
             mAirMedia.setAirMediaWifiFrequencyBand(val);
         }
     }
     
     public void setAirMediaWifiAutoLaunchAirMediaLandingPageEnabled(boolean val)
     {
+        userSettings.setAirMediaWifiAutoLaunchAirMediaLandingPageEnabled(val);
         if (mAirMedia != null)
         {
-            userSettings.setAirMediaWifiAutoLaunchAirMediaLandingPageEnabled(val);
             //mAirMedia.setProjectionLock(val);
         }
     }

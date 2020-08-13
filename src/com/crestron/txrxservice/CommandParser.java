@@ -219,7 +219,8 @@ public class CommandParser {
         DM_RESOLUTION,
         CHROMAKEY_COLOR,
         CANVASCMD,
-    	LOGLEVEL;
+        LOGLEVEL,
+        SERVICE_CONNECTION_INITIALIZATION_COMPLETE;
     	//UPDATEREQUEST;
     }
 
@@ -897,7 +898,10 @@ public class CommandParser {
             	break;
             case LOGLEVEL:
             	cmd = new SetLogLevelCommand(ctrl, arg);
-            	break;
+                break;
+            case SERVICE_CONNECTION_INITIALIZATION_COMPLETE:
+                cmd = new ServiceConnectionInitializationCompleteCmd(ctrl, arg);
+                break;
             case CANVASCMD:
             	cmd = new CanvasConsoleCommand(ctrl, arg);
             	break;
