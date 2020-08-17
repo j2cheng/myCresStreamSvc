@@ -304,7 +304,7 @@ public class CresDisplaySurfaceMaster implements CresDisplaySurface
 		}
         else {
             if (Build.VERSION.SDK_INT >= 28 /*Build.VERSION_CODES.P*/)
-                windowType = WindowManager.LayoutParams.TYPE_APPLICATION_OVERLAY;    // For chroma blending
+                windowType = 2038; // WindowManager.LayoutParams.TYPE_APPLICATION_OVERLAY  // For chroma blending
             else
                 windowType = WindowManager.LayoutParams.TYPE_SYSTEM_OVERLAY;    // For chroma blending
         }
