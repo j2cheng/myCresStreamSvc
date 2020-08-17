@@ -232,13 +232,17 @@ public class CresDisplaySurfaceMaster implements CresDisplaySurface
         int windowType;
         
         if (streamCtl.alphaBlending) {
-        	if (Build.VERSION.SDK_INT >= 28 /*Build.VERSION_CODES.M*/)
+        	if (Build.VERSION.SDK_INT >= 28 /*Build.VERSION_CODES.P*/)
 				windowType = 2038; // WindowManager.LayoutParams.TYPE_APPLICATION_OVERLAY - For alpha blending
 			else
 				windowType = WindowManager.LayoutParams.TYPE_PRIORITY_PHONE;    // For alpha blending
 		}
-        else
-        	windowType = WindowManager.LayoutParams.TYPE_SYSTEM_OVERLAY;	// For chroma blending
+        else {
+            if (Build.VERSION.SDK_INT >= 28 /*Build.VERSION_CODES.P*/)
+                windowType = 2038; // WindowManager.LayoutParams.TYPE_APPLICATION_OVERLAY - For alpha blending
+            else
+                windowType = WindowManager.LayoutParams.TYPE_SYSTEM_OVERLAY;
+        }
 
         wmLayoutParams = new WindowManager.LayoutParams(
         		windowWidth, 
@@ -293,14 +297,17 @@ public class CresDisplaySurfaceMaster implements CresDisplaySurface
         int windowType;
                 
         if (streamCtl.alphaBlending) {
-			if (Build.VERSION.SDK_INT >= 28 /*Build.VERSION_CODES.M*/)
+			if (Build.VERSION.SDK_INT >= 28 /*Build.VERSION_CODES.P*/)
 				windowType = 2038; // WindowManager.LayoutParams.TYPE_APPLICATION_OVERLAY - For alpha blending
 			else
 				windowType = WindowManager.LayoutParams.TYPE_PRIORITY_PHONE;    // For alpha blending
 		}
-        else
-        	windowType = WindowManager.LayoutParams.TYPE_SYSTEM_OVERLAY;	// For chroma blending
-        
+        else {
+            if (Build.VERSION.SDK_INT >= 28 /*Build.VERSION_CODES.P*/)
+                windowType = WindowManager.LayoutParams.TYPE_APPLICATION_OVERLAY;    // For chroma blending
+            else
+                windowType = WindowManager.LayoutParams.TYPE_SYSTEM_OVERLAY;    // For chroma blending
+        }
         wmLayoutParams = new WindowManager.LayoutParams(
     		w, 
     		h, 
@@ -980,7 +987,7 @@ public class CresDisplaySurfaceMaster implements CresDisplaySurface
     		if (backgroundWmParams == null)
     		{
 				int windowType;
-				if (Build.VERSION.SDK_INT >= 28 /*Build.VERSION_CODES.M*/)
+				if (Build.VERSION.SDK_INT >= 28 /*Build.VERSION_CODES.P*/)
 					windowType = WindowManager.LayoutParams.TYPE_BASE_APPLICATION;
 				else
 					windowType = WindowManager.LayoutParams.TYPE_PHONE;
