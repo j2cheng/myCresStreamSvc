@@ -219,6 +219,7 @@ public class CommandParser {
         DM_RESOLUTION,
         CHROMAKEY_COLOR,
         CANVASCMD,
+        DOMAIN_NAME,
         LOGLEVEL,
         SERVICE_CONNECTION_INITIALIZATION_COMPLETE;
     	//UPDATEREQUEST;
@@ -904,6 +905,9 @@ public class CommandParser {
                 break;
             case CANVASCMD:
             	cmd = new CanvasConsoleCommand(ctrl, arg);
+            	break;
+            case DOMAIN_NAME:
+            	cmd = new DomainNameCommand(ctrl, arg);
             	break;
             default:
                 break;

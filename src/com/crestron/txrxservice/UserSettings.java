@@ -282,6 +282,7 @@ public class UserSettings
 	private boolean appspaceEnabled;
 	private int chromaKeyColor;
 	private boolean rgb888Enabled;
+	private String domainName;
 	
 	//service mode
 	private int serviceMode;
@@ -420,6 +421,7 @@ public class UserSettings
 		dmResolution = new CresStreamCtrl.Resolution[CresStreamCtrl.NumDmInputs];
 		chromaKeyColor = 0xff0000;
 		rgb888Enabled = true;
+		domainName = "";
 	}
 	
 	// If there is a version mismatch between current userSettings and the one loaded from file system
@@ -568,6 +570,14 @@ public class UserSettings
 
 	public void setDeviceIp(String newIpAddr) {
 		deviceIp = newIpAddr;
+	}
+	
+	public String getDomainName() {
+		return domainName;
+	}
+
+	public void setDomainName(String newDomainName) {
+		domainName = newDomainName;
 	}
 	
 	public String getAuxiliaryIp() {

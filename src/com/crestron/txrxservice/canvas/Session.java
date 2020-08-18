@@ -11,19 +11,13 @@ import com.crestron.airmedia.canvas.channels.ipc.CanvasSurfaceOptions;
 import com.crestron.airmedia.canvas.channels.ipc.CanvasVideoType;
 import com.crestron.airmedia.receiver.m360.ipc.AirMediaSize;
 import com.crestron.airmedia.receiver.m360.ipc.AirMediaPlatforms;
-import com.crestron.airmedia.receiver.m360.models.*;
 import com.crestron.txrxservice.CresStreamCtrl;
 import com.crestron.airmedia.utilities.Common;
 import com.crestron.airmedia.utilities.TimeSpan;
-import com.crestron.airmedia.utilities.TaskScheduler;
 import com.crestron.txrxservice.canvas.SessionState;
-import com.google.gson.annotations.SerializedName;
 
 import android.graphics.Rect;
 import android.os.ConditionVariable;
-import android.os.Parcel;
-import android.os.Parcelable;
-import android.os.Parcelable.Creator;
 import android.util.Log;
 import android.view.Surface;
 

@@ -237,7 +237,6 @@ public class CresStreamCtrl extends Service {
     public ServiceMode serviceMode = ServiceMode.Master;
     private final int backgroundViewColor = Color.argb(255, 0, 0, 0);
     public String hostName=null;
-    public String domainName=null;
     public videoDimensions[] mVideoDimensions = new videoDimensions[NumOfSurfaces];
     public boolean[] m_InPause = new boolean[NumOfSurfaces];
     private final long hdmiBroadcastTimeout_ms = 60000;
@@ -1465,9 +1464,13 @@ public class CresStreamCtrl extends Service {
         hostName = MiscUtils.getHostName(dflt);
     }
     
-    public void setDomainName(String dflt)
+    public void setDomainName(String domainName)
     {
-        domainName = MiscUtils.getDomainName(dflt);
+    	if (!domainName.equals(userSettings.getDomainName())) {
+    		userSettings.setDomainName(domainName);
+    		if (mAirMedia != null)
+    			sendAirMediaConnectionInfo();
+    	}
     }
     
     private boolean isCameraDisabledBySecurity()
@@ -5082,6 +5085,7 @@ public class CresStreamCtrl extends Service {
     public void sendAirMediaConnectionAddress()
     {
         String connectionInfo = getAirMediaConnectionAddress();
+        Log.d(TAG, "sendAirMediaConnectionAddress="+connectionInfo);
         if (mPreviousConnectionInfo == null || !mPreviousConnectionInfo.equals(connectionInfo))
         {
         	sockTask.SendDataToAllClients(MiscUtils.stringFormat("AIRMEDIA_CONNECTION_ADDRESS=%s", connectionInfo));
@@ -5094,7 +5098,7 @@ public class CresStreamCtrl extends Service {
     public void sendAirMediaWirelessConnectionAddress()
     {
         String connectionInfo = getAirMediaWirelessConnectionAddress();
-        Log.i(TAG, "sendAirMediaWirelessConnectionAddress(): connectionInfo="+connectionInfo);
+        Log.d(TAG, "sendAirMediaWirelessConnectionAddress(): connectionInfo="+connectionInfo);
         if (mPreviousWirelessConnectionInfo == null || !mPreviousWirelessConnectionInfo.equals(connectionInfo))
         {
         	sockTask.SendDataToAllClients(MiscUtils.stringFormat("AIRMEDIA_WIRELESS_CONNECTION_ADDRESS=%s", connectionInfo));
@@ -5164,12 +5168,11 @@ public class CresStreamCtrl extends Service {
             if (ipAddr.equals("None"))
                 return getAirMediaConnectionAddressWhenNone("eth0,eth1");
             setHostName("");
-            setDomainName("");
             if (hostName == null) return "";
             url.append(hostName);
-            if (domainName != null) {
+            if (userSettings.getDomainName() != null) {
                 url.append(".");
-                url.append(domainName);
+                url.append(userSettings.getDomainName());
             }
             break;
         case AirMediaDisplayConnectionOption.Custom:
@@ -5217,12 +5220,11 @@ public class CresStreamCtrl extends Service {
             if (ipAddr.equals("None"))
                 return getAirMediaConnectionAddressWhenNone("wlan0");
             setHostName("");
-            setDomainName("");
             if (hostName == null) return "";
             url.append(hostName);
-            if (domainName != null) {
+            if (userSettings.getDomainName() != null) {
                 url.append(".");
-                url.append(domainName);
+                url.append(userSettings.getDomainName());
             }
             break;
         case AirMediaDisplayConnectionOption.Custom:

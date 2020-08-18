@@ -2035,6 +2035,16 @@ class AirMediaWirelessCustomPromptStringCommand extends CrestronCommand {
 	}
 }
 
+class DomainNameCommand extends CrestronCommand {
+	public DomainNameCommand(CresStreamCtrl ctrl, String arg) {
+		super(ctrl, arg);
+	}	
+	public void execute() {
+    	ctrl.setDomainName(msg);
+	}
+	// No feedback
+}
+
 class AirMediaPersistsConnectionInfoEnableCommand extends CrestronCommand {
 	public AirMediaPersistsConnectionInfoEnableCommand(CresStreamCtrl ctrl, String arg, int sessId) {
 		super(ctrl, arg, sessId);
