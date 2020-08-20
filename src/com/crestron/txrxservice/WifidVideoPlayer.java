@@ -285,8 +285,10 @@ public class WifidVideoPlayer {
         public void setAdapterAddresses(List<String> addresses)
         {
             boolean msMiceOn = streamCtrl_.userSettings.getAirMediaMiracastEnable() && streamCtrl_.userSettings.getAirMediaMiracastMsMiceMode();
-            Common.Logging.i(TAG, "VideoPlayer.setAdapterAddresses  address="+addresses+"     msMiceOn = "+msMiceOn);
             String addressesString = list2String(addresses,",");
+            if (addressesString.contains("None")) 
+            	msMiceOn = false;
+            Common.Logging.i(TAG, "VideoPlayer.setAdapterAddresses  address="+addresses+"     msMiceOn = "+msMiceOn);
         	streamCtrl_.streamPlay.msMiceSetAdapterAddress(msMiceOn ? addressesString : null);
             Common.Logging.i(TAG, "VideoPlayer.setAdapterAddresses exit - address set to "+addressesString);
         }

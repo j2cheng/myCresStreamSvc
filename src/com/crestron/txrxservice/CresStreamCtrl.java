@@ -4962,6 +4962,7 @@ public class CresStreamCtrl extends Service {
         if (mAirMedia != null)
         {
             mAirMedia.setAirMediaWifiEnabled(val);
+            updateAirMediaIpInformation();
         }
     }
     
@@ -5115,8 +5116,14 @@ public class CresStreamCtrl extends Service {
 			java.util.StringTokenizer st = new StringTokenizer(adapterListString, ",");
 			while (st.hasMoreTokens())
 			{
-				if (userSettings.getAirMediaAdapters().contains(st.nextToken()))
-					return true;
+				String adapter = st.nextToken();
+				if (userSettings.getAirMediaAdapters().contains(adapter))
+				{ 
+					if (!adapter.startsWith("wlan"))
+						return true;
+					else if (userSettings.getAirMediaWifiEnabled())  // for wireless adapters wifi access point should be enabled
+						return true;
+				}
 			}
 		}
 		return false;
@@ -5240,6 +5247,15 @@ public class CresStreamCtrl extends Service {
         return url.toString();    	
     }
     
+    public boolean isValidIpAddress(String address)
+    {
+    	if (address.contentEquals("0.0.0.0"))
+    		return false;
+    	if (address.startsWith("169.254.")) // filter out link-local addresses
+    		return false;
+    	return true;
+    }
+    
     public String getAirMediaConnectionIpAddress()
     {
     	Set<String> adapters = userSettings.getAirMediaAdapters();
@@ -5248,16 +5264,16 @@ public class CresStreamCtrl extends Service {
         {
             return "None";
         }
-    	if (adapters.contains("eth0") && !userSettings.getDeviceIp().contentEquals("0.0.0.0"))
+    	if (adapters.contains("eth0") && isValidIpAddress(userSettings.getDeviceIp()))
     		ipaddr = userSettings.getDeviceIp();
-    	if (adapters.contains("eth1") && !userSettings.getAuxiliaryIp().contentEquals("0.0.0.0"))
+    	if (adapters.contains("eth1") && isValidIpAddress(userSettings.getAuxiliaryIp()))
     	{
     		if (ipaddr == null)
     			ipaddr = userSettings.getAuxiliaryIp();
     		else
     		ipaddr += "," + userSettings.getAuxiliaryIp();
     	}
-        if (adapters.contains("wlan0") && !userSettings.getWifiIp().contentEquals("0.0.0.0"))
+        if (adapters.contains("wlan0") && isValidIpAddress(userSettings.getWifiIp()) && userSettings.getAirMediaWifiEnabled())
         {
         	if (ipaddr == null)
         		ipaddr = userSettings.getWifiIp();
@@ -5282,7 +5298,7 @@ public class CresStreamCtrl extends Service {
         if (adapters.contains("eth0") && adaptersSelectionString.contains("eth0"))
         {
             ipaddr = userSettings.getDeviceIp();
-            if (ipaddr.equals("0.0.0.0"))
+            if (!isValidIpAddress(ipaddr))
                 return "None";
             else
                 return ipaddr;
@@ -5290,15 +5306,15 @@ public class CresStreamCtrl extends Service {
         else if (adapters.contains("eth1") && adaptersSelectionString.contains("eth1"))
         {
             ipaddr = userSettings.getAuxiliaryIp();
-            if (ipaddr.equals("0.0.0.0"))
+            if (!isValidIpAddress(ipaddr))
                 return "None";
             else
                 return ipaddr;
         }
-        else if (adapters.contains("wlan0") && adaptersSelectionString.contains("wlan0"))
+        else if (adapters.contains("wlan0") && adaptersSelectionString.contains("wlan0") && userSettings.getAirMediaWifiEnabled())
         {
             ipaddr = userSettings.getWifiIp();
-            if (ipaddr.equals("0.0.0.0"))
+            if (!isValidIpAddress(ipaddr))
                 return "None";
             else
                 return ipaddr;

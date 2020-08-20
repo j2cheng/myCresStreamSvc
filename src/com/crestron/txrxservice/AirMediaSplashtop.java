@@ -537,8 +537,6 @@ public class AirMediaSplashtop
     	}
     	if (ipaddr.equals("None"))
     		return true;
-    	if (ipaddr.startsWith("169.254.")) // filter out link local addresses
-    		return true;
     	return false;
     }
     
