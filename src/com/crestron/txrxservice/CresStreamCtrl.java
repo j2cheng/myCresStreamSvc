@@ -6699,6 +6699,11 @@ public class CresStreamCtrl extends Service {
         sockTask.SendDataToAllClients(MiscUtils.stringFormat("DM_WINDOW%d=%d,%d,%d,%d", streamId, left, top, width, height));
     }
 
+    public void sendDmMute(int streamId, boolean value)
+    {
+        sockTask.SendDataToAllClients(MiscUtils.stringFormat("DM_AUDIO_MUTE%d=%s", streamId, (value)?"TRUE":"FALSE"));
+    }
+    
     public void sendHdmiStart(int streamId, boolean value)
     {
         sockTask.SendDataToAllClients(MiscUtils.stringFormat("HDMI_VIDEO_START%d=%s", streamId, (value)?"TRUE":"FALSE"));

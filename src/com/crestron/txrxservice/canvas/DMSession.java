@@ -175,4 +175,17 @@ public class DMSession extends Session
 			drawChromaKeyColor(blank);
 		}
 	}
+	
+	public boolean audioMute(boolean enable)
+	{
+		if (enable)
+		{
+			Common.Logging.i(TAG, "audioMute(): Session "+this+" calling sendDmMute()");
+			mStreamCtl.sendDmMute(streamId, true);
+		} else {
+			Common.Logging.i(TAG, "audioMute(): Session "+this+" calling sendDmUnMute()");
+			mStreamCtl.sendDmMute(streamId, false);
+		}
+		return true;
+	}
 }

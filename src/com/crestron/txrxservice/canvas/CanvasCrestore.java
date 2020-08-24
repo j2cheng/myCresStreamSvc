@@ -1464,14 +1464,30 @@ public class CanvasCrestore
     	{
     		CanvasSourceTransaction t = request.transactions.get(i);
     		String sessionId = t.sessionId;
-			if (t.action == CanvasSourceAction.Mute || t.action == CanvasSourceAction.UnMute ||
-					t.action == CanvasSourceAction.Pause)
+			if (t.action == CanvasSourceAction.Pause)
 			{
 				Log.i(TAG,"sourceRequestToEvent(): sessionId="+sessionId+" requesting action="+t.action.toString()+" not implemented");
 				response.setErrorCode(CanvasResponse.ErrorCodes.UnsupportedAction);
 				return null;
 			}
 
+			if (t.action == CanvasSourceAction.Mute || t.action == CanvasSourceAction.UnMute)
+			{
+				Log.i(TAG,"sourceRequestToEvent(): sessionId="+sessionId+" requesting action="+t.action.toString());
+	    		Session session = mSessionMgr.getSession(sessionId);
+	    		if (session != null)
+	    		{
+	    			session.audioMute(t.action == CanvasSourceAction.Mute);
+	    		}
+	    		else
+	    		{
+	    			Log.w(TAG, "sourceRequestToEvent(): reference to sessionId="+sessionId+" for a session that does not exist in list of current sessions");
+	    			response.setErrorCode(CanvasResponse.ErrorCodes.InvalidSessionId);
+	    			return null;
+	    		}
+				continue;
+			}
+			
     		Session session = mSessionMgr.getSession(sessionId);
     		if (session != null)
     		{
@@ -1484,6 +1500,8 @@ public class CanvasCrestore
     			return null;
     		}
     	}
+    	if (e.sessionEventMap.isEmpty())
+    		e = null;
     	return e;
     }
     

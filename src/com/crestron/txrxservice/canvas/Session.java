@@ -201,6 +201,11 @@ public abstract class Session
 	public void setCanvasUserPermission(boolean v) {  permissions[PermissionType.CanvasUser.value] = v; }
 	public void setModeratorPermission(boolean v) {  permissions[PermissionType.Moderator.value] = v; }
 	
+	public boolean audioMute(boolean enable)
+	{
+		return true;
+	}
+	
 	public void connect()
 	{
 	}

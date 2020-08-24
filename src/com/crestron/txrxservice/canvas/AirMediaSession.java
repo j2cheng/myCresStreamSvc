@@ -602,6 +602,18 @@ public class AirMediaSession extends Session
 		surface = null;
 	}
 	
+	public boolean audioMute(boolean enable)
+	{
+		if (airMediaReceiverSession == null)
+		{
+			Common.Logging.i(TAG, "audioMute(): AirMediaSession "+this+" has a null receiver session ");
+			return false;
+		}
+		Common.Logging.i(TAG, "audioMute(): Session "+this+" calling audioMute()");
+		airMediaReceiverSession.audioMute(enable);
+		return true;
+	}
+	
 	public String getAirMediaUserName()
 	{
 		return (airMediaReceiverSession != null) ? airMediaReceiverSession.username() : "";

@@ -128,4 +128,17 @@ public class HDMISession extends Session
 		AirMediaSize res = mStreamCtl.getPreviewResolution();
 		super.setResolution(res);
 	}
+	
+	public boolean audioMute(boolean enable)
+	{
+		if (enable)
+		{
+			Common.Logging.i(TAG, "audioMute(): Session "+this+" calling streamMute()");
+			mCanvas.mStreamCtl.setStreamMute();
+		} else {
+			Common.Logging.i(TAG, "audioMute(): Session "+this+" calling streamUnMute()");
+			mCanvas.mStreamCtl.setStreamUnMute();
+		}
+		return true;
+	}
 }

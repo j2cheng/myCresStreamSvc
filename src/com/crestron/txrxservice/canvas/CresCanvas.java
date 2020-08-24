@@ -1,7 +1,10 @@
 package com.crestron.txrxservice.canvas;
 
 import com.crestron.airmedia.canvas.channels.ipc.CanvasResponse;
+import com.crestron.airmedia.canvas.channels.ipc.CanvasSourceAction;
+import com.crestron.airmedia.canvas.channels.ipc.CanvasSourceRequest;
 import com.crestron.airmedia.canvas.channels.ipc.CanvasSourceSession;
+import com.crestron.airmedia.canvas.channels.ipc.CanvasSourceTransaction;
 import com.crestron.airmedia.canvas.channels.ipc.CanvasSurfaceAcquireResponse;
 import com.crestron.airmedia.canvas.channels.ipc.CanvasSurfaceMode;
 import com.crestron.airmedia.canvas.channels.ipc.CanvasSurfaceOptions;
@@ -18,10 +21,12 @@ import java.util.concurrent.*;
 import java.util.concurrent.atomic.AtomicBoolean;
 import java.util.ArrayList;
 import java.util.Arrays;
+import java.util.List;
 import java.util.UUID;
 
 import android.graphics.Rect;
 import android.os.ConditionVariable;
+import android.os.Parcel;
 import android.util.Log;
 import android.view.Surface;
 
@@ -622,6 +627,15 @@ public class CresCanvas
 	    }
 	}
     
+	public CanvasSourceRequest createCanvasSourceRequest(long id, String sessionId, CanvasSourceAction action)
+	{
+	    CanvasSourceTransaction t = new CanvasSourceTransaction(sessionId, action);
+	    List<CanvasSourceTransaction> transactionList = new ArrayList<CanvasSourceTransaction>();
+	    transactionList.add(t);
+	    CanvasSourceRequest request = new CanvasSourceRequest(1, transactionList);
+	    return request;
+	}
+	
 	public void CanvasConsoleCommand(String cmd)
 	{
 		Log.i(TAG, "CanvasConsoleCommand: cmd="+cmd);
@@ -724,6 +738,30 @@ public class CresCanvas
 				Log.i(TAG,"verified subscription successfully");
 			else
 				Log.i(TAG,"faield to verify subscription");
+		}
+		else if (args[0].equalsIgnoreCase("mute"))
+		{
+			if (args.length <= 1)
+			{
+				Log.i(TAG,"must include sessionId to be muted");
+				return;
+			}
+			String sessionId = args[1];
+			Log.i(TAG,"Audio mute for session through CanvasSourceRequest: "+sessionId);
+			CanvasSourceRequest r = createCanvasSourceRequest(1, sessionId, CanvasSourceAction.Mute);
+			mCanvasSourceManager.processRequest(r);
+		}
+		else if (args[0].equalsIgnoreCase("unmute"))
+		{
+			if (args.length <= 1)
+			{
+				Log.i(TAG,"must include sessionId to be muted");
+				return;
+			}
+			String sessionId = args[1];
+			Log.i(TAG,"Audio unmute for session through CanvasSourceRequest: "+sessionId);
+			CanvasSourceRequest r = createCanvasSourceRequest(1, sessionId, CanvasSourceAction.UnMute);
+			mCanvasSourceManager.processRequest(r);
 		}
 	}
 }
