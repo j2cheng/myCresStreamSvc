@@ -3039,13 +3039,13 @@ public class CresStreamCtrl extends Service {
         amanager.setStreamMute(AudioManager.STREAM_MUSIC, enabled);
     }
     
-    private void setPreviewVolume(int volume)
+    public void setPreviewVolume(int volume)
     {
         if (cam_preview != null)
             cam_preview.setVolume(volume);
     }
     
-    private void setStreamInVolume(int volume, int sessionId)
+    public void setStreamInVolume(int volume, int sessionId)
     {
         streamPlay.setVolume(volume, sessionId);
     }

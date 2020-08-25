@@ -610,7 +610,19 @@ public class AirMediaSession extends Session
 			return false;
 		}
 		Common.Logging.i(TAG, "audioMute(): Session "+this+" calling audioMute()");
-		airMediaReceiverSession.audioMute(enable);
+		// TODO this should get replaced by the call being made in the "else" part once Receiver apk implements
+		// audioMute as a call to VideoPlayer's audioMute function - if part will move to implementation of 
+		// audioMute in VideoPlayer.
+		if (getVideoType() == CanvasVideoType.Miracast)
+		{
+			if (enable) {
+				mCanvas.mStreamCtl.setStreamInVolume(0, streamId);
+			} else {
+				mCanvas.mStreamCtl.setStreamInVolume((int)mCanvas.mStreamCtl.userSettings.getUserRequestedVolume(), streamId);
+			}	
+		} else {
+			airMediaReceiverSession.audioMute(enable);
+		}
 		return true;
 	}
 	

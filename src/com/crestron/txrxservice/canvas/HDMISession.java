@@ -134,10 +134,10 @@ public class HDMISession extends Session
 		if (enable)
 		{
 			Common.Logging.i(TAG, "audioMute(): Session "+this+" calling streamMute()");
-			mCanvas.mStreamCtl.setStreamMute();
+			mCanvas.mStreamCtl.setPreviewVolume(0);
 		} else {
 			Common.Logging.i(TAG, "audioMute(): Session "+this+" calling streamUnMute()");
-			mCanvas.mStreamCtl.setStreamUnMute();
+			mCanvas.mStreamCtl.setPreviewVolume((int)mCanvas.mStreamCtl.userSettings.getUserRequestedVolume());
 		}
 		return true;
 	}
