@@ -505,6 +505,7 @@ static int wbs_start_connection(Wbs_t *pWbs)
 			goto closesocket;
 		}
 		SSL_set_fd(pSSL, fd);
+		CSIO_LOG(eLogLevel_info, "%s: SSL*=%x fd set to %d", __FUNCTION__, pSSL, fd);
 		if (SSL_connect(pSSL) < 0) {
 			CSIO_LOG(eLogLevel_error, "%s: error establishing SSL connection", __FUNCTION__);
 			ERR_print_errors_cb(errcb, NULL);
