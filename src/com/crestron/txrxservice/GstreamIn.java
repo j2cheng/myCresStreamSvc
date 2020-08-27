@@ -47,8 +47,6 @@ public class GstreamIn implements SurfaceHolder.Callback {
     private native void nativeSurfaceFinalize(int sessionId);
     private native void nativeWfdStart(int streamId, long sessionId, String url, int rtsp_port, String localAddress, String localIfc);
     private native void nativeWfdStop(int streamId, long sessionId);
-    private native void nativeWfdPause(int streamId);
-    private native void nativeWfdResume(int streamId);
     private native void nativeMsMiceStart();
     private native void nativeMsMiceStop();
     private native void nativeMsMiceSetAdapterAddress(String address);
@@ -659,16 +657,6 @@ public class GstreamIn implements SurfaceHolder.Callback {
     	{
 	    	Log.i(TAG, MiscUtils.stringFormat("Trying to stop stream that was not started in wfdStop for streamId=", streamId));
     	}
-    }
-    
-    public void wfdPause(final int streamId)
-    {
-    	nativeWfdPause(streamId);
-    }
-    
-    public void wfdResume(final int streamId)
-    {
-    	nativeWfdResume(streamId);
     }
     
     public void sendMiracastOsVersion(final int streamId, String osVersion)
