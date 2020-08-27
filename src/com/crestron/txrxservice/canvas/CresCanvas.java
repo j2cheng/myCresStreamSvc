@@ -763,5 +763,37 @@ public class CresCanvas
 			CanvasSourceRequest r = createCanvasSourceRequest(1, sessionId, CanvasSourceAction.UnMute);
 			mCanvasSourceManager.processRequest(r);
 		}
+		else if (args[0].equalsIgnoreCase("miracast"))
+		{
+			if (args.length <= 2)
+			{
+				Log.i(TAG,"must include pause/resume command and sessionid of miracast session");
+				return;
+			}
+			String command = args[1];
+			String sessionId = args[2];
+			Session session = mSessionMgr.findSession(sessionId);
+			if (session != null)
+			{
+				if (session.type == SessionType.AirMedia && session.getAirMediaType() == SessionAirMediaType.Miracast)
+				{
+					if (command.equalsIgnoreCase("pause")) {
+						Log.i(TAG,"pause miracast session "+sessionId);
+						mStreamCtl.getStreamPlay().wfdPause(session.streamId);
+					} else if (command.equalsIgnoreCase("resume")) {
+						Log.i(TAG,"resume miracast session "+sessionId);
+						mStreamCtl.getStreamPlay().wfdResume(session.streamId);
+					} else {
+						Log.i(TAG,"Invalid command "+command);
+					}
+				} else {
+					Log.i(TAG, "Session "+session+" is not a miracast session");
+				}
+			}
+			else
+			{
+				Log.i(TAG, "Session "+sessionId+" not found in list of sessions");
+			}
+		}
 	}
 }
