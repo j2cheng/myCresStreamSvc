@@ -151,6 +151,8 @@ public class AirMediaSplashtop
 	
 	private boolean quittingAirMediaService = false;
 	
+	private String randomKey = MiscUtils.getRandomAlphaNumericString(16);
+	
 	private String clientDataStatus = "Uninitialized";
 	private int clientDataTotalUsers = -1;
     private Handler handler_;
@@ -640,11 +642,8 @@ public class AirMediaSplashtop
                 setAirMediaChromeExtension(mStreamCtl.userSettings.getAirMediaChromeExtension());
                 setAirMediaDiscoveryEnable(mStreamCtl.userSettings.getAirMediaDiscoveryEnable());
                 setAirMediaWifiFrequencyBand(mStreamCtl.userSettings.getAirMediaWifiFrequencyBand());
-                Common.Logging.d(TAG, "startAirMediaReceiver: setting wifienabled= " + mStreamCtl.userSettings.getAirMediaWifiEnabled());
                 setAirMediaWifiEnabled(mStreamCtl.userSettings.getAirMediaWifiEnabled());
-                Common.Logging.d(TAG, "startAirMediaReceiver: setting wifissid= " + mStreamCtl.userSettings.getAirMediaWifiSsid());
                 setAirMediaWifiSsid(mStreamCtl.userSettings.getAirMediaWifiSsid());
-                Common.Logging.d(TAG, "startAirMediaReceiver: setting wifikey= " + mStreamCtl.userSettings.getAirMediaWifiPskKey());
                 setAirMediaWifiKey(mStreamCtl.userSettings.getAirMediaWifiPskKey());
 
         		registerReceiverEventHandlers(receiver());
@@ -861,6 +860,8 @@ public class AirMediaSplashtop
     {
 		if (receiver() != null)
 		{
+			if (key.isEmpty())
+				key = randomKey;
             Common.Logging.d(TAG,"configureStringProperty " + AirMediaReceiverProperties.WirlessAccessPoint.WifiKey);
 			receiver().configureProperty(AirMediaReceiverProperties.WirlessAccessPoint.WifiKey, key);
 		}
