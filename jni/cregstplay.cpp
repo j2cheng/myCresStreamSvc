@@ -145,6 +145,7 @@ void init_custom_data(CustomData * cdata)
 		data->element_video_decoder_queue = NULL;
 		data->element_audio_front_end_queue = NULL;
 		data->element_audio_decoder_queue = NULL;
+		data->element_fake_sink = NULL;
 
         for (j=0; j<MAX_ELEMENTS; ++j) 
         {
@@ -153,6 +154,9 @@ void init_custom_data(CustomData * cdata)
             data->element_v[i]  = NULL;   
         }
         data->av_index = 0;
+        data->amcvid_dec_index = 0;
+        data->dock = false;
+
         data->typefind = NULL;
         data->demux = NULL;
         data->hls_started = false;
@@ -470,6 +474,209 @@ void insert_udpsrc_probe(CREGSTREAM *data,GstElement *element,const gchar *name)
         }
     }
 }
+
+static void send_eos_on_pad(GstElement *element, const gchar *name)
+{
+    if (element)
+    {
+        GstPad *pad;
+        pad = gst_element_get_static_pad(element, name);
+        CSIO_LOG(eLogLevel_debug, "%s: element[0x%x],name[%s] pad:[0x%x]", __FUNCTION__,element,name,pad);
+        if (pad != NULL)
+        {
+            gst_pad_send_event(pad, gst_event_new_eos());
+            gst_object_unref(pad);
+        }
+        else
+        {
+            CSIO_LOG(eLogLevel_error, "Failed to send eos");
+        }
+    }
+}
+
+void dock(CREGSTREAM *data)
+{
+	CSIO_LOG(eLogLevel_debug, "%s: unlink decoder element and link fakesink", __FUNCTION__);
+	if (data->amcvid_dec_index == 0)
+	{
+	    CSIO_LOG(eLogLevel_warning, "%s: decoder element not found", __FUNCTION__);
+	    return;
+	}
+	guint decIdx = data->amcvid_dec_index;
+
+#ifdef SEND_EOS
+	// send eos on element - since it includes the sink - we cannot wait for eos to come out - will try to wait 100 msec
+	send_eos_on_pad(data->amcvid_dec, "sink");
+	usleep(100000L);
+#endif
+
+	// set decoder state to NULL and remove current decoder - it unlinks automatically according to gstreamer examples
+	CSIO_LOG(eLogLevel_debug, "%s: stopping, unlinking and destroying decoder element 0x%x", __FUNCTION__, data->amcvid_dec);
+	gchar *name = gst_object_get_name(GST_OBJECT(data->amcvid_dec));
+	CSIO_LOG(eLogLevel_debug, "%s: set state of decoder element %s to NULL", __FUNCTION__, name);
+	gst_element_set_state (data->amcvid_dec, GST_STATE_NULL);
+	CSIO_LOG(eLogLevel_debug, "%s: remove decoder element %s from pipeline", __FUNCTION__, name);
+	gst_bin_remove (GST_BIN (data->pipeline), data->amcvid_dec);
+	CSIO_LOG(eLogLevel_debug, "%s: unreference decoder element %s", __FUNCTION__, name);
+	gst_object_unref(data->amcvid_dec);
+	data->amcvid_dec = NULL;
+	g_free(name);
+
+	CSIO_LOG(eLogLevel_debug, "Drop incoming audio pipeline with valve");
+	if(data->element_valve_a)
+		g_object_set(G_OBJECT(data->element_valve_a), "drop", TRUE, NULL);
+
+	// make fakesink and add to pipeline
+	if (data->element_fake_sink == NULL)
+	{
+		CSIO_LOG(eLogLevel_debug, "%s: creating fakesink element", __FUNCTION__);
+		data->element_fake_sink = gst_element_factory_make("fakesink", NULL);
+		CSIO_LOG(eLogLevel_debug, "%s: adding fakesink element 0x%x to pipeline", __FUNCTION__, data->element_fake_sink);
+		gst_bin_add(GST_BIN(data->pipeline), data->element_fake_sink);
+	}
+	data->element_v[decIdx] = data->element_fake_sink;
+
+	csio_SetVpuDecoder(NULL, data->streamId);
+
+	CSIO_LOG(eLogLevel_debug, "%s: linking fakesink element 0x%x", __FUNCTION__, data->element_v[decIdx]);
+	if (gst_element_link(data->element_v[decIdx-1], data->element_v[decIdx]) != TRUE)
+	{
+		CSIO_LOG(eLogLevel_error, "ERROR: link of fakesink failed.");
+		gst_object_unref (data->pipeline);
+		return;
+	}
+
+	GstState cur_state;
+	gst_element_get_state (GST_ELEMENT (data->element_v[decIdx]), &cur_state, NULL, 0);
+	if (cur_state != GST_STATE_PLAYING)
+	{
+		CSIO_LOG(eLogLevel_debug, "%s: set state of fakesink to playing", __FUNCTION__);
+		gst_element_set_state(data->element_v[decIdx], GST_STATE_PLAYING);
+	}
+
+	data->dock = true;
+}
+
+void resume(CREGSTREAM *data)
+{
+	CSIO_LOG(eLogLevel_debug, "%s: unlink fakesink element and link decoder element", __FUNCTION__);
+	if (data->amcvid_dec_index == 0)
+	{
+	    CSIO_LOG(eLogLevel_warning, "%s: decoder element not found", __FUNCTION__);
+	    return;
+	}
+	guint decIdx = data->amcvid_dec_index;
+
+#if SEND_EOS
+	// send eos on element - since it is a sink - we cannot wait for eos to come out - will try to wait 100 msec
+	send_eos_on_pad(data->element_v[decIdx], "sink");
+	usleep(100000L);
+#endif
+
+	// set fakesink state to NULL and remove current decoder - it unlinks automatically according to gstreamer examples
+	CSIO_LOG(eLogLevel_debug, "%s: unlinking fakesink element 0x%x", __FUNCTION__, data->element_v[decIdx]);
+	gst_element_unlink(data->element_v[decIdx-1], data->element_v[decIdx]);
+
+	data->amcvid_dec = gst_element_factory_make(product_info()->H264_decoder_string, NULL);
+	CSIO_LOG(eLogLevel_debug, "%s: created new decoder element 0x%x", __FUNCTION__, data->amcvid_dec);
+
+	// add decoder to pipeline
+	data->element_v[decIdx] = data->amcvid_dec;
+
+	csio_SetVpuDecoder(data->amcvid_dec, data->streamId);
+
+	//SET OFSSET to zero for now
+	g_object_set(G_OBJECT(data->amcvid_dec), "ts-offset", 0, NULL);
+
+	//pass surface object to the decoder
+	g_object_set(G_OBJECT(data->amcvid_dec), "surface-window", data->surface, NULL);
+	CSIO_LOG(eLogLevel_debug, "%s: SET surface-window[0x%x][%d] for stream %d",__FUNCTION__,data->surface,data->surface, data->streamId);
+
+	if(data->amcvid_dec && csio_GetWaitDecHas1stVidDelay(data->streamId) == 0)
+	{
+		int sigId = 0;
+		sigId = g_signal_connect(data->amcvid_dec, "crestron-vdec-output", G_CALLBACK(csio_DecVideo1stOutputCB), (gpointer)data->streamId);
+		CSIO_LOG(eLogLevel_debug, "%s: connect to crestron-vdec-output: StreamId[%d],sigHandlerId[%d]",__FUNCTION__,data->streamId,sigId);
+
+		if(sigId)
+			csio_SetWaitDecHas1stVidDelay(data->streamId,1);
+	}
+	gst_bin_add(GST_BIN(data->pipeline), data->element_v[decIdx]);
+
+	CSIO_LOG(eLogLevel_debug, "%s: linking decoder element 0x%x", __FUNCTION__, data->amcvid_dec);
+	if (gst_element_link(data->element_v[decIdx-1], data->element_v[decIdx]) != TRUE)
+	{
+		CSIO_LOG(eLogLevel_error, "ERROR: link of decoder failed.");
+		gst_object_unref (data->pipeline);
+		return;
+	}
+
+	GstState cur_state;
+	gst_element_get_state (GST_ELEMENT (data->element_v[decIdx]), &cur_state, NULL, 0);
+	if (cur_state != GST_STATE_PLAYING)
+	{
+		CSIO_LOG(eLogLevel_debug, "%s: set state of decoder to playing", __FUNCTION__);
+		gst_element_set_state(data->element_v[decIdx], GST_STATE_PLAYING);
+	}
+
+	CSIO_LOG(eLogLevel_debug, "Resuming audio pipeline with valve");
+	if(data->element_valve_a)
+		g_object_set(G_OBJECT(data->element_valve_a), "drop", FALSE, NULL);
+
+	data->dock = false;
+}
+
+GstPadProbeReturn dockResume(GstPad *pad, GstPadProbeInfo *info, gpointer user_data)
+{
+	CREGSTREAM *data = (CREGSTREAM *)user_data;
+
+	CSIO_LOG(eLogLevel_debug, "%s: data[0x%x], pad:[0x%x] - pad is blocked now", __FUNCTION__, data, pad);
+
+	/* remove the probe first */
+	gst_pad_remove_probe (pad, GST_PAD_PROBE_INFO_ID(info));
+
+	if (data->amcvid_dec_index > 0)
+	{
+		if (!data->dock)
+		{
+			CSIO_LOG(eLogLevel_debug, "%s: dock", __FUNCTION__);
+			dock(data);
+		}
+		else
+		{
+			CSIO_LOG(eLogLevel_debug, "%s: resume", __FUNCTION__);
+			resume(data);
+		}
+	}
+	else
+	{
+		CSIO_LOG(eLogLevel_error, "%s: in dock/resume callback with no decoder/sink element", __FUNCTION__);
+	}
+
+	data->blocking_probe_id = 0;
+	return GST_PAD_PROBE_OK;
+}
+
+void insert_blocking_probe(CREGSTREAM *data, GstElement *element, const gchar *name, GstPadProbeCallback probeCb)
+{
+    data->blocking_probe_id = 0;
+    if (element)
+    {
+        GstPad *blockpad;
+        blockpad = gst_element_get_static_pad(element, name);
+        CSIO_LOG(eLogLevel_debug, "%s: data[0x%x],element[0x%x],name[%s] blockpad:[0x%x]", __FUNCTION__,data,element,name,blockpad);
+        if (blockpad != NULL)
+        {
+            data->blocking_probe_id = gst_pad_add_probe(blockpad, GST_PAD_PROBE_TYPE_BLOCK_DOWNSTREAM, probeCb, data, NULL);
+            gst_object_unref(blockpad);
+        }
+        else
+        {
+            CSIO_LOG(eLogLevel_error, "Failed to insert blocking probe");
+        }
+    }
+}
+
 /**
  * \author      John Cheng
  *
@@ -1156,8 +1363,9 @@ int build_video_pipeline(gchar *encoding_name, CREGSTREAM *data, unsigned int st
 	GstElement *video_rate_probe_element = NULL;
 
     data->using_glimagsink = 0;
+    data->amcvid_dec_index = 0;
     *sink = NULL;
-    CSIO_LOG(eLogLevel_extraVerbose, "%s() encoding_name=%s, native_window=%p, start=%u, do_rtp=%d",
+    CSIO_LOG(eLogLevel_debug, "%s() encoding_name=%s, native_window=%p, start=%u, do_rtp=%d",
              __FUNCTION__, encoding_name, data->native_window, start, do_rtp);
 
     if((strcmp(encoding_name, "H264") == 0) || (strcmp(encoding_name, "video/x-h264") == 0))
@@ -1210,6 +1418,7 @@ int build_video_pipeline(gchar *encoding_name, CREGSTREAM *data, unsigned int st
         {
             data->element_v[i++] = gst_element_factory_make(product_info()->H264_decoder_string, NULL);
             data->amcvid_dec = data->element_v[i-1];
+            data->amcvid_dec_index = i-1;
 
             csio_SetVpuDecoder(data->amcvid_dec, data->streamId);
 
@@ -1218,7 +1427,7 @@ int build_video_pipeline(gchar *encoding_name, CREGSTREAM *data, unsigned int st
 
             //pass surface object to the decoder
             g_object_set(G_OBJECT(data->element_v[i-1]), "surface-window", data->surface, NULL);
-            CSIO_LOG(eLogLevel_debug, "%s: SET surface-window[0x%x][%d]",__FUNCTION__,data->surface,data->surface);
+            CSIO_LOG(eLogLevel_debug, "%s: SET surface-window[0x%x][%d] for stream %d",__FUNCTION__,data->surface,data->surface, data->streamId);
 
             *ele0 = data->element_v[0];
 
@@ -1235,6 +1444,7 @@ int build_video_pipeline(gchar *encoding_name, CREGSTREAM *data, unsigned int st
         else
         {
             data->element_v[i++] = gst_element_factory_make("fakesink", NULL);
+            data->amcvid_dec_index = i-1;
             *ele0 = data->element_v[0];
             CSIO_LOG(eLogLevel_warning, "Unknown stream encoding format: %s", encoding_name);
             csio_sendErrorStatusMessage(CCresLogCode::Error_Unsupported_Codec,
@@ -1297,6 +1507,7 @@ int build_video_pipeline(gchar *encoding_name, CREGSTREAM *data, unsigned int st
         {
             data->element_v[i++] = gst_element_factory_make(product_info()->H265_decoder_string, NULL);
             data->amcvid_dec = data->element_v[i-1];
+            data->amcvid_dec_index = i-1;
 
             csio_SetVpuDecoder(data->amcvid_dec, data->streamId);
 
@@ -1322,6 +1533,7 @@ int build_video_pipeline(gchar *encoding_name, CREGSTREAM *data, unsigned int st
         else
         {
             data->element_v[i++] = gst_element_factory_make("fakesink", NULL);
+            data->amcvid_dec_index = i-1;
             *ele0 = data->element_v[0];
             CSIO_LOG(eLogLevel_warning, "Unknown stream encoding format: %s", encoding_name);
             csio_sendErrorStatusMessage(CCresLogCode::Error_Unsupported_Codec,
@@ -1563,6 +1775,9 @@ int build_video_pipeline(gchar *encoding_name, CREGSTREAM *data, unsigned int st
 			gst_object_unref(pad);
 		}
 	}
+
+	if (data->amcvid_dec_index > 0)
+		CSIO_LOG(eLogLevel_debug, "%s: decoder element index in video pipeline=%u", __FUNCTION__, data->amcvid_dec_index);
 
 	if(!do_window)
 	{

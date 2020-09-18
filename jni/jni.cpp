@@ -267,7 +267,7 @@ static void check_initialization_complete (CustomData *cdata, int stream)
 	JNIEnv *env = get_jni_env ();
 	CREGSTREAM * data = GetStreamFromCustomData(cdata, stream);
 
-	CSIO_LOG(eLogLevel_debug, "stream=%d", stream);
+	CSIO_LOG(eLogLevel_debug, "%s: entered for stream=%d", __FUNCTION__, stream);
 	
 	if(!data)
  	{
@@ -3807,6 +3807,7 @@ int csio_jni_AddVideo(GstPad *new_pad,gchar *encoding_name, GstElement **sink,eP
 		do_rtp = 1;
 	}
 
+	CSIO_LOG(eLogLevel_error, "%s calling build_video_pipeline for stream %d", __FUNCTION__, iStreamId);
 	iStatus = build_video_pipeline(encoding_name, data,0,do_rtp,&ele0,sink);
 
 	if(ele0 == NULL)
@@ -3872,7 +3873,7 @@ void csio_jni_initAudio(int iStreamId)
 
     if(!data)
     {
-        CSIO_LOG(eLogLevel_error, "Could not obtain stream pointer for stream %d", iStreamId);
+        CSIO_LOG(eLogLevel_error, "%s: Could not obtain stream pointer for stream %d", __FUNCTION__, iStreamId);
         return;
     }
 
@@ -3880,7 +3881,7 @@ void csio_jni_initAudio(int iStreamId)
     {
     	if (data->dropAudio)
 		{
-			CSIO_LOG(eLogLevel_debug, "Dropping audio flag set");
+			CSIO_LOG(eLogLevel_debug, "%s: Dropping audio flag set", __FUNCTION__);
     		g_object_set(G_OBJECT(data->element_valve_a), "drop", TRUE, NULL);
 		}
     	else
@@ -3896,7 +3897,7 @@ void csio_jni_initAudio(int iStreamId)
     	//		g_object_set(G_OBJECT(data->audio_sink), "slave-method", 0, NULL); // 0 = GST_AUDIO_BASE_SINK_SLAVE_RESAMPLE
 
     	g_object_set(G_OBJECT(data->audio_sink), "ts-offset", tmp, NULL);
-    	CSIO_LOG(eLogLevel_debug, "set audiosink_ts_offset:%lld",tmp);
+    	CSIO_LOG(eLogLevel_debug, "%s: set audiosink_ts_offset:%lld",__FUNCTION__, tmp);
     }
 }
 
@@ -3906,7 +3907,7 @@ void csio_jni_initVideo(int iStreamId)
     
     if(!data)
     {
-        CSIO_LOG(eLogLevel_error, "Could not obtain stream pointer for stream %d", iStreamId);
+        CSIO_LOG(eLogLevel_error, "%s: Could not obtain stream pointer for stream %d", __FUNCTION__, iStreamId);
         return;
     }
     
@@ -3936,15 +3937,15 @@ void csio_jni_initVideo(int iStreamId)
         		                      data->amcviddec_ts_offset;
         	}
             g_object_set(G_OBJECT(data->amcvid_dec), "ts-offset", tmp, NULL);
-            CSIO_LOG(eLogLevel_debug, "streamingBuffer or latency is:%d",CSIOCnsIntf->getStreamRx_BUFFER(iStreamId));
-            CSIO_LOG(eLogLevel_debug, "amcviddec_ts_offset:%d",data->amcviddec_ts_offset);
-            CSIO_LOG(eLogLevel_debug, "total ts_offset:%d",tmp);
+            CSIO_LOG(eLogLevel_debug, "%s: streamingBuffer or latency is:%d",__FUNCTION__, CSIOCnsIntf->getStreamRx_BUFFER(iStreamId));
+            CSIO_LOG(eLogLevel_debug, "%s: amcviddec_ts_offset:%d",__FUNCTION__, data->amcviddec_ts_offset);
+            CSIO_LOG(eLogLevel_debug, "%s: total ts_offset:%d",__FUNCTION__, tmp);
         }
     
         if(data->element_valve_v)
             g_object_set(G_OBJECT(data->element_valve_v), "drop", FALSE, NULL);
     
-        CSIO_LOG(eLogLevel_debug, "qos is turned off for surfaceflingersink!");
+        CSIO_LOG(eLogLevel_debug, "%s: qos is turned off for surfaceflingersink!", __FUNCTION__);
         if(data->video_sink)
             g_object_set(G_OBJECT(data->video_sink), "qos", FALSE, NULL);
 
@@ -4890,6 +4891,60 @@ JNIEXPORT void JNICALL Java_com_crestron_txrxservice_GstreamIn_nativeWfdStop(JNI
     // *** CSIO_LOG(eLogLevel_debug,"mira: {%s} - exiting",__FUNCTION__);
 }
 
+/* Pause wfd connection
+ *
+ * TODO: should calling function call gst_native_surface_finalize() after this?
+ * TODO: this function should call csio_jni_stop?
+ * */
+JNIEXPORT void JNICALL Java_com_crestron_txrxservice_GstreamIn_nativeWfdPause(JNIEnv *env, jobject thiz, jint windowId)
+{
+    CSIO_LOG(eLogLevel_debug,"%s(): streamId[%d]",__FUNCTION__, windowId);
+#if 0
+    gst_native_pause(env, thiz, windowId);
+#else
+    CREGSTREAM * data = GetStreamFromCustomData(CresDataDB, windowId);
+
+    if (!data)
+    {
+    	CSIO_LOG(eLogLevel_error, "%s: Could not obtain stream pointer for stream %d", windowId);
+    }
+    else
+    {
+    	insert_blocking_probe(data, data->element_v[data->amcvid_dec_index-1], "src", (GstPadProbeCallback)dockResume);
+        while (data->blocking_probe_id != 0)
+        	usleep(100000);
+    }
+    CSIO_LOG(eLogLevel_debug,"%s(): streamId[%d] - exit....",__FUNCTION__, windowId);
+#endif
+}
+
+/* Resume wfd connection
+ *
+ * TODO: should calling function call gst_native_surface_finalize() after this?
+ * TODO: this function should call csio_jni_stop?
+ * */
+JNIEXPORT void JNICALL Java_com_crestron_txrxservice_GstreamIn_nativeWfdResume(JNIEnv *env, jobject thiz, jint windowId)
+{
+    CSIO_LOG(eLogLevel_debug,"%s(): streamId[%d]",__FUNCTION__, windowId);
+#if 0
+    gst_native_play(env, thiz, windowId);
+#else
+    CREGSTREAM * data = GetStreamFromCustomData(CresDataDB, windowId);
+
+    if (!data)
+    {
+    	CSIO_LOG(eLogLevel_error, "%s: Could not obtain stream pointer for stream %d", windowId);
+    }
+    else
+    {
+    	insert_blocking_probe(data, data->element_v[data->amcvid_dec_index-1], "src", (GstPadProbeCallback)dockResume);
+        while (data->blocking_probe_id != 0)
+        	usleep(100000);
+    }
+    CSIO_LOG(eLogLevel_debug,"%s(): streamId[%d] - exit....",__FUNCTION__, windowId);
+#endif
+}
+
 static void Wfd_send_osVersion(jint streamId, char *osVersion)
 {
     CSIO_LOG(eLogLevel_debug,"%s(): streamId[%d], rtsp_port[%s]",__FUNCTION__, streamId, osVersion);
@@ -4985,6 +5040,7 @@ void Wfd_setup_gst_pipeline (int id, int state, struct GST_PIPELINE_CONFIG* gst_
             }
 
             SetInPausedState(id, 0);
+            CSIO_LOG(eLogLevel_debug, "%s(): - id[%d] invoke start_streaming_cmd",__FUNCTION__,id);
             start_streaming_cmd(id);
         }
 

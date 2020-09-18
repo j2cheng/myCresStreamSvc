@@ -208,6 +208,20 @@ JNIEXPORT void JNICALL Java_com_crestron_txrxservice_GstreamIn_nativeWfdStop(JNI
 
 /*
  * Class:           GstreamIn
+ * Method:          nativeWfdPause
+ * Signature:       (I)V
+ */
+JNIEXPORT void JNICALL Java_com_crestron_txrxservice_GstreamIn_nativeWfdPause(JNIEnv *env, jobject thiz, jint windowId);
+
+/*
+ * Class:           GstreamIn
+ * Method:          nativeWfdResume
+ * Signature:       (I)V
+ */
+JNIEXPORT void JNICALL Java_com_crestron_txrxservice_GstreamIn_nativeWfdResume(JNIEnv *env, jobject thiz, jint windowId);
+
+/*
+ * Class:           GstreamIn
  * Method:          nativeMsMiceStart
  * Signature:       ()V
  */

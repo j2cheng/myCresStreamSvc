@@ -595,6 +595,11 @@ public class AirMediaSession extends Session
 		return super.acquireSurface();
 	}
 	
+	public synchronized void setSurface(Surface s)
+	{
+		surface = s;
+	}
+	
 	public synchronized void releaseSurface()
 	{
 		if (surface != null)

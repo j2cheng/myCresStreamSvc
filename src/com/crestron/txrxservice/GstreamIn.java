@@ -47,6 +47,8 @@ public class GstreamIn implements SurfaceHolder.Callback {
     private native void nativeSurfaceFinalize(int sessionId);
     private native void nativeWfdStart(int streamId, long sessionId, String url, int rtsp_port, String localAddress, String localIfc);
     private native void nativeWfdStop(int streamId, long sessionId);
+    private native void nativeWfdPause(int streamId);
+    private native void nativeWfdResume(int streamId);
     private native void nativeMsMiceStart();
     private native void nativeMsMiceStop();
     private native void nativeMsMiceSetAdapterAddress(String address);
@@ -350,7 +352,7 @@ public class GstreamIn implements SurfaceHolder.Callback {
     public void sendVideoSourceParams(int source, int width, int height, int framerate, int profile){
     	// Update window size with new video dimensions
     	Log.v(TAG, "sendVideoSourceParams: streamId="+source+"  wxh="+width+"x"+height+
-    			"   old="+streamCtl.mVideoDimensions[source].videoHeight+"x"+streamCtl.mVideoDimensions[source].videoWidth);
+    			"   old="+streamCtl.mVideoDimensions[source].videoWidth+"x"+streamCtl.mVideoDimensions[source].videoHeight);
     	if (streamCtl.mVideoDimensions[source].videoHeight != height || streamCtl.mVideoDimensions[source].videoWidth != width)
     		streamCtl.updateWindowWithVideoSize(source, false, width, height);
         
@@ -657,6 +659,18 @@ public class GstreamIn implements SurfaceHolder.Callback {
     	{
 	    	Log.i(TAG, MiscUtils.stringFormat("Trying to stop stream that was not started in wfdStop for streamId=", streamId));
     	}
+    }
+    
+    public void wfdPause(final int streamId)
+    {
+    	nativeWfdPause(streamId);
+    }
+    
+    public void wfdResume(final int streamId)
+    {
+		Surface s = streamCtl.getSurface(streamId);
+		nativeSurfaceInit(s, streamId);
+		nativeWfdResume(streamId);
     }
     
     public void sendMiracastOsVersion(final int streamId, String osVersion)

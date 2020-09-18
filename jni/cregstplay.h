@@ -101,6 +101,9 @@ typedef struct _CREGSTREAM
 
 
    GstElement * element_appsrc;
+    GstElement *element_fake_sink;
+    guint amcvid_dec_index;
+    bool dock;
 
 
 	unsigned int element_after_tsdemux;	/* Used to add the rest of the video pipeline */
@@ -159,6 +162,8 @@ typedef struct _CREGSTREAM
     bool set_audio;
     void *pStreamer;
     bool useSWdecoder;
+
+    guint blocking_probe_id;
 
     DEBUGLAUNCH debug_launch;	// A structure to hold info for the debug launch pipeline
 
@@ -274,6 +279,8 @@ int build_metadata_pipeline(CREGSTREAM *data, GstElement **sink);
 void build_http_pipeline(CREGSTREAM *data, int iStreamId);
 extern "C" void insert_udpsrc_probe(CREGSTREAM *data,GstElement *element,const gchar *name);
 extern "C" void csio_jni_remove_video_rate_probe(int iStreamId);
+extern "C" GstPadProbeReturn dockResume(GstPad *pad, GstPadProbeInfo *info, gpointer user_data);
+extern "C" void insert_blocking_probe(CREGSTREAM *data, GstElement *element, const gchar *name, GstPadProbeCallback probeCb);
 
 void csio_PadAddedMsgHandler(GstElement *src, GstPad *new_pad, void *pCstreamer);
 void csio_Adaptive_PadAddedMsgHandler( GstElement *src, GstPad *new_pad, CREGSTREAM *data );
