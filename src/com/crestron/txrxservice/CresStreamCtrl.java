@@ -621,8 +621,7 @@ public class CresStreamCtrl extends Service {
             if (nativeGetIsAirMediaEnabledEnum())
             {
             	int productType = nativeGetProductTypeEnum();
-            	airMediav21 = ((CrestronProductName.fromInteger(productType) == CrestronProductName.Mercury) || 
-            			(CrestronProductName.fromInteger(productType) == CrestronProductName.DMPS_4K_STR)) ? false : true;	//default
+            	airMediav21 = (CrestronProductName.fromInteger(productType) == CrestronProductName.DMPS_4K_STR) ? false : true;	//default
             	
 	            //TODO remove once integration is over
 	            File f = new File("/data/CresStreamSvc/airMediav2.1");
