@@ -181,6 +181,7 @@ public class CommandParser {
         AIRMEDIA_CHROME_EXTENSION_ENABLED,
         AIRMEDIA_DISCOVERY_ENABLED,
         AIRMEDIA_CANVAS_MODE_ENABLED,
+        AIRMEDIA_INACTIVITY_TIMEOUT,
         AIRMEDIA_WIFI_ENABLED,
         AIRMEDIA_WIFI_SSID,
         AIRMEDIA_WIFI_PSKKEY,
@@ -795,6 +796,9 @@ public class CommandParser {
             	break;
             case AIRMEDIA_CANVAS_MODE_ENABLED:
             	cmd = new CanvasModeEnabledCommand(ctrl, arg);
+            	break;
+            case AIRMEDIA_INACTIVITY_TIMEOUT:
+            	cmd = new AirMediaInactivityTimeoutCommand(ctrl, arg);
             	break;
             case AIRMEDIA_WIFI_ENABLED:
             	cmd = new AirMediaWifiEnabledCommand(ctrl, arg);

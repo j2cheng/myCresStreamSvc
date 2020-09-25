@@ -192,6 +192,21 @@ class CanvasModeEnabledCommand extends CrestronCommand {
     }
 }
 
+class AirMediaInactivityTimeoutCommand extends CrestronCommand {
+	
+    public AirMediaInactivityTimeoutCommand(CresStreamCtrl ctrl, String arg) {
+		super (ctrl, arg);
+    }
+
+    @Override
+    public void execute() {
+    	ctrl.userSettings.setAirMediaInactivityTimeout(Integer.valueOf(msg));
+    }
+    public String getFeedbackMsg() {
+        return Integer.toString(ctrl.userSettings.getAirMediaInactivityTimeout());
+    }
+}
+
 class SessionInitiationCommand extends CrestronCommand {
     
     public SessionInitiationCommand(CresStreamCtrl ctrl, String arg, int sessId) {

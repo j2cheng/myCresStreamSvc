@@ -392,6 +392,11 @@ public abstract class Session
 		}
 	}
 	
+	public boolean inactiveSession()
+	{
+		return false;
+	}
+	
     public static CanvasSourceSession session2CanvasSourceSession(Session s)
     {
 	    CanvasSessionState state = CanvasSessionState.Stopped;

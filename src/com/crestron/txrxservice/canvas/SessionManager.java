@@ -3,6 +3,8 @@ package com.crestron.txrxservice.canvas;
 import java.util.ArrayList;
 import java.util.HashMap;
 import java.util.Map;
+import java.util.Timer;
+import java.util.TimerTask;
 import java.util.UUID;
 import java.util.Collection;
 import java.util.List;
@@ -45,6 +47,7 @@ public class SessionManager
 	{
 		Log.i(TAG, "Creating SessionManager");
 		mCanvas = canvas;
+		new Timer().schedule(new InactivityTask(), 30000, 60000);
 	}
 	
     ////////////////////////////////////////////////////////////////////////////////////////////////
@@ -227,6 +230,38 @@ public class SessionManager
         	else
         		Common.Logging.i(TAG,"disconnectAllSessions(): completed in "+TimeSpan.now().subtract(startTime).toString());
     	}
+    }
+    
+    public void disconnectInactiveAirMediaSessions(Originator origin)
+    {
+    	CanvasCrestore crestore = mCanvas.getCrestore();
+    	if (crestore == null)
+    		return;
+    	SessionEvent e = crestore.new SessionEvent(UUID.randomUUID().toString());
+    	synchronized (lock_) { 
+            for (Session session : sessions_) {
+                if (session == null) continue;
+            	if (session.inactiveSession())
+            		e.add(session.sessionId(), crestore.new SessionEventMapEntry("disconnect", session));
+            }
+    	}
+    	if (e.sessionEventMap.size() > 0)
+    	{
+            Common.Logging.i(TAG, "In inactivity task event="+e); 
+    		TimeSpan startTime = TimeSpan.now();
+        	boolean success = crestore.doSynchronousSessionEvent(e, origin, DISCONNECT_ALL_SESSION_TIMEOUT);
+        	if (!success)
+        		Common.Logging.i(TAG,"disconnectInactiveAirMediaSessions(): Timeout while stopping all sessions"+e.transactionId);
+        	else
+        		Common.Logging.i(TAG,"disconnectInactiveAirMediaSessions(): completed in "+TimeSpan.now().subtract(startTime).toString());
+    	}
+    }
+    
+    public class InactivityTask extends TimerTask {
+        @Override
+        public void run() {
+        	disconnectInactiveAirMediaSessions(new Originator(RequestOrigin.InactivityTimer));
+        }
     }
     
     public void clearAllSessions(boolean force)

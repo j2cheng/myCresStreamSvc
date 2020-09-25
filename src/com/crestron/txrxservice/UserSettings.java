@@ -259,6 +259,7 @@ public class UserSettings
 	private transient String airMediaWifiPskKey; // transient keyword prevents serialization of field when saving 
 	private int airMediaWifiFrequencyBand;
 	private boolean airMediaWifiAutoLaunchAirMediaLandingPageEnable;
+	private int airMediaInactivityTimeout;
 
 	// Camera Streaming
 	private boolean camStreamEnable;
@@ -400,6 +401,7 @@ public class UserSettings
 		airMediaWifiPskKey = "";
 		airMediaWifiFrequencyBand = 1; // 5 Ghz
 		airMediaWifiAutoLaunchAirMediaLandingPageEnable = true;
+		airMediaInactivityTimeout = 45;
 		appspaceEnabled		= false;
 		tcpInterleave       = initIntArray(0);//auto mode
 		camStreamEnable		= false;
@@ -1554,6 +1556,14 @@ public class UserSettings
 	
 	public boolean getAirMediaWifiAutoLaunchAirMediaLandingPageEnabled() {
 		return airMediaWifiAutoLaunchAirMediaLandingPageEnable;
+	}
+	
+	public void setAirMediaInactivityTimeout(int val) {
+		this.airMediaInactivityTimeout = val;
+	}
+	
+	public int getAirMediaInactivityTimeout() {
+		return airMediaInactivityTimeout;
 	}
 	
 	public boolean getCamStreamEnable() {

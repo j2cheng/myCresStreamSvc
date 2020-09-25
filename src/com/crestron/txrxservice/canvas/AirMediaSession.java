@@ -30,11 +30,14 @@ public class AirMediaSession extends Session
     private AtomicBoolean alreadyDisconnected = null;         // receiver has already disconnected sessopm
     private CanvasSurfaceAcquireResponse surfaceRenewRequestResponse;
     Surface surface=null;
+    public long stopTime;
+    public double nanoSecsInMin=(60L*1000*1000*1000);
     		
 	public AirMediaSession(com.crestron.airmedia.receiver.m360.models.AirMediaSession session, String label) {
 		super(); // will assign id;
 		state = SessionState.Connecting;
 		type = SessionType.AirMedia;
+		stopTime = Long.MAX_VALUE;
 		airMediaType = SessionAirMediaType.Undefined;
 		airMediaReceiverSession = session;
 		userLabel = label;
@@ -338,6 +341,7 @@ public class AirMediaSession extends Session
 			Common.Logging.w(TAG, "Session "+this+" stop command failed");
 			originator.failedSessionList.add(this);
 		}
+		stopTime = System.nanoTime();
 	}
 	
 	
@@ -653,5 +657,19 @@ public class AirMediaSession extends Session
 		default:
 			return CanvasVideoType.Hardware;
 		}
+	}
+	
+	public boolean inactiveSession()
+	{
+		if (state != SessionState.Stopped)
+			return false;
+		TimeSpan timeSinceStop = TimeSpan.fromNanoseconds(System.nanoTime() - stopTime);
+		TimeSpan timeout = TimeSpan.fromMinutes((double)mStreamCtl.userSettings.getAirMediaInactivityTimeout());
+		Common.Logging.i(TAG, "Session "+this+" time elapsed since stop "+timeSinceStop+"  Inactivity timeout:"+timeout);
+		if (timeSinceStop.greaterThan(timeout))
+		{
+			return true;
+		}
+		return false;
 	}
 }
