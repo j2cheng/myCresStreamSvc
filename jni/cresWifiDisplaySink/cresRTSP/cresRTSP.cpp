@@ -1235,7 +1235,7 @@ int composeRTSPResponse(void * session,RTSPPARSINGRESULTS * requestParsingResult
       check_and_response_option("intel_sink_device_URL", "https://www.crestron.com/");
       check_and_response_option("intel_friendly_name", rtspSession->friendlyName);
       check_and_response_option("intel_sink_model_name", rtspSession->modelName);
-      check_and_response_option("microsoft_max_bitrate", "25000000");
+      check_and_response_option("microsoft_max_bitrate", "10000000");
 
       // /* wfd_uibc_capability */
       // if (uibc_option) {
