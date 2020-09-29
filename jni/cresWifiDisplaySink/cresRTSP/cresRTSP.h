@@ -70,6 +70,7 @@ typedef struct _rtspsysteminfo
    int rtspLogLevel;                // permisable values as per CSIO_LOG with the addition of -1
                                     // which denotes "use default"
    int rtpPort;                     // -1 denotes "use default"
+   int maxMiracastRate;             // max miracast rate
    char * preferredVidResRefStr;    // preferred video format (resolution/refresh_rate) selection string
    char * preferredAudioCodecStr;   // preferred audio codec configuration selection string
    char * friendlyName;             //
@@ -133,6 +134,7 @@ struct rtsp
 
    // *** session parameters ***
    int rtpPort;
+   char maxMiracastRate[32];
    char preferredVidResRefStr[128];
    char preferredAudioCodecStr[64];
    char friendlyName[64];

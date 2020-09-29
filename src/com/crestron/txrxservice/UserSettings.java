@@ -233,6 +233,7 @@ public class UserSettings
 	boolean airMediaChromeExtension;
 	boolean airMediaDiscoveryEnable;
 	boolean airMediaWifiEnabled;
+	int airMediaMaxMiracastBitrate;
 	private String airMediaOsdImage;
 	private boolean airMediaDisplayConnectionOptionEnable;
 	private int airMediaDisplayConnectionOption;
@@ -375,6 +376,7 @@ public class UserSettings
 		airMediaChromeExtension = true;
 		airMediaDiscoveryEnable = true;
 		airMediaWifiEnabled = true;
+		airMediaMaxMiracastBitrate = 10000000;
 		airMediaOsdImage	= "";
 		airMediaX			= 0;
 		airMediaY			= 0;
@@ -1291,6 +1293,14 @@ public class UserSettings
 	public void setAirMediaWifiEnabled(boolean enable) {
 		this.airMediaWifiEnabled = enable;
 	}	
+	
+	public void setAirMediaMaxMiracastBitrate(int maxrate) {
+		this.airMediaMaxMiracastBitrate = maxrate;
+	}
+	
+	public int getAirMediaMaxMiracastBitrate() {
+		return airMediaMaxMiracastBitrate;
+	}
 	
 	public boolean getAirMediaResetConnections() {
 		return airMediaResetConnections;

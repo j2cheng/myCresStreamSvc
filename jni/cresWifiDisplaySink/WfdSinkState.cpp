@@ -158,6 +158,7 @@ m_is_mice_session(0)
 
     m_rtspParserIntfInfo.rtpPort      = m_ts_Port;
     m_rtspParserIntfInfo.rtspLogLevel = m_debugLevel;
+    setMaxMiracastRate();
 
     if(g_rtspAudioCodecStr.size())
     {
@@ -314,6 +315,12 @@ void wfdSinkStMachineClass::setCurentTsPort(int port)
 {
     m_ts_Port = port;
     m_rtspParserIntfInfo.rtpPort = m_ts_Port;
+}
+
+void wfdSinkStMachineClass::setMaxMiracastRate()
+{
+	m_rtspParserIntfInfo.maxMiracastRate = m_parent->getMaxMiracastBitrate();
+	CSIO_LOG(m_infoLevel, "wfdSinkStMachineClass::%s(): maxMiracastRate[%d]\n", __FUNCTION__, m_rtspParserIntfInfo.maxMiracastRate);
 }
 
 void wfdSinkStMachineClass::resetAllFlags()
@@ -2379,6 +2386,7 @@ void* wfdSinkStMachineThread::ThreadEntry()
                         if(wfdSinkStMachineThread::m_wfdSinkStMachineTaskList[id])
                         {
                             wfdSinkStMachineClass* p = wfdSinkStMachineThread::m_wfdSinkStMachineTaskList[id];
+                            p->setMaxMiracastRate();
                             p->setCurentSourcePort(evntQPtr->ext_obj) ;
                             p->setCurentTsPort(evntQPtr->ext_obj2) ;
 

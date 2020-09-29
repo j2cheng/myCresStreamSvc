@@ -194,6 +194,13 @@ JNIEXPORT void JNICALL Java_com_crestron_txrxservice_GstreamIn_nativeSetRTCPDest
 
 /*
  * Class:           GstreamIn
+ * Method:          nativeSetWfdMaxMiracastBitrate
+ * Signature:       (I)V
+ */
+JNIEXPORT void JNICALL Java_com_crestron_txrxservice_GstreamIn_nativeSetWfdMaxMiracastBitrate(JNIEnv *env, jobject thiz, jint maxrate);
+
+/*
+ * Class:           GstreamIn
  * Method:          nativeWfdStart
  * Signature:       (IJLjava/lang/string; ILjava/lang/string; Ljava/lang/string;)V
  */

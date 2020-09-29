@@ -168,6 +168,7 @@ public class CommandParser {
         AIRMEDIA_PERSIST_CONNECTION_INFO_ENABLE,
         AIRMEDIA_WINDOW_FLAG,
         AIRMEDIA_MIRACAST_ENABLE,
+        AIRMEDIA_MAX_MIRACAST_BITRATE,
         AIRMEDIA_MIRACAST_WIFI_DIRECT_MODE_ENABLE,
         AIRMEDIA_MIRACAST_PREFER_WIFI_DIRECT,
         AIRMEDIA_MIRACAST_WIRELESS_OPERATING_REGION,
@@ -745,6 +746,9 @@ public class CommandParser {
             	break;
             case AIRMEDIA_MIRACAST_ENABLE:
             	cmd = new AirMediaMiracastEnableCommand(ctrl, arg, idx);
+            	break;
+            case AIRMEDIA_MAX_MIRACAST_BITRATE:
+            	cmd = new AirMediaMaxMiracastBitrateCommand(ctrl, arg);
             	break;
             case AIRMEDIA_MIRACAST_WIFI_DIRECT_MODE_ENABLE:
             	cmd = new AirMediaMiracastWifiDirectModeEnableCommand(ctrl, arg, idx);

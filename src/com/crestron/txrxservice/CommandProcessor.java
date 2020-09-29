@@ -2209,6 +2209,18 @@ class AirMediaMiracastEnableCommand extends CrestronCommand {
 	}
 }
 
+class AirMediaMaxMiracastBitrateCommand extends CrestronCommand {
+	public AirMediaMaxMiracastBitrateCommand(CresStreamCtrl ctrl, String arg) {
+		super(ctrl, arg);
+	}	
+	public void execute() {
+		ctrl.airMediaMaxMiracastBitrate(Integer.valueOf(msg));
+	}
+	public String getFeedbackMsg() {
+		return Integer.toString(ctrl.userSettings.getAirMediaMaxMiracastBitrate());
+	}
+}
+
 class MsMiceEnableCommand extends CrestronCommand {
 	public MsMiceEnableCommand(CresStreamCtrl ctrl, String arg, int sessId) {
 		super(ctrl, arg, sessId);

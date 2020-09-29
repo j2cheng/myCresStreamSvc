@@ -5416,6 +5416,13 @@ public class CresStreamCtrl extends Service {
         }
     }
     
+    public void airMediaMaxMiracastBitrate(int maxrate)
+    {
+    	userSettings.setAirMediaMaxMiracastBitrate(maxrate);
+        Log.i(TAG, "airMediaMaxMiracastBitrate(): max miracast bitrate="+maxrate);
+        streamPlay.wfdSetMaxMiracastBitrate(maxrate);
+    }
+    
     public void airMediaMiracastWifiDirectMode(boolean enable)
     {
         userSettings.setAirMediaMiracastWifiDirectMode(enable);

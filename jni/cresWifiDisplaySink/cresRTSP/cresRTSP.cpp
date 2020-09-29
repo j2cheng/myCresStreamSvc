@@ -827,6 +827,7 @@ void * initRTSPParser(RTSPSYSTEMINFO * sysInfo)
    // 
    int         retv;
    int         rtpPort;
+   int         maxMiracastRate;
    char *      prefResRefStr;
    char *      prefCodecStr;
    char *      friendlyName;
@@ -834,6 +835,7 @@ void * initRTSPParser(RTSPSYSTEMINFO * sysInfo)
    struct rtsp * rtspSession;
 
    rtpPort = 4570;
+   maxMiracastRate = 10000000;
    prefResRefStr = "upto_1920x1080p24;upto_1920x1200p30;upto_848x480p60";
    prefCodecStr = "AACx48x2";
    friendlyName = "Crestron Miracast Receiver";
@@ -845,6 +847,8 @@ void * initRTSPParser(RTSPSYSTEMINFO * sysInfo)
       glRTSPLogLevel = sysInfo->rtspLogLevel;
    if(sysInfo->rtpPort > 0)
       rtpPort = sysInfo->rtpPort;
+   if (sysInfo->maxMiracastRate > 0)
+	   maxMiracastRate = sysInfo->maxMiracastRate;
    if(sysInfo->preferredVidResRefStr && (sysInfo->preferredVidResRefStr[0] != '\0'))
       prefResRefStr = sysInfo->preferredVidResRefStr;
    if(sysInfo->preferredAudioCodecStr && (sysInfo->preferredAudioCodecStr[0] != '\0'))
@@ -860,6 +864,7 @@ void * initRTSPParser(RTSPSYSTEMINFO * sysInfo)
       return(NULL);
 
    rtspSession->rtpPort = rtpPort;
+   snprintf(rtspSession->maxMiracastRate, sizeof(rtspSession->maxMiracastRate), "%d", maxMiracastRate);
    strncpy(rtspSession->preferredVidResRefStr,prefResRefStr,
       sizeof(rtspSession->preferredVidResRefStr));
    rtspSession->preferredVidResRefStr[
@@ -1235,7 +1240,7 @@ int composeRTSPResponse(void * session,RTSPPARSINGRESULTS * requestParsingResult
       check_and_response_option("intel_sink_device_URL", "https://www.crestron.com/");
       check_and_response_option("intel_friendly_name", rtspSession->friendlyName);
       check_and_response_option("intel_sink_model_name", rtspSession->modelName);
-      check_and_response_option("microsoft_max_bitrate", "10000000");
+      check_and_response_option("microsoft_max_bitrate", rtspSession->maxMiracastRate);
 
       // /* wfd_uibc_capability */
       // if (uibc_option) {

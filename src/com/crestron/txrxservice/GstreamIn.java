@@ -45,6 +45,7 @@ public class GstreamIn implements SurfaceHolder.Callback {
     private static native boolean nativeClassInit(); // Initialize native class: cache Method IDs for callbacks
     private native void nativeSurfaceInit(Object surface, int sessionId);
     private native void nativeSurfaceFinalize(int sessionId);
+    private native void nativeSetWfdMaxMiracastBitrate(int maxrate);
     private native void nativeWfdStart(int streamId, long sessionId, String url, int rtsp_port, String localAddress, String localIfc);
     private native void nativeWfdStop(int streamId, long sessionId);
     private native void nativeWfdPause(int streamId);
@@ -88,6 +89,7 @@ public class GstreamIn implements SurfaceHolder.Callback {
         	wfdIsPlaying[i] = false;
         nativeSetStopTimeout(stopTimeout_sec);
         nativeInit();
+        nativeSetWfdMaxMiracastBitrate(streamCtl.userSettings.getAirMediaMaxMiracastBitrate());
     }
     
     public void initUnixSocketState()
@@ -599,6 +601,9 @@ public class GstreamIn implements SurfaceHolder.Callback {
         nativeClassInit();
     }
  
+    public void wfdSetMaxMiracastBitrate(int maxrate) {
+    	nativeSetWfdMaxMiracastBitrate(maxrate);
+    }
     
     public void wfdStart(final int streamId, final long sessionId, final String url, final int rtsp_port, final String localAddress, final String localIfc)
     {

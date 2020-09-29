@@ -4750,6 +4750,12 @@ JNIEXPORT void JNICALL Java_com_crestron_txrxservice_WbsStreamIn_nativeSetLogLev
 /***************************** end of Kaptivo whiteboard streaming in *********************************/
 
 /***************************** start of Miracast(Wifi Display:wfd) streaming in shares GStreamIn class instance *********************************/
+JNIEXPORT void JNICALL Java_com_crestron_txrxservice_GstreamIn_nativeSetWfdMaxMiracastBitrate(JNIEnv *env, jobject thiz, jint maxrate)
+{
+	CSIO_LOG(eLogLevel_debug,"%s(): max miracast bitrate[%d]",__FUNCTION__, maxrate);
+	WfdSinkProjSetMaxMiracastBitrate(maxrate);
+}
+
 /* Start wfd connection .
  * Note: calling function should call gst_native_surface_init() to setup surface first.
  *

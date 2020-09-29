@@ -187,6 +187,8 @@ private:
 
     int  getCurentTsPort() { return m_ts_Port; }
     void setCurentTsPort(int port) ;
+
+    void setMaxMiracastRate(); // set max miracast rate from parent WfdProjClass structure
 public:
     const char* getConnTime(){ return m_connTime.c_str();}
 

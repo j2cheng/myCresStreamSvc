@@ -4,6 +4,8 @@
 #include "WfdCommon.h"
 #include "WfdSinkState.h"
 
+#define DEFAULT_MAX_MIRACAST_BITRATE (10000000)
+
 enum
 {
     WFD_SINK_SINGAL_WAIT_ERROR   = -1,
@@ -70,6 +72,9 @@ public:
 
     char localIPName[MAX_WFD_TCP_CONN][32];
 
+    static int getMaxMiracastBitrate() { return maxMiracastBitrate; }
+    static void setMaxMiracastBitrate(int maxrate) { maxMiracastBitrate = maxrate; }
+
     const char* getLocIPName(int id){return localIPName[id];}
 private:
     void* ThreadEntry();
@@ -77,6 +82,8 @@ private:
     wfdSinkStMachineClass** m_wfdSinkStMachineTaskObjList ;
 
     csioEventQueueListBase* m_projEventQList;
+
+    static int maxMiracastBitrate;
 
     void* createCharArray(int size) { return new char [size]; }
     void deleteCharArray(void* buf)

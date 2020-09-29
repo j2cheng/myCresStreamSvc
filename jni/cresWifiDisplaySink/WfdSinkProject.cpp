@@ -29,6 +29,7 @@ int sssl_Test(int arg);
 static wfdSinkProjClass* gWFDSinkProjPtr = NULL;
 static Mutex gProjectsLock;
 static int gProjectDebug = eLogLevel_debug;
+int wfdSinkProjClass::maxMiracastBitrate;
 
 const WFD_STRNUMPAIR wfd_proj_timestamp_names[] =
 {
@@ -291,6 +292,16 @@ void WfdSinkProjSendGstReady(int id)
     gProjectsLock.unlock();
     CSIO_LOG(gProjectDebug, "WfdSinkProjSendGstReady: return.");
 }
+void WfdSinkProjSetMaxMiracastBitrate(int maxrate)
+{
+    CSIO_LOG(gProjectDebug, "WfdSinkProjSetMaxMiracastBitrate: enter: maxrate[%d].",maxrate);
+    gProjectsLock.lock();
+
+    wfdSinkProjClass::setMaxMiracastBitrate(maxrate);
+
+    gProjectsLock.unlock();
+    CSIO_LOG(gProjectDebug, "WfdSinkProjSetMaxMiracastBitrate: return.");
+}
 //Note: used only for debugging, there is no lock here.
 void WfdSinkProjSetDebugLevel(int l)
 {
@@ -359,6 +370,8 @@ m_projEventQList(NULL)
     {
         localIPName[i][0] = 0;
     }
+
+    maxMiracastBitrate = DEFAULT_MAX_MIRACAST_BITRATE;
 
     CSIO_LOG(ABOVE_DEBUG_VERB(m_debugLevel), "wfdSinkProjClass: creating WfdSinkProject.\n");
 }

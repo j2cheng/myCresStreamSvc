@@ -52,4 +52,6 @@ extern void WfdSinkProjSetLocalIPAddr(int id, const char* intfName);
 
 extern void WfdSinkProjSendGstReady(int id);
 
+extern void WfdSinkProjSetMaxMiracastBitrate(int maxrate);
+
 #endif /* WFDCOMMON_H_ */
