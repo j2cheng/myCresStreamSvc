@@ -320,7 +320,7 @@ void wfdSinkStMachineClass::setCurentTsPort(int port)
 void wfdSinkStMachineClass::setMaxMiracastRate()
 {
 	m_rtspParserIntfInfo.maxMiracastRate = m_parent->getMaxMiracastBitrate();
-	CSIO_LOG(m_infoLevel, "wfdSinkStMachineClass::%s(): maxMiracastRate[%d]\n", __FUNCTION__, m_rtspParserIntfInfo.maxMiracastRate);
+	CSIO_LOG(eLogLevel_info, "wfdSinkStMachineClass::%s(): maxMiracastRate[%d]\n", __FUNCTION__, m_rtspParserIntfInfo.maxMiracastRate);
 }
 
 void wfdSinkStMachineClass::resetAllFlags()
