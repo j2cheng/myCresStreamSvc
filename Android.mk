@@ -31,11 +31,11 @@ LOCAL_SHARED_LIBRARIES := libgstreamer_jni
 LOCAL_STATIC_JAVA_LIBRARIES := gson
 LOCAL_STATIC_JAVA_LIBRARIES += CresStoreJsonJNI
 
-ifeq ($(TARGET_PRODUCT),$(filter $(TARGET_PRODUCT),rk3399_mid))
+ifeq ($(TARGET_PRODUCT),$(filter $(TARGET_PRODUCT),am3x00_box))
 	LOCAL_SDK_VERSION := system_current
 endif
 
-ifeq ($(TARGET_PRODUCT),$(filter $(TARGET_PRODUCT),msm8953_64 rk3399_mid))
+ifeq ($(TARGET_PRODUCT),$(filter $(TARGET_PRODUCT),msm8953_64 am3x00_box))
 	LOCAL_MULTILIB := 32
 	LOCAL_MODULE_PATH := $(TARGET_OUT_VENDOR)/priv-app
 	LOCAL_SRC_FILES += $(call all-java-files-under, Snapdragon)
@@ -68,7 +68,7 @@ ifeq ($(TARGET_PRODUCT),$(filter $(TARGET_PRODUCT),msm8953_64 rk3399_mid))
 endif
         
 
-ifeq ($(TARGET_PRODUCT),$(filter $(TARGET_PRODUCT),yushan_one full_omap5panda msm8953_64 rk3399_mid))
+ifeq ($(TARGET_PRODUCT),$(filter $(TARGET_PRODUCT),yushan_one full_omap5panda msm8953_64 am3x00_box))
 include $(BUILD_PACKAGE)
 include $(LOCAL_PATH)/jni/Android.mk
 
