@@ -141,8 +141,8 @@ public class CresStreamCtrl extends Service {
     public static Object saveSettingsLock = new Object();
     public static volatile boolean saveSettingsUpdateArrived = false;
 
-    public final static int NumOfSurfaces = 4;	//TODO: set as per product
-    public final static int NumOfTextures = 4;	//TODO: set as per product
+    public static int NumOfSurfaces = 10;	//This is the maximum for possible across products. TODO: set as per product
+    public static int NumOfTextures = NumOfSurfaces;
     public static int NumDmInputs = 0;
     public volatile boolean restartStreamsOnStart = false;
     static String TAG = "TxRx StreamCtrl";
@@ -257,6 +257,7 @@ public class CresStreamCtrl extends Service {
     public native int nativeGetHDMIOutputBitmask();
     public native int nativeGetDmInputCount();
     public native boolean nativeGetIsAirMediaEnabledEnum();
+    public native int nativeMaxVideoWindows();
 
     enum DeviceMode {
         STREAM_IN,
@@ -655,6 +656,11 @@ public class CresStreamCtrl extends Service {
             NumDmInputs = nativeGetDmInputCount();
             mHwPlatform = CrestronHwPlatform.fromInteger(nativeGetHWPlatformEnum());
             mProductName = getProductName(nativeGetProductTypeEnum());
+
+            NumOfSurfaces = nativeMaxVideoWindows();
+            NumOfTextures = NumOfSurfaces;
+
+            Log.i(TAG, "NumOfSurfaces: " + NumOfSurfaces + " mProductName: " + mProductName + " nativeGetHWPlatformEnum(): " + nativeGetHWPlatformEnum());
 
             m_displayManager = (DisplayManager) this.getApplicationContext().getSystemService(Context.DISPLAY_SERVICE);
             if (m_displayManager != null)

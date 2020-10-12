@@ -111,3 +111,10 @@ JNIEXPORT jboolean JNICALL Java_com_crestron_txrxservice_CresStreamCtrl_nativeGe
     return product_info()->airMedia_enabled;
 }
 
+JNIEXPORT jint JNICALL Java_com_crestron_txrxservice_CresStreamCtrl_nativeMaxVideoWindows(JNIEnv *env, jobject thiz)
+{
+    do_init();
+
+    return (jint)(product_info()->maximum_video_windows);
+}
+

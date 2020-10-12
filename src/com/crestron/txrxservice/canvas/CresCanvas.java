@@ -46,8 +46,7 @@ public class CresCanvas
     public static final String TAG = "TxRx.canvas"; 
 	private static final int MAX_HDMI_INPUTS = 1;
 	private static final int MAX_DM_INPUTS = 1;
-	public static final int MAX_CONNECTED = 10;
-	public static final int MAX_PRESENTING = 2;
+
 	private String prevHdmiResolution[] = new String[MAX_HDMI_INPUTS+1];
 	private String prevHdmiSyncStatus[] = new String[MAX_HDMI_INPUTS+1];
 	private AtomicBoolean codecFailure = new AtomicBoolean(false);
@@ -526,17 +525,17 @@ public class CresCanvas
 	}
 	
 	public class SurfaceManager {
-		Surface surfaces[] = new Surface[MAX_PRESENTING];
-		
+		Surface surfaces[] = new Surface[mStreamCtl.NumOfSurfaces];
+
 		public SurfaceManager()
 		{
-			for (int i=0; i < MAX_PRESENTING; i++)
+			for (int i=0; i < mStreamCtl.NumOfSurfaces; i++)
 				surfaces[i] = null;
 		}
 		
 		public synchronized Surface streamId2Surface(int streamId)
 		{
-			if (streamId >= MAX_PRESENTING)
+			if (streamId >= mStreamCtl.NumOfSurfaces)
 			{
 				Log.e(TAG, "streamId2Surface: invalid streamId="+streamId);
 				return null;
@@ -546,7 +545,7 @@ public class CresCanvas
 		
 		public synchronized int surface2StreamId(Surface s)
 		{
-			for (int i = 0; i < MAX_PRESENTING; i++)
+			for (int i = 0; i < mStreamCtl.NumOfSurfaces; i++)
 			{
 				if (surfaces[i] == s)
 					return i;
@@ -556,7 +555,7 @@ public class CresCanvas
 		
 		public synchronized int getUnusedStreamId()
 		{
-			for (int i=0; i < MAX_PRESENTING; i++)
+			for (int i=0; i < mStreamCtl.NumOfSurfaces; i++)
 			{
 				if (surfaces[i] == null)
 				{
@@ -579,7 +578,7 @@ public class CresCanvas
 		
 		public synchronized void addSurface(int streamId, Surface s)
 		{
-			if (streamId < 0 || streamId >= MAX_PRESENTING)
+			if (streamId < 0 || streamId >= mStreamCtl.NumOfSurfaces)
 			{
 				Common.Logging.w(TAG, "invalid streamId "+streamId+" passed to addSurface");
 				return;
@@ -594,7 +593,7 @@ public class CresCanvas
 		
 		public synchronized void removeSurface(Surface s)
 		{
-			for (int i=0; i < MAX_PRESENTING; i++)
+			for (int i=0; i < mStreamCtl.NumOfSurfaces; i++)
 			{
 				if (surfaces[i] == s)
 					surfaces[i] = null;
@@ -603,7 +602,7 @@ public class CresCanvas
 		
 		public synchronized void removeSurface(int streamId)
 		{
-			if (streamId >= MAX_PRESENTING)
+			if (streamId >= mStreamCtl.NumOfSurfaces)
 			{
 				Log.e(TAG, "removeSurface: invalid streamId="+streamId);
 			}
@@ -615,7 +614,7 @@ public class CresCanvas
 		
 	    public void releaseAllSurfaces()
 	    {
-			for (int i=0; i < MAX_PRESENTING; i++)
+			for (int i=0; i < mStreamCtl.NumOfSurfaces; i++)
 			{
 				if (streamId2Surface(i) != null)
 				{

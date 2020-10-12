@@ -273,12 +273,9 @@ public class CresDisplaySurfaceMaster implements CresDisplaySurface
         
         // Add callbacks to surfaceviews
         for (int sessId = 0; sessId < CresStreamCtrl.NumOfSurfaces; sessId++)
-        {
+        {       //For Every Surface
         	InitSurfaceHolder(sessId);
-        }
-
-        for (int sessId = 0; sessId < CresStreamCtrl.NumOfTextures; sessId++)
-        {
+                //For Every texture
         	InitSurfaceTextureListener(sessId);
         }
         

@@ -15,6 +15,8 @@ import com.google.gson.Gson;
 public class SimulatedAVF
 {
     public static final String TAG = "TxRx.canvas.simulatedAVF";
+    public com.crestron.txrxservice.CresStreamCtrl mStreamCtl;
+
 	int failureReason = 0;
 	CanvasCrestore mCrestore = null;
 	Gson gson;
@@ -74,7 +76,7 @@ public class SimulatedAVF
 					Log.i(TAG, "Ignoring connect message for sessionId="+sessionId+" it is present in list of existing AVF sessions");
 					failureReason = 1;
 				}
-				if (sessions.size() >= CresCanvas.MAX_CONNECTED)
+				if (sessions.size() >= mStreamCtl.NumOfSurfaces)
 				{
 					Log.i(TAG, "Ignoring connect message for sessionId="+sessionId+" already have "+sessions.size()+" sessions");
 					failureReason = 2;
@@ -176,7 +178,7 @@ public class SimulatedAVF
 			if (se.getValue().state.equalsIgnoreCase("Play"))
 				playingList.add(se);
 		}
-		if (playingList.size() >= CresCanvas.MAX_PRESENTING)
+		if (playingList.size() >= mStreamCtl.NumOfSurfaces)
 		{
 			// get oldest playing session
 			Map.Entry<String,AVFSession> oldest = playingList.get(0);
