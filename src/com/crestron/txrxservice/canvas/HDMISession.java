@@ -135,9 +135,11 @@ public class HDMISession extends Session
 		{
 			Common.Logging.i(TAG, "audioMute(): Session "+this+" calling streamMute()");
 			mCanvas.mStreamCtl.setPreviewVolume(0);
+			mStreamCtl.sendExternalHdmiMute(streamId, true);
 		} else {
 			Common.Logging.i(TAG, "audioMute(): Session "+this+" calling streamUnMute()");
 			mCanvas.mStreamCtl.setPreviewVolume((int)mCanvas.mStreamCtl.userSettings.getUserRequestedVolume());
+			mStreamCtl.sendExternalHdmiMute(streamId, false);
 		}
 		return true;
 	}

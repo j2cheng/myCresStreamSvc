@@ -6724,6 +6724,11 @@ public class CresStreamCtrl extends Service {
         mForceHdcpStatusUpdate = true;
     }
 
+    public void sendExternalHdmiMute(int streamId, boolean value)
+    {
+        sockTask.SendDataToAllClients(MiscUtils.stringFormat("EXTERNAL_HDMI_AUDIO_MUTE%d=%s", streamId, (value)?"TRUE":"FALSE"));
+    }
+    
     public void sendAirMediaStart(int streamId, boolean value)
     {
         sockTask.SendDataToAllClients(MiscUtils.stringFormat("AIRMEDIA_VIDEO_START%d=%s", streamId, (value)?"TRUE":"FALSE"));
