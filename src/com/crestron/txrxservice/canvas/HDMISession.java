@@ -141,6 +141,7 @@ public class HDMISession extends Session
 			mCanvas.mStreamCtl.setPreviewVolume((int)mCanvas.mStreamCtl.userSettings.getUserRequestedVolume());
 			mStreamCtl.sendExternalHdmiMute(streamId, false);
 		}
+		setIsAudioMuted(enable);
 		return true;
 	}
 }

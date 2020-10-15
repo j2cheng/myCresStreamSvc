@@ -186,6 +186,7 @@ public class DMSession extends Session
 			Common.Logging.i(TAG, "audioMute(): Session "+this+" calling sendDmUnMute()");
 			mStreamCtl.sendDmMute(streamId, false);
 		}
+		setIsAudioMuted(enable);
 		return true;
 	}
 }
