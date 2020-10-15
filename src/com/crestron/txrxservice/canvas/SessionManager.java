@@ -260,7 +260,9 @@ public class SessionManager
     public class InactivityTask extends TimerTask {
         @Override
         public void run() {
-        	disconnectInactiveAirMediaSessions(new Originator(RequestOrigin.InactivityTimer));
+        	// when timeout is 0, then inactivity disconnection is disabled
+        	if (mCanvas.mStreamCtl.userSettings.getAirMediaInactivityTimeout() != 0)
+        		disconnectInactiveAirMediaSessions(new Originator(RequestOrigin.InactivityTimer));
         }
     }
     
