@@ -15,9 +15,6 @@ interface IVideoPlayer {
     // value (enumeration): Stopped(0), Starting(1), Playing(2), Pausing(3), Paused(4), Stopping(5);
     int getVideoState(in long id);
 
-    //boolean isAudioMuted();
-    //void setAudioMute(in boolean mute);
-
     ////////////////////////////////////////////////////////////////////////////////////////////////
     /// METHODS
 
@@ -36,14 +33,19 @@ interface IVideoPlayer {
     void register(IVideoPlayerObserver observer);
     void unregister(IVideoPlayerObserver observer);
 
+    ////////////////////////////////////////////////////////////////////////////////////////////////
+    /// PROPERTIES
+    
     void setAdapterAddress(in String address);
     void setPasscode(in String code);
     
     void setAdapterAddresses(in List<String> address);
+    
+    void setAudioMute(in long id, in boolean mute);
 
     ////////////////////////////////////////////////////////////////////////////////////////////////
     /// METHODS
 
     // disconnect the session for the given session ID
-    void disconnect(in long id);
+    //void disconnect(in long id);
 }

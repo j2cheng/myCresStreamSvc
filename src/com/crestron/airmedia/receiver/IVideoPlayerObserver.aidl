@@ -20,4 +20,6 @@ interface IVideoPlayerObserver {
     void onSessionReady(in long id, in String device_id, in String device_name, in String device_address, in int port, in String local_address);
 
     void onInfoChanged(in long id, in AirMediaPlatforms platform, in String os, in String version);
+    
+    void onAudioMuteChanged(in long id, in boolean mute);
 }

@@ -187,6 +187,18 @@ public class WifidVideoPlayer {
         	}
         }
         
+        public void onAudioMuteChanged(long id, boolean value)
+        {
+        	for (IVideoPlayerObserver observer : observers()) {
+        		try {
+        			observer.onAudioMuteChanged(id, value);
+        		} catch (RemoteException e) {
+                    Common.Logging.e(TAG, "videoplayer.observer.onAudioMuteChanged  id= " + id + "  state= " + value + "  EXCEPTION  " + e + "  " + Log.getStackTraceString(e));
+                    remove(observer);
+        		}
+        	}
+        }
+        
         ////////////////////////////////////////////////////////////////////////////////////////////////
         /// METHODS
         ////////////////////////////////////////////////////////////////////////////////////////////////
@@ -294,12 +306,20 @@ public class WifidVideoPlayer {
         }
         
         @Override
-        public void disconnect(long id)
+        public void setAudioMute(long id, boolean mute)
         {
-            Common.Logging.i(TAG, "VideoPlayer.disconnect  sessionId="+id);
-            //streamCtrl_.streamPlay.msMiceSetCloseSession(id);
-            Common.Logging.i(TAG, "VideoPlayer.disconnect exit - sessionId="+id);
+        	Common.Logging.i(TAG, "VideoPlayer.setAudioMute  sessionId="+id+" mute="+mute);
+        	muteSession(id, mute);
+        	Common.Logging.i(TAG, "VideoPlayer.setAudioMute exit - sessionId="+id+" mute="+mute);
         }
+        
+//        @Override
+//        public void disconnect(long id)
+//        {
+//            Common.Logging.i(TAG, "VideoPlayer.disconnect  sessionId="+id);
+//            //streamCtrl_.streamPlay.msMiceSetCloseSession(id);
+//            Common.Logging.i(TAG, "VideoPlayer.disconnect exit - sessionId="+id);
+//        }
     }
 
     private class VideoSession {
@@ -308,6 +328,7 @@ public class WifidVideoPlayer {
     	public Surface surface;
     	public int streamId;
     	public String osVersion;
+		public boolean muted;
     	
     	public VideoSession(long id, int streamIdx, Surface s, AirMediaSessionStreamingState curState)
     	{
@@ -316,7 +337,15 @@ public class WifidVideoPlayer {
     		surface = s;
     		state = curState;
     		osVersion = null;
+    		muted = false;
     	}
+    	
+        
+        public String toString()
+        {
+        	return "sessionId="+sessionId+" streamId="+streamId+" surface="+surface+" state="+state+" muted="+muted+" osVersion="+osVersion;	
+        }
+        
     }
     
     public long streamId2sessionId(int streamId)
@@ -347,6 +376,17 @@ public class WifidVideoPlayer {
 			}
 		}
 		return streamId;
+    }
+
+    /// Debugging aid - dump all sessions in map
+    public void showAllSessions()
+    {
+    	Common.Logging.i(TAG, "Miracast Sessions: Number of sessions in map="+sessionMap.size());
+		for (Map.Entry<Long, VideoSession> entry : sessionMap.entrySet())
+		{
+			VideoSession session = entry.getValue();
+			Common.Logging.i(TAG, "videoplayer.showAllSessions(): id="+entry.getKey()+" Session={"+session+"}");
+		}
     }
 
     /// EVENTS
@@ -407,6 +447,21 @@ public class WifidVideoPlayer {
     	}
     }
     
+    public void audioMuteChanged(int streamId, boolean mute)
+    {
+    	long sessionId = streamId2sessionId(streamId);
+        Common.Logging.i(TAG, "videoplayer.audioMuteChanged():  streamId="+streamId+" sessionId="+sessionId+"  mute="+mute);
+    	if (sessionId != INVALID_SESSION_ID)
+    	{
+    		VideoSession session = sessionMap.get(sessionId);
+    		if (session.muted != mute)
+    		{
+    			session.muted = mute;
+    			service_.onAudioMuteChanged(sessionId, mute);
+    		}
+    	}
+    }
+    
     public void stopSession(long id)
     {
         Common.Logging.i(TAG, "VideoPlayer.stopSession  sessionId="+id);
@@ -442,6 +497,33 @@ public class WifidVideoPlayer {
         		Common.Logging.i(TAG, "Session for streamId " + streamId +" has invalid streamId");
         }
         Common.Logging.i(TAG, "VideoPlayer.stopSessionWithStreamId  streamId="+streamId+" exiting...");
+    }
+
+    public void muteSession(long id, boolean enable)
+    {
+        Common.Logging.i(TAG, "VideoPlayer.muteSession  sessionId="+id);
+        synchronized(stopSessionObjectLock) {
+        	// See if prior session exists with the same id
+        	VideoSession session = sessionMap.get(id);
+        	if (session == null)
+        	{
+        		Common.Logging.w(TAG, "There is an no existing session with this id="+id+" was it removed earlier?");
+        		showAllSessions();
+        		return;
+        	}
+         	if (session.muted != enable)
+        	{
+         		if (enable) {
+         			streamCtrl_.setStreamInVolume(0, session.streamId);
+         		} else {
+         			streamCtrl_.setStreamInVolume((int)streamCtrl_.userSettings.getUserRequestedVolume(), session.streamId);
+         		}
+        		audioMuteChanged(session.streamId, enable);
+        	} else {
+        		Common.Logging.i(TAG, "Session with this id="+id+" is already "+((enable)?"muted":"unmuted"));
+        	}
+        }
+        Common.Logging.i(TAG, "VideoPlayer.muteSession for sessionId="+id+" exiting...");
     }
 
     ////////////////////////////////////////////////////////////////////////////////////////////////
