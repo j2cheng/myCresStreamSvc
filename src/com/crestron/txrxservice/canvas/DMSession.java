@@ -18,6 +18,7 @@ public class DMSession extends Session
 {
     public static final String TAG = "TxRx.canvas.DM.session"; 
     private Surface surface = null;
+    public int left, top, width, height;
 
 	public DMSession(int inputNumber) {
 		super(); // will assign id;
@@ -27,6 +28,7 @@ public class DMSession extends Session
 		this.inputNumber = inputNumber;
 		userLabel = "DM-"+String.valueOf(inputNumber);
 		platform = CanvasPlatformType.Hardware;
+		left = top = width = height = 0;
 	}
 	
 	public String toString()
@@ -53,6 +55,7 @@ public class DMSession extends Session
 		Common.Logging.i(TAG, "DM Session stop completed in "+TimeSpan.now().subtract(start).toString()+" seconds");
 		if (completed) {
 			streamId = -1;
+			left = top = width = height = 0;
 			setState(SessionState.Stopped);
 		} else {
 			Common.Logging.w(TAG, "DM Session "+this+" stop failed");		
@@ -114,6 +117,7 @@ public class DMSession extends Session
 			Common.Logging.i(TAG, "DM Session "+this+" sending start to csio");
 			// signal to csio to start audio for DM via audiomux
 			mStreamCtl.sendDmStart(streamId, true);
+			audioMute(isAudioMuted);
 	        if (!CresCanvas.useCanvasSurfaces) {
 	        	mStreamCtl.setFormat(streamId, PixelFormat.RGBA_8888);
 	        }
@@ -188,5 +192,25 @@ public class DMSession extends Session
 		}
 		setIsAudioMuted(enable);
 		return true;
+	}
+	
+	public void updateDmWindow(int x, int y, int w, int h)
+	{
+		if ((left != x) || (top != y) || (width != w) || (height != h))
+		{
+			drawChromaKeyColor();
+			left = x;
+			top = y;
+			width = w;
+			height = h;
+			Common.Logging.i(TAG, "send DM window for session "+this+" inputNumber="+inputNumber+
+					" ("+width+","+height+")@("+left+","+top+")");
+			mStreamCtl.sendDmWindow(streamId, left, top, width, height);
+		}
+		else
+		{
+			Common.Logging.i(TAG, "no change in DM window for session "+this+" inputNumber="+inputNumber+
+					" ("+width+","+height+")@("+left+","+top+")");
+		}	
 	}
 }
