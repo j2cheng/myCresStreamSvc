@@ -26,7 +26,7 @@ public class DMSession extends Session
 		type = SessionType.DM;
 		airMediaType = null;
 		this.inputNumber = inputNumber;
-		userLabel = "DM-"+String.valueOf(inputNumber);
+		userLabel = "DM - Wired Input 2";
 		platform = CanvasPlatformType.Hardware;
 		left = top = width = height = 0;
 	}

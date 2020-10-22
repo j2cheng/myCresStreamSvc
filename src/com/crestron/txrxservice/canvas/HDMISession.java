@@ -23,7 +23,7 @@ public class HDMISession extends Session
 		type = SessionType.HDMI;
 		airMediaType = null;
 		this.inputNumber = inputNumber;
-		userLabel = "HDMI-"+String.valueOf(inputNumber);
+		userLabel = "HDMI - Wired Input 1";
 		platform = CanvasPlatformType.Hardware;
 		if (mStreamCtl.isRGB888HDMIVideoSupported)
 		{
