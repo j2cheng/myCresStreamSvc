@@ -21,6 +21,8 @@ JNIEXPORT jint JNICALL Java_com_crestron_txrxservice_CresStreamCtrl_nativeGetDmI
 JNIEXPORT jboolean JNICALL Java_com_crestron_txrxservice_CresStreamCtrl_nativeGetIsAirMediaEnabledEnum(JNIEnv *env, jobject thiz);
 
 JNIEXPORT jint JNICALL Java_com_crestron_txrxservice_CresStreamCtrl_nativeMaxVideoWindows(JNIEnv *env, jobject thiz);
+
+JNIEXPORT jboolean JNICALL Java_com_crestron_txrxservice_CresStreamCtrl_nativeHaveHDMIoutput(JNIEnv *env, jobject thiz);
 #ifdef __cplusplus
 }
 #endif

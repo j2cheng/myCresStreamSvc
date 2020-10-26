@@ -240,6 +240,7 @@ public class CresStreamCtrl extends Service {
     public String hostName=null;
     public videoDimensions[] mVideoDimensions = new videoDimensions[NumOfSurfaces];
     public boolean[] m_InPause = new boolean[NumOfSurfaces];
+    public boolean mProductHasHDMIoutput = false;
     private final long hdmiBroadcastTimeout_ms = 60000;
     public OutputDisplayListener mDisplayListener = new OutputDisplayListener();
     private final Runnable foregroundRunnable = new Runnable() {
@@ -258,6 +259,7 @@ public class CresStreamCtrl extends Service {
     public native int nativeGetDmInputCount();
     public native boolean nativeGetIsAirMediaEnabledEnum();
     public native int nativeMaxVideoWindows();
+    public native boolean nativeHaveHDMIoutput();
 
     enum DeviceMode {
         STREAM_IN,
@@ -619,6 +621,7 @@ public class CresStreamCtrl extends Service {
             int windowWidth = 1920;
             int windowHeight = 1080;
             hideVideoOnStop = nativeHideVideoBeforeStop();
+            mProductHasHDMIoutput = nativeHaveHDMIoutput();
             if (nativeGetIsAirMediaEnabledEnum())
             {
             	int productType = nativeGetProductTypeEnum();
@@ -1070,7 +1073,12 @@ public class CresStreamCtrl extends Service {
             wifidVideoPlayer = new WifidVideoPlayer(CresStreamCtrl.this);
 
             hdmiOutput = new HDMIOutputInterface(nativeGetHDMIOutputBitmask());
-            setHDCPBypass();
+            
+            //Do not set bypass if product does not have HDMI output
+            if(mProductHasHDMIoutput)
+            {
+            	setHDCPBypass();
+            }
 
             Thread saveSettingsThread = new Thread(new SaveSettingsTask());
             saveSettingsThread.start();
@@ -6386,7 +6394,11 @@ public class CresStreamCtrl extends Service {
                 //Call set bypass mode when output HDMI is connected
                 if (Boolean.parseBoolean(hdmiOutput.getSyncStatus()) == true)
                 {
-                    setHDCPBypass();
+                	//Do not set bypass if product does not have HDMI output
+                	if(mProductHasHDMIoutput)
+                	{
+                		setHDCPBypass();
+                	}
                 }
 
                 mForceHdcpStatusUpdate = false; // we have updated hdcp status, clear flag

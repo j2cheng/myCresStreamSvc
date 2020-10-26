@@ -118,3 +118,13 @@ JNIEXPORT jint JNICALL Java_com_crestron_txrxservice_CresStreamCtrl_nativeMaxVid
     return (jint)(product_info()->maximum_video_windows);
 }
 
+JNIEXPORT jboolean JNICALL Java_com_crestron_txrxservice_CresStreamCtrl_nativeHaveHDMIoutput(JNIEnv *env, jobject thiz)
+{
+	do_init();
+
+	if(product_info()->productHasHDMIoutput)
+		return JNI_TRUE;
+	else
+		return JNI_FALSE;
+}
+
