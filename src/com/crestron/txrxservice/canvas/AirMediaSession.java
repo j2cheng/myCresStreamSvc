@@ -43,6 +43,7 @@ public class AirMediaSession extends Session
 		userLabel = label;
 		airmediaId = session.id();
 		videoState = AirMediaSessionStreamingState.Stopped;
+		isAudioMuted = session.audioMuted();
 		if (session.info() != null)
 		{
 			setPlatformType(session.info().platform);
