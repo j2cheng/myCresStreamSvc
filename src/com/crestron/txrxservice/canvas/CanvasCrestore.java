@@ -527,7 +527,7 @@ public class CanvasCrestore
 			session = sMgr.getSession(tokens[1]);
 			if (session != null)
 			{
-				if (session.isPlaying())
+				if (session.isPlaying() || session.isPaused())
 				{
 					Common.Logging.i(TAG, "doActionOnSession(): must stop session "+session+" before disconnecting it");
 					session.stop(originator);

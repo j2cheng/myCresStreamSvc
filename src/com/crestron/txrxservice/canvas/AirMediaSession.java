@@ -551,6 +551,8 @@ public class AirMediaSession extends Session
 					final Originator originator = new Originator(RequestOrigin.Receiver, this);
 					Common.Logging.i(TAG, "setVideoState(): Session "+this+" stop request");
 					stopRequest(originator);
+				} else if (prevState == SessionState.Disconnecting) {
+					doForceStop();
 				}
 			}
 		} 
