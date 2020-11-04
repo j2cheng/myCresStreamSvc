@@ -455,7 +455,7 @@ int TileDecoder::decodeTile(int mode, unsigned char const * ptr, int numBytes, i
       default:
         if (ptr + (rl-pos)*3 > endPtr) return 0;
         while (pos < rl) {
-          tdata[pos] = ptr[0] + (ptr[1]<<8) + (ptr[2]<<16);
+          tdata[pos++] = ptr[0] + (ptr[1]<<8) + (ptr[2]<<16);
           ptr += 3;
         }
       }
