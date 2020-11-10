@@ -90,6 +90,7 @@ public class HDMISession extends Session
 			// signal to csio to start audio for HDMI via audiomux
 			Common.Logging.i(TAG, "HDMI Session "+this+" sending HDMI Start signal to csio for audio on AM-300");
 			mStreamCtl.sendHdmiStart(streamId, true);
+			audioMute(isAudioMuted);
 			Common.Logging.i(TAG, "HDMI Session "+this+" back from Start()");
 		} else {
 			Common.Logging.w(TAG, "HDMI Session "+this+" doPlay() got null surface");
