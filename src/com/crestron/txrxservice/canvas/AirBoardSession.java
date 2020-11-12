@@ -32,6 +32,8 @@ public class AirBoardSession extends Session
 		}
 	}
 	
+	public String getDisplayUserLabel() {return "Whiteboard - "+userLabel;}
+
 	public void sendAirBoardSessionFeedback(SessionState oldState)
 	{
 		switch (state)
