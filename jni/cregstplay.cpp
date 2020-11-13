@@ -1653,6 +1653,16 @@ int build_video_pipeline(gchar *encoding_name, CREGSTREAM *data, unsigned int st
 		}
 		else // If there is No hardware mjpeg decoder or specify to use SW decoder
 		{
+            //add a probe for loss of video detection.
+            GstPad *pad;
+            pad = gst_element_get_static_pad( data->element_v[i-1], "src" );
+            if( pad != NULL )
+            {
+                guint video_probe_id = gst_pad_add_probe( pad, GST_PAD_PROBE_TYPE_BUFFER, csio_videoProbe, (gpointer) &data->streamId, NULL );
+                csio_SetVideoProbeId(data->streamId, video_probe_id);
+                gst_object_unref( pad );
+            }
+
 			CSIO_LOG(eLogLevel_debug, "MJPEG: using the software decoder: jpegdec");
 			data->element_v[i++] = gst_element_factory_make("jpegdec", NULL);
 			data->element_fake_dec = data->element_v[i-1];
