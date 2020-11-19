@@ -154,10 +154,19 @@ ifeq ($(TARGET_PRODUCT),$(filter $(TARGET_PRODUCT),yushan_one msm8953_64 am3x00_
 LOCAL_CFLAGS += -DBIONIC_HAS_STPCPY
 endif
 
+ifeq ($(TARGET_PRODUCT),$(filter $(TARGET_PRODUCT),yushan_one msm8953_64 ))
+LOCAL_CFLAGS += -DMAX_STREAMS_OMAP
+endif
+
+ifeq ($(TARGET_PRODUCT),$(filter $(TARGET_PRODUCT),am3x00_box))
+LOCAL_CFLAGS += -DMAX_STREAMS_AM3X00
+endif
+
 ifeq ($(TARGET_PRODUCT),$(filter $(TARGET_PRODUCT),full_omap5panda)) #All products which support HDCP 2X encryption need this flag
 LOCAL_SHARED_LIBRARIES += libHdcp2xEncryptApi
 LOCAL_CFLAGS += -I$(CRESTRON_ROOT)/Hdcp2x/HDCP2xEncryptAPI
 LOCAL_CFLAGS += -DSupportsHDCPEncryption
+LOCAL_CFLAGS += -DMAX_STREAMS_OMAP
 endif
 
 LOCAL_MODULE_TAGS := eng

@@ -21,7 +21,13 @@
 GST_DEBUG_CATEGORY_STATIC (debug_category);
 #define GST_CAT_DEFAULT debug_category
 
+#ifdef MAX_STREAMS_OMAP
 #define MAX_STREAMS 4
+#endif
+
+#ifdef MAX_STREAMS_AM3X00
+#define MAX_STREAMS 10
+#endif
 #define MAX_ELEMENTS 20
 
 #define DEFAULT_AMCVIDDEC_TS_OFFSET 0//in ms

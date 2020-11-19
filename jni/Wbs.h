@@ -27,6 +27,7 @@
 
 ///////////////////////////////////////////////////////////////////////////////
 
+#include <cregstplay.h>
 #include <jni.h>
 #include <pthread.h>
 #include <time.h>
@@ -37,7 +38,6 @@
 #include "hardware/gralloc.h"           // for GRALLOC_USAGE_PROTECTED
 #include "android/native_window.h"      // for ANativeWindow_ functions
 
-#define MAX_STREAMS 4
 #define RESTART_MAX_BACKOFF_SECS 10
 #define FORCE_STOP_AFTER_FAILED_RESTARTS 5
 
