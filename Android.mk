@@ -31,11 +31,7 @@ LOCAL_SHARED_LIBRARIES := libgstreamer_jni
 LOCAL_STATIC_JAVA_LIBRARIES := gson
 LOCAL_STATIC_JAVA_LIBRARIES += CresStoreJsonJNI
 
-ifeq ($(TARGET_PRODUCT),$(filter $(TARGET_PRODUCT),am3x00_box))
-	LOCAL_SDK_VERSION := system_current
-endif
-
-ifeq ($(TARGET_PRODUCT),$(filter $(TARGET_PRODUCT),msm8953_64 am3x00_box))
+ifeq ($(TARGET_PRODUCT),$(filter $(TARGET_PRODUCT),msm8953_64))
 	LOCAL_MULTILIB := 32
 	LOCAL_MODULE_PATH := $(TARGET_OUT_VENDOR)/priv-app
 	LOCAL_SRC_FILES += $(call all-java-files-under, Snapdragon)
@@ -54,7 +50,9 @@ ifeq ($(TARGET_PRODUCT),$(filter $(TARGET_PRODUCT),msm8953_64 am3x00_box))
         android-support-v4 \
         android-support-v7-appcompat \
         android-support-design
-        
+
+    LOCAL_JNI_SHARED_LIBRARIES += libdisplaysetting
+
 	LOCAL_PROGUARD_ENABLED := disabled
 	
 	LOCAL_AAPT_FLAGS += \
@@ -62,11 +60,38 @@ ifeq ($(TARGET_PRODUCT),$(filter $(TARGET_PRODUCT),msm8953_64 am3x00_box))
         --extra-packages android.support.v7.appcompat \
         --extra-packages android.support.design \
         --extra-packages com.droideic.app
-        
-    LOCAL_JNI_SHARED_LIBRARIES += libdisplaysetting
-    
+
 endif
+
+ifeq ($(TARGET_PRODUCT),$(filter $(TARGET_PRODUCT), am3x00_box))
+    LOCAL_MULTILIB := 32
+    LOCAL_MODULE_PATH := $(TARGET_OUT_VENDOR)/priv-app
+    LOCAL_PRIVATE_PLATFORM_APIS := true
+    #Product Specific file
+    LOCAL_SRC_FILES += $(call all-java-files-under, am3x00_box)
+    
+#   In AOSP(8.0), Surface.aidl moved from frameworks/base... to frameworks/native...    
+    LOCAL_AIDL_INCLUDES += frameworks/native/aidl/gui
+    
+#   Ensure CresStreamSvc builds for 32-bit access to these libraries
+    LOCAL_MODULE_TARGET_ARCH := arm
+    LOCAL_PREBUILT_JNI_LIBS_arm := ../../../${PRODUCT_OUT}/vendor/lib/libgstreamer_jni.so
+    LOCAL_PREBUILT_JNI_LIBS_arm += ../../../${PRODUCT_OUT}/vendor/lib/libcresstreamctrl_jni.so
+    LOCAL_PREBUILT_JNI_LIBS_arm += ../../../${PRODUCT_OUT}/vendor/lib/libCsioProdInfo.so
+
+    LOCAL_STATIC_JAVA_LIBRARIES += \
+        android-support-v4 \
+        android-support-v7-appcompat \
+        android-support-design
         
+    LOCAL_PROGUARD_ENABLED := disabled
+    
+    LOCAL_AAPT_FLAGS += \
+        --auto-add-overlay \
+        --extra-packages android.support.v7.appcompat \
+        --extra-packages android.support.design \
+        --extra-packages com.droideic.app
+endif
 
 ifeq ($(TARGET_PRODUCT),$(filter $(TARGET_PRODUCT),yushan_one full_omap5panda msm8953_64 am3x00_box))
 include $(BUILD_PACKAGE)
