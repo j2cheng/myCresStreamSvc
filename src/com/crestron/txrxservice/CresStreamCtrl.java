@@ -419,6 +419,7 @@ public class CresStreamCtrl extends Service {
         eHardwarePlatform_Arria10,
         eHardwarePlatform_Amlogic,
         eHardwarePlatform_Snapdragon,
+        eHardwarePlatform_Rockchip,
         eHardwarePlatform_Unknown;
 
         public static CrestronHwPlatform fromInteger(int x) {
@@ -434,7 +435,9 @@ public class CresStreamCtrl extends Service {
             case 4:
                 return eHardwarePlatform_Amlogic;
             case 5:
-            	return eHardwarePlatform_Snapdragon;
+                return eHardwarePlatform_Snapdragon;
+            case 6:
+                return eHardwarePlatform_Rockchip;
             default:
                 Log.i(TAG, MiscUtils.stringFormat("Unknown hardware platform %d, please update enum!!!!!", x));
                 return eHardwarePlatform_Unknown;
@@ -455,6 +458,11 @@ public class CresStreamCtrl extends Service {
         DMPS_4K_STR(0x24),
         AM300(0x2D),
         AM200(0x2E),
+        AM3100WF(0x7400),
+        AM3100WFI(0x7401),
+        AM3200(0x7402),
+        AM3200WF(0x7403),
+        AM3200WFI(0x7404),
         X70(0x7900),
         Unknown(0x0);
 
@@ -489,6 +497,16 @@ public class CresStreamCtrl extends Service {
                 return AM300;
             case 0x2E:
                 return AM200;
+            case 0x7400:
+                return AM3100WF;
+            case 0x7401:
+                return AM3100WFI;
+            case 0x7402:
+                return AM3200;
+            case 0x7403:
+                return AM3200WF;
+            case 0x7404:
+                return AM3200WFI;
             case 0x7900:
                 return X70;
             default:
@@ -514,6 +532,16 @@ public class CresStreamCtrl extends Service {
             return "AM-300";
         case 0x2E:
             return "AM-200";
+        case 0x7400:
+            return "AM-3100-WF";
+        case 0x7401:
+            return "AM-3100-WF-I";
+        case 0x7402:
+            return "AM-3200";
+        case 0x7403:
+            return "AM-3200-WF";
+        case 0x7404:
+            return "AM-3200-WF-I";
         default:
             return "Crestron Device";
         }
@@ -942,6 +970,11 @@ public class CresStreamCtrl extends Service {
                 case DGE200:
                 case TS1542:
                 case TS1542_C:
+                case AM3100WF:
+                case AM3100WFI:
+                case AM3200:
+                case AM3200WF:
+                case AM3200WFI:
                 {
                     // Bug 154293: RGB888 on OMAP cannot support simultaneous video, BW limitation
                     isRGB888HDMIVideoSupported = false;
@@ -1400,6 +1433,11 @@ public class CresStreamCtrl extends Service {
             case TS1542:
             case TS1542_C:
             case TXRX:
+            case AM3100WF:
+            case AM3100WFI:
+            case AM3200:
+            case AM3200WF:
+            case AM3200WFI:
             {
                 // Bug 154293: RGB888 on OMAP cannot support simultaneous video, BW limitation
                 rv = false;
