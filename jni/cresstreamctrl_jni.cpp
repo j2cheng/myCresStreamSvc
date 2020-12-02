@@ -128,3 +128,12 @@ JNIEXPORT jboolean JNICALL Java_com_crestron_txrxservice_CresStreamCtrl_nativeHa
 		return JNI_FALSE;
 }
 
+JNIEXPORT jboolean JNICALL Java_com_crestron_txrxservice_CresStreamCtrl_nativeProductOnlyAlphablend(JNIEnv *env, jobject thiz)
+{
+    do_init();
+
+    if(product_info()->smart_graphics_bitmask & PRODUCT_BITMASK_ONLY_ALPHABLEND)
+        return JNI_TRUE;
+    else
+        return JNI_FALSE;
+}

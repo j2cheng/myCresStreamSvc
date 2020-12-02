@@ -23,6 +23,8 @@ JNIEXPORT jboolean JNICALL Java_com_crestron_txrxservice_CresStreamCtrl_nativeGe
 JNIEXPORT jint JNICALL Java_com_crestron_txrxservice_CresStreamCtrl_nativeMaxVideoWindows(JNIEnv *env, jobject thiz);
 
 JNIEXPORT jboolean JNICALL Java_com_crestron_txrxservice_CresStreamCtrl_nativeHaveHDMIoutput(JNIEnv *env, jobject thiz);
+
+JNIEXPORT jboolean JNICALL Java_com_crestron_txrxservice_CresStreamCtrl_nativeProductOnlyAlphablend(JNIEnv *env, jobject thiz);
 #ifdef __cplusplus
 }
 #endif

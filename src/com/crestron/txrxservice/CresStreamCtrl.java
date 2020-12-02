@@ -260,6 +260,7 @@ public class CresStreamCtrl extends Service {
     public native boolean nativeGetIsAirMediaEnabledEnum();
     public native int nativeMaxVideoWindows();
     public native boolean nativeHaveHDMIoutput();
+    public native boolean nativeProductOnlyAlphablend();
 
     enum DeviceMode {
         STREAM_IN,
@@ -1125,18 +1126,25 @@ public class CresStreamCtrl extends Service {
                 }
             }).start();
 
-
-            // This must be done before CresDisplaySurface is created
-            // Wait until file exists then check
-            while ((new File(pinpointEnabledFilePath)).exists() == false)
-            {
-                try { Thread.sleep(100); } catch (InterruptedException e){}
+            if(nativeProductOnlyAlphablend())
+            {   //For AM3X00 devices this is the case.
+                Log.i(TAG, "Only alphablending supported ");
+                alphaBlending = true;
             }
-            int pinpointEnabled = 0;
-            try {
-                pinpointEnabled = Integer.parseInt(MiscUtils.readStringFromDisk(pinpointEnabledFilePath));
-            } catch (NumberFormatException e) {}
-            alphaBlending = (pinpointEnabled == 1) ? true : false;
+            else
+            {
+                // This must be done before CresDisplaySurface is created
+                // Wait until file exists then check
+                while ((new File(pinpointEnabledFilePath)).exists() == false)
+                {
+                    try { Thread.sleep(100); } catch (InterruptedException e){}
+                }
+                int pinpointEnabled = 0;
+                try {
+                    pinpointEnabled = Integer.parseInt(MiscUtils.readStringFromDisk(pinpointEnabledFilePath));
+                } catch (NumberFormatException e) {}
+                alphaBlending = (pinpointEnabled == 1) ? true : false;
+            }
 
             // AirMedia v2.1 onwards
             if (airMediav21)
