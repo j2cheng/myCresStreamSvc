@@ -5965,6 +5965,23 @@ public class CresStreamCtrl extends Service {
                     hpdHdmiEvent = 1;
                     mForceHdcpStatusUpdate = true;
                     Log.i(TAG, "HDMI resolutions - HRes:" + hdmiInput.getHorizontalRes() + " Vres:" + hdmiInput.getVerticalRes());
+                    
+                    //to stop audio if hdmi input is unplugged  
+                    if (cam_preview != null && cam_preview.is_preview)  
+                    {        
+	                    if(resolutionId == 0)   
+	                    {                    
+	                    	Log.i(TAG, "HDMI lost sync detected, stop audio");             	              
+	                                     
+	                        cam_preview.stopAudio();	                        
+	                    }
+	                    else
+	                    {
+	                        Log.i(TAG, "HDMI sync detected, start audio");	                    	
+	                    	                       
+	                        cam_preview.startAudio();	                        
+	                    }
+                    }
                 }
             }
         }
