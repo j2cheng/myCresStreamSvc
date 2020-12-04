@@ -1653,6 +1653,13 @@ public class CresStreamCtrl extends Service {
                 // next line For debugging only - temporary
                 // airMediaLicensed = (new File("/data/CresStreamSvc/airmedialicense")).exists();
                 Log.i(TAG, "******************  Airmedia Startup **************");
+
+                if (CrestronProductName.fromInteger(nativeGetProductTypeEnum()) == CrestronProductName.AM3X00)
+                {
+                    Log.i(TAG, "****************** Ignore Licence Check for AM3X**************");
+                    airMediaLicensed = true;
+                }
+
                 if (!airMediaLicensed)
                 {
                     while ((new File(AirMediaSplashtop.licenseFilePath)).exists() == false)
@@ -5368,8 +5375,13 @@ public class CresStreamCtrl extends Service {
         {
             ApplicationInfo ai=null;
             versionName = info.versionName;
-            if (AirMediaSplashtop.checkAirMediaLicense())
+
+            if ((CrestronProductName.fromInteger(nativeGetProductTypeEnum()) == CrestronProductName.AM3X00) ||
+                (AirMediaSplashtop.checkAirMediaLicense()))
+            {
                 MiscUtils.writeStringToDisk("/dev/shm/crestron/CresStreamSvc/airmediaVersion", versionName);
+            }
+
             try {
                 ai = pm.getApplicationInfo("com.crestron.airmedia.receiver.m360", PackageManager.GET_META_DATA);
             } catch(Exception e) { Log.e(TAG, "Exception encountered trying to get metadata for AirMedia SDK version");}
