@@ -44,6 +44,7 @@ public class DMSession extends Session
 			Common.Logging.i(TAG, "DM Session "+this+" sending stop to csio");
 			mStreamCtl.sendDmStart(streamId, false);
 			releaseSurface();
+			surface = null;
 		}
 	}
 	
@@ -122,6 +123,8 @@ public class DMSession extends Session
 	        	mStreamCtl.setFormat(streamId, PixelFormat.RGBA_8888);
 	        }
 			Common.Logging.i(TAG, "DM Session "+this+" drawing to surface: "+surface);
+			// do not have size of display window at this point - zero it out so next update from canvas sets it
+			left = top = width = height = 0; 
 			drawChromaKeyColor();
 			if (!CresCanvas.useCanvasSurfaces)
 			{
@@ -196,20 +199,31 @@ public class DMSession extends Session
 	
 	public void updateDmWindow(int x, int y, int w, int h)
 	{
+		if (!isPlaying()) {
+			Common.Logging.i(TAG,  "updateDmWindow(): ignoring layout message since session is not playing");
+			return;
+		}
 		if ((left != x) || (top != y) || (width != w) || (height != h))
 		{
-			drawChromaKeyColor();
-			left = x;
-			top = y;
-			width = w;
-			height = h;
-			Common.Logging.i(TAG, "send DM window for session "+this+" inputNumber="+inputNumber+
-					" ("+width+","+height+")@("+left+","+top+")");
-			mStreamCtl.sendDmWindow(streamId, left, top, width, height);
+			if (surface != null)
+			{
+				drawChromaKeyColor();
+				left = x;
+				top = y;
+				width = w;
+				height = h;
+				Common.Logging.i(TAG, "updateDmWindow(): send DM window for session "+this+" inputNumber="+inputNumber+
+						" ("+width+","+height+")@("+left+","+top+")");
+				mStreamCtl.sendDmWindow(streamId, left, top, width, height);
+			}
+			else
+			{
+				Common.Logging.i(TAG, "updateDmWindow(): no valid surface "+this+" inputNumber="+inputNumber);
+			}
 		}
 		else
 		{
-			Common.Logging.i(TAG, "no change in DM window for session "+this+" inputNumber="+inputNumber+
+			Common.Logging.i(TAG, "updateDmWindow(): no change in DM window for session "+this+" inputNumber="+inputNumber+
 					" ("+width+","+height+")@("+left+","+top+")");
 		}	
 	}
