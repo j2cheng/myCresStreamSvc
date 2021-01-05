@@ -167,7 +167,7 @@ public class ProductSpecific
 
     public static boolean hasRealCamera()
     {
-        return true;
+        return false;
     }
 
     public static boolean isHdmiDriverPresent()

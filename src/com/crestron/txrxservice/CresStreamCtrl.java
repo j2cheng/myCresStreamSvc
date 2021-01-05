@@ -1654,6 +1654,7 @@ public class CresStreamCtrl extends Service {
                 // airMediaLicensed = (new File("/data/CresStreamSvc/airmedialicense")).exists();
                 Log.i(TAG, "******************  Airmedia Startup **************");
 
+                // This check is done since this product will contain a basic in-built licence by default.
                 if (CrestronProductName.fromInteger(nativeGetProductTypeEnum()) == CrestronProductName.AM3X00)
                 {
                     Log.i(TAG, "****************** Ignore Licence Check for AM3X**************");
