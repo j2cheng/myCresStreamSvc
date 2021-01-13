@@ -89,6 +89,7 @@ import com.google.gson.stream.JsonReader;
 import com.google.gson.stream.JsonWriter;
 import com.crestron.txrxservice.CresLog;
 import com.crestron.txrxservice.canvas.CresCanvas;
+import com.crestron.txrxservice.wc.WC_Service;
 
 interface Command {
     void executeStart(int sessId);
@@ -108,6 +109,8 @@ public class CresStreamCtrl extends Service {
     CameraStreaming cam_streaming;
     CameraPreview cam_preview;
     GstreamOut gstStreamOut;
+    public GstreamOut getStreamOut() { return gstStreamOut; };
+    
     com.crestron.txrxservice.StringTokenizer tokenizer;
     public static int VersionNumber = 2;
     
@@ -133,6 +136,7 @@ public class CresStreamCtrl extends Service {
     AirMediaSplashtop mAirMedia = null;
     
     public com.crestron.txrxservice.canvas.CresCanvas mCanvas = null;
+    public com.crestron.txrxservice.wc.WC_Service mWC_Service = null;
     
     final int cameraRestartTimout = 1000;//msec
     static int hpdHdmiEvent = 0;
@@ -229,6 +233,7 @@ public class CresStreamCtrl extends Service {
     public boolean hideVideoOnStop = false;
     public boolean airMediav21 = false;
     public boolean useFauxPPUX = false;
+    public boolean isWirelessConferencingEnabled = false;
     public boolean isRGB888HDMIVideoSupported = true;
     public boolean mCanvasHdmiIsPlaying = false;
     public CrestronHwPlatform mHwPlatform;
@@ -631,6 +636,9 @@ public class CresStreamCtrl extends Service {
             int windowHeight = 1080;
             hideVideoOnStop = nativeHideVideoBeforeStop();
             mProductHasHDMIoutput = nativeHaveHDMIoutput();
+            // FIXME/TODO - replace with a product feature in product info table
+            if (CrestronProductName.fromInteger(nativeGetProductTypeEnum()) == CrestronProductName.AM3X00)
+            	isWirelessConferencingEnabled = true;
             if (nativeGetIsAirMediaEnabledEnum())
             {
             	int productType = nativeGetProductTypeEnum();
@@ -1069,13 +1077,20 @@ public class CresStreamCtrl extends Service {
 
             // Added for real camera on x60
             // to-do: support having both hdmi input and a real camera at the same time...
-            if(ProductSpecific.hasRealCamera())
+            Log.i(TAG,"isWirelessConferencingEnabled="+isWirelessConferencingEnabled+"   hasRealCamera="+ProductSpecific.hasRealCamera());
+            if(isWirelessConferencingEnabled || ProductSpecific.hasRealCamera())
             {
+                if (CrestronProductName.fromInteger(nativeGetProductTypeEnum()) == CrestronProductName.AM3X00)
+                    userSettings.setCamStreamEnable(false);
                 gstStreamOut = new GstreamOut(CresStreamCtrl.this);
                 // PEM - uncomment if you want to enable camera preview for real camera.
                 // To-do: support platform that has an hdmi input and a real camera.
                 // in X60, now use GstPreview, no longer use NativePreview, so comment out below:
                 //cam_preview = new CameraPreview(this, null);
+                if (isWirelessConferencingEnabled)
+                {
+                    mWC_Service = new WC_Service(CresStreamCtrl.this);
+                }
             }
 
             wbsStream = new WbsStreamIn(CresStreamCtrl.this);
@@ -1530,7 +1545,9 @@ public class CresStreamCtrl extends Service {
             }
             catch (RuntimeException e) {
                 Log.i(TAG, "Runtime exception in getCameraDisabled");
-                restartMediaServer = true;
+                // FIXME/TODO remove the if condition for AMX300
+                if (CrestronProductName.fromInteger(nativeGetProductTypeEnum()) != CrestronProductName.AM3X00)
+                	restartMediaServer = true;
             }
         } else {
             Log.i(TAG, "Camera feature not available according to PackageManager");
@@ -4381,7 +4398,22 @@ public class CresStreamCtrl extends Service {
             sockTask.SendDataToAllClients("RECOVER_DUCATI=TRUE");
     }
     
+    public void dumpStackTraceThrow() throws Throwable
+    {
+    	throw new Throwable("Forced Exception for Stacktrace");
+    }
+    
+    public void dumpStackTrace(String location)
+    {
+    	try {
+    		dumpStackTraceThrow();
+    	} catch(Throwable e) {
+    		Log.e(TAG, "location", e);
+    	}
+    }
+    
     public void RecoverTxrxService(){
+		dumpStackTrace("RecoverTxrxService");
         Log.e(TAG, "Fatal error, kill CresStreamSvc!");
         RestartTxrxService();
     }
@@ -5500,6 +5532,8 @@ public class CresStreamCtrl extends Service {
     
     public void setCamStreamEnable(boolean enable) {
 
+        if (CrestronProductName.fromInteger(nativeGetProductTypeEnum()) == CrestronProductName.AM3X00)
+        	return;
         stopStartLock[0].lock("setCamStreamEnable");
         try
         {
@@ -5582,6 +5616,47 @@ public class CresStreamCtrl extends Service {
         }
     }
     
+    public void setWirelessConferencingStreamEnable(boolean enable) {
+        Log.i(TAG, "entered setWirelessConferencingStreamEnable() - enable="+enable);
+        stopStartLock[0].lock("setWirelessConferencingStreamEnable");
+        try
+        {
+            if (gstStreamOut != null)
+            {
+                int sessId;
+                int rtn = 0;
+
+                if (enable)
+                {
+                    if (!gstStreamOut.wcStarted()) {
+                        //start streamout
+                        gstStreamOut.wirelessConferencing_start();
+                    }
+                    else
+                    {
+                        Log.w(TAG, "setWirelessConferencingStreamEnable(): already started!!!");
+                    }
+                }
+                else
+                {
+                    if (gstStreamOut.wcStarted()) {
+                        //stop streamout
+                        gstStreamOut.wirelessConferencing_stop();
+                    } else {
+                        Log.w(TAG, "setWirelessConferencingStreamEnable(): already stopped!!!");
+                    }
+                }
+            }
+            else
+            {
+                Log.w(TAG, "gstStreamout is null!!!");
+            }
+        } finally
+        {
+            stopStartLock[0].unlock("setWirelessConferencingStreamEnable");
+        }
+    }
+
     public String getAirMediaDisconnectUser(int sessId)
     {
         // Do nothing handled by getAirMediaUserPosition

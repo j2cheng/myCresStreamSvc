@@ -31,6 +31,9 @@ public class GstreamOut {
 
     static String TAG = "GstreamOut";
 
+    private static final String RTSP_CERT_PEM_FILENAME = "/dev/shm/rtspserver_cert.pem";
+    private static final String RTSP_CERT_KEY = "/dev/shm/rtspserver_key.pem";
+
 ///////////////////////////////////////////////////////////////////////////////
 
     // Function prototypes for 
@@ -38,6 +41,7 @@ public class GstreamOut {
     private native void nativeRtspServerStart();
     private native void nativeRtspServerStop();
     private native void nativeInitRtspServer(Object s);     
+    private native void nativeInitWirelessConferencingRtspServer();
     private native void nativeFinalizeRtspServer();    
     private native void nativeSetRtspPort(int port, int sessionId);
     private native void nativeSet_Res_x(int xRes, int sessionId);
@@ -63,7 +67,14 @@ public class GstreamOut {
     private boolean camStreamActive = false;
     private boolean previewActive = false;
     private boolean resReleased = true;   // default need to be true
-    
+    private boolean wirelessConferencing_server_started = false;
+    private String wcServerUrl = null;
+
+    public boolean wcStarted() {return wirelessConferencing_server_started; }
+    public String getWcServerUrl() { return wcServerUrl; }
+    public String getWcServerCertificate() { return MiscUtils.readStringFromDisk(RTSP_CERT_PEM_FILENAME); }
+    public String getWcServerKey() { return MiscUtils.readStringFromDisk(RTSP_CERT_KEY); }
+
 ///////////////////////////////////////////////////////////////////////////////
 
     static {
@@ -77,8 +88,7 @@ public class GstreamOut {
         //Don't start server until we have a surface to get data from...
         //nativeInitRtspServer(null);
         
-        if (streamCtl.userSettings.getCamStreamEnable() == true)
-        {
+        if (!streamCtl.isWirelessConferencingEnabled && streamCtl.userSettings.getCamStreamEnable() == true)        {
             start();
         }
     }
@@ -130,6 +140,68 @@ public class GstreamOut {
         }
     }
     
+
+    public void wirelessConferencing_start() {
+        Log.i(TAG, "Streamout: JAVA - wirelessConferencing_start() entered" );
+        if (!wirelessConferencing_server_started)
+        {
+            Log.i(TAG, "Streamout: JAVA - wirelessConferencing_start() call nativeInitWirelessConferencingRtspServer" );
+            nativeInitWirelessConferencingRtspServer();
+            updateNativeDataStructForWirelessConferencingStreaming();
+            Log.i(TAG, "Streamout: JAVA - WirelessConferencing_start() call nativeRtspServerStart");
+            nativeRtspServerStart();
+            wirelessConferencing_server_started = true;
+        } else {
+            Log.i(TAG, "Streamout: JAVA - WirelessConferencing_start() ignoring server already started" );
+        }
+        Log.i(TAG, "Streamout: JAVA - WirelessConferencing_start() exit" );
+    }
+
+    public void wirelessConferencing_stop() {
+        Log.i(TAG, "Streamout: JAVA - wirelessConferencing_stop() entered" );
+        if (wirelessConferencing_server_started)
+        {
+            Log.i(TAG, "Streamout: JAVA - wirelessConferencing_stop() RtspServer ONLY");
+            nativeRtspServerStop();
+            //Log.i(TAG, "Streamout: JAVA - WirelessConferencing_stop() finalize RtspServer");
+            //nativeFinalizeRtspServer();
+            wirelessConferencing_server_started = false;
+        } else {
+            Log.i(TAG, "Streamout: JAVA - wirelessConferencing_stop() ignoring server is already stopped");
+        }
+        Log.i(TAG, "Streamout: JAVA - wirelessConferencing_stop() exit" );
+    }
+
+    private void updateNativeDataStructForWirelessConferencingStreaming() {
+        Log.i(TAG, "Streamout: JAVA - updateNativeDataStructForWirelessConferencingStreaming entered" );
+        setPort(8554);
+        setMulticastEnable(false);
+        setWirelessConferencingResolution(10);
+        setFramerate(15);
+        setBitrate(2000000);
+        setIFrameInterval(1);
+        setCamStreamName("wc");
+    }
+
+    public void setWcServerUrl(String url)
+    {
+        Log.i(TAG, "Streamout: setWcServerUrl: incoming url="+url);
+        String newUrl = url;
+        if (url.contains("0.0.0.0"))
+        {
+            if (!streamCtl.userSettings.getDeviceIp().equals("0.0.0.0"))
+            {
+                newUrl = url.replace("0.0.0.0", streamCtl.userSettings.getDeviceIp());
+            }
+            if (!streamCtl.userSettings.getWifiIp().equals("0.0.0.0"))
+            {
+                newUrl = url.replace("0.0.0.0", streamCtl.userSettings.getWifiIp());
+            }
+        }
+        wcServerUrl = newUrl;
+        Log.i(TAG, "setWcServerUrl: WC server url="+wcServerUrl);
+    }
+
     public void setPort(int port) {
         nativeSetRtspPort(port, sessionId);
     }
@@ -154,6 +226,23 @@ public class GstreamOut {
 //      }
     }
     
+
+    public void setWirelessConferencingResolution(int resolution) {
+//      switch (resolution)
+//      {
+//      case 10: //1280x720
+        nativeSet_Res_x(1280, sessionId);
+        nativeSet_Res_y(720, sessionId);
+//          break;
+//      case 17: //1920x1080
+//          nativeSet_Res_x(1920, sessionId);
+//          nativeSet_Res_y(1080, sessionId);
+//          break;
+//      default:
+//          break;
+//      }
+    }
+
     public void setFramerate(int fps) {
         nativeSet_FrameRate(fps, sessionId);
     }

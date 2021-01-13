@@ -7,6 +7,11 @@
 #include "streamOutManager/cresStreamOutManager.h"
 #include "./streamOutManager/cresCamera.h"
 
+#undef NANOPC
+
+#undef USE_VIDEOTESTSRC
+#undef USE_AUDIOTESTSRC
+
 #define MAX_STREAM_OUT 1
 
 #define IsValidStreamOut(a)  ( (a >= 0) && (a < MAX_STREAM_OUT) )
@@ -17,7 +22,7 @@ class CStreamoutProject : public CresProjBaseClass
 {
 public:
 
-    CStreamoutProject(int iId);
+    CStreamoutProject(int iId, eStreamoutMode streamoutMode);
     ~CStreamoutProject();
 
     void    DumpClassPara(int);
@@ -31,6 +36,8 @@ public:
 
     void lockProject(){if(mLock) mLock->lock();}
     void unlockProject(){if(mLock) mLock->unlock();}
+
+    eStreamoutMode m_streamoutMode;
 
     CStreamoutEvent *m_projEvent;
     CStreamoutEventRingBuffer *m_projEventQ;

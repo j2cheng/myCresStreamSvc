@@ -1700,6 +1700,88 @@ bool write_to_disk(EVP_PKEY * pkey, X509 * x509)
 
     return true;
 }
+
+static bool write_to_disk(X509 * pX509, char *certPemFile, EVP_PKEY * pkey, char *privateKeyPemFile)
+{
+    /* Open the PEM file for writing the key to disk. */
+    FILE * pkey_file = fopen(privateKeyPemFile, "wb");
+    if(!pkey_file) {
+        sssl_log(LOGLEV_error,"Unable to open %s",privateKeyPemFile);
+        return false;
+    }
+
+    /* Write the key to disk. */
+    bool ret = PEM_write_PrivateKey(pkey_file, pkey, NULL, NULL, 0, NULL, NULL);
+    fclose(pkey_file);
+
+    if(!ret) {
+        sssl_log(LOGLEV_error,"Unable to write private key to disk.");
+        return false;
+    }
+
+    /* Open the PEM file for writing the certificate to disk. */
+    FILE * x509_file = fopen(certPemFile, "wb");
+    if(!x509_file) {
+        sssl_log(LOGLEV_error,"Unable to open %s",certPemFile);
+        return false;
+    }
+
+    /* Write the certificate to disk. */
+    ret = PEM_write_X509(x509_file, pX509);
+    fclose(x509_file);
+
+    if(!ret) {
+        sssl_log(LOGLEV_error,"Unable to write x509 certificate to disk.");
+        return false;
+    }
+}
+
+bool create_selfsigned_certificate(char *certPemFile, char *privateKeyPemFile)
+{
+    EVP_PKEY * pKey;
+    X509 * pX509;
+
+    //to generate certificate:https://urldefense.proofpoint.com/v2/url?u=https-3A__gist.github.com_nathan-2Dosman_5041136&d=DwIFAg&c=BevoquqpKcc6oV2fwHriBQ&r=B2DQCtbHXG3qgJ8_23NookXHqe9juKFgc0eymwW84dc&m=nc5B26E1qiVNx0fXkofRODp4ubXsYHN5RP_BiPerc8c&s=lorRRM_tnkiqEJqP7_wM4lxWGWgcRcc9OaDt-OwIQ5s&e=
+    pKey = generate_key();
+    if(!pKey)
+    {
+        sssl_log(LOGLEV_error,"%s: generate_key failed.", __FUNCTION__);
+        return(false);
+    } else {
+       pX509 = generate_x509(pKey);
+       if(!pX509)
+       {
+           EVP_PKEY_free(pKey);
+           sssl_log(LOGLEV_error,"%s: generate_x509 failed.", __FUNCTION__);
+           return(false);
+       }
+    }
+
+    bool ret = write_to_disk(pX509, certPemFile, pKey, privateKeyPemFile);
+
+    if(!pKey)
+    {
+        sssl_log(LOGLEV_error, "%s: NULL private key", __FUNCTION__);
+    }
+    else if(!pX509)
+    {
+        sssl_log(LOGLEV_error,"%s(: NULL X509 certificate", __FUNCTION__);
+    }
+    else
+    {
+        sssl_log(LOGLEV_debug,"%s: calling EVP_PKEY_free(pKey)", __FUNCTION__);
+        if (pKey) EVP_PKEY_free(pKey);
+        if (pX509) X509_free(pX509);
+    }
+
+    if(!ret)
+    {
+        sssl_log(LOGLEV_error,"Unable to write key and certificate to disk.");
+        return false;
+    }
+
+    return true;
+}
 #endif
 
 

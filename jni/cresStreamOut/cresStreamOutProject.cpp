@@ -34,7 +34,7 @@ Mutex gProjectsLock;
 CStreamoutManager** gStreamoutTaskObjList = NULL;
 
 /*********************fuctions called from jni.c**************************/
-void StreamoutProjectInit()
+void StreamoutProjectInit(eStreamoutMode mode)
 {
     CSIO_LOG(StreamOutProjDebugLevel, "Streamout: StreamoutProjectInit enter");
     if(StreamOutProjList == NULL)
@@ -47,7 +47,7 @@ void StreamoutProjectInit()
             StreamOutProjList[i] = NULL;
 
         //create only one project object for now
-        StreamOutProjList[0] = new CStreamoutProject(0);
+        StreamOutProjList[0] = new CStreamoutProject(0, mode);
 
         CSIO_LOG(StreamOutProjDebugLevel, "Streamout: StreamOutProjList[0]:0x%x\n",StreamOutProjList[0]);
 
@@ -71,7 +71,7 @@ void StreamoutProjectDeInit()
         {
             if(StreamOutProjList[i])
             {
-                CSIO_LOG(StreamOutProjDebugLevel, "Streamout: call removeAllStreamoutTasks()");
+                CSIO_LOG(StreamOutProjDebugLevel, "Streamout[%d]: call removeAllStreamoutTasks()", i);
                 //remove all Streamout tasks this project created.
                 StreamOutProjList[i]->removeAllStreamoutTasks();
 
@@ -84,18 +84,23 @@ void StreamoutProjectDeInit()
                 CSIO_LOG(StreamOutProjDebugLevel, "Streamout: Wait is done\n");
 
                 //delete the object, and set list to NULL
+                CSIO_LOG(StreamOutProjDebugLevel, "--Streamout: delete StreamOutProjList[%d]",i);
                 delete StreamOutProjList[i];
+                CSIO_LOG(StreamOutProjDebugLevel, "--Streamout: set StreamOutProjList[%d] to null",i);
                 StreamOutProjList[i] = NULL;
 
                 CSIO_LOG(StreamOutProjDebugLevel, "--Streamout: delete StreamOutProjList[%d] is DONE",i);
             }
         }
 
+        CSIO_LOG(StreamOutProjDebugLevel, "Streamout: delete StreamOutProjList");
+        delete[] StreamOutProjList;
+        CSIO_LOG(StreamOutProjDebugLevel, "Streamout: set StreamOutProjList to null");
         StreamOutProjList = NULL;
     }
     else
     {
-        CSIO_LOG(StreamOutProjDebugLevel, "Streamout: no Streamout project has created.\n");
+        CSIO_LOG(StreamOutProjDebugLevel, "Streamout: no Streamout project was created.\n");
     }
     CSIO_LOG(StreamOutProjDebugLevel, "Streamout: StreamoutProjectDeInit exit");
 }
@@ -492,9 +497,9 @@ static void StreamoutProjectSendEvent(int iId, int evnt, int data_size, void* bu
     }
 }
 
-CStreamoutProject::CStreamoutProject(int iId): m_projectID(iId)
+CStreamoutProject::CStreamoutProject(int iId, eStreamoutMode streamoutMode): m_projectID(iId), m_streamoutMode(streamoutMode)
 {
-    CSIO_LOG(m_debugLevel, "Streamout: create CStreamoutProject object");
+    CSIO_LOG(m_debugLevel, "Streamout: create CStreamoutProject object - mode = %d", m_streamoutMode);
 
     m_debugLevel = StreamOutProjDebugLevel;
 
@@ -527,41 +532,59 @@ CStreamoutProject::CStreamoutProject(int iId): m_projectID(iId)
     strcpy(m_stream_name, DEFAULT_STREAM_NAME);
     strcpy(m_snapshot_name, DEFAULT_SNAPSHOT_NAME);
 
-    m_cameraobj = new CStreamCamera(this);
-    m_cameraobj->create(this);
+    if (m_streamoutMode == STREAMOUT_MODE_WIRELESSCONFERENCING)
+    {
+        strcpy(m_res_x, "1920");
+        strcpy(m_res_y, "1080");
+        strcpy(m_iframe_interval, "30");
+        strcpy(m_stream_name, DEFAULT_WIRELESSCONFERENCING_STREAM_NAME);
+    }
+
+    if (m_streamoutMode == STREAMOUT_MODE_CAMERA)
+    {
+        m_cameraobj = new CStreamCamera(this);
+        m_cameraobj->create(this);
+    }
 }
 
 CStreamoutProject::~CStreamoutProject()
 {
     removeAllStreamoutTasks();
-    CSIO_LOG(m_debugLevel, "--Streamout: ~CStreamoutProject delete m_projEvent is DONE");
+    CSIO_LOG(m_debugLevel, "--Streamout: ~CStreamoutProject removeAllStreamoutTasks() is complete");
 
-    m_cameraobj->remove(this);
+    CSIO_LOG(m_debugLevel, "--Streamout: ~CStreamoutProject streamoutMode=%d", m_streamoutMode);
+    if (m_streamoutMode == STREAMOUT_MODE_CAMERA)
+        m_cameraobj->remove(this);
 
     if(m_projEvent)
     {
+        CSIO_LOG(m_debugLevel, "--Streamout: ~CStreamoutProject delete m_projEvent");
         delete m_projEvent;
         m_projEvent = NULL;
     }
 
     if(m_projEventQ)
     {
+        CSIO_LOG(m_debugLevel, "--Streamout: ~CStreamoutProject delete m_projEventQ");
         delete m_projEventQ;
         m_projEventQ = NULL;
     }
 
 	if(m_cameraobj)
 	{
+        CSIO_LOG(m_debugLevel, "--Streamout: ~CStreamoutProject delete m_cameraobj");
 		delete m_cameraobj;
 		m_cameraobj = NULL;
 	}
 
     if(mLock)
     {
+        CSIO_LOG(m_debugLevel, "--Streamout: ~CStreamoutProject delete mLock");
         delete mLock;
         mLock = NULL;
     }
 
+    CSIO_LOG(m_debugLevel, "--Streamout: ~CStreamoutProject exit");
     //Note:removeAllStreamoutTasks() should be called before delete this object
 }
 
@@ -651,7 +674,7 @@ void* CStreamoutProject::ThreadEntry()
                         {
                             CSIO_LOG(m_debugLevel, "Streamout: create new gst_rtsp_server_start at id[%d].",
                                     id);
-                            m_StreamoutTaskObjList[id] = new CStreamoutManager();
+                            m_StreamoutTaskObjList[id] = new CStreamoutManager(m_streamoutMode);
 
                             m_StreamoutTaskObjList[id]->setParent(this);
                             m_StreamoutTaskObjList[id]->setServManagerDebugLevel(m_debugLevel);
@@ -713,7 +736,7 @@ void* CStreamoutProject::ThreadEntry()
                     int id = evntQ.streamout_obj_id;
                     if( evntQ.buf_size && evntQ.buffPtr)
                     {
-                        CSIO_LOG(m_debugLevel, "Streamout: call setFrameRate streamId[%d],port[%s]",
+                        CSIO_LOG(m_debugLevel, "Streamout: call setPort streamId[%d],port[%s]",
                                  id,evntQ.buffPtr);
 
                         //save for this project
@@ -836,6 +859,10 @@ void* CStreamoutProject::ThreadEntry()
                 }
                 case STREAMOUT_EVENT_JNI_CMD_ENABLE_MULTICAST:
                 {
+                    if (m_streamoutMode != STREAMOUT_MODE_CAMERA) { // short circuit - not applicable for WirelessConferencing case
+                        CSIO_LOG(m_debugLevel, "Streamout: STREAMOUT_EVENT_JNI_CMD_ENABLE_MULTICAST ignored in WirlessConferencing mode.");
+                    	break;
+                    }
                 	int id = evntQ.streamout_obj_id;
                 	
                 	if( evntQ.buf_size && evntQ.buffPtr)
@@ -859,6 +886,10 @@ void* CStreamoutProject::ThreadEntry()
                 }
                 case STREAMOUT_EVENT_JNI_CMD_MULTICAST_ADDRESS:
                 {
+                	if (m_streamoutMode != STREAMOUT_MODE_CAMERA) { // short circuit - not applicable for WirelessConferencing case
+                		CSIO_LOG(m_debugLevel, "Streamout: STREAMOUT_EVENT_JNI_CMD_MULTICAST_ADDRESS ignored in WirlessConferencing mode.");
+                		break;
+                	}
                 	int id = evntQ.streamout_obj_id;
                 	if( evntQ.buf_size && evntQ.buffPtr)
                 	{
@@ -901,6 +932,10 @@ void* CStreamoutProject::ThreadEntry()
                 }
                 case STREAMOUT_EVENT_JNI_CMD_SNAPSHOT_NAME:
                 {
+                	if (m_streamoutMode != STREAMOUT_MODE_CAMERA) { // short circuit - not applicable for WirelessConferencing case
+                		CSIO_LOG(m_debugLevel, "Streamout: STREAMOUT_EVENT_JNI_CMD_SNAPSHOT_NAME ignored in WirlessConferencing mode.");
+                		break;
+                	}
                 	int id = evntQ.streamout_obj_id;
                 	if( evntQ.buf_size && evntQ.buffPtr)
                 	{
@@ -940,6 +975,10 @@ void* CStreamoutProject::ThreadEntry()
 
                 case STREAMOUT_EVENT_JNI_CMD_START_PREVIEW:
                 {
+                	if (m_streamoutMode != STREAMOUT_MODE_CAMERA) { // short circuit - not applicable for WirelessConferencing case
+                		CSIO_LOG(m_debugLevel, "Streamout: STREAMOUT_EVENT_JNI_CMD_START_PREVIEW ignored in WirlessConferencing mode.");
+                		break;
+                	}
                 	int id = evntQ.streamout_obj_id;
                 	if( evntQ.buf_size )
                 	{
@@ -960,7 +999,7 @@ void* CStreamoutProject::ThreadEntry()
 									CSIO_LOG(eLogLevel_error, "Streamout: START_PREVIEW doesn't exist [0x%x]", 
 											m_StreamoutTaskObjList[id]);
 								
-									m_StreamoutTaskObjList[id] = new CStreamoutManager();
+									m_StreamoutTaskObjList[id] = new CStreamoutManager(m_streamoutMode);
 								
 									m_StreamoutTaskObjList[id]->setParent(this);
 									m_StreamoutTaskObjList[id]->setServManagerDebugLevel(m_debugLevel);
@@ -1001,6 +1040,10 @@ void* CStreamoutProject::ThreadEntry()
 
                 case STREAMOUT_EVENT_JNI_CMD_PAUSE_PREVIEW:
                 {
+                	if (m_streamoutMode != STREAMOUT_MODE_CAMERA) { // short circuit - not applicable for WirelessConferencing case
+                		CSIO_LOG(m_debugLevel, "Streamout: STREAMOUT_EVENT_JNI_CMD_PAUSE_PREVIEW ignored in WirlessConferencing mode.");
+                		break;
+                	}
                 	int id = evntQ.streamout_obj_id;
 					CSIO_LOG(m_debugLevel, "Streamout: call pausePreview streamId[%d],native window[%x]",
 							id,evntQ.buffPtr);
@@ -1028,6 +1071,10 @@ void* CStreamoutProject::ThreadEntry()
 
                 case STREAMOUT_EVENT_JNI_CMD_STOP_PREVIEW:
                 {
+                	if (m_streamoutMode != STREAMOUT_MODE_CAMERA) { // short circuit - not applicable for WirelessConferencing case
+                		CSIO_LOG(m_debugLevel, "Streamout: STREAMOUT_EVENT_JNI_CMD_STOP_PREVIEW ignored in WirlessConferencing mode.");
+                		break;
+                	}
                 	int id = evntQ.streamout_obj_id;
 					CSIO_LOG(m_debugLevel, "Streamout: call stopPreview streamId[%d],native window[%x]",
 							id,evntQ.buffPtr);
@@ -1203,12 +1250,15 @@ void CStreamoutProject::restartStreamoutIfMainLoopEnded()
 }
 void CStreamoutProject::removeAllStreamoutTasks()
 {
+    CSIO_LOG(eLogLevel_info, "Streamout(%s): entered\n",__FUNCTION__);
     if(m_StreamoutTaskObjList)
     {
+        CSIO_LOG(eLogLevel_info, "Streamout(%s): loop start\n",__FUNCTION__);
         for(int i = 0; i < MAX_STREAM_OUT; i++)
         {
             if(m_StreamoutTaskObjList[i])
             {
+                CSIO_LOG(eLogLevel_info, "Streamout(%s): Handling m_StreamoutTaskObjList[%d]\n",__FUNCTION__, i);
                 //tell thread to exit
                 m_StreamoutTaskObjList[i]->exitThread();
 
@@ -1223,8 +1273,14 @@ void CStreamoutProject::removeAllStreamoutTasks()
             }
         }
 
+        CSIO_LOG(eLogLevel_info, "Streamout(%s): loop end\n",__FUNCTION__);
+
+        CSIO_LOG(eLogLevel_info, "Streamout(%s): delete m_StreamoutTaskObjList array\n",__FUNCTION__);
+        delete [] m_StreamoutTaskObjList;
+        CSIO_LOG(eLogLevel_info, "Streamout(%s): set m_StreamoutTaskObjList to null\n",__FUNCTION__);
         m_StreamoutTaskObjList = NULL;
     }
+    CSIO_LOG(eLogLevel_info, "Streamout(%s): exit\n",__FUNCTION__);
 }
 void CStreamoutProject::setProjectDebugLevel(int level)
 {

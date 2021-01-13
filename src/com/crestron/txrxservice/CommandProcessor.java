@@ -2582,6 +2582,15 @@ class wbsStreamUrlCommand extends CrestronCommand {
 	}
 }
 
+class WirelessConferencingStreamingEnableCommand extends CrestronCommand {
+    public WirelessConferencingStreamingEnableCommand(CresStreamCtrl ctrl, String arg) {
+        super(ctrl, arg);
+    }
+    public void execute() {
+        ctrl.setWirelessConferencingStreamEnable(Boolean.valueOf(msg));
+    }
+}
+
 class AppspaceIsEnabledCommand extends CrestronCommand {
 
     public AppspaceIsEnabledCommand(CresStreamCtrl ctrl, String arg) {

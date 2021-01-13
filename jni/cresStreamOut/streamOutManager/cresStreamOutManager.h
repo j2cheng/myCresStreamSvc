@@ -8,8 +8,19 @@
 #include "cresStreamSnapShot.h"
 #include "cresPreview.h"
 #include "cresCamera.h"
+#include "usbAudio.h"
 
 #include <arpa/inet.h>
+#include <list>
+
+#define RTSP_CA_CERT_FILENAME  "/data/CresStreamSvc/digital_certificates/gst_ssl_ca.pem"
+#define RTSP_CERT_PEM_FILENAME "/data/CresStreamSvc/digital_certificates/gst_ssl_cert.pem"
+#define RTSP_CERT_KEY          "/data/CresStreamSvc/digital_certificates/gst_ssl_cert_decrypt.key"
+//#define RTSP_CA_CERT_FILENAME  "/data/CresStreamSvc/digital_certificates/ca.pem"
+//#define RTSP_CERT_PEM_FILENAME "/data/CresStreamSvc/digital_certificates/server.pem"
+//#define RTSP_CERT_KEY          "/data/CresStreamSvc/digital_certificates/server.key"
+//#define RTSP_CERT_PEM_FILENAME "/dev/shm/rtspserver_cert.pem"
+//#define RTSP_CERT_KEY          "/dev/shm/rtspserver_key.pem"
 
 class SnapShot;
 class CStreamCamera;
@@ -18,7 +29,7 @@ class CStreamoutManager : public CresProjBaseClass
 {
 public:
 
-    CStreamoutManager();
+    CStreamoutManager(eStreamoutMode streamoutMode);
     ~CStreamoutManager();
 
     void   DumpClassPara(int);
@@ -28,6 +39,7 @@ public:
 
     void setServManagerDebugLevel(int level){ setDebugLevel(level); }
 
+    eStreamoutMode m_streamoutMode;
     int m_clientConnCnt;
     int m_main_loop_is_running ;
 
@@ -44,13 +56,14 @@ public:
     GstRTSPMedia * m_pMedia ;
     GstElement* m_ahcsrc;
     GstElement* m_camera;
+    GstElement* m_appsrc;
 
 	gboolean    m_bNeedData;
 	gboolean    m_bExit;
 	gboolean    m_bStopTeeInProgress;
 	gboolean    m_bPushRawFrames;
 
-   GMainLoop * getMainLoop(){return m_loop;}
+    GMainLoop * getMainLoop(){return m_loop;}
 
     char m_rtsp_port[MAX_STR_LEN];
     char m_frame_rate[MAX_STR_LEN];
@@ -63,6 +76,18 @@ public:
     char m_stream_name[MAX_STR_LEN];
     char m_snapshot_name[MAX_STR_LEN];
 
+    std::list<GstRTSPClient *> m_clientList;
+    bool m_auth_on;
+    bool m_tls_on;
+    bool m_videoStream;
+    bool m_audioStream;
+    bool m_aacEncode;
+    UsbAudio *m_usbAudio;
+
+    char rtsp_server_username[MAX_STR_LEN];
+    char rtsp_server_password[MAX_STR_LEN];
+
+
     void setPort(char* p){strcpy(m_rtsp_port, p);}
     void setResX(char* x){strcpy(m_res_x, x);}
     void setResY(char* y){strcpy(m_res_y, y);}
@@ -72,8 +97,11 @@ public:
     void setMulticastEnable(int* enable){m_multicast_enable = *enable;}
     void setMulticastAddress(char* address){strcpy(m_multicast_address, address);}
     void setStreamName(char* name){strcpy(m_stream_name, name);}
+    void sendWcUrl(GstRTSPServer *server, char *mountPoint);
     void setSnapshotName(char* name);
     char* getSnapshotName(void);
+    void setUsername(char* name){strcpy(rtsp_server_username, name);}
+    void setPassword(char* pw){strcpy(rtsp_server_password, pw);}
     void startPreview(void* window);
     void pausePreview(void* window);
     void stopPreview(void* window);

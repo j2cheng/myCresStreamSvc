@@ -45,6 +45,7 @@ LOCAL_SRC_FILES := \
 	cresStreamOut/streamOutManager/cresStreamSnapShot.cpp \
 	cresStreamOut/streamOutManager/cresPreview.cpp \
 	cresStreamOut/streamOutManager/cresCamera.cpp \
+	cresStreamOut/streamOutManager/usbAudio.cpp \
 	cresStreamOut/streamOutDebug/cresStreamOutDebug.cpp \
 	cresStreamOut/cresStreamOutProject.cpp \
 	cresStreamOut/streamOutUtils/cresProjectBaseClass.cpp \
@@ -110,6 +111,12 @@ LOCAL_SHARED_LIBRARIES += libcresnextserializer
 ifeq ($(shell test $(PLATFORM_SDK_VERSION) -lt 23 && echo PreMarshmallow),PreMarshmallow)
 LOCAL_SHARED_LIBRARIES += libstlport
 LOCAL_SHARED_LIBRARIES += libSecureStorage
+endif
+
+# tinyalsa needed on am3x00 for wireless conferencing RTSP server
+ifeq ($(TARGET_PRODUCT),$(filter $(TARGET_PRODUCT),am3x00_box))
+LOCAL_CFLAGS += -DHAS_TINYALSA
+LOCAL_SHARED_LIBRARIES += libtinyalsa
 endif
 
 # Crestron - why do I have to do this?

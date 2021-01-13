@@ -20,11 +20,134 @@
 #include <stdlib.h>
 #include "cresStreamOutManager.h"
 #include "gst/app/gstappsrc.h"
+#include "../../shared-ssl/shared-ssl.h"
+
+#undef NANOPC
+
+#undef USE_VIDEOTESTSRC
+#undef USE_AUDIOTESTSRC
+#undef CLIENT_AUTHENTICATION_ENABLED
+
+#ifdef USE_VIDEOTESTSRC
+#define VIDEOSOURCE "videotestsrc"
+#else
+#ifdef NANOPC
+#define VIDEOSOURCE "v4l2src device=/dev/video10 io-mode=4 do-timestamp=true"
+#else
+#define VIDEOSOURCE "v4l2src device=/dev/video5  io-mode=4 do-timestamp=true"
+#endif
+#endif
+
+static bool PushModel = false;
+
+#ifdef USE_AUDIOTESTSRC
+#define AUDIOSOURCE "audiotestsrc ! audio/x-raw,format=S16LE,rate=48000,channels=2 "
+int useUsbAudio = false;
+#else
+#define AUDIOSOURCE "appsrc name=wc_appsrc "
+int useUsbAudio = true;
+#endif
+
+//#define AUDIOENC "amcaudenc-omxgoogleaacencoder"
+#define AUDIOENC "voaacenc"
 
 #define CRES_OVERLOAD_MEDIA_CLASS 1
 #define CRES_UNPREPARE_MEDIA      1
 #define MAX_RTSP_SESSIONS         5
 #define	UNLIMITED_RTSP_SESSIONS   0
+
+extern void csio_jni_SendWCServerURL( void * arg );
+extern void usb_audio_get_samples(pcm *pcm_device, void *data, int size, GstClockTime *timestamp, GstClockTime *duration);
+
+static gboolean
+timeout (GstRTSPServer * server)
+{
+    GstRTSPSessionPool *pool;
+
+    CSIO_LOG(eLogLevel_info, "--------------- In timeout() -----------------------");
+    pool = gst_rtsp_server_get_session_pool (server);
+    guint removed = gst_rtsp_session_pool_cleanup (pool);
+    g_object_unref (pool);
+    CSIO_LOG(eLogLevel_info, "Removed %d sessions", removed);
+
+    return TRUE;
+}
+
+static void
+client_closed (GstRTSPClient * client, void *user_data)
+{
+    CStreamoutManager *pMgr = (CStreamoutManager *) user_data;
+
+    pMgr->m_clientList.remove(client);
+//    if (PushModel && pMgr->m_clientList.size() == 0)
+//        pMgr->m_bNeedData = false;
+    CSIO_LOG(eLogLevel_info,"********** RTSP Client closed (size=%d) ****************\n", pMgr->m_clientList.size());
+}
+
+static void
+client_connected (GstRTSPServer * server, GstRTSPClient * client, void *user_data)
+{
+    CStreamoutManager *pMgr = (CStreamoutManager *) user_data;
+
+    pMgr->m_clientList.push_back(client);
+//    if (PushModel)
+//        pMgr->m_bNeedData = true;
+    CSIO_LOG(eLogLevel_info,"********** RTSP Client connected (size=%d) **************\n", pMgr->m_clientList.size());
+    g_signal_connect(client, "closed", (GCallback) client_closed, pMgr);
+}
+
+#ifdef CLIENT_AUTHENTICATION_ENABLED
+static gboolean
+accept_certificate (GstRTSPAuth *auth,
+                    GTlsConnection *conn,
+                    GTlsCertificate *peer_cert,
+                    GTlsCertificateFlags errors,
+                    gpointer user_data) {
+
+    GError *error;
+    gboolean accept = FALSE;
+    GTlsCertificate *ca_cert = (GTlsCertificate *) user_data;
+
+    CSIO_LOG(eLogLevel_verbose, "%s(): entered", __FUNCTION__);
+    GTlsDatabase* database = g_tls_connection_get_database(G_TLS_CONNECTION(conn));
+    if (database) {
+        GSocketConnectable *peer_identity;
+        GTlsCertificateFlags validation_flags;
+        CSIO_LOG(eLogLevel_debug, "TLS peer certificate not accepted, checking user database...\n");
+        peer_identity = NULL;
+        errors =
+                g_tls_database_verify_chain (database, peer_cert,
+                                             G_TLS_DATABASE_PURPOSE_AUTHENTICATE_CLIENT, peer_identity,
+                                             g_tls_connection_get_interaction (conn), G_TLS_DATABASE_VERIFY_NONE,
+                                             NULL, &error);
+        CSIO_LOG(eLogLevel_info, "*******accept-certificate******* errors value %d\n",errors);
+
+        // Alternate verification
+        if (errors == 0) {
+            GTlsCertificateFlags flags = g_tls_certificate_verify(peer_cert, peer_identity, ca_cert);
+            if (flags != 0)
+            {
+                CSIO_LOG(eLogLevel_info, "certificates did not verify susccessfully  flags=0x%x\n", flags);
+                errors = flags;
+            }
+        }
+        if (error)
+        {
+            CSIO_LOG(eLogLevel_warning, "failure verifying certificate chain: %s",
+                       error->message);
+            g_assert (errors != 0);
+            g_clear_error (&error);
+        }
+    }
+
+    if (errors == 0 && error == NULL) {
+        CSIO_LOG(eLogLevel_info, "accept-certificate returning true");
+        return TRUE;
+    }
+    CSIO_LOG(eLogLevel_info, "accept-certificate returning false");
+    return FALSE;
+}
+#endif
 
 ///////////////////////////////////////////////////////////////////////////////
 // Allow file to override canned pipeline, for debugging...
@@ -125,10 +248,152 @@ media_configure (GstRTSPMediaFactory * factory, GstRTSPMedia * media,
 
 	((CresRTSPMedia *)media)->m_loop = pMgr->m_loop;
 
-	pMgr->m_bPushRawFrames = true;
+    if (pMgr->m_streamoutMode == STREAMOUT_MODE_CAMERA)
+        pMgr->m_bPushRawFrames = true;
 
 	gst_object_unref (element);
 	g_free(n);
+}
+
+void get_audio_data_for_pull(CStreamoutManager *pMgr, guint size)
+{
+    CSIO_LOG(eLogLevel_verbose, "Streamout: get_audio_data...size=%d", size);
+    GstFlowReturn ret;
+    int nsamples = size/(2*2);
+    int n;
+
+    GstBuffer *buffer = gst_buffer_new_allocate(NULL, size, NULL);
+    GstMapInfo mapInfo;
+    GstClockTime timestamp, duration;
+    if (gst_buffer_map(buffer, &mapInfo, GST_MAP_WRITE)) {
+    	usb_audio_get_samples(pMgr->m_usbAudio->m_device, mapInfo.data, mapInfo.size, &timestamp, &duration);
+    }
+    gst_buffer_unmap(buffer, &mapInfo);
+    GST_BUFFER_PTS(buffer) = timestamp;
+    GST_BUFFER_DURATION(buffer) = duration;
+
+    g_signal_emit_by_name(pMgr->m_appsrc, "push_buffer", buffer, &ret);
+    //ret = gst_app_src_push_buffer((GstAppSrc *)appsrc, buffer);
+    if (ret == GST_FLOW_OK) {
+        CSIO_LOG(eLogLevel_verbose, "Streamout: buffer pushed successfully");
+    } else {
+        CSIO_LOG(eLogLevel_error, "Streamout: pushed returned %d", (int) ret);
+    }
+    gst_buffer_unref(buffer);
+    CSIO_LOG(eLogLevel_verbose, "Streamout: get_audio_data_for_pull....exiting - pushed buffer of size %d", size);
+}
+
+void cb_wcSrcNeedData (GstElement *appsrc, guint size, gpointer user_data)
+{
+    CSIO_LOG(eLogLevel_verbose, "Streamout: cb_wcSrc_need_data...size=%d (pMgr=%p)", size, user_data);
+    CStreamoutManager *pMgr = (CStreamoutManager *) user_data;
+
+    pMgr->m_bNeedData = true;
+    get_audio_data_for_pull(pMgr, size);
+}
+
+void cb_wcSrcEnoughData (GstElement *appsrc, gpointer user_data)
+{
+    CSIO_LOG(eLogLevel_info, "Streamout: cb_wcSrc_enough_data...(pMgr=%p)", user_data);
+    CStreamoutManager *pMgr = (CStreamoutManager *) user_data;
+
+    pMgr->m_bNeedData = false;
+}
+
+/* called when a new media pipeline is constructed. We can query the
+ * pipeline and configure our media src */
+static void
+wc_media_configure (GstRTSPMediaFactory * factory, GstRTSPMedia * media,
+                 gpointer user_data)
+{
+    CStreamoutManager *pMgr = (CStreamoutManager *) user_data;
+    GstElement *element;
+    GstElement *ele;
+    /* get the element used for providing the streams of the media */
+    element = gst_rtsp_media_get_element (media);
+    gchar * n = gst_element_get_name(element);
+    CSIO_LOG(eLogLevel_debug, "Streamout: element name[%s] of media[0x%x]",n,media);
+
+        //set up audio source
+    if (pMgr->m_audioStream)
+    {
+        if (useUsbAudio && (pMgr->m_usbAudio->m_device == NULL))
+        {
+        	if (!pMgr->m_usbAudio->configure())
+        		return;
+        }
+
+        ele = gst_bin_get_by_name_recurse_up (GST_BIN (element), "wc_appsrc");
+        if(ele)
+        {
+            CSIO_LOG(eLogLevel_verbose, "Streamout: get_by_name wc_appsrc[%p]",ele);
+
+//TODO: save CAPS from usb audio src
+            g_object_set(G_OBJECT(ele), "caps",
+                         gst_caps_new_simple(
+                                 "audio/x-raw",
+                                 "layout", G_TYPE_STRING, "interleaved",
+                                 "format", G_TYPE_STRING, pMgr->m_usbAudio->getAudioFormat(),
+                                 "rate", G_TYPE_INT, pMgr->m_usbAudio->getAudioSamplingRate(),
+                                 "channels", G_TYPE_INT, pMgr->m_usbAudio->getAudioChannels(),
+                                 NULL), NULL);
+
+            g_object_set( G_OBJECT(ele), "stream-type", 0, NULL );
+            g_object_set( G_OBJECT(ele), "format", GST_FORMAT_TIME, NULL );
+
+
+            pMgr->m_appsrc = ele;
+            g_signal_connect(ele, "need-data", G_CALLBACK(cb_wcSrcNeedData), user_data);
+            g_signal_connect(ele, "enough_data", G_CALLBACK(cb_wcSrcEnoughData), user_data);
+
+            gst_object_unref(ele);
+        }
+
+        if (pMgr->m_videoStream)
+        {
+            ele = gst_bin_get_by_name_recurse_up(GST_BIN (element), "vidPreQ");
+            if (ele)
+            {
+                CSIO_LOG(eLogLevel_info, "Streamout: set leaky downstream on vidPreQ");
+                g_object_set(G_OBJECT(ele), "leaky", (guint) 2 /*GST_QUEUE_LEAK_DOWNSTREAM*/, NULL);
+                gst_object_unref(ele);
+            }
+            ele = gst_bin_get_by_name_recurse_up(GST_BIN (element), "vidPostQ");
+            if (ele)
+            {
+                CSIO_LOG(eLogLevel_info, "Streamout: set leaky downstream on vidPostQ");
+                g_object_set(G_OBJECT(ele), "leaky", (guint) 2 /*GST_QUEUE_LEAK_DOWNSTREAM*/, NULL);
+                gst_object_unref(ele);
+            }
+        }
+        if (pMgr->m_audioStream) {
+            ele = gst_bin_get_by_name_recurse_up(GST_BIN (element), "audPreQ");
+            if (ele) {
+                CSIO_LOG(eLogLevel_info, "Streamout: set leaky downstream on audPreQ");
+                g_object_set(G_OBJECT(ele), "leaky", (guint) 2 /*GST_QUEUE_LEAK_DOWNSTREAM*/, NULL);
+                g_object_set(G_OBJECT(ele), "max-size-bytes", 48000, NULL);
+                gst_object_unref(ele);
+            }
+            ele = gst_bin_get_by_name_recurse_up(GST_BIN (element), "audPostQ");
+            if (ele) {
+                CSIO_LOG(eLogLevel_info, "Streamout: set leaky downstream on audPostQ");
+                g_object_set(G_OBJECT(ele), "leaky", (guint) 2 /*GST_QUEUE_LEAK_DOWNSTREAM*/, NULL);
+                g_object_set(G_OBJECT(ele), "max-size-bytes", 48000, NULL);
+                gst_object_unref(ele);
+            }
+        }
+    }
+
+    CSIO_LOG(eLogLevel_debug, "Streamout: set media reusable to true media[%p]",media);
+    gst_rtsp_media_set_reusable (media, TRUE);
+
+    //pass media back to manager
+    pMgr->m_pMedia = media;
+
+    ((CresRTSPMedia *)media)->m_loop = pMgr->m_loop;
+
+    gst_object_unref (element);
+    g_free(n);
 }
 
 static GstRTSPFilterResult
@@ -139,10 +404,11 @@ filter_cb (GstRTSPStream *stream, GstRTSPStreamTransport *trans,gpointer user_da
 }
 
 /**********************CStreamoutManager class implementation***************************************/
-CStreamoutManager::CStreamoutManager():
+CStreamoutManager::CStreamoutManager(eStreamoutMode streamoutMode):
 m_clientConnCnt(0),m_loop(NULL),m_main_loop_is_running(0),
 m_pMedia(NULL),m_bNeedData(false),m_bStopTeeInProgress(false),
-m_bExit(false),m_bPushRawFrames(false),m_ahcsrc(NULL),m_camera(NULL)
+m_bExit(false),m_bPushRawFrames(false),m_ahcsrc(NULL),m_camera(NULL),
+m_appsrc(NULL), m_streamoutMode(streamoutMode)
 {
     m_StreamoutEvent  = new CStreamoutEvent();
 
@@ -154,6 +420,27 @@ m_bExit(false),m_bPushRawFrames(false),m_ahcsrc(NULL),m_camera(NULL)
     m_multicast_address[0] = '\0';
     m_stream_name[0] = '\0';
 
+    // FIXME - these must change to be random strings
+    setUsername("user");
+    setPassword("password");
+    if (m_streamoutMode == STREAMOUT_MODE_WIRELESSCONFERENCING)
+    {
+        //m_clientList = new std::list<GstRtspClient *>();
+        m_auth_on = true;
+        m_tls_on = true;
+        //if (m_tls_on)
+            //create_selfsigned_certificate(RTSP_CERT_PEM_FILENAME, RTSP_CERT_KEY);
+        m_videoStream = true;
+        m_audioStream = true;
+        m_aacEncode = true;
+
+        m_usbAudio = new UsbAudio();
+
+        if (m_audioStream && m_usbAudio->m_pcm_card_idx != 0) {
+        	m_audioStream = m_usbAudio->getAudioParams();
+        }
+    }
+
     if(!m_StreamoutEvent || !m_StreamoutEventQ || !mLock)
         CSIO_LOG(eLogLevel_error, "--Streamout: CStreamoutManager malloc failed:[0x%x][0x%x][0x%x]",\
                 m_StreamoutEvent,m_StreamoutEventQ,mLock);
@@ -161,6 +448,14 @@ m_bExit(false),m_bPushRawFrames(false),m_ahcsrc(NULL),m_camera(NULL)
 
 CStreamoutManager::~CStreamoutManager()
 {
+	if (m_usbAudio)
+	{
+		delete m_usbAudio;
+		m_usbAudio = NULL;
+	}
+
+    m_clientList.clear();
+
     if(m_StreamoutEvent)
     {
         delete m_StreamoutEvent;
@@ -194,6 +489,10 @@ void CStreamoutManager::DumpClassPara(int level)
     CSIO_LOG(eLogLevel_info, "---Streamout: m_parent 0x%x", m_parent);
     CSIO_LOG(eLogLevel_info, "---Streamout: m_clientConnCnt %d", m_clientConnCnt);
     CSIO_LOG(eLogLevel_info, "---Streamout: m_main_loop_is_running %d", m_main_loop_is_running);
+
+    CSIO_LOG(eLogLevel_info, "---Streamout: m_streamoutMode %d", m_streamoutMode);
+    CSIO_LOG(eLogLevel_info, "---Streamout: m_auth_on %d", (int)m_auth_on);
+    CSIO_LOG(eLogLevel_info, "---Streamout: m_tls_on %d", (int)m_tls_on);
 
     CSIO_LOG(eLogLevel_info, "---Streamout: m_loop 0x%x", m_loop);
     CSIO_LOG(eLogLevel_info, "---Streamout: m_pMedia [0x%x]",m_pMedia);
@@ -233,7 +532,9 @@ void *CStreamoutManager::forceUnprepare(void * arg)
 {
 	GstRTSPMedia * pMedia = (GstRTSPMedia *)arg;
 
+    CSIO_LOG(eLogLevel_info, "Streamout(%s): calling gst_rtsp_media_unprepare_force", __FUNCTION__);
     gst_rtsp_media_unprepare_force (pMedia);   //bug122841 - this function hangs.
+    CSIO_LOG(eLogLevel_info, "Streamout(%s): gst_rtsp_media_unprepare_force returned", __FUNCTION__);
 
     pthread_cond_signal(&m_condv); //Flags that stop has completed
     pthread_exit(NULL);
@@ -284,6 +585,7 @@ void CStreamoutManager::forceMediaUnprepare(GstRTSPMedia * pMedia)
 	}
 	else if (result != 0)
 		CSIO_LOG(eLogLevel_error, "Unknown error occurred while waiting for forceUnprepare to complete, error = %d\n", result);
+    CSIO_LOG(eLogLevel_info, "forceMediaUnprepare() exiting.....");
 }
 
 void* CStreamoutManager::ThreadEntry()
@@ -295,13 +597,16 @@ void* CStreamoutManager::ThreadEntry()
     GstRTSPMountPoints * mounts  = NULL;
     GSource *  server_source     = NULL;
     GstRTSPSessionPool *pool     = NULL;
+    GError *error = NULL;
+    char mountPoint [512];
+
 
     m_factory = NULL;
 
     //create new context
     context = g_main_context_new ();
     g_main_context_push_thread_default(context);
-    CSIO_LOG(m_debugLevel,  "Streamout: creste new context: 0x%x\n", context );
+    CSIO_LOG(m_debugLevel,  "Streamout: create new context: 0x%x\n", context );
     if(!context)
     {
         CSIO_LOG(eLogLevel_error, "Streamout: Failed to create rtsp server context");
@@ -320,6 +625,7 @@ void* CStreamoutManager::ThreadEntry()
         CSIO_LOG(eLogLevel_error, "Streamout: Failed to create rtsp server");
         goto exitThread;
     }
+    CSIO_LOG(eLogLevel_info, "Streamout: server[0x%x] created",server);
 
     // limit the rtsp sesssions
     pool = gst_rtsp_server_get_session_pool(server); 
@@ -339,6 +645,60 @@ void* CStreamoutManager::ThreadEntry()
     CSIO_LOG(m_debugLevel, "Streamout: set_service to port:%s",m_rtsp_port);
     gst_rtsp_server_set_service (server, m_rtsp_port);
 
+    if (m_auth_on) {
+        GstRTSPAuth *auth = NULL;
+        GTlsCertificate *cert = NULL;
+        /* make a new authentication manager. it can be added to control access to all
+         * the factories on the server or on individual factories. */
+        auth = gst_rtsp_auth_new();
+        if (m_tls_on) {
+            CSIO_LOG(eLogLevel_info, "Streamout: RTSP server's TLS configuration\n");
+            cert = g_tls_certificate_new_from_files(RTSP_CERT_PEM_FILENAME, RTSP_CERT_KEY, &error);
+            if (cert == NULL) {
+                CSIO_LOG(eLogLevel_error, "Streamout: failed to parse PEM: %s\n", error->message);
+                goto exitThread;
+            }
+#ifdef CLIENT_AUTHENTICATION_ENABLED
+            GTlsDatabase *database = g_tls_file_database_new(RTSP_CA_CERT_FILENAME, &error);
+            //GTlsDatabase *database = g_tls_file_database_new(RTSP_CERT_PEM_FILENAME, &error);
+            if (database == NULL)
+            {
+                CSIO_LOG(eLogLevel_error, "Streamout: failed to create database from ca cert: %s\n", error->message);
+                goto exitThread;
+            }
+            gst_rtsp_auth_set_tls_database(auth, database);
+
+            GTlsCertificate *ca_cert = g_tls_certificate_new_from_file(RTSP_CA_CERT_FILENAME,&error);
+            //ca_cert = g_tls_certificate_new_from_file("/home/enthusiasticgeek/gstreamer/cert/toyCA.pem",&error);
+            if (ca_cert == NULL) {
+                g_printerr ("failed to parse CA PEM: %s\n", error->message);
+                goto exitThread;
+            }
+            gst_rtsp_auth_set_tls_authentication_mode(auth, G_TLS_AUTHENTICATION_REQUIRED);
+            g_signal_connect (auth, "accept-certificate", G_CALLBACK
+                    (accept_certificate), ca_cert);
+            //if (ca_cert) g_object_unref(ca_cert); //TODO is this needed - had crash when put it in code
+#endif
+            gst_rtsp_auth_set_tls_certificate(auth, cert);
+
+            if (cert) g_object_unref(cert);
+        }
+
+        GstRTSPToken *token;
+        gchar *basic;
+        /* make user token */
+        token = gst_rtsp_token_new (GST_RTSP_TOKEN_MEDIA_FACTORY_ROLE, G_TYPE_STRING, rtsp_server_username, NULL);
+        basic = gst_rtsp_auth_make_basic (rtsp_server_username, rtsp_server_password);
+
+        gst_rtsp_auth_add_basic (auth, basic, token);
+        g_free (basic);
+        gst_rtsp_token_unref (token);
+
+        /* configure in the server */
+        gst_rtsp_server_set_auth (server, auth);
+        if(auth) g_object_unref(auth);
+    }
+
     /* get the mount points for this server, every server has a default object
     * that be used to map uri mount points to media factories */
     mounts = gst_rtsp_server_get_mount_points (server);
@@ -356,22 +716,113 @@ void* CStreamoutManager::ThreadEntry()
 
     if(gst_rtsp_server_get_pipeline(pipeline, sizeof(pipeline)) == false)
     {
-        // Because camera on x60 is front-facing, it is mirrored by default for the preview.
-        // Old default pipeline (with video flipping) "( ahcsrc ! videoflip method=4 ! videoconvert ! %s ! rtph264pay name=pay0 pt=96 )"
-        // Enabled NV21 pixel format in libgstreamer_android.so, don't need videoconvert anymore.
-        //"( ahcsrc ! videoconvert ! %s ! rtph264pay name=pay0 pt=96 )"
-        // Queue before encoder reduces stream latency.
-        snprintf(pipeline, sizeof(pipeline), "( appsrc name=cresappsrc ! "
-                "videoparse name=vparser ! "
-				 "queue ! "
-				 "%s bitrate=%s i-frame-interval=%s ! "
-				 "rtph264pay name=pay0 pt=96 )",
-				 product_info()->H264_encoder_string,
-				 m_bit_rate,m_iframe_interval);
+        if (m_streamoutMode == STREAMOUT_MODE_CAMERA)
+        {
+            // Because camera on x60 is front-facing, it is mirrored by default for the preview.
+            // Old default pipeline (with video flipping) "( ahcsrc ! videoflip method=4 ! videoconvert ! %s ! rtph264pay name=pay0 pt=96 )"
+            // Enabled NV21 pixel format in libgstreamer_android.so, don't need videoconvert anymore.
+            //"( ahcsrc ! videoconvert ! %s ! rtph264pay name=pay0 pt=96 )"
+            // Queue before encoder reduces stream latency.
+            snprintf(pipeline, sizeof(pipeline), "( appsrc name=cresappsrc ! "
+                                                 "videoparse name=vparser ! "
+                                                 "queue name =vidPreQ ! "
+                                                 "%s bitrate=%s i-frame-interval=%s ! "
+                                                 "queue name =vidPostQ ! "
+                                                 "rtph264pay name=pay0 pt=96 )",
+                     product_info()->H264_encoder_string,
+                     m_bit_rate,m_iframe_interval);
+        }
+        else
+        {
+            CSIO_LOG(eLogLevel_error, "Streamout: m_videoStream=%d m_audioStream=%d", m_videoStream, m_audioStream);
+
+            if (m_videoStream && !m_audioStream) {
+                snprintf(pipeline, sizeof(pipeline), "( %s ! "
+                                                     "video/x-raw,format=NV12,width=%s,height=%s,framerate=%s/1 ! "
+                                                     "queue name = vidPreQ ! "
+                                                     "%s bitrate=%s i-frame-interval=%s ! "
+                                                     "queue name=vidPostQ ! "
+                                                     "h264parse ! "
+                                                     "rtph264pay name=pay0 pt=96 )",
+                                                     VIDEOSOURCE,
+                                                     m_res_x, m_res_y, m_frame_rate,
+                                                     product_info()->H264_encoder_string,
+                                                     m_bit_rate, m_iframe_interval);
+            }
+
+            // for audio when we push have queues before and after enc, but pull model will not work like that so no queues
+            char audioenc[128];
+            const char *audioEncoderName = (m_aacEncode) ? AUDIOENC : "alawenc";
+            snprintf(audioenc, sizeof(audioenc), "%s", audioEncoderName);
+
+            if (m_videoStream && m_audioStream) {
+                if (m_aacEncode) {
+                    snprintf(pipeline, sizeof(pipeline), "( %s ! "
+                                                         "video/x-raw,format=NV12,width=%s,height=%s,framerate=%s/1 ! "
+                                                         "queue name=vidPreQ ! "
+                                                         "%s bitrate=%s i-frame-interval=%s ! "
+                                                         "queue name=vidPostQ ! "
+                                                         "h264parse ! "
+                                                         "rtph264pay name=pay0 pt=96 "
+                                                         "%s ! audioresample ! audioconvert ! "
+                                                         "%s ! "
+                                                         "rtpmp4apay name=pay1 pt=97 )",
+                                                         VIDEOSOURCE,
+                                                         m_res_x, m_res_y, m_frame_rate,
+                                                         product_info()->H264_encoder_string,
+                                                         m_bit_rate, m_iframe_interval,
+                                                         AUDIOSOURCE, audioenc);
+                } else {
+                    snprintf(pipeline, sizeof(pipeline), "( %s ! "
+                                                         "video/x-raw,format=NV12,width=%s,height=%s,framerate=%s/1 ! "
+                                                         "queue name=vidPreQ ! "
+                                                         "%s bitrate=%s i-frame-interval=%s ! "
+                                                         "queue name=vidPostQ ! "
+                                                         "h264parse ! "
+                                                         "rtph264pay name=pay0 pt=96 "
+                                                         "%s ! audioresample ! audioconvert ! audio/x-raw,rate=8000 ! "
+                                                         "%s ! "
+                                                         "rtppcmapay name=pay1 pt=97 )",
+                                                         VIDEOSOURCE,
+                                                         m_res_x, m_res_y, m_frame_rate,
+                                                         product_info()->H264_encoder_string,
+                                                         m_bit_rate, m_iframe_interval,
+                                                         AUDIOSOURCE, audioenc);
+                }
+            }
+            if (!m_videoStream && m_audioStream)
+            {
+                if (m_aacEncode) {
+                    snprintf(pipeline, sizeof(pipeline), "( %s ! audioresample ! audioconvert ! "
+                                                         "%s ! "
+                                                         "rtpmp4apay name=pay0 pt=97 )",
+                                                         AUDIOSOURCE, audioenc);
+                } else {
+                    snprintf(pipeline, sizeof(pipeline), "( %s ! audioresample ! audioconvert ! audio/x-raw,rate=8000 ! "
+                                                         "%s ! "
+                                                         "rtppcmapay name=pay0 pt=97 )",
+                                                          AUDIOSOURCE, audioenc);
+                }
+            }
+        }
     }
     CSIO_LOG(m_debugLevel, "Streamout: rtsp server pipeline: [%s]", pipeline);
     gst_rtsp_media_factory_set_launch (m_factory, pipeline);
 
+    if (m_auth_on) {
+        /* add permissions for the user media role */
+        GstRTSPPermissions *permissions = NULL;
+        permissions = gst_rtsp_permissions_new();
+        gst_rtsp_permissions_add_role(permissions, rtsp_server_username,
+                                      GST_RTSP_PERM_MEDIA_FACTORY_ACCESS, G_TYPE_BOOLEAN, TRUE,
+                                      GST_RTSP_PERM_MEDIA_FACTORY_CONSTRUCT, G_TYPE_BOOLEAN, TRUE,
+                                      NULL);
+        gst_rtsp_media_factory_set_permissions(m_factory, permissions);
+        gst_rtsp_permissions_unref(permissions);
+        if (m_tls_on) {
+            gst_rtsp_media_factory_set_profiles(m_factory, (GstRTSPProfile) (GST_RTSP_PROFILE_SAVP | GST_RTSP_PROFILE_SAVPF));
+        }
+    }
 
     if (m_multicast_enable)
     {
@@ -402,7 +853,11 @@ void* CStreamoutManager::ThreadEntry()
 
     /* notify when our media is ready, This is called whenever someone asks for
        * the media and a new pipeline with our appsrc is created */
-    g_signal_connect (m_factory, "media-configure", (GCallback) media_configure,this);
+    if (m_streamoutMode == STREAMOUT_MODE_CAMERA) {
+        g_signal_connect (m_factory, "media-configure", (GCallback) media_configure, this);
+    } else {
+        g_signal_connect (m_factory, "media-configure", (GCallback) wc_media_configure, this);
+    }
 
     gst_rtsp_media_factory_set_shared (m_factory, TRUE);
 
@@ -415,15 +870,22 @@ void* CStreamoutManager::ThreadEntry()
 
     if (m_stream_name[0])
     {
-	    char mountPoint [512];
         sprintf(mountPoint, "/%s.sdp", m_stream_name);
-    	gst_rtsp_mount_points_add_factory (mounts, mountPoint, m_factory);
     }
-    else
-    	gst_rtsp_mount_points_add_factory (mounts, "/camera.sdp", m_factory);
-    g_object_unref (mounts);
+    {
+        if (m_streamoutMode == STREAMOUT_MODE_CAMERA)
+            sprintf(mountPoint, "/%s.sdp", "camera");
+        else
+            sprintf(mountPoint, "/%s.sdp", "wc");
+    }
+    gst_rtsp_mount_points_add_factory (mounts, mountPoint, m_factory);
+    g_object_unref(mounts);
+    CSIO_LOG(eLogLevel_info, "Streamout: mount in wireless conferencing mode: [%s]", mountPoint);
 
-//correct way to create source and attatch to mainloop
+    // send server URL to Gstreamout via jni
+    sendWcUrl(server, mountPoint);
+
+    //correct way to create source and attach to mainloop
     server_source = gst_rtsp_server_create_source(server,NULL,NULL);
     if(server_source)
     {
@@ -448,13 +910,21 @@ void* CStreamoutManager::ThreadEntry()
 
     m_main_loop_is_running = 1;
 
-    StartSnapShot(this);
+    if (m_streamoutMode == STREAMOUT_MODE_CAMERA)
+        StartSnapShot(this);
 
+    if (m_streamoutMode == STREAMOUT_MODE_WIRELESSCONFERENCING) {
+        g_signal_connect(server, "client-connected", (GCallback) client_connected, this);
+        g_timeout_add_seconds(2, (GSourceFunc) timeout, server);
+    }
+
+    CSIO_LOG(eLogLevel_info, "Streamout: running main loop......");
     g_main_loop_run (m_loop);
 
 exitThread:
     /* cleanup */
-	StopSnapShot(this);
+if (m_streamoutMode == STREAMOUT_MODE_CAMERA)
+    StopSnapShot(this);
 
 #ifdef CRES_UNPREPARE_MEDIA
 /*   please check out this bug: https://bugzilla.gnome.org/show_bug.cgi?id=747801
@@ -480,6 +950,7 @@ exitThread:
 
         CSIO_LOG(m_debugLevel, "Streamout: -------call gst_rtsp_media_unprepare---");
         forceMediaUnprepare(m_pMedia);
+        CSIO_LOG(m_debugLevel, "Streamout: ------- forceMediaUnprepare returned---");
     }
 #endif
 
@@ -492,18 +963,27 @@ exitThread:
         CSIO_LOG(m_debugLevel, "Streamout: g_source_destroy server_source[0x%x]",server_source);
     }
 
+    CSIO_LOG(m_debugLevel, "Streamout: remove factory from mount points");
+    if (m_factory && mounts) gst_rtsp_mount_points_remove_factory(mounts, mountPoint);
+    CSIO_LOG(m_debugLevel, "Streamout: unreference mounts[0x%x]",mounts);
+    if (mounts) g_object_unref (mounts);
+    CSIO_LOG(m_debugLevel, "Streamout: unreference factory[0x%x]",m_factory);
     if(m_factory) g_object_unref (m_factory);
+    CSIO_LOG(m_debugLevel, "Streamout: unreference server[0x%x]",server);
     if(server) g_object_unref (server);
+    CSIO_LOG(m_debugLevel, "Streamout: unreference loop[0x%x]",m_loop);
     if(m_loop) g_main_loop_unref (m_loop);
     if(pool) g_object_unref (pool);
 
     //need to create a cleanup function and call here
+    CSIO_LOG(m_debugLevel, "Streamout: reset m_loop, m_main_loop_is_running, m_pMedia");
     m_loop = NULL;
     m_main_loop_is_running = 0;
-    m_pMedia = NULL;;
+    m_pMedia = NULL;
 
     if(context)
     {
+        CSIO_LOG(m_debugLevel, "Streamout: unreference context[0x%x]", context);
         g_main_context_pop_thread_default(context);
         g_main_context_unref (context);
         context = NULL;
@@ -514,7 +994,33 @@ exitThread:
     //thread exit here
     m_ThreadIsRunning = 0;
 
+    CSIO_LOG(m_debugLevel, "CStreamoutManager: exiting ThreadEntry function - returning NULL------");
     return NULL;
+}
+
+void CStreamoutManager::sendWcUrl(GstRTSPServer *server, char *mountPoint)
+{
+    // send WC URL
+    if (m_streamoutMode == STREAMOUT_MODE_WIRELESSCONFERENCING) {
+        gchar *ipAddr = gst_rtsp_server_get_address(server);
+        char url[512];
+
+        CSIO_LOG(eLogLevel_info, "Streamout: server ip address=%s", ipAddr);
+        if (m_tls_on) {
+            snprintf(url, sizeof(url), "rtsps://%s:%s@%s:8554%s", rtsp_server_username,
+                     rtsp_server_password, ipAddr, mountPoint);
+        } else {
+            if (m_auth_on) {
+                snprintf(url, sizeof(url), "rtsp://%s:%s@%s:8554%s", rtsp_server_username,
+                         rtsp_server_password, ipAddr, mountPoint);
+            } else {
+                snprintf(url, sizeof(url), "rtsp://%s:8554%s", ipAddr, mountPoint);
+            }
+        }
+        g_free(ipAddr);
+        CSIO_LOG(eLogLevel_info, "Streamout: sending WC url=%s", url);
+        csio_jni_SendWCServerURL(url);
+    }
 }
 
 void CStreamoutManager::setSnapshotName(char* name)

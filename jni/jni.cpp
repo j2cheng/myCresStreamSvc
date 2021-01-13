@@ -130,6 +130,7 @@ void csio_jni_FreeMainContext(int iStreamId);
 /*rtsp_server*/
 static jboolean gstNativeClassInitRtspServer (JNIEnv* env, jclass klass) ;
 static void gstNativeInitRtspServer (JNIEnv* env, jobject thiz, jobject surface);
+static void gstNativeInitWirelessConferencingRtspServer (JNIEnv* env, jobject thiz);
 static void gstNativeFinalizeRtspServer (JNIEnv* env, jobject thiz);
 void gst_native_rtsp_server_start (JNIEnv* env, jobject thiz);
 void gst_native_rtsp_server_stop (JNIEnv* env, jobject thiz);
@@ -137,6 +138,7 @@ void gst_native_rtsp_server_stop (JNIEnv* env, jobject thiz);
 static JNINativeMethod native_methods_rtsp_server[] =
 {
     { "nativeInitRtspServer", "(Ljava/lang/Object;)V", (void *) gstNativeInitRtspServer},
+    { "nativeInitWirelessConferencingRtspServer", "()V", (void *) gstNativeInitWirelessConferencingRtspServer},
     { "nativeFinalizeRtspServer", "()V", (void *) gstNativeFinalizeRtspServer},
     { "nativeClassInitRtspServer", "()Z", (void *) gstNativeClassInitRtspServer},
     { "nativeRtspServerStart", "()V", (void *) gst_native_rtsp_server_start},
@@ -1872,7 +1874,7 @@ JNIEXPORT void JNICALL Java_com_crestron_txrxservice_GstreamIn_nativeSetFieldDeb
 					}
 				}
 			}
-            else if (!strcmp(CmdPtr, "LAUNCH_START"))
+            else if (!strcmp(CmdPtr, "LAUNCH_START") || !strcmp(CmdPtr, "RTSP_START"))
             {
             	char * launchStr = strstr(namestring, " ");
             	launchStr++;	// Remove preceding space
@@ -1900,6 +1902,7 @@ JNIEXPORT void JNICALL Java_com_crestron_txrxservice_GstreamIn_nativeSetFieldDeb
             	data->debug_launch.pipeline = NULL;
             	data->debug_launch.loop = NULL;
             	data->debug_launch.bus = NULL;
+            	data->debug_launch.rtspStreamOut = !strcmp(CmdPtr, "RTSP_START");
 
 
             	CSIO_LOG(eLogLevel_debug, "Launching debug pipeline: %s", namestring, CmdPtr, data->debug_launch.pipelineString);
@@ -1913,7 +1916,7 @@ JNIEXPORT void JNICALL Java_com_crestron_txrxservice_GstreamIn_nativeSetFieldDeb
             	    CSIO_LOG(eLogLevel_error, "Failed to create new thread for debug pipeline.");
             	}
             }
-            else if (!strcmp(CmdPtr, "LAUNCH_STOP"))
+            else if (!strcmp(CmdPtr, "LAUNCH_STOP") || !strcmp(CmdPtr, "RTSP_STOP"))
             {
 				CSIO_LOG(eLogLevel_debug, "Stopping debug pipeline");
             	if (data->debug_launch.pipeline)
@@ -2032,6 +2035,34 @@ static GstElement * find_android_decoder(CREGSTREAM * data)
 	return decoder;
 }
 
+static GstElement * find_android_encoder(CREGSTREAM * data)
+{
+	GstIterator *it = gst_bin_iterate_elements(GST_BIN(data->debug_launch.pipeline));
+	GValue item = G_VALUE_INIT;
+	GstElement *encoder = NULL;
+	while (gst_iterator_next(it, &item) == GST_ITERATOR_OK)
+	{
+		GstElement *elem = (GstElement *)g_value_get_object(&item);
+		gchar *elemName = gst_element_get_name(elem);
+		CSIO_LOG(eLogLevel_verbose, "Found element %s", elemName);
+
+		if (strstr(elemName, "amcvideoenc") != 0)
+		{
+			// found encoder, now break, currently only handle one android encoder per pipeline
+			encoder = elem;
+			//gst_element_print_properties(encoder);
+			g_free(elemName);
+			break;
+		}
+		g_free(elemName);
+		g_value_reset(&item);
+	}
+	g_value_unset(&item);
+	gst_iterator_free(it);
+
+	return encoder;
+}
+
 static gboolean debug_launch_bus_message (GstBus * bus, GstMessage * message, CREGSTREAM * data)
 {
 	CSIO_LOG(eLogLevel_debug,"got message %s", gst_message_type_get_name (GST_MESSAGE_TYPE (message)));
@@ -2115,14 +2146,24 @@ static void * debug_launch_pipeline(void *vData)
 		if (data->debug_launch.bus)
 			gst_bus_add_watch (data->debug_launch.bus, (GstBusFunc) debug_launch_bus_message, data);
 
-		// Find decoder element and set the video window to it
-		GstElement *decoder = find_android_decoder(data);
+		if (!data->debug_launch.rtspStreamOut) {
+            // Find decoder element and set the video window to it
+            GstElement *decoder = find_android_decoder(data);
 
-		// If AMC video decoder is found, we need to set surface-window on it to render properly
-		if (decoder)
-		{
-			CSIO_LOG(eLogLevel_debug, "Found AMC decoder, setting surface window %p", data->surface);
-			g_object_set(G_OBJECT(decoder), "surface-window", data->surface, NULL);
+            // If AMC video decoder is found, we need to set surface-window on it to render properly
+            if (decoder) {
+                CSIO_LOG(eLogLevel_debug, "Found AMC decoder, setting surface window %p",
+                         data->surface);
+                g_object_set(G_OBJECT(decoder), "surface-window", data->surface, NULL);
+            }
+        } else {
+			// Find encoder element and set the video window to it
+			GstElement *encoder = find_android_encoder(data);
+            if (encoder) {
+                CSIO_LOG(eLogLevel_debug, "---- Found AMC encoder ----");
+            } else {
+                CSIO_LOG(eLogLevel_debug, "---- Unable to find AMC encoder ----");
+            }
 		}
 
 		// Go to playing state
@@ -4089,6 +4130,32 @@ void csio_jni_sendCameraStopFb()
     }
 }
 
+void csio_jni_SendWCServerURL( void * arg )
+{
+	jstring serverUrl_jstr;
+	JNIEnv *env = get_jni_env ();
+
+	char *serverUrl_cstr = (char *) arg;
+
+	CSIO_LOG(eLogLevel_debug,  "%s: Sending server URL %s", __FUNCTION__, serverUrl_cstr );
+
+	serverUrl_jstr = env->NewStringUTF(serverUrl_cstr);
+
+	jmethodID setWcServerUrl = env->GetMethodID((jclass)gStreamOut_javaClass_id, "setWcServerUrl", "(Ljava/lang/String;)V");
+	if (setWcServerUrl == NULL) {
+        CSIO_LOG(eLogLevel_error,  "%s: could not find JAVA method setWcServerUrl in Gstreamout class", __FUNCTION__);
+        return;
+	}
+
+	env->CallVoidMethod(CresStreamOutDataDB->app, setWcServerUrl, serverUrl_jstr);
+	if (env->ExceptionCheck ()) {
+		CSIO_LOG(eLogLevel_error, "%s: Failed to call Java method 'setWcServerURL'", __FUNCTION__);
+		env->ExceptionClear ();
+	}
+	env->DeleteLocalRef (serverUrl_jstr);
+    CSIO_LOG(eLogLevel_debug,  "%s: exit", __FUNCTION__);
+}
+
 void LocalConvertToUpper(char *str)
 {
     char *TmpPtr;
@@ -4189,9 +4256,28 @@ static void gstNativeInitRtspServer (JNIEnv* env, jobject thiz, jobject surface)
     init_custom_data_out(cdata);
 
     //init project
-    StreamoutProjectInit();
+    StreamoutProjectInit(STREAMOUT_MODE_CAMERA);
 
     CSIO_LOG(eLogLevel_debug, "rtsp_server: gstNativeInitRtspServer exit.");
+}
+
+static void gstNativeInitWirelessConferencingRtspServer (JNIEnv* env, jobject thiz)
+{
+    CSIO_LOG(eLogLevel_debug, "---***--- rtsp_server: Creating WirelessConferencing rtsp server ---***---");
+
+    CustomStreamOutData *cdata = g_new0 (CustomStreamOutData, 1);
+    CresStreamOutDataDB = cdata;
+
+    SET_CUSTOM_DATA (env, thiz, custom_data_field_id_rtsp_server, cdata);
+
+    cdata->app = env->NewGlobalRef(thiz);
+    init_custom_data_out(cdata);
+
+    //init project
+    StreamoutProjectInit(STREAMOUT_MODE_WIRELESSCONFERENCING);
+
+    CSIO_LOG(eLogLevel_debug, "----***---- rtsp_server: Created WirelessConferencing rtsp server ---****---");
+    CSIO_LOG(eLogLevel_debug, "rtsp_server: gstNativeInitWirelessConferencingRtspServer exit.");
 }
 
 static void gstNativeFinalizeRtspServer (JNIEnv* env, jobject thiz)

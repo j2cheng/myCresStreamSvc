@@ -17,6 +17,14 @@
 #include "cregstplay.h"
 #include "cresStreamOut_Common_Def.h"
 
+typedef enum _eStreamoutMode
+{
+//mode is set come from jni.c upon initialization of project
+    STREAMOUT_MODE_CAMERA = 0,
+    STREAMOUT_MODE_WIRELESSCONFERENCING = 1,
+    STREAMOUT_MODE_MAX
+} eStreamoutMode;
+
 #ifdef __cplusplus
 extern "C"
 {
@@ -32,7 +40,7 @@ void LocalConvertToUpper(char *str);
 extern CustomStreamOutData *CresStreamOutDataDB ;
 
 //all project functions
-void StreamoutProjectInit();
+void StreamoutProjectInit(eStreamoutMode streamoutMode);
 void StreamoutProjectDeInit();
 void StreamoutProjectDumpClassPara(int level);
 void Streamout_Start(int streamID);

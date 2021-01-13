@@ -68,6 +68,7 @@ typedef struct
 	GMainLoop *loop;
 	char *pipelineString;
 	pthread_t threadID;
+	bool rtspStreamOut;
 } DEBUGLAUNCH;
 
 /* per-stream info */
