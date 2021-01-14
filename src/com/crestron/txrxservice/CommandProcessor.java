@@ -803,7 +803,10 @@ class DestZOrderCommand extends CrestronCommand {
 
     @Override
         public void execute() {
-            ctrl.setWindowSizeZ(VALIDATE_INT(msg), sessId);
+    		if(ctrl.NumOfSurfaces > 1)
+    		{
+    			ctrl.setWindowSizeZ(VALIDATE_INT(msg), sessId);
+    		}
         }
         public String getFeedbackMsg() {
             return Integer.toString(ctrl.userSettings.getZ(sessId));
