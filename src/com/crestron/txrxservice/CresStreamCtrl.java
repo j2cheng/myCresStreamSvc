@@ -74,6 +74,14 @@ import android.app.Notification;
 import android.hardware.display.DisplayManager;
 import android.hardware.display.DisplayManager.DisplayListener;
 
+import android.hardware.camera2.CameraManager;
+import android.hardware.camera2.CameraAccessException;
+import android.hardware.camera2.CameraDevice;
+
+import java.util.Arrays;
+
+import android.os.Message;
+
 import com.crestron.txrxservice.CresStreamCtrl.StreamState;
 import com.crestron.txrxservice.ProductSpecific;
 import com.crestron.airmedia.receiver.m360.ipc.AirMediaSize;
@@ -1534,26 +1542,65 @@ public class CresStreamCtrl extends Service {
     
     public boolean getCameraDisabled()
     {
-        Camera c = null;
         boolean cameraDisabled = false;
+        //This is to support AM3X devices based on Pie and beyond
+        if (Build.VERSION.SDK_INT >= 28) { //Build.VERSION_CODES.P = Constant Value: 28 (0x0000001c)
+                CameraManager mCameraManager = null;
+                final String HDMIN_ID = "/dev/video0";
+                final String UVC_ID   = "/dev/video5";
+                String[] cameraIds = new String[]{};
+                mCameraManager = (CameraManager)getSystemService(Context.CAMERA_SERVICE);
 
-        if ((Camera.getNumberOfCameras() > 0) && !isCameraDisabledBySecurity()) {
-            try {
-                c = Camera.open(); // try to get camera
-                c.release();	// relase camera if obtained
-                cameraDisabled = false;
-            }
-            catch (RuntimeException e) {
-                Log.i(TAG, "Runtime exception in getCameraDisabled");
-                // FIXME/TODO remove the if condition for AMX300
-                if (CrestronProductName.fromInteger(nativeGetProductTypeEnum()) != CrestronProductName.AM3X00)
-                	restartMediaServer = true;
-            }
-        } else {
-            Log.i(TAG, "Camera feature not available according to PackageManager");
-            cameraDisabled = true;
+                try {
+                    cameraIds = mCameraManager.getCameraIdList();
+                    if(cameraIds.length > 0) //TODO: and Check if Camera is disabled by Security.
+                    {
+                        for (String id : cameraIds) {
+                            if (HDMIN_ID.equals(id))
+                            {
+                                //TODO: Open Camera
+                                //TODO: Close Camera checks
+                                Log.i(TAG, " HDMI I/P Camera " + Arrays.toString(cameraIds));
+                                cameraDisabled = false;
+                            }
+
+                            if (UVC_ID.equals(id)) {
+                                //Do not do anything with this camera presently
+                                Log.i(TAG, " UVC Camera present at" + Arrays.toString(cameraIds));
+                            };
+                         }
+                    }
+                    else 
+                    {
+                        Log.e(TAG, "Camera not available, ERROR!");
+                        cameraDisabled = true;
+                    }
+                }
+                catch (CameraAccessException e) {
+                    e.printStackTrace();
+                    restartMediaServer = true;
+                }
         }
-        return cameraDisabled;
+        else
+        {
+                Camera c = null;
+
+                if ((Camera.getNumberOfCameras() > 0) && !isCameraDisabledBySecurity()) {
+                    try {
+                        c = Camera.open(); // try to get camera
+                        c.release();    // release camera if obtained
+                        cameraDisabled = false;
+                    }
+                    catch (RuntimeException e) {
+                        Log.i(TAG, "Runtime exception in getCameraDisabled");
+                        restartMediaServer = true;
+                    }
+                } else {
+                    Log.i(TAG, "Camera feature not available according to PackageManager");
+                    cameraDisabled = true;
+               }
+            }
+            return cameraDisabled;
     }
 
     public void setViewFormat(final SurfaceView view, final int format)
