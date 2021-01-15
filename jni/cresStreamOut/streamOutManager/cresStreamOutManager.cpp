@@ -872,6 +872,7 @@ void* CStreamoutManager::ThreadEntry()
     {
         sprintf(mountPoint, "/%s.sdp", m_stream_name);
     }
+    else
     {
         if (m_streamoutMode == STREAMOUT_MODE_CAMERA)
             sprintf(mountPoint, "/%s.sdp", "camera");
@@ -880,7 +881,8 @@ void* CStreamoutManager::ThreadEntry()
     }
     gst_rtsp_mount_points_add_factory (mounts, mountPoint, m_factory);
     g_object_unref(mounts);
-    CSIO_LOG(eLogLevel_info, "Streamout: mount in wireless conferencing mode: [%s]", mountPoint);
+    CSIO_LOG(eLogLevel_info, "Streamout: mount in %s mode: [%s]",
+	m_streamoutMode == STREAMOUT_MODE_CAMERA ? "camera":"wireless conferencing", mountPoint);
 
     // send server URL to Gstreamout via jni
     sendWcUrl(server, mountPoint);
