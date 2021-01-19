@@ -52,6 +52,7 @@
 #include "cresWifiDisplaySink/WfdCommon.h"
 #include "ms_mice_sink/ms_mice_common.h"
 #include "shared-ssl/shared-ssl.h"
+#include "streamOutManager/v4l2Video.h"
 #include "CresLog.h"
 
 ///////////////////////////////////////////////////////////////////////////////
@@ -1996,6 +1997,25 @@ JNIEXPORT void JNICALL Java_com_crestron_txrxservice_GstreamIn_nativeSetFieldDeb
                 else
                 {
                     debugPrintSeqNum = (int) strtol(CmdPtr, &EndPtr, 10);
+                }
+            }
+            else if (!strcmp(CmdPtr, "V4L2CAPS"))
+            {
+            	char *v4l2Device = "/dev/video5";
+                CmdPtr = strtok(NULL, ", ");
+                if (CmdPtr != NULL)
+                    v4l2Device = CmdPtr;
+                CSIO_LOG(eLogLevel_info, "V4L2 device is: %s\r\n",v4l2Device);
+                VideoCaps videoCaps;
+                char caps[256];
+                get_video_caps(v4l2Device, &videoCaps);
+                CSIO_LOG(eLogLevel_info, "%s: format=%s w=%d h=%d frame_rate=%d/%d", v4l2Device, videoCaps.format,
+                		videoCaps.w, videoCaps.h, videoCaps.frame_rate_num, videoCaps.frame_rate_den);
+                if (get_video_caps_string(&videoCaps, caps, sizeof(caps)) == 0)
+                {
+                	CSIO_LOG(eLogLevel_info, "caps=%s\n", caps);
+                } else {
+                	CSIO_LOG(eLogLevel_error, "error getting caps string\n");
                 }
             }
             else

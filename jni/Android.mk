@@ -46,6 +46,7 @@ LOCAL_SRC_FILES := \
 	cresStreamOut/streamOutManager/cresPreview.cpp \
 	cresStreamOut/streamOutManager/cresCamera.cpp \
 	cresStreamOut/streamOutManager/usbAudio.cpp \
+	cresStreamOut/streamOutManager/v4l2Video.cpp \
 	cresStreamOut/streamOutDebug/cresStreamOutDebug.cpp \
 	cresStreamOut/cresStreamOutProject.cpp \
 	cresStreamOut/streamOutUtils/cresProjectBaseClass.cpp \
@@ -115,7 +116,7 @@ endif
 
 # tinyalsa needed on am3x00 for wireless conferencing RTSP server
 ifeq ($(TARGET_PRODUCT),$(filter $(TARGET_PRODUCT),am3x00_box))
-LOCAL_CFLAGS += -DHAS_TINYALSA
+LOCAL_CFLAGS += -DHAS_TINYALSA -DHAS_V4L2
 LOCAL_SHARED_LIBRARIES += libtinyalsa
 endif
 

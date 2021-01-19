@@ -9,16 +9,17 @@
 #include "cresPreview.h"
 #include "cresCamera.h"
 #include "usbAudio.h"
+#include "v4l2Video.h"
 
 #include <arpa/inet.h>
 #include <list>
 
-#define RTSP_CA_CERT_FILENAME  "/data/CresStreamSvc/digital_certificates/gst_ssl_ca.pem"
-#define RTSP_CERT_PEM_FILENAME "/data/CresStreamSvc/digital_certificates/gst_ssl_cert.pem"
-#define RTSP_CERT_KEY          "/data/CresStreamSvc/digital_certificates/gst_ssl_cert_decrypt.key"
+//#define RTSP_CA_CERT_FILENAME  "/data/CresStreamSvc/digital_certificates/gst_ssl_ca.pem"
+//#define RTSP_CERT_PEM_FILENAME "/data/CresStreamSvc/digital_certificates/gst_ssl_cert.pem"
+//#define RTSP_CERT_KEY          "/data/CresStreamSvc/digital_certificates/gst_ssl_cert_decrypt.key"
 //#define RTSP_CA_CERT_FILENAME  "/data/CresStreamSvc/digital_certificates/ca.pem"
-//#define RTSP_CERT_PEM_FILENAME "/data/CresStreamSvc/digital_certificates/server.pem"
-//#define RTSP_CERT_KEY          "/data/CresStreamSvc/digital_certificates/server.key"
+#define RTSP_CERT_PEM_FILENAME "/data/CresStreamSvc/digital_certificates/rtspserver_cert.pem"
+#define RTSP_CERT_KEY          "/data/CresStreamSvc/digital_certificates/rtspserver_key.pem"
 //#define RTSP_CERT_PEM_FILENAME "/dev/shm/rtspserver_cert.pem"
 //#define RTSP_CERT_KEY          "/dev/shm/rtspserver_key.pem"
 
@@ -82,6 +83,9 @@ public:
     bool m_videoStream;
     bool m_audioStream;
     bool m_aacEncode;
+    VideoCaps m_video_caps;
+    char m_caps[MAX_STR_LEN];
+    char m_videoconvert[MAX_STR_LEN];
     UsbAudio *m_usbAudio;
 
     char rtsp_server_username[MAX_STR_LEN];

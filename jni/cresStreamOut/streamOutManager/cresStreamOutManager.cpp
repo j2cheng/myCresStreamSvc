@@ -20,6 +20,7 @@
 #include <stdlib.h>
 #include "cresStreamOutManager.h"
 #include "gst/app/gstappsrc.h"
+#include "v4l2Video.h"
 #include "../../shared-ssl/shared-ssl.h"
 
 #undef NANOPC
@@ -434,6 +435,29 @@ m_appsrc(NULL), m_streamoutMode(streamoutMode)
         m_audioStream = true;
         m_aacEncode = true;
 
+#ifndef USE_VIDEOTESTSRC
+        if (m_videoStream) {
+#ifdef NANOPC
+        	if (!get_video_caps("/dev/video10", &m_video_caps))
+#else
+        	if (!get_video_caps("/dev/video5", &m_video_caps))
+#endif
+        	{
+        		if (get_video_caps_string(&m_video_caps, m_caps, sizeof(m_caps)) < 0)
+        			m_videoStream = false;
+        	} else
+        		m_videoStream = false;
+        	if (strcmp(m_video_caps.format, "NV12"))
+        	{
+        		snprintf(m_videoconvert, sizeof(m_videoconvert), "videoconvert ! ");
+        	} else {
+        		m_videoconvert[0] = '\0';
+        	}
+        }
+#else
+        snprintf(m_caps, sizeof(m_caps), "video/x-raw,format=NV12,width=%s,height=%s,framerate=%s/1",
+        		m_res_x, m_res_y, m_frame_rate);
+#endif
         m_usbAudio = new UsbAudio();
 
         if (m_audioStream && m_usbAudio->m_pcm_card_idx != 0) {
@@ -738,14 +762,15 @@ void* CStreamoutManager::ThreadEntry()
 
             if (m_videoStream && !m_audioStream) {
                 snprintf(pipeline, sizeof(pipeline), "( %s ! "
-                                                     "video/x-raw,format=NV12,width=%s,height=%s,framerate=%s/1 ! "
+                                                     "%s ! "
+                                                     "%s"
                                                      "queue name = vidPreQ ! "
                                                      "%s bitrate=%s i-frame-interval=%s ! "
                                                      "queue name=vidPostQ ! "
                                                      "h264parse ! "
                                                      "rtph264pay name=pay0 pt=96 )",
                                                      VIDEOSOURCE,
-                                                     m_res_x, m_res_y, m_frame_rate,
+                                                     m_caps, m_videoconvert,
                                                      product_info()->H264_encoder_string,
                                                      m_bit_rate, m_iframe_interval);
             }
@@ -758,7 +783,8 @@ void* CStreamoutManager::ThreadEntry()
             if (m_videoStream && m_audioStream) {
                 if (m_aacEncode) {
                     snprintf(pipeline, sizeof(pipeline), "( %s ! "
-                                                         "video/x-raw,format=NV12,width=%s,height=%s,framerate=%s/1 ! "
+                                                         "%s ! "
+                                                         "%s"
                                                          "queue name=vidPreQ ! "
                                                          "%s bitrate=%s i-frame-interval=%s ! "
                                                          "queue name=vidPostQ ! "
@@ -768,13 +794,14 @@ void* CStreamoutManager::ThreadEntry()
                                                          "%s ! "
                                                          "rtpmp4apay name=pay1 pt=97 )",
                                                          VIDEOSOURCE,
-                                                         m_res_x, m_res_y, m_frame_rate,
+                                                         m_caps, m_videoconvert,
                                                          product_info()->H264_encoder_string,
                                                          m_bit_rate, m_iframe_interval,
                                                          AUDIOSOURCE, audioenc);
                 } else {
                     snprintf(pipeline, sizeof(pipeline), "( %s ! "
-                                                         "video/x-raw,format=NV12,width=%s,height=%s,framerate=%s/1 ! "
+                                                         "%s ! "
+                                                         "%s"
                                                          "queue name=vidPreQ ! "
                                                          "%s bitrate=%s i-frame-interval=%s ! "
                                                          "queue name=vidPostQ ! "
@@ -784,7 +811,7 @@ void* CStreamoutManager::ThreadEntry()
                                                          "%s ! "
                                                          "rtppcmapay name=pay1 pt=97 )",
                                                          VIDEOSOURCE,
-                                                         m_res_x, m_res_y, m_frame_rate,
+                                                         m_caps, m_videoconvert,
                                                          product_info()->H264_encoder_string,
                                                          m_bit_rate, m_iframe_interval,
                                                          AUDIOSOURCE, audioenc);
