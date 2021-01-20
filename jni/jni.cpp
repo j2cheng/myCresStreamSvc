@@ -1363,6 +1363,51 @@ JNIEXPORT void JNICALL Java_com_crestron_txrxservice_GstreamIn_nativeInitUnixSoc
 	}
 }
 
+/* Prints information about a Pad Template, including its Capabilities */
+static void print_pad_templates_information (GstElementFactory * factory) {
+  const GList *pads;
+  GstStaticPadTemplate *padtemplate;
+
+  CSIO_LOG(eLogLevel_info, "Pad Templates for %s:\n", gst_element_factory_get_longname (factory));
+  if (!gst_element_factory_get_num_pad_templates (factory)) {
+	CSIO_LOG(eLogLevel_info, "  none\n");
+    return;
+  }
+
+  pads = gst_element_factory_get_static_pad_templates (factory);
+  while (pads) {
+    padtemplate = (GstStaticPadTemplate *) pads->data;
+    pads = g_list_next (pads);
+
+    if (padtemplate->direction == GST_PAD_SRC)
+      CSIO_LOG(eLogLevel_info, "  SRC template: '%s'\n", padtemplate->name_template);
+    else if (padtemplate->direction == GST_PAD_SINK)
+      CSIO_LOG(eLogLevel_info, "  SINK template: '%s'\n", padtemplate->name_template);
+    else
+      CSIO_LOG(eLogLevel_info, "  UNKNOWN!!! template: '%s'\n", padtemplate->name_template);
+
+    if (padtemplate->presence == GST_PAD_ALWAYS)
+      CSIO_LOG(eLogLevel_info, "    Availability: Always\n");
+    else if (padtemplate->presence == GST_PAD_SOMETIMES)
+      CSIO_LOG(eLogLevel_info, "    Availability: Sometimes\n");
+    else if (padtemplate->presence == GST_PAD_REQUEST)
+      CSIO_LOG(eLogLevel_info, "    Availability: On request\n");
+    else
+      CSIO_LOG(eLogLevel_info, "    Availability: UNKNOWN!!!\n");
+
+    if (padtemplate->static_caps.string) {
+      GstCaps *caps;
+      CSIO_LOG(eLogLevel_info, "    Capabilities:\n");
+      caps = gst_static_caps_get (&padtemplate->static_caps);
+      print_caps (caps, "      ");
+      gst_caps_unref (caps);
+
+    }
+
+    g_print ("\n");
+  }
+}
+
 JNIEXPORT void JNICALL Java_com_crestron_txrxservice_GstreamIn_nativeSetFieldDebugJni(JNIEnv *env, jobject thiz, jstring cmd_jstring, jint sessionId)
 {
     int iStringLen = 0;
@@ -2017,6 +2062,11 @@ JNIEXPORT void JNICALL Java_com_crestron_txrxservice_GstreamIn_nativeSetFieldDeb
                 } else {
                 	CSIO_LOG(eLogLevel_error, "error getting caps string\n");
                 }
+            }
+            else if (!strcmp(CmdPtr, "ENCCAPS"))
+            {
+            	GstElementFactory *factory = gst_element_factory_find(product_info()->H264_encoder_string);
+            	print_pad_templates_information(factory);
             }
             else
             {

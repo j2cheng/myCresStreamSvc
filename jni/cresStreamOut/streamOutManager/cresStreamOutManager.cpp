@@ -60,6 +60,19 @@ int useUsbAudio = true;
 extern void csio_jni_SendWCServerURL( void * arg );
 extern void usb_audio_get_samples(pcm *pcm_device, void *data, int size, GstClockTime *timestamp, GstClockTime *duration);
 
+static bool
+is_supported(char *fourcc)
+{
+	//TODO figure out why other formats do not work without videoconvert
+	char *formats[] = {/*"YUY2", "UYVY",*/ "I420", "NV12", NULL};
+	for (int i=0; formats[i]; i++)
+	{
+		if (strcmp(fourcc, formats[i]) == 0)
+			return true;
+	}
+	return false;
+}
+
 static gboolean
 timeout (GstRTSPServer * server)
 {
@@ -447,11 +460,11 @@ m_appsrc(NULL), m_streamoutMode(streamoutMode)
         			m_videoStream = false;
         	} else
         		m_videoStream = false;
-        	if (strcmp(m_video_caps.format, "NV12"))
+        	if (is_supported(m_video_caps.format))
         	{
-        		snprintf(m_videoconvert, sizeof(m_videoconvert), "videoconvert ! ");
-        	} else {
         		m_videoconvert[0] = '\0';
+        	} else {
+        		snprintf(m_videoconvert, sizeof(m_videoconvert), "videoconvert ! ");
         	}
         }
 #else

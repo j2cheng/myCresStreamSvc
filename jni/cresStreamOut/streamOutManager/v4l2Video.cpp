@@ -51,16 +51,14 @@ static bool isFormat(const char *format, const char *fourcc)
 
 static int isFormatRank(const char *fourcc)
 {
+	char *formats[]={"NV21", "UYVY", "YUY2", "I420", "NV12", NULL};
 	if (fourcc == NULL || strlen(fourcc) != 4)
 		return 0;
-	if (strcmp(fourcc, "YUY2") == 0)
-		return 1;
-	else if (strcmp(fourcc, "NV12") == 0)
-		return 2;
-	else if (strcmp(fourcc, "NV21") == 0)
-		return 3;
-	else
-		return 0;
+	for (int i=0; formats[i]; i++) {
+		if (strcmp(fourcc, formats[i]) == 0)
+			return i+1;
+	}
+	return 0;
 }
 
 static void
@@ -69,6 +67,7 @@ get_video_caps_from_caps(GstCaps *caps, int min_frame_rate, VideoCaps *video_cap
     int maxw = 0, maxh = 0;
     int max_frmrate_num = 0;
     int max_frmrate_den = 0;
+    char fmt[5]={0};
     const gchar *format = NULL;
 
     guint capslen = gst_caps_get_size(caps);
@@ -135,9 +134,9 @@ get_video_caps_from_caps(GstCaps *caps, int min_frame_rate, VideoCaps *video_cap
                     continue;
                 }
 
-                if (((maxw)*(maxh) < width*height) || (isFormatRank(video_caps->format) < isFormatRank(format)))
+                if (((maxw)*(maxh) < width*height) || (isFormatRank(fmt) < isFormatRank(format)))
                 {
-                    strcpy(video_caps->format, format);
+                    strcpy(fmt, format);
                     maxw = width;
                     maxh = height;
                     max_frmrate_num = max_fr_num;
@@ -151,7 +150,7 @@ get_video_caps_from_caps(GstCaps *caps, int min_frame_rate, VideoCaps *video_cap
 
     if (maxw > 0)
     {
-        strcpy(video_caps->format, format);
+        strcpy(video_caps->format, fmt);
         video_caps->w = maxw;
         video_caps->h = maxh;
         video_caps->frame_rate_num = max_frmrate_num;
