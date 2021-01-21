@@ -53,6 +53,7 @@ public class GstreamOut {
     private native void nativeSet_MulticastAddress(String address, int sessionId);
     private native void nativeSet_StreamName(String name, int sessionId);
     private native void nativeSet_SnapshotName(String name, int sessionId);
+    private native void nativeSet_WcSecurityEnable(boolean enable, int sessionId);
     private native void nativeStartPreview(Object surface, int sessionId);
     private native void nativePausePreview(int sessionId);
     private native void nativeStopPreview(int sessionId);
@@ -177,6 +178,7 @@ public class GstreamOut {
         setPort(8554);
         setMulticastEnable(false);
         setWirelessConferencingResolution(10);
+        setWcSecurityEnable(streamCtl.userSettings.getWcSecurityEnable());
         setFramerate(15);
         setBitrate(2000000);
         setIFrameInterval(1);
@@ -243,6 +245,10 @@ public class GstreamOut {
 //      }
     }
 
+    public void setWcSecurityEnable(boolean enable) {
+        nativeSet_WcSecurityEnable(enable, sessionId);
+    }
+    
     public void setFramerate(int fps) {
         nativeSet_FrameRate(fps, sessionId);
     }
@@ -278,6 +284,7 @@ public class GstreamOut {
         setCamStreamName(streamCtl.userSettings.getCamStreamName());
         setCamStreamSnapshotName(streamCtl.userSettings.getCamStreamSnapshotName());        
         setCamStreamMulticastAddress(streamCtl.userSettings.getCamStreamMulticastAddress());
+        setWcSecurityEnable(false);
     }
 
     public String buildCamStreamUrl()

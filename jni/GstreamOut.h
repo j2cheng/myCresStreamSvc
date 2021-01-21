@@ -75,6 +75,14 @@ JNIEXPORT void JNICALL Java_com_crestron_txrxservice_GstreamOut_nativeSet_1IFram
 
 /*
  * Class:     com_crestron_txrxservice_GstreamOut
+ * Method:    nativeSet_WcSecurityEnable
+ * Signature: (ZI)V
+ */
+JNIEXPORT void JNICALL Java_com_crestron_txrxservice_GstreamOut_nativeSet_1WcSecurityEnable
+  (JNIEnv *, jobject, jboolean, jint);
+
+/*
+ * Class:     com_crestron_txrxservice_GstreamOut
  * Method:    nativeSet_MulticastEnable
  * Signature: (ZI)V
  */

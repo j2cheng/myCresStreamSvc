@@ -4479,6 +4479,20 @@ JNIEXPORT void JNICALL Java_com_crestron_txrxservice_GstreamOut_nativeSet_1IFram
     Streamout_SetIFrameInterval(desBuf);
     CSIO_LOG(eLogLevel_debug, "rtsp_server: IFrameInterval in CresStreamOutDataDB: '%s'", CresStreamOutDataDB->streamOut[0].iframe_interval);
 }
+JNIEXPORT void JNICALL Java_com_crestron_txrxservice_GstreamOut_nativeSet_1WcSecurityEnable(JNIEnv *env, jobject thiz, jboolean enable, jint sessionId)
+{
+	if (!CresStreamOutDataDB)
+	{
+		CSIO_LOG(eLogLevel_info, "%s: cannot set value, CresStreamOutDataDB is null", __FUNCTION__);
+		return;
+	}
+    CSIO_LOG(eLogLevel_debug, "rtsp_server: Using security enable: '%d'", enable);
+    CresStreamOutDataDB->streamOut[sessionId].security_enable = enable;
+
+    Streamout_EnableSecurity((int) CresStreamOutDataDB->streamOut[sessionId].security_enable);
+
+    CSIO_LOG(eLogLevel_debug, "rtsp_server: security_enable in CresStreamOutDataDB: '%d'", CresStreamOutDataDB->streamOut[sessionId].security_enable);
+}
 JNIEXPORT void JNICALL Java_com_crestron_txrxservice_GstreamOut_nativeSet_1MulticastEnable(JNIEnv *env, jobject thiz, jboolean enable, jint sessionId)
 {
 	if (!CresStreamOutDataDB)

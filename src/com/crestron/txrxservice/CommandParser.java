@@ -205,6 +205,7 @@ public class CommandParser {
         RESTART_STREAM_ON_START,
 
         WC_STREAMING_ENABLE, // Wireless Conferencing Enable
+        WC_SECURITY_ENABLE,  // Wireless Conferencing security Enable
 
         APPSPACE_IS_ENABLED,
         USE_GSTREAMER,
@@ -859,6 +860,9 @@ public class CommandParser {
                 // WC Streaming
             case WC_STREAMING_ENABLE:
                 cmd = new WirelessConferencingStreamingEnableCommand(ctrl, arg);
+                break;
+            case WC_SECURITY_ENABLE:
+                cmd = new WirelessConferencingSecurityEnableCommand(ctrl, arg);
                 break;
                 
             case APPSPACE_IS_ENABLED:

@@ -57,6 +57,7 @@ public:
     char m_multicast_address[MAX_STR_LEN];
     char m_stream_name[MAX_STR_LEN];
     char m_snapshot_name[MAX_STR_LEN];
+    bool m_security_enabled;
 private:
     int  m_projectID;
     Mutex* mLock;

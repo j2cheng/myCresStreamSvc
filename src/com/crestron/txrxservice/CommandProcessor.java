@@ -2594,6 +2594,18 @@ class WirelessConferencingStreamingEnableCommand extends CrestronCommand {
     }
 }
 
+class WirelessConferencingSecurityEnableCommand extends CrestronCommand {
+	public WirelessConferencingSecurityEnableCommand(CresStreamCtrl ctrl, String arg) {
+		super(ctrl, arg);
+	}	
+	public void execute() {		
+		ctrl.setWcSecurityEnable(Boolean.valueOf(msg));
+	}
+	public String getFeedbackMsg() {
+		return Boolean.toString(ctrl.userSettings.getWcSecurityEnable());
+	}
+}
+
 class AppspaceIsEnabledCommand extends CrestronCommand {
 
     public AppspaceIsEnabledCommand(CresStreamCtrl ctrl, String arg) {

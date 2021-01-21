@@ -104,6 +104,7 @@ public:
     void sendWcUrl(GstRTSPServer *server, char *mountPoint);
     void setSnapshotName(char* name);
     char* getSnapshotName(void);
+    void setSecurityEnable(bool enable) {m_tls_on = enable; m_auth_on = enable;}
     void setUsername(char* name){strcpy(rtsp_server_username, name);}
     void setPassword(char* pw){strcpy(rtsp_server_password, pw);}
     void startPreview(void* window);

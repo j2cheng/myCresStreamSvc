@@ -275,6 +275,7 @@ public class UserSettings
 	private String camStreamName;
 	private String camStreamSnapshotName;
 	private String camStreamMulticastAddress;
+	private boolean wcSecurityEnable;
 	
 	//Misc
 	private boolean[] useNewSink;
@@ -418,6 +419,7 @@ public class UserSettings
 		camStreamName		= "camera";
 		camStreamSnapshotName = "snapshot";
 		camStreamMulticastAddress = "";
+		wcSecurityEnable = true;
 		serviceMode = CresStreamCtrl.ServiceMode.Master.ordinal();
 		canvasModeEnabled = false;
 		dmSync = initBoolArray(false,CresStreamCtrl.NumDmInputs);
@@ -1686,6 +1688,14 @@ public class UserSettings
 		this.camStreamMulticastAddress = camStreamMulticastAddress;
 	}
 	
+	public boolean getWcSecurityEnable() {
+		return wcSecurityEnable;
+	}
+
+	public void setWcSecurityEnable(boolean enable) {
+		this.wcSecurityEnable = enable;
+	}
+
 	public int getServiceMode() {
 		return serviceMode;
 	}

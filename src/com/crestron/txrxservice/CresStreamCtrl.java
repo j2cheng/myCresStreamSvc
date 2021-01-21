@@ -5660,6 +5660,15 @@ public class CresStreamCtrl extends Service {
         }
     }
 
+    public void setWcSecurityEnable(boolean enable) {
+        userSettings.setWcSecurityEnable(enable);
+
+        if (gstStreamOut != null)
+        {
+            gstStreamOut.setWcSecurityEnable(enable);
+        }
+    }
+    
     public String getAirMediaDisconnectUser(int sessId)
     {
         // Do nothing handled by getAirMediaUserPosition
