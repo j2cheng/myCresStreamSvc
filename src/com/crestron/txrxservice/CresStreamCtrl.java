@@ -1462,6 +1462,11 @@ public class CresStreamCtrl extends Service {
             Log.e(TAG, "Disabling RGB888 because canvas mode is enabled");
             rv = false;
         }
+        if (userSettings.getAirMediaConnectionOverlay())
+        {
+            Log.e(TAG, "Disabling RGB888 because connection overlay is enabled");
+            rv = false;
+        }
         if (userSettings.getHdmiOutUnderscan() > 0)
         {
             Log.e(TAG, "Disabling RGB888 because underscan is on");
@@ -4993,6 +4998,7 @@ public class CresStreamCtrl extends Service {
         if (mAirMedia != null)
         {
             userSettings.setAirMediaConnectionOverlay(enable);
+            isRGB888HDMIVideoSupported = getRGB888VideoSupportState();
         }
     }
     
