@@ -222,6 +222,17 @@ public class ProductSpecific
 		MiscUtils.writeStringToDisk("/sys/devices/platform/omap_i2c.2/i2c-2/2-000f/evs_prev_rgb888_en", setString);	// For ittiam's changes
     }
     
+    public boolean hasUVCCamera() 
+    {
+    	// Not implemented for this product
+    	return false;
+    }
+    
+    public void monitorUVCCamera(CresStreamCtrl cresStreamCtrl) 
+    {
+    	// Not implemented for this product
+    }
+    
 	public class DispayInfo
 	{
 		public int width;

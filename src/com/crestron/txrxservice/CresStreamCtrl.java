@@ -1279,6 +1279,13 @@ public class CresStreamCtrl extends Service {
                 mGstreamerTimeoutCount = 0;	// not an error condition, just default to 0 if file does not exist
             }
             MiscUtils.writeStringToDisk(gstreamerTimeoutCountFilePath, String.valueOf(mGstreamerTimeoutCount));
+            
+            if (mProductSpecific.getInstance().hasUVCCamera())
+            {
+            	Log.i(TAG, "USB UVC camera is connected");
+            }
+            
+            mProductSpecific.getInstance().monitorUVCCamera(this);
         }
    
     @Override
@@ -5673,6 +5680,16 @@ public class CresStreamCtrl extends Service {
         {
             gstStreamOut.setWcSecurityEnable(enable);
         }
+    }
+    
+    public void onCameraConnected()
+    {
+		Log.i(TAG, "onCameraConnected(): USB UVC camera is connected");
+    }
+    
+    public void onCameraDisconnected()
+    {
+		Log.i(TAG, "onCameraConnected(): USB UVC camera is disconnected");
     }
     
     public String getAirMediaDisconnectUser(int sessId)

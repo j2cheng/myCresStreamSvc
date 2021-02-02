@@ -79,6 +79,8 @@ ifeq ($(TARGET_PRODUCT),$(filter $(TARGET_PRODUCT), am3x00_box))
     LOCAL_PREBUILT_JNI_LIBS_arm += ../../../${PRODUCT_OUT}/vendor/lib/libcresstreamctrl_jni.so
     LOCAL_PREBUILT_JNI_LIBS_arm += ../../../${PRODUCT_OUT}/vendor/lib/libCsioProdInfo.so
 
+	LOCAL_STATIC_JAVA_LIBRARIES += am3x00
+
     LOCAL_STATIC_JAVA_LIBRARIES += \
         android-support-v4 \
         android-support-v7-appcompat \
@@ -100,6 +102,9 @@ include $(LOCAL_PATH)/jni/Android.mk
 include $(CLEAR_VARS)
 LOCAL_PREBUILT_STATIC_JAVA_LIBRARIES := gson:../libs/gson-2.3.1.jar
 LOCAL_PREBUILT_STATIC_JAVA_LIBRARIES += CresStoreJsonJNI:../libs/CresStoreJsonJNI.jar
+ifeq ($(TARGET_PRODUCT),$(filter $(TARGET_PRODUCT), am3x00_box))
+LOCAL_PREBUILT_STATIC_JAVA_LIBRARIES += am3x00:../libs/am3x00.jar
+endif
 include $(BUILD_MULTI_PREBUILT)
 endif
 

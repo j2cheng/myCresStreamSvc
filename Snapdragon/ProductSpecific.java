@@ -263,6 +263,17 @@ public class ProductSpecific
     	// Not implemented for this product
     }
 
+    public boolean hasUVCCamera() 
+    {
+    	// Not implemented for this product
+    	return false;
+    }
+    
+    public void monitorUVCCamera(CresStreamCtrl cresStreamCtrl) 
+    {
+    	// Not implemented for this product
+    }
+    
 	// ******************* Classes *******************
 	public class DispayInfo
 	{

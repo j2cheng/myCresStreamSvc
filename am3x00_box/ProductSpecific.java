@@ -1,13 +1,22 @@
 package com.crestron.txrxservice;
 
+import com.gs.core.peripheral.PeripheralManager;
+import com.gs.core.peripheral.StatusChangeListener;
+
 import android.content.Context;
 import android.content.Intent;
 import android.graphics.ImageFormat;
 import android.hardware.Camera;
+import android.hardware.camera2.CameraAccessException;
+import android.hardware.camera2.CameraManager;
 import android.media.MediaPlayer;
 import android.media.MediaRecorder;
 import android.os.Build;
+import android.util.Log;
 import android.view.Surface;
+
+import java.util.ArrayList;
+import java.util.List;
 
 public class ProductSpecific
 {
@@ -219,6 +228,88 @@ public class ProductSpecific
         // Not implemented for vanilla
     }
 
+    public boolean hasUVCCamera() 
+    {
+    	CameraManager mCameraManager=null;
+    	mCameraManager = (CameraManager) context.getSystemService(Context.CAMERA_SERVICE);
+		final String UVC_ID = "/dev/video5";
+		try {
+			String[] cameraIds = mCameraManager.getCameraIdList();
+			for (String id:cameraIds) {
+				if (UVC_ID.equals(id)) {
+					Log.v(TAG, "UVC camera is connected");
+					return true;
+				}
+			}
+		} catch (CameraAccessException e) {
+			e.printStackTrace();
+		}
+		return false;
+    }
+    
+    public class PeripheralStatusChangeListener extends StatusChangeListener 
+    {
+    	boolean cameraConnected;
+    	CresStreamCtrl cresStreamCtrl;
+    	
+    	public PeripheralStatusChangeListener(CresStreamCtrl ctrl) {
+    		super();
+    		cresStreamCtrl = ctrl;
+    		cameraConnected = hasUVCCamera();
+    	}
+    	
+    	public void UsbConnect()
+    	{
+    		if (hasUVCCamera() && !cameraConnected)
+    		{
+    			Log.i(TAG, "UsbConnect(): USB camera is now connected");
+    			cameraConnected = true;
+    			cresStreamCtrl.onCameraConnected();
+    		}
+    	}
+    	
+    	public void UsbDisconnect()
+    	{
+    		if (!hasUVCCamera() && cameraConnected)
+    		{
+    			Log.i(TAG, "UsbDisconnect(): USB camera is now disconnected");
+        		cameraConnected = false;
+    			cresStreamCtrl.onCameraDisconnected();
+    		}
+    	}
+    	
+    	@Override
+    	public void onChanged(int i, String s, int i1) 
+    	{
+    		switch (i) {
+    		case PeripheralManager.PER_HDMI_IN:
+    			Log.i(TAG, "HDMI IN status: " + (i1 == 1 ? "Connected" : "Disconnected"));
+    			break;
+    		case PeripheralManager.PER_USB_30:
+    			Log.i(TAG, "USB 3.0 status: " + (i1 == 1 ? "Connected" : "Disconnected"));
+    			if (i1 == 1)
+    			{
+        			UsbConnect();
+    			} else {
+    				UsbDisconnect();
+    			}
+    			break;
+    		}
+    	}
+    }
+    
+    public void monitorUVCCamera(CresStreamCtrl cresStreamCtrl) 
+    {
+    	final CresStreamCtrl ctrl = cresStreamCtrl;
+        new Thread(new Runnable() {
+            public void run() {
+            	PeripheralStatusChangeListener mListener = new PeripheralStatusChangeListener(ctrl);
+                PeripheralManager.instance().addStatusListener(PeripheralManager.PER_HDMI_IN, mListener, null);
+                PeripheralManager.instance().addStatusListener(PeripheralManager.PER_USB_30, mListener, null);
+            }
+        }).start();
+    }
+    
     // ******************* Classes *******************
     public class DispayInfo
     {
