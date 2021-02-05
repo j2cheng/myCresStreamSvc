@@ -1385,10 +1385,15 @@ int build_video_pipeline(gchar *encoding_name, CREGSTREAM *data, unsigned int st
             data->element_v[i++] = gst_element_factory_make("rtph264depay", NULL);
         }
         
-        data->element_v[i++] = gst_element_factory_make("capsfilter", NULL);
-        GstCaps *avc_caps = gst_caps_from_string( "video/x-h264, stream-format=(string)avc,alignment=(string)au");
-        g_object_set ( data->element_v[i-1], "caps", avc_caps, NULL);
-        gst_caps_unref(avc_caps);
+        if(product_info()->hw_platform == eHardwarePlatform_Snapdragon)
+        {
+            //TODO: Need to dynamically determine stream-format because some streams require byte-stream format or
+            //they will fail to stream (e.g. http://qthttp.apple.com.edgesuite.net/1010qwoeiuryfg/sl.m3u8)
+            data->element_v[i++] = gst_element_factory_make("capsfilter", NULL);
+            GstCaps *avc_caps = gst_caps_from_string( "video/x-h264, stream-format=(string)avc,alignment=(string)au");
+            g_object_set ( data->element_v[i-1], "caps", avc_caps, NULL);
+            gst_caps_unref(avc_caps);
+        }
 
         data->element_v[i++] = gst_element_factory_make("valve", NULL);
         data->element_valve_v = data->element_v[i-1];
