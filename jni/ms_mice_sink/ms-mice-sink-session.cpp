@@ -434,6 +434,18 @@ static void ms_mice_sink_session_handle_source_ready_message(ms_mice_sink_sessio
      */
     MS_MICE_SINK_SESSION_STATE old_state = session->priv->state;
 
+    if (old_state == MS_MICE_SINK_SESSION_STATE_CONNECTED)
+    {
+        const char* SessionPinPtr = ms_mice_sink_service_get_session_pin(session->priv->service);
+        if ((SessionPinPtr) && (strlen(SessionPinPtr) != 0))
+        {
+        	CSIO_LOG(eLogLevel_warning, "ms.mice.sink.session.message.received.source-ready without pin challenge even though pin is set.");
+        	if (error)
+        		*error = g_error_new(G_IO_ERROR, G_IO_ERROR_PERMISSION_DENIED, "PIN bypassed");
+        	return;
+        }
+    }
+
     ms_mice_tlv *tlv = ms_mice_tlv_find(&msg->tlvs, MS_MICE_TLV_RTSP_PORT);
     session->priv->rtsp_port = (guint16) (tlv ? tlv->rtsp_port.value : DEFAULT_MIRACAST_RTSP_PORT);
 
@@ -733,6 +745,7 @@ static int ms_mice_sink_session_handle_read_data(ms_mice_sink_session *session, 
     GError *error = NULL;
     gsize available = 0;
     gsize required = 0;
+    bool pin_bypass_error = false;
 
     CSIO_LOG(eLogLevel_debug,"ms.mice.sink handle_read_data enter\n");
 
@@ -846,6 +859,8 @@ static int ms_mice_sink_session_handle_read_data(ms_mice_sink_session *session, 
                         if (error != NULL)
                         {
                             CSIO_LOG(eLogLevel_debug,"ms.mice.sink Unable to dispatch message: %s\n", error->message);
+                            if (error->code == G_IO_ERROR_PERMISSION_DENIED)
+                            	pin_bypass_error = true;
                             g_error_free (error);
                             error = NULL;
                         }
@@ -900,6 +915,8 @@ static int ms_mice_sink_session_handle_read_data(ms_mice_sink_session *session, 
             if (error != NULL)
             {
                 CSIO_LOG(eLogLevel_debug,"ms.mice.sink Unable to dispatch message: %s\n", error->message);
+                if (error->code == G_IO_ERROR_PERMISSION_DENIED)
+                	pin_bypass_error = true;
                 g_error_free (error);
                 error = NULL;
             }
@@ -920,6 +937,8 @@ static int ms_mice_sink_session_handle_read_data(ms_mice_sink_session *session, 
         CSIO_LOG(eLogLevel_debug,"ms.mice.sink handle_read_data end of while loop: in_stream available: %d\n", available);
     }
 
+    if (pin_bypass_error)
+    	return -ECONNABORTED;
     CSIO_LOG(eLogLevel_debug,"ms.mice.sink handle_read_data return\n");
     return -EAGAIN;
 }
