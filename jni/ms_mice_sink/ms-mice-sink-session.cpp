@@ -127,7 +127,23 @@ static void ms_mice_sink_session_stop_establishment_timeout(ms_mice_sink_session
     if (!session->priv->source_establishment_timeout)
         return;
 
-    g_source_remove(session->priv->source_establishment_timeout);
+    GMainContext* context = ms_mice_sink_service_get_context(session->priv->service);
+    CSIO_LOG(eLogLevel_debug,"stop_establishment_timeout { \"context\": 0x%x }" , context);
+
+    if(context)
+    {
+        GSource * source = g_main_context_find_source_by_id (context,session->priv->source_establishment_timeout);
+        CSIO_LOG(eLogLevel_debug,"stop_establishment_timeout { \"destroy source\": 0x%x }" , source);
+
+        if(source)
+            g_source_destroy(source);
+    }
+    else
+    {
+        g_source_remove(session->priv->source_establishment_timeout);
+        CSIO_LOG(eLogLevel_debug,"stop_establishment_timeout { \"remove source id\": 0x%x }" , session->priv->source_establishment_timeout);
+    }
+
     session->priv->source_establishment_timeout = 0;
 }
 
@@ -1295,7 +1311,25 @@ void ms_mice_sink_session_connected(ms_mice_sink_session *session, GSocketConnec
         ms_mice_sink_session_raise_on_session_state_changed(session, old_state, session->priv->state);
     }
 
-    session->priv->source_establishment_timeout = g_timeout_add_seconds_full(G_PRIORITY_HIGH, MS_MICE_SESSION_ESTABLISHMENT_TIMEOUT_SECONDS, ms_mice_sink_session_establishment_timeout_fn, session, NULL);
+    //create timeout callback here
+    if(context)
+    {
+        /* Create new timeout source to be called every 5min.
+            * Reference count of source is 1 once created */
+        GSource *source = g_timeout_source_new_seconds(MS_MICE_SESSION_ESTABLISHMENT_TIMEOUT_SECONDS);
+        g_source_set_callback (source, ms_mice_sink_session_establishment_timeout_fn, session, NULL);
+
+        session->priv->source_establishment_timeout = g_source_attach (source, context);
+        g_source_unref (source);
+
+        CSIO_LOG(eLogLevel_verbose, "ms_mice_sink_session_connected: created a timer (id : %d) and attached to the context(0x%x)",session->priv->source_establishment_timeout,context);
+    }
+    else
+    {
+        session->priv->source_establishment_timeout = g_timeout_add_seconds_full(G_PRIORITY_HIGH, MS_MICE_SESSION_ESTABLISHMENT_TIMEOUT_SECONDS, ms_mice_sink_session_establishment_timeout_fn, session, NULL);
+
+        CSIO_LOG(eLogLevel_verbose, "ms_mice_sink_session_connected: created a timer (id : %d)",session->priv->source_establishment_timeout);
+    }
 }
 
 static void ms_mice_sink_session_disconnect(ms_mice_sink_session *ms_session)
