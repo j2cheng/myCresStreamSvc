@@ -1334,15 +1334,19 @@ public class CresStreamCtrl extends Service {
     @Override
     public IBinder onBind(Intent intent)
     {
-        Log.i(TAG, "-------------- onBind:  intent= " + intent.toString());
-        if (mIsBound)
-        {
-            // if we get here even though we were bound - reset slave streams
-            Log.w(TAG, "onBind:  should not get here - already bound");
-            resetAllSlaveStreams();
+        Log.i(TAG, "onBind():  intent= " + intent.toString());
+        if (intent.getAction().equals("com.crestron.txrxservice.wc.BIND"))
+        	return mWC_Service.getBinder();
+        else {
+        	if (mIsBound)
+        	{
+        		// if we get here even though we were bound - reset slave streams
+        		Log.w(TAG, "onBind:  should not get here - already bound");
+        		resetAllSlaveStreams();
+        	}
+        	mIsBound = true;
+        	return mBinder;
         }
-        mIsBound = true;
-        return mBinder;
     } 
 
     private void resetAllSlaveStreams()
@@ -1356,23 +1360,34 @@ public class CresStreamCtrl extends Service {
     
     @Override
     public boolean onUnbind(Intent intent) {
-        Log.i(TAG, "-------------- onUnbind: intent= " + intent.toString());
-        resetAllSlaveStreams();
-        Log.i(TAG, "onUnbind: exit");
-        super.onUnbind(intent);
-        mIsBound = false;
-        return true;
+        Log.i(TAG, "onUnbind(): intent= " + intent.toString());
+        if (intent.getAction().equals("com.crestron.txrxservice.wc.BIND"))
+        {
+        	mWC_Service.unbind(intent);
+        	super.onUnbind(intent);
+        } else {
+        	resetAllSlaveStreams();
+        	Log.i(TAG, "onUnbind: exit");
+        	super.onUnbind(intent);
+        	mIsBound = false;
+        }
+    	return true;
     }
 
     @Override
     public void onRebind(Intent intent) {
-        Log.i(TAG, "-------------- onRebind:  intent= " + intent.toString());
-        if (mIsBound)
+        Log.i(TAG, "onRebind():  intent= " + intent.toString());
+        if (intent.getAction().equals("com.crestron.txrxservice.wc.BIND"))
         {
-            // if we get here even though we were bound - reset slave streams
-            resetAllSlaveStreams();
+        	mWC_Service.rebind(intent);
+        } else {
+        	if (mIsBound)
+        	{
+        		// if we get here even though we were bound - reset slave streams
+        		resetAllSlaveStreams();
+        	}
         }
-        super.onRebind(intent);
+    	super.onRebind(intent);
     }
     
     public void onDestroy(){

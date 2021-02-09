@@ -18,10 +18,11 @@
 //#define RTSP_CERT_PEM_FILENAME "/data/CresStreamSvc/digital_certificates/gst_ssl_cert.pem"
 //#define RTSP_CERT_KEY          "/data/CresStreamSvc/digital_certificates/gst_ssl_cert_decrypt.key"
 //#define RTSP_CA_CERT_FILENAME  "/data/CresStreamSvc/digital_certificates/ca.pem"
-#define RTSP_CERT_PEM_FILENAME "/data/CresStreamSvc/digital_certificates/rtspserver_cert.pem"
-#define RTSP_CERT_KEY          "/data/CresStreamSvc/digital_certificates/rtspserver_key.pem"
-//#define RTSP_CERT_PEM_FILENAME "/dev/shm/rtspserver_cert.pem"
-//#define RTSP_CERT_KEY          "/dev/shm/rtspserver_key.pem"
+#define GENERATE_CERTIFICATE
+#define SERVER_CERT_PEM_FILENAME "/data/CresStreamSvc/digital_certificates/rtspserver_cert.pem"
+#define SERVER_CERT_KEY          "/data/CresStreamSvc/digital_certificates/rtspserver_key.pem"
+#define RTSP_CERT_PEM_FILENAME   "/dev/shm/rtspserver_cert.pem"
+#define RTSP_CERT_KEY            "/dev/shm/rtspserver_key.pem"
 
 class SnapShot;
 class CStreamCamera;

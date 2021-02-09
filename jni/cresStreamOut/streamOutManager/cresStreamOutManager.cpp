@@ -18,6 +18,8 @@
 ///////////////////////////////////////////////////////////////////////////////
 
 #include <stdlib.h>
+#include <fcntl.h>
+#include <unistd.h>
 #include "cresStreamOutManager.h"
 #include "gst/app/gstappsrc.h"
 #include "v4l2Video.h"
@@ -58,7 +60,44 @@ int useUsbAudio = true;
 #define	UNLIMITED_RTSP_SESSIONS   0
 
 extern void csio_jni_SendWCServerURL( void * arg );
+extern void csio_jni_onServerStart();
+extern void csio_jni_onServerStop();
+extern void csio_jni_onClientConnected(void * arg);
+extern void csio_jni_onClientDisconnected(void * arg);
 extern void usb_audio_get_samples(pcm *pcm_device, void *data, int size, GstClockTime *timestamp, GstClockTime *duration);
+
+#define BLKSIZE (1024)
+static void copy_file(char *from, char *to)
+{
+	char buffer[BLKSIZE];
+	size_t bytes;
+	int infile, outfile;
+
+    CSIO_LOG(eLogLevel_info, "--------------- copy file %s -> %s -----------------------", from, to);
+	if ((infile = open(from, O_RDONLY)) < 0)
+	{
+		CSIO_LOG(eLogLevel_error, "%s: error opening file %s\n", __FUNCTION__, from);
+		return;
+	}
+	if ((outfile = open(to, O_WRONLY|O_CREAT, 0666)) < 0)
+	{
+		CSIO_LOG(eLogLevel_error, "%s: error opening file %s\n", __FUNCTION__, to);
+		return;
+	}
+
+	while (0 < (bytes = read(infile, buffer, sizeof(buffer))))
+		write(outfile, buffer, bytes);
+
+	//close streams
+	close(infile);
+	close(outfile);
+}
+
+static void copy_server_certificates(char *certificate_file, char *key_file)
+{
+	copy_file(SERVER_CERT_PEM_FILENAME, certificate_file);
+	copy_file(SERVER_CERT_KEY, key_file);
+}
 
 static bool
 is_supported(char *fourcc)
@@ -87,11 +126,29 @@ timeout (GstRTSPServer * server)
     return TRUE;
 }
 
+static
+void getClientIp(GstRTSPClient * client, char *ipAddrBuf, int bufSize)
+{
+	ipAddrBuf[0] = '\0';
+	if (client) {
+		const GstRTSPConnection *client_connection = gst_rtsp_client_get_connection(client);
+		if (client_connection)
+		{
+			const gchar *clientIpAddress = gst_rtsp_connection_get_ip(client_connection);
+			strncpy(ipAddrBuf, clientIpAddress, bufSize);
+			//strcpy(ipAddrBuf,"192.168.1.104");
+		}
+	}
+}
+
 static void
 client_closed (GstRTSPClient * client, void *user_data)
 {
     CStreamoutManager *pMgr = (CStreamoutManager *) user_data;
+    char clientIpAddress[64];
 
+    getClientIp(client, clientIpAddress, sizeof(clientIpAddress));
+    csio_jni_onClientDisconnected(clientIpAddress);
     pMgr->m_clientList.remove(client);
 //    if (PushModel && pMgr->m_clientList.size() == 0)
 //        pMgr->m_bNeedData = false;
@@ -102,7 +159,10 @@ static void
 client_connected (GstRTSPServer * server, GstRTSPClient * client, void *user_data)
 {
     CStreamoutManager *pMgr = (CStreamoutManager *) user_data;
+    char clientIpAddress[64];
 
+    getClientIp(client, clientIpAddress, sizeof(clientIpAddress));
+    csio_jni_onClientConnected(clientIpAddress);
     pMgr->m_clientList.push_back(client);
 //    if (PushModel)
 //        pMgr->m_bNeedData = true;
@@ -442,8 +502,15 @@ m_appsrc(NULL), m_streamoutMode(streamoutMode)
         //m_clientList = new std::list<GstRtspClient *>();
         m_auth_on = true;
         m_tls_on = true;
-        //if (m_tls_on)
-            //create_selfsigned_certificate(RTSP_CERT_PEM_FILENAME, RTSP_CERT_KEY);
+        if (m_tls_on) {
+#ifdef GENERATE_CERTIFICATE
+            CSIO_LOG(eLogLevel_info, "----------------------Streamout: create self signed certificates");
+            create_selfsigned_certificate(RTSP_CERT_PEM_FILENAME, RTSP_CERT_KEY);
+#else
+            CSIO_LOG(eLogLevel_info, "----------------------Streamout: copy server certificates");
+            copy_server_certificates(RTSP_CERT_PEM_FILENAME, RTSP_CERT_KEY);
+#endif
+        }
         m_videoStream = true;
         m_audioStream = true;
         m_aacEncode = true;
@@ -959,14 +1026,17 @@ void* CStreamoutManager::ThreadEntry()
         g_signal_connect(server, "client-connected", (GCallback) client_connected, this);
         g_timeout_add_seconds(2, (GSourceFunc) timeout, server);
     }
+    csio_jni_onServerStart();
 
     CSIO_LOG(eLogLevel_info, "Streamout: running main loop......");
     g_main_loop_run (m_loop);
 
 exitThread:
     /* cleanup */
-if (m_streamoutMode == STREAMOUT_MODE_CAMERA)
-    StopSnapShot(this);
+	if (m_streamoutMode == STREAMOUT_MODE_CAMERA)
+		StopSnapShot(this);
+
+    csio_jni_onServerStop();
 
 #ifdef CRES_UNPREPARE_MEDIA
 /*   please check out this bug: https://bugzilla.gnome.org/show_bug.cgi?id=747801

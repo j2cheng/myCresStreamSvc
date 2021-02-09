@@ -204,6 +204,30 @@ public class GstreamOut {
         Log.i(TAG, "setWcServerUrl: WC server url="+wcServerUrl);
     }
 
+    public void onServerStart()
+    {
+        Log.i(TAG, "Streamout: onServerStart");
+        streamCtl.mWC_Service.onServerStart();
+    }
+    
+    public void onServerStop()
+    {
+        Log.i(TAG, "Streamout: onServerStop");
+        streamCtl.mWC_Service.onServerStop();
+    }
+    
+    public void onClientConnected(String clientIp)
+    {
+        Log.i(TAG, "Streamout: onClientConnected: clientIp="+clientIp);
+        streamCtl.mWC_Service.onClientConnected(clientIp);
+    }
+    
+    public void onClientDisconnected(String clientIp)
+    {
+        Log.i(TAG, "Streamout: onClientDisconnected: clientIp="+clientIp);
+        streamCtl.mWC_Service.onClientDisconnected(clientIp);
+    }
+    
     public void setPort(int port) {
         nativeSetRtspPort(port, sessionId);
     }

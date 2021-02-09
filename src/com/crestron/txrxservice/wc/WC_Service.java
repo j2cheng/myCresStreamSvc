@@ -1,5 +1,6 @@
 package com.crestron.txrxservice.wc;
 
+import android.content.Intent;
 import android.os.RemoteCallbackList;
 import android.os.RemoteException;
 import android.util.Log;
@@ -87,6 +88,16 @@ public class WC_Service {
         return mBinder;
     }
 
+    public void unbind(Intent intent)
+    {
+    	Log.i(TAG, "unbind() - intent="+intent);
+    }
+    
+    public void rebind(Intent intent)
+    {
+    	Log.i(TAG, "rebind() - intent="+intent);
+    }
+    
     public void onClientConnected(String clientIp)
     {
         Log.i(TAG,"onClientConnected: client IP address="+clientIp);
@@ -103,7 +114,7 @@ public class WC_Service {
         mCallbacks.finishBroadcast();
     }
 
-    public void onClientDisonnected(String clientIp)
+    public void onClientDisconnected(String clientIp)
     {
         Log.i(TAG,"onClientDisconnected: client IP address="+clientIp);
         // Broadcast to all clients the new value.
@@ -171,7 +182,7 @@ public class WC_Service {
         String url = mStreamOut.getWcServerUrl();
         String cert = mStreamOut.getWcServerCertificate();
         String privKey = mStreamOut.getWcServerKey();
-        WC_Connection wc_connection = new WC_Connection(1, getUrl(), getCertificate(), getKey());
+        WC_Connection wc_connection = new WC_Connection(1, url, cert, privKey);
         return wc_connection;
     }
 

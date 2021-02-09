@@ -36,6 +36,9 @@
 		    <intent-filter>
 		    	<action android:name="com.crestron.txrxservice.BIND"/>
 		    </intent-filter>
+		    <intent-filter>
+                <action android:name="com.crestron.txrxservice.wc.BIND"/>
+            </intent-filter>
 		</service>
     </application>
 	

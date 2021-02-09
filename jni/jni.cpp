@@ -4226,6 +4226,98 @@ void csio_jni_SendWCServerURL( void * arg )
     CSIO_LOG(eLogLevel_debug,  "%s: exit", __FUNCTION__);
 }
 
+void csio_jni_onServerStart()
+{
+	JNIEnv *env = get_jni_env ();
+
+	CSIO_LOG(eLogLevel_debug,  "%s: entered", __FUNCTION__);
+
+	jmethodID onServerStart = env->GetMethodID((jclass)gStreamOut_javaClass_id, "onServerStart", "()V");
+	if (onServerStart == NULL) {
+        CSIO_LOG(eLogLevel_error,  "%s: could not find JAVA method onServerStart in Gstreamout class", __FUNCTION__);
+        return;
+	}
+
+	env->CallVoidMethod(CresStreamOutDataDB->app, onServerStart);
+	if (env->ExceptionCheck ()) {
+		CSIO_LOG(eLogLevel_error, "%s: Failed to call Java method 'onServerStart'", __FUNCTION__);
+		env->ExceptionClear ();
+	}
+    CSIO_LOG(eLogLevel_debug,  "%s: exit", __FUNCTION__);
+}
+
+void csio_jni_onServerStop()
+{
+	JNIEnv *env = get_jni_env ();
+
+	CSIO_LOG(eLogLevel_debug,  "%s: entered", __FUNCTION__);
+
+	jmethodID onServerStop = env->GetMethodID((jclass)gStreamOut_javaClass_id, "onServerStop", "()V");
+	if (onServerStop == NULL) {
+        CSIO_LOG(eLogLevel_error,  "%s: could not find JAVA method onServerStop in Gstreamout class", __FUNCTION__);
+        return;
+	}
+
+	env->CallVoidMethod(CresStreamOutDataDB->app, onServerStop);
+	if (env->ExceptionCheck ()) {
+		CSIO_LOG(eLogLevel_error, "%s: Failed to call Java method 'onServerStop'", __FUNCTION__);
+		env->ExceptionClear ();
+	}
+    CSIO_LOG(eLogLevel_debug,  "%s: exit", __FUNCTION__);
+}
+
+void csio_jni_onClientConnected( void * arg )
+{
+	jstring clientIp_jstr;
+	JNIEnv *env = get_jni_env ();
+
+	char *clientIp_cstr = (char *) arg;
+
+	CSIO_LOG(eLogLevel_debug,  "%s: client IP is %s", __FUNCTION__, clientIp_cstr );
+
+	clientIp_jstr = env->NewStringUTF(clientIp_cstr);
+
+	jmethodID onClientConnected = env->GetMethodID((jclass)gStreamOut_javaClass_id, "onClientConnected", "(Ljava/lang/String;)V");
+	if (onClientConnected == NULL) {
+        CSIO_LOG(eLogLevel_error,  "%s: could not find JAVA method onClientConnected in Gstreamout class", __FUNCTION__);
+        return;
+	}
+
+	env->CallVoidMethod(CresStreamOutDataDB->app, onClientConnected, clientIp_jstr);
+	if (env->ExceptionCheck ()) {
+		CSIO_LOG(eLogLevel_error, "%s: Failed to call Java method 'onClientConnected'", __FUNCTION__);
+		env->ExceptionClear ();
+	}
+	env->DeleteLocalRef (clientIp_jstr);
+    CSIO_LOG(eLogLevel_debug,  "%s: exit", __FUNCTION__);
+}
+
+void csio_jni_onClientDisconnected( void * arg )
+{
+	jstring clientIp_jstr;
+	JNIEnv *env = get_jni_env ();
+
+	char *clientIp_cstr = (char *) arg;
+
+	CSIO_LOG(eLogLevel_debug,  "%s: client IP is %s", __FUNCTION__, clientIp_cstr );
+
+	clientIp_jstr = env->NewStringUTF(clientIp_cstr);
+
+	jmethodID onClientDisconnected = env->GetMethodID((jclass)gStreamOut_javaClass_id, "onClientDisconnected", "(Ljava/lang/String;)V");
+	if (onClientDisconnected == NULL) {
+        CSIO_LOG(eLogLevel_error,  "%s: could not find JAVA method onClientDisconnected in Gstreamout class", __FUNCTION__);
+        return;
+	}
+
+	env->CallVoidMethod(CresStreamOutDataDB->app, onClientDisconnected, clientIp_jstr);
+	if (env->ExceptionCheck ()) {
+		CSIO_LOG(eLogLevel_error, "%s: Failed to call Java method 'onClientDisconnected'", __FUNCTION__);
+		env->ExceptionClear ();
+	}
+	env->DeleteLocalRef (clientIp_jstr);
+    CSIO_LOG(eLogLevel_debug,  "%s: exit", __FUNCTION__);
+}
+
 void LocalConvertToUpper(char *str)
 {
     char *TmpPtr;
