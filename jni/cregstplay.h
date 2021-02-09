@@ -282,7 +282,7 @@ void csio_jni_printFieldDebugInfo();
 void clearMetadataConnections();
 void init_custom_data(CustomData * cdata);
 int build_audio_pipeline(gchar *encoding_name, CREGSTREAM *data, int do_rtp,GstElement **ele0,GstElement **sink);
-int build_video_pipeline(gchar *encoding_name, CREGSTREAM *data, unsigned int start, int do_rtp,GstElement **ele0,GstElement **sink);
+int build_video_pipeline(gchar *encoding_name, CREGSTREAM *data, unsigned int start, int do_rtp,GstElement **ele0,GstElement **sink, char *format_name=NULL);
 int build_metadata_pipeline(CREGSTREAM *data, GstElement **sink);
 void build_http_pipeline(CREGSTREAM *data, int iStreamId);
 extern "C" void insert_udpsrc_probe(CREGSTREAM *data,GstElement *element,const gchar *name);

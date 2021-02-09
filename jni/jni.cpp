@@ -3897,6 +3897,7 @@ int csio_jni_AddVideo(GstPad *new_pad,gchar *encoding_name, GstElement **sink,eP
 	gchar * p_caps_string = NULL;
 	GstCaps *new_pad_caps = NULL;
 	GstPad *sink_pad = NULL;
+	GstStructure *new_pad_struct = NULL;
 
 
 	if(!data)
@@ -3918,8 +3919,26 @@ int csio_jni_AddVideo(GstPad *new_pad,gchar *encoding_name, GstElement **sink,eP
 		do_rtp = 1;
 	}
 
-	CSIO_LOG(eLogLevel_error, "%s calling build_video_pipeline for stream %d", __FUNCTION__, iStreamId);
-	iStatus = build_video_pipeline(encoding_name, data,0,do_rtp,&ele0,sink);
+	gchar *format_name = NULL;
+	new_pad_struct = gst_caps_get_structure( new_pad_caps, 0 );
+	if(new_pad_struct)
+	{
+	    const GValue *format_value = gst_structure_get_value (new_pad_struct, "stream-format");
+	    if(format_value)
+	    {
+	        format_name = gst_value_serialize(format_value);
+	        if(format_name)
+	            CSIO_LOG(eLogLevel_debug,  "%s: Stream format-name '%s'\r\n", __FUNCTION__, format_name );
+	        else
+	            CSIO_LOG(eLogLevel_debug,  "%s: Missing stream format-name.", __FUNCTION__);
+	    }
+	    else
+	        CSIO_LOG(eLogLevel_debug,  "%s: No stream-format field.", __FUNCTION__);
+	}
+
+	CSIO_LOG(eLogLevel_debug, "%s calling build_video_pipeline for stream %d", __FUNCTION__, iStreamId);
+
+	iStatus = build_video_pipeline(encoding_name, data,0,do_rtp,&ele0,sink,format_name);
 
 	if(ele0 == NULL)
 	{

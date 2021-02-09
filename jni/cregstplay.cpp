@@ -1354,7 +1354,7 @@ static void ts_demux_post_process_callback (GstElement *src, gpointer pesPrivate
  * 				RTP depayloaders will be added as needed.
  * 
  */
-int build_video_pipeline(gchar *encoding_name, CREGSTREAM *data, unsigned int start, int do_rtp,GstElement **ele0,GstElement **sink)
+int build_video_pipeline(gchar *encoding_name, CREGSTREAM *data, unsigned int start, int do_rtp,GstElement **ele0,GstElement **sink,char *format_name)
 {
     unsigned int i = start;
     int do_window = 1;
@@ -1365,8 +1365,11 @@ int build_video_pipeline(gchar *encoding_name, CREGSTREAM *data, unsigned int st
     data->using_glimagsink = 0;
     data->amcvid_dec_index = 0;
     *sink = NULL;
-    CSIO_LOG(eLogLevel_debug, "%s() encoding_name=%s, native_window=%p, start=%u, do_rtp=%d",
-             __FUNCTION__, encoding_name, data->native_window, start, do_rtp);
+
+    bool is_avc_fmt_name = ((format_name) && (strncasecmp(format_name, "avc",3) == 0));
+
+    CSIO_LOG(eLogLevel_debug, "%s() encoding_name=%s, native_window=%p, start=%u, do_rtp=%d, is_avc_fmt_name=%d",
+             __FUNCTION__, encoding_name, data->native_window, start, do_rtp, is_avc_fmt_name);
 
     if((strcmp(encoding_name, "H264") == 0) || (strcmp(encoding_name, "video/x-h264") == 0))
     {
@@ -1384,11 +1387,12 @@ int build_video_pipeline(gchar *encoding_name, CREGSTREAM *data, unsigned int st
         {
             data->element_v[i++] = gst_element_factory_make("rtph264depay", NULL);
         }
-        
-        if(product_info()->hw_platform == eHardwarePlatform_Snapdragon)
+
+        if((product_info()->hw_platform == eHardwarePlatform_Snapdragon) &&
+        ((!format_name) || is_avc_fmt_name))
         {
-            //TODO: Need to dynamically determine stream-format because some streams require byte-stream format or
-            //they will fail to stream (e.g. http://qthttp.apple.com.edgesuite.net/1010qwoeiuryfg/sl.m3u8)
+            //use AVC stream-format if detected or if field is missing on incoming SRC pad
+            CSIO_LOG(eLogLevel_debug, "Using avc stream-format");
             data->element_v[i++] = gst_element_factory_make("capsfilter", NULL);
             GstCaps *avc_caps = gst_caps_from_string( "video/x-h264, stream-format=(string)avc,alignment=(string)au");
             g_object_set ( data->element_v[i-1], "caps", avc_caps, NULL);
