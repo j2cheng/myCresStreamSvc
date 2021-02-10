@@ -59,6 +59,7 @@ int useUsbAudio = true;
 #define MAX_RTSP_SESSIONS         5
 #define	UNLIMITED_RTSP_SESSIONS   0
 
+extern const char *csio_jni_getAppCacheFolder();
 extern void csio_jni_SendWCServerURL( void * arg );
 extern void csio_jni_onServerStart();
 extern void csio_jni_onServerStop();
@@ -503,12 +504,17 @@ m_appsrc(NULL), m_streamoutMode(streamoutMode)
         m_auth_on = true;
         m_tls_on = true;
         if (m_tls_on) {
+        	std::string folder = std::string(csio_jni_getAppCacheFolder()) + std::string("/");
+        	std::string cert_filename = folder + std::string(RTSP_CERT_PEM_FILENAME);
+            strncpy(m_rtsp_cert_filename, cert_filename.c_str(), sizeof(m_rtsp_cert_filename));
+        	std::string key_filename = folder + std::string(RTSP_CERT_KEY);
+            strncpy(m_rtsp_key_filename, key_filename.c_str(), sizeof(m_rtsp_cert_filename));
 #ifdef GENERATE_CERTIFICATE
             CSIO_LOG(eLogLevel_info, "----------------------Streamout: create self signed certificates");
-            create_selfsigned_certificate(RTSP_CERT_PEM_FILENAME, RTSP_CERT_KEY);
+            create_selfsigned_certificate(m_rtsp_cert_filename, m_rtsp_key_filename);
 #else
             CSIO_LOG(eLogLevel_info, "----------------------Streamout: copy server certificates");
-            copy_server_certificates(RTSP_CERT_PEM_FILENAME, RTSP_CERT_KEY);
+            copy_server_certificates(m_rtsp_cert_filename, m_rtsp_key_filename);
 #endif
         }
         m_videoStream = true;
@@ -757,7 +763,7 @@ void* CStreamoutManager::ThreadEntry()
         auth = gst_rtsp_auth_new();
         if (m_tls_on) {
             CSIO_LOG(eLogLevel_info, "Streamout: RTSP server's TLS configuration\n");
-            cert = g_tls_certificate_new_from_files(RTSP_CERT_PEM_FILENAME, RTSP_CERT_KEY, &error);
+            cert = g_tls_certificate_new_from_files(m_rtsp_cert_filename, m_rtsp_key_filename, &error);
             if (cert == NULL) {
                 CSIO_LOG(eLogLevel_error, "Streamout: failed to parse PEM: %s\n", error->message);
                 goto exitThread;

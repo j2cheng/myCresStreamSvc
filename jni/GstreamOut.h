@@ -115,6 +115,14 @@ JNIEXPORT void JNICALL Java_com_crestron_txrxservice_GstreamOut_nativeSet_1Snaps
 
 /*
  * Class:     com_crestron_txrxservice_GstreamOut
+ * Method:    nativeSetAppCacheFolder
+ * Signature: (Ljava/lang/String;)V
+ */
+JNIEXPORT void JNICALL Java_com_crestron_txrxservice_GstreamOut_nativeSetAppCacheFolder
+  (JNIEnv *, jobject, jstring);
+
+/*
+ * Class:     com_crestron_txrxservice_GstreamOut
  * Method:    nativeStartPreview
  * Signature: (Ljava/lang/Object;I)V
  */

@@ -21,8 +21,8 @@
 #define GENERATE_CERTIFICATE
 #define SERVER_CERT_PEM_FILENAME "/data/CresStreamSvc/digital_certificates/rtspserver_cert.pem"
 #define SERVER_CERT_KEY          "/data/CresStreamSvc/digital_certificates/rtspserver_key.pem"
-#define RTSP_CERT_PEM_FILENAME   "/dev/shm/rtspserver_cert.pem"
-#define RTSP_CERT_KEY            "/dev/shm/rtspserver_key.pem"
+#define RTSP_CERT_PEM_FILENAME   "rtspserver_cert.pem"
+#define RTSP_CERT_KEY            "rtspserver_key.pem"
 
 class SnapShot;
 class CStreamCamera;
@@ -77,6 +77,8 @@ public:
     char m_multicast_address[MAX_STR_LEN];
     char m_stream_name[MAX_STR_LEN];
     char m_snapshot_name[MAX_STR_LEN];
+    char m_rtsp_cert_filename[MAX_STR_LEN];
+    char m_rtsp_key_filename[MAX_STR_LEN];
 
     std::list<GstRTSPClient *> m_clientList;
     bool m_auth_on;

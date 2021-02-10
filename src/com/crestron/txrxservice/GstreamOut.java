@@ -31,8 +31,8 @@ public class GstreamOut {
 
     static String TAG = "GstreamOut";
 
-    private static final String RTSP_CERT_PEM_FILENAME = "/dev/shm/rtspserver_cert.pem";
-    private static final String RTSP_CERT_KEY = "/dev/shm/rtspserver_key.pem";
+    private static final String RTSP_CERT_PEM_FILENAME = "rtspserver_cert.pem";
+    private static final String RTSP_CERT_KEY = "rtspserver_key.pem";
 
 ///////////////////////////////////////////////////////////////////////////////
 
@@ -54,6 +54,7 @@ public class GstreamOut {
     private native void nativeSet_StreamName(String name, int sessionId);
     private native void nativeSet_SnapshotName(String name, int sessionId);
     private native void nativeSet_WcSecurityEnable(boolean enable, int sessionId);
+    private native void nativeSetAppCacheFolder(String name);
     private native void nativeStartPreview(Object surface, int sessionId);
     private native void nativePausePreview(int sessionId);
     private native void nativeStopPreview(int sessionId);
@@ -70,11 +71,12 @@ public class GstreamOut {
     private boolean resReleased = true;   // default need to be true
     private boolean wirelessConferencing_server_started = false;
     private String wcServerUrl = null;
+    private String appCacheFolder = null;
 
     public boolean wcStarted() {return wirelessConferencing_server_started; }
     public String getWcServerUrl() { return wcServerUrl; }
-    public String getWcServerCertificate() { return MiscUtils.readStringFromDisk(RTSP_CERT_PEM_FILENAME); }
-    public String getWcServerKey() { return MiscUtils.readStringFromDisk(RTSP_CERT_KEY); }
+    public String getWcServerCertificate() { return MiscUtils.readStringFromDisk(appCacheFolder+"/"+RTSP_CERT_PEM_FILENAME); }
+    public String getWcServerKey() { return MiscUtils.readStringFromDisk(appCacheFolder+"/"+RTSP_CERT_KEY); }
 
 ///////////////////////////////////////////////////////////////////////////////
 
@@ -92,6 +94,8 @@ public class GstreamOut {
         if (!streamCtl.isWirelessConferencingEnabled && streamCtl.userSettings.getCamStreamEnable() == true)        {
             start();
         }
+        appCacheFolder = streamCtl.getCacheDir().getAbsolutePath();
+        Log.i(TAG, "Streamout: Application cache folder path = "+appCacheFolder);
     }
 
     public void setSessionIndex(int id){
@@ -175,6 +179,7 @@ public class GstreamOut {
 
     private void updateNativeDataStructForWirelessConferencingStreaming() {
         Log.i(TAG, "Streamout: JAVA - updateNativeDataStructForWirelessConferencingStreaming entered" );
+        setAppCacheFolder();
         setPort(8554);
         setMulticastEnable(false);
         setWirelessConferencingResolution(10);
@@ -226,6 +231,11 @@ public class GstreamOut {
     {
         Log.i(TAG, "Streamout: onClientDisconnected: clientIp="+clientIp);
         streamCtl.mWC_Service.onClientDisconnected(clientIp);
+    }
+    
+    public void setAppCacheFolder()
+    {
+        nativeSetAppCacheFolder(appCacheFolder);
     }
     
     public void setPort(int port) {

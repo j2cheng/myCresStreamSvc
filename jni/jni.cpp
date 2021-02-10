@@ -123,6 +123,8 @@ static unsigned int *initialPorts = NULL;
 static char const* file_prefix = "file://";
 static unsigned const prefixLength7 = 7;
 
+char app_cache_folder[256]={0};
+
 CresNextDef *CresNextDefaults = NULL;
 
 ///////////////////////////////////////////////////////////////////////////////
@@ -4219,6 +4221,11 @@ void csio_jni_sendCameraStopFb()
     }
 }
 
+const char *csio_jni_getAppCacheFolder()
+{
+	return app_cache_folder;
+}
+
 void csio_jni_SendWCServerURL( void * arg )
 {
 	jstring serverUrl_jstr;
@@ -4672,6 +4679,21 @@ JNIEXPORT void JNICALL Java_com_crestron_txrxservice_GstreamOut_nativeSet_1Snaps
 
 	Streamout_SetSnapshotName(desBuf);
 	CSIO_LOG(eLogLevel_debug, "rtsp_server: snapshot_name in CresStreamOutDataDB: '%s'", CresStreamOutDataDB->streamOut[sessionId].snapshot_name);
+	env->ReleaseStringUTFChars(name_jstring, name_cstring);
+}
+
+JNIEXPORT void JNICALL Java_com_crestron_txrxservice_GstreamOut_nativeSetAppCacheFolder(JNIEnv *env, jobject thiz, jstring name_jstring)
+{
+	if (!CresStreamOutDataDB)
+	{
+		CSIO_LOG(eLogLevel_info, "%s: cannot set value, CresStreamOutDataDB is null", __FUNCTION__);
+		return;
+	}
+	const char * name_cstring = env->GetStringUTFChars( name_jstring , NULL ) ;
+	if (name_cstring == NULL) return;
+
+	CSIO_LOG(eLogLevel_debug, "rtsp_server: set app cache folder: '%s'", name_cstring);
+	strncpy(app_cache_folder, name_cstring, sizeof(app_cache_folder));
 	env->ReleaseStringUTFChars(name_jstring, name_cstring);
 }
 /***************************** end of rtsp_server for video streaming out *********************************/
