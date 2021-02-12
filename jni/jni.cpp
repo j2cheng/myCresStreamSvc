@@ -2055,9 +2055,10 @@ JNIEXPORT void JNICALL Java_com_crestron_txrxservice_GstreamIn_nativeSetFieldDeb
                 CSIO_LOG(eLogLevel_info, "V4L2 device is: %s\r\n",v4l2Device);
                 VideoCaps videoCaps;
                 char caps[256];
-                get_video_caps(v4l2Device, &videoCaps);
-                CSIO_LOG(eLogLevel_info, "%s: format=%s w=%d h=%d frame_rate=%d/%d", v4l2Device, videoCaps.format,
-                		videoCaps.w, videoCaps.h, videoCaps.frame_rate_num, videoCaps.frame_rate_den);
+                char display_name[256];
+                get_video_caps(v4l2Device, &videoCaps, display_name, sizeof(display_name));
+                CSIO_LOG(eLogLevel_info, "%s: name=%s format=%s w=%d h=%d frame_rate=%d/%d", v4l2Device, display_name,
+                		videoCaps.format, videoCaps.w, videoCaps.h, videoCaps.frame_rate_num, videoCaps.frame_rate_den);
                 if (get_video_caps_string(&videoCaps, caps, sizeof(caps)) == 0)
                 {
                 	CSIO_LOG(eLogLevel_info, "caps=%s\n", caps);

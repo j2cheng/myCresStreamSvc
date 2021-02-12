@@ -14,7 +14,7 @@ typedef struct VideoCapStruct {
     int frame_rate_den;
 } VideoCaps;
 
-int get_video_caps(char *device_name, VideoCaps *video_caps);
+int get_video_caps(char *device_name, VideoCaps *video_caps, char *display_name, int display_name_len);
 int get_video_caps_string(VideoCaps *video_caps, char *caps, int maxlen);
 
 #endif //__V4L2VIDEO_H__

@@ -158,7 +158,7 @@ get_video_caps_from_caps(GstCaps *caps, int min_frame_rate, VideoCaps *video_cap
     }
 }
 
-int get_video_caps(char *device_name, VideoCaps *video_caps)
+int get_video_caps(char *device_name, VideoCaps *video_caps, char *display_name, int display_name_len)
 {
     video_caps->w = 0;
     video_caps->h = 0;
@@ -195,7 +195,8 @@ int get_video_caps(char *device_name, VideoCaps *video_caps)
                 //CSIO_LOG(eLogLevel_info, "\n");
             }
             gchar *devdisplayname = gst_device_get_display_name(device);
-            //CSIO_LOG(eLogLevel_info, "Got device %s (display_name=%s) of class %s \n", devname, devdisplayname, devclass);
+            CSIO_LOG(eLogLevel_info, "Got device %s (display_name=%s) of class %s \n", devname, devdisplayname, devclass);
+            strncpy(display_name, devdisplayname, sizeof(display_name));
             g_free(devdisplayname);
             if ((device_name == NULL) || (strcmp(devname, device_name) == 0))
             {
@@ -230,12 +231,13 @@ int get_video_caps_string(VideoCaps *video_caps, char *caps, int maxlen)
 		return -1;
 }
 #else    // HAS_V4L2
-int get_video_caps(char *device_name, VideoCaps *video_caps)
+int get_video_caps(char *device_name, VideoCaps *video_caps, char *display_name, int display_name_len)
 {
     video_caps->w = 0;
     video_caps->h = 0;
     video_caps->frame_rate_num = 1;
     video_caps->frame_rate_den = 1;
+    strncpy(display_name, "Unknown Device", display_name_len);
 }
 int get_video_caps_string(VideoCaps *video_caps, char *caps, int maxlen)
 {

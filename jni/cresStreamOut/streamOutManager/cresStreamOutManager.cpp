@@ -505,6 +505,7 @@ m_appsrc(NULL), m_streamoutMode(streamoutMode)
         m_tls_on = true;
         if (m_tls_on) {
         	std::string folder = std::string(csio_jni_getAppCacheFolder()) + std::string("/");
+            CSIO_LOG(eLogLevel_info, "----------------------Streamout: app cache folder=%s", folder.c_str());
         	std::string cert_filename = folder + std::string(RTSP_CERT_PEM_FILENAME);
             strncpy(m_rtsp_cert_filename, cert_filename.c_str(), sizeof(m_rtsp_cert_filename));
         	std::string key_filename = folder + std::string(RTSP_CERT_KEY);
@@ -524,9 +525,9 @@ m_appsrc(NULL), m_streamoutMode(streamoutMode)
 #ifndef USE_VIDEOTESTSRC
         if (m_videoStream) {
 #ifdef NANOPC
-        	if (!get_video_caps("/dev/video10", &m_video_caps))
+        	if (!get_video_caps("/dev/video10", &m_video_caps, m_device_display_name, sizeof(m_device_display_name)))
 #else
-        	if (!get_video_caps("/dev/video5", &m_video_caps))
+        	if (!get_video_caps("/dev/video5", &m_video_caps, m_device_display_name, sizeof(m_device_display_name)))
 #endif
         	{
         		if (get_video_caps_string(&m_video_caps, m_caps, sizeof(m_caps)) < 0)
@@ -993,7 +994,7 @@ void* CStreamoutManager::ThreadEntry()
             sprintf(mountPoint, "/%s.sdp", "wc");
     }
     gst_rtsp_mount_points_add_factory (mounts, mountPoint, m_factory);
-    g_object_unref(mounts);
+    //g_object_unref(mounts);
     CSIO_LOG(eLogLevel_info, "Streamout: mount in %s mode: [%s]",
 	m_streamoutMode == STREAMOUT_MODE_CAMERA ? "camera":"wireless conferencing", mountPoint);
 
@@ -1085,13 +1086,16 @@ exitThread:
     if (m_factory && mounts) gst_rtsp_mount_points_remove_factory(mounts, mountPoint);
     CSIO_LOG(m_debugLevel, "Streamout: unreference mounts[0x%x]",mounts);
     if (mounts) g_object_unref (mounts);
-    CSIO_LOG(m_debugLevel, "Streamout: unreference factory[0x%x]",m_factory);
-    if(m_factory) g_object_unref (m_factory);
-    CSIO_LOG(m_debugLevel, "Streamout: unreference server[0x%x]",server);
-    if(server) g_object_unref (server);
+//Note:  if you unref m_factory, then unref server will give you and err
+//       seems unref server is enough, it will unref m_factory also.
+//    CSIO_LOG(m_debugLevel, "Streamout: unreference factory[0x%x]",m_factory);
+//    if(m_factory) g_object_unref (m_factory);
     CSIO_LOG(m_debugLevel, "Streamout: unreference loop[0x%x]",m_loop);
     if(m_loop) g_main_loop_unref (m_loop);
+    CSIO_LOG(m_debugLevel, "Streamout: unreference pool[0x%x]",pool);
     if(pool) g_object_unref (pool);
+    CSIO_LOG(m_debugLevel, "Streamout: unreference server[0x%x]",server);
+    if(server) g_object_unref (server);
 
     //need to create a cleanup function and call here
     CSIO_LOG(m_debugLevel, "Streamout: reset m_loop, m_main_loop_is_running, m_pMedia");

@@ -79,6 +79,7 @@ public:
     char m_snapshot_name[MAX_STR_LEN];
     char m_rtsp_cert_filename[MAX_STR_LEN];
     char m_rtsp_key_filename[MAX_STR_LEN];
+    char m_device_display_name[MAX_STR_LEN];
 
     std::list<GstRTSPClient *> m_clientList;
     bool m_auth_on;

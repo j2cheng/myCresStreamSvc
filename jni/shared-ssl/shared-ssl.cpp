@@ -1711,8 +1711,9 @@ static bool write_to_disk(X509 * pX509, char *certPemFile, EVP_PKEY * pkey, char
     }
 
     /* Write the key to disk. */
-    bool ret = PEM_write_PrivateKey(pkey_file, pkey, NULL, NULL, 0, NULL, NULL);
+    int ret = PEM_write_PrivateKey(pkey_file, pkey, NULL, NULL, 0, NULL, NULL);
     fclose(pkey_file);
+    //sssl_log(LOGLEV_debug,"wrote key file %s: ret=%d", privateKeyPemFile, ret);
 
     if(!ret) {
         sssl_log(LOGLEV_error,"Unable to write private key to disk.");
@@ -1729,11 +1730,14 @@ static bool write_to_disk(X509 * pX509, char *certPemFile, EVP_PKEY * pkey, char
     /* Write the certificate to disk. */
     ret = PEM_write_X509(x509_file, pX509);
     fclose(x509_file);
+    //sssl_log(LOGLEV_debug,"wrote cert file %s: ret=%d", certPemFile, ret);
 
     if(!ret) {
         sssl_log(LOGLEV_error,"Unable to write x509 certificate to disk.");
         return false;
     }
+
+    return true;
 }
 
 bool create_selfsigned_certificate(char *certPemFile, char *privateKeyPemFile)
@@ -1759,20 +1763,8 @@ bool create_selfsigned_certificate(char *certPemFile, char *privateKeyPemFile)
 
     bool ret = write_to_disk(pX509, certPemFile, pKey, privateKeyPemFile);
 
-    if(!pKey)
-    {
-        sssl_log(LOGLEV_error, "%s: NULL private key", __FUNCTION__);
-    }
-    else if(!pX509)
-    {
-        sssl_log(LOGLEV_error,"%s(: NULL X509 certificate", __FUNCTION__);
-    }
-    else
-    {
-        sssl_log(LOGLEV_debug,"%s: calling EVP_PKEY_free(pKey)", __FUNCTION__);
-        if (pKey) EVP_PKEY_free(pKey);
-        if (pX509) X509_free(pX509);
-    }
+    if (pKey) EVP_PKEY_free(pKey);
+    if (pX509) X509_free(pX509);
 
     if(!ret)
     {
