@@ -118,11 +118,12 @@ timeout (GstRTSPServer * server)
 {
     GstRTSPSessionPool *pool;
 
-    CSIO_LOG(eLogLevel_info, "--------------- In timeout() -----------------------");
+    CSIO_LOG(eLogLevel_verbose, "--------------- In timeout() -----------------------");
     pool = gst_rtsp_server_get_session_pool (server);
     guint removed = gst_rtsp_session_pool_cleanup (pool);
     g_object_unref (pool);
-    CSIO_LOG(eLogLevel_info, "Removed %d sessions", removed);
+    if (removed)
+    	CSIO_LOG(eLogLevel_info, "Removed %d sessions", removed);
 
     return TRUE;
 }
@@ -474,10 +475,18 @@ wc_media_configure (GstRTSPMediaFactory * factory, GstRTSPMedia * media,
 static GstRTSPFilterResult
 filter_cb (GstRTSPStream *stream, GstRTSPStreamTransport *trans,gpointer user_data)
 {
-    CSIO_LOG(eLogLevel_info, "Streamout: filter_cb-------stream[0x%x]---",stream);
+    CSIO_LOG(eLogLevel_info, "Streamout: filter_cb -------stream[0x%x]---",stream);
     return GST_RTSP_FILTER_REMOVE;
 }
 
+static GstRTSPFilterResult
+client_filter (GstRTSPServer * server, GstRTSPClient * client,
+    gpointer user_data)
+{
+  CSIO_LOG(eLogLevel_info, "Streamout: client_filter -------client[0x%x]---",client);
+  /* Simple filter that shuts down all clients. */
+  return GST_RTSP_FILTER_REMOVE;
+}
 /**********************CStreamoutManager class implementation***************************************/
 CStreamoutManager::CStreamoutManager(eStreamoutMode streamoutMode):
 m_clientConnCnt(0),m_loop(NULL),m_main_loop_is_running(0),
@@ -559,6 +568,7 @@ m_appsrc(NULL), m_streamoutMode(streamoutMode)
 
 CStreamoutManager::~CStreamoutManager()
 {
+    CSIO_LOG(eLogLevel_error, "--Streamout: enter destructor");
 	if (m_usbAudio)
 	{
 		delete m_usbAudio;
@@ -590,7 +600,7 @@ CStreamoutManager::~CStreamoutManager()
     	delete mTLock;
     	mTLock = NULL;
     }
-
+    CSIO_LOG(eLogLevel_error, "--Streamout: exit destructor");
 }
 void CStreamoutManager::DumpClassPara(int level)
 {
@@ -707,6 +717,7 @@ void* CStreamoutManager::ThreadEntry()
     GstRTSPServer *      server  = NULL;
     GstRTSPMountPoints * mounts  = NULL;
     GSource *  server_source     = NULL;
+    GSource *timeout_source      = NULL;
     GstRTSPSessionPool *pool     = NULL;
     GError *error = NULL;
     char mountPoint [512];
@@ -994,7 +1005,7 @@ void* CStreamoutManager::ThreadEntry()
             sprintf(mountPoint, "/%s.sdp", "wc");
     }
     gst_rtsp_mount_points_add_factory (mounts, mountPoint, m_factory);
-    //g_object_unref(mounts);
+    g_object_unref(mounts);
     CSIO_LOG(eLogLevel_info, "Streamout: mount in %s mode: [%s]",
 	m_streamoutMode == STREAMOUT_MODE_CAMERA ? "camera":"wireless conferencing", mountPoint);
 
@@ -1031,7 +1042,9 @@ void* CStreamoutManager::ThreadEntry()
 
     if (m_streamoutMode == STREAMOUT_MODE_WIRELESSCONFERENCING) {
         g_signal_connect(server, "client-connected", (GCallback) client_connected, this);
-        g_timeout_add_seconds(2, (GSourceFunc) timeout, server);
+        timeout_source = g_timeout_source_new_seconds(2);
+        g_source_set_callback(timeout_source, (GSourceFunc) timeout, server, NULL);
+        g_source_attach(timeout_source, context);
     }
     csio_jni_onServerStart();
 
@@ -1073,19 +1086,34 @@ exitThread:
     }
 #endif
 
-/* You must use g_source_destroy() for sources added to a non-default main context.  */
+    if(timeout_source)
+    {
+        /*You must use g_source_destroy() for sources added to a non-default main context.*/
+        CSIO_LOG(m_debugLevel, "Streamout: g_source_destroy timeout_source[0x%x]",timeout_source);
+        g_source_destroy(timeout_source);
+        g_source_unref(timeout_source);
+        timeout_source = NULL;
+    }
+
     if(server_source)
     {
         /*You must use g_source_destroy() for sources added to a non-default main context.*/
+        CSIO_LOG(m_debugLevel, "Streamout: g_source_destroy server_source[0x%x]",server_source);
         g_source_destroy (server_source);
         g_source_unref(server_source);
-        CSIO_LOG(m_debugLevel, "Streamout: g_source_destroy server_source[0x%x]",server_source);
+        server_source = NULL;
     }
 
     CSIO_LOG(m_debugLevel, "Streamout: remove factory from mount points");
+    mounts = gst_rtsp_server_get_mount_points (server);
     if (m_factory && mounts) gst_rtsp_mount_points_remove_factory(mounts, mountPoint);
     CSIO_LOG(m_debugLevel, "Streamout: unreference mounts[0x%x]",mounts);
     if (mounts) g_object_unref (mounts);
+
+//    /* Filter existing clients and remove them */
+//    CSIO_LOG(m_debugLevel, "Streamout: Disconnecting existing clients");
+//    gst_rtsp_server_client_filter (server, client_filter, NULL);
+
 //Note:  if you unref m_factory, then unref server will give you and err
 //       seems unref server is enough, it will unref m_factory also.
 //    CSIO_LOG(m_debugLevel, "Streamout: unreference factory[0x%x]",m_factory);
