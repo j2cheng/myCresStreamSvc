@@ -21,6 +21,7 @@ public class ProductSpecific
     static String TAG = "X60 ProductSpecific";
     private static ProductSpecific mInstance;
     private Context context;
+    CresCamera cam_handle;
 
 	/// ******************* LaunchApp.java *******************
 	public static void startForegroundService(Context ctx, Intent intent)
@@ -183,7 +184,12 @@ public class ProductSpecific
 	}
 	
 	// ******************* CresCamera.java *******************
-	public static void getHdmiInputStatus()
+    public void initCamera() //FIXME: Move to CresCamera Base class
+    {
+        cam_handle = new CresCamera();
+    }
+
+	public static void getHdmiInputStatus(CresStreamCtrl cresStreamCtrl)
 	{
 		// No HDMI input on this product.
 	}

@@ -1417,7 +1417,8 @@ public class CresStreamCtrl extends Service {
         if (dispSurface != null)
             dispSurface.RemoveView();
         
-        CresCamera.releaseCamera();
+        if(mProductSpecific.cam_handle != null)
+            mProductSpecific.cam_handle.releaseCamera();
     }
     
     public void runOnUiThread(Runnable runnable) {
@@ -1561,27 +1562,40 @@ public class CresStreamCtrl extends Service {
     
     public boolean getCameraDisabled()
     {
-        Camera c = null;
         boolean cameraDisabled = false;
+        mProductSpecific.getInstance().initCamera();
 
-        if ((Camera.getNumberOfCameras() > 0) && !isCameraDisabledBySecurity()) {
-            try {
-                //Since below code isnt supported on Pie and beyond TODO: Make Product Specific
-                if (!(Build.VERSION.SDK_INT >= 28)) { //Build.VERSION_CODES.P = Constant Value: 28 (0x0000001c)
-                    c = Camera.open(); // try to get camera
-                    c.release();       // relase camera if obtained
-                    cameraDisabled = false;
+        //Since below code isnt supported on Pie and beyond
+        if (!(Build.VERSION.SDK_INT >= 28)) { //Build.VERSION_CODES.P = Constant Value: 28 (0x0000001c)
+            Camera c = null;
+            if ((Camera.getNumberOfCameras() > 0) && !isCameraDisabledBySecurity()) {
+                try {
+                        c = Camera.open(); // try to get camera
+                        c.release();       // relase camera if obtained
+                        cameraDisabled = false;
                 }
+                catch (RuntimeException e) {
+                    Log.i(TAG, "Runtime exception in getCameraDisabled");
+                        restartMediaServer = true;
+                }
+            } else {
+                Log.i(TAG, "Camera feature not available according to PackageManager");
+                cameraDisabled = true;
             }
-            catch (RuntimeException e) {
-                Log.i(TAG, "Runtime exception in getCameraDisabled");
-                // FIXME/TODO remove the if condition for AMX300
-                if (CrestronProductName.fromInteger(nativeGetProductTypeEnum()) != CrestronProductName.AM3X00)
-                    restartMediaServer = true;
+        }
+        else
+        {
+            if(mProductSpecific.getInstance().cam_handle.findCamera("/dev/video0"))
+            {
+                Log.i(TAG, "HDMI Input camera Found!");
+                mProductSpecific.getInstance().cam_handle.openCamera(this);
+                mProductSpecific.getInstance().cam_handle.releaseCamera();
             }
-        } else {
-            Log.i(TAG, "Camera feature not available according to PackageManager");
-            cameraDisabled = true;
+            else
+            {
+                Log.i(TAG, "No connected HDMI Input Found! ERROR");
+                cameraDisabled = true;
+            }
         }
         return cameraDisabled;
     }
@@ -1784,7 +1798,7 @@ public class CresStreamCtrl extends Service {
                         cam_preview = new CameraPreview(streamCtrl, hdmiInput);
                         canvasHdmiSyncStateChange(true);
                         // Set up Ducati
-                        ProductSpecific.getHdmiInputStatus();
+                        ProductSpecific.getInstance().getHdmiInputStatus(streamCtrl);
                     }
                     else
                         Log.i(TAG, "HDMI input driver is NOT present");
@@ -6044,7 +6058,7 @@ public class CresStreamCtrl extends Service {
 
                     // This will start CSI bus as well as setup ducati
                     try {
-                        ProductSpecific.getHdmiInputStatus();
+                        ProductSpecific.getInstance().getHdmiInputStatus(this);
                         Log.i(TAG, "Setup CSI bus");
                     } catch (RuntimeException e) {
                         e.printStackTrace();

@@ -9,6 +9,7 @@ import com.crestron.airmedia.receiver.m360.ipc.AirMediaSize;
 import com.crestron.txrxservice.CresStreamCtrl.DeviceMode;
 import com.crestron.txrxservice.CresStreamCtrl.StreamState;
 
+import android.os.Build;
 import android.graphics.ImageFormat;
 import android.hardware.Camera;
 import android.hardware.Camera.ErrorCallback;
@@ -150,11 +151,12 @@ public class CameraPreview {
         				resolution = new AirMediaSize(Integer.parseInt(streamCtl.hdmiInput.getHorizontalRes()), Integer.parseInt(streamCtl.hdmiInput.getVerticalRes()));
 			        } catch (NumberFormatException e) { e.printStackTrace(); }
 
-		        	CresCamera.openCamera(streamCtl);
+                    ProductSpecific.getInstance().cam_handle.openCamera(streamCtl);
+
 		        	// This is here because moved out of openCamera
 		        	if(hdmiIf != null)
 		        	{
-		        		ProductSpecific.getHdmiInputStatus();			
+		        		ProductSpecific.getInstance().getHdmiInputStatus(streamCtl);
 		        	}
 		        	// MNT - 3.10.15 
 		        	// getHdmiInputStatus causes a reset on the chip.  Calling this here causes
@@ -162,183 +164,360 @@ public class CameraPreview {
 		        	// until then, we will only call this on a resolution change or on startup.
 		        	//                if(mCamera!=null)
 		        	//                    hdmiinput = mCamera.getHdmiInputStatus();
-		        	if(CresCamera.mCamera != null){
-		        		try {
-		        			try {
-		        				// for this to work a change to added a public method in android.hardware.Camera
-		        				Surface s = streamCtl.getSurface(idx);
-		        				Log.i(TAG,"setPreviewSurface streamId="+idx+" surface: "+((s!=null)?s:"null")+" isValid="+((s!=null)?s.isValid():"false"));
-								ProductSpecific.setPreviewSurface(CresCamera.mCamera, s);
-		        			}catch (Exception localException) {
-		        				localException.printStackTrace();
-		        			}
+                    if (!(Build.VERSION.SDK_INT >= 28)) { //Build.VERSION_CODES.P = Constant Value: 28 (0x0000001c)
+                        if(ProductSpecific.getInstance().cam_handle.mCamera != null){
+                            try {
+                                try {
+                                    // for this to work a change to added a public method in android.hardware.Camera
+                                    Surface s = streamCtl.getSurface(idx);
+                                    Log.i(TAG,"setPreviewSurface streamId="+idx+" surface: "+((s!=null)?s:"null")+" isValid="+((s!=null)?s.isValid():"false"));
+                                    ProductSpecific.setPreviewSurface(CresCamera.mCamera, s);
+                                }catch (Exception localException) {
+                                    localException.printStackTrace();
+                                }
 
-		        			Camera.Parameters localParameters = CresCamera.mCamera.getParameters();
-		        			/*mSupportedPreviewSizes = mCamera.getParameters().getSupportedPreviewSizes();
-		                  for (int i = 0; i < mSupportedPreviewSizes.size(); i++) {
-		                  Log.i(TAG, i + ". Supported Resolution = " + mSupportedPreviewSizes.get(i).width + "x" + mSupportedPreviewSizes.get(i).height);
-		                  }*/
-		        			if(CresStreamCtrl.hpdHdmiEvent==1){
-		        				ProductSpecific.handleHpdHdmiEvent(hdmiIf);
-		        				CresStreamCtrl.hpdHdmiEvent=0;
-		        			}
+                                Camera.Parameters localParameters = CresCamera.mCamera.getParameters();
+                                /*mSupportedPreviewSizes = mCamera.getParameters().getSupportedPreviewSizes();
+                              for (int i = 0; i < mSupportedPreviewSizes.size(); i++) {
+                              Log.i(TAG, i + ". Supported Resolution = " + mSupportedPreviewSizes.get(i).width + "x" + mSupportedPreviewSizes.get(i).height);
+                              }*/
+                                if(CresStreamCtrl.hpdHdmiEvent==1){
+                                    ProductSpecific.handleHpdHdmiEvent(hdmiIf);
+                                    CresStreamCtrl.hpdHdmiEvent=0;
+                                }
 
-		        			// PEM - Previous check didn't look quite right here, was allowing zero horizontal or vertical to be considered ok.
-		        			boolean validRes = false;
-		        			if(hdmiIf != null)
-		        			{
-		        				int hres, vres;
-		        				int resIndex = hdmiIf.getResolutionIndex();
+                                // PEM - Previous check didn't look quite right here, was allowing zero horizontal or vertical to be considered ok.
+                                boolean validRes = false;
+                                if(hdmiIf != null)
+                                {
+                                    int hres, vres;
+                                    int resIndex = hdmiIf.getResolutionIndex();
 
-		        				switch (streamCtl.hdmiInput.getResolutionIndex())
-		        				{
-		        				case 0:
-		        				case 1:
-		        					hres = 640;
-		        					vres = 480;
-		        					break;
-		        				case 2:
-		        				case 3:
-		        					hres = 720;
-		        					vres = 480;
-		        					break;
-		        				case 4:
-		        				case 5:
-		        					hres = 720;
-		        					vres = 576;
-		        					break;
-		        				case 6:
-		        					hres = 800;
-		        					vres = 600;
-		        					break;
-		        				case 7:
-		        					hres = 848;
-		        					vres = 480;
-		        					break;
-		        				case 8:
-		        					hres = 1024;
-		        					vres = 768;
-		        					break;
-		        				case 9:
-		        				case 10:
-		        					hres = 1280;
-		        					vres = 720;
-		        					break;				
-		        				case 11:
-		        				case 12:
-		        					hres = 1280;
-		        					vres = 768;
-		        					break;	
-		        				case 13:
-		        				case 14:
-		        					hres = 1280;
-		        					vres = 800;
-		        					break;	
-		        				case 15:
-		        					hres = 1280;
-		        					vres = 960;
-		        					break;	
-		        				case 16:
-		        					hres = 1280;
-		        					vres = 1024;
-		        					break;	
-		        				case 17:
-		        					hres = 1360;
-		        					vres = 768;
-		        					break;
-		        				case 18:
-		        				case 19:
-		        					hres = 1366;
-		        					vres = 768;
-		        					break;
-		        				case 20:
-		        				case 21:
-		        					hres = 1400;
-		        					vres = 1050;
-		        					break;
-		        				case 22:					
-		        				case 23:
-		        					hres = 1440;
-		        					vres = 900;
-		        					break;	
-		        				case 24:
-		        					hres = 1600;
-		        					vres = 900;
-		        					break;	
-		        				case 25:
-		        					hres = 1600;
-		        					vres = 1200;
-		        					break;	
-		        				case 26:
-		        				case 27:
-		        					hres = 1680;
-		        					vres = 1050;
-		        					break;	
-		        				case 28:
-		        				case 29:
-		        				case 30:
-		        				case 31:
-		        				case 32:
-		        					hres = 1920;
-		        					vres = 1080;
-		        					break;	
-		        				case 33:
-		        					hres = 1920;
-		        					vres = 1200;
-		        					break;	
-		        				default:
-		        					hres = 640;
-		        					vres = 480;
-		        					break;
-		        				}
+                                    switch (streamCtl.hdmiInput.getResolutionIndex())
+                                    {
+                                    case 0:
+                                    case 1:
+                                        hres = 640;
+                                        vres = 480;
+                                        break;
+                                    case 2:
+                                    case 3:
+                                        hres = 720;
+                                        vres = 480;
+                                        break;
+                                    case 4:
+                                    case 5:
+                                        hres = 720;
+                                        vres = 576;
+                                        break;
+                                    case 6:
+                                        hres = 800;
+                                        vres = 600;
+                                        break;
+                                    case 7:
+                                        hres = 848;
+                                        vres = 480;
+                                        break;
+                                    case 8:
+                                        hres = 1024;
+                                        vres = 768;
+                                        break;
+                                    case 9:
+                                    case 10:
+                                        hres = 1280;
+                                        vres = 720;
+                                        break;				
+                                    case 11:
+                                    case 12:
+                                        hres = 1280;
+                                        vres = 768;
+                                        break;	
+                                    case 13:
+                                    case 14:
+                                        hres = 1280;
+                                        vres = 800;
+                                        break;	
+                                    case 15:
+                                        hres = 1280;
+                                        vres = 960;
+                                        break;	
+                                    case 16:
+                                        hres = 1280;
+                                        vres = 1024;
+                                        break;	
+                                    case 17:
+                                        hres = 1360;
+                                        vres = 768;
+                                        break;
+                                    case 18:
+                                    case 19:
+                                        hres = 1366;
+                                        vres = 768;
+                                        break;
+                                    case 20:
+                                    case 21:
+                                        hres = 1400;
+                                        vres = 1050;
+                                        break;
+                                    case 22:					
+                                    case 23:
+                                        hres = 1440;
+                                        vres = 900;
+                                        break;	
+                                    case 24:
+                                        hres = 1600;
+                                        vres = 900;
+                                        break;	
+                                    case 25:
+                                        hres = 1600;
+                                        vres = 1200;
+                                        break;	
+                                    case 26:
+                                    case 27:
+                                        hres = 1680;
+                                        vres = 1050;
+                                        break;	
+                                    case 28:
+                                    case 29:
+                                    case 30:
+                                    case 31:
+                                    case 32:
+                                        hres = 1920;
+                                        vres = 1080;
+                                        break;	
+                                    case 33:
+                                        hres = 1920;
+                                        vres = 1200;
+                                        break;	
+                                    default:
+                                        hres = 640;
+                                        vres = 480;
+                                        break;
+                                    }
 
-		        				if((hres !=0) && ( vres !=0))
-		        				{
-		        					validRes = true;
-		        					localParameters.setPreviewSize(hres, vres);
-		        					localParameters.set("ipp", "off");
-		        					if (forceRgb || streamCtl.isRGB888HDMIVideoSupported)
-		        						localParameters.setPreviewFormat(ProductSpecific.getRGB888PixelFormat());
-		        					else
-		        						localParameters.setPreviewFormat(ImageFormat.NV21);
-		        					CresCamera.mCamera.setDisplayOrientation(0);
-		        					try {
-		        						CresCamera.mCamera.setParameters(localParameters);
-		        					}catch (Exception localException) {
-		        						localException.printStackTrace();
-		        						localParameters.setPreviewSize(640, 480);
-		        						CresCamera.mCamera.setParameters(localParameters);
-		        					}
-		        				}		                
-		        			}
-		        			else // assume valid res for real camera, don't set preview size?
-		        			{
-		        				validRes = true;
-		        			}
-		        			if(validRes)
-		        			{
-		        				Log.i(TAG, "Camera preview size: " + localParameters.getPreviewSize().width + "x" + localParameters.getPreviewSize().height);
-		        				resolution = new AirMediaSize(localParameters.getPreviewSize().width, localParameters.getPreviewSize().height);
-		        				CresCamera.mCamera.setPreviewCallback(new PreviewCB(confidenceMode));
-		        				CresCamera.mCamera.setErrorCallback(new ErrorCB(confidenceMode));
-		        				signalPreviewTimeoutThread();	// kill the previous thread if it exists
-		        				preview_timeout_thread = new Thread(new previewTimeout());
-		        				preview_timeout_thread.start();
-		        				CresCamera.mCamera.startPreview();
+                                    if((hres !=0) && ( vres !=0))
+                                    {
+                                        validRes = true;
+                                        localParameters.setPreviewSize(hres, vres);
+                                        localParameters.set("ipp", "off");
+                                        if (forceRgb || streamCtl.isRGB888HDMIVideoSupported)
+                                            localParameters.setPreviewFormat(ProductSpecific.getRGB888PixelFormat());
+                                        else
+                                            localParameters.setPreviewFormat(ImageFormat.NV21);
+                                        CresCamera.mCamera.setDisplayOrientation(0);
+                                        try {
+                                            CresCamera.mCamera.setParameters(localParameters);
+                                        }catch (Exception localException) {
+                                            localException.printStackTrace();
+                                            localParameters.setPreviewSize(640, 480);
+                                            CresCamera.mCamera.setParameters(localParameters);
+                                        }
+                                    }		                
+                                }
+                                else // assume valid res for real camera, don't set preview size?
+                                {
+                                    validRes = true;
+                                }
+                                if(validRes)
+                                {
+                                    Log.i(TAG, "Camera preview size: " + localParameters.getPreviewSize().width + "x" + localParameters.getPreviewSize().height);
+                                    resolution = new AirMediaSize(localParameters.getPreviewSize().width, localParameters.getPreviewSize().height);
+                                    CresCamera.mCamera.setPreviewCallback(new PreviewCB(confidenceMode));
+                                    CresCamera.mCamera.setErrorCallback(new ErrorCB(confidenceMode));
+                                    signalPreviewTimeoutThread();	// kill the previous thread if it exists
+                                    preview_timeout_thread = new Thread(new previewTimeout());
+                                    preview_timeout_thread.start();
+                                    CresCamera.mCamera.startPreview();
 
-		        				startAudio(); 
-		        				//Streamstate is now being fedback using preview callback                   
-		        			}
-		        			is_preview = true;
-		        		} catch (Exception e)
-		        		{
-		        			e.printStackTrace();
-		        		}
-		        	}
-		        	else
-		        	{
-		        		stopPlayback(false);
-		        	}
+                                    startAudio(); 
+                                    //Streamstate is now being fedback using preview callback                   
+                                }
+                                is_preview = true;
+                            } catch (Exception e)
+                            {
+                                e.printStackTrace();
+                            }
+                        }
+                        else
+                        {
+                            stopPlayback(false);
+                        }
+                    }
+                    else
+                    {//Block for AM3X camera2 based class
+                        if(ProductSpecific.getInstance().cam_handle.cameraValid() == true){
+                            try {
+                                try {
+                                    Surface s = streamCtl.getSurface(idx);
+                                    Log.i(TAG,"setPreviewSurface streamId="+idx+" surface: "+((s!=null)?s:"null")+" isValid="+((s!=null)?s.isValid():"false"));
+                                    ProductSpecific.getInstance().cam_handle.setPreviewSurface(s);
+                                }catch (Exception localException) {
+                                    localException.printStackTrace();
+                                }
+
+                                if(CresStreamCtrl.hpdHdmiEvent==1){//FIXME: handle for AM3X
+                                    ProductSpecific.handleHpdHdmiEvent(hdmiIf);
+                                    CresStreamCtrl.hpdHdmiEvent=0;
+                                }
+
+                                int hres=1920, vres=1080;
+                                boolean validRes = false;
+                                if(hdmiIf != null)
+                                {
+
+                                    int resIndex = hdmiIf.getResolutionIndex();
+
+                                    switch (streamCtl.hdmiInput.getResolutionIndex())
+                                    {
+                                    case 0:
+                                    case 1:
+                                        hres = 640;
+                                        vres = 480;
+                                        break;
+                                    case 2:
+                                    case 3:
+                                        hres = 720;
+                                        vres = 480;
+                                        break;
+                                    case 4:
+                                    case 5:
+                                        hres = 720;
+                                        vres = 576;
+                                        break;
+                                    case 6:
+                                        hres = 800;
+                                        vres = 600;
+                                        break;
+                                    case 7:
+                                        hres = 848;
+                                        vres = 480;
+                                        break;
+                                    case 8:
+                                        hres = 1024;
+                                        vres = 768;
+                                        break;
+                                    case 9:
+                                    case 10:
+                                        hres = 1280;
+                                        vres = 720;
+                                        break;
+                                    case 11:
+                                    case 12:
+                                        hres = 1280;
+                                        vres = 768;
+                                        break;    
+                                    case 13:
+                                    case 14:
+                                        hres = 1280;
+                                        vres = 800;
+                                        break;    
+                                    case 15:
+                                        hres = 1280;
+                                        vres = 960;
+                                        break;    
+                                    case 16:
+                                        hres = 1280;
+                                        vres = 1024;
+                                        break;    
+                                    case 17:
+                                        hres = 1360;
+                                        vres = 768;
+                                        break;
+                                    case 18:
+                                    case 19:
+                                        hres = 1366;
+                                        vres = 768;
+                                        break;
+                                    case 20:
+                                    case 21:
+                                        hres = 1400;
+                                        vres = 1050;
+                                        break;
+                                    case 22:                    
+                                    case 23:
+                                        hres = 1440;
+                                        vres = 900;
+                                        break;    
+                                    case 24:
+                                        hres = 1600;
+                                        vres = 900;
+                                        break;    
+                                    case 25:
+                                        hres = 1600;
+                                        vres = 1200;
+                                        break;    
+                                    case 26:
+                                    case 27:
+                                        hres = 1680;
+                                        vres = 1050;
+                                        break;    
+                                    case 28:
+                                    case 29:
+                                    case 30:
+                                    case 31:
+                                    case 32:
+                                        hres = 1920;
+                                        vres = 1080;
+                                        break;    
+                                    case 33:
+                                        hres = 1920;
+                                        vres = 1200;
+                                        break;    
+                                    default:
+                                        hres = 640;
+                                        vres = 480;
+                                        break;
+                                    }
+
+                                    if((hres !=0) && ( vres !=0))
+                                    {
+                                        validRes = true;
+                                        //FIXME: Set Resolution and preview format if applicable
+                                        //localParameters.setPreviewSize(hres, vres);
+                                        //localParameters.set("ipp", "off");
+                                        //if (forceRgb || streamCtl.isRGB888HDMIVideoSupported)
+                                        //    localParameters.setPreviewFormat(ProductSpecific.getRGB888PixelFormat());
+                                        //else
+                                        //    localParameters.setPreviewFormat(ImageFormat.NV21);
+                                        //CresCamera.mCamera.setDisplayOrientation(0);
+                                        //try {
+                                        //    CresCamera.mCamera.setParameters(localParameters);
+                                        //}catch (Exception localException) {
+                                        //    localException.printStackTrace();
+                                        //    localParameters.setPreviewSize(640, 480);
+                                        //    CresCamera.mCamera.setParameters(localParameters);
+                                        //}
+                                    }
+                                }
+                                else // assume valid res for real camera, don't set preview size?
+                                {
+                                    validRes = true;
+                                }
+
+                                if(validRes)
+                                {
+                                    Log.i(TAG, "Camera preview size: " + hres + "x" + vres);
+                                    resolution = new AirMediaSize(hres, vres);
+                                    //CresCamera.mCamera.setPreviewCallback(new PreviewCB(confidenceMode));
+                                    //CresCamera.mCamera.setErrorCallback(new ErrorCB(confidenceMode));
+                                    signalPreviewTimeoutThread();    // kill the previous thread if it exists
+                                    preview_timeout_thread = new Thread(new previewTimeout());
+                                    preview_timeout_thread.start();
+                                    ProductSpecific.getInstance().cam_handle.startCamera();
+                                    startAudio(); 
+                                    //Streamstate is now being fedback using preview callback                   
+                                }
+                                is_preview = true;
+                            } catch (Exception e)
+                            {
+                                e.printStackTrace();
+                            }
+                        }
+                        else
+                        {
+                            stopPlayback(false);
+                        }
+                    }
 		        }else   //Pause/Resume Case
 		            resumePlayback(confidenceMode);
 		        
@@ -423,13 +602,24 @@ public class CameraPreview {
 						// Otherwise screen will keep last frame up until a screen update occurs 
 //		            	if (forceRgb || streamCtl.isRGB888HDMIVideoSupported)
 //		            		ProductSpecific.setRGB888Mode(false);
-		            	
-		                if (CresCamera.mCamera != null)
-		                {
-		                	CresCamera.mCamera.setPreviewCallback(null); //probably not necessary since handled by callback, but doesn't hurt
-		                	CresCamera.mCamera.stopPreview();     
-		            		CresCamera.releaseCamera();
-		                }
+
+                        //FIXME: Use real power of base class
+                        if (!(Build.VERSION.SDK_INT >= 28)) { //Build.VERSION_CODES.P = Constant Value: 28 (0x0000001c)
+                            if (ProductSpecific.getInstance().cam_handle.mCamera != null)
+                            {
+                                ProductSpecific.getInstance().cam_handle.mCamera.setPreviewCallback(null); //probably not necessary since handled by callback, but doesn't hurt
+                                ProductSpecific.getInstance().cam_handle.mCamera.stopPreview();
+                                ProductSpecific.getInstance().cam_handle.releaseCamera();
+                            }
+                        }
+                        else
+                        {
+                            if (ProductSpecific.getInstance().cam_handle != null)
+                            {
+                                ProductSpecific.getInstance().cam_handle.releaseCamera();
+                            }
+                        }
+
 		                resolution = new AirMediaSize(0,0);
 		                is_preview = false;
 		                streamCtl.setPauseVideoImage(false, DeviceMode.PREVIEW);

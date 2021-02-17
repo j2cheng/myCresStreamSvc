@@ -2,6 +2,8 @@ package com.crestron.txrxservice;
 
 import java.io.IOException;
 import android.os.SystemClock;
+import android.os.Build;
+import android.view.Surface;
 
 import android.hardware.Camera;
 import android.hardware.Camera.CameraInfo;
@@ -24,7 +26,28 @@ public class CresCamera {
 		return cameraId;
 	}
 
-	public static void openCamera(CresStreamCtrl streamCtrl){
+    boolean findCamera(String CameraId){
+        Log.i(TAG, " findCamera camera2 " + CameraId);
+        return true;
+    }
+
+    public static void setPreviewSurface(Surface surface) throws java.io.IOException
+    {
+        //Do Nothing
+        return;
+    }
+
+    public void startCamera() {
+        //Do Nothing
+        return;            
+    }
+
+    boolean cameraValid(){
+        //Do Nothing
+        return true;
+    }
+
+	public void openCamera(CresStreamCtrl streamCtrl){
 		synchronized (lockObj)
 		{
 			if (mCamera != null)
@@ -47,17 +70,21 @@ public class CresCamera {
 			if (mCamera == null)
 				streamCtrl.RecoverMediaServer();
 			return;
-		}
+		  }
 	}
 	
-	public static void releaseCamera() {
+	public void releaseCamera() {
 		if (mCamera != null) {
 			mCamera.release(); // release the camera for other applications
 			mCamera = null;
 		}
 	}
 	
-	public static Camera getCamera(){
-		return mCamera;
+	public Camera getCamera(){
+            return mCamera;
 	}
+
+    boolean cameraPresent(){
+        return true;
+    }
 }

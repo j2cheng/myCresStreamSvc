@@ -22,6 +22,7 @@ public class ProductSpecific
 {	
     private static ProductSpecific mInstance;
     private Context context;
+    CresCamera cam_handle;
 
     public static ProductSpecific getInstance()
     {
@@ -196,7 +197,12 @@ public class ProductSpecific
 	}
 	
 	// ******************* CresCamera.java *******************
-	public static void getHdmiInputStatus()
+    public void initCamera() //FIXME: Move to CresCamera Base class
+    {
+        cam_handle = new CresCamera();
+    }
+
+	public static void getHdmiInputStatus(CresStreamCtrl cresStreamCtrl)
 	{
 		// No HDMI input on this product.
 	}

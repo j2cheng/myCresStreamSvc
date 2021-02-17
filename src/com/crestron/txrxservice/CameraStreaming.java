@@ -26,6 +26,7 @@ import android.media.MediaRecorder;
 import android.media.MediaRecorder.OnErrorListener;
 import android.os.FileObserver;
 import android.os.Environment;
+import android.os.Build;
 import android.util.Log;
 import android.view.Surface;
 import android.view.SurfaceHolder;
@@ -133,9 +134,19 @@ public class CameraStreaming {
 		        } catch (NumberFormatException e) { e.printStackTrace(); }
 		        
 		        mrec = new MediaRecorder();
-		        CresCamera.openCamera(streamCtl);
+		        ProductSpecific.getInstance().cam_handle.openCamera(streamCtl);
 		        // This is here because moved out of openCamera
-		        ProductSpecific.getHdmiInputStatus();			
+		        ProductSpecific.getInstance().getHdmiInputStatus(streamCtl);
+
+                //FIXME for AM3X CAM2 apis set
+                if (Build.VERSION.SDK_INT >= 28) { //Build.VERSION_CODES.P = Constant Value: 28 (0x0000001c)
+                    if(CresCamera.mCamera != null)
+                    {
+                        Log.e(TAG, "Camera handle should have been NULL !!!!");
+                    }
+                    Log.e(TAG, "Do not proceed, FIXME for AM3X devices !!!!");
+                }
+
 		        if(CresCamera.mCamera != null){
 		        	if (streamCtl.userSettings.getEncodingResolution(idx) == 0) // if in auto mode set framerate to input framerate
 		        		ProductSpecific.setEncoderFps(CresCamera.mCamera, Integer.parseInt(streamCtl.hdmiInput.getFPS()), Integer.parseInt(streamCtl.hdmiInput.getFPS()));
@@ -733,11 +744,11 @@ public class CameraStreaming {
     			
     			try {
         			if(hpdEventAction==true){
-		            	if (CresCamera.mCamera != null)
+		            	if (ProductSpecific.getInstance().cam_handle.mCamera != null)
 		            	{
-		            		CresCamera.mCamera.setPreviewCallback(null);
-		            		CresCamera.mCamera.lock(); //Android recommends this
-		            		CresCamera.releaseCamera();
+		            		ProductSpecific.getInstance().cam_handle.mCamera.setPreviewCallback(null);
+		            		ProductSpecific.getInstance().cam_handle.mCamera.lock(); //Android recommends this
+		            		ProductSpecific.getInstance().cam_handle.releaseCamera();
 		            	}
 		            }
     			} catch (Exception e) { e.printStackTrace(); }
@@ -750,11 +761,11 @@ public class CameraStreaming {
     			} catch (Exception e) { e.printStackTrace(); }
     			try {
 	    			if(hpdEventAction==false){
-		            	if (CresCamera.mCamera != null)
+		            	if (ProductSpecific.getInstance().cam_handle.mCamera != null)
 		            	{
-		            		CresCamera.mCamera.setPreviewCallback(null);
-		            		CresCamera.mCamera.lock(); //Android recommends this
-		            		CresCamera.releaseCamera();
+		            		ProductSpecific.getInstance().cam_handle.mCamera.setPreviewCallback(null);
+		            		ProductSpecific.getInstance().cam_handle.mCamera.lock(); //Android recommends this
+		            		ProductSpecific.getInstance().cam_handle.releaseCamera();
 		            	}
 		            }
     			} catch (Exception e) { e.printStackTrace(); }

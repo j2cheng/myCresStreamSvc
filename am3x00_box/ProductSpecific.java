@@ -23,6 +23,7 @@ public class ProductSpecific
     private static ProductSpecific mInstance;
     private Context context;
     private static boolean oneShot = false;
+    CresCamera2 cam_handle;
 
     public static ProductSpecific getInstance()
     {
@@ -197,9 +198,15 @@ public class ProductSpecific
     }
 
     // ******************* CresCamera.java *******************
-    public static void getHdmiInputStatus()
+    public static void getHdmiInputStatus(CresStreamCtrl cresStreamCtrl)
     {
         // No HDMI input on vanilla.
+    }
+
+    public void initCamera()
+    {
+        cam_handle = new CresCamera2();
+        cam_handle.mCameraManager = (CameraManager) context.getSystemService(Context.CAMERA_SERVICE);
     }
 
     // ******************* NstreamIn.java *******************

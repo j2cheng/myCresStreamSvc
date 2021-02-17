@@ -19,6 +19,7 @@ public class ProductSpecific
     static String TAG = "OMAP5 ProductSpecific";
     private static ProductSpecific mInstance;
     private Context context;
+    CresCamera cam_handle;
 
 	// ******************* LaunchApp.java *******************
 	public static void startForegroundService(Context ctx, Intent intent)
@@ -178,9 +179,17 @@ public class ProductSpecific
 	}
 	
 	// ******************* CresCamera.java *******************
-	public static void getHdmiInputStatus()
+    public void initCamera()
+    {
+        cam_handle = new CresCamera();
+    }
+
+	public void getHdmiInputStatus(CresStreamCtrl cresStreamCtrl)
 	{
-		Camera camera = CresCamera.getCamera();
+		Camera camera = null;
+
+        if(cam_handle != null)
+            camera = cam_handle.getCamera();
 		int hdmiInResolutionEnum = HDMIInputInterface.getResolutionEnum();
 		// Yes, someone actually hacked the android camera source to put hdmi into it!
 		if(camera != null){
