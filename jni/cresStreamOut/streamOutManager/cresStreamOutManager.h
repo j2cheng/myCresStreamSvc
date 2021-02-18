@@ -24,6 +24,20 @@
 #define RTSP_CERT_PEM_FILENAME   "rtspserver_cert.pem"
 #define RTSP_CERT_KEY            "rtspserver_key.pem"
 
+class RtspClient {
+public:
+	GstRTSPClient *client;
+	char client_ip_address[256];
+
+	RtspClient(GstRTSPClient *c)
+	{
+		client = c;
+		client_ip_address[0] = '\0';
+	}
+
+	~RtspClient() {}
+};
+
 class SnapShot;
 class CStreamCamera;
 class CStreamoutProject;
@@ -81,7 +95,7 @@ public:
     char m_rtsp_key_filename[MAX_STR_LEN];
     char m_device_display_name[MAX_STR_LEN];
 
-    std::list<GstRTSPClient *> m_clientList;
+    std::list<RtspClient *> m_clientList;
     bool m_auth_on;
     bool m_tls_on;
     bool m_videoStream;

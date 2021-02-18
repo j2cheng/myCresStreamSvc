@@ -137,8 +137,9 @@ void getClientIp(GstRTSPClient * client, char *ipAddrBuf, int bufSize)
 		if (client_connection)
 		{
 			const gchar *clientIpAddress = gst_rtsp_connection_get_ip(client_connection);
-			strncpy(ipAddrBuf, clientIpAddress, bufSize);
-			//strcpy(ipAddrBuf,"192.168.1.104");
+			if (clientIpAddress != NULL) {
+				strncpy(ipAddrBuf, clientIpAddress, bufSize);
+			}
 		}
 	}
 }
@@ -149,27 +150,36 @@ client_closed (GstRTSPClient * client, void *user_data)
     CStreamoutManager *pMgr = (CStreamoutManager *) user_data;
     char clientIpAddress[64];
 
-    getClientIp(client, clientIpAddress, sizeof(clientIpAddress));
-    csio_jni_onClientDisconnected(clientIpAddress);
-    pMgr->m_clientList.remove(client);
+    for (std::list<RtspClient*>::iterator it = pMgr->m_clientList.begin(); it != pMgr->m_clientList.end(); it++)
+    {
+    	if ((*it)->client == client)
+    	{
+    		strncpy(clientIpAddress, (*it)->client_ip_address, sizeof(clientIpAddress));
+    	    csio_jni_onClientDisconnected(clientIpAddress);
+    		delete *it;
+    		pMgr->m_clientList.erase(it);
+    		break;
+    	}
+    }
 //    if (PushModel && pMgr->m_clientList.size() == 0)
 //        pMgr->m_bNeedData = false;
-    CSIO_LOG(eLogLevel_info,"********** RTSP Client closed (size=%d) ****************\n", pMgr->m_clientList.size());
+    CSIO_LOG(eLogLevel_info,"********** RTSP Client %s closed (size=%d) ****************\n", clientIpAddress, pMgr->m_clientList.size());
 }
 
 static void
 client_connected (GstRTSPServer * server, GstRTSPClient * client, void *user_data)
 {
     CStreamoutManager *pMgr = (CStreamoutManager *) user_data;
-    char clientIpAddress[64];
+    RtspClient *e = new RtspClient(client);
 
-    getClientIp(client, clientIpAddress, sizeof(clientIpAddress));
-    csio_jni_onClientConnected(clientIpAddress);
-    pMgr->m_clientList.push_back(client);
+    getClientIp(client, e->client_ip_address, sizeof(e->client_ip_address));
+    csio_jni_onClientConnected(e->client_ip_address);
 //    if (PushModel)
 //        pMgr->m_bNeedData = true;
-    CSIO_LOG(eLogLevel_info,"********** RTSP Client connected (size=%d) **************\n", pMgr->m_clientList.size());
     g_signal_connect(client, "closed", (GCallback) client_closed, pMgr);
+    pMgr->m_clientList.push_back(e);
+    CSIO_LOG(eLogLevel_info,"********** RTSP Client connected (size=%d  ip=%s e=0x%x) **************\n", pMgr->m_clientList.size(),
+    		e->client_ip_address, e);
 }
 
 #ifdef CLIENT_AUTHENTICATION_ENABLED
@@ -1056,8 +1066,6 @@ exitThread:
 	if (m_streamoutMode == STREAMOUT_MODE_CAMERA)
 		StopSnapShot(this);
 
-    csio_jni_onServerStop();
-
 #ifdef CRES_UNPREPARE_MEDIA
 /*   please check out this bug: https://bugzilla.gnome.org/show_bug.cgi?id=747801
  *   if it is fixed, we should take it. */
@@ -1110,9 +1118,12 @@ exitThread:
     CSIO_LOG(m_debugLevel, "Streamout: unreference mounts[0x%x]",mounts);
     if (mounts) g_object_unref (mounts);
 
-//    /* Filter existing clients and remove them */
-//    CSIO_LOG(m_debugLevel, "Streamout: Disconnecting existing clients");
-//    gst_rtsp_server_client_filter (server, client_filter, NULL);
+    /* Filter existing clients and remove them */
+    CSIO_LOG(m_debugLevel, "Streamout: Disconnecting existing clients");
+    gst_rtsp_server_client_filter (server, client_filter, NULL);
+
+    // check client list is empty
+    m_clientList.clear();
 
 //Note:  if you unref m_factory, then unref server will give you and err
 //       seems unref server is enough, it will unref m_factory also.
@@ -1138,6 +1149,8 @@ exitThread:
         g_main_context_unref (context);
         context = NULL;
     }
+
+    csio_jni_onServerStop();
 
     CSIO_LOG(m_debugLevel, "Streamout: jni_start_rtsp_server ended------");
 

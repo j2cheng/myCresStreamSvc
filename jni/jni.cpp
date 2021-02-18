@@ -26,6 +26,7 @@
 #include <stdio.h>
 #include <stdlib.h>		/* for setenv */
 #include <unistd.h>
+#include <signal.h>
 #include <sys/resource.h>
 #include <arpa/inet.h>
 #include <sys/socket.h>
@@ -4461,6 +4462,9 @@ static void gstNativeInitWirelessConferencingRtspServer (JNIEnv* env, jobject th
 
     cdata->app = env->NewGlobalRef(thiz);
     init_custom_data_out(cdata);
+
+    CSIO_LOG(eLogLevel_debug, "rtsp_server: SIGSEGV traps is enabled = %d", gst_segtrap_is_enabled()?1:0);
+    signal(SIGSEGV, SIG_DFL);
 
     //init project
     StreamoutProjectInit(STREAMOUT_MODE_WIRELESSCONFERENCING);
