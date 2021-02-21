@@ -9,6 +9,8 @@ import android.graphics.ImageFormat;
 import android.hardware.Camera;
 import android.hardware.camera2.CameraAccessException;
 import android.hardware.camera2.CameraManager;
+import android.hardware.usb.UsbDevice;
+import android.hardware.usb.UsbManager;
 import android.media.MediaPlayer;
 import android.media.MediaRecorder;
 import android.os.Build;
@@ -16,6 +18,8 @@ import android.util.Log;
 import android.view.Surface;
 
 import java.util.ArrayList;
+import java.util.HashMap;
+import java.util.Iterator;
 import java.util.List;
 
 public class ProductSpecific
@@ -24,6 +28,7 @@ public class ProductSpecific
     private Context context;
     private static boolean oneShot = false;
     CresCamera2 cam_handle;
+    PeripheralStatusChangeListener mListener = null;
 
     public static ProductSpecific getInstance()
     {
@@ -292,6 +297,12 @@ public class ProductSpecific
     		case PeripheralManager.PER_HDMI_IN:
     			Log.i(TAG, "HDMI IN status: " + (i1 == 1 ? "Connected" : "Disconnected"));
     			break;
+    		case PeripheralManager.PER_HDMI_OUT:
+    			Log.i(TAG, "HDMI OUT status: " + (i1 == 1 ? "Connected" : "Disconnected"));
+    			break;
+    		case PeripheralManager.PER_USB_20:
+    			Log.i(TAG, "USB 2.0 status: " + (i1 == 1 ? "Connected" : "Disconnected"));
+    			break;
     		case PeripheralManager.PER_USB_30:
     			Log.i(TAG, "USB 3.0 status: " + (i1 == 1 ? "Connected" : "Disconnected"));
     			if (i1 == 1)
@@ -308,15 +319,27 @@ public class ProductSpecific
     public void monitorUVCCamera(CresStreamCtrl cresStreamCtrl) 
     {
     	final CresStreamCtrl ctrl = cresStreamCtrl;
-        new Thread(new Runnable() {
-            public void run() {
-            	PeripheralStatusChangeListener mListener = new PeripheralStatusChangeListener(ctrl);
-                PeripheralManager.instance().addStatusListener(PeripheralManager.PER_HDMI_IN, mListener, null);
-                PeripheralManager.instance().addStatusListener(PeripheralManager.PER_USB_30, mListener, null);
-            }
-        }).start();
+    	Log.i(TAG, "Attaching listener for HDMI, USB events");
+    	mListener = new PeripheralStatusChangeListener(ctrl);
+    	PeripheralManager.instance().addStatusListener(PeripheralManager.PER_HDMI_IN, mListener, null);
+    	PeripheralManager.instance().addStatusListener(PeripheralManager.PER_HDMI_OUT, mListener, null);
+    	PeripheralManager.instance().addStatusListener(PeripheralManager.PER_USB_20, mListener, null);
+    	PeripheralManager.instance().addStatusListener(PeripheralManager.PER_USB_30, mListener, null);
     }
     
+    public void showUsbDevices()
+    {
+    	UsbManager manager = (UsbManager) context.getSystemService(Context.USB_SERVICE);
+    	HashMap<String, UsbDevice> deviceList = manager.getDeviceList();
+    	Iterator<UsbDevice> deviceIterator = deviceList.values().iterator();
+    	while(deviceIterator.hasNext()){
+    	    UsbDevice device = deviceIterator.next();
+    	    Log.i(TAG,"Device: name="+device.getDeviceName()+"  id="+device.getDeviceId()+"  class="+device.getClass()+
+    	    		"  subclass="+device.getDeviceSubclass());
+    	    Log.i(TAG,"        manufacturer="+device.getManufacturerName()+"  productId="+device.getProductId()+"  producName="+device.getProductName()+
+    	    		"  serialNumber="+device.getSerialNumber()+"  vendorId="+device.getVendorId());
+    	}
+    }
     // ******************* Classes *******************
     public class DispayInfo
     {
