@@ -44,6 +44,9 @@ public class CameraPreview {
     	//surfaceHolder = vHolder;
     	hdmiIf = hdmiInIface;
     	streamCtl = ctl;
+        //FIXME: once HDMI Audio working for AM3X
+        if (CresStreamCtrl.CrestronProductName.fromInteger(ctl.nativeGetProductTypeEnum()) == CresStreamCtrl.CrestronProductName.AM3X00)
+            skipAudio = true;
     }
     
     public void setSessionIndex(int id){

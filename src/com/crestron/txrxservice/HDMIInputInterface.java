@@ -11,7 +11,7 @@ import com.crestron.txrxservice.ProductSpecific;
 
 public class HDMIInputInterface {
 	static String TAG = "HDMIInInterface";
-
+    CresStreamCtrl streamCtl;
 	private static String syncStatus;
 	private static String horizontalRes;
 	private static String verticalRes;
@@ -20,9 +20,11 @@ public class HDMIInputInterface {
 	private static String audioFormat;
 	private static String audioChannels;
 	private static int resolutionIndex;
+    private static int productType;
 	private static boolean isHdmiDriverPresent;
+    private static final int SYSTEM_AIRMEDIA = 0x7400; //AM3X Product type is SYSTEM_AIRMEDIA as defined in ProductDefs.h
 	
-	public HDMIInputInterface() {
+	public HDMIInputInterface(CresStreamCtrl sCtl) {
 		syncStatus = "false";
 		horizontalRes = "0";
 		verticalRes = "0";
@@ -32,6 +34,8 @@ public class HDMIInputInterface {
 		audioChannels = "0";
 		resolutionIndex = 0;
 		isHdmiDriverPresent = (isHdmiDriverPresent | false); //set isHdmiDriverPresentH to false if not set
+        streamCtl = sCtl;
+        productType = streamCtl.nativeGetProductTypeEnum();
 	}
 	
 	public void setSyncStatus(int resEnum) {
@@ -132,13 +136,25 @@ public class HDMIInputInterface {
     {
         setSyncStatus(readResolutionEnum(false));
         
-        String delims = "[x@]+";
+        String delims = "[xp]+";
+        String delims_null = "[x@]+";
         String hdmiInResolution = "0x0@0";
+        String tokens[] = hdmiInResolution.split(delims_null);
+
         if (Boolean.parseBoolean(getSyncStatus()) == true)
-        	hdmiInResolution = getHdmiInResolutionSysFs();
-		Log.i(TAG, "updateResolutionInfo(): sync="+getSyncStatus()+"    HDMI In Resolution=" + hdmiInResolution);
-        String tokens[] = hdmiInResolution.split(delims);
-        
+        {
+            hdmiInResolution = getHdmiInResolutionSysFs();
+            if(hdmiInResolution.equals("0"))
+            {
+                hdmiInResolution = "0x0@0";
+                tokens = hdmiInResolution.split(delims_null);
+            }
+            else
+                tokens = hdmiInResolution.split(delims);
+        }
+
+        Log.i(TAG, "updateResolutionInfo(): sync="+getSyncStatus()+"    HDMI In Resolution=" + hdmiInResolution);
+
         setHorizontalRes(tokens[0]);
         setVerticalRes(tokens[1]);
         setFPS(tokens[2].trim());
@@ -163,22 +179,31 @@ public class HDMIInputInterface {
     public static int getHdmiHpdEventState(){
     	if (isHdmiDriverPresent == true)
 		{
-	        StringBuilder text = new StringBuilder(16);
-	        try {
-	            //File sdcard = Environment.getExternalStorageDirectory();
-	            File file = new File("/sys/class/switch/evs_hdmi_hpd/state");
-	
-	            BufferedReader br = new BufferedReader(new FileReader(file));  
-	            String line;   
-	            while ((line = br.readLine()) != null) {
-	                text.append(line);
-	                //text.append('\n');
-	            }
-	            br.close() ;
-	        }catch (IOException e) {
-	            e.printStackTrace();   
-	            text.append("0");
-	        }
+            StringBuilder text = new StringBuilder(16);
+            if(productType != SYSTEM_AIRMEDIA)
+            {
+                try {
+                    //File sdcard = Environment.getExternalStorageDirectory();
+                    File file = new File("/sys/class/switch/evs_hdmi_hpd/state");
+
+                    BufferedReader br = new BufferedReader(new FileReader(file));
+                    String line;
+                    while ((line = br.readLine()) != null) {
+                        text.append(line);
+                        //text.append('\n');
+                    }
+                    br.close();
+                }catch (IOException e) {
+                    e.printStackTrace();
+                    text.append("0");
+                }
+            }
+            else
+            {
+                text.append("0");
+                Log.e(TAG, "HPD Not supported for AM3X ");
+            }
+
 	        Log.i(TAG, "hpdState:" + text.toString());
 	        return Integer.parseInt(text.toString());
 		}
@@ -190,19 +215,37 @@ public class HDMIInputInterface {
     	if (isHdmiDriverPresent == true)
 		{
 	        StringBuilder text = new StringBuilder(64);
-	        try {
-	            File file = new File("/sys/devices/platform/omap_i2c.2/i2c-2/2-000f/hdmi_in_resolution");
-	
-	            BufferedReader br = new BufferedReader(new FileReader(file));  
-	            String line;   
-	            while ((line = br.readLine()) != null) {
-	                text.append(line);
-	            }
-	            br.close();
-	        }catch (IOException e) {
-	            e.printStackTrace();
-	            text.append("0x0@0");
-	        }
+            if(productType != SYSTEM_AIRMEDIA)
+            {
+                try {
+                    File file = new File("/sys/devices/platform/omap_i2c.2/i2c-2/2-000f/hdmi_in_resolution");
+                    BufferedReader br = new BufferedReader(new FileReader(file));
+                    String line;
+                    while ((line = br.readLine()) != null) {
+                        text.append(line);
+                    }
+                    br.close();
+                }catch (IOException e) {
+                    e.printStackTrace();
+                    text.append("0x0@0");
+                }
+            }
+            else
+            { //for AM3X
+                try {
+                    File file = new File("/sys/devices/platform/ff3e0000.i2c/i2c-8/8-000f/video_fmts");
+                    BufferedReader br = new BufferedReader(new FileReader(file));
+                    String line;
+                    while ((line = br.readLine()) != null) {
+                        text.append(line);
+                    }
+                    br.close();
+                }catch (IOException e) {
+                    e.printStackTrace();
+                    text.append("0x0@0");
+                }
+            }
+
 	        Log.i(TAG, "HDMI IN Res from sysfs:" + text.toString());
 	        return text.toString();
 		}
@@ -213,23 +256,51 @@ public class HDMIInputInterface {
     public static int readResolutionEnum(boolean logResult){
     	if (isHdmiDriverPresent == true)
 		{
-	        int resolutionIndex = 0;
-	        StringBuilder text = new StringBuilder(64);
-	        try {
-	            File file = new File("/sys/class/switch/evs_hdmi_resolution/state");
-	            BufferedReader br = new BufferedReader(new FileReader(file));  
-	            String line;   
-	            while ((line = br.readLine()) != null) {
-	                text.append(line);
-	            }
-	            br.close();
-	            
-	            resolutionIndex = Integer.parseInt(text.toString());
-	        }catch (IOException e) {
-	            e.printStackTrace(); 
-	            resolutionIndex = 0;
-	        }
-	        
+            int resolutionIndex = 0;
+            if(productType != SYSTEM_AIRMEDIA)
+            {
+                StringBuilder text = new StringBuilder(64);
+                try {
+                    File file = new File("/sys/class/switch/evs_hdmi_resolution/state");
+                    BufferedReader br = new BufferedReader(new FileReader(file));
+                    String line;
+                    while ((line = br.readLine()) != null) {
+                        text.append(line);
+                    }
+                    br.close();
+
+                    resolutionIndex = Integer.parseInt(text.toString());
+                }catch (IOException e) {
+                    e.printStackTrace();
+                    resolutionIndex = 0;
+                }
+            }
+            else
+            {   //For AM3X handle default case differently
+                String hdmiInResolution = "0x0@0";
+                String tokens[] = hdmiInResolution.split("[x@]+");
+
+                hdmiInResolution = getHdmiInResolutionSysFs();
+                if(hdmiInResolution.equals("0"))
+                {
+                    hdmiInResolution = "0x0@0";
+                    tokens = hdmiInResolution.split("[x@]+");
+                }
+                else
+                    tokens = hdmiInResolution.split("[xp]+");
+
+                String hRes = tokens[0];
+                String vRes = tokens[1];
+
+                //FIXME: Add full Resolution to index table here. Refer DM ResolutionTable.xls
+                Log.i(TAG, "Product Type AM3X Detected: " + productType + ", vRes " + vRes + "hRes " + hRes);
+
+                if((hRes.equals("1920")) && (vRes.equals("1080")))
+                    resolutionIndex = 32;
+                else if((hRes.equals("0")) && (vRes.equals("0")))
+                    resolutionIndex = 0;
+            }
+
 	        if (logResult)
 	        	Log.i(TAG, "HDMI IN index from sysfs:" + resolutionIndex);
 	        return resolutionIndex;
@@ -244,25 +315,50 @@ public class HDMIInputInterface {
     }
     
     public static boolean readHDCPInputStatus (){
+
     	if (isHdmiDriverPresent == true)
 		{
-	    	boolean hdcpStatus = false;
 	    	StringBuilder text = new StringBuilder(16);
-	        try {
-	            File file = new File("/sys/devices/platform/omap_i2c.2/i2c-2/2-000f/hdcp");
-	
-	            BufferedReader br = new BufferedReader(new FileReader(file));  
-	            String line;   
-	            while ((line = br.readLine()) != null) {
-	                text.append(line);
-	            }
-	            br.close();
-	        }catch (IOException e) {
-	            e.printStackTrace();
-	            text.append("0"); //if error default to no HDCP
-	        }
-//	        Log.i(TAG, "HDMI IN HDCP status from sysfs:" + text.toString());
-	        return Integer.parseInt(text.toString()) == 57;
+
+            if(productType != SYSTEM_AIRMEDIA)
+            {
+                try {
+                    File file = new File("/sys/devices/platform/omap_i2c.2/i2c-2/2-000f/hdcp");
+                    BufferedReader br = new BufferedReader(new FileReader(file));
+                    String line;
+                    while ((line = br.readLine()) != null) {
+                        text.append(line);
+                    }
+                    br.close();
+                }catch (IOException e) {
+                    e.printStackTrace();
+                    text.append("0"); //if error default to no HDCP
+                }
+                return Integer.parseInt(text.toString()) == 57;
+            }
+            else
+            {
+                final String[] sHdmiInputValues = {"Succeed" , "Failed"};
+                try {
+                    File file = new File("/sys/devices/platform/ff3e0000.i2c/i2c-8/8-000f/hdcp_status");
+                    BufferedReader br = new BufferedReader(new FileReader(file));
+                    String line;
+                    while ((line = br.readLine()) != null) {
+                        text.append(line);
+                    }
+                    br.close();
+                }catch (IOException e) {
+                    e.printStackTrace();
+                    text.append("0"); //if error default to no HDCP
+                }
+
+                //Log.i(TAG, "HDMI IN HDCP status from sysfs:" + text.toString());
+
+                if(sHdmiInputValues[0].equalsIgnoreCase(text.toString()))
+                    return true;
+                else
+                    return false;
+            }
 		}
     	else 
     		return false;
@@ -272,19 +368,38 @@ public class HDMIInputInterface {
     	if (isHdmiDriverPresent == true)
 		{
 	    	StringBuilder text = new StringBuilder(16);
-	        try {
-	            File file = new File("/sys/devices/platform/omap_i2c.2/i2c-2/2-000f/sync_state");
-	
-	            BufferedReader br = new BufferedReader(new FileReader(file));  
-	            String line;   
-	            while ((line = br.readLine()) != null) {
-	                text.append(line);
-	            }
-	            br.close();
-	        }catch (IOException e) {
-	            e.printStackTrace();
-	            text.append("0"); //if error default to no sync
-	        }
+            if(productType != SYSTEM_AIRMEDIA)
+            {
+                try {
+                    File file = new File("/sys/devices/platform/omap_i2c.2/i2c-2/2-000f/sync_state");
+
+                    BufferedReader br = new BufferedReader(new FileReader(file));
+                    String line;
+                    while ((line = br.readLine()) != null) {
+                        text.append(line);
+                    }
+                    br.close();
+                }catch (IOException e) {
+                    e.printStackTrace();
+                    text.append("0"); //if error default to no sync
+                }
+            }
+            else
+            {
+                try {
+                    File file = new File("/sys/devices/platform/ff3e0000.i2c/i2c-8/8-000f/sync_status");
+
+                    BufferedReader br = new BufferedReader(new FileReader(file));
+                    String line;
+                    while ((line = br.readLine()) != null) {
+                        text.append(line);
+                    }
+                    br.close();
+                }catch (IOException e) {
+                    e.printStackTrace();
+                    text.append("0"); //if error default to no sync
+                }
+            }
 	        return Integer.parseInt(text.toString()) == 1;
 		}
     	else 
@@ -295,44 +410,72 @@ public class HDMIInputInterface {
     	if (isHdmiDriverPresent == true)
 		{
 	    	StringBuilder text = new StringBuilder(64);
-	        try {
-	            File file = new File("/sys/devices/platform/omap_i2c.2/i2c-2/2-000f/audio_sample_rate");
-	
-	            BufferedReader br = new BufferedReader(new FileReader(file));  
-	            String line;   
-	            while ((line = br.readLine()) != null) {
-	                text.append(line);
-	            }
-	            br.close();
-	        }catch (IOException e) {
-	            e.printStackTrace();
-	            text.append("48000"); //if error default to 48kHz
-	        }
+            if(productType != SYSTEM_AIRMEDIA)
+            {
+                try {
+                    File file = new File("/sys/devices/platform/omap_i2c.2/i2c-2/2-000f/audio_sample_rate");
+
+                    BufferedReader br = new BufferedReader(new FileReader(file));
+                    String line;
+                    while ((line = br.readLine()) != null) {
+                        text.append(line);
+                    }
+                    br.close();
+                }catch (IOException e) {
+                    e.printStackTrace();
+                    text.append("48000"); //if error default to 48kHz
+                }
+            }
+            else
+            {
+                try {
+                    File file = new File("/sys/devices/platform/ff3e0000.i2c/i2c-8/8-000f/audio_fmts");
+
+                    BufferedReader br = new BufferedReader(new FileReader(file));
+                    String line;
+                    while ((line = br.readLine()) != null) {
+                        text.append(line);
+                    }
+                    br.close();
+                }catch (IOException e) {
+                    e.printStackTrace();
+                    text.append("48000"); //if error default to 48kHz
+                }
+            }
 	        return Integer.parseInt(text.toString());
 		}
     	else 
     		return 0;
     }
+
     public static boolean readInterlaced (){
     	if (isHdmiDriverPresent == true)
 		{
-	    	StringBuilder text = new StringBuilder(16);
-	        try {
-	            File file = new File("/sys/devices/platform/omap_i2c.2/i2c-2/2-000f/interlaced");
-	
-	            BufferedReader br = new BufferedReader(new FileReader(file));  
-	            String line;   
-	            while ((line = br.readLine()) != null) {
-	                text.append(line);
-	            }
-	            br.close();
-	        }catch (IOException e) {
-	            e.printStackTrace();
-	            text.append("0"); //if error default to not interlaced
-	        }
-	        return Integer.parseInt(text.toString()) == 1;
-		}
-    	else 
+            if(productType != SYSTEM_AIRMEDIA)
+            {
+                StringBuilder text = new StringBuilder(16);
+                try {
+                    File file = new File("/sys/devices/platform/omap_i2c.2/i2c-2/2-000f/interlaced");
+
+                    BufferedReader br = new BufferedReader(new FileReader(file));
+                    String line;
+                    while ((line = br.readLine()) != null) {
+                        text.append(line);
+                    }
+                    br.close();
+                }catch (IOException e) {
+                    e.printStackTrace();
+                    text.append("0"); //if error default to not interlaced
+                }
+
+                return Integer.parseInt(text.toString()) == 1;
+            }
+            else
+            {   //FIXME: Not Yet defined for AM3X
+                return false;
+            }
+        }
+        else
     		return false;
     }
 }

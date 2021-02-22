@@ -1768,15 +1768,20 @@ public class CresStreamCtrl extends Service {
             @Override
             public void run() {
                 // Wait until file exists then check
-                while ((new File(hdmiLicenseFilePath)).exists() == false)
-                {
-                    try { Thread.sleep(1000); } catch (InterruptedException e){}//Poll every 5 seconds
-                }
-
                 int hdmiLicensed = 0;
-                try {
-                    hdmiLicensed = Integer.parseInt(MiscUtils.readStringFromDisk(hdmiLicenseFilePath));
-                } catch (NumberFormatException e) {}
+                if (CrestronProductName.fromInteger(nativeGetProductTypeEnum()) != CrestronProductName.AM3X00)
+                {
+                    while ((new File(hdmiLicenseFilePath)).exists() == false)
+                    {   Log.i(TAG, "Wait until file exists then check");
+                        try { Thread.sleep(1000); } catch (InterruptedException e){}//Poll every 5 seconds
+                    }
+
+                    try {
+                        hdmiLicensed = Integer.parseInt(MiscUtils.readStringFromDisk(hdmiLicenseFilePath));
+                    } catch (NumberFormatException e) {}
+                }
+                else
+                    hdmiLicensed = 1;
 
                 if (hdmiLicensed == 1)
                 {
@@ -1786,7 +1791,7 @@ public class CresStreamCtrl extends Service {
                     if (hdmiInputDriverPresent)
                     {
                         Log.i(TAG, "HDMI input driver is present");
-                        hdmiInput = new HDMIInputInterface();
+                        hdmiInput = new HDMIInputInterface(streamCtrl);
                         //refresh resolution on startup
                         hdmiInput.setResolutionIndex(HDMIInputInterface.readResolutionEnum(true));
 

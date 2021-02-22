@@ -21,6 +21,7 @@ import java.util.ArrayList;
 import java.util.HashMap;
 import java.util.Iterator;
 import java.util.List;
+import java.io.File;
 
 public class ProductSpecific
 {
@@ -187,7 +188,9 @@ public class ProductSpecific
 
     public static boolean isHdmiDriverPresent()
     {
-        return false;
+        File file = new File("/sys/devices/platform/ff3e0000.i2c/i2c-8/8-000f/sync_status");
+
+        return file.exists();
     }
 
     public static void handleHpdHdmiEvent(HDMIInputInterface hdmiIf)

@@ -102,34 +102,39 @@ public class CresCamera2 extends CresCamera
                 Log.i(TAG, " mCameraDevice is NULL");
 
             if(this.mCameraManager == null)
-                Log.i(TAG, " mCameraManager is NULL");
+                Log.e(TAG, " mCameraManager is NULL");
 
             //FIXME: Add retry logic
-            try {
-                mCameraManager.openCamera("/dev/video0", new CameraDevice.StateCallback() {
-                    @Override
-                    public void onOpened(CameraDevice camera) {
-                        Log.i(TAG, "  onOpened " + "/dev/video0");
-                        mCameraDevice = camera;
-                    }
+            if(findCamera("/dev/video0"))
+            {
+                try {
+                    mCameraManager.openCamera("/dev/video0", new CameraDevice.StateCallback() {
+                        @Override
+                        public void onOpened(CameraDevice camera) {
+                            Log.i(TAG, "  onOpened " + "/dev/video0");
+                            mCameraDevice = camera;
+                        }
 
-                    @Override
-                    public void onDisconnected(CameraDevice camera) {
-                        Log.i(TAG, "onDisconnected" + "/dev/video0");
-                        if (mCameraDevice != null) {
+                        @Override
+                        public void onDisconnected(CameraDevice camera) {
+                            Log.i(TAG, "onDisconnected" + "/dev/video0");
+                            if (mCameraDevice != null) {
+                                releaseCamera();
+                            }
+                        }
+
+                        @Override
+                        public void onError(CameraDevice camera, int error) {
+                            Log.e(TAG, "onError " + "/dev/video0" + " error " + error);
                             releaseCamera();
                         }
-                    }
-
-                    @Override
-                    public void onError(CameraDevice camera, int error) {
-                        Log.i(TAG, "onError " + "/dev/video0" + " error " + error);
-                        releaseCamera();
-                    }
-                }, mCameraHandler);
-            } catch (CameraAccessException e) {
-                e.printStackTrace();
+                    }, mCameraHandler);
+                } catch (CameraAccessException e) {
+                    e.printStackTrace();
+                }
             }
+            else
+                Log.e(TAG, "openCamera called but /dev/video0 not available" );
         }
     return;
     }
