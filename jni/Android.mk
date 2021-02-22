@@ -62,7 +62,6 @@ LOCAL_SRC_FILES := \
 	$(CSIO_ROOT)/gstreamer-1.0/csiosubs.cpp \
 	$(CSIO_ROOT)/gstreamer-1.0/vputils.cpp \
     $(CSIO_ROOT)/csioCommonShare.cpp \
-    $(CSIO_ROOT)/loggingControl.cpp \
     $(CSIO_ROOT)/url_parser/url_parser.cpp \
     $(CSIO_ROOT)/cresNextCommonShare.cpp \
     $(CSIO_ROOT)/cresNextDef.cpp \
