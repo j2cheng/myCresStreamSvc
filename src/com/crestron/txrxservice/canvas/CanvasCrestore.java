@@ -180,6 +180,17 @@ public class CanvasCrestore
         	Common.Logging.i(TAG,"Successfully subscribed to "+sPendingInternalAirMediaCanvas);
         }
         
+        //subscribe to Pending.Device.NetworkStream.StreamConfig
+        String sPendingDeviceNetworkStreamStreamConfig = "{\"Pending\":{\"Device\":{\"NetworkStream\":{\"StreamConfig\":{}}}}}";
+        rv = wrapper.subscribeCallback(sPendingDeviceNetworkStreamStreamConfig, crestoreCallback);
+        if (rv != com.crestron.cresstoreredis.CresStoreResult.CRESSTORE_SUCCESS)
+        {
+        	Common.Logging.i(TAG,"Could not set up Crestore Callback for subscription to " + sPendingDeviceNetworkStreamStreamConfig+": " + rv);
+        	return false;
+        } else {
+        	Common.Logging.i(TAG,"Successfully subscribed to " + sPendingDeviceNetworkStreamStreamConfig);
+        }
+        
         if (!verifyCrestore())
         {
         	Common.Logging.i(TAG,"Could not verify crestore wrapper is working");
@@ -1296,6 +1307,45 @@ public class CanvasCrestore
         			}
         		}
 
+        		/* parsing Device.NetworkStream.StreamConfig.
+        		 * 
+        		 *  {"Device": {"NetworkStream":{"StreamConfig":{
+				"Stream0": {
+				    "StreamUrl": "rtsp://10.254.44.46:554/live.sdp?SESSINIT_RTP",
+				    "Action": "start"
+				 }
+			     }}}}
+        		 * 
+        		 */        		
+        		if (pending && root.device != null && root.device.networkstream != null && root.device.networkstream != null) {
+        			parsed = true;
+        			Common.Logging.v(TAG, "Device/NetworkStream/StreamConfig parsed from json string");
+        			Common.Logging.v(TAG, "Device string is "+gson.toJson(root));     			
+        			
+        			Map<String, StreamConfigMapEntry> configMapEntry = root.device.networkstream.streamconfigmap;
+    				if (configMapEntry != null)
+    				{
+    					if (!configMapEntry.isEmpty())
+    					{
+    						for (Map.Entry<String, StreamConfigMapEntry> entry : configMapEntry.entrySet())
+    						{
+    							StreamConfigMapEntry value = (StreamConfigMapEntry)entry.getValue();
+    							String valStr = gson.toJson(value);
+    							Common.Logging.i(TAG, "StreamConfigMapEntry Key="+entry.getKey()+":  "+valStr);    							
+    							Common.Logging.i(TAG, "StreamConfigMapEntry value.action = " + value.action);
+    							Common.Logging.i(TAG, "StreamConfigMapEntry value.streamurl =" + value.streamurl);
+    						}
+    					} else {
+    						Common.Logging.i(TAG, "Device/NetworkStream/StreamConfig is empty - destroy all streams");
+    					}
+    				}
+    				else
+    				{
+    					Common.Logging.i(TAG, "Device/NetworkStream/StreamConfig is NULL");
+    				}
+        			        			
+        		}
+        		
         		if (!parsed) {
         			Common.Logging.v(TAG, "Could not parse json string:" + json);
         			Common.Logging.v(TAG, "String is "+gson.toJson(root));
@@ -1380,6 +1430,15 @@ public class CanvasCrestore
 	{
 		Root root = getRootedInternalAirMedia();
 		root.internal.airMedia.osd = new Osd();
+		return root;
+	}
+	
+	private Root getRootedDeviceNetworkStreamStreamConfig()
+	{
+		Root root = new Root();
+		root.device = new Device();
+		root.device.networkstream = new NetworkStream();
+		
 		return root;
 	}
 	
@@ -1506,6 +1565,17 @@ public class CanvasCrestore
     }
     
 
+    public class StreamConfigMapEntry {  
+    	@SerializedName ("StreamUrl")
+        String streamurl;	
+    	@SerializedName ("Action")
+        String action;
+    }
+
+    public class NetworkStream {
+    	@SerializedName ("StreamConfig")    	
+    	Map<String, StreamConfigMapEntry> streamconfigmap;
+    }    
     
     public class SessionResponseMapEntry {
         @SerializedName ("State")
@@ -1683,6 +1753,8 @@ public class CanvasCrestore
     public class Device {
         @SerializedName ("AirMedia")
     	AirMedia airMedia;
+        @SerializedName ("NetworkStream")
+    	NetworkStream networkstream;
     }
     
     public class Root {
