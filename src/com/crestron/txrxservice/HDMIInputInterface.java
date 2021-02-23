@@ -157,7 +157,8 @@ public class HDMIInputInterface {
 
         setHorizontalRes(tokens[0]);
         setVerticalRes(tokens[1]);
-        setFPS(tokens[2].trim());
+        int fps = (int) Double.parseDouble(tokens[2].trim());
+        setFPS(Integer.toString(fps));
         setAspectRatio();
         
         if (Boolean.parseBoolean(getSyncStatus()) == true)
