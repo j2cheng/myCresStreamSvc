@@ -10,6 +10,7 @@ import java.io.FileReader;
 import java.io.IOException;
 import java.io.OutputStreamWriter;
 import java.io.Writer;
+import java.lang.String;
 
 import com.crestron.txrxservice.ProductSpecific;
 
@@ -17,6 +18,9 @@ public class HDMIOutputInterface {
 	static String TAG = "TxRx HDMIOutInterface";
 
 	private boolean hasHdmiOutput = false;
+	private static boolean isAM3K = false;
+	CresStreamCtrl streamCtrl=null;
+	private boolean am3kSyncStatus = false;
 	
 	private static String syncStatus;
 	private static String interlaced;
@@ -27,7 +31,8 @@ public class HDMIOutputInterface {
 	private static String audioFormat;
 	private static String audioChannels;
 	
-	public HDMIOutputInterface(int hdcpCheckBitmask) {		
+	public HDMIOutputInterface(int hdcpCheckBitmask, CresStreamCtrl ctrl) {	
+		setStreamCtrl(ctrl);
 		if (hdcpCheckBitmask != 0)
 		{
 			hasHdmiOutput = true;
@@ -57,26 +62,46 @@ public class HDMIOutputInterface {
 		Log.i(TAG, "Device has hdmi output is " + hasHdmiOutput);
 	}
 	
+	public void setStreamCtrl(CresStreamCtrl ctrl)
+	{
+		streamCtrl = ctrl;
+		isAM3K = streamCtrl.isAM3X00();
+	}
+	
+	public void set_am3k_sync_status(boolean sync)
+	{
+		am3kSyncStatus = sync;
+		Log.i(TAG,"Set AM3K HDMI out sync status to "+am3kSyncStatus);
+	}
+	
 	public void setSyncStatus() {
 		if (hasHdmiOutput)
 		{
-			StringBuilder text = new StringBuilder(16);
-			try {
-				File file = new File("/sys/class/switch/hdmi_true_hpd/state");
+			if (!isAM3K)
+			{
+				StringBuilder text = new StringBuilder(16);
+				try {
+					File file = new File("/sys/class/switch/hdmi_true_hpd/state");
 
-				BufferedReader br = new BufferedReader(new FileReader(file));  
-				String line;   
-				while ((line = br.readLine()) != null) {
-					text.append(line);
+					BufferedReader br = new BufferedReader(new FileReader(file));  
+					String line;   
+					while ((line = br.readLine()) != null) {
+						text.append(line);
+					}
+					br.close();
+				}catch (Exception e) {
+					text.append("0"); //if error default to no sync
 				}
-				br.close();
-			}catch (Exception e) {
-				text.append("0"); //if error default to no sync
+				if(Integer.parseInt(text.toString()) == 1)
+					syncStatus = "true";
+				else
+					syncStatus = "false";
+			} else {
+				if (am3kSyncStatus)
+					syncStatus = "true";
+				else
+					syncStatus = "false";
 			}
-			if(Integer.parseInt(text.toString()) == 1)
-				syncStatus = "true";
-			else
-				syncStatus = "false";
 			Log.i(TAG, "setSyncStatus: "+syncStatus);
 		}
 		
@@ -177,22 +202,34 @@ public class HDMIOutputInterface {
 	}
 	
 	public static int readHDCPOutputStatus (){
-    	StringBuilder text = new StringBuilder(16);
-        try {
-            File file = new File("/sys/devices/virtual/misc/hdcp/hdcp_status");
+		if (!isAM3K)
+		{
+			StringBuilder text = new StringBuilder(16);
+			try {
+				File file = new File("/sys/devices/virtual/misc/hdcp/hdcp_status");
 
-            BufferedReader br = new BufferedReader(new FileReader(file));  
-            String line;   
-            while ((line = br.readLine()) != null) {
-                text.append(line);
-            }
-            br.close();
-        }catch (Exception e) {
-//            e.printStackTrace();
-            text.append("0"); //if error default to no HDCP
-        }
-//        Log.i(TAG, "HDMI OUT HDCP status from sysfs:" + text.toString());
-        return Integer.parseInt(text.toString());
+				BufferedReader br = new BufferedReader(new FileReader(file));  
+				String line;   
+				while ((line = br.readLine()) != null) {
+					text.append(line);
+				}
+				br.close();
+			}catch (Exception e) {
+				//            e.printStackTrace();
+				text.append("0"); //if error default to no HDCP
+			}
+			//        Log.i(TAG, "HDMI OUT HDCP status from sysfs:" + text.toString());
+			return Integer.parseInt(text.toString());
+		} else {
+			String status = MiscUtils.readStringFromDisk("/sys/devices/platform/ff160000.i2c/i2c-7/7- 0030/hdcp_status");
+			if (status.equalsIgnoreCase("hdcp_v1x succeed") || status.equalsIgnoreCase("hdcp_v2x succeed")) {
+				return 1;
+			} else if (status.equalsIgnoreCase("Off")) {
+				return 0;
+			} else { // Failed/Starting
+				return -1;
+			}
+		}
     }
 	
 	public static void setHDCPBypass (boolean enabled){

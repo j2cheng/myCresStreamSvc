@@ -302,6 +302,7 @@ public class ProductSpecific
     			break;
     		case PeripheralManager.PER_HDMI_OUT:
     			Log.i(TAG, "HDMI OUT status: " + (i1 == 1 ? "Connected" : "Disconnected"));
+    			cresStreamCtrl.onHdmiOutHpdEvent((i1 ==1));
     			break;
     		case PeripheralManager.PER_USB_20:
     			Log.i(TAG, "USB 2.0 status: " + (i1 == 1 ? "Connected" : "Disconnected"));

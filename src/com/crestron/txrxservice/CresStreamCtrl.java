@@ -1097,10 +1097,10 @@ public class CresStreamCtrl extends Service {
 
             wifidVideoPlayer = new WifidVideoPlayer(CresStreamCtrl.this);
 
-            hdmiOutput = new HDMIOutputInterface(nativeGetHDMIOutputBitmask());
+            hdmiOutput = new HDMIOutputInterface(nativeGetHDMIOutputBitmask(), this);
             
             //Do not set bypass if product does not have HDMI output
-            if(mProductHasHDMIoutput)
+            if(mProductHasHDMIoutput && !isAM3X00())
             {
             	setHDCPBypass();
             }
@@ -1441,6 +1441,11 @@ public class CresStreamCtrl extends Service {
         {
             Log.w(TAG, "Failed to copy cert file: " + ex);
         }
+    }
+    
+    public boolean isAM3X00()
+    {
+    	return (CrestronProductName.fromInteger(nativeGetProductTypeEnum()) == CrestronProductName.AM3X00);
     }
     
     public boolean getRGB888VideoSupportState()
@@ -5726,6 +5731,17 @@ public class CresStreamCtrl extends Service {
 		Log.i(TAG, "onCameraConnected(): USB UVC camera is disconnected");
     }
     
+    // For AM3K hdmi output hot plug handling
+    public void onHdmiOutHpdEvent(boolean connected)
+    {
+		Log.i(TAG, "onHdmiOutHpdEvent(): HDMI out sync is "+connected);
+    	hdmiOutput.set_am3k_sync_status(connected);
+        synchronized (mDisplayChangedLock)
+        {
+            handleHdmiOutputChange();
+        }
+    }
+    
     public String getAirMediaDisconnectUser(int sessId)
     {
         // Do nothing handled by getAirMediaUserPosition
@@ -6587,7 +6603,7 @@ public class CresStreamCtrl extends Service {
                 if (Boolean.parseBoolean(hdmiOutput.getSyncStatus()) == true)
                 {
                 	//Do not set bypass if product does not have HDMI output
-                	if(mProductHasHDMIoutput)
+                	if(mProductHasHDMIoutput && !isAM3X00())
                 	{
                 		setHDCPBypass();
                 	}
