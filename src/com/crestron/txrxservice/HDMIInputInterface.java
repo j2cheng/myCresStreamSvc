@@ -246,7 +246,7 @@ public class HDMIInputInterface {
                 }
             }
 
-	        Log.i(TAG, "HDMI IN Res from sysfs:" + text.toString());
+            //Log.i(TAG, "HDMI IN Res from sysfs:" + text.toString());
 	        return text.toString();
 		}
     	else
@@ -256,7 +256,7 @@ public class HDMIInputInterface {
     public static int readResolutionEnum(boolean logResult){
     	if (isHdmiDriverPresent == true)
 		{
-            int resolutionIndex = 0;
+            int resIndex = 0;
             if(productType != SYSTEM_AIRMEDIA)
             {
                 StringBuilder text = new StringBuilder(64);
@@ -269,10 +269,10 @@ public class HDMIInputInterface {
                     }
                     br.close();
 
-                    resolutionIndex = Integer.parseInt(text.toString());
+                    resIndex = Integer.parseInt(text.toString());
                 }catch (IOException e) {
                     e.printStackTrace();
-                    resolutionIndex = 0;
+                    resIndex = 0;
                 }
             }
             else
@@ -293,17 +293,20 @@ public class HDMIInputInterface {
                 String vRes = tokens[1];
 
                 //FIXME: Add full Resolution to index table here. Refer DM ResolutionTable.xls
-                Log.i(TAG, "Product Type AM3X Detected: " + productType + ", vRes " + vRes + "hRes " + hRes);
+                if (logResult)
+                    Log.i(TAG, "Product Type AM3X Detected: " + productType + ", vRes " + vRes + "hRes " + hRes);
 
                 if((hRes.equals("1920")) && (vRes.equals("1080")))
-                    resolutionIndex = 32;
+                    resIndex = 32;
                 else if((hRes.equals("0")) && (vRes.equals("0")))
-                    resolutionIndex = 0;
+                    resIndex = 0;
+                else
+                    Log.e(TAG, "readResolutionEnum:ERROR no handling for vRes " + vRes + " hRes " + hRes); //FIXME
             }
 
 	        if (logResult)
-	        	Log.i(TAG, "HDMI IN index from sysfs:" + resolutionIndex);
-	        return resolutionIndex;
+                Log.i(TAG, "HDMI IN index from sysfs:" + resIndex);
+            return resIndex;
 		}
     	else
     		return 0;

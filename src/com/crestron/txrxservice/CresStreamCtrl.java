@@ -5730,7 +5730,19 @@ public class CresStreamCtrl extends Service {
     {
 		Log.i(TAG, "onCameraConnected(): USB UVC camera is disconnected");
     }
-    
+
+    public void onHdmiInConnected()
+    {
+        Log.i(TAG, "onHdmiInConnected(): HDMI Input is connected EVENT");
+        handleHdmiInputResolutionEvent(HDMIInputInterface.readResolutionEnum(true));
+    }
+
+    public void onHdmiInDisconnected()
+    {
+        Log.i(TAG, "onHdmiInDisconnected(): HDMI Input is disconnected EVENT");
+        handleHdmiInputResolutionEvent(HDMIInputInterface.readResolutionEnum(true));
+    }
+
     // For AM3K hdmi output hot plug handling
     public void onHdmiOutHpdEvent(boolean connected)
     {

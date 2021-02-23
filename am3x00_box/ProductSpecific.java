@@ -62,6 +62,7 @@ public class ProductSpecific
     }
 
     static String TAG = "AM3X00 ProductSpecific";
+    private static final String HDMI_IN_DEV = "/dev/video0";
 
     // ******************* LaunchApp.java *******************
     public static void startForegroundService(Context ctx, Intent intent)
@@ -265,14 +266,34 @@ public class ProductSpecific
     public class PeripheralStatusChangeListener extends StatusChangeListener 
     {
     	boolean cameraConnected;
+        boolean hdmiInConnected = false;
     	CresStreamCtrl cresStreamCtrl;
     	
     	public PeripheralStatusChangeListener(CresStreamCtrl ctrl) {
     		super();
     		cresStreamCtrl = ctrl;
     		cameraConnected = hasUVCCamera();
+            hdmiInConnected = cam_handle.findCamera(HDMI_IN_DEV);
     	}
-    	
+
+        public void HdmiInConnect()
+        {
+            if (cam_handle.findCamera(HDMI_IN_DEV) && !hdmiInConnected)
+            {
+                hdmiInConnected = true;
+                cresStreamCtrl.onHdmiInConnected();
+            }
+        }
+
+        public void HdmiInDisconnect()
+        {
+            if (!cam_handle.findCamera(HDMI_IN_DEV) && hdmiInConnected)
+            {
+                hdmiInConnected = false;
+                cresStreamCtrl.onHdmiInDisconnected();
+            }
+        }
+
     	public void UsbConnect()
     	{
     		if (hasUVCCamera() && !cameraConnected)
@@ -299,7 +320,13 @@ public class ProductSpecific
     		switch (i) {
     		case PeripheralManager.PER_HDMI_IN:
     			Log.i(TAG, "HDMI IN status: " + (i1 == 1 ? "Connected" : "Disconnected"));
-    			break;
+                if (i1 == 1)
+                {
+                    HdmiInConnect();
+                } else {
+                    HdmiInDisconnect();
+                }
+                break;
     		case PeripheralManager.PER_HDMI_OUT:
     			Log.i(TAG, "HDMI OUT status: " + (i1 == 1 ? "Connected" : "Disconnected"));
     			cresStreamCtrl.onHdmiOutHpdEvent((i1 ==1));
