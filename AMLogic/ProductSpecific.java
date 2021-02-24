@@ -254,7 +254,7 @@ public class ProductSpecific
     	return false;
     }
     
-    public void monitorUVCCamera(CresStreamCtrl cresStreamCtrl) 
+    public void startPeripheralListener(CresStreamCtrl cresStreamCtrl) 
     {
     	// Not implemented for this product
     }

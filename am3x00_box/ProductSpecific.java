@@ -1,5 +1,6 @@
 package com.crestron.txrxservice;
 
+import com.crestron.txrxservice.CresStreamCtrl;
 import com.gs.core.peripheral.PeripheralManager;
 import com.gs.core.peripheral.StatusChangeListener;
 
@@ -347,11 +348,20 @@ public class ProductSpecific
     	}
     }
     
-    public void monitorUVCCamera(CresStreamCtrl cresStreamCtrl) 
+    public void startPeripheralListener(CresStreamCtrl ctrl) 
     {
-    	final CresStreamCtrl ctrl = cresStreamCtrl;
-    	Log.i(TAG, "Attaching listener for HDMI, USB events");
     	mListener = new PeripheralStatusChangeListener(ctrl);
+
+    	// Force hdmi in and out sync status update at startup
+		boolean hdmiInStatus = PeripheralManager.instance().getStatus(PeripheralManager.PER_HDMI_IN) == 1;
+		if (hdmiInStatus)
+			mListener.HdmiInConnect();
+		else
+			mListener.HdmiInDisconnect();
+    	boolean hdmiOutStatus = PeripheralManager.instance().getStatus(PeripheralManager.PER_HDMI_OUT) == 1;
+		ctrl.onHdmiOutHpdEvent(hdmiOutStatus);
+		
+    	Log.i(TAG, "Attaching listener for HDMI, USB events");
     	PeripheralManager.instance().addStatusListener(PeripheralManager.PER_HDMI_IN, mListener, null);
     	PeripheralManager.instance().addStatusListener(PeripheralManager.PER_HDMI_OUT, mListener, null);
     	PeripheralManager.instance().addStatusListener(PeripheralManager.PER_USB_20, mListener, null);

@@ -1285,7 +1285,7 @@ public class CresStreamCtrl extends Service {
             	Log.i(TAG, "USB UVC camera is connected");
             }
             
-            mProductSpecific.getInstance().monitorUVCCamera(this);
+            mProductSpecific.getInstance().startPeripheralListener(this);
         }
    
     @Override
