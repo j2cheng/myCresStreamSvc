@@ -1,5 +1,6 @@
 package com.crestron.txrxservice;
 
+import android.media.MediaRecorder;
 import android.media.AudioManager;
 import android.media.AudioRecord;
 import android.media.AudioTrack;
@@ -86,7 +87,11 @@ public class AudioPlayback
 				audioTrackThread = new Thread(new ProcessBufferQueue(audioBufferQueue));
 				audioTrackThread.start();
 
-				mRecorder = new AudioRecord(AudioSrc, SampleRate, AudioChannels, AudioFmt, (2 * BufferSize)); // multiple times 2 because 2 byte per sample
+                if(!mStreamCtl.isAM3X00())
+                    mRecorder = new AudioRecord(AudioSrc, SampleRate, AudioChannels, AudioFmt, (2 * BufferSize)); // multiple times 2 because 2 byte per sample
+                else
+                    mRecorder = new AudioRecord(MediaRecorder.AudioSource.MIC, SampleRate, AudioChannels, AudioFmt, (2 * BufferSize));
+
 				mRecorder.startRecording();
 				mPlayer = new AudioTrack(AudioManager.STREAM_MUSIC, SampleRate, AudioChannels, AudioFmt, (2 * BufferSize), AudioTrack.MODE_STREAM);
 				mPlayer.play();

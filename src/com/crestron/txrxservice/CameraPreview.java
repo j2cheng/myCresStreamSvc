@@ -44,9 +44,6 @@ public class CameraPreview {
     	//surfaceHolder = vHolder;
     	hdmiIf = hdmiInIface;
     	streamCtl = ctl;
-        //FIXME: once HDMI Audio working for AM3X
-        if (CresStreamCtrl.CrestronProductName.fromInteger(ctl.nativeGetProductTypeEnum()) == CresStreamCtrl.CrestronProductName.AM3X00)
-            skipAudio = true;
     }
     
     public void setSessionIndex(int id){
@@ -504,8 +501,9 @@ public class CameraPreview {
                                     //CresCamera.mCamera.setPreviewCallback(new PreviewCB(confidenceMode));
                                     //CresCamera.mCamera.setErrorCallback(new ErrorCB(confidenceMode));
                                     signalPreviewTimeoutThread();    // kill the previous thread if it exists
-                                    preview_timeout_thread = new Thread(new previewTimeout());
-                                    preview_timeout_thread.start();
+                                    //FIXME: Add suitable alternative AM3X
+                                    //preview_timeout_thread = new Thread(new previewTimeout());
+                                    //preview_timeout_thread.start();
                                     ProductSpecific.getInstance().cam_handle.startCamera();
                                     startAudio(); 
                                     //Streamstate is now being fedback using preview callback                   

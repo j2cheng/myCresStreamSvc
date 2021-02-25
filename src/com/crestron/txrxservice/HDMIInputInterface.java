@@ -439,6 +439,7 @@ public class HDMIInputInterface {
                     String line;
                     while ((line = br.readLine()) != null) {
                         text.append(line);
+                        break;//Since AM3X returns 4 lines of data on this sysfs
                     }
                     br.close();
                 }catch (IOException e) {
