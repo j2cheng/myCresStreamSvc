@@ -1791,6 +1791,13 @@ public class CresStreamCtrl extends Service {
                 {
                     Log.i(TAG, "****************** Ignore Licence Check for AM3X**************");
                     airMediaLicensed = true;
+                    MiscUtils.writeStringToDisk(AirMediaSplashtop.licenseFilePath, "1");
+                    File file = new File(AirMediaSplashtop.licenseFilePath);
+                    if (file.exists())
+                    {
+                    	file.setReadable(true, false);
+                    	file.setWritable(true, false);
+                    }
                 }
 
                 if (!airMediaLicensed)
