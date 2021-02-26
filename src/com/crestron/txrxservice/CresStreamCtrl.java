@@ -355,7 +355,73 @@ public class CresStreamCtrl extends Service {
             this.value = value;
         }
     }
-    
+ 
+ 	enum AM_3x00_CameraMode {
+        BLUE_SCREEN(1),
+        RED_SCREEN(2),
+        BLACK_SCREEN(3),
+        HDMI_IN_SCREEN(4),
+        VIDEO_PAUSED_SCREEN(5),	//not supported yet
+        
+        UNDEFINED_SCREEN(99);
+
+        private final int value;
+        public static final AM_3x00_CameraMode values[] = values();
+
+        AM_3x00_CameraMode(int value)
+        {
+            this.value = value;
+        }
+ 
+        public int getValue() 
+        {
+            return value;
+        }
+      
+        public static String getStringValueFromInt(int i) 
+        {
+            for (AM_3x00_CameraMode mode : AM_3x00_CameraMode.values()) 
+            {
+                if (mode.getValue() == i) 
+                {
+                    return mode.toString();
+                }
+            }
+            return ("Invalid Color Mode.");
+        }
+                
+        public static String getStringValueFromColorInt(int mode)
+        {
+        	String id = String.valueOf(AM_3x00_CameraMode.UNDEFINED_SCREEN.ordinal());
+        	
+			switch(CameraMode.values[Integer.valueOf(mode)])
+			{
+				case StreamOutPaused:
+					//not supported yet. id = AM_3x00_CameraMode.VIDEO_PAUSED_SCREEN.ordinal();
+					break;
+				case NoVideo:
+					String.valueOf(AM_3x00_CameraMode.BLUE_SCREEN.ordinal());
+					break;
+				case HDCPStreamError:
+				case HDCPAllError:
+					String.valueOf(AM_3x00_CameraMode.RED_SCREEN.ordinal());
+					break;
+				case BlackScreen:
+					String.valueOf(AM_3x00_CameraMode.BLACK_SCREEN.ordinal());
+					break;
+				case PreviewPaused:
+					//not supported yet. id = AM_3x00_CameraMode.VIDEO_PAUSED_SCREEN.ordinal();
+					break;
+				default:
+					break;
+	    	}
+	    	
+	    	Log.i(TAG,"AM_3x00 CameraMode id = " + id + " mode = " + mode );
+	    	
+	    	return(id);
+		}
+    }
+       
     /*
      * Copied from csio.h
      * */
@@ -6430,21 +6496,49 @@ public class CresStreamCtrl extends Service {
     {
         synchronized(cameraModeLock)
         {
-        	CameraMode cmode = CameraMode.values[Integer.valueOf(mode)];
-            Log.i(TAG, "Writing " + cmode + "(" + mode + ")" + " to camera mode file");
-            Writer writer = null;
-            try
-            {
-                writer = new BufferedWriter(new OutputStreamWriter(new FileOutputStream(cameraModeFilePath), "US-ASCII"));
-                writer.write(mode);
-                writer.flush();
+        	if(!isAM3X00())
+        	{
+	        	CameraMode cmode = CameraMode.values[Integer.valueOf(mode)];
+	            Log.i(TAG, "Writing " + cmode + "(" + mode + ")" + " to camera mode file");
+	            Writer writer = null;
+	            try
+	            {
+	                writer = new BufferedWriter(new OutputStreamWriter(new FileOutputStream(cameraModeFilePath), "US-ASCII"));
+	                writer.write(mode);
+	                writer.flush();
+	            }
+	            catch (IOException ex) {
+	              Log.e(TAG, "Failed to save cameraMode to disk: " + ex);
+	            }
+	            finally
+	            {
+	                try {writer.close();} catch (Exception ex) {/*ignore*/}
+	            }
             }
-            catch (IOException ex) {
-              Log.e(TAG, "Failed to save cameraMode to disk: " + ex);
-            }
-            finally
+            else
             {
-                try {writer.close();} catch (Exception ex) {/*ignore*/}
+            	String id = AM_3x00_CameraMode.getStringValueFromColorInt(Integer.valueOf(mode));
+				if (id.compareToIgnoreCase(String.valueOf(AM_3x00_CameraMode.UNDEFINED_SCREEN.ordinal())) != 0)
+				{
+		        	AM_3x00_CameraMode cmode = AM_3x00_CameraMode.values[Integer.valueOf(mode)];
+		            Log.i(TAG, "Writing " + cmode + "(" + mode + ")" + " to camera colors bar file");
+		            Writer writer = null;
+		            try
+		            {
+		            	File file = new File("/sys/devices/platform/ff3e0000.i2c/i2c-8/8-000f/clrbar_mode");
+		                writer = new BufferedWriter(new OutputStreamWriter(new FileOutputStream(file), "US-ASCII"));
+		                writer.write(id);
+		                writer.flush();
+		            }
+		            catch (IOException ex)
+		            {
+						Log.e(TAG, "Failed to save AM_3x00 cameraMode to disk: " + ex);
+		            }
+		            finally
+		            {
+		                try {writer.close();} catch (Exception ex) {/*ignore*/}
+		            }
+            	}
             }
         }
     }
