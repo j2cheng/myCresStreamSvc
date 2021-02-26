@@ -516,6 +516,7 @@ public class CameraPreview {
                         }
                         else
                         {
+                            Log.e(TAG,"Camera2: HDMI camera device creation error! ");
                             stopPlayback(false);
                         }
                     }

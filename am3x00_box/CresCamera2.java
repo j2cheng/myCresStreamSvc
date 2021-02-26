@@ -127,7 +127,7 @@ public class CresCamera2 extends CresCamera
                         public void onClosed(CameraDevice camera) {
                             Log.i(TAG, "  onClosed " + hdmiCameraName);
                         }
-                        
+
                         @Override
                         public void onDisconnected(CameraDevice camera) {
                             Log.i(TAG, "onDisconnected" + hdmiCameraName);
@@ -146,7 +146,7 @@ public class CresCamera2 extends CresCamera
                     }, mCameraHandler);
                     boolean openSuccess = true;
                     try {
-                    	openSuccess = cameraOpenLatch.await(2000, TimeUnit.MILLISECONDS);
+                        openSuccess = cameraOpenLatch.await(2000, TimeUnit.MILLISECONDS);
                     } catch (InterruptedException ex) { ex.printStackTrace(); }
                     if (!openSuccess || (mCameraDevice == null))
                     {
@@ -179,10 +179,10 @@ public class CresCamera2 extends CresCamera
                     } catch (CameraAccessException e) {
                         e.printStackTrace();
                     }
-                    //        		Log.i(TAG, " close " + hdmiCameraName + " mCameraSession");
-                    //        		mCameraSession.close();
-                    //        		Log.i(TAG, " successfully closed " + hdmiCameraName + "  mCameraSession");
-                    //        		mCameraSession = null;
+                    //              Log.i(TAG, " close " + hdmiCameraName + " mCameraSession");
+                    //              mCameraSession.close();
+                    //              Log.i(TAG, " successfully closed " + hdmiCameraName + "  mCameraSession");
+                    //              mCameraSession = null;
                 }
                 if (mCameraDevice != null) {
                     Log.i(TAG, " close " + hdmiCameraName + " mCameraDevice");
@@ -219,6 +219,9 @@ public class CresCamera2 extends CresCamera
             return null;
     }
 
+    boolean cameraValid(){
+        return ((mCameraDevice!=null));
+    }
 
     public void startCamera() {
             if (mCameraDevice != null && mPreviewSurface != null) {

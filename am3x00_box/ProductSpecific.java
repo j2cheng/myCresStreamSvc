@@ -247,108 +247,108 @@ public class ProductSpecific
 
     public boolean hasUVCCamera() 
     {
-    	CameraManager mCameraManager=null;
-    	mCameraManager = (CameraManager) context.getSystemService(Context.CAMERA_SERVICE);
-		final String UVC_ID = "/dev/video5";
-		try {
-			String[] cameraIds = mCameraManager.getCameraIdList();
-			for (String id:cameraIds) {
-				if (UVC_ID.equals(id)) {
-					Log.v(TAG, "UVC camera is connected");
-					return true;
-				}
-			}
-		} catch (CameraAccessException e) {
-			e.printStackTrace();
-		}
-		return false;
+        CameraManager mCameraManager=null;
+        mCameraManager = (CameraManager) context.getSystemService(Context.CAMERA_SERVICE);
+        final String UVC_ID = "/dev/video5";
+        try {
+            String[] cameraIds = mCameraManager.getCameraIdList();
+            for (String id:cameraIds) {
+                if (UVC_ID.equals(id)) {
+                    Log.v(TAG, "UVC camera is connected");
+                    return true;
+                }
+            }
+        } catch (CameraAccessException e) {
+            e.printStackTrace();
+        }
+        return false;
     }
     
     public class PeripheralStatusChangeListener extends StatusChangeListener 
     {
-    	boolean cameraConnected;
+        boolean cameraConnected;
         boolean hdmiInConnected = false;
-    	CresStreamCtrl cresStreamCtrl;
-    	
-    	public PeripheralStatusChangeListener(CresStreamCtrl ctrl) {
-    		super();
-    		cresStreamCtrl = ctrl;
-    		cameraConnected = hasUVCCamera();
+        CresStreamCtrl cresStreamCtrl;
+
+        public PeripheralStatusChangeListener(CresStreamCtrl ctrl) {
+            super();
+            cresStreamCtrl = ctrl;
+            cameraConnected = hasUVCCamera();
             hdmiInConnected = cam_handle.findCamera(HDMI_IN_DEV);
-    	}
+        }
 
         public void HdmiInConnect()
         {
-        	if (!hdmiInConnected)
-        	{
-        		int tries = 0;
-        		while (!cam_handle.findCamera(HDMI_IN_DEV))
-        		{
+            if (!hdmiInConnected)
+            {
+                int tries = 0;
+                while (!cam_handle.findCamera(HDMI_IN_DEV))
+                {
                     try {
                         Thread.sleep(100);
                     } catch (Exception e) { e.printStackTrace(); }
                     if (++tries == 20)
-        			{
-        				Log.e(TAG, "No HDMI camera seen even after waiting for 2 seconds after connect");
-        				break;
-        			}
-        		}
-        		if (tries < 20) {
-        			hdmiInConnected = true;
+                    {
+                        Log.e(TAG, "No HDMI camera seen even after waiting for 2 seconds after connect");
+                        break;
+                    }
+                }
+                if (tries < 20) {
+                    hdmiInConnected = true;
                     cresStreamCtrl.onHdmiInConnected();
-        		}
-        	}
+                }
+            }
         }
 
         public void HdmiInDisconnect()
         {
-        	if (hdmiInConnected)
-        	{
-        		int tries = 0;
-        		while (cam_handle.findCamera(HDMI_IN_DEV))
-        		{
+            if (hdmiInConnected)
+            {
+                int tries = 0;
+                while (cam_handle.findCamera(HDMI_IN_DEV))
+                {
                     try {
                         Thread.sleep(100);
                     } catch (Exception e) { e.printStackTrace(); }
                     if (++tries == 20)
-        			{
-        				Log.e(TAG, "HDMI camera seen even after waiting for 2 seconds after disconnect");
-        				break;
-        			}
-        		}
-        		if (tries < 20) {
-        			hdmiInConnected = false;
+                    {
+                        Log.e(TAG, "HDMI camera seen even after waiting for 2 seconds after disconnect");
+                        break;
+                    }
+                }
+                if (tries < 20) {
+                    hdmiInConnected = false;
                     cresStreamCtrl.onHdmiInDisconnected();
-        		}
-        	}
+                }
+            }
         }
 
-    	public void UsbConnect()
-    	{
-    		if (hasUVCCamera() && !cameraConnected)
-    		{
-    			Log.i(TAG, "UsbConnect(): USB camera is now connected");
-    			cameraConnected = true;
-    			cresStreamCtrl.onCameraConnected();
-    		}
-    	}
-    	
-    	public void UsbDisconnect()
-    	{
-    		if (!hasUVCCamera() && cameraConnected)
-    		{
-    			Log.i(TAG, "UsbDisconnect(): USB camera is now disconnected");
-        		cameraConnected = false;
-    			cresStreamCtrl.onCameraDisconnected();
-    		}
-    	}
-    	
-    	@Override
-    	public void onChanged(int i, String s, int i1) 
-    	{
-    		switch (i) {
-    		case PeripheralManager.PER_HDMI_IN:
-    			Log.i(TAG, "HDMI IN status: " + (i1 == 1 ? "Connected" : "Disconnected"));
+        public void UsbConnect()
+        {
+            if (hasUVCCamera() && !cameraConnected)
+            {
+                Log.i(TAG, "UsbConnect(): USB camera is now connected");
+                cameraConnected = true;
+                cresStreamCtrl.onCameraConnected();
+            }
+        }
+
+        public void UsbDisconnect()
+        {
+            if (!hasUVCCamera() && cameraConnected)
+            {
+                Log.i(TAG, "UsbDisconnect(): USB camera is now disconnected");
+                cameraConnected = false;
+                cresStreamCtrl.onCameraDisconnected();
+            }
+        }
+
+        @Override
+        public void onChanged(int i, String s, int i1)
+        {
+            switch (i) {
+            case PeripheralManager.PER_HDMI_IN:
+                Log.i(TAG, "HDMI IN status: " + (i1 == 1 ? "Connected" : "Disconnected"));
                 if (i1 == 1)
                 {
                     HdmiInConnect();
@@ -356,58 +356,58 @@ public class ProductSpecific
                     HdmiInDisconnect();
                 }
                 break;
-    		case PeripheralManager.PER_HDMI_OUT:
-    			Log.i(TAG, "HDMI OUT status: " + (i1 == 1 ? "Connected" : "Disconnected"));
-    			cresStreamCtrl.onHdmiOutHpdEvent((i1 ==1));
-    			break;
-    		case PeripheralManager.PER_USB_20:
-    			Log.i(TAG, "USB 2.0 status: " + (i1 == 1 ? "Connected" : "Disconnected"));
-    			break;
-    		case PeripheralManager.PER_USB_30:
-    			Log.i(TAG, "USB 3.0 status: " + (i1 == 1 ? "Connected" : "Disconnected"));
-    			if (i1 == 1)
-    			{
-        			UsbConnect();
-    			} else {
-    				UsbDisconnect();
-    			}
-    			break;
-    		}
-    	}
+            case PeripheralManager.PER_HDMI_OUT:
+                Log.i(TAG, "HDMI OUT status: " + (i1 == 1 ? "Connected" : "Disconnected"));
+                cresStreamCtrl.onHdmiOutHpdEvent((i1 ==1));
+                break;
+            case PeripheralManager.PER_USB_20:
+                Log.i(TAG, "USB 2.0 status: " + (i1 == 1 ? "Connected" : "Disconnected"));
+                break;
+            case PeripheralManager.PER_USB_30:
+                Log.i(TAG, "USB 3.0 status: " + (i1 == 1 ? "Connected" : "Disconnected"));
+                if (i1 == 1)
+                {
+                    UsbConnect();
+                } else {
+                    UsbDisconnect();
+                }
+                break;
+            }
+        }
     }
     
     public void startPeripheralListener(CresStreamCtrl ctrl) 
     {
-    	mListener = new PeripheralStatusChangeListener(ctrl);
+        mListener = new PeripheralStatusChangeListener(ctrl);
 
-    	// Force hdmi in and out sync status update at startup
-		boolean hdmiInStatus = PeripheralManager.instance().getStatus(PeripheralManager.PER_HDMI_IN) == 1;
-		if (hdmiInStatus)
-			mListener.HdmiInConnect();
-		else
-			mListener.HdmiInDisconnect();
-    	boolean hdmiOutStatus = PeripheralManager.instance().getStatus(PeripheralManager.PER_HDMI_OUT) == 1;
-		ctrl.onHdmiOutHpdEvent(hdmiOutStatus);
-		
-    	Log.i(TAG, "Attaching listener for HDMI, USB events");
-    	PeripheralManager.instance().addStatusListener(PeripheralManager.PER_HDMI_IN, mListener, null);
-    	PeripheralManager.instance().addStatusListener(PeripheralManager.PER_HDMI_OUT, mListener, null);
-    	PeripheralManager.instance().addStatusListener(PeripheralManager.PER_USB_20, mListener, null);
-    	PeripheralManager.instance().addStatusListener(PeripheralManager.PER_USB_30, mListener, null);
+        // Force hdmi in and out sync status update at startup
+        boolean hdmiInStatus = PeripheralManager.instance().getStatus(PeripheralManager.PER_HDMI_IN) == 1;
+        if (hdmiInStatus)
+            mListener.HdmiInConnect();
+        else
+            mListener.HdmiInDisconnect();
+        boolean hdmiOutStatus = PeripheralManager.instance().getStatus(PeripheralManager.PER_HDMI_OUT) == 1;
+        ctrl.onHdmiOutHpdEvent(hdmiOutStatus);
+
+        Log.i(TAG, "Attaching listener for HDMI, USB events");
+        PeripheralManager.instance().addStatusListener(PeripheralManager.PER_HDMI_IN, mListener, null);
+        PeripheralManager.instance().addStatusListener(PeripheralManager.PER_HDMI_OUT, mListener, null);
+        PeripheralManager.instance().addStatusListener(PeripheralManager.PER_USB_20, mListener, null);
+        PeripheralManager.instance().addStatusListener(PeripheralManager.PER_USB_30, mListener, null);
     }
     
     public void showUsbDevices()
     {
-    	UsbManager manager = (UsbManager) context.getSystemService(Context.USB_SERVICE);
-    	HashMap<String, UsbDevice> deviceList = manager.getDeviceList();
-    	Iterator<UsbDevice> deviceIterator = deviceList.values().iterator();
-    	while(deviceIterator.hasNext()){
-    	    UsbDevice device = deviceIterator.next();
-    	    Log.i(TAG,"Device: name="+device.getDeviceName()+"  id="+device.getDeviceId()+"  class="+device.getClass()+
-    	    		"  subclass="+device.getDeviceSubclass());
-    	    Log.i(TAG,"        manufacturer="+device.getManufacturerName()+"  productId="+device.getProductId()+"  producName="+device.getProductName()+
-    	    		"  serialNumber="+device.getSerialNumber()+"  vendorId="+device.getVendorId());
-    	}
+        UsbManager manager = (UsbManager) context.getSystemService(Context.USB_SERVICE);
+        HashMap<String, UsbDevice> deviceList = manager.getDeviceList();
+        Iterator<UsbDevice> deviceIterator = deviceList.values().iterator();
+        while(deviceIterator.hasNext()){
+            UsbDevice device = deviceIterator.next();
+            Log.i(TAG,"Device: name="+device.getDeviceName()+"  id="+device.getDeviceId()+"  class="+device.getClass()+
+                    "  subclass="+device.getDeviceSubclass());
+            Log.i(TAG,"        manufacturer="+device.getManufacturerName()+"  productId="+device.getProductId()+"  producName="+device.getProductName()+
+                    "  serialNumber="+device.getSerialNumber()+"  vendorId="+device.getVendorId());
+        }
     }
     // ******************* Classes *******************
     public class DispayInfo
