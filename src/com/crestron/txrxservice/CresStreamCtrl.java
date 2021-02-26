@@ -400,14 +400,14 @@ public class CresStreamCtrl extends Service {
 					//not supported yet. id = AM_3x00_CameraMode.VIDEO_PAUSED_SCREEN.ordinal();
 					break;
 				case NoVideo:
-					String.valueOf(AM_3x00_CameraMode.BLUE_SCREEN.ordinal());
+					id = String.valueOf(AM_3x00_CameraMode.BLUE_SCREEN.ordinal());
 					break;
 				case HDCPStreamError:
 				case HDCPAllError:
-					String.valueOf(AM_3x00_CameraMode.RED_SCREEN.ordinal());
+					id = String.valueOf(AM_3x00_CameraMode.RED_SCREEN.ordinal());
 					break;
 				case BlackScreen:
-					String.valueOf(AM_3x00_CameraMode.BLACK_SCREEN.ordinal());
+					id = String.valueOf(AM_3x00_CameraMode.BLACK_SCREEN.ordinal());
 					break;
 				case PreviewPaused:
 					//not supported yet. id = AM_3x00_CameraMode.VIDEO_PAUSED_SCREEN.ordinal();
