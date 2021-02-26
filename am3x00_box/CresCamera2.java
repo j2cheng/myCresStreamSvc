@@ -20,7 +20,11 @@ import android.hardware.camera2.CameraCharacteristics;
 import android.hardware.camera2.CameraCaptureSession;
 import android.hardware.camera2.CaptureRequest;
 import android.hardware.camera2.params.StreamConfigurationMap;
+
+import java.util.concurrent.CountDownLatch;
 import java.util.concurrent.Semaphore;
+import java.util.concurrent.TimeUnit;
+
 import android.hardware.Camera;
 
 public class CresCamera2 extends CresCamera
@@ -37,6 +41,8 @@ public class CresCamera2 extends CresCamera
     private Semaphore mCameraOpenCloseLock = new Semaphore(1);
     static Object lockObj = new Object();
     CameraHandler mCameraHandler;
+    final String hdmiCameraId = "/dev/video0";
+    final String hdmiCameraName = "HDMI input camera";
 
     final CameraManager.AvailabilityCallback mCallback = new CameraManager.AvailabilityCallback() {
         @Override
@@ -105,19 +111,26 @@ public class CresCamera2 extends CresCamera
                 Log.e(TAG, " mCameraManager is NULL");
 
             //FIXME: Add retry logic
-            if(findCamera("/dev/video0"))
+            if(findCamera(hdmiCameraId))
             {
+                final CountDownLatch cameraOpenLatch = new CountDownLatch(1);
                 try {
-                    mCameraManager.openCamera("/dev/video0", new CameraDevice.StateCallback() {
+                    mCameraManager.openCamera(hdmiCameraId, new CameraDevice.StateCallback() {
                         @Override
                         public void onOpened(CameraDevice camera) {
-                            Log.i(TAG, "  onOpened " + "/dev/video0");
+                            Log.i(TAG, "  onOpened " + hdmiCameraName);
                             mCameraDevice = camera;
+                            cameraOpenLatch.countDown();
                         }
 
                         @Override
+                        public void onClosed(CameraDevice camera) {
+                            Log.i(TAG, "  onClosed " + hdmiCameraName);
+                        }
+                        
+                        @Override
                         public void onDisconnected(CameraDevice camera) {
-                            Log.i(TAG, "onDisconnected" + "/dev/video0");
+                            Log.i(TAG, "onDisconnected" + hdmiCameraName);
                             if (mCameraDevice != null) {
                                 releaseCamera();
                             }
@@ -125,10 +138,20 @@ public class CresCamera2 extends CresCamera
 
                         @Override
                         public void onError(CameraDevice camera, int error) {
-                            Log.e(TAG, "onError " + "/dev/video0" + " error " + error);
-                            releaseCamera();
+                            Log.e(TAG, "onError " + hdmiCameraName + " error " + error);
+                            if (mCameraDevice != null) {
+                                releaseCamera();
+                            }
                         }
                     }, mCameraHandler);
+                    boolean openSuccess = true;
+                    try {
+                    	openSuccess = cameraOpenLatch.await(2000, TimeUnit.MILLISECONDS);
+                    } catch (InterruptedException ex) { ex.printStackTrace(); }
+                    if (!openSuccess || (mCameraDevice == null))
+                    {
+                        Log.e(TAG, "Unable to open camera even after 2 seconds");
+                    }
                 } catch (CameraAccessException e) {
                     e.printStackTrace();
                 }
@@ -141,35 +164,45 @@ public class CresCamera2 extends CresCamera
 
     public void releaseCamera() {
         Log.i(TAG, " releaseCamera camera2 ");
-
-            Log.i(TAG, "checkClosed " + "/dev/video0");
-            try {
-                mCameraOpenCloseLock.acquire();
+        Log.i(TAG, "checkClosed " + hdmiCameraName);
+        try {
+            mCameraOpenCloseLock.acquire();
+            if (findCamera(hdmiCameraId))
+            {
+                // Camera still exists - close device - according to documentation that should automatically close the session
+                Log.i(TAG, hdmiCameraName + " still exists - try to close it");
                 if (mCameraSession != null) {
-                    //                try {
-                    //                    Log.i(TAG,  " abortCaptures  mCameraSession " + mCameraId);
-                    //                    mCameraSession.abortCaptures();
-                    //                    Log.i(TAG,  " abortCaptures  mCameraSession ok " + mCameraId);
-                    //                } catch (CameraAccessException e) {
-                    //                    e.printStackTrace();
-                    //                }
-                    Log.i(TAG, " close  mCameraSession " + "/dev/video0");
-                    mCameraSession.close();
-                    Log.i(TAG, " close  mCameraSession ok " + "/dev/video0");
-                    mCameraSession = null;
+                    try {
+                        Log.i(TAG,  " abort captures " + hdmiCameraName);
+                        mCameraSession.abortCaptures();
+                        Log.i(TAG,  " successfully aborted captures " + hdmiCameraName);
+                    } catch (CameraAccessException e) {
+                        e.printStackTrace();
+                    }
+                    //        		Log.i(TAG, " close " + hdmiCameraName + " mCameraSession");
+                    //        		mCameraSession.close();
+                    //        		Log.i(TAG, " successfully closed " + hdmiCameraName + "  mCameraSession");
+                    //        		mCameraSession = null;
                 }
                 if (mCameraDevice != null) {
-                    Log.i(TAG, " close  mCameraDevice " + "/dev/video0");
+                    Log.i(TAG, " close " + hdmiCameraName + " mCameraDevice");
                     mCameraDevice.close();
-                    Log.i(TAG, " close  mCameraDevice ok " + "/dev/video0");
+                    Log.i(TAG, " successfully closed " + hdmiCameraName + " mCameraDevice");
                     mCameraDevice = null;
+                    mCameraSession = null;
                 }
-            } catch (InterruptedException e) {
-                e.printStackTrace();
-            } finally {
-                mCameraOpenCloseLock.release();
+            } else {
+                // camera no longer exists - nothing to close
+                Log.i(TAG, hdmiCameraName + " no longer exists - bypass attempting to close it");
+                mCameraDevice = null;
+                mCameraSession = null;
             }
-    return;
+        } catch (InterruptedException e) {
+            e.printStackTrace();
+        } finally {
+            mCameraOpenCloseLock.release();
+        }
+        return;
     }
 
     boolean cameraPresent(){
@@ -192,7 +225,7 @@ public class CresCamera2 extends CresCamera
 
                 Size[] sizes = null;
                 try {
-                    CameraCharacteristics characteristics = mCameraManager.getCameraCharacteristics("/dev/video0");
+                    CameraCharacteristics characteristics = mCameraManager.getCameraCharacteristics(hdmiCameraId);
                     StreamConfigurationMap map = characteristics.get(CameraCharacteristics.SCALER_STREAM_CONFIGURATION_MAP);
                     sizes = map.getOutputSizes(ImageFormat.JPEG);
                 } catch (CameraAccessException e) {
@@ -208,11 +241,11 @@ public class CresCamera2 extends CresCamera
                             .createCaptureRequest(CameraDevice.TEMPLATE_PREVIEW);
                     builder.addTarget(mPreviewSurface);
                     mPreViewRequest = builder.build();
-                    Log.i(TAG, "  createCaptureSession " + "/dev/video0");
+                    Log.i(TAG, "  createCaptureSession " + hdmiCameraName);
                     mCameraDevice.createCaptureSession(outputSurfaces, new CameraCaptureSession.StateCallback() {
                         @Override
                         public void onConfigured(final CameraCaptureSession session) {
-                            Log.i(TAG, "  createCaptureSession  onConfigured " + "/dev/video0");
+                            Log.i(TAG, "  createCaptureSession  onConfigured " + hdmiCameraName);
                             mCameraSession = session;
                             try {
                                 mCameraSession.setRepeatingRequest(mPreViewRequest, new CameraCaptureSession.CaptureCallback() {
@@ -225,7 +258,7 @@ public class CresCamera2 extends CresCamera
 
                         @Override
                         public void onConfigureFailed(CameraCaptureSession session) {
-                            Log.i(TAG, "/dev/video0" + " createCaptureSession  onConfigureFailed " + session);
+                            Log.i(TAG, hdmiCameraName + " createCaptureSession  onConfigureFailed " + session);
                         }
                     }, mCameraHandler);
 

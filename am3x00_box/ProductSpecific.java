@@ -279,20 +279,48 @@ public class ProductSpecific
 
         public void HdmiInConnect()
         {
-            if (cam_handle.findCamera(HDMI_IN_DEV) && !hdmiInConnected)
-            {
-                hdmiInConnected = true;
-                cresStreamCtrl.onHdmiInConnected();
-            }
+        	if (!hdmiInConnected)
+        	{
+        		int tries = 0;
+        		while (!cam_handle.findCamera(HDMI_IN_DEV))
+        		{
+                    try {
+                        Thread.sleep(100);
+                    } catch (Exception e) { e.printStackTrace(); }
+                    if (++tries == 20)
+        			{
+        				Log.e(TAG, "No HDMI camera seen even after waiting for 2 seconds after connect");
+        				break;
+        			}
+        		}
+        		if (tries < 20) {
+        			hdmiInConnected = true;
+                    cresStreamCtrl.onHdmiInConnected();
+        		}
+        	}
         }
 
         public void HdmiInDisconnect()
         {
-            if (!cam_handle.findCamera(HDMI_IN_DEV) && hdmiInConnected)
-            {
-                hdmiInConnected = false;
-                cresStreamCtrl.onHdmiInDisconnected();
-            }
+        	if (hdmiInConnected)
+        	{
+        		int tries = 0;
+        		while (cam_handle.findCamera(HDMI_IN_DEV))
+        		{
+                    try {
+                        Thread.sleep(100);
+                    } catch (Exception e) { e.printStackTrace(); }
+                    if (++tries == 20)
+        			{
+        				Log.e(TAG, "HDMI camera seen even after waiting for 2 seconds after disconnect");
+        				break;
+        			}
+        		}
+        		if (tries < 20) {
+        			hdmiInConnected = false;
+                    cresStreamCtrl.onHdmiInDisconnected();
+        		}
+        	}
         }
 
     	public void UsbConnect()
