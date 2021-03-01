@@ -392,22 +392,26 @@ public class CresStreamCtrl extends Service {
                 
         public static String getStringValueFromColorInt(int mode)
         {
-        	String id = String.valueOf(AM_3x00_CameraMode.UNDEFINED_SCREEN.ordinal());
+        	AM_3x00_CameraMode cmode = AM_3x00_CameraMode.UNDEFINED_SCREEN;
         	
 			switch(CameraMode.values[Integer.valueOf(mode)])
 			{
+				case Camera:
+	    			cmode = AM_3x00_CameraMode.HDMI_IN_SCREEN;
+					break;
 				case StreamOutPaused:
 					//not supported yet. id = AM_3x00_CameraMode.VIDEO_PAUSED_SCREEN.ordinal();
 					break;
 				case NoVideo:
-					id = String.valueOf(AM_3x00_CameraMode.BLUE_SCREEN.ordinal());
+					cmode = AM_3x00_CameraMode.BLUE_SCREEN;
 					break;
 				case HDCPStreamError:
+					cmode = AM_3x00_CameraMode.RED_SCREEN;
 				case HDCPAllError:
-					id = String.valueOf(AM_3x00_CameraMode.RED_SCREEN.ordinal());
+					cmode = AM_3x00_CameraMode.RED_SCREEN;
 					break;
 				case BlackScreen:
-					id = String.valueOf(AM_3x00_CameraMode.BLACK_SCREEN.ordinal());
+					cmode = AM_3x00_CameraMode.BLACK_SCREEN;
 					break;
 				case PreviewPaused:
 					//not supported yet. id = AM_3x00_CameraMode.VIDEO_PAUSED_SCREEN.ordinal();
@@ -415,6 +419,8 @@ public class CresStreamCtrl extends Service {
 				default:
 					break;
 	    	}
+
+    		String id = String.valueOf(cmode.getValue());
 	    	
 	    	Log.i(TAG,"AM_3x00 CameraMode id = " + id + " mode = " + mode );
 	    	
@@ -6524,11 +6530,11 @@ public class CresStreamCtrl extends Service {
             }
             else
             {
+            	AM_3x00_CameraMode cmode = AM_3x00_CameraMode.UNDEFINED_SCREEN;
             	String id = AM_3x00_CameraMode.getStringValueFromColorInt(Integer.valueOf(mode));
-				if (id.compareToIgnoreCase(String.valueOf(AM_3x00_CameraMode.UNDEFINED_SCREEN.ordinal())) != 0)
+				if (id.compareToIgnoreCase(String.valueOf(cmode.getValue())) != 0)
 				{
-		        	AM_3x00_CameraMode cmode = AM_3x00_CameraMode.values[Integer.valueOf(mode)];
-		            Log.i(TAG, "Writing " + cmode + "(" + mode + ")" + " to camera colors bar file");
+		            Log.i(TAG, "Writing (" + id + ")" + " to camera colors bar file");
 		            Writer writer = null;
 		            try
 		            {
