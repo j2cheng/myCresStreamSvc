@@ -4,7 +4,7 @@ import android.os.Parcel;
 import android.os.Parcelable;
 
 public enum CanvasSourceType implements Parcelable {
-    Unknown(0), AirMedia(1), HDMI(2), DM(3), Airboard(4);
+    Unknown(0), AirMedia(1), HDMI(2), DM(3), Airboard(4), NetworkStreaming(5);
 
     public final int value;
 
@@ -39,8 +39,13 @@ public enum CanvasSourceType implements Parcelable {
             case 2: return HDMI;
             case 3: return DM;
             case 4: return Airboard;
+            case 5: return NetworkStreaming;
         }
         return Unknown;
     }
+
+    public boolean isAirMedia() { return this == AirMedia; }
+
+    public boolean isNotAirMedia() { return !isAirMedia(); }
 }
 

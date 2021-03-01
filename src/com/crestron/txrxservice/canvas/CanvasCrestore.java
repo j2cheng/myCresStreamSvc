@@ -180,15 +180,15 @@ public class CanvasCrestore
         	Common.Logging.i(TAG,"Successfully subscribed to "+sPendingInternalAirMediaCanvas);
         }
         
-        //subscribe to Pending.Device.NetworkStream.StreamConfig
-        String sPendingDeviceNetworkStreamStreamConfig = "{\"Pending\":{\"Device\":{\"NetworkStream\":{\"StreamConfig\":{}}}}}";
-        rv = wrapper.subscribeCallback(sPendingDeviceNetworkStreamStreamConfig, crestoreCallback);
+        //subscribe to Pending.Device.AirMedia.NetworkStreams
+        String sPendingDeviceAirMediaNetworkStreams = "{\"Pending\":{\"Device\":{\"AirMedia\":{\"NetworkStreams\":{}}}}}";
+        rv = wrapper.subscribeCallback(sPendingDeviceAirMediaNetworkStreams, crestoreCallback);
         if (rv != com.crestron.cresstoreredis.CresStoreResult.CRESSTORE_SUCCESS)
         {
-        	Common.Logging.i(TAG,"Could not set up Crestore Callback for subscription to " + sPendingDeviceNetworkStreamStreamConfig+": " + rv);
+        	Common.Logging.i(TAG,"Could not set up Crestore Callback for subscription to " + sPendingDeviceAirMediaNetworkStreams+": " + rv);
         	return false;
         } else {
-        	Common.Logging.i(TAG,"Successfully subscribed to " + sPendingDeviceNetworkStreamStreamConfig);
+        	Common.Logging.i(TAG,"Successfully subscribed to " + sPendingDeviceAirMediaNetworkStreams);
         }
         
         if (!verifyCrestore())
@@ -1178,6 +1178,104 @@ public class CanvasCrestore
 		cresstoreSet(jsonStr, false);
 	}
 	
+    public void processSessionNetworkStream(String userLabel, StreamConfigMapEntry mapEntry){
+	    
+        // this may never happen.
+        if (userLabel == null || mapEntry == null) {
+            Common.Logging.i(TAG, "NetworkStream command has no userLabel or mapEntry");
+            return;
+        }
+
+        // Step 1: always check to see if session exist or not
+        Session session = mSessionMgr.findSession(SessionType.NetworkStreaming.toString(), userLabel, "", 0);       
+		Common.Logging.i(TAG, "Processing Network Stream findSession for : " + userLabel + " , session is : " + session);
+
+		//Step 2: ckeck remove session for {"streamN": {}}
+		if (gson.toJson(mapEntry).equalsIgnoreCase("{}")) {
+			Common.Logging.i(TAG, "Processing Network Stream to remove session");
+
+			//TODO: how to remove?
+		}
+		//Step 3: ckeck what action is asked
+        else if (mapEntry.action == null) {
+            Common.Logging.i(TAG, "Processing Network Stream has no action.");
+
+            //TODO: treat this as an error - force them to send an action unless it is to delete a session
+            
+			//just save url here
+			/*if (session == null && mapEntry.url != null) {
+				Common.Logging.v(TAG, "Processing Network Stream calling createSession to save url.");
+				session = com.crestron.txrxservice.canvas.Session.createSession(SessionType.NetworkStreaming.toString(),
+                          userLabel, mapEntry.url, 0, null);	
+					
+				if(session != null) {
+			    	Common.Logging.v(TAG, "Processing Network Stream Adding session " + session + " to sessionManager");
+					mSessionMgr.add(session);
+				} else {
+					Common.Logging.i(TAG, "Processing Network Stream not create requested session");
+				}
+			}
+			else{
+				//TODO: don't know what this is				
+				Common.Logging.i(TAG, "Processing Network Stream don't know, so return.");	
+				return;
+
+			}		*/	
+        } else if (mapEntry.action.equalsIgnoreCase("Start")) {
+            // take care of case that actin and url in two different command
+            if (session != null && session.getState() != SessionState.Stopped) {
+                Common.Logging.i(TAG, "Start NetworkStream for session that already exists - ignoring");
+                return;
+            } else {
+				if (session == null) {
+                	session = com.crestron.txrxservice.canvas.Session.createSession(SessionType.NetworkStreaming.toString(),
+                        			userLabel, mapEntry.url, 0, null);
+				}//else
+
+                if (session != null) {
+                    Common.Logging.i(TAG, "Adding session " + session + " to sessionManager");
+                    mSessionMgr.add(session);
+
+                    Common.Logging.i(TAG, "Start to connect session: " + session + " to video source: " + mapEntry.url);
+                    doSynchronousSessionEvent(session, "Connect", new Originator(RequestOrigin.StateChangeMessage, session), 10);
+                } else {
+                    Common.Logging.i(TAG, "Connect not create requested session for connect command");
+                }
+            }
+        } else {
+            // find existing session
+            if (session == null) {
+                Common.Logging.i(TAG,
+                        mapEntry.action + "session for NetworkStream session that can't be found - ignoring");
+                return;
+            } else {
+                if (mapEntry.action.equalsIgnoreCase("Pause") && session.isStopped()) {
+                    Common.Logging.i(TAG, "Pause session: " + session);
+                    // TODO: doSynchronousSessionEvent(session, "Pause", new
+                    // Originator(RequestOrigin.StateChangeMessage, session), 10);
+                } else if (mapEntry.action.equalsIgnoreCase("Stop") && session.isPlaying()) {
+                    Common.Logging.i(TAG, "Stop session: " + session);
+                    // TODO: doSynchronousSessionEvent(session, "Stop", new
+                    // Originator(RequestOrigin.StateChangeMessage, session), 10);
+                } else {
+					Common.Logging.i(TAG,
+                        mapEntry.action + " command for NetworkStream that can't be found - " + mapEntry.action);
+                	return;
+				}
+				
+				
+				/*
+                   * TODO: if (s.state.equalsIgnoreCase("Disconnect")) {
+                   * doSynchronousSessionEvent(session, "Disconnect", new
+                   * Originator(RequestOrigin.StateChangeMessage, session), 10);
+                   * Common.Logging.i(TAG, "Removing session " + session +
+                   * " from sessionManager"); mSessionMgr.remove(session); }
+                   */
+            }
+        }
+        mSessionMgr.logSessionStates("processSessionNetworkStream");
+    }
+	
     public class CresStoreCallback implements com.crestron.cresstoreredis.CresStoreClientCallback {
     	
     	public void message(boolean pending, String json)
@@ -1307,44 +1405,50 @@ public class CanvasCrestore
         			}
         		}
 
-        		/* parsing Device.NetworkStream.StreamConfig.
-        		 * 
-        		 *  {"Device": {"NetworkStream":{"StreamConfig":{
-				"Stream0": {
-				    "StreamUrl": "rtsp://10.254.44.46:554/live.sdp?SESSINIT_RTP",
-				    "Action": "start"
-				 }
-			     }}}}
-        		 * 
-        		 */        		
-        		if (pending && root.device != null && root.device.networkstream != null && root.device.networkstream != null) {
-        			parsed = true;
-        			Common.Logging.v(TAG, "Device/NetworkStream/StreamConfig parsed from json string");
-        			Common.Logging.v(TAG, "Device string is "+gson.toJson(root));     			
-        			
-        			Map<String, StreamConfigMapEntry> configMapEntry = root.device.networkstream.streamconfigmap;
-    				if (configMapEntry != null)
-    				{
-    					if (!configMapEntry.isEmpty())
-    					{
-    						for (Map.Entry<String, StreamConfigMapEntry> entry : configMapEntry.entrySet())
-    						{
-    							StreamConfigMapEntry value = (StreamConfigMapEntry)entry.getValue();
-    							String valStr = gson.toJson(value);
-    							Common.Logging.i(TAG, "StreamConfigMapEntry Key="+entry.getKey()+":  "+valStr);    							
-    							Common.Logging.i(TAG, "StreamConfigMapEntry value.action = " + value.action);
-    							Common.Logging.i(TAG, "StreamConfigMapEntry value.streamurl =" + value.streamurl);
-    						}
-    					} else {
-    						Common.Logging.i(TAG, "Device/NetworkStream/StreamConfig is empty - destroy all streams");
-    					}
-    				}
-    				else
-    				{
-    					Common.Logging.i(TAG, "Device/NetworkStream/StreamConfig is NULL");
-    				}
-        			        			
-        		}
+                /* parsing Device.AirMedia.NetworkStreams.
+                * 
+                *  {"Device": {"AirMedia":{"NetworkStreams":{
+                       "Stream0": {
+                            "StreamUrl": "rtsp://10.254.44.46:554/live.sdp?SESSINIT_RTP",
+                            "Action": "start"
+                        }
+                   }}}}
+                * 
+                */        		
+                if(pending&&root.device!=null&&root.device.airMedia!=null&&root.device.airMedia.streamconfigmap!=null){
+            
+                    parsed=true;
+                    Map<String, StreamConfigMapEntry> configMap = root.device.airMedia.streamconfigmap;
+                
+                    Common.Logging.v(TAG,"Device/AirMedia/NetworkStreams, configMap: "+configMap);
+                    if(!configMap.isEmpty())
+                    {
+                        for (Map.Entry<String, StreamConfigMapEntry> entry : configMap.entrySet()) {
+                            final String keyStr = entry.getKey();
+                            final StreamConfigMapEntry mapEntry = (StreamConfigMapEntry) entry.getValue();
+                
+                            Common.Logging.v(TAG, "streamconfigmap has Key = " + keyStr + ",  " + gson.toJson(mapEntry));
+                
+                            // Session NetworkStream messages are queued on a Scheduler so we do not block
+                            // incoming message from cresstore
+                            // Now process network session
+                            Common.Logging.i(TAG, "----- processSessionNetworkStream job to scheduler: ");
+                            sessionScheduler.queue(new Runnable() {
+                                @Override
+                                public void run() {
+                                    processSessionNetworkStream(keyStr, mapEntry);
+                                };
+                            }, PriorityScheduler.NORMAL_PRIORITY);
+                        }
+                    }else
+                    {
+                        Common.Logging.i(TAG, "Device/AirMedia/NetworkStreams is empty - destroy all streams");
+                
+                        // TODO: close all streaming here???
+                    }
+                
+                    Common.Logging.v(TAG,"Device/AirMedia/NetworkStreams parsed");
+                }
         		
         		if (!parsed) {
         			Common.Logging.v(TAG, "Could not parse json string:" + json);
@@ -1433,11 +1537,11 @@ public class CanvasCrestore
 		return root;
 	}
 	
-	private Root getRootedDeviceNetworkStreamStreamConfig()
+	private Root getRootedDeviceNetworkStreams()
 	{
 		Root root = new Root();
 		root.device = new Device();
-		root.device.networkstream = new NetworkStream();
+		root.device.airMedia = new AirMedia();
 		
 		return root;
 	}
@@ -1566,16 +1670,11 @@ public class CanvasCrestore
     
 
     public class StreamConfigMapEntry {  
-    	@SerializedName ("StreamUrl")
-        String streamurl;	
+    	@SerializedName ("Url")
+        String url;	
     	@SerializedName ("Action")
         String action;
-    }
-
-    public class NetworkStream {
-    	@SerializedName ("StreamConfig")    	
-    	Map<String, StreamConfigMapEntry> streamconfigmap;
-    }    
+    }      
     
     public class SessionResponseMapEntry {
         @SerializedName ("State")
@@ -1706,6 +1805,8 @@ public class CanvasCrestore
     public class AirMedia {
         @SerializedName ("AirMediaCanvas")
     	AirMediaCanvas canvas;
+        @SerializedName ("NetworkStreams")
+        Map<String, StreamConfigMapEntry> streamconfigmap;
         
         public AirMedia() {
         	canvas = new AirMediaCanvas();
@@ -1752,9 +1853,7 @@ public class CanvasCrestore
     
     public class Device {
         @SerializedName ("AirMedia")
-    	AirMedia airMedia;
-        @SerializedName ("NetworkStream")
-    	NetworkStream networkstream;
+    	AirMedia airMedia;        
     }
     
     public class Root {

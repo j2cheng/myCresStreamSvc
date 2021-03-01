@@ -4,7 +4,7 @@ import android.os.Parcel;
 import android.os.Parcelable;
 
 public enum SessionType implements Parcelable {
-    Unknown(0), AirMedia(1), AirBoard(2), HDMI(3), DM(4);
+    Unknown(0), AirMedia(1), AirBoard(2), HDMI(3), DM(4), NetworkStreaming(5);
     public final int value;
 
     SessionType(int v) { value = v; }
@@ -32,6 +32,7 @@ public enum SessionType implements Parcelable {
             case 2: return AirBoard;
             case 3: return HDMI;
             case 4: return DM;
+            case 5: return NetworkStreaming;
         }
         return Unknown;
     }

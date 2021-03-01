@@ -103,6 +103,8 @@ public abstract class Session
 			session = new HDMISession(inputNumber);
 		} else if (type.equalsIgnoreCase("DM")) {
 			session = new DMSession(inputNumber);
+		} else if (type.equalsIgnoreCase("NetworkStreaming")) {
+			session = new NetworkStreamSession(label,url);
 		}
 		return session;
 	}
@@ -426,6 +428,9 @@ public abstract class Session
 			break;
 		case HDMI:
 			type = CanvasSourceType.HDMI;
+			break;
+		case NetworkStreaming:
+			type = CanvasSourceType.NetworkStreaming;
 			break;
 		case Unknown:
 		default:

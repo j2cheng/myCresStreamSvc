@@ -129,6 +129,8 @@ public class SessionManager
                 	if (entry.inputNumber != inputNumber) continue;
                 } else if (entry.type == SessionType.DM) {
                 	if (entry.inputNumber != inputNumber) continue;
+                } else if (entry.type == SessionType.NetworkStreaming) {
+                    if (!entry.userLabel.equalsIgnoreCase(label)) continue;
                 } else {
                 	continue;
                 }

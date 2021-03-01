@@ -87,7 +87,7 @@ public class SimulatedAVF
 					AVFSession s = new AVFSession(e.type, "Stop", (String)null, e.inputNumber);
 					Log.i(TAG, "Add session sessionId="+sessionId+" to AVF sessions map");
 					sessions.put(sessionId, s);
-					if (s.type == SessionType.HDMI || s.type == SessionType.DM || s.type == SessionType.AirMedia)
+					if (s.type == SessionType.HDMI || s.type == SessionType.DM || s.type == SessionType.AirMedia || s.type == SessionType.NetworkStreaming)
 						setSessionToPlay(s);
 				}
 			} 
