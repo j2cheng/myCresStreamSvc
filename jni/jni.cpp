@@ -3665,7 +3665,7 @@ void csio_jni_SetSourceLocation(eProtocolId protoId, char *location, int iStream
 	CREGSTREAM * data = GetStreamFromCustomData(CresDataDB, iStreamId);
     char *url;
 
-	CSIO_LOG(eLogLevel_debug, "%s() location: %s, iStreamId=%d", __FUNCTION__, location, iStreamId);
+	CSIO_LOG(eLogLevel_debug, "%s() location: %s, iStreamId=%d", __FUNCTION__, csio_sanitizeUrl(location).c_str(), iStreamId);
 	
 	if(!data)
 	{
