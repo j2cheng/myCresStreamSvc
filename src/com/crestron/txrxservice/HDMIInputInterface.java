@@ -136,29 +136,39 @@ public class HDMIInputInterface {
     {
         setSyncStatus(readResolutionEnum(false));
         
-        String delims = "[xp]+";
-        String delims_null = "[x@]+";
+        String delims_am3x = "[xp]+"; // Delimiter for AM3X products
+        String delims = "[x@]+"; //Delimiter for All products
         String hdmiInResolution = "0x0@0";
-        String tokens[] = hdmiInResolution.split(delims_null);
+        String tokens[] = hdmiInResolution.split(delims);
 
         if (Boolean.parseBoolean(getSyncStatus()) == true)
         {
             hdmiInResolution = getHdmiInResolutionSysFs();
-            if(hdmiInResolution.equals("0"))
+            if(hdmiInResolution.equals("0")) //SYSTEM_AIRMEDIA returns 0 if no resolution available
             {
                 hdmiInResolution = "0x0@0";
-                tokens = hdmiInResolution.split(delims_null);
+                tokens = hdmiInResolution.split(delims);
             }
             else
-                tokens = hdmiInResolution.split(delims);
+            {
+                if(productType != SYSTEM_AIRMEDIA)
+                    tokens = hdmiInResolution.split(delims);
+                else
+                    tokens = hdmiInResolution.split(delims_am3x);
+            }
         }
 
         Log.i(TAG, "updateResolutionInfo(): sync="+getSyncStatus()+"    HDMI In Resolution=" + hdmiInResolution);
 
         setHorizontalRes(tokens[0]);
         setVerticalRes(tokens[1]);
-        int fps = (int) Double.parseDouble(tokens[2].trim());
-        setFPS(Integer.toString(fps));
+        if(productType != SYSTEM_AIRMEDIA)
+            setFPS(tokens[2].trim());
+        else
+        {
+            int fps = (int) Double.parseDouble(tokens[2].trim());
+            setFPS(Integer.toString(fps));
+        }
         setAspectRatio();
         
         if (Boolean.parseBoolean(getSyncStatus()) == true)
@@ -293,16 +303,56 @@ public class HDMIInputInterface {
                 String hRes = tokens[0];
                 String vRes = tokens[1];
 
-                //FIXME: Add full Resolution to index table here. Refer DM ResolutionTable.xls
+                //Resolution to index table here, source: Refer DM ResolutionTable.xls
                 if (logResult)
-                    Log.i(TAG, "Product Type AM3X Detected: " + productType + ", vRes " + vRes + "hRes " + hRes);
+                    Log.i(TAG, "Product Type AM3X Detected: " + productType + ", vRes " + vRes + ", hRes " + hRes);
 
-                if((hRes.equals("1920")) && (vRes.equals("1080")))
+                if((hRes.equals("0")) && (vRes.equals("0")))
+                    resIndex = 0; //Default to 640x480
+                else if((hRes.equals("1920")) && (vRes.equals("1080")))
                     resIndex = 32;
-                else if((hRes.equals("0")) && (vRes.equals("0")))
+                else if((hRes.equals("640")) && (vRes.equals("480")))
                     resIndex = 0;
+                else if((hRes.equals("720")) && (vRes.equals("480")))
+                    resIndex = 2;
+                else if((hRes.equals("720")) && (vRes.equals("576")))
+                    resIndex = 4;
+                else if((hRes.equals("800")) && (vRes.equals("600")))
+                    resIndex = 6;
+                else if((hRes.equals("848")) && (vRes.equals("480")))
+                    resIndex = 7;
+                else if((hRes.equals("1024")) && (vRes.equals("768")))
+                    resIndex = 8;
+                else if((hRes.equals("1280")) && (vRes.equals("720")))
+                    resIndex = 9;
+                else if((hRes.equals("1280")) && (vRes.equals("768")))
+                    resIndex = 11;
+                else if((hRes.equals("1280")) && (vRes.equals("800")))
+                    resIndex = 13;
+                else if((hRes.equals("1280")) && (vRes.equals("960")))
+                    resIndex = 15;
+                else if((hRes.equals("1280")) && (vRes.equals("1024")))
+                    resIndex = 16;
+                else if((hRes.equals("1360")) && (vRes.equals("768")))
+                    resIndex = 17;
+                else if((hRes.equals("1366")) && (vRes.equals("768")))
+                    resIndex = 18;
+                else if((hRes.equals("1400")) && (vRes.equals("1050")))
+                    resIndex = 20;
+                else if((hRes.equals("1440")) && (vRes.equals("900")))
+                    resIndex = 22;
+                else if((hRes.equals("1600")) && (vRes.equals("900")))
+                    resIndex = 24;
+                else if((hRes.equals("1600")) && (vRes.equals("1200")))
+                    resIndex = 25;
+                else if((hRes.equals("1680")) && (vRes.equals("1050")))
+                    resIndex = 26;
+                else if((hRes.equals("0")) && (vRes.equals("0")))
+                    resIndex = 24;
+                else if((hRes.equals("1920")) && (vRes.equals("1200")))
+                    resIndex = 33;
                 else
-                    Log.e(TAG, "readResolutionEnum:ERROR no handling for vRes " + vRes + " hRes " + hRes); //FIXME
+                    Log.e(TAG, "readResolutionEnum:ERROR no handling for vRes " + vRes + " hRes " + hRes);
             }
 
 	        if (logResult)
