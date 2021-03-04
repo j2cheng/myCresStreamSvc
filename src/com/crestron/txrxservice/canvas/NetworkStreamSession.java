@@ -80,22 +80,22 @@ public class NetworkStreamSession extends Session
 		Common.Logging.i(TAG, "NetworkStream Session "+this+" got streamId "+streamId);
 		if (acquireSurface() != null)
 		{
-			// set device mode for this streamId to preview
-			mStreamCtl.setDeviceMode(2, streamId);
-			//start the preview mode
+			// signal to csio to set device mode for this streamId to STREAMIN
+			mStreamCtl.setDeviceMode(0, streamId);
+			mStreamCtl.userSettings.setProxyEnable(false,streamId);
+			mStreamCtl.setSessionInitiation(0,streamId);//TODO: find out index
+			mStreamCtl.setTMode(0,streamId);//TODO: find out index
+
+			//rtsp://10.116.165.113:8554/test?SESSINIT_RTP
+			mStreamCtl.setStreamInUrl("rtsp://10.116.165.113:8554/test", streamId);
+			
+
 			Common.Logging.i(TAG, "NetworkStream Session "+this+" calling Start()");
 			mStreamCtl.Start(streamId);
-			// signal to csio to start audio for HDMI via audiomux
-			Common.Logging.i(TAG, "NetworkStream Session "+this+" sending HDMI Start signal to csio for audio on AM-300");
-			
-			/*TODO: sendHdmiStart sent to csio to inform it HDMI is playing - 
-			        it may need to change audio routing - 
-			        may not need it here for NetworkStreams
-			
-			mStreamCtl.sendHdmiStart(streamId, true);*/
-			
+			Common.Logging.i(TAG, "NetworkStream Session "+this+" calling audioMute isAudioMuted=" + isAudioMuted);
 			audioMute(isAudioMuted);
-			Common.Logging.i(TAG, "NetworkStream Session "+this+" back from Start()");
+			Common.Logging.i(TAG, "NetworkStream Session "+this+" back from audioMute()");			
+			
 		} else {
 			Common.Logging.w(TAG, "NetworkStream Session "+this+" doPlay() got null surface");
 			originator.failedSessionList.add(this);

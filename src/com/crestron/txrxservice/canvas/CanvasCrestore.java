@@ -1200,27 +1200,7 @@ public class CanvasCrestore
         else if (mapEntry.action == null) {
             Common.Logging.i(TAG, "Processing Network Stream has no action.");
 
-            //TODO: treat this as an error - force them to send an action unless it is to delete a session
-            
-			//just save url here
-			/*if (session == null && mapEntry.url != null) {
-				Common.Logging.v(TAG, "Processing Network Stream calling createSession to save url.");
-				session = com.crestron.txrxservice.canvas.Session.createSession(SessionType.NetworkStreaming.toString(),
-                          userLabel, mapEntry.url, 0, null);	
-					
-				if(session != null) {
-			    	Common.Logging.v(TAG, "Processing Network Stream Adding session " + session + " to sessionManager");
-					mSessionMgr.add(session);
-				} else {
-					Common.Logging.i(TAG, "Processing Network Stream not create requested session");
-				}
-			}
-			else{
-				//TODO: don't know what this is				
-				Common.Logging.i(TAG, "Processing Network Stream don't know, so return.");	
-				return;
-
-			}		*/	
+            //TODO: treat this as an error - force them to send an action unless it is to delete a session			
         } else if (mapEntry.action.equalsIgnoreCase("Start")) {
             // take care of case that actin and url in two different command
             if (session != null && session.getState() != SessionState.Stopped) {

@@ -90,6 +90,8 @@ import com.google.gson.stream.JsonWriter;
 import com.crestron.txrxservice.CresLog;
 import com.crestron.txrxservice.canvas.CresCanvas;
 import com.crestron.txrxservice.wc.WC_Service;
+import com.crestron.txrxservice.canvas.Session;
+import com.crestron.txrxservice.canvas.SessionType;
 
 interface Command {
     void executeStart(int sessId);
@@ -2711,6 +2713,21 @@ public class CresStreamCtrl extends Service {
     {
 		mVideoDimensions[streamId].videoWidth = w;
 		mVideoDimensions[streamId].videoHeight = h;
+
+        //Note: For NetworkStream, we need to call setVideoResolution() when 
+        //      we have resolution from gstreamer.
+        if((mCanvas != null) && (mCanvas.mSessionMgr != null))
+        {
+            Session session = mCanvas.mSessionMgr.findSession(streamId);
+            Log.i(TAG, "setVideoDimensions(): findSession(" + streamId + ") return:" + session);
+
+            if(session != null && session.getType() == SessionType.NetworkStreaming)
+            {
+                Log.i(TAG, "setVideoDimensions(): calling setVideoResolution() for id: " + streamId);
+                
+                session.setVideoResolution(new AirMediaSize(w,h));
+            }
+        }
     }
     
     public void setStretchVideo(int stretch, int sessionId)
