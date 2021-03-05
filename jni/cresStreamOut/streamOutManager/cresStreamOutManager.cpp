@@ -581,6 +581,7 @@ CStreamoutManager::~CStreamoutManager()
     CSIO_LOG(eLogLevel_error, "--Streamout: enter destructor");
 	if (m_usbAudio)
 	{
+		m_usbAudio->releaseDevice();
 		delete m_usbAudio;
 		m_usbAudio = NULL;
 	}
