@@ -1120,27 +1120,36 @@ public class CanvasCrestore
 		// Assume we stop the sessionResponse somehow
 		sessionResponseScheduler.cancel();
 		// create a syncevent to be sent to AVF to bring it back into sync
-    	final SessionEvent syncEvent = new SessionEvent(UUID.randomUUID().toString());
-		for (Map.Entry<String, SessionResponseMapEntry> entry : response.sessionResponseMap.entrySet())
-		{
-			// for each event in the response map if state does not agree with requested state
-			Session s = mSessionMgr.findSession(entry.getKey());
-			if (s != null)
-			{
-				if (entry.getValue().state.equalsIgnoreCase("Play") && !s.isPlaying())
-				{
-					Common.Logging.i(TAG, "handleSessionEventTimeout(): Force Stopping session "+s.sessionId()+" due to session event timeout");
-					s.stop(new Originator(RequestOrigin.Error));
-					syncEvent.add(s.sessionId(), new SessionEventMapEntry("Stop", s));
-				}
-				else if (entry.getValue().state.equalsIgnoreCase("Stop") && !s.isStopped())
-				{
-					Common.Logging.i(TAG, "handleSessionEventTimeout(): Stopping session "+s.sessionId()+" due to session event timeout");
-					s.stop(new Originator(RequestOrigin.Error));
-					syncEvent.add(s.sessionId(), new SessionEventMapEntry("Stop", s));
-				}
-			}
-		}
+    	    final SessionEvent syncEvent = new SessionEvent(UUID.randomUUID().toString());
+
+            if (response.sessionResponseMap != null)
+            {
+                for (Map.Entry<String, SessionResponseMapEntry> entry : response.sessionResponseMap.entrySet())
+                {
+                    // for each event in the response map if state does not agree with requested state
+                    Session s = mSessionMgr.findSession(entry.getKey());
+                    if (s != null)
+                    {
+                        if (entry.getValue().state.equalsIgnoreCase("Play") && !s.isPlaying())
+                        {
+                            Common.Logging.i(TAG, "handleSessionEventTimeout(): Force Stopping session "+s.sessionId()+" due to session event timeout");
+                            s.stop(new Originator(RequestOrigin.Error));
+                            syncEvent.add(s.sessionId(), new SessionEventMapEntry("Stop", s));
+                        }
+                        else if (entry.getValue().state.equalsIgnoreCase("Stop") && !s.isStopped())
+                        {
+                            Common.Logging.i(TAG, "handleSessionEventTimeout(): Stopping session "+s.sessionId()+" due to session event timeout");
+                            s.stop(new Originator(RequestOrigin.Error));
+                            syncEvent.add(s.sessionId(), new SessionEventMapEntry("Stop", s));
+                        }
+                    }
+                }
+            }
+            else
+            {
+                Common.Logging.w(TAG, "handleSessionEventTimeout(): sessionResponseMap is null.");
+            }
+        
 		Common.Logging.i(TAG, "handleSessionEventTimeout(): queueing "+gson.toJson(syncEvent)+" due to session event timeout");
 		Runnable r = new Runnable() { 
 			@Override public void run() { 
@@ -1188,14 +1197,16 @@ public class CanvasCrestore
 
         // Step 1: always check to see if session exist or not
         Session session = mSessionMgr.findSession(SessionType.NetworkStreaming.toString(), userLabel, "", 0);       
-		Common.Logging.i(TAG, "Processing Network Stream findSession for : " + userLabel + " , session is : " + session);
+        Common.Logging.i(TAG, "Processing Network Stream findSession for : " + userLabel + " , session is : " + session);
 
-		//Step 2: ckeck remove session for {"streamN": {}}
-		if (gson.toJson(mapEntry).equalsIgnoreCase("{}")) {
-			Common.Logging.i(TAG, "Processing Network Stream to remove session");
+        //Step 2: ckeck remove session for {"streamN": {}}
+        if (gson.toJson(mapEntry).equalsIgnoreCase("{}")) {
+            Common.Logging.i(TAG, "Processing Network Stream to remove session");
 
-			//TODO: how to remove?
-		}
+            //Note: maybe "Disconnect" will call doStop()            
+            doSynchronousSessionEvent(session, "Disconnect", new Originator(RequestOrigin.StateChangeMessage, session), 10);	            
+            mSessionMgr.remove(session);
+        }
 		//Step 3: ckeck what action is asked
         else if (mapEntry.action == null) {
             Common.Logging.i(TAG, "Processing Network Stream has no action.");
@@ -1235,22 +1246,17 @@ public class CanvasCrestore
                     // Originator(RequestOrigin.StateChangeMessage, session), 10);
                 } else if (mapEntry.action.equalsIgnoreCase("Stop") && session.isPlaying()) {
                     Common.Logging.i(TAG, "Stop session: " + session);
-                    // TODO: doSynchronousSessionEvent(session, "Stop", new
-                    // Originator(RequestOrigin.StateChangeMessage, session), 10);
+                                        
+                    //Note: maybe "Disconnect" will call doStop()  
+                    doSynchronousSessionEvent(session, "Disconnect", new Originator(RequestOrigin.StateChangeMessage, session), 10);				    
+                    Common.Logging.v(TAG, "getState: " + session.getState());
+					
+                    mSessionMgr.remove(session);
                 } else {
 					Common.Logging.i(TAG,
                         mapEntry.action + " command for NetworkStream that can't be found - " + mapEntry.action);
                 	return;
-				}
-				
-				
-				/*
-                   * TODO: if (s.state.equalsIgnoreCase("Disconnect")) {
-                   * doSynchronousSessionEvent(session, "Disconnect", new
-                   * Originator(RequestOrigin.StateChangeMessage, session), 10);
-                   * Common.Logging.i(TAG, "Removing session " + session +
-                   * " from sessionManager"); mSessionMgr.remove(session); }
-                   */
+                }
             }
         }
         mSessionMgr.logSessionStates("processSessionNetworkStream");
