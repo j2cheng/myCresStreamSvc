@@ -5378,14 +5378,39 @@ public class CresStreamCtrl extends Service {
             return "";
         }
         StringBuilder url = new StringBuilder(512);
-        url.append(userSettings.getAirMediaSecureLandingPageEnabled() ? "https://" : "http://");
+        String protocol = (userSettings.getAirMediaSecureLandingPageEnabled() ? "https://" : "http://");
+        url.append(protocol);
         String ipAddr = getAirMediaConnectionIpAddress("eth0,eth1");
         switch (userSettings.getAirMediaDisplayConnectionOption())
         {
         case AirMediaDisplayConnectionOption.Ip:
             if (ipAddr.equals("None"))
                 return getAirMediaConnectionAddressWhenNone("eth0,eth1");
-            url.append(ipAddr);
+                
+            //Remove AM-3k specific check in the future by refactoring code to also support legacy products (e.g. am-200, Mercury)
+            if(!isAM3X00())
+            {
+            	url.append(ipAddr);
+            }
+            else
+            {
+        		String iplist = "None";
+        		
+            	if (!ipAddr.contains("None"))
+            	{
+					String[] ipSrclist = ipAddr.split(",");
+
+					for (String ip : ipSrclist)
+					{
+		                if (iplist.contentEquals("None"))
+	    					iplist = protocol+ip;
+	    				else
+	    					iplist += "," + protocol+ip;
+					}
+            	}
+            		
+        		url = new StringBuilder(iplist);
+            }
             break;
         case AirMediaDisplayConnectionOption.Host:
             if (ipAddr.equals("None"))
@@ -5507,7 +5532,10 @@ public class CresStreamCtrl extends Service {
             Log.i(TAG, "getAirMediaConnectionIpAddress(): no adapters have a valid ip address - adapters="+adapters);
         	return "None";
         } else
+        {
+        	Log.i(TAG, "getAirMediaConnectionIpAddress(): ipaddr= " + ipaddr);
         	return ipaddr;
+        }
     }
     
     public String getAirMediaConnectionIpAddress(String adaptersSelectionString)
@@ -5518,33 +5546,75 @@ public class CresStreamCtrl extends Service {
         {
             return "None";
         }
-        if (adapters.contains("eth0") && adaptersSelectionString.contains("eth0"))
+        //Remove AM-3k specific check in the future by refactoring code to also support legacy products (e.g. am-200, Mercury)
+        if(!isAM3X00())
         {
-            ipaddr = userSettings.getDeviceIp();
-            if (!isValidIpAddress(ipaddr))
-                return "None";
-            else
-                return ipaddr;
-        }
-        else if (adapters.contains("eth1") && adaptersSelectionString.contains("eth1"))
-        {
-            ipaddr = userSettings.getAuxiliaryIp();
-            if (!isValidIpAddress(ipaddr))
-                return "None";
-            else
-                return ipaddr;
-        }
-        else if (adapters.contains("wlan0") && adaptersSelectionString.contains("wlan0") && userSettings.getAirMediaWifiEnabled())
-        {
-            ipaddr = userSettings.getWifiIp();
-            if (!isValidIpAddress(ipaddr))
-                return "None";
-            else
-                return ipaddr;
+	        if (adapters.contains("eth0") && adaptersSelectionString.contains("eth0"))
+	        {
+	            ipaddr = userSettings.getDeviceIp();
+	            if (!isValidIpAddress(ipaddr))
+	                return "None";
+	            else
+	                return ipaddr;
+	        }
+	        else if (adapters.contains("eth1") && adaptersSelectionString.contains("eth1"))
+	        {
+	            ipaddr = userSettings.getAuxiliaryIp();
+	            if (!isValidIpAddress(ipaddr))
+	                return "None";
+	            else
+	                return ipaddr;
+	        }
+	        else if (adapters.contains("wlan0") && adaptersSelectionString.contains("wlan0") && userSettings.getAirMediaWifiEnabled())
+	        {
+	            ipaddr = userSettings.getWifiIp();
+	            if (!isValidIpAddress(ipaddr))
+	                return "None";
+	            else
+	                return ipaddr;
+	        }
+	        else
+	        {
+	            return "None";
+	        }
         }
         else
         {
-            return "None";
+        	ipaddr = "None";
+        	String ip = null;
+	        if (adapters.contains("eth0") && adaptersSelectionString.contains("eth0"))
+	        {
+	            ip = userSettings.getDeviceIp();
+	            if (isValidIpAddress(ip))
+	            {
+	                ipaddr = ip;
+	            }
+	        }
+	        if (adapters.contains("eth1") && adaptersSelectionString.contains("eth1"))
+	        {
+	            ip = userSettings.getAuxiliaryIp();
+	            if (isValidIpAddress(ip))
+	            {
+	                if (ipaddr.contentEquals("None"))
+    					ipaddr = ip;
+    				else
+    					ipaddr += "," + ip;
+	           	}
+	        }
+	        if (adapters.contains("wlan0") && adaptersSelectionString.contains("wlan0") && userSettings.getAirMediaWifiEnabled())
+	        {
+	            ip = userSettings.getWifiIp();
+	            if (isValidIpAddress(ip))
+	            {
+	                if (ipaddr.contentEquals("None"))
+    					ipaddr = ip;
+    				else
+    					ipaddr += "," + ip;
+	           	}
+	        }
+	        
+	        Log.i(TAG, "getAirMediaConnectionIpAddress(String adaptersSelectionString): ipaddr= " + ipaddr);
+	        return ipaddr;
         }
     }
 
