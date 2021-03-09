@@ -55,6 +55,8 @@ public class GstreamOut {
     private native void nativeSet_SnapshotName(String name, int sessionId);
     private native void nativeSet_WcSecurityEnable(boolean enable, int sessionId);
     private native void nativeSetAppCacheFolder(String name);
+    private native void nativeSetVideoCaptureDevice(String device);
+    private native void nativeSetAudioCaptureDevice(String device);
     private native void nativeStartPreview(Object surface, int sessionId);
     private native void nativePausePreview(int sessionId);
     private native void nativeStopPreview(int sessionId);
@@ -72,6 +74,8 @@ public class GstreamOut {
     private boolean wirelessConferencing_server_started = false;
     private String wcServerUrl = null;
     private String appCacheFolder = null;
+    private String wcVideoDevice = "/dev/video5";
+    private String wcAudioDevice = "/dev/snd/pcmC5D0c";
 
     public boolean wcStarted() {return wirelessConferencing_server_started; }
     public String getWcServerUrl() { return wcServerUrl; }
@@ -179,6 +183,10 @@ public class GstreamOut {
 
     private void updateNativeDataStructForWirelessConferencingStreaming() {
         Log.i(TAG, "Streamout: JAVA - updateNativeDataStructForWirelessConferencingStreaming entered" );
+        nativeSetVideoCaptureDevice(wcVideoDevice);
+        //nativeSetVideoCaptureDevice("none");
+        nativeSetAudioCaptureDevice(wcAudioDevice);
+        //nativeSetAudioCaptureDevice("none");
         setAppCacheFolder();
         setPort(8554);
         setMulticastEnable(false);
@@ -231,6 +239,16 @@ public class GstreamOut {
     {
         Log.i(TAG, "Streamout: onClientDisconnected: clientIp="+clientIp);
         streamCtl.mWC_Service.onClientDisconnected(clientIp);
+    }
+    
+    public void setVideoCaptureDevice(String device)
+    {
+    	wcVideoDevice = device;
+    }
+    
+    public void setAudioCaptureDevice(String device)
+    {
+        wcAudioDevice = device;
     }
     
     public void setAppCacheFolder()

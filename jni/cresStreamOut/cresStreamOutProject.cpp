@@ -488,6 +488,34 @@ int  Streamout_WaitForPreviewClosed(int streamid,int timeout_sec)
 	return( rtn );
 }
 
+void Streamout_SetVideoCaptureDevice(const char * device)
+{
+	CSIO_LOG(StreamOutProjDebugLevel, "Streamout: %s() enter", __FUNCTION__);
+
+	gProjectsLock.lock();
+
+	CSIO_LOG(StreamOutProjDebugLevel, "Streamout: set video capture device to [%s].\n", device);
+
+	StreamoutProjectSendEvent(0, STREAMOUT_EVENT_JNI_CMD_VIDEO_CAPTURE_DEVICE, strlen(device), (void *) device);
+
+	gProjectsLock.unlock();
+	CSIO_LOG(StreamOutProjDebugLevel, "Streamout: %s() exit.", __FUNCTION__);
+}
+
+void Streamout_SetAudioCaptureDevice(const char * device)
+{
+	CSIO_LOG(StreamOutProjDebugLevel, "Streamout: %s() enter", __FUNCTION__);
+
+	gProjectsLock.lock();
+
+	CSIO_LOG(StreamOutProjDebugLevel, "Streamout: set audio capture device to [%s].\n", device);
+
+	StreamoutProjectSendEvent(0, STREAMOUT_EVENT_JNI_CMD_AUDIO_CAPTURE_DEVICE, strlen(device), (void *) device);
+
+	gProjectsLock.unlock();
+	CSIO_LOG(StreamOutProjDebugLevel, "Streamout: %s() exit.", __FUNCTION__);
+}
+
 /*********************local static functions **************************/
 static void StreamoutProjectSendEvent(int iId, int evnt, int data_size, void* bufP)
 {
@@ -546,6 +574,8 @@ CStreamoutProject::CStreamoutProject(int iId, eStreamoutMode streamoutMode): m_p
     strcpy(m_stream_name, DEFAULT_STREAM_NAME);
     strcpy(m_snapshot_name, DEFAULT_SNAPSHOT_NAME);
     m_security_enabled = false;
+    strcpy(m_video_capture_device, DEFAULT_VIDEO_CAPTURE_DEVICE);
+    strcpy(m_audio_capture_device, DEFAULT_AUDIO_CAPTURE_DEVICE);
 
     if (m_streamoutMode == STREAMOUT_MODE_WIRELESSCONFERENCING)
     {
@@ -707,6 +737,8 @@ void* CStreamoutProject::ThreadEntry()
                             m_StreamoutTaskObjList[id]->setStreamName(m_stream_name);
                             m_StreamoutTaskObjList[id]->setSnapshotName(m_snapshot_name);
                             m_StreamoutTaskObjList[id]->setSecurityEnable(m_security_enabled);
+                            m_StreamoutTaskObjList[id]->setVideoCaptureDevice(m_video_capture_device);
+                            m_StreamoutTaskObjList[id]->setAudioCaptureDevice(m_audio_capture_device);
 
                             m_StreamoutTaskObjList[id]->CreateNewThread();
 
@@ -1142,6 +1174,92 @@ void* CStreamoutProject::ThreadEntry()
                 	break;
                 }
 
+                case STREAMOUT_EVENT_JNI_CMD_VIDEO_CAPTURE_DEVICE:
+                {
+                	if (m_streamoutMode != STREAMOUT_MODE_WIRELESSCONFERENCING) { // short circuit - only applicable for WirelessConferencing case
+                		CSIO_LOG(m_debugLevel, "Streamout: STREAMOUT_EVENT_JNI_CMD_VIDEO_CAPTURE_DEVICE ignored when not in WirelessConferencing mode.");
+                		break;
+                	}
+                	int id = evntQ.streamout_obj_id;
+                	if( evntQ.buf_size && evntQ.buffPtr)
+                	{
+                		CSIO_LOG(m_debugLevel, "Streamout: call setVideoCaptureDevice streamId[%d],videoCaptureDevice[%s]",
+                				id,evntQ.buffPtr);
+
+                		//save for this project
+                		strcpy(m_video_capture_device, (char*)evntQ.buffPtr);
+
+                		//validate, for now we can only do one stream
+                		if( IsValidStreamOut(id) )
+                		{
+                			//for now we can only do one stream
+                			if(m_StreamoutTaskObjList)
+                			{
+                				if(m_StreamoutTaskObjList[id])
+                				{
+                					m_StreamoutTaskObjList[id]->setVideoCaptureDevice(m_video_capture_device);
+                				}
+                			}
+                		}
+                		else
+                		{
+                			CSIO_LOG(eLogLevel_error, "Streamout: obj ID is invalid = %d",id);
+                		}
+
+                		m_projEventQ->del_Q_buf(evntQ.buffPtr);
+                	}
+                	else
+                	{
+                		CSIO_LOG(m_debugLevel, "Streamout: streamId[%d],setSnapshotName string is null",id);
+                	}
+
+                	CSIO_LOG(m_debugLevel, "Streamout: STREAMOUT_EVENT_JNI_CMD_VIDEO_CAPTURE_DEVICE done.");
+                	break;
+                }
+
+                case STREAMOUT_EVENT_JNI_CMD_AUDIO_CAPTURE_DEVICE:
+                {
+                	if (m_streamoutMode != STREAMOUT_MODE_WIRELESSCONFERENCING) { // short circuit - only applicable for WirelessConferencing case
+                		CSIO_LOG(m_debugLevel, "Streamout: STREAMOUT_EVENT_JNI_CMD_AUDIO_CAPTURE_DEVICE ignored when not in WirelessConferencing mode.");
+                		break;
+                	}
+                	int id = evntQ.streamout_obj_id;
+                	if( evntQ.buf_size && evntQ.buffPtr)
+                	{
+                		CSIO_LOG(m_debugLevel, "Streamout: call setAudioCaptureDevice streamId[%d],audioCaptureDevice[%s]",
+                				id,evntQ.buffPtr);
+
+                		//save for this project
+                		strcpy(m_audio_capture_device, (char*)evntQ.buffPtr);
+
+                		//validate, for now we can only do one stream
+                		if( IsValidStreamOut(id) )
+                		{
+                			//for now we can only do one stream
+                			if(m_StreamoutTaskObjList)
+                			{
+                				if(m_StreamoutTaskObjList[id])
+                				{
+                					m_StreamoutTaskObjList[id]->setAudioCaptureDevice(m_audio_capture_device);
+                				}
+                			}
+                		}
+                		else
+                		{
+                			CSIO_LOG(eLogLevel_error, "Streamout: obj ID is invalid = %d",id);
+                		}
+
+                		m_projEventQ->del_Q_buf(evntQ.buffPtr);
+                	}
+                	else
+                	{
+                		CSIO_LOG(m_debugLevel, "Streamout: streamId[%d],setAudioCaptureDevice string is null",id);
+                	}
+
+                	CSIO_LOG(m_debugLevel, "Streamout: STREAMOUT_EVENT_JNI_CMD_AUDIO_CAPTURE_DEVICE done.");
+                	break;
+                }
+
                 default:
                     break;
             }
@@ -1204,6 +1322,8 @@ void CStreamoutProject::sendEvent(EventQueueStruct* pEvntQ)
 				case STREAMOUT_EVENT_JNI_CMD_MULTICAST_ADDRESS:
 				case STREAMOUT_EVENT_JNI_CMD_STREAM_NAME:
 				case STREAMOUT_EVENT_JNI_CMD_SNAPSHOT_NAME:
+				case STREAMOUT_EVENT_JNI_CMD_VIDEO_CAPTURE_DEVICE:
+				case STREAMOUT_EVENT_JNI_CMD_AUDIO_CAPTURE_DEVICE:
                 {
                     evntQ.buffPtr = new char [dataSize + 1];//data might be binary
                     if(evntQ.buffPtr)

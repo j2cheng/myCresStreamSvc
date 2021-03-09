@@ -133,7 +133,7 @@ public class WC_Service {
     public void onServerStart()
     {
         Log.i(TAG,"invoking onServerStart() callbacks");
-                // Broadcast to all clients the new value.
+        // Broadcast to all clients the new value.
         final int N = mCallbacks.beginBroadcast();
         for (int i=0; i<N; i++) {
             try {
@@ -149,7 +149,7 @@ public class WC_Service {
     public void onServerStop()
     {
         Log.i(TAG,"invoking onServerStop() callbacks");
-                // Broadcast to all clients the new value.
+        // Broadcast to all clients the new value.
         final int N = mCallbacks.beginBroadcast();
         for (int i=0; i<N; i++) {
             try {

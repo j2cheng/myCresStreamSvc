@@ -214,18 +214,18 @@ void UsbAudio::releaseDevice()
 }
 #endif   // HAS_TINYALSA
 
-UsbAudio::UsbAudio()
+UsbAudio::UsbAudio(char *file)
 {
+	strncpy(m_device_file, file, sizeof(m_device_file));
 #ifdef USE_AUDIOTESTSRC
 	m_pcm_card_idx = 0;
-#else
-#ifdef NANOPC
-	m_pcm_card_idx = 2;
-#else
-	m_pcm_card_idx = 5;
-#endif
-#endif
 	m_pcm_device_idx = 0;
+#else
+	if (sscanf(file, "/dev/snd/pcmC%dD%dc", &m_pcm_card_idx, &m_pcm_device_idx) != 2)
+	{
+		CSIO_LOG(eLogLevel_warning, "--Streamout: Invalid audio device file: %s", file);
+	}
+#endif
 	m_device = NULL;
 	m_params = NULL;
 	m_audioFormat = NULL;

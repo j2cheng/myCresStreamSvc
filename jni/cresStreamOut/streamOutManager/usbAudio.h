@@ -21,7 +21,7 @@ class UsbAudio
 {
 public:
 
-    UsbAudio();
+    UsbAudio(char *file);
     ~UsbAudio();
 
     bool getAudioParams();
@@ -62,6 +62,7 @@ public:
 
     unsigned int m_pcm_card_idx;
     unsigned int m_pcm_device_idx;
+    char m_device_file[128];
     struct pcm *m_device;
 	struct pcm_params *m_params;
 

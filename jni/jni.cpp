@@ -350,6 +350,12 @@ static void gst_native_init (JNIEnv* env, jobject thiz)
 	init_custom_data(cdata);
 	csio_jni_init();
 
+	if (product_info()->product_type == SYSTEM_AIRMEDIA)
+	{
+		CSIO_LOG(eLogLevel_debug, "SIGSEGV traps is enabled = %d", gst_segtrap_is_enabled()?1:0);
+		signal(SIGSEGV, SIG_DFL);
+	}
+
     WfdSinkProjInit();
 }
 
@@ -4463,8 +4469,11 @@ static void gstNativeInitWirelessConferencingRtspServer (JNIEnv* env, jobject th
     cdata->app = env->NewGlobalRef(thiz);
     init_custom_data_out(cdata);
 
-    CSIO_LOG(eLogLevel_debug, "rtsp_server: SIGSEGV traps is enabled = %d", gst_segtrap_is_enabled()?1:0);
-    signal(SIGSEGV, SIG_DFL);
+	if (product_info()->product_type == SYSTEM_AIRMEDIA)
+	{
+		CSIO_LOG(eLogLevel_debug, "rtsp_server: SIGSEGV traps is enabled = %d", gst_segtrap_is_enabled()?1:0);
+		signal(SIGSEGV, SIG_DFL);
+	}
 
     //init project
     StreamoutProjectInit(STREAMOUT_MODE_WIRELESSCONFERENCING);
@@ -4701,6 +4710,39 @@ JNIEXPORT void JNICALL Java_com_crestron_txrxservice_GstreamOut_nativeSetAppCach
 	strncpy(app_cache_folder, name_cstring, sizeof(app_cache_folder));
 	env->ReleaseStringUTFChars(name_jstring, name_cstring);
 }
+
+JNIEXPORT void JNICALL Java_com_crestron_txrxservice_GstreamOut_nativeSetVideoCaptureDevice(JNIEnv *env, jobject thiz, jstring device_jstring)
+{
+	if (!CresStreamOutDataDB)
+	{
+		CSIO_LOG(eLogLevel_info, "%s: cannot set value, CresStreamOutDataDB is null", __FUNCTION__);
+		return;
+	}
+	const char * device_cstring = env->GetStringUTFChars( device_jstring , NULL ) ;
+	if (device_cstring == NULL) return;
+
+	CSIO_LOG(eLogLevel_debug, "rtsp_server: Using video capture device: '%s'", device_cstring);
+
+	Streamout_SetVideoCaptureDevice(device_cstring);
+	env->ReleaseStringUTFChars(device_jstring, device_cstring);
+}
+
+JNIEXPORT void JNICALL Java_com_crestron_txrxservice_GstreamOut_nativeSetAudioCaptureDevice(JNIEnv *env, jobject thiz, jstring device_jstring)
+{
+	if (!CresStreamOutDataDB)
+	{
+		CSIO_LOG(eLogLevel_info, "%s: cannot set value, CresStreamOutDataDB is null", __FUNCTION__);
+		return;
+	}
+	const char * device_cstring = env->GetStringUTFChars( device_jstring , NULL ) ;
+	if (device_cstring == NULL) return;
+
+	CSIO_LOG(eLogLevel_debug, "rtsp_server: Using audio capture device: '%s'", device_cstring);
+
+	Streamout_SetAudioCaptureDevice(device_cstring);
+	env->ReleaseStringUTFChars(device_jstring, device_cstring);
+}
+
 /***************************** end of rtsp_server for video streaming out *********************************/
 
 JNIEXPORT void JNICALL Java_com_crestron_txrxservice_GstreamOut_nativeStartPreview(JNIEnv* env, jobject thiz, jobject surface, jint stream)

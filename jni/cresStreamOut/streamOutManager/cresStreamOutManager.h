@@ -94,6 +94,8 @@ public:
     char m_rtsp_cert_filename[MAX_STR_LEN];
     char m_rtsp_key_filename[MAX_STR_LEN];
     char m_device_display_name[MAX_STR_LEN];
+    char m_video_capture_device[MAX_STR_LEN];
+    char m_audio_capture_device[MAX_STR_LEN];
 
     std::list<RtspClient *> m_clientList;
     bool m_auth_on;
@@ -120,11 +122,15 @@ public:
     void setMulticastAddress(char* address){strcpy(m_multicast_address, address);}
     void setStreamName(char* name){strcpy(m_stream_name, name);}
     void sendWcUrl(GstRTSPServer *server, char *mountPoint);
+    void initWcCertificates();
+    void initWcAudioVideo();
     void setSnapshotName(char* name);
     char* getSnapshotName(void);
     void setSecurityEnable(bool enable) {m_tls_on = enable; m_auth_on = enable;}
     void setUsername(char* name){strcpy(rtsp_server_username, name);}
     void setPassword(char* pw){strcpy(rtsp_server_password, pw);}
+    void setVideoCaptureDevice(char *dev){strcpy(m_video_capture_device, dev);}
+    void setAudioCaptureDevice(char *dev){strcpy(m_audio_capture_device, dev);}
     void startPreview(void* window);
     void pausePreview(void* window);
     void stopPreview(void* window);

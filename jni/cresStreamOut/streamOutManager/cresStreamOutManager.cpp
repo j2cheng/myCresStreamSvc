@@ -514,62 +514,10 @@ m_appsrc(NULL), m_streamoutMode(streamoutMode)
     m_multicast_address[0] = '\0';
     m_stream_name[0] = '\0';
 
-    // FIXME - these must change to be random strings
     setUsername("user");
     setPassword("password");
-    if (m_streamoutMode == STREAMOUT_MODE_WIRELESSCONFERENCING)
-    {
-        //m_clientList = new std::list<GstRtspClient *>();
-        m_auth_on = true;
-        m_tls_on = true;
-        if (m_tls_on) {
-        	std::string folder = std::string(csio_jni_getAppCacheFolder()) + std::string("/");
-            CSIO_LOG(eLogLevel_info, "----------------------Streamout: app cache folder=%s", folder.c_str());
-        	std::string cert_filename = folder + std::string(RTSP_CERT_PEM_FILENAME);
-            strncpy(m_rtsp_cert_filename, cert_filename.c_str(), sizeof(m_rtsp_cert_filename));
-        	std::string key_filename = folder + std::string(RTSP_CERT_KEY);
-            strncpy(m_rtsp_key_filename, key_filename.c_str(), sizeof(m_rtsp_cert_filename));
-#ifdef GENERATE_CERTIFICATE
-            CSIO_LOG(eLogLevel_info, "----------------------Streamout: create self signed certificates");
-            create_selfsigned_certificate(m_rtsp_cert_filename, m_rtsp_key_filename);
-#else
-            CSIO_LOG(eLogLevel_info, "----------------------Streamout: copy server certificates");
-            copy_server_certificates(m_rtsp_cert_filename, m_rtsp_key_filename);
-#endif
-        }
-        m_videoStream = true;
-        m_audioStream = true;
-        m_aacEncode = true;
-
-#ifndef USE_VIDEOTESTSRC
-        if (m_videoStream) {
-#ifdef NANOPC
-        	if (!get_video_caps("/dev/video10", &m_video_caps, m_device_display_name, sizeof(m_device_display_name)))
-#else
-        	if (!get_video_caps("/dev/video5", &m_video_caps, m_device_display_name, sizeof(m_device_display_name)))
-#endif
-        	{
-        		if (get_video_caps_string(&m_video_caps, m_caps, sizeof(m_caps)) < 0)
-        			m_videoStream = false;
-        	} else
-        		m_videoStream = false;
-        	if (is_supported(m_video_caps.format))
-        	{
-        		m_videoconvert[0] = '\0';
-        	} else {
-        		snprintf(m_videoconvert, sizeof(m_videoconvert), "videoconvert ! ");
-        	}
-        }
-#else
-        snprintf(m_caps, sizeof(m_caps), "video/x-raw,format=NV12,width=%s,height=%s,framerate=%s/1",
-        		m_res_x, m_res_y, m_frame_rate);
-#endif
-        m_usbAudio = new UsbAudio();
-
-        if (m_audioStream && m_usbAudio->m_pcm_card_idx != 0) {
-        	m_audioStream = m_usbAudio->getAudioParams();
-        }
-    }
+    setVideoCaptureDevice("");
+    setAudioCaptureDevice("");
 
     if(!m_StreamoutEvent || !m_StreamoutEventQ || !mLock)
         CSIO_LOG(eLogLevel_error, "--Streamout: CStreamoutManager malloc failed:[0x%x][0x%x][0x%x]",\
@@ -625,6 +573,9 @@ void CStreamoutManager::DumpClassPara(int level)
     CSIO_LOG(eLogLevel_info, "---Streamout: m_streamoutMode %d", m_streamoutMode);
     CSIO_LOG(eLogLevel_info, "---Streamout: m_auth_on %d", (int)m_auth_on);
     CSIO_LOG(eLogLevel_info, "---Streamout: m_tls_on %d", (int)m_tls_on);
+    CSIO_LOG(eLogLevel_info, "---Streamout: m_video_capture_device %s", m_video_capture_device);
+    CSIO_LOG(eLogLevel_info, "---Streamout: m_audio_capture_device %s", m_audio_capture_device);
+
 
     CSIO_LOG(eLogLevel_info, "---Streamout: m_loop 0x%x", m_loop);
     CSIO_LOG(eLogLevel_info, "---Streamout: m_pMedia [0x%x]",m_pMedia);
@@ -733,6 +684,11 @@ void* CStreamoutManager::ThreadEntry()
     GError *error = NULL;
     char mountPoint [512];
 
+    if (m_streamoutMode == STREAMOUT_MODE_WIRELESSCONFERENCING)
+    {
+    	initWcCertificates();
+    	initWcAudioVideo();
+    }
 
     m_factory = NULL;
 
@@ -1160,6 +1116,72 @@ exitThread:
 
     CSIO_LOG(m_debugLevel, "CStreamoutManager: exiting ThreadEntry function - returning NULL------");
     return NULL;
+}
+
+void CStreamoutManager::initWcCertificates()
+{
+    // FIXME - these must change to be random strings
+    setUsername("user");
+    setPassword("password");
+    if (m_streamoutMode == STREAMOUT_MODE_WIRELESSCONFERENCING)
+    {
+        if (m_tls_on) {
+        	std::string folder = std::string(csio_jni_getAppCacheFolder()) + std::string("/");
+            CSIO_LOG(eLogLevel_info, "----------------------Streamout: app cache folder=%s", folder.c_str());
+        	std::string cert_filename = folder + std::string(RTSP_CERT_PEM_FILENAME);
+            strncpy(m_rtsp_cert_filename, cert_filename.c_str(), sizeof(m_rtsp_cert_filename));
+        	std::string key_filename = folder + std::string(RTSP_CERT_KEY);
+            strncpy(m_rtsp_key_filename, key_filename.c_str(), sizeof(m_rtsp_cert_filename));
+#ifdef GENERATE_CERTIFICATE
+            CSIO_LOG(eLogLevel_info, "----------------------Streamout: create self signed certificates");
+            create_selfsigned_certificate(m_rtsp_cert_filename, m_rtsp_key_filename);
+#else
+            CSIO_LOG(eLogLevel_info, "----------------------Streamout: copy server certificates");
+            copy_server_certificates(m_rtsp_cert_filename, m_rtsp_key_filename);
+#endif
+        }
+    }
+}
+
+void CStreamoutManager::initWcAudioVideo()
+{
+    if (m_streamoutMode == STREAMOUT_MODE_WIRELESSCONFERENCING)
+    {
+		CSIO_LOG(eLogLevel_info, "--Streamout: video_capture_device=%s audio_capture_device=%s", m_video_capture_device, m_audio_capture_device);
+    	if (strcasecmp(m_video_capture_device, "none") != 0)
+    		m_videoStream = true;
+    	if (strcasecmp(m_audio_capture_device, "none") != 0)
+    		m_audioStream = true;
+        m_aacEncode = true;
+
+#ifndef USE_VIDEOTESTSRC
+        if (m_videoStream) {
+        	if (!get_video_caps(m_video_capture_device, &m_video_caps, m_device_display_name, sizeof(m_device_display_name)))
+        	{
+        		if (get_video_caps_string(&m_video_caps, m_caps, sizeof(m_caps)) < 0)
+        			m_videoStream = false;
+        	} else
+        		m_videoStream = false;
+        	if (is_supported(m_video_caps.format))
+        	{
+        		m_videoconvert[0] = '\0';
+        	} else {
+        		snprintf(m_videoconvert, sizeof(m_videoconvert), "videoconvert ! ");
+        	}
+        }
+#else
+        snprintf(m_caps, sizeof(m_caps), "video/x-raw,format=NV12,width=%s,height=%s,framerate=%s/1",
+        		m_res_x, m_res_y, m_frame_rate);
+#endif
+        if (m_audioStream)
+        {
+        	m_usbAudio = new UsbAudio(m_audio_capture_device);
+
+        	if (m_audioStream && m_usbAudio->m_pcm_card_idx != 0) {
+        		m_audioStream = m_usbAudio->getAudioParams();
+        	}
+        }
+    }
 }
 
 void CStreamoutManager::sendWcUrl(GstRTSPServer *server, char *mountPoint)
