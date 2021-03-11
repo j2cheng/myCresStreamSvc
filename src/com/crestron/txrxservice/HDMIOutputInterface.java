@@ -221,7 +221,7 @@ public class HDMIOutputInterface {
 			//        Log.i(TAG, "HDMI OUT HDCP status from sysfs:" + text.toString());
 			return Integer.parseInt(text.toString());
 		} else {
-			String status = MiscUtils.readStringFromDisk("/sys/devices/platform/ff160000.i2c/i2c-7/7- 0030/hdcp_status");
+			String status = MiscUtils.readStringFromDisk("/sys/devices/platform/ff160000.i2c/i2c-7/7-0030/hdcp_status");
 			if (status.equalsIgnoreCase("hdcp_v1x succeed") || status.equalsIgnoreCase("hdcp_v2x succeed")) {
 				return 1;
 			} else if (status.equalsIgnoreCase("Off")) {
