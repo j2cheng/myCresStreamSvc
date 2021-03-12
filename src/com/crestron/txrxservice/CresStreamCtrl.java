@@ -2,6 +2,7 @@ package com.crestron.txrxservice;
 
 import java.util.HashMap;
 import java.util.HashSet;
+import java.util.List;
 import java.util.Map;
 import java.util.Scanner;
 import java.util.Set;
@@ -1353,11 +1354,6 @@ public class CresStreamCtrl extends Service {
                 mGstreamerTimeoutCount = 0;	// not an error condition, just default to 0 if file does not exist
             }
             MiscUtils.writeStringToDisk(gstreamerTimeoutCountFilePath, String.valueOf(mGstreamerTimeoutCount));
-            
-            if (mProductSpecific.getInstance().hasUVCCamera())
-            {
-            	Log.i(TAG, "USB UVC camera is connected");
-            }
             
             mProductSpecific.getInstance().startPeripheralListener(this);
         }
@@ -5877,15 +5873,6 @@ public class CresStreamCtrl extends Service {
             stopStartLock[0].unlock("setWirelessConferencingStreamEnable");
         }
     }
-
-    public void setWcSecurityEnable(boolean enable) {
-        userSettings.setWcSecurityEnable(enable);
-
-        if (gstStreamOut != null)
-        {
-            gstStreamOut.setWcSecurityEnable(enable);
-        }
-    }
     
     public void onCameraConnected()
     {
@@ -5897,6 +5884,11 @@ public class CresStreamCtrl extends Service {
 		Log.i(TAG, "onCameraConnected(): USB UVC camera is disconnected");
     }
 
+    public void onUsbStatusChanged(List<UsbAvDevice> devList)
+    {
+		Log.i(TAG, "onUsbStatusChanged(): deviceList="+devList);
+    }
+    
     public void onHdmiInConnected()
     {
         Log.i(TAG, "onHdmiInConnected(): HDMI Input is connected EVENT");
@@ -5914,10 +5906,16 @@ public class CresStreamCtrl extends Service {
     {
 		Log.i(TAG, "onHdmiOutHpdEvent(): HDMI out sync is "+connected);
     	hdmiOutput.set_am3k_sync_status(connected);
-        synchronized (mDisplayChangedLock)
-        {
-            handleHdmiOutputChange();
-        }
+        new Thread(new Runnable() {
+            public void run() {
+                try {
+                    synchronized (mDisplayChangedLock)
+                    {
+                        handleHdmiOutputChange();
+                    }                
+                } catch (Exception e) { e.printStackTrace(); }
+            }
+        }).start();
     }
     
     public String getAirMediaDisconnectUser(int sessId)

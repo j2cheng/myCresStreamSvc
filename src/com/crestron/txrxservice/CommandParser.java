@@ -206,6 +206,8 @@ public class CommandParser {
 
         WC_STREAMING_ENABLE, // Wireless Conferencing Enable
         WC_SECURITY_ENABLE,  // Wireless Conferencing security Enable
+        WC_VIDEO_DEVICE,     // Wireless Conferencing set video device
+        WC_AUDIO_DEVICE,     // Wireless Conferencing set audio device
 
         APPSPACE_IS_ENABLED,
         USE_GSTREAMER,
@@ -863,6 +865,12 @@ public class CommandParser {
                 break;
             case WC_SECURITY_ENABLE:
                 cmd = new WirelessConferencingSecurityEnableCommand(ctrl, arg);
+                break;
+            case WC_VIDEO_DEVICE:
+                cmd = new WirelessConferencingVideoDeviceCommand(ctrl, arg);
+                break;
+            case WC_AUDIO_DEVICE:
+                cmd = new WirelessConferencingAudioDeviceCommand(ctrl, arg);
                 break;
                 
             case APPSPACE_IS_ENABLED:

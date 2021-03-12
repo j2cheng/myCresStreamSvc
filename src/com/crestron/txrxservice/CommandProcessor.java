@@ -2599,10 +2599,34 @@ class WirelessConferencingSecurityEnableCommand extends CrestronCommand {
 		super(ctrl, arg);
 	}	
 	public void execute() {		
-		ctrl.setWcSecurityEnable(Boolean.valueOf(msg));
+		ctrl.userSettings.setWcSecurityEnable(Boolean.valueOf(msg));
 	}
 	public String getFeedbackMsg() {
 		return Boolean.toString(ctrl.userSettings.getWcSecurityEnable());
+	}
+}
+
+class WirelessConferencingVideoDeviceCommand extends CrestronCommand {
+	public WirelessConferencingVideoDeviceCommand(CresStreamCtrl ctrl, String arg) {
+		super(ctrl, arg);
+	}	
+	public void execute() {		
+		ctrl.userSettings.setWcVideoCaptureDevice(msg);
+	}
+	public String getFeedbackMsg() {
+		return ctrl.userSettings.getWcVideoCaptureDevice();
+	}
+}
+
+class WirelessConferencingAudioDeviceCommand extends CrestronCommand {
+	public WirelessConferencingAudioDeviceCommand(CresStreamCtrl ctrl, String arg) {
+		super(ctrl, arg);
+	}	
+	public void execute() {		
+		ctrl.userSettings.setWcAudioCaptureDevice(msg);
+	}
+	public String getFeedbackMsg() {
+		return ctrl.userSettings.getWcAudioCaptureDevice();
 	}
 }
 

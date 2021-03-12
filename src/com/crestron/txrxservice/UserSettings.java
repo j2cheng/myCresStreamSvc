@@ -276,6 +276,8 @@ public class UserSettings
 	private String camStreamSnapshotName;
 	private String camStreamMulticastAddress;
 	private boolean wcSecurityEnable;
+	private String wcVideoCaptureDevice;
+	private String wcAudioCaptureDevice;
 	
 	//Misc
 	private boolean[] useNewSink;
@@ -420,6 +422,8 @@ public class UserSettings
 		camStreamSnapshotName = "snapshot";
 		camStreamMulticastAddress = "";
 		wcSecurityEnable = true;
+		wcVideoCaptureDevice = "/dev/video5";
+		wcAudioCaptureDevice = "/dev/snd/pcmC5D0c";
 		serviceMode = CresStreamCtrl.ServiceMode.Master.ordinal();
 		canvasModeEnabled = false;
 		dmSync = initBoolArray(false,CresStreamCtrl.NumDmInputs);
@@ -1696,6 +1700,22 @@ public class UserSettings
 		this.wcSecurityEnable = enable;
 	}
 
+	public String getWcVideoCaptureDevice() {
+		return wcVideoCaptureDevice;
+	}
+
+	public void setWcVideoCaptureDevice(String device) {
+		this.wcVideoCaptureDevice = device;
+	}
+	
+	public String getWcAudioCaptureDevice() {
+		return wcAudioCaptureDevice;
+	}
+
+	public void setWcAudioCaptureDevice(String device) {
+		this.wcAudioCaptureDevice = device;
+	}
+	
 	public int getServiceMode() {
 		return serviceMode;
 	}
