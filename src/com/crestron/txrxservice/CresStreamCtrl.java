@@ -2213,6 +2213,17 @@ public class CresStreamCtrl extends Service {
                                         break;
                                     }
                                 }
+                                
+                                if (isAM3X00())
+                                {
+                                	boolean bsync = HDMIInputInterface.readSyncState();
+                                	if((!bsync) || (hdmiInSampleRate == 0))
+                                	{
+	                                	Log.i(TAG, "Do not restart audio. Samplerate = " + hdmiInSampleRate + ", HDMI sync = " + bsync);
+	                                	onlyRestartAudioNeeded = false;
+                                	}
+                                }
+                                
                                 if (onlyRestartAudioNeeded)
                                 {
                                     if (cam_preview != null)
@@ -2220,7 +2231,7 @@ public class CresStreamCtrl extends Service {
                                         int previewId = cam_preview.getSessionIndex();
                                         try {
                                             stopStartLock[previewId].lock("restartAudio_SampleRate");
-                                            Log.i(TAG, "Restarting Audio - sample rate change");
+                                            Log.i(TAG, "Restarting Audio - sample rate change = " + hdmiInSampleRate);
                                             cam_preview.restartAudio();    // Can get away with only restarting audio here
                                         }
                                         finally {
@@ -2230,7 +2241,7 @@ public class CresStreamCtrl extends Service {
                                 }
                                 else
                                 {
-                                    Log.i(TAG, "Restarting Streams - sample rate change");
+                                    Log.i(TAG, "Restarting Streams - sample rate change = " + hdmiInSampleRate);
                                     restartStreams(true); //skip stream in since it does not use hdmi input
                                 }
                             }
