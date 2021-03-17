@@ -48,7 +48,7 @@ public class AudioPlayback
 		private final int AudioFmt = AudioFormat.ENCODING_PCM_16BIT;//ENCODING_PCM_16BIT
 		private final int AudioChannels= AudioFormat.CHANNEL_OUT_STEREO;//CHANNEL_IN/OUT_STEREO:Default Android Val is 12
 		private final int SampleRate = HDMIInputInterface.readAudioSampleRate();
-		private final int AudioSrc = AudioSource.CAMCORDER; //Audio Source is CAMCORDER
+		private int AudioSrc = AudioSource.CAMCORDER; //Audio Source is CAMCORDER for all products except AM3X
 		private final int BufferSize = AudioRecord.getMinBufferSize(SampleRate, AudioChannels, AudioFmt);
 		private StaticAudioBuffers mAudioBuffers = new StaticAudioBuffers(maxNumOfBuffers + 2);
 		
@@ -80,21 +80,21 @@ public class AudioPlayback
         	}
         	catch (InterruptedException ex) { ex.printStackTrace(); }  
 
-			Log.i(TAG, "Streaming Audio task started.... ");
+			Log.i(TAG, "Streaming Audio task started.... SampleRate: " + SampleRate);
 			try
 			{
-				audioBufferQueue = new LinkedBlockingQueue<audioBufferQueueObject>();        		
+				audioBufferQueue = new LinkedBlockingQueue<audioBufferQueueObject>();
 				audioTrackThread = new Thread(new ProcessBufferQueue(audioBufferQueue));
 				audioTrackThread.start();
 
-                if(!mStreamCtl.isAM3X00())
-                    mRecorder = new AudioRecord(AudioSrc, SampleRate, AudioChannels, AudioFmt, (2 * BufferSize)); // multiple times 2 because 2 byte per sample
-                else
-                    mRecorder = new AudioRecord(MediaRecorder.AudioSource.MIC, SampleRate, AudioChannels, AudioFmt, (2 * BufferSize));
+                if(mStreamCtl.isAM3X00())
+                    AudioSrc = MediaRecorder.AudioSource.MIC;
 
-				mRecorder.startRecording();
-				mPlayer = new AudioTrack(AudioManager.STREAM_MUSIC, SampleRate, AudioChannels, AudioFmt, (2 * BufferSize), AudioTrack.MODE_STREAM);
-				mPlayer.play();
+                mRecorder = new AudioRecord(AudioSrc, SampleRate, AudioChannels, AudioFmt, (2 * BufferSize)); // multiple times 2 because 2 byte per sample
+                mRecorder.startRecording();
+                mPlayer = new AudioTrack(AudioManager.STREAM_MUSIC, SampleRate, AudioChannels, AudioFmt, (2 * BufferSize), AudioTrack.MODE_STREAM);
+                mPlayer.play();
+
 				while(!shouldExit)
 				{
 					int read = 0;
