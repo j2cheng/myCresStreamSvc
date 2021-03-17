@@ -5898,6 +5898,7 @@ public class CresStreamCtrl extends Service {
     public void onUsbStatusChanged(List<UsbAvDevice> devList)
     {
 		Log.i(TAG, "onUsbStatusChanged(): deviceList="+devList);
+		mWC_Service.updateStatus(devList);
     }
     
     public void onHdmiInConnected()

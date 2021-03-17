@@ -688,6 +688,10 @@ void* CStreamoutManager::ThreadEntry()
     {
     	initWcCertificates();
     	initWcAudioVideo();
+    	if (!m_videoStream && !m_audioStream)
+    	{
+            CSIO_LOG(eLogLevel_error, "***** Streamout: could not find usable video or audio device *****");
+    	}
     }
 
     m_factory = NULL;
@@ -1168,6 +1172,7 @@ void CStreamoutManager::initWcAudioVideo()
         	} else {
         		snprintf(m_videoconvert, sizeof(m_videoconvert), "videoconvert ! ");
         	}
+    		CSIO_LOG(eLogLevel_info, "--Streamout - m_videoStream=%d", ((m_videoStream)?"true":"false"));
         }
 #else
         snprintf(m_caps, sizeof(m_caps), "video/x-raw,format=NV12,width=%s,height=%s,framerate=%s/1",
@@ -1177,9 +1182,14 @@ void CStreamoutManager::initWcAudioVideo()
         {
         	m_usbAudio = new UsbAudio(m_audio_capture_device);
 
+    		CSIO_LOG(eLogLevel_info, "--Streamout - initialize audio for card %d", m_usbAudio->m_pcm_card_idx);
         	if (m_audioStream && m_usbAudio->m_pcm_card_idx != 0) {
         		m_audioStream = m_usbAudio->getAudioParams();
+        	} else {
+        		CSIO_LOG(eLogLevel_info, "--Streamout - invalid audio card %d", m_usbAudio->m_pcm_card_idx);
+        		m_audioStream=false;
         	}
+    		CSIO_LOG(eLogLevel_info, "--Streamout - mAudioStream=%d", ((m_audioStream)?"true":"false"));
         }
     }
 }

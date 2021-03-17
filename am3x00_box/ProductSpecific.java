@@ -1,6 +1,7 @@
 package com.crestron.txrxservice;
 
 import com.crestron.txrxservice.CresStreamCtrl;
+import com.crestron.txrxservice.UsbAvDevice;
 import com.gs.core.peripheral.PeripheralManager;
 import com.gs.core.peripheral.StatusChangeListener;
 
@@ -23,6 +24,7 @@ import java.util.HashMap;
 import java.util.Iterator;
 import java.util.List;
 import java.io.File;
+import java.lang.reflect.Method;
 
 public class ProductSpecific
 {
@@ -264,16 +266,26 @@ public class ProductSpecific
         return false;
     }
     
+    public List<UsbAvDevice> usbDeviceList = new ArrayList<UsbAvDevice> ();
+    
+    public UsbAvDevice findUsbDevice(int id)
+    {
+    	for (UsbAvDevice d : usbDeviceList)
+    	{
+    		if (d.perId == id)
+    			return d;
+    	}
+    	return null;
+    }
+    
     public class PeripheralStatusChangeListener extends StatusChangeListener 
     {
-        boolean cameraConnected;
         boolean hdmiInConnected = false;
         CresStreamCtrl cresStreamCtrl;
 
         public PeripheralStatusChangeListener(CresStreamCtrl ctrl) {
             super();
             cresStreamCtrl = ctrl;
-            cameraConnected = hasUVCCamera();
             hdmiInConnected = cam_handle.findCamera(HDMI_IN_DEV);
         }
 
@@ -323,33 +335,94 @@ public class ProductSpecific
             }
         }
 
-        public void UsbConnect()
+        public String getVideoCaptureFile(List<String> videoList)
         {
-            if (hasUVCCamera() && !cameraConnected)
-            {
-                Log.i(TAG, "UsbConnect(): USB camera is now connected");
-                cameraConnected = true;
-                cresStreamCtrl.onCameraConnected();
-            }
+        	for (String s : videoList) { 
+        		// Assumes only one video capture device exists and has one of these patterns
+        		if (s.equals("video5") || s.equals("video7"))
+        			return "/dev/"+s;
+        	}
+        	return null;
         }
-
-        public void UsbDisconnect()
+        
+        public String getAudioCaptureFile(List<String> audioList)
         {
-            if (!hasUVCCamera() && cameraConnected)
-            {
-                Log.i(TAG, "UsbDisconnect(): USB camera is now disconnected");
-                cameraConnected = false;
-                cresStreamCtrl.onCameraDisconnected();
-            }
+        	for (String s : audioList) { 
+        		// Assumes only one audio capture device exists and has one of these patterns
+        		if (s.equals("snd/pcmC5D0c") || s.equals("snd/pcmC6D0c"))
+        			return "/dev/"+s;
+        	}
+        	return null;
         }
-
+        
+        public void onUsbStatusChanged(int usbId, int status, String name, List<String> videoList, List<String> audioList)
+        {
+        	boolean change = false;
+        	if (status > 0)
+        	{
+        		// device was added on port=usbId
+        		UsbAvDevice d = findUsbDevice(usbId);
+        		if (d != null) {
+        			usbDeviceList.remove(d);
+        		}
+        		String vFile = getVideoCaptureFile(videoList);
+        		String aFile = getAudioCaptureFile(audioList);
+        		d = new UsbAvDevice(usbId, ((usbId==PeripheralManager.PER_USB_30)?"usb3":"usb2"), name, vFile, aFile);
+        		Log.i(TAG, "UsbAudioVideoDeviceAdded(): new USB device "+d.deviceName+" added on "+d.usbPortType);
+        		usbDeviceList.add(d);
+        	} else {
+        		// device was removed on port=usbId
+        		UsbAvDevice d = findUsbDevice(usbId);
+        		if (d != null) {
+                    Log.i(TAG, "UsbAudioVideoDeviceRemoved(): USB device "+d.deviceName+" removed from "+d.usbPortType);
+        			usbDeviceList.remove(d);
+        		}
+        		usbDeviceList.remove(d);
+        	}
+            cresStreamCtrl.onUsbStatusChanged(usbDeviceList);
+        }
+        
+        public void usbEvent(int usbId)
+        {
+        	String name = PeripheralManager.instance().getUsbPeripheralName(usbId);
+        	int status = PeripheralManager.instance().getStatus(usbId);
+            Class pMgrClass = PeripheralManager.instance().getClass();
+            List<String> videoList = null;
+            List<String> audioList = null;
+            try {
+            	Method m = pMgrClass.getMethod("getUsbVideoDevices", int.class);
+            	videoList = PeripheralManager.instance().getUsbVideoDevices(usbId);
+            } catch (Exception e) {
+            	e.printStackTrace();
+            }
+            try {
+            	Method m = pMgrClass.getMethod("getUsbAudioDevices", int.class);
+            	audioList = PeripheralManager.instance().getUsbAudioDevices(usbId);
+            } catch (Exception e) {
+            	e.printStackTrace();
+            }
+            if (status > 0)
+            {
+            	Log.i(TAG, "USB id="+usbId+"  Device="+name);
+            	Log.i(TAG, "\tVideo Devices="+videoList);
+            	Log.i(TAG, "\tAudio Devices="+audioList);
+            } else {
+            	Log.i(TAG, "USB id="+usbId+"  No devices connected");
+            }
+    		onUsbStatusChanged(usbId, status, name, videoList, audioList);
+        }
+        
         @Override
-        public void onChanged(int i, String s, int i1)
+        public void onChanged(int perId, String desc, int status)
         {
-            switch (i) {
+        	if (desc != null) {
+        		desc = desc.replaceAll("\r", "").replaceAll("\n", "");
+        		Log.i(TAG, "onChanged(): description="+desc+"   peripheralId="+perId+"   status="+status+"   getStatus()="+PeripheralManager.instance().getStatus(perId));
+        	}
+        	switch (perId) {
             case PeripheralManager.PER_HDMI_IN:
-                Log.i(TAG, "HDMI IN status: " + (i1 == 1 ? "Connected" : "Disconnected"));
-                if (i1 == 1)
+                Log.i(TAG, "HDMI IN status: " + (status == 1 ? "Connected" : "Disconnected"));
+                if (status == 1)
                 {
                     HdmiInConnect();
                 } else {
@@ -357,25 +430,21 @@ public class ProductSpecific
                 }
                 break;
             case PeripheralManager.PER_HDMI_OUT:
-                Log.i(TAG, "HDMI OUT status: " + (i1 == 1 ? "Connected" : "Disconnected"));
-                cresStreamCtrl.onHdmiOutHpdEvent((i1 ==1));
+                Log.i(TAG, "HDMI OUT status: " + ((status != 0) ? "Connected" : "Disconnected"));
+                cresStreamCtrl.onHdmiOutHpdEvent((status ==1));
                 break;
             case PeripheralManager.PER_USB_20:
-                Log.i(TAG, "USB 2.0 status: " + (i1 == 1 ? "Connected" : "Disconnected"));
+                Log.v(TAG, "USB 2.0 status: " + ((status > 0) ? "Connected" : "Disconnected"));
+            	usbEvent(PeripheralManager.PER_USB_20);
                 break;
             case PeripheralManager.PER_USB_30:
-                Log.i(TAG, "USB 3.0 status: " + (i1 == 1 ? "Connected" : "Disconnected"));
-                if (i1 == 1)
-                {
-                    UsbConnect();
-                } else {
-                    UsbDisconnect();
-                }
+                Log.v(TAG, "USB 3.0 status: " + ((status > 0) ? "Connected" : "Disconnected"));
+            	usbEvent(PeripheralManager.PER_USB_30);
                 break;
             }
         }
     }
-    
+
     public void startPeripheralListener(CresStreamCtrl ctrl) 
     {
         mListener = new PeripheralStatusChangeListener(ctrl);
@@ -388,6 +457,11 @@ public class ProductSpecific
             mListener.HdmiInDisconnect();
         boolean hdmiOutStatus = PeripheralManager.instance().getStatus(PeripheralManager.PER_HDMI_OUT) == 1;
         ctrl.onHdmiOutHpdEvent(hdmiOutStatus);
+
+        if (PeripheralManager.instance().getStatus(PeripheralManager.PER_USB_30) > 0)
+        	mListener.usbEvent(PeripheralManager.PER_USB_30);
+        if (PeripheralManager.instance().getStatus(PeripheralManager.PER_USB_20) > 0)
+        	mListener.usbEvent(PeripheralManager.PER_USB_20);
 
         Log.i(TAG, "Attaching listener for HDMI, USB events");
         PeripheralManager.instance().addStatusListener(PeripheralManager.PER_HDMI_IN, mListener, null);

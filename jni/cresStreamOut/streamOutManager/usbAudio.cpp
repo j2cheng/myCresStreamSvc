@@ -216,6 +216,7 @@ void UsbAudio::releaseDevice()
 
 UsbAudio::UsbAudio(char *file)
 {
+	CSIO_LOG(eLogLevel_info, "--Streamout: usb audio device file: %s", file);
 	strncpy(m_device_file, file, sizeof(m_device_file));
 #ifdef USE_AUDIOTESTSRC
 	m_pcm_card_idx = 0;
