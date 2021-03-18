@@ -234,7 +234,18 @@ public class CresCamera2 extends CresCamera
                 } catch (CameraAccessException e) {
                     e.printStackTrace();
                 }
-                Size size = sizes != null ? sizes[0] : new Size(1920, 1080);
+                
+                if((sizes != null) && (sizes.length > 0))
+                {
+                	Log.i(TAG, "startCamera(): hRes=" + sizes[0].getWidth() +", vRes=" + sizes[0].getHeight());
+                }
+                else
+                {
+                	Log.i(TAG, "startCamera(): Resolution is not available.");
+                	return;
+                }
+                
+                Size size = sizes[0];
 
                 List<Surface> outputSurfaces = new ArrayList<Surface>();
                 outputSurfaces.add(mPreviewSurface);
