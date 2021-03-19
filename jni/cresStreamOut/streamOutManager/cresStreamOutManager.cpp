@@ -31,25 +31,8 @@
 #undef USE_AUDIOTESTSRC
 #undef CLIENT_AUTHENTICATION_ENABLED
 
-#ifdef USE_VIDEOTESTSRC
-#define VIDEOSOURCE "videotestsrc"
-#else
-#ifdef NANOPC
-#define VIDEOSOURCE "v4l2src device=/dev/video10 io-mode=4 do-timestamp=true"
-#else
-#define VIDEOSOURCE "v4l2src device=/dev/video5  io-mode=4 do-timestamp=true"
-#endif
-#endif
-
 static bool PushModel = false;
-
-#ifdef USE_AUDIOTESTSRC
-#define AUDIOSOURCE "audiotestsrc ! audio/x-raw,format=S16LE,rate=48000,channels=2 "
 int useUsbAudio = false;
-#else
-#define AUDIOSOURCE "appsrc name=wc_appsrc "
-int useUsbAudio = true;
-#endif
 
 //#define AUDIOENC "amcaudenc-omxgoogleaacencoder"
 #define AUDIOENC "voaacenc"
@@ -683,6 +666,8 @@ void* CStreamoutManager::ThreadEntry()
     GstRTSPSessionPool *pool     = NULL;
     GError *error = NULL;
     char mountPoint [512];
+    char videoSource[512]={0};
+    char audioSource[512]={0};
 
     if (m_streamoutMode == STREAMOUT_MODE_WIRELESSCONFERENCING)
     {
@@ -691,6 +676,11 @@ void* CStreamoutManager::ThreadEntry()
     	if (!m_videoStream && !m_audioStream)
     	{
             CSIO_LOG(eLogLevel_error, "***** Streamout: could not find usable video or audio device *****");
+    	} else {
+    		if (m_videoStream)
+    			setVideoSource(videoSource, sizeof(videoSource));
+    		if (m_audioStream)
+    			setAudioSource(audioSource, sizeof(audioSource));
     	}
     }
 
@@ -838,7 +828,7 @@ void* CStreamoutManager::ThreadEntry()
                                                      "queue name=vidPostQ ! "
                                                      "h264parse ! "
                                                      "rtph264pay name=pay0 pt=96 )",
-                                                     VIDEOSOURCE,
+                                                     videoSource,
                                                      m_caps, m_videoconvert,
                                                      product_info()->H264_encoder_string,
                                                      m_bit_rate, m_iframe_interval);
@@ -862,11 +852,11 @@ void* CStreamoutManager::ThreadEntry()
                                                          "%s ! audioresample ! audioconvert ! "
                                                          "%s ! "
                                                          "rtpmp4apay name=pay1 pt=97 )",
-                                                         VIDEOSOURCE,
+                                                         videoSource,
                                                          m_caps, m_videoconvert,
                                                          product_info()->H264_encoder_string,
                                                          m_bit_rate, m_iframe_interval,
-                                                         AUDIOSOURCE, audioenc);
+                                                         audioSource, audioenc);
                 } else {
                     snprintf(pipeline, sizeof(pipeline), "( %s ! "
                                                          "%s ! "
@@ -879,11 +869,11 @@ void* CStreamoutManager::ThreadEntry()
                                                          "%s ! audioresample ! audioconvert ! audio/x-raw,rate=8000 ! "
                                                          "%s ! "
                                                          "rtppcmapay name=pay1 pt=97 )",
-                                                         VIDEOSOURCE,
+                                                         videoSource,
                                                          m_caps, m_videoconvert,
                                                          product_info()->H264_encoder_string,
                                                          m_bit_rate, m_iframe_interval,
-                                                         AUDIOSOURCE, audioenc);
+                                                         audioSource, audioenc);
                 }
             }
             if (!m_videoStream && m_audioStream)
@@ -892,12 +882,12 @@ void* CStreamoutManager::ThreadEntry()
                     snprintf(pipeline, sizeof(pipeline), "( %s ! audioresample ! audioconvert ! "
                                                          "%s ! "
                                                          "rtpmp4apay name=pay0 pt=97 )",
-                                                         AUDIOSOURCE, audioenc);
+														 audioSource, audioenc);
                 } else {
                     snprintf(pipeline, sizeof(pipeline), "( %s ! audioresample ! audioconvert ! audio/x-raw,rate=8000 ! "
                                                          "%s ! "
                                                          "rtppcmapay name=pay0 pt=97 )",
-                                                          AUDIOSOURCE, audioenc);
+														 audioSource, audioenc);
                 }
             }
         }
@@ -1158,40 +1148,74 @@ void CStreamoutManager::initWcAudioVideo()
     		m_audioStream = true;
         m_aacEncode = true;
 
-#ifndef USE_VIDEOTESTSRC
         if (m_videoStream) {
-        	if (!get_video_caps(m_video_capture_device, &m_video_caps, m_device_display_name, sizeof(m_device_display_name)))
+        	if (strcmp(m_video_capture_device, "videotestsrc") != 0)
         	{
-        		if (get_video_caps_string(&m_video_caps, m_caps, sizeof(m_caps)) < 0)
+        		if (!get_video_caps(m_video_capture_device, &m_video_caps, m_device_display_name, sizeof(m_device_display_name)))
+        		{
+        			if (get_video_caps_string(&m_video_caps, m_caps, sizeof(m_caps)) < 0)
+        				m_videoStream = false;
+        		} else {
+        			CSIO_LOG(eLogLevel_info, "--Streamout - unable to get caps for video device: %s", m_video_capture_device);
         			m_videoStream = false;
-        	} else
-        		m_videoStream = false;
-        	if (is_supported(m_video_caps.format))
-        	{
-        		m_videoconvert[0] = '\0';
+        		}
+        		if (is_supported(m_video_caps.format))
+        		{
+        			m_videoconvert[0] = '\0';
+        		} else {
+        			snprintf(m_videoconvert, sizeof(m_videoconvert), "videoconvert ! ");
+        		}
         	} else {
-        		snprintf(m_videoconvert, sizeof(m_videoconvert), "videoconvert ! ");
+        		// using videotestsrc
+                snprintf(m_caps, sizeof(m_caps), "video/x-raw,format=NV12,width=%s,height=%s,framerate=%s/1",
+                		m_res_x, m_res_y, m_frame_rate);
         	}
-    		CSIO_LOG(eLogLevel_info, "--Streamout - m_videoStream=%d", ((m_videoStream)?"true":"false"));
+    		CSIO_LOG(eLogLevel_info, "--Streamout - m_videoStream=%s", ((m_videoStream)?"true":"false"));
         }
-#else
-        snprintf(m_caps, sizeof(m_caps), "video/x-raw,format=NV12,width=%s,height=%s,framerate=%s/1",
-        		m_res_x, m_res_y, m_frame_rate);
-#endif
+
         if (m_audioStream)
         {
-        	m_usbAudio = new UsbAudio(m_audio_capture_device);
+        	if (strcmp(m_audio_capture_device, "audiotestsrc") != 0)
+        	{
+        		m_usbAudio = new UsbAudio(m_audio_capture_device);
 
-    		CSIO_LOG(eLogLevel_info, "--Streamout - initialize audio for card %d", m_usbAudio->m_pcm_card_idx);
-        	if (m_audioStream && m_usbAudio->m_pcm_card_idx != 0) {
-        		m_audioStream = m_usbAudio->getAudioParams();
-        	} else {
-        		CSIO_LOG(eLogLevel_info, "--Streamout - invalid audio card %d", m_usbAudio->m_pcm_card_idx);
-        		m_audioStream=false;
+        		CSIO_LOG(eLogLevel_info, "--Streamout - initialize audio for card %d", m_usbAudio->m_pcm_card_idx);
+        		if (m_audioStream && m_usbAudio->m_pcm_card_idx != 0) {
+        			m_audioStream = m_usbAudio->getAudioParams();
+        		} else {
+        			CSIO_LOG(eLogLevel_info, "--Streamout - invalid audio card %d", m_usbAudio->m_pcm_card_idx);
+        			m_audioStream=false;
+        		}
         	}
-    		CSIO_LOG(eLogLevel_info, "--Streamout - mAudioStream=%d", ((m_audioStream)?"true":"false"));
+    		CSIO_LOG(eLogLevel_info, "--Streamout - mAudioStream=%s", ((m_audioStream)?"true":"false"));
         }
     }
+}
+
+void CStreamoutManager::setVideoSource(char *videoSource, int n)
+{
+	if (strcmp(m_video_capture_device, "videotestsrc") == 0) {
+		snprintf(videoSource, n, "videotestsrc");
+	} else {
+#ifdef NANOPC
+		snprintf(videoSource, n, "v4l2src device=%s io-mode=4 do-timestamp=true", "/dev/video10");
+#else
+		snprintf(videoSource, n, "v4l2src device=%s io-mode=4 do-timestamp=true", m_video_capture_device);
+#endif
+	}
+	CSIO_LOG(eLogLevel_info, "--Streamout - videoSource=%s", videoSource);
+}
+
+void CStreamoutManager::setAudioSource(char *audioSource, int n)
+{
+	if (strcmp(m_audio_capture_device, "audiotestsrc") == 0) {
+		snprintf(audioSource, n, "audiotestsrc ! audio/x-raw,format=S16LE,rate=48000,channels=2 ");
+		useUsbAudio = false;
+	} else {
+		snprintf(audioSource, n, "appsrc name=wc_appsrc ");
+		useUsbAudio = true;
+	}
+	CSIO_LOG(eLogLevel_info, "--Streamout - audioSource=%s", audioSource);
 }
 
 void CStreamoutManager::sendWcUrl(GstRTSPServer *server, char *mountPoint)

@@ -124,6 +124,8 @@ public:
     void sendWcUrl(GstRTSPServer *server, char *mountPoint);
     void initWcCertificates();
     void initWcAudioVideo();
+    void setVideoSource(char *videoSource, int n);
+    void setAudioSource(char *audioSource, int n);
     void setSnapshotName(char* name);
     char* getSnapshotName(void);
     void setSecurityEnable(bool enable) {m_tls_on = enable; m_auth_on = enable;}

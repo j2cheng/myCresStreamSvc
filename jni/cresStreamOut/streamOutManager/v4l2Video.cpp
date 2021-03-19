@@ -160,17 +160,25 @@ get_video_caps_from_caps(GstCaps *caps, int min_frame_rate, VideoCaps *video_cap
 
 int get_video_caps(char *device_name, VideoCaps *video_caps, char *display_name, int display_name_len)
 {
+	int rv= -1;
+
     video_caps->w = 0;
     video_caps->h = 0;
     video_caps->frame_rate_num = 1;
     video_caps->frame_rate_den = 1;
 
+    if (device_name == NULL)
+    {
+        CSIO_LOG(eLogLevel_error, "%s: Null device name not permitted\n", __FUNCTION__);
+        return rv;
+    }
+
     GstDeviceMonitor *monitor = gst_device_monitor_new();
     gst_device_monitor_add_filter(monitor, "Video/Source", NULL);
     if (!gst_device_monitor_start(monitor))
     {
-        CSIO_LOG(eLogLevel_error, "Unable to start device monitor\n");
-        return -1;
+        CSIO_LOG(eLogLevel_error, "%s: Unable to start device monitor\n", __FUNCTION__);
+        return rv;
     }
 
     GList *devices = gst_device_monitor_get_devices(monitor);
@@ -198,13 +206,15 @@ int get_video_caps(char *device_name, VideoCaps *video_caps, char *display_name,
             CSIO_LOG(eLogLevel_info, "Got device %s (display_name=%s) of class %s \n", devname, devdisplayname, devclass);
             strncpy(display_name, devdisplayname, sizeof(display_name));
             g_free(devdisplayname);
-            if ((device_name == NULL) || (strcmp(devname, device_name) == 0))
+            if (strcmp(devname, device_name) == 0)
             {
+            	CSIO_LOG(eLogLevel_info, "Found matching device %s = %s\n", device_name, devname);
                 GstCaps *caps = gst_device_get_caps(device);
                 if (!caps) {
                 	CSIO_LOG(eLogLevel_error, "Could not get caps for device\n");
                 } else {
                     get_video_caps_from_caps(caps, 15, video_caps);
+                    rv = 0;
                 }
                 gst_caps_unref(caps);
                 CSIO_LOG(eLogLevel_info, "Selected caps: format=%s w=%d h=%d framerate=%d/%d \n", video_caps->format,
@@ -218,7 +228,7 @@ int get_video_caps(char *device_name, VideoCaps *video_caps, char *display_name,
 
     gst_device_monitor_stop(monitor);
     g_object_unref(monitor);
-    return 0;
+    return rv;
 }
 
 int get_video_caps_string(VideoCaps *video_caps, char *caps, int maxlen)

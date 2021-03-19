@@ -328,7 +328,7 @@ public class WC_Service {
     	{
     		Log.i(TAG, "WC video device is "+mVideoFile+" audio device is "+mAudioFile);
     		mStreamCtrl.userSettings.setWcVideoCaptureDevice(mVideoFile);
-    		mStreamCtrl.userSettings.setWcVideoCaptureDevice(mAudioFile);
+    		mStreamCtrl.userSettings.setWcAudioCaptureDevice(mAudioFile);
     	}
     }
 }

@@ -116,7 +116,9 @@ bool UsbAudio::configure()
 bool UsbAudio::getAudioParams()
 {
 	bool rv = false;
+	CSIO_LOG(eLogLevel_info, "--UsbAudio: calling pcm_params_get for card %d device %d", m_pcm_card_idx, m_pcm_device_idx);
 	m_params = pcm_params_get(m_pcm_card_idx, m_pcm_device_idx, PCM_IN);
+	CSIO_LOG(eLogLevel_info, "--UsbAudio: got pcm_params_get for card %d device %d params=%p", m_pcm_card_idx, m_pcm_device_idx, m_params);
 	char pcm_param_string[4096];
 	if (!m_params) {
 		CSIO_LOG(eLogLevel_error, "--UsbAudio: no audio device");
@@ -218,15 +220,15 @@ UsbAudio::UsbAudio(char *file)
 {
 	CSIO_LOG(eLogLevel_info, "--Streamout: usb audio device file: %s", file);
 	strncpy(m_device_file, file, sizeof(m_device_file));
-#ifdef USE_AUDIOTESTSRC
-	m_pcm_card_idx = 0;
-	m_pcm_device_idx = 0;
-#else
-	if (sscanf(file, "/dev/snd/pcmC%dD%dc", &m_pcm_card_idx, &m_pcm_device_idx) != 2)
-	{
-		CSIO_LOG(eLogLevel_warning, "--Streamout: Invalid audio device file: %s", file);
+	if (strcmp(m_device_file, "audiotestsrc") == 0) {
+		m_pcm_card_idx = 0;
+		m_pcm_device_idx = 0;
+	} else {
+		if (sscanf(file, "/dev/snd/pcmC%dD%dc", &m_pcm_card_idx, &m_pcm_device_idx) != 2)
+		{
+			CSIO_LOG(eLogLevel_warning, "--Streamout: Invalid audio device file: %s", file);
+		}
 	}
-#endif
 	m_device = NULL;
 	m_params = NULL;
 	m_audioFormat = NULL;
