@@ -6637,8 +6637,9 @@ public class CresStreamCtrl extends Service {
 		            {
 		            	File file = new File("/sys/devices/platform/ff3e0000.i2c/i2c-8/8-000f/clrbar_mode");
 		                writer = new BufferedWriter(new OutputStreamWriter(new FileOutputStream(file), "US-ASCII"));
-		                writer.write(id);
-		                writer.flush();
+		                //TODO: disable colorbars for now because RED always displayed. Need to investigate bug AM3XX-2273.
+		                //writer.write(id);
+		                //writer.flush();
 		            }
 		            catch (IOException ex)
 		            {
