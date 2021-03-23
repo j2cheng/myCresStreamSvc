@@ -5,7 +5,7 @@ import android.os.Parcelable;
 
 public class WC_Connection implements Parcelable {
     private final int contents;
-    public final int id;
+    public final int sessionId;
     public final String url;
 	public final String certificate;
 	public final String key;
@@ -14,9 +14,9 @@ public class WC_Connection implements Parcelable {
         this(0, null, null, null);
     }
 
-    public WC_Connection(int id, String url, String cert, String key) {
+    public WC_Connection(int sessionId, String url, String cert, String key) {
         this.contents = 0;
-        this.id = id;
+        this.sessionId = sessionId;
         this.url = url;
 		this.certificate = cert;
 		this.key = key;
@@ -24,7 +24,7 @@ public class WC_Connection implements Parcelable {
 
     protected WC_Connection(Parcel in) {
         this.contents = in.readInt();
-        this.id = in.readInt();
+        this.sessionId = in.readInt();
 		this.url = in.readString();
 		this.certificate = in.readString();
 		this.key = in.readString();
@@ -50,7 +50,7 @@ public class WC_Connection implements Parcelable {
     @Override
     public void writeToParcel(Parcel dest, int flags) {
         dest.writeInt(this.contents);
-        dest.writeInt(this.id);
+        dest.writeInt(this.sessionId);
 		dest.writeString(this.url);
 		dest.writeString(this.certificate);
 		dest.writeString(this.key);

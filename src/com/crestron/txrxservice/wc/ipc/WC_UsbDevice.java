@@ -1,35 +1,56 @@
 package com.crestron.txrxservice.wc.ipc;
 
-import com.crestron.airmedia.receiver.m360.ipc.AirMediaSessionVideoSource;
-
 import android.os.Parcel;
 import android.os.Parcelable;
 
+import java.util.HashMap;
+import java.util.Map;
+
 public class WC_UsbDevice implements Parcelable {
     private final int contents;
+    public final String deviceId;
     public final String usbPort;
     public final String deviceName;
 	public final boolean hasVideo;
 	public final boolean hasAudio;
+	public final Map<String, String> properties;
 
     public WC_UsbDevice() {
-        this(null, null, false, false);
+        this("", "", "", false, false, new HashMap<String, String>());
     }
 
-    public WC_UsbDevice(String port, String name, boolean hasVideo, boolean hasAudio) {
+    public WC_UsbDevice(
+            String deviceId,
+            String port,
+            String name,
+            boolean hasVideo,
+            boolean hasAudio,
+            Map<String, String> properties
+    ) {
         this.contents = 0;
+        this.deviceId = deviceId;
         this.usbPort = port;
         this.deviceName = name;
 		this.hasVideo = hasVideo;
 		this.hasAudio = hasAudio;
+        this.properties = properties;
     }
 
     protected WC_UsbDevice(Parcel in) {
         this.contents = in.readInt();
+        this.deviceId = in.readString();
         this.usbPort = in.readString();
 		this.deviceName = in.readString();
 		this.hasVideo = in.readInt() != 0;
 		this.hasAudio = in.readInt() != 0;
+        final int count = in.readInt();
+        final Map<String, String> properties = new HashMap<String, String>(count);
+        for (int i = 0; i < count; i++) {
+            final String key = in.readString();
+            final String value = in.readString();
+            properties.put(key, value);
+        }
+        this.properties = properties;
     }
 
     public static final Creator<WC_UsbDevice> CREATOR = new Creator<WC_UsbDevice>() {
@@ -52,10 +73,16 @@ public class WC_UsbDevice implements Parcelable {
     @Override
     public void writeToParcel(Parcel dest, int flags) {
         dest.writeInt(this.contents);
+        dest.writeString(this.deviceId);
         dest.writeString(this.usbPort);
 		dest.writeString(this.deviceName);
         dest.writeInt(this.hasVideo ? -1 : 0);
         dest.writeInt(this.hasAudio ? -1 : 0);
+        dest.writeInt(this.properties.size());
+        for (Map.Entry<String, String> entry : properties.entrySet()) {
+            dest.writeString(entry.getKey());
+            dest.writeString(entry.getValue());
+        }
     }
     
     public boolean isEqual(WC_UsbDevice rhs) {

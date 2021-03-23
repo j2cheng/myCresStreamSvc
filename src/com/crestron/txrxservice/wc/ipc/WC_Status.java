@@ -11,21 +11,42 @@ import android.os.Parcelable;
 
 public class WC_Status implements Parcelable {
     private final int contents;
-    public List<WC_UsbDevice> devices;
+    public boolean isServerStarted;
+    public boolean isClientConnected;
+    public int sessionId;
+    public String clientId;
+    public String nickname;
+    public WC_SessionFlags sessionFlags;
 
     public WC_Status() {
+        this(false, false, 0, "", "", WC_SessionFlags.None);
+    }
+
+    public WC_Status(
+            boolean isServerStarted,
+            boolean isClientConnected,
+            int sessionId,
+            String clientId,
+            String nickname,
+            WC_SessionFlags sessionFlags
+    ) {
         this.contents = 0;
-        this.devices = new ArrayList<WC_UsbDevice>();    
+        this.isServerStarted = isServerStarted;
+        this.isClientConnected = isClientConnected;
+        this.sessionId = sessionId;
+        this.clientId = clientId;
+        this.nickname = nickname;
+        this.sessionFlags = sessionFlags;
     }
 
     protected WC_Status(Parcel in) {
         this.contents = in.readInt();
-        final int count = in.readInt();
-        final ArrayList<WC_UsbDevice> devices = new ArrayList<WC_UsbDevice>(count);
-        for (int i = 0; i < count; i++) {
-            devices.add(i, WC_UsbDevice.CREATOR.createFromParcel(in));
-        }
-        this.devices = devices;
+        this.isServerStarted = in.readInt() != 0;
+        this.isClientConnected = in.readInt() != 0;
+        this.sessionId = in.readInt();
+        this.clientId = in.readString();
+        this.nickname = in.readString();
+        this.sessionFlags = WC_SessionFlags.from(in);
     }
 
     public static final Creator<WC_Status> CREATOR = new Creator<WC_Status>() {
@@ -48,42 +69,11 @@ public class WC_Status implements Parcelable {
     @Override
     public void writeToParcel(Parcel dest, int flags) {
         dest.writeInt(this.contents);
-        int count = devices != null ? devices.size() : 0;
-        dest.writeInt(count);
-        for (WC_UsbDevice device : devices) {
-            device.writeToParcel(dest, flags);
-        }
-    }
-    
-    public boolean isEqual(WC_Status rhs) {
-    	return isEqual(this, rhs);
-    }
-    
-    public static boolean isEqual(WC_Status lhs, WC_Status rhs) {
-        if (lhs == rhs || lhs == null || rhs == null)
-            return lhs == rhs;
-
-        if ((lhs.devices != null && rhs.devices == null) || (lhs.devices == null && rhs.devices != null))
-        	return false;
-        
-        if (lhs.devices == rhs.devices)
-        	return true;
-        
-        // Both lhs.devices and rhs.devices are non-null
-        if (lhs.devices.size() != rhs.devices.size())
-            return false;
-
-        // Assumes same order - must generate list in order for this to work
-        for (int i = 0; i < lhs.devices.size(); i++) {
-            if (lhs.devices.get(i).isNotEqual(rhs.devices.get(i)))
-                return false;
-        }
-
-        return true;
-    }
-    
-    public String toString()
-    {
-    	return "WC_Status = "+devices;
+        dest.writeInt(this.isServerStarted ? 1 : 0);
+        dest.writeInt(this.isClientConnected ? 1 : 0);
+        dest.writeInt(this.sessionId);
+        dest.writeString(this.clientId);
+        dest.writeString(this.nickname);
+        this.sessionFlags.writeToParcel(dest, flags);
     }
 }

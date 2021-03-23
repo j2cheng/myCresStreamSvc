@@ -5,6 +5,7 @@ import android.os.RemoteCallbackList;
 import android.os.RemoteException;
 import android.util.Log;
 
+import java.util.HashMap;
 import java.util.List;
 
 import com.crestron.txrxservice.CresStreamCtrl;
@@ -12,8 +13,11 @@ import com.crestron.txrxservice.GstreamOut;
 import com.crestron.txrxservice.MiscUtils;
 import com.crestron.txrxservice.UsbAvDevice;
 import com.crestron.txrxservice.wc.ipc.WC_Connection;
+import com.crestron.txrxservice.wc.ipc.WC_SessionFlags;
+import com.crestron.txrxservice.wc.ipc.WC_SessionOptions;
 import com.crestron.txrxservice.wc.ipc.WC_Status;
 import com.crestron.txrxservice.wc.ipc.WC_UsbDevice;
+import com.crestron.txrxservice.wc.ipc.WC_UsbDevices;
 import com.crestron.txrxservice.wc.ipc.IWC_Callback;
 import com.crestron.txrxservice.wc.ipc.IWC_Service;
 
@@ -26,15 +30,19 @@ public class WC_Service {
     public CresStreamCtrl mStreamCtrl = null;
     public GstreamOut mStreamOut = null;
     public int mCurrentId = 0;
-    WC_Status mWcStatus = null;
+    WC_Status mStatus = null;
+    WC_UsbDevices mUsbDevices = null;
     String mVideoFile;
     String mAudioFile;
+    boolean inUse = false;
+    String currentNickName="";
+    String currentDeviceId="";
 
     public WC_Service(CresStreamCtrl streamCtrl)
     {
         mStreamCtrl = streamCtrl;
         mStreamOut = mStreamCtrl.getStreamOut();
-        mWcStatus = new WC_Status();
+        mStatus = new WC_Status();
     }
 
     final RemoteCallbackList<IWC_Callback> mCallbacks = new RemoteCallbackList<IWC_Callback>();
@@ -42,12 +50,14 @@ public class WC_Service {
     private final IWC_Service.Stub mBinder = new IWC_Service.Stub() {
         // will check USB, start server and return a positive session id on success or a negative integer code in event of failure (-1 = in use, -2 = no USB devices present)
         // when server is started a new username/password are generated to form URL and new X509 certificate and privateKey are generated
-        public int WC_OpenSession(String userId)
+        public int WC_OpenSession(String clientId, WC_SessionOptions options)
         {
-            Log.i(TAG,"WC_OpenSession: request from userId="+userId);
+            Log.i(TAG,"WC_OpenSession: request from clientId="+clientId+" options="+options);
             if (!mStreamOut.wcStarted()) {
-                mStreamCtrl.setWirelessConferencingStreamEnable(true);
                 mCurrentId++;
+            	mStatus = new WC_Status(false, false, mCurrentId, clientId, options.nickname, options.flags);
+            	// server start will communicate via callback onStatusChanged once it has been started
+                mStreamCtrl.setWirelessConferencingStreamEnable(true);
                 return mCurrentId;
             } else {
                 return ERROR_IN_USE;
@@ -72,6 +82,8 @@ public class WC_Service {
             if (id == mCurrentId)
             {
                 if (mStreamOut.wcStarted()) {
+                	mStatus = new WC_Status(true, false, 0, "", "", WC_SessionFlags.None);
+                	// server stop will communicate via callback onStatusChanged once it has been started
                     mStreamCtrl.setWirelessConferencingStreamEnable(false);
                 }
                 return 0;
@@ -90,7 +102,9 @@ public class WC_Service {
                 try {
                 	if (mCallbacks.getBroadcastItem(i) == cb) {
                         Log.i(TAG,"send current WC status to latest client");
-                		mCallbacks.getBroadcastItem(i).onStatusChanged(mWcStatus);
+                		mCallbacks.getBroadcastItem(i).onStatusChanged(mStatus);
+                        Log.i(TAG,"send current WC usb device status to latest client");
+                		mCallbacks.getBroadcastItem(i).onUsbDevicesChanged(mUsbDevices);
                 	}
                 } catch (RemoteException e) {
                     // The RemoteCallbackList will take care of removing
@@ -124,65 +138,37 @@ public class WC_Service {
     public void onClientConnected(String clientIp)
     {
         Log.i(TAG,"onClientConnected: client IP address="+clientIp);
-        // Broadcast to all clients the new value.
-        final int N = mCallbacks.beginBroadcast();
-        for (int i=0; i<N; i++) {
-            try {
-                mCallbacks.getBroadcastItem(i).onClientConnected(clientIp);
-            } catch (RemoteException e) {
-                // The RemoteCallbackList will take care of removing
-                // the dead object for us.
-            }
-        }
-        mCallbacks.finishBroadcast();
+    	if (!mStatus.isClientConnected) {
+    		mStatus.isClientConnected=true;
+    		onStatusChanged();
+    	}
     }
 
     public void onClientDisconnected(String clientIp)
     {
         Log.i(TAG,"onClientDisconnected: client IP address="+clientIp);
-        // Broadcast to all clients the new value.
-        final int N = mCallbacks.beginBroadcast();
-        for (int i=0; i<N; i++) {
-            try {
-                mCallbacks.getBroadcastItem(i).onClientDisconnected(clientIp);
-            } catch (RemoteException e) {
-                // The RemoteCallbackList will take care of removing
-                // the dead object for us.
-            }
-        }
-        mCallbacks.finishBroadcast();
+    	if (mStatus.isClientConnected) {
+    		mStatus.isClientConnected=false;
+    		onStatusChanged();
+    	}
     }
 
     public void onServerStart()
     {
-        Log.i(TAG,"invoking onServerStart() callbacks");
-        // Broadcast to all clients the new value.
-        final int N = mCallbacks.beginBroadcast();
-        for (int i=0; i<N; i++) {
-            try {
-                mCallbacks.getBroadcastItem(i).onServerStart();
-            } catch (RemoteException e) {
-                // The RemoteCallbackList will take care of removing
-                // the dead object for us.
-            }
-        }
-        mCallbacks.finishBroadcast();
+        Log.i(TAG,"onServerStart()");
+    	if (!mStatus.isServerStarted) {
+    		mStatus.isServerStarted=true;
+    		onStatusChanged();
+    	}
     }
 
     public void onServerStop()
     {
-        Log.i(TAG,"invoking onServerStop() callbacks");
-        // Broadcast to all clients the new value.
-        final int N = mCallbacks.beginBroadcast();
-        for (int i=0; i<N; i++) {
-            try {
-                mCallbacks.getBroadcastItem(i).onServerStop();
-            } catch (RemoteException e) {
-                // The RemoteCallbackList will take care of removing
-                // the dead object for us.
-            }
-        }
-        mCallbacks.finishBroadcast();
+        Log.i(TAG,"onServerStop()");
+    	if (mStatus.isServerStarted) {
+    		mStatus.isServerStarted=false;
+    		onStatusChanged();
+    	}
     }
 
     public void onStatusChanged()
@@ -192,7 +178,23 @@ public class WC_Service {
         final int N = mCallbacks.beginBroadcast();
         for (int i=0; i<N; i++) {
             try {
-                mCallbacks.getBroadcastItem(i).onStatusChanged(mWcStatus);
+                mCallbacks.getBroadcastItem(i).onStatusChanged(mStatus);
+            } catch (RemoteException e) {
+                // The RemoteCallbackList will take care of removing
+                // the dead object for us.
+            }
+        }
+        mCallbacks.finishBroadcast();
+    }
+    
+    public void onUsbDevicesChanged()
+    {
+        Log.i(TAG,"invoking onUsbDevicesChanged() callbacks");
+        // Broadcast to all clients the new value.
+        final int N = mCallbacks.beginBroadcast();
+        for (int i=0; i<N; i++) {
+            try {
+                mCallbacks.getBroadcastItem(i).onUsbDevicesChanged(mUsbDevices);
             } catch (RemoteException e) {
                 // The RemoteCallbackList will take care of removing
                 // the dead object for us.
@@ -231,22 +233,22 @@ public class WC_Service {
         Log.i(TAG,"Connection_Parameters={\n"+getConnectionParameters().toString()+"\n}");
     }
     
-    public void updateStatus(List<UsbAvDevice> devices)
+    public void updateUsbDeviceStatus(List<UsbAvDevice> devices)
     {
-    	WC_Status wcStatus = generateWcStatus(devices);
-    	if (!mWcStatus.isEqual(wcStatus))
+    	WC_UsbDevices usbDevices = generateUsbDevices(devices);
+    	if (!WC_UsbDevices.isEqual(mUsbDevices, usbDevices))
     	{
-    		mWcStatus = wcStatus;
-    		Log.i(TAG, "getWcStatus(): status has changed: "+mWcStatus);
-    		onStatusChanged();
+    		mUsbDevices = usbDevices;
+    		Log.i(TAG, "updateStatus(): status has changed: "+mUsbDevices);
+    		onUsbDevicesChanged();
     	} else {
-    		Log.i(TAG, "getWcStatus(): no change in status");
+    		Log.i(TAG, "updateStatus(): no change in status");
     	}
     }
     
-    public WC_Status generateWcStatus(List<UsbAvDevice> devices)
+    public WC_UsbDevices generateUsbDevices(List<UsbAvDevice> devices)
     {
-    	WC_Status wcStatus = new WC_Status();
+    	WC_UsbDevices usbDevices = new WC_UsbDevices();
     	UsbAvDevice usb2Device = null;
     	UsbAvDevice usb3Device = null;
     	
@@ -260,27 +262,27 @@ public class WC_Service {
     	}
     	// Add explicitly to list so that order is guaranteed when isEquals() is called
     	if (usb3Device != null) {
-    		WC_UsbDevice dev = new WC_UsbDevice("usb3", usb3Device.deviceName, 
-    				(usb3Device.videoFile != null), (usb3Device.audioFile != null));
-    		if (wcStatus.devices != null)
+    		WC_UsbDevice dev = new WC_UsbDevice("usb3", "usb3-device", usb3Device.deviceName, 
+    				(usb3Device.videoFile != null), (usb3Device.audioFile != null), new HashMap<String, String>());
+    		if (usbDevices.devices != null)
     		{
-    			wcStatus.devices.add(dev);
+    			usbDevices.devices.add(dev);
     		} else
         		Log.e(TAG, "generateWcStatus(): null devices list");
     	}
     	if (usb2Device != null) {
-    		WC_UsbDevice dev = new WC_UsbDevice("usb2", usb2Device.deviceName, 
-    				(usb2Device.videoFile != null), (usb2Device.audioFile != null));
-    		if (wcStatus.devices != null)
+    		WC_UsbDevice dev = new WC_UsbDevice("usb2", "usb2-device", usb2Device.deviceName, 
+    				(usb2Device.videoFile != null), (usb2Device.audioFile != null), new HashMap<String, String>());
+    		if (usbDevices.devices != null)
     		{
-    			wcStatus.devices.add(dev);
+    			usbDevices.devices.add(dev);
     		} else
         		Log.e(TAG, "generateWcStatus(): null devices list");
     	}
     	
     	setActiveDevices(usb3Device, usb2Device);
     	
-    	return wcStatus;
+    	return usbDevices;
     }
     
     public void setActiveDevices(UsbAvDevice usb3Device, UsbAvDevice usb2Device)
