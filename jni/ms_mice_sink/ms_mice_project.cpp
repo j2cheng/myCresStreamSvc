@@ -409,23 +409,23 @@ int app_extension_ms_mice_service_set_session_pin(gpointer user_data)
 
         if(cmd->service)
         {
+            CSIO_LOG(eLogLevel_debug,"app_extension_ms_mice_service_set_session_pin %s",csio_jni_hashPin(cmd->session_pin));
+
             if(cmd->session_pin)
             {
                 ms_mice_sink_service_set_session_pin(cmd->service,cmd->session_pin);
                 CSIO_LOG(eLogLevel_debug,"app_extension_ms_mice_service_set_session_pin: get_session_pin[0x%x]",
                          ms_mice_sink_service_get_session_pin(cmd->service));
+                g_free((gpointer)cmd->session_pin);
             } else {
                 ms_mice_sink_service_set_session_pin(cmd->service,"");
             }
-
-            CSIO_LOG(eLogLevel_debug,"app_extension_ms_mice_service_set_session_pin %s",csio_jni_hashPin(cmd->session_pin));
         }
         else
         {
             CSIO_LOG(eLogLevel_debug,"app_extension_ms_mice_service_set_session_pin cmd->service is NULL");
         }
 
-        g_free((gpointer)cmd->session_pin);
         delete cmd;
     }
     else

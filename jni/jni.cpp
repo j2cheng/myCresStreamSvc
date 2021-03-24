@@ -1082,7 +1082,7 @@ JNIEXPORT void JNICALL Java_com_crestron_txrxservice_GstreamIn_nativeSetServerUr
 	const char * url_cstring = env->GetStringUTFChars( url_jstring , NULL ) ;
 	if (url_cstring == NULL) return;
 
-	CSIO_LOG(eLogLevel_debug, "Using server url: '%s'", url_cstring);
+	CSIO_LOG(eLogLevel_debug, "Using server url: '%s'", csio_sanitizeUrl(url_cstring).c_str());
 	if(strcasestr(url_cstring, "DOOR_STATION") != NULL)
 	{
 	    CREGSTREAM * data = GetStreamFromCustomData(CresDataDB, streamId);
