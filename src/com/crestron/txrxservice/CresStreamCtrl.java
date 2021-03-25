@@ -5629,9 +5629,14 @@ public class CresStreamCtrl extends Service {
     {
         String versionName = "";
         final PackageManager pm = getPackageManager();
-        String apkName = "ReceiverAirMediaSplashtop.apk";
-        String fullPath = "/data/app" + "/" + apkName;
-        PackageInfo info = pm.getPackageArchiveInfo(fullPath, 0);
+        
+        // Using AM200/300 path
+        PackageInfo info = pm.getPackageArchiveInfo("/data/app/ReceiverAirMediaSplashtop.apk", 0);
+        if (info == null) {
+        	// Using AM3X00 path if not found
+        	info = pm.getPackageArchiveInfo("/vendor/priv-app/airmedia.receiver/airmedia.receiver.apk", 0);
+        }
+
         if (info != null)
         {
             ApplicationInfo ai=null;
