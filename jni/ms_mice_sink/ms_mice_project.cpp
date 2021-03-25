@@ -432,6 +432,8 @@ int app_extension_ms_mice_service_set_session_pin(gpointer user_data)
     {
         CSIO_LOG(eLogLevel_debug,"app_extension_ms_mice_service_set_session_pin cmd is NULL");
     }
+
+    return 0;
 }
 /* ------------------------------------------------------------------------------------------------------------------
  * -- load | unload extensions
