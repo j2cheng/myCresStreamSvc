@@ -152,7 +152,29 @@ public class CanvasCrestore
 //        String s = gson.toJson(r);
 //    	  Common.Logging.i(TAG, "Clearing Session Response Map in Crestore="+s);
 //    	  wrapper.set(s, true);
-    	Common.Logging.i(TAG, "Clearing video displayed flag in Cresstore");
+		// setup the source display names by reading Device.SourceSelectionConfiguration.Sources
+        Common.Logging.i(TAG, "Get SourceSelectionConfiguration to map display names for sources");
+        String sourcesStr = "{\"Device\":{\"SourceSelectionConfiguration\":{}}}";
+        try {
+        	String jsonStr = wrapper.get(true, sourcesStr);
+            if (jsonStr != null)
+            {
+            	Log.i(TAG, "SourceSelectionConfiguration = "+jsonStr);
+            	SourceSelectionConfiguration sources = gson.fromJson(jsonStr, SourceSelectionConfiguration.class);
+            	if (sources.sourceSelectionMap != null)
+            	{
+            		initializeSessionDisplayNames(sources.sourceSelectionMap);
+            	} else {
+            		Log.i(TAG, "Could not find source selection map");
+            	}
+            } else {
+        		Log.i(TAG, "Could not find source selection configuration");
+            }
+        } catch (Exception ex) {
+            Common.Logging.i(TAG, "exception reading sources map from cresstore");
+        }
+
+        Common.Logging.i(TAG, "Clearing video displayed flag in Cresstore");
     	setVideoDisplayed(false);
 	}
 	
@@ -189,6 +211,17 @@ public class CanvasCrestore
         	return false;
         } else {
         	Common.Logging.i(TAG,"Successfully subscribed to " + sPendingDeviceAirMediaNetworkStreams);
+        }
+        
+        //subscribe to Device.SourceSelectionConfiguration.Sources
+        String sSourceSelectionConfiguration = "{\"Device\":{\"SourceSelectionConfiguration\":{\"Sources\":{}}}}";
+        rv = wrapper.subscribeCallback(sSourceSelectionConfiguration, crestoreCallback);
+        if (rv != com.crestron.cresstoreredis.CresStoreResult.CRESSTORE_SUCCESS)
+        {
+        	Common.Logging.i(TAG,"Could not set up Crestore Callback for subscription to " + sSourceSelectionConfiguration+": " + rv);
+        	return false;
+        } else {
+        	Common.Logging.i(TAG,"Successfully subscribed to " + sSourceSelectionConfiguration);
         }
         
         if (!verifyCrestore())
@@ -280,6 +313,25 @@ public class CanvasCrestore
 		Common.Logging.i(TAG, "***************************** cresstoreSet failed - trying to recover *******************************");
 		recoverCrestore();
         return false;
+	}
+	
+	public void initializeSessionDisplayNames(Map<String, SourceSelectionMapEntry> map)
+	{
+		Common.Logging.i(TAG, "SourceSelectionMap="+gson.toJson(map));
+		for (Map.Entry<String, SourceSelectionMapEntry> entry : map.entrySet())
+		{
+			SourceSelectionMapEntry v = entry.getValue();
+			// if name and/or type is null skip
+			if (v.name == null || v.type == null)
+				continue;
+			Common.Logging.i(TAG, "SessionType="+v.type+"  displayLabel="+v.name);
+			if (v.type.equals("HDMI"))
+				HDMISession.setDisplayLabel(v.name);
+			if (v.type.equals("DM"))
+				DMSession.setDisplayLabel(v.name);
+			if (v.type.equals("AirBoard"))
+				AirBoardSession.setDisplayLabel(v.name);
+		}
 	}
 	
 	public void restartSchedulers()
@@ -1390,6 +1442,16 @@ public class CanvasCrestore
         				}
         			}
         		}
+        		if (root.device!=null&&root.device.sourceSelectionConfiguration!=null)
+        		{
+        			Map<String, SourceSelectionMapEntry> map = root.device.sourceSelectionConfiguration.sourceSelectionMap;
+        			if (map != null)
+        			{
+        				initializeSessionDisplayNames(map);
+        			} else {
+    					Common.Logging.i(TAG, "Empty source selection configuration map!!!");
+        			}
+        		}
 
                 /* parsing Device.AirMedia.NetworkStreams.
                 * 
@@ -1520,6 +1582,14 @@ public class CanvasCrestore
 	{
 		Root root = getRootedInternalAirMedia();
 		root.internal.airMedia.osd = new Osd();
+		return root;
+	}
+	
+	private Root getRootedDeviceSourceSelectionConfiguration()
+	{
+		Root root = new Root();
+		root.device = new Device();
+		root.device.sourceSelectionConfiguration = new SourceSelectionConfiguration();
 		return root;
 	}
 	
@@ -1799,6 +1869,24 @@ public class CanvasCrestore
         }
     }
     
+    public class SourceSelectionMapEntry {
+        @SerializedName ("Id")
+        String id;
+        @SerializedName ("Name")
+        String name;
+        @SerializedName ("Rank")
+        Integer rank;
+        @SerializedName ("IconId")
+        String iconId;
+        @SerializedName ("Type")
+        String type;
+    }
+    
+    public class SourceSelectionConfiguration {
+    	@SerializedName("Sources")
+        Map<String, SourceSelectionMapEntry> sourceSelectionMap;
+    }
+    
     public class Osd {
     	@SerializedName ("CurrentConnectionInfo")
     	String currentConnectionInfo;
@@ -1840,6 +1928,8 @@ public class CanvasCrestore
     public class Device {
         @SerializedName ("AirMedia")
     	AirMedia airMedia;        
+        @SerializedName ("SourceSelectionConfiguration")
+        SourceSelectionConfiguration sourceSelectionConfiguration;
     }
     
     public class Root {

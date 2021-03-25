@@ -19,6 +19,7 @@ public class DMSession extends Session
     public static final String TAG = "TxRx.canvas.DM.session"; 
     private Surface surface = null;
     public int left, top, width, height;
+    private static String displayLabel=null;
 
 	public DMSession(int inputNumber) {
 		super(); // will assign id;
@@ -227,4 +228,9 @@ public class DMSession extends Session
 					" ("+width+","+height+")@("+left+","+top+")");
 		}	
 	}
+	
+	// this assumes we have a single DM session - so static displayLabel can be used for the single session
+	public static void setDisplayLabel(String label) { displayLabel = label; }
+	
+	public String getDisplayLabel() { return (displayLabel==null)?userLabel:displayLabel; }
 }

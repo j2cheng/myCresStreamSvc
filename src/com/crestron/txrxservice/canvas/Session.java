@@ -183,7 +183,7 @@ public abstract class Session
 
 	public void setUserLabel(String label) { this.userLabel = label; }	
 	public String getUserLabel() {return userLabel;}
-	public String getDisplayUserLabel() {return userLabel;}
+	public String getDisplayLabel() {return userLabel;}
 	
 	public void setInputNumber(int inputNumber) { this.inputNumber = inputNumber; }	
 	public int getInputNumber() {return inputNumber;}
@@ -441,7 +441,7 @@ public abstract class Session
 	    platform = s.getPlatformType();
 	    videoType = s.getVideoType();
 
-	    CanvasSourceSession css = new CanvasSourceSession(s.sessionId(), s.getDisplayUserLabel(), state, type, 
+	    CanvasSourceSession css = new CanvasSourceSession(s.sessionId(), s.getDisplayLabel(), state, type, 
 	    		platform, videoType, s.getResolution().width, s.getResolution().height, s.isVideoLoading, s.isAudioMuted, options, s.airmediaId);
 
 	    return css;
@@ -460,7 +460,7 @@ public abstract class Session
 				mCanvas.mAirMediaCanvas.service().sessionUpdate(css);
 			} catch (android.os.RemoteException ex)
 			{
-				Log.i(TAG, "Remote exceptione encountered while doing canvasSessionUpdate");
+				Log.i(TAG, "Remote exception encountered while doing canvasSessionUpdate");
 				ex.printStackTrace();
 			}
 		}

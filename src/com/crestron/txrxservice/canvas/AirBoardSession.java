@@ -10,6 +10,7 @@ import android.util.Log;
 public class AirBoardSession extends Session
 {
     public static final String TAG = "TxRx.canvas.airboard.session"; 
+    private static String displayLabel=null;
 
 	public AirBoardSession(String airBoardUrl, String label) {
 		super(); // will assign id;
@@ -142,4 +143,9 @@ public class AirBoardSession extends Session
 	{
 		play(originator, 10);
 	}
+	
+	// this assumes we have a single Airboard session - so static displayLabel can be used for the single session
+	public static void setDisplayLabel(String label) { displayLabel = label; }
+	
+	public String getDisplayLabel() { return (displayLabel==null)?userLabel:displayLabel; }
 }

@@ -16,6 +16,7 @@ public class HDMISession extends Session
 {
     public static final String TAG = "TxRx.canvas.HDMI.session";
     private HDMIInputInterface hdmiInput;
+    private static String displayLabel=null;
 
 	public HDMISession(int inputNumber) {
 		super(); // will assign id;
@@ -145,4 +146,13 @@ public class HDMISession extends Session
 		setIsAudioMuted(enable);
 		return true;
 	}
+	
+	// this assumes we have a single HDMI session - so static displayLabel can be used for the single session
+	public static void setDisplayLabel(String label) 
+	{ 
+		Common.Logging.i(TAG, "HDMISession.setDisplayLabel(): displayLabel=label");
+		displayLabel = label; 
+	}
+	
+	public String getDisplayLabel() { return (displayLabel==null)?userLabel:displayLabel; }
 }
