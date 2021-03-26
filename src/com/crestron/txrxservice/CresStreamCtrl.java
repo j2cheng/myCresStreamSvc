@@ -5627,14 +5627,15 @@ public class CresStreamCtrl extends Service {
 
     public String getAirMediaVersion()
     {
-        String versionName = "";
+    	String versionName = "";
         final PackageManager pm = getPackageManager();
-        
-        // Using AM200/300 path
-        PackageInfo info = pm.getPackageArchiveInfo("/data/app/ReceiverAirMediaSplashtop.apk", 0);
-        if (info == null) {
-        	// Using AM3X00 path if not found
-        	info = pm.getPackageArchiveInfo("/vendor/priv-app/airmedia.receiver/airmedia.receiver.apk", 0);
+        PackageInfo info = null;
+        try {
+        	info = pm.getPackageInfo("com.crestron.airmedia.receiver.m360", 0);
+        } catch (Exception e) {
+            //Handle exception
+        	Log.e(TAG, "Exception encountered trying to get package info for AirMedia receiver apk");
+        	return versionName;
         }
 
         if (info != null)
