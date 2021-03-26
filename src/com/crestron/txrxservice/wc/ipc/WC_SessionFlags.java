@@ -3,9 +3,6 @@ package com.crestron.txrxservice.wc.ipc;
 import android.os.Parcel;
 import android.os.Parcelable;
 
-import java.util.ArrayList;
-import java.util.List;
-
 public enum WC_SessionFlags implements Parcelable {
     None(0),
     Video(0x1),

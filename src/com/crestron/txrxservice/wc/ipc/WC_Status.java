@@ -1,11 +1,5 @@
 package com.crestron.txrxservice.wc.ipc;
 
-import java.util.ArrayList;
-import java.util.List;
-
-import com.crestron.airmedia.canvas.channels.ipc.CanvasSourceTransaction;
-import com.crestron.airmedia.receiver.m360.ipc.AirMediaSessionVideoSource;
-
 import android.os.Parcel;
 import android.os.Parcelable;
 
@@ -75,5 +69,16 @@ public class WC_Status implements Parcelable {
         dest.writeString(this.clientId);
         dest.writeString(this.nickname);
         this.sessionFlags.writeToParcel(dest, flags);
+    }
+    
+    @Override
+    public String toString() {
+    	return "Status = {\n"+
+               "    isServerStarted: "+isServerStarted+"\n"+
+               "    isClientConnected: "+isServerStarted+"\n"+
+               "    sessionId: "+sessionId+"\n"+
+               "    clientId: "+clientId+"\n"+
+               "    nickname: "+nickname+"\n"+
+               "    flags: "+sessionFlags+"\n";
     }
 }

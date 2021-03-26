@@ -8,18 +8,16 @@ public class WC_Connection implements Parcelable {
     public final int sessionId;
     public final String url;
 	public final String certificate;
-	public final String key;
 
     public WC_Connection() {
-        this(0, null, null, null);
+        this(0, null, null);
     }
 
-    public WC_Connection(int sessionId, String url, String cert, String key) {
+    public WC_Connection(int sessionId, String url, String cert) {
         this.contents = 0;
         this.sessionId = sessionId;
         this.url = url;
 		this.certificate = cert;
-		this.key = key;
     }
 
     protected WC_Connection(Parcel in) {
@@ -27,7 +25,6 @@ public class WC_Connection implements Parcelable {
         this.sessionId = in.readInt();
 		this.url = in.readString();
 		this.certificate = in.readString();
-		this.key = in.readString();
     }
 
     public static final Creator<WC_Connection> CREATOR = new Creator<WC_Connection>() {
@@ -53,10 +50,9 @@ public class WC_Connection implements Parcelable {
         dest.writeInt(this.sessionId);
 		dest.writeString(this.url);
 		dest.writeString(this.certificate);
-		dest.writeString(this.key);
     }
 
     public String toString() {
-        return "URL="+url+"\n Certificate="+certificate+"\n Key="+key;
+        return "URL="+url+"\n Certificate="+certificate;
     }
 }

@@ -7,6 +7,7 @@ import android.util.Log;
 
 import java.util.HashMap;
 import java.util.List;
+import java.util.concurrent.atomic.AtomicBoolean;
 
 import com.crestron.txrxservice.CresStreamCtrl;
 import com.crestron.txrxservice.GstreamOut;
@@ -34,7 +35,7 @@ public class WC_Service {
     WC_UsbDevices mUsbDevices = null;
     String mVideoFile;
     String mAudioFile;
-    boolean inUse = false;
+    AtomicBoolean inUse = new AtomicBoolean(false);
     String currentNickName="";
     String currentDeviceId="";
 
@@ -53,9 +54,13 @@ public class WC_Service {
         public int WC_OpenSession(String clientId, WC_SessionOptions options)
         {
             Log.i(TAG,"WC_OpenSession: request from clientId="+clientId+" options="+options);
-            if (!mStreamOut.wcStarted()) {
+            if (mUsbDevices.devices.size() == 0) {
+            	return ERROR_NO_USB_DEVICES;
+            }
+            if (inUse.compareAndSet(false, true)) {
                 mCurrentId++;
             	mStatus = new WC_Status(false, false, mCurrentId, clientId, options.nickname, options.flags);
+            	//TODO handle option.flags
             	// server start will communicate via callback onStatusChanged once it has been started
                 mStreamCtrl.setWirelessConferencingStreamEnable(true);
                 return mCurrentId;
@@ -81,10 +86,12 @@ public class WC_Service {
             Log.i(TAG,"WC_CloseSession: request from id="+id);
             if (id == mCurrentId)
             {
-                if (mStreamOut.wcStarted()) {
+                if (inUse.compareAndSet(true,  false)) {
                 	mStatus = new WC_Status(true, false, 0, "", "", WC_SessionFlags.None);
                 	// server stop will communicate via callback onStatusChanged once it has been started
                     mStreamCtrl.setWirelessConferencingStreamEnable(false);
+                } else {
+                    Log.i(TAG,"WC_CloseSession: WC is not in use");
                 }
                 return 0;
             } else {
@@ -222,8 +229,8 @@ public class WC_Service {
     {
         String url = mStreamOut.getWcServerUrl();
         String cert = mStreamOut.getWcServerCertificate();
-        String privKey = mStreamOut.getWcServerKey();
-        WC_Connection wc_connection = new WC_Connection(1, url, cert, privKey);
+        //String privKey = mStreamOut.getWcServerKey();
+        WC_Connection wc_connection = new WC_Connection(1, url, cert);
         return wc_connection;
     }
 
@@ -239,10 +246,10 @@ public class WC_Service {
     	if (!WC_UsbDevices.isEqual(mUsbDevices, usbDevices))
     	{
     		mUsbDevices = usbDevices;
-    		Log.i(TAG, "updateStatus(): status has changed: "+mUsbDevices);
+    		Log.i(TAG, "updateUsbDeviceStatus(): usb device status has changed: "+mUsbDevices);
     		onUsbDevicesChanged();
     	} else {
-    		Log.i(TAG, "updateStatus(): no change in status");
+    		Log.i(TAG, "updateUsbDeviceStatus(): no change in usb device status");
     	}
     }
     
