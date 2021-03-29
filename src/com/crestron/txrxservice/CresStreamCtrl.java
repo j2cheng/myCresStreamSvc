@@ -5620,7 +5620,7 @@ public class CresStreamCtrl extends Service {
 	           	}
 	        }
 	        
-	        Log.i(TAG, "getAirMediaConnectionIpAddress(String adaptersSelectionString): ipaddr= " + ipaddr);
+	        Log.i(TAG, "getAirMediaConnectionIpAddress(adapterSelectionString:"+adaptersSelectionString+"): ipaddr= " + ipaddr);
 	        return ipaddr;
         }
     }

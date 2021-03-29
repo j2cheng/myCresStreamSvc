@@ -47,5 +47,10 @@ public class WC_SessionOptions implements Parcelable {
         dest.writeString(this.nickname);
         this.flags.writeToParcel(dest, flags);
     }
+    
+    @Override
+    public String toString() {
+    	return "Options = {nickname: "+nickname+"  flags: "+flags+" }";
+    }
 }
 

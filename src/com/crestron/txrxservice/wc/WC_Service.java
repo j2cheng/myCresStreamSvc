@@ -33,11 +33,10 @@ public class WC_Service {
     public int mCurrentId = 0;
     WC_Status mStatus = null;
     WC_UsbDevices mUsbDevices = null;
-    String mVideoFile;
-    String mAudioFile;
+    String mVideoFile = null;
+    String mAudioFile = null;
+    List<UsbAvDevice> mUsbAvDeviceList = null;
     AtomicBoolean inUse = new AtomicBoolean(false);
-    String currentNickName="";
-    String currentDeviceId="";
 
     public WC_Service(CresStreamCtrl streamCtrl)
     {
@@ -60,7 +59,7 @@ public class WC_Service {
             if (inUse.compareAndSet(false, true)) {
                 mCurrentId++;
             	mStatus = new WC_Status(false, false, mCurrentId, clientId, options.nickname, options.flags);
-            	//TODO handle option.flags
+            	updateUsbDeviceStatus(mUsbAvDeviceList);
             	// server start will communicate via callback onStatusChanged once it has been started
                 mStreamCtrl.setWirelessConferencingStreamEnable(true);
                 return mCurrentId;
@@ -242,7 +241,8 @@ public class WC_Service {
     
     public void updateUsbDeviceStatus(List<UsbAvDevice> devices)
     {
-    	WC_UsbDevices usbDevices = generateUsbDevices(devices);
+    	mUsbAvDeviceList = devices;
+    	WC_UsbDevices usbDevices = generateUsbDevices(mUsbAvDeviceList);
     	if (!WC_UsbDevices.isEqual(mUsbDevices, usbDevices))
     	{
     		mUsbDevices = usbDevices;
@@ -322,6 +322,11 @@ public class WC_Service {
     			audioFile = usb2Device.audioFile;	
     		}
     	}
+    	// Check options selected and disallow video or audio by setting driver file to "none"
+    	if (mStatus.sessionFlags != WC_SessionFlags.Video &&  mStatus.sessionFlags != WC_SessionFlags.AudioAndVideo)
+    		videoFile = "none";
+    	if (mStatus.sessionFlags != WC_SessionFlags.Audio &&  mStatus.sessionFlags != WC_SessionFlags.AudioAndVideo)
+    		audioFile = "none";
     	
     	if ((videoFile == null && mVideoFile != null) || (videoFile != null && !videoFile.equals(mVideoFile)))
     	{

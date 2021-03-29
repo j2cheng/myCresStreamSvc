@@ -485,6 +485,7 @@ CStreamoutManager::CStreamoutManager(eStreamoutMode streamoutMode):
 m_clientConnCnt(0),m_loop(NULL),m_main_loop_is_running(0),
 m_pMedia(NULL),m_bNeedData(false),m_bStopTeeInProgress(false),
 m_bExit(false),m_bPushRawFrames(false),m_ahcsrc(NULL),m_camera(NULL),
+m_audioStream(false), m_videoStream(false), m_usbAudio(NULL),
 m_appsrc(NULL), m_streamoutMode(streamoutMode)
 {
     m_StreamoutEvent  = new CStreamoutEvent();
@@ -499,8 +500,10 @@ m_appsrc(NULL), m_streamoutMode(streamoutMode)
 
     setUsername("user");
     setPassword("password");
-    setVideoCaptureDevice("");
-    setAudioCaptureDevice("");
+    setVideoCaptureDevice("none");
+    setAudioCaptureDevice("none");
+    m_audioStream = false;
+    m_videoStream = false;
 
     if(!m_StreamoutEvent || !m_StreamoutEventQ || !mLock)
         CSIO_LOG(eLogLevel_error, "--Streamout: CStreamoutManager malloc failed:[0x%x][0x%x][0x%x]",\
@@ -544,6 +547,7 @@ CStreamoutManager::~CStreamoutManager()
     }
     CSIO_LOG(eLogLevel_error, "--Streamout: exit destructor");
 }
+
 void CStreamoutManager::DumpClassPara(int level)
 {
     CSIO_LOG(eLogLevel_info, "---Streamout: ThredId 0x%x", (unsigned long int)getThredId());
