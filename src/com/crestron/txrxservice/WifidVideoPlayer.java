@@ -55,6 +55,7 @@ public class WifidVideoPlayer {
 
     private final Object lock_ = new Object();
     private long id_ = 0;
+    private static long wfd_session_id = 0; //session id will count -ve starting -1 for Wifidirect on AM3X
     private AirMediaReceiver receiver_ = null;
     private CresStreamCtrl streamCtrl_ = null;
     private final Map<Long, VideoSession> sessionMap = new HashMap<Long, VideoSession>();
@@ -377,6 +378,15 @@ public class WifidVideoPlayer {
 		}
 		return streamId;
     }
+
+    public long getSessionId()
+    {
+        --wfd_session_id;
+
+        Common.Logging.i(TAG, "Wifidirect Miracast Session ID assigned: "+wfd_session_id);
+        return wfd_session_id;
+    }
+
 
     /// Debugging aid - dump all sessions in map
     public void showAllSessions()

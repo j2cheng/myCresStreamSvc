@@ -223,7 +223,18 @@ public class CanvasCrestore
         } else {
         	Common.Logging.i(TAG,"Successfully subscribed to " + sSourceSelectionConfiguration);
         }
-        
+
+        //subscribe to Device.WiFi.AirMedia.WifiDirect
+        String sDeviceWiFiAirMediaWifiDirect = "{\"Device\":{\"WiFi\":{\"AirMedia\":{\"WifiDirect\":{}}}}}";
+        rv = wrapper.subscribeCallback(sDeviceWiFiAirMediaWifiDirect, crestoreCallback);
+        if (rv != com.crestron.cresstoreredis.CresStoreResult.CRESSTORE_SUCCESS)
+        {
+            Common.Logging.i(TAG,"Could not set up Crestore Callback for subscription to " + sDeviceWiFiAirMediaWifiDirect+": " + rv);
+            return false;
+        } else {
+            Common.Logging.i(TAG,"Successfully subscribed to " + sDeviceWiFiAirMediaWifiDirect);
+        }
+
         if (!verifyCrestore())
         {
         	Common.Logging.i(TAG,"Could not verify crestore wrapper is working");
@@ -1462,7 +1473,38 @@ public class CanvasCrestore
                         }
                    }}}}
                 * 
-                */        		
+                */
+
+                if (root.device != null && root.device.wyFy != null && root.device.wyFy.airMedia != null && root.device.wyFy.airMedia.wifiDirect != null) {
+
+                    Common.Logging.v(TAG, "Received Device/WiFi/AirMedia/WifiDirect message.");
+                    parsed=true;
+                    if(root.device.wyFy.airMedia.wifiDirect.onConnect != null)
+                    {
+                        String localAddress = root.device.wyFy.airMedia.wifiDirect.onConnect.localWifiIpAddress;
+                        String deviceId = root.device.wyFy.airMedia.wifiDirect.onConnect.remoteMac;
+                        String deviceName = root.device.wyFy.airMedia.wifiDirect.onConnect.remoteDeviceName;
+                        String deviceAddress = root.device.wyFy.airMedia.wifiDirect.onConnect.remoteIpAddress;
+                        int rtsp_port = root.device.wyFy.airMedia.wifiDirect.onConnect.rtspPort;
+
+                        if(localAddress != null && deviceId != null && deviceName != null && deviceAddress != null)
+                        {
+                            mStreamCtl.initiateWifiDirect(localAddress, deviceId, deviceName, deviceAddress, rtsp_port);
+                        }
+                        else
+                            Common.Logging.v(TAG, "Received NULL for onConnect message contents.");
+                    }
+                    else
+                        Common.Logging.v(TAG, "Received NULL for onConnect");
+
+                    if(root.device.wyFy.airMedia.wifiDirect.onDisconnect != null)
+                    {
+                        Common.Logging.v(TAG, "wifiDirect onDisconnect only");
+                    }
+                    else
+                        Common.Logging.v(TAG, "Received NULL for onDisconnect");
+                }
+
                 if(pending&&root.device!=null&&root.device.airMedia!=null&&root.device.airMedia.streamconfigmap!=null){
             
                     parsed=true;
@@ -1601,7 +1643,17 @@ public class CanvasCrestore
 		
 		return root;
 	}
-	
+
+    private Root getRootedDeviceWyFyAirMediaWifiDirect()
+    {
+        Root root = new Root();
+        root.device = new Device();
+        root.device.wyFy = new WyFy();
+        root.device.wyFy.airMedia = new WyFyAirMedia();
+        root.device.wyFy.airMedia.wifiDirect = new WyFyWifiDirect();
+        return root;
+    }
+
     public class SessionEventMapEntry {
         @SerializedName ("State")
     	String state;
@@ -1930,6 +1982,8 @@ public class CanvasCrestore
     	AirMedia airMedia;        
         @SerializedName ("SourceSelectionConfiguration")
         SourceSelectionConfiguration sourceSelectionConfiguration;
+        @SerializedName ("WiFi")
+        WyFy wyFy;
     }
     
     public class Root {
@@ -1937,5 +1991,50 @@ public class CanvasCrestore
     	Device device;
         @SerializedName ("Internal")
         Internal internal;
+    }
+
+    class WyFy
+    {
+        @SerializedName ("AirMedia")
+        WyFyAirMedia airMedia;
+    }
+
+    class WyFyAirMedia
+    {
+        @SerializedName ("WifiDirect")
+        WyFyWifiDirect wifiDirect;
+    }
+
+    class WyFyWifiDirect
+    {
+        @SerializedName ("OnConnect")
+        WyFyOnConnect onConnect;
+
+        @SerializedName ("OnDisconnect")
+        WyFyOnDisconnect onDisconnect;
+    }
+
+    class WyFyOnConnect
+    {
+        @SerializedName ("RemoteMac")
+        String remoteMac;
+
+        @SerializedName ("RemoteIpAddress")
+        String remoteIpAddress;
+
+        @SerializedName ("RemoteDeviceName")
+        String remoteDeviceName;
+
+        @SerializedName ("RtspPort")
+        Integer rtspPort;
+
+        @SerializedName ("LocalWifiIpAddress")
+        String localWifiIpAddress;
+    }
+
+    class WyFyOnDisconnect
+    {
+        @SerializedName ("RemoteMac")
+        String remoteMac;
     }
 }
