@@ -4625,6 +4625,20 @@ JNIEXPORT void JNICALL Java_com_crestron_txrxservice_GstreamOut_nativeSet_1WcSec
 
     CSIO_LOG(eLogLevel_debug, "rtsp_server: security_enable in CresStreamOutDataDB: '%d'", CresStreamOutDataDB->streamOut[sessionId].security_enable);
 }
+JNIEXPORT void JNICALL Java_com_crestron_txrxservice_GstreamOut_nativeSet_1WcRandomUserPwEnable(JNIEnv *env, jobject thiz, jboolean enable, jint sessionId)
+{
+	if (!CresStreamOutDataDB)
+	{
+		CSIO_LOG(eLogLevel_info, "%s: cannot set value, CresStreamOutDataDB is null", __FUNCTION__);
+		return;
+	}
+    CSIO_LOG(eLogLevel_debug, "rtsp_server: Using random user password enable: '%d'", enable);
+    CresStreamOutDataDB->streamOut[sessionId].random_user_pw_enable = enable;
+
+    Streamout_EnableRandomUserPw((int) CresStreamOutDataDB->streamOut[sessionId].random_user_pw_enable);
+
+    CSIO_LOG(eLogLevel_debug, "rtsp_server: random_user_pw_enable in CresStreamOutDataDB: '%d'", CresStreamOutDataDB->streamOut[sessionId].random_user_pw_enable);
+}
 JNIEXPORT void JNICALL Java_com_crestron_txrxservice_GstreamOut_nativeSet_1MulticastEnable(JNIEnv *env, jobject thiz, jboolean enable, jint sessionId)
 {
 	if (!CresStreamOutDataDB)

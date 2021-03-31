@@ -19,6 +19,7 @@
 
 #include <stdlib.h>
 #include <fcntl.h>
+#include <ctime>
 #include <unistd.h>
 #include "cresStreamOutManager.h"
 #include "gst/app/gstappsrc.h"
@@ -1116,11 +1117,38 @@ exitThread:
     return NULL;
 }
 
+static std::string genRandomString(const int len) {
+
+    std::string tmp_s;
+    static const char alphanum[] =
+        "0123456789"
+        "ABCDEFGHIJKLMNOPQRSTUVWXYZ"
+        "abcdefghijklmnopqrstuvwxyz"
+        "!#$%^*.";
+    static bool initialize_seed = true;
+
+    if (initialize_seed) {
+    	srand( (unsigned) time(NULL) * getpid());
+    	initialize_seed = false;
+    }
+
+    tmp_s.reserve(len);
+
+    for (int i = 0; i < len; ++i)
+        tmp_s += alphanum[rand() % (sizeof(alphanum) - 1)];
+
+
+    return tmp_s;
+}
+
 void CStreamoutManager::initWcCertificates()
 {
-    // FIXME - these must change to be random strings
-    setUsername("user");
-    setPassword("password");
+	if (m_auth_on && m_random_user_pw)
+	{
+	    // get random user name and password
+		setUsername((char *) genRandomString(16).c_str());
+		setPassword((char *) genRandomString(16).c_str());
+	}
     if (m_streamoutMode == STREAMOUT_MODE_WIRELESSCONFERENCING)
     {
         if (m_tls_on) {

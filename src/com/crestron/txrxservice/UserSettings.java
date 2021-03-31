@@ -276,6 +276,7 @@ public class UserSettings
 	private String camStreamSnapshotName;
 	private String camStreamMulticastAddress;
 	private boolean wcSecurityEnable;
+	private boolean wcRandomUserPwEnable;
 	private String wcVideoCaptureDevice;
 	private String wcAudioCaptureDevice;
 	
@@ -422,6 +423,7 @@ public class UserSettings
 		camStreamSnapshotName = "snapshot";
 		camStreamMulticastAddress = "";
 		wcSecurityEnable = true;
+		wcRandomUserPwEnable = true;
 		wcVideoCaptureDevice = "/dev/video5";
 		wcAudioCaptureDevice = "/dev/snd/pcmC5D0c";
 		serviceMode = CresStreamCtrl.ServiceMode.Master.ordinal();
@@ -1700,6 +1702,14 @@ public class UserSettings
 		this.wcSecurityEnable = enable;
 	}
 
+	public boolean getWcRandomUserPwEnable() {
+		return wcRandomUserPwEnable;
+	}
+
+	public void setWcRandomUserPwEnable(boolean enable) {
+		this.wcRandomUserPwEnable = enable;
+	}
+	
 	public String getWcVideoCaptureDevice() {
 		return wcVideoCaptureDevice;
 	}

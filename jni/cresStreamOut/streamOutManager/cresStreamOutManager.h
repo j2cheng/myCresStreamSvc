@@ -100,6 +100,7 @@ public:
     std::list<RtspClient *> m_clientList;
     bool m_auth_on;
     bool m_tls_on;
+    bool m_random_user_pw;
     bool m_videoStream;
     bool m_audioStream;
     bool m_aacEncode;
@@ -129,6 +130,7 @@ public:
     void setSnapshotName(char* name);
     char* getSnapshotName(void);
     void setSecurityEnable(bool enable) {m_tls_on = enable; m_auth_on = enable;}
+    void setRandomUserPwEnable(bool enable) {m_random_user_pw = enable;}
     void setUsername(char* name){strcpy(rtsp_server_username, name);}
     void setPassword(char* pw){strcpy(rtsp_server_password, pw);}
     void setVideoCaptureDevice(char *dev){strcpy(m_video_capture_device, dev);}

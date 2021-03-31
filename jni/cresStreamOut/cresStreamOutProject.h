@@ -58,6 +58,7 @@ public:
     char m_stream_name[MAX_STR_LEN];
     char m_snapshot_name[MAX_STR_LEN];
     bool m_security_enabled;
+    bool m_random_user_pw_enabled;
     char m_video_capture_device[MAX_STR_LEN];
     char m_audio_capture_device[MAX_STR_LEN];
 private:

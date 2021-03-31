@@ -322,11 +322,14 @@ public class WC_Service {
     			audioFile = usb2Device.audioFile;	
     		}
     	}
-    	// Check options selected and disallow video or audio by setting driver file to "none"
-    	if (mStatus.sessionFlags != WC_SessionFlags.Video &&  mStatus.sessionFlags != WC_SessionFlags.AudioAndVideo)
-    		videoFile = "none";
-    	if (mStatus.sessionFlags != WC_SessionFlags.Audio &&  mStatus.sessionFlags != WC_SessionFlags.AudioAndVideo)
-    		audioFile = "none";
+    	if (mStatus.sessionFlags != WC_SessionFlags.None)
+    	{
+    		// Check options selected and disallow video or audio by setting correspnding driver file to "none"
+    		if (mStatus.sessionFlags != WC_SessionFlags.Video &&  mStatus.sessionFlags != WC_SessionFlags.AudioAndVideo)
+    			videoFile = "none";
+    		if (mStatus.sessionFlags != WC_SessionFlags.Audio &&  mStatus.sessionFlags != WC_SessionFlags.AudioAndVideo)
+    			audioFile = "none";
+    	}
     	
     	if ((videoFile == null && mVideoFile != null) || (videoFile != null && !videoFile.equals(mVideoFile)))
     	{

@@ -212,6 +212,7 @@ typedef struct _CRESSTREAMOUT
     char stream_name[256];
     char snapshot_name[256];
     bool security_enable;
+    bool random_user_pw_enable;
 
 } CRESSTREAMOUT;
 

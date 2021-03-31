@@ -339,6 +339,20 @@ void Streamout_EnableSecurity(int enable)
 	CSIO_LOG(StreamOutProjDebugLevel, "Streamout: %s() exit.", __FUNCTION__);
 }
 
+void Streamout_EnableRandomUserPw(int enable)
+{
+	CSIO_LOG(StreamOutProjDebugLevel, "Streamout: %s() enter", __FUNCTION__);
+
+	gProjectsLock.lock();
+
+	CSIO_LOG(StreamOutProjDebugLevel, "Streamout: set randomize username and password enable to [%d].\n", enable);
+
+	StreamoutProjectSendEvent(0, STREAMOUT_EVENT_JNI_CMD_ENABLE_RANDOM_USER_PW, sizeof(int), &enable);
+
+	gProjectsLock.unlock();
+	CSIO_LOG(StreamOutProjDebugLevel, "Streamout: %s() exit.", __FUNCTION__);
+}
+
 void Streamout_EnableMulticast(int enable)
 {
 	CSIO_LOG(StreamOutProjDebugLevel, "Streamout: %s() enter", __FUNCTION__);
@@ -574,12 +588,14 @@ CStreamoutProject::CStreamoutProject(int iId, eStreamoutMode streamoutMode): m_p
     strcpy(m_stream_name, DEFAULT_STREAM_NAME);
     strcpy(m_snapshot_name, DEFAULT_SNAPSHOT_NAME);
     m_security_enabled = false;
+    m_random_user_pw_enabled = false;
     strcpy(m_video_capture_device, DEFAULT_VIDEO_CAPTURE_DEVICE);
     strcpy(m_audio_capture_device, DEFAULT_AUDIO_CAPTURE_DEVICE);
 
     if (m_streamoutMode == STREAMOUT_MODE_WIRELESSCONFERENCING)
     {
     	m_security_enabled = true;
+    	m_random_user_pw_enabled = true;
         strcpy(m_res_x, "1920");
         strcpy(m_res_y, "1080");
         strcpy(m_iframe_interval, "30");
@@ -737,6 +753,7 @@ void* CStreamoutProject::ThreadEntry()
                             m_StreamoutTaskObjList[id]->setStreamName(m_stream_name);
                             m_StreamoutTaskObjList[id]->setSnapshotName(m_snapshot_name);
                             m_StreamoutTaskObjList[id]->setSecurityEnable(m_security_enabled);
+                            m_StreamoutTaskObjList[id]->setRandomUserPwEnable(m_random_user_pw_enabled);
                             m_StreamoutTaskObjList[id]->setVideoCaptureDevice(m_video_capture_device);
                             m_StreamoutTaskObjList[id]->setAudioCaptureDevice(m_audio_capture_device);
 
@@ -909,7 +926,7 @@ void* CStreamoutProject::ThreadEntry()
                 case STREAMOUT_EVENT_JNI_CMD_ENABLE_SECURITY:
                 {
                     if (m_streamoutMode == STREAMOUT_MODE_CAMERA) { // short circuit - not applicable for WirelessConferencing case
-                        CSIO_LOG(m_debugLevel, "Streamout: STREAMOUT_EVENT_JNI_CMD_ENABLE_MULTICAST ignored in WirlessConferencing mode.");
+                        CSIO_LOG(m_debugLevel, "Streamout: STREAMOUT_EVENT_JNI_CMD_ENABLE_SECURITY ignored in camera mode.");
                     	break;
                     }
                 	int id = evntQ.streamout_obj_id;
@@ -928,6 +945,33 @@ void* CStreamoutProject::ThreadEntry()
                 	else
                 	{
                 		CSIO_LOG(m_debugLevel, "Streamout: streamId[%d], enableSecurity is null",id);
+                	}
+
+                	CSIO_LOG(m_debugLevel, "Streamout: STREAMOUT_EVENT_JNI_CMD_ENABLE_MULTICAST done.");
+                	break;
+                }
+                case STREAMOUT_EVENT_JNI_CMD_ENABLE_RANDOM_USER_PW:
+                {
+                    if (m_streamoutMode == STREAMOUT_MODE_CAMERA) { // short circuit - not applicable for WirelessConferencing case
+                        CSIO_LOG(m_debugLevel, "Streamout: STREAMOUT_EVENT_JNI_CMD_ENABLE_RANDOM_USER_PW ignored in camera mode.");
+                    	break;
+                    }
+                	int id = evntQ.streamout_obj_id;
+
+                	if( evntQ.buf_size && evntQ.buffPtr)
+                	{
+						int enable = *((int *)evntQ.buffPtr);
+                		CSIO_LOG(m_debugLevel, "Streamout: call enableRandomUserPw streamId[%d],enableRandomUserPw[%d]",
+                				id, enable);
+
+                		//save for this project
+                		m_random_user_pw_enabled = (enable) ? true : false;
+
+                		m_projEventQ->del_Q_buf(evntQ.buffPtr);
+                	}
+                	else
+                	{
+                		CSIO_LOG(m_debugLevel, "Streamout: streamId[%d], enableRandomUserPw is null",id);
                 	}
 
                 	CSIO_LOG(m_debugLevel, "Streamout: STREAMOUT_EVENT_JNI_CMD_ENABLE_MULTICAST done.");
@@ -1092,7 +1136,10 @@ void* CStreamoutProject::ThreadEntry()
 									m_StreamoutTaskObjList[id]->setStreamName(m_stream_name);
 									m_StreamoutTaskObjList[id]->setSnapshotName(m_snapshot_name);
 									m_StreamoutTaskObjList[id]->setSecurityEnable(m_security_enabled);
-								
+									m_StreamoutTaskObjList[id]->setRandomUserPwEnable(m_random_user_pw_enabled);
+									m_StreamoutTaskObjList[id]->setVideoCaptureDevice(m_video_capture_device);
+									m_StreamoutTaskObjList[id]->setAudioCaptureDevice(m_audio_capture_device);
+
 									CSIO_LOG(eLogLevel_error, "Streamout: START_PREVIEW CreateNewThread()");
 									m_StreamoutTaskObjList[id]->CreateNewThread();
 								}
@@ -1341,21 +1388,8 @@ void CStreamoutProject::sendEvent(EventQueueStruct* pEvntQ)
                     break;
                 }
 				case STREAMOUT_EVENT_JNI_CMD_ENABLE_MULTICAST:
-				{
-					evntQ.buffPtr = new int(0);
-					if(evntQ.buffPtr)
-		            {
-						int * destPtr = (int *)evntQ.buffPtr;
-						memcpy(destPtr, (int*)bufP, dataSize);
-						evntQ.buf_size = dataSize;
-					}
-			        else
-			        {
-			            CSIO_LOG(eLogLevel_warning, "Streamout: create buffer failed\n");
-			        }
-					break;
-				}
 				case STREAMOUT_EVENT_JNI_CMD_ENABLE_SECURITY:
+				case STREAMOUT_EVENT_JNI_CMD_ENABLE_RANDOM_USER_PW:
 				{
 					evntQ.buffPtr = new int(0);
 					if(evntQ.buffPtr)

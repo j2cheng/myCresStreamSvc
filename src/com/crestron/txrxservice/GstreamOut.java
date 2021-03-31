@@ -54,6 +54,7 @@ public class GstreamOut {
     private native void nativeSet_StreamName(String name, int sessionId);
     private native void nativeSet_SnapshotName(String name, int sessionId);
     private native void nativeSet_WcSecurityEnable(boolean enable, int sessionId);
+    private native void nativeSet_WcRandomUserPwEnable(boolean enable, int sessionId);
     private native void nativeSetAppCacheFolder(String name);
     private native void nativeSetVideoCaptureDevice(String device);
     private native void nativeSetAudioCaptureDevice(String device);
@@ -188,6 +189,7 @@ public class GstreamOut {
         setMulticastEnable(false);
         setWirelessConferencingResolution(10);
         setWcSecurityEnable(streamCtl.userSettings.getWcSecurityEnable());
+        setWcRandomUserPwEnable(streamCtl.userSettings.getWcRandomUserPwEnable());
         setFramerate(15);
         setBitrate(2000000);
         setIFrameInterval(1);
@@ -285,6 +287,10 @@ public class GstreamOut {
 
     public void setWcSecurityEnable(boolean enable) {
         nativeSet_WcSecurityEnable(enable, sessionId);
+    }
+    
+    public void setWcRandomUserPwEnable(boolean enable) {
+        nativeSet_WcRandomUserPwEnable(enable, sessionId);
     }
     
     public void setFramerate(int fps) {

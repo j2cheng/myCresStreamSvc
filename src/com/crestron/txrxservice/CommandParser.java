@@ -206,6 +206,7 @@ public class CommandParser {
 
         WC_STREAMING_ENABLE, // Wireless Conferencing Enable
         WC_SECURITY_ENABLE,  // Wireless Conferencing security Enable
+        WC_RANDOM_USERPW_ENABLE,  // Wireless Conferencing random user and password Enable
         WC_VIDEO_DEVICE,     // Wireless Conferencing set video device
         WC_AUDIO_DEVICE,     // Wireless Conferencing set audio device
 
@@ -865,6 +866,9 @@ public class CommandParser {
                 break;
             case WC_SECURITY_ENABLE:
                 cmd = new WirelessConferencingSecurityEnableCommand(ctrl, arg);
+                break;
+            case WC_RANDOM_USERPW_ENABLE:
+                cmd = new WirelessConferencingRandomUserPwEnableCommand(ctrl, arg);
                 break;
             case WC_VIDEO_DEVICE:
                 cmd = new WirelessConferencingVideoDeviceCommand(ctrl, arg);

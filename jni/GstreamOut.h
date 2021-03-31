@@ -83,6 +83,14 @@ JNIEXPORT void JNICALL Java_com_crestron_txrxservice_GstreamOut_nativeSet_1WcSec
 
 /*
  * Class:     com_crestron_txrxservice_GstreamOut
+ * Method:    nativeSet_WcRandomUserPwEnable
+ * Signature: (ZI)V
+ */
+JNIEXPORT void JNICALL Java_com_crestron_txrxservice_GstreamOut_nativeSet_1WcRandomUserPwEnable
+  (JNIEnv *, jobject, jboolean, jint);
+
+/*
+ * Class:     com_crestron_txrxservice_GstreamOut
  * Method:    nativeSet_MulticastEnable
  * Signature: (ZI)V
  */
