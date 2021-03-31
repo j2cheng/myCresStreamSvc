@@ -87,9 +87,6 @@ public class AudioPlayback
 				audioTrackThread = new Thread(new ProcessBufferQueue(audioBufferQueue));
 				audioTrackThread.start();
 
-                if(mStreamCtl.isAM3X00())
-                    AudioSrc = MediaRecorder.AudioSource.MIC;
-
                 mRecorder = new AudioRecord(AudioSrc, SampleRate, AudioChannels, AudioFmt, (2 * BufferSize)); // multiple times 2 because 2 byte per sample
                 mRecorder.startRecording();
                 mPlayer = new AudioTrack(AudioManager.STREAM_MUSIC, SampleRate, AudioChannels, AudioFmt, (2 * BufferSize), AudioTrack.MODE_STREAM);
