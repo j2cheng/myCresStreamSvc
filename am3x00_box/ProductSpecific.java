@@ -369,8 +369,9 @@ public class ProductSpecific
         		}
         		String vFile = getVideoCaptureFile(videoList);
         		String aFile = getAudioCaptureFile(audioList);
-        		d = new UsbAvDevice(usbId, ((usbId==PeripheralManager.PER_USB_30)?"usb3":"usb2"), name, vFile, 
-        				aFile, perUsbDevices);
+//        		d = new UsbAvDevice(usbId, ((usbId==PeripheralManager.PER_USB_30)?"usb3":"usb2"), name, vFile, 
+//        				aFile, perUsbDevices);
+        		d = new UsbAvDevice(usbId, ((usbId==PeripheralManager.PER_USB_30)?"usb3":"usb2"), name, vFile, aFile);
         		Log.i(TAG, "UsbAudioVideoDeviceAdded(): new USB device "+d.deviceName+" added on "+d.usbPortType);
         		usbDeviceList.add(d);
         	} else {
