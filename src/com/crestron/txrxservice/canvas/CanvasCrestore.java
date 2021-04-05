@@ -475,7 +475,29 @@ public class CanvasCrestore
 		root.internal.airMedia.osd.currentWirelessConnectionInfo = connectionInfo;
 		cresstoreSet(gson.toJson(root), true);
 	}
-	
+
+    public void setCurrentNetworkingStreamsMapToDB(Map<String, StreamConfigMapEntry> map) {
+        Root root = getRootedDeviceNetworkStreams();
+        root.device.airMedia.networkStreams = map;
+
+        Common.Logging.v(TAG, "setCurrentNetworkingStreamsMapToDB Message " + gson.toJson(root));
+        cresstoreSet(gson.toJson(root), true);
+    }
+
+    public void setCurrentNetworkingStreamsSessionStatusToDB(Session session, String status) {
+        Root root = getRootedDeviceNetworkStreams();
+        StreamConfigMapEntry mapEntry = new StreamConfigMapEntry();
+        mapEntry.status = status;
+
+        HashMap<String, StreamConfigMapEntry> locamap = new HashMap<String, StreamConfigMapEntry>();
+        locamap.put(session.userLabel, mapEntry);
+
+        root.device.airMedia.networkStreams = locamap;
+        Common.Logging.v(TAG, "setCurrentNetworkingStreamsSessionStatusToDB send to DB " + gson.toJson(root));
+
+        cresstoreSet(gson.toJson(root), true);
+    }
+
 	public void markSessionsSentToAvf(SessionEvent e)
 	{
 		for (Map.Entry<String, SessionEventMapEntry> entry : e.sessionEventMap.entrySet())
@@ -1253,7 +1275,7 @@ public class CanvasCrestore
     public void processSessionNetworkStream(String userLabel, StreamConfigMapEntry mapEntry){
 	    
         // this may never happen.
-        if (userLabel == null || mapEntry == null) {
+        if (userLabel == null) {
             Common.Logging.i(TAG, "NetworkStream command has no userLabel or mapEntry");
             return;
         }
@@ -1263,12 +1285,14 @@ public class CanvasCrestore
         Common.Logging.i(TAG, "Processing Network Stream findSession for : " + userLabel + " , session is : " + session);
 
         //Step 2: ckeck remove session for {"streamN": {}}
-        if (gson.toJson(mapEntry).equalsIgnoreCase("{}")) {
+        if (mapEntry == null || gson.toJson(mapEntry).equalsIgnoreCase("{}")) {
             Common.Logging.i(TAG, "Processing Network Stream to remove session");
 
-            //Note: maybe "Disconnect" will call doStop()            
-            doSynchronousSessionEvent(session, "Disconnect", new Originator(RequestOrigin.StateChangeMessage, session), 10);	            
-            mSessionMgr.remove(session);
+            //Note: "Disconnect" will call doStop()    
+            if (session != null) {        
+                doSynchronousSessionEvent(session, "Disconnect", new Originator(RequestOrigin.StateChangeMessage, session), 10);	            
+                mSessionMgr.remove(session);
+            }
         }
 		//Step 3: ckeck what action is asked
         else if (mapEntry.action == null) {
@@ -1304,9 +1328,9 @@ public class CanvasCrestore
                 return;
             } else {
                 if (mapEntry.action.equalsIgnoreCase("Pause") && session.isStopped()) {
-                    Common.Logging.i(TAG, "Pause session: " + session);
-                    // TODO: doSynchronousSessionEvent(session, "Pause", new
-                    // Originator(RequestOrigin.StateChangeMessage, session), 10);
+                    Common.Logging.i(TAG, "Pause session command in wrong place: " + session);
+                    //Common.Logging.i(TAG, "Pause session: " + session);
+                    //doSynchronousSessionEvent(session, "Pause", new Originator(RequestOrigin.StateChangeMessage, session), 10);
                 } else if (mapEntry.action.equalsIgnoreCase("Stop") && session.isPlaying()) {
                     Common.Logging.i(TAG, "Stop session: " + session);
                                         
@@ -1323,6 +1347,25 @@ public class CanvasCrestore
             }
         }
         mSessionMgr.logSessionStates("processSessionNetworkStream");
+
+        //to update status and stream info to DB
+        if(session != null && mapEntry != null)
+        {
+            Root root = getRootedDeviceNetworkStreams();
+            
+            if (gson.toJson(mapEntry).equalsIgnoreCase("{}") == false) 
+                mapEntry.status = SessionState.feedbackString(session.getState().getValue());
+
+            HashMap<String, StreamConfigMapEntry> locamap =  new HashMap<String, StreamConfigMapEntry>();
+            locamap.put(userLabel, mapEntry);
+
+            root.device.airMedia.networkStreams = locamap;
+
+            Gson gson = new Gson();
+            Common.Logging.v(TAG, "processSessionNetworkStream send to DB "+gson.toJson(root));
+            
+            setCurrentNetworkingStreamsMapToDB(locamap);
+        }
     }
 	
     public class CresStoreCallback implements com.crestron.cresstoreredis.CresStoreClientCallback {
@@ -1463,18 +1506,6 @@ public class CanvasCrestore
     					Common.Logging.i(TAG, "Empty source selection configuration map!!!");
         			}
         		}
-
-                /* parsing Device.AirMedia.NetworkStreams.
-                * 
-                *  {"Device": {"AirMedia":{"NetworkStreams":{
-                       "Stream0": {
-                            "StreamUrl": "rtsp://10.254.44.46:554/live.sdp?SESSINIT_RTP",
-                            "Action": "start"
-                        }
-                   }}}}
-                * 
-                */
-
                 if (root.device != null && root.device.wyFy != null && root.device.wyFy.airMedia != null && root.device.wyFy.airMedia.wifiDirect != null) {
 
                     Common.Logging.v(TAG, "Received Device/WiFi/AirMedia/WifiDirect message.");
@@ -1505,10 +1536,20 @@ public class CanvasCrestore
                         Common.Logging.v(TAG, "Received NULL for onDisconnect");
                 }
 
-                if(pending&&root.device!=null&&root.device.airMedia!=null&&root.device.airMedia.streamconfigmap!=null){
+                /* parsing Device.AirMedia.NetworkStreams.
+                * 
+                *  {"Device": {"AirMedia":{"NetworkStreams":{
+                       "Stream0": {
+                            "StreamUrl": "rtsp://10.254.44.46:554/live.sdp?SESSINIT_RTP",
+                            "Action": "start"
+                        }
+                   }}}}
+                * 
+                */        		
+                if(pending && root.device!=null&&root.device.airMedia!=null&&root.device.airMedia.networkStreams!=null){
             
                     parsed=true;
-                    Map<String, StreamConfigMapEntry> configMap = root.device.airMedia.streamconfigmap;
+                    Map<String, StreamConfigMapEntry> configMap = root.device.airMedia.networkStreams;
                 
                     Common.Logging.v(TAG,"Device/AirMedia/NetworkStreams, configMap: "+configMap);
                     if(!configMap.isEmpty())
@@ -1520,8 +1561,7 @@ public class CanvasCrestore
                             Common.Logging.v(TAG, "streamconfigmap has Key = " + keyStr + ",  " + gson.toJson(mapEntry));
                 
                             // Session NetworkStream messages are queued on a Scheduler so we do not block
-                            // incoming message from cresstore
-                            // Now process network session
+                            // incoming message from cresstore.
                             Common.Logging.i(TAG, "----- processSessionNetworkStream job to scheduler: ");
                             sessionScheduler.queue(new Runnable() {
                                 @Override
@@ -1534,9 +1574,26 @@ public class CanvasCrestore
                     {
                         Common.Logging.i(TAG, "Device/AirMedia/NetworkStreams is empty - destroy all streams");
                 
-                        // TODO: close all streaming here???
-                    }
-                
+                        //close all NetworkStreamSession here
+                        Collection<Session> collection = mSessionMgr.sessions();
+                        for(Session session : collection) {    
+                            if(session instanceof NetworkStreamSession)
+                            {
+                                final String seeName = session.userLabel;                                                                
+                                
+                                Common.Logging.i(TAG, "----- processSessionNetworkStream stop: " + seeName);
+                                sessionScheduler.queue(new Runnable() {
+                                    @Override
+                                    public void run() {
+                                        processSessionNetworkStream(seeName, null);
+                                    };
+                                }, PriorityScheduler.NORMAL_PRIORITY);
+                            }
+                        }
+
+                        //send to cresstore here will remove {"Device":{"AirMedia":{"NetworkStreams":{}}}}                        
+                        setCurrentNetworkingStreamsMapToDB(configMap);
+                    }                    
                     Common.Logging.v(TAG,"Device/AirMedia/NetworkStreams parsed");
                 }
         		
@@ -1635,14 +1692,16 @@ public class CanvasCrestore
 		return root;
 	}
 	
-	private Root getRootedDeviceNetworkStreams()
-	{
-		Root root = new Root();
-		root.device = new Device();
-		root.device.airMedia = new AirMedia();
-		
-		return root;
-	}
+    private Root getRootedDeviceNetworkStreams() {
+        Root root = new Root();
+        root.device = new Device();
+        root.device.airMedia = new AirMedia();
+
+        // remove "AirMediaCanvas:{}" from json string
+        root.device.airMedia.canvas = null;
+
+        return root;
+    }
 
     private Root getRootedDeviceWyFyAirMediaWifiDirect()
     {
@@ -1782,6 +1841,8 @@ public class CanvasCrestore
         String url;	
     	@SerializedName ("Action")
         String action;
+        @SerializedName ("Status")
+        String status;
     }      
     
     public class SessionResponseMapEntry {
@@ -1914,7 +1975,7 @@ public class CanvasCrestore
         @SerializedName ("AirMediaCanvas")
     	AirMediaCanvas canvas;
         @SerializedName ("NetworkStreams")
-        Map<String, StreamConfigMapEntry> streamconfigmap;
+        Map<String, StreamConfigMapEntry> networkStreams;
         
         public AirMedia() {
         	canvas = new AirMediaCanvas();

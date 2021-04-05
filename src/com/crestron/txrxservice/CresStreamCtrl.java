@@ -2718,23 +2718,11 @@ public class CresStreamCtrl extends Service {
     
     public void setVideoDimensions(int streamId, int w, int h)
     {
-		mVideoDimensions[streamId].videoWidth = w;
-		mVideoDimensions[streamId].videoHeight = h;
+        mVideoDimensions[streamId].videoWidth = w;
+        mVideoDimensions[streamId].videoHeight = h;
 
-        //Note: For NetworkStream, we need to call setVideoResolution() when 
-        //      we have resolution from gstreamer.
-        if((mCanvas != null) && (mCanvas.mSessionMgr != null))
-        {
-            Session session = mCanvas.mSessionMgr.findSession(streamId);
-            Log.i(TAG, "setVideoDimensions(): findSession(" + streamId + ") return:" + session);
-
-            if(session != null && session.getType() == SessionType.NetworkStreaming)
-            {
-                Log.i(TAG, "setVideoDimensions(): calling setVideoResolution() for id: " + streamId);
-                
-                session.setVideoResolution(new AirMediaSize(w,h));
-            }
-        }
+        //Note: we have resolution from gstreamer, for NetworkStream, call setVideoResolution().
+        setNetworkSreamingResolution(streamId,w,h);
     }
     
     public void setStretchVideo(int stretch, int sessionId)
@@ -7299,5 +7287,23 @@ public class CresStreamCtrl extends Service {
             wifidVideoPlayer.onSessionReady(wifidVideoPlayer.getSessionId(), localAddress, deviceId, deviceName, deviceAddress, rtsp_port);
         else
             Log.w(TAG, "WARNING: this call is expected for AM3X product only");
+    }
+
+    public void setNetworkSreamingResolution(int streamId, int w, int h)
+    {
+        Log.v(TAG, "setNetworkSreamingResolution(): streamId="+streamId+" wxh="+w+"x"+h);
+
+        if((mCanvas != null) && (mCanvas.mSessionMgr != null))
+        {
+            Session session = mCanvas.mSessionMgr.findSession(streamId);
+            Log.v(TAG, "setNetworkSreamingResolution(): findSession return:" + session);
+
+            if(session != null && session.getType() == SessionType.NetworkStreaming)
+            {
+                Log.i(TAG, "setNetworkSreamingResolution(): calling setVideoResolution() for id: " + streamId);
+                
+                session.setVideoResolution(new AirMediaSize(w,h));
+            }
+        }
     }
 }
