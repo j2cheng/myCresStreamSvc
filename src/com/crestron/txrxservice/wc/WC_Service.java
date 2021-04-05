@@ -22,6 +22,8 @@ import com.crestron.txrxservice.wc.ipc.WC_UsbDevices;
 import com.crestron.txrxservice.wc.ipc.IWC_Callback;
 import com.crestron.txrxservice.wc.ipc.IWC_Service;
 
+import com.gs.core.peripheral.*;
+
 public class WC_Service {
     private static final String TAG="WC_Service";
     private static final int ERROR_IN_USE = -1;
@@ -253,6 +255,33 @@ public class WC_Service {
     	}
     }
     
+    public HashMap<String, String> genPropertiesMap(List<PeripheralUsbDevice> devices)
+    {
+		HashMap<String, String> map = new HashMap<String, String>();
+		if (devices == null || devices.isEmpty())
+			return map;
+		
+		PeripheralUsbDevice device = devices.get(0);
+		if (device.getDeviceId() != null)
+			map.put("DeviceId", device.getDeviceId());
+		if (device.getVendorID() != null)
+			map.put("VendorId", device.getVendorID());
+		if (device.getDeviceClass() != null)
+			map.put("DeviceClass", device.getDeviceClass());
+		if (device.getDeviceSubclass() != null)
+			map.put("DeviceSubClass", device.getDeviceSubclass());
+		if (device.getManufacturer() != null)
+			map.put("Manufacturer", device.getManufacturer());
+		if (device.getProductID() != null)
+			map.put("ProductId", device.getProductID());
+		if (device.getProductName() != null)
+			map.put("ProductName", device.getProductName());
+		if (device.getSerialNumber() != null)
+			map.put("SerialNo", device.getSerialNumber());
+		
+		return map;
+    }
+    
     public WC_UsbDevices generateUsbDevices(List<UsbAvDevice> devices)
     {
     	WC_UsbDevices usbDevices = new WC_UsbDevices();
@@ -269,8 +298,9 @@ public class WC_Service {
     	}
     	// Add explicitly to list so that order is guaranteed when isEquals() is called
     	if (usb3Device != null) {
+    		HashMap<String, String> map = genPropertiesMap(usb3Device.perDevices);
     		WC_UsbDevice dev = new WC_UsbDevice("usb3", "usb3-device", usb3Device.deviceName, 
-    				(usb3Device.videoFile != null), (usb3Device.audioFile != null), new HashMap<String, String>());
+    				(usb3Device.videoFile != null), (usb3Device.audioFile != null), map);
     		if (usbDevices.devices != null)
     		{
     			usbDevices.devices.add(dev);
@@ -278,8 +308,9 @@ public class WC_Service {
         		Log.e(TAG, "generateWcStatus(): null devices list");
     	}
     	if (usb2Device != null) {
+    		HashMap<String, String> map = genPropertiesMap(usb2Device.perDevices);
     		WC_UsbDevice dev = new WC_UsbDevice("usb2", "usb2-device", usb2Device.deviceName, 
-    				(usb2Device.videoFile != null), (usb2Device.audioFile != null), new HashMap<String, String>());
+    				(usb2Device.videoFile != null), (usb2Device.audioFile != null), map);
     		if (usbDevices.devices != null)
     		{
     			usbDevices.devices.add(dev);

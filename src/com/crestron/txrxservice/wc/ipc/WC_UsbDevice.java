@@ -93,15 +93,38 @@ public class WC_UsbDevice implements Parcelable {
         return !isEqual(this, rhs);
     }
 
+    public static boolean isEqual(Map<String, String> lhs, Map<String, String> rhs)
+    {
+    	if (lhs == rhs)
+    		return true;
+    	if (lhs == null || rhs == null)
+    		return false;
+    	if (lhs.size() != rhs.size())
+    		return false;
+        for (Map.Entry<String,String> entry : lhs.entrySet()) {
+        	// find key,value if it exists in rhs 
+        	String rhsValue = rhs.get(entry.getKey());
+        	// if it does not exist return false
+        	if (rhsValue == null)
+        		return false;
+        	// if it does exists but is not equal to lhs value return false
+        	if (!rhs.equals(entry.getValue()))
+        		return false;
+        }
+        return true;
+    }
+    
     public static boolean isEqual(WC_UsbDevice lhs, WC_UsbDevice rhs) {
         return lhs == rhs || !(lhs == null || rhs == null)
                 && lhs.usbPort.equals(rhs.usbPort)
                 && lhs.deviceName.equals(rhs.deviceName)
                 && lhs.hasVideo == rhs.hasVideo
-                && lhs.hasAudio == rhs.hasAudio;
+                && lhs.hasAudio == rhs.hasAudio
+                && isEqual(lhs.properties, rhs.properties);
     }
 
     public String toString() {
-        return "{ usbPort="+usbPort+" deviceName="+deviceName+" hasVideo="+hasVideo+" hasAudio="+hasAudio+" }";
+        return "{ usbPort="+usbPort+" deviceName="+deviceName+" hasVideo="+hasVideo+" hasAudio="+hasAudio+ 
+        		" properties=["+properties+"]}";
     }
 }

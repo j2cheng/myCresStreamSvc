@@ -3,6 +3,7 @@ package com.crestron.txrxservice;
 import com.crestron.txrxservice.CresStreamCtrl;
 import com.crestron.txrxservice.UsbAvDevice;
 import com.gs.core.peripheral.PeripheralManager;
+import com.gs.core.peripheral.PeripheralUsbDevice;
 import com.gs.core.peripheral.StatusChangeListener;
 
 import android.content.Context;
@@ -355,7 +356,8 @@ public class ProductSpecific
         	return null;
         }
         
-        public void onUsbStatusChanged(int usbId, int status, String name, List<String> videoList, List<String> audioList)
+        public void onUsbStatusChanged(int usbId, int status, String name, List<String> videoList, 
+        		List<String> audioList, List<PeripheralUsbDevice> perUsbDevices)
         {
         	boolean change = false;
         	if (status > 0)
@@ -367,7 +369,8 @@ public class ProductSpecific
         		}
         		String vFile = getVideoCaptureFile(videoList);
         		String aFile = getAudioCaptureFile(audioList);
-        		d = new UsbAvDevice(usbId, ((usbId==PeripheralManager.PER_USB_30)?"usb3":"usb2"), name, vFile, aFile);
+        		d = new UsbAvDevice(usbId, ((usbId==PeripheralManager.PER_USB_30)?"usb3":"usb2"), name, vFile, 
+        				aFile, perUsbDevices);
         		Log.i(TAG, "UsbAudioVideoDeviceAdded(): new USB device "+d.deviceName+" added on "+d.usbPortType);
         		usbDeviceList.add(d);
         	} else {
@@ -389,6 +392,7 @@ public class ProductSpecific
             Class pMgrClass = PeripheralManager.instance().getClass();
             List<String> videoList = null;
             List<String> audioList = null;
+            List<PeripheralUsbDevice> perUsbDevices = null;
             try {
             	Method m = pMgrClass.getMethod("getUsbVideoDevices", int.class);
             	videoList = PeripheralManager.instance().getUsbVideoDevices(usbId);
@@ -401,15 +405,22 @@ public class ProductSpecific
             } catch (Exception e) {
             	e.printStackTrace();
             }
+            try {
+            	Method m = pMgrClass.getMethod("getDevices", int.class);
+            	perUsbDevices = PeripheralManager.instance().getDevices(usbId);
+            } catch (Exception e) {
+            	e.printStackTrace();
+            }
             if (status > 0)
             {
             	Log.i(TAG, "USB id="+usbId+"  Device="+name);
             	Log.i(TAG, "\tVideo Devices="+videoList);
             	Log.i(TAG, "\tAudio Devices="+audioList);
+            	Log.i(TAG, "\tPeripheral USB Devices="+perUsbDevices);
             } else {
             	Log.i(TAG, "USB id="+usbId+"  No devices connected");
             }
-    		onUsbStatusChanged(usbId, status, name, videoList, audioList);
+    		onUsbStatusChanged(usbId, status, name, videoList, audioList, perUsbDevices);
         }
         
         @Override
