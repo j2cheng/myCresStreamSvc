@@ -1,8 +1,6 @@
 package com.crestron.txrxservice;
 
-import java.util.List;
-
-//import com.gs.core.peripheral.PeripheralUsbDevice;
+import java.util.HashMap;
 
 public class UsbAvDevice {
 	public String deviceName;
@@ -10,15 +8,16 @@ public class UsbAvDevice {
 	public String audioFile;
 	public String usbPortType;
 	public int perId;
-	//public List<PeripheralUsbDevice> perDevices;
+	public HashMap<String, String> properties;
 	
-	public UsbAvDevice(int id, String portType, String name, String vFile, String aFile/*, List<PeripheralUsbDevice> perUsbDevices*/) {
+	public UsbAvDevice(int id, String portType, String name, String vFile, String aFile, HashMap<String, String> propertyMap) 
+	{
 		deviceName = name;
 		perId = id;
 		usbPortType = portType;
 		videoFile = vFile;
 		audioFile = aFile;
-		//perDevices = perUsbDevices;
+		properties = propertyMap;
 	}
 	
 	public String toString()
@@ -26,8 +25,8 @@ public class UsbAvDevice {
 		return "{USB_Device: id:"+perId+" port:"+usbPortType+" name:"+deviceName+
 				" videoFile:"+((videoFile != null)?videoFile:"null")+
 				" audioFile:"+((audioFile != null)?audioFile:"null")+ 
-//				" devices="+((perDevices != null)?perDevices:"null")+
-				"}";
+				" properties=["+((properties != null)?properties:"null")+
+				"]}";
 	}
 }
 

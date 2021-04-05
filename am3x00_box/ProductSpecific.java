@@ -356,6 +356,33 @@ public class ProductSpecific
         	return null;
         }
         
+        public HashMap<String, String> genPropertiesMap(List<PeripheralUsbDevice> devices)
+        {
+      		HashMap<String, String> map = new HashMap<String, String>();
+      		if (devices == null || devices.isEmpty())
+      			return map;
+      		
+      		PeripheralUsbDevice device = devices.get(0);
+      		if (device.getDeviceId() != null)
+      			map.put("DeviceId", device.getDeviceId());
+      		if (device.getVendorID() != null)
+      			map.put("VendorId", device.getVendorID());
+      		if (device.getDeviceClass() != null)
+      			map.put("DeviceClass", device.getDeviceClass());
+      		if (device.getDeviceSubclass() != null)
+      			map.put("DeviceSubClass", device.getDeviceSubclass());
+      		if (device.getManufacturer() != null)
+      			map.put("Manufacturer", device.getManufacturer());
+      		if (device.getProductID() != null)
+      			map.put("ProductId", device.getProductID());
+      		if (device.getProductName() != null)
+      			map.put("ProductName", device.getProductName());
+      		if (device.getSerialNumber() != null)
+      			map.put("SerialNo", device.getSerialNumber());
+      		
+      		return map;
+        }
+
         public void onUsbStatusChanged(int usbId, int status, String name, List<String> videoList, 
         		List<String> audioList, List<PeripheralUsbDevice> perUsbDevices)
         {
@@ -369,9 +396,8 @@ public class ProductSpecific
         		}
         		String vFile = getVideoCaptureFile(videoList);
         		String aFile = getAudioCaptureFile(audioList);
-//        		d = new UsbAvDevice(usbId, ((usbId==PeripheralManager.PER_USB_30)?"usb3":"usb2"), name, vFile, 
-//        				aFile, perUsbDevices);
-        		d = new UsbAvDevice(usbId, ((usbId==PeripheralManager.PER_USB_30)?"usb3":"usb2"), name, vFile, aFile);
+        		d = new UsbAvDevice(usbId, ((usbId==PeripheralManager.PER_USB_30)?"usb3":"usb2"), name, vFile, 
+        				aFile, genPropertiesMap(perUsbDevices));
         		Log.i(TAG, "UsbAudioVideoDeviceAdded(): new USB device "+d.deviceName+" added on "+d.usbPortType);
         		usbDeviceList.add(d);
         	} else {
