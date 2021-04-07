@@ -5,6 +5,7 @@ import android.os.RemoteCallbackList;
 import android.os.RemoteException;
 import android.util.Log;
 
+import java.util.ArrayList;
 import java.util.HashMap;
 import java.util.List;
 import java.util.concurrent.atomic.AtomicBoolean;
@@ -256,30 +257,28 @@ public class WC_Service {
     public WC_UsbDevices generateUsbDevices(List<UsbAvDevice> devices)
     {
     	WC_UsbDevices usbDevices = new WC_UsbDevices();
-    	UsbAvDevice usb2Device = null;
-    	UsbAvDevice usb3Device = null;
-    	
+    	List<UsbAvDevice> usb3Devices = new ArrayList<UsbAvDevice>();
+    	List<UsbAvDevice> usb2Devices = new ArrayList<UsbAvDevice>();
+
+    	String usbPortType = "usb3";
     	for (UsbAvDevice device : devices) {
-    		if (device.usbPortType.equals("usb2"))
-    			usb2Device = device;
-    		else if (device.usbPortType.equals("usb3"))
-    			usb3Device = device;
-    		else
-        		Log.i(TAG, "generateWcStatus(): unexpected device port type: "+device);
-    	}
-    	// Add explicitly to list so that order is guaranteed when isEquals() is called
-    	if (usb3Device != null) {
-    		WC_UsbDevice dev = new WC_UsbDevice("usb3", "usb3-device", usb3Device.deviceName, 
-    				(usb3Device.videoFile != null), (usb3Device.audioFile != null), usb3Device.properties);
+    		if (!device.usbPortType.equals("usb3"))
+    			continue;
+    		usb3Devices.add(device);
+    		WC_UsbDevice dev = new WC_UsbDevice("usb3", "usb3-device", device.deviceName, 
+    				(device.videoFile != null), (device.audioFile != null), device.properties);
     		if (usbDevices.devices != null)
     		{
     			usbDevices.devices.add(dev);
     		} else
         		Log.e(TAG, "generateWcStatus(): null devices list");
     	}
-    	if (usb2Device != null) {
-    		WC_UsbDevice dev = new WC_UsbDevice("usb2", "usb2-device", usb2Device.deviceName, 
-    				(usb2Device.videoFile != null), (usb2Device.audioFile != null), usb2Device.properties);
+    	for (UsbAvDevice device : devices) {
+    		if (!device.usbPortType.equals("usb2"))
+    			continue;
+    		usb2Devices.add(device);
+    		WC_UsbDevice dev = new WC_UsbDevice("usb2", "usb2-device", device.deviceName, 
+    				(device.videoFile != null), (device.audioFile != null), device.properties);
     		if (usbDevices.devices != null)
     		{
     			usbDevices.devices.add(dev);
@@ -287,41 +286,50 @@ public class WC_Service {
         		Log.e(TAG, "generateWcStatus(): null devices list");
     	}
     	
-    	setActiveDevices(usb3Device, usb2Device);
+    	setActiveDevices(usb3Devices, usb2Devices);
     	
     	Log.v(TAG, "generateUsbDevices(): usb device list = {"+usbDevices+"}");
     	return usbDevices;
     }
     
-    public void setActiveDevices(UsbAvDevice usb3Device, UsbAvDevice usb2Device)
+    public void setActiveDevices(List<UsbAvDevice> usb3Devices, List<UsbAvDevice> usb2Devices)
     {
     	String videoFile = null;
     	String audioFile = null;
     	boolean change = false;
     	
-    	if (usb3Device != null) {
-    		// Use USB3 video in preference to USB2 if connected
-    		if (usb3Device.videoFile != null)
-    		{
-    			videoFile = usb3Device.videoFile;
-    			
-    		}
-    		if (usb3Device.audioFile != null)
-    		{
-    			audioFile = usb3Device.audioFile;	
+    	if (usb3Devices != null && !usb3Devices.isEmpty()) {
+    		for (UsbAvDevice d : usb3Devices) {
+    			// Use USB3 video in preference to USB2 if connected
+    			if (d.videoFile != null)
+    			{
+    				videoFile = d.videoFile;
+
+    			}
+    			if (d.audioFile != null)
+    			{
+    				audioFile = d.audioFile;	
+    			}
     		}
     	}
-    	if (usb2Device != null) {
-    		if (videoFile == null && usb2Device.videoFile != null)
-    		{
-    			videoFile = usb2Device.videoFile;
-    			
+    	if (usb2Devices != null && !usb2Devices.isEmpty()) {
+			String aFile = null;
+			boolean usb2HasVideo = false;
+    		for (UsbAvDevice d : usb2Devices) {
+    			if (d.videoFile != null)
+    				usb2HasVideo = true;
+    			if (videoFile == null && d.videoFile != null)
+    			{
+    				videoFile = d.videoFile;
+    			}
+    			if (d.audioFile != null && (aFile == null))
+    			{
+    				aFile = d.audioFile;	
+    			}
     		}
-    		// use USB2 audio in preference to USB3 audio if it is connected and is an audio only device
-    		if (usb2Device.audioFile != null && (audioFile == null || usb2Device.videoFile == null))
-    		{
-    			audioFile = usb2Device.audioFile;	
-    		}
+			// use USB2 audio in preference to USB3 audio if it is connected and is an audio only device
+    		if (aFile != null && !usb2HasVideo)
+    			audioFile = aFile;
     	}
     	if (mStatus.sessionFlags != WC_SessionFlags.None)
     	{

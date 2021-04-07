@@ -269,14 +269,18 @@ public class ProductSpecific
     
     public List<UsbAvDevice> usbDeviceList = new ArrayList<UsbAvDevice> ();
     
-    public UsbAvDevice findUsbDevice(int id)
+    public List<UsbAvDevice> findUsbDevices(int id)
     {
+    	List<UsbAvDevice> dl = null;
     	for (UsbAvDevice d : usbDeviceList)
     	{
-    		if (d.perId == id)
-    			return d;
+    		if (d.perId == id) {
+    			if (dl == null)
+    				dl = new ArrayList<UsbAvDevice>();
+    			dl.add(d);
+    		}
     	}
-    	return null;
+    	return dl;
     }
     
     public class PeripheralStatusChangeListener extends StatusChangeListener 
@@ -363,6 +367,8 @@ public class ProductSpecific
       			return map;
       		
       		PeripheralUsbDevice device = devices.get(0);
+      		if (device.getName() != null)
+      			map.put("Name", device.getName());
       		if (device.getDeviceId() != null)
       			map.put("DeviceId", device.getDeviceId());
       		if (device.getVendorID() != null)
@@ -390,24 +396,42 @@ public class ProductSpecific
         	if (status > 0)
         	{
         		// device was added on port=usbId
-        		UsbAvDevice d = findUsbDevice(usbId);
-        		if (d != null) {
-        			usbDeviceList.remove(d);
+        		List<UsbAvDevice> dl = findUsbDevices(usbId);
+        		if (dl != null) {
+        			dl.clear();
         		}
-        		String vFile = getVideoCaptureFile(videoList);
-        		String aFile = getAudioCaptureFile(audioList);
-        		d = new UsbAvDevice(usbId, ((usbId==PeripheralManager.PER_USB_30)?"usb3":"usb2"), name, vFile, 
-        				aFile, genPropertiesMap(perUsbDevices));
-        		Log.i(TAG, "UsbAudioVideoDeviceAdded(): new USB device "+d.deviceName+" added on "+d.usbPortType);
-        		usbDeviceList.add(d);
+        		for (PeripheralUsbDevice perDev : perUsbDevices)
+        		{
+        			Log.i(TAG, "Peripheral device type = "+perDev.getType());
+        			String aFile = null;
+        			String vFile = null;
+        			if (perDev.getType() == com.gs.core.peripheral.UsbDeviceType.Audio)
+        			{
+                		aFile = getAudioCaptureFile(audioList);
+        			} else if (perDev.getType() == com.gs.core.peripheral.UsbDeviceType.Video) {
+        				vFile = getVideoCaptureFile(videoList);
+        			} else {
+        				// BRIO coming in as Type "None" - need to fix
+        				if (!audioList.isEmpty()) 
+        					aFile = getAudioCaptureFile(audioList);
+        				if (!videoList.isEmpty())
+        					vFile = getVideoCaptureFile(videoList);        				
+        			}
+        			UsbAvDevice d = new UsbAvDevice(usbId, ((usbId==PeripheralManager.PER_USB_30)?"usb3":"usb2"), name, vFile, 
+            				aFile, genPropertiesMap(perUsbDevices));
+            		Log.i(TAG, "UsbAudioVideoDeviceAdded(): new USB device "+d.deviceName+" added on "+d.usbPortType);
+            		usbDeviceList.add(d);
+        		}
         	} else {
         		// device was removed on port=usbId
-        		UsbAvDevice d = findUsbDevice(usbId);
-        		if (d != null) {
-                    Log.i(TAG, "UsbAudioVideoDeviceRemoved(): USB device "+d.deviceName+" removed from "+d.usbPortType);
-        			usbDeviceList.remove(d);
+        		List<UsbAvDevice> dl = findUsbDevices(usbId);
+        		if (dl != null) {
+        			for (UsbAvDevice d : dl)
+        			{
+        				Log.i(TAG, "UsbAudioVideoDeviceRemoved(): USB device "+d.deviceName+" removed from "+d.usbPortType);
+        				usbDeviceList.remove(d);
+        			}
         		}
-        		usbDeviceList.remove(d);
         	}
             cresStreamCtrl.onUsbStatusChanged(usbDeviceList);
         }
