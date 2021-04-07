@@ -2251,11 +2251,47 @@ public class CresStreamCtrl extends Service {
                     {
                         hdmiLock.unlock();
                     }
+                    
+                    // Now check and handle HDMI output res change
+                    if (isAM3X00())
+                    	handlePossibleHdmiOutputResolutionChange();
                 }
             }
         }).start();
     }
     
+	private void handlePossibleHdmiOutputResolutionChange()
+	{
+		//TODO: This function is using sysfs entry for AM3K for resolution - switch to using Android Window Manager
+		//      getRealSize once GS bug is fixed.
+        final String AM3K_hdmiResolutionFilePath = "/sys/class/drm/card0-HDMI-A-1/mode";
+        String w="0", h="0", fps="0";
+        String resString = MiscUtils.readStringFromDisk(AM3K_hdmiResolutionFilePath);
+        String delims_am3x = "[xp]+"; // Delimiter for AM3X products
+        String tokens[] = resString.split(delims_am3x);
+
+        if (hdmiOutput.getSyncStatus().equals("true") && tokens.length == 3)
+        {
+        	w = tokens[0];
+        	h = tokens[1];
+        	fps = tokens[2];
+        }
+        
+    	if (!hdmiOutput.getHorizontalRes().equals(w) ||
+    			!hdmiOutput.getVerticalRes().equals(h) ||
+    			!hdmiOutput.getFPS().equals(fps))
+    	{
+    		hdmiOutput.setHorizontalRes(w);
+    		hdmiOutput.setVerticalRes(h);
+    		hdmiOutput.setFPS(fps);
+
+            Log.i(TAG, "handlePossibleHdmiOutputResolutionChange(): HDMI Out Resolution " + hdmiOutput.getWidth() + " "
+            		+ hdmiOutput.getHeight() + " "
+            		+ hdmiOutput.getFPS());
+            sendHdmiOutSyncState();
+    	}
+	}
+	
     private void monitorRavaMode()
     {
         final String ravaModeFilePath = "/dev/shm/crestron/CresStreamSvc/ravacallMode";
