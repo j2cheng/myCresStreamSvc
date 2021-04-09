@@ -9,20 +9,39 @@ import java.util.List;
 
 public class WC_UsbDevices implements Parcelable {
     private final int contents;
+    public final List<WC_VideoFormat> videoFormats;
+    public final List<WC_AudioFormat> audioFormats;
     public final List<WC_UsbDevice> devices;
 
     public WC_UsbDevices() {
-        this(new ArrayList<WC_UsbDevice>());
+        this(new ArrayList<WC_VideoFormat>(), new ArrayList<WC_AudioFormat>(), new ArrayList<WC_UsbDevice>());
     }
 
-    public WC_UsbDevices(List<WC_UsbDevice> devices) {
+    public WC_UsbDevices(List<WC_VideoFormat> videoFormats, List<WC_AudioFormat> audioFormats, List<WC_UsbDevice> devices) {
         this.contents = 0;
+        this.videoFormats = videoFormats;
+        this.audioFormats = audioFormats;
         this.devices = devices;
     }
 
     protected WC_UsbDevices(Parcel in) {
         this.contents = in.readInt();
-        final int count = in.readInt();
+        
+        int count = in.readInt();
+        final ArrayList<WC_VideoFormat> videoFormats = new ArrayList<WC_VideoFormat>(count);
+        for (int i = 0; i < count; i++) {
+        	videoFormats.add(i, WC_VideoFormat.CREATOR.createFromParcel(in));
+        }
+        this.videoFormats = videoFormats;
+        
+        count = in.readInt();
+        final ArrayList<WC_AudioFormat> audioFormats = new ArrayList<WC_AudioFormat>(count);
+        for (int i = 0; i < count; i++) {
+        	audioFormats.add(i, WC_AudioFormat.CREATOR.createFromParcel(in));
+        }
+        this.audioFormats = audioFormats;
+        
+        count = in.readInt();
         final ArrayList<WC_UsbDevice> devices = new ArrayList<WC_UsbDevice>(count);
         for (int i = 0; i < count; i++) {
             devices.add(i, WC_UsbDevice.CREATOR.createFromParcel(in));
@@ -50,7 +69,17 @@ public class WC_UsbDevices implements Parcelable {
     @Override
     public void writeToParcel(Parcel dest, int flags) {
         dest.writeInt(this.contents);
-        int count = devices != null ? devices.size() : 0;
+        int count = videoFormats != null ? videoFormats.size() : 0;
+        dest.writeInt(count);
+        for (WC_VideoFormat videoFormat : videoFormats) {
+            videoFormat.writeToParcel(dest, flags);
+        }
+        count = audioFormats != null ? audioFormats.size() : 0;
+        dest.writeInt(count);
+        for (WC_AudioFormat audioFormat : audioFormats) {
+            audioFormat.writeToParcel(dest, flags);
+        }
+        count = devices != null ? devices.size() : 0;
         dest.writeInt(count);
         for (WC_UsbDevice device : devices) {
             device.writeToParcel(dest, flags);
@@ -65,16 +94,42 @@ public class WC_UsbDevices implements Parcelable {
         if (lhs == rhs || lhs == null || rhs == null)
             return lhs == rhs;
 
+        if ((lhs.videoFormats != null && rhs.videoFormats == null) || (lhs.videoFormats == null && rhs.videoFormats != null))
+            return false;
+
+        if ((lhs.audioFormats != null && rhs.audioFormats == null) || (lhs.audioFormats == null && rhs.audioFormats != null))
+            return false;
+        
         if ((lhs.devices != null && rhs.devices == null) || (lhs.devices == null && rhs.devices != null))
             return false;
 
-        if (lhs.devices == rhs.devices)
+        if (lhs.videoFormats == rhs.videoFormats && lhs.devices == rhs.devices)
             return true;
 
+        // Both lhs.videoFormats and rhs.videoFormats are non-null
+        if (lhs.videoFormats.size() != rhs.videoFormats.size())
+            return false;
+        
+        // Both lhs.audioFormats and rhs.audioFormats are non-null
+        if (lhs.videoFormats.size() != rhs.audioFormats.size())
+            return false;
+        
         // Both lhs.devices and rhs.devices are non-null
         if (lhs.devices.size() != rhs.devices.size())
             return false;
 
+        // Assumes same order - must generate list in sorted order of formats for this to work
+        for (int i = 0; i < lhs.videoFormats.size(); i++) {
+            if (!lhs.videoFormats.get(i).isEqual(rhs.videoFormats.get(i)))
+            	return false;
+        }
+        
+        // Assumes same order - must generate list in sorted order of formats for this to work
+        for (int i = 0; i < lhs.audioFormats.size(); i++) {
+            if (!lhs.audioFormats.get(i).isEqual(rhs.audioFormats.get(i)))
+            	return false;
+        }
+            
         // Assumes same order - must generate list in order for this to work
         for (int i = 0; i < lhs.devices.size(); i++) {
             if (lhs.devices.get(i).isNotEqual(rhs.devices.get(i)))
@@ -86,6 +141,6 @@ public class WC_UsbDevices implements Parcelable {
 
     public String toString()
     {
-        return "WC_UsbDevices = "+devices;
+        return "VideoFormat: "+videoFormats+", AudioFormat: "+audioFormats+", WC_UsbDevices:"+devices;
     }
 }

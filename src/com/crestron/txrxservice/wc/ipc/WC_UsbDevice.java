@@ -30,7 +30,7 @@ public class WC_UsbDevice implements Parcelable {
         this.contents = 0;
         this.deviceId = deviceId;
         this.usbPort = port;
-        this.deviceName = name;
+        this.deviceName = name.trim();
 		this.hasVideo = hasVideo;
 		this.hasAudio = hasAudio;
         this.properties = properties;
@@ -124,7 +124,7 @@ public class WC_UsbDevice implements Parcelable {
     }
 
     public String toString() {
-        return "{ usbPort="+usbPort+" deviceName="+deviceName+" hasVideo="+hasVideo+" hasAudio="+hasAudio+ 
+        return "{usbPort="+usbPort+" deviceName="+deviceName+" hasVideo="+hasVideo+" hasAudio="+hasAudio+ 
         		" properties=["+properties+"]}";
     }
 }

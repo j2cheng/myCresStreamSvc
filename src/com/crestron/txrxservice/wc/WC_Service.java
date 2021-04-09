@@ -20,8 +20,10 @@ import com.crestron.txrxservice.wc.ipc.WC_SessionOptions;
 import com.crestron.txrxservice.wc.ipc.WC_Status;
 import com.crestron.txrxservice.wc.ipc.WC_UsbDevice;
 import com.crestron.txrxservice.wc.ipc.WC_UsbDevices;
+import com.crestron.txrxservice.wc.ipc.WC_VideoFormat;
 import com.crestron.txrxservice.wc.ipc.IWC_Callback;
 import com.crestron.txrxservice.wc.ipc.IWC_Service;
+import com.crestron.txrxservice.wc.ipc.WC_AudioFormat;
 
 public class WC_Service {
     private static final String TAG="WC_Service";
@@ -36,6 +38,8 @@ public class WC_Service {
     WC_UsbDevices mUsbDevices = null;
     String mVideoFile = null;
     String mAudioFile = null;
+    List<WC_VideoFormat> mVideoFormats = new ArrayList<WC_VideoFormat>();
+    List<WC_AudioFormat> mAudioFormats = new ArrayList<WC_AudioFormat>();
     List<UsbAvDevice> mUsbAvDeviceList = null;
     AtomicBoolean inUse = new AtomicBoolean(false);
 
@@ -256,7 +260,7 @@ public class WC_Service {
     
     public WC_UsbDevices generateUsbDevices(List<UsbAvDevice> devices)
     {
-    	WC_UsbDevices usbDevices = new WC_UsbDevices();
+    	List<WC_UsbDevice> usbDeviceList = new ArrayList<WC_UsbDevice>();
     	List<UsbAvDevice> usb3Devices = new ArrayList<UsbAvDevice>();
     	List<UsbAvDevice> usb2Devices = new ArrayList<UsbAvDevice>();
 
@@ -267,11 +271,7 @@ public class WC_Service {
     		usb3Devices.add(device);
     		WC_UsbDevice dev = new WC_UsbDevice("usb3", "usb3-device", device.deviceName, 
     				(device.videoFile != null), (device.audioFile != null), device.properties);
-    		if (usbDevices.devices != null)
-    		{
-    			usbDevices.devices.add(dev);
-    		} else
-        		Log.e(TAG, "generateWcStatus(): null devices list");
+    		usbDeviceList.add(dev);
     	}
     	for (UsbAvDevice device : devices) {
     		if (!device.usbPortType.equals("usb2"))
@@ -279,20 +279,22 @@ public class WC_Service {
     		usb2Devices.add(device);
     		WC_UsbDevice dev = new WC_UsbDevice("usb2", "usb2-device", device.deviceName, 
     				(device.videoFile != null), (device.audioFile != null), device.properties);
-    		if (usbDevices.devices != null)
-    		{
-    			usbDevices.devices.add(dev);
-    		} else
-        		Log.e(TAG, "generateWcStatus(): null devices list");
+    		usbDeviceList.add(dev);
     	}
     	
-    	setActiveDevices(usb3Devices, usb2Devices);
+    	if (setActiveDevices(usb3Devices, usb2Devices))
+    	{
+    		mVideoFormats.add(new WC_VideoFormat(1920,1080,30));
+    		mAudioFormats.add(new WC_AudioFormat(48000,2,"S16_LE"));
+    	}
     	
+    	WC_UsbDevices usbDevices = new WC_UsbDevices(mVideoFormats, mAudioFormats, usbDeviceList);
+
     	Log.v(TAG, "generateUsbDevices(): usb device list = {"+usbDevices+"}");
     	return usbDevices;
     }
     
-    public void setActiveDevices(List<UsbAvDevice> usb3Devices, List<UsbAvDevice> usb2Devices)
+    public boolean setActiveDevices(List<UsbAvDevice> usb3Devices, List<UsbAvDevice> usb2Devices)
     {
     	String videoFile = null;
     	String audioFile = null;
@@ -333,7 +335,7 @@ public class WC_Service {
     	}
     	if (mStatus.sessionFlags != WC_SessionFlags.None)
     	{
-    		// Check options selected and disallow video or audio by setting correspnding driver file to "none"
+    		// Check options selected and disallow video or audio by setting corresponding driver file to "none"
     		if (mStatus.sessionFlags != WC_SessionFlags.Video &&  mStatus.sessionFlags != WC_SessionFlags.AudioAndVideo)
     			videoFile = "none";
     		if (mStatus.sessionFlags != WC_SessionFlags.Audio &&  mStatus.sessionFlags != WC_SessionFlags.AudioAndVideo)
@@ -356,5 +358,6 @@ public class WC_Service {
     		mStreamCtrl.userSettings.setWcVideoCaptureDevice(mVideoFile);
     		mStreamCtrl.userSettings.setWcAudioCaptureDevice(mAudioFile);
     	}
+    	return change;
     }
 }
