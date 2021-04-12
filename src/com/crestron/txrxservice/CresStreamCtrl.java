@@ -6636,50 +6636,49 @@ public class CresStreamCtrl extends Service {
     {
         synchronized(cameraModeLock)
         {
-        	if(!isAM3X00())
-        	{
-	        	CameraMode cmode = CameraMode.values[Integer.valueOf(mode)];
-	            Log.i(TAG, "Writing " + cmode + "(" + mode + ")" + " to camera mode file");
-	            Writer writer = null;
-	            try
-	            {
-	                writer = new BufferedWriter(new OutputStreamWriter(new FileOutputStream(cameraModeFilePath), "US-ASCII"));
-	                writer.write(mode);
-	                writer.flush();
-	            }
-	            catch (IOException ex) {
-	              Log.e(TAG, "Failed to save cameraMode to disk: " + ex);
-	            }
-	            finally
-	            {
-	                try {writer.close();} catch (Exception ex) {/*ignore*/}
-	            }
-            }
-            else
+            CameraMode cmode = CameraMode.values[Integer.valueOf(mode)];
+            Log.i(TAG, "Writing " + cmode + "(" + mode + ")" + " to camera mode file");
+            Writer writer = null;
+            try
             {
-            	AM_3x00_CameraMode cmode = AM_3x00_CameraMode.UNDEFINED_SCREEN;
-            	String id = AM_3x00_CameraMode.getStringValueFromColorInt(Integer.valueOf(mode));
-				if (id.compareToIgnoreCase(String.valueOf(cmode.getValue())) != 0)
-				{
-		            Log.i(TAG, "Writing (" + id + ")" + " to camera colors bar file");
-		            Writer writer = null;
-		            try
-		            {
-		            	File file = new File("/sys/devices/platform/ff3e0000.i2c/i2c-8/8-000f/clrbar_mode");
-		                writer = new BufferedWriter(new OutputStreamWriter(new FileOutputStream(file), "US-ASCII"));
-		                //TODO: disable colorbars for now because RED always displayed. Need to investigate bug AM3XX-2273.
-		                //writer.write(id);
-		                //writer.flush();
-		            }
-		            catch (IOException ex)
-		            {
-						Log.e(TAG, "Failed to save AM_3x00 cameraMode to disk: " + ex);
-		            }
-		            finally
-		            {
-		                try {writer.close();} catch (Exception ex) {/*ignore*/}
-		            }
-            	}
+                writer = new BufferedWriter(new OutputStreamWriter(new FileOutputStream(cameraModeFilePath), "US-ASCII"));
+                writer.write(mode);
+                writer.flush();
+            }
+            catch (IOException ex) {
+              Log.e(TAG, "Failed to save cameraMode to disk: " + ex);
+            }
+            finally
+            {
+                try {writer.close();} catch (Exception ex) {/*ignore*/}
+            }
+
+            // The above portion of the code is common and meant to remember the last state of cameramode which was set. Applies for AM3K as well.
+            if(isAM3X00())
+            {
+                AM_3x00_CameraMode nomode = AM_3x00_CameraMode.UNDEFINED_SCREEN;
+                String id = AM_3x00_CameraMode.getStringValueFromColorInt(Integer.valueOf(mode));
+                if (id.compareToIgnoreCase(String.valueOf(nomode.getValue())) != 0)
+                {
+                    Log.i(TAG, "Writing (" + id + ")" + " to camera colors bar file");
+                    writer = null;
+                    // On AM3K we need to write the translated(AM_3x00_CameraMode) color bar value into sysfs
+                    try
+                    {
+                        File file = new File("/sys/devices/platform/ff3e0000.i2c/i2c-8/8-000f/clrbar_mode");
+                        writer = new BufferedWriter(new OutputStreamWriter(new FileOutputStream(file), "US-ASCII"));
+                        writer.write(id);
+                        writer.flush();
+                    }
+                    catch (IOException ex)
+                    {
+                        Log.e(TAG, "Failed to save AM_3x00 cameraMode to disk: " + ex);
+                    }
+                    finally
+                    {
+                        try {writer.close();} catch (Exception ex) {/*ignore*/}
+                    }
+                }
             }
         }
     }
