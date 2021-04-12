@@ -131,7 +131,7 @@ JNIEXPORT void JNICALL Java_com_crestron_txrxservice_GstreamOut_nativeSetAppCach
 
 /*
  * Class:     com_crestron_txrxservice_GstreamOut
- * Method:    nativeSet_SetVideoCaptureDevice
+ * Method:    nativeSetVideoCaptureDevice
  * Signature: (Ljava/lang/String;)V
  */
 JNIEXPORT void JNICALL Java_com_crestron_txrxservice_GstreamOut_nativeSetVideoCaptureDevice
@@ -139,11 +139,27 @@ JNIEXPORT void JNICALL Java_com_crestron_txrxservice_GstreamOut_nativeSetVideoCa
 
 /*
  * Class:     com_crestron_txrxservice_GstreamOut
- * Method:    nativeSet_SetAudioCaptureDevice
+ * Method:    nativeSetAudioCaptureDevice
  * Signature: (Ljava/lang/String;)V
  */
 JNIEXPORT void JNICALL Java_com_crestron_txrxservice_GstreamOut_nativeSetAudioCaptureDevice
   (JNIEnv *, jobject, jstring);
+
+/*
+ * Class:     com_crestron_txrxservice_GstreamOut
+ * Method:    nativeGetVideoFormat
+ * Signature: (Ljava/lang/String; jobject)V
+ */
+JNIEXPORT void JNICALL Java_com_crestron_txrxservice_GstreamOut_nativeGetVideoFormat
+  (JNIEnv *, jobject, jstring, jobject);
+
+/*
+ * Class:     com_crestron_txrxservice_GstreamOut
+ * Method:    nativeGetAudioFormat
+ * Signature: (Ljava/lang/String; jobject)V
+ */
+JNIEXPORT void JNICALL Java_com_crestron_txrxservice_GstreamOut_nativeGetAudioFormat
+  (JNIEnv *, jobject, jstring, jobject);
 
 /*
  * Class:     com_crestron_txrxservice_GstreamOut

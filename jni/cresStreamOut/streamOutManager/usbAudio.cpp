@@ -19,6 +19,7 @@
 
 #include "cresStreamOutManager.h"
 #include "usbAudio.h"
+#include <string.h>
 
 #ifdef HAS_TINYALSA
 
@@ -241,5 +242,19 @@ UsbAudio::~UsbAudio()
 	releaseDevice();
 }
 
+void getAudioFormat(char *deviceFile, int *sampleRate, int *channels, char *sampleFormat, int sampleFormatLen)
+{
+	UsbAudio *a = new UsbAudio(deviceFile);
+	if (a->getAudioParams()) {
+		*sampleRate = a->getAudioSamplingRate();
+		*channels = a->getAudioChannels();
+		strncpy(sampleFormat, a->getAudioFormat(), sampleFormatLen);
+	} else {
+		*sampleRate = 0;
+		*channels = 0;
+		strcpy(sampleFormat, "");
+	}
+	delete a;
+}
 
 

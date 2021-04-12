@@ -284,8 +284,8 @@ public class WC_Service {
     	
     	if (setActiveDevices(usb3Devices, usb2Devices))
     	{
-    		mVideoFormats.add(new WC_VideoFormat(1920,1080,30));
-    		mAudioFormats.add(new WC_AudioFormat(48000,2,"S16_LE"));
+    		mVideoFormats = mStreamOut.getVideoFormats(mVideoFile);
+    		mAudioFormats = mStreamOut.getAudioFormats(mAudioFile);
     	}
     	
     	WC_UsbDevices usbDevices = new WC_UsbDevices(mVideoFormats, mAudioFormats, usbDeviceList);
@@ -296,8 +296,8 @@ public class WC_Service {
     
     public boolean setActiveDevices(List<UsbAvDevice> usb3Devices, List<UsbAvDevice> usb2Devices)
     {
-    	String videoFile = null;
-    	String audioFile = null;
+    	String videoFile = "none";
+    	String audioFile = "none";
     	boolean change = false;
     	
     	if (usb3Devices != null && !usb3Devices.isEmpty()) {
@@ -342,12 +342,12 @@ public class WC_Service {
     			audioFile = "none";
     	}
     	
-    	if ((videoFile == null && mVideoFile != null) || (videoFile != null && !videoFile.equals(mVideoFile)))
+    	if (videoFile != null && !videoFile.equals(mVideoFile))
     	{
     		mVideoFile = videoFile;
     		change = true;
     	}
-    	if ((audioFile == null && mAudioFile != null) || (audioFile != null && !audioFile.equals(mAudioFile)))
+    	if (audioFile != null && !audioFile.equals(mAudioFile))
     	{
     		mAudioFile = audioFile;
     		change = true;

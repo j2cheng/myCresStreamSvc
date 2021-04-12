@@ -204,7 +204,7 @@ int get_video_caps(char *device_name, VideoCaps *video_caps, char *display_name,
             }
             gchar *devdisplayname = gst_device_get_display_name(device);
             CSIO_LOG(eLogLevel_info, "Got device %s (display_name=%s) of class %s \n", devname, devdisplayname, devclass);
-            strncpy(display_name, devdisplayname, sizeof(display_name));
+            strncpy(display_name, devdisplayname, display_name_len);
             g_free(devdisplayname);
             if (strcmp(devname, device_name) == 0)
             {

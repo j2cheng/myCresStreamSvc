@@ -22,7 +22,16 @@
 
 package com.crestron.txrxservice;
 
+import com.crestron.txrxservice.wc.ipc.WC_AudioFormat;
+import com.crestron.txrxservice.wc.ipc.WC_VideoFormat;
+
 import android.util.Log;
+
+import java.lang.Object;
+
+import java.util.ArrayList;
+import java.util.List;
+
 import android.os.SystemClock;
 
 ///////////////////////////////////////////////////////////////////////////////
@@ -58,6 +67,8 @@ public class GstreamOut {
     private native void nativeSetAppCacheFolder(String name);
     private native void nativeSetVideoCaptureDevice(String device);
     private native void nativeSetAudioCaptureDevice(String device);
+    private native void nativeGetVideoFormat(String videoFile, WC_VideoFormat format);
+    private native void nativeGetAudioFormat(String videoFile, WC_AudioFormat format);
     private native void nativeStartPreview(Object surface, int sessionId);
     private native void nativePausePreview(int sessionId);
     private native void nativeStopPreview(int sessionId);
@@ -147,8 +158,39 @@ public class GstreamOut {
             resReleased = true;
         }
     }
-    
 
+    public List<WC_VideoFormat> getVideoFormats(String videoFile)
+    {
+    	List<WC_VideoFormat> videoFormats = new ArrayList<WC_VideoFormat>();
+    	if (videoFile.equalsIgnoreCase("none"))
+    		Log.i(TAG, "videoFile is 'none' - no video formats");
+    	else if (videoFile.contains("/dev/video")) {
+    		WC_VideoFormat format = new WC_VideoFormat(0,0,0);
+    		nativeGetVideoFormat(videoFile, format);
+    		Log.i(TAG, "videoFile is "+videoFile+" videoFormat="+format);
+    		videoFormats.add(format);
+    	} else {
+    		Log.i(TAG, "videoFile is "+videoFile+" - no video formats");
+    	}
+    	return videoFormats;
+    }
+    
+    public List<WC_AudioFormat> getAudioFormats(String audioFile)
+    {
+    	List<WC_AudioFormat> audioFormats = new ArrayList<WC_AudioFormat>();
+    	if (audioFile.equalsIgnoreCase("none"))
+    		Log.i(TAG, "audioFile is 'none' - no video formats");
+    	else if (audioFile.contains("/dev/snd/pcm")) {
+    		WC_AudioFormat format = new WC_AudioFormat(0,0,"");
+    		nativeGetAudioFormat(audioFile, format);
+    		Log.i(TAG, "audioFile is "+audioFile+" audioFormat="+format);
+    		audioFormats.add(format);
+    	} else {
+    		Log.i(TAG, "audioFile is "+audioFile+" - no video formats");
+    	}
+    	return audioFormats;
+    }
+    
     public void wirelessConferencing_start() {
         Log.i(TAG, "Streamout: JAVA - wirelessConferencing_start() entered" );
         if (!wirelessConferencing_server_started)
