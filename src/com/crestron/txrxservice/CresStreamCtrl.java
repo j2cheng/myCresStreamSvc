@@ -409,7 +409,8 @@ public class CresStreamCtrl extends Service {
 					cmode = AM_3x00_CameraMode.BLUE_SCREEN;
 					break;
 				case HDCPStreamError:
-					cmode = AM_3x00_CameraMode.RED_SCREEN;
+					cmode = AM_3x00_CameraMode.HDMI_IN_SCREEN;
+                    break;
 				case HDCPAllError:
 					cmode = AM_3x00_CameraMode.RED_SCREEN;
 					break;
