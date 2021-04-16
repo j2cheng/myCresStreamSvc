@@ -477,17 +477,26 @@ public class AirMediaSplashtop
     // synchronous version of receiver stop - waits for completion
     private boolean stopReceiver()
     {
-    	synchronized (startStopReceiverLock) {
-    		Common.Logging.i(TAG, "stopReceiver() enter (thread="+Integer.toHexString((int)(Thread.currentThread().getId()))+")");
-    		boolean successfulStop = true;
-    		receiverStoppedLatch = new CountDownLatch(1);
-    		receiver().stop();
-    		try { successfulStop = receiverStoppedLatch.await(30000, TimeUnit.MILLISECONDS); }
-    		catch (InterruptedException ex) { ex.printStackTrace(); }
-        	setActiveSession(null);
-    		Common.Logging.i(TAG, "stopReceiver() exit (thread="+Integer.toHexString((int)(Thread.currentThread().getId()))+") successfulStop="+successfulStop);
-    		receiverStoppedLatch = null; // release the latch
-    		return successfulStop;
+        synchronized (startStopReceiverLock) {
+            Common.Logging.i(TAG, "stopReceiver() enter (thread="+Integer.toHexString((int)(Thread.currentThread().getId()))+")");
+            boolean successfulStop = true;
+
+            /*Note: 4-16-2021, the same reason as startReceiver() below.
+             **/
+            if(mStreamCtl.getAirMediaLicensed()){
+                receiverStoppedLatch = new CountDownLatch(1);
+                receiver().stop();
+                try { successfulStop = receiverStoppedLatch.await(30000, TimeUnit.MILLISECONDS); }
+                catch (InterruptedException ex) { ex.printStackTrace(); }
+                setActiveSession(null);
+                Common.Logging.i(TAG, "stopReceiver() exit (thread="+Integer.toHexString((int)(Thread.currentThread().getId()))+") successfulStop="+successfulStop);
+                receiverStoppedLatch = null; // release the latch
+            }
+            else{
+                Common.Logging.i(TAG, "startReceiver: exiting no license");
+            }
+
+            return successfulStop;
     	}
     }
     
@@ -496,17 +505,29 @@ public class AirMediaSplashtop
     // the version that handles it: startReceiverWithPossibleIpAddressChange()
     private boolean startReceiver()
     {
-    	synchronized (startStopReceiverLock) {
-    		Common.Logging.i(TAG, "startReceiver() enter (thread="+Integer.toHexString((int)(Thread.currentThread().getId()))+")");
-        	mStreamCtl.initUpdateStreamStateOnFirstFrame(false);
-    		boolean successfulStart = true;
-    		receiverStartedLatch = new CountDownLatch(1);
-    		receiver().start();
-    		try { successfulStart = receiverStartedLatch.await(45000, TimeUnit.MILLISECONDS); }
-    		catch (InterruptedException ex) { ex.printStackTrace(); }
-    		Common.Logging.i(TAG, "startReceiver() exit (thread="+Integer.toHexString((int)(Thread.currentThread().getId()))+") successfulStart="+successfulStart);
-    		return successfulStart;
-    	}
+        synchronized (startStopReceiverLock) {
+            Common.Logging.i(TAG, "startReceiver() enter (thread="+Integer.toHexString((int)(Thread.currentThread().getId()))+")");
+            mStreamCtl.initUpdateStreamStateOnFirstFrame(false);
+            boolean successfulStart = true;
+    		
+            /*Note: 4-16-2021, calling receiver().start() will start/enable airMedia receiver,
+             *      see IAirMediaReceiver.aidl file.
+             *      The airMedia application runnung on you PC will connect to this program.
+             *      So, do not call the program if it is not licensed.
+             **/
+            if(mStreamCtl.getAirMediaLicensed()){
+                receiverStartedLatch = new CountDownLatch(1);
+                receiver().start();
+                try { successfulStart = receiverStartedLatch.await(45000, TimeUnit.MILLISECONDS); }
+                catch (InterruptedException ex) { ex.printStackTrace(); }
+                Common.Logging.i(TAG, "startReceiver() exit (thread="+Integer.toHexString((int)(Thread.currentThread().getId()))+") successfulStart="+successfulStart);
+            }
+            else{
+                Common.Logging.i(TAG, "startReceiver: exiting no license");
+            }
+
+            return successfulStart;
+        }
     }
 	
     private void RestartReceiverAynchronously() {

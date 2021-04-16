@@ -1813,19 +1813,21 @@ public class CresStreamCtrl extends Service {
                     }
                     airMediaLicensed = AirMediaSplashtop.checkAirMediaLicense();
                 }
-                if (airMediaLicensed)
-                {
-                    Log.i(TAG, MiscUtils.stringFormat("AirMedia is %s licensed", ((airMediaLicensed) ? "" : "not")));
-                }
+                Log.i(TAG, MiscUtils.stringFormat("AirMedia is %s licensed", ((airMediaLicensed) ? "" : "not")));
+                
                 while (!csioConnected || !csioConnectionInitializationComplete) {
                     Log.v(TAG, "AirMedia is licensed: waiting for csio connection to complete initialization");
                     try { Thread.sleep(500); } catch (InterruptedException e){}//Poll every 0.5 seconds
                 }
-                // Wait until file exists then check
-                if (mAirMedia == null && airMediaLicensed) {
+                //Note: 4-14-2021, need to start AirMediaCanvas even not licensed
+                if (mAirMedia == null){
                     Log.i(TAG, "Calling AirMediaConstructor from airMediaLicenseThread");
                     mAirMedia = new AirMediaSplashtop(streamCtrl);
-                    msMiceEnable(userSettings.getAirMediaMiracastMsMiceMode());
+                    
+                    if(airMediaLicensed){ 
+                        msMiceEnable(userSettings.getAirMediaMiracastMsMiceMode());
+                    }
+                    
                     // Ensure any existing ms-mice connections that exist are dropped
                     for (int sessionId = 0; sessionId < NumOfSurfaces; sessionId++)
                     {
@@ -5991,6 +5993,11 @@ public class CresStreamCtrl extends Service {
     	return (mAirMedia != null && mAirMedia.airMediaIsUp());
     }
     
+    public boolean getAirMediaLicensed()
+    {
+        return airMediaLicensed;
+    }
+
     public void airMediaUserFeedbackUpdateRequest(int sessId)
     {
         if (airMediaIsUp())
