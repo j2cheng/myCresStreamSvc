@@ -167,6 +167,10 @@ ifeq ($(TARGET_PRODUCT),$(filter $(TARGET_PRODUCT),yushan_one msm8953_64 ))
 LOCAL_CFLAGS += -DMAX_STREAMS_OMAP
 endif
 
+ifeq ($(shell test $(PLATFORM_SDK_VERSION) -ge 29 && echo Android10),Android10)
+LOCAL_CFLAGS += -DCRESTRON_ANDROID_10
+endif
+
 ifeq ($(TARGET_PRODUCT),$(filter $(TARGET_PRODUCT),am3x00_box))
 LOCAL_CFLAGS += -DMAX_STREAMS_AM3X00
 endif
