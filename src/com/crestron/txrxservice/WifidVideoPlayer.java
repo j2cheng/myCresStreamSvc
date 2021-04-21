@@ -220,36 +220,37 @@ public class WifidVideoPlayer {
                 Common.Logging.w(TAG, "Cannot start player with null surface");
                 return;
             }
-            int streamId = streamCtrl_.surface2streamId(surface);
-            if (streamId < 0)
-            {
-                Common.Logging.w(TAG, "Cannot find streamId for surface="+surface+" ignoring start command....");
+
+            // See if prior session exists with the same id
+            VideoSession session = sessionMap.get(id);
+            if (session == null)
+            {   //If session object related to id does not exist then streamId cannot be retrieved
+                Common.Logging.w(TAG, "Cannot find VideoSession session for id = " +id + " ignoring start command....");
                 return;
             }
-			// See if prior session exists with the same id
-            VideoSession session = sessionMap.get(id);
-            if (session != null)
+
+            int streamId = session.streamId;
+            if ( !session.notReady )
             {
-            	if (session.state == AirMediaSessionStreamingState.Playing || session.state == AirMediaSessionStreamingState.Starting)
-            	{
+                if (session.state == AirMediaSessionStreamingState.Playing || session.state == AirMediaSessionStreamingState.Starting)
+                {
                     Common.Logging.w(TAG, "There is an existing session with this id --- stopping it");
-            		stop(id);
-            	} else {
+                    stop(id);
+                } else {
                     Common.Logging.w(TAG, "There is an existing session with this id --- removing it");
-            		sessionMap.remove(id);
-            	}
+                    sessionMap.remove(id);
+                }
             }
             synchronized(startSessionObjectLock) {
-            	session = new VideoSession(id, streamId, surface, AirMediaSessionStreamingState.Stopped);
-            	// Start the video player
-            	// Put session into the map
-            	streamCtrl_.startWfdStream(streamId, id, endpoint, port, localAddress);
+                session.notReady = false;
+
+                // Start the video player
+                streamCtrl_.startWfdStream(streamId, id, endpoint, port, localAddress);
             }
-            sessionMap.put(id, session);
             WifidVideoPlayer.this.stateChanged(streamId, AirMediaSessionStreamingState.Starting);
             Common.Logging.i(TAG, "VideoPlayer.start  sessionId="+id+"  exiting...");
         }
-        
+
         /// startWithDtls
         @Override
         public void startWithDtls(long id, String endpoint, int port, Surface surface, String key, int cipher, int authentication)
@@ -330,6 +331,7 @@ public class WifidVideoPlayer {
     	public int streamId;
     	public String osVersion;
 		public boolean muted;
+		public boolean notReady;
     	
     	public VideoSession(long id, int streamIdx, Surface s, AirMediaSessionStreamingState curState)
     	{
@@ -339,6 +341,7 @@ public class WifidVideoPlayer {
     		state = curState;
     		osVersion = null;
     		muted = false;
+    		notReady = true;
     	}
     	
         
@@ -534,6 +537,18 @@ public class WifidVideoPlayer {
         	}
         }
         Common.Logging.i(TAG, "VideoPlayer.muteSession for sessionId="+id+" exiting...");
+    }
+
+    public void addToSessionMap(long id, int streamIdx, Surface s)
+    {
+        if (sessionMap.get(id) != null) {
+            Common.Logging.e(TAG, "videoplayer.addToSessionMap(): Cannot add session. Session id: " + id + " already exists.");
+            return;
+        }
+
+        VideoSession session = new VideoSession(id, streamIdx, s, AirMediaSessionStreamingState.Stopped);
+        sessionMap.put(id, session);
+        Common.Logging.i(TAG, "videoplayer.addToSessionMap() exit: sessionId: " + session +" StreamId: " + id);
     }
 
     ////////////////////////////////////////////////////////////////////////////////////////////////

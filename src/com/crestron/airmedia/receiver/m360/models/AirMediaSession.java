@@ -43,6 +43,7 @@ public class AirMediaSession extends AirMediaBase {
         try {
             session.register(observer_);
             id_ = session.getId();
+            miracastSessionId_ = session.getMiracastSessionId();
             endpoint_ = session.getEndpoint();
             addresses_ = Arrays.asList(session.getAddresses());
             username_ = session.getUsername();
@@ -252,6 +253,7 @@ public class AirMediaSession extends AirMediaBase {
     private final Object lock_ = new Object();
 
     private long id_ = 0;
+    private long miracastSessionId_ = 0;
 
     private IAirMediaSession session_;
     private String endpoint_;
@@ -321,6 +323,11 @@ public class AirMediaSession extends AirMediaBase {
     ////////////////////////////////////////////////////////////////////////////////////////////////
 
     public long id() { return id_; }
+    
+    /// MIRACAST SESSION ID
+ 
+    public long miracastSessionId() { return miracastSessionId_; }
+
 
     /// ENDPOINT
 

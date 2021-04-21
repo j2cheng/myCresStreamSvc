@@ -103,4 +103,8 @@ interface IAirMediaSession {
 
     boolean getRemoteAudioMuted();
     float getRemoteAudioVolume();
+    
+    String getMetrics();
+
+    long getMiracastSessionId(); 
 }

@@ -121,7 +121,7 @@ public class CresStreamCtrl extends Service {
     public GstreamIn getStreamPlay() { return streamPlay; };
     GstreamBase gstreamBase = null;
     WbsStreamIn wbsStream = null;
-    WifidVideoPlayer wifidVideoPlayer = null;
+    public WifidVideoPlayer wifidVideoPlayer = null;
     
     private DisplayManager m_displayManager = null;
     private CresLog ccresLog = null;

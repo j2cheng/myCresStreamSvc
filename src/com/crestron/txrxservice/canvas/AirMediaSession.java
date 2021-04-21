@@ -42,6 +42,8 @@ public class AirMediaSession extends Session
 		airMediaReceiverSession = session;
 		userLabel = label;
 		airmediaId = session.id();
+		miracastSessionId = session.miracastSessionId();
+        Common.Logging.i(TAG, "AirMediaSession::AirMediaSession - miracast session Id = " + miracastSessionId);
 		videoState = AirMediaSessionStreamingState.Stopped;
 		isAudioMuted = session.audioMuted();
 		if (session.info() != null)

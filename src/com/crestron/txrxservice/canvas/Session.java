@@ -40,6 +40,7 @@ public abstract class Session
     public String url;
     public AirMediaSize resolution;
     public long airmediaId;
+    public long miracastSessionId;
     public boolean [] permissions = new boolean[PermissionType.size];
     //public SessionInfo info_;
     public static long nextId = 0;
@@ -78,6 +79,7 @@ public abstract class Session
 		type = SessionType.Unknown;
 		airMediaType = null;
 		airmediaId = 0;
+		miracastSessionId = 0;
 		platform = CanvasPlatformType.Undefined;
 		inputNumber = 0;
 		url = null;
@@ -285,7 +287,13 @@ public abstract class Session
 				surface = mCanvas.acquireSurface(this);
 				if (surface != null && surface.isValid()) {
 					mStreamCtl.setSurface(streamId, surface);
-				} 
+
+                    //miracastSessionId is sourced back from recv apk for retrieving streamId from session object
+                    if (miracastSessionId != 0)
+                        mStreamCtl.wifidVideoPlayer.addToSessionMap(miracastSessionId, streamId, surface);
+                    else
+                        Common.Logging.e(TAG, "Session.java acquireSurface():ERROR miracastSessionId: " + miracastSessionId);
+				}
 				else
 				{
 					Common.Logging.w(TAG, "acquireSurface(): null or invalid surface acquired for "+sessionId());
