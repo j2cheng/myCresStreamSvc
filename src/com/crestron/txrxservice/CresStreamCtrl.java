@@ -2265,21 +2265,18 @@ public class CresStreamCtrl extends Service {
     
 	private void handlePossibleHdmiOutputResolutionChange()
 	{
-		//TODO: This function is using sysfs entry for AM3K for resolution - switch to using Android Window Manager
-		//      getRealSize once GS bug is fixed.
-        final String AM3K_hdmiResolutionFilePath = "/sys/class/drm/card0-HDMI-A-1/mode";
+        WindowManager wm = null;
         String w="0", h="0", fps="0";
-        String resString = MiscUtils.readStringFromDisk(AM3K_hdmiResolutionFilePath);
-        String delims_am3x = "[xp]+"; // Delimiter for AM3X products
-        String tokens[] = resString.split(delims_am3x);
-
-        if (hdmiOutput.getSyncStatus().equals("true") && tokens.length == 3)
-        {
-        	w = tokens[0];
-        	h = tokens[1];
-        	fps = tokens[2];
-        }
         
+        wm = (WindowManager) this.getSystemService(Context.WINDOW_SERVICE);
+        Display display = wm.getDefaultDisplay();
+        Point size = new Point();
+        display.getRealSize(size);
+
+        w = Integer.toString(size.x);
+        h = Integer.toString(size.y);
+        fps = Integer.toString(Math.round(display.getRefreshRate()));
+
     	if (!hdmiOutput.getHorizontalRes().equals(w) ||
     			!hdmiOutput.getVerticalRes().equals(h) ||
     			!hdmiOutput.getFPS().equals(fps))
@@ -7038,8 +7035,18 @@ public class CresStreamCtrl extends Service {
         @Override
         public void onDisplayChanged(int displayId)
         {
-            // TODO: I am not seeing this get called, so currently it is unimplemented
+            // This event gets caled only in AM3K
             Log.i(TAG, "HDMI Output display has changed");
+            new Thread(new Runnable() {
+                public void run() {
+                    try {
+                        synchronized (mDisplayChangedLock)
+                        {
+                            handleHdmiOutputChange();
+                        }                
+                    } catch (Exception e) { e.printStackTrace(); }
+                }
+            }).start();
         }
 
         @Override
