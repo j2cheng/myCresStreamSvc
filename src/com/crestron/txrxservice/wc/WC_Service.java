@@ -79,7 +79,7 @@ public class WC_Service {
             Log.i(TAG,"WC_GetConnectionParameters: request from id="+id);
             WC_Connection wc_connection = null;
             if (id == mCurrentId) {
-                wc_connection = getConnectionParameters();
+                wc_connection = getConnectionParameters(id);
             }
             return wc_connection;
         }
@@ -229,19 +229,19 @@ public class WC_Service {
         return mStreamOut.getWcServerKey();
     }
 
-    public WC_Connection getConnectionParameters()
+    public WC_Connection getConnectionParameters(int id)
     {
         String url = mStreamOut.getWcServerUrl();
         String cert = mStreamOut.getWcServerCertificate();
         //String privKey = mStreamOut.getWcServerKey();
-        WC_Connection wc_connection = new WC_Connection(1, url, cert);
+        WC_Connection wc_connection = new WC_Connection(id, url, cert);
         return wc_connection;
     }
 
-    public void showConnectionParameters(String from)
+    public void showConnectionParameters(String from, int id)
     {
         Log.i(TAG, "from "+from);
-        Log.i(TAG,"Connection_Parameters={\n"+getConnectionParameters().toString()+"\n}");
+        Log.i(TAG,"Connection_Parameters={\n"+getConnectionParameters(id).toString()+"\n}");
     }
     
     public void updateUsbDeviceStatus(List<UsbAvDevice> devices)
