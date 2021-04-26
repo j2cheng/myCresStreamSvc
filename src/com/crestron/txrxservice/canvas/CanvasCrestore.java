@@ -1510,8 +1510,14 @@ public class CanvasCrestore
 
                     Common.Logging.v(TAG, "Received Device/WiFi/AirMedia/WifiDirect message.");
                     parsed=true;
+                    if (root.device.wyFy.airMedia.wifiDirect.onConnect == null &&
+                    		root.device.wyFy.airMedia.wifiDirect.onDisconnect == null)
+                    {
+                    	Log.e(TAG, "Device/WiFi/AirMedia/WifiDirect message with both onConnect and onDisconnect events null");
+                    }
                     if(root.device.wyFy.airMedia.wifiDirect.onConnect != null)
                     {
+                        Common.Logging.v(TAG, "wifiDirect onConnect event");
                         String localAddress = root.device.wyFy.airMedia.wifiDirect.onConnect.localWifiIpAddress;
                         String deviceId = root.device.wyFy.airMedia.wifiDirect.onConnect.remoteMac;
                         String deviceName = root.device.wyFy.airMedia.wifiDirect.onConnect.remoteDeviceName;
@@ -1520,20 +1526,21 @@ public class CanvasCrestore
 
                         if(localAddress != null && deviceId != null && deviceName != null && deviceAddress != null)
                         {
-                            mStreamCtl.initiateWifiDirect(localAddress, deviceId, deviceName, deviceAddress, rtsp_port);
+                            mStreamCtl.startWifiDirect(localAddress, deviceId, deviceName, deviceAddress, rtsp_port);
                         }
                         else
                             Common.Logging.v(TAG, "Received NULL for onConnect message contents.");
                     }
-                    else
-                        Common.Logging.v(TAG, "Received NULL for onConnect");
 
                     if(root.device.wyFy.airMedia.wifiDirect.onDisconnect != null)
                     {
-                        Common.Logging.v(TAG, "wifiDirect onDisconnect only");
+                        Common.Logging.v(TAG, "wifiDirect onDisconnect event");
+                        String deviceId = root.device.wyFy.airMedia.wifiDirect.onDisconnect.remoteMac;
+                        if (deviceId != null) {
+                        	mStreamCtl.stopWifiDirect(deviceId);
+                        } else
+                            Common.Logging.v(TAG, "Received NULL for deviceId.");
                     }
-                    else
-                        Common.Logging.v(TAG, "Received NULL for onDisconnect");
                 }
 
                 /* parsing Device.AirMedia.NetworkStreams.

@@ -27,6 +27,7 @@ import java.util.HashMap;
 import java.util.LinkedList;
 import java.util.List;
 import java.util.Map;
+import java.util.Map.Entry;
 
 public class WifidVideoPlayer {
     private static final String TAG = "WifidVideoPlayer";
@@ -59,6 +60,7 @@ public class WifidVideoPlayer {
     private AirMediaReceiver receiver_ = null;
     private CresStreamCtrl streamCtrl_ = null;
     private final Map<Long, VideoSession> sessionMap = new HashMap<Long, VideoSession>();
+    private final Map<String, Long> deviceIdMap = new HashMap<String, Long>();
 
     ////////////////////////////////////////////////////////////////////////////////////////////////
     /// PROPERTIES
@@ -439,7 +441,8 @@ public class WifidVideoPlayer {
     public void onSessionReady(long id, String local_address, String device_id, String device_name, String device_address, int port) 
     {
         Common.Logging.i(TAG, "videoplayer.onSessionReady():  sessionId="+id+" deviceId="+device_id+" deviceName="+device_name+" deviceAddress="+device_address+" rtsp_port="+port+" local_address="+local_address);
-    	service_.onSessionReady(id, device_id, device_name, device_address, port, local_address);
+    	deviceIdMap.put(device_id, new Long(id));
+        service_.onSessionReady(id, device_id, device_name, device_address, port, local_address);
     }
     
     public void infoChanged(int streamId, String osVersion)
@@ -495,6 +498,9 @@ public class WifidVideoPlayer {
         	}
 			// Remove session from the map
     		sessionMap.remove(id);
+    		String deviceId = sessionId2DeviceId(id);
+    		if (deviceId != null)
+    			deviceIdMap.remove(deviceId);
         }
         Common.Logging.i(TAG, "VideoPlayer.stopSession for sessionId="+id+" exiting...");
     }
@@ -512,6 +518,19 @@ public class WifidVideoPlayer {
         Common.Logging.i(TAG, "VideoPlayer.stopSessionWithStreamId  streamId="+streamId+" exiting...");
     }
 
+    public void stopSessionWithDeviceId(String deviceId)
+    {
+        Common.Logging.i(TAG, "VideoPlayer.stopSessionWithDeviceId  deviceId="+deviceId);
+        synchronized(stopSessionObjectLock) {
+        	long sessionId =  deviceId2SessionId(deviceId);
+        	if (sessionId != INVALID_SESSION_ID)
+        		stopSession(sessionId);
+        	else
+        		Common.Logging.i(TAG, "Session for deviceId " + deviceId +" has invalid deviceId");
+        }
+        Common.Logging.i(TAG, "VideoPlayer.stopSessionWithDeviceId  deviceId="+deviceId+" exiting...");
+    }
+    
     public void muteSession(long id, boolean enable)
     {
         Common.Logging.i(TAG, "VideoPlayer.muteSession  sessionId="+id);
@@ -550,7 +569,25 @@ public class WifidVideoPlayer {
         sessionMap.put(id, session);
         Common.Logging.i(TAG, "videoplayer.addToSessionMap() exit: sessionId: " + session +" StreamId: " + id);
     }
-
+    
+    public long deviceId2SessionId(String deviceId)
+    {
+    	if (deviceIdMap.containsKey(deviceId))
+    		return deviceIdMap.get(deviceId);
+    	else
+    		return INVALID_SESSION_ID;
+    }
+    
+    public String sessionId2DeviceId(long id)
+    {
+    	for (Entry<String, Long> e : deviceIdMap.entrySet())
+    	{
+    		long v = e.getValue();
+    		if (v == id)
+    			return e.getKey();
+    	}
+    	return null;
+    }
     ////////////////////////////////////////////////////////////////////////////////////////////////
     /// EVENTS
     ////////////////////////////////////////////////////////////////////////////////////////////////
