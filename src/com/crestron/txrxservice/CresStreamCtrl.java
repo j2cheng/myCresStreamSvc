@@ -6630,11 +6630,17 @@ public class CresStreamCtrl extends Service {
         String msg = (enable ? "true" : "false");
         sockTask.SendDataToAllClients(MiscUtils.stringFormat("HDCP_BLANK_HDMI_OUTPUT=%s", msg));
 
-        // mute/unmute volume as well
-        if (enable)
-            setStreamVolume(-1);
-        else
-            setStreamVolume(userSettings.getUserRequestedVolume());
+        int curCameraMode = readCameraMode();
+
+        // mute/unmute volume as well only for AllError stream
+        if (curCameraMode != CameraMode.HDCPStreamError.ordinal())
+        {
+            Log.i(TAG, "Set audio mute/unmute for CameraMode= "+ curCameraMode);
+            if (enable)
+                setStreamVolume(-1);
+            else
+                setStreamVolume(userSettings.getUserRequestedVolume());
+        }
     }
 
     private void setCameraMode(String mode)

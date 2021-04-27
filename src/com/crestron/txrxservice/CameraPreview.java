@@ -27,6 +27,7 @@ public class CameraPreview {
     boolean is_pause = false;
     boolean is_preview = false;
     boolean is_audioplaying = false;
+    public static boolean is_hdmisession_muted = false;
     private boolean skipAudio = false;
     private final long stopTimeout_ms = 15000;
     private final long startTimeout_ms = 15000;

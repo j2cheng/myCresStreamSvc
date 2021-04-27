@@ -172,6 +172,11 @@ public class AudioPlayback
 											if (initVolumePending)
 											{
 												setVolume((int)mStreamCtl.userSettings.getVolume());
+												if(CameraPreview.is_hdmisession_muted)
+												{
+													setVolume(0);
+													Log.i(TAG, "Audio at startup muted: " + CameraPreview.is_hdmisession_muted);
+												}
 												initVolumePending = false;
 											}
 										}

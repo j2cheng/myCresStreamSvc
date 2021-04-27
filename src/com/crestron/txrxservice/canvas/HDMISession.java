@@ -7,6 +7,7 @@ import com.crestron.airmedia.receiver.m360.ipc.AirMediaSize;
 import com.crestron.airmedia.utilities.Common;
 import com.crestron.airmedia.utilities.TimeSpan;
 import com.crestron.txrxservice.HDMIInputInterface;
+import com.crestron.txrxservice.CameraPreview;
 
 import android.os.ConditionVariable;
 import android.util.Log;
@@ -144,6 +145,7 @@ public class HDMISession extends Session
 			mStreamCtl.sendExternalHdmiMute(streamId, false);
 		}
 		setIsAudioMuted(enable);
+		CameraPreview.is_hdmisession_muted = enable;
 		return true;
 	}
 	
