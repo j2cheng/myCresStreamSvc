@@ -526,7 +526,7 @@ public class WifidVideoPlayer {
         	if (sessionId != INVALID_SESSION_ID)
         		stopSession(sessionId);
         	else
-        		Common.Logging.i(TAG, "Session for deviceId " + deviceId +" has invalid deviceId");
+        		Common.Logging.i(TAG, "Session for deviceId " + deviceId +" does not exist. Was it stopped earlier?");
         }
         Common.Logging.i(TAG, "VideoPlayer.stopSessionWithDeviceId  deviceId="+deviceId+" exiting...");
     }
