@@ -308,11 +308,9 @@ public class HDMIInputInterface {
                     Log.i(TAG, "Product Type AM3X Detected: " + productType + ", vRes " + vRes + ", hRes " + hRes);
 
                 if((hRes.equals("0")) && (vRes.equals("0")))
-                    resIndex = 0; //Default to 640x480
-                else if((hRes.equals("1920")) && (vRes.equals("1080")))
-                    resIndex = 32;
+                    resIndex = 0; //Not defaulting to 640x480 Refer to startPlayback in CameraPreview.java
                 else if((hRes.equals("640")) && (vRes.equals("480")))
-                    resIndex = 0;
+                    resIndex = 1;
                 else if((hRes.equals("720")) && (vRes.equals("480")))
                     resIndex = 2;
                 else if((hRes.equals("720")) && (vRes.equals("576")))
@@ -347,8 +345,8 @@ public class HDMIInputInterface {
                     resIndex = 25;
                 else if((hRes.equals("1680")) && (vRes.equals("1050")))
                     resIndex = 26;
-                else if((hRes.equals("0")) && (vRes.equals("0")))
-                    resIndex = 24;
+                else if((hRes.equals("1920")) && (vRes.equals("1080")))
+                    resIndex = 32;
                 else if((hRes.equals("1920")) && (vRes.equals("1200")))
                     resIndex = 33;
                 else
