@@ -6635,11 +6635,17 @@ public class CresStreamCtrl extends Service {
         // mute/unmute volume as well only for AllError stream
         if (curCameraMode != CameraMode.HDCPStreamError.ordinal())
         {
-            Log.i(TAG, "Set audio mute/unmute for CameraMode= "+ curCameraMode);
+            Log.i(TAG, "Set audio mute/unmute for  current CameraMode="+ curCameraMode);
             if (enable)
                 setStreamVolume(-1);
             else
-                setStreamVolume(userSettings.getUserRequestedVolume());
+            {   //If the original state was muted before error, the maintain the same
+                Log.i(TAG, "sendHDCPLocalOutputBlanking cam_preview.is_hdmisession_muted "+ cam_preview.is_hdmisession_muted);
+                if(!cam_preview.is_hdmisession_muted)
+                {
+                    setStreamVolume(userSettings.getUserRequestedVolume());
+                }
+            }
         }
     }
 
