@@ -177,7 +177,7 @@ int WfdRTSPSinkClient::openConn()
                 pfd.fd = newSocket;
                 pfd.events = POLLOUT;           // Monitor sock for output. (POLLIN);
 
-                int ret = poll(&pfd, 1, 100);   //only 1 socket, timeout 100ms
+                int ret = poll(&pfd, 1, 1000);   //only 1 socket, timeout 1000ms
 
                 if ( ret == -1 )
                 {
@@ -190,7 +190,7 @@ int WfdRTSPSinkClient::openConn()
                 {
                     // timeout; no event detected
                     close(newSocket);
-                    CSIO_LOG(m_debugLevel, "WfdRTSPSinkClient: connect failed: timeout");
+                    CSIO_LOG(m_debugLevel, "WfdRTSPSinkClient: connect failed: timeout after 1 sec");
                     return -1;
                 }
                 else
