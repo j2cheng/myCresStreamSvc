@@ -10,6 +10,8 @@ import com.crestron.airmedia.receiver.m360.ipc.AirMediaSize;
 import com.crestron.airmedia.utilities.Common;
 import com.crestron.airmedia.utilities.TimeSpan;
 import com.crestron.txrxservice.HDMIInputInterface;
+import com.crestron.airmedia.canvas.channels.ipc.CanvasSourceAction;
+
 
 import android.os.ConditionVariable;
 import android.util.Log;
@@ -28,140 +30,175 @@ public class NetworkStreamSession extends Session
         TransportModeMapping.put("SESSINIT_MPEG2TSUDP", 2);
     }
 
-	public NetworkStreamSession(String label, String networkStreamUrl) {
-		super(); // will assign id;
-		state = SessionState.Stopped;
-		type = SessionType.NetworkStreaming;
-		airMediaType = null;
-		url = networkStreamUrl;
-		userLabel = label;
-		platform = CanvasPlatformType.Hardware;		
-		Common.Logging.i(TAG, "Created:  "+ this);
-	}
+    public NetworkStreamSession(String label, String networkStreamUrl) {
+        super(); // will assign id;
+        state = SessionState.Stopped;
+        type = SessionType.NetworkStreaming;
+        airMediaType = null;
+        url = networkStreamUrl;
+        userLabel = label;
+        platform = CanvasPlatformType.Hardware;
+        Common.Logging.v(TAG, "Created:  "+ this);
+    }
 
-	public String toString()
-	{
-		return ("Session: "+type.toString()+"-"+inputNumber+"  sessionId="+sessionId());
-	}
+    public String toString() {
+        return ("Session: " + type.toString() + "-" + inputNumber + "  sessionId=" + sessionId());
+    }
 	
-	public void doStop()
-	{
-		Common.Logging.i(TAG, "doStop(): "+this+" stop request");
-		if (streamId >= 0)
-		{			
-			Common.Logging.i(TAG, "doStop(): "+this+" calling Stop()");
-			mStreamCtl.Stop(streamId, false);			
-			Common.Logging.i(TAG, "doStop(): "+this+" back from Stop()");
-			releaseSurface();
-		}
-	}
+    private void doStop()
+    {
+        Common.Logging.i(TAG, "doStop(): "+this+" stop request");
+        if (streamId >= 0)
+        {			
+            Common.Logging.v(TAG, "doStop(): "+this+" calling Stop()");
+            mStreamCtl.Stop(streamId, false);			
+            Common.Logging.v(TAG, "doStop(): "+this+" back from Stop()");
+            releaseSurface();
+        }
+    }
 	
-	public void stop(final Originator originator, int timeoutInSeconds)
-	{
-		Runnable r = new Runnable() { public void run() { doStop(); } };
+    public synchronized void stop(final Originator originator, int timeoutInSeconds)
+    {
+        Runnable r = new Runnable() { public void run() { doStop(); } };
         TimeSpan start = TimeSpan.now();
-		boolean completed = executeWithTimeout(r, TimeSpan.fromSeconds(timeoutInSeconds));
-		Common.Logging.i(TAG, "stop():  completed in "+TimeSpan.now().subtract(start).toString()+" seconds");
-		if (completed) {
-			streamId = -1;
-			setState(SessionState.Stopped);
-		} else {
-			Common.Logging.w(TAG, "stop(): "+this+" stop failed");		
-			originator.failedSessionList.add(this);
-		}
-	}
+        boolean completed = executeWithTimeout(r, TimeSpan.fromSeconds(timeoutInSeconds));
+        Common.Logging.i(TAG, "stop():  completed in "+TimeSpan.now().subtract(start).toString()+" seconds");
+        if (completed) {
+            streamId = -1;
+            setState(SessionState.Stopped);
+        } else {
+            Common.Logging.w(TAG, "stop(): "+this+" stop failed");		
+            originator.failedSessionList.add(this);
+        }
+    }
 	
-	public void stop(Originator originator)
-	{
-		stop(originator, 10);
-	}	
+    public void stop(Originator originator)
+    {
+        stop(originator, 10);
+    }	
 
-	public void doPlay(final Originator originator)
-	{		
-		Common.Logging.i(TAG, "doPlay(): "+this+" play request");
-		setStreamId();
-		Common.Logging.i(TAG, "doPlay(): "+this+" got streamId "+streamId);
-		if (acquireSurface() != null)
-		{
-			// signal to csio to set device mode for this streamId to STREAMIN
-			mStreamCtl.setDeviceMode(0, streamId);
-			mStreamCtl.userSettings.setProxyEnable(false,streamId);			
-
-			Common.Logging.i(TAG, "doPlay(): url: " + url);
+    private void doPlay(final Originator originator)
+    {		
+        Common.Logging.v(TAG, "doPlay(): "+this+" play request");
+        setStreamId();
+        Common.Logging.v(TAG, "doPlay(): "+this+" got streamId "+streamId);
+        if (acquireSurface() != null)
+        {
+            // signal to csio to set device mode for this streamId to STREAMIN
+            mStreamCtl.setDeviceMode(0, streamId);
+            mStreamCtl.userSettings.setProxyEnable(false,streamId);			
 			
-			//Need to parse url for SessionInitiation and TRANSPORTMODE
-			if(url != null)
-			{
-				String delims = "[?]";
-				String[] tokens = url.split(delims);
+            //Need to parse url for SessionInitiation and TRANSPORTMODE
+            if(url != null)
+            {
+                String delims = "[?]";
+                String[] tokens = url.split(delims);
+                Common.Logging.i(TAG, "doPlay(): url: " + url);
 
-				//Note: the first section is the real url
-				mStreamCtl.setStreamInUrl(tokens[0], streamId);
+                //Note: the first section is the real url
+                mStreamCtl.setStreamInUrl(tokens[0], streamId);
 
-				//set TRANSPORTMODE here
-				int transPortMode = findTransportMode(tokens);                
-				Common.Logging.i(TAG, "doPlay():  calling setTMode: " + transPortMode);
-				mStreamCtl.setTMode(transPortMode,streamId);			
+                //set TRANSPORTMODE here
+                int transPortMode = findTransportMode(tokens);                
+                Common.Logging.v(TAG, "doPlay():  calling setTMode: " + transPortMode);
+                mStreamCtl.setTMode(transPortMode,streamId);			
 
-				//set SessionInitiation here
-				int sessInitiation = findSessionInitiation(tokens,transPortMode);				
-				Common.Logging.i(TAG, "doPlay():  calling setSessionInitiation: " + sessInitiation);
-				mStreamCtl.setSessionInitiation(sessInitiation,streamId);		
+                //set SessionInitiation here
+                int sessInitiation = findSessionInitiation(tokens,transPortMode);				
+                Common.Logging.v(TAG, "doPlay():  calling setSessionInitiation: " + sessInitiation);
+                mStreamCtl.setSessionInitiation(sessInitiation,streamId);		
 
-				Common.Logging.i(TAG, "doPlay():  "+this+" calling Start()");
-				mStreamCtl.Start(streamId);
+                Common.Logging.v(TAG, "doPlay():  "+this+" calling Start()");
+                mStreamCtl.Start(streamId);
 				
-				audioMute(isAudioMuted);
-				Common.Logging.i(TAG, "doPlay():  "+this+" back from audioMute(): " + isAudioMuted);		
-			}
-			else{
-				Common.Logging.w(TAG, "doPlay(): "+this+" got null url");
-			}
+                audioMute(isAudioMuted);
+                Common.Logging.v(TAG, "doPlay():  "+this+" back from audioMute(): " + isAudioMuted);		
+            }
+            else{
+                Common.Logging.w(TAG, "doPlay(): "+this+" got null url");
+            }
 
-		} else {
-		    Common.Logging.w(TAG, "doPlay(): "+this+" got null surface");
-		    originator.failedSessionList.add(this);
+        } else {
+            Common.Logging.w(TAG, "doPlay(): "+this+" got null surface");
+            originator.failedSessionList.add(this);
 
-                    //TODO: find out who is monitoring for failed session,
-                    //      how to restart this failed session?
-		}
-	}
+            //TODO: find out who is monitoring for failed session,
+            //      how to restart this failed session?
+        }
+    }
 	
-	public void play(final Originator originator, int timeoutInSeconds)
-	{
-		playTimedout = false;
-		setState(SessionState.Starting);
-		Runnable r = new Runnable() { public void run() { doPlay(originator); } };
+    public synchronized void play(final Originator originator, int timeoutInSeconds)
+    {
+        playTimedout = false;
+        setState(SessionState.Starting);
+        Runnable r = new Runnable() { public void run() { doPlay(originator); } };
         TimeSpan start = TimeSpan.now();
-		boolean completed = executeWithTimeout(r, TimeSpan.fromSeconds(timeoutInSeconds));
-		Common.Logging.i(TAG, "play(): completed in "+TimeSpan.now().subtract(start).toString()+" seconds");
-		if (completed)
-		{
-			setState(SessionState.Playing);
-		}
-		else
-		{
-			Common.Logging.w(TAG, "play(): "+this+" play failed - timeout");
-			playTimedout = true;
-			originator.failedSessionList.add(this);
-		}
-	}
+        boolean completed = executeWithTimeout(r, TimeSpan.fromSeconds(timeoutInSeconds));
+        Common.Logging.i(TAG, "play(): completed in "+TimeSpan.now().subtract(start).toString()+" seconds");
+        if (completed)
+        {
+            setState(SessionState.Playing);
+        }
+        else
+        {
+            Common.Logging.w(TAG, "play(): "+this+" play failed - timeout");
+            playTimedout = true;
+            originator.failedSessionList.add(this);
+        }
+    }
 	
-	public void play(Originator originator)
-	{
-		play(originator, 10);
-	}
+    public void play(Originator originator)
+    {
+        play(originator, 10);
+    }
 	
+    @Override
     public boolean audioMute(boolean enable) {
+        Common.Logging.v(TAG, "audioMute():  "+this+" enable: " + enable); 	
+
+        if (enable)
+        {
+            Common.Logging.v(TAG, "audioMute(): Session "+this+" calling setStreamInVolume("+streamId+") to 0.");			
+            mStreamCtl.setStreamInVolume(0, streamId);
+        } else {
+            int volume = (int)mStreamCtl.userSettings.getVolume();
+            Common.Logging.v(TAG, "audioMute(): Session "+this+" calling setStreamInVolume("+streamId+") to "+volume);	
+            mStreamCtl.setStreamInVolume(volume, streamId);
+        }
+
         setIsAudioMuted(enable);
         return true;
     }
+    
+    private void onPause() {
+        mStreamCtl.Pause(streamId);   
+        setState(SessionState.Paused);	 
+        Common.Logging.i(TAG, "onPause():  "+this+" called is Paused"); 	    	
+    }
+    private void onResume() {   
+        	
+        mStreamCtl.Start(streamId);  
+        setState(SessionState.Playing); 
+        Common.Logging.i(TAG, "onResume():  "+this+" called is Playing"); 	    	
+    }
 
+    public synchronized void onRequestAction(CanvasSourceAction t)
+    {
+        Common.Logging.i(TAG, "onRequestAction():  " + t.name()); 
+        if (t == CanvasSourceAction.Pause)
+        {
+            onPause();
+        }
+        else if (t == CanvasSourceAction.Play)
+        {
+            onResume();
+        }
+    }
     /*
      * looking for multicast address: [224 - 239].x.x.x. return true if it is
      * multicast address.
      */
-    public boolean isValidMulticastAddr(final String url) {
+    private boolean isValidMulticastAddr(final String url) {
         String Multicast_REGEX = ".*((22[4-9])|(23[0-9]))\\.(?:(([0-1]?[0-9]{1,2})|(2[0-4][0-9])|(25[0-5]))\\.){2}(([0-1]?[0-9]{1,2})|(2[0-4][0-9])|(25[0-5])).*";
         String[] splitUp = url.split("/");
         String ipAddress = splitUp[2];
@@ -179,7 +216,7 @@ public class NetworkStreamSession extends Session
     /*
      * looking for transport mode default mode is 0.
      */
-    public int findTransportMode(final String[] tokens) {
+    private int findTransportMode(final String[] tokens) {
         // skip the first token
         for (int i = 1; i < tokens.length; i++) {
             Integer objTrMode = (Integer) TransportModeMapping.get(tokens[i].toUpperCase());
@@ -196,12 +233,12 @@ public class NetworkStreamSession extends Session
 
     /*    https://crestron.jamacloud.com/perspective.req#/items/5887248?projectId=20916
      *                           RTP(0)                                      MPEG2TSRTP(1)                                   MPEG2TSUDP(2)
-     * By Receiver 	        rtsp://<url>:<rtsp_port>/<session_name>     rtsp://<url>:<rtsp_port>/<session_name>     rtsp://<url>:<rtsp_port>/<session_name>
-     * By Transmitter 	        No longer supported as it is non-standard   rtp://<tx_ip>:<port> 	                udp://<tx_ip>:<port>
-     * Multicast via RTSP 	rtsp://<url>:<rtsp_port>/<session_name>     rtsp://<url>:<rtsp_port>/<session_name>     rtsp://<url>:<rtsp_port>/<session_name>
-     * Multicast via UDP 	No longer supported as it is non-standard   rtp://<multicast_ip>:<port> 	        udp://<multicast_ip>:<port>
+     * By Receiver          rtsp://<url>:<rtsp_port>/<session_name>     rtsp://<url>:<rtsp_port>/<session_name>     rtsp://<url>:<rtsp_port>/<session_name>
+     * By Transmitter 	    No longer supported as it is non-standard   rtp://<tx_ip>:<port>                        udp://<tx_ip>:<port>
+     * Multicast via RTSP   rtsp://<url>:<rtsp_port>/<session_name>     rtsp://<url>:<rtsp_port>/<session_name>     rtsp://<url>:<rtsp_port>/<session_name>
+     * Multicast via UDP    No longer supported as it is non-standard   rtp://<multicast_ip>:<port>                 udp://<multicast_ip>:<port>
     */
-    public int findSessionInitiation(final String[] tokens, final int transPortMode) {
+    private int findSessionInitiation(final String[] tokens, final int transPortMode) {
         int sessInitiation = 0;
 
         if (transPortMode == 0) {

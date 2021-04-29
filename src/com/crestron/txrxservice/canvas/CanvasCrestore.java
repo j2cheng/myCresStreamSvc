@@ -1799,14 +1799,26 @@ public class CanvasCrestore
     	SessionEvent e = new CanvasCrestore.SessionEvent(UUID.randomUUID().toString()); 
     	for (int i=0; i < request.transactions.size(); i++) 
     	{
-    		CanvasSourceTransaction t = request.transactions.get(i);
-    		String sessionId = t.sessionId;
-			if (t.action == CanvasSourceAction.Pause)
-			{
-				Log.i(TAG,"sourceRequestToEvent(): sessionId="+sessionId+" requesting action="+t.action.toString()+" not implemented");
-				response.setErrorCode(CanvasResponse.ErrorCodes.UnsupportedAction);
-				return null;
-			}
+            CanvasSourceTransaction t = request.transactions.get(i);
+            String sessionId = t.sessionId;
+            if (t.action == CanvasSourceAction.Pause || t.action == CanvasSourceAction.Play) {
+                Session session = mSessionMgr.getSession(sessionId);
+                if (session != null && session instanceof NetworkStreamSession) {
+                    NetworkStreamSession netSess = (NetworkStreamSession) session;
+                    netSess.onRequestAction(t.action);
+
+                    if (t.action == CanvasSourceAction.Pause)
+                        setCurrentNetworkingStreamsSessionStatusToDB(session, "Paused");
+                    else
+                        setCurrentNetworkingStreamsSessionStatusToDB(session, "Paly");
+
+                    continue;
+                } else {
+                    Log.i(TAG,"sourceRequestToEvent(): sessionId="+sessionId+" requesting action="+t.action.toString()+" not implemented");
+                    response.setErrorCode(CanvasResponse.ErrorCodes.UnsupportedAction);
+                    return null;
+                }
+            }
 
 			if (t.action == CanvasSourceAction.Mute || t.action == CanvasSourceAction.UnMute)
 			{
