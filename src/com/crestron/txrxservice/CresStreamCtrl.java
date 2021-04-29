@@ -178,6 +178,7 @@ public class CresStreamCtrl extends Service {
     public final static String hdmiInputResolutionFilePath = "/dev/shm/crestron/hdmi/inputResolution";
     public final static String hdmiOutputResolutionFilePath = "/dev/shm/crestron/hdmi/outputResolution";
     public final static String surfaceFlingerViolationFilePath = "/dev/shm/crestron/CresStreamSvc/SFviolation";
+    private final static String goldenBootFilePath = "/dev/shm/crestron/CresStreamSvc/golden";
     private static final String [] InterfaceNames = {"eth0", "eth1"};
     public volatile boolean mMediaServerCrash = false;
     public volatile boolean mDucatiCrash = false;
@@ -1819,8 +1820,17 @@ public class CresStreamCtrl extends Service {
                     Log.v(TAG, "AirMedia is licensed: waiting for csio connection to complete initialization");
                     try { Thread.sleep(500); } catch (InterruptedException e){}//Poll every 0.5 seconds
                 }
+                
+                // Do not start any of the below if in golden image
+                boolean golden=false;
+            	File f = new File(goldenBootFilePath);
+            	if (f.exists())
+            	{
+                	golden = MiscUtils.readStringFromDisk(goldenBootFilePath).equals("1");
+            	}
+            	
                 //Note: 4-14-2021, need to start AirMediaCanvas even not licensed
-                if (mAirMedia == null){
+                if (mAirMedia == null && !golden){
                     Log.i(TAG, "Calling AirMediaConstructor from airMediaLicenseThread");
                     mAirMedia = new AirMediaSplashtop(streamCtrl);
                     
