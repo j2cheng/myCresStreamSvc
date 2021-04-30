@@ -37,6 +37,7 @@ public class CresCamera2 extends CresCamera
     static CameraCaptureSession mCameraSession;
     static Surface mPreviewSurface;
     CaptureRequest mPreViewRequest;
+    boolean mCamErrCur = false;
 
     private Semaphore mCameraOpenCloseLock = new Semaphore(1);
     static Object lockObj = new Object();
@@ -119,6 +120,7 @@ public class CresCamera2 extends CresCamera
                         @Override
                         public void onOpened(CameraDevice camera) {
                             Log.i(TAG, "  onOpened " + hdmiCameraName);
+                            mCamErrCur = false;
                             mCameraDevice = camera;
                             cameraOpenLatch.countDown();
                         }
@@ -139,6 +141,7 @@ public class CresCamera2 extends CresCamera
                         @Override
                         public void onError(CameraDevice camera, int error) {
                             Log.e(TAG, "onError " + hdmiCameraName + " error " + error);
+                            mCamErrCur = true;
                             if (mCameraDevice != null) {
                                 releaseCamera();
                             }

@@ -296,6 +296,12 @@ public class ProductSpecific
 
         public void HdmiInConnect()
         {
+            Log.i(TAG, "hdmiInConnected:" + hdmiInConnected + " last camera error state:" + cam_handle.mCamErrCur);
+
+            //If a camera error has occured, dont see the HDMI Input to be connected
+            if(cam_handle.mCamErrCur)
+                hdmiInConnected = false;
+
             if (!hdmiInConnected)
             {
                 int tries = 0;

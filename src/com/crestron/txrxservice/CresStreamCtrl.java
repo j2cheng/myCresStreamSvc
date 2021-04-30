@@ -6361,6 +6361,8 @@ public class CresStreamCtrl extends Service {
 	                    }
                     }
                 }
+                else
+                    Log.i(TAG, "handleHdmiInputResolutionEvent ignored since resolutionId == mCurrentHdmiInputResolution=" + mCurrentHdmiInputResolution);
             }
         }
         finally
