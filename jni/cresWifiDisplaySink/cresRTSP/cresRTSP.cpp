@@ -1795,24 +1795,13 @@ int rtsp_processVideoFormat(char * outBuff, int outBuffSize, char ** encodedPart
    }
 
    // level 4 has 25Mb/s with the High profile
-   if(product_info()->hw_platform == eHardwarePlatform_Rockchip)
-   {
-       sprintf(locBuff,"00 00 01 10 %08x %08x %08x 00 0000 0000 00 none none",
-       ceaFlags,vesaFlags,hhFlags);
-   }
-   else
-   {
-       sprintf(locBuff,"00 00 02 04 %08x %08x %08x 00 0000 0000 00 none none",
-       ceaFlags,vesaFlags,hhFlags);
-   }
-
+   sprintf(locBuff,"00 00 02 04 %08x %08x %08x 00 0000 0000 00 none none",
+      ceaFlags,vesaFlags,hhFlags);
    if(strlen(locBuff) >= outBuffSize)
    {
       RTSP_LOG(eLogLevel_error,"outBuffSize (%d) too small to hold encoded string %s\n",locBuff);
       return(-1);
    }
-
-   RTSP_LOG(eLogLevel_debug,"%s: Format = %s", __FUNCTION__, locBuff);
 
    strcpy(outBuff,locBuff);
 
@@ -1940,24 +1929,13 @@ int rtsp_processVideoFormatDirect(char * outBuff, int outBuffSize, char ** table
    }
 
    // level 4 has 25Mb/s with the High profile
-   if(product_info()->hw_platform == eHardwarePlatform_Rockchip)
-   {
-       sprintf(locBuff,"00 00 01 10 %08x %08x %08x 00 0000 0000 00 none none",
-       ceaFlags,vesaFlags,hhFlags);
-   }
-   else
-   {
-       sprintf(locBuff,"00 00 02 04 %08x %08x %08x 00 0000 0000 00 none none",
-       ceaFlags,vesaFlags,hhFlags);
-   }
-
+   sprintf(locBuff,"00 00 02 04 %08x %08x %08x 00 0000 0000 00 none none",
+      ceaFlags,vesaFlags,hhFlags);
    if(strlen(locBuff) >= outBuffSize)
    {
       RTSP_LOG(eLogLevel_error,"outBuffSize (%d) too small to hold encoded string %s\n",locBuff);
       return(-1);
    }
-
-   RTSP_LOG(eLogLevel_debug,"%s: Format = %s", __FUNCTION__, locBuff);
 
    strcpy(outBuff,locBuff);
 
