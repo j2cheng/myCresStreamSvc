@@ -498,6 +498,27 @@ public class CanvasCrestore
         cresstoreSet(gson.toJson(root), true);
     }
 
+    public void publishNetworkingStrmSessAVPackets(Session session, int v, int a) {
+        //create root object
+        Root root = getRootedDeviceNetworkStreams();
+
+        //create map entry and set values
+        StreamConfigMapEntry mapEntry = new StreamConfigMapEntry();
+        mapEntry.numVideoPacketsDropped = v;
+        mapEntry.numAudioPacketsDropped = a;
+
+        //insert {key value} into map entry
+        HashMap<String, StreamConfigMapEntry> locamap = new HashMap<String, StreamConfigMapEntry>();
+        locamap.put(session.userLabel, mapEntry);
+
+        //set map entry into root object
+        root.device.airMedia.networkStreams = locamap;
+        //Common.Logging.v(TAG, "setCurrentNetworkingStreamsSessionStatusToDB send to DB " + gson.toJson(root));
+
+        //publish to redis DB
+        cresstoreSet(gson.toJson(root), false);
+    }
+
 	public void markSessionsSentToAvf(SessionEvent e)
 	{
 		for (Map.Entry<String, SessionEventMapEntry> entry : e.sessionEventMap.entrySet())
@@ -1299,9 +1320,15 @@ public class CanvasCrestore
             Common.Logging.i(TAG, "Processing Network Stream has no action.");
 
             //TODO: treat this as an error - force them to send an action unless it is to delete a session			
-        } else if (mapEntry.action.equalsIgnoreCase("Start")) {
+        } else if (mapEntry.action.equalsIgnoreCase("Connect")) {
             // take care of case that actin and url in two different command
             if (session != null && session.getState() != SessionState.Stopped) {
+
+                //update the reset of parameters	
+                ((NetworkStreamSession)session).setBuffer(mapEntry.buffer);
+                ((NetworkStreamSession)session).setVolume(mapEntry.volume);
+                ((NetworkStreamSession)session).setStatistics(mapEntry.isStatisticsEnabled);
+
                 Common.Logging.i(TAG, "Start NetworkStream for session that already exists - ignoring");
                 return;
             } else {
@@ -1313,6 +1340,11 @@ public class CanvasCrestore
                 if (session != null) {
                     Common.Logging.i(TAG, "Adding session " + session + " to sessionManager");
                     mSessionMgr.add(session);
+
+                    //update the reset of parameters	
+                    ((NetworkStreamSession)session).setBuffer(mapEntry.buffer);
+                    ((NetworkStreamSession)session).setVolume(mapEntry.volume);
+                    ((NetworkStreamSession)session).setStatistics(mapEntry.isStatisticsEnabled);
 
                     Common.Logging.i(TAG, "Start to connect session: " + session + " to video source: " + mapEntry.url);
                     doSynchronousSessionEvent(session, "Connect", new Originator(RequestOrigin.StateChangeMessage, session), 10);
@@ -1331,7 +1363,7 @@ public class CanvasCrestore
                     Common.Logging.i(TAG, "Pause session command in wrong place: " + session);
                     //Common.Logging.i(TAG, "Pause session: " + session);
                     //doSynchronousSessionEvent(session, "Pause", new Originator(RequestOrigin.StateChangeMessage, session), 10);
-                } else if (mapEntry.action.equalsIgnoreCase("Stop") && session.isPlaying()) {
+                } else if (mapEntry.action.equalsIgnoreCase("Disconnect") && session.isPlaying()) {
                     Common.Logging.i(TAG, "Stop session: " + session);
                                         
                     //Note: maybe "Disconnect" will call doStop()  
@@ -1862,6 +1894,16 @@ public class CanvasCrestore
         String action;
         @SerializedName ("Status")
         String status;
+        @SerializedName ("Buffer")
+        Integer buffer;
+        @SerializedName ("Volume")
+        Integer volume;
+        @SerializedName ("IsStatisticsEnabled")
+        Boolean isStatisticsEnabled;
+        @SerializedName ("NumVideoPacketsDropped")
+        Integer numVideoPacketsDropped;
+        @SerializedName ("NumAudioPacketsDropped")
+        Integer numAudioPacketsDropped;
     }      
     
     public class SessionResponseMapEntry {

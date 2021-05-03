@@ -153,7 +153,7 @@ public class GstreamIn implements SurfaceHolder.Callback {
     	nativeSetVolume(volume, sessionId);
     }
     
-    public void sendStatistics(long video_packets_received, int video_packets_lost, long audio_packets_received, int audio_packets_lost, int bitrate){
+    public void sendStatistics(int streamId,long video_packets_received, int video_packets_lost, long audio_packets_received, int audio_packets_lost, int bitrate){
     	statisticsNumVideoPackets = video_packets_received;
     	if (video_packets_lost < 0)
     	{
@@ -168,7 +168,7 @@ public class GstreamIn implements SurfaceHolder.Callback {
         statisticsNumAudioPacketsDropped = audio_packets_lost;
         statisticsBitrate = bitrate;
         
-        streamCtl.SendStreamInFeedbacks();
+        streamCtl.SendStreamInFeedbacks(streamId);
     }
  
     public void updateCurrentXYloc(int xloc, int yloc, int sessId){

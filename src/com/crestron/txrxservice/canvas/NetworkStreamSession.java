@@ -22,6 +22,13 @@ public class NetworkStreamSession extends Session
     public static final String TAG = "TxRx.canvas.NetworkStream.session";
     private static final HashMap<String, Integer> TransportModeMapping ;
 	
+    
+    private Integer buffer;
+    private Integer volume;
+    private boolean isStatisticsEnabled;
+    private Integer numVideoPacketsDropped;
+    private Integer numAudioPacketsDropped;
+
     static {
         // posible string: SESSINIT_RTP, SESSINIT_MPEG2TSRTP and SESSINIT_MPEG2TSUDP
         TransportModeMapping = new HashMap<String, Integer>();
@@ -38,6 +45,13 @@ public class NetworkStreamSession extends Session
         url = networkStreamUrl;
         userLabel = label;
         platform = CanvasPlatformType.Hardware;
+        
+        buffer = 1000;
+        volume = 100;
+        isStatisticsEnabled = false;
+        numVideoPacketsDropped = 0;
+        numAudioPacketsDropped = 0;
+
         Common.Logging.v(TAG, "Created:  "+ this);
     }
 
@@ -45,6 +59,32 @@ public class NetworkStreamSession extends Session
         return ("Session: " + type.toString() + "-" + inputNumber + "  sessionId=" + sessionId());
     }
 	
+    //TODO: save to Device.StreamReceive.Streams[index].Buffer
+    public void setBuffer(Integer b) { 
+        if(b != null)
+            buffer = b; 
+        else
+            Common.Logging.i(TAG, "setBuffer(): parameter is null");
+    }
+    public Integer getBuffer() { return buffer; }
+
+    //TODO: save to Device.StreamReceive.Streams[index].Volume
+    public void setVolume(Integer b) { 
+        if(b != null)
+            volume = b;
+        else
+            Common.Logging.i(TAG, "setVolume(): parameter is null");
+    }
+    public Integer getVolume() { return volume; }
+
+    public void setStatistics(Boolean b) {
+        if(b != null)
+            isStatisticsEnabled = b;
+        else
+            Common.Logging.i(TAG, "setStatistics(): parameter is null");
+    }
+    public boolean getStatistics() { return isStatisticsEnabled; }
+
     private void doStop()
     {
         Common.Logging.i(TAG, "doStop(): "+this+" stop request");

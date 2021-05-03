@@ -93,6 +93,7 @@ import com.crestron.txrxservice.canvas.CresCanvas;
 import com.crestron.txrxservice.wc.WC_Service;
 import com.crestron.txrxservice.canvas.Session;
 import com.crestron.txrxservice.canvas.SessionType;
+import com.crestron.txrxservice.canvas.NetworkStreamSession;
 
 interface Command {
     void executeStart(int sessId);
@@ -3420,7 +3421,7 @@ public class CresStreamCtrl extends Service {
         sockTask.SendDataToAllClients("STREAMIN_AUDIO_CHANNELS=" + String.valueOf(streamPlay.getMediaPlayerAudiochannelsFb()));
     }
 
-    public void SendStreamInFeedbacks()
+    public void SendStreamInFeedbacks(int streamId)
     {
         if(userSettings.isStatisticsEnable(0))
         {
@@ -3432,6 +3433,9 @@ public class CresStreamCtrl extends Service {
 
         if (streamPlay.getStreamInBitrate() >= 0) //negative value means don't send feedback
             sockTask.SendDataToAllClients("VBITRATE=" + String.valueOf(streamPlay.getStreamInBitrate()));
+
+        //Note: we have Feedbacks from gstreamer, for NetworkStream, call setNetworkSreamingFeedbacks().
+        setNetworkSreamingFeedbacks(streamId);
     }
     
     public void SendStreamOutFeedbacks()
@@ -7392,4 +7396,32 @@ public class CresStreamCtrl extends Service {
             }
         }
     }
+
+    //Note: we have Feedbacks from gstreamer, for NetworkStream, call setNetworkSreamingFeedbacks().
+    public void setNetworkSreamingFeedbacks(int streamId)
+    {
+        //Log.v(TAG, "setNetworkSreamingFeedbacks(): streamId=" + streamId);
+
+        if((mCanvas != null) && (mCanvas.mSessionMgr != null))
+        {
+            Session session = mCanvas.mSessionMgr.findSession(streamId);
+            //Log.v(TAG, "setNetworkSreamingResolution(): findSession return:" + session);
+
+            if(session != null && session.getType() == SessionType.NetworkStreaming)
+            {
+                NetworkStreamSession netSess = (NetworkStreamSession) session;
+                if(netSess.getStatistics())
+                {
+                    //Log.v(TAG, "setNetworkSreamingResolution(): getStreamInNumVideoPacketsDropped: " + streamPlay.getStreamInNumVideoPacketsDropped());
+                    //Log.v(TAG, "setNetworkSreamingResolution(): getStreamInNumAudioPacketsDropped: " + streamPlay.getStreamInNumAudioPacketsDropped());
+
+                    mCanvas.getCrestore().publishNetworkingStrmSessAVPackets(session,
+                                                                             streamPlay.getStreamInNumVideoPacketsDropped(),
+                                                                             streamPlay.getStreamInNumAudioPacketsDropped());
+
+                }
+            }
+        }
+    }
+
 }

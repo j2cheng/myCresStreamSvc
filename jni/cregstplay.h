@@ -299,7 +299,7 @@ GstElement* csio_jni_callback_rtpbin_new_rtp_decoder(GstElement *rtpbin,guint se
 
 // Includes for csioutils.h 
 typedef gint gboolean;
-void     csio_send_stats (uint64_t video_packets_received, int video_packets_lost, uint64_t audio_packets_received, int audio_packets_lost, uint16_t bitrate) ;
+void     csio_send_stats (int iStreamId,uint64_t video_packets_received, int video_packets_lost, uint64_t audio_packets_received, int audio_packets_lost, uint16_t bitrate) ;
 GstStateChangeReturn csio_element_set_state(GstElement *element, GstState state, gboolean bFileUri = false);
 void csio_SetWaitDecHas1stVidDelay(int iStreamId,int v);
 int  csio_GetWaitDecHas1stVidDelay(int iStreamId);
