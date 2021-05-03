@@ -1833,16 +1833,13 @@ public class CanvasCrestore
     	{
             CanvasSourceTransaction t = request.transactions.get(i);
             String sessionId = t.sessionId;
-            if (t.action == CanvasSourceAction.Pause || t.action == CanvasSourceAction.Play) {
+            if (t.action == CanvasSourceAction.Pause) {
                 Session session = mSessionMgr.getSession(sessionId);
                 if (session != null && session instanceof NetworkStreamSession) {
                     NetworkStreamSession netSess = (NetworkStreamSession) session;
                     netSess.onRequestAction(t.action);
 
-                    if (t.action == CanvasSourceAction.Pause)
-                        setCurrentNetworkingStreamsSessionStatusToDB(session, "Paused");
-                    else
-                        setCurrentNetworkingStreamsSessionStatusToDB(session, "Paly");
+                    setCurrentNetworkingStreamsSessionStatusToDB(session, "Paused");                    
 
                     continue;
                 } else {
@@ -1850,6 +1847,19 @@ public class CanvasCrestore
                     response.setErrorCode(CanvasResponse.ErrorCodes.UnsupportedAction);
                     return null;
                 }
+            }
+
+            if (t.action == CanvasSourceAction.Play) {
+                Session session = mSessionMgr.getSession(sessionId);
+                if (session != null && session instanceof NetworkStreamSession) {
+                    NetworkStreamSession netSess = (NetworkStreamSession) session;
+                    netSess.onRequestAction(t.action);
+
+                    setCurrentNetworkingStreamsSessionStatusToDB(session, "Paly");
+
+                    continue;
+                } 
+                //else do nothing here!
             }
 
 			if (t.action == CanvasSourceAction.Mute || t.action == CanvasSourceAction.UnMute)
