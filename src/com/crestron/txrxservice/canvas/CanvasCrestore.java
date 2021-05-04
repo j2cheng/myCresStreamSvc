@@ -243,6 +243,9 @@ public class CanvasCrestore
         	Common.Logging.i(TAG,"Verified subscription is working");
         }
         
+        //set default value for NetworkStreaming
+        setNetworkStreamDefault();
+
         rv = wrapper.setIgnoreOwnSets(!CresCanvas.useSimulatedAVF);
         if (rv != com.crestron.cresstoreredis.CresStoreResult.CRESSTORE_SUCCESS)
         {
@@ -517,6 +520,52 @@ public class CanvasCrestore
 
         //publish to redis DB
         cresstoreSet(gson.toJson(root), false);
+    }
+
+    public void setNetworkStreamDefault() {
+
+        boolean update = true;
+
+        //first get Device.AirMedia.NetworkStreams, if not exit, then set default.
+        String sourcesStr = "{\"Device\":{\"AirMedia\":{\"NetworkStreams\":{}}}}";
+        try {
+            String jsonStr = wrapper.get(true, sourcesStr);
+            if (jsonStr != null){
+                Log.v(TAG, "setNetworkStreamDefault found = "+jsonStr);
+                update = false;        	
+            } else {
+                Log.v(TAG, "Could not find Device.AirMedia.NetworkStreams");				
+            }
+        } catch (Exception ex) {
+            Common.Logging.i(TAG, "setNetworkStreamDefault exception: " + ex.getMessage());
+        }
+
+        if(update){
+            //create root object
+            Root root = getRootedDeviceNetworkStreams();
+
+            //default stream name
+            String streamName = "Stream0";
+
+            //create map entry
+            StreamConfigMapEntry mapEntry = new StreamConfigMapEntry();
+            mapEntry.buffer = 1000;
+            mapEntry.isStatisticsEnabled = false;
+            mapEntry.volume = 100;
+            mapEntry.numVideoPacketsDropped = 0;
+            mapEntry.numAudioPacketsDropped = 0;
+
+            //insert {key value} into map entry
+            HashMap<String, StreamConfigMapEntry> locamap = new HashMap<String, StreamConfigMapEntry>();
+            locamap.put(streamName, mapEntry);
+
+            //set map entry into root object
+            root.device.airMedia.networkStreams = locamap;
+            Common.Logging.v(TAG, "setNetworkStreamDefault send to DB " + gson.toJson(root));
+
+            //publish to redis DB
+            cresstoreSet(gson.toJson(root), true);
+        }
     }
 
 	public void markSessionsSentToAvf(SessionEvent e)
