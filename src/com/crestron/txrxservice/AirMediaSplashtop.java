@@ -96,6 +96,7 @@ public class AirMediaSplashtop
 	private int streamIdx = 0;
 	private static final boolean DEBUG = true;
 	private static final int MAX_USERS = 32;
+	private static final int UPDATE_STATUS_AND_TOTAL_USERS = 0x8000;
 	private static final int CODEC_ERROR = 1;
 	private static final int MEDIA_SERVER_HANG = 2;
 	private static final int M360_TIMEOUT = -32001;
@@ -1911,7 +1912,6 @@ public class AirMediaSplashtop
             Common.Logging.i(TAG, "User id: "+String.valueOf(user)+"  Disconnected: "+String.valueOf(false));
             mStreamCtl.userSettings.setAirMediaUserConnected(false, user);
             mStreamCtl.sendAirMediaUserFeedbacks(user, "", "", 0, false);
-			removeClientData(session);
 			removeSessionVideoState(session);
         } else {
             Common.Logging.e(TAG, "Got invalid user id: "+String.valueOf(user) + "for " + session);
@@ -1925,9 +1925,9 @@ public class AirMediaSplashtop
         		s.setDisconnected();
         		canvasSessionMap.remove(session.id());
         	}
-        	sendClientData();
         	mCanvas.mSessionMgr.logSessionStates("AirMediaSplashtop::removeSession");
         }
+		removeClientData(user, session);
 		querySenderList(false); // force update of AIRMEDIA_STATUS as well as AIRMEDIA_NUMBER_OF_USERS_CONNECTED
     }
     
@@ -2347,11 +2347,11 @@ public class AirMediaSplashtop
 	private void sendClientData(int client, Client clientData)
 	{
 		DeviceObject dev = new DeviceObject();
-		dev.Device.AirMedia.ClientData.updateStatusAndTotalUsers(client==0);
+		dev.Device.AirMedia.ClientData.updateStatusAndTotalUsers((client&UPDATE_STATUS_AND_TOTAL_USERS) != 0);
 		if (clientData != null)
 		{
 			dev.Device.AirMedia.ClientData.ConnectedClients = new LinkedHashMap<String, Client>();
-			dev.Device.AirMedia.ClientData.ConnectedClients.put("Client"+client, clientData);
+			dev.Device.AirMedia.ClientData.ConnectedClients.put("Client"+(client&0xFF), clientData);
 		}
 		if (client < 0)
 		{
@@ -2365,7 +2365,7 @@ public class AirMediaSplashtop
 	
 	private void sendClientData()
 	{
-		sendClientData(0, null); // just update status and totalusers;
+		sendClientData(UPDATE_STATUS_AND_TOTAL_USERS, null); // just update status and totalusers;
 	}
 	
 	private void sendClientData(AirMediaSession session)
@@ -2499,14 +2499,13 @@ public class AirMediaSplashtop
 		sendClientData(client, c);
 	}
 	
-	private void removeClientData(AirMediaSession session)
+	private void removeClientData(int client, AirMediaSession session)
 	{
-		int client = session2user(session);
 		if (client < 0)
 			return;
 
 		Common.Logging.i(TAG,  "removeClientData for client "+ client + " session=" + session);
-		sendClientData(client, new Client());
+		sendClientData(client | UPDATE_STATUS_AND_TOTAL_USERS, new Client());
 	}
 	
 	private void removeAllConnectedClients()
