@@ -940,6 +940,8 @@ void* CStreamoutManager::ThreadEntry()
     	else
     		CSIO_LOG(eLogLevel_error, "Streamout: No multicast address provided");
     }
+    else
+    	CSIO_LOG(eLogLevel_info, "Streamout: multicast disabled");
 
 
     /* notify when our media is ready, This is called whenever someone asks for
