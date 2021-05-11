@@ -1551,13 +1551,22 @@ JNIEXPORT void JNICALL Java_com_crestron_txrxservice_GstreamIn_nativeSetFieldDeb
                 CSIO_LOG(eLogLevel_debug, "flushing pipeline...");
                 GstEvent* flush_start = gst_event_new_flush_start();
                 gboolean ret = FALSE;
-                ret = gst_element_send_event(GST_ELEMENT(data->pipeline), flush_start); //Try element 0
+                ret = gst_element_send_event(GST_ELEMENT(data->pipeline), flush_start);
                 if (!ret)
                 {
                     CSIO_LOG(eLogLevel_warning, "failed to send flush-start event");
                 }
                 else
                 {
+                    if(data->video_sink)
+                    {
+                        GstStateChangeReturn ret1 = csio_element_set_state(data->video_sink, GST_STATE_READY);
+                        CSIO_LOG(eLogLevel_debug, "set video_sink to GST_STATE_READY ret[%d]...",ret1);
+
+                        usleep(100000L);
+                    }
+
+
                     //true: to reset timestamp, false not to
                     GstEvent* flush_stop = gst_event_new_flush_stop(TRUE);
 
@@ -1566,6 +1575,14 @@ JNIEXPORT void JNICALL Java_com_crestron_txrxservice_GstreamIn_nativeSetFieldDeb
                         CSIO_LOG(eLogLevel_warning, "failed to send flush-stop event");
                     else
                         CSIO_LOG(eLogLevel_debug, "Just flushed pipeline");
+
+                    if(data->video_sink)
+                    {
+                        GstStateChangeReturn ret1 = csio_element_set_state(data->video_sink, GST_STATE_PLAYING);
+                        CSIO_LOG(eLogLevel_debug, "set video_sink to GST_STATE_PLAYING...%d",ret1);
+                    }
+
+                    CSIO_LOG(eLogLevel_debug, "flush is done");
                 }
             }
             else if (!strcmp(CmdPtr, "SET_CATEGORY_DEBUG_LEVEL"))
@@ -4053,8 +4070,8 @@ void csio_jni_initVideo(int iStreamId)
     
     if(data->using_glimagsink)
     {
-    CSIO_LOG(eLogLevel_debug, "qos is set to default");
-    g_object_set(G_OBJECT(data->video_sink), "force-aspect-ratio", FALSE, NULL);
+        CSIO_LOG(eLogLevel_debug, "using_glimagsink force-aspect-ratio is set to FALSE");
+        g_object_set(G_OBJECT(data->video_sink), "force-aspect-ratio", FALSE, NULL);
     }
     else
     {

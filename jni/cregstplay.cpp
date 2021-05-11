@@ -1237,6 +1237,8 @@ void clearMetadataConnections()
 
 static void setQueueProperties(CREGSTREAM *data, GstElement *queue, guint64 maxTime, guint maxBytes)
 {
+    CSIO_LOG(eLogLevel_debug, "setQueueProperties mode[%d],maxTime[%lld],maxBytes[%d]", data->httpMode,maxTime,maxBytes);
+
 	switch (data->httpMode)
 	{
 	case eHttpMode_UNSPECIFIED:
@@ -1617,13 +1619,13 @@ int build_video_pipeline(gchar *encoding_name, CREGSTREAM *data, unsigned int st
 		}
 		data->element_v[i++] = gst_element_factory_make("valve", NULL);
 		data->element_valve_v = data->element_v[i-1];
-		data->element_v[i++] = gst_element_factory_make("jpegparse", NULL);
 
 		if( !(data->useSWdecoder) && product_info()->mjpeg_decoder_string[0] )
 		{
 			CSIO_LOG(eLogLevel_debug, "MJPEG: using the platform specific Hardware mjpeg decoder");
+                        data->element_v[i++] = gst_element_factory_make("jpegparse", NULL);
 			// We are using gstreamer androidmedia plugin to decode mjpeg.
-		    //add a probe for loss of video detection.
+		        //add a probe for loss of video detection.
 			GstPad *pad;
 			pad = gst_element_get_static_pad( data->element_v[i-1], "src" );
 			if( pad != NULL )
@@ -1662,6 +1664,19 @@ int build_video_pipeline(gchar *encoding_name, CREGSTREAM *data, unsigned int st
 		}
 		else // If there is No hardware mjpeg decoder or specify to use SW decoder
 		{
+		    /* 5-10-2021: JRC
+		    *  rtpjpegdepay:src and jpegdec:sink both are type of "image/jpeg",
+		    *  so there is no parse needed here.
+		    */
+		    if(product_info()->hw_platform == eHardwarePlatform_Snapdragon)
+		    {
+		        CSIO_LOG(eLogLevel_debug, "do not insert jpegparse when use software jpegdec");
+		    }
+		    else
+		    {
+		        data->element_v[i++] = gst_element_factory_make("jpegparse", NULL);
+		    }
+
             //add a probe for loss of video detection.
             GstPad *pad;
             pad = gst_element_get_static_pad( data->element_v[i-1], "src" );
@@ -1729,6 +1744,18 @@ int build_video_pipeline(gchar *encoding_name, CREGSTREAM *data, unsigned int st
 	    if(data->using_glimagsink)
 	    {
 	        data->element_v[i++] = gst_element_factory_make("videoconvert", NULL);
+
+	        /* 5-10-2021: JRC
+	         * When glimagsink used, insert queue between jpegdec and glimagsink,
+	         * so they are working in two separate threads.
+	         * This way, some event, such as GST_EVENT_QOS, send from sink to dec, can be
+	         * captured without delay.Any delay could end up dropping frames in jpegdec,
+	         * which causes issue.
+	        */
+	        if (product_info()->hw_platform == eHardwarePlatform_Snapdragon)
+	        {
+	            data->element_v[i++] = gst_element_factory_make("queue", NULL);
+	        }//else
 	    }
         
 		// Temporary hack - always force the settings to use new sink.  This avoids
