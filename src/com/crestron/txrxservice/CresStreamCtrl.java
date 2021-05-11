@@ -1092,7 +1092,7 @@ public class CresStreamCtrl extends Service {
                 Log.i(TAG, MiscUtils.stringFormat("---- Launched checkCameraThread ----"));
 
                 boolean successfulStart = true; //indicates that there was no time out condition
-                try { successfulStart = latch.await(3000, TimeUnit.MILLISECONDS); }
+                try { successfulStart = latch.await(10000, TimeUnit.MILLISECONDS); }
                 catch (InterruptedException ex) { ex.printStackTrace(); }
                 Log.i(TAG, MiscUtils.stringFormat("---- end of wait for checkCameraThread - successfulStart="+successfulStart+" ----"));
 
