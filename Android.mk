@@ -35,9 +35,6 @@ ifeq ($(TARGET_PRODUCT),$(filter $(TARGET_PRODUCT),msm8953_64))
 	LOCAL_MULTILIB := 32
 	LOCAL_MODULE_PATH := $(TARGET_OUT_VENDOR)/priv-app
 
-ifeq ($(shell test $(PLATFORM_SDK_VERSION) -ge 29 && echo Android10),Android10)
-        LOCAL_PRIVATE_PLATFORM_APIS := true
-endif
 	LOCAL_SRC_FILES += $(call all-java-files-under, Snapdragon)
 	
 #	In AOSP(8.0), Surface.aidl moved from frameworks/base... to frameworks/native...	
@@ -54,8 +51,13 @@ endif
         android-support-v4 \
         android-support-v7-appcompat \
         android-support-design
-
-    LOCAL_JNI_SHARED_LIBRARIES += libdisplaysetting
+ifeq ($(shell test $(PLATFORM_SDK_VERSION) -ge 29 && echo Android10),Android10)
+    LOCAL_PRIVATE_PLATFORM_APIS := true
+    LOCAL_JNI_SHARED_LIBRARIES := libdisplaysetting_vendor
+else
+    LOCAL_JNI_SHARED_LIBRARIES := libdisplaysetting
+endif
+    
 
 	LOCAL_PROGUARD_ENABLED := disabled
 	
