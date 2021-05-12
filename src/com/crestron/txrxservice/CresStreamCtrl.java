@@ -5356,7 +5356,7 @@ public class CresStreamCtrl extends Service {
     public void sendAirMediaConnectionAddress()
     {
         String connectionInfo = getAirMediaConnectionAddress();
-        Log.d(TAG, "sendAirMediaConnectionAddress="+connectionInfo);
+        Log.i(TAG, "sendAirMediaConnectionAddress="+connectionInfo);
         if (mPreviousConnectionInfo == null || !mPreviousConnectionInfo.equals(connectionInfo))
         {
         	sockTask.SendDataToAllClients(MiscUtils.stringFormat("AIRMEDIA_CONNECTION_ADDRESS=%s", connectionInfo));
@@ -5369,7 +5369,7 @@ public class CresStreamCtrl extends Service {
     public void sendAirMediaWirelessConnectionAddress()
     {
         String connectionInfo = getAirMediaWirelessConnectionAddress();
-        Log.d(TAG, "sendAirMediaWirelessConnectionAddress(): connectionInfo="+connectionInfo);
+        Log.i(TAG, "sendAirMediaWirelessConnectionAddress(): connectionInfo="+connectionInfo);
         if (mPreviousWirelessConnectionInfo == null || !mPreviousWirelessConnectionInfo.equals(connectionInfo))
         {
         	sockTask.SendDataToAllClients(MiscUtils.stringFormat("AIRMEDIA_WIRELESS_CONNECTION_ADDRESS=%s", connectionInfo));
