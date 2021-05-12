@@ -65,7 +65,7 @@ public class HDMIOutputInterface {
 	public void setStreamCtrl(CresStreamCtrl ctrl)
 	{
 		streamCtrl = ctrl;
-		isAM3K = streamCtrl.isAM3X00();
+		isAM3K = streamCtrl.isAM3K;
 	}
 	
 	public void set_am3k_sync_status(boolean sync)

@@ -394,7 +394,7 @@ public class UserSettings
 		airMediaDisplayConnectionOptionEnable = true;
 		airMediaDisplayConnectionOption = CresStreamCtrl.AirMediaDisplayConnectionOption.Ip;
 		airMediaCustomPromptString = "";
-		airMediaConnectionOverlay = false;
+		airMediaConnectionOverlay = CresStreamCtrl.isAM3K ? true : false;
 		airMediaDisplayWirelessConnectionOptionEnable = true;
 		airMediaDisplayWirelessConnectionOption = CresStreamCtrl.AirMediaDisplayConnectionOption.Ip;
 		airMediaWirelessCustomPromptString = "";

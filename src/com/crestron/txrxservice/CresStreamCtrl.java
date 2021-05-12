@@ -181,6 +181,7 @@ public class CresStreamCtrl extends Service {
     public final static String surfaceFlingerViolationFilePath = "/dev/shm/crestron/CresStreamSvc/SFviolation";
     private final static String goldenBootFilePath = "/dev/shm/crestron/CresStreamSvc/golden";
     private static final String [] InterfaceNames = {"eth0", "eth1"};
+    public static boolean isAM3K = false;
     public volatile boolean mMediaServerCrash = false;
     public volatile boolean mDucatiCrash = false;
     public volatile boolean mIgnoreAllCrash = false;
@@ -717,6 +718,7 @@ public class CresStreamCtrl extends Service {
             // FIXME/TODO - replace with a product feature in product info table
             if (CrestronProductName.fromInteger(nativeGetProductTypeEnum()) == CrestronProductName.AM3X00)
             	isWirelessConferencingEnabled = true;
+            isAM3K = isAM3X00();
             if (nativeGetIsAirMediaEnabledEnum())
             {
             	int productType = nativeGetProductTypeEnum();
@@ -1178,7 +1180,7 @@ public class CresStreamCtrl extends Service {
             hdmiOutput = new HDMIOutputInterface(nativeGetHDMIOutputBitmask(), this);
             
             //Do not set bypass if product does not have HDMI output
-            if(mProductHasHDMIoutput && !isAM3X00())
+            if(mProductHasHDMIoutput && !isAM3K)
             {
             	setHDCPBypass();
             }
@@ -2228,7 +2230,7 @@ public class CresStreamCtrl extends Service {
                                     }
                                 }
                                 
-                                if (isAM3X00())
+                                if (isAM3K)
                                 {
                                 	boolean bsync = HDMIInputInterface.readSyncState();
                                 	if((!bsync) || (hdmiInSampleRate == 0))
@@ -2267,7 +2269,7 @@ public class CresStreamCtrl extends Service {
                     }
                     
                     // Now check and handle HDMI output res change
-                    if (isAM3X00())
+                    if (isAM3K)
                     	handlePossibleHdmiOutputResolutionChange();
                 }
             }
@@ -5433,7 +5435,7 @@ public class CresStreamCtrl extends Service {
                 return getAirMediaConnectionAddressWhenNone("eth0,eth1");
                 
             //Remove AM-3k specific check in the future by refactoring code to also support legacy products (e.g. am-200, Mercury)
-            if(!isAM3X00())
+            if(!isAM3K)
             {
             	url.append(ipAddr);
             }
@@ -5592,7 +5594,7 @@ public class CresStreamCtrl extends Service {
             return "None";
         }
         //Remove AM-3k specific check in the future by refactoring code to also support legacy products (e.g. am-200, Mercury)
-        if(!isAM3X00())
+        if(!isAM3K)
         {
 	        if (adapters.contains("eth0") && adaptersSelectionString.contains("eth0"))
 	        {
@@ -6687,7 +6689,7 @@ public class CresStreamCtrl extends Service {
             }
 
             // The above portion of the code is common and meant to remember the last state of cameramode which was set. Applies for AM3K as well.
-            if(isAM3X00())
+            if(isAM3K)
             {
                 AM_3x00_CameraMode nomode = AM_3x00_CameraMode.UNDEFINED_SCREEN;
                 String id = AM_3x00_CameraMode.getStringValueFromColorInt(Integer.valueOf(mode));
@@ -6882,7 +6884,7 @@ public class CresStreamCtrl extends Service {
                 if (Boolean.parseBoolean(hdmiOutput.getSyncStatus()) == true)
                 {
                 	//Do not set bypass if product does not have HDMI output
-                	if(mProductHasHDMIoutput && !isAM3X00())
+                	if(mProductHasHDMIoutput && !isAM3K)
                 	{
                 		setHDCPBypass();
                 	}
@@ -7362,7 +7364,7 @@ public class CresStreamCtrl extends Service {
     public void startWifiDirect(String localAddress, String deviceId, String deviceName, String deviceAddress, int rtsp_port)
     {
     	if (userSettings.getAirMediaEnable() && userSettings.getAirMediaMiracastEnable()) {
-    		if(isAM3X00())
+    		if(isAM3K)
     			wifidVideoPlayer.onSessionReady(wifidVideoPlayer.getSessionId(), localAddress, deviceId, deviceName, deviceAddress, rtsp_port);
     		else
     			Log.w(TAG, "WARNING: this call is expected for AM3X product only");
@@ -7372,7 +7374,7 @@ public class CresStreamCtrl extends Service {
     public void stopWifiDirect(String deviceId)
     {
     	if (userSettings.getAirMediaEnable() && userSettings.getAirMediaMiracastEnable()) {
-    		if(isAM3X00() && userSettings.getAirMediaEnable() && userSettings.getAirMediaMiracastEnable())
+    		if(isAM3K && userSettings.getAirMediaEnable() && userSettings.getAirMediaMiracastEnable())
     			wifidVideoPlayer.stopSessionWithDeviceId(deviceId);
     		else
     			Log.w(TAG, "WARNING: this call is expected for AM3X product only");
