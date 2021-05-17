@@ -4072,6 +4072,12 @@ void csio_jni_initVideo(int iStreamId)
     {
         CSIO_LOG(eLogLevel_debug, "using_glimagsink force-aspect-ratio is set to FALSE");
         g_object_set(G_OBJECT(data->video_sink), "force-aspect-ratio", FALSE, NULL);
+
+        if( data->httpMode == eHttpMode_MJPEG )
+        {
+            CSIO_LOG(eLogLevel_debug, "using_glimagsink with eHttpMode_MJPEG, setting video_sink sync to FALSE\n");
+            g_object_set( G_OBJECT( data->video_sink ),  "sync", FALSE, NULL );
+        }//else
     }
     else
     {

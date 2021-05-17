@@ -1611,6 +1611,10 @@ int build_video_pipeline(gchar *encoding_name, CREGSTREAM *data, unsigned int st
 		{
 			data->element_v[i++] = gst_element_factory_make("rtpjpegdepay", NULL);
 		}
+		else
+		{
+		    CSIO_LOG(eLogLevel_debug, "MJPEG: no rtpjpegdepay, do_rtp: %d",do_rtp);
+		}
 		data->element_v[i++] = gst_element_factory_make("queue", NULL);
 		// HTTP modes that do not use TS should not set queue to these parameters, check: http://dash-mse-test.appspot.com/media.html
 		if (data->mpegtsPresent || data->streamProtocolId != ePROTOCOL_HTTP) {
@@ -1668,12 +1672,13 @@ int build_video_pipeline(gchar *encoding_name, CREGSTREAM *data, unsigned int st
 		    *  rtpjpegdepay:src and jpegdec:sink both are type of "image/jpeg",
 		    *  so there is no parse needed here.
 		    */
-		    if(product_info()->hw_platform == eHardwarePlatform_Snapdragon)
+		    if(product_info()->hw_platform == eHardwarePlatform_Snapdragon && do_rtp)
 		    {
 		        CSIO_LOG(eLogLevel_debug, "do not insert jpegparse when use software jpegdec");
 		    }
 		    else
 		    {
+		        CSIO_LOG(eLogLevel_debug, "insert jpegparse when use software jpegdec,do_rtp: %d",do_rtp);
 		        data->element_v[i++] = gst_element_factory_make("jpegparse", NULL);
 		    }
 
