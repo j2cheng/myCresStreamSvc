@@ -180,6 +180,7 @@ public class CresStreamCtrl extends Service {
     public final static String hdmiOutputResolutionFilePath = "/dev/shm/crestron/hdmi/outputResolution";
     public final static String surfaceFlingerViolationFilePath = "/dev/shm/crestron/CresStreamSvc/SFviolation";
     private final static String goldenBootFilePath = "/dev/shm/crestron/CresStreamSvc/golden";
+    private final static String dontStartAirMediaFilePath = "/dev/shm/crestron/CresStreamSvc/dontStartAirMedia";
     private static final String [] InterfaceNames = {"eth0", "eth1"};
     public static boolean isAM3K = false;
     public volatile boolean mMediaServerCrash = false;
@@ -1831,9 +1832,17 @@ public class CresStreamCtrl extends Service {
             	{
                 	golden = MiscUtils.readStringFromDisk(goldenBootFilePath).equals("1");
             	}
+
+            	// Special condition during production, cannot start AM since it interferes with production application
+            	boolean dontStart=false;
+                File dsamFile = new File(dontStartAirMediaFilePath);
+                if (dsamFile.exists())
+                {
+                    dontStart = MiscUtils.readStringFromDisk(dontStartAirMediaFilePath).equals("1");
+                }
             	
                 //Note: 4-14-2021, need to start AirMediaCanvas even not licensed
-                if (mAirMedia == null && !golden){
+                if (mAirMedia == null && !golden && !dontStart){
                     Log.i(TAG, "Calling AirMediaConstructor from airMediaLicenseThread");
                     mAirMedia = new AirMediaSplashtop(streamCtrl);
                     
