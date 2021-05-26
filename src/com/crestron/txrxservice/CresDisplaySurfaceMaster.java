@@ -43,6 +43,8 @@ import android.hardware.display.DisplayManager.DisplayListener;
 import android.view.Display;
 import android.app.Service;
 
+import java.lang.reflect.InvocationTargetException;
+import java.lang.reflect.Method;
 /**
  * CresDisplaySurface class
  * 
@@ -232,15 +234,21 @@ public class CresDisplaySurfaceMaster implements CresDisplaySurface
         int windowType;
         
         if (streamCtl.alphaBlending) {
-        	if (Build.VERSION.SDK_INT >= 28 /*Build.VERSION_CODES.P*/)
-				windowType = 2038; // WindowManager.LayoutParams.TYPE_APPLICATION_OVERLAY - For alpha blending
-			else
-				windowType = WindowManager.LayoutParams.TYPE_PRIORITY_PHONE;    // For alpha blending
-		}
+            if (Build.VERSION.SDK_INT >= 28 /*Build.VERSION_CODES.P*/) {
+                if(!isX70())
+                    windowType = 2038; // WindowManager.LayoutParams.TYPE_APPLICATION_OVERLAY - For alpha blending
+                else
+                    windowType = 2039; // WindowManager.LayoutParams.TYPE_APPLICATION_CRESTRON_OVERLAY  - For alpha blending
+            } else
+                windowType = WindowManager.LayoutParams.TYPE_PRIORITY_PHONE;    // For alpha blending
+            }
         else {
-            if (Build.VERSION.SDK_INT >= 28 /*Build.VERSION_CODES.P*/)
-                windowType = 2038; // WindowManager.LayoutParams.TYPE_APPLICATION_OVERLAY - For alpha blending
-            else
+            if (Build.VERSION.SDK_INT >= 28 /*Build.VERSION_CODES.P*/) {
+                if(!isX70())
+                    windowType = 2038; // WindowManager.LayoutParams.TYPE_APPLICATION_OVERLAY - For alpha blending
+                else
+                    windowType = 2039; // WindowManager.LayoutParams.TYPE_APPLICATION_CRESTRON_OVERLAY  - For alpha blending
+            } else
                 windowType = WindowManager.LayoutParams.TYPE_SYSTEM_OVERLAY;
         }
 
@@ -294,14 +302,22 @@ public class CresDisplaySurfaceMaster implements CresDisplaySurface
         int windowType;
                 
         if (streamCtl.alphaBlending) {
-			if (Build.VERSION.SDK_INT >= 28 /*Build.VERSION_CODES.P*/)
-				windowType = 2038; // WindowManager.LayoutParams.TYPE_APPLICATION_OVERLAY - For alpha blending
-			else
-				windowType = WindowManager.LayoutParams.TYPE_PRIORITY_PHONE;    // For alpha blending
-		}
+            if (Build.VERSION.SDK_INT >= 28 /*Build.VERSION_CODES.P*/) {
+                if(!isX70())
+                    windowType = 2038; // WindowManager.LayoutParams.TYPE_APPLICATION_OVERLAY - For alpha blending
+                else
+                    windowType = 2039; // WindowManager.LayoutParams.TYPE_APPLICATION_CRESTRON_OVERLAY  - For alpha blending
+            }
+            else
+                windowType = WindowManager.LayoutParams.TYPE_PRIORITY_PHONE;    // For alpha blending
+        }
         else {
-            if (Build.VERSION.SDK_INT >= 28 /*Build.VERSION_CODES.P*/)
-                windowType = 2038; // WindowManager.LayoutParams.TYPE_APPLICATION_OVERLAY  // For chroma blending
+            if (Build.VERSION.SDK_INT >= 28 /*Build.VERSION_CODES.P*/) {
+                if(!isX70())
+                    windowType = 2038; // WindowManager.LayoutParams.TYPE_APPLICATION_OVERLAY - For chroma blending
+                else
+                    windowType = 2039; // WindowManager.LayoutParams.TYPE_APPLICATION_CRESTRON_OVERLAY  - For chroma blending
+            }
             else
                 windowType = WindowManager.LayoutParams.TYPE_SYSTEM_OVERLAY;    // For chroma blending
         }
@@ -1005,5 +1021,32 @@ public class CresDisplaySurfaceMaster implements CresDisplaySurface
     		// Force invalidation
     		forceLayoutInvalidation(backgroundLayout);
     	}
+    }
+    
+    private boolean isX70() {
+
+        String prop = null;
+
+        try {
+            Class clazz = Class.forName("android.os.SystemProperties");
+            Method method = clazz.getDeclaredMethod("get", String.class);
+            prop = (String)method.invoke(null, "ro.board.platform");
+
+            Log.d(TAG, "isX70 : prop " + prop);
+        } catch (ClassNotFoundException e) {
+            e.printStackTrace();
+        } catch (IllegalAccessException e) {
+            e.printStackTrace();
+        } catch (InvocationTargetException e) {
+            e.printStackTrace();
+        } catch (NoSuchMethodException e) {
+            e.printStackTrace();
+        }
+
+        if(prop != null && !prop.isEmpty() && prop.startsWith("msm8953")){
+            return true;
+        }
+
+        return false;
     }
 }
