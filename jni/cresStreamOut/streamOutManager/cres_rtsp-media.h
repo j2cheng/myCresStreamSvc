@@ -23,6 +23,7 @@ struct CresRTSPMedia
 {
   GstRTSPMedia parent;
   GMainLoop *  m_loop;
+  bool m_restart;
 };
 
 GType cres_rtsp_media_get_type (void);

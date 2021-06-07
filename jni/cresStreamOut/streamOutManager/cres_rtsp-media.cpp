@@ -44,6 +44,7 @@ static void
 cres_rtsp_media_init (CresRTSPMedia * media)
 {
     GST_DEBUG("cres_media: cres_rtsp_media_init");
+    media->m_restart = false;
 }
 
 static gboolean
@@ -98,6 +99,7 @@ custom_handle_message (GstRTSPMedia * media, GstMessage * message)
   if (!bIgnoreError)
   {
 	  // quit loop to trigger restart
+      ((CresRTSPMedia *)media)->m_restart = true;
 	  g_main_loop_quit(((CresRTSPMedia *)media)->m_loop);
   }
 

@@ -14,6 +14,16 @@
 #include <arpa/inet.h>
 #include <list>
 
+typedef enum _eWCstatus
+{
+//mode is set come from jni.c upon initialization of project
+    STREAMOUT_WC_STATUS_NOERROR = 0,
+    STREAMOUT_WC_STATUS_ERROR,
+    STREAMOUT_WC_STATUS_VIDEO_INIT_ERROR,
+    STREAMOUT_WC_STATUS_AUDIO_INIT_ERROR,
+    STREAMOUT_WC_STATUS_MAX
+} eWCstatus;
+
 //#define RTSP_CA_CERT_FILENAME  "/data/CresStreamSvc/digital_certificates/gst_ssl_ca.pem"
 //#define RTSP_CERT_PEM_FILENAME "/data/CresStreamSvc/digital_certificates/gst_ssl_cert.pem"
 //#define RTSP_CERT_KEY          "/data/CresStreamSvc/digital_certificates/gst_ssl_cert_decrypt.key"
@@ -45,7 +55,7 @@ class CStreamoutManager : public CresProjBaseClass
 {
 public:
 
-    CStreamoutManager(eStreamoutMode streamoutMode);
+    CStreamoutManager(eStreamoutMode streamoutMode,int id);
     ~CStreamoutManager();
 
     void   DumpClassPara(int);
@@ -56,6 +66,7 @@ public:
     void setServManagerDebugLevel(int level){ setDebugLevel(level); }
 
     eStreamoutMode m_streamoutMode;
+    int m_id;
     int m_clientConnCnt;
     int m_main_loop_is_running ;
 
@@ -124,7 +135,7 @@ public:
     void setStreamName(char* name){strcpy(m_stream_name, name);}
     void sendWcUrl(GstRTSPServer *server, char *mountPoint);
     void initWcCertificates();
-    void initWcAudioVideo();
+    eWCstatus  initWcAudioVideo();
     void setVideoSource(char *videoSource, int n);
     void setAudioSource(char *audioSource, int n);
     void setSnapshotName(char* name);

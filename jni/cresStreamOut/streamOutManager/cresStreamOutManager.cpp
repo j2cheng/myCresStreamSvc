@@ -482,13 +482,15 @@ client_filter (GstRTSPServer * server, GstRTSPClient * client,
   return GST_RTSP_FILTER_REMOVE;
 }
 /**********************CStreamoutManager class implementation***************************************/
-CStreamoutManager::CStreamoutManager(eStreamoutMode streamoutMode):
+CStreamoutManager::CStreamoutManager(eStreamoutMode streamoutMode,int id):
 m_clientConnCnt(0),m_loop(NULL),m_main_loop_is_running(0),
 m_pMedia(NULL),m_bNeedData(false),m_bStopTeeInProgress(false),
 m_bExit(false),m_bPushRawFrames(false),m_ahcsrc(NULL),m_camera(NULL),
 m_audioStream(false), m_videoStream(false), m_usbAudio(NULL),
-m_appsrc(NULL), m_streamoutMode(streamoutMode)
+m_appsrc(NULL), m_streamoutMode(streamoutMode), m_id(0)
 {
+    m_id = id;
+
     m_StreamoutEvent  = new CStreamoutEvent();
 
     m_StreamoutEventQ = new CStreamoutEventRingBuffer(EVNT_DEFAULT_QUEUE_SIZE);
@@ -673,14 +675,18 @@ void* CStreamoutManager::ThreadEntry()
     char mountPoint [512];
     char videoSource[512]={0};
     char audioSource[512]={0};
+    eWCstatus wc_InitRtn = STREAMOUT_WC_STATUS_NOERROR;
+    bool wcRestart = false;
+    bool sent_csio_jni_onServerStart = false;
 
     if (m_streamoutMode == STREAMOUT_MODE_WIRELESSCONFERENCING)
     {
     	initWcCertificates();
-    	initWcAudioVideo();
+    	wc_InitRtn = initWcAudioVideo();
     	if (!m_videoStream && !m_audioStream)
     	{
-            CSIO_LOG(eLogLevel_error, "***** Streamout: could not find usable video or audio device *****");
+            CSIO_LOG(eLogLevel_error, "***** Streamout: could not find usable video or audio device[%d] *****",(int) wc_InitRtn);
+            wc_InitRtn = STREAMOUT_WC_STATUS_ERROR;
     	} else {
     		if (m_videoStream)
     			setVideoSource(videoSource, sizeof(videoSource));
@@ -689,336 +695,343 @@ void* CStreamoutManager::ThreadEntry()
     	}
     }
 
-    m_factory = NULL;
-
-    //create new context
-    context = g_main_context_new ();
-    g_main_context_push_thread_default(context);
-    CSIO_LOG(m_debugLevel,  "Streamout: create new context: 0x%x\n", context );
-    if(!context)
+    if ((m_streamoutMode == STREAMOUT_MODE_WIRELESSCONFERENCING) && (wc_InitRtn != STREAMOUT_WC_STATUS_NOERROR))
     {
-        CSIO_LOG(eLogLevel_error, "Streamout: Failed to create rtsp server context");
-        goto exitThread;
+        wcRestart = true;
     }
-
-    m_loop = g_main_loop_new (context, FALSE);   // called from CStreamer::execute
-    if(!m_loop)
-    {
-        CSIO_LOG(eLogLevel_error, "Streamout: Failed to create rtsp server loop");
-        goto exitThread;
-    }
-    server = gst_rtsp_server_new();
-    if(!server)
-    {
-        CSIO_LOG(eLogLevel_error, "Streamout: Failed to create rtsp server");
-        goto exitThread;
-    }
-    CSIO_LOG(eLogLevel_info, "Streamout: server[0x%x] created",server);
-
-    // limit the rtsp sesssions
-    pool = gst_rtsp_server_get_session_pool(server); 
-    if (!pool) {
-        CSIO_LOG(eLogLevel_error, "Streamout: Failed to get the session pool");
-        goto exitThread;
-    }
-
-    if (m_multicast_enable)
-    	gst_rtsp_session_pool_set_max_sessions(pool, UNLIMITED_RTSP_SESSIONS);	// Allow unlimited connections in multicast mode
     else
-        gst_rtsp_session_pool_set_max_sessions(pool, MAX_RTSP_SESSIONS);
-
-    CSIO_LOG(eLogLevel_debug, "Streamout: max_sessions set to %d", gst_rtsp_session_pool_get_max_sessions(pool));
-
-    //setup listening port
-    CSIO_LOG(m_debugLevel, "Streamout: set_service to port:%s",m_rtsp_port);
-    gst_rtsp_server_set_service (server, m_rtsp_port);
-
-    if (m_auth_on) {
-        GstRTSPAuth *auth = NULL;
-        GTlsCertificate *cert = NULL;
-        /* make a new authentication manager. it can be added to control access to all
-         * the factories on the server or on individual factories. */
-        auth = gst_rtsp_auth_new();
-        if (m_tls_on) {
-            CSIO_LOG(eLogLevel_info, "Streamout: RTSP server's TLS configuration\n");
-            cert = g_tls_certificate_new_from_files(m_rtsp_cert_filename, m_rtsp_key_filename, &error);
-            if (cert == NULL) {
-                CSIO_LOG(eLogLevel_error, "Streamout: failed to parse PEM: %s\n", error->message);
-                goto exitThread;
-            }
-#ifdef CLIENT_AUTHENTICATION_ENABLED
-            GTlsDatabase *database = g_tls_file_database_new(RTSP_CA_CERT_FILENAME, &error);
-            //GTlsDatabase *database = g_tls_file_database_new(RTSP_CERT_PEM_FILENAME, &error);
-            if (database == NULL)
-            {
-                CSIO_LOG(eLogLevel_error, "Streamout: failed to create database from ca cert: %s\n", error->message);
-                goto exitThread;
-            }
-            gst_rtsp_auth_set_tls_database(auth, database);
-
-            GTlsCertificate *ca_cert = g_tls_certificate_new_from_file(RTSP_CA_CERT_FILENAME,&error);
-            //ca_cert = g_tls_certificate_new_from_file("/home/enthusiasticgeek/gstreamer/cert/toyCA.pem",&error);
-            if (ca_cert == NULL) {
-                g_printerr ("failed to parse CA PEM: %s\n", error->message);
-                goto exitThread;
-            }
-            gst_rtsp_auth_set_tls_authentication_mode(auth, G_TLS_AUTHENTICATION_REQUIRED);
-            g_signal_connect (auth, "accept-certificate", G_CALLBACK
-                    (accept_certificate), ca_cert);
-            //if (ca_cert) g_object_unref(ca_cert); //TODO is this needed - had crash when put it in code
-#endif
-            gst_rtsp_auth_set_tls_certificate(auth, cert);
-
-            if (cert) g_object_unref(cert);
-        }
-
-        GstRTSPToken *token;
-        gchar *basic;
-        /* make user token */
-        token = gst_rtsp_token_new (GST_RTSP_TOKEN_MEDIA_FACTORY_ROLE, G_TYPE_STRING, rtsp_server_username, NULL);
-        basic = gst_rtsp_auth_make_basic (rtsp_server_username, rtsp_server_password);
-
-        gst_rtsp_auth_add_basic (auth, basic, token);
-        g_free (basic);
-        gst_rtsp_token_unref (token);
-
-        /* configure in the server */
-        gst_rtsp_server_set_auth (server, auth);
-        if(auth) g_object_unref(auth);
-    }
-
-    /* get the mount points for this server, every server has a default object
-    * that be used to map uri mount points to media factories */
-    mounts = gst_rtsp_server_get_mount_points (server);
-    if(!mounts)
     {
-        CSIO_LOG(eLogLevel_error, "Streamout: Failed to create server mounts");
-        goto exitThread;
-    }
-    m_factory = gst_rtsp_media_factory_new ();
-    if(!m_factory)
-    {
-        CSIO_LOG(eLogLevel_error, "Streamout: Failed to create factory");
-        goto exitThread;
-    }
+        m_factory = NULL;
 
-    if(gst_rtsp_server_get_pipeline(pipeline, sizeof(pipeline)) == false)
-    {
-        if (m_streamoutMode == STREAMOUT_MODE_CAMERA)
+        //create new context
+        context = g_main_context_new ();
+        g_main_context_push_thread_default(context);
+        CSIO_LOG(m_debugLevel,  "Streamout: create new context: 0x%x\n", context );
+        if(!context)
         {
-            // Because camera on x60 is front-facing, it is mirrored by default for the preview.
-            // Old default pipeline (with video flipping) "( ahcsrc ! videoflip method=4 ! videoconvert ! %s ! rtph264pay name=pay0 pt=96 )"
-            // Enabled NV21 pixel format in libgstreamer_android.so, don't need videoconvert anymore.
-            //"( ahcsrc ! videoconvert ! %s ! rtph264pay name=pay0 pt=96 )"
-            // Queue before encoder reduces stream latency.
-            snprintf(pipeline, sizeof(pipeline), "( appsrc name=cresappsrc ! "
-                                                 "videoparse name=vparser ! "
-                                                 "queue name =vidPreQ ! "
-                                                 "%s bitrate=%s i-frame-interval=%s ! "
-                                                 "queue name =vidPostQ ! "
-                                                 "rtph264pay name=pay0 pt=96 )",
-                     product_info()->H264_encoder_string,
-                     m_bit_rate,m_iframe_interval);
+            CSIO_LOG(eLogLevel_error, "Streamout: Failed to create rtsp server context");
+            goto exitThread;
         }
+
+        m_loop = g_main_loop_new (context, FALSE);   // called from CStreamer::execute
+        if(!m_loop)
+        {
+            CSIO_LOG(eLogLevel_error, "Streamout: Failed to create rtsp server loop");
+            goto exitThread;
+        }
+        server = gst_rtsp_server_new();
+        if(!server)
+        {
+            CSIO_LOG(eLogLevel_error, "Streamout: Failed to create rtsp server");
+            goto exitThread;
+        }
+        CSIO_LOG(eLogLevel_info, "Streamout: server[0x%x] created",server);
+
+        // limit the rtsp sesssions
+        pool = gst_rtsp_server_get_session_pool(server);
+        if (!pool) {
+            CSIO_LOG(eLogLevel_error, "Streamout: Failed to get the session pool");
+            goto exitThread;
+        }
+
+        if (m_multicast_enable)
+            gst_rtsp_session_pool_set_max_sessions(pool, UNLIMITED_RTSP_SESSIONS);	// Allow unlimited connections in multicast mode
         else
-        {
-            CSIO_LOG(eLogLevel_error, "Streamout: m_videoStream=%d m_audioStream=%d", m_videoStream, m_audioStream);
+            gst_rtsp_session_pool_set_max_sessions(pool, MAX_RTSP_SESSIONS);
 
-            if (m_videoStream && !m_audioStream) {
-                snprintf(pipeline, sizeof(pipeline), "( %s ! "
-                                                     "%s ! "
-                                                     "%s"
-                                                     "queue name = vidPreQ ! "
+        CSIO_LOG(eLogLevel_debug, "Streamout: max_sessions set to %d", gst_rtsp_session_pool_get_max_sessions(pool));
+
+        //setup listening port
+        CSIO_LOG(m_debugLevel, "Streamout: set_service to port:%s",m_rtsp_port);
+        gst_rtsp_server_set_service (server, m_rtsp_port);
+
+        if (m_auth_on) {
+            GstRTSPAuth *auth = NULL;
+            GTlsCertificate *cert = NULL;
+            /* make a new authentication manager. it can be added to control access to all
+             * the factories on the server or on individual factories. */
+            auth = gst_rtsp_auth_new();
+            if (m_tls_on) {
+                CSIO_LOG(eLogLevel_info, "Streamout: RTSP server's TLS configuration\n");
+                cert = g_tls_certificate_new_from_files(m_rtsp_cert_filename, m_rtsp_key_filename, &error);
+                if (cert == NULL) {
+                    CSIO_LOG(eLogLevel_error, "Streamout: failed to parse PEM: %s\n", error->message);
+                    goto exitThread;
+                }
+    #ifdef CLIENT_AUTHENTICATION_ENABLED
+                GTlsDatabase *database = g_tls_file_database_new(RTSP_CA_CERT_FILENAME, &error);
+                //GTlsDatabase *database = g_tls_file_database_new(RTSP_CERT_PEM_FILENAME, &error);
+                if (database == NULL)
+                {
+                    CSIO_LOG(eLogLevel_error, "Streamout: failed to create database from ca cert: %s\n", error->message);
+                    goto exitThread;
+                }
+                gst_rtsp_auth_set_tls_database(auth, database);
+
+                GTlsCertificate *ca_cert = g_tls_certificate_new_from_file(RTSP_CA_CERT_FILENAME,&error);
+                //ca_cert = g_tls_certificate_new_from_file("/home/enthusiasticgeek/gstreamer/cert/toyCA.pem",&error);
+                if (ca_cert == NULL) {
+                    g_printerr ("failed to parse CA PEM: %s\n", error->message);
+                    goto exitThread;
+                }
+                gst_rtsp_auth_set_tls_authentication_mode(auth, G_TLS_AUTHENTICATION_REQUIRED);
+                g_signal_connect (auth, "accept-certificate", G_CALLBACK
+                        (accept_certificate), ca_cert);
+                //if (ca_cert) g_object_unref(ca_cert); //TODO is this needed - had crash when put it in code
+    #endif
+                gst_rtsp_auth_set_tls_certificate(auth, cert);
+
+                if (cert) g_object_unref(cert);
+            }
+
+            GstRTSPToken *token;
+            gchar *basic;
+            /* make user token */
+            token = gst_rtsp_token_new (GST_RTSP_TOKEN_MEDIA_FACTORY_ROLE, G_TYPE_STRING, rtsp_server_username, NULL);
+            basic = gst_rtsp_auth_make_basic (rtsp_server_username, rtsp_server_password);
+
+            gst_rtsp_auth_add_basic (auth, basic, token);
+            g_free (basic);
+            gst_rtsp_token_unref (token);
+
+            /* configure in the server */
+            gst_rtsp_server_set_auth (server, auth);
+            if(auth) g_object_unref(auth);
+        }
+
+        /* get the mount points for this server, every server has a default object
+        * that be used to map uri mount points to media factories */
+        mounts = gst_rtsp_server_get_mount_points (server);
+        if(!mounts)
+        {
+            CSIO_LOG(eLogLevel_error, "Streamout: Failed to create server mounts");
+            goto exitThread;
+        }
+        m_factory = gst_rtsp_media_factory_new ();
+        if(!m_factory)
+        {
+            CSIO_LOG(eLogLevel_error, "Streamout: Failed to create factory");
+            goto exitThread;
+        }
+
+        if(gst_rtsp_server_get_pipeline(pipeline, sizeof(pipeline)) == false)
+        {
+            if (m_streamoutMode == STREAMOUT_MODE_CAMERA)
+            {
+                // Because camera on x60 is front-facing, it is mirrored by default for the preview.
+                // Old default pipeline (with video flipping) "( ahcsrc ! videoflip method=4 ! videoconvert ! %s ! rtph264pay name=pay0 pt=96 )"
+                // Enabled NV21 pixel format in libgstreamer_android.so, don't need videoconvert anymore.
+                //"( ahcsrc ! videoconvert ! %s ! rtph264pay name=pay0 pt=96 )"
+                // Queue before encoder reduces stream latency.
+                snprintf(pipeline, sizeof(pipeline), "( appsrc name=cresappsrc ! "
+                                                     "videoparse name=vparser ! "
+                                                     "queue name =vidPreQ ! "
                                                      "%s bitrate=%s i-frame-interval=%s ! "
-                                                     "queue name=vidPostQ ! "
-                                                     "h264parse ! "
+                                                     "queue name =vidPostQ ! "
                                                      "rtph264pay name=pay0 pt=96 )",
-                                                     videoSource,
-                                                     m_caps, m_videoconvert,
-                                                     product_info()->H264_encoder_string,
-                                                     m_bit_rate, m_iframe_interval);
+                         product_info()->H264_encoder_string,
+                         m_bit_rate,m_iframe_interval);
             }
-
-            // for audio when we push have queues before and after enc, but pull model will not work like that so no queues
-            char audioenc[128];
-            const char *audioEncoderName = (m_aacEncode) ? AUDIOENC : "alawenc";
-            snprintf(audioenc, sizeof(audioenc), "%s", audioEncoderName);
-
-            if (m_videoStream && m_audioStream) {
-                if (m_aacEncode) {
-                    snprintf(pipeline, sizeof(pipeline), "( %s ! "
-                                                         "%s ! "
-                                                         "%s"
-                                                         "queue name=vidPreQ ! "
-                                                         "%s bitrate=%s i-frame-interval=%s ! "
-                                                         "queue name=vidPostQ ! "
-                                                         "h264parse ! "
-                                                         "rtph264pay name=pay0 pt=96 "
-                                                         "%s ! audioresample ! audioconvert ! "
-                                                         "%s ! "
-                                                         "rtpmp4apay name=pay1 pt=97 )",
-                                                         videoSource,
-                                                         m_caps, m_videoconvert,
-                                                         product_info()->H264_encoder_string,
-                                                         m_bit_rate, m_iframe_interval,
-                                                         audioSource, audioenc);
-                } else {
-                    snprintf(pipeline, sizeof(pipeline), "( %s ! "
-                                                         "%s ! "
-                                                         "%s"
-                                                         "queue name=vidPreQ ! "
-                                                         "%s bitrate=%s i-frame-interval=%s ! "
-                                                         "queue name=vidPostQ ! "
-                                                         "h264parse ! "
-                                                         "rtph264pay name=pay0 pt=96 "
-                                                         "%s ! audioresample ! audioconvert ! audio/x-raw,rate=8000 ! "
-                                                         "%s ! "
-                                                         "rtppcmapay name=pay1 pt=97 )",
-                                                         videoSource,
-                                                         m_caps, m_videoconvert,
-                                                         product_info()->H264_encoder_string,
-                                                         m_bit_rate, m_iframe_interval,
-                                                         audioSource, audioenc);
-                }
-            }
-            if (!m_videoStream && m_audioStream)
+            else
             {
-                if (m_aacEncode) {
-                    snprintf(pipeline, sizeof(pipeline), "( %s ! audioresample ! audioconvert ! "
+                CSIO_LOG(eLogLevel_error, "Streamout: m_videoStream=%d m_audioStream=%d", m_videoStream, m_audioStream);
+
+                if (m_videoStream && !m_audioStream) {
+                    snprintf(pipeline, sizeof(pipeline), "( %s ! "
                                                          "%s ! "
-                                                         "rtpmp4apay name=pay0 pt=97 )",
-														 audioSource, audioenc);
-                } else {
-                    snprintf(pipeline, sizeof(pipeline), "( %s ! audioresample ! audioconvert ! audio/x-raw,rate=8000 ! "
-                                                         "%s ! "
-                                                         "rtppcmapay name=pay0 pt=97 )",
-														 audioSource, audioenc);
+                                                         "%s"
+                                                         "queue name = vidPreQ ! "
+                                                         "%s bitrate=%s i-frame-interval=%s ! "
+                                                         "queue name=vidPostQ ! "
+                                                         "h264parse ! "
+                                                         "rtph264pay name=pay0 pt=96 )",
+                                                         videoSource,
+                                                         m_caps, m_videoconvert,
+                                                         product_info()->H264_encoder_string,
+                                                         m_bit_rate, m_iframe_interval);
+                }
+
+                // for audio when we push have queues before and after enc, but pull model will not work like that so no queues
+                char audioenc[128];
+                const char *audioEncoderName = (m_aacEncode) ? AUDIOENC : "alawenc";
+                snprintf(audioenc, sizeof(audioenc), "%s", audioEncoderName);
+
+                if (m_videoStream && m_audioStream) {
+                    if (m_aacEncode) {
+                        snprintf(pipeline, sizeof(pipeline), "( %s ! "
+                                                             "%s ! "
+                                                             "%s"
+                                                             "queue name=vidPreQ ! "
+                                                             "%s bitrate=%s i-frame-interval=%s ! "
+                                                             "queue name=vidPostQ ! "
+                                                             "h264parse ! "
+                                                             "rtph264pay name=pay0 pt=96 "
+                                                             "%s ! audioresample ! audioconvert ! "
+                                                             "%s ! "
+                                                             "rtpmp4apay name=pay1 pt=97 )",
+                                                             videoSource,
+                                                             m_caps, m_videoconvert,
+                                                             product_info()->H264_encoder_string,
+                                                             m_bit_rate, m_iframe_interval,
+                                                             audioSource, audioenc);
+                    } else {
+                        snprintf(pipeline, sizeof(pipeline), "( %s ! "
+                                                             "%s ! "
+                                                             "%s"
+                                                             "queue name=vidPreQ ! "
+                                                             "%s bitrate=%s i-frame-interval=%s ! "
+                                                             "queue name=vidPostQ ! "
+                                                             "h264parse ! "
+                                                             "rtph264pay name=pay0 pt=96 "
+                                                             "%s ! audioresample ! audioconvert ! audio/x-raw,rate=8000 ! "
+                                                             "%s ! "
+                                                             "rtppcmapay name=pay1 pt=97 )",
+                                                             videoSource,
+                                                             m_caps, m_videoconvert,
+                                                             product_info()->H264_encoder_string,
+                                                             m_bit_rate, m_iframe_interval,
+                                                             audioSource, audioenc);
+                    }
+                }
+                if (!m_videoStream && m_audioStream)
+                {
+                    if (m_aacEncode) {
+                        snprintf(pipeline, sizeof(pipeline), "( %s ! audioresample ! audioconvert ! "
+                                                             "%s ! "
+                                                             "rtpmp4apay name=pay0 pt=97 )",
+                                                             audioSource, audioenc);
+                    } else {
+                        snprintf(pipeline, sizeof(pipeline), "( %s ! audioresample ! audioconvert ! audio/x-raw,rate=8000 ! "
+                                                             "%s ! "
+                                                             "rtppcmapay name=pay0 pt=97 )",
+                                                             audioSource, audioenc);
+                    }
                 }
             }
         }
-    }
-    CSIO_LOG(m_debugLevel, "Streamout: rtsp server pipeline: [%s]", pipeline);
-    gst_rtsp_media_factory_set_launch (m_factory, pipeline);
+        CSIO_LOG(m_debugLevel, "Streamout: rtsp server pipeline: [%s]", pipeline);
+        gst_rtsp_media_factory_set_launch (m_factory, pipeline);
 
-    if (m_auth_on) {
-        /* add permissions for the user media role */
-        GstRTSPPermissions *permissions = NULL;
-        permissions = gst_rtsp_permissions_new();
-        gst_rtsp_permissions_add_role(permissions, rtsp_server_username,
-                                      GST_RTSP_PERM_MEDIA_FACTORY_ACCESS, G_TYPE_BOOLEAN, TRUE,
-                                      GST_RTSP_PERM_MEDIA_FACTORY_CONSTRUCT, G_TYPE_BOOLEAN, TRUE,
-                                      NULL);
-        gst_rtsp_media_factory_set_permissions(m_factory, permissions);
-        gst_rtsp_permissions_unref(permissions);
-        if (m_tls_on) {
-            gst_rtsp_media_factory_set_profiles(m_factory, (GstRTSPProfile) (GST_RTSP_PROFILE_SAVP | GST_RTSP_PROFILE_SAVPF));
+        if (m_auth_on) {
+            /* add permissions for the user media role */
+            GstRTSPPermissions *permissions = NULL;
+            permissions = gst_rtsp_permissions_new();
+            gst_rtsp_permissions_add_role(permissions, rtsp_server_username,
+                                          GST_RTSP_PERM_MEDIA_FACTORY_ACCESS, G_TYPE_BOOLEAN, TRUE,
+                                          GST_RTSP_PERM_MEDIA_FACTORY_CONSTRUCT, G_TYPE_BOOLEAN, TRUE,
+                                          NULL);
+            gst_rtsp_media_factory_set_permissions(m_factory, permissions);
+            gst_rtsp_permissions_unref(permissions);
+            if (m_tls_on) {
+                gst_rtsp_media_factory_set_profiles(m_factory, (GstRTSPProfile) (GST_RTSP_PROFILE_SAVP | GST_RTSP_PROFILE_SAVPF));
+            }
         }
-    }
 
-    if (m_multicast_enable)
-    {
-    	if (m_multicast_address[0])	// TODO: Also check that multicast address is valid
-    	{
-    		uint32_t ip = 0;
-    		int ret = inet_pton(AF_INET, m_multicast_address, &ip);
-    		ip = ntohl(ip); // put host byte order
-    		if ( (ret == 1) && ((ip >> 28) == 0xe) )
-    		{
-    			/* make a new address pool for multicast */
-    			GstRTSPAddressPool *pool = gst_rtsp_address_pool_new ();
-    			gst_rtsp_address_pool_add_range (pool,
-    					m_multicast_address, m_multicast_address, 11000, 12000, 64);	// Setting ttl to fixed 64, and fixed port range
-    			gst_rtsp_media_factory_set_address_pool (m_factory, pool);
-    			/* only allow multicast */
-    			gst_rtsp_media_factory_set_protocols (m_factory,
-    					GST_RTSP_LOWER_TRANS_UDP_MCAST);
-    			g_object_unref (pool);
-    		}
-    		else
-    			CSIO_LOG(eLogLevel_error, "Streamout: Invalid multicast address provided");
-    	}
-    	else
-    		CSIO_LOG(eLogLevel_error, "Streamout: No multicast address provided");
-    }
-    else
-    	CSIO_LOG(eLogLevel_info, "Streamout: multicast disabled");
-
-
-    /* notify when our media is ready, This is called whenever someone asks for
-       * the media and a new pipeline with our appsrc is created */
-    if (m_streamoutMode == STREAMOUT_MODE_CAMERA) {
-        g_signal_connect (m_factory, "media-configure", (GCallback) media_configure, this);
-    } else {
-        g_signal_connect (m_factory, "media-configure", (GCallback) wc_media_configure, this);
-    }
-
-    gst_rtsp_media_factory_set_shared (m_factory, TRUE);
-
-    // Reduce stream latency.
-    gst_rtsp_media_factory_set_latency (m_factory, 10);	
-
-#ifdef CRES_OVERLOAD_MEDIA_CLASS
-    gst_rtsp_media_factory_set_media_gtype (m_factory, CRES_TYPE_RTSP_MEDIA);
-#endif
-
-    if (m_stream_name[0])
-    {
-        sprintf(mountPoint, "/%s.sdp", m_stream_name);
-    }
-    else
-    {
-        if (m_streamoutMode == STREAMOUT_MODE_CAMERA)
-            sprintf(mountPoint, "/%s.sdp", "camera");
+        if (m_multicast_enable)
+        {
+            if (m_multicast_address[0])	// TODO: Also check that multicast address is valid
+            {
+                uint32_t ip = 0;
+                int ret = inet_pton(AF_INET, m_multicast_address, &ip);
+                ip = ntohl(ip); // put host byte order
+                if ( (ret == 1) && ((ip >> 28) == 0xe) )
+                {
+                    /* make a new address pool for multicast */
+                    GstRTSPAddressPool *pool = gst_rtsp_address_pool_new ();
+                    gst_rtsp_address_pool_add_range (pool,
+                            m_multicast_address, m_multicast_address, 11000, 12000, 64);	// Setting ttl to fixed 64, and fixed port range
+                    gst_rtsp_media_factory_set_address_pool (m_factory, pool);
+                    /* only allow multicast */
+                    gst_rtsp_media_factory_set_protocols (m_factory,
+                            GST_RTSP_LOWER_TRANS_UDP_MCAST);
+                    g_object_unref (pool);
+                }
+                else
+                    CSIO_LOG(eLogLevel_error, "Streamout: Invalid multicast address provided");
+            }
+            else
+                CSIO_LOG(eLogLevel_error, "Streamout: No multicast address provided");
+        }
         else
-            sprintf(mountPoint, "/%s.sdp", "wc");
-    }
-    gst_rtsp_mount_points_add_factory (mounts, mountPoint, m_factory);
-    g_object_unref(mounts);
-    CSIO_LOG(eLogLevel_info, "Streamout: mount in %s mode: [%s]",
-	m_streamoutMode == STREAMOUT_MODE_CAMERA ? "camera":"wireless conferencing", mountPoint);
+            CSIO_LOG(eLogLevel_info, "Streamout: multicast disabled");
 
-    // send server URL to Gstreamout via jni
-    sendWcUrl(server, mountPoint);
 
-    //correct way to create source and attach to mainloop
-    server_source = gst_rtsp_server_create_source(server,NULL,NULL);
-    if(server_source)
-    {
-        CSIO_LOG(m_debugLevel, "Streamout: create_source , server_source [0x%x]", server_source);
-    }
-    else
-    {
-        CSIO_LOG(eLogLevel_error, "Streamout: Failed to create_source");
-        goto exitThread;
-    }
-    server_id = g_source_attach (server_source, g_main_loop_get_context(m_loop));
+        /* notify when our media is ready, This is called whenever someone asks for
+           * the media and a new pipeline with our appsrc is created */
+        if (m_streamoutMode == STREAMOUT_MODE_CAMERA) {
+            g_signal_connect (m_factory, "media-configure", (GCallback) media_configure, this);
+        } else {
+            g_signal_connect (m_factory, "media-configure", (GCallback) wc_media_configure, this);
+        }
+
+        gst_rtsp_media_factory_set_shared (m_factory, TRUE);
+
+        // Reduce stream latency.
+        gst_rtsp_media_factory_set_latency (m_factory, 10);
+
+    #ifdef CRES_OVERLOAD_MEDIA_CLASS
+        gst_rtsp_media_factory_set_media_gtype (m_factory, CRES_TYPE_RTSP_MEDIA);
+    #endif
+
+        if (m_stream_name[0])
+        {
+            sprintf(mountPoint, "/%s.sdp", m_stream_name);
+        }
+        else
+        {
+            if (m_streamoutMode == STREAMOUT_MODE_CAMERA)
+                sprintf(mountPoint, "/%s.sdp", "camera");
+            else
+                sprintf(mountPoint, "/%s.sdp", "wc");
+        }
+        gst_rtsp_mount_points_add_factory (mounts, mountPoint, m_factory);
+        g_object_unref(mounts);
+        CSIO_LOG(eLogLevel_info, "Streamout: mount in %s mode: [%s]",
+        m_streamoutMode == STREAMOUT_MODE_CAMERA ? "camera":"wireless conferencing", mountPoint);
+
+        // send server URL to Gstreamout via jni
+        sendWcUrl(server, mountPoint);
+
+        //correct way to create source and attach to mainloop
+        server_source = gst_rtsp_server_create_source(server,NULL,NULL);
+        if(server_source)
+        {
+            CSIO_LOG(m_debugLevel, "Streamout: create_source , server_source [0x%x]", server_source);
+        }
+        else
+        {
+            CSIO_LOG(eLogLevel_error, "Streamout: Failed to create_source");
+            goto exitThread;
+        }
+        server_id = g_source_attach (server_source, g_main_loop_get_context(m_loop));
+
+        if(server_id)
+        {
+            CSIO_LOG(m_debugLevel, "Streamout: Attached server to maincontext, server_id %u", server_id);
+        }
+        else
+        {
+            CSIO_LOG(eLogLevel_error, "Streamout: Failed to attach server");
+            goto exitThread;
+        }
+
+        m_main_loop_is_running = 1;
+
+        if (m_streamoutMode == STREAMOUT_MODE_CAMERA)
+            StartSnapShot(this);
+
+        if (m_streamoutMode == STREAMOUT_MODE_WIRELESSCONFERENCING) {
+            g_signal_connect(server, "client-connected", (GCallback) client_connected, this);
+            timeout_source = g_timeout_source_new_seconds(2);
+            g_source_set_callback(timeout_source, (GSourceFunc) timeout, server, NULL);
+            g_source_attach(timeout_source, context);
+        }
+        csio_jni_onServerStart();
+        sent_csio_jni_onServerStart = true;
     
-    if(server_id)
-    {
-        CSIO_LOG(m_debugLevel, "Streamout: Attached server to maincontext, server_id %u", server_id);
+        CSIO_LOG(eLogLevel_info, "Streamout: running main loop......");
+        g_main_loop_run (m_loop);
     }
-    else
-    {
-        CSIO_LOG(eLogLevel_error, "Streamout: Failed to attach server");
-        goto exitThread;
-    }
-
-    m_main_loop_is_running = 1;
-
-    if (m_streamoutMode == STREAMOUT_MODE_CAMERA)
-        StartSnapShot(this);
-
-    if (m_streamoutMode == STREAMOUT_MODE_WIRELESSCONFERENCING) {
-        g_signal_connect(server, "client-connected", (GCallback) client_connected, this);
-        timeout_source = g_timeout_source_new_seconds(2);
-        g_source_set_callback(timeout_source, (GSourceFunc) timeout, server, NULL);
-        g_source_attach(timeout_source, context);
-    }
-    csio_jni_onServerStart();
-
-    CSIO_LOG(eLogLevel_info, "Streamout: running main loop......");
-    g_main_loop_run (m_loop);
-
 exitThread:
     /* cleanup */
 	if (m_streamoutMode == STREAMOUT_MODE_CAMERA)
@@ -1028,8 +1041,10 @@ exitThread:
 /*   please check out this bug: https://bugzilla.gnome.org/show_bug.cgi?id=747801
  *   if it is fixed, we should take it. */
 
+	bool restart = false;
     if(m_pMedia)
     {
+        restart = ((CresRTSPMedia *)m_pMedia)->m_restart;
         gst_rtsp_media_suspend (m_pMedia);
 
         //remove stream from session before unprepare media
@@ -1070,35 +1085,45 @@ exitThread:
         server_source = NULL;
     }
 
-    CSIO_LOG(m_debugLevel, "Streamout: remove factory from mount points");
-    mounts = gst_rtsp_server_get_mount_points (server);
-    if (m_factory && mounts) gst_rtsp_mount_points_remove_factory(mounts, mountPoint);
-    CSIO_LOG(m_debugLevel, "Streamout: unreference mounts[0x%x]",mounts);
-    if (mounts) g_object_unref (mounts);
+    if(server)
+    {
+        CSIO_LOG(m_debugLevel, "Streamout: remove factory from mount points");
+        mounts = gst_rtsp_server_get_mount_points (server);
+        if (m_factory && mounts) gst_rtsp_mount_points_remove_factory(mounts, mountPoint);
+        CSIO_LOG(m_debugLevel, "Streamout: unreference mounts[0x%x]",mounts);
+        if (mounts) g_object_unref (mounts);
 
-    /* Filter existing clients and remove them */
-    CSIO_LOG(m_debugLevel, "Streamout: Disconnecting existing clients");
-    gst_rtsp_server_client_filter (server, client_filter, NULL);
+        /* Filter existing clients and remove them */
+        CSIO_LOG(m_debugLevel, "Streamout: Disconnecting existing clients");
+        gst_rtsp_server_client_filter (server, client_filter, NULL);
 
-    // check client list is empty
-    m_clientList.clear();
-
+        // check client list is empty
+        m_clientList.clear();
+    }
 //Note:  if you unref m_factory, then unref server will give you and err
 //       seems unref server is enough, it will unref m_factory also.
 //    CSIO_LOG(m_debugLevel, "Streamout: unreference factory[0x%x]",m_factory);
 //    if(m_factory) g_object_unref (m_factory);
-    CSIO_LOG(m_debugLevel, "Streamout: unreference loop[0x%x]",m_loop);
-    if(m_loop) g_main_loop_unref (m_loop);
-    CSIO_LOG(m_debugLevel, "Streamout: unreference pool[0x%x]",pool);
-    if(pool) g_object_unref (pool);
-    CSIO_LOG(m_debugLevel, "Streamout: unreference server[0x%x]",server);
-    if(server) g_object_unref (server);
+    if(m_loop)
+    {
+        CSIO_LOG(m_debugLevel, "Streamout: unreference loop[0x%x]",m_loop);
+        g_main_loop_unref (m_loop);
+    }
+    if(pool)
+    {
+        CSIO_LOG(m_debugLevel, "Streamout: unreference pool[0x%x]",pool);
+        g_object_unref (pool);
+    }
+    if(server)
+    {
+        CSIO_LOG(m_debugLevel, "Streamout: unreference server[0x%x]",server);
+        g_object_unref (server);
+    }
 
     //need to create a cleanup function and call here
     CSIO_LOG(m_debugLevel, "Streamout: reset m_loop, m_main_loop_is_running, m_pMedia");
     m_loop = NULL;
     m_main_loop_is_running = 0;
-    m_pMedia = NULL;
 
     if(context)
     {
@@ -1108,12 +1133,27 @@ exitThread:
         context = NULL;
     }
 
-    csio_jni_onServerStop();
+    if(sent_csio_jni_onServerStart)
+        csio_jni_onServerStop();
 
     CSIO_LOG(m_debugLevel, "Streamout: jni_start_rtsp_server ended------");
 
     //thread exit here
     m_ThreadIsRunning = 0;
+
+    if(restart || wcRestart)
+    {
+        int delay_ms = 500;
+        if (m_usbAudio)
+        {
+            m_usbAudio->releaseDevice();
+        }
+
+        CSIO_LOG(m_debugLevel, "Streamout: restart manager[%d] thread.", m_id);
+        m_parent->signalProject(m_id, STREAMOUT_EVENT_JNI_CMD_RESTART_MGR_THREAD,sizeof(void*), &delay_ms);
+    }
+
+    m_pMedia = NULL;
 
     CSIO_LOG(m_debugLevel, "CStreamoutManager: exiting ThreadEntry function - returning NULL------");
     return NULL;
@@ -1171,8 +1211,10 @@ void CStreamoutManager::initWcCertificates()
     }
 }
 
-void CStreamoutManager::initWcAudioVideo()
+eWCstatus CStreamoutManager::initWcAudioVideo()
 {
+    eWCstatus initError = STREAMOUT_WC_STATUS_NOERROR;
+
     if (m_streamoutMode == STREAMOUT_MODE_WIRELESSCONFERENCING)
     {
 		CSIO_LOG(eLogLevel_info, "--Streamout: video_capture_device=%s audio_capture_device=%s", m_video_capture_device, m_audio_capture_device);
@@ -1188,9 +1230,13 @@ void CStreamoutManager::initWcAudioVideo()
         		if (!get_video_caps(m_video_capture_device, &m_video_caps, m_device_display_name, sizeof(m_device_display_name)))
         		{
         			if (get_video_caps_string(&m_video_caps, m_caps, sizeof(m_caps)) < 0)
+        			{
+        			    initError = STREAMOUT_WC_STATUS_VIDEO_INIT_ERROR;
         				m_videoStream = false;
+        			}
         		} else {
         			CSIO_LOG(eLogLevel_info, "--Streamout - unable to get caps for video device: %s", m_video_capture_device);
+        			initError = STREAMOUT_WC_STATUS_VIDEO_INIT_ERROR;
         			m_videoStream = false;
         		}
         		if (is_supported(m_video_caps.format))
@@ -1218,12 +1264,15 @@ void CStreamoutManager::initWcAudioVideo()
         			m_audioStream = m_usbAudio->getAudioParams();
         		} else {
         			CSIO_LOG(eLogLevel_info, "--Streamout - invalid audio card %d", m_usbAudio->m_pcm_card_idx);
+        			initError = STREAMOUT_WC_STATUS_AUDIO_INIT_ERROR;
         			m_audioStream=false;
         		}
         	}
     		CSIO_LOG(eLogLevel_info, "--Streamout - mAudioStream=%s", ((m_audioStream)?"true":"false"));
         }
     }
+
+    return(initError);
 }
 
 void CStreamoutManager::setVideoSource(char *videoSource, int n)

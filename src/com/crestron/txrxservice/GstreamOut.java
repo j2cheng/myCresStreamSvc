@@ -505,6 +505,12 @@ public class GstreamOut {
         streamCtl.sockTask.SendDataToAllClients("CAMERA_STREAMING_ENABLE=false");           
     }
         
+    public void recoverWCStreamOut()
+    {
+		Log.i(TAG, "Wireless Conferencing recovery.");
+		streamCtl.setWirelessConferencingStreamEnable(false);
+		streamCtl.setWirelessConferencingStreamEnable(true);
+    }
     
 ///////////////////////////////////////////////////////////////////////////////
     

@@ -33,6 +33,7 @@ public:
     void setProjectDebugLevel(int level);
     void removeAllStreamoutTasks();
     void restartStreamoutIfMainLoopEnded();
+    void signalProject(int iId, int evnt, int data_size, void* bufP);
 
     void lockProject(){if(mLock) mLock->lock();}
     void unlockProject(){if(mLock) mLock->unlock();}

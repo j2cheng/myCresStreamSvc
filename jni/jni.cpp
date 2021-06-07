@@ -4237,6 +4237,22 @@ void csio_jni_recoverMediaServer()
     }
 }
 
+void csio_jni_recoverWC_StreamOut()
+{
+    CSIO_LOG(eLogLevel_debug, "entering csio_jni_recoverWC_StreamOut");
+    JNIEnv *env = get_jni_env ();
+    jclass cls = env->GetObjectClass(CresStreamOutDataDB->app);
+
+    jmethodID recoverWC_StreamOut = env->GetMethodID((jclass)cls, "recoverWCStreamOut", "()V");
+    if (recoverWC_StreamOut == NULL) return;
+
+    env->CallVoidMethod(CresStreamOutDataDB->app, recoverWC_StreamOut);
+    if (env->ExceptionCheck ()) {
+        CSIO_LOG(eLogLevel_error, "Failed to call Java method 'recoverWCStreamOut'");
+        env->ExceptionClear ();
+    }
+}
+
 void csio_jni_sendCameraStopFb()
 {
     JNIEnv *env = get_jni_env ();

@@ -2592,6 +2592,9 @@ class WirelessConferencingStreamingEnableCommand extends CrestronCommand {
     public void execute() {
         ctrl.setWirelessConferencingStreamEnable(Boolean.valueOf(msg));
     }
+    public String getFeedbackMsg() {
+        return Boolean.toString(ctrl.userSettings.getWcStreamingEnable());
+    }
 }
 
 class WirelessConferencingSecurityEnableCommand extends CrestronCommand {

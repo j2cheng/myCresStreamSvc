@@ -25,7 +25,7 @@
 #include "cresStreamOutProject.h"
 
 #define MAX_PROJCT_OBJ 10
-
+void csio_jni_recoverWC_StreamOut();
 static void StreamoutProjectSendEvent(int iId, int evnt, int data_size, void* bufP);
 
 CStreamoutProject** StreamOutProjList = NULL ;
@@ -713,6 +713,51 @@ void* CStreamoutProject::ThreadEntry()
 
             switch (evntQ.event_type)
             {
+                case STREAMOUT_EVENT_JNI_CMD_RESTART_MGR:
+                {
+                    int id = evntQ.streamout_obj_id;
+                    int retry_delay_ms = 500;
+                    if( evntQ.buf_size && evntQ.buffPtr)
+                    {
+                        int delay = *((int *)evntQ.buffPtr);
+                        CSIO_LOG(m_debugLevel, "Streamout: restart delay[%d]", delay);
+                        if((delay > 0) && (delay <= 1000))
+                        {
+                            retry_delay_ms = delay;
+                        }
+                    }
+
+                    CSIO_LOG(m_debugLevel, "Streamout: Restart manager[%d] in %d ms.",id,retry_delay_ms);
+                    usleep(1000000*retry_delay_ms);
+                    csio_jni_recoverWC_StreamOut();
+                    break;
+                }
+                case STREAMOUT_EVENT_JNI_CMD_RESTART_MGR_THREAD:
+                {
+                    int id = evntQ.streamout_obj_id;
+                    if(m_StreamoutTaskObjList[id])
+                    {
+                        if(!m_StreamoutTaskObjList[id]->m_ThreadIsRunning)
+                        {
+                            int retry_delay_ms = 500;
+                            if( evntQ.buf_size && evntQ.buffPtr)
+                            {
+                                int delay = *((int *)evntQ.buffPtr);
+                                CSIO_LOG(m_debugLevel, "Streamout: restart delay[%d]", delay);
+                                if((delay > 0) && (delay <= 1000))
+                                {
+                                    retry_delay_ms = delay;
+                                }
+                            }
+
+                            CSIO_LOG(m_debugLevel, "Streamout: Restart manager[%d] thread in %d ms.",id,retry_delay_ms);
+                            usleep(1000000*retry_delay_ms);
+
+                            m_StreamoutTaskObjList[id]->CreateNewThread();
+                        }
+                    }
+                    break;
+                }
                 case STREAMOUT_EVENT_JNI_CMD_START:
                 {
                     int id = evntQ.streamout_obj_id;
@@ -736,7 +781,7 @@ void* CStreamoutProject::ThreadEntry()
                         {
                             CSIO_LOG(m_debugLevel, "Streamout: create new gst_rtsp_server_start at id[%d].",
                                     id);
-                            m_StreamoutTaskObjList[id] = new CStreamoutManager(m_streamoutMode);
+                            m_StreamoutTaskObjList[id] = new CStreamoutManager(m_streamoutMode, id);
 
                             m_StreamoutTaskObjList[id]->setParent(this);
                             m_StreamoutTaskObjList[id]->setServManagerDebugLevel(m_debugLevel);
@@ -1119,7 +1164,7 @@ void* CStreamoutProject::ThreadEntry()
 									CSIO_LOG(eLogLevel_error, "Streamout: START_PREVIEW doesn't exist [0x%x]", 
 											m_StreamoutTaskObjList[id]);
 								
-									m_StreamoutTaskObjList[id] = new CStreamoutManager(m_streamoutMode);
+									m_StreamoutTaskObjList[id] = new CStreamoutManager(m_streamoutMode, id);
 								
 									m_StreamoutTaskObjList[id]->setParent(this);
 									m_StreamoutTaskObjList[id]->setServManagerDebugLevel(m_debugLevel);
@@ -1499,4 +1544,15 @@ void CStreamoutProject::removeAllStreamoutTasks()
 void CStreamoutProject::setProjectDebugLevel(int level)
 {
     setDebugLevel(level);
+}
+void CStreamoutProject::signalProject(int iId, int evnt, int data_size, void* bufP)
+{
+    CSIO_LOG(m_debugLevel, "Streamout: signalProject = [%d]", evnt);
+
+    gProjectsLock.lock();
+
+    StreamoutProjectSendEvent(iId, evnt,sizeof(void*), bufP);
+
+    gProjectsLock.unlock();
+    CSIO_LOG(m_debugLevel, "Streamout: signalProject exit.");
 }

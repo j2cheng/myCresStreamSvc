@@ -1171,6 +1171,15 @@ public class CresStreamCtrl extends Service {
                 if (isWirelessConferencingEnabled)
                 {
                     mWC_Service = new WC_Service(CresStreamCtrl.this);
+                    //TODO: remove the following auto start code when IsEnabled property & object is implemented
+                    boolean wcEnabled = userSettings.getWcStreamingEnable();
+                    if(wcEnabled)
+                    {
+                    	Log.i(TAG, "Wireless Conferencing was enabled, restarting on startup.");
+                    	setWirelessConferencingStreamEnable(false);
+                    	setWirelessConferencingStreamEnable(true);
+                    }
+                    //TODO: end
                 }
             }
 
@@ -5929,6 +5938,8 @@ public class CresStreamCtrl extends Service {
                         Log.w(TAG, "setWirelessConferencingStreamEnable(): already stopped!!!");
                     }
                 }
+                
+                userSettings.setWcStreamingEnable(enable);
             }
             else
             {
