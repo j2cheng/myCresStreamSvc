@@ -7446,4 +7446,16 @@ public class CresStreamCtrl extends Service {
         }
     }
 
+    public boolean dontStartAirMediaFlag()
+    {
+        // Special condition during production, interferes with production application
+        boolean dontStart = false;
+        File dsamFile = new File(dontStartAirMediaFilePath);
+        if (dsamFile.exists())
+        {
+            dontStart = MiscUtils.readStringFromDisk(dontStartAirMediaFilePath).equals("1");
+        }
+
+        return dontStart;
+    }
 }

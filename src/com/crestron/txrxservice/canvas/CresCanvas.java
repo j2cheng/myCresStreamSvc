@@ -467,48 +467,70 @@ public class CresCanvas
 			return "Session Does Not Exist";
 	}
 	
-	public Surface acquireSurface(Session session)
-	{
-		CanvasSurfaceAcquireResponse response = null;
-		CanvasSourceSession canvasSourceSession = Session.session2CanvasSourceSession(session);
-		try {
-			if (Session.replace.streamId < 0) {
-				Common.Logging.i(TAG, "surfaceAcquire for session: "+getSessionId(session)+" with options="+session.options);
-				response = mAirMediaCanvas.service().surfaceAcquireWithSession(canvasSourceSession);
-			} else {
-				Common.Logging.i(TAG, "surfaceReplace for session: "+getSessionId(session)+" old sessionId="+Session.replace.oldSessionId+" with options="+session.options);
-				response = mAirMediaCanvas.service().surfaceReplaceWithSession(Session.replace.oldSessionId, canvasSourceSession);
-			}
-		} 
-		catch(android.os.RemoteException ex)
-		{
-			Common.Logging.e(TAG, "exception encountered while calling surfaceAcquire for session: "+getSessionId(session));
-			ex.printStackTrace();
-			return null;
-		}
-		if (sessionPlayTimedout(getSessionId(session)))
-		{
-			// release the surface - it is too late for us to use it
-			Common.Logging.e(TAG, "Timed out while calling surfaceAcquire for session: "+getSessionId(session));
-			releaseSurface(getSessionId(session));
-			return null;
-		}
-		if (response != null && response.isSucceeded())
-		{
-			if (response.surface == null)
-			{
-				Log.e(TAG, "acquireSurface for "+getSessionId(session)+" returned null surface from Canvas");
-			}
-			if (!response.surface.isValid())
-			{
-				Log.e(TAG, "acquireSurface for "+getSessionId(session)+" returned surface "+response.surface+" invalid surface");
-			}
-			return response.surface;
-		} else {
-			Common.Logging.e(TAG, "acquireSurface was unable to get surface from Canvas App for session: "+getSessionId(session));
-			return null;
-		}
-	}
+    public Surface acquireSurface(Session session)
+    {
+        CanvasSurfaceAcquireResponse response = null;
+        CanvasSourceSession canvasSourceSession = Session.session2CanvasSourceSession(session);
+        try
+        {
+            if (Session.replace.streamId < 0)
+            {
+                if (mStreamCtl != null && mStreamCtl.dontStartAirMediaFlag())
+                {
+                    Common.Logging.i(TAG, "dontStartAirMediaFlag is on, skip surfaceAcquire for session: "
+                            + getSessionId(session) + " with options=" + session.options);
+                }
+                else
+                {
+                    Common.Logging.i(TAG, "surfaceAcquire for session: " + getSessionId(session) + " with options="
+                            + session.options);
+                    response = mAirMediaCanvas.service().surfaceAcquireWithSession(canvasSourceSession);
+                }
+            }
+            else
+            {
+                Common.Logging.i(TAG, "surfaceReplace for session: " + getSessionId(session) + " old sessionId="
+                        + Session.replace.oldSessionId + " with options=" + session.options);
+                response = mAirMediaCanvas.service().surfaceReplaceWithSession(Session.replace.oldSessionId,
+                        canvasSourceSession);
+            }
+        }
+        catch (android.os.RemoteException ex)
+        {
+            Common.Logging.e(TAG,
+                    "exception encountered while calling surfaceAcquire for session: " + getSessionId(session));
+            ex.printStackTrace();
+            return null;
+        }
+
+        if (sessionPlayTimedout(getSessionId(session)))
+        {
+            // release the surface - it is too late for us to use it
+            Common.Logging.e(TAG, "Timed out while calling surfaceAcquire for session: " + getSessionId(session));
+            releaseSurface(getSessionId(session));
+            return null;
+        }
+
+        if (response != null && response.isSucceeded())
+        {
+            if (response.surface == null)
+            {
+                Log.e(TAG, "acquireSurface for " + getSessionId(session) + " returned null surface from Canvas");
+            }
+            if (!response.surface.isValid())
+            {
+                Log.e(TAG, "acquireSurface for " + getSessionId(session) + " returned surface " + response.surface
+                        + " invalid surface");
+            }
+            return response.surface;
+        }
+        else
+        {
+            Common.Logging.e(TAG,
+                    "acquireSurface was unable to get surface from Canvas App for session: " + getSessionId(session));
+            return null;
+        }
+    }
 	
 	public void releaseSurface(String sessionId)
 	{
