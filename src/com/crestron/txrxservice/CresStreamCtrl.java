@@ -2299,14 +2299,17 @@ public class CresStreamCtrl extends Service {
         WindowManager wm = null;
         String w="0", h="0", fps="0";
         
-        wm = (WindowManager) this.getSystemService(Context.WINDOW_SERVICE);
-        Display display = wm.getDefaultDisplay();
-        Point size = new Point();
-        display.getRealSize(size);
+        if (Boolean.parseBoolean(hdmiOutput.getSyncStatus()) == true)
+        {
+            wm = (WindowManager) this.getSystemService(Context.WINDOW_SERVICE);
+            Display display = wm.getDefaultDisplay();
+            Point size = new Point();
+            display.getRealSize(size);
 
-        w = Integer.toString(size.x);
-        h = Integer.toString(size.y);
-        fps = Integer.toString(Math.round(display.getRefreshRate()));
+            w = Integer.toString(size.x);
+            h = Integer.toString(size.y);
+            fps = Integer.toString(Math.round(display.getRefreshRate()));
+        }//else
 
     	if (!hdmiOutput.getHorizontalRes().equals(w) ||
     			!hdmiOutput.getVerticalRes().equals(h) ||
@@ -6968,6 +6971,16 @@ public class CresStreamCtrl extends Service {
 
         // If force HDCP is enabled, blank output if not authenticated
         // If force HDCP is disabled, blank output if not authenticated and input is authenticated
+        Log.v(TAG, "sendHDCPFeedbacks mHDCPInputStatus " + mHDCPInputStatus +
+                   ", hdmiContentVisible: " + hdmiContentVisible +
+                   ", isHdmiOutForceHdcp: " + userSettings.isHdmiOutForceHdcp() +
+                   ", mHDCPOutputStatus: " + mHDCPOutputStatus +
+                   ", mHDCPExternalStatus: " + mHDCPExternalStatus +
+                   ", mHDCPEncryptStatus: "  + mHDCPEncryptStatus  +
+                   ", mIgnoreHDCP: " + mIgnoreHDCP +
+                   ", mTxHdcpActive: " + mTxHdcpActive
+                );
+
         if (((mHDCPInputStatus == true && hdmiContentVisible == true) || (userSettings.isHdmiOutForceHdcp() == true)) && ((mHDCPOutputStatus == false) && (mHDCPExternalStatus == false)))
             sockTask.SendDataToAllClients(MiscUtils.stringFormat("%s=%b", "HDMIOUT_DISABLEDBYHDCP", true));
         // The below case is transmitter which is streaming protected content but can't display on loopout
