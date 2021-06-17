@@ -15,6 +15,7 @@ import com.crestron.txrxservice.HDMIInputInterface;
 import com.crestron.txrxservice.canvas.Session;
 import com.crestron.txrxservice.canvas.HDMISession;
 import com.crestron.txrxservice.canvas.DMSession;
+import com.crestron.txrxservice.CresStreamCtrl.StreamState;
 
 import java.io.IOException;
 import java.util.concurrent.*;
@@ -23,6 +24,7 @@ import java.util.ArrayList;
 import java.util.Arrays;
 import java.util.List;
 import java.util.UUID;
+import java.util.Collection;
 
 import android.graphics.Rect;
 import android.os.ConditionVariable;
@@ -822,5 +824,40 @@ public class CresCanvas
 				Log.i(TAG, "Session "+sessionId+" not found in list of sessions");
 			}
 		}
+        else if (args[0].equalsIgnoreCase("managerlist"))
+        {	
+            Collection<Session> collection = mSessionMgr.sessions();
+            for(Session session : collection) {                
+                Log.i(TAG, "managerlist Network session: " + session);
+                Log.i(TAG, "managerlist Network id: " + session.id());
+                Log.i(TAG, "managerlist Network getUserLabel: " + session.getUserLabel());
+                Log.i(TAG, "managerlist Network getInputNumber: " + session.getInputNumber());
+                Log.i(TAG, "managerlist Network sessionId: " + session.sessionId());
+                Log.i(TAG, "managerlist Network streamId: " + session.streamId);				
+                Log.i(TAG, "managerlist Network isStopped: " + session.isStopped());
+                Log.i(TAG, "managerlist Network isPlaying: " + session.isPlaying());
+                Log.i(TAG, "managerlist Network isPaused: " + session.isPaused());
+                Log.i(TAG, "managerlist Network isAudioMuted: " + session.isAudioMuted);
+                
+                Log.i(TAG, "managerlist Network isConnecting: " + session.isConnecting());
+                Log.i(TAG, "managerlist Network getState: " + session.getState());
+                Log.i(TAG, "managerlist Network getType: " + session.getType());
+                Log.i(TAG, "managerlist Network getUrl: " + session.getUrl());
+
+                Log.i(TAG, "managerlist Network getVolume: " + mStreamCtl.userSettings.getVolume());
+
+                if(session instanceof NetworkStreamSession)
+                {
+                    StreamState st = session.mStreamCtl.getCurrentStreamState(session.streamId);
+                    Log.i(TAG, "managerlist Network streaming state: " + st.name() + "(" + st.getValue() + ")");
+                    Log.i(TAG, "managerlist Network getBuffer: " + ((NetworkStreamSession)session).getBuffer());
+                    Log.i(TAG, "managerlist Network getVolume: " + ((NetworkStreamSession)session).getVolume());
+                    Log.i(TAG, "managerlist Network getStatistics: " + ((NetworkStreamSession)session).getStatistics());
+                }
+            }
+
+
+            mStreamCtl.testfindCamera();
+        }
 	}
 }

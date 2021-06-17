@@ -86,9 +86,11 @@ public class CresCamera2 extends CresCamera
         //final String HDMIIP_ID = "/dev/video0";
         try {
             String[] cameraIds = mCameraManager.getCameraIdList();
+            //Log.v(TAG, "findCamera: getCameraIdList length: " + cameraIds.length);
+
             for (String id:cameraIds) {
                 if (CameraId.equals(id)) {
-                    Log.v(TAG, "HDMI Input camera is connected");
+                    Log.v(TAG, "findCamera: HDMI Input camera is connected");
                     return true;
                 }
             
@@ -132,7 +134,7 @@ public class CresCamera2 extends CresCamera
 
                         @Override
                         public void onDisconnected(CameraDevice camera) {
-                            Log.i(TAG, "onDisconnected" + hdmiCameraName);
+                            Log.i(TAG, "  onDisconnected " + hdmiCameraName);
                             if (mCameraDevice != null) {
                                 releaseCamera();
                             }
@@ -140,7 +142,7 @@ public class CresCamera2 extends CresCamera
 
                         @Override
                         public void onError(CameraDevice camera, int error) {
-                            Log.e(TAG, "onError " + hdmiCameraName + " error " + error);
+                            Log.e(TAG, "  onError " + hdmiCameraName + " error " + error);
                             mCamErrCur = true;
                             if (mCameraDevice != null) {
                                 releaseCamera();
@@ -180,6 +182,8 @@ public class CresCamera2 extends CresCamera
                         mCameraSession.abortCaptures();
                         Log.i(TAG,  " successfully aborted captures " + hdmiCameraName);
                     } catch (CameraAccessException e) {
+                        e.printStackTrace();
+                    } catch (IllegalStateException e) {
                         e.printStackTrace();
                     }
                     //              Log.i(TAG, " close " + hdmiCameraName + " mCameraSession");

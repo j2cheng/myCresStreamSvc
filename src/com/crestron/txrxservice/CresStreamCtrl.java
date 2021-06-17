@@ -7471,4 +7471,18 @@ public class CresStreamCtrl extends Service {
 
         return dontStart;
     }
+
+    //Note: only for debugging here
+    public void testfindCamera()
+    {
+        if(mProductSpecific.getInstance().cam_handle.findCamera("/dev/video0"))
+        {
+            Log.i(TAG, "testfindCamera: HDMI Input camera Found!");
+        }
+        else
+        {
+            Log.i(TAG, "testfindCamera: No connected HDMI Input Found! ERROR");            
+        }
+    }
+
 }
