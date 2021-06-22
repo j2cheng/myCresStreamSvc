@@ -53,7 +53,6 @@ ifeq ($(TARGET_PRODUCT),$(filter $(TARGET_PRODUCT),msm8953_64))
         android-support-design
 ifeq ($(shell test $(PLATFORM_SDK_VERSION) -ge 29 && echo Android10),Android10)
     LOCAL_PRIVATE_PLATFORM_APIS := true
-    LOCAL_JNI_SHARED_LIBRARIES := libdisplaysetting_vendor
 else
     LOCAL_JNI_SHARED_LIBRARIES := libdisplaysetting
 endif
