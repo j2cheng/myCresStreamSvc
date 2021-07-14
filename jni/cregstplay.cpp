@@ -202,6 +202,10 @@ void set_gst_debug_level(void)
 	setenv("GST_AMC_IGNORE_UNKNOWN_COLOR_FORMATS", "yes", 1);
 
 	CSIO_LOG(eLogLevel_debug, "Set GST_DEBUG to %s", temp);
+
+        CSIO_LOG(eLogLevel_debug, "Get GST_VERSION_MAJOR  %d", GST_VERSION_MAJOR);
+        CSIO_LOG(eLogLevel_debug, "Get GST_VERSION_MINOR  %d", GST_VERSION_MINOR);
+        CSIO_LOG(eLogLevel_debug, "Get GST_VERSION_MICRO  %d", GST_VERSION_MICRO);
 }
 
 /**

@@ -1705,15 +1705,18 @@ JNIEXPORT void JNICALL Java_com_crestron_txrxservice_GstreamIn_nativeSetFieldDeb
                 CmdPtr = strtok(NULL, ", ");
                 if (CmdPtr == NULL)
                 {
-                    CSIO_LOG(eLogLevel_info, "Invalid Format, need a parameter\r\n");
+                    gint64  tmp = 0;
+
+                    g_object_get(G_OBJECT(data->amcvid_dec), "ts-offset", &tmp, NULL);
+                    CSIO_LOG(eLogLevel_info, "get amcvid_dec ts-offset: %lld\r\n", tmp);
                 }
                 else
                 {
-
                     fieldNum = (int) strtol(CmdPtr, &EndPtr, 10);
-                    if ( fieldNum < 5000 && fieldNum >= 0)
+                    CSIO_LOG(eLogLevel_debug, "fieldNum is: %d",fieldNum);
+
+                    if ( fieldNum < 5000)
                     {
-                        data->amcviddec_ts_offset = fieldNum;
                         for(i=0; i<MAX_ELEMENTS; i++)
                         {
                             if(data->element_v[i])
@@ -1722,10 +1725,10 @@ JNIEXPORT void JNICALL Java_com_crestron_txrxservice_GstreamIn_nativeSetFieldDeb
                                 CSIO_LOG(eLogLevel_debug, "[%d]element name[%s]",i,n);
                                 if(strstr(n,"amcvideodec"))
                                 {
-                                    g_object_set(G_OBJECT(data->element_v[i]), "ts-offset", data->amcviddec_ts_offset, NULL);
+                                    gint64 tsOffset= fieldNum * 1000000;
+                                    g_object_set(G_OBJECT(data->element_v[i]), "ts-offset", tsOffset, NULL);
 
-                                    data->amcviddec_ts_offset -= CSIOCnsIntf->getStreamRx_BUFFER(sessionId);
-                                    CSIO_LOG(eLogLevel_debug, "[%d]set amcviddec_ts_offset:%d",i,data->amcviddec_ts_offset);
+                                    CSIO_LOG(eLogLevel_debug, "[%d]set amcviddec_ts_offset:%lld",i,tsOffset);
                                     break;
                                 }
                             }
@@ -4099,10 +4102,21 @@ void csio_jni_initVideo(int iStreamId)
         		tmp = CSIOCnsIntf->getStreamRx_BUFFER(iStreamId) +
         		                      data->amcviddec_ts_offset;
         	}
-            g_object_set(G_OBJECT(data->amcvid_dec), "ts-offset", tmp, NULL);
+
+
+            if( GST_VERSION_MAJOR == 1 && GST_VERSION_MINOR == 14)
+            {
+                g_object_set(G_OBJECT(data->amcvid_dec), "ts-offset", tmp, NULL);
+                CSIO_LOG(eLogLevel_debug, "%s: total ts_offset: %d ms",__FUNCTION__, tmp);
+            }
+            else if(GST_VERSION_MAJOR == 1 && GST_VERSION_MINOR == 16)
+            {
+                g_object_set(G_OBJECT(data->amcvid_dec), "ts-offset", (tmp*1000000), NULL);
+                CSIO_LOG(eLogLevel_debug, "%s: total ts_offset: %lld ns",__FUNCTION__, tmp*1000000);
+            }
+
             CSIO_LOG(eLogLevel_debug, "%s: streamingBuffer or latency is:%d",__FUNCTION__, CSIOCnsIntf->getStreamRx_BUFFER(iStreamId));
-            CSIO_LOG(eLogLevel_debug, "%s: amcviddec_ts_offset:%d",__FUNCTION__, data->amcviddec_ts_offset);
-            CSIO_LOG(eLogLevel_debug, "%s: total ts_offset:%d",__FUNCTION__, tmp);
+            CSIO_LOG(eLogLevel_debug, "%s: amcviddec_ts_offset:%d",__FUNCTION__, data->amcviddec_ts_offset);            
         }
     
         if(data->element_valve_v)
