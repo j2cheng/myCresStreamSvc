@@ -4131,6 +4131,15 @@ void csio_jni_initVideo(int iStreamId)
             g_object_set(G_OBJECT(data->amcvid_dec), "push-delay-max", G_GUINT64_CONSTANT (0), NULL);
             CSIO_LOG(eLogLevel_debug, "Stream[%d] push-delay-max is disabled", iStreamId);
         }
+
+        //TODO: 7-15-2021, this is simply set decoder ts-offset for AM3k(Miracast only).
+        //      will change it to auto later.
+        if(data->wfd_start && data->amcvid_dec && (product_info()->hw_platform == eHardwarePlatform_Rockchip))
+        {            
+            gint64 tsOffset= -500 * 1000000;
+            g_object_set(data->amcvid_dec, "ts-offset", tsOffset, NULL);    
+                    
+        }//else
     }
 }
 
