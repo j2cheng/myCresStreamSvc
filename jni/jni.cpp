@@ -3638,12 +3638,7 @@ void csio_jni_InitPipeline(eProtocolId protoId, int iStreamId,GstRTSPLowerTrans 
 			break;
 		}
 		case ePROTOCOL_UDP_TS:
-                    CSIO_LOG(eLogLevel_error, "set latency from getStreamRx_BUFFER[%d]: %d\n",iStreamId,CSIOCnsIntf->getStreamRx_BUFFER(iStreamId));
-
 		    g_object_set(G_OBJECT(data->element_zero), "latency", CSIOCnsIntf->getStreamRx_BUFFER(iStreamId), NULL);
-                    
-                    //g_object_set(G_OBJECT(data->element_zero), "latency", 100, NULL);
-                    //CSIO_LOG(eLogLevel_error, "set latency to 100\n");
 
 			if (CSIOCnsIntf->getStreamTxRx_TRANSPORTMODE(iStreamId)==STREAM_TRANSPORT_MPEG2TS_RTP)
 				g_object_set(G_OBJECT(data->element_av[0]), "buffer-size", DEFAULT_UDP_BUFFER, NULL);
@@ -4138,11 +4133,6 @@ void csio_jni_initVideo(int iStreamId)
     }
     else
     {
-
-
-CSIO_LOG(eLogLevel_debug, "%s: amcvid_dec[0x%x],debug_blocking_audio[%d],audio_sink[0x%x] ",__FUNCTION__, data->amcvid_dec,debug_blocking_audio,data->audio_sink);
-CSIO_LOG(eLogLevel_debug, "%s: SESSIONINITIATION[0x%x],streamProtocolId[%d] ",__FUNCTION__, CSIOCnsIntf->getStreamTxRx_SESSIONINITIATION(iStreamId),data->streamProtocolId);
-
         //SET OFSSET
         // Bug 113246: For RTSP modes we need to set ts offset, for udp modes we should not or AV sync is off
         if( data->amcvid_dec && (!debug_blocking_audio) && data->audio_sink &&
@@ -4190,6 +4180,15 @@ CSIO_LOG(eLogLevel_debug, "%s: SESSIONINITIATION[0x%x],streamProtocolId[%d] ",__
             g_object_set(G_OBJECT(data->amcvid_dec), "push-delay-max", G_GUINT64_CONSTANT (0), NULL);
             CSIO_LOG(eLogLevel_debug, "Stream[%d] push-delay-max is disabled", iStreamId);
         }
+
+        //TODO: 7-15-2021, this is simply set decoder ts-offset for AM3k(Miracast only).
+        //      will change it to auto later.
+        if(data->wfd_start && data->amcvid_dec && (product_info()->hw_platform == eHardwarePlatform_Rockchip))
+        {            
+            gint64 tsOffset= -500 * 1000000;
+            g_object_set(data->amcvid_dec, "ts-offset", tsOffset, NULL);    
+                    
+        }//else
     }
 }
 
