@@ -1702,71 +1702,120 @@ JNIEXPORT void JNICALL Java_com_crestron_txrxservice_GstreamIn_nativeSetFieldDeb
             }
             else if (!strcmp(CmdPtr, "SET_AMCVIDDEC_TS_OFFSET"))
             {
+                //the first parameter is stream id
                 CmdPtr = strtok(NULL, ", ");
                 if (CmdPtr == NULL)
-                {
-                    gint64  tmp = 0;
-
-                    g_object_get(G_OBJECT(data->amcvid_dec), "ts-offset", &tmp, NULL);
-                    CSIO_LOG(eLogLevel_info, "get amcvid_dec ts-offset: %lld\r\n", tmp);
+                { 
+                    CSIO_LOG(eLogLevel_info, "invalid parameter, need stream id\r\n");
                 }
                 else
                 {
-                    fieldNum = (int) strtol(CmdPtr, &EndPtr, 10);
-                    CSIO_LOG(eLogLevel_debug, "fieldNum is: %d",fieldNum);
+                    int id = (int) strtol(CmdPtr, &EndPtr, 10);
+                    CSIO_LOG(eLogLevel_debug, "stream id is: %d",id);
 
-                    if ( fieldNum < 5000)
+                    CREGSTREAM * StreamDb = GetStreamFromCustomData(CresDataDB, id);
+                    if(!StreamDb)
                     {
-                        for(i=0; i<MAX_ELEMENTS; i++)
+                        CSIO_LOG(eLogLevel_error, "Could not obtain stream pointer for stream %d", id);
+                        return;
+                    }
+                    else
+                    {
+                        CmdPtr = strtok(NULL, ", ");
+                        if (CmdPtr == NULL)
                         {
-                            if(data->element_v[i])
-                            {
-                                gchar * n = gst_element_get_name(data->element_v[i]);
-                                CSIO_LOG(eLogLevel_debug, "[%d]element name[%s]",i,n);
-                                if(strstr(n,"amcvideodec"))
-                                {
-                                    gint64 tsOffset= fieldNum * 1000000;
-                                    g_object_set(G_OBJECT(data->element_v[i]), "ts-offset", tsOffset, NULL);
+                            gint64  tmp = 0;
 
-                                    CSIO_LOG(eLogLevel_debug, "[%d]set amcviddec_ts_offset:%lld",i,tsOffset);
-                                    break;
+                            if(StreamDb->amcvid_dec)
+                            {
+                                g_object_get(G_OBJECT(StreamDb->amcvid_dec), "ts-offset", &tmp, NULL);
+                                CSIO_LOG(eLogLevel_info, "get amcvid_dec ts-offset: %lld\r\n", tmp);
+                            }
+                            else
+                            {
+                                CSIO_LOG(eLogLevel_info, "no amcvid_dec \r\n");
+                            }
+                        }
+                        else
+                        {
+                            fieldNum = (int) strtol(CmdPtr, &EndPtr, 10);
+                            CSIO_LOG(eLogLevel_debug, "fieldNum is: %d",fieldNum);
+
+                            if ( fieldNum < 5000)
+                            {
+                                for(i=0; i<MAX_ELEMENTS; i++)
+                                {
+                                    if(StreamDb->element_v[i])
+                                    {
+                                        gchar * n = gst_element_get_name(StreamDb->element_v[i]);
+                                        CSIO_LOG(eLogLevel_debug, "[%d]element name[%s]",i,n);
+                                        if(strstr(n,"amcvideodec"))
+                                        {
+                                            gint64 tsOffset = fieldNum * 1000000;
+                                            g_object_set(G_OBJECT(StreamDb->element_v[i]), "ts-offset", tsOffset, NULL);
+
+                                            CSIO_LOG(eLogLevel_debug, "[%d]set amcviddec_ts_offset:%lld",i,tsOffset);
+                                            break;
+                                        }
+                                    }
+                                    else
+                                    {
+                                        CSIO_LOG(eLogLevel_debug, "[%d]break",i);
+                                        break;
+                                    }
                                 }
                             }
                             else
                             {
-                                CSIO_LOG(eLogLevel_debug, "[%d]break",i);
-                                break;
+                                CSIO_LOG(eLogLevel_info, "Invalid gst_debug_level:%d\r\n",fieldNum);
                             }
                         }
                     }
-                    else
-                    {
-                        CSIO_LOG(eLogLevel_info, "Invalid gst_debug_level:%d\r\n",fieldNum);
-                    }
-                }
+                }                
             }
             else if (!strcmp(CmdPtr, "SET_AUDIOSINK_TS_OFFSET"))
             {
+                //the first parameter is stream id
                 CmdPtr = strtok(NULL, ", ");
                 if (CmdPtr == NULL)
-                {
-                    CSIO_LOG(eLogLevel_info, "Invalid Format, need a parameter\r\n");
+                { 
+                    CSIO_LOG(eLogLevel_info, "invalid parameter, need stream id\r\n");
                 }
                 else
                 {
-                    gint64 tmp = 0;
-                    fieldNum = (int) strtol(CmdPtr, &EndPtr, 10);
+                    int id = (int) strtol(CmdPtr, &EndPtr, 10);
+                    CSIO_LOG(eLogLevel_debug, "stream id is: %d",id);
 
-                    data->audiosink_ts_offset = fieldNum ;
-
-                    if(data->audio_sink)
+                    CREGSTREAM * StreamDb = GetStreamFromCustomData(CresDataDB, id);
+                    if(!StreamDb)
                     {
-                        gchar * n = gst_element_get_name(data->audio_sink);
-                        CSIO_LOG(eLogLevel_debug, "element name[%s]",n);
-                        tmp = data->audiosink_ts_offset * 1000000;
-                        g_object_set(G_OBJECT(data->audio_sink), "ts-offset",
-                                     tmp, NULL);
-                        CSIO_LOG(eLogLevel_debug, "set audiosink_ts_offset:%lldns",tmp);
+                        CSIO_LOG(eLogLevel_error, "Could not obtain stream pointer for stream %d", id);
+                        return;
+                    }
+                    else
+                    {
+                        CmdPtr = strtok(NULL, ", ");
+                        if (CmdPtr == NULL)
+                        {
+                            CSIO_LOG(eLogLevel_info, "Invalid Format, need a parameter\r\n");
+                        }
+                        else
+                        {
+                            gint64 tmp = 0;
+                            fieldNum = (int) strtol(CmdPtr, &EndPtr, 10);
+
+                            StreamDb->audiosink_ts_offset = fieldNum ;
+
+                            if(StreamDb->audio_sink)
+                            {
+                                gchar * n = gst_element_get_name(StreamDb->audio_sink);
+                                CSIO_LOG(eLogLevel_debug, "element name[%s]",n);
+                                tmp = StreamDb->audiosink_ts_offset * 1000000;
+                                g_object_set(G_OBJECT(StreamDb->audio_sink), "ts-offset",
+                                            tmp, NULL);
+                                CSIO_LOG(eLogLevel_debug, "set audiosink_ts_offset:%lldns",tmp);
+                            }
+                        }
                     }
                 }
             }
@@ -3589,7 +3638,12 @@ void csio_jni_InitPipeline(eProtocolId protoId, int iStreamId,GstRTSPLowerTrans 
 			break;
 		}
 		case ePROTOCOL_UDP_TS:
+                    CSIO_LOG(eLogLevel_error, "set latency from getStreamRx_BUFFER[%d]: %d\n",iStreamId,CSIOCnsIntf->getStreamRx_BUFFER(iStreamId));
+
 		    g_object_set(G_OBJECT(data->element_zero), "latency", CSIOCnsIntf->getStreamRx_BUFFER(iStreamId), NULL);
+                    
+                    //g_object_set(G_OBJECT(data->element_zero), "latency", 100, NULL);
+                    //CSIO_LOG(eLogLevel_error, "set latency to 100\n");
 
 			if (CSIOCnsIntf->getStreamTxRx_TRANSPORTMODE(iStreamId)==STREAM_TRANSPORT_MPEG2TS_RTP)
 				g_object_set(G_OBJECT(data->element_av[0]), "buffer-size", DEFAULT_UDP_BUFFER, NULL);
@@ -4084,6 +4138,11 @@ void csio_jni_initVideo(int iStreamId)
     }
     else
     {
+
+
+CSIO_LOG(eLogLevel_debug, "%s: amcvid_dec[0x%x],debug_blocking_audio[%d],audio_sink[0x%x] ",__FUNCTION__, data->amcvid_dec,debug_blocking_audio,data->audio_sink);
+CSIO_LOG(eLogLevel_debug, "%s: SESSIONINITIATION[0x%x],streamProtocolId[%d] ",__FUNCTION__, CSIOCnsIntf->getStreamTxRx_SESSIONINITIATION(iStreamId),data->streamProtocolId);
+
         //SET OFSSET
         // Bug 113246: For RTSP modes we need to set ts offset, for udp modes we should not or AV sync is off
         if( data->amcvid_dec && (!debug_blocking_audio) && data->audio_sink &&
@@ -4131,15 +4190,6 @@ void csio_jni_initVideo(int iStreamId)
             g_object_set(G_OBJECT(data->amcvid_dec), "push-delay-max", G_GUINT64_CONSTANT (0), NULL);
             CSIO_LOG(eLogLevel_debug, "Stream[%d] push-delay-max is disabled", iStreamId);
         }
-
-        //TODO: 7-15-2021, this is simply set decoder ts-offset for AM3k(Miracast only).
-        //      will change it to auto later.
-        if(data->wfd_start && data->amcvid_dec && (product_info()->hw_platform == eHardwarePlatform_Rockchip))
-        {            
-            gint64 tsOffset= -500 * 1000000;
-            g_object_set(data->amcvid_dec, "ts-offset", tsOffset, NULL);    
-                    
-        }//else
     }
 }
 
