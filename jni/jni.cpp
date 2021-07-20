@@ -4595,10 +4595,11 @@ void csio_jni_decoder_post_latency(int streamId,GstObject* obj)
 
     CSIO_LOG(eLogLevel_debug, "%s: streamId[%d], amcvid_dec[0x%x]\r\n", __FUNCTION__, streamId,StreamDb->amcvid_dec);
     
-    //Note: 7-20-2021, this is to set decoder/sudiosink ts-offset for AM3k(Miracast only).
+    //Note: 7-20-2021, this is to set decoder/sudiosink ts-offset for AM3k(Miracast only) and omap(Miracast only).
     if(StreamDb->wfd_start && 
-       (product_info()->hw_platform == eHardwarePlatform_Rockchip) &&
-       (StreamDb->amcvid_dec == (GstElement*)obj) )
+       ((product_info()->hw_platform == eHardwarePlatform_Rockchip) ||
+         product_info()->hw_platform == eHardwarePlatform_OMAP5   ) &&
+        (StreamDb->amcvid_dec == (GstElement*)obj) )
     {
         //get videodec latency
         guint64 latency = 0;
@@ -4616,7 +4617,7 @@ void csio_jni_decoder_post_latency(int streamId,GstObject* obj)
         CSIO_LOG(eLogLevel_info, "%s: tsOffsetVideo set to[%lld] based on wfd_source_latency[%d] and latency[%lld]\r\n", 
                  __FUNCTION__, tsOffsetVideo,StreamDb->wfd_source_latency,latency);
         
-        //for debugging, ckeking decoder frams size.
+        //for debugging only, ckecking decoder frams size.
         GList * frames = gst_video_decoder_get_frames((GstVideoDecoder*)StreamDb->amcvid_dec);
         CSIO_LOG(eLogLevel_debug, "%s: frame size is[%d]\r\n", __FUNCTION__, g_list_length(frames));
 
@@ -4631,11 +4632,6 @@ void csio_jni_decoder_post_latency(int streamId,GstObject* obj)
                 tsOffsetAudio = -latency;
 
             StreamDb->audiosink_ts_offset = (tsOffsetAudio/1000000);
-            
-            // Bug 107700: AV goes haywire when packets are lost when openslessink is set to GST_AUDIO_BASE_SINK_SLAVE_SKEW, resample fixes the problem
-            // Bug 110954: Setting this to 0 caused audio to get messed up, original issue was caused by encoder timestamp problem, leaving mode to GST_AUDIO_BASE_SINK_SLAVE_SKEW
-            //		g_object_set(G_OBJECT(data->audio_sink), "slave-method", 0, NULL); // 0 = GST_AUDIO_BASE_SINK_SLAVE_RESAMPLE
-
             g_object_set(G_OBJECT(StreamDb->audio_sink), "ts-offset", tsOffsetAudio, NULL);
             CSIO_LOG(eLogLevel_debug, "%s: set audiosink_ts_offset:%lld[%d]",__FUNCTION__, tsOffsetAudio,StreamDb->audiosink_ts_offset);
         }
@@ -5474,7 +5470,8 @@ JNIEXPORT void JNICALL Java_com_crestron_txrxservice_GstreamIn_nativeWfdStart(JN
 
     //TODO: 7-20-2021, audio offset should be set when decoder issue
     //      message_latency in csio_jni_decoder_post_latency().
-    if(product_info()->hw_platform == eHardwarePlatform_Rockchip)
+    if(product_info()->hw_platform == eHardwarePlatform_Rockchip ||
+       product_info()->hw_platform == eHardwarePlatform_OMAP5)
     { 
         data->audiosink_ts_offset = 0;
     }
