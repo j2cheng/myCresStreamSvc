@@ -172,6 +172,7 @@ void init_custom_data(CustomData * cdata)
         data->ms_mice_pin[0] = 0;
         data->wfd_start = 0;
         data->wfd_is_mice_session = 0;
+        data->wfd_source_latency = 0;
         data->intf_name[0] = 0;
         data->loc_ip_addr[0] = 0;
         data->sourceIP_addr[0] = 0;

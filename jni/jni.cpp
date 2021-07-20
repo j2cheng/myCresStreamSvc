@@ -71,6 +71,8 @@ static bool loopShouldLog(int * errorCountPtr, int * logLevelPtr);
 static unsigned int _hash(unsigned int x);
 static unsigned int _unhash(unsigned int x);
 char *csio_jni_hashPin(char *pin);
+void csio_jni_decoder_post_latency(int stream,GstObject* obj);
+
 static Mutex gGstStopLock;//used to prevent multiple threads accessing pipeline while stop gstreamer.
 extern unsigned short debugPrintSeqNum;
 ///////////////////////////////////////////////////////////////////////////////
@@ -1770,6 +1772,52 @@ JNIEXPORT void JNICALL Java_com_crestron_txrxservice_GstreamIn_nativeSetFieldDeb
                                 CSIO_LOG(eLogLevel_info, "Invalid gst_debug_level:%d\r\n",fieldNum);
                             }
                         }
+                    }
+                }                
+            }
+            else if (!strcmp(CmdPtr, "GET_AMCVIDDEC_LATENCY"))
+            {
+                //the first parameter is stream id
+                CmdPtr = strtok(NULL, ", ");
+                if (CmdPtr == NULL)
+                { 
+                    CSIO_LOG(eLogLevel_info, "invalid parameter, need stream id\r\n");
+                }
+                else
+                {
+                    int id = (int) strtol(CmdPtr, &EndPtr, 10);
+                    CSIO_LOG(eLogLevel_debug, "stream id is: %d",id);
+
+                    CREGSTREAM * StreamDb = GetStreamFromCustomData(CresDataDB, id);
+                    if(!StreamDb)
+                    {
+                        CSIO_LOG(eLogLevel_error, "Could not obtain stream pointer for stream %d", id);
+                        return;
+                    }
+                    else
+                    {
+                        CmdPtr = strtok(NULL, ", ");
+                        if (CmdPtr == NULL)
+                        {
+                            gint64  tmp = 0;
+
+                            if(StreamDb->amcvid_dec)
+                            {
+                                g_object_get(G_OBJECT(StreamDb->amcvid_dec), "amcdec-latency", &tmp, NULL);
+                                CSIO_LOG(eLogLevel_info, "get amcvid_dec latency: %lld,StreamDb->amcvid_dec[0x%x]\r\n", tmp,StreamDb->amcvid_dec);
+
+                                GList * frames = gst_video_decoder_get_frames((GstVideoDecoder*)StreamDb->amcvid_dec);
+                                CSIO_LOG(eLogLevel_info, "%s: frame size is[%d]\r\n", __FUNCTION__, g_list_length(frames));
+
+                                GstVideoCodecState *output_state = gst_video_decoder_get_output_state ((GstVideoDecoder*)StreamDb->amcvid_dec);
+                                CSIO_LOG(eLogLevel_info, "%s: output_state info.fps_n is[%d]\r\n", __FUNCTION__, output_state->info.fps_n);
+                            }
+                            else
+                            {
+                                CSIO_LOG(eLogLevel_info, "no amcvid_dec \r\n");
+                            }
+                        }//else
+                        
                     }
                 }                
             }
@@ -4180,15 +4228,6 @@ void csio_jni_initVideo(int iStreamId)
             g_object_set(G_OBJECT(data->amcvid_dec), "push-delay-max", G_GUINT64_CONSTANT (0), NULL);
             CSIO_LOG(eLogLevel_debug, "Stream[%d] push-delay-max is disabled", iStreamId);
         }
-
-        //TODO: 7-15-2021, this is simply set decoder ts-offset for AM3k(Miracast only).
-        //      will change it to auto later.
-        if(data->wfd_start && data->amcvid_dec && (product_info()->hw_platform == eHardwarePlatform_Rockchip))
-        {            
-            gint64 tsOffset= -500 * 1000000;
-            g_object_set(data->amcvid_dec, "ts-offset", tsOffset, NULL);    
-                    
-        }//else
     }
 }
 
@@ -4526,6 +4565,82 @@ void csio_jni_printFieldDebugInfo()
                                 (IsSpecialFieldDebugIndexActive(i+1) ? "ON" : "OFF"));
         }
     }
+}
+
+/********************************************************************
+ * \author      John Cheng
+ * \brief       called drom csio_GstMsgHandler(), when videodecoder
+ *              issued GST_MESSAGE_LATENCY.
+ *              The goal is to keep over all latency at 200ms.
+ *              So here, we can adjust ts-offset to reduce it.
+ *              Note: audio is limited to -300ms, and video
+ *                    is limited to -500ms. 
+ * \Returns:
+ * \detail
+ * \date        7/20/21
+ *
+********************************************************************/
+void csio_jni_decoder_post_latency(int streamId,GstObject* obj)
+{
+#define MAX_VIDEO_TS_OFFSET (500*1000000)
+#define MAX_AUDIO_TS_OFFSET (300*1000000)
+
+    CREGSTREAM * StreamDb = GetStreamFromCustomData(CresDataDB, 0);
+
+    if(!StreamDb)
+    {
+        CSIO_LOG(eLogLevel_error, "%s: Could not obtain stream pointer for stream %d",__FUNCTION__, streamId);
+        return;
+    }
+
+    CSIO_LOG(eLogLevel_debug, "%s: streamId[%d], amcvid_dec[0x%x]\r\n", __FUNCTION__, streamId,StreamDb->amcvid_dec);
+    
+    //Note: 7-20-2021, this is to set decoder/sudiosink ts-offset for AM3k(Miracast only).
+    if(StreamDb->wfd_start && 
+       (product_info()->hw_platform == eHardwarePlatform_Rockchip) &&
+       (StreamDb->amcvid_dec == (GstElement*)obj) )
+    {
+        //get videodec latency
+        guint64 latency = 0;
+        g_object_get(G_OBJECT(StreamDb->amcvid_dec), "amcdec-latency", &latency, NULL);
+        CSIO_LOG(eLogLevel_info, "%s: amcvid_dec latency: %lld\r\n", __FUNCTION__, latency);
+
+        //set video ts-offset
+        gint64 tsOffsetVideo = 0;
+        if(latency > MAX_VIDEO_TS_OFFSET)
+            tsOffsetVideo = -MAX_VIDEO_TS_OFFSET;
+        else
+            tsOffsetVideo = -latency;
+
+        g_object_set(StreamDb->amcvid_dec, "ts-offset", tsOffsetVideo, NULL);  
+        CSIO_LOG(eLogLevel_info, "%s: tsOffsetVideo set to[%lld] based on wfd_source_latency[%d] and latency[%lld]\r\n", 
+                 __FUNCTION__, tsOffsetVideo,StreamDb->wfd_source_latency,latency);
+        
+        //for debugging, ckeking decoder frams size.
+        GList * frames = gst_video_decoder_get_frames((GstVideoDecoder*)StreamDb->amcvid_dec);
+        CSIO_LOG(eLogLevel_debug, "%s: frame size is[%d]\r\n", __FUNCTION__, g_list_length(frames));
+
+        //set audio ts-offset
+        if( StreamDb->audio_sink)
+        {
+            gint64 tsOffsetAudio = 0;
+            //we want to keep audio/video the same ts-offset
+            if(latency > MAX_AUDIO_TS_OFFSET)
+                tsOffsetAudio = -MAX_AUDIO_TS_OFFSET;
+            else
+                tsOffsetAudio = -latency;
+
+            StreamDb->audiosink_ts_offset = (tsOffsetAudio/1000000);
+            
+            // Bug 107700: AV goes haywire when packets are lost when openslessink is set to GST_AUDIO_BASE_SINK_SLAVE_SKEW, resample fixes the problem
+            // Bug 110954: Setting this to 0 caused audio to get messed up, original issue was caused by encoder timestamp problem, leaving mode to GST_AUDIO_BASE_SINK_SLAVE_SKEW
+            //		g_object_set(G_OBJECT(data->audio_sink), "slave-method", 0, NULL); // 0 = GST_AUDIO_BASE_SINK_SLAVE_RESAMPLE
+
+            g_object_set(G_OBJECT(StreamDb->audio_sink), "ts-offset", tsOffsetAudio, NULL);
+            CSIO_LOG(eLogLevel_debug, "%s: set audiosink_ts_offset:%lld[%d]",__FUNCTION__, tsOffsetAudio,StreamDb->audiosink_ts_offset);
+        }
+
+    }//else
 }
 
 /***************************** rtsp_server for video streaming out **************************************/
@@ -5357,8 +5472,17 @@ JNIEXPORT void JNICALL Java_com_crestron_txrxservice_GstreamIn_nativeWfdStart(JN
     else
         data->wfd_is_mice_session = false;
 
-    data->audiosink_ts_offset = -300;
-
+    //TODO: 7-20-2021, audio offset should be set when decoder issue
+    //      message_latency in csio_jni_decoder_post_latency().
+    if(product_info()->hw_platform == eHardwarePlatform_Rockchip)
+    { 
+        data->audiosink_ts_offset = 0;
+    }
+    else
+    {
+        data->audiosink_ts_offset = -300;
+    }
+    
     int ts_port = c_default_client_ts_port + 2*windowId;
     WfdSinkProjStart(windowId,url_cstring,rtsp_port,ts_port,data->wfd_is_mice_session);
 
@@ -5401,6 +5525,7 @@ JNIEXPORT void JNICALL Java_com_crestron_txrxservice_GstreamIn_nativeWfdStop(JNI
             data->wfd_is_mice_session = 0;
             data->ssrc = 0;
             data->audiosink_ts_offset = 0;
+            data->wfd_source_latency = 0;
 
 			data->rtcp_dest_ip_addr[0] = '\0';
 			data->rtcp_dest_port = -1;
@@ -5818,6 +5943,8 @@ void Wfd_set_latency_by_the_source (int id, int latency)
     CSIO_LOG(eLogLevel_verbose, "Wfd_set_latency_by_the_source,get current value from DB[%lld], set new value[%d]", userSetting,locLatency);
 
     //Note: if the setting comes too early(we don't have pipeline yet), the value will be set into DB, and used later.
+    
+    data->wfd_source_latency = locLatency;
 
     //set rtpbin
     if(data->element_zero)

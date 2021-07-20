@@ -180,6 +180,7 @@ typedef struct _CREGSTREAM
     char ms_mice_pin[32];
     int  wfd_start;
     bool wfd_is_mice_session;
+    int  wfd_source_latency;
 
     char intf_name[32];
     char loc_ip_addr[32];
