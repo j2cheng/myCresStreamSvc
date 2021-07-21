@@ -565,10 +565,21 @@ static void set_queue_leaky(GstElement *queue, char *queue_id)
 void csio_jni_change_queues_to_leaky(int id)
 {
     CREGSTREAM * data = GetStreamFromCustomData(CresDataDB, id);
-    set_queue_leaky(data->element_video_front_end_queue, "video-front-end-queue");
-    set_queue_leaky(data->element_video_decoder_queue, "video-decoder-queue");
-    set_queue_leaky(data->element_audio_front_end_queue, "audio-front-end-queue");
-    set_queue_leaky(data->element_audio_decoder_queue, "audio-decoder-queue");
+
+    //Note: 7-21-2021, do not use leaky on queue for miracast(omap and am3k)
+    if(data && data->wfd_start && 
+       ((product_info()->hw_platform == eHardwarePlatform_Rockchip) ||
+         product_info()->hw_platform == eHardwarePlatform_OMAP5))
+    {
+        CSIO_LOG(eLogLevel_info,  "keep default leaky property for queue, source- %ld", id);
+    }
+    else
+    {
+        set_queue_leaky(data->element_video_front_end_queue, "video-front-end-queue");
+        set_queue_leaky(data->element_video_decoder_queue, "video-decoder-queue");
+        set_queue_leaky(data->element_audio_front_end_queue, "audio-front-end-queue");
+        set_queue_leaky(data->element_audio_decoder_queue, "audio-decoder-queue");
+    }
 }
 
 void csio_jni_setAutoBitrate(int id)

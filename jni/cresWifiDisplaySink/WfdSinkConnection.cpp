@@ -265,8 +265,7 @@ int  WfdRTSPSinkClient::readSocket()
             }
             else
             {
-                CSIO_LOG(m_debugLevel, "WfdRTSPSinkClient: socket[%d] unknown error",m_sock);
-
+                CSIO_LOG(m_debugLevel, "WfdRTSPSinkClient: socket[%d] unknown: %s (%d)",m_sock,strerror(errno), errno);
                 return -1;
             }
 

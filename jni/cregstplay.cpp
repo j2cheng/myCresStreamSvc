@@ -1244,6 +1244,16 @@ static void setQueueProperties(CREGSTREAM *data, GstElement *queue, guint64 maxT
 {
     CSIO_LOG(eLogLevel_debug, "setQueueProperties mode[%d],maxTime[%lld],maxBytes[%d]", data->httpMode,maxTime,maxBytes);
 
+    //Note: 7-21-2021, use all default settings on queue for miracast(omap and am3k)
+    if(data && data->wfd_start && 
+       ((product_info()->hw_platform == eHardwarePlatform_Rockchip) ||
+         product_info()->hw_platform == eHardwarePlatform_OMAP5))
+    {
+        CSIO_LOG(eLogLevel_info,  "keep default settings for queue");
+        return;
+    }
+
+
 	switch (data->httpMode)
 	{
 	case eHttpMode_UNSPECIFIED:
