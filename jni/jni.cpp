@@ -3226,134 +3226,139 @@ int csio_jni_CreatePipeline(GstElement **pipeline, GstElement **source, eProtoco
     }
     data->streamProtocolId = protoId;
 
-	switch( protoId )
-	{
-		case ePROTOCOL_RTSP_TCP:
-		case ePROTOCOL_RTSP_UDP:
-	    case ePROTOCOL_DEFAULT_RTSP_TCP:
-	    case ePROTOCOL_RTSP_UDP_TS:
-	    case ePROTOCOL_RTSP_TS:
-	    {
-	    	data->element_zero = gst_element_factory_make("rtspsrc", NULL);
-			if( !data->element_zero )
-			{
-				CSIO_LOG(eLogLevel_error, "ERROR: Cannot create rtspsrc element [streamId=%d]\n", iStreamId);
-				return CSIO_CANNOT_CREATE_ELEMENTS;
-			}
-	    	gst_bin_add_many(GST_BIN(data->pipeline), data->element_zero, NULL);
-			*pipeline = data->pipeline;
-			*source   = data->element_zero;
-			break;
+    switch( protoId )
+    {
+        case ePROTOCOL_RTSP_TCP:
+        case ePROTOCOL_RTSP_UDP:
+        case ePROTOCOL_DEFAULT_RTSP_TCP:
+        case ePROTOCOL_RTSP_UDP_TS:
+        case ePROTOCOL_RTSP_TS:
+        {
+            data->element_zero = gst_element_factory_make("rtspsrc", NULL);
+            if( !data->element_zero )
+            {
+                CSIO_LOG(eLogLevel_error, "ERROR: Cannot create rtspsrc element [streamId=%d]\n", iStreamId);
+                return CSIO_CANNOT_CREATE_ELEMENTS;
+            }
+            gst_bin_add_many(GST_BIN(data->pipeline), data->element_zero, NULL);
+            *pipeline = data->pipeline;
+            *source   = data->element_zero;
+            break;
 	    }
-	    case ePROTOCOL_UDP_TS:
-	    {
-		    if(CSIOCnsIntf->getStreamTxRx_TRANSPORTMODE(iStreamId)==STREAM_TRANSPORT_MPEG2TS_RTP)
-		    {
-		        data->element_zero = gst_element_factory_make("rtpbin", NULL);
-			    gst_bin_add(GST_BIN(data->pipeline), data->element_zero);
+        case ePROTOCOL_UDP_TS:
+        {
+            if(CSIOCnsIntf->getStreamTxRx_TRANSPORTMODE(iStreamId)==STREAM_TRANSPORT_MPEG2TS_RTP)
+            {
+                data->element_zero = gst_element_factory_make("rtpbin", NULL);
+                gst_bin_add(GST_BIN(data->pipeline), data->element_zero);
 
-			    data->udp_port = CSIOCnsIntf->getStreamTxRx_TSPORT(iStreamId);
-			    data->element_av[0] = gst_element_factory_make("udpsrc", NULL);
-			    insert_udpsrc_probe(data,data->element_av[0],"src");
+                data->udp_port = CSIOCnsIntf->getStreamTxRx_TSPORT(iStreamId);
+                data->element_av[0] = gst_element_factory_make("udpsrc", NULL);
+                
+                //for miracast, we need to bind to ip address from index 0
+                CREGSTREAM * data_for_address = GetStreamFromCustomData(CresDataDB, iStreamId);
+                CSIO_LOG(eLogLevel_info, "%s: [streamId=%d] [data_for_address=%x]\n", __FUNCTION__, iStreamId, data_for_address);
+                if(data->wfd_start && data->wfd_is_mice_session && data_for_address && data_for_address->loc_ip_addr[0])
+                {
+                    //g_object_set(G_OBJECT(data->element_av[0]), "address", data_for_address->loc_ip_addr, NULL);
+                    if (data_for_address && data_for_address->loc_ip_addr[0])
+                    CSIO_LOG(eLogLevel_info, "%s: [streamId=%d] [loc_ip_addr=%s]\n", __FUNCTION__, iStreamId, data_for_address->loc_ip_addr);
+                    g_object_set(G_OBJECT(data->element_av[0]), "address", data_for_address->loc_ip_addr, NULL);
+                }
 
-			    //for miracast, we need to bind to ip address from index 0
-			    CREGSTREAM * data_for_address = GetStreamFromCustomData(CresDataDB, iStreamId);
-				CSIO_LOG(eLogLevel_info, "%s: [streamId=%d] [data_for_address=%x]\n", __FUNCTION__, iStreamId, data_for_address);
-			    if(data->wfd_start && data->wfd_is_mice_session && data_for_address && data_for_address->loc_ip_addr[0])
-			    {
-			        //g_object_set(G_OBJECT(data->element_av[0]), "address", data_for_address->loc_ip_addr, NULL);
-			    	if (data_for_address && data_for_address->loc_ip_addr[0])
-			    		CSIO_LOG(eLogLevel_info, "%s: [streamId=%d] [loc_ip_addr=%s]\n", __FUNCTION__, iStreamId, data_for_address->loc_ip_addr);
-			        g_object_set(G_OBJECT(data->element_av[0]), "address", data_for_address->loc_ip_addr, NULL);
-			    }
+                //create the second udpsrc for rtcp
+                data->element_av[1] = gst_element_factory_make("udpsrc", NULL);
+                g_object_set(G_OBJECT(data->element_av[1]), "port", (data->udp_port + 1), NULL);
+                if(data->wfd_start && data->wfd_is_mice_session && data_for_address && data_for_address->loc_ip_addr[0])
+                {
+                    g_object_set(G_OBJECT(data->element_av[1]), "address", data_for_address->loc_ip_addr, NULL);
+                }
 
-			    //create the second udpsrc for rtcp
-             data->element_av[1] = gst_element_factory_make("udpsrc", NULL);
-             g_object_set(G_OBJECT(data->element_av[1]), "port", (data->udp_port + 1), NULL);
-             if(data->wfd_start && data->wfd_is_mice_session && data_for_address && data_for_address->loc_ip_addr[0])
-             {
-                 g_object_set(G_OBJECT(data->element_av[1]), "address", data_for_address->loc_ip_addr, NULL);
-             }
+                GstCaps *RtcpCaps = gst_caps_new_simple("application/x-rtcp",NULL);
+                if(RtcpCaps)
+                {
+                    g_object_set(G_OBJECT(data->element_av[1]), "caps", RtcpCaps, NULL);
+                    gst_caps_unref( RtcpCaps );
+                }
+                else
+                {
+                    CSIO_LOG(eLogLevel_error, "ERROR: Cannot create RtcpCaps\n");
+                }
 
-             GstCaps *RtcpCaps = gst_caps_new_simple("application/x-rtcp",NULL);
-             if(RtcpCaps)
-             {
-                 g_object_set(G_OBJECT(data->element_av[1]), "caps", RtcpCaps, NULL);
-                 gst_caps_unref( RtcpCaps );
-             }
-             else
-             {
-                 CSIO_LOG(eLogLevel_error, "ERROR: Cannot create RtcpCaps\n");
-             }
+                gst_bin_add(GST_BIN(data->pipeline), data->element_av[1]);
+                int linkRtcpRet = gst_element_link(data->element_av[1], data->element_zero);
+                if(linkRtcpRet==0)
+                {
+                    CSIO_LOG(eLogLevel_error,  "ERROR:  Cannot link filter to source elements.\n" );
+                    iStatus = CSIO_CANNOT_LINK_ELEMENTS;
+                }
+                else
+                {
+                    CSIO_LOG(eLogLevel_debug,  "link filter to source elements.\n" );
+                }
 
-             gst_bin_add(GST_BIN(data->pipeline), data->element_av[1]);
-             int linkRtcpRet = gst_element_link(data->element_av[1], data->element_zero);
-             if(linkRtcpRet==0)
-             {
-                 CSIO_LOG(eLogLevel_error,  "ERROR:  Cannot link filter to source elements.\n" );
-                 iStatus = CSIO_CANNOT_LINK_ELEMENTS;
-             }
-             else
-             {
-                 CSIO_LOG(eLogLevel_debug,  "link filter to source elements.\n" );
-             }
+                // ***
+                int ret;
+                int ret1 = 0;
+                int doDTLS = 0;
 
-             // ***
-             int ret;
-             int ret1 = 0;
-             int doDTLS = 0;
+                // it is safe - we do not actually use the sssl
+                void * sssl = sssl_getDTLSWithStreamID(iStreamId,1);
+                if(sssl != NULL)
+                {
+                    CSIO_LOG(eLogLevel_debug,"mira: {%s} - DTLS context detected",__FUNCTION__);
+                    doDTLS = 1;
+                }
+                else
+                {
+                    CSIO_LOG(eLogLevel_debug,"mira: {%s} - DTLS context NOT detected",__FUNCTION__);
+                }
 
-             // it is safe - we do not actually use the sssl
-             void * sssl = sssl_getDTLSWithStreamID(iStreamId,1);
-             if(sssl != NULL)
-             {
-                 CSIO_LOG(eLogLevel_debug,"mira: {%s} - DTLS context detected",__FUNCTION__);
-                 doDTLS = 1;
-             }
-             else
-             {
-                 CSIO_LOG(eLogLevel_debug,"mira: {%s} - DTLS context NOT detected",__FUNCTION__);
-             }
+                if(doDTLS)
+                {
+                    data->element_appsrc = gst_element_factory_make("appsrc", NULL);
+                    gst_bin_add(GST_BIN(data->pipeline), data->element_appsrc);
 
-             if(doDTLS)
-			    {
-                data->element_appsrc = gst_element_factory_make("appsrc", NULL);
-                gst_bin_add(GST_BIN(data->pipeline), data->element_appsrc);
+                    // do I need this ? ...
+                    g_object_set(G_OBJECT(data->element_appsrc), "caps", data->caps_v_ts, NULL);
 
-                // do I need this ? ...
-                g_object_set(G_OBJECT(data->element_appsrc), "caps", data->caps_v_ts, NULL);
-			    }
-             else
-             {
-                g_object_set(G_OBJECT(data->element_av[0]), "caps", data->caps_v_ts, NULL);
-			       g_object_set(G_OBJECT(data->element_av[0]), "port", data->udp_port, NULL);
-			       gst_bin_add(GST_BIN(data->pipeline), data->element_av[0]);
-             }
+                    insert_udpsrc_probe(data,data->element_appsrc,"src");
+                    CSIO_LOG(eLogLevel_debug,"mira: {%s} - inserted appsrc probe",__FUNCTION__);
+                }
+                else
+                {
+                    g_object_set(G_OBJECT(data->element_av[0]), "caps", data->caps_v_ts, NULL);
+                    g_object_set(G_OBJECT(data->element_av[0]), "port", data->udp_port, NULL);
+                    gst_bin_add(GST_BIN(data->pipeline), data->element_av[0]);
 
-             if(doDTLS)
-             {
-			       ret = gst_element_link(data->element_appsrc, data->element_zero);
+                    insert_udpsrc_probe(data,data->element_av[0],"src");
+                    CSIO_LOG(eLogLevel_debug,"mira: {%s} - inserted udpsrc probe",__FUNCTION__);
+                }
 
-                CSIO_LOG(eLogLevel_debug,"mira: {%s} - linked DTLS GStreamer pipeline",__FUNCTION__);
+                if(doDTLS)
+                {
+                    ret = gst_element_link(data->element_appsrc, data->element_zero);
 
-                CSIO_LOG(eLogLevel_debug,"mira: {%s} - ***** starting RTP thread *****",__FUNCTION__);
+                    CSIO_LOG(eLogLevel_debug,"mira: {%s} - linked DTLS GStreamer pipeline",__FUNCTION__);
 
-                ret1 = csio_jni_StartRTPMediaStreamThread(iStreamId,data->element_appsrc,
-                     (unsigned int)data->udp_port);
+                    CSIO_LOG(eLogLevel_debug,"mira: {%s} - ***** starting RTP thread *****",__FUNCTION__);
 
-                CSIO_LOG(eLogLevel_debug,"mira: {%s} - ===== RTP thread started (udp port %d) =====",__FUNCTION__, data->udp_port + 2*iStreamId);
-             }
-             else ret = gst_element_link(data->element_av[0], data->element_zero);
+                    ret1 = csio_jni_StartRTPMediaStreamThread(iStreamId,data->element_appsrc,
+                        (unsigned int)data->udp_port);
 
-			    if((ret == 0) || (ret1 != 0))
-			    {
-			        CSIO_LOG(eLogLevel_error,"mira: Cannot link pipeline elements.\n" );
-				     iStatus = CSIO_CANNOT_LINK_ELEMENTS;
-			    }
-			    else
-			        CSIO_LOG(eLogLevel_debug,"mira: linked pipeline elements.\n" );
+                    CSIO_LOG(eLogLevel_debug,"mira: {%s} - ===== RTP thread started (udp port %d) =====",__FUNCTION__, data->udp_port + 2*iStreamId);
+                }
+                else ret = gst_element_link(data->element_av[0], data->element_zero);
 
-             // ***
+                if((ret == 0) || (ret1 != 0))
+                {
+                    CSIO_LOG(eLogLevel_error,"mira: Cannot link pipeline elements.\n" );
+                    iStatus = CSIO_CANNOT_LINK_ELEMENTS;
+                }
+                else
+                    CSIO_LOG(eLogLevel_debug,"mira: linked pipeline elements.\n" );
+
+                // ***
 
 
 				// Set up udpsink for RTCP
