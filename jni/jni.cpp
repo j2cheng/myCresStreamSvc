@@ -2997,6 +2997,7 @@ static bool loopShouldLog(int * errorCountPtr, int * logLevelPtr)
    return(doPrint);
 }
 
+uint64_t savedSequeceNumber[4] = {0};
 
 void * rtpMediaStreamThread(void * threadData)
 {
@@ -3049,6 +3050,9 @@ void * rtpMediaStreamThread(void * threadData)
 
 	nn = -1;
 	timeoutErrorCount = typeErrorCount = decryptErrorCount = 0;
+
+    //clear it first
+    savedSequeceNumber[rtpMedStrContext.streamID] = 0;
 
    while(1==1)
    {
@@ -3121,6 +3125,19 @@ void * rtpMediaStreamThread(void * threadData)
          // we are asked to exit
          CSIO_LOG(eLogLevel_debug,"mira: RTP loop: sssl_getDTLSAppThInitializedWithStreamID() returned %d",retv);
          break;
+      }
+
+      //try to get sequence off the network
+      {
+        int highS = ((dtlsPacketBuff[5]<<8)   |  (dtlsPacketBuff[6]) );
+        int lowS  = ((dtlsPacketBuff[7]<<24)  |  (dtlsPacketBuff[8]<<16)  | (dtlsPacketBuff[9]<<8)   | dtlsPacketBuff[10] );
+        uint64_t sequence = ( (((uint64_t)highS)<<32)  | ((uint64_t)lowS) );
+        //CSIO_LOG(eLogLevel_debug,"mira: RTP loop: sequence number[0x%llx] %lld",sequence,(sequence-savedSequeceNumber[rtpMedStrContext.streamID]));
+        
+        if(sequence - savedSequeceNumber[rtpMedStrContext.streamID] != 1)
+            CSIO_LOG(eLogLevel_debug,"mira: RTP loop: sequence number[0x%llx], diff is: %lld",sequence,(sequence-savedSequeceNumber[rtpMedStrContext.streamID]));
+
+        savedSequeceNumber[rtpMedStrContext.streamID] = sequence;
       }
 
       rtpDataSize = sssl_decryptDTLSLocal(sssl,(void *)dtlsPacketBuff,dtlsDataSize,(void *)rtpPacketBuff,
