@@ -49,10 +49,14 @@
 #include "cresNextCommonShare.h"
 #include "cstreamer.h"
 
+extern void WfdSinkProjSendIdrReq(int id);
+
 #ifdef SupportsHDCPEncryption
 	#include "HDCP2xEncryptAPI.h"
 #endif
 ///////////////////////////////////////////////////////////////////////////////
+unsigned short savedSeqNum[4] = {0};
+unsigned short debugPrintSeqNum[4] = {0};
 
 extern int g_using_glimagsink;
 
@@ -338,8 +342,7 @@ static void pad_added_callback2 (GstElement *src, GstPad *new_pad, CREGSTREAM *d
 	gst_object_unref(sink_pad);
     gst_caps_unref(new_pad_caps);
 }
-unsigned short savedSeqNum[4] = {0};
-unsigned short debugPrintSeqNum = 0;
+
 GstPadProbeReturn udpsrcProbe(GstPad *pad, GstPadProbeInfo *info, gpointer user_data)
 {
     CREGSTREAM * data = (CREGSTREAM *)user_data;
@@ -348,7 +351,7 @@ GstPadProbeReturn udpsrcProbe(GstPad *pad, GstPadProbeInfo *info, gpointer user_
     if( user_data == NULL )
         return GST_PAD_PROBE_OK;
 
-    if(debugPrintSeqNum)
+    if(debugPrintSeqNum[data->streamId])
     {
         GstBuffer * lpsBuffer = GST_PAD_PROBE_INFO_BUFFER(info);
         if(lpsBuffer)
@@ -379,6 +382,8 @@ GstPadProbeReturn udpsrcProbe(GstPad *pad, GstPadProbeInfo *info, gpointer user_
                          {
                              CSIO_LOG(eLogLevel_debug,"Stream[%d]: Error expect sequence number: %d, actual number: %d, gap is [%d]\n",
                                  data->streamId, savedSeqNum[data->streamId]+1, lnNewSeqNum, (lnNewSeqNum - savedSeqNum[data->streamId]));
+
+                            WfdSinkProjSendIdrReq(data->streamId);
                          }
 
                          savedSeqNum[data->streamId] = lnNewSeqNum;

@@ -74,7 +74,7 @@ char *csio_jni_hashPin(char *pin);
 void csio_jni_decoder_post_latency(int stream,GstObject* obj);
 
 static Mutex gGstStopLock;//used to prevent multiple threads accessing pipeline while stop gstreamer.
-extern unsigned short debugPrintSeqNum;
+extern unsigned short debugPrintSeqNum[];
 ///////////////////////////////////////////////////////////////////////////////
 
 /*
@@ -2171,14 +2171,39 @@ JNIEXPORT void JNICALL Java_com_crestron_txrxservice_GstreamIn_nativeSetFieldDeb
 			}
             else if (!strcmp(CmdPtr, "PRINT_RTP_SEQUENCE_NUMBER"))
             {
+                //the first parameter is stream id
                 CmdPtr = strtok(NULL, ", ");
                 if (CmdPtr == NULL)
-                {
-                    CSIO_LOG(eLogLevel_info, "PRINT_RTP_SEQUENCE_NUMBER is: %d\r\n",debugPrintSeqNum);
+                { 
+                    CSIO_LOG(eLogLevel_info, "invalid parameter, need stream id\r\n");
                 }
                 else
                 {
-                    debugPrintSeqNum = (int) strtol(CmdPtr, &EndPtr, 10);
+                    int id = (int) strtol(CmdPtr, &EndPtr, 10);
+                    CSIO_LOG(eLogLevel_debug, "stream id is: %d",id);
+               
+                    if(id >= 0 && id < 3)//TODO: may need to use MAX_STREAMS
+                    {
+                        CREGSTREAM * StreamDb = GetStreamFromCustomData(CresDataDB, id);
+                        if(!StreamDb)
+                        {
+                            CSIO_LOG(eLogLevel_error, "Could not obtain stream pointer for stream %d", id);
+                            return;
+                        }
+                        else
+                        {
+                            CmdPtr = strtok(NULL, ", ");
+                            if (CmdPtr == NULL)
+                            {
+                                CSIO_LOG(eLogLevel_info, "PRINT_RTP_SEQUENCE_NUMBER is: %d\r\n",debugPrintSeqNum[id]);
+                            }
+                            else
+                            {                         
+                                debugPrintSeqNum[id] = (int) strtol(CmdPtr, &EndPtr, 10);
+                                CSIO_LOG(eLogLevel_info, "PRINT_RTP_SEQUENCE_NUMBER id[%d] is set to: %d\r\n",id, debugPrintSeqNum[id]);
+                            }
+                        }
+                    }//else
                 }
             }
             else if (!strcmp(CmdPtr, "V4L2CAPS"))
@@ -4589,7 +4614,7 @@ void csio_jni_printFieldDebugInfo()
         else if((i+1) == FIELD_DEBUG_PRINT_RTP_SEQUENCE_NUMBER)
         {
             CSIO_LOG(eLogLevel_debug, "FieldDebugInfo   %s  -- %d", \
-                                       fieldDebugNames[i], debugPrintSeqNum);
+                                       fieldDebugNames[i], debugPrintSeqNum[0],debugPrintSeqNum[1],debugPrintSeqNum[2],debugPrintSeqNum[3]);
         }
         else
         {
@@ -5507,6 +5532,10 @@ JNIEXPORT void JNICALL Java_com_crestron_txrxservice_GstreamIn_nativeWfdStart(JN
        product_info()->hw_platform == eHardwarePlatform_OMAP5)
     { 
         data->audiosink_ts_offset = 0;
+
+        //set this flag for miracast on AM3k to monitoring packet drop.
+        if(product_info()->hw_platform == eHardwarePlatform_Rockchip )
+            debugPrintSeqNum[windowId] = 1;
     }
     else
     {

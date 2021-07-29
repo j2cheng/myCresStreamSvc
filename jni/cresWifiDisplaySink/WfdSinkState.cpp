@@ -1719,17 +1719,19 @@ int wfdSinkStMachineClass::monitorKeepAliveState(csioEventQueueStruct* pEventQ)
 
             if(pRTSPSinkClient)
             {
-                std::string m13rqst = "SET_PARAMETER rtsp://localhost/wfd1.0 RTSP/1.0\r\nContent-Length: 20\r\nContent-Type: text/parameters\r\nCSeq: 4\r\n\r\nwfd-idr-request: 1\r\n";
-
-                pRTSPSinkClient->sendDataOut((char*)m13rqst.c_str(),m13rqst.size());
-
-                /*
-                 *  int ret = composeRTSPRequest(m_rtspParserIntfSession,"SET_PARAMETER",parserComposeRequestCallback,(void*)this);
-                    if(ret == 0)
-                        pRTSPSinkClient->sendDataOut((char*)m_requestString.c_str(),m_requestString.size());
-                    else
-                        CSIO_LOG(m_debugLevel,  "wfdSinkStMachineClass[%d]: composeRTSPRequest failed.\n",m_myId);
-                */
+                //std::string m13rqst = "SET_PARAMETER rtsp://localhost/wfd1.0 RTSP/1.0\r\nContent-Length: 17\r\nContent-Type: text/parameters\r\nCSeq: 4\r\n\r\nwfd_idr_request\r\n";
+                //pRTSPSinkClient->sendDataOut((char*)m13rqst.c_str(),m13rqst.size());
+                
+                int ret = composeRTSPRequest(m_rtspParserIntfSession,"SET_PARAMETER_IDR_REQ",parserComposeRequestCallback,(void*)this);
+                if(ret == 0)
+                {
+                    pRTSPSinkClient->sendDataOut((char*)m_requestString.c_str(),m_requestString.size());
+                    CSIO_LOG(m_debugLevel,  "wfdSinkStMachineClass[%d]: send out idr request[%s].\n",m_myId,m_requestString.c_str());
+                }
+                else
+                {
+                    CSIO_LOG(m_debugLevel,  "wfdSinkStMachineClass[%d]: composeRTSPRequest failed.\n",m_myId);
+                }
             }
             else
             {

@@ -1105,6 +1105,33 @@ int composeRTSPRequest(void * session,char * requestMethod,RTSPPARSERAPP_COMPOSE
          return(-1);
       }
    }
+   else if(!strcmp(requestMethod,"SET_PARAMETER_IDR_REQ"))
+   {
+      if(rtspSession->presentationURL[0] == '\0')
+      {
+         RTSP_LOG(eLogLevel_warning,"empty presentationURL string in composeRTSPRequest() with method TEARDOWN\n");
+      }
+      urlPtr = rtspSession->presentationURL;
+      retv = rtsp_message_new_request(rtspSession,&rep,"SET_PARAMETER",urlPtr);
+      if(retv < 0)
+      {
+         RTSP_LOG(eLogLevel_error,"rtsp_message_new_request failed in composeRTSPRequest() with error code %d\n",retv);
+         return(-1);
+      }
+      if(rtspSession->sessionID[0] == '\0')
+      {
+         RTSP_LOG(eLogLevel_warning,"empty sessionID string in composeRTSPRequest() with method TEARDOWN\n");
+      }
+      retv = rtsp_message_append(rep, "<s>","Session",rtspSession->sessionID);
+      if(retv < 0)
+      {
+         RTSP_LOG(eLogLevel_error,"rtsp_message_append() failed in composeRTSPResponse() with error code %d\n",retv);
+         return(-1);
+      }      
+
+      retv = rtsp_message_append(rep, "{&}","wfd_idr_request");
+      RTSP_LOG(eLogLevel_debug,"rtsp_message_append() rtsp_message_append() with wfd-idr-request return: %d\n",retv);      
+   }
    else
    {
       RTSP_LOG(eLogLevel_error,"unexpected request method %s in composeRTSPRequest()\n",requestMethod);
