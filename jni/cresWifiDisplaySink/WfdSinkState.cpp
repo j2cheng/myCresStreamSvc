@@ -1715,7 +1715,7 @@ int wfdSinkStMachineClass::monitorKeepAliveState(csioEventQueueStruct* pEventQ)
         case WFD_SINK_STM_IDR_REQ_EVENT:
         {
             //TODO: send out idr request
-            CSIO_LOG(m_debugLevel,  "wfdSinkStMachineClass[%d]: WFD_SINK_STM_IDR_REQ_EVENT processed.\n",m_myId);
+            CSIO_LOG(ABOVE_DEBUG_VERB(m_debugLevel),  "wfdSinkStMachineClass[%d]: WFD_SINK_STM_IDR_REQ_EVENT processed.\n",m_myId);
 
             if(pRTSPSinkClient)
             {
@@ -1726,7 +1726,7 @@ int wfdSinkStMachineClass::monitorKeepAliveState(csioEventQueueStruct* pEventQ)
                 if(ret == 0)
                 {
                     pRTSPSinkClient->sendDataOut((char*)m_requestString.c_str(),m_requestString.size());
-                    CSIO_LOG(m_debugLevel,  "wfdSinkStMachineClass[%d]: send out idr request[%s].\n",m_myId,m_requestString.c_str());
+                    CSIO_LOG(ABOVE_DEBUG_VERB(m_debugLevel),  "wfdSinkStMachineClass[%d]: send out idr request[%s].\n",m_myId,m_requestString.c_str());
                 }
                 else
                 {
@@ -2099,7 +2099,7 @@ int wfdSinkStMachineClass::parserComposeRequestCallback(RTSPCOMPOSINGRESULTS * c
         {
             p->m_requestString = (char*)composingResPtr->composedMessagePtr;
 
-            CSIO_LOG(p->m_debugLevel, "wfdSinkStMachineClass: parserComposeRequestCallback composedMessagePtr[%s]\n",composingResPtr->composedMessagePtr);
+            CSIO_LOG(ABOVE_DEBUG_VERB(p->m_debugLevel), "wfdSinkStMachineClass: parserComposeRequestCallback composedMessagePtr[%s]\n",composingResPtr->composedMessagePtr);
         }
         else
         {
@@ -2443,7 +2443,7 @@ void* wfdSinkStMachineThread::ThreadEntry()
                         evntQ.event_type = WFD_SINK_STM_IDR_REQ_EVENT;
                         p->stateFunction(&evntQ);
 
-                        CSIO_LOG(m_debugLevel, "wfdSinkStMachineThread:WFD_SINK_STM_IDR_REQ_EVENT[id] processed\n",id);
+                        CSIO_LOG(ABOVE_DEBUG_VERB(m_debugLevel), "wfdSinkStMachineThread:WFD_SINK_STM_IDR_REQ_EVENT[id] processed\n",id);
                     }
 
                     break;

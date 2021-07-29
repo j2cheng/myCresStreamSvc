@@ -1130,7 +1130,7 @@ int composeRTSPRequest(void * session,char * requestMethod,RTSPPARSERAPP_COMPOSE
       }      
 
       retv = rtsp_message_append(rep, "{&}","wfd_idr_request");
-      RTSP_LOG(eLogLevel_debug,"rtsp_message_append() rtsp_message_append() with wfd-idr-request return: %d\n",retv);      
+      RTSP_LOG(eLogLevel_verbose,"rtsp_message_append() rtsp_message_append() with wfd-idr-request return: %d\n",retv);      
    }
    else
    {
@@ -1143,7 +1143,7 @@ int composeRTSPRequest(void * session,char * requestMethod,RTSPPARSERAPP_COMPOSE
    // currently rtsp_message_serialize_common() terminates the message string
    char * raw_message = (char *)rtsp_message_get_raw(rep);
    if(raw_message)
-      RTSP_LOG(eLogLevel_debug,"raw_message: %s\n",raw_message);
+      RTSP_LOG(eLogLevel_verbose,"raw_message: %s\n",raw_message);
 
    retv = cresRTSP_internalComposeCallback(session,RTSP_MESSAGE_REQUEST,raw_message,requestMethod,
       urlPtr,NULL,-1);
