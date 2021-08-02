@@ -95,6 +95,7 @@ extern unsigned short debugPrintSeqNum[];
 #define CRESTRON_USER_AGENT 	("Crestron/1.8.2")
 #define PROC_SELF_FD_FILEPATH 	("/proc/self/fd")
 #define DEFAULT_MAX_FRAME_PUSH_DELAY  250000000
+#define DEFAULT_MIRACAST_LATENCY 200//8-2-2021 we are going to set this to 200ms
 ///////////////////////////////////////////////////////////////////////////////
 CustomData *CresDataDB = NULL; //
 CustomStreamOutData *CresStreamOutDataDB = NULL; //
@@ -6003,13 +6004,15 @@ void Wfd_set_latency_by_the_source (int id, int latency)
 
     //Note: if the setting comes too early(we don't have pipeline yet), the value will be set into DB, and used later.
     
-    data->wfd_source_latency = locLatency;
+    //8-2-2021 we are going to set this to 200ms for all miracast
+    data->wfd_source_latency = DEFAULT_MIRACAST_LATENCY;
 
     //set rtpbin
     if(data->element_zero)
     {
-        g_object_set(G_OBJECT(data->element_zero), "latency", locLatency, NULL);
-        CSIO_LOG(eLogLevel_verbose, "Wfd_set_latency_by_the_source,set rtpbin latency[%d]", locLatency);
+        //8-2-2021 we are going to set this to 200ms for all miracast
+        g_object_set(G_OBJECT(data->element_zero), "latency", DEFAULT_MIRACAST_LATENCY, NULL);
+        CSIO_LOG(eLogLevel_verbose, "Wfd_set_latency_by_the_source,set rtpbin latency: 200ms");
     }
 
     //set video queues
