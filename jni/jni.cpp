@@ -6122,6 +6122,7 @@ void csio_jni_setFramePushDelay(int id)
         if(data && data->amcvid_dec)
         {
             guint64 max_delay = (guint64) DEFAULT_MAX_FRAME_PUSH_DELAY;
+            bool use_legacy_method = true;
 
             //Workaround for bug TSW70-1211
             if(data->isDoorStation)
@@ -6129,12 +6130,15 @@ void csio_jni_setFramePushDelay(int id)
                 //Accept all frames if Door Station stream, even if the decoder detects that
                 //timestamps of those output frames say it's too late to display them.
                 max_delay = 0;
+                use_legacy_method = false;
             }
             //---------------------
 
             g_object_set(G_OBJECT(data->amcvid_dec), "push-delay-max", max_delay, NULL);
-            CSIO_LOG(eLogLevel_debug, "Set stream[%d] push-delay-max to: %lluns, isDoorStation[%s]",
-            id, max_delay, (data->isDoorStation) ? "true":"false");
+            g_object_set(G_OBJECT(data->amcvid_dec), "use-legacy-method", use_legacy_method, NULL);
+
+            CSIO_LOG(eLogLevel_debug, "Set stream[%d] push-delay-max to: %lluns, isDoorStation[%s], use-legacy-method[%s]",
+            id, max_delay, (data->isDoorStation) ? "true":"false", (use_legacy_method) ? "true":"false");
         }
     }
 }
