@@ -6184,14 +6184,15 @@ void csio_sendErrorStatusMessage(int errorCode, std::string diagnosticMessage, i
 
 void csio_jni_setFramePushDelay(int id)
 {
-    if(product_info()->hw_platform == eHardwarePlatform_Snapdragon)
-    {
-        CREGSTREAM * data = GetStreamFromCustomData(CresDataDB, id);
+    CREGSTREAM * data = GetStreamFromCustomData(CresDataDB, id);
 
-        if(data && data->amcvid_dec)
+    if(data && data->amcvid_dec)
+    {
+        bool use_legacy_method = false;
+        if(product_info()->hw_platform == eHardwarePlatform_Snapdragon)
         {
             guint64 max_delay = (guint64) DEFAULT_MAX_FRAME_PUSH_DELAY;
-            bool use_legacy_method = true;
+            use_legacy_method = true;
 
             //Workaround for bug TSW70-1211
             if(data->isDoorStation)
@@ -6204,11 +6205,14 @@ void csio_jni_setFramePushDelay(int id)
             //---------------------
 
             g_object_set(G_OBJECT(data->amcvid_dec), "push-delay-max", max_delay, NULL);
-            g_object_set(G_OBJECT(data->amcvid_dec), "use-legacy-method", use_legacy_method, NULL);
 
-            CSIO_LOG(eLogLevel_debug, "Set stream[%d] push-delay-max to: %lluns, isDoorStation[%s], use-legacy-method[%s]",
-            id, max_delay, (data->isDoorStation) ? "true":"false", (use_legacy_method) ? "true":"false");
+            CSIO_LOG(eLogLevel_debug, "%s: Set stream[%d] push-delay-max to: %lluns, isDoorStation[%s]",
+            __FUNCTION__, id, max_delay, (data->isDoorStation) ? "true":"false");
         }
+
+        g_object_set(G_OBJECT(data->amcvid_dec), "use-legacy-method", use_legacy_method, NULL);
+        CSIO_LOG(eLogLevel_debug, "%s: stream[%d], use-legacy-method[%s]",
+        __FUNCTION__, id, (use_legacy_method) ? "true":"false");
     }
 }
 
