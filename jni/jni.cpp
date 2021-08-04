@@ -71,7 +71,7 @@ static bool loopShouldLog(int * errorCountPtr, int * logLevelPtr);
 static unsigned int _hash(unsigned int x);
 static unsigned int _unhash(unsigned int x);
 char *csio_jni_hashPin(char *pin);
-void csio_jni_decoder_post_latency(int stream,GstObject* obj);
+void csio_jni_post_latency(int stream,GstObject* obj);
 
 static Mutex gGstStopLock;//used to prevent multiple threads accessing pipeline while stop gstreamer.
 extern unsigned short debugPrintSeqNum[];
@@ -1857,7 +1857,19 @@ JNIEXPORT void JNICALL Java_com_crestron_txrxservice_GstreamIn_nativeSetFieldDeb
                         CmdPtr = strtok(NULL, ", ");
                         if (CmdPtr == NULL)
                         {
-                            CSIO_LOG(eLogLevel_info, "Invalid Format, need a parameter\r\n");
+                            gint64  tmp = 0;
+
+                            if(StreamDb->amcvid_dec)
+                            {
+                                g_object_get(G_OBJECT(StreamDb->audio_sink), "ts-offset", &tmp, NULL);
+                                CSIO_LOG(eLogLevel_info, "get openslessink ts-offset: %lld\r\n", tmp);
+
+                                CSIO_LOG(eLogLevel_debug, "%s: get openslessink latency: %lld",__FUNCTION__, gst_base_sink_get_latency((GstBaseSink *)StreamDb->audio_sink));
+                            }
+                            else
+                            {
+                                CSIO_LOG(eLogLevel_info, "no audio_sink \r\n");
+                            }
                         }
                         else
                         {
@@ -2058,6 +2070,49 @@ JNIEXPORT void JNICALL Java_com_crestron_txrxservice_GstreamIn_nativeSetFieldDeb
 					}
 				}
 			}
+            else if (!strcmp(CmdPtr, "SET_ELEMENT_PROPERTY_INT64"))
+            {
+                CmdPtr = strtok(NULL, ", ");
+                if (CmdPtr == NULL)
+                {
+                    CSIO_LOG(eLogLevel_info, "Invalid Format, need element's name\r\n");
+                }
+                else
+                {
+                    if (data->pipeline)
+                    {
+
+                        GstElement *ele = gst_bin_get_by_name(GST_BIN(data->pipeline), CmdPtr);
+                        if (ele)
+                        {
+                            CSIO_LOG(eLogLevel_info, "print properties before setting.\r\n");
+                            gst_element_print_properties(ele);
+
+                            CmdPtr = strtok(NULL, ", ");
+                            if (CmdPtr == NULL)
+                            {
+                                CSIO_LOG(eLogLevel_info, "Invalid Format, need property name\r\n");
+                            }
+                            else
+                            {
+                                char *proName = CmdPtr;
+
+                                CmdPtr = strtok(NULL, ", ");
+                                if (CmdPtr != NULL)
+                                {
+                                    int tmp = (int)strtol(CmdPtr, &EndPtr, 10);
+
+                                    g_object_set(G_OBJECT(ele), proName, (gint64)(tmp * 1000000ll), NULL);
+
+                                    CSIO_LOG(eLogLevel_info, "setting properties[%s] setting[%d].\r\n", proName, tmp);
+
+                                    gst_element_print_properties(ele);
+                                }
+                            }
+                        }
+                    }
+                }
+            }
             else if (!strcmp(CmdPtr, "LAUNCH_START") || !strcmp(CmdPtr, "RTSP_START"))
             {
             	char * launchStr = strstr(namestring, " ");
@@ -4628,21 +4683,21 @@ void csio_jni_printFieldDebugInfo()
 
 /********************************************************************
  * \author      John Cheng
- * \brief       called drom csio_GstMsgHandler(), when videodecoder
+ * \brief       called drom csio_GstMsgHandler(), when any one
  *              issued GST_MESSAGE_LATENCY.
  *              The goal is to keep over all latency at 200ms.
  *              So here, we can adjust ts-offset to reduce it.
- *              Note: audio is limited to -300ms, and video
+ *              Note: audio is limited to 125ms***, and video
  *                    is limited to -500ms. 
  * \Returns:
  * \detail
  * \date        7/20/21
  *
 ********************************************************************/
-void csio_jni_decoder_post_latency(int streamId,GstObject* obj)
+void csio_jni_post_latency(int streamId,GstObject* obj)
 {
 #define MAX_VIDEO_TS_OFFSET (500*1000000)
-#define MAX_AUDIO_TS_OFFSET (300*1000000)
+#define MAX_AUDIO_DIFF      (170*1000000)
 
     CREGSTREAM * StreamDb = GetStreamFromCustomData(CresDataDB, 0);
 
@@ -4652,49 +4707,63 @@ void csio_jni_decoder_post_latency(int streamId,GstObject* obj)
         return;
     }
 
-    CSIO_LOG(eLogLevel_debug, "%s: streamId[%d], amcvid_dec[0x%x]\r\n", __FUNCTION__, streamId,StreamDb->amcvid_dec);
+    CSIO_LOG(eLogLevel_debug, "%s: streamId[%d], amcvid_dec[0x%x],audio_sink[0x%x]\r\n", __FUNCTION__, 
+             streamId,StreamDb->amcvid_dec,StreamDb->audio_sink);
     
     //Note: 7-20-2021, this is to set decoder/sudiosink ts-offset for AM3k(Miracast only) and omap(Miracast only).
-    if(StreamDb->wfd_start && 
-       ((product_info()->hw_platform == eHardwarePlatform_Rockchip) ||
-         product_info()->hw_platform == eHardwarePlatform_OMAP5   ) &&
-        (StreamDb->amcvid_dec == (GstElement*)obj) )
+    if( StreamDb->wfd_start && 
+        (product_info()->hw_platform == eHardwarePlatform_Rockchip ||
+         product_info()->hw_platform == eHardwarePlatform_OMAP5   ) )        
     {
-        //get videodec latency
-        guint64 latency = 0;
-        g_object_get(G_OBJECT(StreamDb->amcvid_dec), "amcdec-latency", &latency, NULL);
-        CSIO_LOG(eLogLevel_info, "%s: amcvid_dec latency: %lld\r\n", __FUNCTION__, latency);
-
-        //set video ts-offset
-        gint64 tsOffsetVideo = 0;
-        if(latency > MAX_VIDEO_TS_OFFSET)
-            tsOffsetVideo = -MAX_VIDEO_TS_OFFSET;
-        else
-            tsOffsetVideo = -latency;
-
-        g_object_set(StreamDb->amcvid_dec, "ts-offset", tsOffsetVideo, NULL);  
-        CSIO_LOG(eLogLevel_info, "%s: tsOffsetVideo set to[%lld] based on wfd_source_latency[%d] and latency[%lld]\r\n", 
-                 __FUNCTION__, tsOffsetVideo,StreamDb->wfd_source_latency,latency);
-        
-        //for debugging only, ckecking decoder frams size.
-        GList * frames = gst_video_decoder_get_frames((GstVideoDecoder*)StreamDb->amcvid_dec);
-        CSIO_LOG(eLogLevel_debug, "%s: frame size is[%d]\r\n", __FUNCTION__, g_list_length(frames));
-
-        //set audio ts-offset
-        if( StreamDb->audio_sink)
+        if(StreamDb->amcvid_dec == (GstElement*)obj)
         {
-            gint64 tsOffsetAudio = 0;
-            //we want to keep audio/video the same ts-offset
-            if(latency > MAX_AUDIO_TS_OFFSET)
-                tsOffsetAudio = -MAX_AUDIO_TS_OFFSET;
+            //get videodec latency
+            guint64 latency = 0;
+            g_object_get(G_OBJECT(StreamDb->amcvid_dec), "amcdec-latency", &latency, NULL);
+            CSIO_LOG(eLogLevel_info, "%s: amcvid_dec latency: %lld\r\n", __FUNCTION__, latency);
+
+            //set video ts-offset
+            gint64 tsOffsetVideo = 0;
+            if(latency > MAX_VIDEO_TS_OFFSET)
+                tsOffsetVideo = -MAX_VIDEO_TS_OFFSET;
             else
-                tsOffsetAudio = -latency;
+                tsOffsetVideo = -latency;
 
-            StreamDb->audiosink_ts_offset = (tsOffsetAudio/1000000);
-            g_object_set(G_OBJECT(StreamDb->audio_sink), "ts-offset", tsOffsetAudio, NULL);
-            CSIO_LOG(eLogLevel_debug, "%s: set audiosink_ts_offset:%lld[%d]",__FUNCTION__, tsOffsetAudio,StreamDb->audiosink_ts_offset);
+            g_object_set(StreamDb->amcvid_dec, "ts-offset", tsOffsetVideo, NULL);  
+            CSIO_LOG(eLogLevel_info, "%s: tsOffsetVideo set to[%lld] based on wfd_source_latency[%d] and latency[%lld]\r\n", 
+                    __FUNCTION__, tsOffsetVideo,StreamDb->wfd_source_latency,latency);
+            
+            //for debugging only, ckecking decoder frams size.
+            GList * frames = gst_video_decoder_get_frames((GstVideoDecoder*)StreamDb->amcvid_dec);
+            CSIO_LOG(eLogLevel_debug, "%s: frame size is[%d]\r\n", __FUNCTION__, g_list_length(frames));
+
+            //set audio ts-offset
+            if( StreamDb->audio_sink)
+            {
+                CSIO_LOG(eLogLevel_debug, "%s: get audio_sink latency before set ts-offset: %lld",__FUNCTION__, 
+                         gst_base_sink_get_latency((GstBaseSink *)StreamDb->audio_sink));
+
+                gint64 tsOffsetAudio = 0;
+                //we want to keep audio/video the same ts-offset,but...***
+                if(latency > MAX_AUDIO_DIFF)
+                    tsOffsetAudio = -(latency - MAX_AUDIO_DIFF);
+                else
+                    tsOffsetAudio = -MAX_AUDIO_DIFF;
+
+                StreamDb->audiosink_ts_offset = (tsOffsetAudio/1000000);
+                g_object_set(G_OBJECT(StreamDb->audio_sink), "ts-offset", tsOffsetAudio, NULL);
+                CSIO_LOG(eLogLevel_debug, "%s: set audiosink_ts_offset:%lld[%d]",__FUNCTION__, 
+                         tsOffsetAudio,StreamDb->audiosink_ts_offset);
+            }
+            else
+            {
+                CSIO_LOG(eLogLevel_debug, "%s: StreamDb->audio_sink is NULL,audiosink_ts_offset[%d]",__FUNCTION__,StreamDb->audiosink_ts_offset);
+            }
         }
-
+        else if(StreamDb->audio_sink == (GstElement*)obj)
+        {
+            CSIO_LOG(eLogLevel_debug, "%s: get audio_sink latency: %lld",__FUNCTION__, gst_base_sink_get_latency((GstBaseSink *)StreamDb->audio_sink));
+        }
     }//else
 }
 
@@ -5527,8 +5596,8 @@ JNIEXPORT void JNICALL Java_com_crestron_txrxservice_GstreamIn_nativeWfdStart(JN
     else
         data->wfd_is_mice_session = false;
 
-    //TODO: 7-20-2021, audio offset should be set when decoder issue
-    //      message_latency in csio_jni_decoder_post_latency().
+    //TODO: 7-20-2021, audio offset should be set when video decoder issue
+    //      message_latency in csio_jni_post_latency().
     if(product_info()->hw_platform == eHardwarePlatform_Rockchip ||
        product_info()->hw_platform == eHardwarePlatform_OMAP5)
     { 
