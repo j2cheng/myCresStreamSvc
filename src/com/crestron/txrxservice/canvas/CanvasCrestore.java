@@ -1004,7 +1004,6 @@ public class CanvasCrestore
 			}
 			Common.Logging.i(TAG," playList: "+playList);
 			Common.Logging.i(TAG," stopList: "+stopList);
-			Common.Logging.i(TAG," disconnectList: "+disconnectList);
 			List<String> actionList = new LinkedList<String>();
 			for (int i=0; i < disconnectList.size(); i++)
 			{
@@ -1604,14 +1603,14 @@ public class CanvasCrestore
                         String deviceId = root.device.wyFy.airMedia.wifiDirect.onConnect.remoteMac;
                         String deviceName = root.device.wyFy.airMedia.wifiDirect.onConnect.remoteDeviceName;
                         String deviceAddress = root.device.wyFy.airMedia.wifiDirect.onConnect.remoteIpAddress;
-                        int rtsp_port = root.device.wyFy.airMedia.wifiDirect.onConnect.rtspPort;
 
                         if(localAddress != null && deviceId != null && deviceName != null && deviceAddress != null)
                         {
+                            int rtsp_port = root.device.wyFy.airMedia.wifiDirect.onConnect.rtspPort;
                             mStreamCtl.startWifiDirect(localAddress, deviceId, deviceName, deviceAddress, rtsp_port);
                         }
                         else
-                            Common.Logging.v(TAG, "Received NULL for onConnect message contents.");
+                            Common.Logging.e(TAG, "Received NULL for onConnect message contents.");
                     }
 
                     if(root.device.wyFy.airMedia.wifiDirect.onDisconnect != null)
@@ -1621,7 +1620,7 @@ public class CanvasCrestore
                         if (deviceId != null) {
                         	mStreamCtl.stopWifiDirect(deviceId);
                         } else
-                            Common.Logging.v(TAG, "Received NULL for deviceId.");
+                            Common.Logging.e(TAG, "Received NULL for deviceId.");
                     }
                 }
 
