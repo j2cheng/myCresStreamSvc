@@ -1818,11 +1818,14 @@ JNIEXPORT void JNICALL Java_com_crestron_txrxservice_GstreamIn_nativeSetFieldDeb
                                 g_object_get(G_OBJECT(StreamDb->amcvid_dec), "amcdec-latency", &tmp, NULL);
                                 CSIO_LOG(eLogLevel_info, "get amcvid_dec latency: %lld,StreamDb->amcvid_dec[0x%x]\r\n", tmp,StreamDb->amcvid_dec);
 
+                                g_object_get(G_OBJECT(StreamDb->amcvid_dec), "ts-offset", &tmp, NULL);
+                                CSIO_LOG(eLogLevel_info, "get amcvid_dec ts-offset: %lld\r\n", tmp);
+
                                 GList * frames = gst_video_decoder_get_frames((GstVideoDecoder*)StreamDb->amcvid_dec);
-                                CSIO_LOG(eLogLevel_info, "%s: frame size is[%d]\r\n", __FUNCTION__, g_list_length(frames));
+                                CSIO_LOG(eLogLevel_info, "get frame size is[%d]\r\n", g_list_length(frames));
 
                                 GstVideoCodecState *output_state = gst_video_decoder_get_output_state ((GstVideoDecoder*)StreamDb->amcvid_dec);
-                                CSIO_LOG(eLogLevel_info, "%s: output_state info.fps_n is[%d]\r\n", __FUNCTION__, output_state->info.fps_n);
+                                CSIO_LOG(eLogLevel_info, "get output_state info.fps_n is[%d]\r\n", output_state->info.fps_n);
                             }
                             else
                             {
@@ -1864,7 +1867,7 @@ JNIEXPORT void JNICALL Java_com_crestron_txrxservice_GstreamIn_nativeSetFieldDeb
                                 g_object_get(G_OBJECT(StreamDb->audio_sink), "ts-offset", &tmp, NULL);
                                 CSIO_LOG(eLogLevel_info, "get openslessink ts-offset: %lld\r\n", tmp);
 
-                                CSIO_LOG(eLogLevel_debug, "%s: get openslessink latency: %lld",__FUNCTION__, gst_base_sink_get_latency((GstBaseSink *)StreamDb->audio_sink));
+                                CSIO_LOG(eLogLevel_debug, "get openslessink latency: %lld",gst_base_sink_get_latency((GstBaseSink *)StreamDb->audio_sink));
                             }
                             else
                             {
@@ -4687,8 +4690,11 @@ void csio_jni_printFieldDebugInfo()
  *              issued GST_MESSAGE_LATENCY.
  *              The goal is to keep over all latency at 200ms.
  *              So here, we can adjust ts-offset to reduce it.
- *              Note: audio is limited to 125ms***, and video
- *                    is limited to -500ms. 
+ *              Note1: video is limited to -1500ms, I think 
+ *                     this is big enough since we only set
+ *                     rtpbin latency to 200ms for miracast.
+ *              Note2: keep audio 200ms diff here, due to audiosink
+ *                     buffer-time is set to 125ms. 
  * \Returns:
  * \detail
  * \date        7/20/21
@@ -4696,8 +4702,8 @@ void csio_jni_printFieldDebugInfo()
 ********************************************************************/
 void csio_jni_post_latency(int streamId,GstObject* obj)
 {
-#define MAX_VIDEO_TS_OFFSET (500*1000000)
-#define MAX_AUDIO_DIFF      (170*1000000)
+#define MAX_VIDEO_TS_OFFSET (1500*1000000)
+#define MAX_AUDIO_DIFF      (200*1000000)
 
     CREGSTREAM * StreamDb = GetStreamFromCustomData(CresDataDB, 0);
 
