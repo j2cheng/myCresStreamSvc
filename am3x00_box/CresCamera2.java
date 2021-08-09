@@ -106,7 +106,7 @@ public class CresCamera2 extends CresCamera
         synchronized (lockObj)
         {
             if(mCameraDevice != null)
-                releaseCamera();
+                releaseCamera2(true);
             else
                 Log.i(TAG, " mCameraDevice is NULL");
 
@@ -136,7 +136,7 @@ public class CresCamera2 extends CresCamera
                         public void onDisconnected(CameraDevice camera) {
                             Log.i(TAG, "  onDisconnected " + hdmiCameraName);
                             if (mCameraDevice != null) {
-                                releaseCamera();
+                                releaseCamera2(true);
                             }
                         }
 
@@ -145,7 +145,7 @@ public class CresCamera2 extends CresCamera
                             Log.e(TAG, "  onError " + hdmiCameraName + " error " + error);
                             mCamErrCur = true;
                             if (mCameraDevice != null) {
-                                releaseCamera();
+                                releaseCamera2(false);//do not call abortCaptures when onError(bug AM3XX-5742)
                             }
                         }
                     }, mCameraHandler);
@@ -167,7 +167,7 @@ public class CresCamera2 extends CresCamera
     return;
     }
 
-    public void releaseCamera() {
+    public void releaseCamera2(boolean needAbort) {
         Log.i(TAG, " releaseCamera camera2 ");
         Log.i(TAG, "checkClosed " + hdmiCameraName);
         try {
@@ -178,8 +178,9 @@ public class CresCamera2 extends CresCamera
                 Log.i(TAG, hdmiCameraName + " still exists - try to close it");
                 if (mCameraSession != null) {
                     try {
-                        Log.i(TAG,  " abort captures " + hdmiCameraName);
-                        mCameraSession.abortCaptures();
+                        Log.i(TAG,  " abort captures " + hdmiCameraName + "needAbort: " + needAbort);
+                        if(needAbort)
+                            mCameraSession.abortCaptures();
                         Log.i(TAG,  " successfully aborted captures " + hdmiCameraName);
                     } catch (CameraAccessException e) {
                         e.printStackTrace();
