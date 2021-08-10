@@ -167,6 +167,11 @@ public class CresCamera2 extends CresCamera
     return;
     }
 
+    @Override
+    public void releaseCamera() {
+        releaseCamera2(true);
+    }
+
     public void releaseCamera2(boolean needAbort) {
         Log.i(TAG, " releaseCamera camera2 ");
         Log.i(TAG, "checkClosed " + hdmiCameraName);
