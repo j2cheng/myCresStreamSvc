@@ -1002,8 +1002,10 @@ public class CanvasCrestore
 					}
 				}
 			}
-			Common.Logging.i(TAG," playList: "+playList);
-			Common.Logging.i(TAG," stopList: "+stopList);
+			Common.Logging.i(TAG," playList: " + playList);
+			Common.Logging.i(TAG," stopList: " + stopList);
+                        Common.Logging.i(TAG," disconnectList: " + disconnectList);
+            
 			List<String> actionList = new LinkedList<String>();
 			for (int i=0; i < disconnectList.size(); i++)
 			{
