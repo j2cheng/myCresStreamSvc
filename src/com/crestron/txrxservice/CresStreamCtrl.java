@@ -1675,15 +1675,23 @@ public class CresStreamCtrl extends Service {
         }
         else
         {
-            if(mProductSpecific.getInstance().cam_handle.findCamera("/dev/video0"))
+            if(isAM3K)
             {
-                Log.i(TAG, "HDMI Input camera Found!");
-                mProductSpecific.getInstance().cam_handle.openCamera(this);
-                mProductSpecific.getInstance().cam_handle.releaseCamera();
+	            if(mProductSpecific.getInstance().cam_handle.findCamera("/dev/video0"))
+	            {
+	                Log.i(TAG, "HDMI Input camera Found!");
+	                mProductSpecific.getInstance().cam_handle.openCamera(this);
+	                mProductSpecific.getInstance().cam_handle.releaseCamera();
+	            }
+	            else
+	            {
+	                Log.i(TAG, "No connected HDMI Input Found! ERROR");
+	                cameraDisabled = true;
+	            }
             }
             else
             {
-                Log.i(TAG, "No connected HDMI Input Found! ERROR");
+                Log.i(TAG, "Disable camera feature on this product for Build.VERSION.SDK_INT = " + Build.VERSION.SDK_INT);
                 cameraDisabled = true;
             }
         }
