@@ -4705,7 +4705,7 @@ void csio_jni_post_latency(int streamId,GstObject* obj)
 #define MAX_VIDEO_TS_OFFSET (1500*1000000)
 #define MAX_AUDIO_DIFF      (200*1000000)
 
-    CREGSTREAM * StreamDb = GetStreamFromCustomData(CresDataDB, 0);
+    CREGSTREAM * StreamDb = GetStreamFromCustomData(CresDataDB,streamId);
 
     if(!StreamDb)
     {
@@ -4770,7 +4770,15 @@ void csio_jni_post_latency(int streamId,GstObject* obj)
         {
             CSIO_LOG(eLogLevel_debug, "%s: get audio_sink latency: %lld",__FUNCTION__, gst_base_sink_get_latency((GstBaseSink *)StreamDb->audio_sink));
         }
-    }//else
+        else
+        {
+            CSIO_LOG(eLogLevel_debug, "%s: no match[0x%x] to audio[0x%x] and video[0x%x]",__FUNCTION__,obj,StreamDb->audio_sink,StreamDb->amcvid_dec);
+        }
+    }
+    else
+    {
+        CSIO_LOG(eLogLevel_debug, "%s: function return,wfd_start[%d],hw_platform[0x%x]",__FUNCTION__, StreamDb->wfd_start,product_info()->hw_platform);
+    }
 }
 
 /***************************** rtsp_server for video streaming out **************************************/
