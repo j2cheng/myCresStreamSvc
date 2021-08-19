@@ -55,8 +55,8 @@ extern void WfdSinkProjSendIdrReq(int id);
 	#include "HDCP2xEncryptAPI.h"
 #endif
 ///////////////////////////////////////////////////////////////////////////////
-unsigned short savedSeqNum[4] = {0};
-unsigned short debugPrintSeqNum[4] = {0};
+unsigned short savedSeqNum[MAX_STREAMS] = {0};
+unsigned short debugPrintSeqNum[MAX_STREAMS] = {0};
 
 extern int g_using_glimagsink;
 
@@ -376,9 +376,11 @@ GstPadProbeReturn udpsrcProbe(GstPad *pad, GstPadProbeInfo *info, gpointer user_
                      ((char*)&lnNewSeqNum)[0] = lpnReversedSeqNum[1];
                      ((char*)&lnNewSeqNum)[1] = lpnReversedSeqNum[0];
 
-                     if(data->streamId < 4)
+                     if(data->streamId < MAX_STREAMS)
                      {
-                         if( savedSeqNum[data->streamId] != 65535 && (lnNewSeqNum - savedSeqNum[data->streamId]) != 1)
+                         if( savedSeqNum[data->streamId] != 65535 &&
+                             (lnNewSeqNum != savedSeqNum[data->streamId]) &&
+                             (lnNewSeqNum - savedSeqNum[data->streamId])  != 1)
                          {
                              CSIO_LOG(eLogLevel_debug,"Stream[%d]: Error expect sequence number: %d, actual number: %d, gap is [%d]\n",
                                  data->streamId, savedSeqNum[data->streamId]+1, lnNewSeqNum, (lnNewSeqNum - savedSeqNum[data->streamId]));
