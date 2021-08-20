@@ -2319,8 +2319,8 @@ void* wfdSinkStMachineThread::ThreadEntry()
                     {
                         if(wfdSinkStMachineThread::m_wfdSinkStMachineTaskList[id])
                         {
-                            CSIO_LOG(m_debugLevel, "wfdSinkStMachineThread: m_wfdSinkStMachineTaskList[id] exist[0x%x]\n",
-                                     wfdSinkStMachineThread::m_wfdSinkStMachineTaskList[id]);
+                            CSIO_LOG(m_debugLevel, "wfdSinkStMachineThread: m_wfdSinkStMachineTaskList[%d] exist[0x%x]\n",
+                                     id,wfdSinkStMachineThread::m_wfdSinkStMachineTaskList[id]);
 
                             //should never happen
                             signalWaitingThread(WFD_SINK_SINGAL_WAIT_ERROR);
@@ -2356,7 +2356,7 @@ void* wfdSinkStMachineThread::ThreadEntry()
                                 }
                                 else
                                 {
-                                    CSIO_LOG(m_debugLevel, "wfdSinkStMachineThread:WFD_SINK_INSERT_STMACHINE_EVENT[id] no url\n",id);
+                                    CSIO_LOG(m_debugLevel, "wfdSinkStMachineThread:WFD_SINK_INSERT_STMACHINE_EVENT[%d] no url\n",id);
                                 }
 
                                 CSIO_LOG(m_debugLevel, "wfdSinkStMachineThread:WFD_SINK_INSERT_STMACHINE_EVENT TaskList[%d] = 0x%x\n",
@@ -2403,12 +2403,12 @@ void* wfdSinkStMachineThread::ThreadEntry()
                             p->stateFunction(&evntQ);
                         }
 
-                        CSIO_LOG(m_debugLevel, "wfdSinkStMachineThread:WFD_SINK_START_STMACHINE_EVENT[id] processed\n",id);
+                        CSIO_LOG(m_debugLevel, "wfdSinkStMachineThread:WFD_SINK_START_STMACHINE_EVENT[%d] processed\n",id);
                         deleteCharArray(evntQPtr->buffPtr);
                     }
                     else
                     {
-                        CSIO_LOG(m_debugLevel, "wfdSinkStMachineThread:WFD_SINK_START_STMACHINE_EVENT[id] no url\n",id);
+                        CSIO_LOG(m_debugLevel, "wfdSinkStMachineThread:WFD_SINK_START_STMACHINE_EVENT[%d] no url\n",id);
                     }
                     break;
                 }
@@ -2425,7 +2425,7 @@ void* wfdSinkStMachineThread::ThreadEntry()
                         evntQ.event_type = WFD_SINK_STM_START_TEARDOWN_EVENT;
                         p->stateFunction(&evntQ);
 
-                        CSIO_LOG(m_debugLevel, "wfdSinkStMachineThread:WFD_SINK_TEARDOWN_TCP_CONN_EVENT[id] processed\n",id);
+                        CSIO_LOG(m_debugLevel, "wfdSinkStMachineThread:WFD_SINK_TEARDOWN_TCP_CONN_EVENT[%d] processed\n",id);
                     }
 
                     break;
@@ -2443,7 +2443,7 @@ void* wfdSinkStMachineThread::ThreadEntry()
                         evntQ.event_type = WFD_SINK_STM_IDR_REQ_EVENT;
                         p->stateFunction(&evntQ);
 
-                        CSIO_LOG(ABOVE_DEBUG_VERB(m_debugLevel), "wfdSinkStMachineThread:WFD_SINK_STM_IDR_REQ_EVENT[id] processed\n",id);
+                        CSIO_LOG(ABOVE_DEBUG_VERB(m_debugLevel), "wfdSinkStMachineThread:WFD_SINK_STM_IDR_REQ_EVENT[%d] processed\n",id);
                     }
 
                     break;
@@ -2461,7 +2461,7 @@ void* wfdSinkStMachineThread::ThreadEntry()
                         evntQ.event_type = WFD_SINK_STM_GST_READY_RCVD_EVENT;
                         p->stateFunction(&evntQ);
 
-                        CSIO_LOG(m_debugLevel, "wfdSinkStMachineThread:WFD_SINK_GST_READY_EVENT[id] processed\n",id);
+                        CSIO_LOG(m_debugLevel, "wfdSinkStMachineThread:WFD_SINK_GST_READY_EVENT[%d] processed\n",id);
                     }
 
                     break;
@@ -2540,7 +2540,7 @@ void* wfdSinkStMachineThread::ThreadEntry()
         //step 3. going through events
         if(rc < 0)// -1 means error
         {
-            CSIO_LOG(m_debugLevel, "wfdSinkStMachineThread: poll returns[id].\n", rc);
+            CSIO_LOG(m_debugLevel, "wfdSinkStMachineThread: poll returns[%d].\n", rc);
             //TODO: don't know what to do here
         }
         else// = 0 time out, > 0 ok
