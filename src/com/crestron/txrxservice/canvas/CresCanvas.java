@@ -16,6 +16,7 @@ import com.crestron.txrxservice.canvas.Session;
 import com.crestron.txrxservice.canvas.HDMISession;
 import com.crestron.txrxservice.canvas.DMSession;
 import com.crestron.txrxservice.CresStreamCtrl.StreamState;
+import com.crestron.txrxservice.CresStreamCtrl.StartupEvent;
 
 import java.io.IOException;
 import java.util.concurrent.*;
@@ -311,8 +312,11 @@ public class CresCanvas
 		if (!IsAirMediaCanvasUp())
 		{
 			Common.Logging.i(TAG, "handlePossibleHdmiSyncStateChange(): AirMediaCanvas not up - cannot display HDMI yet");
+			mStreamCtl.setChangedBeforeStartUp(StartupEvent.eAirMediaCanvas_HDMI_IN_SYNC, true);
 			return;
 		}
+		mStreamCtl.setChangedBeforeStartUp(StartupEvent.eAirMediaCanvas_HDMI_IN_SYNC, false);
+		
 		if (inputNumber > MAX_HDMI_INPUTS)
 		{
 			Common.Logging.e(TAG, "HDMI input number is "+inputNumber+"   Max allowed is "+MAX_HDMI_INPUTS);

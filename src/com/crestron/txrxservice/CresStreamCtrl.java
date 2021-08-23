@@ -246,6 +246,9 @@ public class CresStreamCtrl extends Service {
     public CrestronHwPlatform mHwPlatform;
     public String mProductName;
     public boolean mCameraDisabled = false;
+    public int mChangedBeforeStartUp = 0;
+    public boolean mLastChangedBeforeStartUpState = false;
+    public int mBeforeStartUpMsgCntr = 0;
     public boolean restartMediaServer = false;
     public ServiceMode serviceMode = ServiceMode.Master;
     private final int backgroundViewColor = Color.argb(255, 0, 0, 0);
@@ -590,6 +593,50 @@ public class CresStreamCtrl extends Service {
         }
     }
 
+    public enum StartupEvent 
+    {
+        // Basic events that may occur before module started
+        eAirMediaCanvas_HDMI_IN_SYNC(1),
+
+        // Do not add anything after the Last event
+        eLAST(2);
+
+        private final int value;
+
+        StartupEvent(int value) 
+        {
+            this.value = value;
+        }
+
+        public int getValue() 
+        {
+            return value;
+        }
+        public static String getStringValueFromInt(int i) 
+        {
+            for (StartupEvent event : StartupEvent.values()) 
+            {
+                if (event.getValue() == i) 
+                {
+                    return event.toString();
+                }
+            }
+            return ("Invalid Event.");
+        }
+        
+        public static StartupEvent getStreamEventFromInt(int i) 
+        {
+            for (StartupEvent event : StartupEvent.values()) 
+            {
+                if (event.getValue() == i) 
+                {
+                    return event;
+                }
+            }
+            return eLAST;
+        }
+    }
+
     // ***********************************************************************************
     // Keep updated with definitions in trunk/customFiles/src/external/crestron/productNameUtil/productName.h
     // ***********************************************************************************    
@@ -644,6 +691,7 @@ public class CresStreamCtrl extends Service {
         }
     }
     
+    private final MyReentrantLock startupLock			= new MyReentrantLock(true, "startupLock"); // fairness=true, makes lock ordered
     private final MyReentrantLock hdmiLock				= new MyReentrantLock(true, "hdmiLock"); // fairness=true, makes lock ordered
     private final MyReentrantLock cameraLock			= new MyReentrantLock(true, "CameraLock"); // fairness=true, makes lock ordered
     private final MyReentrantLock[] stopStartLock		= new MyReentrantLock[NumOfSurfaces]; // members will be allocated in constructor
@@ -2247,6 +2295,19 @@ public class CresStreamCtrl extends Service {
                     hdmiLock.lock();
                     try
                     {
+                        if(isAM3K)
+                        {
+                            int changes = getChangesBeforeStartup();
+                            if(changes != 0)
+                            {
+                                if((mBeforeStartUpMsgCntr % 5) == 0)
+                                    Log.i(TAG, "Found changes before module(s) started up.");
+                                    
+                                mBeforeStartUpMsgCntr++;
+                                handleChangesBeforeStartUp(changes);
+                            }
+                        }
+                        
                         // Query HDCP status
                         boolean hdcpStatusChanged = checkHDCPStatus();
                         if (hdcpStatusChanged) // Only send hdcp feedback if hdcp status has changed
@@ -7507,5 +7568,50 @@ public class CresStreamCtrl extends Service {
             Log.i(TAG, "testfindCamera: No connected HDMI Input Found! ERROR");            
         }
     }
+    
+    public void setChangedBeforeStartUp(StartupEvent eEvent, boolean state)
+    {
+        startupLock.lock();
+		
+        int event = eEvent.getValue();
+		
+        if(state)
+        {
+            if(state != mLastChangedBeforeStartUpState)	
+                Log.i(TAG, "setChangeBeforeStartUp: set bit[" + event + "]");
+            mChangedBeforeStartUp |= event;
+        }
+        else
+        {
+            if(state != mLastChangedBeforeStartUpState)
+                Log.i(TAG, "setChangeBeforeStartUp: reset bit[" + event + "]");
+            mChangedBeforeStartUp &= (~event);
+        }
+		
+		mLastChangedBeforeStartUpState = state;
+        startupLock.unlock();
+    }
 
+    public int getChangesBeforeStartup()
+    {
+        int changes = 0;
+    	
+        startupLock.lock();
+        changes = mChangedBeforeStartUp;
+        startupLock.unlock();
+		
+        return(changes);
+    }
+
+    public void handleChangesBeforeStartUp(int changes)
+    {
+        if ((mCanvas != null) && mCanvas.IsAirMediaCanvasUp())
+        {
+            if((changes & (StartupEvent.eAirMediaCanvas_HDMI_IN_SYNC.getValue())) == 1)
+            {
+                Log.i(TAG, "handleChangesBeforeStartUp: HDMI_IN_SYNC changed before Canvas started up. Update status.");
+                canvasHdmiSyncStateChange(false);
+            }
+        }
+    }
 }
