@@ -4781,6 +4781,15 @@ void csio_jni_post_latency(int streamId,GstObject* obj)
     }
 }
 
+//Note: until we find out a solution for Rochchip decoder issue, do not
+//      restart gstreamer when we have too many decoder timeout events.
+bool csio_jni_monitorStreamsForLateness(int id)
+{
+    if(product_info()->hw_platform == eHardwarePlatform_Rockchip)
+        return false;
+    else
+        return true;
+}
 /***************************** rtsp_server for video streaming out **************************************/
 
 // rtsp object documentation: https://gstreamer.freedesktop.org/data/doc/gstreamer/head/gst-rtsp-server/html/GstRTSPServer.html

@@ -1443,6 +1443,8 @@ void ms_mice_sink_session_close(ms_mice_sink_session *session)
 
     if (old_state != MS_MICE_SINK_SESSION_STATE_DISCONNECTED) {
         ms_mice_sink_session_raise_on_session_state_changed(session, old_state, session->priv->state);
+        //calling session_stop is more important than session_disconnected
+        ms_mice_sink_session_raise_on_session_stop_projection(session);
         ms_mice_sink_session_raise_on_session_disconnected(session);
         ms_mice_sink_session_disconnect(session);
     }
