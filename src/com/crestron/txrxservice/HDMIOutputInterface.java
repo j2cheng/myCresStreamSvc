@@ -77,7 +77,7 @@ public class HDMIOutputInterface {
 	public void setSyncStatus() {
 		if (hasHdmiOutput)
 		{
-			if (!isAM3K)
+			//if (!isAM3K)
 			{
 				StringBuilder text = new StringBuilder(16);
 				try {
@@ -96,12 +96,16 @@ public class HDMIOutputInterface {
 					syncStatus = "true";
 				else
 					syncStatus = "false";
-			} else {
+			
+			}
+			/* 
+			else {
 				if (am3kSyncStatus)
 					syncStatus = "true";
 				else
 					syncStatus = "false";
 			}
+			*/
 			Log.i(TAG, "setSyncStatus: "+syncStatus);
 		}
 		
