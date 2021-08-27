@@ -27,6 +27,16 @@ import java.util.List;
 import java.io.File;
 import java.lang.reflect.Method;
 
+import java.io.BufferedReader;
+import java.io.BufferedWriter;
+import java.io.File;
+import java.io.FileOutputStream;
+import java.io.FileReader;
+import java.io.IOException;
+import java.io.OutputStreamWriter;
+import java.io.Writer;
+import java.lang.String;
+
 public class ProductSpecific
 {
     private static ProductSpecific mInstance;
@@ -34,6 +44,7 @@ public class ProductSpecific
     private static boolean oneShot = false;
     CresCamera2 cam_handle;
     PeripheralStatusChangeListener mListener = null;
+    private boolean true_hpd = false;
 
     public static ProductSpecific getInstance()
     {
@@ -499,7 +510,16 @@ public class ProductSpecific
                 break;
             case PeripheralManager.PER_HDMI_OUT:
                 Log.i(TAG, "HDMI OUT status: " + ((status != 0) ? "Connected" : "Disconnected"));
-                cresStreamCtrl.onHdmiOutHpdEvent((status ==1));
+                boolean curr_true_hdp = getTrueHpdStatus();
+                Log.i(TAG, "PeripheralManager.PER_HDMI_OUT" + "true_hdp " + true_hpd + " " + " curr_true_hdp " + curr_true_hdp);
+
+                if(true_hpd != curr_true_hdp)
+                {
+                    true_hpd = curr_true_hdp;
+                    cresStreamCtrl.onHdmiOutHpdEvent(true_hpd);
+                }
+                //cresStreamCtrl.onHdmiOutHpdEvent((status ==1));
+
                 break;
             case PeripheralManager.PER_USB_20:
                 Log.v(TAG, "USB 2.0 status: " + ((status > 0) ? "Connected" : "Disconnected"));
@@ -510,6 +530,29 @@ public class ProductSpecific
             	usbEvent(PeripheralManager.PER_USB_30);
                 break;
             }
+        }
+
+        private boolean getTrueHpdStatus()
+        {
+            boolean curr_true_hpd = false;
+            StringBuilder text = new StringBuilder(16);
+            try {
+                File file = new File("/sys/class/switch/hdmi_true_hpd/state");
+
+                BufferedReader br = new BufferedReader(new FileReader(file));  
+                String line;   
+                while ((line = br.readLine()) != null) {
+                    text.append(line);
+                }
+                br.close();
+            }catch (Exception e) {
+                text.append("0"); //if error default to no sync
+            }
+            if(Integer.parseInt(text.toString()) == 1)
+                curr_true_hpd = true;
+
+
+            return curr_true_hpd;
         }
     }
 
