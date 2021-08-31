@@ -63,6 +63,8 @@ typedef enum _eWfd_Events
     WFD_SINK_TEARDOWN_TCP_CONN_EVENT,
     WFD_SINK_SEND_IDR_REQ_EVENT,
     WFD_SINK_GST_READY_EVENT,
+    WFD_SINK_GST_1ST_FRAME_EVENT,
+    WFD_SINK_GST_LOST_VIDEO_EVENT,
 
     //do not add xxx_MAX here, number jumps
 }eWfd_Events;
@@ -71,6 +73,8 @@ typedef enum _eWfd_Events
 enum
 {
     WFD_SINK_STATE_TIMEOUT_TIMER = 0,
+
+    WFD_SINK_STATE_1ST_FRAME_TIMEOUT_TIMER,
 
     WFD_SINK_STATE_TIMER_MAX
 };
@@ -324,6 +328,8 @@ public:
 
     //called from parent project
     int waitWfdSinkStMachineThreadSignal(int pollTimeoutInMs);
+
+    int getCurrentTimeInSec();
 private:
     //called from this thread to signal parent project
     void signalWaitingThread(int v);

@@ -42,6 +42,8 @@ typedef enum _eWfdSinkProjEvents
     WFD_SINK_EVENTS_JNI_REQ_IDR,
     WFD_SINK_EVENTS_JNI_GST_READY,
     WFD_SINK_EVENTS_JNI_CONFIG,
+    WFD_SINK_EVENTS_JNI_1ST_FRAME,
+    WFD_SINK_EVENTS_JNI_LOST_VIDEO,
 
     //events from state machine --> project
     WFD_SINK_EVENTS_RTSP_IN_SESSION_EVENT ,

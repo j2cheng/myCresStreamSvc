@@ -55,6 +55,7 @@
 #include "shared-ssl/shared-ssl.h"
 #include "streamOutManager/v4l2Video.h"
 #include "CresLog.h"
+#include "cstreamer.h"
 
 ///////////////////////////////////////////////////////////////////////////////
 
@@ -3303,7 +3304,7 @@ earlyreturn:
 }
 
 
-int csio_jni_CreatePipeline(GstElement **pipeline, GstElement **source, eProtocolId protoId, int iStreamId)
+int csio_jni_CreatePipeline(void *obj,GstElement **pipeline, GstElement **source, eProtocolId protoId, int iStreamId)
 {
 	int iStatus = CSIO_SUCCESS;
 	char *buf = NULL;
@@ -3348,6 +3349,14 @@ int csio_jni_CreatePipeline(GstElement **pipeline, GstElement **source, eProtoco
 	    }
         case ePROTOCOL_UDP_TS:
         {
+            //Note: 8-30-2021 pass this parameter to CStreamer class,
+            //      so csio_CheckForVideo() will work.
+            if(data->wfd_start && obj)
+            {
+                data->pStreamer = obj;
+                ((CStreamer*)data->pStreamer)->m_wfdMonitorVideo = true;
+            }//else
+
             if(CSIOCnsIntf->getStreamTxRx_TRANSPORTMODE(iStreamId)==STREAM_TRANSPORT_MPEG2TS_RTP)
             {
                 data->element_zero = gst_element_factory_make("rtpbin", NULL);
@@ -5678,6 +5687,7 @@ JNIEXPORT void JNICALL Java_com_crestron_txrxservice_GstreamIn_nativeWfdStop(JNI
             data->ssrc = 0;
             data->audiosink_ts_offset = 0;
             data->wfd_source_latency = 0;
+            data->pStreamer = 0;
 
 			data->rtcp_dest_ip_addr[0] = '\0';
 			data->rtcp_dest_port = -1;

@@ -50,6 +50,7 @@
 #include "cstreamer.h"
 
 extern void WfdSinkProjSendIdrReq(int id);
+extern void WfdSinkProjSendGst1stFrameEvt(int id);
 
 #ifdef SupportsHDCPEncryption
 	#include "HDCP2xEncryptAPI.h"
@@ -206,11 +207,12 @@ void set_gst_debug_level(void)
 	// for x60, but should not harm other platforms - without this change you don't see any video
 	setenv("GST_AMC_IGNORE_UNKNOWN_COLOR_FORMATS", "yes", 1);
 
-	CSIO_LOG(eLogLevel_debug, "Set GST_DEBUG to %s", temp);
+    CSIO_LOG(eLogLevel_debug, "Set GST_DEBUG to %s", temp);
 
-        CSIO_LOG(eLogLevel_debug, "Get GST_VERSION_MAJOR  %d", GST_VERSION_MAJOR);
-        CSIO_LOG(eLogLevel_debug, "Get GST_VERSION_MINOR  %d", GST_VERSION_MINOR);
-        CSIO_LOG(eLogLevel_debug, "Get GST_VERSION_MICRO  %d", GST_VERSION_MICRO);
+    CSIO_LOG(eLogLevel_debug, "Get GST_VERSION_MAJOR  %d", GST_VERSION_MAJOR);
+    CSIO_LOG(eLogLevel_debug, "Get GST_VERSION_MINOR  %d", GST_VERSION_MINOR);
+    CSIO_LOG(eLogLevel_debug, "Get GST_VERSION_MICRO  %d", GST_VERSION_MICRO);
+    CSIO_LOG(eLogLevel_debug, "Get GST_VERSION  %s", gst_version_string());
 }
 
 /**
@@ -385,7 +387,11 @@ GstPadProbeReturn udpsrcProbe(GstPad *pad, GstPadProbeInfo *info, gpointer user_
                              CSIO_LOG(eLogLevel_debug,"Stream[%d]: Error expect sequence number: %d, actual number: %d, gap is [%d]\n",
                                  data->streamId, savedSeqNum[data->streamId]+1, lnNewSeqNum, (lnNewSeqNum - savedSeqNum[data->streamId]));
 
-                            WfdSinkProjSendIdrReq(data->streamId);
+                            if(data->wfd_start && 
+                               product_info()->hw_platform == eHardwarePlatform_Rockchip )        
+                            {
+                               WfdSinkProjSendIdrReq(data->streamId);
+                            }//else
                          }
 
                          savedSeqNum[data->streamId] = lnNewSeqNum;
@@ -708,6 +714,8 @@ void insert_blocking_probe(CREGSTREAM *data, GstElement *element, const gchar *n
  */
 void csio_DecVideo1stOutputCB(GstElement *src,int id)
 {
+    //TODO: this is gstreamer callback, should keep it very short.
+    //      need to optimize it.
     if(csio_GetWaitDecHas1stVidDelay(id))
     {
         CSIO_LOG(eLogLevel_info, "%s: Sending the playing message for streamId=%d", __FUNCTION__, id);
@@ -718,6 +726,7 @@ void csio_DecVideo1stOutputCB(GstElement *src,int id)
         csio_SetWaitDecHas1stVidDelay(id,0);
         csio_SendVideoInfo(id, src);
         csio_jni_setAutoBitrate(id);
+        WfdSinkProjSendGst1stFrameEvt(id);
     }
     else
     {

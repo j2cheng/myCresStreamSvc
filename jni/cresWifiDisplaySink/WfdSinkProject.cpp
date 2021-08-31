@@ -292,6 +292,50 @@ void WfdSinkProjSendGstReady(int id)
     gProjectsLock.unlock();
     CSIO_LOG(gProjectDebug, "WfdSinkProjSendGstReady: return.");
 }
+void WfdSinkProjSendGst1stFrameEvt(int id)
+{
+    CSIO_LOG(gProjectDebug, "WfdSinkProjSendGst1stFrameEvt: enter: id[%d].",id);
+    gProjectsLock.lock();
+
+    if(gWFDSinkProjPtr)
+    {
+        csioEventQueueStruct EvntQ;
+        memset(&EvntQ,0,sizeof(csioEventQueueStruct));
+        EvntQ.obj_id = id;
+        EvntQ.event_type = WFD_SINK_EVENTS_JNI_1ST_FRAME;
+
+        gWFDSinkProjPtr->sendEvent(&EvntQ);
+    }
+    else
+    {
+        CSIO_LOG(gProjectDebug, "WfdSinkProjSendGst1stFrameEvt: no gWFDSinkProjPtr is running\n");
+    }
+
+    gProjectsLock.unlock();
+    CSIO_LOG(gProjectDebug, "WfdSinkProjSendGst1stFrameEvt: return.");
+}
+void WfdSinkProjSendGstLostVideoEvt(int id)
+{
+    CSIO_LOG(gProjectDebug, "WfdSinkProjSendGstLostVideoEvt: enter: id[%d].",id);
+    gProjectsLock.lock();
+
+    if(gWFDSinkProjPtr)
+    {
+        csioEventQueueStruct EvntQ;
+        memset(&EvntQ,0,sizeof(csioEventQueueStruct));
+        EvntQ.obj_id = id;
+        EvntQ.event_type = WFD_SINK_EVENTS_JNI_LOST_VIDEO;
+
+        gWFDSinkProjPtr->sendEvent(&EvntQ);
+    }
+    else
+    {
+        CSIO_LOG(gProjectDebug, "WfdSinkProjSendGstLostVideoEvt: no gWFDSinkProjPtr is running\n");
+    }
+
+    gProjectsLock.unlock();
+    CSIO_LOG(gProjectDebug, "WfdSinkProjSendGstLostVideoEvt: return.");
+}
 void WfdSinkProjSetMaxMiracastBitrate(int maxrate)
 {
     CSIO_LOG(gProjectDebug, "WfdSinkProjSetMaxMiracastBitrate: enter: maxrate[%d].",maxrate);
@@ -814,6 +858,46 @@ void* wfdSinkProjClass::ThreadEntry()
                     if( evntQPtr->buf_size && evntQPtr->buffPtr)
                         deleteCharArray(evntQPtr->buffPtr);
 
+                    break;
+                }
+                case WFD_SINK_EVENTS_JNI_1ST_FRAME:
+                {
+                    int id = evntQPtr->obj_id;
+                    CSIO_LOG(m_debugLevel, "wfdSinkProjClass: process WFD_SINK_EVENTS_JNI_1ST_FRAME[%d].\n",id);
+
+                    if( !IsValidStreamWindow(id))
+                    {
+                        CSIO_LOG(eLogLevel_info, "wfdSinkProjClass: WFD_SINK_EVENTS_JNI_1ST_FRAME obj ID is invalid = %d",id);
+                    }
+                    else
+                    {
+                        csioEventQueueStruct EvntQ;
+
+                        memset(&EvntQ,0,sizeof(csioEventQueueStruct));
+                        EvntQ.obj_id = id;
+                        EvntQ.event_type = WFD_SINK_GST_1ST_FRAME_EVENT;
+                        wfdSinkStMachineClass::m_wfdSinkStMachineThreadPtr->sendEvent(&EvntQ);
+                    }
+                    break;
+                }
+                case WFD_SINK_EVENTS_JNI_LOST_VIDEO:
+                {
+                    int id = evntQPtr->obj_id;
+                    CSIO_LOG(m_debugLevel, "wfdSinkProjClass: process WFD_SINK_EVENTS_JNI_LOST_VIDEO[%d].\n",id);
+
+                    if( !IsValidStreamWindow(id))
+                    {
+                        CSIO_LOG(eLogLevel_info, "wfdSinkProjClass: WFD_SINK_EVENTS_JNI_LOST_VIDEO obj ID is invalid = %d",id);
+                    }
+                    else
+                    {
+                        csioEventQueueStruct EvntQ;
+
+                        memset(&EvntQ,0,sizeof(csioEventQueueStruct));
+                        EvntQ.obj_id = id;
+                        EvntQ.event_type = WFD_SINK_GST_LOST_VIDEO_EVENT;
+                        wfdSinkStMachineClass::m_wfdSinkStMachineThreadPtr->sendEvent(&EvntQ);
+                    }
                     break;
                 }
                 default:

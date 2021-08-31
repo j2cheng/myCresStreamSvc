@@ -49,6 +49,8 @@ const WFD_STRNUMPAIR Wfd_state_event_names[] =
     {"WFD_SINK_TEARDOWN_TCP_CONN_EVENT",    WFD_SINK_TEARDOWN_TCP_CONN_EVENT},
     {"WFD_SINK_SEND_IDR_REQ_EVENT",         WFD_SINK_SEND_IDR_REQ_EVENT},
     {"WFD_SINK_GST_READY_EVENT",            WFD_SINK_GST_READY_EVENT},
+    {"WFD_SINK_GST_1ST_FRAME_EVENT",        WFD_SINK_GST_1ST_FRAME_EVENT},
+    {"WFD_SINK_GST_LOST_VIDEO_EVENT",       WFD_SINK_GST_LOST_VIDEO_EVENT},
 
     {0,0}//terminate the list
 };
@@ -1511,6 +1513,10 @@ int wfdSinkStMachineClass::waitM7ResponseState(csioEventQueueStruct* pEventQ)
 
             setTimeout(m_keepAliveTimeout);
 
+            //set a timer(15s) for the first frame event
+            if(wfdSinkStMachineTimeArray)
+                wfdSinkStMachineTimeArray->setTimeout(WFD_SINK_STATE_1ST_FRAME_TIMEOUT_TIMER, WFD_SINK_STATETIMEOUT_WAIT_GST_PIPELINE);
+
             nextState = WFD_SINK_STATES_KEEP_ALIVE_LOOP;
 
             break;
@@ -1636,34 +1642,61 @@ int wfdSinkStMachineClass::monitorKeepAliveState(csioEventQueueStruct* pEventQ)
                 nextState = WFD_SINK_STATES_IDLE;
             }
 
+            //check timer(15s) for the first frame event
+            if(wfdSinkStMachineTimeArray && wfdSinkStMachineTimeArray->isTimeout(WFD_SINK_STATE_1ST_FRAME_TIMEOUT_TIMER))
+            {
+                CSIO_LOG(m_debugLevel,  "wfdSinkStMachineClass[%d]: 1ST_FRAME_TIMEOUT .\n",m_myId);
+                wfdSinkStMachineTimeArray->resetTimeout(WFD_SINK_STATE_1ST_FRAME_TIMEOUT_TIMER);
+
+                int ret = composeRTSPRequest(m_rtspParserIntfSession,"TEARDOWN",parserComposeRequestCallback,(void*)this);
+
+                if(pRTSPSinkClient && (ret == 0))
+                {
+                    pRTSPSinkClient->sendDataOut((char*)m_requestString.c_str(),m_requestString.size());
+
+                    setTimeout(WFD_SINK_STATETIMEOUT_WAIT_RESP);
+                    nextState = WFD_SINK_STATES_WAIT_TD_RESP;
+                }
+                else
+                {
+                    if(isOnRTSPTcpConnSet())
+                        prepareForRestart();
+                    else
+                        prepareBeforeIdle();
+
+                    nextState = WFD_SINK_STATES_IDLE;
+                }
+            }//else
+
             break;
         }
         case WFD_SINK_STM_INTERNAL_ERROR_EVENT:
         case WFD_SINK_STM_START_TEARDOWN_EVENT:
+        case WFD_SINK_GST_LOST_VIDEO_EVENT:
         {
-        	if(events == WFD_SINK_STM_START_TEARDOWN_EVENT)
-			{
-				resetOnRTSPTcpConnFlg();
-			}
+            if(events == WFD_SINK_STM_START_TEARDOWN_EVENT)
+            {
+                resetOnRTSPTcpConnFlg();
+            }
 
-			int ret = composeRTSPRequest(m_rtspParserIntfSession,"TEARDOWN",parserComposeRequestCallback,(void*)this);
+            int ret = composeRTSPRequest(m_rtspParserIntfSession,"TEARDOWN",parserComposeRequestCallback,(void*)this);
 
-			if(pRTSPSinkClient && (ret == 0))
-			{
-				pRTSPSinkClient->sendDataOut((char*)m_requestString.c_str(),m_requestString.size());
+            if(pRTSPSinkClient && (ret == 0))
+            {
+                pRTSPSinkClient->sendDataOut((char*)m_requestString.c_str(),m_requestString.size());
 
-				setTimeout(WFD_SINK_STATETIMEOUT_WAIT_RESP);
-				nextState = WFD_SINK_STATES_WAIT_TD_RESP;
-			}
-			else
-			{
-				if(isOnRTSPTcpConnSet())
-					prepareForRestart();
-				else
-					prepareBeforeIdle();
+                setTimeout(WFD_SINK_STATETIMEOUT_WAIT_RESP);
+                nextState = WFD_SINK_STATES_WAIT_TD_RESP;
+            }
+            else
+            {
+                if(isOnRTSPTcpConnSet())
+                    prepareForRestart();
+                else
+                    prepareBeforeIdle();
 
-				nextState = WFD_SINK_STATES_IDLE;
-			}
+                nextState = WFD_SINK_STATES_IDLE;
+            }
 
             break;
         }
@@ -1745,6 +1778,12 @@ int wfdSinkStMachineClass::monitorKeepAliveState(csioEventQueueStruct* pEventQ)
         case WFD_SINK_STM_START_CONN_EVENT:
         {
             setOnRTSPTcpConnFlg();
+            break;
+        }
+        case WFD_SINK_GST_1ST_FRAME_EVENT:
+        {
+            wfdSinkStMachineTimeArray->resetTimeout(WFD_SINK_STATE_1ST_FRAME_TIMEOUT_TIMER);
+            CSIO_LOG(ABOVE_DEBUG_VERB(m_debugLevel),  "wfdSinkStMachineClass[%d]: WFD_SINK_GST_1ST_FRAME_EVENT processed.\n",m_myId);
             break;
         }
         default:
@@ -2466,6 +2505,26 @@ void* wfdSinkStMachineThread::ThreadEntry()
 
                     break;
                 }
+                //Note: in most cases, only need to pass event to state machine
+                case WFD_SINK_GST_LOST_VIDEO_EVENT:
+                case WFD_SINK_GST_1ST_FRAME_EVENT:
+                {
+                    int id = evntQPtr->obj_id;
+
+                    if(wfdSinkStMachineThread::m_wfdSinkStMachineTaskList[id])
+                    {
+                        wfdSinkStMachineClass* p = wfdSinkStMachineThread::m_wfdSinkStMachineTaskList[id];
+
+                        csioEventQueueStruct evntQ;
+                        memset(&evntQ,0,sizeof(csioEventQueueStruct));
+                        evntQ.event_type = evntQPtr->event_type;
+                        p->stateFunction(&evntQ);
+
+                        CSIO_LOG(m_debugLevel, "wfdSinkStMachineThread:id[%d] event_type[%d] processed\n",id,evntQPtr->event_type);
+                    }
+                    break;
+                }
+
 
 #if 0
                 case WFD_SINK_REMOVE_STMACHINE_EVENT:
@@ -2510,6 +2569,12 @@ void* wfdSinkStMachineThread::ThreadEntry()
                     break;
                 }
 #endif
+                default:
+                {
+                    CSIO_LOG(eLogLevel_info, "wfdSinkStMachineThread: unknown type[%d].\n",evntQPtr->event_type);
+                    break;
+                }
+
             }//end of switch
 
             delete evntQPtr;
@@ -2791,5 +2856,12 @@ void wfdSinkStMachineThread::DumpClassPara(int l)
             }
         }
     }
+}
+int wfdSinkStMachineThread::getCurrentTimeInSec()
+{
+    struct timespec ts_now;
+    clock_gettime(CLOCK_MONOTONIC, &ts_now);
+
+    return ts_now.tv_sec ;
 }
 /***************************** end of wfdSinkStMachineThread class **************************************/
