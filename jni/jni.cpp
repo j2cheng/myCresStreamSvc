@@ -178,7 +178,7 @@ const char * const fieldDebugNames[MAX_SPECIAL_FIELD_DEBUG_NUM - 1] =
     "20 DROP_AUDIO_PACKETS          ",
     "21 INSERT_AUDIO_PROBE          ",
     "22 PRINT_RTP_SEQUENCE_NUMBER   ",
-    
+    "23 SET_MAX_MIRACAST_BITRATE    ",    
 };
 int amcviddec_debug_level    = GST_LEVEL_ERROR;
 int videodecoder_debug_level = GST_LEVEL_ERROR;
@@ -2290,6 +2290,28 @@ JNIEXPORT void JNICALL Java_com_crestron_txrxservice_GstreamIn_nativeSetFieldDeb
             {
             	GstElementFactory *factory = gst_element_factory_find(product_info()->H264_encoder_string);
             	print_pad_templates_information(factory);
+            }
+            else if(!strcmp(CmdPtr, "SET_MAX_MIRACAST_BITRATE"))
+            {
+                CmdPtr = strtok(NULL, ", ");
+                if (CmdPtr == NULL)
+                {
+                    CSIO_LOG(eLogLevel_info, "Invalid Format, need parameter\r\n");
+                }
+                else
+                {
+                    int id = (int)strtol(CmdPtr, &EndPtr, 10);
+
+                    if (id > 0)
+                    {
+                        CSIO_LOG(eLogLevel_debug, "max bitrate is: %d", id);
+                        WfdSinkProjSetMaxMiracastBitrate(id);
+                    }
+                    else
+                    {
+                        CSIO_LOG(eLogLevel_debug, "Invalid max bitrate : %d", id);
+                    }
+                }
             }
             else
             {
