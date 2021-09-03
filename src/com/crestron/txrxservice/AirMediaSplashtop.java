@@ -111,6 +111,8 @@ public class AirMediaSplashtop
 	private final Object disconnectSessionObjectLock = new Object();
 	private final Object disconnectSessionCriticalSectionLock = new Object();	
     private final MyReentrantLock orderedLock	= new MyReentrantLock(true); // fairness=true, makes lock ordered
+    private final MyReentrantLock airMediaRcvLock = new MyReentrantLock(true); 
+
     public CountDownLatch serviceConnectedLatch=null;
     public CountDownLatch serviceDisconnectedLatch=null;
     public CountDownLatch receiverLoadedLatch=null;
@@ -1759,29 +1761,34 @@ public class AirMediaSplashtop
     
     public void setAdapter(String address)
     {
+        //Note: startAirMedia will set receiver_ in defferent thread,
+        //      need lock here.
+        airMediaRcvLock.lock("airMediaRcvLock_setAdapter");
     	if (get_adapter_ip_address().equals(address) && (get_pending_adapter_ip_address() == null)) {
-    		Common.Logging.i(TAG, "setAdapter(): Exiting without any change since adapter_ip_address is already " + get_adapter_ip_address());
-    		return;
+    	    Common.Logging.i(TAG, "setAdapter(): Exiting without any change since adapter_ip_address is already " + get_adapter_ip_address());
+    	    airMediaRcvLock.unlock("airMediaRcvLock_setAdapter");            
+            return;
     	}
     	set_pending_adapter_ip_address(address);
-		if (receiver_ != null)
-		{
-			Common.Logging.i(TAG, "setAdapter(): Stopping all senders");
-			stopAllSenders();
-			Common.Logging.i(TAG, "setAdapter(): Disconnect all senders");
-			disconnectAllSenders();
-		}
-		// Launch Stop/Start of receiver in separate thread
-		if (receiver_ == null && service_ != null)
-		{
-			Common.Logging.i(TAG, "setAdapter(): calling startAirMedia with ip address " + address);
-			startAirMedia();
-		}
-		else
-		{
-			RestartReceiverForAdapterChange();
-			Common.Logging.i(TAG, "setAdapter(): Exiting having issued restart of receiver with " + address);
-		}
+        if(receiver_ != null)
+        {
+            Common.Logging.i(TAG, "setAdapter(): Stopping all senders");
+            stopAllSenders();
+            Common.Logging.i(TAG, "setAdapter(): Disconnect all senders");
+            disconnectAllSenders();
+        }
+        // Launch Stop/Start of receiver in separate thread
+        if(receiver_ == null && service_ != null)
+        {
+            Common.Logging.i(TAG, "setAdapter(): calling startAirMedia with ip address " + address);
+            startAirMedia();
+        }
+        else
+        {
+            RestartReceiverForAdapterChange();
+            Common.Logging.i(TAG, "setAdapter(): Exiting having issued restart of receiver with " + address);
+        }
+        airMediaRcvLock.unlock("airMediaRcvLock_setAdapter");
     }
     
     public void setProjectionLock(boolean enable)
@@ -2747,35 +2754,41 @@ public class AirMediaSplashtop
         Common.Logging.i(TAG, "close(): completed");
     }
 
-	private final ServiceConnection AirMediaServiceConnection = new ServiceConnection() {
-		@Override
-		public void onServiceConnected(final ComponentName name, final IBinder binder) {
-//			This comes in on UI thread, move off
-			new Thread(new Runnable() {
-				@Override
-				public void run() {
-					isServiceConnected = true;
-					if (requestServiceConnection)
-					{
-						Common.Logging.i(TAG, "AirMediaServiceConnection.onServiceConnected  " + name);
-						requestServiceConnection = false;
-						try {
-							service_ = IAirMediaReceiver.Stub.asInterface(binder);
-							if (service_ == null) return;            	
-							serviceConnectedLatch.countDown();
-							startAirMedia();
-						} catch (Exception e) {
-							Common.Logging.e(TAG, "AirMediaServiceConnection.onServiceConnected  EXCEPTION  " + e);
-							e.printStackTrace();
-						}
-					}
-					else
-					{
-						Common.Logging.i(TAG, "AirMediaServiceConnection.onServiceConnected, ignoring unsolicited" + name);
-					}
-				}
-			}).start();
-		}
+    private final ServiceConnection AirMediaServiceConnection = new ServiceConnection() {
+        @Override
+        public void onServiceConnected(final ComponentName name, final IBinder binder) {
+            // This comes in on UI thread, move off
+            new Thread(new Runnable() {
+                @Override
+                public void run() {
+                    isServiceConnected = true;
+                    if (requestServiceConnection)
+                    {
+                        Common.Logging.i(TAG, "AirMediaServiceConnection.onServiceConnected  " + name);
+                        requestServiceConnection = false;
+                        try {
+                            service_ = IAirMediaReceiver.Stub.asInterface(binder);
+                            if (service_ == null) return;
+                            serviceConnectedLatch.countDown();
+
+                            // Note: startAirMedia will set receiver_, which used by setAdapter in
+                            // different thread, so lock here.
+                            airMediaRcvLock.lock("airMediaRcvLock_onSrvCondCb");
+                            startAirMedia();
+                            airMediaRcvLock.unlock("airMediaRcvLock_onSrvCondCb");
+
+                        } catch (Exception e) {
+                            Common.Logging.e(TAG, "AirMediaServiceConnection.onServiceConnected  EXCEPTION  " + e);
+                            e.printStackTrace();
+                        }
+                    } 
+                    else 
+                    {
+                        Common.Logging.i(TAG, "AirMediaServiceConnection.onServiceConnected, ignoring unsolicited" + name);
+                    }
+                }
+            }).start();
+        }
 
 		@Override
 		public void onServiceDisconnected(final ComponentName name) {

@@ -30,7 +30,7 @@ import java.util.Map;
 import java.util.Map.Entry;
 
 public class WifidVideoPlayer {
-    private static final String TAG = "WifidVideoPlayer";
+    private static final String TAG = "TxRx.WifidVideoPlayer";
     private static final long INVALID_SESSION_ID = (long) 0;
     private final Object startSessionObjectLock = new Object();
     private final Object stopSessionObjectLock = new Object();
