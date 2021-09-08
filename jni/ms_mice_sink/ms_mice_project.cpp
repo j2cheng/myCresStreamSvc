@@ -233,7 +233,9 @@ static void app_extension_ms_mice_session_observer_on_source_ready(ms_mice_sink_
             rtsp_port);*/
 
     //Note: do not call Wfd_ms_mice_signal_raise() inside current thread
-    gProjectsLock.lock();
+    //      9-8-2021: function called from service thread, no lock needed,
+    //                service thread might already be locked by DeInit()
+    //gProjectsLock.lock();
 
     if(g_msMiceSinkProjPtr)
     {
@@ -262,7 +264,7 @@ static void app_extension_ms_mice_session_observer_on_source_ready(ms_mice_sink_
         CSIO_LOG(gProjectDebug, "observer_on_source_ready: no g_msMiceSinkProjPtr is running\n");
     }
 
-    gProjectsLock.unlock();
+    //gProjectsLock.unlock();
     CSIO_LOG(gProjectDebug, "observer_on_source_ready: exit.");
 }
 
@@ -280,7 +282,9 @@ static void app_extension_ms_mice_session_observer_on_stop_projection(ms_mice_si
             0);*/
 
     //Note: do not call Wfd_ms_mice_signal_raise() inside current thread
-    gProjectsLock.lock();
+    //      9-8-2021: function called from service thread, no lock needed,
+    //                service thread might already be locked by DeInit()
+    //gProjectsLock.lock();
 
     if(g_msMiceSinkProjPtr)
     {
@@ -310,7 +314,7 @@ static void app_extension_ms_mice_session_observer_on_stop_projection(ms_mice_si
         CSIO_LOG(gProjectDebug, "observer_on_stop_projection: no g_msMiceSinkProjPtr is running\n");
     }
 
-    gProjectsLock.unlock();
+    //gProjectsLock.unlock();
     CSIO_LOG(gProjectDebug, "observer_on_stop_projection: exit.");
 }
 
