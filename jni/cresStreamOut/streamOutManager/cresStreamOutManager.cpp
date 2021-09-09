@@ -1249,6 +1249,7 @@ eWCstatus CStreamoutManager::initWcAudioVideo()
         		// using videotestsrc
                 snprintf(m_caps, sizeof(m_caps), "video/x-raw,format=NV12,width=%s,height=%s,framerate=%s/1",
                 		m_res_x, m_res_y, m_frame_rate);
+        		m_videoconvert[0] = '\0';
         	}
     		CSIO_LOG(eLogLevel_info, "--Streamout - m_videoStream=%s", ((m_videoStream)?"true":"false"));
         }
@@ -1278,7 +1279,7 @@ eWCstatus CStreamoutManager::initWcAudioVideo()
 void CStreamoutManager::setVideoSource(char *videoSource, int n)
 {
 	if (strcmp(m_video_capture_device, "videotestsrc") == 0) {
-		snprintf(videoSource, n, "videotestsrc");
+		snprintf(videoSource, n, "videotestsrc is-live=true");
 	} else {
 #ifdef NANOPC
 		snprintf(videoSource, n, "v4l2src device=%s io-mode=4 do-timestamp=true", "/dev/video10");
@@ -1292,7 +1293,7 @@ void CStreamoutManager::setVideoSource(char *videoSource, int n)
 void CStreamoutManager::setAudioSource(char *audioSource, int n)
 {
 	if (strcmp(m_audio_capture_device, "audiotestsrc") == 0) {
-		snprintf(audioSource, n, "audiotestsrc ! audio/x-raw,format=S16LE,rate=48000,channels=2 ");
+		snprintf(audioSource, n, "audiotestsrc is-live=true ! audio/x-raw,format=S16LE,rate=48000,channels=2 ");
 		useUsbAudio = false;
 	} else {
 		snprintf(audioSource, n, "appsrc name=wc_appsrc ");
