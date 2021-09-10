@@ -178,7 +178,7 @@ const char * const fieldDebugNames[MAX_SPECIAL_FIELD_DEBUG_NUM - 1] =
     "20 DROP_AUDIO_PACKETS          ",
     "21 INSERT_AUDIO_PROBE          ",
     "22 PRINT_RTP_SEQUENCE_NUMBER   ",
-    "23 SET_MAX_MIRACAST_BITRATE    ",    
+    "23 SET_DEC_MAX_INPUT_FRAMES    ",    
 };
 int amcviddec_debug_level    = GST_LEVEL_ERROR;
 int videodecoder_debug_level = GST_LEVEL_ERROR;
@@ -2291,25 +2291,60 @@ JNIEXPORT void JNICALL Java_com_crestron_txrxservice_GstreamIn_nativeSetFieldDeb
             	GstElementFactory *factory = gst_element_factory_find(product_info()->H264_encoder_string);
             	print_pad_templates_information(factory);
             }
-            else if(!strcmp(CmdPtr, "SET_MAX_MIRACAST_BITRATE"))
+            else if(!strcmp(CmdPtr, "SET_DEC_MAX_INPUT_FRAMES"))
             {
+                //the first parameter is stream id
                 CmdPtr = strtok(NULL, ", ");
                 if (CmdPtr == NULL)
-                {
-                    CSIO_LOG(eLogLevel_info, "Invalid Format, need parameter\r\n");
+                { 
+                    CSIO_LOG(eLogLevel_info, "invalid parameter, need stream id\r\n");
                 }
                 else
                 {
                     int id = (int)strtol(CmdPtr, &EndPtr, 10);
+                    CSIO_LOG(eLogLevel_debug, "stream id is: %d",id);
 
-                    if (id > 0)
+                    if(id >= 0 && id < MAX_STREAMS)
                     {
-                        CSIO_LOG(eLogLevel_debug, "max bitrate is: %d", id);
-                        WfdSinkProjSetMaxMiracastBitrate(id);
+                        CREGSTREAM * StreamDb = GetStreamFromCustomData(CresDataDB, id);
+                        if(!StreamDb)
+                        {
+                            CSIO_LOG(eLogLevel_error, "Could not obtain stream pointer for stream %d", id);                            
+                        }
+                        else
+                        {
+                            CmdPtr = strtok(NULL, ", ");
+                            if (CmdPtr == NULL)
+                            {
+                                guint  tmp = 0;
+                                if(StreamDb->amcvid_dec)
+                                {
+                                    g_object_get(G_OBJECT(StreamDb->amcvid_dec), "dec-max-input-frames", &tmp, NULL);
+                                    CSIO_LOG(eLogLevel_info, "get dec-max-input-frames: %d\r\n", tmp);
+                                }
+                                else
+                                {
+                                    CSIO_LOG(eLogLevel_info, "no amcvid_dec \r\n");           
+                                }                                
+                            }
+                            else
+                            {                         
+                                if(StreamDb->amcvid_dec)
+                                {
+                                    guint  tmp = strtol(CmdPtr, &EndPtr, 10);
+                                    g_object_set(G_OBJECT(StreamDb->amcvid_dec), "dec-max-input-frames", tmp, NULL);
+                                    CSIO_LOG(eLogLevel_info, "set dec-max-input-frames: %d\r\n", tmp);
+                                }
+                                else
+                                {
+                                    CSIO_LOG(eLogLevel_info, "no amcvid_dec \r\n");           
+                                }   
+                            }
+                        }
                     }
                     else
                     {
-                        CSIO_LOG(eLogLevel_debug, "Invalid max bitrate : %d", id);
+                        CSIO_LOG(eLogLevel_debug, "Invalid stream id : %d", id);
                     }
                 }
             }
