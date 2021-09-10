@@ -4345,9 +4345,12 @@ void csio_jni_initVideo(int iStreamId)
 {
     CREGSTREAM * data = GetStreamFromCustomData(CresDataDB, iStreamId);
     
+    CSIO_LOG(eLogLevel_debug, ">>>>> CREGSTREAM * data is %p in %s\n",(void *)data,__FUNCTION__);
+    
     if(!data)
     {
-        CSIO_LOG(eLogLevel_error, "%s: Could not obtain stream pointer for stream %d", __FUNCTION__, iStreamId);
+        // *** CSIO_LOG(eLogLevel_error, "%s: Could not obtain stream pointer for stream %d", __FUNCTION__, iStreamId);
+        CSIO_LOG(eLogLevel_error, ">>>>> %s: Could not obtain stream pointer for stream %d", __FUNCTION__, iStreamId);
         return;
     }
     
@@ -4364,6 +4367,9 @@ void csio_jni_initVideo(int iStreamId)
     }
     else
     {
+       
+        CSIO_LOG(eLogLevel_debug, ">>>>> not using_glimagsink in %s\n",__FUNCTION__);
+       
         //SET OFSSET
         // Bug 113246: For RTSP modes we need to set ts offset, for udp modes we should not or AV sync is off
         if( data->amcvid_dec && (!debug_blocking_audio) && data->audio_sink &&
@@ -4383,33 +4389,41 @@ void csio_jni_initVideo(int iStreamId)
         		                      data->amcviddec_ts_offset;
         	}
 
-
+            CSIO_LOG(eLogLevel_debug, ">>>>> tmp value is 0x%h in %s\n",tmp,__FUNCTION__);
+         
             if( GST_VERSION_MAJOR == 1 && GST_VERSION_MINOR == 14)
             {
                 g_object_set(G_OBJECT(data->amcvid_dec), "ts-offset", tmp, NULL);
-                CSIO_LOG(eLogLevel_debug, "%s: total ts_offset: %d ms",__FUNCTION__, tmp);
+                // *** CSIO_LOG(eLogLevel_debug, "%s: total ts_offset: %d ms",__FUNCTION__, tmp);
+                CSIO_LOG(eLogLevel_debug, ">>>>> %s: total ts_offset: %d ms",__FUNCTION__, tmp);
             }
             else if(GST_VERSION_MAJOR == 1 && GST_VERSION_MINOR == 16)
             {
                 g_object_set(G_OBJECT(data->amcvid_dec), "ts-offset", (tmp*1000000), NULL);
-                CSIO_LOG(eLogLevel_debug, "%s: total ts_offset: %lld ns",__FUNCTION__, tmp*1000000);
+                // *** CSIO_LOG(eLogLevel_debug, "%s: total ts_offset: %lld ns",__FUNCTION__, tmp*1000000);
+                CSIO_LOG(eLogLevel_debug, ">>>>> %s: total ts_offset: %lld ns",__FUNCTION__, tmp*1000000);
             }
 
-            CSIO_LOG(eLogLevel_debug, "%s: streamingBuffer or latency is:%d",__FUNCTION__, CSIOCnsIntf->getStreamRx_BUFFER(iStreamId));
-            CSIO_LOG(eLogLevel_debug, "%s: amcviddec_ts_offset:%d",__FUNCTION__, data->amcviddec_ts_offset);            
+            // *** CSIO_LOG(eLogLevel_debug, "%s: streamingBuffer or latency is:%d",__FUNCTION__, CSIOCnsIntf->getStreamRx_BUFFER(iStreamId));
+            // *** CSIO_LOG(eLogLevel_debug, "%s: amcviddec_ts_offset:%d",__FUNCTION__, data->amcviddec_ts_offset);            
+            CSIO_LOG(eLogLevel_debug, ">>>>> %s: streamingBuffer or latency is:%d",__FUNCTION__, CSIOCnsIntf->getStreamRx_BUFFER(iStreamId));
+            CSIO_LOG(eLogLevel_debug, ">>>>> %s: amcviddec_ts_offset:%d",__FUNCTION__, data->amcviddec_ts_offset);            
         }
     
         if(data->element_valve_v)
             g_object_set(G_OBJECT(data->element_valve_v), "drop", FALSE, NULL);
     
-        CSIO_LOG(eLogLevel_debug, "%s: qos is turned off for surfaceflingersink!", __FUNCTION__);
+        // *** CSIO_LOG(eLogLevel_debug, "%s: qos is turned off for surfaceflingersink!", __FUNCTION__);
+        CSIO_LOG(eLogLevel_debug, ">>>>> %s: qos is turned off for surfaceflingersink!", __FUNCTION__);
+        
         if(data->video_sink)
             g_object_set(G_OBJECT(data->video_sink), "qos", FALSE, NULL);
 
         if(data->amcvid_dec && (product_info()->hw_platform == eHardwarePlatform_Snapdragon))
         {
             g_object_set(G_OBJECT(data->amcvid_dec), "push-delay-max", G_GUINT64_CONSTANT (0), NULL);
-            CSIO_LOG(eLogLevel_debug, "Stream[%d] push-delay-max is disabled", iStreamId);
+            // *** CSIO_LOG(eLogLevel_debug, "Stream[%d] push-delay-max is disabled", iStreamId);
+            CSIO_LOG(eLogLevel_debug, ">>>>> Stream[%d] push-delay-max is disabled", iStreamId);
         }
     }
 }
