@@ -33,6 +33,9 @@ public class AudioPlayback
 	final int mWaitFramesDone = 15;
 	final static int maxNumOfBuffers = 3;	// This value was determined through manual testing
 
+        final int mMaxBufFullError = 100;
+        int   mBufFullErrorCnt = 0;
+
 	public AudioPlayback(CresStreamCtrl streamCtl) {
 		mStreamCtl = streamCtl;
 	}
@@ -62,6 +65,14 @@ public class AudioPlayback
 					Log.i(TAG, "Dropping audio buffers because audio buffer queue full!");
 					audioBufferQueue.clear();
 					mAudioBuffers.clearBuffers();
+                    
+                                        //9-13-2021: detect this error up to mMaxBufFullError, then restart txrx
+                                        mBufFullErrorCnt++;
+                                        if(mBufFullErrorCnt > mMaxBufFullError)
+                                        {
+                                            Log.i(TAG, "Restart txrx because too many audio errors!");
+                                            System.exit(1);
+                                        }//else
 				}
 				audioBufferQueue.add(newAudioBuffer);
 				audioBufferQueue.notify();
