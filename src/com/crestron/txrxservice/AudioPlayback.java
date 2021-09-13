@@ -8,6 +8,7 @@ import android.media.MediaRecorder.AudioSource;
 import android.media.AudioFormat;
 import android.util.Log;
 
+import java.io.File;
 import java.nio.ByteBuffer;
 import java.util.Queue;
 import java.util.concurrent.CountDownLatch;
@@ -54,30 +55,44 @@ public class AudioPlayback
 		private int AudioSrc = AudioSource.CAMCORDER; //Audio Source is CAMCORDER for all products except AM3X
 		private final int BufferSize = AudioRecord.getMinBufferSize(SampleRate, AudioChannels, AudioFmt);
 		private StaticAudioBuffers mAudioBuffers = new StaticAudioBuffers(maxNumOfBuffers + 2);
-		
-		private void addToAudioBufferQueue(audioBufferQueueObject newAudioBuffer)
-		{
-			synchronized (audioBufferQueue)
-			{
-				if (audioBufferQueue.size() >= maxNumOfBuffers)
-				{
-					// TODO: make sure this doesn't print too much in error condition
-					Log.i(TAG, "Dropping audio buffers because audio buffer queue full!");
-					audioBufferQueue.clear();
-					mAudioBuffers.clearBuffers();
-                    
-                                        //9-13-2021: detect this error up to mMaxBufFullError, then restart txrx
-                                        mBufFullErrorCnt++;
-                                        if(mBufFullErrorCnt > mMaxBufFullError)
-                                        {
-                                            Log.i(TAG, "Restart txrx because too many audio errors!");
-                                            System.exit(1);
-                                        }//else
-				}
-				audioBufferQueue.add(newAudioBuffer);
-				audioBufferQueue.notify();
-			}
-		}
+                public final static String rebootAudioFullFile = "/dev/shm/crestron/CresStreamSvc/rebootedOnAudioBufferFull";
+
+        private void addToAudioBufferQueue(audioBufferQueueObject newAudioBuffer)
+        {
+            synchronized (audioBufferQueue)
+            {
+                if (audioBufferQueue.size() >= maxNumOfBuffers)
+                {
+                    // TODO: make sure this doesn't print too much in error condition
+                    Log.i(TAG, "Dropping audio buffers because audio buffer queue full!");
+                    audioBufferQueue.clear();
+                    mAudioBuffers.clearBuffers();
+
+                    // 9-13-2021: detect this error up to mMaxBufFullError, then restart txrx
+                    mBufFullErrorCnt++;
+                    if (mBufFullErrorCnt > mMaxBufFullError) 
+                    {
+                        File rebootFile = new File(rebootAudioFullFile);
+                        if (rebootFile.isFile()) 
+                        {
+                            Log.v(TAG, "Skip Restart txrx because too many audio errors!");
+                            mBufFullErrorCnt = 0;
+                        } 
+                        else 
+                        {
+                            try {
+                                rebootFile.createNewFile();
+                            } catch (Exception e) {}
+
+                            Log.i(TAG, "Restart txrx because too many audio errors!");
+                            System.exit(1);
+                        }
+                    } // else
+                }
+                audioBufferQueue.add(newAudioBuffer);
+                audioBufferQueue.notify();
+            }
+        }
 
 		public void run() {
 			initVolumePending = true;
