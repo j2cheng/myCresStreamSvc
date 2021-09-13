@@ -2284,6 +2284,7 @@ public class CresStreamCtrl extends Service {
         new Thread(new Runnable() {
             @Override
             public void run() {
+            	int priorResolutionEnum = 0;
                 // Poll input and output HDCP states once a second
                 while (!Thread.currentThread().isInterrupted())
                 {
@@ -2362,6 +2363,23 @@ public class CresStreamCtrl extends Service {
                                     Log.i(TAG, "Restarting Streams - sample rate change = " + hdmiInSampleRate);
                                     restartStreams(true); //skip stream in since it does not use hdmi input
                                 }
+                            }
+                            
+                            // Temporary BUG FIX for Blue screen issue in AM3XX-6089
+                            if (isAM3K) {
+                            	int resEnum = HDMIInputInterface.readResolutionEnum(false);
+                            	if (resEnum != priorResolutionEnum) { // res change 
+                            		Log.i(TAG, "Resolution enum changed from "+priorResolutionEnum+" to "+resEnum);
+                            		priorResolutionEnum = resEnum;
+                            		if (resEnum != 0) {
+                            			int curCameraMode = readCameraMode();
+                            			if (curCameraMode == CameraMode.NoVideo.ordinal()
+                            					|| curCameraMode == CameraMode.BlackScreen.ordinal()) {
+                            				Log.i(TAG, "Changing camera mode to "+CameraMode.Camera.ordinal());
+                            				setCameraMode(String.valueOf(CameraMode.Camera.ordinal()));
+                            			}
+                            		}
+                            	}
                             }
                         }
                     }
