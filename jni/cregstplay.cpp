@@ -605,7 +605,15 @@ void resume(CREGSTREAM *data)
 	csio_jni_setFramePushDelay(data->streamId);
 
 	//SET OFSSET to zero for now
-	g_object_set(G_OBJECT(data->amcvid_dec), "ts-offset", 0, NULL);
+        if( GST_VERSION_MAJOR == 1 && GST_VERSION_MINOR == 14)
+        {
+            g_object_set(G_OBJECT(data->amcvid_dec), "ts-offset", 0, NULL);
+        }
+        else if(GST_VERSION_MAJOR == 1 && GST_VERSION_MINOR == 16)
+        {
+            gint64 tsOffset64 = 0;
+            g_object_set(G_OBJECT(data->amcvid_dec), "ts-offset", tsOffset64, NULL);
+        }//else
 
 	//pass surface object to the decoder
 	g_object_set(G_OBJECT(data->amcvid_dec), "surface-window", data->surface, NULL);
@@ -1471,7 +1479,15 @@ int build_video_pipeline(gchar *encoding_name, CREGSTREAM *data, unsigned int st
             csio_jni_setFramePushDelay(data->streamId);
 
             //SET OFSSET to zero for now
-            g_object_set(G_OBJECT(data->amcvid_dec), "ts-offset", 0, NULL);
+            if( GST_VERSION_MAJOR == 1 && GST_VERSION_MINOR == 14)
+            {
+                g_object_set(G_OBJECT(data->amcvid_dec), "ts-offset", 0, NULL);
+            }
+            else if(GST_VERSION_MAJOR == 1 && GST_VERSION_MINOR == 16)
+            {
+                gint64 tsOffset64 = 0;
+                g_object_set(G_OBJECT(data->amcvid_dec), "ts-offset", tsOffset64, NULL);
+            }//else
 
             //pass surface object to the decoder
             g_object_set(G_OBJECT(data->element_v[i-1]), "surface-window", data->surface, NULL);
@@ -1561,7 +1577,15 @@ int build_video_pipeline(gchar *encoding_name, CREGSTREAM *data, unsigned int st
             csio_jni_setFramePushDelay(data->streamId);
 
             //SET OFSSET to zero for now
-            g_object_set(G_OBJECT(data->amcvid_dec), "ts-offset", 0, NULL);
+            if( GST_VERSION_MAJOR == 1 && GST_VERSION_MINOR == 14)
+            {
+                g_object_set(G_OBJECT(data->amcvid_dec), "ts-offset", 0, NULL);
+            }
+            else if(GST_VERSION_MAJOR == 1 && GST_VERSION_MINOR == 16)
+            {
+                gint64 tsOffset64 = 0;
+                g_object_set(G_OBJECT(data->amcvid_dec), "ts-offset", tsOffset64, NULL);
+            }//else
 
             //pass surface object to the decoder
             g_object_set(G_OBJECT(data->element_v[i-1]), "surface-window", data->surface, NULL);
@@ -1680,8 +1704,16 @@ int build_video_pipeline(gchar *encoding_name, CREGSTREAM *data, unsigned int st
 			csio_SetVpuDecoder(data->amcvid_dec, data->streamId);
 			csio_jni_setFramePushDelay(data->streamId);
 
-			//SET OFFSET to zero for now
-			g_object_set(G_OBJECT(data->amcvid_dec), "ts-offset", 0, NULL);
+			//SET OFFSET to zero for now			
+                        if( GST_VERSION_MAJOR == 1 && GST_VERSION_MINOR == 14)
+                        {
+                            g_object_set(G_OBJECT(data->amcvid_dec), "ts-offset", 0, NULL);
+                        }
+                        else if(GST_VERSION_MAJOR == 1 && GST_VERSION_MINOR == 16)
+                        {
+                            gint64 tsOffset64 = 0;
+                            g_object_set(G_OBJECT(data->amcvid_dec), "ts-offset", tsOffset64, NULL);
+                        }//else
 
 			//pass surface object to the decoder
 			g_object_set(G_OBJECT(data->element_v[i-1]), "surface-window", data->surface, NULL);
@@ -1752,7 +1784,15 @@ int build_video_pipeline(gchar *encoding_name, CREGSTREAM *data, unsigned int st
             data->amcvid_dec = data->element_v[i-1];
 
             //SET OFSSET to zero for now
-            g_object_set(G_OBJECT(data->amcvid_dec), "ts-offset", 0, NULL);
+            if( GST_VERSION_MAJOR == 1 && GST_VERSION_MINOR == 14)
+            {
+                g_object_set(G_OBJECT(data->amcvid_dec), "ts-offset", 0, NULL);
+            }
+            else if(GST_VERSION_MAJOR == 1 && GST_VERSION_MINOR == 16)
+            {
+                gint64 tsOffset64 = 0;
+                g_object_set(G_OBJECT(data->amcvid_dec), "ts-offset", tsOffset64, NULL);
+            }//else
 
             //pass surface object to the decoder
             g_object_set(G_OBJECT(data->element_v[i-1]), "surface-window", data->surface, NULL);
