@@ -4405,9 +4405,10 @@ void csio_jni_initVideo(int iStreamId)
             }
             else if(GST_VERSION_MAJOR == 1 && GST_VERSION_MINOR == 16)
             {
-                g_object_set(G_OBJECT(data->amcvid_dec), "ts-offset", (tmp*1000000), NULL);
-                // *** CSIO_LOG(eLogLevel_debug, "%s: total ts_offset: %lld ns",__FUNCTION__, tmp*1000000);
-                CSIO_LOG(eLogLevel_debug, ">>>>> %s: total ts_offset: %lld ns",__FUNCTION__, tmp*1000000);
+                gint64 tsOffset64 = tmp*1000000;
+                g_object_set(G_OBJECT(data->amcvid_dec), "ts-offset", tsOffset64, NULL);
+                // *** CSIO_LOG(eLogLevel_debug, "%s: total ts_offset: %lld ns",__FUNCTION__, tsOffset64);
+                CSIO_LOG(eLogLevel_debug, ">>>>> %s: total ts_offset: %lld ns",__FUNCTION__, tsOffset64);
             }
 
             // *** CSIO_LOG(eLogLevel_debug, "%s: streamingBuffer or latency is:%d",__FUNCTION__, CSIOCnsIntf->getStreamRx_BUFFER(iStreamId));
