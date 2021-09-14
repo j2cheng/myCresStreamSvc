@@ -2291,6 +2291,12 @@ JNIEXPORT void JNICALL Java_com_crestron_txrxservice_GstreamIn_nativeSetFieldDeb
             	GstElementFactory *factory = gst_element_factory_find(product_info()->H264_encoder_string);
             	print_pad_templates_information(factory);
             }
+            else if (!strcmp(CmdPtr, "ENCPROPS"))
+            {
+            	GstElementFactory *factory = gst_element_factory_find(product_info()->H264_encoder_string);
+            	GstElement *ele = gst_element_factory_create(factory, "enc");
+            	gst_element_print_properties(ele);
+            }
             else if(!strcmp(CmdPtr, "SET_DEC_MAX_INPUT_FRAMES"))
             {
                 //the first parameter is stream id
