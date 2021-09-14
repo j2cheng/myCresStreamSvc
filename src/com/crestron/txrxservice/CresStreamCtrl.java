@@ -2369,16 +2369,9 @@ public class CresStreamCtrl extends Service {
                             if (isAM3K) {
                             	int resEnum = HDMIInputInterface.readResolutionEnum(false);
                             	if (resEnum != priorResolutionEnum) { // res change 
-                            		Log.i(TAG, "Resolution enum changed from "+priorResolutionEnum+" to "+resEnum);
+                            		Log.i(TAG, "Resolution enum changed from "+priorResolutionEnum+" to "+resEnum+" calling setCamera()");
                             		priorResolutionEnum = resEnum;
-                            		if (resEnum != 0) {
-                            			int curCameraMode = readCameraMode();
-                            			if (curCameraMode == CameraMode.NoVideo.ordinal()
-                            					|| curCameraMode == CameraMode.BlackScreen.ordinal()) {
-                            				Log.i(TAG, "Changing camera mode to "+CameraMode.Camera.ordinal());
-                            				setCameraMode(String.valueOf(CameraMode.Camera.ordinal()));
-                            			}
-                            		}
+                            		setCamera(resEnum);
                             	}
                             }
                         }
