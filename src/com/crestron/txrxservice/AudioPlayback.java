@@ -153,6 +153,7 @@ public class AudioPlayback
 			}
 
 			public void run() {
+                                Log.i(TAG, "Audio ProcessBufferQueue started");
 				while (!shouldExit) {
 					if (bufferQueue.isEmpty())
 					{
