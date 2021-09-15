@@ -1239,11 +1239,12 @@ eWCstatus CStreamoutManager::initWcAudioVideo()
         			initError = STREAMOUT_WC_STATUS_VIDEO_INIT_ERROR;
         			m_videoStream = false;
         		}
+            	CSIO_LOG(eLogLevel_info, "--Streamout - m_video_caps.format=%s", m_video_caps.format);
         		if (is_supported(m_video_caps.format))
         		{
         			m_videoconvert[0] = '\0';
         		} else {
-        			snprintf(m_videoconvert, sizeof(m_videoconvert), "videoconvert ! ");
+        			snprintf(m_videoconvert, sizeof(m_videoconvert), "videoconvert ! video/x-raw,format=NV12 !");
         		}
         	} else {
         		// using videotestsrc
@@ -1251,6 +1252,7 @@ eWCstatus CStreamoutManager::initWcAudioVideo()
                 		m_res_x, m_res_y, m_frame_rate);
         		m_videoconvert[0] = '\0';
         	}
+        	CSIO_LOG(eLogLevel_info, "--Streamout - m_videoconvert=%s", m_videoconvert);
     		CSIO_LOG(eLogLevel_info, "--Streamout - m_videoStream=%s", ((m_videoStream)?"true":"false"));
         }
 
