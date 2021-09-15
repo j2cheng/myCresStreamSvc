@@ -37,7 +37,7 @@ public class AirMediaSession extends Session
 		super(); // will assign id;
 		state = SessionState.Connecting;
 		type = SessionType.AirMedia;
-		stopTime = Long.MAX_VALUE;
+		stopTime = System.nanoTime(); // treat session as stopped
 		airMediaType = SessionAirMediaType.Undefined;
 		airMediaReceiverSession = session;
 		userLabel = label;
@@ -667,7 +667,7 @@ public class AirMediaSession extends Session
 	
 	public boolean inactiveSession()
 	{
-		if (state != SessionState.Stopped)
+		if (state != SessionState.Stopped && state != SessionState.Connecting) // Treat connecting as stopped
 			return false;
 		TimeSpan timeSinceStop = TimeSpan.fromNanoseconds(System.nanoTime() - stopTime);
 		TimeSpan timeout = TimeSpan.fromMinutes((double)mStreamCtl.userSettings.getAirMediaInactivityTimeout());
