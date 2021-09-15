@@ -564,7 +564,6 @@ public class AirMediaSession extends Session
 			{
 				// user has already requested play so simply signal that session is now playing
 				Common.Logging.i(TAG, "setVideoState(): Session "+this+" signaled playing to waiter");
-				waiterForPlayRequestToUser.signal();
 			}
 			else 
 			{
