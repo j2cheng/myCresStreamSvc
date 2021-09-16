@@ -4876,14 +4876,36 @@ void csio_jni_post_latency(int streamId,GstObject* obj)
     }
 }
 
-//Note: until we find out a solution for Rochchip decoder issue, do not
-//      restart gstreamer when we have too many decoder timeout events.
-bool csio_jni_monitorStreamsForLateness(int id)
+/**
+ * \author      John Cheng
+ *
+ * \date        9/15/2021
+ *
+ * \return      bool
+ *
+ * \retval      true  -- gstreamer quit processed
+ *              false -- gstreamer quit bypassed
+ *
+ * \brief       when miracast is on, we can't call CStreamer::quit(),
+ *              instead we should send massage to the state machine
+ *  
+ * \param		int id -- stream index id * 
+ * 
+ */
+bool csio_jni_processingGstReqQuit(int id)
 {
-    if(product_info()->hw_platform == eHardwarePlatform_Rockchip)
-        return false;
-    else
+    CREGSTREAM * data = GetStreamFromCustomData(CresDataDB, id);
+
+    if( data && data->wfd_start &&     
+        product_info()->hw_platform == eHardwarePlatform_Rockchip)
+    {
+        WfdSinkProjSendGstLostVideoEvt(id);
         return true;
+    }
+    else
+    {
+        return false;
+    }
 }
 /***************************** rtsp_server for video streaming out **************************************/
 
