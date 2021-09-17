@@ -2374,6 +2374,41 @@ public class CresStreamCtrl extends Service {
                             		setCamera(resEnum);
                             	}
                             }
+
+                            if(isAM3K)
+                            {
+
+                                String fCamErrorTrigger = "/dev/shm/crestron/CresStreamSvc/fCamErrorTrigger";
+                                File fCamErrorTriggerFile = new File(fCamErrorTrigger);
+
+                                //On camera error, restart playback
+                                if(mProductSpecific.getInstance().cam_handle.mCamErrCur ||
+                                    fCamErrorTriggerFile.isFile())
+                                {
+                                    if(mProductSpecific.getInstance().cam_handle.mCamErrCur)
+                                    {
+                                        mProductSpecific.getInstance().cam_handle.mCamErrCur = false;
+                                    }
+
+                                    cam_preview.restartCamera(false);
+
+                                    if(fCamErrorTriggerFile.isFile())
+                                    {
+                                        Log.i(TAG, "fCamErrorTriggerFile : restartCamera!");
+                                        try {
+                                            fCamErrorTriggerFile.delete();
+                                        }
+                                        catch (Exception e) {
+                                            Log.i(TAG, "fCamErrorTrigger delete error!");
+                                        }
+                                    }
+                                    else
+                                    {
+                                        Log.i(TAG, "mCamErrCur : restartCamera!");
+                                    }
+                                }
+                            }
+
                         }
                     }
                     finally
