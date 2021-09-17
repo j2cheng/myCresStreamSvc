@@ -179,10 +179,12 @@ const char * const fieldDebugNames[MAX_SPECIAL_FIELD_DEBUG_NUM - 1] =
     "21 INSERT_AUDIO_PROBE          ",
     "22 PRINT_RTP_SEQUENCE_NUMBER   ",
     "23 SET_DEC_MAX_INPUT_FRAMES    ",    
+    "24 SET_PIPELINE_BUFFER         "   
 };
 int amcviddec_debug_level    = GST_LEVEL_ERROR;
 int videodecoder_debug_level = GST_LEVEL_ERROR;
 int debug_blocking_audio = 0;
+unsigned int debug_setPipelineBuf = 0;//0 -- disable, range: 1 to 2000ms
 /*
  * Private methods
  */
@@ -2351,6 +2353,29 @@ JNIEXPORT void JNICALL Java_com_crestron_txrxservice_GstreamIn_nativeSetFieldDeb
                     else
                     {
                         CSIO_LOG(eLogLevel_debug, "Invalid stream id : %d", id);
+                    }
+                }
+            }
+            else if (!strcmp(CmdPtr, "SET_PIPELINE_BUFFER"))
+            {
+                CmdPtr = strtok(NULL, ", ");
+                if (CmdPtr == NULL)
+                {
+                    CSIO_LOG(eLogLevel_info, "Current debug miracast pipeline buffer is: %d\r\n",debug_setPipelineBuf);
+                }
+                else
+                {                   
+                    unsigned int tmp = (unsigned int)strtol(CmdPtr, &EndPtr, 10);
+
+                    if( tmp >= 0 && tmp <= 2000)
+                    {
+                        debug_setPipelineBuf = tmp;
+
+                        CSIO_LOG(eLogLevel_info, "Debug miracast pipeline buffer set to: %d\r\n",debug_setPipelineBuf);
+                    }
+                    else
+                    {
+                        CSIO_LOG(eLogLevel_info, "%d is out of range(0~200) ms, current debug miracast pipeline buffer is: %d\r\n",tmp,debug_setPipelineBuf);
                     }
                 }
             }
@@ -4770,6 +4795,11 @@ void csio_jni_printFieldDebugInfo()
             CSIO_LOG(eLogLevel_debug, "FieldDebugInfo   %s  -- %d", \
                                        fieldDebugNames[i], debugPrintSeqNum[0],debugPrintSeqNum[1],debugPrintSeqNum[2],debugPrintSeqNum[3]);
         }
+        else if((i+1) == FIELD_DEBUG_SET_PIPELINE_BUFFER)
+        {
+            CSIO_LOG(eLogLevel_debug, "FieldDebugInfo   %s  -- %dms", \
+                                fieldDebugNames[i],debug_setPipelineBuf);
+        }
         else
         {
             CSIO_LOG(eLogLevel_debug, "FieldDebugInfo   %s%s", \
@@ -4797,7 +4827,7 @@ void csio_jni_printFieldDebugInfo()
 ********************************************************************/
 void csio_jni_post_latency(int streamId,GstObject* obj)
 {
-#define MAX_VIDEO_TS_OFFSET (1500*1000000)
+#define MAX_VIDEO_TS_OFFSET (3000*1000000)
 #define MAX_AUDIO_DIFF      (200*1000000)
 
     CREGSTREAM * StreamDb = GetStreamFromCustomData(CresDataDB,streamId);
@@ -4830,6 +4860,12 @@ void csio_jni_post_latency(int streamId,GstObject* obj)
             else
                 tsOffsetVideo = -latency;
 
+            //adjust ts-offset based on debug_setPipelineBuf
+            if(debug_setPipelineBuf > 0 && debug_setPipelineBuf <= 2000)
+            {
+                tsOffsetVideo += debug_setPipelineBuf*1000000;
+            }//else
+
             g_object_set(StreamDb->amcvid_dec, "ts-offset", tsOffsetVideo, NULL);  
             CSIO_LOG(eLogLevel_info, "%s: tsOffsetVideo set to[%lld] based on wfd_source_latency[%d] and latency[%lld]\r\n", 
                     __FUNCTION__, tsOffsetVideo,StreamDb->wfd_source_latency,latency);
@@ -4850,6 +4886,12 @@ void csio_jni_post_latency(int streamId,GstObject* obj)
                     tsOffsetAudio = -(latency - MAX_AUDIO_DIFF);
                 else
                     tsOffsetAudio = -MAX_AUDIO_DIFF;
+
+                //adjust ts-offset based on debug_setPipelineBuf
+                if(debug_setPipelineBuf > 0 && debug_setPipelineBuf <= 2000)
+                {
+                    tsOffsetAudio += debug_setPipelineBuf*1000000;
+                }//else
 
                 StreamDb->audiosink_ts_offset = (tsOffsetAudio/1000000);
                 g_object_set(G_OBJECT(StreamDb->audio_sink), "ts-offset", tsOffsetAudio, NULL);
@@ -6217,12 +6259,18 @@ void Wfd_set_latency_by_the_source (int id, int latency)
     //8-2-2021 we are going to set this to 200ms for all miracast
     data->wfd_source_latency = DEFAULT_MIRACAST_LATENCY;
 
+    //overite latency based on debug_setPipelineBuf
+    if(debug_setPipelineBuf > 0 && debug_setPipelineBuf <= 2000)
+    {
+        data->wfd_source_latency = debug_setPipelineBuf;
+    }//else
+
     //set rtpbin
     if(data->element_zero)
     {
         //8-2-2021 we are going to set this to 200ms for all miracast
-        g_object_set(G_OBJECT(data->element_zero), "latency", DEFAULT_MIRACAST_LATENCY, NULL);
-        CSIO_LOG(eLogLevel_verbose, "Wfd_set_latency_by_the_source,set rtpbin latency: 200ms");
+        g_object_set(G_OBJECT(data->element_zero), "latency", data->wfd_source_latency, NULL);
+        CSIO_LOG(eLogLevel_debug, "Wfd_set_latency_by_the_source,set rtpbin latency: %d",data->wfd_source_latency);
     }
 
     //set video queues
