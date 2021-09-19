@@ -38,6 +38,7 @@ public class CresCamera2 extends CresCamera
     static Surface mPreviewSurface;
     CaptureRequest mPreViewRequest;
     boolean mCamErrCur = false;
+    boolean mGotCamOnDisconnectedEvent = false;
 
     private Semaphore mCameraOpenCloseLock = new Semaphore(1);
     static Object lockObj = new Object();
@@ -123,6 +124,7 @@ public class CresCamera2 extends CresCamera
                         public void onOpened(CameraDevice camera) {
                             Log.i(TAG, "  onOpened " + hdmiCameraName);
                             mCamErrCur = false;
+                            mGotCamOnDisconnectedEvent = false;
                             mCameraDevice = camera;
                             cameraOpenLatch.countDown();
                         }
@@ -135,6 +137,7 @@ public class CresCamera2 extends CresCamera
                         @Override
                         public void onDisconnected(CameraDevice camera) {
                             Log.i(TAG, "  onDisconnected " + hdmiCameraName);
+                            mGotCamOnDisconnectedEvent = true;
                             if (mCameraDevice != null) {
                                 releaseCamera2(true);
                             }
@@ -143,7 +146,10 @@ public class CresCamera2 extends CresCamera
                         @Override
                         public void onError(CameraDevice camera, int error) {
                             Log.e(TAG, "  onError " + hdmiCameraName + " error " + error);
-                            mCamErrCur = true;
+                            if (!mGotCamOnDisconnectedEvent)
+                            	mCamErrCur = true;
+                            else
+                            	Log.i(TAG, "Ignoring setting camera error because got camera disconnected event already");
                             if (mCameraDevice != null) {
                                 releaseCamera2(false);//do not call abortCaptures when onError(bug AM3XX-5742)
                             }
