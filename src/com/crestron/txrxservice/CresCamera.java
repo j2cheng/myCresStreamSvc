@@ -14,6 +14,7 @@ public class CresCamera {
 	static String TAG = "TxRx Camera";
 	public static Camera mCamera = null;
 	static Object lockObj = new Object();
+        boolean mCamErrCur = false;
 
 	private static int findCamera(){
 		int cameraId = 0;

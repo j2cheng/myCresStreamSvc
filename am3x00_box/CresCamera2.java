@@ -36,8 +36,7 @@ public class CresCamera2 extends CresCamera
     HandlerThread mCameraThread;
     static CameraCaptureSession mCameraSession;
     static Surface mPreviewSurface;
-    CaptureRequest mPreViewRequest;
-    boolean mCamErrCur = false;
+    CaptureRequest mPreViewRequest;    
     boolean mGotCamOnDisconnectedEvent = false;
 
     private Semaphore mCameraOpenCloseLock = new Semaphore(1);
