@@ -84,8 +84,8 @@ public class AudioPlayback
                                 rebootFile.createNewFile();
                             } catch (Exception e) {}
 
-                            Log.i(TAG, "Restart txrx because too many audio errors!");
-                            System.exit(1);
+                            Log.i(TAG, "Creste file because too many audio errors!");
+                            //System.exit(1);
                         }
                     } // else
                 }
