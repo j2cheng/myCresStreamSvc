@@ -248,10 +248,13 @@ public class GstreamOut {
             {
                 newUrl = url.replace("0.0.0.0", streamCtl.userSettings.getDeviceIp());
             }
-            if (!streamCtl.userSettings.getWifiIp().equals("0.0.0.0"))
+	    //TODO: Based on required behavior defined, address below needs:AM3XX-5738
+	    /*
+	    else if (!streamCtl.userSettings.getWifiIp().equals("0.0.0.0"))
             {
                 newUrl = url.replace("0.0.0.0", streamCtl.userSettings.getWifiIp());
-            }
+                Log.i(TAG, "setWcServerUrl: Wifi Ip picked");
+            }*/
         }
         wcServerUrl = newUrl;
         Log.i(TAG, "setWcServerUrl: WC server url="+wcServerUrl);
