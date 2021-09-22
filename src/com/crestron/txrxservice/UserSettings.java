@@ -275,7 +275,6 @@ public class UserSettings
 	private String camStreamName;
 	private String camStreamSnapshotName;
 	private String camStreamMulticastAddress;
-	private boolean wcStreamingEnable;
 	private boolean wcSecurityEnable;
 	private boolean wcRandomUserPwEnable;
 	private String wcVideoCaptureDevice;
@@ -423,7 +422,6 @@ public class UserSettings
 		camStreamName		= "camera";
 		camStreamSnapshotName = "snapshot";
 		camStreamMulticastAddress = "";
-		wcStreamingEnable = false;
 		wcSecurityEnable = true;
 		wcRandomUserPwEnable = true;
 		wcVideoCaptureDevice = "/dev/video5";
@@ -1702,14 +1700,6 @@ public class UserSettings
 
 	public void setWcSecurityEnable(boolean enable) {
 		this.wcSecurityEnable = enable;
-	}
-
-	public boolean getWcStreamingEnable() {
-		return wcStreamingEnable;
-	}
-
-	public void setWcStreamingEnable(boolean enable) {
-		this.wcStreamingEnable = enable;
 	}
 
 	public boolean getWcRandomUserPwEnable() {
