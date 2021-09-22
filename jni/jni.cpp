@@ -1826,6 +1826,7 @@ JNIEXPORT void JNICALL Java_com_crestron_txrxservice_GstreamIn_nativeSetFieldDeb
 
                                 GList * frames = gst_video_decoder_get_frames((GstVideoDecoder*)StreamDb->amcvid_dec);
                                 CSIO_LOG(eLogLevel_info, "get frame size is[%d]\r\n", g_list_length(frames));
+                                g_list_free(frames);
 
                                 GstVideoCodecState *output_state = gst_video_decoder_get_output_state ((GstVideoDecoder*)StreamDb->amcvid_dec);
                                 CSIO_LOG(eLogLevel_info, "get output_state info.fps_n is[%d]\r\n", output_state->info.fps_n);
