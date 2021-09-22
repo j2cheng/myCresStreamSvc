@@ -4871,8 +4871,8 @@ void csio_jni_post_latency(int streamId,GstObject* obj)
                     __FUNCTION__, tsOffsetVideo,StreamDb->wfd_source_latency,latency);
             
             //for debugging only, ckecking decoder frams size.
-            GList * frames = gst_video_decoder_get_frames((GstVideoDecoder*)StreamDb->amcvid_dec);
-            CSIO_LOG(eLogLevel_debug, "%s: frame size is[%d]\r\n", __FUNCTION__, g_list_length(frames));
+            //GList * frames = gst_video_decoder_get_frames((GstVideoDecoder*)StreamDb->amcvid_dec);
+            //CSIO_LOG(eLogLevel_debug, "%s: frame size is[%d]\r\n", __FUNCTION__, g_list_length(frames));
 
             //set audio ts-offset
             if( StreamDb->audio_sink)
