@@ -52,6 +52,8 @@ public class AudioPlayback
 			Log.i(TAG, "startAudioTask(): not launching audio thread because have a bad sample rate: "+audioSampleRate);
 			return false;
 		}
+		audioBufferSize = AudioRecord.getMinBufferSize(audioSampleRate, audioChannels, audioFormat);
+		Log.i(TAG, "AudioPlayback(): audio buffer size "+audioBufferSize);
 		if (audioBufferSize == AudioRecord.ERROR || audioBufferSize == AudioRecord.ERROR_BAD_VALUE) {
 			Log.w(TAG, "Got a bad audio buffersize "+audioBufferSize+" from getMinBufferSize (sampleRate="+audioSampleRate+")");
 			return false;
