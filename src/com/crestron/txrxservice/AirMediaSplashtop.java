@@ -2767,19 +2767,22 @@ public class AirMediaSplashtop
                         Common.Logging.i(TAG, "AirMediaServiceConnection.onServiceConnected  " + name);
                         requestServiceConnection = false;
                         try {
+                            airMediaRcvLock.lock("airMediaRcvLock_onSrvCondCb");
                             service_ = IAirMediaReceiver.Stub.asInterface(binder);
-                            if (service_ == null) return;
+                            if (service_ == null){
+                                airMediaRcvLock.unlock("airMediaRcvLock_onSrvCondCb");
+                                return;
+                            } 
                             serviceConnectedLatch.countDown();
 
                             // Note: startAirMedia will set receiver_, which used by setAdapter in
-                            // different thread, so lock here.
-                            airMediaRcvLock.lock("airMediaRcvLock_onSrvCondCb");
+                            // different thread, so lock here.                            
                             startAirMedia();
-                            airMediaRcvLock.unlock("airMediaRcvLock_onSrvCondCb");
-
                         } catch (Exception e) {
                             Common.Logging.e(TAG, "AirMediaServiceConnection.onServiceConnected  EXCEPTION  " + e);
                             e.printStackTrace();
+                        }finally{
+                            airMediaRcvLock.unlock("airMediaRcvLock_onSrvCondCb");
                         }
                     } 
                     else 
