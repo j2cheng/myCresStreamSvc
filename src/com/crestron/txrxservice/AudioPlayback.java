@@ -30,7 +30,9 @@ public class AudioPlayback
 	Thread streamAudioThread;
 	Thread audioTrackThread;
 	int audioSampleRate = 48000;
-	boolean bufferSizeError = false;
+	int audioFormat = AudioFormat.ENCODING_PCM_16BIT;//ENCODING_PCM_16BIT
+	int audioChannels = AudioFormat.CHANNEL_OUT_STEREO;//CHANNEL_IN/OUT_STEREO:Default Android Val is 12
+	int audioBufferSize = 0;
 	volatile boolean initVolumePending = false;
 	int mWaitFrames = 15;
 	final int mWaitFramesDone = 15;
@@ -50,23 +52,24 @@ public class AudioPlayback
 			Log.i(TAG, "startAudioTask(): not launching audio thread because have a bad sample rate: "+audioSampleRate);
 			return false;
 		}
+		if (audioBufferSize == AudioRecord.ERROR || audioBufferSize == AudioRecord.ERROR_BAD_VALUE) {
+			Log.w(TAG, "Got a bad audio buffersize "+audioBufferSize+" from getMinBufferSize (sampleRate="+audioSampleRate+")");
+			return false;
+		}
 		streamAudioThread = new Thread(new StreamAudioTask());
 		shouldExit = false;
 		streamAudioThread.start();
-		if (bufferSizeError) {
-			return false;
-		}
 		return true;
 	}
 
 	class StreamAudioTask implements Runnable {
 		private LinkedBlockingQueue<audioBufferQueueObject> audioBufferQueue;		
-		private final int AudioFmt = AudioFormat.ENCODING_PCM_16BIT;//ENCODING_PCM_16BIT
-		private final int AudioChannels= AudioFormat.CHANNEL_OUT_STEREO;//CHANNEL_IN/OUT_STEREO:Default Android Val is 12
+		private final int AudioFmt = audioFormat;//ENCODING_PCM_16BIT
+		private final int AudioChannels= audioChannels;//CHANNEL_IN/OUT_STEREO:Default Android Val is 12
 		private final int SampleRate = audioSampleRate;
 		private int AudioSrc = AudioSource.CAMCORDER; //Audio Source is CAMCORDER for all products except AM3X
-		private final int BufferSize = AudioRecord.getMinBufferSize(SampleRate, AudioChannels, AudioFmt);
-		private StaticAudioBuffers mAudioBuffers = null;
+		private final int BufferSize = audioBufferSize;
+		private StaticAudioBuffers mAudioBuffers = new StaticAudioBuffers(maxNumOfBuffers + 2);
         public final static String rebootAudioFullFile = "/dev/shm/crestron/CresStreamSvc/rebootedOnAudioBufferFull";
 
         private void addToAudioBufferQueue(audioBufferQueueObject newAudioBuffer)
@@ -108,13 +111,6 @@ public class AudioPlayback
 
 		public void run() {
 			initVolumePending = true;
-			bufferSizeError = false;
-			if (BufferSize == AudioRecord.ERROR || BufferSize == AudioRecord.ERROR_BAD_VALUE) {
-				Log.i(TAG, "Got a bad audio buffersize from getMinBufferSize (sampleRate="+audioSampleRate+")");
-				bufferSizeError = true;
-				return;
-			}
-			mAudioBuffers = new StaticAudioBuffers(maxNumOfBuffers + 2);
 			
 			try { 
         		if (mStreamCtl.audioReadyLatch.await(240, TimeUnit.SECONDS) == false)
