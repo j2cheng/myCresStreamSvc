@@ -683,13 +683,16 @@ public class CameraPreview {
 	        if(!is_audioplaying)
 	        {
 				Log.i(TAG, "starting audio task");
-	            audio_pb.startAudioTask();
+	            if (audio_pb.startAudioTask()) {
+	    	        is_audioplaying = true;
+	            } else {
+					Log.i(TAG, "failed to sstart audio task");
+	            }
 	        }
 	        else
 	        {
 				Log.i(TAG, "audio task already running");
 	        }
-	        is_audioplaying = true;
     	}
     	else
     	{
