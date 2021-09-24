@@ -525,24 +525,35 @@ public class CanvasCrestore
     public void setNetworkStreamDefault() {
 
         boolean update = true;
+        Root root = null;
 
         //first get Device.AirMedia.NetworkStreams, if not exit, then set default.
         String sourcesStr = "{\"Device\":{\"AirMedia\":{\"NetworkStreams\":{}}}}";
         try {
-            String jsonStr = wrapper.get(true, sourcesStr);
+            String jsonStr = wrapper.get(false, sourcesStr);
             if (jsonStr != null){
                 Log.v(TAG, "setNetworkStreamDefault found = "+jsonStr);
-                update = false;        	
+                root = gson.fromJson(jsonStr, Root.class);
+
+                if(root != null && root.device != null && 
+                   root.device.airMedia != null &&
+                   root.device.airMedia.networkStreams != null)
+                {
+                    update = false;//we must have 'Stream0' object
+                    Log.v(TAG, "setNetworkStreamDefault set  to false = "+update);
+                }//esle                  
+                    
             } else {
                 Log.v(TAG, "Could not find Device.AirMedia.NetworkStreams");				
             }
         } catch (Exception ex) {
             Common.Logging.i(TAG, "setNetworkStreamDefault exception: " + ex.getMessage());
         }
-
-        if(update){
+        
+        if(update)
+        {
             //create root object
-            Root root = getRootedDeviceNetworkStreams();
+            root = getRootedDeviceNetworkStreams();
 
             //default stream name
             String streamName = "Stream0";
@@ -554,17 +565,37 @@ public class CanvasCrestore
             mapEntry.volume = 100;
             mapEntry.numVideoPacketsDropped = 0;
             mapEntry.numAudioPacketsDropped = 0;
-
+            mapEntry.status = "Stop";
+            
             //insert {key value} into map entry
             HashMap<String, StreamConfigMapEntry> locamap = new HashMap<String, StreamConfigMapEntry>();
             locamap.put(streamName, mapEntry);
 
             //set map entry into root object
             root.device.airMedia.networkStreams = locamap;
-            Common.Logging.v(TAG, "setNetworkStreamDefault send to DB " + gson.toJson(root));
+            Common.Logging.v(TAG, "setNetworkStreamDefault all default send to DB " + gson.toJson(root));
 
             //publish to redis DB
             cresstoreSet(gson.toJson(root), true);
+        }
+        else
+        {
+            //we have root, just need to reset some object
+            Map<String, StreamConfigMapEntry> configMap = root.device.airMedia.networkStreams;
+
+            //for now we only have one entry: Stream0
+            for (Map.Entry<String, StreamConfigMapEntry> entry : configMap.entrySet()) {                
+                final StreamConfigMapEntry mapEntry = (StreamConfigMapEntry) entry.getValue();
+                mapEntry.action = "Disconnet";
+                mapEntry.status = "Stop";
+                mapEntry.numVideoPacketsDropped = 0;
+                mapEntry.numAudioPacketsDropped = 0;
+            }
+
+            Common.Logging.v(TAG, "setNetworkStreamDefault reset send to DB " + gson.toJson(root));
+
+            //publish to redis DB
+            cresstoreSet(gson.toJson(root), true);            
         }
     }
 
@@ -1870,6 +1901,9 @@ public class CanvasCrestore
         }
     }
     
+    //Note: this is callback from AirMedia App, which is in differnet thread than Crestore.
+    // It is possible, session has been erased from Crestore callback, while this
+    // thread still try to use the session object. 
     public SessionEvent sourceRequestToEvent(CanvasSourceRequest request, CanvasSourceResponse response)
     {
     	// first convert the request into a sessionEvent message
@@ -1880,17 +1914,29 @@ public class CanvasCrestore
     	}
 
     	SessionEvent e = new CanvasCrestore.SessionEvent(UUID.randomUUID().toString()); 
+        Log.i(TAG, "sourceRequestToEvent(): e is = " + e );
+
     	for (int i=0; i < request.transactions.size(); i++) 
     	{
-            CanvasSourceTransaction t = request.transactions.get(i);
+            final CanvasSourceTransaction t = request.transactions.get(i);
+
             String sessionId = t.sessionId;
+            Log.i(TAG, "sourceRequestToEvent(): t.action is = " + t.action);
+
             if (t.action == CanvasSourceAction.Pause) {
                 Session session = mSessionMgr.getSession(sessionId);
                 if (session != null && session instanceof NetworkStreamSession) {
-                    NetworkStreamSession netSess = (NetworkStreamSession) session;
-                    netSess.onRequestAction(t.action);
-
-                    setCurrentNetworkingStreamsSessionStatusToDB(session, "Paused");                    
+                    Log.i(TAG, "sourceRequestToEvent(): sessionId=" + sessionId + " requesting action="
+                            + t.action.toString());                   
+                    /* push into queue, so it will be synchronized with processSessionNetworkStream().
+                       processSessionNetworkStreamSourceRequest will call mSessionMgr.getSession again
+                       to make sure not erased, and then call onRequestAction(action);*/
+                    sessionScheduler.queue(new Runnable() {
+                        @Override
+                        public void run() {
+                            processSessionNetworkStreamSourceRequest(t);
+                        };
+                    }, PriorityScheduler.NORMAL_PRIORITY);
 
                     continue;
                 } else {
@@ -1898,15 +1944,42 @@ public class CanvasCrestore
                     response.setErrorCode(CanvasResponse.ErrorCodes.UnsupportedAction);
                     return null;
                 }
-            }
+            }//else
+
+            if (t.action == CanvasSourceAction.Stop) {
+                Session session = mSessionMgr.getSession(sessionId);
+                if (session != null && session instanceof NetworkStreamSession) {
+                    Log.i(TAG, "sourceRequestToEvent(): sessionId=" + sessionId + " requesting action="
+                            + t.action.toString());                   
+                    /* push into queue, so it will be synchronized with processSessionNetworkStream().
+                       processSessionNetworkStreamSourceRequest will call mSessionMgr.getSession again
+                       to make sure not erased, and then call onRequestAction(action);*/
+                    sessionScheduler.queue(new Runnable() {
+                        @Override
+                        public void run() {
+                            processSessionNetworkStreamSourceRequest(t);
+                        };
+                    }, PriorityScheduler.NORMAL_PRIORITY);
+
+                    continue;
+                } //else do nothing
+            }//else
 
             if (t.action == CanvasSourceAction.Play) {
                 Session session = mSessionMgr.getSession(sessionId);
                 if (session != null && session instanceof NetworkStreamSession) {
-                    NetworkStreamSession netSess = (NetworkStreamSession) session;
-                    netSess.onRequestAction(t.action);
+                    Log.i(TAG, "sourceRequestToEvent(): sessionId=" + sessionId + " requesting action="
+                            + t.action.toString());
 
-                    setCurrentNetworkingStreamsSessionStatusToDB(session, "Paly");
+                    /* push into queue, so it will be synchronized with processSessionNetworkStream().
+                       processSessionNetworkStreamSourceRequest will call mSessionMgr.getSession again
+                       to make sure not erased, and then call onRequestAction(action);*/
+                    sessionScheduler.queue(new Runnable() {
+                        @Override
+                        public void run() {
+                            processSessionNetworkStreamSourceRequest(t);
+                        };
+                    }, PriorityScheduler.NORMAL_PRIORITY);
 
                     continue;
                 } 
@@ -1944,10 +2017,77 @@ public class CanvasCrestore
     	}
     	if (e.sessionEventMap.isEmpty())
     		e = null;
+
+        Log.w(TAG, "sourceRequestToEvent(): return e= " + e );
     	return e;
     }
     
 
+    /*
+     * this function should synchronized with processSessionNetworkStream(). it runs
+     * inside sessionScheduler.
+     */
+    private void processSessionNetworkStreamSourceRequest(CanvasSourceTransaction t) {
+        Session session = mSessionMgr.getSession(t.sessionId);
+        final CanvasSourceAction action = t.action;
+
+        if (session != null && session instanceof NetworkStreamSession) {
+
+            Common.Logging.i(TAG, "processSessionNetworkStreamSourceRequest: session state : " + session.getState());
+
+            if (action == CanvasSourceAction.Stop) {
+                /*
+                 * Note: do not call NetworkStreamSession::onRequestAction(action); Need to send
+                 * message to AVF here.
+                 * 
+                 * final NetworkStreamSession netSess = (NetworkStreamSession) session;
+                 * netSess.onRequestAction(action);
+                 */
+                Common.Logging.i(TAG, "processSessionNetworkStreamSourceRequest: stop session: " + session);
+                doSynchronousSessionEvent(session, "Stop", new Originator(RequestOrigin.StateChangeMessage, session),
+                        10);
+
+                setCurrentNetworkingStreamsSessionStatusToDB(session, "Stopped");
+            } 
+            else if (action == CanvasSourceAction.Play) {
+
+                if (session.getState() == SessionState.Paused) {
+
+                    final NetworkStreamSession netSess = (NetworkStreamSession) session;
+                    netSess.onRequestAction(action);
+                } else {
+                    /*
+                     * Note: do not call NetworkStreamSession::onRequestAction(action); Need to send
+                     * message to AVF here.
+                     * 
+                     * final NetworkStreamSession netSess = (NetworkStreamSession) session;
+                     * netSess.onRequestAction(action);
+                     */
+
+                    Common.Logging.i(TAG, "processSessionNetworkStreamSourceRequest: play session: " + session);
+                    doSynchronousSessionEvent(session, "Play",
+                            new Originator(RequestOrigin.StateChangeMessage, session), 10);
+                }
+
+                setCurrentNetworkingStreamsSessionStatusToDB(session, "Paly");
+            } else if (action == CanvasSourceAction.Pause) {
+
+                if (session.getState() == SessionState.Playing) {
+                    final NetworkStreamSession netSess = (NetworkStreamSession) session;
+
+                    Common.Logging.i(TAG, "processSessionNetworkStreamSourceRequest: pause session: " + session);
+                    netSess.onRequestAction(action);
+
+                    setCurrentNetworkingStreamsSessionStatusToDB(session, "Paused");
+                } else {
+                    Common.Logging.i(TAG,
+                            "processSessionNetworkStreamSourceRequest: session is not in played state: " + session);
+                }
+            }
+        } // else
+
+    }
+		
     public class StreamConfigMapEntry {  
     	@SerializedName ("Url")
         String url;	

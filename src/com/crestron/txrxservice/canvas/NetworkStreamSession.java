@@ -106,6 +106,9 @@ public class NetworkStreamSession extends Session
         if (completed) {
             streamId = -1;
             setState(SessionState.Stopped);
+            Common.Logging.i(TAG, "stop():  setting Status in CresStore to Stop");
+            CanvasCrestore canvCrestore = mCanvas.getCrestore();
+            canvCrestore.setCurrentNetworkingStreamsSessionStatusToDB(this,"Stop");
         } else {
             Common.Logging.w(TAG, "stop(): "+this+" stop failed");		
             originator.failedSessionList.add(this);
