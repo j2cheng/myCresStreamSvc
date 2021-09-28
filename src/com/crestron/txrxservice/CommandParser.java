@@ -189,6 +189,7 @@ public class CommandParser {
         AIRMEDIA_WIFI_FREQUENCYBAND,
         AIRMEDIA_WIFI_AUTOLAUNCHAIRMEDIALANDINGPAGEENABLED,
         AIRMEDIA_CLEAR_CACHE,
+        AIRMEDIA_WC_ENABLE,
         
         // Camera Streaming Slot
         CAMERA_STREAMING_ENABLE,
@@ -827,6 +828,9 @@ public class CommandParser {
             	break;
             case AIRMEDIA_CLEAR_CACHE:
             	cmd = new AirMediaClearCacheCommand(ctrl, arg);
+            	break;
+            case AIRMEDIA_WC_ENABLE:
+            	cmd = new AirMediaWCEnableCommand(ctrl, arg);
             	break;
                         	
         	// Camera Streaming

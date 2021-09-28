@@ -2958,3 +2958,17 @@ class ServiceConnectionInitializationCompleteCmd extends CrestronCommand {
     }
     // no feedback
 }
+
+//this class receives the messages from csio related to Wireless conferencing.
+class AirMediaWCEnableCommand extends CrestronCommand {
+	public AirMediaWCEnableCommand(CresStreamCtrl ctrl, String arg) {
+		super(ctrl, arg);
+	}	
+	public void execute() {
+		ctrl.airMediaWCEnable(Boolean.valueOf(msg));
+	}
+	public String getFeedbackMsg() {
+		return Boolean.toString(ctrl.userSettings.getAirMediaWCEnable());
+	}
+}
+

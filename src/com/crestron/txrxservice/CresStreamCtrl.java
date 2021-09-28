@@ -764,9 +764,7 @@ public class CresStreamCtrl extends Service {
             int windowHeight = 1080;
             hideVideoOnStop = nativeHideVideoBeforeStop();
             mProductHasHDMIoutput = nativeHaveHDMIoutput();
-            // FIXME/TODO - replace with a product feature in product info table
-            if (CrestronProductName.fromInteger(nativeGetProductTypeEnum()) == CrestronProductName.AM3X00)
-            	isWirelessConferencingEnabled = true;
+            
             isAM3K = isAM3X00();
             if (nativeGetIsAirMediaEnabledEnum())
             {
@@ -1204,6 +1202,7 @@ public class CresStreamCtrl extends Service {
             streamPlay = new GstreamIn(CresStreamCtrl.this);
             ccresLog = new CresLog(CresStreamCtrl.this);
 
+            isWirelessConferencingEnabled = userSettings.getAirMediaWCEnable(); // Read from user settings as WC is eanbled through CSIO 
             // Added for real camera on x60
             // to-do: support having both hdmi input and a real camera at the same time...
             Log.i(TAG,"isWirelessConferencingEnabled="+isWirelessConferencingEnabled+"   hasRealCamera="+ProductSpecific.hasRealCamera());
@@ -1459,9 +1458,14 @@ public class CresStreamCtrl extends Service {
     public IBinder onBind(Intent intent)
     {
         Log.i(TAG, "onBind():  intent= " + intent.toString());
-        if (intent.getAction().equals("com.crestron.txrxservice.wc.BIND"))
-        	return mWC_Service.getBinder();
-        else {
+        if (intent.getAction().equals("com.crestron.txrxservice.wc.BIND")){
+            if( mWC_Service == null )
+            {
+       	         Log.i(TAG, "WC not started. Is it enabled ?");
+                 return null;
+            }
+            return mWC_Service.getBinder();
+        }else {
         	if (mIsBound)
         	{
         		// if we get here even though we were bound - reset slave streams
@@ -1487,8 +1491,15 @@ public class CresStreamCtrl extends Service {
         Log.i(TAG, "onUnbind(): intent= " + intent.toString());
         if (intent.getAction().equals("com.crestron.txrxservice.wc.BIND"))
         {
-        	mWC_Service.unbind(intent);
-        	super.onUnbind(intent);
+            if( mWC_Service != null )
+            {
+            	mWC_Service.unbind(intent);
+            }
+            else
+            {
+       	         Log.i(TAG, "WC not started. Is it enabled ?");
+            }
+            super.onUnbind(intent);
         } else {
         	resetAllSlaveStreams();
         	Log.i(TAG, "onUnbind: exit");
@@ -1503,7 +1514,14 @@ public class CresStreamCtrl extends Service {
         Log.i(TAG, "onRebind():  intent= " + intent.toString());
         if (intent.getAction().equals("com.crestron.txrxservice.wc.BIND"))
         {
-        	mWC_Service.rebind(intent);
+            if( mWC_Service != null )
+            {
+        	    mWC_Service.rebind(intent);
+            }
+            else
+            {
+       	         Log.i(TAG, "WC not started. Is it enabled ?");
+            }
         } else {
         	if (mIsBound)
         	{
@@ -6073,6 +6091,15 @@ public class CresStreamCtrl extends Service {
         }
     }
     
+    // This function implementts the WC enable or disable 
+    // this gets called from CSIO through socket comm. 
+    public void airMediaWCEnable(boolean enable)
+    {
+        userSettings.setAirMediaWCEnable(enable);
+        Log.i(TAG, "airMediaWCEnable(): requesting enable=" + ((enable)?"enabled":"disabled") +
+                " - currently it is " + ((isWirelessConferencingEnabled)?"enabled":"disabled"));
+        isWirelessConferencingEnabled = enable;
+    }    
     public void onCameraConnected()
     {
 		Log.i(TAG, "onCameraConnected(): USB UVC camera is connected");
@@ -6085,8 +6112,15 @@ public class CresStreamCtrl extends Service {
 
     public void onUsbStatusChanged(List<UsbAvDevice> devList)
     {
-		Log.i(TAG, "onUsbStatusChanged(): deviceList="+devList);
-		mWC_Service.updateUsbDeviceStatus(devList);
+        if( mWC_Service != null )
+        {       
+		    Log.i(TAG, "onUsbStatusChanged(): deviceList="+devList);
+		    mWC_Service.updateUsbDeviceStatus(devList);
+        }
+        else
+        {
+		    Log.i(TAG, "onUsbStatusChanged(): WC is not enabled");
+        }
     }
     
     public void onHdmiInConnected()
