@@ -2380,6 +2380,45 @@ JNIEXPORT void JNICALL Java_com_crestron_txrxservice_GstreamIn_nativeSetFieldDeb
                     }
                 }
             }
+            else if (!strcmp(CmdPtr, "MS_MICE_SIGNAL_RAISE"))
+            {
+                /*gstreamerdebug MS_MICE_SIGNAL_RAISE  id[non zero]  state[1 | 0]  local_addr device_id JohnCheng device_addr rtsp_port
+                  gstreamerdebug MS_MICE_SIGNAL_RAISE  10  0   10.116.165.106 EFEA-189 JohnCheng 10.116.165.122 41987
+                */
+
+                CmdPtr = strtok(NULL, ", ");
+                if (CmdPtr == NULL)
+                {
+                    CSIO_LOG(eLogLevel_info, "MS_SOURCE_READY need parameter.\r\n");
+                }
+                else
+                {   
+                    char cmdmsmice[100] = {0}; 
+                    int  id;
+                    int  state;
+                    char local_addr[100] = {0}; 
+                    char device_id[100] = {0}; 
+                    char device_name[100] = {0}; 
+                    char device_addr[100] = {0}; 
+                    int  rtsp_port;
+                    
+                    CSIO_LOG(eLogLevel_info, "command namestring[%s]\r\n",namestring);                    
+
+                    int ret = sscanf(namestring, "%s %d %d %s %s %s %s %d", cmdmsmice, &id,&state,local_addr,device_id,device_name,device_addr,&rtsp_port);
+                    CSIO_LOG(eLogLevel_info, "command parsed[%d]}:cmd[%s], id[%d],state[%d],local_addr[%s],device_id[%s],device_name[%s],device_addr[%s],rtsp_port[%d]\r\n",
+                             ret,cmdmsmice, id,state,local_addr,device_id,device_name,device_addr,rtsp_port);
+
+                    gint64 session_id = (gint64)id;
+
+                    Wfd_ms_mice_signal_raise ( session_id,   //pConfig->session_id,
+                                               state,        //pConfig->state,
+                                               local_addr,   //pConfig->local_addr,
+                                               device_id,    //pConfig->device_id,
+                                               device_name,  //pConfig->device_name,
+                                               device_addr,  //pConfig->device_addr,
+                                               rtsp_port);   //pConfig->rtsp_port);                    
+                }
+            }            
             else
             {
                 CSIO_LOG(eLogLevel_info, "Invalid command:%s\r\n",CmdPtr);
