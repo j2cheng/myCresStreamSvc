@@ -714,9 +714,11 @@ public class CameraPreview {
     public void restartAudio() {
     	if (is_audioplaying == true)
     	{
+    		Log.i(TAG, "restartAudio(): stopping audio...");
     		stopAudio();
-    		startAudio();
     	}
+    	Log.i(TAG, "restartAudio(): starting audio...");
+    	startAudio();
     }
 
     public void setVolume(int volume) {
