@@ -586,7 +586,7 @@ public class CanvasCrestore
             //for now we only have one entry: Stream0
             for (Map.Entry<String, StreamConfigMapEntry> entry : configMap.entrySet()) {                
                 final StreamConfigMapEntry mapEntry = (StreamConfigMapEntry) entry.getValue();
-                mapEntry.action = "Disconnet";
+                mapEntry.action = "Disconnect";
                 mapEntry.status = "Stop";
                 mapEntry.numVideoPacketsDropped = 0;
                 mapEntry.numAudioPacketsDropped = 0;
