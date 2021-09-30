@@ -141,6 +141,8 @@ public class WC_UsbDevices implements Parcelable {
 
     public String toString()
     {
-        return "VideoFormat: "+videoFormats+", AudioFormat: "+audioFormats+", WC_UsbDevices:"+devices;
+        return "VideoFormat: "+((videoFormats!=null)?videoFormats:"null")+
+        		", AudioFormat: "+((audioFormats!=null)?audioFormats:"null")+
+        		", WC_UsbDevices:"+((devices!=null)?devices:"null");
     }
 }

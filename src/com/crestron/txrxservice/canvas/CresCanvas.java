@@ -147,7 +147,8 @@ public class CresCanvas
 	{
 		if (!IsAirMediaCanvasUp())
 		{
-			Common.Logging.i(TAG, "canvasHasStarted(): canvas not ready");
+			Common.Logging.i(TAG, "canvasHasStarted(): canvas not ready (AM is up="+mStreamCtl.airMediaIsUp()+
+					" AM Canvas is up="+((mAirMediaCanvas != null)?mAirMediaCanvas.IsAirMediaCanvasUp():false)+")");
 			return;
 		}
 		Common.Logging.i(TAG, "canvasHasStarted(): ------ canvas is ready -------");

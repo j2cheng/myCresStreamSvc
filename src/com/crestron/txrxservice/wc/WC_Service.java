@@ -112,9 +112,9 @@ public class WC_Service {
             for (int i=0; i<N; i++) {
                 try {
                 	if (mCallbacks.getBroadcastItem(i) == cb) {
-                        Log.i(TAG,"send current WC status to latest client");
+                        Log.i(TAG,"send current WC status to client: "+mStatus);
                 		mCallbacks.getBroadcastItem(i).onStatusChanged(mStatus);
-                        Log.i(TAG,"send current WC usb device status to latest client");
+                        Log.i(TAG,"send current WC usb device status to client: "+mUsbDevices);
                 		mCallbacks.getBroadcastItem(i).onUsbDevicesChanged(mUsbDevices);
                 	}
                 } catch (RemoteException e) {
