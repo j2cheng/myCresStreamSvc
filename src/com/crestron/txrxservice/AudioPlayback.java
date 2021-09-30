@@ -50,6 +50,8 @@ public class AudioPlayback
 		if (mStreamCtl.isAM3X00() && (audioSampleRate <= 0 || audioSampleRate > 48000))
 		{
 			Log.i(TAG, "startAudioTask(): not launching audio thread because have a bad sample rate: "+audioSampleRate);
+			mStreamCtl.mPreviousAudioInputSampleRate = audioSampleRate;
+			Log.i(TAG, "startAudioTask() - previous audio sample rate has changed and is now "+mStreamCtl.mPreviousAudioInputSampleRate);
 			return false;
 		}
 		audioBufferSize = AudioRecord.getMinBufferSize(audioSampleRate, audioChannels, audioFormat);

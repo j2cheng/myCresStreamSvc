@@ -204,7 +204,7 @@ public class CresStreamCtrl extends Service {
     public volatile boolean mForceHdcpStatusUpdate = true;
     private int mCurrentHdmiInputResolution = -1;
     private int mPreviousValidHdmiInputResolution = 0;
-    private int mPreviousAudioInputSampleRate = 0;
+    public int mPreviousAudioInputSampleRate = 0;
     private Resolution mPreviousHdmiOutResolution = new Resolution(0, 0);
     private String mPreviousConnectionInfo = null;
     private String mPreviousWirelessConnectionInfo = null;
@@ -2294,6 +2294,8 @@ public class CresStreamCtrl extends Service {
             @Override
             public void run() {
             	int priorResolutionEnum = 0;
+            	boolean previousHdmiInSync = false;
+            	boolean previousHdmiIsPlaying = false;
                 // Poll input and output HDCP states once a second
                 while (!Thread.currentThread().isInterrupted())
                 {
@@ -2327,27 +2329,46 @@ public class CresStreamCtrl extends Service {
                         if (mIgnoreAllCrash != true) // Dont activate this code if we are handling hdmi input resolution change
                         {
                             int hdmiInSampleRate = HDMIInputInterface.readAudioSampleRate();
+                            boolean curSync=false;
+                            boolean curHdmiIsPlaying = false;;
+                            if (isAM3K) {
+                            	curSync = HDMIInputInterface.readSyncState();
+                            	curHdmiIsPlaying = mCanvasHdmiIsPlaying;
+                            }
                             // If sample frequency changes on the fly, restart stream
-                            if (hdmiInSampleRate != mPreviousAudioInputSampleRate)
+                            if (hdmiInSampleRate != mPreviousAudioInputSampleRate || 
+                            		(isAM3K && ((previousHdmiInSync != curSync) || (previousHdmiIsPlaying != curHdmiIsPlaying))))
                             {
+                            	if (hdmiInSampleRate != mPreviousAudioInputSampleRate)
+                            		Log.i(TAG, "Previous audio sample rate="+mPreviousAudioInputSampleRate+"  Current audio sample rate="+hdmiInSampleRate);
+                            	if (isAM3K && previousHdmiInSync != curSync)
+                                	Log.i(TAG, "Previous HDMI in sync="+previousHdmiInSync+"  Current HDMI in sync="+curSync);
+                               	if (isAM3K && previousHdmiIsPlaying != curHdmiIsPlaying)
+                                	Log.i(TAG, "Previous HDMI play state="+previousHdmiIsPlaying+"  Current HDMI play state="+curHdmiIsPlaying);
                                 mPreviousAudioInputSampleRate = hdmiInSampleRate;
+                                if (isAM3K) {
+                                	previousHdmiInSync = curSync;
+                                	previousHdmiIsPlaying = curHdmiIsPlaying;
+                                }
                                 boolean onlyRestartAudioNeeded = true;	// if streamout is started we need to restart stream
+                                boolean restartStreams = false;
                                 for(int sessionId = 0; sessionId < NumOfSurfaces; sessionId++)
                                 {
                                     if ( (userSettings.getMode(sessionId) == DeviceMode.STREAM_OUT.ordinal()) &&
                                             (userSettings.getUserRequestedStreamState(sessionId) == StreamState.STARTED) )
                                     {
                                         onlyRestartAudioNeeded = false;
+                                        restartStreams = true;
                                         break;
                                     }
                                 }
                                 
                                 if (isAM3K)
                                 {
-                                	boolean bsync = HDMIInputInterface.readSyncState();
-                                	if((!bsync) || (hdmiInSampleRate == 0))
+                                	if((!curSync) || (hdmiInSampleRate == 0) || !curHdmiIsPlaying)
                                 	{
-	                                	Log.i(TAG, "Do not restart audio. Samplerate = " + hdmiInSampleRate + ", HDMI sync = " + bsync);
+	                                	Log.i(TAG, "Do not restart audio. Samplerate = " + hdmiInSampleRate + ", HDMI in sync = " + 
+	                                			curSync + " hdmiIsVisible = "+curHdmiIsPlaying);
 	                                	onlyRestartAudioNeeded = false;
                                 	}
                                 }
@@ -2369,8 +2390,16 @@ public class CresStreamCtrl extends Service {
                                 }
                                 else
                                 {
-                                    Log.i(TAG, "Restarting Streams - sample rate change = " + hdmiInSampleRate);
-                                    restartStreams(true); //skip stream in since it does not use hdmi input
+                                	if (!isAM3K)
+                                	{
+                                		Log.i(TAG, "Restarting Streams for sample rate change = " + hdmiInSampleRate);
+                                		restartStreams(true); //skip stream in since it does not use hdmi input
+                                	}
+                                	else if (restartStreams)
+                                	{
+                                		Log.i(TAG, "AM3K: Restarting Streams for sample rate change = " + hdmiInSampleRate);
+                                		restartStreams(true); //skip stream in since it does not use hdmi input
+                                	}
                                 }
                             }
                             
@@ -6687,7 +6716,8 @@ public class CresStreamCtrl extends Service {
             ignoreRestart = true;
         else if (hdmiInputResolutionEnum != 0) {
             mPreviousValidHdmiInputResolution = hdmiInputResolutionEnum;
-            mPreviousAudioInputSampleRate = hdmiInSampleRate;
+            if (!isAM3K)
+            	mPreviousAudioInputSampleRate = hdmiInSampleRate;
         }
         if (mCanvas != null)
         {
