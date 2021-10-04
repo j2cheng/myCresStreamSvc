@@ -153,6 +153,7 @@ public class WC_Service {
     		mStatus.isClientConnected=true;
     		onStatusChanged();
     	}
+        showConnectionParameters("onClientConnected", mCurrentId);
     }
 
     public void onClientDisconnected(String clientIp)
@@ -231,10 +232,10 @@ public class WC_Service {
 
     public WC_Connection getConnectionParameters(int id)
     {
-        String url = mStreamOut.getWcServerUrl();
+        List<String> urlList = mStreamOut.getWcServerUrlList();
         String cert = mStreamOut.getWcServerCertificate();
         //String privKey = mStreamOut.getWcServerKey();
-        WC_Connection wc_connection = new WC_Connection(id, url, cert);
+        WC_Connection wc_connection = new WC_Connection(id, urlList, cert);
         return wc_connection;
     }
 

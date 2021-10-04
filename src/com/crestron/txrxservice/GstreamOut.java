@@ -30,6 +30,7 @@ import android.util.Log;
 import java.lang.Object;
 
 import java.util.ArrayList;
+import java.util.Arrays;
 import java.util.List;
 
 import android.os.SystemClock;
@@ -238,25 +239,37 @@ public class GstreamOut {
         setCamStreamName("wc");
     }
 
+    public List<String> getWcServerUrlList()
+    {
+        List<String> list = new ArrayList<String>(Arrays.asList(wcServerUrl.split("\\s*,\\s*")));
+        Log.i(TAG, "getWcServerUrlList(): urlList="+list);
+        return list;
+    }
+    
     public void setWcServerUrl(String url)
     {
         Log.i(TAG, "Streamout: setWcServerUrl: incoming url="+url);
-        String newUrl = url;
+        StringBuilder newUrl = new StringBuilder("");
         if (url.contains("0.0.0.0"))
         {
             if (!streamCtl.userSettings.getDeviceIp().equals("0.0.0.0"))
             {
-                newUrl = url.replace("0.0.0.0", streamCtl.userSettings.getDeviceIp());
+                newUrl.append(url.replace("0.0.0.0", streamCtl.userSettings.getDeviceIp()));
             }
-	    //TODO: Based on required behavior defined, address below needs:AM3XX-5738
-	    /*
-	    else if (!streamCtl.userSettings.getWifiIp().equals("0.0.0.0"))
+            if (!streamCtl.userSettings.getWifiIp().equals("0.0.0.0"))
             {
-                newUrl = url.replace("0.0.0.0", streamCtl.userSettings.getWifiIp());
-                Log.i(TAG, "setWcServerUrl: Wifi Ip picked");
-            }*/
+                if (!newUrl.equals(""))
+                    newUrl.append(",");
+                newUrl.append(url.replace("0.0.0.0", streamCtl.userSettings.getWifiIp()));
+            }
+            if (!streamCtl.userSettings.getAuxiliaryIp().equals("0.0.0.0"))
+            {
+                if (!newUrl.equals(""))
+                    newUrl.append(",");
+                newUrl.append(url.replace("0.0.0.0", streamCtl.userSettings.getAuxiliaryIp()));
+            }
         }
-        wcServerUrl = newUrl;
+        wcServerUrl = newUrl.toString();
         Log.i(TAG, "setWcServerUrl: WC server url="+wcServerUrl);
     }
 
