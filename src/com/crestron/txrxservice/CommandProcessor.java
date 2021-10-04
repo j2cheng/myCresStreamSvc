@@ -2972,3 +2972,18 @@ class AirMediaWCEnableCommand extends CrestronCommand {
 	}
 }
 
+//this receives the licence status of WC from csio
+class WirelessConferencingLicensed extends CrestronCommand {
+    public WirelessConferencingLicensed(CresStreamCtrl ctrl, String arg) {
+            super(ctrl, arg);
+        }
+
+        @Override
+        public void execute() {
+        ctrl.airMediaWCLicensed(Boolean.valueOf(msg));
+        }
+
+        public String getFeedbackMsg() {
+                return Boolean.toString(ctrl.userSettings.getAirMediaWCLicensed());
+	}
+}

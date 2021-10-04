@@ -241,6 +241,7 @@ public class CresStreamCtrl extends Service {
     public boolean airMediav21 = false;
     public boolean useFauxPPUX = false;
     public boolean isWirelessConferencingEnabled = false;
+    public boolean isWirelessConferencingLicensed = false;
     public boolean isRGB888HDMIVideoSupported = true;
     public boolean mCanvasHdmiIsPlaying = false;
     public CrestronHwPlatform mHwPlatform;
@@ -1202,7 +1203,9 @@ public class CresStreamCtrl extends Service {
             streamPlay = new GstreamIn(CresStreamCtrl.this);
             ccresLog = new CresLog(CresStreamCtrl.this);
 
-            isWirelessConferencingEnabled = userSettings.getAirMediaWCEnable(); // Read from user settings as WC is eanbled through CSIO 
+            isWirelessConferencingEnabled = userSettings.getAirMediaWCEnable(); // Read from user settings as WC is enabled through CSIO
+            isWirelessConferencingLicensed = userSettings.getAirMediaWCLicensed(); // Read from user settings as WC is enabled through CSIO
+
             // Added for real camera on x60
             // to-do: support having both hdmi input and a real camera at the same time...
             Log.i(TAG,"isWirelessConferencingEnabled="+isWirelessConferencingEnabled+"   hasRealCamera="+ProductSpecific.hasRealCamera());
@@ -1215,7 +1218,8 @@ public class CresStreamCtrl extends Service {
                 // To-do: support platform that has an hdmi input and a real camera.
                 // in X60, now use GstPreview, no longer use NativePreview, so comment out below:
                 //cam_preview = new CameraPreview(this, null);
-                if (isWirelessConferencingEnabled)
+                Log.i(TAG,"isWirelessConferencingLicensed="+isWirelessConferencingLicensed);
+                if (isWirelessConferencingEnabled && isWirelessConferencingLicensed)
                 {
                     mWC_Service = new WC_Service(CresStreamCtrl.this);
                 }
@@ -6128,7 +6132,16 @@ public class CresStreamCtrl extends Service {
         Log.i(TAG, "airMediaWCEnable(): requesting enable=" + ((enable)?"enabled":"disabled") +
                 " - currently it is " + ((isWirelessConferencingEnabled)?"enabled":"disabled"));
         isWirelessConferencingEnabled = enable;
-    }    
+    }
+
+    public void airMediaWCLicensed(boolean enable)
+    {
+        userSettings.setAirMediaWCLicensed(enable);
+        Log.i(TAG, "airMediaWCLicensed(): requesting enable=" + ((enable)?"enabled":"disabled") +
+                " - currently it is " + ((isWirelessConferencingLicensed)?"enabled":"disabled"));
+        isWirelessConferencingLicensed = enable;
+    }
+
     public void onCameraConnected()
     {
 		Log.i(TAG, "onCameraConnected(): USB UVC camera is connected");

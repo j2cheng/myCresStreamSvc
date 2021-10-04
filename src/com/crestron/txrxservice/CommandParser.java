@@ -190,6 +190,7 @@ public class CommandParser {
         AIRMEDIA_WIFI_AUTOLAUNCHAIRMEDIALANDINGPAGEENABLED,
         AIRMEDIA_CLEAR_CACHE,
         AIRMEDIA_WC_ENABLE,
+        AIRMEDIA_WC_LICENSED,     // Wireless Conferencing set Licensing status
         
         // Camera Streaming Slot
         CAMERA_STREAMING_ENABLE,
@@ -830,9 +831,12 @@ public class CommandParser {
             	cmd = new AirMediaClearCacheCommand(ctrl, arg);
             	break;
             case AIRMEDIA_WC_ENABLE:
-            	cmd = new AirMediaWCEnableCommand(ctrl, arg);
-            	break;
-                        	
+                cmd = new AirMediaWCEnableCommand(ctrl, arg);
+                break;
+            case AIRMEDIA_WC_LICENSED:
+                cmd = new WirelessConferencingLicensed(ctrl, arg);
+                break;
+
         	// Camera Streaming
             case CAMERA_STREAMING_ENABLE:
             	cmd = new camStreamEnableCommand(ctrl, arg);

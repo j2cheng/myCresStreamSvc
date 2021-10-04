@@ -262,6 +262,7 @@ public class UserSettings
 	private boolean airMediaWifiAutoLaunchAirMediaLandingPageEnable;
 	private int airMediaInactivityTimeout;
 	private boolean airMediaWCEnable;
+	private boolean airMediaWCLicensed;
 
 	// Camera Streaming
 	private boolean camStreamEnable;
@@ -424,6 +425,7 @@ public class UserSettings
 		camStreamSnapshotName = "snapshot";
 		camStreamMulticastAddress = "";
 		airMediaWCEnable = false;
+		airMediaWCLicensed = true; //FIXME: Until we dont have Licensing feature implemented End-to-End
 		wcSecurityEnable = true;
 		wcRandomUserPwEnable = true;
 		wcVideoCaptureDevice = "/dev/video5";
@@ -1585,13 +1587,23 @@ public class UserSettings
 	public int getAirMediaInactivityTimeout() {
 		return airMediaInactivityTimeout;
 	}
+
 	public void setAirMediaWCEnable(boolean enable) {
 		this.airMediaWCEnable = enable;
 	}
-	
+
 	public boolean getAirMediaWCEnable() {
 		return airMediaWCEnable;
 	}
+
+	public void setAirMediaWCLicensed(boolean enable) {
+		this.airMediaWCLicensed = enable;
+	}
+
+	public boolean getAirMediaWCLicensed() {
+		return airMediaWCLicensed;
+	}
+
 	public boolean getCamStreamEnable() {
 		return camStreamEnable;
 	}
