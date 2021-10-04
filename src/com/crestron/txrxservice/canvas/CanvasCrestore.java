@@ -235,6 +235,17 @@ public class CanvasCrestore
             Common.Logging.i(TAG,"Successfully subscribed to " + sDeviceWiFiAirMediaWifiDirect);
         }
 
+        //subscribe to Internal.Tx3.AirMedia.WifiDirect
+        String sInternalTx3AirMediaWifiDirect = "{\"Internal\":{\"Tx3\":{\"AirMedia\":{\"WiFiDirect\":{}}}}}";
+        rv = wrapper.subscribeCallback(sInternalTx3AirMediaWifiDirect, crestoreCallback);
+        if (rv != com.crestron.cresstoreredis.CresStoreResult.CRESSTORE_SUCCESS)
+        {
+            Common.Logging.i(TAG,"Could not set up Crestore Callback for subscription to " + sInternalTx3AirMediaWifiDirect+": " + rv);
+            return false;
+        } else {
+            Common.Logging.i(TAG,"Successfully subscribed to " + sInternalTx3AirMediaWifiDirect);
+        }
+
         if (!verifyCrestore())
         {
         	Common.Logging.i(TAG,"Could not verify crestore wrapper is working");
@@ -1657,6 +1668,27 @@ public class CanvasCrestore
                     }
                 }
 
+                if (root.internal != null && root.internal.tx3 != null && root.internal.tx3.airMedia != null) {
+
+                    Common.Logging.v(TAG, "Received Internal/Tx3/AirMedia/WifiDirect message.");
+                    parsed=true;
+                    if(root.internal.tx3.airMedia.wiFiDirect.onDeviceSourceReady != null)
+                    {
+                        Common.Logging.v(TAG, "wiFiDirect onDeviceSourceReady event");
+                        String localIpAddress = root.internal.tx3.airMedia.wiFiDirect.onDeviceSourceReady.localIpAddress;
+                        String deviceId = root.internal.tx3.airMedia.wiFiDirect.onDeviceSourceReady.deviceId;
+                        String deviceName = root.internal.tx3.airMedia.wiFiDirect.onDeviceSourceReady.deviceName;
+                        String deviceAddress = root.internal.tx3.airMedia.wiFiDirect.onDeviceSourceReady.remoteIpAddress;
+
+                        if(localIpAddress != null && deviceId != null && deviceName != null && deviceAddress != null)
+                        {
+                            int rtsp_port = root.internal.tx3.airMedia.wiFiDirect.onDeviceSourceReady.rtspPort;
+               				Common.Logging.v(TAG, "Start Tx3 WifiDirect - deviceId: "+deviceId+", deviceName: "+deviceName+", localIpAddress: "+localIpAddress+", deviceAddress: "+deviceAddress+", rtspPort: "+rtsp_port);
+                            mStreamCtl.startWifiDirect(localIpAddress, deviceId, deviceName, deviceAddress, rtsp_port);
+                        }
+                    }
+                }
+                
                 /* parsing Device.AirMedia.NetworkStreams.
                 * 
                 *  {"Device": {"AirMedia":{"NetworkStreams":{
@@ -2295,6 +2327,9 @@ public class CanvasCrestore
         @SerializedName ("AirMedia")
         InternalAirMedia airMedia;
         
+        @SerializedName ("Tx3")
+        InternalTx3 tx3;
+        
         public Internal() {
         	airMedia = new InternalAirMedia();
         }
@@ -2359,5 +2394,40 @@ public class CanvasCrestore
     {
         @SerializedName ("RemoteMac")
         String remoteMac;
+    }
+    
+    public class InternalTx3AirMediaWFDonDeviceSrcRdy {
+        @SerializedName ("DeviceId")
+    	String  deviceId;
+    	    	
+        @SerializedName ("RemoteIpAddress")
+    	String  remoteIpAddress;
+    	
+        @SerializedName ("RtspPort")
+    	Integer rtspPort;
+    		
+        @SerializedName ("LocalWifiIpAddress")
+    	String  localIpAddress;
+    	
+        @SerializedName ("IsSecure")
+    	Boolean isSecure;
+    	
+    	@SerializedName ("DeviceName")
+    	String  deviceName;
+    }
+
+    public class InternalTx3AirMediaWFD {
+    	@SerializedName ("OnDeviceSourceReady")
+    	InternalTx3AirMediaWFDonDeviceSrcRdy onDeviceSourceReady;
+    }
+
+    public class InternalTx3AirMedia {
+    	@SerializedName ("WiFiDirect")
+    	InternalTx3AirMediaWFD wiFiDirect;
+    }
+
+    public class InternalTx3 {
+    	@SerializedName ("AirMedia")
+    	InternalTx3AirMedia airMedia;
     }
 }

@@ -7590,7 +7590,7 @@ public class CresStreamCtrl extends Service {
         @Override public String toString() { return width + "x" + height; }
     }
 
-    public void startWifiDirect(String localAddress, String deviceId, String deviceName, String deviceAddress, int rtsp_port)
+    public synchronized void startWifiDirect(String localAddress, String deviceId, String deviceName, String deviceAddress, int rtsp_port)
     {
     	if (userSettings.getAirMediaEnable() && userSettings.getAirMediaMiracastEnable()) {
     		if(isAM3K)
