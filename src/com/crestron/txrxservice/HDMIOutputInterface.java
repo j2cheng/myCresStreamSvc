@@ -220,15 +220,23 @@ public class HDMIOutputInterface {
 			}
 			//        Log.i(TAG, "HDMI OUT HDCP status from sysfs:" + text.toString());
 			return Integer.parseInt(text.toString());
-		} else {
-			String status = MiscUtils.readStringFromDisk("/sys/devices/platform/ff160000.i2c/i2c-7/7-0030/hdcp_status");
-			if (status.equalsIgnoreCase("hdcp_v1x succeed") || status.equalsIgnoreCase("hdcp_v2x succeed")) {
-				return 1;
-			} else if (status.equalsIgnoreCase("Off")) {
-				return 0;
-			} else { // Failed/Starting
-				return -1;
-			}
+		} else { //AM3K
+		    final boolean useCrestronSi93396sDriver = true;
+		    if (useCrestronSi93396sDriver)
+		    {
+		        // driver tells us when output blanking is needed or not
+                boolean need_hdmi_output_hdcp_blank = MiscUtils.readStringFromDisk("/sys/devices/platform/ff160000.i2c/i2c-7/7-0030/need_output_hdcp_blank").equals("1");
+                return need_hdmi_output_hdcp_blank ? 0 : 1;  // HDMI HDCP output status authenticated when we don't need blanking
+		    } else { // use GrandStream HDCP status
+		        String status = MiscUtils.readStringFromDisk("/sys/devices/platform/ff160000.i2c/i2c-7/7-0030/hdcp_status");
+		        if (status.equalsIgnoreCase("hdcp_v1x succeed") || status.equalsIgnoreCase("hdcp_v2x succeed")) {
+		            return 1;
+		        } else if (status.equalsIgnoreCase("Off")) {
+		            return 0;
+		        } else { // Failed/Starting
+		            return -1;
+		        }
+		    }
 		}
     }
 	
