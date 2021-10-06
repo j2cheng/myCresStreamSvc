@@ -371,6 +371,8 @@ void wfdSinkStMachineClass::prepareForRestart()
     setTimeout(WFD_SINK_STATETIMEOUT_IDLE_RESTART);
     m_max_restartCnt = MAX_WFD_TCP_RETRY;
 
+    sendEventToParentProj(WFD_SINK_EVENTS_RTSP_LEAVE_SESSION_EVENT);
+
     CSIO_LOG(m_debugLevel, "wfdSinkStMachineClass[%d]: prepareForRestart\n", m_myId);
 }
 
