@@ -2842,6 +2842,7 @@ public class AirMediaSplashtop
 								Log.i(TAG, "OnServiceDisconnected(): call handleReceiverDisconnected");
 								mCanvas.handleReceiverDisconnected();
 							}
+							mStreamCtl.stopWcServer();
 							removeAllSessionsFromMap(false, "onServiceDisconnected()");
 							RestartAirMediaAsynchronously();
 						}

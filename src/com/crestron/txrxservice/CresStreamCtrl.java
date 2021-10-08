@@ -6141,6 +6141,15 @@ public class CresStreamCtrl extends Service {
                 " - currently it is " + ((isWirelessConferencingLicensed)?"enabled":"disabled"));
         isWirelessConferencingLicensed = enable;
     }
+    
+    public void stopWcServer()
+    {
+        if (mWC_Service != null)
+        {
+            mWC_Service.stopServer();
+        }
+            
+    }
 
     public void onCameraConnected()
     {

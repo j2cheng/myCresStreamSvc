@@ -90,13 +90,8 @@ public class WC_Service {
             Log.i(TAG,"WC_CloseSession: request from id="+id);
             if (id == mCurrentId)
             {
-                if (inUse.compareAndSet(true,  false)) {
-                	mStatus = new WC_Status(true, false, 0, "", "", WC_SessionFlags.None);
-                	// server stop will communicate via callback onStatusChanged once it has been started
-                    mStreamCtrl.setWirelessConferencingStreamEnable(false);
-                } else {
+                if (closeSession() == 0)
                     Log.i(TAG,"WC_CloseSession: WC is not in use");
-                }
                 return 0;
             } else {
                 return ERROR_INVALID_ID;
@@ -213,6 +208,24 @@ public class WC_Service {
             }
         }
         mCallbacks.finishBroadcast();
+    }
+    
+    public void stopServer()
+    {
+        Log.i(TAG, "stopServer()");
+        closeSession();
+    }
+    
+    public int closeSession()
+    {
+        int rv = 0;
+        if (inUse.compareAndSet(true,  false)) {
+            mStatus = new WC_Status(true, false, 0, "", "", WC_SessionFlags.None);
+            // server stop will communicate via callback onStatusChanged once it has been started
+            mStreamCtrl.setWirelessConferencingStreamEnable(false);
+            rv = 1;
+        } 
+        return rv;
     }
     
     public String getUrl()
