@@ -158,6 +158,7 @@ public class AirMediaSplashtop
 	
 	private String clientDataStatus = "Uninitialized";
 	private int clientDataTotalUsers = -1;
+	private boolean isAnyWifiUserConnected = true;
     private Handler handler_;
     private Map<Integer, AirMediaSession> userSessionMap = new ConcurrentHashMap<Integer, AirMediaSession>();
     
@@ -2354,9 +2355,14 @@ public class AirMediaSplashtop
 	{
 		DeviceObject dev = new DeviceObject();
 		dev.Device.AirMedia.ClientData.IsAnyWifiUserConnected = (n > 0) ? true : false;
-		String sessionClientData = gson.toJson(dev);
-		Common.Logging.i(TAG,  "sendClientWifiUsers: ClientDataJSON=" + sessionClientData);
-		mStreamCtl.SendToCresstore(sessionClientData, CresStreamCtrl.CresstoreOptions.PublishAndSave);
+		// only send update if necessary - i.e it has changed
+		if (isAnyWifiUserConnected != dev.Device.AirMedia.ClientData.IsAnyWifiUserConnected)
+		{
+		    isAnyWifiUserConnected = dev.Device.AirMedia.ClientData.IsAnyWifiUserConnected;
+		    String sessionClientData = gson.toJson(dev);
+		    Common.Logging.i(TAG,  "sendClientWifiUsers: ClientDataJSON=" + sessionClientData);
+		    mStreamCtl.SendToCresstore(sessionClientData, CresStreamCtrl.CresstoreOptions.PublishAndSave);
+		}
 	}
 	
 	private void sendClientData(int client, Client clientData)
