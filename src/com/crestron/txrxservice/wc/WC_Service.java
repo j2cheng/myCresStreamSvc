@@ -10,6 +10,9 @@ import java.util.HashMap;
 import java.util.List;
 import java.util.concurrent.atomic.AtomicBoolean;
 
+import com.google.gson.Gson;
+import com.google.gson.GsonBuilder;
+
 import com.crestron.txrxservice.CresStreamCtrl;
 import com.crestron.txrxservice.GstreamOut;
 import com.crestron.txrxservice.MiscUtils;
@@ -30,6 +33,11 @@ public class WC_Service {
     private static final int ERROR_IN_USE = -1;
     private static final int ERROR_NO_USB_DEVICES = -2;
     private static final int ERROR_INVALID_ID = -3;
+    static final int Publish=1;
+    static final int PublishAndSave=2;
+    private WC_SessionFlags mSessionFlags = WC_SessionFlags.None;
+
+    Gson gson = new GsonBuilder().create();
 
     public CresStreamCtrl mStreamCtrl = null;
     public GstreamOut mStreamOut = null;
@@ -48,6 +56,8 @@ public class WC_Service {
         mStreamCtrl = streamCtrl;
         mStreamOut = mStreamCtrl.getStreamOut();
         mStatus = new WC_Status();
+        //Initialize the Wireless Conferencing Status fields to not in use Asyncronously since being called from UI Thread
+        initWCStatusDataAynchronously();
     }
 
     final RemoteCallbackList<IWC_Callback> mCallbacks = new RemoteCallbackList<IWC_Callback>();
@@ -67,6 +77,10 @@ public class WC_Service {
             	updateUsbDeviceStatus(mUsbAvDeviceList);
             	// server start will communicate via callback onStatusChanged once it has been started
                 mStreamCtrl.setWirelessConferencingStreamEnable(true);
+
+                mSessionFlags = options.flags;
+                sendWCStatusData(mSessionFlags, true);
+
                 return mCurrentId;
             } else {
                 return ERROR_IN_USE;
@@ -223,6 +237,10 @@ public class WC_Service {
             mStatus = new WC_Status(true, false, 0, "", "", WC_SessionFlags.None);
             // server stop will communicate via callback onStatusChanged once it has been started
             mStreamCtrl.setWirelessConferencingStreamEnable(false);
+
+            sendWCStatusData(mSessionFlags, false);
+            mSessionFlags = WC_SessionFlags.None;
+
             rv = 1;
         } 
         return rv;
@@ -373,5 +391,82 @@ public class WC_Service {
     		mStreamCtrl.userSettings.setWcAudioCaptureDevice(mAudioFile);
     	}
     	return change;
+    }
+
+    // Below class is to build the CresNext Object of Wireless Conferencing
+    class DeviceObject {
+        Device Device;
+        class Device {
+            private AirMedia AirMedia;
+            class AirMedia {
+                private WirelessConferencing WirelessConferencing;
+                class WirelessConferencing {
+                    private Status Status;
+                    class Status {
+                        Boolean IsMicInUse;
+                        Boolean IsCameraInUse;
+                    }
+
+                    public WirelessConferencing()
+                    {
+                        Status = new Status();
+                    }
+                }
+
+                public AirMedia()
+                {
+                    WirelessConferencing = new WirelessConferencing();
+                }
+            }
+            
+            public Device()
+            {
+                AirMedia = new AirMedia();
+            }
+        }
+        
+        public DeviceObject()
+        {
+            Device = new Device();
+        }
+    }
+
+    private void sendWCStatusData(WC_SessionFlags flagInUse, boolean enable)
+    {
+        DeviceObject dev = new DeviceObject();
+
+        if((flagInUse == WC_SessionFlags.AudioAndVideo) || (flagInUse == WC_SessionFlags.None))
+        {
+            Log.v(TAG,"sendWCStatusData: update to Crestore MIC and Camera in use status to " + enable);
+            dev.Device.AirMedia.WirelessConferencing.Status.IsMicInUse = enable;
+            dev.Device.AirMedia.WirelessConferencing.Status.IsCameraInUse = enable;
+        }
+        else if(flagInUse == WC_SessionFlags.Audio)
+        {
+            Log.v(TAG,"sendWCStatusData: update to Crestore only MIC in use status to " + enable);
+            dev.Device.AirMedia.WirelessConferencing.Status.IsMicInUse = enable;
+        }
+        else if(flagInUse == WC_SessionFlags.Video)
+        {
+            Log.v(TAG,"sendWCStatusData: update to Crestore Camera in use status to " + enable);
+            dev.Device.AirMedia.WirelessConferencing.Status.IsCameraInUse = enable;
+        }
+        String sessionWirelessConferencing = gson.toJson(dev);
+        Log.i(TAG,  "sendWCStatusData: WirelessConferencingJSON=" + sessionWirelessConferencing);
+
+        mStreamCtrl.SendToCresstore(sessionWirelessConferencing, PublishAndSave);
+    }
+
+    private void initWCStatusDataAynchronously() {
+        new Thread(new Runnable() {
+            @Override
+            public void run() {
+                while (! mStreamCtrl.csioConnected || ! mStreamCtrl.csioConnectionInitializationComplete) {
+                    Log.v(TAG, "sendWCStatusData: waiting for csio connection to complete initialization");
+                    try { Thread.sleep(500); } catch (InterruptedException e){}//Poll every 0.5 seconds
+                }
+                sendWCStatusData(WC_SessionFlags.None, false);
+            }
+        }).start();
     }
 }
