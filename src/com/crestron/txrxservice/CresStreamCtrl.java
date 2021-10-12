@@ -7483,6 +7483,11 @@ public class CresStreamCtrl extends Service {
         sockTask.SendDataToAllClients(MiscUtils.stringFormat("AIRMEDIA_VIDEO_START%d=%s", streamId, (value)?"TRUE":"FALSE"));
     }
     
+    public void sendNumOfPresenters(int value)
+    {
+        sockTask.SendDataToAllClients(MiscUtils.stringFormat("NUMBER_OF_PRESENTERS=%d", value));
+    }
+
     public void setWbsResolution(int streamId, int width, int height)
     {
         Log.i(TAG, "setWbsResolution(): streamId="+streamId+" wxh="+width+"x"+height);

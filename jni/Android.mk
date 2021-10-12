@@ -172,7 +172,7 @@ LOCAL_CFLAGS += -DCRESTRON_ANDROID_10
 endif
 
 ifeq ($(TARGET_PRODUCT),$(filter $(TARGET_PRODUCT),am3x00_box))
-LOCAL_CFLAGS += -DMAX_STREAMS_AM3X00
+LOCAL_CFLAGS += -DMAX_STREAMS_AM3X00 -DAM3X00
 endif
 
 ifeq ($(TARGET_PRODUCT),$(filter $(TARGET_PRODUCT),full_omap5panda)) #All products which support HDCP 2X encryption need this flag
@@ -257,6 +257,12 @@ endif
 ifeq ($(TARGET_PRODUCT),$(filter $(TARGET_PRODUCT),yushan_one msm8953_64 am3x00_box))
 LOCAL_CFLAGS +=\
 	-I$(CSIO_INCLUDE_ROOT)/txrx 
+endif	
+
+# For AM3xx00 only
+ifeq ($(TARGET_PRODUCT),$(filter $(TARGET_PRODUCT),am3x00_box))
+LOCAL_CFLAGS +=\
+	-DAM3X00
 endif	
 
 LOCAL_LDLIBS := -llog -landroid

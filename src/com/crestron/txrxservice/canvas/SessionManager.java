@@ -39,6 +39,7 @@ public class SessionManager
     private Map<String, Session> sessionMap = new ConcurrentHashMap<String, Session>();
     private boolean pendingLayoutUpdate = false;
     private boolean videoDisplayed = false;
+    public  int mNumOfPresenters = 0;
     public static final int SEND_ALL_SESSION_TIMEOUT = 30;
     public static final int STOP_ALL_SESSION_TIMEOUT = 30;
     public static final int DISCONNECT_ALL_SESSION_TIMEOUT = 30;
@@ -355,14 +356,17 @@ public class SessionManager
     public void updateVideoStatus()
     {
     	boolean videoPresenting = false;
+        int videoDisplayedCnt = 0;
     	synchronized (lock_) {
             for (Session session : sessions_) {
             	//Common.Logging.i(TAG, "SessionManager::updateVideoStatus(): session="+session+" state="+session.getState());
             	SessionState state = session.getState();
             	if (state == SessionState.Playing || state == SessionState.Paused)
             	{
+                    //Note: videoPresenting will be set to true as long as there is video.
+                    //      videoDisplayedCnt needs to go through all sessions.
             		videoPresenting = true;
-            		break;
+                    videoDisplayedCnt++;         		
             	}
             }
     	}
@@ -370,8 +374,15 @@ public class SessionManager
     	{
     		videoDisplayed = videoPresenting;
     		mCanvas.getCrestore().setVideoDisplayed(videoDisplayed);
-    	}
-    	Common.Logging.i(TAG, "SessionManager::updateVideoStatus(): videoDisplayed = "+videoDisplayed);
+    	}//else
+
+        if(mNumOfPresenters != videoDisplayedCnt)
+        {
+            mNumOfPresenters = videoDisplayedCnt;
+            //send to csio for analog join
+            mCanvas.mStreamCtl.sendNumOfPresenters(mNumOfPresenters);
+        }//else
+    	Common.Logging.i(TAG, "SessionManager::updateVideoStatus(): videoDisplayed = "+videoDisplayed + ", mNumOfPresenters: " + mNumOfPresenters);
     }
     
     public void setPendingLayoutUpdate()
