@@ -857,6 +857,7 @@ void* CStreamoutManager::ThreadEntry()
                 snprintf(audioenc, sizeof(audioenc), "%s", audioEncoderName);
 
                 if (m_videoStream && m_audioStream) {
+                    // audPreQ s required before the encoder. This fixed the lipsync issue which was seen with Logitech Brio/930 camera.
                     if (m_aacEncode) {
                         snprintf(pipeline, sizeof(pipeline), "( %s ! "
                                                              "%s ! "
@@ -866,7 +867,7 @@ void* CStreamoutManager::ThreadEntry()
                                                              "queue name=vidPostQ ! "
                                                              "h264parse ! "
                                                              "rtph264pay name=pay0 pt=96 "
-                                                             "%s ! audioresample ! audioconvert ! "
+                                                             "%s ! audioresample ! audioconvert ! queue name=audPreQ ! "
                                                              "%s ! "
                                                              "rtpmp4apay name=pay1 pt=97 )",
                                                              videoSource,
@@ -883,7 +884,7 @@ void* CStreamoutManager::ThreadEntry()
                                                              "queue name=vidPostQ ! "
                                                              "h264parse ! "
                                                              "rtph264pay name=pay0 pt=96 "
-                                                             "%s ! audioresample ! audioconvert ! audio/x-raw,rate=8000 ! "
+                                                             "%s ! audioresample ! audioconvert ! audio/x-raw,rate=8000 ! queue name=audPreQ ! "
                                                              "%s ! "
                                                              "rtppcmapay name=pay1 pt=97 )",
                                                              videoSource,
@@ -901,7 +902,7 @@ void* CStreamoutManager::ThreadEntry()
                                                              "rtpmp4apay name=pay0 pt=97 )",
                                                              audioSource, audioenc);
                     } else {
-                        snprintf(pipeline, sizeof(pipeline), "( %s ! audioresample ! audioconvert ! audio/x-raw,rate=8000 ! "
+                        snprintf(pipeline, sizeof(pipeline), "( %s ! audioresample ! audioconvert ! audio/x-raw,rate=8000 ! queue name=audPreQ ! "
                                                              "%s ! "
                                                              "rtppcmapay name=pay0 pt=97 )",
                                                              audioSource, audioenc);
