@@ -37,7 +37,7 @@ public class CresCamera2 extends CresCamera
     static CameraCaptureSession mCameraSession;
     static Surface mPreviewSurface;
     CaptureRequest mPreViewRequest;    
-    boolean mGotCamOnDisconnectedEvent = false;
+    boolean mStopPlaybackRequested = false;
 
     private Semaphore mCameraOpenCloseLock = new Semaphore(1);
     static Object lockObj = new Object();
@@ -123,20 +123,25 @@ public class CresCamera2 extends CresCamera
                         public void onOpened(CameraDevice camera) {
                             Log.i(TAG, "  onOpened " + hdmiCameraName);
                             mCamErrCur = false;
-                            mGotCamOnDisconnectedEvent = false;
                             mCameraDevice = camera;
+                            mStopPlaybackRequested = false;
                             cameraOpenLatch.countDown();
                         }
 
                         @Override
                         public void onClosed(CameraDevice camera) {
                             Log.i(TAG, "  onClosed " + hdmiCameraName);
+                            mStopPlaybackRequested = false;
                         }
 
                         @Override
                         public void onDisconnected(CameraDevice camera) {
                             Log.i(TAG, "  onDisconnected " + hdmiCameraName);
-                            mGotCamOnDisconnectedEvent = true;
+                            if (!mStopPlaybackRequested) {
+                                Log.i(TAG, "Setting camera error due to disconnect without a stop playback request");
+                                mCamErrCur = true;
+                            } else
+                                Log.i(TAG, "Not setting camera error because disconnect was during a request to stop playback");
                             if (mCameraDevice != null) {
                                 releaseCamera2(true);
                             }
@@ -145,10 +150,14 @@ public class CresCamera2 extends CresCamera
                         @Override
                         public void onError(CameraDevice camera, int error) {
                             Log.e(TAG, "  onError " + hdmiCameraName + " error " + error);
-                            if (!mGotCamOnDisconnectedEvent)
-                            	mCamErrCur = true;
-                            else
-                            	Log.i(TAG, "Ignoring setting camera error because got camera disconnected event already");
+                            // if we see an error event without a stop being requested we set the
+                            // error flag to force a restart of camera preview in CSS polling thread
+                            if (!mStopPlaybackRequested) {
+                                Log.i(TAG, "Setting camera error due to error without a stop playback request");
+                                mCamErrCur = true;
+                                mStopPlaybackRequested = false;
+                            } else
+                                Log.i(TAG, "Not setting camera error because error was during a request to stop playback");
                             if (mCameraDevice != null) {
                                 releaseCamera2(false);//do not call abortCaptures when onError(bug AM3XX-5742)
                             }
@@ -174,6 +183,7 @@ public class CresCamera2 extends CresCamera
 
     @Override
     public void releaseCamera() {
+        mStopPlaybackRequested = true; // sets flag to indicate this is being called during a stop playback request
         releaseCamera2(true);
     }
 

@@ -309,8 +309,8 @@ public class ProductSpecific
         {
             Log.i(TAG, "hdmiInConnected:" + hdmiInConnected + " last camera error state:" + cam_handle.mCamErrCur);
 
-            //If a camera error has occured, dont see the HDMI Input to be connected
-            if(cam_handle.mCamErrCur || cam_handle.mGotCamOnDisconnectedEvent)
+            //If a camera error has occurred, don't see the HDMI Input to be connected
+            if (cam_handle.mCamErrCur)
                 hdmiInConnected = false;
 
             if (!hdmiInConnected)
