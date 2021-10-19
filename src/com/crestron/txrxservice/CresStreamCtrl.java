@@ -700,6 +700,43 @@ public class CresStreamCtrl extends Service {
 
     private Notification mNote = new Notification( 0, null, System.currentTimeMillis() );
     
+    private class HdmiAm3K {
+        boolean isPlaying;
+        boolean sync; 
+        
+        HdmiAm3K() {
+            isPlaying = false;
+            sync = false;
+        }
+        
+        public boolean getIsPlaying() 
+        { 
+            return isPlaying; 
+        }
+        
+        public void setIsPlaying(boolean isPlaying) 
+        { 
+            if (isAM3K)
+            {
+                this.isPlaying = isPlaying;
+            }
+        }
+        
+        public boolean getSync() 
+        { 
+            return sync; 
+        }
+        
+        public void setSync(boolean sync) 
+        { 
+            if (isAM3K)
+            {
+                this.sync = sync;
+            }
+        }
+    } 
+    HdmiAm3K mPreviousHdmi = new HdmiAm3K();   // currently meant to be used for only AM3K
+    
     /**
      * Force the service to the foreground
      */
@@ -2298,8 +2335,6 @@ public class CresStreamCtrl extends Service {
             @Override
             public void run() {
             	int priorResolutionEnum = 0;
-            	boolean previousHdmiInSync = false;
-            	boolean previousHdmiIsPlaying = false;
                 // Poll input and output HDCP states once a second
                 while (!Thread.currentThread().isInterrupted())
                 {
@@ -2341,18 +2376,18 @@ public class CresStreamCtrl extends Service {
                             }
                             // If sample frequency changes on the fly, restart stream
                             if (hdmiInSampleRate != mPreviousAudioInputSampleRate || 
-                            		(isAM3K && ((previousHdmiInSync != curSync) || (previousHdmiIsPlaying != curHdmiIsPlaying))))
+                            		(isAM3K && ((mPreviousHdmi.getSync() != curSync) || (mPreviousHdmi.getIsPlaying() != curHdmiIsPlaying))))
                             {
                             	if (hdmiInSampleRate != mPreviousAudioInputSampleRate)
                             		Log.i(TAG, "Previous audio sample rate="+mPreviousAudioInputSampleRate+"  Current audio sample rate="+hdmiInSampleRate);
-                            	if (isAM3K && previousHdmiInSync != curSync)
-                                	Log.i(TAG, "Previous HDMI in sync="+previousHdmiInSync+"  Current HDMI in sync="+curSync);
-                               	if (isAM3K && previousHdmiIsPlaying != curHdmiIsPlaying)
-                                	Log.i(TAG, "Previous HDMI play state="+previousHdmiIsPlaying+"  Current HDMI play state="+curHdmiIsPlaying);
+                            	if (isAM3K && mPreviousHdmi.getSync() != curSync)
+                                	Log.i(TAG, "Previous HDMI in sync="+mPreviousHdmi.getSync()+"  Current HDMI in sync="+curSync);
+                               	if (isAM3K && mPreviousHdmi.getIsPlaying() != curHdmiIsPlaying)
+                                	Log.i(TAG, "Previous HDMI play state="+mPreviousHdmi.getIsPlaying()+"  Current HDMI play state="+curHdmiIsPlaying);
                                 mPreviousAudioInputSampleRate = hdmiInSampleRate;
                                 if (isAM3K) {
-                                	previousHdmiInSync = curSync;
-                                	previousHdmiIsPlaying = curHdmiIsPlaying;
+                                    mPreviousHdmi.setSync(curSync);
+                                    mPreviousHdmi.setIsPlaying(curHdmiIsPlaying);
                                 }
                                 boolean onlyRestartAudioNeeded = true;	// if streamout is started we need to restart stream
                                 boolean restartStreams = false;
@@ -2384,7 +2419,7 @@ public class CresStreamCtrl extends Service {
                                         int previewId = cam_preview.getSessionIndex();
                                         try {
                                             stopStartLock[previewId].lock("restartAudio_SampleRate");
-                                            Log.i(TAG, "Restarting Audio - sample rate change = " + hdmiInSampleRate);
+                                            Log.i(TAG, "Restarting Audio (audio sample rate=" + hdmiInSampleRate+")");
                                             cam_preview.restartAudio();    // Can get away with only restarting audio here
                                         }
                                         finally {
@@ -6593,6 +6628,7 @@ public class CresStreamCtrl extends Service {
 	                        cam_preview.startAudio();	                        
 	                    }
                     }
+                    mPreviousHdmi.setSync(resolutionId != 0);
                 }
                 else
                     Log.i(TAG, "handleHdmiInputResolutionEvent ignored since resolutionId == mCurrentHdmiInputResolution=" + mCurrentHdmiInputResolution);
@@ -7470,6 +7506,7 @@ public class CresStreamCtrl extends Service {
     {
         sockTask.SendDataToAllClients(MiscUtils.stringFormat("HDMI_VIDEO_START%d=%s", streamId, (value)?"TRUE":"FALSE"));
         mCanvasHdmiIsPlaying = value;
+        mPreviousHdmi.setIsPlaying(value);
         mForceHdcpStatusUpdate = true;
     }
 
