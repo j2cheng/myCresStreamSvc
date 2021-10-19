@@ -179,7 +179,7 @@ public class AudioPlayback
 						try {
 							synchronized (bufferQueue)
 							{
-								bufferQueue.wait(5000);
+								bufferQueue.wait(1000);
 							}
 						} catch (Exception e) {e.printStackTrace();}
 					}
@@ -313,12 +313,13 @@ public class AudioPlayback
 	}
 
 	protected void stopAudioTask(){
-		Log.e(TAG, "stop Audio started");
+	    long begin = System.currentTimeMillis();
+		Log.i(TAG, "stopAudioTask(): stop audio started");
 		shouldExit = true;
 		try
 		{
 			this.audioTrackThread.join();
-			this.streamAudioThread.join();       	
+			this.streamAudioThread.join(); 
 		} catch (Exception ex) { ex.printStackTrace(); }           
 
 		try
@@ -329,11 +330,10 @@ public class AudioPlayback
 
 		try
 		{
-			mPlayer.stop();	        
+			mPlayer.stop();
 			mPlayer.release();
 		} catch (Exception ex) { ex.printStackTrace(); }  
-
-		Log.e(TAG, "Audio Task Stopped");     
+		Log.i(TAG, "stopAudioTask(): audio Task stopped in "+(System.currentTimeMillis()-begin)+"msec");     
 	}
 
 	public void setVolume(int volume) {
