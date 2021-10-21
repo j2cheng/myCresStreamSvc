@@ -302,12 +302,12 @@ public class ProductSpecific
         public PeripheralStatusChangeListener(CresStreamCtrl ctrl) {
             super();
             cresStreamCtrl = ctrl;
-            hdmiInConnected = cam_handle.findCamera(HDMI_IN_DEV);
+            //hdmiInConnected = cam_handle.findCamera(HDMI_IN_DEV);
         }
 
         public void HdmiInConnect()
         {
-            Log.i(TAG, "hdmiInConnected:" + hdmiInConnected + " last camera error state:" + cam_handle.mCamErrCur);
+            Log.i(TAG, "hdmiInConnected:" + hdmiInConnected + "   last camera error state:" + cam_handle.mCamErrCur);
 
             //If a camera error has occurred, don't see the HDMI Input to be connected
             if (cam_handle.mCamErrCur)
@@ -558,6 +558,7 @@ public class ProductSpecific
 
     public void startPeripheralListener(CresStreamCtrl ctrl) 
     {
+        Log.i(TAG, "Starting Peripheral Listener");
         mListener = new PeripheralStatusChangeListener(ctrl);
 
         // Force hdmi in and out sync status update at startup

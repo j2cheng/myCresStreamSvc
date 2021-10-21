@@ -327,6 +327,17 @@ public class CresCanvas
 		Session session = mSessionMgr.findSession("HDMI", "", "", inputNumber);
 		Common.Logging.i(TAG, "handlePossibleHdmiSyncStateChange(): syncStatus="+hdmiInput.getSyncStatus()+"    resolution="+res+
 				"     checkForChange="+changeCheck);
+		if (mStreamCtl.isAM3K) { 
+		    if (!mStreamCtl.mHdmiCameraIsConnected) {
+		        // For AM3K if camera is disconnected force a res of 0 so we do disconnect event
+		        res = "0x0";
+		        Common.Logging.i(TAG,  "handlePossibleHdmiSyncStateChange(): forcing res to 0 since camera is disconnected");
+		    } else if (res.equals("0x0")){
+		        // For AM3K if camera is connected snd res is 0 - ignore event for now - will be handled when res changes to non-zero
+		        Common.Logging.i(TAG,  "handlePossibleHdmiSyncStateChange(): got 0 resolution with connected camera - ignoring for now");
+		        return;
+		    }
+		}
 		if (changeCheck && (hdmiInput.getSyncStatus().equalsIgnoreCase(prevHdmiSyncStatus[inputNumber]) &&
 				res.equalsIgnoreCase(prevHdmiResolution[inputNumber])))
 		{

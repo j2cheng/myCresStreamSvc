@@ -202,7 +202,9 @@ public class CresStreamCtrl extends Service {
     private boolean/*[]*/ mTxHdcpActive = false;//new boolean[NumOfSurfaces];
     private boolean mIgnoreHDCP = false; //FIXME: This is for testing
     public volatile boolean mForceHdcpStatusUpdate = true;
+    public boolean mHdmiCameraIsConnected = false; // used only on AM3K
     private int mCurrentHdmiInputResolution = -1;
+    private boolean mCurrentHdmiCameraConnectState = false; // used only on AM3K
     private int mPreviousValidHdmiInputResolution = 0;
     public int mPreviousAudioInputSampleRate = 0;
     private Resolution mPreviousHdmiOutResolution = new Resolution(0, 0);
@@ -225,6 +227,7 @@ public class CresStreamCtrl extends Service {
     public boolean[] mUsedForAirMedia = new boolean[NumOfSurfaces];
     boolean[] updateStreamStateOnFirstFrame = new boolean[NumOfTextures]; // flags to update stream state only on first frame output from MediaCodec - used only in AirMedia currently
     private Object mDisplayChangedLock = new Object();
+    private Object mHdmiConnectDisconnectLock = new Object();
     private int defaultLoggingLevel = -1;
     private int numberOfVideoTimeouts = 0; //we will use this to track stop/start timeouts
     private final ProductSpecific mProductSpecific = new ProductSpecific();
@@ -2444,12 +2447,25 @@ public class CresStreamCtrl extends Service {
                             
                             // Temporary BUG FIX for Blue screen issue in AM3XX-6089
                             if (isAM3K) {
-                            	int resEnum = HDMIInputInterface.readResolutionEnum(false);
+                                int resEnum = HDMIInputInterface.readResolutionEnum(false);
                             	if (resEnum != priorResolutionEnum) { // res change 
                             		Log.i(TAG, "Resolution enum changed from "+priorResolutionEnum+" to "+resEnum+" calling setCamera()");
                             		priorResolutionEnum = resEnum;
                             		setCamera(resEnum);
                             	}
+                            }
+                            
+                            if (isAM3K)
+                            {
+                                int resEnum = HDMIInputInterface.readResolutionEnum(false);
+                                // set flag when sync and resolution are consistent
+                                boolean consistent = (resEnum != 0) && curSync;
+                                // if res change then call handleInputResolutionEvent - ideally should be event driven
+                                if (consistent && (resEnum != mCurrentHdmiInputResolution))
+                                {
+                                    Log.i(TAG, "Calling handlHdmiInputResolutionEvent because resolution enum changed from "+mCurrentHdmiInputResolution+" to "+resEnum);
+                                    handleHdmiInputResolutionEvent(resEnum);
+                                }
                             }
 
                             if(isAM3K)
@@ -6211,14 +6227,35 @@ public class CresStreamCtrl extends Service {
     
     public void onHdmiInConnected()
     {
-        Log.i(TAG, "onHdmiInConnected(): HDMI Input is connected EVENT");
-        handleHdmiInputResolutionEvent(HDMIInputInterface.readResolutionEnum(true));
+        new Thread(new Runnable() {
+            public void run() {
+                try {
+                    synchronized (mHdmiConnectDisconnectLock)
+                    {
+                        mHdmiCameraIsConnected = true;
+                        Log.i(TAG, "onHdmiInConnected(): HDMI Input is connected EVENT   mHdmiCameraIsConnected="+mHdmiCameraIsConnected);
+                        handleHdmiInputResolutionEvent(HDMIInputInterface.readResolutionEnum(true));
+                    }
+                } catch (Exception e) { e.printStackTrace(); }
+            }
+        }).start();
+
     }
 
     public void onHdmiInDisconnected()
     {
-        Log.i(TAG, "onHdmiInDisconnected(): HDMI Input is disconnected EVENT");
-        handleHdmiInputResolutionEvent(HDMIInputInterface.readResolutionEnum(true));
+        new Thread(new Runnable() {
+            public void run() {
+                try {
+                    synchronized (mHdmiConnectDisconnectLock)
+                    {
+                        mHdmiCameraIsConnected = false;
+                        Log.i(TAG, "onHdmiInDisconnected(): HDMI Input is disconnected EVENT   mHdmiCameraIsConnected="+mHdmiCameraIsConnected);
+                        handleHdmiInputResolutionEvent(HDMIInputInterface.readResolutionEnum(true));
+                    }
+                } catch (Exception e) { e.printStackTrace(); }
+            }
+        }).start();
     }
 
     // For AM3K hdmi output hot plug handling
@@ -6571,9 +6608,12 @@ public class CresStreamCtrl extends Service {
         {
             if (hdmiInputDriverPresent)
             {
-                if (resolutionId != mCurrentHdmiInputResolution)
+                if (resolutionId != mCurrentHdmiInputResolution || 
+                        (isAM3K && (mHdmiCameraIsConnected != mCurrentHdmiCameraConnectState)) )
                 {
                     mCurrentHdmiInputResolution = resolutionId;
+                    if (isAM3K)
+                        mCurrentHdmiCameraConnectState = mHdmiCameraIsConnected;
                     int prevResolutionIndex = hdmiInput.getResolutionIndex();
                     if (resolutionId != 0)
                         hdmiInput.setResolutionIndex(resolutionId);
