@@ -874,6 +874,9 @@ public class CresCanvas
 
 
             mStreamCtl.testfindCamera();
+
+
+            //mSessionMgr.disconnectAllSessions(new Originator(RequestOrigin.Error));
         }
 	}
 }
