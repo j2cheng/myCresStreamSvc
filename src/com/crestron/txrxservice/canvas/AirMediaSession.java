@@ -665,17 +665,19 @@ public class AirMediaSession extends Session
 		}
 	}
 	
-	public boolean inactiveSession()
-	{
-		if (state != SessionState.Stopped && state != SessionState.Connecting) // Treat connecting as stopped
-			return false;
-		TimeSpan timeSinceStop = TimeSpan.fromNanoseconds(System.nanoTime() - stopTime);
-		TimeSpan timeout = TimeSpan.fromMinutes((double)mStreamCtl.userSettings.getAirMediaInactivityTimeout());
-		Common.Logging.i(TAG, "Session "+this+" time elapsed since stop "+timeSinceStop+"  Inactivity timeout:"+timeout);
-		if (timeSinceStop.greaterThan(timeout))
-		{
-			return true;
-		}
-		return false;
-	}
+   public boolean inactiveSession()
+   {
+      if (state != SessionState.Stopped && state != SessionState.Connecting)  // Treat connecting as stopped
+         return false;
+      TimeSpan timeSinceStop = TimeSpan.fromNanoseconds(System.nanoTime() - stopTime);
+      TimeSpan timeout = TimeSpan.fromMinutes((double)mStreamCtl.userSettings.getAirMediaInactivityTimeout());
+      Common.Logging.i(TAG, "Session " + this + " time elapsed since stop " + timeSinceStop
+         + "  Inactivity timeout:" + timeout);
+      if (timeSinceStop.greaterThan(timeout))
+      {
+         return true;
+      }
+      return false;
+   }
 }
+

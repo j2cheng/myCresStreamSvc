@@ -9,8 +9,7 @@ import java.util.UUID;
 import java.util.Collection;
 import java.util.List;
 import java.util.LinkedList;
-import java.util.concurrent.ConcurrentHashMap;
-import java.util.concurrent.atomic.AtomicBoolean;
+import java.util.concurrent.*;
 
 import com.crestron.airmedia.canvas.channels.ipc.CanvasPlatformType;
 import com.crestron.airmedia.canvas.channels.ipc.CanvasResponse;
@@ -27,8 +26,6 @@ import com.crestron.txrxservice.canvas.CanvasCrestore.SessionEventMapEntry;
 
 import android.util.Log;
 
-//import com.crestron.txrxservice.canvas.Session;
-
 public class SessionManager
 {
 	com.crestron.txrxservice.canvas.CresCanvas mCanvas;
@@ -44,13 +41,22 @@ public class SessionManager
     public static final int STOP_ALL_SESSION_TIMEOUT = 30;
     public static final int DISCONNECT_ALL_SESSION_TIMEOUT = 30;
 
-	public SessionManager(com.crestron.txrxservice.canvas.CresCanvas canvas)
-	{
-		Log.i(TAG, "Creating SessionManager");
-		mCanvas = canvas;
-		new Timer().schedule(new InactivityTask(), 30000, 60000);
-	}
-	
+    public SessionManager(com.crestron.txrxservice.canvas.CresCanvas canvas)
+	 {
+	 	Log.i(TAG, "Creating SessionManager");
+	 	mCanvas = canvas;
+	 	Log.i(TAG,"Creating Inactivity Task scheduled to run after 30 seconds and every 60 seconds after that");
+       
+       Runnable inactivityTask = new InactivityTask("SessionInactivityTask");
+             
+       // Creating a ScheduledThreadPoolExecutor object
+       ScheduledThreadPoolExecutor threadPool = new ScheduledThreadPoolExecutor(1);
+       
+       // Scheduling a task which will execute after 30 seconds and then repeats periodically with
+       // a period of 60 seconds
+       threadPool.scheduleAtFixedRate(inactivityTask, 30, 60, TimeUnit.SECONDS);
+	 }
+   
     ////////////////////////////////////////////////////////////////////////////////////////////////
     /// PROPERTIES
     ////////////////////////////////////////////////////////////////////////////////////////////////
@@ -242,15 +248,17 @@ public class SessionManager
     		return;
     	SessionEvent e = crestore.new SessionEvent(UUID.randomUUID().toString());
     	synchronized (lock_) { 
-            for (Session session : sessions_) {
-                if (session == null) continue;
+            for (Session session : sessions_)
+            {
+               if (session == null)
+                  continue;
             	if (session.inactiveSession())
             		e.add(session.sessionId(), crestore.new SessionEventMapEntry("disconnect", session));
             }
     	}
     	if (e.sessionEventMap.size() > 0)
     	{
-            Common.Logging.i(TAG, "In inactivity task event="+e); 
+         Common.Logging.i(TAG, "In inactivity task event=" + e); 
     		TimeSpan startTime = TimeSpan.now();
         	boolean success = crestore.doSynchronousSessionEvent(e, origin, DISCONNECT_ALL_SESSION_TIMEOUT);
         	if (!success)
@@ -260,12 +268,27 @@ public class SessionManager
     	}
     }
     
-    public class InactivityTask extends TimerTask {
-        @Override
-        public void run() {
-        	// when timeout is 0, then inactivity disconnection is disabled
-        	if (mCanvas.mStreamCtl.userSettings.getAirMediaInactivityTimeout() != 0)
-        		disconnectInactiveAirMediaSessions(new Originator(RequestOrigin.InactivityTimer));
+    class InactivityTask implements Runnable
+    {
+        String taskName;
+        public InactivityTask(String taskName)
+        {
+            this.taskName = taskName;
+        }
+        public void run()
+        {
+            try
+            {
+                int inactivityTimeout = mCanvas.mStreamCtl.userSettings.getAirMediaInactivityTimeout();
+                Common.Logging.i(TAG, "InactivityTask::run(): inactivity timeout = " + inactivityTimeout);
+                // when timeout is 0, then inactivity disconnection is disabled
+                if(inactivityTimeout != 0)
+                    disconnectInactiveAirMediaSessions(new Originator(RequestOrigin.InactivityTimer));
+            }
+            catch (Exception e)
+            {
+                e.printStackTrace();
+            }
         }
     }
     
