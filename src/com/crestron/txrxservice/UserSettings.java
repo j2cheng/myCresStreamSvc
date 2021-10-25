@@ -425,7 +425,7 @@ public class UserSettings
 		camStreamSnapshotName = "snapshot";
 		camStreamMulticastAddress = "";
 		airMediaWCEnable = false;
-		airMediaWCLicensed = true; //FIXME: Until we dont have Licensing feature implemented End-to-End
+		airMediaWCLicensed = false;
 		wcSecurityEnable = true;
 		wcRandomUserPwEnable = true;
 		wcVideoCaptureDevice = "/dev/video5";
