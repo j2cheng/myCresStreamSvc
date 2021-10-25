@@ -181,6 +181,10 @@ public class NetworkStreamSession extends Session
         if (completed)
         {
             setState(SessionState.Playing);
+                        
+            Common.Logging.i(TAG, "play():  setting Status in CresStore to Play");
+            CanvasCrestore canvCrestore = mCanvas.getCrestore();
+            canvCrestore.setCurrentNetworkingStreamsSessionStatusToDB(this,"Play");
         }
         else
         {
