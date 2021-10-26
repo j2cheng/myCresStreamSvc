@@ -22,8 +22,13 @@ public class HDMIInputInterface {
 	private static int resolutionIndex;
     private static int productType;
 	private static boolean isHdmiDriverPresent;
+	private static boolean hdmiCameraIsConnected = false;
+	private static boolean hdmiCameraConnectionStateChanged = false;
+	private static Am3KHdmiStateMachine am3kHdmiStateMachine = null;
     private static final int SYSTEM_AIRMEDIA = 0x7400; //AM3X Product type is SYSTEM_AIRMEDIA as defined in ProductDefs.h
 	
+    public static boolean useAm3kStateMachine = true;
+
 	public HDMIInputInterface(CresStreamCtrl sCtl) {
 		syncStatus = "false";
 		horizontalRes = "0";
@@ -36,8 +41,11 @@ public class HDMIInputInterface {
 		isHdmiDriverPresent = (isHdmiDriverPresent | false); //set isHdmiDriverPresentH to false if not set
         streamCtl = sCtl;
         productType = streamCtl.nativeGetProductTypeEnum();
+        if (productType == SYSTEM_AIRMEDIA) {
+            am3kHdmiStateMachine = new Am3KHdmiStateMachine();
+        }
 	}
-	
+		
 	public void setSyncStatus(int resEnum) {
 		if (isHdmiDriverPresent == true)
 		{
@@ -240,25 +248,15 @@ public class HDMIInputInterface {
                     e.printStackTrace();
                     text.append("0x0@0");
                 }
+                return text.toString();
             }
             else
-            { //for AM3X
-                try {
-                    File file = new File("/sys/devices/platform/ff3e0000.i2c/i2c-8/8-000f/video_fmts");
-                    BufferedReader br = new BufferedReader(new FileReader(file));
-                    String line;
-                    while ((line = br.readLine()) != null) {
-                        text.append(line);
-                    }
-                    br.close();
-                }catch (IOException e) {
-                    e.printStackTrace();
-                    text.append("0x0@0");
-                }
+            { 
+                if (!useAm3kStateMachine)
+                    return am3kHdmiStateMachine.readResolutionSysFs();
+                else
+                    return am3kHdmiStateMachine.getResolutionSysFs();
             }
-
-            //Log.i(TAG, "HDMI IN Res from sysfs:" + text.toString());
-	        return text.toString();
 		}
     	else
     		return "0x0@0";
@@ -287,11 +285,15 @@ public class HDMIInputInterface {
                 }
             }
             else
-            {   //For AM3X handle default case differently
+            {   
+                //For AM3X handle default case differently
                 String hdmiInResolution = "0x0@0";
                 String tokens[] = hdmiInResolution.split("[x@]+");
 
-                hdmiInResolution = getHdmiInResolutionSysFs();
+                if (!useAm3kStateMachine)
+                    hdmiInResolution = am3kHdmiStateMachine.readResolutionSysFs();
+                else
+                    hdmiInResolution = am3kHdmiStateMachine.getResolutionSysFs();
                 if(hdmiInResolution.equals("0"))
                 {
                     hdmiInResolution = "0x0@0";
@@ -435,24 +437,15 @@ public class HDMIInputInterface {
                     e.printStackTrace();
                     text.append("0"); //if error default to no sync
                 }
+                return Integer.parseInt(text.toString()) == 1;
             }
             else
             {
-                try {
-                    File file = new File("/sys/devices/platform/ff3e0000.i2c/i2c-8/8-000f/sync_status");
-
-                    BufferedReader br = new BufferedReader(new FileReader(file));
-                    String line;
-                    while ((line = br.readLine()) != null) {
-                        text.append(line);
-                    }
-                    br.close();
-                }catch (IOException e) {
-                    e.printStackTrace();
-                    text.append("0"); //if error default to no sync
-                }
+                if (!useAm3kStateMachine)
+                    return am3kHdmiStateMachine.readSyncStateSysFs();
+                else
+                    return am3kHdmiStateMachine.getSyncState();
             }
-	        return Integer.parseInt(text.toString()) == 1;
 		}
     	else 
     		return false;
@@ -530,5 +523,262 @@ public class HDMIInputInterface {
         }
         else
     		return false;
+    }
+    
+    public boolean isHdmiCameraConnected()
+    {
+        return hdmiCameraIsConnected;
+    }
+    
+    public void setHdmiCameraConnected(boolean connected)
+    {
+        if (hdmiCameraIsConnected != connected)
+        {
+            Log.i(TAG, "##-------setHdmiCameraConnected(): HDMI camera connected = "+connected+" -------##");
+            hdmiCameraIsConnected = connected;
+            hdmiCameraConnectionStateChanged = true;
+            synchronized(am3kHdmiStateMachine.threadLock) {
+                // Wait on object
+                try {
+                    am3kHdmiStateMachine.notification = true;
+                    am3kHdmiStateMachine.threadLock.notify();
+                } catch (Exception ex) {
+                    ex.printStackTrace();
+                }
+            }
+        }
+    }
+
+    class Am3KHdmiStateMachine {
+        private final int MIN_COUNT_FOR_CHANGE = 5;
+        private final int SLEEP_TIME = 100; // msec
+        private StateMachineThread stateMachineThread = null;
+        public final boolean onlyUseCameraConnectEvents = true;
+        private Object threadLock = new Object();
+        private Object lock = new Object();
+        
+        private boolean sync;
+        private boolean pendingSync;
+        private int pendingSyncCount;
+        
+        private String resolution;
+        private String pendingResolution;
+        private int pendingResolutionCount;
+       
+        public boolean notification = false;
+
+        private boolean readSyncStateSysFs()
+        {
+            StringBuilder text = new StringBuilder(16);
+            try {
+                File file = new File("/sys/devices/platform/ff3e0000.i2c/i2c-8/8-000f/sync_status");
+
+                BufferedReader br = new BufferedReader(new FileReader(file));
+                String line;
+                while ((line = br.readLine()) != null) {
+                    text.append(line);
+                }
+                br.close();
+            } catch (IOException e) {
+                e.printStackTrace();
+                text.append("0"); //if error default to no sync
+            }
+            return Integer.parseInt(text.toString()) == 1;
+        }
+        
+        public boolean getSyncState()
+        {
+            synchronized (lock) {
+                if (onlyUseCameraConnectEvents)
+                    return hdmiCameraIsConnected;
+                else
+                    return sync;
+            }
+        }
+        
+        public String readResolutionSysFs()
+        {
+            StringBuilder text = new StringBuilder(16);
+            //for AM3X
+            try {
+                File file = new File("/sys/devices/platform/ff3e0000.i2c/i2c-8/8-000f/video_fmts");
+                BufferedReader br = new BufferedReader(new FileReader(file));
+                String line;
+                while ((line = br.readLine()) != null) {
+                    text.append(line);
+                }
+                br.close();
+            }catch (IOException e) {
+                e.printStackTrace();
+                text.append("0x0@0");
+            }
+            //Log.i(TAG, "HDMI IN Res from sysfs:" + text.toString());
+            return text.toString();
+        }
+        
+        public String getResolutionSysFs()
+        {
+            synchronized(lock) 
+            {
+                if (onlyUseCameraConnectEvents)
+                    return (hdmiCameraIsConnected) ? resolution : "0";
+                else
+                    return resolution;
+            }
+        }
+        
+        
+        public Am3KHdmiStateMachine() {
+            // initialize sync, resolutionIndex etc;
+            sync = readSyncStateSysFs();
+            pendingSync = sync;
+            pendingSyncCount = MIN_COUNT_FOR_CHANGE;
+            resolution = readResolutionSysFs();
+            pendingResolution = resolution;
+            pendingResolutionCount = MIN_COUNT_FOR_CHANGE;;
+            
+            if (useAm3kStateMachine)
+            {
+                // launch state machine thread
+                stateMachineThread = new StateMachineThread();
+                stateMachineThread.start();
+            }
+        }
+        
+        public Object getInstance() {
+            return this;
+        }
+        
+        public class StateMachineThread extends Thread {
+            public int threadCount = 0;
+            public String resolutionEventReason = null;
+            public void run()
+            {
+                while (true) {
+                    synchronized(threadLock) {
+                        // Wait on object
+                        try {
+                            threadLock.wait(SLEEP_TIME);
+                        } catch (Exception ex) {
+                            ex.printStackTrace();
+                        }
+                    }
+
+                    if (notification) {
+                        notification = false;
+                        Log.i(TAG, "HDMI Input state machine thread execution - due to notification");
+                    }
+                    if (threadCount%1000 == 0)
+                        Log.i(TAG, "HDMI Input state machine thread execution (iter="+threadCount+")");
+                    threadCount++;
+
+                    resolutionEventReason = null;
+                    
+                    if (hdmiCameraConnectionStateChanged) {
+                        // set flag to force update of input HDMI resolution event
+                        resolutionEventReason = "camera connected state changed to "+hdmiCameraIsConnected;
+                        if (!hdmiCameraIsConnected) {
+                            // force sync to false and resolution to 0
+                            synchronized(lock)
+                            {
+                                sync = pendingSync = false;
+                                resolution = pendingResolution = "0";
+                            }
+                        } else {
+                            // update sync and resolution
+                            synchronized(lock)
+                            {
+                                sync = pendingSync = readSyncStateSysFs();
+                                resolution = pendingResolution = readResolutionSysFs();
+                            }
+                        }
+                        if (onlyUseCameraConnectEvents)
+                        {
+                            pendingSyncCount = MIN_COUNT_FOR_CHANGE;
+                            pendingResolutionCount = MIN_COUNT_FOR_CHANGE;
+                        }
+                        hdmiCameraConnectionStateChanged = false;
+                    }
+                    
+                    
+                    // Right now we only want to react to real changes in sync and resolution if accompanied by 
+                    // a camera connect/disconnect event.
+                    if (!onlyUseCameraConnectEvents) {
+                        boolean s = readSyncStateSysFs();
+                        if (s != pendingSync) {
+                            pendingSync = s;
+                            pendingSyncCount = 1;
+                        } else {
+                            pendingSyncCount++;
+                            if (pendingSync != sync) {
+                                if (pendingSyncCount >= MIN_COUNT_FOR_CHANGE) {
+                                    // update sync and set flag to force update of input HDMI resolution event
+                                    synchronized(lock) {
+                                        sync = pendingSync;
+                                    }
+                                    resolutionEventReason = "sync changed to "+sync;
+                                    Log.i(TAG, "am3kHdmiStateMachineThread found sync change with sync=" + sync);
+                                }
+                                else {
+                                    Log.i(TAG, "am3kHdmiStateMachineThread found possible sync change with new sync=" + pendingSync + " count="+pendingSyncCount);
+                                }
+                            }
+                        }
+
+                        String res = readResolutionSysFs();
+                        if (!res.equalsIgnoreCase(pendingResolution)) {
+                            pendingResolution = res;
+                            pendingResolutionCount = 1;
+                        } else {
+                            pendingResolutionCount++;
+                            if (!pendingResolution.equalsIgnoreCase(resolution)) {
+                                if (pendingResolutionCount >= MIN_COUNT_FOR_CHANGE) {
+                                    // update resolution and set flag to force update of input HDMI resolution event
+                                    synchronized(lock) {
+                                        resolution = pendingResolution;
+                                    }
+                                    resolutionEventReason = "resolution changed to "+resolution;
+                                    Log.i(TAG, "am3kHdmiStateMachineThread found resolution change with resolution=" + resolution);
+                                } else {
+                                    Log.i(TAG, "am3kHdmiStateMachineThread possible resolution change with new resolution=" + pendingResolution+" count="+pendingResolutionCount);
+                                }
+                            }
+                        }
+                    } else {
+                        // Mark bad sync or resolution events inconsistent with camera connection state
+                        // Note these can happen before a camera connect or disconnect event actually reaches us
+                        // If this works reliably then all this code can eventually be removed - for ow it is there to
+                        // go to GrandStream if we see issues.
+                        boolean s = readSyncStateSysFs();
+                        String res = readResolutionSysFs();
+                        if (hdmiCameraIsConnected) {
+                            // connected camera - sync and resolution must be true and non-zero
+                            if (!s) {
+                                Log.w(TAG, "##-------Got sync false even though HDMI camera is connected -------##");
+                            }
+                            if (res.equals("0") || res.startsWith("0x0"))
+                            {
+                                Log.w(TAG, "##-------Got resolution=" + res +" even though HDMI camera is connected -------##");
+                            }
+                        } else {
+                            // disconnected camera - sync and resolution must be false and zero
+                            if (s) {
+                                Log.w(TAG, "##-------Got sync true even though HDMI camera is disconnected -------##");
+                            }
+                            if (!res.equals("0") && !res.startsWith("0x0"))
+                            {
+                                Log.w(TAG, "##-------Got resolution=" + res +" even though HDMI camera is disconnected -------##");
+                            }
+                        }
+                    }
+                    
+                    if (resolutionEventReason != null) {
+                        int resolutionId = readResolutionEnum(false);
+                        Log.i(TAG, "am3kHdmiStateMachineThread calling handleHdmiInputResolutionEvent with resolutionId=" + resolutionId + " because "+resolutionEventReason);
+                        streamCtl.handleHdmiInputResolutionEvent(resolutionId);                        
+                    }
+                }
+            }
+        }
     }
 }

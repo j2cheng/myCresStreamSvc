@@ -2455,7 +2455,7 @@ public class CresStreamCtrl extends Service {
                             	}
                             }
                             
-                            if (isAM3K)
+                            if (isAM3K && !HDMIInputInterface.useAm3kStateMachine)
                             {
                                 int resEnum = HDMIInputInterface.readResolutionEnum(false);
                                 // set flag when sync and resolution are consistent
@@ -6227,35 +6227,46 @@ public class CresStreamCtrl extends Service {
     
     public void onHdmiInConnected()
     {
-        new Thread(new Runnable() {
-            public void run() {
-                try {
-                    synchronized (mHdmiConnectDisconnectLock)
-                    {
-                        mHdmiCameraIsConnected = true;
-                        Log.i(TAG, "onHdmiInConnected(): HDMI Input is connected EVENT   mHdmiCameraIsConnected="+mHdmiCameraIsConnected);
-                        handleHdmiInputResolutionEvent(HDMIInputInterface.readResolutionEnum(true));
-                    }
-                } catch (Exception e) { e.printStackTrace(); }
-            }
-        }).start();
-
+        if (HDMIInputInterface.useAm3kStateMachine) {
+            mHdmiCameraIsConnected = true;
+            Log.i(TAG, "onHdmiInConnected(): HDMI Input is connected EVENT   mHdmiCameraIsConnected="+mHdmiCameraIsConnected);
+            hdmiInput.setHdmiCameraConnected(true);
+        } else {
+            new Thread(new Runnable() {
+                public void run() {
+                    try {
+                        synchronized (mHdmiConnectDisconnectLock)
+                        {
+                            mHdmiCameraIsConnected = true;
+                            Log.i(TAG, "onHdmiInConnected(): HDMI Input is connected EVENT   mHdmiCameraIsConnected="+mHdmiCameraIsConnected);
+                            handleHdmiInputResolutionEvent(HDMIInputInterface.readResolutionEnum(true));
+                        }
+                    } catch (Exception e) { e.printStackTrace(); }
+                }
+            }).start();
+        }
     }
 
     public void onHdmiInDisconnected()
     {
-        new Thread(new Runnable() {
-            public void run() {
-                try {
-                    synchronized (mHdmiConnectDisconnectLock)
-                    {
-                        mHdmiCameraIsConnected = false;
-                        Log.i(TAG, "onHdmiInDisconnected(): HDMI Input is disconnected EVENT   mHdmiCameraIsConnected="+mHdmiCameraIsConnected);
-                        handleHdmiInputResolutionEvent(HDMIInputInterface.readResolutionEnum(true));
-                    }
-                } catch (Exception e) { e.printStackTrace(); }
-            }
-        }).start();
+        if (HDMIInputInterface.useAm3kStateMachine) {
+            mHdmiCameraIsConnected = false;
+            Log.i(TAG, "onHdmiInDisconnected(): HDMI Input is disconnected EVENT   mHdmiCameraIsConnected="+mHdmiCameraIsConnected);
+            hdmiInput.setHdmiCameraConnected(false);
+        } else {
+            new Thread(new Runnable() {
+                public void run() {
+                    try {
+                        synchronized (mHdmiConnectDisconnectLock)
+                        {
+                            mHdmiCameraIsConnected = false;
+                            Log.i(TAG, "onHdmiInDisconnected(): HDMI Input is disconnected EVENT   mHdmiCameraIsConnected="+mHdmiCameraIsConnected);
+                            handleHdmiInputResolutionEvent(HDMIInputInterface.readResolutionEnum(true));
+                        }
+                    } catch (Exception e) { e.printStackTrace(); }
+                }
+            }).start();
+        }
     }
 
     // For AM3K hdmi output hot plug handling
