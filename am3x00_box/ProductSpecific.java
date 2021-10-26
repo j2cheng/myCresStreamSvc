@@ -294,6 +294,29 @@ public class ProductSpecific
     	return dl;
     }
     
+    private boolean getTrueHpdStatus()
+    {
+        boolean curr_true_hpd = false;
+        StringBuilder text = new StringBuilder(16);
+        try {
+            File file = new File("/sys/class/switch/hdmi_true_hpd/state");
+
+            BufferedReader br = new BufferedReader(new FileReader(file));  
+            String line;   
+            while ((line = br.readLine()) != null) {
+                text.append(line);
+            }
+            br.close();
+        }catch (Exception e) {
+            text.append("0"); //if error default to no sync
+        }
+        if(Integer.parseInt(text.toString()) == 1)
+            curr_true_hpd = true;
+
+        Log.i(TAG, "getTrueHpdStatus(): returning "+curr_true_hpd);
+        return curr_true_hpd;
+    }
+    
     public class PeripheralStatusChangeListener extends StatusChangeListener 
     {
         boolean hdmiInConnected = false;
@@ -510,12 +533,12 @@ public class ProductSpecific
                 break;
             case PeripheralManager.PER_HDMI_OUT:
                 Log.i(TAG, "HDMI OUT status: " + ((status != 0) ? "Connected" : "Disconnected"));
-                boolean curr_true_hdp = getTrueHpdStatus();
-                Log.i(TAG, "PeripheralManager.PER_HDMI_OUT" + "true_hdp " + true_hpd + " " + " curr_true_hdp " + curr_true_hdp);
+                boolean new_true_hdp = getTrueHpdStatus();
+                Log.i(TAG, "PeripheralManager.PER_HDMI_OUT" + " old_true_hdp " + true_hpd + " " + " new_true_hdp " + new_true_hdp);
 
-                if(true_hpd != curr_true_hdp)
+                if(true_hpd != new_true_hdp)
                 {
-                    true_hpd = curr_true_hdp;
+                    true_hpd = new_true_hdp;
                     cresStreamCtrl.onHdmiOutHpdEvent(true_hpd);
                 }
                 //cresStreamCtrl.onHdmiOutHpdEvent((status ==1));
@@ -531,29 +554,6 @@ public class ProductSpecific
                 break;
             }
         }
-
-        private boolean getTrueHpdStatus()
-        {
-            boolean curr_true_hpd = false;
-            StringBuilder text = new StringBuilder(16);
-            try {
-                File file = new File("/sys/class/switch/hdmi_true_hpd/state");
-
-                BufferedReader br = new BufferedReader(new FileReader(file));  
-                String line;   
-                while ((line = br.readLine()) != null) {
-                    text.append(line);
-                }
-                br.close();
-            }catch (Exception e) {
-                text.append("0"); //if error default to no sync
-            }
-            if(Integer.parseInt(text.toString()) == 1)
-                curr_true_hpd = true;
-
-
-            return curr_true_hpd;
-        }
     }
 
     public void startPeripheralListener(CresStreamCtrl ctrl) 
@@ -568,7 +568,8 @@ public class ProductSpecific
         else
             mListener.HdmiInDisconnect();
         boolean hdmiOutStatus = PeripheralManager.instance().getStatus(PeripheralManager.PER_HDMI_OUT) == 1;
-        ctrl.onHdmiOutHpdEvent(hdmiOutStatus);
+        true_hpd = getTrueHpdStatus();
+        ctrl.onHdmiOutHpdEvent(true_hpd);
 
         if (PeripheralManager.instance().getStatus(PeripheralManager.PER_USB_30) > 0)
         	mListener.usbEvent(PeripheralManager.PER_USB_30);
