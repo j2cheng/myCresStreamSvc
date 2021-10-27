@@ -33,6 +33,10 @@ public class WC_Service {
     private static final int ERROR_IN_USE = -1;
     private static final int ERROR_NO_USB_DEVICES = -2;
     private static final int ERROR_INVALID_ID = -3;
+    private static final String WC_CONF_STATUS_IN_USE="In Use";
+    private static final String WC_CONF_STATUS_AVAILABLE="Available";
+    private static final String WC_CONF_STATUS_UNAVAILABLE="Unavailable";
+    
     static final int Publish=1;
     static final int PublishAndSave=2;
     private WC_SessionFlags mSessionFlags = WC_SessionFlags.None;
@@ -46,6 +50,7 @@ public class WC_Service {
     WC_UsbDevices mUsbDevices = null;
     String mVideoFile = null;
     String mAudioFile = null;
+    Boolean speakerDetected = false;
     List<WC_VideoFormat> mVideoFormats = new ArrayList<WC_VideoFormat>();
     List<WC_AudioFormat> mAudioFormats = new ArrayList<WC_AudioFormat>();
     List<UsbAvDevice> mUsbAvDeviceList = null;
@@ -56,7 +61,7 @@ public class WC_Service {
         mStreamCtrl = streamCtrl;
         mStreamOut = mStreamCtrl.getStreamOut();
         mStatus = new WC_Status();
-        //Initialize the Wireless Conferencing Status fields to not in use Asyncronously since being called from UI Thread
+        //Initialize the Wireless Conferencing Status fields
         initWCStatusDataAynchronously();
     }
 
@@ -79,7 +84,7 @@ public class WC_Service {
                 mStreamCtrl.setWirelessConferencingStreamEnable(true);
 
                 mSessionFlags = options.flags;
-                sendWCStatusData(mSessionFlags, true);
+                sendWCInUseStatusData(mSessionFlags, true);
 
                 return mCurrentId;
             } else {
@@ -132,6 +137,7 @@ public class WC_Service {
                 }
             }
             mCallbacks.finishBroadcast();
+            getAndReportAllWCStatus();
         }
 
         public void unregisterCallback(IWC_Callback cb)
@@ -179,6 +185,7 @@ public class WC_Service {
         Log.i(TAG,"onServerStart()");
     	if (!mStatus.isServerStarted) {
     		mStatus.isServerStarted=true;
+    		reportWCDeviceStatus(null,null,null,null,WC_CONF_STATUS_IN_USE);
     		onStatusChanged();
     	}
     }
@@ -188,6 +195,7 @@ public class WC_Service {
         Log.i(TAG,"onServerStop()");
     	if (mStatus.isServerStarted) {
     		mStatus.isServerStarted=false;
+    		reportWCDeviceStatus(null,null,null,null,WC_CONF_STATUS_AVAILABLE);
     		onStatusChanged();
     	}
     }
@@ -238,7 +246,7 @@ public class WC_Service {
             // server stop will communicate via callback onStatusChanged once it has been started
             mStreamCtrl.setWirelessConferencingStreamEnable(false);
 
-            sendWCStatusData(mSessionFlags, false);
+            sendWCInUseStatusData(mSessionFlags, false);
             mSessionFlags = WC_SessionFlags.None;
 
             rv = 1;
@@ -285,6 +293,7 @@ public class WC_Service {
     		mUsbDevices = usbDevices;
     		Log.i(TAG, "updateUsbDeviceStatus(): usb device status has changed: "+mUsbDevices);
     		onUsbDevicesChanged();
+    		getAndReportAllWCStatus();
     	} else {
     		Log.i(TAG, "updateUsbDeviceStatus(): no change in usb device status");
     	}
@@ -393,6 +402,56 @@ public class WC_Service {
     	return change;
     }
 
+    public void setSpeakerDetectedStatus()
+    {
+        Log.v(TAG, "setSpeakerDetectedStatus() In: speakerDetected="+speakerDetected);
+        for (UsbAvDevice ds : mUsbAvDeviceList) {
+            if(ds.speakerPresent != null)
+            {
+                if(ds.speakerPresent)
+                    speakerDetected = true;
+                else
+                    speakerDetected = false;
+
+                Log.v(TAG, "Speaker in"+ds.deviceName+"in port:"+ ds.usbPortType +" speakerDetected="+speakerDetected);
+            }
+        }
+
+        if(mUsbAvDeviceList.size() == 0)
+            speakerDetected = false;
+    }
+
+    public void getAndReportAllWCStatus()
+    {
+        Boolean videoFile = false;
+        Boolean audioFile = false;
+        String camResolution = null;
+        String conferencingStatus = null;
+
+        for (WC_UsbDevice listdevices : mUsbDevices.devices)
+        {
+            if(listdevices.hasVideo)
+                videoFile = true;
+            if(listdevices.hasAudio)
+                audioFile = true;
+        }
+
+        for (WC_VideoFormat vFormats : mVideoFormats)
+        {
+            camResolution = vFormats.width+"x"+vFormats.height+"@"+vFormats.fps;
+        }
+
+        if(!videoFile)
+            camResolution = "";
+        
+        setSpeakerDetectedStatus();
+
+        if((videoFile || audioFile) && conferencingStatus != WC_CONF_STATUS_IN_USE)
+            conferencingStatus = WC_CONF_STATUS_AVAILABLE;
+
+        reportWCDeviceStatus(videoFile,audioFile,speakerDetected,camResolution,conferencingStatus);
+    }
+
     // Below class is to build the CresNext Object of Wireless Conferencing
     class DeviceObject {
         Device Device;
@@ -404,7 +463,15 @@ public class WC_Service {
                     private Status Status;
                     class Status {
                         Boolean IsMicInUse;
+                        Boolean IsMicDetected;
+
+                        Boolean IsSpeakerDetected;
+
                         Boolean IsCameraInUse;
+                        Boolean IsCameraDetected;
+                        String  CameraResolution;
+
+                        String ConferencingStatus;
                     }
 
                     public WirelessConferencing()
@@ -431,30 +498,58 @@ public class WC_Service {
         }
     }
 
-    private void sendWCStatusData(WC_SessionFlags flagInUse, boolean enable)
+    private void sendWCInUseStatusData(WC_SessionFlags flagInUse, boolean enable)
     {
         DeviceObject dev = new DeviceObject();
 
         if((flagInUse == WC_SessionFlags.AudioAndVideo) || (flagInUse == WC_SessionFlags.None))
         {
-            Log.v(TAG,"sendWCStatusData: update to Crestore MIC and Camera in use status to " + enable);
+            Log.v(TAG,"sendWCInUseStatusData: update to Crestore MIC and Camera in use status to " + enable);
             dev.Device.AirMedia.WirelessConferencing.Status.IsMicInUse = enable;
             dev.Device.AirMedia.WirelessConferencing.Status.IsCameraInUse = enable;
         }
         else if(flagInUse == WC_SessionFlags.Audio)
         {
-            Log.v(TAG,"sendWCStatusData: update to Crestore only MIC in use status to " + enable);
+            Log.v(TAG,"sendWCInUseStatusData: update to Crestore only MIC in use status to " + enable);
             dev.Device.AirMedia.WirelessConferencing.Status.IsMicInUse = enable;
         }
         else if(flagInUse == WC_SessionFlags.Video)
         {
-            Log.v(TAG,"sendWCStatusData: update to Crestore Camera in use status to " + enable);
+            Log.v(TAG,"sendWCInUseStatusData: update to Crestore Camera in use status to " + enable);
             dev.Device.AirMedia.WirelessConferencing.Status.IsCameraInUse = enable;
         }
         String sessionWirelessConferencing = gson.toJson(dev);
-        Log.i(TAG,  "sendWCStatusData: WirelessConferencingJSON=" + sessionWirelessConferencing);
+        Log.i(TAG,  "sendWCInUseStatusData: WirelessConferencingJSON=" + sessionWirelessConferencing);
 
         mStreamCtrl.SendToCresstore(sessionWirelessConferencing, PublishAndSave);
+    }
+
+    private void reportWCDeviceStatus(Boolean IsCameraDetected, 
+                                      Boolean IsMicDetected, 
+                                      Boolean IsSpeakerDetected, 
+                                      String CameraResolution, 
+                                      String ConferencingStatus)
+    {
+        DeviceObject devWCStatus = new DeviceObject();
+        Log.v(TAG,"reportWCDeviceStatus: IsCameraDetected:" + IsCameraDetected + " IsMicDetected:" + IsMicDetected + " IsSpeakerDetected:" +IsSpeakerDetected+ " CameraResolution:" +CameraResolution+ " ConferencingStatus:" +ConferencingStatus);
+
+        devWCStatus.Device.AirMedia.WirelessConferencing.Status.IsCameraDetected = IsCameraDetected;
+        devWCStatus.Device.AirMedia.WirelessConferencing.Status.IsMicDetected = IsMicDetected;
+        devWCStatus.Device.AirMedia.WirelessConferencing.Status.IsSpeakerDetected = IsSpeakerDetected;
+
+        devWCStatus.Device.AirMedia.WirelessConferencing.Status.CameraResolution = CameraResolution;
+        devWCStatus.Device.AirMedia.WirelessConferencing.Status.ConferencingStatus = ConferencingStatus;
+        
+        String sessionWCStatus = gson.toJson(devWCStatus);
+        Log.i(TAG,  "reportWCDeviceStatus: WirelessConferencingStatusJSON=" + sessionWCStatus);
+
+        //Needs to be in separate thread for NetworkOnMainThreadException, since SendtoCrestore occurs in the flow
+        new Thread(new Runnable() {
+            @Override
+            public void run() {
+                mStreamCtrl.SendToCresstore(sessionWCStatus, PublishAndSave);
+            }
+        }).start();
     }
 
     private void initWCStatusDataAynchronously() {
@@ -462,10 +557,11 @@ public class WC_Service {
             @Override
             public void run() {
                 while (! mStreamCtrl.csioConnected || ! mStreamCtrl.csioConnectionInitializationComplete) {
-                    Log.v(TAG, "sendWCStatusData: waiting for csio connection to complete initialization");
+                    Log.v(TAG, "initWCStatusDataAynchronously: waiting for csio connection to complete initialization");
                     try { Thread.sleep(500); } catch (InterruptedException e){}//Poll every 0.5 seconds
                 }
-                sendWCStatusData(WC_SessionFlags.None, false);
+                sendWCInUseStatusData(WC_SessionFlags.None, false);
+                reportWCDeviceStatus(false,false,false,"",WC_CONF_STATUS_UNAVAILABLE);
             }
         }).start();
     }

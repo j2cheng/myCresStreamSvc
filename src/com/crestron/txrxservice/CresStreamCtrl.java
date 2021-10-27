@@ -1261,6 +1261,7 @@ public class CresStreamCtrl extends Service {
                 Log.i(TAG,"isWirelessConferencingLicensed="+isWirelessConferencingLicensed);
                 if (isWirelessConferencingEnabled && isWirelessConferencingLicensed)
                 {
+                    // Needs to be in separate thread for NetworkOnMainThreadException, since SendtoCrestore happens
                     mWC_Service = new WC_Service(CresStreamCtrl.this);
                 }
             }
@@ -1451,10 +1452,11 @@ public class CresStreamCtrl extends Service {
                 mGstreamerTimeoutCount = 0;	// not an error condition, just default to 0 if file does not exist
             }
             MiscUtils.writeStringToDisk(gstreamerTimeoutCountFilePath, String.valueOf(mGstreamerTimeoutCount));
-            
+
+            //TODO: Needs to be in separate thread for NetworkOnMainThreadException, since SendtoCrestore occurs in the flow
             mProductSpecific.getInstance().startPeripheralListener(this);
         }
-   
+
     @Override
     public int onStartCommand (Intent intent, int flags, int startId) {
             Log.i(TAG,"CresStreamCtrl Started !" );            
@@ -4876,7 +4878,7 @@ public class CresStreamCtrl extends Service {
         restartStreams(true, true); 	// Dont restart preview on IP change
     }
     
-    public void SendToCresstore(String json, int option)
+    public synchronized void SendToCresstore(String json, int option)
     {
         String command = "CRESSTORE_PUBLISH";
         if (option == CresstoreOptions.PublishAndSave)

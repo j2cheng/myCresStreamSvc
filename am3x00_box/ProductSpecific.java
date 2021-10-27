@@ -399,7 +399,17 @@ public class ProductSpecific
         	}
         	return null;
         }
-        
+
+        public boolean getSpeakerDetectedStatus(List<String> audioList)
+        {
+        	for (String s : audioList) { 
+        		// Look for one of these devices to flag presence of a speaker
+        		if (s.equals("snd/pcmC5D0p") || s.equals("snd/pcmC6D0p"))
+        			return true;
+        	}
+        	return false;
+        }
+
         public HashMap<String, String> genPropertiesMap(List<PeripheralUsbDevice> devices)
         {
       		HashMap<String, String> map = new HashMap<String, String>();
@@ -445,9 +455,12 @@ public class ProductSpecific
         			Log.i(TAG, "Peripheral device type = "+perDev.getType());
         			String aFile = null;
         			String vFile = null;
+        			Boolean sFile = null;
         			if (perDev.getType() == com.gs.core.peripheral.UsbDeviceType.Audio)
         			{
-                		aFile = getAudioCaptureFile(audioList);
+        				aFile = getAudioCaptureFile(audioList);
+        				//This is to populate the AirMedia WC Status IsSpeakerDetected Field
+        				sFile = getSpeakerDetectedStatus(audioList);
         			} else if (perDev.getType() == com.gs.core.peripheral.UsbDeviceType.Video) {
         				vFile = getVideoCaptureFile(videoList);
         			} else {
@@ -458,7 +471,7 @@ public class ProductSpecific
         					vFile = getVideoCaptureFile(videoList);        				
         			}
         			UsbAvDevice d = new UsbAvDevice(usbId, ((usbId==PeripheralManager.PER_USB_30)?"usb3":"usb2"), name, vFile, 
-            				aFile, genPropertiesMap(perUsbDevices));
+            				aFile, sFile, genPropertiesMap(perUsbDevices));
             		Log.i(TAG, "UsbAudioVideoDeviceAdded(): new USB device "+d.deviceName+" added on "+d.usbPortType);
             		usbDeviceList.add(d);
         		}
