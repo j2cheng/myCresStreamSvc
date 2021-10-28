@@ -2972,6 +2972,19 @@ class AirMediaWCEnableCommand extends CrestronCommand {
 	}
 }
 
+//this class called once the WC quality settings is changed
+class AirMediaWCQualityCommand extends CrestronCommand {
+	public AirMediaWCQualityCommand(CresStreamCtrl ctrl, String arg) {
+		super(ctrl, arg);
+	}	
+	public void execute() {
+		ctrl.airMediaWCQuality(Integer.valueOf(msg));
+	}
+	public String getFeedbackMsg() {
+		return Integer.toString(ctrl.userSettings.getAirMediaWCQuality());
+	}
+}
+
 //this receives the licence status of WC from csio
 class WirelessConferencingLicensed extends CrestronCommand {
     public WirelessConferencingLicensed(CresStreamCtrl ctrl, String arg) {

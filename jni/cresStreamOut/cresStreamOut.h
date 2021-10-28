@@ -52,6 +52,7 @@ void Streamout_SetRes_x(char* x);
 void Streamout_SetRes_y(char* y);
 void Streamout_SetBitrate(char* r);
 void Streamout_SetIFrameInterval(char* r);
+void Streamout_SetQuality(char* quality);
 void Streamout_EnableSecurity(int enable);
 void Streamout_EnableRandomUserPw(int enable);
 void Streamout_EnableMulticast(int enable);

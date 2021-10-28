@@ -59,6 +59,7 @@ public class GstreamOut {
     private native void nativeSet_FrameRate(int frameRate, int sessionId);
     private native void nativeSet_Bitrate(int bitrate, int sessionId);
     private native void nativeSet_IFrameInterval(int iframeinterval, int sessionId);
+    private native int  nativeSet_Quality(int quality, int sessionId);
     private native void nativeSet_MulticastEnable(boolean enable, int sessionId);
     private native void nativeSet_MulticastAddress(String address, int sessionId);
     private native void nativeSet_StreamName(String name, int sessionId);
@@ -237,6 +238,7 @@ public class GstreamOut {
         setBitrate(2000000);
         setIFrameInterval(1);
         setCamStreamName("wc");
+        setQuality(streamCtl.userSettings.getAirMediaWCQuality());
     }
 
     public List<String> getWcServerUrlList()
@@ -361,6 +363,10 @@ public class GstreamOut {
 
     public void setIFrameInterval(int iframeinterval) {
         nativeSet_IFrameInterval(iframeinterval, sessionId);
+    }
+
+    public void setQuality(int quality) {
+        nativeSet_Quality(quality, sessionId);
     }
             
     public void setCamStreamName(String name) {     

@@ -6187,6 +6187,22 @@ public class CresStreamCtrl extends Service {
         isWirelessConferencingEnabled = enable;
     }
 
+    public void airMediaWCQuality(int qualitySettings)
+    {
+        if( userSettings.getAirMediaWCQuality() !=  qualitySettings )
+        {
+            Log.i(TAG, "airMediaWCQuality() : Qualitymode changed from " + userSettings.getAirMediaWCQuality() + " To " + qualitySettings);
+            userSettings.setAirMediaWCQuality(qualitySettings);
+            // restart the Service, since the gstreamer pipeline needs to be started with new settings
+            //sleep for 1sec so that the user settings gets updated
+            try {
+                Thread.sleep(1000);
+            } catch (Exception e) { e.printStackTrace(); }
+
+            Log.i(TAG, "restarting the CresStreamService after WC Quality settings changed .....");
+            RestartTxrxService();
+        }
+    }
     public void airMediaWCLicensed(boolean enable)
     {
         userSettings.setAirMediaWCLicensed(enable);

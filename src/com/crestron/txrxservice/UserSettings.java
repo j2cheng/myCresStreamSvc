@@ -262,6 +262,7 @@ public class UserSettings
 	private boolean airMediaWifiAutoLaunchAirMediaLandingPageEnable;
 	private int airMediaInactivityTimeout;
 	private boolean airMediaWCEnable;
+        private int airMediaWCQuality;
 	private boolean airMediaWCLicensed;
 
 	// Camera Streaming
@@ -425,7 +426,8 @@ public class UserSettings
 		camStreamSnapshotName = "snapshot";
 		camStreamMulticastAddress = "";
 		airMediaWCEnable = false;
-		airMediaWCLicensed = false;
+                airMediaWCQuality = 0;  // 0 - High, 1 - Medium, 2 - Low
+                airMediaWCLicensed = false;
 		wcSecurityEnable = true;
 		wcRandomUserPwEnable = true;
 		wcVideoCaptureDevice = "/dev/video5";
@@ -1595,7 +1597,13 @@ public class UserSettings
 	public boolean getAirMediaWCEnable() {
 		return airMediaWCEnable;
 	}
+	public void setAirMediaWCQuality(int quality) {
+		this.airMediaWCQuality = quality;
+	}
 
+	public int getAirMediaWCQuality() {
+		return airMediaWCQuality;
+	}
 	public void setAirMediaWCLicensed(boolean enable) {
 		this.airMediaWCLicensed = enable;
 	}

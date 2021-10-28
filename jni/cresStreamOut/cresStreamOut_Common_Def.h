@@ -10,6 +10,8 @@
 #define DEFAULT_FRAME_RATE "30"
 #define DEFAULT_BIT_RATE        "4194304"    // 4Mbps = 4,194,304 bps
 #define DEFAULT_IFRAME_INTERVAL "15"          // 1 second
+#define DEFAULT_QUALITY     "0"    // Default zero is High 
+#define DEFAULT_HIGH_QUALITY 0
 #define DEFAULT_MULTICAST_ENABLE 0
 #define DEFAULT_MULTICAST_ADDRESS "235.0.0.0"
 #define DEFAULT_STREAM_NAME "camera"

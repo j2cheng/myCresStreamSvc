@@ -62,15 +62,33 @@ static int isFormatRank(const char *fourcc)
 }
 
 static void
-get_video_caps_from_caps(GstCaps *caps, int min_frame_rate, VideoCaps *video_caps)
+get_video_caps_from_caps(GstCaps *caps, int min_frame_rate, VideoCaps *video_caps, int quality )
 {
     int maxw = 0, maxh = 0;
     int max_frmrate_num = 0;
     int max_frmrate_den = 0;
     char fmt[5]={0};
     const gchar *format = NULL;
+    int videoResolutionClamp;
 
     guint capslen = gst_caps_get_size(caps);
+
+    if( quality ==  HIGH_QUALITY )
+    {
+        videoResolutionClamp = HIGH_QUALITY_RESOLUTION;
+        CSIO_LOG(eLogLevel_error, "WC Quality - High - Expected Resolution 1920*1080");
+    }
+    else if (quality ==  MEDIUM_QUALITY )
+    {
+        videoResolutionClamp = MEDIUM_QUALITY_RESOLUTION;
+        CSIO_LOG(eLogLevel_error, "WC Quality - Medium - Expected Resolution 1280*720");
+    }
+    else
+    {
+        videoResolutionClamp = LOW_QUALITY_RESOLUTION;
+        CSIO_LOG(eLogLevel_error, "WC Quality - Low - Expected Resolution 640*360");
+    }
+
     for (guint idx=0; idx < capslen; idx++)
     {
         GstStructure *s = gst_caps_get_structure(caps, idx);
@@ -134,14 +152,19 @@ get_video_caps_from_caps(GstCaps *caps, int min_frame_rate, VideoCaps *video_cap
                     continue;
                 }
 
-                if (((maxw)*(maxh) < width*height) || (isFormatRank(fmt) < isFormatRank(format)))
+                // if the current caps resolution is lesser than the required resolution then consider
+                if ( (maxw * maxh ) <= width*height && ((width*height ) <= videoResolutionClamp) )
                 {
-                    strcpy(fmt, format);
-                    maxw = width;
-                    maxh = height;
-                    max_frmrate_num = max_fr_num;
-                    max_frmrate_den = max_fr_den;
-                    CSIO_LOG(eLogLevel_info, "best so far: fmt=%s w=%d h=%d frnum=%d frden=%d\n", format, maxw, maxh, max_frmrate_num,max_frmrate_den);
+                    // check if the format is better, in order to avoid video conversion later
+                    if( isFormatRank(fmt) < isFormatRank(format) )
+                    {
+                        strcpy(fmt, format);
+                        maxw = width;
+                        maxh = height;
+                        max_frmrate_num = max_fr_num;
+                        max_frmrate_den = max_fr_den;
+                        CSIO_LOG(eLogLevel_info, "best so far: fmt=%s w=%d h=%d frnum=%d frden=%d\n", format, maxw, maxh, max_frmrate_num,max_frmrate_den);
+                    }
                 }
 
             }
@@ -158,7 +181,7 @@ get_video_caps_from_caps(GstCaps *caps, int min_frame_rate, VideoCaps *video_cap
     }
 }
 
-int get_video_caps(char *device_name, VideoCaps *video_caps, char *display_name, int display_name_len)
+int get_video_caps(char *device_name, VideoCaps *video_caps, char *display_name, int display_name_len, int quality)
 {
 	int rv= -1;
 
@@ -213,7 +236,7 @@ int get_video_caps(char *device_name, VideoCaps *video_caps, char *display_name,
                 if (!caps) {
                 	CSIO_LOG(eLogLevel_error, "Could not get caps for device\n");
                 } else {
-                    get_video_caps_from_caps(caps, 15, video_caps);
+                    get_video_caps_from_caps(caps, 15, video_caps, quality);
                     rv = 0;
                 }
                 gst_caps_unref(caps);
@@ -241,7 +264,7 @@ int get_video_caps_string(VideoCaps *video_caps, char *caps, int maxlen)
 		return -1;
 }
 #else    // HAS_V4L2
-int get_video_caps(char *device_name, VideoCaps *video_caps, char *display_name, int display_name_len)
+int get_video_caps(char *device_name, VideoCaps *video_caps, char *display_name, int display_name_len, int quality)
 {
     video_caps->w = 0;
     video_caps->h = 0;

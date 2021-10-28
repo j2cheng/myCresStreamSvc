@@ -208,6 +208,7 @@ typedef struct _CRESSTREAMOUT
     char frame_rate[125];
     char bitrate[125];
     char iframe_interval[125];
+    char quality[125];
     bool multicast_enable;
     char multicast_address[256];
     char stream_name[256];

@@ -67,6 +67,14 @@ JNIEXPORT void JNICALL Java_com_crestron_txrxservice_GstreamOut_nativeSet_1Bitra
 
 /*
  * Class:     com_crestron_txrxservice_GstreamOut
+ * Method:    nativeSet_Quality
+ * Signature: (II)V
+ */
+JNIEXPORT void JNICALL Java_com_crestron_txrxservice_GstreamOut_nativeSet_1Quality
+  (JNIEnv *, jobject, jint, jint);
+
+/*
+ * Class:     com_crestron_txrxservice_GstreamOut
  * Method:    nativeSet_IFrameInterval
  * Signature: (II)V
  */

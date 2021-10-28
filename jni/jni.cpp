@@ -378,6 +378,7 @@ void init_custom_data_out(CustomStreamOutData * cdata)
     strcpy(cdata->streamOut[0].frame_rate, DEFAULT_FRAME_RATE);
     strcpy(cdata->streamOut[0].bitrate, DEFAULT_BIT_RATE);
     strcpy(cdata->streamOut[0].iframe_interval, DEFAULT_IFRAME_INTERVAL);
+    strcpy(cdata->streamOut[0].quality, DEFAULT_QUALITY);
 }
 
 /* Quit the main loop, remove the native thread and free resources */
@@ -2279,7 +2280,7 @@ JNIEXPORT void JNICALL Java_com_crestron_txrxservice_GstreamIn_nativeSetFieldDeb
                 VideoCaps videoCaps;
                 char caps[256];
                 char display_name[256];
-                get_video_caps(v4l2Device, &videoCaps, display_name, sizeof(display_name));
+                get_video_caps(v4l2Device, &videoCaps, display_name, sizeof(display_name), 0);  //Sending "0" which corresponds to high quality by default
                 CSIO_LOG(eLogLevel_info, "%s: name=%s format=%s w=%d h=%d frame_rate=%d/%d", v4l2Device, display_name,
                 		videoCaps.format, videoCaps.w, videoCaps.h, videoCaps.frame_rate_num, videoCaps.frame_rate_den);
                 if (get_video_caps_string(&videoCaps, caps, sizeof(caps)) == 0)
@@ -5169,6 +5170,20 @@ JNIEXPORT void JNICALL Java_com_crestron_txrxservice_GstreamOut_nativeSet_1Bitra
     Streamout_SetBitrate(desBuf);
     CSIO_LOG(eLogLevel_debug, "rtsp_server: bitrate in CresStreamOutDataDB: '%s'", CresStreamOutDataDB->streamOut[0].bitrate);
 }
+JNIEXPORT void JNICALL Java_com_crestron_txrxservice_GstreamOut_nativeSet_1Quality(JNIEnv *env, jobject thiz, jint quality, jint sessionId)
+{
+    if (!CresStreamOutDataDB)
+    {
+        CSIO_LOG(eLogLevel_info, "%s: cannot set value, CresStreamOutDataDB is null", __FUNCTION__);
+	return;
+    }
+    CSIO_LOG(eLogLevel_debug, "rtsp_server: Using Quality: '%d'", quality);
+    char* desBuf = CresStreamOutDataDB->streamOut[sessionId].quality;
+    sprintf(desBuf, "%d", quality);
+
+    Streamout_SetQuality(desBuf);
+    CSIO_LOG(eLogLevel_debug, "rtsp_server: Quality in CresStreamOutDataDB: '%s'", CresStreamOutDataDB->streamOut[0].quality);
+}
 JNIEXPORT void JNICALL Java_com_crestron_txrxservice_GstreamOut_nativeSet_1IFrameInterval(JNIEnv *env, jobject thiz, jint IFrameInterval, jint sessionId)
 {
 	if (!CresStreamOutDataDB)
@@ -5339,7 +5354,7 @@ JNIEXPORT void JNICALL Java_com_crestron_txrxservice_GstreamOut_nativeGetVideoFo
 	// get the video format from the device file
     VideoCaps videoCaps;
     char display_name[256];
-    get_video_caps((char *)device_cstring, &videoCaps, display_name, sizeof(display_name));
+    get_video_caps((char *)device_cstring, &videoCaps, display_name, sizeof(display_name), 0);   //Sending "0" which corresponds to high quality by default 
     CSIO_LOG(eLogLevel_info, "%s: name=%s format=%s w=%d h=%d frame_rate=%d/%d", device_cstring, display_name,
     		videoCaps.format, videoCaps.w, videoCaps.h, videoCaps.frame_rate_num, videoCaps.frame_rate_den);
 

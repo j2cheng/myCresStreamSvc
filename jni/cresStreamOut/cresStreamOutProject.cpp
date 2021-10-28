@@ -216,6 +216,23 @@ void Streamout_SetIFrameInterval(char* iframeinterval)
     CSIO_LOG(StreamOutProjDebugLevel, "Streamout: Streamout_SetIFrameInterval() exit.");
 }
 
+void Streamout_SetQuality(char *quality)
+{
+    CSIO_LOG(StreamOutProjDebugLevel, "Streamout: Streamout_SetQuality() enter");
+
+    gProjectsLock.lock();
+
+    if(quality)
+    {
+        CSIO_LOG(StreamOutProjDebugLevel, "Streamout: set Quality to [%s].\n", quality);
+        
+        StreamoutProjectSendEvent(0, STREAMOUT_EVENT_JNI_CMD_QUALITY,strlen(quality), quality);
+    }
+
+    gProjectsLock.unlock();
+    CSIO_LOG(StreamOutProjDebugLevel, "Streamout: Streamout_SetQuality() exit.");
+}
+
 void Streamout_SetRes_x(char* res_x)
 {
     CSIO_LOG(StreamOutProjDebugLevel, "Streamout: Streamout_SetRes_x() enter");
@@ -583,6 +600,7 @@ CStreamoutProject::CStreamoutProject(int iId, eStreamoutMode streamoutMode): m_p
     strcpy(m_frame_rate, DEFAULT_FRAME_RATE);
     strcpy(m_bit_rate, DEFAULT_BIT_RATE);
     strcpy(m_iframe_interval, DEFAULT_IFRAME_INTERVAL);
+    m_quality =  DEFAULT_HIGH_QUALITY;
     m_multicast_enable = DEFAULT_MULTICAST_ENABLE;
     strcpy(m_multicast_address, DEFAULT_MULTICAST_ADDRESS);
     strcpy(m_stream_name, DEFAULT_STREAM_NAME);
@@ -668,6 +686,7 @@ void CStreamoutProject::DumpClassPara(int level)
 
     CSIO_LOG(eLogLevel_info, "--Streamout: m_bit_rate %s", m_bit_rate);
     CSIO_LOG(eLogLevel_info, "--Streamout: m_iframe_interval %s", m_iframe_interval);
+    CSIO_LOG(eLogLevel_info, "--Streamout: m_quality %d", m_quality);
 }
 void* CStreamoutProject::ThreadEntry()
 {
@@ -793,6 +812,7 @@ void* CStreamoutProject::ThreadEntry()
                             m_StreamoutTaskObjList[id]->setFrameRate(m_frame_rate);
                             m_StreamoutTaskObjList[id]->setBitRate(m_bit_rate);
                             m_StreamoutTaskObjList[id]->setIFrameInterval(m_iframe_interval);
+                            m_StreamoutTaskObjList[id]->setQuality(m_quality);
                             m_StreamoutTaskObjList[id]->setMulticastEnable(&m_multicast_enable);
                             m_StreamoutTaskObjList[id]->setMulticastAddress(m_multicast_address);
                             m_StreamoutTaskObjList[id]->setStreamName(m_stream_name);
@@ -968,6 +988,28 @@ void* CStreamoutProject::ThreadEntry()
                     CSIO_LOG(m_debugLevel, "Streamout: STREAMOUT_EVENT_JNI_CMD_IFRAMEINTERVAL done.");
                     break;
                 }
+                case STREAMOUT_EVENT_JNI_CMD_QUALITY:
+                {
+                    int id = evntQ.streamout_obj_id;
+                    if( evntQ.buf_size && evntQ.buffPtr)
+                    {
+                        CSIO_LOG(m_debugLevel, "Streamout: call setQuality streamId[%d],Quality[%s]",
+                                 id,evntQ.buffPtr);
+
+                        //save for this project
+			m_quality  = atoi((char*)evntQ.buffPtr);
+
+                        m_projEventQ->del_Q_buf(evntQ.buffPtr);
+                    }
+                    else
+                    {
+                        CSIO_LOG(m_debugLevel, "Streamout: streamId[%d],Quality string is null",id);
+                    }
+
+                    CSIO_LOG(m_debugLevel, "Streamout: STREAMOUT_EVENT_JNI_CMD_QUALITY done.");
+                    break;
+                 }
+                
                 case STREAMOUT_EVENT_JNI_CMD_ENABLE_SECURITY:
                 {
                     if (m_streamoutMode == STREAMOUT_MODE_CAMERA) { // short circuit - not applicable for WirelessConferencing case
@@ -1176,6 +1218,7 @@ void* CStreamoutProject::ThreadEntry()
 									m_StreamoutTaskObjList[id]->setFrameRate(m_frame_rate);
 									m_StreamoutTaskObjList[id]->setBitRate(m_bit_rate);
 									m_StreamoutTaskObjList[id]->setIFrameInterval(m_iframe_interval);
+									m_StreamoutTaskObjList[id]->setQuality(m_quality);
 									m_StreamoutTaskObjList[id]->setMulticastEnable(&m_multicast_enable);
 									m_StreamoutTaskObjList[id]->setMulticastAddress(m_multicast_address);
 									m_StreamoutTaskObjList[id]->setStreamName(m_stream_name);
@@ -1411,6 +1454,7 @@ void CStreamoutProject::sendEvent(EventQueueStruct* pEvntQ)
                 case STREAMOUT_EVENT_JNI_CMD_FRAMERATE:
                 case STREAMOUT_EVENT_JNI_CMD_BITRATE:
                 case STREAMOUT_EVENT_JNI_CMD_IFRAMEINTERVAL:
+                case STREAMOUT_EVENT_JNI_CMD_QUALITY:
 				case STREAMOUT_EVENT_JNI_CMD_MULTICAST_ADDRESS:
 				case STREAMOUT_EVENT_JNI_CMD_STREAM_NAME:
 				case STREAMOUT_EVENT_JNI_CMD_SNAPSHOT_NAME:
