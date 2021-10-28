@@ -531,7 +531,12 @@ public class WC_Service {
                                       String ConferencingStatus)
     {
         DeviceObject devWCStatus = new DeviceObject();
-        Log.v(TAG,"reportWCDeviceStatus: IsCameraDetected:" + IsCameraDetected + " IsMicDetected:" + IsMicDetected + " IsSpeakerDetected:" +IsSpeakerDetected+ " CameraResolution:" +CameraResolution+ " ConferencingStatus:" +ConferencingStatus);
+        Log.v(TAG,"reportWCDeviceStatus: IsCameraDetected:"
+                  + IsCameraDetected + " IsMicDetected:" 
+                  + IsMicDetected + " IsSpeakerDetected:" 
+                  + IsSpeakerDetected + " CameraResolution:" 
+                  + CameraResolution + " ConferencingStatus:" 
+                  + ConferencingStatus);
 
         devWCStatus.Device.AirMedia.WirelessConferencing.Status.IsCameraDetected = IsCameraDetected;
         devWCStatus.Device.AirMedia.WirelessConferencing.Status.IsMicDetected = IsMicDetected;
@@ -540,7 +545,7 @@ public class WC_Service {
         devWCStatus.Device.AirMedia.WirelessConferencing.Status.CameraResolution = CameraResolution;
         devWCStatus.Device.AirMedia.WirelessConferencing.Status.ConferencingStatus = ConferencingStatus;
         
-        String sessionWCStatus = gson.toJson(devWCStatus);
+        final String sessionWCStatus = gson.toJson(devWCStatus);
         Log.i(TAG,  "reportWCDeviceStatus: WirelessConferencingStatusJSON=" + sessionWCStatus);
 
         //Needs to be in separate thread for NetworkOnMainThreadException, since SendtoCrestore occurs in the flow
