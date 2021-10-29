@@ -159,7 +159,7 @@ JNIEXPORT void JNICALL Java_com_crestron_txrxservice_GstreamOut_nativeSetAudioCa
  * Signature: (Ljava/lang/String; jobject)V
  */
 JNIEXPORT void JNICALL Java_com_crestron_txrxservice_GstreamOut_nativeGetVideoFormat
-  (JNIEnv *, jobject, jstring, jobject);
+  (JNIEnv *, jobject, jstring, jobject, jint);
 
 /*
  * Class:     com_crestron_txrxservice_GstreamOut

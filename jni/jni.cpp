@@ -5344,7 +5344,7 @@ JNIEXPORT void JNICALL Java_com_crestron_txrxservice_GstreamOut_nativeSetAudioCa
 	env->ReleaseStringUTFChars(device_jstring, device_cstring);
 }
 
-JNIEXPORT void JNICALL Java_com_crestron_txrxservice_GstreamOut_nativeGetVideoFormat(JNIEnv *env, jobject thiz, jstring device_jstring, jobject format)
+JNIEXPORT void JNICALL Java_com_crestron_txrxservice_GstreamOut_nativeGetVideoFormat(JNIEnv *env, jobject thiz, jstring device_jstring, jobject format, jint quality)
 {
 	const char * device_cstring = env->GetStringUTFChars( device_jstring , NULL ) ;
 	if (device_cstring == NULL) return;
@@ -5354,7 +5354,7 @@ JNIEXPORT void JNICALL Java_com_crestron_txrxservice_GstreamOut_nativeGetVideoFo
 	// get the video format from the device file
     VideoCaps videoCaps;
     char display_name[256];
-    get_video_caps((char *)device_cstring, &videoCaps, display_name, sizeof(display_name), 0);   //Sending "0" which corresponds to high quality by default 
+    get_video_caps((char *)device_cstring, &videoCaps, display_name, sizeof(display_name), quality);   
     CSIO_LOG(eLogLevel_info, "%s: name=%s format=%s w=%d h=%d frame_rate=%d/%d", device_cstring, display_name,
     		videoCaps.format, videoCaps.w, videoCaps.h, videoCaps.frame_rate_num, videoCaps.frame_rate_den);
 

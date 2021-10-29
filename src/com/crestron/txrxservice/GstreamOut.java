@@ -69,7 +69,7 @@ public class GstreamOut {
     private native void nativeSetAppCacheFolder(String name);
     private native void nativeSetVideoCaptureDevice(String device);
     private native void nativeSetAudioCaptureDevice(String device);
-    private native void nativeGetVideoFormat(String videoFile, WC_VideoFormat format);
+    private native void nativeGetVideoFormat(String videoFile, WC_VideoFormat format, int quality);
     private native void nativeGetAudioFormat(String videoFile, WC_AudioFormat format);
     private native void nativeStartPreview(Object surface, int sessionId);
     private native void nativePausePreview(int sessionId);
@@ -168,7 +168,7 @@ public class GstreamOut {
     		Log.i(TAG, "videoFile is 'none' - no video formats");
     	else if (videoFile.contains("/dev/video")) {
     		WC_VideoFormat format = new WC_VideoFormat(0,0,0);
-    		nativeGetVideoFormat(videoFile, format);
+    		nativeGetVideoFormat(videoFile, format, streamCtl.userSettings.getAirMediaWCQuality());
     		Log.i(TAG, "videoFile is "+videoFile+" videoFormat="+format);
     		videoFormats.add(format);
     	} else {
