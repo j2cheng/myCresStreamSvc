@@ -27,6 +27,7 @@ public class AudioPlayback
 	AudioRecord mRecorder = null;
 	String TAG = "TxRx AudioPlayback"; 
 	volatile boolean shouldExit;
+	StreamAudioTask streamAudioTask = null; 
 	Thread streamAudioThread;
 	Thread audioTrackThread;
 	int audioSampleRate = 48000;
@@ -36,13 +37,15 @@ public class AudioPlayback
 	volatile boolean initVolumePending = false;
 	int mWaitFrames = 15;
 	final int mWaitFramesDone = 15;
-	final static int maxNumOfBuffers = 3;	// This value was determined through manual testing
+	int maxNumOfBuffers = 3;	// This value was determined through manual testing
 
-        final int mMaxBufFullError = 100;
-        int   mBufFullErrorCnt = 0;
+    final int mMaxBufFullError = 100;
+    int   mBufFullErrorCnt = 0;
 
 	public AudioPlayback(CresStreamCtrl streamCtl) {
 		mStreamCtl = streamCtl;
+		if (mStreamCtl.isAM3X00())
+		    maxNumOfBuffers = 6;  // This value was determined through manual testing on AM3200 4 works(AM3XX-6614 - distortion in audio on reboot)
 	}
 
 	protected boolean startAudioTask(){
@@ -62,7 +65,8 @@ public class AudioPlayback
 			Log.w(TAG, "Got a bad audio buffersize "+audioBufferSize+" from getMinBufferSize (sampleRate="+audioSampleRate+")");
 			return false;
 		}
-		streamAudioThread = new Thread(new StreamAudioTask());
+		streamAudioTask = new StreamAudioTask();
+		streamAudioThread = new Thread(streamAudioTask);
 		shouldExit = false;
 		streamAudioThread.start();
 		return true;
@@ -77,6 +81,19 @@ public class AudioPlayback
 		private final int BufferSize = audioBufferSize;
 		private StaticAudioBuffers mAudioBuffers = new StaticAudioBuffers(maxNumOfBuffers + 2);
         public final static String rebootAudioFullFile = "/dev/shm/crestron/CresStreamSvc/rebootedOnAudioBufferFull";
+        
+        public void notifyAudioBufferQueue()
+        {
+            if (audioBufferQueue != null)
+            {
+                try {
+                    synchronized (audioBufferQueue)
+                    {
+                        audioBufferQueue.notify();
+                    }
+                } catch (Exception e) {e.printStackTrace();}
+            }
+        }
 
         private void addToAudioBufferQueue(audioBufferQueueObject newAudioBuffer)
         {
@@ -144,7 +161,7 @@ public class AudioPlayback
 					int read = 0;
 					
 					int index = mAudioBuffers.obtainBuffer();
-					read = mRecorder.read(mAudioBuffers.staticBuffer.array(), (index * BufferSize), BufferSize);       
+					read = mRecorder.read(mAudioBuffers.staticBuffer.array(), (index * BufferSize), BufferSize);
 
 					addToAudioBufferQueue(new audioBufferQueueObject(index, read));
 				}
@@ -174,14 +191,14 @@ public class AudioPlayback
 			}
 
 			public void run() {
-                                Log.i(TAG, "Audio ProcessBufferQueue started");
-				while (!shouldExit) {
+                Log.i(TAG, "Audio ProcessBufferQueue started");
+                while (!shouldExit) {
 					if (bufferQueue.isEmpty())
 					{
 						try {
 							synchronized (bufferQueue)
 							{
-								bufferQueue.wait(1000);
+								bufferQueue.wait(5000);
 							}
 						} catch (Exception e) {e.printStackTrace();}
 					}
@@ -318,6 +335,7 @@ public class AudioPlayback
 	    long begin = System.currentTimeMillis();
 		Log.i(TAG, "stopAudioTask(): stop audio started");
 		shouldExit = true;
+        this.streamAudioTask.notifyAudioBufferQueue();
 		try
 		{
 			this.audioTrackThread.join();
