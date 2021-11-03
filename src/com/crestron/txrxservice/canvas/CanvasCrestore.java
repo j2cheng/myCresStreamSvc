@@ -1442,10 +1442,12 @@ public class CanvasCrestore
          {
             if(session != null)
             {
-            	double convertedVolume = ((double)mapEntry.volume * 100) / 65535;    //convert from 0-65535 to 0-100
+               // no longer needed - input range is now 0 - 100
+            	// double convertedVolume = ((double)mapEntry.volume * 100) / 65535;    //convert from 0-65535 to 0-100
+               
                Common.Logging.i(TAG, "@@@@@ processSessionNetworkStream(): calling setStreamInVolume() with streamId = "
-                  + session.streamId + " ,volume = " + mapEntry.volume + " and convertedVolume = " + convertedVolume);
-               mStreamCtl.setStreamInVolume((int)convertedVolume, session.streamId);
+                  + session.streamId + " and volume = " + mapEntry.volume);
+               mStreamCtl.setStreamInVolume((int)mapEntry.volume, session.streamId);
             }
             else
             {
