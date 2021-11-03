@@ -1291,6 +1291,7 @@ JNIEXPORT void JNICALL Java_com_crestron_txrxservice_GstreamIn_nativeSetVolume(J
 	else
 		CSIO_LOG(eLogLevel_error, "Unable to access data object");
 
+	// CSIO_LOG(eLogLevel_debug, "@@@@@ Calling csio_SetLinearVolume() with convertedVolume = %f",convertedVolume);
 	int ret = csio_SetLinearVolume(sessionId, convertedVolume);
 	CSIO_LOG(eLogLevel_debug, "Return from csio_SetLinearVolume = %d", ret);
 }

@@ -150,6 +150,7 @@ public class GstreamIn implements SurfaceHolder.Callback {
     }
     
     public void setVolume(int volume, int sessionId){
+      // Log.i(TAG, "@@@@@ in setVolume()");
     	nativeSetVolume(volume, sessionId);
     }
     

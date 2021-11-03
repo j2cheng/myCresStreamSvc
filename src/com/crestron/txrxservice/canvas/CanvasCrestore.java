@@ -1385,114 +1385,192 @@ public class CanvasCrestore
 		String jsonStr = "{\"Pending\":" + gson.toJson(root) + "}";
 		cresstoreSet(jsonStr, false);
 	}
-	
-    public void processSessionNetworkStream(String userLabel, StreamConfigMapEntry mapEntry){
-	    
-        // this may never happen.
-        if (userLabel == null) {
-            Common.Logging.i(TAG, "NetworkStream command has no userLabel or mapEntry");
-            return;
-        }
+   
+   	
+   public void processSessionNetworkStream(String userLabel, StreamConfigMapEntry mapEntry)
+   {
+      // this may never happen.
+      if (userLabel == null)
+      {
+         Common.Logging.i(TAG, "NetworkStream command has no userLabel or mapEntry");
+         return;
+      }
+      
+      // Step 1: always check to see if session exist or not
+      Session session = mSessionMgr.findSession(SessionType.NetworkStreaming.toString(), userLabel, "", 0);       
+      Common.Logging.i(TAG, "Processing Network Stream findSession for : " + userLabel + " , session is : " + session);
+      
+      // Step 2: ckeck remove session for {"streamN": {}}
+      if(mapEntry == null || gson.toJson(mapEntry).equalsIgnoreCase("{}"))
+      {
+         Common.Logging.i(TAG, "Processing Network Stream to remove session");
+         
+         //Note: "Disconnect" will call doStop()    
+         if (session != null)
+         {
+            doSynchronousSessionEvent(session, "Disconnect", new Originator(RequestOrigin.StateChangeMessage, session), 10);	            
+            mSessionMgr.remove(session);
+         }
+      }
+      else
+      {
+         // .....................................
 
-        // Step 1: always check to see if session exist or not
-        Session session = mSessionMgr.findSession(SessionType.NetworkStreaming.toString(), userLabel, "", 0);       
-        Common.Logging.i(TAG, "Processing Network Stream findSession for : " + userLabel + " , session is : " + session);
-
-        //Step 2: ckeck remove session for {"streamN": {}}
-        if (mapEntry == null || gson.toJson(mapEntry).equalsIgnoreCase("{}")) {
-            Common.Logging.i(TAG, "Processing Network Stream to remove session");
-
-            //Note: "Disconnect" will call doStop()    
-            if (session != null) {        
-                doSynchronousSessionEvent(session, "Disconnect", new Originator(RequestOrigin.StateChangeMessage, session), 10);	            
-                mSessionMgr.remove(session);
-            }
-        }
-		//Step 3: ckeck what action is asked
-        else if (mapEntry.action == null) {
-            Common.Logging.i(TAG, "Processing Network Stream has no action.");
-
-            //TODO: treat this as an error - force them to send an action unless it is to delete a session			
-        } else if (mapEntry.action.equalsIgnoreCase("Connect")) {
-            // take care of case that actin and url in two different command
-            if (session != null && session.getState() != SessionState.Stopped) {
-
-                //update the reset of parameters	
-                ((NetworkStreamSession)session).setBuffer(mapEntry.buffer);
-                ((NetworkStreamSession)session).setVolume(mapEntry.volume);
-                ((NetworkStreamSession)session).setStatistics(mapEntry.isStatisticsEnabled);
-
-                Common.Logging.i(TAG, "Start NetworkStream for session that already exists - ignoring");
-                return;
-            } else {
-				if (session == null) {
-                	session = com.crestron.txrxservice.canvas.Session.createSession(SessionType.NetworkStreaming.toString(),
-                        			userLabel, mapEntry.url, 0, null);
-				}//else
-
-                if (session != null) {
-                    Common.Logging.i(TAG, "Adding session " + session + " to sessionManager");
-                    mSessionMgr.add(session);
-
-                    //update the reset of parameters	
-                    ((NetworkStreamSession)session).setBuffer(mapEntry.buffer);
-                    ((NetworkStreamSession)session).setVolume(mapEntry.volume);
-                    ((NetworkStreamSession)session).setStatistics(mapEntry.isStatisticsEnabled);
-
-                    Common.Logging.i(TAG, "Start to connect session: " + session + " to video source: " + mapEntry.url);
-                    doSynchronousSessionEvent(session, "Connect", new Originator(RequestOrigin.StateChangeMessage, session), 10);
-                } else {
-                    Common.Logging.i(TAG, "Connect not create requested session for connect command");
-                }
-            }
-        } else {
-            // find existing session
-            if (session == null) {
-                Common.Logging.i(TAG,
-                        mapEntry.action + "session for NetworkStream session that can't be found - ignoring");
-                return;
-            } else {
-                if (mapEntry.action.equalsIgnoreCase("Pause") && session.isStopped()) {
-                    Common.Logging.i(TAG, "Pause session command in wrong place: " + session);
-                    //Common.Logging.i(TAG, "Pause session: " + session);
-                    //doSynchronousSessionEvent(session, "Pause", new Originator(RequestOrigin.StateChangeMessage, session), 10);
-                } else if (mapEntry.action.equalsIgnoreCase("Disconnect") && session.isPlaying()) {
-                    Common.Logging.i(TAG, "Stop session: " + session);
-                                        
-                    //Note: maybe "Disconnect" will call doStop()  
-                    doSynchronousSessionEvent(session, "Disconnect", new Originator(RequestOrigin.StateChangeMessage, session), 10);				    
-                    Common.Logging.v(TAG, "getState: " + session.getState());
-					
-                    mSessionMgr.remove(session);
-                } else {
-					Common.Logging.i(TAG,
-                        mapEntry.action + " command for NetworkStream that can't be found - " + mapEntry.action);
-                	return;
-                }
-            }
-        }
-        mSessionMgr.logSessionStates("processSessionNetworkStream");
-
-        //to update status and stream info to DB
-        if(session != null && mapEntry != null)
-        {
-            Root root = getRootedDeviceNetworkStreams();
+         boolean propertyProcessed = false;
+         
+         // Step 3: proces selected non-action properties
+         
+         // properties of class StreamConfigMapEntry
+         //    String url;
+         //    String action;            
+         //    Integer buffer;
+         //    Integer volume;
+         //    Boolean isStatisticsEnabled;
+         //    Integer numVideoPacketsDropped;
+         //    Integer numAudioPacketsDropped;            
             
-            if (gson.toJson(mapEntry).equalsIgnoreCase("{}") == false) 
-                mapEntry.status = SessionState.feedbackString(session.getState().getValue());
-
-            HashMap<String, StreamConfigMapEntry> locamap =  new HashMap<String, StreamConfigMapEntry>();
-            locamap.put(userLabel, mapEntry);
-
-            root.device.airMedia.networkStreams = locamap;
-
-            Gson gson = new Gson();
-            Common.Logging.v(TAG, "processSessionNetworkStream send to DB "+gson.toJson(root));
+         // Common.Logging.i(TAG, "@@@@@ processSessionNetworkStream(): Properties of StreamConfigMapEntry:");
+         // Common.Logging.i(TAG, "      url                    = " + mapEntry.url);
+         // Common.Logging.i(TAG, "      action                 = " + mapEntry.action);
+         // Common.Logging.i(TAG, "      buffer                 = " + mapEntry.buffer);
+         // Common.Logging.i(TAG, "      volume                 = " + mapEntry.volume);
+         // Common.Logging.i(TAG, "      isStatisticsEnabled    = " + mapEntry.isStatisticsEnabled);
+         // Common.Logging.i(TAG, "      numVideoPacketsDropped = " + mapEntry.numVideoPacketsDropped);
+         // Common.Logging.i(TAG, "      numAudioPacketsDropped = " + mapEntry.numAudioPacketsDropped);
             
-            setCurrentNetworkingStreamsMapToDB(locamap);
-        }
-    }
+         if(mapEntry.volume != null)
+         {
+            if(session != null)
+            {
+            	double convertedVolume = ((double)mapEntry.volume * 100) / 65535;    //convert from 0-65535 to 0-100
+               Common.Logging.i(TAG, "@@@@@ processSessionNetworkStream(): calling setStreamInVolume() with streamId = "
+                  + session.streamId + " ,volume = " + mapEntry.volume + " and convertedVolume = " + convertedVolume);
+               mStreamCtl.setStreamInVolume((int)convertedVolume, session.streamId);
+            }
+            else
+            {
+               Common.Logging.e(TAG, "@@@@@ processSessionNetworkStream(): session is NULL while processing volume property");
+            }
+         }
+                     
+         // .....................................
+                        
+
+         // Step 4: process the action
+         if (mapEntry.action == null)
+         {
+            if(!propertyProcessed)
+            {
+               Common.Logging.i(TAG, "Processing Network Stream has no action.");
+               
+               //TODO: treat this as an error - force them to send an action unless it is to delete a session			
+            }
+         }
+         else
+         {
+            if (mapEntry.action.equalsIgnoreCase("Connect"))
+            {
+               // take care of case that actin and url in two different command
+               if (session != null && session.getState() != SessionState.Stopped)
+               {
+                  //update the reset of parameters	
+                  ((NetworkStreamSession)session).setBuffer(mapEntry.buffer);
+                  ((NetworkStreamSession)session).setVolume(mapEntry.volume);
+                  ((NetworkStreamSession)session).setStatistics(mapEntry.isStatisticsEnabled);
+                  
+                  Common.Logging.i(TAG, "Start NetworkStream for session that already exists - ignoring");
+                  return;
+               }
+               else
+               {
+                  if (session == null)
+                  {
+                     session = com.crestron.txrxservice.canvas.Session.createSession(SessionType.NetworkStreaming.toString(),
+                         			userLabel, mapEntry.url, 0, null);
+                  }//else
+                  
+                  if (session != null)
+                  {
+                     Common.Logging.i(TAG, "Adding session " + session + " to sessionManager");
+                     mSessionMgr.add(session);
+                     
+                     //update the reset of parameters	
+                     ((NetworkStreamSession)session).setBuffer(mapEntry.buffer);
+                     ((NetworkStreamSession)session).setVolume(mapEntry.volume);
+                     ((NetworkStreamSession)session).setStatistics(mapEntry.isStatisticsEnabled);
+                     
+                     Common.Logging.i(TAG, "Start to connect session: " + session + " to video source: " + mapEntry.url);
+                     doSynchronousSessionEvent(session, "Connect", new Originator(RequestOrigin.StateChangeMessage, session), 10);
+                  }
+                  else
+                  {
+                     Common.Logging.i(TAG, "Connect not create requested session for connect command");
+                  }
+               }
+            }
+            else
+            {
+               // find existing session
+               if (session == null)
+               {
+                  Common.Logging.i(TAG,mapEntry.action + " session for NetworkStream session that can't be found - ignoring");
+                  return;
+               }
+               else
+               {
+                  if (mapEntry.action.equalsIgnoreCase("Pause") && session.isStopped())
+                  {
+                     Common.Logging.i(TAG, "Pause session command in wrong place: " + session);
+                     //Common.Logging.i(TAG, "Pause session: " + session);
+                     //doSynchronousSessionEvent(session, "Pause", new Originator(RequestOrigin.StateChangeMessage, session), 10);
+                  }
+                  else
+                  {
+                     if (mapEntry.action.equalsIgnoreCase("Disconnect") && session.isPlaying())
+                     {
+                        Common.Logging.i(TAG, "Stop session: " + session);
+                                            
+                        //Note: maybe "Disconnect" will call doStop()  
+                        doSynchronousSessionEvent(session, "Disconnect", new Originator(RequestOrigin.StateChangeMessage, session), 10);				    
+                        Common.Logging.v(TAG, "getState: " + session.getState());
+                        
+                        mSessionMgr.remove(session);
+                     }
+                     else
+                     {
+                        Common.Logging.i(TAG,mapEntry.action + " command for NetworkStream is incorrect/unexpected here, isPlaying() returned "
+                              + (session.isPlaying() ? "true" : "false"));
+                        return;
+                     }
+                  }
+               }
+            }
+         }
+      }
+      
+      mSessionMgr.logSessionStates("processSessionNetworkStream");
+      
+      //to update status and stream info to DB
+      if(session != null && mapEntry != null)
+      {
+         Root root = getRootedDeviceNetworkStreams();
+         
+         if (gson.toJson(mapEntry).equalsIgnoreCase("{}") == false) 
+            mapEntry.status = SessionState.feedbackString(session.getState().getValue());
+         
+         HashMap<String, StreamConfigMapEntry> locamap =  new HashMap<String, StreamConfigMapEntry>();
+         locamap.put(userLabel, mapEntry);
+         
+         root.device.airMedia.networkStreams = locamap;
+         
+         Gson gson = new Gson();
+         Common.Logging.v(TAG, "processSessionNetworkStream send to DB "+gson.toJson(root));
+         
+         setCurrentNetworkingStreamsMapToDB(locamap);
+      }
+   }
 	
+    
     public class CresStoreCallback implements com.crestron.cresstoreredis.CresStoreClientCallback {
     	
     	public void message(boolean pending, String json)
