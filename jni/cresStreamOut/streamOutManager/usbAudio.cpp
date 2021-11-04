@@ -27,9 +27,7 @@
 #define ARRAY_SIZE(a) (sizeof(a) / sizeof((a)[0]))
 #endif
 
-static int usb_audio_sample = 0;
-
-static int pcm_mask_test(struct pcm_mask *m, unsigned int index)
+int UsbAudio::pcm_mask_test(struct pcm_mask *m, unsigned int index)
 {
     const unsigned int bitshift = 5; /* for 32 bit integer */
     const unsigned int bitmask = (1 << bitshift) - 1;
@@ -41,25 +39,31 @@ static int pcm_mask_test(struct pcm_mask *m, unsigned int index)
 }
 
 // returns number of samples available on device
-unsigned int usb_audio_avail(pcm *pcm_device)
+unsigned int UsbAudio::usb_audio_avail(pcm *pcm_device)
 {
     unsigned int avail;
     struct timespec tstamp;
 
     if (pcm_get_htimestamp(pcm_device, &avail, &tstamp) < 0)
     {
-        CSIO_LOG(eLogLevel_error, "UsbAudio: get_pcm_samples(): pcm_get_htimestamp failed -- timestamp=%ld.%ld avail=%d", tstamp.tv_sec, tstamp.tv_nsec, avail);
-        avail = 1000000; // to force a pcm_read in get_pcm_samples - at startup if we return 0 here nothing happens
+        CSIO_LOG(eLogLevel_error, "UsbAudio: usb_audio_avail(): pcm_get_htimestamp failed -- timestamp=%ld.%ld avail=%d", tstamp.tv_sec, tstamp.tv_nsec, avail);
+        avail = 1000000; // to force a pcm_read in usb_audio_avail - at startup if we return 0 here nothing happens
     }
     else
     {
-        CSIO_LOG(eLogLevel_verbose, "UsbAudio: get_pcm_samples(): timestamp=%ld.%ld avail=%d", tstamp.tv_sec, tstamp.tv_nsec, avail);
+        CSIO_LOG(eLogLevel_verbose, "UsbAudio: usb_audio_avail(): timestamp=%ld.%ld avail=%d", tstamp.tv_sec, tstamp.tv_nsec, avail);
+        
+        
+        GstClockTime timestamp = GST_TIMESPEC_TO_TIME (tstamp);
+
+        CSIO_LOG (eLogLevel_verbose, "UsbAudio: usb_audio_avail(): timestamp : %" GST_TIME_FORMAT", delay %lu", GST_TIME_ARGS (timestamp), avail);
     }
     return avail;
 }
 
-void usb_audio_get_samples(pcm *pcm_device, void *data, int size, GstClockTime *timestamp, GstClockTime *duration) {
-    int nsamples = size/(2*2);
+void UsbAudio::usb_audio_get_samples(pcm *pcm_device, void *data, int size, GstClockTime *timestamp, GstClockTime *duration) {
+    
+    guint64 nsamples = (guint64)(size/(2*2));
     int error;
 
     *duration = gst_util_uint64_scale(nsamples, GST_SECOND, 48000);
@@ -67,50 +71,58 @@ void usb_audio_get_samples(pcm *pcm_device, void *data, int size, GstClockTime *
     {
         CSIO_LOG(eLogLevel_error, "UsbAudio: get_pcm_samples(): could not get %d bytes error=%d", error);
     } else {
-        CSIO_LOG(eLogLevel_verbose, "UsbAudio: get_pcm_samples(): read %d bytes", size);
+        CSIO_LOG(eLogLevel_verbose, "UsbAudio: get_pcm_samples(): read %d bytes,m_usb_audio_sample[%llu],nsamples[%llu]", size,m_usb_audio_sample,nsamples);
     }
-    *timestamp = gst_util_uint64_scale(usb_audio_sample, GST_SECOND, 48000);
-    usb_audio_sample += nsamples;
-    CSIO_LOG(eLogLevel_verbose, "UsbAudio: get_pcm_samples(): size=%d nsamples=%d timestamp=%llu duration=%llu", size, nsamples, *timestamp, *duration);
+    *timestamp = gst_util_uint64_scale(m_usb_audio_sample, GST_SECOND, 48000);
+    m_usb_audio_sample += nsamples;
+    CSIO_LOG(eLogLevel_verbose, "UsbAudio: get_pcm_samples(): size=%d nsamples=%llu timestamp=%llu duration=%llu m_usb_audio_sample=[%llu]", size, nsamples, *timestamp, *duration,m_usb_audio_sample);
+
+
+    CSIO_LOG (eLogLevel_verbose, "gst_util_uint64_scale timestamp : %" GST_TIME_FORMAT, GST_TIME_ARGS (*timestamp));
 }
 
 // returns true if successful
 bool UsbAudio::configure()
 {
-	if (m_device == NULL)
-	{
-		// open USB pcm audio device
-		struct pcm_config config;
-		memset(&config, 0, sizeof(config));
-		config.channels = m_audioChannels;
-		config.rate = m_audioSamplingRate;
-		config.period_size = 1024;
-		config.period_count = 4;
-		config.format = m_audioPcmFormat;
-		config.start_threshold = 0;
-		config.stop_threshold = 0;
-		config.silence_threshold = 0;
+    if (m_device == NULL)
+    {
+        // open USB pcm audio device
+        struct pcm_config config;
+        memset(&config, 0, sizeof(config));
+        config.channels = m_audioChannels;
+        config.rate = m_audioSamplingRate;
+        config.period_size = 1024;
+        config.period_count = 4;
+        config.format = m_audioPcmFormat;
+        config.start_threshold = 0;
+        config.stop_threshold = 0;
+        config.silence_threshold = 0;
 
-		m_device = pcm_open(m_pcm_card_idx, m_pcm_device_idx, PCM_IN, &config);
-		if (!m_device || !pcm_is_ready(m_device)) {
-			CSIO_LOG(eLogLevel_error, "Unable to open USB audio PCM device (%s)\n", pcm_get_error(m_device));
-			if (m_device) {
-				pcm_close(m_device);
-				m_device == NULL;
-			}
-			return false;
-		}
-		else
-		{
-			CSIO_LOG(eLogLevel_info, "USB audio PCM device card=%d device=%d is open for capture\n", m_pcm_card_idx, USB_PCM_DEVICE);
-			usb_audio_sample = 0;
-			int bufsize = pcm_frames_to_bytes(m_device, pcm_get_buffer_size(m_device));
-			CSIO_LOG(eLogLevel_info, "USB audio PCM device period size = %d\n", config.period_size);
-			CSIO_LOG(eLogLevel_info, "USB audio PCM device period count = %d\n", config.period_count);
-			CSIO_LOG(eLogLevel_info, "USB audio PCM device buffer size = %d (%d)\n", bufsize, pcm_get_buffer_size(m_device));
-		}
-	}
-	return true;
+        m_device = pcm_open(m_pcm_card_idx, m_pcm_device_idx, PCM_IN | PCM_MONOTONIC, &config);
+        if (!m_device || !pcm_is_ready(m_device))
+        {
+            CSIO_LOG(eLogLevel_error, "Unable to open USB audio PCM device (%s)\n", pcm_get_error(m_device));
+            if (m_device)
+            {
+                pcm_close(m_device);
+                m_device == NULL;
+            }
+            return false;
+        }
+        else
+        {
+            CSIO_LOG(eLogLevel_info, "USB audio PCM device card=%d device=%d is open for capture\n", m_pcm_card_idx, USB_PCM_DEVICE);
+            m_usb_audio_sample = 0;
+            int bufsize = pcm_frames_to_bytes(m_device, pcm_get_buffer_size(m_device));
+            CSIO_LOG(eLogLevel_info, "USB audio PCM device channels = %d\n", config.channels);
+            CSIO_LOG(eLogLevel_info, "USB audio PCM device rate = %d\n", config.rate);
+            CSIO_LOG(eLogLevel_info, "USB audio PCM device period size = %d\n", config.period_size);
+            CSIO_LOG(eLogLevel_info, "USB audio PCM device period count = %d\n", config.period_count);
+            CSIO_LOG(eLogLevel_info, "USB audio PCM device format = %d\n", config.format);
+            CSIO_LOG(eLogLevel_info, "USB audio PCM device buffer size = %d (%d)\n", bufsize, pcm_get_buffer_size(m_device));
+        }
+    }
+    return true;
 }
 
 // returns true if successful
@@ -194,12 +206,12 @@ void UsbAudio::releaseDevice()
 struct pcm {
 	int dummy;
 };
-unsigned int usb_audio_avail(pcm *pcm_device)
+unsigned int UsbAudio::usb_audio_avail(pcm *pcm_device)
 {
-	return 0;
+    return 0;
 }
-void usb_audio_get_samples(pcm *pcm_device, void *data, int size, GstClockTime *timestamp, GstClockTime *duration) {
-	return;
+void UsbAudio::usb_audio_get_samples(pcm *pcm_device, void *data, int size, GstClockTime *timestamp, GstClockTime *duration) {
+    return;
 }
 // returns true if successful
 bool UsbAudio::configure()
@@ -219,22 +231,26 @@ void UsbAudio::releaseDevice()
 
 UsbAudio::UsbAudio(char *file)
 {
-	CSIO_LOG(eLogLevel_info, "--Streamout: usb audio device file: %s", file);
-	strncpy(m_device_file, file, sizeof(m_device_file));
-	if (strcmp(m_device_file, "audiotestsrc") == 0) {
-		m_pcm_card_idx = 0;
-		m_pcm_device_idx = 0;
-	} else {
-		if (sscanf(file, "/dev/snd/pcmC%dD%dc", &m_pcm_card_idx, &m_pcm_device_idx) != 2)
-		{
-			CSIO_LOG(eLogLevel_warning, "--Streamout: Invalid audio device file: %s", file);
-		}
-	}
-	m_device = NULL;
-	m_params = NULL;
-	m_audioFormat = NULL;
-	m_audioChannels = 2;
-	m_audioSamplingRate = 0;
+    CSIO_LOG(eLogLevel_info, "--Streamout: usb audio device file: %s", file);
+    strncpy(m_device_file, file, sizeof(m_device_file));
+    if (strcmp(m_device_file, "audiotestsrc") == 0)
+    {
+        m_pcm_card_idx = 0;
+        m_pcm_device_idx = 0;
+    }
+    else
+    {
+        if (sscanf(file, "/dev/snd/pcmC%dD%dc", &m_pcm_card_idx, &m_pcm_device_idx) != 2)
+        {
+            CSIO_LOG(eLogLevel_warning, "--Streamout: Invalid audio device file: %s", file);
+        }
+    }
+    m_device = NULL;
+    m_params = NULL;
+    m_audioFormat = NULL;
+    m_audioChannels = 2;
+    m_audioSamplingRate = 0;
+    m_usb_audio_sample = 0;
 }
 
 UsbAudio::~UsbAudio()

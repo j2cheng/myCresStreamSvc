@@ -84,6 +84,13 @@ public:
     GstElement* m_ahcsrc;
     GstElement* m_camera;
     GstElement* m_appsrc;
+    GstElement* m_audPreQ;
+    GstElement* m_audPostQ;
+
+    int audPreQOrunsCnt;
+    int audPreQUrunsCnt;
+    int audPostQOrunsCnt;
+    int audPostQUrunsCnt;
 
 	gboolean    m_bNeedData;
 	gboolean    m_bExit;

@@ -1775,7 +1775,9 @@ JNIEXPORT void JNICALL Java_com_crestron_txrxservice_GstreamIn_nativeSetFieldDeb
 
                                             CSIO_LOG(eLogLevel_debug, "[%d]set amcviddec_ts_offset:%lld",i,tsOffset);
                                             break;
-                                        }
+                                        }//else
+
+                                        g_free(n);
                                     }
                                     else
                                     {
@@ -1895,6 +1897,8 @@ JNIEXPORT void JNICALL Java_com_crestron_txrxservice_GstreamIn_nativeSetFieldDeb
                                 g_object_set(G_OBJECT(StreamDb->audio_sink), "ts-offset",
                                             tmp, NULL);
                                 CSIO_LOG(eLogLevel_debug, "set audiosink_ts_offset:%lldns",tmp);
+
+                                g_free(n);
                             }
                         }
                     }
@@ -1973,6 +1977,10 @@ JNIEXPORT void JNICALL Java_com_crestron_txrxservice_GstreamIn_nativeSetFieldDeb
                                 gst_element_print_properties(ele);
                         }
                     }
+                    else
+                    {
+                        CSIO_LOG(eLogLevel_debug, "no pipeline");
+                    }
                 }
             }
             else if (!strcmp(CmdPtr, "PRINT_AUDIOSINK_PROPERTIES"))
@@ -1980,9 +1988,9 @@ JNIEXPORT void JNICALL Java_com_crestron_txrxservice_GstreamIn_nativeSetFieldDeb
                 if(data->audio_sink)
                 {
                     gchar * name = gst_element_get_name(data->audio_sink);
-                    CSIO_LOG(eLogLevel_debug, "FieldDebugInfo: "\
-                                        "element name[%s]",name);
-
+                    CSIO_LOG(eLogLevel_debug, "FieldDebugInfo: element name[%s]",name);
+                    g_free(name);
+                    
                     gboolean audioSync = 0;
                     guint64  tmp = 0;
 
@@ -6364,6 +6372,8 @@ void Wfd_set_latency_by_the_source (int id, int latency)
                     CSIO_LOG(eLogLevel_verbose, "set new maxSizeTime:%lld",maxSizeTime);
                 }
             }
+
+            g_free(n);
         }
         else
         {

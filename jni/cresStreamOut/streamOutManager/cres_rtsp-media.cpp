@@ -50,59 +50,83 @@ cres_rtsp_media_init (CresRTSPMedia * media)
 static gboolean
 custom_handle_message (GstRTSPMedia * media, GstMessage * message)
 {
-  GstMessageType type;
+    GstMessageType type;
 
-  gboolean bIgnoreError = TRUE;
-  GError *err    = NULL;
-  gchar  *debug  = NULL;
+    gboolean bIgnoreError = TRUE;
+    GError *err = NULL;
+    gchar *debug = NULL;
 
-  type = GST_MESSAGE_TYPE (message);
+    GST_DEBUG_OBJECT(media, "custom_handle_message media: 0x%x\n", media);
 
-  switch (type)
-  {
-      case GST_MESSAGE_WARNING:
-      {
-          gst_message_parse_warning (message, &err , &debug);
+    if (GST_IS_ELEMENT(GST_MESSAGE_SRC(message)))
+    {
+        GstObject *obj = GST_MESSAGE_SRC(message);
+        GST_DEBUG_OBJECT(media,  "%s: obj[%s]", __FUNCTION__, GST_OBJECT_NAME(obj));
+        GST_DEBUG_OBJECT(media,  "%s: g_type_name[%s]", __FUNCTION__, g_type_name(G_OBJECT_TYPE(obj)));
+        GST_DEBUG_OBJECT(media,  "%s: gst_plugin_feature_get_name %s", __FUNCTION__,
+                 gst_plugin_feature_get_name(GST_ELEMENT_GET_CLASS(obj)->elementfactory));
+    }
 
-          if(message->src && err && err->message)
-          {
-              GST_ERROR ("warning from element %s: : %s\n", GST_OBJECT_NAME (message->src), err->message);
-          }
+    GST_DEBUG_OBJECT(media, "%s: GST_MESSAGE_TYPE[%s]", __FUNCTION__, GST_MESSAGE_TYPE_NAME(message));
 
-          GST_ERROR ("Debugging info: %s\n", debug? debug : "none");
+    type = GST_MESSAGE_TYPE(message);
 
-          g_error_free (err );
-          g_free (debug);
+    switch (type)
+    {
+    case GST_MESSAGE_WARNING:
+    {
+        gst_message_parse_warning(message, &err, &debug);
 
-          break;
-      }
-      case GST_MESSAGE_ERROR:
-      {
-    	  bIgnoreError = FALSE; // For now restart on error
-          gst_message_parse_error( message, &err, &debug );
-          if(message->src && err && err->message)
-          {
-              GST_ERROR ("error from element %s: : %s\n", GST_OBJECT_NAME (message->src), err->message);
-          }
+        if (message->src && err && err->message)
+        {
+            GST_ERROR_OBJECT(media, "warning from element %s: : %s\n", GST_OBJECT_NAME(message->src), err->message);
+        }
 
-          GST_ERROR ("Debugging info: %s\n", debug? debug : "none");
+        GST_DEBUG_OBJECT(media, "Debugging info: %s\n", debug ? debug : "none");
 
-          g_error_free (err );
-          g_free (debug);
+        g_error_free(err);
+        g_free(debug);
 
-          break;
-      }
-      default:
-    	  break;
-  }
+        break;
+    }
+    case GST_MESSAGE_ERROR:
+    {
+        bIgnoreError = FALSE; // For now restart on error
+        gst_message_parse_error(message, &err, &debug);
+        if (message->src && err && err->message)
+        {
+            GST_ERROR("error from element %s: : %s\n", GST_OBJECT_NAME(message->src), err->message);
+        }
 
-  if (!bIgnoreError)
-  {
-	  // quit loop to trigger restart
-      ((CresRTSPMedia *)media)->m_restart = true;
-	  g_main_loop_quit(((CresRTSPMedia *)media)->m_loop);
-  }
+        GST_ERROR_OBJECT(media,"Debugging info: %s\n", debug ? debug : "none");
 
-  return GST_RTSP_MEDIA_CLASS (cres_rtsp_media_parent_class)->handle_message(media,message);
+        g_error_free(err);
+        g_free(debug);
+
+        break;
+    }
+    case GST_MESSAGE_STATE_CHANGED:
+    {
+        GstState old_state, new_state, pending_state;
+        gst_message_parse_state_changed(message, &old_state, &new_state, &pending_state);
+
+        GST_DEBUG_OBJECT(media,"%s: %s state changed from %s to %s:\n",__FUNCTION__,
+                  g_type_name(G_OBJECT_TYPE(GST_MESSAGE_SRC(message))),
+                  gst_element_state_get_name(old_state),
+                  gst_element_state_get_name(new_state));
+        break;
+    }
+    default:
+        break;
+    }
+
+    if (!bIgnoreError)
+    {
+        // quit loop to trigger restart
+        ((CresRTSPMedia *)media)->m_restart = true;
+        g_main_loop_quit(((CresRTSPMedia *)media)->m_loop);
+    }
+
+    return GST_RTSP_MEDIA_CLASS(cres_rtsp_media_parent_class)->handle_message(media, message);
 }
 /////////////////////////////////////////////////////////////////////////////////////////////////

@@ -2197,7 +2197,7 @@ GstElement* csio_jni_callback_rtpbin_new_rtp_decoder(GstElement *rtpbin,guint se
         //Note: insert dtlsdec without key seems also works.
         GstElement * rtp_dec = gst_element_factory_make("dtlsdec", NULL);
 
-        CSIO_LOG(eLogLevel_debug, "csio_jni_callback_rtpbin_new_rtp_decoder created[%s].",gst_element_get_name(rtp_dec));
+        CSIO_LOG(eLogLevel_debug, "csio_jni_callback_rtpbin_new_rtp_decoder created[%s].",gst_element_get_name(rtp_dec));//TODO: need g_free(rtp_dec);
 
         //TODO: dtlsdec has a property : decoder-key that is read only( GstCaps *   decoder-key     Read)
         if(rtp_dec)

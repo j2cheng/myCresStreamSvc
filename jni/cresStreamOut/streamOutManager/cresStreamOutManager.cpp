@@ -49,7 +49,9 @@ extern void csio_jni_onServerStart();
 extern void csio_jni_onServerStop();
 extern void csio_jni_onClientConnected(void * arg);
 extern void csio_jni_onClientDisconnected(void * arg);
-extern void usb_audio_get_samples(pcm *pcm_device, void *data, int size, GstClockTime *timestamp, GstClockTime *duration);
+
+static void cb_queueOverruns(void *queue, gpointer user_data);
+static void cb_queueUnderruns(void *queue, gpointer user_data);
 
 #define BLKSIZE (1024)
 static void copy_file(char *from, char *to)
@@ -266,7 +268,7 @@ media_configure (GstRTSPMediaFactory * factory, GstRTSPMedia * media,
 	/* get the element used for providing the streams of the media */
 	element = gst_rtsp_media_get_element (media);
 	gchar * n = gst_element_get_name(element);
-	CSIO_LOG(eLogLevel_debug, "Streamout: element name[%s] of media[0x%x]",n,media);
+	CSIO_LOG(eLogLevel_debug, "Streamout: media_configure element name[%s] of media[0x%x]",n,media);
 
   //set up video source
 	{
@@ -336,11 +338,60 @@ void get_audio_data_for_pull(CStreamoutManager *pMgr, guint size)
     GstMapInfo mapInfo;
     GstClockTime timestamp, duration;
     if (gst_buffer_map(buffer, &mapInfo, GST_MAP_WRITE)) {
-    	usb_audio_get_samples(pMgr->m_usbAudio->m_device, mapInfo.data, mapInfo.size, &timestamp, &duration);
+    	pMgr->m_usbAudio->usb_audio_get_samples(pMgr->m_usbAudio->m_device, mapInfo.data, mapInfo.size, &timestamp, &duration);
+
+        if(pMgr->m_appsrc)
+        {
+            GstState cur_state;
+            gst_element_get_state (GST_ELEMENT (pMgr->m_appsrc), &cur_state, NULL, 0);
+            CSIO_LOG(eLogLevel_extraVerbose, "m_appsrc state is %s", gst_element_state_get_name (cur_state));
+
+            GstClock* appSrcClock  = gst_element_get_clock(pMgr->m_appsrc);
+
+            if(appSrcClock)
+            {
+                GstClockTime base_time = gst_element_get_base_time (GST_ELEMENT_CAST (pMgr->m_appsrc));
+                GstClockTime now_time  = gst_clock_get_time (appSrcClock);           
+                GstClockTime run_time  = 0;
+
+                CSIO_LOG(eLogLevel_extraVerbose, "Streamout: get_audio_data_for_pull: appSrcClock[0x%x]",appSrcClock);
+        
+                if (now_time > base_time)
+                    run_time = now_time - base_time;
+                else
+                    run_time = 0;           
+
+                CSIO_LOG(eLogLevel_extraVerbose, "Streamout: get_audio_data_for_pull: base_time %" GST_TIME_FORMAT " now_time %" GST_TIME_FORMAT " run_time %" GST_TIME_FORMAT,
+                        GST_TIME_ARGS (base_time), GST_TIME_ARGS (now_time), GST_TIME_ARGS (run_time));
+
+                CSIO_LOG(eLogLevel_verbose, "Streamout: sync: timestamp from %" GST_TIME_FORMAT " to run_time %" GST_TIME_FORMAT,
+                        GST_TIME_ARGS (timestamp), GST_TIME_ARGS (run_time));
+
+                //replace timestamp with run_time
+                timestamp = run_time;
+
+                gst_object_unref (appSrcClock);
+            }
+            else
+            {
+                CSIO_LOG(eLogLevel_verbose, "Streamout: get_audio_data_for_pull: no appSrcClock");
+            }
+        }
+        else
+        {
+            CSIO_LOG(eLogLevel_verbose, "Streamout: get_audio_data_for_pull: no appSrcClock");
+        }
+    }
+    else
+    {
+        CSIO_LOG(eLogLevel_error, "Streamout: ERROR gst_buffer_map failed!!");
     }
     gst_buffer_unmap(buffer, &mapInfo);
     GST_BUFFER_PTS(buffer) = timestamp;
     GST_BUFFER_DURATION(buffer) = duration;
+
+    CSIO_LOG(eLogLevel_verbose, "Streamout: calling emit with timestamp %" GST_TIME_FORMAT " duration %" GST_TIME_FORMAT,
+             GST_TIME_ARGS(timestamp),GST_TIME_ARGS(duration));
 
     g_signal_emit_by_name(pMgr->m_appsrc, "push_buffer", buffer, &ret);
     //ret = gst_app_src_push_buffer((GstAppSrc *)appsrc, buffer);
@@ -382,7 +433,7 @@ wc_media_configure (GstRTSPMediaFactory * factory, GstRTSPMedia * media,
     /* get the element used for providing the streams of the media */
     element = gst_rtsp_media_get_element (media);
     gchar * n = gst_element_get_name(element);
-    CSIO_LOG(eLogLevel_debug, "Streamout: element name[%s] of media[0x%x]",n,media);
+    CSIO_LOG(eLogLevel_debug, "Streamout: wc_media_configure element name[%s] of media[0x%x]",n,media);
 
         //set up audio source
     if (pMgr->m_audioStream)
@@ -442,6 +493,11 @@ wc_media_configure (GstRTSPMediaFactory * factory, GstRTSPMedia * media,
                 CSIO_LOG(eLogLevel_info, "Streamout: set leaky downstream on audPreQ");
                 g_object_set(G_OBJECT(ele), "leaky", (guint) 2 /*GST_QUEUE_LEAK_DOWNSTREAM*/, NULL);
                 g_object_set(G_OBJECT(ele), "max-size-bytes", 48000, NULL);
+
+                pMgr->m_audPreQ = ele;
+                g_signal_connect( G_OBJECT(ele), "overrun", G_CALLBACK( cb_queueOverruns ), user_data );
+                g_signal_connect( G_OBJECT(ele), "underrun", G_CALLBACK( cb_queueUnderruns ), user_data );                
+
                 gst_object_unref(ele);
             }
             ele = gst_bin_get_by_name_recurse_up(GST_BIN (element), "audPostQ");
@@ -449,6 +505,11 @@ wc_media_configure (GstRTSPMediaFactory * factory, GstRTSPMedia * media,
                 CSIO_LOG(eLogLevel_info, "Streamout: set leaky downstream on audPostQ");
                 g_object_set(G_OBJECT(ele), "leaky", (guint) 2 /*GST_QUEUE_LEAK_DOWNSTREAM*/, NULL);
                 g_object_set(G_OBJECT(ele), "max-size-bytes", 48000, NULL);
+
+                pMgr->m_audPostQ = ele;
+                g_signal_connect( G_OBJECT(ele), "overrun", G_CALLBACK( cb_queueOverruns ), user_data );
+                g_signal_connect( G_OBJECT(ele), "underrun", G_CALLBACK( cb_queueUnderruns ), user_data );
+
                 gst_object_unref(ele);
             }
         }
@@ -481,13 +542,38 @@ client_filter (GstRTSPServer * server, GstRTSPClient * client,
   /* Simple filter that shuts down all clients. */
   return GST_RTSP_FILTER_REMOVE;
 }
+
+void cb_queueOverruns(void *queue, gpointer user_data)
+{
+    CSIO_LOG(eLogLevel_verbose, "Streamout: cb_queueOverruns...(pMgr=%p)", user_data);
+    CStreamoutManager *pMgr = (CStreamoutManager *)user_data;
+
+    if (pMgr->m_audPreQ == queue)
+        pMgr->audPreQOrunsCnt++;
+
+    if (pMgr->m_audPostQ == queue)
+        pMgr->audPostQOrunsCnt++;
+}
+
+void cb_queueUnderruns(void *queue, gpointer user_data)
+{
+    CSIO_LOG(eLogLevel_verbose, "Streamout: cb_queueUnderruns...(pMgr=%p)", user_data);
+    CStreamoutManager *pMgr = (CStreamoutManager *)user_data;
+
+    if (pMgr->m_audPreQ == queue)
+        pMgr->audPreQUrunsCnt++;
+
+    if (pMgr->m_audPostQ == queue)
+        pMgr->audPostQUrunsCnt++;
+}
 /**********************CStreamoutManager class implementation***************************************/
 CStreamoutManager::CStreamoutManager(eStreamoutMode streamoutMode,int id):
 m_clientConnCnt(0),m_loop(NULL),m_main_loop_is_running(0),
 m_pMedia(NULL),m_bNeedData(false),m_bStopTeeInProgress(false),
 m_bExit(false),m_bPushRawFrames(false),m_ahcsrc(NULL),m_camera(NULL),
 m_audioStream(false), m_videoStream(false), m_usbAudio(NULL),
-m_appsrc(NULL), m_streamoutMode(streamoutMode), m_id(0)
+m_appsrc(NULL), m_streamoutMode(streamoutMode), m_id(0),
+m_audPreQ(NULL),m_audPostQ(NULL)
 {
     m_id = id;
 
@@ -507,6 +593,11 @@ m_appsrc(NULL), m_streamoutMode(streamoutMode), m_id(0)
     setAudioCaptureDevice("none");
     m_audioStream = false;
     m_videoStream = false;
+
+    audPreQOrunsCnt = 0;
+    audPreQUrunsCnt = 0;
+    audPostQOrunsCnt = 0;
+    audPostQUrunsCnt = 0;
 
     if(!m_StreamoutEvent || !m_StreamoutEventQ || !mLock)
         CSIO_LOG(eLogLevel_error, "--Streamout: CStreamoutManager malloc failed:[0x%x][0x%x][0x%x]",\
@@ -578,6 +669,15 @@ void CStreamoutManager::DumpClassPara(int level)
     CSIO_LOG(eLogLevel_info, "---Streamout: m_bit_rate %s", m_bit_rate);
     CSIO_LOG(eLogLevel_info, "---Streamout: m_iframe_interval %s", m_iframe_interval);
     CSIO_LOG(eLogLevel_info, "---Streamout: m_quality %d", m_quality);
+
+    CSIO_LOG(eLogLevel_info, "---Streamout: m_audPreQ [0x%x]", m_audPreQ);
+    CSIO_LOG(eLogLevel_info, "---Streamout: m_audPostQ [0x%x]",m_audPostQ);
+
+    CSIO_LOG(eLogLevel_info, "---Streamout: audPreQOrunsCnt %d",  audPreQOrunsCnt);
+    CSIO_LOG(eLogLevel_info, "---Streamout: audPreQUrunsCnt %d",  audPreQUrunsCnt);
+    CSIO_LOG(eLogLevel_info, "---Streamout: audPostQOrunsCnt %d", audPostQOrunsCnt);
+    CSIO_LOG(eLogLevel_info, "---Streamout: audPostQUrunsCnt %d", audPostQUrunsCnt);
+
 }
 
 //overloaded from base
@@ -870,6 +970,7 @@ void* CStreamoutManager::ThreadEntry()
                                                              "rtph264pay name=pay0 pt=96 "
                                                              "%s ! audioresample ! audioconvert ! queue name=audPreQ ! "
                                                              "%s ! "
+                                                             "queue name=audPostQ ! "
                                                              "rtpmp4apay name=pay1 pt=97 )",
                                                              videoSource,
                                                              m_caps, m_videoconvert,
@@ -887,6 +988,7 @@ void* CStreamoutManager::ThreadEntry()
                                                              "rtph264pay name=pay0 pt=96 "
                                                              "%s ! audioresample ! audioconvert ! audio/x-raw,rate=8000 ! queue name=audPreQ ! "
                                                              "%s ! "
+                                                             "queue name=audPostQ ! "
                                                              "rtppcmapay name=pay1 pt=97 )",
                                                              videoSource,
                                                              m_caps, m_videoconvert,
