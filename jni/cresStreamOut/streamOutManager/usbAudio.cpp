@@ -203,9 +203,7 @@ void UsbAudio::releaseDevice()
 	}
 }
 #else
-struct pcm {
-	int dummy;
-};
+
 unsigned int UsbAudio::usb_audio_avail(pcm *pcm_device)
 {
     return 0;

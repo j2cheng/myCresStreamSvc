@@ -16,7 +16,11 @@ enum pcm_format {
 #define USB_PCM_DEVICE 0
 
 extern int useUsbAudio;
-
+#ifndef HAS_TINYALSA
+struct pcm {
+    int dummy;
+};
+#endif
 class UsbAudio
 {
 public:
