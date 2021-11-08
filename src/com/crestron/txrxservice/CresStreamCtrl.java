@@ -90,7 +90,9 @@ import com.google.gson.stream.JsonReader;
 import com.google.gson.stream.JsonWriter;
 import com.crestron.txrxservice.CresLog;
 import com.crestron.txrxservice.canvas.CresCanvas;
+import com.crestron.txrxservice.wc.WC_CresstoreStatus;
 import com.crestron.txrxservice.wc.WC_Service;
+import com.crestron.txrxservice.wc.ipc.WC_SessionFlags;
 import com.crestron.txrxservice.canvas.Session;
 import com.crestron.txrxservice.canvas.SessionType;
 import com.crestron.txrxservice.canvas.NetworkStreamSession;
@@ -1453,7 +1455,6 @@ public class CresStreamCtrl extends Service {
             }
             MiscUtils.writeStringToDisk(gstreamerTimeoutCountFilePath, String.valueOf(mGstreamerTimeoutCount));
 
-            //TODO: Needs to be in separate thread for NetworkOnMainThreadException, since SendtoCrestore occurs in the flow
             mProductSpecific.getInstance().startPeripheralListener(this);
         }
 
@@ -6210,7 +6211,7 @@ public class CresStreamCtrl extends Service {
                 " - currently it is " + ((isWirelessConferencingLicensed)?"enabled":"disabled"));
         isWirelessConferencingLicensed = enable;
     }
-    
+
     public void stopWcServer()
     {
         if (mWC_Service != null)
@@ -6218,6 +6219,24 @@ public class CresStreamCtrl extends Service {
             mWC_Service.stopServer();
         }
             
+    }
+
+    public void pushWcStatusUpdate()
+    {
+        WC_CresstoreStatus tempInstance = new WC_CresstoreStatus(this);
+        //Clear WC peripheral in-use status always on startup
+        tempInstance.reportWCInUseStatus(WC_SessionFlags.None, false);
+
+        if (mWC_Service != null)
+        {
+            //update WC status on startup sequence
+            mWC_Service.getAndReportAllWCStatus();
+        }
+        else
+        {
+            //Clear WC status on startup if WC not enabled
+            tempInstance.reportWCDeviceStatus(false,false,false,"","Unavailable");
+        }
     }
 
     public void onCameraConnected()

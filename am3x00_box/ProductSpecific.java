@@ -465,8 +465,12 @@ public class ProductSpecific
         				vFile = getVideoCaptureFile(videoList);
         			} else {
         				// BRIO coming in as Type "None" - need to fix
-        				if (!audioList.isEmpty()) 
+        				if (!audioList.isEmpty())
+                        {
         					aFile = getAudioCaptureFile(audioList);
+                            //This is to populate the AirMedia WC Status IsSpeakerDetected Field
+                            sFile = getSpeakerDetectedStatus(audioList);
+                        }
         				if (!videoList.isEmpty())
         					vFile = getVideoCaptureFile(videoList);        				
         			}
