@@ -483,6 +483,13 @@ public class CanvasCrestore
 		cresstoreSet(gson.toJson(root), true);
 	}
 	
+	public void setCurrentAuxConnectionInfo(String connectionInfo)
+	{
+	    Root root = getRootedInternalAirMediaOsd();
+	    root.internal.airMedia.osd.currentAuxConnectionInfo = connectionInfo;
+	    cresstoreSet(gson.toJson(root), true);
+	}
+	   
 	public void setCurrentWirelessConnectionInfo(String connectionInfo)
 	{
 		Root root = getRootedInternalAirMediaOsd();
@@ -2377,6 +2384,8 @@ public class CanvasCrestore
     public class Osd {
     	@SerializedName ("CurrentConnectionInfo")
     	String currentConnectionInfo;
+        @SerializedName ("CurrentAuxConnectionInfo")
+        String currentAuxConnectionInfo;
     	@SerializedName ("CurrentWirelessConnectionInfo")
     	String currentWirelessConnectionInfo;
     	@SerializedName ("VideoDisplayed")

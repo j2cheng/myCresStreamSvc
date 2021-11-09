@@ -211,6 +211,7 @@ public class CresStreamCtrl extends Service {
     public int mPreviousAudioInputSampleRate = 0;
     private Resolution mPreviousHdmiOutResolution = new Resolution(0, 0);
     private String mPreviousConnectionInfo = null;
+    private String mPreviousAuxConnectionInfo = null;
     private String mPreviousWirelessConnectionInfo = null;
     public CountDownLatch streamingReadyLatch = new CountDownLatch(1);
     public CountDownLatch audioReadyLatch = new CountDownLatch(1);
@@ -5597,6 +5598,8 @@ public class CresStreamCtrl extends Service {
     public void sendAirMediaConnectionInfo()
     {
     	sendAirMediaConnectionAddress();
+    	if (isAM3K)
+    	    sendAirMediaAuxConnectionAddress();
     	sendAirMediaWirelessConnectionAddress();
     }
     
@@ -5610,6 +5613,19 @@ public class CresStreamCtrl extends Service {
         	if (mCanvas != null)
         		mCanvas.getCrestore().setCurrentConnectionInfo(connectionInfo);
         	mPreviousConnectionInfo = connectionInfo;
+        }
+    }
+    
+    public void sendAirMediaAuxConnectionAddress()
+    {
+        String connectionInfo = getAirMediaAuxConnectionAddress();
+        Log.i(TAG, "sendAirMediaAuxConnectionAddress="+connectionInfo);
+        if (mPreviousAuxConnectionInfo == null || !mPreviousAuxConnectionInfo.equals(connectionInfo))
+        {
+            sockTask.SendDataToAllClients(MiscUtils.stringFormat("AIRMEDIA_AUX_CONNECTION_ADDRESS=%s", connectionInfo));
+            if (mCanvas != null)
+                mCanvas.getCrestore().setCurrentAuxConnectionInfo(connectionInfo);
+            mPreviousAuxConnectionInfo = connectionInfo;
         }
     }
     
@@ -5674,12 +5690,15 @@ public class CresStreamCtrl extends Service {
         StringBuilder url = new StringBuilder(512);
         String protocol = (userSettings.getAirMediaSecureLandingPageEnabled() ? "https://" : "http://");
         url.append(protocol);
-        String ipAddr = getAirMediaConnectionIpAddress("eth0,eth1");
+        String adapterString = "eth0,eth1";
+        if (isAM3K)
+            adapterString = "eth0";
+        String ipAddr = getAirMediaConnectionIpAddress(adapterString);
         switch (userSettings.getAirMediaDisplayConnectionOption())
         {
         case AirMediaDisplayConnectionOption.Ip:
             if (ipAddr.equals("None"))
-                return getAirMediaConnectionAddressWhenNone("eth0,eth1");
+                return getAirMediaConnectionAddressWhenNone(adapterString);
                 
             //Remove AM-3k specific check in the future by refactoring code to also support legacy products (e.g. am-200, Mercury)
             if(!isAM3K)
@@ -5708,14 +5727,14 @@ public class CresStreamCtrl extends Service {
             break;
         case AirMediaDisplayConnectionOption.Host:
             if (ipAddr.equals("None"))
-                return getAirMediaConnectionAddressWhenNone("eth0,eth1");
+                return getAirMediaConnectionAddressWhenNone(adapterString);
             setHostName("");
             if (hostName == null) return "";
             url.append(hostName);
             break;
         case AirMediaDisplayConnectionOption.HostDomain:
             if (ipAddr.equals("None"))
-                return getAirMediaConnectionAddressWhenNone("eth0,eth1");
+                return getAirMediaConnectionAddressWhenNone(adapterString);
             setHostName("");
             if (hostName == null) return "";
             url.append(hostName);
@@ -5735,6 +5754,53 @@ public class CresStreamCtrl extends Service {
  
         Log.i(TAG, "getAirMediaConnectionAddress() returning "+url.toString());
         return url.toString();    	
+    }
+    
+    // Currently only on AM3K for AUX adapter URL.  The getAirMediaDisplayWirelessConnectionOption control the formatting
+    public String getAirMediaAuxConnectionAddress()
+    {
+        if (!userSettings.getAirMediaEnable() || !isAM3K) {
+            return "";
+        }
+        StringBuilder url = new StringBuilder(512);
+        url.append(userSettings.getAirMediaSecureLandingPageEnabled() ? "https://" : "http://");
+        String ipAddr = getAirMediaConnectionIpAddress("eth1");
+        switch (userSettings.getAirMediaDisplayWirelessConnectionOption())
+        {
+        case AirMediaDisplayConnectionOption.Ip:
+            if (ipAddr.equals("None"))
+                return getAirMediaConnectionAddressWhenNone("eth1");
+            url.append(ipAddr);
+            break;
+        case AirMediaDisplayConnectionOption.Host:
+            if (ipAddr.equals("None"))
+                return getAirMediaConnectionAddressWhenNone("eth1");
+            setHostName("");
+            if (hostName == null) return "";
+            url.append(hostName);
+            break;
+        case AirMediaDisplayConnectionOption.HostDomain:
+            if (ipAddr.equals("None"))
+                return getAirMediaConnectionAddressWhenNone("eth1");
+            setHostName("");
+            if (hostName == null) return "";
+            url.append(hostName);
+            if (userSettings.getDomainName() != null) {
+                url.append(".");
+                url.append(userSettings.getDomainName());
+            }
+            break;
+        case AirMediaDisplayConnectionOption.Custom:
+            url = new StringBuilder(userSettings.getAirMediaWirelessCustomPromptString());
+            break;
+        default:
+            Log.i(TAG, "getAirMediaAuxConnectionAddress() invalid AirMediaDisplayWirelessConnectionOption value"+
+                    userSettings.getAirMediaDisplayWirelessConnectionOption());
+            return "";
+        }
+ 
+        Log.i(TAG, "getAirMediaAuxConnectionAddress() returning "+url.toString());
+        return url.toString();      
     }
     
     public String getAirMediaWirelessConnectionAddress()
