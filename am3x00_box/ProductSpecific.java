@@ -21,6 +21,7 @@ import android.util.Log;
 import android.view.Surface;
 
 import java.util.ArrayList;
+import java.util.Arrays;
 import java.util.HashMap;
 import java.util.Iterator;
 import java.util.List;
@@ -78,6 +79,20 @@ public class ProductSpecific
 
     static String TAG = "AM3X00 ProductSpecific";
     private static final String HDMI_IN_DEV = "/dev/video0";
+
+    ArrayList<String> usbDeviceWhiteList = new ArrayList<String>(Arrays.asList(
+    //usbDeviceWhiteList is a simple array where USB VendorId is on even index 
+    // and corresponding USB Product-Ids on odd index.
+
+    //Make sure all instances of a device are added.
+
+                         //VendorId(Even Index), ProductId(Odd Index)
+    "5310",  "50",       //ID 14be:0032 Crestron-UC-Soundbar
+    "11225", "49",       //ID 2bd9:0031 Crestron-UC-Soundbar
+    "1133",  "2142",     //ID 046d:085e Logitech BRIO
+    "1133",  "2115",     //ID 046d:0843 Logitech Webcam C930e
+    "2830",  "9302"      //ID 0b0e:2456 Jabra Speak 810
+    ));
 
     // ******************* LaunchApp.java *******************
     public static void startForegroundService(Context ctx, Intent intent)
@@ -453,6 +468,7 @@ public class ProductSpecific
         		for (PeripheralUsbDevice perDev : perUsbDevices)
         		{
         			Log.i(TAG, "Peripheral device type = "+perDev.getType());
+                    HashMap<String, String> propertyMap;
         			String aFile = null;
         			String vFile = null;
         			Boolean sFile = null;
@@ -474,10 +490,13 @@ public class ProductSpecific
         				if (!videoList.isEmpty())
         					vFile = getVideoCaptureFile(videoList);        				
         			}
+                    propertyMap = genPropertiesMap(perUsbDevices);
         			UsbAvDevice d = new UsbAvDevice(usbId, ((usbId==PeripheralManager.PER_USB_30)?"usb3":"usb2"), name, vFile, 
-            				aFile, sFile, genPropertiesMap(perUsbDevices));
+            				aFile, sFile, propertyMap);
             		Log.i(TAG, "UsbAudioVideoDeviceAdded(): new USB device "+d.deviceName+" added on "+d.usbPortType);
-            		usbDeviceList.add(d);
+                    //Filter out Supported and Unsupported devices here for WC Feature
+                    if(isUsbDeviceSupported(propertyMap))
+                        usbDeviceList.add(d);
         		}
         	} else {
         		// device was removed on port=usbId
@@ -613,6 +632,39 @@ public class ProductSpecific
                     "  serialNumber="+device.getSerialNumber()+"  vendorId="+device.getVendorId());
         }
     }
+
+    public boolean isUsbDeviceSupported(HashMap<String, String> propertyMap)
+    {
+        String vPropertyValue = null;
+        String pPropertyValue = null;
+        boolean retVal = false;
+        // using keySet() for iteration over USB keys
+        for (String propertyName : propertyMap.keySet())
+        {
+            if(propertyName.equals("VendorId"))
+            {
+                vPropertyValue = propertyMap.get(propertyName);
+                Log.v(TAG,"isUsbDeviceSupported: USB Vendor Id: " + vPropertyValue);
+            }
+            else if(propertyName.equals("ProductId"))
+            {
+                pPropertyValue = propertyMap.get(propertyName);
+                Log.v(TAG,"isUsbDeviceSupported: USB Product Id: " + pPropertyValue);
+            }
+        }
+
+        if(vPropertyValue == null || pPropertyValue == null)
+                return false;
+
+        //usbDeviceWhiteList is a simple array where VendorId is on even index and corresponding Product-Ids on odd index.
+        for (int j = 0; j < usbDeviceWhiteList.size(); j+=2) {
+            if(usbDeviceWhiteList.get(j).equals(vPropertyValue) && usbDeviceWhiteList.get(j+1).equals(pPropertyValue))
+                retVal = true;
+        }
+        Log.i(TAG,"isUsbDeviceSupported: " + retVal);
+        return retVal;
+    }
+
     // ******************* Classes *******************
     public class DispayInfo
     {
