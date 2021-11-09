@@ -93,7 +93,10 @@ public class WC_CresstoreStatus {
         String sessionWirelessConferencing = gson.toJson(this.DeviceObject);
         Log.i(TAG,  "reportWCInUseStatus: WirelessConferencingJSON=" + sessionWirelessConferencing);
 
-        mStreamCtrl.SendToCresstore(sessionWirelessConferencing, PublishAndSave);
+        if(mStreamCtrl.csioConnected)
+            mStreamCtrl.SendToCresstore(sessionWirelessConferencing, PublishAndSave);
+        else
+            Log.w(TAG,  "reportWCInUseStatus: SendToCresstore failed due to no connection to csio");
     }
     
     public void reportWCDeviceStatus(Boolean IsCameraDetected, 
@@ -120,6 +123,9 @@ public class WC_CresstoreStatus {
         Log.i(TAG,  "reportWCDeviceStatus: WirelessConferencingStatusJSON=" + sessionWCStatus);
 
         //Needs to be in separate thread for NetworkOnMainThreadException, since SendtoCrestore occurs in the flow
-        mStreamCtrl.SendToCresstore(sessionWCStatus, PublishAndSave);
+        if(mStreamCtrl.csioConnected)
+            mStreamCtrl.SendToCresstore(sessionWCStatus, PublishAndSave);
+        else
+            Log.w(TAG,  "reportWCDeviceStatus: SendToCresstore failed due to no connection to csio");
     }
 }

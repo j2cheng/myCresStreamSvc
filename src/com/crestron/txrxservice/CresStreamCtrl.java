@@ -6253,12 +6253,20 @@ public class CresStreamCtrl extends Service {
     {
         if( mWC_Service != null )
         {       
-		    Log.i(TAG, "onUsbStatusChanged(): deviceList="+devList);
-		    mWC_Service.updateUsbDeviceStatus(devList);
+            Log.i(TAG, "onUsbStatusChanged(): deviceList="+devList);
+
+            //Needs to be in separate thread for NetworkOnMainThreadException, since SendtoCrestore occurs in the flow
+            //this can get called from Main UI Thread(startPeripheralListener)
+            new Thread(new Runnable() {
+            @Override
+                public void run() {
+                    mWC_Service.updateUsbDeviceStatus(devList);
+                }
+            }).start();
         }
         else
         {
-		    Log.i(TAG, "onUsbStatusChanged(): WC is not enabled");
+            Log.w(TAG, "onUsbStatusChanged(): WC is not enabled");
         }
     }
     
