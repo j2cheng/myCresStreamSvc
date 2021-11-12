@@ -1266,17 +1266,30 @@ void clearMetadataConnections()
 
 static void setQueueProperties(CREGSTREAM *data, GstElement *queue, guint64 maxTime, guint maxBytes)
 {
-    CSIO_LOG(eLogLevel_debug, "setQueueProperties mode[%d],maxTime[%lld],maxBytes[%d]", data->httpMode,maxTime,maxBytes);
+    CSIO_LOG(eLogLevel_debug, "setQueueProperties: mode[%d],maxTime[%lld],maxBytes[%d]", data->httpMode,maxTime,maxBytes);
 
     //Note: 7-21-2021, use all default settings on queue for miracast(omap and am3k)
     if(data && data->wfd_start && 
        ((product_info()->hw_platform == eHardwarePlatform_Rockchip) ||
          product_info()->hw_platform == eHardwarePlatform_OMAP5))
     {
-        CSIO_LOG(eLogLevel_info,  "keep default settings for queue");
+        CSIO_LOG(eLogLevel_info,  "setQueueProperties: keep default settings for queue");
         return;
-    }
+    }//else
 
+    //Note: 11-11-2021, DMPS3_MEZZ2 is new DMPS3K device uses gstreamer 1.16.2,
+    //      need to disable all, include max-size-time.
+    if(product_info()->product_type == CRESTRON_DMPS3_MEZZ2)
+    {
+        CSIO_LOG(eLogLevel_info,  "setQueueProperties: disable all settings for queue");
+        g_object_set(G_OBJECT(queue),
+                     "leaky", (gint)0,				
+                     "max-size-bytes", (guint)0,
+                     "max-size-buffers", (guint)0,
+                     "max-size-time", (guint64)0,
+                     NULL);
+        return;
+    }//else
 
 	switch (data->httpMode)
 	{

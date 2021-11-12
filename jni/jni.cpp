@@ -569,21 +569,30 @@ static void set_queue_leaky(GstElement *queue, char *queue_id)
 
 void csio_jni_change_queues_to_leaky(int id)
 {
-    CREGSTREAM * data = GetStreamFromCustomData(CresDataDB, id);
+    CREGSTREAM *data = GetStreamFromCustomData(CresDataDB, id);
 
-    //Note: 7-21-2021, do not use leaky on queue for miracast(omap and am3k)
-    if(data && data->wfd_start && 
-       ((product_info()->hw_platform == eHardwarePlatform_Rockchip) ||
-         product_info()->hw_platform == eHardwarePlatform_OMAP5))
+    if(!data)
     {
-        CSIO_LOG(eLogLevel_info,  "keep default leaky property for queue, source- %ld", id);
+        CSIO_LOG(eLogLevel_error, "csio_jni_change_queues_to_leaky: Failed to obtain CREGSTREAM for index %d", id);
     }
     else
     {
-        set_queue_leaky(data->element_video_front_end_queue, "video-front-end-queue");
-        set_queue_leaky(data->element_video_decoder_queue, "video-decoder-queue");
-        set_queue_leaky(data->element_audio_front_end_queue, "audio-front-end-queue");
-        set_queue_leaky(data->element_audio_decoder_queue, "audio-decoder-queue");
+        //Note: 7-21-2021, do not use leaky on queue for miracast(omap and am3k)
+        //      11-11-2021,DMPS3_MEZZ2 is new DMPS3K device uses gstreamer 1.16.2
+        if (product_info()->product_type == CRESTRON_DMPS3_MEZZ2 ||
+            data->wfd_start && ((product_info()->hw_platform == eHardwarePlatform_Rockchip) ||
+                                 product_info()->hw_platform == eHardwarePlatform_OMAP5))
+        {
+            CSIO_LOG(eLogLevel_info, "csio_jni_change_queues_to_leaky: keep default leaky property for queue, source- %ld", id);
+        }
+        else
+        {
+            set_queue_leaky(data->element_video_front_end_queue, "video-front-end-queue");
+            set_queue_leaky(data->element_video_decoder_queue, "video-decoder-queue");
+            set_queue_leaky(data->element_audio_front_end_queue, "audio-front-end-queue");
+            set_queue_leaky(data->element_audio_decoder_queue, "audio-decoder-queue");
+            CSIO_LOG(eLogLevel_info, "csio_jni_change_queues_to_leaky: set leaky property for queue, source- %ld", id);
+        }
     }
 }
 
@@ -1770,7 +1779,7 @@ JNIEXPORT void JNICALL Java_com_crestron_txrxservice_GstreamIn_nativeSetFieldDeb
                                         CSIO_LOG(eLogLevel_debug, "[%d]element name[%s]",i,n);
                                         if(strstr(n,"amcvideodec"))
                                         {
-                                            gint64 tsOffset = fieldNum * 1000000;
+                                            gint64 tsOffset = fieldNum * 1000000LL;
                                             g_object_set(G_OBJECT(StreamDb->element_v[i]), "ts-offset", tsOffset, NULL);
 
                                             CSIO_LOG(eLogLevel_debug, "[%d]set amcviddec_ts_offset:%lld",i,tsOffset);
@@ -1893,7 +1902,7 @@ JNIEXPORT void JNICALL Java_com_crestron_txrxservice_GstreamIn_nativeSetFieldDeb
                             {
                                 gchar * n = gst_element_get_name(StreamDb->audio_sink);
                                 CSIO_LOG(eLogLevel_debug, "element name[%s]",n);
-                                tmp = StreamDb->audiosink_ts_offset * 1000000;
+                                tmp = StreamDb->audiosink_ts_offset * 1000000LL;
                                 g_object_set(G_OBJECT(StreamDb->audio_sink), "ts-offset",
                                             tmp, NULL);
                                 CSIO_LOG(eLogLevel_debug, "set audiosink_ts_offset:%lldns",tmp);
@@ -4419,7 +4428,7 @@ void csio_jni_initAudio(int iStreamId)
 
     if( data->audio_sink)
     {
-    	gint64 tmp = data->audiosink_ts_offset * 1000000;
+    	gint64 tmp = data->audiosink_ts_offset * 1000000LL;
 
     	// Bug 107700: AV goes haywire when packets are lost when openslessink is set to GST_AUDIO_BASE_SINK_SLAVE_SKEW, resample fixes the problem
     	// Bug 110954: Setting this to 0 caused audio to get messed up, original issue was caused by encoder timestamp problem, leaving mode to GST_AUDIO_BASE_SINK_SLAVE_SKEW
@@ -4488,10 +4497,17 @@ void csio_jni_initVideo(int iStreamId)
             }
             else if(GST_VERSION_MAJOR == 1 && GST_VERSION_MINOR == 16)
             {
-                gint64 tsOffset64 = tmp*1000000;
-                g_object_set(G_OBJECT(data->amcvid_dec), "ts-offset", tsOffset64, NULL);
-                // *** CSIO_LOG(eLogLevel_debug, "%s: total ts_offset: %lld ns",__FUNCTION__, tsOffset64);
-                CSIO_LOG(eLogLevel_debug, ">>>>> %s: total ts_offset: %lld ns",__FUNCTION__, tsOffset64);
+                if(product_info()->product_type == CRESTRON_DMPS3_MEZZ2)
+                {
+                    CSIO_LOG(eLogLevel_debug, ">>>>> %s: keep ts_offset as defualt zero",__FUNCTION__);
+                }
+                else
+                {
+                    gint64 tsOffset64 = tmp*1000000LL;
+                    g_object_set(G_OBJECT(data->amcvid_dec), "ts-offset", tsOffset64, NULL);
+                    // *** CSIO_LOG(eLogLevel_debug, "%s: total ts_offset: %lld ns",__FUNCTION__, tsOffset64);
+                    CSIO_LOG(eLogLevel_debug, ">>>>> %s: total ts_offset: %lld ns",__FUNCTION__, tsOffset64);
+                }                
             }
 
             // *** CSIO_LOG(eLogLevel_debug, "%s: streamingBuffer or latency is:%d",__FUNCTION__, CSIOCnsIntf->getStreamRx_BUFFER(iStreamId));
@@ -4877,8 +4893,8 @@ void csio_jni_printFieldDebugInfo()
 ********************************************************************/
 void csio_jni_post_latency(int streamId,GstObject* obj)
 {
-#define MAX_VIDEO_TS_OFFSET (3000*1000000)
-#define MAX_AUDIO_DIFF      (200*1000000)
+#define MAX_VIDEO_TS_OFFSET (3000*1000000LL)
+#define MAX_AUDIO_DIFF      (200*1000000LL)
 
     CREGSTREAM * StreamDb = GetStreamFromCustomData(CresDataDB,streamId);
 
@@ -4913,7 +4929,7 @@ void csio_jni_post_latency(int streamId,GstObject* obj)
             //adjust ts-offset based on debug_setPipelineBuf
             if(debug_setPipelineBuf > 0 && debug_setPipelineBuf <= 2000)
             {
-                tsOffsetVideo += debug_setPipelineBuf*1000000;
+                tsOffsetVideo += debug_setPipelineBuf*1000000LL;
             }//else
 
             g_object_set(StreamDb->amcvid_dec, "ts-offset", tsOffsetVideo, NULL);  
@@ -4940,7 +4956,7 @@ void csio_jni_post_latency(int streamId,GstObject* obj)
                 //adjust ts-offset based on debug_setPipelineBuf
                 if(debug_setPipelineBuf > 0 && debug_setPipelineBuf <= 2000)
                 {
-                    tsOffsetAudio += debug_setPipelineBuf*1000000;
+                    tsOffsetAudio += debug_setPipelineBuf*1000000LL;
                 }//else
 
                 StreamDb->audiosink_ts_offset = (tsOffsetAudio/1000000);
