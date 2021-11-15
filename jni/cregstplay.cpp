@@ -1442,8 +1442,9 @@ int build_video_pipeline(gchar *encoding_name, CREGSTREAM *data, unsigned int st
             data->element_v[i++] = gst_element_factory_make("rtph264depay", NULL);
         }
 
-        if((product_info()->hw_platform == eHardwarePlatform_Snapdragon) &&
-        ((!format_name) || is_avc_fmt_name))
+        if( (product_info()->hw_platform  == eHardwarePlatform_Snapdragon ||
+             product_info()->product_type == CRESTRON_DMPS3_MEZZ2         )  &&
+            ((!format_name) || is_avc_fmt_name))
         {
             //use AVC stream-format if detected or if field is missing on incoming SRC pad
             CSIO_LOG(eLogLevel_debug, "Using avc stream-format");
