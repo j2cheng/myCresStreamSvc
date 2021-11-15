@@ -579,7 +579,8 @@ void csio_jni_change_queues_to_leaky(int id)
     {
         //Note: 7-21-2021, do not use leaky on queue for miracast(omap and am3k)
         //      11-11-2021,DMPS3_MEZZ2 is new DMPS3K device uses gstreamer 1.16.2
-        if (product_info()->product_type == CRESTRON_DMPS3_MEZZ2 ||
+        if (product_info()->product_type == CRESTRON_DMPS3_MEZZ2      ||
+            product_info()->hw_platform == eHardwarePlatform_Rockchip ||
             data->wfd_start && ((product_info()->hw_platform == eHardwarePlatform_Rockchip) ||
                                  product_info()->hw_platform == eHardwarePlatform_OMAP5))
         {
@@ -4497,7 +4498,8 @@ void csio_jni_initVideo(int iStreamId)
             }
             else if(GST_VERSION_MAJOR == 1 && GST_VERSION_MINOR == 16)
             {
-                if(product_info()->product_type == CRESTRON_DMPS3_MEZZ2)
+                if(product_info()->product_type == CRESTRON_DMPS3_MEZZ2 ||
+                   product_info()->hw_platform == eHardwarePlatform_Rockchip)
                 {
                     CSIO_LOG(eLogLevel_debug, ">>>>> %s: keep ts_offset as defualt zero",__FUNCTION__);
                 }

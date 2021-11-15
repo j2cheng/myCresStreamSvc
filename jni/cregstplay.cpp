@@ -1279,7 +1279,8 @@ static void setQueueProperties(CREGSTREAM *data, GstElement *queue, guint64 maxT
 
     //Note: 11-11-2021, DMPS3_MEZZ2 is new DMPS3K device uses gstreamer 1.16.2,
     //      need to disable all, include max-size-time.
-    if(product_info()->product_type == CRESTRON_DMPS3_MEZZ2)
+    if(product_info()->product_type == CRESTRON_DMPS3_MEZZ2    ||
+       product_info()->hw_platform  == eHardwarePlatform_Rockchip)
     {
         CSIO_LOG(eLogLevel_info,  "setQueueProperties: disable all settings for queue");
         g_object_set(G_OBJECT(queue),
@@ -1443,7 +1444,8 @@ int build_video_pipeline(gchar *encoding_name, CREGSTREAM *data, unsigned int st
         }
 
         if( (product_info()->hw_platform  == eHardwarePlatform_Snapdragon ||
-             product_info()->product_type == CRESTRON_DMPS3_MEZZ2         )  &&
+             product_info()->hw_platform  == eHardwarePlatform_Rockchip   ||
+             product_info()->product_type == CRESTRON_DMPS3_MEZZ2           )  &&
             ((!format_name) || is_avc_fmt_name))
         {
             //use AVC stream-format if detected or if field is missing on incoming SRC pad
