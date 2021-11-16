@@ -590,6 +590,39 @@ public class ProductSpecific
                 break;
             }
         }
+        
+        public boolean isUsbDeviceSupported(HashMap<String, String> propertyMap)
+        {
+            String vPropertyValue = null;
+            String pPropertyValue = null;
+            boolean retVal = true; //FIXME: Making default support all USB peripherals
+
+            // using keySet() for iteration over USB keys
+            for (String propertyName : propertyMap.keySet())
+            {
+                if(propertyName.equals("VendorId"))
+                {
+                    vPropertyValue = propertyMap.get(propertyName);
+                    Log.v(TAG,"isUsbDeviceSupported: USB Vendor Id: " + vPropertyValue);
+                }
+                else if(propertyName.equals("ProductId"))
+                {
+                    pPropertyValue = propertyMap.get(propertyName);
+                    Log.v(TAG,"isUsbDeviceSupported: USB Product Id: " + pPropertyValue);
+                }
+            }
+
+            if(vPropertyValue == null || pPropertyValue == null)
+                    return false;
+
+            //usbDeviceWhiteList is a simple array where VendorId is on even index and corresponding Product-Ids on odd index.
+            for (int j = 0; j < usbDeviceWhiteList.size(); j+=2) {
+                if(usbDeviceWhiteList.get(j).equals(vPropertyValue) && usbDeviceWhiteList.get(j+1).equals(pPropertyValue))
+                    retVal = true;
+            }
+            Log.i(TAG,"isUsbDeviceSupported: " + retVal);
+            return retVal;
+        }
     }
 
     public void startPeripheralListener(CresStreamCtrl ctrl) 
@@ -631,38 +664,6 @@ public class ProductSpecific
             Log.i(TAG,"        manufacturer="+device.getManufacturerName()+"  productId="+device.getProductId()+"  producName="+device.getProductName()+
                     "  serialNumber="+device.getSerialNumber()+"  vendorId="+device.getVendorId());
         }
-    }
-
-    public boolean isUsbDeviceSupported(HashMap<String, String> propertyMap)
-    {
-        String vPropertyValue = null;
-        String pPropertyValue = null;
-        boolean retVal = false;
-        // using keySet() for iteration over USB keys
-        for (String propertyName : propertyMap.keySet())
-        {
-            if(propertyName.equals("VendorId"))
-            {
-                vPropertyValue = propertyMap.get(propertyName);
-                Log.v(TAG,"isUsbDeviceSupported: USB Vendor Id: " + vPropertyValue);
-            }
-            else if(propertyName.equals("ProductId"))
-            {
-                pPropertyValue = propertyMap.get(propertyName);
-                Log.v(TAG,"isUsbDeviceSupported: USB Product Id: " + pPropertyValue);
-            }
-        }
-
-        if(vPropertyValue == null || pPropertyValue == null)
-                return false;
-
-        //usbDeviceWhiteList is a simple array where VendorId is on even index and corresponding Product-Ids on odd index.
-        for (int j = 0; j < usbDeviceWhiteList.size(); j+=2) {
-            if(usbDeviceWhiteList.get(j).equals(vPropertyValue) && usbDeviceWhiteList.get(j+1).equals(pPropertyValue))
-                retVal = true;
-        }
-        Log.i(TAG,"isUsbDeviceSupported: " + retVal);
-        return retVal;
     }
 
     // ******************* Classes *******************
