@@ -1305,7 +1305,7 @@ void CStreamoutManager::initWcCertificates()
         	std::string key_filename = folder + std::string(RTSP_CERT_KEY);
             strncpy(m_rtsp_key_filename, key_filename.c_str(), sizeof(m_rtsp_cert_filename));
 #ifdef GENERATE_CERTIFICATE
-            CSIO_LOG(eLogLevel_info, "----------------------Streamout: create self signed certificates");
+            CSIO_LOG(eLogLevel_info, "----------------------Streamout: create self signed certificates: %s", m_rtsp_cert_filename);
             create_selfsigned_certificate(m_rtsp_cert_filename, m_rtsp_key_filename);
 #else
             CSIO_LOG(eLogLevel_info, "----------------------Streamout: copy server certificates");

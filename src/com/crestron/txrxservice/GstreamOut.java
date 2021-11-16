@@ -32,6 +32,7 @@ import java.lang.Object;
 import java.util.ArrayList;
 import java.util.Arrays;
 import java.util.List;
+import java.util.Set;
 
 import android.os.SystemClock;
 
@@ -254,17 +255,18 @@ public class GstreamOut {
         StringBuilder newUrl = new StringBuilder("");
         if (url.contains("0.0.0.0"))
         {
-            if (!streamCtl.userSettings.getDeviceIp().equals("0.0.0.0"))
+            Set<String> adapters = streamCtl.userSettings.getAirMediaAdapters();
+            if (adapters.contains("eth0") && streamCtl.isValidIpAddress(streamCtl.userSettings.getDeviceIp()))
             {
                 newUrl.append(url.replace("0.0.0.0", streamCtl.userSettings.getDeviceIp()));
             }
-            if (!streamCtl.userSettings.getWifiIp().equals("0.0.0.0"))
+            if (adapters.contains("eth0") && streamCtl.isValidIpAddress(streamCtl.userSettings.getWifiIp()))
             {
                 if (!newUrl.equals(""))
                     newUrl.append(",");
                 newUrl.append(url.replace("0.0.0.0", streamCtl.userSettings.getWifiIp()));
             }
-            if (!streamCtl.userSettings.getAuxiliaryIp().equals("0.0.0.0"))
+            if (adapters.contains("eth1") && streamCtl.isValidIpAddress(streamCtl.userSettings.getAuxiliaryIp()))
             {
                 if (!newUrl.equals(""))
                     newUrl.append(",");
