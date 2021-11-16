@@ -241,36 +241,38 @@ static void pad_added_callback2 (GstElement *src, GstPad *new_pad, CREGSTREAM *d
     GstElement *ele0 = NULL;
     const gchar *new_pad_type = NULL;
     new_pad_type = gst_structure_get_name (new_pad_struct);
-	const GValue* value = NULL;	
-	gchar * 	p_caps_string;
-	int do_rtp = 0;
-	gchar * p;
-	
-	csio_element_set_state( data->pipeline, GST_STATE_PAUSED);
-	
-	CSIO_LOG(eLogLevel_debug, "(streamid=%d) caps are %" GST_PTR_FORMAT, data->streamId, new_pad_caps);
-	
-	p_caps_string = gst_caps_to_string (new_pad_caps);
-	p = p_caps_string;
-	if(strncmp(p_caps_string, "application/x-rtp", 17) == 0)
-	{
-		do_rtp = 1;
-	}
-	
-	// Sample caps strings:
-	// "audio/mpeg, mpegversion=(int)2, stream-format=(string)adts"
-	// "video/x-h264, stream-format=(string)byte-stream, alignment=(string)nal"
-	// "application/x-teletext" using this caqps for crestron metadata
-	
-	// Seek to the 1st comma in caps
-	while((*p) && (*p != ','))
-	{
-		p++;
-	}
-	*p = 0;
-	
-	// Since build_audio_pipeline and build_video_pipeline look at encoding-name,
-	// but those fields aren't defined here, we use the 1st part of the caps as the encoding-name.
+    const GValue *value = NULL;
+    gchar *p_caps_string;
+    int do_rtp = 0;
+    gchar *p;
+
+    csio_element_set_state(data->pipeline, GST_STATE_PAUSED);
+
+    CSIO_LOG(eLogLevel_debug, "pad_added_callback2: (streamid=%d) caps are %" GST_PTR_FORMAT, data->streamId, new_pad_caps);
+
+    p_caps_string = gst_caps_to_string(new_pad_caps);
+    p = p_caps_string;
+    CSIO_LOG(eLogLevel_verbose, "pad_added_callback2: p_caps_string[%s]", p_caps_string?p_caps_string:"");
+
+    if (strncmp(p_caps_string, "application/x-rtp", 17) == 0)
+    {
+        do_rtp = 1;
+    }
+
+    // Sample caps strings:
+    // "audio/mpeg, mpegversion=(int)2, stream-format=(string)adts"
+    // "video/x-h264, stream-format=(string)byte-stream, alignment=(string)nal"
+    // "application/x-teletext" using this caqps for crestron metadata
+
+    // Seek to the 1st comma in caps
+    while((*p) && (*p != ','))
+    {
+        p++;
+    }
+    *p = 0;
+
+    // Since build_audio_pipeline and build_video_pipeline look at encoding-name,
+    // but those fields aren't defined here, we use the 1st part of the caps as the encoding-name.
 
     if (strncmp("audio", p_caps_string, 5) == 0)
     {
@@ -286,9 +288,31 @@ static void pad_added_callback2 (GstElement *src, GstPad *new_pad, CREGSTREAM *d
     }
     else if (strncmp("video", p_caps_string, 5) == 0)
     {
-		build_video_pipeline(p_caps_string, data, data->element_after_tsdemux, do_rtp,&ele0,&sinker);
+        //trying to find out stream-format from the pad
+        gchar *format_name = NULL;
+        new_pad_struct = gst_caps_get_structure( new_pad_caps, 0 );
+        if(new_pad_struct)
+        {
+            const GValue *format_value = gst_structure_get_value (new_pad_struct, "stream-format");
+            if(format_value)
+            {
+                format_name = gst_value_serialize(format_value);
+                if(format_name)
+                    CSIO_LOG(eLogLevel_debug,  "%s: Stream format-name '%s'\r\n", __FUNCTION__, format_name );
+                else
+                    CSIO_LOG(eLogLevel_debug,  "%s: Missing stream format-name.", __FUNCTION__);
+            }
+            else
+                CSIO_LOG(eLogLevel_debug,  "%s: No stream-format field.", __FUNCTION__);
+        }
+        
+        build_video_pipeline(p_caps_string, data, data->element_after_tsdemux, do_rtp,&ele0,&sinker,format_name);
         sinker = data->element_v[data->element_after_tsdemux];
-		CSIO_LOG(eLogLevel_debug, "Completing video pipeline for streamId=%d", data->streamId);
+        CSIO_LOG(eLogLevel_debug, "Completing video pipeline for streamId=%d,format_name[0x%x]", data->streamId,format_name);
+
+        //Note: must call g_free after build_video_pipeline return
+        if(format_name)
+            g_free (format_name);
     }
     else if (strncmp("application/x-teletext", p_caps_string, 22) == 0){
         CSIO_LOG(eLogLevel_debug, "found  metadata in the tsdemux");
@@ -1443,7 +1467,8 @@ int build_video_pipeline(gchar *encoding_name, CREGSTREAM *data, unsigned int st
             data->element_v[i++] = gst_element_factory_make("rtph264depay", NULL);
         }
 
-        if( (product_info()->hw_platform  == eHardwarePlatform_Snapdragon  ||            
+        if( (product_info()->hw_platform  == eHardwarePlatform_Snapdragon ||
+             product_info()->hw_platform  == eHardwarePlatform_Rockchip   ||
              product_info()->product_type == CRESTRON_DMPS3_MEZZ2           )  &&
             ((!format_name) || is_avc_fmt_name))
         {

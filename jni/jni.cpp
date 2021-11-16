@@ -4323,6 +4323,8 @@ int csio_jni_AddVideo(GstPad *new_pad,gchar *encoding_name, GstElement **sink,eP
 
 	new_pad_caps = gst_pad_query_caps( new_pad, NULL );
 	p_caps_string = gst_caps_to_string (new_pad_caps);
+	CSIO_LOG(eLogLevel_verbose, "csio_jni_AddVideo caps_string[%s]", p_caps_string?p_caps_string:"");
+	
 	if(strncmp(p_caps_string, "application/x-rtp", 17) == 0)
 	{
 		do_rtp = 1;
@@ -4345,9 +4347,13 @@ int csio_jni_AddVideo(GstPad *new_pad,gchar *encoding_name, GstElement **sink,eP
 	        CSIO_LOG(eLogLevel_debug,  "%s: No stream-format field.", __FUNCTION__);
 	}
 
-	CSIO_LOG(eLogLevel_debug, "%s calling build_video_pipeline for stream %d", __FUNCTION__, iStreamId);
+	CSIO_LOG(eLogLevel_debug, "%s calling build_video_pipeline for stream %d,format_name[0x%x]", __FUNCTION__, iStreamId,format_name);
 
 	iStatus = build_video_pipeline(encoding_name, data,0,do_rtp,&ele0,sink,format_name);
+
+	//Note: must call g_free after build_video_pipeline return
+	if(format_name)
+            g_free (format_name);
 
 	if(ele0 == NULL)
 	{
