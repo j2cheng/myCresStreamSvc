@@ -138,6 +138,9 @@ public class GstreamIn implements SurfaceHolder.Callback {
     }
     
     public void setStreamingBuffer(int buffer_ms, int sessionId){
+       
+      Log.i(TAG, "in setStreamingBuffer(), buffer_ms = " + buffer_ms + ", sessionId = " + sessionId);
+       
     	nativeSetStreamingBuffer(buffer_ms, sessionId);
     }
     
@@ -150,7 +153,6 @@ public class GstreamIn implements SurfaceHolder.Callback {
     }
     
     public void setVolume(int volume, int sessionId){
-      // Log.i(TAG, "@@@@@ in setVolume()");
     	nativeSetVolume(volume, sessionId);
     }
     

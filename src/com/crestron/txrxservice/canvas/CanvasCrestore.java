@@ -1421,8 +1421,6 @@ public class CanvasCrestore
       }
       else
       {
-         // .....................................
-
          boolean propertyProcessed = false;
          
          // Step 3: proces selected non-action properties
@@ -1452,19 +1450,39 @@ public class CanvasCrestore
                // no longer needed - input range is now 0 - 100
             	// double convertedVolume = ((double)mapEntry.volume * 100) / 65535;    //convert from 0-65535 to 0-100
                
-               Common.Logging.i(TAG, "@@@@@ processSessionNetworkStream(): calling setStreamInVolume() with streamId = "
+               Common.Logging.i(TAG, "processSessionNetworkStream(): calling setStreamInVolume() with streamId = "
                   + session.streamId + " and volume = " + mapEntry.volume);
                mStreamCtl.setStreamInVolume((int)mapEntry.volume, session.streamId);
             }
             else
             {
-               Common.Logging.e(TAG, "@@@@@ processSessionNetworkStream(): session is NULL while processing volume property");
+               Common.Logging.e(TAG, "processSessionNetworkStream(): session is NULL while processing volume property");
             }
          }
                      
-         // .....................................
-                        
 
+         // ***
+         if(mapEntry.buffer != null)
+         {
+            // the reason this actually works is that CSIO sends the LATENCY command to CSS every time the change
+            // to the Buffer property in StreamReceive is detected, and thus the corresponding streamingBuffer[sessId]
+            // gets updated in CSS.
+            
+            Common.Logging.i(TAG, "processSessionNetworkStream(): mStreamCtl.NumOfSurfaces = " + mStreamCtl.NumOfSurfaces
+               + ", buffer = " + mapEntry.buffer);
+            
+            for (int nn = 0; nn < Math.min(mStreamCtl.NumOfSurfaces, 10); nn++)
+            {
+               Root root = getRootedDeviceStreamReceiveStreams(nn);
+               root.device.streamReceive.streams[nn].buffer = mapEntry.buffer;
+               Gson gson = new Gson();
+               String jsonStr = "{\"Pending\":" + gson.toJson(root) + "}";
+               Common.Logging.i(TAG, "processSessionNetworkStream(): calling cresstoreSet() with JSON string " + jsonStr);
+               cresstoreSet(jsonStr, false);          // Pending - so no saving
+            }
+         }
+         // ***
+         
          // Step 4: process the action
          if (mapEntry.action == null)
          {
@@ -1952,7 +1970,22 @@ public class CanvasCrestore
         root.device.wyFy.airMedia.wifiDirect = new WyFyWifiDirect();
         return root;
     }
-
+    
+    // ***
+    private Root getRootedDeviceStreamReceiveStreams(int streamIndex)
+    {
+        Root root = new Root();
+        root.device = new Device();
+        root.device.streamReceive = new StreamReceive();
+        if(streamIndex < 10)
+           {
+           root.device.streamReceive.streams[streamIndex] = new StreamReceiveStreams();
+           }
+        
+        return root;
+    }
+    // ***
+    
     public class SessionEventMapEntry {
         @SerializedName ("State")
     	String state;
@@ -2424,6 +2457,20 @@ public class CanvasCrestore
         }
     }
     
+    // ***
+    // this is a partial definition
+    public class StreamReceiveStreams {
+        @SerializedName ("Buffer")
+        Integer buffer;
+    }
+
+    // this is a partial definition
+    public class StreamReceive {
+        @SerializedName ("Streams")
+        StreamReceiveStreams[] streams = new StreamReceiveStreams[10];
+    }
+    // ***
+    
     public class Device {
         @SerializedName ("AirMedia")
     	AirMedia airMedia;        
@@ -2431,6 +2478,12 @@ public class CanvasCrestore
         SourceSelectionConfiguration sourceSelectionConfiguration;
         @SerializedName ("WiFi")
         WyFy wyFy;
+
+        // ***
+        @SerializedName ("StreamReceive")
+        StreamReceive streamReceive;
+        // ***
+        
     }
     
     public class Root {
