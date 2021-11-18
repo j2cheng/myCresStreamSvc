@@ -126,7 +126,9 @@ wfdSinkStMachineThread*  wfdSinkStMachineClass::m_wfdSinkStMachineThreadPtr = NU
 wfdSinkStMachineClass**  wfdSinkStMachineThread::m_wfdSinkStMachineTaskList = NULL;
 int  wfdSinkStMachineThread::m_wfdSinkStMachineTaskListCnt = 0;
 
-#define DEFAULT_VIDEO_RES "cea_19ceb"
+#define DEFAULT_VIDEO_RES  "cea_19ceb"
+#define DEFAULT_VIDEO2_RES ""
+
 /********** wfdSinkStMachineClass class, used by wfdSinkProjClass *******************/
 wfdSinkStMachineClass::wfdSinkStMachineClass(int iId,wfdSinkProjClass* parent):
 m_myId(iId),
@@ -180,6 +182,15 @@ m_is_mice_session(0)
     	m_rtspParserIntfInfo.preferredVidResRefStr  = DEFAULT_VIDEO_RES;
     }
 
+    if(g_rtspVid2ResRefStr.size())
+    {
+    	m_rtspParserIntfInfo.preferredVid2ResRefStr  = (char*)g_rtspVid2ResRefStr.c_str() ;
+    }
+    else
+    {
+    	m_rtspParserIntfInfo.preferredVid2ResRefStr  = DEFAULT_VIDEO2_RES;
+    }
+
     if(m_rtspParserIntfInfo.preferredAudioCodecStr)
     	CSIO_LOG(m_debugLevel, "wfdSinkStMachineClass: preferredAudioCodecStr[%s].\n",m_rtspParserIntfInfo.preferredAudioCodecStr);
     else
@@ -189,6 +200,11 @@ m_is_mice_session(0)
     	CSIO_LOG(m_debugLevel, "wfdSinkStMachineClass: preferredVidResRefStr[%s].\n",m_rtspParserIntfInfo.preferredVidResRefStr);
     else
         CSIO_LOG(m_debugLevel, "wfdSinkStMachineClass: ERROR: preferredVidResRefStr not set.\n");
+
+    if(m_rtspParserIntfInfo.preferredVid2ResRefStr)
+         CSIO_LOG(m_debugLevel, "wfdSinkStMachineClass: preferredVid2ResRefStr[%s].\n",m_rtspParserIntfInfo.preferredVid2ResRefStr);
+    else
+        CSIO_LOG(m_debugLevel, "wfdSinkStMachineClass: ERROR: preferredVid2ResRefStr not set.\n");
 
     getTimeStamp(WFD_SINK_EVENTTIME_STATEMACHINE_CREATED);
 
@@ -311,6 +327,11 @@ void wfdSinkStMachineClass::DumpClassPara(int l)
 		CSIO_LOG(m_debugLevel, "wfdSinkStMachineClass: preferredVidResRefStr[%s].\n",m_rtspParserIntfInfo.preferredVidResRefStr);
 	else
 		CSIO_LOG(m_debugLevel, "wfdSinkStMachineClass: ERROR: preferredVidResRefStr not set.\n");
+
+    if(m_rtspParserIntfInfo.preferredVid2ResRefStr)
+        CSIO_LOG(m_debugLevel, "wfdSinkStMachineClass: preferredVid2ResRefStr[%s].\n",m_rtspParserIntfInfo.preferredVid2ResRefStr);
+    else
+        CSIO_LOG(m_debugLevel, "wfdSinkStMachineClass: ERROR: preferredVid2ResRefStr not set.\n");
 }
 
 void wfdSinkStMachineClass::setCurentTsPort(int port)

@@ -43,6 +43,7 @@ const WFD_STRNUMPAIR wfd_proj_timestamp_names[] =
 
 std::string g_rtspAudioCodecStr = "" ;
 std::string g_rtspVidResRefStr  = "" ;
+std::string g_rtspVid2ResRefStr = "" ;
 
 extern void Wfd_setup_gst_pipeline (int id, int state, struct GST_PIPELINE_CONFIG* gst_config);
 extern void Wfd_set_latency_by_the_source (int id, int latency);
@@ -466,6 +467,9 @@ void wfdSinkProjClass::DumpClassPara(int id)
     CSIO_LOG(eLogLevel_info, "wfdSinkProjClass: ThreadId            0x%x\n", (unsigned long int)getThredId());
     CSIO_LOG(eLogLevel_info, "wfdSinkProjClass: m_debugLevel        %d\n", m_debugLevel);
     CSIO_LOG(eLogLevel_info, "wfdSinkProjClass: m_ThreadIsRunning   %d\n", m_ThreadIsRunning);
+    CSIO_LOG(eLogLevel_info, "wfdSinkProjClass: g_rtspAudioCodecStr:%s\n", g_rtspAudioCodecStr.c_str());
+    CSIO_LOG(eLogLevel_info, "wfdSinkProjClass: g_rtspVidResRefStr :%s\n", g_rtspVidResRefStr.c_str());
+    CSIO_LOG(eLogLevel_info, "wfdSinkProjClass: g_rtspVid2ResRefStr:%s\n", g_rtspVid2ResRefStr.c_str());
 
     if(m_projEventQList)
     {
@@ -949,6 +953,10 @@ void WfdSinkProj_printFdebugInfo()
 void WfdSinkProj_fdebug(char *cmd_cstring)
 {
     char *EndPtr,*CmdPtr;
+    char origCmdString[1024];
+
+    memset(origCmdString,0,sizeof(origCmdString));
+    memcpy(origCmdString,cmd_cstring,sizeof(origCmdString)-1);//keep the last byte as '\0'
 
     if(cmd_cstring)
         CSIO_LOG(eLogLevel_info, "WfdSinkProj_fdebug: cmd_cstring: %s\n",cmd_cstring);
@@ -1111,7 +1119,39 @@ void WfdSinkProj_fdebug(char *cmd_cstring)
 				}
 			}
 		}
+        else if (strcasestr(CmdPtr, "SETVIDEO2RESSTR"))
+        {
+            CmdPtr = strtok(NULL, ", ");
+            if (CmdPtr)
+            {
+                char *message = strstr(origCmdString, "SETVIDEO2RESSTR");
+                g_rtspVid2ResRefStr = message + sizeof("SETVIDEO2RESSTR");
+                CSIO_LOG(eLogLevel_info, "WfdSinkProj_debug: message = [%s]\n", message);
+            }
+            else
+            {
+                g_rtspVid2ResRefStr = "";
+            }
 
+            CSIO_LOG(eLogLevel_info, "WfdSinkProj_debug: g_rtspVid2ResRefStr = [%s]\n", g_rtspVid2ResRefStr.c_str());
+
+            //debug only, No lock here
+            if (wfdSinkStMachineThread::m_wfdSinkStMachineTaskList)
+            {
+                for (int i = 0; i < MAX_WFD_TCP_CONN; i++)
+                {
+                    if (wfdSinkStMachineThread::m_wfdSinkStMachineTaskList[i])
+                    {
+                        if (g_rtspVid2ResRefStr.size())
+                        {
+                            wfdSinkStMachineThread::m_wfdSinkStMachineTaskList[i]->m_rtspParserIntfInfo.preferredVid2ResRefStr = (char *)g_rtspVid2ResRefStr.c_str();
+                            CSIO_LOG(eLogLevel_info, "WfdSinkProj_debug: set new string [%s]\n",
+                                     wfdSinkStMachineThread::m_wfdSinkStMachineTaskList[i]->m_rtspParserIntfInfo.preferredVid2ResRefStr);
+                        } //else
+                    }
+                }
+            }
+        }
 
       // ***
         else if(strcasestr(CmdPtr, "sssltest"))

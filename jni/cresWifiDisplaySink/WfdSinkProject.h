@@ -101,5 +101,6 @@ private:
 
 extern std::string g_rtspAudioCodecStr;
 extern std::string g_rtspVidResRefStr ;
+extern std::string g_rtspVid2ResRefStr;
 
 #endif //WFD_SINK_PROJECT_H_

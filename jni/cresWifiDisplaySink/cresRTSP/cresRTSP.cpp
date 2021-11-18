@@ -822,86 +822,90 @@ void RTSPLog__(int level, char * format, ...)
 
 void * initRTSPParser(RTSPSYSTEMINFO * sysInfo)
 {
-   // Remarks:
-   //    1. sysInfo is allowed to be NULL
-   // 
-   int         retv;
-   int         rtpPort;
-   int         maxMiracastRate;
-   char *      prefResRefStr;
-   char *      prefCodecStr;
-   char *      friendlyName;
-   char *      modelName;
-   struct rtsp * rtspSession;
+    // Remarks:
+    //    1. sysInfo is allowed to be NULL
+    //
+    int  retv;
+    int  rtpPort;
+    int  maxMiracastRate;
+    char *prefResRefStr;
+    char *prefCodecStr;
+    char *friendlyName;
+    char *modelName;
+    struct rtsp *rtspSession;
+    int prefVid2ResRefStrLen = 0;
 
-   rtpPort = 4570;
-   maxMiracastRate = 10000000;
-   prefResRefStr = "upto_1920x1080p24;upto_1920x1200p30;upto_848x480p60";
-   prefCodecStr = "AACx48x2";
-   friendlyName = "Crestron Miracast Receiver";
-   modelName = "TxRx Miracast";
+    rtpPort = 4570;
+    maxMiracastRate = 10000000;
+    prefResRefStr = "upto_1920x1080p24;upto_1920x1200p30;upto_848x480p60";
+    prefCodecStr = "AACx48x2";
+    friendlyName = "Crestron Miracast Receiver";
+    modelName = "TxRx Miracast";
 
-   if(sysInfo)
-   {
-   if((sysInfo->rtspLogLevel >= 0) && (sysInfo->rtspLogLevel < eLogLevel_LAST))
-      glRTSPLogLevel = sysInfo->rtspLogLevel;
-   if(sysInfo->rtpPort > 0)
-      rtpPort = sysInfo->rtpPort;
-   if (sysInfo->maxMiracastRate > 0)
-	   maxMiracastRate = sysInfo->maxMiracastRate;
-   if(sysInfo->preferredVidResRefStr && (sysInfo->preferredVidResRefStr[0] != '\0'))
-      prefResRefStr = sysInfo->preferredVidResRefStr;
-   if(sysInfo->preferredAudioCodecStr && (sysInfo->preferredAudioCodecStr[0] != '\0'))
-      prefCodecStr = sysInfo->preferredAudioCodecStr;
-   if(sysInfo->friendlyName && (sysInfo->friendlyName[0] != '\0'))
-      friendlyName = sysInfo->friendlyName;
-   if(sysInfo->modelName && (sysInfo->modelName[0] != '\0'))
-      modelName = sysInfo->modelName;
-   }
+    if (sysInfo)
+    {
+        if ((sysInfo->rtspLogLevel >= 0) && (sysInfo->rtspLogLevel < eLogLevel_LAST))
+            glRTSPLogLevel = sysInfo->rtspLogLevel;
+        if (sysInfo->rtpPort > 0)
+            rtpPort = sysInfo->rtpPort;
+        if (sysInfo->maxMiracastRate > 0)
+            maxMiracastRate = sysInfo->maxMiracastRate;
+        if (sysInfo->preferredVidResRefStr && (sysInfo->preferredVidResRefStr[0] != '\0'))
+            prefResRefStr = sysInfo->preferredVidResRefStr;
+        if (sysInfo->preferredAudioCodecStr && (sysInfo->preferredAudioCodecStr[0] != '\0'))
+            prefCodecStr = sysInfo->preferredAudioCodecStr;
+        if (sysInfo->friendlyName && (sysInfo->friendlyName[0] != '\0'))
+            friendlyName = sysInfo->friendlyName;
+        if (sysInfo->modelName && (sysInfo->modelName[0] != '\0'))
+            modelName = sysInfo->modelName;
 
-   retv = rtsp_open(&rtspSession,0);
-   if(retv)
-      return(NULL);
+        prefVid2ResRefStrLen = strlen(sysInfo->preferredVid2ResRefStr);
+    }
 
-   rtspSession->rtpPort = rtpPort;
-   snprintf(rtspSession->maxMiracastRate, sizeof(rtspSession->maxMiracastRate), "%d", maxMiracastRate);
-   strncpy(rtspSession->preferredVidResRefStr,prefResRefStr,
-      sizeof(rtspSession->preferredVidResRefStr));
-   rtspSession->preferredVidResRefStr[
-      sizeof(rtspSession->preferredVidResRefStr)-1] = '\0';
-   strncpy(rtspSession->preferredAudioCodecStr,prefCodecStr,
-      sizeof(rtspSession->preferredAudioCodecStr));
-   rtspSession->preferredAudioCodecStr[
-      sizeof(rtspSession->preferredAudioCodecStr)-1] = '\0';
-   strncpy(rtspSession->friendlyName,friendlyName,
-      sizeof(rtspSession->friendlyName));
-   rtspSession->friendlyName[
-      sizeof(rtspSession->friendlyName)-1] = '\0';
-   strncpy(rtspSession->modelName,modelName,
-      sizeof(rtspSession->modelName));
-   rtspSession->modelName[
-      sizeof(rtspSession->modelName)-1] = '\0';
-   rtspSession->sourceRTPPort[0] = -1;
-   rtspSession->sourceRTPPort[1] = -1;
-   rtspSession->keepAliveTimeout = -1;
-   rtspSession->ssrc = 0;
-   rtspSession->sessionID[0] = '\0';
-   rtspSession->triggerMethod[0] = '\0';
-   rtspSession->srcVersionStr[0] = '\0';
-   rtspSession->msLatencyCapStr[0] = '\0';
-   rtspSession->presentationURL[0] = '\0';
-   rtspSession->audioFormat[0] = '\0';
-   rtspSession->modes = 0;
-   rtspSession->latency = 0;
-   rtspSession->cea_res = 0;
-   rtspSession->vesa_res = 0;
-   rtspSession->hh_res = 0;
+    retv = rtsp_open(&rtspSession, 0);
+    if (retv)
+        return (NULL);
 
-   init_code_descriptions();
+    rtspSession->rtpPort = rtpPort;
+    snprintf(rtspSession->maxMiracastRate, sizeof(rtspSession->maxMiracastRate), "%d", maxMiracastRate);
+    strncpy(rtspSession->preferredVidResRefStr, prefResRefStr,
+            sizeof(rtspSession->preferredVidResRefStr));
+    rtspSession->preferredVidResRefStr[sizeof(rtspSession->preferredVidResRefStr) - 1] = '\0';
+    strncpy(rtspSession->preferredAudioCodecStr, prefCodecStr,
+            sizeof(rtspSession->preferredAudioCodecStr));
+    rtspSession->preferredAudioCodecStr[sizeof(rtspSession->preferredAudioCodecStr) - 1] = '\0';
+    strncpy(rtspSession->friendlyName, friendlyName,
+            sizeof(rtspSession->friendlyName));
+    rtspSession->friendlyName[sizeof(rtspSession->friendlyName) - 1] = '\0';
+    strncpy(rtspSession->modelName, modelName,
+            sizeof(rtspSession->modelName));
+    rtspSession->modelName[sizeof(rtspSession->modelName) - 1] = '\0';
 
-   init_log_codes();
+    memset(rtspSession->preferredVid2ResRefStr,0,sizeof(rtspSession->preferredVid2ResRefStr));
+    if(prefVid2ResRefStrLen > 0 && prefVid2ResRefStrLen < sizeof(rtspSession->preferredVid2ResRefStr))
+        memcpy(rtspSession->preferredVid2ResRefStr,sysInfo->preferredVid2ResRefStr,prefVid2ResRefStrLen);
 
-   return((void *)rtspSession);
+    rtspSession->sourceRTPPort[0] = -1;
+    rtspSession->sourceRTPPort[1] = -1;
+    rtspSession->keepAliveTimeout = -1;
+    rtspSession->ssrc = 0;
+    rtspSession->sessionID[0] = '\0';
+    rtspSession->triggerMethod[0] = '\0';
+    rtspSession->srcVersionStr[0] = '\0';
+    rtspSession->msLatencyCapStr[0] = '\0';
+    rtspSession->presentationURL[0] = '\0';
+    rtspSession->audioFormat[0] = '\0';
+    rtspSession->modes = 0;
+    rtspSession->latency = 0;
+    rtspSession->cea_res = 0;
+    rtspSession->vesa_res = 0;
+    rtspSession->hh_res = 0;
+
+    init_code_descriptions();
+
+    init_log_codes();
+
+    return ((void *)rtspSession);
 }
 
 void init_code_descriptions()
@@ -1269,6 +1273,58 @@ int composeRTSPResponse(void * session,RTSPPARSINGRESULTS * requestParsingResult
       check_and_response_option("intel_sink_model_name", rtspSession->modelName);
       check_and_response_option("microsoft_max_bitrate", rtspSession->maxMiracastRate);
 
+      /**
+       * wfd2_video_formats 
+       * 00 01 20 0040 0000000f94a0 000000000000 000000000000 00 0000 0000 00, 
+       * 00: -- native,    Table 74.  Index to CEA resolution/refresh rates
+       * 01: -- codec,     Table 76.  01--H264, 02--H265 
+       * 20: -- profile,   Table 77.  04--High profile2(RHP2),08--Baseline,10--Main,20--High
+       * 0040: -- level,   Table 78.  0020--Level 5,0040--Level 5.1
+       * 0000000f94a0 -- CEA-Support(12*12HEXDIG),  Table 71
+       * 000000000000 -- VESA-Support(12*12HEXDIG), Table 72
+       * 000000000000 -- HH-Support(12*12HEXDIG),   Table 73
+       * 00:   -- latency
+       * 0000: -- min-slice-size
+       * 0000: -- slice-enc-params
+       * 00:   -- frame-rate-control-support,Table 41
+       * 
+       * 00 01 02 0010 0000000f94a0 000000000000 000000000000 00 0000 0000 00, 
+       * 00: -- native,    Table 74.  Index to CEA resolution/refresh rates
+       * 02: -- codec,     Table 76.  01--H264, 02--H265 
+       * 01: -- profile,   Table 77.  01--Main , 02--Main 10 
+       * 0010: -- level,   Table 78.  0008--Level 5,0010--Level 5.1
+       * 0000000f94a0 -- CEA-Support(12*12HEXDIG),  Table 71
+       * 000000000000 -- VESA-Support(12*12HEXDIG), Table 72
+       * 000000000000 -- HH-Support(12*12HEXDIG),   Table 73
+       * 00:   -- latency
+       * 0000: -- min-slice-size
+       * 0000: -- slice-enc-params
+       * 00:   -- frame-rate-control-support,Table 41
+       * 
+       * 
+       * example of wfd2_video_formats from other device:
+       *   00 01 02 0010 0000000bffff 00000404533f 000000000fff 02 0000 00ff 11, 
+       *      01 01 0010 0000000bffff 00000404533f 000000000fff 02 0000 00ff 11, 
+       *      02 01 0008 0000000bffff 00000404533f 000000000fff 02 0000 00ff 11 00
+       * 
+       * example of wfd2_video_formats for AM3XX:
+       *   00 01 10 0040 0000000f94a0 000000000000 000000000000 02 0000 0000 00, 
+       *      01 20 0040 0000000f94a0 000000000000 000000000000 02 0000 0000 00, 
+       *      02 01 0010 0000000f94a0 000000000000 000000000000 02 0000 0000 00 00
+       * 
+       */
+      if(strlen(rtspSession->preferredVid2ResRefStr) > 0)
+      {      
+        snprintf(locBuff,sizeof(locBuff),rtspSession->preferredVid2ResRefStr);
+      }
+      else
+      {
+        sprintf(locBuff,"none");
+      }
+
+      RTSP_LOG(eLogLevel_verbose,"video2 format string (from prefString %s) is : %s\n",
+               rtspSession->preferredVid2ResRefStr,locBuff);
+      check_and_response_option("wfd2_video_formats", locBuff);
       // /* wfd_uibc_capability */
       // if (uibc_option) {
       //    check_and_response_option("wfd_uibc_capability",
