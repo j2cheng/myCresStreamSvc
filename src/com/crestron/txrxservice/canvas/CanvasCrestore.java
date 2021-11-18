@@ -1792,6 +1792,16 @@ public class CanvasCrestore
                             mStreamCtl.startWifiDirect(localIpAddress, deviceId, deviceName, deviceAddress, rtsp_port);
                         }
                     }
+                    
+                    if(root.internal.tx3.airMedia.wiFiDirect.onDeviceDisconnect != null)
+                    {
+                        Common.Logging.v(TAG, "wifiDirect onDeviceDisconnect event");
+                        String deviceId = root.internal.tx3.airMedia.wiFiDirect.onDeviceDisconnect.deviceId;
+                        if (deviceId != null) {
+                            mStreamCtl.stopWifiDirect(deviceId);
+                        } else
+                            Common.Logging.e(TAG, "Received NULL for deviceId.");
+                    }
                 }
                 
                 /* parsing Device.AirMedia.NetworkStreams.
@@ -2558,9 +2568,17 @@ public class CanvasCrestore
     	String  deviceName;
     }
 
+    public class InternalTx3AirMediaWFDonDeviceDisconnect {
+        @SerializedName ("DeviceId")
+        String  deviceId;
+    }
+    
     public class InternalTx3AirMediaWFD {
     	@SerializedName ("OnDeviceSourceReady")
     	InternalTx3AirMediaWFDonDeviceSrcRdy onDeviceSourceReady;
+    	
+        @SerializedName ("OnDeviceDisconnect")
+        InternalTx3AirMediaWFDonDeviceDisconnect onDeviceDisconnect;
     }
 
     public class InternalTx3AirMedia {
