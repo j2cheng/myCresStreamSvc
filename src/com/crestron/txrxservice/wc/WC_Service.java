@@ -346,7 +346,6 @@ public class WC_Service {
     			if (d.videoFile != null)
     			{
     				videoFile = d.videoFile;
-
     			}
     			if (d.audioFile != null)
     			{
@@ -360,7 +359,7 @@ public class WC_Service {
     		for (UsbAvDevice d : usb2Devices) {
     			if (d.videoFile != null)
     				usb2HasVideo = true;
-    			if (videoFile == null && d.videoFile != null)
+    			if (videoFile.equals("none") && d.videoFile != null)
     			{
     				videoFile = d.videoFile;
     			}
@@ -381,7 +380,7 @@ public class WC_Service {
     		if (mStatus.sessionFlags != WC_SessionFlags.Audio &&  mStatus.sessionFlags != WC_SessionFlags.AudioAndVideo)
     			audioFile = "none";
     	}
-    	
+
     	if (videoFile != null && !videoFile.equals(mVideoFile))
     	{
     		mVideoFile = videoFile;
