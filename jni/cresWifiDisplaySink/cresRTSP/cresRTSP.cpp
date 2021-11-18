@@ -1462,6 +1462,18 @@ int cresRTSP_internalCallback(void * session,unsigned int messageType,
                RTSP_LOG(eLogLevel_debug,"set (from microsoft_latency_management_capability) msLatencyCapStr to %s\n",
                   rtspSession->msLatencyCapStr);
             }
+
+            retv = rtsp_message_read(parsedMessagePtr, "{<****hhh>}", "wfd2_video_formats",
+               &cea_res,&vesa_res,&hh_res);
+            if (retv == 0)
+            {
+               rtspSession->cea_res  = cea_res;
+               rtspSession->vesa_res = vesa_res;
+               rtspSession->hh_res   = hh_res;
+               RTSP_LOG(eLogLevel_debug,"set (from wfd2_video_formats): cea_res = 0x%x, vesa_res = 0x%x, hh_res = 0x%x\n",
+                  (unsigned int)rtspSession->cea_res,(unsigned int)rtspSession->vesa_res,
+                  (unsigned int)rtspSession->hh_res);
+            }
          }
          break;
       case RTSP_MESSAGE_REPLY:
