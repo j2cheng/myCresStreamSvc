@@ -671,13 +671,18 @@ public class GstreamIn implements SurfaceHolder.Callback {
     
     public void wfdPause(final int streamId)
     {
+        Log.i(TAG, "wfdPause() called for streamId "+streamId);
     	nativeWfdPause(streamId);
     }
     
     public void wfdResume(final int streamId)
     {
-		Surface s = streamCtl.getSurface(streamId);
-		nativeSurfaceInit(s, streamId);
+        Log.i(TAG, "wfdResume() called for streamId "+streamId);
+        if (!CresStreamCtrl.isAM3K)
+        {
+            Surface s = streamCtl.getSurface(streamId);
+            nativeSurfaceInit(s, streamId);
+        }
 		nativeWfdResume(streamId);
     }
     

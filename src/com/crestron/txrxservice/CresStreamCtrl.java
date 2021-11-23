@@ -7823,6 +7823,26 @@ public class CresStreamCtrl extends Service {
     	}
     }
     
+    public void pauseWifiDirect(String deviceId)
+    {
+        if (userSettings.getAirMediaEnable() && userSettings.getAirMediaMiracastEnable()) {
+            if(isAM3K && userSettings.getAirMediaEnable() && userSettings.getAirMediaMiracastEnable())
+                wifidVideoPlayer.pauseSessionWithDeviceId(deviceId);
+            else
+                Log.w(TAG, "WARNING: this call is expected for AM3X product only");
+        }
+    }
+    
+    public void resumeWifiDirect(String deviceId)
+    {
+        if (userSettings.getAirMediaEnable() && userSettings.getAirMediaMiracastEnable()) {
+            if(isAM3K && userSettings.getAirMediaEnable() && userSettings.getAirMediaMiracastEnable())
+                wifidVideoPlayer.resumeSessionWithDeviceId(deviceId);
+            else
+                Log.w(TAG, "WARNING: this call is expected for AM3X product only");
+        }
+    }
+    
     public void setNetworkSreamingResolution(int streamId, int w, int h)
     {
         Log.v(TAG, "setNetworkSreamingResolution(): streamId="+streamId+" wxh="+w+"x"+h);

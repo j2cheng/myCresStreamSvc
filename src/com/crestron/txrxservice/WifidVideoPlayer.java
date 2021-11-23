@@ -531,6 +531,39 @@ public class WifidVideoPlayer {
         Common.Logging.i(TAG, "VideoPlayer.stopSessionWithDeviceId  deviceId="+deviceId+" exiting...");
     }
     
+    
+    public void pauseSessionWithDeviceId(String deviceId)
+    {
+        Common.Logging.i(TAG, "VideoPlayer.pauseSessionWithDeviceId  deviceId="+deviceId);
+        synchronized(stopSessionObjectLock) {
+            long sessionId =  deviceId2SessionId(deviceId);
+            if (sessionId != INVALID_SESSION_ID)
+            {
+                VideoSession session = sessionMap.get(sessionId);
+                if (session != null)
+                    streamCtrl_.streamPlay.wfdPause(session.streamId);
+            } else
+                Common.Logging.i(TAG, "Session for deviceId " + deviceId +" does not exist. Was it stopped earlier?");
+        }
+        Common.Logging.i(TAG, "VideoPlayer.pauseSessionWithDeviceId  deviceId="+deviceId+" exiting...");
+    }
+    
+    public void resumeSessionWithDeviceId(String deviceId)
+    {
+        Common.Logging.i(TAG, "VideoPlayer.resumeSessionWithDeviceId  deviceId="+deviceId);
+        synchronized(stopSessionObjectLock) {
+            long sessionId =  deviceId2SessionId(deviceId);
+            if (sessionId != INVALID_SESSION_ID)
+            {
+                VideoSession session = sessionMap.get(sessionId);
+                if (session != null)
+                    streamCtrl_.streamPlay.wfdResume(session.streamId);
+            } else
+                Common.Logging.i(TAG, "Session for deviceId " + deviceId +" does not exist. Was it stopped earlier?");
+        }
+        Common.Logging.i(TAG, "VideoPlayer.resumeSessionWithDeviceId  deviceId="+deviceId+" exiting...");
+    }
+    
     public void muteSession(long id, boolean enable)
     {
         Common.Logging.i(TAG, "VideoPlayer.muteSession  sessionId="+id);

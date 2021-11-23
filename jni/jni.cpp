@@ -5885,6 +5885,12 @@ JNIEXPORT void JNICALL Java_com_crestron_txrxservice_GstreamIn_nativeWfdStart(JN
     int ts_port = c_default_client_ts_port + 2*windowId;
     WfdSinkProjStart(windowId,url_cstring,rtsp_port,ts_port,data->wfd_is_mice_session);
 
+    if (product_info()->hw_platform == eHardwarePlatform_Rockchip)
+    {
+        // make sure paused flag is off
+        csio_SetTx3Pause(windowId, false);
+    }
+
     CSIO_LOG(eLogLevel_debug,"mira: {%s} - exiting",__FUNCTION__);
 
     env->ReleaseStringUTFChars(url_jstring, url_cstring);
@@ -5963,17 +5969,28 @@ JNIEXPORT void JNICALL Java_com_crestron_txrxservice_GstreamIn_nativeWfdPause(JN
 #if 0
     gst_native_pause(env, thiz, windowId);
 #else
-    CREGSTREAM * data = GetStreamFromCustomData(CresDataDB, windowId);
-
-    if (!data)
+    if (product_info()->hw_platform == eHardwarePlatform_Rockchip)
     {
-    	CSIO_LOG(eLogLevel_error, "%s: Could not obtain stream pointer for stream %d", windowId);
+        if (csio_SetTx3Pause(windowId, true) == CSIO_FAILURE)
+        {
+            // set paused flag to true
+            CSIO_LOG(eLogLevel_error, "%s: Could not set pause for stream %d", __FUNCTION__, windowId);
+        }
     }
     else
     {
-    	insert_blocking_probe(data, data->element_v[data->amcvid_dec_index-1], "src", (GstPadProbeCallback)dockResume);
-        while (data->blocking_probe_id != 0)
-        	usleep(100000);
+        CREGSTREAM * data = GetStreamFromCustomData(CresDataDB, windowId);
+
+        if (!data)
+        {
+            CSIO_LOG(eLogLevel_error, "%s: Could not obtain stream pointer for stream %d", windowId);
+        }
+        else
+        {
+            insert_blocking_probe(data, data->element_v[data->amcvid_dec_index-1], "src", (GstPadProbeCallback)dockResume);
+            while (data->blocking_probe_id != 0)
+                usleep(100000);
+        }
     }
     CSIO_LOG(eLogLevel_debug,"%s(): streamId[%d] - exit....",__FUNCTION__, windowId);
 #endif
@@ -5990,17 +6007,28 @@ JNIEXPORT void JNICALL Java_com_crestron_txrxservice_GstreamIn_nativeWfdResume(J
 #if 0
     gst_native_play(env, thiz, windowId);
 #else
-    CREGSTREAM * data = GetStreamFromCustomData(CresDataDB, windowId);
-
-    if (!data)
+    if (product_info()->hw_platform == eHardwarePlatform_Rockchip)
     {
-    	CSIO_LOG(eLogLevel_error, "%s: Could not obtain stream pointer for stream %d", windowId);
+        if (csio_SetTx3Pause(windowId, false) == CSIO_FAILURE)
+        {
+            // set paused flag to false
+            CSIO_LOG(eLogLevel_error, "%s: Could not set unpause for stream %d", __FUNCTION__, windowId);
+        }
     }
     else
     {
-    	insert_blocking_probe(data, data->element_v[data->amcvid_dec_index-1], "src", (GstPadProbeCallback)dockResume);
-        while (data->blocking_probe_id != 0)
-        	usleep(100000);
+        CREGSTREAM * data = GetStreamFromCustomData(CresDataDB, windowId);
+
+        if (!data)
+        {
+            CSIO_LOG(eLogLevel_error, "%s: Could not obtain stream pointer for stream %d", windowId);
+        }
+        else
+        {
+            insert_blocking_probe(data, data->element_v[data->amcvid_dec_index-1], "src", (GstPadProbeCallback)dockResume);
+            while (data->blocking_probe_id != 0)
+                usleep(100000);
+        }
     }
     CSIO_LOG(eLogLevel_debug,"%s(): streamId[%d] - exit....",__FUNCTION__, windowId);
 #endif

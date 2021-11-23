@@ -324,6 +324,7 @@ void csio_SendVideoInfo(int id, GstElement *element);
 void csio_jni_change_queues_to_leaky(int id);
 void csio_jni_setAutoBitrate(int id);
 void csio_jni_setFramePushDelay(int id);
+int csio_SetTx3Pause(int iStreamId, bool pause);
 
 
 

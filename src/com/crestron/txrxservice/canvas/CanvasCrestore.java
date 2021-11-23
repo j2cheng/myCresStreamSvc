@@ -1802,6 +1802,26 @@ public class CanvasCrestore
                         } else
                             Common.Logging.e(TAG, "Received NULL for deviceId.");
                     }
+                    
+                    if(root.internal.tx3.airMedia.wiFiDirect.onDeviceResume != null)
+                    {
+                        Common.Logging.v(TAG, "wifiDirect onResume event");
+                        String deviceId = root.internal.tx3.airMedia.wiFiDirect.onDeviceResume.deviceId;
+                        if (deviceId != null) {
+                            mStreamCtl.resumeWifiDirect(deviceId);
+                        } else
+                            Common.Logging.e(TAG, "Received NULL for deviceId.");
+                    }
+                    
+                    if(root.internal.tx3.airMedia.wiFiDirect.onDevicePause != null)
+                    {
+                        Common.Logging.v(TAG, "wifiDirect onPause event");
+                        String deviceId = root.internal.tx3.airMedia.wiFiDirect.onDevicePause.deviceId;
+                        if (deviceId != null) {
+                            mStreamCtl.pauseWifiDirect(deviceId);
+                        } else
+                            Common.Logging.e(TAG, "Received NULL for deviceId.");
+                    }
                 }
                 
                 /* parsing Device.AirMedia.NetworkStreams.
@@ -2573,12 +2593,28 @@ public class CanvasCrestore
         String  deviceId;
     }
     
+    public class InternalTx3AirMediaWFDonDevicePause {
+        @SerializedName ("DeviceId")
+        String  deviceId;
+    }
+    
+    public class InternalTx3AirMediaWFDonDeviceResume {
+        @SerializedName ("DeviceId")
+        String  deviceId;
+    }
+    
     public class InternalTx3AirMediaWFD {
     	@SerializedName ("OnDeviceSourceReady")
     	InternalTx3AirMediaWFDonDeviceSrcRdy onDeviceSourceReady;
     	
         @SerializedName ("OnDeviceDisconnect")
         InternalTx3AirMediaWFDonDeviceDisconnect onDeviceDisconnect;
+        
+        @SerializedName ("OnDevicePause")
+        InternalTx3AirMediaWFDonDevicePause onDevicePause;
+        
+        @SerializedName ("OnDeviceResume")
+        InternalTx3AirMediaWFDonDeviceResume onDeviceResume;
     }
 
     public class InternalTx3AirMedia {
