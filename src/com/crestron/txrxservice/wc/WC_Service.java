@@ -34,6 +34,7 @@ public class WC_Service {
     private static final int ERROR_IN_USE = -1;
     private static final int ERROR_NO_USB_DEVICES = -2;
     private static final int ERROR_INVALID_ID = -3;
+    private static final int ERROR_UNSUPPORTED_CAMERA_FORMAT = -4;
     private static final String WC_CONF_STATUS_IN_USE="In Use";
     private static final String WC_CONF_STATUS_AVAILABLE="Available";
     private static final String WC_CONF_STATUS_UNAVAILABLE="Unavailable";
@@ -51,6 +52,7 @@ public class WC_Service {
     String mVideoFile = null;
     String mAudioFile = null;
     Boolean speakerDetected = false;
+    Boolean cameraFormatSupported = true;  //Do not allow opensession request to succeed if this isnt set
     List<WC_VideoFormat> mVideoFormats = new ArrayList<WC_VideoFormat>();
     List<WC_AudioFormat> mAudioFormats = new ArrayList<WC_AudioFormat>();
     List<UsbAvDevice> mUsbAvDeviceList = null;
@@ -73,7 +75,11 @@ public class WC_Service {
         {
             Log.i(TAG,"WC_OpenSession: request from clientId="+clientId+" options="+options);
             if (mUsbDevices.devices.size() == 0) {
-            	return ERROR_NO_USB_DEVICES;
+                return ERROR_NO_USB_DEVICES;
+            }
+            if(!cameraFormatSupported){
+                Log.w(TAG,"WC_OpenSession: Unsupported camera format");
+                return ERROR_UNSUPPORTED_CAMERA_FORMAT;
             }
             if (inUse.compareAndSet(false, true)) {
                 mCurrentId++;
@@ -430,7 +436,7 @@ public class WC_Service {
         Boolean audioFile = false;
         String camResolution = null;
         String conferencingStatus = null;
-        
+
         if(mUsbDevices != null)
         {
             for (WC_UsbDevice listdevices : mUsbDevices.devices)
@@ -448,8 +454,20 @@ public class WC_Service {
         }
 
         if(!videoFile)
-            camResolution = "";
-        
+        {
+            camResolution = "None";
+            cameraFormatSupported = false;
+        }
+        else if(camResolution.startsWith("0x0")) //Occurs when video format detected is MJPG filtered here get_video_caps_from_caps
+        {
+                Log.w(TAG,"getAndReportAllWCStatus: Unsupported Video format and Resolution found( wxh@fps="+camResolution+" )");
+                camResolution = "Not Supported";
+                cameraFormatSupported = false;
+                conferencingStatus = WC_CONF_STATUS_UNAVAILABLE;
+        }
+        else
+            cameraFormatSupported = true;
+
         setSpeakerDetectedStatus();
 
         if((videoFile || audioFile) && conferencingStatus != WC_CONF_STATUS_IN_USE)
