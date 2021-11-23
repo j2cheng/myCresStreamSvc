@@ -278,10 +278,11 @@ public class TCPInterface extends AsyncTask<Void, Object, Long> {
                 // Update csio on current service mode
                 Log.i(TAG, "Sending present service mode to csio: " + MiscUtils.stringFormat("SERVICEMODE=%d", streamCtl.serviceMode.ordinal()));
                 SendDataToAllClients(MiscUtils.stringFormat("SERVICEMODE=%d", streamCtl.serviceMode.ordinal()));
-                
-                //Update here becasue we did not add NUMBER_OF_PRESENTERS to the CommandParser.CmdTable.
-                SendDataToAllClients(MiscUtils.stringFormat("NUMBER_OF_PRESENTERS=%d", streamCtl.mCanvas.mSessionMgr.mNumOfPresenters));
-
+                if (streamCtl.airMediav21)
+                {
+                    //Update here becasue we did not add NUMBER_OF_PRESENTERS to the CommandParser.CmdTable.
+                    SendDataToAllClients(MiscUtils.stringFormat("NUMBER_OF_PRESENTERS=%d", streamCtl.mCanvas.mSessionMgr.mNumOfPresenters));
+                }
                 // Tell CSIO to send update request to control system
                 SendDataToAllClients("UPDATE_REQUEST_TO_CONTROLSYSTEM=");
 
