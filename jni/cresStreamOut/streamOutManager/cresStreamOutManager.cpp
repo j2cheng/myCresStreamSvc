@@ -875,7 +875,9 @@ void* CStreamoutManager::ThreadEntry()
                     g_printerr ("failed to parse CA PEM: %s\n", error->message);
                     goto exitThread;
                 }
+    #endif
                 gst_rtsp_auth_set_tls_authentication_mode(auth, G_TLS_AUTHENTICATION_REQUIRED);
+    #ifdef CLIENT_AUTHENTICATION_ENABLED
                 g_signal_connect (auth, "accept-certificate", G_CALLBACK
                         (accept_certificate), ca_cert);
                 //if (ca_cert) g_object_unref(ca_cert); //TODO is this needed - had crash when put it in code
