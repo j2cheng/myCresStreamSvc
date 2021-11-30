@@ -161,6 +161,7 @@ endif
 
 ifeq ($(TARGET_PRODUCT),$(filter $(TARGET_PRODUCT),yushan_one msm8953_64 am3x00_box ))
 LOCAL_CFLAGS += -DBIONIC_HAS_STPCPY
+LOCAL_CFLAGS += -Wno-unused-parameter
 endif
 
 ifeq ($(TARGET_PRODUCT),$(filter $(TARGET_PRODUCT),yushan_one msm8953_64 ))

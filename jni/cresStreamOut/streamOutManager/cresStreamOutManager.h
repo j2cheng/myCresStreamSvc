@@ -86,11 +86,18 @@ public:
     GstElement* m_appsrc;
     GstElement* m_audPreQ;
     GstElement* m_audPostQ;
+    GstElement* m_vidEncPreQ;
+    GstElement* m_vidEncPostQ;
 
     int audPreQOrunsCnt;
     int audPreQUrunsCnt;
     int audPostQOrunsCnt;
     int audPostQUrunsCnt;
+
+    int vidEncPreQOrunsCnt;
+    int vidEncPreQUrunsCnt;
+    int vidEncPostQOrunsCnt;
+    int vidEncPostQUrunsCnt;
 
 	gboolean    m_bNeedData;
 	gboolean    m_bExit;
@@ -151,10 +158,10 @@ public:
     char* getSnapshotName(void);
     void setSecurityEnable(bool enable) {m_tls_on = enable; m_auth_on = enable;}
     void setRandomUserPwEnable(bool enable) {m_random_user_pw = enable;}
-    void setUsername(char* name){strcpy(rtsp_server_username, name);}
-    void setPassword(char* pw){strcpy(rtsp_server_password, pw);}
-    void setVideoCaptureDevice(char *dev){strcpy(m_video_capture_device, dev);}
-    void setAudioCaptureDevice(char *dev){strcpy(m_audio_capture_device, dev);}
+    void setUsername(const char* name){strcpy(rtsp_server_username, name);}
+    void setPassword(const char* pw){strcpy(rtsp_server_password, pw);}
+    void setVideoCaptureDevice(const char *dev){strcpy(m_video_capture_device, dev);}
+    void setAudioCaptureDevice(const char *dev){strcpy(m_audio_capture_device, dev);}
     void startPreview(void* window);
     void pausePreview(void* window);
     void stopPreview(void* window);

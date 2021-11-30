@@ -32,7 +32,7 @@
 #undef USE_AUDIOTESTSRC
 #undef CLIENT_AUTHENTICATION_ENABLED
 
-static bool PushModel = false;
+//static bool PushModel = false;
 int useUsbAudio = false;
 
 //#define AUDIOENC "amcaudenc-omxgoogleaacencoder"
@@ -52,9 +52,11 @@ extern void csio_jni_onClientDisconnected(void * arg);
 
 static void cb_queueOverruns(void *queue, gpointer user_data);
 static void cb_queueUnderruns(void *queue, gpointer user_data);
+static void cb_vidEncQueueOverruns(void *queue, gpointer user_data);
+static void cb_vidEncQueueUnderruns(void *queue, gpointer user_data);
 
 #define BLKSIZE (1024)
-static void copy_file(char *from, char *to)
+static void copy_file(const char *from, const char *to)
 {
 	char buffer[BLKSIZE];
 	size_t bytes;
@@ -87,10 +89,10 @@ static void copy_server_certificates(char *certificate_file, char *key_file)
 }
 
 static bool
-is_supported(char *fourcc)
+is_supported(const char *fourcc)
 {
 	//TODO figure out why other formats do not work without videoconvert
-	char *formats[] = {/*"YUY2", "UYVY",*/ "I420", "NV12", NULL};
+	const char *formats[] = {/*"YUY2", "UYVY",*/ "I420", "NV12", NULL};
 	for (int i=0; formats[i]; i++)
 	{
 		if (strcmp(fourcc, formats[i]) == 0)
@@ -164,7 +166,7 @@ client_connected (GstRTSPServer * server, GstRTSPClient * client, void *user_dat
 //        pMgr->m_bNeedData = true;
     g_signal_connect(client, "closed", (GCallback) client_closed, pMgr);
     pMgr->m_clientList.push_back(e);
-    CSIO_LOG(eLogLevel_info,"********** RTSP Client connected (size=%d  ip=%s e=0x%x) **************\n", pMgr->m_clientList.size(),
+    CSIO_LOG(eLogLevel_info,"********** RTSP Client connected (size=%d  ip=%s e=0x%p) **************\n", pMgr->m_clientList.size(),
     		e->client_ip_address, e);
 }
 
@@ -268,7 +270,7 @@ media_configure (GstRTSPMediaFactory * factory, GstRTSPMedia * media,
 	/* get the element used for providing the streams of the media */
 	element = gst_rtsp_media_get_element (media);
 	gchar * n = gst_element_get_name(element);
-	CSIO_LOG(eLogLevel_debug, "Streamout: media_configure element name[%s] of media[0x%x]",n,media);
+	CSIO_LOG(eLogLevel_debug, "Streamout: media_configure element name[%s] of media[0x%p]",n,media);
 
   //set up video source
 	{
@@ -331,12 +333,10 @@ void get_audio_data_for_pull(CStreamoutManager *pMgr, guint size)
 {
     CSIO_LOG(eLogLevel_verbose, "Streamout: get_audio_data...size=%d", size);
     GstFlowReturn ret;
-    int nsamples = size/(2*2);
-    int n;
 
     GstBuffer *buffer = gst_buffer_new_allocate(NULL, size, NULL);
     GstMapInfo mapInfo;
-    GstClockTime timestamp, duration;
+    GstClockTime timestamp=0, duration=0;
     if (gst_buffer_map(buffer, &mapInfo, GST_MAP_WRITE)) {
     	pMgr->m_usbAudio->usb_audio_get_samples(pMgr->m_usbAudio->m_device, mapInfo.data, mapInfo.size, &timestamp, &duration);
 
@@ -354,7 +354,7 @@ void get_audio_data_for_pull(CStreamoutManager *pMgr, guint size)
                 GstClockTime now_time  = gst_clock_get_time (appSrcClock);           
                 GstClockTime run_time  = 0;
 
-                CSIO_LOG(eLogLevel_extraVerbose, "Streamout: get_audio_data_for_pull: appSrcClock[0x%x]",appSrcClock);
+                CSIO_LOG(eLogLevel_extraVerbose, "Streamout: get_audio_data_for_pull: appSrcClock[0x%p]",appSrcClock);
         
                 if (now_time > base_time)
                     run_time = now_time - base_time;
@@ -433,7 +433,7 @@ wc_media_configure (GstRTSPMediaFactory * factory, GstRTSPMedia * media,
     /* get the element used for providing the streams of the media */
     element = gst_rtsp_media_get_element (media);
     gchar * n = gst_element_get_name(element);
-    CSIO_LOG(eLogLevel_debug, "Streamout: wc_media_configure element name[%s] of media[0x%x]",n,media);
+    CSIO_LOG(eLogLevel_debug, "Streamout: wc_media_configure element name[%s] of media[0x%p]",n,media);
 
         //set up audio source
     if (pMgr->m_audioStream)
@@ -477,6 +477,11 @@ wc_media_configure (GstRTSPMediaFactory * factory, GstRTSPMedia * media,
             {
                 CSIO_LOG(eLogLevel_info, "Streamout: set leaky downstream on vidPreQ");
                 g_object_set(G_OBJECT(ele), "leaky", (guint) 2 /*GST_QUEUE_LEAK_DOWNSTREAM*/, NULL);
+
+                pMgr->m_vidEncPreQ = ele;
+                g_signal_connect( G_OBJECT(ele), "overrun", G_CALLBACK( cb_vidEncQueueOverruns ), user_data );
+                g_signal_connect( G_OBJECT(ele), "underrun", G_CALLBACK( cb_vidEncQueueUnderruns ), user_data );
+
                 gst_object_unref(ele);
             }
             ele = gst_bin_get_by_name_recurse_up(GST_BIN (element), "vidPostQ");
@@ -484,6 +489,11 @@ wc_media_configure (GstRTSPMediaFactory * factory, GstRTSPMedia * media,
             {
                 CSIO_LOG(eLogLevel_info, "Streamout: set leaky downstream on vidPostQ");
                 g_object_set(G_OBJECT(ele), "leaky", (guint) 2 /*GST_QUEUE_LEAK_DOWNSTREAM*/, NULL);
+
+                pMgr->m_vidEncPostQ = ele;
+                g_signal_connect( G_OBJECT(ele), "overrun", G_CALLBACK( cb_vidEncQueueOverruns ), user_data );
+                g_signal_connect( G_OBJECT(ele), "underrun", G_CALLBACK( cb_vidEncQueueUnderruns ), user_data );
+
                 gst_object_unref(ele);
             }
         }
@@ -530,7 +540,7 @@ wc_media_configure (GstRTSPMediaFactory * factory, GstRTSPMedia * media,
 static GstRTSPFilterResult
 filter_cb (GstRTSPStream *stream, GstRTSPStreamTransport *trans,gpointer user_data)
 {
-    CSIO_LOG(eLogLevel_info, "Streamout: filter_cb -------stream[0x%x]---",stream);
+    CSIO_LOG(eLogLevel_info, "Streamout: filter_cb -------stream[0x%p]---",stream);
     return GST_RTSP_FILTER_REMOVE;
 }
 
@@ -538,7 +548,7 @@ static GstRTSPFilterResult
 client_filter (GstRTSPServer * server, GstRTSPClient * client,
     gpointer user_data)
 {
-  CSIO_LOG(eLogLevel_info, "Streamout: client_filter -------client[0x%x]---",client);
+  CSIO_LOG(eLogLevel_info, "Streamout: client_filter -------client[0x%p]---",client);
   /* Simple filter that shuts down all clients. */
   return GST_RTSP_FILTER_REMOVE;
 }
@@ -566,14 +576,38 @@ void cb_queueUnderruns(void *queue, gpointer user_data)
     if (pMgr->m_audPostQ == queue)
         pMgr->audPostQUrunsCnt++;
 }
+
+void cb_vidEncQueueOverruns(void *queue, gpointer user_data)
+{
+    CSIO_LOG(eLogLevel_verbose, "Streamout: cb_vidEncQueueOverruns...(pMgr=%p)", user_data);
+    CStreamoutManager *pMgr = (CStreamoutManager *)user_data;
+
+    if (pMgr->m_vidEncPreQ == queue)
+        pMgr->vidEncPreQOrunsCnt++;
+
+    if (pMgr->m_vidEncPostQ == queue)
+        pMgr->vidEncPostQOrunsCnt++;
+}
+
+void cb_vidEncQueueUnderruns(void *queue, gpointer user_data)
+{
+    CSIO_LOG(eLogLevel_verbose, "Streamout: cb_vidEncQueueUnderruns...(pMgr=%p)", user_data);
+    CStreamoutManager *pMgr = (CStreamoutManager *)user_data;
+
+    if (pMgr->m_vidEncPreQ == queue)
+        pMgr->vidEncPreQUrunsCnt++;
+
+    if (pMgr->m_vidEncPostQ == queue)
+        pMgr->vidEncPostQUrunsCnt++;
+}
 /**********************CStreamoutManager class implementation***************************************/
 CStreamoutManager::CStreamoutManager(eStreamoutMode streamoutMode,int id):
-m_clientConnCnt(0),m_loop(NULL),m_main_loop_is_running(0),
-m_pMedia(NULL),m_bNeedData(false),m_bStopTeeInProgress(false),
-m_bExit(false),m_bPushRawFrames(false),m_ahcsrc(NULL),m_camera(NULL),
-m_audioStream(false), m_videoStream(false), m_usbAudio(NULL),
-m_appsrc(NULL), m_streamoutMode(streamoutMode), m_id(0),
-m_audPreQ(NULL),m_audPostQ(NULL)
+        m_streamoutMode(streamoutMode),m_id(0),m_clientConnCnt(0),m_main_loop_is_running(0),
+        m_pMedia(NULL),m_ahcsrc(NULL),m_camera(NULL),
+        m_appsrc(NULL), m_audPreQ(NULL), m_audPostQ(NULL), m_vidEncPreQ(NULL), m_vidEncPostQ(NULL),
+        m_bNeedData(false),m_bExit(false),m_bStopTeeInProgress(false),m_bPushRawFrames(false),
+        m_videoStream(false),m_audioStream(false),m_usbAudio(NULL),
+        m_loop(NULL)
 {
     m_id = id;
 
@@ -599,8 +633,13 @@ m_audPreQ(NULL),m_audPostQ(NULL)
     audPostQOrunsCnt = 0;
     audPostQUrunsCnt = 0;
 
+    vidEncPreQOrunsCnt = 0;
+    vidEncPreQUrunsCnt = 0;
+    vidEncPostQOrunsCnt = 0;
+    vidEncPostQUrunsCnt = 0;
+
     if(!m_StreamoutEvent || !m_StreamoutEventQ || !mLock)
-        CSIO_LOG(eLogLevel_error, "--Streamout: CStreamoutManager malloc failed:[0x%x][0x%x][0x%x]",\
+        CSIO_LOG(eLogLevel_error, "--Streamout: CStreamoutManager malloc failed:[0x%p][0x%p][0x%p]",\
                 m_StreamoutEvent,m_StreamoutEventQ,mLock);
 }
 
@@ -644,10 +683,10 @@ CStreamoutManager::~CStreamoutManager()
 
 void CStreamoutManager::DumpClassPara(int level)
 {
-    CSIO_LOG(eLogLevel_info, "---Streamout: ThredId 0x%x", (unsigned long int)getThredId());
+    CSIO_LOG(eLogLevel_info, "---Streamout: ThredId 0x%lx", (unsigned long int)getThredId());
     CSIO_LOG(eLogLevel_info, "---Streamout: m_debugLevel %d", m_debugLevel);
 
-    CSIO_LOG(eLogLevel_info, "---Streamout: m_parent 0x%x", m_parent);
+    CSIO_LOG(eLogLevel_info, "---Streamout: m_parent 0x%p", m_parent);
     CSIO_LOG(eLogLevel_info, "---Streamout: m_clientConnCnt %d", m_clientConnCnt);
     CSIO_LOG(eLogLevel_info, "---Streamout: m_main_loop_is_running %d", m_main_loop_is_running);
 
@@ -658,8 +697,8 @@ void CStreamoutManager::DumpClassPara(int level)
     CSIO_LOG(eLogLevel_info, "---Streamout: m_audio_capture_device %s", m_audio_capture_device);
 
 
-    CSIO_LOG(eLogLevel_info, "---Streamout: m_loop 0x%x", m_loop);
-    CSIO_LOG(eLogLevel_info, "---Streamout: m_pMedia [0x%x]",m_pMedia);
+    CSIO_LOG(eLogLevel_info, "---Streamout: m_loop 0x%p", m_loop);
+    CSIO_LOG(eLogLevel_info, "---Streamout: m_pMedia [0x%p]",m_pMedia);
 
     CSIO_LOG(eLogLevel_info, "---Streamout: m_rtsp_port %s", m_rtsp_port);
     CSIO_LOG(eLogLevel_info, "---Streamout: m_res_x %s", m_res_x);
@@ -670,20 +709,27 @@ void CStreamoutManager::DumpClassPara(int level)
     CSIO_LOG(eLogLevel_info, "---Streamout: m_iframe_interval %s", m_iframe_interval);
     CSIO_LOG(eLogLevel_info, "---Streamout: m_quality %d", m_quality);
 
-    CSIO_LOG(eLogLevel_info, "---Streamout: m_audPreQ [0x%x]", m_audPreQ);
-    CSIO_LOG(eLogLevel_info, "---Streamout: m_audPostQ [0x%x]",m_audPostQ);
+    CSIO_LOG(eLogLevel_info, "---Streamout: m_audPreQ [0x%p]", m_audPreQ);
+    CSIO_LOG(eLogLevel_info, "---Streamout: m_audPostQ [0x%p]",m_audPostQ);
 
     CSIO_LOG(eLogLevel_info, "---Streamout: audPreQOrunsCnt %d",  audPreQOrunsCnt);
     CSIO_LOG(eLogLevel_info, "---Streamout: audPreQUrunsCnt %d",  audPreQUrunsCnt);
     CSIO_LOG(eLogLevel_info, "---Streamout: audPostQOrunsCnt %d", audPostQOrunsCnt);
     CSIO_LOG(eLogLevel_info, "---Streamout: audPostQUrunsCnt %d", audPostQUrunsCnt);
 
+    CSIO_LOG(eLogLevel_info, "---Streamout: m_vidEncPreQ [0x%p]", m_vidEncPreQ);
+    CSIO_LOG(eLogLevel_info, "---Streamout: m_vidEncPostQ [0x%p]",m_vidEncPostQ);
+
+    CSIO_LOG(eLogLevel_info, "---Streamout: vidEncPreQOrunsCnt %d",  vidEncPreQOrunsCnt);
+    CSIO_LOG(eLogLevel_info, "---Streamout: vidEncPreQUrunsCnt %d",  vidEncPreQUrunsCnt);
+    CSIO_LOG(eLogLevel_info, "---Streamout: vidEncPostQOrunsCnt %d", vidEncPostQOrunsCnt);
+    CSIO_LOG(eLogLevel_info, "---Streamout: vidEncPostQUrunsCnt %d", vidEncPostQUrunsCnt);
 }
 
 //overloaded from base
 void CStreamoutManager::exitThread()
 {
-    CSIO_LOG(m_debugLevel, "Streamout: try to quit g_main_loop[0x%x]",m_loop);
+    CSIO_LOG(m_debugLevel, "Streamout: try to quit g_main_loop[0x%p]",m_loop);
     m_forceThreadExit = 1;
 
     if(m_loop)
@@ -807,7 +853,7 @@ void* CStreamoutManager::ThreadEntry()
         //create new context
         context = g_main_context_new ();
         g_main_context_push_thread_default(context);
-        CSIO_LOG(m_debugLevel,  "Streamout: create new context: 0x%x\n", context );
+        CSIO_LOG(m_debugLevel,  "Streamout: create new context: 0x%p\n", context );
         if(!context)
         {
             CSIO_LOG(eLogLevel_error, "Streamout: Failed to create rtsp server context");
@@ -826,7 +872,7 @@ void* CStreamoutManager::ThreadEntry()
             CSIO_LOG(eLogLevel_error, "Streamout: Failed to create rtsp server");
             goto exitThread;
         }
-        CSIO_LOG(eLogLevel_info, "Streamout: server[0x%x] created",server);
+        CSIO_LOG(eLogLevel_info, "Streamout: server[0x%p] created",server);
 
         // limit the rtsp sesssions
         pool = gst_rtsp_server_get_session_pool(server);
@@ -1102,7 +1148,7 @@ void* CStreamoutManager::ThreadEntry()
         server_source = gst_rtsp_server_create_source(server,NULL,NULL);
         if(server_source)
         {
-            CSIO_LOG(m_debugLevel, "Streamout: create_source , server_source [0x%x]", server_source);
+            CSIO_LOG(m_debugLevel, "Streamout: create_source , server_source [0x%p]", server_source);
         }
         else
         {
@@ -1176,7 +1222,7 @@ exitThread:
     if(timeout_source)
     {
         /*You must use g_source_destroy() for sources added to a non-default main context.*/
-        CSIO_LOG(m_debugLevel, "Streamout: g_source_destroy timeout_source[0x%x]",timeout_source);
+        CSIO_LOG(m_debugLevel, "Streamout: g_source_destroy timeout_source[0x%p]",timeout_source);
         g_source_destroy(timeout_source);
         g_source_unref(timeout_source);
         timeout_source = NULL;
@@ -1185,7 +1231,7 @@ exitThread:
     if(server_source)
     {
         /*You must use g_source_destroy() for sources added to a non-default main context.*/
-        CSIO_LOG(m_debugLevel, "Streamout: g_source_destroy server_source[0x%x]",server_source);
+        CSIO_LOG(m_debugLevel, "Streamout: g_source_destroy server_source[0x%p]",server_source);
         g_source_destroy (server_source);
         g_source_unref(server_source);
         server_source = NULL;
@@ -1196,7 +1242,7 @@ exitThread:
         CSIO_LOG(m_debugLevel, "Streamout: remove factory from mount points");
         mounts = gst_rtsp_server_get_mount_points (server);
         if (m_factory && mounts) gst_rtsp_mount_points_remove_factory(mounts, mountPoint);
-        CSIO_LOG(m_debugLevel, "Streamout: unreference mounts[0x%x]",mounts);
+        CSIO_LOG(m_debugLevel, "Streamout: unreference mounts[0x%p]",mounts);
         if (mounts) g_object_unref (mounts);
 
         /* Filter existing clients and remove them */
@@ -1212,17 +1258,17 @@ exitThread:
 //    if(m_factory) g_object_unref (m_factory);
     if(m_loop)
     {
-        CSIO_LOG(m_debugLevel, "Streamout: unreference loop[0x%x]",m_loop);
+        CSIO_LOG(m_debugLevel, "Streamout: unreference loop[0x%p]",m_loop);
         g_main_loop_unref (m_loop);
     }
     if(pool)
     {
-        CSIO_LOG(m_debugLevel, "Streamout: unreference pool[0x%x]",pool);
+        CSIO_LOG(m_debugLevel, "Streamout: unreference pool[0x%p]",pool);
         g_object_unref (pool);
     }
     if(server)
     {
-        CSIO_LOG(m_debugLevel, "Streamout: unreference server[0x%x]",server);
+        CSIO_LOG(m_debugLevel, "Streamout: unreference server[0x%p]",server);
         g_object_unref (server);
     }
 
@@ -1233,7 +1279,7 @@ exitThread:
 
     if(context)
     {
-        CSIO_LOG(m_debugLevel, "Streamout: unreference context[0x%x]", context);
+        CSIO_LOG(m_debugLevel, "Streamout: unreference context[0x%p]", context);
         g_main_context_pop_thread_default(context);
         g_main_context_unref (context);
         context = NULL;
@@ -1346,10 +1392,16 @@ eWCstatus CStreamoutManager::initWcAudioVideo()
         			m_videoStream = false;
         		}
             	CSIO_LOG(eLogLevel_info, "--Streamout - m_video_caps.format=%s", m_video_caps.format);
-        		if (is_supported(m_video_caps.format))
+            	if (strcasecmp(m_video_caps.format, "MJPG") == 0)
+            	{
+                    snprintf(m_videoconvert, sizeof(m_videoconvert), "jpegparse ! jpegdec ! videoconvert ! video/x-raw,format=NV12 !");
+            	}
+            	else if (is_supported(m_video_caps.format))
         		{
         			m_videoconvert[0] = '\0';
-        		} else {
+        		}
+            	else
+            	{
         			snprintf(m_videoconvert, sizeof(m_videoconvert), "videoconvert ! video/x-raw,format=NV12 !");
         		}
         	} else {
@@ -1473,7 +1525,7 @@ int CStreamoutManager::waitForPreviewAvailable(int timeout_sec)
 
 int CStreamoutManager::saveRawFrame (GstPad *pad, GstPadProbeInfo *buffer, gpointer user_data)
 {
-	CStreamCamera *pCam = (CStreamCamera *) user_data;
+	//CStreamCamera *pCam = (CStreamCamera *) user_data;
 	int iStatus = 0;
 
 	if(m_camera)
@@ -1485,8 +1537,7 @@ int CStreamoutManager::saveRawFrame (GstPad *pad, GstPadProbeInfo *buffer, gpoin
 				GstBuffer *buf;
 				buf = GST_PAD_PROBE_INFO_BUFFER(buffer);
 
-				guint size;
-				GstFlowReturn ret;
+				GstFlowReturn ret = GST_FLOW_OK;
 
 				GstBuffer *DstBuffer;
 				DstBuffer = gst_buffer_copy( buf );	//TODO: See if we can avoid buffer copy

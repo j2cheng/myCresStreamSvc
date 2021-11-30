@@ -56,7 +56,7 @@ unsigned int UsbAudio::usb_audio_avail(pcm *pcm_device)
         
         GstClockTime timestamp = GST_TIMESPEC_TO_TIME (tstamp);
 
-        CSIO_LOG (eLogLevel_verbose, "UsbAudio: usb_audio_avail(): timestamp : %" GST_TIME_FORMAT", delay %lu", GST_TIME_ARGS (timestamp), avail);
+        CSIO_LOG (eLogLevel_verbose, "UsbAudio: usb_audio_avail(): timestamp : %" GST_TIME_FORMAT", delay %u", GST_TIME_ARGS (timestamp), avail);
     }
     return avail;
 }
@@ -69,7 +69,7 @@ void UsbAudio::usb_audio_get_samples(pcm *pcm_device, void *data, int size, GstC
     *duration = gst_util_uint64_scale(nsamples, GST_SECOND, 48000);
     if ((error=pcm_read(pcm_device, data, size)) != 0)
     {
-        CSIO_LOG(eLogLevel_error, "UsbAudio: get_pcm_samples(): could not get %d bytes error=%d", error);
+        CSIO_LOG(eLogLevel_error, "UsbAudio: get_pcm_samples(): could not get %d bytes error=%d", size, error);
     } else {
         CSIO_LOG(eLogLevel_verbose, "UsbAudio: get_pcm_samples(): read %d bytes,m_usb_audio_sample[%llu],nsamples[%llu]", size,m_usb_audio_sample,nsamples);
     }
@@ -105,7 +105,7 @@ bool UsbAudio::configure()
             if (m_device)
             {
                 pcm_close(m_device);
-                m_device == NULL;
+                m_device = NULL;
             }
             return false;
         }
@@ -138,8 +138,7 @@ bool UsbAudio::getAudioParams()
 		return false;
 	} else {
 		if (pcm_params_to_string(m_params, pcm_param_string,
-				sizeof(pcm_param_string)) >
-		sizeof(pcm_param_string)) {
+				sizeof(pcm_param_string)) > ((int) sizeof(pcm_param_string))) {
 			CSIO_LOG(eLogLevel_error,
 					"--UsbAudio: failed to get pcm params");
 		} else {
@@ -150,11 +149,11 @@ bool UsbAudio::getAudioParams()
 			pcm_mask *mask = pcm_params_get_mask(m_params, PCM_PARAM_FORMAT);
 			if (pcm_mask_test(mask, 0)) {
 				m_audioPcmFormat = PCM_FORMAT_S8;
-				m_audioFormat = "S8";
+				m_audioFormat = (char *) "S8";
 			}
 			if (pcm_mask_test(mask, 2)) {
 				m_audioPcmFormat = PCM_FORMAT_S16_LE;
-				m_audioFormat = "S16LE";
+				m_audioFormat = (char *) "S16LE";
 			}
 			min = pcm_params_get_min(m_params, PCM_PARAM_RATE);
 			max = pcm_params_get_max(m_params, PCM_PARAM_RATE);

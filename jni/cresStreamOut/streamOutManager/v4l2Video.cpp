@@ -2,8 +2,11 @@
 #include "cresStreamOutManager.h"
 #include "v4l2Video.h"
 
+//#define USE_MJPEG
+
 #ifdef HAS_V4L2
 
+#if 0
 static gboolean
 print_structure_field (GQuark field_id, const GValue * value,
     gpointer user_data)
@@ -27,6 +30,7 @@ print_structure_field (GQuark field_id, const GValue * value,
 
   return TRUE;
 }
+#endif
 
 static void
 update_max_frame_rate(const GValue *fr, int *max_fr_num, int *max_fr_den, double *max_frame_rate)
@@ -36,6 +40,8 @@ update_max_frame_rate(const GValue *fr, int *max_fr_num, int *max_fr_den, double
         int fr_num = gst_value_get_fraction_numerator(fr);
         int fr_den = gst_value_get_fraction_denominator(fr);
         double frd = (double) fr_num/(double) fr_den;
+        if (frd > 30.0)         // not interested in frame rates above 30
+            return;
         if (frd > *max_frame_rate) {
             *max_frame_rate = frd;
             *max_fr_num = fr_num;
@@ -51,7 +57,7 @@ static bool isFormat(const char *format, const char *fourcc)
 
 static int isFormatRank(const char *fourcc)
 {
-	char *formats[]={"NV21", "UYVY", "YUY2", "I420", "NV12", NULL};
+	const char *formats[]={"NV21", "UYVY", "YUY2", "MJPG", "I420", "NV12", NULL};
 	if (fourcc == NULL || strlen(fourcc) != 4)
 		return 0;
 	for (int i=0; formats[i]; i++) {
@@ -96,7 +102,8 @@ get_video_caps_from_caps(GstCaps *caps, int min_frame_rate, VideoCaps *video_cap
         	CSIO_LOG(eLogLevel_error, "Could not get structure for index=%d\n", idx);
         } else {
             const gchar *sname = gst_structure_get_name(s);
-            if (strcasecmp(sname, "video/x-raw") == 0)
+            CSIO_LOG(eLogLevel_verbose, "\tStructure name = %s\n", sname);
+            if ((strcasecmp(sname, "video/x-raw") == 0) || (strcasecmp(sname, "image/jpeg") == 0))
             {
                 #if 0
                 gchar *ss = gst_structure_to_string(s);
@@ -106,9 +113,9 @@ get_video_caps_from_caps(GstCaps *caps, int min_frame_rate, VideoCaps *video_cap
 
                 gint width = 0;
                 gint height = 0;
-                const GValue *aspect_ratio;
+                const GValue *aspect_ratio = NULL;
                 gint ar_num = 1, ar_den = 1;
-                const GValue *frame_rate;
+                const GValue *frame_rate = NULL;
                 double max_frame_rate=0;
                 int max_fr_num = 1;
                 int max_fr_den = 1;
@@ -130,7 +137,17 @@ get_video_caps_from_caps(GstCaps *caps, int min_frame_rate, VideoCaps *video_cap
                 // min frame rate requirement satisfied - select highest resolution
                 if (gst_structure_has_field(s, "format"))
                     format = gst_structure_get_string(s, "format");
-                if (!isFormat(format,"YUY2") && !isFormat(format,"NV12") && !isFormat(format, "NV21"))
+#ifdef USE_MJPEG
+                else if (strcasecmp(sname, "image/jpeg") == 0)
+                    format = "MJPG";
+#endif
+                else {
+                    gchar *ss = gst_structure_to_string(s);
+                    CSIO_LOG(eLogLevel_info, "no format field in structure %d = %s", idx, ss);
+                    g_free(ss);
+                }
+
+                if (!isFormat(format,"YUY2") && !isFormat(format,"NV12") && !isFormat(format, "NV21") && !isFormat(format, "MJPG"))
                     continue;
                 if (gst_structure_has_field(s, "width"))
                     gst_structure_get_int(s, "width", &width);
@@ -221,9 +238,11 @@ int get_video_caps(char *device_name, VideoCaps *video_caps, char *display_name,
                 {
                 	//CSIO_LOG(eLogLevel_info, "\tDevice name=%s\n", devname);
                 }
-                //CSIO_LOG(eLogLevel_info, "\tproperties:");
-                //gst_structure_foreach (props, print_structure_field, NULL);
-                //CSIO_LOG(eLogLevel_info, "\n");
+#if 0
+                CSIO_LOG(eLogLevel_info, "\tproperties:");
+                gst_structure_foreach (props, print_structure_field, NULL);
+                CSIO_LOG(eLogLevel_info, "\n");
+#endif
             }
             gchar *devdisplayname = gst_device_get_display_name(device);
             CSIO_LOG(eLogLevel_info, "Got device %s (display_name=%s) of class %s \n", devname, devdisplayname, devclass);
@@ -256,8 +275,21 @@ int get_video_caps(char *device_name, VideoCaps *video_caps, char *display_name,
 
 int get_video_caps_string(VideoCaps *video_caps, char *caps, int maxlen)
 {
-	int n = snprintf(caps, maxlen, "video/x-raw,format=%s,width=%d,height=%d,framerate=%d/%d",
-			video_caps->format, video_caps->w, video_caps->h, video_caps->frame_rate_num, video_caps->frame_rate_den);
+    int n = 0;
+    if (strcasecmp(video_caps->format, "MJPG") == 0)
+    {
+#if 0
+        video_caps->w = 1280;
+        video_caps->h = 720;
+        video_caps->frame_rate_num = 15;
+        video_caps->frame_rate_den = 1;
+#endif
+        n = snprintf(caps, maxlen, "image/jpeg,width=%d,height=%d,framerate=%d/%d",
+                video_caps->w, video_caps->h, video_caps->frame_rate_num, video_caps->frame_rate_den);
+    } else {
+        n = snprintf(caps, maxlen, "video/x-raw,format=%s,width=%d,height=%d,framerate=%d/%d",
+                video_caps->format, video_caps->w, video_caps->h, video_caps->frame_rate_num, video_caps->frame_rate_den);
+    }
 	if (n > 0 && n < maxlen)
 		return 0;
 	else
