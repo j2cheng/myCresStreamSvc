@@ -825,9 +825,11 @@ void* CStreamoutManager::ThreadEntry()
     eWCstatus wc_InitRtn = STREAMOUT_WC_STATUS_NOERROR;
     bool wcRestart = false;
     bool sent_csio_jni_onServerStart = false;
+#ifdef AM3X00
     char threadname[256]={0};
     pthread_getname_np(pthread_self(), threadname, sizeof(threadname));
     CSIO_LOG(eLogLevel_error, "Streamout: Starting StreamOutManager Thread: threadname=%s tid=%d", threadname, gettid());
+#endif
 
     if (m_streamoutMode == STREAMOUT_MODE_WIRELESSCONFERENCING)
     {
@@ -1184,11 +1186,14 @@ void* CStreamoutManager::ThreadEntry()
         csio_jni_onServerStart();
         sent_csio_jni_onServerStart = true;
     
-        CSIO_LOG(eLogLevel_info, "Streamout: running main loop......");
+#ifdef AM3X00
         // Reset threadname back to original - for some reason jni calls change the name of the thread
         pthread_setname_np(pthread_self(), threadname);
         pthread_getname_np(pthread_self(), threadname, sizeof(threadname));
         CSIO_LOG(eLogLevel_info, "Streamout: name=%s tid=%d pid=%d", threadname, gettid(), getpid());
+#endif
+
+        CSIO_LOG(eLogLevel_info, "Streamout: running main loop......");
         g_main_loop_run (m_loop);
     }
 exitThread:

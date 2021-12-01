@@ -29,7 +29,9 @@ public:
         {
             if(name)
             {
+#ifdef AM3X00
                 pthread_setname_np(_thread,name);
+#endif
             }
 
             m_ThreadIsRunning = 1;
