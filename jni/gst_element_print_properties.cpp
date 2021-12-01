@@ -343,7 +343,7 @@ void gst_element_print_properties( GstElement * element )
             GParamSpecFlags   *pflags = G_PARAM_SPEC_FLAGS( param );
             GFlagsValue       *vals;
             gchar             *cur, *def;
-            gchar             work_string[100];
+            gchar             work_string[512];
 
             vals = pflags->flags_class->values;
             cur = flags_to_string( vals,
