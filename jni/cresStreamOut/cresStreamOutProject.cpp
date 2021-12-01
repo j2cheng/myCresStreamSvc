@@ -52,7 +52,7 @@ void StreamoutProjectInit(eStreamoutMode mode)
         CSIO_LOG(StreamOutProjDebugLevel, "Streamout: StreamOutProjList[0]:0x%x\n",StreamOutProjList[0]);
 
         //create only one project thread for now
-        StreamOutProjList[0]->CreateNewThread();
+        StreamOutProjList[0]->CreateNewThread("STREAMOUT_PROJ0", NULL);
     }
     else
     {
@@ -772,7 +772,7 @@ void* CStreamoutProject::ThreadEntry()
                             CSIO_LOG(m_debugLevel, "Streamout: Restart manager[%d] thread in %d ms.",id,retry_delay_ms);
                             usleep(1000000*retry_delay_ms);
 
-                            m_StreamoutTaskObjList[id]->CreateNewThread();
+                            m_StreamoutTaskObjList[id]->CreateNewThread("STREAMOUT_MGR0", NULL);
                         }
                     }
                     break;
@@ -822,7 +822,7 @@ void* CStreamoutProject::ThreadEntry()
                             m_StreamoutTaskObjList[id]->setVideoCaptureDevice(m_video_capture_device);
                             m_StreamoutTaskObjList[id]->setAudioCaptureDevice(m_audio_capture_device);
 
-                            m_StreamoutTaskObjList[id]->CreateNewThread();
+                            m_StreamoutTaskObjList[id]->CreateNewThread("STREAMOUT_MGR0", NULL);
 
                             //log start time stamp
                             //gettimeofday(&eventTime[PROXY_EVENTTIME_CMD_START], NULL);
@@ -1229,7 +1229,7 @@ void* CStreamoutProject::ThreadEntry()
 									m_StreamoutTaskObjList[id]->setAudioCaptureDevice(m_audio_capture_device);
 
 									CSIO_LOG(eLogLevel_error, "Streamout: START_PREVIEW CreateNewThread()");
-									m_StreamoutTaskObjList[id]->CreateNewThread();
+									m_StreamoutTaskObjList[id]->CreateNewThread("STREAMOUT_PREVIEW0", NULL);
 								}
                 				StartPreview((void*) evntQ.buffPtr);
                 			}
@@ -1543,7 +1543,7 @@ void CStreamoutProject::restartStreamoutIfMainLoopEnded()
                     CSIO_LOG(m_debugLevel, "Streamout: Wait for task[%d] threads DONE.\n", i);
                     CSIO_LOG(eLogLevel_warning, "Streamout: task[%d] try to restart a new stream out thread.\n", i);
                     //as long as this object exist, restart it
-                    int ret = m_StreamoutTaskObjList[i]->CreateNewThread();
+                    int ret = m_StreamoutTaskObjList[i]->CreateNewThread("STREAMOUT_MGR0", NULL);
 
                     CSIO_LOG(eLogLevel_warning, "Streamout: ret[%d]. restarts a new stream out thread for task[%d].\n", ret, i);
                 }

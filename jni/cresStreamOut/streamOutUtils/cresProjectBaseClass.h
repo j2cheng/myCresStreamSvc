@@ -21,10 +21,21 @@ public:
     virtual ~CresProjBaseClass() {/* empty */}
 
     /** Returns true if created, false otherwise */
-    int CreateNewThread()
+    int CreateNewThread(const char* name, pthread_attr_t* attr)
     {
-        m_ThreadIsRunning = 1;
-        return (pthread_create(&_thread, NULL, ThreadEntryFunc, this) == 0);
+        int ret = pthread_create(&_thread, attr, ThreadEntryFunc, this);
+
+        if(ret == 0)//success
+        {
+            if(name)
+            {
+                pthread_setname_np(_thread,name);
+            }
+
+            m_ThreadIsRunning = 1;
+        }
+
+        return ret;
     }
 
     /* Will not return until thread has exited. */

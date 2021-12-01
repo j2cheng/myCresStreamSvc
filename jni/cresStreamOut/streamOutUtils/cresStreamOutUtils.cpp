@@ -269,7 +269,7 @@ bool LookupTable::Add(char * key)
         fMasterEntry = newEntry;
         m_numEntries++;
         retV = true;
-        CSIO_LOG(eLogLevel_extraVerbose, "Streamout: LookupTable::Add fMasterEntry[0x%x] done\n",fMasterEntry);
+        CSIO_LOG(eLogLevel_extraVerbose, "Streamout: LookupTable::Add fMasterEntry[0x%p] done\n",fMasterEntry);
     }
     else
     {
