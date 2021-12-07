@@ -170,14 +170,13 @@ client_connected (GstRTSPServer * server, GstRTSPClient * client, void *user_dat
     		e->client_ip_address, e);
 }
 
-#ifdef CLIENT_AUTHENTICATION_ENABLED
 static gboolean
 accept_certificate (GstRTSPAuth *auth,
                     GTlsConnection *conn,
                     GTlsCertificate *peer_cert,
                     GTlsCertificateFlags errors,
                     gpointer user_data) {
-
+#ifdef CLIENT_AUTHENTICATION_ENABLED
     GError *error;
     gboolean accept = FALSE;
     GTlsCertificate *ca_cert = (GTlsCertificate *) user_data;
@@ -220,8 +219,10 @@ accept_certificate (GstRTSPAuth *auth,
     }
     CSIO_LOG(eLogLevel_info, "accept-certificate returning false");
     return FALSE;
-}
+#else
+    return TRUE;
 #endif
+}
 
 ///////////////////////////////////////////////////////////////////////////////
 // Allow file to override canned pipeline, for debugging...
@@ -926,13 +927,15 @@ void* CStreamoutManager::ThreadEntry()
                     g_printerr ("failed to parse CA PEM: %s\n", error->message);
                     goto exitThread;
                 }
+    #else
+                GTlsCertificate *ca_cert = NULL;
     #endif
                 gst_rtsp_auth_set_tls_authentication_mode(auth, G_TLS_AUTHENTICATION_REQUIRED);
-    #ifdef CLIENT_AUTHENTICATION_ENABLED
+
                 g_signal_connect (auth, "accept-certificate", G_CALLBACK
                         (accept_certificate), ca_cert);
                 //if (ca_cert) g_object_unref(ca_cert); //TODO is this needed - had crash when put it in code
-    #endif
+
                 gst_rtsp_auth_set_tls_certificate(auth, cert);
 
                 if (cert) g_object_unref(cert);
