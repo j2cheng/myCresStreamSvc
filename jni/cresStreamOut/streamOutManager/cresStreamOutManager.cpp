@@ -1406,15 +1406,16 @@ eWCstatus CStreamoutManager::initWcAudioVideo()
             	CSIO_LOG(eLogLevel_info, "--Streamout - m_video_caps.format=%s", m_video_caps.format);
             	if (strcasecmp(m_video_caps.format, "MJPG") == 0)
             	{
-                    snprintf(m_videoconvert, sizeof(m_videoconvert), "jpegparse ! jpegdec ! videoconvert ! video/x-raw,format=NV12 !");
+                    snprintf(m_videoconvert, sizeof(m_videoconvert), "queue name=jpegQ ! jpegdec ! queue name=vidConvQ !videoconvert n-threads=6 ! video/x-raw,format=NV12 !");
             	}
             	else if (is_supported(m_video_caps.format))
         		{
         			m_videoconvert[0] = '\0';
+                    //snprintf(m_videoconvert, sizeof(m_videoconvert), "videorate ! video/x-raw,framerate=30/1 !");
         		}
             	else
             	{
-        			snprintf(m_videoconvert, sizeof(m_videoconvert), "videoconvert ! video/x-raw,format=NV12 !");
+        			snprintf(m_videoconvert, sizeof(m_videoconvert), "videoconvert n-threads=6 ! video/x-raw,format=NV12 !");
         		}
         	} else {
         		// using videotestsrc

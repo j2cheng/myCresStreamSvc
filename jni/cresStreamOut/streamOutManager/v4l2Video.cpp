@@ -2,7 +2,7 @@
 #include "cresStreamOutManager.h"
 #include "v4l2Video.h"
 
-//#define USE_MJPEG
+#define USE_MJPEG
 
 #ifdef HAS_V4L2
 
@@ -57,7 +57,7 @@ static bool isFormat(const char *format, const char *fourcc)
 
 static int isFormatRank(const char *fourcc)
 {
-	const char *formats[]={"NV21", "UYVY", "YUY2", "MJPG", "I420", "NV12", NULL};
+	const char *formats[]={"MJPG", "NV21", "UYVY", "YUY2", "I420", "NV12", NULL};
 	if (fourcc == NULL || strlen(fourcc) != 4)
 		return 0;
 	for (int i=0; formats[i]; i++) {
@@ -102,10 +102,10 @@ get_video_caps_from_caps(GstCaps *caps, int min_frame_rate, VideoCaps *video_cap
         	CSIO_LOG(eLogLevel_error, "Could not get structure for index=%d\n", idx);
         } else {
             const gchar *sname = gst_structure_get_name(s);
-            CSIO_LOG(eLogLevel_verbose, "\tStructure name = %s\n", sname);
+            CSIO_LOG(eLogLevel_info, "\tStructure name = %s\n", sname);
             if ((strcasecmp(sname, "video/x-raw") == 0) || (strcasecmp(sname, "image/jpeg") == 0))
             {
-                #if 0
+                #if 1
                 gchar *ss = gst_structure_to_string(s);
                 CSIO_LOG(eLogLevel_info, "\tStructure %d = %s\n", idx, ss);
                 g_free(ss);
@@ -172,8 +172,10 @@ get_video_caps_from_caps(GstCaps *caps, int min_frame_rate, VideoCaps *video_cap
                 // if the current caps resolution is lesser than the required resolution then consider
                 if ( (maxw * maxh ) <= width*height && ((width*height ) <= videoResolutionClamp) )
                 {
+                    CSIO_LOG(eLogLevel_info, "cur: fmt=%s w=%d h=%d frnum=%d frden=%d rank=%d\n", fmt, maxw, maxh, max_frmrate_num,max_frmrate_den, isFormatRank(fmt));
+                    CSIO_LOG(eLogLevel_info, "new: fmt=%s w=%d h=%d frnum=%d frden=%d rank=%d\n", format, width, height, max_fr_num,max_fr_den, isFormatRank(format));
                     // check if the format is better, in order to avoid video conversion later
-                    if( isFormatRank(fmt) < isFormatRank(format) )
+                    if( (maxw*maxh < width*height) || (isFormatRank(fmt) < isFormatRank(format)) )
                     {
                         strcpy(fmt, format);
                         maxw = width;
@@ -278,12 +280,6 @@ int get_video_caps_string(VideoCaps *video_caps, char *caps, int maxlen)
     int n = 0;
     if (strcasecmp(video_caps->format, "MJPG") == 0)
     {
-#if 0
-        video_caps->w = 1280;
-        video_caps->h = 720;
-        video_caps->frame_rate_num = 15;
-        video_caps->frame_rate_den = 1;
-#endif
         n = snprintf(caps, maxlen, "image/jpeg,width=%d,height=%d,framerate=%d/%d",
                 video_caps->w, video_caps->h, video_caps->frame_rate_num, video_caps->frame_rate_den);
     } else {

@@ -30,7 +30,12 @@ public class WC_UsbDevice implements Parcelable {
         this.contents = 0;
         this.deviceId = deviceId;
         this.usbPort = port;
-        this.deviceName = name.trim();
+        if (name != null)
+        {
+            this.deviceName = name.trim();
+        } else {
+            this.deviceName = "Unknown";
+        }
 		this.hasVideo = hasVideo;
 		this.hasAudio = hasAudio;
         this.properties = properties;
