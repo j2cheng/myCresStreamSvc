@@ -21,7 +21,7 @@ public class CanvasSurfaceAcquireResponse extends CanvasResponse {
     private CanvasSurfaceAcquireResponse(Parcel in) {
         super(in);
         final boolean surfaceExists = in.readInt() != 0;
-        this.surface = surfaceExists ? in.readParcelable(Surface.class.getClassLoader()) : null;
+        this.surface = surfaceExists ? Surface.CREATOR.createFromParcel(in) : null;
     }
 
     public static final Creator<CanvasSurfaceAcquireResponse> CREATOR = new Creator<CanvasSurfaceAcquireResponse>() {
@@ -41,7 +41,10 @@ public class CanvasSurfaceAcquireResponse extends CanvasResponse {
         super.writeToParcel(dest, flags);
         final boolean surfaceExists = this.surface != null;
         dest.writeInt(surfaceExists ? 1 : 0);
-        if (surfaceExists) dest.writeParcelable(surface, flags);
+        if (surfaceExists) {
+            // NOTE, flags 
+            this.surface.writeToParcel(dest, 0);
+        }
     }
     
     @Override
