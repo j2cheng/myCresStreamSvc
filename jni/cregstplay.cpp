@@ -1047,6 +1047,7 @@ void csio_TypeFindMsgHandler( GstElement *typefind, guint probability, GstCaps *
     }
     else if( strcasestr(type, "multipart") )
     {
+        CSIO_LOG( eLogLevel_debug,"TYPEFIND: multipart MJPEG");
 		GstElement *sinker = NULL;
 		GstElement *ele0 = NULL;
 		GstStateChangeReturn ret = csio_element_set_state(data->pipeline, GST_STATE_READY);
@@ -1058,9 +1059,15 @@ void csio_TypeFindMsgHandler( GstElement *typefind, guint probability, GstCaps *
 		gst_element_unlink(data->element_zero, (GstElement *)typefind);
 		if(!gst_element_link_many(data->element_zero, ele0, NULL))
 		{
-			 CSIO_LOG(eLogLevel_error,  "ERROR: Cannot link source.\n" );
+		    CSIO_LOG(eLogLevel_error,  "ERROR: TYPEFIND: Cannot link source.\n" );
+ 		}
+		else
+		{
+		    if( (csio_element_set_state( data->pipeline, GST_STATE_PLAYING)) == GST_STATE_CHANGE_FAILURE )
+		        CSIO_LOG(eLogLevel_warning,  "TYPEFIND: WARNING: Cannot restart pipeline." );
+		    else
+		        csio_ShowMJPEGvideo(data->streamId);
 		}
-		ret = csio_element_set_state(data->pipeline, GST_STATE_PLAYING);
     }
     else
     {
