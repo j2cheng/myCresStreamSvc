@@ -475,20 +475,46 @@ public class ProductSpecific
         			if (perDev.getType() == com.gs.core.peripheral.UsbDeviceType.Audio)
         			{
         				aFile = getAudioCaptureFile(audioList);
+                        Log.i(TAG, "onUsbStatusChanged(): audio capture file="+aFile);
+                        if (aFile== null && perDev.getProductName().contains("Room Kit Mini"))
+                        {
+                            aFile="/dev/snd/pcmC5D0c";
+                            Log.i(TAG, "onUsbStatusChanged(): on Room Kit Mini forcing audio capture file="+aFile);
+                        }
         				//This is to populate the AirMedia WC Status IsSpeakerDetected Field
         				sFile = getSpeakerDetectedStatus(audioList);
         			} else if (perDev.getType() == com.gs.core.peripheral.UsbDeviceType.Video) {
         				vFile = getVideoCaptureFile(videoList);
+                        Log.i(TAG, "onUsbStatusChanged(): video capture file="+vFile);
+                        if (vFile==null && perDev.getProductName().contains("Room Kit Mini"))
+                        {
+                            vFile="/dev/video5";
+                            Log.i(TAG, "onUsbStatusChanged(): on Room Kit Mini forcing video capture file="+vFile);
+                        }
         			} else {
         				// BRIO coming in as Type "None" - need to fix
         				if (!audioList.isEmpty())
                         {
         					aFile = getAudioCaptureFile(audioList);
+                            Log.i(TAG, "onUsbStatusChanged(): audio capture file="+aFile);
                             //This is to populate the AirMedia WC Status IsSpeakerDetected Field
                             sFile = getSpeakerDetectedStatus(audioList);
+                            if (aFile==null && perDev.getProductName().contains("Room Kit Mini"))
+                            {
+                                aFile="/dev/snd/pcmC5D0c";
+                                Log.i(TAG, "onUsbStatusChanged(): on Room Kit Mini forcing audio capture file="+aFile);
+                            }
                         }
         				if (!videoList.isEmpty())
-        					vFile = getVideoCaptureFile(videoList);        				
+        				{
+        					vFile = getVideoCaptureFile(videoList); 
+                            Log.i(TAG, "onUsbStatusChanged(): video capture file="+vFile);
+                            if (vFile==null && perDev.getProductName().contains("Room Kit Mini"))
+                            {
+                                vFile="/dev/video5";
+                                Log.i(TAG, "onUsbStatusChanged(): on Room Kit Mini forcing video capture file="+vFile);
+                            }
+        				}
         			}
                     propertyMap = genPropertiesMap(perUsbDevices);
         			UsbAvDevice d = new UsbAvDevice(usbId, ((usbId==PeripheralManager.PER_USB_30)?"usb3":"usb2"), name, vFile, 
