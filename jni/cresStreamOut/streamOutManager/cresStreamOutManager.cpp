@@ -55,6 +55,7 @@ static void cb_queueUnderruns(void *queue, gpointer user_data);
 static void cb_vidEncQueueOverruns(void *queue, gpointer user_data);
 static void cb_vidEncQueueUnderruns(void *queue, gpointer user_data);
 
+#ifndef GENERATE_CERTIFICATE
 #define BLKSIZE (1024)
 static void copy_file(const char *from, const char *to)
 {
@@ -87,6 +88,7 @@ static void copy_server_certificates(char *certificate_file, char *key_file)
 	copy_file(SERVER_CERT_PEM_FILENAME, certificate_file);
 	copy_file(SERVER_CERT_KEY, key_file);
 }
+#endif
 
 static bool
 is_supported(const char *fourcc)
