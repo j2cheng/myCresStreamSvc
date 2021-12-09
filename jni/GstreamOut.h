@@ -139,6 +139,30 @@ JNIEXPORT void JNICALL Java_com_crestron_txrxservice_GstreamOut_nativeSetAppCach
 
 /*
  * Class:     com_crestron_txrxservice_GstreamOut
+ * Method:    nativeSetHostName
+ * Signature: (Ljava/lang/String;)V
+ */
+JNIEXPORT void JNICALL Java_com_crestron_txrxservice_GstreamOut_nativeSetHostName
+  (JNIEnv *, jobject, jstring);
+
+/*
+ * Class:     com_crestron_txrxservice_GstreamOut
+ * Method:    nativeSetDomainName
+ * Signature: (Ljava/lang/String;)V
+ */
+JNIEXPORT void JNICALL Java_com_crestron_txrxservice_GstreamOut_nativeSetDomainName
+  (JNIEnv *, jobject, jstring);
+
+/*
+ * Class:     com_crestron_txrxservice_GstreamOut
+ * Method:    nativeSetServerIpAddress
+ * Signature: (Ljava/lang/String;)V
+ */
+JNIEXPORT void JNICALL Java_com_crestron_txrxservice_GstreamOut_nativeSetServerIpAddress
+  (JNIEnv *, jobject, jstring);
+
+/*
+ * Class:     com_crestron_txrxservice_GstreamOut
  * Method:    nativeSetVideoCaptureDevice
  * Signature: (Ljava/lang/String;)V
  */

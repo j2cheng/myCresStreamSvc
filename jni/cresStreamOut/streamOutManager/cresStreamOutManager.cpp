@@ -44,6 +44,9 @@ int useUsbAudio = false;
 #define	UNLIMITED_RTSP_SESSIONS   0
 
 extern const char *csio_jni_getAppCacheFolder();
+extern const char *csio_jni_getHostName();
+extern const char *csio_jni_getDomainName();
+extern const char *csio_jni_getServerIpAddress();
 extern void csio_jni_SendWCServerURL( void * arg );
 extern void csio_jni_onServerStart();
 extern void csio_jni_onServerStop();
@@ -1363,6 +1366,22 @@ void CStreamoutManager::initWcCertificates()
     if (m_streamoutMode == STREAMOUT_MODE_WIRELESSCONFERENCING)
     {
         if (m_tls_on) {
+            const char *hostName=csio_jni_getHostName();
+            CSIO_LOG(eLogLevel_info, "----------------------Streamout: hostName=%s", hostName);
+            const char *domainName=csio_jni_getDomainName();
+            CSIO_LOG(eLogLevel_info, "----------------------Streamout: domainName=%s", domainName);
+            char fqdn[512]={0};
+            if (domainName && (*domainName != '\0' && (strcmp(domainName,"localdomain") != 0)))
+            {
+                snprintf(fqdn, sizeof(fqdn), "%s.%s", hostName, domainName);
+            }
+            else
+            {
+                snprintf(fqdn, sizeof(fqdn), "%s", hostName);
+            }
+            CSIO_LOG(eLogLevel_info, "----------------------Streamout: fqdn=%s", fqdn);
+            const char *ipAddr=csio_jni_getServerIpAddress();
+            CSIO_LOG(eLogLevel_info, "----------------------Streamout: server ip addr=%s", ipAddr);
         	std::string folder = std::string(csio_jni_getAppCacheFolder()) + std::string("/");
             CSIO_LOG(eLogLevel_info, "----------------------Streamout: app cache folder=%s", folder.c_str());
         	std::string cert_filename = folder + std::string(RTSP_CERT_PEM_FILENAME);
@@ -1371,7 +1390,7 @@ void CStreamoutManager::initWcCertificates()
             strncpy(m_rtsp_key_filename, key_filename.c_str(), sizeof(m_rtsp_cert_filename));
 #ifdef GENERATE_CERTIFICATE
             CSIO_LOG(eLogLevel_info, "----------------------Streamout: create self signed certificates: %s", m_rtsp_cert_filename);
-            create_selfsigned_certificate(m_rtsp_cert_filename, m_rtsp_key_filename);
+            create_selfsigned_certificate(m_rtsp_cert_filename, m_rtsp_key_filename, fqdn, ipAddr);
 #else
             CSIO_LOG(eLogLevel_info, "----------------------Streamout: copy server certificates");
             copy_server_certificates(m_rtsp_cert_filename, m_rtsp_key_filename);

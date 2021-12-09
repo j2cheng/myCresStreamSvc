@@ -129,6 +129,9 @@ static char const* file_prefix = "file://";
 static unsigned const prefixLength7 = 7;
 
 char app_cache_folder[256]={0};
+char hostName[256]={0};
+char domainName[256]={0};
+char serverIpAddress[256]={0};
 
 CresNextDef *CresNextDefaults = NULL;
 
@@ -4695,6 +4698,21 @@ const char *csio_jni_getAppCacheFolder()
 	return app_cache_folder;
 }
 
+const char *csio_jni_getHostName()
+{
+    return hostName;
+}
+
+const char *csio_jni_getDomainName()
+{
+    return domainName;
+}
+
+const char *csio_jni_getServerIpAddress()
+{
+    return serverIpAddress;
+}
+
 void csio_jni_SendWCServerURL( void * arg )
 {
 	jstring serverUrl_jstr;
@@ -5343,6 +5361,51 @@ JNIEXPORT void JNICALL Java_com_crestron_txrxservice_GstreamOut_nativeSetAppCach
 	CSIO_LOG(eLogLevel_debug, "rtsp_server: set app cache folder: '%s'", name_cstring);
 	strncpy(app_cache_folder, name_cstring, sizeof(app_cache_folder));
 	env->ReleaseStringUTFChars(name_jstring, name_cstring);
+}
+
+JNIEXPORT void JNICALL Java_com_crestron_txrxservice_GstreamOut_nativeSetHostName(JNIEnv *env, jobject thiz, jstring name_jstring)
+{
+    if (!CresStreamOutDataDB)
+    {
+        CSIO_LOG(eLogLevel_info, "%s: cannot set value, CresStreamOutDataDB is null", __FUNCTION__);
+        return;
+    }
+    const char * name_cstring = env->GetStringUTFChars( name_jstring , NULL ) ;
+    if (name_cstring == NULL) return;
+
+    CSIO_LOG(eLogLevel_debug, "rtsp_server: set host name: '%s'", name_cstring);
+    strncpy(hostName, name_cstring, sizeof(app_cache_folder));
+    env->ReleaseStringUTFChars(name_jstring, name_cstring);
+}
+
+JNIEXPORT void JNICALL Java_com_crestron_txrxservice_GstreamOut_nativeSetDomainName(JNIEnv *env, jobject thiz, jstring name_jstring)
+{
+    if (!CresStreamOutDataDB)
+    {
+        CSIO_LOG(eLogLevel_info, "%s: cannot set value, CresStreamOutDataDB is null", __FUNCTION__);
+        return;
+    }
+    const char * name_cstring = env->GetStringUTFChars( name_jstring , NULL ) ;
+    if (name_cstring == NULL) return;
+
+    CSIO_LOG(eLogLevel_debug, "rtsp_server: set host name: '%s'", name_cstring);
+    strncpy(domainName, name_cstring, sizeof(app_cache_folder));
+    env->ReleaseStringUTFChars(name_jstring, name_cstring);
+}
+
+JNIEXPORT void JNICALL Java_com_crestron_txrxservice_GstreamOut_nativeSetServerIpAddress(JNIEnv *env, jobject thiz, jstring name_jstring)
+{
+    if (!CresStreamOutDataDB)
+    {
+        CSIO_LOG(eLogLevel_info, "%s: cannot set value, CresStreamOutDataDB is null", __FUNCTION__);
+        return;
+    }
+    const char * name_cstring = env->GetStringUTFChars( name_jstring , NULL ) ;
+    if (name_cstring == NULL) return;
+
+    CSIO_LOG(eLogLevel_debug, "rtsp_server: set host name: '%s'", name_cstring);
+    strncpy(serverIpAddress, name_cstring, sizeof(app_cache_folder));
+    env->ReleaseStringUTFChars(name_jstring, name_cstring);
 }
 
 JNIEXPORT void JNICALL Java_com_crestron_txrxservice_GstreamOut_nativeSetVideoCaptureDevice(JNIEnv *env, jobject thiz, jstring device_jstring)

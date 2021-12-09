@@ -93,7 +93,7 @@ int simpleLockTryGet(pthread_mutex_t * slMutexPtr);
 int simpleLockRelease(pthread_mutex_t * slMutexPtr);
 
 // --- generate a private key and a selfsigned certificate
-bool create_selfsigned_certificate(char *certPemFile, char *privateKeyPemFile);
+bool create_selfsigned_certificate(char *certPemFile, char *privateKeyPemFile, const char *fqdn, const char *ipAddr);
 
 #endif /* SHARED_CONTEXT_SSL_H */
 

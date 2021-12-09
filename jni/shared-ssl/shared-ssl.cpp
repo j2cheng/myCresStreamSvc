@@ -6,6 +6,7 @@
 #include <openssl/ssl.h>
 #include <openssl/err.h>
 #include <openssl/conf.h>
+#include <openssl/x509v3.h>
 
 #include "csioCommBase.h"
 
@@ -1660,6 +1661,133 @@ X509 * generate_x509(EVP_PKEY * pkey)
     return x509;
 }
 
+int randSerial(ASN1_INTEGER *ai) {
+    BIGNUM *p_bignum = NULL;
+    int ret = -1;
+
+    if (NULL == (p_bignum = BN_new())) {
+        goto CLEANUP;
+    }
+
+    if (!BN_pseudo_rand(p_bignum, 64, 0, 0)) {
+        goto CLEANUP;
+    }
+
+    if (ai && !BN_to_ASN1_INTEGER(p_bignum, ai)) {
+        goto CLEANUP;
+    }
+
+    ret = 1;
+
+    CLEANUP:
+    BN_free(p_bignum);
+
+    return ret;
+}
+
+/* Add extension using V3 code: we can set the config file as NULL
+ * because we wont reference any other sections.
+ */
+
+int add_ext(X509 *cert, int nid, const char *value)
+{
+    X509_EXTENSION *ex;
+    X509V3_CTX ctx;
+    /* This sets the 'context' of the extensions. */
+    /* No configuration database */
+    X509V3_set_ctx_nodb(&ctx);
+    /* Issuer and subject certs: both the target since it is self signed,
+     * no request and no CRL
+     */
+    X509V3_set_ctx(&ctx, cert, cert, NULL, NULL, 0);
+    ex = X509V3_EXT_conf_nid(NULL, &ctx, nid, value);
+    sssl_log(LOGLEV_error,"add_ext(): nid=%d value=%s ex=%p", nid, value, ex);
+    if (!ex)
+        return 0;
+
+    X509_add_ext(cert,ex,-1);
+    X509_EXTENSION_free(ex);
+    return 1;
+}
+
+/* Generates a self-signed x509 certificate. */
+X509 * wc_generate_x509(EVP_PKEY * pkey, const char *fqdn, const char *ipAddr)
+{
+    char san[256];
+
+    /* Allocate memory for the X509 structure. */
+    X509 * x509 = X509_new();
+    if(!x509)
+    {
+        sssl_log(LOGLEV_error,"Unable to create X509 structure.");
+        return NULL;
+    }
+    X509_set_version(x509, 2);
+
+    /* Set the serial number. */
+    ASN1_INTEGER *p_serial_number = ASN1_INTEGER_new();
+    randSerial(p_serial_number);
+    X509_set_serialNumber(x509, p_serial_number);
+
+    /* This certificate is valid from now until exactly one year from now. */
+    X509_gmtime_adj(X509_get_notBefore(x509), 0);
+    X509_gmtime_adj(X509_get_notAfter(x509), 31536000L);
+
+    /* Set the public key for our certificate. */
+    X509_set_pubkey(x509, pkey);
+
+    /* We want to copy the subject name to the issuer name. */
+    X509_NAME * name = X509_get_subject_name(x509);
+
+    /* Set the country code and common name. */
+    //X509_NAME_add_entry_by_txt(name, "C",  MBSTRING_ASC, (unsigned char *)"US",            -1, -1, 0);
+    //X509_NAME_add_entry_by_txt(name, "ST", MBSTRING_ASC, (unsigned char *)"NJ",            -1, -1, 0);
+    //X509_NAME_add_entry_by_txt(name, "L",  MBSTRING_ASC, (unsigned char *)"RockLeigh",     -1, -1, 0);
+    X509_NAME_add_entry_by_txt(name, "O",  MBSTRING_ASC, (unsigned char *)"Crestron Electronics, Inc.", -1, -1, 0);
+    //X509_NAME_add_entry_by_txt(name, "OU", MBSTRING_ASC, (unsigned char *)"Engineering",   -1, -1, 0);
+    if (fqdn != NULL && *fqdn != '\0')
+        X509_NAME_add_entry_by_txt(name, "CN", MBSTRING_ASC, (unsigned char *) fqdn,       -1, -1, 0);
+    else
+        X509_NAME_add_entry_by_txt(name, "CN", MBSTRING_ASC, (unsigned char *) ipAddr,       -1, -1, 0);
+
+    /* Now set the issuer name. */
+    X509_set_issuer_name(x509, name);
+
+    /* Add various extensions: standard extensions */
+    //add_ext(x509, NID_basic_constraints, "critical,CA:TRUE,pathlen:0");
+    //add_ext(x509, NID_key_usage, "critical,digitalSignature,keyCertSign,cRLSign");
+    add_ext(x509, NID_basic_constraints, "CA:FALSE");
+    add_ext(x509, NID_key_usage, "critical,digitalSignature,keyEncipherment,keyAgreement");
+    add_ext(x509, NID_ext_key_usage, "serverAuth");
+    add_ext(x509, NID_subject_key_identifier, "hash");
+    add_ext(x509, NID_authority_key_identifier, "keyid,issuer");
+    //add_ext(x509, NID_netscape_comment, "OpenSSL Generated Certificate");
+    if (fqdn != NULL && *fqdn != '\0')
+    {
+        snprintf(san, sizeof(san), "DNS:%s,IP:%s", fqdn, ipAddr);
+    }
+    else
+    {
+        snprintf(san, sizeof(san), "IP:%s", ipAddr);
+    }
+    add_ext(x509, NID_subject_alt_name, san);
+    //snprintf(san, sizeof(san), "IP:%s", ipAddr);
+    //add_ext(x509, NID_subject_alt_name, san);
+
+
+    /* Actually sign the certificate with our key. */
+    if(!X509_sign(x509, pkey, EVP_sha256()))
+    {
+        sssl_log(LOGLEV_error,"Error signing certificate.");
+        X509_free(x509);
+        x509 = NULL;
+    }
+
+    ASN1_INTEGER_free(p_serial_number);
+
+    return x509;
+}
+
 bool write_to_disk(EVP_PKEY * pkey, X509 * x509)
 {
     /* Open the PEM file for writing the key to disk. */
@@ -1740,7 +1868,7 @@ static bool write_to_disk(X509 * pX509, char *certPemFile, EVP_PKEY * pkey, char
     return true;
 }
 
-bool create_selfsigned_certificate(char *certPemFile, char *privateKeyPemFile)
+bool create_selfsigned_certificate(char *certPemFile, char *privateKeyPemFile, const char *fqdn, const char *ipAddr)
 {
     EVP_PKEY * pKey;
     X509 * pX509;
@@ -1752,7 +1880,7 @@ bool create_selfsigned_certificate(char *certPemFile, char *privateKeyPemFile)
         sssl_log(LOGLEV_error,"%s: generate_key failed.", __FUNCTION__);
         return(false);
     } else {
-       pX509 = generate_x509(pKey);
+       pX509 = wc_generate_x509(pKey, fqdn, ipAddr);
        if(!pX509)
        {
            EVP_PKEY_free(pKey);

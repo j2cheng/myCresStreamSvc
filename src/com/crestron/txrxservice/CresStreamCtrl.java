@@ -1732,15 +1732,27 @@ public class CresStreamCtrl extends Service {
     public void setHostName(String dflt)
     {
         hostName = MiscUtils.getHostName(dflt);
+        Log.i(TAG,"setHostName(): hostname is "+hostName);
+    }
+    
+    public String getHostName()
+    {
+        return MiscUtils.getHostName("localhost");
     }
     
     public void setDomainName(String domainName)
     {
     	if (!domainName.equals(userSettings.getDomainName())) {
     		userSettings.setDomainName(domainName);
+            Log.i(TAG,"setDomainName(): domainName is "+domainName);
     		if (mAirMedia != null)
     			sendAirMediaConnectionInfo();
     	}
+    }
+    
+    public String getDomainName()
+    {
+        return userSettings.getDomainName();
     }
     
     private boolean isCameraDisabledBySecurity()

@@ -68,6 +68,9 @@ public class GstreamOut {
     private native void nativeSet_WcSecurityEnable(boolean enable, int sessionId);
     private native void nativeSet_WcRandomUserPwEnable(boolean enable, int sessionId);
     private native void nativeSetAppCacheFolder(String name);
+    private native void nativeSetHostName(String hostName);
+    private native void nativeSetDomainName(String domainName);
+    private native void nativeSetServerIpAddress(String ipAddr);
     private native void nativeSetVideoCaptureDevice(String device);
     private native void nativeSetAudioCaptureDevice(String device);
     private native void nativeGetVideoFormat(String videoFile, WC_VideoFormat format, int quality);
@@ -230,6 +233,9 @@ public class GstreamOut {
         nativeSetVideoCaptureDevice(streamCtl.userSettings.getWcVideoCaptureDevice());
         nativeSetAudioCaptureDevice(streamCtl.userSettings.getWcAudioCaptureDevice());
         setAppCacheFolder();
+        setHostName();
+        setDomainName();
+        setServerIpAddress();
         setPort(8554);
         setMulticastEnable(false);
         setWirelessConferencingResolution(10);
@@ -304,6 +310,21 @@ public class GstreamOut {
     public void setAppCacheFolder()
     {
         nativeSetAppCacheFolder(appCacheFolder);
+    }
+    
+    public void setHostName()
+    {
+        nativeSetHostName(streamCtl.getHostName());
+    }
+    
+    public void setDomainName()
+    {
+        nativeSetDomainName(streamCtl.getDomainName());
+    }
+    
+    public void setServerIpAddress()
+    {
+        nativeSetServerIpAddress(streamCtl.userSettings.getDeviceIp());
     }
     
     public void setPort(int port) {
