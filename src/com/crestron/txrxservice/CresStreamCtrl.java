@@ -250,6 +250,7 @@ public class CresStreamCtrl extends Service {
     public boolean isWirelessConferencingLicensed = false;
     public boolean isRGB888HDMIVideoSupported = true;
     public boolean mCanvasHdmiIsPlaying = false;
+    public boolean forceSurfaceDisconnectAndRelease=false;
     public CrestronHwPlatform mHwPlatform;
     public String mProductName;
     public boolean mCameraDisabled = false;
@@ -843,7 +844,15 @@ public class CresStreamCtrl extends Service {
 	            	}
 	                Log.i(TAG, "device using "+((useFauxPPUX)?"Faux PPUX":"Real PPUX"));
 	            }
+	            f = new File("/dev/shm/forceSurfaceRelease");
+	            if (f.exists() && isAM3K)
+	            {
+	                forceSurfaceDisconnectAndRelease = MiscUtils.readStringFromDisk("/dev/shm/forceSurfaceRelease").equals("1");
+	                if (forceSurfaceDisconnectAndRelease)
+	                    Log.i(TAG, "device will force surface disconnect and release");
+	            }
             }
+
             NumDmInputs = nativeGetDmInputCount();
             mHwPlatform = CrestronHwPlatform.fromInteger(nativeGetHWPlatformEnum());
             mProductName = getProductName(nativeGetProductTypeEnum());

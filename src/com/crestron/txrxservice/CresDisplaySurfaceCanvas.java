@@ -150,6 +150,25 @@ public class CresDisplaySurfaceCanvas implements CresDisplaySurface
     public void deleteSurface(int idx)
     {
     	Log.v(TAG, "deleteSurface - streamId="+idx);
+    	if (streamCtl.forceSurfaceDisconnectAndRelease)
+    	{
+    	    Surface s = surfaceMap.get(idx);
+    	    if (s == null)
+    	    {
+                Log.i(TAG, "deleteSurface - streamId="+idx+" null surface");
+    	    } 
+    	    else if (!s.isValid()) 
+    	    {
+                Log.i(TAG, "deleteSurface - streamId="+idx+" invalid surface");
+    	    } 
+    	    else
+    	    {
+    	        Log.i(TAG, "deleteSurface - streamId="+idx+" doing force scope disconnect and release on surface");
+    	        ProductSpecific.Surface_forceScopedDisconnect(s);
+    	        s.release();
+    	    }
+    	}
+    	
 		surfaceMap.remove(idx);
     }
     

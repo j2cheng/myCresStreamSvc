@@ -1334,11 +1334,12 @@ exitThread:
 static std::string genRandomString(const int len) {
 
     std::string tmp_s;
+    // see failures often when we add special characters to username/password
     static const char alphanum[] =
         "0123456789"
         "ABCDEFGHIJKLMNOPQRSTUVWXYZ"
-        "abcdefghijklmnopqrstuvwxyz"
-        "!#$%^*.";
+        "abcdefghijklmnopqrstuvwxyz";
+
     static bool initialize_seed = true;
 
     if (initialize_seed) {
