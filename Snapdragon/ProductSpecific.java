@@ -4,6 +4,7 @@ import java.io.BufferedReader;
 import java.io.File;
 import java.io.FileReader;
 import java.io.IOException;
+import java.lang.reflect.Method;
 
 import android.content.Context;
 import android.content.Intent;
@@ -269,6 +270,11 @@ public class ProductSpecific
     	// Not implemented for this product
     }
 
+    public static void Surface_forceScopedDisconnect(Surface surface) 
+    {
+        // Not implemented for this product
+    }
+    
     public boolean hasUVCCamera() 
     {
     	// Not implemented for this product

@@ -248,6 +248,11 @@ public class ProductSpecific
     	// Not implemented for this product
     }
 
+    public static void Surface_forceScopedDisconnect(Surface surface) 
+    {
+        // Not implemented for this product
+    }
+    
     public boolean hasUVCCamera() 
     {
     	// Not implemented for this product

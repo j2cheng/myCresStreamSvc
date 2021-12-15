@@ -273,6 +273,17 @@ public class ProductSpecific
     {
         // Not implemented for vanilla
     }
+    
+    public static void Surface_forceScopedDisconnect(Surface surface) 
+    {
+        try {
+            Method method = surface.getClass().getDeclaredMethod("forceScopedDisconnect");
+            method.setAccessible(true);
+            method.invoke(surface);
+        } catch (Exception e) {
+            e.printStackTrace();
+        }
+    }
 
     public boolean hasUVCCamera() 
     {

@@ -231,6 +231,11 @@ public class ProductSpecific
 		MiscUtils.writeStringToDisk("/sys/devices/platform/omap_i2c.2/i2c-2/2-000f/evs_prev_rgb888_en", setString);	// For ittiam's changes
     }
     
+    public static void Surface_forceScopedDisconnect(Surface surface) 
+    {
+        // Not implemented for this product
+    }
+    
     public boolean hasUVCCamera() 
     {
     	// Not implemented for this product
