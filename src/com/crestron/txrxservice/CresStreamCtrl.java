@@ -1889,6 +1889,28 @@ public class CresStreamCtrl extends Service {
         }
     }
     
+    public void disconnectSurface(int id)
+    {
+        if (forceSurfaceDisconnectAndRelease)
+        {
+            Surface s = getSurface(id);
+            if (s == null)
+            {
+                Log.i(TAG, "disconnectSurface - streamId="+id+" null surface");
+            } 
+            else if (!s.isValid()) 
+            {
+                Log.i(TAG, "disconnectSurface - streamId="+id+" invalid surface");
+            } 
+            else
+            {
+                Log.i(TAG, "disconnectSurface - streamId="+id+" doing force scope disconnect and release on surface");
+                ProductSpecific.Surface_forceScopedDisconnect(s);
+                s.release();
+            }
+        }
+    }
+    
     public int surface2streamId(Surface surface)
     {
         if (dispSurface != null)

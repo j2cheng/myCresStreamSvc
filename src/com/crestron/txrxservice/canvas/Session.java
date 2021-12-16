@@ -324,6 +324,7 @@ public abstract class Session
 			{
 				if (!inReplace())
 				{
+				    mStreamCtl.disconnectSurface(streamId);
 					mCanvas.releaseSurface(sessionId());
 				}
 				else
@@ -344,6 +345,7 @@ public abstract class Session
 	
 	public void releaseSurface(int streamId, String sessionId)
 	{
+        mStreamCtl.disconnectSurface(streamId);
 		mCanvas.releaseSurface(sessionId);
 		mStreamCtl.deleteSurface(streamId);
 		mCanvas.mSurfaceMgr.removeSurface(streamId);
