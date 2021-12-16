@@ -1349,7 +1349,9 @@ static std::string genRandomString(const int len) {
 
     tmp_s.reserve(len);
 
-    for (int i = 0; i < len; ++i)
+    // Make first character alpha (not numeric)
+    tmp_s += alphanum[10 + (rand() % (sizeof(alphanum) - 11))];
+    for (int i = 1; i < len; ++i)
         tmp_s += alphanum[rand() % (sizeof(alphanum) - 1)];
 
 
