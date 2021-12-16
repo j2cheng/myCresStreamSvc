@@ -1361,8 +1361,8 @@ void CStreamoutManager::initWcCertificates()
 	if (m_auth_on && m_random_user_pw)
 	{
 	    // get random user name and password
-		setUsername((char *) genRandomString(16).c_str());
-		setPassword((char *) genRandomString(16).c_str());
+		setUsername((char *) genRandomString(4/*16*/).c_str());
+		setPassword((char *) genRandomString(8/*16*/).c_str());
 	}
     if (m_streamoutMode == STREAMOUT_MODE_WIRELESSCONFERENCING)
     {
