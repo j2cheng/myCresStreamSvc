@@ -217,11 +217,11 @@ public class WifidVideoPlayer {
         public void start(long id, String endpoint, int port, Surface surface, String localAddress)
         {
             Common.Logging.i(TAG, "VideoPlayer.start  sessionId="+id+"  url="+endpoint+"  port="+port+"   Surface="+surface+"   localAddress="+localAddress);
-            if (surface == null)
-            {
-                Common.Logging.w(TAG, "Cannot start player with null surface");
-                return;
-            }
+//            if (surface == null)
+//            {
+//                Common.Logging.w(TAG, "Cannot start player with null surface");
+//                return;
+//            }
 
             // See if prior session exists with the same id
             VideoSession session = sessionMap.get(id);
