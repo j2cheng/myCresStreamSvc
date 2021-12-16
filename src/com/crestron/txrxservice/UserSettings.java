@@ -429,7 +429,7 @@ public class UserSettings
                 airMediaWCQuality = 0;  // 0 - High, 1 - Medium, 2 - Low
                 airMediaWCLicensed = false;
 		wcSecurityEnable = true;
-		wcRandomUserPwEnable = true;
+		wcRandomUserPwEnable = false; //TODO - this must be changed back to true before release
 		wcVideoCaptureDevice = "/dev/video5";
 		wcAudioCaptureDevice = "/dev/snd/pcmC5D0c";
 		serviceMode = CresStreamCtrl.ServiceMode.Master.ordinal();
