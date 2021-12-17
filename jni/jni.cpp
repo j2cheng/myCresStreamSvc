@@ -2323,6 +2323,17 @@ JNIEXPORT void JNICALL Java_com_crestron_txrxservice_GstreamIn_nativeSetFieldDeb
             	GstElement *ele = gst_element_factory_create(factory, "enc");
             	gst_element_print_properties(ele);
             }
+            else if (!strcmp(CmdPtr, "DECCAPS"))
+            {
+            	GstElementFactory *factory = gst_element_factory_find(product_info()->mjpeg_decoder_string);
+            	print_pad_templates_information(factory);
+            }
+            else if (!strcmp(CmdPtr, "DECPROPS"))
+            {
+            	GstElementFactory *factory = gst_element_factory_find(product_info()->mjpeg_decoder_string);
+            	GstElement *ele = gst_element_factory_create(factory, "enc");
+            	gst_element_print_properties(ele);
+            }
             else if(!strcmp(CmdPtr, "SET_DEC_MAX_INPUT_FRAMES"))
             {
                 //the first parameter is stream id
@@ -2599,6 +2610,11 @@ static void * debug_launch_pipeline(void *vData)
                 CSIO_LOG(eLogLevel_debug, "Found AMC decoder, setting surface window %p",
                          data->surface);
                 g_object_set(G_OBJECT(decoder), "surface-window", data->surface, NULL);
+            }
+            else
+            {
+                CSIO_LOG(eLogLevel_debug, "Failed to find AMC decoder, setting surface window %p",
+                         data->surface);
             }
         } else {
 			// Find encoder element and set the video window to it
@@ -6397,6 +6413,30 @@ void Wfd_ms_mice_signal_raise (gint64 session_id, int state, char *local_addr, c
     {
         csio_SendMsMiceStateChange(session_id,state,"0.0.0.0","device_id","device_name","device_addr",rtsp_port);
     }
+}
+
+void jni_SendPendingSessionStateChange(gint64 session_id,char *remote_addr)
+{
+    JNIEnv *env = get_jni_env ();  
+    jstring remoteAddress;
+
+    CSIO_LOG(eLogLevel_debug, "jni_SendPendingSessionStateChange[%lld]",session_id);
+
+    jmethodID sendPendingSessionStateChange = env->GetMethodID((jclass)gStreamIn_javaClass_id, "sendPendingSessionStateChange", "(JLjava/lang/String;)V");
+    if (sendPendingSessionStateChange == NULL) {
+        CSIO_LOG(eLogLevel_error, "Failed to find Java method 'sendPendingSessionStateChange'");
+        return;
+    }
+
+    remoteAddress = env->NewStringUTF(remote_addr);
+
+    env->CallVoidMethod(CresDataDB->app, sendPendingSessionStateChange, (jlong)session_id,(jstring) remoteAddress);
+    if (env->ExceptionCheck ()) {
+        CSIO_LOG(eLogLevel_error, "Failed to call Java method 'sendPendingSessionStateChange'");
+            env->ExceptionClear ();
+        }
+
+    env->DeleteLocalRef(remoteAddress);
 }
 
 //called from WifiDisplaySink project to set latency

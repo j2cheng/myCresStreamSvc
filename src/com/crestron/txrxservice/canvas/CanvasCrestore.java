@@ -468,6 +468,14 @@ public class CanvasCrestore
 		cresstoreSet(jsonStr, false);
 	}
 	
+	public void setPendingSessionStateChangeToCresstore(String type)
+	{
+		Root root = getRootedInternalAirMediaCanvasPendingSessionStateChange();
+		root.internal.airMedia.canvas.pendingSessionStateChange.type = type;
+		String jsonStr = "{\"Pending\":" + gson.toJson(root) + "}";
+		cresstoreSet(jsonStr, false);
+	}
+
 	public void setVideoDisplayed(boolean value)
 	{
 		Root root = getRootedInternalAirMediaOsd();
@@ -1965,6 +1973,13 @@ public class CanvasCrestore
 		return root;
 	}
 	
+	private Root getRootedInternalAirMediaCanvasPendingSessionStateChange()
+	{
+		Root root = getRootedInternalAirMediaCanvas();
+		root.internal.airMedia.canvas.pendingSessionStateChange = new PendingSessionStateChange();
+		return root;
+	}
+
 	private Root getRootedInternalAirMediaOsd()
 	{
 		Root root = getRootedInternalAirMedia();
@@ -2338,6 +2353,11 @@ public class CanvasCrestore
         Boolean crestoreVerify;
     }
     
+    public class PendingSessionStateChange {
+        @SerializedName ("Type")
+        String type;
+    }
+
     public class SessionWindow {
     	@SerializedName ("Left")
     	Integer left;
@@ -2466,6 +2486,8 @@ public class CanvasCrestore
         SessionStateFeedback sessionStateFeedback;
         @SerializedName ("RestartSignal")
         RestartSignal restartSignal;
+        @SerializedName ("PendingSessionStateChange")
+        PendingSessionStateChange pendingSessionStateChange;
     }
     
     public class InternalAirMedia {

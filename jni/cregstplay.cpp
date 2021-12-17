@@ -213,6 +213,9 @@ void set_gst_debug_level(void)
     CSIO_LOG(eLogLevel_debug, "Get GST_VERSION_MINOR  %d", GST_VERSION_MINOR);
     CSIO_LOG(eLogLevel_debug, "Get GST_VERSION_MICRO  %d", GST_VERSION_MICRO);
     CSIO_LOG(eLogLevel_debug, "Get GST_VERSION  %s", gst_version_string());
+#ifdef GST_CRESTRON_VERSION
+    CSIO_LOG(eLogLevel_debug, "Get GST_VERSION  %d",GST_CRESTRON_VERSION);
+#endif
 }
 
 /**

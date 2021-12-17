@@ -387,6 +387,14 @@ public class GstreamIn implements SurfaceHolder.Callback {
     	}
     }
     
+    //Note: it is called from jni.cpp for miracast connection.
+    public void sendPendingSessionStateChange(long sessionId, String remoteAddress)
+    {
+    	Log.i(TAG, "sendPendingSessionStateChange: sessionId = " + sessionId + ", remoteAddress = " + remoteAddress);
+    	
+        streamCtl.mCanvas.mCrestore.setPendingSessionStateChangeToCresstore("MiracastMsmice");
+    }
+
     public long getStreamInNumVideoPackets() {
 		return statisticsNumVideoPackets;
 	}

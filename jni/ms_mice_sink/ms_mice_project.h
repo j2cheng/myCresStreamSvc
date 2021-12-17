@@ -31,6 +31,8 @@ typedef enum _e_msMiceSinkProjEvents
 
     MS_MICE_SINK_EVENTS_MICE_SIGNAL_RAISE,
 
+    MS_MICE_SINK_EVENTS_MICE_SIGNAL_CONNECTED,
+
     MS_MICE_SINK_EVENTS_MAX
 }e_msMiceSinkProjEvents;
 

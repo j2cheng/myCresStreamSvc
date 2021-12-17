@@ -393,6 +393,31 @@ static void app_extension_ms_mice_service_observer_on_session_connected(ms_mice_
     CSIO_LOG(eLogLevel_debug,"app.ms-mice.service.event.session-connected { \"session-id\": %" G_GUINT64_FORMAT " }", ms_mice_sink_session_get_id(ms_session));
 
     ms_mice_sink_session_observer_attach(ms_session, &app_extension_ms_mice_session_observer, NULL);
+
+    //send client connected event back to CSS
+    if(g_msMiceSinkProjPtr)
+    {
+        csioEventQueueStruct EvntQ;
+        memset(&EvntQ,0,sizeof(csioEventQueueStruct));
+        EvntQ.obj_id = 0;
+        EvntQ.event_type = MS_MICE_SINK_EVENTS_MICE_SIGNAL_CONNECTED;
+
+        //Note: simply uses the same structure: msMiceSignalRaiseCmd
+        msMiceSignalRaiseCmd NewCmd;
+        memset(&NewCmd,0,sizeof(msMiceSignalRaiseCmd));
+        NewCmd.session_id  = ms_mice_sink_session_get_id(ms_session);
+        NewCmd.device_addr = (char*)ms_mice_sink_session_get_remote_address(ms_session);
+        
+        EvntQ.buf_size   = sizeof(msMiceSignalRaiseCmd);
+        EvntQ.buffPtr    = &NewCmd;
+        CSIO_LOG(gProjectDebug, "MICE_SIGNAL_CONNECTED");
+
+        g_msMiceSinkProjPtr->sendEvent(&EvntQ);
+    }
+    else
+    {
+        CSIO_LOG(gProjectDebug, "observer_on_session_connected: no g_msMiceSinkProjPtr is running\n");
+    }
 }
 
 ms_mice_sink_service_observer ctl_fn_ms_mice_sink_service_observer = {
@@ -652,6 +677,7 @@ void msMiceSinkProjClass::sendEvent(csioEventQueueStruct* pEvntQ)
             switch (evntQ.event_type)
             {
                 case MS_MICE_SINK_EVENTS_MICE_SIGNAL_RAISE:
+                case MS_MICE_SINK_EVENTS_MICE_SIGNAL_CONNECTED:
                 {
                     evntQ.buffPtr = new msMiceSignalRaiseCmd;
                     if(evntQ.buffPtr)
@@ -947,24 +973,33 @@ void* msMiceSinkProjClass::ThreadEntry()
                 	break;
                 }
                 case MS_MICE_SINK_EVENTS_MICE_SIGNAL_RAISE:
+                case MS_MICE_SINK_EVENTS_MICE_SIGNAL_CONNECTED:
                 {
                     msMiceSignalRaiseCmd* pConfig = (msMiceSignalRaiseCmd*)evntQPtr->buffPtr;
                     CSIO_LOG(m_debugLevel, "msMiceSinkProjClass: pConfig[0x%x]\n",pConfig);
 
                     if(pConfig && evntQPtr->buf_size)
                     {
-                        CSIO_LOG(m_debugLevel, "msMiceSinkProjClass: call saveConfig\n");
-                        if(pConfig->device_addr && pConfig->device_id && pConfig->device_name)
+                        if(evntQPtr->event_type == MS_MICE_SINK_EVENTS_MICE_SIGNAL_RAISE)
                         {
-                            Wfd_ms_mice_signal_raise (
-                                    pConfig->session_id,
-                                    pConfig->state,
-                                    pConfig->local_addr,
-                                    pConfig->device_id,
-                                    pConfig->device_name,
-                                    pConfig->device_addr,
-                                    pConfig->rtsp_port);
+                            if(pConfig->device_addr && pConfig->device_id && pConfig->device_name)
+                            {
+                                CSIO_LOG(m_debugLevel, "msMiceSinkProjClass: call Wfd_ms_mice_signal_raise\n");
+                                Wfd_ms_mice_signal_raise (
+                                        pConfig->session_id,
+                                        pConfig->state,
+                                        pConfig->local_addr,
+                                        pConfig->device_id,
+                                        pConfig->device_name,
+                                        pConfig->device_addr,
+                                        pConfig->rtsp_port);
+                            }//else
                         }
+                        else if(evntQPtr->event_type == MS_MICE_SINK_EVENTS_MICE_SIGNAL_CONNECTED)
+                        {
+                            CSIO_LOG(m_debugLevel, "msMiceSinkProjClass: call jni_SendPendingSessionStateChange[%lld]\n",pConfig->session_id);
+                            jni_SendPendingSessionStateChange(pConfig->session_id,pConfig->device_addr);
+                        }//else
 
                         if(pConfig->local_addr)
                         {
