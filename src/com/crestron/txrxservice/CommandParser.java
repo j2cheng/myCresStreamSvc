@@ -212,6 +212,7 @@ public class CommandParser {
         WC_RANDOM_USERPW_ENABLE,  // Wireless Conferencing random user and password Enable
         WC_VIDEO_DEVICE,     // Wireless Conferencing set video device
         WC_AUDIO_DEVICE,     // Wireless Conferencing set audio device
+        WC_GEN_CERTS_COMPLETED,  // completed certificate generation
 
         APPSPACE_IS_ENABLED,
         USE_GSTREAMER,
@@ -887,6 +888,9 @@ public class CommandParser {
                 break;
             case WC_AUDIO_DEVICE:
                 cmd = new WirelessConferencingAudioDeviceCommand(ctrl, arg);
+                break;
+            case WC_GEN_CERTS_COMPLETED:
+                cmd = new WirelessConferencingGenerateCertificatesCompletedCmd(ctrl, arg);
                 break;
                 
             case APPSPACE_IS_ENABLED:

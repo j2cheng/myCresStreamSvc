@@ -31,6 +31,8 @@
 #undef USE_VIDEOTESTSRC
 #undef USE_AUDIOTESTSRC
 #undef CLIENT_AUTHENTICATION_ENABLED
+#undef SHOW_PEER_CERTIFICATE
+
 
 //static bool PushModel = false;
 int useUsbAudio = false;
@@ -57,41 +59,6 @@ static void cb_queueOverruns(void *queue, gpointer user_data);
 static void cb_queueUnderruns(void *queue, gpointer user_data);
 static void cb_vidEncQueueOverruns(void *queue, gpointer user_data);
 static void cb_vidEncQueueUnderruns(void *queue, gpointer user_data);
-
-#ifndef GENERATE_CERTIFICATE
-#define BLKSIZE (1024)
-static void copy_file(const char *from, const char *to)
-{
-	char buffer[BLKSIZE];
-	size_t bytes;
-	int infile, outfile;
-
-    CSIO_LOG(eLogLevel_info, "--------------- copy file %s -> %s -----------------------", from, to);
-	if ((infile = open(from, O_RDONLY)) < 0)
-	{
-		CSIO_LOG(eLogLevel_error, "%s: error opening file %s\n", __FUNCTION__, from);
-		return;
-	}
-	if ((outfile = open(to, O_WRONLY|O_CREAT, 0666)) < 0)
-	{
-		CSIO_LOG(eLogLevel_error, "%s: error opening file %s\n", __FUNCTION__, to);
-		return;
-	}
-
-	while (0 < (bytes = read(infile, buffer, sizeof(buffer))))
-		write(outfile, buffer, bytes);
-
-	//close streams
-	close(infile);
-	close(outfile);
-}
-
-static void copy_server_certificates(char *certificate_file, char *key_file)
-{
-	copy_file(SERVER_CERT_PEM_FILENAME, certificate_file);
-	copy_file(SERVER_CERT_KEY, key_file);
-}
-#endif
 
 static bool
 is_supported(const char *fourcc)
@@ -175,18 +142,53 @@ client_connected (GstRTSPServer * server, GstRTSPClient * client, void *user_dat
     		e->client_ip_address, e);
 }
 
+#ifdef SHOW_PEER_CERTIFICATE
+static char *sgets(char *s, int n, char **strp){
+    if(**strp == '\0')return NULL;
+    int i;
+    for(i=0;i<n-1;++i, ++(*strp)){
+        s[i] = **strp;
+        if(**strp == '\0')
+            break;
+        if(**strp == '\n'){
+            s[i+1]='\0';
+            ++(*strp);
+            break;
+        }
+    }
+    if(i==n-1)
+        s[i] = '\0';
+    return s;
+}
+#endif
+
 static gboolean
 accept_certificate (GstRTSPAuth *auth,
                     GTlsConnection *conn,
                     GTlsCertificate *peer_cert,
                     GTlsCertificateFlags errors,
                     gpointer user_data) {
+    CSIO_LOG(eLogLevel_info, "%s(): auth=%p conn=%p peer_cert=%p errors=%x user_data=%p",
+            __FUNCTION__, auth, conn, peer_cert, errors, user_data);
+#ifdef SHOW_PEER_CERTIFICATE
+    gchar *cert_pem = NULL;
+    g_object_get(peer_cert, "certificate-pem", &cert_pem, NULL);
+    if (cert_pem != NULL)
+    {
+        char **p = &cert_pem;
+        char buf[80];
+        while (sgets(buf, sizeof(buf), p) != NULL)
+        {
+            CSIO_LOG(eLogLevel_info, "client cert=%s", buf);
+        }
+        g_free(cert_pem);
+    }
+#endif
 #ifdef CLIENT_AUTHENTICATION_ENABLED
     GError *error;
     gboolean accept = FALSE;
     GTlsCertificate *ca_cert = (GTlsCertificate *) user_data;
 
-    CSIO_LOG(eLogLevel_verbose, "%s(): entered", __FUNCTION__);
     GTlsDatabase* database = g_tls_connection_get_database(G_TLS_CONNECTION(conn));
     if (database) {
         GSocketConnectable *peer_identity;
@@ -225,6 +227,7 @@ accept_certificate (GstRTSPAuth *auth,
     CSIO_LOG(eLogLevel_info, "accept-certificate returning false");
     return FALSE;
 #else
+    CSIO_LOG(eLogLevel_info, "accept-certificate returning true");
     return TRUE;
 #endif
 }
@@ -1369,35 +1372,16 @@ void CStreamoutManager::initWcCertificates()
     if (m_streamoutMode == STREAMOUT_MODE_WIRELESSCONFERENCING)
     {
         if (m_tls_on) {
-            const char *hostName=csio_jni_getHostName();
-            CSIO_LOG(eLogLevel_info, "----------------------Streamout: hostName=%s", hostName);
-            const char *domainName=csio_jni_getDomainName();
-            CSIO_LOG(eLogLevel_info, "----------------------Streamout: domainName=%s", domainName);
-            char fqdn[512]={0};
-            if (domainName && (*domainName != '\0' && (strcmp(domainName,"localdomain") != 0)))
-            {
-                snprintf(fqdn, sizeof(fqdn), "%s.%s", hostName, domainName);
-            }
-            else
-            {
-                snprintf(fqdn, sizeof(fqdn), "%s", hostName);
-            }
-            CSIO_LOG(eLogLevel_info, "----------------------Streamout: fqdn=%s", fqdn);
-            const char *ipAddr=csio_jni_getServerIpAddress();
-            CSIO_LOG(eLogLevel_info, "----------------------Streamout: server ip addr=%s", ipAddr);
         	std::string folder = std::string(csio_jni_getAppCacheFolder()) + std::string("/");
             CSIO_LOG(eLogLevel_info, "----------------------Streamout: app cache folder=%s", folder.c_str());
-        	std::string cert_filename = folder + std::string(RTSP_CERT_PEM_FILENAME);
-            strncpy(m_rtsp_cert_filename, cert_filename.c_str(), sizeof(m_rtsp_cert_filename));
-        	std::string key_filename = folder + std::string(RTSP_CERT_KEY);
-            strncpy(m_rtsp_key_filename, key_filename.c_str(), sizeof(m_rtsp_cert_filename));
-#ifdef GENERATE_CERTIFICATE
-            CSIO_LOG(eLogLevel_info, "----------------------Streamout: create self signed certificates: %s", m_rtsp_cert_filename);
-            create_selfsigned_certificate(m_rtsp_cert_filename, m_rtsp_key_filename, fqdn, ipAddr);
-#else
-            CSIO_LOG(eLogLevel_info, "----------------------Streamout: copy server certificates");
-            copy_server_certificates(m_rtsp_cert_filename, m_rtsp_key_filename);
-#endif
+            std::string filename = folder + std::string(RTSP_ROOT_CERT_PEM_FILENAME);
+            strncpy(m_rtsp_root_cert_filename, filename.c_str(), sizeof(m_rtsp_root_cert_filename));
+            filename = folder + std::string(RTSP_ROOT_CERT_KEY);
+            strncpy(m_rtsp_root_key_filename, filename.c_str(), sizeof(m_rtsp_root_key_filename));
+        	filename = folder + std::string(RTSP_CERT_PEM_FILENAME);
+            strncpy(m_rtsp_cert_filename, filename.c_str(), sizeof(m_rtsp_cert_filename));
+        	filename = folder + std::string(RTSP_CERT_KEY);
+            strncpy(m_rtsp_key_filename, filename.c_str(), sizeof(m_rtsp_key_filename));
         }
     }
 }

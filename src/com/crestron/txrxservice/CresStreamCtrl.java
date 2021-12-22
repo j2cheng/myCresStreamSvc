@@ -6246,45 +6246,63 @@ public class CresStreamCtrl extends Service {
         }
     }
     
-    public void setWirelessConferencingStreamEnable(boolean enable) {
-        Log.i(TAG, "entered setWirelessConferencingStreamEnable() - enable="+enable);
-        stopStartLock[0].lock("setWirelessConferencingStreamEnable");
-        try
+    public void wcCertificateGenerationComplete(boolean status)
+    {
+        if (gstStreamOut != null)
         {
-            if (gstStreamOut != null)
+            gstStreamOut.wcCertificateGenerationComplete(status);
+        }
+    }
+    
+    public void setWirelessConferencingStreamEnable(boolean enable) 
+    {
+        Log.i(TAG, "entered setWirelessConferencingStreamEnable() - enable="+enable);
+        final boolean startWc = enable;
+        Thread thread = new Thread()
+        {
+            public void run()
             {
-                int sessId;
-                int rtn = 0;
-
-                if (enable)
+                stopStartLock[0].lock("setWirelessConferencingStreamEnable");
+                try
                 {
-                    if (!gstStreamOut.wcStarted()) {
-                        //start streamout
-                        gstStreamOut.wirelessConferencing_start();
+                    if (gstStreamOut != null)
+                    {
+                        int sessId;
+                        int rtn = 0;
+
+                        if (startWc)
+                        {
+                            if (!gstStreamOut.wcStarted()) {
+                                //start streamout
+                                gstStreamOut.wirelessConferencing_start();
+                            }
+                            else
+                            {
+                                Log.w(TAG, "setWirelessConferencingStreamEnable(): already started!!!");
+                            }
+                        }
+                        else
+                        {
+                            if (gstStreamOut.wcStarted()) {
+                                //stop streamout
+                                gstStreamOut.wirelessConferencing_stop();
+                            } else {
+                                Log.w(TAG, "setWirelessConferencingStreamEnable(): already stopped!!!");
+                            }
+                        }
                     }
                     else
                     {
-                        Log.w(TAG, "setWirelessConferencingStreamEnable(): already started!!!");
+                        Log.w(TAG, "gstStreamout is null!!!");
                     }
-                }
-                else
+                } finally
                 {
-                    if (gstStreamOut.wcStarted()) {
-                        //stop streamout
-                        gstStreamOut.wirelessConferencing_stop();
-                    } else {
-                        Log.w(TAG, "setWirelessConferencingStreamEnable(): already stopped!!!");
-                    }
+                    stopStartLock[0].unlock("setWirelessConferencingStreamEnable");
                 }
             }
-            else
-            {
-                Log.w(TAG, "gstStreamout is null!!!");
-            }
-        } finally
-        {
-            stopStartLock[0].unlock("setWirelessConferencingStreamEnable");
-        }
+        };
+
+        thread.start();
     }
     
     // This function implementts the WC enable or disable 

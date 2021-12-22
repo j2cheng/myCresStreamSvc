@@ -27,12 +27,19 @@ import com.crestron.txrxservice.wc.ipc.WC_VideoFormat;
 
 import android.util.Log;
 
+import java.io.BufferedReader;
+import java.io.File;
+import java.io.FileReader;
+import java.io.IOException;
+import java.io.InputStreamReader;
 import java.lang.Object;
 
 import java.util.ArrayList;
 import java.util.Arrays;
 import java.util.List;
 import java.util.Set;
+import java.util.concurrent.CountDownLatch;
+import java.util.concurrent.TimeUnit;
 
 import android.os.SystemClock;
 
@@ -42,8 +49,8 @@ public class GstreamOut {
 
     static String TAG = "GstreamOut";
 
-    private static final String RTSP_CERT_PEM_FILENAME = "rtspserver_cert.pem";
-    private static final String RTSP_CERT_KEY = "rtspserver_key.pem";
+    private static final String RTSP_ROOT_CERT_PEM_FILENAME = "rtsproot_cert.pem";
+    private static final String RTSP_ROOT_CERT_KEY = "rtsproot_key.pem";
 
 ///////////////////////////////////////////////////////////////////////////////
 
@@ -92,11 +99,12 @@ public class GstreamOut {
     private boolean wirelessConferencing_server_started = false;
     private String wcServerUrl = null;
     private String appCacheFolder = null;
+    private CountDownLatch wcCertificateGenerationCompletedLatch = null;
 
     public boolean wcStarted() {return wirelessConferencing_server_started; }
     public String getWcServerUrl() { return wcServerUrl; }
-    public String getWcServerCertificate() { return MiscUtils.readStringFromDisk(appCacheFolder+"/"+RTSP_CERT_PEM_FILENAME); }
-    public String getWcServerKey() { return MiscUtils.readStringFromDisk(appCacheFolder+"/"+RTSP_CERT_KEY); }
+    public String getWcServerCertificate() { return readStringFromDisk(appCacheFolder+"/"+RTSP_ROOT_CERT_PEM_FILENAME); }
+    public String getWcServerKey() { return readStringFromDisk(appCacheFolder+"/"+RTSP_ROOT_CERT_KEY); }
 
 ///////////////////////////////////////////////////////////////////////////////
 
@@ -105,6 +113,24 @@ public class GstreamOut {
         nativeClassInitRtspServer();
     }
 
+    public static String readStringFromDisk(String filePath)
+    {
+        StringBuilder text = new StringBuilder();
+        text.append(""); //default to blank string
+        try {
+            File file = new File(filePath);
+
+            BufferedReader br = new BufferedReader(new FileReader(file));  
+            String line;   
+            while ((line = br.readLine()) != null) {
+                text.append("\r\n");
+                text.append(line);
+            }
+            br.close();
+        }catch (Exception e) {}
+        return text.toString();
+    }
+    
     public GstreamOut(CresStreamCtrl ctl) {
         Log.i(TAG, "Streamout: JAVA - constructor called");
         streamCtl = ctl;
@@ -240,6 +266,8 @@ public class GstreamOut {
         setMulticastEnable(false);
         setWirelessConferencingResolution(10);
         setWcSecurityEnable(streamCtl.userSettings.getWcSecurityEnable());
+        if (streamCtl.isAM3K && streamCtl.userSettings.getWcSecurityEnable())
+            generateRtspServerCertificates();
         setWcRandomUserPwEnable(streamCtl.userSettings.getWcRandomUserPwEnable());
         setFramerate(15);
         setBitrate(2000000);
@@ -248,6 +276,75 @@ public class GstreamOut {
         setQuality(streamCtl.userSettings.getAirMediaWCQuality());
     }
 
+    public void generateRtspServerCertificatesInCss()
+    {
+        String scriptFolder = streamCtl.getFilesDir().getAbsolutePath();
+        String command = scriptFolder+"/genRtspCerts.sh";
+        Process p=null;
+        Log.d(TAG,"running script to generate server certificates");
+        try {
+            Log.d(TAG,"script path="+command);
+            ProcessBuilder builder = new ProcessBuilder(command);
+            final Process process = builder.start();
+            final Thread ioThread = new Thread() {
+                @Override
+                public void run() {
+                    try {
+                        Log.d(TAG,"launching reader process for output of script");
+                        final BufferedReader reader = new BufferedReader(
+                                new InputStreamReader(process.getInputStream()));
+                        String line = null;
+                        while ((line = reader.readLine()) != null) {
+                            Log.i(TAG, "genRtspCerts(): "+line);
+                        }
+                        Log.d(TAG,"closing reader");
+                        reader.close();
+                    } catch (final Exception e) {
+                        e.printStackTrace();
+                    }
+                }
+            };
+            Log.d(TAG,"starting ioThread");
+            ioThread.start();
+
+            int retCode = process.waitFor();
+            Log.d(TAG, "script return code="+retCode);
+        } catch (IOException e) {
+            Log.i(TAG, "IOException");
+            e.printStackTrace();
+        } catch (InterruptedException e) {
+            Log.i(TAG, "InterruptedException");
+            e.printStackTrace();
+        } finally {
+            if(p!=null) p.destroy();
+        }
+        Log.d(TAG,"finished running script to generate server certificates");
+    }
+    
+    public void wcCertificateGenerationComplete(boolean success)
+    {
+        Log.i(TAG,"server certificate generation completed success="+success);
+        if (wcCertificateGenerationCompletedLatch != null) {
+            wcCertificateGenerationCompletedLatch.countDown();
+        }
+    }
+    
+    public void generateRtspServerCertificates()
+    {
+        Log.i(TAG,"asking csio to run script to generate server certificates");
+        wcCertificateGenerationCompletedLatch = new CountDownLatch(1);
+        streamCtl.sockTask.SendDataToAllClients("GenerateRtspServerCerts=TRUE");
+        Log.i(TAG,"sent command to csio");
+        try {
+           wcCertificateGenerationCompletedLatch.await(10000, TimeUnit.MILLISECONDS);
+        } catch (Exception e) { 
+            e.printStackTrace(); 
+        } finally {
+            wcCertificateGenerationCompletedLatch = null;
+        }
+        Log.i(TAG,"finished running script to generate server certificates");
+    }
+    
     public List<String> getWcServerUrlList()
     {
         List<String> list = new ArrayList<String>(Arrays.asList(wcServerUrl.split("\\s*,\\s*")));
