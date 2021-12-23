@@ -466,86 +466,66 @@ public class ProductSpecific
         }
 
         public void onUsbStatusChanged(int usbId, int status, String name, List<String> videoList, 
-        		List<String> audioList, List<PeripheralUsbDevice> perUsbDevices)
+                List<String> audioList, List<PeripheralUsbDevice> perUsbDevices)
         {
-        	boolean change = false;
-        	if (status > 0)
-        	{
-        		// device was added on port=usbId
-        		List<UsbAvDevice> dl = findUsbDevices(usbId);
-        		if (dl != null) {
-        			dl.clear();
-        		}
-        		for (PeripheralUsbDevice perDev : perUsbDevices)
-        		{
-        			Log.i(TAG, "Peripheral device type = "+perDev.getType());
+            boolean change = false;
+            if (status > 0)
+            {
+                // device was added on port=usbId
+                List<UsbAvDevice> dl = findUsbDevices(usbId);
+                if (dl != null) {
+                    dl.clear();
+                }
+                for (PeripheralUsbDevice perDev : perUsbDevices)
+                {
+                    Log.i(TAG, "Peripheral device type = "+perDev.getType());
                     HashMap<String, String> propertyMap;
-        			String aFile = null;
-        			String vFile = null;
-        			Boolean sFile = null;
-        			if (perDev.getType() == com.gs.core.peripheral.UsbDeviceType.Audio)
-        			{
-        				aFile = getAudioCaptureFile(audioList);
+                    String aFile = null;
+                    String vFile = null;
+                    Boolean sFile = null;
+                    if (perDev.getType() == com.gs.core.peripheral.UsbDeviceType.Audio)
+                    {
+                        aFile = getAudioCaptureFile(audioList);
                         Log.i(TAG, "onUsbStatusChanged(): audio capture file="+aFile);
-                        if (aFile== null && perDev.getProductName().contains("Room Kit Mini"))
-                        {
-                            aFile="/dev/snd/pcmC5D0c";
-                            Log.i(TAG, "onUsbStatusChanged(): on Room Kit Mini forcing audio capture file="+aFile);
-                        }
-        				//This is to populate the AirMedia WC Status IsSpeakerDetected Field
-        				sFile = getSpeakerDetectedStatus(audioList);
-        			} else if (perDev.getType() == com.gs.core.peripheral.UsbDeviceType.Video) {
-        				vFile = getVideoCaptureFile(videoList);
+                        //This is to populate the AirMedia WC Status IsSpeakerDetected Field
+                        sFile = getSpeakerDetectedStatus(audioList);
+                    } else if (perDev.getType() == com.gs.core.peripheral.UsbDeviceType.Video) {
+                        vFile = getVideoCaptureFile(videoList);
                         Log.i(TAG, "onUsbStatusChanged(): video capture file="+vFile);
-                        if (vFile==null && perDev.getProductName().contains("Room Kit Mini"))
+                    } else {
+                        // BRIO coming in as Type "None" - need to fix
+                        if (!audioList.isEmpty())
                         {
-                            vFile="/dev/video5";
-                            Log.i(TAG, "onUsbStatusChanged(): on Room Kit Mini forcing video capture file="+vFile);
-                        }
-        			} else {
-        				// BRIO coming in as Type "None" - need to fix
-        				if (!audioList.isEmpty())
-                        {
-        					aFile = getAudioCaptureFile(audioList);
+                            aFile = getAudioCaptureFile(audioList);
                             Log.i(TAG, "onUsbStatusChanged(): audio capture file="+aFile);
                             //This is to populate the AirMedia WC Status IsSpeakerDetected Field
                             sFile = getSpeakerDetectedStatus(audioList);
-                            if (aFile==null && perDev.getProductName().contains("Room Kit Mini"))
-                            {
-                                aFile="/dev/snd/pcmC5D0c";
-                                Log.i(TAG, "onUsbStatusChanged(): on Room Kit Mini forcing audio capture file="+aFile);
-                            }
                         }
-        				if (!videoList.isEmpty())
-        				{
-        					vFile = getVideoCaptureFile(videoList); 
+                        if (!videoList.isEmpty())
+                        {
+                            vFile = getVideoCaptureFile(videoList); 
                             Log.i(TAG, "onUsbStatusChanged(): video capture file="+vFile);
-                            if (vFile==null && perDev.getProductName().contains("Room Kit Mini"))
-                            {
-                                vFile="/dev/video5";
-                                Log.i(TAG, "onUsbStatusChanged(): on Room Kit Mini forcing video capture file="+vFile);
-                            }
-        				}
-        			}
+                        }
+                    }
                     propertyMap = genPropertiesMap(perUsbDevices);
-        			UsbAvDevice d = new UsbAvDevice(usbId, ((usbId==PeripheralManager.PER_USB_30)?"usb3":"usb2"), name, vFile, 
-            				aFile, sFile, propertyMap);
-            		Log.i(TAG, "UsbAudioVideoDeviceAdded(): new USB device "+d.deviceName+" added on "+d.usbPortType);
+                    UsbAvDevice d = new UsbAvDevice(usbId, ((usbId==PeripheralManager.PER_USB_30)?"usb3":"usb2"), name, vFile, 
+                            aFile, sFile, propertyMap);
+                    Log.i(TAG, "UsbAudioVideoDeviceAdded(): new USB device "+d.deviceName+" added on "+d.usbPortType);
                     //Filter out Supported and Unsupported devices here for WC Feature
                     if(isUsbDeviceSupported(propertyMap))
                         usbDeviceList.add(d);
-        		}
-        	} else {
-        		// device was removed on port=usbId
-        		List<UsbAvDevice> dl = findUsbDevices(usbId);
-        		if (dl != null) {
-        			for (UsbAvDevice d : dl)
-        			{
-        				Log.i(TAG, "UsbAudioVideoDeviceRemoved(): USB device "+d.deviceName+" removed from "+d.usbPortType);
-        				usbDeviceList.remove(d);
-        			}
-        		}
-        	}
+                }
+            } else {
+                // device was removed on port=usbId
+                List<UsbAvDevice> dl = findUsbDevices(usbId);
+                if (dl != null) {
+                    for (UsbAvDevice d : dl)
+                    {
+                        Log.i(TAG, "UsbAudioVideoDeviceRemoved(): USB device "+d.deviceName+" removed from "+d.usbPortType);
+                        usbDeviceList.remove(d);
+                    }
+                }
+            }
             cresStreamCtrl.onUsbStatusChanged(usbDeviceList);
         }
         

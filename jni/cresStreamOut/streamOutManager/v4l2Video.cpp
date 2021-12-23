@@ -102,12 +102,12 @@ get_video_caps_from_caps(GstCaps *caps, int min_frame_rate, VideoCaps *video_cap
         	CSIO_LOG(eLogLevel_error, "Could not get structure for index=%d\n", idx);
         } else {
             const gchar *sname = gst_structure_get_name(s);
-            CSIO_LOG(eLogLevel_info, "\tStructure name = %s\n", sname);
+            CSIO_LOG(eLogLevel_verbose, "\tStructure name = %s\n", sname);
             if ((strcasecmp(sname, "video/x-raw") == 0) || (strcasecmp(sname, "image/jpeg") == 0))
             {
                 #if 1
                 gchar *ss = gst_structure_to_string(s);
-                CSIO_LOG(eLogLevel_info, "\tStructure %d = %s\n", idx, ss);
+                CSIO_LOG(eLogLevel_verbose, "\tStructure %d = %s\n", idx, ss);
                 g_free(ss);
                 #endif
 
