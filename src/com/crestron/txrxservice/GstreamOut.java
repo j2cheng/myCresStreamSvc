@@ -41,6 +41,7 @@ import java.util.Set;
 import java.util.concurrent.CountDownLatch;
 import java.util.concurrent.TimeUnit;
 
+import android.os.FileObserver;
 import android.os.SystemClock;
 
 ///////////////////////////////////////////////////////////////////////////////
@@ -100,6 +101,8 @@ public class GstreamOut {
     private String wcServerUrl = null;
     private String appCacheFolder = null;
     private CountDownLatch wcCertificateGenerationCompletedLatch = null;
+    private FileObserver wcCertificateCompletionObserver = null;
+    private final Object wcCertificateCompletionObserverLock = new Object();
 
     public boolean wcStarted() {return wirelessConferencing_server_started; }
     public String getWcServerUrl() { return wcServerUrl; }
@@ -142,6 +145,10 @@ public class GstreamOut {
         }
         appCacheFolder = streamCtl.getCacheDir().getAbsolutePath();
         Log.i(TAG, "Streamout: Application cache folder path = "+appCacheFolder);
+        if (CresStreamCtrl.isAM3K)
+        {
+            monitorWcCertificateGenerationCompletion();
+        }
     }
 
     public void setSessionIndex(int id){
@@ -321,12 +328,36 @@ public class GstreamOut {
         Log.d(TAG,"finished running script to generate server certificates");
     }
     
-    public void wcCertificateGenerationComplete(boolean success)
+    private void wcCertificateGenerationComplete(boolean success)
     {
-        Log.i(TAG,"server certificate generation completed success="+success);
+        Log.i(TAG,"server certificate generation completed result="+success);
         if (wcCertificateGenerationCompletedLatch != null) {
             wcCertificateGenerationCompletedLatch.countDown();
         }
+    }
+    
+    @SuppressWarnings("deprecation")
+    private void monitorWcCertificateGenerationCompletion()
+    {
+        final String generationStatusPath = "/dev/shm/crestron/CresStreamSvc/certGenerationStatus.txt";
+
+        streamCtl.checkFileExistsElseCreate(generationStatusPath);
+        Log.i(TAG, "Monitor CLOSE_WRITE events on "+generationStatusPath+" file for certificate genrate completion");
+        // Monitor certificate completion events by monitoring CLOSE_WRITE events on file
+        wcCertificateCompletionObserver = new FileObserver(generationStatusPath, FileObserver.CLOSE_WRITE) 
+        {                     
+            @Override
+            public void onEvent(int event, String path) 
+            {
+                synchronized (wcCertificateCompletionObserverLock) 
+                {
+                    String result = MiscUtils.readStringFromDisk(generationStatusPath);
+                    Log.i(TAG, "certificate generation status = "+result);
+                    wcCertificateGenerationComplete(result.equalsIgnoreCase("success"));
+                }
+            }
+        };
+        wcCertificateCompletionObserver.startWatching();
     }
     
     public void generateRtspServerCertificates()

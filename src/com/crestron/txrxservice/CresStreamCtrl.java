@@ -6246,63 +6246,46 @@ public class CresStreamCtrl extends Service {
         }
     }
     
-    public void wcCertificateGenerationComplete(boolean status)
-    {
-        if (gstStreamOut != null)
-        {
-            gstStreamOut.wcCertificateGenerationComplete(status);
-        }
-    }
-    
     public void setWirelessConferencingStreamEnable(boolean enable) 
     {
         Log.i(TAG, "entered setWirelessConferencingStreamEnable() - enable="+enable);
-        final boolean startWc = enable;
-        Thread thread = new Thread()
+        stopStartLock[0].lock("setWirelessConferencingStreamEnable");
+        try
         {
-            public void run()
+            if (gstStreamOut != null)
             {
-                stopStartLock[0].lock("setWirelessConferencingStreamEnable");
-                try
-                {
-                    if (gstStreamOut != null)
-                    {
-                        int sessId;
-                        int rtn = 0;
+                int sessId;
+                int rtn = 0;
 
-                        if (startWc)
-                        {
-                            if (!gstStreamOut.wcStarted()) {
-                                //start streamout
-                                gstStreamOut.wirelessConferencing_start();
-                            }
-                            else
-                            {
-                                Log.w(TAG, "setWirelessConferencingStreamEnable(): already started!!!");
-                            }
-                        }
-                        else
-                        {
-                            if (gstStreamOut.wcStarted()) {
-                                //stop streamout
-                                gstStreamOut.wirelessConferencing_stop();
-                            } else {
-                                Log.w(TAG, "setWirelessConferencingStreamEnable(): already stopped!!!");
-                            }
-                        }
+                if (enable)
+                {
+                    if (!gstStreamOut.wcStarted()) {
+                        //start streamout
+                        gstStreamOut.wirelessConferencing_start();
                     }
                     else
                     {
-                        Log.w(TAG, "gstStreamout is null!!!");
+                        Log.w(TAG, "setWirelessConferencingStreamEnable(): already started!!!");
                     }
-                } finally
+                }
+                else
                 {
-                    stopStartLock[0].unlock("setWirelessConferencingStreamEnable");
+                    if (gstStreamOut.wcStarted()) {
+                        //stop streamout
+                        gstStreamOut.wirelessConferencing_stop();
+                    } else {
+                        Log.w(TAG, "setWirelessConferencingStreamEnable(): already stopped!!!");
+                    }
                 }
             }
-        };
-
-        thread.start();
+            else
+            {
+                Log.w(TAG, "gstStreamout is null!!!");
+            }
+        } finally
+        {
+            stopStartLock[0].unlock("setWirelessConferencingStreamEnable");
+        }
     }
     
     // This function implementts the WC enable or disable 
@@ -6613,7 +6596,7 @@ public class CresStreamCtrl extends Service {
         }
     }
     
-    private void checkFileExistsElseCreate(String filePath)
+    public void checkFileExistsElseCreate(String filePath)
     {
         File file = new File (filePath);
         if (!file.isFile())	//check if file exists
@@ -6630,7 +6613,7 @@ public class CresStreamCtrl extends Service {
         Log.e(TAG, "------ Recreate CresDisplaySurface due to surfaceFlinger Violation ------");
         RecoverTxrxService();
     }
-    
+
     private void monitorSurfaceFlingerViolations()
     {
         final Object surfaceFlingerObserverLock = new Object();

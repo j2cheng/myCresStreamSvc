@@ -2642,16 +2642,6 @@ class WirelessConferencingAudioDeviceCommand extends CrestronCommand {
 	}
 }
 
-
-class WirelessConferencingGenerateCertificatesCompletedCmd extends CrestronCommand {
-    public WirelessConferencingGenerateCertificatesCompletedCmd(CresStreamCtrl ctrl, String arg) {
-        super(ctrl, arg);
-    }
-    public void execute() {
-        ctrl.wcCertificateGenerationComplete(Boolean.valueOf(msg));
-    }
-}
-
 class AppspaceIsEnabledCommand extends CrestronCommand {
 
     public AppspaceIsEnabledCommand(CresStreamCtrl ctrl, String arg) {
