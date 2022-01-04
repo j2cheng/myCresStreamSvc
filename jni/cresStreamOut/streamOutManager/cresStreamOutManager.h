@@ -24,18 +24,11 @@ typedef enum _eWCstatus
     STREAMOUT_WC_STATUS_MAX
 } eWCstatus;
 
-//#define RTSP_CA_CERT_FILENAME  "/data/CresStreamSvc/digital_certificates/gst_ssl_ca.pem"
-//#define RTSP_CERT_PEM_FILENAME "/data/CresStreamSvc/digital_certificates/gst_ssl_cert.pem"
-//#define RTSP_CERT_KEY          "/data/CresStreamSvc/digital_certificates/gst_ssl_cert_decrypt.key"
-//#define RTSP_CA_CERT_FILENAME  "/data/CresStreamSvc/digital_certificates/ca.pem"
-//#define ROOT_CERT_PEM_FILENAME        "/data/CresStreamSvc/digital_certificates/rtsp_root_cert.pem"
-//#define ROOT_CERT_KEY                 "/data/CresStreamSvc/digital_certificates/rtsp_root_key.pem"
-//#define SERVER_CERT_PEM_FILENAME      "/data/CresStreamSvc/digital_certificates/rtspserver_cert.pem"
-//#define SERVER_CERT_KEY               "/data/CresStreamSvc/digital_certificates/rtspserver_key.pem"
-#define RTSP_ROOT_CERT_PEM_FILENAME   "rtsproot_cert.pem"
-#define RTSP_ROOT_CERT_KEY            "rtsproot_key.pem"
-#define RTSP_CERT_PEM_FILENAME        "rtspserver_cert.pem"
-#define RTSP_CERT_KEY                 "rtspserver_key.pem"
+#define RTSP_CERTIFICATE_FOLDER_PATH  "/dev/shm/crestron/CresStreamSvc/wc"
+#define RTSP_ROOT_CERT_PEM_FILENAME   "root_cert.pem"
+#define RTSP_ROOT_CERT_KEY            "root_key.pem"
+#define RTSP_CERT_PEM_FILENAME        "server_cert.pem"
+#define RTSP_CERT_KEY                 "server_key.pem"
 
 class RtspClient {
 public:

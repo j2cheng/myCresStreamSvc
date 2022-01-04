@@ -1372,8 +1372,7 @@ void CStreamoutManager::initWcCertificates()
     if (m_streamoutMode == STREAMOUT_MODE_WIRELESSCONFERENCING)
     {
         if (m_tls_on) {
-        	std::string folder = std::string(csio_jni_getAppCacheFolder()) + std::string("/");
-            CSIO_LOG(eLogLevel_info, "----------------------Streamout: app cache folder=%s", folder.c_str());
+            std::string folder = std::string(RTSP_CERTIFICATE_FOLDER_PATH) + std::string("/");
             std::string filename = folder + std::string(RTSP_ROOT_CERT_PEM_FILENAME);
             strncpy(m_rtsp_root_cert_filename, filename.c_str(), sizeof(m_rtsp_root_cert_filename));
             filename = folder + std::string(RTSP_ROOT_CERT_KEY);

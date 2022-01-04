@@ -50,8 +50,10 @@ public class GstreamOut {
 
     static String TAG = "GstreamOut";
 
+    private static final String RTSP_CERTIFICATE_FOLDER_PATH = "/dev/shm/crestron/CresStreamSvc/wc";
     private static final String RTSP_ROOT_CERT_PEM_FILENAME = "rtsproot_cert.pem";
     private static final String RTSP_ROOT_CERT_KEY = "rtsproot_key.pem";
+    private static final String WC_URL_PATH = RTSP_CERTIFICATE_FOLDER_PATH + "/" + "server.url";
 
 ///////////////////////////////////////////////////////////////////////////////
 
@@ -106,8 +108,8 @@ public class GstreamOut {
 
     public boolean wcStarted() {return wirelessConferencing_server_started; }
     public String getWcServerUrl() { return wcServerUrl; }
-    public String getWcServerCertificate() { return readStringFromDisk(appCacheFolder+"/"+RTSP_ROOT_CERT_PEM_FILENAME); }
-    public String getWcServerKey() { return readStringFromDisk(appCacheFolder+"/"+RTSP_ROOT_CERT_KEY); }
+    public String getWcServerCertificate() { return readStringFromDisk(RTSP_CERTIFICATE_FOLDER_PATH+"/"+RTSP_ROOT_CERT_PEM_FILENAME); }
+    public String getWcServerKey() { return readStringFromDisk(RTSP_CERTIFICATE_FOLDER_PATH+"/"+RTSP_ROOT_CERT_KEY); }
 
 ///////////////////////////////////////////////////////////////////////////////
 
@@ -379,13 +381,13 @@ public class GstreamOut {
     public List<String> getWcServerUrlList()
     {
         List<String> list = new ArrayList<String>(Arrays.asList(wcServerUrl.split("\\s*,\\s*")));
-        Log.i(TAG, "getWcServerUrlList(): urlList="+list);
+        Log.v(TAG, "getWcServerUrlList(): urlList="+list);
         return list;
     }
     
     public void setWcServerUrl(String url)
     {
-        Log.i(TAG, "Streamout: setWcServerUrl: incoming url="+url);
+        Log.v(TAG, "Streamout: setWcServerUrl: incoming url="+url);
         StringBuilder newUrl = new StringBuilder("");
         if (url.contains("0.0.0.0"))
         {
@@ -408,7 +410,12 @@ public class GstreamOut {
             }
         }
         wcServerUrl = newUrl.toString();
-        Log.i(TAG, "setWcServerUrl: WC server url="+wcServerUrl);
+        if (wcServerUrl != null)
+        {
+            String[] urls = wcServerUrl.split(",");
+            MiscUtils.writeStringToDisk(WC_URL_PATH, urls[0]);
+        }
+        Log.v(TAG, "setWcServerUrl: WC server url="+wcServerUrl);
     }
 
     public void onServerStart()
