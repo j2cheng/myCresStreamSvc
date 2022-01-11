@@ -188,6 +188,8 @@ int amcviddec_debug_level    = GST_LEVEL_ERROR;
 int videodecoder_debug_level = GST_LEVEL_ERROR;
 int debug_blocking_audio = 0;
 unsigned int debug_setPipelineBuf = 0;//0 -- disable, range: 1 to 2000ms
+extern void setSignalHandlerToDefault();
+
 /*
  * Private methods
  */
@@ -2452,7 +2454,13 @@ JNIEXPORT void JNICALL Java_com_crestron_txrxservice_GstreamIn_nativeSetFieldDeb
                                                device_addr,  //pConfig->device_addr,
                                                rtsp_port);   //pConfig->rtsp_port);                    
                 }
-            }            
+            }  
+            else if (!strcmp(CmdPtr, "SET_DFL_SIGSEGV"))
+            {
+                CSIO_LOG(eLogLevel_info, "set sigaction to default\r\n");   
+
+                setSignalHandlerToDefault();
+            }          
             else
             {
                 CSIO_LOG(eLogLevel_info, "Invalid command:%s\r\n",CmdPtr);

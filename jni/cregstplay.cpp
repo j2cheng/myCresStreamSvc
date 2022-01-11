@@ -64,6 +64,20 @@ extern int g_using_glimagsink;
 void *sockInst;//Generic instance, get socket class instance
 ///////////////////////////////////////////////////////////////////////////////
 
+
+void setSignalHandlerToDefault()
+{
+    struct sigaction old_action;
+    sigaction (SIGSEGV, NULL, &old_action);
+    CSIO_LOG(eLogLevel_debug, "%s: old_action: [0x%x]", __FUNCTION__,old_action.sa_handler); 
+
+    struct sigaction new_action;
+    memset (&new_action, 0, sizeof (new_action));
+    new_action.sa_handler = SIG_DFL;
+    sigaction (SIGSEGV, &new_action, NULL);
+
+    CSIO_LOG(eLogLevel_debug, "%s: set sigaction to [0x%x]", __FUNCTION__,SIG_DFL);   
+}
 // Write stride value to a file so that gstreamer base libraries can use it.
 static void crestron_set_stride(int stride) {
      FILE * pf;
@@ -214,7 +228,7 @@ void set_gst_debug_level(void)
     CSIO_LOG(eLogLevel_debug, "Get GST_VERSION_MICRO  %d", GST_VERSION_MICRO);
     CSIO_LOG(eLogLevel_debug, "Get GST_VERSION  %s", gst_version_string());
 #ifdef GST_CRESTRON_VERSION
-    CSIO_LOG(eLogLevel_debug, "Get GST_VERSION  %d",GST_CRESTRON_VERSION);
+    CSIO_LOG(eLogLevel_debug, "Get GST_CRESTRON_VERSION  %d",GST_CRESTRON_VERSION);
 #endif
 }
 
