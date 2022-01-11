@@ -77,10 +77,15 @@ public class WC_Service {
             if (mUsbDevices.devices.size() == 0) {
                 return ERROR_NO_USB_DEVICES;
             }
-            if(!cameraFormatSupported){
-                Log.w(TAG,"WC_OpenSession: Unsupported camera format");
-                return ERROR_UNSUPPORTED_CAMERA_FORMAT;
+
+            if(options.flags != WC_SessionFlags.Audio)
+            {   //Make sure only for non-audio only devices this check is performed
+                if(!cameraFormatSupported){
+                    Log.w(TAG,"WC_OpenSession: Unsupported camera format");
+                    return ERROR_UNSUPPORTED_CAMERA_FORMAT;
+                }
             }
+
             if (inUse.compareAndSet(false, true)) {
                 mCurrentId++;
             	mStatus = new WC_Status(false, false, mCurrentId, clientId, options.nickname, options.flags);
