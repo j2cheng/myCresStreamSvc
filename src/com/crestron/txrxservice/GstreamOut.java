@@ -51,8 +51,8 @@ public class GstreamOut {
     static String TAG = "GstreamOut";
 
     private static final String RTSP_CERTIFICATE_FOLDER_PATH = "/dev/shm/crestron/CresStreamSvc/wc";
-    private static final String RTSP_ROOT_CERT_PEM_FILENAME = "rtsproot_cert.pem";
-    private static final String RTSP_ROOT_CERT_KEY = "rtsproot_key.pem";
+    private static final String RTSP_ROOT_CERT_PEM_FILENAME = "root_cert.pem";
+    private static final String RTSP_ROOT_CERT_KEY = "root_key.pem";
     private static final String WC_URL_PATH = RTSP_CERTIFICATE_FOLDER_PATH + "/" + "server.url";
 
 ///////////////////////////////////////////////////////////////////////////////
