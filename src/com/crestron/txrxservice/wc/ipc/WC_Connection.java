@@ -67,4 +67,8 @@ public class WC_Connection implements Parcelable {
     public String toString() {
         return "\tsessionId="+sessionId+"\n\tURL="+((urlList!=null)?urlList:"null")+"\n\tCertificate="+certificate;
     }
+    
+    public String toStringNoCert() {
+        return "\tsessionId="+sessionId+"\n\tURL="+((urlList!=null)?urlList:"null")+"\n\tCertificate="+((certificate==null)?"null":certificate.length());
+    }
 }

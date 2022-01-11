@@ -283,9 +283,9 @@ public class WC_Service {
     {
         List<String> urlList = mStreamOut.getWcServerUrlList();
         String cert = mStreamOut.getWcServerCertificate();
-        Log.i(TAG,"getConnectionParameters(): id="+id+"\n\turlList="+urlList+"\n\tcert="+((cert==null)?"null":"non-null"));
         //String privKey = mStreamOut.getWcServerKey();
         WC_Connection wc_connection = new WC_Connection(id, urlList, cert);
+        Log.i(TAG,"getConnectionParameters(): params="+wc_connection.toStringNoCert());
         return wc_connection;
     }
 
