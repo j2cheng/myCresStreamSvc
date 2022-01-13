@@ -130,7 +130,9 @@ public:
     bool m_aacEncode;
     VideoCaps m_video_caps;
     char m_caps[MAX_STR_LEN];
-    char m_videoconvert[MAX_STR_LEN];
+    /* when colorimetry=(string)1:4:0:0 was added, the string length was not enough, hence
+    increased the size */
+    char m_videoconvert[MAX_STR_LEN*2];
     UsbAudio *m_usbAudio;
 
     char rtsp_server_username[MAX_STR_LEN];

@@ -1416,7 +1416,9 @@ eWCstatus CStreamoutManager::initWcAudioVideo()
             	CSIO_LOG(eLogLevel_info, "--Streamout - m_video_caps.format=%s", m_video_caps.format);
             	if (strcasecmp(m_video_caps.format, "MJPG") == 0)
             	{
-                    snprintf(m_videoconvert, sizeof(m_videoconvert), "queue name=jpegQ ! jpegdec ! queue name=vidConvQ !videoconvert n-threads=6 ! video/x-raw,format=NV12 !");
+                    //colorimetry=(string)1:4:0:0 - is required to make the video convert to use I420 to NV12 faster implementation
+                    //this could be bug with Video convert as the gstreamer implementation traditionally does not support faster I420 to NV12 format.
+                    snprintf(m_videoconvert, sizeof(m_videoconvert), "queue name=jpegQ ! jpegdec ! queue name=vidConvQ ! videoconvert n-threads=6 ! video/x-raw,format=NV12, colorimetry=(string)1:4:0:0 ! ");                 
             	}
             	else if (is_supported(m_video_caps.format))
         		{
