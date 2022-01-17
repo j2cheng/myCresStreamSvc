@@ -935,11 +935,13 @@ void* CStreamoutManager::ThreadEntry()
                     g_printerr ("failed to parse CA PEM: %s\n", error->message);
                     goto exitThread;
                 }
-                gst_rtsp_auth_set_tls_authentication_mode(auth, G_TLS_AUTHENTICATION_REQUIRED);
     #else
                 GTlsCertificate *ca_cert = NULL;
-                gst_rtsp_auth_set_tls_authentication_mode(auth, G_TLS_AUTHENTICATION_NONE);
     #endif
+
+                // Change to G_TLS_AUTHENTICATION_NONE if we don't want server to send CertificateRequest
+                // to client during TLS exchange
+                gst_rtsp_auth_set_tls_authentication_mode(auth, G_TLS_AUTHENTICATION_REQUIRED);
 
                 g_signal_connect (auth, "accept-certificate", G_CALLBACK
                         (accept_certificate), ca_cert);
