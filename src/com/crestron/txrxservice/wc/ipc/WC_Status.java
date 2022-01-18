@@ -75,7 +75,7 @@ public class WC_Status implements Parcelable {
     public String toString() {
     	return "Status = {\n"+
                "    isServerStarted: "+isServerStarted+"\n"+
-               "    isClientConnected: "+isServerStarted+"\n"+
+               "    isClientConnected: "+isClientConnected+"\n"+
                "    sessionId: "+sessionId+"\n"+
                "    clientId: "+clientId+"\n"+
                "    nickname: "+nickname+"\n"+
