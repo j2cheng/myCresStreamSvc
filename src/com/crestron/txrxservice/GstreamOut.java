@@ -398,13 +398,13 @@ public class GstreamOut {
             }
             if (adapters.contains("wlan0") && streamCtl.isValidIpAddress(streamCtl.userSettings.getWifiIp()))
             {
-                if (!newUrl.equals(""))
+                if (newUrl.length() != 0)
                     newUrl.append(",");
                 newUrl.append(url.replace("0.0.0.0", streamCtl.userSettings.getWifiIp()));
             }
             if (adapters.contains("eth1") && streamCtl.isValidIpAddress(streamCtl.userSettings.getAuxiliaryIp()))
             {
-                if (!newUrl.equals(""))
+                if (newUrl.length() != 0)
                     newUrl.append(",");
                 newUrl.append(url.replace("0.0.0.0", streamCtl.userSettings.getAuxiliaryIp()));
             }
