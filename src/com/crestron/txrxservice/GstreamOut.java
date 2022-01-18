@@ -149,6 +149,9 @@ public class GstreamOut {
         Log.i(TAG, "Streamout: Application cache folder path = "+appCacheFolder);
         if (CresStreamCtrl.isAM3K)
         {
+            File file = new File(WC_URL_PATH);
+            if (!file.getParentFile().exists())
+                file.getParentFile().mkdirs();  // make parent dirs if necessary
             monitorWcCertificateGenerationCompletion();
         }
     }
