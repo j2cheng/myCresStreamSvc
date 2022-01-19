@@ -76,6 +76,7 @@ get_video_caps_from_caps(GstCaps *caps, int min_frame_rate, VideoCaps *video_cap
     char fmt[5]={0};
     const gchar *format = NULL;
     int videoResolutionClamp;
+    int widthNearestVal = 1920, heightNearestVal = 1080; //set to max value
 
     guint capslen = gst_caps_get_size(caps);
 
@@ -185,6 +186,20 @@ get_video_caps_from_caps(GstCaps *caps, int min_frame_rate, VideoCaps *video_cap
                         CSIO_LOG(eLogLevel_info, "best so far: fmt=%s w=%d h=%d frnum=%d frden=%d\n", format, maxw, maxh, max_frmrate_num,max_frmrate_den);
                     }
                 }
+                if( maxw==0 )
+                {
+                    /* In case where camera supports only one resolution (ex, 1920x1080) then for medium and low quality 
+                    settings, resolution will never get set. WC session does not start. 
+                    So we will try to go to resolution which is nearest */
+                    if( (width*height) <= (widthNearestVal*heightNearestVal) )
+                    {
+                        strcpy(fmt, format);
+                        widthNearestVal = width;
+                        heightNearestVal = height;
+                        max_frmrate_num = max_fr_num;
+                        max_frmrate_den = max_fr_den;
+                    }
+                }
 
             }
         }
@@ -198,6 +213,15 @@ get_video_caps_from_caps(GstCaps *caps, int min_frame_rate, VideoCaps *video_cap
         video_caps->frame_rate_num = max_frmrate_num;
         video_caps->frame_rate_den = max_frmrate_den;
     }
+    else //if maxw is zero
+    {
+        strcpy(video_caps->format, fmt);
+        video_caps->w = widthNearestVal;
+        video_caps->h = heightNearestVal;
+        video_caps->frame_rate_num = max_frmrate_num;
+        video_caps->frame_rate_den = max_frmrate_den;
+    }    
+
 }
 
 int get_video_caps(char *device_name, VideoCaps *video_caps, char *display_name, int display_name_len, int quality)
