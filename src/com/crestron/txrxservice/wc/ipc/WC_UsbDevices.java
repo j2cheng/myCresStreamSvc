@@ -19,9 +19,21 @@ public class WC_UsbDevices implements Parcelable {
 
     public WC_UsbDevices(List<WC_VideoFormat> videoFormats, List<WC_AudioFormat> audioFormats, List<WC_UsbDevice> devices) {
         this.contents = 0;
-        this.videoFormats = videoFormats;
-        this.audioFormats = audioFormats;
-        this.devices = devices;
+        if (videoFormats != null) {
+            this.videoFormats = videoFormats;
+        } else {
+            this.videoFormats = new ArrayList<WC_VideoFormat>();
+        }
+        if (audioFormats != null) {
+            this.audioFormats = audioFormats;
+        } else {
+            this.audioFormats = new ArrayList<WC_AudioFormat>();
+        }
+        if (devices != null) {
+            this.devices = devices;
+        } else {
+            this.devices = new ArrayList<WC_UsbDevice>();
+        }
     }
 
     protected WC_UsbDevices(Parcel in) {

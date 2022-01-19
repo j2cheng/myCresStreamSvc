@@ -74,7 +74,7 @@ public class WC_Service {
         public int WC_OpenSession(String clientId, WC_SessionOptions options)
         {
             Log.i(TAG,"WC_OpenSession: request from clientId="+clientId+" options="+options);
-            if (mUsbDevices.devices.size() == 0) {
+            if ((mUsbDevices==null) || (mUsbDevices.devices.size() == 0)) {
                 return ERROR_NO_USB_DEVICES;
             }
 
@@ -178,7 +178,7 @@ public class WC_Service {
     		mStatus.isClientConnected=true;
     		onStatusChanged();
     	}
-        showConnectionParameters("onClientConnected", mCurrentId);
+        //showConnectionParameters("onClientConnected", mCurrentId);
     }
 
     public void onClientDisconnected(String clientIp)
