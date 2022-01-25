@@ -6,8 +6,8 @@ import android.os.RemoteException;
 import android.util.Log;
 
 import java.util.ArrayList;
-import java.util.HashMap;
 import java.util.List;
+import java.util.Locale;
 import java.util.concurrent.atomic.AtomicBoolean;
 
 import com.google.gson.Gson;
@@ -15,7 +15,6 @@ import com.google.gson.GsonBuilder;
 
 import com.crestron.txrxservice.CresStreamCtrl;
 import com.crestron.txrxservice.GstreamOut;
-import com.crestron.txrxservice.MiscUtils;
 import com.crestron.txrxservice.UsbAvDevice;
 import com.crestron.txrxservice.wc.WC_CresstoreStatus;
 import com.crestron.txrxservice.wc.ipc.WC_Connection;
@@ -46,6 +45,7 @@ public class WC_Service {
     public CresStreamCtrl mStreamCtrl = null;
     public GstreamOut mStreamOut = null;
     public int mCurrentId = 0;
+    String mCurrentUser = null;
     WC_Status mStatus = null;
     WC_CresstoreStatus mWcCresstoreStatus = null;
     WC_UsbDevices mUsbDevices = null;
@@ -88,6 +88,7 @@ public class WC_Service {
 
             if (inUse.compareAndSet(false, true)) {
                 mCurrentId++;
+                mCurrentUser = clientId.toLowerCase(Locale.ENGLISH).contains("IrisTX3".toLowerCase(Locale.ENGLISH)) ? "IrisTX3" : "AirMedia";
             	mStatus = new WC_Status(false, false, mCurrentId, clientId, options.nickname, options.flags);
             	updateUsbDeviceStatus(mUsbAvDeviceList);
             	// server start will communicate via callback onStatusChanged once it has been started
@@ -242,16 +243,29 @@ public class WC_Service {
         mCallbacks.finishBroadcast();
     }
     
-    public void stopServer()
+    public void stopServer(String user)
     {
-        Log.i(TAG, "stopServer()");
-        closeSession();
+        Log.i(TAG, "stopServer(): user="+user+" currentUser="+mCurrentUser);
+        if (mCurrentUser != null)
+        {
+            if (user == null || user.toLowerCase(Locale.ENGLISH).contains(mCurrentUser.toLowerCase(Locale.ENGLISH)))
+            {
+                if (user != null)
+                    Log.i(TAG, "stopServer(): calling closeSession for user="+user);
+                else
+                    Log.i(TAG, "stopServer(): calling closeSession unconditionally");
+                closeSession();
+            }
+        } else {
+            Log.w(TAG,"stopServer(): Nothing to stop - current user is null");
+        }
     }
     
     public int closeSession()
     {
         int rv = 0;
         if (inUse.compareAndSet(true,  false)) {
+            mCurrentUser = null;
             mStatus = new WC_Status(true, false, 0, "", "", WC_SessionFlags.None);
             // server stop will communicate via callback onStatusChanged once it has been started
             mStreamCtrl.setWirelessConferencingStreamEnable(false);

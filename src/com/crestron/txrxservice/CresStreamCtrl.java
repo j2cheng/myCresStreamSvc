@@ -6322,11 +6322,11 @@ public class CresStreamCtrl extends Service {
         isWirelessConferencingLicensed = enable;
     }
 
-    public void stopWcServer()
+    public void stopWcServer(String user)
     {
         if (mWC_Service != null)
         {
-            mWC_Service.stopServer();
+            mWC_Service.stopServer(user);
         }
             
     }
