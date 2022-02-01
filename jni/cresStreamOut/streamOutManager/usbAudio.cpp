@@ -61,9 +61,9 @@ unsigned int UsbAudio::usb_audio_avail(pcm *pcm_device)
     return avail;
 }
 
-void UsbAudio::usb_audio_get_samples(pcm *pcm_device, void *data, int size, GstClockTime *timestamp, GstClockTime *duration) {
+void UsbAudio::usb_audio_get_samples(pcm *pcm_device, void *data, int size, int channels, GstClockTime *timestamp, GstClockTime *duration) {
     
-    guint64 nsamples = (guint64)(size/(2*2));
+    guint64 nsamples = (guint64)(size/(channels*2));
     int error;
 
     *duration = gst_util_uint64_scale(nsamples, GST_SECOND, 48000);
@@ -163,14 +163,14 @@ bool UsbAudio::getAudioParams()
 				m_audioSamplingRate = min;
 			min = pcm_params_get_min(m_params, PCM_PARAM_CHANNELS);
 			max = pcm_params_get_max(m_params, PCM_PARAM_CHANNELS);
-			if (max < 2) {
+			if (max < 0 || max > 2) {
 				CSIO_LOG(eLogLevel_error,
-						"--UsbAudio: Audio card=%d device=%d no support for stereo\n",
+						"--UsbAudio: Audio card=%d device=%d no support for mono or stereo\n",
 						m_pcm_card_idx, m_pcm_device_idx);
 			} else {
-				m_audioChannels = 2;
+			    m_audioChannels = max;
 			}
-			if (m_audioFormat != NULL && m_audioChannels == 2 && m_audioSamplingRate > 0) {
+			if (m_audioFormat != NULL && (m_audioChannels == 1 || m_audioChannels == 2) && m_audioSamplingRate > 0) {
 				rv = true;
 				CSIO_LOG(eLogLevel_error,
 						"--Streamout: Audio card=%d device=%d using %s format numChannels=%d SamplingRate=%d\n",
@@ -207,7 +207,7 @@ unsigned int UsbAudio::usb_audio_avail(pcm *pcm_device)
 {
     return 0;
 }
-void UsbAudio::usb_audio_get_samples(pcm *pcm_device, void *data, int size, GstClockTime *timestamp, GstClockTime *duration) {
+void UsbAudio::usb_audio_get_samples(pcm *pcm_device, void *data, int size, int channels, GstClockTime *timestamp, GstClockTime *duration) {
     return;
 }
 // returns true if successful

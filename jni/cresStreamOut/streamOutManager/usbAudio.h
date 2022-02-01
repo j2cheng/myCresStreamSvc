@@ -32,7 +32,7 @@ public:
     bool configure();
     void releaseDevice();
     unsigned int usb_audio_avail(pcm *pcm_device);
-    void usb_audio_get_samples(pcm *pcm_device, void *data, int size, GstClockTime *timestamp, GstClockTime *duration);
+    void usb_audio_get_samples(pcm *pcm_device, void *data, int size, int channels, GstClockTime *timestamp, GstClockTime *duration);
     int  pcm_mask_test(struct pcm_mask *m, unsigned int index);
 
     int getAudioChannels() const

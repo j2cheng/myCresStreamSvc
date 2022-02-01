@@ -346,8 +346,9 @@ void get_audio_data_for_pull(CStreamoutManager *pMgr, guint size)
     GstBuffer *buffer = gst_buffer_new_allocate(NULL, size, NULL);
     GstMapInfo mapInfo;
     GstClockTime timestamp=0, duration=0;
+    int channels = pMgr->m_usbAudio->getAudioChannels();
     if (gst_buffer_map(buffer, &mapInfo, GST_MAP_WRITE)) {
-    	pMgr->m_usbAudio->usb_audio_get_samples(pMgr->m_usbAudio->m_device, mapInfo.data, mapInfo.size, &timestamp, &duration);
+    	pMgr->m_usbAudio->usb_audio_get_samples(pMgr->m_usbAudio->m_device, mapInfo.data, mapInfo.size, channels, &timestamp, &duration);
 
         if(pMgr->m_appsrc)
         {
