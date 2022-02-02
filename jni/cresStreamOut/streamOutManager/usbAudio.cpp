@@ -245,7 +245,7 @@ UsbAudio::UsbAudio(char *file)
     m_device = NULL;
     m_params = NULL;
     m_audioFormat = NULL;
-    m_audioChannels = 2;
+    m_audioChannels = 0;
     m_audioSamplingRate = 0;
     m_usb_audio_sample = 0;
 }
