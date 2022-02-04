@@ -11,14 +11,14 @@ public class UsbAvDevice {
 	public int perId;
 	public HashMap<String, String> properties;
 	
-	public UsbAvDevice(int id, String portType, String name, String vFile, String aFile, Boolean sFile, HashMap<String, String> propertyMap) 
+	public UsbAvDevice(int id, String portType, String name, String vFile, String aFile, String sFile, HashMap<String, String> propertyMap) 
 	{
 		deviceName = name;
 		perId = id;
 		usbPortType = portType;
 		videoFile = vFile;
 		audioFile = aFile;
-		speakerPresent = sFile;
+		speakerPresent = (sFile != null) ? Boolean.TRUE : Boolean.FALSE;
 		properties = propertyMap;
 	}
 	
@@ -27,7 +27,7 @@ public class UsbAvDevice {
 		return "{USB_Device: id:"+perId+" port:"+usbPortType+" name:"+deviceName+
 				" videoFile:"+((videoFile != null)?videoFile:"null")+
 				" audioFile:"+((audioFile != null)?audioFile:"null")+ 
-				" Speaker present:"+((speakerPresent != null)?speakerPresent:false)+ 
+				" Speaker present:"+speakerPresent+ 
 				" properties=["+((properties != null)?properties:"null")+
 				"]}";
 	}

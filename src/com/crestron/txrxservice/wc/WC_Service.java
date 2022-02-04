@@ -429,25 +429,18 @@ public class WC_Service {
     public void setSpeakerDetectedStatus()
     {
         Log.v(TAG, "setSpeakerDetectedStatus() In: speakerDetected="+speakerDetected);
+        // update value for speakerDetected
+        speakerDetected = false;
         if(mUsbAvDeviceList != null)
         {
             for (UsbAvDevice ds : mUsbAvDeviceList) {
-                if(ds.speakerPresent != null)
-                {
-                    if(ds.speakerPresent){
-                        speakerDetected = true;
-                        break; //If single instance of speaker found, then come out of loop.
-                    }
-                    else
-                        speakerDetected = false;
-
-                    Log.v(TAG, "Speaker in"+ds.deviceName+"in port:"+ ds.usbPortType +" speakerDetected="+speakerDetected);
+                if(ds.speakerPresent){
+                    speakerDetected = true;
+                    break; //If single instance of speaker found, then come out of loop.
                 }
             }
-
-            if(mUsbAvDeviceList.size() == 0)
-                speakerDetected = false;
         }
+        Log.i(TAG, "setSpeakerDetectedStatus(): speakerDetected="+speakerDetected);
     }
 
     public void getAndReportAllWCStatus()

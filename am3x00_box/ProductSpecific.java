@@ -426,14 +426,14 @@ public class ProductSpecific
         	return null;
         }
 
-        public boolean getSpeakerDetectedStatus(List<String> audioList)
+        public String getAudioPlaybackFile(List<String> audioList)
         {
         	for (String s : audioList) { 
         		// Look for one of these devices to flag presence of a speaker
         		if (s.equals("snd/pcmC5D0p") || s.equals("snd/pcmC6D0p"))
-        			return true;
+        		    return "/dev/"+s;;
         	}
-        	return false;
+        	return null;
         }
 
         public HashMap<String, String> genPropertiesMap(List<PeripheralUsbDevice> devices)
@@ -482,13 +482,15 @@ public class ProductSpecific
                     HashMap<String, String> propertyMap;
                     String aFile = null;
                     String vFile = null;
-                    Boolean sFile = null;
+                    String sFile = null;
                     if (perDev.getType() == com.gs.core.peripheral.UsbDeviceType.Audio)
                     {
                         aFile = getAudioCaptureFile(audioList);
                         Log.i(TAG, "onUsbStatusChanged(): audio capture file="+aFile);
                         //This is to populate the AirMedia WC Status IsSpeakerDetected Field
-                        sFile = getSpeakerDetectedStatus(audioList);
+                        sFile = getAudioPlaybackFile(audioList);
+                        if (sFile != null)
+                            Log.i(TAG, "onUsbStatusChanged(): audio playback file="+sFile);
                     } else if (perDev.getType() == com.gs.core.peripheral.UsbDeviceType.Video) {
                         vFile = getVideoCaptureFile(videoList);
                         Log.i(TAG, "onUsbStatusChanged(): video capture file="+vFile);
@@ -499,8 +501,9 @@ public class ProductSpecific
                             aFile = getAudioCaptureFile(audioList);
                             Log.i(TAG, "onUsbStatusChanged(): audio capture file="+aFile);
                             //This is to populate the AirMedia WC Status IsSpeakerDetected Field
-                            sFile = getSpeakerDetectedStatus(audioList);
-                        }
+                            sFile = getAudioPlaybackFile(audioList);
+                            if (sFile != null)
+                                Log.i(TAG, "onUsbStatusChanged(): audio playback file="+sFile);                        }
                         if (!videoList.isEmpty())
                         {
                             vFile = getVideoCaptureFile(videoList); 
