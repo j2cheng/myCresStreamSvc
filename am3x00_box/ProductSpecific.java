@@ -465,6 +465,15 @@ public class ProductSpecific
       		return map;
         }
 
+        // Temporary - for Jabra PanaCast 50 - remove once bug AM3XX-8545 is fixed
+        private boolean isJabraPanaCast50(PeripheralUsbDevice d)
+        {
+            if (d.getProductName().contains("Jabra PanaCast 50"))
+                return true;
+            else
+                return false;
+        }
+        
         public void onUsbStatusChanged(int usbId, int status, String name, List<String> videoList, 
                 List<String> audioList, List<PeripheralUsbDevice> perUsbDevices)
         {
@@ -493,6 +502,15 @@ public class ProductSpecific
                             Log.i(TAG, "onUsbStatusChanged(): audio playback file="+sFile);
                     } else if (perDev.getType() == com.gs.core.peripheral.UsbDeviceType.Video) {
                         vFile = getVideoCaptureFile(videoList);
+                        // Temporary - for Jabra Panacast 50 - remove once bug AM3XX-8545 is fixed
+                        if (vFile == null)
+                        {
+                            if (isJabraPanaCast50(perDev))
+                            {
+                                Log.i(TAG, "AM3XX-8545 - forcing /dev/video5 for video device for Jabra Panacast 50");
+                                vFile = "/dev/video5";
+                            }
+                        }
                         Log.i(TAG, "onUsbStatusChanged(): video capture file="+vFile);
                     } else {
                         // BRIO coming in as Type "None" - need to fix
