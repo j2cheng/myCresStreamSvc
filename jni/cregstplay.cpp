@@ -209,19 +209,28 @@ void set_gst_debug_level(void)
 	if (f == NULL)
 	{
 		snprintf(temp, sizeof(temp), "%s", "*:1");	// default to errors, warning for all plugins
+                setenv("GST_DEBUG", temp, 1);
 	}
 	else
 	{
 		fgets(temp, sizeof(temp), f);
 		fclose(f);
+        setenv("GST_DEBUG", temp, 1);
+        f = fopen("/dev/crestron/gst_tracer", "r");
+        if( f != NULL )
+        {
+            fgets(temp, sizeof(temp), f);
+            setenv("GST_TRACERS", temp, 1);
+        }
+            
 	}
-	setenv("GST_DEBUG", temp, 1);
 	setenv("GST_DEBUG_NO_COLOR", "1", 1);
 	setenv("GST_PLUGIN_PATH", "/system/lib/gstreamer-1.0", 1);
 	// for x60, but should not harm other platforms - without this change you don't see any video
 	setenv("GST_AMC_IGNORE_UNKNOWN_COLOR_FORMATS", "yes", 1);
 
-    CSIO_LOG(eLogLevel_debug, "Set GST_DEBUG to %s", temp);
+    CSIO_LOG(eLogLevel_debug, "Set GST_DEBUG to %s", getenv("GST_DEBUG"));
+    CSIO_LOG(eLogLevel_debug, "Set GST_TRACERS to %s", getenv("GST_TRACERS"));
 
     CSIO_LOG(eLogLevel_debug, "Get GST_VERSION_MAJOR  %d", GST_VERSION_MAJOR);
     CSIO_LOG(eLogLevel_debug, "Get GST_VERSION_MINOR  %d", GST_VERSION_MINOR);
