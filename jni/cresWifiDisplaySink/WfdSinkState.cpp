@@ -126,8 +126,19 @@ wfdSinkStMachineThread*  wfdSinkStMachineClass::m_wfdSinkStMachineThreadPtr = NU
 wfdSinkStMachineClass**  wfdSinkStMachineThread::m_wfdSinkStMachineTaskList = NULL;
 int  wfdSinkStMachineThread::m_wfdSinkStMachineTaskListCnt = 0;
 
-#define DEFAULT_VIDEO_RES  "cea_19ceb"
+#define DEFAULT_VIDEO_RES            "cea_19ceb"
+#define DEFAULT_VIDEO_RES_30Hz_ONLY  "cea_194a0"
 #define DEFAULT_VIDEO2_RES ""
+
+extern bool csio_jni_onlyAllow30Hz();
+
+static char *getPreferredVideoResolutionDefaultString()
+{
+    if (csio_jni_onlyAllow30Hz())
+        return DEFAULT_VIDEO_RES_30Hz_ONLY;
+    else
+        return DEFAULT_VIDEO_RES;
+}
 
 /********** wfdSinkStMachineClass class, used by wfdSinkProjClass *******************/
 wfdSinkStMachineClass::wfdSinkStMachineClass(int iId,wfdSinkProjClass* parent):
@@ -179,7 +190,7 @@ m_is_mice_session(0)
     }
     else
     {
-    	m_rtspParserIntfInfo.preferredVidResRefStr  = DEFAULT_VIDEO_RES;
+        m_rtspParserIntfInfo.preferredVidResRefStr = getPreferredVideoResolutionDefaultString();
     }
 
     if(g_rtspVid2ResRefStr.size())
@@ -343,7 +354,13 @@ void wfdSinkStMachineClass::setCurentTsPort(int port)
 void wfdSinkStMachineClass::setMaxMiracastRate()
 {
 	m_rtspParserIntfInfo.maxMiracastRate = m_parent->getMaxMiracastBitrate();
-	CSIO_LOG(eLogLevel_info, "wfdSinkStMachineClass::%s(): maxMiracastRate[%d]\n", __FUNCTION__, m_rtspParserIntfInfo.maxMiracastRate);
+	CSIO_LOG(m_debugLevel, "wfdSinkStMachineClass::%s(): maxMiracastRate[%d]\n", __FUNCTION__, m_rtspParserIntfInfo.maxMiracastRate);
+}
+
+void wfdSinkStMachineClass::setVideoResolutionDefaults()
+{
+    m_rtspParserIntfInfo.preferredVidResRefStr = getPreferredVideoResolutionDefaultString();
+    CSIO_LOG(m_debugLevel, "wfdSinkStMachineClass::%s(): preferredVidResRefStr[%s]\n", __FUNCTION__, m_rtspParserIntfInfo.preferredVidResRefStr);
 }
 
 void wfdSinkStMachineClass::resetAllFlags()
@@ -2403,6 +2420,7 @@ void* wfdSinkStMachineThread::ThreadEntry()
                                 //step 3: start state machine
                                 if( evntQPtr->buf_size && evntQPtr->buffPtr)
                                 {
+                                    p->setVideoResolutionDefaults();
                                     p->setCurentSourcePort(evntQPtr->ext_obj) ;
                                     p->setCurentTsPort(evntQPtr->ext_obj2) ;
 
@@ -2451,6 +2469,7 @@ void* wfdSinkStMachineThread::ThreadEntry()
                         {
                             wfdSinkStMachineClass* p = wfdSinkStMachineThread::m_wfdSinkStMachineTaskList[id];
                             p->setMaxMiracastRate();
+                            p->setVideoResolutionDefaults();
                             p->setCurentSourcePort(evntQPtr->ext_obj) ;
                             p->setCurentTsPort(evntQPtr->ext_obj2) ;
 

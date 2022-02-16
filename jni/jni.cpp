@@ -132,6 +132,7 @@ char app_cache_folder[256]={0};
 char hostName[256]={0};
 char domainName[256]={0};
 char serverIpAddress[256]={0};
+bool onlyAllow30Hz=false;
 
 CresNextDef *CresNextDefaults = NULL;
 
@@ -4717,6 +4718,11 @@ void csio_jni_sendCameraStopFb()
     }
 }
 
+bool csio_jni_onlyAllow30Hz()
+{
+    return onlyAllow30Hz;
+}
+
 const char *csio_jni_getAppCacheFolder()
 {
 	return app_cache_folder;
@@ -5880,6 +5886,12 @@ JNIEXPORT void JNICALL Java_com_crestron_txrxservice_GstreamIn_nativeSetWfdMaxMi
 {
 	CSIO_LOG(eLogLevel_debug,"%s(): max miracast bitrate[%d]",__FUNCTION__, maxrate);
 	WfdSinkProjSetMaxMiracastBitrate(maxrate);
+}
+
+JNIEXPORT void JNICALL Java_com_crestron_txrxservice_GstreamIn_nativeSetWfd30HzOnly(JNIEnv *env, jobject thiz, jboolean enable)
+{
+    CSIO_LOG(eLogLevel_debug,"%s(): onlyAllow30Hz[%s]",__FUNCTION__, ((enable)?"true":"false"));
+    onlyAllow30Hz = enable;
 }
 
 /* Start wfd connection .

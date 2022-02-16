@@ -3355,6 +3355,12 @@ public class CresStreamCtrl extends Service {
         }
     }
     
+    public boolean onlyAllow30Hz()
+    {
+        // force 30Hz formats on AM3K for miracast when resolution is 4K (> 1920x1080) since display output refresh rate is not 60Hz
+        return (isAM3K && hdmiOutput.getWidth() > 1920 && hdmiOutput.getHeight() > 1080) ? true : false;
+    }
+
     void refreshInputResolution()
     {
         Log.i(TAG, "Refresh resolution info");
@@ -3362,6 +3368,23 @@ public class CresStreamCtrl extends Service {
         {
             hdmiInput.updateResolutionInfo();
         }
+    }
+    
+    public float getHDMIOutputRefreshRate(Display display)
+    {
+        // On AM3K display getRefreshRate does not work - use sysfs or nvram :resolution-main
+        float refreshRate=0;
+        if (isAM3K)
+        {
+            String resString = MiscUtils.readStringFromDisk("/sys/class/drm/card0-HDMI-A-1/mode");
+            if (resString.contains("p"))
+            {
+                String fps = resString.substring(resString.lastIndexOf("p")+1);
+                refreshRate = Float.parseFloat(fps);
+            }
+        } else
+            refreshRate = display.getRefreshRate();
+        return refreshRate;
     }
 
     public void refreshOutputResolution() {
@@ -7545,7 +7568,7 @@ public class CresStreamCtrl extends Service {
         @Override
         public void onDisplayChanged(int displayId)
         {
-            // This event gets caled only in AM3K
+            // This event gets called only in AM3K
             Log.i(TAG, "HDMI Output display has changed");
             new Thread(new Runnable() {
                 public void run() {

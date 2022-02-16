@@ -193,6 +193,7 @@ private:
     void setCurentTsPort(int port) ;
 
     void setMaxMiracastRate(); // set max miracast rate from parent WfdProjClass structure
+    void setVideoResolutionDefaults();
 public:
     const char* getConnTime(){ return m_connTime.c_str();}
 
