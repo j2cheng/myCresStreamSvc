@@ -18,6 +18,7 @@ import com.crestron.txrxservice.GstreamOut;
 import com.crestron.txrxservice.UsbAvDevice;
 import com.crestron.txrxservice.wc.WC_CresstoreStatus;
 import com.crestron.txrxservice.wc.ipc.WC_Connection;
+import com.crestron.txrxservice.wc.ipc.WC_Error;
 import com.crestron.txrxservice.wc.ipc.WC_SessionFlags;
 import com.crestron.txrxservice.wc.ipc.WC_SessionOptions;
 import com.crestron.txrxservice.wc.ipc.WC_Status;
@@ -235,6 +236,23 @@ public class WC_Service {
         for (int i=0; i<N; i++) {
             try {
                 mCallbacks.getBroadcastItem(i).onUsbDevicesChanged(mUsbDevices);
+            } catch (RemoteException e) {
+                // The RemoteCallbackList will take care of removing
+                // the dead object for us.
+            }
+        }
+        mCallbacks.finishBroadcast();
+    }
+    
+    public void onError(int module, int errorCode, String errorMessage)
+    {
+        WC_Error error = new WC_Error(module, errorCode, errorMessage);
+        Log.i(TAG,"invoking onError() callbacks with error="+error);
+        // Broadcast to all clients the new value.
+        final int N = mCallbacks.beginBroadcast();
+        for (int i=0; i<N; i++) {
+            try {
+                mCallbacks.getBroadcastItem(i).onError(error);
             } catch (RemoteException e) {
                 // The RemoteCallbackList will take care of removing
                 // the dead object for us.
