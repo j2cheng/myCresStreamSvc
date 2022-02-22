@@ -207,6 +207,7 @@ public class WC_Service {
         Log.i(TAG,"onServerStop()");
     	if (mStatus.isServerStarted) {
     		mStatus.isServerStarted=false;
+            mStatus.sessionId = 0; // for some reason AirMedia receiver uses this to see if we had a restart of server
     		mWcCresstoreStatus.reportWCDeviceStatus(null,null,null,null,WC_CONF_STATUS_AVAILABLE);
     		onStatusChanged();
     	}
