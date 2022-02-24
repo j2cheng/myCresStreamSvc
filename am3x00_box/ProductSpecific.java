@@ -5,6 +5,7 @@ import com.crestron.txrxservice.UsbAvDevice;
 import com.gs.core.peripheral.PeripheralManager;
 import com.gs.core.peripheral.PeripheralUsbDevice;
 import com.gs.core.peripheral.StatusChangeListener;
+import com.gs.core.peripheral.SoundDeviceVolume;
 
 import android.content.Context;
 import android.content.Intent;
@@ -347,6 +348,7 @@ public class ProductSpecific
     {
         boolean hdmiInConnected = false;
         CresStreamCtrl cresStreamCtrl;
+        String defaultPlaybackDevice = null;
 
         public PeripheralStatusChangeListener(CresStreamCtrl ctrl) {
             super();
@@ -431,11 +433,27 @@ public class ProductSpecific
         	for (String s : audioList) { 
         		// Look for one of these devices to flag presence of a speaker
         		if (s.equals("snd/pcmC5D0p") || s.equals("snd/pcmC6D0p"))
-        		    return "/dev/"+s;;
+        		{
+        		    defaultPlaybackDevice = s; 
+        		    return "/dev/"+s;
+        		}
         	}
+        	defaultPlaybackDevice = null;
         	return null;
         }
 
+        public void showPlaybackDeviceVolumeSetting(String cardId)
+        {
+            Log.i(TAG, "Device: "+cardId+" get current device volume setting");
+            try {
+                com.gs.core.peripheral.SoundDeviceVolume v = PeripheralManager.instance().getSoundDeviceVolume(cardId);
+                Log.i(TAG, "Device: "+cardId+" mute="+v.isMute()+" volume="+v.getCurVolume()+" volumeRange="+Arrays.toString(v.getVolRange()));
+            } catch (Exception e) {
+                Log.i(TAG, "Exception trying to get playback device volume: "+e);
+                e.printStackTrace();
+            }
+        }
+        
         public HashMap<String, String> genPropertiesMap(List<PeripheralUsbDevice> devices)
         {
       		HashMap<String, String> map = new HashMap<String, String>();
@@ -527,6 +545,10 @@ public class ProductSpecific
                             vFile = getVideoCaptureFile(videoList); 
                             Log.i(TAG, "onUsbStatusChanged(): video capture file="+vFile);
                         }
+                    }
+                    if (sFile != null)
+                    {
+                        showPlaybackDeviceVolumeSetting(defaultPlaybackDevice);
                     }
                     propertyMap = genPropertiesMap(perUsbDevices);
                     UsbAvDevice d = new UsbAvDevice(usbId, ((usbId==PeripheralManager.PER_USB_30)?"usb3":"usb2"), name, vFile, 
