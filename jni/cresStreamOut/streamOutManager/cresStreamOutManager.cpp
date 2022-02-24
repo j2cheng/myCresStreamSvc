@@ -1133,7 +1133,7 @@ void* CStreamoutManager::ThreadEntry()
         if (m_streamoutMode != STREAMOUT_MODE_CAMERA) {
             CSIO_LOG(eLogLevel_info, "Streamout: set RTP port range from %d to %d", WC_RTP_PORT_MIN, WC_RTP_PORT_MAX);
             GstRTSPAddressPool *pool = gst_rtsp_address_pool_new ();
-            gst_rtsp_address_pool_add_range (pool, GST_RTSP_ADDRESS_POOL_ANY_IPV4, GST_RTSP_ADDRESS_POOL_ANY_IPV4, WC_RTP_PORT_MIN, WC_RTP_PORT_MAX, 0);    // Setting ttl to fixed 64, and fixed port range
+            gst_rtsp_address_pool_add_range (pool, GST_RTSP_ADDRESS_POOL_ANY_IPV4, GST_RTSP_ADDRESS_POOL_ANY_IPV4, WC_RTP_PORT_MIN, WC_RTP_PORT_MAX, 0);
             gst_rtsp_media_factory_set_address_pool (m_factory, pool);
             g_object_unref (pool);
         }
