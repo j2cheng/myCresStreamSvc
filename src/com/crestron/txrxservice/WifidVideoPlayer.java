@@ -499,7 +499,7 @@ public class WifidVideoPlayer {
         if (sessionId != INVALID_SESSION_ID)
         {
             WfdSession session = getWfdSession(sessionId);
-            if (session == null ) {
+            if (session == null || session.deviceType == null) {
                 Common.Logging.i(TAG, "videoplayer.postDeviceType(): not a TX3-100 session - no device type to post");
                 return;
             }
