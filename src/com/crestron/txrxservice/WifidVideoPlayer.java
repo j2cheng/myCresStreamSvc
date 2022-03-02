@@ -60,7 +60,7 @@ public class WifidVideoPlayer {
     private AirMediaReceiver receiver_ = null;
     private CresStreamCtrl streamCtrl_ = null;
     private final Map<Long, VideoSession> sessionMap = new HashMap<Long, VideoSession>();
-    private final Map<String, Long> deviceIdMap = new HashMap<String, Long>();
+    private final Map<String, WfdSession> deviceIdMap = new HashMap<String, WfdSession>();
 
     ////////////////////////////////////////////////////////////////////////////////////////////////
     /// PROPERTIES
@@ -354,6 +354,28 @@ public class WifidVideoPlayer {
         
     }
     
+    
+    private class WfdSession {
+        public long id;
+        public String deviceId;
+        public String deviceName;
+        public String deviceType;
+        
+        public WfdSession(long id, String deviceId, String deviceName, String deviceType)
+        {
+            this.id = id;
+            this.deviceId = deviceId;
+            this.deviceName = deviceName;
+            this.deviceType = deviceType;
+        }
+        
+        
+        public String toString()
+        {
+            return "id="+id+" deviceId="+deviceId+" deviceType="+deviceType+" deviceName="+deviceName;    
+        }
+    }
+    
     public long streamId2sessionId(int streamId)
     {
     	long sessionId = INVALID_SESSION_ID;
@@ -441,7 +463,14 @@ public class WifidVideoPlayer {
     public void onSessionReady(long id, String local_address, String device_id, String device_name, String device_address, int port) 
     {
         Common.Logging.i(TAG, "videoplayer.onSessionReady():  sessionId="+id+" deviceId="+device_id+" deviceName="+device_name+" deviceAddress="+device_address+" rtsp_port="+port+" local_address="+local_address);
-    	deviceIdMap.put(device_id, new Long(id));
+    	deviceIdMap.put(device_id, new WfdSession(id, device_id, device_name, null));
+        service_.onSessionReady(id, device_id, device_name, device_address, port, local_address);
+    }
+    
+    public void onSessionReady(long id, String local_address, String device_id, String device_name, String device_type, String device_address, int port) 
+    {
+        Common.Logging.i(TAG, "videoplayer.onSessionReady():  sessionId="+id+" deviceId="+device_id+" deviceName="+device_name+" deviceType="+device_type+" deviceAddress="+device_address+" rtsp_port="+port+" local_address="+local_address);
+        deviceIdMap.put(device_id, new WfdSession(id, device_id, device_name, device_type));
         service_.onSessionReady(id, device_id, device_name, device_address, port, local_address);
     }
     
@@ -461,6 +490,30 @@ public class WifidVideoPlayer {
     			}
     		}
     	}
+    }
+    
+    // only used in TX3 dongle sessions to post platform
+    public void postTx3DeviceType(long sessionId)
+    {
+        Common.Logging.i(TAG, "videoplayer.postDeviceType(): sessionId="+sessionId);
+        if (sessionId != INVALID_SESSION_ID)
+        {
+            WfdSession session = getWfdSession(sessionId);
+            if (session == null ) {
+                Common.Logging.i(TAG, "videoplayer.postDeviceType(): not a TX3-100 session - no device type to post");
+                return;
+            }
+            Common.Logging.i(TAG, "videoplayer.postDeviceType(): session: "+session);
+            AirMediaPlatforms platform = null;
+            if (session.deviceType.contains("TX3_100"))
+                platform = AirMediaPlatforms.Tx3_100;
+            else if (session.deviceType.contains("TX3_200"))
+                platform = AirMediaPlatforms.Tx3_200;
+            else
+                return;
+            Common.Logging.i(TAG, "videoplayer.infoChanged(): sessionId="+sessionId+"  platform="+platform);
+            service_.infoChanged(sessionId, platform, "HW", "1.0");
+        }
     }
     
     public void audioMuteChanged(int streamId, boolean mute)
@@ -606,21 +659,33 @@ public class WifidVideoPlayer {
     public long deviceId2SessionId(String deviceId)
     {
     	if (deviceIdMap.containsKey(deviceId))
-    		return deviceIdMap.get(deviceId);
+    		return deviceIdMap.get(deviceId).id;
     	else
     		return INVALID_SESSION_ID;
     }
     
     public String sessionId2DeviceId(long id)
     {
-    	for (Entry<String, Long> e : deviceIdMap.entrySet())
+    	for (Entry<String, WfdSession> e : deviceIdMap.entrySet())
     	{
-    		long v = e.getValue();
+    		long v = e.getValue().id;
     		if (v == id)
     			return e.getKey();
     	}
     	return null;
     }
+    
+    public WfdSession getWfdSession(long id)
+    {
+        for (Entry<String, WfdSession> e : deviceIdMap.entrySet())
+        {
+            long v = e.getValue().id;
+            if (v == id)
+                return e.getValue();
+        }
+        return null;
+    }
+
     ////////////////////////////////////////////////////////////////////////////////////////////////
     /// EVENTS
     ////////////////////////////////////////////////////////////////////////////////////////////////

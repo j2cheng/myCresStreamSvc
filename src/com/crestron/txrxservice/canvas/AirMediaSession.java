@@ -46,6 +46,7 @@ public class AirMediaSession extends Session
         Common.Logging.i(TAG, "AirMediaSession::AirMediaSession - miracast session Id = " + miracastSessionId);
 		videoState = AirMediaSessionStreamingState.Stopped;
 		isAudioMuted = session.audioMuted();
+        mStreamCtl.wifidVideoPlayer.postTx3DeviceType(miracastSessionId);
 		if (session.info() != null)
 		{
 			setPlatformType(session.info().platform);
@@ -95,6 +96,12 @@ public class AirMediaSession extends Session
 			connectRequest(new Originator(RequestOrigin.Receiver, this));
 		}
 	}	
+	
+	public void setAirMediaPlatform(com.crestron.airmedia.receiver.m360.models.AirMediaSession s) 
+	{
+	    Common.Logging.i(TAG,"setAirMediaPlatform(): "+s.info().platform);
+	    setPlatformType(s.info().platform);
+	}   
 	
 	// Receiver initiated requests - handled on thread of requestScheduler - will be called when state changes are signaled by receiver
 	// Must be run async so we do not block receiver events thread

@@ -11,7 +11,9 @@ public enum CanvasPlatformType implements Parcelable {
     iOS(4),
     Android(5),
     Chrome(6),
-    Linux(7);
+    Linux(7),
+    Tx3_100(8),
+    Tx3_200(9);
 
     public final int value;
 
@@ -49,6 +51,8 @@ public enum CanvasPlatformType implements Parcelable {
             case 5: return Android;
             case 6: return Chrome;
             case 7: return Linux;
+            case 8: return Tx3_100;
+            case 9: return Tx3_200;
         }
         return Undefined;
     }

@@ -18,7 +18,9 @@ public enum AirMediaPlatforms implements Parcelable {
     @SerializedName("3") iOS(3),
     @SerializedName("4") Android(4),
     @SerializedName("5") Chromebook(5),
-    @SerializedName("6") Linux(6);
+    @SerializedName("6") Linux(6),
+    @SerializedName("7") Tx3_100(7),
+    @SerializedName("8") Tx3_200(8);
     public final int value;
 
     private static final Map<String, AirMediaPlatforms> ModelMapping;
@@ -39,8 +41,10 @@ public enum AirMediaPlatforms implements Parcelable {
         UserAgentMapping.put("ipod", iOS);
         UserAgentMapping.put("cros", Chromebook);
         UserAgentMapping.put("android", Android);
+        UserAgentMapping.put("mirroring360", Android); // android sender; ex: "user_agent":"Mirroring360\/1.2.0.4"
         UserAgentMapping.put("macintosh", Mac);
         UserAgentMapping.put("windows", Windows);
+        UserAgentMapping.put("m360sender", Windows); // windows sender; ex: "user_agent":"M360Sender"
         UserAgentMapping.put("linux", Linux);
     }
 
@@ -70,6 +74,9 @@ public enum AirMediaPlatforms implements Parcelable {
             case 3: return iOS;
             case 4: return Android;
             case 5: return Chromebook;
+            case 6: return Linux;
+            case 7: return Tx3_100;
+            case 8: return Tx3_200;
         }
         return Undefined;
     }
@@ -84,6 +91,9 @@ public enum AirMediaPlatforms implements Parcelable {
             case Android:
             case Chromebook:
                 return "Google";
+            case Tx3_100:
+            case Tx3_200:
+                return "Crestron";
         }
         return "";
     }
@@ -148,6 +158,11 @@ public enum AirMediaPlatforms implements Parcelable {
                         for (Map.Entry<String, AirMediaPlatforms> entry : UserAgentMapping.entrySet()) {
                             if (platform.contains(entry.getKey())) return entry.getValue();
                         }
+                    }
+                } else {
+                    String platform = userAgent.toLowerCase();
+                    for (Map.Entry<String, AirMediaPlatforms> entry : UserAgentMapping.entrySet()) {
+                        if (platform.contains(entry.getKey())) return entry.getValue();
                     }
                 }
             } catch (Exception e) {

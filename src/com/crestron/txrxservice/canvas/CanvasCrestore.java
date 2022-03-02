@@ -1791,13 +1791,14 @@ public class CanvasCrestore
                         String localIpAddress = root.internal.tx3.airMedia.wiFiDirect.onDeviceSourceReady.localIpAddress;
                         String deviceId = root.internal.tx3.airMedia.wiFiDirect.onDeviceSourceReady.deviceId;
                         String deviceName = root.internal.tx3.airMedia.wiFiDirect.onDeviceSourceReady.deviceName;
+                        String deviceType = root.internal.tx3.airMedia.wiFiDirect.onDeviceSourceReady.deviceType;
                         String deviceAddress = root.internal.tx3.airMedia.wiFiDirect.onDeviceSourceReady.remoteIpAddress;
 
-                        if(localIpAddress != null && deviceId != null && deviceName != null && deviceAddress != null)
+                        if(localIpAddress != null && deviceId != null && deviceName != null && deviceAddress != null && deviceType != null)
                         {
                             int rtsp_port = root.internal.tx3.airMedia.wiFiDirect.onDeviceSourceReady.rtspPort;
-               				Common.Logging.v(TAG, "Start Tx3 WifiDirect - deviceId: "+deviceId+", deviceName: "+deviceName+", localIpAddress: "+localIpAddress+", deviceAddress: "+deviceAddress+", rtspPort: "+rtsp_port);
-                            mStreamCtl.startWifiDirect(localIpAddress, deviceId, deviceName, deviceAddress, rtsp_port);
+               				Common.Logging.v(TAG, "Start Tx3 WifiDirect - deviceId: "+deviceId+", deviceName: "+deviceName+", deviceType: "+deviceType+", localIpAddress: "+localIpAddress+", deviceAddress: "+deviceAddress+", rtspPort: "+rtsp_port);
+                            mStreamCtl.startWifiDirect(localIpAddress, deviceId, deviceName, deviceType, deviceAddress, rtsp_port);
                         }
                     }
                     
@@ -2608,6 +2609,9 @@ public class CanvasCrestore
     	
     	@SerializedName ("DeviceName")
     	String  deviceName;
+    	
+        @SerializedName ("DeviceType")
+        String  deviceType;
     }
 
     public class InternalTx3AirMediaWFDonDeviceDisconnect {

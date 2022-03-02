@@ -169,6 +169,10 @@ public abstract class Session
 			p = CanvasPlatformType.Chrome; break;
 		case Linux:
 			p = CanvasPlatformType.Linux; break;
+		case Tx3_100:
+		    p = CanvasPlatformType.Tx3_100; break;
+		case Tx3_200:
+		    p = CanvasPlatformType.Tx3_200; break;
 		case Undefined:
 		default:
 			p = CanvasPlatformType.Undefined; break;
