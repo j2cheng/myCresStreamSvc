@@ -96,6 +96,7 @@ import com.crestron.txrxservice.wc.ipc.WC_SessionFlags;
 import com.crestron.txrxservice.canvas.Session;
 import com.crestron.txrxservice.canvas.SessionType;
 import com.crestron.txrxservice.canvas.NetworkStreamSession;
+import com.crestron.txrxservice.UsbVolumeCtrl;
 
 interface Command {
     void executeStart(int sessId);
@@ -234,6 +235,8 @@ public class CresStreamCtrl extends Service {
     private int defaultLoggingLevel = -1;
     private int numberOfVideoTimeouts = 0; //we will use this to track stop/start timeouts
     private final ProductSpecific mProductSpecific = new ProductSpecific();
+    private final UsbVolumeCtrl mUsbVolumeCtrl = new UsbVolumeCtrl(this);
+
     private final static String multicastTTLFilePath = "/dev/shm/crestron/CresStreamSvc/multicast_ttl";
     private final static String keyFrameIntervalFilePath = "/dev/shm/crestron/CresStreamSvc/keyframe_interval";
     
@@ -272,6 +275,11 @@ public class CresStreamCtrl extends Service {
             ForceServiceToForeground();
         }
     };
+
+    //Audio Playback File set/get for Volume Control Feature
+    public String peripheralAudioPlaybackDevice = null;
+    public  void setAudioPlaybackFile(String aFile) { peripheralAudioPlaybackDevice = aFile; }
+    public String getAudioPlaybackFile()           { return peripheralAudioPlaybackDevice; }
 
     // JNI prototype
     public native boolean nativeHaveExternalDisplays();
@@ -1466,6 +1474,7 @@ public class CresStreamCtrl extends Service {
             MiscUtils.writeStringToDisk(gstreamerTimeoutCountFilePath, String.valueOf(mGstreamerTimeoutCount));
 
             mProductSpecific.getInstance().startPeripheralListener(this);
+
         }
 
     @Override
@@ -1477,7 +1486,7 @@ public class CresStreamCtrl extends Service {
     ////////////////////////////////////////////////////////////////////////////////////////////////
     /// SERVICE
     ////////////////////////////////////////////////////////////////////////////////////////////////
-    
+
     private final IDecoderService.Stub mBinder = new IDecoderService.Stub() {
         public int attachSurface(int id, Surface s)
         {
@@ -6337,6 +6346,78 @@ public class CresStreamCtrl extends Service {
             RestartTxrxService();
         }
     }
+
+    public void airMediaWCPeripheralVolume(int peripheralVolume)
+    {
+        int retV = 0;
+
+	Log.i(TAG, "airMediaWCPeripheralVolume() : PeripheralVolume changed to " + peripheralVolume);
+
+        retV = mUsbVolumeCtrl.setUsbPeripheralVolume(getAudioPlaybackFile(), peripheralVolume);
+
+	if(retV == 0) {
+	    sockTask.SendDataToAllClients("AIRMEDIA_WC_PERIPHERAL_VOLUME_FB=" + peripheralVolume);
+	} else {
+	    Log.e(TAG, "airMediaWCPeripheralVolume() : PeripheralVolume change failed to update in Hardware!!!" );
+        }
+
+    }
+
+    public void airMediaWCPeripheralMute(boolean peripheralMute)
+    {
+        int retV = 0;
+
+	Log.i(TAG, "airMediaWCPeripheralMute() : PeripheralMute changed to " + peripheralMute);
+
+	retV = mUsbVolumeCtrl.setUsbPeripheralMute(getAudioPlaybackFile(), peripheralMute);
+	
+	if(retV == 0) {
+	    if(peripheralMute == true)
+	        sockTask.SendDataToAllClients("AIRMEDIA_WC_PERIPHERAL_MUTE_FB=1");
+            else
+	        sockTask.SendDataToAllClients("AIRMEDIA_WC_PERIPHERAL_MUTE_FB=0");
+	} else {
+	    Log.e(TAG, "airMediaWCPeripheralMute() : PeripheralMute change failed to update in Hardware!!!" );
+	    
+	}
+    }
+
+    public void sendPeripheralVolumeStatus() {
+
+	int     peripheralVolume 		= 0;
+	boolean peripheralMute   		= false;
+	boolean isPeripheralVolumeSupported	= true;
+
+        if(isAM3X00() != true)
+        {
+            Log.i(TAG,"sendPeripheralVolumeStatus: returning as Device is not AM3X00");
+   	    return;
+        }
+
+        mUsbVolumeCtrl.getUsbPeripheralVolume(getAudioPlaybackFile());
+
+        peripheralVolume		= mUsbVolumeCtrl.devVolume;
+	peripheralMute			= mUsbVolumeCtrl.devMute;
+	isPeripheralVolumeSupported	= mUsbVolumeCtrl.devVolSupport;
+        
+        Log.i(TAG,"sendPeripheralVolumeStatus:" 	+
+			"AudioPlayBackFile:"            + getAudioPlaybackFile() +
+			"PeripheralVolume:" 		+ peripheralVolume +
+			"PeripheralMute:" 		+ peripheralMute +
+			"IsPeripheralVolumeSupported:" 	+ isPeripheralVolumeSupported);
+	sockTask.SendDataToAllClients("AIRMEDIA_WC_PERIPHERAL_VOLUME_FB=" + peripheralVolume);
+
+	if(peripheralMute == true)
+		sockTask.SendDataToAllClients("AIRMEDIA_WC_PERIPHERAL_MUTE_FB=1");
+	else
+		sockTask.SendDataToAllClients("AIRMEDIA_WC_PERIPHERAL_MUTE_FB=0");
+
+	if(isPeripheralVolumeSupported == true)
+		sockTask.SendDataToAllClients("AIRMEDIA_WC_IS_PERIPHERAL_SUPPORTED_FB=1");
+	else
+		sockTask.SendDataToAllClients("AIRMEDIA_WC_IS_PERIPHERAL_SUPPORTED_FB=0");
+    }
+
     public void airMediaWCLicensed(boolean enable)
     {
         userSettings.setAirMediaWCLicensed(enable);
@@ -6401,6 +6482,10 @@ public class CresStreamCtrl extends Service {
         {
             Log.w(TAG, "onUsbStatusChanged(): WC is not enabled");
         }
+
+	//Irrespective of WC is enabled or Not, PeripheralVolumeStatus to be sent
+        sendPeripheralVolumeStatus();
+
     }
     
     public void onHdmiInConnected()

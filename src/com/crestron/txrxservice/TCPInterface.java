@@ -274,6 +274,7 @@ public class TCPInterface extends AsyncTask<Void, Object, Long> {
                     SendDataToAllClients(MiscUtils.stringFormat("HDMIInputConnectedState=%s", streamCtl.hdmiInput.getSyncStatus())); //true means hdmi input connected
 
                 streamCtl.pushWcStatusUpdate();
+                streamCtl.sendPeripheralVolumeStatus();
 
                 // Update csio on current service mode
                 Log.i(TAG, "Sending present service mode to csio: " + MiscUtils.stringFormat("SERVICEMODE=%d", streamCtl.serviceMode.ordinal()));

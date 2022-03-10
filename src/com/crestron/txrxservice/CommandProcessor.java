@@ -2985,6 +2985,34 @@ class AirMediaWCQualityCommand extends CrestronCommand {
 	}
 }
 
+//this class called once the WC Peripheral Volume is changed
+class WirelessConferencingPeripheralVolumeCommand extends CrestronCommand {
+	public WirelessConferencingPeripheralVolumeCommand(CresStreamCtrl ctrl, String arg) {
+		super(ctrl, arg);
+	}	
+        @Override
+	public void execute() {
+		ctrl.airMediaWCPeripheralVolume(Integer.valueOf(msg));
+	}
+	public String getFeedbackMsg() {
+		return msg;
+	}
+}
+
+//this class called once the WC Peripheral Volume is changed
+class WirelessConferencingPeripheralMuteCommand extends CrestronCommand {
+	public WirelessConferencingPeripheralMuteCommand(CresStreamCtrl ctrl, String arg) {
+		super(ctrl, arg);
+	}	
+        @Override
+	public void execute() {
+		ctrl.airMediaWCPeripheralMute(Boolean.valueOf(msg));
+	}
+	public String getFeedbackMsg() {
+		return msg;
+	}
+}
+
 //this receives the licence status of WC from csio
 class WirelessConferencingLicensed extends CrestronCommand {
     public WirelessConferencingLicensed(CresStreamCtrl ctrl, String arg) {

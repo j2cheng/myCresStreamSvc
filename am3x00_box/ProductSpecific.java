@@ -549,6 +549,7 @@ public class ProductSpecific
                     if (sFile != null)
                     {
                         showPlaybackDeviceVolumeSetting(defaultPlaybackDevice);
+                        cresStreamCtrl.setAudioPlaybackFile(sFile);
                     }
                     propertyMap = genPropertiesMap(perUsbDevices);
                     UsbAvDevice d = new UsbAvDevice(usbId, ((usbId==PeripheralManager.PER_USB_30)?"usb3":"usb2"), name, vFile, 

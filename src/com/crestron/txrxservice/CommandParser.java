@@ -192,6 +192,8 @@ public class CommandParser {
         AIRMEDIA_WC_ENABLE,
         AIRMEDIA_WC_QUALITY,
         AIRMEDIA_WC_LICENSED,     // Wireless Conferencing set Licensing status
+        AIRMEDIA_WC_PERIPHERAL_VOLUME,
+	AIRMEDIA_WC_PERIPHERAL_MUTE,
         
         // Camera Streaming Slot
         CAMERA_STREAMING_ENABLE,
@@ -839,6 +841,12 @@ public class CommandParser {
                 break;
             case AIRMEDIA_WC_LICENSED:
                 cmd = new WirelessConferencingLicensed(ctrl, arg);
+                break;
+            case AIRMEDIA_WC_PERIPHERAL_VOLUME:
+                cmd = new WirelessConferencingPeripheralVolumeCommand(ctrl, arg);
+                break;
+            case AIRMEDIA_WC_PERIPHERAL_MUTE:
+                cmd = new WirelessConferencingPeripheralMuteCommand(ctrl, arg);
                 break;
 
         	// Camera Streaming
