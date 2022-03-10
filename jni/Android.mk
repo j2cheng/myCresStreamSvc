@@ -52,6 +52,7 @@ LOCAL_SRC_FILES := \
 	cresStreamOut/streamOutUtils/cresProjectBaseClass.cpp \
 	cresStreamOut/streamOutUtils/cresStreamOutUtils.cpp \
 	Wbs.cpp \
+	usbVolumeControl.cpp \
 	TileDecoder.cpp \
 	$(CSIO_ROOT)/gstreamer-1.0/csioutils.cpp \
 	$(CSIO_ROOT)/gstreamer-1.0/cstream.cpp \

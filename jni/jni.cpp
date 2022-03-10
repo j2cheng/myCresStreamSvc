@@ -36,6 +36,7 @@
 #include <jni.h>
 #include "GstreamIn.h"
 #include "GstreamOut.h"
+#include "usbVolumeControl.h"
 #include "WbsStreamIn.h"
 #include "Wbs.h"
 #include "cresStreamOut.h"
@@ -115,6 +116,7 @@ static jclass *gStreamIn_javaClass_id;
 static jclass *gStreamOut_javaClass_id = NULL;
 static jclass *wbsStreamIn_javaClass_id;
 static jclass *gCresLog_javaClass_id;
+static jclass *gUsbVolumeCtrl_javaClass_id;
 
 static jobject gCresLogApp;
 
@@ -2763,6 +2765,16 @@ jint JNI_OnLoad(JavaVM *vm, void *reserved)
 		CSIO_LOG(eLogLevel_error, "wbstream_jni", "wbsStreamIn_javaClass_id is still null when it is suppose to be global");
 	     return 0; /* out of memory exception thrown */
 	}
+
+    //Get 
+    CSIO_LOG(eLogLevel_error, "UsbVolumeCtrl_jni : Registering natives for UsbVolumeCtrl");
+    jclass klass4 = env->FindClass ("com/crestron/txrxservice/UsbVolumeCtrl");
+    gUsbVolumeCtrl_javaClass_id = (jclass*)env->NewGlobalRef(klass4);
+    env->DeleteLocalRef(klass4);
+    if (gUsbVolumeCtrl_javaClass_id == NULL) {
+        CSIO_LOG(eLogLevel_error, "UsbVolumeCtrl_jni", "gCresLog_javaClass_id is still null when it is suppose to be global");
+         return 0; /* out of memory exception thrown */
+    }
 
 	pthread_key_create (&current_jni_env, detach_current_thread);
 	return JNI_VERSION_1_4;
