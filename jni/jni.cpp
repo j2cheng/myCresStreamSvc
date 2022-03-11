@@ -370,6 +370,9 @@ static void gst_native_init (JNIEnv* env, jobject thiz)
 		signal(SIGSEGV, SIG_DFL);
 	}
 
+    if(product_info()->hw_platform == eHardwarePlatform_Rockchip) 
+        set_TLS_version_ciphers();
+
     WfdSinkProjInit();
 }
 

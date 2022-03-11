@@ -199,6 +199,17 @@ void init_custom_data(CustomData * cdata)
         CSIO_LOG(eLogLevel_debug, "%s: Set isDoorStation to FALSE", __FUNCTION__);
 	}
 }
+void set_TLS_version_ciphers()
+{
+    // Disabling TLV version 1.0 and 1.1 
+    // Crestron TLS Standard: Section 1.1.4.4 STD-TLS-104 Ciphers
+    // Disabling all the ciphers which are out of scope
+    // reference : https://gnutls.org/manual/html_node/Priority-Strings.html
+
+    setenv("G_TLS_GNUTLS_PRIORITY","NORMAL:-VERS-TLS1.0:-VERS-TLS1.1:-CAMELLIA-128-CBC:-CAMELLIA-128-GCM:-CAMELLIA-256-CBC:-CAMELLIA-256-GCM:-CHACHA20-POLY1305:-AES-256-CCM:-3DES-CBC:-CURVE-ALL:+CURVE-SECP256R1:+DHE-RSA:-RSA:%SERVER_PRECEDENCE", 1);
+    CSIO_LOG(eLogLevel_debug, "Set G_TLS_GNUTLS_PRIORITY to %s", getenv("G_TLS_GNUTLS_PRIORITY"));
+
+}
 
 void set_gst_debug_level(void)
 {

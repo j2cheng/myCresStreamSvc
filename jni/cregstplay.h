@@ -330,6 +330,7 @@ int  csio_ShowMJPEGvideo(int iStreamId);
 
 
 void set_gst_debug_level(void);
+void set_TLS_version_ciphers();
 
 extern guint64 amcviddec_min_threshold_time ;
 extern int debug_blocking_audio;
