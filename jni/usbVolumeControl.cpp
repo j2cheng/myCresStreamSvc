@@ -35,6 +35,10 @@ JNIEXPORT jboolean JNICALL Java_com_crestron_txrxservice_UsbVolumeCtrl_nativeSet
     CSIO_LOG(eLogLevel_debug,"In Native Function for %s nativeSetPeripheralMute with Value %d\n", devId_cstring, peripheralMute);
     UsbPeripheralVolume *m_vol_handle = new UsbPeripheralVolume(devId_cstring);
     unsigned int i;
+    bool bSwitch = false;
+
+    if(!peripheralMute) // peripheralmute = 0 means Switch On(true)
+        bSwitch = true; // peripheralmute = 1 means Switch Off(false)
 
     m_vol_handle->ctlMute = m_vol_handle->getPlaybackMute_ctl(m_vol_handle->p_mixer);
     if (!m_vol_handle->ctlMute) {
@@ -46,7 +50,7 @@ JNIEXPORT jboolean JNICALL Java_com_crestron_txrxservice_UsbVolumeCtrl_nativeSet
         m_vol_handle->num_ctl_values = mixer_ctl_get_num_values(m_vol_handle->ctlMute);
         for (i = 0; i < m_vol_handle->num_ctl_values; i++) {
             /* Set all values the same */
-            if (mixer_ctl_set_value(m_vol_handle->ctlMute, i, peripheralMute)) {
+            if (mixer_ctl_set_value(m_vol_handle->ctlMute, i, bSwitch)) {
                 CSIO_LOG(eLogLevel_error, "Error: invalid mixer value\n");
                 retVal = JNI_FALSE;
             }
@@ -224,7 +228,7 @@ int UsbPeripheralVolume::getPlaybackVolume(UsbPeripheralVolume *m_vol_handle)
 
 bool UsbPeripheralVolume::getPlaybackMuteStatus(UsbPeripheralVolume *m_vol_handle)
 {
-    bool retval = false;
+    bool retval = true;
     unsigned int n_ctl_values = 0;
     n_ctl_values = mixer_ctl_get_num_values(m_vol_handle->ctlMute);
     for (unsigned int i = 0; i < n_ctl_values; i++) {

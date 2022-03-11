@@ -6351,71 +6351,81 @@ public class CresStreamCtrl extends Service {
     {
         int retV = 0;
 
-	Log.i(TAG, "airMediaWCPeripheralVolume() : PeripheralVolume changed to " + peripheralVolume);
+        Log.i(TAG, "airMediaWCPeripheralVolume() : PeripheralVolume changed to " + peripheralVolume);
 
         retV = mUsbVolumeCtrl.setUsbPeripheralVolume(getAudioPlaybackFile(), peripheralVolume);
 
-	if(retV == 0) {
-	    sockTask.SendDataToAllClients("AIRMEDIA_WC_PERIPHERAL_VOLUME_FB=" + peripheralVolume);
-	} else {
-	    Log.e(TAG, "airMediaWCPeripheralVolume() : PeripheralVolume change failed to update in Hardware!!!" );
+        if(retV == 0) {
+            sockTask.SendDataToAllClients("AIRMEDIA_WC_PERIPHERAL_VOLUME_FB=" + peripheralVolume);
+        } else {
+            Log.e(TAG, "airMediaWCPeripheralVolume() : PeripheralVolume change failed to update in Hardware!!!" );
         }
-
     }
 
     public void airMediaWCPeripheralMute(boolean peripheralMute)
     {
         int retV = 0;
 
-	Log.i(TAG, "airMediaWCPeripheralMute() : PeripheralMute changed to " + peripheralMute);
+        Log.i(TAG, "airMediaWCPeripheralMute() : PeripheralMute changed to " + peripheralMute);
 
-	retV = mUsbVolumeCtrl.setUsbPeripheralMute(getAudioPlaybackFile(), peripheralMute);
+        retV = mUsbVolumeCtrl.setUsbPeripheralMute(getAudioPlaybackFile(), peripheralMute);
 	
-	if(retV == 0) {
-	    if(peripheralMute == true)
-	        sockTask.SendDataToAllClients("AIRMEDIA_WC_PERIPHERAL_MUTE_FB=1");
+        if(retV == 0) {
+            if(peripheralMute == true)
+                sockTask.SendDataToAllClients("AIRMEDIA_WC_PERIPHERAL_MUTE_FB=1");
             else
-	        sockTask.SendDataToAllClients("AIRMEDIA_WC_PERIPHERAL_MUTE_FB=0");
-	} else {
-	    Log.e(TAG, "airMediaWCPeripheralMute() : PeripheralMute change failed to update in Hardware!!!" );
-	    
-	}
+                sockTask.SendDataToAllClients("AIRMEDIA_WC_PERIPHERAL_MUTE_FB=0");
+        } else {
+            Log.e(TAG, "airMediaWCPeripheralMute() : PeripheralMute change failed to update in Hardware!!!" );
+        }
     }
 
-    public void sendPeripheralVolumeStatus() {
+    public synchronized void sendPeripheralVolumeStatus() {
 
-	int     peripheralVolume 		= 0;
-	boolean peripheralMute   		= false;
-	boolean isPeripheralVolumeSupported	= true;
+        int     peripheralVolume 		= 0;
+        boolean peripheralMute   		= false;
+        boolean isPeripheralVolumeSupported	= false;
 
         if(isAM3X00() != true)
         {
             Log.i(TAG,"sendPeripheralVolumeStatus: returning as Device is not AM3X00");
-   	    return;
+   	        return;
         }
 
-        mUsbVolumeCtrl.getUsbPeripheralVolume(getAudioPlaybackFile());
+        if(!csioConnected)
+        {
+            Log.i(TAG,"sendPeripheralVolumeStatus: not connected to csio yet, returning");
+   	        return;
+        }
 
-        peripheralVolume		= mUsbVolumeCtrl.devVolume;
-	peripheralMute			= mUsbVolumeCtrl.devMute;
-	isPeripheralVolumeSupported	= mUsbVolumeCtrl.devVolSupport;
+        if(getAudioPlaybackFile() != null)
+        {
+            mUsbVolumeCtrl.getUsbPeripheralVolume(getAudioPlaybackFile());
+            peripheralVolume		= mUsbVolumeCtrl.devVolume;
+            peripheralMute			= mUsbVolumeCtrl.devMute;
+            isPeripheralVolumeSupported	= mUsbVolumeCtrl.devVolSupport;
+        }
+        else
+            Log.i(TAG,"sendPeripheralVolumeStatus: Not calling Native Implementation as Audio Playback File is NULL");
+
+        //Note: Even if Audio Playback File is NULL, need to send default, so UI can block
         
-        Log.i(TAG,"sendPeripheralVolumeStatus:" 	+
-			"AudioPlayBackFile:"            + getAudioPlaybackFile() +
-			"PeripheralVolume:" 		+ peripheralVolume +
-			"PeripheralMute:" 		+ peripheralMute +
-			"IsPeripheralVolumeSupported:" 	+ isPeripheralVolumeSupported);
-	sockTask.SendDataToAllClients("AIRMEDIA_WC_PERIPHERAL_VOLUME_FB=" + peripheralVolume);
+        Log.i(TAG,"sendPeripheralVolumeStatus:" 	    +
+                " AudioPlayBackFile: "              + getAudioPlaybackFile() +
+                " PeripheralVolume: " 		        + peripheralVolume +
+                " PeripheralMute: " 		        + peripheralMute +
+                " IsPeripheralVolumeSupported: " 	+ isPeripheralVolumeSupported);
+    	sockTask.SendDataToAllClients("AIRMEDIA_WC_PERIPHERAL_VOLUME_FB=" + peripheralVolume);
 
-	if(peripheralMute == true)
-		sockTask.SendDataToAllClients("AIRMEDIA_WC_PERIPHERAL_MUTE_FB=1");
-	else
-		sockTask.SendDataToAllClients("AIRMEDIA_WC_PERIPHERAL_MUTE_FB=0");
+	    if(peripheralMute == true)
+		    sockTask.SendDataToAllClients("AIRMEDIA_WC_PERIPHERAL_MUTE_FB=1");
+    	else
+	    	sockTask.SendDataToAllClients("AIRMEDIA_WC_PERIPHERAL_MUTE_FB=0");
 
-	if(isPeripheralVolumeSupported == true)
-		sockTask.SendDataToAllClients("AIRMEDIA_WC_IS_PERIPHERAL_SUPPORTED_FB=1");
-	else
-		sockTask.SendDataToAllClients("AIRMEDIA_WC_IS_PERIPHERAL_SUPPORTED_FB=0");
+    	if(isPeripheralVolumeSupported == true)
+	    	sockTask.SendDataToAllClients("AIRMEDIA_WC_IS_PERIPHERAL_SUPPORTED_FB=1");
+    	else
+	    	sockTask.SendDataToAllClients("AIRMEDIA_WC_IS_PERIPHERAL_SUPPORTED_FB=0");
     }
 
     public void airMediaWCLicensed(boolean enable)
@@ -6483,8 +6493,16 @@ public class CresStreamCtrl extends Service {
             Log.w(TAG, "onUsbStatusChanged(): WC is not enabled");
         }
 
-	//Irrespective of WC is enabled or Not, PeripheralVolumeStatus to be sent
-        sendPeripheralVolumeStatus();
+        //Irrespective of WC is enabled or Not, PeripheralVolumeStatus to be sent
+        //Needs to be in separate thread for NetworkOnMainThreadException, since SendtoCrestore occurs in the flow
+        //this can get called from Main UI Thread(startPeripheralListener)
+        new Thread(new Runnable() {
+        @Override
+            public void run() {
+                sendPeripheralVolumeStatus();
+            }
+        }).start();
+        
 
     }
     

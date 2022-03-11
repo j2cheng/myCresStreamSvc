@@ -50,26 +50,31 @@ public class UsbVolumeCtrl {
     {
         int val = -1;
         Log.i(TAG, "UsbVolume: setUsbPeripheralVolume: incoming device ="+audioPlaybackFile+", Volume = "+peripheralVolume);
-        if(nativeSetPeripheralVolume(audioPlaybackFile,peripheralVolume))
+        if(nativeSetPeripheralVolume(audioPlaybackFile,peripheralVolume)) {
+            val = 0;
             Log.i(TAG, "UsbVolume: Volume set success");
+        }
         return val;
     }
 
     public int setUsbPeripheralMute(String audioPlaybackFile, boolean peripheralMute)
     {
-        int val = 0;
+        int val = -1;
         Log.i(TAG, "UsbVolume: setUsbPeripheralMute: incoming device ="+audioPlaybackFile+", Mute = "+peripheralMute);
-        if(nativeSetPeripheralMute(audioPlaybackFile, peripheralMute))
+        if(nativeSetPeripheralMute(audioPlaybackFile, peripheralMute)) {
+            val = 0;
             Log.i(TAG, "UsbVolume: mute set success");
+        }
         return val;
     }
 
     public int getUsbPeripheralVolume(String audioPlaybackFile)
     {
-        int val = 0;
+        int val = -1;
         Log.v(TAG, "UsbVolume: getUsbPeripheralVolume: For device ="+audioPlaybackFile);
         if(nativeGetPeripheralVolume(audioPlaybackFile, this))
         {
+                val = 0;
                 Log.i(TAG, "UsbVolume: getUsbPeripheralVolume: devVolSupport = " + devVolSupport );
                 Log.i(TAG, "UsbVolume: getUsbPeripheralVolume: devVolume = " + devVolume );
                 Log.i(TAG, "UsbVolume: getUsbPeripheralVolume: devMute = " + devMute );
