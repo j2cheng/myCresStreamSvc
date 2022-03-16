@@ -2723,7 +2723,7 @@ jint JNI_OnLoad(JavaVM *vm, void *reserved)
 	
 	if (vm->GetEnv((void**) &env, JNI_VERSION_1_4) != JNI_OK)
 	{
-		CSIO_LOG(eLogLevel_error, "gstreamer_jni", "Could not retrieve JNIEnv");
+		CSIO_LOG(eLogLevel_error, "gstreamer_jni: Could not retrieve JNIEnv");
 		return 0;
 	}
 
@@ -2732,7 +2732,7 @@ jint JNI_OnLoad(JavaVM *vm, void *reserved)
     gCresLog_javaClass_id = (jclass*)env->NewGlobalRef(klass0);
     env->DeleteLocalRef(klass0);
     if (gCresLog_javaClass_id == NULL) {
-        CSIO_LOG(eLogLevel_error, "cresLog_jni", "gCresLog_javaClass_id is still null when it is suppose to be global");
+        CSIO_LOG(eLogLevel_error, "cresLog_jni: gCresLog_javaClass_id is still null when it is suppose to be global");
          return 0; /* out of memory exception thrown */
     }
 
@@ -2742,7 +2742,7 @@ jint JNI_OnLoad(JavaVM *vm, void *reserved)
 	gStreamIn_javaClass_id = (jclass*)env->NewGlobalRef(klass);
 	env->DeleteLocalRef(klass);
 	if (gStreamIn_javaClass_id == NULL) {
-		CSIO_LOG(eLogLevel_error, "gstreamer_jni", "gStreamIn_javaClass_id is still null when it is suppose to be global");
+		CSIO_LOG(eLogLevel_error, "gstreamer_jni: gStreamIn_javaClass_id is still null when it is suppose to be global");
 	     return 0; /* out of memory exception thrown */
 	 }
 
@@ -2754,7 +2754,7 @@ jint JNI_OnLoad(JavaVM *vm, void *reserved)
 	gStreamOut_javaClass_id = (jclass*)env->NewGlobalRef(klass2);
 	env->DeleteLocalRef(klass2);
 	if (gStreamOut_javaClass_id == NULL) {
-		CSIO_LOG(eLogLevel_error, "gstreamer_jni", "gStreamOut_javaClass_id is still null when it is suppose to be global");
+		CSIO_LOG(eLogLevel_error, "gstreamer_jni: gStreamOut_javaClass_id is still null when it is suppose to be global");
 	     return 0; /* out of memory exception thrown */
 	}
 	env->RegisterNatives ((jclass)gStreamOut_javaClass_id, native_methods_rtsp_server, G_N_ELEMENTS(native_methods_rtsp_server));
@@ -2765,17 +2765,16 @@ jint JNI_OnLoad(JavaVM *vm, void *reserved)
 	wbsStreamIn_javaClass_id = (jclass*)env->NewGlobalRef(klass3);
 	env->DeleteLocalRef(klass3);
 	if (wbsStreamIn_javaClass_id == NULL) {
-		CSIO_LOG(eLogLevel_error, "wbstream_jni", "wbsStreamIn_javaClass_id is still null when it is suppose to be global");
+		CSIO_LOG(eLogLevel_error, "wbstream_jni: wbsStreamIn_javaClass_id is still null when it is suppose to be global");
 	     return 0; /* out of memory exception thrown */
 	}
 
-    //Get 
-    CSIO_LOG(eLogLevel_error, "UsbVolumeCtrl_jni : Registering natives for UsbVolumeCtrl");
+    CSIO_LOG(eLogLevel_info, "UsbVolumeCtrl_jni: Registering natives for UsbVolumeCtrl");
     jclass klass4 = env->FindClass ("com/crestron/txrxservice/UsbVolumeCtrl");
     gUsbVolumeCtrl_javaClass_id = (jclass*)env->NewGlobalRef(klass4);
     env->DeleteLocalRef(klass4);
     if (gUsbVolumeCtrl_javaClass_id == NULL) {
-        CSIO_LOG(eLogLevel_error, "UsbVolumeCtrl_jni", "gCresLog_javaClass_id is still null when it is suppose to be global");
+        CSIO_LOG(eLogLevel_error, "UsbVolumeCtrl_jni: gUsbVolumeCtrl_javaClass_id is still null when it is suppose to be global");
          return 0; /* out of memory exception thrown */
     }
 
@@ -4390,7 +4389,7 @@ int csio_jni_AddVideo(GstPad *new_pad,gchar *encoding_name, GstElement **sink,eP
 	        CSIO_LOG(eLogLevel_debug,  "%s: No stream-format field.", __FUNCTION__);
 	}
 
-	CSIO_LOG(eLogLevel_debug, "%s calling build_video_pipeline for stream %d,format_name[0x%x]", __FUNCTION__, iStreamId,format_name);
+    CSIO_LOG(eLogLevel_debug, "%s calling build_video_pipeline for stream %d,format_name[0x%s]", __FUNCTION__, iStreamId,format_name);
 
 	iStatus = build_video_pipeline(encoding_name, data,0,do_rtp,&ele0,sink,format_name);
 
@@ -6097,7 +6096,7 @@ JNIEXPORT void JNICALL Java_com_crestron_txrxservice_GstreamIn_nativeWfdPause(JN
 
         if (!data)
         {
-            CSIO_LOG(eLogLevel_error, "%s: Could not obtain stream pointer for stream %d", windowId);
+            CSIO_LOG(eLogLevel_error, "%s: Could not obtain stream pointer for stream %d",__FUNCTION__, windowId);
         }
         else
         {
@@ -6135,7 +6134,7 @@ JNIEXPORT void JNICALL Java_com_crestron_txrxservice_GstreamIn_nativeWfdResume(J
 
         if (!data)
         {
-            CSIO_LOG(eLogLevel_error, "%s: Could not obtain stream pointer for stream %d", windowId);
+            CSIO_LOG(eLogLevel_error, "%s: Could not obtain stream pointer for stream %d",__FUNCTION__, windowId);
         }
         else
         {

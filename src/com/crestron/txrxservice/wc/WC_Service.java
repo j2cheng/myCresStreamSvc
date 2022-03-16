@@ -31,10 +31,13 @@ import com.crestron.txrxservice.wc.ipc.WC_AudioFormat;
 
 public class WC_Service {
     private static final String TAG="WC_Service";
+    //These return values should be in sync with IrisWcError.java and should not clash
     private static final int ERROR_IN_USE = -1;
     private static final int ERROR_NO_USB_DEVICES = -2;
     private static final int ERROR_INVALID_ID = -3;
-    private static final int ERROR_UNSUPPORTED_CAMERA_FORMAT = -4;
+    private static final int ERROR_WC_SERVICE_UNAVAILABLE = -4;
+    private static final int ERROR_UNSUPPORTED_CAMERA_FORMAT = -20;
+
     private static final String WC_CONF_STATUS_IN_USE="In Use";
     private static final String WC_CONF_STATUS_AVAILABLE="Available";
     private static final String WC_CONF_STATUS_UNAVAILABLE="Unavailable";
@@ -74,7 +77,10 @@ public class WC_Service {
         // when server is started a new username/password are generated to form URL and new X509 certificate and privateKey are generated
         public int WC_OpenSession(String clientId, WC_SessionOptions options)
         {
-            Log.i(TAG,"WC_OpenSession: request from clientId="+clientId+" options="+options);
+            Log.i(TAG,"WC_OpenSession: WC Enabled="+ mStreamCtrl.isWirelessConferencingEnabled +" request from clientId="+clientId+" options="+options);
+            if (!mStreamCtrl.isWirelessConferencingEnabled) //Accept open session only if WirelessConferencing is enabled
+                return ERROR_WC_SERVICE_UNAVAILABLE;
+
             if ((mUsbDevices==null) || (mUsbDevices.devices.size() == 0)) {
                 return ERROR_NO_USB_DEVICES;
             }
@@ -337,6 +343,7 @@ public class WC_Service {
     		mUsbDevices = usbDevices;
     		Log.i(TAG, "updateUsbDeviceStatus(): usb device status has changed: "+mUsbDevices);
     		onUsbDevicesChanged();
+            mStreamCtrl.setAudioPlaybackFile(null);
     		getAndReportAllWCStatus();
     	} else {
     		Log.i(TAG, "updateUsbDeviceStatus(): no change in usb device status");
@@ -453,7 +460,8 @@ public class WC_Service {
         if(mUsbAvDeviceList != null)
         {
             for (UsbAvDevice ds : mUsbAvDeviceList) {
-                if(ds.speakerPresent){
+                if(ds.speakerPresent != null){
+                    mStreamCtrl.setAudioPlaybackFile(ds.speakerPresent);
                     speakerDetected = true;
                     break; //If single instance of speaker found, then come out of loop.
                 }

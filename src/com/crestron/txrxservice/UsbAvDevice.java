@@ -6,7 +6,7 @@ public class UsbAvDevice {
 	public String deviceName;
 	public String videoFile;
 	public String audioFile;
-	public Boolean speakerPresent;
+	public String speakerPresent;
 	public String usbPortType;
 	public int perId;
 	public HashMap<String, String> properties;
@@ -18,7 +18,7 @@ public class UsbAvDevice {
 		usbPortType = portType;
 		videoFile = vFile;
 		audioFile = aFile;
-		speakerPresent = (sFile != null) ? Boolean.TRUE : Boolean.FALSE;
+		speakerPresent = sFile;
 		properties = propertyMap;
 	}
 	
@@ -27,7 +27,7 @@ public class UsbAvDevice {
 		return "{USB_Device: id:"+perId+" port:"+usbPortType+" name:"+deviceName+
 				" videoFile:"+((videoFile != null)?videoFile:"null")+
 				" audioFile:"+((audioFile != null)?audioFile:"null")+ 
-				" Speaker present:"+speakerPresent+ 
+				" Speaker present:"+((speakerPresent != null)?speakerPresent:"null")+
 				" properties=["+((properties != null)?properties:"null")+
 				"]}";
 	}

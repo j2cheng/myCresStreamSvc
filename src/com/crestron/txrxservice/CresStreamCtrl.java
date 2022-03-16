@@ -249,6 +249,7 @@ public class CresStreamCtrl extends Service {
     public boolean hideVideoOnStop = false;
     public boolean airMediav21 = false;
     public boolean useFauxPPUX = false;
+    public boolean isWcSupported = false;
     public boolean isWirelessConferencingEnabled = false;
     public boolean isWirelessConferencingLicensed = false;
     public boolean isRGB888HDMIVideoSupported = true;
@@ -819,6 +820,7 @@ public class CresStreamCtrl extends Service {
             mProductHasHDMIoutput = nativeHaveHDMIoutput();
             
             isAM3K = isAM3X00();
+
             if (nativeGetIsAirMediaEnabledEnum())
             {
             	int productType = nativeGetProductTypeEnum();
@@ -1265,11 +1267,14 @@ public class CresStreamCtrl extends Service {
 
             isWirelessConferencingEnabled = userSettings.getAirMediaWCEnable(); // Read from user settings as WC is enabled through CSIO
             isWirelessConferencingLicensed = userSettings.getAirMediaWCLicensed(); // Read from user settings as WC is enabled through CSIO
-
+            Log.i(TAG,"isWirelessConferencingLicensed="+isWirelessConferencingLicensed);
+            //Assumes, on License change a reboot will be made. Which will keep isWcSupported in right state
+            if(isAM3K && isWirelessConferencingLicensed)
+                isWcSupported = true;
             // Added for real camera on x60
             // to-do: support having both hdmi input and a real camera at the same time...
             Log.i(TAG,"isWirelessConferencingEnabled="+isWirelessConferencingEnabled+"   hasRealCamera="+ProductSpecific.hasRealCamera());
-            if(isWirelessConferencingEnabled || ProductSpecific.hasRealCamera())
+            if(isWcSupported || ProductSpecific.hasRealCamera())
             {
                 if (CrestronProductName.fromInteger(nativeGetProductTypeEnum()) == CrestronProductName.AM3X00)
                     userSettings.setCamStreamEnable(false);
@@ -1278,12 +1283,7 @@ public class CresStreamCtrl extends Service {
                 // To-do: support platform that has an hdmi input and a real camera.
                 // in X60, now use GstPreview, no longer use NativePreview, so comment out below:
                 //cam_preview = new CameraPreview(this, null);
-                Log.i(TAG,"isWirelessConferencingLicensed="+isWirelessConferencingLicensed);
-                if (isWirelessConferencingEnabled && isWirelessConferencingLicensed)
-                {
-                    // Needs to be in separate thread for NetworkOnMainThreadException, since SendtoCrestore happens
-                    mWC_Service = new WC_Service(CresStreamCtrl.this);
-                }
+                mWC_Service = new WC_Service(CresStreamCtrl.this);
             }
 
             wbsStream = new WbsStreamIn(CresStreamCtrl.this);
@@ -1525,10 +1525,15 @@ public class CresStreamCtrl extends Service {
     {
         Log.i(TAG, "onBind():  intent= " + intent.toString());
         if (intent.getAction().equals("com.crestron.txrxservice.wc.BIND")){
+            if(!isWcSupported)
+            {
+                Log.e(TAG, "WC is not Supported on this platform. Error!?");
+                return null;
+            }
             if( mWC_Service == null )
             {
-       	         Log.i(TAG, "WC not started. Is it enabled ?");
-                 return null;
+                Log.e(TAG, "WC Handle is NULL. Error!?");
+                return null;
             }
             return mWC_Service.getBinder();
         }else {
@@ -1557,14 +1562,12 @@ public class CresStreamCtrl extends Service {
         Log.i(TAG, "onUnbind(): intent= " + intent.toString());
         if (intent.getAction().equals("com.crestron.txrxservice.wc.BIND"))
         {
-            if( mWC_Service != null )
+            if( mWC_Service == null )
             {
-            	mWC_Service.unbind(intent);
+                Log.e(TAG, "WC Handle is NULL. Error!?");
+                return false;
             }
-            else
-            {
-       	         Log.i(TAG, "WC not started. Is it enabled ?");
-            }
+            mWC_Service.unbind(intent);
             super.onUnbind(intent);
         } else {
         	resetAllSlaveStreams();
@@ -1580,14 +1583,12 @@ public class CresStreamCtrl extends Service {
         Log.i(TAG, "onRebind():  intent= " + intent.toString());
         if (intent.getAction().equals("com.crestron.txrxservice.wc.BIND"))
         {
-            if( mWC_Service != null )
+            if( mWC_Service == null )
             {
-        	    mWC_Service.rebind(intent);
+                Log.e(TAG, "WC Handle is NULL. Error!?");
+                return;
             }
-            else
-            {
-       	         Log.i(TAG, "WC not started. Is it enabled ?");
-            }
+            mWC_Service.rebind(intent);
         } else {
         	if (mIsBound)
         	{
@@ -6369,7 +6370,7 @@ public class CresStreamCtrl extends Service {
         Log.i(TAG, "airMediaWCPeripheralMute() : PeripheralMute changed to " + peripheralMute);
 
         retV = mUsbVolumeCtrl.setUsbPeripheralMute(getAudioPlaybackFile(), peripheralMute);
-	
+
         if(retV == 0) {
             if(peripheralMute == true)
                 sockTask.SendDataToAllClients("AIRMEDIA_WC_PERIPHERAL_MUTE_FB=1");
@@ -6382,50 +6383,50 @@ public class CresStreamCtrl extends Service {
 
     public synchronized void sendPeripheralVolumeStatus() {
 
-        int     peripheralVolume 		= 0;
-        boolean peripheralMute   		= false;
-        boolean isPeripheralVolumeSupported	= false;
+        int     peripheralVolume         = 0;
+        boolean peripheralMute           = false;
+        boolean isPeripheralVolumeSupported    = false;
 
         if(isAM3X00() != true)
         {
             Log.i(TAG,"sendPeripheralVolumeStatus: returning as Device is not AM3X00");
-   	        return;
+               return;
         }
 
         if(!csioConnected)
         {
             Log.i(TAG,"sendPeripheralVolumeStatus: not connected to csio yet, returning");
-   	        return;
+               return;
         }
 
         if(getAudioPlaybackFile() != null)
         {
             mUsbVolumeCtrl.getUsbPeripheralVolume(getAudioPlaybackFile());
-            peripheralVolume		= mUsbVolumeCtrl.devVolume;
-            peripheralMute			= mUsbVolumeCtrl.devMute;
-            isPeripheralVolumeSupported	= mUsbVolumeCtrl.devVolSupport;
+            peripheralVolume        = mUsbVolumeCtrl.devVolume;
+            peripheralMute          = mUsbVolumeCtrl.devMute;
+            isPeripheralVolumeSupported    = mUsbVolumeCtrl.devVolSupport;
         }
         else
             Log.i(TAG,"sendPeripheralVolumeStatus: Not calling Native Implementation as Audio Playback File is NULL");
 
         //Note: Even if Audio Playback File is NULL, need to send default, so UI can block
         
-        Log.i(TAG,"sendPeripheralVolumeStatus:" 	    +
+        Log.i(TAG,"sendPeripheralVolumeStatus:"     +
                 " AudioPlayBackFile: "              + getAudioPlaybackFile() +
-                " PeripheralVolume: " 		        + peripheralVolume +
-                " PeripheralMute: " 		        + peripheralMute +
-                " IsPeripheralVolumeSupported: " 	+ isPeripheralVolumeSupported);
-    	sockTask.SendDataToAllClients("AIRMEDIA_WC_PERIPHERAL_VOLUME_FB=" + peripheralVolume);
+                " PeripheralVolume: "               + peripheralVolume +
+                " PeripheralMute: "                 + peripheralMute +
+                " IsPeripheralVolumeSupported: "    + isPeripheralVolumeSupported);
+        sockTask.SendDataToAllClients("AIRMEDIA_WC_PERIPHERAL_VOLUME_FB=" + peripheralVolume);
 
-	    if(peripheralMute == true)
-		    sockTask.SendDataToAllClients("AIRMEDIA_WC_PERIPHERAL_MUTE_FB=1");
-    	else
-	    	sockTask.SendDataToAllClients("AIRMEDIA_WC_PERIPHERAL_MUTE_FB=0");
+        if(peripheralMute == true)
+            sockTask.SendDataToAllClients("AIRMEDIA_WC_PERIPHERAL_MUTE_FB=1");
+        else
+            sockTask.SendDataToAllClients("AIRMEDIA_WC_PERIPHERAL_MUTE_FB=0");
 
-    	if(isPeripheralVolumeSupported == true)
-	    	sockTask.SendDataToAllClients("AIRMEDIA_WC_IS_PERIPHERAL_SUPPORTED_FB=1");
-    	else
-	    	sockTask.SendDataToAllClients("AIRMEDIA_WC_IS_PERIPHERAL_SUPPORTED_FB=0");
+        if(isPeripheralVolumeSupported == true)
+            sockTask.SendDataToAllClients("AIRMEDIA_WC_IS_PERIPHERAL_SUPPORTED_FB=1");
+        else
+            sockTask.SendDataToAllClients("AIRMEDIA_WC_IS_PERIPHERAL_SUPPORTED_FB=0");
     }
 
     public void airMediaWCLicensed(boolean enable)
@@ -6442,7 +6443,8 @@ public class CresStreamCtrl extends Service {
         {
             mWC_Service.stopServer(user);
         }
-            
+        else
+            Log.e(TAG, "stopWcServer(): WC Handle is null");
     }
 
     public void pushWcStatusUpdate()
@@ -6450,15 +6452,14 @@ public class CresStreamCtrl extends Service {
         WC_CresstoreStatus tempInstance = new WC_CresstoreStatus(this);
         //Clear WC peripheral in-use status always on startup
         tempInstance.reportWCInUseStatus(WC_SessionFlags.None, false);
-
         if (mWC_Service != null)
         {
-            //update WC status on startup sequence
             mWC_Service.getAndReportAllWCStatus();
         }
         else
         {
-            //Clear WC status on startup if WC not enabled
+            //Clear WC status on startup if WC handle null
+            Log.e(TAG, "pushWcStatusUpdate(): WC Handle is null");
             tempInstance.reportWCDeviceStatus(false,false,false,"","Unavailable");
         }
     }
@@ -6475,37 +6476,25 @@ public class CresStreamCtrl extends Service {
 
     public void onUsbStatusChanged(final List<UsbAvDevice> devList)
     {
-        if( mWC_Service != null )
-        {       
-            Log.i(TAG, "onUsbStatusChanged(): deviceList="+devList);
+        Log.i(TAG, "onUsbStatusChanged(): deviceList="+devList);
 
-            //Needs to be in separate thread for NetworkOnMainThreadException, since SendtoCrestore occurs in the flow
-            //this can get called from Main UI Thread(startPeripheralListener)
-            new Thread(new Runnable() {
-            @Override
-                public void run() {
-                    mWC_Service.updateUsbDeviceStatus(devList);
-                }
-            }).start();
-        }
-        else
-        {
-            Log.w(TAG, "onUsbStatusChanged(): WC is not enabled");
-        }
-
-        //Irrespective of WC is enabled or Not, PeripheralVolumeStatus to be sent
         //Needs to be in separate thread for NetworkOnMainThreadException, since SendtoCrestore occurs in the flow
         //this can get called from Main UI Thread(startPeripheralListener)
         new Thread(new Runnable() {
         @Override
             public void run() {
+                if( mWC_Service != null )
+                {
+                    mWC_Service.updateUsbDeviceStatus(devList);
+                }
+                else
+                    Log.e(TAG, "onUsbStatusChanged(): WC Handle is null");
+
                 sendPeripheralVolumeStatus();
             }
         }).start();
-        
-
     }
-    
+
     public void onHdmiInConnected()
     {
         if (HDMIInputInterface.useAm3kStateMachine) {

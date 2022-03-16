@@ -348,7 +348,6 @@ public class ProductSpecific
     {
         boolean hdmiInConnected = false;
         CresStreamCtrl cresStreamCtrl;
-        String defaultPlaybackDevice = null;
 
         public PeripheralStatusChangeListener(CresStreamCtrl ctrl) {
             super();
@@ -434,26 +433,12 @@ public class ProductSpecific
         		// Look for one of these devices to flag presence of a speaker
         		if (s.equals("snd/pcmC5D0p") || s.equals("snd/pcmC6D0p"))
         		{
-        		    defaultPlaybackDevice = s; 
         		    return "/dev/"+s;
         		}
         	}
-        	defaultPlaybackDevice = null;
         	return null;
         }
 
-        public void showPlaybackDeviceVolumeSetting(String cardId)
-        {
-            Log.i(TAG, "Device: "+cardId+" get current device volume setting");
-            try {
-                com.gs.core.peripheral.SoundDeviceVolume v = PeripheralManager.instance().getSoundDeviceVolume(cardId);
-                Log.i(TAG, "Device: "+cardId+" mute="+v.isMute()+" volume="+v.getCurVolume()+" volumeRange="+Arrays.toString(v.getVolRange()));
-            } catch (Exception e) {
-                Log.i(TAG, "Exception trying to get playback device volume: "+e);
-                e.printStackTrace();
-            }
-        }
-        
         public HashMap<String, String> genPropertiesMap(List<PeripheralUsbDevice> devices)
         {
       		HashMap<String, String> map = new HashMap<String, String>();
@@ -546,11 +531,6 @@ public class ProductSpecific
                             Log.i(TAG, "onUsbStatusChanged(): video capture file="+vFile);
                         }
                     }
-                    if (sFile != null)
-                    {
-                        showPlaybackDeviceVolumeSetting(defaultPlaybackDevice);
-                        cresStreamCtrl.setAudioPlaybackFile(sFile);
-                    }
                     propertyMap = genPropertiesMap(perUsbDevices);
                     UsbAvDevice d = new UsbAvDevice(usbId, ((usbId==PeripheralManager.PER_USB_30)?"usb3":"usb2"), name, vFile, 
                             aFile, sFile, propertyMap);
@@ -572,7 +552,7 @@ public class ProductSpecific
             }
             cresStreamCtrl.onUsbStatusChanged(usbDeviceList);
         }
-        
+
         public void usbEvent(int usbId)
         {
         	String name = PeripheralManager.instance().getUsbPeripheralName(usbId);
