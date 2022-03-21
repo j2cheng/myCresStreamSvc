@@ -262,8 +262,12 @@ public class UserSettings
 	private boolean airMediaWifiAutoLaunchAirMediaLandingPageEnable;
 	private int airMediaInactivityTimeout;
 	private boolean airMediaWCEnable;
-        private int airMediaWCQuality;
+    private int airMediaWCQuality;
 	private boolean airMediaWCLicensed;
+    private String airMediaPeripheralPlaybackDeviceName;
+    private int airMediaPeripheralVolume;
+    private boolean airMediaPeripheralMute;
+    private boolean airMediaIsPeripheralSupported;
 
 	// Camera Streaming
 	private boolean camStreamEnable;
@@ -426,9 +430,13 @@ public class UserSettings
 		camStreamSnapshotName = "snapshot";
 		camStreamMulticastAddress = "";
 		airMediaWCEnable = false;
-                airMediaWCQuality = 0;  // 0 - High, 1 - Medium, 2 - Low
-                airMediaWCLicensed = false;
-		wcSecurityEnable = true;
+        airMediaWCQuality = 0;  // 0 - High, 1 - Medium, 2 - Low
+        airMediaWCLicensed = false;
+        airMediaPeripheralPlaybackDeviceName = "";
+        airMediaPeripheralVolume = 0;
+        airMediaPeripheralMute = false;
+        airMediaIsPeripheralSupported = false;
+        wcSecurityEnable = true;
 		wcRandomUserPwEnable = true;
 		wcVideoCaptureDevice = "/dev/video5";
 		wcAudioCaptureDevice = "/dev/snd/pcmC5D0c";
@@ -1607,7 +1615,39 @@ public class UserSettings
 	public void setAirMediaWCLicensed(boolean enable) {
 		this.airMediaWCLicensed = enable;
 	}
-
+    
+    public void setAirMediaPeripheralPlaybackDeviceName(String name) {
+        this.airMediaPeripheralPlaybackDeviceName = name;
+    }
+    
+    public void setAirMediaPeripheralVolume(int value) {
+        this.airMediaPeripheralVolume = value;
+    }
+    
+    public void setAirMediaPeripheralMute(boolean mute) {
+        this.airMediaPeripheralMute = mute;
+    }
+    
+    public void setAirMediaIsPeripheralSupported(boolean supported) {
+        this.airMediaIsPeripheralSupported = supported;
+    }
+    
+    public String getAirMediaPeripheralPlaybackDeviceName() {
+        return this.airMediaPeripheralPlaybackDeviceName;
+    }
+    
+    public int getAirMediaPeripheralVolume() {
+        return this.airMediaPeripheralVolume;
+    }
+    
+    public boolean getAirMediaPeripheralMute() {
+        return this.airMediaPeripheralMute;
+    }
+    
+    public boolean getAirMediaIsPeripheralSupported() {
+        return this.airMediaIsPeripheralSupported;
+    }
+    
 	public boolean getAirMediaWCLicensed() {
 		return airMediaWCLicensed;
 	}

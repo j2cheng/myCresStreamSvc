@@ -29,6 +29,7 @@ public class UsbVolumeCtrl {
     public int devVolume = 0;
     public boolean devMute = true;
     public boolean devVolSupport = false;
+    public String devName = null;
 
     static String TAG = "UsbVolumeCtrl";
 
@@ -52,6 +53,7 @@ public class UsbVolumeCtrl {
         Log.i(TAG, "UsbVolume: setUsbPeripheralVolume: incoming device ="+audioPlaybackFile+", Volume = "+peripheralVolume);
         if(nativeSetPeripheralVolume(audioPlaybackFile,peripheralVolume)) {
             val = 0;
+            devVolume = peripheralVolume;
             Log.i(TAG, "UsbVolume: Volume set success");
         }
         return val;
@@ -63,6 +65,7 @@ public class UsbVolumeCtrl {
         Log.i(TAG, "UsbVolume: setUsbPeripheralMute: incoming device ="+audioPlaybackFile+", Mute = "+peripheralMute);
         if(nativeSetPeripheralMute(audioPlaybackFile, peripheralMute)) {
             val = 0;
+            devMute = peripheralMute;
             Log.i(TAG, "UsbVolume: mute set success");
         }
         return val;
@@ -78,6 +81,7 @@ public class UsbVolumeCtrl {
                 Log.i(TAG, "UsbVolume: getUsbPeripheralVolume: devVolSupport = " + devVolSupport );
                 Log.i(TAG, "UsbVolume: getUsbPeripheralVolume: devVolume = " + devVolume );
                 Log.i(TAG, "UsbVolume: getUsbPeripheralVolume: devMute = " + devMute );
+                Log.i(TAG, "UsbVolume: getUsbPeripheralName: devName = " + devName );
         }
         return val;
     }

@@ -92,6 +92,7 @@ public:
     struct mixer_ctl *getPlaybackMute_ctl(struct mixer *mixer);
     int getPlaybackVolume(UsbPeripheralVolume *m_vol_handle);
     bool getPlaybackMuteStatus(UsbPeripheralVolume *m_vol_handle);
+    const char* getPlaybackDeviceName(UsbPeripheralVolume *m_vol_handle);
 
     struct mixer     *p_mixer = NULL;
     struct mixer_ctl *ctlVolume   = NULL;
@@ -101,6 +102,7 @@ public:
     unsigned int m_card_idx;
     unsigned int m_device_idx;    
     char m_device_file[128];
+
 };
 
 

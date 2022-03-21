@@ -109,6 +109,7 @@ JNIEXPORT jboolean JNICALL Java_com_crestron_txrxservice_UsbVolumeCtrl_nativeGet
     jint curVolume = 0;
     jboolean curMuteVal = false;
     jboolean isVolCtrlsSupported = false;
+    jstring curDevName;
 
     const char * devId_cstring = env->GetStringUTFChars( deviceId , NULL ) ;
     if (devId_cstring == NULL) return false;
@@ -132,7 +133,10 @@ JNIEXPORT jboolean JNICALL Java_com_crestron_txrxservice_UsbVolumeCtrl_nativeGet
         curVolume = m_vol_handle->getPlaybackVolume(m_vol_handle); 
         curMuteVal = m_vol_handle->getPlaybackMuteStatus(m_vol_handle);
 
-        CSIO_LOG(eLogLevel_debug,"In Native Function nativeGetIsPeripheralVolumeSupported for %d, %d, %d\n", isVolCtrlsSupported, curVolume, curMuteVal);
+        std::remove_const<const char*>::type dev_name = m_vol_handle->getPlaybackDeviceName(m_vol_handle);
+        curDevName = env->NewStringUTF(dev_name);
+
+        CSIO_LOG(eLogLevel_debug,"In Native Function nativeGetIsPeripheralVolumeSupported for %s, %d, %d, %d\n", dev_name, isVolCtrlsSupported, curVolume, curMuteVal);
 
         retVal = JNI_TRUE;
     }
@@ -146,6 +150,10 @@ JNIEXPORT jboolean JNICALL Java_com_crestron_txrxservice_UsbVolumeCtrl_nativeGet
     fieldId = env->GetFieldID(devvolumeClass , "devVolSupport", "Z");
     env->SetBooleanField(devvolume, fieldId, isVolCtrlsSupported);
 
+    fieldId = env->GetFieldID(devvolumeClass , "devName", "Ljava/lang/String;");
+    env->SetObjectField(devvolume, fieldId, curDevName);
+
+    env->DeleteLocalRef(curDevName);
     env->ReleaseStringUTFChars(deviceId, devId_cstring);
     delete m_vol_handle;
 
@@ -238,6 +246,17 @@ bool UsbPeripheralVolume::getPlaybackMuteStatus(UsbPeripheralVolume *m_vol_handl
     return retval;
 }
 
+const char* UsbPeripheralVolume::getPlaybackDeviceName(UsbPeripheralVolume *m_vol_handle)
+{
+    if( m_vol_handle && m_vol_handle->p_mixer) 
+    {
+        const char* devName = mixer_get_name(m_vol_handle->p_mixer);
+        CSIO_LOG(eLogLevel_info, "USB Peripheral Device Name : %s",devName);
+        return devName;
+    } else {
+        return NULL;
+    }
+}
 static int int_to_percent(int min, int max, int in_value) //Since mixer_ctl_get_percent not working
 {
     int range = 0;

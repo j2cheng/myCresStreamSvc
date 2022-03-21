@@ -6355,9 +6355,8 @@ public class CresStreamCtrl extends Service {
         Log.i(TAG, "airMediaWCPeripheralVolume() : PeripheralVolume changed to " + peripheralVolume);
 
         retV = mUsbVolumeCtrl.setUsbPeripheralVolume(getAudioPlaybackFile(), peripheralVolume);
-
         if(retV == 0) {
-            sockTask.SendDataToAllClients("AIRMEDIA_WC_PERIPHERAL_VOLUME_FB=" + peripheralVolume);
+            userSettings.setAirMediaPeripheralVolume(peripheralVolume);
         } else {
             Log.e(TAG, "airMediaWCPeripheralVolume() : PeripheralVolume change failed to update in Hardware!!!" );
         }
@@ -6370,17 +6369,45 @@ public class CresStreamCtrl extends Service {
         Log.i(TAG, "airMediaWCPeripheralMute() : PeripheralMute changed to " + peripheralMute);
 
         retV = mUsbVolumeCtrl.setUsbPeripheralMute(getAudioPlaybackFile(), peripheralMute);
-
         if(retV == 0) {
-            if(peripheralMute == true)
-                sockTask.SendDataToAllClients("AIRMEDIA_WC_PERIPHERAL_MUTE_FB=1");
-            else
-                sockTask.SendDataToAllClients("AIRMEDIA_WC_PERIPHERAL_MUTE_FB=0");
+            userSettings.setAirMediaPeripheralMute(peripheralMute);
         } else {
             Log.e(TAG, "airMediaWCPeripheralMute() : PeripheralMute change failed to update in Hardware!!!" );
         }
     }
 
+    public synchronized void initPeripheralVolume() {
+        
+        String audioPlaybackFile = getAudioPlaybackFile();
+        
+        if(mUsbVolumeCtrl.getUsbPeripheralVolume(audioPlaybackFile) != 0) {
+            Log.i(TAG,"initPeripheralVolume: returning as Native get Failed");
+            return;
+        }
+
+        if( (mUsbVolumeCtrl.devName != null) && (mUsbVolumeCtrl.devName.equals(userSettings.getAirMediaPeripheralPlaybackDeviceName()) == true))
+        {
+            Log.i(TAG,"initPeripheralVolume: User Setting matched, Speaker is updated with User Settings");
+            if( mUsbVolumeCtrl.devVolSupport == true)
+            {
+                int     peripheralVolume = userSettings.getAirMediaPeripheralVolume();
+                boolean peripheralMute   = userSettings.getAirMediaPeripheralMute();
+                
+                Log.i(TAG, "Init Peripheral Volume with value: " + peripheralVolume + ", Mute with value: " + peripheralMute);
+ 
+                mUsbVolumeCtrl.setUsbPeripheralVolume   (audioPlaybackFile, peripheralVolume);
+                mUsbVolumeCtrl.setUsbPeripheralMute     (audioPlaybackFile, peripheralMute);
+            } else {
+                Log.i(TAG, "Peripheral Volume Not Supported");
+            }
+        } else {
+            Log.i(TAG, "initPeripheralVolume: Devname is Null or Not matching: " + mUsbVolumeCtrl.devName);
+        }
+        
+        Log.i(TAG, "initPeripheralVolume: After Init is completed");
+        mUsbVolumeCtrl.getUsbPeripheralVolume(audioPlaybackFile);
+    }
+    
     public synchronized void sendPeripheralVolumeStatus() {
 
         int     peripheralVolume         = 0;
@@ -6407,10 +6434,13 @@ public class CresStreamCtrl extends Service {
             isPeripheralVolumeSupported    = mUsbVolumeCtrl.devVolSupport;
         }
         else
+        {
             Log.i(TAG,"sendPeripheralVolumeStatus: Not calling Native Implementation as Audio Playback File is NULL");
+            sockTask.SendDataToAllClients("AIRMEDIA_WC_IS_PERIPHERAL_SUPPORTED_FB=0");
+            return;
+        }
 
         //Note: Even if Audio Playback File is NULL, need to send default, so UI can block
-        
         Log.i(TAG,"sendPeripheralVolumeStatus:"     +
                 " AudioPlayBackFile: "              + getAudioPlaybackFile() +
                 " PeripheralVolume: "               + peripheralVolume +
@@ -6427,8 +6457,10 @@ public class CresStreamCtrl extends Service {
             sockTask.SendDataToAllClients("AIRMEDIA_WC_IS_PERIPHERAL_SUPPORTED_FB=1");
         else
             sockTask.SendDataToAllClients("AIRMEDIA_WC_IS_PERIPHERAL_SUPPORTED_FB=0");
-    }
 
+        userSettings.setAirMediaPeripheralPlaybackDeviceName(mUsbVolumeCtrl.devName);
+    }
+     
     public void airMediaWCLicensed(boolean enable)
     {
         userSettings.setAirMediaWCLicensed(enable);

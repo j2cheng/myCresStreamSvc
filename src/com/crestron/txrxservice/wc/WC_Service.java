@@ -463,6 +463,8 @@ public class WC_Service {
                 if(ds.speakerPresent != null){
                     mStreamCtrl.setAudioPlaybackFile(ds.speakerPresent);
                     speakerDetected = true;
+                    
+                    mStreamCtrl.initPeripheralVolume();
                     break; //If single instance of speaker found, then come out of loop.
                 }
             }
