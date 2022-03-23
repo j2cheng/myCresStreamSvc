@@ -434,6 +434,11 @@ void cb_wcSrcEnoughData (GstElement *appsrc, gpointer user_data)
     pMgr->m_bNeedData = false;
 }
 
+static guint64 getAudioChannelMask(int nchannels)
+{
+    return ((1ULL<<nchannels)-1);
+}
+
 /* called when a new media pipeline is constructed. We can query the
  * pipeline and configure our media src */
 static void
@@ -462,15 +467,19 @@ wc_media_configure (GstRTSPMediaFactory * factory, GstRTSPMedia * media,
         {
             CSIO_LOG(eLogLevel_verbose, "Streamout: get_by_name wc_appsrc[%p]",ele);
 
-//TODO: save CAPS from usb audio src
-            g_object_set(G_OBJECT(ele), "caps",
-                         gst_caps_new_simple(
-                                 "audio/x-raw",
-                                 "layout", G_TYPE_STRING, "interleaved",
-                                 "format", G_TYPE_STRING, pMgr->m_usbAudio->getAudioFormat(),
-                                 "rate", G_TYPE_INT, pMgr->m_usbAudio->getAudioSamplingRate(),
-                                 "channels", G_TYPE_INT, pMgr->m_usbAudio->getAudioChannels(),
-                                 NULL), NULL);
+            GstCaps *caps = gst_caps_new_simple("audio/x-raw",
+                    "layout", G_TYPE_STRING, "interleaved",
+                    "format", G_TYPE_STRING, pMgr->m_usbAudio->getAudioFormat(),
+                    "rate", G_TYPE_INT, pMgr->m_usbAudio->getAudioSamplingRate(),
+                    "channels", G_TYPE_INT, pMgr->m_usbAudio->getAudioChannels(),
+                    NULL);
+            if (pMgr->m_usbAudio->getAudioChannels() == 4) {
+                // when not doing mono or stereo, we MUST specify a explicit channel-mask in the caps
+                guint64 channel_mask = getAudioChannelMask(pMgr->m_usbAudio->getAudioChannels());
+                gst_caps_set_simple(caps, "channel-mask", GST_TYPE_BITMASK, channel_mask, NULL);
+            }
+            g_object_set(G_OBJECT(ele), "caps", caps, NULL);
+            CSIO_LOG(eLogLevel_info, "Streamout: audio src caps: %s", gst_caps_to_string(caps));
 
             g_object_set( G_OBJECT(ele), "stream-type", 0, NULL );
             g_object_set( G_OBJECT(ele), "format", GST_FORMAT_TIME, NULL );
