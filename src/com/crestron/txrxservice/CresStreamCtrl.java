@@ -6357,6 +6357,9 @@ public class CresStreamCtrl extends Service {
         retV = mUsbVolumeCtrl.setUsbPeripheralVolume(getAudioPlaybackFile(), peripheralVolume);
         if(retV == 0) {
             userSettings.setAirMediaPeripheralVolume(peripheralVolume);
+            userSettings.setAirMediaPeripheralPlaybackDeviceName(mUsbVolumeCtrl.devName);
+            Log.i(TAG, "airMediaWCPeripheralVolume() : UserSetting updated with PeripheralVolume: " + peripheralVolume);
+            Log.i(TAG, "airMediaWCPeripheralVolume() : UserSetting updated with PeripheralName: "   + mUsbVolumeCtrl.devName);
         } else {
             Log.e(TAG, "airMediaWCPeripheralVolume() : PeripheralVolume change failed to update in Hardware!!!" );
         }
@@ -6457,8 +6460,6 @@ public class CresStreamCtrl extends Service {
             sockTask.SendDataToAllClients("AIRMEDIA_WC_IS_PERIPHERAL_SUPPORTED_FB=1");
         else
             sockTask.SendDataToAllClients("AIRMEDIA_WC_IS_PERIPHERAL_SUPPORTED_FB=0");
-
-        userSettings.setAirMediaPeripheralPlaybackDeviceName(mUsbVolumeCtrl.devName);
     }
      
     public void airMediaWCLicensed(boolean enable)
