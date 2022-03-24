@@ -216,6 +216,7 @@ public class WC_Service {
             mStatus.sessionId = 0; // for some reason AirMedia receiver uses this to see if we had a restart of server
     		mWcCresstoreStatus.reportWCDeviceStatus(null,null,null,null,WC_CONF_STATUS_AVAILABLE);
     		onStatusChanged();
+            closeSession();
     	}
     }
 
@@ -500,7 +501,7 @@ public class WC_Service {
             camResolution = "None";
             cameraFormatSupported = false;
         }
-        else if(camResolution.startsWith("0x0")) //Occurs when video format detected is MJPG filtered here get_video_caps_from_caps
+        else if((camResolution == null) || camResolution.startsWith("0x0")) //Occurs when video format detected is MJPG filtered here get_video_caps_from_caps
         {
                 Log.w(TAG,"getAndReportAllWCStatus: Unsupported Video format and Resolution found( wxh@fps="+camResolution+" )");
                 camResolution = "Not Supported";

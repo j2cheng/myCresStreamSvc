@@ -1348,8 +1348,14 @@ exitThread:
             m_usbAudio->releaseDevice();
         }
 
-        CSIO_LOG(m_debugLevel, "Streamout: restart manager[%d] thread.", m_id);
-        m_parent->signalProject(m_id, STREAMOUT_EVENT_JNI_CMD_RESTART_MGR_THREAD,sizeof(void*), &delay_ms);
+        if( m_streamoutMode != STREAMOUT_MODE_WIRELESSCONFERENCING)
+        {
+            CSIO_LOG(m_debugLevel, "Streamout: restart manager[%d] thread.", m_id);
+            m_parent->signalProject(m_id, STREAMOUT_EVENT_JNI_CMD_RESTART_MGR_THREAD,sizeof(void*), &delay_ms);
+        } else {
+            CSIO_LOG(m_debugLevel, "[AM3K]Streamout: Not restarting manager[%d] thread.", m_id);
+        }
+
     }
 
     m_pMedia = NULL;
