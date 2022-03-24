@@ -127,14 +127,14 @@ JNIEXPORT jboolean JNICALL Java_com_crestron_txrxservice_UsbVolumeCtrl_nativeGet
         CSIO_LOG(eLogLevel_error, "volume switch mixer control invalid or not available");
     }
 
+    std::remove_const<const char*>::type dev_name = m_vol_handle->getPlaybackDeviceName(m_vol_handle);
+    curDevName = env->NewStringUTF(dev_name);
+
     if((m_vol_handle->ctlMute != NULL) && (m_vol_handle->ctlVolume != NULL)) //Assumption, if either is null we claim Volume controls not supported
     {
         isVolCtrlsSupported = true;
         curVolume = m_vol_handle->getPlaybackVolume(m_vol_handle); 
         curMuteVal = m_vol_handle->getPlaybackMuteStatus(m_vol_handle);
-
-        std::remove_const<const char*>::type dev_name = m_vol_handle->getPlaybackDeviceName(m_vol_handle);
-        curDevName = env->NewStringUTF(dev_name);
 
         CSIO_LOG(eLogLevel_debug,"In Native Function nativeGetIsPeripheralVolumeSupported for %s, %d, %d, %d\n", dev_name, isVolCtrlsSupported, curVolume, curMuteVal);
 
