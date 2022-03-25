@@ -6353,13 +6353,16 @@ public class CresStreamCtrl extends Service {
         int retV = 0;
 
         Log.i(TAG, "airMediaWCPeripheralVolume() : PeripheralVolume changed to " + peripheralVolume);
+        if (mUsbVolumeCtrl.devVolSupport)
+            retV = mUsbVolumeCtrl.setUsbPeripheralVolume(getAudioPlaybackFile(), peripheralVolume);
+        else
+            retV = -1;
 
-        retV = mUsbVolumeCtrl.setUsbPeripheralVolume(getAudioPlaybackFile(), peripheralVolume);
         if(retV == 0) {
             userSettings.setAirMediaPeripheralVolume(peripheralVolume);
             userSettings.setAirMediaPeripheralPlaybackDeviceName(mUsbVolumeCtrl.devName);
-            Log.i(TAG, "airMediaWCPeripheralVolume() : UserSetting updated with PeripheralVolume: " + peripheralVolume);
-            Log.i(TAG, "airMediaWCPeripheralVolume() : UserSetting updated with PeripheralName: "   + mUsbVolumeCtrl.devName);
+            Log.v(TAG, "airMediaWCPeripheralVolume() : UserSetting updated with PeripheralVolume: " + peripheralVolume);
+            Log.v(TAG, "airMediaWCPeripheralVolume() : UserSetting updated with PeripheralName: "   + mUsbVolumeCtrl.devName);
         } else {
             Log.e(TAG, "airMediaWCPeripheralVolume() : PeripheralVolume change failed to update in Hardware!!!" );
         }
@@ -6371,7 +6374,11 @@ public class CresStreamCtrl extends Service {
 
         Log.i(TAG, "airMediaWCPeripheralMute() : PeripheralMute changed to " + peripheralMute);
 
-        retV = mUsbVolumeCtrl.setUsbPeripheralMute(getAudioPlaybackFile(), peripheralMute);
+        if (mUsbVolumeCtrl.devVolSupport)
+            retV = mUsbVolumeCtrl.setUsbPeripheralMute(getAudioPlaybackFile(), peripheralMute);
+        else
+            retV = -1;
+
         if(retV == 0) {
             userSettings.setAirMediaPeripheralMute(peripheralMute);
         } else {

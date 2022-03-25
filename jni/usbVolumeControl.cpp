@@ -254,9 +254,10 @@ const char* UsbPeripheralVolume::getPlaybackDeviceName(UsbPeripheralVolume *m_vo
         CSIO_LOG(eLogLevel_info, "USB Peripheral Device Name : %s",devName);
         return devName;
     } else {
-        return NULL;
+        return "None";
     }
 }
+
 static int int_to_percent(int min, int max, int in_value) //Since mixer_ctl_get_percent not working
 {
     int range = 0;
