@@ -63,6 +63,30 @@ static void cb_queueUnderruns(void *queue, gpointer user_data);
 static void cb_vidEncQueueOverruns(void *queue, gpointer user_data);
 static void cb_vidEncQueueUnderruns(void *queue, gpointer user_data);
 
+static int read_int_from_file(const char *filePath, int defaultValue)
+{
+    FILE * file;
+    int rv = defaultValue;
+
+    file = fopen(filePath, "r");
+    if (file != NULL)
+    {
+        int errorCode = 0;
+        if (fscanf(file, "%d", &(errorCode)) >= 0)
+        {
+            rv = errorCode;
+        }
+
+        fclose(file);
+    }
+    return rv;
+}
+
+static int get_max_encode_frame_rate_requested()
+{
+    return read_int_from_file("/tmp/wc_max_frame_rate", 0);
+}
+
 static bool
 is_supported(const char *fourcc)
 {
@@ -1021,6 +1045,7 @@ void* CStreamoutManager::ThreadEntry()
                     snprintf(pipeline, sizeof(pipeline), "( %s ! "
                                                          "%s ! "
                                                          "%s"
+                                                         "%s"
                                                          "queue name = vidPreQ ! "
                                                          "%s bitrate=%s i-frame-interval=%s ! "
                                                          "queue name=vidPostQ ! "
@@ -1028,6 +1053,7 @@ void* CStreamoutManager::ThreadEntry()
                                                          "rtph264pay name=pay0 pt=96 )",
                                                          videoSource,
                                                          m_caps, m_videoconvert,
+                                                         m_videoframerate,
                                                          product_info()->H264_encoder_string,
                                                          m_bit_rate, m_iframe_interval);
                 }
@@ -1043,6 +1069,7 @@ void* CStreamoutManager::ThreadEntry()
                         snprintf(pipeline, sizeof(pipeline), "( %s ! "
                                                              "%s ! "
                                                              "%s"
+                                                             "%s"
                                                              "queue name=vidPreQ ! "
                                                              "%s bitrate=%s i-frame-interval=%s ! "
                                                              "queue name=vidPostQ ! "
@@ -1054,12 +1081,14 @@ void* CStreamoutManager::ThreadEntry()
                                                              "rtpmp4apay name=pay1 pt=97 )",
                                                              videoSource,
                                                              m_caps, m_videoconvert,
+                                                             m_videoframerate,
                                                              product_info()->H264_encoder_string,
                                                              m_bit_rate, m_iframe_interval,
                                                              audioSource, audioenc);
                     } else {
                         snprintf(pipeline, sizeof(pipeline), "( %s ! "
                                                              "%s ! "
+                                                             "%s"
                                                              "%s"
                                                              "queue name=vidPreQ ! "
                                                              "%s bitrate=%s i-frame-interval=%s ! "
@@ -1072,6 +1101,7 @@ void* CStreamoutManager::ThreadEntry()
                                                              "rtppcmapay name=pay1 pt=97 )",
                                                              videoSource,
                                                              m_caps, m_videoconvert,
+                                                             m_videoframerate,
                                                              product_info()->H264_encoder_string,
                                                              m_bit_rate, m_iframe_interval,
                                                              audioSource, audioenc);
@@ -1457,7 +1487,7 @@ eWCstatus CStreamoutManager::initWcAudioVideo()
         		}
             	else
             	{
-        			snprintf(m_videoconvert, sizeof(m_videoconvert), "videoconvert  ! video/x-raw,format=NV12 !");
+        			snprintf(m_videoconvert, sizeof(m_videoconvert), "videoconvert ! video/x-raw,format=NV12 ! ");
         		}
         	} else {
         		// using videotestsrc
@@ -1465,7 +1495,15 @@ eWCstatus CStreamoutManager::initWcAudioVideo()
                 		m_res_x, m_res_y, m_frame_rate);
         		m_videoconvert[0] = '\0';
         	}
+        	int max_frame_rate = get_max_encode_frame_rate_requested();
+        	if (max_frame_rate > 0 && ((30/max_frame_rate)*max_frame_rate == 30)) {
+                CSIO_LOG(eLogLevel_info, "--Streamout - max erncoder frame rate requested=%d", max_frame_rate);
+        	    snprintf(m_videoframerate, sizeof(m_videoframerate), "videorate max-rate=%d !", max_frame_rate);
+        	} else {
+                m_videoframerate[0] = '\0';
+        	}
         	CSIO_LOG(eLogLevel_info, "--Streamout - m_videoconvert=%s", m_videoconvert);
+            CSIO_LOG(eLogLevel_info, "--Streamout - m_videoframerate=%s", m_videoframerate);
     		CSIO_LOG(eLogLevel_info, "--Streamout - m_videoStream=%s", ((m_videoStream)?"true":"false"));
         }
 
