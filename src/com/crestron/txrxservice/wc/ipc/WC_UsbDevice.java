@@ -129,7 +129,7 @@ public class WC_UsbDevice implements Parcelable {
     }
 
     public String toString() {
-        return "{usbPort="+usbPort+" deviceName="+deviceName+" hasVideo="+hasVideo+" hasAudio="+hasAudio+ 
+        return "{usbPort="+usbPort+" deviceName="+deviceName+" hasVideo="+hasVideo+" hasAudioCapture="+hasAudio+ 
         		" properties=["+properties+"]}";
     }
 }

@@ -446,7 +446,7 @@ public class WC_Service {
     	}
     	if (change)
     	{
-    		Log.i(TAG, "WC video device is "+mVideoFile+" audio device is "+mAudioFile);
+    		Log.i(TAG, "WC video capture device is "+mVideoFile+" audio capture device is "+mAudioFile);
     		mStreamCtrl.userSettings.setWcVideoCaptureDevice(mVideoFile);
     		mStreamCtrl.userSettings.setWcAudioCaptureDevice(mAudioFile);
     	}
@@ -464,7 +464,7 @@ public class WC_Service {
                 if(ds.speakerPresent != null){
                     mStreamCtrl.setAudioPlaybackFile(ds.speakerPresent);
                     speakerDetected = true;
-                    
+
                     mStreamCtrl.initPeripheralVolume();
                     break; //If single instance of speaker found, then come out of loop.
                 }

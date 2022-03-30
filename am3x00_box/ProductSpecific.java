@@ -480,14 +480,18 @@ public class ProductSpecific
         public void onUsbStatusChanged(int usbId, int status, String name, List<String> videoList, 
                 List<String> audioList, List<PeripheralUsbDevice> perUsbDevices)
         {
-            boolean change = false;
+            //Always start afresh
+            List<UsbAvDevice> dl = findUsbDevices(usbId);
+            if (dl != null) {
+                for (UsbAvDevice d : dl)
+                {
+                    Log.i(TAG, "UsbAudioVideoDeviceRemoved(): USB device "+d.deviceName+" removed from "+d.usbPortType);
+                    usbDeviceList.remove(d);
+                }
+            }
+
             if (status > 0)
             {
-                // device was added on port=usbId
-                List<UsbAvDevice> dl = findUsbDevices(usbId);
-                if (dl != null) {
-                    dl.clear();
-                }
                 for (PeripheralUsbDevice perDev : perUsbDevices)
                 {
                     Log.i(TAG, "Peripheral device type = "+perDev.getType());
@@ -529,16 +533,6 @@ public class ProductSpecific
                     //Filter out Supported and Unsupported devices here for WC Feature
                     if(isUsbDeviceSupported(propertyMap))
                         usbDeviceList.add(d);
-                }
-            } else {
-                // device was removed on port=usbId
-                List<UsbAvDevice> dl = findUsbDevices(usbId);
-                if (dl != null) {
-                    for (UsbAvDevice d : dl)
-                    {
-                        Log.i(TAG, "UsbAudioVideoDeviceRemoved(): USB device "+d.deviceName+" removed from "+d.usbPortType);
-                        usbDeviceList.remove(d);
-                    }
                 }
             }
             cresStreamCtrl.onUsbStatusChanged(usbDeviceList);
