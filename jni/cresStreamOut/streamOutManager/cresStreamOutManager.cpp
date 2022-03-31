@@ -82,9 +82,9 @@ static int read_int_from_file(const char *filePath, int defaultValue)
     return rv;
 }
 
-static int get_max_encode_frame_rate_requested()
+static int get_decimation_rate_requested()
 {
-    return read_int_from_file("/tmp/wc_max_frame_rate", 0);
+    return read_int_from_file("/dev/shm/crestron/CresStreamSvc/wc/decimation_rate", 0);
 }
 
 static bool
@@ -1495,10 +1495,11 @@ eWCstatus CStreamoutManager::initWcAudioVideo()
                 		m_res_x, m_res_y, m_frame_rate);
         		m_videoconvert[0] = '\0';
         	}
-        	int max_frame_rate = get_max_encode_frame_rate_requested();
-        	if (max_frame_rate > 0 && ((30/max_frame_rate)*max_frame_rate == 30)) {
-                CSIO_LOG(eLogLevel_info, "--Streamout - max erncoder frame rate requested=%d", max_frame_rate);
-        	    snprintf(m_videoframerate, sizeof(m_videoframerate), "videorate max-rate=%d !", max_frame_rate);
+        	int decimation_rate = get_decimation_rate_requested();
+        	if (decimation_rate > 0) {
+                CSIO_LOG(eLogLevel_info, "--Streamout - encoder decimation rate requested=%d", decimation_rate);
+        	    snprintf(m_videoframerate, sizeof(m_videoframerate), "videorate ! video/x-raw,framerate=%d/%d !",
+        	            m_video_caps.frame_rate_num, (m_video_caps.frame_rate_den*decimation_rate));
         	} else {
                 m_videoframerate[0] = '\0';
         	}
