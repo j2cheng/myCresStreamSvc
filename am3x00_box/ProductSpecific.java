@@ -566,7 +566,7 @@ public class ProductSpecific
             }
             if (status > 0)
             {
-            	Log.i(TAG, "USB id="+usbId+"  Device="+name);
+            	Log.i(TAG, "USB id="+usbId+"  Device="+name+" status="+status);
             	Log.i(TAG, "\tVideo Devices="+videoList);
             	Log.i(TAG, "\tAudio Devices="+audioList);
             	Log.i(TAG, "\tPeripheral USB Devices="+perUsbDevices);
