@@ -44,6 +44,8 @@ public class WC_Service {
 
     private WC_SessionFlags mSessionFlags = WC_SessionFlags.None;
 
+    private final Object broadcastObjectLock = new Object();
+
     Gson gson = new GsonBuilder().create();
 
     public CresStreamCtrl mStreamCtrl = null;
@@ -140,22 +142,35 @@ public class WC_Service {
             if (cb != null) mCallbacks.register(cb);
             Log.i(TAG,"registering new callback: try to send current WC status");
             // Broadcast to current client.
-            final int N = mCallbacks.beginBroadcast();
-            for (int i=0; i<N; i++) {
+            synchronized(broadcastObjectLock) {
                 try {
-                	if (mCallbacks.getBroadcastItem(i) == cb) {
-                        Log.i(TAG,"send current WC status to client: "+mStatus);
-                		mCallbacks.getBroadcastItem(i).onStatusChanged(mStatus);
-                        Log.i(TAG,"send current WC usb device status to client: "+mUsbDevices);
-                		mCallbacks.getBroadcastItem(i).onUsbDevicesChanged(mUsbDevices);
-                	}
-                } catch (RemoteException e) {
-                    // The RemoteCallbackList will take care of removing
-                    // the dead object for us.
+                    final int N = mCallbacks.beginBroadcast();
+                    for (int i=0; i<N; i++) {
+                        try {
+                            if (mCallbacks.getBroadcastItem(i) == cb) {
+                                Log.i(TAG,"send current WC status to client: "+mStatus);
+                                mCallbacks.getBroadcastItem(i).onStatusChanged(mStatus);
+                                Log.i(TAG,"send current WC usb device status to client: "+mUsbDevices);
+                                mCallbacks.getBroadcastItem(i).onUsbDevicesChanged(mUsbDevices);
+                            }
+                        } catch (RemoteException e) {
+                            // The RemoteCallbackList will take care of removing
+                            // the dead object for us.
+                        }
+                    }
+                } catch (Exception e) {
+                    Log.i(TAG, "registerCallback(): " + e);
+                    e.printStackTrace();
+                } finally {
+                    try {
+                        mCallbacks.finishBroadcast();
+                    } catch (Exception e) {
+                        Log.i(TAG, "registerCallback(): exception in finishBroadcast: " + e);
+                        e.printStackTrace();
+                    }
                 }
+                getAndReportAllWCStatus();
             }
-            mCallbacks.finishBroadcast();
-            getAndReportAllWCStatus();
         }
 
         public void unregisterCallback(IWC_Callback cb)
@@ -224,32 +239,58 @@ public class WC_Service {
     {
         Log.i(TAG,"invoking onStatusChanged() callbacks");
         // Broadcast to all clients the new value.
-        final int N = mCallbacks.beginBroadcast();
-        for (int i=0; i<N; i++) {
+        synchronized(broadcastObjectLock) {
             try {
-                mCallbacks.getBroadcastItem(i).onStatusChanged(mStatus);
-            } catch (RemoteException e) {
-                // The RemoteCallbackList will take care of removing
-                // the dead object for us.
+                final int N = mCallbacks.beginBroadcast();
+                for (int i=0; i<N; i++) {
+                    try {
+                        mCallbacks.getBroadcastItem(i).onStatusChanged(mStatus);
+                    } catch (RemoteException e) {
+                        // The RemoteCallbackList will take care of removing
+                        // the dead object for us.
+                    }
+                }
+            } catch (Exception e) {
+                Log.i(TAG, "onStatusChanged(): exception in beginBroadcast: " + e);
+                e.printStackTrace();
+            } finally {
+                try {
+                    mCallbacks.finishBroadcast();
+                } catch (Exception e) {
+                    Log.i(TAG, "onStatusChanged(): exception in finishBroadcast: " + e);
+                    e.printStackTrace();
+                }
             }
         }
-        mCallbacks.finishBroadcast();
     }
     
     public void onUsbDevicesChanged()
     {
         Log.i(TAG,"invoking onUsbDevicesChanged() callbacks");
         // Broadcast to all clients the new value.
-        final int N = mCallbacks.beginBroadcast();
-        for (int i=0; i<N; i++) {
+        synchronized(broadcastObjectLock) {
             try {
-                mCallbacks.getBroadcastItem(i).onUsbDevicesChanged(mUsbDevices);
-            } catch (RemoteException e) {
-                // The RemoteCallbackList will take care of removing
-                // the dead object for us.
+                final int N = mCallbacks.beginBroadcast();
+                for (int i=0; i<N; i++) {
+                    try {
+                        mCallbacks.getBroadcastItem(i).onUsbDevicesChanged(mUsbDevices);
+                    } catch (RemoteException e) {
+                        // The RemoteCallbackList will take care of removing
+                        // the dead object for us.
+                    }
+                }
+            } catch (Exception e) {
+                Log.i(TAG, "onUsbDevicesChanged(): exception in beginBroadcast: " + e);
+                e.printStackTrace();
+            } finally {
+                try {
+                    mCallbacks.finishBroadcast();
+                } catch (Exception e) {
+                    Log.i(TAG, "onUsbDevicesChanged(): exception in finishBroadcast: " + e);
+                    e.printStackTrace();
+                }
             }
         }
-        mCallbacks.finishBroadcast();
     }
     
     public void onError(int module, int errorCode, String errorMessage)
@@ -257,16 +298,29 @@ public class WC_Service {
         WC_Error error = new WC_Error(module, errorCode, errorMessage);
         Log.i(TAG,"invoking onError() callbacks with error="+error);
         // Broadcast to all clients the new value.
-        final int N = mCallbacks.beginBroadcast();
-        for (int i=0; i<N; i++) {
+        synchronized(broadcastObjectLock) {
             try {
-                mCallbacks.getBroadcastItem(i).onError(error);
-            } catch (RemoteException e) {
-                // The RemoteCallbackList will take care of removing
-                // the dead object for us.
+                final int N = mCallbacks.beginBroadcast();
+                for (int i=0; i<N; i++) {
+                    try {
+                        mCallbacks.getBroadcastItem(i).onError(error);
+                    } catch (RemoteException e) {
+                        // The RemoteCallbackList will take care of removing
+                        // the dead object for us.
+                    }
+                }
+            } catch (Exception e) {
+                Log.i(TAG, "onError(): exception in beginBroadcast: " + e);
+                e.printStackTrace();
+            } finally {
+                try {
+                    mCallbacks.finishBroadcast();
+                } catch (Exception e) {
+                    Log.i(TAG, "onError(): exception in finishBroadcast: " + e);
+                    e.printStackTrace();
+                }
             }
         }
-        mCallbacks.finishBroadcast();
     }
     
     public void stopServer(String user)
