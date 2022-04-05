@@ -1576,7 +1576,7 @@ void CStreamoutManager::sendWcUrl(GstRTSPServer *server, char *mountPoint)
             }
         }
         g_free(ipAddr);
-        CSIO_LOG(eLogLevel_info, "Streamout: sending WC url=%s", url);
+        CSIO_LOG(eLogLevel_verbose, "Streamout: sending WC url=%s", url);
         csio_jni_SendWCServerURL(url);
     }
 }

@@ -4764,7 +4764,7 @@ void csio_jni_SendWCServerURL( void * arg )
 
 	char *serverUrl_cstr = (char *) arg;
 
-	CSIO_LOG(eLogLevel_debug,  "%s: Sending server URL %s", __FUNCTION__, serverUrl_cstr );
+	CSIO_LOG(eLogLevel_verbose,  "%s: Sending server URL %s", __FUNCTION__, serverUrl_cstr );
 
 	serverUrl_jstr = env->NewStringUTF(serverUrl_cstr);
 

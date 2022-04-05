@@ -325,7 +325,7 @@ public class WC_Service {
         String cert = mStreamOut.getWcServerCertificate();
         //String privKey = mStreamOut.getWcServerKey();
         WC_Connection wc_connection = new WC_Connection(id, urlList, cert);
-        Log.i(TAG,"getConnectionParameters(): params="+wc_connection.toStringNoCert());
+        Log.i(TAG,"getConnectionParameters(): params="+wc_connection.toStringMaskURL());
         return wc_connection;
     }
 

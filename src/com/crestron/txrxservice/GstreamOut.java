@@ -384,13 +384,13 @@ public class GstreamOut {
     public List<String> getWcServerUrlList()
     {
         List<String> list = new ArrayList<String>(Arrays.asList(wcServerUrl.split("\\s*,\\s*")));
-        Log.v(TAG, "getWcServerUrlList(): urlList="+list);
+        //Log.v(TAG, "getWcServerUrlList(): urlList="+list);
         return list;
     }
     
     public void setWcServerUrl(String url)
     {
-        Log.v(TAG, "Streamout: setWcServerUrl: incoming url="+url);
+        //Log.v(TAG, "Streamout: setWcServerUrl: incoming url="+url);
         StringBuilder newUrl = new StringBuilder("");
         if (url.contains("0.0.0.0"))
         {
@@ -418,7 +418,7 @@ public class GstreamOut {
             String[] urls = wcServerUrl.split(",");
             MiscUtils.writeStringToDisk(WC_URL_PATH, urls[0]);
         }
-        Log.v(TAG, "setWcServerUrl: WC server url="+wcServerUrl);
+        //Log.v(TAG, "setWcServerUrl: WC server url="+wcServerUrl);
     }
 
     public void onServerStart()
