@@ -69,7 +69,8 @@ JNIEXPORT jboolean JNICALL Java_com_crestron_txrxservice_UsbVolumeCtrl_nativeGet
 }
 #endif
 
-static int int_to_percent(int min, int max, int in_value);
+static int percent_to_int_rounded(int min, int max, int percent);
+static int int_to_percent_rounded(int min, int max, int in_value);
 bool isPresent_mutectl_byname(std::string ctlName);
 bool isPresent_volumectl_byname(std::string ctlName);
 

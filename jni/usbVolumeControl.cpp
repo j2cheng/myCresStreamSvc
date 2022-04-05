@@ -21,6 +21,7 @@
 #include "usbVolumeControl.h"
 #include <string.h>
 #include <android/log.h>
+#include <math.h>
 
 #ifdef HAS_TINYALSA
 JNIEXPORT jboolean JNICALL Java_com_crestron_txrxservice_UsbVolumeCtrl_nativeSetPeripheralMute(    JNIEnv *env, 
@@ -63,6 +64,11 @@ JNIEXPORT jboolean JNICALL Java_com_crestron_txrxservice_UsbVolumeCtrl_nativeSet
     return retVal;
 }
 
+static int percent_to_int_rounded(int min, int max, int percent)
+{
+    return min + round((double)((max - min)* percent) / 100.0);
+}
+
 JNIEXPORT jboolean JNICALL Java_com_crestron_txrxservice_UsbVolumeCtrl_nativeSetPeripheralVolume(  JNIEnv *env, 
                                                     jobject thiz,
                                                     jstring deviceId,
@@ -84,10 +90,19 @@ JNIEXPORT jboolean JNICALL Java_com_crestron_txrxservice_UsbVolumeCtrl_nativeSet
     }
     else
     {
+        int min = 0;
+        int max = 0;
+        int volume = 0;
+
+        min = mixer_ctl_get_range_min(m_vol_handle->ctlVolume);
+        max = mixer_ctl_get_range_max(m_vol_handle->ctlVolume);
+        volume = percent_to_int_rounded(min, max, peripheralVolume);
+        CSIO_LOG(eLogLevel_debug,"nativeSetPeripheralVolume with Value %d is %d \n", peripheralVolume, volume);
+
         m_vol_handle->num_ctl_values = mixer_ctl_get_num_values(m_vol_handle->ctlVolume);
         for (i = 0; i < m_vol_handle->num_ctl_values; i++) {
             /* Set all values the same */
-            if (mixer_ctl_set_percent(m_vol_handle->ctlVolume, i, peripheralVolume)) {
+            if (mixer_ctl_set_value(m_vol_handle->ctlVolume, i, volume)) {
                 CSIO_LOG(eLogLevel_error, "Error: invalid mixer value\n");
                 retVal = JNI_FALSE;
             }
@@ -229,7 +244,7 @@ int UsbPeripheralVolume::getPlaybackVolume(UsbPeripheralVolume *m_vol_handle)
     for (unsigned int i = 0; i < n_ctl_values; i++) {
         /* get all values and is the same */
         retval = mixer_ctl_get_value(m_vol_handle->ctlVolume, i);
-        retvalp = int_to_percent(min,max,retval);
+        retvalp = int_to_percent_rounded(min,max,retval);
     }
     return retvalp;
 }
@@ -258,13 +273,14 @@ const char* UsbPeripheralVolume::getPlaybackDeviceName(UsbPeripheralVolume *m_vo
     }
 }
 
-static int int_to_percent(int min, int max, int in_value) //Since mixer_ctl_get_percent not working
+static int int_to_percent_rounded(int min, int max, int in_value) //Since mixer_ctl_get_percent not working
 {
     int range = 0;
     range = (max - min);
     if (range == 0)
         return 0;
-    return ((double)(in_value - min) / range) * 100;
+    return round(((double)(in_value - min) / range) * 100.0);
+    
 }
 
 bool isPresent_volumectl_byname(std::string ctlName)
