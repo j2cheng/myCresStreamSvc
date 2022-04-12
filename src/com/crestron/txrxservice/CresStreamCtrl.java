@@ -6514,7 +6514,7 @@ public class CresStreamCtrl extends Service {
 		Log.i(TAG, "onCameraConnected(): USB UVC camera is disconnected");
     }
 
-    public void onUsbStatusChanged(final List<UsbAvDevice> devList)
+    public void onUsbStatusChanged(final List<UsbAvDevice> devList, int status)
     {
         Log.i(TAG, "onUsbStatusChanged(): deviceList="+devList);
 
@@ -6525,6 +6525,13 @@ public class CresStreamCtrl extends Service {
             public void run() {
                 if( mWC_Service != null )
                 {
+                    if(status == 0)
+                    {
+                        Log.i(TAG, "onUsbStatusChanged(): Perform WC_Service closeSession, as USB is plugged out.!!!");
+                        mWC_Service.closeSession();
+                    } else {
+                        Log.i(TAG, "onUsbStatusChanged(): Not doing WC_Service closeSession on Status:" + status);
+                    }
                     mWC_Service.updateUsbDeviceStatus(devList);
                 }
                 else

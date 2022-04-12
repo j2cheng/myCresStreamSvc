@@ -341,7 +341,7 @@ public class WC_Service {
         }
     }
     
-    public int closeSession()
+    public synchronized int closeSession()
     {
         int rv = 0;
         if (inUse.compareAndSet(true,  false)) {
@@ -469,6 +469,7 @@ public class WC_Service {
     			if (videoFile.equals("none") && d.videoFile != null)
     			{
     				videoFile = d.videoFile;
+                    Log.w(TAG, "*****setActiveDevices(): USB2 have Video Capability Peripheral - UNSUPPORTED USECASE!!!*****");
     			}
     			if (d.audioFile != null && (aFile == null))
     			{

@@ -535,7 +535,7 @@ public class ProductSpecific
                         usbDeviceList.add(d);
                 }
             }
-            cresStreamCtrl.onUsbStatusChanged(usbDeviceList);
+            cresStreamCtrl.onUsbStatusChanged(usbDeviceList, status);
         }
 
         public void usbEvent(int usbId)
