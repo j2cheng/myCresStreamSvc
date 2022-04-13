@@ -9,6 +9,7 @@ import java.util.ArrayList;
 import java.util.List;
 import java.util.Locale;
 import java.util.concurrent.atomic.AtomicBoolean;
+import java.util.concurrent.TimeUnit;
 
 import com.google.gson.Gson;
 import com.google.gson.GsonBuilder;
@@ -46,6 +47,9 @@ public class WC_Service {
 
     private final Object broadcastObjectLock = new Object();
 
+    private static final int WaitForClientToConnect=30*1000;   // 30 seconds 
+    private Thread mWaitForClientToConnectThread = null;	
+   
     Gson gson = new GsonBuilder().create();
 
     public CresStreamCtrl mStreamCtrl = null;
@@ -63,6 +67,30 @@ public class WC_Service {
     List<WC_AudioFormat> mAudioFormats = new ArrayList<WC_AudioFormat>();
     List<UsbAvDevice> mUsbAvDeviceList = null;
     AtomicBoolean inUse = new AtomicBoolean(false);
+  
+    //run a monitor thread to see if any client has connected after we have started the WC open session
+    private final Runnable waitForClientToConnectedRunnable = new Runnable() {
+        @Override
+            public void run() {
+                Log.i(TAG,"CheckClientConnected: Waiting for Client to get connected");
+                try
+                {
+                    Thread.sleep(WaitForClientToConnect);
+                    if( !mStatus.isClientConnected )
+                    {
+                        Log.w(TAG,"CheckClientConnected: Timedout: No Client connected, so stopping the WC session ");
+                        if (closeSession() == 0)
+                            Log.i(TAG,"CheckClientConnected: closeSession: WC is not in use");
+                    }
+                }
+                catch(InterruptedException ex)
+                {
+                    Log.w(TAG,"CheckClientConnected: Thread was interrupted externally and was exited");
+                }  
+                Log.i(TAG,"CheckClientConnected: Waiting for Client thread exited");
+            }
+    };
+
 
     public WC_Service(CresStreamCtrl streamCtrl)
     {
@@ -105,6 +133,10 @@ public class WC_Service {
 
                 mSessionFlags = options.flags;
                 mWcCresstoreStatus.reportWCInUseStatus(mSessionFlags, true);
+
+                //start a thread to monitor if the clients are getting connected.
+                mWaitForClientToConnectThread =new Thread(waitForClientToConnectedRunnable);
+                mWaitForClientToConnectThread.start();  
 
                 return mCurrentId;
             } else {
@@ -353,6 +385,13 @@ public class WC_Service {
             mWcCresstoreStatus.reportWCInUseStatus(mSessionFlags, false);
             mSessionFlags = WC_SessionFlags.None;
 
+            // check if any previous monitor thread is running, if yes stop it.
+            if( mWaitForClientToConnectThread != null && 
+                !mWaitForClientToConnectThread.getState().equals(Thread.State.TERMINATED) )
+            {
+                Log.w(TAG,"closeSession: Check Client connected thread is not terminated, forcing to exit");
+                mWaitForClientToConnectThread.interrupt();
+            }               
             rv = 1;
         } 
         return rv;
