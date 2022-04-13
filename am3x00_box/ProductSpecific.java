@@ -47,6 +47,41 @@ public class ProductSpecific
     CresCamera2 cam_handle;
     PeripheralStatusChangeListener mListener = null;
     private boolean true_hpd = false;
+    
+    private int mUsb2CurrentStatus = 0;
+    private int mUsb3CurrentStatus = 0;
+    
+    //When Peripheral like Crestron Soundbar which has Speaker with Inbuilt camera, when only camera is partially plugged
+    //out GS will not send UNPLUGGED(0), instead sending PLUGGED with value (2) where as receiving PLUGGED with value(6)
+    //when both Speaker and Camera are present.
+    private boolean isUsbStatusDegraded(int usbId, int newStatus)
+    {
+        boolean isDegraded = false;
+        if(usbId == PeripheralManager.PER_USB_20)
+        {
+            if( mUsb2CurrentStatus > newStatus)
+            {
+                isDegraded = true;
+            }
+            Log.i(TAG, "isUsbStatusDegraded(): USB2: Old Status: " + mUsb2CurrentStatus + ", New Status: " + newStatus + ", Degraded: " +isDegraded);
+
+            mUsb2CurrentStatus = newStatus;
+        }
+        else if(usbId == PeripheralManager.PER_USB_30)
+        {
+            if( mUsb3CurrentStatus > newStatus)
+            {
+                isDegraded = true;
+            }
+            Log.i(TAG, "isUsbStatusDegraded(): USB3: Old Status: " + mUsb3CurrentStatus + ", New Status: " + newStatus + ", Degraded: " +isDegraded);
+
+            mUsb3CurrentStatus = newStatus;
+        }
+        else
+            Log.i(TAG, "isUsbStatusDegraded(): Wrong USB Id: "+usbId);
+        
+        return isDegraded;
+    }
 
     public static ProductSpecific getInstance()
     {
@@ -535,7 +570,8 @@ public class ProductSpecific
                         usbDeviceList.add(d);
                 }
             }
-            cresStreamCtrl.onUsbStatusChanged(usbDeviceList, status);
+            
+                cresStreamCtrl.onUsbStatusChanged(usbDeviceList, isUsbStatusDegraded(usbId, status));
         }
 
         public void usbEvent(int usbId)
