@@ -252,6 +252,7 @@ public class CresStreamCtrl extends Service {
     public boolean isWcSupported = false;
     public boolean isWirelessConferencingEnabled = false;
     public boolean isWirelessConferencingLicensed = false;
+    public boolean isDeviceAppSystemStateActivation = false;
     public boolean isRGB888HDMIVideoSupported = true;
     public boolean mCanvasHdmiIsPlaying = false;
     public boolean forceSurfaceDisconnectAndRelease=false;
@@ -6475,6 +6476,12 @@ public class CresStreamCtrl extends Service {
         Log.i(TAG, "airMediaWCLicensed(): requesting enable=" + ((enable)?"enabled":"disabled") +
                 " - currently it is " + ((isWirelessConferencingLicensed)?"enabled":"disabled"));
         isWirelessConferencingLicensed = enable;
+    }
+    
+    public void setDeviceAppSystemStateActivation(boolean enable)
+    {
+        Log.i(TAG, "setDeviceAppSystemStateActivation(): value=" + enable);
+        isDeviceAppSystemStateActivation = enable;
     }
 
     public void stopWcServer(String user)

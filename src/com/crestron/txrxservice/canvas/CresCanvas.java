@@ -204,6 +204,13 @@ public class CresCanvas
 		mCrestore.restartSchedulers();
 		// Stop and remove all sessions
 		mSessionMgr.clearAllSessions(force);
+
+        // Stop any WC Opened session.
+        if(mStreamCtl != null && mStreamCtl.mWC_Service != null)
+            mStreamCtl.mWC_Service.closeSession();
+        else
+            Common.Logging.w(TAG, "clear(): failed to closeSession as mStreamCtl or mWC_Service is NULL!!!!");
+
 		// clear all surfaces and streamIds
 		mSurfaceMgr.releaseAllSurfaces();
 		Common.Logging.i(TAG, "clear(): exit");

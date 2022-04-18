@@ -107,8 +107,12 @@ public class WC_Service {
         // when server is started a new username/password are generated to form URL and new X509 certificate and privateKey are generated
         public int WC_OpenSession(String clientId, WC_SessionOptions options)
         {
-            Log.i(TAG,"WC_OpenSession: WC Enabled="+ mStreamCtrl.isWirelessConferencingEnabled +" request from clientId="+clientId+" options="+options);
-            if (!mStreamCtrl.isWirelessConferencingEnabled) //Accept open session only if WirelessConferencing is enabled
+            Log.i(TAG,"WC_OpenSession: WC Enabled="+ mStreamCtrl.isWirelessConferencingEnabled +
+                        ", Device State=" +  mStreamCtrl.isDeviceAppSystemStateActivation + " request from clientId="+clientId+" options="+options);
+            //Accept open session only if WirelessConferencing is enabled
+            //Accept open session only if Device.App.System.State.Activation is "Ok"
+            if (    (mStreamCtrl != null) && 
+                    ( (!mStreamCtrl.isWirelessConferencingEnabled) || (mStreamCtrl.isDeviceAppSystemStateActivation == false)))
                 return ERROR_WC_SERVICE_UNAVAILABLE;
 
             if ((mUsbDevices==null) || (mUsbDevices.devices.size() == 0)) {
@@ -122,7 +126,7 @@ public class WC_Service {
                     return ERROR_UNSUPPORTED_CAMERA_FORMAT;
                 }
             }
-
+            
             if (inUse.compareAndSet(false, true)) {
                 mCurrentId++;
                 mCurrentUser = clientId.toLowerCase(Locale.ENGLISH).contains("IrisTX3".toLowerCase(Locale.ENGLISH)) ? "IrisTX3" : "AirMedia";

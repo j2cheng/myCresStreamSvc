@@ -246,6 +246,17 @@ public class CanvasCrestore
             Common.Logging.i(TAG,"Successfully subscribed to " + sInternalTx3AirMediaWifiDirect);
         }
 
+        //subscribe to Device.App.System.State
+        String sDeviceAppSystemState = "{\"Device\":{\"App\":{\"System\":{\"State\":{}}}}}";
+        rv = wrapper.subscribeCallback(sDeviceAppSystemState, crestoreCallback);
+        if (rv != com.crestron.cresstoreredis.CresStoreResult.CRESSTORE_SUCCESS)
+        {
+            Common.Logging.i(TAG,"Could not set up Crestore Callback for subscription to " + sDeviceAppSystemState+": " + rv);
+            return false;
+        } else {
+            Common.Logging.i(TAG,"Successfully subscribed to " + sDeviceAppSystemState);
+        }
+
         if (!verifyCrestore())
         {
         	Common.Logging.i(TAG,"Could not verify crestore wrapper is working");
@@ -1780,6 +1791,14 @@ public class CanvasCrestore
                             Common.Logging.e(TAG, "Received NULL for deviceId.");
                     }
                 }
+                if ( root.device != null && root.device.app != null && root.device.app.system != null && root.device.app.system.state != null) {
+                    String activationStr = root.device.app.system.state.activation;
+                    Log.i(TAG, "Received Device/App/System/State message with value: " + activationStr);
+                    if( (activationStr != null) && (activationStr.equalsIgnoreCase("Ok")))
+                        mStreamCtl.setDeviceAppSystemStateActivation(true);
+                    else
+                        mStreamCtl.setDeviceAppSystemStateActivation(false);
+                }
 
                 if (root.internal != null && root.internal.tx3 != null && root.internal.tx3.airMedia != null) {
 
@@ -2537,6 +2556,24 @@ public class CanvasCrestore
         StreamReceive streamReceive;
         // ***
         
+        @SerializedName ("App")
+        App app;
+        
+    }
+    
+    public class App {
+        @SerializedName ("System")
+        System system;
+    }
+    
+    public class System {
+        @SerializedName ("State")
+        State state;
+    }
+    
+    public class State {
+        @SerializedName ("Activation")
+        String activation;
     }
     
     public class Root {
