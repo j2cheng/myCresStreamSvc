@@ -431,7 +431,9 @@ public class UserSettings
 		camStreamMulticastAddress = "";
 		airMediaWCEnable = false;
         airMediaWCQuality = 0;  // 0 - High, 1 - Medium, 2 - Low
-        airMediaWCLicensed = false;
+        // By default airMediaWCLicensed is made true. This fixes AM3XX-9877
+        // For AM3K the WC license is always enabled.
+        airMediaWCLicensed = true;  
         airMediaPeripheralPlaybackDeviceName = "";
         airMediaPeripheralVolume = 0;
         airMediaPeripheralMute = false;
