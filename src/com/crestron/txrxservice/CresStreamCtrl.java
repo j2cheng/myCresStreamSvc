@@ -6521,7 +6521,7 @@ public class CresStreamCtrl extends Service {
 		Log.i(TAG, "onCameraConnected(): USB UVC camera is disconnected");
     }
 
-    public void onUsbStatusChanged(final List<UsbAvDevice> devList, boolean usbUnplugEvent)
+    public void onUsbStatusChanged(final List<UsbAvDevice> devList, final boolean usbUnplugEvent)
     {
         Log.i(TAG, "onUsbStatusChanged(): deviceList="+devList);
 
