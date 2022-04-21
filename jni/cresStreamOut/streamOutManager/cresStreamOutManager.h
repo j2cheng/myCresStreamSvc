@@ -24,6 +24,13 @@ typedef enum _eWCstatus
     STREAMOUT_WC_STATUS_MAX
 } eWCstatus;
 
+#define WCERROR_MODULE_NONE        0
+#define WCERROR_MODULE_VIDEO       1
+#define WCERROR_MODULE_AUDIO       2
+#define WCERROR_MODULE_AUDIOVIDEO  3
+
+#define WCERROR_CODE_FATAL_CLOSESESSION  -1
+
 #define RTSP_CERTIFICATE_FOLDER_PATH  "/dev/shm/crestron/CresStreamSvc/wc"
 #define RTSP_ROOT_CERT_PEM_FILENAME   "root_cert.pem"
 #define RTSP_ROOT_CERT_KEY            "root_key.pem"
@@ -151,6 +158,7 @@ public:
     void setMulticastAddress(char* address){strcpy(m_multicast_address, address);}
     void setStreamName(char* name){strcpy(m_stream_name, name);}
     void sendWcUrl(GstRTSPServer *server, char *mountPoint);
+    void sendWcMediaPipelineError(int errModule, int errCode, char *errMessage);
     void initWcCertificates();
     eWCstatus  initWcAudioVideo();
     void setVideoSource(char *videoSource, int n);

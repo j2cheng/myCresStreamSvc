@@ -83,8 +83,8 @@ public class GstreamOut {
     private native void nativeSetServerIpAddress(String ipAddr);
     private native void nativeSetVideoCaptureDevice(String device);
     private native void nativeSetAudioCaptureDevice(String device);
-    private native void nativeGetVideoFormat(String videoFile, WC_VideoFormat format, int quality);
-    private native void nativeGetAudioFormat(String videoFile, WC_AudioFormat format);
+    private native int nativeGetVideoFormat(String videoFile, WC_VideoFormat format, int quality);
+    private native int nativeGetAudioFormat(String videoFile, WC_AudioFormat format);
     private native void nativeStartPreview(Object surface, int sessionId);
     private native void nativePausePreview(int sessionId);
     private native void nativeStopPreview(int sessionId);
@@ -210,9 +210,15 @@ public class GstreamOut {
     		Log.i(TAG, "videoFile is 'none' - no video formats");
     	else if (videoFile.contains("/dev/video")) {
     		WC_VideoFormat format = new WC_VideoFormat(0,0,0);
-    		nativeGetVideoFormat(videoFile, format, streamCtl.userSettings.getAirMediaWCQuality());
-    		Log.i(TAG, "videoFile is "+videoFile+" videoFormat="+format);
-    		videoFormats.add(format);
+            if(nativeGetVideoFormat(videoFile, format, streamCtl.userSettings.getAirMediaWCQuality()) == 0)
+            {
+                Log.i(TAG, "videoFile is "+videoFile+" videoFormat="+format);
+                videoFormats.add(format);
+            }
+            else
+                setWcServerError(streamCtl.mWC_Service.WCERROR_MODULE_VIDEO,
+                                streamCtl.mWC_Service.ERROR_VIDEOCAPTURE_FORMAT,
+                                "Error! Unsupported Video Format Detected");
     	} else {
     		Log.i(TAG, "videoFile is "+videoFile+" - no video formats");
     	}
@@ -226,9 +232,15 @@ public class GstreamOut {
     		Log.i(TAG, "audioFile is 'none' - no video formats");
     	else if (audioFile.contains("/dev/snd/pcm")) {
     		WC_AudioFormat format = new WC_AudioFormat(0,0,"");
-    		nativeGetAudioFormat(audioFile, format);
-    		Log.i(TAG, "audioFile is "+audioFile+" audioFormat="+format);
-    		audioFormats.add(format);
+    		if(nativeGetAudioFormat(audioFile, format) == 0)
+            {
+                Log.i(TAG, "audioFile is "+audioFile+" audioFormat="+format);
+                audioFormats.add(format);
+            }
+            else
+                setWcServerError(streamCtl.mWC_Service.WCERROR_MODULE_AUDIO,
+                                streamCtl.mWC_Service.ERROR_AUDIOCAPTURE_FORMAT
+                                ,"Error! Unsupported Audio Format Detected");
     	} else {
     		Log.i(TAG, "audioFile is "+audioFile+" - no video formats");
     	}
@@ -419,6 +431,26 @@ public class GstreamOut {
             MiscUtils.writeStringToDisk(WC_URL_PATH, urls[0]);
         }
         //Log.v(TAG, "setWcServerUrl: WC server url="+wcServerUrl);
+    }
+
+    //This set error call can be used to indicate to Receiver APK the type of issue occured in WC errModule, errorCode, errorMessage
+    public void setWcServerError(int errModule, int errCode, String errMessage)
+    {
+        //Log.i(TAG, "Streamout: setWcServerError module: "+errModule+" code: "+errCode);
+        //TODO: Based on the type of error code received take session related actions here as well.
+        if(streamCtl.mWC_Service != null)
+        {
+            if(errCode == (-1))
+            {
+                streamCtl.mWC_Service.closeSession();
+                Log.e(TAG, "setWcServerError: pipeline failed, close session needed FATAL !!!" );
+            }
+
+            //Inform AM Receiver App of the error that has occured
+            streamCtl.mWC_Service.onError(errModule, errCode, errMessage);
+        }
+        else
+            Log.e(TAG, "setWcServerError mWC_Service is NULL" );
     }
 
     public void onServerStart()

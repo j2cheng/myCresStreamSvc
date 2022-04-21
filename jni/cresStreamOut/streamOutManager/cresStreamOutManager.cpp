@@ -52,6 +52,7 @@ extern const char *csio_jni_getAppCacheFolder();
 extern const char *csio_jni_getHostName();
 extern const char *csio_jni_getDomainName();
 extern const char *csio_jni_getServerIpAddress();
+extern void csio_jni_SendWCMediaError( int errModule, int errCode, char* errMessage);
 extern void csio_jni_SendWCServerURL( void * arg );
 extern void csio_jni_onServerStart();
 extern void csio_jni_onServerStop();
@@ -131,6 +132,41 @@ void getClientIp(GstRTSPClient * client, char *ipAddrBuf, int bufSize)
 	}
 }
 
+GstRTSPResult
+dump_rtsp_message (GstRTSPMessage * msg)
+{
+  g_return_val_if_fail (msg != NULL, GST_RTSP_EINVAL);
+
+  switch (msg->type) {
+    case GST_RTSP_MESSAGE_REQUEST:
+      CSIO_LOG(eLogLevel_info,"RTSP request message %p\n", msg);
+      CSIO_LOG(eLogLevel_info," request line:\n");
+      CSIO_LOG(eLogLevel_info,"   method: '%s'\n",
+          gst_rtsp_method_as_text (msg->type_data.request.method));
+      CSIO_LOG(eLogLevel_info,"   uri:    '%s'\n", msg->type_data.request.uri);
+      CSIO_LOG(eLogLevel_info,"   version: '%s'\n",
+          gst_rtsp_version_as_text (msg->type_data.request.version));
+      break;
+    case GST_RTSP_MESSAGE_RESPONSE:
+      CSIO_LOG(eLogLevel_info,"RTSP response message %p\n", msg);
+      CSIO_LOG(eLogLevel_info," status line:\n");
+      CSIO_LOG(eLogLevel_info,"   code:   '%d'\n", msg->type_data.response.code);
+      CSIO_LOG(eLogLevel_info,"   reason: '%s'\n", msg->type_data.response.reason);
+      CSIO_LOG(eLogLevel_info,"   version: '%s'\n",
+          gst_rtsp_version_as_text (msg->type_data.response.version));
+      break;
+    case GST_RTSP_MESSAGE_DATA:
+      CSIO_LOG(eLogLevel_info,"RTSP data message %p\n", msg);
+      CSIO_LOG(eLogLevel_info," channel: '%d'\n", msg->type_data.data.channel);
+      CSIO_LOG(eLogLevel_info," size:    '%d'\n", msg->body_size);
+      break;
+    default:
+      CSIO_LOG(eLogLevel_info,"unsupported message type %d\n", msg->type);
+      return GST_RTSP_EINVAL;
+  }
+  return GST_RTSP_OK;
+}
+
 static void
 client_closed (GstRTSPClient * client, void *user_data)
 {
@@ -154,6 +190,44 @@ client_closed (GstRTSPClient * client, void *user_data)
 }
 
 static void
+client_rtsp_session(GstRTSPClient * client, GstRTSPContext * ctx, gpointer user_data)
+{
+    GstRTSPMessage * request = ctx->request;
+    CSIO_LOG(eLogLevel_info,"client_rtsp_session RTSP Message: ****************%d\n", gst_rtsp_message_get_type (request));
+}
+
+static void  describe_request_cb (GstRTSPClient * self,
+                           GstRTSPContext * ctx,
+                           gpointer user_data)
+{
+    CSIO_LOG(eLogLevel_info,"RTSP Message: describe_request_cb ********\n");
+    //dump_rtsp_message (ctx->request);
+}
+
+static void  play_request_cb (GstRTSPClient * self,
+                           GstRTSPContext * ctx,
+                           gpointer user_data)
+{
+    CSIO_LOG(eLogLevel_info,"RTSP Message: play_request_cb ********\n");
+    //dump_rtsp_message (ctx->request);
+}
+
+static void  setup_request_cb (GstRTSPClient * self,
+                           GstRTSPContext * ctx,
+                           gpointer user_data)
+{
+    CSIO_LOG(eLogLevel_info,"RTSP Message: setup_request_cb ********\n");
+    //dump_rtsp_message (ctx->request);
+}
+
+static void options_request_cb(GstRTSPClient * self,
+                          GstRTSPContext * ctx,
+                          gpointer user_data)
+{
+    CSIO_LOG(eLogLevel_info,"RTSP Message: options_request_cb ********\n");
+    //dump_rtsp_message (ctx->request);
+}
+static void
 client_connected (GstRTSPServer * server, GstRTSPClient * client, void *user_data)
 {
     CStreamoutManager *pMgr = (CStreamoutManager *) user_data;
@@ -161,12 +235,16 @@ client_connected (GstRTSPServer * server, GstRTSPClient * client, void *user_dat
 
     getClientIp(client, e->client_ip_address, sizeof(e->client_ip_address));
     csio_jni_onClientConnected(e->client_ip_address);
-//    if (PushModel)
-//        pMgr->m_bNeedData = true;
+
     g_signal_connect(client, "closed", (GCallback) client_closed, pMgr);
+    g_signal_connect(client, "options-request", (GCallback) options_request_cb, pMgr);
+    g_signal_connect(client, "describe-request", (GCallback) describe_request_cb, pMgr);
+    g_signal_connect(client, "play-request", (GCallback) play_request_cb, pMgr);
+    g_signal_connect(client, "setup-request", (GCallback) setup_request_cb, pMgr);
+
     pMgr->m_clientList.push_back(e);
     CSIO_LOG(eLogLevel_info,"********** RTSP Client connected (size=%d  ip=%s e=0x%p) **************\n", pMgr->m_clientList.size(),
-    		e->client_ip_address, e);
+            e->client_ip_address, e);
 }
 
 #ifdef SHOW_PEER_CERTIFICATE
@@ -483,7 +561,12 @@ wc_media_configure (GstRTSPMediaFactory * factory, GstRTSPMedia * media,
         if (useUsbAudio && (pMgr->m_usbAudio->m_device == NULL))
         {
         	if (!pMgr->m_usbAudio->configure())
-        		return;
+            {
+                CSIO_LOG(eLogLevel_error, "Error: !!! wc_media_configure Open USB Audio FAILED!!! Fatal ");
+                //indicates the sessions needs to be closed. Fatal pipeline error
+                pMgr->sendWcMediaPipelineError(WCERROR_MODULE_AUDIO, WCERROR_CODE_FATAL_CLOSESESSION, "Audio Configuration failed. Fatal");
+                return;
+            }
         }
 
         ele = gst_bin_get_by_name_recurse_up (GST_BIN (element), "wc_appsrc");
@@ -1384,6 +1467,9 @@ exitThread:
             m_parent->signalProject(m_id, STREAMOUT_EVENT_JNI_CMD_RESTART_MGR_THREAD,sizeof(void*), &delay_ms);
         } else {
             CSIO_LOG(m_debugLevel, "[AM3K]Streamout: Not restarting manager[%d] thread.", m_id);
+            //Since a GST_MESSAGE_ERROR occured while starting the pipeline
+            //indicates the sessions needs to be closed. Fatal pipeline error
+            sendWcMediaPipelineError(WCERROR_MODULE_AUDIOVIDEO,WCERROR_CODE_FATAL_CLOSESESSION,"Gstreamer pipeline error occured");
         }
 
     }
@@ -1578,6 +1664,15 @@ void CStreamoutManager::sendWcUrl(GstRTSPServer *server, char *mountPoint)
         g_free(ipAddr);
         CSIO_LOG(eLogLevel_verbose, "Streamout: sending WC url=%s", url);
         csio_jni_SendWCServerURL(url);
+    }
+}
+
+void CStreamoutManager::sendWcMediaPipelineError(int errModule, int errCode, char *errMessage)
+{
+    // send WC Media pipeline error
+    if (m_streamoutMode == STREAMOUT_MODE_WIRELESSCONFERENCING) {
+        CSIO_LOG(eLogLevel_error, "Streamout: sending WC Media Pipeline error=%d", errCode);
+        csio_jni_SendWCMediaError(errModule, errCode, errMessage);
     }
 }
 

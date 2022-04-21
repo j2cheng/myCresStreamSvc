@@ -4757,6 +4757,29 @@ const char *csio_jni_getServerIpAddress()
     return serverIpAddress;
 }
 
+void csio_jni_SendWCMediaError( jint errModule, jint errCode, char *errMessage )
+{
+    CSIO_LOG(eLogLevel_debug,"%s(): errModule[%d], errCode[%d], errMessage[%s]",__FUNCTION__, errModule, errCode, errMessage);
+    jstring errMessage_jstr;
+    JNIEnv *env = get_jni_env ();
+
+    jmethodID setWcServerError = env->GetMethodID((jclass)gStreamOut_javaClass_id, "setWcServerError", "(IILjava/lang/String;)V");
+    if (setWcServerError == NULL)
+    {
+        CSIO_LOG(eLogLevel_error,  "%s: could not find JAVA method setWcServerError in Gstreamout class", __FUNCTION__);
+        return;
+    }
+
+    errMessage_jstr = env->NewStringUTF(errMessage);
+
+    env->CallVoidMethod(CresStreamOutDataDB->app, setWcServerError, (jint)errModule, (jint)errCode, (jstring)errMessage_jstr);
+    if (env->ExceptionCheck ()) {
+        CSIO_LOG(eLogLevel_error, "Failed to call Java method 'setWcServerError'");
+        env->ExceptionClear ();
+    }
+    env->DeleteLocalRef (errMessage_jstr);
+}
+
 void csio_jni_SendWCServerURL( void * arg )
 {
 	jstring serverUrl_jstr;
@@ -4766,13 +4789,13 @@ void csio_jni_SendWCServerURL( void * arg )
 
 	CSIO_LOG(eLogLevel_verbose,  "%s: Sending server URL %s", __FUNCTION__, serverUrl_cstr );
 
-	serverUrl_jstr = env->NewStringUTF(serverUrl_cstr);
-
 	jmethodID setWcServerUrl = env->GetMethodID((jclass)gStreamOut_javaClass_id, "setWcServerUrl", "(Ljava/lang/String;)V");
 	if (setWcServerUrl == NULL) {
         CSIO_LOG(eLogLevel_error,  "%s: could not find JAVA method setWcServerUrl in Gstreamout class", __FUNCTION__);
         return;
 	}
+
+	serverUrl_jstr = env->NewStringUTF(serverUrl_cstr);
 
 	env->CallVoidMethod(CresStreamOutDataDB->app, setWcServerUrl, serverUrl_jstr);
 	if (env->ExceptionCheck ()) {
@@ -5484,22 +5507,24 @@ JNIEXPORT void JNICALL Java_com_crestron_txrxservice_GstreamOut_nativeSetAudioCa
 	env->ReleaseStringUTFChars(device_jstring, device_cstring);
 }
 
-JNIEXPORT void JNICALL Java_com_crestron_txrxservice_GstreamOut_nativeGetVideoFormat(JNIEnv *env, jobject thiz, jstring device_jstring, jobject format, jint quality)
+JNIEXPORT int JNICALL Java_com_crestron_txrxservice_GstreamOut_nativeGetVideoFormat(JNIEnv *env, jobject thiz, jstring device_jstring, jobject format, jint quality)
 {
-	const char * device_cstring = env->GetStringUTFChars( device_jstring , NULL ) ;
-	if (device_cstring == NULL) return;
+    int rtn = -1;
 
-	CSIO_LOG(eLogLevel_debug, "%s: video capture device: '%s'", __FUNCTION__, device_cstring);
+    const char * device_cstring = env->GetStringUTFChars( device_jstring , NULL ) ;
+    if (device_cstring == NULL) return rtn;
 
-	// get the video format from the device file
+    CSIO_LOG(eLogLevel_debug, "%s: video capture device: '%s'", __FUNCTION__, device_cstring);
+
+    // get the video format from the device file
     VideoCaps videoCaps;
     char display_name[256];
-    get_video_caps((char *)device_cstring, &videoCaps, display_name, sizeof(display_name), quality);   
+    rtn = get_video_caps((char *)device_cstring, &videoCaps, display_name, sizeof(display_name), quality);   
     CSIO_LOG(eLogLevel_info, "%s: name=%s format=%s w=%d h=%d frame_rate=%d/%d", device_cstring, display_name,
-    		videoCaps.format, videoCaps.w, videoCaps.h, videoCaps.frame_rate_num, videoCaps.frame_rate_den);
+            videoCaps.format, videoCaps.w, videoCaps.h, videoCaps.frame_rate_num, videoCaps.frame_rate_den);
 
-	// Find the id of the Java method to be called
-	jclass videoFormatClass=env->GetObjectClass(format);
+    // Find the id of the Java method to be called
+    jclass videoFormatClass=env->GetObjectClass(format);
     jfieldID fieldId = env->GetFieldID(videoFormatClass , "width", "I");
     env->SetIntField(format, fieldId, videoCaps.w);
     fieldId = env->GetFieldID(videoFormatClass , "height", "I");
@@ -5507,27 +5532,32 @@ JNIEXPORT void JNICALL Java_com_crestron_txrxservice_GstreamOut_nativeGetVideoFo
     fieldId = env->GetFieldID(videoFormatClass , "fps", "I");
     env->SetIntField(format, fieldId, videoCaps.frame_rate_num);
 
-	CSIO_LOG(eLogLevel_debug, "%s: about to exit", __FUNCTION__);
+    CSIO_LOG(eLogLevel_debug, "%s: about to exit with return val %d", __FUNCTION__, rtn);
 
-	env->ReleaseStringUTFChars(device_jstring, device_cstring);
+    env->ReleaseStringUTFChars(device_jstring, device_cstring);
+
+    return(rtn);
 }
 
-JNIEXPORT void JNICALL Java_com_crestron_txrxservice_GstreamOut_nativeGetAudioFormat(JNIEnv *env, jobject thiz, jstring device_jstring, jobject format)
+JNIEXPORT int JNICALL Java_com_crestron_txrxservice_GstreamOut_nativeGetAudioFormat(JNIEnv *env, jobject thiz, jstring device_jstring, jobject format)
 {
-	const char * device_cstring = env->GetStringUTFChars( device_jstring , NULL ) ;
-	if (device_cstring == NULL) return;
+    int rtn = -1;
+    const char * device_cstring = env->GetStringUTFChars( device_jstring , NULL ) ;
+    if (device_cstring == NULL) return rtn;
 
-	CSIO_LOG(eLogLevel_debug, "%s: audio capture device: '%s'", __FUNCTION__, device_cstring);
+    CSIO_LOG(eLogLevel_debug, "%s: audio capture device: '%s'", __FUNCTION__, device_cstring);
 
-	// get the audio format from the device file
-	extern void getAudioFormat(char *deviceFile, int *sampleRate, int *channels, char *sampleFormat, int sampleFormatLen);
-	int sampleRate;
-	int channels;
-	char sampleFormat[64];
-	getAudioFormat((char *) device_cstring, &sampleRate, &channels, sampleFormat, sizeof(sampleFormat));
+    // get the audio format from the device file
+    extern void getAudioFormat(char *deviceFile, int *sampleRate, int *channels, char *sampleFormat, int sampleFormatLen);
+    int sampleRate;
+    int channels;
+    char sampleFormat[64];
+    getAudioFormat((char *) device_cstring, &sampleRate, &channels, sampleFormat, sizeof(sampleFormat));
+    if((sampleRate != 0) && (channels != 0))
+        rtn = 0;
 
-	// Find the id of the Java method to be called
-	jclass audioFormatClass=env->GetObjectClass(format);
+    // Find the id of the Java method to be called
+    jclass audioFormatClass=env->GetObjectClass(format);
     jfieldID fieldId = env->GetFieldID(audioFormatClass , "sampleRate", "I");
     env->SetIntField(format, fieldId, sampleRate);
     fieldId = env->GetFieldID(audioFormatClass , "channels", "I");
@@ -5535,9 +5565,11 @@ JNIEXPORT void JNICALL Java_com_crestron_txrxservice_GstreamOut_nativeGetAudioFo
     fieldId = env->GetFieldID(audioFormatClass , "sampleFormat", "Ljava/lang/String;");
     env->SetObjectField(format, fieldId, env->NewStringUTF(sampleFormat));
 
-	CSIO_LOG(eLogLevel_debug, "%s: about to exit", __FUNCTION__);
+    CSIO_LOG(eLogLevel_debug, "%s: about to exit with return val %d", __FUNCTION__, rtn);
 
-	env->ReleaseStringUTFChars(device_jstring, device_cstring);
+    env->ReleaseStringUTFChars(device_jstring, device_cstring);
+
+    return(rtn);
 }
 /***************************** end of rtsp_server for video streaming out *********************************/
 

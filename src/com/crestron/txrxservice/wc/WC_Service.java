@@ -33,11 +33,20 @@ import com.crestron.txrxservice.wc.ipc.WC_AudioFormat;
 public class WC_Service {
     private static final String TAG="WC_Service";
     //These return values should be in sync with IrisWcError.java and should not clash
-    private static final int ERROR_IN_USE = -1;
-    private static final int ERROR_NO_USB_DEVICES = -2;
-    private static final int ERROR_INVALID_ID = -3;
-    private static final int ERROR_WC_SERVICE_UNAVAILABLE = -4;
-    private static final int ERROR_UNSUPPORTED_CAMERA_FORMAT = -20;
+    //OpenSession Related
+    public static final int ERROR_IN_USE = -1;
+    public static final int ERROR_NO_USB_DEVICES = -2;
+    public static final int ERROR_INVALID_ID = -3;
+    public static final int ERROR_WC_SERVICE_UNAVAILABLE = -4;
+    public static final int ERROR_UNSUPPORTED_CAMERA_FORMAT = -20;
+    //Pre-Session related error
+    public static final int ERROR_AUDIOCAPTURE_FORMAT = 0x1000;
+    public static final int ERROR_VIDEOCAPTURE_FORMAT = 0x2000;
+
+    public static final int WCERROR_MODULE_NONE        = 0;
+    public static final int WCERROR_MODULE_VIDEO       = 1;
+    public static final int WCERROR_MODULE_AUDIO       = 2;
+    public static final int WCERROR_MODULE_AUDIOVIDEO  = 3;
 
     private static final String WC_CONF_STATUS_IN_USE="In Use";
     private static final String WC_CONF_STATUS_AVAILABLE="Available";
@@ -67,7 +76,7 @@ public class WC_Service {
     List<WC_AudioFormat> mAudioFormats = new ArrayList<WC_AudioFormat>();
     List<UsbAvDevice> mUsbAvDeviceList = null;
     AtomicBoolean inUse = new AtomicBoolean(false);
-  
+
     //run a monitor thread to see if any client has connected after we have started the WC open session
     private final Runnable waitForClientToConnectedRunnable = new Runnable() {
         @Override
@@ -329,10 +338,10 @@ public class WC_Service {
         }
     }
     
-    public void onError(int module, int errorCode, String errorMessage)
+    public synchronized void onError(int module, int errorCode, String errorMessage)
     {
         WC_Error error = new WC_Error(module, errorCode, errorMessage);
-        Log.i(TAG,"invoking onError() callbacks with error="+error);
+        Log.i(TAG,"invoking onError() callbacks with "+error);
         // Broadcast to all clients the new value.
         synchronized(broadcastObjectLock) {
             try {
