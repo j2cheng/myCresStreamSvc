@@ -39,6 +39,12 @@ import java.io.OutputStreamWriter;
 import java.io.Writer;
 import java.lang.String;
 
+import java.util.concurrent.Executors;
+import java.util.concurrent.ScheduledExecutorService;
+import java.util.concurrent.ScheduledFuture;
+import java.util.concurrent.TimeUnit;
+import java.util.concurrent.locks.*;
+
 public class ProductSpecific
 {
     private static ProductSpecific mInstance;
@@ -50,6 +56,16 @@ public class ProductSpecific
     
     private int mUsb2CurrentStatus = 0;
     private int mUsb3CurrentStatus = 0;
+    
+    private final int USB_NONE          = 0;
+    private final int USB_AUDIO_ONLY    = 2;
+    private final int USB_VIDEO_ONLY    = 4;
+    private final int USB_AUDIO_VIDEO   = 6;
+    
+    private final int USB_DEBOUNCE_MAX_TIME = 5000;
+    private final int USB_DEVICELIST_LOCK_WAITTIME = 7000;
+    
+    private ReentrantLock usbDeviceListLock = new ReentrantLock(true);
     
     //When Peripheral like Crestron Soundbar which has Speaker with Inbuilt camera, when only camera is partially plugged
     //out GS will not send UNPLUGGED(0), instead sending PLUGGED with value (2) where as receiving PLUGGED with value(6)
@@ -378,11 +394,35 @@ public class ProductSpecific
         Log.i(TAG, "getTrueHpdStatus(): returning "+curr_true_hpd);
         return curr_true_hpd;
     }
-    
+
+    /**
+     * A Debouncer is responsible for executing a task with a delay, and cancelling
+     * any previous unexecuted task before doing so.
+     */
+    public class DebounceExecutor {
+
+        private ScheduledExecutorService executor;
+        private ScheduledFuture<?> future;
+
+        public DebounceExecutor() {
+            this.executor = Executors.newSingleThreadScheduledExecutor();
+        }
+
+        public void debounce(long delay, Runnable task) {
+            if (future != null && !future.isDone()) {
+                Log.i(TAG, "DebounceExecutor::debounce Cancelling Previous Executor!!!!!!");
+                future.cancel(false);
+            }
+
+            future = executor.schedule(task, delay, TimeUnit.MILLISECONDS);
+        }
+    }
+
     public class PeripheralStatusChangeListener extends StatusChangeListener 
     {
         boolean hdmiInConnected = false;
         CresStreamCtrl cresStreamCtrl;
+        DebounceExecutor debouncer = new DebounceExecutor();
 
         public PeripheralStatusChangeListener(CresStreamCtrl ctrl) {
             super();
@@ -515,63 +555,97 @@ public class ProductSpecific
         public void onUsbStatusChanged(int usbId, int status, String name, List<String> videoList, 
                 List<String> audioList, List<PeripheralUsbDevice> perUsbDevices)
         {
-            //Always start afresh
-            List<UsbAvDevice> dl = findUsbDevices(usbId);
-            if (dl != null) {
-                for (UsbAvDevice d : dl)
-                {
-                    Log.i(TAG, "UsbAudioVideoDeviceRemoved(): USB device "+d.deviceName+" removed from "+d.usbPortType);
-                    usbDeviceList.remove(d);
-                }
-            }
-
-            if (status > 0)
+            try
             {
-                for (PeripheralUsbDevice perDev : perUsbDevices)
-                {
-                    Log.i(TAG, "Peripheral device type = "+perDev.getType());
-                    HashMap<String, String> propertyMap;
-                    String aFile = null;
-                    String vFile = null;
-                    String sFile = null;
-                    if (perDev.getType() == com.gs.core.peripheral.UsbDeviceType.Audio)
+                usbDeviceListLock.tryLock(USB_DEVICELIST_LOCK_WAITTIME, TimeUnit.MILLISECONDS);
+
+                //Always start afresh
+                List<UsbAvDevice> dl = findUsbDevices(usbId);
+                if (dl != null) {
+                    for (UsbAvDevice d : dl)
                     {
-                        aFile = getAudioCaptureFile(audioList);
-                        Log.i(TAG, "onUsbStatusChanged(): audio capture file="+aFile);
-                        //This is to populate the AirMedia WC Status IsSpeakerDetected Field
-                        sFile = getAudioPlaybackFile(audioList);
-                        if (sFile != null)
-                            Log.i(TAG, "onUsbStatusChanged(): audio playback file="+sFile);
-                    } else if (perDev.getType() == com.gs.core.peripheral.UsbDeviceType.Video) {
-                        vFile = getVideoCaptureFile(videoList);
-                        Log.i(TAG, "onUsbStatusChanged(): video capture file="+vFile);
-                    } else {
-                        // BRIO coming in as Type "None" - need to fix
-                        if (!audioList.isEmpty())
+                        Log.i(TAG, "UsbAudioVideoDeviceRemoved(): USB device "+d.deviceName+" removed from "+d.usbPortType);
+                        usbDeviceList.remove(d);
+                    }
+                }
+
+                if (status > 0)
+                {
+                    for (PeripheralUsbDevice perDev : perUsbDevices)
+                    {
+                        Log.i(TAG, "Peripheral device type = "+perDev.getType());
+                        HashMap<String, String> propertyMap;
+                        String aFile = null;
+                        String vFile = null;
+                        String sFile = null;
+                        if (perDev.getType() == com.gs.core.peripheral.UsbDeviceType.Audio)
                         {
                             aFile = getAudioCaptureFile(audioList);
                             Log.i(TAG, "onUsbStatusChanged(): audio capture file="+aFile);
                             //This is to populate the AirMedia WC Status IsSpeakerDetected Field
                             sFile = getAudioPlaybackFile(audioList);
                             if (sFile != null)
-                                Log.i(TAG, "onUsbStatusChanged(): audio playback file="+sFile);                        }
-                        if (!videoList.isEmpty())
-                        {
-                            vFile = getVideoCaptureFile(videoList); 
+                                Log.i(TAG, "onUsbStatusChanged(): audio playback file="+sFile);
+                        } else if (perDev.getType() == com.gs.core.peripheral.UsbDeviceType.Video) {
+                            vFile = getVideoCaptureFile(videoList);
                             Log.i(TAG, "onUsbStatusChanged(): video capture file="+vFile);
+                        } else {
+                            // BRIO coming in as Type "None" - need to fix
+                            if (!audioList.isEmpty())
+                            {
+                                aFile = getAudioCaptureFile(audioList);
+                                Log.i(TAG, "onUsbStatusChanged(): audio capture file="+aFile);
+                                //This is to populate the AirMedia WC Status IsSpeakerDetected Field
+                                sFile = getAudioPlaybackFile(audioList);
+                                if (sFile != null)
+                                    Log.i(TAG, "onUsbStatusChanged(): audio playback file="+sFile);                        }
+                            if (!videoList.isEmpty())
+                            {
+                                vFile = getVideoCaptureFile(videoList); 
+                                Log.i(TAG, "onUsbStatusChanged(): video capture file="+vFile);
+                            }
                         }
+                        propertyMap = genPropertiesMap(perUsbDevices);
+                        UsbAvDevice d = new UsbAvDevice(usbId, ((usbId==PeripheralManager.PER_USB_30)?"usb3":"usb2"), name, vFile, 
+                                aFile, sFile, propertyMap);
+                        Log.i(TAG, "UsbAudioVideoDeviceAdded(): new USB device "+d.deviceName+" added on "+d.usbPortType);
+                        //Filter out Supported and Unsupported devices here for WC Feature
+                        if(isUsbDeviceSupported(propertyMap))
+                            usbDeviceList.add(d);
                     }
-                    propertyMap = genPropertiesMap(perUsbDevices);
-                    UsbAvDevice d = new UsbAvDevice(usbId, ((usbId==PeripheralManager.PER_USB_30)?"usb3":"usb2"), name, vFile, 
-                            aFile, sFile, propertyMap);
-                    Log.i(TAG, "UsbAudioVideoDeviceAdded(): new USB device "+d.deviceName+" added on "+d.usbPortType);
-                    //Filter out Supported and Unsupported devices here for WC Feature
-                    if(isUsbDeviceSupported(propertyMap))
-                        usbDeviceList.add(d);
                 }
             }
+            catch (Exception e) { e.printStackTrace(); }
+            finally
+            {
             
-                cresStreamCtrl.onUsbStatusChanged(usbDeviceList, isUsbStatusDegraded(usbId, status));
+                usbDeviceListLock.unlock();
+            }
+
+            int debounceTime = 0;
+            final boolean usbUnplugEvent = isUsbStatusDegraded(usbId, status);
+
+            //Only when USB Insert i.e., no USB Degrade and Status is not USB_AUDIO_VIDEO
+            //Delay by USB_DEBOUNCE_MAX_TIME (5000) 
+            if (!usbUnplugEvent && status != USB_AUDIO_VIDEO) {
+                Log.i(TAG, "onUsbStatusChanged(): Setting Debounce time to 5000 as Status= " + status);
+                debounceTime = USB_DEBOUNCE_MAX_TIME;
+            }
+
+            debouncer.debounce(debounceTime, new Runnable() {
+                @Override
+                public void run() {
+                    try {
+                        usbDeviceListLock.tryLock(USB_DEVICELIST_LOCK_WAITTIME, TimeUnit.MILLISECONDS);
+                        cresStreamCtrl.onUsbStatusChanged(usbDeviceList, usbUnplugEvent);
+                    }
+                    catch (Exception e) { e.printStackTrace(); }
+                    finally
+                    {
+                        usbDeviceListLock.unlock();
+                    }
+                }
+            });
         }
 
         public void usbEvent(int usbId)

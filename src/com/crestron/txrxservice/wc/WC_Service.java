@@ -441,7 +441,8 @@ public class WC_Service {
         Log.i(TAG,"Connection_Parameters={\n"+getConnectionParameters(id).toString()+"\n}");
     }
     
-    public void updateUsbDeviceStatus(List<UsbAvDevice> devices)
+    //Function gets invoked from 1) WC_OpenSession and 2) onUsbStatusChanged
+    public synchronized void updateUsbDeviceStatus(List<UsbAvDevice> devices)
     {
     	mUsbAvDeviceList = devices;
     	WC_UsbDevices usbDevices = generateUsbDevices(mUsbAvDeviceList);
@@ -532,6 +533,12 @@ public class WC_Service {
     		if (aFile != null && !usb2HasVideo)
     			audioFile = aFile;
     	}
+        
+        //AM3XX-9835::  For Crestron Sound Bar, when power cycle is done, two events are received as AUDIO(2), AUDIO_AND_VIDEO(6)
+        //              If user managed to Press Start WC from App when AUDIO event is received, then on receiving 
+        //              AUDIO_AND_VIDEO, due to below check videoFile is set to "none" even though videoFile exist.
+        //              Debounce Logic for two consecutive events is resolving the issue, but need to investigate why below
+        //              check is there in the first place.
     	if (mStatus.sessionFlags != WC_SessionFlags.None)
     	{
     		// Check options selected and disallow video or audio by setting corresponding driver file to "none"

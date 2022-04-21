@@ -6521,32 +6521,29 @@ public class CresStreamCtrl extends Service {
 		Log.i(TAG, "onCameraConnected(): USB UVC camera is disconnected");
     }
 
+    //Needs to be in separate thread for NetworkOnMainThreadException, since SendtoCrestore occurs in the flow
+    //this can get called from Main UI Thread(startPeripheralListener)
+    //Note: As this function is only called from ProductSpecific::onUsbStatusChanged where new Runnable Task is
+    //      created, there is no need to have another Runnable inside this function.
     public void onUsbStatusChanged(final List<UsbAvDevice> devList, final boolean usbUnplugEvent)
     {
         Log.i(TAG, "onUsbStatusChanged(): deviceList="+devList);
 
-        //Needs to be in separate thread for NetworkOnMainThreadException, since SendtoCrestore occurs in the flow
-        //this can get called from Main UI Thread(startPeripheralListener)
-        new Thread(new Runnable() {
-        @Override
-            public void run() {
-                if( mWC_Service != null )
-                {
-                    if(usbUnplugEvent == true)
-                    {
-                        Log.i(TAG, "onUsbStatusChanged(): Perform WC_Service closeSession, as USB is plugged out.!!!");
-                        mWC_Service.closeSession();
-                    } else {
-                        Log.i(TAG, "onUsbStatusChanged(): Not doing WC_Service closeSession because UsbUnplugEvent= " + usbUnplugEvent);
-                    }
-                    mWC_Service.updateUsbDeviceStatus(devList);
-                }
-                else
-                    Log.e(TAG, "onUsbStatusChanged(): WC Handle is null");
-
-                sendPeripheralVolumeStatus();
+        if( mWC_Service != null )
+        {
+            if(usbUnplugEvent == true)
+            {
+                Log.i(TAG, "onUsbStatusChanged(): Perform WC_Service closeSession, as USB is plugged out.!!!");
+                mWC_Service.closeSession();
+            } else {
+                Log.i(TAG, "onUsbStatusChanged(): Not doing WC_Service closeSession because UsbUnplugEvent= " + usbUnplugEvent);
             }
-        }).start();
+            mWC_Service.updateUsbDeviceStatus(devList);
+        }
+        else
+            Log.e(TAG, "onUsbStatusChanged(): WC Handle is null");
+
+        sendPeripheralVolumeStatus();
     }
 
     public void onHdmiInConnected()
