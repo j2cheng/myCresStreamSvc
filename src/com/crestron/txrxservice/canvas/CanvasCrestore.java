@@ -1791,7 +1791,8 @@ public class CanvasCrestore
                             Common.Logging.e(TAG, "Received NULL for deviceId.");
                     }
                 }
-                if ( root.device != null && root.device.app != null && root.device.app.system != null && root.device.app.system.state != null) {
+
+                if (root != null && root.device != null && root.device.app != null && root.device.app.system != null && root.device.app.system.state != null) {
                     String activationStr = root.device.app.system.state.activation;
                     Log.i(TAG, "Received Device/App/System/State message with value: " + activationStr);
                     if( (activationStr != null) && (activationStr.equalsIgnoreCase("Ok")))
@@ -2302,9 +2303,34 @@ public class CanvasCrestore
                 }
             }
         } // else
-
     }
-		
+
+    public void initActivationStateFromCresstore() {
+        Root root = null;
+        //first get  "{\"Device\":{\"App\":{\"System\":{\"State\":{}}}}}";
+        String sDeviceAppSystemState = "{\"Device\":{\"App\":{\"System\":{\"State\":{}}}}}";
+        try {
+            String jsonStr = wrapper.get(false, sDeviceAppSystemState);
+            if (jsonStr != null){
+                Log.v(TAG, "initActivationStateFromCresstore App System State found = "+jsonStr);
+                root = gson.fromJson(jsonStr, Root.class);
+
+                if ( root != null && root.device != null && root.device.app != null && root.device.app.system != null && root.device.app.system.state != null) {
+                    String activationStr = root.device.app.system.state.activation;
+                    Log.i(TAG, "initActivationStateFromCresstore Read Device/App/System/State/Activation message with value: " + activationStr);
+                    if( (activationStr != null) && (activationStr.equalsIgnoreCase("Ok")))
+                        mStreamCtl.setDeviceAppSystemStateActivation(true);
+                    else
+                        mStreamCtl.setDeviceAppSystemStateActivation(false);
+                }
+            } else {
+                Log.v(TAG, "initActivationStateFromCresstore: Could not find Device:App:System:State");
+            }
+        } catch (Exception ex) {
+            Common.Logging.i(TAG, "initActivationStateFromCresstore exception: " + ex.getMessage());
+        }
+    }
+
     public class StreamConfigMapEntry {  
     	@SerializedName ("Url")
         String url;	

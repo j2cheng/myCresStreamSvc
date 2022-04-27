@@ -1337,7 +1337,12 @@ public class CresStreamCtrl extends Service {
                 mCanvas = com.crestron.txrxservice.canvas.CresCanvas.getInstance(this);
                 resetDmSettings();
             }
-            
+
+            if (mCanvas != null)
+                mCanvas.getCrestore().initActivationStateFromCresstore();
+            else
+                Log.e(TAG, "mCanvas is NULL ****Error**** WC will not work until issue resolved");
+
             // Create a DisplaySurface to handle both preview and stream in
             createCresDisplaySurface();
             Point size = getDisplaySize();
