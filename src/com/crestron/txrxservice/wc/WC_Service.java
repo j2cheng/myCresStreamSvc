@@ -76,6 +76,7 @@ public class WC_Service {
     List<WC_AudioFormat> mAudioFormats = new ArrayList<WC_AudioFormat>();
     List<UsbAvDevice> mUsbAvDeviceList = null;
     AtomicBoolean inUse = new AtomicBoolean(false);
+    final WC_UsbDevices mUsbEmptyDevices = new WC_UsbDevices(null, null, null);
 
     //run a monitor thread to see if any client has connected after we have started the WC open session
     private final Runnable waitForClientToConnectedRunnable = new Runnable() {
@@ -309,7 +310,7 @@ public class WC_Service {
         }
     }
     
-    public void onUsbDevicesChanged()
+    public void onUsbDevicesChanged(WC_UsbDevices devices)
     {
         Log.i(TAG,"invoking onUsbDevicesChanged() callbacks");
         // Broadcast to all clients the new value.
@@ -318,7 +319,7 @@ public class WC_Service {
                 final int N = mCallbacks.beginBroadcast();
                 for (int i=0; i<N; i++) {
                     try {
-                        mCallbacks.getBroadcastItem(i).onUsbDevicesChanged(mUsbDevices);
+                        mCallbacks.getBroadcastItem(i).onUsbDevicesChanged(devices);
                     } catch (RemoteException e) {
                         // The RemoteCallbackList will take care of removing
                         // the dead object for us.
@@ -337,7 +338,34 @@ public class WC_Service {
             }
         }
     }
-    
+
+    public void performSoftUsbReset()
+    {
+        int count = 0;
+        final int maxCountWait = 10;
+        Log.i(TAG,"Enterring performSoftUsbReset()");
+
+        while(  (mStatus.isServerStarted == true) &&
+                (count++ < maxCountWait))
+        {
+            Log.i(TAG,"performSoftUsbReset() - mStatus.isServerStarted == true, waiting a sec " + count);
+            try {
+                Thread.sleep(1000);
+            } catch (Exception e) {
+                e.printStackTrace();
+            }
+        }
+        
+        if(mStatus.isServerStarted == true)
+            Log.w(TAG,"performSoftUsbReset() - mStatus.isServerStarted == true, Even after 10 second!!!! " + count);
+
+        onUsbDevicesChanged(mUsbEmptyDevices);
+        
+        mStreamCtrl.performSoftUsbReset();
+
+        Log.i(TAG,"Exiting performSoftUsbReset() - Done with the Reset");
+    }
+
     public synchronized void onError(int module, int errorCode, String errorMessage)
     {
         WC_Error error = new WC_Error(module, errorCode, errorMessage);
@@ -406,6 +434,8 @@ public class WC_Service {
                 mWaitForClientToConnectThread.interrupt();
             }               
             rv = 1;
+
+            performSoftUsbReset();
         } 
         return rv;
     }
@@ -450,7 +480,7 @@ public class WC_Service {
     	{
     		mUsbDevices = usbDevices;
     		Log.i(TAG, "updateUsbDeviceStatus(): usb device status has changed: "+mUsbDevices);
-    		onUsbDevicesChanged();
+    		onUsbDevicesChanged(mUsbDevices);
             mStreamCtrl.setAudioPlaybackFile(null);
     		getAndReportAllWCStatus();
     	} else {

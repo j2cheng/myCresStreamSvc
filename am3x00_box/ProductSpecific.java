@@ -63,8 +63,9 @@ public class ProductSpecific
     private final int USB_AUDIO_VIDEO   = 6;
     
     private final int USB_DEBOUNCE_MAX_TIME = 5000;
-    private final int USB_DEVICELIST_LOCK_WAITTIME = 7000;
-    
+    private final int USB_DEVICELIST_LOCK_WAITTIME = 15000;
+    private final int USB_SOFT_RESET_WAIT_TIME = 3000;
+
     private ReentrantLock usbDeviceListLock = new ReentrantLock(true);
     
     //When Peripheral like Crestron Soundbar which has Speaker with Inbuilt camera, when only camera is partially plugged
@@ -416,6 +417,29 @@ public class ProductSpecific
 
             future = executor.schedule(task, delay, TimeUnit.MILLISECONDS);
         }
+    }
+
+    public void performSoftUsbReset() {
+        Log.i(TAG, "performSoftUsbReset(): enableUsbStatus Entering!");
+
+        //Call GS API to Power OFF
+        if(PeripheralManager.instance().enableUsbStatus(PeripheralManager.PER_USB_30, false) != 0)
+            Log.i(TAG, "performSoftUsbReset(): enableUsbStatus(usbId, false) FAILED!");
+        if(PeripheralManager.instance().enableUsbStatus(PeripheralManager.PER_USB_20, false) != 0)
+            Log.i(TAG, "performSoftUsbReset(): enableUsbStatus(usbId, false) FAILED!");
+
+        //sleep for 3000 msec so that USB power cycle happens
+        try {
+            Thread.sleep(USB_SOFT_RESET_WAIT_TIME);
+        } catch (Exception e) { e.printStackTrace(); }
+
+        //Call GS API to Power ON
+        if(PeripheralManager.instance().enableUsbStatus(PeripheralManager.PER_USB_30, true) != 0)
+            Log.i(TAG, "performSoftUsbReset(): enableUsbStatus(usbId, true) FAILED!");
+        if(PeripheralManager.instance().enableUsbStatus(PeripheralManager.PER_USB_20, true) != 0)
+            Log.i(TAG, "performSoftUsbReset(): enableUsbStatus(usbId, true) FAILED!");
+
+        Log.i(TAG, "performSoftUsbReset(): enableUsbStatus Exiting!");
     }
 
     public class PeripheralStatusChangeListener extends StatusChangeListener 
