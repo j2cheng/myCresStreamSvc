@@ -263,6 +263,11 @@ public class ProductSpecific
     {
     	// Not implemented for this product
     }
+
+    public void performSoftUsbReset()
+    {
+        // Not implemented for this product
+    }
     
 	// ******************* Classes *******************
 	public class DispayInfo
