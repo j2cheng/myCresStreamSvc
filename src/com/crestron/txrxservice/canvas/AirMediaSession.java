@@ -330,6 +330,10 @@ public class AirMediaSession extends Session
 			Common.Logging.i(TAG, "Session "+this+" current state is "+state+"  exiting");
 			return;
 		}
+		// save disconnecting state so it can be restored if needed after stop is completed[AM3XX-10005]
+		boolean isDisconnecting = isDisconnecting();
+		if (isDisconnecting)
+			Common.Logging.w(TAG, "Current state is 'Disconnecting' but must do Stop first");
 		setState(SessionState.Stopping);
 		if (getVideoState() != AirMediaSessionStreamingState.Stopped)
 		{
@@ -345,6 +349,11 @@ public class AirMediaSession extends Session
 		{
 			//mStreamCtl.SendStreamState(StreamState.STOPPED, 0);
 			setState(SessionState.Stopped);
+			// restore disconnecting state if we had saved it earlier[AM3XX-10005]
+			if (isDisconnecting) {
+				Common.Logging.w(TAG, this+" Stop completed, restoring 'Disconnecting' state");
+				state = SessionState.Disconnecting;
+			}
 		}
 		else
 		{

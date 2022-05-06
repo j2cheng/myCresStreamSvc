@@ -129,6 +129,7 @@ public abstract class Session
 	public boolean isPlaying() { return (state == SessionState.Starting || state == SessionState.Playing || state == SessionState.UnPausing); }
 	public boolean isPaused() { return (state == SessionState.Pausing || state == SessionState.Paused); }
 	public boolean isConnecting() { return state == SessionState.Connecting;}
+	public boolean isDisconnecting() { return state == SessionState.Disconnecting;}
 
 	public SessionState getState() {return state;}
 	public void setState(SessionState state) 
