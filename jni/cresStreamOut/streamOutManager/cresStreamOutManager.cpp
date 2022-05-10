@@ -88,6 +88,11 @@ static int get_decimation_rate_requested()
     return read_int_from_file("/dev/shm/crestron/CresStreamSvc/wc/decimation_rate", 0);
 }
 
+static int get_bitrate_requested()
+{
+    return read_int_from_file("/dev/shm/crestron/CresStreamSvc/wc/bitrate", 0);
+}
+
 static bool
 is_supported(const char *fourcc)
 {
@@ -1588,6 +1593,12 @@ eWCstatus CStreamoutManager::initWcAudioVideo()
         	            m_video_caps.frame_rate_num, (m_video_caps.frame_rate_den*decimation_rate));
         	} else {
                 m_videoframerate[0] = '\0';
+        	}
+        	int bitrate = get_bitrate_requested();
+        	if (bitrate > 0)
+        	{
+        	    snprintf(m_bit_rate, sizeof(m_bit_rate), "%d", bitrate);
+                CSIO_LOG(eLogLevel_info, "--Streamout - encoder video bit rate requested=%s", m_bit_rate);
         	}
         	CSIO_LOG(eLogLevel_info, "--Streamout - m_videoconvert=%s", m_videoconvert);
             CSIO_LOG(eLogLevel_info, "--Streamout - m_videoframerate=%s", m_videoframerate);
