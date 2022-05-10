@@ -58,6 +58,7 @@ public class ProductSpecific
     private int mUsb3CurrentStatus = 0;
     
     private final int USB_NONE          = 0;
+    private final int USB_PLUGGED       = 1;    // Unsupported device like Phone or Mouse
     private final int USB_AUDIO_ONLY    = 2;
     private final int USB_VIDEO_ONLY    = 4;
     private final int USB_AUDIO_VIDEO   = 6;
@@ -71,12 +72,15 @@ public class ProductSpecific
     //When Peripheral like Crestron Soundbar which has Speaker with Inbuilt camera, when only camera is partially plugged
     //out GS will not send UNPLUGGED(0), instead sending PLUGGED with value (2) where as receiving PLUGGED with value(6)
     //when both Speaker and Camera are present.
+    
+    //When a mouse or Phone is connected GS will return USB_PLUGGED(1) as status.
+    //      When such device is plugged out, it should not be considered as degrade.
     private boolean isUsbStatusDegraded(int usbId, int newStatus)
     {
         boolean isDegraded = false;
         if(usbId == PeripheralManager.PER_USB_20)
         {
-            if( mUsb2CurrentStatus > newStatus)
+            if( (mUsb2CurrentStatus > newStatus) && (mUsb2CurrentStatus != USB_PLUGGED))
             {
                 isDegraded = true;
             }
@@ -86,7 +90,7 @@ public class ProductSpecific
         }
         else if(usbId == PeripheralManager.PER_USB_30)
         {
-            if( mUsb3CurrentStatus > newStatus)
+            if( (mUsb3CurrentStatus > newStatus) && (mUsb3CurrentStatus != USB_PLUGGED))
             {
                 isDegraded = true;
             }
