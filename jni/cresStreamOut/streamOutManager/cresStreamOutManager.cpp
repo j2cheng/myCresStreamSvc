@@ -83,10 +83,36 @@ static int read_int_from_file(const char *filePath, int defaultValue)
     return rv;
 }
 
+static int read_string_from_file(char *string, int stringSize, const char *filePath)
+{
+    FILE * file;
+    int rv = -1;
+    string[0] = '\0';
+
+    file = fopen(filePath, "r");
+    if (file != NULL) {
+        if (fgets(string, stringSize, file) != NULL) {
+            size_t len = strlen(string) - 1;
+            if (string[len] == '\n')
+                string[len] = '\0';
+            rv = 0;
+        }
+        fclose(file);
+    }
+    return rv;
+}
+
+#ifdef USE_DECIMATION_RATE_FILE
 static int get_decimation_rate_requested()
 {
     return read_int_from_file("/dev/shm/crestron/CresStreamSvc/wc/decimation_rate", 0);
 }
+#else
+static int get_framerate_requested(char *framerate, int size)
+{
+    return read_string_from_file(framerate, size, "/dev/shm/crestron/CresStreamSvc/wc/framerate");
+}
+#endif
 
 static int get_bitrate_requested()
 {
@@ -1586,6 +1612,7 @@ eWCstatus CStreamoutManager::initWcAudioVideo()
                 		m_res_x, m_res_y, m_frame_rate);
         		m_videoconvert[0] = '\0';
         	}
+#ifdef USE_DECIMATION_RATE_FILE
         	int decimation_rate = get_decimation_rate_requested();
         	if (decimation_rate > 0) {
                 CSIO_LOG(eLogLevel_info, "--Streamout - encoder decimation rate requested=%d", decimation_rate);
@@ -1594,6 +1621,15 @@ eWCstatus CStreamoutManager::initWcAudioVideo()
         	} else {
                 m_videoframerate[0] = '\0';
         	}
+#else
+        	char framerate[128];
+        	if (get_framerate_requested(framerate, sizeof(framerate)) >= 0) {
+                CSIO_LOG(eLogLevel_info, "--Streamout - encoder frame rate requested=%s", framerate);
+                snprintf(m_videoframerate, sizeof(m_videoframerate), "videorate ! video/x-raw,framerate=%s !", framerate);
+        	} else {
+        	    m_videoframerate[0] = '\0';
+        	}
+#endif
         	int bitrate = get_bitrate_requested();
         	if (bitrate > 0)
         	{
