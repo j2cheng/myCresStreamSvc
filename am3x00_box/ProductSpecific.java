@@ -649,24 +649,9 @@ public class ProductSpecific
             int debounceTime = 0;
             final boolean usbUnplugEvent = isUsbStatusDegraded(usbId, status);
 
-            //Only if we have partially lost an Audio or Video Device, issue a SW USB Hotplug. AM3XX-9848
-            if (usbUnplugEvent && (status == USB_AUDIO_ONLY || status == USB_VIDEO_ONLY)) {
-                Log.i(TAG, "onUsbStatusChanged(): Detected a partial downgrade of peripheral, initiate SW powercycle of USB. status: " 
-                            + status + " for usbId: "+ usbId);
-                //Call GS API
-                if(PeripheralManager.instance().enableUsbStatus(usbId, false) != 0)
-                    Log.i(TAG, "onUsbStatusChanged(): enableUsbStatus(usbId, false) FAILED!");
-
-                //sleep for 100 msec so that USB power cycle happens
-                try {
-                    Thread.sleep(100);
-                } catch (Exception e) { e.printStackTrace(); }
-
-                if(PeripheralManager.instance().enableUsbStatus(usbId, true) != 0)
-                    Log.i(TAG, "onUsbStatusChanged(): enableUsbStatus(usbId, true) FAILED!");
-
-                Log.i(TAG, "onUsbStatusChanged(): getUsbEnableStatus: "+ PeripheralManager.instance().getUsbEnableStatus(usbId));
-            }
+            //Only if we have partially lost an Audio or Video Device, issue a warning log. Rolled back AM3XX-9848
+            if (usbUnplugEvent && (status == USB_AUDIO_ONLY || status == USB_VIDEO_ONLY))
+                Log.w(TAG, "onUsbStatusChanged(): Detected a partial downgrade of peripheral, status: " + status + " for usbId: "+ usbId);
 
             //Only when USB Insert i.e., no USB Degrade and Status is not USB_AUDIO_VIDEO
             //Delay by USB_DEBOUNCE_MAX_TIME (5000) 
