@@ -511,7 +511,7 @@ public class WC_Service {
     				(device.videoFile != null), (device.audioFile != null), device.properties);
     		usbDeviceList.add(dev);
     	}
-    	
+
     	if (setActiveDevices(usb3Devices, usb2Devices))
     	{
     		mVideoFormats = mStreamOut.getVideoFormats(mVideoFile);
@@ -529,17 +529,24 @@ public class WC_Service {
     	String videoFile = "none";
     	String audioFile = "none";
     	boolean change = false;
-    	
+    	boolean usb3HasMedia = false;
+    	boolean usb3HasVideo = false;
+    	boolean usb3HasAudio = false;
+
     	if (usb3Devices != null && !usb3Devices.isEmpty()) {
     		for (UsbAvDevice d : usb3Devices) {
     			// Use USB3 video in preference to USB2 if connected
     			if (d.videoFile != null)
     			{
     				videoFile = d.videoFile;
+    				usb3HasVideo = true;
+    				Log.i(TAG, "setActiveDevices(): USB3 picked videoFile as "+ videoFile);
     			}
     			if (d.audioFile != null)
     			{
     				audioFile = d.audioFile;	
+    				usb3HasAudio = true;
+    				Log.i(TAG, "setActiveDevices(): USB3 picked audioFile as "+ audioFile);
     			}
     		}
     	}
@@ -552,16 +559,24 @@ public class WC_Service {
     			if (videoFile.equals("none") && d.videoFile != null)
     			{
     				videoFile = d.videoFile;
-                    Log.w(TAG, "*****setActiveDevices(): USB2 have Video Capability Peripheral - UNSUPPORTED USECASE!!!*****");
+    				Log.i(TAG, "setActiveDevices(): USB2 picked videoFile as "+ videoFile);
+    				Log.w(TAG, "setActiveDevices(): Avoid Video Capability Peripheral on USB2 - UNSUPPORTED USECASE!!!*****");
     			}
     			if (d.audioFile != null && (aFile == null))
     			{
     				aFile = d.audioFile;	
+    				Log.i(TAG, "setActiveDevices(): USB2 picked aFile as "+ aFile);
     			}
     		}
-			// use USB2 audio in preference to USB3 audio if it is connected and is an audio only device
-    		if (aFile != null && !usb2HasVideo)
+
+            usb3HasMedia = usb3HasVideo || usb3HasAudio;
+            Log.d(TAG, "setActiveDevices: usb3HasMedia = " + usb3HasMedia + " usb2HasVideo "+ usb2HasVideo);
+    		// use USB2 audio in preference to USB3 audio if it is connected and is an audio only device
+    		if (aFile != null && ( !usb2HasVideo || !usb3HasMedia))
+    		{
     			audioFile = aFile;
+    			Log.i(TAG, "*****setActiveDevices(): USB2 vs USB3 Logic picked audioFile as "+ audioFile);
+    		}
     	}
         
         //AM3XX-9835::  For Crestron Sound Bar, when power cycle is done, two events are received as AUDIO(2), AUDIO_AND_VIDEO(6)
