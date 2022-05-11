@@ -294,7 +294,7 @@ public class GstreamOut {
             generateRtspServerCertificates();
         setWcRandomUserPwEnable(streamCtl.userSettings.getWcRandomUserPwEnable());
         setFramerate(15);
-        setBitrate(2000000);
+        setBitrate(4000000);
         setIFrameInterval(1);
         setCamStreamName("wc");
         setQuality(streamCtl.userSettings.getAirMediaWCQuality());

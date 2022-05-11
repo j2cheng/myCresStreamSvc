@@ -1627,7 +1627,7 @@ eWCstatus CStreamoutManager::initWcAudioVideo()
                 CSIO_LOG(eLogLevel_info, "--Streamout - encoder frame rate requested=%s", framerate);
                 snprintf(m_videoframerate, sizeof(m_videoframerate), "videorate ! video/x-raw,framerate=%s !", framerate);
         	} else {
-        	    m_videoframerate[0] = '\0';
+                snprintf(m_videoframerate, sizeof(m_videoframerate), "videorate ! video/x-raw,framerate=%s !", "15/1");
         	}
 #endif
         	int bitrate = get_bitrate_requested();
