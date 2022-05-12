@@ -36,6 +36,9 @@
 
 //static bool PushModel = false;
 int useUsbAudio = false;
+int videoDumpCount = 0;
+extern int gstVideoEncDumpEnable;
+
 
 //#define AUDIOENC "amcaudenc-omxgoogleaacencoder"
 #define AUDIOENC "voaacenc"
@@ -47,6 +50,10 @@ int useUsbAudio = false;
 
 #define WC_RTP_PORT_MIN 9010
 #define WC_RTP_PORT_MAX 9020
+
+#define MAX_NUMBER_OF_FRAMES 150 
+#define VIDEO_DUMP_FILE "/logs/videoencdata.h264"
+
 
 extern const char *csio_jni_getAppCacheFolder();
 extern const char *csio_jni_getHostName();
@@ -571,6 +578,125 @@ static guint64 getAudioChannelMask(int nchannels)
 {
     return ((1ULL<<nchannels)-1);
 }
+static GstPadProbeReturn cb_dump_enc_data (
+              GstPad          *pad,
+              GstPadProbeInfo *info,
+              gpointer         user_data)
+{
+    GstBuffer *buffer;
+    GstMapInfo map; 
+    const guint8 *data;
+    GstBuffer *codec_data = NULL;
+    FILE *fp;
+    //access delimiter
+    char c[] = {0x00, 0x00, 0x00, 0x01, 0x09, 0xf0, 0x00, 0x00, 0x00, 0x01};
+
+    if( gstVideoEncDumpEnable == 1 )
+    {
+        if( videoDumpCount == 0 )
+        {
+            CSIO_LOG(eLogLevel_debug, "Streamout: Started to dump encoded data to %s file", VIDEO_DUMP_FILE);
+            //get sps and pps
+            GstStructure *s;
+            GstCaps *caps = gst_pad_get_current_caps (pad);
+            if( caps == NULL )
+                return GST_PAD_PROBE_OK;
+                
+            s = gst_caps_get_structure (caps, 0);
+            if( s == NULL )
+                return GST_PAD_PROBE_OK;
+
+
+            gst_structure_get (s, "codec_data", GST_TYPE_BUFFER, &codec_data, NULL); 
+
+            if (!codec_data) {
+                CSIO_LOG(eLogLevel_debug, "codec_data not present and hence video dumo is not possible");
+            }
+            else
+            {
+                GstMapInfo map;
+                guint8 *data;
+                guint size;
+                gst_buffer_map (codec_data, &map, GST_MAP_READ);
+                data = map.data;
+                size = map.size;
+
+                fp = fopen(VIDEO_DUMP_FILE, "w");
+                if( fp != NULL )
+                {
+
+                    // codec data has the required sps and pps. Store starting of the file. 
+                    fwrite(c, 1, sizeof(c), fp);
+                    //write sps data
+                    for(unsigned int i= 8; i < size-7; i++)
+                    {
+                        fwrite(&data[i], 1, 1, fp);
+                    }
+                    fwrite(c, 1, sizeof(c), fp);
+                    //write pps
+                    for(unsigned int i= size-4; i < size; i++)
+                    {
+                        fwrite(&data[i], 1, 1, fp);
+                    }
+                    fclose(fp);
+                    gst_buffer_unmap (codec_data, &map);
+                    gst_buffer_unref (codec_data);
+                }
+            }
+        }
+
+        if( videoDumpCount < MAX_NUMBER_OF_FRAMES )
+        {
+            unsigned int i;
+            buffer = GST_PAD_PROBE_INFO_BUFFER (info);
+
+            if (buffer == NULL)
+                return GST_PAD_PROBE_OK;
+            if (gst_buffer_map (buffer, &map, GST_MAP_READ) ) 
+            {
+                int found_data = 0;
+                data = map.data;
+
+                fp = fopen(VIDEO_DUMP_FILE, "a");
+                if( fp != NULL )
+                {
+                    //search for 0x41e0 (P frames), or 0x65b8 (I frames).  some times the encoder gives extra data at the starting
+                    //skipping the extra data.
+                    for(i = 0; i < map.size; i++ )
+                    {
+                        if( data[i] == 0x41 && data[i+1] == 0xe0 )
+                        {
+                            found_data = 1;
+                            break;
+                        }
+                        if( data[i] == 0x65 && data[i+1] == 0xb8)
+                        {
+                            found_data = 1;
+                            break;
+                        }
+                    }
+                    if( found_data == 1 )
+                    {
+                        fwrite(data+i, 1, map.size-i, fp);
+                        fwrite(c, 1, sizeof(c), fp);
+                        videoDumpCount++;
+                    }
+                    fclose(fp);
+                }
+            }
+            gst_buffer_unmap (buffer, &map);
+        }
+
+        if( videoDumpCount == MAX_NUMBER_OF_FRAMES)
+        {
+            CSIO_LOG(eLogLevel_debug, "Streamout: finished storing of video encoded data");  
+            videoDumpCount++;
+        }
+    }
+
+    return GST_PAD_PROBE_OK;
+
+}
 
 /* called when a new media pipeline is constructed. We can query the
  * pipeline and configure our media src */
@@ -655,6 +781,19 @@ wc_media_configure (GstRTSPMediaFactory * factory, GstRTSPMedia * media,
                 g_signal_connect( G_OBJECT(ele), "underrun", G_CALLBACK( cb_vidEncQueueUnderruns ), user_data );
 
                 gst_object_unref(ele);
+            }
+            ele = gst_bin_get_by_name_recurse_up(GST_BIN (element), "h264parser" );
+            if( ele )
+            {
+                GstPad *srcpad;
+                CSIO_LOG(eLogLevel_info, "Streamout: Adding data probe on source pad of h264parser ");
+                videoDumpCount = 0;
+                srcpad = gst_element_get_static_pad (ele, "src");
+                gst_pad_add_probe (srcpad, GST_PAD_PROBE_TYPE_BUFFER,
+                            (GstPadProbeCallback) cb_dump_enc_data, NULL, NULL);
+                gst_object_unref (srcpad);
+
+                
             }
         }
         if (pMgr->m_audioStream) {
@@ -1163,7 +1302,7 @@ void* CStreamoutManager::ThreadEntry()
                                                          "queue name = vidPreQ ! "
                                                          "%s bitrate=%s i-frame-interval=%s ! "
                                                          "queue name=vidPostQ ! "
-                                                         "h264parse ! "
+                                                         "h264parse name = h264parser ! "
                                                          "rtph264pay name=pay0 pt=96 )",
                                                          videoSource,
                                                          m_caps, m_videoconvert,
@@ -1187,7 +1326,7 @@ void* CStreamoutManager::ThreadEntry()
                                                              "queue name=vidPreQ ! "
                                                              "%s bitrate=%s i-frame-interval=%s ! "
                                                              "queue name=vidPostQ ! "
-                                                             "h264parse ! "
+                                                             "h264parse name = h264parser !   "
                                                              "rtph264pay name=pay0 pt=96 "
                                                              "%s ! audioresample ! audioconvert ! queue name=audPreQ ! "
                                                              "%s ! "
@@ -1207,7 +1346,7 @@ void* CStreamoutManager::ThreadEntry()
                                                              "queue name=vidPreQ ! "
                                                              "%s bitrate=%s i-frame-interval=%s ! "
                                                              "queue name=vidPostQ ! "
-                                                             "h264parse ! "
+                                                             "h264parse name = h264parser ! "
                                                              "rtph264pay name=pay0 pt=96 "
                                                              "%s ! audioresample ! audioconvert ! audio/x-raw,rate=8000 ! queue name=audPreQ ! "
                                                              "%s ! "
@@ -1613,30 +1752,30 @@ eWCstatus CStreamoutManager::initWcAudioVideo()
         		m_videoconvert[0] = '\0';
         	}
 #ifdef USE_DECIMATION_RATE_FILE
-        	int decimation_rate = get_decimation_rate_requested();
-        	if (decimation_rate > 0) {
+            int decimation_rate = get_decimation_rate_requested();
+            if (decimation_rate > 0) {
                 CSIO_LOG(eLogLevel_info, "--Streamout - encoder decimation rate requested=%d", decimation_rate);
-        	    snprintf(m_videoframerate, sizeof(m_videoframerate), "videorate ! video/x-raw,framerate=%d/%d !",
-        	            m_video_caps.frame_rate_num, (m_video_caps.frame_rate_den*decimation_rate));
-        	} else {
+                snprintf(m_videoframerate, sizeof(m_videoframerate), "videorate ! video/x-raw,framerate=%d/%d !",
+                        m_video_caps.frame_rate_num, (m_video_caps.frame_rate_den*decimation_rate));
+            } else {
                 m_videoframerate[0] = '\0';
-        	}
+            }
 #else
-        	char framerate[128];
-        	if (get_framerate_requested(framerate, sizeof(framerate)) >= 0) {
+            char framerate[128];
+            if (get_framerate_requested(framerate, sizeof(framerate)) >= 0) {
                 CSIO_LOG(eLogLevel_info, "--Streamout - encoder frame rate requested=%s", framerate);
                 snprintf(m_videoframerate, sizeof(m_videoframerate), "videorate ! video/x-raw,framerate=%s !", framerate);
-        	} else {
+            } else {
                 snprintf(m_videoframerate, sizeof(m_videoframerate), "videorate ! video/x-raw,framerate=%s !", "15/1");
-        	}
+            }
 #endif
-        	int bitrate = get_bitrate_requested();
-        	if (bitrate > 0)
-        	{
-        	    snprintf(m_bit_rate, sizeof(m_bit_rate), "%d", bitrate);
+            int bitrate = get_bitrate_requested();
+            if (bitrate > 0)
+            {
+                snprintf(m_bit_rate, sizeof(m_bit_rate), "%d", bitrate);
                 CSIO_LOG(eLogLevel_info, "--Streamout - encoder video bit rate requested=%s", m_bit_rate);
-        	}
-        	CSIO_LOG(eLogLevel_info, "--Streamout - m_videoconvert=%s", m_videoconvert);
+            }
+            CSIO_LOG(eLogLevel_info, "--Streamout - m_videoconvert=%s", m_videoconvert);
             CSIO_LOG(eLogLevel_info, "--Streamout - m_videoframerate=%s", m_videoframerate);
     		CSIO_LOG(eLogLevel_info, "--Streamout - m_videoStream=%s", ((m_videoStream)?"true":"false"));
         }

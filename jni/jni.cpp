@@ -185,13 +185,16 @@ const char * const fieldDebugNames[MAX_SPECIAL_FIELD_DEBUG_NUM - 1] =
     "21 INSERT_AUDIO_PROBE          ",
     "22 PRINT_RTP_SEQUENCE_NUMBER   ",
     "23 SET_DEC_MAX_INPUT_FRAMES    ",    
-    "24 SET_PIPELINE_BUFFER         "   
+    "24 SET_PIPELINE_BUFFER         ",
+    "25 GST_VIDEOENC_DUMP_ENABLE     "   
 };
 int amcviddec_debug_level    = GST_LEVEL_ERROR;
 int videodecoder_debug_level = GST_LEVEL_ERROR;
 int debug_blocking_audio = 0;
 unsigned int debug_setPipelineBuf = 0;//0 -- disable, range: 1 to 2000ms
 extern void setSignalHandlerToDefault();
+int gstVideoEncDumpEnable = false;
+extern int videoDumpCount;
 
 /*
  * Private methods
@@ -2466,7 +2469,35 @@ JNIEXPORT void JNICALL Java_com_crestron_txrxservice_GstreamIn_nativeSetFieldDeb
                 CSIO_LOG(eLogLevel_info, "set sigaction to default\r\n");   
 
                 setSignalHandlerToDefault();
-            }          
+            }
+            else if (!strcmp(CmdPtr, "GST_VIDEOENC_DUMP_ENABLE"))
+            {
+                CmdPtr = strtok(NULL, ", ");
+                CSIO_LOG(eLogLevel_info, "Enabling video encoded data %s\r\n", CmdPtr);
+                if (CmdPtr == NULL)
+                {
+                    CSIO_LOG(eLogLevel_info, "Invalid Format, need a parameter 0 (disable) 1 (enable) \r\n");
+                }
+                else
+                {
+                    fieldNum = (int) strtol(CmdPtr, &EndPtr, 10);
+                    if (fieldNum == 0 || fieldNum == 1)
+                    {
+                        gstVideoEncDumpEnable = fieldNum;
+                        if( fieldNum == 1 )
+                        {
+                            //reset the counter to zero so that video enc dump starts 
+                            videoDumpCount = 0;
+                        }
+                        CSIO_LOG(eLogLevel_debug, "set video encoded dump to: %d\r\n",fieldNum);
+                    }
+                    else
+                    {
+                        CSIO_LOG(eLogLevel_info, "Invalid Format, need a parameter 0 (disable) 1 (enable) \r\n");
+                    }
+
+                }
+            }
             else
             {
                 CSIO_LOG(eLogLevel_info, "Invalid command:%s\r\n",CmdPtr);
