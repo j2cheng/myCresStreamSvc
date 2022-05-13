@@ -177,7 +177,7 @@ int WfdRTSPSinkClient::openConn()
                 pfd.fd = newSocket;
                 pfd.events = POLLOUT;           // Monitor sock for output. (POLLIN);
 
-                int ret = poll(&pfd, 1, 5000);   //only 1 socket, timeout 5000ms
+                int ret = poll(&pfd, 1, 1000);   //only 1 socket, timeout 5000ms // RH changing to 1000
 
                 if ( ret == -1 )
                 {
