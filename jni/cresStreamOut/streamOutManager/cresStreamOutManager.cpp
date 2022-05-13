@@ -59,7 +59,7 @@ extern const char *csio_jni_getAppCacheFolder();
 extern const char *csio_jni_getHostName();
 extern const char *csio_jni_getDomainName();
 extern const char *csio_jni_getServerIpAddress();
-extern void csio_jni_SendWCMediaError( int errModule, int errCode, char* errMessage);
+extern void csio_jni_SendWCMediaError( int errModule, int errCode, const char* errMessage);
 extern void csio_jni_SendWCServerURL( void * arg );
 extern void csio_jni_onServerStart();
 extern void csio_jni_onServerStop();
@@ -170,36 +170,37 @@ void getClientIp(GstRTSPClient * client, char *ipAddrBuf, int bufSize)
 	}
 }
 
-GstRTSPResult
+static GstRTSPResult
 dump_rtsp_message (GstRTSPMessage * msg)
 {
   g_return_val_if_fail (msg != NULL, GST_RTSP_EINVAL);
+  int logLevel = eLogLevel_verbose;
 
   switch (msg->type) {
     case GST_RTSP_MESSAGE_REQUEST:
-      CSIO_LOG(eLogLevel_info,"RTSP request message %p\n", msg);
-      CSIO_LOG(eLogLevel_info," request line:\n");
-      CSIO_LOG(eLogLevel_info,"   method: '%s'\n",
+      CSIO_LOG(logLevel,"RTSP request message %p\n", msg);
+      CSIO_LOG(logLevel," request line:\n");
+      CSIO_LOG(logLevel,"   method: '%s'\n",
           gst_rtsp_method_as_text (msg->type_data.request.method));
-      CSIO_LOG(eLogLevel_info,"   uri:    '%s'\n", msg->type_data.request.uri);
-      CSIO_LOG(eLogLevel_info,"   version: '%s'\n",
+      CSIO_LOG(logLevel,"   uri:    '%s'\n", msg->type_data.request.uri);
+      CSIO_LOG(logLevel,"   version: '%s'\n",
           gst_rtsp_version_as_text (msg->type_data.request.version));
       break;
     case GST_RTSP_MESSAGE_RESPONSE:
-      CSIO_LOG(eLogLevel_info,"RTSP response message %p\n", msg);
-      CSIO_LOG(eLogLevel_info," status line:\n");
-      CSIO_LOG(eLogLevel_info,"   code:   '%d'\n", msg->type_data.response.code);
-      CSIO_LOG(eLogLevel_info,"   reason: '%s'\n", msg->type_data.response.reason);
-      CSIO_LOG(eLogLevel_info,"   version: '%s'\n",
+      CSIO_LOG(logLevel,"RTSP response message %p\n", msg);
+      CSIO_LOG(logLevel," status line:\n");
+      CSIO_LOG(logLevel,"   code:   '%d'\n", msg->type_data.response.code);
+      CSIO_LOG(logLevel,"   reason: '%s'\n", msg->type_data.response.reason);
+      CSIO_LOG(logLevel,"   version: '%s'\n",
           gst_rtsp_version_as_text (msg->type_data.response.version));
       break;
     case GST_RTSP_MESSAGE_DATA:
-      CSIO_LOG(eLogLevel_info,"RTSP data message %p\n", msg);
-      CSIO_LOG(eLogLevel_info," channel: '%d'\n", msg->type_data.data.channel);
-      CSIO_LOG(eLogLevel_info," size:    '%d'\n", msg->body_size);
+      CSIO_LOG(logLevel,"RTSP data message %p\n", msg);
+      CSIO_LOG(logLevel," channel: '%d'\n", msg->type_data.data.channel);
+      CSIO_LOG(logLevel," size:    '%d'\n", msg->body_size);
       break;
     default:
-      CSIO_LOG(eLogLevel_info,"unsupported message type %d\n", msg->type);
+      CSIO_LOG(eLogLevel_warning,"unsupported message type %d\n", msg->type);
       return GST_RTSP_EINVAL;
   }
   return GST_RTSP_OK;
@@ -227,44 +228,47 @@ client_closed (GstRTSPClient * client, void *user_data)
     CSIO_LOG(eLogLevel_info,"********** RTSP Client %s closed (size=%d) ****************\n", clientIpAddress, pMgr->m_clientList.size());
 }
 
+#if 0
 static void
 client_rtsp_session(GstRTSPClient * client, GstRTSPContext * ctx, gpointer user_data)
 {
     GstRTSPMessage * request = ctx->request;
-    CSIO_LOG(eLogLevel_info,"client_rtsp_session RTSP Message: ****************%d\n", gst_rtsp_message_get_type (request));
+    CSIO_LOG(eLogLevel_info,"client_rtsp_session RTSP Message: %d\n", gst_rtsp_message_get_type (request));
 }
+#endif
 
 static void  describe_request_cb (GstRTSPClient * self,
                            GstRTSPContext * ctx,
                            gpointer user_data)
 {
-    CSIO_LOG(eLogLevel_info,"RTSP Message: describe_request_cb ********\n");
-    //dump_rtsp_message (ctx->request);
+    CSIO_LOG(eLogLevel_info,"RTSP Message: 'DESCRIBE' request\n");
+    dump_rtsp_message (ctx->request);
 }
 
 static void  play_request_cb (GstRTSPClient * self,
                            GstRTSPContext * ctx,
                            gpointer user_data)
 {
-    CSIO_LOG(eLogLevel_info,"RTSP Message: play_request_cb ********\n");
-    //dump_rtsp_message (ctx->request);
+    CSIO_LOG(eLogLevel_info,"RTSP Message: 'PLAY' request\n");
+    dump_rtsp_message (ctx->request);
 }
 
 static void  setup_request_cb (GstRTSPClient * self,
                            GstRTSPContext * ctx,
                            gpointer user_data)
 {
-    CSIO_LOG(eLogLevel_info,"RTSP Message: setup_request_cb ********\n");
-    //dump_rtsp_message (ctx->request);
+    CSIO_LOG(eLogLevel_info,"RTSP Message: 'SETUP' request\n");
+    dump_rtsp_message (ctx->request);
 }
 
 static void options_request_cb(GstRTSPClient * self,
                           GstRTSPContext * ctx,
                           gpointer user_data)
 {
-    CSIO_LOG(eLogLevel_info,"RTSP Message: options_request_cb ********\n");
-    //dump_rtsp_message (ctx->request);
+    CSIO_LOG(eLogLevel_info,"RTSP Message: 'OPTIONS' request\n");
+    dump_rtsp_message (ctx->request);
 }
+
 static void
 client_connected (GstRTSPServer * server, GstRTSPClient * client, void *user_data)
 {
@@ -1853,7 +1857,7 @@ void CStreamoutManager::sendWcUrl(GstRTSPServer *server, char *mountPoint)
     }
 }
 
-void CStreamoutManager::sendWcMediaPipelineError(int errModule, int errCode, char *errMessage)
+void CStreamoutManager::sendWcMediaPipelineError(int errModule, int errCode, const char *errMessage)
 {
     // send WC Media pipeline error
     if (m_streamoutMode == STREAMOUT_MODE_WIRELESSCONFERENCING) {

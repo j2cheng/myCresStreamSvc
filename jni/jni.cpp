@@ -4788,7 +4788,7 @@ const char *csio_jni_getServerIpAddress()
     return serverIpAddress;
 }
 
-void csio_jni_SendWCMediaError( jint errModule, jint errCode, char *errMessage )
+void csio_jni_SendWCMediaError( jint errModule, jint errCode, const char *errMessage )
 {
     CSIO_LOG(eLogLevel_debug,"%s(): errModule[%d], errCode[%d], errMessage[%s]",__FUNCTION__, errModule, errCode, errMessage);
     jstring errMessage_jstr;

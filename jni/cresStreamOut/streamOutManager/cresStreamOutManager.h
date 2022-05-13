@@ -158,7 +158,7 @@ public:
     void setMulticastAddress(char* address){strcpy(m_multicast_address, address);}
     void setStreamName(char* name){strcpy(m_stream_name, name);}
     void sendWcUrl(GstRTSPServer *server, char *mountPoint);
-    void sendWcMediaPipelineError(int errModule, int errCode, char *errMessage);
+    void sendWcMediaPipelineError(int errModule, int errCode, const char *errMessage);
     void initWcCertificates();
     eWCstatus  initWcAudioVideo();
     void setVideoSource(char *videoSource, int n);
