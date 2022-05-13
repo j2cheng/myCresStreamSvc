@@ -194,6 +194,7 @@ private:
 
     void setMaxMiracastRate(); // set max miracast rate from parent WfdProjClass structure
     void setVideoResolutionDefaults();
+    void setVideo2ResolutionDefaults();
 public:
     const char* getConnTime(){ return m_connTime.c_str();}
 

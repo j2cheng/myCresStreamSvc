@@ -128,7 +128,9 @@ int  wfdSinkStMachineThread::m_wfdSinkStMachineTaskListCnt = 0;
 
 #define DEFAULT_VIDEO_RES            "cea_19ceb"
 #define DEFAULT_VIDEO_RES_30Hz_ONLY  "cea_194a0"
-#define DEFAULT_VIDEO2_RES ""
+//(native res. indexes {h.265, MP, Level 5.1, upto 3840x2160p60}, {h.264, HP, Level 4, upto 1080p60}, {h.264, MP, Level 4, upto 1080p60})
+#define DEFAULT_VIDEO2_RES "00 02 01 0010 0000000f94a0 000000000000 000000000000 00 0000 0000 00, 01 20 0040 0000000194a0 000000000000 000000000000 00 0000 0000 00, 01 10 0040 0000000194a0 000000000000 000000000000 00 0000 0000 00 00"
+#define DEFAULT_VIDEO2_RES_NONE ""
 
 extern bool csio_jni_onlyAllow30Hz();
 
@@ -138,6 +140,21 @@ static char *getPreferredVideoResolutionDefaultString()
         return DEFAULT_VIDEO_RES_30Hz_ONLY;
     else
         return DEFAULT_VIDEO_RES;
+}
+
+static char *getPreferredVideo2ResolutionDefaultString()
+{
+    if (product_info()->does4kAirMediaDecode)
+    {
+        if(g_rtspVid2ResRefStr.size())
+        {
+            return((char*)g_rtspVid2ResRefStr.c_str());
+        }
+        else
+            return DEFAULT_VIDEO2_RES;
+    }
+    else
+        return DEFAULT_VIDEO2_RES_NONE;
 }
 
 /********** wfdSinkStMachineClass class, used by wfdSinkProjClass *******************/
@@ -193,14 +210,7 @@ m_is_mice_session(0)
         m_rtspParserIntfInfo.preferredVidResRefStr = getPreferredVideoResolutionDefaultString();
     }
 
-    if(g_rtspVid2ResRefStr.size())
-    {
-    	m_rtspParserIntfInfo.preferredVid2ResRefStr  = (char*)g_rtspVid2ResRefStr.c_str() ;
-    }
-    else
-    {
-    	m_rtspParserIntfInfo.preferredVid2ResRefStr  = DEFAULT_VIDEO2_RES;
-    }
+    m_rtspParserIntfInfo.preferredVid2ResRefStr = getPreferredVideo2ResolutionDefaultString();
 
     if(m_rtspParserIntfInfo.preferredAudioCodecStr)
     	CSIO_LOG(m_debugLevel, "wfdSinkStMachineClass: preferredAudioCodecStr[%s].\n",m_rtspParserIntfInfo.preferredAudioCodecStr);
@@ -215,7 +225,7 @@ m_is_mice_session(0)
     if(m_rtspParserIntfInfo.preferredVid2ResRefStr)
          CSIO_LOG(m_debugLevel, "wfdSinkStMachineClass: preferredVid2ResRefStr[%s].\n",m_rtspParserIntfInfo.preferredVid2ResRefStr);
     else
-        CSIO_LOG(m_debugLevel, "wfdSinkStMachineClass: ERROR: preferredVid2ResRefStr not set.\n");
+        CSIO_LOG(m_debugLevel, "wfdSinkStMachineClass: preferredVid2ResRefStr not set.\n");
 
     getTimeStamp(WFD_SINK_EVENTTIME_STATEMACHINE_CREATED);
 
@@ -361,6 +371,12 @@ void wfdSinkStMachineClass::setVideoResolutionDefaults()
 {
     m_rtspParserIntfInfo.preferredVidResRefStr = getPreferredVideoResolutionDefaultString();
     CSIO_LOG(m_debugLevel, "wfdSinkStMachineClass::%s(): preferredVidResRefStr[%s]\n", __FUNCTION__, m_rtspParserIntfInfo.preferredVidResRefStr);
+}
+
+void wfdSinkStMachineClass::setVideo2ResolutionDefaults()
+{
+    m_rtspParserIntfInfo.preferredVid2ResRefStr = getPreferredVideo2ResolutionDefaultString();
+    CSIO_LOG(m_debugLevel, "wfdSinkStMachineClass::%s(): preferredVid2ResRefStr[%s]\n", __FUNCTION__, m_rtspParserIntfInfo.preferredVid2ResRefStr);
 }
 
 void wfdSinkStMachineClass::resetAllFlags()
@@ -2421,6 +2437,7 @@ void* wfdSinkStMachineThread::ThreadEntry()
                                 if( evntQPtr->buf_size && evntQPtr->buffPtr)
                                 {
                                     p->setVideoResolutionDefaults();
+                                    p->setVideo2ResolutionDefaults();
                                     p->setCurentSourcePort(evntQPtr->ext_obj) ;
                                     p->setCurentTsPort(evntQPtr->ext_obj2) ;
 
@@ -2470,6 +2487,7 @@ void* wfdSinkStMachineThread::ThreadEntry()
                             wfdSinkStMachineClass* p = wfdSinkStMachineThread::m_wfdSinkStMachineTaskList[id];
                             p->setMaxMiracastRate();
                             p->setVideoResolutionDefaults();
+                            p->setVideo2ResolutionDefaults();
                             p->setCurentSourcePort(evntQPtr->ext_obj) ;
                             p->setCurentTsPort(evntQPtr->ext_obj2) ;
 
