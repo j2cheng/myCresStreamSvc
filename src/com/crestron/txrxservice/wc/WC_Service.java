@@ -343,7 +343,7 @@ public class WC_Service {
     {
         int count = 0;
         final int maxCountWait = 10;
-        Log.i(TAG,"Enterring performSoftUsbReset()");
+        Log.i(TAG,"Entering performSoftUsbReset()");
 
         while(  (mStatus.isServerStarted == true) &&
                 (count++ < maxCountWait))

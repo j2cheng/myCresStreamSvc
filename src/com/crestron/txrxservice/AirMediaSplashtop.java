@@ -626,13 +626,14 @@ public class AirMediaSplashtop
     					}
     					String ipaddr = set_adapter_ip_address();
     					if (!isIpAddrNone(ipaddr)) {
-    					    /* Note: adapterAddresses() will ends up calling msMiceSetAdapterAddress(), which will not 
-    					     *       restart msMice if address did not change.
-    					     *       So, send address 0.0.0.0 will force it to restart msMice, since we are 
-    					     *       trying to restart everything here.
-    					     * */
-    						Common.Logging.i(TAG, "RestartReceiverForAdapterChange(): Trying to restart msMice, so setting ip to: 0.0.0.0");
-    						receiver().adapterAddresses(get_adapter_ip_address_as_list("0.0.0.0"));
+    					    // MSMICE should restart on its own since function wifiVideoPlayer.setAdapterAddress() has been deprecated
+//    					    /* Note: adapterAddresses() will ends up calling msMiceSetAdapterAddress(), which will not 
+//    					     *       restart msMice if address did not change.
+//    					     *       So, send address 0.0.0.0 will force it to restart msMice, since we are 
+//    					     *       trying to restart everything here.
+//    					     * */
+//    						Common.Logging.i(TAG, "RestartReceiverForAdapterChange(): Trying to restart msMice, so setting ip to: 0.0.0.0");
+//    						receiver().adapterAddresses(get_adapter_ip_address_as_list("0.0.0.0"));
 
     						Common.Logging.i(TAG, "RestartReceiverForAdapterChange(): Setting new ip address for receiver: " + ipaddr);
     						receiver().adapterAddresses(get_adapter_ip_address_as_list(ipaddr));

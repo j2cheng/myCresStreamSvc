@@ -5653,6 +5653,7 @@ public class CresStreamCtrl extends Service {
         {
             Log.i(TAG,"*************** updateAirMediaIpInformation -- addr="+getAirMediaConnectionIpAddress()+"   *********");
             mAirMedia.setAdapter(getAirMediaConnectionIpAddress());
+            setMsMiceAdapter();
         }
 
         sendAirMediaConnectionInfo();
@@ -6122,10 +6123,7 @@ public class CresStreamCtrl extends Service {
             // turn on ms mice
             Log.i(TAG, "Start msMice");
             streamPlay.msMiceStart();
-            String ipaddr = getAirMediaConnectionIpAddress();
-            if (ipaddr.equals("None"))
-                ipaddr = null;
-            streamPlay.msMiceSetAdapterAddress(ipaddr);
+            setMsMiceAdapter();
         }
         else
         {
@@ -6141,6 +6139,17 @@ public class CresStreamCtrl extends Service {
         else
         {
             Log.i(TAG, "msMiceEnable(): cannot set msMiceMode on receiver service since AirMedia not yet initialized");
+        }
+    }
+    
+    public void setMsMiceAdapter()
+    {
+        if (mMsMiceEnabled)
+        {
+            String ipaddr = getAirMediaConnectionIpAddress();
+            if (ipaddr.equals("None"))
+                ipaddr = null;
+            streamPlay.msMiceSetAdapterAddress(ipaddr);
         }
     }
     
