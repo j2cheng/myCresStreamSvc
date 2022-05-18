@@ -5975,7 +5975,7 @@ JNIEXPORT void JNICALL Java_com_crestron_txrxservice_GstreamIn_nativeSetWfd30HzO
  * Note: calling function should call gst_native_surface_init() to setup surface first.
  *
  * */
-JNIEXPORT void JNICALL Java_com_crestron_txrxservice_GstreamIn_nativeWfdStart(JNIEnv *env, jobject thiz, jint windowId, jlong msMiceSessionId, jstring url_jstring, jint rtsp_port, jstring localAddress, jstring localIfc)
+JNIEXPORT void JNICALL Java_com_crestron_txrxservice_GstreamIn_nativeWfdStart(JNIEnv *env, jobject thiz, jint windowId, jlong msMiceSessionId, jstring url_jstring, jint rtsp_port, jstring localAddress, jstring localIfc, jboolean isTx3)
 {
     CSIO_LOG(eLogLevel_debug,"%s(): streamId[%d] sessionId[%lld]",__FUNCTION__, windowId, msMiceSessionId);
     const char * url_cstring = env->GetStringUTFChars( url_jstring , NULL ) ;
@@ -6003,8 +6003,8 @@ JNIEXPORT void JNICALL Java_com_crestron_txrxservice_GstreamIn_nativeWfdStart(JN
         return;
     }
 
-    CSIO_LOG(eLogLevel_info, "%s: start TCP connection source windowId[%d] sessionId[%lld] url[%s], rtsp_port[%d] localAddress[%s] localIfc[%s]",
-    		__FUNCTION__, windowId, (long long) msMiceSessionId, url_cstring,rtsp_port, localAddress_cstring, localIfc_cstring);
+    CSIO_LOG(eLogLevel_info, "%s: start TCP connection source windowId[%d] sessionId[%lld] url[%s], rtsp_port[%d] localAddress[%s] localIfc[%s] isTx3[%d]",
+    		__FUNCTION__, windowId, (long long) msMiceSessionId, url_cstring,rtsp_port, localAddress_cstring, localIfc_cstring, isTx3);
 
     int retv = sssl_setContextStreamID((unsigned long long)msMiceSessionId, windowId);
 
@@ -6059,7 +6059,7 @@ JNIEXPORT void JNICALL Java_com_crestron_txrxservice_GstreamIn_nativeWfdStart(JN
     }
     
     int ts_port = c_default_client_ts_port + 2*windowId;
-    WfdSinkProjStart(windowId,url_cstring,rtsp_port,ts_port,data->wfd_is_mice_session);
+    WfdSinkProjStart(windowId,url_cstring,rtsp_port,ts_port,data->wfd_is_mice_session, isTx3);
 
     if (product_info()->hw_platform == eHardwarePlatform_Rockchip)
     {

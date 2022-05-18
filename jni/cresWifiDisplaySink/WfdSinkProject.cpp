@@ -171,7 +171,7 @@ void WfdSinkProjSendEvent(int evnt, int iId, int data_size, void* bufP)
     gProjectsLock.unlock();
 }
 
-void WfdSinkProjStart(int id, const char* url, int src_rtsp_port, int ts_port,bool is_mice_session)
+void WfdSinkProjStart(int id, const char* url, int src_rtsp_port, int ts_port,bool is_mice_session, bool is_tx3_device)
 {
     if(!url) return;
 
@@ -189,6 +189,7 @@ void WfdSinkProjStart(int id, const char* url, int src_rtsp_port, int ts_port,bo
         EvntQ.ext_obj     = src_rtsp_port;
         EvntQ.ext_obj2    = ts_port;
         EvntQ.reserved[0] = is_mice_session;
+        EvntQ.reserved[1] = (is_tx3_device) ? 1:0;
         gWFDSinkProjPtr->sendEvent(&EvntQ);
     }
     else
@@ -653,6 +654,7 @@ void* wfdSinkProjClass::ThreadEntry()
                                 EvntQ.ext_obj    = evntQPtr->ext_obj;
                                 EvntQ.ext_obj2   = evntQPtr->ext_obj2;
                                 EvntQ.reserved[0]   = evntQPtr->reserved[0];
+                                EvntQ.reserved[1]   = evntQPtr->reserved[1];
                                 wfdSinkStMachineClass::m_wfdSinkStMachineThreadPtr->sendEvent(&EvntQ);
 
                                 CSIO_LOG(m_debugLevel, "wfdSinkProjClass: EvntQ.reserved[%d].\n",EvntQ.reserved[0]);
@@ -683,6 +685,7 @@ void* wfdSinkProjClass::ThreadEntry()
                                     EvntQ.ext_obj2   = evntQPtr->ext_obj2;
                                     EvntQ.voidPtr    = (void*)(p);
                                     EvntQ.reserved[0]   = evntQPtr->reserved[0];
+                                    EvntQ.reserved[1]   = evntQPtr->reserved[1];
 
                                     CSIO_LOG(m_debugLevel, "wfdSinkProjClass: EvntQ.reserved[%d].\n",EvntQ.reserved[0]);
 
@@ -1021,7 +1024,7 @@ void WfdSinkProj_fdebug(char *cmd_cstring)
                     int port = (int) strtol(CmdPtr, &EndPtr, 10);
 
                     CSIO_LOG(eLogLevel_info, "START source addr[%s], port[%d]",addr.c_str(),port);
-                    WfdSinkProjStart(0,addr.c_str(),port,4570,1);
+                    WfdSinkProjStart(0,addr.c_str(),port,4570,1,false); //TODO: change isTx3 = false to an argument
                 }
             }
         }

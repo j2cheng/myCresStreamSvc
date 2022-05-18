@@ -76,6 +76,7 @@ typedef struct _rtspsysteminfo
    char * friendlyName;             //
    char * modelName;                //
    char * preferredVid2ResRefStr;   // preferred wfd2_video_formats
+   bool isTx3;
 } RTSPSYSTEMINFO;
 
 typedef struct _rtspheaderdata
@@ -141,6 +142,7 @@ struct rtsp
    char friendlyName[64];
    char modelName[64];
    char preferredVid2ResRefStr[512];
+   bool isTx3session;
 
    // *** session control ***
    int sourceRTPPort[2];

@@ -194,8 +194,11 @@ private:
 
     void setMaxMiracastRate(); // set max miracast rate from parent WfdProjClass structure
     void setVideoResolutionDefaults();
-    void setVideo2ResolutionDefaults();
+    void setVideo2ResolutionDefaults(bool isTx3);
+
+    void setIsTx3Session(bool isTx3);
 public:
+    bool getIsTx3session(){ return m_IsTx3session;}
     const char* getConnTime(){ return m_connTime.c_str();}
 
     int   getRestartCnt() { return restartFromIdleCnt;}
@@ -298,6 +301,7 @@ public:
     int m_msLatency;
 private:
     int restartFromIdleCnt,m_max_restartCnt,m_onTcpConnFlag,m_src_rtsp_port,m_ts_Port;
+    bool m_IsTx3session;
 
     WfdRTSPSinkClient* pRTSPSinkClient;
     int m_seq_i,m_seq_j,m_keepAliveTimeout;

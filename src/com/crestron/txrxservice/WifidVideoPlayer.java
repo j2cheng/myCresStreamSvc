@@ -515,6 +515,27 @@ public class WifidVideoPlayer {
             service_.infoChanged(sessionId, platform, "HW", "1.0");
         }
     }
+
+    public boolean isTx3DeviceType(int streamId)
+    {
+        boolean isTx3 = false;
+        long sessionId = streamId2sessionId(streamId);
+        Common.Logging.i(TAG, "videoplayer.isTx3DeviceType(): streamId="+streamId+" sessionId="+sessionId);
+        if (sessionId != INVALID_SESSION_ID)
+        {
+            WfdSession session = getWfdSession(sessionId);
+            if ((session != null) && (session.deviceType != null)) 
+            {
+                if ((session.deviceType.contains("TX3_100")) || (session.deviceType.contains("TX3_200")))
+                {
+                    Common.Logging.i(TAG, "videoplayer.isTx3DeviceType(): session: "+session+" is a TX3 device");
+                    isTx3 = true;
+                }
+            }
+        }
+        
+        return(isTx3);
+    }
     
     public void audioMuteChanged(int streamId, boolean mute)
     {

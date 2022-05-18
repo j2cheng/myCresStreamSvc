@@ -8198,4 +8198,14 @@ public class CresStreamCtrl extends Service {
         mProductSpecific.performSoftUsbReset();
     }
 
+    public synchronized boolean isTX3Device(int streamId)
+    {
+        boolean isTX3 = false;
+        if(isAM3K)
+        {
+            isTX3 = wifidVideoPlayer.isTx3DeviceType(streamId);
+        }
+        
+        return(isTX3);
+    }
 }
