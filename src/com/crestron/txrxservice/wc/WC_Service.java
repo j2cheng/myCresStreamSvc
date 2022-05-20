@@ -339,16 +339,16 @@ public class WC_Service {
         }
     }
 
-    public void performSoftUsbReset()
+    public void performSoftUsbReset(boolean serverStarted)
     {
         int count = 0;
         final int maxCountWait = 10;
         Log.i(TAG,"Entering performSoftUsbReset()");
 
-        while(  (mStatus.isServerStarted == true) &&
+        while(  (serverStarted == true) &&
                 (count++ < maxCountWait))
         {
-            Log.i(TAG,"performSoftUsbReset() - mStatus.isServerStarted == true, waiting a sec " + count);
+            Log.i(TAG,"performSoftUsbReset() - serverStarted == true, waiting a sec " + count);
             try {
                 Thread.sleep(1000);
             } catch (Exception e) {
@@ -356,8 +356,8 @@ public class WC_Service {
             }
         }
         
-        if(mStatus.isServerStarted == true)
-            Log.w(TAG,"performSoftUsbReset() - mStatus.isServerStarted == true, Even after 10 second!!!! " + count);
+        if(serverStarted == true)
+            Log.w(TAG,"performSoftUsbReset() - serverStarted == true, Even after 10 second!!!! " + count);
 
         onUsbDevicesChanged(mUsbEmptyDevices);
         
@@ -417,8 +417,10 @@ public class WC_Service {
     public synchronized int closeSession()
     {
         int rv = 0;
-        if (inUse.compareAndSet(true,  false)) {
+        if (inUse.get()) { // lockout any opensessions from succeeding until this finishes
             mCurrentUser = null;
+            // save server started state so it can be passed to performUsbReset() - TODO do we need this at all - check!!!!
+            boolean serverStarted = mStatus.isServerStarted;
             mStatus = new WC_Status(true, false, 0, "", "", WC_SessionFlags.None);
             // server stop will communicate via callback onStatusChanged once it has been started
             mStreamCtrl.setWirelessConferencingStreamEnable(false);
@@ -435,7 +437,8 @@ public class WC_Service {
             }               
             rv = 1;
 
-            performSoftUsbReset();
+            performSoftUsbReset(serverStarted);
+            inUse.getAndSet(false); // not interested in previous value
         } 
         return rv;
     }
