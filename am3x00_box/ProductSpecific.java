@@ -797,6 +797,16 @@ public class ProductSpecific
     {
         Log.i(TAG, "Starting Peripheral Listener");
         mListener = new PeripheralStatusChangeListener(ctrl);
+        
+        //Call GS API to Power ON USB port if it is powered off
+        int usb3Power = PeripheralManager.instance().getUsbEnableStatus(PeripheralManager.PER_USB_30);
+        Log.i(TAG, "USB3 port power state = "+usb3Power);
+        if (usb3Power <= 0)
+            PeripheralManager.instance().enableUsbStatus(PeripheralManager.PER_USB_30, true);
+        int usb2Power = PeripheralManager.instance().getUsbEnableStatus(PeripheralManager.PER_USB_20);
+        Log.i(TAG, "USB2 port power state = "+usb2Power);
+        if (usb2Power <= 0)
+            PeripheralManager.instance().enableUsbStatus(PeripheralManager.PER_USB_20, true);
 
         // Force hdmi in and out sync status update at startup
         boolean hdmiInStatus = PeripheralManager.instance().getStatus(PeripheralManager.PER_HDMI_IN) == 1;
