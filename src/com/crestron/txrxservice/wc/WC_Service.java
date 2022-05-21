@@ -339,13 +339,13 @@ public class WC_Service {
         }
     }
 
-    public void performSoftUsbReset(boolean serverStarted)
+    public void performSoftUsbReset()
     {
         int count = 0;
         final int maxCountWait = 10;
         Log.i(TAG,"Entering performSoftUsbReset()");
 
-        while(  (serverStarted == true) &&
+        while(  (mStatus.isServerStarted == true) &&
                 (count++ < maxCountWait))
         {
             Log.i(TAG,"performSoftUsbReset() - serverStarted == true, waiting a sec " + count);
@@ -356,7 +356,7 @@ public class WC_Service {
             }
         }
         
-        if(serverStarted == true)
+        if(mStatus.isServerStarted == true)
             Log.w(TAG,"performSoftUsbReset() - serverStarted == true, Even after 10 second!!!! " + count);
 
         onUsbDevicesChanged(mUsbEmptyDevices);
@@ -419,10 +419,8 @@ public class WC_Service {
         int rv = 0;
         if (inUse.get()) { // lockout any opensessions from succeeding until this finishes
             mCurrentUser = null;
-            // save server started state so it can be passed to performUsbReset() - TODO do we need this at all - check!!!!
-            boolean serverStarted = mStatus.isServerStarted;
-            mStatus = new WC_Status(true, false, 0, "", "", WC_SessionFlags.None);
             // server stop will communicate via callback onStatusChanged once it has been started
+            mStatus = new WC_Status(mStatus.isServerStarted, false, 0, "", "", WC_SessionFlags.None);
             mStreamCtrl.setWirelessConferencingStreamEnable(false);
 
             mWcCresstoreStatus.reportWCInUseStatus(mSessionFlags, false);
@@ -437,7 +435,7 @@ public class WC_Service {
             }               
             rv = 1;
 
-            performSoftUsbReset(serverStarted);
+            performSoftUsbReset();
             inUse.getAndSet(false); // not interested in previous value
         } 
         return rv;
