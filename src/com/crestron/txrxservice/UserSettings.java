@@ -264,6 +264,7 @@ public class UserSettings
 	private boolean airMediaWCEnable;
     private int airMediaWCQuality;
 	private boolean airMediaWCLicensed;
+	private boolean isWCResetUsbOnStopEnabled;
     private String airMediaPeripheralPlaybackDeviceName;
     private int airMediaPeripheralVolume;
     private boolean airMediaPeripheralMute;
@@ -434,6 +435,7 @@ public class UserSettings
         // By default airMediaWCLicensed is made true. This fixes AM3XX-9877
         // For AM3K the WC license is always enabled.
         airMediaWCLicensed = true;  
+        isWCResetUsbOnStopEnabled = true; // default to true 
         airMediaPeripheralPlaybackDeviceName = "";
         airMediaPeripheralVolume = 0;
         airMediaPeripheralMute = false;
@@ -1617,6 +1619,14 @@ public class UserSettings
 	public void setAirMediaWCLicensed(boolean enable) {
 		this.airMediaWCLicensed = enable;
 	}
+	
+	public void setAirMediaResetUsbOnStop(boolean enable) {
+	    this.isWCResetUsbOnStopEnabled = enable;
+	}
+	
+    public boolean getAirMediaResetUsbOnStop() {
+        return isWCResetUsbOnStopEnabled;
+    }
     
     public void setAirMediaPeripheralPlaybackDeviceName(String name) {
         this.airMediaPeripheralPlaybackDeviceName = name;

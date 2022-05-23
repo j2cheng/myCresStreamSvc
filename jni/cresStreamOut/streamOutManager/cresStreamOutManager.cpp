@@ -1619,6 +1619,13 @@ exitThread:
         context = NULL;
     }
 
+    if (m_usbAudio)
+    {
+        m_usbAudio->releaseDevice();
+        delete m_usbAudio;
+        m_usbAudio = NULL;
+    }
+
     if(sent_csio_jni_onServerStart)
         csio_jni_onServerStop();
 
@@ -1630,11 +1637,6 @@ exitThread:
     if(restart || wcRestart)
     {
         int delay_ms = 500;
-        if (m_usbAudio)
-        {
-            m_usbAudio->releaseDevice();
-        }
-
         if( m_streamoutMode != STREAMOUT_MODE_WIRELESSCONFERENCING)
         {
             CSIO_LOG(m_debugLevel, "Streamout: restart manager[%d] thread.", m_id);
@@ -1721,7 +1723,7 @@ eWCstatus CStreamoutManager::initWcAudioVideo()
         if (m_videoStream) {
         	if (strcmp(m_video_capture_device, "videotestsrc") != 0)
         	{
-        		if (!get_video_caps(m_video_capture_device, &m_video_caps, m_device_display_name, sizeof(m_device_display_name), m_quality))
+        	    if (!get_video_caps(m_video_capture_device, &m_video_caps, m_device_display_name, sizeof(m_device_display_name), m_quality))
         		{
         			if (get_video_caps_string(&m_video_caps, m_caps, sizeof(m_caps)) < 0)
         			{

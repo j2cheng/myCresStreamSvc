@@ -343,7 +343,7 @@ public class WC_Service {
     {
         int count = 0;
         final int maxCountWait = 10;
-        Log.i(TAG,"Entering performSoftUsbReset()");
+        Log.i(TAG,"*****+++++***** Entering performSoftUsbReset() *****+++++*****");
 
         while(  (mStatus.isServerStarted == true) &&
                 (count++ < maxCountWait))
@@ -435,7 +435,10 @@ public class WC_Service {
             }               
             rv = 1;
 
-            performSoftUsbReset();
+            if (mStreamCtrl.userSettings.getAirMediaResetUsbOnStop()) 
+            {
+                performSoftUsbReset();
+            }
             inUse.getAndSet(false); // not interested in previous value
         } 
         return rv;

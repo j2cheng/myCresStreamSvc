@@ -6492,6 +6492,12 @@ public class CresStreamCtrl extends Service {
         isWirelessConferencingLicensed = enable;
     }
     
+    public void airMediaWCResetUsbOnStop(boolean enable)
+    {
+        userSettings.setAirMediaResetUsbOnStop(enable);
+        Log.i(TAG, "airMediaWCResetUsbOnStop(): requesting enable=" + ((enable)?"enabled":"disabled"));
+    }
+    
     public void setDeviceAppSystemStateActivation(boolean enable)
     {
         Log.i(TAG, "setDeviceAppSystemStateActivation(): value=" + enable);
