@@ -435,7 +435,7 @@ public class UserSettings
         // By default airMediaWCLicensed is made true. This fixes AM3XX-9877
         // For AM3K the WC license is always enabled.
         airMediaWCLicensed = true;  
-        isWCResetUsbOnStopEnabled = false; // default to true 
+        isWCResetUsbOnStopEnabled = false; // default to false 
         airMediaPeripheralPlaybackDeviceName = "";
         airMediaPeripheralVolume = 0;
         airMediaPeripheralMute = false;

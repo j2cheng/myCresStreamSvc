@@ -3023,7 +3023,7 @@ class WirelessConferencingResetUsbOnStopCommand extends CrestronCommand {
       ctrl.airMediaWCResetUsbOnStop(Boolean.valueOf(msg));
   }
   public String getFeedbackMsg() {
-      return msg;
+      return Boolean.toString(ctrl.userSettings.getAirMediaResetUsbOnStop());
   }
 }
 

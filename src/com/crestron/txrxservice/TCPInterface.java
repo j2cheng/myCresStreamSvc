@@ -284,6 +284,7 @@ public class TCPInterface extends AsyncTask<Void, Object, Long> {
                     //Update here becasue we did not add NUMBER_OF_PRESENTERS to the CommandParser.CmdTable.
                     SendDataToAllClients(MiscUtils.stringFormat("NUMBER_OF_PRESENTERS=%d", streamCtl.mCanvas.mSessionMgr.mNumOfPresenters));
                 }
+                SendDataToAllClients(MiscUtils.stringFormat("AIRMEDIA_WC_RESET_USB_ON_STOP=%d", (streamCtl.userSettings.getAirMediaResetUsbOnStop() ? 1 : 0)));
                 // Tell CSIO to send update request to control system
                 SendDataToAllClients("UPDATE_REQUEST_TO_CONTROLSYSTEM=");
 
