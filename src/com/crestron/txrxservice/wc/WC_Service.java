@@ -76,6 +76,7 @@ public class WC_Service {
     List<WC_AudioFormat> mAudioFormats = new ArrayList<WC_AudioFormat>();
     List<UsbAvDevice> mUsbAvDeviceList = null;
     AtomicBoolean inUse = new AtomicBoolean(false);
+    AtomicBoolean closeSessionInProgress = new AtomicBoolean(false);
     final WC_UsbDevices mUsbEmptyDevices = new WC_UsbDevices(null, null, null);
 
     //run a monitor thread to see if any client has connected after we have started the WC open session
@@ -89,6 +90,7 @@ public class WC_Service {
                     if( !mStatus.isClientConnected )
                     {
                         Log.w(TAG,"CheckClientConnected: Timedout: No Client connected, so stopping the WC session ");
+                        Log.i(TAG,"waitForClientToConnectedRunnable --> closeSession");
                         if (closeSession() == 0)
                             Log.i(TAG,"CheckClientConnected: closeSession: WC is not in use");
                     }
@@ -175,6 +177,7 @@ public class WC_Service {
             Log.i(TAG,"WC_CloseSession: request from id="+id);
             if (id == mCurrentId)
             {
+                Log.i(TAG,"WC_CloseSession --> closeSession");
                 if (closeSession() == 0)
                     Log.i(TAG,"WC_CloseSession: WC is not in use");
                 return 0;
@@ -277,6 +280,7 @@ public class WC_Service {
             mStatus.sessionId = 0; // for some reason AirMedia receiver uses this to see if we had a restart of server
     		mWcCresstoreStatus.reportWCDeviceStatus(null,null,null,null,WC_CONF_STATUS_AVAILABLE);
     		onStatusChanged();
+            Log.i(TAG,"onServerStop --> closeSession");
             closeSession();
     	}
     }
@@ -407,17 +411,31 @@ public class WC_Service {
                     Log.i(TAG, "stopServer(): calling closeSession for user="+user);
                 else
                     Log.i(TAG, "stopServer(): calling closeSession unconditionally");
+                Log.i(TAG,"stopServer --> closeSession");
                 closeSession();
             }
         } else {
             Log.w(TAG,"stopServer(): Nothing to stop - current user is null");
         }
     }
-    
-    public synchronized int closeSession()
+
+    public int closeSession()
+    {
+        int rv = 0;
+        if (closeSessionInProgress.compareAndSet(false, true)) {
+            rv = _closeSession();
+            closeSessionInProgress.set(false);
+        }
+        else
+            Log.w(TAG,"closeSession() ignored since closeSessionInProgress is "+closeSessionInProgress.get());
+        return rv; 
+    }
+
+    private int _closeSession()
     {
         int rv = 0;
         if (inUse.get()) { // lockout any opensessions from succeeding until this finishes
+            Log.i(TAG,"_closeSession: entry");
             mCurrentUser = null;
             // server stop will communicate via callback onStatusChanged once it has been started
             mStatus = new WC_Status(mStatus.isServerStarted, false, 0, "", "", WC_SessionFlags.None);
@@ -430,7 +448,7 @@ public class WC_Service {
             if( mWaitForClientToConnectThread != null && 
                 !mWaitForClientToConnectThread.getState().equals(Thread.State.TERMINATED) )
             {
-                Log.w(TAG,"closeSession: Check Client connected thread is not terminated, forcing to exit");
+                Log.w(TAG,"_closeSession: Check Client connected thread is not terminated, forcing to exit");
                 mWaitForClientToConnectThread.interrupt();
             }               
             rv = 1;
@@ -440,7 +458,11 @@ public class WC_Service {
                 performSoftUsbReset();
             }
             inUse.getAndSet(false); // not interested in previous value
-        } 
+            Log.i(TAG,"_closeSession: exit");
+        }
+        else
+            Log.w(TAG,"_closeSession() ignored since inUse is "+inUse.get());
+
         return rv;
     }
     

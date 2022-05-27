@@ -207,7 +207,10 @@ public class CresCanvas
 
         // Stop any WC Opened session.
         if(mStreamCtl != null && mStreamCtl.mWC_Service != null)
+        {
+            Log.i(TAG,"clear --> closeSession");
             mStreamCtl.mWC_Service.closeSession();
+        }
         else
             Common.Logging.w(TAG, "clear(): failed to closeSession as mStreamCtl or mWC_Service is NULL!!!!");
 

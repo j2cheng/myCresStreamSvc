@@ -442,6 +442,7 @@ public class GstreamOut {
         {
             if(errCode == (-1))
             {
+                Log.i(TAG,"setWcServerError --> closeSession");
                 streamCtl.mWC_Service.closeSession();
                 Log.e(TAG, "setWcServerError: pipeline failed, close session needed FATAL !!!" );
             }

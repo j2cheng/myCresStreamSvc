@@ -6554,6 +6554,7 @@ public class CresStreamCtrl extends Service {
             if(usbUnplugEvent == true)
             {
                 Log.i(TAG, "onUsbStatusChanged(): Perform WC_Service closeSession, as USB is plugged out.!!!");
+                Log.i(TAG,"onUsbStatusChanged --> closeSession");
                 mWC_Service.closeSession();
             } else {
                 Log.i(TAG, "onUsbStatusChanged(): Not doing WC_Service closeSession because UsbUnplugEvent= " + usbUnplugEvent);
