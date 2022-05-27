@@ -257,6 +257,17 @@ public class CanvasCrestore
             Common.Logging.i(TAG,"Successfully subscribed to " + sDeviceAppSystemState);
         }
 
+        //subscribe to Internal.Tx3.AirMedia.WFDfDebug
+        String sInternalTx3AirMediaWFDfDebug = "{\"Pending\":{\"Internal\":{\"Tx3\":{\"AirMedia\":{\"WFDfDebug\":{}}}}}}";
+        rv = wrapper.subscribeCallback(sInternalTx3AirMediaWFDfDebug, crestoreCallback);
+        if (rv != com.crestron.cresstoreredis.CresStoreResult.CRESSTORE_SUCCESS)
+        {
+            Common.Logging.i(TAG,"Could not set up Crestore Callback for subscription to " + sInternalTx3AirMediaWFDfDebug+": " + rv);
+            return false;
+        } else {
+            Common.Logging.i(TAG,"Successfully subscribed to " + sInternalTx3AirMediaWFDfDebug);
+        }
+
         if (!verifyCrestore())
         {
         	Common.Logging.i(TAG,"Could not verify crestore wrapper is working");
@@ -1803,53 +1814,66 @@ public class CanvasCrestore
 
                 if (root.internal != null && root.internal.tx3 != null && root.internal.tx3.airMedia != null) {
 
-                    Common.Logging.v(TAG, "Received Internal/Tx3/AirMedia/WifiDirect message.");
-                    parsed=true;
-                    if(root.internal.tx3.airMedia.wiFiDirect.onDeviceSourceReady != null)
-                    {
-                        Common.Logging.v(TAG, "wiFiDirect onDeviceSourceReady event");
-                        String localIpAddress = root.internal.tx3.airMedia.wiFiDirect.onDeviceSourceReady.localIpAddress;
-                        String deviceId = root.internal.tx3.airMedia.wiFiDirect.onDeviceSourceReady.deviceId;
-                        String deviceName = root.internal.tx3.airMedia.wiFiDirect.onDeviceSourceReady.deviceName;
-                        String deviceType = root.internal.tx3.airMedia.wiFiDirect.onDeviceSourceReady.deviceType;
-                        String deviceAddress = root.internal.tx3.airMedia.wiFiDirect.onDeviceSourceReady.remoteIpAddress;
-
-                        if(localIpAddress != null && deviceId != null && deviceName != null && deviceAddress != null && deviceType != null)
-                        {
-                            int rtsp_port = root.internal.tx3.airMedia.wiFiDirect.onDeviceSourceReady.rtspPort;
-               				Common.Logging.v(TAG, "Start Tx3 WifiDirect - deviceId: "+deviceId+", deviceName: "+deviceName+", deviceType: "+deviceType+", localIpAddress: "+localIpAddress+", deviceAddress: "+deviceAddress+", rtspPort: "+rtsp_port);
-                            mStreamCtl.startWifiDirect(localIpAddress, deviceId, deviceName, deviceType, deviceAddress, rtsp_port);
-                        }
+                    if (root.internal.tx3.airMedia.wiFiDirect != null) {
+	                    Common.Logging.v(TAG, "Received Internal/Tx3/AirMedia/WifiDirect message.");
+	                    parsed=true;
+	                    if(root.internal.tx3.airMedia.wiFiDirect.onDeviceSourceReady != null)
+	                    {
+	                        Common.Logging.v(TAG, "wiFiDirect onDeviceSourceReady event");
+	                        String localIpAddress = root.internal.tx3.airMedia.wiFiDirect.onDeviceSourceReady.localIpAddress;
+	                        String deviceId = root.internal.tx3.airMedia.wiFiDirect.onDeviceSourceReady.deviceId;
+	                        String deviceName = root.internal.tx3.airMedia.wiFiDirect.onDeviceSourceReady.deviceName;
+	                        String deviceType = root.internal.tx3.airMedia.wiFiDirect.onDeviceSourceReady.deviceType;
+	                        String deviceAddress = root.internal.tx3.airMedia.wiFiDirect.onDeviceSourceReady.remoteIpAddress;
+	
+	                        if(localIpAddress != null && deviceId != null && deviceName != null && deviceAddress != null && deviceType != null)
+	                        {
+	                            int rtsp_port = root.internal.tx3.airMedia.wiFiDirect.onDeviceSourceReady.rtspPort;
+	               				Common.Logging.v(TAG, "Start Tx3 WifiDirect - deviceId: "+deviceId+", deviceName: "+deviceName+", deviceType: "+deviceType+", localIpAddress: "+localIpAddress+", deviceAddress: "+deviceAddress+", rtspPort: "+rtsp_port);
+	                            mStreamCtl.startWifiDirect(localIpAddress, deviceId, deviceName, deviceType, deviceAddress, rtsp_port);
+	                        }
+	                    }
+	                    
+	                    if(root.internal.tx3.airMedia.wiFiDirect.onDeviceDisconnect != null)
+	                    {
+	                        Common.Logging.v(TAG, "wifiDirect onDeviceDisconnect event");
+	                        String deviceId = root.internal.tx3.airMedia.wiFiDirect.onDeviceDisconnect.deviceId;
+	                        if (deviceId != null) {
+	                            mStreamCtl.stopWifiDirect(deviceId);
+	                        } else
+	                            Common.Logging.e(TAG, "Received NULL for deviceId.");
+	                    }
+	                    
+	                    if(root.internal.tx3.airMedia.wiFiDirect.onDeviceResume != null)
+	                    {
+	                        Common.Logging.v(TAG, "wifiDirect onResume event");
+	                        String deviceId = root.internal.tx3.airMedia.wiFiDirect.onDeviceResume.deviceId;
+	                        if (deviceId != null) {
+	                            mStreamCtl.resumeWifiDirect(deviceId);
+	                        } else
+	                            Common.Logging.e(TAG, "Received NULL for deviceId.");
+	                    }
+	                    
+	                    if(root.internal.tx3.airMedia.wiFiDirect.onDevicePause != null)
+	                    {
+	                        Common.Logging.v(TAG, "wifiDirect onPause event");
+	                        String deviceId = root.internal.tx3.airMedia.wiFiDirect.onDevicePause.deviceId;
+	                        if (deviceId != null) {
+	                            mStreamCtl.pauseWifiDirect(deviceId);
+	                        } else
+	                            Common.Logging.e(TAG, "Received NULL for deviceId.");
+	                    }
                     }
                     
-                    if(root.internal.tx3.airMedia.wiFiDirect.onDeviceDisconnect != null)
-                    {
-                        Common.Logging.v(TAG, "wifiDirect onDeviceDisconnect event");
-                        String deviceId = root.internal.tx3.airMedia.wiFiDirect.onDeviceDisconnect.deviceId;
-                        if (deviceId != null) {
-                            mStreamCtl.stopWifiDirect(deviceId);
-                        } else
-                            Common.Logging.e(TAG, "Received NULL for deviceId.");
-                    }
-                    
-                    if(root.internal.tx3.airMedia.wiFiDirect.onDeviceResume != null)
-                    {
-                        Common.Logging.v(TAG, "wifiDirect onResume event");
-                        String deviceId = root.internal.tx3.airMedia.wiFiDirect.onDeviceResume.deviceId;
-                        if (deviceId != null) {
-                            mStreamCtl.resumeWifiDirect(deviceId);
-                        } else
-                            Common.Logging.e(TAG, "Received NULL for deviceId.");
-                    }
-                    
-                    if(root.internal.tx3.airMedia.wiFiDirect.onDevicePause != null)
-                    {
-                        Common.Logging.v(TAG, "wifiDirect onPause event");
-                        String deviceId = root.internal.tx3.airMedia.wiFiDirect.onDevicePause.deviceId;
-                        if (deviceId != null) {
-                            mStreamCtl.pauseWifiDirect(deviceId);
-                        } else
-                            Common.Logging.e(TAG, "Received NULL for deviceId.");
+                    if (root.internal.tx3.airMedia.wFDfDebug != null) {
+	                    Common.Logging.v(TAG, "Received Internal/Tx3/AirMedia/WFDfDebug message.");
+	                    parsed=true;
+	                    if(root.internal.tx3.airMedia.wFDfDebug.wfd2VideoFormat != null)
+	                    {
+	                        Common.Logging.v(TAG, "wFDfDebug wfd2VideoFormat event");
+	                        String wfd2VideoFormatString = root.internal.tx3.airMedia.wFDfDebug.wfd2VideoFormat;
+	                        mStreamCtl.setWfd2VideoFormat(wfd2VideoFormatString);
+	                    }
                     }
                 }
                 
@@ -2706,9 +2730,17 @@ public class CanvasCrestore
         InternalTx3AirMediaWFDonDeviceResume onDeviceResume;
     }
 
+    public class InternalTx3AirMediaFDebug {
+        @SerializedName ("Wfd2VideoFormat")
+    	String wfd2VideoFormat;
+    }
+
     public class InternalTx3AirMedia {
     	@SerializedName ("WiFiDirect")
     	InternalTx3AirMediaWFD wiFiDirect;
+    	
+    	@SerializedName ("WFDfDebug")
+    	InternalTx3AirMediaFDebug wFDfDebug;
     }
 
     public class InternalTx3 {

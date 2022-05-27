@@ -6438,6 +6438,22 @@ JNIEXPORT void JNICALL Java_com_crestron_txrxservice_GstreamIn_nativeMsMiceSetPi
     }
 }
 
+JNIEXPORT void JNICALL Java_com_crestron_txrxservice_GstreamIn_nativeMsMiceSetWfd2videoFmt(JNIEnv *env, jobject thiz, jstring wfd2videoParms_jstring)
+{
+    char *locVideoParms = NULL;
+    if(wfd2videoParms_jstring != NULL)
+    {
+        locVideoParms = (char *)env->GetStringUTFChars(wfd2videoParms_jstring, NULL);
+
+        if (locVideoParms != NULL)
+        {
+            CSIO_LOG(eLogLevel_info,"%s(): locVideoParms[%s]",__FUNCTION__, locVideoParms);
+            WfdSinkProj_fdebug(locVideoParms);
+            env->ReleaseStringUTFChars(wfd2videoParms_jstring, locVideoParms);
+        }
+    }
+}
+
 //Save reference to log class instance
 JNIEXPORT void JNICALL Java_com_crestron_txrxservice_CresLog_nativeInit(JNIEnv *env, jobject thiz)
 {

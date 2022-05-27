@@ -8215,4 +8215,8 @@ public class CresStreamCtrl extends Service {
         
         return(isTX3);
     }
+    
+    public void setWfd2VideoFormat(String wfd2_parms) {
+        streamPlay.msMiceSetWfd2VideoFormat(wfd2_parms);
+    }
 }

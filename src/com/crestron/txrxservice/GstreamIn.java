@@ -55,6 +55,7 @@ public class GstreamIn implements SurfaceHolder.Callback {
     private native void nativeMsMiceStop();
     private native void nativeMsMiceSetAdapterAddress(String address);
     private native void nativeMsMiceSetPin(String pin);
+    private native void nativeMsMiceSetWfd2videoFmt(String wfd2VideoParms);
     private long native_custom_data;      // Native code will use this to keep private data
 
     private static native void 	nativeSetServerUrl(String url, int sessionId);
@@ -718,6 +719,15 @@ public class GstreamIn implements SurfaceHolder.Callback {
     {
     	Log.v(TAG, "msMiceSetPin - PIN="+pin);
     	nativeMsMiceSetPin(pin);
+    }
+    
+    public void msMiceSetWfd2VideoFormat(String wfd2VideoParms)
+    {
+        if(streamCtl.isAM3K)
+        {
+            Log.i(TAG, "setWfd2VideoFormat: "+wfd2VideoParms);
+            nativeMsMiceSetWfd2videoFmt(wfd2VideoParms);
+        }
     }
     
     public void msMiceSetAdapterAddress(String address)

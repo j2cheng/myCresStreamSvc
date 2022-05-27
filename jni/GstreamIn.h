@@ -269,6 +269,13 @@ JNIEXPORT void JNICALL Java_com_crestron_txrxservice_GstreamIn_nativeMsMiceSetAd
  */
 JNIEXPORT void JNICALL Java_com_crestron_txrxservice_GstreamIn_nativeMsMiceSetPin(JNIEnv *env, jobject thiz, jstring pin_jstring);
 
+/*
+ * Class:           GstreamIn
+ * Method:          nativeMsMiceSetWfd2videoFmt
+ * Signature:       (Ljava/lang/string;)V
+ */
+JNIEXPORT void JNICALL Java_com_crestron_txrxservice_GstreamIn_nativeMsMiceSetWfd2videoFmt(JNIEnv *env, jobject thiz, jstring wfd2videoParms_jstring);
+
 ///////////////////////////////////////////////////////////////////////////////
 eStreamState nativeGetCurrentStreamState(jint);
 
