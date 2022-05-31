@@ -58,6 +58,7 @@ public class CommandParser {
         WINDOW_DIMENSION,
         HDMI_OUT_EXTERNAL_HDCP_STATUS,
         //HDMI IN 
+        HDMIIN_MODE, // "Content" or "Camera"
         HDMIIN_SYNC_DETECTED,
         HDMIIN_INTERLACED,
         HDMIIN_CEC_ERROR,
@@ -475,6 +476,9 @@ public class CommandParser {
             case HDMI_OUT_EXTERNAL_HDCP_STATUS:
             	cmd = new ExternalHdcpStatusCommand(ctrl, arg);
             	break;
+            case HDMIIN_MODE:
+                cmd = new InModeCommand(ctrl, arg); 
+                break;
             case HDMIIN_SYNC_DETECTED:
                 cmd = new InSyncCommand(ctrl, arg); 
                 break;

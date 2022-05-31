@@ -204,6 +204,9 @@ public class UserSettings
 	private String rtspSessionName;
 	private int keyFrameInterval_ms;
 
+	// HDMI IN
+	private String hdmiInMode;
+	
 	// HDMI OUT
 	private boolean hdmiOutForceHdcp;
 	private int hdmiOutUnderscan;
@@ -358,7 +361,8 @@ public class UserSettings
 		audioMute			= false;
 		audioUnmute			= true;
 		ravaMode			= false;
-		processHdmiInAudio  = true; 
+		processHdmiInAudio  = true;
+		hdmiInMode          = "Content";
 		hdmiOutForceHdcp 	= false;
 		hdmiOutUnderscan    = 0;
 		initiatorAddress 	= "";
@@ -1107,6 +1111,16 @@ public class UserSettings
 		return rtspSessionName;
 	}
 
+	public void setHdmiInMode(String mode)
+	{
+	    hdmiInMode = mode;
+	}
+	
+	public String getHdmiInMode()
+	{
+	   return hdmiInMode;
+	}
+	
 	public boolean isHdmiOutForceHdcp() {
 		return hdmiOutForceHdcp;
 	}

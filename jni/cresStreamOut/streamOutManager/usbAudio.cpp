@@ -163,12 +163,19 @@ bool UsbAudio::getAudioParams()
 				m_audioSamplingRate = min;
 			min = pcm_params_get_min(m_params, PCM_PARAM_CHANNELS);
 			max = pcm_params_get_max(m_params, PCM_PARAM_CHANNELS);
-			if (max < 0 || max > 4) {
+			if (max < 0 || max > 8) {
 				CSIO_LOG(eLogLevel_error,
 						"--UsbAudio: Audio card=%d device=%d no support for mono or stereo or 4 channel audio\n",
 						m_pcm_card_idx, m_pcm_device_idx);
 			} else {
 			    m_audioChannels = max;
+			    if (max > 2)
+			    {
+			        if (min <= 2)
+			            m_audioChannels = (min == 1) ? min : 2; // do stereo or mono if available
+			        else
+			            m_audioChannels = min;  // for 4 channel only case
+			    }
 			}
 			if (m_audioFormat != NULL && (m_audioChannels == 1 || m_audioChannels == 2 || m_audioChannels == 4) && m_audioSamplingRate > 0) {
 				rv = true;

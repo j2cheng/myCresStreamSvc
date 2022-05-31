@@ -357,9 +357,10 @@ public class CresCanvas
 		prevHdmiSyncStatus[inputNumber] = hdmiInput.getSyncStatus();
 		prevHdmiResolution[inputNumber] = res;
 		Originator origin = new Originator(RequestOrigin.Hardware);
-		if (hdmiInput.getSyncStatus().equalsIgnoreCase("true"))
+		if (hdmiInput.getSyncStatus().equalsIgnoreCase("true") &&
+		        !mStreamCtl.userSettings.getHdmiInMode().equalsIgnoreCase("Camera"))
 		{
-			// HDMI sync is true 
+			// HDMI sync is true but we want to stop presentation if HDMI input is set to camera mode
 			if (res.equals("0x0"))
 			{
 				Common.Logging.e(TAG, "HDMI sync is true yet resolution is 0x0");

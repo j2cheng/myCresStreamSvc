@@ -16,6 +16,7 @@ import com.google.gson.GsonBuilder;
 
 import com.crestron.txrxservice.CresStreamCtrl;
 import com.crestron.txrxservice.GstreamOut;
+import com.crestron.txrxservice.HDMIInputInterface;
 import com.crestron.txrxservice.UsbAvDevice;
 import com.crestron.txrxservice.wc.WC_CresstoreStatus;
 import com.crestron.txrxservice.wc.ipc.WC_Connection;
@@ -497,7 +498,12 @@ public class WC_Service {
         Log.i(TAG,"Connection_Parameters={\n"+getConnectionParameters(id).toString()+"\n}");
     }
     
-    //Function gets invoked from 1) WC_OpenSession and 2) onUsbStatusChanged
+    public synchronized void updateWcCamera()
+    {
+        updateUsbDeviceStatus(mUsbAvDeviceList);
+    }
+    
+    //Function gets invoked from 1) WC_OpenSession and 2) onUsbStatusChanged and 3) updateCamera
     public synchronized void updateUsbDeviceStatus(List<UsbAvDevice> devices)
     {
     	mUsbAvDeviceList = devices;
@@ -519,6 +525,7 @@ public class WC_Service {
     	List<WC_UsbDevice> usbDeviceList = new ArrayList<WC_UsbDevice>();
     	List<UsbAvDevice> usb3Devices = new ArrayList<UsbAvDevice>();
     	List<UsbAvDevice> usb2Devices = new ArrayList<UsbAvDevice>();
+    	WC_UsbDevice hdmiCameraDevice=null;
 
     	String usbPortType = "usb3";
     	for (UsbAvDevice device : devices) {
@@ -537,8 +544,14 @@ public class WC_Service {
     				(device.videoFile != null), (device.audioFile != null), device.properties);
     		usbDeviceList.add(dev);
     	}
+        if (mStreamCtrl.userSettings.getHdmiInMode().equalsIgnoreCase("Camera") && mStreamCtrl.getHDMIInSyncStatus().equalsIgnoreCase("true"))
+        {
+            hdmiCameraDevice = new WC_UsbDevice("hdmi", "hdmi-device", "HDMI camera", true, false, new java.util.HashMap<String,String>());
+            usbDeviceList.add(hdmiCameraDevice);
+        }
 
-    	if (setActiveDevices(usb3Devices, usb2Devices))
+
+    	if (setActiveDevices(usb3Devices, usb2Devices, hdmiCameraDevice))
     	{
     		mVideoFormats = mStreamOut.getVideoFormats(mVideoFile);
     		mAudioFormats = mStreamOut.getAudioFormats(mAudioFile);
@@ -550,7 +563,7 @@ public class WC_Service {
     	return usbDevices;
     }
     
-    public boolean setActiveDevices(List<UsbAvDevice> usb3Devices, List<UsbAvDevice> usb2Devices)
+    public boolean setActiveDevices(List<UsbAvDevice> usb3Devices, List<UsbAvDevice> usb2Devices, WC_UsbDevice hdmiCamera)
     {
     	String videoFile = "none";
     	String audioFile = "none";
@@ -604,6 +617,12 @@ public class WC_Service {
     			Log.i(TAG, "*****setActiveDevices(): USB2 vs USB3 Logic picked audioFile as "+ audioFile);
     		}
     	}
+    	if (/*videoFile.equalsIgnoreCase("none") &&*/ hdmiCamera != null)
+    	{
+    	    videoFile = "/dev/video0";
+    	    //audioFile = "/dev/snd/pcmC2D0c"; // uncomment if HDMI input audio is to be used
+    	}
+    	
         
         //AM3XX-9835::  For Crestron Sound Bar, when power cycle is done, two events are received as AUDIO(2), AUDIO_AND_VIDEO(6)
         //              If user managed to Press Start WC from App when AUDIO event is received, then on receiving 

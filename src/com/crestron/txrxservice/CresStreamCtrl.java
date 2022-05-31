@@ -6336,6 +6336,33 @@ public class CresStreamCtrl extends Service {
         }
     }
     
+    public void setHdmiInMode(String mode) 
+    {
+        Log.i(TAG, "setHdmiInMode() - current="+userSettings.getHdmiInMode()+" new="+mode);
+        if (!mode.equalsIgnoreCase(userSettings.getHdmiInMode()))
+        {
+            userSettings.setHdmiInMode(mode);
+            switchHdmiInMode();
+        }
+    }
+    
+    public void switchHdmiInMode()
+    {
+        // stop WC presentation if ongoing
+        mWC_Service.stopServer(null);
+        if (userSettings.getHdmiInMode().equalsIgnoreCase("Camera"))
+        {
+            // stop HDMI presentation
+            mCanvas.handlePossibleHdmiSyncStateChange(1, hdmiInput, false);
+        } else {
+            // start HDMI presentation if sync present
+        }
+        if (mWC_Service != null)
+        {
+            mWC_Service.updateWcCamera();
+        }
+    }
+    
     // This function implementts the WC enable or disable 
     // this gets called from CSIO through socket comm. 
     public void airMediaWCEnable(boolean enable)

@@ -239,6 +239,31 @@ int get_video_caps(char *device_name, VideoCaps *video_caps, char *display_name,
         return rv;
     }
 
+    if (strcmp(device_name, "/dev/video0") == 0)
+    {
+        CSIO_LOG(eLogLevel_info, "%s: HDMI input selected as video device\n", __FUNCTION__);
+        strcpy(display_name, "HDMI-camera");
+        strncpy(video_caps->format, "NV12", sizeof(video_caps->format));
+        if( quality ==  HIGH_QUALITY )
+        {
+            video_caps->w = 1920;
+            video_caps->h = 1080;
+        }
+        else if (quality ==  MEDIUM_QUALITY )
+        {
+            video_caps->w = 1280;
+            video_caps->h = 720;
+        }
+        else
+        {
+            video_caps->w = 640;
+            video_caps->h = 360;
+        }
+        video_caps->frame_rate_num = 15; // Note selecting 15 fps here since we code at that rate but it could be even 60 fps for HDMI
+        video_caps->frame_rate_den = 1;
+        return 0;
+    }
+
     GstDeviceMonitor *monitor = gst_device_monitor_new();
     gst_device_monitor_add_filter(monitor, "Video/Source", NULL);
     if (!gst_device_monitor_start(monitor))

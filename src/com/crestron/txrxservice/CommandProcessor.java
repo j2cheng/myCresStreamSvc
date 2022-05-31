@@ -851,6 +851,21 @@ class ExternalHdcpStatusCommand extends CrestronCommand {
         }
 }
 
+class InModeCommand extends CrestronCommand {
+
+    public InModeCommand(CresStreamCtrl ctrl, String arg) {
+        super(ctrl, arg);
+    }
+
+    @Override
+        public void execute() {
+            ctrl.setHdmiInMode(msg);
+        }
+        public String getFeedbackMsg() {
+            return ctrl.userSettings.getHdmiInMode();
+        }
+}
+
 class InSyncCommand extends CrestronCommand {
 
     public InSyncCommand(CresStreamCtrl ctrl, String arg) {
