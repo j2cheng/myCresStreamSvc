@@ -75,7 +75,7 @@ public class WC_Service {
     Boolean cameraFormatSupported = true;  //Do not allow opensession request to succeed if this isnt set
     List<WC_VideoFormat> mVideoFormats = new ArrayList<WC_VideoFormat>();
     List<WC_AudioFormat> mAudioFormats = new ArrayList<WC_AudioFormat>();
-    List<UsbAvDevice> mUsbAvDeviceList = null;
+    List<UsbAvDevice> mUsbAvDeviceList = new ArrayList<UsbAvDevice>();
     AtomicBoolean inUse = new AtomicBoolean(false);
     AtomicBoolean closeSessionInProgress = new AtomicBoolean(false);
     final WC_UsbDevices mUsbEmptyDevices = new WC_UsbDevices(null, null, null);
@@ -527,22 +527,24 @@ public class WC_Service {
     	List<UsbAvDevice> usb2Devices = new ArrayList<UsbAvDevice>();
     	WC_UsbDevice hdmiCameraDevice=null;
 
-    	String usbPortType = "usb3";
-    	for (UsbAvDevice device : devices) {
-    		if (!device.usbPortType.equals("usb3"))
-    			continue;
-    		usb3Devices.add(device);
-    		WC_UsbDevice dev = new WC_UsbDevice("usb3", "usb3-device", device.deviceName, 
-    				(device.videoFile != null), (device.audioFile != null), device.properties);
-    		usbDeviceList.add(dev);
-    	}
-    	for (UsbAvDevice device : devices) {
-    		if (!device.usbPortType.equals("usb2"))
-    			continue;
-    		usb2Devices.add(device);
-    		WC_UsbDevice dev = new WC_UsbDevice("usb2", "usb2-device", device.deviceName, 
-    				(device.videoFile != null), (device.audioFile != null), device.properties);
-    		usbDeviceList.add(dev);
+    	if (devices != null && devices.size() > 0)
+    	{
+    	    for (UsbAvDevice device : devices) {
+    	        if (!device.usbPortType.equals("usb3"))
+    	            continue;
+    	        usb3Devices.add(device);
+    	        WC_UsbDevice dev = new WC_UsbDevice("usb3", "usb3-device", device.deviceName, 
+    	                (device.videoFile != null), (device.audioFile != null), device.properties);
+    	        usbDeviceList.add(dev);
+    	    }
+    	    for (UsbAvDevice device : devices) {
+    	        if (!device.usbPortType.equals("usb2"))
+    	            continue;
+    	        usb2Devices.add(device);
+    	        WC_UsbDevice dev = new WC_UsbDevice("usb2", "usb2-device", device.deviceName, 
+    	                (device.videoFile != null), (device.audioFile != null), device.properties);
+    	        usbDeviceList.add(dev);
+    	    }
     	}
         if (mStreamCtrl.userSettings.getHdmiInMode().equalsIgnoreCase("Camera") && mStreamCtrl.getHDMIInSyncStatus().equalsIgnoreCase("true"))
         {
