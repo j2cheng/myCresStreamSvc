@@ -2118,6 +2118,20 @@ int build_audio_pipeline(gchar *encoding_name, CREGSTREAM *data, int do_rtp,GstE
 		data->element_a[i++] = gst_element_factory_make("mad", NULL);
 		*ele0 = data->element_a[0];
 	}
+    else if(strcmp(encoding_name, "L24") == 0)
+    {
+        data->element_a[i++] = gst_element_factory_make("queue", NULL);
+        if(do_rtp)
+        {
+            GstElement* l24depay = gst_element_factory_make("rtpL24depay", NULL);
+
+            CSIO_LOG(eLogLevel_debug, "%s() create rtpL24depay=0x%x", __FUNCTION__, l24depay);
+
+            if(l24depay)
+                data->element_a[i++] = l24depay;
+        }
+        *ele0 = data->element_a[0];
+    }
 	else
 	{
 		data->element_a[start] = NULL;
