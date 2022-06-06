@@ -1309,8 +1309,8 @@ void* CStreamoutManager::ThreadEntry()
                                                          "h264parse name = h264parser ! "
                                                          "rtph264pay name=pay0 pt=96 )",
                                                          videoSource,
-                                                         m_caps, m_videoconvert,
-                                                         m_videoframerate,
+                                                         m_caps, m_videoframerate,
+                                                         m_videoconvert,
                                                          product_info()->H264_encoder_string,
                                                          m_bit_rate, m_iframe_interval);
                 }
@@ -1337,8 +1337,7 @@ void* CStreamoutManager::ThreadEntry()
                                                              "queue name=audPostQ ! "
                                                              "rtpmp4apay name=pay1 pt=97 )",
                                                              videoSource,
-                                                             m_caps, m_videoconvert,
-                                                             m_videoframerate,
+                                                             m_caps, m_videoframerate, m_videoconvert,
                                                              product_info()->H264_encoder_string,
                                                              m_bit_rate, m_iframe_interval,
                                                              audioSource, audioenc);
@@ -1357,8 +1356,8 @@ void* CStreamoutManager::ThreadEntry()
                                                              "queue name=audPostQ ! "
                                                              "rtppcmapay name=pay1 pt=97 )",
                                                              videoSource,
-                                                             m_caps, m_videoconvert,
-                                                             m_videoframerate,
+                                                             m_caps, m_videoframerate ,
+                                                             m_videoconvert,
                                                              product_info()->H264_encoder_string,
                                                              m_bit_rate, m_iframe_interval,
                                                              audioSource, audioenc);
@@ -1761,8 +1760,13 @@ eWCstatus CStreamoutManager::initWcAudioVideo()
             int decimation_rate = get_decimation_rate_requested();
             if (decimation_rate > 0) {
                 CSIO_LOG(eLogLevel_info, "--Streamout - encoder decimation rate requested=%d", decimation_rate);
-                snprintf(m_videoframerate, sizeof(m_videoframerate), "videorate ! video/x-raw,framerate=%d/%d !",
+            	if (strcasecmp(m_video_caps.format, "MJPG") == 0)
+                    snprintf(m_videoframerate, sizeof(m_videoframerate), "videorate ! image/jpeg,framerate=%d/%d !",
                         m_video_caps.frame_rate_num, (m_video_caps.frame_rate_den*decimation_rate));
+                else
+                    snprintf(m_videoframerate, sizeof(m_videoframerate), "videorate ! video/x-raw,framerate=%d/%d !",
+                        m_video_caps.frame_rate_num, (m_video_caps.frame_rate_den*decimation_rate));
+
             } else {
                 m_videoframerate[0] = '\0';
             }
@@ -1770,9 +1774,16 @@ eWCstatus CStreamoutManager::initWcAudioVideo()
             char framerate[128];
             if (get_framerate_requested(framerate, sizeof(framerate)) >= 0) {
                 CSIO_LOG(eLogLevel_info, "--Streamout - encoder frame rate requested=%s", framerate);
-                snprintf(m_videoframerate, sizeof(m_videoframerate), "videorate ! video/x-raw,framerate=%s !", framerate);
+            	if (strcasecmp(m_video_caps.format, "MJPG") == 0)
+                    snprintf(m_videoframerate, sizeof(m_videoframerate), "videorate ! image/jpeg,framerate=%s !", framerate);
+                else
+                    snprintf(m_videoframerate, sizeof(m_videoframerate), "videorate ! video/x-raw,framerate=%s !", framerate);
             } else {
-                snprintf(m_videoframerate, sizeof(m_videoframerate), "videorate ! video/x-raw,framerate=%s !", "15/1");
+            	if (strcasecmp(m_video_caps.format, "MJPG") == 0)
+                    snprintf(m_videoframerate, sizeof(m_videoframerate), "videorate ! image/jpeg,framerate=%s !", "15/1");
+                else
+                    snprintf(m_videoframerate, sizeof(m_videoframerate), "videorate ! video/x-raw,framerate=%s !", "15/1");
+                    
             }
 #endif
             int bitrate = get_bitrate_requested();
