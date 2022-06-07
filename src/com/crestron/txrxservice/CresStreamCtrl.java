@@ -6356,6 +6356,7 @@ public class CresStreamCtrl extends Service {
             mCanvas.handlePossibleHdmiSyncStateChange(1, hdmiInput, false);
         } else {
             // start HDMI presentation if sync present
+            mCanvas.handlePossibleHdmiSyncStateChange(1, hdmiInput, false);
         }
         if (mWC_Service != null)
         {
