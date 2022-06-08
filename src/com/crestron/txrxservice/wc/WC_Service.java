@@ -73,6 +73,7 @@ public class WC_Service {
     String mAudioFile = null;
     Boolean speakerDetected = false;
     Boolean cameraFormatSupported = true;  //Do not allow opensession request to succeed if this isnt set
+    Boolean mPreviousHdmiSync = null;
     List<WC_VideoFormat> mVideoFormats = new ArrayList<WC_VideoFormat>();
     List<WC_AudioFormat> mAudioFormats = new ArrayList<WC_AudioFormat>();
     List<UsbAvDevice> mUsbAvDeviceList = new ArrayList<UsbAvDevice>();
@@ -498,6 +499,26 @@ public class WC_Service {
         Log.i(TAG,"Connection_Parameters={\n"+getConnectionParameters(id).toString()+"\n}");
     }
     
+    public void hdmiSyncStateUpdate()
+    {
+        if (!mStreamCtrl.userSettings.getHdmiInMode().equalsIgnoreCase("Camera"))
+        {
+            // Not in camera mode so HDMI sync does not matter
+            mPreviousHdmiSync = null;
+        } 
+        else 
+        {
+            // If HDMI in sync change and we are in camera mode - we need to update our WC devices
+            boolean hdmiSync = (mStreamCtrl.getHDMIInSyncStatus().equalsIgnoreCase("true") ? true : false);
+            if (mPreviousHdmiSync == null || mPreviousHdmiSync != hdmiSync)
+            {
+                Log.i(TAG,"hdmiSyncStateUpdate sync changed from "+mPreviousHdmiSync+" to "+hdmiSync);
+                updateWcCamera();
+                mPreviousHdmiSync = hdmiSync;
+            }
+        }
+    }
+    
     public synchronized void updateWcCamera()
     {
         updateUsbDeviceStatus(mUsbAvDeviceList);
@@ -546,9 +567,10 @@ public class WC_Service {
     	        usbDeviceList.add(dev);
     	    }
     	}
-        if (mStreamCtrl.userSettings.getHdmiInMode().equalsIgnoreCase("Camera") && mStreamCtrl.getHDMIInSyncStatus().equalsIgnoreCase("true"))
+        if (mStreamCtrl.userSettings.getHdmiInMode().equalsIgnoreCase("Camera"))
         {
-            hdmiCameraDevice = new WC_UsbDevice("hdmi", "hdmi-device", "HDMI camera", true, false, new java.util.HashMap<String,String>());
+            boolean haveHdmiSync = mStreamCtrl.getHDMIInSyncStatus().equalsIgnoreCase("true");
+            hdmiCameraDevice = new WC_UsbDevice("hdmi", "hdmi-device", "HDMI camera", haveHdmiSync, false, new java.util.HashMap<String,String>());
             usbDeviceList.add(hdmiCameraDevice);
         }
 
@@ -619,9 +641,9 @@ public class WC_Service {
     			Log.i(TAG, "*****setActiveDevices(): USB2 vs USB3 Logic picked audioFile as "+ audioFile);
     		}
     	}
-    	if (/*videoFile.equalsIgnoreCase("none") &&*/ hdmiCamera != null)
+    	if (hdmiCamera != null)
     	{
-    	    videoFile = "/dev/video0";
+    	    videoFile = hdmiCamera.hasVideo ? "/dev/video0" : "none";
     	    //audioFile = "/dev/snd/pcmC2D0c"; // uncomment if HDMI input audio is to be used
     	}
     	

@@ -7139,6 +7139,11 @@ public class CresStreamCtrl extends Service {
         sockTask.SendDataToAllClients("HDMIIN_AUDIO_CHANNELS=" + hdmiInput.getAudioChannels());
         sockTask.SendDataToAllClients("HDMIIN_AUDIO_SAMPLE_RATE=" + hdmiInput.getAudioSampleRate());
         canvasHdmiSyncStateChange(true);
+        if (mWC_Service != null)
+        {
+            // Handle a possible HDMI sync change for WC
+            mWC_Service.hdmiSyncStateUpdate();
+        }
     }
 
     private void sendHdmiOutSyncState()
