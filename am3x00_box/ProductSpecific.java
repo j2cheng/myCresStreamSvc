@@ -513,8 +513,8 @@ public class ProductSpecific
         public String getVideoCaptureFile(List<String> videoList)
         {
         	for (String s : videoList) { 
-        		// Assumes only one video capture device exists and has one of these patterns
-        		if (s.equals("video5") || s.equals("video7"))
+        		// Assumes only one video capture device exists per port and uses first one seen on a given port
+        		if (s.startsWith("video"))
         			return "/dev/"+s;
         	}
         	return null;
