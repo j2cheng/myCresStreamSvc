@@ -74,6 +74,11 @@ public class HDMIOutputInterface {
 		Log.i(TAG,"Set AM3K HDMI out sync status to "+am3kSyncStatus);
 	}
 	
+	public boolean get_am3k_sync_status()
+	{
+		return am3kSyncStatus;
+	}
+
 	public void setSyncStatus() {
 		if (hasHdmiOutput)
 		{

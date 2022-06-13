@@ -122,11 +122,17 @@ public class WC_Service {
         public int WC_OpenSession(String clientId, WC_SessionOptions options)
         {
             Log.i(TAG,"WC_OpenSession: WC Enabled="+ mStreamCtrl.isWirelessConferencingEnabled +
-                        ", Device State=" +  mStreamCtrl.isDeviceAppSystemStateActivation + " request from clientId="+clientId+" options="+options);
-            //Accept open session only if WirelessConferencing is enabled
-            //Accept open session only if Device.App.System.State.Activation is "Ok"
-            if (    (mStreamCtrl != null) && 
-                    ( (!mStreamCtrl.isWirelessConferencingEnabled) || (mStreamCtrl.isDeviceAppSystemStateActivation == false)))
+                        ", Device State=" +  mStreamCtrl.isDeviceAppSystemStateActivation + 
+                        ", HDMI Out=" + mStreamCtrl.getHdmiOutSyncStatus() + 
+                        " request from clientId="+clientId+" options="+options);
+
+             //Accept open session only if WirelessConferencing is enabled
+             //Accept open session only if Device.App.System.State.Activation is "Ok"
+             //Accept open session only if HDMI Out is connected.
+             if (  (mStreamCtrl != null) && 
+                    ((!mStreamCtrl.isWirelessConferencingEnabled)            || 
+                     (mStreamCtrl.isDeviceAppSystemStateActivation == false) ||
+                     (mStreamCtrl.getHdmiOutSyncStatus() == false)))
                 return ERROR_WC_SERVICE_UNAVAILABLE;
 
             if ((mUsbDevices==null) || (mUsbDevices.devices.size() == 0)) {

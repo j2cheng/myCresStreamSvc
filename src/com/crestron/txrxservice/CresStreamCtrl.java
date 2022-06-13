@@ -282,6 +282,14 @@ public class CresStreamCtrl extends Service {
     public String peripheralAudioPlaybackDevice = null;
     public  void setAudioPlaybackFile(String aFile) { peripheralAudioPlaybackDevice = aFile; }
     public String getAudioPlaybackFile()           { return peripheralAudioPlaybackDevice; }
+    
+    public boolean getHdmiOutSyncStatus() {
+        if( (hdmiOutput != null) &&
+            (hdmiOutput.get_am3k_sync_status() == true))
+            return true;
+        else
+            return false;
+    }
 
     // JNI prototype
     public native boolean nativeHaveExternalDisplays();
@@ -6654,6 +6662,11 @@ public class CresStreamCtrl extends Service {
                 } catch (Exception e) { e.printStackTrace(); }
             }
         }).start();
+        
+        if(connected == false) {
+            Log.i(TAG, "onHdmiOutHpdEvent(): Perform WC_Service closeSession, as HDMI Out is not connected!!!");
+            mWC_Service.closeSession();
+        }
     }
     
     public String getAirMediaDisconnectUser(int sessId)
