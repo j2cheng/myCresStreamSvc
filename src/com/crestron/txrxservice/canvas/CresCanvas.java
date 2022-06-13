@@ -653,7 +653,7 @@ public class CresCanvas
 		
 		public synchronized void removeSurface(int streamId)
 		{
-			if (streamId >= mStreamCtl.NumOfSurfaces)
+			if (streamId < 0 || streamId >= mStreamCtl.NumOfSurfaces)
 			{
 				Log.e(TAG, "removeSurface: invalid streamId="+streamId);
 			}
