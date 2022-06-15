@@ -930,6 +930,7 @@ CStreamoutManager::CStreamoutManager(eStreamoutMode streamoutMode,int id):
     setAudioCaptureDevice("none");
     m_audioStream = false;
     m_videoStream = false;
+    m_aes67Mode = false;
 
     audPreQOrunsCnt = 0;
     audPreQUrunsCnt = 0;
@@ -1370,6 +1371,11 @@ void* CStreamoutManager::ThreadEntry()
                                                              "%s ! "
                                                              "rtpmp4apay name=pay0 pt=97 )",
                                                              audioSource, audioenc);
+                    } else if (m_aes67Mode) {
+                        snprintf(pipeline, sizeof(pipeline), "( %s ! audioresample ! audioconvert ! "
+                                                             "%s ! "
+                                                             "rtpL24pay max-ptime=1000000 min-ptime=1000000 name=pay0 pt=97 )",
+                                                             audioSource, "audio/x-raw, format=S24BE, rate=48000, channels=2");
                     } else {
                         snprintf(pipeline, sizeof(pipeline), "( %s ! audioresample ! audioconvert ! audio/x-raw,rate=8000 ! queue name=audPreQ ! "
                                                              "%s ! "
@@ -1407,6 +1413,7 @@ void* CStreamoutManager::ThreadEntry()
                 if ( (ret == 1) && ((ip >> 28) == 0xe) )
                 {
                     /* make a new address pool for multicast */
+                    CSIO_LOG(eLogLevel_info, "Streamout: setting multicast address for RTSP server to %s", m_multicast_address);
                     GstRTSPAddressPool *pool = gst_rtsp_address_pool_new ();
                     gst_rtsp_address_pool_add_range (pool,
                             m_multicast_address, m_multicast_address, 11000, 12000, 64);	// Setting ttl to fixed 64, and fixed port range
@@ -1425,7 +1432,8 @@ void* CStreamoutManager::ThreadEntry()
         else
             CSIO_LOG(eLogLevel_info, "Streamout: multicast disabled");
 
-        if (m_streamoutMode != STREAMOUT_MODE_CAMERA) {
+        // In WC mode or if multicast is not enabled when in AES67 mode
+        if (m_streamoutMode != STREAMOUT_MODE_CAMERA && (!m_aes67Mode || !m_multicast_enable)) {
             CSIO_LOG(eLogLevel_info, "Streamout: set RTP port range from %d to %d", WC_RTP_PORT_MIN, WC_RTP_PORT_MAX);
             GstRTSPAddressPool *pool = gst_rtsp_address_pool_new ();
             gst_rtsp_address_pool_add_range (pool, GST_RTSP_ADDRESS_POOL_ANY_IPV4, GST_RTSP_ADDRESS_POOL_ANY_IPV4, WC_RTP_PORT_MIN, WC_RTP_PORT_MAX, 0);
@@ -1801,6 +1809,11 @@ eWCstatus CStreamoutManager::initWcAudioVideo()
         {
         	if (strcmp(m_audio_capture_device, "audiotestsrc") != 0)
         	{
+        	    if (strcmp(m_audio_capture_device, "/dev/snd/pcmC2D0c") == 0)
+        	    {
+        	        m_aacEncode = false;
+        	        m_aes67Mode = true;
+        	    }
         		m_usbAudio = new UsbAudio(m_audio_capture_device);
 
         		CSIO_LOG(eLogLevel_info, "--Streamout - initialize audio for card %d", m_usbAudio->m_pcm_card_idx);

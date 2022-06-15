@@ -1034,7 +1034,7 @@ void* CStreamoutProject::ThreadEntry()
                 		CSIO_LOG(m_debugLevel, "Streamout: streamId[%d], enableSecurity is null",id);
                 	}
 
-                	CSIO_LOG(m_debugLevel, "Streamout: STREAMOUT_EVENT_JNI_CMD_ENABLE_MULTICAST done.");
+                	CSIO_LOG(m_debugLevel, "Streamout: STREAMOUT_EVENT_JNI_CMD_ENABLE_SECURITY done.");
                 	break;
                 }
                 case STREAMOUT_EVENT_JNI_CMD_ENABLE_RANDOM_USER_PW:
@@ -1066,10 +1066,10 @@ void* CStreamoutProject::ThreadEntry()
                 }
                 case STREAMOUT_EVENT_JNI_CMD_ENABLE_MULTICAST:
                 {
-                    if (m_streamoutMode != STREAMOUT_MODE_CAMERA) { // short circuit - not applicable for WirelessConferencing case
-                        CSIO_LOG(m_debugLevel, "Streamout: STREAMOUT_EVENT_JNI_CMD_ENABLE_MULTICAST ignored in WirlessConferencing mode.");
-                    	break;
-                    }
+//                    if (m_streamoutMode != STREAMOUT_MODE_CAMERA) { // short circuit - not applicable for WirelessConferencing case
+//                        CSIO_LOG(m_debugLevel, "Streamout: STREAMOUT_EVENT_JNI_CMD_ENABLE_MULTICAST ignored in WirlessConferencing mode.");
+//                    	break;
+//                    }
                 	int id = evntQ.streamout_obj_id;
                 	
                 	if( evntQ.buf_size && evntQ.buffPtr)
@@ -1093,10 +1093,10 @@ void* CStreamoutProject::ThreadEntry()
                 }
                 case STREAMOUT_EVENT_JNI_CMD_MULTICAST_ADDRESS:
                 {
-                	if (m_streamoutMode != STREAMOUT_MODE_CAMERA) { // short circuit - not applicable for WirelessConferencing case
-                		CSIO_LOG(m_debugLevel, "Streamout: STREAMOUT_EVENT_JNI_CMD_MULTICAST_ADDRESS ignored in WirlessConferencing mode.");
-                		break;
-                	}
+//                	if (m_streamoutMode != STREAMOUT_MODE_CAMERA) { // short circuit - not applicable for WirelessConferencing case
+//                		CSIO_LOG(m_debugLevel, "Streamout: STREAMOUT_EVENT_JNI_CMD_MULTICAST_ADDRESS ignored in WirlessConferencing mode.");
+//                		break;
+//                	}
                 	int id = evntQ.streamout_obj_id;
                 	if( evntQ.buf_size && evntQ.buffPtr)
                 	{

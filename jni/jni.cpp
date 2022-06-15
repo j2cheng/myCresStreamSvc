@@ -5501,7 +5501,7 @@ JNIEXPORT void JNICALL Java_com_crestron_txrxservice_GstreamOut_nativeSetServerI
     const char * name_cstring = env->GetStringUTFChars( name_jstring , NULL ) ;
     if (name_cstring == NULL) return;
 
-    CSIO_LOG(eLogLevel_debug, "rtsp_server: set host name: '%s'", name_cstring);
+    CSIO_LOG(eLogLevel_debug, "rtsp_server: set server ip address: '%s'", name_cstring);
     strncpy(serverIpAddress, name_cstring, sizeof(app_cache_folder));
     env->ReleaseStringUTFChars(name_jstring, name_cstring);
 }

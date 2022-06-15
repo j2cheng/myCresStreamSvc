@@ -135,6 +135,7 @@ public:
     bool m_videoStream;
     bool m_audioStream;
     bool m_aacEncode;
+    bool m_aes67Mode;
     VideoCaps m_video_caps;
     char m_caps[MAX_STR_LEN];
     /* when colorimetry=(string)1:4:0:0 was added, the string length was not enough, hence

@@ -279,25 +279,45 @@ public class GstreamOut {
     }
 
     private void updateNativeDataStructForWirelessConferencingStreaming() {
+        final String hdmiAudio="/dev/snd/pcmC2D0c";
         Log.i(TAG, "Streamout: JAVA - updateNativeDataStructForWirelessConferencingStreaming entered" );
-        nativeSetVideoCaptureDevice(streamCtl.userSettings.getWcVideoCaptureDevice());
-        nativeSetAudioCaptureDevice(streamCtl.userSettings.getWcAudioCaptureDevice());
+        if (streamCtl.userSettings.getWcAudioCaptureDevice().equalsIgnoreCase("aes"))
+        {
+            nativeSetVideoCaptureDevice("none");
+            nativeSetAudioCaptureDevice(hdmiAudio);
+        } else 
+        {
+            nativeSetVideoCaptureDevice(streamCtl.userSettings.getWcVideoCaptureDevice());
+            nativeSetAudioCaptureDevice(streamCtl.userSettings.getWcAudioCaptureDevice());
+        }
         setAppCacheFolder();
         setHostName();
         setDomainName();
-        setServerIpAddress();
-        setPort(8554);
-        setMulticastEnable(false);
-        setWirelessConferencingResolution(10);
-        setWcSecurityEnable(streamCtl.userSettings.getWcSecurityEnable());
-        if (streamCtl.isAM3K && streamCtl.userSettings.getWcSecurityEnable())
-            generateRtspServerCertificates();
-        setWcRandomUserPwEnable(streamCtl.userSettings.getWcRandomUserPwEnable());
-        setFramerate(15);
-        setBitrate(4000000);
-        setIFrameInterval(1);
-        setCamStreamName("wc");
-        setQuality(streamCtl.userSettings.getAirMediaWCQuality());
+        if (!streamCtl.userSettings.getWcAudioCaptureDevice().equalsIgnoreCase("aes"))
+        {
+            // WC mode as before change for aes
+            setServerIpAddress();
+            setPort(8554);
+            setMulticastEnable(false);
+            setCamStreamName("wc");
+            setWcSecurityEnable(streamCtl.userSettings.getWcSecurityEnable());
+            if (streamCtl.isAM3K && streamCtl.userSettings.getWcSecurityEnable())
+                generateRtspServerCertificates();
+            setWcRandomUserPwEnable(streamCtl.userSettings.getWcRandomUserPwEnable());
+            setWirelessConferencingResolution(10);
+            setFramerate(15);
+            setBitrate(4000000);
+            setIFrameInterval(1);        
+            setQuality(streamCtl.userSettings.getAirMediaWCQuality());
+        } else {
+            // aes67 mode
+            setCamStreamMulticastAddress(streamCtl.userSettings.getCamStreamMulticastAddress());
+            setPort(streamCtl.userSettings.getCamStreamPort());        
+            setMulticastEnable(streamCtl.userSettings.getCamStreamMulticastEnable());        
+            setServerIpAddress();
+            setCamStreamName("aes");
+            setWcSecurityEnable(false);
+        }
     }
 
     public void generateRtspServerCertificatesInCss()
