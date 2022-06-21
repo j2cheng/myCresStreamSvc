@@ -126,6 +126,11 @@ static int get_bitrate_requested()
     return read_int_from_file("/dev/shm/crestron/CresStreamSvc/wc/bitrate", 0);
 }
 
+static int get_dscp_qos()
+{
+        return read_int_from_file("/dev/shm/crestron/CresStreamSvc/wc/dscp", -1);
+}
+
 static bool
 is_supported(const char *fourcc)
 {
@@ -702,6 +707,32 @@ static GstPadProbeReturn cb_dump_enc_data (
 
 }
 
+//Todo: use gst_rtsp_media_factory_set_dscp_qos after update to 1.18
+static void 
+cres_streams_set_dscp_qos(GstRTSPMedia *media, gint dscp_qos)
+{
+    guint i, n_streams;
+    if(!media || (dscp_qos < 0 || dscp_qos > 63) )
+    {
+       CSIO_LOG(eLogLevel_error,"invalid: media %p , dscp_qos: %d", media, dscp_qos);
+       return;
+     }
+     
+     n_streams = gst_rtsp_media_n_streams(media);
+     CSIO_LOG(eLogLevel_verbose,"media %p has %u streams", media, n_streams);
+
+     for (i = 0; i < n_streams; i++)
+     {
+        GstRTSPStream *stream;
+        stream = gst_rtsp_media_get_stream(media, i);
+        if (stream == NULL)
+           continue;
+        
+        gst_rtsp_stream_set_dscp_qos(stream,dscp_qos);
+        CSIO_LOG(eLogLevel_verbose,"set stream %p for dscp_qos:%d", stream, dscp_qos);
+     }
+}
+
 /* called when a new media pipeline is constructed. We can query the
  * pipeline and configure our media src */
 static void
@@ -830,6 +861,16 @@ wc_media_configure (GstRTSPMediaFactory * factory, GstRTSPMedia * media,
 
     CSIO_LOG(eLogLevel_debug, "Streamout: set media reusable to true media[%p]",media);
     gst_rtsp_media_set_reusable (media, TRUE);
+
+    if (pMgr->m_streamoutMode == STREAMOUT_MODE_WIRELESSCONFERENCING) 
+    {
+        gint dscp_qos = get_dscp_qos();
+        if(dscp_qos!= -1)
+        {
+            cres_streams_set_dscp_qos (media, dscp_qos);
+            //gst_rtsp_media_factory_set_dscp_qos (m_factory, dscp_qos);
+        }
+    }
 
     //pass media back to manager
     pMgr->m_pMedia = media;
