@@ -241,6 +241,7 @@ int get_video_caps(char *device_name, VideoCaps *video_caps, char *display_name,
 
     if (strcmp(device_name, "/dev/video0") == 0)
     {
+        char systemCmd[256];
         CSIO_LOG(eLogLevel_info, "%s: HDMI input selected as video device\n", __FUNCTION__);
         strcpy(display_name, "HDMI-camera");
         strncpy(video_caps->format, "NV12", sizeof(video_caps->format));
@@ -261,6 +262,16 @@ int get_video_caps(char *device_name, VideoCaps *video_caps, char *display_name,
         }
         video_caps->frame_rate_num = 15; // Note selecting 15 fps here since we code at that rate but it could be even 60 fps for HDMI
         video_caps->frame_rate_den = 1;
+       
+        // AM3XX-10328: Below code changes is done for /dev/video0 not to affect other /dev/video*  
+        // also we need to set 1920x1080 as resolution, if not on the client side images streches beyond the display area
+        // TODO: Since HDMI input provides 1920x1080 resolution, currently hardcoded. If the HDMI input resolution changes, then
+        // configuring v4l2-ctl needs to be dynamic.
+       
+        sprintf(systemCmd, "v4l2-ctl -d %s --set-crop=top=0,left=0,width=1920,height=1080",device_name); 
+        system(systemCmd);
+        CSIO_LOG(eLogLevel_info, "Executed command %s", systemCmd);
+        
         return 0;
     }
 
