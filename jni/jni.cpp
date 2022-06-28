@@ -6528,22 +6528,24 @@ void Wfd_ms_mice_signal_raise (gint64 session_id, int state, char *local_addr, c
     }
 }
 
-void jni_SendPendingSessionStateChange(gint64 session_id,char *remote_addr)
+void jni_SendPendingSessionStateChange(gint64 session_id,char *remote_addr,char *sessionState)
 {
     JNIEnv *env = get_jni_env ();  
     jstring remoteAddress;
+    jstring state;
 
-    CSIO_LOG(eLogLevel_debug, "jni_SendPendingSessionStateChange[%lld]",session_id);
+    CSIO_LOG(eLogLevel_debug, "jni_SendPendingSessionStateChange[%lld] state=%s address=%s",session_id, sessionState, remote_addr);
 
-    jmethodID sendPendingSessionStateChange = env->GetMethodID((jclass)gStreamIn_javaClass_id, "sendPendingSessionStateChange", "(JLjava/lang/String;)V");
+    jmethodID sendPendingSessionStateChange = env->GetMethodID((jclass)gStreamIn_javaClass_id, "sendPendingSessionStateChange", "(JLjava/lang/String;Ljava/lang/String;)V");
     if (sendPendingSessionStateChange == NULL) {
         CSIO_LOG(eLogLevel_error, "Failed to find Java method 'sendPendingSessionStateChange'");
         return;
     }
 
     remoteAddress = env->NewStringUTF(remote_addr);
+    state = env->NewStringUTF(sessionState);
 
-    env->CallVoidMethod(CresDataDB->app, sendPendingSessionStateChange, (jlong)session_id,(jstring) remoteAddress);
+    env->CallVoidMethod(CresDataDB->app, sendPendingSessionStateChange, (jlong)session_id,(jstring) remoteAddress, (jstring) state);
     if (env->ExceptionCheck ()) {
         CSIO_LOG(eLogLevel_error, "Failed to call Java method 'sendPendingSessionStateChange'");
             env->ExceptionClear ();

@@ -984,6 +984,8 @@ void* msMiceSinkProjClass::ThreadEntry()
                         {
                             if(pConfig->device_addr && pConfig->device_id && pConfig->device_name)
                             {
+                                if (pConfig->state == 1)
+                                    jni_SendPendingSessionStateChange(pConfig->session_id,pConfig->device_addr, "Connected");
                                 CSIO_LOG(m_debugLevel, "msMiceSinkProjClass: call Wfd_ms_mice_signal_raise\n");
                                 Wfd_ms_mice_signal_raise (
                                         pConfig->session_id,
@@ -998,7 +1000,7 @@ void* msMiceSinkProjClass::ThreadEntry()
                         else if(evntQPtr->event_type == MS_MICE_SINK_EVENTS_MICE_SIGNAL_CONNECTED)
                         {
                             CSIO_LOG(m_debugLevel, "msMiceSinkProjClass: call jni_SendPendingSessionStateChange[%lld]\n",pConfig->session_id);
-                            jni_SendPendingSessionStateChange(pConfig->session_id,pConfig->device_addr);
+                            jni_SendPendingSessionStateChange(pConfig->session_id,pConfig->device_addr, "Probe");
                         }//else
 
                         if(pConfig->local_addr)
