@@ -209,6 +209,8 @@ typedef struct _CRESSTREAMOUT
     char bitrate[125];
     char iframe_interval[125];
     char quality[125];
+    char m_hdmi_in_res_x[125];
+    char m_hdmi_in_res_y[125];
     bool multicast_enable;
     char multicast_address[256];
     char stream_name[256];

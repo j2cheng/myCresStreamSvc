@@ -12,6 +12,8 @@
 #define DEFAULT_IFRAME_INTERVAL "15"          // 1 second
 #define DEFAULT_QUALITY     "0"    // Default zero is High 
 #define DEFAULT_HIGH_QUALITY 0
+#define DEFAULT_HDMI_IN_RES_X     "1920"
+#define DEFAULT_HDMI_IN_RES_y     "1080"
 #define DEFAULT_MULTICAST_ENABLE 0
 #define DEFAULT_MULTICAST_ADDRESS "235.0.0.0"
 #define DEFAULT_STREAM_NAME "camera"

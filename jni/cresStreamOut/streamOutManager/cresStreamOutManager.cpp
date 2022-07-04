@@ -1771,7 +1771,7 @@ eWCstatus CStreamoutManager::initWcAudioVideo()
         if (m_videoStream) {
         	if (strcmp(m_video_capture_device, "videotestsrc") != 0)
         	{
-        	    if (!get_video_caps(m_video_capture_device, &m_video_caps, m_device_display_name, sizeof(m_device_display_name), m_quality))
+        	    if (!get_video_caps(m_video_capture_device, &m_video_caps, m_device_display_name, sizeof(m_device_display_name), m_quality, m_hdmi_in_res_x, m_hdmi_in_res_y))
         		{
         			if (get_video_caps_string(&m_video_caps, m_caps, sizeof(m_caps)) < 0)
         			{

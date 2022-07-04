@@ -116,6 +116,8 @@ public:
     char m_bit_rate[MAX_STR_LEN];
     char m_iframe_interval[MAX_STR_LEN];
     int m_quality;
+    char m_hdmi_in_res_x[MAX_STR_LEN];
+    char m_hdmi_in_res_y[MAX_STR_LEN];
     int m_multicast_enable;
     char m_multicast_address[MAX_STR_LEN];
     char m_stream_name[MAX_STR_LEN];
@@ -155,6 +157,8 @@ public:
     void setBitRate(char* b){strcpy(m_bit_rate, b);}
     void setIFrameInterval(char* i){strcpy(m_iframe_interval, i);}
     void setQuality(int i){m_quality = i;}
+    void setHDMIInResX(char* x){strcpy(m_hdmi_in_res_x, x);}
+    void setHDMIInResY(char* y){strcpy(m_hdmi_in_res_y, y);}
     void setMulticastEnable(int* enable){m_multicast_enable = *enable;}
     void setMulticastAddress(char* address){strcpy(m_multicast_address, address);}
     void setStreamName(char* name){strcpy(m_stream_name, name);}

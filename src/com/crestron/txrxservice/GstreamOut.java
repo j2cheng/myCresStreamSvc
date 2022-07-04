@@ -83,13 +83,15 @@ public class GstreamOut {
     private native void nativeSetServerIpAddress(String ipAddr);
     private native void nativeSetVideoCaptureDevice(String device);
     private native void nativeSetAudioCaptureDevice(String device);
-    private native int nativeGetVideoFormat(String videoFile, WC_VideoFormat format, int quality);
+    private native int nativeGetVideoFormat(String videoFile, WC_VideoFormat format, int quality, String hdmi_in_res_x, String hdmi_in_res_y);
     private native int nativeGetAudioFormat(String videoFile, WC_AudioFormat format);
     private native void nativeStartPreview(Object surface, int sessionId);
     private native void nativePausePreview(int sessionId);
     private native void nativeStopPreview(int sessionId);
     private native int  nativeWaitForPreviewAvailable(int sessionId,int timeout_sec);
     private native int  nativeWaitForPreviewClosed(int sessionId,int timeout_sec);
+    private native int  nativeSet_HDMIInResolution_x(int xRes, int sessionId);
+    private native int  nativeSet_HDMIInResolution_y(int yRes, int sessionId);
    
     private final int sessionId = 0;    // This is currently always 0
     private long native_custom_data;    // Native code will use this to keep private data
@@ -210,7 +212,7 @@ public class GstreamOut {
     		Log.i(TAG, "videoFile is 'none' - no video formats");
     	else if (videoFile.contains("/dev/video")) {
     		WC_VideoFormat format = new WC_VideoFormat(0,0,0);
-            if(nativeGetVideoFormat(videoFile, format, streamCtl.userSettings.getAirMediaWCQuality()) == 0)
+            if(nativeGetVideoFormat(videoFile, format, streamCtl.userSettings.getAirMediaWCQuality(), streamCtl.hdmiInput.getHorizontalRes(), streamCtl.hdmiInput.getVerticalRes()) == 0)
             {
                 Log.i(TAG, "videoFile is "+videoFile+" videoFormat="+format);
                 videoFormats.add(format);
@@ -289,6 +291,12 @@ public class GstreamOut {
         {
             nativeSetVideoCaptureDevice(streamCtl.userSettings.getWcVideoCaptureDevice());
             nativeSetAudioCaptureDevice(streamCtl.userSettings.getWcAudioCaptureDevice());
+            if (!streamCtl.userSettings.getWcAudioCaptureDevice().equalsIgnoreCase("aes"))
+            {            
+                //send the HDMI input resolution to CPP layer inorder to confgure V4l2src controller.
+                Log.i(TAG, "Streamout: JAVA -  setHDMICameraResolution entered "+streamCtl.hdmiInput.getHorizontalRes()+"   "+streamCtl.hdmiInput.getVerticalRes()  );
+                setHDMIInResolution(Integer.parseInt(streamCtl.hdmiInput.getHorizontalRes()), Integer.parseInt(streamCtl.hdmiInput.getVerticalRes()));
+            }
         }
         setAppCacheFolder();
         setHostName();
@@ -582,7 +590,12 @@ public class GstreamOut {
     public void setQuality(int quality) {
         nativeSet_Quality(quality, sessionId);
     }
-            
+
+    public void setHDMIInResolution(int xRes, int yRes) {
+        nativeSet_HDMIInResolution_x(xRes, sessionId);
+        nativeSet_HDMIInResolution_y(yRes, sessionId);
+    }
+
     public void setCamStreamName(String name) {     
         nativeSet_StreamName(name, sessionId);      
     }

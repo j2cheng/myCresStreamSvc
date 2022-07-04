@@ -72,6 +72,20 @@ JNIEXPORT void JNICALL Java_com_crestron_txrxservice_GstreamOut_nativeSet_1Bitra
  */
 JNIEXPORT void JNICALL Java_com_crestron_txrxservice_GstreamOut_nativeSet_1Quality
   (JNIEnv *, jobject, jint, jint);
+/*
+ * Class:     com_crestron_txrxservice_GstreamOut
+ * Method:    nativeSet_HDMIInResolution_x
+ * Signature: (II)V
+ */
+JNIEXPORT void JNICALL Java_com_crestron_txrxservice_GstreamOut_nativeSet_1HDMIInResolution_1x 
+  (JNIEnv *, jobject, jint, jint);
+/*
+ * Class:     com_crestron_txrxservice_GstreamOut
+ * Method:    nativeSet_HDMIInResolution_y
+ * Signature: (II)V
+ */
+JNIEXPORT void JNICALL Java_com_crestron_txrxservice_GstreamOut_nativeSet_1HDMIInResolution_1y 
+  (JNIEnv *, jobject, jint, jint);
 
 /*
  * Class:     com_crestron_txrxservice_GstreamOut
@@ -183,7 +197,7 @@ JNIEXPORT void JNICALL Java_com_crestron_txrxservice_GstreamOut_nativeSetAudioCa
  * Signature: (Ljava/lang/String; jobject)I
  */
 JNIEXPORT int JNICALL Java_com_crestron_txrxservice_GstreamOut_nativeGetVideoFormat
-  (JNIEnv *, jobject, jstring, jobject, jint);
+  (JNIEnv *, jobject, jstring, jobject, jint, jstring, jstring);
 
 /*
  * Class:     com_crestron_txrxservice_GstreamOut

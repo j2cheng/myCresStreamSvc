@@ -266,6 +266,40 @@ void Streamout_SetRes_y(char* res_y)
     CSIO_LOG(StreamOutProjDebugLevel, "Streamout: Streamout_SetRes_y() exit.");
 }
 
+void Streamout_SetHDMIInRes_x(char* res_x)
+{
+    CSIO_LOG(StreamOutProjDebugLevel, "Streamout: Streamout_SetHDMIInRes_x() enter");
+
+    gProjectsLock.lock();
+
+    if(res_x)
+    {
+        CSIO_LOG(StreamOutProjDebugLevel, "Streamout: set HDMI input res_x to [%s].\n",res_x);
+
+        StreamoutProjectSendEvent(0, STREAMOUT_EVENT_JNI_CMD_HDMI_IN_RES_X,strlen(res_x), res_x);
+    }
+
+    gProjectsLock.unlock();
+    CSIO_LOG(StreamOutProjDebugLevel, "Streamout: Streamout_SetHDMIInRes_x() exit.");
+}
+void Streamout_SetHDMIInRes_y(char* res_y)
+{
+    CSIO_LOG(StreamOutProjDebugLevel, "Streamout: Streamout_SetHDMIInRes_y() enter");
+
+    gProjectsLock.lock();
+
+    if(res_y)
+    {
+        CSIO_LOG(StreamOutProjDebugLevel, "Streamout: set HDMI input res_y to [%s].\n",res_y);
+
+        StreamoutProjectSendEvent(0, STREAMOUT_EVENT_JNI_CMD_HDMI_IN_RES_Y,strlen(res_y), res_y);
+    }
+
+    gProjectsLock.unlock();
+    CSIO_LOG(StreamOutProjDebugLevel, "Streamout: Streamout_SetHDMIInRes_y() exit.");
+}
+
+
 void StreamoutProjectDumpClassPara(int level)
 {
     gProjectsLock.lock();
@@ -601,6 +635,8 @@ CStreamoutProject::CStreamoutProject(int iId, eStreamoutMode streamoutMode): m_p
     strcpy(m_bit_rate, DEFAULT_BIT_RATE);
     strcpy(m_iframe_interval, DEFAULT_IFRAME_INTERVAL);
     m_quality =  DEFAULT_HIGH_QUALITY;
+    strcpy(m_hdmi_in_res_x, DEFAULT_HDMI_IN_RES_X);
+    strcpy(m_hdmi_in_res_y, DEFAULT_HDMI_IN_RES_y);
     m_multicast_enable = DEFAULT_MULTICAST_ENABLE;
     strcpy(m_multicast_address, DEFAULT_MULTICAST_ADDRESS);
     strcpy(m_stream_name, DEFAULT_STREAM_NAME);
@@ -687,6 +723,8 @@ void CStreamoutProject::DumpClassPara(int level)
     CSIO_LOG(eLogLevel_info, "--Streamout: m_bit_rate %s", m_bit_rate);
     CSIO_LOG(eLogLevel_info, "--Streamout: m_iframe_interval %s", m_iframe_interval);
     CSIO_LOG(eLogLevel_info, "--Streamout: m_quality %d", m_quality);
+    CSIO_LOG(eLogLevel_info, "--Streamout: m_hdmi_in_res_x %s", m_hdmi_in_res_x);
+    CSIO_LOG(eLogLevel_info, "--Streamout: m_hdmi_in_res_y %s", m_hdmi_in_res_y);
 }
 void* CStreamoutProject::ThreadEntry()
 {
@@ -813,6 +851,8 @@ void* CStreamoutProject::ThreadEntry()
                             m_StreamoutTaskObjList[id]->setBitRate(m_bit_rate);
                             m_StreamoutTaskObjList[id]->setIFrameInterval(m_iframe_interval);
                             m_StreamoutTaskObjList[id]->setQuality(m_quality);
+                            m_StreamoutTaskObjList[id]->setHDMIInResX(m_hdmi_in_res_x);
+                            m_StreamoutTaskObjList[id]->setHDMIInResY(m_hdmi_in_res_y);
                             m_StreamoutTaskObjList[id]->setMulticastEnable(&m_multicast_enable);
                             m_StreamoutTaskObjList[id]->setMulticastAddress(m_multicast_address);
                             m_StreamoutTaskObjList[id]->setStreamName(m_stream_name);
@@ -1009,7 +1049,49 @@ void* CStreamoutProject::ThreadEntry()
                     CSIO_LOG(m_debugLevel, "Streamout: STREAMOUT_EVENT_JNI_CMD_QUALITY done.");
                     break;
                  }
-                
+                case STREAMOUT_EVENT_JNI_CMD_HDMI_IN_RES_X:
+                {
+                    CSIO_LOG(m_debugLevel, "Streamout: call setHDMIInResolutionX");
+                    int id = evntQ.streamout_obj_id;
+                    if( evntQ.buf_size && evntQ.buffPtr)
+                    {
+                        CSIO_LOG(m_debugLevel, "Streamout: call setHDMIInResolutionX streamId[%d],m_hdmi_in_res_x[%s]",
+                                 id,evntQ.buffPtr);
+
+                        //store the data from buffer.
+                        strcpy(m_hdmi_in_res_x, (char*)evntQ.buffPtr);
+
+                        m_projEventQ->del_Q_buf(evntQ.buffPtr);
+                    }
+                    else
+                    {
+                        CSIO_LOG(m_debugLevel, "Streamout: streamId[%d],m_hdmi_in_res_x string is null",id);
+                    }
+
+                    CSIO_LOG(m_debugLevel, "Streamout: STREAMOUT_EVENT_JNI_CMD_HDMI_IN_RES_X done.");
+                    break;
+                }
+                case STREAMOUT_EVENT_JNI_CMD_HDMI_IN_RES_Y:
+                {
+                    int id = evntQ.streamout_obj_id;
+                    if( evntQ.buf_size && evntQ.buffPtr)
+                    {
+                        CSIO_LOG(m_debugLevel, "Streamout: call setResY streamId[%d],m_hdmi_in_res_y[%s]",
+                                 id,evntQ.buffPtr);
+
+                        //store the data from buffer.
+                        strcpy(m_hdmi_in_res_y, (char*)evntQ.buffPtr);
+
+                        m_projEventQ->del_Q_buf(evntQ.buffPtr);
+                    }
+                    else
+                    {
+                        CSIO_LOG(m_debugLevel, "Streamout: streamId[%d],m_hdmi_cam_res_y string is null",id);
+                    }
+
+                    CSIO_LOG(m_debugLevel, "Streamout: STREAMOUT_EVENT_JNI_CMD_HDMI_IN_RES_Y done.");
+                    break;
+                }                
                 case STREAMOUT_EVENT_JNI_CMD_ENABLE_SECURITY:
                 {
                     if (m_streamoutMode == STREAMOUT_MODE_CAMERA) { // short circuit - not applicable for WirelessConferencing case
@@ -1219,6 +1301,8 @@ void* CStreamoutProject::ThreadEntry()
 									m_StreamoutTaskObjList[id]->setBitRate(m_bit_rate);
 									m_StreamoutTaskObjList[id]->setIFrameInterval(m_iframe_interval);
 									m_StreamoutTaskObjList[id]->setQuality(m_quality);
+									m_StreamoutTaskObjList[id]->setHDMIInResX(m_hdmi_in_res_x);
+									m_StreamoutTaskObjList[id]->setHDMIInResY(m_hdmi_in_res_y);
 									m_StreamoutTaskObjList[id]->setMulticastEnable(&m_multicast_enable);
 									m_StreamoutTaskObjList[id]->setMulticastAddress(m_multicast_address);
 									m_StreamoutTaskObjList[id]->setStreamName(m_stream_name);
@@ -1460,6 +1544,9 @@ void CStreamoutProject::sendEvent(EventQueueStruct* pEvntQ)
 				case STREAMOUT_EVENT_JNI_CMD_SNAPSHOT_NAME:
 				case STREAMOUT_EVENT_JNI_CMD_VIDEO_CAPTURE_DEVICE:
 				case STREAMOUT_EVENT_JNI_CMD_AUDIO_CAPTURE_DEVICE:
+                case STREAMOUT_EVENT_JNI_CMD_HDMI_IN_RES_X:
+                case STREAMOUT_EVENT_JNI_CMD_HDMI_IN_RES_Y:
+                
                 {
                     evntQ.buffPtr = new char [dataSize + 1];//data might be binary
                     if(evntQ.buffPtr)

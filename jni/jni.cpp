@@ -2313,7 +2313,11 @@ JNIEXPORT void JNICALL Java_com_crestron_txrxservice_GstreamIn_nativeSetFieldDeb
                 VideoCaps videoCaps;
                 char caps[256];
                 char display_name[256];
-                get_video_caps(v4l2Device, &videoCaps, display_name, sizeof(display_name), 0);  //Sending "0" which corresponds to high quality by default
+                char *hdmi_in_res_x = "1920";
+                char *hdmi_in_res_y = "1080";
+
+                //sending hdmi resolution as 1920, 1080
+                get_video_caps(v4l2Device, &videoCaps, display_name, sizeof(display_name), 0, hdmi_in_res_x, hdmi_in_res_y);  //Sending "0" which corresponds to high quality by default
                 CSIO_LOG(eLogLevel_info, "%s: name=%s format=%s w=%d h=%d frame_rate=%d/%d", v4l2Device, display_name,
                 		videoCaps.format, videoCaps.w, videoCaps.h, videoCaps.frame_rate_num, videoCaps.frame_rate_den);
                 if (get_video_caps_string(&videoCaps, caps, sizeof(caps)) == 0)
@@ -5333,6 +5337,35 @@ JNIEXPORT void JNICALL Java_com_crestron_txrxservice_GstreamOut_nativeSet_1Quali
     Streamout_SetQuality(desBuf);
     CSIO_LOG(eLogLevel_debug, "rtsp_server: Quality in CresStreamOutDataDB: '%s'", CresStreamOutDataDB->streamOut[0].quality);
 }
+JNIEXPORT void JNICALL Java_com_crestron_txrxservice_GstreamOut_nativeSet_1HDMIInResolution_1x(JNIEnv *env, jobject thiz, jint m_hdmi_in_res_x, jint sessionId)
+{
+    if (!CresStreamOutDataDB)
+    {
+        CSIO_LOG(eLogLevel_info, "%s: cannot set value, CresStreamOutDataDB is null", __FUNCTION__);
+        return;
+    }
+    CSIO_LOG(eLogLevel_debug, "rtsp_server: Using HDMI m_hdmi_in_res_x: '%d'", m_hdmi_in_res_x);
+    char* desBuf = CresStreamOutDataDB->streamOut[0].m_hdmi_in_res_x;
+    sprintf(desBuf, "%d", m_hdmi_in_res_x);
+
+    Streamout_SetHDMIInRes_x(desBuf);
+    CSIO_LOG(eLogLevel_debug, "rtsp_server: m_hdmi_in_res_x in CresStreamOutDataDB: '%s'", CresStreamOutDataDB->streamOut[0].m_hdmi_in_res_x);
+}
+JNIEXPORT void JNICALL Java_com_crestron_txrxservice_GstreamOut_nativeSet_1HDMIInResolution_1y(JNIEnv *env, jobject thiz, jint m_hdmi_in_res_y, jint sessionId)
+{
+    if (!CresStreamOutDataDB)
+    {
+        CSIO_LOG(eLogLevel_info, "%s: cannot set value, CresStreamOutDataDB is null", __FUNCTION__);
+        return;
+    }
+    CSIO_LOG(eLogLevel_debug, "rtsp_server: Using m_hdmi_in_res_y: '%d'", m_hdmi_in_res_y);
+    char* desBuf = CresStreamOutDataDB->streamOut[0].m_hdmi_in_res_y;
+    sprintf(desBuf, "%d", m_hdmi_in_res_y);
+
+    Streamout_SetHDMIInRes_y(desBuf);
+    CSIO_LOG(eLogLevel_debug, "rtsp_server: m_hdmi_in_res_y in CresStreamOutDataDB: '%s'", CresStreamOutDataDB->streamOut[0].m_hdmi_in_res_y);
+}
+
 JNIEXPORT void JNICALL Java_com_crestron_txrxservice_GstreamOut_nativeSet_1IFrameInterval(JNIEnv *env, jobject thiz, jint IFrameInterval, jint sessionId)
 {
 	if (!CresStreamOutDataDB)
@@ -5538,11 +5571,16 @@ JNIEXPORT void JNICALL Java_com_crestron_txrxservice_GstreamOut_nativeSetAudioCa
 	env->ReleaseStringUTFChars(device_jstring, device_cstring);
 }
 
-JNIEXPORT int JNICALL Java_com_crestron_txrxservice_GstreamOut_nativeGetVideoFormat(JNIEnv *env, jobject thiz, jstring device_jstring, jobject format, jint quality)
+JNIEXPORT int JNICALL Java_com_crestron_txrxservice_GstreamOut_nativeGetVideoFormat(JNIEnv *env, jobject thiz, jstring device_jstring, jobject format, jint quality, 
+                                jstring hdmi_in_res_x, jstring hdmi_in_res_y)
 {
     int rtn = -1;
 
     const char * device_cstring = env->GetStringUTFChars( device_jstring , NULL ) ;
+    if (device_cstring == NULL) return rtn;
+    const char * phdmi_in_res_x = env->GetStringUTFChars( hdmi_in_res_x , NULL ) ;
+    if (device_cstring == NULL) return rtn;
+    const char * phdmi_in_res_y = env->GetStringUTFChars( hdmi_in_res_y , NULL ) ;
     if (device_cstring == NULL) return rtn;
 
     CSIO_LOG(eLogLevel_debug, "%s: video capture device: '%s'", __FUNCTION__, device_cstring);
@@ -5550,7 +5588,7 @@ JNIEXPORT int JNICALL Java_com_crestron_txrxservice_GstreamOut_nativeGetVideoFor
     // get the video format from the device file
     VideoCaps videoCaps;
     char display_name[256];
-    rtn = get_video_caps((char *)device_cstring, &videoCaps, display_name, sizeof(display_name), quality);   
+    rtn = get_video_caps((char *)device_cstring, &videoCaps, display_name, sizeof(display_name), quality, (char *)phdmi_in_res_x, (char *)phdmi_in_res_y);   
     CSIO_LOG(eLogLevel_info, "%s: name=%s format=%s w=%d h=%d frame_rate=%d/%d", device_cstring, display_name,
             videoCaps.format, videoCaps.w, videoCaps.h, videoCaps.frame_rate_num, videoCaps.frame_rate_den);
 

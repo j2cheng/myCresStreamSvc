@@ -32,7 +32,7 @@ enum
     LOW_QUALITY
 };
 
-int get_video_caps(char *device_name, VideoCaps *video_caps, char *display_name, int display_name_len, int quality);
+int get_video_caps(char *device_name, VideoCaps *video_caps, char *display_name, int display_name_len, int quality, char *m_hdmi_in_res_x, char *m_hdmi_in_res_y);
 int get_video_caps_string(VideoCaps *video_caps, char *caps, int maxlen);
 
 #endif //__V4L2VIDEO_H__

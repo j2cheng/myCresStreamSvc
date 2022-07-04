@@ -224,7 +224,7 @@ get_video_caps_from_caps(GstCaps *caps, int min_frame_rate, VideoCaps *video_cap
 
 }
 
-int get_video_caps(char *device_name, VideoCaps *video_caps, char *display_name, int display_name_len, int quality)
+int get_video_caps(char *device_name, VideoCaps *video_caps, char *display_name, int display_name_len, int quality, char *m_hdmi_in_res_x, char *m_hdmi_in_res_y)
 {
 	int rv= -1;
 
@@ -242,33 +242,43 @@ int get_video_caps(char *device_name, VideoCaps *video_caps, char *display_name,
     if (strcmp(device_name, "/dev/video0") == 0)
     {
         char systemCmd[256];
+        int res_x = atoi(m_hdmi_in_res_x);
+        int res_y = atoi(m_hdmi_in_res_y);
         CSIO_LOG(eLogLevel_info, "%s: HDMI input selected as video device\n", __FUNCTION__);
         strcpy(display_name, "HDMI-camera");
         strncpy(video_caps->format, "NV12", sizeof(video_caps->format));
-        if( quality ==  HIGH_QUALITY )
+        switch (quality)
         {
-            video_caps->w = 1920;
-            video_caps->h = 1080;
-        }
-        else if (quality ==  MEDIUM_QUALITY )
-        {
-            video_caps->w = 1280;
-            video_caps->h = 720;
-        }
-        else
-        {
-            video_caps->w = 640;
-            video_caps->h = 360;
+            case HIGH_QUALITY:
+            if( res_x >= 1920 && res_y >=1080 )
+            {
+                video_caps->w = 1920;
+                video_caps->h = 1080;
+                break;
+            }
+            case MEDIUM_QUALITY:
+            if( res_x >= 1280 && res_y >=720 )
+            {
+                video_caps->w = 1280;
+                video_caps->h = 720;
+                break;
+            }
+            case LOW_QUALITY:
+            if( res_x >= 640 && res_y >=360 )
+            {
+                video_caps->w = 640;
+                video_caps->h = 360;
+                break;
+            }
+            //if HDMI input resolution is not high enough, then set the same resolution
+            video_caps->w = res_x;
+            video_caps->h = res_y;
         }
         video_caps->frame_rate_num = 15; // Note selecting 15 fps here since we code at that rate but it could be even 60 fps for HDMI
         video_caps->frame_rate_den = 1;
        
         // AM3XX-10328: Below code changes is done for /dev/video0 not to affect other /dev/video*  
-        // also we need to set 1920x1080 as resolution, if not on the client side images streches beyond the display area
-        // TODO: Since HDMI input provides 1920x1080 resolution, currently hardcoded. If the HDMI input resolution changes, then
-        // configuring v4l2-ctl needs to be dynamic.
-       
-        sprintf(systemCmd, "v4l2-ctl -d %s --set-crop=top=0,left=0,width=1920,height=1080",device_name); 
+        sprintf(systemCmd, "v4l2-ctl -d %s --set-crop=top=0,left=0,width=%s,height=%s",device_name, m_hdmi_in_res_x, m_hdmi_in_res_y); 
         system(systemCmd);
         CSIO_LOG(eLogLevel_info, "Executed command %s", systemCmd);
         
@@ -352,7 +362,7 @@ int get_video_caps_string(VideoCaps *video_caps, char *caps, int maxlen)
 		return -1;
 }
 #else    // HAS_V4L2
-int get_video_caps(char *device_name, VideoCaps *video_caps, char *display_name, int display_name_len, int quality)
+int get_video_caps(char *device_name, VideoCaps *video_caps, char *display_name, int display_name_len, int quality, char *m_hdmi_in_res_x, char *m_hdmi_in_res_y)
 {
     video_caps->w = 0;
     video_caps->h = 0;
