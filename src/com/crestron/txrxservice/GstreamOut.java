@@ -211,8 +211,19 @@ public class GstreamOut {
     	if (videoFile.equalsIgnoreCase("none"))
     		Log.i(TAG, "videoFile is 'none' - no video formats");
     	else if (videoFile.contains("/dev/video")) {
+            String hdmiHorRes, hdmiVerRes;  
     		WC_VideoFormat format = new WC_VideoFormat(0,0,0);
-            if(nativeGetVideoFormat(videoFile, format, streamCtl.userSettings.getAirMediaWCQuality(), streamCtl.hdmiInput.getHorizontalRes(), streamCtl.hdmiInput.getVerticalRes()) == 0)
+            if( streamCtl.hdmiInput != null )
+            {
+               hdmiHorRes = streamCtl.hdmiInput.getHorizontalRes();
+               hdmiVerRes = streamCtl.hdmiInput.getVerticalRes();
+            }
+            else
+            {
+                hdmiHorRes = "0";
+                hdmiVerRes = "0";
+            }
+            if(nativeGetVideoFormat(videoFile, format, streamCtl.userSettings.getAirMediaWCQuality(), hdmiHorRes, hdmiVerRes) == 0)
             {
                 Log.i(TAG, "videoFile is "+videoFile+" videoFormat="+format);
                 videoFormats.add(format);
@@ -293,9 +304,12 @@ public class GstreamOut {
             nativeSetAudioCaptureDevice(streamCtl.userSettings.getWcAudioCaptureDevice());
             if (!streamCtl.userSettings.getWcAudioCaptureDevice().equalsIgnoreCase("aes"))
             {            
-                //send the HDMI input resolution to CPP layer inorder to confgure V4l2src controller.
-                Log.i(TAG, "Streamout: JAVA -  setHDMICameraResolution entered "+streamCtl.hdmiInput.getHorizontalRes()+"   "+streamCtl.hdmiInput.getVerticalRes()  );
-                setHDMIInResolution(Integer.parseInt(streamCtl.hdmiInput.getHorizontalRes()), Integer.parseInt(streamCtl.hdmiInput.getVerticalRes()));
+                //send the HDMI input resolution to CPP layer in order to confgure V4l2src controller.
+                if( streamCtl.hdmiInput != null )
+                {
+                    Log.i(TAG, "Streamout: JAVA -  setHDMICameraResolution entered "+streamCtl.hdmiInput.getHorizontalRes()+"   "+streamCtl.hdmiInput.getVerticalRes()  );
+                    setHDMIInResolution(Integer.parseInt(streamCtl.hdmiInput.getHorizontalRes()), Integer.parseInt(streamCtl.hdmiInput.getVerticalRes()));
+                }
             }
         }
         setAppCacheFolder();
