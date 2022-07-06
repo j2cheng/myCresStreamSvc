@@ -971,6 +971,7 @@ static int ms_mice_sink_session_read(ms_mice_sink_session *session)
         return -errno;
     } else if (!r) {
         /* there're no 0-length packets on streams; this is EOF; socket closed by remote */
+        CSIO_LOG(eLogLevel_warning,"ms.mice.sink read got 0 length message - remote end must have closed connection\n");
         return -EPIPE;
     } else if (r > sizeof(buf)) {
         r = sizeof(buf);
