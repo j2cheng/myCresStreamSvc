@@ -123,7 +123,7 @@ enum
 
 typedef enum _eWfd_StMachineThreadTO
 {
-    WFD_SINK_STATETHRD_TICK_TO     = 1000,      //ticks timeout 1000ms
+    WFD_SINK_STATETHRD_TICK_TO     = 500,      //ticks timeout 1000ms
 
     //do not add xxx_MAX here, number jumps
 }eWfd_StMachineThreadTO;
@@ -262,7 +262,7 @@ private:
     void resetAllFlags();
     void resetSystemStatus() ;
     void prepareBeforeIdle(bool signalParent);
-    void prepareForRestart();
+    void prepareForRestart(int timeout=WFD_SINK_STATETIMEOUT_IDLE_RESTART);
     void sendEventToParentProj(int event);
 
     const char* getThisArrayNames(const WFD_STRNUMPAIR* array_names,int maxList,int mode);

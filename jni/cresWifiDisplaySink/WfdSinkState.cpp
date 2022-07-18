@@ -431,17 +431,18 @@ void wfdSinkStMachineClass::prepareBeforeIdle(bool signalParent = true)
 }
 //Note: should be called only inside states function.
 //      Making a one second delay (timeout)
-void wfdSinkStMachineClass::prepareForRestart()
+//......default timeout parameter takes on value WFD_SINK_STATETIMEOUT_IDLE_RESTART
+void wfdSinkStMachineClass::prepareForRestart(int timeout)
 {
     resetAllFlags();
     resetSystemStatus();
 
-    setTimeout(WFD_SINK_STATETIMEOUT_IDLE_RESTART);
+    setTimeout(timeout);
     m_max_restartCnt = MAX_WFD_TCP_RETRY;
 
     sendEventToParentProj(WFD_SINK_EVENTS_RTSP_LEAVE_SESSION_EVENT);
 
-    CSIO_LOG(m_debugLevel, "wfdSinkStMachineClass[%d]: prepareForRestart\n", m_myId);
+    CSIO_LOG(m_debugLevel, "wfdSinkStMachineClass[%d]: prepareForRestart (timeout=%d)\n", m_myId, timeout);
 }
 
 void wfdSinkStMachineClass::sendEventToParentProj(int event)
@@ -604,14 +605,13 @@ int wfdSinkStMachineClass::idleState(csioEventQueueStruct* pEventQ)
                         }
                         else
                         {
-                            prepareForRestart();
+                            prepareForRestart(500); // set restart timeout to 500 msec rather than 5000 second
                             CSIO_LOG(m_debugLevel,  "wfdSinkStMachineClass[%d]:RTSP connection failed\n",m_myId);
                             nextState = WFD_SINK_STATES_IDLE;
 
                             //Note: failed to connect to the port 7250.sometimes port 7250 is not ready soon enough.
                             //      if we wait 5 seconds to reconnect, seems to be very long to the user.
                             //      so adjust restart time(500ms) and max restart count(30) here.
-                            setTimeout(500);//Note: our tick is set to one second!!!
                             m_max_restartCnt = 30;
                         }
                     }//else
@@ -649,7 +649,7 @@ int wfdSinkStMachineClass::idleState(csioEventQueueStruct* pEventQ)
                 }
                 else
                 {
-                    prepareForRestart();
+                    prepareForRestart(500); // override default timeout of 5 seconds
                     CSIO_LOG(m_debugLevel,  "wfdSinkStMachineClass[%d]:RTSP connection failed\n",m_myId);
                     nextState = WFD_SINK_STATES_IDLE;
                 }
@@ -721,7 +721,7 @@ int wfdSinkStMachineClass::waitM1RequestState(csioEventQueueStruct* pEventQ)
             else
             {
             	if(isOnRTSPTcpConnSet())
-					prepareForRestart();
+					prepareForRestart(((m_curentState==WFD_SINK_STATES_WAIT_M1_RQST) && (events == WFD_SINK_STM_INTERNAL_ERROR_EVENT))?500:WFD_SINK_STATETIMEOUT_IDLE_RESTART);
 				else
 					prepareBeforeIdle();
 
