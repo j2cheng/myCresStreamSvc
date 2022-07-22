@@ -595,6 +595,7 @@ void csio_jni_change_queues_to_leaky(int id)
         //      11-11-2021,DMPS3_MEZZ2 is new DMPS3K device uses gstreamer 1.16.2
         if (product_info()->product_type == CRESTRON_DMPS3_MEZZ2      ||
             product_info()->hw_platform == eHardwarePlatform_Rockchip ||
+            product_info()->hw_platform  == eHardwarePlatform_Snapdragon ||
             data->wfd_start && ((product_info()->hw_platform == eHardwarePlatform_Rockchip) ||
                                  product_info()->hw_platform == eHardwarePlatform_OMAP5))
         {
