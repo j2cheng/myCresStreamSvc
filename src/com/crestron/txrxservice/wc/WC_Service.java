@@ -122,17 +122,15 @@ public class WC_Service {
         public int WC_OpenSession(String clientId, WC_SessionOptions options)
         {
             Log.i(TAG,"WC_OpenSession: WC Enabled="+ mStreamCtrl.isWirelessConferencingEnabled +
-                        ", Device State=" +  mStreamCtrl.isDeviceAppSystemStateActivation + 
-                        ", HDMI Out=" + mStreamCtrl.getHdmiOutSyncStatus() + 
+                        ", PheripheralBlocked State=" +  mStreamCtrl.isDeviceAppAirMediaWCStatusIsPheripheralBlocked + 
                         " request from clientId="+clientId+" options="+options);
 
              //Accept open session only if WirelessConferencing is enabled
-             //Accept open session only if Device.App.System.State.Activation is "Ok"
-             //Accept open session only if HDMI Out is connected.
+             //Accept open session only if Device/App/AirMedia/WirelessConferencing/Status/isPeripheralBlocked is "false"
+                 //if the TV is off, do not start the WC
              if (  (mStreamCtrl != null) && 
                     ((!mStreamCtrl.isWirelessConferencingEnabled)            || 
-                     (mStreamCtrl.isDeviceAppSystemStateActivation == false) ||
-                     (mStreamCtrl.getHdmiOutSyncStatus() == false)))
+                     (mStreamCtrl.isDeviceAppAirMediaWCStatusIsPheripheralBlocked == true)))
                 return ERROR_WC_SERVICE_UNAVAILABLE;
 
             if ((mUsbDevices==null) || (mUsbDevices.devices.size() == 0)) {

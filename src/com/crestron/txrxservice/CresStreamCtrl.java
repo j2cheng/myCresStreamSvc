@@ -253,6 +253,8 @@ public class CresStreamCtrl extends Service {
     public boolean isWirelessConferencingEnabled = false;
     public boolean isWirelessConferencingLicensed = false;
     public boolean isDeviceAppSystemStateActivation = false;
+    public boolean isDeviceAppAirMediaWCStatusIsPheripheralBlocked = true;
+    public String mDevAppAirMediaWCStIsPherBlockedReason = "In Standby";
     public boolean isRGB888HDMIVideoSupported = true;
     public boolean mCanvasHdmiIsPlaying = false;
     public boolean forceSurfaceDisconnectAndRelease=false;
@@ -6539,7 +6541,16 @@ public class CresStreamCtrl extends Service {
         Log.i(TAG, "setDeviceAppSystemStateActivation(): value=" + enable);
         isDeviceAppSystemStateActivation = enable;
     }
-
+    public void setDeviceAppAirMediaWCStatusIsPheripheralBlocked(boolean enable)
+    {
+        Log.i(TAG, "setDeviceAppAirMediaWCStatusIsPheripheralBlocked(): value=" + enable);
+        isDeviceAppAirMediaWCStatusIsPheripheralBlocked = enable;
+    }
+    public void setDevAppAirMediaWCStatIsPherBlockedReason(String reason)
+    {
+        Log.i(TAG, "setDeviceAppAirMediaWCStatusIsPheripheralBlockedReason(): value=" + reason);
+        mDevAppAirMediaWCStIsPherBlockedReason = reason;
+    }
     public void stopWcServer(String user)
     {
         if (mWC_Service != null)

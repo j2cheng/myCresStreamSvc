@@ -257,6 +257,18 @@ public class CanvasCrestore
             Common.Logging.i(TAG,"Successfully subscribed to " + sDeviceAppSystemState);
         }
 
+        //subscribe to Device.App.AirMedia.WirelessConferencing.Status
+        // Status field has IsPeripheralBlocked and PeripheralBlockedReason
+        String sDeviceAppAirMediaWCStatus = "{\"Device\":{\"App\":{\"AirMedia\":{\"WirelessConferencing\":{\"Status\":{}}}}}}";
+        rv = wrapper.subscribeCallback(sDeviceAppAirMediaWCStatus, crestoreCallback);
+        if (rv != com.crestron.cresstoreredis.CresStoreResult.CRESSTORE_SUCCESS)
+        {
+            Common.Logging.i(TAG,"Could not set up Crestore Callback for subscription to " + sDeviceAppAirMediaWCStatus +": " + rv);
+            return false;
+        } else {
+            Common.Logging.i(TAG,"Successfully subscribed to " + sDeviceAppAirMediaWCStatus);
+        }
+
         //subscribe to Internal.Tx3.AirMedia.WFDfDebug
         String sInternalTx3AirMediaWFDfDebug = "{\"Pending\":{\"Internal\":{\"Tx3\":{\"AirMedia\":{\"WFDfDebug\":{}}}}}}";
         rv = wrapper.subscribeCallback(sInternalTx3AirMediaWFDfDebug, crestoreCallback);
@@ -1814,7 +1826,15 @@ public class CanvasCrestore
                     else
                         mStreamCtl.setDeviceAppSystemStateActivation(false);
                 }
-
+                if (root != null && root.device != null && root.device.app != null && root.device.app.airMedia != null && root.device.app.airMedia.wirelessConferencing != null
+                        && root.device.app.airMedia.wirelessConferencing.status != null ) {
+                    Boolean isPeriperalBlocked = root.device.app.airMedia.wirelessConferencing.status.isPeripheralBlocked;
+                    String isPeriperalBlockedReasonStr= root.device.app.airMedia.wirelessConferencing.status.PeripheralBlockedReason;
+                    Log.i(TAG, "Received Device/App/AirMedia/WirelessConferencing/Status/isPeripheralBlocked : " + isPeriperalBlocked);
+                    mStreamCtl.setDeviceAppAirMediaWCStatusIsPheripheralBlocked(isPeriperalBlocked);
+                    if( isPeriperalBlocked == true && isPeriperalBlockedReasonStr != null )
+                        mStreamCtl.setDevAppAirMediaWCStatIsPherBlockedReason(isPeriperalBlockedReasonStr);
+                }
                 if (root.internal != null && root.internal.tx3 != null && root.internal.tx3.airMedia != null) {
 
                     if (root.internal.tx3.airMedia.wiFiDirect != null) {
@@ -2621,6 +2641,9 @@ public class CanvasCrestore
     public class App {
         @SerializedName ("System")
         System system;
+
+        @SerializedName ("AirMedia")
+        AVFAirMedia airMedia;        
     }
     
     public class System {
@@ -2632,7 +2655,23 @@ public class CanvasCrestore
         @SerializedName ("Activation")
         String activation;
     }
-    
+    public class AVFAirMedia{
+        @SerializedName ("WirelessConferencing")
+        WirelessConferencing wirelessConferencing;
+
+    }
+    public class WirelessConferencing{
+        @SerializedName ("Status")
+        Status status;
+    }
+    public class Status{
+        @SerializedName ("IsPeripheralBlocked")
+        Boolean isPeripheralBlocked;
+
+        @SerializedName ("PeripheralBlockedReason")
+        String PeripheralBlockedReason;
+    }
+        
     public class Root {
         @SerializedName ("Device")
     	Device device;
