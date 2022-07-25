@@ -197,6 +197,9 @@ public class CommandParser {
         AIRMEDIA_WC_PERIPHERAL_MUTE,
         AIRMEDIA_WC_RESET_USB_ON_STOP,
         
+        // AirMedia TX3 control
+        AIRMEDIA_RESTORE_TX3,
+        
         // Camera Streaming Slot
         CAMERA_STREAMING_ENABLE,
         CAMERA_STREAMING_MULTICAST_ENABLE,
@@ -856,6 +859,9 @@ public class CommandParser {
             case AIRMEDIA_WC_RESET_USB_ON_STOP:
                 cmd = new WirelessConferencingResetUsbOnStopCommand(ctrl, arg);
                 break;
+            case AIRMEDIA_RESTORE_TX3:
+            	cmd = new AirMediaRestoreTx3Command(ctrl, arg);
+            	break;
 
         	// Camera Streaming
             case CAMERA_STREAMING_ENABLE:
