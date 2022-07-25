@@ -95,7 +95,7 @@ custom_handle_message (GstRTSPMedia * media, GstMessage * message)
         gst_message_parse_error(message, &err, &debug);
         if (message->src && err && err->message)
         {
-            GST_ERROR("error from element %s: : %s\n", GST_OBJECT_NAME(message->src), err->message);
+            GST_ERROR_OBJECT(media, "error from element %s: : %s\n", GST_OBJECT_NAME(message->src), err->message);
         }
 
         GST_ERROR_OBJECT(media,"Debugging info: %s\n", debug ? debug : "none");
@@ -114,6 +114,11 @@ custom_handle_message (GstRTSPMedia * media, GstMessage * message)
                   g_type_name(G_OBJECT_TYPE(GST_MESSAGE_SRC(message))),
                   gst_element_state_get_name(old_state),
                   gst_element_state_get_name(new_state));
+        break;
+    }
+    case GST_MESSAGE_EOS:
+    {
+        GST_DEBUG_OBJECT(media, "Received EOS from source");
         break;
     }
     default:
