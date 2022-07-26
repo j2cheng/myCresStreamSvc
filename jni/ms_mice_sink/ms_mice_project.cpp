@@ -986,6 +986,8 @@ void* msMiceSinkProjClass::ThreadEntry()
                             {
                                 if (pConfig->state == 1)
                                     jni_SendPendingSessionStateChange(pConfig->session_id,pConfig->device_addr, "Connected");
+                                else
+                                    jni_SendPendingSessionStateChange(pConfig->session_id,pConfig->device_addr, "Disconnected");
                                 CSIO_LOG(m_debugLevel, "msMiceSinkProjClass: call Wfd_ms_mice_signal_raise\n");
                                 Wfd_ms_mice_signal_raise (
                                         pConfig->session_id,
