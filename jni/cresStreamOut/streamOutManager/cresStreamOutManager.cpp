@@ -587,6 +587,10 @@ static guint64 getAudioChannelMask(int nchannels)
 {
     return ((1ULL<<nchannels)-1);
 }
+//#define SIMULATE_DATA_FLOW_TEST
+#ifdef SIMULATE_DATA_FLOW_TEST
+static unsigned int testcount=0;
+#endif 
 static GstPadProbeReturn cb_dump_enc_data (
               GstPad          *pad,
               GstPadProbeInfo *info,
@@ -599,6 +603,21 @@ static GstPadProbeReturn cb_dump_enc_data (
     FILE *fp;
     //access delimiter
     char c[] = {0x00, 0x00, 0x00, 0x01, 0x09, 0xf0, 0x00, 0x00, 0x00, 0x01};
+    GstRTSPMedia * media = (GstRTSPMedia *)user_data;
+    CresRTSPMedia *cresRTSPMedia = (CresRTSPMedia *) media;
+
+
+#ifdef SIMULATE_DATA_FLOW_TEST
+    testcount++;
+    if( testcount < 0x2FF)
+#endif
+    {
+        //signal data flow check thread 
+        pthread_mutex_lock(&cresRTSPMedia->gstCondLock);
+        pthread_cond_signal(&cresRTSPMedia->gstCondWait);
+        pthread_mutex_unlock(&cresRTSPMedia->gstCondLock);
+    }
+
 
     if( gstVideoEncDumpEnable == 1 )
     {
@@ -823,9 +842,12 @@ wc_media_configure (GstRTSPMediaFactory * factory, GstRTSPMedia * media,
                 GstPad *srcpad;
                 CSIO_LOG(eLogLevel_info, "Streamout: Adding data probe on source pad of h264parser ");
                 videoDumpCount = 0;
+#ifdef SIMULATE_DATA_FLOW_TEST
+                testcount = 0;
+#endif                
                 srcpad = gst_element_get_static_pad (ele, "src");
                 gst_pad_add_probe (srcpad, GST_PAD_PROBE_TYPE_BUFFER,
-                            (GstPadProbeCallback) cb_dump_enc_data, NULL, NULL);
+                            (GstPadProbeCallback) cb_dump_enc_data, media, NULL);
                 gst_object_unref (srcpad);
 
                 

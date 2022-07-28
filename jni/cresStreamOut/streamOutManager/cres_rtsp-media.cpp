@@ -45,6 +45,48 @@ cres_rtsp_media_init (CresRTSPMedia * media)
 {
     GST_DEBUG("cres_media: cres_rtsp_media_init");
     media->m_restart = false;
+
+    media->dataFlowMonitorThreadID = 0;
+    pthread_cond_init(&media->gstCondWait, NULL);
+    pthread_mutex_init(&media->gstCondLock, NULL);
+}
+
+#define FIVE_SECONDS 5
+bool waitForDataFlowSignal(CresRTSPMedia * cresRTSPMedia, int waitingTime)
+{
+    struct timespec currTime;
+    bool ret = true;
+
+    clock_gettime(CLOCK_REALTIME, &currTime);
+    currTime.tv_sec += waitingTime;
+
+    pthread_mutex_lock(&cresRTSPMedia->gstCondLock);
+    if( pthread_cond_timedwait(&cresRTSPMedia->gstCondWait, &cresRTSPMedia->gstCondLock, &currTime) == ETIMEDOUT )
+    {
+        ret = false;
+    }
+    pthread_mutex_unlock(&cresRTSPMedia->gstCondLock);
+    return ret;
+}
+static void *gst_pipeline_data_flow_check(void *args)
+{
+    bool ret;
+    CresRTSPMedia *cresRTSPMedia = (CresRTSPMedia *)args;
+    while (cresRTSPMedia->threadActive == true)
+    {
+        ret = waitForDataFlowSignal(cresRTSPMedia, FIVE_SECONDS);
+        if( ret == false )
+        {
+            //streaming data is not flowing. Something went wrong. Restart WC
+            // quit loop to trigger restart
+            cresRTSPMedia->m_restart = true;
+            g_main_loop_quit(cresRTSPMedia->m_loop);
+            GST_ERROR_OBJECT(cresRTSPMedia, "Data is not flowing in the pipeline, so restarting WC");
+            break;
+        }
+    }
+
+    return NULL;
 }
 
 static gboolean
@@ -56,7 +98,7 @@ custom_handle_message (GstRTSPMedia * media, GstMessage * message)
     GError *err = NULL;
     gchar *debug = NULL;
 
-    GST_DEBUG_OBJECT(media, "custom_handle_message media: 0x%x\n", media);
+    GST_DEBUG_OBJECT(media, "custom_handle_message media: %p\n", media);
 
     if (GST_IS_ELEMENT(GST_MESSAGE_SRC(message)))
     {
@@ -108,17 +150,57 @@ custom_handle_message (GstRTSPMedia * media, GstMessage * message)
     case GST_MESSAGE_STATE_CHANGED:
     {
         GstState old_state, new_state, pending_state;
+        char playingState[] = "PLAYING";
+        char nullState[] = "NULL";
+        CresRTSPMedia *cresRTSPMedia = (CresRTSPMedia *) media;
+        
         gst_message_parse_state_changed(message, &old_state, &new_state, &pending_state);
 
         GST_DEBUG_OBJECT(media,"%s: %s state changed from %s to %s:\n",__FUNCTION__,
                   g_type_name(G_OBJECT_TYPE(GST_MESSAGE_SRC(message))),
                   gst_element_state_get_name(old_state),
                   gst_element_state_get_name(new_state));
+        if( strcmp (playingState, gst_element_state_get_name(new_state)) == 0 )
+        {
+            // if we are moved to playing state, then start thread to monitor the data flow
+            if(!cresRTSPMedia->dataFlowMonitorThreadID )
+            {
+                cresRTSPMedia->threadActive = true;
+                if (pthread_create(&(cresRTSPMedia->dataFlowMonitorThreadID), NULL, gst_pipeline_data_flow_check, (void *)cresRTSPMedia) != 0 )
+                {
+                    GST_ERROR_OBJECT(media, "Failed to create gst_pipeline_data_flow_check new thread !");
+                }
+                else
+                {
+                    pthread_setname_np(cresRTSPMedia->dataFlowMonitorThreadID, "GSTDataFLowMonitorThread");
+                    GST_DEBUG_OBJECT(media, "Started GSTDataFLowMonitorThread thread!");
+                }
+            }
+        }
+        if( strcmp (nullState, gst_element_state_get_name(new_state)) == 0 )
+        {
+            // if we are moved to null state, then stop the thread
+            if(cresRTSPMedia->dataFlowMonitorThreadID )
+            {
+                cresRTSPMedia->threadActive = false;
+                //wake up data flow thread incase it is sleeping 
+                pthread_mutex_lock(&cresRTSPMedia->gstCondLock);
+                pthread_cond_signal(&cresRTSPMedia->gstCondWait);
+                pthread_mutex_unlock(&cresRTSPMedia->gstCondLock);
+
+                pthread_join(cresRTSPMedia->dataFlowMonitorThreadID, NULL);
+                cresRTSPMedia->dataFlowMonitorThreadID = 0;
+
+                pthread_cond_destroy(&cresRTSPMedia->gstCondWait);
+                pthread_mutex_destroy(&cresRTSPMedia->gstCondLock);
+                GST_DEBUG_OBJECT(media, "Stopped GSTDataFLowMonitorThread thread!");
+            }
+        }
         break;
     }
     case GST_MESSAGE_EOS:
     {
-        GST_DEBUG_OBJECT(media, "Received EOS from source");
+        GST_ERROR_OBJECT(media, "Received EOS from source");
         break;
     }
     default:

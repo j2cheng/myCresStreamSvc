@@ -3,6 +3,11 @@
 
 #include <gst/gst.h>
 #include <gst/rtsp-server/rtsp-server.h>
+#include <stdlib.h>
+#include <unistd.h>  
+#include <pthread.h>
+#include <string.h>
+#include <stdio.h>
 
 #define CRES_TYPE_RTSP_MEDIA   (cres_rtsp_media_get_type ())
 
@@ -24,6 +29,10 @@ struct CresRTSPMedia
   GstRTSPMedia parent;
   GMainLoop *  m_loop;
   bool m_restart;
+  pthread_t dataFlowMonitorThreadID;
+  pthread_cond_t gstCondWait;
+  pthread_mutex_t gstCondLock;  
+  bool threadActive;
 };
 
 GType cres_rtsp_media_get_type (void);
