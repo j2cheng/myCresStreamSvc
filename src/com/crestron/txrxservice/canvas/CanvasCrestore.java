@@ -1831,9 +1831,9 @@ public class CanvasCrestore
                     Boolean isPeriperalBlocked = root.device.app.airMedia.wirelessConferencing.status.isPeripheralBlocked;
                     String isPeriperalBlockedReasonStr= root.device.app.airMedia.wirelessConferencing.status.PeripheralBlockedReason;
                     Log.i(TAG, "Received Device/App/AirMedia/WirelessConferencing/Status/isPeripheralBlocked : " + isPeriperalBlocked);
-                    mStreamCtl.setDeviceAppAirMediaWCStatusIsPheripheralBlocked(isPeriperalBlocked);
+                    mStreamCtl.setDeviceAppAirMediaWCStatusIsPeripheralBlocked(isPeriperalBlocked);
                     if( isPeriperalBlocked == true && isPeriperalBlockedReasonStr != null )
-                        mStreamCtl.setDevAppAirMediaWCStatIsPherBlockedReason(isPeriperalBlockedReasonStr);
+                        mStreamCtl.setDevAppAirMediaWCStatIsPeriBlockedReason(isPeriperalBlockedReasonStr);
                 }
                 if (root.internal != null && root.internal.tx3 != null && root.internal.tx3.airMedia != null) {
 
