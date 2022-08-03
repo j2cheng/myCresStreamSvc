@@ -174,9 +174,16 @@ JNIEXPORT void JNICALL Java_com_crestron_txrxservice_GstreamIn_nativeSetLogLevel
 /*
  * Class:           GstreamIn
  * Method:          nativeSetTcpMode
- * Signature:       (I)V
+ * Signature:       (II)V
  */
 JNIEXPORT void JNICALL Java_com_crestron_txrxservice_GstreamIn_nativeSetTcpMode(JNIEnv *env, jobject thiz, jint tcpMode, jint sessionId);
+
+/*
+ * Class:           GstreamIn
+ * Method:          nativeSetResolutionIndex
+ * Signature:       (II)V
+ */
+JNIEXPORT void JNICALL Java_com_crestron_txrxservice_GstreamIn_nativeSetResolutionIndex(JNIEnv *env, jobject thiz, jint resolutionIndex, jint sessionId);
 
 /*
  * Class:           GstreamIn

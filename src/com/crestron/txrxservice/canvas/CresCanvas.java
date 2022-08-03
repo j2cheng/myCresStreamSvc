@@ -12,6 +12,7 @@ import com.crestron.airmedia.receiver.m360.ipc.AirMediaSize;
 import com.crestron.airmedia.utilities.Common;
 import com.crestron.airmedia.utilities.TimeSpan;
 import com.crestron.txrxservice.HDMIInputInterface;
+import com.crestron.txrxservice.MiscUtils;
 import com.crestron.txrxservice.canvas.Session;
 import com.crestron.txrxservice.canvas.HDMISession;
 import com.crestron.txrxservice.canvas.DMSession;
@@ -59,6 +60,10 @@ public class CresCanvas
 	public boolean cssRestart = true;
 	public boolean canvasReady = false;
 	public SurfaceManager mSurfaceMgr=null;
+	
+    private static boolean multiResolutionMode = MiscUtils.readStringFromDisk("/data/CresStreamSvc/mutiResolutionMode").equals("1");
+    
+    public boolean inMultiResolutionMode() { return multiResolutionMode; } 
 
 	public CresCanvas(com.crestron.txrxservice.CresStreamCtrl streamCtl)
 	{

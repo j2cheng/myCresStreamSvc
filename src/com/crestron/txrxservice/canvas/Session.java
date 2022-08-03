@@ -39,6 +39,8 @@ public abstract class Session
     public int inputNumber;
     public String url;
     public AirMediaSize resolution;
+    public boolean isMultiResolution;
+    public boolean inResolutionRestart;
     public long airmediaId;
     public long miracastSessionId;
     public boolean [] permissions = new boolean[PermissionType.size];
@@ -84,6 +86,8 @@ public abstract class Session
 		inputNumber = 0;
 		url = null;
 		resolution = new AirMediaSize(0,0);
+		isMultiResolution = false;
+        inResolutionRestart = false;
 		isVideoLoading = false;
 		isAudioMuted = false;
 		options = new CanvasSurfaceOptions();
@@ -228,6 +232,11 @@ public abstract class Session
 	public void disconnect()
 	{
 		mSessionMgr.remove(this);
+	}
+	
+	public void restartWithNewResolution()
+	{
+	    
 	}
 	
 	public abstract void stop(Originator originator);

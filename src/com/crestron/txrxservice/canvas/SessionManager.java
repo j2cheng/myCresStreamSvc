@@ -1,29 +1,17 @@
 package com.crestron.txrxservice.canvas;
 
 import java.util.ArrayList;
-import java.util.HashMap;
 import java.util.Map;
-import java.util.Timer;
-import java.util.TimerTask;
 import java.util.UUID;
 import java.util.Collection;
 import java.util.List;
 import java.util.LinkedList;
 import java.util.concurrent.*;
 
-import com.crestron.airmedia.canvas.channels.ipc.CanvasPlatformType;
-import com.crestron.airmedia.canvas.channels.ipc.CanvasResponse;
-import com.crestron.airmedia.canvas.channels.ipc.CanvasSessionState;
-import com.crestron.airmedia.canvas.channels.ipc.CanvasSourceAction;
 import com.crestron.airmedia.canvas.channels.ipc.CanvasSourceSession;
-import com.crestron.airmedia.canvas.channels.ipc.CanvasSourceTransaction;
-import com.crestron.airmedia.canvas.channels.ipc.CanvasSourceType;
-import com.crestron.airmedia.receiver.m360.models.AirMediaSession;
 import com.crestron.airmedia.utilities.Common;
 import com.crestron.airmedia.utilities.TimeSpan;
 import com.crestron.txrxservice.canvas.CanvasCrestore.SessionEvent;
-import com.crestron.txrxservice.canvas.CanvasCrestore.SessionEventMapEntry;
-
 import android.util.Log;
 
 public class SessionManager
@@ -40,6 +28,40 @@ public class SessionManager
     public static final int SEND_ALL_SESSION_TIMEOUT = 30;
     public static final int STOP_ALL_SESSION_TIMEOUT = 30;
     public static final int DISCONNECT_ALL_SESSION_TIMEOUT = 30;
+    
+    public enum MaxResolution 
+    {
+        Any(0),
+        Max4K(1),
+        Max1080P(2),
+        Max720P(3),
+
+        //Do not add anything after Unknown
+        Unknown(4);
+
+        private final int value;
+
+        MaxResolution(int value) 
+        {
+            this.value = value;
+        }
+
+        public int getValue() 
+        {
+            return value;
+        }
+        public static String toString(int i) 
+        {
+            for (MaxResolution status : MaxResolution.values()) 
+            {
+                if (status.getValue() == i) 
+                {
+                    return status.toString();
+                }
+            }
+            return ("Unknown");
+        }
+    }
 
     public SessionManager(com.crestron.txrxservice.canvas.CresCanvas canvas)
 	 {
@@ -185,6 +207,38 @@ public class SessionManager
             }
     	}
     	return idList;
+    }
+    
+    public int getNumPlayingSessions()
+    {
+        int nSessions=0;
+        synchronized (lock_) {
+            for (Session session : sessions_)
+                if (session.isPlaying() || session.isPaused())
+                    nSessions++;
+        }
+        return nSessions;
+    }
+    
+    public MaxResolution getMaxResolution(int numPlayingSessions)
+    {
+        if (numPlayingSessions <= 1)
+            return MaxResolution.Max4K;
+        else if (numPlayingSessions <= 4)
+            return MaxResolution.Max1080P;
+        else
+            return MaxResolution.Max720P;
+    }
+    
+    public void restartMultiResolutionSessions()
+    {
+        // Cannot take lock since restart requires stop which calls lower level functions (setNetworkStreamingFeedbacks and
+        // set NetworkStreamingResolution) that call findSession() which also need lock cauing deadlock
+        // So using sessions() which returns a copy of list but need to check for session existence during commands
+        Collection<Session> sessionList = sessions();
+        for (Session session : sessionList)
+            if (session.isMultiResolution && (session.isPlaying() || session.isPaused()))
+                session.restartWithNewResolution();
     }
     
     public void stopAllSessions(Originator origin)

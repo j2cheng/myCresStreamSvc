@@ -3876,6 +3876,11 @@ public class CresStreamCtrl extends Service {
         }
     }
 
+    public void setResolutionIndex(int resolutionIndex, int sessionId)
+    {
+        streamPlay.setResolutionIndex(resolutionIndex, sessionId);
+    }
+    
     //Ctrls
     public void Start(int sessionId)
     {
@@ -8156,9 +8161,9 @@ public class CresStreamCtrl extends Service {
             Session session = mCanvas.mSessionMgr.findSession(streamId);
             Log.v(TAG, "setNetworkSreamingResolution(): findSession return:" + session);
 
-            if(session != null && session.getType() == SessionType.NetworkStreaming)
+            if(session != null && session.getType() == SessionType.NetworkStreaming && !session.inResolutionRestart)
             {
-                Log.i(TAG, "setNetworkSreamingResolution(): calling setVideoResolution() for id: " + streamId);
+                Log.i(TAG, "setNetworkSreamingResolution(): calling setVideoResolution() for id: " + streamId +" wxh=" + w + "x" + h);
                 
                 session.setVideoResolution(new AirMediaSize(w,h));
             }

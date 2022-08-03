@@ -10,6 +10,7 @@ import com.crestron.airmedia.receiver.m360.ipc.AirMediaSize;
 import com.crestron.airmedia.utilities.Common;
 import com.crestron.airmedia.utilities.TimeSpan;
 import com.crestron.txrxservice.HDMIInputInterface;
+import com.crestron.txrxservice.canvas.SessionManager.MaxResolution;
 import com.crestron.airmedia.canvas.channels.ipc.CanvasSourceAction;
 
 
@@ -21,7 +22,7 @@ public class NetworkStreamSession extends Session
 {
     public static final String TAG = "TxRx.canvas.NetworkStream.session";
     private static final HashMap<String, Integer> TransportModeMapping ;
-	
+    private static MaxResolution maxResolutionAllowed = MaxResolution.Any;
     
     private Integer buffer;
     private Integer volume;
@@ -51,6 +52,8 @@ public class NetworkStreamSession extends Session
         isStatisticsEnabled = false;
         numVideoPacketsDropped = 0;
         numAudioPacketsDropped = 0;
+        // could be conditioned on URL if we have special URLs to indicate multiresolution RTSP server
+        isMultiResolution = mCanvas.inMultiResolutionMode();
 
         Common.Logging.v(TAG, "Created:  "+ this);
     }
@@ -84,6 +87,19 @@ public class NetworkStreamSession extends Session
             Common.Logging.i(TAG, "setStatistics(): parameter is null");
     }
     public boolean getStatistics() { return isStatisticsEnabled; }
+    
+    public void restartWithNewResolution()
+    {
+        if (isMultiResolution)
+        {
+            Log.i(TAG, "Restart session "+this+" with new resolution: "+maxResolutionAllowed);
+            inResolutionRestart = true;
+            mStreamCtl.Stop(streamId, false);
+            mStreamCtl.setResolutionIndex(maxResolutionAllowed.getValue(),streamId);
+            mStreamCtl.Start(streamId);
+            inResolutionRestart = false;
+        }
+    }
 
     private void doStop()
     {
@@ -118,6 +134,19 @@ public class NetworkStreamSession extends Session
     public void stop(Originator originator)
     {
         stop(originator, 10);
+        // if multiresolution session stopped see if there is a change possible for max resolution
+        // if max resolution changed then for existing network stream sessions request a "restart"
+        if (isMultiResolution)
+        {
+            MaxResolution maxresolution = mSessionMgr.getMaxResolution(mSessionMgr.getNumPlayingSessions());
+            if (maxresolution != maxResolutionAllowed)
+            {
+                
+                Log.i(TAG, "Allowed Maximum Resolution changed from "+maxResolutionAllowed+" to "+maxresolution);
+                // Now 'restart" all sessions of NetworkStream class
+                mSessionMgr.restartMultiResolutionSessions();
+            }
+        }
     }	
 
     private void doPlay(final Originator originator)
@@ -149,7 +178,11 @@ public class NetworkStreamSession extends Session
                 //set SessionInitiation here
                 int sessInitiation = findSessionInitiation(tokens,transPortMode);				
                 Common.Logging.v(TAG, "doPlay():  calling setSessionInitiation: " + sessInitiation);
-                mStreamCtl.setSessionInitiation(sessInitiation,streamId);		
+                mStreamCtl.setSessionInitiation(sessInitiation,streamId);	
+                
+                //if multiresolution set stream resolution index (Any means use any index (0))
+                int resIndex = (isMultiResolution)?MaxResolution.Any.getValue():maxResolutionAllowed.getValue();
+                mStreamCtl.setResolutionIndex(resIndex,streamId);
 
                 Common.Logging.v(TAG, "doPlay():  "+this+" calling Start()");
                 mStreamCtl.Start(streamId);
@@ -196,6 +229,21 @@ public class NetworkStreamSession extends Session
 	
     public void play(Originator originator)
     {
+        // if play request comes in, then check if addition of new session requires a resolution adjustment for
+        // all existing sessions - if it does restart all existing sessions and then start up new session
+        if (isMultiResolution)
+        {
+            int numPlayingSessions = mSessionMgr.getNumPlayingSessions() + 1; // since new session will be added as playing
+            MaxResolution maxresolution = mSessionMgr.getMaxResolution(numPlayingSessions);
+            if (maxresolution != maxResolutionAllowed)
+            {
+                
+                Log.i(TAG, "Allowed Maximum Resolution changed from "+maxResolutionAllowed+" to "+maxresolution);
+                maxResolutionAllowed = maxresolution;
+                // Now 'restart" all existing playing sessions of NetworkStream class which are in multiResolution mode
+                mSessionMgr.restartMultiResolutionSessions();
+            }
+        }
         play(originator, 10);
     }
 	

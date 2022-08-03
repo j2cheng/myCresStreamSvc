@@ -81,6 +81,7 @@ public class GstreamIn implements SurfaceHolder.Callback {
     private native void			nativeDropAudio(boolean enabled, boolean dropAudioPipeline, int sessionId);
     private native void			nativeSetLogLevel(int logLevel);
     private native void			nativeSetTcpMode(int tcpMode, int sessionId);
+    private native void         nativeSetResolutionIndex(int resolutionIndex, int sessionId);
     
     private native void			nativeInitUnixSocketState();
     
@@ -210,6 +211,10 @@ public class GstreamIn implements SurfaceHolder.Callback {
     
     public void setLogLevel(int logLevel) {
     	nativeSetLogLevel(logLevel);
+    }
+    
+    public void setResolutionIndex(int resolutionIndex, int sessionId){
+        nativeSetResolutionIndex(resolutionIndex, sessionId);
     }
 
     public int[] getCurrentWidthHeight(int sessionId){

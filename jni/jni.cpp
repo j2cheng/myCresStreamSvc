@@ -1384,6 +1384,18 @@ JNIEXPORT void JNICALL Java_com_crestron_txrxservice_GstreamIn_nativeSetTcpMode(
     csio_SetRtspNetworkMode(sessionId,tcpMode);
 }
 
+// resolutionIndex = 0 --> no multiresolution - feature not used
+//                 = 1 --> up to and including 4K
+//                 = 2 --> up to and including 1080P
+//                 = 3 --> up to and including 720P
+JNIEXPORT void JNICALL Java_com_crestron_txrxservice_GstreamIn_nativeSetResolutionIndex(JNIEnv *env, jobject thiz, jint resolutionIndex, jint sessionId)
+{
+    //CSIOCnsIntf->setStreamRx_TCPMODE(sessionId, resolutionIndex, SENDTOCRESSTORE_NONE);
+    CSIO_LOG(eLogLevel_info, "Setting window[%d] resolutionIndex to %d", sessionId, resolutionIndex);
+
+    //csio_SetResolutionIndex(sessionId,resolutionIndex);
+}
+
 JNIEXPORT void JNICALL Java_com_crestron_txrxservice_GstreamIn_nativeInitUnixSocketState(JNIEnv *env, jobject thiz)
 {
 	int i;
