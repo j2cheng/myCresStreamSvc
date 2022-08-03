@@ -61,12 +61,13 @@ public class CresCanvas
 	public boolean canvasReady = false;
 	public SurfaceManager mSurfaceMgr=null;
 	
-    private static boolean multiResolutionMode = MiscUtils.readStringFromDisk("/dev/shm/mutiResolutionMode").equals("1");
+    private static boolean multiResolutionMode = MiscUtils.readStringFromDisk("/dev/shm/multiResolutionMode").equals("1");
     
     public boolean inMultiResolutionMode() { return multiResolutionMode; } 
 
 	public CresCanvas(com.crestron.txrxservice.CresStreamCtrl streamCtl)
 	{
+	    Log.i(TAG, "MultiResolutionMode = "+multiResolutionMode);
 		mSurfaceMgr = new SurfaceManager(); //TODO remove once we have real surface manager
 		Log.i(TAG, "Creating CresCanvas");
 		mStreamCtl = streamCtl;
