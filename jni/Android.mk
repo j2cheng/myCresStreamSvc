@@ -116,11 +116,12 @@ LOCAL_SHARED_LIBRARIES += libstlport
 LOCAL_SHARED_LIBRARIES += libSecureStorage
 endif
 
+#LOCAL_CFLAGS += -DMULTI_STREAM
+
 # tinyalsa needed on am3x00 for wireless conferencing RTSP server
 ifeq ($(TARGET_PRODUCT),$(filter $(TARGET_PRODUCT),am3x00_box))
 LOCAL_CFLAGS += -DHAS_TINYALSA -DHAS_V4L2
 LOCAL_SHARED_LIBRARIES += libtinyalsa
-#LOCAL_CFLAGS += -DMULTI_STREAM
 endif
 
 # Crestron - why do I have to do this?

@@ -1398,7 +1398,21 @@ JNIEXPORT void JNICALL Java_com_crestron_txrxservice_GstreamIn_nativeSetResoluti
     //CSIOCnsIntf->setStreamRx_TCPMODE(sessionId, resolutionIndex, SENDTOCRESSTORE_NONE);
     CSIO_LOG(eLogLevel_info, "Setting window[%d] resolutionIndex to %d", sessionId, resolutionIndex);
 
-    //csio_SetResolutionIndex(sessionId,resolutionIndex);
+#ifdef MULTI_STREAM
+    int value = -1;
+
+    if(resolutionIndex == 2)
+    {
+        value = 0;
+    }
+    else if(resolutionIndex == 3)
+    {
+        value = 2;
+    }
+
+    csio_jni_config_this_video_stream(sessionId,value);
+    csio_jni_config_this_audio_stream(sessionId,value+1);
+#endif
 }
 
 JNIEXPORT void JNICALL Java_com_crestron_txrxservice_GstreamIn_nativeInitUnixSocketState(JNIEnv *env, jobject thiz)
