@@ -61,7 +61,7 @@ public class CresCanvas
 	public boolean canvasReady = false;
 	public SurfaceManager mSurfaceMgr=null;
 	
-    private static boolean multiResolutionMode = MiscUtils.readStringFromDisk("/data/CresStreamSvc/mutiResolutionMode").equals("1");
+    private static boolean multiResolutionMode = MiscUtils.readStringFromDisk("/dev/shm/mutiResolutionMode").equals("1");
     
     public boolean inMultiResolutionMode() { return multiResolutionMode; } 
 

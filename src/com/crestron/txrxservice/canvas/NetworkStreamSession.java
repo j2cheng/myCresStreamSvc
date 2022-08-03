@@ -141,8 +141,8 @@ public class NetworkStreamSession extends Session
             MaxResolution maxresolution = mSessionMgr.getMaxResolution(mSessionMgr.getNumPlayingSessions());
             if (maxresolution != maxResolutionAllowed)
             {
-                
                 Log.i(TAG, "Allowed Maximum Resolution changed from "+maxResolutionAllowed+" to "+maxresolution);
+                maxResolutionAllowed = maxresolution;
                 // Now 'restart" all sessions of NetworkStream class
                 mSessionMgr.restartMultiResolutionSessions();
             }
