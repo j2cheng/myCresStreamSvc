@@ -149,6 +149,11 @@ static void gstNativeFinalizeRtspServer (JNIEnv* env, jobject thiz);
 void gst_native_rtsp_server_start (JNIEnv* env, jobject thiz);
 void gst_native_rtsp_server_stop (JNIEnv* env, jobject thiz);
 
+#ifdef MULTI_STREAM
+void csio_jni_config_this_video_stream(int id, int streamindex);
+void csio_jni_config_this_audio_stream(int id, int streamindex);
+#endif
+
 static JNINativeMethod native_methods_rtsp_server[] =
 {
     { "nativeInitRtspServer", "(Ljava/lang/Object;)V", (void *) gstNativeInitRtspServer},
@@ -2512,9 +2517,58 @@ JNIEXPORT void JNICALL Java_com_crestron_txrxservice_GstreamIn_nativeSetFieldDeb
                     {
                         CSIO_LOG(eLogLevel_info, "Invalid Format, need a parameter 0 (disable) 1 (enable) \r\n");
                     }
-
                 }
             }
+#ifdef MULTI_STREAM
+            else if (!strcmp(CmdPtr, "JNI_SELECT_VIDEO_STREAMID"))
+            {
+                CmdPtr = strtok(NULL, ", ");
+                if(CmdPtr)
+                {
+                    int strmID = (INT32)strtol(CmdPtr, &EndPtr, 10);
+
+                    CmdPtr = strtok(NULL, ", ");
+                    if(CmdPtr)
+                    {
+                        int videoStremIndex = (INT32)strtol(CmdPtr, &EndPtr, 10);
+
+                        csio_jni_config_this_video_stream(strmID,videoStremIndex);
+                    }
+                    else
+                    {
+                        CREGSTREAM *data = GetStreamFromCustomData(CresDataDB, strmID);
+                        if (data)
+                        { 
+                            CSIO_LOG(eLogLevel_info, "SELECT_VIDEO_STREAMID for stream id: %d is %d \r\n",strmID,data->sel_video_stream_id);
+                        }//else
+                    }
+                }
+            }
+            else if (!strcmp(CmdPtr, "JNI_SELECT_AUDIO_STREAMID"))
+            {
+                CmdPtr = strtok(NULL, ", ");
+                if(CmdPtr)
+                {
+                    int strmID = (INT32)strtol(CmdPtr, &EndPtr, 10);
+
+                    CmdPtr = strtok(NULL, ", ");
+                    if(CmdPtr)
+                    {
+                        int audioStremIndex = (INT32)strtol(CmdPtr, &EndPtr, 10);
+
+                        csio_jni_config_this_audio_stream(strmID,audioStremIndex);
+                    }
+                    else
+                    {
+                        CREGSTREAM *data = GetStreamFromCustomData(CresDataDB, strmID);
+                        if (data)
+                        { 
+                            CSIO_LOG(eLogLevel_info, "SELECT_VIDEO_STREAMID for stream id: %d is %d \r\n",strmID,data->sel_audio_stream_id);
+                        }//else
+                    }
+                }
+            }
+#endif
             else
             {
                 CSIO_LOG(eLogLevel_info, "Invalid command:%s\r\n",CmdPtr);
@@ -6820,4 +6874,55 @@ char *csio_jni_hashPin(char *pin)
 	return cbuffer;
 }
 
+#ifdef MULTI_STREAM
+// for multistreaming, we need this to identify resolution
+// non-init. value is -1.
+bool csio_jni_ignore_this_video_stream(int id, int streamindex)
+{
+    bool ret = false;
 
+    CREGSTREAM *data = GetStreamFromCustomData(CresDataDB, id);
+    if (data && data->sel_video_stream_id != -1)
+    {   
+        ret =  (data->sel_video_stream_id != streamindex);
+    }//else
+    
+    CSIO_LOG(eLogLevel_debug, "%s() streamId[%d] return: %d", __FUNCTION__, id, ret);
+
+    return ret;
+}
+bool csio_jni_ignore_this_audio_stream(int id, int streamindex)
+{
+    bool ret = false;
+
+    CREGSTREAM *data = GetStreamFromCustomData(CresDataDB, id);
+    if (data && data->sel_audio_stream_id != -1)
+    { 
+        ret =  (data->sel_audio_stream_id != streamindex);
+    }//else
+    
+    CSIO_LOG(eLogLevel_debug, "%s() streamId[%d] return: %d", __FUNCTION__, id, ret);
+
+    return ret;
+}
+void csio_jni_config_this_video_stream(int id, int value)
+{
+    CREGSTREAM *data = GetStreamFromCustomData(CresDataDB, id);
+    if (data)
+    {
+        data->sel_video_stream_id = value;
+    }//else
+    
+    CSIO_LOG(eLogLevel_debug, "%s() streamId[%d] set to: %d", __FUNCTION__, id, value);
+}
+void csio_jni_config_this_audio_stream(int id, int value)
+{
+    CREGSTREAM *data = GetStreamFromCustomData(CresDataDB, id);
+    if (data)
+    {
+        data->sel_audio_stream_id = value;
+    }//else
+
+    CSIO_LOG(eLogLevel_debug, "%s() streamId[%d] set to: %d", __FUNCTION__, id, value);
+}
+#endif

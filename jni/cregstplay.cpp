@@ -197,6 +197,11 @@ void init_custom_data(CustomData * cdata)
         data->sourceIP_addr[0] = 0;
         data->isDoorStation = FALSE; //reset doorstation stream flag
         CSIO_LOG(eLogLevel_debug, "%s: Set isDoorStation to FALSE", __FUNCTION__);
+
+#ifdef MULTI_STREAM
+        data->sel_video_stream_id = -1;
+        data->sel_audio_stream_id = -1;
+#endif
 	}
 }
 void set_TLS_version_ciphers()
