@@ -180,9 +180,11 @@ public class NetworkStreamSession extends Session
                 Common.Logging.v(TAG, "doPlay():  calling setSessionInitiation: " + sessInitiation);
                 mStreamCtl.setSessionInitiation(sessInitiation,streamId);	
                 
-                //if multiresolution set stream resolution index (Any means use any index (0))
-                int resIndex = (isMultiResolution)?MaxResolution.Any.getValue():maxResolutionAllowed.getValue();
-                mStreamCtl.setResolutionIndex(resIndex,streamId);
+                //if multiresolution set stream resolution index
+                if (isMultiResolution)
+                {
+                    mStreamCtl.setResolutionIndex(maxResolutionAllowed.getValue(),streamId);
+                }
 
                 Common.Logging.v(TAG, "doPlay():  "+this+" calling Start()");
                 mStreamCtl.Start(streamId);
