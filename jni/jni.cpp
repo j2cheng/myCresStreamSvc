@@ -2575,7 +2575,7 @@ JNIEXPORT void JNICALL Java_com_crestron_txrxservice_GstreamIn_nativeSetFieldDeb
                         CREGSTREAM *data = GetStreamFromCustomData(CresDataDB, strmID);
                         if (data)
                         { 
-                            CSIO_LOG(eLogLevel_info, "SELECT_VIDEO_STREAMID for stream id: %d is %d \r\n",strmID,data->sel_audio_stream_id);
+                            CSIO_LOG(eLogLevel_info, "SELECT_AUDIO_STREAMID for stream id: %d is %d \r\n",strmID,data->sel_audio_stream_id);
                         }//else
                     }
                 }
