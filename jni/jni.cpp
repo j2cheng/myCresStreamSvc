@@ -149,10 +149,9 @@ static void gstNativeFinalizeRtspServer (JNIEnv* env, jobject thiz);
 void gst_native_rtsp_server_start (JNIEnv* env, jobject thiz);
 void gst_native_rtsp_server_stop (JNIEnv* env, jobject thiz);
 
-#ifdef MULTI_STREAM
+//8-4-2022: used for multi-streaming media stream selection
 void csio_jni_config_this_video_stream(int id, int streamindex);
 void csio_jni_config_this_audio_stream(int id, int streamindex);
-#endif
 
 static JNINativeMethod native_methods_rtsp_server[] =
 {
@@ -1389,30 +1388,29 @@ JNIEXPORT void JNICALL Java_com_crestron_txrxservice_GstreamIn_nativeSetTcpMode(
     csio_SetRtspNetworkMode(sessionId,tcpMode);
 }
 
-// resolutionIndex = 0 --> no multiresolution - feature not used
+// if this function is called ---- feature used/enabled
+// resolutionIndex = 0 --> no multiresolution - any
 //                 = 1 --> up to and including 4K
 //                 = 2 --> up to and including 1080P
 //                 = 3 --> up to and including 720P
 JNIEXPORT void JNICALL Java_com_crestron_txrxservice_GstreamIn_nativeSetResolutionIndex(JNIEnv *env, jobject thiz, jint resolutionIndex, jint sessionId)
-{
-    //CSIOCnsIntf->setStreamRx_TCPMODE(sessionId, resolutionIndex, SENDTOCRESSTORE_NONE);
+{    
     CSIO_LOG(eLogLevel_info, "Setting window[%d] resolutionIndex to %d", sessionId, resolutionIndex);
 
-#ifdef MULTI_STREAM
-    int value = -1;
+//8-4-2022: used for multi-streaming media stream selection
+    int value = 0;
 
-    if(resolutionIndex == 2)
+    if(resolutionIndex == 0 || resolutionIndex == 1)
     {
         value = 0;
     }
-    else if(resolutionIndex == 3)
+    else if(resolutionIndex == 2 || resolutionIndex == 3)
     {
         value = 2;
     }
 
     csio_jni_config_this_video_stream(sessionId,value);
     csio_jni_config_this_audio_stream(sessionId,value+1);
-#endif
 }
 
 JNIEXPORT void JNICALL Java_com_crestron_txrxservice_GstreamIn_nativeInitUnixSocketState(JNIEnv *env, jobject thiz)
@@ -2533,7 +2531,7 @@ JNIEXPORT void JNICALL Java_com_crestron_txrxservice_GstreamIn_nativeSetFieldDeb
                     }
                 }
             }
-#ifdef MULTI_STREAM
+            //8-4-2022: used for multi-streaming media stream selection
             else if (!strcmp(CmdPtr, "JNI_SELECT_VIDEO_STREAMID"))
             {
                 CmdPtr = strtok(NULL, ", ");
@@ -2582,7 +2580,6 @@ JNIEXPORT void JNICALL Java_com_crestron_txrxservice_GstreamIn_nativeSetFieldDeb
                     }
                 }
             }
-#endif
             else
             {
                 CSIO_LOG(eLogLevel_info, "Invalid command:%s\r\n",CmdPtr);
@@ -6888,7 +6885,6 @@ char *csio_jni_hashPin(char *pin)
 	return cbuffer;
 }
 
-#ifdef MULTI_STREAM
 // for multistreaming, we need this to identify resolution
 // non-init. value is -1.
 bool csio_jni_ignore_this_video_stream(int id, int streamindex)
@@ -6939,4 +6935,3 @@ void csio_jni_config_this_audio_stream(int id, int value)
 
     CSIO_LOG(eLogLevel_debug, "%s() streamId[%d] set to: %d", __FUNCTION__, id, value);
 }
-#endif

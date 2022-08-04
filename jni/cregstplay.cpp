@@ -198,10 +198,10 @@ void init_custom_data(CustomData * cdata)
         data->isDoorStation = FALSE; //reset doorstation stream flag
         CSIO_LOG(eLogLevel_debug, "%s: Set isDoorStation to FALSE", __FUNCTION__);
 
-#ifdef MULTI_STREAM
+        //8-4-2022: used for multi-streaming media stream selection
         data->sel_video_stream_id = -1;
         data->sel_audio_stream_id = -1;
-#endif
+
 	}
 }
 void set_TLS_version_ciphers()

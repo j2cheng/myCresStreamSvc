@@ -185,11 +185,10 @@ typedef struct _CREGSTREAM
     char intf_name[32];
     char loc_ip_addr[32];
 
-#ifdef MULTI_STREAM
-    //used for multi-streaming media stream selection
+    //8-4-2022: used for multi-streaming media stream selection
     int  sel_video_stream_id;
     int  sel_audio_stream_id;
-#endif
+
 } CREGSTREAM;
 
 /* Structure to contain all our information, so we can pass it to callbacks */
