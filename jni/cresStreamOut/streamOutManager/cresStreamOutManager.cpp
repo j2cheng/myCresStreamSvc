@@ -766,12 +766,12 @@ wc_media_configure (GstRTSPMediaFactory * factory, GstRTSPMedia * media,
     gchar * n = gst_element_get_name(element);
     CSIO_LOG(eLogLevel_debug, "Streamout: wc_media_configure element name[%s] of media[0x%p]",n,media);
 
-        //set up audio source
+    //set up audio source
     if (pMgr->m_audioStream)
     {
         if (useUsbAudio && (pMgr->m_usbAudio->m_device == NULL))
         {
-        	if (!pMgr->m_usbAudio->configure())
+            if (!pMgr->m_usbAudio->configure())
             {
                 CSIO_LOG(eLogLevel_error, "Error: !!! wc_media_configure Open USB Audio FAILED!!! Fatal ");
                 //indicates the sessions needs to be closed. Fatal pipeline error
@@ -809,53 +809,54 @@ wc_media_configure (GstRTSPMediaFactory * factory, GstRTSPMedia * media,
 
             gst_object_unref(ele);
         }
+    }
 
-        if (pMgr->m_videoStream)
+    if (pMgr->m_videoStream)
+    {
+        ele = gst_bin_get_by_name_recurse_up(GST_BIN (element), "vidPreQ");
+        if (ele)
         {
-            ele = gst_bin_get_by_name_recurse_up(GST_BIN (element), "vidPreQ");
-            if (ele)
-            {
-                CSIO_LOG(eLogLevel_info, "Streamout: set leaky downstream on vidPreQ");
-                g_object_set(G_OBJECT(ele), "leaky", (guint) 2 /*GST_QUEUE_LEAK_DOWNSTREAM*/, NULL);
+            CSIO_LOG(eLogLevel_info, "Streamout: set leaky downstream on vidPreQ");
+            g_object_set(G_OBJECT(ele), "leaky", (guint) 2 /*GST_QUEUE_LEAK_DOWNSTREAM*/, NULL);
 
-                pMgr->m_vidEncPreQ = ele;
-                g_signal_connect( G_OBJECT(ele), "overrun", G_CALLBACK( cb_vidEncQueueOverruns ), user_data );
-                g_signal_connect( G_OBJECT(ele), "underrun", G_CALLBACK( cb_vidEncQueueUnderruns ), user_data );
+            pMgr->m_vidEncPreQ = ele;
+            g_signal_connect( G_OBJECT(ele), "overrun", G_CALLBACK( cb_vidEncQueueOverruns ), user_data );
+            g_signal_connect( G_OBJECT(ele), "underrun", G_CALLBACK( cb_vidEncQueueUnderruns ), user_data );
 
-                gst_object_unref(ele);
-            }
-            ele = gst_bin_get_by_name_recurse_up(GST_BIN (element), "vidPostQ");
-            if (ele)
-            {
-                CSIO_LOG(eLogLevel_info, "Streamout: set leaky downstream on vidPostQ");
-                g_object_set(G_OBJECT(ele), "leaky", (guint) 2 /*GST_QUEUE_LEAK_DOWNSTREAM*/, NULL);
-
-                pMgr->m_vidEncPostQ = ele;
-                g_signal_connect( G_OBJECT(ele), "overrun", G_CALLBACK( cb_vidEncQueueOverruns ), user_data );
-                g_signal_connect( G_OBJECT(ele), "underrun", G_CALLBACK( cb_vidEncQueueUnderruns ), user_data );
-
-                gst_object_unref(ele);
-            }
-            ele = gst_bin_get_by_name_recurse_up(GST_BIN (element), "h264parser" );
-            if( ele )
-            {
-                GstPad *srcpad;
-                CSIO_LOG(eLogLevel_info, "Streamout: Adding data probe on source pad of h264parser ");
-                videoDumpCount = 0;
-#ifdef SIMULATE_DATA_FLOW_TEST
-                testcount = 0;
-#endif                
-                srcpad = gst_element_get_static_pad (ele, "src");
-                gst_pad_add_probe (srcpad, GST_PAD_PROBE_TYPE_BUFFER,
-                            (GstPadProbeCallback) cb_dump_enc_data, media, NULL);
-                gst_object_unref (srcpad);
-
-                
-            }
+            gst_object_unref(ele);
         }
-        if (pMgr->m_audioStream) {
-            ele = gst_bin_get_by_name_recurse_up(GST_BIN (element), "audPreQ");
-            if (ele) {
+        ele = gst_bin_get_by_name_recurse_up(GST_BIN (element), "vidPostQ");
+        if (ele)
+        {
+            CSIO_LOG(eLogLevel_info, "Streamout: set leaky downstream on vidPostQ");
+            g_object_set(G_OBJECT(ele), "leaky", (guint) 2 /*GST_QUEUE_LEAK_DOWNSTREAM*/, NULL);
+
+            pMgr->m_vidEncPostQ = ele;
+            g_signal_connect( G_OBJECT(ele), "overrun", G_CALLBACK( cb_vidEncQueueOverruns ), user_data );
+            g_signal_connect( G_OBJECT(ele), "underrun", G_CALLBACK( cb_vidEncQueueUnderruns ), user_data );
+
+            gst_object_unref(ele);
+        }
+        ele = gst_bin_get_by_name_recurse_up(GST_BIN (element), "h264parser" );
+        if( ele )
+        {
+            GstPad *srcpad;
+            CSIO_LOG(eLogLevel_info, "Streamout: Adding data probe on source pad of h264parser ");
+            videoDumpCount = 0;
+#ifdef SIMULATE_DATA_FLOW_TEST
+            testcount = 0;
+#endif                
+            srcpad = gst_element_get_static_pad (ele, "src");
+            gst_pad_add_probe (srcpad, GST_PAD_PROBE_TYPE_BUFFER,
+                    (GstPadProbeCallback) cb_dump_enc_data, media, NULL);
+            gst_object_unref (srcpad);
+
+
+        }
+    }
+    if (pMgr->m_audioStream) {
+        ele = gst_bin_get_by_name_recurse_up(GST_BIN (element), "audPreQ");
+        if (ele) {
                 CSIO_LOG(eLogLevel_info, "Streamout: set leaky downstream on audPreQ");
                 g_object_set(G_OBJECT(ele), "leaky", (guint) 2 /*GST_QUEUE_LEAK_DOWNSTREAM*/, NULL);
                 g_object_set(G_OBJECT(ele), "max-size-bytes", 48000, NULL);
@@ -879,7 +880,7 @@ wc_media_configure (GstRTSPMediaFactory * factory, GstRTSPMedia * media,
                 gst_object_unref(ele);
             }
         }
-    }
+    
 
     CSIO_LOG(eLogLevel_debug, "Streamout: set media reusable to true media[%p]",media);
     gst_rtsp_media_set_reusable (media, TRUE);
@@ -1901,9 +1902,9 @@ void CStreamoutManager::setVideoSource(char *videoSource, int n)
 		snprintf(videoSource, n, "videotestsrc is-live=true");
 	} else {
 #ifdef NANOPC
-		snprintf(videoSource, n, "v4l2src device=%s io-mode=4 do-timestamp=true", "/dev/video10");
+		snprintf(videoSource, n, "v4l2src device=%s io-mode=4 do-timestamp=true name=v4l2src", "/dev/video10");
 #else
-		snprintf(videoSource, n, "v4l2src device=%s io-mode=4 do-timestamp=true", m_video_capture_device);
+		snprintf(videoSource, n, "v4l2src device=%s io-mode=4 do-timestamp=true name=v4l2src", m_video_capture_device);
 #endif
 	}
 	CSIO_LOG(eLogLevel_info, "--Streamout - videoSource=%s", videoSource);

@@ -153,6 +153,9 @@ custom_handle_message (GstRTSPMedia * media, GstMessage * message)
         char playingState[] = "PLAYING";
         char nullState[] = "NULL";
         CresRTSPMedia *cresRTSPMedia = (CresRTSPMedia *) media;
+        GstElement *element;
+        GstElement *ele;
+        element = gst_rtsp_media_get_element (media);
         
         gst_message_parse_state_changed(message, &old_state, &new_state, &pending_state);
 
@@ -162,8 +165,9 @@ custom_handle_message (GstRTSPMedia * media, GstMessage * message)
                   gst_element_state_get_name(new_state));
         if( strcmp (playingState, gst_element_state_get_name(new_state)) == 0 )
         {
-            // if we are moved to playing state, then start thread to monitor the data flow
-            if(!cresRTSPMedia->dataFlowMonitorThreadID )
+            ele = gst_bin_get_by_name_recurse_up(GST_BIN (element), "v4l2src");
+            // if we are moved to playing state, and the device has video source then start thread to monitor the data flow
+            if(!cresRTSPMedia->dataFlowMonitorThreadID && ele != NULL )
             {
                 cresRTSPMedia->threadActive = true;
                 if (pthread_create(&(cresRTSPMedia->dataFlowMonitorThreadID), NULL, gst_pipeline_data_flow_check, (void *)cresRTSPMedia) != 0 )
