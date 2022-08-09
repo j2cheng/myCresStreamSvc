@@ -59,6 +59,10 @@ public class WC_Service {
 
     private static final int WaitForClientToConnect=30*1000;   // 30 seconds 
     private Thread mWaitForClientToConnectThread = null;	
+        
+    private final Object StartCloseSessionLock = new Object();
+    private static final int WC_COMPLETE_TIME=30*1000;   // 30 seconds     
+    private static boolean WCStartCompletePending = true;
    
     Gson gson = new GsonBuilder().create();
 
@@ -105,6 +109,34 @@ public class WC_Service {
             }
     };
 
+    public void  waitForOpenSessionToComplete()
+    {
+        synchronized(StartCloseSessionLock){
+            if( WCStartCompletePending == true )
+            {
+                try{
+                    Log.i(TAG,"WC_CloseSession: Open Session is in progress. Waiting to complete ...");
+                    StartCloseSessionLock.wait(WC_COMPLETE_TIME);
+                } catch (Exception ex) {
+                    ex.printStackTrace();
+                }
+            }
+        }
+    }
+
+    public void notfiyOpenSessionCompletion()
+    {
+        synchronized(StartCloseSessionLock)
+        {
+            WCStartCompletePending = false;
+            try {
+                StartCloseSessionLock.notify();
+            } catch (Exception ex) {
+                Log.i(TAG, "notfiyOpenSessionCompletion(): exception in Signaling Close Session: " + ex);
+                ex.printStackTrace();
+            }
+        }                            
+    }
 
     public WC_Service(CresStreamCtrl streamCtrl)
     {
@@ -146,6 +178,7 @@ public class WC_Service {
             }
             
             if (inUse.compareAndSet(false, true)) {
+                WCStartCompletePending = true;
                 mCurrentId++;
                 mCurrentUser = clientId.toLowerCase(Locale.ENGLISH).contains("IrisTX3".toLowerCase(Locale.ENGLISH)) ? "IrisTX3" : "AirMedia";
             	mStatus = new WC_Status(false, false, mCurrentId, clientId, options.nickname, options.flags);
@@ -184,6 +217,11 @@ public class WC_Service {
             if (id == mCurrentId)
             {
                 Log.i(TAG,"WC_CloseSession --> closeSession");
+                //check if WC start / client connected action is completed
+                if( inUse.get() )
+                {
+                    waitForOpenSessionToComplete();
+                }
                 if (closeSession() == 0)
                     Log.i(TAG,"WC_CloseSession: WC is not in use");
                 return 0;
@@ -255,6 +293,8 @@ public class WC_Service {
     	if (!mStatus.isClientConnected) {
     		mStatus.isClientConnected=true;
     		onStatusChanged();
+            // Indicate that the start is completed. Now any WC_CloseSession can be called. 
+            notfiyOpenSessionCompletion();         
     	}
         //showConnectionParameters("onClientConnected", mCurrentId);
     }
@@ -431,6 +471,9 @@ public class WC_Service {
         if (closeSessionInProgress.compareAndSet(false, true)) {
             rv = _closeSession();
             closeSessionInProgress.set(false);
+            // In case if there is a WC_CloseSession called while we are starting, and close session is called
+            // due to any error scenario, wake up the waiting thread so that WC_CloseSession comes out of wait loop 
+            notfiyOpenSessionCompletion();
         }
         else
             Log.w(TAG,"closeSession() ignored since closeSessionInProgress is "+closeSessionInProgress.get());
