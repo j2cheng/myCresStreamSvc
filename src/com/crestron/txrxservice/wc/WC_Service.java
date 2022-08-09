@@ -782,6 +782,14 @@ public class WC_Service {
                 camResolution = "Not Supported";
                 cameraFormatSupported = false;
                 conferencingStatus = WC_CONF_STATUS_UNAVAILABLE;
+                // AM3XX-11622 if HDMI input mode is Camera and HDMI input cable is not connected/ Sync is lost
+                // then make camera detected as false
+                // CCUI should show Camera detected as 'No'
+                // When HDMI sync is false, the videoFile is made to none in setActiveDevices(). 
+                // Due this getVideoFormats return resolution as 0x0. Fix for AM3XX-11622 is added here. 
+
+                if (mStreamCtrl.userSettings.getHdmiInMode().equalsIgnoreCase("Camera"))
+                    videoFile = false;
         }
         else
             cameraFormatSupported = true;
