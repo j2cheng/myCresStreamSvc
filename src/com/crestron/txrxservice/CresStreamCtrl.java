@@ -1340,13 +1340,6 @@ public class CresStreamCtrl extends Service {
                 } catch (NumberFormatException e) {}
                 alphaBlending = (pinpointEnabled == 1) ? true : false;
             }
-
-            // Temporary fix for forcing txrxservice allocated surfaces to be used on Mercury 
-            // because of "sluggish" behavior from eTouchScrceen apk when canvas surfaces are used
-            if (CrestronProductName.fromInteger(nativeGetProductTypeEnum()) == CrestronProductName.Mercury)
-            {
-                CresCanvas.useCanvasSurfaces = false;
-            }
             
             // AirMedia v2.1 onwards
             if (airMediav21)
