@@ -1341,6 +1341,13 @@ public class CresStreamCtrl extends Service {
                 alphaBlending = (pinpointEnabled == 1) ? true : false;
             }
 
+            // Temporary fix for forcing txrxservice allocated surfaces to be used on Mercury 
+            // because of "sluggish" behavior from eTouchScrceen apk when canvas surfaces are used
+            if (CrestronProductName.fromInteger(nativeGetProductTypeEnum()) == CrestronProductName.Mercury)
+            {
+                CresCanvas.useCanvasSurfaces = false;
+            }
+            
             // AirMedia v2.1 onwards
             if (airMediav21)
             {
@@ -4204,8 +4211,15 @@ public class CresStreamCtrl extends Service {
     
     public void setCanvasWindows()
     {
-        setWindowDimensions(0, 270, 960, 540, 0);
-        setWindowDimensions(960, 270, 960, 540, 1);
+        if (CrestronProductName.fromInteger(nativeGetProductTypeEnum()) != CrestronProductName.Mercury)
+        {
+            setWindowDimensions(0, 270, 960, 540, 0);
+            setWindowDimensions(960, 270, 960, 540, 1);
+        } else {
+            Point resolution = getDisplaySize();
+            setWindowDimensions(0, 0, resolution.x, resolution.y, 0);
+            setWindowDimensions(0, 0, resolution.x, resolution.y, 1);
+        }
     }
     
     public void showCanvasWindow(int streamId)
