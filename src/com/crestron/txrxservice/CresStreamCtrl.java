@@ -4207,11 +4207,13 @@ public class CresStreamCtrl extends Service {
         if (CrestronProductName.fromInteger(nativeGetProductTypeEnum()) != CrestronProductName.Mercury)
         {
             setWindowDimensions(0, 270, 960, 540, 0);
-            setWindowDimensions(960, 270, 960, 540, 1);
+            if (NumOfSurfaces >= 2)
+                setWindowDimensions(960, 270, 960, 540, 1);
         } else {
             Point resolution = getDisplaySize();
             setWindowDimensions(0, 0, resolution.x, resolution.y, 0);
-            setWindowDimensions(0, 0, resolution.x, resolution.y, 1);
+            if (NumOfSurfaces >= 2)
+                setWindowDimensions(0, 0, resolution.x, resolution.y, 1);
         }
     }
     
