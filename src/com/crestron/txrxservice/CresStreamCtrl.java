@@ -253,8 +253,8 @@ public class CresStreamCtrl extends Service {
     public boolean isWirelessConferencingEnabled = false;
     public boolean isWirelessConferencingLicensed = false;
     public boolean isDeviceAppSystemStateActivation = false;
-    public boolean isDeviceAppAirMediaWCStatusIsPeripheralBlocked = true;
-    public String mDevAppAirMediaWCStIsPherBlockedReason = "In Standby";
+    public boolean mDeviceAppAirMediaWCStatusIsPeripheralBlocked = true;
+    public String mDeviceAppAirMediaWCStatusIsPeripheralBlockedReason = "";
     public boolean isRGB888HDMIVideoSupported = true;
     public boolean mCanvasHdmiIsPlaying = false;
     public boolean forceSurfaceDisconnectAndRelease=false;
@@ -6558,17 +6558,17 @@ public class CresStreamCtrl extends Service {
     public void setDeviceAppAirMediaWCStatusIsPeripheralBlocked(boolean enable)
     {
         Log.i(TAG, "setDeviceAppAirMediaWCStatusIsPeripheralBlocked(): value=" + enable);
-        isDeviceAppAirMediaWCStatusIsPeripheralBlocked = enable;
+        mDeviceAppAirMediaWCStatusIsPeripheralBlocked = enable;
         if( enable == true )
         {
             //TV is off, so close any ongoing WC session
             mWC_Service.closeSession();
         }
     }
-    public void setDevAppAirMediaWCStatIsPeriBlockedReason(String reason)
+    public void setDevAppAirMediaWCStatIsPeripheralBlockedReason(String reason)
     {
         Log.i(TAG, "setDeviceAppAirMediaWCStatusIsPeripheralBlockedReason(): value=" + reason);
-        mDevAppAirMediaWCStIsPherBlockedReason = reason;
+        mDeviceAppAirMediaWCStatusIsPeripheralBlockedReason = reason;
     }
     public void stopWcServer(String user)
     {

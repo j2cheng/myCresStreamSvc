@@ -174,6 +174,39 @@ public class CanvasCrestore
             Common.Logging.i(TAG, "exception reading sources map from cresstore");
         }
 
+        // Read peripheral blocked status and reason from cresstore
+        Common.Logging.i(TAG, "Get WC Status");
+        String sDeviceAppAirMediaWCStatus = "{\"Device\":{\"App\":{\"AirMedia\":{\"WirelessConferencing\":{\"Status\":{}}}}}}";
+        try {
+            String jsonStr = wrapper.get(true, sDeviceAppAirMediaWCStatus);
+            if (jsonStr != null)
+            {
+                Log.i(TAG, "Device.App.AirMedia.WirelessConferencing.Status = "+jsonStr);
+                Status status = gson.fromJson(jsonStr, Status.class);
+                if (status != null)
+                {
+                    if (status.isPeripheralBlocked != null)
+                    {
+                        Log.i(TAG, "Device.App.AirMedia.WirelessConferencing.Status.isPeripheralBlocked : " + status.isPeripheralBlocked);
+                        mStreamCtl.setDeviceAppAirMediaWCStatusIsPeripheralBlocked(status.isPeripheralBlocked);
+                        if( status.isPeripheralBlocked  && status.PeripheralBlockedReason != null )
+                        {
+                            Log.i(TAG, "Device.App.AirMedia.WirelessConferencing.Status.PeripheralBlockedReason : " + status.PeripheralBlockedReason);
+                            mStreamCtl.setDevAppAirMediaWCStatIsPeripheralBlockedReason(status.PeripheralBlockedReason);
+                        } else {
+                            mStreamCtl.setDevAppAirMediaWCStatIsPeripheralBlockedReason("");
+                        }
+                    }
+                } else {
+                    Log.i(TAG, "Got null result for Device.App.AirMedia.WirelessConferencing.Status");
+                }
+            } else {
+                Log.i(TAG, "Could not read Device.App.AirMedia.WirelessConferencing.Status");
+            }
+        } catch (Exception ex) {
+            Common.Logging.i(TAG, "exception reading 'Device.App.AirMedia.WirelessConferencing.Status' from cresstore");
+        }
+        
         Common.Logging.i(TAG, "Clearing video displayed flag in Cresstore");
     	setVideoDisplayed(false);
 	}
@@ -1833,7 +1866,7 @@ public class CanvasCrestore
                     Log.i(TAG, "Received Device/App/AirMedia/WirelessConferencing/Status/isPeripheralBlocked : " + isPeriperalBlocked);
                     mStreamCtl.setDeviceAppAirMediaWCStatusIsPeripheralBlocked(isPeriperalBlocked);
                     if( isPeriperalBlocked == true && isPeriperalBlockedReasonStr != null )
-                        mStreamCtl.setDevAppAirMediaWCStatIsPeriBlockedReason(isPeriperalBlockedReasonStr);
+                        mStreamCtl.setDevAppAirMediaWCStatIsPeripheralBlockedReason(isPeriperalBlockedReasonStr);
                 }
                 if (root.internal != null && root.internal.tx3 != null && root.internal.tx3.airMedia != null) {
 
