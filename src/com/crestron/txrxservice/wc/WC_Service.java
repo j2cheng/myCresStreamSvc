@@ -780,7 +780,7 @@ public class WC_Service {
         else if((camResolution == null) || camResolution.startsWith("0x0")) //Occurs when video format detected is MJPG filtered here get_video_caps_from_caps
         {
                 Log.w(TAG,"getAndReportAllWCStatus: Unsupported Video format and Resolution found( wxh@fps="+camResolution+" )");
-                camResolution = "Not Supported";
+                camResolution = "None";
                 cameraFormatSupported = false;
                 conferencingStatus = WC_CONF_STATUS_UNAVAILABLE;
                 // AM3XX-11622 if HDMI input mode is Camera and HDMI input cable is not connected/ Sync is lost
