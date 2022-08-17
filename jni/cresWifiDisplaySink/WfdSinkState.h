@@ -192,7 +192,7 @@ private:
     int  getCurentTsPort() { return m_ts_Port; }
     void setCurentTsPort(int port) ;
 
-    void setMaxMiracastRate(); // set max miracast rate from parent WfdProjClass structure
+    void setMaxMiracastRate(bool isTx3); // set max miracast rate from parent WfdProjClass structure
     void setVideoResolutionDefaults();
     void setVideo2ResolutionDefaults(bool isTx3);
 

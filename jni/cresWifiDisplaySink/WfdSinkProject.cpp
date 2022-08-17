@@ -175,7 +175,8 @@ void WfdSinkProjStart(int id, const char* url, int src_rtsp_port, int ts_port,bo
 {
     if(!url) return;
 
-    CSIO_LOG(gProjectDebug, "WfdSinkProjStart: enter: id[%d], url[%s], port[%d][%d],is_mice_session[%d].",id,url,src_rtsp_port,ts_port,is_mice_session);
+    CSIO_LOG(gProjectDebug, "WfdSinkProjStart: enter: id[%d], url[%s], port[%d][%d],is_mice_session[%d], is_tx3_device[%d].",
+    id,url,src_rtsp_port,ts_port,is_mice_session,is_tx3_device);
     gProjectsLock.lock();
 
     if(gWFDSinkProjPtr)
@@ -657,7 +658,7 @@ void* wfdSinkProjClass::ThreadEntry()
                                 EvntQ.reserved[1]   = evntQPtr->reserved[1];
                                 wfdSinkStMachineClass::m_wfdSinkStMachineThreadPtr->sendEvent(&EvntQ);
 
-                                CSIO_LOG(m_debugLevel, "wfdSinkProjClass: EvntQ.reserved[%d].\n",EvntQ.reserved[0]);
+                                CSIO_LOG(m_debugLevel, "wfdSinkProjClass: EvntQ.reserved-0[%d], EvntQ.reserved-1[%d].\n",EvntQ.reserved[0],EvntQ.reserved[1]);
                             }//else
 
                             CSIO_LOG(m_debugLevel, "wfdSinkProjClass: process with existing wfdSinkStMachineClass object is done.\n");
@@ -687,7 +688,7 @@ void* wfdSinkProjClass::ThreadEntry()
                                     EvntQ.reserved[0]   = evntQPtr->reserved[0];
                                     EvntQ.reserved[1]   = evntQPtr->reserved[1];
 
-                                    CSIO_LOG(m_debugLevel, "wfdSinkProjClass: EvntQ.reserved[%d].\n",EvntQ.reserved[0]);
+                                    CSIO_LOG(m_debugLevel, "wfdSinkProjClass: EvntQ.reserved-0[%d], EvntQ.reserved-1[%d].\n",EvntQ.reserved[0],EvntQ.reserved[1]);
 
                                     wfdSinkStMachineClass::m_wfdSinkStMachineThreadPtr->sendEvent(&EvntQ);
                                 }//else
@@ -930,6 +931,30 @@ void* wfdSinkProjClass::ThreadEntry()
     m_ThreadIsRunning = 0;
 
     return NULL;
+}
+
+bool wfdSinkProjClass::updateIfMaxBitrateOverride(int minrate,int maxrate)
+{
+    CSIO_LOG(eLogLevel_verbose, "updateIfMaxBitrateOverride: enter: minrate[%d], maxrate[%d].",minrate, maxrate);
+
+    bool updated = false;
+    FILE *fbitrateOverride = fopen("/dev/shm/crestron/CresStreamSvc/bitrateoverride", "r");
+    // Check if user set MiracastBitrate override value
+    if (fbitrateOverride != NULL)
+    {
+        int bitrateOverride = maxrate;
+        fscanf(fbitrateOverride, "%d", &bitrateOverride);
+        if(bitrateOverride < minrate)
+            bitrateOverride = minrate;
+        else if(bitrateOverride > maxrate)
+            bitrateOverride = maxrate;
+        CSIO_LOG(eLogLevel_debug, "updateIfMaxBitrateOverride: max miracast bitrate override = %d\n", bitrateOverride);
+        setMaxMiracastBitrate(bitrateOverride);
+        updated = true;
+        fclose(fbitrateOverride);
+    }
+
+    return(updated);
 }
 /********** end of WfdSinkProject class, used by jni.cpp *******************/
 

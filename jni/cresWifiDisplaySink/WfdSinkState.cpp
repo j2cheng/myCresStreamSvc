@@ -198,7 +198,7 @@ m_IsTx3session(false)
 
     m_rtspParserIntfInfo.rtpPort      = m_ts_Port;
     m_rtspParserIntfInfo.rtspLogLevel = m_debugLevel;
-    setMaxMiracastRate();
+    setMaxMiracastRate(m_IsTx3session);
 
     if(g_rtspAudioCodecStr.size())
     {
@@ -375,10 +375,17 @@ void wfdSinkStMachineClass::setIsTx3Session(bool isTx3)
     m_rtspParserIntfInfo.isTx3 = isTx3;
 }
 
-void wfdSinkStMachineClass::setMaxMiracastRate()
+void wfdSinkStMachineClass::setMaxMiracastRate(bool isTx3)
 {
+    if(isTx3)
+    {
+        m_parent->setMaxMiracastBitrate(DEFAULT_MAX_TX3_MIRACAST_BITRATE);
+        CSIO_LOG(m_debugLevel, "wfdSinkStMachineClass::%s(): Tx3 maxMiracastRate[%d]\n", __FUNCTION__, m_parent->getMaxMiracastBitrate());
+    }
+
+    m_parent->updateIfMaxBitrateOverride(DEFAULT_MIN_OVERRIDE_MIRACAST_BITRATE, DEFAULT_MAX_OVERRIDE_MIRACAST_BITRATE);
 	m_rtspParserIntfInfo.maxMiracastRate = m_parent->getMaxMiracastBitrate();
-	CSIO_LOG(m_debugLevel, "wfdSinkStMachineClass::%s(): maxMiracastRate[%d]\n", __FUNCTION__, m_rtspParserIntfInfo.maxMiracastRate);
+	CSIO_LOG(m_debugLevel, "wfdSinkStMachineClass::%s(): maxMiracastRate[%d], isTx3[%d]\n", __FUNCTION__, m_rtspParserIntfInfo.maxMiracastRate, isTx3);
 }
 
 void wfdSinkStMachineClass::setVideoResolutionDefaults()
@@ -2451,6 +2458,7 @@ void* wfdSinkStMachineThread::ThreadEntry()
                                 if( evntQPtr->buf_size && evntQPtr->buffPtr)
                                 {
                                     bool isTx3 = (evntQPtr->reserved[1] == 1) ? true:false;
+                                    p->setMaxMiracastRate(isTx3);
                                     p->setVideoResolutionDefaults();
                                     p->setVideo2ResolutionDefaults(isTx3);
                                     p->setCurentSourcePort(evntQPtr->ext_obj) ;
@@ -2460,7 +2468,7 @@ void* wfdSinkStMachineThread::ThreadEntry()
                                     std::string str = (char*)evntQPtr->buffPtr;
                                     p->setCurentSourceUrl(str);
                                     p->m_setMiceSession((int)evntQPtr->reserved[0]);
-                                    CSIO_LOG(m_debugLevel, "wfdSinkStMachineThread:m_getMiceSession[%d] m_IsTx3session[%d]\n",p->m_getMiceSession(), p->getIsTx3session());
+                                    CSIO_LOG(m_debugLevel, "wfdSinkStMachineThread:m_getMiceSession[%d] m_IsTx3session[%d] isTx3[%d]\n",p->m_getMiceSession(), p->getIsTx3session(), isTx3);
 
                                     csioEventQueueStruct evntQ;
                                     memset(&evntQ,0,sizeof(csioEventQueueStruct));
@@ -2502,7 +2510,7 @@ void* wfdSinkStMachineThread::ThreadEntry()
                         {
                             wfdSinkStMachineClass* p = wfdSinkStMachineThread::m_wfdSinkStMachineTaskList[id];
                             bool isTx3 = (evntQPtr->reserved[1] == 1) ? true:false;
-                            p->setMaxMiracastRate();
+                            p->setMaxMiracastRate(isTx3);
                             p->setVideoResolutionDefaults();
                             p->setVideo2ResolutionDefaults(isTx3);
                             p->setCurentSourcePort(evntQPtr->ext_obj) ;
@@ -2512,7 +2520,7 @@ void* wfdSinkStMachineThread::ThreadEntry()
                             std::string str = (char*)evntQPtr->buffPtr;
                             p->setCurentSourceUrl(str);
                             p->m_setMiceSession((int)evntQPtr->reserved[0]);
-                            CSIO_LOG(m_debugLevel, "wfdSinkStMachineThread:m_getMiceSession[%d] m_IsTx3session[%d]\n",p->m_getMiceSession(), p->getIsTx3session());
+                            CSIO_LOG(m_debugLevel, "wfdSinkStMachineThread:m_getMiceSession[%d] m_IsTx3session[%d] isTx3[%d]\n",p->m_getMiceSession(), p->getIsTx3session(), isTx3);
 
                             csioEventQueueStruct evntQ;
                             memset(&evntQ,0,sizeof(csioEventQueueStruct));

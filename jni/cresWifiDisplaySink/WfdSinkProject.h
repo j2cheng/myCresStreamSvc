@@ -5,6 +5,9 @@
 #include "WfdSinkState.h"
 
 #define DEFAULT_MAX_MIRACAST_BITRATE (10000000)
+#define DEFAULT_MAX_TX3_MIRACAST_BITRATE (10000000)
+#define DEFAULT_MAX_OVERRIDE_MIRACAST_BITRATE (20000000)
+#define DEFAULT_MIN_OVERRIDE_MIRACAST_BITRATE (1000000)
 
 enum
 {
@@ -76,6 +79,7 @@ public:
 
     static int getMaxMiracastBitrate() { return maxMiracastBitrate; }
     static void setMaxMiracastBitrate(int maxrate) { maxMiracastBitrate = maxrate; }
+    static bool updateIfMaxBitrateOverride(int minrate,int maxrate);
 
     const char* getLocIPName(int id){return localIPName[id];}
 private:
