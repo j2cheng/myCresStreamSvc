@@ -1402,13 +1402,18 @@ JNIEXPORT void JNICALL Java_com_crestron_txrxservice_GstreamIn_nativeSetResoluti
 
     if(resolutionIndex == 0 || resolutionIndex == 1)
     {
-        value = 0;
+        value = 0;//pick the first sream
     }
-    else if(resolutionIndex == 2 || resolutionIndex == 3)
+    else if(resolutionIndex == 2)
     {
-        value = 2;
+        value = 2;//pick the second sream
     }
+    else if(resolutionIndex == 3)
+    {
+        value = 4;//pick the third sream
+    }//else
 
+    CSIO_LOG(eLogLevel_info, "Setting sessionId[%d] value to %d", sessionId, value);
     csio_jni_config_this_video_stream(sessionId,value);
     csio_jni_config_this_audio_stream(sessionId,value+1);
 }
