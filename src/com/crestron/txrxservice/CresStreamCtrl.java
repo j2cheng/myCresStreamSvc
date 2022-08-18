@@ -8295,11 +8295,4 @@ public class CresStreamCtrl extends Service {
     public void setWfd2VideoFormat(String wfd2_parms) {
         streamPlay.msMiceSetWfd2VideoFormat(wfd2_parms);
     }
-    
-    public void setAirMediaRestoreTX3()
-    {
-        final Context ctx = (Context)this;
-		Intent i = new Intent("com.crestron.irissvc.RESTORE_TX3_EVENT");
-		ctx.sendBroadcast(i);
-    }
 }

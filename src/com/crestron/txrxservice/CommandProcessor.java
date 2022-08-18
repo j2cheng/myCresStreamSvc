@@ -2498,16 +2498,6 @@ class AirMediaWifiAutoLaunchAirMediaLandingPageEnabledCommand extends CrestronCo
 	}
 }
 
-class AirMediaRestoreTx3Command extends CrestronCommand {
-	public AirMediaRestoreTx3Command(CresStreamCtrl ctrl, String arg) {
-		super(ctrl, arg);
-	}	
-	public void execute() {
-		ctrl.setAirMediaRestoreTX3();
-	}
-	// No feedback
-}
-
 class camStreamEnableCommand extends CrestronCommand {
 	public camStreamEnableCommand(CresStreamCtrl ctrl, String arg) {
 		super(ctrl, arg);
