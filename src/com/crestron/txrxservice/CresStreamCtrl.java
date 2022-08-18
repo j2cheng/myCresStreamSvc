@@ -1153,6 +1153,12 @@ public class CresStreamCtrl extends Service {
                 Log.i(TAG, "Enabling RGB888 because we are NOT in Teams video mode");
             }
 
+            if (CrestronProductName.fromInteger(nativeGetProductTypeEnum()) == CrestronProductName.Mercury)
+            {
+                setRgb888Mode(true);
+                Log.i(TAG, "Enabling RGB888 on Mercury always for test build");
+            }
+            
             // Product table
             switch (CrestronProductName.fromInteger(nativeGetProductTypeEnum()))
             {
