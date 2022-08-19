@@ -2042,21 +2042,6 @@ public class CresStreamCtrl extends Service {
                 {
                     dontStart = MiscUtils.readStringFromDisk(dontStartAirMediaFilePath).equals("1");
                 }
-                
-                String systemMode = MiscUtils.readStringFromDisk("/sdcard/ROMDISK/User/systemmode");
-                Log.d(TAG, "Current system mode is '" + systemMode + "'");
-                if (systemMode.contains("rigel"))
-                {
-                    Log.i(TAG, "Keeping airmedia disable in teamsvideo/zoom mode");
-                    dontStart = true;
-                    
-                    //Restart CSIO
-                    //stop csiod
-                    //start csiod
-                    
-                    //Restart CSS (CresStreamSvc) service
-                    //kill $(ps | grep 'com.crestron.txrxservice' | awk '{print $2}')
-                }
             	
                 //Note: 4-14-2021, need to start AirMediaCanvas even not licensed
                 if (mAirMedia == null && !golden && !dontStart){
