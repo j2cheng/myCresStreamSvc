@@ -1153,11 +1153,7 @@ public class CresStreamCtrl extends Service {
                 Log.i(TAG, "Enabling RGB888 because we are NOT in Teams video mode");
             }
 
-            if (CrestronProductName.fromInteger(nativeGetProductTypeEnum()) == CrestronProductName.Mercury)
-            {
-                setRgb888Mode(true);
-                Log.i(TAG, "Enabling RGB888 on Mercury always for test build");
-            }
+
             
             // Product table
             switch (CrestronProductName.fromInteger(nativeGetProductTypeEnum()))
@@ -1345,6 +1341,14 @@ public class CresStreamCtrl extends Service {
                     pinpointEnabled = Integer.parseInt(MiscUtils.readStringFromDisk(pinpointEnabledFilePath));
                 } catch (NumberFormatException e) {}
                 alphaBlending = (pinpointEnabled == 1) ? true : false;
+            }
+            
+            // Fix for forcing txrxservice allocated surfaces to be used on Mercury in rigel mode
+            // because of "sluggish" behavior from eTouchScrceen apk when canvas surfaces are used
+            if ((CrestronProductName.fromInteger(nativeGetProductTypeEnum()) == CrestronProductName.Mercury) && systemMode.contains("rigel"))
+            {
+                Log.i(TAG, "On Mercury don't use canvas surfaces in Teams/Zoom mode");
+                CresCanvas.useCanvasSurfaces = false;
             }
             
             // AirMedia v2.1 onwards
