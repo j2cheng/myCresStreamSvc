@@ -1345,7 +1345,8 @@ public class CresStreamCtrl extends Service {
             
             // Fix for forcing txrxservice allocated surfaces to be used on Mercury in rigel mode
             // because of "sluggish" behavior from eTouchScrceen apk when canvas surfaces are used
-            if ((CrestronProductName.fromInteger(nativeGetProductTypeEnum()) == CrestronProductName.Mercury) && systemMode.contains("rigel"))
+            File f = new File("/data/CresStreamSvc/useCanvasSurfaces");
+            if (!f.exists() && (CrestronProductName.fromInteger(nativeGetProductTypeEnum()) == CrestronProductName.Mercury) && systemMode.contains("rigel"))
             {
                 Log.i(TAG, "On Mercury don't use canvas surfaces in Teams/Zoom mode");
                 CresCanvas.useCanvasSurfaces = false;
