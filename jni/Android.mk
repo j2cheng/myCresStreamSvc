@@ -4,19 +4,25 @@ LOCAL_PATH := $(call my-dir)
 # /system/lib
 ########################
 include $(CLEAR_VARS)
-ifeq ($(TARGET_PRODUCT),$(filter $(TARGET_PRODUCT),msm8953_64 am3x00_box))
+ifeq ($(TARGET_PRODUCT),$(filter $(TARGET_PRODUCT),msm8953_64 am3x00_box lahaina))
 LOCAL_MULTILIB := 32
 LOCAL_MODULE_PATH  := $(TARGET_OUT_VENDOR)/lib/
 endif
 LOCAL_MODULE := libgstreamer_android
 LOCAL_MODULE_CLASS := SHARED_LIBRARIES
+ifneq ($(shell test $(PLATFORM_SDK_VERSION) -ge 30 && echo Android12),Android12)
 LOCAL_MODULE_TAGS := eng
+endif
 LOCAL_SRC_FILES := ./gstreamer_android/libgstreamer_android.so
 LOCAL_MODULE_SUFFIX := .so
 include $(BUILD_PREBUILT)
 
+
+# Temporarily blocking the build
+ifneq ($(TARGET_PRODUCT),$(filter $(TARGET_PRODUCT),lahaina))
+
 include $(CLEAR_VARS)
-ifeq ($(TARGET_PRODUCT),$(filter $(TARGET_PRODUCT),msm8953_64 am3x00_box))
+ifeq ($(TARGET_PRODUCT),$(filter $(TARGET_PRODUCT),msm8953_64 am3x00_box lahaina))
 LOCAL_MULTILIB := 32
 LOCAL_MODULE_PATH  := $(TARGET_OUT_VENDOR)/lib/
 
@@ -116,6 +122,8 @@ LOCAL_SHARED_LIBRARIES += libstlport
 LOCAL_SHARED_LIBRARIES += libSecureStorage
 endif
 
+#LOCAL_CFLAGS += -DMULTI_STREAM
+
 # tinyalsa needed on am3x00 for wireless conferencing RTSP server
 ifeq ($(TARGET_PRODUCT),$(filter $(TARGET_PRODUCT),am3x00_box))
 LOCAL_CFLAGS += -DHAS_TINYALSA -DHAS_V4L2
@@ -160,7 +168,7 @@ ifeq ($(shell test $(PLATFORM_SDK_VERSION) -lt 23 && echo PreMarshmallow),PreMar
 	LOCAL_CFLAGS += -I$(STL_INC_PATH)
 endif
 
-ifeq ($(TARGET_PRODUCT),$(filter $(TARGET_PRODUCT),yushan_one msm8953_64 am3x00_box ))
+ifeq ($(TARGET_PRODUCT),$(filter $(TARGET_PRODUCT),yushan_one msm8953_64 am3x00_box lahaina))
 LOCAL_CFLAGS += -DBIONIC_HAS_STPCPY
 LOCAL_CFLAGS += -Wno-unused-parameter
 endif
@@ -184,7 +192,9 @@ LOCAL_CFLAGS += -DSupportsHDCPEncryption
 LOCAL_CFLAGS += -DMAX_STREAMS_OMAP
 endif
 
+ifneq ($(shell test $(PLATFORM_SDK_VERSION) -ge 30 && echo Android12),Android12)
 LOCAL_MODULE_TAGS := eng
+endif
 LOCAL_PRELINK_MODULE := false
 include $(BUILD_SHARED_LIBRARY)
 
@@ -204,7 +214,7 @@ include $(BUILD_SHARED_LIBRARY)
 
 ### library for CresStreamCtrl jni functions
 include $(CLEAR_VARS)
-ifeq ($(TARGET_PRODUCT),$(filter $(TARGET_PRODUCT),msm8953_64 am3x00_box))
+ifeq ($(TARGET_PRODUCT),$(filter $(TARGET_PRODUCT),msm8953_64 am3x00_box lahaina))
 LOCAL_MULTILIB := 32
 LOCAL_MODULE_PATH  := $(TARGET_OUT_VENDOR)/lib/
 endif
@@ -256,7 +266,7 @@ LOCAL_CFLAGS +=\
 endif
 # AM Logic #
 # For now just use the txrx code.  Move this out if needed
-ifeq ($(TARGET_PRODUCT),$(filter $(TARGET_PRODUCT),yushan_one msm8953_64 am3x00_box))
+ifeq ($(TARGET_PRODUCT),$(filter $(TARGET_PRODUCT),yushan_one msm8953_64 am3x00_box lahaina))
 LOCAL_CFLAGS +=\
 	-I$(CSIO_INCLUDE_ROOT)/txrx 
 endif	
@@ -280,6 +290,10 @@ LOCAL_SHARED_LIBRARIES += libSecureStorage
 
 LOCAL_SRC_FILES := cresstreamctrl_jni.cpp
 
+ifneq ($(shell test $(PLATFORM_SDK_VERSION) -ge 30 && echo Android12),Android12)
 LOCAL_MODULE_TAGS := eng
+endif
 LOCAL_PRELINK_MODULE := false
 include $(BUILD_SHARED_LIBRARY)
+
+endif

@@ -1,7 +1,13 @@
 LOCAL_PATH:= $(call my-dir)
 include $(CLEAR_VARS)
 
+
+# Temporarily blocking the build
+ifneq ($(TARGET_PRODUCT),$(filter $(TARGET_PRODUCT),lahaina))
+
+ifneq ($(shell test $(PLATFORM_SDK_VERSION) -ge 30 && echo Android12),Android12)
 LOCAL_MODULE_TAGS := eng
+endif
 
 LOCAL_PROGUARD_ENABLED := disabled
 
@@ -31,7 +37,7 @@ LOCAL_SHARED_LIBRARIES := libgstreamer_jni
 LOCAL_STATIC_JAVA_LIBRARIES := gson
 LOCAL_STATIC_JAVA_LIBRARIES += CresStoreJsonJNI
 
-ifeq ($(TARGET_PRODUCT),$(filter $(TARGET_PRODUCT),msm8953_64))
+ifeq ($(TARGET_PRODUCT),$(filter $(TARGET_PRODUCT),msm8953_64 lahaina))
 	LOCAL_MULTILIB := 32
 	LOCAL_MODULE_PATH := $(TARGET_OUT_VENDOR)/priv-app
 
@@ -47,25 +53,25 @@ ifeq ($(TARGET_PRODUCT),$(filter $(TARGET_PRODUCT),msm8953_64))
 	LOCAL_PREBUILT_JNI_LIBS_arm += /../../../${PRODUCT_OUT}/vendor/lib/libCsioProdInfo.so
 	
 	LOCAL_STATIC_JAVA_LIBRARIES += \
-        droideic \
         android-support-v4 \
         android-support-v7-appcompat \
         android-support-design
+
+ifneq ($(TARGET_PRODUCT),$(filter $(TARGET_PRODUCT),lahaina))
+        LOCAL_STATIC_JAVA_LIBRARIES += droideic
+	LOCAL_AAPT_FLAGS += --extra-packages com.droideic.app
+endif
 ifeq ($(shell test $(PLATFORM_SDK_VERSION) -ge 29 && echo Android10),Android10)
     LOCAL_PRIVATE_PLATFORM_APIS := true
 else
     LOCAL_JNI_SHARED_LIBRARIES := libdisplaysetting
 endif
-    
-
 	LOCAL_PROGUARD_ENABLED := disabled
 	
 	LOCAL_AAPT_FLAGS += \
         --auto-add-overlay \
         --extra-packages android.support.v7.appcompat \
-        --extra-packages android.support.design \
-        --extra-packages com.droideic.app
-
+        --extra-packages android.support.design
 endif
 
 ifeq ($(TARGET_PRODUCT),$(filter $(TARGET_PRODUCT), am3x00_box))
@@ -100,7 +106,7 @@ ifeq ($(TARGET_PRODUCT),$(filter $(TARGET_PRODUCT), am3x00_box))
         --extra-packages com.droideic.app
 endif
 
-ifeq ($(TARGET_PRODUCT),$(filter $(TARGET_PRODUCT),yushan_one full_omap5panda msm8953_64 am3x00_box))
+ifeq ($(TARGET_PRODUCT),$(filter $(TARGET_PRODUCT),yushan_one full_omap5panda msm8953_64 am3x00_box lahaina))
 include $(BUILD_PACKAGE)
 include $(LOCAL_PATH)/jni/Android.mk
 
@@ -113,4 +119,4 @@ endif
 include $(BUILD_MULTI_PREBUILT)
 endif
 
-
+endif
