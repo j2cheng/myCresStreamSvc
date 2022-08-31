@@ -585,14 +585,18 @@ public class ProductSpecific
         {
             try
             {
-                usbDeviceListLock.tryLock(USB_DEVICELIST_LOCK_WAITTIME, TimeUnit.MILLISECONDS);
+                if (!usbDeviceListLock.tryLock(USB_DEVICELIST_LOCK_WAITTIME, TimeUnit.MILLISECONDS))
+                {
+                    Log.i(TAG, "onUsbStatusChanged(): timed out trying to get usbDeviceListLock - restarting txrxservice");
+                    android.os.Process.killProcess(android.os.Process.myPid());
+                }
 
                 //Always start afresh
                 List<UsbAvDevice> dl = findUsbDevices(usbId);
                 if (dl != null) {
                     for (UsbAvDevice d : dl)
                     {
-                        Log.i(TAG, "UsbAudioVideoDeviceRemoved(): USB device "+d.deviceName+" removed from "+d.usbPortType);
+                        Log.i(TAG, "onUsbStatusChanged(): USB device "+d.deviceName+" removed from "+d.usbPortType+" - clearing list in order to build afresh");
                         usbDeviceList.remove(d);
                     }
                 }
@@ -668,7 +672,11 @@ public class ProductSpecific
                 @Override
                 public void run() {
                     try {
-                        usbDeviceListLock.tryLock(USB_DEVICELIST_LOCK_WAITTIME, TimeUnit.MILLISECONDS);
+                        if (!usbDeviceListLock.tryLock(USB_DEVICELIST_LOCK_WAITTIME, TimeUnit.MILLISECONDS))
+                        {
+                            Log.i(TAG, "onUsbStatusChanged(): timed out trying to get usbDeviceListLock during debounce - restarting txrxservice");
+                            android.os.Process.killProcess(android.os.Process.myPid());
+                        }
                         cresStreamCtrl.onUsbStatusChanged(usbDeviceList, usbUnplugEvent);
                     }
                     catch (Exception e) { e.printStackTrace(); }
