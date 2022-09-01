@@ -769,7 +769,8 @@ public class WC_Service {
 
         for (WC_VideoFormat vFormats : mVideoFormats)
         {
-            camResolution = vFormats.width+"x"+vFormats.height+"@"+vFormats.fps;
+            //AM3XX-12356: fps need not be displayed by CCUI. Hence fps is not appended.
+            camResolution = vFormats.width+"x"+vFormats.height;
         }
 
         if(!videoFile)
