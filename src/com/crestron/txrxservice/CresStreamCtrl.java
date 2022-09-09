@@ -255,6 +255,7 @@ public class CresStreamCtrl extends Service {
     public boolean isDeviceAppSystemStateActivation = false;
     public boolean mDeviceAppAirMediaWCStatusIsPeripheralBlocked = true;
     public String mDeviceAppAirMediaWCStatusIsPeripheralBlockedReason = "";
+    public boolean mDeviceAppConfigRunTimeSettingsIsHdmiInputEnabled = true;
     public boolean isRGB888HDMIVideoSupported = true;
     public boolean mCanvasHdmiIsPlaying = false;
     public boolean forceSurfaceDisconnectAndRelease=false;
@@ -6561,6 +6562,11 @@ public class CresStreamCtrl extends Service {
             mWC_Service.closeSession();
         }
     }
+    public void setDeviceAppConfigRunTimeSettingsIsHdmiInputEnabled(boolean enable)
+    {
+        Log.i(TAG, "setDeviceAppConfigRunTimeSettingsIsHdmiInputEnabled(): value=" + enable);
+        mDeviceAppConfigRunTimeSettingsIsHdmiInputEnabled = enable;
+    }    
     public void setDevAppAirMediaWCStatIsPeripheralBlockedReason(String reason)
     {
         Log.i(TAG, "setDeviceAppAirMediaWCStatusIsPeripheralBlockedReason(): value=" + reason);

@@ -156,6 +156,8 @@ public class WC_Service {
             Log.i(TAG,"WC_OpenSession: WC Enabled="+ mStreamCtrl.isWirelessConferencingEnabled +
                         ", PeripheralBlocked State=" +  mStreamCtrl.mDeviceAppAirMediaWCStatusIsPeripheralBlocked + 
                         ", PeripheralBlocked Reason=" +  mStreamCtrl.mDeviceAppAirMediaWCStatusIsPeripheralBlockedReason +
+                        ", HDMI input mode=" + mStreamCtrl.userSettings.getHdmiInMode().equalsIgnoreCase("Camera") +
+                        ", HDMI input enabled= " + mStreamCtrl.mDeviceAppConfigRunTimeSettingsIsHdmiInputEnabled +
                         " request from clientId="+clientId+" options="+options);
 
              //Accept open session only if WirelessConferencing is enabled
@@ -165,6 +167,15 @@ public class WC_Service {
                     ((!mStreamCtrl.isWirelessConferencingEnabled)            || 
                      (mStreamCtrl.mDeviceAppAirMediaWCStatusIsPeripheralBlocked == true)))
                 return ERROR_WC_SERVICE_UNAVAILABLE;
+
+            if ( mStreamCtrl.userSettings.getHdmiInMode().equalsIgnoreCase("Camera") && 
+                mStreamCtrl.mDeviceAppConfigRunTimeSettingsIsHdmiInputEnabled == false 
+                )
+            {
+                // if HDMI input is camera mode and HDMI input is disabled, do not start the WC
+                Log.w(TAG,"WC_OpenSession: HDMI input/camera is disabled, WC is not allowed");
+                return ERROR_WC_SERVICE_UNAVAILABLE;
+            }
 
             if ((mUsbDevices==null) || (mUsbDevices.devices.size() == 0)) {
                 return ERROR_NO_USB_DEVICES;
@@ -615,7 +626,8 @@ public class WC_Service {
     	        usbDeviceList.add(dev);
     	    }
     	}
-        if (mStreamCtrl.userSettings.getHdmiInMode().equalsIgnoreCase("Camera"))
+        if ( mStreamCtrl.userSettings.getHdmiInMode().equalsIgnoreCase("Camera")
+            && mStreamCtrl.mDeviceAppConfigRunTimeSettingsIsHdmiInputEnabled == true )
         {
             boolean haveHdmiSync = mStreamCtrl.getHDMIInSyncStatus().equalsIgnoreCase("true");
             hdmiCameraDevice = new WC_UsbDevice("hdmi", "hdmi-device", "HDMI camera", haveHdmiSync, false, new java.util.HashMap<String,String>());
@@ -796,6 +808,17 @@ public class WC_Service {
         else
             cameraFormatSupported = true;
 
+        // if HDMI input is camera and we have disabled HDMI input then do display camera parameters and 
+        // disable conferencing. It overides if there is any USB camera connected
+        if (mStreamCtrl.userSettings.getHdmiInMode().equalsIgnoreCase("Camera")
+                && mStreamCtrl.mDeviceAppConfigRunTimeSettingsIsHdmiInputEnabled == false )
+        {
+            Log.w(TAG,"getAndReportAllWCStatus: HDMI input is disabled and HDMI input is camera mode, so not reporting Camera details");
+            videoFile = false;
+            camResolution = "None";
+            cameraFormatSupported = false;
+            conferencingStatus = WC_CONF_STATUS_UNAVAILABLE;
+        }
         setSpeakerDetectedStatus();
 
         if((videoFile || audioFile) && conferencingStatus != WC_CONF_STATUS_IN_USE)

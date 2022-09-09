@@ -206,6 +206,34 @@ public class CanvasCrestore
         } catch (Exception ex) {
             Common.Logging.i(TAG, "exception reading 'Device.App.AirMedia.WirelessConferencing.Status' from cresstore");
         }
+
+        //Read HDMI input from crestore. 
+        String sDeviceAppConfigRunTimeSettings = "{\"Device\":{\"App\":{\"Config\":{\"RunTimeSettings\":{}}}}}";
+        try {
+            String jsonStr = wrapper.get(true, sDeviceAppConfigRunTimeSettings);
+            if (jsonStr != null)
+            {
+                Log.i(TAG, "Device.App.Config.RunTimeSettings = "+jsonStr);
+                RunTimeSettings runTimeSettings = gson.fromJson(jsonStr, RunTimeSettings.class);
+                if (runTimeSettings != null)
+                {
+                    if (runTimeSettings.IsHdmiInputEnabled != null)
+                    {
+                        Log.i(TAG, "Device.App.Config.RunTimeSettings.IsHdmiInputEnabled : " + runTimeSettings.IsHdmiInputEnabled);
+                        mStreamCtl.setDeviceAppConfigRunTimeSettingsIsHdmiInputEnabled(runTimeSettings.IsHdmiInputEnabled);
+                    }
+                }
+                else {
+                    Log.i(TAG, "Could not read Device.App.Config.RunTimeSettings.IsHdmiInputEnabled");
+                }
+
+            } else {
+                Log.i(TAG, "Could not read Device.App.Config.RunTimeSettings");
+            }
+        } catch (Exception ex) {
+            Common.Logging.i(TAG, "exception reading 'Device.App.Config.RunTimeSettings.IsHdmiInputEnabled' from cresstore");
+        }
+
         
         Common.Logging.i(TAG, "Clearing video displayed flag in Cresstore");
     	setVideoDisplayed(false);
@@ -2677,6 +2705,9 @@ public class CanvasCrestore
 
         @SerializedName ("AirMedia")
         AVFAirMedia airMedia;        
+
+        @SerializedName ("Config")
+        Config config;        
     }
     
     public class System {
@@ -2704,6 +2735,15 @@ public class CanvasCrestore
         @SerializedName ("PeripheralBlockedReason")
         String PeripheralBlockedReason;
     }
+    public class Config{
+        @SerializedName ("RunTimeSettings")
+        RunTimeSettings runTimeSettings;
+    }
+    public class RunTimeSettings{
+        @SerializedName ("IsHdmiInputEnabled")
+        Boolean IsHdmiInputEnabled;
+    }
+        
         
     public class Root {
         @SerializedName ("Device")
