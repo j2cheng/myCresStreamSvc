@@ -77,10 +77,13 @@ static void *gst_pipeline_data_flow_check(void *args)
         ret = waitForDataFlowSignal(cresRTSPMedia, FIVE_SECONDS);
         if( ret == false )
         {
+
             //streaming data is not flowing. Something went wrong. Restart WC
             // quit loop to trigger restart
-            cresRTSPMedia->m_restart = true;
-            g_main_loop_quit(cresRTSPMedia->m_loop);
+            
+            // currently disabled as it is noticed that the signal from the pipeline some times takes around 12 seconds
+            //cresRTSPMedia->m_restart = true;
+            //g_main_loop_quit(cresRTSPMedia->m_loop);
             GST_ERROR_OBJECT(cresRTSPMedia, "Data is not flowing in the pipeline, so restarting WC");
             break;
         }
