@@ -6552,6 +6552,7 @@ public class CresStreamCtrl extends Service {
         Log.i(TAG, "setDeviceAppSystemStateActivation(): value=" + enable);
         isDeviceAppSystemStateActivation = enable;
     }
+    
     public void setDeviceAppAirMediaWCStatusIsPeripheralBlocked(boolean enable)
     {
         Log.i(TAG, "setDeviceAppAirMediaWCStatusIsPeripheralBlocked(): value=" + enable);
@@ -6562,16 +6563,23 @@ public class CresStreamCtrl extends Service {
             mWC_Service.closeSession();
         }
     }
+    
     public void setDeviceAppConfigRunTimeSettingsIsHdmiInputEnabled(boolean enable)
     {
         Log.i(TAG, "setDeviceAppConfigRunTimeSettingsIsHdmiInputEnabled(): value=" + enable);
         mDeviceAppConfigRunTimeSettingsIsHdmiInputEnabled = enable;
-    }    
+        // update device list and its reporting in case it needs to be updated
+        if (mWC_Service != null && userSettings.getHdmiInMode().equalsIgnoreCase("Camera")) {
+            mWC_Service.updateWcCamera();
+        }
+    }
+    
     public void setDevAppAirMediaWCStatIsPeripheralBlockedReason(String reason)
     {
         Log.i(TAG, "setDeviceAppAirMediaWCStatusIsPeripheralBlockedReason(): value=" + reason);
         mDeviceAppAirMediaWCStatusIsPeripheralBlockedReason = reason;
     }
+    
     public void stopWcServer(String user)
     {
         if (mWC_Service != null)

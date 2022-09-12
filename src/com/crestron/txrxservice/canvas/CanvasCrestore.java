@@ -217,10 +217,10 @@ public class CanvasCrestore
                 RunTimeSettings runTimeSettings = gson.fromJson(jsonStr, RunTimeSettings.class);
                 if (runTimeSettings != null)
                 {
-                    if (runTimeSettings.IsHdmiInputEnabled != null)
+                    if (runTimeSettings.isHdmiInputEnabled != null)
                     {
-                        Log.i(TAG, "Device.App.Config.RunTimeSettings.IsHdmiInputEnabled : " + runTimeSettings.IsHdmiInputEnabled);
-                        mStreamCtl.setDeviceAppConfigRunTimeSettingsIsHdmiInputEnabled(runTimeSettings.IsHdmiInputEnabled);
+                        Log.i(TAG, "Device.App.Config.RunTimeSettings.IsHdmiInputEnabled : " + runTimeSettings.isHdmiInputEnabled);
+                        mStreamCtl.setDeviceAppConfigRunTimeSettingsIsHdmiInputEnabled(runTimeSettings.isHdmiInputEnabled);
                     }
                 }
                 else {
@@ -330,6 +330,18 @@ public class CanvasCrestore
             Common.Logging.i(TAG,"Successfully subscribed to " + sDeviceAppAirMediaWCStatus);
         }
 
+        //subscribe to Device.App.Config.RunTimeSettings
+        // RunTimeSettings object has IsHdmiInputEnabled field
+        String sDeviceAppConfigRunTimeSettings = "{\"Device\":{\"App\":{\"Config\":{\"RunTimeSettings\":{}}}}}";
+        rv = wrapper.subscribeCallback(sDeviceAppConfigRunTimeSettings, crestoreCallback);
+        if (rv != com.crestron.cresstoreredis.CresStoreResult.CRESSTORE_SUCCESS)
+        {
+            Common.Logging.i(TAG,"Could not set up Crestore Callback for subscription to " + sDeviceAppConfigRunTimeSettings +": " + rv);
+            return false;
+        } else {
+            Common.Logging.i(TAG,"Successfully subscribed to " + sDeviceAppConfigRunTimeSettings);
+        }
+        
         //subscribe to Internal.Tx3.AirMedia.WFDfDebug
         String sInternalTx3AirMediaWFDfDebug = "{\"Pending\":{\"Internal\":{\"Tx3\":{\"AirMedia\":{\"WFDfDebug\":{}}}}}}";
         rv = wrapper.subscribeCallback(sInternalTx3AirMediaWFDfDebug, crestoreCallback);
@@ -1896,6 +1908,12 @@ public class CanvasCrestore
                     if( isPeriperalBlocked == true && isPeriperalBlockedReasonStr != null )
                         mStreamCtl.setDevAppAirMediaWCStatIsPeripheralBlockedReason(isPeriperalBlockedReasonStr);
                 }
+                if (root != null && root.device != null && root.device.app != null && root.device.app.config != null && root.device.app.config.runTimeSettings != null
+                        && root.device.app.config.runTimeSettings.isHdmiInputEnabled != null ) {
+                    Boolean isHdmiInputEnabled = root.device.app.config.runTimeSettings.isHdmiInputEnabled;
+                    Log.i(TAG, "Received Device/App/Config/RunTimeSettings/IsHdmiInputEnabled : " + isHdmiInputEnabled);
+                    mStreamCtl.setDeviceAppConfigRunTimeSettingsIsHdmiInputEnabled(isHdmiInputEnabled);
+                }
                 if (root.internal != null && root.internal.tx3 != null && root.internal.tx3.airMedia != null) {
 
                     if (root.internal.tx3.airMedia.wiFiDirect != null) {
@@ -2741,7 +2759,7 @@ public class CanvasCrestore
     }
     public class RunTimeSettings{
         @SerializedName ("IsHdmiInputEnabled")
-        Boolean IsHdmiInputEnabled;
+        Boolean isHdmiInputEnabled;
     }
         
         

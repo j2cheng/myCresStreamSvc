@@ -168,14 +168,14 @@ public class WC_Service {
                      (mStreamCtrl.mDeviceAppAirMediaWCStatusIsPeripheralBlocked == true)))
                 return ERROR_WC_SERVICE_UNAVAILABLE;
 
-            if ( mStreamCtrl.userSettings.getHdmiInMode().equalsIgnoreCase("Camera") && 
-                mStreamCtrl.mDeviceAppConfigRunTimeSettingsIsHdmiInputEnabled == false 
-                )
-            {
-                // if HDMI input is camera mode and HDMI input is disabled, do not start the WC
-                Log.w(TAG,"WC_OpenSession: HDMI input/camera is disabled, WC is not allowed");
-                return ERROR_WC_SERVICE_UNAVAILABLE;
-            }
+//            if ( mStreamCtrl.userSettings.getHdmiInMode().equalsIgnoreCase("Camera") && 
+//                mStreamCtrl.mDeviceAppConfigRunTimeSettingsIsHdmiInputEnabled == false 
+//                )
+//            {
+//                // if HDMI input is camera mode and HDMI input is disabled, do not start the WC
+//                Log.w(TAG,"WC_OpenSession: HDMI input/camera is disabled, WC is not allowed");
+//                return ERROR_WC_SERVICE_UNAVAILABLE;
+//            }
 
             if ((mUsbDevices==null) || (mUsbDevices.devices.size() == 0)) {
                 return ERROR_NO_USB_DEVICES;
@@ -626,8 +626,7 @@ public class WC_Service {
     	        usbDeviceList.add(dev);
     	    }
     	}
-        if ( mStreamCtrl.userSettings.getHdmiInMode().equalsIgnoreCase("Camera")
-            && mStreamCtrl.mDeviceAppConfigRunTimeSettingsIsHdmiInputEnabled == true )
+        if ( mStreamCtrl.userSettings.getHdmiInMode().equalsIgnoreCase("Camera"))
         {
             boolean haveHdmiSync = mStreamCtrl.getHDMIInSyncStatus().equalsIgnoreCase("true");
             hdmiCameraDevice = new WC_UsbDevice("hdmi", "hdmi-device", "HDMI camera", haveHdmiSync, false, new java.util.HashMap<String,String>());
@@ -703,7 +702,7 @@ public class WC_Service {
     	}
     	if (hdmiCamera != null)
     	{
-    	    videoFile = hdmiCamera.hasVideo ? "/dev/video0" : "none";
+    	    videoFile = (hdmiCamera.hasVideo && mStreamCtrl.mDeviceAppConfigRunTimeSettingsIsHdmiInputEnabled == true) ? "/dev/video0" : "none";
     	    //audioFile = "/dev/snd/pcmC2D0c"; // uncomment if HDMI input audio is to be used
     	}
     	
@@ -817,7 +816,7 @@ public class WC_Service {
             videoFile = false;
             camResolution = "None";
             cameraFormatSupported = false;
-            conferencingStatus = WC_CONF_STATUS_UNAVAILABLE;
+            //conferencingStatus = WC_CONF_STATUS_UNAVAILABLE;
         }
         setSpeakerDetectedStatus();
 
