@@ -6,6 +6,8 @@
 
 #ifdef HAS_V4L2
 
+int read_int_from_file(const char *filePath, int defaultValue);
+
 #if 0
 static gboolean
 print_structure_field (GQuark field_id, const GValue * value,
@@ -274,7 +276,7 @@ int get_video_caps(char *device_name, VideoCaps *video_caps, char *display_name,
             video_caps->w = res_x;
             video_caps->h = res_y;
         }
-        video_caps->frame_rate_num = 60; // Note selecting 60 fps here since we code at that rate or below but it could be even 60 fps for HDMI
+        video_caps->frame_rate_num = read_int_from_file("/dev/shm/crestron/CresStreamSvc/wc/hdmicapturerate", 15);
         video_caps->frame_rate_den = 1;
        
         // AM3XX-10328: Below code changes is done for /dev/video0 not to affect other /dev/video*  

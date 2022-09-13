@@ -71,7 +71,7 @@ static void cb_queueUnderruns(void *queue, gpointer user_data);
 static void cb_vidEncQueueOverruns(void *queue, gpointer user_data);
 static void cb_vidEncQueueUnderruns(void *queue, gpointer user_data);
 
-static int read_int_from_file(const char *filePath, int defaultValue)
+int read_int_from_file(const char *filePath, int defaultValue)
 {
     FILE * file;
     int rv = defaultValue;
