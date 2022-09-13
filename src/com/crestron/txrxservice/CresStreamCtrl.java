@@ -6369,6 +6369,9 @@ public class CresStreamCtrl extends Service {
     
     public void switchHdmiInMode()
     {
+        // update HDMI and camera sync via csio
+        if (isAM3K)
+            sockTask.SendDataToAllClients("hdmiin_sync_detected=" + hdmiInput.getSyncStatus());
         // stop WC presentation if ongoing
         mWC_Service.stopServer(null);
         if (userSettings.getHdmiInMode().equalsIgnoreCase("Camera"))
