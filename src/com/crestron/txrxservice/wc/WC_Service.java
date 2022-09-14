@@ -571,9 +571,16 @@ public class WC_Service {
             boolean hdmiSync = (mStreamCtrl.getHDMIInSyncStatus().equalsIgnoreCase("true") ? true : false);
             if (mPreviousHdmiSync == null || mPreviousHdmiSync != hdmiSync)
             {
-                Log.i(TAG,"hdmiSyncStateUpdate sync changed from "+mPreviousHdmiSync+" to "+hdmiSync);
-                updateWcCamera();
+                Log.i(TAG,"hdmiSyncStateUpdate(): sync changed from "+mPreviousHdmiSync+" to "+hdmiSync);
                 mPreviousHdmiSync = hdmiSync;
+                // if hdmi input sync changes and we are in camera mode stop any existing WC session by stopping the server
+                // if we gained sync we could be in audio only call and we still need to stop and update devices to indicate
+                // that both audio and video are now available
+                // if we lost sync we want to stop existing call if and update devices to indicate that now audio only may be
+                // available
+                Log.i(TAG, "hdmiSyncStateUpdate(): stop WC server, HDMI input sync changed in HDMI camera mode!!!");
+                stopServer(null);
+                updateWcCamera();
             }
         }
     }
