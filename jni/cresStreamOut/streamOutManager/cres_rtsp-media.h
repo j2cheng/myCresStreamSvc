@@ -30,9 +30,9 @@ struct CresRTSPMedia
   GMainLoop *  m_loop;
   bool m_restart;
   pthread_t dataFlowMonitorThreadID;
-  pthread_cond_t gstCondWait;
-  pthread_mutex_t gstCondLock;  
   bool threadActive;
+  unsigned long long prevEncFrameCount;
+  unsigned long long currEncFrameCount;
 };
 
 GType cres_rtsp_media_get_type (void);

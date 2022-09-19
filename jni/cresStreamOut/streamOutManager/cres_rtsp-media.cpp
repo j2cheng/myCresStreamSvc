@@ -47,46 +47,42 @@ cres_rtsp_media_init (CresRTSPMedia * media)
     media->m_restart = false;
 
     media->dataFlowMonitorThreadID = 0;
-    pthread_cond_init(&media->gstCondWait, NULL);
-    pthread_mutex_init(&media->gstCondLock, NULL);
 }
 
-#define FIVE_SECONDS 5
-bool waitForDataFlowSignal(CresRTSPMedia * cresRTSPMedia, int waitingTime)
-{
-    struct timespec currTime;
-    bool ret = true;
-
-    clock_gettime(CLOCK_REALTIME, &currTime);
-    currTime.tv_sec += waitingTime;
-
-    pthread_mutex_lock(&cresRTSPMedia->gstCondLock);
-    if( pthread_cond_timedwait(&cresRTSPMedia->gstCondWait, &cresRTSPMedia->gstCondLock, &currTime) == ETIMEDOUT )
-    {
-        ret = false;
-    }
-    pthread_mutex_unlock(&cresRTSPMedia->gstCondLock);
-    return ret;
-}
 static void *gst_pipeline_data_flow_check(void *args)
 {
-    bool ret;
     CresRTSPMedia *cresRTSPMedia = (CresRTSPMedia *)args;
+    int dataFlowErrorCnt = 0;
+
     while (cresRTSPMedia->threadActive == true)
     {
-        ret = waitForDataFlowSignal(cresRTSPMedia, FIVE_SECONDS);
-        if( ret == false )
-        {
+        usleep(500000); // 500msec Note: If this value is increased, will add more time
+                        //during WC stop.
 
-            //streaming data is not flowing. Something went wrong. Restart WC
-            // quit loop to trigger restart
-            
-            // currently disabled as it is noticed that the signal from the pipeline some times takes around 12 seconds
-            //cresRTSPMedia->m_restart = true;
-            //g_main_loop_quit(cresRTSPMedia->m_loop);
-            GST_ERROR_OBJECT(cresRTSPMedia, "Data is not flowing in the pipeline, so restarting WC");
-            break;
+        //check for if data counter has changed.
+        if( cresRTSPMedia->prevEncFrameCount == cresRTSPMedia->currEncFrameCount )
+        {
+            // it could be that the pipeline is slow. so lets wait for some more time
+	        // While testing over VPN, it was found that RTP neogitation took more than
+            // 5 seconds. So on safer side waiting for 10 seconds 	
+            if( dataFlowErrorCnt == 20 )
+            {
+                //streaming data is not flowing. Something went wrong. Restart WC
+                //quit loop to trigger restart
+                GST_ERROR_OBJECT(cresRTSPMedia, "Data is not flowing in the pipeline, so restarting WC");
+                cresRTSPMedia->m_restart = true;
+                g_main_loop_quit(cresRTSPMedia->m_loop);
+                break;
+            }
+            else
+            {
+                dataFlowErrorCnt++;
+                continue;
+            }
+
         }
+        dataFlowErrorCnt = 0;
+        cresRTSPMedia->prevEncFrameCount = cresRTSPMedia->currEncFrameCount;
     }
 
     return NULL;
@@ -168,6 +164,8 @@ custom_handle_message (GstRTSPMedia * media, GstMessage * message)
                   gst_element_state_get_name(new_state));
         if( strcmp (playingState, gst_element_state_get_name(new_state)) == 0 )
         {
+            cresRTSPMedia->prevEncFrameCount = 0;
+            cresRTSPMedia->currEncFrameCount = 0;
             ele = gst_bin_get_by_name_recurse_up(GST_BIN (element), "v4l2src");
             // if we are moved to playing state, and the device has video source then start thread to monitor the data flow
             if(!cresRTSPMedia->dataFlowMonitorThreadID && ele != NULL )
@@ -190,17 +188,9 @@ custom_handle_message (GstRTSPMedia * media, GstMessage * message)
             if(cresRTSPMedia->dataFlowMonitorThreadID )
             {
                 cresRTSPMedia->threadActive = false;
-                //wake up data flow thread incase it is sleeping 
-                pthread_mutex_lock(&cresRTSPMedia->gstCondLock);
-                pthread_cond_signal(&cresRTSPMedia->gstCondWait);
-                pthread_mutex_unlock(&cresRTSPMedia->gstCondLock);
-
                 pthread_join(cresRTSPMedia->dataFlowMonitorThreadID, NULL);
                 cresRTSPMedia->dataFlowMonitorThreadID = 0;
-
-                pthread_cond_destroy(&cresRTSPMedia->gstCondWait);
-                pthread_mutex_destroy(&cresRTSPMedia->gstCondLock);
-                GST_DEBUG_OBJECT(media, "Stopped GSTDataFLowMonitorThread thread!");
+                GST_ERROR_OBJECT(media, "Stopped GSTDataFLowMonitorThread thread!");
             }
         }
         break;
