@@ -216,9 +216,9 @@ JNIEXPORT void JNICALL Java_com_crestron_txrxservice_GstreamIn_nativeSetWfd30HzO
 /*
  * Class:           GstreamIn
  * Method:          nativeWfdStart
- * Signature:       (IJLjava/lang/string; ILjava/lang/string; Ljava/lang/string;Z)V
+ * Signature:       (IJLjava/lang/string; ILjava/lang/string; Ljava/lang/string;Z; Ljava/lang/string)V
  */
-JNIEXPORT void JNICALL Java_com_crestron_txrxservice_GstreamIn_nativeWfdStart(JNIEnv *env, jobject thiz, jint windowId, jlong sessionId, jstring url_jstring, jint rtsp_port, jstring localAddress, jstring localIfc, jboolean isTx3);
+JNIEXPORT void JNICALL Java_com_crestron_txrxservice_GstreamIn_nativeWfdStart(JNIEnv *env, jobject thiz, jint windowId, jlong sessionId, jstring url_jstring, jint rtsp_port, jstring localAddress, jstring localIfc, jboolean isTx3, jstring systemMode);
 
 /*
  * Class:           GstreamIn

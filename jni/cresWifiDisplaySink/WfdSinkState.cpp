@@ -129,7 +129,7 @@ int  wfdSinkStMachineThread::m_wfdSinkStMachineTaskListCnt = 0;
 #define DEFAULT_VIDEO_RES            "cea_19ceb"
 #define DEFAULT_VIDEO_RES_30Hz_ONLY  "cea_194a0"
 //(native res. indexes {h.265, MP, Level 5.1, upto 3840x2160p60}, {h.264, HP, Level 4, upto 1080p60}, {h.264, MP, Level 4, upto 1080p60})
-//#define DEFAULT_VIDEO2_RES "00 02 01 0010 0000000f94a0 000000000000 000000000000 00 0000 0000 00, 01 20 0040 0000000194a0 000000000000 000000000000 00 0000 0000 00, 01 10 0040 0000000194a0 000000000000 000000000000 00 0000 0000 00 00"
+#define DEFAULT_VIDEO2_4KRES "00 02 01 0010 0000000f94a0 000000000000 000000000000 00 0000 0000 00, 01 20 0040 0000000f94a0 000000000000 000000000000 00 0000 0000 00, 01 10 0040 0000000f94a0 000000000000 000000000000 00 0000 0000 00 00"
 //(native res. indexes {h.265, MP, Level 5.1, upto 1920x1080p30}, {h.264, HP, Level 4, upto 1080p30}, {h.264, MP, Level 4, upto 1080p30})
 #define DEFAULT_VIDEO2_RES "00 02 01 0010 0000000194a0 000000000000 000000000000 00 0000 0000 00, 01 10 0040 0000000194a0 000000000000 000000000000 00 0000 0000 00, 01 20 0040 0000000194a0 000000000000 000000000000 00 0000 0000 00 00"
 #define DEFAULT_VIDEO2_RES_NONE ""
@@ -144,26 +144,42 @@ static char *getPreferredVideoResolutionDefaultString()
         return DEFAULT_VIDEO_RES;
 }
 
-static char *getPreferredVideo2ResolutionDefaultString(bool isTx3)
+static char *getPreferredVideo2ResolutionDefaultString(bool isTx3, int systemMode)
 {
-    if (product_info()->does4kAirMediaDecode && isTx3)
+    char *wfd2_videoResStr = DEFAULT_VIDEO2_RES_NONE;
+
+    if (product_info()->does4kAirMediaDecode)
     {
-        if(g_rtspVid2ResRefStr.size())
+        if(systemMode == WFD_SINK_SYSTEMMODE_OPTIMIZED_FOR_VIDEO_QUALITY)
         {
-            return((char*)g_rtspVid2ResRefStr.c_str());
+            wfd2_videoResStr = DEFAULT_VIDEO2_4KRES;
         }
         else
-            return DEFAULT_VIDEO2_RES;
+        {
+            //WFD_SINK_SYSTEMMODE_OPTIMIZED_FOR_MULTIPLE_PRESENTATIONS
+            //WFD_SINK_SYSTEMMODE_CUSTOM
+            //WFD_SINK_SYSTEMMODE_UNDEFINE
+            wfd2_videoResStr = DEFAULT_VIDEO2_RES;
+        }
+
+        if(g_rtspVid2ResRefStr.size())
+        {
+            wfd2_videoResStr = (char*)g_rtspVid2ResRefStr.c_str();
+        }
+
+        CSIO_LOG(eLogLevel_verbose, "%s: isTx3[%d], systemMode Id[%d]", __FUNCTION__, isTx3, systemMode);
     }
     else
     {
         if(g_rtspVid2ResRefStr.size())
         {
-            return((char*)g_rtspVid2ResRefStr.c_str());
+            wfd2_videoResStr = (char*)g_rtspVid2ResRefStr.c_str();
         }
         else
-            return DEFAULT_VIDEO2_RES_NONE;
+            wfd2_videoResStr = DEFAULT_VIDEO2_RES_NONE;
     }
+
+    return(wfd2_videoResStr);
 }
 
 /********** wfdSinkStMachineClass class, used by wfdSinkProjClass *******************/
@@ -189,7 +205,8 @@ m_rtspParserIntfSession(),
 m_ssrc(),
 m_rtcpDestPort(-1),
 m_is_mice_session(0),
-m_IsTx3session(false)
+m_IsTx3session(false),
+m_systemMode(WFD_SINK_SYSTEMMODE_UNDEFINED)
 {
     wfdSinkStMachineTimeArray = new csioTimerClockBase(WFD_SINK_EVENTTIME_MAX,WFD_SINK_STATE_TIMER_MAX);
 
@@ -220,7 +237,7 @@ m_IsTx3session(false)
         m_rtspParserIntfInfo.preferredVidResRefStr = getPreferredVideoResolutionDefaultString();
     }
 
-    m_rtspParserIntfInfo.preferredVid2ResRefStr = getPreferredVideo2ResolutionDefaultString(m_IsTx3session);
+    m_rtspParserIntfInfo.preferredVid2ResRefStr = getPreferredVideo2ResolutionDefaultString(m_IsTx3session, m_systemMode);
 
     if(m_rtspParserIntfInfo.preferredAudioCodecStr)
     	CSIO_LOG(m_debugLevel, "wfdSinkStMachineClass: preferredAudioCodecStr[%s].\n",m_rtspParserIntfInfo.preferredAudioCodecStr);
@@ -396,10 +413,10 @@ void wfdSinkStMachineClass::setVideoResolutionDefaults()
     CSIO_LOG(m_debugLevel, "wfdSinkStMachineClass::%s(): preferredVidResRefStr[%s]\n", __FUNCTION__, m_rtspParserIntfInfo.preferredVidResRefStr);
 }
 
-void wfdSinkStMachineClass::setVideo2ResolutionDefaults(bool isTx3)
+void wfdSinkStMachineClass::setVideo2ResolutionDefaults(bool isTx3, int systemMode)
 {
-    m_rtspParserIntfInfo.preferredVid2ResRefStr = getPreferredVideo2ResolutionDefaultString(isTx3);
-    CSIO_LOG(m_debugLevel, "wfdSinkStMachineClass::%s(): preferredVid2ResRefStr[%s]\n", __FUNCTION__, m_rtspParserIntfInfo.preferredVid2ResRefStr);
+    m_rtspParserIntfInfo.preferredVid2ResRefStr = getPreferredVideo2ResolutionDefaultString(isTx3, systemMode);
+    CSIO_LOG(m_debugLevel, "wfdSinkStMachineClass::%s(): preferredVid2ResRefStr[%s], systemMode Id[%d]\n", __FUNCTION__, m_rtspParserIntfInfo.preferredVid2ResRefStr, systemMode);
 }
 
 void wfdSinkStMachineClass::resetAllFlags()
@@ -2462,7 +2479,7 @@ void* wfdSinkStMachineThread::ThreadEntry()
                                     bool isTx3 = (evntQPtr->reserved[1] == 1) ? true:false;
                                     p->setMaxMiracastRate(isTx3);
                                     p->setVideoResolutionDefaults();
-                                    p->setVideo2ResolutionDefaults(isTx3);
+                                    p->setVideo2ResolutionDefaults(isTx3, evntQPtr->reserved[2]);
                                     p->setCurentSourcePort(evntQPtr->ext_obj) ;
                                     p->setCurentTsPort(evntQPtr->ext_obj2) ;
                                     p->setIsTx3Session(isTx3);
@@ -2514,7 +2531,7 @@ void* wfdSinkStMachineThread::ThreadEntry()
                             bool isTx3 = (evntQPtr->reserved[1] == 1) ? true:false;
                             p->setMaxMiracastRate(isTx3);
                             p->setVideoResolutionDefaults();
-                            p->setVideo2ResolutionDefaults(isTx3);
+                            p->setVideo2ResolutionDefaults(isTx3, evntQPtr->reserved[2]);
                             p->setCurentSourcePort(evntQPtr->ext_obj) ;
                             p->setCurentTsPort(evntQPtr->ext_obj2) ;
                             p->setIsTx3Session(isTx3);

@@ -121,6 +121,14 @@ enum
     WFD_SINK_STATETHRD_TIMER_MAX
 };
 
+enum
+{
+    WFD_SINK_SYSTEMMODE_UNDEFINED = -1,
+    WFD_SINK_SYSTEMMODE_CUSTOM = 0,
+    WFD_SINK_SYSTEMMODE_OPTIMIZED_FOR_VIDEO_QUALITY,
+    WFD_SINK_SYSTEMMODE_OPTIMIZED_FOR_MULTIPLE_PRESENTATIONS,
+};
+
 typedef enum _eWfd_StMachineThreadTO
 {
     WFD_SINK_STATETHRD_TICK_TO     = 500,      //ticks timeout 1000ms
@@ -194,7 +202,7 @@ private:
 
     void setMaxMiracastRate(bool isTx3); // set max miracast rate from parent WfdProjClass structure
     void setVideoResolutionDefaults();
-    void setVideo2ResolutionDefaults(bool isTx3);
+    void setVideo2ResolutionDefaults(bool isTx3, int systemMode);
 
     void setIsTx3Session(bool isTx3);
 public:
@@ -302,6 +310,7 @@ public:
 private:
     int restartFromIdleCnt,m_max_restartCnt,m_onTcpConnFlag,m_src_rtsp_port,m_ts_Port;
     bool m_IsTx3session;
+    int m_systemMode;
 
     WfdRTSPSinkClient* pRTSPSinkClient;
     int m_seq_i,m_seq_j,m_keepAliveTimeout;

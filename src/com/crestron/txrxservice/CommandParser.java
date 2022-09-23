@@ -144,6 +144,7 @@ public class CommandParser {
         AIRMEDIA_CONNECTION_ADDRESS,
         AIRMEDIA_RESTART,
         AIRMEDIA_PROJECTION_LOCK,
+        AIRMEDIA_SYSTEMMODE,
         
         // AirMedia Layout control
         AIRMEDIA_MODERATOR,
@@ -783,6 +784,9 @@ public class CommandParser {
             	break;
             case AIRMEDIA_DEBUG:
             	cmd = new AirMediaDebugCommand(ctrl, arg, idx);
+            	break;
+            case AIRMEDIA_SYSTEMMODE:
+            	cmd = new SystemModeCommand(ctrl, arg);
             	break;
             case AIRMEDIA_PROCESS_DEBUG_MESSAGE:
             	cmd = new AirMediaProcessDebugMessageCommand(ctrl, arg);

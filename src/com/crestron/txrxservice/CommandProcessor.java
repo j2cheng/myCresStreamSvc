@@ -3057,3 +3057,17 @@ class WirelessConferencingLicensed extends CrestronCommand {
                 return Boolean.toString(ctrl.userSettings.getAirMediaWCLicensed());
 	}
 }
+
+class SystemModeCommand extends CrestronCommand {
+	public SystemModeCommand(CresStreamCtrl ctrl, String arg) {
+		super(ctrl, arg);
+	}
+	
+	@Override	
+	public void execute() {		
+		ctrl.setSystemMode(msg);
+	}
+	public String getSystemMode() {
+		return ctrl.userSettings.getSystemMode();
+	}
+}

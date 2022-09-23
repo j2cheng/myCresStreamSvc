@@ -48,6 +48,21 @@ std::string g_rtspVid2ResRefStr = "" ;
 extern void Wfd_setup_gst_pipeline (int id, int state, struct GST_PIPELINE_CONFIG* gst_config);
 extern void Wfd_set_latency_by_the_source (int id, int latency);
 
+/*************************** Locals ***********************************************/
+static int systemMode2id(std::string systemMode)
+{
+    int mode = WFD_SINK_SYSTEMMODE_UNDEFINED;
+
+    if(systemMode.compare("Custom") == 0)
+        mode = WFD_SINK_SYSTEMMODE_CUSTOM;
+    else if(systemMode.compare("OptimizedForVideoQuality") == 0)
+        mode = WFD_SINK_SYSTEMMODE_OPTIMIZED_FOR_VIDEO_QUALITY;
+    else if(systemMode.compare("OptimizedForMultiplePresentations") == 0)
+        mode = WFD_SINK_SYSTEMMODE_OPTIMIZED_FOR_MULTIPLE_PRESENTATIONS;
+
+    return(mode);
+}
+
 /*************************** Global functions  ************************************/
 void* WfdSinkProjInit()
 {
@@ -171,12 +186,12 @@ void WfdSinkProjSendEvent(int evnt, int iId, int data_size, void* bufP)
     gProjectsLock.unlock();
 }
 
-void WfdSinkProjStart(int id, const char* url, int src_rtsp_port, int ts_port,bool is_mice_session, bool is_tx3_device)
+void WfdSinkProjStart(int id, const char* url, int src_rtsp_port, int ts_port,bool is_mice_session, bool is_tx3_device, const char *system_mode)
 {
     if(!url) return;
 
-    CSIO_LOG(gProjectDebug, "WfdSinkProjStart: enter: id[%d], url[%s], port[%d][%d],is_mice_session[%d], is_tx3_device[%d].",
-    id,url,src_rtsp_port,ts_port,is_mice_session,is_tx3_device);
+    CSIO_LOG(gProjectDebug, "WfdSinkProjStart: enter: id[%d], url[%s], port[%d][%d],is_mice_session[%d], is_tx3_device[%d], system_mode[%s].",
+    id,url,src_rtsp_port,ts_port,is_mice_session,is_tx3_device,system_mode);
     gProjectsLock.lock();
 
     if(gWFDSinkProjPtr)
@@ -191,6 +206,8 @@ void WfdSinkProjStart(int id, const char* url, int src_rtsp_port, int ts_port,bo
         EvntQ.ext_obj2    = ts_port;
         EvntQ.reserved[0] = is_mice_session;
         EvntQ.reserved[1] = (is_tx3_device) ? 1:0;
+        std::string sysmode = std::string(system_mode);
+        EvntQ.reserved[2] = systemMode2id(sysmode);
         gWFDSinkProjPtr->sendEvent(&EvntQ);
     }
     else
@@ -656,9 +673,10 @@ void* wfdSinkProjClass::ThreadEntry()
                                 EvntQ.ext_obj2   = evntQPtr->ext_obj2;
                                 EvntQ.reserved[0]   = evntQPtr->reserved[0];
                                 EvntQ.reserved[1]   = evntQPtr->reserved[1];
+                                EvntQ.reserved[2]   = evntQPtr->reserved[2];
                                 wfdSinkStMachineClass::m_wfdSinkStMachineThreadPtr->sendEvent(&EvntQ);
 
-                                CSIO_LOG(m_debugLevel, "wfdSinkProjClass: EvntQ.reserved-0[%d], EvntQ.reserved-1[%d].\n",EvntQ.reserved[0],EvntQ.reserved[1]);
+                                CSIO_LOG(m_debugLevel, "wfdSinkProjClass: EvntQ.reserved-0[%d], EvntQ.reserved-1[%d], EvntQ.reserved-2[%d].\n",EvntQ.reserved[0],EvntQ.reserved[1],EvntQ.reserved[2]);
                             }//else
 
                             CSIO_LOG(m_debugLevel, "wfdSinkProjClass: process with existing wfdSinkStMachineClass object is done.\n");
@@ -687,8 +705,9 @@ void* wfdSinkProjClass::ThreadEntry()
                                     EvntQ.voidPtr    = (void*)(p);
                                     EvntQ.reserved[0]   = evntQPtr->reserved[0];
                                     EvntQ.reserved[1]   = evntQPtr->reserved[1];
+                                    EvntQ.reserved[2]   = evntQPtr->reserved[2];
 
-                                    CSIO_LOG(m_debugLevel, "wfdSinkProjClass: EvntQ.reserved-0[%d], EvntQ.reserved-1[%d].\n",EvntQ.reserved[0],EvntQ.reserved[1]);
+                                    CSIO_LOG(m_debugLevel, "wfdSinkProjClass: EvntQ.reserved-0[%d], EvntQ.reserved-1[%d], EvntQ.reserved-2[%d].\n",EvntQ.reserved[0],EvntQ.reserved[1],EvntQ.reserved[2]);
 
                                     wfdSinkStMachineClass::m_wfdSinkStMachineThreadPtr->sendEvent(&EvntQ);
                                 }//else
@@ -1049,7 +1068,7 @@ void WfdSinkProj_fdebug(char *cmd_cstring)
                     int port = (int) strtol(CmdPtr, &EndPtr, 10);
 
                     CSIO_LOG(eLogLevel_info, "START source addr[%s], port[%d]",addr.c_str(),port);
-                    WfdSinkProjStart(0,addr.c_str(),port,4570,1,false); //TODO: change isTx3 = false to an argument
+                    WfdSinkProjStart(0,addr.c_str(),port,4570,1,false,0); //TODO: 1) change isTx3 = false to an argument 2) lookup systemMode
                 }
             }
         }

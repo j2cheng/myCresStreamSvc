@@ -8308,4 +8308,18 @@ public class CresStreamCtrl extends Service {
     public void setWfd2VideoFormat(String wfd2_parms) {
         streamPlay.msMiceSetWfd2VideoFormat(wfd2_parms);
     }
+    
+    public void setSystemMode(String mode)
+    {
+        if (!mode.equals(userSettings.getSystemMode()))
+        {
+            Log.i(TAG, "setSystemMode: SystemMode changed from "+userSettings.getSystemMode()+" to "+mode);
+            userSettings.setSystemMode(mode);
+        }
+    }
+    
+    public String getSystemMode()
+    {
+        return userSettings.getSystemMode();
+    }
 }

@@ -47,7 +47,8 @@ public class GstreamIn implements SurfaceHolder.Callback {
     private native void nativeSurfaceFinalize(int sessionId);
     private native void nativeSetWfdMaxMiracastBitrate(int maxrate);
     private native void nativeSetWfd30HzOnly(boolean enable);
-    private native void nativeWfdStart(int streamId, long sessionId, String url, int rtsp_port, String localAddress, String localIfc, boolean isTx3);
+    private native void nativeWfdStart(int streamId, long sessionId, String url, int rtsp_port, String localAddress, String localIfc, boolean isTx3,
+    String systemMode);
     private native void nativeWfdStop(int streamId, long sessionId);
     private native void nativeWfdPause(int streamId);
     private native void nativeWfdResume(int streamId);
@@ -637,7 +638,8 @@ public class GstreamIn implements SurfaceHolder.Callback {
     					Surface s = streamCtl.getSurface(streamId);
     					nativeSurfaceInit(s, streamId);
     					nativeSetWfd30HzOnly(streamCtl.onlyAllow30Hz());
-    					nativeWfdStart(streamId, sessionId, url, rtsp_port, localAddress, localIfc, streamCtl.isTX3Device(streamId));
+    					nativeWfdStart(streamId, sessionId, url, rtsp_port, localAddress, localIfc, streamCtl.isTX3Device(streamId),
+    					streamCtl.getSystemMode());
     				}
     				else
     				{

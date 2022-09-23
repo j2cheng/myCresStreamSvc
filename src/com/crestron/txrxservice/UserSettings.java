@@ -300,6 +300,8 @@ public class UserSettings
 	private int chromaKeyColor;
 	private boolean rgb888Enabled;
 	private String domainName;
+
+	private String systemMode;
 	
 	//service mode
 	private int serviceMode;
@@ -456,6 +458,7 @@ public class UserSettings
 		chromaKeyColor = 0xff0000;
 		rgb888Enabled = true;
 		domainName = "";
+		systemMode = "";
 	}
 	
 	// If there is a version mismatch between current userSettings and the one loaded from file system
@@ -1883,4 +1886,13 @@ public class UserSettings
 	public boolean getRgb888Enabled() { return rgb888Enabled; }
 
 	public void setRgb888Enabled(boolean enable) { this.rgb888Enabled = enable; }
+	
+	public String getSystemMode() {
+		return systemMode;
+	}
+
+	public void setSystemMode(String mode) {
+  		systemMode = mode;
+	}
+	
 }
