@@ -505,9 +505,11 @@ public class WifidVideoPlayer {
             }
             Common.Logging.i(TAG, "videoplayer.postDeviceType(): session: "+session);
             AirMediaPlatforms platform = null;
-            if (session.deviceType.contains("TX3_100") || session.deviceType.contains("AM_TX3_100") || session.deviceType.contains("AM_TX3_100_I"))
+            if (session.deviceType.contains("TX3_100") || session.deviceType.contains("AM_TX3_100") || session.deviceType.contains("AM_TX3_100_I") ||
+                    session.deviceType.contains("AM-TX3-100") || session.deviceType.contains("AM-TX3-100-I"))
                 platform = AirMediaPlatforms.Tx3_100;
-            else if (session.deviceType.contains("TX3_200") || session.deviceType.contains("AM_TX3_200") || session.deviceType.contains("AM_TX3_200_I"))
+            else if (session.deviceType.contains("TX3_200") || session.deviceType.contains("AM_TX3_200") || session.deviceType.contains("AM_TX3_200_I") ||
+                    session.deviceType.contains("AM-TX3-200") || session.deviceType.contains("AM-TX3-200-I"))
                 platform = AirMediaPlatforms.Tx3_200;
             else
                 return;
