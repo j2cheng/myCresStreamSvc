@@ -1215,77 +1215,73 @@ int composeRTSPResponse(void * session,RTSPPARSINGRESULTS * requestParsingResult
    }
    else if(!strcmp(org_request_method,"GET_PARAMETER"))
    {
-      if(rtspSession->isTx3session)
+      //All products shall respond to wfd2 and wfd options if they were advertised by the source.
+     /**
+      * wfd2_video_formats
+      * 00 01 20 0040 0000000f94a0 000000000000 000000000000 00 0000 0000 00,
+      * 00: -- native,    Table 74.  Index to CEA resolution/refresh rates
+      * 01: -- codec,     Table 76.  01--H264, 02--H265
+      * 20: -- profile,   Table 77.  04--High profile2(RHP2),08--Baseline,10--Main,20--High
+      * 0040: -- level,   Table 78.  0020--Level 5,0040--Level 5.1
+      * 0000000f94a0 -- CEA-Support(12*12HEXDIG),  Table 71
+      * 000000000000 -- VESA-Support(12*12HEXDIG), Table 72
+      * 000000000000 -- HH-Support(12*12HEXDIG),   Table 73
+      * 00:   -- latency
+      * 0000: -- min-slice-size
+      * 0000: -- slice-enc-params
+      * 00:   -- frame-rate-control-support,Table 41
+      *
+      * 00 01 02 0010 0000000f94a0 000000000000 000000000000 00 0000 0000 00,
+      * 00: -- native,    Table 74.  Index to CEA resolution/refresh rates
+      * 02: -- codec,     Table 76.  01--H264, 02--H265
+      * 01: -- profile,   Table 77.  01--Main , 02--Main 10
+      * 0010: -- level,   Table 78.  0008--Level 5,0010--Level 5.1
+      * 0000000f94a0 -- CEA-Support(12*12HEXDIG),  Table 71
+      * 000000000000 -- VESA-Support(12*12HEXDIG), Table 72
+      * 000000000000 -- HH-Support(12*12HEXDIG),   Table 73
+      * 00:   -- latency
+      * 0000: -- min-slice-size
+      * 0000: -- slice-enc-params
+      * 00:   -- frame-rate-control-support,Table 41
+      *
+      *
+      * example of wfd2_video_formats from other device:
+      *   00 01 02 0010 0000000bffff 00000404533f 000000000fff 02 0000 00ff 11,
+      *      01 01 0010 0000000bffff 00000404533f 000000000fff 02 0000 00ff 11,
+      *      02 01 0008 0000000bffff 00000404533f 000000000fff 02 0000 00ff 11 00
+      *
+      * example of wfd2_video_formats for AM3XX:
+      *   00 01 10 0040 0000000f94a0 000000000000 000000000000 02 0000 0000 00,
+      *      01 20 0040 0000000f94a0 000000000000 000000000000 02 0000 0000 00,
+      *      02 01 0010 0000000f94a0 000000000000 000000000000 02 0000 0000 00 00
+      *
+      */
+      if(strlen(rtspSession->preferredVid2ResRefStr) > 0)
       {
-         /**
-          * wfd2_video_formats
-          * 00 01 20 0040 0000000f94a0 000000000000 000000000000 00 0000 0000 00,
-          * 00: -- native,    Table 74.  Index to CEA resolution/refresh rates
-          * 01: -- codec,     Table 76.  01--H264, 02--H265
-          * 20: -- profile,   Table 77.  04--High profile2(RHP2),08--Baseline,10--Main,20--High
-          * 0040: -- level,   Table 78.  0020--Level 5,0040--Level 5.1
-          * 0000000f94a0 -- CEA-Support(12*12HEXDIG),  Table 71
-          * 000000000000 -- VESA-Support(12*12HEXDIG), Table 72
-          * 000000000000 -- HH-Support(12*12HEXDIG),   Table 73
-          * 00:   -- latency
-          * 0000: -- min-slice-size
-          * 0000: -- slice-enc-params
-          * 00:   -- frame-rate-control-support,Table 41
-          *
-          * 00 01 02 0010 0000000f94a0 000000000000 000000000000 00 0000 0000 00,
-          * 00: -- native,    Table 74.  Index to CEA resolution/refresh rates
-          * 02: -- codec,     Table 76.  01--H264, 02--H265
-          * 01: -- profile,   Table 77.  01--Main , 02--Main 10
-          * 0010: -- level,   Table 78.  0008--Level 5,0010--Level 5.1
-          * 0000000f94a0 -- CEA-Support(12*12HEXDIG),  Table 71
-          * 000000000000 -- VESA-Support(12*12HEXDIG), Table 72
-          * 000000000000 -- HH-Support(12*12HEXDIG),   Table 73
-          * 00:   -- latency
-          * 0000: -- min-slice-size
-          * 0000: -- slice-enc-params
-          * 00:   -- frame-rate-control-support,Table 41
-          *
-          *
-          * example of wfd2_video_formats from other device:
-          *   00 01 02 0010 0000000bffff 00000404533f 000000000fff 02 0000 00ff 11,
-          *      01 01 0010 0000000bffff 00000404533f 000000000fff 02 0000 00ff 11,
-          *      02 01 0008 0000000bffff 00000404533f 000000000fff 02 0000 00ff 11 00
-          *
-          * example of wfd2_video_formats for AM3XX:
-          *   00 01 10 0040 0000000f94a0 000000000000 000000000000 02 0000 0000 00,
-          *      01 20 0040 0000000f94a0 000000000000 000000000000 02 0000 0000 00,
-          *      02 01 0010 0000000f94a0 000000000000 000000000000 02 0000 0000 00 00
-          *
-          */
-          if(strlen(rtspSession->preferredVid2ResRefStr) > 0)
-          {
-            snprintf(locBuff,sizeof(locBuff),rtspSession->preferredVid2ResRefStr);
-          }
-          else
-          {
-            sprintf(locBuff,"none");
-          }
-
-          RTSP_LOG(eLogLevel_verbose,"video2 format string (from prefString %s) is : %s\n",
-                   rtspSession->preferredVid2ResRefStr,locBuff);
-          check_and_response_option("wfd2_video_formats", locBuff);
+        snprintf(locBuff,sizeof(locBuff),rtspSession->preferredVid2ResRefStr);
       }
       else
       {
-          /* wfd_video_formats */
-          //    40 00 01 10 0001bdeb 051557ff 00000fff 10 0000 001f 11 0780 0438,
-          //    02 10 0001bdeb 155557ff 00000fff 10 0000 001f 11 0780 0438
-          retv = rtsp_encodeVideoFormat(locBuff,sizeof(locBuff),rtspSession->preferredVidResRefStr);
-          if(retv)
-          {
-             RTSP_LOG(eLogLevel_error,"failed to construct video format string from prefString %s\n",
-                rtspSession->preferredVidResRefStr);
-             return(-1);
-          }
-          RTSP_LOG(eLogLevel_verbose,"video format string (from prefString %s) is : %s\n",
-             rtspSession->preferredVidResRefStr,locBuff);
-          check_and_response_option("wfd_video_formats",locBuff);
+        sprintf(locBuff,"none");
       }
+
+      RTSP_LOG(eLogLevel_verbose,"video2 format string (from prefString %s) is : %s\n",
+               rtspSession->preferredVid2ResRefStr,locBuff);
+      check_and_response_option("wfd2_video_formats", locBuff);
+
+      /* wfd_video_formats */
+      //    40 00 01 10 0001bdeb 051557ff 00000fff 10 0000 001f 11 0780 0438,
+      //    02 10 0001bdeb 155557ff 00000fff 10 0000 001f 11 0780 0438
+      retv = rtsp_encodeVideoFormat(locBuff,sizeof(locBuff),rtspSession->preferredVidResRefStr);
+      if(retv)
+      {
+         RTSP_LOG(eLogLevel_error,"failed to construct video format string from prefString %s\n",
+            rtspSession->preferredVidResRefStr);
+         return(-1);
+      }
+      RTSP_LOG(eLogLevel_verbose,"video format string (from prefString %s) is : %s\n",
+         rtspSession->preferredVidResRefStr,locBuff);
+      check_and_response_option("wfd_video_formats",locBuff);
 
       /* wfd_audio_codecs */
       //    LPCM 00000003 00, AAC 0000000f 00, AC3 00000007 00
