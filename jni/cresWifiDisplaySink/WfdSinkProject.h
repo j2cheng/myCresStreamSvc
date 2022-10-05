@@ -82,6 +82,8 @@ public:
     static bool updateIfMaxBitrateOverride(int minrate,int maxrate);
 
     const char* getLocIPName(int id){return localIPName[id];}
+
+    int getDebugLevel(){ return(m_debugLevel); }
 private:
     void* ThreadEntry();
 

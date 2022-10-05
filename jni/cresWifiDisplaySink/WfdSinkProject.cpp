@@ -1042,6 +1042,7 @@ void WfdSinkProj_fdebug(char *cmd_cstring)
             if(CmdPtr)
             {
                 int level = strtol(CmdPtr, &EndPtr, 10);
+                CSIO_LOG(eLogLevel_info, "Set debug level to %d\n", level);
                 WfdSinkProjSetDebugLevel(level);
             }
         }
