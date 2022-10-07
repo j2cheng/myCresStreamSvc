@@ -65,6 +65,7 @@ extern void csio_jni_onServerStart();
 extern void csio_jni_onServerStop();
 extern void csio_jni_onClientConnected(void * arg);
 extern void csio_jni_onClientDisconnected(void * arg);
+extern void csio_jni_reset_hdmi_input();
 
 static void cb_queueOverruns(void *queue, gpointer user_data);
 static void cb_queueUnderruns(void *queue, gpointer user_data);
@@ -1592,9 +1593,11 @@ exitThread:
  *   if it is fixed, we should take it. */
 
 	bool restart = false;
+	bool dataFlowError = false;
     if(m_pMedia)
     {
         restart = ((CresRTSPMedia *)m_pMedia)->m_restart;
+        dataFlowError = ((CresRTSPMedia *)m_pMedia)->dataFlowError;
         gst_rtsp_media_suspend (m_pMedia);
 
         //remove stream from session before unprepare media
@@ -1692,6 +1695,14 @@ exitThread:
 
     if(sent_csio_jni_onServerStart)
         csio_jni_onServerStop();
+
+    // If in WC mode and using HDMI input as camera we get dataFlowError reset HDMI input
+    if ((m_streamoutMode == STREAMOUT_MODE_WIRELESSCONFERENCING) && (strcmp(m_video_capture_device, "/dev/video0")==0) && dataFlowError)
+    {
+        // disable and enable HDMI interface as workaround in AM3XX-13010 for bug AM3XX-12970
+        CSIO_LOG(m_debugLevel, "Streamout: disable and reenable HDMI interface------");
+        csio_jni_reset_hdmi_input();
+    }
 
     CSIO_LOG(m_debugLevel, "Streamout: jni_start_rtsp_server ended------");
 

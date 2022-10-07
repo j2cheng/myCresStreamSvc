@@ -71,6 +71,7 @@ static void *gst_pipeline_data_flow_check(void *args)
                 //quit loop to trigger restart
                 GST_ERROR_OBJECT(cresRTSPMedia, "Data is not flowing in the pipeline, so restarting WC");
                 cresRTSPMedia->m_restart = true;
+                cresRTSPMedia->dataFlowError = true;
                 g_main_loop_quit(cresRTSPMedia->m_loop);
                 break;
             }
@@ -166,6 +167,7 @@ custom_handle_message (GstRTSPMedia * media, GstMessage * message)
         {
             cresRTSPMedia->prevEncFrameCount = 0;
             cresRTSPMedia->currEncFrameCount = 0;
+            cresRTSPMedia->dataFlowError = false;
             ele = gst_bin_get_by_name_recurse_up(GST_BIN (element), "v4l2src");
             // if we are moved to playing state, and the device has video source then start thread to monitor the data flow
             if(!cresRTSPMedia->dataFlowMonitorThreadID && ele != NULL )

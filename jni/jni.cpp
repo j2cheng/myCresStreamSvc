@@ -5016,6 +5016,26 @@ void csio_jni_onClientDisconnected( void * arg )
     CSIO_LOG(eLogLevel_debug,  "%s: exit", __FUNCTION__);
 }
 
+void csio_jni_reset_hdmi_input()
+{
+    JNIEnv *env = get_jni_env ();
+
+    CSIO_LOG(eLogLevel_debug,  "%s: entered", __FUNCTION__);
+
+    jmethodID resetHdmiInput = env->GetMethodID((jclass)gStreamOut_javaClass_id, "resetHdmiInput", "()V");
+    if (resetHdmiInput == NULL) {
+        CSIO_LOG(eLogLevel_error,  "%s: could not find JAVA method resetHdmiInput in Gstreamout class", __FUNCTION__);
+        return;
+    }
+
+    env->CallVoidMethod(CresStreamOutDataDB->app, resetHdmiInput);
+    if (env->ExceptionCheck ()) {
+        CSIO_LOG(eLogLevel_error, "%s: Failed to call Java method 'resetHdmiInput'", __FUNCTION__);
+        env->ExceptionClear ();
+    }
+    CSIO_LOG(eLogLevel_debug,  "%s: exit", __FUNCTION__);
+}
+
 void LocalConvertToUpper(char *str)
 {
     char *TmpPtr;

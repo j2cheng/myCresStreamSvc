@@ -520,6 +520,12 @@ public class GstreamOut {
         streamCtl.mWC_Service.onClientDisconnected(clientIp);
     }
     
+    public void resetHdmiInput()
+    {
+        Log.i(TAG, "Streamout: resetHdmiInput");
+        streamCtl.sockTask.SendDataToAllClients("RESET_HDMI_INPUT=true");
+    }
+    
     public void setAppCacheFolder()
     {
         nativeSetAppCacheFolder(appCacheFolder);

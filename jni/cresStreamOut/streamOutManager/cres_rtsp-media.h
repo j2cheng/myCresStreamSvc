@@ -33,6 +33,7 @@ struct CresRTSPMedia
   bool threadActive;
   unsigned long long prevEncFrameCount;
   unsigned long long currEncFrameCount;
+  bool dataFlowError;
 };
 
 GType cres_rtsp_media_get_type (void);
