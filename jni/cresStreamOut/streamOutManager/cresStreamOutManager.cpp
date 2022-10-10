@@ -1697,7 +1697,9 @@ exitThread:
         csio_jni_onServerStop();
 
     // If in WC mode and using HDMI input as camera we get dataFlowError reset HDMI input
-    if ((m_streamoutMode == STREAMOUT_MODE_WIRELESSCONFERENCING) && (strcmp(m_video_capture_device, "/dev/video0")==0) && dataFlowError)
+    int reset_hdmi_on_data_flow_error = read_int_from_file("/sdcard/ROMDISK/User/reset_hdmi", 1);
+    if ((m_streamoutMode == STREAMOUT_MODE_WIRELESSCONFERENCING) && (strcmp(m_video_capture_device, "/dev/video0")==0) &&
+            reset_hdmi_on_data_flow_error && dataFlowError)
     {
         // disable and enable HDMI interface as workaround in AM3XX-13010 for bug AM3XX-12970
         CSIO_LOG(m_debugLevel, "Streamout: disable and reenable HDMI interface------");
