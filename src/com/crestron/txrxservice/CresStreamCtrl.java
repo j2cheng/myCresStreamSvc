@@ -6706,7 +6706,7 @@ public class CresStreamCtrl extends Service {
             }
         }).start();
         
-        if(connected == false) {
+        if(connected == false && mWC_Service != null) {
             Log.i(TAG, "onHdmiOutHpdEvent(): Perform WC_Service closeSession, as HDMI Out is not connected!!!");
             mWC_Service.closeSession();
         }
