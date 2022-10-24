@@ -438,7 +438,6 @@ public class WifidVideoPlayer {
     {
     	long sessionId = streamId2sessionId(streamId);
         Common.Logging.i(TAG, "videoplayer.resolutionChanged(): streamId="+streamId+" sessionId="+sessionId+"  wxh="+width+"x"+height);
-    	service_.resolutionChanged(sessionId, width, height);
     	if (sessionId != INVALID_SESSION_ID)
     	{
     		service_.resolutionChanged(sessionId, width, height);

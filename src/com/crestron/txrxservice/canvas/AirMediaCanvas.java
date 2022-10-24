@@ -357,11 +357,11 @@ public class AirMediaCanvas
 				public void run() {
 					Common.Logging.i(TAG, "AirMediaCanvasServiceConnection.onServiceDisconnected  " + name);
 					isServiceConnected = false;
+	                canvasIsReady(false);
 					if (serviceDisconnectedLatch != null)
 					{
 						serviceDisconnectedLatch.countDown();
 					}
-					canvasIsReady(false);
 					try {
 						if (quittingAirMediaCanvasService == false)
 						{

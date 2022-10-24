@@ -11,6 +11,7 @@ import java.util.concurrent.*;
 import com.crestron.airmedia.canvas.channels.ipc.CanvasSourceSession;
 import com.crestron.airmedia.utilities.Common;
 import com.crestron.airmedia.utilities.TimeSpan;
+import com.crestron.txrxservice.CresStreamCtrl;
 import com.crestron.txrxservice.canvas.CanvasCrestore.SessionEvent;
 import android.util.Log;
 
@@ -360,8 +361,20 @@ public class SessionManager
             	session.disconnect(new Originator(RequestOrigin.Error));
         		Common.Logging.i(TAG,"clearAllSessions() disconnected session:"+session.sessionId());
             }
-            else // AirMedia Sessions should have gone away due to receiver crash
+            else // AirMedia Sessions should have gone away due to receiver crash except Miracast on AM3K
             {
+                if (session.getAirMediaType() == SessionAirMediaType.Miracast && CresStreamCtrl.isAM3K)
+                {
+                    // need to manually stop on device side as if it was called by AM receiver app
+                    if (session.streamId >= 0)
+                    {
+                        Common.Logging.i(TAG,"clearAllSessions() stopping miracast session:"+session.sessionId());
+                        mCanvas.mStreamCtl.wifidVideoPlayer.stopSessionWithStreamId(session.streamId);
+                        Common.Logging.i(TAG,"clearAllSessions() release surface for session:"+session.sessionId());
+                        session.releaseSurface();
+                        Common.Logging.i(TAG,"clearAllSessions() stopped miracast session:"+session.sessionId());
+                    }
+                }
             	Common.Logging.i(TAG,"clearAllSessions() removing session:"+session.sessionId()+" from map");
             	remove(session.sessionId());
         		Common.Logging.i(TAG,"clearAllSessions() removed session:"+session.sessionId());
