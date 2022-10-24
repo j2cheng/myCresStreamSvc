@@ -578,6 +578,7 @@ public class CresStreamCtrl extends Service {
         AM200(0x2E),
         AM3X00(0x7400),
         X70(0x7900),
+        DGE3200(0x8000),
         Unknown(0x0);
 
         private final int value;
@@ -615,6 +616,8 @@ public class CresStreamCtrl extends Service {
                 return AM3X00;
             case 0x7900:
                 return X70;
+            case 0x8000:
+                return DGE3200;
             default:
                 Log.i(TAG, MiscUtils.stringFormat("Unknown product type %d, please update enum!!!!!", x));
                 return Unknown;
