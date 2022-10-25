@@ -74,6 +74,8 @@ static unsigned int _hash(unsigned int x);
 static unsigned int _unhash(unsigned int x);
 char *csio_jni_hashPin(char *pin);
 void csio_jni_post_latency(int stream,GstObject* obj);
+int get_encoded_video_rate(VideoCaps *pCaps, int *fps_num, int *fps_den);
+
 
 static Mutex gGstStopLock;//used to prevent multiple threads accessing pipeline while stop gstreamer.
 extern unsigned short debugPrintSeqNum[];
@@ -5678,6 +5680,7 @@ JNIEXPORT int JNICALL Java_com_crestron_txrxservice_GstreamOut_nativeGetVideoFor
                                 jstring hdmi_in_res_x, jstring hdmi_in_res_y)
 {
     int rtn = -1;
+    int fps, fps_num, fps_den;
 
     const char * device_cstring = env->GetStringUTFChars( device_jstring , NULL ) ;
     if (device_cstring == NULL) return rtn;
@@ -5701,8 +5704,17 @@ JNIEXPORT int JNICALL Java_com_crestron_txrxservice_GstreamOut_nativeGetVideoFor
     env->SetIntField(format, fieldId, videoCaps.w);
     fieldId = env->GetFieldID(videoFormatClass , "height", "I");
     env->SetIntField(format, fieldId, videoCaps.h);
+
+    get_encoded_video_rate(&videoCaps, &fps_num, &fps_den);
+    // round to nearest interger. 
+    // TODO: It would be good to send fps in float. But this requires changes in App layer, iOS, window and sender side
+    // if really required can be enhanced later. 
+    // as of now addresses AM3XX-13032 to best possible extent
+    fps = (fps_num + (fps_den - 1))/fps_den;
+    CSIO_LOG(eLogLevel_debug, "%s: Video Encoded FPS configurated to fps:%d(=(int)(%d/%d))", __FUNCTION__, fps,fps_num, fps_den);
+
     fieldId = env->GetFieldID(videoFormatClass , "fps", "I");
-    env->SetIntField(format, fieldId, videoCaps.frame_rate_num);
+    env->SetIntField(format, fieldId, fps);
 
     CSIO_LOG(eLogLevel_debug, "%s: about to exit with return val %d", __FUNCTION__, rtn);
 

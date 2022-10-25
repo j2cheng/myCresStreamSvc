@@ -38,6 +38,7 @@
 int useUsbAudio = false;
 int videoDumpCount = 0;
 extern int gstVideoEncDumpEnable;
+const int encoded_frame_rate = 15;  //default is 15 fps, update this variable for any new desired encoded fps value
 
 
 //#define AUDIOENC "amcaudenc-omxgoogleaacencoder"
@@ -131,7 +132,43 @@ static int get_dscp_qos()
 {
         return read_int_from_file("/dev/shm/crestron/CresStreamSvc/wc/dscp", -1);
 }
-
+int get_encoded_video_rate(VideoCaps *pCaps, int *fps_num, int *fps_den)
+{
+    int iRet = 0;
+    *fps_den = 1;
+#ifdef USE_DECIMATION_RATE_FILE
+    int decimation_rate = get_decimation_rate_requested();
+    if (decimation_rate > 0) {
+        CSIO_LOG(eLogLevel_info, "--Streamout - encoder decimation rate requested=%d", decimation_rate);
+        *fps_num = pCaps->frame_rate_num;
+        *fps_den = decimation_rate;
+    } else {
+        *fps_num = pCaps->frame_rate_num;
+        *fps_den = 1;
+    }
+#else
+    char framerate[128];
+    char delim[] = "/";
+    char *token;
+    if (get_framerate_requested(framerate, sizeof(framerate)) >= 0) {
+        CSIO_LOG(eLogLevel_info, "--Streamout - encoder frame rate requested=%s", framerate);
+        /* get the first token */
+        token = strtok(framerate, delim);
+        if( token != NULL ) 
+        {
+            *fps_num = atoi(token);
+            token = strtok(NULL, delim);
+            if( token != NULL )
+            {
+                *fps_den = atoi(token);
+            }
+        } 
+    } else {
+       *fps_num = encoded_frame_rate;
+    }
+#endif
+    return iRet;
+}
 static bool
 is_supported(const char *fourcc)
 {
@@ -1858,9 +1895,9 @@ eWCstatus CStreamoutManager::initWcAudioVideo()
                     snprintf(m_videoframerate, sizeof(m_videoframerate), "videorate ! video/x-raw,framerate=%s !", framerate);
             } else {
             	if (strcasecmp(m_video_caps.format, "MJPG") == 0)
-                    snprintf(m_videoframerate, sizeof(m_videoframerate), "videorate ! image/jpeg,framerate=%s !", "15/1");
+                    snprintf(m_videoframerate, sizeof(m_videoframerate), "videorate ! image/jpeg,framerate=%d/1 !", encoded_frame_rate);
                 else
-                    snprintf(m_videoframerate, sizeof(m_videoframerate), "videorate ! video/x-raw,framerate=%s !", "15/1");
+                    snprintf(m_videoframerate, sizeof(m_videoframerate), "videorate ! video/x-raw,framerate=%d/1 !", encoded_frame_rate);
                     
             }
 #endif
