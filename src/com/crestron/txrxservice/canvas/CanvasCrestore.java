@@ -2413,7 +2413,7 @@ public class CanvasCrestore
                             new Originator(RequestOrigin.StateChangeMessage, session), 10);
                 }
 
-                setCurrentNetworkingStreamsSessionStatusToDB(session, "Paly");
+                setCurrentNetworkingStreamsSessionStatusToDB(session, "Play");
             } else if (action == CanvasSourceAction.Pause) {
 
                 if (session.getState() == SessionState.Playing) {
