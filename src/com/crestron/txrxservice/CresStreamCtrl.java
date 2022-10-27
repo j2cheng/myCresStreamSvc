@@ -6633,7 +6633,7 @@ public class CresStreamCtrl extends Service {
 
         if( mWC_Service != null )
         {
-            if(usbUnplugEvent == true)
+            if(true/*usbUnplugEvent == true*/)
             {
                 Log.i(TAG, "onUsbStatusChanged(): Perform WC_Service closeSession, as USB is plugged out.!!!");
                 Log.i(TAG,"onUsbStatusChanged --> closeSession");

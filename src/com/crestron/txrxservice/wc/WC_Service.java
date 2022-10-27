@@ -558,6 +558,14 @@ public class WC_Service {
         Log.i(TAG,"Connection_Parameters={\n"+getConnectionParameters(id).toString()+"\n}");
     }
     
+    public WC_SessionFlags getSessionFlags()
+    {
+        if (mStatus == null)
+            return WC_SessionFlags.None;
+        else
+            return mStatus.sessionFlags;
+    }
+    
     public void hdmiSyncStateUpdate()
     {
         if (!mStreamCtrl.userSettings.getHdmiInMode().equalsIgnoreCase("Camera"))
@@ -640,12 +648,7 @@ public class WC_Service {
             usbDeviceList.add(hdmiCameraDevice);
         }
 
-
-    	if (setActiveDevices(usb3Devices, usb2Devices, hdmiCameraDevice))
-    	{
-    		mVideoFormats = mStreamOut.getVideoFormats(mVideoFile);
-    		mAudioFormats = mStreamOut.getAudioFormats(mAudioFile);
-    	}
+        setActiveDevices(usb3Devices, usb2Devices, hdmiCameraDevice);
     	
     	WC_UsbDevices usbDevices = new WC_UsbDevices(mVideoFormats, mAudioFormats, usbDeviceList);
 
@@ -653,11 +656,12 @@ public class WC_Service {
     	return usbDevices;
     }
     
-    public boolean setActiveDevices(List<UsbAvDevice> usb3Devices, List<UsbAvDevice> usb2Devices, WC_UsbDevice hdmiCamera)
+    public void setActiveDevices(List<UsbAvDevice> usb3Devices, List<UsbAvDevice> usb2Devices, WC_UsbDevice hdmiCamera)
     {
     	String videoFile = "none";
     	String audioFile = "none";
-    	boolean change = false;
+    	boolean changeVideo = false;
+    	boolean changeAudio = false;
     	boolean usb3HasMedia = false;
     	boolean usb3HasVideo = false;
     	boolean usb3HasAudio = false;
@@ -712,39 +716,21 @@ public class WC_Service {
     	    videoFile = (hdmiCamera.hasVideo && mStreamCtrl.mDeviceAppConfigRunTimeSettingsIsHdmiInputEnabled == true) ? "/dev/video0" : "none";
     	    //audioFile = "/dev/snd/pcmC2D0c"; // uncomment if HDMI input audio is to be used
     	}
-    	
-        
-        //AM3XX-9835::  For Crestron Sound Bar, when power cycle is done, two events are received as AUDIO(2), AUDIO_AND_VIDEO(6)
-        //              If user managed to Press Start WC from App when AUDIO event is received, then on receiving 
-        //              AUDIO_AND_VIDEO, due to below check videoFile is set to "none" even though videoFile exist.
-        //              Debounce Logic for two consecutive events is resolving the issue, but need to investigate why below
-        //              check is there in the first place.
-    	if (mStatus.sessionFlags != WC_SessionFlags.None)
-    	{
-    		// Check options selected and disallow video or audio by setting corresponding driver file to "none"
-    		if (mStatus.sessionFlags != WC_SessionFlags.Video &&  mStatus.sessionFlags != WC_SessionFlags.AudioAndVideo)
-    			videoFile = "none";
-    		if (mStatus.sessionFlags != WC_SessionFlags.Audio &&  mStatus.sessionFlags != WC_SessionFlags.AudioAndVideo)
-    			audioFile = "none";
-    	}
 
     	if (videoFile != null && !videoFile.equals(mVideoFile))
     	{
     		mVideoFile = videoFile;
-    		change = true;
+            mStreamCtrl.userSettings.setWcVideoCaptureDevice(mVideoFile);
+            mVideoFormats = mStreamOut.getVideoFormats(mVideoFile);
+
     	}
     	if (audioFile != null && !audioFile.equals(mAudioFile))
     	{
     		mAudioFile = audioFile;
-    		change = true;
+            mStreamCtrl.userSettings.setWcAudioCaptureDevice(mAudioFile);
+            mAudioFormats = mStreamOut.getAudioFormats(mAudioFile);
     	}
-    	if (change)
-    	{
-    		Log.i(TAG, "WC video capture device is "+mVideoFile+" audio capture device is "+mAudioFile);
-    		mStreamCtrl.userSettings.setWcVideoCaptureDevice(mVideoFile);
-    		mStreamCtrl.userSettings.setWcAudioCaptureDevice(mAudioFile);
-    	}
-    	return change;
+        Log.i(TAG, "WC video capture device is "+mVideoFile+" audio capture device is "+mAudioFile);
     }
 
     public void setSpeakerDetectedStatus()
