@@ -6633,6 +6633,9 @@ public class CresStreamCtrl extends Service {
 
         if( mWC_Service != null )
         {
+            //AM3XX-13238: TODO: During Audio WC session, if camera come alive, then subsequent WC session video was not getting 
+            //started on the sender app side. Calling close session on every usb status changed made camera feed to be displayed 
+            //on sender side.
             if(usbUnplugEvent == true)
             {
                 Log.i(TAG, "onUsbStatusChanged(): Perform WC_Service closeSession, as USB is plugged out.!!!");

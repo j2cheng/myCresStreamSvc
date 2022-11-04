@@ -23,6 +23,7 @@
 package com.crestron.txrxservice;
 
 import com.crestron.txrxservice.wc.ipc.WC_AudioFormat;
+import com.crestron.txrxservice.wc.ipc.WC_SessionFlags;
 import com.crestron.txrxservice.wc.ipc.WC_VideoFormat;
 
 import android.util.Log;
@@ -300,8 +301,25 @@ public class GstreamOut {
             nativeSetAudioCaptureDevice(hdmiAudio);
         } else 
         {
-            nativeSetVideoCaptureDevice(streamCtl.userSettings.getWcVideoCaptureDevice());
-            nativeSetAudioCaptureDevice(streamCtl.userSettings.getWcAudioCaptureDevice());
+            WC_SessionFlags flags = streamCtl.mWC_Service.getSessionFlags();
+            if (flags == WC_SessionFlags.Audio)
+            {
+                nativeSetVideoCaptureDevice("none");
+                Log.i(TAG, "Streamout: Setting Video capture device to none");
+            }
+            else
+            {
+                nativeSetVideoCaptureDevice(streamCtl.userSettings.getWcVideoCaptureDevice());
+            }
+            if (flags == WC_SessionFlags.Video)
+            {
+                nativeSetAudioCaptureDevice("none");
+                Log.i(TAG, "Streamout: Setting Audio capture device to none");
+            }
+            else
+            {
+                nativeSetAudioCaptureDevice(streamCtl.userSettings.getWcAudioCaptureDevice());
+            }
             if (!streamCtl.userSettings.getWcAudioCaptureDevice().equalsIgnoreCase("aes"))
             {            
                 //send the HDMI input resolution to CPP layer in order to confgure V4l2src controller.
