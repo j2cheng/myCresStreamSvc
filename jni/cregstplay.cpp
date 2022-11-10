@@ -2125,6 +2125,11 @@ int build_audio_pipeline(gchar *encoding_name, CREGSTREAM *data, int do_rtp,GstE
 	}
     else if(strcmp(encoding_name, "L24") == 0)
     {
+        /**
+         * @brief : Enable gstreamer audio to extract raw audio from RTP packets according to RFC 3190, uses rtpL24depay.
+         *          This is part of AES67 gstreamer pipeline on the receiver. 
+         *          We should also set: "rtpjitterbuffer mode=synced rfc7273-sync=true" for AES67 audio.
+         */
         data->element_a[i++] = gst_element_factory_make("queue", NULL);
         if(do_rtp)
         {
