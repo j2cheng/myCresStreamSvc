@@ -8139,14 +8139,21 @@ public class CresStreamCtrl extends Service {
     	}
     }
     
-    // this version is used for an AMTX3 screenshare and has deviceType within it connection
+    // this version is used for an AMTX3 screenshare and has deviceType within it
     public synchronized void startWifiDirect(String localAddress, String deviceId, String deviceName, String deviceType, String deviceAddress, int rtsp_port)
     {
         if (userSettings.getAirMediaEnable() && userSettings.getAirMediaMiracastEnable()) {
             if(isAM3K)
-                wifidVideoPlayer.onSessionReady(wifidVideoPlayer.getSessionId(), localAddress, deviceId, deviceName, deviceType, deviceAddress, rtsp_port);
-            else
+            {
+                if (wifidVideoPlayer.deviceSessionAlreadyExists(deviceId))
+                {
+                    Log.w(TAG, "There is already an active session with this device Id: "+deviceId+" new session will not be started");
+                } else {
+                    wifidVideoPlayer.onSessionReady(wifidVideoPlayer.getSessionId(), localAddress, deviceId, deviceName, deviceType, deviceAddress, rtsp_port);
+                }
+            } else {
                 Log.w(TAG, "WARNING: this call is expected for AM3X product only");
+            }
         }
     }
     

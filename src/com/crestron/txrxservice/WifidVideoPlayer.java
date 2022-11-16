@@ -678,6 +678,11 @@ public class WifidVideoPlayer {
         Common.Logging.i(TAG, "videoplayer.addToSessionMap() exit: sessionId: " + session +" StreamId: " + id);
     }
     
+    public boolean deviceSessionAlreadyExists(String deviceId)
+    {
+        return (deviceId2SessionId(deviceId) != INVALID_SESSION_ID);
+    }
+    
     public long deviceId2SessionId(String deviceId)
     {
     	if (deviceIdMap.containsKey(deviceId))
