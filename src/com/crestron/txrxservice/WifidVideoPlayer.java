@@ -462,6 +462,7 @@ public class WifidVideoPlayer {
     public void onSessionReady(long id, String local_address, String device_id, String device_name, String device_address, int port) 
     {
         Common.Logging.i(TAG, "videoplayer.onSessionReady():  sessionId="+id+" deviceId="+device_id+" deviceName="+device_name+" deviceAddress="+device_address+" rtsp_port="+port+" local_address="+local_address);
+        Common.Logging.i(TAG, "VideoPlayer.onSessionReady() adding deviceId:"+device_id+" to deviceIdMap");
     	deviceIdMap.put(device_id, new WfdSession(id, device_id, device_name, null));
         service_.onSessionReady(id, device_id, device_name, device_address, port, local_address);
     }
@@ -469,6 +470,7 @@ public class WifidVideoPlayer {
     public void onSessionReady(long id, String local_address, String device_id, String device_name, String device_type, String device_address, int port) 
     {
         Common.Logging.i(TAG, "videoplayer.onSessionReady():  sessionId="+id+" deviceId="+device_id+" deviceName="+device_name+" deviceType="+device_type+" deviceAddress="+device_address+" rtsp_port="+port+" local_address="+local_address);
+        Common.Logging.i(TAG, "VideoPlayer.onSessionReady() adding deviceId:"+device_id+" to deviceIdMap");
         deviceIdMap.put(device_id, new WfdSession(id, device_id, device_name, device_type));
         service_.onSessionReady(id, device_id, device_name, device_address, port, local_address);
     }
@@ -562,20 +564,23 @@ public class WifidVideoPlayer {
         	if (session == null)
         	{
         		Common.Logging.w(TAG, "There is an no existing session with this id="+id+" was it stopped earlier?");
-        		return;
-        	}
-         	if (session.state != AirMediaSessionStreamingState.Stopped)
-        	{
-        		streamCtrl_.stopWfdStream(session.streamId, id);
-        		stateChanged(session.streamId, AirMediaSessionStreamingState.Stopped);
         	} else {
-        		Common.Logging.i(TAG, "Session with this id="+id+" is already stopped");
+        	    if (session.state != AirMediaSessionStreamingState.Stopped)
+        	    {
+        	        streamCtrl_.stopWfdStream(session.streamId, id);
+        	        stateChanged(session.streamId, AirMediaSessionStreamingState.Stopped);
+        	    } else {
+        	        Common.Logging.i(TAG, "Session with this id="+id+" is already stopped");
+        	    }
+        	    // Remove session from the map
+        	    sessionMap.remove(id);
         	}
-			// Remove session from the map
-    		sessionMap.remove(id);
-    		String deviceId = sessionId2DeviceId(id);
+            String deviceId = sessionId2DeviceId(id);
     		if (deviceId != null)
+    		{
+    	        Common.Logging.i(TAG, "VideoPlayer.stopSession removing deviceId:"+deviceId+" from deviceIdMap");
     			deviceIdMap.remove(deviceId);
+    		}
         }
         Common.Logging.i(TAG, "VideoPlayer.stopSession for sessionId="+id+" exiting...");
     }
