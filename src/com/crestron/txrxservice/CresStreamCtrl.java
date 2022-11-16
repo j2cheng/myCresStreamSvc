@@ -687,6 +687,8 @@ public class CresStreamCtrl extends Service {
             return "AM-200";
         case 0x7400:
             return "AM-3X00";
+        case 0x8000:
+            return "DGE-3200";
         default:
             return "Crestron Device";
         }
@@ -876,6 +878,10 @@ public class CresStreamCtrl extends Service {
 	                if (forceSurfaceDisconnectAndRelease)
 	                    Log.i(TAG, "device will force surface disconnect and release");
 	            }
+            }
+            else
+            {
+                Log.i(TAG, "*** nativeGetIsAirMediaEnabledEnum return false, set airMediav21 to false" );
             }
 
             NumDmInputs = nativeGetDmInputCount();
@@ -2082,7 +2088,8 @@ public class CresStreamCtrl extends Service {
             public void run() {
                 // Wait until file exists then check
                 int hdmiLicensed = 0;
-                if (CrestronProductName.fromInteger(nativeGetProductTypeEnum()) != CrestronProductName.AM3X00)
+                if (CrestronProductName.fromInteger(nativeGetProductTypeEnum()) != CrestronProductName.AM3X00 &&
+                    CrestronProductName.fromInteger(nativeGetProductTypeEnum()) != CrestronProductName.DGE3200)
                 {
                     while ((new File(hdmiLicenseFilePath)).exists() == false)
                     {   Log.i(TAG, "Wait until file exists then check");
@@ -6657,7 +6664,11 @@ public class CresStreamCtrl extends Service {
         if (HDMIInputInterface.useAm3kStateMachine) {
             mHdmiCameraIsConnected = true;
             Log.i(TAG, "onHdmiInConnected(): HDMI Input is connected EVENT   mHdmiCameraIsConnected="+mHdmiCameraIsConnected);
-            hdmiInput.setHdmiCameraConnected(true);
+            if(hdmiInput != null)
+                hdmiInput.setHdmiCameraConnected(true);
+            else
+                Log.i(TAG, "onHdmiInConnected(): hdmiInput is null");
+            
         } else {
             new Thread(new Runnable() {
                 public void run() {
