@@ -374,7 +374,7 @@ static void gst_native_init (JNIEnv* env, jobject thiz)
 	csio_jni_init();
 
 	if (product_info()->product_type == SYSTEM_AIRMEDIA ||
-            product_info()->product_type == CRESTRON_DGE3200)
+        product_info()->product_type == CRESTRON_DGE3200)
 	{
 		CSIO_LOG(eLogLevel_debug, "SIGSEGV traps is enabled = %d", gst_segtrap_is_enabled()?1:0);
 		signal(SIGSEGV, SIG_DFL);

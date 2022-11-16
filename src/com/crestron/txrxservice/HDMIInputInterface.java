@@ -25,8 +25,9 @@ public class HDMIInputInterface {
 	private static boolean hdmiCameraIsConnected = false;
 	private static boolean hdmiCameraConnectionStateChanged = false;
 	private static Am3KHdmiStateMachine am3kHdmiStateMachine = null;
-    private static final int SYSTEM_AIRMEDIA = 0x7400; //AM3X Product type is SYSTEM_AIRMEDIA as defined in ProductDefs.h
-	
+        private static final int SYSTEM_AIRMEDIA = 0x7400; //AM3X Product type is SYSTEM_AIRMEDIA as defined in ProductDefs.h
+	private static final int SYSTEM_DGE3200  = 0x8000; 
+
     public static boolean useAm3kStateMachine = true;
 
 	public HDMIInputInterface(CresStreamCtrl sCtl) {
@@ -39,11 +40,12 @@ public class HDMIInputInterface {
 		audioChannels = "0";
 		resolutionIndex = 0;
 		isHdmiDriverPresent = (isHdmiDriverPresent | false); //set isHdmiDriverPresentH to false if not set
-        streamCtl = sCtl;
-        productType = streamCtl.nativeGetProductTypeEnum();
-        if (productType == SYSTEM_AIRMEDIA) {
-            am3kHdmiStateMachine = new Am3KHdmiStateMachine();
-        }
+            streamCtl = sCtl;
+            productType = streamCtl.nativeGetProductTypeEnum();
+            if (productType == SYSTEM_AIRMEDIA || productType == SYSTEM_DGE3200)      
+            {            
+                am3kHdmiStateMachine = new Am3KHdmiStateMachine();
+            }
 	}
 		
 	public void setSyncStatus(int resEnum) {
@@ -159,7 +161,7 @@ public class HDMIInputInterface {
             }
             else
             {
-                if(productType != SYSTEM_AIRMEDIA)
+                if(productType != SYSTEM_AIRMEDIA && productType != SYSTEM_DGE3200)
                     tokens = hdmiInResolution.split(delims);
                 else
                     tokens = hdmiInResolution.split(delims_am3x);
@@ -170,7 +172,7 @@ public class HDMIInputInterface {
 
         setHorizontalRes(tokens[0]);
         setVerticalRes(tokens[1]);
-        if(productType != SYSTEM_AIRMEDIA)
+        if(productType != SYSTEM_AIRMEDIA && productType != SYSTEM_DGE3200)
             setFPS(tokens[2].trim());
         else
         {
@@ -199,7 +201,7 @@ public class HDMIInputInterface {
     	if (isHdmiDriverPresent == true)
 		{
             StringBuilder text = new StringBuilder(16);
-            if(productType != SYSTEM_AIRMEDIA)
+            if(productType != SYSTEM_AIRMEDIA && productType != SYSTEM_DGE3200)
             {
                 try {
                     //File sdcard = Environment.getExternalStorageDirectory();
@@ -234,7 +236,7 @@ public class HDMIInputInterface {
     	if (isHdmiDriverPresent == true)
 		{
 	        StringBuilder text = new StringBuilder(64);
-            if(productType != SYSTEM_AIRMEDIA)
+            if(productType != SYSTEM_AIRMEDIA && productType != SYSTEM_DGE3200)
             {
                 try {
                     File file = new File("/sys/devices/platform/omap_i2c.2/i2c-2/2-000f/hdmi_in_resolution");
@@ -266,7 +268,7 @@ public class HDMIInputInterface {
     	if (isHdmiDriverPresent == true)
 		{
             int resIndex = 0;
-            if(productType != SYSTEM_AIRMEDIA)
+            if(productType != SYSTEM_AIRMEDIA && productType != SYSTEM_DGE3200 )
             {
                 StringBuilder text = new StringBuilder(64);
                 try {
@@ -374,7 +376,7 @@ public class HDMIInputInterface {
 		{
 	    	StringBuilder text = new StringBuilder(16);
 
-            if(productType != SYSTEM_AIRMEDIA)
+            if(productType != SYSTEM_AIRMEDIA && productType != SYSTEM_DGE3200)
             {
                 try {
                     File file = new File("/sys/devices/platform/omap_i2c.2/i2c-2/2-000f/hdcp");
@@ -422,7 +424,7 @@ public class HDMIInputInterface {
     	if (isHdmiDriverPresent == true)
 		{
 	    	StringBuilder text = new StringBuilder(16);
-            if(productType != SYSTEM_AIRMEDIA)
+            if(productType != SYSTEM_AIRMEDIA && productType != SYSTEM_DGE3200)
             {
                 try {
                     File file = new File("/sys/devices/platform/omap_i2c.2/i2c-2/2-000f/sync_state");
@@ -455,7 +457,7 @@ public class HDMIInputInterface {
     	if (isHdmiDriverPresent == true)
 		{
 	    	StringBuilder text = new StringBuilder(64);
-            if(productType != SYSTEM_AIRMEDIA)
+            if(productType != SYSTEM_AIRMEDIA && productType != SYSTEM_DGE3200)
             {
                 try {
                     File file = new File("/sys/devices/platform/omap_i2c.2/i2c-2/2-000f/audio_sample_rate");
@@ -497,7 +499,7 @@ public class HDMIInputInterface {
     public static boolean readInterlaced (){
     	if (isHdmiDriverPresent == true)
 		{
-            if(productType != SYSTEM_AIRMEDIA)
+            if(productType != SYSTEM_AIRMEDIA && productType != SYSTEM_DGE3200)
             {
                 StringBuilder text = new StringBuilder(16);
                 try {
