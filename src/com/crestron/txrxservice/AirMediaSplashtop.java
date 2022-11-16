@@ -2237,6 +2237,8 @@ public class AirMediaSplashtop
 			String platform = info.platform.toString();
 			if (!platform.equals("") && !platform.equals("Undefined"))
 			{
+			    if (platform.equals("Tx3_100") || platform.equals("Tx3_200"))
+			       platform = "AirMedia TX3";
 				this.Platform = platform;
 			}
 			if (!info.version.equals(""))
