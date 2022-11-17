@@ -3,7 +3,7 @@ include $(CLEAR_VARS)
 
 
 # Temporarily blocking the build
-ifneq ($(TARGET_PRODUCT),$(filter $(TARGET_PRODUCT),am62x evk_8mm))
+ifneq ($(TARGET_PRODUCT),$(filter $(TARGET_PRODUCT),lahaina am62x evk_8mm))
 
 ifneq ($(shell test $(PLATFORM_SDK_VERSION) -ge 30 && echo Android12),Android12)
 LOCAL_MODULE_TAGS := eng
