@@ -186,6 +186,7 @@ public class CresStreamCtrl extends Service {
     private final static String dontStartAirMediaFilePath = "/dev/shm/crestron/CresStreamSvc/dontStartAirMedia";
     private static final String [] InterfaceNames = {"eth0", "eth1"};
     public static boolean isAM3K = false;
+    public static boolean m_isDGE3200 = false;
     public volatile boolean mMediaServerCrash = false;
     public volatile boolean mDucatiCrash = false;
     public volatile boolean mIgnoreAllCrash = false;
@@ -843,6 +844,7 @@ public class CresStreamCtrl extends Service {
             mProductHasHDMIoutput = nativeHaveHDMIoutput();
             
             isAM3K = isAM3X00();
+            m_isDGE3200 = isDGE3200();
 
             if (nativeGetIsAirMediaEnabledEnum())
             {
@@ -1179,6 +1181,7 @@ public class CresStreamCtrl extends Service {
                 case TS1542:
                 case TS1542_C:
                 case AM3X00:
+                case DGE3200:
                 {
                     // Bug 154293: RGB888 on OMAP cannot support simultaneous video, BW limitation
                     isRGB888HDMIVideoSupported = false;
@@ -1701,6 +1704,11 @@ public class CresStreamCtrl extends Service {
     	return (CrestronProductName.fromInteger(nativeGetProductTypeEnum()) == CrestronProductName.AM3X00);
     }
     
+    public boolean isDGE3200()
+    {
+    	return (CrestronProductName.fromInteger(nativeGetProductTypeEnum()) == CrestronProductName.DGE3200);
+    }
+
     public boolean getRGB888VideoSupportState()
     {
         boolean rv = false;
@@ -1714,6 +1722,7 @@ public class CresStreamCtrl extends Service {
             case TS1542_C:
             case TXRX:
             case AM3X00:
+            case DGE3200:
             {
                 // Bug 154293: RGB888 on OMAP cannot support simultaneous video, BW limitation
                 rv = false;
@@ -2029,7 +2038,9 @@ public class CresStreamCtrl extends Service {
                     }
                 }
 
-                if (!airMediaLicensed)
+                //Note: 11-17-2022: no airmedia for DGE3200
+                if (!airMediaLicensed && 
+                    CrestronProductName.fromInteger(nativeGetProductTypeEnum()) != CrestronProductName.DGE3200)
                 {
                     while ((new File(AirMediaSplashtop.licenseFilePath)).exists() == false)
                     {
@@ -2061,7 +2072,10 @@ public class CresStreamCtrl extends Service {
                 }
             	
                 //Note: 4-14-2021, need to start AirMediaCanvas even not licensed
-                if (mAirMedia == null && !golden && !dontStart){
+                //      11-17-2022: no airmedia for DGE3200
+                if (mAirMedia == null && !golden && !dontStart && 
+                    CrestronProductName.fromInteger(nativeGetProductTypeEnum()) != CrestronProductName.DGE3200)
+                {
                     Log.i(TAG, "Calling AirMediaConstructor from airMediaLicenseThread");
                     mAirMedia = new AirMediaSplashtop(streamCtrl);
                     
@@ -6250,8 +6264,10 @@ public class CresStreamCtrl extends Service {
     
     public void setCamStreamEnable(boolean enable) {
 
-        if (CrestronProductName.fromInteger(nativeGetProductTypeEnum()) == CrestronProductName.AM3X00)
+        if (CrestronProductName.fromInteger(nativeGetProductTypeEnum()) == CrestronProductName.AM3X00 ||
+            CrestronProductName.fromInteger(nativeGetProductTypeEnum()) == CrestronProductName.DGE3200)
         	return;
+        
         stopStartLock[0].lock("setCamStreamEnable");
         try
         {
@@ -6510,9 +6526,9 @@ public class CresStreamCtrl extends Service {
         boolean peripheralMute           = false;
         boolean isPeripheralVolumeSupported    = false;
 
-        if(isAM3X00() != true)
+        if(isAM3X00() != true && isDGE3200() != true)
         {
-            Log.i(TAG,"sendPeripheralVolumeStatus: returning as Device is not AM3X00");
+            Log.i(TAG,"sendPeripheralVolumeStatus: returning as Device is not AM3X00, or not DGE3200");
                return;
         }
 

@@ -44,13 +44,13 @@ public class AudioPlayback
 
 	public AudioPlayback(CresStreamCtrl streamCtl) {
 		mStreamCtl = streamCtl;
-		if (mStreamCtl.isAM3X00())
+		if (mStreamCtl.isAM3X00() || mStreamCtl.isDGE3200())
 		    maxNumOfBuffers = 6;  // This value was determined through manual testing on AM3200 4 works(AM3XX-6614 - distortion in audio on reboot)
 	}
 
 	protected boolean startAudioTask(){
 		audioSampleRate = HDMIInputInterface.readAudioSampleRate();
-		if (mStreamCtl.isAM3X00()) {
+		if (mStreamCtl.isAM3X00() || mStreamCtl.isDGE3200()) {
 		    Log.i(TAG, "startAudioTask() - audio sample rate has is now "+audioSampleRate+" (was "+mStreamCtl.mPreviousAudioInputSampleRate+")");
 		    mStreamCtl.mPreviousAudioInputSampleRate = audioSampleRate;
 		    if (audioSampleRate <= 0 || audioSampleRate > 48000)

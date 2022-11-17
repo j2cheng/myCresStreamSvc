@@ -19,6 +19,7 @@ public class HDMIOutputInterface {
 
 	private boolean hasHdmiOutput = false;
 	private static boolean isAM3K = false;
+	private static boolean m_isDGE3200 = false;
 	CresStreamCtrl streamCtrl=null;
 	private boolean am3kSyncStatus = false;
 	
@@ -66,6 +67,7 @@ public class HDMIOutputInterface {
 	{
 		streamCtrl = ctrl;
 		isAM3K = streamCtrl.isAM3K;
+		m_isDGE3200 = streamCtrl.m_isDGE3200;
 	}
 	
 	public void set_am3k_sync_status(boolean sync)
@@ -82,7 +84,7 @@ public class HDMIOutputInterface {
 	public void setSyncStatus() {
 		if (hasHdmiOutput)
 		{
-			if (!isAM3K)
+			if (!isAM3K && !m_isDGE3200)
 			{
 				StringBuilder text = new StringBuilder(16);
 				try {
@@ -207,7 +209,7 @@ public class HDMIOutputInterface {
 	}
 	
 	public static int readHDCPOutputStatus (){
-		if (!isAM3K)
+		if (!isAM3K && !m_isDGE3200)
 		{
 			StringBuilder text = new StringBuilder(16);
 			try {
