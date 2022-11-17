@@ -19,7 +19,7 @@ include $(BUILD_PREBUILT)
 
 
 # Temporarily blocking the build
-ifneq ($(TARGET_PRODUCT),$(filter $(TARGET_PRODUCT),lahaina am62x evk_8mm))
+ifneq ($(TARGET_PRODUCT),$(filter $(TARGET_PRODUCT),am62x evk_8mm))
 
 include $(CLEAR_VARS)
 ifeq ($(TARGET_PRODUCT),$(filter $(TARGET_PRODUCT),msm8953_64 am3x00_box lahaina am62x evk_8mm))
@@ -102,7 +102,11 @@ endif
 
 # Crestron - name was different
 #LOCAL_SHARED_LIBRARIES := gstreamer_android
+ifdef BOARD_VNDK_VERSION
+LOCAL_SHARED_LIBRARIES := libgstreamer_android liblog libnativewindow
+else
 LOCAL_SHARED_LIBRARIES := libgstreamer_android liblog libandroid
+endif
 LOCAL_SHARED_LIBRARIES += libproductName
 LOCAL_SHARED_LIBRARIES += libLinuxUtil
 LOCAL_SHARED_LIBRARIES += libCresSocketHandler
@@ -173,7 +177,7 @@ LOCAL_CFLAGS += -DBIONIC_HAS_STPCPY
 LOCAL_CFLAGS += -Wno-unused-parameter
 endif
 
-ifeq ($(TARGET_PRODUCT),$(filter $(TARGET_PRODUCT),yushan_one msm8953_64 ))
+ifeq ($(TARGET_PRODUCT),$(filter $(TARGET_PRODUCT),yushan_one msm8953_64 lahaina))
 LOCAL_CFLAGS += -DMAX_STREAMS_OMAP
 endif
 
@@ -190,6 +194,21 @@ LOCAL_SHARED_LIBRARIES += libHdcp2xEncryptApi
 LOCAL_CFLAGS += -I$(CRESTRON_ROOT)/Hdcp2x/HDCP2xEncryptAPI
 LOCAL_CFLAGS += -DSupportsHDCPEncryption
 LOCAL_CFLAGS += -DMAX_STREAMS_OMAP
+endif
+
+ifdef BOARD_VNDK_VERSION
+LOCAL_CFLAGS +=\
+	-I$(CRESTORN_ROOT)frameworks/native/libs/nativewindow/include \
+	-I$(CRESTORN_ROOT)frameworks/native/include \
+	-I$(CRESTORN_ROOT)system/core/include \
+	-I$(CRESTORN_ROOT)frameworks/native/libs/arect/include \
+	-I$(CRESTORN_ROOT)hardware/libhardware/include \
+	-I$(CRESTRON_ROOT)frameworks/native/include/android \
+	-I$(CRESTRON_ROOT)frameworks/native/libs/ui/include \
+	-I$(CRESTRON_ROOT)frameworks/native/libs/ui/include_vndk \
+	-I$(CRESTRON_ROOT)frameworks/native/libs \
+	-I$(CRESTRON_ROOT)frameworks/base/libs/hostgraphics \
+	-DBOARD_VNDK_VERSION
 endif
 
 ifneq ($(shell test $(PLATFORM_SDK_VERSION) -ge 30 && echo Android12),Android12)
@@ -275,9 +294,27 @@ endif
 ifeq ($(TARGET_PRODUCT),$(filter $(TARGET_PRODUCT),am3x00_box))
 LOCAL_CFLAGS +=\
 	-DAM3X00
-endif	
+endif
+	
+ifdef BOARD_VNDK_VERSION
+#LOCAL_VENDOR_MODULE := true
+LOCAL_CFLAGS +=\
+	-I$(CRESTORN_ROOT)frameworks/native/libs/nativewindow/include \
+	-I$(CRESTORN_ROOT)frameworks/native/include \
+	-I$(CRESTORN_ROOT)system/core/include \
+	-I$(CRESTORN_ROOT)frameworks/native/libs/arect/include \
+	-I$(CRESTORN_ROOT)hardware/libhardware/include \
+	-I$(CRESTRON_ROOT)frameworks/native/include/android \
+	-I$(CRESTRON_ROOT)frameworks/native/libs/ui/include \
+	-I$(CRESTRON_ROOT)frameworks/native/libs/ui/include_vndk \
+	-I$(CRESTRON_ROOT)frameworks/native/libs \
+	-I$(CRESTRON_ROOT)frameworks/base/libs/hostgraphics \
+	-DBOARD_VNDK_VERSION
 
+LOCAL_LDLIBS := -llog -lnativewindow
+else
 LOCAL_LDLIBS := -llog -landroid
+endif
 LOCAL_SHARED_LIBRARIES := libCsioProdInfo
 LOCAL_SHARED_LIBRARIES += libcresstore_json
 #LOCAL_SHARED_LIBRARIES += libjsoncpp
@@ -285,7 +322,11 @@ LOCAL_SHARED_LIBRARIES += libcresnextserializer
 ifeq ($(shell test $(PLATFORM_SDK_VERSION) -lt 23 && echo PreMarshmallow),PreMarshmallow)
 LOCAL_SHARED_LIBRARIES += libstlport
 endif
+ifdef BOARD_VNDK_VERSION
+LOCAL_SHARED_LIBRARIES += liblog libnativewindow
+else
 LOCAL_SHARED_LIBRARIES += liblog libandroid
+endif
 LOCAL_SHARED_LIBRARIES += libSecureStorage
 
 LOCAL_SRC_FILES := cresstreamctrl_jni.cpp

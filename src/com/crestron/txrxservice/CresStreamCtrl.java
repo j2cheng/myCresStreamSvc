@@ -538,6 +538,7 @@ public class CresStreamCtrl extends Service {
         eHardwarePlatform_Amlogic,
         eHardwarePlatform_Snapdragon,
         eHardwarePlatform_Rockchip,
+        eHardwarePlatform_Snapdragon_TST1080,
         eHardwarePlatform_Unknown;
 
         public static CrestronHwPlatform fromInteger(int x) {
@@ -556,13 +557,15 @@ public class CresStreamCtrl extends Service {
                 return eHardwarePlatform_Snapdragon;
             case 6:
                 return eHardwarePlatform_Rockchip;
+            case 7:
+                return eHardwarePlatform_Snapdragon_TST1080;
             default:
                 Log.i(TAG, MiscUtils.stringFormat("Unknown hardware platform %d, please update enum!!!!!", x));
                 return eHardwarePlatform_Unknown;
             }
         }
     }
-    
+
     public enum CrestronProductName
     {
         DMC_STR(0xE4),
@@ -578,6 +581,7 @@ public class CresStreamCtrl extends Service {
         AM200(0x2E),
         AM3X00(0x7400),
         X70(0x7900),
+        TST1080(0x7100),
         DGE3200(0x8000),
         Unknown(0x0);
 
@@ -616,6 +620,8 @@ public class CresStreamCtrl extends Service {
                 return AM3X00;
             case 0x7900:
                 return X70;
+            case 0x7100:
+                return TST1080;
             case 0x8000:
                 return DGE3200;
             default:
@@ -1164,7 +1170,7 @@ public class CresStreamCtrl extends Service {
             }
 
 
-            
+
             // Product table
             switch (CrestronProductName.fromInteger(nativeGetProductTypeEnum()))
             {
@@ -1186,6 +1192,7 @@ public class CresStreamCtrl extends Service {
                 case AM300:
                 case AM200:
                 case X70:
+                case TST1080:
                 case Unknown:
                 {
                     isRGB888HDMIVideoSupported = userSettings.getRgb888Enabled();
@@ -3928,6 +3935,7 @@ public class CresStreamCtrl extends Service {
                         (userSettings.getMode(sessionId) == DeviceMode.STREAM_OUT.ordinal()) )
                 {
                     // For X70, for performance reasons, we leave chromakey enabled or disabled based on mode
+                    // For TST1080 - leave this as is as it does not support chromakey.
                     if (CrestronProductName.fromInteger(nativeGetProductTypeEnum()) != CrestronProductName.X70)
                         ProductSpecific.doChromakey((serviceMode != ServiceMode.Slave) ? true : false);
 
@@ -4008,6 +4016,7 @@ public class CresStreamCtrl extends Service {
                         SendStreamState(StreamState.STOPPED, sessionId);
                 }
                 // For X70, for performance reasons, we leave chromakey enabled or disabled based on mode
+                // For TST1080 - leave this as is as it does not support chromakey.
                 if (CrestronProductName.fromInteger(nativeGetProductTypeEnum()) != CrestronProductName.X70)
                     ProductSpecific.doChromakey(false);
             }

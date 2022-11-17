@@ -1510,13 +1510,14 @@ int build_video_pipeline(gchar *encoding_name, CREGSTREAM *data, unsigned int st
             data->element_video_front_end_queue = data->element_v[i-1];
         	setQueueProperties(data, data->element_v[i - 1], (guint64)((1ll + CSIOCnsIntf->getStreamRx_BUFFER(data->streamId)) * 1000000ll),(guint)16*1024*1024);
         }
-        
+
         if(do_rtp)
         {
             data->element_v[i++] = gst_element_factory_make("rtph264depay", NULL);
         }
 
         if( (product_info()->hw_platform  == eHardwarePlatform_Snapdragon ||
+             product_info()->hw_platform  == eHardwarePlatform_Snapdragon_TST1080 ||
              product_info()->hw_platform  == eHardwarePlatform_Rockchip   ||
              product_info()->product_type == CRESTRON_DMPS3_MEZZ2           )  &&
             ((!format_name) || is_avc_fmt_name))
@@ -1827,7 +1828,7 @@ int build_video_pipeline(gchar *encoding_name, CREGSTREAM *data, unsigned int st
 		    *  rtpjpegdepay:src and jpegdec:sink both are type of "image/jpeg",
 		    *  so there is no parse needed here.
 		    */
-		    if(product_info()->hw_platform == eHardwarePlatform_Snapdragon && do_rtp)
+		    if(((product_info()->hw_platform == eHardwarePlatform_Snapdragon) || (product_info()->hw_platform == eHardwarePlatform_Snapdragon_TST1080)) && do_rtp)
 		    {
 		        CSIO_LOG(eLogLevel_debug, "do not insert jpegparse when use software jpegdec");
 		    }
@@ -1906,7 +1907,7 @@ int build_video_pipeline(gchar *encoding_name, CREGSTREAM *data, unsigned int st
         STR2CSTR("Failed to start streaming due to unsupported media type. Detected media type: %s", encoding_name), data->streamId);
 		return CSIO_CANNOT_CREATE_ELEMENTS;
 	}
-		
+
 	if(do_sink)
 	{
 	    if(data->using_glimagsink)
@@ -1920,12 +1921,13 @@ int build_video_pipeline(gchar *encoding_name, CREGSTREAM *data, unsigned int st
 	         * captured without delay.Any delay could end up dropping frames in jpegdec,
 	         * which causes issue.
 	        */
-	        if (product_info()->hw_platform == eHardwarePlatform_Snapdragon)
+	        if ((product_info()->hw_platform == eHardwarePlatform_Snapdragon) ||
+	           (product_info()->hw_platform == eHardwarePlatform_Snapdragon_TST1080))
 	        {
 	            data->element_v[i++] = gst_element_factory_make("queue", NULL);
 	        }//else
 	    }
-        
+
 		// Temporary hack - always force the settings to use new sink.  This avoids
 		// requiring the user to restore settings.
 		// TODO: Don't use old sink at all for H.264

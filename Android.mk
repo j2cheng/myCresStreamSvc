@@ -3,7 +3,7 @@ include $(CLEAR_VARS)
 
 
 # Temporarily blocking the build
-ifneq ($(TARGET_PRODUCT),$(filter $(TARGET_PRODUCT),lahaina am62x evk_8mm))
+ifneq ($(TARGET_PRODUCT),$(filter $(TARGET_PRODUCT),am62x evk_8mm))
 
 ifneq ($(shell test $(PLATFORM_SDK_VERSION) -ge 30 && echo Android12),Android12)
 LOCAL_MODULE_TAGS := eng
@@ -41,8 +41,14 @@ ifeq ($(TARGET_PRODUCT),$(filter $(TARGET_PRODUCT),msm8953_64 lahaina am62x evk_
 	LOCAL_MULTILIB := 32
 	LOCAL_MODULE_PATH := $(TARGET_OUT_VENDOR)/priv-app
 
+ifeq ($(TARGET_PRODUCT),$(filter $(TARGET_PRODUCT),msm8953_64))
 	LOCAL_SRC_FILES += $(call all-java-files-under, Snapdragon)
-	
+endif
+ifeq ($(TARGET_PRODUCT),$(filter $(TARGET_PRODUCT),lahaina))
+	LOCAL_SRC_FILES += $(call all-java-files-under, Snapdragon/TST1080)
+endif
+
+
 #	In AOSP(8.0), Surface.aidl moved from frameworks/base... to frameworks/native...	
 	LOCAL_AIDL_INCLUDES += frameworks/native/aidl/gui
 	

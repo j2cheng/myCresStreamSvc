@@ -3,7 +3,7 @@
  * All rights reserved.
  * No part of this software may be reproduced in any form, machine
  * or natural, without the express written consent of Crestron Electronics.
- * 
+ *
  * \file        jni.c
  *
  * \brief       Java <--> native interface code.
@@ -15,7 +15,7 @@
  * \note        Based on gstreamer android tutorials.
  *
  * This module is intended to encapsulate the interface with Java/Android.
- * 
+ *
  * \todo		Try to move gstreamer stuff out of here.
  */
 
@@ -32,7 +32,7 @@
 #include <sys/socket.h>
 #include <sys/time.h>
 #include <ctype.h>
-#include "cregstplay.h" 
+#include "cregstplay.h"
 #include <jni.h>
 #include "GstreamIn.h"
 #include "GstreamOut.h"
@@ -201,6 +201,7 @@ unsigned int debug_setPipelineBuf = 0;//0 -- disable, range: 1 to 2000ms
 extern void setSignalHandlerToDefault();
 int gstVideoEncDumpEnable = false;
 extern int videoDumpCount;
+
 
 /*
  * Private methods
@@ -603,6 +604,7 @@ void csio_jni_change_queues_to_leaky(int id)
         if (product_info()->product_type == CRESTRON_DMPS3_MEZZ2      ||
             product_info()->hw_platform == eHardwarePlatform_Rockchip ||
             product_info()->hw_platform  == eHardwarePlatform_Snapdragon ||
+            product_info()->hw_platform  == eHardwarePlatform_Snapdragon_TST1080 ||
             data->wfd_start && ((product_info()->hw_platform == eHardwarePlatform_Rockchip) ||
                                  product_info()->hw_platform == eHardwarePlatform_OMAP5))
         {
@@ -996,8 +998,12 @@ static void gst_native_surface_init(JNIEnv *env, jobject thiz, jobject surface, 
         CSIO_LOG(eLogLevel_error, "No surface for stream %d", stream);
         return;
     }
-
+#ifndef BOARD_VNDK_VERSION
     new_native_window = ANativeWindow_fromSurface(env, surface);
+#else
+    new_native_window = NULL;
+    CSIO_LOG(eLogLevel_error, "!!! ERROR: ANativeWindow_fromSurface in not supported on this platform !!!");
+#endif
     if (!new_native_window)
     {
         CSIO_LOG(eLogLevel_error, "No native window for stream %d", stream);
@@ -4678,7 +4684,7 @@ void csio_jni_initVideo(int iStreamId)
                     g_object_set(G_OBJECT(data->amcvid_dec), "ts-offset", tsOffset64, NULL);
                     // *** CSIO_LOG(eLogLevel_debug, "%s: total ts_offset: %lld ns",__FUNCTION__, tsOffset64);
                     CSIO_LOG(eLogLevel_debug, ">>>>> %s: total ts_offset: %lld ns",__FUNCTION__, tsOffset64);
-                }                
+                }
             }
 
             // *** CSIO_LOG(eLogLevel_debug, "%s: streamingBuffer or latency is:%d",__FUNCTION__, CSIOCnsIntf->getStreamRx_BUFFER(iStreamId));
@@ -4686,17 +4692,17 @@ void csio_jni_initVideo(int iStreamId)
             CSIO_LOG(eLogLevel_debug, ">>>>> %s: streamingBuffer or latency is:%d",__FUNCTION__, CSIOCnsIntf->getStreamRx_BUFFER(iStreamId));
             CSIO_LOG(eLogLevel_debug, ">>>>> %s: amcviddec_ts_offset:%d",__FUNCTION__, data->amcviddec_ts_offset);            
         }
-    
+
         if(data->element_valve_v)
             g_object_set(G_OBJECT(data->element_valve_v), "drop", FALSE, NULL);
-    
+
         // *** CSIO_LOG(eLogLevel_debug, "%s: qos is turned off for surfaceflingersink!", __FUNCTION__);
         CSIO_LOG(eLogLevel_debug, ">>>>> %s: qos is turned off for surfaceflingersink!", __FUNCTION__);
-        
+
         if(data->video_sink)
             g_object_set(G_OBJECT(data->video_sink), "qos", FALSE, NULL);
 
-        if(data->amcvid_dec && (product_info()->hw_platform == eHardwarePlatform_Snapdragon))
+        if(data->amcvid_dec && (product_info()->hw_platform == eHardwarePlatform_Snapdragon || product_info()->hw_platform == eHardwarePlatform_Snapdragon_TST1080))
         {
             g_object_set(G_OBJECT(data->amcvid_dec), "push-delay-max", G_GUINT64_CONSTANT (0), NULL);
             // *** CSIO_LOG(eLogLevel_debug, "Stream[%d] push-delay-max is disabled", iStreamId);
@@ -5765,7 +5771,12 @@ JNIEXPORT void JNICALL Java_com_crestron_txrxservice_GstreamOut_nativeStartPrevi
 
     if(surface)
     {
-		native_window = ANativeWindow_fromSurface(env, surface);
+#ifndef BOARD_VNDK_VERSION
+        native_window = ANativeWindow_fromSurface(env, surface);
+#else
+        native_window = NULL;
+        CSIO_LOG(eLogLevel_error, "!!! ERROR: ANativeWindow_fromSurface in not supported on this platform !!!");
+#endif
 		if (!native_window)
 		{
 			CSIO_LOG(eLogLevel_error, "Preview: No native window for stream");
@@ -5981,7 +5992,12 @@ JNIEXPORT void JNICALL Java_com_crestron_txrxservice_WbsStreamIn_nativeSurfaceIn
         return;
     }
 
+#ifndef BOARD_VNDK_VERSION
     new_native_window = ANativeWindow_fromSurface(env, surface);
+#else
+    new_native_window = NULL;
+    CSIO_LOG(eLogLevel_error, "!!! ERROR: ANativeWindow_fromSurface in not supported on this platform !!!");
+#endif
     if (!new_native_window)
     {
         CSIO_LOG(eLogLevel_error, "No native window for stream %d", stream);
@@ -6880,7 +6896,8 @@ void csio_jni_setFramePushDelay(int id)
     if(data && data->amcvid_dec)
     {
         bool use_legacy_method = false;
-        if(product_info()->hw_platform == eHardwarePlatform_Snapdragon)
+        if(product_info()->hw_platform == eHardwarePlatform_Snapdragon ||
+           product_info()->hw_platform == eHardwarePlatform_Snapdragon_TST1080)
         {
             guint64 max_delay = (guint64) DEFAULT_MAX_FRAME_PUSH_DELAY;
             use_legacy_method = true;
