@@ -45,7 +45,7 @@ ifeq ($(TARGET_PRODUCT),$(filter $(TARGET_PRODUCT),msm8953_64))
 	LOCAL_SRC_FILES += $(call all-java-files-under, Snapdragon)
 endif
 ifeq ($(TARGET_PRODUCT),$(filter $(TARGET_PRODUCT),lahaina))
-	LOCAL_SRC_FILES += $(call all-java-files-under, Snapdragon/TST1080)
+	LOCAL_SRC_FILES += $(call all-java-files-under, Snapdragon_X80)
 endif
 
 
