@@ -181,6 +181,7 @@ typedef struct _CREGSTREAM
     int  wfd_start;
     bool wfd_is_mice_session;
     int  wfd_source_latency;
+    struct timespec wfd_idr_req_timespec;
 
     char intf_name[32];
     char loc_ip_addr[32];

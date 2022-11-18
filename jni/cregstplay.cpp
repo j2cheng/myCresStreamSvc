@@ -49,6 +49,8 @@
 #include "cresNextCommonShare.h"
 #include "cstreamer.h"
 
+#define WFD_MIN_IDR_INTERVAL 250
+
 extern void WfdSinkProjSendIdrReq(int id);
 extern void WfdSinkProjSendGst1stFrameEvt(int id);
 
@@ -411,6 +413,17 @@ static void pad_added_callback2 (GstElement *src, GstPad *new_pad, CREGSTREAM *d
     gst_caps_unref(new_pad_caps);
 }
 
+int64_t time_delta_msec(struct timespec now, struct timespec prev)
+{
+    long sec = now.tv_sec - prev.tv_sec;
+    long nsec = now.tv_nsec - prev.tv_nsec;
+    if (nsec < 0) {
+        sec--;
+        nsec += 1000000000L;
+    }
+    return sec*1000+(nsec/1000000);
+}
+
 GstPadProbeReturn udpsrcProbe(GstPad *pad, GstPadProbeInfo *info, gpointer user_data)
 {
     CREGSTREAM * data = (CREGSTREAM *)user_data;
@@ -456,7 +469,16 @@ GstPadProbeReturn udpsrcProbe(GstPad *pad, GstPadProbeInfo *info, gpointer user_
                             if(data->wfd_start && 
                                product_info()->hw_platform == eHardwarePlatform_Rockchip )        
                             {
-                               WfdSinkProjSendIdrReq(data->streamId);
+                               struct timespec cur_timespec;
+                               clock_gettime(CLOCK_MONOTONIC, &cur_timespec);
+                               int64_t delta = time_delta_msec(cur_timespec, data->wfd_idr_req_timespec);
+                               if (delta > WFD_MIN_IDR_INTERVAL)
+                               {
+                                   CSIO_LOG(eLogLevel_debug,"Stream[%d]: time from last IDR request: %lld msec\n", data->streamId, delta);
+                                   WfdSinkProjSendIdrReq(data->streamId);
+                                   data->wfd_idr_req_timespec.tv_sec = cur_timespec.tv_sec;
+                                   data->wfd_idr_req_timespec.tv_nsec = cur_timespec.tv_nsec;
+                               }
                             }//else
                          }
 
@@ -1493,6 +1515,11 @@ int build_video_pipeline(gchar *encoding_name, CREGSTREAM *data, unsigned int st
     data->using_glimagsink = 0;
     data->amcvid_dec_index = 0;
     *sink = NULL;
+
+    if (data->wfd_start)
+    {
+        clock_gettime(CLOCK_MONOTONIC, &data->wfd_idr_req_timespec);
+    }
 
     bool is_avc_fmt_name = ((format_name) && (strncasecmp(format_name, "avc",3) == 0));
 
