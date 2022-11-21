@@ -1864,7 +1864,7 @@ public class CresStreamCtrl extends Service {
         }
         else
         {
-            if(isAM3K)
+            if(isAM3K || m_isDGE3200)
             {
 	            if(mProductSpecific.getInstance().cam_handle.findCamera("/dev/video0"))
 	            {
