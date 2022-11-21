@@ -756,7 +756,7 @@ public class CresStreamCtrl extends Service {
         
         public void setIsPlaying(boolean isPlaying) 
         { 
-            if (isAM3K)
+            if (isAM3K || m_isDGE3200)
             {
                 this.isPlaying = isPlaying;
             }
@@ -769,7 +769,7 @@ public class CresStreamCtrl extends Service {
         
         public void setSync(boolean sync) 
         { 
-            if (isAM3K)
+            if (isAM3K || m_isDGE3200)
             {
                 this.sync = sync;
             }
@@ -1326,7 +1326,7 @@ public class CresStreamCtrl extends Service {
             hdmiOutput = new HDMIOutputInterface(nativeGetHDMIOutputBitmask(), this);
             
             //Do not set bypass if product does not have HDMI output
-            if(mProductHasHDMIoutput && !isAM3K)
+            if(mProductHasHDMIoutput && !isAM3K && !m_isDGE3200)
             {
             	setHDCPBypass();
             }
@@ -2450,7 +2450,7 @@ public class CresStreamCtrl extends Service {
                     hdmiLock.lock();
                     try
                     {
-                        if(isAM3K)
+                        if(isAM3K || m_isDGE3200)
                         {
                             int changes = getChangesBeforeStartup();
                             if(changes != 0)
@@ -2474,22 +2474,22 @@ public class CresStreamCtrl extends Service {
                             int hdmiInSampleRate = HDMIInputInterface.readAudioSampleRate();
                             boolean curSync=false;
                             boolean curHdmiIsPlaying = false;;
-                            if (isAM3K) {
+                            if (isAM3K || m_isDGE3200) {
                             	curSync = HDMIInputInterface.readSyncState();
                             	curHdmiIsPlaying = mCanvasHdmiIsPlaying;
                             }
                             // If sample frequency changes on the fly, restart stream
                             if (hdmiInSampleRate != mPreviousAudioInputSampleRate || 
-                            		(isAM3K && ((mPreviousHdmi.getSync() != curSync) || (mPreviousHdmi.getIsPlaying() != curHdmiIsPlaying))))
+                            	((isAM3K || m_isDGE3200) && ((mPreviousHdmi.getSync() != curSync) || (mPreviousHdmi.getIsPlaying() != curHdmiIsPlaying))))
                             {
                             	if (hdmiInSampleRate != mPreviousAudioInputSampleRate)
                             		Log.i(TAG, "Previous audio sample rate="+mPreviousAudioInputSampleRate+"  Current audio sample rate="+hdmiInSampleRate);
-                            	if (isAM3K && mPreviousHdmi.getSync() != curSync)
+                            	if ((isAM3K || m_isDGE3200) && mPreviousHdmi.getSync() != curSync)
                                 	Log.i(TAG, "Previous HDMI in sync="+mPreviousHdmi.getSync()+"  Current HDMI in sync="+curSync);
-                               	if (isAM3K && mPreviousHdmi.getIsPlaying() != curHdmiIsPlaying)
+                               	if ((isAM3K || m_isDGE3200) && mPreviousHdmi.getIsPlaying() != curHdmiIsPlaying)
                                 	Log.i(TAG, "Previous HDMI play state="+mPreviousHdmi.getIsPlaying()+"  Current HDMI play state="+curHdmiIsPlaying);
                                 mPreviousAudioInputSampleRate = hdmiInSampleRate;
-                                if (isAM3K) {
+                                if (isAM3K || m_isDGE3200) {
                                     mPreviousHdmi.setSync(curSync);
                                     mPreviousHdmi.setIsPlaying(curHdmiIsPlaying);
                                 }
@@ -2506,7 +2506,7 @@ public class CresStreamCtrl extends Service {
                                     }
                                 }
                                 
-                                if (isAM3K)
+                                if (isAM3K || m_isDGE3200)
                                 {
                                 	if((!curSync) || (hdmiInSampleRate == 0) || !curHdmiIsPlaying)
                                 	{
@@ -2533,7 +2533,7 @@ public class CresStreamCtrl extends Service {
                                 }
                                 else
                                 {
-                                	if (!isAM3K)
+                                	if (!isAM3K && !m_isDGE3200)
                                 	{
                                 		Log.i(TAG, "Restarting Streams for sample rate change = " + hdmiInSampleRate);
                                 		restartStreams(true); //skip stream in since it does not use hdmi input
@@ -2547,7 +2547,7 @@ public class CresStreamCtrl extends Service {
                             }
                             
                             // Temporary BUG FIX for Blue screen issue in AM3XX-6089
-                            if (isAM3K) {
+                            if (isAM3K || m_isDGE3200) {
                                 int resEnum = HDMIInputInterface.readResolutionEnum(false);
                             	if (resEnum != priorResolutionEnum) { // res change 
                             		Log.i(TAG, "Resolution enum changed from "+priorResolutionEnum+" to "+resEnum+" calling setCamera()");
@@ -2556,7 +2556,7 @@ public class CresStreamCtrl extends Service {
                             	}
                             }
                             
-                            if (isAM3K && !HDMIInputInterface.useAm3kStateMachine)
+                            if ((isAM3K || m_isDGE3200) && !HDMIInputInterface.useAm3kStateMachine)
                             {
                                 int resEnum = HDMIInputInterface.readResolutionEnum(false);
                                 // set flag when sync and resolution are consistent
@@ -2569,7 +2569,7 @@ public class CresStreamCtrl extends Service {
                                 }
                             }
 
-                            if(isAM3K)
+                            if(isAM3K || m_isDGE3200)
                             {
 
                                 String fCamErrorTrigger = "/dev/shm/crestron/CresStreamSvc/fCamErrorTrigger";
@@ -2611,7 +2611,7 @@ public class CresStreamCtrl extends Service {
                     }
                     
                     // Now check and handle HDMI output res change
-                    if (isAM3K)
+                    if (isAM3K || m_isDGE3200)
                     	handlePossibleHdmiOutputResolutionChange();
                 }
             }
@@ -3412,7 +3412,7 @@ public class CresStreamCtrl extends Service {
     public boolean onlyAllow30Hz()
     {
         // force 30Hz formats on AM3K for miracast when resolution is 4K (> 1920x1080) since display output refresh rate is not 60Hz
-        return (isAM3K && hdmiOutput.getWidth() > 1920 && hdmiOutput.getHeight() > 1080) ? true : false;
+        return ((isAM3K || m_isDGE3200) && hdmiOutput.getWidth() > 1920 && hdmiOutput.getHeight() > 1080) ? true : false;
     }
 
     void refreshInputResolution()
@@ -3428,7 +3428,7 @@ public class CresStreamCtrl extends Service {
     {
         // On AM3K display getRefreshRate does not work - use sysfs or nvram :resolution-main
         float refreshRate=0;
-        if (isAM3K)
+        if (isAM3K || m_isDGE3200)
         {
             String resString = MiscUtils.readStringFromDisk("/sys/class/drm/card0-HDMI-A-1/mode");
             if (resString.contains("p"))
@@ -5735,7 +5735,7 @@ public class CresStreamCtrl extends Service {
     public void sendAirMediaConnectionInfo()
     {
     	sendAirMediaConnectionAddress();
-    	if (isAM3K)
+    	if (isAM3K || m_isDGE3200)
     	    sendAirMediaAuxConnectionAddress();
     	sendAirMediaWirelessConnectionAddress();
     }
@@ -6405,7 +6405,7 @@ public class CresStreamCtrl extends Service {
     public void switchHdmiInMode()
     {
         // update HDMI and camera sync via csio
-        if (isAM3K)
+        if (isAM3K || m_isDGE3200)
             sockTask.SendDataToAllClients("hdmiin_sync_detected=" + hdmiInput.getSyncStatus());
         // stop WC presentation if ongoing
         mWC_Service.stopServer(null);
@@ -7088,10 +7088,10 @@ public class CresStreamCtrl extends Service {
             if (hdmiInputDriverPresent)
             {
                 if (resolutionId != mCurrentHdmiInputResolution || 
-                        (isAM3K && (mHdmiCameraIsConnected != mCurrentHdmiCameraConnectState)) )
+                    ((isAM3K || m_isDGE3200) && (mHdmiCameraIsConnected != mCurrentHdmiCameraConnectState)) )
                 {
                     mCurrentHdmiInputResolution = resolutionId;
-                    if (isAM3K)
+                    if (isAM3K || m_isDGE3200)
                         mCurrentHdmiCameraConnectState = mHdmiCameraIsConnected;
                     int prevResolutionIndex = hdmiInput.getResolutionIndex();
                     if (resolutionId != 0)
@@ -7298,7 +7298,7 @@ public class CresStreamCtrl extends Service {
             ignoreRestart = true;
         else if (hdmiInputResolutionEnum != 0) {
             mPreviousValidHdmiInputResolution = hdmiInputResolutionEnum;
-            if (!isAM3K)
+            if (!isAM3K && !m_isDGE3200)
             	mPreviousAudioInputSampleRate = hdmiInSampleRate;
         }
         if (mCanvas != null)
@@ -7477,7 +7477,7 @@ public class CresStreamCtrl extends Service {
             }
 
             // The above portion of the code is common and meant to remember the last state of cameramode which was set. Applies for AM3K as well.
-            if(isAM3K)
+            if(isAM3K || m_isDGE3200)
             {
                 AM_3x00_CameraMode nomode = AM_3x00_CameraMode.UNDEFINED_SCREEN;
                 String id = AM_3x00_CameraMode.getStringValueFromColorInt(Integer.valueOf(mode));
@@ -7672,7 +7672,7 @@ public class CresStreamCtrl extends Service {
                 if (Boolean.parseBoolean(hdmiOutput.getSyncStatus()) == true)
                 {
                 	//Do not set bypass if product does not have HDMI output
-                	if(mProductHasHDMIoutput && !isAM3K)
+                	if(mProductHasHDMIoutput && !isAM3K && !m_isDGE3200)
                 	{
                 		setHDCPBypass();
                 	}
