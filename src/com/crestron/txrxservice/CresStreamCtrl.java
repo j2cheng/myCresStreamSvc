@@ -1598,8 +1598,21 @@ public class CresStreamCtrl extends Service {
     private void resetAllSlaveStreams()
     {
         Log.i(TAG, "resetAllSlaveStreams: ask csio to stop all streams");
-        sockTask.SendDataToAllClients("RESET_SLAVE_MODE=true");
-        Log.i(TAG, "resetAllSlaveStreams: clearing all prior surfaces");
+        
+        // This comes in on UI thread(onBind,onUnbind,onRebind), move off
+        final CountDownLatch latch = new CountDownLatch(1);		
+        new Thread(new Runnable() {		
+            public void run() {		
+                sockTask.SendDataToAllClients("RESET_SLAVE_MODE=true");		
+                latch.countDown();		
+            }		
+        }).start();		
+		
+        boolean successfulStart = true; //indicates that there was no time out condition		
+        try { successfulStart = latch.await(1000, TimeUnit.MILLISECONDS); }		
+        catch (InterruptedException ex) { ex.printStackTrace(); }
+
+        Log.i(TAG, "resetAllSlaveStreams: clearing all prior surfaces: " + successfulStart);
         for (int idx = 0; idx < NumOfSurfaces; idx++)
             deleteSurface(idx);
     }
