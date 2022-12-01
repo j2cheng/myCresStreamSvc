@@ -49,9 +49,6 @@
 #include "cresNextCommonShare.h"
 #include "cstreamer.h"
 
-#define WFD_MIN_IDR_INTERVAL 250
-
-extern void WfdSinkProjSendIdrReq(int id);
 extern void WfdSinkProjSendGst1stFrameEvt(int id);
 
 #ifdef SupportsHDCPEncryption
@@ -413,16 +410,6 @@ static void pad_added_callback2 (GstElement *src, GstPad *new_pad, CREGSTREAM *d
     gst_caps_unref(new_pad_caps);
 }
 
-int64_t time_delta_msec(struct timespec now, struct timespec prev)
-{
-    long sec = now.tv_sec - prev.tv_sec;
-    long nsec = now.tv_nsec - prev.tv_nsec;
-    if (nsec < 0) {
-        sec--;
-        nsec += 1000000000L;
-    }
-    return sec*1000+(nsec/1000000);
-}
 
 GstPadProbeReturn udpsrcProbe(GstPad *pad, GstPadProbeInfo *info, gpointer user_data)
 {
@@ -466,20 +453,6 @@ GstPadProbeReturn udpsrcProbe(GstPad *pad, GstPadProbeInfo *info, gpointer user_
                              CSIO_LOG(eLogLevel_debug,"Stream[%d]: Error expect sequence number: %d, actual number: %d, gap is [%d]\n",
                                  data->streamId, savedSeqNum[data->streamId]+1, lnNewSeqNum, (lnNewSeqNum - savedSeqNum[data->streamId]));
 
-                            if(data->wfd_start && 
-                               product_info()->hw_platform == eHardwarePlatform_Rockchip )        
-                            {
-                               struct timespec cur_timespec;
-                               clock_gettime(CLOCK_MONOTONIC, &cur_timespec);
-                               int64_t delta = time_delta_msec(cur_timespec, data->wfd_idr_req_timespec);
-                               if (delta > WFD_MIN_IDR_INTERVAL)
-                               {
-                                   CSIO_LOG(eLogLevel_debug,"Stream[%d]: time from last IDR request: %lld msec\n", data->streamId, delta);
-                                   WfdSinkProjSendIdrReq(data->streamId);
-                                   data->wfd_idr_req_timespec.tv_sec = cur_timespec.tv_sec;
-                                   data->wfd_idr_req_timespec.tv_nsec = cur_timespec.tv_nsec;
-                               }
-                            }//else
                          }
 
                          savedSeqNum[data->streamId] = lnNewSeqNum;

@@ -100,6 +100,8 @@ extern unsigned short debugPrintSeqNum[];
 #define PROC_SELF_FD_FILEPATH 	("/proc/self/fd")
 #define DEFAULT_MAX_FRAME_PUSH_DELAY  250000000
 #define DEFAULT_MIRACAST_LATENCY 200//8-2-2021 we are going to set this to 200ms
+#define WFD_MIN_IDR_INTERVAL 250
+
 ///////////////////////////////////////////////////////////////////////////////
 CustomData *CresDataDB = NULL; //
 CustomStreamOutData *CresStreamOutDataDB = NULL; //
@@ -7001,4 +7003,37 @@ void csio_jni_config_this_audio_stream(int id, int value)
     }//else
 
     CSIO_LOG(eLogLevel_debug, "%s() streamId[%d] set to: %d", __FUNCTION__, id, value);
+}
+
+int64_t time_delta_msec(struct timespec now, struct timespec prev)
+{
+    long sec = now.tv_sec - prev.tv_sec;
+    long nsec = now.tv_nsec - prev.tv_nsec;
+    if (nsec < 0) {
+        sec--;
+        nsec += 1000000000L;
+    }
+    return sec*1000+(nsec/1000000);
+}
+//12-4-2022: used for IDR request
+void csio_jni_trigger_idr_request(int id)
+{
+    CREGSTREAM *data = GetStreamFromCustomData(CresDataDB, id);
+    if (data && 
+        data->wfd_start && 
+        product_info()->hw_platform == eHardwarePlatform_Rockchip)
+    {
+        struct timespec cur_timespec;
+        clock_gettime(CLOCK_MONOTONIC, &cur_timespec);
+        int64_t delta = time_delta_msec(cur_timespec, data->wfd_idr_req_timespec);
+        if (delta > WFD_MIN_IDR_INTERVAL)
+        {
+            CSIO_LOG(eLogLevel_debug,"Stream[%d]: time from last IDR request: %lld msec\n", data->streamId, delta);
+            WfdSinkProjSendIdrReq(data->streamId);
+            data->wfd_idr_req_timespec.tv_sec = cur_timespec.tv_sec;
+            data->wfd_idr_req_timespec.tv_nsec = cur_timespec.tv_nsec;
+        }
+    }//else
+
+    CSIO_LOG(eLogLevel_debug, "%s() streamId[%d] exit", __FUNCTION__, id);
 }

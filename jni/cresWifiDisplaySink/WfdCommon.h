@@ -55,5 +55,6 @@ extern void WfdSinkProjSendGstReady(int id);
 extern void WfdSinkProjSetMaxMiracastBitrate(int maxrate);
 extern void WfdSinkProjSendGst1stFrameEvt(int id);
 extern void WfdSinkProjSendGstLostVideoEvt(int id);
+extern void WfdSinkProjSendIdrReq(int id);
 
 #endif /* WFDCOMMON_H_ */
