@@ -487,7 +487,12 @@ public class WifidVideoPlayer {
     			session.osVersion = osVersion;
     			if (session.osVersion.startsWith("10."))
     			{
-    				service_.infoChanged(sessionId, AirMediaPlatforms.Windows, "Win 10", session.osVersion);
+                    String winOsVersion = "Win 10";
+    			    String os_parts[] = osVersion.split("\\.", 4);
+    			    if ((os_parts.length > 3) && (Integer.parseInt(os_parts[2]) > 22000))
+                        winOsVersion = "Win 11";
+    				service_.infoChanged(sessionId, AirMediaPlatforms.Windows, winOsVersion, session.osVersion);
+
     			}
     		}
     	}

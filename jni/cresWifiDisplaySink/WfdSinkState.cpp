@@ -477,10 +477,10 @@ void wfdSinkStMachineClass::sendEventToParentProj(int event)
     memset(&EvntQ,0,sizeof(csioEventQueueStruct));
     EvntQ.obj_id = m_myId;
     EvntQ.event_type = event;
+    struct GST_PIPELINE_CONFIG gst_config;
 
     if(event == WFD_SINK_EVENTS_RTSP_IN_SESSION_EVENT)
     {
-        struct GST_PIPELINE_CONFIG gst_config;
         gst_config.ts_port = getCurentTsPort();
         gst_config.ssrc    = m_ssrc;
         gst_config.rtcp_dest_port = m_rtcpDestPort;

@@ -1599,6 +1599,7 @@ int cresRTSP_internalCallback(void * session,unsigned int messageType,
             serverStr = strdup(orgServerStr);
             if(!serverStr)
                return(-1);
+            RTSP_LOG(eLogLevel_debug,"serverStr = %s\n",serverStr);
             // 'Server' header elements separated by space
             char * token = strtok(serverStr, " ");
             if(token)
@@ -1610,6 +1611,15 @@ int cresRTSP_internalCallback(void * session,unsigned int messageType,
                   strncpy(rtspSession->srcVersionStr,srcVersionStr,sizeof(rtspSession->srcVersionStr) - 1);
                   rtspSession->srcVersionStr[sizeof(rtspSession->srcVersionStr) - 1] = '\0';
                }
+            } else {
+                // Seeing server strings of form: 'MSMiracastSource/10.00.19041.1889'
+                srcVersionStr = strchr(srcVersionStr,'/');
+                if(srcVersionStr)
+                {
+                   srcVersionStr += 1;
+                   strncpy(rtspSession->srcVersionStr,srcVersionStr,sizeof(rtspSession->srcVersionStr) - 1);
+                   rtspSession->srcVersionStr[sizeof(rtspSession->srcVersionStr) - 1] = '\0';
+                }
             }
             free(serverStr);
          }
