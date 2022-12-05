@@ -200,7 +200,8 @@ void init_custom_data(CustomData * cdata)
         //8-4-2022: used for multi-streaming media stream selection
         data->sel_video_stream_id = -1;
         data->sel_audio_stream_id = -1;
-
+        data->wfd_idr_req_timespec.tv_sec  = 0;
+        data->wfd_idr_req_timespec.tv_nsec = 0;
 	}
 }
 void set_TLS_version_ciphers()
