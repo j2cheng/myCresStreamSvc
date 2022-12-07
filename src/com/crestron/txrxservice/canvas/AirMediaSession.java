@@ -1,5 +1,6 @@
 package com.crestron.txrxservice.canvas;
 
+import java.util.concurrent.TimeUnit;
 import java.util.concurrent.atomic.AtomicBoolean;
 
 import com.crestron.airmedia.canvas.channels.ipc.CanvasPlatformType;
@@ -439,6 +440,19 @@ public class AirMediaSession extends Session
 		{
 			//ensure we release surface if not done and reset streamId
 			doForceStop();
+		}
+		if (receiverCmdScheduler != null)
+		{
+		    receiverCmdScheduler.shutdownNow();
+		    try {
+		        if (!receiverCmdScheduler.awaitTermination(5, TimeUnit.SECONDS))
+		            Common.Logging.w(TAG, "disconnect(): scheduler for "+sessionId()+" termination timed out");
+		        else
+		            Common.Logging.i(TAG, "disconnect(): scheduler for "+sessionId()+" terminated");
+		    } catch (Exception ex) {
+                Common.Logging.e(TAG, "exception encountered while awaiting termination of sessionScheuler for session: "+sessionId());
+                ex.printStackTrace();
+		    }
 		}
 		Common.Logging.i(TAG, "disconnect(): exit for session "+sessionId()+" state="+state);
 	}

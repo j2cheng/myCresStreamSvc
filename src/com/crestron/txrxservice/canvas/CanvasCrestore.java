@@ -1454,17 +1454,24 @@ public class CanvasCrestore
                     Session s = mSessionMgr.findSession(entry.getKey());
                     if (s != null)
                     {
-                        if (entry.getValue().state.equalsIgnoreCase("Play") && !s.isPlaying())
-                        {
-                            Common.Logging.i(TAG, "handleSessionEventTimeout(): Force Stopping session "+s.sessionId()+" due to session event timeout");
-                            s.stop(new Originator(RequestOrigin.Error));
-                            syncEvent.add(s.sessionId(), new SessionEventMapEntry("Stop", s));
-                        }
-                        else if (entry.getValue().state.equalsIgnoreCase("Stop") && !s.isStopped())
-                        {
-                            Common.Logging.i(TAG, "handleSessionEventTimeout(): Stopping session "+s.sessionId()+" due to session event timeout");
-                            s.stop(new Originator(RequestOrigin.Error));
-                            syncEvent.add(s.sessionId(), new SessionEventMapEntry("Stop", s));
+                        SessionResponseMapEntry srme = entry.getValue();
+                        if (srme == null)
+                            Common.Logging.w(TAG, "****** handleSessionEventTimeout: got null session response map entry for session "+s+" with key="+entry.getKey()+"******");
+                        else if (srme.state == null)
+                            Common.Logging.w(TAG, "****** handleSessionEventTimeout: got response map entry for session "+s+" with entry="+gson.toJson(srme)+"******");
+                        else {
+                            if (srme.state.equalsIgnoreCase("Play") && !s.isPlaying())
+                            {
+                                Common.Logging.i(TAG, "handleSessionEventTimeout(): Force Stopping session "+s.sessionId()+" due to session event timeout");
+                                s.stop(new Originator(RequestOrigin.Error));
+                                syncEvent.add(s.sessionId(), new SessionEventMapEntry("Stop", s));
+                            }
+                            else if (srme.state.equalsIgnoreCase("Stop") && !s.isStopped())
+                            {
+                                Common.Logging.i(TAG, "handleSessionEventTimeout(): Stopping session "+s.sessionId()+" due to session event timeout");
+                                s.stop(new Originator(RequestOrigin.Error));
+                                syncEvent.add(s.sessionId(), new SessionEventMapEntry("Stop", s));
+                            }
                         }
                     }
                 }
