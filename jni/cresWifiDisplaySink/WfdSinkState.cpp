@@ -128,17 +128,23 @@ int  wfdSinkStMachineThread::m_wfdSinkStMachineTaskListCnt = 0;
 
 #define DEFAULT_VIDEO_RES            "cea_19ceb"
 #define DEFAULT_VIDEO_RES_30Hz_ONLY  "cea_194a0"
+#define DEFAULT_VIDEO_RES_25Hz_ONLY  "cea_19420"
 //(native res. indexes {h.265, MP, Level 5.1, upto 3840x2160p60}, {h.264, HP, Level 4, upto 1080p60}, {h.264, MP, Level 4, upto 1080p60})
 #define DEFAULT_VIDEO2_4KRES "00 02 01 0010 0000000f94a0 000000000000 000000000000 00 0000 0000 00, 01 20 0040 0000000f94a0 000000000000 000000000000 00 0000 0000 00, 01 10 0040 0000000f94a0 000000000000 000000000000 00 0000 0000 00 00"
 //(native res. indexes {h.265, MP, Level 5.1, upto 1920x1080p30}, {h.264, HP, Level 4, upto 1080p30}, {h.264, MP, Level 4, upto 1080p30})
-#define DEFAULT_VIDEO2_RES "00 02 01 0010 0000000194a0 000000000000 000000000000 00 0000 0000 00, 01 10 0040 0000000194a0 000000000000 000000000000 00 0000 0000 00, 01 20 0040 0000000194a0 000000000000 000000000000 00 0000 0000 00 00"
+#define DEFAULT_VIDEO2_RES_30Hz "00 02 01 0010 0000000194a0 000000000000 000000000000 00 0000 0000 00, 01 10 0040 0000000194a0 000000000000 000000000000 00 0000 0000 00, 01 20 0040 0000000194a0 000000000000 000000000000 00 0000 0000 00 00"
+//(native res. indexes {h.265, MP, Level 5.1, upto 1920x1080p25}, {h.264, HP, Level 4, upto 1080p25}, {h.264, MP, Level 4, upto 1080p25})
+#define DEFAULT_VIDEO2_RES_25Hz "00 02 01 0010 000000019420 000000000000 000000000000 00 0000 0000 00, 01 10 0040 000000019420 000000000000 000000000000 00 0000 0000 00, 01 20 0040 000000019420 000000000000 000000000000 00 0000 0000 00 00"
 #define DEFAULT_VIDEO2_RES_NONE ""
 
-extern bool csio_jni_onlyAllow30Hz();
+extern int csio_jni_getMaxMiracastFps();
 
 static char *getPreferredVideoResolutionDefaultString()
 {
-    if (csio_jni_onlyAllow30Hz())
+    int maxFps = csio_jni_getMaxMiracastFps();
+    if (maxFps <= 25)
+        return DEFAULT_VIDEO_RES_25Hz_ONLY;
+    else if (maxFps <= 30)
         return DEFAULT_VIDEO_RES_30Hz_ONLY;
     else
         return DEFAULT_VIDEO_RES;
@@ -159,7 +165,12 @@ static char *getPreferredVideo2ResolutionDefaultString(bool isTx3, int systemMod
             //WFD_SINK_SYSTEMMODE_OPTIMIZED_FOR_MULTIPLE_PRESENTATIONS
             //WFD_SINK_SYSTEMMODE_CUSTOM
             //WFD_SINK_SYSTEMMODE_UNDEFINE
-            wfd2_videoResStr = DEFAULT_VIDEO2_RES;
+            if (csio_jni_getMaxMiracastFps() <= 25)
+            {
+                wfd2_videoResStr = DEFAULT_VIDEO2_RES_25Hz;
+            } else {
+                wfd2_videoResStr = DEFAULT_VIDEO2_RES_30Hz;
+            }
         }
 
         if(g_rtspVid2ResRefStr.size())

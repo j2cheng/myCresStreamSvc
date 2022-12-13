@@ -253,6 +253,7 @@ public class UserSettings
 	private boolean airMediaDisplayLoginCodeNew;
 	private int airMediaDisplayScreen;
 	private int airMediaWindowFlag;
+	private int airMediaMaxNumberOfWindows;
 	private Set<String> airMediaAdapters = new HashSet<String>(20);
 	private boolean airMediaMiracastEnable;
 	private boolean airMediaMiracastWifiDirectMode;
@@ -404,6 +405,7 @@ public class UserSettings
 		airMediaDisplayLoginCodeNew = true;
 		airMediaDisplayScreen = 0;
 		airMediaWindowFlag	= WindowManager.LayoutParams.TYPE_SYSTEM_OVERLAY;
+		airMediaMaxNumberOfWindows = 2;
 		airMediaAdapters.add("eth0");
 		airMediaDisplayConnectionOptionEnable = true;
 		airMediaDisplayConnectionOption = CresStreamCtrl.AirMediaDisplayConnectionOption.Ip;
@@ -1531,6 +1533,14 @@ public class UserSettings
 		return airMediaWindowFlag;
 	}
 
+	public void setAirMediaMaxNumberOfWindows(int nWindows) {
+	    this.airMediaMaxNumberOfWindows = nWindows;
+	}
+
+	public int getAirMediaMaxNumberOfWindows() {
+	    return airMediaMaxNumberOfWindows;
+	}
+	    
 	public Set<String> getAirMediaAdapters() {
 		return airMediaAdapters;
 	}

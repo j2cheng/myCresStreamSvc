@@ -89,13 +89,18 @@ public class Common {
             if (handler != null) {
                 try { handler.log(type, tag, message); } catch (Exception ignore) { }
             } else {
+                if ((Build.VERSION.SDK_INT >= 25) && !Log.isLoggable(tag, type))
+                {
+                    //Log.e(tag, "level "+type+" is not loggable <"+message+">");
+                    return;
+                }
                 message = String.format(Locale.US, "<%1$04x>  %2$s", Thread.currentThread().getId(), message);
                 switch (type) {
-                    case Log.DEBUG:
-                        Log.d(tag, message);
-                        break;
                     case Log.VERBOSE:
                         Log.v(tag, message);
+                        break;
+                    case Log.DEBUG:
+                        Log.d(tag, message);
                         break;
                     case Log.INFO:
                         Log.i(tag, message);

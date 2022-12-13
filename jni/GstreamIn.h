@@ -208,10 +208,10 @@ JNIEXPORT void JNICALL Java_com_crestron_txrxservice_GstreamIn_nativeSetWfdMaxMi
 
 /*
  * Class:           GstreamIn
- * Method:          nativeSet30HzOnly
- * Signature:       (Z)V
+ * Method:          nativeSetWfdMaxMiracastFps
+ * Signature:       (I)V
  */
-JNIEXPORT void JNICALL Java_com_crestron_txrxservice_GstreamIn_nativeSetWfd30HzOnly(JNIEnv *env, jobject thiz, jboolean enable);
+JNIEXPORT void JNICALL Java_com_crestron_txrxservice_GstreamIn_nativeSetWfdMaxMiracastFps(JNIEnv *env, jobject thiz, jint fps);
 
 /*
  * Class:           GstreamIn

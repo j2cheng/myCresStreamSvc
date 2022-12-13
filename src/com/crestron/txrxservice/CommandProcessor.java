@@ -2215,6 +2215,15 @@ class AirMediaWindowFlagCommand extends CrestronCommand {
 	}
 }
 
+class AirMediaMaxNumberOfWindowsCommand extends CrestronCommand {
+    public AirMediaMaxNumberOfWindowsCommand(CresStreamCtrl ctrl, String arg, int sessId) {
+        super(ctrl, arg, sessId);
+    }   
+    public void execute() {
+        ctrl.airMediaSetMaxNumberOfWindows(VALIDATE_INT(msg));
+    }
+}
+
 class AirMediaMiracastEnableCommand extends CrestronCommand {
 	public AirMediaMiracastEnableCommand(CresStreamCtrl ctrl, String arg, int sessId) {
 		super(ctrl, arg, sessId);

@@ -169,6 +169,7 @@ public class CommandParser {
         AIRMEDIA_DISPLAY_SCREEN,
         AIRMEDIA_PERSIST_CONNECTION_INFO_ENABLE,
         AIRMEDIA_WINDOW_FLAG,
+        AIRMEDIA_MAX_NUMBER_OF_WINDOWS,
         AIRMEDIA_MIRACAST_ENABLE,
         AIRMEDIA_MAX_MIRACAST_BITRATE,
         AIRMEDIA_MIRACAST_WIFI_DIRECT_MODE_ENABLE,
@@ -761,6 +762,9 @@ public class CommandParser {
             case AIRMEDIA_WINDOW_FLAG:
             	cmd = new AirMediaWindowFlagCommand(ctrl, arg, idx);
             	break;
+            case AIRMEDIA_MAX_NUMBER_OF_WINDOWS:
+                cmd = new AirMediaMaxNumberOfWindowsCommand(ctrl, arg, idx);
+                break;
             case AIRMEDIA_MIRACAST_ENABLE:
             	cmd = new AirMediaMiracastEnableCommand(ctrl, arg, idx);
             	break;

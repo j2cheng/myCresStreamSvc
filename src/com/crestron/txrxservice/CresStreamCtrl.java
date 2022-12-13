@@ -3422,10 +3422,20 @@ public class CresStreamCtrl extends Service {
         }
     }
     
-    public boolean onlyAllow30Hz()
+    public int getMaxMiracastFps()
     {
         // force 30Hz formats on AM3K for miracast when resolution is 4K (> 1920x1080) since display output refresh rate is not 60Hz
-        return ((isAM3K || m_isDGE3200) && hdmiOutput.getWidth() > 1920 && hdmiOutput.getHeight() > 1080) ? true : false;
+        if ((isAM3K  || m_isDGE3200) && hdmiOutput.getWidth() > 1920 && hdmiOutput.getHeight() > 1080)
+        {
+            // force 25Hz formats on AM3K for miracast when 4 presentations are allowed - cannot even render @30fps properly
+            if (userSettings.getAirMediaMaxNumberOfWindows() == 4)
+                // FIXME - Gstreamer should decode full stream @ 30Hz and drop if delay builds up and rendering cannot keep up
+                return 25;
+            else
+                return 30;
+        } else {
+            return 60;
+        }
     }
 
     void refreshInputResolution()
@@ -5535,6 +5545,11 @@ public class CresStreamCtrl extends Service {
         {
             mAirMedia.setWindowFlag(windowFlag);
         }
+    }
+    
+    public void airMediaSetMaxNumberOfWindows(int nWindows)
+    {
+        userSettings.setAirMediaMaxNumberOfWindows(nWindows);
     }
     
     public void setAirMediaIsCertificateRequired(boolean enable)
