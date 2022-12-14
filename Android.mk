@@ -3,7 +3,7 @@ include $(CLEAR_VARS)
 
 
 # Temporarily blocking the build
-ifneq ($(TARGET_PRODUCT),$(filter $(TARGET_PRODUCT),lahaina am62x evk_8mm))
+# ifneq ($(TARGET_PRODUCT),$(filter $(TARGET_PRODUCT),lahaina am62x evk_8mm))
 
 ifneq ($(shell test $(PLATFORM_SDK_VERSION) -ge 30 && echo Android12),Android12)
 LOCAL_MODULE_TAGS := eng
@@ -11,6 +11,7 @@ endif
 
 LOCAL_PROGUARD_ENABLED := disabled
 
+LOCAL_MANIFEST := $(shell cp "$(LOCAL_PATH)/AndroidManifest-base.xml" "$(LOCAL_PATH)/AndroidManifest.xml")
 
 # Only compile source java files in this apk.
 LOCAL_SRC_FILES := $(call all-java-files-under, src) 
@@ -30,9 +31,10 @@ LOCAL_PACKAGE_NAME := CresStreamSvc
 
 LOCAL_CERTIFICATE := platform
 
+ifneq ($(TARGET_PRODUCT),$(filter $(TARGET_PRODUCT),lahaina))
 # Native functions in jni folder
 LOCAL_SHARED_LIBRARIES := libgstreamer_jni
-	
+endif	
 
 LOCAL_STATIC_JAVA_LIBRARIES := gson
 LOCAL_STATIC_JAVA_LIBRARIES += CresStoreJsonJNI
@@ -46,6 +48,7 @@ ifeq ($(TARGET_PRODUCT),$(filter $(TARGET_PRODUCT),msm8953_64))
 endif
 ifeq ($(TARGET_PRODUCT),$(filter $(TARGET_PRODUCT),lahaina))
 	LOCAL_SRC_FILES += $(call all-java-files-under, Snapdragon_X80)
+	LOCAL_MANIFEST := $(shell cp "$(LOCAL_PATH)/Snapdragon_X80/AndroidManifest.xml" "$(LOCAL_PATH)")
 endif
 
 
@@ -67,10 +70,15 @@ ifneq ($(TARGET_PRODUCT),$(filter $(TARGET_PRODUCT),lahaina am62x evk_8mm))
         LOCAL_STATIC_JAVA_LIBRARIES += droideic
 	LOCAL_AAPT_FLAGS += --extra-packages com.droideic.app
 endif
+
+ifeq ($(shell test $(PLATFORM_SDK_VERSION) -ge 30 && echo Android12),Android12)
+    LOCAL_PRIVATE_PLATFORM_APIS := true
+else
 ifeq ($(shell test $(PLATFORM_SDK_VERSION) -ge 29 && echo Android10),Android10)
     LOCAL_PRIVATE_PLATFORM_APIS := true
 else
     LOCAL_JNI_SHARED_LIBRARIES := libdisplaysetting
+endif
 endif
 	LOCAL_PROGUARD_ENABLED := disabled
 	
@@ -113,7 +121,19 @@ ifeq ($(TARGET_PRODUCT),$(filter $(TARGET_PRODUCT), am3x00_box))
 endif
 
 ifeq ($(TARGET_PRODUCT),$(filter $(TARGET_PRODUCT),yushan_one full_omap5panda msm8953_64 am3x00_box lahaina am62x evk_8mm))
+ifeq ($(TARGET_PRODUCT),$(filter $(TARGET_PRODUCT),lahaina))
+LOCAL_DEX_PREOPT := false
+endif
 include $(BUILD_PACKAGE)
+ifeq ($(TARGET_PRODUCT),$(filter $(TARGET_PRODUCT),lahaina))
+include $(CLEAR_VARS)
+LOCAL_MODULE := txrxservice-default-permissions.xml
+LOCAL_MODULE_CLASS := ETC
+LOCAL_MODULE_PATH := $(TARGET_OUT_VENDOR)/etc/default-permissions
+LOCAL_SRC_FILES := $(LOCAL_MODULE)
+include $(BUILD_PREBUILT)
+endif
+
 include $(LOCAL_PATH)/jni/Android.mk
 
 include $(CLEAR_VARS)
@@ -125,4 +145,4 @@ endif
 include $(BUILD_MULTI_PREBUILT)
 endif
 
-endif
+# endif

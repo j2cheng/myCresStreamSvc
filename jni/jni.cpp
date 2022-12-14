@@ -57,7 +57,9 @@
 #include "streamOutManager/v4l2Video.h"
 #include "CresLog.h"
 #include "cstreamer.h"
-
+#ifdef BOARD_VNDK_VERSION
+#include <cresAndroid.h>
+#endif
 ///////////////////////////////////////////////////////////////////////////////
 
 extern int  csio_Init(int calledFromCsio);
@@ -1000,12 +1002,12 @@ static void gst_native_surface_init(JNIEnv *env, jobject thiz, jobject surface, 
         CSIO_LOG(eLogLevel_error, "No surface for stream %d", stream);
         return;
     }
-#ifndef BOARD_VNDK_VERSION
+
+    #ifdef BOARD_VNDK_VERSION
+    new_native_window = cres_ANativeWindow_fromSurface(env, surface);
+    #else
     new_native_window = ANativeWindow_fromSurface(env, surface);
-#else
-    new_native_window = NULL;
-    CSIO_LOG(eLogLevel_error, "!!! ERROR: ANativeWindow_fromSurface in not supported on this platform !!!");
-#endif
+    #endif
     if (!new_native_window)
     {
         CSIO_LOG(eLogLevel_error, "No native window for stream %d", stream);
@@ -2906,6 +2908,12 @@ jint JNI_OnLoad(JavaVM *vm, void *reserved)
         CSIO_LOG(eLogLevel_error, "UsbVolumeCtrl_jni: gUsbVolumeCtrl_javaClass_id is still null when it is suppose to be global");
          return 0; /* out of memory exception thrown */
     }
+
+    #ifdef BOARD_VNDK_VERSION
+    CSIO_LOG(eLogLevel_debug, "JNI_OnLoad: Registering natives for VNDK");
+    int rtn = cres_register_android_view_Surface(env);
+    CSIO_LOG(eLogLevel_debug, "JNI_OnLoad: Registered natives for VNDK. rtn = %d", rtn);
+    #endif
 
 	pthread_key_create (&current_jni_env, detach_current_thread);
 	return JNI_VERSION_1_4;
@@ -5773,12 +5781,11 @@ JNIEXPORT void JNICALL Java_com_crestron_txrxservice_GstreamOut_nativeStartPrevi
 
     if(surface)
     {
-#ifndef BOARD_VNDK_VERSION
-        native_window = ANativeWindow_fromSurface(env, surface);
-#else
-        native_window = NULL;
-        CSIO_LOG(eLogLevel_error, "!!! ERROR: ANativeWindow_fromSurface in not supported on this platform !!!");
-#endif
+		#ifdef BOARD_VNDK_VERSION
+		native_window = cres_ANativeWindow_fromSurface(env, surface);
+		#else
+		native_window = ANativeWindow_fromSurface(env, surface);
+		#endif
 		if (!native_window)
 		{
 			CSIO_LOG(eLogLevel_error, "Preview: No native window for stream");
@@ -5994,12 +6001,13 @@ JNIEXPORT void JNICALL Java_com_crestron_txrxservice_WbsStreamIn_nativeSurfaceIn
         return;
     }
 
-#ifndef BOARD_VNDK_VERSION
+    #ifdef BOARD_VNDK_VERSION
+CSIO_LOG(eLogLevel_debug, "JF--%s: get native window from surface - surface=%p, stream=%d", __FUNCTION__, surface, stream);
+    new_native_window = cres_ANativeWindow_fromSurface(env, surface);
+CSIO_LOG(eLogLevel_debug, "JF--%s: native window from surface - new_native_window=%p, surface=%p, stream=%d", __FUNCTION__, new_native_window, surface, stream);
+    #else
     new_native_window = ANativeWindow_fromSurface(env, surface);
-#else
-    new_native_window = NULL;
-    CSIO_LOG(eLogLevel_error, "!!! ERROR: ANativeWindow_fromSurface in not supported on this platform !!!");
-#endif
+    #endif
     if (!new_native_window)
     {
         CSIO_LOG(eLogLevel_error, "No native window for stream %d", stream);

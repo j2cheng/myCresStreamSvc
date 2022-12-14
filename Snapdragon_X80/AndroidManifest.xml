@@ -2,8 +2,7 @@
 <manifest xmlns:android="http://schemas.android.com/apk/res/android"
     package="com.crestron.txrxservice"
     android:versionCode="1"
-    android:versionName="1.0"
-    android:sharedUserId="android.uid.system">
+    android:versionName="1.0">
 
     <uses-sdk
         android:minSdkVersion="8"
@@ -32,7 +31,7 @@
 		<service android:name=".CresStreamCtrl" android:theme="@android:style/Theme.Translucent.NoTitleBar"
 		    android:exported="true"
 		    android:enabled="true" >
-		    <!-- android:permission="com.crestron.txrxservice.permission.SERVICE" --> 
+		    <!-- android:permission="com.crestron.txrxservice.permission.SERVICE" -->
 		    <intent-filter>
 		    	<action android:name="com.crestron.txrxservice.BIND"/>
 		    </intent-filter>
@@ -41,5 +40,5 @@
             </intent-filter>
 		</service>
     </application>
-	
+
 </manifest>

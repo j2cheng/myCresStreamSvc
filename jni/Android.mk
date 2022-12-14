@@ -17,6 +17,9 @@ LOCAL_SRC_FILES := ./gstreamer_android/libgstreamer_android.so
 LOCAL_MODULE_SUFFIX := .so
 include $(BUILD_PREBUILT)
 
+ifeq ($(TARGET_PRODUCT),$(filter $(TARGET_PRODUCT), lahaina))
+include $(LOCAL_PATH)/Android1080.mk
+endif
 
 # Temporarily blocking the build
 ifneq ($(TARGET_PRODUCT),$(filter $(TARGET_PRODUCT),am62x evk_8mm))
@@ -103,7 +106,7 @@ endif
 # Crestron - name was different
 #LOCAL_SHARED_LIBRARIES := gstreamer_android
 ifdef BOARD_VNDK_VERSION
-LOCAL_SHARED_LIBRARIES := libgstreamer_android liblog libnativewindow
+LOCAL_SHARED_LIBRARIES := libgstreamer_android liblog libnativewindow libgui_vendor libutils libbinder
 else
 LOCAL_SHARED_LIBRARIES := libgstreamer_android liblog libandroid
 endif
@@ -209,6 +212,9 @@ LOCAL_CFLAGS +=\
 	-I$(CRESTRON_ROOT)frameworks/native/libs \
 	-I$(CRESTRON_ROOT)frameworks/base/libs/hostgraphics \
 	-DBOARD_VNDK_VERSION
+
+LOCAL_SRC_FILES += \
+	cresAndroid.cpp
 endif
 
 ifneq ($(shell test $(PLATFORM_SDK_VERSION) -ge 30 && echo Android12),Android12)
@@ -245,7 +251,6 @@ CPP_INC_PATH := $(CRESTRON_ROOT)/../../bionic
 SECURE_STORAGE_PATH := $(CRESTRON_ROOT)/SecureStorage
 LOCAL_MODULE := libcresstreamctrl_jni
 LOCAL_CFLAGS +=\
-	-DANDROID_OS \
 	-I$(CPP_INC_PATH) \
 	-I$(CSIO_INCLUDE_ROOT) \
 	-I$(CSIO_INCLUDE_ROOT)/crestHdcp \
@@ -311,7 +316,7 @@ LOCAL_CFLAGS +=\
 	-I$(CRESTRON_ROOT)frameworks/base/libs/hostgraphics \
 	-DBOARD_VNDK_VERSION
 
-LOCAL_LDLIBS := -llog -lnativewindow
+LOCAL_LDLIBS := -llog -lnativewindow -lgui_vendor -lutils -lbinder
 else
 LOCAL_LDLIBS := -llog -landroid
 endif
@@ -323,7 +328,7 @@ ifeq ($(shell test $(PLATFORM_SDK_VERSION) -lt 23 && echo PreMarshmallow),PreMar
 LOCAL_SHARED_LIBRARIES += libstlport
 endif
 ifdef BOARD_VNDK_VERSION
-LOCAL_SHARED_LIBRARIES += liblog libnativewindow
+LOCAL_SHARED_LIBRARIES += liblog libnativewindow libgui_vendor libutils libbinder
 else
 LOCAL_SHARED_LIBRARIES += liblog libandroid
 endif
