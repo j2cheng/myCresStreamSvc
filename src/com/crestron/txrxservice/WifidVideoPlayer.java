@@ -534,7 +534,12 @@ public class WifidVideoPlayer {
             WfdSession session = getWfdSession(sessionId);
             if ((session != null) && (session.deviceType != null)) 
             {
-                if ((session.deviceType.contains("TX3_100")) || (session.deviceType.contains("TX3_200")))
+                if (session.deviceType.contains("TX3_100") || 
+                        session.deviceType.contains("AM_TX3_100") || session.deviceType.contains("AM_TX3_100_I") ||
+                        session.deviceType.contains("AM-TX3-100") || session.deviceType.contains("AM-TX3-100-I") || 
+                        session.deviceType.contains("TX3_200") ||
+                        session.deviceType.contains("AM_TX3_200") || session.deviceType.contains("AM_TX3_200_I") || 
+                        session.deviceType.contains("AM-TX3-200") || session.deviceType.contains("AM-TX3-200-I"))
                 {
                     Common.Logging.i(TAG, "videoplayer.isTx3DeviceType(): session: "+session+" is a TX3 device");
                     isTx3 = true;
