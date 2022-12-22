@@ -1393,6 +1393,12 @@ JNIEXPORT void JNICALL Java_com_crestron_txrxservice_GstreamIn_nativeSetLogLevel
 	CSIO_LOG(eLogLevel_debug, "Setting minimum printed log level to %d", logLevel);
 }
 
+int csio_jni_get_tcpMode(int sessionId)
+{
+    int tcpMode = CSIOCnsIntf->getStreamRx_TCPMODE(sessionId);
+    return tcpMode;
+}
+
 JNIEXPORT void JNICALL Java_com_crestron_txrxservice_GstreamIn_nativeSetTcpMode(JNIEnv *env, jobject thiz, jint tcpMode, jint sessionId)
 {
 	CSIOCnsIntf->setStreamRx_TCPMODE(sessionId, tcpMode, SENDTOCRESSTORE_NONE);
