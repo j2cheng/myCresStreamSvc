@@ -2615,7 +2615,7 @@ JNIEXPORT void JNICALL Java_com_crestron_txrxservice_GstreamIn_nativeSetFieldDeb
                 else
                 {
                     int id = (int)strtol(CmdPtr, &EndPtr, 10);
-                    CSIO_LOG(eLogLevel_debug, "stream id is: %d",id);
+                    CSIO_LOG(eLogLevel_info, "stream id is: %d, MAX_STREAMS = %d",id,MAX_STREAMS);
 
                     if(id >= 0 && id < MAX_STREAMS)
                     {
@@ -2633,11 +2633,11 @@ JNIEXPORT void JNICALL Java_com_crestron_txrxservice_GstreamIn_nativeSetFieldDeb
                                 if(StreamDb->amcvid_dec)
                                 {
                                     g_object_get(G_OBJECT(StreamDb->amcvid_dec), "dec-frames-drop-interval", &tmp, NULL);
-                                    CSIO_LOG(eLogLevel_info, "get dec-frames-drop-interval: %d\r\n", tmp);
+                                    CSIO_LOG(eLogLevel_info, "get dec-frames-drop-interval: %d, stream id: %d\r\n", tmp, id);
                                 }
                                 else
                                 {
-                                    CSIO_LOG(eLogLevel_info, "no amcvid_dec \r\n");
+                                    CSIO_LOG(eLogLevel_info, "no amcvid_dec\r\n");
                                 }
                             }
                             else
@@ -2646,11 +2646,42 @@ JNIEXPORT void JNICALL Java_com_crestron_txrxservice_GstreamIn_nativeSetFieldDeb
                                 {
                                     guint  tmp = strtol(CmdPtr, &EndPtr, 10);
                                     g_object_set(G_OBJECT(StreamDb->amcvid_dec), "dec-frames-drop-interval", tmp, NULL);
-                                    CSIO_LOG(eLogLevel_info, "set dec-frames-drop-interval: %d\r\n", tmp);
+                                    CSIO_LOG(eLogLevel_info, "set dec-frames-drop-interval: %d, stream id: %d\r\n", tmp, id);
                                 }
                                 else
                                 {
                                     CSIO_LOG(eLogLevel_info, "no amcvid_dec \r\n");
+                                }
+                            }
+                        }
+                    }
+                    else if(id == -1)
+                    {
+                        CSIO_LOG(eLogLevel_info, "SET_DEC_FRAMES_DROP_INTERVAL: all streams");
+                        int i = 0;
+                        CmdPtr = strtok(NULL, ", ");
+                        for( i=0; i < MAX_STREAMS; i++)
+                        {
+                            CREGSTREAM * StreamDb = GetStreamFromCustomData(CresDataDB, i);
+                            if(StreamDb)
+                            {
+                                if (CmdPtr == NULL)
+                                {
+                                    guint  tmp = 0;
+                                    if(StreamDb->amcvid_dec)
+                                    {
+                                        g_object_get(G_OBJECT(StreamDb->amcvid_dec), "dec-frames-drop-interval", &tmp, NULL);
+                                        CSIO_LOG(eLogLevel_info, "get dec-frames-drop-interval[%d], stream id[%d]\r\n", tmp, i);
+                                    }
+                                }
+                                else
+                                {
+                                    if(StreamDb->amcvid_dec)
+                                    {
+                                        guint  tmp = strtol(CmdPtr, &EndPtr, 10);
+                                        g_object_set(G_OBJECT(StreamDb->amcvid_dec), "dec-frames-drop-interval", tmp, NULL);
+                                        CSIO_LOG(eLogLevel_info, "set dec-frames-drop-interval[%d], stream id[%d]\r\n", tmp, i);
+                                    }
                                 }
                             }
                         }
