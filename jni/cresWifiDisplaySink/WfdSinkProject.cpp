@@ -552,6 +552,8 @@ void wfdSinkProjClass::sendEvent(csioEventQueueStruct* pEvntQ)
                     GST_PIPELINE_CONFIG* gst_config = (GST_PIPELINE_CONFIG*)bufP;
                     if(gst_config)
                     {
+                        new_config->isTx3 = gst_config->isTx3;
+                        new_config->useTcp = gst_config->useTcp;
                         new_config->ts_port = gst_config->ts_port;
                         new_config->ssrc    = gst_config->ssrc;
                         new_config->rtcp_dest_port = gst_config->rtcp_dest_port;
@@ -833,6 +835,15 @@ void* wfdSinkProjClass::ThreadEntry()
                     CSIO_LOG(m_debugLevel, "wfdSinkProjClass: process WFD_SINK_EVENTS_RTSP_SET_LATENCY_EVENT[%d]: latency:%d.\n",id,latency);
 
                     Wfd_set_latency_by_the_source(id, latency);
+                    break;
+                }
+                case WFD_SINK_EVENTS_RTSP_SWITCH_TRANSPORT_MODE_EVENT:
+                {
+                    int id = evntQPtr->obj_id;
+                    int transport_mode = evntQPtr->ext_obj;
+                    CSIO_LOG(m_debugLevel, "wfdSinkProjClass: process WFD_SINK_EVENTS_RTSP_SWITCH_TRANSPORT_MODE_EVENT[%d]: mode:%d.\n",id,transport_mode);
+
+                    //Wfd_set_transport_mode_by_the_source(id, tcp_mode);
                     break;
                 }
                 case WFD_SINK_EVENTS_JNI_GST_READY:

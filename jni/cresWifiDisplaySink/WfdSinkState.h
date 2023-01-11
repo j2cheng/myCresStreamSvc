@@ -26,6 +26,9 @@ typedef enum _eWfd_States
 
     WFD_SINK_STATES_WAIT_TD_RESP,
 
+    WFD_SINK_STATES_WAIT_M4_TRANSPORT_SWITCH_REQUEST,
+    WFD_SINK_STATES_WAIT_M6_TRANSPORT_SWITCH_RESP,
+
     WFD_SINK_STATES_MAX
 }eWfd_States;
 
@@ -54,6 +57,9 @@ typedef enum _eWfd_Events
     WFD_SINK_STM_INTERNAL_ERROR_EVENT,
     WFD_SINK_STM_TD_RESP_RCVD_EVENT,
     WFD_SINK_STM_RCVD_TEARDOWN_EVENT,
+
+    WFD_SINK_STM_M4_TRANSPORT_SWITCH_RQST_RCVD_EVENT,
+    WFD_SINK_STM_M4_TRANSPORT_SWITCH_RESP_RCVD_EVENT,
 
     //events from project --> state machine thread
     WFD_SINK_INSERT_STMACHINE_EVENT = 40,
@@ -242,6 +248,9 @@ private:
 
     int waitTDResponseState(csioEventQueueStruct* pEventQ);
 
+    int waitM4TransportSwitchRequestState(csioEventQueueStruct* pEventQ);
+    int waitM6TransportSwitchResponseState(csioEventQueueStruct* pEventQ);
+
     bool   isTimeout()
     {
         if(wfdSinkStMachineTimeArray)
@@ -310,6 +319,7 @@ public:
 private:
     int restartFromIdleCnt,m_max_restartCnt,m_onTcpConnFlag,m_src_rtsp_port,m_ts_Port;
     bool m_IsTx3session;
+    bool m_useTcpOnTx3;
     int m_systemMode;
 
     WfdRTSPSinkClient* pRTSPSinkClient;

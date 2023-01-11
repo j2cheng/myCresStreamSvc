@@ -4167,11 +4167,71 @@ int csio_jni_CreatePipeline(void *obj,GstElement **pipeline, GstElement **source
 
 	    	break;
 	    }
+        case ePROTOCOL_TCPSERVER_RCV:
+        {
+            data->element_zero = gst_element_factory_make("rtpbin", NULL);
+            gst_bin_add(GST_BIN(data->pipeline), data->element_zero);
+            CSIO_LOG(eLogLevel_debug, "tcpserversrc: created rtpbin[0x%x]\n", data->element_zero);
+
+            //1. first element: tcpserversrc to get TCP stream
+            data->element_av[0] = gst_element_factory_make("tcpserversrc", NULL);
+            g_object_set(G_OBJECT(data->element_av[0]), "port", (8970), NULL);//TODO: get port from CStream::getTSport()
+            CSIO_LOG(eLogLevel_debug, "tcpserversrc: set port tcpserversrc [%d]\n", 8970);
+
+            g_object_set(G_OBJECT(data->element_av[0]), "host", "0.0.0.0", NULL);
+            CSIO_LOG(eLogLevel_debug, "tcpserversrc: set host tcpserversrc [0.0.0.0]\n", 8970);
+            CSIO_LOG(eLogLevel_debug, "tcpserversrc: loc_ip_addr [%s]\n", data->loc_ip_addr);
+
+            {
+                data->element_av[1] = gst_element_factory_make("capsfilter", NULL);
+                GstCaps *capsStream = gst_caps_from_string("application/x-rtp-stream");
+                g_object_set(data->element_av[1], "caps", capsStream, NULL);
+                gst_caps_unref(capsStream);
+                CSIO_LOG(eLogLevel_debug, "tcpserversrc: created capsfilter[0x%x]\n", data->element_av[1]);
+            }
+
+            //2. create rtpstreamdepay to parse RFC4571 
+            data->element_av[2] = gst_element_factory_make("rtpstreamdepay", NULL);
+
+            {
+                data->element_av[3] = gst_element_factory_make("capsfilter", NULL);
+                GstCaps *capsStream = gst_caps_from_string("application/x-rtp, media=video, clock-rate=90000, encoding-name=MP2T");
+
+                g_object_set(data->element_av[3], "caps", capsStream, NULL);
+                gst_caps_unref(capsStream);
+                CSIO_LOG(eLogLevel_debug, "tcpserversrc: created capsfilter[0x%x]\n", data->element_av[3]);
+            }
+
+            if (!data->element_zero || !data->element_av[0] || !data->element_av[1] || !data->element_av[2])
+            {
+                CSIO_LOG(eLogLevel_error, "ERROR: Cannot create tcpserversrc element [streamId=%d]\n", iStreamId);
+                return CSIO_CANNOT_CREATE_ELEMENTS;
+            }
+
+            //3. add to pipeline
+            gst_bin_add_many (GST_BIN (data->pipeline), 
+                              data->element_av[0], 
+                              data->element_av[1], 
+                              data->element_av[2],
+                              data->element_av[3], NULL);
+
+            //4. link all
+            int ret = gst_element_link_many (data->element_av[0], 
+                                             data->element_av[1], 
+                                             data->element_av[2],
+                                             data->element_av[3],
+                                             data->element_zero, NULL);
+            CSIO_LOG(eLogLevel_debug, "[streamId=%d]: link gst_element_link_many: %d\n", iStreamId,ret);
+
+            *pipeline = data->pipeline;
+            *source = data->element_zero;
+            break;
+        }
         default:
-			CSIO_LOG(eLogLevel_error,  "ERROR: invalid protoID.\n" );
-			iStatus = CSIO_FAILURE;
-			break;
-	}
+            CSIO_LOG(eLogLevel_error, "ERROR: invalid protoID.\n");
+            iStatus = CSIO_FAILURE;
+            break;
+    }
 
     CSIO_LOG(eLogLevel_debug, "%s() protoId = %d [streamId=%d] exit with iStatus=%d", __FUNCTION__, protoId, iStreamId, iStatus);
 	return iStatus;
@@ -4332,6 +4392,13 @@ void csio_jni_InitPipeline(eProtocolId protoId, int iStreamId,GstRTSPLowerTrans 
 			g_object_set(G_OBJECT(data->element_av[0]), "latency", CSIOCnsIntf->getStreamRx_BUFFER(iStreamId), NULL);
 			break;
 		}
+        case ePROTOCOL_TCPSERVER_RCV:
+        {            
+            CSIO_LOG(eLogLevel_info, "%s: tcpserversrc [streamId=%d] \n", __FUNCTION__, iStreamId);
+			// video part
+			data->video_sink = NULL;
+            break;
+        }
 		default:
 			//iStatus = CSIO_FAILURE;
 			break;
@@ -4390,6 +4457,17 @@ void csio_jni_SetSourceLocation(eProtocolId protoId, char *location, int iStream
                 CSIO_LOG(eLogLevel_error, "ERROR: %s invalid SDP url: %s\n", __FUNCTION__, location);
             g_object_set(G_OBJECT(data->element_zero), "location", &location[prefixLength7], NULL);
 			break;
+        case ePROTOCOL_TCPSERVER_RCV:
+        {
+            CREGSTREAM * data_for_address = GetStreamFromCustomData(CresDataDB, iStreamId);
+            CSIO_LOG(eLogLevel_info, "%s: tcpserversrc [streamId=%d] [data_for_address=%x]\n", __FUNCTION__, iStreamId, data_for_address);
+            if(data_for_address && data_for_address->loc_ip_addr[0])
+            {
+                // g_object_set(G_OBJECT(data->element_av[0]), "address", data_for_address->loc_ip_addr, NULL);
+                CSIO_LOG(eLogLevel_info, "%s: tcpserversrc skip [streamId=%d] [loc_ip_addr=%s]\n", __FUNCTION__, iStreamId, data_for_address->loc_ip_addr);
+            }
+            break;
+        }
 		default:
 			break;
 	}
@@ -4479,6 +4557,28 @@ void csio_jni_SetMsgHandlers(void* obj,eProtocolId protoId, int iStreamId)
 		    break;
 		case ePROTOCOL_UDP_BPT:
 			break;
+        case ePROTOCOL_TCPSERVER_RCV:
+        {            
+            CSIO_LOG(eLogLevel_info, "%s: tcpserversrc [streamId=%d] ---===\n", __FUNCTION__, iStreamId);
+			// video part
+			data->video_sink = NULL;
+
+
+            if(data->element_zero != NULL)
+			{				
+				g_signal_connect(data->element_zero, "pad-added", G_CALLBACK(csio_PadAddedMsgHandler), obj);
+   				CSIO_LOG(eLogLevel_warning, "tcpserversrc/rtpbin connected to csio_PadAddedMsgHandler");
+			}
+			else
+			{
+				CSIO_LOG(eLogLevel_warning, "Null element zero, no callbacks will be registered");
+			}
+			/* Set the pipeline to READY, so it can already accept a window handle, if we have one */
+			csio_element_set_state(data->pipeline, GST_STATE_READY);
+            CSIO_LOG(eLogLevel_warning, "tcpserversrc/rtpbin pipeline set to GST_STATE_READY");		
+             
+            break;
+        }
 		default:
 			CSIO_LOG(eLogLevel_debug, "%s() not supportted !!\n", __FUNCTION__);
 			//iStatus = CSIO_FAILURE;
@@ -6548,8 +6648,8 @@ void Wfd_setup_gst_pipeline (int id, int state, struct GST_PIPELINE_CONFIG* gst_
     if(state && gst_config)
     {
 
-        CSIO_LOG(eLogLevel_debug, "mira: {%s} - id[%d], ts_port[%d], ssrc[0x%x], rtcp_dest_port[%d]",
-                 __FUNCTION__,id,gst_config->ts_port,gst_config->ssrc,gst_config->rtcp_dest_port);
+        CSIO_LOG(eLogLevel_debug, "mira: {%s} - id[%d], ts_port[%d], ssrc[0x%x], rtcp_dest_port[%d], useTcp[%d]",
+                 __FUNCTION__,id,gst_config->ts_port,gst_config->ssrc,gst_config->rtcp_dest_port,gst_config->useTcp);
 
         if(gst_config->pSrcVersionStr)
         {
@@ -6557,10 +6657,14 @@ void Wfd_setup_gst_pipeline (int id, int state, struct GST_PIPELINE_CONFIG* gst_
             Wfd_send_osVersion( id, gst_config->pSrcVersionStr);
         }
 
-        Wfd_set_firewall_rules(id, -1, gst_config->ts_port);
+        // TODO need to add TCP parameter to this so port can be opened for correct protocol
+        int ts_port = gst_config->ts_port;
+        if (gst_config->useTcp)
+            ts_port += WFD_UDP_TCP_PORT_OFFSET;
+        Wfd_set_firewall_rules(id, -1, ts_port);
 
         //TODO: remove the following settings if it is done already
-        csio_SetPortNumber( id, gst_config->ts_port, c_TSportNumber );
+        csio_SetPortNumber( id, ts_port, c_TSportNumber );
 
         CSIOCnsIntf->setStreamTxRx_SESSIONINITIATION(id, 1, SENDTOCRESSTORE_NONE);
         csio_SetSessionInitiationMode(id,1);
@@ -6581,6 +6685,7 @@ void Wfd_setup_gst_pipeline (int id, int state, struct GST_PIPELINE_CONFIG* gst_
 
             data->isStarted = true;
             data->packetizer_pcr_discont_threshold = 5;
+            data->wfd_tcp_mode = gst_config->useTcp;
 
             data->ssrc = gst_config->ssrc;
             data->rtcp_dest_port = gst_config->rtcp_dest_port;
@@ -6591,8 +6696,8 @@ void Wfd_setup_gst_pipeline (int id, int state, struct GST_PIPELINE_CONFIG* gst_
             }
 
             SetInPausedState(id, 0);
-            CSIO_LOG(eLogLevel_debug, "%s(): - id[%d] invoke start_streaming_cmd",__FUNCTION__,id);
-            start_streaming_cmd(id);
+            CSIO_LOG(eLogLevel_debug, "%s(): - id[%d] invoke start_streaming_cmd,wfd_tcp_mode: %d",__FUNCTION__,id,data->wfd_tcp_mode);
+            start_streaming_cmd(id);            
         }
 
         CSIO_LOG(eLogLevel_debug, "%s exit", __FUNCTION__);

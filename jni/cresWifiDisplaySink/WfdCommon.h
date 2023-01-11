@@ -21,8 +21,12 @@ typedef struct
 
 #define MAX_WFD_TCP_CONN     MAX_STREAMS   //up to four windows
 
+#define WFD_UDP_TCP_PORT_OFFSET 4400
+
 typedef struct GST_PIPELINE_CONFIG
 {
+    bool isTx3;
+    bool useTcp;
     unsigned int ts_port;
     unsigned int ssrc;
     unsigned int rtcp_dest_port;

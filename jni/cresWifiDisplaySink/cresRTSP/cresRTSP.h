@@ -3,6 +3,7 @@
 
 #include "coreRTSP.h"
 #include "cresRTSPUtils.h"
+#include "../WfdCommon.h"
 
 
 #ifdef __cplusplus
@@ -92,6 +93,7 @@ typedef struct _rtspheaderdata
    unsigned int ssrc;               // 0 assumed to be an invalid SSRC
    char * srcVersionStr;            // NULL if not valid
    char * msLatencyCapStr;          // NULL if not valid
+   char * transportSwitch;          // NULL if not valid
 } RTSPHEADERDATA;
 
 typedef struct _rtspparsingresults
@@ -154,6 +156,7 @@ struct rtsp
    char msLatencyCapStr[64];
    char presentationURL[256];
    char audioFormat[16];
+   char transportSwitch[64];
    unsigned int modes;
    unsigned int latency;
    unsigned int cea_res;

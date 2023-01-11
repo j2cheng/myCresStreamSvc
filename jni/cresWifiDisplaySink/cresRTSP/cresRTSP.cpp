@@ -225,8 +225,8 @@ static int rtsp_parse_data(struct rtsp *bus,const char *buf,size_t len);
 
 #define check_and_response_option(option, response) \
    if (check_rtsp_option(orgMsg, option)) { \
-      char option_response[512]; \
-      sprintf(option_response, "%s: %s", option, response); \
+      char option_response[512]={0}; \
+      snprintf(option_response, sizeof(option_response), "%s: %s", option, response); \
       retv = rtsp_message_append(rep, "{&}", option_response); \
       if (retv < 0) {\
          RTSP_LOG(eLogLevel_error, \
@@ -1086,6 +1086,29 @@ int composeRTSPRequest(void * session,char * requestMethod,RTSPPARSERAPP_COMPOSE
          return(-1);
       }
    }
+   else if(!strcmp(requestMethod,"SETUP_TRANSPORT_SWITCH"))
+   {
+      if(rtspSession->presentationURL[0] == '\0')
+      {
+         RTSP_LOG(eLogLevel_warning,"empty presentationURL string in composeRTSPRequest() with method SETUP_TRANSPORT_SWITCH\n");
+      }
+      urlPtr = rtspSession->presentationURL;
+      retv = rtsp_message_new_request(rtspSession,&rep,"SETUP",urlPtr);
+      if(retv < 0)
+      {
+         RTSP_LOG(eLogLevel_error,"rtsp_message_new_request failed in composeRTSPRequest() with error code %d\n",retv);
+         return(-1);
+      }
+
+      int rtpOnTcPort = rtspSession->rtpPort + WFD_UDP_TCP_PORT_OFFSET;
+      sprintf(locBuff,"RTP/AVP/TCP;unicast;client_port=%d-%d",rtpOnTcPort, rtpOnTcPort+1);
+      retv = rtsp_message_append(rep, "<s>","Transport",locBuff);
+      if(retv < 0)
+      {
+         RTSP_LOG(eLogLevel_error,"rtsp_message_append() failed in composeRTSPResponse() with error code %d\n",retv);
+         return(-1);
+      }
+   }
    else if(!strcmp(requestMethod,"TEARDOWN"))
    {
       if(rtspSession->presentationURL[0] == '\0')
@@ -1340,6 +1363,8 @@ int composeRTSPResponse(void * session,RTSPPARSINGRESULTS * requestParsingResult
    {
       RTSP_LOG(eLogLevel_debug,"not adding anything to the response for SET_PARAMETER\n");
       // nothing - response has just the response line and CSeq
+      snprintf(locBuff, sizeof(locBuff), "200");
+      check_and_response_option("wfd2_buffer_length", locBuff);
    }
    else
    {
@@ -1359,7 +1384,7 @@ int composeRTSPResponse(void * session,RTSPPARSINGRESULTS * requestParsingResult
    // currently rtsp_message_serialize_common() terminates the message string
    char * raw_message = (char *)rtsp_message_get_raw(rep);
    if(raw_message)
-      RTSP_LOG(eLogLevel_verbose,"raw_message: %s\n",raw_message);
+      RTSP_LOG(eLogLevel_debug,"raw_message: %s\n",raw_message);
 
    retv = cresRTSP_internalComposeCallback(session,RTSP_MESSAGE_REPLY,raw_message,NULL,NULL,
       reply_phrase,reply_code);
@@ -1395,6 +1420,7 @@ int cresRTSP_internalCallback(void * session,unsigned int messageType,
    char *               triggerMethod = NULL;
    char *               srcVersionStr = NULL;
    char *               msLatencyCapStr = NULL;
+   char *               transportSwitch = NULL;
    struct rtsp *        rtspSession;
    RTSPPARSINGRESULTS   parsingResults;
 
@@ -1476,6 +1502,15 @@ int cresRTSP_internalCallback(void * session,unsigned int messageType,
                RTSP_LOG(eLogLevel_debug,"set (from wfd2_video_formats): cea_res = 0x%x, vesa_res = 0x%x, hh_res = 0x%x\n",
                   (unsigned int)rtspSession->cea_res,(unsigned int)rtspSession->vesa_res,
                   (unsigned int)rtspSession->hh_res);
+            }
+
+            retv = rtsp_message_read(parsedMessagePtr, "{<s>}", "wfd2_transport_switch", &transportSwitch);
+            if (retv >= 0)
+            {
+               strncpy(rtspSession->transportSwitch,transportSwitch,sizeof(rtspSession->transportSwitch) - 1);
+               rtspSession->transportSwitch[sizeof(rtspSession->transportSwitch) - 1] = '\0';
+               RTSP_LOG(eLogLevel_debug,"set (from transport_switch) transport_switch to %s\n",
+                  rtspSession->transportSwitch);
             }
          }
          break;
@@ -1698,6 +1733,13 @@ int cresRTSP_internalCallback(void * session,unsigned int messageType,
             parsingResults.headerData.ssrc);
          }
       else parsingResults.headerData.ssrc = 0;
+      if(transportSwitch)
+         {
+         parsingResults.headerData.transportSwitch = rtspSession->transportSwitch;
+         RTSP_LOG(eLogLevel_debug,"cresRTSP_internalCallback() - transport_switch = %s\n",
+            parsingResults.headerData.transportSwitch);
+         }
+      else parsingResults.headerData.transportSwitch = NULL;
 
       retv = rtspSession->crestCallback(&parsingResults,rtspSession->crestCallbackArg);
    }

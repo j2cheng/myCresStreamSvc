@@ -43,6 +43,9 @@ const WFD_STRNUMPAIR Wfd_state_event_names[] =
     {"WFD_SINK_STM_TD_RESP_RCVD_EVENT",     WFD_SINK_STM_TD_RESP_RCVD_EVENT},
     {"WFD_SINK_STM_RCVD_TEARDOWN_EVENT",    WFD_SINK_STM_RCVD_TEARDOWN_EVENT},
 
+    {"WFD_SINK_STM_M4_TRANSPORT_SWITCH_RQST_RCVD_EVENT", WFD_SINK_STM_M4_TRANSPORT_SWITCH_RQST_RCVD_EVENT},
+    {"WFD_SINK_STM_M4_TRANSPORT_SWITCH_RESP_RCVD_EVENT", WFD_SINK_STM_M4_TRANSPORT_SWITCH_RESP_RCVD_EVENT},
+
     {"WFD_SINK_INSERT_STMACHINE_EVENT",     WFD_SINK_INSERT_STMACHINE_EVENT},
     {"WFD_SINK_REMOVE_STMACHINE_EVENT",     WFD_SINK_REMOVE_STMACHINE_EVENT},
     {"WFD_SINK_START_STMACHINE_EVENT",      WFD_SINK_START_STMACHINE_EVENT},
@@ -73,6 +76,9 @@ const WFD_STRNUMPAIR Wfd_Sink_states_names[WFD_SINK_STATES_MAX + 1] =
     {"WFD_SINK_STATES_KEEP_ALIVE_LOOP",   WFD_SINK_STATES_KEEP_ALIVE_LOOP},
     {"WFD_SINK_STATES_WAIT_TD_RESP",      WFD_SINK_STATES_WAIT_TD_RESP},
 
+    {"WFD_SINK_STATES_WAIT_M4_TRANSPORT_SWITCH_REQUEST", WFD_SINK_STATES_WAIT_M4_TRANSPORT_SWITCH_REQUEST},
+    {"WFD_SINK_STATES_WAIT_M6_TRANSPORT_SWITCH_RESP", WFD_SINK_STATES_WAIT_M6_TRANSPORT_SWITCH_RESP},
+
     {0,0}//terminate the list
 };
 int numOfWfd_SinkStateNamelList = WFD_NUM_OF(Wfd_Sink_states_names) - 1;
@@ -101,6 +107,8 @@ const WFD_STRNUMPAIR Wfd_rtsp_msg_string_vs_event_names[] = {
     {"GET_PARAMETER" ,  WFD_SINK_STM_KEEP_ALIVE_RCVD_EVENT},
 
     {"200 OK" ,         WFD_SINK_STM_TD_RESP_RCVD_EVENT},
+    {"SET_PARAMETER" ,  WFD_SINK_STM_M4_TRANSPORT_SWITCH_RQST_RCVD_EVENT},
+    {"200 OK" ,         WFD_SINK_STM_M4_TRANSPORT_SWITCH_RESP_RCVD_EVENT},
 };
 
 int Wfd_rtsp_msg_type_vs_event_names[][2] = {
@@ -119,6 +127,8 @@ int Wfd_rtsp_msg_type_vs_event_names[][2] = {
     {RTSP_MESSAGE_REQUEST ,  WFD_SINK_STM_KEEP_ALIVE_RCVD_EVENT},
 
     {RTSP_MESSAGE_REPLY ,    WFD_SINK_STM_TD_RESP_RCVD_EVENT},
+    {RTSP_MESSAGE_REQUEST,   WFD_SINK_STM_M4_TRANSPORT_SWITCH_RQST_RCVD_EVENT},
+    {RTSP_MESSAGE_REPLY,     WFD_SINK_STM_M4_TRANSPORT_SWITCH_RESP_RCVD_EVENT},
 };
 
 wfdSinkStMachineThread*  wfdSinkStMachineClass::m_wfdSinkStMachineThreadPtr = NULL;
@@ -137,7 +147,28 @@ int  wfdSinkStMachineThread::m_wfdSinkStMachineTaskListCnt = 0;
 #define DEFAULT_VIDEO2_RES_25Hz "00 02 01 0010 000000019420 000000000000 000000000000 00 0000 0000 00, 01 10 0040 000000019420 000000000000 000000000000 00 0000 0000 00, 01 20 0040 000000019420 000000000000 000000000000 00 0000 0000 00 00"
 #define DEFAULT_VIDEO2_RES_NONE ""
 
+#define MIRACAST_ON_TCP_FILEPATH "/data/CresStreamSvc/useMiracastOnTcpForTx3"
+
 extern int csio_jni_getMaxMiracastFps();
+
+static int read_int_from_file(const char *filePath, int defaultValue)
+{
+    FILE * file;
+    int rv = defaultValue;
+
+    file = fopen(filePath, "r");
+    if (file != NULL)
+    {
+        int errorCode = 0;
+        if (fscanf(file, "%d", &(errorCode)) >= 0)
+        {
+            rv = errorCode;
+        }
+
+        fclose(file);
+    }
+    return rv;
+}
 
 static char *getPreferredVideoResolutionDefaultString()
 {
@@ -217,6 +248,7 @@ m_ssrc(),
 m_rtcpDestPort(-1),
 m_is_mice_session(0),
 m_IsTx3session(false),
+m_useTcpOnTx3(false),
 m_systemMode(WFD_SINK_SYSTEMMODE_UNDEFINED)
 {
     wfdSinkStMachineTimeArray = new csioTimerClockBase(WFD_SINK_EVENTTIME_MAX,WFD_SINK_STATE_TIMER_MAX);
@@ -229,6 +261,9 @@ m_systemMode(WFD_SINK_SYSTEMMODE_UNDEFINED)
     m_rtspParserIntfInfo.rtpPort      = m_ts_Port;
     m_rtspParserIntfInfo.rtspLogLevel = m_debugLevel;
     setMaxMiracastRate(m_IsTx3session);
+
+    m_useTcpOnTx3 = read_int_from_file(MIRACAST_ON_TCP_FILEPATH, 0);
+    CSIO_LOG(m_debugLevel, "wfdSinkStMachineClass: useTcpOnTx3 = %d.\n",m_useTcpOnTx3);
 
     if(g_rtspAudioCodecStr.size())
     {
@@ -492,6 +527,8 @@ void wfdSinkStMachineClass::sendEventToParentProj(int event)
 
     if(event == WFD_SINK_EVENTS_RTSP_IN_SESSION_EVENT)
     {
+        gst_config.isTx3 = m_IsTx3session;
+        gst_config.useTcp = (m_IsTx3session && m_useTcpOnTx3) ? true : false;
         gst_config.ts_port = getCurentTsPort();
         gst_config.ssrc    = m_ssrc;
         gst_config.rtcp_dest_port = m_rtcpDestPort;
@@ -585,6 +622,16 @@ int wfdSinkStMachineClass::stateFunction(csioEventQueueStruct* pEventQ)
         case WFD_SINK_STATES_WAIT_TD_RESP:
         {
             m_curentState = waitTDResponseState(pEventQ);
+            break;
+        }
+        case WFD_SINK_STATES_WAIT_M4_TRANSPORT_SWITCH_REQUEST:
+        {
+            m_curentState = waitM4TransportSwitchRequestState(pEventQ);
+            break;
+        }
+        case WFD_SINK_STATES_WAIT_M6_TRANSPORT_SWITCH_RESP:
+        {
+            m_curentState = waitM6TransportSwitchResponseState(pEventQ);
             break;
         }
     }
@@ -1398,18 +1445,37 @@ int wfdSinkStMachineClass::waitGstPipelineReadyState(csioEventQueueStruct* pEven
             //TODO: move on to the next saved state
             CSIO_LOG(m_debugLevel,  "wfdSinkStMachineClass[%d]: GST_READY_RCVD_EVENT next state.\n",m_myId);
 
-            int ret =composeRTSPRequest(m_rtspParserIntfSession,"PLAY",parserComposeRequestCallback,(void*)this);
-            if(ret == 0)
-                pRTSPSinkClient->sendDataOut((char*)m_requestString.c_str(),m_requestString.size());
+            if (m_IsTx3session && m_useTcpOnTx3)
+            {
+                // send TCP switch M6 request and wait for response
+                int ret =composeRTSPRequest(m_rtspParserIntfSession,"SETUP_TRANSPORT_SWITCH",parserComposeRequestCallback,(void*)this);
+                if(ret == 0)
+                    pRTSPSinkClient->sendDataOut((char*)m_requestString.c_str(),m_requestString.size());
+                else
+                    CSIO_LOG(m_debugLevel,  "wfdSinkStMachineClass[%d]: composeRTSPRequest failed.\n",m_myId);
+
+                CSIO_LOG(m_debugLevel,  "wfdSinkStMachineClass[%d]: SETUP_TRANSPORT_SWITCH composed[%s].\n",
+                        m_myId,m_requestString.c_str(),ret);
+
+                setTimeout(WFD_SINK_STATETIMEOUT_WAIT_RESP);
+
+                nextState = WFD_SINK_STATES_WAIT_M6_TRANSPORT_SWITCH_RESP;
+            }
             else
-                CSIO_LOG(m_debugLevel,  "wfdSinkStMachineClass[%d]: composeRTSPRequest failed.\n",m_myId);
+            {
+                int ret =composeRTSPRequest(m_rtspParserIntfSession,"PLAY",parserComposeRequestCallback,(void*)this);
+                if(ret == 0)
+                    pRTSPSinkClient->sendDataOut((char*)m_requestString.c_str(),m_requestString.size());
+                else
+                    CSIO_LOG(m_debugLevel,  "wfdSinkStMachineClass[%d]: composeRTSPRequest failed.\n",m_myId);
 
-            CSIO_LOG(m_debugLevel,  "wfdSinkStMachineClass[%d]: METHOD_PLAY composed[%s].\n",
-                     m_myId,m_requestString.c_str(),ret);
+                CSIO_LOG(m_debugLevel,  "wfdSinkStMachineClass[%d]: METHOD_PLAY composed[%s].\n",
+                        m_myId,m_requestString.c_str(),ret);
 
-            setTimeout(WFD_SINK_STATETIMEOUT_WAIT_RESP);
+                setTimeout(WFD_SINK_STATETIMEOUT_WAIT_RESP);
 
-            nextState = WFD_SINK_STATES_WAIT_M7_RESP;
+                nextState = WFD_SINK_STATES_WAIT_M7_RESP;
+            }
 
             break;
         }
@@ -1507,20 +1573,50 @@ int wfdSinkStMachineClass::waitM6ResponseState(csioEventQueueStruct* pEventQ)
             //TODO: send out M7 request
             CSIO_LOG(m_debugLevel,  "wfdSinkStMachineClass[%d]: WFD_SINK_STM_M6_RESP_RCVD_EVENT processed.\n",m_myId);
 
-            sendEventToParentProj(WFD_SINK_EVENTS_RTSP_IN_SESSION_EVENT);
-
-            if(pRTSPSinkClient)
+            if (m_IsTx3session && m_useTcpOnTx3)
             {
-                //Note: although we set 15s time out, source might call tear down early
-                setTimeout(WFD_SINK_STATETIMEOUT_WAIT_GST_PIPELINE);
+                if(pRTSPSinkClient)
+                {
+                    //TODO: move on to the next saved state
+                    CSIO_LOG(m_debugLevel,  "wfdSinkStMachineClass[%d]: GST_READY_RCVD_EVENT next state.\n",m_myId);
 
-                nextState = WFD_SINK_STATES_WAIT_GSTREAMER_PIPELINE_READY;
+                    int ret =composeRTSPRequest(m_rtspParserIntfSession,"PLAY",parserComposeRequestCallback,(void*)this);
+                    if(ret == 0)
+                        pRTSPSinkClient->sendDataOut((char*)m_requestString.c_str(),m_requestString.size());
+                    else
+                        CSIO_LOG(m_debugLevel,  "wfdSinkStMachineClass[%d]: composeRTSPRequest failed.\n",m_myId);
+
+                    CSIO_LOG(m_debugLevel,  "wfdSinkStMachineClass[%d]: METHOD_PLAY composed[%s].\n",
+                            m_myId,m_requestString.c_str(),ret);
+
+                    setTimeout(WFD_SINK_STATETIMEOUT_WAIT_RESP);
+
+                    nextState = WFD_SINK_STATES_WAIT_M7_RESP;
+                }
+                else
+                {
+                    prepareForRestart();
+                    CSIO_LOG(m_debugLevel,  "wfdSinkStMachineClass[%d]:pRTSPSinkClient is NULL\n",m_myId);
+                    nextState = WFD_SINK_STATES_IDLE;
+                }
             }
             else
             {
-                prepareForRestart();
-                CSIO_LOG(m_debugLevel,  "wfdSinkStMachineClass[%d]:pRTSPSinkClient is NULL\n",m_myId);
-                nextState = WFD_SINK_STATES_IDLE;
+                sendEventToParentProj(WFD_SINK_EVENTS_RTSP_IN_SESSION_EVENT);
+
+                if(pRTSPSinkClient)
+                {
+                    //Note: although we set 15s time out, source might call tear down early
+                    setTimeout(WFD_SINK_STATETIMEOUT_WAIT_GST_PIPELINE);
+
+                    nextState = WFD_SINK_STATES_WAIT_GSTREAMER_PIPELINE_READY;
+                }
+                else
+                {
+                    prepareForRestart();
+                    CSIO_LOG(m_debugLevel,  "wfdSinkStMachineClass[%d]:pRTSPSinkClient is NULL\n",m_myId);
+                    nextState = WFD_SINK_STATES_IDLE;
+                }
             }
 
             break;
@@ -1615,16 +1711,25 @@ int wfdSinkStMachineClass::waitM7ResponseState(csioEventQueueStruct* pEventQ)
         {
             CSIO_LOG(m_debugLevel,  "wfdSinkStMachineClass[%d]: WFD_SINK_STM_M7_RESP_RCVD_EVENT processed.\n",m_myId);
 
-            resetRestartCnt();
-            getTimeStamp(WFD_SINK_EVENTTIME_ENTER_KEEPALIVE_LOOP);
+            if (m_IsTx3session && m_useTcpOnTx3)
+            {
+                // with TCP turned on should normally get a TRANSPORT_SWITCH message
+                setTimeout(WFD_SINK_STATETIMEOUT_WAIT_RESP);
 
-            setTimeout(m_keepAliveTimeout);
+                nextState = WFD_SINK_STATES_WAIT_M4_TRANSPORT_SWITCH_REQUEST;
+            } else {
+                resetRestartCnt();
 
-            //set a timer(15s) for the first frame event
-            if(wfdSinkStMachineTimeArray)
-                wfdSinkStMachineTimeArray->setTimeout(WFD_SINK_STATE_1ST_FRAME_TIMEOUT_TIMER, WFD_SINK_STATETIMEOUT_WAIT_GST_PIPELINE);
+                getTimeStamp(WFD_SINK_EVENTTIME_ENTER_KEEPALIVE_LOOP);
 
-            nextState = WFD_SINK_STATES_KEEP_ALIVE_LOOP;
+                setTimeout(m_keepAliveTimeout);
+
+                //set a timer(15s) for the first frame event
+                if(wfdSinkStMachineTimeArray)
+                    wfdSinkStMachineTimeArray->setTimeout(WFD_SINK_STATE_1ST_FRAME_TIMEOUT_TIMER, WFD_SINK_STATETIMEOUT_WAIT_GST_PIPELINE);
+
+                nextState = WFD_SINK_STATES_KEEP_ALIVE_LOOP;
+            }
 
             break;
         }
@@ -1904,6 +2009,262 @@ int wfdSinkStMachineClass::monitorKeepAliveState(csioEventQueueStruct* pEventQ)
     return nextState;
 }
 
+int wfdSinkStMachineClass::waitM4TransportSwitchRequestState(csioEventQueueStruct* pEventQ)
+{
+    if(!pEventQ)
+        return m_curentState;
+
+    int nextState = m_curentState;
+    int events = pEventQ->event_type;
+
+    switch(events)
+    {
+        case WFD_SINK_STM_TIME_TICKS_EVENT:
+        {
+            //Note: if we don't have restart wait state, this will be used as a delay
+            if(isTimeout())
+            {
+                resetTimeout();
+
+                CSIO_LOG(m_debugLevel,  "wfdSinkStMachineClass[%d]: waitM4TransportSwitchRequestState: timeout.\n",m_myId);
+
+                prepareForRestart();
+
+                nextState = WFD_SINK_STATES_IDLE;
+            }
+
+            break;
+        }
+        case WFD_SINK_STM_INTERNAL_ERROR_EVENT:
+        case WFD_SINK_STM_START_TEARDOWN_EVENT:
+        {
+            if(events == WFD_SINK_STM_START_TEARDOWN_EVENT)
+            {
+                resetOnRTSPTcpConnFlg();
+            }
+
+            //Note: composeRTSPRequest will fail(no session yet)
+            int ret = composeRTSPRequest(m_rtspParserIntfSession,"TEARDOWN",parserComposeRequestCallback,(void*)this);
+
+            if(pRTSPSinkClient && (ret == 0))
+            {
+                pRTSPSinkClient->sendDataOut((char*)m_requestString.c_str(),m_requestString.size());
+
+                setTimeout(WFD_SINK_STATETIMEOUT_WAIT_RESP);
+                nextState = WFD_SINK_STATES_WAIT_TD_RESP;
+            }
+            else
+            {
+                if(isOnRTSPTcpConnSet())
+                    prepareForRestart();
+                else
+                    prepareBeforeIdle();
+
+                nextState = WFD_SINK_STATES_IDLE;
+            }
+
+            break;
+        }
+        case WFD_SINK_STM_RCVD_TEARDOWN_EVENT:
+        {
+            if( pEventQ->buf_size && pEventQ->buffPtr)
+            {
+                CSIO_LOG(m_debugLevel,  "wfdSinkStMachineClass[%d]: WFD_SINK_STM_RCVD_TEARDOWN_EVENT composed[%s][%d].\n",
+                         m_myId,pEventQ->buffPtr,pEventQ->buf_size);
+                pRTSPSinkClient->sendDataOut((char*)pEventQ->buffPtr,pEventQ->buf_size);
+            }//else
+
+            prepareBeforeIdle();
+
+            nextState = WFD_SINK_STATES_IDLE;
+
+            break;
+        }
+        case WFD_SINK_STM_M4_TRANSPORT_SWITCH_RQST_RCVD_EVENT:
+        {
+            CSIO_LOG(m_debugLevel,  "wfdSinkStMachineClass[%d]: WFD_SINK_STM_M4_TRANSPORT_SWITCH_RQST_RCVD_EVENT processed[%d][%d].\n",
+                     m_myId,pEventQ->buf_size,pEventQ->ext_obj);
+
+            if(pRTSPSinkClient)
+            {
+                //send out response
+                if( pEventQ->buf_size && pEventQ->buffPtr)
+                {
+                    CSIO_LOG(m_debugLevel,  "wfdSinkStMachineClass[%d]: WFD_SINK_STM_M4_TRANSPORT_SWITCH_RQST_RCVD_EVENT composed[%s][%d].\n",
+                            m_myId,pEventQ->buffPtr,pEventQ->buf_size);
+                    pRTSPSinkClient->sendDataOut((char*)pEventQ->buffPtr,pEventQ->buf_size);
+                }
+                else
+                {
+                    CSIO_LOG(m_debugLevel,  "wfdSinkStMachineClass[%d]: WFD_SINK_STM_M4_TRANSPORT_SWITCH_RQST_RCVD_EVENT no composed string..\n",
+                             m_myId);
+                }
+
+#if 1
+                // start up pipeline
+                sendEventToParentProj(WFD_SINK_EVENTS_RTSP_IN_SESSION_EVENT);
+
+                //Note: although we set 15s time out, source might call tear down early
+                setTimeout(WFD_SINK_STATETIMEOUT_WAIT_GST_PIPELINE);
+
+                nextState = WFD_SINK_STATES_WAIT_GSTREAMER_PIPELINE_READY;
+#endif
+            }
+            else
+            {
+                prepareForRestart();
+                CSIO_LOG(m_debugLevel,  "wfdSinkStMachineClass[%d]:pRTSPSinkClient is NULL\n",m_myId,pEventQ->ext_obj);
+                nextState = WFD_SINK_STATES_IDLE;
+            }
+
+            break;
+        }
+        case WFD_SINK_STM_START_CONN_EVENT:
+        {
+            setOnRTSPTcpConnFlg();
+            break;
+        }
+        default:
+        {
+            CSIO_LOG(m_debugLevel,   "wfdSinkStMachineClass[%d]: waitM5RequestState: unprocessed events[%s].\n",
+                     m_myId,
+                     getThisArrayNames(Wfd_state_event_names,numOfWfdStateEventNamelList,events));
+            break;
+        }
+    }
+
+    return nextState;
+}
+
+int wfdSinkStMachineClass::waitM6TransportSwitchResponseState(csioEventQueueStruct* pEventQ)
+{
+    if(!pEventQ)
+        return m_curentState;
+
+    int nextState = m_curentState;
+    int events = pEventQ->event_type;
+
+    switch(events)
+    {
+        case WFD_SINK_STM_TIME_TICKS_EVENT:
+        {
+            //Note: if we don't have restart wait state, this will be used as a delay
+            if(isTimeout())
+            {
+                resetTimeout();
+
+                CSIO_LOG(m_debugLevel,  "wfdSinkStMachineClass[%d]: waitM4TransportSwitchRequestState: timeout.\n",m_myId);
+
+                prepareForRestart();
+
+                nextState = WFD_SINK_STATES_IDLE;
+            }
+
+            break;
+        }
+        case WFD_SINK_STM_INTERNAL_ERROR_EVENT:
+        case WFD_SINK_STM_START_TEARDOWN_EVENT:
+        {
+            if(events == WFD_SINK_STM_START_TEARDOWN_EVENT)
+            {
+                resetOnRTSPTcpConnFlg();
+            }
+
+            //Note: composeRTSPRequest will fail(no session yet)
+            int ret = composeRTSPRequest(m_rtspParserIntfSession,"TEARDOWN",parserComposeRequestCallback,(void*)this);
+
+            if(pRTSPSinkClient && (ret == 0))
+            {
+                pRTSPSinkClient->sendDataOut((char*)m_requestString.c_str(),m_requestString.size());
+
+                setTimeout(WFD_SINK_STATETIMEOUT_WAIT_RESP);
+                nextState = WFD_SINK_STATES_WAIT_TD_RESP;
+            }
+            else
+            {
+                if(isOnRTSPTcpConnSet())
+                    prepareForRestart();
+                else
+                    prepareBeforeIdle();
+
+                nextState = WFD_SINK_STATES_IDLE;
+            }
+
+            break;
+        }
+        case WFD_SINK_STM_RCVD_TEARDOWN_EVENT:
+        {
+            if( pEventQ->buf_size && pEventQ->buffPtr)
+            {
+                CSIO_LOG(m_debugLevel,  "wfdSinkStMachineClass[%d]: WFD_SINK_STM_RCVD_TEARDOWN_EVENT composed[%s][%d].\n",
+                         m_myId,pEventQ->buffPtr,pEventQ->buf_size);
+                pRTSPSinkClient->sendDataOut((char*)pEventQ->buffPtr,pEventQ->buf_size);
+            }//else
+
+            prepareBeforeIdle();
+
+            nextState = WFD_SINK_STATES_IDLE;
+
+            break;
+        }
+        case WFD_SINK_STM_M4_TRANSPORT_SWITCH_RESP_RCVD_EVENT:
+        {
+            CSIO_LOG(m_debugLevel,  "wfdSinkStMachineClass[%d]: WFD_SINK_STM_M4_TRANSPORT_SWITCH_RESP_RCVD_EVENT processed[%d][%d].\n",
+                     m_myId,pEventQ->buf_size,pEventQ->ext_obj);
+
+            if(pRTSPSinkClient)
+            {
+                //send out response
+                if( pEventQ->buf_size && pEventQ->buffPtr)
+                {
+                    CSIO_LOG(m_debugLevel,  "wfdSinkStMachineClass[%d]: WFD_SINK_STM_M4_TRANSPORT_SWITCH_RESP_RCVD_EVENT composed[%s][%d].\n",
+                            m_myId,pEventQ->buffPtr,pEventQ->buf_size);
+                    //pRTSPSinkClient->sendDataOut((char*)pEventQ->buffPtr,pEventQ->buf_size);
+                }
+                else
+                {
+                    CSIO_LOG(m_debugLevel,  "wfdSinkStMachineClass[%d]: WFD_SINK_STM_M4_TRANSPORT_SWITCH_RESP_RCVD_EVENT no composed string..\n",
+                             m_myId);
+                }
+
+                resetRestartCnt();
+
+                getTimeStamp(WFD_SINK_EVENTTIME_ENTER_KEEPALIVE_LOOP);
+
+                setTimeout(m_keepAliveTimeout);
+
+                //set a timer(15s) for the first frame event
+                if(wfdSinkStMachineTimeArray)
+                    wfdSinkStMachineTimeArray->setTimeout(WFD_SINK_STATE_1ST_FRAME_TIMEOUT_TIMER, WFD_SINK_STATETIMEOUT_WAIT_GST_PIPELINE);
+
+                nextState = WFD_SINK_STATES_KEEP_ALIVE_LOOP;
+            }
+            else
+            {
+                prepareForRestart();
+                CSIO_LOG(m_debugLevel,  "wfdSinkStMachineClass[%d]:pRTSPSinkClient is NULL\n",m_myId,pEventQ->ext_obj);
+                nextState = WFD_SINK_STATES_IDLE;
+            }
+
+            break;
+        }
+        case WFD_SINK_STM_START_CONN_EVENT:
+        {
+            setOnRTSPTcpConnFlg();
+            break;
+        }
+        default:
+        {
+            CSIO_LOG(m_debugLevel,   "wfdSinkStMachineClass[%d]: waitM5RequestState: unprocessed events[%s].\n",
+                     m_myId,
+                     getThisArrayNames(Wfd_state_event_names,numOfWfdStateEventNamelList,events));
+            break;
+        }
+    }
+
+    return nextState;
+}
+
 //called from parent project
 int wfdSinkStMachineClass::waitWfdSinkStMachineSignal(int pollTimeoutInMs)
 {
@@ -2078,6 +2439,39 @@ int wfdSinkStMachineClass::parserCallbackFun(RTSPPARSINGRESULTS * parsResPtr, vo
                                     CSIO_LOG(ABOVE_DEBUG_VERB(p->m_debugLevel), "wfdSinkStMachineClass[%d]: parserCallbackFun: received ms latency[%d]\n",
                                              p->m_myId,p->m_msLatency);
                                 }
+                                else if (parsResPtr->headerData.transportSwitch)
+                                {
+                                    CSIO_LOG(ABOVE_DEBUG_XTRVERB(p->m_debugLevel), "wfdSinkStMachineClass[%d]: parserCallbackFun: transportSwitch[%s]\n",
+                                            p->m_myId,parsResPtr->headerData.transportSwitch);
+
+                                    CSIO_LOG(p->m_debugLevel, "wfdSinkStMachineClass[%d]: parserCallbackFun: transportSwitch[%s]\n",
+                                            p->m_myId,parsResPtr->headerData.transportSwitch);
+
+#if 1
+                                    if (strcasestr(parsResPtr->headerData.transportSwitch, "RTP/AVP/TCP"))
+                                    {
+                                        CSIO_LOG(p->m_debugLevel, "wfdSinkStMachineClass[%d]: calling composeRTSPResponse OK\n", p->m_myId);
+                                        composeRTSPResponse(p->m_rtspParserIntfSession,parsResPtr,RTSP_CODE_OK,parserComposeRespCallback,(void *)appArgument);
+                                        CSIO_LOG(p->m_debugLevel, "wfdSinkStMachineClass[%d]: finished composeRTSPResponse OK\n", p->m_myId);
+                                    } else {
+                                        CSIO_LOG(p->m_debugLevel, "wfdSinkStMachineClass[%d]: calling composeRTSPResponse BAD\n", p->m_myId);
+                                        composeRTSPResponse(p->m_rtspParserIntfSession,parsResPtr,RTSP_CODE_BAD_REQUEST,parserComposeRespCallback,(void *)appArgument);
+                                        CSIO_LOG(p->m_debugLevel, "wfdSinkStMachineClass[%d]: finished composeRTSPResponse BAD\n", p->m_myId);
+                                    }
+#endif
+#if 0
+                                    if (strcasestr(parsResPtr->headerData.transportSwitch, "RTP/AVP/TCP"))
+                                    {
+                                        csioEventQueueStruct EvntQ;
+                                        memset(&EvntQ,0,sizeof(csioEventQueueStruct));
+                                        EvntQ.obj_id = p->m_myId;
+                                        EvntQ.event_type = WFD_SINK_EVENTS_RTSP_SWITCH_TRANSPORT_MODE_EVENT;
+                                        EvntQ.ext_obj = strcasestr(parsResPtr->headerData.transportSwitch, "TCP") ? 1 : 0;
+
+                                        p->m_parent->sendEvent(&EvntQ);
+                                    }// else
+#endif
+                                }//else
                             }//else: stay in the same states until next message
                         }
                     }
