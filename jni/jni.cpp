@@ -4570,7 +4570,7 @@ void csio_jni_SetMsgHandlers(void* obj,eProtocolId protoId, int iStreamId)
 			break;
         case ePROTOCOL_TCPSERVER_RCV:
         {            
-            CSIO_LOG(eLogLevel_info, "%s: tcpserversrc [streamId=%d] ---===\n", __FUNCTION__, iStreamId);
+            CSIO_LOG(eLogLevel_info, "%s: tcpserversrc [streamId=%d]\n", __FUNCTION__, iStreamId);
 			// video part
 			data->video_sink = NULL;
 
