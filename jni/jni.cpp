@@ -4175,12 +4175,28 @@ int csio_jni_CreatePipeline(void *obj,GstElement **pipeline, GstElement **source
 
             //1. first element: tcpserversrc to get TCP stream
             data->element_av[0] = gst_element_factory_make("tcpserversrc", NULL);
-            g_object_set(G_OBJECT(data->element_av[0]), "port", (8970), NULL);//TODO: get port from CStream::getTSport()
-            CSIO_LOG(eLogLevel_debug, "tcpserversrc: set port tcpserversrc [%d]\n", 8970);
+            if(obj)
+            {
+                CStream* pCurCfg = ((CStreamer*)obj)->getCurCStreamPtr();
+                int tcpport = pCurCfg->getTSport();
+                g_object_set(G_OBJECT(data->element_av[0]), "port", tcpport, NULL);
+                CSIO_LOG(eLogLevel_debug, "tcpserversrc: set port tcpserversrc [%d]\n", tcpport);
+            }
+            else
+            {
+                //Note: this shoud not happen
+                g_object_set(G_OBJECT(data->element_av[0]), "port", (8970), NULL);
+                CSIO_LOG(eLogLevel_debug, "tcpserversrc: failed to get stream object, set defaul port: 8970\n");
+            }            
 
+            //TODO: maybe use loc_ip_addr here
+            // if(data->loc_ip_addr[0])
+            // {
+            //     g_object_set(G_OBJECT(data->element_av[0]), "address", data_for_address->loc_ip_addr, NULL);
+            //     CSIO_LOG(eLogLevel_info, "%s: tcpserversrc skip [streamId=%d] [loc_ip_addr=%s]\n", __FUNCTION__, iStreamId, data_for_address->loc_ip_addr);
+            // }
             g_object_set(G_OBJECT(data->element_av[0]), "host", "0.0.0.0", NULL);
-            CSIO_LOG(eLogLevel_debug, "tcpserversrc: set host tcpserversrc [0.0.0.0]\n", 8970);
-            CSIO_LOG(eLogLevel_debug, "tcpserversrc: loc_ip_addr [%s]\n", data->loc_ip_addr);
+            CSIO_LOG(eLogLevel_debug, "tcpserversrc: bind to 0.0.0.0 for now, may use loc_ip_addr [%s]\n", data->loc_ip_addr);
 
             {
                 data->element_av[1] = gst_element_factory_make("capsfilter", NULL);
@@ -4459,13 +4475,8 @@ void csio_jni_SetSourceLocation(eProtocolId protoId, char *location, int iStream
 			break;
         case ePROTOCOL_TCPSERVER_RCV:
         {
-            CREGSTREAM * data_for_address = GetStreamFromCustomData(CresDataDB, iStreamId);
-            CSIO_LOG(eLogLevel_info, "%s: tcpserversrc [streamId=%d] [data_for_address=%x]\n", __FUNCTION__, iStreamId, data_for_address);
-            if(data_for_address && data_for_address->loc_ip_addr[0])
-            {
-                // g_object_set(G_OBJECT(data->element_av[0]), "address", data_for_address->loc_ip_addr, NULL);
-                CSIO_LOG(eLogLevel_info, "%s: tcpserversrc skip [streamId=%d] [loc_ip_addr=%s]\n", __FUNCTION__, iStreamId, data_for_address->loc_ip_addr);
-            }
+            CSIO_LOG(eLogLevel_info, "%s: tcpserversrc [streamId=%d] \n", __FUNCTION__, iStreamId);
+
             break;
         }
 		default:
