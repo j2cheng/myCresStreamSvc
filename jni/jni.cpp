@@ -4184,19 +4184,13 @@ int csio_jni_CreatePipeline(void *obj,GstElement **pipeline, GstElement **source
             }
             else
             {
-                //Note: this shoud not happen
+                //Note: this should not happen
                 g_object_set(G_OBJECT(data->element_av[0]), "port", (8970), NULL);
                 CSIO_LOG(eLogLevel_debug, "tcpserversrc: failed to get stream object, set defaul port: 8970\n");
             }            
 
-            //TODO: maybe use loc_ip_addr here
-            // if(data->loc_ip_addr[0])
-            // {
-            //     g_object_set(G_OBJECT(data->element_av[0]), "address", data_for_address->loc_ip_addr, NULL);
-            //     CSIO_LOG(eLogLevel_info, "%s: tcpserversrc skip [streamId=%d] [loc_ip_addr=%s]\n", __FUNCTION__, iStreamId, data_for_address->loc_ip_addr);
-            // }
-            g_object_set(G_OBJECT(data->element_av[0]), "host", "0.0.0.0", NULL);
-            CSIO_LOG(eLogLevel_debug, "tcpserversrc: bind to 0.0.0.0 for now, may use loc_ip_addr [%s]\n", data->loc_ip_addr);
+            g_object_set(G_OBJECT(data->element_av[0]), "host", data->loc_ip_addr, NULL);
+            CSIO_LOG(eLogLevel_debug, "tcpserversrc: bind to loc_ip_addr [%s]\n", data->loc_ip_addr);
 
             {
                 data->element_av[1] = gst_element_factory_make("capsfilter", NULL);
@@ -5437,6 +5431,21 @@ void csio_jni_post_latency(int streamId,GstObject* obj)
     {
         CSIO_LOG(eLogLevel_debug, "%s: function return,wfd_start[%d],hw_platform[0x%x]",__FUNCTION__, StreamDb->wfd_start,product_info()->hw_platform);
     }
+}
+
+
+gboolean csio_jni_get_wfdMiracastOnTcpMode(int streamId)
+{
+    CREGSTREAM * StreamDb = GetStreamFromCustomData(CresDataDB,streamId);
+
+    if(!StreamDb)
+    {
+        CSIO_LOG(eLogLevel_error, "%s: Could not obtain stream pointer for stream %d",__FUNCTION__, streamId);
+        return false;
+    }
+
+    CSIO_LOG(eLogLevel_debug, "%s: streamId[%d] wfd_on_tcp[%d]\r\n", __FUNCTION__, streamId, StreamDb->wfd_tcp_mode);
+    return StreamDb->wfd_tcp_mode;
 }
 
 /**
