@@ -119,7 +119,7 @@ public class PriorityScheduler
 	{
 		long insertionTime = System.nanoTime();
 		priorityQueue.add(new PriorityRunnable(task, priority, insertionTime));
-		Common.Logging.i(TAG, "Pending tasks in queue: "+priorityQueue.size());
+		Common.Logging.i(TAG, "Pending tasks in priority queue: "+priorityQueue.size());
 	}
 	
 	public class Scheduler extends ThreadPoolExecutor

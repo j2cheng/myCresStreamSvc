@@ -1046,14 +1046,6 @@ public class CanvasCrestore
 	public void processSessionResponse(SessionResponse response)
 	{
 		Common.Logging.v(TAG, "----- processSessionResponse: Start processing Session Response Message "+gson.toJson(response));
-        if (response.transactionId != null)
-        {
-        	// is a response to an earlier SessionEvent sent earlier
-        	Common.Logging.i(TAG, "Got session response for transactionId: "+response.transactionId+
-        			((response.failureReason!=null)?" failureReason="+response.failureReason.intValue():""));
-        	// mark AVF response as received
-        	avfResponseReceived(response);
-        }
         // set the flag to indicate a layout update will be done once session response is processed
 		Map<String, SessionResponseMapEntry> map = response.sessionResponseMap;
 		if (map != null)
@@ -1768,6 +1760,14 @@ public class CanvasCrestore
         					mCanvas.avfHasStarted.compareAndSet(false, true);
         					// Session response messages are queued on a Scheduler so we do not block incoming message from cresstore
         					final SessionResponse sessionResponse = root.internal.airMedia.canvas.sessionResponse;
+        			        if (sessionResponse.transactionId != null)
+        			        {
+        			            // is a response to an earlier SessionEvent sent earlier
+        			            Common.Logging.i(TAG, "Got session response for transactionId: "+sessionResponse.transactionId+
+        			                    ((sessionResponse.failureReason!=null)?" failureReason="+sessionResponse.failureReason.intValue():""));
+        			            // mark AVF response as received
+        			            avfResponseReceived(sessionResponse);
+        			        }
         					// Now process response
         					Common.Logging.i(TAG,"----- processSessionResponse job to scheduler: "+gson.toJson(sessionResponse));
         					sessionResponseScheduler.queue(new Runnable() { 

@@ -92,7 +92,7 @@ public class Common {
                 if ((Build.VERSION.SDK_INT >= 25) && !Log.isLoggable(tag, type))
                 {
                     //Log.e(tag, "level "+type+" is not loggable <"+message+">");
-                    return;
+                    //return;
                 }
                 message = String.format(Locale.US, "<%1$04x>  %2$s", Thread.currentThread().getId(), message);
                 switch (type) {
