@@ -248,7 +248,7 @@ m_ssrc(),
 m_rtcpDestPort(-1),
 m_is_mice_session(0),
 m_IsTx3session(false),
-m_useTcpOnTx3(false),
+m_useTcpTransport(false),
 m_systemMode(WFD_SINK_SYSTEMMODE_UNDEFINED)
 {
     wfdSinkStMachineTimeArray = new csioTimerClockBase(WFD_SINK_EVENTTIME_MAX,WFD_SINK_STATE_TIMER_MAX);
@@ -261,9 +261,6 @@ m_systemMode(WFD_SINK_SYSTEMMODE_UNDEFINED)
     m_rtspParserIntfInfo.rtpPort      = m_ts_Port;
     m_rtspParserIntfInfo.rtspLogLevel = m_debugLevel;
     setMaxMiracastRate(m_IsTx3session);
-
-    m_useTcpOnTx3 = read_int_from_file(MIRACAST_ON_TCP_FILEPATH, 0);
-    CSIO_LOG(m_debugLevel, "wfdSinkStMachineClass: useTcpOnTx3 = %d.\n",m_useTcpOnTx3);
 
     if(g_rtspAudioCodecStr.size())
     {
@@ -438,6 +435,16 @@ void wfdSinkStMachineClass::setIsTx3Session(bool isTx3)
 {
     m_IsTx3session = isTx3;
     m_rtspParserIntfInfo.isTx3 = isTx3;
+    if (isTx3)
+    {
+        m_rtspParserIntfInfo.preferTcpTransport = read_int_from_file(MIRACAST_ON_TCP_FILEPATH, 1);
+        CSIO_LOG(eLogLevel_info, "wfdSinkStMachineClass: m_rtspParserIntfInfo.preferTcpTransport = %d.\n",m_rtspParserIntfInfo.preferTcpTransport);
+    }
+}
+
+void wfdSinkStMachineClass::setUseTcpTransport(bool useTcp)
+{
+    m_useTcpTransport = useTcp;
 }
 
 void wfdSinkStMachineClass::setMaxMiracastRate(bool isTx3)
@@ -528,7 +535,7 @@ void wfdSinkStMachineClass::sendEventToParentProj(int event)
     if(event == WFD_SINK_EVENTS_RTSP_IN_SESSION_EVENT)
     {
         gst_config.isTx3 = m_IsTx3session;
-        gst_config.useTcp = (m_IsTx3session && m_useTcpOnTx3) ? true : false;
+        gst_config.useTcp = m_useTcpTransport;
         gst_config.ts_port = getCurentTsPort();
         gst_config.ssrc    = m_ssrc;
         gst_config.rtcp_dest_port = m_rtcpDestPort;
@@ -1445,7 +1452,7 @@ int wfdSinkStMachineClass::waitGstPipelineReadyState(csioEventQueueStruct* pEven
             //TODO: move on to the next saved state
             CSIO_LOG(m_debugLevel,  "wfdSinkStMachineClass[%d]: GST_READY_RCVD_EVENT next state.\n",m_myId);
 
-            if (m_IsTx3session && m_useTcpOnTx3)
+            if (m_waitForTransportSwitch)
             {
                 // send TCP switch M6 request and wait for response
                 int ret =composeRTSPRequest(m_rtspParserIntfSession,"SETUP_TRANSPORT_SWITCH",parserComposeRequestCallback,(void*)this);
@@ -1573,7 +1580,7 @@ int wfdSinkStMachineClass::waitM6ResponseState(csioEventQueueStruct* pEventQ)
             //TODO: send out M7 request
             CSIO_LOG(m_debugLevel,  "wfdSinkStMachineClass[%d]: WFD_SINK_STM_M6_RESP_RCVD_EVENT processed.\n",m_myId);
 
-            if (m_IsTx3session && m_useTcpOnTx3)
+            if (m_waitForTransportSwitch)
             {
                 if(pRTSPSinkClient)
                 {
@@ -1711,7 +1718,7 @@ int wfdSinkStMachineClass::waitM7ResponseState(csioEventQueueStruct* pEventQ)
         {
             CSIO_LOG(m_debugLevel,  "wfdSinkStMachineClass[%d]: WFD_SINK_STM_M7_RESP_RCVD_EVENT processed.\n",m_myId);
 
-            if (m_IsTx3session && m_useTcpOnTx3)
+            if (m_waitForTransportSwitch)
             {
                 // with TCP turned on should normally get a TRANSPORT_SWITCH message
                 setTimeout(WFD_SINK_STATETIMEOUT_WAIT_RESP);
@@ -2381,6 +2388,34 @@ int wfdSinkStMachineClass::parserCallbackFun(RTSPPARSINGRESULTS * parsResPtr, vo
                                      p->m_myId,p->m_EvntQ.ext_obj);
 
                             composeRTSPResponse(p->m_rtspParserIntfSession,parsResPtr,RTSP_CODE_OK,parserComposeRespCallback,(void *)appArgument);
+
+                            if (strcasestr(parsResPtr->request_method, "GET_PARAMETER") && (p->m_curentState == WFD_SINK_STATES_WAIT_M3_RQST))
+                            {
+                                p->m_waitForTransportSwitch = ((struct rtsp *)p->m_rtspParserIntfSession)->waitForTcpSwitch;
+                                CSIO_LOG(p->m_debugLevel, "wfdSinkStMachineClass[%d]: parserCallbackFun: wait for TRANSPORT_SWITCH message = %d",
+                                        p->m_myId, ((struct rtsp *)p->m_rtspParserIntfSession)->waitForTcpSwitch);
+                            }
+
+                            if (strcasestr(parsResPtr->request_method, "SET_PARAMETER") && (p->m_curentState == WFD_SINK_STATES_WAIT_M4_TRANSPORT_SWITCH_REQUEST))
+                            {
+                                if (parsResPtr->headerData.transportSwitch)
+                                {
+                                    CSIO_LOG(p->m_debugLevel, "wfdSinkStMachineClass[%d]: parserCallbackFun: transportSwitch[%s]\n",
+                                            p->m_myId,parsResPtr->headerData.transportSwitch);
+
+                                    if (strcasestr(parsResPtr->headerData.transportSwitch, "RTP/AVP/TCP"))
+                                    {
+                                        CSIO_LOG(p->m_debugLevel, "wfdSinkStMachineClass[%d]: calling composeRTSPResponse OK\n", p->m_myId);
+                                        composeRTSPResponse(p->m_rtspParserIntfSession,parsResPtr,RTSP_CODE_OK,parserComposeRespCallback,(void *)appArgument);
+                                        p->m_useTcpTransport = true;
+                                        CSIO_LOG(p->m_debugLevel, "wfdSinkStMachineClass[%d]: useTcpTransport flag set[%d]\n",
+                                                p->m_myId,p->m_useTcpTransport);
+                                    } else {
+                                        CSIO_LOG(p->m_debugLevel, "wfdSinkStMachineClass[%d]: unexpected transport_switch -- calling composeRTSPResponse BAD\n", p->m_myId);
+                                        composeRTSPResponse(p->m_rtspParserIntfSession,parsResPtr,RTSP_CODE_BAD_REQUEST,parserComposeRespCallback,(void *)appArgument);
+                                    }
+                                }
+                            }
                         }
                         else
                         {
@@ -2438,39 +2473,6 @@ int wfdSinkStMachineClass::parserCallbackFun(RTSPPARSINGRESULTS * parsResPtr, vo
 
                                     CSIO_LOG(ABOVE_DEBUG_VERB(p->m_debugLevel), "wfdSinkStMachineClass[%d]: parserCallbackFun: received ms latency[%d]\n",
                                              p->m_myId,p->m_msLatency);
-                                }
-                                else if (parsResPtr->headerData.transportSwitch)
-                                {
-                                    CSIO_LOG(ABOVE_DEBUG_XTRVERB(p->m_debugLevel), "wfdSinkStMachineClass[%d]: parserCallbackFun: transportSwitch[%s]\n",
-                                            p->m_myId,parsResPtr->headerData.transportSwitch);
-
-                                    CSIO_LOG(p->m_debugLevel, "wfdSinkStMachineClass[%d]: parserCallbackFun: transportSwitch[%s]\n",
-                                            p->m_myId,parsResPtr->headerData.transportSwitch);
-
-#if 1
-                                    if (strcasestr(parsResPtr->headerData.transportSwitch, "RTP/AVP/TCP"))
-                                    {
-                                        CSIO_LOG(p->m_debugLevel, "wfdSinkStMachineClass[%d]: calling composeRTSPResponse OK\n", p->m_myId);
-                                        composeRTSPResponse(p->m_rtspParserIntfSession,parsResPtr,RTSP_CODE_OK,parserComposeRespCallback,(void *)appArgument);
-                                        CSIO_LOG(p->m_debugLevel, "wfdSinkStMachineClass[%d]: finished composeRTSPResponse OK\n", p->m_myId);
-                                    } else {
-                                        CSIO_LOG(p->m_debugLevel, "wfdSinkStMachineClass[%d]: calling composeRTSPResponse BAD\n", p->m_myId);
-                                        composeRTSPResponse(p->m_rtspParserIntfSession,parsResPtr,RTSP_CODE_BAD_REQUEST,parserComposeRespCallback,(void *)appArgument);
-                                        CSIO_LOG(p->m_debugLevel, "wfdSinkStMachineClass[%d]: finished composeRTSPResponse BAD\n", p->m_myId);
-                                    }
-#endif
-#if 0
-                                    if (strcasestr(parsResPtr->headerData.transportSwitch, "RTP/AVP/TCP"))
-                                    {
-                                        csioEventQueueStruct EvntQ;
-                                        memset(&EvntQ,0,sizeof(csioEventQueueStruct));
-                                        EvntQ.obj_id = p->m_myId;
-                                        EvntQ.event_type = WFD_SINK_EVENTS_RTSP_SWITCH_TRANSPORT_MODE_EVENT;
-                                        EvntQ.ext_obj = strcasestr(parsResPtr->headerData.transportSwitch, "TCP") ? 1 : 0;
-
-                                        p->m_parent->sendEvent(&EvntQ);
-                                    }// else
-#endif
                                 }//else
                             }//else: stay in the same states until next message
                         }
@@ -2486,7 +2488,7 @@ int wfdSinkStMachineClass::parserCallbackFun(RTSPPARSINGRESULTS * parsResPtr, vo
                              p->m_myId,p->m_curentState,
                              parsResPtr->request_method? parsResPtr->request_method:"NONE");
 
-                    /*if this is set_paramerter*/
+                    /*if this is set_parameter*/
                     if(parsResPtr->request_method)
                     {
                         if(strcasestr( parsResPtr->request_method, "SET_PARAMETER" ))
@@ -2939,6 +2941,7 @@ void* wfdSinkStMachineThread::ThreadEntry()
                             p->setVideo2ResolutionDefaults(isTx3, evntQPtr->reserved[2]);
                             p->setCurentSourcePort(evntQPtr->ext_obj) ;
                             p->setCurentTsPort(evntQPtr->ext_obj2) ;
+                            p->setUseTcpTransport(false);
                             p->setIsTx3Session(isTx3);
 
                             std::string str = (char*)evntQPtr->buffPtr;

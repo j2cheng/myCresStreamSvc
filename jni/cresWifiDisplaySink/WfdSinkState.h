@@ -211,6 +211,7 @@ private:
     void setVideo2ResolutionDefaults(bool isTx3, int systemMode);
 
     void setIsTx3Session(bool isTx3);
+    void setUseTcpTransport(bool useTcp);
 public:
     bool getIsTx3session(){ return m_IsTx3session;}
     const char* getConnTime(){ return m_connTime.c_str();}
@@ -319,8 +320,9 @@ public:
 private:
     int restartFromIdleCnt,m_max_restartCnt,m_onTcpConnFlag,m_src_rtsp_port,m_ts_Port;
     bool m_IsTx3session;
-    bool m_useTcpOnTx3;
+    bool m_useTcpTransport;
     int m_systemMode;
+    int m_waitForTransportSwitch;
 
     WfdRTSPSinkClient* pRTSPSinkClient;
     int m_seq_i,m_seq_j,m_keepAliveTimeout;

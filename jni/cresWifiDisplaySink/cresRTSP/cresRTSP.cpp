@@ -868,6 +868,8 @@ void * initRTSPParser(RTSPSYSTEMINFO * sysInfo)
 
     rtspSession->rtpPort = rtpPort;
     rtspSession->isTx3session = sysInfo->isTx3;
+    rtspSession->waitForTcpSwitch = false;
+    rtspSession->preferTcpTransport = sysInfo->preferTcpTransport;
     snprintf(rtspSession->maxMiracastRate, sizeof(rtspSession->maxMiracastRate), "%d", maxMiracastRate);
     strncpy(rtspSession->preferredVidResRefStr, prefResRefStr,
             sizeof(rtspSession->preferredVidResRefStr));
@@ -1350,6 +1352,14 @@ int composeRTSPResponse(void * session,RTSPPARSINGRESULTS * requestParsingResult
       check_and_response_option("intel_friendly_name", rtspSession->friendlyName);
       check_and_response_option("intel_sink_model_name", rtspSession->modelName);
       check_and_response_option("microsoft_max_bitrate", rtspSession->maxMiracastRate);
+
+      if (check_rtsp_option(orgMsg, "crestron_tx3_protocol"))
+      {
+          // dongle support both formats - use preferred AM3K protocol and signal to dongle to also use
+          rtspSession->waitForTcpSwitch = rtspSession->preferTcpTransport;
+          snprintf(locBuff, sizeof(locBuff), rtspSession->preferTcpTransport ? "TCP" : "UDP");
+          check_and_response_option("crestron_tx3_protocol", locBuff);
+      }
 
       // /* wfd_uibc_capability */
       // if (uibc_option) {
