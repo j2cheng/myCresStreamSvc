@@ -1468,8 +1468,15 @@ public class CresStreamCtrl extends Service {
                 public void executePause(int sessId) {pauseStreamIn(sessId); };
             });
 
-            hdmiLicenseThread(this);
-            airMediaLicenseThread(this);
+            if (CrestronProductName.fromInteger(nativeGetProductTypeEnum()) != CrestronProductName.TST1080) 
+            {
+                hdmiLicenseThread(this);
+            }
+            
+            if (nativeGetIsAirMediaEnabledEnum())
+            {
+                airMediaLicenseThread(this);
+            }
 
             // Flag to TCPInterface that streaming can start
             streamingReadyLatch.countDown();
@@ -2126,7 +2133,7 @@ public class CresStreamCtrl extends Service {
                     CrestronProductName.fromInteger(nativeGetProductTypeEnum()) != CrestronProductName.DGE3200)
                 {
                     while ((new File(hdmiLicenseFilePath)).exists() == false)
-                    {   Log.i(TAG, "Wait until file exists then check");
+                    {   Log.v(TAG, "Wait until file exists then check");
                         try { Thread.sleep(1000); } catch (InterruptedException e){}//Poll every 5 seconds
                     }
 
