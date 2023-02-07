@@ -563,6 +563,11 @@ public class CresCanvas
         {
             Common.Logging.e(TAG,
                     "acquireSurface was unable to get surface from Canvas App for session: " + getSessionId(session));
+            if (response != null && response.getErrorCode() == CanvasResponse.ErrorCodes.TimedOut)
+            {
+                Common.Logging.e(TAG, "CresCanvas.acquireSurface: fatal eror timed out while acquiring surface for sessionId="+getSessionId(session));
+                mStreamCtl.RecoverTxrxService();
+            }
             return null;
         }
     }
@@ -578,7 +583,14 @@ public class CresCanvas
 			ex.printStackTrace();
 		}
 		if (response == null || !response.isSucceeded())
+		{
 			Common.Logging.e(TAG, "Canvas App failed to release surface for session: "+sessionId);
+			if (response != null && response.getErrorCode() == CanvasResponse.ErrorCodes.TimedOut)
+			{
+			    Common.Logging.e(TAG, "CresCanvas.releaseSurface: fatal eror timed out while releasing surface for sessionId="+sessionId);
+			    mStreamCtl.RecoverTxrxService();
+			}
+		}
 	}
 	
 	public class SurfaceManager {
