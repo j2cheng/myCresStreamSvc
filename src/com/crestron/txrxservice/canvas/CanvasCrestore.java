@@ -2260,7 +2260,7 @@ public class CanvasCrestore
     	// first convert the request into a sessionEvent message
     	if (request.transactions == null || request.transactions.size() == 0)
     	{
-    		response.setErrorCode(CanvasResponse.ErrorCodes.EmptyRequest);
+    		response.setErrorCode(CanvasResponse.ErrorCodes.UnsupportedAction);
     		return null;
     	}
 
@@ -2348,7 +2348,7 @@ public class CanvasCrestore
 	    		else
 	    		{
 	    			Log.w(TAG, "sourceRequestToEvent(): reference to sessionId="+sessionId+" for a session that does not exist in list of current sessions");
-	    			response.setErrorCode(CanvasResponse.ErrorCodes.InvalidSessionId);
+	    			response.setErrorCode(CanvasResponse.ErrorCodes.NoSessionExists);
 	    			return null;
 	    		}
 				continue;
@@ -2362,7 +2362,7 @@ public class CanvasCrestore
     		else
     		{
     			Log.w(TAG, "sourceRequestToEvent(): reference to sessionId="+sessionId+" for a session that does not exist in list of current sessions");
-    			response.setErrorCode(CanvasResponse.ErrorCodes.InvalidSessionId);
+    			response.setErrorCode(CanvasResponse.ErrorCodes.NoSessionExists);
     			return null;
     		}
     	}

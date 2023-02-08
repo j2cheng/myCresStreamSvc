@@ -8,10 +8,15 @@ public class CanvasResponse implements Parcelable {
         public static final int OK = 0;
         public static final int NotImplemented = -1;
         public static final int NoSourceManager = -2;
-        public static final int UnsupportedAction = -3;
-        public static final int EmptyRequest = -4;
-        public static final int InvalidSessionId = -5;
-        public static final int TimedOut = -6;
+        public static final int InternalError = -3;
+        public static final int TimedOut = -4;
+        public static final int FailedToAssignView = -5;
+        public static final int NoAssignedView = -6;
+        public static final int NoCanvasService = -7;
+        public static final int NoSessionExists = -8;
+        public static final int UnsupportedAction = -9;
+        public static final int NotReady = -10;
+        public static final int Obsolete = -11;
     }
 
     private final int content;
@@ -80,5 +85,12 @@ public class CanvasResponse implements Parcelable {
         dest.writeInt(this.content);
         dest.writeInt(this.errorCode);
         dest.writeString(this.errorMessage);
+    }
+    
+    @Override
+    public String toString() {
+        return isSucceeded()
+                ? "canvas.response.success"
+                : "canvas.response.failed  " + getErrorCode() + "  " + getErrorMessage();
     }
 }
