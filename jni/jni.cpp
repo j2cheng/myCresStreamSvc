@@ -882,6 +882,15 @@ void csio_jni_stop(int streamId)
 			CSIO_LOG(eLogLevel_error,
 					 "Unknown error occurred while waiting for stop to complete, error = %d, streamId = %d\n",
 					 result, streamId);
+	        if(product_info()->hw_platform == eHardwarePlatform_Rockchip )
+	        {
+	            // Even when error occurs on stop command should reset StartedPlay so next attempt at starting does not fail
+	            // simply because this flag is set
+	            // if recreated this will need debugging
+	            CSIO_LOG(eLogLevel_error, "resetting started play flag for streamId = %d in spite of error encountered duing stoppage\n",
+	                     result, streamId);
+	            ResetStartedPlay(streamId);
+	        }
 			csio_SendVideoPlayingStatusMessage(streamId, STREAMSTATE_STOPPED);
 		}
 	}
@@ -896,6 +905,7 @@ void gst_native_stop (JNIEnv* env, jobject thiz, jint streamId, jint stopTimeout
 		CSIO_LOG(eLogLevel_error, "Could not obtain stream pointer for stream %d, failed to set isStarted state", streamId);
 	else
 	{
+        CSIO_LOG(eLogLevel_info, "%s: invoked for streamId=%d", __FUNCTION__, streamId);
 	    if (data->isStarted)
 	    {
 	        data->isStarted = false;
@@ -6714,6 +6724,11 @@ void Wfd_setup_gst_pipeline (int id, int state, struct GST_PIPELINE_CONFIG* gst_
             }
 
             SetInPausedState(id, 0);
+            if (product_info()->hw_platform == eHardwarePlatform_Rockchip && GetStartedPlay(id))
+            {
+                CSIO_LOG(eLogLevel_warning, "%s(): - id[%d] invoke stop_streaming_cmd first - why is this already playing????",__FUNCTION__,id);
+                stop_streaming_cmd(id);
+            }
             CSIO_LOG(eLogLevel_debug, "%s(): - id[%d] invoke start_streaming_cmd,wfd_tcp_mode: %d",__FUNCTION__,id,data->wfd_tcp_mode);
             start_streaming_cmd(id);            
         }
