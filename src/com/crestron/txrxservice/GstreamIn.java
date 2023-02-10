@@ -7,12 +7,16 @@ import java.util.concurrent.TimeUnit;
 import android.util.Log;
 import android.view.Surface;
 import android.view.SurfaceHolder;
+import android.view.WindowManager;
 import android.content.Context;
 
 import com.crestron.txrxservice.CresStreamCtrl.CrestronHwPlatform;
 import com.crestron.txrxservice.CresStreamCtrl.DeviceMode;
 import com.crestron.txrxservice.CresStreamCtrl.StreamState;
 import com.crestron.airmedia.receiver.m360.ipc.AirMediaSessionStreamingState;
+
+import com.crestron.airmedia.utilities.ViewBase;
+import android.util.DisplayMetrics;
 
 public class GstreamIn implements SurfaceHolder.Callback {
 
@@ -813,5 +817,22 @@ public class GstreamIn implements SurfaceHolder.Callback {
 		}        
 		Log.i("GStreamer", "Surface for stream " + sessionId + " destroyed");		
         nativeSurfaceFinalize (sessionId);
+    }
+    
+    public String getMinStreamResolution(int percentFS)
+    {
+        int widthMin  = 0;
+        int heightMin = 0;
+        DisplayMetrics dispMetrics = ViewBase.getDisplayMetrics((WindowManager) streamCtl.getSystemService(Context.WINDOW_SERVICE));
+        if(percentFS > 0)
+        {
+            widthMin  = dispMetrics.widthPixels/percentFS;
+            heightMin = dispMetrics.heightPixels/percentFS;
+        }
+
+        String minResString = widthMin+"x"+heightMin;
+        Log.i(TAG, "getMinStreamResolution: Display [wxh] = "+dispMetrics.widthPixels+"x"+dispMetrics.heightPixels+", Minimum [wxh] = "+minResString);
+        
+        return(minResString);
     }
 }

@@ -6216,9 +6216,7 @@ JNIEXPORT void JNICALL Java_com_crestron_txrxservice_WbsStreamIn_nativeSurfaceIn
     }
 
     #ifdef BOARD_VNDK_VERSION
-CSIO_LOG(eLogLevel_debug, "JF--%s: get native window from surface - surface=%p, stream=%d", __FUNCTION__, surface, stream);
     new_native_window = cres_ANativeWindow_fromSurface(env, surface);
-CSIO_LOG(eLogLevel_debug, "JF--%s: native window from surface - new_native_window=%p, surface=%p, stream=%d", __FUNCTION__, new_native_window, surface, stream);
     #else
     new_native_window = ANativeWindow_fromSurface(env, surface);
     #endif
@@ -7264,3 +7262,51 @@ void csio_jni_trigger_idr_request(int id)
 
     CSIO_LOG(eLogLevel_debug, "%s() streamId[%d] exit", __FUNCTION__, id);
 }
+
+bool csio_jni_get_min_stream_resolution(int percentFullscale, int *min_width, int *min_height)
+{
+	*min_width = *min_height = 0;
+	JNIEnv *env = get_jni_env ();
+
+	jmethodID getMinStreamResolutionId = env->GetMethodID((jclass)gStreamIn_javaClass_id, "getMinStreamResolution", "(I)Ljava/lang/String;");
+	if (getMinStreamResolutionId == NULL)
+	{
+		CSIO_LOG(eLogLevel_error,  "%s: Could not find Java method 'getMinStreamResolution'", __FUNCTION__);
+		return false;
+	}
+
+	jstring jminRes = (jstring) env->CallObjectMethod(CresDataDB->app, getMinStreamResolutionId, (jint) percentFullscale);
+
+	if (env->ExceptionCheck ())
+	{
+		CSIO_LOG(eLogLevel_error, "%s: Failed to call Java method 'getMinStreamResolution'", __FUNCTION__);
+		env->ExceptionClear ();
+		return(false);
+	}
+
+    const char *nativeString = env->GetStringUTFChars(jminRes, NULL);
+    if (nativeString == NULL)
+    {
+        CSIO_LOG(eLogLevel_error, "%s: nativeString is NULL", __FUNCTION__);
+        return(false);
+    }
+
+    std::string minResStr(nativeString);
+
+    std::string::size_type prev_pos = 0, pos = 0;
+
+    //format = "min_widthxmin_height"
+    while((pos = minResStr.find("x", pos)) != std::string::npos)
+    {
+        std::string substring(minResStr.substr(prev_pos, pos-prev_pos));
+        *min_width = atoi((char *) substring.c_str());
+        prev_pos = ++pos;
+    }
+
+    *min_height = atoi((char *) minResStr.substr(prev_pos, pos-prev_pos).c_str());
+
+	env->ReleaseStringUTFChars(jminRes, nativeString);
+
+	return(true);
+}
+
