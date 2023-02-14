@@ -1394,7 +1394,7 @@ int composeRTSPResponse(void * session,RTSPPARSINGRESULTS * requestParsingResult
    // currently rtsp_message_serialize_common() terminates the message string
    char * raw_message = (char *)rtsp_message_get_raw(rep);
    if(raw_message)
-      RTSP_LOG(eLogLevel_debug,"raw_message: %s\n",raw_message);
+      RTSP_LOG(eLogLevel_verbose,"raw_message: %s\n",raw_message);
 
    retv = cresRTSP_internalComposeCallback(session,RTSP_MESSAGE_REPLY,raw_message,NULL,NULL,
       reply_phrase,reply_code);

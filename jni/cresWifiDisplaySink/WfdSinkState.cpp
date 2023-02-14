@@ -1791,6 +1791,12 @@ int wfdSinkStMachineClass::waitTDResponseState(csioEventQueueStruct* pEventQ)
         {
             CSIO_LOG(m_debugLevel,  "wfdSinkStMachineClass[%d]: WFD_SINK_STM_TD_RESP_RCVD_EVENT processed.\n",m_myId);
 
+            if (events == WFD_SINK_STM_TD_RESP_RCVD_EVENT)
+            {
+                if (m_IsTx3session && m_useTcpTransport)
+                    resetOnRTSPTcpConnFlg();
+            }
+
             //Note: in transition to idle, only check ON_TCP_CONN flag
             if(isOnRTSPTcpConnSet())
                 prepareForRestart();
