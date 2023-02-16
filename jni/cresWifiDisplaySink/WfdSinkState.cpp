@@ -2942,6 +2942,7 @@ void* wfdSinkStMachineThread::ThreadEntry()
                         {
                             wfdSinkStMachineClass* p = wfdSinkStMachineThread::m_wfdSinkStMachineTaskList[id];
                             bool isTx3 = (evntQPtr->reserved[1] == 1) ? true:false;
+                            p->m_keepAliveTimeout = WFD_SINK_STATETIMEOUT_DEFAULT_KEEP_ALIVE;
                             p->setMaxMiracastRate(isTx3);
                             p->setVideoResolutionDefaults();
                             p->setVideo2ResolutionDefaults(isTx3, evntQPtr->reserved[2]);
