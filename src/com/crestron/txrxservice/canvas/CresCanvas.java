@@ -172,6 +172,8 @@ public class CresCanvas
 			// Clear any existing AVF sessions if a resync
 			clearAVF();
 		}
+		// mark canvas ready for incoming cresstore sessions
+		canvasReady = true;
 		// start possible hdmi and dm sessions
 		Common.Logging.i(TAG, "canvasHasStarted(): HDMI sync update");
 		mStreamCtl.canvasHdmiSyncStateChange(false);

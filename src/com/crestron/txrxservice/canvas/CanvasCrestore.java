@@ -1937,9 +1937,16 @@ public class CanvasCrestore
 	
 	                        if(localIpAddress != null && deviceId != null && deviceName != null && deviceAddress != null && deviceType != null)
 	                        {
-	                            int rtsp_port = root.internal.tx3.airMedia.wiFiDirect.onDeviceSourceReady.rtspPort;
-	               				Common.Logging.v(TAG, "Start Tx3 WifiDirect - deviceId: "+deviceId+", deviceName: "+deviceName+", deviceType: "+deviceType+", localIpAddress: "+localIpAddress+", deviceAddress: "+deviceAddress+", rtspPort: "+rtsp_port);
-	                            mStreamCtl.startWifiDirect(localIpAddress, deviceId, deviceName, deviceType, deviceAddress, rtsp_port);
+	                            if (mCanvas.canvasReady)
+	                            {
+	                                int rtsp_port = root.internal.tx3.airMedia.wiFiDirect.onDeviceSourceReady.rtspPort;
+	                                Common.Logging.v(TAG, "Start Tx3 WifiDirect - deviceId: "+deviceId+", deviceName: "+deviceName+", deviceType: "+deviceType+", localIpAddress: "+localIpAddress+", deviceAddress: "+deviceAddress+", rtspPort: "+rtsp_port);
+	                                mStreamCtl.startWifiDirect(localIpAddress, deviceId, deviceName, deviceType, deviceAddress, rtsp_port);
+	                            }
+	                            else
+	                            {
+	                                Common.Logging.w(TAG, "ignoring onDeviceSourceReady because canvas is not ready yet !!!!");
+	                            }
 	                        }
 	                    }
 	                    
