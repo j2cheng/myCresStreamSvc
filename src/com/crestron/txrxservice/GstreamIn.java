@@ -283,6 +283,11 @@ public class GstreamIn implements SurfaceHolder.Callback {
 		streamCtl.sockTask.SendDataToAllClients(MiscUtils.stringFormat("WFD_FIREWALL_RULES%d=%d %d", streamId, rtsp_port, ts_port));
 	}
 
+    public void sendKillTcpdump()
+    {
+        streamCtl.sockTask.SendDataToAllClients(MiscUtils.stringFormat("KILL_TCPDUMP=true"));
+    }
+    
     public void sendDSVideoReady()
     {
     	Log.i(TAG, "Send DS Video Ready message to CSIO - for sending of reserved join");

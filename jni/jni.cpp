@@ -77,6 +77,7 @@ static unsigned int _unhash(unsigned int x);
 char *csio_jni_hashPin(char *pin);
 void csio_jni_post_latency(int stream,GstObject* obj);
 int get_encoded_video_rate(VideoCaps *pCaps, int *fps_num, int *fps_den);
+void csio_SendKillTcpdump();
 
 
 static Mutex gGstStopLock;//used to prevent multiple threads accessing pipeline while stop gstreamer.
@@ -893,6 +894,7 @@ void csio_jni_stop(int streamId)
 	        }
 			csio_SendVideoPlayingStatusMessage(streamId, STREAMSTATE_STOPPED);
 		}
+        csio_SendKillTcpdump();
 	}
 }
 
@@ -3147,6 +3149,21 @@ void csio_SendVideoSourceParams(unsigned int source, unsigned int width, unsigne
 		CSIO_LOG(eLogLevel_error, "Failed to call Java method 'sendVideoSourceParams'");
 		env->ExceptionClear ();
 	}
+}
+
+void csio_SendKillTcpdump()
+{
+    JNIEnv *env = get_jni_env ();
+
+    CSIO_LOG(eLogLevel_debug, "%s: kill tcpdump", __FUNCTION__);
+    jmethodID sendKillTcpdump = env->GetMethodID((jclass)gStreamIn_javaClass_id, "sendKillTcpdump", "()V");
+    if (sendKillTcpdump == NULL) return;
+
+    env->CallVoidMethod(CresDataDB->app, sendKillTcpdump);
+    if (env->ExceptionCheck ()) {
+        CSIO_LOG(eLogLevel_error, "Failed to call Java method 'sendKillTcpdump'");
+        env->ExceptionClear ();
+    }
 }
 
 void csio_SendDSVideoReady()
