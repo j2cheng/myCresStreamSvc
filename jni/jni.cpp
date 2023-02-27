@@ -4179,6 +4179,14 @@ int csio_jni_CreatePipeline(void *obj,GstElement **pipeline, GstElement **source
 	    }
         case ePROTOCOL_TCPSERVER_RCV:
         {
+            //Note: 8-30-2021 pass this parameter to CStreamer class,
+            //      so csio_CheckForVideo() will work.
+            if(data->wfd_start && obj)
+            {
+                data->pStreamer = obj;
+                ((CStreamer*)data->pStreamer)->m_wfdMonitorVideo = true;
+            }//else
+
             data->element_zero = gst_element_factory_make("rtpbin", NULL);
             gst_bin_add(GST_BIN(data->pipeline), data->element_zero);
             CSIO_LOG(eLogLevel_debug, "tcpserversrc: created rtpbin[0x%x]\n", data->element_zero);
