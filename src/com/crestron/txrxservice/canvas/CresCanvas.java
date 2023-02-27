@@ -232,6 +232,8 @@ public class CresCanvas
 		Common.Logging.i(TAG, "*********************** handleReceiverDisconnected ***********************");
 		// Stop all sessions
 		clear(false);
+		// Mark canvas as not ready until it comes up again
+		canvasReady = false;
 		// Restart of HDMI/DM will be handled when service reconnects by canvasHasStarted()
 		Common.Logging.i(TAG, "handleReceiverDisconnected(): exit");
 	}
