@@ -77,7 +77,6 @@ static unsigned int _unhash(unsigned int x);
 char *csio_jni_hashPin(char *pin);
 void csio_jni_post_latency(int stream,GstObject* obj);
 int get_encoded_video_rate(VideoCaps *pCaps, int *fps_num, int *fps_den);
-void csio_SendKillTcpdump();
 
 
 static Mutex gGstStopLock;//used to prevent multiple threads accessing pipeline while stop gstreamer.
@@ -894,7 +893,6 @@ void csio_jni_stop(int streamId)
 	        }
 			csio_SendVideoPlayingStatusMessage(streamId, STREAMSTATE_STOPPED);
 		}
-        csio_SendKillTcpdump();
 	}
 }
 
@@ -3151,19 +3149,40 @@ void csio_SendVideoSourceParams(unsigned int source, unsigned int width, unsigne
 	}
 }
 
-void csio_SendKillTcpdump()
+void csio_jni_sendStopCapture()
 {
     JNIEnv *env = get_jni_env ();
 
-    CSIO_LOG(eLogLevel_debug, "%s: kill tcpdump", __FUNCTION__);
-    jmethodID sendKillTcpdump = env->GetMethodID((jclass)gStreamIn_javaClass_id, "sendKillTcpdump", "()V");
-    if (sendKillTcpdump == NULL) return;
+    CSIO_LOG(eLogLevel_debug, "%s: stop tcpdump capture", __FUNCTION__);
+    jmethodID sendStopCapture = env->GetMethodID((jclass)gStreamIn_javaClass_id, "sendStopCapture", "()V");
+    if (sendStopCapture == NULL) return;
 
-    env->CallVoidMethod(CresDataDB->app, sendKillTcpdump);
+    env->CallVoidMethod(CresDataDB->app, sendStopCapture);
     if (env->ExceptionCheck ()) {
-        CSIO_LOG(eLogLevel_error, "Failed to call Java method 'sendKillTcpdump'");
+        CSIO_LOG(eLogLevel_error, "Failed to call Java method 'sendStopCapture'");
         env->ExceptionClear ();
     }
+}
+
+void csio_jni_sendLostVideoIntent(int id)
+{
+    JNIEnv *env = get_jni_env ();
+
+    CSIO_LOG(eLogLevel_debug, "%s: entered", __FUNCTION__);
+    jmethodID sendLostVideoIntent = env->GetMethodID((jclass)gStreamIn_javaClass_id, "sendLostVideoIntent", "()V");
+    if (sendLostVideoIntent == NULL) return;
+
+    env->CallVoidMethod(CresDataDB->app, sendLostVideoIntent);
+    if (env->ExceptionCheck ()) {
+        CSIO_LOG(eLogLevel_error, "Failed to call Java method 'sendLostVideoIntent'");
+        env->ExceptionClear ();
+    }
+}
+
+void csio_jni_stopCapture(int id)
+{
+    csio_jni_sendStopCapture();
+    csio_jni_sendLostVideoIntent(id);
 }
 
 void csio_SendDSVideoReady()
@@ -5507,6 +5526,7 @@ bool csio_jni_processingGstReqQuit(int id)
         product_info()->hw_platform == eHardwarePlatform_Rockchip)
     {
         WfdSinkProjSendGstLostVideoEvt(id);
+        csio_jni_stopCapture(id);
         return true;
     }
     else

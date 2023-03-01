@@ -911,5 +911,9 @@ public class CresCanvas
 
             //mSessionMgr.disconnectAllSessions(new Originator(RequestOrigin.Error));
         }
+        else if (args[0].equalsIgnoreCase("sendLostVideo"))
+        {   
+            mStreamCtl.sendLostVideoIntent();
+        }
 	}
 }

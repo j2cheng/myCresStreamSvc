@@ -6944,6 +6944,15 @@ public class CresStreamCtrl extends Service {
         }
     }
     
+    public void sendLostVideoIntent()
+    {
+        final Context ctx = (Context)this;
+        Intent i = new Intent();
+        i.setAction("com.crestron.irissvc.actions.LostVideo");
+        //i.putExtra("deviceId", "xxxxxxxx");
+        //ctx.sendBroadcast(i);
+    }
+    
     public void checkFileExistsElseCreate(String filePath)
     {
         File file = new File (filePath);

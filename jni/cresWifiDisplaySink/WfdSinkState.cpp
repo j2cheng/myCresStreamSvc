@@ -150,6 +150,7 @@ int  wfdSinkStMachineThread::m_wfdSinkStMachineTaskListCnt = 0;
 #define MIRACAST_ON_TCP_FILEPATH "/data/CresStreamSvc/useMiracastOnTcpForTx3"
 
 extern int csio_jni_getMaxMiracastFps();
+extern int csio_jni_stopCapture(int id);
 
 static int read_int_from_file(const char *filePath, int defaultValue)
 {
@@ -1891,6 +1892,8 @@ int wfdSinkStMachineClass::monitorKeepAliveState(csioEventQueueStruct* pEventQ)
 
                     nextState = WFD_SINK_STATES_IDLE;
                 }
+
+                csio_jni_stopCapture(m_myId);
             }//else
 
             break;

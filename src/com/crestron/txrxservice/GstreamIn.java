@@ -283,9 +283,14 @@ public class GstreamIn implements SurfaceHolder.Callback {
 		streamCtl.sockTask.SendDataToAllClients(MiscUtils.stringFormat("WFD_FIREWALL_RULES%d=%d %d", streamId, rtsp_port, ts_port));
 	}
 
-    public void sendKillTcpdump()
+    public void sendStopCapture()
     {
-        streamCtl.sockTask.SendDataToAllClients(MiscUtils.stringFormat("KILL_TCPDUMP=true"));
+        streamCtl.sockTask.SendDataToAllClients(MiscUtils.stringFormat("STOPCAPTURE=true"));
+    }
+    
+    public void sendLostVideoIntent()
+    {
+        streamCtl.sendLostVideoIntent();
     }
     
     public void sendDSVideoReady()
