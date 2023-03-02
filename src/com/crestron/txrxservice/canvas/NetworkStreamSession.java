@@ -180,6 +180,17 @@ public class NetworkStreamSession extends Session
                 Common.Logging.v(TAG, "doPlay():  calling setSessionInitiation: " + sessInitiation);
                 mStreamCtl.setSessionInitiation(sessInitiation,streamId);	
                 
+                // if ByTransmitter and SESSINIT_MPEG2TSUDP get TS port from url
+                if (sessInitiation == 1 && transPortMode == 2)
+                {
+                    int port = getTsPortFromUrl(tokens[0]);
+                    if (port >= 0)
+                    {
+                        Common.Logging.v(TAG, "doPlay():  set TS port: " + port);
+                        mStreamCtl.setTSPort(port, streamId);
+                    }
+                }
+                
                 //if multiresolution set stream resolution index
                 if (isMultiResolution)
                 {
@@ -367,4 +378,33 @@ public class NetworkStreamSession extends Session
 
         return sessInitiation;
     } 
+    
+    public int getTsPortFromUrl(String url)
+    {
+        int port = -1;
+        
+        int idx = url.lastIndexOf(':');
+        if (idx != -1)
+        {
+            String portStr = url.substring(idx+1);
+            port = Integer.parseInt(portStr);
+        }
+        if (port < 0 || port > 65535)
+        {
+            Log.e(TAG, "could not extract TS port from URL: " + url);
+            port = -1;
+        }
+        return port;
+    }
+    
+    // Returns last index of x if
+    // it is present Else returns -1.
+    static int findLastIndex(String str, Character x)
+    {
+        int index = -1;
+        for (int i = 0; i < str.length(); i++)
+            if (str.charAt(i) == x)
+                index = i;
+        return index;
+    }
 }
