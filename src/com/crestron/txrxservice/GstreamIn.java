@@ -285,12 +285,15 @@ public class GstreamIn implements SurfaceHolder.Callback {
 
     public void sendStopCapture()
     {
-        streamCtl.sockTask.SendDataToAllClients(MiscUtils.stringFormat("STOPCAPTURE=true"));
+        if (CresStreamCtrl.isAM3K)
+            streamCtl.sockTask.SendDataToAllClients(MiscUtils.stringFormat("STOPCAPTURE=true"));
     }
     
     public void sendLostVideoIntent()
     {
-        streamCtl.sendLostVideoIntent();
+        // intended for IrisService app and GS
+        if (CresStreamCtrl.isAM3K)
+            streamCtl.sendLostVideoIntent();
     }
     
     public void sendDSVideoReady()
