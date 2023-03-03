@@ -6950,7 +6950,7 @@ public class CresStreamCtrl extends Service {
         Intent i = new Intent();
         i.setAction("com.crestron.irissvc.actions.LostVideo");
         //i.putExtra("deviceId", "xxxxxxxx");
-        //ctx.sendBroadcast(i);
+        ctx.sendBroadcast(i);
     }
     
     public void checkFileExistsElseCreate(String filePath)
