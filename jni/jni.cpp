@@ -724,6 +724,59 @@ static void closeEventfdLeak()
 	}
 }
 
+void csio_jni_precleanup(int streamId)
+{
+    CSIO_LOG(eLogLevel_debug, "csio_jni_precleanup");
+
+    CREGSTREAM * data = GetStreamFromCustomData(CresDataDB, streamId);
+
+    if (!data)
+    {
+        CSIO_LOG(eLogLevel_error, "Could not obtain stream pointer for stream %d", streamId);
+        return;
+    }
+
+    GstElement *elementList[] =
+    {
+        data->element_zero,
+        data->element_video_front_end_queue,
+        data->element_video_decoder_queue,
+        data->element_fake_dec,
+        data->amcvid_dec,
+        data->element_valve_v,
+        data->video_sink,
+        data->element_audio_front_end_queue,
+        data->element_audio_decoder_queue,
+        data->element_valve_a,
+        data->element_audiorate,
+        data->audio_sink
+    };
+
+    //put key resources in a safe state (starting from sink-->src)
+    if(data->pipeline)
+    {
+        GstStateChangeReturn rtn;
+        GstState CurState, PendingState;
+        int numElements = sizeof(elementList)/sizeof(GstElement *);
+
+        for( int i = numElements-1; i >= 1; i-- )   //do all except source element
+        {
+            if(elementList[i])
+            {
+                if( elementList[i]->current_state > GST_STATE_NULL )
+                {
+                	CSIO_LOG(eLogLevel_debug, "csio_jni_precleanup - element[%d] current state = %d", i, elementList[i]->current_state);
+                    rtn = csio_element_set_state( elementList[i], GST_STATE_NULL );
+                    CSIO_LOG(eLogLevel_debug,  "csio_jni_precleanup: element %d: return code = %d, current state = %d, next state = %d, pending state = %d\n",
+                    i, rtn, elementList[i]->current_state, elementList[i]->next_state, elementList[i]->pending_state );
+                }
+             }
+        }
+    }
+
+    CSIO_LOG(eLogLevel_debug,  "csio_jni_precleanup exit" );
+}
+
 void csio_jni_cleanup (int iStreamId)
 {
     int i;
