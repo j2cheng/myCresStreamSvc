@@ -1770,11 +1770,19 @@ public class CanvasCrestore
         			        }
         					// Now process response
         					Common.Logging.i(TAG,"----- processSessionResponse job to scheduler: "+gson.toJson(sessionResponse));
-        					sessionResponseScheduler.queue(new Runnable() { 
-        						@Override public void run() { 
-        							processSessionResponse(sessionResponse); 
-        						}; 
-        					});
+        					int pendingTasks = sessionResponseScheduler.getPendingTasksCount();
+        					final int MaxPendingTasks = 32;
+        					if (pendingTasks > MaxPendingTasks)
+        					{
+        					    Log.e(TAG, "**** sessionResponse has too many pending tasks "+pendingTasks+"  requesting restart of txrxservice ****");
+        		                mStreamCtl.RecoverTxrxService();
+        					} else {
+        					    sessionResponseScheduler.queue(new Runnable() { 
+        					        @Override public void run() { 
+        					            processSessionResponse(sessionResponse); 
+        					        }; 
+        					    });
+        					}
         				}
         				else if (!CresCanvas.useSimulatedAVF)
         				{

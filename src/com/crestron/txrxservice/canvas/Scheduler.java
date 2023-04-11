@@ -67,6 +67,11 @@ public class Scheduler extends ThreadPoolExecutor
     	return Thread.currentThread().getId() == ownThreadId;
     }
     
+    public int getPendingTasksCount()
+    {
+        return getQueue().size();
+    }
+    
     // This is a synchronous method and will block calling thread to completion or timeout
 	boolean queue(TimeSpan timeout, Runnable task) {
 		Common.Logging.i(TAG, "task submitted with timeout= " + timeout.toString());
