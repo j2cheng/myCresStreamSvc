@@ -2082,6 +2082,7 @@ public class CresStreamCtrl extends Service {
             	{
                 	golden = MiscUtils.readStringFromDisk(goldenBootFilePath).equals("1");
             	}
+                Log.i(TAG, "airmedia golden boot flag is "+golden);
 
             	// Special condition during production, cannot start AM since it interferes with production application
             	boolean dontStart=false;
@@ -2090,6 +2091,7 @@ public class CresStreamCtrl extends Service {
                 {
                     dontStart = MiscUtils.readStringFromDisk(dontStartAirMediaFilePath).equals("1");
                 }
+                Log.i(TAG, "airmedia dontStart flag is "+dontStart);
             	
                 //Note: 4-14-2021, need to start AirMediaCanvas even not licensed
                 //      11-17-2022: no airmedia for DGE3200
@@ -2117,6 +2119,8 @@ public class CresStreamCtrl extends Service {
 
                     	mCanvas.startAirMediaCanvas();
                     }
+                } else {
+                    Log.i(TAG, "AirMedia license thread not starting airmedia [golden="+golden+" dontStart="+dontStart+"]");
                 }
             }
         }).start();
