@@ -2120,7 +2120,7 @@ public class CresStreamCtrl extends Service {
                     	mCanvas.startAirMediaCanvas();
                     }
                 } else {
-                    Log.i(TAG, "AirMedia license thread not starting airmedia [golden="+golden+" dontStart="+dontStart+"]");
+                    Log.w(TAG, "AirMedia license thread not starting airmedia [golden="+golden+" dontStart="+dontStart+"]");
                 }
             }
         }).start();
