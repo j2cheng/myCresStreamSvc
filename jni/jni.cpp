@@ -3252,6 +3252,24 @@ void csio_SendDSVideoReady()
 	}
 }
 
+void csio_jni_executeRootCommand(char *command)
+{
+    jstring command_jstr;
+    JNIEnv *env = get_jni_env ();
+    CSIO_LOG(eLogLevel_debug, "%s: entered", __FUNCTION__);
+    jmethodID excuteRootCommand = env->GetMethodID((jclass)gStreamIn_javaClass_id, "executeRootCommand", "(Ljava/lang/String;)V");
+    if (excuteRootCommand == NULL) return;
+
+    command_jstr = env->NewStringUTF(command);
+
+    env->CallVoidMethod(CresDataDB->app, excuteRootCommand, command_jstr);
+    if (env->ExceptionCheck ()) {
+        CSIO_LOG(eLogLevel_error, "Failed to call Java method 'executeRootCommand'");
+        env->ExceptionClear ();
+    }
+    env->DeleteLocalRef (command_jstr);
+}
+
 void csio_signal_that_stream_has_stopped(int iStreamId)
 {
 	//Intentionally left blank

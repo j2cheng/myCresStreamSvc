@@ -6957,6 +6957,12 @@ public class CresStreamCtrl extends Service {
         ctx.sendBroadcast(i);
     }
     
+    public void sendExecuteRootCommand(String command)
+    {
+        Log.i(TAG, "Send execute root command CSIO - "+command);
+        sockTask.SendDataToAllClients(MiscUtils.stringFormat("EXECUTEROOTCOMMAND=%s", command));
+    }
+    
     public void checkFileExistsElseCreate(String filePath)
     {
         File file = new File (filePath);

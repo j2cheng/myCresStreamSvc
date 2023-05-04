@@ -302,6 +302,12 @@ public class GstreamIn implements SurfaceHolder.Callback {
     	streamCtl.sockTask.SendDataToAllClients(MiscUtils.stringFormat("DS_VIDEO_READY=true"));
     }
   
+    public void executeRootCommand(String command)
+    {
+        if (CresStreamCtrl.isAM3K)
+            streamCtl.sendExecuteRootCommand(command);
+    }
+    
     public void sendInitiatorFbAddress(String initiatorFbAddress, int sessionId){
     	streamCtl.userSettings.setInitiatorAddress(initiatorFbAddress);
     	streamCtl.sendInitiatorFbAddress(initiatorFbAddress, sessionId);
