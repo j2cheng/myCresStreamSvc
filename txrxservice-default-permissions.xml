@@ -4,5 +4,6 @@
         <permission name="android.permission.READ_EXTERNAL_STORAGE" fixed="false"/>
         <permission name="android.permission.WRITE_EXTERNAL_STORAGE" fixed="false"/>
         <permission name="android.permission.ACCESS_COARSE_LOCATION" fixed="false"/>
+        <permission name="android.permission.WRITE_SECURE_SETTINGS" fixed="false" />
     </exception>
 </exceptions>

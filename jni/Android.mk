@@ -4,7 +4,7 @@ LOCAL_PATH := $(call my-dir)
 # /system/lib
 ########################
 include $(CLEAR_VARS)
-ifeq ($(TARGET_PRODUCT),$(filter $(TARGET_PRODUCT),msm8953_64 am3x00_box lahaina am62x evk_8mm))
+ifeq ($(TARGET_PRODUCT),$(filter $(TARGET_PRODUCT),msm8953_64 am3x00_box lahaina am62x evk_8mm kona qssi))
 LOCAL_MULTILIB := 32
 LOCAL_MODULE_PATH  := $(TARGET_OUT_VENDOR)/lib/
 endif
@@ -25,7 +25,7 @@ endif
 ifneq ($(TARGET_PRODUCT),$(filter $(TARGET_PRODUCT),am62x evk_8mm))
 
 include $(CLEAR_VARS)
-ifeq ($(TARGET_PRODUCT),$(filter $(TARGET_PRODUCT),msm8953_64 am3x00_box lahaina am62x evk_8mm))
+ifeq ($(TARGET_PRODUCT),$(filter $(TARGET_PRODUCT),msm8953_64 am3x00_box lahaina am62x evk_8mm kona qssi))
 LOCAL_MULTILIB := 32
 LOCAL_MODULE_PATH  := $(TARGET_OUT_VENDOR)/lib/
 
@@ -78,7 +78,7 @@ LOCAL_SRC_FILES := \
     $(CSIO_ROOT)/cresNextDef.cpp \
     $(CSIO_ROOT)/CSIOCommon.cpp \
     $(CSIO_ROOT)/csioCommBase.cpp
-	
+
 LOCAL_SRC_FILES +=\
 	ms_mice_sink/ms-mice-sink-service.cpp \
 	ms_mice_sink/ms-mice-messages.cpp \
@@ -132,14 +132,14 @@ endif
 #LOCAL_CFLAGS += -DMULTI_STREAM
 
 # tinyalsa needed on am3x00 for wireless conferencing RTSP server
-ifeq ($(TARGET_PRODUCT),$(filter $(TARGET_PRODUCT),am3x00_box))
+ifeq ($(TARGET_PRODUCT),$(filter $(TARGET_PRODUCT),am3x00_box kona qssi))
 LOCAL_CFLAGS += -DHAS_TINYALSA -DHAS_V4L2
 LOCAL_SHARED_LIBRARIES += libtinyalsa
 endif
 
 # Crestron - why do I have to do this?
 #LOCAL_LDLIBS := -llog -landroid
-#LOCAL_LDFLAGS := -llog -landroid 
+#LOCAL_LDFLAGS := -llog -landroid
 ### Crestron added - why do I need to do this?
 LOCAL_CFLAGS +=\
 	-I$(CPP_INC_PATH) \
@@ -175,7 +175,7 @@ ifeq ($(shell test $(PLATFORM_SDK_VERSION) -lt 23 && echo PreMarshmallow),PreMar
 	LOCAL_CFLAGS += -I$(STL_INC_PATH)
 endif
 
-ifeq ($(TARGET_PRODUCT),$(filter $(TARGET_PRODUCT),yushan_one msm8953_64 am3x00_box lahaina am62x evk_8mm))
+ifeq ($(TARGET_PRODUCT),$(filter $(TARGET_PRODUCT),yushan_one msm8953_64 am3x00_box lahaina am62x evk_8mm kona qssi))
 LOCAL_CFLAGS += -DBIONIC_HAS_STPCPY
 LOCAL_CFLAGS += -Wno-unused-parameter
 endif
@@ -188,7 +188,7 @@ ifeq ($(shell test $(PLATFORM_SDK_VERSION) -ge 29 && echo Android10),Android10)
 LOCAL_CFLAGS += -DCRESTRON_ANDROID_10
 endif
 
-ifeq ($(TARGET_PRODUCT),$(filter $(TARGET_PRODUCT),am3x00_box))
+ifeq ($(TARGET_PRODUCT),$(filter $(TARGET_PRODUCT),am3x00_box kona qssi))
 LOCAL_CFLAGS += -DMAX_STREAMS_AM3X00 -DAM3X00
 endif
 
@@ -239,7 +239,7 @@ include $(BUILD_SHARED_LIBRARY)
 
 ### library for CresStreamCtrl jni functions
 include $(CLEAR_VARS)
-ifeq ($(TARGET_PRODUCT),$(filter $(TARGET_PRODUCT),msm8953_64 am3x00_box lahaina am62x evk_8mm))
+ifeq ($(TARGET_PRODUCT),$(filter $(TARGET_PRODUCT),msm8953_64 am3x00_box lahaina am62x evk_8mm kona qssi))
 LOCAL_MULTILIB := 32
 LOCAL_MODULE_PATH  := $(TARGET_OUT_VENDOR)/lib/
 endif
@@ -269,7 +269,7 @@ LOCAL_CFLAGS +=\
 ifeq ($(shell test $(PLATFORM_SDK_VERSION) -lt 23 && echo PreMarshmallow),PreMarshmallow)
 	LOCAL_CFLAGS += -I$(STL_INC_PATH)
 endif
-	
+
 #	-I$(CPP_INC_PATH) \
 #	-I$(COMMON_INC_PATH) \
 #	-I$(STL_INC_PATH) \
@@ -284,23 +284,23 @@ LOCAL_CFLAGS +=\
 	-I$(CSIO_INCLUDE_ROOT)/str
 endif
 # OMAP5 #
-ifeq ($(TARGET_PRODUCT),$(filter $(TARGET_PRODUCT),full_omap5panda)) 
+ifeq ($(TARGET_PRODUCT),$(filter $(TARGET_PRODUCT),full_omap5panda))
 LOCAL_CFLAGS +=\
-	-I$(CSIO_INCLUDE_ROOT)/txrx 
+	-I$(CSIO_INCLUDE_ROOT)/txrx
 endif
 # AM Logic #
 # For now just use the txrx code.  Move this out if needed
-ifeq ($(TARGET_PRODUCT),$(filter $(TARGET_PRODUCT),yushan_one msm8953_64 am3x00_box lahaina am62x evk_8mm))
+ifeq ($(TARGET_PRODUCT),$(filter $(TARGET_PRODUCT),yushan_one msm8953_64 am3x00_box lahaina am62x evk_8mm kona qssi))
 LOCAL_CFLAGS +=\
-	-I$(CSIO_INCLUDE_ROOT)/txrx 
-endif	
+	-I$(CSIO_INCLUDE_ROOT)/txrx
+endif
 
 # For AM3xx00 only
-ifeq ($(TARGET_PRODUCT),$(filter $(TARGET_PRODUCT),am3x00_box))
+ifeq ($(TARGET_PRODUCT),$(filter $(TARGET_PRODUCT),am3x00_box kona qssi))
 LOCAL_CFLAGS +=\
 	-DAM3X00
 endif
-	
+
 ifdef BOARD_VNDK_VERSION
 #LOCAL_VENDOR_MODULE := true
 LOCAL_CFLAGS +=\
