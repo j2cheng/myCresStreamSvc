@@ -3016,7 +3016,13 @@ class WirelessConferencingPeripheralVolumeCommand extends CrestronCommand {
 	}	
         @Override
 	public void execute() {
-		ctrl.airMediaWCPeripheralVolume(Integer.valueOf(msg));
+        int vol = 0;
+        try {
+            vol = Integer.valueOf(msg);
+        } catch (Exception ex) {
+            ex.printStackTrace();
+        }
+		ctrl.airMediaWCPeripheralVolume(vol);
 	}
 	public String getFeedbackMsg() {
 		return msg;
