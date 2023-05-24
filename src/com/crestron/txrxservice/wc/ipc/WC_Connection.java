@@ -5,6 +5,7 @@ import java.util.List;
 
 import android.os.Parcel;
 import android.os.Parcelable;
+import android.util.Log;
 
 public class WC_Connection implements Parcelable {
     private final int contents;
@@ -72,7 +73,21 @@ public class WC_Connection implements Parcelable {
         return "\tsessionId="+sessionId+"\n\tURL="+((urlList!=null)?urlList:"null")+"\n\tCertificate="+((certificate==null)?"null":certificate.length());
     }
 
-    public String toStringMaskURL() {
-        return "\tsessionId="+sessionId+"\n\tURL= *Masked*"+"\n\tCertificate="+((certificate==null)?"null":certificate.length());
+    public String toStringSanitizedURL() {
+        return "\tsessionId="+sessionId+"\n\tURL= "+sanitize_urls(urlList)+"\n\tCertificate="+((certificate==null)?"null":certificate.length());
+    }
+    
+    public String sanitize_urls(List<String> urlList)
+    {
+        List<String> sanitized_urls= new ArrayList<String>(urlList.size());
+        
+        for (int i=0; i < urlList.size(); i++)
+        {
+            String url = urlList.get(i);
+            String sanitized_url = url.replaceAll("//.*@", "//********:********@");
+            sanitized_urls.add(i, sanitized_url);
+        }
+        
+        return sanitized_urls.toString();
     }
 }
