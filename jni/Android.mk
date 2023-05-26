@@ -104,12 +104,23 @@ SSL_INC_PATH := $(GSTREAMER_ROOT_ANDROID)/include
 endif
 
 # Crestron - name was different
-#LOCAL_SHARED_LIBRARIES := gstreamer_android
 ifdef BOARD_VNDK_VERSION
-LOCAL_SHARED_LIBRARIES := libgstreamer_android liblog libnativewindow libgui_vendor libutils libbinder
+    LOCAL_VENDOR_MODULE := true
+    LOCAL_SHARED_LIBRARIES := libgstreamer_android liblog libnativewindow libgui_vendor libutils libbinder
+
+    ifeq ($(TARGET_PRODUCT),$(filter $(TARGET_PRODUCT),kona qssi))
+        LOCAL_SHARED_LIBRARIES += android.hardware.graphics.allocator@2.0
+        LOCAL_SHARED_LIBRARIES += android.hardware.graphics.allocator@3.0
+        LOCAL_SHARED_LIBRARIES += android.hardware.graphics.bufferqueue@1.0
+        LOCAL_SHARED_LIBRARIES += android.hardware.graphics.bufferqueue@2.0
+        LOCAL_SHARED_LIBRARIES += android.hardware.media@1.0
+        LOCAL_SHARED_LIBRARIES += android.hidl.token@1.0
+        LOCAL_SHARED_LIBRARIES += android.hidl.token@1.0-utils
+    endif
 else
-LOCAL_SHARED_LIBRARIES := libgstreamer_android liblog libandroid
+    LOCAL_SHARED_LIBRARIES := libgstreamer_android liblog libandroid
 endif
+
 LOCAL_SHARED_LIBRARIES += libproductName
 LOCAL_SHARED_LIBRARIES += libLinuxUtil
 LOCAL_SHARED_LIBRARIES += libCresSocketHandler
@@ -133,8 +144,8 @@ endif
 
 # tinyalsa needed on am3x00 for wireless conferencing RTSP server
 ifeq ($(TARGET_PRODUCT),$(filter $(TARGET_PRODUCT),am3x00_box kona qssi))
-LOCAL_CFLAGS += -DHAS_TINYALSA -DHAS_V4L2
-LOCAL_SHARED_LIBRARIES += libtinyalsa
+    LOCAL_CFLAGS += -DHAS_TINYALSA -DHAS_V4L2
+    LOCAL_SHARED_LIBRARIES += libtinyalsa
 endif
 
 # Crestron - why do I have to do this?
@@ -302,7 +313,7 @@ LOCAL_CFLAGS +=\
 endif
 
 ifdef BOARD_VNDK_VERSION
-#LOCAL_VENDOR_MODULE := true
+LOCAL_VENDOR_MODULE := true
 LOCAL_CFLAGS +=\
 	-I$(CRESTORN_ROOT)frameworks/native/libs/nativewindow/include \
 	-I$(CRESTORN_ROOT)frameworks/native/include \
