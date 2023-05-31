@@ -471,7 +471,8 @@ public class GstreamOut {
             {
                 newUrl.append(url.replace("0.0.0.0", streamCtl.userSettings.getDeviceIp()));
             }
-            if (adapters.contains("wlan0") && streamCtl.isValidIpAddress(streamCtl.userSettings.getWifiIp()))
+            if ((adapters.contains("wlan0") || streamCtl.userSettings.getAirMediaMiracastEnable())
+                    && streamCtl.isValidIpAddress(streamCtl.userSettings.getWifiIp()))
             {
                 if (newUrl.length() != 0)
                     newUrl.append(",");
