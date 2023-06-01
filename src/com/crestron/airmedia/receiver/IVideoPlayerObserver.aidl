@@ -22,4 +22,6 @@ interface IVideoPlayerObserver {
     void onInfoChanged(in long id, in AirMediaPlatforms platform, in String os, in String version);
     
     void onAudioMuteChanged(in long id, in boolean mute);
+    
+    void onTx3WcStateChanged(in long id, in boolean wcStarted);
 }

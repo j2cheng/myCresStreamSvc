@@ -84,6 +84,7 @@ public class WC_Service {
     AtomicBoolean inUse = new AtomicBoolean(false);
     AtomicBoolean closeSessionInProgress = new AtomicBoolean(false);
     final WC_UsbDevices mUsbEmptyDevices = new WC_UsbDevices(null, null, null);
+    String mActiveTx3DeviceId = null;
 
     //run a monitor thread to see if any client has connected after we have started the WC open session
     private final Runnable waitForClientToConnectedRunnable = new Runnable() {
@@ -327,6 +328,17 @@ public class WC_Service {
     		mStatus.isServerStarted=true;
     		mWcCresstoreStatus.reportWCDeviceStatus(null,null,null,null,WC_CONF_STATUS_IN_USE);
     		onStatusChanged();
+    		// if this was started by TX-3 notify wifivideoplayer so canvas can be informed that session is using peripherals
+    		if (mStatus.nickname != null && mStatus.nickname.startsWith("Iris"))
+    		{
+    		    String deviceId = mStatus.nickname.replaceFirst("IrisTx3-", "");
+    		    if (mStreamCtrl != null && mStreamCtrl.wifidVideoPlayer != null)
+    		    {
+    		        Log.i(TAG, "WC started by TX3 deviceId="+deviceId);
+    		        mActiveTx3DeviceId = deviceId;
+    		        mStreamCtrl.wifidVideoPlayer.onTx3WcChanged(mActiveTx3DeviceId, true);
+    		    }
+    		}
     	}
     }
 
@@ -504,6 +516,17 @@ public class WC_Service {
 
             mWcCresstoreStatus.reportWCInUseStatus(mSessionFlags, false);
             mSessionFlags = WC_SessionFlags.None;
+
+            // if this was started by TX-3 notify wifivideoplayer so canvas can be informed that session is no longer using peripherals
+            if (mActiveTx3DeviceId != null)
+            {
+                if (mStreamCtrl != null && mStreamCtrl.wifidVideoPlayer != null)
+                {
+                    Log.i(TAG, "_closeSession(): WC stopped for session started by TX3 deviceId="+mActiveTx3DeviceId);
+                    mStreamCtrl.wifidVideoPlayer.onTx3WcChanged(mActiveTx3DeviceId, false);
+                }
+                mActiveTx3DeviceId = null;
+            }
 
             // check if any previous monitor thread is running, if yes stop it.
             if( mWaitForClientToConnectThread != null && 

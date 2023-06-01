@@ -202,6 +202,18 @@ public class WifidVideoPlayer {
         	}
         }
         
+        public void onTx3WcStateChanged(long id, boolean value)
+        {
+            for (IVideoPlayerObserver observer : observers()) {
+                try {
+                    observer.onTx3WcStateChanged(id, value);
+                } catch (RemoteException e) {
+                    Common.Logging.e(TAG, "videoplayer.observer.onTx3WcStateChanged  id= " + id + "  wcStarted= " + value + "  EXCEPTION  " + e + "  " + Log.getStackTraceString(e));
+                    remove(observer);
+                }
+            }
+        }
+        
         ////////////////////////////////////////////////////////////////////////////////////////////////
         /// METHODS
         ////////////////////////////////////////////////////////////////////////////////////////////////
@@ -548,6 +560,21 @@ public class WifidVideoPlayer {
         }
         
         return(isTx3);
+    }
+    
+    // inform canvas that TX3 session with this deviceId has started/stopped WC
+    public void onTx3WcChanged(String deviceId, boolean wcStarted)
+    {
+        Common.Logging.i(TAG, "VideoPlayer.onTx3WcChanged  deviceId="+deviceId+" wcStarted="+wcStarted);
+        long sessionId =  deviceId2SessionId(deviceId);
+        
+        if (sessionId != INVALID_SESSION_ID)
+        {
+            Common.Logging.i(TAG, "VideoPlayer.onTx3WcChanged  deviceId="+deviceId+" wcStarted="+wcStarted);
+            service_.onTx3WcStateChanged(sessionId, wcStarted);
+        } else {
+            Common.Logging.w(TAG, "VideoPlayer.onTx3WcChanged  deviceId="+deviceId+" does not correspond to a valid sessionId");
+        }
     }
     
     public void audioMuteChanged(int streamId, boolean mute)
