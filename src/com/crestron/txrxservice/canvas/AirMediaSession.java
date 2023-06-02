@@ -120,6 +120,14 @@ public class AirMediaSession extends Session
 		{
 			Common.Logging.i(TAG, this+" stop request discarded - already in "+state+" state");
 			done = true;
+		} 
+		else if (r.equalsIgnoreCase("Disconnect") && alreadyDisconnected.get())
+		{
+		    if (isAlreadyRemoved())
+		    {
+		        Common.Logging.i(TAG, this+" disconnect request discarded - session is already disconnected");
+		        done = true;
+		    }
 		}
 		if (!done)
 		{
@@ -477,7 +485,7 @@ public class AirMediaSession extends Session
 		else
 		{
 			final Originator originator = new Originator(RequestOrigin.Receiver, this);
-			Common.Logging.i(TAG, "setVideoState(): Session "+this+" disconnect request");
+			Common.Logging.i(TAG, "setDisconnected(): Session "+this+" disconnect request");
 			alreadyDisconnected.set(true);
 			disconnectRequest(originator);
 		}

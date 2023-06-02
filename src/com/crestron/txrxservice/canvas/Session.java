@@ -134,6 +134,7 @@ public abstract class Session
 	public boolean isPaused() { return (state == SessionState.Pausing || state == SessionState.Paused); }
 	public boolean isConnecting() { return state == SessionState.Connecting;}
 	public boolean isDisconnecting() { return state == SessionState.Disconnecting;}
+	public boolean isAlreadyRemoved() { return (mSessionMgr.findSession(sessionId()) == null); }
 
 	public SessionState getState() {return state;}
 	public void setState(SessionState state) 
