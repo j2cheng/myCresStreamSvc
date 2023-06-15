@@ -78,6 +78,7 @@ char *csio_jni_hashPin(char *pin);
 void csio_jni_post_latency(int stream,GstObject* obj);
 int get_encoded_video_rate(VideoCaps *pCaps, int *fps_num, int *fps_den);
 
+void csio_jni_print_queue(int id);
 
 static Mutex gGstStopLock;//used to prevent multiple threads accessing pipeline while stop gstreamer.
 extern unsigned short debugPrintSeqNum[];
@@ -2460,6 +2461,11 @@ JNIEXPORT void JNICALL Java_com_crestron_txrxservice_GstreamIn_nativeSetFieldDeb
             	GstElementFactory *factory = gst_element_factory_find(product_info()->mjpeg_decoder_string);
             	print_pad_templates_information(factory);
             }
+            else if (!strcmp(CmdPtr, "H264DECCAPS"))
+            {
+            	GstElementFactory *factory = gst_element_factory_find(product_info()->H264_decoder_string);
+            	print_pad_templates_information(factory);
+            }
             else if (!strcmp(CmdPtr, "DECPROPS"))
             {
             	GstElementFactory *factory = gst_element_factory_find(product_info()->mjpeg_decoder_string);
@@ -2748,6 +2754,30 @@ JNIEXPORT void JNICALL Java_com_crestron_txrxservice_GstreamIn_nativeSetFieldDeb
                                 }
                             }
                         }
+                    }
+                    else
+                    {
+                        CSIO_LOG(eLogLevel_debug, "Invalid stream id : %d", id);
+                    }
+                }
+            }            
+            else if(!strcmp(CmdPtr, "PRINT_VIDDEC_QUEUE"))
+            {
+                //the first parameter is stream id
+                CmdPtr = strtok(NULL, ", ");
+                if (CmdPtr == NULL)
+                {
+                    CSIO_LOG(eLogLevel_info, "invalid parameter, need stream id\r\n");
+                }
+                else
+                {
+                    int id = (int)strtol(CmdPtr, &EndPtr, 10);
+                    CSIO_LOG(eLogLevel_info, "stream id is: %d, MAX_STREAMS = %d",id,MAX_STREAMS);
+
+                    if(id >= 0 && id < MAX_STREAMS)
+                    {
+                        CSIO_LOG(eLogLevel_info, "calling csio_jni_print_queue");
+                        csio_jni_print_queue(id);
                     }
                     else
                     {
@@ -5002,13 +5032,14 @@ void csio_jni_initVideo(int iStreamId)
             if( GST_VERSION_MAJOR == 1 && GST_VERSION_MINOR == 14)
             {
                 g_object_set(G_OBJECT(data->amcvid_dec), "ts-offset", tmp, NULL);
-                // *** CSIO_LOG(eLogLevel_debug, "%s: total ts_offset: %d ms",__FUNCTION__, tmp);
+                
                 CSIO_LOG(eLogLevel_debug, ">>>>> %s: total ts_offset: %d ms",__FUNCTION__, tmp);
             }
             else if(GST_VERSION_MAJOR == 1 && GST_VERSION_MINOR == 16)
             {
                 if(product_info()->product_type == CRESTRON_DMPS3_MEZZ2 ||
-                   product_info()->hw_platform == eHardwarePlatform_Rockchip)
+                   product_info()->hw_platform == eHardwarePlatform_Rockchip ||
+                   product_info()->hw_platform == eHardwarePlatform_Snapdragon_TST1080)
                 {
                     CSIO_LOG(eLogLevel_debug, ">>>>> %s: keep ts_offset as defualt zero",__FUNCTION__);
                 }
@@ -5016,13 +5047,11 @@ void csio_jni_initVideo(int iStreamId)
                 {
                     gint64 tsOffset64 = tmp*1000000LL;
                     g_object_set(G_OBJECT(data->amcvid_dec), "ts-offset", tsOffset64, NULL);
-                    // *** CSIO_LOG(eLogLevel_debug, "%s: total ts_offset: %lld ns",__FUNCTION__, tsOffset64);
+                    
                     CSIO_LOG(eLogLevel_debug, ">>>>> %s: total ts_offset: %lld ns",__FUNCTION__, tsOffset64);
                 }
             }
-
-            // *** CSIO_LOG(eLogLevel_debug, "%s: streamingBuffer or latency is:%d",__FUNCTION__, CSIOCnsIntf->getStreamRx_BUFFER(iStreamId));
-            // *** CSIO_LOG(eLogLevel_debug, "%s: amcviddec_ts_offset:%d",__FUNCTION__, data->amcviddec_ts_offset);            
+                        
             CSIO_LOG(eLogLevel_debug, ">>>>> %s: streamingBuffer or latency is:%d",__FUNCTION__, CSIOCnsIntf->getStreamRx_BUFFER(iStreamId));
             CSIO_LOG(eLogLevel_debug, ">>>>> %s: amcviddec_ts_offset:%d",__FUNCTION__, data->amcviddec_ts_offset);            
         }
@@ -5056,7 +5085,7 @@ GstElement * csio_jni_getVideoDecEle(int iStreamId)
         return NULL;
     }
 
-    return data->element_fake_dec;
+    return data->amcvid_dec;
 }
 
 void *csio_SendInitiatorAddressFb( void * arg )
@@ -5481,6 +5510,20 @@ void csio_jni_post_latency(int streamId,GstObject* obj)
     CSIO_LOG(eLogLevel_debug, "%s: streamId[%d], amcvid_dec[0x%x],audio_sink[0x%x]\r\n", __FUNCTION__, 
              streamId,StreamDb->amcvid_dec,StreamDb->audio_sink);
     
+    if(StreamDb->amcvid_dec)
+    {
+        //get videodec latency
+        guint64 latency = 0;
+        g_object_get(G_OBJECT(StreamDb->amcvid_dec), "amcdec-latency", &latency, NULL);
+        CSIO_LOG(eLogLevel_info, "%s: amcvid_dec latency: %lld\r\n", __FUNCTION__, latency);
+    }//else
+
+    if(StreamDb->audio_sink)
+    {
+        CSIO_LOG(eLogLevel_debug, "%s: get audio_sink latency : %lld",__FUNCTION__, 
+                 gst_base_sink_get_latency((GstBaseSink *)StreamDb->audio_sink));
+    }//else
+
     //Note: 7-20-2021, this is to set decoder/sudiosink ts-offset for AM3k(Miracast only) and omap(Miracast only).
     if( StreamDb->wfd_start && 
         (product_info()->hw_platform == eHardwarePlatform_Rockchip ||
@@ -7392,6 +7435,39 @@ void csio_jni_trigger_idr_request(int id)
     }//else
 
     CSIO_LOG(eLogLevel_debug, "%s() streamId[%d] exit", __FUNCTION__, id);
+}
+void csio_jni_print_queue(int id)
+{
+    CREGSTREAM *data = GetStreamFromCustomData(CresDataDB, id);
+            
+    gint buffers;
+    gint bytes;
+    GstClockTime time;
+
+    if(!data)
+    {
+        CSIO_LOG(eLogLevel_error, "Could not obtain stream pointer for stream %d", id);
+        return ;
+    }//else
+
+    if(data->element_video_front_end_queue)
+    {    
+        g_object_get (G_OBJECT (data->element_video_front_end_queue), "current-level-buffers", &buffers, NULL);
+        g_object_get (G_OBJECT (data->element_video_front_end_queue), "current-level-bytes", &bytes, NULL);
+        g_object_get (G_OBJECT (data->element_video_front_end_queue), "current-level-time", &time, NULL);
+        CSIO_LOG(eLogLevel_info, "front_end_queue: id[%d],[%d][%d][%lld], %" GST_TIME_FORMAT, id,buffers, bytes,time,GST_TIME_ARGS(time));
+    }
+
+    if(data->element_video_decoder_queue)
+    {    
+        g_object_get (G_OBJECT (data->element_video_decoder_queue), "current-level-buffers", &buffers, NULL);
+        g_object_get (G_OBJECT (data->element_video_decoder_queue), "current-level-bytes", &bytes, NULL);
+        g_object_get (G_OBJECT (data->element_video_decoder_queue), "current-level-time", &time, NULL);
+        CSIO_LOG(eLogLevel_info, "decoder_queue: id[%d],[%d][%d][%lld], %" GST_TIME_FORMAT, id,buffers, bytes,time,GST_TIME_ARGS(time));
+    }
+
+    CSIO_LOG(eLogLevel_info, "%s() video_front_end_queue[%p]", __FUNCTION__,data->element_video_front_end_queue);
+    CSIO_LOG(eLogLevel_info, "%s() video_decoder_queue)[%p]", __FUNCTION__,data->element_video_decoder_queue);
 }
 
 bool csio_jni_get_min_stream_resolution(int percentFullscale, int *min_width, int *min_height)

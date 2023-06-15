@@ -1349,7 +1349,8 @@ static void setQueueProperties(CREGSTREAM *data, GstElement *queue, guint64 maxT
     //Note: 11-11-2021, DMPS3_MEZZ2 is new DMPS3K device uses gstreamer 1.16.2,
     //      need to disable all, include max-size-time.
     if(product_info()->product_type == CRESTRON_DMPS3_MEZZ2    ||
-       product_info()->hw_platform  == eHardwarePlatform_Rockchip)
+       product_info()->hw_platform  == eHardwarePlatform_Rockchip ||
+       product_info()->hw_platform  == eHardwarePlatform_Snapdragon_TST1080)
     {
         CSIO_LOG(eLogLevel_info,  "setQueueProperties: disable all settings for queue");
         g_object_set(G_OBJECT(queue),
