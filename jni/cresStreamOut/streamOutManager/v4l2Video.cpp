@@ -8,6 +8,15 @@
 
 int read_int_from_file(const char *filePath, int defaultValue);
 
+static double str2double(const char *framerate)
+{
+    int num = 15;
+    int den = 1;
+    sscanf(framerate, "%d/%d", &num, &den);
+    if (den == 0) return 0.0;
+    return (((double) num)/((double) den));
+}
+
 #if 0
 static gboolean
 print_structure_field (GQuark field_id, const GValue * value,
@@ -52,6 +61,38 @@ update_max_frame_rate(const GValue *fr, int *max_fr_num, int *max_fr_den, double
     }
 }
 
+static void
+select_frame_rate(const GValue *frame_rate, double encoded_frame_rate, int *fr_num, int *fr_den, double *frm_rate)
+{
+    int size = gst_value_list_get_size(frame_rate);
+    bool found = false;
+    for (int i=0; i < size; i++)
+    {
+        const GValue *fr = gst_value_list_get_value(frame_rate, i);
+        int num = gst_value_get_fraction_numerator(fr);
+        int den = gst_value_get_fraction_denominator(fr);
+        CSIO_LOG(eLogLevel_verbose, "\tframe rate[%d] = %d/%d\n", i, num, den);
+        double rate = ((double) num)/((double) den);
+        if (rate <= 30.0 && rate >= encoded_frame_rate)
+        {
+            // allowed rate for selection but we want min of allowed rates
+            if (!found)
+            {
+                *fr_num = num;
+                *fr_den = den;
+                *frm_rate = rate;
+                found = true;
+            }
+            else if (rate < *frm_rate)
+            {
+                *fr_num = num;
+                *fr_den = den;
+                *frm_rate = rate;
+            }
+        }
+    }
+}
+
 static bool isFormat(const char *format, const char *fourcc)
 {
 	return (!strcmp(format, fourcc));
@@ -70,7 +111,7 @@ static int isFormatRank(const char *fourcc)
 }
 
 static void
-get_video_caps_from_caps(GstCaps *caps, int min_frame_rate, VideoCaps *video_caps, int quality )
+get_video_caps_from_caps(GstCaps *caps, double min_frame_rate, VideoCaps *video_caps, int quality )
 {
     int maxw = 0, maxh = 0;
     int max_frmrate_num = 0;
@@ -123,20 +164,6 @@ get_video_caps_from_caps(GstCaps *caps, int min_frame_rate, VideoCaps *video_cap
                 int max_fr_num = 1;
                 int max_fr_den = 1;
 
-                if (gst_structure_has_field(s, "framerate"))
-                    frame_rate = gst_structure_get_value(s, "framerate");
-                if (G_VALUE_TYPE(frame_rate) == GST_TYPE_FRACTION)
-                {
-                    update_max_frame_rate(frame_rate, &max_fr_num, &max_fr_den, &max_frame_rate);
-                } else if (G_VALUE_TYPE(frame_rate) == GST_TYPE_LIST) {
-                    int size = gst_value_list_get_size(frame_rate);
-                    for (int i=0; i < size; i++)
-                    {
-                        const GValue *fr = gst_value_list_get_value(frame_rate, i);
-                        update_max_frame_rate(fr, &max_fr_num, &max_fr_den, &max_frame_rate);
-                    }
-                }
-
                 // min frame rate requirement satisfied - select highest resolution
                 if (gst_structure_has_field(s, "format"))
                     format = gst_structure_get_string(s, "format");
@@ -164,11 +191,23 @@ get_video_caps_from_caps(GstCaps *caps, int min_frame_rate, VideoCaps *video_cap
                     ar_den = gst_value_get_fraction_denominator(aspect_ratio);
                 }
 
+                if (gst_structure_has_field(s, "framerate"))
+                    frame_rate = gst_structure_get_value(s, "framerate");
+                if (G_VALUE_TYPE(frame_rate) == GST_TYPE_FRACTION)
+                {
+                    update_max_frame_rate(frame_rate, &max_fr_num, &max_fr_den, &max_frame_rate);
+                    CSIO_LOG(eLogLevel_info, "\tsingle frame rate = %d/%d\n",
+                            gst_value_get_fraction_numerator(frame_rate), gst_value_get_fraction_denominator(frame_rate));
+                } else if (G_VALUE_TYPE(frame_rate) == GST_TYPE_LIST) {
+                    select_frame_rate(frame_rate, min_frame_rate, &max_fr_num, &max_fr_den, &max_frame_rate);
+                    CSIO_LOG(eLogLevel_verbose, "\tselected frame rate = %d/%d\n", max_fr_num, max_fr_den);
+                }
+
                 CSIO_LOG(eLogLevel_info, "\tformat=%s width=%u height=%u framerate=%6.3f aspect-ratio=%d/%d framerates=%s\n",
                     format, width, height, max_frame_rate, ar_num, ar_den, gst_value_serialize(frame_rate));
 
-                if (max_frame_rate < ((double) min_frame_rate)) {
-                    //CSIO_LOG(eLogLevel_info, "ignoring because max_frame_rate is %f and framerate threashold=%d\n", max_frame_rate, min_frame_rate);
+                if (max_frame_rate < min_frame_rate) {
+                    //CSIO_LOG(eLogLevel_info, "ignoring because max_frame_rate is %f and framerate threshold=%d\n", max_frame_rate, min_frame_rate);
                     continue;
                 }
 
@@ -226,7 +265,8 @@ get_video_caps_from_caps(GstCaps *caps, int min_frame_rate, VideoCaps *video_cap
 
 }
 
-int get_video_caps(char *device_name, VideoCaps *video_caps, char *display_name, int display_name_len, int quality, char *m_hdmi_in_res_x, char *m_hdmi_in_res_y)
+int get_video_caps(char *device_name, VideoCaps *video_caps, char *display_name, int display_name_len, int quality,
+        const char *capture_rate, char *m_hdmi_in_res_x, char *m_hdmi_in_res_y)
 {
 	int rv= -1;
 
@@ -329,7 +369,8 @@ int get_video_caps(char *device_name, VideoCaps *video_caps, char *display_name,
                 if (!caps) {
                 	CSIO_LOG(eLogLevel_error, "Could not get caps for device\n");
                 } else {
-                    get_video_caps_from_caps(caps, 15, video_caps, quality);
+                    double min_frame_rate = str2double(capture_rate);
+                    get_video_caps_from_caps(caps, min_frame_rate, video_caps, quality);
                     rv = 0;
                 }
                 gst_caps_unref(caps);
@@ -356,7 +397,7 @@ int get_video_caps_string(VideoCaps *video_caps, char *caps, int maxlen)
                 video_caps->w, video_caps->h, video_caps->frame_rate_num, video_caps->frame_rate_den);
     } else {
         n = snprintf(caps, maxlen, "video/x-raw,format=%s,width=%d,height=%d,framerate=%d/%d",
-                video_caps->format, video_caps->w, video_caps->h, video_caps->frame_rate_num, video_caps->frame_rate_den);
+        video_caps->format, video_caps->w, video_caps->h, video_caps->frame_rate_num, video_caps->frame_rate_den);
     }
 	if (n > 0 && n < maxlen)
 		return 0;
@@ -364,7 +405,8 @@ int get_video_caps_string(VideoCaps *video_caps, char *caps, int maxlen)
 		return -1;
 }
 #else    // HAS_V4L2
-int get_video_caps(char *device_name, VideoCaps *video_caps, char *display_name, int display_name_len, int quality, char *m_hdmi_in_res_x, char *m_hdmi_in_res_y)
+int get_video_caps(char *device_name, VideoCaps *video_caps, char *display_name, int display_name_len, int quality,
+        const char *capture_rate, char *m_hdmi_in_res_x, char *m_hdmi_in_res_y)
 {
     video_caps->w = 0;
     video_caps->h = 0;

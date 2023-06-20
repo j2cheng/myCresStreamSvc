@@ -38,8 +38,7 @@
 int useUsbAudio = false;
 int videoDumpCount = 0;
 extern int gstVideoEncDumpEnable;
-const int encoded_frame_rate = 15;  //default is 15 fps, update this variable for any new desired encoded fps value
-
+const char *encoded_frame_rate = "15/1";  //default is 15 fps, update this variable for any new desired encoded fps value
 
 //#define AUDIOENC "amcaudenc-omxgoogleaacencoder"
 #define AUDIOENC "voaacenc"
@@ -164,7 +163,7 @@ int get_encoded_video_rate(VideoCaps *pCaps, int *fps_num, int *fps_den)
             }
         } 
     } else {
-       *fps_num = encoded_frame_rate;
+        sscanf(encoded_frame_rate, "%d/%d", fps_num, fps_den);
     }
 #endif
     return iRet;
@@ -1835,9 +1834,15 @@ eWCstatus CStreamoutManager::initWcAudioVideo()
         m_aacEncode = true;
 
         if (m_videoStream) {
+            char framerate[128]={0};
+            if (get_framerate_requested(framerate, sizeof(framerate)) < 0)
+                strncpy(framerate, encoded_frame_rate, sizeof(framerate));
+            CSIO_LOG(eLogLevel_info, "--Streamout - desired capture frame rate: %s", framerate);
+
         	if (strcmp(m_video_capture_device, "videotestsrc") != 0)
         	{
-        	    if (!get_video_caps(m_video_capture_device, &m_video_caps, m_device_display_name, sizeof(m_device_display_name), m_quality, m_hdmi_in_res_x, m_hdmi_in_res_y))
+        	    if (!get_video_caps(m_video_capture_device, &m_video_caps, m_device_display_name, sizeof(m_device_display_name), m_quality,
+        	            framerate, m_hdmi_in_res_x, m_hdmi_in_res_y))
         		{
         			if (get_video_caps_string(&m_video_caps, m_caps, sizeof(m_caps)) < 0)
         			{
@@ -1886,20 +1891,11 @@ eWCstatus CStreamoutManager::initWcAudioVideo()
                 m_videoframerate[0] = '\0';
             }
 #else
-            char framerate[128];
-            if (get_framerate_requested(framerate, sizeof(framerate)) >= 0) {
-                CSIO_LOG(eLogLevel_info, "--Streamout - encoder frame rate requested=%s", framerate);
-            	if (strcasecmp(m_video_caps.format, "MJPG") == 0)
-                    snprintf(m_videoframerate, sizeof(m_videoframerate), "videorate ! image/jpeg,framerate=%s !", framerate);
-                else
-                    snprintf(m_videoframerate, sizeof(m_videoframerate), "videorate ! video/x-raw,framerate=%s !", framerate);
-            } else {
-            	if (strcasecmp(m_video_caps.format, "MJPG") == 0)
-                    snprintf(m_videoframerate, sizeof(m_videoframerate), "videorate ! image/jpeg,framerate=%d/1 !", encoded_frame_rate);
-                else
-                    snprintf(m_videoframerate, sizeof(m_videoframerate), "videorate ! video/x-raw,framerate=%d/1 !", encoded_frame_rate);
-                    
-            }
+            CSIO_LOG(eLogLevel_info, "--Streamout - encoder frame rate requested=%s", framerate);
+            if (strcasecmp(m_video_caps.format, "MJPG") == 0)
+                snprintf(m_videoframerate, sizeof(m_videoframerate), "videorate ! image/jpeg,framerate=%s !", framerate);
+            else
+                snprintf(m_videoframerate, sizeof(m_videoframerate), "videorate ! video/x-raw,framerate=%s !", framerate);
 #endif
             int bitrate = get_bitrate_requested();
             if (bitrate > 0)

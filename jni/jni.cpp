@@ -2435,7 +2435,7 @@ JNIEXPORT void JNICALL Java_com_crestron_txrxservice_GstreamIn_nativeSetFieldDeb
                 char *hdmi_in_res_y = "1080";
 
                 //sending hdmi resolution as 1920, 1080
-                get_video_caps(v4l2Device, &videoCaps, display_name, sizeof(display_name), 0, hdmi_in_res_x, hdmi_in_res_y);  //Sending "0" which corresponds to high quality by default
+                get_video_caps(v4l2Device, &videoCaps, display_name, sizeof(display_name), 0, "15/1", hdmi_in_res_x, hdmi_in_res_y);  //Sending "0" which corresponds to high quality by default
                 CSIO_LOG(eLogLevel_info, "%s: name=%s format=%s w=%d h=%d frame_rate=%d/%d", v4l2Device, display_name,
                 		videoCaps.format, videoCaps.w, videoCaps.h, videoCaps.frame_rate_num, videoCaps.frame_rate_den);
                 if (get_video_caps_string(&videoCaps, caps, sizeof(caps)) == 0)
@@ -6094,7 +6094,9 @@ JNIEXPORT int JNICALL Java_com_crestron_txrxservice_GstreamOut_nativeGetVideoFor
     // get the video format from the device file
     VideoCaps videoCaps;
     char display_name[256];
-    rtn = get_video_caps((char *)device_cstring, &videoCaps, display_name, sizeof(display_name), quality, (char *)phdmi_in_res_x, (char *)phdmi_in_res_y);   
+    const char *min_capture_rate="15/1";
+    rtn = get_video_caps((char *)device_cstring, &videoCaps, display_name, sizeof(display_name), quality,
+            min_capture_rate, (char *)phdmi_in_res_x, (char *)phdmi_in_res_y);
     CSIO_LOG(eLogLevel_info, "%s: name=%s format=%s w=%d h=%d frame_rate=%d/%d", device_cstring, display_name,
             videoCaps.format, videoCaps.w, videoCaps.h, videoCaps.frame_rate_num, videoCaps.frame_rate_den);
 
@@ -6106,12 +6108,12 @@ JNIEXPORT int JNICALL Java_com_crestron_txrxservice_GstreamOut_nativeGetVideoFor
     env->SetIntField(format, fieldId, videoCaps.h);
 
     get_encoded_video_rate(&videoCaps, &fps_num, &fps_den);
-    // round to nearest interger. 
+    // round to nearest integer.
     // TODO: It would be good to send fps in float. But this requires changes in App layer, iOS, window and sender side
     // if really required can be enhanced later. 
     // as of now addresses AM3XX-13032 to best possible extent
     fps = (fps_num + (fps_den - 1))/fps_den;
-    CSIO_LOG(eLogLevel_debug, "%s: Video Encoded FPS configurated to fps:%d(=(int)(%d/%d))", __FUNCTION__, fps,fps_num, fps_den);
+    CSIO_LOG(eLogLevel_debug, "%s: Video Encoder FPS configured to fps:%d(=(int)(%d/%d))", __FUNCTION__, fps, fps_num, fps_den);
 
     fieldId = env->GetFieldID(videoFormatClass , "fps", "I");
     env->SetIntField(format, fieldId, fps);
