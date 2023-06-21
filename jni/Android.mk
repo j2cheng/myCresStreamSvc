@@ -107,16 +107,6 @@ endif
 ifdef BOARD_VNDK_VERSION
     LOCAL_VENDOR_MODULE := true
     LOCAL_SHARED_LIBRARIES := libgstreamer_android liblog libnativewindow libgui_vendor libutils libbinder
-
-    ifeq ($(TARGET_PRODUCT),$(filter $(TARGET_PRODUCT),kona qssi))
-        LOCAL_SHARED_LIBRARIES += android.hardware.graphics.allocator@2.0
-        LOCAL_SHARED_LIBRARIES += android.hardware.graphics.allocator@3.0
-        LOCAL_SHARED_LIBRARIES += android.hardware.graphics.bufferqueue@1.0
-        LOCAL_SHARED_LIBRARIES += android.hardware.graphics.bufferqueue@2.0
-        LOCAL_SHARED_LIBRARIES += android.hardware.media@1.0
-        LOCAL_SHARED_LIBRARIES += android.hidl.token@1.0
-        LOCAL_SHARED_LIBRARIES += android.hidl.token@1.0-utils
-    endif
 else
     LOCAL_SHARED_LIBRARIES := libgstreamer_android liblog libandroid
 endif
@@ -313,19 +303,19 @@ LOCAL_CFLAGS +=\
 endif
 
 ifdef BOARD_VNDK_VERSION
-LOCAL_VENDOR_MODULE := true
-LOCAL_CFLAGS +=\
-	-I$(CRESTORN_ROOT)frameworks/native/libs/nativewindow/include \
-	-I$(CRESTORN_ROOT)frameworks/native/include \
-	-I$(CRESTORN_ROOT)system/core/include \
-	-I$(CRESTORN_ROOT)frameworks/native/libs/arect/include \
-	-I$(CRESTORN_ROOT)hardware/libhardware/include \
-	-I$(CRESTRON_ROOT)frameworks/native/include/android \
-	-I$(CRESTRON_ROOT)frameworks/native/libs/ui/include \
-	-I$(CRESTRON_ROOT)frameworks/native/libs/ui/include_vndk \
-	-I$(CRESTRON_ROOT)frameworks/native/libs \
-	-I$(CRESTRON_ROOT)frameworks/base/libs/hostgraphics \
-	-DBOARD_VNDK_VERSION
+    LOCAL_VENDOR_MODULE := true
+    LOCAL_CFLAGS += \
+	    -I$(CRESTORN_ROOT)frameworks/native/libs/nativewindow/include \
+	    -I$(CRESTORN_ROOT)frameworks/native/include \
+	    -I$(CRESTORN_ROOT)system/core/include \
+	    -I$(CRESTORN_ROOT)frameworks/native/libs/arect/include \
+	    -I$(CRESTORN_ROOT)hardware/libhardware/include \
+	    -I$(CRESTRON_ROOT)frameworks/native/include/android \
+	    -I$(CRESTRON_ROOT)frameworks/native/libs/ui/include \
+	    -I$(CRESTRON_ROOT)frameworks/native/libs/ui/include_vndk \
+	    -I$(CRESTRON_ROOT)frameworks/native/libs \
+	    -I$(CRESTRON_ROOT)frameworks/base/libs/hostgraphics \
+	    -DBOARD_VNDK_VERSION
 
 LOCAL_LDLIBS := -llog -lnativewindow -lgui_vendor -lutils -lbinder
 else
@@ -335,14 +325,17 @@ LOCAL_SHARED_LIBRARIES := libCsioProdInfo
 LOCAL_SHARED_LIBRARIES += libcresstore_json
 #LOCAL_SHARED_LIBRARIES += libjsoncpp
 LOCAL_SHARED_LIBRARIES += libcresnextserializer
+
 ifeq ($(shell test $(PLATFORM_SDK_VERSION) -lt 23 && echo PreMarshmallow),PreMarshmallow)
-LOCAL_SHARED_LIBRARIES += libstlport
+    LOCAL_SHARED_LIBRARIES += libstlport
 endif
+
 ifdef BOARD_VNDK_VERSION
-LOCAL_SHARED_LIBRARIES += liblog libnativewindow libgui_vendor libutils libbinder
+    LOCAL_SHARED_LIBRARIES += liblog libnativewindow libgui_vendor libutils libbinder
 else
-LOCAL_SHARED_LIBRARIES += liblog libandroid
+    LOCAL_SHARED_LIBRARIES += liblog libandroid
 endif
+
 LOCAL_SHARED_LIBRARIES += libSecureStorage
 
 LOCAL_SRC_FILES := cresstreamctrl_jni.cpp
