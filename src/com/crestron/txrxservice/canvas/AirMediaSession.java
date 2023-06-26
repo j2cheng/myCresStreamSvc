@@ -12,6 +12,7 @@ import com.crestron.airmedia.receiver.m360.ipc.AirMediaSessionStreamingState;
 import com.crestron.airmedia.receiver.m360.ipc.AirMediaSessionVideoType;
 import com.crestron.airmedia.utilities.Common;
 import com.crestron.airmedia.utilities.TimeSpan;
+import com.crestron.txrxservice.CresStreamCtrl;
 
 import android.view.Surface;
 
@@ -590,7 +591,11 @@ public class AirMediaSession extends Session
 				{
 					final Originator originator = new Originator(RequestOrigin.Receiver, this);
 					Common.Logging.i(TAG, "setVideoState(): Session "+this+" stop request");
-					stopRequest(originator);
+					if (CresStreamCtrl.isAM3K && airMediaType == SessionAirMediaType.Miracast)
+					{
+					    Common.Logging.i(TAG, "setVideoState(): Session "+this+" ignore stop request for miracast session on AM3K");
+					} else
+					    stopRequest(originator);
 				} else if (prevState == SessionState.Disconnecting) {
 					doForceStop();
 				}
