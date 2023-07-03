@@ -20,6 +20,55 @@
 #include "cresStreamOutManager.h"
 #include "usbAudio.h"
 #include <string.h>
+#include <stdio.h>
+
+#include "errno.h"
+
+extern int gstMicAudioCaptureEnable;
+
+#define MAX_AUDIO_CAPTURE_SIZE 20000000
+static FILE *audio_fp = NULL;
+static int captured_bytes = 0;
+
+void audio_capture_open(const char *filename)
+{
+    audio_fp = fopen(filename, "w");
+    if (audio_fp == NULL)
+    {
+        CSIO_LOG(eLogLevel_error,"audio_capture_init(): error opening file %s for writing errno=%d", filename, errno);
+        captured_bytes = 0;
+    }
+}
+
+void audio_capture_close()
+{
+    if (audio_fp != NULL)
+    {
+        if (fclose(audio_fp) < 0)
+        {
+            CSIO_LOG(eLogLevel_error,"audio_capture_close(): error closing audio capture file errno=%d", errno);
+        }
+        else
+        {
+            audio_fp = NULL;
+            captured_bytes = 0;
+        }
+    }
+}
+
+void audio_capture_write(char *buffer, int size)
+{
+    if (audio_fp != NULL)
+    {
+        if (fwrite(buffer, 1, size, audio_fp) != (unsigned) size)
+        {
+            CSIO_LOG(eLogLevel_error,"audio_capture_write(): error writing %d bytes to audio capture file errno=%d", size, errno);
+        }
+        captured_bytes += size;
+        if (captured_bytes >= MAX_AUDIO_CAPTURE_SIZE)
+            audio_capture_close();
+    }
+}
 
 #ifdef HAS_TINYALSA
 
@@ -72,6 +121,8 @@ void UsbAudio::usb_audio_get_samples(pcm *pcm_device, void *data, int size, int 
         CSIO_LOG(eLogLevel_error, "UsbAudio: get_pcm_samples(): could not get %d bytes error=%d", size, error);
     } else {
         CSIO_LOG(eLogLevel_verbose, "UsbAudio: get_pcm_samples(): read %d bytes,m_usb_audio_sample[%llu],nsamples[%llu]", size,m_usb_audio_sample,nsamples);
+        if (gstMicAudioCaptureEnable)
+            audio_capture_write((char *) data, size);
     }
     *timestamp = gst_util_uint64_scale(m_usb_audio_sample, GST_SECOND, 48000);
     m_usb_audio_sample += nsamples;
@@ -122,6 +173,8 @@ bool UsbAudio::configure()
             CSIO_LOG(eLogLevel_info, "USB audio PCM device buffer size = %d (%d)\n", bufsize, pcm_get_buffer_size(m_device));
         }
     }
+    if (gstMicAudioCaptureEnable)
+        audio_capture_open("/tmp/mic_audio.pcm");
     return true;
 }
 
@@ -200,6 +253,8 @@ void UsbAudio::releaseDevice()
 		pcm_params_free(m_params);
 		m_params = NULL;
 	}
+
+    audio_capture_close();
 
 	if (m_device)
 	{

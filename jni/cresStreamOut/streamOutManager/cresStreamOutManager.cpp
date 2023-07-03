@@ -1385,7 +1385,7 @@ void* CStreamoutManager::ThreadEntry()
                                                      "queue name =vidPreQ ! "
                                                      "%s bitrate=%s i-frame-interval=%s ! "
                                                      "queue name =vidPostQ ! "
-                                                     "rtph264pay name=pay0 pt=96 )",
+                                                     "rtph264pay name=pay0 pt=96)",
                          product_info()->H264_encoder_string,
                          m_bit_rate,m_iframe_interval);
             }
@@ -1402,7 +1402,7 @@ void* CStreamoutManager::ThreadEntry()
                                                          "%s bitrate=%s i-frame-interval=%s ! "
                                                          "queue name=vidPostQ ! "
                                                          "h264parse name = h264parser ! "
-                                                         "rtph264pay name=pay0 pt=96 )",
+                                                         "rtph264pay name=pay0 pt=96 config-interval=-1 )",
                                                          videoSource,
                                                          m_caps, m_videoframerate,
                                                          m_videoconvert,
@@ -1426,7 +1426,7 @@ void* CStreamoutManager::ThreadEntry()
                                                              "%s bitrate=%s i-frame-interval=%s ! "
                                                              "queue name=vidPostQ ! "
                                                              "h264parse name = h264parser !   "
-                                                             "rtph264pay name=pay0 pt=96 "
+                                                             "rtph264pay name=pay0 pt=96 config-interval=-1 "
                                                              "%s ! audioresample ! audioconvert ! queue name=audPreQ ! "
                                                              "%s ! "
                                                              "queue name=audPostQ ! "
@@ -1445,7 +1445,7 @@ void* CStreamoutManager::ThreadEntry()
                                                              "%s bitrate=%s i-frame-interval=%s ! "
                                                              "queue name=vidPostQ ! "
                                                              "h264parse name = h264parser ! "
-                                                             "rtph264pay name=pay0 pt=96 "
+                                                             "rtph264pay name=pay0 pt=96 config-interval=-1 "
                                                              "%s ! audioresample ! audioconvert ! audio/x-raw,rate=8000 ! queue name=audPreQ ! "
                                                              "%s ! "
                                                              "queue name=audPostQ ! "

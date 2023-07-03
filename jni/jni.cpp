@@ -206,7 +206,7 @@ unsigned int debug_setPipelineBuf = 0;//0 -- disable, range: 1 to 2000ms
 extern void setSignalHandlerToDefault();
 int gstVideoEncDumpEnable = false;
 extern int videoDumpCount;
-
+int gstMicAudioCaptureEnable = false;
 
 /*
  * Private methods
@@ -2617,6 +2617,28 @@ JNIEXPORT void JNICALL Java_com_crestron_txrxservice_GstreamIn_nativeSetFieldDeb
                             videoDumpCount = 0;
                         }
                         CSIO_LOG(eLogLevel_debug, "set video encoded dump to: %d\r\n",fieldNum);
+                    }
+                    else
+                    {
+                        CSIO_LOG(eLogLevel_info, "Invalid Format, need a parameter 0 (disable) 1 (enable) \r\n");
+                    }
+                }
+            }
+            else if (!strcmp(CmdPtr, "GST_MIC_AUDIO_CAPTURE_ENABLE"))
+            {
+                CmdPtr = strtok(NULL, ", ");
+                CSIO_LOG(eLogLevel_info, "Enabling mic data capture %s\r\n", CmdPtr);
+                if (CmdPtr == NULL)
+                {
+                    CSIO_LOG(eLogLevel_info, "Invalid Format, need a parameter 0 (disable) 1 (enable) \r\n");
+                }
+                else
+                {
+                    fieldNum = (int) strtol(CmdPtr, &EndPtr, 10);
+                    if (fieldNum == 0 || fieldNum == 1)
+                    {
+                        gstMicAudioCaptureEnable = fieldNum;
+                        CSIO_LOG(eLogLevel_debug, "mic audio capture: %s\r\n",(fieldNum?"enabled":"disabled"));
                     }
                     else
                     {
