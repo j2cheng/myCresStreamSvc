@@ -38,6 +38,7 @@
 int useUsbAudio = false;
 int videoDumpCount = 0;
 extern int gstVideoEncDumpEnable;
+extern int gstAudioEncDumpEnable;
 const char *encoded_frame_rate = "15/1";  //default is 15 fps, update this variable for any new desired encoded fps value
 
 //#define AUDIOENC "amcaudenc-omxgoogleaacencoder"
@@ -53,7 +54,7 @@ const char *encoded_frame_rate = "15/1";  //default is 15 fps, update this varia
 
 #define MAX_NUMBER_OF_FRAMES 150 
 #define VIDEO_DUMP_FILE "/logs/videoencdata.h264"
-
+#define AUDIO_DUMP_FILE "/logs/audioencdata.mp4"
 
 extern const char *csio_jni_getAppCacheFolder();
 extern const char *csio_jni_getHostName();
@@ -1412,8 +1413,16 @@ void* CStreamoutManager::ThreadEntry()
 
                 // for audio when we push have queues before and after enc, but pull model will not work like that so no queues
                 char audioenc[128];
+                char audioencdump[1024]={0};
                 const char *audioEncoderName = (m_aacEncode) ? AUDIOENC : "alawenc";
                 snprintf(audioenc, sizeof(audioenc), "%s", audioEncoderName);
+                if (gstAudioEncDumpEnable)
+                {
+                    const char *format = "tee name=atee "
+                            "atee. ! queue ! mp4mux faststart=true faststart-file=/sdcard/ROMDISK/logs/faststart fragment-duration=5000 ! filesink location=%s "
+                            "atee. ! queue ! ";
+                    snprintf(audioencdump, sizeof(audioencdump), format, AUDIO_DUMP_FILE);
+                }
 
                 if (m_videoStream && m_audioStream) {
                     // audPreQ s required before the encoder. This fixed the lipsync issue which was seen with Logitech Brio/930 camera.
@@ -1429,13 +1438,14 @@ void* CStreamoutManager::ThreadEntry()
                                                              "rtph264pay name=pay0 pt=96 config-interval=-1 "
                                                              "%s ! audioresample ! audioconvert ! queue name=audPreQ ! "
                                                              "%s ! "
-                                                             "queue name=audPostQ ! "
+                                                             "queue name=audPostQ ! aacparse name=aacparser ! "
+                                                             "%s"
                                                              "rtpmp4apay name=pay1 pt=97 )",
                                                              videoSource,
                                                              m_caps, m_videoframerate, m_videoconvert,
                                                              product_info()->H264_encoder_string,
                                                              m_bit_rate, m_iframe_interval,
-                                                             audioSource, audioenc);
+                                                             audioSource, audioenc, audioencdump);
                     } else {
                         snprintf(pipeline, sizeof(pipeline), "( %s ! "
                                                              "%s ! "
@@ -1463,8 +1473,10 @@ void* CStreamoutManager::ThreadEntry()
                     if (m_aacEncode) {
                         snprintf(pipeline, sizeof(pipeline), "( %s ! audioresample ! audioconvert ! "
                                                              "%s ! "
+                                                             "queue name=audPostQ ! aacparse name=aacparser ! "
+                                                             "%s"
                                                              "rtpmp4apay name=pay0 pt=97 )",
-                                                             audioSource, audioenc);
+                                                             audioSource, audioenc, audioencdump);
                     } else if (m_aes67Mode) {
                         snprintf(pipeline, sizeof(pipeline), "( %s ! audioresample ! audioconvert ! "
                                                              "%s ! "
