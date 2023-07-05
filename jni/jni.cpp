@@ -5130,7 +5130,25 @@ GstElement * csio_jni_getVideoDecEle(int iStreamId)
         return NULL;
     }
 
-    return data->amcvid_dec;
+    //Note: 6-30-2023, I am very confused with this function. Let me try to conclude:
+    //      if amcvid_dec is set, meaning we are using hardware decoder, so return amcvid_dec.
+    //      if amcvid_dec is NOT set, but element_fake_dec is set, using software dec(or parser?)
+    if(data->amcvid_dec)
+    {
+        CSIO_LOG(eLogLevel_debug, "csio_jni_getVideoDecEle[%d] got amcvid_dec[0x%x]", iStreamId,data->amcvid_dec);
+        return data->amcvid_dec;
+    }
+    else if(data->element_fake_dec)
+    {
+        CSIO_LOG(eLogLevel_debug, "csio_jni_getVideoDecEle[%d] got fakedec[0x%x]", iStreamId,data->element_fake_dec);
+        return data->element_fake_dec;
+    }
+    
+    else
+    {
+        CSIO_LOG(eLogLevel_debug, "csio_jni_getVideoDecEle[%d] return NULL", iStreamId);
+        return NULL;
+    }
 }
 
 void *csio_SendInitiatorAddressFb( void * arg )

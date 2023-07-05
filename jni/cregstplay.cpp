@@ -1536,7 +1536,7 @@ int build_video_pipeline(gchar *encoding_name, CREGSTREAM *data, unsigned int st
         data->element_valve_v = data->element_v[i-1];
 
         data->element_v[i++] = gst_element_factory_make("h264parse", NULL);
-        data->element_fake_dec = data->element_v[i-1];
+        data->element_fake_dec = data->element_v[i-1];//Note: 6-30-2023 I don't understand this!
         if (data->streamProtocolId == ePROTOCOL_FILE)
         {
         	// try to force insertion of SPS/PPS @ 1 sec intervals - on IDR frames
@@ -1628,7 +1628,7 @@ int build_video_pipeline(gchar *encoding_name, CREGSTREAM *data, unsigned int st
         data->element_valve_v = data->element_v[i-1];
 
         data->element_v[i++] = gst_element_factory_make("h265parse", NULL);
-        data->element_fake_dec = data->element_v[i-1];
+        data->element_fake_dec = data->element_v[i-1];//Note: 6-30-2023 I don't understand this!
         if (data->streamProtocolId == ePROTOCOL_FILE)
         {
             // try to force insertion of SPS/PPS @ 1 sec intervals - on IDR frames
@@ -1852,7 +1852,7 @@ int build_video_pipeline(gchar *encoding_name, CREGSTREAM *data, unsigned int st
 
 			CSIO_LOG(eLogLevel_debug, "MJPEG: using the software decoder: jpegdec");
 			data->element_v[i++] = gst_element_factory_make("jpegdec", NULL);
-			data->element_fake_dec = data->element_v[i-1];
+			data->element_fake_dec = data->element_v[i-1];//Note: 6-30-2023 I don't understand this!
 			*ele0 = data->element_v[0];
 			data->using_glimagsink = 1;
 		}
@@ -1868,7 +1868,7 @@ int build_video_pipeline(gchar *encoding_name, CREGSTREAM *data, unsigned int st
         data->element_valve_v = data->element_v[i-1];
 
 		data->element_v[i++] = gst_element_factory_make("mpeg4videoparse", NULL);
-		data->element_fake_dec = data->element_v[i-1];
+		data->element_fake_dec = data->element_v[i-1];//Note: 6-30-2023 I don't understand this!
 
 		if(product_info()->H264_decoder_string[0])
 		{
