@@ -59,6 +59,10 @@ static void *gst_pipeline_data_flow_check(void *args)
         usleep(500000); // 500msec Note: If this value is increased, will add more time
                         //during WC stop.
 
+        // Added to prevent race condition seen in AMTXWIN-581
+        if (!cresRTSPMedia->threadActive)
+            break;
+
         //check for if data counter has changed.
         if( cresRTSPMedia->prevEncFrameCount == cresRTSPMedia->currEncFrameCount )
         {
