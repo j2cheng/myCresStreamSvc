@@ -191,6 +191,7 @@ void init_custom_data(CustomData * cdata)
         data->wfd_start = 0;
         data->wfd_is_mice_session = 0;
         data->wfd_source_latency = 0;
+        data->wfd_use_sink = false;
         data->intf_name[0] = 0;
         data->loc_ip_addr[0] = 0;
         data->sourceIP_addr[0] = 0;
@@ -1581,9 +1582,18 @@ int build_video_pipeline(gchar *encoding_name, CREGSTREAM *data, unsigned int st
                 g_object_set(G_OBJECT(data->amcvid_dec), "ts-offset", tsOffset64, NULL);
             }//else
 
-            //pass surface object to the decoder
-            g_object_set(G_OBJECT(data->element_v[i-1]), "surface-window", data->surface, NULL);
-            CSIO_LOG(eLogLevel_debug, "%s: SET surface-window[0x%x][%d] for stream %d",__FUNCTION__,data->surface,data->surface, data->streamId);
+            if (!data->wfd_use_sink)
+            {
+                //pass surface object to the decoder
+                g_object_set(G_OBJECT(data->element_v[i-1]), "surface-window", data->surface, NULL);
+                CSIO_LOG(eLogLevel_debug, "%s: SET surface-window[0x%x][%d] for stream %d",__FUNCTION__,data->surface,data->surface,data->streamId);
+            }
+            else
+            {
+                // set property to disable sink and make decoder only
+                g_object_set(G_OBJECT(data->amcvid_dec), "amcdec-is-dec-and-sink", false, NULL);
+                CSIO_LOG(eLogLevel_warning, "%s:stream %d will use glimagesinkelement",__FUNCTION__, data->streamId);
+            }
 
             *ele0 = data->element_v[0];
 
@@ -1679,9 +1689,18 @@ int build_video_pipeline(gchar *encoding_name, CREGSTREAM *data, unsigned int st
                 g_object_set(G_OBJECT(data->amcvid_dec), "ts-offset", tsOffset64, NULL);
             }//else
 
-            //pass surface object to the decoder
-            g_object_set(G_OBJECT(data->element_v[i-1]), "surface-window", data->surface, NULL);
-            CSIO_LOG(eLogLevel_debug, "%s: SET surface-window[0x%x][%d]",__FUNCTION__,data->surface,data->surface);
+            if (!data->wfd_use_sink)
+            {
+                //pass surface object to the decoder
+                g_object_set(G_OBJECT(data->element_v[i-1]), "surface-window", data->surface, NULL);
+                CSIO_LOG(eLogLevel_debug, "%s: SET surface-window[0x%x][%d] for stream[%d]",__FUNCTION__,data->surface,data->surface,data->streamId);
+            }
+            else
+            {
+                // set property to disable sink and make decoder only
+                g_object_set(G_OBJECT(data->amcvid_dec), "amcdec-is-dec-and-sink", false, NULL);
+                CSIO_LOG(eLogLevel_warning, "%s:stream %d will use glimagesinkelement",__FUNCTION__, data->streamId);
+            }
 
             *ele0 = data->element_v[0];
 
@@ -1941,6 +1960,15 @@ int build_video_pipeline(gchar *encoding_name, CREGSTREAM *data, unsigned int st
 #endif
 		    data->video_sink = gst_element_factory_make("glimagesink", NULL);
 		    CSIO_LOG(eLogLevel_debug, "using glimagesink");
+		}
+		else if (data->wfd_use_sink)
+		{
+            data->video_sink = gst_element_factory_make("glimagesinkelement", NULL);
+            gint64 max_lateness = (gint64) 1000000000;
+            g_object_set (data->video_sink, "max-lateness", max_lateness, NULL);
+            max_lateness = (gint64) 0;
+            g_object_get (data->video_sink, "max-lateness", &max_lateness, NULL);
+            CSIO_LOG(eLogLevel_warning, "glimagesinkelement: set max-lateness: %lld", max_lateness);
 		}
 		else
 		{

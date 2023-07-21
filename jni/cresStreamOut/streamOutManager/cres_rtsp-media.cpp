@@ -19,6 +19,8 @@
 
 #include "cres_rtsp-media.h"
 
+extern int wcJpegPassthrough;
+
 /////////////////////////////////////////////////////////////////////////////////////////////////
 GST_DEBUG_CATEGORY_STATIC (cres_rtsp_media_debug);
 
@@ -174,7 +176,7 @@ custom_handle_message (GstRTSPMedia * media, GstMessage * message)
             cresRTSPMedia->dataFlowError = false;
             ele = gst_bin_get_by_name_recurse_up(GST_BIN (element), "v4l2src");
             // if we are moved to playing state, and the device has video source then start thread to monitor the data flow
-            if(!cresRTSPMedia->dataFlowMonitorThreadID && ele != NULL )
+            if(!wcJpegPassthrough && !cresRTSPMedia->dataFlowMonitorThreadID && ele != NULL )
             {
                 cresRTSPMedia->threadActive = true;
                 if (pthread_create(&(cresRTSPMedia->dataFlowMonitorThreadID), NULL, gst_pipeline_data_flow_check, (void *)cresRTSPMedia) != 0 )

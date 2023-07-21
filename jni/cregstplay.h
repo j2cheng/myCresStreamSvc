@@ -182,6 +182,7 @@ typedef struct _CREGSTREAM
     bool wfd_is_mice_session;
     int  wfd_source_latency;
     bool wfd_tcp_mode;
+    bool wfd_use_sink;
     struct timespec wfd_idr_req_timespec;
 
     char intf_name[32];

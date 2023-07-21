@@ -102,7 +102,8 @@ extern unsigned short debugPrintSeqNum[];
 #define CRESTRON_USER_AGENT 	("Crestron/1.8.2")
 #define PROC_SELF_FD_FILEPATH 	("/proc/self/fd")
 #define DEFAULT_MAX_FRAME_PUSH_DELAY  250000000
-#define DEFAULT_MIRACAST_LATENCY 200//8-2-2021 we are going to set this to 200ms
+#define DEFAULT_MIRACAST_LATENCY 200 //8-2-2021 we are going to set this to 200ms
+#define DEFAULT_MIRACAST_LATENCY_FOR_SEPARATE_SINK 20
 #define WFD_MIN_IDR_INTERVAL 250
 
 ///////////////////////////////////////////////////////////////////////////////
@@ -142,6 +143,8 @@ char hostName[256]={0};
 char domainName[256]={0};
 char serverIpAddress[256]={0};
 int maxMiracastFps=60;
+
+bool useSeparateSinkForMiracast = false;
 
 CresNextDef *CresNextDefaults = NULL;
 
@@ -208,6 +211,9 @@ int gstVideoEncDumpEnable = false;
 extern int videoDumpCount;
 int gstAudioEncDumpEnable = false;
 int gstMicAudioCaptureEnable = false;
+int gstAudioStatsEnable = false;
+int gstAudioStatsReset = false;
+int wcJpegPassthrough = 0;
 
 /*
  * Private methods
@@ -2647,6 +2653,55 @@ JNIEXPORT void JNICALL Java_com_crestron_txrxservice_GstreamIn_nativeSetFieldDeb
                     }
                 }
             }
+            else if (!strcmp(CmdPtr, "GST_AUDIOSTATS_ENABLE"))
+            {
+                CmdPtr = strtok(NULL, ", ");
+                CSIO_LOG(eLogLevel_info, "Enabling WC audio input thread stats %s\r\n", CmdPtr);
+                if (CmdPtr == NULL)
+                {
+                    CSIO_LOG(eLogLevel_info, "Invalid Format, need a parameter 0 (disable) 1 (enable) \r\n");
+                }
+                else
+                {
+                    fieldNum = (int) strtol(CmdPtr, &EndPtr, 10);
+                    if (fieldNum == 0 || fieldNum == 1)
+                    {
+                        gstAudioStatsEnable = fieldNum;
+                        CSIO_LOG(eLogLevel_debug, "set audio stats enable to: %d\r\n",fieldNum);
+                    }
+                    else
+                    {
+                        CSIO_LOG(eLogLevel_info, "Invalid Format, need a parameter 0 (disable) 1 (enable) \r\n");
+                    }
+                }
+            }
+            else if (!strcmp(CmdPtr, "GST_AUDIOSTATS_RESET"))
+            {
+                CSIO_LOG(eLogLevel_info, "Reset WC audio input thread stats\r\n");
+                gstAudioStatsReset = 1;
+            }
+            else if (!strcmp(CmdPtr, "WC_JPEG_PASSTHROUGH"))
+            {
+                CmdPtr = strtok(NULL, ", ");
+                CSIO_LOG(eLogLevel_info, "set WC Jpeg Passthrought to %s\r\n", CmdPtr);
+                if (CmdPtr == NULL)
+                {
+                    CSIO_LOG(eLogLevel_info, "Invalid Format, need a parameter 0 (disable) 1 (enable) \r\n");
+                }
+                else
+                {
+                    fieldNum = (int) strtol(CmdPtr, &EndPtr, 10);
+                    if (fieldNum == 0 || fieldNum == 1)
+                    {
+                        wcJpegPassthrough = fieldNum;
+                        CSIO_LOG(eLogLevel_debug, "set wcJpegPassthrough to: %d\r\n",fieldNum);
+                    }
+                    else
+                    {
+                        CSIO_LOG(eLogLevel_info, "Invalid Format, need a parameter 0 (disable) 1 (enable) \r\n");
+                    }
+                }
+            }
             else if (!strcmp(CmdPtr, "GST_MIC_AUDIO_CAPTURE_ENABLE"))
             {
                 CmdPtr = strtok(NULL, ", ");
@@ -2669,6 +2724,28 @@ JNIEXPORT void JNICALL Java_com_crestron_txrxservice_GstreamIn_nativeSetFieldDeb
                     }
                 }
             }
+            else if (!strcmp(CmdPtr, "USE_SINK_FOR_MIRACAST"))
+             {
+                 CmdPtr = strtok(NULL, ", ");
+                 CSIO_LOG(eLogLevel_info, "Enabling glimagesinkelement sink for miracast %s\r\n", CmdPtr);
+                 if (CmdPtr == NULL)
+                 {
+                     CSIO_LOG(eLogLevel_info, "Invalid Format, need a parameter 0 (disable) 1 (enable) \r\n");
+                 }
+                 else
+                 {
+                     fieldNum = (int) strtol(CmdPtr, &EndPtr, 10);
+                     if (fieldNum == 0 || fieldNum == 1)
+                     {
+                         useSeparateSinkForMiracast = (fieldNum == 0) ? false : true;
+                         CSIO_LOG(eLogLevel_debug, "useSeparateSinkForMiracast: %s\r\n",(useSeparateSinkForMiracast?"enabled":"disabled"));
+                     }
+                     else
+                     {
+                         CSIO_LOG(eLogLevel_info, "Invalid Format, need a parameter 0 (disable) 1 (enable) \r\n");
+                     }
+                 }
+             }
             //8-4-2022: used for multi-streaming media stream selection
             else if (!strcmp(CmdPtr, "JNI_SELECT_VIDEO_STREAMID"))
             {
@@ -4366,12 +4443,16 @@ int csio_jni_CreatePipeline(void *obj,GstElement **pipeline, GstElement **source
             if(data->wfd_start && obj)
             {
                 data->pStreamer = obj;
-                ((CStreamer*)data->pStreamer)->m_wfdMonitorVideo = true;
+				// disable video monitoring for separate sink case since we may not get 1st frame callback event
+                ((CStreamer*)data->pStreamer)->m_wfdMonitorVideo = (data->wfd_use_sink) ? false : true;
             }//else
 
             data->element_zero = gst_element_factory_make("rtpbin", NULL);
             gst_bin_add(GST_BIN(data->pipeline), data->element_zero);
             CSIO_LOG(eLogLevel_debug, "tcpserversrc: created rtpbin[0x%x]\n", data->element_zero);
+
+            g_object_set(G_OBJECT(data->element_zero), "latency", data->wfd_source_latency, NULL);
+            CSIO_LOG(eLogLevel_debug, "Wfd_set_latency_by_the_source,set rtpbin latency: %d",data->wfd_source_latency);
 
             //1. first element: tcpserversrc to get TCP stream
             data->element_av[0] = gst_element_factory_make("tcpserversrc", NULL);
@@ -6674,6 +6755,7 @@ JNIEXPORT void JNICALL Java_com_crestron_txrxservice_GstreamIn_nativeWfdStart(JN
     }
 
     data->wfd_start = 1;
+    data->wfd_use_sink = useSeparateSinkForMiracast;
     if(msMiceSessionId > 0)
         data->wfd_is_mice_session = true;
     else
@@ -6745,6 +6827,7 @@ JNIEXPORT void JNICALL Java_com_crestron_txrxservice_GstreamIn_nativeWfdStop(JNI
             data->ssrc = 0;
             data->audiosink_ts_offset = 0;
             data->wfd_source_latency = 0;
+            data->wfd_use_sink = false;
             data->pStreamer = 0;
 
 			data->rtcp_dest_ip_addr[0] = '\0';
@@ -7239,7 +7322,7 @@ void Wfd_set_latency_by_the_source (int id, int latency)
     //Note: if the setting comes too early(we don't have pipeline yet), the value will be set into DB, and used later.
     
     //8-2-2021 we are going to set this to 200ms for all miracast
-    data->wfd_source_latency = DEFAULT_MIRACAST_LATENCY;
+    data->wfd_source_latency = (useSeparateSinkForMiracast) ? DEFAULT_MIRACAST_LATENCY_FOR_SEPARATE_SINK : DEFAULT_MIRACAST_LATENCY;
 
     //overite latency based on debug_setPipelineBuf
     if(debug_setPipelineBuf > 0 && debug_setPipelineBuf <= 2000)

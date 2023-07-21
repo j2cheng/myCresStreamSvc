@@ -6,6 +6,8 @@
 
 #ifdef HAS_V4L2
 
+extern int wcJpegPassthrough;
+
 int read_int_from_file(const char *filePath, int defaultValue);
 
 static double str2double(const char *framerate)
@@ -101,11 +103,21 @@ static bool isFormat(const char *format, const char *fourcc)
 static int isFormatRank(const char *fourcc)
 {
 	const char *formats[]={"MJPG", "NV21", "UYVY", "YUY2", "I420", "NV12", NULL};
+    const char *mjpeg_preferred_formats[]={"NV21", "UYVY", "YUY2", "I420", "NV12", "MJPG", NULL};
+
 	if (fourcc == NULL || strlen(fourcc) != 4)
 		return 0;
-	for (int i=0; formats[i]; i++) {
-		if (strcmp(fourcc, formats[i]) == 0)
-			return i+1;
+	if (!wcJpegPassthrough)
+	{
+	    for (int i=0; formats[i]; i++) {
+	        if (strcmp(fourcc, formats[i]) == 0)
+	            return i+1;
+	    }
+	} else {
+        for (int i=0; mjpeg_preferred_formats[i]; i++) {
+            if (strcmp(fourcc, mjpeg_preferred_formats[i]) == 0)
+                return i+1;
+        }
 	}
 	return 0;
 }

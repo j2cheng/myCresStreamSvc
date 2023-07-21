@@ -21,6 +21,7 @@
 #include <fcntl.h>
 #include <ctime>
 #include <unistd.h>
+#include <pthread.h>
 #include "cresStreamOutManager.h"
 #include "gst/app/gstappsrc.h"
 #include "v4l2Video.h"
@@ -33,12 +34,14 @@
 #undef CLIENT_AUTHENTICATION_ENABLED
 #undef SHOW_PEER_CERTIFICATE
 
-
 //static bool PushModel = false;
 int useUsbAudio = false;
 int videoDumpCount = 0;
 extern int gstVideoEncDumpEnable;
 extern int gstAudioEncDumpEnable;
+extern int gstAudioStatsEnable;
+extern int gstAudioStatsReset;
+extern int wcJpegPassthrough;
 const char *encoded_frame_rate = "15/1";  //default is 15 fps, update this variable for any new desired encoded fps value
 
 //#define AUDIOENC "amcaudenc-omxgoogleaacencoder"
@@ -441,6 +444,105 @@ static bool gst_rtsp_server_get_pipeline(char * pDest, int destSize)
     return false;
 }
 
+static void set_max_priority()
+{
+    pthread_t thId = pthread_self();
+    const char *wcAudioInput = "wcAudioInput";
+
+    pthread_setname_np(thId, wcAudioInput);
+
+    // Disabling since it seems we can only use policy NORMAL from CSS and min and max priorities are 0 for this policy
+    // Other policies result int error code -1 (no permission) coming from pthread_setschedparam
+    // can be done through csio if needed by sending command to csio
+#if 0
+    pthread_attr_t thAttr;
+    int policy = 0;
+    int max_prio_for_policy = 0;
+    int min_prio_for_policy = 0;
+    int rv = 0;
+    struct sched_param param;
+
+    pthread_attr_init(&thAttr);
+    pthread_attr_getschedpolicy(&thAttr, &policy);
+    CSIO_LOG(eLogLevel_debug, "Streamout: audio policy is %d  NORMAL=%d FIFO=%d RR=%d", max_prio_for_policy, SCHED_NORMAL, SCHED_FIFO, SCHED_RR);
+
+    policy = SCHED_RR;
+    min_prio_for_policy = sched_get_priority_min(policy);
+    max_prio_for_policy = sched_get_priority_max(policy);
+    CSIO_LOG(eLogLevel_debug, "Streamout: priority range is %d to %d", min_prio_for_policy, max_prio_for_policy );
+    param.sched_priority = max_prio_for_policy;
+
+    CSIO_LOG(eLogLevel_debug, "Streamout: setting policy to %d audio input thread priority to %d", policy, max_prio_for_policy);
+    rv = pthread_setschedparam(thId, policy, &param);
+    if (rv != 0)
+    {
+        CSIO_LOG(eLogLevel_debug, "Streamout: error setting policy and priority!!!! - err=%d", rv);
+    }
+    //pthread_setschedprio(thId, max_prio_for_policy);
+    pthread_attr_destroy(&thAttr);
+#endif
+#if 0
+    void csio_jni_executeRootCommand(char *command);
+    int tid = gettid();
+    char command[128]={0};
+    snprintf(command,sizeof(command),"/system/bin/busybox chrt -r -p 70 %d", tid);
+    csio_jni_executeRootCommand(command);
+#endif
+}
+
+static struct {
+    gint64 minInterval;
+    gint64 maxInterval;
+    GstClockTime totalTime;
+    unsigned int count;
+    GstClockTime prevTime;
+} audioStats = {0,0,0,0,0};
+
+static void clear_audio_stats()
+{
+    memset(&audioStats, 0, sizeof(audioStats));
+    audioStats.minInterval = 0x7fffffffffffffffLL;
+    audioStats.maxInterval = 0x0000000000000000LL;
+    CSIO_LOG(eLogLevel_debug, "Streamout: clear_audio_stats: count=%d min=%lld, max=%lld",
+                audioStats.count, audioStats.minInterval, audioStats.maxInterval);
+}
+
+static void audio_stats(int size, GstClockTime total)
+{
+    if (gstAudioStatsReset)
+    {
+        CSIO_LOG(eLogLevel_debug, "Streamout: audio_stats: resetting audio stats");
+        clear_audio_stats();
+        gstAudioStatsReset = 0;
+    }
+    bool minmax_change = false;
+    if (audioStats.prevTime == 0)
+    {
+        CSIO_LOG(eLogLevel_debug, "Streamout: audio_stats: first entry initTime = %" GST_TIME_FORMAT, GST_TIME_ARGS (total));
+        audioStats.prevTime = total;
+        set_max_priority();
+        return;
+    }
+
+    gint64 delta = (total - audioStats.prevTime);
+    audioStats.count++;
+    audioStats.prevTime = total;
+    audioStats.totalTime += delta;
+    if (delta < audioStats.minInterval)
+    {
+        minmax_change = true;
+        audioStats.minInterval = delta;
+    }
+    if (delta > audioStats.maxInterval)
+    {
+        minmax_change = true;
+        audioStats.maxInterval = delta;
+    }
+    if (minmax_change || (audioStats.count%10000 == 0))
+        CSIO_LOG(eLogLevel_debug, "Streamout: audio_stats: time=%" GST_TIME_FORMAT " count=%d delta=%lld   min=%lld, max=%lld avg=%lld",
+                GST_TIME_ARGS (total), audioStats.count, delta, audioStats.minInterval, audioStats.maxInterval, audioStats.totalTime/audioStats.count);
+}
+
 void cb_srcNeedData (GstElement *appsrc, guint unused_size, gpointer user_data)
 {
 //    CSIO_LOG(eLogLevel_verbose, "Streamout: cb_need_data...");
@@ -601,6 +703,8 @@ void get_audio_data_for_pull(CStreamoutManager *pMgr, guint size)
         CSIO_LOG(eLogLevel_error, "Streamout: pushed returned %d", (int) ret);
     }
     gst_buffer_unref(buffer);
+    if (gstAudioStatsEnable)
+        audio_stats(size, timestamp);
     CSIO_LOG(eLogLevel_verbose, "Streamout: get_audio_data_for_pull....exiting - pushed buffer of size %d", size);
 }
 
@@ -838,6 +942,7 @@ wc_media_configure (GstRTSPMediaFactory * factory, GstRTSPMedia * media,
 
 
             pMgr->m_appsrc = ele;
+            clear_audio_stats();
             g_signal_connect(ele, "need-data", G_CALLBACK(cb_wcSrcNeedData), user_data);
             g_signal_connect(ele, "enough_data", G_CALLBACK(cb_wcSrcEnoughData), user_data);
 
@@ -1489,6 +1594,44 @@ void* CStreamoutManager::ThreadEntry()
                                                              audioSource, audioenc);
                     }
                 }
+
+                if (wcJpegPassthrough && m_aacEncode)
+                {
+                    if (strcmp(m_video_caps.format,"MJPG") == 0)
+                    {
+                        snprintf(pipeline, sizeof(pipeline), "( %s ! "
+                                "%s ! "
+                                "queue name=vidQ ! "
+                                "jpegparse name = jpegparser !   "
+                                "rtpjpegpay name=pay0 pt=96 "
+                                "%s ! audioresample ! audioconvert ! queue name=audPreQ ! "
+                                "%s ! "
+                                "queue name=audPostQ ! aacparse name=aacparser ! "
+                                "%s"
+                                "rtpmp4apay name=pay1 pt=97 )",
+                                videoSource,
+                                m_caps,
+                                audioSource, audioenc, audioencdump);
+                    } 
+                    else 
+                    {
+                        snprintf(pipeline, sizeof(pipeline), "( %s ! "
+                                "%s ! "
+                                "%s"
+                                "jpegenc ! "
+                                "queue name=vidQ ! "
+                                "jpegparse name = jpegparser !   "
+                                "rtpjpegpay name=pay0 pt=96 "
+                                "%s ! audioresample ! audioconvert ! queue name=audPreQ ! "
+                                "%s ! "
+                                "queue name=audPostQ ! aacparse name=aacparser ! "
+                                "%s"
+                                "rtpmp4apay name=pay1 pt=97 )",
+                                videoSource,
+                                m_caps, m_videoframerate,
+                                audioSource, audioenc, audioencdump);
+                    }
+                }
             }
         }
         CSIO_LOG(m_debugLevel, "Streamout: rtsp server pipeline: [%s]", pipeline);
@@ -1880,7 +2023,7 @@ eWCstatus CStreamoutManager::initWcAudioVideo()
         		}
             	else
             	{
-        			snprintf(m_videoconvert, sizeof(m_videoconvert), "videoconvert ! video/x-raw,format=NV12 ! ");
+            	    snprintf(m_videoconvert, sizeof(m_videoconvert), "videoconvert ! video/x-raw,format=NV12 ! ");
         		}
         	} else {
         		// using videotestsrc
