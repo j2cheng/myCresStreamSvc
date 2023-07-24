@@ -165,6 +165,23 @@ void Streamout_SetPort(char* port)
     CSIO_LOG(StreamOutProjDebugLevel, "Streamout: Streamout_SetPort() exit.");
 }
 
+void Streamout_SetCodec(char *codec)
+{
+    CSIO_LOG(StreamOutProjDebugLevel, "Streamout: Streamout_SetCodec() enter");
+
+    gProjectsLock.lock();
+
+    if(codec)
+    {
+        CSIO_LOG(StreamOutProjDebugLevel, "Streamout: set codec to [%s].\n", codec);
+
+        StreamoutProjectSendEvent(0, STREAMOUT_EVENT_JNI_CMD_CODEC,strlen(codec), codec);
+    }
+
+    gProjectsLock.unlock();
+    CSIO_LOG(StreamOutProjDebugLevel, "Streamout: Streamout_SetCodec() exit.");
+}
+
 void Streamout_SetFrameRate(char* rate)
 {
     CSIO_LOG(StreamOutProjDebugLevel, "Streamout: Streamout_SetFrameRate() enter");
@@ -632,6 +649,7 @@ CStreamoutProject::CStreamoutProject(int iId, eStreamoutMode streamoutMode): m_p
     strcpy(m_res_x, DEFAULT_RES_X);
     strcpy(m_res_y, DEFAULT_RES_Y);
     strcpy(m_frame_rate, DEFAULT_FRAME_RATE);
+    strcpy(m_codec, DEFAULT_VIDEO_CODEC);
     strcpy(m_bit_rate, DEFAULT_BIT_RATE);
     strcpy(m_iframe_interval, DEFAULT_IFRAME_INTERVAL);
     m_quality =  DEFAULT_HIGH_QUALITY;
@@ -723,6 +741,7 @@ void CStreamoutProject::DumpClassPara(int level)
     CSIO_LOG(eLogLevel_info, "--Streamout: m_bit_rate %s", m_bit_rate);
     CSIO_LOG(eLogLevel_info, "--Streamout: m_iframe_interval %s", m_iframe_interval);
     CSIO_LOG(eLogLevel_info, "--Streamout: m_quality %d", m_quality);
+    CSIO_LOG(eLogLevel_info, "--Streamout: m_codec %s", m_codec);
     CSIO_LOG(eLogLevel_info, "--Streamout: m_hdmi_in_res_x %s", m_hdmi_in_res_x);
     CSIO_LOG(eLogLevel_info, "--Streamout: m_hdmi_in_res_y %s", m_hdmi_in_res_y);
 }
@@ -850,6 +869,7 @@ void* CStreamoutProject::ThreadEntry()
                             m_StreamoutTaskObjList[id]->setFrameRate(m_frame_rate);
                             m_StreamoutTaskObjList[id]->setBitRate(m_bit_rate);
                             m_StreamoutTaskObjList[id]->setIFrameInterval(m_iframe_interval);
+                            m_StreamoutTaskObjList[id]->setCodec(m_codec);
                             m_StreamoutTaskObjList[id]->setQuality(m_quality);
                             m_StreamoutTaskObjList[id]->setHDMIInResX(m_hdmi_in_res_x);
                             m_StreamoutTaskObjList[id]->setHDMIInResY(m_hdmi_in_res_y);
@@ -921,6 +941,27 @@ void* CStreamoutProject::ThreadEntry()
                     }
 
                     CSIO_LOG(m_debugLevel, "Streamout: STREAMOUT_EVENT_JNI_CMD_PORT done.");
+                    break;
+                }
+                case STREAMOUT_EVENT_JNI_CMD_CODEC:
+                {
+                    int id = evntQ.streamout_obj_id;
+                    if( evntQ.buf_size && evntQ.buffPtr)
+                    {
+                        CSIO_LOG(m_debugLevel, "Streamout: call setCodec streamId[%d],codec[%s]",
+                                 id,evntQ.buffPtr);
+
+                        //save for this project
+                        strcpy(m_codec, (char*)evntQ.buffPtr);
+
+                        m_projEventQ->del_Q_buf(evntQ.buffPtr);
+                    }
+                    else
+                    {
+                        CSIO_LOG(m_debugLevel, "Streamout: streamId[%d],codec string is null",id);
+                    }
+
+                    CSIO_LOG(m_debugLevel, "Streamout: STREAMOUT_EVENT_JNI_CMD_CODEC done.");
                     break;
                 }
                 case STREAMOUT_EVENT_JNI_CMD_RES_X:
@@ -1295,11 +1336,13 @@ void* CStreamoutProject::ThreadEntry()
 								
 									//init default variables
 									m_StreamoutTaskObjList[id]->setPort(m_rtsp_port);
+                                    m_StreamoutTaskObjList[id]->setFrameRate(m_codec);
 									m_StreamoutTaskObjList[id]->setResX(m_res_x);
 									m_StreamoutTaskObjList[id]->setResY(m_res_y);
 									m_StreamoutTaskObjList[id]->setFrameRate(m_frame_rate);
 									m_StreamoutTaskObjList[id]->setBitRate(m_bit_rate);
 									m_StreamoutTaskObjList[id]->setIFrameInterval(m_iframe_interval);
+		                            m_StreamoutTaskObjList[id]->setCodec(m_codec);
 									m_StreamoutTaskObjList[id]->setQuality(m_quality);
 									m_StreamoutTaskObjList[id]->setHDMIInResX(m_hdmi_in_res_x);
 									m_StreamoutTaskObjList[id]->setHDMIInResY(m_hdmi_in_res_y);
@@ -1542,6 +1585,7 @@ void CStreamoutProject::sendEvent(EventQueueStruct* pEvntQ)
 				case STREAMOUT_EVENT_JNI_CMD_MULTICAST_ADDRESS:
 				case STREAMOUT_EVENT_JNI_CMD_STREAM_NAME:
 				case STREAMOUT_EVENT_JNI_CMD_SNAPSHOT_NAME:
+                case STREAMOUT_EVENT_JNI_CMD_CODEC:
 				case STREAMOUT_EVENT_JNI_CMD_VIDEO_CAPTURE_DEVICE:
 				case STREAMOUT_EVENT_JNI_CMD_AUDIO_CAPTURE_DEVICE:
                 case STREAMOUT_EVENT_JNI_CMD_HDMI_IN_RES_X:

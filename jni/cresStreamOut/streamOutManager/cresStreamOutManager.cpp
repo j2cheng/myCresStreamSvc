@@ -41,7 +41,6 @@ extern int gstVideoEncDumpEnable;
 extern int gstAudioEncDumpEnable;
 extern int gstAudioStatsEnable;
 extern int gstAudioStatsReset;
-extern int wcJpegPassthrough;
 const char *encoded_frame_rate = "15/1";  //default is 15 fps, update this variable for any new desired encoded fps value
 
 //#define AUDIOENC "amcaudenc-omxgoogleaacencoder"
@@ -75,6 +74,8 @@ static void cb_queueOverruns(void *queue, gpointer user_data);
 static void cb_queueUnderruns(void *queue, gpointer user_data);
 static void cb_vidEncQueueOverruns(void *queue, gpointer user_data);
 static void cb_vidEncQueueUnderruns(void *queue, gpointer user_data);
+
+static bool jpegPassthrough = false;
 
 int read_int_from_file(const char *filePath, int defaultValue)
 {
@@ -753,9 +754,11 @@ static GstPadProbeReturn cb_dump_enc_data (
         // increase the decoded frame counter 
         cresRTSPMedia->currEncFrameCount++;
         if( (cresRTSPMedia->currEncFrameCount % 512)  == 0) // 15 fps - log once in ~30 seconds 
-            CSIO_LOG(eLogLevel_debug, "Streamout: Frames Encoded %lld", cresRTSPMedia->currEncFrameCount);
+            CSIO_LOG(eLogLevel_debug, "Streamout: Video Frames Processed %lld", cresRTSPMedia->currEncFrameCount);
     }
 
+    if (jpegPassthrough)
+        return GST_PAD_PROBE_OK;
 
     if( gstVideoEncDumpEnable == 1 )
     {
@@ -952,6 +955,18 @@ wc_media_configure (GstRTSPMediaFactory * factory, GstRTSPMedia * media,
 
     if (pMgr->m_videoStream)
     {
+        ele = gst_bin_get_by_name_recurse_up(GST_BIN (element), "v4l2src");
+        if (ele)
+        {
+            CSIO_LOG(eLogLevel_info, "Streamout: v4l2src is-live: %d", gst_base_src_is_live((GstBaseSrc *) ele));
+            if (!gst_base_src_is_live((GstBaseSrc *) ele))
+            {
+                gst_base_src_set_live ((GstBaseSrc *) ele, true);
+                CSIO_LOG(eLogLevel_info, "Streamout: v4l2src after forcing to true is-live: %d", gst_base_src_is_live((GstBaseSrc *) ele));
+            }
+
+            gst_object_unref(ele);
+        }
         ele = gst_bin_get_by_name_recurse_up(GST_BIN (element), "vidPreQ");
         if (ele)
         {
@@ -976,18 +991,17 @@ wc_media_configure (GstRTSPMediaFactory * factory, GstRTSPMedia * media,
 
             gst_object_unref(ele);
         }
-        ele = gst_bin_get_by_name_recurse_up(GST_BIN (element), "h264parser" );
+        const char *parser = (jpegPassthrough) ? "jpegparser" : "h264parser";
+        ele = gst_bin_get_by_name_recurse_up(GST_BIN (element), parser );
         if( ele )
         {
             GstPad *srcpad;
-            CSIO_LOG(eLogLevel_info, "Streamout: Adding data probe on source pad of h264parser ");
+            CSIO_LOG(eLogLevel_info, "Streamout: Adding data probe on source pad of %s ", parser);
             videoDumpCount = 0;
             srcpad = gst_element_get_static_pad (ele, "src");
             gst_pad_add_probe (srcpad, GST_PAD_PROBE_TYPE_BUFFER,
                     (GstPadProbeCallback) cb_dump_enc_data, media, NULL);
             gst_object_unref (srcpad);
-
-
         }
     }
     if (pMgr->m_audioStream) {
@@ -1209,6 +1223,7 @@ void CStreamoutManager::DumpClassPara(int level)
     CSIO_LOG(eLogLevel_info, "---Streamout: m_res_y %s", m_res_y);
     CSIO_LOG(eLogLevel_info, "---Streamout: m_frame_rate %s", m_frame_rate);
 
+    CSIO_LOG(eLogLevel_info, "---Streamout: m_codec %s", m_codec);
     CSIO_LOG(eLogLevel_info, "---Streamout: m_bit_rate %s", m_bit_rate);
     CSIO_LOG(eLogLevel_info, "---Streamout: m_iframe_interval %s", m_iframe_interval);
     CSIO_LOG(eLogLevel_info, "---Streamout: m_quality %d", m_quality);
@@ -1595,7 +1610,7 @@ void* CStreamoutManager::ThreadEntry()
                     }
                 }
 
-                if (wcJpegPassthrough && m_aacEncode)
+                if (jpegPassthrough && m_aacEncode)
                 {
                     if (strcmp(m_video_caps.format,"MJPG") == 0)
                     {
@@ -1986,6 +2001,8 @@ eWCstatus CStreamoutManager::initWcAudioVideo()
     		m_videoStream = true;
     	if (strcasecmp(m_audio_capture_device, "none") != 0)
     		m_audioStream = true;
+        jpegPassthrough = (strcasecmp(m_codec, "MJPG") == 0);
+        CSIO_LOG(eLogLevel_info, "--Streamout - codec=%s jpegPassthrough=%d", m_codec, jpegPassthrough);
         m_aacEncode = true;
 
         if (m_videoStream) {
@@ -1997,7 +2014,7 @@ eWCstatus CStreamoutManager::initWcAudioVideo()
         	if (strcmp(m_video_capture_device, "videotestsrc") != 0)
         	{
         	    if (!get_video_caps(m_video_capture_device, &m_video_caps, m_device_display_name, sizeof(m_device_display_name), m_quality,
-        	            framerate, m_hdmi_in_res_x, m_hdmi_in_res_y))
+        	            m_codec, framerate, m_hdmi_in_res_x, m_hdmi_in_res_y))
         		{
         			if (get_video_caps_string(&m_video_caps, m_caps, sizeof(m_caps)) < 0)
         			{

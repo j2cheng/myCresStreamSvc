@@ -197,6 +197,7 @@ public class WC_Service {
             	mStatus = new WC_Status(false, false, mCurrentId, clientId, options.nickname, options.flags);
             	updateUsbDeviceStatus(mUsbAvDeviceList);
             	// server start will communicate via callback onStatusChanged once it has been started
+            	mStreamCtrl.setWcOwner(mCurrentUser);
                 mStreamCtrl.setWirelessConferencingStreamEnable(true);
 
                 mSessionFlags = options.flags;

@@ -6389,6 +6389,11 @@ public class CresStreamCtrl extends Service {
         }
     }
     
+    public void setWcOwner(String owner)
+    {
+        gstStreamOut.setWcOwner(owner);
+    }
+    
     public void setWirelessConferencingStreamEnable(boolean enable) 
     {
         Log.i(TAG, "entered setWirelessConferencingStreamEnable() - enable="+enable);
@@ -6416,6 +6421,7 @@ public class CresStreamCtrl extends Service {
                     if (gstStreamOut.wcStarted()) {
                         //stop streamout
                         gstStreamOut.wirelessConferencing_stop();
+                        gstStreamOut.setWcOwner("");
                     } else {
                         Log.w(TAG, "setWirelessConferencingStreamEnable(): already stopped!!!");
                     }

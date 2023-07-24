@@ -6,7 +6,6 @@
 
 #ifdef HAS_V4L2
 
-extern int wcJpegPassthrough;
 
 int read_int_from_file(const char *filePath, int defaultValue);
 
@@ -100,14 +99,14 @@ static bool isFormat(const char *format, const char *fourcc)
 	return (!strcmp(format, fourcc));
 }
 
-static int isFormatRank(const char *fourcc)
+static int isFormatRank(const char *fourcc, const char *codec)
 {
 	const char *formats[]={"MJPG", "NV21", "UYVY", "YUY2", "I420", "NV12", NULL};
     const char *mjpeg_preferred_formats[]={"NV21", "UYVY", "YUY2", "I420", "NV12", "MJPG", NULL};
 
 	if (fourcc == NULL || strlen(fourcc) != 4)
 		return 0;
-	if (!wcJpegPassthrough)
+	if (!strcasecmp(codec,"MJPG"))
 	{
 	    for (int i=0; formats[i]; i++) {
 	        if (strcmp(fourcc, formats[i]) == 0)
@@ -123,7 +122,7 @@ static int isFormatRank(const char *fourcc)
 }
 
 static void
-get_video_caps_from_caps(GstCaps *caps, double min_frame_rate, VideoCaps *video_caps, int quality )
+get_video_caps_from_caps(GstCaps *caps, double min_frame_rate, VideoCaps *video_caps, int quality, const char *codec)
 {
     int maxw = 0, maxh = 0;
     int max_frmrate_num = 0;
@@ -226,10 +225,12 @@ get_video_caps_from_caps(GstCaps *caps, double min_frame_rate, VideoCaps *video_
                 // if the current caps resolution is lesser than the required resolution then consider
                 if ( (maxw * maxh ) <= width*height && ((width*height ) <= videoResolutionClamp) )
                 {
-                    CSIO_LOG(eLogLevel_info, "cur: fmt=%s w=%d h=%d frnum=%d frden=%d rank=%d\n", fmt, maxw, maxh, max_frmrate_num,max_frmrate_den, isFormatRank(fmt));
-                    CSIO_LOG(eLogLevel_info, "new: fmt=%s w=%d h=%d frnum=%d frden=%d rank=%d\n", format, width, height, max_fr_num,max_fr_den, isFormatRank(format));
+                    CSIO_LOG(eLogLevel_info, "cur: fmt=%s w=%d h=%d frnum=%d frden=%d rank=%d\n", fmt, maxw, maxh,
+                            max_frmrate_num,max_frmrate_den, isFormatRank(fmt, codec));
+                    CSIO_LOG(eLogLevel_info, "new: fmt=%s w=%d h=%d frnum=%d frden=%d rank=%d\n", format, width, height,
+                            max_fr_num,max_fr_den, isFormatRank(format, codec));
                     // check if the format is better, in order to avoid video conversion later
-                    if( (maxw*maxh < width*height) || (isFormatRank(fmt) < isFormatRank(format)) )
+                    if( (maxw*maxh < width*height) || (isFormatRank(fmt, codec) < isFormatRank(format, codec)) )
                     {
                         strcpy(fmt, format);
                         maxw = width;
@@ -277,7 +278,7 @@ get_video_caps_from_caps(GstCaps *caps, double min_frame_rate, VideoCaps *video_
 
 }
 
-int get_video_caps(char *device_name, VideoCaps *video_caps, char *display_name, int display_name_len, int quality,
+int get_video_caps(char *device_name, VideoCaps *video_caps, char *display_name, int display_name_len, int quality, const char *codec,
         const char *capture_rate, char *m_hdmi_in_res_x, char *m_hdmi_in_res_y)
 {
 	int rv= -1;
@@ -382,7 +383,7 @@ int get_video_caps(char *device_name, VideoCaps *video_caps, char *display_name,
                 	CSIO_LOG(eLogLevel_error, "Could not get caps for device\n");
                 } else {
                     double min_frame_rate = str2double(capture_rate);
-                    get_video_caps_from_caps(caps, min_frame_rate, video_caps, quality);
+                    get_video_caps_from_caps(caps, min_frame_rate, video_caps, quality, codec);
                     rv = 0;
                 }
                 gst_caps_unref(caps);
@@ -417,7 +418,7 @@ int get_video_caps_string(VideoCaps *video_caps, char *caps, int maxlen)
 		return -1;
 }
 #else    // HAS_V4L2
-int get_video_caps(char *device_name, VideoCaps *video_caps, char *display_name, int display_name_len, int quality,
+int get_video_caps(char *device_name, VideoCaps *video_caps, char *display_name, int display_name_len, int quality, const char *codec
         const char *capture_rate, char *m_hdmi_in_res_x, char *m_hdmi_in_res_y)
 {
     video_caps->w = 0;

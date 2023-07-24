@@ -11,6 +11,7 @@
 #define DEFAULT_BIT_RATE        "4194304"    // 4Mbps = 4,194,304 bps
 #define DEFAULT_IFRAME_INTERVAL "15"          // 1 second
 #define DEFAULT_QUALITY     "0"    // Default zero is High 
+#define DEFAULT_VIDEO_CODEC "H264"
 #define DEFAULT_HIGH_QUALITY 0
 #define DEFAULT_HDMI_IN_RES_X     "1920"
 #define DEFAULT_HDMI_IN_RES_y     "1080"

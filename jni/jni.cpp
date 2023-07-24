@@ -2442,7 +2442,7 @@ JNIEXPORT void JNICALL Java_com_crestron_txrxservice_GstreamIn_nativeSetFieldDeb
                 char *hdmi_in_res_y = "1080";
 
                 //sending hdmi resolution as 1920, 1080
-                get_video_caps(v4l2Device, &videoCaps, display_name, sizeof(display_name), 0, "15/1", hdmi_in_res_x, hdmi_in_res_y);  //Sending "0" which corresponds to high quality by default
+                get_video_caps(v4l2Device, &videoCaps, display_name, sizeof(display_name), 0, "H264", "15/1", hdmi_in_res_x, hdmi_in_res_y);  //Sending "0" which corresponds to high quality by default
                 CSIO_LOG(eLogLevel_info, "%s: name=%s format=%s w=%d h=%d frame_rate=%d/%d", v4l2Device, display_name,
                 		videoCaps.format, videoCaps.w, videoCaps.h, videoCaps.frame_rate_num, videoCaps.frame_rate_den);
                 if (get_video_caps_string(&videoCaps, caps, sizeof(caps)) == 0)
@@ -6220,6 +6220,36 @@ JNIEXPORT void JNICALL Java_com_crestron_txrxservice_GstreamOut_nativeSetAudioCa
 	env->ReleaseStringUTFChars(device_jstring, device_cstring);
 }
 
+JNIEXPORT void JNICALL Java_com_crestron_txrxservice_GstreamOut_nativeSetCodec(JNIEnv *env, jobject thiz, jstring owner_jstring, jint sessionId)
+{
+    if (!CresStreamOutDataDB)
+    {
+        CSIO_LOG(eLogLevel_info, "%s: cannot set value, CresStreamOutDataDB is null", __FUNCTION__);
+        return;
+    }
+    const char * owner_cstring = env->GetStringUTFChars( owner_jstring , NULL ) ;
+    if (owner_cstring == NULL) return;
+
+    CSIO_LOG(eLogLevel_debug, "rtsp_server: wc owner: '%s'", (strcmp(owner_cstring,"")==0)?"telnet":owner_cstring);
+    const char *codec = "H264";
+    if (strcasecmp(owner_cstring,"AirMedia") == 0)
+    {
+        codec = "H264";
+    }
+    else if (strcasecmp(owner_cstring,"IrisTx3") == 0)
+    {
+        codec = (wcJpegPassthrough) ? "MJPG" : "H264";
+    }
+    else
+    {
+        codec = (wcJpegPassthrough) ? "MJPG" : "H264";
+    }
+    CSIO_LOG(eLogLevel_debug, "rtsp_server: wc codec set to: '%s'", codec);
+    Streamout_SetCodec((char *)codec);
+
+    env->ReleaseStringUTFChars(owner_jstring, owner_cstring);
+}
+
 JNIEXPORT int JNICALL Java_com_crestron_txrxservice_GstreamOut_nativeGetVideoFormat(JNIEnv *env, jobject thiz, jstring device_jstring, jobject format, jint quality, 
                                 jstring hdmi_in_res_x, jstring hdmi_in_res_y)
 {
@@ -6239,8 +6269,9 @@ JNIEXPORT int JNICALL Java_com_crestron_txrxservice_GstreamOut_nativeGetVideoFor
     VideoCaps videoCaps;
     char display_name[256];
     const char *min_capture_rate="15/1";
+    const char *codec = "H264";
     rtn = get_video_caps((char *)device_cstring, &videoCaps, display_name, sizeof(display_name), quality,
-            min_capture_rate, (char *)phdmi_in_res_x, (char *)phdmi_in_res_y);
+            codec, min_capture_rate, (char *)phdmi_in_res_x, (char *)phdmi_in_res_y);
     CSIO_LOG(eLogLevel_info, "%s: name=%s format=%s w=%d h=%d frame_rate=%d/%d", device_cstring, display_name,
             videoCaps.format, videoCaps.w, videoCaps.h, videoCaps.frame_rate_num, videoCaps.frame_rate_den);
 

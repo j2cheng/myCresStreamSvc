@@ -82,6 +82,7 @@ public class GstreamOut {
     private native void nativeSetHostName(String hostName);
     private native void nativeSetDomainName(String domainName);
     private native void nativeSetServerIpAddress(String ipAddr);
+    private native void nativeSetCodec(String owner, int sessionId);
     private native void nativeSetVideoCaptureDevice(String device);
     private native void nativeSetAudioCaptureDevice(String device);
     private native int nativeGetVideoFormat(String videoFile, WC_VideoFormat format, int quality, String hdmi_in_res_x, String hdmi_in_res_y);
@@ -103,6 +104,7 @@ public class GstreamOut {
     private boolean previewActive = false;
     private boolean resReleased = true;   // default need to be true
     private boolean wirelessConferencing_server_started = false;
+    private String wcOwner = "";
     private String wcServerUrl = null;
     private String appCacheFolder = null;
     private CountDownLatch wcCertificateGenerationCompletedLatch = null;
@@ -277,6 +279,11 @@ public class GstreamOut {
         Log.i(TAG, "Streamout: JAVA - WirelessConferencing_start() exit" );
     }
 
+    public void setWcOwner(String owner)
+    {
+        wcOwner = owner;
+    }
+    
     public void wirelessConferencing_stop() {
         Log.i(TAG, "Streamout: JAVA - wirelessConferencing_stop() entered" );
         if (wirelessConferencing_server_started)
@@ -347,7 +354,8 @@ public class GstreamOut {
             setWirelessConferencingResolution(10);
             setFramerate(15);
             setBitrate(4000000);
-            setIFrameInterval(1);        
+            setIFrameInterval(1);
+            setCodec(wcOwner);
             setQuality(streamCtl.userSettings.getAirMediaWCQuality());
         } else {
             // aes67 mode
@@ -630,6 +638,11 @@ public class GstreamOut {
         nativeSet_Quality(quality, sessionId);
     }
 
+    public void setCodec(String owner)
+    {
+        nativeSetCodec(owner, sessionId);
+    }
+    
     public void setHDMIInResolution(int xRes, int yRes) {
         nativeSet_HDMIInResolution_x(xRes, sessionId);
         nativeSet_HDMIInResolution_y(yRes, sessionId);
@@ -793,12 +806,12 @@ public class GstreamOut {
         streamCtl.sockTask.SendDataToAllClients("CAMERA_STREAMING_ENABLE=false");           
     }
         
-    public void recoverWCStreamOut()
-    {
-		Log.i(TAG, "Wireless Conferencing recovery.");
-		streamCtl.setWirelessConferencingStreamEnable(false);
-		streamCtl.setWirelessConferencingStreamEnable(true);
-    }
+//    public void recoverWCStreamOut()
+//    {
+//		Log.i(TAG, "Wireless Conferencing recovery.");
+//		streamCtl.setWirelessConferencingStreamEnable(false);
+//		streamCtl.setWirelessConferencingStreamEnable(true);
+//    }
     
 ///////////////////////////////////////////////////////////////////////////////
     

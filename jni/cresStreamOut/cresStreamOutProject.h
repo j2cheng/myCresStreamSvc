@@ -49,6 +49,7 @@ public:
     CStreamCamera *m_cameraobj;
 
     char m_rtsp_port[MAX_STR_LEN];
+    char m_codec[MAX_STR_LEN];
     char m_frame_rate[MAX_STR_LEN];
     char m_res_x[MAX_STR_LEN];
     char m_res_y[MAX_STR_LEN];

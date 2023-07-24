@@ -177,6 +177,14 @@ JNIEXPORT void JNICALL Java_com_crestron_txrxservice_GstreamOut_nativeSetServerI
 
 /*
  * Class:     com_crestron_txrxservice_GstreamOut
+ * Method:    nativeSetCodec
+ * Signature: (Ljava/lang/String;I)V
+ */
+JNIEXPORT void JNICALL Java_com_crestron_txrxservice_GstreamOut_nativeSetCodec
+  (JNIEnv *, jobject, jstring, jint);
+
+/*
+ * Class:     com_crestron_txrxservice_GstreamOut
  * Method:    nativeSetVideoCaptureDevice
  * Signature: (Ljava/lang/String;)V
  */

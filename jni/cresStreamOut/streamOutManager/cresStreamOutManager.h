@@ -110,6 +110,7 @@ public:
     GMainLoop * getMainLoop(){return m_loop;}
 
     char m_rtsp_port[MAX_STR_LEN];
+    char m_codec[MAX_STR_LEN];
     char m_frame_rate[MAX_STR_LEN];
     char m_res_x[MAX_STR_LEN];
     char m_res_y[MAX_STR_LEN];
@@ -156,6 +157,7 @@ public:
     void setFrameRate(char* r){strcpy(m_frame_rate, r);}
     void setBitRate(char* b){strcpy(m_bit_rate, b);}
     void setIFrameInterval(char* i){strcpy(m_iframe_interval, i);}
+    void setCodec(char* c){strcpy(m_codec, c);}
     void setQuality(int i){m_quality = i;}
     void setHDMIInResX(char* x){strcpy(m_hdmi_in_res_x, x);}
     void setHDMIInResY(char* y){strcpy(m_hdmi_in_res_y, y);}
