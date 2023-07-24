@@ -357,9 +357,12 @@ public class SessionManager
         		Common.Logging.i(TAG,"clearAllSessions() stopping session:"+session.sessionId());
         		session.stop(new Originator(RequestOrigin.Error));
         		Common.Logging.i(TAG,"clearAllSessions() stopped session:"+session.sessionId());
-        		Common.Logging.i(TAG,"clearAllSessions() disconnecting session:"+session.sessionId());
-            	session.disconnect(new Originator(RequestOrigin.Error));
-        		Common.Logging.i(TAG,"clearAllSessions() disconnected session:"+session.sessionId());
+        		if (session.state != SessionState.Disconnecting)
+        		{
+        		    Common.Logging.i(TAG,"clearAllSessions() disconnecting session:"+session.sessionId());
+        		    session.disconnect(new Originator(RequestOrigin.Error));
+        		    Common.Logging.i(TAG,"clearAllSessions() disconnected session:"+session.sessionId());
+        		}
             }
             else // AirMedia Sessions should have gone away due to receiver crash except Miracast on AM3K
             {
