@@ -1513,140 +1513,81 @@ void* CStreamoutManager::ThreadEntry()
             else
             {
                 CSIO_LOG(eLogLevel_error, "Streamout: m_videoStream=%d m_audioStream=%d", m_videoStream, m_audioStream);
-
-                if (m_videoStream && !m_audioStream) {
-                    snprintf(pipeline, sizeof(pipeline), "( %s ! "
-                                                         "%s ! "
-                                                         "%s"
-                                                         "%s"
-                                                         "queue name = vidPreQ ! "
-                                                         "%s bitrate=%s i-frame-interval=%s ! "
-                                                         "queue name=vidPostQ ! "
-                                                         "h264parse name = h264parser ! "
-                                                         "rtph264pay name=pay0 pt=96 config-interval=-1 )",
-                                                         videoSource,
-                                                         m_caps, m_videoframerate,
-                                                         m_videoconvert,
-                                                         product_info()->H264_encoder_string,
-                                                         m_bit_rate, m_iframe_interval);
-                }
-
-                // for audio when we push have queues before and after enc, but pull model will not work like that so no queues
-                char audioenc[128];
-                char audioencdump[1024]={0};
-                const char *audioEncoderName = (m_aacEncode) ? AUDIOENC : "alawenc";
-                snprintf(audioenc, sizeof(audioenc), "%s", audioEncoderName);
-                if (gstAudioEncDumpEnable)
+                char video_pipeline[1024]={0};
+                char audio_pipeline[1024]={0};
+                if (m_videoStream)
                 {
-                    const char *format = "tee name=atee "
-                            "atee. ! queue ! mp4mux faststart=true faststart-file=/sdcard/ROMDISK/logs/faststart fragment-duration=5000 ! filesink location=%s "
-                            "atee. ! queue ! ";
-                    snprintf(audioencdump, sizeof(audioencdump), format, AUDIO_DUMP_FILE);
-                }
-
-                if (m_videoStream && m_audioStream) {
-                    // audPreQ s required before the encoder. This fixed the lipsync issue which was seen with Logitech Brio/930 camera.
-                    if (m_aacEncode) {
-                        snprintf(pipeline, sizeof(pipeline), "( %s ! "
-                                                             "%s ! "
-                                                             "%s"
-                                                             "%s"
-                                                             "queue name=vidPreQ ! "
-                                                             "%s bitrate=%s i-frame-interval=%s ! "
-                                                             "queue name=vidPostQ ! "
-                                                             "h264parse name = h264parser !   "
-                                                             "rtph264pay name=pay0 pt=96 config-interval=-1 "
-                                                             "%s ! audioresample ! audioconvert ! queue name=audPreQ ! "
-                                                             "%s ! "
-                                                             "queue name=audPostQ ! aacparse name=aacparser ! "
-                                                             "%s"
-                                                             "rtpmp4apay name=pay1 pt=97 )",
-                                                             videoSource,
-                                                             m_caps, m_videoframerate, m_videoconvert,
-                                                             product_info()->H264_encoder_string,
-                                                             m_bit_rate, m_iframe_interval,
-                                                             audioSource, audioenc, audioencdump);
-                    } else {
-                        snprintf(pipeline, sizeof(pipeline), "( %s ! "
-                                                             "%s ! "
-                                                             "%s"
-                                                             "%s"
-                                                             "queue name=vidPreQ ! "
-                                                             "%s bitrate=%s i-frame-interval=%s ! "
-                                                             "queue name=vidPostQ ! "
-                                                             "h264parse name = h264parser ! "
-                                                             "rtph264pay name=pay0 pt=96 config-interval=-1 "
-                                                             "%s ! audioresample ! audioconvert ! audio/x-raw,rate=8000 ! queue name=audPreQ ! "
-                                                             "%s ! "
-                                                             "queue name=audPostQ ! "
-                                                             "rtppcmapay name=pay1 pt=97 )",
-                                                             videoSource,
-                                                             m_caps, m_videoframerate ,
-                                                             m_videoconvert,
-                                                             product_info()->H264_encoder_string,
-                                                             m_bit_rate, m_iframe_interval,
-                                                             audioSource, audioenc);
+                    if (!jpegPassthrough)
+                    {
+                        snprintf(video_pipeline, sizeof(video_pipeline),
+                                "%s ! %s ! %s"
+                                "%s"
+                                "queue name = vidPreQ ! "
+                                "%s bitrate=%s i-frame-interval=%s ! "
+                                "queue name=vidPostQ ! "
+                                "h264parse name = h264parser ! "
+                                "rtph264pay name=pay0 pt=96 config-interval=-1",
+                                videoSource, m_caps, m_videoframerate,
+                                m_videoconvert,
+                                product_info()->H264_encoder_string,
+                                m_bit_rate, m_iframe_interval);
+                    }
+                    else
+                    {
+                        const char *jpegenc=(strcmp(m_video_caps.format,"MJPG") == 0)?"":"queue name=vidPreQ ! jpegenc ! ";
+                        snprintf(video_pipeline, sizeof(video_pipeline),
+                                "%s ! %s ! %s"
+                                "%s"
+                                "queue name=vidPostQ ! "
+                                "jpegparse name = jpegparser ! "
+                                "rtpjpegpay name=pay0 pt=96",
+                                videoSource, m_caps, m_videoframerate,
+                                jpegenc);
                     }
                 }
-                if (!m_videoStream && m_audioStream)
+
+                if (m_audioStream)
                 {
+                    // for audio when we push have queues before and after enc, but pull model will not work like that so no queues
+                    char audioenc[128];
+                    char audioencdump[1024]={0};
+                    const char *audioEncoderName = (m_aacEncode) ? AUDIOENC : "alawenc";
+                    snprintf(audioenc, sizeof(audioenc), "%s", audioEncoderName);
+                    if (gstAudioEncDumpEnable)
+                    {
+                        const char *format = "tee name=atee "
+                                "atee. ! queue ! mp4mux faststart=true faststart-file=/sdcard/ROMDISK/logs/faststart fragment-duration=5000 ! filesink location=%s "
+                                "atee. ! queue ! ";
+                        snprintf(audioencdump, sizeof(audioencdump), format, AUDIO_DUMP_FILE);
+                    }
+                    int payno = (m_videoStream) ? 1: 0;
+
                     if (m_aacEncode) {
-                        snprintf(pipeline, sizeof(pipeline), "( %s ! audioresample ! audioconvert ! "
-                                                             "%s ! "
-                                                             "queue name=audPostQ ! aacparse name=aacparser ! "
-                                                             "%s"
-                                                             "rtpmp4apay name=pay0 pt=97 )",
-                                                             audioSource, audioenc, audioencdump);
+                        // audPreQ s required before the encoder. This fixed the lipsync issue which was seen with Logitech Brio/930 camera.
+                        snprintf(audio_pipeline, sizeof(audio_pipeline),
+                                "%s ! audioresample ! audioconvert ! queue name=audPreQ ! "
+                                "%s ! "
+                                "queue name=audPostQ ! aacparse name=aacparser ! "
+                                "%s"
+                                "rtpmp4apay name=pay%d pt=97",
+                                audioSource, audioenc, audioencdump, payno);
                     } else if (m_aes67Mode) {
-                        snprintf(pipeline, sizeof(pipeline), "( %s ! audioresample ! audioconvert ! "
-                                                             "%s ! "
-                                                             "rtpL24pay max-ptime=1000000 min-ptime=1000000 name=pay0 pt=97 )",
-                                                             audioSource, "audio/x-raw, format=S24BE, rate=48000, channels=2");
+                        snprintf(audio_pipeline, sizeof(audio_pipeline),
+                                "%s ! audioresample ! audioconvert ! "
+                                "%s ! "
+                                "rtpL24pay max-ptime=1000000 min-ptime=1000000 name=pay%d pt=97",
+                                audioSource, "audio/x-raw, format=S24BE, rate=48000, channels=2", payno);
                     } else {
-                        snprintf(pipeline, sizeof(pipeline), "( %s ! audioresample ! audioconvert ! audio/x-raw,rate=8000 ! queue name=audPreQ ! "
-                                                             "%s ! "
-                                                             "rtppcmapay name=pay0 pt=97 )",
-                                                             audioSource, audioenc);
+                        snprintf(audio_pipeline, sizeof(audio_pipeline),
+                                "%s ! audioresample ! audioconvert ! audio/x-raw,rate=8000 ! queue name=audPreQ ! "
+                                "%s ! "
+                                "rtppcmapay name=pay%d pt=97",
+                                audioSource, audioenc, payno);
                     }
                 }
-
-                if (jpegPassthrough && m_aacEncode)
-                {
-                    if (strcmp(m_video_caps.format,"MJPG") == 0)
-                    {
-                        snprintf(pipeline, sizeof(pipeline), "( %s ! "
-                                "%s ! "
-                                "queue name=vidQ ! "
-                                "jpegparse name = jpegparser !   "
-                                "rtpjpegpay name=pay0 pt=96 "
-                                "%s ! audioresample ! audioconvert ! queue name=audPreQ ! "
-                                "%s ! "
-                                "queue name=audPostQ ! aacparse name=aacparser ! "
-                                "%s"
-                                "rtpmp4apay name=pay1 pt=97 )",
-                                videoSource,
-                                m_caps,
-                                audioSource, audioenc, audioencdump);
-                    } 
-                    else 
-                    {
-                        snprintf(pipeline, sizeof(pipeline), "( %s ! "
-                                "%s ! "
-                                "%s"
-                                "jpegenc ! "
-                                "queue name=vidQ ! "
-                                "jpegparse name = jpegparser !   "
-                                "rtpjpegpay name=pay0 pt=96 "
-                                "%s ! audioresample ! audioconvert ! queue name=audPreQ ! "
-                                "%s ! "
-                                "queue name=audPostQ ! aacparse name=aacparser ! "
-                                "%s"
-                                "rtpmp4apay name=pay1 pt=97 )",
-                                videoSource,
-                                m_caps, m_videoframerate,
-                                audioSource, audioenc, audioencdump);
-                    }
-                }
+                //CSIO_LOG(m_debugLevel, "Streamout: rtsp server video pipeline: %s", video_pipeline);
+                //CSIO_LOG(m_debugLevel, "Streamout: rtsp server audio pipeline: %s", audio_pipeline);
+                snprintf(pipeline, sizeof(pipeline), "( %s %s )", video_pipeline, audio_pipeline);
             }
         }
         CSIO_LOG(m_debugLevel, "Streamout: rtsp server pipeline: [%s]", pipeline);
