@@ -2907,6 +2907,31 @@ JNIEXPORT void JNICALL Java_com_crestron_txrxservice_GstreamIn_nativeSetFieldDeb
                     }
                 }
             }
+            else if (!strcmp(CmdPtr, "INSPECT_ELEMENT"))
+            {
+                CmdPtr = strtok(NULL, ", ");
+                if (CmdPtr == NULL)
+                {
+                    CSIO_LOG(eLogLevel_info, "Invalid Format, need element's name\r\n");
+                }
+                else
+                {
+                    CSIO_LOG(eLogLevel_info, "looking for element: %s\r\n",CmdPtr);
+
+                    GstElement *ele = gst_element_factory_make(CmdPtr, NULL);
+                    if (ele)
+                    {
+                        gst_element_print_properties(ele);
+
+                        gst_object_unref(ele);
+                    }
+                    else
+                    {
+                        CSIO_LOG(eLogLevel_info, "element not exist.\r\n");
+                    }
+                    
+                }
+            }
             else
             {
                 CSIO_LOG(eLogLevel_info, "Invalid command:%s\r\n",CmdPtr);
