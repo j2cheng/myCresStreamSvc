@@ -352,7 +352,7 @@ public class GstreamOut {
                 generateRtspServerCertificates();
             setWcRandomUserPwEnable(streamCtl.userSettings.getWcRandomUserPwEnable());
             setWirelessConferencingResolution(10);
-            setFramerate(15);
+            setFramerate(wcOwner.equalsIgnoreCase("iristx3") ? 30 : 15);
             setBitrate(4000000);
             setIFrameInterval(1);
             setCodec(wcOwner);

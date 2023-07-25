@@ -41,7 +41,7 @@ extern int gstVideoEncDumpEnable;
 extern int gstAudioEncDumpEnable;
 extern int gstAudioStatsEnable;
 extern int gstAudioStatsReset;
-const char *encoded_frame_rate = "15/1";  //default is 15 fps, update this variable for any new desired encoded fps value
+char encoded_frame_rate[20] = {0};
 
 //#define AUDIOENC "amcaudenc-omxgoogleaacencoder"
 #define AUDIOENC "voaacenc"
@@ -1948,6 +1948,8 @@ eWCstatus CStreamoutManager::initWcAudioVideo()
 
         if (m_videoStream) {
             char framerate[128]={0};
+            // This is only good for frame rates which are integers (not 12.5 etc)
+            snprintf(encoded_frame_rate, sizeof(encoded_frame_rate), "%s/%d", m_frame_rate, 1);
             if (get_framerate_requested(framerate, sizeof(framerate)) < 0)
                 strncpy(framerate, encoded_frame_rate, sizeof(framerate));
             CSIO_LOG(eLogLevel_info, "--Streamout - desired capture frame rate: %s", framerate);
