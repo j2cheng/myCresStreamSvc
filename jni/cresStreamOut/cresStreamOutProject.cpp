@@ -1336,7 +1336,6 @@ void* CStreamoutProject::ThreadEntry()
 								
 									//init default variables
 									m_StreamoutTaskObjList[id]->setPort(m_rtsp_port);
-                                    m_StreamoutTaskObjList[id]->setFrameRate(m_codec);
 									m_StreamoutTaskObjList[id]->setResX(m_res_x);
 									m_StreamoutTaskObjList[id]->setResY(m_res_y);
 									m_StreamoutTaskObjList[id]->setFrameRate(m_frame_rate);
