@@ -213,7 +213,7 @@ int gstAudioEncDumpEnable = false;
 int gstMicAudioCaptureEnable = false;
 int gstAudioStatsEnable = false;
 int gstAudioStatsReset = false;
-int wcJpegPassthrough = 0;
+int wcJpegPassthrough = 1;
 
 /*
  * Private methods
