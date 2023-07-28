@@ -106,13 +106,15 @@ static int isFormatRank(const char *fourcc, const char *codec)
 
 	if (fourcc == NULL || strlen(fourcc) != 4)
 		return 0;
-	if (!strcasecmp(codec,"MJPG"))
+	if (strcasecmp(codec,"MJPG"))
 	{
+		CSIO_LOG(eLogLevel_warning, "isFormatRank choose from formats array");
 	    for (int i=0; formats[i]; i++) {
 	        if (strcmp(fourcc, formats[i]) == 0)
 	            return i+1;
 	    }
 	} else {
+        CSIO_LOG(eLogLevel_warning, "isFormatRank choose from mjpeg_preferred_formats array");
         for (int i=0; mjpeg_preferred_formats[i]; i++) {
             if (strcmp(fourcc, mjpeg_preferred_formats[i]) == 0)
                 return i+1;
