@@ -1588,6 +1588,66 @@ void* CStreamoutManager::ThreadEntry()
                 //CSIO_LOG(m_debugLevel, "Streamout: rtsp server video pipeline: %s", video_pipeline);
                 //CSIO_LOG(m_debugLevel, "Streamout: rtsp server audio pipeline: %s", audio_pipeline);
                 snprintf(pipeline, sizeof(pipeline), "( %s %s )", video_pipeline, audio_pipeline);
+
+#undef MPEGTS
+#ifdef MATROSKA
+                snprintf(pipeline, sizeof(pipeline), "%s",
+                        " v4l2src device=/dev/video5 io-mode=4 do-timestamp=true name=v4l2src ! "
+                        " video/x-raw,format=YUY2,width=1280,height=720,framerate=30/1 ! "
+                        " videorate ! video/x-raw,framerate=15/1 ! videoconvert ! video/x-raw,format=NV12 ! "
+                        " queue name = vidPreQ ! "
+                        " amcvidenc-omxrkvideoencoderavc bitrate=4000000 i-frame-interval=1 ! "
+                        " queue name=vidPostQ ! h264parse name = h264parser ! "
+                        " tee name=vtee "
+                        " matroskamux name=mux ! filesink location=/tmp/av.mkv "
+                        " vtee. ! queue ! mux. "
+                        " vtee. ! queue ! rtph264pay name=pay0 pt=96 config-interval=-1 "
+                        " appsrc name=wc_appsrc ! audioresample ! audioconvert ! "
+                        " queue name=audPreQ ! "
+                        " voaacenc ! queue name=audPostQ ! aacparse name=aacparser ! "
+                        " tee name=atee "
+                        " atee. ! queue ! mux."
+                        " atee. ! rtpmp4apay name=pay1 pt=97");
+#endif
+#ifdef MP4
+                snprintf(pipeline, sizeof(pipeline), "%s",
+                        " v4l2src device=/dev/video5 io-mode=4 do-timestamp=true name=v4l2src ! "
+                        " video/x-raw,format=YUY2,width=1280,height=720,framerate=30/1 ! "
+                        " videorate ! video/x-raw,framerate=15/1 ! videoconvert ! video/x-raw,format=NV12 ! "
+                        " queue name = vidPreQ ! "
+                        " amcvidenc-omxrkvideoencoderavc bitrate=4000000 i-frame-interval=1 ! "
+                        " queue name=vidPostQ ! h264parse name = h264parser ! "
+                        " tee name=vtee "
+                        " mp4mux name=mux faststart=true faststart-file=/tmp/faststart fragment-duration=5000 ! filesink location=/tmp/av.mp4 "
+                        " vtee. ! queue ! mux. "
+                        " vtee. ! queue ! rtph264pay name=pay0 pt=96 config-interval=-1 "
+                        " appsrc name=wc_appsrc  ! audioresample ! audioconvert ! "
+                        " queue name=audPreQ ! "
+                        " voaacenc ! "
+                        " tee name=atee "
+                        " atee. ! queue ! mux."
+                        " atee. ! queue name=audPostQ ! aacparse name=aacparser ! rtpmp4apay name=pay1 pt=97");
+#endif
+#ifdef MPEGTS
+                snprintf(pipeline, sizeof(pipeline), "%s",
+                        " v4l2src device=/dev/video5 io-mode=4 do-timestamp=true name=v4l2src ! "
+                        " video/x-raw,format=YUY2,width=1280,height=720,framerate=30/1 ! "
+                        " videorate ! video/x-raw,framerate=15/1 ! videoconvert ! video/x-raw,format=NV12 ! "
+                        " queue name = vidPreQ ! "
+                        " amcvidenc-omxrkvideoencoderavc bitrate=4000000 i-frame-interval=1 ! "
+                        " queue name=vidPostQ ! h264parse name = h264parser ! "
+                        " tee name=vtee "
+                        " mpegtsmux name=mux ! filesink location=/tmp/av.ts "
+                        " vtee. ! queue ! mux. "
+                        " vtee. ! queue ! rtph264pay name=pay0 pt=96 config-interval=-1 "
+                        " appsrc name=wc_appsrc  ! audioresample ! audioconvert ! "
+                        " queue name=audPreQ ! "
+                        " voaacenc ! "
+                        " queue name=audPostQ ! aacparse name=aacparser ! "
+                        " tee name=atee "
+                        " atee. ! queue ! mux."
+                        " atee. ! queue ! rtpmp4apay name=pay1 pt=97");
+#endif
             }
         }
         CSIO_LOG(m_debugLevel, "Streamout: rtsp server pipeline: [%s]", pipeline);
@@ -1972,6 +2032,13 @@ eWCstatus CStreamoutManager::initWcAudioVideo()
         			m_videoStream = false;
         		}
             	CSIO_LOG(eLogLevel_info, "--Streamout - m_video_caps.format=%s", m_video_caps.format);
+            	// NV12 encoding with jpegenc does not work so force codec to h264 and turn off jpegPassthrough for this case
+            	if ((strcasecmp(m_video_caps.format, "NV12") == 0) && (strcasecmp(m_codec, "MJPG") == 0))
+            	{
+                    jpegPassthrough = false;
+                    strncpy(m_codec, "H264", sizeof(m_codec));
+                    CSIO_LOG(eLogLevel_info, "--Streamout - forcing jpegPassthrough to false and codec to H264 because input format is NV12");
+            	}
             	if (strcasecmp(m_video_caps.format, "MJPG") == 0)
             	{
                     //colorimetry=(string)1:4:0:0 - is required to make the video convert to use I420 to NV12 faster implementation
@@ -1998,10 +2065,10 @@ eWCstatus CStreamoutManager::initWcAudioVideo()
             if (decimation_rate > 0) {
                 CSIO_LOG(eLogLevel_info, "--Streamout - encoder decimation rate requested=%d", decimation_rate);
             	if (strcasecmp(m_video_caps.format, "MJPG") == 0)
-                    snprintf(m_videoframerate, sizeof(m_videoframerate), "videorate ! image/jpeg,framerate=%d/%d !",
+                    snprintf(m_videoframerate, sizeof(m_videoframerate), "videorate ! image/jpeg,framerate=%d/%d ! ",
                         m_video_caps.frame_rate_num, (m_video_caps.frame_rate_den*decimation_rate));
                 else
-                    snprintf(m_videoframerate, sizeof(m_videoframerate), "videorate ! video/x-raw,framerate=%d/%d !",
+                    snprintf(m_videoframerate, sizeof(m_videoframerate), "videorate ! video/x-raw,framerate=%d/%d ! ",
                         m_video_caps.frame_rate_num, (m_video_caps.frame_rate_den*decimation_rate));
 
             } else {
@@ -2010,9 +2077,9 @@ eWCstatus CStreamoutManager::initWcAudioVideo()
 #else
             CSIO_LOG(eLogLevel_info, "--Streamout - encoder frame rate requested=%s", framerate);
             if (strcasecmp(m_video_caps.format, "MJPG") == 0)
-                snprintf(m_videoframerate, sizeof(m_videoframerate), "videorate ! image/jpeg,framerate=%s !", framerate);
+                snprintf(m_videoframerate, sizeof(m_videoframerate), "videorate ! image/jpeg,framerate=%s ! ", framerate);
             else
-                snprintf(m_videoframerate, sizeof(m_videoframerate), "videorate ! video/x-raw,framerate=%s !", framerate);
+                snprintf(m_videoframerate, sizeof(m_videoframerate), "videorate ! video/x-raw,framerate=%s ! ", framerate);
 #endif
             int bitrate = get_bitrate_requested();
             if (bitrate > 0)

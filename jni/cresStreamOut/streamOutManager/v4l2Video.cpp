@@ -102,7 +102,7 @@ static bool isFormat(const char *format, const char *fourcc)
 static int isFormatRank(const char *fourcc, const char *codec)
 {
 	const char *formats[]={"MJPG", "NV21", "UYVY", "YUY2", "I420", "NV12", NULL};
-    const char *mjpeg_preferred_formats[]={"NV21", "UYVY", "YUY2", "I420", "NV12", "MJPG", NULL};
+    const char *mjpeg_preferred_formats[]={"NV21", "I420", "NV12", "UYVY", "YUY2", "MJPG", NULL};
 
 	if (fourcc == NULL || strlen(fourcc) != 4)
 		return 0;
