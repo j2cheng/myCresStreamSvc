@@ -2032,13 +2032,6 @@ eWCstatus CStreamoutManager::initWcAudioVideo()
         			m_videoStream = false;
         		}
             	CSIO_LOG(eLogLevel_info, "--Streamout - m_video_caps.format=%s", m_video_caps.format);
-            	// NV12 encoding with jpegenc does not work so force codec to h264 and turn off jpegPassthrough for this case
-            	if ((strcasecmp(m_video_caps.format, "NV12") == 0) && (strcasecmp(m_codec, "MJPG") == 0))
-            	{
-                    jpegPassthrough = false;
-                    strncpy(m_codec, "H264", sizeof(m_codec));
-                    CSIO_LOG(eLogLevel_info, "--Streamout - forcing jpegPassthrough to false and codec to H264 because input format is NV12");
-            	}
             	if (strcasecmp(m_video_caps.format, "MJPG") == 0)
             	{
                     //colorimetry=(string)1:4:0:0 - is required to make the video convert to use I420 to NV12 faster implementation
