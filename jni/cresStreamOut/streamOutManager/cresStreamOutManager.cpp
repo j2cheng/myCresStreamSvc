@@ -76,6 +76,7 @@ static void cb_vidEncQueueOverruns(void *queue, gpointer user_data);
 static void cb_vidEncQueueUnderruns(void *queue, gpointer user_data);
 
 static bool jpegPassthrough = false;
+extern bool wcIsTx3Session;
 
 int read_int_from_file(const char *filePath, int defaultValue)
 {
@@ -2003,6 +2004,15 @@ eWCstatus CStreamoutManager::initWcAudioVideo()
     	if (strcasecmp(m_audio_capture_device, "none") != 0)
     		m_audioStream = true;
         jpegPassthrough = (strcasecmp(m_codec, "MJPG") == 0);
+        if (wcIsTx3Session)
+        {
+            if (m_quality == LOW_QUALITY)
+            {
+                m_quality = MEDIUM_QUALITY;
+                strncpy(m_frame_rate, "15", sizeof(m_frame_rate));
+                CSIO_LOG(eLogLevel_info, "--Streamout - TX3session at low quality drop frame rate but preserve resolution");
+            }
+        }
         CSIO_LOG(eLogLevel_info, "--Streamout - codec=%s jpegPassthrough=%d", m_codec, jpegPassthrough);
         m_aacEncode = true;
 

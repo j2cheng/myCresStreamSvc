@@ -214,6 +214,7 @@ int gstMicAudioCaptureEnable = false;
 int gstAudioStatsEnable = false;
 int gstAudioStatsReset = false;
 int wcJpegPassthrough = 1;
+bool wcIsTx3Session = false;
 
 /*
  * Private methods
@@ -6257,6 +6258,7 @@ JNIEXPORT void JNICALL Java_com_crestron_txrxservice_GstreamOut_nativeSetCodec(J
 
     CSIO_LOG(eLogLevel_debug, "rtsp_server: wc owner: '%s'", (strcmp(owner_cstring,"")==0)?"telnet":owner_cstring);
     const char *codec = "H264";
+    wcIsTx3Session = false;
     if (strcasecmp(owner_cstring,"AirMedia") == 0)
     {
         codec = "H264";
@@ -6264,6 +6266,7 @@ JNIEXPORT void JNICALL Java_com_crestron_txrxservice_GstreamOut_nativeSetCodec(J
     else if (strcasecmp(owner_cstring,"IrisTx3") == 0)
     {
         codec = (wcJpegPassthrough) ? "MJPG" : "H264";
+        wcIsTx3Session = true;
     }
     else
     {
