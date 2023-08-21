@@ -41,6 +41,8 @@ extern int wcVideoEncDumpEnable;
 extern int wcAudioEncDumpEnable;
 extern int wcAudioStatsEnable;
 extern int wcAudioStatsReset;
+extern int wcJpegStatsEnable;
+extern int wcJpegStatsReset;
 char encoded_frame_rate[20] = {'1', '5', '/', '1', '\0'};
 
 //#define AUDIOENC "amcaudenc-omxgoogleaacencoder"
@@ -868,6 +870,55 @@ static GstPadProbeReturn cb_dump_enc_data (
 
 }
 
+#undef USE_PTS_FOR_TIME
+static void vstats_cb (
+              GstElement *identity,
+              GstBuffer *buffer,
+              gpointer user_data)
+{
+    static int nframes= 0;
+    static guint64 nbytes = 0;
+    static GstClockTime first_pts = 0;
+    static GstClockTime base_time = 0;
+    GstClockTime pts = GST_BUFFER_PTS(buffer);
+
+    if (wcJpegStatsReset)
+    {
+        nframes = 0;
+        nbytes = 0;
+        first_pts = pts;
+        base_time = gst_clock_get_time (gst_element_get_clock(identity));
+        wcJpegStatsReset = false;
+        return;
+    }
+
+    nframes++;
+    gsize bufsize = gst_buffer_get_size(buffer);
+
+    nbytes += bufsize;
+
+    gint64 run_time = 0;
+#if USE_PTS_FOR_TIME
+    run_time = (pts - first_pts)/1000000;
+#else
+    GstClockTime now_time = gst_clock_get_time (gst_element_get_clock(identity));
+
+    if (now_time > base_time)
+        run_time = now_time - base_time;
+    else
+        run_time = 0;
+    run_time /= 1000000;
+#endif
+    if (nframes%300 == 0)
+    {
+        double rate = 8*((double) nbytes/(double) run_time);
+        int run_time_secs = run_time/1000;
+        int run_time_msecs = run_time%1000;
+        CSIO_LOG(eLogLevel_info,"videostats: PTS=%lld jpegframe count: %d size: %d  runtime=%d.%d totalsize=%lld rate=%.0f kb/s",
+                pts, nframes, bufsize, run_time_secs, run_time_msecs, nbytes, rate);
+    }
+}
+
 //Todo: use gst_rtsp_media_factory_set_dscp_qos after update to 1.18
 static void 
 cres_streams_set_dscp_qos(GstRTSPMedia *media, gint dscp_qos)
@@ -1003,6 +1054,13 @@ wc_media_configure (GstRTSPMediaFactory * factory, GstRTSPMedia * media,
             gst_pad_add_probe (srcpad, GST_PAD_PROBE_TYPE_BUFFER,
                     (GstPadProbeCallback) cb_dump_enc_data, media, NULL);
             gst_object_unref (srcpad);
+        }
+        ele = gst_bin_get_by_name_recurse_up(GST_BIN (element), "videntity");
+        if (ele)
+        {
+            CSIO_LOG(eLogLevel_info, "Streamout: Adding handoff signal call back to vstats");
+            GstElement *e = gst_bin_get_by_name_recurse_up(GST_BIN (element), "jpegenc");
+            g_signal_connect_data(ele, "handoff", G_CALLBACK(vstats_cb), e, NULL, GConnectFlags());
         }
     }
     if (pMgr->m_audioStream) {
@@ -1516,6 +1574,7 @@ void* CStreamoutManager::ThreadEntry()
                 CSIO_LOG(eLogLevel_error, "Streamout: m_videoStream=%d m_audioStream=%d", m_videoStream, m_audioStream);
                 char video_pipeline[1024]={0};
                 char audio_pipeline[1024]={0};
+                char jpegenc[128]={0};
                 if (m_videoStream)
                 {
                     if (!jpegPassthrough)
@@ -1535,15 +1594,22 @@ void* CStreamoutManager::ThreadEntry()
                     }
                     else
                     {
-                        const char *jpegenc=(strcmp(m_video_caps.format,"MJPG") == 0)?"":"queue name=vidPreQ ! jpegenc ! ";
+                        if (strcmp(m_video_caps.format,"MJPG") != 0)
+                        {
+                            snprintf(jpegenc, sizeof(jpegenc), "queue name=vidPreQ ! jpegenc name=jpegenc ! ");
+                        }
+                        const char *vstats = (wcJpegStatsEnable) ? "identity name=videntity ! " : "";
+                        wcJpegStatsReset = true;
                         snprintf(video_pipeline, sizeof(video_pipeline),
                                 "%s ! %s ! %s"
                                 "%s"
                                 "queue name=vidPostQ ! "
+                                "%s"
                                 "jpegparse name = jpegparser ! "
                                 "rtpjpegpay name=pay0 pt=96",
                                 videoSource, m_caps, m_videoframerate,
-                                jpegenc);
+                                jpegenc,
+                                vstats);
                     }
                 }
 

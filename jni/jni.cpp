@@ -213,6 +213,9 @@ int wcAudioEncDumpEnable = false;
 int wcMicAudioCaptureEnable = false;
 int wcAudioStatsEnable = false;
 int wcAudioStatsReset = false;
+int wcJpegStatsEnable = false;
+int wcJpegStatsReset = false;
+int wcJpegRateControl = false;
 int wcJpegPassthrough = 1;
 bool wcIsTx3Session = false;
 
@@ -2702,6 +2705,35 @@ JNIEXPORT void JNICALL Java_com_crestron_txrxservice_GstreamIn_nativeSetFieldDeb
                         CSIO_LOG(eLogLevel_info, "Invalid Format, need a parameter 0 (disable) 1 (enable) \r\n");
                     }
                 }
+            }
+            else if (!strcmp(CmdPtr, "WC_JPEG_STATS_ENABLE"))
+            {
+                CmdPtr = strtok(NULL, ", ");
+                CSIO_LOG(eLogLevel_info, "Enabling JPEG STATS %s\r\n", CmdPtr);
+                if (CmdPtr == NULL)
+                {
+                    CSIO_LOG(eLogLevel_info, "Invalid Format, need a parameter 0 (disable) 1 (enable) \r\n");
+                }
+                else
+                {
+                    fieldNum = (int) strtol(CmdPtr, &EndPtr, 10);
+                    if (fieldNum == 0 || fieldNum == 1)
+                    {
+                        wcJpegStatsEnable = fieldNum;
+                        CSIO_LOG(eLogLevel_debug, "jpeg stats enable: %s\r\n",(fieldNum?"enabled":"disabled"));
+                    }
+                    else
+                    {
+                        CSIO_LOG(eLogLevel_info, "Invalid Format, need a parameter 0 (disable) 1 (enable) \r\n");
+                    }
+                }
+            }
+            else if (!strcmp(CmdPtr, "WC_JPEG_STATS_RESET"))
+            {
+                CmdPtr = strtok(NULL, ", ");
+                CSIO_LOG(eLogLevel_info, "Reset JPEG STATS\r\n", CmdPtr);
+                wcJpegStatsReset = true;
+                CSIO_LOG(eLogLevel_debug, "jpeg stats reset\r\n");
             }
             else if (!strcmp(CmdPtr, "WC_MIC_AUDIO_CAPTURE_ENABLE"))
             {
