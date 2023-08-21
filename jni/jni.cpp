@@ -218,6 +218,8 @@ int wcJpegStatsReset = false;
 int wcJpegRateControl = false;
 int wcJpegPassthrough = 1;
 int wcJpegQuality = 85;
+int wcVideoQueueMaxTime = 100;
+int wcShowVideoQueueOverruns = false;
 bool wcIsTx3Session = false;
 
 /*
@@ -2773,6 +2775,50 @@ JNIEXPORT void JNICALL Java_com_crestron_txrxservice_GstreamIn_nativeSetFieldDeb
                     {
                         wcJpegRateControl = fieldNum;
                         CSIO_LOG(eLogLevel_debug, "jpeg rate control: %s\r\n",(fieldNum?"enabled":"disabled"));
+                    }
+                    else
+                    {
+                        CSIO_LOG(eLogLevel_info, "Invalid Format, need a parameter 0 (disable) 1 (enable) \r\n");
+                    } 
+                }
+            }
+            else if (!strcmp(CmdPtr, "WC_SET_VIDEO_QUEUE_MAX_TIME"))
+            {
+                CmdPtr = strtok(NULL, ", ");
+                CSIO_LOG(eLogLevel_info, "set WC video queueus max-time property to %s msec\r\n", CmdPtr);
+                if (CmdPtr == NULL)
+                {
+                    CSIO_LOG(eLogLevel_info, "Invalid Format, need a parameter in range 0-3000 (Default 100) \r\n");
+                }
+                else
+                {
+                    int fieldNum = (int) strtol(CmdPtr, &EndPtr, 10);
+                    if (fieldNum >= 0 || fieldNum <= 3000)
+                    {
+                        wcVideoQueueMaxTime = fieldNum;
+                        CSIO_LOG(eLogLevel_debug, "WC video queue max time: %d (0=use GSTREAMER default)\r\n",fieldNum);
+                    }
+                    else
+                    {
+                        CSIO_LOG(eLogLevel_info, "Invalid Format, need a parameter in the range 0 - 3000 msec \r\n");
+                    }
+                }
+            }
+            else if (!strcmp(CmdPtr, "WC_SHOW_VIDEO_QUEUE_OVERRUNS"))
+            {
+                CmdPtr = strtok(NULL, ", ");
+                CSIO_LOG(eLogLevel_info, "show WC video queue overruns: %s\r\n", CmdPtr);
+                if (CmdPtr == NULL)
+                {
+                    CSIO_LOG(eLogLevel_info, "Invalid Format, need a parameter 0 (disable) 1 (enable) \r\n");
+                }
+                else
+                {
+                    fieldNum = (int) strtol(CmdPtr, &EndPtr, 10);
+                    if (fieldNum == 0 || fieldNum == 1)
+                    {
+                        wcShowVideoQueueOverruns = fieldNum;
+                        CSIO_LOG(eLogLevel_debug, "show WC video queue overruns enable: %s\r\n",(fieldNum?"enabled":"disabled"));
                     }
                     else
                     {

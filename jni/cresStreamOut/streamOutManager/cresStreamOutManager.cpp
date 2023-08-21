@@ -44,6 +44,8 @@ extern int wcAudioStatsReset;
 extern int wcJpegStatsEnable;
 extern int wcJpegStatsReset;
 extern int wcJpegRateControl;
+extern int wcVideoQueueMaxTime;
+extern int wcShowVideoQueueOverruns;
 char encoded_frame_rate[20] = {'1', '5', '/', '1', '\0'};
 
 //#define AUDIOENC "amcaudenc-omxgoogleaacencoder"
@@ -82,6 +84,8 @@ static bool jpegPassthrough = false;
 static int jpegQuality = 85;
 extern int wcJpegQuality;
 extern bool wcIsTx3Session;
+
+#define LEAKYSTR(v) (((v) == 0) ? "None" : (((v) == 1) ? "Upstream" : "Downstream"))
 
 int read_int_from_file(const char *filePath, int defaultValue)
 {
@@ -987,6 +991,7 @@ wc_media_configure (GstRTSPMediaFactory * factory, GstRTSPMedia * media,
     CStreamoutManager *pMgr = (CStreamoutManager *) user_data;
     GstElement *element;
     GstElement *ele;
+    guint leakyVal;
     /* get the element used for providing the streams of the media */
     element = gst_rtsp_media_get_element (media);
     gchar * n = gst_element_get_name(element);
@@ -1055,8 +1060,15 @@ wc_media_configure (GstRTSPMediaFactory * factory, GstRTSPMedia * media,
         ele = gst_bin_get_by_name_recurse_up(GST_BIN (element), "vidPreQ");
         if (ele)
         {
-            CSIO_LOG(eLogLevel_info, "Streamout: set leaky downstream on vidPreQ");
-            g_object_set(G_OBJECT(ele), "leaky", (guint) 2 /*GST_QUEUE_LEAK_DOWNSTREAM*/, NULL);
+            leakyVal = 2 /*GST_QUEUE_LEAK_DOWNSTREAM*/;
+            if (jpegPassthrough && (wcVideoQueueMaxTime != 0))
+            {
+                CSIO_LOG(eLogLevel_info, "Streamout: set max-size-time on vidPreQ to %d msec", wcVideoQueueMaxTime);
+                leakyVal = 1 /*GST_QUEUE_LEAK_UPSTREAM*/;
+                g_object_set(G_OBJECT(ele), "max-size-time", (guint) wcVideoQueueMaxTime*1000000, NULL);
+            }
+            CSIO_LOG(eLogLevel_info, "Streamout: set leaky %s on vidPreQ", LEAKYSTR(leakyVal));
+            g_object_set(G_OBJECT(ele), "leaky", leakyVal, NULL);
 
             pMgr->m_vidEncPreQ = ele;
             g_signal_connect( G_OBJECT(ele), "overrun", G_CALLBACK( cb_vidEncQueueOverruns ), user_data );
@@ -1067,8 +1079,15 @@ wc_media_configure (GstRTSPMediaFactory * factory, GstRTSPMedia * media,
         ele = gst_bin_get_by_name_recurse_up(GST_BIN (element), "vidPostQ");
         if (ele)
         {
-            CSIO_LOG(eLogLevel_info, "Streamout: set leaky downstream on vidPostQ");
-            g_object_set(G_OBJECT(ele), "leaky", (guint) 2 /*GST_QUEUE_LEAK_DOWNSTREAM*/, NULL);
+            leakyVal = 2 /*GST_QUEUE_LEAK_DOWNSTREAM*/;
+            if (jpegPassthrough && (wcVideoQueueMaxTime != 0))
+            {
+                CSIO_LOG(eLogLevel_info, "Streamout: set max-size-time on vidPostQ to %d msec", wcVideoQueueMaxTime);
+                leakyVal = 1 /*GST_QUEUE_LEAK_UPSTREAM*/;
+                g_object_set(G_OBJECT(ele), "max-size-time", (guint) wcVideoQueueMaxTime*1000000, NULL);
+            }
+            CSIO_LOG(eLogLevel_info, "Streamout: set leaky %s on vidPostQ", LEAKYSTR(leakyVal));
+            g_object_set(G_OBJECT(ele), "leaky", leakyVal, NULL);
 
             pMgr->m_vidEncPostQ = ele;
             g_signal_connect( G_OBJECT(ele), "overrun", G_CALLBACK( cb_vidEncQueueOverruns ), user_data );
@@ -1099,30 +1118,30 @@ wc_media_configure (GstRTSPMediaFactory * factory, GstRTSPMedia * media,
     if (pMgr->m_audioStream) {
         ele = gst_bin_get_by_name_recurse_up(GST_BIN (element), "audPreQ");
         if (ele) {
-                CSIO_LOG(eLogLevel_info, "Streamout: set leaky downstream on audPreQ");
-                g_object_set(G_OBJECT(ele), "leaky", (guint) 2 /*GST_QUEUE_LEAK_DOWNSTREAM*/, NULL);
-                g_object_set(G_OBJECT(ele), "max-size-bytes", 48000, NULL);
+            CSIO_LOG(eLogLevel_info, "Streamout: set leaky downstream on audPreQ");
+            g_object_set(G_OBJECT(ele), "leaky", (guint) 2 /*GST_QUEUE_LEAK_DOWNSTREAM*/, NULL);
+            g_object_set(G_OBJECT(ele), "max-size-bytes", 48000, NULL);
 
-                pMgr->m_audPreQ = ele;
-                g_signal_connect( G_OBJECT(ele), "overrun", G_CALLBACK( cb_queueOverruns ), user_data );
-                g_signal_connect( G_OBJECT(ele), "underrun", G_CALLBACK( cb_queueUnderruns ), user_data );                
+            pMgr->m_audPreQ = ele;
+            g_signal_connect( G_OBJECT(ele), "overrun", G_CALLBACK( cb_queueOverruns ), user_data );
+            g_signal_connect( G_OBJECT(ele), "underrun", G_CALLBACK( cb_queueUnderruns ), user_data );
 
-                gst_object_unref(ele);
-            }
-            ele = gst_bin_get_by_name_recurse_up(GST_BIN (element), "audPostQ");
-            if (ele) {
-                CSIO_LOG(eLogLevel_info, "Streamout: set leaky downstream on audPostQ");
-                g_object_set(G_OBJECT(ele), "leaky", (guint) 2 /*GST_QUEUE_LEAK_DOWNSTREAM*/, NULL);
-                g_object_set(G_OBJECT(ele), "max-size-bytes", 48000, NULL);
-
-                pMgr->m_audPostQ = ele;
-                g_signal_connect( G_OBJECT(ele), "overrun", G_CALLBACK( cb_queueOverruns ), user_data );
-                g_signal_connect( G_OBJECT(ele), "underrun", G_CALLBACK( cb_queueUnderruns ), user_data );
-
-                gst_object_unref(ele);
-            }
+            gst_object_unref(ele);
         }
-    
+        ele = gst_bin_get_by_name_recurse_up(GST_BIN (element), "audPostQ");
+        if (ele) {
+            CSIO_LOG(eLogLevel_info, "Streamout: set leaky downstream on audPostQ");
+            g_object_set(G_OBJECT(ele), "leaky", (guint) 2 /*GST_QUEUE_LEAK_DOWNSTREAM*/, NULL);
+            g_object_set(G_OBJECT(ele), "max-size-bytes", 48000, NULL);
+
+            pMgr->m_audPostQ = ele;
+            g_signal_connect( G_OBJECT(ele), "overrun", G_CALLBACK( cb_queueOverruns ), user_data );
+            g_signal_connect( G_OBJECT(ele), "underrun", G_CALLBACK( cb_queueUnderruns ), user_data );
+
+            gst_object_unref(ele);
+        }
+    }
+
 
     CSIO_LOG(eLogLevel_debug, "Streamout: set media reusable to true media[%p]",media);
     gst_rtsp_media_set_reusable (media, TRUE);
@@ -1192,10 +1211,28 @@ void cb_vidEncQueueOverruns(void *queue, gpointer user_data)
     CStreamoutManager *pMgr = (CStreamoutManager *)user_data;
 
     if (pMgr->m_vidEncPreQ == queue)
+    {
+        if (wcShowVideoQueueOverruns)
+        {
+            guint bytes, buffers;
+            guint64 time;
+            g_object_get(queue, "current-level-buffers", &buffers, "current-level-bytes", &bytes, "current-level-time", &time, NULL);
+            CSIO_LOG(eLogLevel_info, "Streamout: cb_vidEncQueueOverruns vidPreQ bytes=%d bufs=%d time=%lld", bytes, buffers, time);
+        }
         pMgr->vidEncPreQOrunsCnt++;
+    }
 
     if (pMgr->m_vidEncPostQ == queue)
+    {
+        if (wcShowVideoQueueOverruns)
+        {
+            guint bytes, buffers;
+            guint64 time;
+            g_object_get(queue, "current-level-buffers", &buffers, "current-level-bytes", &bytes, "current-level-time", &time, NULL);
+            CSIO_LOG(eLogLevel_info, "Streamout: cb_vidEncQueueOverruns vidPostQ bytes=%d bufs=%d time=%lld", bytes, buffers, time);
+        }
         pMgr->vidEncPostQOrunsCnt++;
+    }
 }
 
 void cb_vidEncQueueUnderruns(void *queue, gpointer user_data)
