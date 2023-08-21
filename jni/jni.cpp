@@ -217,6 +217,7 @@ int wcJpegStatsEnable = false;
 int wcJpegStatsReset = false;
 int wcJpegRateControl = false;
 int wcJpegPassthrough = 1;
+int wcJpegQuality = 85;
 bool wcIsTx3Session = false;
 
 /*
@@ -2706,6 +2707,28 @@ JNIEXPORT void JNICALL Java_com_crestron_txrxservice_GstreamIn_nativeSetFieldDeb
                     }
                 }
             }
+            else if (!strcmp(CmdPtr, "WC_JPEG_QUALITY"))
+            {
+                CmdPtr = strtok(NULL, ", ");
+                CSIO_LOG(eLogLevel_info, "set WC Jpeg Quality to %s\r\n", CmdPtr);
+                if (CmdPtr == NULL)
+                {
+                    CSIO_LOG(eLogLevel_info, "Invalid Format, need a parameter in range 0-100 (Default 85) \r\n");
+                }
+                else
+                {
+                    int q = (int) strtol(CmdPtr, &EndPtr, 10);
+                    if (q >= 0 || q <= 100)
+                    {
+                        wcJpegQuality = q;
+                        CSIO_LOG(eLogLevel_debug, "set wcJpegQuality to: %d\r\n",q);
+                    }
+                    else
+                    {
+                        CSIO_LOG(eLogLevel_info, "Invalid Format, need a parameter in range 0-100 (Default 85) \r\n");
+                    }
+                }
+            }
             else if (!strcmp(CmdPtr, "WC_JPEG_STATS_ENABLE"))
             {
                 CmdPtr = strtok(NULL, ", ");
@@ -2734,6 +2757,28 @@ JNIEXPORT void JNICALL Java_com_crestron_txrxservice_GstreamIn_nativeSetFieldDeb
                 CSIO_LOG(eLogLevel_info, "Reset JPEG STATS\r\n", CmdPtr);
                 wcJpegStatsReset = true;
                 CSIO_LOG(eLogLevel_debug, "jpeg stats reset\r\n");
+            }
+            else if (!strcmp(CmdPtr, "WC_JPEG_RATECONTROL"))
+            {
+                CmdPtr = strtok(NULL, ", ");
+                CSIO_LOG(eLogLevel_info, "set WC Jpeg Rate Control to %s\r\n", CmdPtr);
+                if (CmdPtr == NULL)
+                {
+                    CSIO_LOG(eLogLevel_info, "Invalid Format, need a parameter in range 0-100 (Default 85) \r\n");
+                }
+                else
+                {
+                    int fieldNum = (int) strtol(CmdPtr, &EndPtr, 10);
+                    if (fieldNum == 0 || fieldNum == 1)
+                    {
+                        wcJpegRateControl = fieldNum;
+                        CSIO_LOG(eLogLevel_debug, "jpeg rate control: %s\r\n",(fieldNum?"enabled":"disabled"));
+                    }
+                    else
+                    {
+                        CSIO_LOG(eLogLevel_info, "Invalid Format, need a parameter 0 (disable) 1 (enable) \r\n");
+                    }
+                }
             }
             else if (!strcmp(CmdPtr, "WC_MIC_AUDIO_CAPTURE_ENABLE"))
             {

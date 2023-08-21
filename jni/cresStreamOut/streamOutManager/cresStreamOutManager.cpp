@@ -43,6 +43,7 @@ extern int wcAudioStatsEnable;
 extern int wcAudioStatsReset;
 extern int wcJpegStatsEnable;
 extern int wcJpegStatsReset;
+extern int wcJpegRateControl;
 char encoded_frame_rate[20] = {'1', '5', '/', '1', '\0'};
 
 //#define AUDIOENC "amcaudenc-omxgoogleaacencoder"
@@ -78,6 +79,8 @@ static void cb_vidEncQueueOverruns(void *queue, gpointer user_data);
 static void cb_vidEncQueueUnderruns(void *queue, gpointer user_data);
 
 static bool jpegPassthrough = false;
+static int jpegQuality = 85;
+extern int wcJpegQuality;
 extern bool wcIsTx3Session;
 
 int read_int_from_file(const char *filePath, int defaultValue)
@@ -870,6 +873,30 @@ static GstPadProbeReturn cb_dump_enc_data (
 
 }
 
+static void jpeg_rate_control(GstElement *ele, int nframes, guint framesize, GstClockTime frameduration, int desiredRate)
+{
+    if (ele == NULL)
+        return;
+
+    int durationInMsec = (frameduration/1000000);
+    int cur_rate = framesize/durationInMsec;
+    int q = jpegQuality;
+    int delta = desiredRate/20;
+    if (cur_rate > (desiredRate+delta))
+        q -= 2;
+    else if (cur_rate < (desiredRate - delta))
+        q += 2;
+    if (q > 85) q = 85;
+    if (q < 30) q = 30;
+    if (q != jpegQuality)
+    {
+        CSIO_LOG(eLogLevel_info,"jpeg_rate_control: frame: %d framesize: %d bits duration: %d msec  current rate: %d quality changed to %d",
+                nframes, framesize, durationInMsec, cur_rate, q);
+        jpegQuality = q;
+        g_object_set( G_OBJECT(ele), "quality", jpegQuality, NULL );
+    }
+}
+
 #undef USE_PTS_FOR_TIME
 static void vstats_cb (
               GstElement *identity,
@@ -880,6 +907,7 @@ static void vstats_cb (
     static guint64 nbytes = 0;
     static GstClockTime first_pts = 0;
     static GstClockTime base_time = 0;
+    const int rateInBitsPerMsec = 15000;
     GstClockTime pts = GST_BUFFER_PTS(buffer);
 
     if (wcJpegStatsReset)
@@ -896,6 +924,11 @@ static void vstats_cb (
     gsize bufsize = gst_buffer_get_size(buffer);
 
     nbytes += bufsize;
+    if (user_data != NULL && wcJpegRateControl)
+        jpeg_rate_control((GstElement *) user_data, nframes, 8*bufsize, GST_BUFFER_DURATION(buffer), rateInBitsPerMsec);
+
+    if (!wcJpegStatsEnable)
+        return;
 
     gint64 run_time = 0;
 #if USE_PTS_FOR_TIME
@@ -1596,9 +1629,10 @@ void* CStreamoutManager::ThreadEntry()
                     {
                         if (strcmp(m_video_caps.format,"MJPG") != 0)
                         {
-                            snprintf(jpegenc, sizeof(jpegenc), "queue name=vidPreQ ! jpegenc name=jpegenc ! ");
+                            jpegQuality = wcJpegQuality; // use global setting as initial start value
+                            snprintf(jpegenc, sizeof(jpegenc), "queue name=vidPreQ ! jpegenc name=jpegenc quality=%d ! ", jpegQuality);
                         }
-                        const char *vstats = (wcJpegStatsEnable) ? "identity name=videntity ! " : "";
+                        const char *vstats = (wcJpegStatsEnable || wcJpegRateControl) ? "identity name=videntity ! " : "";
                         wcJpegStatsReset = true;
                         snprintf(video_pipeline, sizeof(video_pipeline),
                                 "%s ! %s ! %s"
