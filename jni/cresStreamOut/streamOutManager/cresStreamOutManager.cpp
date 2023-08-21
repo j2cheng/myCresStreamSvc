@@ -37,10 +37,10 @@
 //static bool PushModel = false;
 int useUsbAudio = false;
 int videoDumpCount = 0;
-extern int gstVideoEncDumpEnable;
-extern int gstAudioEncDumpEnable;
-extern int gstAudioStatsEnable;
-extern int gstAudioStatsReset;
+extern int wcVideoEncDumpEnable;
+extern int wcAudioEncDumpEnable;
+extern int wcAudioStatsEnable;
+extern int wcAudioStatsReset;
 char encoded_frame_rate[20] = {'1', '5', '/', '1', '\0'};
 
 //#define AUDIOENC "amcaudenc-omxgoogleaacencoder"
@@ -511,11 +511,11 @@ static void clear_audio_stats()
 
 static void audio_stats(int size, GstClockTime total)
 {
-    if (gstAudioStatsReset)
+    if (wcAudioStatsReset)
     {
         CSIO_LOG(eLogLevel_debug, "Streamout: audio_stats: resetting audio stats");
         clear_audio_stats();
-        gstAudioStatsReset = 0;
+        wcAudioStatsReset = 0;
     }
     bool minmax_change = false;
     if (audioStats.prevTime == 0)
@@ -705,7 +705,7 @@ void get_audio_data_for_pull(CStreamoutManager *pMgr, guint size)
         CSIO_LOG(eLogLevel_error, "Streamout: pushed returned %d", (int) ret);
     }
     gst_buffer_unref(buffer);
-    if (gstAudioStatsEnable)
+    if (wcAudioStatsEnable)
         audio_stats(size, timestamp);
     CSIO_LOG(eLogLevel_verbose, "Streamout: get_audio_data_for_pull....exiting - pushed buffer of size %d", size);
 }
@@ -761,7 +761,7 @@ static GstPadProbeReturn cb_dump_enc_data (
     if (jpegPassthrough)
         return GST_PAD_PROBE_OK;
 
-    if( gstVideoEncDumpEnable == 1 )
+    if( wcVideoEncDumpEnable == 1 )
     {
         if( videoDumpCount == 0 )
         {
@@ -1554,7 +1554,7 @@ void* CStreamoutManager::ThreadEntry()
                     char audioencdump[1024]={0};
                     const char *audioEncoderName = (m_aacEncode) ? AUDIOENC : "alawenc";
                     snprintf(audioenc, sizeof(audioenc), "%s", audioEncoderName);
-                    if (gstAudioEncDumpEnable)
+                    if (wcAudioEncDumpEnable)
                     {
                         const char *format = "tee name=atee "
                                 "atee. ! queue ! mp4mux faststart=true faststart-file=/sdcard/ROMDISK/logs/faststart fragment-duration=5000 ! filesink location=%s "

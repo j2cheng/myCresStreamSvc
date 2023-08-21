@@ -207,12 +207,12 @@ int videodecoder_debug_level = GST_LEVEL_ERROR;
 int debug_blocking_audio = 0;
 unsigned int debug_setPipelineBuf = 0;//0 -- disable, range: 1 to 2000ms
 extern void setSignalHandlerToDefault();
-int gstVideoEncDumpEnable = false;
+int wcVideoEncDumpEnable = false;
 extern int videoDumpCount;
-int gstAudioEncDumpEnable = false;
-int gstMicAudioCaptureEnable = false;
-int gstAudioStatsEnable = false;
-int gstAudioStatsReset = false;
+int wcAudioEncDumpEnable = false;
+int wcMicAudioCaptureEnable = false;
+int wcAudioStatsEnable = false;
+int wcAudioStatsReset = false;
 int wcJpegPassthrough = 1;
 bool wcIsTx3Session = false;
 
@@ -2605,7 +2605,7 @@ JNIEXPORT void JNICALL Java_com_crestron_txrxservice_GstreamIn_nativeSetFieldDeb
 
                 setSignalHandlerToDefault();
             }
-            else if (!strcmp(CmdPtr, "GST_VIDEOENC_DUMP_ENABLE"))
+            else if (!strcmp(CmdPtr, "WC_VIDEOENC_DUMP_ENABLE"))
             {
                 CmdPtr = strtok(NULL, ", ");
                 CSIO_LOG(eLogLevel_info, "Enabling video encoded data %s\r\n", CmdPtr);
@@ -2618,7 +2618,7 @@ JNIEXPORT void JNICALL Java_com_crestron_txrxservice_GstreamIn_nativeSetFieldDeb
                     fieldNum = (int) strtol(CmdPtr, &EndPtr, 10);
                     if (fieldNum == 0 || fieldNum == 1)
                     {
-                        gstVideoEncDumpEnable = fieldNum;
+                        wcVideoEncDumpEnable = fieldNum;
                         if( fieldNum == 1 )
                         {
                             //reset the counter to zero so that video enc dump starts 
@@ -2632,7 +2632,7 @@ JNIEXPORT void JNICALL Java_com_crestron_txrxservice_GstreamIn_nativeSetFieldDeb
                     }
                 }
             }
-            else if (!strcmp(CmdPtr, "GST_AUDIOENC_DUMP_ENABLE"))
+            else if (!strcmp(CmdPtr, "WC_AUDIOENC_DUMP_ENABLE"))
             {
                 CmdPtr = strtok(NULL, ", ");
                 CSIO_LOG(eLogLevel_info, "Enabling audio encoded data %s\r\n", CmdPtr);
@@ -2645,7 +2645,7 @@ JNIEXPORT void JNICALL Java_com_crestron_txrxservice_GstreamIn_nativeSetFieldDeb
                     fieldNum = (int) strtol(CmdPtr, &EndPtr, 10);
                     if (fieldNum == 0 || fieldNum == 1)
                     {
-                        gstAudioEncDumpEnable = fieldNum;
+                        wcAudioEncDumpEnable = fieldNum;
                         CSIO_LOG(eLogLevel_debug, "set audio encoded dump to: %d\r\n",fieldNum);
                     }
                     else
@@ -2654,7 +2654,7 @@ JNIEXPORT void JNICALL Java_com_crestron_txrxservice_GstreamIn_nativeSetFieldDeb
                     }
                 }
             }
-            else if (!strcmp(CmdPtr, "GST_AUDIOSTATS_ENABLE"))
+            else if (!strcmp(CmdPtr, "WC_AUDIOSTATS_ENABLE"))
             {
                 CmdPtr = strtok(NULL, ", ");
                 CSIO_LOG(eLogLevel_info, "Enabling WC audio input thread stats %s\r\n", CmdPtr);
@@ -2667,7 +2667,7 @@ JNIEXPORT void JNICALL Java_com_crestron_txrxservice_GstreamIn_nativeSetFieldDeb
                     fieldNum = (int) strtol(CmdPtr, &EndPtr, 10);
                     if (fieldNum == 0 || fieldNum == 1)
                     {
-                        gstAudioStatsEnable = fieldNum;
+                        wcAudioStatsEnable = fieldNum;
                         CSIO_LOG(eLogLevel_debug, "set audio stats enable to: %d\r\n",fieldNum);
                     }
                     else
@@ -2676,15 +2676,15 @@ JNIEXPORT void JNICALL Java_com_crestron_txrxservice_GstreamIn_nativeSetFieldDeb
                     }
                 }
             }
-            else if (!strcmp(CmdPtr, "GST_AUDIOSTATS_RESET"))
+            else if (!strcmp(CmdPtr, "WC_AUDIOSTATS_RESET"))
             {
                 CSIO_LOG(eLogLevel_info, "Reset WC audio input thread stats\r\n");
-                gstAudioStatsReset = 1;
+                wcAudioStatsReset = 1;
             }
             else if (!strcmp(CmdPtr, "WC_JPEG_PASSTHROUGH"))
             {
                 CmdPtr = strtok(NULL, ", ");
-                CSIO_LOG(eLogLevel_info, "set WC Jpeg Passthrought to %s\r\n", CmdPtr);
+                CSIO_LOG(eLogLevel_info, "set WC Jpeg Passthrough to %s\r\n", CmdPtr);
                 if (CmdPtr == NULL)
                 {
                     CSIO_LOG(eLogLevel_info, "Invalid Format, need a parameter 0 (disable) 1 (enable) \r\n");
@@ -2703,7 +2703,7 @@ JNIEXPORT void JNICALL Java_com_crestron_txrxservice_GstreamIn_nativeSetFieldDeb
                     }
                 }
             }
-            else if (!strcmp(CmdPtr, "GST_MIC_AUDIO_CAPTURE_ENABLE"))
+            else if (!strcmp(CmdPtr, "WC_MIC_AUDIO_CAPTURE_ENABLE"))
             {
                 CmdPtr = strtok(NULL, ", ");
                 CSIO_LOG(eLogLevel_info, "Enabling mic data capture %s\r\n", CmdPtr);
@@ -2716,7 +2716,7 @@ JNIEXPORT void JNICALL Java_com_crestron_txrxservice_GstreamIn_nativeSetFieldDeb
                     fieldNum = (int) strtol(CmdPtr, &EndPtr, 10);
                     if (fieldNum == 0 || fieldNum == 1)
                     {
-                        gstMicAudioCaptureEnable = fieldNum;
+                        wcMicAudioCaptureEnable = fieldNum;
                         CSIO_LOG(eLogLevel_debug, "mic audio capture: %s\r\n",(fieldNum?"enabled":"disabled"));
                     }
                     else

@@ -24,7 +24,7 @@
 
 #include "errno.h"
 
-extern int gstMicAudioCaptureEnable;
+extern int wcMicAudioCaptureEnable;
 
 #define MAX_AUDIO_CAPTURE_SIZE 20000000
 static FILE *audio_fp = NULL;
@@ -121,7 +121,7 @@ void UsbAudio::usb_audio_get_samples(pcm *pcm_device, void *data, int size, int 
         CSIO_LOG(eLogLevel_error, "UsbAudio: get_pcm_samples(): could not get %d bytes error=%d", size, error);
     } else {
         CSIO_LOG(eLogLevel_verbose, "UsbAudio: get_pcm_samples(): read %d bytes,m_usb_audio_sample[%llu],nsamples[%llu]", size,m_usb_audio_sample,nsamples);
-        if (gstMicAudioCaptureEnable)
+        if (wcMicAudioCaptureEnable)
             audio_capture_write((char *) data, size);
     }
     *timestamp = gst_util_uint64_scale(m_usb_audio_sample, GST_SECOND, 48000);
@@ -173,7 +173,7 @@ bool UsbAudio::configure()
             CSIO_LOG(eLogLevel_info, "USB audio PCM device buffer size = %d (%d)\n", bufsize, pcm_get_buffer_size(m_device));
         }
     }
-    if (gstMicAudioCaptureEnable)
+    if (wcMicAudioCaptureEnable)
         audio_capture_open("/tmp/mic_audio.pcm");
     return true;
 }
