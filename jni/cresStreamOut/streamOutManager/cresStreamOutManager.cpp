@@ -2178,6 +2178,7 @@ eWCstatus CStreamoutManager::initWcAudioVideo()
                 strncpy(m_codec, "H264", sizeof(m_codec));
 #else
                 CSIO_LOG(eLogLevel_info, "--Streamout - TX3session at low quality drop frame rate but preserve resolution");
+#endif
             }
         }
         jpegPassthrough = (strcasecmp(m_codec, "MJPG") == 0);
