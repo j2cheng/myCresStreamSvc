@@ -216,8 +216,10 @@ int wcAudioStatsReset = false;
 int wcJpegStatsEnable = false;
 int wcJpegStatsReset = false;
 int wcJpegRateControl = false;
+int wcJpegDynamicFrameRateControl = false;
 int wcJpegPassthrough = 1;
 int wcJpegQuality = 85;
+int wcJpegRateBitsPerMsec = 20000;
 int wcVideoQueueMaxTime = 100;
 int wcShowVideoQueueOverruns = false;
 bool wcIsTx3Session = false;
@@ -2731,6 +2733,28 @@ JNIEXPORT void JNICALL Java_com_crestron_txrxservice_GstreamIn_nativeSetFieldDeb
                     }
                 }
             }
+            else if (!strcmp(CmdPtr, "WC_JPEG_BITRATE"))
+            {
+                CmdPtr = strtok(NULL, ", ");
+                CSIO_LOG(eLogLevel_info, "set WC Jpeg bitrate to %s bits/msec\r\n", CmdPtr);
+                if (CmdPtr == NULL)
+                {
+                    CSIO_LOG(eLogLevel_info, "Invalid Format, need a parameter in range 0-100 (Default 85) \r\n");
+                }
+                else
+                {
+                    int r = (int) strtol(CmdPtr, &EndPtr, 10);
+                    if (r >= 5000 || r <= 100000)
+                    {
+                        wcJpegRateBitsPerMsec = r;
+                        CSIO_LOG(eLogLevel_debug, "set WC Jpeg Bitrate to: %d bits/msec\r\n",r);
+                    }
+                    else
+                    {
+                        CSIO_LOG(eLogLevel_info, "Invalid Format, need a parameter in range 5000-100000 (Default 20000) \r\n");
+                    }
+                }
+            }
             else if (!strcmp(CmdPtr, "WC_JPEG_STATS_ENABLE"))
             {
                 CmdPtr = strtok(NULL, ", ");
@@ -2780,6 +2804,28 @@ JNIEXPORT void JNICALL Java_com_crestron_txrxservice_GstreamIn_nativeSetFieldDeb
                     {
                         CSIO_LOG(eLogLevel_info, "Invalid Format, need a parameter 0 (disable) 1 (enable) \r\n");
                     } 
+                }
+            }
+            else if (!strcmp(CmdPtr, "WC_JPEG_DYNAMICFRAMERATECONTROL"))
+            {
+                CmdPtr = strtok(NULL, ", ");
+                CSIO_LOG(eLogLevel_info, "set WC Jpeg Rate Control to %s\r\n", CmdPtr);
+                if (CmdPtr == NULL)
+                {
+                    CSIO_LOG(eLogLevel_info, "Invalid Format, need a parameter in range 0-100 (Default 85) \r\n");
+                }
+                else
+                {
+                    int fieldNum = (int) strtol(CmdPtr, &EndPtr, 10);
+                    if (fieldNum == 0 || fieldNum == 1)
+                    {
+                        wcJpegDynamicFrameRateControl = fieldNum;
+                        CSIO_LOG(eLogLevel_debug, "jpeg dynamic frame rate control: %s\r\n",(fieldNum?"enabled":"disabled"));
+                    }
+                    else
+                    {
+                        CSIO_LOG(eLogLevel_info, "Invalid Format, need a parameter 0 (disable) 1 (enable) \r\n");
+                    }
                 }
             }
             else if (!strcmp(CmdPtr, "WC_SET_VIDEO_QUEUE_MAX_TIME"))

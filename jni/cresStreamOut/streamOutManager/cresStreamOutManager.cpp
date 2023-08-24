@@ -44,6 +44,7 @@ extern int wcAudioStatsReset;
 extern int wcJpegStatsEnable;
 extern int wcJpegStatsReset;
 extern int wcJpegRateControl;
+extern int wcJpegDynamicFrameRateControl;
 extern int wcVideoQueueMaxTime;
 extern int wcShowVideoQueueOverruns;
 char encoded_frame_rate[20] = {'1', '5', '/', '1', '\0'};
@@ -83,7 +84,12 @@ static void cb_vidEncQueueUnderruns(void *queue, gpointer user_data);
 static bool jpegPassthrough = false;
 static int jpegQuality = 85;
 extern int wcJpegQuality;
+extern int wcJpegRateBitsPerMsec;
 extern bool wcIsTx3Session;
+
+static int frameDrop = 1; // drop frameDrop-1 frames out of frameDrop frames
+static int nFramesDropped = 0;
+static void resetFrameDrop() { frameDrop = 1; nFramesDropped = 0;}
 
 #define LEAKYSTR(v) (((v) == 0) ? "None" : (((v) == 1) ? "Upstream" : "Downstream"))
 
@@ -740,7 +746,7 @@ static guint64 getAudioChannelMask(int nchannels)
 {
     return ((1ULL<<nchannels)-1);
 }
-//#define SIMULATE_DATA_FLOW_TEST
+
 static GstPadProbeReturn cb_dump_enc_data (
               GstPad          *pad,
               GstPadProbeInfo *info,
@@ -756,19 +762,39 @@ static GstPadProbeReturn cb_dump_enc_data (
     GstRTSPMedia * media = (GstRTSPMedia *)user_data;
     CresRTSPMedia *cresRTSPMedia = (CresRTSPMedia *) media;
 
-
-#ifdef SIMULATE_DATA_FLOW_TEST
-    if( cresRTSPMedia->currEncFrameCount < 2000)
-#endif
-    {
-        // increase the decoded frame counter 
-        cresRTSPMedia->currEncFrameCount++;
-        if( (cresRTSPMedia->currEncFrameCount % 512)  == 0) // 15 fps - log once in ~30 seconds 
-            CSIO_LOG(eLogLevel_debug, "Streamout: Video Frames Processed %lld", cresRTSPMedia->currEncFrameCount);
-    }
+    // increase the decoded frame counter
+    cresRTSPMedia->currEncFrameCount++;
+    if( (cresRTSPMedia->currEncFrameCount % 512)  == 0) // 15 fps - log once in ~30 seconds
+        CSIO_LOG(eLogLevel_debug, "Streamout: Video Frames Processed %lld", cresRTSPMedia->currEncFrameCount);
 
     if (jpegPassthrough)
-        return GST_PAD_PROBE_OK;
+    {
+        GstPadProbeReturn rv = GST_PAD_PROBE_OK;
+        if (wcJpegDynamicFrameRateControl)
+        {
+            buffer = GST_PAD_PROBE_INFO_BUFFER (info);
+            guint sizeInBytes = gst_buffer_get_size(buffer);
+            int rate = 8*sizeInBytes/(GST_BUFFER_DURATION(buffer)/1000000);
+            int dropRate = 1 + rate/wcJpegRateBitsPerMsec;
+            if (dropRate != frameDrop)
+            {
+                frameDrop = dropRate;
+                CSIO_LOG(eLogLevel_debug, "Streamout: At frame %lld frameDrop changed to %d (rate=%d)",
+                        cresRTSPMedia->currEncFrameCount, frameDrop, rate);
+            }
+        }
+        if ((cresRTSPMedia->currEncFrameCount%frameDrop) != 0)
+        {
+            nFramesDropped++;
+            rv = GST_PAD_PROBE_DROP;
+        }
+
+        if ((cresRTSPMedia->currEncFrameCount%1000) == 0)
+            CSIO_LOG(eLogLevel_debug, "Streamout: At frame %lld dropped=%d (%d %%)", cresRTSPMedia->currEncFrameCount,
+                    nFramesDropped, (int) ((100*nFramesDropped)/cresRTSPMedia->currEncFrameCount));
+
+        return rv;
+    }
 
     if( wcVideoEncDumpEnable == 1 )
     {
@@ -911,7 +937,6 @@ static void vstats_cb (
     static guint64 nbytes = 0;
     static GstClockTime first_pts = 0;
     static GstClockTime base_time = 0;
-    const int rateInBitsPerMsec = 15000;
     GstClockTime pts = GST_BUFFER_PTS(buffer);
 
     if (wcJpegStatsReset)
@@ -929,7 +954,7 @@ static void vstats_cb (
 
     nbytes += bufsize;
     if (user_data != NULL && wcJpegRateControl)
-        jpeg_rate_control((GstElement *) user_data, nframes, 8*bufsize, GST_BUFFER_DURATION(buffer), rateInBitsPerMsec);
+        jpeg_rate_control((GstElement *) user_data, nframes, 8*bufsize, GST_BUFFER_DURATION(buffer), wcJpegRateBitsPerMsec);
 
     if (!wcJpegStatsEnable)
         return;
@@ -1102,6 +1127,7 @@ wc_media_configure (GstRTSPMediaFactory * factory, GstRTSPMedia * media,
             GstPad *srcpad;
             CSIO_LOG(eLogLevel_info, "Streamout: Adding data probe on source pad of %s ", parser);
             videoDumpCount = 0;
+            resetFrameDrop();
             srcpad = gst_element_get_static_pad (ele, "src");
             gst_pad_add_probe (srcpad, GST_PAD_PROBE_TYPE_BUFFER,
                     (GstPadProbeCallback) cb_dump_enc_data, media, NULL);
@@ -2147,9 +2173,14 @@ eWCstatus CStreamoutManager::initWcAudioVideo()
             {
                 m_quality = MEDIUM_QUALITY;
                 strncpy(m_frame_rate, "15", sizeof(m_frame_rate));
+#ifdef USE_H264_TX3_LOW_QUALITY
+                CSIO_LOG(eLogLevel_info, "--Streamout - TX3session at low quality drop frame rate but preserve resolution and use H264");
+                strncpy(m_codec, "H264", sizeof(m_codec));
+#else
                 CSIO_LOG(eLogLevel_info, "--Streamout - TX3session at low quality drop frame rate but preserve resolution");
             }
         }
+        jpegPassthrough = (strcasecmp(m_codec, "MJPG") == 0);
         CSIO_LOG(eLogLevel_info, "--Streamout - codec=%s jpegPassthrough=%d", m_codec, jpegPassthrough);
         m_aacEncode = true;
 
