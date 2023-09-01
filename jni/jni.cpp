@@ -37,15 +37,17 @@
 #include "GstreamIn.h"
 #include "GstreamOut.h"
 #include "usbVolumeControl.h"
+#ifdef WHITEBOARD_STREAM_ENABLED
 #include "WbsStreamIn.h"
 #include "Wbs.h"
+#endif
 #include "cresStreamOut.h"
 #include "csioCommonShare.h"
 #include "gst_element_print_properties.h"
 #include <gst/video/video.h>
 #include "csio_jni_if.h"
 // Android headers
-#include "hardware/gralloc.h"           // for GRALLOC_USAGE_PROTECTED
+//#include "hardware/gralloc.h"           // for GRALLOC_USAGE_PROTECTED
 #include "android/native_window.h"      // for ANativeWindow_ functions
 #include <cresNextCommonShare.h>
 #include "cresNextDef.h"
@@ -122,7 +124,9 @@ static jmethodID set_message_method_id_rtsp_server;
 //static jmethodID on_gstreamer_initialized_method_id;
 static jclass *gStreamIn_javaClass_id;
 static jclass *gStreamOut_javaClass_id = NULL;
+#ifdef WHITEBOARD_STREAM_ENABLED
 static jclass *wbsStreamIn_javaClass_id;
+#endif
 static jclass *gCresLog_javaClass_id;
 static jclass *gUsbVolumeCtrl_javaClass_id;
 
@@ -3394,6 +3398,7 @@ jint JNI_OnLoad(JavaVM *vm, void *reserved)
 	}
 	env->RegisterNatives ((jclass)gStreamOut_javaClass_id, native_methods_rtsp_server, G_N_ELEMENTS(native_methods_rtsp_server));
 	
+#ifdef WHITEBOARD_STREAM_ENABLED
 	// Crestron - RH - setup wbsStreamIn_javaClass_id for WbsStreamIn for C++ to be able to call JAVA class WbsStreamIn functions
 	CSIO_LOG(eLogLevel_error, "wbstream_jni : Registering natives for WbsStreamIn");
 	jclass klass3 = env->FindClass ("com/crestron/txrxservice/WbsStreamIn");
@@ -3403,6 +3408,7 @@ jint JNI_OnLoad(JavaVM *vm, void *reserved)
 		CSIO_LOG(eLogLevel_error, "wbstream_jni: wbsStreamIn_javaClass_id is still null when it is suppose to be global");
 	     return 0; /* out of memory exception thrown */
 	}
+#endif
 
     CSIO_LOG(eLogLevel_info, "UsbVolumeCtrl_jni: Registering natives for UsbVolumeCtrl");
     jclass klass4 = env->FindClass ("com/crestron/txrxservice/UsbVolumeCtrl");
@@ -6608,6 +6614,7 @@ JNIEXPORT int JNICALL Java_com_crestron_txrxservice_GstreamOut_nativeWaitForPrev
 /***************************** end of preview with video streaming out *********************************/
 /***************************** start of Kaptivo whiteboard streaming in *********************************/
 
+#ifdef WHITEBOARD_STREAM_ENABLED
 //this is to set up the surface format
 static void wbs_jni_setup_surface_format(JNIEnv *env,ANativeWindow *new_native_window,Wbs_t *pWbs, jobject surface)
 {
@@ -6891,6 +6898,7 @@ JNIEXPORT void JNICALL Java_com_crestron_txrxservice_WbsStreamIn_nativeSetLogLev
 	CSIO_LOG(eLogLevel_verbose, "%s", __FUNCTION__);
 	wbs_setLogLevel(logLevel);
 }
+#endif
 /***************************** end of Kaptivo whiteboard streaming in *********************************/
 
 /***************************** start of Miracast(Wifi Display:wfd) streaming in shares GStreamIn class instance *********************************/

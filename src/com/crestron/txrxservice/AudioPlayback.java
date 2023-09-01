@@ -165,6 +165,10 @@ public class AudioPlayback
 
 					addToAudioBufferQueue(new audioBufferQueueObject(index, read));
 				}
+			} catch (SecurityException localException) {
+				Log.e(TAG, "Audio security exception");
+				localException.printStackTrace();
+                throw localException;
 			} catch (Exception localException) {
 				Log.e(TAG, "Audio exception caught");
 				localException.printStackTrace();

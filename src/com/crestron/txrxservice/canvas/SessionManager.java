@@ -18,7 +18,7 @@ import android.util.Log;
 public class SessionManager
 {
 	com.crestron.txrxservice.canvas.CresCanvas mCanvas;
-    public static final String TAG = "TxRx.canvas.sessionmanager"; 
+    public static final String TAG = "TxRx.canvas.SessionMgr"; 
     private final Object lock_ = new Object();
     private final Object layoutUpdateLock = new Object();
     private final List<Session> sessions_ = new LinkedList<Session>();

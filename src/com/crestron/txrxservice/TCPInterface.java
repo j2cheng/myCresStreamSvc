@@ -22,12 +22,14 @@ import java.net.InetAddress;
 import java.net.ServerSocket;
 import java.net.Socket;
 import java.net.SocketException;
+import java.io.InputStream;
 
 import com.crestron.txrxservice.CresStreamCtrl.StreamState;
 
 import android.os.AsyncTask;
 import android.util.Log;
 import android.os.Bundle;
+import android.content.Context;
 
 public class TCPInterface extends AsyncTask<Void, Object, Long> {
     String TAG = "TxRx TCPInterface";
@@ -177,9 +179,9 @@ public class TCPInterface extends AsyncTask<Void, Object, Long> {
 
         StringBuilder text = new StringBuilder();
         try {
-            File file = new File("/data/crestron/config/rc.conf");
+            InputStream iStream = streamCtl.getResources().openRawResource(R.raw.rc);
 
-            BufferedReader br = new BufferedReader(new FileReader(file));  
+            BufferedReader br = new BufferedReader(new InputStreamReader(iStream));  
             String line;   
             while ((line = br.readLine()) != null) {
                 text.append(line);
@@ -212,8 +214,8 @@ public class TCPInterface extends AsyncTask<Void, Object, Long> {
             String allowedAddress = FindAllowedTcpAddress();
             if (allowedAddress == null)
             {
-                serverSocket = new ServerSocket(SERVERPORT, 50, null);
-                Log.i(TAG, "Allowing all tcp connections to debug port");
+                serverSocket = new ServerSocket(SERVERPORT, 50, InetAddress.getByName("0.0.0.0"));
+                Log.i(TAG, "Allowing all tcp connections to debug port at 0.0.0.0");
             }
             else
                 serverSocket = new ServerSocket(SERVERPORT, 50, InetAddress.getByName(allowedAddress));

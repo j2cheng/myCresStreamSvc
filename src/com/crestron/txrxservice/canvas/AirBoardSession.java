@@ -9,7 +9,7 @@ import android.util.Log;
 
 public class AirBoardSession extends Session
 {
-    public static final String TAG = "TxRx.canvas.airboard.session"; 
+    public static final String TAG = "TxRx.canvas.airbrd"; 
     private static String displayLabel=null;
 
 	public AirBoardSession(String airBoardUrl, String label) {

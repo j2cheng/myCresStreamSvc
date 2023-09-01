@@ -145,6 +145,11 @@ public class MiscUtils {
     	   return b.toString();
     }
     
+    public static void writeStringToDisk(File file, String stringToWrite)
+    {
+        writeStringToDisk(file.getAbsolutePath(), stringToWrite);
+    }
+    
     public static void writeStringToDisk(String filePath, String stringToWrite)
     {
     	Writer writer = null;
@@ -156,6 +161,7 @@ public class MiscUtils {
 	    } 
       	catch (Exception ex) {
     	  Log.e(TAG, "Failed to write to file " + filePath + " : " + ex);
+            ex.printStackTrace();
     	} 
 		finally 
     	{
@@ -163,12 +169,21 @@ public class MiscUtils {
     	}	
     }
     
+    public static String readStringFromDisk(File file)
+    {
+        return readStringFromDisk(file.getAbsolutePath());
+    }
+    
     public static String readStringFromDisk(String filePath)
     {
     	StringBuilder text = new StringBuilder();
     	text.append(""); //default to blank string
+                         
         try {
             File file = new File(filePath);
+
+            if(!file.exists()) Log.e(TAG, "file does not exists: " + file.getAbsolutePath());
+            else {
 
             BufferedReader br = new BufferedReader(new FileReader(file));  
             String line;   
@@ -176,7 +191,12 @@ public class MiscUtils {
                 text.append(line);
             }
             br.close();
-        }catch (Exception e) {}
+            }
+        }catch (Exception e)
+        {
+            Log.e(TAG, filePath);
+            e.printStackTrace();
+        }
         return text.toString();
     }
     

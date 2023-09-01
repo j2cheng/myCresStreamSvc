@@ -44,7 +44,6 @@ import android.os.IBinder;
 import android.view.SurfaceView;
 import android.view.WindowManager;
 import android.widget.Toast;
-import android.content.Context;
 import android.os.AsyncTask;
 import android.os.Build;
 import android.provider.MediaStore.Files;
@@ -72,6 +71,8 @@ import android.graphics.SurfaceTexture;
 import android.hardware.Camera;
 import android.app.Activity;
 import android.app.Notification;
+import android.app.NotificationChannel;
+import android.app.NotificationManager;
 import android.hardware.display.DisplayManager;
 import android.hardware.display.DisplayManager.DisplayListener;
 
@@ -142,6 +143,8 @@ public class CresStreamCtrl extends Service {
     
     AirMediaSplashtop mAirMedia = null;
     
+    public static final String NOTIFICATION_CHANNEL_ID = "TxRxNotificationChannel";
+    
     public com.crestron.txrxservice.canvas.CresCanvas mCanvas = null;
     public com.crestron.txrxservice.wc.WC_Service mWC_Service = null;
     
@@ -169,21 +172,21 @@ public class CresStreamCtrl extends Service {
     public boolean csioConnectionInitializationComplete = false;
     boolean airMediaLicensed = false;
     boolean[] restartRequired = new boolean[NumOfSurfaces];
-    public final static String savedSettingsFilePath = "/data/CresStreamSvc/userSettings";
-    public final static String savedSettingsOldFilePath = "/data/CresStreamSvc/userSettings.old";
-    public final static String cameraModeFilePath = "/dev/shm/crestron/CresStreamSvc/cameraMode";
-    public final static String restoreFlagFilePath = "/data/CresStreamSvc/restore";
-    public final static String restartStreamsFilePath = "/dev/shm/crestron/CresStreamSvc/restartStreams";
-    public final static String hdmiLicenseFilePath = "/dev/shm/hdmi_licensed";
-    public final static String pinpointEnabledFilePath = "/dev/crestron/alphablendingenable";
-    private final static String mercuryHdmiOutWaitFilePath = "/dev/shm/crestron/CresStreamSvc/mercuryWait";
-    public final static String initializeSettingsFilePath = "/dev/shm/crestron/CresStreamSvc/initializeSettings";
-    public final static String hdmiInputHPDFilePath = "/dev/shm/crestron/hdmi/inputHpd";
-    public final static String hdmiInputResolutionFilePath = "/dev/shm/crestron/hdmi/inputResolution";
-    public final static String hdmiOutputResolutionFilePath = "/dev/shm/crestron/hdmi/outputResolution";
-    public final static String surfaceFlingerViolationFilePath = "/dev/shm/crestron/CresStreamSvc/SFviolation";
-    private final static String goldenBootFilePath = "/dev/shm/crestron/CresStreamSvc/golden";
-    private final static String dontStartAirMediaFilePath = "/dev/shm/crestron/CresStreamSvc/dontStartAirMedia";
+    public final static String savedSettingsFilePath = "userSettings";
+    public final static String savedSettingsOldFilePath = "userSettings.old";
+    public final static String cameraModeFilePath = "cameraMode";
+    public final static String restoreFlagFilePath = "restore";
+    public final static String restartStreamsFilePath = "restartStreams";
+    public final static String hdmiLicenseFilePath = "hdmi_licensed";
+    public final static String pinpointEnabledFilePath = "alphablendingenable";
+    private final static String mercuryHdmiOutWaitFilePath = "mercuryWait";
+    public final static String initializeSettingsFilePath = "initializeSettings";
+    public final static String hdmiInputHPDFilePath = "inputHpd";
+    public final static String hdmiInputResolutionFilePath = "inputResolution";
+    public final static String hdmiOutputResolutionFilePath = "outputResolution";
+    public final static String surfaceFlingerViolationFilePath = "SFviolation";
+    private final static String goldenBootFilePath = "golden";
+    private final static String dontStartAirMediaFilePath = "dontStartAirMedia";
     private static final String [] InterfaceNames = {"eth0", "eth1"};
     public static boolean isAM3K = false;
     public static boolean m_isDGE3200 = false;
@@ -238,12 +241,12 @@ public class CresStreamCtrl extends Service {
     private final ProductSpecific mProductSpecific = new ProductSpecific();
     private final UsbVolumeCtrl mUsbVolumeCtrl = new UsbVolumeCtrl(this);
 
-    private final static String multicastTTLFilePath = "/dev/shm/crestron/CresStreamSvc/multicast_ttl";
-    private final static String keyFrameIntervalFilePath = "/dev/shm/crestron/CresStreamSvc/keyframe_interval";
+    private final static String multicastTTLFilePath = "multicast_ttl";
+    private final static String keyFrameIntervalFilePath = "keyframe_interval";
     
-    private final static String ducatiCrashCountFilePath = "/dev/shm/crestron/CresStreamSvc/ducatiCrashCount";
-    public final static String gstreamerTimeoutCountFilePath = "/dev/shm/crestron/CresStreamSvc/gstreamerTimeoutCount";
-    public final static String hdcpEncryptFilePath = "/dev/shm/crestron/CresStreamSvc/HDCPEncrypt";
+    private final static String ducatiCrashCountFilePath = "ducatiCrashCount";
+    public final static String gstreamerTimeoutCountFilePath = "gstreamerTimeoutCount";
+    public final static String hdcpEncryptFilePath = "HDCPEncrypt";
     private static long lastRecoveryTime = 0;
     public int mGstreamerTimeoutCount = 0;
     public boolean haveExternalDisplays;
@@ -738,8 +741,6 @@ public class CresStreamCtrl extends Service {
     private final MyReentrantLock[] stopStartLock		= new MyReentrantLock[NumOfSurfaces]; // members will be allocated in constructor
     private final MyReentrantLock[] streamStateLock 	= new MyReentrantLock[NumOfSurfaces]; // members will be allocated in constructor
 
-    private Notification mNote = new Notification( 0, null, System.currentTimeMillis() );
-    
     private class HdmiAm3K {
         boolean isPlaying;
         boolean sync; 
@@ -782,9 +783,10 @@ public class CresStreamCtrl extends Service {
      */
     public void ForceServiceToForeground()
     {
-        mNote.when = System.currentTimeMillis();
-        mNote.flags |= Notification.FLAG_NO_CLEAR;
-        startForeground( 42, mNote );
+        Notification.Builder builder =
+            new Notification.Builder((Context)this, NOTIFICATION_CHANNEL_ID)
+            .setWhen(System.currentTimeMillis());
+        startForeground(42, builder.build());
     }
     
     /**
@@ -835,9 +837,13 @@ public class CresStreamCtrl extends Service {
     @Override
         public void onCreate() {
             super.onCreate();
+
+            createNotificationChannel();
+
+            File homeDir = getFilesDir();
+            Log.i(TAG, "onCreate: begin, path: " + homeDir.getAbsolutePath());
             // Create Handler onCreate so that it is always associated with UI thread (main thread)
             handler = new Handler();
-            super.onCreate();
             int windowWidth = 1920;
             int windowHeight = 1080;
             hideVideoOnStop = nativeHideVideoBeforeStop();
@@ -852,37 +858,37 @@ public class CresStreamCtrl extends Service {
             	airMediav21 = true;	//default
             	
 	            //TODO remove once integration is over
-	            File f = new File("/data/CresStreamSvc/airMediav2.1");
+	            File f = new File(homeDir, "airMediav2.1");
 	            if (f.exists())
 	            {
-	            	airMediav21 = MiscUtils.readStringFromDisk("/data/CresStreamSvc/airMediav2.1").equals("1");
+	            	airMediav21 = MiscUtils.readStringFromDisk(f).equals("1");
 	            }
 	            Log.i(TAG, "device " + ((airMediav21)?"is in":"is not in") + " airMedia2.1 Mode");
 	            if (airMediav21)
 	            {
-	            	f = new File("/data/CresStreamSvc/useCanvasSurfaces");
+	            	f = new File(homeDir, "useCanvasSurfaces");
 	            	if (f.exists())
 	            	{
-	                	CresCanvas.useCanvasSurfaces = MiscUtils.readStringFromDisk("/data/CresStreamSvc/useCanvasSurfaces").equals("1");
+	                	CresCanvas.useCanvasSurfaces = MiscUtils.readStringFromDisk(f).equals("1");
 	            	}
 	                Log.i(TAG, "device using "+((CresCanvas.useCanvasSurfaces)?"canvas":"internal")+" surfaceviews");
-	            	f = new File("/data/CresStreamSvc/useSimulatedAVF");
+	            	f = new File(homeDir, "useSimulatedAVF");
 	            	if (f.exists())
 	            	{
-	                	CresCanvas.useSimulatedAVF = MiscUtils.readStringFromDisk("/data/CresStreamSvc/useSimulatedAVF").equals("1");
+	                	CresCanvas.useSimulatedAVF = MiscUtils.readStringFromDisk(f).equals("1");
 	            	}
 	                Log.i(TAG, "device using "+((CresCanvas.useSimulatedAVF)?"simulated":"normal")+" AVF");
-	            	f = new File("/data/CresStreamSvc/useFauxPPUX");
+	            	f = new File(homeDir, "useFauxPPUX");
 	            	if (f.exists())
 	            	{
-	                	useFauxPPUX = MiscUtils.readStringFromDisk("/data/CresStreamSvc/useFauxPPUX").equals("1");
+	                	useFauxPPUX = MiscUtils.readStringFromDisk(f).equals("1");
 	            	}
 	                Log.i(TAG, "device using "+((useFauxPPUX)?"Faux PPUX":"Real PPUX"));
 	            }
-	            f = new File("/dev/shm/forceSurfaceRelease");
+	            f = new File(homeDir, "forceSurfaceRelease");
 	            if (f.exists() && isAM3K)
 	            {
-	                forceSurfaceDisconnectAndRelease = MiscUtils.readStringFromDisk("/dev/shm/forceSurfaceRelease").equals("1");
+	                forceSurfaceDisconnectAndRelease = MiscUtils.readStringFromDisk(f).equals("1");
 	                if (forceSurfaceDisconnectAndRelease)
 	                    Log.i(TAG, "device will force surface disconnect and release");
 	            }
@@ -913,11 +919,11 @@ public class CresStreamCtrl extends Service {
             // I guess 2nd display is not ready yet.
             haveExternalDisplays = nativeHaveExternalDisplays();
             if(haveExternalDisplays){
-                String startUpFilePath = "/dev/shm/crestron/CresStreamSvc/startup";
+                File startUpFile = new File(getFilesDir(), "startup");
                 int val = 0;
                 try
                 {
-                    val = Integer.parseInt(MiscUtils.readStringFromDisk(startUpFilePath));
+                    val = Integer.parseInt(MiscUtils.readStringFromDisk(startUpFile));
                 } catch (Exception e) {}
                 if (val == 1)
                 {
@@ -928,7 +934,7 @@ public class CresStreamCtrl extends Service {
                         Log.i(TAG, "waited " + i + " sec");
                     }
                     Log.i(TAG, "done waiting for external display(s)");
-                    MiscUtils.writeStringToDisk(startUpFilePath, String.valueOf(1));
+                    MiscUtils.writeStringToDisk(startUpFile, String.valueOf(1));
                 }
             }
 
@@ -993,7 +999,7 @@ public class CresStreamCtrl extends Service {
             boolean useOldUserSettingsFile = false;
             boolean fixSettingsVersionMismatch = false;
 
-            File restoreFlagFile = new File(restoreFlagFilePath);
+            File restoreFlagFile = new File(getFilesDir(), restoreFlagFilePath);
             boolean isRestore = restoreFlagFile.isFile();
             if (isRestore)
             {
@@ -1004,8 +1010,8 @@ public class CresStreamCtrl extends Service {
                     Log.e(TAG, "Failed to delete restore file!");
             }
 
-            File serializedClassFile = new File (savedSettingsFilePath);
-            if (serializedClassFile.isFile())	//check if file exists
+            File serializedClassFile = new File (getFilesDir(), savedSettingsFilePath);
+            if (serializedClassFile.exists())	//check if file exists
             {
                 // File exists deserialize it into userSettings
                 GsonBuilder builder = new GsonBuilder();
@@ -1036,7 +1042,7 @@ public class CresStreamCtrl extends Service {
 
             if (useOldUserSettingsFile) //userSettings deserialization failed try using old userSettings file
             {
-                File serializedOldClassFile = new File (savedSettingsOldFilePath);
+                File serializedOldClassFile = new File (getFilesDir(), savedSettingsOldFilePath);
                 if (serializedOldClassFile.isFile())	//check if file exists
                 {
                     Log.i(TAG, "Deserializing old userSettings file");
@@ -1119,7 +1125,8 @@ public class CresStreamCtrl extends Service {
             sockTask = new TCPInterface(this);
             sockTask.execute(new Void[0]);
 
-            if (MiscUtils.readStringFromDisk(initializeSettingsFilePath).compareTo("1") != 0)
+
+            if (MiscUtils.readStringFromDisk(new File(homeDir, initializeSettingsFilePath)).compareTo("1") != 0)
             {
                 // for some products set up the defaults on restore
                 // TODO: If we want special restore section do that here
@@ -1203,7 +1210,7 @@ public class CresStreamCtrl extends Service {
                     break;
                 }
             }
-            File disableRGB888File = new File ("/data/CresStreamSvc/disableRgb");
+            File disableRGB888File = new File (getFilesDir(), "disableRgb");
             if (disableRGB888File.isFile())	//check if file exists
             {
                 Log.e(TAG, "Disabling RGB888");
@@ -1319,7 +1326,7 @@ public class CresStreamCtrl extends Service {
                 mWC_Service = new WC_Service(CresStreamCtrl.this);
             }
 
-            wbsStream = new WbsStreamIn(CresStreamCtrl.this);
+            //wbsStream = new WbsStreamIn(CresStreamCtrl.this);
 
             wifidVideoPlayer = new WifidVideoPlayer(CresStreamCtrl.this);
 
@@ -1343,6 +1350,7 @@ public class CresStreamCtrl extends Service {
                 }
             }).start();
 
+            /*
             if(nativeProductOnlyAlphablend())
             {   //For AM3X00 devices this is the case.
                 Log.i(TAG, "Only alphablending supported ");
@@ -1352,20 +1360,21 @@ public class CresStreamCtrl extends Service {
             {
                 // This must be done before CresDisplaySurface is created
                 // Wait until file exists then check
-                while ((new File(pinpointEnabledFilePath)).exists() == false)
+                while ((new File(getFilesDir(), pinpointEnabledFilePath)).exists() == false)
                 {
-                    try { Thread.sleep(100); } catch (InterruptedException e){}
+                    try { Thread.sleep(100); } catch (InterruptedException e) {e.printStackTrace();}
                 }
                 int pinpointEnabled = 0;
                 try {
                     pinpointEnabled = Integer.parseInt(MiscUtils.readStringFromDisk(pinpointEnabledFilePath));
-                } catch (NumberFormatException e) {}
+                } catch (NumberFormatException e) {e.printStackTrace();}
                 alphaBlending = (pinpointEnabled == 1) ? true : false;
             }
+           */
             
             // Fix for forcing txrxservice allocated surfaces to be used on Mercury in rigel mode
             // because of "sluggish" behavior from eTouchScrceen apk when canvas surfaces are used
-            File f = new File("/data/CresStreamSvc/useCanvasSurfaces");
+            File f = new File(getFilesDir(), "useCanvasSurfaces");
             if (!f.exists() && (CrestronProductName.fromInteger(nativeGetProductTypeEnum()) == CrestronProductName.Mercury) && systemMode.contains("rigel"))
             {
                 Log.i(TAG, "On Mercury don't use canvas surfaces in Teams/Zoom mode");
@@ -1485,7 +1494,7 @@ public class CresStreamCtrl extends Service {
             monitorMediaServer();
 
             // Monitor Crash State
-            monitorCrashState();
+            monitorCrashState(this);
 
             // Set HDCP error color to red, needs to be in a thread for NetworkOnMainThreadException
             new Thread(new Runnable() {
@@ -1511,7 +1520,7 @@ public class CresStreamCtrl extends Service {
             setKeyFrameInterval(userSettings.getKeyFrameInterval());
 
             // FIXME: this is a temprorary workaround for testing so that we can ignore HDCP state
-            File ignoreHDCPFile = new File ("/data/CresStreamSvc/ignoreHDCP");
+            File ignoreHDCPFile = new File (getFilesDir(), "ignoreHDCP");
             if (ignoreHDCPFile.isFile())	//check if file exists
                 mIgnoreHDCP = true;
             else
@@ -1520,15 +1529,16 @@ public class CresStreamCtrl extends Service {
             // Monitor the number of times the gstreamer 10 second timeout occurs
             try
             {
-                mGstreamerTimeoutCount = Integer.parseInt(MiscUtils.readStringFromDisk(gstreamerTimeoutCountFilePath));
+                mGstreamerTimeoutCount = Integer.parseInt(MiscUtils.readStringFromDisk(new File(homeDir, gstreamerTimeoutCountFilePath)));
             } catch (Exception e)
             {
                 mGstreamerTimeoutCount = 0;	// not an error condition, just default to 0 if file does not exist
             }
-            MiscUtils.writeStringToDisk(gstreamerTimeoutCountFilePath, String.valueOf(mGstreamerTimeoutCount));
+            MiscUtils.writeStringToDisk(new File(homeDir, gstreamerTimeoutCountFilePath), String.valueOf(mGstreamerTimeoutCount));
 
             mProductSpecific.getInstance().startPeripheralListener(this);
 
+            Log.i(TAG, "onCreate: end");
         }
 
     @Override
@@ -1668,6 +1678,7 @@ public class CresStreamCtrl extends Service {
     
     public void onDestroy(){
         super.onDestroy();
+        Log.i(TAG, "onDestroy: begin");
         saveUserSettings();
         saveSettingsShouldExit = true;
         sockTask.cancel(true);
@@ -1695,11 +1706,13 @@ public class CresStreamCtrl extends Service {
         
         if(mProductSpecific.cam_handle != null)
             mProductSpecific.cam_handle.releaseCamera();
+        Log.i(TAG, "onDestroy: end");
     }
     
     public void runOnUiThread(Runnable runnable) {
         // Android wants all surface methods to be run on UI thread,
         // Instability and/or crashes can occur if this is not observed
+        Log.i(TAG, "runOnUiThread: " + runnable.toString());
         handler.post(runnable);
     }
     
@@ -1761,7 +1774,7 @@ public class CresStreamCtrl extends Service {
                 break;
             }
         }
-        File disableRGB888File = new File ("/data/CresStreamSvc/disableRgb");
+        File disableRGB888File = new File (getFilesDir(), "disableRgb");
         if (disableRGB888File.isFile())	//check if file exists
         {
             Log.e(TAG, "Disabling RGB888 due to presence of file");
@@ -2077,19 +2090,19 @@ public class CresStreamCtrl extends Service {
                 
                 // Do not start any of the below if in golden image
                 boolean golden=false;
-            	File f = new File(goldenBootFilePath);
+            	File f = new File(getFilesDir(), goldenBootFilePath);
             	if (f.exists())
             	{
-                	golden = MiscUtils.readStringFromDisk(goldenBootFilePath).equals("1");
+                	golden = MiscUtils.readStringFromDisk(f).equals("1");
             	}
                 Log.i(TAG, "airmedia golden boot flag is "+golden);
 
             	// Special condition during production, cannot start AM since it interferes with production application
             	boolean dontStart=false;
-                File dsamFile = new File(dontStartAirMediaFilePath);
+                File dsamFile = new File(getFilesDir(), dontStartAirMediaFilePath);
                 if (dsamFile.exists())
                 {
-                    dontStart = MiscUtils.readStringFromDisk(dontStartAirMediaFilePath).equals("1");
+                    dontStart = MiscUtils.readStringFromDisk(dsamFile).equals("1");
                 }
                 Log.i(TAG, "airmedia dontStart flag is "+dontStart);
             	
@@ -2134,15 +2147,18 @@ public class CresStreamCtrl extends Service {
                 // Wait until file exists then check
                 int hdmiLicensed = 0;
                 if (CrestronProductName.fromInteger(nativeGetProductTypeEnum()) != CrestronProductName.AM3X00 &&
-                    CrestronProductName.fromInteger(nativeGetProductTypeEnum()) != CrestronProductName.DGE3200)
+                    CrestronProductName.fromInteger(nativeGetProductTypeEnum()) != CrestronProductName.DGE3200 &&
+                    CrestronProductName.fromInteger(nativeGetProductTypeEnum()) != CrestronProductName.Unknown)
                 {
-                    while ((new File(hdmiLicenseFilePath)).exists() == false)
+                    File f = new File(streamCtrl.getFilesDir(), hdmiLicenseFilePath);
+
+                    while (f.exists() == false)
                     {   Log.v(TAG, "Wait until file exists then check");
                         try { Thread.sleep(1000); } catch (InterruptedException e){}//Poll every 5 seconds
                     }
 
                     try {
-                        hdmiLicensed = Integer.parseInt(MiscUtils.readStringFromDisk(hdmiLicenseFilePath));
+                        hdmiLicensed = Integer.parseInt(MiscUtils.readStringFromDisk(f));
                     } catch (NumberFormatException e) {}
                 }
                 else
@@ -2278,7 +2294,7 @@ public class CresStreamCtrl extends Service {
     {
         final String commandIntent = "com.crestron.crashObserver";
         final Context ctx = (Context)this;
-        File mediaServerReboot = new File ("/dev/shm/crestron/CresStreamSvc/mediaServerState");
+        File mediaServerReboot = new File (getFilesDir(), "mediaServerState");
         if (!mediaServerReboot.isFile())	//check if file exists
         {
             try {
@@ -2286,7 +2302,7 @@ public class CresStreamCtrl extends Service {
                 mediaServerReboot.createNewFile();
             } catch (Exception e) {}
         }
-        mediaServerObserver = new FileObserver("/dev/shm/crestron/CresStreamSvc/mediaServerState", FileObserver.CLOSE_WRITE) {						
+        mediaServerObserver = new FileObserver(new File(getFilesDir(), "mediaServerState"), FileObserver.CLOSE_WRITE) {						
             @Override
             public void onEvent(int event, String path) {
                 // Send broadcast for third party apps
@@ -2300,20 +2316,23 @@ public class CresStreamCtrl extends Service {
         mediaServerObserver.startWatching();
     }
     
-    private void monitorCrashState ()
+    private void monitorCrashState (final CresStreamCtrl streamCtrl)
     {
         monitorCrashThread = new Thread(new Runnable() {
             @Override
             public void run() {
                 int ducatiCrashCount;	//we will use this to record the number of times Ducati has crashed for statistical information
+                                        //
+                File ducatiCrashCountFile = new File(streamCtrl.getFilesDir(), ducatiCrashCountFilePath);
+
                 try
                 {
-                    ducatiCrashCount = Integer.parseInt(MiscUtils.readStringFromDisk(ducatiCrashCountFilePath));
+                    ducatiCrashCount = Integer.parseInt(MiscUtils.readStringFromDisk(ducatiCrashCountFile));
                 } catch (Exception e)
                 {
                     ducatiCrashCount = 0;	// not an error condition, just default to 0 if file does not exist
                 }
-                MiscUtils.writeStringToDisk(ducatiCrashCountFilePath, String.valueOf(ducatiCrashCount));
+                MiscUtils.writeStringToDisk(ducatiCrashCountFile, String.valueOf(ducatiCrashCount));
 
                 // Clear out initial ducati flag since first boot is not a crash
                 writeDucatiState(1);
@@ -2339,7 +2358,7 @@ public class CresStreamCtrl extends Service {
                             int currentDucatiState = readDucatiState();
                             if ((currentDucatiState == 0) && (mIgnoreAllCrash == false))
                             {
-                                MiscUtils.writeStringToDisk(ducatiCrashCountFilePath, String.valueOf(++ducatiCrashCount));
+                                MiscUtils.writeStringToDisk(ducatiCrashCountFile, String.valueOf(++ducatiCrashCount));
                                 mPreviousValidHdmiInputResolution = 0;
                                 Log.i(TAG, "Recovering from Ducati crash!");
                                 recoverFromCrash();
@@ -2349,7 +2368,7 @@ public class CresStreamCtrl extends Service {
                         // Check if mediaserver crashed
                         if ((mMediaServerCrash == true) && (mIgnoreAllCrash == false))
                         {
-                            MiscUtils.writeStringToDisk(ducatiCrashCountFilePath, String.valueOf(++ducatiCrashCount));
+                            MiscUtils.writeStringToDisk(ducatiCrashCountFile, String.valueOf(++ducatiCrashCount));
                             mPreviousValidHdmiInputResolution = 0;
                             Log.i(TAG, "Recovering from mediaserver crash!");
                             recoverFromCrash();
@@ -2427,7 +2446,7 @@ public class CresStreamCtrl extends Service {
         
         StringBuilder text = new StringBuilder();
         try {
-            File file = new File(restartStreamsFilePath);
+            File file = new File(getFilesDir(), restartStreamsFilePath);
 
             BufferedReader br = new BufferedReader(new FileReader(file));  
             String line;   
@@ -2445,7 +2464,7 @@ public class CresStreamCtrl extends Service {
         Writer writer = null;
         try
         {
-            writer = new BufferedWriter(new OutputStreamWriter(new FileOutputStream(restartStreamsFilePath), "US-ASCII"));
+            writer = new BufferedWriter(new OutputStreamWriter(new FileOutputStream(new File(getFilesDir(), restartStreamsFilePath)), "US-ASCII"));
             writer.write(String.valueOf(state));
             writer.flush();
         }
@@ -4568,11 +4587,11 @@ public class CresStreamCtrl extends Service {
 
         if(flag)
         {
-            MiscUtils.writeStringToDisk(hdcpEncryptFilePath, String.valueOf(1));
+            MiscUtils.writeStringToDisk(new File(getFilesDir(), hdcpEncryptFilePath), String.valueOf(1));
         }
         else
         {
-            MiscUtils.writeStringToDisk(hdcpEncryptFilePath, String.valueOf(0));
+            MiscUtils.writeStringToDisk(new File(getFilesDir(), hdcpEncryptFilePath), String.valueOf(0));
         }
     }
 
@@ -4952,12 +4971,12 @@ public class CresStreamCtrl extends Service {
     
     public void setMulticastTTl(int value){
         userSettings.setMulticastTTL(value);
-        MiscUtils.writeStringToDisk(multicastTTLFilePath, String.valueOf(value));
+        MiscUtils.writeStringToDisk(new File(getFilesDir(), multicastTTLFilePath), String.valueOf(value));
     }
     
     public void setKeyFrameInterval(int value){
         userSettings.setKeyFrameInterval(value);
-        MiscUtils.writeStringToDisk(keyFrameIntervalFilePath, String.valueOf(value));
+        MiscUtils.writeStringToDisk(new File(getFilesDir(), keyFrameIntervalFilePath), String.valueOf(value));
     }
     
     public void setSessionInitiation(int sessionInitiation, int sessionId)
@@ -6175,7 +6194,7 @@ public class CresStreamCtrl extends Service {
             if ((CrestronProductName.fromInteger(nativeGetProductTypeEnum()) == CrestronProductName.AM3X00) ||
                 (AirMediaSplashtop.checkAirMediaLicense()))
             {
-                MiscUtils.writeStringToDisk("/dev/shm/crestron/CresStreamSvc/airmediaVersion", versionName);
+                MiscUtils.writeStringToDisk(new File(getFilesDir(), "airmediaVersion"), versionName);
             }
 
             try {
@@ -6185,7 +6204,7 @@ public class CresStreamCtrl extends Service {
                 Bundle bundle = ai.metaData;
                 String serverVersion = bundle.getString("serverVersion");
                 if (serverVersion != null && !serverVersion.equals("")) {
-                    MiscUtils.writeStringToDisk("/dev/shm/crestron/CresStreamSvc/airmediaServerVersion", serverVersion);
+                    MiscUtils.writeStringToDisk(new File(getFilesDir(), "airmediaServerVersion"), serverVersion);
                 }
             }
         }
@@ -6969,16 +6988,21 @@ public class CresStreamCtrl extends Service {
         sockTask.SendDataToAllClients(MiscUtils.stringFormat("EXECUTEROOTCOMMAND=%s", command));
     }
     
-    public void checkFileExistsElseCreate(String filePath)
+    public void checkFileExistsElseCreate(String fileName)
     {
-        File file = new File (filePath);
+        File file = new File (getFilesDir(), fileName);
         if (!file.isFile())	//check if file exists
         {
             try {
                 file.getParentFile().mkdirs();
                 file.createNewFile();
-            } catch (Exception e) {}
+                Log.i(TAG, "new file created: " + file.getAbsolutePath());
+            } catch (Exception e)
+            {
+                Log.e(TAG, fileName);
+                e.printStackTrace();
         }
+    }
     }
     
     private void handleSurfaceFlingerViolation()
@@ -6993,8 +7017,10 @@ public class CresStreamCtrl extends Service {
         // Make sure all files exist before observing
         checkFileExistsElseCreate(surfaceFlingerViolationFilePath);
 
+        File surfaceFlingerViolationFile = new File(getFilesDir(), surfaceFlingerViolationFilePath);
+
         // Monitor surfaceFlinger violation events
-        surfaceFlingerViolationObserver = new FileObserver(surfaceFlingerViolationFilePath, FileObserver.CLOSE_WRITE) {						
+        surfaceFlingerViolationObserver = new FileObserver(surfaceFlingerViolationFile, FileObserver.CLOSE_WRITE) {						
             @Override
             public void onEvent(int event, String path) {
                 try
@@ -7004,7 +7030,7 @@ public class CresStreamCtrl extends Service {
                         int violation = 0;
                         try
                         {
-                            violation =  Integer.parseInt(MiscUtils.readStringFromDisk(surfaceFlingerViolationFilePath));
+                            violation =  Integer.parseInt(MiscUtils.readStringFromDisk(surfaceFlingerViolationFile));
                             if (violation != 0)
                                 handleSurfaceFlingerViolation();
                         }
@@ -7065,7 +7091,7 @@ public class CresStreamCtrl extends Service {
                         int resolutionId = 0;
                         try
                         {
-                            resolutionId =  Integer.parseInt(MiscUtils.readStringFromDisk(hdmiInputResolutionFilePath));
+                            resolutionId =  Integer.parseInt(MiscUtils.readStringFromDisk(new File(getFilesDir(), hdmiInputResolutionFilePath)));
                             handleHdmiInputResolutionEvent(resolutionId);
                         }
                         catch (NumberFormatException e)
@@ -7094,7 +7120,7 @@ public class CresStreamCtrl extends Service {
                         int hdmiOutResolutionEnum = 0;
                         try
                         {
-                            hdmiOutResolutionEnum =  Integer.parseInt(MiscUtils.readStringFromDisk(hdmiOutputResolutionFilePath));
+                            hdmiOutResolutionEnum =  Integer.parseInt(MiscUtils.readStringFromDisk(new File(getFilesDir(), hdmiOutputResolutionFilePath)));
                             Log.i(TAG, "Received hdmiout resolution changed broadcast ! " + hdmiOutResolutionEnum);
 
                             synchronized (mDisplayChangedLock)
@@ -7594,7 +7620,7 @@ public class CresStreamCtrl extends Service {
             String serializedClass = gson.toJson(this.userSettings);
             String currentUserSettings = "";
             try {
-                currentUserSettings = new Scanner(new File (savedSettingsFilePath), "US-ASCII").useDelimiter("\\A").next();
+                currentUserSettings = new Scanner(new File (getFilesDir(), savedSettingsFilePath), "US-ASCII").useDelimiter("\\A").next();
             } catch (Exception e) {Log.i(TAG, "Exception in saveUserSettings" + e.toString()); }
 
             // Only update userSettings if it has changed
@@ -7603,7 +7629,7 @@ public class CresStreamCtrl extends Service {
                 try
                 {
                     // If old file exists delete it
-                    File oldFile = new File(savedSettingsOldFilePath);
+                    File oldFile = new File(getFilesDir(), savedSettingsOldFilePath);
                     if (oldFile.exists())
                     {
                         boolean deleteSuccess = oldFile.delete();
@@ -7615,7 +7641,7 @@ public class CresStreamCtrl extends Service {
                     renameFile(savedSettingsFilePath, savedSettingsOldFilePath);
                     syncFileSystem();
 
-                    writer = new BufferedWriter(new OutputStreamWriter(new FileOutputStream(savedSettingsFilePath), "US-ASCII"));
+                    writer = new BufferedWriter(new OutputStreamWriter(new FileOutputStream(new File(getFilesDir(), savedSettingsFilePath).getAbsolutePath()), "US-ASCII"));
                     writer.write(serializedClass);
                     writer.flush();
                 }
@@ -7901,9 +7927,9 @@ public class CresStreamCtrl extends Service {
                     synchronized (mDisplayChangedLock)
                     {
                         // Bug 135322: Need to sleep after powercycle for Mercury because of window became corrupted (size 0 zorder 0)
-                        if (haveExternalDisplays && MiscUtils.readStringFromDisk(mercuryHdmiOutWaitFilePath).compareTo("1") != 0)
+                        if (haveExternalDisplays && MiscUtils.readStringFromDisk(new File(getFilesDir(), mercuryHdmiOutWaitFilePath)).compareTo("1") != 0)
                         {
-                            MiscUtils.writeStringToDisk(mercuryHdmiOutWaitFilePath, "1");
+                            MiscUtils.writeStringToDisk(new File(getFilesDir(), mercuryHdmiOutWaitFilePath), "1");
                             try { Thread.sleep(10000);} catch (InterruptedException e) {}
                         }
                         DisplayManager dm =
@@ -8332,10 +8358,10 @@ public class CresStreamCtrl extends Service {
     {
         // Special condition during production, interferes with production application
         boolean dontStart = false;
-        File dsamFile = new File(dontStartAirMediaFilePath);
+        File dsamFile = new File(getFilesDir(), dontStartAirMediaFilePath);
         if (dsamFile.exists())
         {
-            dontStart = MiscUtils.readStringFromDisk(dontStartAirMediaFilePath).equals("1");
+            dontStart = MiscUtils.readStringFromDisk(dsamFile).equals("1");
         }
 
         return dontStart;
@@ -8430,5 +8456,22 @@ public class CresStreamCtrl extends Service {
     public String getSystemMode()
     {
         return userSettings.getSystemMode();
+    }
+
+    private void createNotificationChannel()
+    {
+        if (Build.VERSION.SDK_INT >= Build.VERSION_CODES.O)
+        {
+            NotificationManager notificationManager =
+                getSystemService(NotificationManager.class);
+            NotificationChannel channel =
+                new NotificationChannel(
+                        NOTIFICATION_CHANNEL_ID,
+                        NOTIFICATION_CHANNEL_ID /* name */,
+                        NotificationManager.IMPORTANCE_DEFAULT);
+
+            channel.setDescription("txrxservice notification channel");
+            notificationManager.createNotificationChannel(channel);
+}
     }
 }

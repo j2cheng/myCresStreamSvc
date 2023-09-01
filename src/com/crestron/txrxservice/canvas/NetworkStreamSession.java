@@ -20,7 +20,7 @@ import android.view.Surface;
 
 public class NetworkStreamSession extends Session
 {
-    public static final String TAG = "TxRx.canvas.NetworkStream.session";
+    public static final String TAG = "TxRx.canvas.NetStrm";
     private static final HashMap<String, Integer> TransportModeMapping ;
     private static MaxResolution maxResolutionAllowed = MaxResolution.Any;
     

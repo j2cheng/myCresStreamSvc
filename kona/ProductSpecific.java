@@ -2,10 +2,10 @@ package com.crestron.txrxservice;
 
 import com.crestron.txrxservice.CresStreamCtrl;
 import com.crestron.txrxservice.UsbAvDevice;
-import com.gs.core.peripheral.PeripheralManager;
-import com.gs.core.peripheral.PeripheralUsbDevice;
-import com.gs.core.peripheral.StatusChangeListener;
-import com.gs.core.peripheral.SoundDeviceVolume;
+//import com.gs.core.peripheral.PeripheralManager;
+//import com.gs.core.peripheral.PeripheralUsbDevice;
+//import com.gs.core.peripheral.StatusChangeListener;
+//import com.gs.core.peripheral.SoundDeviceVolume;
 
 import android.content.Context;
 import android.content.Intent;
@@ -134,7 +134,7 @@ public class ProductSpecific
         return context;
     }
 
-    static String TAG = "AM3X00 ProductSpecific";
+    static String TAG = "KONA ProductSpecific";
     private static final String HDMI_IN_DEV = "/dev/video0";
 
     ArrayList<String> usbDeviceWhiteList = new ArrayList<String>(Arrays.asList(
@@ -624,7 +624,7 @@ public class ProductSpecific
                         String aFile = null;
                         String vFile = null;
                         String sFile = null;
-                        if (perDev.getType() == com.gs.core.peripheral.UsbDeviceType.Audio)
+                        if (perDev.getType() == "audio")
                         {
                             aFile = getAudioCaptureFile(audioList);
                             Log.i(TAG, "onUsbStatusChanged(): audio capture file="+aFile);
@@ -632,7 +632,7 @@ public class ProductSpecific
                             sFile = getAudioPlaybackFile(audioList);
                             if (sFile != null)
                                 Log.i(TAG, "onUsbStatusChanged(): audio playback file="+sFile);
-                        } else if (perDev.getType() == com.gs.core.peripheral.UsbDeviceType.Video) {
+                        } else if (perDev.getType() == "video") {
                             vFile = getVideoCaptureFile(videoList);
                             Log.i(TAG, "onUsbStatusChanged(): video capture file="+vFile);
                         } else {

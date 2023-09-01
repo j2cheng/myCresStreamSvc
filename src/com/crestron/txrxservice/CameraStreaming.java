@@ -219,7 +219,7 @@ public class CameraStreaming {
 		            
 		            ProductSpecific.setDestinationIP(mrec, streamIp);
 		            
-		            mrec.setOutputFormat(9);//Streamout option set to Stagefright Recorder
+		            mrec.setOutputFormat(MediaRecorder.OutputFormat.WEBM);//Streamout option set to Stagefright Recorder
 		            if ((currentSessionInitiation == 2) || (currentSessionInitiation == 3))
 		            	Log.i(TAG, "ip addr " + streamCtl.userSettings.getMulticastAddress(idx));
 		            else

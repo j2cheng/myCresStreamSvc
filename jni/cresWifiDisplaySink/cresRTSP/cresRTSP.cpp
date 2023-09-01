@@ -1283,7 +1283,10 @@ int composeRTSPResponse(void * session,RTSPPARSINGRESULTS * requestParsingResult
       */
       if(strlen(rtspSession->preferredVid2ResRefStr) > 0)
       {
+#pragma clang diagnostic push
+#pragma clang diagnostic ignored "-Wformat"
         snprintf(locBuff,sizeof(locBuff),rtspSession->preferredVid2ResRefStr);
+#pragma clang diagnostic pop
       }
       else
       {

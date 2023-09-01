@@ -14,7 +14,7 @@ import com.google.gson.Gson;
 
 public class SimulatedAVF
 {
-    public static final String TAG = "TxRx.canvas.simulatedAVF";
+    public static final String TAG = "TxRx.canvas.simAVF";
     public com.crestron.txrxservice.CresStreamCtrl mStreamCtl;
 
 	int failureReason = 0;
