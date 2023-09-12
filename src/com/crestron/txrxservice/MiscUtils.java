@@ -160,7 +160,7 @@ public class MiscUtils {
 		    writer.flush();
 	    } 
       	catch (Exception ex) {
-    	  Log.e(TAG, "Failed to write to file " + filePath + " : " + ex);
+    	  Log.e(TAG, "Failed to write to: " + filePath);
             ex.printStackTrace();
     	} 
 		finally 

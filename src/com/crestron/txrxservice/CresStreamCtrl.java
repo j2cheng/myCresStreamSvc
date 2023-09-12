@@ -543,6 +543,7 @@ public class CresStreamCtrl extends Service {
         eHardwarePlatform_Snapdragon,
         eHardwarePlatform_Rockchip,
         eHardwarePlatform_Snapdragon_TST1080,
+        eHardwarePlatform_Qualcomm,
         eHardwarePlatform_Unknown;
 
         public static CrestronHwPlatform fromInteger(int x) {
@@ -563,6 +564,8 @@ public class CresStreamCtrl extends Service {
                 return eHardwarePlatform_Rockchip;
             case 7:
                 return eHardwarePlatform_Snapdragon_TST1080;
+            case 8:
+                return eHardwarePlatform_Qualcomm;
             default:
                 Log.i(TAG, MiscUtils.stringFormat("Unknown hardware platform %d, please update enum!!!!!", x));
                 return eHardwarePlatform_Unknown;
@@ -587,6 +590,7 @@ public class CresStreamCtrl extends Service {
         X70(0x7900),
         TST1080(0x7100),
         DGE3200(0x8000),
+        OPC(0x8200),
         Unknown(0x0);
 
         private final int value;
@@ -628,6 +632,8 @@ public class CresStreamCtrl extends Service {
                 return TST1080;
             case 0x8000:
                 return DGE3200;
+            case 0x8200:
+                return OPC;
             default:
                 Log.i(TAG, MiscUtils.stringFormat("Unknown product type %d, please update enum!!!!!", x));
                 return Unknown;
@@ -877,12 +883,14 @@ public class CresStreamCtrl extends Service {
 	            	{
 	                	CresCanvas.useSimulatedAVF = MiscUtils.readStringFromDisk(f).equals("1");
 	            	}
+                    CresCanvas.useSimulatedAVF = true;
 	                Log.i(TAG, "device using "+((CresCanvas.useSimulatedAVF)?"simulated":"normal")+" AVF");
 	            	f = new File(homeDir, "useFauxPPUX");
 	            	if (f.exists())
 	            	{
 	                	useFauxPPUX = MiscUtils.readStringFromDisk(f).equals("1");
 	            	}
+                    useFauxPPUX = true;
 	                Log.i(TAG, "device using "+((useFauxPPUX)?"Faux PPUX":"Real PPUX"));
 	            }
 	            f = new File(homeDir, "forceSurfaceRelease");
@@ -1189,6 +1197,7 @@ public class CresStreamCtrl extends Service {
                 case TS1542_C:
                 case AM3X00:
                 case DGE3200:
+                case OPC:
                 {
                     // Bug 154293: RGB888 on OMAP cannot support simultaneous video, BW limitation
                     isRGB888HDMIVideoSupported = false;
@@ -1756,6 +1765,7 @@ public class CresStreamCtrl extends Service {
             case TXRX:
             case AM3X00:
             case DGE3200:
+            case OPC:
             {
                 // Bug 154293: RGB888 on OMAP cannot support simultaneous video, BW limitation
                 rv = false;
@@ -2058,12 +2068,14 @@ public class CresStreamCtrl extends Service {
                 Log.i(TAG, "******************  Airmedia Startup **************");
 
                 // This check is done since this product will contain a basic in-built licence by default.
-                if (CrestronProductName.fromInteger(nativeGetProductTypeEnum()) == CrestronProductName.AM3X00)
+                if (CrestronProductName.fromInteger(nativeGetProductTypeEnum()) == CrestronProductName.AM3X00
+                    || CrestronProductName.fromInteger(nativeGetProductTypeEnum()) == CrestronProductName.OPC)
                 {
-                    Log.i(TAG, "****************** Ignore Licence Check for AM3X**************");
+                    Log.i(TAG, "****************** Ignore Licence Check for AM3X/OPC**************");
                     airMediaLicensed = true;
-                    MiscUtils.writeStringToDisk(AirMediaSplashtop.licenseFilePath, "1");
-                    File file = new File(AirMediaSplashtop.licenseFilePath);
+                    File file = new File(getFilesDir(), AirMediaSplashtop.licenseFilePath);
+                    MiscUtils.writeStringToDisk(file, "1");
+
                     if (file.exists())
                     {
                     	file.setReadable(true, false);
@@ -2075,8 +2087,11 @@ public class CresStreamCtrl extends Service {
                 if (!airMediaLicensed && 
                     CrestronProductName.fromInteger(nativeGetProductTypeEnum()) != CrestronProductName.DGE3200)
                 {
-                    while ((new File(AirMediaSplashtop.licenseFilePath)).exists() == false)
+                    File licenseFile = new File(getFilesDir(), AirMediaSplashtop.licenseFilePath);
+
+                    while (!licenseFile.exists())
                     {
+                        Log.v(TAG, "waiting for license: " + licenseFile.getAbsolutePath());
                         try { Thread.sleep(5000); } catch (InterruptedException e){}//Poll every 5 seconds
                     }
                     airMediaLicensed = AirMediaSplashtop.checkAirMediaLicense();
@@ -2084,26 +2099,25 @@ public class CresStreamCtrl extends Service {
                 Log.i(TAG, MiscUtils.stringFormat("AirMedia is %s licensed", ((airMediaLicensed) ? "" : "not")));
                 
                 while (!csioConnected || !csioConnectionInitializationComplete) {
-                    Log.v(TAG, "AirMedia is licensed: waiting for csio connection to complete initialization");
+                    Log.v(
+                            TAG,
+                            "AirMedia is licensed: waiting for csio connection: (" + csioConnected
+                            + "), to complete initialization (" + csioConnectionInitializationComplete + ")");
                     try { Thread.sleep(500); } catch (InterruptedException e){}//Poll every 0.5 seconds
                 }
+
+                Log.v(TAG, "AirMedia startup: CSIO connected and initialized");
                 
                 // Do not start any of the below if in golden image
                 boolean golden=false;
             	File f = new File(getFilesDir(), goldenBootFilePath);
-            	if (f.exists())
-            	{
-                	golden = MiscUtils.readStringFromDisk(f).equals("1");
-            	}
+            	if (f.exists()) golden = MiscUtils.readStringFromDisk(f).equals("1");
                 Log.i(TAG, "airmedia golden boot flag is "+golden);
 
             	// Special condition during production, cannot start AM since it interferes with production application
             	boolean dontStart=false;
                 File dsamFile = new File(getFilesDir(), dontStartAirMediaFilePath);
-                if (dsamFile.exists())
-                {
-                    dontStart = MiscUtils.readStringFromDisk(dsamFile).equals("1");
-                }
+                if (dsamFile.exists()) dontStart = MiscUtils.readStringFromDisk(dsamFile).equals("1");
                 Log.i(TAG, "airmedia dontStart flag is "+dontStart);
             	
                 //Note: 4-14-2021, need to start AirMediaCanvas even not licensed
@@ -7630,18 +7644,12 @@ public class CresStreamCtrl extends Service {
                 {
                     // If old file exists delete it
                     File oldFile = new File(getFilesDir(), savedSettingsOldFilePath);
-                    if (oldFile.exists())
-                    {
-                        boolean deleteSuccess = oldFile.delete();
-                        if (!deleteSuccess)
-                            Log.e(TAG,"Failed to delete " + savedSettingsOldFilePath);
-                    }
-
+                    File newFile = new File(getFilesDir(), savedSettingsFilePath);
                     // rename current file to old
-                    renameFile(savedSettingsFilePath, savedSettingsOldFilePath);
+                    renameFile(newFile, oldFile);
                     syncFileSystem();
 
-                    writer = new BufferedWriter(new OutputStreamWriter(new FileOutputStream(new File(getFilesDir(), savedSettingsFilePath).getAbsolutePath()), "US-ASCII"));
+                    writer = new BufferedWriter(new OutputStreamWriter(new FileOutputStream(newFile.getAbsolutePath()), "US-ASCII"));
                     writer.write(serializedClass);
                     writer.flush();
                 }
@@ -7658,24 +7666,19 @@ public class CresStreamCtrl extends Service {
         }
     }
 
-    private void renameFile(String currentFilePath, String newFilePath)
+    private void renameFile(File a, File b)
     {
-        // File (or directory) with old name
-        File oldFile = new File(currentFilePath);
-
-        // File (or directory) with new name
-        File newFile = new File(newFilePath);
-
-        if (newFile.exists())
+        if(!a.exists())
         {
-            boolean deleteSuccess = newFile.delete();
+            Log.w(TAG, "unable to rename: " + a.getAbsolutePath() + ", does not exist");
+            return;
         }
 
-        // Rename file (or directory)
-        boolean success = oldFile.renameTo(newFile);
+        if(b.exists()) b.delete();
 
-        if (!success) {
-           Log.e(TAG, "Failed to rename file");
+        if(!a.renameTo(b))
+        {
+           Log.e(TAG, "Failed to rename: " + a.getAbsolutePath() + " to: " + b.getAbsolutePath());
         }
     }
 

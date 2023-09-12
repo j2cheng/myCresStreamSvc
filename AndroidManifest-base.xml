@@ -16,6 +16,8 @@
     <uses-permission android:name="android.permission.RECORD_AUDIO" />
     <uses-permission android:name="android.permission.SYSTEM_ALERT_WINDOW" />
     <uses-permission android:name="android.permission.FOREGROUND_SERVICE" />
+   <!-- <uses-permission android:name="android.permission.LOCAL_MAC_ADDRESS" /> -->
+   <!-- <uses-permission android:name="android.permission.NETWORK_SETTINGS" /> -->
     <!--  Error: Permission is only granted to system apps [ProtectedPermissions] <uses-permission android:name="android.permission.CONFIGURE_DISPLAY_COLOR_MODE" /> -->
     <!--  For X70 and TST1080  -->
     <!-- Error: Permission is only granted to system apps [ProtectedPermissions] <uses-permission android:name="android.permission.ACCESS_SURFACE_FLINGER" /> -->

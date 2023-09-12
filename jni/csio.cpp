@@ -6,9 +6,18 @@
 extern "C" {
 #endif
 JNIEXPORT jint JNICALL
-Java_com_crestron_txrxservice_CSIOService_csioTask(JNIEnv *env, jobject thiz)
+Java_com_crestron_txrxservice_CSIOService_csioTask(
+    JNIEnv *env, jobject thiz,
+    jstring internalStoragePath,
+    jstring externalStoragePath)
 {
-    return csio_Task();
+    CSIOCommonArgs args
+    {
+        env->GetStringUTFChars(internalStoragePath, NULL),
+        env->GetStringUTFChars(externalStoragePath, NULL),
+    };
+
+    return csio_Task(std::move(args));
 }
 #ifdef __cplusplus
 }

@@ -268,7 +268,7 @@ public class TCPInterface extends AsyncTask<Void, Object, Long> {
                 
                 // Mark csio as connected
                 streamCtl.csioConnected = true;
-                MiscUtils.writeStringToDisk(CresStreamCtrl.initializeSettingsFilePath, "1");
+                MiscUtils.writeStringToDisk((new File(streamCtl.getFilesDir(), CresStreamCtrl.initializeSettingsFilePath)).getAbsolutePath(), "1");
                 Log.i(TAG, "CSIO connected to CresStreamSvc via TCP Interface");
                 
                 // Update csio on hdmi input status
