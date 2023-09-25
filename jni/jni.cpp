@@ -24,7 +24,7 @@
 #include <string.h>
 #include <stdint.h>
 #include <stdio.h>
-#include <stdlib.h>		/* for setenv */
+#include <stdlib.h>
 #include <unistd.h>
 #include <signal.h>
 #include <sys/resource.h>
@@ -33,6 +33,7 @@
 #include <sys/time.h>
 #include <ctype.h>
 #include "cregstplay.h"
+#include <android/log.h>
 #include <jni.h>
 #include "GstreamIn.h"
 #include "GstreamOut.h"
@@ -46,9 +47,8 @@
 #include "gst_element_print_properties.h"
 #include <gst/video/video.h>
 #include "csio_jni_if.h"
-// Android headers
-//#include "hardware/gralloc.h"           // for GRALLOC_USAGE_PROTECTED
-#include "android/native_window.h"      // for ANativeWindow_ functions
+#include "android/native_window.h"
+
 #include <cresNextCommonShare.h>
 #include "cresNextDef.h"
 #include <CresNextSerializer.h>
@@ -59,9 +59,6 @@
 #include "streamOutManager/v4l2Video.h"
 #include "CresLog.h"
 #include "cstreamer.h"
-#ifdef BOARD_VNDK_VERSION
-#include <cresAndroid.h>
-#endif
 ///////////////////////////////////////////////////////////////////////////////
 
 extern int  csio_Init(int calledFromCsio);
@@ -259,7 +256,7 @@ static JNIEnv *attach_current_thread (void)
 	args.name = NULL;
 	args.group = NULL;
 
-	if (java_vm->AttachCurrentThread ((void**)&env, &args) < 0) {
+	if (java_vm->AttachCurrentThread(&env, &args) < 0) {
 		CSIO_LOG(eLogLevel_warning, "Failed to attach current thread");
 		return NULL;
 	}
@@ -359,7 +356,6 @@ void csio_jni_init()
 {
 	int iStatus = CSIO_SUCCESS;
 
-	currentSettingsDB->csioLogLevel = CSIO_DEFAULT_LOG_LEVEL;
 	csio_setup_product_info(1);
 
 	CSIOCnsIntf = new CSIOCnsCommon();
@@ -1790,7 +1786,7 @@ JNIEXPORT void JNICALL Java_com_crestron_txrxservice_GstreamIn_nativeSetFieldDeb
                         fieldNum = (int) strtol(CmdPtr, &EndPtr, 10);
                         if (IsValidDebugLevel(fieldNum))
                         {
-                            gst_debug_set_threshold_for_name(namestring, (GstDebugLevel)fieldNum);
+                            //gst_debug_set_threshold_for_name(namestring, (GstDebugLevel)fieldNum);
                             amcviddec_debug_level = fieldNum;
                             CSIO_LOG(eLogLevel_debug, "set [%s] debug level to: %d\r\n",namestring,fieldNum);
                         }
@@ -1813,7 +1809,7 @@ JNIEXPORT void JNICALL Java_com_crestron_txrxservice_GstreamIn_nativeSetFieldDeb
                     fieldNum = (int) strtol(CmdPtr, &EndPtr, 10);
                     if (IsValidDebugLevel(fieldNum))
                     {
-                        gst_debug_set_threshold_for_name("amcvideodec", (GstDebugLevel)fieldNum);
+                        //gst_debug_set_threshold_for_name("amcvideodec", (GstDebugLevel)fieldNum);
                         amcviddec_debug_level = fieldNum;
                         CSIO_LOG(eLogLevel_debug, "set amcvideodec debug level to: %d\r\n",fieldNum);
                     }
@@ -1835,7 +1831,7 @@ JNIEXPORT void JNICALL Java_com_crestron_txrxservice_GstreamIn_nativeSetFieldDeb
                     fieldNum = (int) strtol(CmdPtr, &EndPtr, 10);
                     if (IsValidDebugLevel(fieldNum))
                     {
-                        gst_debug_set_threshold_for_name("openslessink", (GstDebugLevel)fieldNum);
+                        //gst_debug_set_threshold_for_name("openslessink", (GstDebugLevel)fieldNum);
                         amcviddec_debug_level = fieldNum;
                         CSIO_LOG(eLogLevel_debug, "set openslessink debug level to: %d\r\n",fieldNum);
                     }
@@ -3358,13 +3354,13 @@ jint JNI_OnLoad(JavaVM *vm, void *reserved)
 
 	CSIO_LOG(eLogLevel_debug, "JNI_OnLoad ");
 
-	set_gst_debug_level();
-	
 	if (vm->GetEnv((void**) &env, JNI_VERSION_1_4) != JNI_OK)
 	{
 		CSIO_LOG(eLogLevel_error, "gstreamer_jni: Could not retrieve JNIEnv");
 		return 0;
 	}
+
+	set_gst_debug_level();
 
     //Get gCresLog_javaClass_id for JNI to be able to call JAVA class CresLog functions
     jclass klass0 = env->FindClass ("com/crestron/txrxservice/CresLog");
@@ -3711,7 +3707,7 @@ void csio_jni_SetOverlayWindow(int iStreamId)
 int csio_jni_CreateHttpPipeline(void *obj, GstElement **pipeline, GstElement **source, eProtocolId protoId, int iStreamId, eHttpMode httpMode, bool useSWdecoder)
 {
     int iStatus = CSIO_SUCCESS;
-    CSIO_LOG(eLogLevel_debug, "%s() enter ...", __FUNCTION__);
+    CSIO_LOG(eLogLevel_info, "%s() enter ...", __FUNCTION__);
 
     CREGSTREAM * data = GetStreamFromCustomData(CresDataDB, iStreamId);
     if(!data)
@@ -4200,7 +4196,7 @@ int csio_jni_CreatePipeline(void *obj,GstElement **pipeline, GstElement **source
 	int iStatus = CSIO_SUCCESS;
 	char *buf = NULL;
 	
-    CSIO_LOG(eLogLevel_debug, "%s() protoId = %d [streamId=%d] entered", __FUNCTION__, protoId, iStreamId);
+    CSIO_LOG(eLogLevel_info, "%s() protoId = %d [streamId=%d] entered", __FUNCTION__, protoId, iStreamId);
 
 	CREGSTREAM * data = GetStreamFromCustomData(CresDataDB, iStreamId);
 	if(!data)
@@ -7900,4 +7896,3 @@ bool csio_jni_get_min_stream_resolution(int percentFullscale, int *min_width, in
 
 	return(true);
 }
-

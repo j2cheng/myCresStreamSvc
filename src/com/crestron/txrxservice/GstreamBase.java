@@ -10,10 +10,20 @@ import org.freedesktop.gstreamer.GStreamer;
 public class GstreamBase  {
 	static String TAG = "TxRx GstreamBASE";
 	private CresStreamCtrl streamCtl;
+    public native void postGStreamerInit();
 
 	public GstreamBase(CresStreamCtrl mContext) {
-		Log.e(TAG, "GstreamBase :: Constructor called...!");
+        Log.i(TAG, "GstreamBase: begin");
 		streamCtl = mContext;
+
+        Log.i(TAG,"loading gstreamer_jni" );
+		System.loadLibrary("gstreamer_jni");                
+
+        Log.i(TAG,"loading gstreamer_android");
+		System.loadLibrary("gstreamer_android");
+
+        Log.i(TAG, "loading completed");
+
 		// Initialize GStreamer and warn if it fails
 		try {
 			GStreamer.init((Context)mContext);
@@ -21,18 +31,7 @@ public class GstreamBase  {
 			Log.e(TAG, "Failed to init Gstreamer, error: " + e);
 			return;
 		}
-	}
-
-	// Moved here from GstreamIn.java,
-	// since gstreamer is used for streaming out as well as in.
-	static {
-		Log.i(TAG,"loading gstreamer_android and gstreamer_jni" );
-        try {
-            Os.setenv("GST_AMC_IGNORE_UNKNOWN_COLOR_FORMATS", "true", false);
-        } catch(ErrnoException except) {
-            Log.e(TAG, "failed setenv: GST_AMC_IGNORE_UNKNOWN_COLOR_FORMATS");
-        }
-		System.loadLibrary("gstreamer_android");
-		System.loadLibrary("gstreamer_jni");                
+        postGStreamerInit();
+        Log.i(TAG, "GstreamBase: end");
 	}
 }

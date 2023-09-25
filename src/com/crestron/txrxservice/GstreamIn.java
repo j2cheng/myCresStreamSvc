@@ -37,7 +37,7 @@ public class GstreamIn implements SurfaceHolder.Callback {
     private boolean isPlaying = false;
     private String priorAddress = null;
     boolean[] wfdIsPlaying = new boolean[com.crestron.txrxservice.CresStreamCtrl.NumOfSurfaces];
-    private final static String ducatiRecoverFilePath = "/dev/shm/crestron/CresStreamSvc/ducatiRecoverTime";
+    private final static String ducatiRecoverFilePath = "ducatiRecoverTime";
     private final static long ducatiRecoverTimeDelta = (30 * 1000); //30 seconds
 
 
@@ -91,13 +91,14 @@ public class GstreamIn implements SurfaceHolder.Callback {
     private native void			nativeInitUnixSocketState();
     
     public GstreamIn(CresStreamCtrl mContext) {
-        Log.e(TAG, "GstreamIN :: Constructor called...!");
+        Log.i(TAG, "GstreamIn: begin");
         streamCtl = mContext;
         for (int i=0; i < CresStreamCtrl.NumOfSurfaces; i++)
         	wfdIsPlaying[i] = false;
         nativeSetStopTimeout(stopTimeout_sec);
         nativeInit();
         nativeSetWfdMaxMiracastBitrate(streamCtl.userSettings.getAirMediaMaxMiracastBitrate());
+        Log.i(TAG, "GstreamIn: end");
     }
     
     public void initUnixSocketState()
@@ -468,17 +469,20 @@ public class GstreamIn implements SurfaceHolder.Callback {
     public void onStart(final int sessionId) {
     	final GstreamIn gStreamObj = this;
     	final CountDownLatch latch = new CountDownLatch(1);
+        Log.i(TAG, "onStart, sessionId: " + sessionId);
     	Thread startThread = new Thread(new Runnable() {
     		public void run() {
     			try {
     				isPlaying = true;
     				updateNativeDataStruct(sessionId);
     				Surface s = streamCtl.getSurface(sessionId);
+                    Log.i(TAG, "nativeSurfaceInit, sessionId: " + sessionId + ", isValid: " + s.isValid());
     				nativeSurfaceInit(s, sessionId);
     				//    		Code below is for trying TextureView rendering for QuadView
     				//    		Log.i(TAG, "*********** passing surface derived from TextureView for sessionId: " + sessionId + " to 'nativeSurfaceInit' ************");
     				//    		Surface s = new Surface(streamCtl.getAirMediaSurfaceTexture(sessionId));
     				//    		nativeSurfaceInit(s, sessionId);
+                    Log.i(TAG, "nativePlay, sessionId: " + sessionId);
     				nativePlay(sessionId);    		
     			}
     			catch(Exception e){
