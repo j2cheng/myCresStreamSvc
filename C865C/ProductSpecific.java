@@ -303,6 +303,7 @@ public class ProductSpecific
     {
         cam_handle = new CresCamera2();
         cam_handle.mCameraManager = (CameraManager) context.getSystemService(Context.CAMERA_SERVICE);
+        Log.i(TAG, "initCamera2");
     }
 
     // ******************* NstreamIn.java *******************

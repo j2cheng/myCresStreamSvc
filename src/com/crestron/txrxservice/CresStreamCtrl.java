@@ -590,7 +590,7 @@ public class CresStreamCtrl extends Service {
         X70(0x7900),
         TST1080(0x7100),
         DGE3200(0x8000),
-        OPC(0x8200),
+        C865C(0x8200),
         Unknown(0x0);
 
         private final int value;
@@ -633,7 +633,7 @@ public class CresStreamCtrl extends Service {
             case 0x8000:
                 return DGE3200;
             case 0x8200:
-                return OPC;
+                return C865C;
             default:
                 Log.i(TAG, MiscUtils.stringFormat("Unknown product type %d, please update enum!!!!!", x));
                 return Unknown;
@@ -1197,7 +1197,7 @@ public class CresStreamCtrl extends Service {
                 case TS1542_C:
                 case AM3X00:
                 case DGE3200:
-                case OPC:
+                case C865C:
                 {
                     // Bug 154293: RGB888 on OMAP cannot support simultaneous video, BW limitation
                     isRGB888HDMIVideoSupported = false;
@@ -1745,6 +1745,11 @@ public class CresStreamCtrl extends Service {
     {
     	return (CrestronProductName.fromInteger(nativeGetProductTypeEnum()) == CrestronProductName.AM3X00);
     }
+
+    public boolean isC865C()
+    {
+    	return (CrestronProductName.fromInteger(nativeGetProductTypeEnum()) == CrestronProductName.C865C);
+    }
     
     public boolean isDGE3200()
     {
@@ -1765,7 +1770,7 @@ public class CresStreamCtrl extends Service {
             case TXRX:
             case AM3X00:
             case DGE3200:
-            case OPC:
+            case C865C:
             {
                 // Bug 154293: RGB888 on OMAP cannot support simultaneous video, BW limitation
                 rv = false;
@@ -2069,9 +2074,9 @@ public class CresStreamCtrl extends Service {
 
                 // This check is done since this product will contain a basic in-built licence by default.
                 if (CrestronProductName.fromInteger(nativeGetProductTypeEnum()) == CrestronProductName.AM3X00
-                    || CrestronProductName.fromInteger(nativeGetProductTypeEnum()) == CrestronProductName.OPC)
+                    || CrestronProductName.fromInteger(nativeGetProductTypeEnum()) == CrestronProductName.C865C)
                 {
-                    Log.i(TAG, "****************** Ignore Licence Check for AM3X/OPC**************");
+                    Log.i(TAG, "****************** Ignore Licence Check for AM3X/C865C**************");
                     airMediaLicensed = true;
                     File file = new File(getFilesDir(), AirMediaSplashtop.licenseFilePath);
                     MiscUtils.writeStringToDisk(file, "1");

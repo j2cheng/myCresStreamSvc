@@ -71,6 +71,7 @@ public class CresCamera2 extends CresCamera
 
     CresCamera2()
     {
+        Log.i(TAG, "CresCamera2 begin");
         mCameraThread = new HandlerThread("CameraThreadP");
         mCameraThread.start();
 
@@ -79,6 +80,7 @@ public class CresCamera2 extends CresCamera
         mCameraHandler = new CameraHandler(mCameraThread.getLooper());
         if(mCameraManager != null)
             mCameraManager.registerAvailabilityCallback(mCallback, null);
+        Log.i(TAG, "CresCamera2 end");
     }
 
     boolean findCamera(String CameraId){
@@ -90,8 +92,10 @@ public class CresCamera2 extends CresCamera
 
             for (String id:cameraIds) {
                 if (CameraId.equals(id)) {
-                    Log.v(TAG, "findCamera: HDMI Input camera is connected");
+                    Log.i(TAG, "findCamera: HDMI Input camera is connected");
                     return true;
+                } else {
+                    Log.i(TAG, "skipping: " + id);
                 }
             
             }
