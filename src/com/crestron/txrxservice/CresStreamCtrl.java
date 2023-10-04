@@ -190,6 +190,7 @@ public class CresStreamCtrl extends Service {
     private static final String [] InterfaceNames = {"eth0", "eth1"};
     public static boolean isAM3K = false;
     public static boolean m_isDGE3200 = false;
+    public static boolean isC865C = false;
     public volatile boolean mMediaServerCrash = false;
     public volatile boolean mDucatiCrash = false;
     public volatile boolean mIgnoreAllCrash = false;
@@ -857,6 +858,7 @@ public class CresStreamCtrl extends Service {
             
             isAM3K = isAM3X00();
             m_isDGE3200 = isDGE3200();
+            isC865C = isC865C();
 
             if (nativeGetIsAirMediaEnabledEnum())
             {
@@ -1915,6 +1917,20 @@ public class CresStreamCtrl extends Service {
             if(isAM3K || m_isDGE3200)
             {
 	            if(mProductSpecific.getInstance().cam_handle.findCamera("/dev/video0"))
+	            {
+	                Log.i(TAG, "HDMI Input camera Found!");
+	                mProductSpecific.getInstance().cam_handle.openCamera(this);
+	                mProductSpecific.getInstance().cam_handle.releaseCamera();
+	            }
+	            else
+	            {
+	                Log.i(TAG, "No connected HDMI Input Found! ERROR");
+	                cameraDisabled = true;
+	            }
+            }
+            else if(isC865C)
+            {
+	            if(mProductSpecific.getInstance().cam_handle.findCamera("0"))
 	            {
 	                Log.i(TAG, "HDMI Input camera Found!");
 	                mProductSpecific.getInstance().cam_handle.openCamera(this);

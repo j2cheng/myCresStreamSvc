@@ -42,7 +42,7 @@ public class CresCamera2 extends CresCamera
     private Semaphore mCameraOpenCloseLock = new Semaphore(1);
     static Object lockObj = new Object();
     CameraHandler mCameraHandler;
-    final String hdmiCameraId = "/dev/video0";
+    final String hdmiCameraId = "0";
     final String hdmiCameraName = "HDMI input camera";
 
     final CameraManager.AvailabilityCallback mCallback = new CameraManager.AvailabilityCallback() {
@@ -84,20 +84,22 @@ public class CresCamera2 extends CresCamera
     }
 
     boolean findCamera(String CameraId){
-        Log.i(TAG, " findCamera camera2 " + CameraId);
+        Log.i(TAG, "findCamera: " + CameraId);
         //final String HDMIIP_ID = "/dev/video0";
         try {
             String[] cameraIds = mCameraManager.getCameraIdList();
-            //Log.v(TAG, "findCamera: getCameraIdList length: " + cameraIds.length);
 
             for (String id:cameraIds) {
                 if (CameraId.equals(id)) {
-                    Log.i(TAG, "findCamera: HDMI Input camera is connected");
+                    Log.i(TAG, "findCamera: " + id  + ", HDMI Input camera is connected");
                     return true;
-                } else {
-                    Log.i(TAG, "skipping: " + id);
-                }
+                } else Log.i(TAG, "skipping: " + id);
             
+                Log.v(
+                    TAG,
+                    String.join(
+                        ",",
+                        mCameraManager.getCameraCharacteristics(id).getPhysicalCameraIds()));
             }
         } catch (CameraAccessException e) {
             e.printStackTrace();
@@ -105,87 +107,83 @@ public class CresCamera2 extends CresCamera
         return false;
     }
 
-    public void openCamera(CresStreamCtrl streamCtrl){
-        Log.i(TAG, " openCamera camera2 ");
+    public void openCamera(CresStreamCtrl streamCtrl)
+    {
+        Log.i(TAG, "openCamera: " + hdmiCameraId);
         synchronized (lockObj)
         {
-            if(mCameraDevice != null)
-                releaseCamera2(true);
-            else
-                Log.i(TAG, " mCameraDevice is NULL");
-
-            if(this.mCameraManager == null)
-                Log.e(TAG, " mCameraManager is NULL");
+            releaseCamera2(true);
+            if(this.mCameraManager == null) return;
 
             //FIXME: Add retry logic
-            if(findCamera(hdmiCameraId))
+            if(!findCamera(hdmiCameraId))
             {
-                final CountDownLatch cameraOpenLatch = new CountDownLatch(1);
-                try {
-                    mCameraManager.openCamera(hdmiCameraId, new CameraDevice.StateCallback() {
-                        @Override
-                        public void onOpened(CameraDevice camera) {
-                            Log.i(TAG, "  onOpened " + hdmiCameraName);
-                            mCamErrCur = false;
-                            mCameraDevice = camera;
-                            mStopPlaybackRequested = false;
-                            cameraOpenLatch.countDown();
-                        }
-
-                        @Override
-                        public void onClosed(CameraDevice camera) {
-                            Log.i(TAG, "  onClosed " + hdmiCameraName);
-                            mStopPlaybackRequested = false;
-                        }
-
-                        @Override
-                        public void onDisconnected(CameraDevice camera) {
-                            Log.i(TAG, "  onDisconnected " + hdmiCameraName);
-                            if (!mStopPlaybackRequested) {
-                                Log.i(TAG, "Setting camera error due to disconnect without a stop playback request");
-                                mCamErrCur = true;
-                            } else
-                                Log.i(TAG, "Not setting camera error because disconnect was during a request to stop playback");
-                            if (mCameraDevice != null) {
-                                releaseCamera2(true);
-                            }
-                        }
-
-                        @Override
-                        public void onError(CameraDevice camera, int error) {
-                            Log.e(TAG, "  onError " + hdmiCameraName + " error " + error);
-                            // if we see an error event without a stop being requested we set the
-                            // error flag to force a restart of camera preview in CSS polling thread
-                            if (!mStopPlaybackRequested) {
-                                Log.i(TAG, "Setting camera error due to error without a stop playback request");
-                                mCamErrCur = true;
-                                mStopPlaybackRequested = false;
-                            } else
-                                Log.i(TAG, "Not setting camera error because error was during a request to stop playback");
-                            if (mCameraDevice != null) {
-                                releaseCamera2(false);//do not call abortCaptures when onError(bug AM3XX-5742)
-                            }
-                        }
-                    }, mCameraHandler);
-                    boolean openSuccess = true;
-                    try {
-                        openSuccess = cameraOpenLatch.await(2000, TimeUnit.MILLISECONDS);
-                    } catch (InterruptedException ex) { ex.printStackTrace(); }
-                    if (!openSuccess || (mCameraDevice == null))
-                    {
-                        Log.e(TAG, "Unable to open camera even after 2 seconds");
-                    }
-                } catch (CameraAccessException e) {
-                    e.printStackTrace();
-                } catch (SecurityException e) {
-                    Log.e(TAG, "permission exception" );
-                    e.printStackTrace();
-                }
+                Log.e(TAG, "camera: " + hdmiCameraId + ", unavailable" );
+                return;
             }
-            else
-                Log.e(TAG, "openCamera called but /dev/video0 not available" );
+
+            final CountDownLatch cameraOpenLatch = new CountDownLatch(1);
+            try {
+                mCameraManager.openCamera(hdmiCameraId, new CameraDevice.StateCallback() {
+                    @Override
+                    public void onOpened(CameraDevice camera) {
+                        Log.i(TAG, "  onOpened " + hdmiCameraName);
+                        mCamErrCur = false;
+                        mCameraDevice = camera;
+                        mStopPlaybackRequested = false;
+                        cameraOpenLatch.countDown();
+                    }
+
+                    @Override
+                    public void onClosed(CameraDevice camera) {
+                        Log.i(TAG, "  onClosed " + hdmiCameraName);
+                        mStopPlaybackRequested = false;
+                    }
+
+                    @Override
+                    public void onDisconnected(CameraDevice camera) {
+                        Log.i(TAG, "  onDisconnected " + hdmiCameraName);
+                        if (!mStopPlaybackRequested) {
+                            Log.i(TAG, "Setting camera error due to disconnect without a stop playback request");
+                            mCamErrCur = true;
+                        } else
+                            Log.i(TAG, "Not setting camera error because disconnect was during a request to stop playback");
+                        if (mCameraDevice != null) {
+                            releaseCamera2(true);
+                        }
+                    }
+
+                    @Override
+                    public void onError(CameraDevice camera, int error) {
+                        Log.e(TAG, "  onError " + hdmiCameraName + " error " + error);
+                        // if we see an error event without a stop being requested we set the
+                        // error flag to force a restart of camera preview in CSS polling thread
+                        if (!mStopPlaybackRequested) {
+                            Log.i(TAG, "Setting camera error due to error without a stop playback request");
+                            mCamErrCur = true;
+                            mStopPlaybackRequested = false;
+                        } else
+                            Log.i(TAG, "Not setting camera error because error was during a request to stop playback");
+                        if (mCameraDevice != null) {
+                            releaseCamera2(false);//do not call abortCaptures when onError(bug AM3XX-5742)
+                        }
+                    }
+                }, mCameraHandler);
+                boolean openSuccess = true;
+                try {
+                    openSuccess = cameraOpenLatch.await(2000, TimeUnit.MILLISECONDS);
+                } catch (InterruptedException ex) { ex.printStackTrace(); }
+                if (!openSuccess || (mCameraDevice == null))
+                {
+                    Log.e(TAG, "Unable to open camera even after 2 seconds");
+                }
+            } catch (CameraAccessException e) {
+                e.printStackTrace();
+            } catch (SecurityException e) {
+                Log.e(TAG, "permission exception" );
+                e.printStackTrace();
+            }
         }
-    return;
     }
 
     @Override
@@ -195,7 +193,8 @@ public class CresCamera2 extends CresCamera
     }
 
     public void releaseCamera2(boolean needAbort) {
-        Log.i(TAG, " releaseCamera camera2 ");
+        Log.i(TAG, "releaseCamera " + mCameraDevice);
+        if(mCameraDevice == null) return;
         Log.i(TAG, "checkClosed " + hdmiCameraName);
         try {
             mCameraOpenCloseLock.acquire();

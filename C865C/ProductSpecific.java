@@ -134,7 +134,7 @@ public class ProductSpecific
         return context;
     }
 
-    static String TAG = "KONA ProductSpecific";
+    static String TAG = "C865C ProductSpecific";
     private static final String HDMI_IN_DEV = "/dev/video0";
 
     ArrayList<String> usbDeviceWhiteList = new ArrayList<String>(Arrays.asList(

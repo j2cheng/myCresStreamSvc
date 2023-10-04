@@ -11,7 +11,7 @@ public class PeripheralManager
     public static final int PER_USB_30 = 300;
     public static final int PER_HDMI_IN = 1;
     public static final int PER_HDMI_OUT = 2;
-    static String TAG = "KONA PeripheralMgr";
+    static String TAG = "C865C PeripheralMgr";
 
     public static PeripheralManager instance()
     {
