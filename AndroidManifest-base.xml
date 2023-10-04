@@ -17,6 +17,7 @@
     <uses-permission android:name="android.permission.SYSTEM_ALERT_WINDOW" />
     <uses-permission android:name="android.permission.ACTION_MANAGE_OVERLAY_PERMISSION" />
     <uses-permission android:name="android.permission.FOREGROUND_SERVICE" />
+    <uses-feature android:name="android.hardware.camera" />
    <!-- <uses-permission android:name="android.permission.LOCAL_MAC_ADDRESS" /> -->
    <!-- <uses-permission android:name="android.permission.NETWORK_SETTINGS" /> -->
     <!--  Error: Permission is only granted to system apps [ProtectedPermissions] <uses-permission android:name="android.permission.CONFIGURE_DISPLAY_COLOR_MODE" /> -->
