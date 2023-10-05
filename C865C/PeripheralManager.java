@@ -33,6 +33,8 @@ public class PeripheralManager
 
     public int getStatus(int id)
     {
+        // fake HDMI IN sync
+        if(PER_HDMI_IN == id) return 1;
         return 0;
     }
 

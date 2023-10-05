@@ -135,7 +135,7 @@ public class ProductSpecific
     }
 
     static String TAG = "C865C ProductSpecific";
-    private static final String HDMI_IN_DEV = "/dev/video0";
+    private static final String HDMI_IN_DEV = "0";
 
     ArrayList<String> usbDeviceWhiteList = new ArrayList<String>(Arrays.asList(
     //usbDeviceWhiteList is a simple array where USB VendorId is on even index 
@@ -276,9 +276,10 @@ public class ProductSpecific
 
     public static boolean isHdmiDriverPresent()
     {
-        File file = new File("/sys/devices/platform/ff3e0000.i2c/i2c-8/8-000f/sync_status");
+        //File file = new File("/sys/devices/platform/ff3e0000.i2c/i2c-8/8-000f/sync_status");
 
-        return file.exists();
+        //return file.exists();
+        return true;
     }
 
     public static void handleHpdHdmiEvent(HDMIInputInterface hdmiIf)
@@ -469,8 +470,8 @@ public class ProductSpecific
 
         public PeripheralStatusChangeListener(CresStreamCtrl ctrl) {
             super();
+            Log.i(TAG, "PeripheralStatusChangeListener");
             cresStreamCtrl = ctrl;
-            //hdmiInConnected = cam_handle.findCamera(HDMI_IN_DEV);
         }
 
         public void HdmiInConnect()

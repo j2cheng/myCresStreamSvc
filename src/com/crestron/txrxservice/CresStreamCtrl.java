@@ -303,7 +303,7 @@ public class CresStreamCtrl extends Service {
     public native boolean nativeHaveExternalDisplays();
     public native boolean nativeHideVideoBeforeStop();
     public native int nativeGetHWPlatformEnum();
-    public native int nativeGetProductTypeEnum();
+    public static native int nativeGetProductTypeEnum();
     public native int nativeGetHDMIOutputBitmask();
     public native int nativeGetDmInputCount();
     public native boolean nativeGetIsAirMediaEnabledEnum();
@@ -764,7 +764,7 @@ public class CresStreamCtrl extends Service {
         
         public void setIsPlaying(boolean isPlaying) 
         { 
-            if (isAM3K || m_isDGE3200)
+            if (isAM3K || m_isDGE3200 || isC865C)
             {
                 this.isPlaying = isPlaying;
             }
@@ -777,7 +777,7 @@ public class CresStreamCtrl extends Service {
         
         public void setSync(boolean sync) 
         { 
-            if (isAM3K || m_isDGE3200)
+            if (isAM3K || m_isDGE3200 || isC865C)
             {
                 this.sync = sync;
             }
@@ -1344,7 +1344,7 @@ public class CresStreamCtrl extends Service {
             hdmiOutput = new HDMIOutputInterface(nativeGetHDMIOutputBitmask(), this);
             
             //Do not set bypass if product does not have HDMI output
-            if(mProductHasHDMIoutput && !isAM3K && !m_isDGE3200)
+            if(mProductHasHDMIoutput && !isAM3K && !m_isDGE3200 && !isC865C)
             {
             	setHDCPBypass();
             }
@@ -2175,14 +2175,16 @@ public class CresStreamCtrl extends Service {
     }
     
     private void hdmiLicenseThread(final CresStreamCtrl streamCtrl)
-    {	
+    {
         new Thread(new Runnable() {
             @Override
             public void run() {
+                Log.i(TAG, "hdmiLicenseThread");
                 // Wait until file exists then check
                 int hdmiLicensed = 0;
                 if (CrestronProductName.fromInteger(nativeGetProductTypeEnum()) != CrestronProductName.AM3X00 &&
                     CrestronProductName.fromInteger(nativeGetProductTypeEnum()) != CrestronProductName.DGE3200 &&
+                    CrestronProductName.fromInteger(nativeGetProductTypeEnum()) != CrestronProductName.C865C &&
                     CrestronProductName.fromInteger(nativeGetProductTypeEnum()) != CrestronProductName.Unknown)
                 {
                     File f = new File(streamCtrl.getFilesDir(), hdmiLicenseFilePath);
@@ -2528,7 +2530,7 @@ public class CresStreamCtrl extends Service {
                     hdmiLock.lock();
                     try
                     {
-                        if(isAM3K || m_isDGE3200)
+                        if(isAM3K || m_isDGE3200 || isC865C)
                         {
                             int changes = getChangesBeforeStartup();
                             if(changes != 0)
@@ -2552,22 +2554,24 @@ public class CresStreamCtrl extends Service {
                             int hdmiInSampleRate = HDMIInputInterface.readAudioSampleRate();
                             boolean curSync=false;
                             boolean curHdmiIsPlaying = false;;
-                            if (isAM3K || m_isDGE3200) {
+                            if (isAM3K || m_isDGE3200 || isC865C)
+                            {
                             	curSync = HDMIInputInterface.readSyncState();
                             	curHdmiIsPlaying = mCanvasHdmiIsPlaying;
                             }
                             // If sample frequency changes on the fly, restart stream
                             if (hdmiInSampleRate != mPreviousAudioInputSampleRate || 
-                            	((isAM3K || m_isDGE3200) && ((mPreviousHdmi.getSync() != curSync) || (mPreviousHdmi.getIsPlaying() != curHdmiIsPlaying))))
+                            	((isAM3K || m_isDGE3200 || isC865C) && ((mPreviousHdmi.getSync() != curSync) || (mPreviousHdmi.getIsPlaying() != curHdmiIsPlaying))))
                             {
                             	if (hdmiInSampleRate != mPreviousAudioInputSampleRate)
                             		Log.i(TAG, "Previous audio sample rate="+mPreviousAudioInputSampleRate+"  Current audio sample rate="+hdmiInSampleRate);
-                            	if ((isAM3K || m_isDGE3200) && mPreviousHdmi.getSync() != curSync)
+                            	if ((isAM3K || m_isDGE3200 || isC865C) && mPreviousHdmi.getSync() != curSync)
                                 	Log.i(TAG, "Previous HDMI in sync="+mPreviousHdmi.getSync()+"  Current HDMI in sync="+curSync);
-                               	if ((isAM3K || m_isDGE3200) && mPreviousHdmi.getIsPlaying() != curHdmiIsPlaying)
+                               	if ((isAM3K || m_isDGE3200 || isC865C) && mPreviousHdmi.getIsPlaying() != curHdmiIsPlaying)
                                 	Log.i(TAG, "Previous HDMI play state="+mPreviousHdmi.getIsPlaying()+"  Current HDMI play state="+curHdmiIsPlaying);
                                 mPreviousAudioInputSampleRate = hdmiInSampleRate;
-                                if (isAM3K || m_isDGE3200) {
+                                if (isAM3K || m_isDGE3200 || isC865C)
+                                {
                                     mPreviousHdmi.setSync(curSync);
                                     mPreviousHdmi.setIsPlaying(curHdmiIsPlaying);
                                 }
@@ -2584,7 +2588,7 @@ public class CresStreamCtrl extends Service {
                                     }
                                 }
                                 
-                                if (isAM3K || m_isDGE3200)
+                                if (isAM3K || m_isDGE3200 || isC865C)
                                 {
                                 	if((!curSync) || (hdmiInSampleRate == 0) || !curHdmiIsPlaying)
                                 	{
@@ -2611,7 +2615,7 @@ public class CresStreamCtrl extends Service {
                                 }
                                 else
                                 {
-                                	if (!isAM3K && !m_isDGE3200)
+                                	if (!isAM3K && !m_isDGE3200 || !isC865C)
                                 	{
                                 		Log.i(TAG, "Restarting Streams for sample rate change = " + hdmiInSampleRate);
                                 		restartStreams(true); //skip stream in since it does not use hdmi input
@@ -2634,7 +2638,7 @@ public class CresStreamCtrl extends Service {
                             	}
                             }
                             
-                            if ((isAM3K || m_isDGE3200) && !HDMIInputInterface.useAm3kStateMachine)
+                            if ((isAM3K || m_isDGE3200 || isC865C) && !HDMIInputInterface.useAm3kStateMachine)
                             {
                                 int resEnum = HDMIInputInterface.readResolutionEnum(false);
                                 // set flag when sync and resolution are consistent
@@ -2647,11 +2651,11 @@ public class CresStreamCtrl extends Service {
                                 }
                             }
 
-                            if(isAM3K || m_isDGE3200)
+                            if(isAM3K || m_isDGE3200 || isC865C)
                             {
 
-                                String fCamErrorTrigger = "/dev/shm/crestron/CresStreamSvc/fCamErrorTrigger";
-                                File fCamErrorTriggerFile = new File(fCamErrorTrigger);
+                                String fCamErrorTrigger = "fCamErrorTrigger";
+                                File fCamErrorTriggerFile = new File(getFilesDir(), fCamErrorTrigger);
 
                                 //On camera error, restart playback
                                 if(mProductSpecific.getInstance().cam_handle.mCamErrCur ||
@@ -2689,7 +2693,7 @@ public class CresStreamCtrl extends Service {
                     }
                     
                     // Now check and handle HDMI output res change
-                    if (isAM3K || m_isDGE3200)
+                    if (isAM3K || m_isDGE3200 || isC865C)
                     	handlePossibleHdmiOutputResolutionChange();
                 }
             }
@@ -3490,7 +3494,7 @@ public class CresStreamCtrl extends Service {
     public int getMaxMiracastFps()
     {
         // force 30Hz formats on AM3K for miracast when resolution is 4K (> 1920x1080) since display output refresh rate is not 60Hz
-        if ((isAM3K  || m_isDGE3200) && hdmiOutput.getWidth() > 1920 && hdmiOutput.getHeight() > 1080)
+        if ((isAM3K  || m_isDGE3200 || isC865C) && hdmiOutput.getWidth() > 1920 && hdmiOutput.getHeight() > 1080)
         {
             // force 25Hz formats on AM3K for miracast when 4 presentations are allowed - cannot even render @30fps properly
             if (userSettings.getAirMediaMaxNumberOfWindows() == 4)
@@ -3516,7 +3520,7 @@ public class CresStreamCtrl extends Service {
     {
         // On AM3K display getRefreshRate does not work - use sysfs or nvram :resolution-main
         float refreshRate=0;
-        if (isAM3K || m_isDGE3200)
+        if (isAM3K || m_isDGE3200 || isC865C)
         {
             String resString = MiscUtils.readStringFromDisk("/sys/class/drm/card0-HDMI-A-1/mode");
             if (resString.contains("p"))
@@ -5828,7 +5832,7 @@ public class CresStreamCtrl extends Service {
     public void sendAirMediaConnectionInfo()
     {
     	sendAirMediaConnectionAddress();
-    	if (isAM3K || m_isDGE3200)
+    	if (isAM3K || m_isDGE3200 || isC865C)
     	    sendAirMediaAuxConnectionAddress();
     	sendAirMediaWirelessConnectionAddress();
     }
@@ -5921,7 +5925,7 @@ public class CresStreamCtrl extends Service {
         String protocol = (userSettings.getAirMediaSecureLandingPageEnabled() ? "https://" : "http://");
         url.append(protocol);
         String adapterString = "eth0,eth1";
-        if (isAM3K)
+        if (isAM3K || isC865C)
             adapterString = "eth0";
         String ipAddr = getAirMediaConnectionIpAddress(adapterString);
         switch (userSettings.getAirMediaDisplayConnectionOption())
@@ -5989,7 +5993,7 @@ public class CresStreamCtrl extends Service {
     // Currently only on AM3K for AUX adapter URL.  The getAirMediaDisplayWirelessConnectionOption control the formatting
     public String getAirMediaAuxConnectionAddress()
     {
-        if (!userSettings.getAirMediaEnable() || !isAM3K) {
+        if (!userSettings.getAirMediaEnable() || !isAM3K || !isC865C) {
             return "";
         }
         StringBuilder url = new StringBuilder(512);
@@ -6137,7 +6141,7 @@ public class CresStreamCtrl extends Service {
             return "None";
         }
         //Remove AM-3k specific check in the future by refactoring code to also support legacy products (e.g. am-200, Mercury)
-        if(!isAM3K)
+        if(!isAM3K && !isC865C)
         {
 	        if (adapters.contains("eth0") && adaptersSelectionString.contains("eth0"))
 	        {
@@ -6358,7 +6362,8 @@ public class CresStreamCtrl extends Service {
     public void setCamStreamEnable(boolean enable) {
 
         if (CrestronProductName.fromInteger(nativeGetProductTypeEnum()) == CrestronProductName.AM3X00 ||
-            CrestronProductName.fromInteger(nativeGetProductTypeEnum()) == CrestronProductName.DGE3200)
+            CrestronProductName.fromInteger(nativeGetProductTypeEnum()) == CrestronProductName.DGE3200 ||
+            CrestronProductName.fromInteger(nativeGetProductTypeEnum()) == CrestronProductName.C865C)
         	return;
         
         stopStartLock[0].lock("setCamStreamEnable");
@@ -6504,7 +6509,7 @@ public class CresStreamCtrl extends Service {
     public void switchHdmiInMode()
     {
         // update HDMI and camera sync via csio
-        if (isAM3K || m_isDGE3200)
+        if (isAM3K || m_isDGE3200 || isC865C)
             sockTask.SendDataToAllClients("hdmiin_sync_detected=" + hdmiInput.getSyncStatus());
         // stop WC presentation if ongoing
         mWC_Service.stopServer(null);
@@ -7209,10 +7214,10 @@ public class CresStreamCtrl extends Service {
             if (hdmiInputDriverPresent)
             {
                 if (resolutionId != mCurrentHdmiInputResolution || 
-                    ((isAM3K || m_isDGE3200) && (mHdmiCameraIsConnected != mCurrentHdmiCameraConnectState)) )
+                    ((isAM3K || m_isDGE3200 || isC865C) && (mHdmiCameraIsConnected != mCurrentHdmiCameraConnectState)) )
                 {
                     mCurrentHdmiInputResolution = resolutionId;
-                    if (isAM3K || m_isDGE3200)
+                    if (isAM3K || m_isDGE3200 || isC865C)
                         mCurrentHdmiCameraConnectState = mHdmiCameraIsConnected;
                     int prevResolutionIndex = hdmiInput.getResolutionIndex();
                     if (resolutionId != 0)
@@ -7419,7 +7424,7 @@ public class CresStreamCtrl extends Service {
             ignoreRestart = true;
         else if (hdmiInputResolutionEnum != 0) {
             mPreviousValidHdmiInputResolution = hdmiInputResolutionEnum;
-            if (!isAM3K && !m_isDGE3200)
+            if (!isAM3K && !m_isDGE3200 && !isC865C)
             	mPreviousAudioInputSampleRate = hdmiInSampleRate;
         }
         if (mCanvas != null)
@@ -7598,7 +7603,7 @@ public class CresStreamCtrl extends Service {
             }
 
             // The above portion of the code is common and meant to remember the last state of cameramode which was set. Applies for AM3K as well.
-            if(isAM3K || m_isDGE3200)
+            if(isAM3K || m_isDGE3200 || isC865C)
             {
                 AM_3x00_CameraMode nomode = AM_3x00_CameraMode.UNDEFINED_SCREEN;
                 String id = AM_3x00_CameraMode.getStringValueFromColorInt(Integer.valueOf(mode));
@@ -7782,7 +7787,7 @@ public class CresStreamCtrl extends Service {
                 if (Boolean.parseBoolean(hdmiOutput.getSyncStatus()) == true)
                 {
                 	//Do not set bypass if product does not have HDMI output
-                	if(mProductHasHDMIoutput && !isAM3K && !m_isDGE3200)
+                	if(mProductHasHDMIoutput && !isAM3K && !m_isDGE3200 && !isC865C)
                 	{
                 		setHDCPBypass();
                 	}
@@ -8278,7 +8283,7 @@ public class CresStreamCtrl extends Service {
     public synchronized void startWifiDirect(String localAddress, String deviceId, String deviceName, String deviceAddress, int rtsp_port)
     {
     	if (userSettings.getAirMediaEnable() && userSettings.getAirMediaMiracastEnable()) {
-    		if(isAM3K)
+    		if(isAM3K || isC865C)
     			wifidVideoPlayer.onSessionReady(wifidVideoPlayer.getSessionId(), localAddress, deviceId, deviceName, deviceAddress, rtsp_port);
     		else
     			Log.w(TAG, "WARNING: this call is expected for AM3X product only");
@@ -8289,7 +8294,7 @@ public class CresStreamCtrl extends Service {
     public synchronized void startWifiDirect(String localAddress, String deviceId, String deviceName, String deviceType, String deviceAddress, int rtsp_port)
     {
         if (userSettings.getAirMediaEnable() && userSettings.getAirMediaMiracastEnable()) {
-            if(isAM3K)
+            if(isAM3K || isC865C)
             {
                 if (wifidVideoPlayer.deviceSessionAlreadyExists(deviceId))
                 {
@@ -8306,7 +8311,7 @@ public class CresStreamCtrl extends Service {
     public void stopWifiDirect(String deviceId)
     {
     	if (userSettings.getAirMediaEnable() && userSettings.getAirMediaMiracastEnable()) {
-    		if(isAM3K && userSettings.getAirMediaEnable() && userSettings.getAirMediaMiracastEnable())
+    		if((isAM3K || isC865C) && userSettings.getAirMediaEnable() && userSettings.getAirMediaMiracastEnable())
     			wifidVideoPlayer.stopSessionWithDeviceId(deviceId);
     		else
     			Log.w(TAG, "WARNING: this call is expected for AM3X product only");
@@ -8316,7 +8321,7 @@ public class CresStreamCtrl extends Service {
     public void pauseWifiDirect(String deviceId)
     {
         if (userSettings.getAirMediaEnable() && userSettings.getAirMediaMiracastEnable()) {
-            if(isAM3K && userSettings.getAirMediaEnable() && userSettings.getAirMediaMiracastEnable())
+            if((isAM3K || isC865C) && userSettings.getAirMediaEnable() && userSettings.getAirMediaMiracastEnable())
                 wifidVideoPlayer.pauseSessionWithDeviceId(deviceId);
             else
                 Log.w(TAG, "WARNING: this call is expected for AM3X product only");
@@ -8326,7 +8331,7 @@ public class CresStreamCtrl extends Service {
     public void resumeWifiDirect(String deviceId)
     {
         if (userSettings.getAirMediaEnable() && userSettings.getAirMediaMiracastEnable()) {
-            if(isAM3K && userSettings.getAirMediaEnable() && userSettings.getAirMediaMiracastEnable())
+            if((isAM3K || isC865C) && userSettings.getAirMediaEnable() && userSettings.getAirMediaMiracastEnable())
                 wifidVideoPlayer.resumeSessionWithDeviceId(deviceId);
             else
                 Log.w(TAG, "WARNING: this call is expected for AM3X product only");
@@ -8456,7 +8461,7 @@ public class CresStreamCtrl extends Service {
     public synchronized boolean isTX3Device(int streamId)
     {
         boolean isTX3 = false;
-        if(isAM3K)
+        if(isAM3K || isC865C)
         {
             isTX3 = wifidVideoPlayer.isTx3DeviceType(streamId);
         }

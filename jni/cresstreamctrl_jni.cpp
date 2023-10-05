@@ -83,7 +83,7 @@ JNIEXPORT jint JNICALL Java_com_crestron_txrxservice_CresStreamCtrl_nativeGetHWP
 	return product_info()->hw_platform;
 }
 
-JNIEXPORT jint JNICALL Java_com_crestron_txrxservice_CresStreamCtrl_nativeGetProductTypeEnum(JNIEnv *env, jobject thiz)
+JNIEXPORT jint JNICALL Java_com_crestron_txrxservice_CresStreamCtrl_nativeGetProductTypeEnum(JNIEnv *env)
 {
 	do_init();
 
