@@ -20,22 +20,22 @@ public class SurfaceManager implements SurfaceHolder.Callback {
 	private CountDownLatch mLock;
 	private final int surfaceCreateTimeout_ms = 10000;
 	private final CresStreamCtrl streamCtl;
-	
+
     private SurfaceHolder crestSurfaceHolder;
     private Map<View, Boolean> viewInitializedMap = new ConcurrentHashMap<View, Boolean>();
-    String TAG = "TxRx SurfaceMgr"; 
+    String TAG = "TxRx SurfaceMgr";
 
     public SurfaceManager(Context mContext){
-        Log.e(TAG, "SurfaceManager:: Constructor called...!");
+        Log.i(TAG, "SurfaceManager:: Constructor called...!");
         mLock = new CountDownLatch(1);
         streamCtl = (CresStreamCtrl)mContext;
         viewInitializedMap.clear();
     }
-    
+
     public void initCresSurfaceHolder (SurfaceView view) {
     	if (view != null) {
             Log.i(TAG, "initCresSurfaceHolder(): View is not null");
-            crestSurfaceHolder = view.getHolder();	
+            crestSurfaceHolder = view.getHolder();
             crestSurfaceHolder.addCallback(this);
             crestSurfaceHolder.setType(SurfaceHolder.SURFACE_TYPE_PUSH_BUFFERS);
             viewInitializedMap.put(view, false);
@@ -50,23 +50,23 @@ public class SurfaceManager implements SurfaceHolder.Callback {
     	if (crestSurfaceHolder != null)
     		crestSurfaceHolder.removeCallback(this);
     	viewInitializedMap.clear();
-    	mLock = null;  	
-    	crestSurfaceHolder = null; 
+    	mLock = null;
+    	crestSurfaceHolder = null;
     }
-    
+
     public SurfaceHolder getCresSurfaceHolder (SurfaceView view) {
     	//TODO: Have one lock per surface
 		//Wait for callback to determine if surface is ready to be used
     	boolean surfaceCreatedSuccess = true; //indicates that there was no time out condition
     	try { surfaceCreatedSuccess = mLock.await(surfaceCreateTimeout_ms, TimeUnit.MILLISECONDS); }
     	catch (InterruptedException ex) { ex.printStackTrace(); }
-    	
+
     	if (!surfaceCreatedSuccess)
     	{
     		Log.e(TAG, MiscUtils.stringFormat("Android failed to create surface after %d ms", surfaceCreateTimeout_ms));
     		streamCtl.RecoverTxrxService();
     	}
-    	    	
+
         if (view != null) {
             Log.v(TAG, "getCresSurfaceHolder(): View is not null");
             crestSurfaceHolder = view.getHolder();
@@ -91,7 +91,7 @@ public class SurfaceManager implements SurfaceHolder.Callback {
 	    for (int i=0; i < CresStreamCtrl.NumOfSurfaces; i++)
 	    {
 	    	SurfaceView sv = streamCtl.getSurfaceView(i);
-	    	// For a given view this should only be done only once at startup so surface is created once 
+	    	// For a given view this should only be done only once at startup so surface is created once
 	    	if (sv.getHolder() == holder)
 	    	{
 	    		Boolean initialized = viewInitializedMap.get(sv);

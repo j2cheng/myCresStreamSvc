@@ -118,16 +118,16 @@ public class CresStreamCtrl extends Service {
     CameraPreview cam_preview;
     GstreamOut gstStreamOut;
     public GstreamOut getStreamOut() { return gstStreamOut; };
-    
+
     com.crestron.txrxservice.StringTokenizer tokenizer;
     public static int VersionNumber = 2;
-    
+
     GstreamIn streamPlay = null;
     public GstreamIn getStreamPlay() { return streamPlay; };
     GstreamBase gstreamBase = null;
     WbsStreamIn wbsStream = null;
     public WifidVideoPlayer wifidVideoPlayer = null;
-    
+
     private DisplayManager m_displayManager = null;
     private CresLog ccresLog = null;
 
@@ -135,22 +135,22 @@ public class CresStreamCtrl extends Service {
     AudioManager amanager;
     public TCPInterface sockTask;
     private boolean mAutoInitMode = false;
-   
+
     HDMIInputInterface hdmiInput;
     HDMIOutputInterface hdmiOutput;
 
     CresDisplaySurface dispSurface = null;
-    
+
     AirMediaSplashtop mAirMedia = null;
-    
+
     public static final String NOTIFICATION_CHANNEL_ID = "TxRxNotificationChannel";
-    
+
     public com.crestron.txrxservice.canvas.CresCanvas mCanvas = null;
     public com.crestron.txrxservice.wc.WC_Service mWC_Service = null;
-    
+
     final int cameraRestartTimout = 1000;//msec
     static int hpdHdmiEvent = 0;
-    
+
     private volatile boolean saveSettingsShouldExit = false;
     public static Object saveSettingsLock = new Object();
     public static volatile boolean saveSettingsUpdateArrived = false;
@@ -222,7 +222,7 @@ public class CresStreamCtrl extends Service {
     public CountDownLatch streamingReadyLatch = new CountDownLatch(1);
     public CountDownLatch audioReadyLatch = new CountDownLatch(1);
     private FileObserver audioReadyFileObserver;
-    private boolean pendingAirMediaLoginCodeChange = false;   
+    private boolean pendingAirMediaLoginCodeChange = false;
     public volatile boolean enableRestartMechanism = false; // Until we get a start or platform automatically restarts don't restart streams
     private Object cameraModeLock = new Object();
     private volatile Timer mNoVideoTimer = null;
@@ -244,7 +244,7 @@ public class CresStreamCtrl extends Service {
 
     private final static String multicastTTLFilePath = "multicast_ttl";
     private final static String keyFrameIntervalFilePath = "keyframe_interval";
-    
+
     private final static String ducatiCrashCountFilePath = "ducatiCrashCount";
     public final static String gstreamerTimeoutCountFilePath = "gstreamerTimeoutCount";
     public final static String hdcpEncryptFilePath = "HDCPEncrypt";
@@ -290,7 +290,7 @@ public class CresStreamCtrl extends Service {
     public String peripheralAudioPlaybackDevice = null;
     public  void setAudioPlaybackFile(String aFile) { peripheralAudioPlaybackDevice = aFile; }
     public String getAudioPlaybackFile()           { return peripheralAudioPlaybackDevice; }
-    
+
     public boolean getHdmiOutSyncStatus() {
         if( (hdmiOutput != null) &&
             (hdmiOutput.get_am3k_sync_status() == true))
@@ -318,7 +318,7 @@ public class CresStreamCtrl extends Service {
         WBS_STREAM_IN,
         CHROMA_KEY_STREAM,
     }
-    
+
     enum ServiceMode {
         Master(0),
         Slave(1);
@@ -328,27 +328,27 @@ public class CresStreamCtrl extends Service {
         {
             this.value = value;
         }
-        public int getValue() 
+        public int getValue()
         {
             return value;
         }
-        public static String getStringValueFromInt(int i) 
+        public static String getStringValueFromInt(int i)
         {
-            for (ServiceMode mode : ServiceMode.values()) 
+            for (ServiceMode mode : ServiceMode.values())
             {
-                if (mode.getValue() == i) 
+                if (mode.getValue() == i)
                 {
                     return mode.toString();
                 }
             }
             return ("Invalid Service Mode.");
         }
-        
-        public static ServiceMode getServiceModeFromInt(int i) 
+
+        public static ServiceMode getServiceModeFromInt(int i)
         {
-            for (ServiceMode mode : ServiceMode.values()) 
+            for (ServiceMode mode : ServiceMode.values())
             {
-                if (mode.getValue() == i) 
+                if (mode.getValue() == i)
                 {
                     return mode;
                 }
@@ -356,7 +356,7 @@ public class CresStreamCtrl extends Service {
             return ServiceMode.Master;
         }
     };
-    
+
     enum AirMediaLoginMode {
         Disabled(0),
         Random(1),
@@ -376,12 +376,12 @@ public class CresStreamCtrl extends Service {
         static final int HostDomain=3;
         static final int Custom=4;
     }
-    
+
     public class CresstoreOptions {
         static final int Publish=1;
         static final int PublishAndSave=2;
     }
-    
+
     enum CameraMode {
         Camera(0),
         StreamOutPaused(1),
@@ -399,14 +399,14 @@ public class CresStreamCtrl extends Service {
             this.value = value;
         }
     }
- 
+
  	enum AM_3x00_CameraMode {
         BLUE_SCREEN(1),
         RED_SCREEN(2),
         BLACK_SCREEN(3),
         HDMI_IN_SCREEN(4),
         VIDEO_PAUSED_SCREEN(5),	//not supported yet
-        
+
         UNDEFINED_SCREEN(99);
 
         private final int value;
@@ -416,28 +416,28 @@ public class CresStreamCtrl extends Service {
         {
             this.value = value;
         }
- 
-        public int getValue() 
+
+        public int getValue()
         {
             return value;
         }
-      
-        public static String getStringValueFromInt(int i) 
+
+        public static String getStringValueFromInt(int i)
         {
-            for (AM_3x00_CameraMode mode : AM_3x00_CameraMode.values()) 
+            for (AM_3x00_CameraMode mode : AM_3x00_CameraMode.values())
             {
-                if (mode.getValue() == i) 
+                if (mode.getValue() == i)
                 {
                     return mode.toString();
                 }
             }
             return ("Invalid Color Mode.");
         }
-                
+
         public static String getStringValueFromColorInt(int mode)
         {
         	AM_3x00_CameraMode cmode = AM_3x00_CameraMode.UNDEFINED_SCREEN;
-        	
+
 			switch(CameraMode.values[Integer.valueOf(mode)])
 			{
 				case Camera:
@@ -466,17 +466,17 @@ public class CresStreamCtrl extends Service {
 	    	}
 
     		String id = String.valueOf(cmode.getValue());
-	    	
+
 	    	Log.i(TAG,"AM_3x00 CameraMode id = " + id + " mode = " + mode );
-	    	
+
 	    	return(id);
 		}
     }
-       
+
     /*
      * Copied from csio.h
      * */
-    public enum StreamState 
+    public enum StreamState
     {
         // Basic States
         STOPPED(0),
@@ -497,32 +497,32 @@ public class CresStreamCtrl extends Service {
 
         private final int value;
 
-        StreamState(int value) 
+        StreamState(int value)
         {
             this.value = value;
         }
 
-        public int getValue() 
+        public int getValue()
         {
             return value;
         }
-        public static String getStringValueFromInt(int i) 
+        public static String getStringValueFromInt(int i)
         {
-            for (StreamState state : StreamState.values()) 
+            for (StreamState state : StreamState.values())
             {
-                if (state.getValue() == i) 
+                if (state.getValue() == i)
                 {
                     return state.toString();
                 }
             }
             return ("Invalid State.");
         }
-        
-        public static StreamState getStreamStateFromInt(int i) 
+
+        public static StreamState getStreamStateFromInt(int i)
         {
-            for (StreamState state : StreamState.values()) 
+            for (StreamState state : StreamState.values())
             {
-                if (state.getValue() == i) 
+                if (state.getValue() == i)
                 {
                     return state;
                 }
@@ -530,7 +530,7 @@ public class CresStreamCtrl extends Service {
             return LAST;
         }
     }
-    
+
  // ***********************************************************************************
  // Keep updated with eHardwarePlatform in csioCommonShare.h !!!!!!!!!!!!!!!!!!!!!!!!!!!!!!
  // ***********************************************************************************
@@ -642,7 +642,7 @@ public class CresStreamCtrl extends Service {
         }
     }
 
-    public enum StartupEvent 
+    public enum StartupEvent
     {
         // Basic events that may occur before module started
         eAirMediaCanvas_HDMI_IN_SYNC(1),
@@ -652,32 +652,32 @@ public class CresStreamCtrl extends Service {
 
         private final int value;
 
-        StartupEvent(int value) 
+        StartupEvent(int value)
         {
             this.value = value;
         }
 
-        public int getValue() 
+        public int getValue()
         {
             return value;
         }
-        public static String getStringValueFromInt(int i) 
+        public static String getStringValueFromInt(int i)
         {
-            for (StartupEvent event : StartupEvent.values()) 
+            for (StartupEvent event : StartupEvent.values())
             {
-                if (event.getValue() == i) 
+                if (event.getValue() == i)
                 {
                     return event.toString();
                 }
             }
             return ("Invalid Event.");
         }
-        
-        public static StartupEvent getStreamEventFromInt(int i) 
+
+        public static StartupEvent getStreamEventFromInt(int i)
         {
-            for (StartupEvent event : StartupEvent.values()) 
+            for (StartupEvent event : StartupEvent.values())
             {
-                if (event.getValue() == i) 
+                if (event.getValue() == i)
                 {
                     return event;
                 }
@@ -688,7 +688,7 @@ public class CresStreamCtrl extends Service {
 
     // ***********************************************************************************
     // Keep updated with definitions in trunk/customFiles/src/external/crestron/productNameUtil/productName.h
-    // ***********************************************************************************    
+    // ***********************************************************************************
     private String getProductName(int product_type)
     {
         switch(product_type) {
@@ -741,7 +741,7 @@ public class CresStreamCtrl extends Service {
             Log.i(TAG, s + ": " + name + " released   isLocked=" + isLocked() + "  holdCount=" + getHoldCount());
         }
     }
-    
+
     private final MyReentrantLock startupLock			= new MyReentrantLock(true, "startupLock"); // fairness=true, makes lock ordered
     private final MyReentrantLock hdmiLock				= new MyReentrantLock(true, "hdmiLock"); // fairness=true, makes lock ordered
     private final MyReentrantLock cameraLock			= new MyReentrantLock(true, "CameraLock"); // fairness=true, makes lock ordered
@@ -750,41 +750,41 @@ public class CresStreamCtrl extends Service {
 
     private class HdmiAm3K {
         boolean isPlaying;
-        boolean sync; 
-        
+        boolean sync;
+
         HdmiAm3K() {
             isPlaying = false;
             sync = false;
         }
-        
-        public boolean getIsPlaying() 
-        { 
-            return isPlaying; 
+
+        public boolean getIsPlaying()
+        {
+            return isPlaying;
         }
-        
-        public void setIsPlaying(boolean isPlaying) 
-        { 
+
+        public void setIsPlaying(boolean isPlaying)
+        {
             if (isAM3K || m_isDGE3200 || isC865C)
             {
                 this.isPlaying = isPlaying;
             }
         }
-        
-        public boolean getSync() 
-        { 
-            return sync; 
+
+        public boolean getSync()
+        {
+            return sync;
         }
-        
-        public void setSync(boolean sync) 
-        { 
+
+        public void setSync(boolean sync)
+        {
             if (isAM3K || m_isDGE3200 || isC865C)
             {
                 this.sync = sync;
             }
         }
-    } 
+    }
     HdmiAm3K mPreviousHdmi = new HdmiAm3K();   // currently meant to be used for only AM3K
-    
+
     /**
      * Force the service to the foreground
      */
@@ -795,7 +795,7 @@ public class CresStreamCtrl extends Service {
             .setWhen(System.currentTimeMillis());
         startForeground(42, builder.build());
     }
-    
+
     /**
      * Keep running the forcing of the service foreground piece every 5 seconds
      * Might not be needed anymore, running CresStreamSvc as persistent service
@@ -827,20 +827,20 @@ public class CresStreamCtrl extends Service {
             }
         }).start();
     }
-    
+
     static {
         Log.i(TAG,"loading csio product info library" );
         System.loadLibrary("CsioProdInfo");
         Log.i(TAG,"loading cresstreamctrl jni library" );
         System.loadLibrary("cresstreamctrl_jni");
     }
-    
+
     //StreamState devicestatus = StreamState.STOPPED;
     //HashMap
     HashMap<Integer, Command> hm;
     HashMap<Integer, myCommand> hm2;
     HashMap<Integer, myCommand2> hm3;
-        
+
     @Override
         public void onCreate() {
             super.onCreate();
@@ -855,7 +855,7 @@ public class CresStreamCtrl extends Service {
             int windowHeight = 1080;
             hideVideoOnStop = nativeHideVideoBeforeStop();
             mProductHasHDMIoutput = nativeHaveHDMIoutput();
-            
+
             isAM3K = isAM3X00();
             m_isDGE3200 = isDGE3200();
             isC865C = isC865C();
@@ -864,7 +864,7 @@ public class CresStreamCtrl extends Service {
             {
             	int productType = nativeGetProductTypeEnum();
             	airMediav21 = true;	//default
-            	
+
 	            //TODO remove once integration is over
 	            File f = new File(homeDir, "airMediav2.1");
 	            if (f.exists())
@@ -969,7 +969,7 @@ public class CresStreamCtrl extends Service {
                         @Override
                         public void uncaughtException(Thread paramThread, Throwable paramThrowable) {
                             //Close Camera
-                            Log.i(TAG,"Global uncaught Exception !!!!!!!!!!!" );
+                            Log.e(TAG,"Global uncaught Exception !!!!!!!!!!!" );
                             paramThrowable.printStackTrace();
 
                             try {
@@ -1120,10 +1120,10 @@ public class CresStreamCtrl extends Service {
                     Log.e(TAG, "Could not upgrade userSettings: " + ex);
                 }
             }
- 
+
             // initialize display manager for static access
             mProductSpecific.getInstance().initialize(this);
- 
+
             // This must happen before we receive the initial service mode from csio once TCP interface is up.
             // If service mode from csio differs from our setting, a request to restart the service will be sent to csio
             serviceMode = ServiceMode.getServiceModeFromInt(userSettings.getServiceMode());
@@ -1342,7 +1342,7 @@ public class CresStreamCtrl extends Service {
             wifidVideoPlayer = new WifidVideoPlayer(CresStreamCtrl.this);
 
             hdmiOutput = new HDMIOutputInterface(nativeGetHDMIOutputBitmask(), this);
-            
+
             //Do not set bypass if product does not have HDMI output
             if(mProductHasHDMIoutput && !isAM3K && !m_isDGE3200 && !isC865C)
             {
@@ -1382,7 +1382,7 @@ public class CresStreamCtrl extends Service {
                 alphaBlending = (pinpointEnabled == 1) ? true : false;
             }
            */
-            
+
             // Fix for forcing txrxservice allocated surfaces to be used on Mercury in rigel mode
             // because of "sluggish" behavior from eTouchScrceen apk when canvas surfaces are used
             File f = new File(getFilesDir(), "useCanvasSurfaces");
@@ -1391,7 +1391,7 @@ public class CresStreamCtrl extends Service {
                 Log.i(TAG, "On Mercury don't use canvas surfaces in Teams/Zoom mode");
                 CresCanvas.useCanvasSurfaces = false;
             }
-            
+
             // AirMedia v2.1 onwards
             if (airMediav21)
             {
@@ -1488,11 +1488,11 @@ public class CresStreamCtrl extends Service {
                 public void executePause(int sessId) {pauseStreamIn(sessId); };
             });
 
-            if (CrestronProductName.fromInteger(nativeGetProductTypeEnum()) != CrestronProductName.TST1080) 
+            if (CrestronProductName.fromInteger(nativeGetProductTypeEnum()) != CrestronProductName.TST1080)
             {
                 hdmiLicenseThread(this);
             }
-            
+
             if (nativeGetIsAirMediaEnabledEnum())
             {
                 airMediaLicenseThread(this);
@@ -1554,10 +1554,10 @@ public class CresStreamCtrl extends Service {
 
     @Override
     public int onStartCommand (Intent intent, int flags, int startId) {
-            Log.i(TAG,"CresStreamCtrl Started !" );            
+            Log.i(TAG,"CresStreamCtrl Started !" );
             return START_STICKY;	// No longer needed since it is not a service
     }
-    
+
     ////////////////////////////////////////////////////////////////////////////////////////////////
     /// SERVICE
     ////////////////////////////////////////////////////////////////////////////////////////////////
@@ -1594,7 +1594,7 @@ public class CresStreamCtrl extends Service {
             return 0;
         }
     };
-    
+
     @Override
     public IBinder onBind(Intent intent)
     {
@@ -1621,30 +1621,30 @@ public class CresStreamCtrl extends Service {
         	mIsBound = true;
         	return mBinder;
         }
-    } 
+    }
 
     private void resetAllSlaveStreams()
     {
         Log.i(TAG, "resetAllSlaveStreams: ask csio to stop all streams");
-        
+
         // This comes in on UI thread(onBind,onUnbind,onRebind), move off
-        final CountDownLatch latch = new CountDownLatch(1);		
-        new Thread(new Runnable() {		
-            public void run() {		
-                sockTask.SendDataToAllClients("RESET_SLAVE_MODE=true");		
-                latch.countDown();		
-            }		
-        }).start();		
-		
-        boolean successfulStart = true; //indicates that there was no time out condition		
-        try { successfulStart = latch.await(1000, TimeUnit.MILLISECONDS); }		
+        final CountDownLatch latch = new CountDownLatch(1);
+        new Thread(new Runnable() {
+            public void run() {
+                sockTask.SendDataToAllClients("RESET_SLAVE_MODE=true");
+                latch.countDown();
+            }
+        }).start();
+
+        boolean successfulStart = true; //indicates that there was no time out condition
+        try { successfulStart = latch.await(1000, TimeUnit.MILLISECONDS); }
         catch (InterruptedException ex) { ex.printStackTrace(); }
 
         Log.i(TAG, "resetAllSlaveStreams: clearing all prior surfaces: " + successfulStart);
         for (int idx = 0; idx < NumOfSurfaces; idx++)
             deleteSurface(idx);
     }
-    
+
     @Override
     public boolean onUnbind(Intent intent) {
         Log.i(TAG, "onUnbind(): intent= " + intent.toString());
@@ -1686,7 +1686,7 @@ public class CresStreamCtrl extends Service {
         }
     	super.onRebind(intent);
     }
-    
+
     public void onDestroy(){
         super.onDestroy();
         Log.i(TAG, "onDestroy: begin");
@@ -1711,22 +1711,22 @@ public class CresStreamCtrl extends Service {
                 streamPlay.onStop(i);
             }
         } finally {}
-        
+
         if (dispSurface != null)
             dispSurface.RemoveView();
-        
+
         if(mProductSpecific.cam_handle != null)
             mProductSpecific.cam_handle.releaseCamera();
         Log.i(TAG, "onDestroy: end");
     }
-    
+
     public void runOnUiThread(Runnable runnable) {
         // Android wants all surface methods to be run on UI thread,
         // Instability and/or crashes can occur if this is not observed
         Log.i(TAG, "runOnUiThread: " + runnable.toString());
         handler.post(runnable);
     }
-    
+
     private void initAppFiles() {
         // TODO: Lets setup all file folders needed here
         try
@@ -1742,7 +1742,7 @@ public class CresStreamCtrl extends Service {
             Log.w(TAG, "Failed to copy cert file: " + ex);
         }
     }
-    
+
     public boolean isAM3X00()
     {
     	return (CrestronProductName.fromInteger(nativeGetProductTypeEnum()) == CrestronProductName.AM3X00);
@@ -1752,7 +1752,7 @@ public class CresStreamCtrl extends Service {
     {
     	return (CrestronProductName.fromInteger(nativeGetProductTypeEnum()) == CrestronProductName.C865C);
     }
-    
+
     public boolean isDGE3200()
     {
     	return (CrestronProductName.fromInteger(nativeGetProductTypeEnum()) == CrestronProductName.DGE3200);
@@ -1831,7 +1831,7 @@ public class CresStreamCtrl extends Service {
             Log.i(TAG, "Service mode is already set to " + ((serviceMode == ServiceMode.Master) ? "Master" : "Slave"));
         }
     }
-    
+
     public void setCanvasMode(boolean enable)
     {
         if (userSettings.getCanvasModeEnabled() != enable)
@@ -1850,18 +1850,18 @@ public class CresStreamCtrl extends Service {
             Log.i(TAG, "Canvas mode is already " + ((userSettings.getCanvasModeEnabled()) ? "enabled" : "disabled"));
         }
     }
-    
+
     public void setHostName(String dflt)
     {
         hostName = MiscUtils.getHostName(dflt);
         Log.i(TAG,"setHostName(): hostname is "+hostName);
     }
-    
+
     public String getHostName()
     {
         return MiscUtils.getHostName("localhost");
     }
-    
+
     public void setDomainName(String domainName)
     {
     	if (!domainName.equals(userSettings.getDomainName())) {
@@ -1871,12 +1871,12 @@ public class CresStreamCtrl extends Service {
     			sendAirMediaConnectionInfo();
     	}
     }
-    
+
     public String getDomainName()
     {
         return userSettings.getDomainName();
     }
-    
+
     private boolean isCameraDisabledBySecurity()
     {
         String cameraCheck1 = MiscUtils.readBuildProp("sys.secpolicy.camera.disabled");
@@ -1888,7 +1888,7 @@ public class CresStreamCtrl extends Service {
         Log.i(TAG, "isCameraDisabledBySecurity(): check 1 " + cameraCheck1 + ", check 2 " + cameraCheck2);
         return check1 || check2;
     }
-    
+
     public boolean getCameraDisabled()
     {
         boolean cameraDisabled = false;
@@ -1976,7 +1976,7 @@ public class CresStreamCtrl extends Service {
         else
             view.getHolder().setFormat(format);
     }
-    
+
     public void setFormat(int id, int format)
     {
         SurfaceView view = getSurfaceView(id);
@@ -1985,8 +1985,8 @@ public class CresStreamCtrl extends Service {
             setViewFormat(view, format);
         }
     }
-    
-    public Surface getSurface(int id) 
+
+    public Surface getSurface(int id)
     {
         Surface s = null;
         if (dispSurface != null)
@@ -1999,7 +1999,7 @@ public class CresStreamCtrl extends Service {
         }
         return s;
     }
-    
+
     public void setSurface(int id, Surface s)
     {
         if (dispSurface != null)
@@ -2007,7 +2007,7 @@ public class CresStreamCtrl extends Service {
             dispSurface.setSurface(id, s);
         }
     }
-    
+
     public void deleteSurface(int id)
     {
         if (dispSurface != null)
@@ -2015,7 +2015,7 @@ public class CresStreamCtrl extends Service {
             dispSurface.deleteSurface(id);
         }
     }
-    
+
     public void disconnectSurface(int id)
     {
         if (forceSurfaceDisconnectAndRelease)
@@ -2024,11 +2024,11 @@ public class CresStreamCtrl extends Service {
             if (s == null)
             {
                 Log.i(TAG, "disconnectSurface - streamId="+id+" null surface");
-            } 
-            else if (!s.isValid()) 
+            }
+            else if (!s.isValid())
             {
                 Log.i(TAG, "disconnectSurface - streamId="+id+" invalid surface");
-            } 
+            }
             else
             {
                 Log.i(TAG, "disconnectSurface - streamId="+id+" doing force scope disconnect and release on surface");
@@ -2037,7 +2037,7 @@ public class CresStreamCtrl extends Service {
             }
         }
     }
-    
+
     public int surface2streamId(Surface surface)
     {
         if (dispSurface != null)
@@ -2045,28 +2045,28 @@ public class CresStreamCtrl extends Service {
         else
             return -1;
     }
-    
+
     public SurfaceView getSurfaceView(int id) {
         if (dispSurface != null)
             return dispSurface.GetSurfaceView(id);
         else
             return null;
     }
-    
+
     public TextureView getTextureView(int id) {
         if (dispSurface != null)
             return dispSurface.GetTextureView(id);
         else
             return null;
     }
-    
+
     public SurfaceTexture getSurfaceTexture(int id) {
         if (dispSurface != null)
             return dispSurface.GetSurfaceTexture(id);
         else
             return null;
     }
-    
+
     public void setSurfaceViewTag(int idx, String tag)
     {
         try
@@ -2077,9 +2077,9 @@ public class CresStreamCtrl extends Service {
                 Log.i(TAG, "setSurfaceViewTag(): couldn't set tag - dispSurface is null");
         } catch (Exception ex) { ex.printStackTrace(); }
     }
-    
+
     private void airMediaLicenseThread(final CresStreamCtrl streamCtrl)
-    {	
+    {
         new Thread(new Runnable() {
             @Override
             public void run() {
@@ -2105,7 +2105,7 @@ public class CresStreamCtrl extends Service {
                 }
 
                 //Note: 11-17-2022: no airmedia for DGE3200
-                if (!airMediaLicensed && 
+                if (!airMediaLicensed &&
                     CrestronProductName.fromInteger(nativeGetProductTypeEnum()) != CrestronProductName.DGE3200)
                 {
                     File licenseFile = new File(getFilesDir(), AirMediaSplashtop.licenseFilePath);
@@ -2118,7 +2118,7 @@ public class CresStreamCtrl extends Service {
                     airMediaLicensed = AirMediaSplashtop.checkAirMediaLicense();
                 }
                 Log.i(TAG, MiscUtils.stringFormat("AirMedia is %s licensed", ((airMediaLicensed) ? "" : "not")));
-                
+
                 while (!csioConnected || !csioConnectionInitializationComplete) {
                     Log.v(
                             TAG,
@@ -2128,7 +2128,7 @@ public class CresStreamCtrl extends Service {
                 }
 
                 Log.v(TAG, "AirMedia startup: CSIO connected and initialized");
-                
+
                 // Do not start any of the below if in golden image
                 boolean golden=false;
             	File f = new File(getFilesDir(), goldenBootFilePath);
@@ -2140,19 +2140,19 @@ public class CresStreamCtrl extends Service {
                 File dsamFile = new File(getFilesDir(), dontStartAirMediaFilePath);
                 if (dsamFile.exists()) dontStart = MiscUtils.readStringFromDisk(dsamFile).equals("1");
                 Log.i(TAG, "airmedia dontStart flag is "+dontStart);
-            	
+
                 //Note: 4-14-2021, need to start AirMediaCanvas even not licensed
                 //      11-17-2022: no airmedia for DGE3200
-                if (mAirMedia == null && !golden && !dontStart && 
+                if (mAirMedia == null && !golden && !dontStart &&
                     CrestronProductName.fromInteger(nativeGetProductTypeEnum()) != CrestronProductName.DGE3200)
                 {
                     Log.i(TAG, "Calling AirMediaConstructor from airMediaLicenseThread");
                     mAirMedia = new AirMediaSplashtop(streamCtrl);
-                    
-                    if(airMediaLicensed){ 
+
+                    if(airMediaLicensed){
                         msMiceEnable(userSettings.getAirMediaMiracastMsMiceMode());
                     }
-                    
+
                     // Ensure any existing ms-mice connections that exist are dropped
                     for (int sessionId = 0; sessionId < NumOfSurfaces; sessionId++)
                     {
@@ -2173,7 +2173,7 @@ public class CresStreamCtrl extends Service {
             }
         }).start();
     }
-    
+
     private void hdmiLicenseThread(final CresStreamCtrl streamCtrl)
     {
         new Thread(new Runnable() {
@@ -2235,7 +2235,7 @@ public class CresStreamCtrl extends Service {
             }
         }).start();
     }
-    
+
     public void _createCresDisplaySurface(int maxHRes, int maxVRes)
     {
         final CresStreamCtrl streamCtrl = this;
@@ -2258,7 +2258,7 @@ public class CresStreamCtrl extends Service {
         	}
         }
     }
-    
+
     public void createCresDisplaySurface(){
         final CresStreamCtrl streamCtrl = this;
 
@@ -2339,7 +2339,7 @@ public class CresStreamCtrl extends Service {
                 mediaServerReboot.createNewFile();
             } catch (Exception e) {}
         }
-        mediaServerObserver = new FileObserver(new File(getFilesDir(), "mediaServerState"), FileObserver.CLOSE_WRITE) {						
+        mediaServerObserver = new FileObserver(new File(getFilesDir(), "mediaServerState"), FileObserver.CLOSE_WRITE) {
             @Override
             public void onEvent(int event, String path) {
                 // Send broadcast for third party apps
@@ -2352,7 +2352,7 @@ public class CresStreamCtrl extends Service {
         };
         mediaServerObserver.startWatching();
     }
-    
+
     private void monitorCrashState (final CresStreamCtrl streamCtrl)
     {
         monitorCrashThread = new Thread(new Runnable() {
@@ -2428,7 +2428,7 @@ public class CresStreamCtrl extends Service {
 
         monitorCrashThread.start();
     }
-    
+
     private void recoverFromCrash()
     {
         new Thread(new Runnable() {
@@ -2446,57 +2446,57 @@ public class CresStreamCtrl extends Service {
         	mCanvas.handleCodecFailure();
             writeDucatiState(1);
             mMediaServerCrash = false;
-        } 
+        }
         else
         {
         	Log.i(TAG, "Restarting Streams - recoverFromCrash");
         	restartStreams(false);
         }
     }
-    
+
     private int readDucatiState() {
         int ducatiState = 1;
-        
+
         StringBuilder text = new StringBuilder();
         try {
             File file = new File("/sys/kernel/debug/remoteproc/remoteproc0/ducati_recovered");
 
-            BufferedReader br = new BufferedReader(new FileReader(file));  
-            String line;   
+            BufferedReader br = new BufferedReader(new FileReader(file));
+            String line;
             while ((line = br.readLine()) != null) {
                 text.append(line);
             }
             br.close();
             ducatiState = Integer.parseInt(text.toString().trim());
         }catch (IOException e) {}
-        
+
         return ducatiState;
     }
-    
+
     private void writeDucatiState(int state) {
         // we need csio to clear ducati state since sysfs needs root permissions to write
         sockTask.SendDataToAllClients(MiscUtils.stringFormat("CLEARDUCATISTATE=%d", state));
     }
-    
+
     private int readRestartStreamsState() {
         int restartStreamsState = 0;
-        
+
         StringBuilder text = new StringBuilder();
         try {
             File file = new File(getFilesDir(), restartStreamsFilePath);
 
-            BufferedReader br = new BufferedReader(new FileReader(file));  
-            String line;   
+            BufferedReader br = new BufferedReader(new FileReader(file));
+            String line;
             while ((line = br.readLine()) != null) {
                 text.append(line);
             }
             br.close();
             restartStreamsState = Integer.parseInt(text.toString().trim());
         }catch (Exception e) {}
-        
+
         return restartStreamsState;
     }
-    
+
     private void writeRestartStreamsState(int state) {
         Writer writer = null;
         try
@@ -2513,7 +2513,7 @@ public class CresStreamCtrl extends Service {
             try {writer.close();} catch (Exception ex) {/*ignore*/}
         }
     }
-    
+
     private void monitorSystemState() {
         new Thread(new Runnable() {
             @Override
@@ -2537,12 +2537,12 @@ public class CresStreamCtrl extends Service {
                             {
                                 if((mBeforeStartUpMsgCntr % 5) == 0)
                                     Log.i(TAG, "Found changes before module(s) started up.");
-                                    
+
                                 mBeforeStartUpMsgCntr++;
                                 handleChangesBeforeStartUp(changes);
                             }
                         }
-                        
+
                         // Query HDCP status
                         boolean hdcpStatusChanged = checkHDCPStatus();
                         if (hdcpStatusChanged) // Only send hdcp feedback if hdcp status has changed
@@ -2560,7 +2560,7 @@ public class CresStreamCtrl extends Service {
                             	curHdmiIsPlaying = mCanvasHdmiIsPlaying;
                             }
                             // If sample frequency changes on the fly, restart stream
-                            if (hdmiInSampleRate != mPreviousAudioInputSampleRate || 
+                            if (hdmiInSampleRate != mPreviousAudioInputSampleRate ||
                             	((isAM3K || m_isDGE3200 || isC865C) && ((mPreviousHdmi.getSync() != curSync) || (mPreviousHdmi.getIsPlaying() != curHdmiIsPlaying))))
                             {
                             	if (hdmiInSampleRate != mPreviousAudioInputSampleRate)
@@ -2587,17 +2587,17 @@ public class CresStreamCtrl extends Service {
                                         break;
                                     }
                                 }
-                                
+
                                 if (isAM3K || m_isDGE3200 || isC865C)
                                 {
                                 	if((!curSync) || (hdmiInSampleRate == 0) || !curHdmiIsPlaying)
                                 	{
-	                                	Log.i(TAG, "Do not restart audio. Samplerate = " + hdmiInSampleRate + ", HDMI in sync = " + 
+	                                	Log.i(TAG, "Do not restart audio. Samplerate = " + hdmiInSampleRate + ", HDMI in sync = " +
 	                                			curSync + " hdmiIsVisible = "+curHdmiIsPlaying);
 	                                	onlyRestartAudioNeeded = false;
                                 	}
                                 }
-                                
+
                                 if (onlyRestartAudioNeeded)
                                 {
                                     if (cam_preview != null)
@@ -2627,17 +2627,17 @@ public class CresStreamCtrl extends Service {
                                 	}
                                 }
                             }
-                            
+
                             // Temporary BUG FIX for Blue screen issue in AM3XX-6089
                             if (isAM3K || m_isDGE3200) {
                                 int resEnum = HDMIInputInterface.readResolutionEnum(false);
-                            	if (resEnum != priorResolutionEnum) { // res change 
+                            	if (resEnum != priorResolutionEnum) { // res change
                             		Log.i(TAG, "Resolution enum changed from "+priorResolutionEnum+" to "+resEnum+" calling setCamera()");
                             		priorResolutionEnum = resEnum;
                             		setCamera(resEnum);
                             	}
                             }
-                            
+
                             if ((isAM3K || m_isDGE3200 || isC865C) && !HDMIInputInterface.useAm3kStateMachine)
                             {
                                 int resEnum = HDMIInputInterface.readResolutionEnum(false);
@@ -2691,7 +2691,7 @@ public class CresStreamCtrl extends Service {
                     {
                         hdmiLock.unlock();
                     }
-                    
+
                     // Now check and handle HDMI output res change
                     if (isAM3K || m_isDGE3200 || isC865C)
                     	handlePossibleHdmiOutputResolutionChange();
@@ -2699,12 +2699,12 @@ public class CresStreamCtrl extends Service {
             }
         }).start();
     }
-    
+
 	private void handlePossibleHdmiOutputResolutionChange()
 	{
         WindowManager wm = null;
         String w="0", h="0", fps="0";
-        
+
         if (Boolean.parseBoolean(hdmiOutput.getSyncStatus()) == true)
         {
             wm = (WindowManager) this.getSystemService(Context.WINDOW_SERVICE);
@@ -2731,7 +2731,7 @@ public class CresStreamCtrl extends Service {
             sendHdmiOutSyncState();
     	}
 	}
-	
+
     private void monitorRavaMode()
     {
         final String ravaModeFilePath = "/dev/shm/crestron/CresStreamSvc/ravacallMode";
@@ -2745,7 +2745,7 @@ public class CresStreamCtrl extends Service {
                 ravaModeFile.createNewFile();
             } catch (Exception e) {}
         }
-        
+
         // Set initial state, before file observing
         int initialRavaMode = readRavaMode(ravaModeFilePath);
 
@@ -2760,8 +2760,8 @@ public class CresStreamCtrl extends Service {
             Log.i(TAG, "Setting audio drop to false");
             setAudioDropFlag(false);
         }
-        
-        ravaModeObserver = new FileObserver(ravaModeFilePath, FileObserver.CLOSE_WRITE) {						
+
+        ravaModeObserver = new FileObserver(ravaModeFilePath, FileObserver.CLOSE_WRITE) {
             @Override
             public void onEvent(int event, String path) {
                 synchronized (ravaModeLock)
@@ -2809,18 +2809,18 @@ public class CresStreamCtrl extends Service {
         };
         ravaModeObserver.startWatching();
     }
-    
+
     private int readRavaMode(String ravaModeFilePath)
     {
         int ravaMode = 0;
-        
+
         // Read rava mode
         StringBuilder text = new StringBuilder();
         try {
             File file = new File(ravaModeFilePath);
 
-            BufferedReader br = new BufferedReader(new FileReader(file));  
-            String line;   
+            BufferedReader br = new BufferedReader(new FileReader(file));
+            String line;
             while ((line = br.readLine()) != null) {
                 text.append(line);
             }
@@ -2833,7 +2833,7 @@ public class CresStreamCtrl extends Service {
         Log.i(TAG, "Received rava mode " + ravaMode);
         return ravaMode;
     }
-    
+
     private void setAudioDropFlag(boolean enabled)
     {
         userSettings.setRavaMode(enabled);
@@ -2867,7 +2867,7 @@ public class CresStreamCtrl extends Service {
             }
         }
     }
-    
+
     private void monitorAudioReady()
     {
         final String audioReadyFilePath = "/sys/devices/platform/crestron-mcuctrl/avReady";
@@ -2895,8 +2895,8 @@ public class CresStreamCtrl extends Service {
             audioReadyLatch.countDown();
             return;
         }
-        
-        audioReadyFileObserver = new FileObserver(audioReadyFilePath, FileObserver.CLOSE_WRITE) {						
+
+        audioReadyFileObserver = new FileObserver(audioReadyFilePath, FileObserver.CLOSE_WRITE) {
             @Override
             public void onEvent(int event, String path) {
                 synchronized (audioReadyLock)
@@ -2921,14 +2921,14 @@ public class CresStreamCtrl extends Service {
         };
         audioReadyFileObserver.startWatching();
     }
-    
-    public void restartStreams(final boolean skipStreamIn) 
+
+    public void restartStreams(final boolean skipStreamIn)
     {
         Log.i(TAG,"****** restartStreams " + String.valueOf(skipStreamIn) + " *****");
         restartStreams(skipStreamIn, false);
     }
-    
-    public void restartStreams(final boolean skipStreamIn, final boolean skipPreview) 
+
+    public void restartStreams(final boolean skipStreamIn, final boolean skipPreview)
     {
         // If resolution change or crash occurs we don't want to restart until we know the system is up and stable
         if (enableRestartMechanism == false)
@@ -3039,7 +3039,7 @@ public class CresStreamCtrl extends Service {
         try { latch.await(); }
         catch (InterruptedException ex) { ex.printStackTrace(); }
     }
-    
+
     public void clearErrorFlags()
     {
         // Clear mediaServer flag immediately because crash notification occurs immediately
@@ -3058,7 +3058,7 @@ public class CresStreamCtrl extends Service {
         // Clear restartStreams flag
         writeRestartStreamsState(0);
     }
-    
+
     public void setDeviceMode(int mode, int sessionId)
     {
         stopStartLock[sessionId].lock("setDeviceMode");
@@ -3119,15 +3119,15 @@ public class CresStreamCtrl extends Service {
         finally
         {
             stopStartLock[sessionId].unlock("setDeviceMode");
-        }    
+        }
     }
-    
+
     public void setNewSink(boolean flag, int sessionId)
     {
         userSettings.setNewSink(flag, sessionId);
         streamPlay.setNewSink(flag, sessionId);
     }
-    
+
     public void setFieldDebugJni(String cmd, int sessId)
     {
         if (cmd.contains("LAUNCH_START"))
@@ -3146,7 +3146,7 @@ public class CresStreamCtrl extends Service {
             hideStreamInWindow(sessId);
         }
     }
-    
+
     public void resetAllWindows()
     {
         for (int sessionId = 0; sessionId < NumOfSurfaces; sessionId++)
@@ -3168,7 +3168,7 @@ public class CresStreamCtrl extends Service {
             wbsStream.setLogLevel(logLevel);
         }
     }
-    
+
     public void setLogLevel(int logLevel)
     {
         if (streamPlay != null)
@@ -3180,18 +3180,18 @@ public class CresStreamCtrl extends Service {
             defaultLoggingLevel = logLevel; //since streamplay was not up mark inteded log level and set when streamPlay is created
         }
     }
-    
+
     public void setHdmiOutForceHdcp(boolean enabled) {
         userSettings.setHdmiOutForceHdcp(enabled);
         mForceHdcpStatusUpdate = true;
     }
-    
+
     public void setHdmiOutUnderscan(int percent) {
         userSettings.setHdmiOutUnderscan(percent);
         isRGB888HDMIVideoSupported = getRGB888VideoSupportState();
         Log.i(TAG, "setHdmiOutUnderscan(): RGB888VideoSupported = "+isRGB888HDMIVideoSupported);
     }
-    
+
     public void setVideoDimensions(int streamId, int w, int h)
     {
         mVideoDimensions[streamId].videoWidth = w;
@@ -3200,7 +3200,7 @@ public class CresStreamCtrl extends Service {
         //Note: we have resolution from gstreamer, for NetworkStream, call setVideoResolution().
         setNetworkSreamingResolution(streamId,w,h);
     }
-    
+
     public void setStretchVideo(int stretch, int sessionId)
     {
         if (userSettings.getStretchVideo(sessionId) != stretch)
@@ -3212,7 +3212,7 @@ public class CresStreamCtrl extends Service {
                     mVideoDimensions[sessionId].videoWidth, mVideoDimensions[sessionId].videoHeight);
         }
     }
-    
+
     public void setWindowDimensions(int x, int y, int width, int height, int sessionId, boolean use_texture)
     {
         userSettings.setXloc(x, sessionId);
@@ -3230,7 +3230,7 @@ public class CresStreamCtrl extends Service {
                 userSettings.getXloc(sessId) + userSettings.getW(sessId),
                 userSettings.getYloc(sessId) + userSettings.getH(sessId));
     }
-    
+
     public void setWindowDimensions(int x, int y, int width, int height, int sessionId)
     {
         if (userSettings.getMode(sessionId) == DeviceMode.WBS_STREAM_IN.ordinal())
@@ -3242,7 +3242,7 @@ public class CresStreamCtrl extends Service {
     }
 
     public void setXCoordinates(int x, int sessionId)
-    {    	
+    {
         if (userSettings.getXloc(sessionId) != x){
             userSettings.setXloc(x, sessionId);
             updateXY(sessionId);
@@ -3282,7 +3282,7 @@ public class CresStreamCtrl extends Service {
         }
         return size;
     }
-    
+
     private Integer[][] createZOrderArray()
     {
         // Index 0 is the sessionId value, Index 1 is the relative Z order saved in userSettings
@@ -3296,7 +3296,7 @@ public class CresStreamCtrl extends Service {
 
         return zOrder;
     }
-    
+
     // passing in Integer[][] acts like pass by reference, this is desired in this case
     private void sortZOrderArray(Integer[][] zOrder)
     {
@@ -3310,18 +3310,18 @@ public class CresStreamCtrl extends Service {
                     int[] temp = new int[2];
                     temp[0] = zOrder[0][outerIndex];
                     temp[1] = zOrder[1][outerIndex];
-                    
+
                     //Swap innerIndex to outerIndex position
                     zOrder[0][outerIndex] = zOrder[0][innerIndex];
                     zOrder[1][outerIndex] = zOrder[1][innerIndex];
-          
+
                     zOrder[0][innerIndex] = temp[0];
                     zOrder[1][innerIndex] = temp[1];
                 }
             }
-        }   
+        }
     }
-    
+
     private boolean didZOrderChange(Integer[][] zOrderOld, Integer[][] zOrderNew)
     {
         boolean updated = false;
@@ -3337,7 +3337,7 @@ public class CresStreamCtrl extends Service {
 
         return updated;
     }
-    
+
     private boolean doWindowsOverlap()
     {
         // TODO: this needs to be updated when we have more than 2 windows
@@ -3353,7 +3353,7 @@ public class CresStreamCtrl extends Service {
 
         return MiscUtils.rectanglesOverlap(surface1xLeft, surface1xRight, surface1yTop, surface1yBottom, surface2xLeft, surface2xRight, surface2yTop, surface2yBottom);
     }
-    
+
     public void setWindowSizeZ(int z, int sessionId)
     {
         if (userSettings.getZ(sessionId) != z)
@@ -3430,7 +3430,7 @@ public class CresStreamCtrl extends Service {
     {
         return userSettings.getH(sessId);
     }
-        
+
     private void updateWH(final int sessionId)
     {
         if (dispSurface != null)
@@ -3438,7 +3438,7 @@ public class CresStreamCtrl extends Service {
             dispSurface.updateWH(sessionId);
         }
     }
-    
+
     public void updateWindowWithVideoSize(int sessionId, boolean use_texture_view, int videoWidth, int videoHeight)
     {
     	setVideoDimensions(sessionId, videoWidth, videoHeight);
@@ -3452,12 +3452,12 @@ public class CresStreamCtrl extends Service {
             dispSurface.updateWindowWithVideoSize(sessionId, use_texture_view, videoWidth, videoHeight);
         }
     }
-    
+
     public void updateWindow(final int sessionId)
     {
         updateWindow(sessionId, false);
     }
-    
+
     public void updateWindow(final int sessionId, boolean use_texture)
     {
         if (dispSurface != null)
@@ -3465,7 +3465,7 @@ public class CresStreamCtrl extends Service {
             dispSurface.updateWindow(sessionId, use_texture);
         }
     }
-    
+
     public void invalidateSurface()
     {
         if (dispSurface != null)
@@ -3481,7 +3481,7 @@ public class CresStreamCtrl extends Service {
             dispSurface.updateXY(sessionId);
         }
     }
-    
+
     public void SetWindowManagerResolution(final int w, final int h, final boolean haveExternalDisplay)
     {
         if (dispSurface != null)
@@ -3490,7 +3490,7 @@ public class CresStreamCtrl extends Service {
             dispSurface.setWindowManagerResolution(w, h, haveExternalDisplay);
         }
     }
-    
+
     public int getMaxMiracastFps()
     {
         // force 30Hz formats on AM3K for miracast when resolution is 4K (> 1920x1080) since display output refresh rate is not 60Hz
@@ -3515,7 +3515,7 @@ public class CresStreamCtrl extends Service {
             hdmiInput.updateResolutionInfo();
         }
     }
-    
+
     public float getHDMIOutputRefreshRate(Display display)
     {
         // On AM3K display getRefreshRate does not work - use sysfs or nvram :resolution-main
@@ -3606,7 +3606,7 @@ public class CresStreamCtrl extends Service {
         }
 
         hdmiOutput.setAspectRatio();
-        
+
            // Check if start was filtered out and then start if true
         if (streamingReadyLatch.getCount() == 0 && enableRestartMechanism && haveOutputSyncAndResolution())
         {
@@ -3620,7 +3620,7 @@ public class CresStreamCtrl extends Service {
             }
         }
     }
-    
+
     public String getHDMIInSyncStatus()
     {
         if (hdmiInputDriverPresent)
@@ -3636,7 +3636,7 @@ public class CresStreamCtrl extends Service {
         else
             return "false";
     }
-    
+
     public String getHDMIInHorizontalRes()
     {
         if (hdmiInputDriverPresent)
@@ -3644,7 +3644,7 @@ public class CresStreamCtrl extends Service {
         else
             return "0";
     }
-    
+
     public String getHDMIInVerticalRes()
     {
         if (hdmiInputDriverPresent)
@@ -3692,7 +3692,7 @@ public class CresStreamCtrl extends Service {
         else
             return "0";
     }
-    
+
     public String getHDMIOutSyncStatus()
     {
         return hdmiOutput.getSyncStatus();
@@ -3702,12 +3702,12 @@ public class CresStreamCtrl extends Service {
     {
         return hdmiOutput.getInterlacing();
     }
-    
+
     public String getHDMIOutHorizontalRes()
     {
         return hdmiOutput.getHorizontalRes();
     }
-    
+
     public String getHDMIOutVerticalRes()
     {
         return hdmiOutput.getVerticalRes();
@@ -3717,7 +3717,7 @@ public class CresStreamCtrl extends Service {
     {
         return hdmiOutput.getFPS();
     }
-    
+
     public String getHDMIOutAspectRatio()
     {
         return hdmiOutput.getAspectRatio();
@@ -3732,10 +3732,10 @@ public class CresStreamCtrl extends Service {
     {
         return hdmiOutput.getAudioChannels();
     }
-    
+
     // volume 0 - 100%
     public void setSystemVolume(int volume)
-    {    	
+    {
         // Stream Out preview audio will be placed on the unused ALARM stream
         amanager.setStreamVolume(AudioManager.STREAM_ALARM, volume * amanager.getStreamMaxVolume(AudioManager.STREAM_ALARM) / 100, 0);
     }
@@ -3744,24 +3744,24 @@ public class CresStreamCtrl extends Service {
     {
         amanager.setStreamVolume(AudioManager.STREAM_MUSIC, volume * amanager.getStreamMaxVolume(AudioManager.STREAM_ALARM) / 100, 0);
     }
-    
+
     public void setStreamMusicMute(boolean enabled)
-    {    
+    {
         amanager.setStreamMute(AudioManager.STREAM_MUSIC, enabled);
     }
-    
+
     public void setPreviewVolume(int volume)
     {
         if (cam_preview != null)
             cam_preview.setVolume(volume);
     }
-    
+
     public void setStreamInVolume(int volume, int sessionId)
     {
         streamPlay.setVolume(volume, sessionId);
     }
-    
-    public void setStreamVolume(double volume) 
+
+    public void setStreamVolume(double volume)
     {
         //Volume of -1 means setting mute
         //If user sets volume while in muted mode, save new volume in previousVolume
@@ -3801,14 +3801,14 @@ public class CresStreamCtrl extends Service {
     }
 
     public void setStreamMute()
-    {    	
+    {
         userSettings.setAudioMute(true);
         userSettings.setAudioUnmute(false);
-        
+
         setStreamVolume((double)-1.0);
         sockTask.SendDataToAllClients("AUDIO_UNMUTE=false");
     }
-    
+
     public void setStreamUnMute()
     {
         userSettings.setAudioMute(false);
@@ -3816,7 +3816,7 @@ public class CresStreamCtrl extends Service {
         setStreamVolume(userSettings.getUserRequestedVolume());
         sockTask.SendDataToAllClients("AUDIO_MUTE=false");
     }
-    
+
     public void setProcessHdmiInAudio(boolean flag)
     {
         userSettings.setProcessHdmiInAudio(flag);
@@ -3844,7 +3844,7 @@ public class CresStreamCtrl extends Service {
     {
         setAutomaticInitiationMode(value);
     }
-    
+
     public void SetPasswdEnable(int sessId)
     {
         StringBuilder sb = new StringBuilder(512);
@@ -3870,9 +3870,9 @@ public class CresStreamCtrl extends Service {
     public void SetPasswd(String passwd, int sessId){
         userSettings.setPassword(passwd, sessId);
     }
-    
+
     public void SendStreamInVideoFeedbacks(int source, int width, int height, int framerate, int profile)
-    {	    
+    {
         sockTask.SendDataToAllClients(MiscUtils.stringFormat("STREAMIN_HORIZONTAL_RES_FB%d=%s", source, width));
         sockTask.SendDataToAllClients(MiscUtils.stringFormat("STREAMIN_VERTICAL_RES_FB%d=%s", source, height));
         sockTask.SendDataToAllClients(MiscUtils.stringFormat("STREAMIN_FPS_FB%d=%s", source, framerate));
@@ -3899,7 +3899,7 @@ public class CresStreamCtrl extends Service {
         //Note: we have Feedbacks from gstreamer, for NetworkStream, call setNetworkSreamingFeedbacks().
         setNetworkSreamingFeedbacks(streamId);
     }
-    
+
     public void SendStreamOutFeedbacks()
     {
         sockTask.SendDataToAllClients("STREAMOUT_HORIZONTAL_RES_FB=" + String.valueOf(cam_streaming.getStreamOutWidth()));
@@ -3914,7 +3914,7 @@ public class CresStreamCtrl extends Service {
         sockTask.SendDataToAllClients("STATISTICS_NUMBEROFAUDIOPACKETS=" + MiscUtils.asUnsignedDecimalString(cam_streaming.getStreamOutNumAudioPackets()));
         sockTask.SendDataToAllClients("STATISTICS_NUMBEROFAUDIOPACKETSDROPPED=" + String.valueOf(cam_streaming.getStreamOutNumAudioPacketsDropped()));
     }
-    
+
     public StreamState getCurrentStreamState(int sessionId)
     {
         StreamState returnStreamState;
@@ -3930,7 +3930,7 @@ public class CresStreamCtrl extends Service {
         }
         return returnStreamState;
     }
-    
+
     public void setCurrentStreamState(StreamState state, int sessionId)
     {
         streamStateLock[sessionId].lock("setCurrentStreamState");
@@ -3944,7 +3944,7 @@ public class CresStreamCtrl extends Service {
             streamStateLock[sessionId].unlock("setCurrentStreamState");
         }
     }
-    
+
     public void SendStreamState(StreamState state, int sessionId)
     {
         streamStateLock[sessionId].lock("sendCurrentStreamState");
@@ -3959,7 +3959,7 @@ public class CresStreamCtrl extends Service {
             sb.append(streamStateText + "=").append(state.getValue());
             sockTask.SendDataToAllClients(sb.toString());
         }
-        finally 
+        finally
         {
             streamStateLock[sessionId].unlock("sendCurrentStreamState");
         }
@@ -3971,7 +3971,7 @@ public class CresStreamCtrl extends Service {
         userSettings.setRgb888Enabled(enable);
         isRGB888HDMIVideoSupported = enable;
     }
-    
+
     public void setForceRgbPreviewMode(boolean enable)
     {
         int sessionId = 0;	// This is debug, assume always id 0
@@ -4000,7 +4000,7 @@ public class CresStreamCtrl extends Service {
     {
         streamPlay.setResolutionIndex(resolutionIndex, sessionId);
     }
-    
+
     //Ctrls
     public void Start(int sessionId)
     {
@@ -4141,7 +4141,7 @@ public class CresStreamCtrl extends Service {
     }
 
     public void Pause(int sessionId)
-    {    	
+    {
         stopStartLock[sessionId].lock("Pause");
         try
         {
@@ -4166,8 +4166,8 @@ public class CresStreamCtrl extends Service {
     public void setMulticastIpAddress(String ip, int sessId){
         if(ip!=null)
             userSettings.setMulticastAddress(ip, sessId);
-    } 
-    
+    }
+
     public void sendInitiatorFbAddress(String ip, int sessId){
         sockTask.SendDataToAllClients("INITIATOR_ADDRESS_FB=" + ip);
     }
@@ -4175,23 +4175,23 @@ public class CresStreamCtrl extends Service {
     public void sendMulticastIpAddress(String ip, int sessId){
         sockTask.SendDataToAllClients(MiscUtils.stringFormat("MULTICAST_ADDRESS%d=%s", sessId, ip));
     }
-    
+
     public void setEncodingResolution(int res, int sessId){
         userSettings.setEncodingResolution(res, sessId);
-    } 
-    
+    }
+
     public void setTMode(int tmode, int sessId){
         userSettings.setTransportMode(tmode, sessId);
-    } 
-    
+    }
+
 //    public void setStreamProfile(UserSettings.VideoEncProfile profile, int sessId){
 //    	userSettings.setStreamProfile(profile, sessId);
-//    } 
-    
+//    }
+
     public void setVFrmRate(int vfr, int sessId){
         userSettings.setEncodingFramerate(vfr, sessId);
-    } 
-    
+    }
+
     public void setRTSPPort(int _port, int sessId){
         userSettings.setRtspPort(_port, sessId);
     }
@@ -4211,11 +4211,11 @@ public class CresStreamCtrl extends Service {
         url.append("");
         String proto = "";
         String file = "";
-        int port = 0;  
+        int port = 0;
         String l_ipaddr= "";
         int currentSessionInitiation = userSettings.getSessionInitiation(sessId);
         int currentTransportMode = userSettings.getTransportMode(sessId);
-        
+
         //Rtsp Modes
         if ((currentSessionInitiation == 0) || (currentSessionInitiation == 2))
         {
@@ -4316,14 +4316,14 @@ public class CresStreamCtrl extends Service {
             SendStreamState(StreamState.STOPPED, sessId);
         }
     }
-    
+
     public void pauseStreamOut(int sessId)
     {
         cam_streaming.setSessionIndex(sessId);
         cam_streaming.pausePlayback();
     }
-    
-    
+
+
     public void setCanvasWindows()
     {
         if (CrestronProductName.fromInteger(nativeGetProductTypeEnum()) != CrestronProductName.Mercury)
@@ -4338,17 +4338,17 @@ public class CresStreamCtrl extends Service {
                 setWindowDimensions(0, 0, resolution.x, resolution.y, 1);
         }
     }
-    
+
     public void showCanvasWindow(int streamId)
     {
         showWindow(streamId);
     }
-    
+
     public void hideCanvasWindow(int streamId)
     {
         hideWindow(streamId);
     }
-    
+
     private void hideWindow (final int sessId)
     {
         // Reset video dimensions on hide
@@ -4380,7 +4380,7 @@ public class CresStreamCtrl extends Service {
                 dispSurface.HideWindow(sessId);
         }
     }
-    
+
     private void showWindow (final int sessId)
     {
         if (dispSurface != null)
@@ -4409,7 +4409,7 @@ public class CresStreamCtrl extends Service {
                 dispSurface.ShowWindow(sessId);
         }
     }
-    
+
     private void hideTextureWindow (final int sessId)
     {
         // Reset video dimensions on hide
@@ -4441,7 +4441,7 @@ public class CresStreamCtrl extends Service {
                 dispSurface.HideTextureWindow(sessId);
         }
     }
-    
+
     private void showTextureWindow (final int sessId)
     {
         if (dispSurface != null)
@@ -4470,7 +4470,7 @@ public class CresStreamCtrl extends Service {
                 dispSurface.ShowTextureWindow(sessId);
         }
     }
-    
+
     public void showSplashtopWindow(int sessId, boolean use_texture)
     {
         if ((serviceMode == ServiceMode.Slave) || (mCanvas != null))
@@ -4483,7 +4483,7 @@ public class CresStreamCtrl extends Service {
             showWindow(sessId);
         }
     }
-    
+
     public void hideSplashtopWindow(int sessId, boolean use_texture)
     {
         if ((serviceMode == ServiceMode.Slave) || (mCanvas != null))
@@ -4496,7 +4496,7 @@ public class CresStreamCtrl extends Service {
             hideWindow(sessId);
         }
     }
-    
+
     public void hidePreviewWindow(int sessId)
     {
         if ((serviceMode == ServiceMode.Slave) || (mCanvas != null))
@@ -4504,7 +4504,7 @@ public class CresStreamCtrl extends Service {
         Log.i(TAG, "Preview Window hidden " + sessId);
         hideWindow(sessId);
     }
-    
+
     public void showPreviewWindow(int sessId)
     {
         if ((serviceMode == ServiceMode.Slave) || (mCanvas != null))
@@ -4542,7 +4542,7 @@ public class CresStreamCtrl extends Service {
             showWindow(sessId);
         }
     }
-    
+
     public void hideWbsWindow(int sessId)
     {
         if ((serviceMode == ServiceMode.Slave) || (mCanvas != null))
@@ -4555,17 +4555,17 @@ public class CresStreamCtrl extends Service {
             hideWindow(sessId);
         }
     }
-    
+
     public void EnableTcpInterleave(int tcpInterleave,int sessionId){
         userSettings.setTcpInterleave(tcpInterleave,sessionId);
         streamPlay.setRtspTcpInterleave(tcpInterleave, sessionId);
     }
 
     public int getTcpInterleave(int sessionId)
-    {    	
+    {
         return userSettings.getTcpInterleave(sessionId);
     }
-    
+
     public void setStreamInUrl(String ap_url, int sessionId)
     {
         userSettings.setStreamInUrl(ap_url, sessionId);
@@ -4580,7 +4580,7 @@ public class CresStreamCtrl extends Service {
             Log.i(TAG, "No conditional Tags for StreamIn");
         sockTask.SendDataToAllClients(MiscUtils.stringFormat("STREAMURL%d=%s", sessionId, ap_url));
     }
-    
+
     public void setStreamOutUrl(String ap_url, int sessionId)
     {
         userSettings.setStreamOutUrl(ap_url, sessionId);
@@ -4590,7 +4590,7 @@ public class CresStreamCtrl extends Service {
         if (userSettings.getMode(sessionId) == DeviceMode.STREAM_OUT.ordinal())
             sockTask.SendDataToAllClients(MiscUtils.stringFormat("STREAMURL%d=%s", sessionId, createStreamOutURL(sessionId)));
     }
-    
+
     public void setWbsStreamUrl(String url, int sessionId)
     {
         Log.i(TAG, "setWbsStreamUrl invoked with url=" + url);
@@ -4603,7 +4603,7 @@ public class CresStreamCtrl extends Service {
         sockTask.SendDataToAllClients(MiscUtils.stringFormat("STREAMURL%d=%s", sessionId, url));
         sockTask.SendDataToAllClients(MiscUtils.stringFormat("WBS_STREAMING_STREAM_URL=%s", url));
     }
-    
+
     public void updateStreamOutUrl_OnIPChange()
     {
         for(int sessionId = 0; sessionId < NumOfSurfaces; sessionId++)
@@ -4614,7 +4614,7 @@ public class CresStreamCtrl extends Service {
     }
 
     public void setHdcpEncrypt(boolean flag, int sessId)
-    {    	
+    {
         if(cam_streaming != null)
             cam_streaming.setHdcpEncrypt(flag);
 
@@ -4634,7 +4634,7 @@ public class CresStreamCtrl extends Service {
         }
     }
 
-    
+
     public void setTxHdcpActive(boolean flag, int sessId)
     {
         if (flag != mTxHdcpActive)
@@ -4643,13 +4643,13 @@ public class CresStreamCtrl extends Service {
             mForceHdcpStatusUpdate = true;
         }
     }
-    
-    
+
+
     public boolean getHdcpEncrypt(int sessId)
     {
         return mHDCPEncryptStatus;
     }
-    
+
     public String getStreamUrl(int sessId)
     {
         //return out_url;
@@ -4740,7 +4740,7 @@ public class CresStreamCtrl extends Service {
         canvas.drawRGB(Color.red(color), Color.green(color), Color.blue(color));
         s.unlockCanvasAndPost(canvas);
     }
-    
+
     // For testing only - debugging
     public void wfdStreamCommand(String msg, int sessId)
     {
@@ -4775,7 +4775,7 @@ public class CresStreamCtrl extends Service {
             }
         }
     }
-    
+
     public String getIfcName(String address)
     {
     	if (address.equalsIgnoreCase("0.0.0.0"))
@@ -4791,7 +4791,7 @@ public class CresStreamCtrl extends Service {
             return "eth0";
     	}
     }
-    
+
     public void startWfdStream(int streamId, long sessionId, String url, int rtsp_port, String localAddress)
     {
         Log.i(TAG, "startWfdStream: streamId="+streamId+"   sessionId="+sessionId+"   url="+url+"   rtspPort="+rtsp_port+"   localAddress="+localAddress);
@@ -4804,7 +4804,7 @@ public class CresStreamCtrl extends Service {
         Log.i(TAG, "stopWfdStream: streamId="+streamId+" sessionId="+sessionId);
         streamPlay.wfdStop(streamId, sessionId);
     }
-    
+
     // Start chroma key
     public void startChromaKeyStream(int sessId)
     {
@@ -4831,7 +4831,7 @@ public class CresStreamCtrl extends Service {
     {
         Log.i(TAG, "pauseChromaKeyStream: sessId="+sessId);
     }
-    
+
     public AirMediaSize getPreviewResolution()
     {
         if (cam_preview != null)
@@ -4839,7 +4839,7 @@ public class CresStreamCtrl extends Service {
         else
             return new AirMediaSize(0,0);
     }
-    
+
     //Start gstreamer Preview
     public void startGstPreview(int sessId)
     {
@@ -4913,7 +4913,7 @@ public class CresStreamCtrl extends Service {
             setCurrentStreamState(StreamState.STOPPED, sessId);
         }
     }
-    
+
     //Stop native Preview
     public void stopNativePreview(int sessId, boolean hide)
     {
@@ -4972,8 +4972,8 @@ public class CresStreamCtrl extends Service {
             }
         }
    }
-   
-   
+
+
     //Control Feedback
     public String getStartStatus(){
     return playStatus;
@@ -4982,15 +4982,15 @@ public class CresStreamCtrl extends Service {
     public String getStopStatus(){
     return stopStatus;
     }
-    
+
     public String getPauseStatus(){
     return pauseStatus;
     }
-   
+
     public String getDeviceReadyStatus(){
         return "TRUE";
     }
-    
+
     public String getProcessingStatus(){
     return "1";//"TODO";
     }
@@ -5002,22 +5002,22 @@ public class CresStreamCtrl extends Service {
     public String getStreamStatus(){
     return "0";//"TODO";
     }
-    
+
     public void setStatistics(boolean enabled, int sessId){
         userSettings.setStatisticsEnable(enabled, sessId);
         userSettings.setStatisticsDisable(!enabled, sessId);
     }
-    
+
     public void setMulticastTTl(int value){
         userSettings.setMulticastTTL(value);
         MiscUtils.writeStringToDisk(new File(getFilesDir(), multicastTTLFilePath), String.valueOf(value));
     }
-    
+
     public void setKeyFrameInterval(int value){
         userSettings.setKeyFrameInterval(value);
         MiscUtils.writeStringToDisk(new File(getFilesDir(), keyFrameIntervalFilePath), String.valueOf(value));
     }
-    
+
     public void setSessionInitiation(int sessionInitiation, int sessionId)
     {
         if (sessionInitiation != userSettings.getSessionInitiation(sessionId))
@@ -5048,34 +5048,34 @@ public class CresStreamCtrl extends Service {
         }
         }
     }
-    
+
     public void resetStatistics(int sessId){
         if (userSettings.getMode(sessId) == DeviceMode.STREAM_IN.ordinal())
             streamPlay.resetStatistics(sessId);
         else if (userSettings.getMode(sessId) == DeviceMode.STREAM_OUT.ordinal())
             cam_streaming.resetStatistics(sessId);
     }
-    
+
 
 //    public String getStreamStatistics(){
-//        if (userSettings.getMode(idx) == DeviceMode.STREAM_IN.ordinal()) 
-//            return streamPlay.updateSvcWithPlayerStatistics(); 
-//        else if (userSettings.getMode(idx) == DeviceMode.STREAM_OUT.ordinal()) 
+//        if (userSettings.getMode(idx) == DeviceMode.STREAM_IN.ordinal())
+//            return streamPlay.updateSvcWithPlayerStatistics();
+//        else if (userSettings.getMode(idx) == DeviceMode.STREAM_OUT.ordinal())
 //            return cam_streaming.updateSvcWithStreamStatistics();
 //        else
 //            return "";
 //    }
-    
+
     public void RecoverDucati(){
         if (sockTask != null)
             sockTask.SendDataToAllClients("RECOVER_DUCATI=TRUE");
     }
-    
+
     public void dumpStackTraceThrow() throws Throwable
     {
     	throw new Throwable("Forced Exception for Stacktrace");
     }
-    
+
     public void dumpStackTrace(String location)
     {
     	try {
@@ -5084,30 +5084,30 @@ public class CresStreamCtrl extends Service {
     		Log.e(TAG, "location", e);
     	}
     }
-    
+
     public void RecoverTxrxService(){
 		dumpStackTrace("RecoverTxrxService");
         Log.e(TAG, "Fatal error, kill CresStreamSvc!");
         RestartTxrxService();
     }
-    
+
     public void RestartTxrxService(){
         saveUserSettings(); // Need to immediately save userSettings so that we remember our state after restarting
         sockTask.SendDataToAllClients("DEVICE_READY_FB=FALSE");
         sockTask.SendDataToAllClients("KillMePlease=true");	// Use kill me Please because sometimes kill -9 is needed
     }
-    
+
     public void RecoverMediaServer() {
         Log.e(TAG, "Fatal error, kill mediaserver!");
         sockTask.SendDataToAllClients("KillMediaServer=true");
     }
-    
+
     public void stopOnIpAddrChange(){
         Log.e(TAG, "Restarting on device IP Address Change...!");
         // Bug 135405: Do not explicitly call restart streams for stream in, let timeouts handle it
         restartStreams(true, true); 	// Dont restart preview on IP change
     }
-    
+
     public synchronized void SendToCresstore(String json, int option)
     {
         String command = "CRESSTORE_PUBLISH";
@@ -5120,7 +5120,7 @@ public class CresStreamCtrl extends Service {
         Log.e(TAG, "Fatal error, restart AirMedia!");
         sockTask.SendDataToAllClients("RestartAirMedia=splashtop");
     }
-    
+
     public void airmediaRestart(int sessId) {
         if (mAirMedia != null)
         {
@@ -5130,7 +5130,7 @@ public class CresStreamCtrl extends Service {
             }
         }
     }
-   
+
     public void initUpdateStreamStateOnFirstFrame(boolean value)
     {
         for (int sessionId = 0; sessionId < NumOfSurfaces; sessionId++)
@@ -5138,13 +5138,13 @@ public class CresStreamCtrl extends Service {
             setUpdateStreamStateOnFirstFrame(sessionId, value);
         }
     }
-    
+
     public void setUpdateStreamStateOnFirstFrame(int sessionId, boolean value)
     {
         updateStreamStateOnFirstFrame[sessionId] = value;
         Log.i(TAG,"setUpdateStreamStateOnFirstFrame: updateStreamStateOnFirstFrame["+sessionId+"] set to "+updateStreamStateOnFirstFrame[sessionId]);
     }
-    
+
     public void sendAirMediaStoppedState(int sessionId)
     {
         // If DMPS send displayed join else use streamstate
@@ -5164,7 +5164,7 @@ public class CresStreamCtrl extends Service {
             }
         }
     }
-    
+
     public void sendAirMediaStartedState(int sessionId)
     {
         // If DMPS send displayed join else use streamstate
@@ -5292,7 +5292,7 @@ public class CresStreamCtrl extends Service {
             stopStartLock[sessId].unlock("launchAirMedia");
         }
     }
-    
+
     public String setAirMediaLoginCode(int loginCode) {
         synchronized (mAirMediaCodeLock) {
             if ((loginCode < 0) || (loginCode > 9999))
@@ -5326,8 +5326,8 @@ public class CresStreamCtrl extends Service {
             }
         }
     }
-    
-    public String setAirMediaLoginMode(int loginMode) {    	
+
+    public String setAirMediaLoginMode(int loginMode) {
         synchronized (mAirMediaCodeLock) {
             userSettings.setAirMediaLoginMode(loginMode);
 
@@ -5378,7 +5378,7 @@ public class CresStreamCtrl extends Service {
             }
         }
     }
-    
+
     public void setAirMediaDisplayLoginCode(boolean display)
     {
         synchronized (mAirMediaLock) {
@@ -5396,7 +5396,7 @@ public class CresStreamCtrl extends Service {
             }
         }
     }
-    
+
     public void setAirMediaModerator(boolean enable)
     {
         synchronized (mAirMediaLock) {
@@ -5407,7 +5407,7 @@ public class CresStreamCtrl extends Service {
             }
         }
     }
-    
+
     public void setAirMediaResetConnections(boolean enable)
     {
         synchronized (mAirMediaLock) {
@@ -5417,7 +5417,7 @@ public class CresStreamCtrl extends Service {
             }
         }
     }
-    
+
     public void setAirMediaDisconnectUser(int userId, boolean enable, int sessId)
     {
         synchronized (mAirMediaLock) {
@@ -5428,12 +5428,12 @@ public class CresStreamCtrl extends Service {
             }
         }
     }
-    
+
     public void setAirMediaStartUser(int userId, boolean enable, int sessId)
     {
 
     }
-    
+
     public void setAirMediaUserPosition(int userId, int position, int sessId)
     {
         synchronized (mAirMediaLock) {
@@ -5446,7 +5446,7 @@ public class CresStreamCtrl extends Service {
             }
         }
     }
-    
+
     public void setAirMediaStopUser(int userId, boolean enable, int sessId)
     {
         Log.i(TAG, "setAirMediaStopuser userId="+userId+"  enable="+enable);
@@ -5456,13 +5456,13 @@ public class CresStreamCtrl extends Service {
             mAirMedia.stopUser(userId);
         }
     }
-    
+
     public void setAirMediaOsdImage(String filePath)
     {
         // Image gets sent on apply
         userSettings.setAirMediaOsdImage(filePath);
     }
-    
+
     public void setAirMediaDisplayConnectionOptionEnable(boolean enable)
     {
         synchronized (mAirMediaLock) {
@@ -5470,7 +5470,7 @@ public class CresStreamCtrl extends Service {
             sendAirMediaConnectionInfo();
         }
     }
-    
+
     public void setAirMediaDisplayConnectionOption(int optVal)
     {
         synchronized (mAirMediaLock) {
@@ -5478,7 +5478,7 @@ public class CresStreamCtrl extends Service {
             sendAirMediaConnectionInfo();
         }
     }
-    
+
     public void setAirMediaCustomPromptString(String promptString)
     {
         synchronized (mAirMediaLock) {
@@ -5487,7 +5487,7 @@ public class CresStreamCtrl extends Service {
             	sendAirMediaConnectionInfo();
         }
     }
-    
+
     public void setAirMediaDisplayWirelessConnectionOptionEnable(boolean enable)
     {
         synchronized (mAirMediaLock) {
@@ -5495,7 +5495,7 @@ public class CresStreamCtrl extends Service {
             sendAirMediaConnectionInfo();
         }
     }
-    
+
     public void setAirMediaDisplayWirelessConnectionOption(int optVal)
     {
         synchronized (mAirMediaLock) {
@@ -5512,9 +5512,9 @@ public class CresStreamCtrl extends Service {
             	sendAirMediaConnectionInfo();
         }
     }
-    
+
     public void setAirMediaWindowPosition(int x, int y, int width, int height)
-    {    	
+    {
         synchronized (mAirMediaLock) {
             userSettings.setAirMediaX(x);
             userSettings.setAirMediaY(y);
@@ -5523,9 +5523,9 @@ public class CresStreamCtrl extends Service {
             // Just cache the position do not actually send to AirMedia
         }
     }
-    
+
     public void setAirMediaWindowXOffset(int x)
-    {    	
+    {
         userSettings.setAirMediaX(x);
         int y = userSettings.getAirMediaY();
         int width = userSettings.getAirMediaWidth();
@@ -5535,9 +5535,9 @@ public class CresStreamCtrl extends Service {
             mAirMedia.setSurfaceSize(x, y, width, height, false);
         }
     }
-    
+
     public void setAirMediaWindowYOffset(int y)
-    {    	
+    {
         userSettings.setAirMediaY(y);
         int x = userSettings.getAirMediaX();
         int width = userSettings.getAirMediaWidth();
@@ -5547,9 +5547,9 @@ public class CresStreamCtrl extends Service {
             mAirMedia.setSurfaceSize(x, y, width, height, false);
         }
     }
-    
+
     public void setAirMediaWindowWidth(int width)
-    {    	
+    {
         userSettings.setAirMediaWidth(width);
         int x = userSettings.getAirMediaX();
         int y = userSettings.getAirMediaY();
@@ -5559,9 +5559,9 @@ public class CresStreamCtrl extends Service {
             mAirMedia.setSurfaceSize(x, y, width, height, false);
         }
     }
-    
+
     public void setAirMediaWindowHeight(int height)
-    {    	
+    {
         userSettings.setAirMediaHeight(height);
         int x = userSettings.getAirMediaX();
         int y = userSettings.getAirMediaY();
@@ -5571,7 +5571,7 @@ public class CresStreamCtrl extends Service {
             mAirMedia.setSurfaceSize(x, y, width, height, false);
         }
     }
-    
+
     public void airMediaApplyLayoutPassword(boolean apply)
     {
         if (apply)
@@ -5580,13 +5580,13 @@ public class CresStreamCtrl extends Service {
             // TODO: we need layout password from airmedia app
         }
     }
-    
+
     public void setAirMediaLayoutPassword(String layoutPassword)
     {
         // User needs to send apply join to take effect
         userSettings.setAirMediaLayoutPassword(layoutPassword);
     }
-    
+
     public void airMediaApplyOsdImage(boolean apply)
     {
         if (apply)
@@ -5597,7 +5597,7 @@ public class CresStreamCtrl extends Service {
             }
         }
     }
-    
+
     public void airMediaSetDisplayScreen(int displayId)
     {
         userSettings.setAirMediaDisplayScreen(displayId);
@@ -5606,7 +5606,7 @@ public class CresStreamCtrl extends Service {
             mAirMedia.setDisplayScreen(displayId);
         }
     }
-    
+
     public void airMediaSetWindowFlag(int windowFlag)
     {
         userSettings.setAirMediaWindowFlag(windowFlag);
@@ -5615,12 +5615,12 @@ public class CresStreamCtrl extends Service {
             mAirMedia.setWindowFlag(windowFlag);
         }
     }
-    
+
     public void airMediaSetMaxNumberOfWindows(int nWindows)
     {
         userSettings.setAirMediaMaxNumberOfWindows(nWindows);
     }
-    
+
     public void setAirMediaIsCertificateRequired(boolean enable)
     {
         userSettings.setAirMediaIsCertificateRequired(enable);
@@ -5629,7 +5629,7 @@ public class CresStreamCtrl extends Service {
             mAirMedia.setAirMediaIsCertificateRequired(enable);
         }
     }
-    
+
     public void setAirMediaOnlyAllowSecureConnections(boolean enable)
     {
         userSettings.setAirMediaOnlyAllowSecureConnections(enable);
@@ -5638,13 +5638,13 @@ public class CresStreamCtrl extends Service {
             mAirMedia.setAirMediaOnlyAllowSecureConnections(enable);
         }
     }
-    
+
     public void setAirMediaSecureLandingPageEnabled(boolean enable)
     {
         userSettings.setAirMediaSecureLandingPageEnabled(enable);
         sendAirMediaConnectionInfo();
     }
-    
+
     public void setAirMediaChromeExtension(boolean enable)
     {
         userSettings.setAirMediaChromeExtension(enable);
@@ -5653,7 +5653,7 @@ public class CresStreamCtrl extends Service {
             mAirMedia.setAirMediaChromeExtension(enable);
         }
     }
-    
+
     public void setAirMediaDiscoveryEnable(boolean enable)
     {
         userSettings.setAirMediaDiscoveryEnable(enable);
@@ -5662,7 +5662,7 @@ public class CresStreamCtrl extends Service {
             mAirMedia.setAirMediaDiscoveryEnable(enable);
         }
     }
-    
+
     public void setAirMediaConnectionOverlay(boolean enable)
     {
         if (mAirMedia != null)
@@ -5671,7 +5671,7 @@ public class CresStreamCtrl extends Service {
             isRGB888HDMIVideoSupported = getRGB888VideoSupportState();
         }
     }
-    
+
     public void setAirMediaDebug(String debugCommand)
     {
         if (mAirMedia != null)
@@ -5679,7 +5679,7 @@ public class CresStreamCtrl extends Service {
             mAirMedia.debugCommand(debugCommand);
         }
     }
-    
+
     public void setAirMediaProcessDebugMessage(String debugCommand)
     {
         if (mAirMedia != null)
@@ -5687,7 +5687,7 @@ public class CresStreamCtrl extends Service {
             mAirMedia.airmediaProcessDebugCommand(debugCommand);
         }
     }
-    
+
     public void setAirMediaClearCache()
     {
         // Note that this function does not clear cache (that is handled by CSIO)
@@ -5697,7 +5697,7 @@ public class CresStreamCtrl extends Service {
             mAirMedia.clearCache();
         }
     }
-    
+
     public void setAirMediaProjectionLock(boolean val)
     {
         userSettings.setAirMediaProjectionLock(val);
@@ -5716,7 +5716,7 @@ public class CresStreamCtrl extends Service {
             updateAirMediaIpInformation();
         }
     }
-    
+
     public void setAirMediaWifiSsid(String val)
     {
         userSettings.setAirMediaWifiSsid(val);
@@ -5725,7 +5725,7 @@ public class CresStreamCtrl extends Service {
             mAirMedia.setAirMediaWifiSsid(val);
         }
     }
-    
+
     public void setAirMediaWifiPskKey(String val)
     {
         userSettings.setAirMediaWifiPskKey(val);
@@ -5734,7 +5734,7 @@ public class CresStreamCtrl extends Service {
             mAirMedia.setAirMediaWifiKey(val);
         }
     }
-    
+
     public void setAirMediaWifiFrequencyBand(int val)
     {
         userSettings.setAirMediaWifiFrequencyBand(val);
@@ -5743,7 +5743,7 @@ public class CresStreamCtrl extends Service {
             mAirMedia.setAirMediaWifiFrequencyBand(val);
         }
     }
-    
+
     public void setAirMediaWifiAutoLaunchAirMediaLandingPageEnabled(boolean val)
     {
         userSettings.setAirMediaWifiAutoLaunchAirMediaLandingPageEnabled(val);
@@ -5752,7 +5752,7 @@ public class CresStreamCtrl extends Service {
             //mAirMedia.setProjectionLock(val);
         }
     }
-    
+
     public void airMediaEnable(boolean enable)
     {
         userSettings.setAirMediaEnable(enable);
@@ -5766,7 +5766,7 @@ public class CresStreamCtrl extends Service {
 
         sendAirMediaConnectionInfo();
     }
-    
+
     public void setAirMediaAdapters(String adapterListString)
     {
     	Set<String> adapters = new HashSet<String>(20);
@@ -5796,7 +5796,7 @@ public class CresStreamCtrl extends Service {
             sendAirMediaConnectionInfo();
         }
     }
-    
+
     // Will update airMedia IP information when called
     public void updateAirMediaIpInformation()
     {
@@ -5809,9 +5809,9 @@ public class CresStreamCtrl extends Service {
 
         sendAirMediaConnectionInfo();
     }
-    
+
     public String getAirMediaInterface()
-    {	
+    {
     	Set<String> adapters = userSettings.getAirMediaAdapters();
     	if (adapters.isEmpty())
     		return null;
@@ -5836,7 +5836,7 @@ public class CresStreamCtrl extends Service {
     	    sendAirMediaAuxConnectionAddress();
     	sendAirMediaWirelessConnectionAddress();
     }
-    
+
     public void sendAirMediaConnectionAddress()
     {
         String connectionInfo = getAirMediaConnectionAddress();
@@ -5849,7 +5849,7 @@ public class CresStreamCtrl extends Service {
         	mPreviousConnectionInfo = connectionInfo;
         }
     }
-    
+
     public void sendAirMediaAuxConnectionAddress()
     {
         String connectionInfo = getAirMediaAuxConnectionAddress();
@@ -5862,7 +5862,7 @@ public class CresStreamCtrl extends Service {
             mPreviousAuxConnectionInfo = connectionInfo;
         }
     }
-    
+
     public void sendAirMediaWirelessConnectionAddress()
     {
         String connectionInfo = getAirMediaWirelessConnectionAddress();
@@ -5875,7 +5875,7 @@ public class CresStreamCtrl extends Service {
         	mPreviousWirelessConnectionInfo = connectionInfo;
         }
     }
-    
+
     private boolean oneOfAdaptersSelected(String adapterListString)
     {
 		if (!adapterListString.contains("Disabled"))
@@ -5885,7 +5885,7 @@ public class CresStreamCtrl extends Service {
 			{
 				String adapter = st.nextToken();
 				if (userSettings.getAirMediaAdapters().contains(adapter))
-				{ 
+				{
 					if (!adapter.startsWith("wlan"))
 						return true;
 					else if (userSettings.getAirMediaWifiEnabled())  // for wireless adapters wifi access point should be enabled
@@ -5895,7 +5895,7 @@ public class CresStreamCtrl extends Service {
 		}
 		return false;
     }
-    
+
     private String getAirMediaConnectionAddressWhenNone(String adapterListString)
     {
         if (oneOfAdaptersSelected(adapterListString))
@@ -5909,7 +5909,7 @@ public class CresStreamCtrl extends Service {
             return "";
         }
     }
-    
+
     public String getAirMediaConnectionAddress()
     {
         // When connection option is disabled feedback the same connection URL and rely on AVF/Program 0 to blank out the URL
@@ -5933,7 +5933,7 @@ public class CresStreamCtrl extends Service {
         case AirMediaDisplayConnectionOption.Ip:
             if (ipAddr.equals("None"))
                 return getAirMediaConnectionAddressWhenNone(adapterString);
-                
+
             //Remove AM-3k specific check in the future by refactoring code to also support legacy products (e.g. am-200, Mercury)
             if(!isAM3K)
             {
@@ -5942,7 +5942,7 @@ public class CresStreamCtrl extends Service {
             else
             {
         		String iplist = "None";
-        		
+
             	if (!ipAddr.contains("None"))
             	{
 					String[] ipSrclist = ipAddr.split(",");
@@ -5955,7 +5955,7 @@ public class CresStreamCtrl extends Service {
 	    					iplist += "," + protocol+ip;
 					}
             	}
-            		
+
         		url = new StringBuilder(iplist);
             }
             break;
@@ -5985,11 +5985,11 @@ public class CresStreamCtrl extends Service {
                     userSettings.getAirMediaDisplayConnectionOption());
             return "";
         }
- 
+
         Log.i(TAG, "getAirMediaConnectionAddress() returning "+url.toString());
-        return url.toString();    	
+        return url.toString();
     }
-    
+
     // Currently only on AM3K for AUX adapter URL.  The getAirMediaDisplayWirelessConnectionOption control the formatting
     public String getAirMediaAuxConnectionAddress()
     {
@@ -6032,11 +6032,11 @@ public class CresStreamCtrl extends Service {
                     userSettings.getAirMediaDisplayWirelessConnectionOption());
             return "";
         }
- 
+
         Log.i(TAG, "getAirMediaAuxConnectionAddress() returning "+url.toString());
-        return url.toString();      
+        return url.toString();
     }
-    
+
     public String getAirMediaWirelessConnectionAddress()
     {
         // When connection option is disabled feedback the same connection URL and rely on AVF/Program 0 to blank out the URL
@@ -6084,11 +6084,11 @@ public class CresStreamCtrl extends Service {
                     userSettings.getAirMediaDisplayWirelessConnectionOption());
             return "";
         }
- 
+
         Log.i(TAG, "getAirMediaWirelessConnectionAddress() returning "+url.toString());
-        return url.toString();    	
+        return url.toString();
     }
-    
+
     public boolean isValidIpAddress(String address)
     {
     	if (address.contentEquals("0.0.0.0"))
@@ -6097,7 +6097,7 @@ public class CresStreamCtrl extends Service {
     		return false;
     	return true;
     }
-    
+
     public String getAirMediaConnectionIpAddress()
     {
     	Set<String> adapters = userSettings.getAirMediaAdapters();
@@ -6131,7 +6131,7 @@ public class CresStreamCtrl extends Service {
         	return ipaddr;
         }
     }
-    
+
     public String getAirMediaConnectionIpAddress(String adaptersSelectionString)
     {
     	Set<String> adapters = userSettings.getAirMediaAdapters();
@@ -6206,7 +6206,7 @@ public class CresStreamCtrl extends Service {
     					ipaddr += "," + ip;
 	           	}
 	        }
-	        
+
 	        Log.i(TAG, "getAirMediaConnectionIpAddress(adapterSelectionString:"+adaptersSelectionString+"): ipaddr= " + ipaddr);
 	        return ipaddr;
         }
@@ -6251,7 +6251,7 @@ public class CresStreamCtrl extends Service {
         return versionName;
     }
 
-    // mMsMiceEnable respresents actual current state - it is needed because at startup the userSettings.getMsMiceEnable() 
+    // mMsMiceEnable respresents actual current state - it is needed because at startup the userSettings.getMsMiceEnable()
     // does not represent the actual state at startup - it is the desired state at startup.
     public void msMiceEnable(boolean enable)
     {
@@ -6260,7 +6260,7 @@ public class CresStreamCtrl extends Service {
                 " - currently it is " + ((mMsMiceEnabled)?"enabled":"disabled"));
         setMsMiceMode();
     }
-    
+
     public void setMsMiceMode()
     {
         boolean requestedMode = mMiracastEnabled && userSettings.getAirMediaMiracastMsMiceMode();
@@ -6292,7 +6292,7 @@ public class CresStreamCtrl extends Service {
             Log.i(TAG, "msMiceEnable(): cannot set msMiceMode on receiver service since AirMedia not yet initialized");
         }
     }
-    
+
     public void setMsMiceAdapter()
     {
         if (mMsMiceEnabled)
@@ -6303,8 +6303,8 @@ public class CresStreamCtrl extends Service {
             streamPlay.msMiceSetAdapterAddress(ipaddr);
         }
     }
-    
-    // mMiracastEnabled respresents actual current state - it is needed because at startup the userSettings.getAirMediaMiracastEnable() 
+
+    // mMiracastEnabled respresents actual current state - it is needed because at startup the userSettings.getAirMediaMiracastEnable()
     // does not represent the actual state at startup - it is the desired state at startup.
     public void airMediaMiracastEnable(boolean enable)
     {
@@ -6321,14 +6321,14 @@ public class CresStreamCtrl extends Service {
             mAirMedia.setAirMediaMiracast(enable);
         }
     }
-    
+
     public void airMediaMaxMiracastBitrate(int maxrate)
     {
     	userSettings.setAirMediaMaxMiracastBitrate(maxrate);
         Log.i(TAG, "airMediaMaxMiracastBitrate(): max miracast bitrate="+maxrate);
         streamPlay.wfdSetMaxMiracastBitrate(maxrate);
     }
-    
+
     public void airMediaMiracastWifiDirectMode(boolean enable)
     {
         userSettings.setAirMediaMiracastWifiDirectMode(enable);
@@ -6338,7 +6338,7 @@ public class CresStreamCtrl extends Service {
             mAirMedia.setAirMediaMiracastWifiDirectMode(enable);
         }
     }
-    
+
     public void airMediaMiracastPreferWifiDirect(boolean enable)
     {
         userSettings.setAirMediaMiracastPreferWifiDirect(enable);
@@ -6348,7 +6348,7 @@ public class CresStreamCtrl extends Service {
             mAirMedia.setAirMediaMiracastPreferWifiDirect(enable);
         }
     }
-    
+
     public void airMediaMiracastWirelessOperatingRegion(int value)
     {
         userSettings.setAirMediaMiracastWirelessOperatingRegion(value);
@@ -6358,14 +6358,14 @@ public class CresStreamCtrl extends Service {
             mAirMedia.setAirMediaMiracastWirelessOperatingRegion(value);
         }
     }
-    
+
     public void setCamStreamEnable(boolean enable) {
 
         if (CrestronProductName.fromInteger(nativeGetProductTypeEnum()) == CrestronProductName.AM3X00 ||
             CrestronProductName.fromInteger(nativeGetProductTypeEnum()) == CrestronProductName.DGE3200 ||
             CrestronProductName.fromInteger(nativeGetProductTypeEnum()) == CrestronProductName.C865C)
         	return;
-        
+
         stopStartLock[0].lock("setCamStreamEnable");
         try
         {
@@ -6402,7 +6402,7 @@ public class CresStreamCtrl extends Service {
         }
 
     }
-    
+
     public void setCamStreamMulticastEnable(boolean enable) {
         userSettings.setCamStreamMulticastEnable(enable);
 
@@ -6411,7 +6411,7 @@ public class CresStreamCtrl extends Service {
             gstStreamOut.setMulticastEnable(enable);
         }
     }
-    
+
     public void setCamStreamResolution(int resolution) {
         userSettings.setCamStreamResolution(resolution);
 
@@ -6420,7 +6420,7 @@ public class CresStreamCtrl extends Service {
             gstStreamOut.setResolution(resolution);
         }
     }
-    
+
     public void setCamStreamName(String name) {
         userSettings.setCamStreamName(name);
 
@@ -6429,7 +6429,7 @@ public class CresStreamCtrl extends Service {
             gstStreamOut.setCamStreamName(name);
         }
     }
-    
+
     public void setCamStreamSnapshotName(String name) {
         userSettings.setCamStreamSnapshotName(name);
 
@@ -6438,7 +6438,7 @@ public class CresStreamCtrl extends Service {
             gstStreamOut.setCamStreamSnapshotName(name);
         }
     }
-    
+
     public void setCamStreamMulticastAddress(String address) {
         userSettings.setCamStreamMulticastAddress(address);
 
@@ -6447,13 +6447,13 @@ public class CresStreamCtrl extends Service {
             gstStreamOut.setCamStreamMulticastAddress(address);
         }
     }
-    
+
     public void setWcOwner(String owner)
     {
         gstStreamOut.setWcOwner(owner);
     }
-    
-    public void setWirelessConferencingStreamEnable(boolean enable) 
+
+    public void setWirelessConferencingStreamEnable(boolean enable)
     {
         Log.i(TAG, "entered setWirelessConferencingStreamEnable() - enable="+enable);
         stopStartLock[0].lock("setWirelessConferencingStreamEnable");
@@ -6495,8 +6495,8 @@ public class CresStreamCtrl extends Service {
             stopStartLock[0].unlock("setWirelessConferencingStreamEnable");
         }
     }
-    
-    public void setHdmiInMode(String mode) 
+
+    public void setHdmiInMode(String mode)
     {
         Log.i(TAG, "setHdmiInMode() - current="+userSettings.getHdmiInMode()+" new="+mode);
         if (!mode.equalsIgnoreCase(userSettings.getHdmiInMode()))
@@ -6505,7 +6505,7 @@ public class CresStreamCtrl extends Service {
             switchHdmiInMode();
         }
     }
-    
+
     public void switchHdmiInMode()
     {
         // update HDMI and camera sync via csio
@@ -6526,9 +6526,9 @@ public class CresStreamCtrl extends Service {
             mWC_Service.updateWcCamera();
         }
     }
-    
-    // This function implementts the WC enable or disable 
-    // this gets called from CSIO through socket comm. 
+
+    // This function implementts the WC enable or disable
+    // this gets called from CSIO through socket comm.
     public void airMediaWCEnable(boolean enable)
     {
         userSettings.setAirMediaWCEnable(enable);
@@ -6593,9 +6593,9 @@ public class CresStreamCtrl extends Service {
     }
 
     public synchronized void initPeripheralVolume() {
-        
+
         String audioPlaybackFile = getAudioPlaybackFile();
-        
+
         if(mUsbVolumeCtrl.getUsbPeripheralVolume(audioPlaybackFile) != 0) {
             Log.i(TAG,"initPeripheralVolume: returning as Native get Failed");
             return;
@@ -6608,9 +6608,9 @@ public class CresStreamCtrl extends Service {
             {
                 int     peripheralVolume = userSettings.getAirMediaPeripheralVolume();
                 boolean peripheralMute   = userSettings.getAirMediaPeripheralMute();
-                
+
                 Log.i(TAG, "Init Peripheral Volume with value: " + peripheralVolume + ", Mute with value: " + peripheralMute);
- 
+
                 mUsbVolumeCtrl.setUsbPeripheralVolume   (audioPlaybackFile, peripheralVolume);
                 mUsbVolumeCtrl.setUsbPeripheralMute     (audioPlaybackFile, peripheralMute);
             } else {
@@ -6619,11 +6619,11 @@ public class CresStreamCtrl extends Service {
         } else {
             Log.i(TAG, "initPeripheralVolume: Devname is Null or Not matching: " + mUsbVolumeCtrl.devName);
         }
-        
+
         Log.i(TAG, "initPeripheralVolume: After Init is completed");
         mUsbVolumeCtrl.getUsbPeripheralVolume(audioPlaybackFile);
     }
-    
+
     public synchronized void sendPeripheralVolumeStatus() {
 
         int     peripheralVolume         = 0;
@@ -6674,7 +6674,7 @@ public class CresStreamCtrl extends Service {
         else
             sockTask.SendDataToAllClients("AIRMEDIA_WC_IS_PERIPHERAL_SUPPORTED_FB=0");
     }
-     
+
     public void airMediaWCLicensed(boolean enable)
     {
         userSettings.setAirMediaWCLicensed(enable);
@@ -6682,19 +6682,19 @@ public class CresStreamCtrl extends Service {
                 " - currently it is " + ((isWirelessConferencingLicensed)?"enabled":"disabled"));
         isWirelessConferencingLicensed = enable;
     }
-    
+
     public void airMediaWCResetUsbOnStop(boolean enable)
     {
         userSettings.setAirMediaResetUsbOnStop(enable);
         Log.i(TAG, "airMediaWCResetUsbOnStop(): requesting enable=" + ((enable)?"enabled":"disabled"));
     }
-    
+
     public void setDeviceAppSystemStateActivation(boolean enable)
     {
         Log.i(TAG, "setDeviceAppSystemStateActivation(): value=" + enable);
         isDeviceAppSystemStateActivation = enable;
     }
-    
+
     public void setDeviceAppAirMediaWCStatusIsPeripheralBlocked(boolean enable)
     {
         Log.i(TAG, "setDeviceAppAirMediaWCStatusIsPeripheralBlocked(): value=" + enable);
@@ -6705,7 +6705,7 @@ public class CresStreamCtrl extends Service {
             mWC_Service.closeSession();
         }
     }
-    
+
     public void setDeviceAppConfigRunTimeSettingsIsHdmiInputEnabled(boolean enable)
     {
         Log.i(TAG, "setDeviceAppConfigRunTimeSettingsIsHdmiInputEnabled(): value=" + enable);
@@ -6715,13 +6715,13 @@ public class CresStreamCtrl extends Service {
             mWC_Service.updateWcCamera();
         }
     }
-    
+
     public void setDevAppAirMediaWCStatIsPeripheralBlockedReason(String reason)
     {
         Log.i(TAG, "setDeviceAppAirMediaWCStatusIsPeripheralBlockedReason(): value=" + reason);
         mDeviceAppAirMediaWCStatusIsPeripheralBlockedReason = reason;
     }
-    
+
     public void stopWcServer(String user)
     {
         if (mWC_Service != null)
@@ -6753,7 +6753,7 @@ public class CresStreamCtrl extends Service {
     {
 		Log.i(TAG, "onCameraConnected(): USB UVC camera is connected");
     }
-    
+
     public void onCameraDisconnected()
     {
 		Log.i(TAG, "onCameraConnected(): USB UVC camera is disconnected");
@@ -6769,8 +6769,8 @@ public class CresStreamCtrl extends Service {
 
         if( mWC_Service != null )
         {
-            //AM3XX-13238: TODO: During Audio WC session, if camera come alive, then subsequent WC session video was not getting 
-            //started on the sender app side. Calling close session on every usb status changed made camera feed to be displayed 
+            //AM3XX-13238: TODO: During Audio WC session, if camera come alive, then subsequent WC session video was not getting
+            //started on the sender app side. Calling close session on every usb status changed made camera feed to be displayed
             //on sender side.
             if(usbUnplugEvent == true)
             {
@@ -6797,7 +6797,7 @@ public class CresStreamCtrl extends Service {
                 hdmiInput.setHdmiCameraConnected(true);
             else
                 Log.i(TAG, "onHdmiInConnected(): hdmiInput is null");
-            
+
         } else {
             new Thread(new Runnable() {
                 public void run() {
@@ -6847,47 +6847,47 @@ public class CresStreamCtrl extends Service {
                     synchronized (mDisplayChangedLock)
                     {
                         handleHdmiOutputChange();
-                    }                
+                    }
                 } catch (Exception e) { e.printStackTrace(); }
             }
         }).start();
-        
+
         if(connected == false && mWC_Service != null) {
             Log.i(TAG, "onHdmiOutHpdEvent(): Perform WC_Service closeSession, as HDMI Out is not connected!!!");
             mWC_Service.closeSession();
         }
     }
-    
+
     public String getAirMediaDisconnectUser(int sessId)
     {
         // Do nothing handled by getAirMediaUserPosition
         return "";
     }
-    
+
     public String getAirMediaStartUser(int sessId)
     {
         // Do nothing handled by getAirMediaUserPosition
         return "";
     }
-    
+
     public String getAirMediaUserPosition(int sessId)
     {
         // Just send all airMedia user feedbacks
         airMediaUserFeedbackUpdateRequest(sessId);
         return "";
     }
-    
+
     public String getAirMediaStopUser(int sessId)
     {
         // Do nothing handled by getAirMediaUserPosition
         return "";
     }
-    
+
     public boolean airMediaIsUp()
     {
     	return (mAirMedia != null && mAirMedia.airMediaIsUp());
     }
-    
+
     public boolean getAirMediaLicensed()
     {
         return airMediaLicensed;
@@ -6918,7 +6918,7 @@ public class CresStreamCtrl extends Service {
             sendAirMediaNumberUserConnectedUpdateRequest();
         }
     }
-    
+
     public void sendAirMediaUserFeedbacks(int userId, String userName, String ipAddress, int position, boolean status)
     {
         userSettings.setAirMediaUserPosition(position, userId);
@@ -6932,20 +6932,20 @@ public class CresStreamCtrl extends Service {
         sockTask.SendDataToAllClients(MiscUtils.stringFormat("AIRMEDIA_USER_POSITION=%d:%d", userId, position));
         sockTask.SendDataToAllClients(MiscUtils.stringFormat("AIRMEDIA_USER_CONNECTED=%d:%s", userId, String.valueOf(status)));
     }
-    
+
     public void sendAirMediaStatus(int status)
     {
         // TODO: send on update request
         Log.i(TAG, MiscUtils.stringFormat(MiscUtils.stringFormat("AIRMEDIA_STATUS=%d", status)));
         sockTask.SendDataToAllClients(MiscUtils.stringFormat("AIRMEDIA_STATUS=%d", status));
     }
-    
+
     public void sendAirMediaDisplayed(boolean val)
     {
         Log.i(TAG, MiscUtils.stringFormat("AIRMEDIA_DISPLAYED="+val));
         sockTask.SendDataToAllClients("AIRMEDIA_DISPLAYED="+val);
     }
-    
+
     public int getAirMediaNumberUserConnected()
     {
         int numberUserConnected = 0;
@@ -6962,7 +6962,7 @@ public class CresStreamCtrl extends Service {
 
         return numberUserConnected;
     }
-    
+
     public void sendAirMediaNumberUserConnected()
     {
         // Ensure that this function is safe from multiple calls
@@ -7012,7 +7012,7 @@ public class CresStreamCtrl extends Service {
             sockTask.SendDataToAllClients(MiscUtils.stringFormat("AIRMEDIA_NUMBER_USER_CONNECTED=%d", mAirMediaNumberOfUsersConnected));
         }
     }
-    
+
     public void sendLostVideoIntent()
     {
         final Context ctx = (Context)this;
@@ -7021,13 +7021,13 @@ public class CresStreamCtrl extends Service {
         //i.putExtra("deviceId", "xxxxxxxx");
         ctx.sendBroadcast(i);
     }
-    
+
     public void sendExecuteRootCommand(String command)
     {
         Log.i(TAG, "Send execute root command CSIO - "+command);
         sockTask.SendDataToAllClients(MiscUtils.stringFormat("EXECUTEROOTCOMMAND=%s", command));
     }
-    
+
     public void checkFileExistsElseCreate(String fileName)
     {
         File file = new File (getFilesDir(), fileName);
@@ -7044,7 +7044,7 @@ public class CresStreamCtrl extends Service {
         }
     }
     }
-    
+
     private void handleSurfaceFlingerViolation()
     {
         Log.e(TAG, "------ Recreate CresDisplaySurface due to surfaceFlinger Violation ------");
@@ -7060,7 +7060,7 @@ public class CresStreamCtrl extends Service {
         File surfaceFlingerViolationFile = new File(getFilesDir(), surfaceFlingerViolationFilePath);
 
         // Monitor surfaceFlinger violation events
-        surfaceFlingerViolationObserver = new FileObserver(surfaceFlingerViolationFile, FileObserver.CLOSE_WRITE) {						
+        surfaceFlingerViolationObserver = new FileObserver(surfaceFlingerViolationFile, FileObserver.CLOSE_WRITE) {
             @Override
             public void onEvent(int event, String path) {
                 try
@@ -7099,29 +7099,29 @@ public class CresStreamCtrl extends Service {
         checkFileExistsElseCreate(hdmiOutputResolutionFilePath);
 
         // Monitor input HPD events
-//        hdmiInputHpdObserver = new FileObserver(hdmiInputHPDFilePath, FileObserver.CLOSE_WRITE) {						
+//        hdmiInputHpdObserver = new FileObserver(hdmiInputHPDFilePath, FileObserver.CLOSE_WRITE) {
 //			@Override
 //			public void onEvent(int event, String path) {
 //				synchronized (hdmiObserverLock) {
 //					Log.i(TAG, "Received HDMI input HPD event");
 //					int hpdId = 0;
-//					try 
+//					try
 //					{
 //						hpdId =  Integer.parseInt(MiscUtils.readStringFromDisk(hdmiInputHPDFilePath));
 //						handleHdmiInputHpdEvent(hpdId);
-//					} 
+//					}
 //					catch (NumberFormatException e)
 //					{
 //						Log.w(TAG, "Invalid HPD id found " + e.toString());
-//					}				
+//					}
 //					Log.i(TAG, "Finished HDMI input HPD event");
-//				}				
+//				}
 //			}
 //		};
 //		hdmiInputHpdObserver.startWatching();
 
         // Monitor input resolution events
-        hdmiInputResolutionObserver = new FileObserver(hdmiInputResolutionFilePath, FileObserver.CLOSE_WRITE) {						
+        hdmiInputResolutionObserver = new FileObserver(hdmiInputResolutionFilePath, FileObserver.CLOSE_WRITE) {
             @Override
             public void onEvent(int event, String path) {
                 try
@@ -7150,7 +7150,7 @@ public class CresStreamCtrl extends Service {
         hdmiInputResolutionObserver.startWatching();
 
         // Monitor output resolution events
-        hdmiOutputResolutionObserver = new FileObserver(hdmiOutputResolutionFilePath, FileObserver.CLOSE_WRITE) {						
+        hdmiOutputResolutionObserver = new FileObserver(hdmiOutputResolutionFilePath, FileObserver.CLOSE_WRITE) {
             @Override
             public void onEvent(int event, String path) {
                 try
@@ -7183,7 +7183,7 @@ public class CresStreamCtrl extends Service {
         };
         hdmiOutputResolutionObserver.startWatching();
     }
-    
+
     void handleHdmiInputHpdEvent(int hpdId)
     {
         hdmiLock.lock("handleHdmiInputHpdEvent");
@@ -7205,7 +7205,7 @@ public class CresStreamCtrl extends Service {
             hdmiLock.unlock("handleHdmiInputHpdEvent");
         }
     }
-    
+
     void handleHdmiInputResolutionEvent(int resolutionId)
     {
         hdmiLock.lock("handleHdmiInputResolutionEvent - got resolution id: " + resolutionId);
@@ -7213,7 +7213,7 @@ public class CresStreamCtrl extends Service {
         {
             if (hdmiInputDriverPresent)
             {
-                if (resolutionId != mCurrentHdmiInputResolution || 
+                if (resolutionId != mCurrentHdmiInputResolution ||
                     ((isAM3K || m_isDGE3200 || isC865C) && (mHdmiCameraIsConnected != mCurrentHdmiCameraConnectState)) )
                 {
                     mCurrentHdmiInputResolution = resolutionId;
@@ -7256,21 +7256,21 @@ public class CresStreamCtrl extends Service {
                     hpdHdmiEvent = 1;
                     mForceHdcpStatusUpdate = true;
                     Log.i(TAG, "HDMI resolutions - HRes:" + hdmiInput.getHorizontalRes() + " Vres:" + hdmiInput.getVerticalRes());
-                    
-                    //to stop audio if hdmi input is unplugged  
-                    if (cam_preview != null && cam_preview.is_preview)  
-                    {        
-	                    if(resolutionId == 0)   
-	                    {                    
-	                    	Log.i(TAG, "HDMI lost sync detected, stop audio");             	              
-	                                     
-	                        cam_preview.stopAudio();	                        
+
+                    //to stop audio if hdmi input is unplugged
+                    if (cam_preview != null && cam_preview.is_preview)
+                    {
+	                    if(resolutionId == 0)
+	                    {
+	                    	Log.i(TAG, "HDMI lost sync detected, stop audio");
+
+	                        cam_preview.stopAudio();
 	                    }
 	                    else
 	                    {
-	                        Log.i(TAG, "HDMI sync detected, start audio");	                    	
-	                    	                       
-	                        cam_preview.startAudio();	                        
+	                        Log.i(TAG, "HDMI sync detected, start audio");
+
+	                        cam_preview.startAudio();
 	                    }
                     }
                     mPreviousHdmi.setSync(resolutionId != 0);
@@ -7284,7 +7284,7 @@ public class CresStreamCtrl extends Service {
             hdmiLock.unlock("handleHdmiInputResolutionEvent for resolution id: " + resolutionId);
         }
     }
-   
+
     public boolean haveOutputSyncAndResolution()
     {
         boolean haveSync = Boolean.parseBoolean(hdmiOutput.getSyncStatus());
@@ -7293,7 +7293,7 @@ public class CresStreamCtrl extends Service {
         boolean haveRes = (w != 0) && (h != 0);
         return haveSync && haveRes;
     }
-    
+
     public void handleHdmiOutputChange()
     {
         Log.i(TAG, "handleHdmiOutputChange() - entered");
@@ -7344,16 +7344,16 @@ public class CresStreamCtrl extends Service {
         }
         Log.i(TAG, "handleHdmiOutputChange() - exited");
     }
-    
+
     private void sendHdmiInSyncState()
     {
         refreshInputResolution();
         sockTask.SendDataToAllClients("hdmiin_sync_detected=" + hdmiInput.getSyncStatus());
-        // AMX00-1858 when DM routed HDMI input is used (from a DM-TX say) and the HDMI output from DM is disabled the 
+        // AMX00-1858 when DM routed HDMI input is used (from a DM-TX say) and the HDMI output from DM is disabled the
         // getInterlacing call can hang for 13 seconds so we do not check for getInterlacing when sync is false
         if (hdmiInput.getSyncStatus().equalsIgnoreCase("true"))
         	sockTask.SendDataToAllClients("HDMIIN_INTERLACED=" + hdmiInput.getInterlacing());
-        else 
+        else
         	sockTask.SendDataToAllClients("HDMIIN_INTERLACED=false");
         sockTask.SendDataToAllClients("HDMIIN_HORIZONTAL_RES_FB=" + hdmiInput.getHorizontalRes());
         sockTask.SendDataToAllClients("HDMIIN_VERTICAL_RES_FB=" + hdmiInput.getVerticalRes());
@@ -7809,13 +7809,13 @@ public class CresStreamCtrl extends Service {
         	{
         		hdmiContentVisible = true;
         	}
-        } 
-        else 
+        }
+        else
         {
         	for (int sessionId = 0; sessionId < NumOfSurfaces; sessionId++)
         	{
         		if ((userSettings.getMode(sessionId) == DeviceMode.STREAM_OUT.ordinal()) ||
-        				(userSettings.getMode(sessionId) == DeviceMode.PREVIEW.ordinal() &&  
+        				(userSettings.getMode(sessionId) == DeviceMode.PREVIEW.ordinal() &&
         				userSettings.getUserRequestedStreamState(sessionId) == StreamState.STARTED))
         		{
         			hdmiContentVisible = true;
@@ -7825,7 +7825,7 @@ public class CresStreamCtrl extends Service {
         }
         return hdmiContentVisible;
     }
-    
+
     private void sendHDCPFeedbacks()
     {
         //Send input feedbacks
@@ -7986,7 +7986,7 @@ public class CresStreamCtrl extends Service {
                         synchronized (mDisplayChangedLock)
                         {
                             handleHdmiOutputChange();
-                        }                
+                        }
                     } catch (Exception e) { e.printStackTrace(); }
                 }
             }).start();
@@ -8060,7 +8060,7 @@ public class CresStreamCtrl extends Service {
             mCanvas.handlePossibleHdmiSyncStateChange(1, hdmiInput, checkForChange);
         }
     }
-    
+
     public void canvasDmSyncStateChange()
     {
         if (mCanvas != null)
@@ -8091,7 +8091,7 @@ public class CresStreamCtrl extends Service {
             }).start();
         }
     }
-    
+
     public void setDmSync(boolean value, int inputNumber)
     {
         Log.i(TAG, "setDmSync(): sync="+value+" for DM input "+inputNumber);
@@ -8140,7 +8140,7 @@ public class CresStreamCtrl extends Service {
     {
         sockTask.SendDataToAllClients(MiscUtils.stringFormat("DM_AUDIO_MUTE%d=%s", streamId, (value)?"TRUE":"FALSE"));
     }
-    
+
     public void sendHdmiStart(int streamId, boolean value)
     {
         sockTask.SendDataToAllClients(MiscUtils.stringFormat("HDMI_VIDEO_START%d=%s", streamId, (value)?"TRUE":"FALSE"));
@@ -8153,12 +8153,12 @@ public class CresStreamCtrl extends Service {
     {
         sockTask.SendDataToAllClients(MiscUtils.stringFormat("EXTERNAL_HDMI_AUDIO_MUTE%d=%s", streamId, (value)?"TRUE":"FALSE"));
     }
-    
+
     public void sendAirMediaStart(int streamId, boolean value)
     {
         sockTask.SendDataToAllClients(MiscUtils.stringFormat("AIRMEDIA_VIDEO_START%d=%s", streamId, (value)?"TRUE":"FALSE"));
     }
-    
+
     public void sendNumOfPresenters(int value)
     {
         sockTask.SendDataToAllClients(MiscUtils.stringFormat("NUMBER_OF_PRESENTERS=%d", value));
@@ -8289,7 +8289,7 @@ public class CresStreamCtrl extends Service {
     			Log.w(TAG, "WARNING: this call is expected for AM3X product only");
     	}
     }
-    
+
     // this version is used for an AMTX3 screenshare and has deviceType within it
     public synchronized void startWifiDirect(String localAddress, String deviceId, String deviceName, String deviceType, String deviceAddress, int rtsp_port)
     {
@@ -8307,7 +8307,7 @@ public class CresStreamCtrl extends Service {
             }
         }
     }
-    
+
     public void stopWifiDirect(String deviceId)
     {
     	if (userSettings.getAirMediaEnable() && userSettings.getAirMediaMiracastEnable()) {
@@ -8317,7 +8317,7 @@ public class CresStreamCtrl extends Service {
     			Log.w(TAG, "WARNING: this call is expected for AM3X product only");
     	}
     }
-    
+
     public void pauseWifiDirect(String deviceId)
     {
         if (userSettings.getAirMediaEnable() && userSettings.getAirMediaMiracastEnable()) {
@@ -8327,7 +8327,7 @@ public class CresStreamCtrl extends Service {
                 Log.w(TAG, "WARNING: this call is expected for AM3X product only");
         }
     }
-    
+
     public void resumeWifiDirect(String deviceId)
     {
         if (userSettings.getAirMediaEnable() && userSettings.getAirMediaMiracastEnable()) {
@@ -8337,7 +8337,7 @@ public class CresStreamCtrl extends Service {
                 Log.w(TAG, "WARNING: this call is expected for AM3X product only");
         }
     }
-    
+
     public void setNetworkSreamingResolution(int streamId, int w, int h)
     {
         Log.v(TAG, "setNetworkSreamingResolution(): streamId="+streamId+" wxh="+w+"x"+h);
@@ -8350,7 +8350,7 @@ public class CresStreamCtrl extends Service {
             if(session != null && session.getType() == SessionType.NetworkStreaming && !session.inResolutionRestart)
             {
                 Log.i(TAG, "setNetworkSreamingResolution(): calling setVideoResolution() for id: " + streamId +" wxh=" + w + "x" + h);
-                
+
                 session.setVideoResolution(new AirMediaSize(w,h));
             }
         }
@@ -8405,19 +8405,19 @@ public class CresStreamCtrl extends Service {
         }
         else
         {
-            Log.i(TAG, "testfindCamera: No connected HDMI Input Found! ERROR");            
+            Log.i(TAG, "testfindCamera: No connected HDMI Input Found! ERROR");
         }
     }
-    
+
     public void setChangedBeforeStartUp(StartupEvent eEvent, boolean state)
     {
         startupLock.lock();
-		
+
         int event = eEvent.getValue();
-		
+
         if(state)
         {
-            if(state != mLastChangedBeforeStartUpState)	
+            if(state != mLastChangedBeforeStartUpState)
                 Log.i(TAG, "setChangeBeforeStartUp: set bit[" + event + "]");
             mChangedBeforeStartUp |= event;
         }
@@ -8427,7 +8427,7 @@ public class CresStreamCtrl extends Service {
                 Log.i(TAG, "setChangeBeforeStartUp: reset bit[" + event + "]");
             mChangedBeforeStartUp &= (~event);
         }
-		
+
 		mLastChangedBeforeStartUpState = state;
         startupLock.unlock();
     }
@@ -8435,11 +8435,11 @@ public class CresStreamCtrl extends Service {
     public int getChangesBeforeStartup()
     {
         int changes = 0;
-    	
+
         startupLock.lock();
         changes = mChangedBeforeStartUp;
         startupLock.unlock();
-		
+
         return(changes);
     }
 
@@ -8465,14 +8465,14 @@ public class CresStreamCtrl extends Service {
         {
             isTX3 = wifidVideoPlayer.isTx3DeviceType(streamId);
         }
-        
+
         return(isTX3);
     }
-    
+
     public void setWfd2VideoFormat(String wfd2_parms) {
         streamPlay.msMiceSetWfd2VideoFormat(wfd2_parms);
     }
-    
+
     public void setSystemMode(String mode)
     {
         if (!mode.equals(userSettings.getSystemMode()))
@@ -8481,7 +8481,7 @@ public class CresStreamCtrl extends Service {
             userSettings.setSystemMode(mode);
         }
     }
-    
+
     public String getSystemMode()
     {
         return userSettings.getSystemMode();

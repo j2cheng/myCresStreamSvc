@@ -12,26 +12,26 @@ import android.view.View;
 import android.content.Context;
 import android.graphics.SurfaceTexture;
 
-// implementing for TextureView 
+// implementing for TextureView
 public class SurfaceTextureManager implements TextureView.SurfaceTextureListener {
 	private CountDownLatch mLock;
 	private final int stCreateTimeout_ms = 10000;
 	private final CresStreamCtrl streamCtl;
-	
+
     private SurfaceTexture CresSurfaceTexture;
-    String TAG = "TxRx SurfaceTextureMgr"; 
+    String TAG = "TxRx SurfaceTextureMgr";
     private boolean invalidateOnSurfaceTextureUpdate = false;
 
     public SurfaceTextureManager(Context mContext){
-        Log.e(TAG, "SurfaceTextureManager:: Constructor called...!");
+        Log.i(TAG, "SurfaceTextureManager:: Constructor called...!");
         mLock = new CountDownLatch(1);
         streamCtl = (CresStreamCtrl)mContext;
     }
-    
+
     public void initCresSurfaceTextureListener (TextureView view) {
     	if (view != null) {
             Log.i(TAG, "initCresSurfaceTextureListener(): View is not null");
-            view.setSurfaceTextureListener(this);	
+            view.setSurfaceTextureListener(this);
         } else {
             Log.i(TAG, "App passed null Texture view for stream in");
         }
@@ -40,7 +40,7 @@ public class SurfaceTextureManager implements TextureView.SurfaceTextureListener
     // Prepare the class for destruction
     public void close()
     {
-    	mLock = null;  	
+    	mLock = null;
     }
 
     public SurfaceTexture getCresSurfaceTexture(TextureView view) {
@@ -49,13 +49,13 @@ public class SurfaceTextureManager implements TextureView.SurfaceTextureListener
     	boolean stCreatedSuccess = true; //indicates that there was no time out condition
     	try { stCreatedSuccess = mLock.await(stCreateTimeout_ms, TimeUnit.MILLISECONDS); }
     	catch (InterruptedException ex) { ex.printStackTrace(); }
-    	
+
     	if (!stCreatedSuccess)
     	{
     		Log.e(TAG, MiscUtils.stringFormat("**** Android failed to create surface texture after %d ms ****", stCreateTimeout_ms));
     		streamCtl.RecoverTxrxService();
     	}
-    	    	
+
         if (view != null) {
             Log.i(TAG, "getCresSurfaceTextureListener(): View is not null");
             CresSurfaceTexture = view.getSurfaceTexture();
@@ -69,7 +69,7 @@ public class SurfaceTextureManager implements TextureView.SurfaceTextureListener
     {
     	invalidateOnSurfaceTextureUpdate = value;
     }
-    
+
     public void onSurfaceTextureAvailable(SurfaceTexture surface, int width, int height) {
 	    Log.i(TAG, "######### surfaceTextureAvailable ##############");
 	    mLock.countDown(); //mark that surfaceTexture has been created and is ready for use

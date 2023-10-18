@@ -46,17 +46,19 @@ public class CameraPreview {
     	hdmiIf = hdmiInIface;
     	streamCtl = ctl;
     }
-    
+
     public void setSessionIndex(int id){
         idx = id;
     }
-    
+
     public int getSessionIndex(){
         return(idx);
     }
-    
+
     public void restartCamera(boolean confidenceMode)
     {
+        Log.i(TAG, "restartCamera");
+
     	try {
     		boolean pauseStatus = is_pause;
 	    	skipAudio = true;
@@ -64,7 +66,7 @@ public class CameraPreview {
 	    	is_pause = pauseStatus;
 	    	startPlayback(confidenceMode);
 	    	skipAudio = false;
-    	} catch (Exception e) { e.printStackTrace(); }        
+    	} catch (Exception e) { e.printStackTrace(); }
     }
 
     public void onPreviewFrame(byte[] paramArrayOfByte, Camera paramCamera) {}
@@ -101,7 +103,7 @@ public class CameraPreview {
                 streamCtl.setPauseVideoImage(false, DeviceMode.PREVIEW);
                 startAudio();
             }
-            
+
             if (confidenceMode)
             	streamCtl.SendStreamState(StreamState.CONFIDENCEMODE, idx);
             else
@@ -126,26 +128,27 @@ public class CameraPreview {
     public boolean IsPauseStatus(){
         return is_pause;
     }
-    
+
     public void startPlayback(final boolean confidenceMode){
+        Log.i(TAG, "startPlayback");
 		// By default do not force RGB (only used for debugging)
     	startPlayback(confidenceMode, false);
     }
-    
+
     public void startPlayback(final boolean confidenceMode, final boolean forceRgb){
     	final CountDownLatch latch = new CountDownLatch(1);
     	Thread startThread = new Thread(new Runnable() {
     		public void run() {
 		        Log.i(TAG, "starting Playback " + is_preview);
-		        if(is_preview == false){		        	
+		        if(is_preview == false){
 		        	Log.i(TAG, "Actual startPlayback, forceRGB set to " + forceRgb);
-		        	
+
 		        	// TODO: create console command to enable/disable rgb888
 		        	if (forceRgb || streamCtl.isRGB888HDMIVideoSupported)
 		        		ProductSpecific.setRGB888Mode(true);
 					else
 						ProductSpecific.setRGB888Mode(false);
-					
+
 		        	// Update window size in case the aspect ratio or stretch changes
 			        try {
 			        	streamCtl.updateWindowWithVideoSize(idx, false, Integer.parseInt(streamCtl.hdmiInput.getHorizontalRes()), Integer.parseInt(streamCtl.hdmiInput.getVerticalRes()));
@@ -159,7 +162,7 @@ public class CameraPreview {
 		        	{
 		        		ProductSpecific.getInstance().getHdmiInputStatus(streamCtl);
 		        	}
-		        	// MNT - 3.10.15 
+		        	// MNT - 3.10.15
 		        	// getHdmiInputStatus causes a reset on the chip.  Calling this here causes
 		        	// the chip to get reset twice.  This will be fixed by Mistral.  However,
 		        	// until then, we will only call this on a resolution change or on startup.
@@ -227,25 +230,25 @@ public class CameraPreview {
                                     case 10:
                                         hres = 1280;
                                         vres = 720;
-                                        break;				
+                                        break;
                                     case 11:
                                     case 12:
                                         hres = 1280;
                                         vres = 768;
-                                        break;	
+                                        break;
                                     case 13:
                                     case 14:
                                         hres = 1280;
                                         vres = 800;
-                                        break;	
+                                        break;
                                     case 15:
                                         hres = 1280;
                                         vres = 960;
-                                        break;	
+                                        break;
                                     case 16:
                                         hres = 1280;
                                         vres = 1024;
-                                        break;	
+                                        break;
                                     case 17:
                                         hres = 1360;
                                         vres = 768;
@@ -260,24 +263,24 @@ public class CameraPreview {
                                         hres = 1400;
                                         vres = 1050;
                                         break;
-                                    case 22:					
+                                    case 22:
                                     case 23:
                                         hres = 1440;
                                         vres = 900;
-                                        break;	
+                                        break;
                                     case 24:
                                         hres = 1600;
                                         vres = 900;
-                                        break;	
+                                        break;
                                     case 25:
                                         hres = 1600;
                                         vres = 1200;
-                                        break;	
+                                        break;
                                     case 26:
                                     case 27:
                                         hres = 1680;
                                         vres = 1050;
-                                        break;	
+                                        break;
                                     case 28:
                                     case 29:
                                     case 30:
@@ -285,11 +288,11 @@ public class CameraPreview {
                                     case 32:
                                         hres = 1920;
                                         vres = 1080;
-                                        break;	
+                                        break;
                                     case 33:
                                         hres = 1920;
                                         vres = 1200;
-                                        break;	
+                                        break;
                                     default:
                                         hres = 640;
                                         vres = 480;
@@ -313,7 +316,7 @@ public class CameraPreview {
                                             localParameters.setPreviewSize(640, 480);
                                             CresCamera.mCamera.setParameters(localParameters);
                                         }
-                                    }		                
+                                    }
                                 }
                                 else // assume valid res for real camera, don't set preview size?
                                 {
@@ -330,8 +333,8 @@ public class CameraPreview {
                                     preview_timeout_thread.start();
                                     CresCamera.mCamera.startPreview();
 
-                                    startAudio(); 
-                                    //Streamstate is now being fedback using preview callback                   
+                                    startAudio();
+                                    //Streamstate is now being fedback using preview callback
                                 }
                                 is_preview = true;
                             } catch (Exception e)
@@ -406,20 +409,20 @@ public class CameraPreview {
                                     case 12:
                                         hres = 1280;
                                         vres = 768;
-                                        break;    
+                                        break;
                                     case 13:
                                     case 14:
                                         hres = 1280;
                                         vres = 800;
-                                        break;    
+                                        break;
                                     case 15:
                                         hres = 1280;
                                         vres = 960;
-                                        break;    
+                                        break;
                                     case 16:
                                         hres = 1280;
                                         vres = 1024;
-                                        break;    
+                                        break;
                                     case 17:
                                         hres = 1360;
                                         vres = 768;
@@ -434,24 +437,24 @@ public class CameraPreview {
                                         hres = 1400;
                                         vres = 1050;
                                         break;
-                                    case 22:                    
+                                    case 22:
                                     case 23:
                                         hres = 1440;
                                         vres = 900;
-                                        break;    
+                                        break;
                                     case 24:
                                         hres = 1600;
                                         vres = 900;
-                                        break;    
+                                        break;
                                     case 25:
                                         hres = 1600;
                                         vres = 1200;
-                                        break;    
+                                        break;
                                     case 26:
                                     case 27:
                                         hres = 1680;
                                         vres = 1050;
-                                        break;    
+                                        break;
                                     case 28:
                                     case 29:
                                     case 30:
@@ -459,11 +462,11 @@ public class CameraPreview {
                                     case 32:
                                         hres = 1920;
                                         vres = 1080;
-                                        break;    
+                                        break;
                                     case 33:
                                         hres = 1920;
                                         vres = 1200;
-                                        break;    
+                                        break;
                                     default:
                                         hres = 640;
                                         vres = 480;
@@ -506,8 +509,8 @@ public class CameraPreview {
                                     //preview_timeout_thread = new Thread(new previewTimeout());
                                     //preview_timeout_thread.start();
                                     ProductSpecific.getInstance().cam_handle.startCamera();
-                                    startAudio(); 
-                                    //Streamstate is now being fedback using preview callback                   
+                                    startAudio();
+                                    //Streamstate is now being fedback using preview callback
                                 }
                                 is_preview = true;
                             } catch (Exception e)
@@ -523,17 +526,17 @@ public class CameraPreview {
                     }
 		        }else   //Pause/Resume Case
 		            resumePlayback(confidenceMode);
-		        
+
 		        latch.countDown();
     		}
     	});
-    	startThread.start();        
-        
+    	startThread.start();
+
         // We launch the start command in its own thread and timeout in case mediaserver gets hung
     	boolean successfulStart = true; //indicates that there was no time out condition
     	try { successfulStart = latch.await(startTimeout_ms, TimeUnit.MILLISECONDS); }
     	catch (InterruptedException ex) { ex.printStackTrace(); }
-    	
+
     	streamCtl.checkVideoTimeouts(successfulStart);
     	if (!successfulStart)
     	{
@@ -548,7 +551,7 @@ public class CameraPreview {
     	}
 
     }
-    
+
     private void signalPreviewTimeoutThread() {
     	synchronized (preview_timeout_lock) {
     		if (preview_timeout_thread != null) {
@@ -562,9 +565,9 @@ public class CameraPreview {
     					Log.e(TAG, "Error: preview_timeout_thread latch timed out");
     			}
     			catch (InterruptedException e) { e.printStackTrace(); }
-    			preview_timeout_latch = null;			
+    			preview_timeout_latch = null;
     		}
-		}    	
+		}
     }
 
  	public class previewTimeout implements Runnable {
@@ -584,8 +587,9 @@ public class CameraPreview {
     			Log.e(TAG, "Error: previewTimeoutThread set to null but latch is null!");
     	}
     }
-    
+
     public void stopPlayback(final boolean confidenceMode){
+        Log.i(TAG, "stopPlayback");
 		// By default do not force RGB (only used for debugging)
     	stopPlayback(confidenceMode, false);
     }
@@ -602,7 +606,7 @@ public class CameraPreview {
 		            try
 		            {
 						// This should be moved to the below comment once HWC.c is updated to act on mode changes, that way we don't have to set the mode while pipeline is running
-						// Otherwise screen will keep last frame up until a screen update occurs 
+						// Otherwise screen will keep last frame up until a screen update occurs
 //		            	if (forceRgb || streamCtl.isRGB888HDMIVideoSupported)
 //		            		ProductSpecific.setRGB888Mode(false);
 
@@ -628,38 +632,38 @@ public class CameraPreview {
 		                streamCtl.setPauseVideoImage(false, DeviceMode.PREVIEW);
 		                is_pause = false;
 		                Log.i(TAG, "Playback stopped !");
-		                
+
 		                if (!confidenceMode)
 		                	streamCtl.SendStreamState(StreamState.STOPPED, idx);
-		                
+
 		            	stopAudio();
 		            }
 		            catch (Exception localException)
 		            {
 		                localException.printStackTrace();
 		            }
-		            
+
 		            is_preview = false;
 		        }
 		        else
 		            Log.i(TAG, "Playback already stopped");
-		        
+
 		        signalPreviewTimeoutThread();
-		        
+
 		        latch.countDown();
     		}
     	});
     	stopThread.start();
-    	
+
     	// We launch the stop commands in its own thread and timeout in case mediaserver gets hung
     	boolean successfulStop = true; //indicates that there was no time out condition
     	try { successfulStop = latch.await(stopTimeout_ms, TimeUnit.MILLISECONDS); }
     	catch (InterruptedException ex) { ex.printStackTrace(); }
-    	    	
+
         // Reset Tag
 		streamCtl.setSurfaceViewTag(idx, "VideoLayer");
-		
-    	streamCtl.checkVideoTimeouts(successfulStop);       
+
+    	streamCtl.checkVideoTimeouts(successfulStop);
     	if (!successfulStop)
     	{
     		Log.e(TAG, MiscUtils.stringFormat("Preview mode failed to stop after %d ms", stopTimeout_ms));
@@ -674,8 +678,9 @@ public class CameraPreview {
     	}
     }
 
-    protected void startAudio(){		
-    	if ((skipAudio == false) 
+    protected void startAudio(){
+        Log.i(TAG, "startAudio");
+    	if ((skipAudio == false)
 			&& (streamCtl.userSettings.isRavaMode() == false)
 			&& (streamCtl.userSettings.isProcessHdmiInAudio() == true)
 			&& (hdmiIf != null))
@@ -701,6 +706,7 @@ public class CameraPreview {
     }
 
     public void stopAudio() {
+        Log.i(TAG, "stopAudio");
     	if (skipAudio == false)
     	{
 	        Log.i(TAG, "stoppingAudio");
@@ -710,8 +716,9 @@ public class CameraPreview {
 	        }
     	}
     }
-    
+
     public void restartAudio() {
+        Log.i(TAG, "restartAudio");
     	if (is_audioplaying == true)
     	{
     		Log.i(TAG, "restartAudio(): stopping audio...");
@@ -724,20 +731,20 @@ public class CameraPreview {
     public void setVolume(int volume) {
     	audio_pb.setVolume(volume);
     }
-    
+
     public AirMediaSize getResolution() {
     	return resolution;
     }
-    
+
     private class PreviewCB implements PreviewCallback
     {
     	public final boolean confidenceMode;
-    	
+
     	public PreviewCB (boolean confidenceModeEnabled)
     	{
     		this.confidenceMode = confidenceModeEnabled;
     	}
-    	
+
 		@Override
 		public void onPreviewFrame(byte[] data, Camera camera) {
 			Log.i(TAG, "got first preview frame - kill preview timeout thread");
@@ -752,18 +759,18 @@ public class CameraPreview {
 
 			// After first frame arrives unregister callback to prevent sending multiple streamstates
 			camera.setPreviewCallback(null);
-		}    	
+		}
     }
-    
+
     private class ErrorCB implements ErrorCallback
     {
     	public final boolean confidenceMode;
-    	
+
     	public ErrorCB (boolean confidenceModeEnabled)
     	{
     		this.confidenceMode = confidenceModeEnabled;
     	}
-    	
+
     	@Override
     	public void onError(int error, Camera camera) {
             Log.e(TAG, "Camera Error callback:" + error + "Camera :" + camera);
