@@ -137,7 +137,8 @@ public class CresCanvas
 	{
 		boolean rv=false;
 		if (!CresCanvas.useCanvasSurfaces)
-			rv = mStreamCtl.airMediaIsUp(); // needed only until new apk is added that supports canvas 
+			//rv = mStreamCtl.airMediaIsUp(); // needed only until new apk is added that supports canvas 
+            rv = true;
 		else
 		    rv = (mAirMediaCanvas != null && mAirMediaCanvas.IsAirMediaCanvasUp() && mStreamCtl.airMediaIsUp());
 		Common.Logging.v(TAG, "------- IsAirMediaCanvasUp(): rv="+rv);
