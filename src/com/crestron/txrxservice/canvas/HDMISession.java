@@ -15,12 +15,13 @@ import android.view.Surface;
 
 public class HDMISession extends Session
 {
-    public static final String TAG = "TxRx.canvas.HDMI.session";
+    public static final String TAG = "TxRx HDMISession";
     private HDMIInputInterface hdmiInput;
     private static String displayLabel=null;
 
 	public HDMISession(int inputNumber) {
 		super(); // will assign id;
+        Log.i(TAG, "HDMISession");
 		state = SessionState.Connecting;
 		type = SessionType.HDMI;
 		airMediaType = null;
@@ -32,53 +33,61 @@ public class HDMISession extends Session
 			options = new CanvasSurfaceOptions(CanvasSurfaceMode.TagVideoLayer, "PreviewVideoLayer");
 		}
 	}
-	
-	public void setHdmiInput(HDMIInputInterface h) { hdmiInput = h; }
+
+	public void setHdmiInput(HDMIInputInterface h)
+    {
+        Log.i(TAG, "setHdmiInput");
+        hdmiInput = h;
+    }
 
 	public String toString()
 	{
-		return ("Session: "+type.toString()+"-"+inputNumber+"  sessionId="+sessionId());
+		String value =
+            "Session: " + type.toString() + "-" + inputNumber
+            + "  sessionId=" + sessionId();
+        Log.v(TAG, value);
+        return value;
 	}
-	
+
 	public void doStop()
 	{
-		Common.Logging.i(TAG, "HDMI Session "+this+" stop request");
+		Common.Logging.i(TAG, this + " stop request");
 		if (streamId >= 0)
 		{
 			// set device mode for this streamId to preview
 			mStreamCtl.setDeviceMode(2, streamId);
 			//start the preview mode
-			Common.Logging.i(TAG, "HDMI Session "+this+" calling Stop()");
+			Common.Logging.i(TAG, this+" calling Stop()");
 			mStreamCtl.Stop(streamId, false);
-			Common.Logging.i(TAG, "HDMI Session "+this+" sending stop to csio for audio on AM-300");
+			Common.Logging.i(TAG, this+" sending stop to csio for audio on AM-300");
 			mStreamCtl.sendHdmiStart(streamId, false);
-			Common.Logging.i(TAG, "HDMI Session "+this+" back from Stop()");
+			Common.Logging.i(TAG, this+" back from Stop()");
 			releaseSurface();
 		}
 	}
-	
+
 	public void stop(final Originator originator, int timeoutInSeconds)
 	{
 		Runnable r = new Runnable() { public void run() { doStop(); } };
         TimeSpan start = TimeSpan.now();
 		boolean completed = executeWithTimeout(r, TimeSpan.fromSeconds(timeoutInSeconds));
-		Common.Logging.i(TAG, "HDMI Session stop completed in "+TimeSpan.now().subtract(start).toString()+" seconds");
+		Common.Logging.i(TAG, "stop completed in "+TimeSpan.now().subtract(start).toString()+" seconds");
 		if (completed) {
 			streamId = -1;
 			setState(SessionState.Stopped);
 		} else {
-			Common.Logging.w(TAG, "HDMI Session "+this+" stop failed");		
+			Common.Logging.w(TAG, this+" stop failed");
 			originator.failedSessionList.add(this);
 		}
 	}
-	
+
 	public void stop(Originator originator)
 	{
 		stop(originator, 10);
 	}
-	
+
 	public void doPlay(final Originator originator)
-	{		
+	{
 		Common.Logging.i(TAG, "HDMI Session "+this+" play request");
 		setStreamId();
 		Common.Logging.i(TAG, "HDMI Session "+this+" got streamId "+streamId);
@@ -99,7 +108,7 @@ public class HDMISession extends Session
 			originator.failedSessionList.add(this);
 		}
 	}
-	
+
 	public void play(final Originator originator, int timeoutInSeconds)
 	{
 		playTimedout = false;
@@ -120,18 +129,18 @@ public class HDMISession extends Session
 			originator.failedSessionList.add(this);
 		}
 	}
-	
+
 	public void play(Originator originator)
 	{
 		play(originator, 10);
 	}
-	
+
 	public void setResolution()
 	{
 		AirMediaSize res = mStreamCtl.getPreviewResolution();
 		super.setResolution(res);
 	}
-	
+
 	public boolean audioMute(boolean enable)
 	{
 		if (enable)
@@ -148,13 +157,13 @@ public class HDMISession extends Session
 		CameraPreview.is_hdmisession_muted = enable;
 		return true;
 	}
-	
+
 	// this assumes we have a single HDMI session - so static displayLabel can be used for the single session
-	public static void setDisplayLabel(String label) 
-	{ 
+	public static void setDisplayLabel(String label)
+	{
 		Common.Logging.i(TAG, "HDMISession.setDisplayLabel(): displayLabel=label");
-		displayLabel = label; 
+		displayLabel = label;
 	}
-	
+
 	public String getDisplayLabel() { return (displayLabel==null)?userLabel:displayLabel; }
 }

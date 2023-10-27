@@ -47,7 +47,7 @@ public class CresCanvas
 	public static boolean useCanvasSurfaces = false;     // will be removed after integration
 	public static boolean useSimulatedAVF = false;  // will be removed after integration
 
-    public static final String TAG = "TxRx.canvas"; 
+    public static final String TAG = "TxRx Canvas";
 	private static final int MAX_HDMI_INPUTS = 1;
 	private static final int MAX_DM_INPUTS = 1;
 
@@ -60,22 +60,21 @@ public class CresCanvas
 	public boolean cssRestart = true;
 	public boolean canvasReady = false;
 	public SurfaceManager mSurfaceMgr=null;
-	
+
     private static boolean multiResolutionMode = MiscUtils.readStringFromDisk("/dev/shm/multiResolutionMode").equals("1");
-    
-    public boolean inMultiResolutionMode() { return multiResolutionMode; } 
+
+    public boolean inMultiResolutionMode() { return multiResolutionMode; }
 
 	public CresCanvas(com.crestron.txrxservice.CresStreamCtrl streamCtl)
 	{
-	    Log.i(TAG, "MultiResolutionMode = "+multiResolutionMode);
+	    Log.i(TAG, "CresCanvas, MultiResolutionMode = "+multiResolutionMode);
 		mSurfaceMgr = new SurfaceManager(); //TODO remove once we have real surface manager
-		Log.i(TAG, "Creating CresCanvas");
 		mStreamCtl = streamCtl;
 		mSessionMgr = new SessionManager(this);
 		try {
 			mCrestore = new CanvasCrestore(mStreamCtl, this, mSessionMgr);
 		} catch (IOException e) {
-			Common.Logging.i(TAG, "CresCanvas(): exception trying to set up cresstore connection");
+			Log.i(TAG, "CresCanvas(): exception trying to set up cresstore connection");
 			mStreamCtl.RecoverTxrxService();
 		}
 		mCanvasSourceManager = new CanvasSourceManager(mStreamCtl, mCrestore);
@@ -85,7 +84,7 @@ public class CresCanvas
 			prevHdmiResolution[i] = "false";
 		}
 	}
-	
+
 	public static CresCanvas getInstance(com.crestron.txrxservice.CresStreamCtrl streamCtl) {
 		if (SINGLE_INSTANCE == null)
 		{
@@ -93,46 +92,36 @@ public class CresCanvas
 			{
 				SINGLE_INSTANCE = new CresCanvas(streamCtl);
 			}
-			
+
 			//SINGLE_INSTANCE.mCrestore.setVideoDisplayed(true);
 			//SINGLE_INSTANCE.mCrestore.setVideoDisplayed(false);
 			//SINGLE_INSTANCE.mCrestore.setCurrentConnectionInfo("http://10.254.100.200");
 		}
 		return SINGLE_INSTANCE;
 	}
-	
-	public static CresCanvas getInstance()
-	{
-		return SINGLE_INSTANCE;
+
+	public static CresCanvas getInstance() { return SINGLE_INSTANCE; }
+
+	public CanvasCrestore getCrestore() { return mCrestore;
 	}
-	
-	public CanvasCrestore getCrestore()
-	{
-		return mCrestore;
-	}
-	
-	public CanvasSourceManager getCanvasSourceManager()
-	{
-		return mCanvasSourceManager;
-	}
-	
+
+	public CanvasSourceManager getCanvasSourceManager() { return mCanvasSourceManager; }
+
 	public void setWindows()
 	{
-		if (!CresCanvas.useCanvasSurfaces)
-			mStreamCtl.setCanvasWindows();
+		if (!CresCanvas.useCanvasSurfaces) mStreamCtl.setCanvasWindows();
 	}
-	
+
 	public void startAirMediaCanvas()
 	{
-		Common.Logging.i(TAG, "startAirMediaCanvas(): calling constructor");
+		Log.i(TAG, "startAirMediaCanvas");
 		mAirMediaCanvas = new AirMediaCanvas(mStreamCtl);
 		if (IsAirMediaCanvasUp()) {
-			Common.Logging.i(TAG, "startAirMediaCanvas(): calling canvasHasStarted()");
+			Log.i(TAG, "startAirMediaCanvas: canvasHasStarted");
 			canvasHasStarted();
-		} else
-			Common.Logging.i(TAG, "startAirMediaCanvas(): canvas has not yet started completely");
+		} else Log.i(TAG, "startAirMediaCanvas: canvas has not yet started completely");
 	}
-	
+
 	public boolean IsAirMediaCanvasUp()
 	{
 		boolean rv=false;
@@ -141,26 +130,26 @@ public class CresCanvas
             rv = true;
 		else
 		    rv = (mAirMediaCanvas != null && mAirMediaCanvas.IsAirMediaCanvasUp() && mStreamCtl.airMediaIsUp());
-		Common.Logging.v(TAG, "------- IsAirMediaCanvasUp(): rv="+rv);
+		Log.v(TAG, "IsAirMediaCanvasUp:" +rv);
 		return rv;
 	}
-	
+
 	public boolean IsInCodecFailureRecovery()
 	{
 		return codecFailure.get();
 	}
-	
+
 	public void canvasHasStarted()
 	{
 		if (!IsAirMediaCanvasUp())
 		{
-			Common.Logging.i(TAG, "canvasHasStarted(): canvas not ready (AM is up="+mStreamCtl.airMediaIsUp()+
+			Log.i(TAG, "canvasHasStarted(): canvas not ready (AM is up="+mStreamCtl.airMediaIsUp()+
 					" AM Canvas is up="+((mAirMediaCanvas != null)?mAirMediaCanvas.IsAirMediaCanvasUp():false)+")");
 			return;
 		}
-		Common.Logging.i(TAG, "canvasHasStarted(): ------ canvas is ready -------");
+		Log.i(TAG, "canvasHasStarted(): ------ canvas is ready -------");
 		// send an empty list in layout update to indicate no sessions
-		Common.Logging.i(TAG, "canvasHasStarted(): Layout update");
+		Log.i(TAG, "canvasHasStarted(): Layout update");
 		mSessionMgr.doLayoutUpdate();
 		// send Css restart signal to AVF if it is a fresh startup of CSS
 		if (cssRestart)
@@ -176,29 +165,29 @@ public class CresCanvas
 		// mark canvas ready for incoming cresstore sessions
 		canvasReady = true;
 		// start possible hdmi and dm sessions
-		Common.Logging.i(TAG, "canvasHasStarted(): HDMI sync update");
+		Log.i(TAG, "canvasHasStarted(): HDMI sync update");
 		mStreamCtl.canvasHdmiSyncStateChange(false);
-		Common.Logging.i(TAG, "canvasHasStarted(): DM sync update");
+		Log.i(TAG, "canvasHasStarted(): DM sync update");
 		mStreamCtl.canvasDmSyncStateChange();
 	}
-	
+
 	public Rect getWindow(int streamId)
 	{
 		return mStreamCtl.getWindowDimensions(streamId);
 	}
-	
+
 	public void showWindow(int streamId)
 	{
 		if (!CresCanvas.useCanvasSurfaces)
 			mStreamCtl.showCanvasWindow(streamId);
 	}
-	
+
 	public void hideWindow(int streamId)
 	{
 		if (!CresCanvas.useCanvasSurfaces)
 			mStreamCtl.hideCanvasWindow(streamId);
 	}
-	
+
 	public void clearAVF()
 	{
 		if (CresCanvas.useSimulatedAVF)
@@ -206,10 +195,10 @@ public class CresCanvas
 		else
 			getCrestore().doClearAllSessionEvent();
 	}
-	
+
 	public void clear(boolean force)
 	{
-		Common.Logging.i(TAG, "clear(): restart sessionResponseScheduler");
+		Log.i(TAG, "clear(): restart sessionResponseScheduler");
 		mCrestore.restartSchedulers();
 		// Stop and remove all sessions
 		mSessionMgr.clearAllSessions(force);
@@ -221,27 +210,27 @@ public class CresCanvas
             mStreamCtl.mWC_Service.closeSession();
         }
         else
-            Common.Logging.w(TAG, "clear(): failed to closeSession as mStreamCtl or mWC_Service is NULL!!!!");
+            Log.w(TAG, "clear(): failed to closeSession as mStreamCtl or mWC_Service is NULL!!!!");
 
 		// clear all surfaces and streamIds
 		mSurfaceMgr.releaseAllSurfaces();
-		Common.Logging.i(TAG, "clear(): exit");
+		Log.i(TAG, "clear(): exit");
 	}
-	
+
 	public synchronized void handleReceiverDisconnected()
 	{
-		Common.Logging.i(TAG, "*********************** handleReceiverDisconnected ***********************");
+		Log.i(TAG, "*********************** handleReceiverDisconnected ***********************");
 		// Stop all sessions
 		clear(false);
 		// Mark canvas as not ready until it comes up again
 		canvasReady = false;
 		// Restart of HDMI/DM will be handled when service reconnects by canvasHasStarted()
-		Common.Logging.i(TAG, "handleReceiverDisconnected(): exit");
+		Log.i(TAG, "handleReceiverDisconnected(): exit");
 	}
-	
+
 	public synchronized void handleCodecFailure()
 	{
-		Common.Logging.i(TAG, "*********************** handleCodecFailure ***********************");
+		Log.i(TAG, "*********************** handleCodecFailure ***********************");
 		codecFailure.set(true);
 		// What do we do to handle ducati or media codec failure
 		// Stop all sessions
@@ -269,17 +258,17 @@ public class CresCanvas
 		}
 		codecFailure.set(false);
 		// Restart HDMI/DM if possible
-		Common.Logging.i(TAG, "handleCodecFailure(): restarting HDMI if needed");
+		Log.i(TAG, "handleCodecFailure(): restarting HDMI if needed");
 		mStreamCtl.canvasHdmiSyncStateChange(false);
-		Common.Logging.i(TAG, "handleCodecFailure(): restarting DM if needed");
+		Log.i(TAG, "handleCodecFailure(): restarting DM if needed");
 		mStreamCtl.canvasDmSyncStateChange();
 	}
-	
+
 	public void handleAvfRestart(boolean restart)
 	{
 		if (restart)
 		{
-			Common.Logging.i(TAG, "*********************** handleAvfRestart ***********************");
+			Log.i(TAG, "*********************** handleAvfRestart ***********************");
 			final boolean isInAvfRestart = avfRestarting.get();
 			//final boolean isInAvfRestart = false; // force full startup on AVF restart
 			avfRestarting.compareAndSet(true, false);
@@ -292,77 +281,78 @@ public class CresCanvas
 			}
 			else
 			{
-				Common.Logging.i(TAG, "handleAvfRestart(): in codec failure/receiver restart - don't send any sessions to AVF - will be sent by codec failure handler");
+				Log.i(TAG, "handleAvfRestart(): in codec failure/receiver restart - don't send any sessions to AVF - will be sent by codec failure handler");
 				avfRestart.set(true);
 			}
 		}
 		else
 		{
-			Common.Logging.i(TAG, "*********************** AVF stopping to restart ***********************");
+			Log.i(TAG, "*********************** AVF stopping to restart ***********************");
 			avfRestarting.compareAndSet(false, true);
 		}
 	}
-	
+
 	public void avfForcedStartup(boolean restart, String from)
 	{
 		if (restart)
 		{
-			Common.Logging.i(TAG, "avfForcedStartup(): (restart=true) - send all current sessions to AVF");
+			Log.i(TAG, "avfForcedStartup(): (restart=true) - send all current sessions to AVF");
 			mSessionMgr.sendAllSessionsInSessionEvent(new Originator(RequestOrigin.Error));
 		} else {
-			Common.Logging.i(TAG, "avfForcedStartup(): (restart=false) - clear all sessions");
+			Log.i(TAG, "avfForcedStartup(): (restart=false) - clear all sessions");
 			clear(true);
-			Common.Logging.i(TAG, "avfForcedStartup() - send empty session event list to AVF");
+			Log.i(TAG, "avfForcedStartup() - send empty session event list to AVF");
 			mSessionMgr.sendAllSessionsInSessionEvent(new Originator(RequestOrigin.Error));
 			// Restart HDMI/DM if possible
-			Common.Logging.i(TAG, from+": restarting HDMI if needed");
+			Log.i(TAG, from+": restarting HDMI if needed");
 			mStreamCtl.canvasHdmiSyncStateChange(false);
-			Common.Logging.i(TAG, from+": restarting DM if needed");
+			Log.i(TAG, from+": restarting DM if needed");
 			mStreamCtl.canvasDmSyncStateChange();
 		}
 	}
-	
+
 	public void handlePossibleHdmiSyncStateChange(int inputNumber, HDMIInputInterface hdmiInput)
 	{
 		handlePossibleHdmiSyncStateChange(inputNumber, hdmiInput, true);
 	}
-	
+
 	public synchronized void handlePossibleHdmiSyncStateChange(int inputNumber, HDMIInputInterface hdmiInput, boolean changeCheck)
 	{
 		final int HdmiTimeout = 15; // seconds
 
+        Log.v(TAG, "handlePossibleHdmiSyncStateChange:" + inputNumber);
 		if (!IsAirMediaCanvasUp())
 		{
-			Common.Logging.i(TAG, "handlePossibleHdmiSyncStateChange(): AirMediaCanvas not up - cannot display HDMI yet");
+			Log.i(TAG, "handlePossibleHdmiSyncStateChange(): AirMediaCanvas not up - cannot display HDMI yet");
 			mStreamCtl.setChangedBeforeStartUp(StartupEvent.eAirMediaCanvas_HDMI_IN_SYNC, true);
 			return;
 		}
 		mStreamCtl.setChangedBeforeStartUp(StartupEvent.eAirMediaCanvas_HDMI_IN_SYNC, false);
-		
+
 		if (inputNumber > MAX_HDMI_INPUTS)
 		{
-			Common.Logging.e(TAG, "HDMI input number is "+inputNumber+"   Max allowed is "+MAX_HDMI_INPUTS);
+			Log.e(TAG, "HDMI input number is "+inputNumber+"   Max allowed is "+MAX_HDMI_INPUTS);
 			return;
 		}
 		String res = hdmiInput.getHorizontalRes() + "x" + hdmiInput.getVerticalRes();
 		Session session = mSessionMgr.findSession("HDMI", "", "", inputNumber);
-		Common.Logging.i(TAG, "handlePossibleHdmiSyncStateChange(): syncStatus="+hdmiInput.getSyncStatus()+"    resolution="+res+
+		Log.i(TAG, "handlePossibleHdmiSyncStateChange(): syncStatus="+hdmiInput.getSyncStatus()+"    resolution="+res+
 				"     checkForChange="+changeCheck);
-		if (mStreamCtl.isAM3K) { 
+		if (mStreamCtl.isAM3K) {
 		    if (!mStreamCtl.mHdmiCameraIsConnected) {
 		        // For AM3K if camera is disconnected force a res of 0 so we do disconnect event
 		        res = "0x0";
-		        Common.Logging.i(TAG,  "handlePossibleHdmiSyncStateChange(): forcing res to 0 since camera is disconnected");
+		        Log.i(TAG,  "handlePossibleHdmiSyncStateChange(): forcing res to 0 since camera is disconnected");
 		    } else if (res.equals("0x0")){
 		        // For AM3K if camera is connected snd res is 0 - ignore event for now - will be handled when res changes to non-zero
-		        Common.Logging.i(TAG,  "handlePossibleHdmiSyncStateChange(): got 0 resolution with connected camera - ignoring for now");
+		        Log.i(TAG,  "handlePossibleHdmiSyncStateChange(): got 0 resolution with connected camera - ignoring for now");
 		        return;
 		    }
 		}
 		if (changeCheck && (hdmiInput.getSyncStatus().equalsIgnoreCase(prevHdmiSyncStatus[inputNumber]) &&
 				res.equalsIgnoreCase(prevHdmiResolution[inputNumber])))
 		{
-			Common.Logging.e(TAG, "handlePossibleHdmiSyncStateChange(): no change in resolution or sync status");
+			Log.e(TAG, "handlePossibleHdmiSyncStateChange(): no change in resolution or sync status");
 			return;
 		}
 		prevHdmiSyncStatus[inputNumber] = hdmiInput.getSyncStatus();
@@ -374,54 +364,56 @@ public class CresCanvas
 			// HDMI sync is true but we want to stop presentation if HDMI input is set to camera mode
 			if (res.equals("0x0"))
 			{
-				Common.Logging.e(TAG, "HDMI sync is true yet resolution is 0x0");
+				Log.e(TAG, "HDMI sync is true yet resolution is 0x0");
 				return;
 			}
 			// if session is playing it should be stopped
 			if (session != null)
 			{
-				
-				Common.Logging.e(TAG, "HDMI sync is true with existing HDMI session in state "+session.state);
+
+				Log.e(TAG, "HDMI sync is true with existing HDMI session in state "+session.state);
 				mCrestore.doSynchronousSessionEvent(session, "Disconnect", origin, HdmiTimeout);
-				Common.Logging.v(TAG, "HDMI session "+session+" disconnected");
+				Log.v(TAG, "HDMI session "+session+" disconnected");
 			}
 			session = com.crestron.txrxservice.canvas.Session.createSession("HDMI", "HDMI"+inputNumber, null, 1, null);
 			((HDMISession) session).setHdmiInput(hdmiInput);
-			Common.Logging.i(TAG, "Adding session " + session + " to sessionManager");
+			Log.i(TAG, "Adding session " + session + " to sessionManager");
 			mSessionMgr.add(session);
 			mCrestore.doSynchronousSessionEvent(session, "Connect", origin, HdmiTimeout);
-			Common.Logging.v(TAG, "HDMI session "+session+" connected");
+			Log.v(TAG, "HDMI session "+session+" connected");
 		}
 		else
 		{
 			// if session is playing it should be stopped
 			if (session != null)
 			{
-				
-				Common.Logging.e(TAG, "HDMI sync is false with existing HDMI session in state "+session.state);
+
+				Log.e(TAG, "HDMI sync is false with existing HDMI session in state "+session.state);
 	            mCrestore.doSynchronousSessionEvent(session, "Disconnect", origin, HdmiTimeout);
-				Common.Logging.v(TAG, "HDMI session "+session+" disconnected");
+				Log.v(TAG, "HDMI session "+session+" disconnected");
 			}
 			else
 			{
-				Common.Logging.e(TAG, "No existing HDMI session");
+				Log.e(TAG, "No existing HDMI session");
 			}
 		}
-		Common.Logging.v(TAG, "handlePossibleHdmiSyncStateChange(): exit");
+		Log.v(TAG, "handlePossibleHdmiSyncStateChange(): exit");
 	}
-	
+
 	public synchronized void handleDmSyncStateChange(int inputNumber)
 	{
 		final int DmTimeout = 15; // seconds
 
+        Log.v(TAG, "handleDmSyncStateChange:" + inputNumber);
+
 		if (!IsAirMediaCanvasUp())
 		{
-			Common.Logging.e(TAG, "AirMediaCanvas not up - cannot display DM yet");
+			Log.e(TAG, "AirMediaCanvas not up - cannot display DM yet");
 			return;
 		}
 		if (inputNumber > MAX_DM_INPUTS)
 		{
-			Common.Logging.e(TAG, "DM input number is "+inputNumber+"   Max allowed is "+MAX_DM_INPUTS);
+			Log.e(TAG, "DM input number is "+inputNumber+"   Max allowed is "+MAX_DM_INPUTS);
 			return;
 		}
 		Session session = mSessionMgr.findSession("DM", "", "", inputNumber);
@@ -431,40 +423,40 @@ public class CresCanvas
 			// if session is playing it should be stopped
 			if (session != null)
 			{
-				
-				Common.Logging.e(TAG, "DM sync is true with existing DM session in state "+session.state);
+
+				Log.e(TAG, "DM sync is true with existing DM session in state "+session.state);
 				mCrestore.doSynchronousSessionEvent(session, "Disconnect", origin, DmTimeout);
-				Common.Logging.v(TAG, "DM session "+session+" disconnected");			
+				Log.v(TAG, "DM session "+session+" disconnected");
 			}
 			session = com.crestron.txrxservice.canvas.Session.createSession("DM", "DM"+inputNumber, null, inputNumber, null);
-			Common.Logging.i(TAG, "Adding session " + session + " to sessionManager");
+			Log.i(TAG, "Adding session " + session + " to sessionManager");
 			mSessionMgr.add(session);
 			mCrestore.doSynchronousSessionEvent(session, "Connect", origin, DmTimeout);
-			Common.Logging.v(TAG, "DM session "+session+" connected");
+			Log.v(TAG, "DM session "+session+" connected");
 		}
 		else
 		{
 			// if session is playing it should be stopped
 			if (session != null)
 			{
-				
-				Common.Logging.e(TAG, "DM sync is false with existing DM session in state "+session.state);
+
+				Log.e(TAG, "DM sync is false with existing DM session in state "+session.state);
 	            mCrestore.doSynchronousSessionEvent(session, "Disconnect", origin, DmTimeout);
-				Common.Logging.v(TAG, "DM session "+session+" disconnected");
+				Log.v(TAG, "DM session "+session+" disconnected");
 			}
 			else
 			{
-				Common.Logging.w(TAG, "No existing DM session");
+				Log.w(TAG, "No existing DM session");
 			}
 		}
-		Common.Logging.v(TAG, "handleDmSyncStateChange(): exit");
+		Log.v(TAG, "handleDmSyncStateChange(): exit");
 	}
-	
+
 	public synchronized void handleDmHdcpBlankChange(boolean blank, int inputNumber)
 	{
 		if (inputNumber > MAX_DM_INPUTS)
 		{
-			Common.Logging.e(TAG, "DM input number is "+inputNumber+"   Max allowed is "+MAX_DM_INPUTS);
+			Log.e(TAG, "DM input number is "+inputNumber+"   Max allowed is "+MAX_DM_INPUTS);
 			return;
 		}
 		Session session = mSessionMgr.findSession("DM", "", "", inputNumber);
@@ -473,7 +465,7 @@ public class CresCanvas
 			((DMSession) session).setHdcpBlank(blank);
 		}
 	}
-	
+
 	public void setSessionResolution(int streamId, int width, int height)
 	{
 		Session session = mSessionMgr.findSession(streamId);
@@ -490,7 +482,7 @@ public class CresCanvas
 				Log.e(TAG, "setSessionResolution(): streamId="+streamId+" session="+this+" is not an Airboard session");
 		}
 	}
-	
+
 	public boolean sessionPlayTimedout(String sessionId)
 	{
 		Session session = mSessionMgr.findSession(sessionId);
@@ -498,7 +490,7 @@ public class CresCanvas
 			return true;
 		return session.playTimedout;
 	}
-	
+
 	public String getSessionId(Session session)
 	{
 		if (session != null)
@@ -506,7 +498,7 @@ public class CresCanvas
 		else
 			return "Session Does Not Exist";
 	}
-	
+
     public Surface acquireSurface(Session session)
     {
         CanvasSurfaceAcquireResponse response = null;
@@ -517,19 +509,19 @@ public class CresCanvas
             {
                 if (mStreamCtl != null && mStreamCtl.dontStartAirMediaFlag())
                 {
-                    Common.Logging.i(TAG, "dontStartAirMediaFlag is on, skip surfaceAcquire for session: "
+                    Log.i(TAG, "dontStartAirMediaFlag is on, skip surfaceAcquire for session: "
                             + getSessionId(session) + " with options=" + session.options);
                 }
                 else
                 {
-                    Common.Logging.i(TAG, "surfaceAcquire for session: " + getSessionId(session) + " with options="
+                    Log.i(TAG, "surfaceAcquire for session: " + getSessionId(session) + " with options="
                             + session.options);
                     response = mAirMediaCanvas.service().surfaceAcquireWithSession(canvasSourceSession);
                 }
             }
             else
             {
-                Common.Logging.i(TAG, "surfaceReplace for session: " + getSessionId(session) + " old sessionId="
+                Log.i(TAG, "surfaceReplace for session: " + getSessionId(session) + " old sessionId="
                         + Session.replace.oldSessionId + " with options=" + session.options);
                 response = mAirMediaCanvas.service().surfaceReplaceWithSession(Session.replace.oldSessionId,
                         canvasSourceSession);
@@ -537,7 +529,7 @@ public class CresCanvas
         }
         catch (android.os.RemoteException ex)
         {
-            Common.Logging.e(TAG,
+            Log.e(TAG,
                     "exception encountered while calling surfaceAcquire for session: " + getSessionId(session));
             ex.printStackTrace();
             return null;
@@ -546,7 +538,7 @@ public class CresCanvas
         if (sessionPlayTimedout(getSessionId(session)))
         {
             // release the surface - it is too late for us to use it
-            Common.Logging.e(TAG, "Timed out while calling surfaceAcquire for session: " + getSessionId(session));
+            Log.e(TAG, "Timed out while calling surfaceAcquire for session: " + getSessionId(session));
             releaseSurface(getSessionId(session));
             return null;
         }
@@ -566,17 +558,17 @@ public class CresCanvas
         }
         else
         {
-            Common.Logging.e(TAG,
+            Log.e(TAG,
                     "acquireSurface was unable to get surface from Canvas App for session: " + getSessionId(session));
             if (response != null && response.getErrorCode() == CanvasResponse.ErrorCodes.TimedOut)
             {
-                Common.Logging.e(TAG, "CresCanvas.acquireSurface: fatal eror timed out while acquiring surface for sessionId="+getSessionId(session));
+                Log.e(TAG, "CresCanvas.acquireSurface: fatal eror timed out while acquiring surface for sessionId="+getSessionId(session));
                 mStreamCtl.RecoverTxrxService();
             }
             return null;
         }
     }
-	
+
 	public void releaseSurface(String sessionId)
 	{
 		CanvasResponse response = null;
@@ -584,20 +576,20 @@ public class CresCanvas
 			response = mAirMediaCanvas.service().surfaceRelease(sessionId);
 		} catch(android.os.RemoteException ex)
 		{
-			Common.Logging.e(TAG, "exception encountered while calling surfaceRelease for session: "+sessionId);
+			Log.e(TAG, "exception encountered while calling surfaceRelease for session: "+sessionId);
 			ex.printStackTrace();
 		}
 		if (response == null || !response.isSucceeded())
 		{
-			Common.Logging.e(TAG, "Canvas App failed to release surface for session: "+sessionId);
+			Log.e(TAG, "Canvas App failed to release surface for session: "+sessionId);
 			if (response != null && response.getErrorCode() == CanvasResponse.ErrorCodes.TimedOut)
 			{
-			    Common.Logging.e(TAG, "CresCanvas.releaseSurface: fatal eror timed out while releasing surface for sessionId="+sessionId);
+			    Log.e(TAG, "CresCanvas.releaseSurface: fatal eror timed out while releasing surface for sessionId="+sessionId);
 			    mStreamCtl.RecoverTxrxService();
 			}
 		}
 	}
-	
+
 	public class SurfaceManager {
 		Surface surfaces[] = new Surface[mStreamCtl.NumOfSurfaces];
 
@@ -606,7 +598,7 @@ public class CresCanvas
 			for (int i=0; i < mStreamCtl.NumOfSurfaces; i++)
 				surfaces[i] = null;
 		}
-		
+
 		public synchronized Surface streamId2Surface(int streamId)
 		{
 			if (streamId >= mStreamCtl.NumOfSurfaces)
@@ -616,7 +608,7 @@ public class CresCanvas
 			}
 			return surfaces[streamId];
 		}
-		
+
 		public synchronized int surface2StreamId(Surface s)
 		{
 			for (int i = 0; i < mStreamCtl.NumOfSurfaces; i++)
@@ -626,7 +618,7 @@ public class CresCanvas
 			}
 			return -1;
 		}
-		
+
 		public synchronized int getUnusedStreamId()
 		{
 			for (int i=0; i < mStreamCtl.NumOfSurfaces; i++)
@@ -638,7 +630,7 @@ public class CresCanvas
 			}
 			return -1;
 		}
-		
+
 		public synchronized int addSurface(Surface s)
 		{
 
@@ -649,22 +641,22 @@ public class CresCanvas
 			}
 			return streamId;
 		}
-		
+
 		public synchronized void addSurface(int streamId, Surface s)
 		{
 			if (streamId < 0 || streamId >= mStreamCtl.NumOfSurfaces)
 			{
-				Common.Logging.w(TAG, "invalid streamId "+streamId+" passed to addSurface");
+				Log.w(TAG, "invalid streamId "+streamId+" passed to addSurface");
 				return;
 			}
 			if (s == null || !s.isValid())
 			{
-				Common.Logging.w(TAG, "null or invalid surface passed to addSurface for streamId "+streamId);
+				Log.w(TAG, "null or invalid surface passed to addSurface for streamId "+streamId);
 				return;
 			}
 			surfaces[streamId] = s;
 		}
-		
+
 		public synchronized void removeSurface(Surface s)
 		{
 			for (int i=0; i < mStreamCtl.NumOfSurfaces; i++)
@@ -673,7 +665,7 @@ public class CresCanvas
 					surfaces[i] = null;
 			}
 		}
-		
+
 		public synchronized void removeSurface(int streamId)
 		{
 			if (streamId < 0 || streamId >= mStreamCtl.NumOfSurfaces)
@@ -685,7 +677,7 @@ public class CresCanvas
 				surfaces[streamId] = null;
 			}
 		}
-		
+
 	    public void releaseAllSurfaces()
 	    {
 			for (int i=0; i < mStreamCtl.NumOfSurfaces; i++)
@@ -699,7 +691,7 @@ public class CresCanvas
 			}
 	    }
 	}
-    
+
 	public CanvasSourceRequest createCanvasSourceRequest(long id, String sessionId, CanvasSourceAction action)
 	{
 	    CanvasSourceTransaction t = new CanvasSourceTransaction(sessionId, action);
@@ -708,7 +700,7 @@ public class CresCanvas
 	    CanvasSourceRequest request = new CanvasSourceRequest(1, transactionList);
 	    return request;
 	}
-	
+
 	public void CanvasConsoleCommand(String cmd)
 	{
 		Log.i(TAG, "CanvasConsoleCommand: cmd="+cmd);
@@ -718,7 +710,7 @@ public class CresCanvas
 		if (args[0].equalsIgnoreCase("show"))
 		{
 			mSessionMgr.logSessionStates("CanvasConsoleCmd");
-		} 
+		}
 		else if (args[0].equalsIgnoreCase("stop"))
 		{
 			String sessionId = (args.length == 1) ? "all" : args[1];
@@ -774,7 +766,7 @@ public class CresCanvas
 		else if (args[0].equalsIgnoreCase("testPrioritySchedulerShutDown"))
 		{
 			new Thread(new Runnable() {
-				@Override 
+				@Override
 				public void run()
 				{
 					final CountDownLatch latch = new CountDownLatch(1);
@@ -792,10 +784,10 @@ public class CresCanvas
 					mCrestore.sessionScheduler.queue(r, PriorityScheduler.NORMAL_PRIORITY);
 					try {
 						latch.await();
-					} 
+					}
 					catch(Exception e)
 					{
-						Common.Logging.i(TAG,  "testPrioritySchedulerShutDown(): interrupted exception for latch await");
+						Log.i(TAG,  "testPrioritySchedulerShutDown(): interrupted exception for latch await");
 					}
 				}
 			}).start();
@@ -875,20 +867,20 @@ public class CresCanvas
 			}
 		}
         else if (args[0].equalsIgnoreCase("managerlist"))
-        {	
+        {
             Collection<Session> collection = mSessionMgr.sessions();
-            for(Session session : collection) {                
+            for(Session session : collection) {
                 Log.i(TAG, "managerlist Network session: " + session);
                 Log.i(TAG, "managerlist Network id: " + session.id());
                 Log.i(TAG, "managerlist Network getUserLabel: " + session.getUserLabel());
                 Log.i(TAG, "managerlist Network getInputNumber: " + session.getInputNumber());
                 Log.i(TAG, "managerlist Network sessionId: " + session.sessionId());
-                Log.i(TAG, "managerlist Network streamId: " + session.streamId);				
+                Log.i(TAG, "managerlist Network streamId: " + session.streamId);
                 Log.i(TAG, "managerlist Network isStopped: " + session.isStopped());
                 Log.i(TAG, "managerlist Network isPlaying: " + session.isPlaying());
                 Log.i(TAG, "managerlist Network isPaused: " + session.isPaused());
                 Log.i(TAG, "managerlist Network isAudioMuted: " + session.isAudioMuted);
-                
+
                 Log.i(TAG, "managerlist Network isConnecting: " + session.isConnecting());
                 Log.i(TAG, "managerlist Network getState: " + session.getState());
                 Log.i(TAG, "managerlist Network getType: " + session.getType());
@@ -913,7 +905,7 @@ public class CresCanvas
             //mSessionMgr.disconnectAllSessions(new Originator(RequestOrigin.Error));
         }
         else if (args[0].equalsIgnoreCase("sendLostVideo"))
-        {   
+        {
             mStreamCtl.sendLostVideoIntent();
         }
 	}

@@ -33,7 +33,7 @@ public class HDMIInputInterface {
     public static final boolean isC865C =
     	CresStreamCtrl.CrestronProductName.fromInteger(CresStreamCtrl.nativeGetProductTypeEnum())
         == CresStreamCtrl.CrestronProductName.C865C;
- 
+
     public static boolean useAm3kStateMachine = true;
 
 	public HDMIInputInterface(CresStreamCtrl sCtl)
@@ -48,19 +48,19 @@ public class HDMIInputInterface {
 		audioChannels = "0";
 		resolutionIndex = 0;
 		isHdmiDriverPresent = (isHdmiDriverPresent | false); //set isHdmiDriverPresentH to false if not set
-        if(isAM3K || isDGE3200 || isC865C)      {            
+        if(isAM3K || isDGE3200 || isC865C)      {
             am3kHdmiStateMachine = new Am3KHdmiStateMachine();
         }
 	}
-		
+
 	public void setSyncStatus(int resEnum) {
 		if (isHdmiDriverPresent == true)
 		{
 			// Old Mistral interface
 //			byte[] hdmiInSyncStatus = ProductSpecific.getEVSHdmiInSyncStatus();
-//			
+//
 //			Log.i(TAG, "SyncStatus " + (char)hdmiInSyncStatus[0]);
-//	
+//
 //			if(((char)hdmiInSyncStatus[0] == '1') && (resolutionIndex != 0))
 			if ( resEnum > 0)	// Only send sync status high if valid resolution enum
 				syncStatus = "true";
@@ -68,47 +68,47 @@ public class HDMIInputInterface {
 				syncStatus = "false";
 		}
 	}
-	
+
 	public void setResolutionIndex(int index){
 		resolutionIndex = index;
 	}
-	
+
 	public int getResolutionIndex() {
 		return resolutionIndex;
 	}
-	
+
 	public String getSyncStatus() {
 		return syncStatus;
 	}
 
-	public String getInterlacing() { 
+	public String getInterlacing() {
 		return String.valueOf(readInterlaced());
 	}
 
-	public void setHorizontalRes(String _horizontalRes) { 
-		horizontalRes = _horizontalRes; 
+	public void setHorizontalRes(String _horizontalRes) {
+		horizontalRes = _horizontalRes;
 	}
-	
+
 	public String getHorizontalRes() {
 		return horizontalRes;
 	}
 
-	public void setVerticalRes(String _verticalRes) { 
-		verticalRes = _verticalRes; 
+	public void setVerticalRes(String _verticalRes) {
+		verticalRes = _verticalRes;
 	}
-	
+
 	public String getVerticalRes() {
 		return verticalRes;
 	}
 
-	public void setFPS(String _fps) { 
-		fps = _fps; 
+	public void setFPS(String _fps) {
+		fps = _fps;
 	}
-	
+
 	public String getFPS() {
 		return fps;
 	}
-	
+
 	public void setAspectRatio() {
 		if(syncStatus == "false")
 		{
@@ -117,40 +117,40 @@ public class HDMIInputInterface {
 		}
 		else
 			aspectRatio = MiscUtils.calculateAspectRatio(Integer.parseInt(horizontalRes), Integer.parseInt(verticalRes));
-		
+
 		Log.i(TAG, "AR " + aspectRatio);
 		return;
 	}
-	
+
 	public String getAspectRatio() {
 		return aspectRatio;
 	}
-	
+
 	public void setAudioFormat(String audioFmt) {
 		audioFormat = audioFmt;
 	}
-	
+
 	public void setAudioChannels(String audioChn) {
 		audioChannels = audioChn;
 	}
-	
+
 	public String getAudioFormat() {
 		return audioFormat;
 	}
-	
+
 	public String getAudioChannels() {
 		return audioChannels;
 	}
 
 	public String getAudioSampleRate() {
-		
+
 		return Integer.toString(readAudioSampleRate());
 	}
-	
-    public void updateResolutionInfo() 
+
+    public void updateResolutionInfo()
     {
         setSyncStatus(readResolutionEnum(false));
-        
+
         String delims_am3x = "[xp]+"; // Delimiter for AM3X products
         String delims = "[x@]+"; //Delimiter for All products
         String hdmiInResolution = "0x0@0";
@@ -185,23 +185,23 @@ public class HDMIInputInterface {
             setFPS(Integer.toString(fps));
         }
         setAspectRatio();
-        
+
         if (Boolean.parseBoolean(getSyncStatus()) == true)
         {
-        	setAudioFormat("1");        	
+        	setAudioFormat("1");
         	setAudioChannels("2");
     	}
         else
         {
-        	setAudioFormat("0");        	
+        	setAudioFormat("0");
         	setAudioChannels("0");
         }
     }
-    
+
     public static void setHdmiDriverPresent(boolean isPresent) {
     	isHdmiDriverPresent = isPresent;
     }
-        
+
     public static int getHdmiHpdEventState(){
     	if (isHdmiDriverPresent == true)
 		{
@@ -258,7 +258,7 @@ public class HDMIInputInterface {
                 return text.toString();
             }
             else
-            { 
+            {
                 if (!useAm3kStateMachine)
                     return am3kHdmiStateMachine.readResolutionSysFs();
                 else
@@ -293,7 +293,7 @@ public class HDMIInputInterface {
                 }
             }
             else
-            {   
+            {
                 //For AM3X handle default case differently
                 String hdmiInResolution = "0x0@0";
                 String tokens[] = hdmiInResolution.split("[x@]+");
@@ -370,12 +370,12 @@ public class HDMIInputInterface {
     	else
     		return 0;
     }
-    
+
     public static int getResolutionEnum()
     {
     	return resolutionIndex;
     }
-    
+
     public static boolean readHDCPInputStatus (){
 
     	if (isHdmiDriverPresent == true)
@@ -423,10 +423,10 @@ public class HDMIInputInterface {
                 //    return false;
             }
 		}
-    	else 
+    	else
     		return false;
     }
-    
+
     public static boolean readSyncState (){
     	if (isHdmiDriverPresent == true)
 		{
@@ -456,10 +456,10 @@ public class HDMIInputInterface {
                     return am3kHdmiStateMachine.getSyncState();
             }
 		}
-    	else 
+    	else
     		return false;
     }
-    
+
     public static int readAudioSampleRate (){
     	if (isHdmiDriverPresent == true)
 		{
@@ -500,7 +500,7 @@ public class HDMIInputInterface {
             }
 	        return Integer.parseInt(text.toString());
 		}
-    	else 
+    	else
     		return 0;
     }
 
@@ -534,12 +534,12 @@ public class HDMIInputInterface {
         else
     		return false;
     }
-    
+
     public boolean isHdmiCameraConnected()
     {
         return hdmiCameraIsConnected;
     }
-    
+
     public void setHdmiCameraConnected(boolean connected)
     {
         if (hdmiCameraIsConnected != connected)
@@ -566,15 +566,15 @@ public class HDMIInputInterface {
         public final boolean onlyUseCameraConnectEvents = true;
         private Object threadLock = new Object();
         private Object lock = new Object();
-        
+
         private boolean sync;
         private boolean pendingSync;
         private int pendingSyncCount;
-        
+
         private String resolution;
         private String pendingResolution;
         private int pendingResolutionCount;
-       
+
         public boolean notification = false;
 
         private boolean readSyncStateSysFs()
@@ -596,7 +596,7 @@ public class HDMIInputInterface {
             //}
             //return Integer.parseInt(text.toString()) == 1;
         }
-        
+
         public boolean getSyncState()
         {
             synchronized (lock) {
@@ -606,11 +606,12 @@ public class HDMIInputInterface {
                     return sync;
             }
         }
-        
+
         public String readResolutionSysFs()
         {
             // WORKAROUND
             return "1920x1080p60";
+            //return "3840x2160pp30";
 
             //StringBuilder text = new StringBuilder(16);
             ////for AM3X
@@ -629,10 +630,10 @@ public class HDMIInputInterface {
             ////Log.i(TAG, "HDMI IN Res from sysfs:" + text.toString());
             //return text.toString();
         }
-        
+
         public String getResolutionSysFs()
         {
-            synchronized(lock) 
+            synchronized(lock)
             {
                 if (onlyUseCameraConnectEvents)
                     return (hdmiCameraIsConnected) ? resolution : "0";
@@ -640,8 +641,8 @@ public class HDMIInputInterface {
                     return resolution;
             }
         }
-        
-        
+
+
         public Am3KHdmiStateMachine() {
             // initialize sync, resolutionIndex etc;
             sync = readSyncStateSysFs();
@@ -650,7 +651,7 @@ public class HDMIInputInterface {
             resolution = readResolutionSysFs();
             pendingResolution = resolution;
             pendingResolutionCount = MIN_COUNT_FOR_CHANGE;;
-            
+
             if (useAm3kStateMachine)
             {
                 // launch state machine thread
@@ -658,11 +659,11 @@ public class HDMIInputInterface {
                 stateMachineThread.start();
             }
         }
-        
+
         public Object getInstance() {
             return this;
         }
-        
+
         public class StateMachineThread extends Thread {
             public int threadCount = 0;
             public String resolutionEventReason = null;
@@ -687,7 +688,7 @@ public class HDMIInputInterface {
                     threadCount++;
 
                     resolutionEventReason = null;
-                    
+
                     if (hdmiCameraConnectionStateChanged) {
                         // set flag to force update of input HDMI resolution event
                         resolutionEventReason = "camera connected state changed to "+hdmiCameraIsConnected;
@@ -713,9 +714,9 @@ public class HDMIInputInterface {
                         }
                         hdmiCameraConnectionStateChanged = false;
                     }
-                    
-                    
-                    // Right now we only want to react to real changes in sync and resolution if accompanied by 
+
+
+                    // Right now we only want to react to real changes in sync and resolution if accompanied by
                     // a camera connect/disconnect event.
                     if (!onlyUseCameraConnectEvents) {
                         boolean s = readSyncStateSysFs();
@@ -785,11 +786,11 @@ public class HDMIInputInterface {
                             }
                         }
                     }
-                    
+
                     if (resolutionEventReason != null) {
                         int resolutionId = readResolutionEnum(false);
                         Log.i(TAG, "am3kHdmiStateMachineThread calling handleHdmiInputResolutionEvent with resolutionId=" + resolutionId + " because "+resolutionEventReason);
-                        streamCtl.handleHdmiInputResolutionEvent(resolutionId);                        
+                        streamCtl.handleHdmiInputResolutionEvent(resolutionId);
                     }
                 }
             }

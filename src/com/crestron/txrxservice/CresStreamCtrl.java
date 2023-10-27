@@ -749,38 +749,21 @@ public class CresStreamCtrl extends Service {
     private final MyReentrantLock[] streamStateLock 	= new MyReentrantLock[NumOfSurfaces]; // members will be allocated in constructor
 
     private class HdmiAm3K {
-        boolean isPlaying;
-        boolean sync;
+        boolean isPlaying = false;
+        boolean sync = false;
 
-        HdmiAm3K() {
-            isPlaying = false;
-            sync = false;
-        }
-
-        public boolean getIsPlaying()
-        {
-            return isPlaying;
-        }
+        public boolean getIsPlaying() { return isPlaying; }
 
         public void setIsPlaying(boolean isPlaying)
         {
-            if (isAM3K || m_isDGE3200 || isC865C)
-            {
-                this.isPlaying = isPlaying;
-            }
+            if (isAM3K || m_isDGE3200 || isC865C) this.isPlaying = isPlaying;
         }
 
-        public boolean getSync()
-        {
-            return sync;
-        }
+        public boolean getSync() { return sync; }
 
         public void setSync(boolean sync)
         {
-            if (isAM3K || m_isDGE3200 || isC865C)
-            {
-                this.sync = sync;
-            }
+            if (isAM3K || m_isDGE3200 || isC865C) this.sync = sync;
         }
     }
     HdmiAm3K mPreviousHdmi = new HdmiAm3K();   // currently meant to be used for only AM3K
@@ -2434,10 +2417,7 @@ public class CresStreamCtrl extends Service {
         new Thread(new Runnable() {
             @Override
             public void run() {
-                if (mAirMedia != null)
-                {
-                    mAirMedia.recover();
-                }
+                if (mAirMedia != null) mAirMedia.recover();
             }
         }).start();
 
@@ -2522,12 +2502,14 @@ public class CresStreamCtrl extends Service {
                 // Poll input and output HDCP states once a second
                 while (!Thread.currentThread().isInterrupted())
                 {
-                    // Sleep 1 second
                     try {
                         Thread.sleep(1000);
                     } catch (Exception e) { e.printStackTrace(); }
 
                     hdmiLock.lock();
+
+                    Log.i(TAG, "monitorSystemState");
+
                     try
                     {
                         if(isAM3K || m_isDGE3200 || isC865C)
@@ -2535,21 +2517,19 @@ public class CresStreamCtrl extends Service {
                             int changes = getChangesBeforeStartup();
                             if(changes != 0)
                             {
-                                if((mBeforeStartUpMsgCntr % 5) == 0)
-                                    Log.i(TAG, "Found changes before module(s) started up.");
+                                //if((mBeforeStartUpMsgCntr % 5) == 0)
+                                    Log.i(TAG, "Found changes before module(s) started up: " + mBeforeStartUpMsgCntr);
 
                                 mBeforeStartUpMsgCntr++;
                                 handleChangesBeforeStartUp(changes);
                             }
                         }
 
-                        // Query HDCP status
-                        boolean hdcpStatusChanged = checkHDCPStatus();
-                        if (hdcpStatusChanged) // Only send hdcp feedback if hdcp status has changed
-                            sendHDCPFeedbacks();
+                        // Only send hdcp feedback if hdcp status has changed
+                        if(checkHDCPStatus()) sendHDCPFeedbacks();
 
                         // Query hdmiInput audio sampling frequency
-                        if (mIgnoreAllCrash != true) // Dont activate this code if we are handling hdmi input resolution change
+                        if (mIgnoreAllCrash == false) // Dont activate this code if we are handling hdmi input resolution change
                         {
                             int hdmiInSampleRate = HDMIInputInterface.readAudioSampleRate();
                             boolean curSync=false;
@@ -2559,9 +2539,15 @@ public class CresStreamCtrl extends Service {
                             	curSync = HDMIInputInterface.readSyncState();
                             	curHdmiIsPlaying = mCanvasHdmiIsPlaying;
                             }
+                            Log.v(TAG, "curSync:" + curSync + ", curHdmiIsPlaying:" + curHdmiIsPlaying + ", prevHdmiIsPlaying:" + mPreviousHdmi.getIsPlaying());
                             // If sample frequency changes on the fly, restart stream
-                            if (hdmiInSampleRate != mPreviousAudioInputSampleRate ||
-                            	((isAM3K || m_isDGE3200 || isC865C) && ((mPreviousHdmi.getSync() != curSync) || (mPreviousHdmi.getIsPlaying() != curHdmiIsPlaying))))
+                            if(
+                                    hdmiInSampleRate != mPreviousAudioInputSampleRate
+                                    ||
+                                    ((isAM3K || m_isDGE3200 || isC865C)
+                                     && (
+                                         (mPreviousHdmi.getSync() != curSync)
+                                         || (mPreviousHdmi.getIsPlaying() != curHdmiIsPlaying))))
                             {
                             	if (hdmiInSampleRate != mPreviousAudioInputSampleRate)
                             		Log.i(TAG, "Previous audio sample rate="+mPreviousAudioInputSampleRate+"  Current audio sample rate="+hdmiInSampleRate);
@@ -2629,7 +2615,7 @@ public class CresStreamCtrl extends Service {
                             }
 
                             // Temporary BUG FIX for Blue screen issue in AM3XX-6089
-                            if (isAM3K || m_isDGE3200) {
+                            if (isAM3K || m_isDGE3200 || isC865C) {
                                 int resEnum = HDMIInputInterface.readResolutionEnum(false);
                             	if (resEnum != priorResolutionEnum) { // res change
                             		Log.i(TAG, "Resolution enum changed from "+priorResolutionEnum+" to "+resEnum+" calling setCamera()");
@@ -2686,6 +2672,7 @@ public class CresStreamCtrl extends Service {
                             }
 
                         }
+                        else Log.w(TAG, "mIgnoreAllCrash!");
                     }
                     finally
                     {
@@ -2839,10 +2826,7 @@ public class CresStreamCtrl extends Service {
         userSettings.setRavaMode(enabled);
 
 // Workaround to mute airmedia during rava call
-        if ((mAirMedia != null))
-        {
-            setStreamMusicMute(enabled);
-        }
+        if (mAirMedia != null) setStreamMusicMute(enabled);
 
         for(int sessionId = 0; sessionId < NumOfSurfaces; sessionId++)
         {
@@ -4326,6 +4310,8 @@ public class CresStreamCtrl extends Service {
 
     public void setCanvasWindows()
     {
+        Log.i(TAG, "setCanvasWindows");
+
         if (CrestronProductName.fromInteger(nativeGetProductTypeEnum()) != CrestronProductName.Mercury)
         {
             setWindowDimensions(0, 270, 960, 540, 0);
@@ -4341,16 +4327,19 @@ public class CresStreamCtrl extends Service {
 
     public void showCanvasWindow(int streamId)
     {
+        Log.i(TAG, "showCanvasWindow:" + streamId);
         showWindow(streamId);
     }
 
     public void hideCanvasWindow(int streamId)
     {
+        Log.i(TAG, "hideCanvasWindow:" + streamId);
         hideWindow(streamId);
     }
 
     private void hideWindow (final int sessId)
     {
+        Log.i(TAG, "hideWindow:" + sessId);
         // Reset video dimensions on hide
         setVideoDimensions(sessId, 0, 0);
 
@@ -4860,21 +4849,19 @@ public class CresStreamCtrl extends Service {
   //Start native Preview
     public void startNativePreview(int sessId)
     {
-        if (cam_preview != null)
-        {
-            SendStreamState(StreamState.CONNECTING, sessId);
-            Log.i(TAG, "startNativePreview: sessId="+sessId);
-            if (!m_InPause[sessId])
-                updateWindow(sessId);
-            else
-                updateWindowWithVideoSize(sessId, false, mVideoDimensions[sessId].videoWidth, mVideoDimensions[sessId].videoHeight);
-            showPreviewWindow(sessId);
-            cam_preview.setSessionIndex(sessId);
-            invalidateSurface();
+        if (cam_preview == null) return;
+        SendStreamState(StreamState.CONNECTING, sessId);
+        Log.i(TAG, "startNativePreview: sessId="+sessId);
+        if (!m_InPause[sessId])
+            updateWindow(sessId);
+        else
+            updateWindowWithVideoSize(sessId, false, mVideoDimensions[sessId].videoWidth, mVideoDimensions[sessId].videoHeight);
+        showPreviewWindow(sessId);
+        cam_preview.setSessionIndex(sessId);
+        invalidateSurface();
 
-            cam_preview.startPlayback(false);
-            //Toast.makeText(this, "Preview Started", Toast.LENGTH_LONG).show();
-        }
+        cam_preview.startPlayback(false);
+        //Toast.makeText(this, "Preview Started", Toast.LENGTH_LONG).show();
     }
 
     public void startPreview(int sessId)
@@ -4917,37 +4904,27 @@ public class CresStreamCtrl extends Service {
     //Stop native Preview
     public void stopNativePreview(int sessId, boolean hide)
     {
-        if (cam_preview != null)
+        if (cam_preview == null) return;
+        cam_preview.setSessionIndex(sessId);
+
+        if (serviceMode != ServiceMode.Slave)
         {
-            cam_preview.setSessionIndex(sessId);
-
-            if (serviceMode != ServiceMode.Slave)
-            {
-                if(hide)
-                {
-                    // Do NOT hide window if being used by AirMedia
-                    if ( !(mUsedForAirMedia[sessId]) )
-                        hidePreviewWindow(sessId);
-                }
-            }
-
-            //On STOP, there is a chance to get ducati crash which does not save current state
-            //causes streaming never stops.
-            //FIXME:Temp Hack for ducati crash to save current state
-            setCurrentStreamState(StreamState.STOPPED, sessId);
-            cam_preview.stopPlayback(false);
-            //Toast.makeText(this, "Preview Stopped", Toast.LENGTH_LONG).show();
+            // Do NOT hide window if being used by AirMedia
+            if(hide && !mUsedForAirMedia[sessId]) hidePreviewWindow(sessId);
         }
+
+        //On STOP, there is a chance to get ducati crash which does not save current state
+        //causes streaming never stops.
+        //FIXME:Temp Hack for ducati crash to save current state
+        setCurrentStreamState(StreamState.STOPPED, sessId);
+        cam_preview.stopPlayback(false);
+        //Toast.makeText(this, "Preview Stopped", Toast.LENGTH_LONG).show();
     }
 
     public void stopPreview(int sessId, boolean hide)
     {
-        if(ProductSpecific.hasRealCamera())
-        {
-            stopGstPreview(sessId, hide);
-        }
-        else
-            stopNativePreview(sessId, hide);
+        if(ProductSpecific.hasRealCamera()) stopGstPreview(sessId, hide);
+        else stopNativePreview(sessId, hide);
     }
 
     public void pausePreview(int sessId)
@@ -4975,33 +4952,19 @@ public class CresStreamCtrl extends Service {
 
 
     //Control Feedback
-    public String getStartStatus(){
-    return playStatus;
-    }
+    public String getStartStatus(){ return playStatus; }
 
-    public String getStopStatus(){
-    return stopStatus;
-    }
+    public String getStopStatus(){ return stopStatus; }
 
-    public String getPauseStatus(){
-    return pauseStatus;
-    }
+    public String getPauseStatus(){ return pauseStatus; }
 
-    public String getDeviceReadyStatus(){
-        return "TRUE";
-    }
-
-    public String getProcessingStatus(){
-    return "1";//"TODO";
-    }
-
-    public String getElapsedSeconds(){
-    return "0";//"TODO";
-    }
-
-    public String getStreamStatus(){
-    return "0";//"TODO";
-    }
+    public String getDeviceReadyStatus(){ return "TRUE"; }
+    //"TODO"
+    public String getProcessingStatus(){ return "1"; }
+    //"TODO"
+    public String getElapsedSeconds(){ return "0"; }
+    //"TODO"
+    public String getStreamStatus(){ return "0"; }
 
     public void setStatistics(boolean enabled, int sessId){
         userSettings.setStatisticsEnable(enabled, sessId);
@@ -6885,7 +6848,9 @@ public class CresStreamCtrl extends Service {
 
     public boolean airMediaIsUp()
     {
-    	return (mAirMedia != null && mAirMedia.airMediaIsUp());
+        boolean yes = mAirMedia != null && mAirMedia.airMediaIsUp();
+        Log.v(TAG, "airMediaIsUp:" + yes + "("  + (mAirMedia != null) + ")");
+        return yes;
     }
 
     public boolean getAirMediaLicensed()
@@ -7417,8 +7382,8 @@ public class CresStreamCtrl extends Service {
 
     private void setCameraHelper(int hdmiInputResolutionEnum, boolean ignoreRestart)
     {
-        Log.i(TAG, MiscUtils.stringFormat("Setting cameraMode with resolution enum = %d", hdmiInputResolutionEnum));
         int hdmiInSampleRate = HDMIInputInterface.readAudioSampleRate();
+        Log.i(TAG, MiscUtils.stringFormat("Setting cameraMode with resolution: %d audioRate: %d", hdmiInputResolutionEnum, hdmiInSampleRate));
         // If resolution did not change don't restart streams, ignore 0 enum
         if ( (hdmiInputResolutionEnum == mPreviousValidHdmiInputResolution) && (hdmiInSampleRate == mPreviousAudioInputSampleRate) )
             ignoreRestart = true;
@@ -7440,38 +7405,37 @@ public class CresStreamCtrl extends Service {
         }
 
         //Set ignore restart to true if you want to set camera mode but do not want to restart any streams
-        boolean validResolution = (hdmiInputResolutionEnum != 0);
-        if (validResolution == true)
+        boolean validResolution = hdmiInputResolutionEnum != 0;
+        if (validResolution)
         {
-            if (ignoreRestart == false)
+            // makes sure that csio is up so as restart streams before all information is received from platform
+            if (ignoreRestart == false && sockTask.firstRun == false)
             {
-                if (sockTask.firstRun == false) // makes sure that csio is up so as restart streams before all information is received from platform
-                {
-                    mIgnoreAllCrash = true;
-                    // Lets wait to make sure CSI buffer is ready
-                    try {
-                        Thread.sleep(500);
-                    } catch (Exception e ) { e.printStackTrace(); }
-                    Log.i(TAG, "setCameraHelper(): Restarting Streams - on firstrun");
-                    restartStreams(true); //true because we do not need to restart stream in streams
-                    mIgnoreAllCrash = false;
-                }
+                mIgnoreAllCrash = true;
+                Log.w(TAG, "ignore all crashes: begin");
+                // Lets wait to make sure CSI buffer is ready
+                try {
+                    Thread.sleep(500);
+                } catch (Exception e ) { e.printStackTrace(); }
+                Log.i(TAG, "setCameraHelper(): Restarting Streams - on firstrun");
+                restartStreams(true); //true because we do not need to restart stream in streams
+                Log.w(TAG, "ignore all crashes: end");
+                mIgnoreAllCrash = false;
             }
 
             setNoVideoImage(false);
             mForceHdcpStatusUpdate = true;
          }
-        else
-        {
-            setNoVideoImage(true);
-        }
+        else setNoVideoImage(true);
     }
 
     public void setNoVideoImage(boolean enable) {
         Log.i(TAG, MiscUtils.stringFormat("Setting no video format to %s", String.valueOf(enable)));
         String cameraMode = "";
         int previousCameraMode = readCameraMode();
-        if ( (enable) && (previousCameraMode != CameraMode.NoVideo.ordinal()
+        if (enable
+            && (
+                previousCameraMode != CameraMode.NoVideo.ordinal()
                 || previousCameraMode != CameraMode.BlackScreen.ordinal()) )
         {
             synchronized (mCameraModeScheduleLock)
@@ -7750,13 +7714,31 @@ public class CresStreamCtrl extends Service {
     }
 
     static private Object mHdcpLock = new Object();
-    private boolean checkHDCPStatus() {
+
+    private boolean checkHDCPStatus()
+    {
         boolean hdcpStatusChanged = false;
-        synchronized (mHdcpLock) {
-            boolean currentHDCPInputStatus = (HDMIInputInterface.readHDCPInputStatus() && HDMIInputInterface.readResolutionEnum(false) != 0); // Check for valid resolution
+
+        synchronized (mHdcpLock)
+        {
+            // Check for valid resolution
+            boolean currentHDCPInputStatus =
+                HDMIInputInterface.readHDCPInputStatus()
+                && HDMIInputInterface.readResolutionEnum(false) != 0;
             boolean currentHDCPOutputStatus = HDMIOutputInterface.readHDCPOutputStatus() == 1;
+
+            Log.v(
+                TAG,
+                "mHDCPInputStatus:" + mHDCPInputStatus
+                + " mHDCPOutputStatus:" + mHDCPOutputStatus
+                + ", currentHDCPInputStatus:" + currentHDCPInputStatus
+                + ", mForceHdcpStatusUpdate:" + mForceHdcpStatusUpdate);
+
             // Only send new status when hdcp status changes for either input or output, or if force status update is called
-            if ((mHDCPInputStatus != currentHDCPInputStatus) || (mHDCPOutputStatus != currentHDCPOutputStatus) || (mForceHdcpStatusUpdate == true))
+            if(
+                mHDCPInputStatus != currentHDCPInputStatus
+                || mHDCPOutputStatus != currentHDCPOutputStatus
+                || mForceHdcpStatusUpdate)
             {
                 Log.i(TAG, "checkHdcpStatus(): InputHdcpStatus prev: " + mHDCPInputStatus + " cur: " + currentHDCPInputStatus +
                         ", OutputHdcpStatus prev: " + mHDCPOutputStatus + " cur: " + currentHDCPOutputStatus +
@@ -7766,10 +7748,10 @@ public class CresStreamCtrl extends Service {
                 mHDCPInputStatus = currentHDCPInputStatus;
                 mHDCPOutputStatus = currentHDCPOutputStatus;
 
-                if ((mHDCPInputStatus == true && mHDCPEncryptStatus == false) && (mIgnoreHDCP == false))
-                    setHDCPErrorImage(true);
-                else
-                    setHDCPErrorImage(false);
+                setHDCPErrorImage(
+                    mHDCPInputStatus == true
+                    && mHDCPEncryptStatus == false
+                    && mIgnoreHDCP == false);
 
                 // Check if HDMI content is visible on screen
                 boolean hdmiContentVisible = hdmiIsVisible();
@@ -8143,6 +8125,7 @@ public class CresStreamCtrl extends Service {
 
     public void sendHdmiStart(int streamId, boolean value)
     {
+        Log.i(TAG, "sendHdmiStart streamId:" + streamId + ", playing:" + value);
         sockTask.SendDataToAllClients(MiscUtils.stringFormat("HDMI_VIDEO_START%d=%s", streamId, (value)?"TRUE":"FALSE"));
         mCanvasHdmiIsPlaying = value;
         mPreviousHdmi.setIsPlaying(value);

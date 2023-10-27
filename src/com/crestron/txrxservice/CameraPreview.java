@@ -36,11 +36,11 @@ public class CameraPreview {
     private int idx = 0;
     private Thread preview_timeout_thread=null;
     private CountDownLatch preview_timeout_latch = null;
-    private Object preview_timeout_lock = new Object();
     private AirMediaSize resolution = new AirMediaSize(0,0);
 
     //public CameraPreview(CresStreamCtrl ctl, SurfaceHolder vHolder, HDMIInputInterface hdmiInIface) {
     public CameraPreview(CresStreamCtrl ctl, HDMIInputInterface hdmiInIface) {
+        Log.i(TAG, "CameraPreview");
     	audio_pb = new AudioPlayback(ctl);
     	//surfaceHolder = vHolder;
     	hdmiIf = hdmiInIface;
@@ -552,22 +552,20 @@ public class CameraPreview {
 
     }
 
-    private void signalPreviewTimeoutThread() {
-    	synchronized (preview_timeout_lock) {
-    		if (preview_timeout_thread != null) {
-    			Log.i(TAG, "signalPreviewTimeoutThread(): interrupt preview_timeout_thread");
-    			// if prior thread exists - kill it
-    			preview_timeout_latch = new CountDownLatch(1);
-    			preview_timeout_thread.interrupt();
-    			try {
-    				boolean success = preview_timeout_latch.await(5, TimeUnit.SECONDS);
-    				if (!success)
-    					Log.e(TAG, "Error: preview_timeout_thread latch timed out");
-    			}
-    			catch (InterruptedException e) { e.printStackTrace(); }
-    			preview_timeout_latch = null;
-    		}
-		}
+    private synchronized void signalPreviewTimeoutThread() {
+        if (preview_timeout_thread == null) return;
+
+        Log.i(TAG, "signalPreviewTimeoutThread(): interrupt preview_timeout_thread");
+        // if prior thread exists - kill it
+        preview_timeout_latch = new CountDownLatch(1);
+        preview_timeout_thread.interrupt();
+        try {
+            boolean success = preview_timeout_latch.await(5, TimeUnit.SECONDS);
+            if (!success)
+                Log.e(TAG, "Error: preview_timeout_thread latch timed out");
+        }
+        catch (InterruptedException e) { e.printStackTrace(); }
+        preview_timeout_latch = null;
     }
 
  	public class previewTimeout implements Runnable {
@@ -729,6 +727,7 @@ public class CameraPreview {
     }
 
     public void setVolume(int volume) {
+    	Log.i(TAG, "setVolume: " + volume);
     	audio_pb.setVolume(volume);
     }
 
