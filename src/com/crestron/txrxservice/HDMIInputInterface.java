@@ -166,10 +166,8 @@ public class HDMIInputInterface {
             }
             else
             {
-                if(!isAM3K && !isDGE3200 && !isC865C)
-                    tokens = hdmiInResolution.split(delims);
-                else
-                    tokens = hdmiInResolution.split(delims_am3x);
+                if(!isAM3K && !isDGE3200 && !isC865C) tokens = hdmiInResolution.split(delims);
+                else tokens = hdmiInResolution.split(delims_am3x);
             }
         }
 
@@ -259,14 +257,11 @@ public class HDMIInputInterface {
             }
             else
             {
-                if (!useAm3kStateMachine)
-                    return am3kHdmiStateMachine.readResolutionSysFs();
-                else
-                    return am3kHdmiStateMachine.getResolutionSysFs();
+                if (!useAm3kStateMachine) return am3kHdmiStateMachine.readResolutionSysFs();
+                else return am3kHdmiStateMachine.getResolutionSysFs();
             }
 		}
-    	else
-    		return "0x0@0";
+    	else return "0x0@0";
     }
 
     public static int readResolutionEnum(boolean logResult){
@@ -367,8 +362,7 @@ public class HDMIInputInterface {
                 Log.i(TAG, "HDMI IN index from sysfs:" + resIndex);
             return resIndex;
 		}
-    	else
-    		return 0;
+    	else return 0;
     }
 
     public static int getResolutionEnum()
@@ -400,31 +394,29 @@ public class HDMIInputInterface {
             }
             else
             {
-                return false;
-                //final String[] sHdmiInputValues = {"Succeed" , "Failed"};
-                //try {
-                //    File file = new File("/sys/devices/platform/ff3e0000.i2c/i2c-8/8-000f/hdcp_status");
-                //    BufferedReader br = new BufferedReader(new FileReader(file));
-                //    String line;
-                //    while ((line = br.readLine()) != null) {
-                //        text.append(line);
-                //    }
-                //    br.close();
-                //}catch (IOException e) {
-                //    e.printStackTrace();
-                //    text.append("0"); //if error default to no HDCP
-                //}
+                if (isC865C) return false;
 
-                ////Log.i(TAG, "HDMI IN HDCP status from sysfs:" + text.toString());
+                final String[] sHdmiInputValues = {"Succeed" , "Failed"};
+                try {
+                    File file = new File("/sys/devices/platform/ff3e0000.i2c/i2c-8/8-000f/hdcp_status");
+                    BufferedReader br = new BufferedReader(new FileReader(file));
+                    String line;
+                    while ((line = br.readLine()) != null) {
+                        text.append(line);
+                    }
+                    br.close();
+                }catch (IOException e) {
+                    e.printStackTrace();
+                    text.append("0"); //if error default to no HDCP
+                }
 
-                //if(sHdmiInputValues[0].equalsIgnoreCase(text.toString()))
-                //    return true;
-                //else
-                //    return false;
+                //Log.i(TAG, "HDMI IN HDCP status from sysfs:" + text.toString());
+
+                if(sHdmiInputValues[0].equalsIgnoreCase(text.toString())) return true;
+                else return false;
             }
 		}
-    	else
-    		return false;
+    	else return false;
     }
 
     public static boolean readSyncState (){
@@ -450,14 +442,11 @@ public class HDMIInputInterface {
             }
             else
             {
-                if (!useAm3kStateMachine)
-                    return am3kHdmiStateMachine.readSyncStateSysFs();
-                else
-                    return am3kHdmiStateMachine.getSyncState();
+                if (!useAm3kStateMachine) return am3kHdmiStateMachine.readSyncStateSysFs();
+                else return am3kHdmiStateMachine.getSyncState();
             }
 		}
-    	else
-    		return false;
+    	else return false;
     }
 
     public static int readAudioSampleRate (){
@@ -482,26 +471,32 @@ public class HDMIInputInterface {
             }
             else
             {
-                text.append("48000"); //if error default to 48kHz
-                //try {
-                //    File file = new File("/sys/devices/platform/ff3e0000.i2c/i2c-8/8-000f/audio_fmts");
+                if(isC865C) text.append("48000");
+                else
+                {
+                    try
+                    {
+                        File file = new File("/sys/devices/platform/ff3e0000.i2c/i2c-8/8-000f/audio_fmts");
 
-                //    BufferedReader br = new BufferedReader(new FileReader(file));
-                //    String line;
-                //    while ((line = br.readLine()) != null) {
-                //        text.append(line);
-                //        break;//Since AM3X returns 4 lines of data on this sysfs
-                //    }
-                //    br.close();
-                //}catch (IOException e) {
-                //    e.printStackTrace();
-                //    text.append("48000"); //if error default to 48kHz
-                //}
+                        BufferedReader br = new BufferedReader(new FileReader(file));
+                        String line;
+                        while ((line = br.readLine()) != null)
+                        {
+                            text.append(line);
+                            break;//Since AM3X returns 4 lines of data on this sysfs
+                        }
+                        br.close();
+                    }
+                    catch (IOException e)
+                    {
+                        e.printStackTrace();
+                        text.append("48000"); //if error default to 48kHz
+                    }
+                }
             }
 	        return Integer.parseInt(text.toString());
 		}
-    	else
-    		return 0;
+    	else return 0;
     }
 
     public static boolean readInterlaced (){
@@ -531,8 +526,7 @@ public class HDMIInputInterface {
                 return false;
             }
         }
-        else
-    		return false;
+        else return false;
     }
 
     public boolean isHdmiCameraConnected()
@@ -579,22 +573,23 @@ public class HDMIInputInterface {
 
         private boolean readSyncStateSysFs()
         {
-            return true;
-            //StringBuilder text = new StringBuilder(16);
-            //try {
-            //    File file = new File("/sys/devices/platform/ff3e0000.i2c/i2c-8/8-000f/sync_status");
+            if(isC865C) return true;
 
-            //    BufferedReader br = new BufferedReader(new FileReader(file));
-            //    String line;
-            //    while ((line = br.readLine()) != null) {
-            //        text.append(line);
-            //    }
-            //    br.close();
-            //} catch (IOException e) {
-            //    e.printStackTrace();
-            //    text.append("0"); //if error default to no sync
-            //}
-            //return Integer.parseInt(text.toString()) == 1;
+            StringBuilder text = new StringBuilder(16);
+            try {
+                File file = new File("/sys/devices/platform/ff3e0000.i2c/i2c-8/8-000f/sync_status");
+
+                BufferedReader br = new BufferedReader(new FileReader(file));
+                String line;
+                while ((line = br.readLine()) != null) {
+                    text.append(line);
+                }
+                br.close();
+            } catch (IOException e) {
+                e.printStackTrace();
+                text.append("0"); //if error default to no sync
+            }
+            return Integer.parseInt(text.toString()) == 1;
         }
 
         public boolean getSyncState()
@@ -609,26 +604,24 @@ public class HDMIInputInterface {
 
         public String readResolutionSysFs()
         {
-            // WORKAROUND
-            return "1920x1080p60";
-            //return "3840x2160pp30";
+            if(isC865C) return "1920x1080p60";
 
-            //StringBuilder text = new StringBuilder(16);
-            ////for AM3X
-            //try {
-            //    File file = new File("/sys/devices/platform/ff3e0000.i2c/i2c-8/8-000f/video_fmts");
-            //    BufferedReader br = new BufferedReader(new FileReader(file));
-            //    String line;
-            //    while ((line = br.readLine()) != null) {
-            //        text.append(line);
-            //    }
-            //    br.close();
-            //}catch (IOException e) {
-            //    e.printStackTrace();
-            //    text.append("0x0@0");
-            //}
-            ////Log.i(TAG, "HDMI IN Res from sysfs:" + text.toString());
-            //return text.toString();
+            StringBuilder text = new StringBuilder(16);
+            //for AM3X
+            try {
+                File file = new File("/sys/devices/platform/ff3e0000.i2c/i2c-8/8-000f/video_fmts");
+                BufferedReader br = new BufferedReader(new FileReader(file));
+                String line;
+                while ((line = br.readLine()) != null) {
+                    text.append(line);
+                }
+                br.close();
+            }catch (IOException e) {
+                e.printStackTrace();
+                text.append("0x0@0");
+            }
+            //Log.i(TAG, "HDMI IN Res from sysfs:" + text.toString());
+            return text.toString();
         }
 
         public String getResolutionSysFs()

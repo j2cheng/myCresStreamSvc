@@ -16,8 +16,8 @@ public class GstreamBase  {
         Log.i(TAG, "GstreamBase: begin");
 		streamCtl = mContext;
 
-        Log.i(TAG,"loading gstreamer_jni" );
-		System.loadLibrary("gstreamer_jni");                
+        Log.i(TAG,"loading css_jni" );
+		System.loadLibrary("css_jni");                
 
         Log.i(TAG,"loading gstreamer_android");
 		System.loadLibrary("gstreamer_android");

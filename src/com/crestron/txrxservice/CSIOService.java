@@ -12,11 +12,18 @@ public class CSIOService extends Service
     public static String TAG = "CSIOService";
     public native int csioTask(String internalStoragePath, String externalStoragePath);
 
-    static
+    public CSIOService()
     {
-        Log.i(TAG,"loading csio library: begin");
-        System.loadLibrary("csio");
-        Log.i(TAG,"loading csio library: end");
+        try
+        {
+            Log.i(TAG,"loading csio library: begin");
+            System.loadLibrary("csio");
+            Log.i(TAG,"loading csio library: end");
+        }
+        catch(Exception e)
+        {
+            e.printStackTrace();
+        }
     }
 
     @Override

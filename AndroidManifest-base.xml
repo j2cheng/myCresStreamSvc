@@ -2,9 +2,11 @@
 <manifest xmlns:android="http://schemas.android.com/apk/res/android"
     package="com.crestron.txrxservice"
     android:versionCode="1"
-    android:versionName="1.0">
+    android:versionName="1.0"
+    android:sharedUserId="android.uid.system">
+
     <uses-sdk
-        android:minSdkVersion="32"
+        android:minSdkVersion="28"
         android:targetSdkVersion="32" />
 
     <uses-permission android:name="android.permission.RECEIVE_BOOT_COMPLETED"/>
@@ -18,22 +20,23 @@
     <uses-permission android:name="android.permission.ACTION_MANAGE_OVERLAY_PERMISSION" />
     <uses-permission android:name="android.permission.FOREGROUND_SERVICE" />
     <uses-feature android:name="android.hardware.camera" />
-   <!-- <uses-permission android:name="android.permission.LOCAL_MAC_ADDRESS" /> -->
-   <!-- <uses-permission android:name="android.permission.NETWORK_SETTINGS" /> -->
+    <!-- <uses-permission android:name="android.permission.LOCAL_MAC_ADDRESS" /> -->
+    <!-- <uses-permission android:name="android.permission.NETWORK_SETTINGS" /> -->
     <!--  Error: Permission is only granted to system apps [ProtectedPermissions] <uses-permission android:name="android.permission.CONFIGURE_DISPLAY_COLOR_MODE" /> -->
     <!--  For X70 and TST1080  -->
-    <!-- Error: Permission is only granted to system apps [ProtectedPermissions] <uses-permission android:name="android.permission.ACCESS_SURFACE_FLINGER" /> -->
+    <!-- Error: Permission is only granted to system apps [ProtectedPermissions] -->
+    <!-- <uses-permission android:name="android.permission.ACCESS_SURFACE_FLINGER" /> -->
     <!-- Error: Permission is only granted to system apps [ProtectedPermissions] <uses-permission android:name="android.permission.WRITE_SETTINGS" /> -->
     <!-- Error: Permission is only granted to system apps [ProtectedPermissions] <uses-permission android:name="android.permission.WRITE_SECURE_SETTINGS" /> -->
     <!-- Error: Permission is only granted to system apps [ProtectedPermissions] <uses-permission android:name="android.permission.HARDWARE_TEST" /> -->
 
     <application
-        android:name=".LaunchApp"
+        android:extractNativeLibs="true"
         android:allowBackup="true"
         android:icon="@drawable/ic_launcher"
         android:theme="@android:style/Theme.NoTitleBar.Fullscreen" android:persistent="true">
         <activity
-            android:name="com.crestron.txrxservice.RuntimePermission"
+            android:name="com.crestron.txrxservice.LaunchApp"
             android:exported="true" >
             <intent-filter>
                 <action android:name="android.intent.action.MAIN" />
@@ -43,8 +46,7 @@
 
 		<service android:name=".CresStreamCtrl" android:theme="@android:style/Theme.Translucent.NoTitleBar"
             android:process=":txrx_css"
-            android:exported="false"
-		    android:enabled="true" >
+            android:exported="false">
 		    <!-- android:permission="com.crestron.txrxservice.permission.SERVICE" --> 
 		    <intent-filter>
 		    	<action android:name="com.crestron.txrxservice.BIND"/>
@@ -56,8 +58,7 @@
 
         <service android:name=".CSIOService" android:theme="@android:style/Theme.Translucent.NoTitleBar"
             android:process=":txrx_csio"
-            android:exported="false"
-            android:enabled="true" >
+            android:exported="false">
         </service>
     </application>
 </manifest>

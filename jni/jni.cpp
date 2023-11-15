@@ -388,8 +388,8 @@ static void gst_native_init (JNIEnv* env, jobject thiz)
 	CustomData *cdata = g_new0 (CustomData, 1);
 	CresDataDB = cdata;
 	SET_CUSTOM_DATA (env, thiz, custom_data_field_id, cdata);
-	GST_DEBUG_CATEGORY_INIT (debug_category, "gstreamer_jni", 0, "Android jni");
-	gst_debug_set_threshold_for_name("gstreamer_jni", GST_LEVEL_ERROR);
+	GST_DEBUG_CATEGORY_INIT (debug_category, "css_jni", 0, "Android jni");
+	gst_debug_set_threshold_for_name("css_jni", GST_LEVEL_ERROR);
 	
 	cdata->app = env->NewGlobalRef (thiz);
 	init_custom_data(cdata);
@@ -3356,7 +3356,7 @@ jint JNI_OnLoad(JavaVM *vm, void *reserved)
 
 	if (vm->GetEnv((void**) &env, JNI_VERSION_1_4) != JNI_OK)
 	{
-		CSIO_LOG(eLogLevel_error, "gstreamer_jni: Could not retrieve JNIEnv");
+		CSIO_LOG(eLogLevel_error, "css_jni: Could not retrieve JNIEnv");
 		return 0;
 	}
 
@@ -3377,19 +3377,19 @@ jint JNI_OnLoad(JavaVM *vm, void *reserved)
 	gStreamIn_javaClass_id = (jclass*)env->NewGlobalRef(klass);
 	env->DeleteLocalRef(klass);
 	if (gStreamIn_javaClass_id == NULL) {
-		CSIO_LOG(eLogLevel_error, "gstreamer_jni: gStreamIn_javaClass_id is still null when it is suppose to be global");
+		CSIO_LOG(eLogLevel_error, "css_jni: gStreamIn_javaClass_id is still null when it is suppose to be global");
 	     return 0; /* out of memory exception thrown */
 	 }
 
 	env->RegisterNatives ((jclass)gStreamIn_javaClass_id, native_methods, G_N_ELEMENTS(native_methods));
 
 	// Crestron - PEM - register jni for GstreamOut
-	CSIO_LOG(eLogLevel_error, "gstreamer_jni : Registering natives for GstreamOut");
+	CSIO_LOG(eLogLevel_error, "css_jni : Registering natives for GstreamOut");
 	jclass klass2 = env->FindClass ("com/crestron/txrxservice/GstreamOut");
 	gStreamOut_javaClass_id = (jclass*)env->NewGlobalRef(klass2);
 	env->DeleteLocalRef(klass2);
 	if (gStreamOut_javaClass_id == NULL) {
-		CSIO_LOG(eLogLevel_error, "gstreamer_jni: gStreamOut_javaClass_id is still null when it is suppose to be global");
+		CSIO_LOG(eLogLevel_error, "css_jni: gStreamOut_javaClass_id is still null when it is suppose to be global");
 	     return 0; /* out of memory exception thrown */
 	}
 	env->RegisterNatives ((jclass)gStreamOut_javaClass_id, native_methods_rtsp_server, G_N_ELEMENTS(native_methods_rtsp_server));
