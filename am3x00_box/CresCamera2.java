@@ -90,10 +90,9 @@ public class CresCamera2 extends CresCamera
 
             for (String id:cameraIds) {
                 if (CameraId.equals(id)) {
-                    Log.v(TAG, "findCamera: HDMI Input camera is connected");
+                    Log.v(TAG, "findCamera: " + id + ", HDMI Input camera is connected");
                     return true;
-                }
-            
+                } else Log.i(TAG, "skipping: " + id);
             }
         } catch (CameraAccessException e) {
             e.printStackTrace();
