@@ -42,7 +42,7 @@ public class CresCamera2 extends CresCamera
     private Semaphore mCameraOpenCloseLock = new Semaphore(1);
     static Object lockObj = new Object();
     CameraHandler mCameraHandler;
-    final String hdmiCameraId = "/dev/video0";
+    final String hdmiCameraId = "0";
     final String hdmiCameraName = "HDMI input camera";
 
     final CameraManager.AvailabilityCallback mCallback = new CameraManager.AvailabilityCallback() {
@@ -178,7 +178,7 @@ public class CresCamera2 extends CresCamera
                 }
             }
             else
-                Log.e(TAG, "openCamera called but /dev/video0 not available" );
+                Log.e(TAG, "openCamera called but" + hdmiCameraId + " not available" );
         }
     return;
     }

@@ -44,7 +44,7 @@ public class CresCanvas
     AirMediaCanvas mAirMediaCanvas = null;
     private Scheduler scheduler = new Scheduler("CresCanvasScheduler");
 
-	public static boolean useCanvasSurfaces = false;     // will be removed after integration
+	public static boolean useCanvasSurfaces = true;     // will be removed after integration
 	public static boolean useSimulatedAVF = false;  // will be removed after integration
 
     public static final String TAG = "TxRx Canvas";

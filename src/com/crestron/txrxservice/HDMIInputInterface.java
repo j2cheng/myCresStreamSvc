@@ -10,142 +10,147 @@ import android.util.Log;
 import com.crestron.txrxservice.ProductSpecific;
 
 public class HDMIInputInterface {
-	static String TAG = "HDMIInInterface";
+    static String TAG = "HDMIInInterface";
     CresStreamCtrl streamCtl;
-	private static String syncStatus;
-	private static String horizontalRes;
-	private static String verticalRes;
-	private static String fps;
-	private static String aspectRatio;
-	private static String audioFormat;
-	private static String audioChannels;
-	private static int resolutionIndex;
-	private static boolean isHdmiDriverPresent;
-	private static boolean hdmiCameraIsConnected = false;
-	private static boolean hdmiCameraConnectionStateChanged = false;
-	private static Am3KHdmiStateMachine am3kHdmiStateMachine = null;
+    private static String syncStatus;
+    private static String horizontalRes;
+    private static String verticalRes;
+    private static String fps;
+    private static String aspectRatio;
+    private static String audioFormat;
+    private static String audioChannels;
+    private static int resolutionIndex;
+    private static boolean isHdmiDriverPresent;
+    private static boolean hdmiCameraIsConnected = false;
+    private static boolean hdmiCameraConnectionStateChanged = false;
+    private static Am3KHdmiStateMachine am3kHdmiStateMachine = null;
     public static final boolean isAM3K =
-    	CresStreamCtrl.CrestronProductName.fromInteger(CresStreamCtrl.nativeGetProductTypeEnum())
+        CresStreamCtrl.CrestronProductName.fromInteger(CresStreamCtrl.nativeGetProductTypeEnum())
         == CresStreamCtrl.CrestronProductName.AM3X00;
     public static final boolean isDGE3200 =
-    	CresStreamCtrl.CrestronProductName.fromInteger(CresStreamCtrl.nativeGetProductTypeEnum())
+        CresStreamCtrl.CrestronProductName.fromInteger(CresStreamCtrl.nativeGetProductTypeEnum())
         == CresStreamCtrl.CrestronProductName.DGE3200;
     public static final boolean isC865C =
-    	CresStreamCtrl.CrestronProductName.fromInteger(CresStreamCtrl.nativeGetProductTypeEnum())
+        CresStreamCtrl.CrestronProductName.fromInteger(CresStreamCtrl.nativeGetProductTypeEnum())
         == CresStreamCtrl.CrestronProductName.C865C;
 
     public static boolean useAm3kStateMachine = true;
 
-	public HDMIInputInterface(CresStreamCtrl sCtl)
+    public HDMIInputInterface(CresStreamCtrl sCtl)
     {
+        Log.i(TAG,
+                "HDMIInputInterface() "
+                + " enum: " + CresStreamCtrl.nativeGetProductTypeEnum()
+                + " productName: " + CresStreamCtrl.CrestronProductName.fromInteger(CresStreamCtrl.nativeGetProductTypeEnum()));
+
         streamCtl = sCtl;
-		syncStatus = "false";
-		horizontalRes = "0";
-		verticalRes = "0";
-		fps = "0";
-		aspectRatio = "0";
-		audioFormat = "0";	//1=PCM for txrx and dge
-		audioChannels = "0";
-		resolutionIndex = 0;
-		isHdmiDriverPresent = (isHdmiDriverPresent | false); //set isHdmiDriverPresentH to false if not set
+        syncStatus = "false";
+        horizontalRes = "0";
+        verticalRes = "0";
+        fps = "0";
+        aspectRatio = "0";
+        audioFormat = "0";  //1=PCM for txrx and dge
+        audioChannels = "0";
+        resolutionIndex = 0;
+        isHdmiDriverPresent = (isHdmiDriverPresent | false); //set isHdmiDriverPresentH to false if not set
         if(isAM3K || isDGE3200 || isC865C)      {
             am3kHdmiStateMachine = new Am3KHdmiStateMachine();
         }
-	}
+    }
 
-	public void setSyncStatus(int resEnum) {
-		if (isHdmiDriverPresent == true)
-		{
-			// Old Mistral interface
-//			byte[] hdmiInSyncStatus = ProductSpecific.getEVSHdmiInSyncStatus();
+    public void setSyncStatus(int resEnum) {
+        if (isHdmiDriverPresent == true)
+        {
+            // Old Mistral interface
+//          byte[] hdmiInSyncStatus = ProductSpecific.getEVSHdmiInSyncStatus();
 //
-//			Log.i(TAG, "SyncStatus " + (char)hdmiInSyncStatus[0]);
+//          Log.i(TAG, "SyncStatus " + (char)hdmiInSyncStatus[0]);
 //
-//			if(((char)hdmiInSyncStatus[0] == '1') && (resolutionIndex != 0))
-			if ( resEnum > 0)	// Only send sync status high if valid resolution enum
-				syncStatus = "true";
-			else
-				syncStatus = "false";
-		}
-	}
+//          if(((char)hdmiInSyncStatus[0] == '1') && (resolutionIndex != 0))
+            if ( resEnum > 0)   // Only send sync status high if valid resolution enum
+                syncStatus = "true";
+            else
+                syncStatus = "false";
+        }
+    }
 
-	public void setResolutionIndex(int index){
-		resolutionIndex = index;
-	}
+    public void setResolutionIndex(int index){
+        resolutionIndex = index;
+    }
 
-	public int getResolutionIndex() {
-		return resolutionIndex;
-	}
+    public int getResolutionIndex() {
+        return resolutionIndex;
+    }
 
-	public String getSyncStatus() {
-		return syncStatus;
-	}
+    public String getSyncStatus() {
+        return syncStatus;
+    }
 
-	public String getInterlacing() {
-		return String.valueOf(readInterlaced());
-	}
+    public String getInterlacing() {
+        return String.valueOf(readInterlaced());
+    }
 
-	public void setHorizontalRes(String _horizontalRes) {
-		horizontalRes = _horizontalRes;
-	}
+    public void setHorizontalRes(String _horizontalRes) {
+        horizontalRes = _horizontalRes;
+    }
 
-	public String getHorizontalRes() {
-		return horizontalRes;
-	}
+    public String getHorizontalRes() {
+        return horizontalRes;
+    }
 
-	public void setVerticalRes(String _verticalRes) {
-		verticalRes = _verticalRes;
-	}
+    public void setVerticalRes(String _verticalRes) {
+        verticalRes = _verticalRes;
+    }
 
-	public String getVerticalRes() {
-		return verticalRes;
-	}
+    public String getVerticalRes() {
+        return verticalRes;
+    }
 
-	public void setFPS(String _fps) {
-		fps = _fps;
-	}
+    public void setFPS(String _fps) {
+        fps = _fps;
+    }
 
-	public String getFPS() {
-		return fps;
-	}
+    public String getFPS() {
+        return fps;
+    }
 
-	public void setAspectRatio() {
-		if(syncStatus == "false")
-		{
-			aspectRatio = "0";
-			return;
-		}
-		else
-			aspectRatio = MiscUtils.calculateAspectRatio(Integer.parseInt(horizontalRes), Integer.parseInt(verticalRes));
+    public void setAspectRatio() {
+        if(syncStatus == "false")
+        {
+            aspectRatio = "0";
+            return;
+        }
+        else
+            aspectRatio = MiscUtils.calculateAspectRatio(Integer.parseInt(horizontalRes), Integer.parseInt(verticalRes));
 
-		Log.i(TAG, "AR " + aspectRatio);
-		return;
-	}
+        Log.i(TAG, "AR " + aspectRatio);
+        return;
+    }
 
-	public String getAspectRatio() {
-		return aspectRatio;
-	}
+    public String getAspectRatio() {
+        return aspectRatio;
+    }
 
-	public void setAudioFormat(String audioFmt) {
-		audioFormat = audioFmt;
-	}
+    public void setAudioFormat(String audioFmt) {
+        audioFormat = audioFmt;
+    }
 
-	public void setAudioChannels(String audioChn) {
-		audioChannels = audioChn;
-	}
+    public void setAudioChannels(String audioChn) {
+        audioChannels = audioChn;
+    }
 
-	public String getAudioFormat() {
-		return audioFormat;
-	}
+    public String getAudioFormat() {
+        return audioFormat;
+    }
 
-	public String getAudioChannels() {
-		return audioChannels;
-	}
+    public String getAudioChannels() {
+        return audioChannels;
+    }
 
-	public String getAudioSampleRate() {
+    public String getAudioSampleRate() {
 
-		return Integer.toString(readAudioSampleRate());
-	}
+        return Integer.toString(readAudioSampleRate());
+    }
 
     public void updateResolutionInfo()
     {
@@ -186,23 +191,23 @@ public class HDMIInputInterface {
 
         if (Boolean.parseBoolean(getSyncStatus()) == true)
         {
-        	setAudioFormat("1");
-        	setAudioChannels("2");
-    	}
+            setAudioFormat("1");
+            setAudioChannels("2");
+        }
         else
         {
-        	setAudioFormat("0");
-        	setAudioChannels("0");
+            setAudioFormat("0");
+            setAudioChannels("0");
         }
     }
 
     public static void setHdmiDriverPresent(boolean isPresent) {
-    	isHdmiDriverPresent = isPresent;
+        isHdmiDriverPresent = isPresent;
     }
 
     public static int getHdmiHpdEventState(){
-    	if (isHdmiDriverPresent == true)
-		{
+        if (isHdmiDriverPresent == true)
+        {
             StringBuilder text = new StringBuilder(16);
             if(!isAM3K && !isDGE3200 && !isC865C)
             {
@@ -228,17 +233,17 @@ public class HDMIInputInterface {
                 Log.e(TAG, "HPD Not supported for AM3X ");
             }
 
-	        Log.i(TAG, "hpdState:" + text.toString());
-	        return Integer.parseInt(text.toString());
-		}
-    	else
-    		return 0;
+            Log.i(TAG, "hpdState:" + text.toString());
+            return Integer.parseInt(text.toString());
+        }
+        else
+            return 0;
     }
 
     public static String getHdmiInResolutionSysFs(){
-    	if (isHdmiDriverPresent == true)
-		{
-	        StringBuilder text = new StringBuilder(64);
+        if (isHdmiDriverPresent == true)
+        {
+            StringBuilder text = new StringBuilder(64);
             if(!isAM3K && !isDGE3200 && !isC865C)
             {
                 try {
@@ -260,14 +265,14 @@ public class HDMIInputInterface {
                 if (!useAm3kStateMachine) return am3kHdmiStateMachine.readResolutionSysFs();
                 else return am3kHdmiStateMachine.getResolutionSysFs();
             }
-		}
-    	else return "0x0@0";
+        }
+        else return "0x0@0";
     }
 
     public static int readResolutionEnum(boolean logResult){
         logResult=true;
-    	if (isHdmiDriverPresent == true)
-		{
+        if (isHdmiDriverPresent == true)
+        {
             int resIndex = 0;
             if(!isAM3K && !isDGE3200 && !isC865C)
             {
@@ -358,23 +363,23 @@ public class HDMIInputInterface {
                     Log.e(TAG, "readResolutionEnum, no handling for vRes " + vRes + " hRes " + hRes);
             }
 
-	        if (logResult)
+            if (logResult)
                 Log.i(TAG, "HDMI IN index from sysfs:" + resIndex);
             return resIndex;
-		}
-    	else return 0;
+        }
+        else return 0;
     }
 
     public static int getResolutionEnum()
     {
-    	return resolutionIndex;
+        return resolutionIndex;
     }
 
     public static boolean readHDCPInputStatus (){
 
-    	if (isHdmiDriverPresent == true)
-		{
-	    	StringBuilder text = new StringBuilder(16);
+        if (isHdmiDriverPresent == true)
+        {
+            StringBuilder text = new StringBuilder(16);
 
             if(!isAM3K && !isDGE3200 && !isC865C)
             {
@@ -415,14 +420,14 @@ public class HDMIInputInterface {
                 if(sHdmiInputValues[0].equalsIgnoreCase(text.toString())) return true;
                 else return false;
             }
-		}
-    	else return false;
+        }
+        else return false;
     }
 
     public static boolean readSyncState (){
-    	if (isHdmiDriverPresent == true)
-		{
-	    	StringBuilder text = new StringBuilder(16);
+        if (isHdmiDriverPresent == true)
+        {
+            StringBuilder text = new StringBuilder(16);
             if(!isAM3K && !isDGE3200 && !isC865C)
             {
                 try {
@@ -445,14 +450,14 @@ public class HDMIInputInterface {
                 if (!useAm3kStateMachine) return am3kHdmiStateMachine.readSyncStateSysFs();
                 else return am3kHdmiStateMachine.getSyncState();
             }
-		}
-    	else return false;
+        }
+        else return false;
     }
 
     public static int readAudioSampleRate (){
-    	if (isHdmiDriverPresent == true)
-		{
-	    	StringBuilder text = new StringBuilder(64);
+        if (isHdmiDriverPresent == true)
+        {
+            StringBuilder text = new StringBuilder(64);
             if(!isAM3K && !isDGE3200 && !isC865C)
             {
                 try {
@@ -494,14 +499,14 @@ public class HDMIInputInterface {
                     }
                 }
             }
-	        return Integer.parseInt(text.toString());
-		}
-    	else return 0;
+            return Integer.parseInt(text.toString());
+        }
+        else return 0;
     }
 
     public static boolean readInterlaced (){
-    	if (isHdmiDriverPresent == true)
-		{
+        if (isHdmiDriverPresent == true)
+        {
             if(!isAM3K && !isDGE3200 && !isC865C)
             {
                 StringBuilder text = new StringBuilder(16);

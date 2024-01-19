@@ -135,7 +135,7 @@ public class ProductSpecific
     }
 
     static String TAG = "AM3X00 ProductSpecific";
-    private static final String HDMI_IN_DEV = "/dev/video0";
+    private static final String HDMI_IN_DEV = "0";
 
     ArrayList<String> usbDeviceWhiteList = new ArrayList<String>(Arrays.asList(
     //usbDeviceWhiteList is a simple array where USB VendorId is on even index 

@@ -1224,7 +1224,7 @@ public class CresStreamCtrl extends Service {
                         {
                             // sometimes txrxservice starts up too quickly after crash or kill and
                             // results in camera not closed. (part of bug 150720 - streamout would not restart after crash)
-                            try { Thread.sleep(500); } catch (InterruptedException e){}
+                            try { Thread.sleep(1000); } catch (InterruptedException e){}
                         }
                         mCameraDisabled = getCameraDisabled();
                         if (mCameraDisabled == true)
@@ -1250,7 +1250,7 @@ public class CresStreamCtrl extends Service {
                         public void run() {
                             while (!csioConnected) {
                                 Log.i(TAG, "Waiting for csio connection");
-                                try { Thread.sleep(500); } catch (InterruptedException e){}//Poll every 0.5 seconds
+                                try { Thread.sleep(1000); } catch (InterruptedException e){}
                             }
 
                             RecoverMediaServer();
@@ -1899,7 +1899,7 @@ public class CresStreamCtrl extends Service {
         {
             if(isAM3K || m_isDGE3200)
             {
-	            if(mProductSpecific.getInstance().cam_handle.findCamera("/dev/video0"))
+	            if(mProductSpecific.getInstance().cam_handle.findCamera("0"))
 	            {
 	                Log.i(TAG, "HDMI Input camera Found!");
 	                mProductSpecific.getInstance().cam_handle.openCamera(this);
@@ -2107,7 +2107,7 @@ public class CresStreamCtrl extends Service {
                             TAG,
                             "AirMedia is licensed: waiting for csio connection: (" + csioConnected
                             + "), to complete initialization (" + csioConnectionInitializationComplete + ")");
-                    try { Thread.sleep(500); } catch (InterruptedException e){}//Poll every 0.5 seconds
+                    try { Thread.sleep(1000); } catch (InterruptedException e){}
                 }
 
                 Log.v(TAG, "AirMedia startup: CSIO connected and initialized");
@@ -8382,7 +8382,7 @@ public class CresStreamCtrl extends Service {
     //Note: only for debugging here
     public void testfindCamera()
     {
-        if(mProductSpecific.getInstance().cam_handle.findCamera("/dev/video0"))
+        if(mProductSpecific.getInstance().cam_handle.findCamera("0"))
         {
             Log.i(TAG, "testfindCamera: HDMI Input camera Found!");
         }

@@ -3384,7 +3384,7 @@ jint JNI_OnLoad(JavaVM *vm, void *reserved)
 	env->RegisterNatives ((jclass)gStreamIn_javaClass_id, native_methods, G_N_ELEMENTS(native_methods));
 
 	// Crestron - PEM - register jni for GstreamOut
-	CSIO_LOG(eLogLevel_error, "css_jni : Registering natives for GstreamOut");
+	CSIO_LOG(eLogLevel_info, "css_jni : Registering natives for GstreamOut");
 	jclass klass2 = env->FindClass ("com/crestron/txrxservice/GstreamOut");
 	gStreamOut_javaClass_id = (jclass*)env->NewGlobalRef(klass2);
 	env->DeleteLocalRef(klass2);
@@ -3396,7 +3396,7 @@ jint JNI_OnLoad(JavaVM *vm, void *reserved)
 	
 #ifdef WHITEBOARD_STREAM_ENABLED
 	// Crestron - RH - setup wbsStreamIn_javaClass_id for WbsStreamIn for C++ to be able to call JAVA class WbsStreamIn functions
-	CSIO_LOG(eLogLevel_error, "wbstream_jni : Registering natives for WbsStreamIn");
+	CSIO_LOG(eLogLevel_info, "wbstream_jni : Registering natives for WbsStreamIn");
 	jclass klass3 = env->FindClass ("com/crestron/txrxservice/WbsStreamIn");
 	wbsStreamIn_javaClass_id = (jclass*)env->NewGlobalRef(klass3);
 	env->DeleteLocalRef(klass3);
@@ -5152,7 +5152,13 @@ doneAddAudio:
 	return iStatus;
 }
 
-int csio_jni_AddVideo(GstPad *new_pad,gchar *encoding_name, GstElement **sink,eProtocolId protoIdi, bool send_pause, int iStreamId)
+int csio_jni_AddVideo(
+    GstPad *new_pad,
+    gchar *encoding_name,
+    GstElement **sink,
+    eProtocolId protoId,
+    bool send_pause,
+    int iStreamId)
 {
 	int iStatus  = CSIO_SUCCESS;
 	*sink = NULL;
@@ -5179,7 +5185,11 @@ int csio_jni_AddVideo(GstPad *new_pad,gchar *encoding_name, GstElement **sink,eP
 
 	new_pad_caps = gst_pad_query_caps( new_pad, NULL );
 	p_caps_string = gst_caps_to_string (new_pad_caps);
-	CSIO_LOG(eLogLevel_verbose, "csio_jni_AddVideo caps_string[%s]", p_caps_string?p_caps_string:"");
+	CSIO_LOG(
+        eLogLevel_info,
+        "csio_jni_AddVideo caps %s, encoding %s",
+        p_caps_string ? p_caps_string : "",
+        encoding_name ?  encoding_name : "");
 	
 	if(strncmp(p_caps_string, "application/x-rtp", 17) == 0)
 	{
@@ -5190,12 +5200,14 @@ int csio_jni_AddVideo(GstPad *new_pad,gchar *encoding_name, GstElement **sink,eP
 	new_pad_struct = gst_caps_get_structure( new_pad_caps, 0 );
 	if(new_pad_struct)
 	{
-	    const GValue *format_value = gst_structure_get_value (new_pad_struct, "stream-format");
+	    const GValue *format_value =
+            gst_structure_get_value (new_pad_struct, "stream-format");
+
 	    if(format_value)
 	    {
 	        format_name = gst_value_serialize(format_value);
 	        if(format_name)
-	            CSIO_LOG(eLogLevel_debug,  "%s: Stream format-name '%s'\r\n", __FUNCTION__, format_name );
+	            CSIO_LOG(eLogLevel_debug,  "%s: Stream format-name %s", __FUNCTION__, format_name );
 	        else
 	            CSIO_LOG(eLogLevel_debug,  "%s: Missing stream format-name.", __FUNCTION__);
 	    }
@@ -5265,6 +5277,7 @@ doneAddVideo:
 	{
 		gst_caps_unref(new_pad_caps);
 	}
+    g_free(p_caps_string);
 	return iStatus;
 }
 

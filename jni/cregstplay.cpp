@@ -1567,6 +1567,8 @@ int build_video_pipeline(gchar *encoding_name, CREGSTREAM *data, unsigned int st
             data->amcvid_dec = data->element_v[i-1];
             data->amcvid_dec_index = i-1;
 
+            CSIO_LOG(eLogLevel_debug, "%s: adding video decoder %s", __FUNCTION__, product_info()->H264_decoder_string);
+
             csio_SetVpuDecoder(data->amcvid_dec, data->streamId);
             csio_jni_setFramePushDelay(data->streamId);
 
@@ -2052,6 +2054,8 @@ int build_video_pipeline(gchar *encoding_name, CREGSTREAM *data, unsigned int st
             gst_video_overlay_expose(GST_VIDEO_OVERLAY (data->video_sink));
             gst_video_overlay_expose(GST_VIDEO_OVERLAY (data->video_sink));
 	}
+
+    CSIO_LOG(eLogLevel_debug, "%s done", __func__);
 	return CSIO_SUCCESS;
 }
 
