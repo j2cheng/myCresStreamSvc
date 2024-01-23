@@ -90,7 +90,7 @@ public class AirMediaSplashtop
     Context mContext;
     CresCanvas mCanvas;
     public static final String TAG = "TxRx Splashtop AirMedia"; 
-	public final static String licenseFilePath = "airmedia";
+	public final static String licenseFilePath = "is_airmedia_licensed";
 	private boolean surfaceDisplayed = false;
 	private boolean doneQuerySenderList = true;
 	private int streamIdx = 0;
