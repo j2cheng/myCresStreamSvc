@@ -50,7 +50,7 @@
 
 		<service android:name=".CresStreamCtrl" android:theme="@android:style/Theme.Translucent.NoTitleBar"
             android:process=":txrx_css"
-            android:exported="false">
+            android:exported="true">
 		    <!-- android:permission="com.crestron.txrxservice.permission.SERVICE" --> 
 		    <intent-filter>
 		    	<action android:name="com.crestron.txrxservice.BIND"/>
