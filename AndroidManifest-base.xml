@@ -31,7 +31,7 @@
     <!-- Error: Permission is only granted to system apps [ProtectedPermissions] <uses-permission android:name="android.permission.HARDWARE_TEST" /> -->
 
     <application
-        android:extractNativeLibs="true"
+        android:extractNativeLibs="false"
         android:allowBackup="true"
         android:icon="@drawable/ic_launcher"
         android:theme="@android:style/Theme.NoTitleBar.Fullscreen" android:persistent="true">
