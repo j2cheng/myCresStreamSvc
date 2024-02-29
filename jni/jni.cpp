@@ -94,7 +94,7 @@ extern unsigned short debugPrintSeqNum[];
 # define GET_CUSTOM_DATA(env, thiz, fieldID) (CustomData *)(jint)env->GetLongField (thiz, fieldID)
 # define SET_CUSTOM_DATA(env, thiz, fieldID, data) env->SetLongField (thiz, fieldID, (jlong)(jint)data)
 #endif
-   
+
 #define STREAM_TRANSPORT_MPEG2TS_RTP (1)
 #define STREAM_TRANSPORT_MPEG2TS_UDP (2)
 
@@ -199,9 +199,9 @@ const char * const fieldDebugNames[MAX_SPECIAL_FIELD_DEBUG_NUM - 1] =
     "20 DROP_AUDIO_PACKETS          ",
     "21 INSERT_AUDIO_PROBE          ",
     "22 PRINT_RTP_SEQUENCE_NUMBER   ",
-    "23 SET_DEC_MAX_INPUT_FRAMES    ",    
+    "23 SET_DEC_MAX_INPUT_FRAMES    ",
     "24 SET_PIPELINE_BUFFER         ",
-    "25 GST_VIDEOENC_DUMP_ENABLE     "   
+    "25 GST_VIDEOENC_DUMP_ENABLE     "
 };
 int amcviddec_debug_level    = GST_LEVEL_ERROR;
 int videodecoder_debug_level = GST_LEVEL_ERROR;
@@ -236,7 +236,7 @@ static CREGSTREAM * GetStreamFromCustomData(CustomData * cdata, int stream)
 	{
 		return NULL;
 	}
-	
+
     if(stream >= MAX_STREAMS)
 	{
 		return NULL;
@@ -246,7 +246,7 @@ static CREGSTREAM * GetStreamFromCustomData(CustomData * cdata, int stream)
 }
 
 /* Register this thread with the VM */
-static JNIEnv *attach_current_thread (void) 
+static JNIEnv *attach_current_thread (void)
 {
 	JNIEnv *env;
 	JavaVMAttachArgs args;
@@ -265,14 +265,14 @@ static JNIEnv *attach_current_thread (void)
 }
 
 /* Unregister this thread from the VM */
-static void detach_current_thread (void *env) 
+static void detach_current_thread (void *env)
 {
 	CSIO_LOG(eLogLevel_debug, "Detaching thread %p", g_thread_self ());
 	java_vm->DetachCurrentThread ();
 }
 
 /* Retrieve the JNI environment for this thread */
-static JNIEnv *get_jni_env (void) 
+static JNIEnv *get_jni_env (void)
 {
 	JNIEnv *env;
 
@@ -299,7 +299,7 @@ void csio_dump_jni_reference_table(char *label)
 }
 
 /* Change the content of the UI's TextView */
-// void set_ui_message (const gchar *message, CustomData *data) 
+// void set_ui_message (const gchar *message, CustomData *data)
 // {
 // 	JNIEnv *env = get_jni_env ();
 // 	CSIO_LOG(eLogLevel_debug, "Setting message to: %s", message);
@@ -314,13 +314,13 @@ void csio_dump_jni_reference_table(char *label)
 
 /* Check if all conditions are met to report GStreamer as initialized.
  * These conditions will change depending on the application */
-static void check_initialization_complete (CustomData *cdata, int stream) 
+static void check_initialization_complete (CustomData *cdata, int stream)
 {
 	JNIEnv *env = get_jni_env ();
 	CREGSTREAM * data = GetStreamFromCustomData(cdata, stream);
 
 	CSIO_LOG(eLogLevel_debug, "%s: entered for stream=%d", __FUNCTION__, stream);
-	
+
 	if(!data)
  	{
 		CSIO_LOG(eLogLevel_error, "Could not obtain stream pointer for stream %d", stream);
@@ -329,8 +329,8 @@ static void check_initialization_complete (CustomData *cdata, int stream)
 
 	CSIO_LOG(eLogLevel_debug, "stream=%d: initialized=%d, native_window=%p, main_loop=%p",
 		stream, data->initialized, data->native_window,data->main_loop);
-	
-	if (!data->initialized && data->native_window && data->main_loop) 
+
+	if (!data->initialized && data->native_window && data->main_loop)
 	{
 		CSIO_LOG(eLogLevel_debug, "Initialization complete for stream %d, video_sink=%p",
 			stream, data->video_sink);
@@ -347,7 +347,7 @@ static void check_initialization_complete (CustomData *cdata, int stream)
 		//	CSIO_LOG(eLogLevel_error, "Failed to call Java method");
 		//	env->ExceptionClear ();
 		//}
-		
+
 		data->initialized = TRUE;
 	}
 }
@@ -383,14 +383,14 @@ void csio_jni_init()
  */
 
 /* Instruct the native code to create its internal data structure, pipeline and thread */
-static void gst_native_init (JNIEnv* env, jobject thiz) 
+static void gst_native_init (JNIEnv* env, jobject thiz)
 {
 	CustomData *cdata = g_new0 (CustomData, 1);
 	CresDataDB = cdata;
 	SET_CUSTOM_DATA (env, thiz, custom_data_field_id, cdata);
 	GST_DEBUG_CATEGORY_INIT (debug_category, "css_jni", 0, "Android jni");
 	gst_debug_set_threshold_for_name("css_jni", GST_LEVEL_ERROR);
-	
+
 	cdata->app = env->NewGlobalRef (thiz);
 	init_custom_data(cdata);
 	csio_jni_init();
@@ -402,7 +402,7 @@ static void gst_native_init (JNIEnv* env, jobject thiz)
 		signal(SIGSEGV, SIG_DFL);
 	}
 
-    if(product_info()->hw_platform == eHardwarePlatform_Rockchip) 
+    if(product_info()->hw_platform == eHardwarePlatform_Rockchip)
         set_TLS_version_ciphers();
 
     WfdSinkProjInit();
@@ -410,7 +410,7 @@ static void gst_native_init (JNIEnv* env, jobject thiz)
 
 // Set up some defaults for streaming out using gstreamer.
 void init_custom_data_out(CustomStreamOutData * cdata)
-{	
+{
 	//cdata->surface = NULL;
     CSIO_LOG(eLogLevel_debug, "rtsp_server: init_custom_data_out cdata[0x%x],cdata->app[0x%x],streamOut[0x%x]",
             cdata,cdata->app,&cdata->streamOut[0]);
@@ -425,11 +425,11 @@ void init_custom_data_out(CustomStreamOutData * cdata)
 }
 
 /* Quit the main loop, remove the native thread and free resources */
-static void gst_native_finalize (JNIEnv* env, jobject thiz) 
+static void gst_native_finalize (JNIEnv* env, jobject thiz)
 {
 	CustomData *cdata = GET_CUSTOM_DATA (env, thiz, custom_data_field_id);
 	int i;
-	
+
 	if (!cdata) return;
 
     WfdSinkProjDeInit();
@@ -502,7 +502,7 @@ static void gst_native_pause (JNIEnv* env, jobject thiz, jint streamId)
         CSIO_LOG(eLogLevel_error, "Could not obtain stream pointer for stream %d", streamId);
         return;
     }
-    
+
     if(GetInPausedState(streamId) == 0)
     {
         CSIO_LOG(eLogLevel_debug, "GetInPausedState is false, drop all");
@@ -574,7 +574,7 @@ void csio_jni_remove_probe (int iStreamId)
         CSIO_LOG(eLogLevel_error, "Could not obtain stream pointer for stream %d", iStreamId);
         return;
     }
-    
+
     if(data->udpsrc_prob_id)
     {
         GstPad *pad;
@@ -806,7 +806,7 @@ void csio_jni_cleanup (int iStreamId)
         CSIO_LOG(eLogLevel_error, "Could not obtain stream pointer for stream %d", iStreamId);
         return;
     }
-    
+
     memset(data->sourceIP_addr,0,sizeof(data->sourceIP_addr));
     data->udpsrc_prob_timer.tv_sec = 0;
     data->udpsrc_prob_timer.tv_nsec = 0;
@@ -834,9 +834,9 @@ void csio_jni_cleanup (int iStreamId)
     {
         data->element_av[i] = NULL;
         data->element_a[i] = NULL;
-        data->element_v[i] = NULL;   
+        data->element_v[i] = NULL;
     }
-    
+
     data->using_glimagsink = 0;
 
     csio_jni_FreeMainContext(iStreamId);
@@ -988,7 +988,7 @@ void gst_native_stop (JNIEnv* env, jobject thiz, jint streamId, jint stopTimeout
 }
 
 /* Static class initializer: retrieve method and field IDs */
-static jboolean gst_native_class_init (JNIEnv* env, jclass klass) 
+static jboolean gst_native_class_init (JNIEnv* env, jclass klass)
 {
 	CSIO_LOG(eLogLevel_debug, "gst_native_class_init\n");
 	custom_data_field_id = env->GetFieldID (klass, "native_custom_data", "J");
@@ -996,7 +996,7 @@ static jboolean gst_native_class_init (JNIEnv* env, jclass klass)
 	//on_gstreamer_initialized_method_id = env->GetMethodID (klass, "onGStreamerInitialized", "()V");
 
 	//if (!custom_data_field_id || !set_message_method_id || !on_gstreamer_initialized_method_id) {
-    if (!custom_data_field_id || !set_message_method_id) {		
+    if (!custom_data_field_id || !set_message_method_id) {
 		/* We emit this message through the Android log instead of the GStreamer log because the later
 		* has not been initialized yet.
 		*/
@@ -1066,7 +1066,7 @@ static void gst_jni_setup_surface_format(JNIEnv *env,ANativeWindow *new_native_w
         data->surface = NULL;
     }
     data->surface = env->NewGlobalRef(surface);
-    CSIO_LOG(eLogLevel_debug, "native window = %p,surface[%p],data->surface[%p]", data->native_window,surface,data->surface);
+    CSIO_LOG(eLogLevel_debug, "native window  %p, surface %p, data->surface %p", data->native_window,surface,data->surface);
 }
 
 static void gst_native_surface_init(JNIEnv *env, jobject thiz, jobject surface, jint stream)
@@ -1161,12 +1161,12 @@ eStreamState gst_native_get_current_stream_state(int stream)
 	return currentStreamState;
 }
 
-static void gst_native_surface_finalize (JNIEnv *env, jobject thiz, jint stream) 
+static void gst_native_surface_finalize (JNIEnv *env, jobject thiz, jint stream)
 {
 	CustomData *cdata = GET_CUSTOM_DATA (env, thiz, custom_data_field_id);
-	CREGSTREAM * data;	
-	
-	if (!cdata) return;	
+	CREGSTREAM * data;
+
+	if (!cdata) return;
 
 	data = GetStreamFromCustomData(cdata, stream);
 	if(!data)
@@ -1174,11 +1174,11 @@ static void gst_native_surface_finalize (JNIEnv *env, jobject thiz, jint stream)
 		CSIO_LOG(eLogLevel_error, "Could not obtain stream pointer for stream %d", stream);
 		return;
 	}
-	
+
 	CSIO_LOG(eLogLevel_debug, "Releasing native window %p for stream %d",
 			   data->native_window, stream);
-	
-	if (data->video_sink) 
+
+	if (data->video_sink)
 	{
 		gst_video_overlay_set_window_handle (GST_VIDEO_OVERLAY (data->video_sink), (guintptr)NULL);
 		//gst_element_set_state (data->pipeline, GST_STATE_READY);
@@ -1306,7 +1306,7 @@ JNIEXPORT void JNICALL Java_com_crestron_txrxservice_GstreamIn_nativeSetTranspor
 JNIEXPORT void JNICALL Java_com_crestron_txrxservice_GstreamIn_nativeSetMulticastAddress(JNIEnv *env, jobject thiz, jstring multicastIp_jstring, jint streamId)
 {
 	char *buf = NULL;
-	
+
 	const char * multicastIp_cstring = env->GetStringUTFChars( multicastIp_jstring , NULL ) ;
 	if (multicastIp_cstring == NULL) return;
 
@@ -1493,7 +1493,7 @@ JNIEXPORT void JNICALL Java_com_crestron_txrxservice_GstreamIn_nativeSetTcpMode(
 //                 = 2 --> up to and including 1080P
 //                 = 3 --> up to and including 720P
 JNIEXPORT void JNICALL Java_com_crestron_txrxservice_GstreamIn_nativeSetResolutionIndex(JNIEnv *env, jobject thiz, jint resolutionIndex, jint sessionId)
-{    
+{
     CSIO_LOG(eLogLevel_info, "Setting window[%d] resolutionIndex to %d", sessionId, resolutionIndex);
 
 //8-4-2022: used for multi-streaming media stream selection
@@ -1882,7 +1882,7 @@ JNIEXPORT void JNICALL Java_com_crestron_txrxservice_GstreamIn_nativeSetFieldDeb
                 //the first parameter is stream id
                 CmdPtr = strtok(NULL, ", ");
                 if (CmdPtr == NULL)
-                { 
+                {
                     CSIO_LOG(eLogLevel_info, "invalid parameter, need stream id\r\n");
                 }
                 else
@@ -1950,14 +1950,14 @@ JNIEXPORT void JNICALL Java_com_crestron_txrxservice_GstreamIn_nativeSetFieldDeb
                             }
                         }
                     }
-                }                
+                }
             }
             else if (!strcmp(CmdPtr, "GET_AMCVIDDEC_LATENCY"))
             {
                 //the first parameter is stream id
                 CmdPtr = strtok(NULL, ", ");
                 if (CmdPtr == NULL)
-                { 
+                {
                     CSIO_LOG(eLogLevel_info, "invalid parameter, need stream id\r\n");
                 }
                 else
@@ -1998,16 +1998,16 @@ JNIEXPORT void JNICALL Java_com_crestron_txrxservice_GstreamIn_nativeSetFieldDeb
                                 CSIO_LOG(eLogLevel_info, "no amcvid_dec \r\n");
                             }
                         }//else
-                        
+
                     }
-                }                
+                }
             }
             else if (!strcmp(CmdPtr, "SET_AUDIOSINK_TS_OFFSET"))
             {
                 //the first parameter is stream id
                 CmdPtr = strtok(NULL, ", ");
                 if (CmdPtr == NULL)
-                { 
+                {
                     CSIO_LOG(eLogLevel_info, "invalid parameter, need stream id\r\n");
                 }
                 else
@@ -2148,7 +2148,7 @@ JNIEXPORT void JNICALL Java_com_crestron_txrxservice_GstreamIn_nativeSetFieldDeb
                     gchar * name = gst_element_get_name(data->audio_sink);
                     CSIO_LOG(eLogLevel_debug, "FieldDebugInfo: element name[%s]",name);
                     g_free(name);
-                    
+
                     gboolean audioSync = 0;
                     guint64  tmp = 0;
 
@@ -2405,14 +2405,14 @@ JNIEXPORT void JNICALL Java_com_crestron_txrxservice_GstreamIn_nativeSetFieldDeb
                 //the first parameter is stream id
                 CmdPtr = strtok(NULL, ", ");
                 if (CmdPtr == NULL)
-                { 
+                {
                     CSIO_LOG(eLogLevel_info, "invalid parameter, need stream id\r\n");
                 }
                 else
                 {
                     int id = (int) strtol(CmdPtr, &EndPtr, 10);
                     CSIO_LOG(eLogLevel_debug, "stream id is: %d",id);
-               
+
                     if(id >= 0 && id < 3)//TODO: may need to use MAX_STREAMS
                     {
                         CREGSTREAM * StreamDb = GetStreamFromCustomData(CresDataDB, id);
@@ -2429,7 +2429,7 @@ JNIEXPORT void JNICALL Java_com_crestron_txrxservice_GstreamIn_nativeSetFieldDeb
                                 CSIO_LOG(eLogLevel_info, "PRINT_RTP_SEQUENCE_NUMBER is: %d\r\n",debugPrintSeqNum[id]);
                             }
                             else
-                            {                         
+                            {
                                 debugPrintSeqNum[id] = (int) strtol(CmdPtr, &EndPtr, 10);
                                 CSIO_LOG(eLogLevel_info, "PRINT_RTP_SEQUENCE_NUMBER id[%d] is set to: %d\r\n",id, debugPrintSeqNum[id]);
                             }
@@ -2493,7 +2493,7 @@ JNIEXPORT void JNICALL Java_com_crestron_txrxservice_GstreamIn_nativeSetFieldDeb
                 //the first parameter is stream id
                 CmdPtr = strtok(NULL, ", ");
                 if (CmdPtr == NULL)
-                { 
+                {
                     CSIO_LOG(eLogLevel_info, "invalid parameter, need stream id\r\n");
                 }
                 else
@@ -2506,7 +2506,7 @@ JNIEXPORT void JNICALL Java_com_crestron_txrxservice_GstreamIn_nativeSetFieldDeb
                         CREGSTREAM * StreamDb = GetStreamFromCustomData(CresDataDB, id);
                         if(!StreamDb)
                         {
-                            CSIO_LOG(eLogLevel_error, "Could not obtain stream pointer for stream %d", id);                            
+                            CSIO_LOG(eLogLevel_error, "Could not obtain stream pointer for stream %d", id);
                         }
                         else
                         {
@@ -2521,11 +2521,11 @@ JNIEXPORT void JNICALL Java_com_crestron_txrxservice_GstreamIn_nativeSetFieldDeb
                                 }
                                 else
                                 {
-                                    CSIO_LOG(eLogLevel_info, "no amcvid_dec \r\n");           
-                                }                                
+                                    CSIO_LOG(eLogLevel_info, "no amcvid_dec \r\n");
+                                }
                             }
                             else
-                            {                         
+                            {
                                 if(StreamDb->amcvid_dec)
                                 {
                                     guint  tmp = strtol(CmdPtr, &EndPtr, 10);
@@ -2534,8 +2534,8 @@ JNIEXPORT void JNICALL Java_com_crestron_txrxservice_GstreamIn_nativeSetFieldDeb
                                 }
                                 else
                                 {
-                                    CSIO_LOG(eLogLevel_info, "no amcvid_dec \r\n");           
-                                }   
+                                    CSIO_LOG(eLogLevel_info, "no amcvid_dec \r\n");
+                                }
                             }
                         }
                     }
@@ -2553,7 +2553,7 @@ JNIEXPORT void JNICALL Java_com_crestron_txrxservice_GstreamIn_nativeSetFieldDeb
                     CSIO_LOG(eLogLevel_info, "Current debug miracast pipeline buffer is: %d\r\n",debug_setPipelineBuf);
                 }
                 else
-                {                   
+                {
                     unsigned int tmp = (unsigned int)strtol(CmdPtr, &EndPtr, 10);
 
                     if( tmp >= 0 && tmp <= 2000)
@@ -2580,17 +2580,17 @@ JNIEXPORT void JNICALL Java_com_crestron_txrxservice_GstreamIn_nativeSetFieldDeb
                     CSIO_LOG(eLogLevel_info, "MS_SOURCE_READY need parameter.\r\n");
                 }
                 else
-                {   
-                    char cmdmsmice[100] = {0}; 
+                {
+                    char cmdmsmice[100] = {0};
                     int  id;
                     int  state;
-                    char local_addr[100] = {0}; 
-                    char device_id[100] = {0}; 
-                    char device_name[100] = {0}; 
-                    char device_addr[100] = {0}; 
+                    char local_addr[100] = {0};
+                    char device_id[100] = {0};
+                    char device_name[100] = {0};
+                    char device_addr[100] = {0};
                     int  rtsp_port;
-                    
-                    CSIO_LOG(eLogLevel_info, "command namestring[%s]\r\n",namestring);                    
+
+                    CSIO_LOG(eLogLevel_info, "command namestring[%s]\r\n",namestring);
 
                     int ret = sscanf(namestring, "%s %d %d %s %s %s %s %d", cmdmsmice, &id,&state,local_addr,device_id,device_name,device_addr,&rtsp_port);
                     CSIO_LOG(eLogLevel_info, "command parsed[%d]}:cmd[%s], id[%d],state[%d],local_addr[%s],device_id[%s],device_name[%s],device_addr[%s],rtsp_port[%d]\r\n",
@@ -2604,12 +2604,12 @@ JNIEXPORT void JNICALL Java_com_crestron_txrxservice_GstreamIn_nativeSetFieldDeb
                                                device_id,    //pConfig->device_id,
                                                device_name,  //pConfig->device_name,
                                                device_addr,  //pConfig->device_addr,
-                                               rtsp_port);   //pConfig->rtsp_port);                    
+                                               rtsp_port);   //pConfig->rtsp_port);
                 }
-            }  
+            }
             else if (!strcmp(CmdPtr, "SET_DFL_SIGSEGV"))
             {
-                CSIO_LOG(eLogLevel_info, "set sigaction to default\r\n");   
+                CSIO_LOG(eLogLevel_info, "set sigaction to default\r\n");
 
                 setSignalHandlerToDefault();
             }
@@ -2629,7 +2629,7 @@ JNIEXPORT void JNICALL Java_com_crestron_txrxservice_GstreamIn_nativeSetFieldDeb
                         wcVideoEncDumpEnable = fieldNum;
                         if( fieldNum == 1 )
                         {
-                            //reset the counter to zero so that video enc dump starts 
+                            //reset the counter to zero so that video enc dump starts
                             videoDumpCount = 0;
                         }
                         CSIO_LOG(eLogLevel_debug, "set video encoded dump to: %d\r\n",fieldNum);
@@ -2803,7 +2803,7 @@ JNIEXPORT void JNICALL Java_com_crestron_txrxservice_GstreamIn_nativeSetFieldDeb
                     else
                     {
                         CSIO_LOG(eLogLevel_info, "Invalid Format, need a parameter 0 (disable) 1 (enable) \r\n");
-                    } 
+                    }
                 }
             }
             else if (!strcmp(CmdPtr, "WC_JPEG_DYNAMICFRAMERATECONTROL"))
@@ -2935,7 +2935,7 @@ JNIEXPORT void JNICALL Java_com_crestron_txrxservice_GstreamIn_nativeSetFieldDeb
                     {
                         CREGSTREAM *data = GetStreamFromCustomData(CresDataDB, strmID);
                         if (data)
-                        { 
+                        {
                             CSIO_LOG(eLogLevel_info, "SELECT_VIDEO_STREAMID for stream id: %d is %d \r\n",strmID,data->sel_video_stream_id);
                         }//else
                     }
@@ -2959,7 +2959,7 @@ JNIEXPORT void JNICALL Java_com_crestron_txrxservice_GstreamIn_nativeSetFieldDeb
                     {
                         CREGSTREAM *data = GetStreamFromCustomData(CresDataDB, strmID);
                         if (data)
-                        { 
+                        {
                             CSIO_LOG(eLogLevel_info, "SELECT_AUDIO_STREAMID for stream id: %d is %d \r\n",strmID,data->sel_audio_stream_id);
                         }//else
                     }
@@ -3052,7 +3052,7 @@ JNIEXPORT void JNICALL Java_com_crestron_txrxservice_GstreamIn_nativeSetFieldDeb
                         CSIO_LOG(eLogLevel_debug, "Invalid stream id : %d", id);
                     }
                 }
-            }            
+            }
             else if(!strcmp(CmdPtr, "PRINT_VIDDEC_QUEUE"))
             {
                 //the first parameter is stream id
@@ -3099,7 +3099,7 @@ JNIEXPORT void JNICALL Java_com_crestron_txrxservice_GstreamIn_nativeSetFieldDeb
                     {
                         CSIO_LOG(eLogLevel_info, "element not exist.\r\n");
                     }
-                    
+
                 }
             }
             else
@@ -3329,7 +3329,7 @@ eStreamState nativeGetCurrentStreamState(jint sessionId)
 }
 
 /* List of implemented native methods */
-static JNINativeMethod native_methods[] = 
+static JNINativeMethod native_methods[] =
 {
 	{ "nativeInit", "()V", (void *) gst_native_init},
 	{ "nativeFinalize", "()V", (void *) gst_native_finalize},
@@ -3342,7 +3342,7 @@ static JNINativeMethod native_methods[] =
 };
 
 /* Library initializer */
-jint JNI_OnLoad(JavaVM *vm, void *reserved) 
+jint JNI_OnLoad(JavaVM *vm, void *reserved)
 {
 	JNIEnv *env = NULL;
 //TODO: investigate why there are 2 instances of currentSettingsDB
@@ -3393,7 +3393,7 @@ jint JNI_OnLoad(JavaVM *vm, void *reserved)
 	     return 0; /* out of memory exception thrown */
 	}
 	env->RegisterNatives ((jclass)gStreamOut_javaClass_id, native_methods_rtsp_server, G_N_ELEMENTS(native_methods_rtsp_server));
-	
+
 #ifdef WHITEBOARD_STREAM_ENABLED
 	// Crestron - RH - setup wbsStreamIn_javaClass_id for WbsStreamIn for C++ to be able to call JAVA class WbsStreamIn functions
 	CSIO_LOG(eLogLevel_info, "wbstream_jni : Registering natives for WbsStreamIn");
@@ -3435,7 +3435,7 @@ int csio_IpLinkClientConnected()
 	return 1;
 }
 void csio_send_zerostats()
-{	
+{
 	csio_send_stats(0,0, 0, 0, 0, 0);
 }
 int csio_ClearOverlay()
@@ -3448,7 +3448,7 @@ void    *csio_SendMulticastAddressFb(void * arg)
 	jstring multicastAddress_jstr;
 	JNIEnv *env = get_jni_env ();
 	jint streamId = csio_GetStreamId(arg);
-	char *multicastAddress_cstr = csio_GetMulticastAddress(streamId);	
+	char *multicastAddress_cstr = csio_GetMulticastAddress(streamId);
 
 	multicastAddress_jstr = env->NewStringUTF(multicastAddress_cstr);
 
@@ -3533,12 +3533,12 @@ int csio_SendVideoPlayingStatusMessage(unsigned int streamId, eStreamState state
 	{
 		csio_SendVideoSourceParams(streamId,0,0,0,0);
 	}
-	
+
 	return 0;
 }
 void csio_SendVideoSourceParams(unsigned int source, unsigned int width, unsigned int height, unsigned int framerate, unsigned int profile)
 {
-	JNIEnv *env = get_jni_env ();	
+	JNIEnv *env = get_jni_env ();
 
 	CSIO_LOG(eLogLevel_debug, "%s: streamId=%d res=%dx%d@%d profile=0x%x", __FUNCTION__, source, width, height, framerate, profile);
 	jmethodID sendVideoSourceParams = env->GetMethodID((jclass)gStreamIn_javaClass_id, "sendVideoSourceParams", "(IIIII)V");
@@ -3632,26 +3632,26 @@ void csio_start_mode_change_detection ()
 GMainLoop * csio_jni_CreateMainLoop(int iStreamId)
 {
 	CREGSTREAM * data = GetStreamFromCustomData(CresDataDB, iStreamId);
-	
+
 	if(!data)
 	{
 		CSIO_LOG(eLogLevel_error, "Could not obtain stream pointer for stream %d", iStreamId);
 		return NULL;
-	}	
-	
+	}
+
 	return g_main_loop_new( data->context, FALSE );
 }
 
 void csio_jni_CreateMainContext(int iStreamId)
 {
 	CREGSTREAM * data = GetStreamFromCustomData(CresDataDB, iStreamId);
-	
+
 	if(!data)
 	{
 		CSIO_LOG(eLogLevel_error, "Could not obtain stream pointer for stream %d", iStreamId);
 		return;
-	}	
-	
+	}
+
 	data->context = g_main_context_new ();
 	g_main_context_push_thread_default(data->context);
 }
@@ -3659,12 +3659,12 @@ void csio_jni_CreateMainContext(int iStreamId)
 void csio_jni_FreeMainContext(int iStreamId)
 {
 	CREGSTREAM * data = GetStreamFromCustomData(CresDataDB, iStreamId);
-	
+
 	if(!data)
 	{
 		CSIO_LOG(eLogLevel_error, "Could not obtain stream pointer for stream %d", iStreamId);
 		return;
-	}	
+	}
 
     if(data->context)
 	{
@@ -3684,13 +3684,13 @@ void csio_jni_CheckInitializationComplete(int iStreamId)
 void csio_jni_SetOverlayWindow(int iStreamId)
 {
 	CREGSTREAM * data = GetStreamFromCustomData(CresDataDB, iStreamId);
-	
+
 	if(!data)
 	{
 		CSIO_LOG(eLogLevel_error, "Could not obtain stream pointer for stream %d", iStreamId);
 		return;
-	}	
-	
+	}
+
 	/* The main loop is running and we received a native window, inform the sink about it */
 	if(data->video_sink)
 	{
@@ -3781,7 +3781,7 @@ int csio_jni_StartRTPMediaStreamThread(int iStreamId, GstElement * appSource, un
 
    // !!!!!!!
    // Check if it is still valid, correct if needed
-   // 
+   //
    //    locking arrangement:
    //       - access to sssl context storage API needs a global lock
    //       - since the only entity deleting the SSL context is going to be the RTP thread,
@@ -3792,13 +3792,13 @@ int csio_jni_StartRTPMediaStreamThread(int iStreamId, GstElement * appSource, un
    //             - delete SSL context at the given index
    //             - delete sssl context storage at the given index
    //             - release the global lock
-   //    
+   //
    // !!!!!!!
 
 
    CSIO_LOG(eLogLevel_debug,"mira: {%s} - entering with iStreamId = %d",__FUNCTION__,iStreamId);
 
-   memset((void *)&rtpMedStrContext, 0, sizeof(rtpMedStrContext)); 
+   memset((void *)&rtpMedStrContext, 0, sizeof(rtpMedStrContext));
 
    void * sssl = sssl_getContextWithStreamID(iStreamId);
    if(sssl == NULL)
@@ -3837,9 +3837,9 @@ int csio_jni_StartRTPMediaStreamThread(int iStreamId, GstElement * appSource, un
             }
         }
    }
-   memset((void *)&servaddr, 0, sizeof(servaddr)); 
+   memset((void *)&servaddr, 0, sizeof(servaddr));
 
-   // bind the socket with the server address 
+   // bind the socket with the server address
    //get local ip
    CREGSTREAM * data = GetStreamFromCustomData(CresDataDB, iStreamId);
    if(data)
@@ -3850,16 +3850,16 @@ int csio_jni_StartRTPMediaStreamThread(int iStreamId, GstElement * appSource, un
    else
    {
        CSIO_LOG(eLogLevel_error, "mira: Could not obtain stream pointer for stream %d", iStreamId);
-       servaddr.sin_addr.s_addr   = INADDR_ANY; 
+       servaddr.sin_addr.s_addr   = INADDR_ANY;
    }
 
    servaddr.sin_family        = AF_INET;           // IPv4
    servaddr.sin_port          = htons(udpPort);
    if(bind((int) rtpMedStrContext.sockFD, (const struct sockaddr *)&servaddr, (int) (sizeof(servaddr))) < 0)
-   { 
+   {
       CSIO_LOG(eLogLevel_error, "mira: could not bind RTP socket");
       return(-1);
-   } 
+   }
 
    // may want to set these socket level options:
    //    SO_RCVBUF
@@ -3951,7 +3951,7 @@ void updateProbeInfo(int streamID, struct timespec * currentTimePtr, char * srcI
 static bool loopShouldLog(int * errorCountPtr, int * logLevelPtr)
 {
    bool doPrint = false;
-   
+
    *logLevelPtr = eLogLevel_extraVerbose;
 	if(*errorCountPtr < 3)
    {
@@ -4079,7 +4079,7 @@ void * rtpMediaStreamThread(void * threadData)
       //      ALERT                   21       0x15
       //      HANDSHAKE               22       0x16
       //      APPLICATION_DATA        23       0x17
-      // 
+      //
       unsigned char tlsType = dtlsPacketBuff[0];
       if(tlsType != 0x17)
       {
@@ -4105,7 +4105,7 @@ void * rtpMediaStreamThread(void * threadData)
         int lowS  = ((dtlsPacketBuff[7]<<24)  |  (dtlsPacketBuff[8]<<16)  | (dtlsPacketBuff[9]<<8)   | dtlsPacketBuff[10] );
         uint64_t sequence = ( (((uint64_t)highS)<<32)  | ((uint64_t)lowS) );
         //CSIO_LOG(eLogLevel_debug,"mira: RTP loop: sequence number[0x%llx] %lld",sequence,(sequence-savedSequeceNumber[rtpMedStrContext.streamID]));
-        
+
         if(sequence - savedSequeceNumber[rtpMedStrContext.streamID] != 1)
             CSIO_LOG(eLogLevel_debug,"mira: RTP loop: sequence number[0x%llx], diff is: %lld",sequence,(sequence-savedSequeceNumber[rtpMedStrContext.streamID]));
 
@@ -4154,9 +4154,9 @@ void * rtpMediaStreamThread(void * threadData)
       gst_buffer_unmap(buffer, &map);
 
       // push the buffer into the appsrc
-      // 
+      //
       // ..... make sure it is blocking write !
-      // 
+      //
       g_signal_emit_by_name(rtpMedStrContext.appSource, "push-buffer", buffer, &ret);
 
       // free the buffer now that we are done with it
@@ -4195,7 +4195,7 @@ int csio_jni_CreatePipeline(void *obj,GstElement **pipeline, GstElement **source
 {
 	int iStatus = CSIO_SUCCESS;
 	char *buf = NULL;
-	
+
     CSIO_LOG(eLogLevel_info, "%s() protoId = %d [streamId=%d] entered", __FUNCTION__, protoId, iStreamId);
 
 	CREGSTREAM * data = GetStreamFromCustomData(CresDataDB, iStreamId);
@@ -4251,7 +4251,7 @@ int csio_jni_CreatePipeline(void *obj,GstElement **pipeline, GstElement **source
 
                 data->udp_port = CSIOCnsIntf->getStreamTxRx_TSPORT(iStreamId);
                 data->element_av[0] = gst_element_factory_make("udpsrc", NULL);
-                
+
                 //for miracast, we need to bind to ip address from index 0
                 CREGSTREAM * data_for_address = GetStreamFromCustomData(CresDataDB, iStreamId);
                 CSIO_LOG(eLogLevel_info, "%s: [streamId=%d] [data_for_address=%x]\n", __FUNCTION__, iStreamId, data_for_address);
@@ -4379,7 +4379,7 @@ int csio_jni_CreatePipeline(void *obj,GstElement **pipeline, GstElement **source
 
 					if (rtcpUdpSocket) {
 						g_object_set(G_OBJECT(data->element_av[2]), "socket",
-									 rtcpUdpSocket, 
+									 rtcpUdpSocket,
 									 "close-socket", FALSE,
 									 NULL);
 						g_object_unref(rtcpUdpSocket);
@@ -4390,7 +4390,7 @@ int csio_jni_CreatePipeline(void *obj,GstElement **pipeline, GstElement **source
 
 					if (gst_pad_link(srcpad, sinkpad) != GST_PAD_LINK_OK)
 						CSIO_LOG(eLogLevel_info, "Failed to link rtpbin to udpsink for RTCP");
-					
+
 					gst_object_unref(srcpad);
 					gst_object_unref(sinkpad);
 				}
@@ -4415,7 +4415,7 @@ int csio_jni_CreatePipeline(void *obj,GstElement **pipeline, GstElement **source
 				    iStatus = CSIO_CANNOT_CREATE_ELEMENTS;
 				    CSIO_LOG(eLogLevel_error,  "ERROR: Cannot create queue source pipeline elements\n" );
 			    }
-			    
+
 			    data->element_av[1] = gst_element_factory_make( "tsdemux", NULL );
 			    if(!data->element_av[1])
 			    {
@@ -4432,7 +4432,7 @@ int csio_jni_CreatePipeline(void *obj,GstElement **pipeline, GstElement **source
 			    }
 			    else
 			        CSIO_LOG(eLogLevel_debug, "success linking pipeline elements\n");
-		    }	
+		    }
 		    *pipeline = data->pipeline;
 		    *source   = data->element_zero;
 		    break;
@@ -4509,7 +4509,7 @@ int csio_jni_CreatePipeline(void *obj,GstElement **pipeline, GstElement **source
 				    CSIO_LOG(eLogLevel_error,  "ERROR: Cannot create udp source pipeline elements\n" );
 			    }
 			    insert_udpsrc_probe(data,data->element_zero,"src");
-			    			    
+
 			    data->udp_port = CSIOCnsIntf->getStreamTxRx_TSPORT(iStreamId);
 			    g_object_set(G_OBJECT(data->element_zero), "port", data->udp_port, NULL);
 
@@ -4519,7 +4519,7 @@ int csio_jni_CreatePipeline(void *obj,GstElement **pipeline, GstElement **source
 				    iStatus = CSIO_CANNOT_CREATE_ELEMENTS;
 				    CSIO_LOG(eLogLevel_error,  "ERROR: Cannot create queue source pipeline elements\n" );
 			    }
-			    
+
 			    data->element_av[1] = gst_element_factory_make( "tsdemux", NULL );
 			    if(!data->element_av[1])
 			    {
@@ -4537,7 +4537,7 @@ int csio_jni_CreatePipeline(void *obj,GstElement **pipeline, GstElement **source
 			    }
 			    else
 				    CSIO_LOG(eLogLevel_debug, "success link pipeline elements\n");
-			}else 
+			}else
 			{
 				CSIO_LOG(eLogLevel_debug,  "WARNING - invalid case\n" );
 
@@ -4562,7 +4562,7 @@ int csio_jni_CreatePipeline(void *obj,GstElement **pipeline, GstElement **source
 			//video
 			data->udp_video_port = CSIOCnsIntf->getStreamTxRx_RTPVIDEOPORT(iStreamId);
 			data->element_av[0] = gst_element_factory_make("udpsrc", NULL);
-            insert_udpsrc_probe(data,data->element_av[0],"src"); 
+            insert_udpsrc_probe(data,data->element_av[0],"src");
 
 			g_object_set(G_OBJECT(data->element_av[0]), "port", data->udp_video_port, NULL);
 			g_object_set(G_OBJECT(data->element_av[0]), "caps", data->caps_v_rtp, NULL);
@@ -4607,7 +4607,7 @@ int csio_jni_CreatePipeline(void *obj,GstElement **pipeline, GstElement **source
             }
             else
             	CSIO_LOG(eLogLevel_debug, "success linked filesrc and sdpdemux\n");
-            
+
             *pipeline = data->pipeline;
             *source   = data->element_zero;
             break;
@@ -4665,7 +4665,7 @@ int csio_jni_CreatePipeline(void *obj,GstElement **pipeline, GstElement **source
                 //Note: this should not happen
                 g_object_set(G_OBJECT(data->element_av[0]), "port", (8970), NULL);
                 CSIO_LOG(eLogLevel_debug, "tcpserversrc: failed to get stream object, set defaul port: 8970\n");
-            }            
+            }
 
             g_object_set(G_OBJECT(data->element_av[0]), "host", data->loc_ip_addr, NULL);
             CSIO_LOG(eLogLevel_debug, "tcpserversrc: bind to loc_ip_addr [%s]\n", data->loc_ip_addr);
@@ -4678,7 +4678,7 @@ int csio_jni_CreatePipeline(void *obj,GstElement **pipeline, GstElement **source
                 CSIO_LOG(eLogLevel_debug, "tcpserversrc: created capsfilter[0x%x]\n", data->element_av[1]);
             }
 
-            //2. create rtpstreamdepay to parse RFC4571 
+            //2. create rtpstreamdepay to parse RFC4571
             data->element_av[2] = gst_element_factory_make("rtpstreamdepay", NULL);
 
             {
@@ -4697,15 +4697,15 @@ int csio_jni_CreatePipeline(void *obj,GstElement **pipeline, GstElement **source
             }
 
             //3. add to pipeline
-            gst_bin_add_many (GST_BIN (data->pipeline), 
-                              data->element_av[0], 
-                              data->element_av[1], 
+            gst_bin_add_many (GST_BIN (data->pipeline),
+                              data->element_av[0],
+                              data->element_av[1],
                               data->element_av[2],
                               data->element_av[3], NULL);
 
             //4. link all
-            int ret = gst_element_link_many (data->element_av[0], 
-                                             data->element_av[1], 
+            int ret = gst_element_link_many (data->element_av[0],
+                                             data->element_av[1],
                                              data->element_av[2],
                                              data->element_av[3],
                                              data->element_zero, NULL);
@@ -4729,12 +4729,12 @@ int csio_jni_CreatePipeline(void *obj,GstElement **pipeline, GstElement **source
 void csio_jni_InitPipeline(eProtocolId protoId, int iStreamId,GstRTSPLowerTrans tcpModeFlags)
 {
 	CREGSTREAM * data = GetStreamFromCustomData(CresDataDB, iStreamId);
-	
+
 	if(!data)
 	{
 		CSIO_LOG(eLogLevel_error, "Could not obtain stream pointer for stream %d", iStreamId);
 		return;
-	}	
+	}
 
 	// Reset TS flag
 	data->mpegtsPresent = FALSE;
@@ -4770,7 +4770,7 @@ void csio_jni_InitPipeline(eProtocolId protoId, int iStreamId,GstRTSPLowerTrans 
 			data->protocols = tcpModeFlags;
 			g_object_set(G_OBJECT(data->element_zero), "protocols", data->protocols, NULL);
 			g_object_set(G_OBJECT(data->element_zero), "udp-buffer-size", DEFAULT_UDP_BUFFER, NULL);
-			
+
 			g_object_set(G_OBJECT(data->element_zero), "user-agent", (gchar *)CRESTRON_USER_AGENT, NULL); // TESTING REMOVE
 
 			if(data->rtcp_dest_ip_addr[0])
@@ -4829,7 +4829,7 @@ void csio_jni_InitPipeline(eProtocolId protoId, int iStreamId,GstRTSPLowerTrans 
 
 			//pass surface object to the decoder
 			g_object_set(G_OBJECT(data->element_v[i]), "surface-window", data->surface, NULL);
-			CSIO_LOG(eLogLevel_debug, "SET surface-window[0x%x][%d]",data->surface,data->surface);
+			CSIO_LOG(eLogLevel_debug, "SET surface-window[%p]",data->surface);
 
 			if(data->amcvid_dec && csio_GetWaitDecHas1stVidDelay(data->streamId) == 0)
 			{
@@ -4881,7 +4881,7 @@ void csio_jni_InitPipeline(eProtocolId protoId, int iStreamId,GstRTSPLowerTrans 
 			break;
 		}
         case ePROTOCOL_TCPSERVER_RCV:
-        {            
+        {
             CSIO_LOG(eLogLevel_info, "%s: tcpserversrc [streamId=%d] \n", __FUNCTION__, iStreamId);
 			// video part
 			data->video_sink = NULL;
@@ -4899,13 +4899,13 @@ void csio_jni_SetSourceLocation(eProtocolId protoId, char *location, int iStream
     char *url;
 
 	CSIO_LOG(eLogLevel_debug, "%s() location: %s, iStreamId=%d", __FUNCTION__, csio_sanitizeUrl(location).c_str(), iStreamId);
-	
+
 	if(!data)
 	{
 		CSIO_LOG(eLogLevel_error, "Could not obtain stream pointer for stream %d", iStreamId);
 		return;
-	}	
-	
+	}
+
 	switch( protoId )
 	{
 		case ePROTOCOL_RTSP_TCP:
@@ -4937,7 +4937,7 @@ void csio_jni_SetSourceLocation(eProtocolId protoId, char *location, int iStream
 							location, NULL);
 				}
 			}
-			//g_object_set(G_OBJECT(CresDataDB->element_av[1]), "address", 
+			//g_object_set(G_OBJECT(CresDataDB->element_av[1]), "address",
 			//		CresDataDB->multicast_grp, NULL);
 			break;
 		case ePROTOCOL_FILE:
@@ -4959,13 +4959,13 @@ void csio_jni_SetSourceLocation(eProtocolId protoId, char *location, int iStream
 void csio_jni_SetMsgHandlers(void* obj,eProtocolId protoId, int iStreamId)
 {
 	CREGSTREAM * data = GetStreamFromCustomData(CresDataDB, iStreamId);
-	
+
 	if(!data)
 	{
 		CSIO_LOG(eLogLevel_error, "Could not obtain stream pointer for stream %d", iStreamId);
 		return;
-	}	
-	
+	}
+
 	CSIO_LOG(eLogLevel_debug, "%s() protoId = %d\n", __FUNCTION__, protoId);
 	switch( protoId )
 	{
@@ -4980,7 +4980,7 @@ void csio_jni_SetMsgHandlers(void* obj,eProtocolId protoId, int iStreamId)
 			//CSIO_LOG(eLogLevel_debug, "SetMsgHandlers protoId[%d]\n",protoId);
 			// Register callback.
 			if(data->element_zero != NULL)
-			{				
+			{
 				g_signal_connect(data->element_zero, "pad-added", G_CALLBACK(csio_PadAddedMsgHandler), obj);
 			}
 			else
@@ -5041,14 +5041,14 @@ void csio_jni_SetMsgHandlers(void* obj,eProtocolId protoId, int iStreamId)
 		case ePROTOCOL_UDP_BPT:
 			break;
         case ePROTOCOL_TCPSERVER_RCV:
-        {            
+        {
             CSIO_LOG(eLogLevel_info, "%s: tcpserversrc [streamId=%d]\n", __FUNCTION__, iStreamId);
 			// video part
 			data->video_sink = NULL;
 
 
             if(data->element_zero != NULL)
-			{				
+			{
 				g_signal_connect(data->element_zero, "pad-added", G_CALLBACK(csio_PadAddedMsgHandler), obj);
    				CSIO_LOG(eLogLevel_warning, "tcpserversrc/rtpbin connected to csio_PadAddedMsgHandler");
 			}
@@ -5058,8 +5058,8 @@ void csio_jni_SetMsgHandlers(void* obj,eProtocolId protoId, int iStreamId)
 			}
 			/* Set the pipeline to READY, so it can already accept a window handle, if we have one */
 			csio_element_set_state(data->pipeline, GST_STATE_READY);
-            CSIO_LOG(eLogLevel_warning, "tcpserversrc/rtpbin pipeline set to GST_STATE_READY");		
-             
+            CSIO_LOG(eLogLevel_warning, "tcpserversrc/rtpbin pipeline set to GST_STATE_READY");
+
             break;
         }
 		default:
@@ -5084,7 +5084,7 @@ int csio_jni_AddAudio(GstPad *new_pad,gchar *encoding_name, GstElement **sink, b
 	{
 		CSIO_LOG(eLogLevel_error, "Could not obtain stream pointer for stream %d", iStreamId);
 		return CSIO_FAILURE;
-	}	
+	}
 
 	if(debug_blocking_audio)
 	{
@@ -5175,7 +5175,7 @@ int csio_jni_AddVideo(
 	{
 		CSIO_LOG(eLogLevel_error, "Could not obtain stream pointer for stream %d", iStreamId);
 		return CSIO_FAILURE;
-	}	
+	}
 
 	//CSIO_LOG(eLogLevel_debug, "csio_jni_AddVideo: sink =0x%x",protoId);
 	//Extracted from STR, to support IC Camera
@@ -5190,7 +5190,7 @@ int csio_jni_AddVideo(
         "csio_jni_AddVideo caps %s, encoding %s",
         p_caps_string ? p_caps_string : "",
         encoding_name ?  encoding_name : "");
-	
+
 	if(strncmp(p_caps_string, "application/x-rtp", 17) == 0)
 	{
 		do_rtp = 1;
@@ -5318,16 +5318,16 @@ void csio_jni_initAudio(int iStreamId)
 void csio_jni_initVideo(int iStreamId)
 {
     CREGSTREAM * data = GetStreamFromCustomData(CresDataDB, iStreamId);
-    
+
     CSIO_LOG(eLogLevel_debug, ">>>>> CREGSTREAM * data is %p in %s\n",(void *)data,__FUNCTION__);
-    
+
     if(!data)
     {
         // *** CSIO_LOG(eLogLevel_error, "%s: Could not obtain stream pointer for stream %d", __FUNCTION__, iStreamId);
         CSIO_LOG(eLogLevel_error, ">>>>> %s: Could not obtain stream pointer for stream %d", __FUNCTION__, iStreamId);
         return;
     }
-    
+
     if(data->using_glimagsink)
     {
         CSIO_LOG(eLogLevel_debug, "using_glimagsink force-aspect-ratio is set to FALSE");
@@ -5341,9 +5341,9 @@ void csio_jni_initVideo(int iStreamId)
     }
     else
     {
-       
+
         CSIO_LOG(eLogLevel_debug, ">>>>> not using_glimagsink in %s\n",__FUNCTION__);
-       
+
         //SET OFSSET
         // Bug 113246: For RTSP modes we need to set ts offset, for udp modes we should not or AV sync is off
         if( data->amcvid_dec && (!debug_blocking_audio) && data->audio_sink &&
@@ -5364,11 +5364,11 @@ void csio_jni_initVideo(int iStreamId)
         	}
 
             CSIO_LOG(eLogLevel_debug, ">>>>> tmp value is 0x%h in %s\n",tmp,__FUNCTION__);
-         
+
             if( GST_VERSION_MAJOR == 1 && GST_VERSION_MINOR == 14)
             {
                 g_object_set(G_OBJECT(data->amcvid_dec), "ts-offset", tmp, NULL);
-                
+
                 CSIO_LOG(eLogLevel_debug, ">>>>> %s: total ts_offset: %d ms",__FUNCTION__, tmp);
             }
             else if(GST_VERSION_MAJOR == 1 && GST_VERSION_MINOR == 16)
@@ -5383,13 +5383,13 @@ void csio_jni_initVideo(int iStreamId)
                 {
                     gint64 tsOffset64 = tmp*1000000LL;
                     g_object_set(G_OBJECT(data->amcvid_dec), "ts-offset", tsOffset64, NULL);
-                    
+
                     CSIO_LOG(eLogLevel_debug, ">>>>> %s: total ts_offset: %lld ns",__FUNCTION__, tsOffset64);
                 }
             }
-                        
+
             CSIO_LOG(eLogLevel_debug, ">>>>> %s: streamingBuffer or latency is:%d",__FUNCTION__, CSIOCnsIntf->getStreamRx_BUFFER(iStreamId));
-            CSIO_LOG(eLogLevel_debug, ">>>>> %s: amcviddec_ts_offset:%d",__FUNCTION__, data->amcviddec_ts_offset);            
+            CSIO_LOG(eLogLevel_debug, ">>>>> %s: amcviddec_ts_offset:%d",__FUNCTION__, data->amcviddec_ts_offset);
         }
 
         if(data->element_valve_v)
@@ -5434,7 +5434,7 @@ GstElement * csio_jni_getVideoDecEle(int iStreamId)
         CSIO_LOG(eLogLevel_debug, "csio_jni_getVideoDecEle[%d] got fakedec[0x%x]", iStreamId,data->element_fake_dec);
         return data->element_fake_dec;
     }
-    
+
     else
     {
         CSIO_LOG(eLogLevel_debug, "csio_jni_getVideoDecEle[%d] return NULL", iStreamId);
@@ -5798,7 +5798,7 @@ void csio_jni_printFieldDebugInfo()
         {
             CSIO_LOG(eLogLevel_debug, "FieldDebugInfo   %s  -- %d", \
                                 fieldDebugNames[i], videodecoder_debug_level);
-        }        
+        }
         else if((i+1) == FIELD_DEBUG_SET_AUDIOSINK_TS_OFFSET)
         {
             CSIO_LOG(eLogLevel_debug, "FieldDebugInfo   %s  -- %dms", \
@@ -5838,11 +5838,11 @@ void csio_jni_printFieldDebugInfo()
  *              issued GST_MESSAGE_LATENCY.
  *              The goal is to keep over all latency at 200ms.
  *              So here, we can adjust ts-offset to reduce it.
- *              Note1: video is limited to -1500ms, I think 
+ *              Note1: video is limited to -1500ms, I think
  *                     this is big enough since we only set
  *                     rtpbin latency to 200ms for miracast.
  *              Note2: keep audio 200ms diff here, due to audiosink
- *                     buffer-time is set to 125ms. 
+ *                     buffer-time is set to 125ms.
  * \Returns:
  * \detail
  * \date        7/20/21
@@ -5861,9 +5861,9 @@ void csio_jni_post_latency(int streamId,GstObject* obj)
         return;
     }
 
-    CSIO_LOG(eLogLevel_debug, "%s: streamId[%d], amcvid_dec[0x%x],audio_sink[0x%x]\r\n", __FUNCTION__, 
+    CSIO_LOG(eLogLevel_debug, "%s: streamId[%d], amcvid_dec[0x%x],audio_sink[0x%x]\r\n", __FUNCTION__,
              streamId,StreamDb->amcvid_dec,StreamDb->audio_sink);
-    
+
     if(StreamDb->amcvid_dec)
     {
         //get videodec latency
@@ -5874,14 +5874,14 @@ void csio_jni_post_latency(int streamId,GstObject* obj)
 
     if(StreamDb->audio_sink)
     {
-        CSIO_LOG(eLogLevel_debug, "%s: get audio_sink latency : %lld",__FUNCTION__, 
+        CSIO_LOG(eLogLevel_debug, "%s: get audio_sink latency : %lld",__FUNCTION__,
                  gst_base_sink_get_latency((GstBaseSink *)StreamDb->audio_sink));
     }//else
 
     //Note: 7-20-2021, this is to set decoder/sudiosink ts-offset for AM3k(Miracast only) and omap(Miracast only).
-    if( StreamDb->wfd_start && 
+    if( StreamDb->wfd_start &&
         (product_info()->hw_platform == eHardwarePlatform_Rockchip ||
-         product_info()->hw_platform == eHardwarePlatform_OMAP5   ) )        
+         product_info()->hw_platform == eHardwarePlatform_OMAP5   ) )
     {
         if(StreamDb->amcvid_dec == (GstElement*)obj)
         {
@@ -5903,10 +5903,10 @@ void csio_jni_post_latency(int streamId,GstObject* obj)
                 tsOffsetVideo += debug_setPipelineBuf*1000000LL;
             }//else
 
-            g_object_set(StreamDb->amcvid_dec, "ts-offset", tsOffsetVideo, NULL);  
-            CSIO_LOG(eLogLevel_info, "%s: tsOffsetVideo set to[%lld] based on wfd_source_latency[%d] and latency[%lld]\r\n", 
+            g_object_set(StreamDb->amcvid_dec, "ts-offset", tsOffsetVideo, NULL);
+            CSIO_LOG(eLogLevel_info, "%s: tsOffsetVideo set to[%lld] based on wfd_source_latency[%d] and latency[%lld]\r\n",
                     __FUNCTION__, tsOffsetVideo,StreamDb->wfd_source_latency,latency);
-            
+
             //for debugging only, ckecking decoder frams size.
             //GList * frames = gst_video_decoder_get_frames((GstVideoDecoder*)StreamDb->amcvid_dec);
             //CSIO_LOG(eLogLevel_debug, "%s: frame size is[%d]\r\n", __FUNCTION__, g_list_length(frames));
@@ -5914,7 +5914,7 @@ void csio_jni_post_latency(int streamId,GstObject* obj)
             //set audio ts-offset
             if( StreamDb->audio_sink)
             {
-                CSIO_LOG(eLogLevel_debug, "%s: get audio_sink latency before set ts-offset: %lld",__FUNCTION__, 
+                CSIO_LOG(eLogLevel_debug, "%s: get audio_sink latency before set ts-offset: %lld",__FUNCTION__,
                          gst_base_sink_get_latency((GstBaseSink *)StreamDb->audio_sink));
 
                 gint64 tsOffsetAudio = 0;
@@ -5932,7 +5932,7 @@ void csio_jni_post_latency(int streamId,GstObject* obj)
 
                 StreamDb->audiosink_ts_offset = (tsOffsetAudio/1000000);
                 g_object_set(G_OBJECT(StreamDb->audio_sink), "ts-offset", tsOffsetAudio, NULL);
-                CSIO_LOG(eLogLevel_debug, "%s: set audiosink_ts_offset:%lld[%d]",__FUNCTION__, 
+                CSIO_LOG(eLogLevel_debug, "%s: set audiosink_ts_offset:%lld[%d]",__FUNCTION__,
                          tsOffsetAudio,StreamDb->audiosink_ts_offset);
             }
             else
@@ -5982,15 +5982,15 @@ gboolean csio_jni_get_wfdMiracastOnTcpMode(int streamId)
  *
  * \brief       when miracast is on, we can't call CStreamer::quit(),
  *              instead we should send massage to the state machine
- *  
- * \param		int id -- stream index id * 
- * 
+ *
+ * \param		int id -- stream index id *
+ *
  */
 bool csio_jni_processingGstReqQuit(int id)
 {
     CREGSTREAM * data = GetStreamFromCustomData(CresDataDB, id);
 
-    if( data && data->wfd_start &&     
+    if( data && data->wfd_start &&
         product_info()->hw_platform == eHardwarePlatform_Rockchip)
     {
         WfdSinkProjSendGstLostVideoEvt(id);
@@ -6030,9 +6030,9 @@ static void gstNativeInitRtspServer (JNIEnv* env, jobject thiz, jobject surface)
 
     CustomStreamOutData *cdata = g_new0 (CustomStreamOutData, 1);
     CresStreamOutDataDB = cdata;
-    
+
     SET_CUSTOM_DATA (env, thiz, custom_data_field_id_rtsp_server, cdata);
-    
+
     cdata->app = env->NewGlobalRef(thiz);
     init_custom_data_out(cdata);
 
@@ -6462,7 +6462,7 @@ JNIEXPORT void JNICALL Java_com_crestron_txrxservice_GstreamOut_nativeSetCodec(J
     env->ReleaseStringUTFChars(owner_jstring, owner_cstring);
 }
 
-JNIEXPORT int JNICALL Java_com_crestron_txrxservice_GstreamOut_nativeGetVideoFormat(JNIEnv *env, jobject thiz, jstring device_jstring, jobject format, jint quality, 
+JNIEXPORT int JNICALL Java_com_crestron_txrxservice_GstreamOut_nativeGetVideoFormat(JNIEnv *env, jobject thiz, jstring device_jstring, jobject format, jint quality,
                                 jstring hdmi_in_res_x, jstring hdmi_in_res_y)
 {
     int rtn = -1;
@@ -6497,7 +6497,7 @@ JNIEXPORT int JNICALL Java_com_crestron_txrxservice_GstreamOut_nativeGetVideoFor
     get_encoded_video_rate(&videoCaps, &fps_num, &fps_den);
     // round to nearest integer.
     // TODO: It would be good to send fps in float. But this requires changes in App layer, iOS, window and sender side
-    // if really required can be enhanced later. 
+    // if really required can be enhanced later.
     // as of now addresses AM3XX-13032 to best possible extent
     fps = (fps_num + (fps_den - 1))/fps_den;
     CSIO_LOG(eLogLevel_debug, "%s: Video Encoder FPS configured to fps:%d(=(int)(%d/%d))", __FUNCTION__, fps, fps_num, fps_den);
@@ -7010,7 +7010,7 @@ JNIEXPORT void JNICALL Java_com_crestron_txrxservice_GstreamIn_nativeWfdStart(JN
     //      message_latency in csio_jni_post_latency().
     if(product_info()->hw_platform == eHardwarePlatform_Rockchip ||
        product_info()->hw_platform == eHardwarePlatform_OMAP5)
-    { 
+    {
         data->audiosink_ts_offset = 0;
 
         //set this flag for miracast on AM3k to monitoring packet drop.
@@ -7021,7 +7021,7 @@ JNIEXPORT void JNICALL Java_com_crestron_txrxservice_GstreamIn_nativeWfdStart(JN
     {
         data->audiosink_ts_offset = -300;
     }
-    
+
     int ts_port = c_default_client_ts_port + 2*windowId;
     WfdSinkProjStart(windowId,url_cstring,rtsp_port,ts_port,data->wfd_is_mice_session, isTx3, systemMode_cstring);
 
@@ -7282,7 +7282,7 @@ void Wfd_setup_gst_pipeline (int id, int state, struct GST_PIPELINE_CONFIG* gst_
                 stop_streaming_cmd(id);
             }
             CSIO_LOG(eLogLevel_debug, "%s(): - id[%d] invoke start_streaming_cmd,wfd_tcp_mode: %d",__FUNCTION__,id,data->wfd_tcp_mode);
-            start_streaming_cmd(id);            
+            start_streaming_cmd(id);
         }
 
         CSIO_LOG(eLogLevel_debug, "%s exit", __FUNCTION__);
@@ -7506,7 +7506,7 @@ void Wfd_ms_mice_signal_raise (gint64 session_id, int state, char *local_addr, c
 
 void jni_SendPendingSessionStateChange(gint64 session_id,char *remote_addr,char *sessionState)
 {
-    JNIEnv *env = get_jni_env ();  
+    JNIEnv *env = get_jni_env ();
     jstring remoteAddress;
     jstring state;
 
@@ -7565,7 +7565,7 @@ void Wfd_set_latency_by_the_source (int id, int latency)
     CSIO_LOG(eLogLevel_verbose, "Wfd_set_latency_by_the_source,get current value from DB[%lld], set new value[%d]", userSetting,locLatency);
 
     //Note: if the setting comes too early(we don't have pipeline yet), the value will be set into DB, and used later.
-    
+
     //8-2-2021 we are going to set this to 200ms for all miracast
     data->wfd_source_latency = (useSeparateSinkForMiracast) ? DEFAULT_MIRACAST_LATENCY_FOR_SEPARATE_SINK : DEFAULT_MIRACAST_LATENCY;
 
@@ -7626,7 +7626,7 @@ void Wfd_set_latency_by_the_source (int id, int latency)
             CSIO_LOG(eLogLevel_verbose, "[%d]break",i);
             break;
         }
-    }    
+    }
 
     gGstStopLock.unlock();
 
@@ -7655,7 +7655,7 @@ const char* csio_jni_get_interface_name(int id)
             CSIO_LOG(eLogLevel_debug, "get_interface_name: intf_name = %s", data->intf_name);
             return data->intf_name;
         }
-    }    
+    }
 }
 
 void csio_sendErrorStatusMessage(int errorCode, std::string diagnosticMessage, int streamId, int sendto)
@@ -7754,10 +7754,10 @@ bool csio_jni_ignore_this_video_stream(int id, int streamindex)
 
     CREGSTREAM *data = GetStreamFromCustomData(CresDataDB, id);
     if (data && data->sel_video_stream_id != -1)
-    {   
+    {
         ret =  (data->sel_video_stream_id != streamindex);
     }//else
-    
+
     CSIO_LOG(eLogLevel_debug, "%s() streamId[%d] return: %d", __FUNCTION__, id, ret);
 
     return ret;
@@ -7768,10 +7768,10 @@ bool csio_jni_ignore_this_audio_stream(int id, int streamindex)
 
     CREGSTREAM *data = GetStreamFromCustomData(CresDataDB, id);
     if (data && data->sel_audio_stream_id != -1)
-    { 
+    {
         ret =  (data->sel_audio_stream_id != streamindex);
     }//else
-    
+
     CSIO_LOG(eLogLevel_debug, "%s() streamId[%d] return: %d", __FUNCTION__, id, ret);
 
     return ret;
@@ -7783,7 +7783,7 @@ void csio_jni_config_this_video_stream(int id, int value)
     {
         data->sel_video_stream_id = value;
     }//else
-    
+
     CSIO_LOG(eLogLevel_debug, "%s() streamId[%d] set to: %d", __FUNCTION__, id, value);
 }
 void csio_jni_config_this_audio_stream(int id, int value)
@@ -7811,8 +7811,8 @@ int64_t time_delta_msec(struct timespec now, struct timespec prev)
 void csio_jni_trigger_idr_request(int id)
 {
     CREGSTREAM *data = GetStreamFromCustomData(CresDataDB, id);
-    if (data && 
-        data->wfd_start && 
+    if (data &&
+        data->wfd_start &&
         product_info()->hw_platform == eHardwarePlatform_Rockchip)
     {
         struct timespec cur_timespec;
@@ -7832,7 +7832,7 @@ void csio_jni_trigger_idr_request(int id)
 void csio_jni_print_queue(int id)
 {
     CREGSTREAM *data = GetStreamFromCustomData(CresDataDB, id);
-            
+
     gint buffers;
     gint bytes;
     GstClockTime time;
@@ -7844,7 +7844,7 @@ void csio_jni_print_queue(int id)
     }//else
 
     if(data->element_video_front_end_queue)
-    {    
+    {
         g_object_get (G_OBJECT (data->element_video_front_end_queue), "current-level-buffers", &buffers, NULL);
         g_object_get (G_OBJECT (data->element_video_front_end_queue), "current-level-bytes", &bytes, NULL);
         g_object_get (G_OBJECT (data->element_video_front_end_queue), "current-level-time", &time, NULL);
@@ -7852,7 +7852,7 @@ void csio_jni_print_queue(int id)
     }
 
     if(data->element_video_decoder_queue)
-    {    
+    {
         g_object_get (G_OBJECT (data->element_video_decoder_queue), "current-level-buffers", &buffers, NULL);
         g_object_get (G_OBJECT (data->element_video_decoder_queue), "current-level-bytes", &bytes, NULL);
         g_object_get (G_OBJECT (data->element_video_decoder_queue), "current-level-time", &time, NULL);

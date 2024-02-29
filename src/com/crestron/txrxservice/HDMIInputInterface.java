@@ -298,10 +298,11 @@ public class HDMIInputInterface {
                 String hdmiInResolution = "0x0@0";
                 String tokens[] = hdmiInResolution.split("[x@]+");
 
-                if (!useAm3kStateMachine)
+                if (!useAm3kStateMachine && am3kHdmiStateMachine != null)
                     hdmiInResolution = am3kHdmiStateMachine.readResolutionSysFs();
-                else
+                else if(am3kHdmiStateMachine != null)
                     hdmiInResolution = am3kHdmiStateMachine.getResolutionSysFs();
+
                 if(hdmiInResolution.equals("0"))
                 {
                     hdmiInResolution = "0x0@0";

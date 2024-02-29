@@ -1,5 +1,5 @@
 /**
- * 
+ *
  */
 package com.crestron.txrxservice;
 
@@ -47,12 +47,12 @@ import java.lang.reflect.InvocationTargetException;
 import java.lang.reflect.Method;
 /**
  * CresDisplaySurface class
- * 
+ *
  * This class abstracts the windowmanager and surfaceview related details
  * from CresStreamCtrl
  *
  */
-public class CresDisplaySurfaceMaster implements CresDisplaySurface 
+public class CresDisplaySurfaceMaster implements CresDisplaySurface
 {
     private SurfaceView[] displaySurface = new SurfaceView[CresStreamCtrl.NumOfSurfaces];
     private TextureView[] displayTexture = new TextureView[CresStreamCtrl.NumOfTextures];
@@ -65,15 +65,15 @@ public class CresDisplaySurfaceMaster implements CresDisplaySurface
     private WindowManager.LayoutParams  wmLayoutParams;
     SurfaceManager sMGR;
     SurfaceTextureManager stMGR;
-    
+
     private RelativeLayout backgroundLayout = null;
     private RelativeLayout.LayoutParams backgroundLayoutParams = null;
-    private WindowManager.LayoutParams backgroundWmParams = null; 
+    private WindowManager.LayoutParams backgroundWmParams = null;
     private ImageView backgroundView = null;
     private final ReentrantLock[] windowtLock = new ReentrantLock[CresStreamCtrl.NumOfSurfaces]; // members will be allocated in constructor
     private static Object windowTimerLock = new Object();
     private Timer[] windowTimer = new Timer[CresStreamCtrl.NumOfSurfaces];
-    
+
     String TAG = "CresDisplaySurface";
 
     // PEM - add a view to the 2nd display
@@ -94,8 +94,8 @@ public class CresDisplaySurfaceMaster implements CresDisplaySurface
             }
         }
     }
-    
-    
+
+
     // PEM - update a view to the 2nd display
     // Needed to pass Service or else can't call getApplicationContext...
     private void updateViewOnExternalDisplay(Context app, View view, WindowManager.LayoutParams params){
@@ -114,8 +114,8 @@ public class CresDisplaySurfaceMaster implements CresDisplaySurface
             }
         }
     }
-    
-    
+
+
 // Prepare the class for destruction
     public void close()
     {
@@ -159,16 +159,16 @@ public class CresDisplaySurfaceMaster implements CresDisplaySurface
     	wmLayoutParams = null;
     	backgroundLayout = null;
     	backgroundLayoutParams = null;
-    	backgroundWmParams = null; 
+    	backgroundWmParams = null;
     	backgroundView = null;
     }
-    
+
     // Take window lock for specific window
     public void lockWindow(int idx)
     {
     	windowtLock[idx].lock();
     }
-    
+
     // Release window lock for specific window
     public void unlockWindow(int idx)
     {
@@ -179,8 +179,8 @@ public class CresDisplaySurfaceMaster implements CresDisplaySurface
     {
         Log.i(TAG, "CresDisplaySurfaceMaster(): Creating surface: " + windowWidth + "x" + windowHeight );
 
-        streamCtl = (CresStreamCtrl)app; 
-        
+        streamCtl = (CresStreamCtrl)app;
+
 		// Allocate window Locks
 		for (int sessionId = 0; sessionId < CresStreamCtrl.NumOfSurfaces; sessionId++)
 		{
@@ -189,15 +189,15 @@ public class CresDisplaySurfaceMaster implements CresDisplaySurface
 
     	//Relative Layout to handle multiple views
         parentlayout = new RelativeLayout(app);
-        
+
         //Instance for Surfaceholder for StreamIn/Preview
         sMGR = new SurfaceManager(app);
         Log.i(TAG, "Created SurfaceManager");
-        
+
         //Instance for Surface Texture
         stMGR = new SurfaceTextureManager(app);
         Log.i(TAG, "Created SurfaceTextureManager");
-        
+
         // Create the surface and set the width and height to the display width
         // and height
         for (int i = 0; i < CresStreamCtrl.NumOfSurfaces; i++){
@@ -222,7 +222,7 @@ public class CresDisplaySurfaceMaster implements CresDisplaySurface
         	viewLayoutParams = new RelativeLayout.LayoutParams(windowWidth, windowHeight);
         	parentlayout.addView(displayTexture[i], viewLayoutParams);
         }
-        
+
         //Setting WindowManager and Parameters with system overlay
         // Z-order by type (higher value is higher z order)
         // TYPE_SYSTEM_OVERLAY 		= ~181000
@@ -233,7 +233,7 @@ public class CresDisplaySurfaceMaster implements CresDisplaySurface
         // TYPE_INPUT_METHOD_DIALOG	= ~21015
         // TYPE_APPLICATION 		= ~21000 <- Can't use as a service
         int windowType;
-        
+
         if (streamCtl.alphaBlending) {
             if (Build.VERSION.SDK_INT >= 28 /*Build.VERSION_CODES.P*/) {
                 if(!isX70())
@@ -254,15 +254,15 @@ public class CresDisplaySurfaceMaster implements CresDisplaySurface
         }
 
         wmLayoutParams = new WindowManager.LayoutParams(
-        		windowWidth, 
-        		windowHeight, 
+        		windowWidth,
+        		windowHeight,
         		windowType, // See above chart for z order control
-        		(0 | WindowManager.LayoutParams.FLAG_NOT_TOUCHABLE | WindowManager.LayoutParams.FLAG_NOT_FOCUSABLE | WindowManager.LayoutParams.FLAG_HARDWARE_ACCELERATED), 
+        		(0 | WindowManager.LayoutParams.FLAG_NOT_TOUCHABLE | WindowManager.LayoutParams.FLAG_NOT_FOCUSABLE | WindowManager.LayoutParams.FLAG_HARDWARE_ACCELERATED),
         		PixelFormat.TRANSLUCENT);
-        wmLayoutParams.gravity = Gravity.TOP | Gravity.LEFT; 
+        wmLayoutParams.gravity = Gravity.TOP | Gravity.LEFT;
         wmLayoutParams.x = 0;
         wmLayoutParams.y = 0;
-		if(haveExternalDisplays){		
+		if(haveExternalDisplays){
 			Log.i(TAG, "moving streams to 2nd display");
 			dm = (DisplayManager) app.getApplicationContext().getSystemService(Context.DISPLAY_SERVICE);
 //	        if (dm != null)
@@ -274,12 +274,12 @@ public class CresDisplaySurfaceMaster implements CresDisplaySurface
 		else{
 			wm =  (WindowManager) app.getSystemService(Context.WINDOW_SERVICE);
 //			wm = app.getWindowManager();	// getting windowManager in this fashion fills in application binder token automatically
-			wm.addView(parentlayout, wmLayoutParams); 
+			wm.addView(parentlayout, wmLayoutParams);
 		}
-		
+
         // Force invalidation
         forceLayoutInvalidation(parentlayout);
-        
+
         // Add callbacks to surfaceviews
         for (int sessId = 0; sessId < CresStreamCtrl.NumOfSurfaces; sessId++)
         {       //For Every Surface
@@ -287,10 +287,10 @@ public class CresDisplaySurfaceMaster implements CresDisplaySurface
                 //For Every texture
         	InitSurfaceTextureListener(sessId);
         }
-        
+
         createBackgroundWindow(windowWidth, windowHeight, color, haveExternalDisplays);
     }
-    
+
     // Call when HDMI resolution changes are detected
     private void _setWindowManagerResolution(Service app, int w, int h, boolean haveExternalDisplay)
     {
@@ -299,9 +299,9 @@ public class CresDisplaySurfaceMaster implements CresDisplaySurface
         	Log.i(TAG, "exiting setWindowManagerResolution because no parentlayout available");
         	return;
         }
-        
+
         int windowType;
-                
+
         if (streamCtl.alphaBlending) {
             if (Build.VERSION.SDK_INT >= 28 /*Build.VERSION_CODES.P*/) {
                 if(!isX70())
@@ -323,16 +323,16 @@ public class CresDisplaySurfaceMaster implements CresDisplaySurface
                 windowType = WindowManager.LayoutParams.TYPE_SYSTEM_OVERLAY;    // For chroma blending
         }
         wmLayoutParams = new WindowManager.LayoutParams(
-    		w, 
-    		h, 
+    		w,
+    		h,
     		windowType, // See above chart for z order control
-    		(0 | WindowManager.LayoutParams.FLAG_NOT_TOUCHABLE | WindowManager.LayoutParams.FLAG_NOT_FOCUSABLE | WindowManager.LayoutParams.FLAG_HARDWARE_ACCELERATED), 
+    		(0 | WindowManager.LayoutParams.FLAG_NOT_TOUCHABLE | WindowManager.LayoutParams.FLAG_NOT_FOCUSABLE | WindowManager.LayoutParams.FLAG_HARDWARE_ACCELERATED),
     		PixelFormat.TRANSLUCENT);
-	    
-        wmLayoutParams.gravity = Gravity.TOP | Gravity.LEFT; 
+
+        wmLayoutParams.gravity = Gravity.TOP | Gravity.LEFT;
         wmLayoutParams.x = 0;
         wmLayoutParams.y = 0;
-		if(haveExternalDisplay){		
+		if(haveExternalDisplay){
 			dm = (DisplayManager) app.getApplicationContext().getSystemService(Context.DISPLAY_SERVICE);
 //	        if (dm != null)
 //	        {
@@ -347,7 +347,7 @@ public class CresDisplaySurfaceMaster implements CresDisplaySurface
 		}
     	Log.i(TAG, "setWindowManagerResolution: resolution set to "+w+"x"+h);
     }
-    
+
     public void setWindowManagerResolution(final int w, final int h, final boolean haveExternalDisplay)
     {
     	// Make sure surface changes are only done in UI (main) thread
@@ -361,25 +361,25 @@ public class CresDisplaySurfaceMaster implements CresDisplaySurface
     				latch.countDown();
     			}
     		});
-    		try { 
+    		try {
     			if (latch.await(30, TimeUnit.SECONDS) == false)
     			{
     				Log.e(TAG, "invalidateSurface: timeout after 30 seconds");
     				streamCtl.RecoverTxrxService();
     			}
     		}
-    		catch (InterruptedException ex) { ex.printStackTrace(); }  
+    		catch (InterruptedException ex) { ex.printStackTrace(); }
     	}
     	else
-    		_setWindowManagerResolution(streamCtl, w, h, haveExternalDisplay);        		
+    		_setWindowManagerResolution(streamCtl, w, h, haveExternalDisplay);
     }
-	
+
     // Just remove the parentLayout
     public void RemoveView()
     {
-    	wm.removeView(parentlayout);    	
+    	wm.removeView(parentlayout);
     }
-    
+
     // Update the x, y, width, height of the surface
     private void UpdateWindowSize(int x, int y, int width, int height, int idx, final boolean use_texture_view)
     {
@@ -399,7 +399,7 @@ public class CresDisplaySurfaceMaster implements CresDisplaySurface
     	Log.i(TAG, "UpdateWindowSize: invalidateLayout" );
     	forceLayoutInvalidation(parentlayout);
     }
-    
+
     // Return rectangle representing the current location of the surface
 	// Does not need to be called on UI thread
     private Rect getCurrentWindowSize(int idx, final boolean use_texture_view)
@@ -412,16 +412,16 @@ public class CresDisplaySurfaceMaster implements CresDisplaySurface
     	}
     	else
     	{
-    		layout = (RelativeLayout.LayoutParams)displaySurface[idx].getLayoutParams();    		
+    		layout = (RelativeLayout.LayoutParams)displaySurface[idx].getLayoutParams();
     	}
-    	
+
     	x = layout.leftMargin;
 		y = layout.topMargin;
 		w = layout.width;
 		h = layout.height;
     	return new Rect(x, y, x + w, y + h);
     }
-    
+
     private void updateDimensions(int width, int height, int idx)
     {
     	Log.i(TAG, "UpdateDimensions: " + width + "x" + height );
@@ -431,7 +431,7 @@ public class CresDisplaySurfaceMaster implements CresDisplaySurface
     	//    	params.y = y;
     	//    	params.width = width;
     	//    	params.height = height;
-    	//    	
+    	//
 
     	/*old way of setting params*/
 
@@ -440,7 +440,7 @@ public class CresDisplaySurfaceMaster implements CresDisplaySurface
 
     	forceLayoutInvalidation(parentlayout);
     }
-    
+
     // Update the width and height of the surface
     public void updateWH(final int idx)
     {
@@ -460,16 +460,16 @@ public class CresDisplaySurfaceMaster implements CresDisplaySurface
         				updateDimensions(windowSize.x, windowSize.y, idx);
         				latch.countDown();
         			}
-        		});	            	
+        		});
 
-        		try { 
+        		try {
         			if (latch.await(60, TimeUnit.SECONDS) == false)
         			{
         				Log.e(TAG, "updateWH: Timeout after 60 seconds");
         				streamCtl.RecoverTxrxService();
         			}
         		}
-        		catch (InterruptedException ex) { ex.printStackTrace(); }  
+        		catch (InterruptedException ex) { ex.printStackTrace(); }
         	}
         	else
         	{
@@ -493,7 +493,7 @@ public class CresDisplaySurfaceMaster implements CresDisplaySurface
     	//    	params.y = y;
     	//    	params.width = width;
     	//    	params.height = height;
-    	//    	
+    	//
 
     	/*old way of setting params*/
 
@@ -503,7 +503,7 @@ public class CresDisplaySurfaceMaster implements CresDisplaySurface
 
     	forceLayoutInvalidation(parentlayout);
     }
-    
+
     // Update the X, Y location of the surface
     public void updateXY(final int idx)
     {
@@ -522,24 +522,24 @@ public class CresDisplaySurfaceMaster implements CresDisplaySurface
     			streamCtl.runOnUiThread(new Runnable() {
     				@Override
     				public void run() {
-    					updateCoordinates(x, y, idx); 
+    					updateCoordinates(x, y, idx);
     					latch.countDown();
     				}
     			});
-    			try { 
+    			try {
     				if (latch.await(30, TimeUnit.SECONDS) == false)
     				{
     					Log.e(TAG, "updateXY: timeout after 30 seconds");
     					streamCtl.RecoverTxrxService();
     				}
     			}
-    			catch (InterruptedException ex) { ex.printStackTrace(); }  
+    			catch (InterruptedException ex) { ex.printStackTrace(); }
     		}
     		else
     			updateCoordinates(x, y, idx);
 
     		// Gstreamer needs X and Y locations and does not update itself like it does for width and height
-//    		if (streamCtl.userSettings.getMode(idx) == DeviceMode.STREAM_IN.ordinal()) 
+//    		if (streamCtl.userSettings.getMode(idx) == DeviceMode.STREAM_IN.ordinal())
 //    			streamCtl.streamPlay.updateCurrentXYloc(x, y, idx);
     	}
     	finally
@@ -548,18 +548,18 @@ public class CresDisplaySurfaceMaster implements CresDisplaySurface
     		Log.i(TAG, "updateXY " + idx + " : Unlock");
     	}
     }
-    
+
     // update window with a new window size for the video
     public void updateWindowWithVideoSize(int idx, boolean use_texture_view, int videoWidth, int videoHeight)
     {
-    	Log.i(TAG, "updateWindowWithVideoSize " + idx + " : Lock");
+    	Log.i(TAG, "updateWindowWithVideoSize " + idx + " : Lock, " + videoWidth + "x" + videoHeight);
         lockWindow(idx);
         try
         {
         	int tmpX = streamCtl.userSettings.getXloc(idx);
         	int tmpY = streamCtl.userSettings.getYloc(idx);
         	Point windowSize = streamCtl.getWindowSize(idx);
-       	
+
 			// TODO Add rotation and textureview scaling when AirMedia is merged in
         	Rect newWindowSize;
         	if (streamCtl.userSettings.getStretchVideo(idx) == 1)
@@ -574,13 +574,13 @@ public class CresDisplaySurfaceMaster implements CresDisplaySurface
         			Log.i(TAG, "unable to preserve video aspect ratio, video width = " + videoWidth + " video height = " + videoHeight);
         			newWindowSize = new Rect(tmpX, tmpY, tmpX + windowSize.x, tmpY + windowSize.y);
         		}
-        		else 
+        		else
         		{
         			// Don't Stretch means calculate aspect ratio preserving window inside of given window dimensions
         			newWindowSize = MiscUtils.getAspectRatioPreservingRectangle(tmpX, tmpY, windowSize.x, windowSize.y, videoWidth, videoHeight);
         		}
         	}
-        	
+
         	// Only update window if there is a change to the current window (this method is no intended to force update the same dimensions)
         	Rect currentWindowSize = getCurrentWindowSize(idx, use_texture_view);
         	if (	currentWindowSize.left != newWindowSize.left ||
@@ -598,13 +598,13 @@ public class CresDisplaySurfaceMaster implements CresDisplaySurface
             Log.i(TAG, "updateWindowWithVideoSize " + idx + " : Unlock");
         }
     }
-    
+
     // update window for surface
     public void updateWindow(final int idx, final boolean use_texture_view)
     {
     	updateFullWindow(idx, use_texture_view);
     }
-    
+
     private void updateFullWindow(final int idx, final boolean use_texture_view)
     {
         Log.i(TAG, "updateFullWindow " + idx + " : Lock");
@@ -622,7 +622,7 @@ public class CresDisplaySurfaceMaster implements CresDisplaySurface
             Log.i(TAG, "updateFullWindow " + idx + " : Unlock");
         }
     }
-    
+
 	private class delayedCallToUpdateWindow extends TimerTask
 	{
 		private int x, y, w, h;
@@ -636,7 +636,7 @@ public class CresDisplaySurfaceMaster implements CresDisplaySurface
 			h = height;
 			sessionId = sessId;
 			use_text = use_texture_view;
-		}		
+		}
 		@Override
 		public void run() {
 			Log.i(TAG, "delayed call to _updateWindow");
@@ -653,7 +653,7 @@ public class CresDisplaySurfaceMaster implements CresDisplaySurface
 			}
 		}
 	}
-	
+
     // update window for surface (this version is public because it is currently used by AirMedia)
     public void updateWindow(final int x, final int y, final int w, final int h, final int idx, final boolean use_texture_view)
     {
@@ -674,7 +674,7 @@ public class CresDisplaySurfaceMaster implements CresDisplaySurface
 			Log.v(TAG, "Exit updateWindow: WindowTimer["+idx+"]="+windowTimer[idx]);
     	}
     }
-    
+
     // !!!!!!! Do not call this function use updateWindow instead !!!!!!!
     private void _updateWindow(int xloc, int yloc, int w, int h, final int idx, final boolean use_texture_view)
     {
@@ -688,7 +688,7 @@ public class CresDisplaySurfaceMaster implements CresDisplaySurface
         	final int height = h;
         	final int x = xloc;
         	final int y = yloc;
-        	
+
         	// Make sure surface changes are only done in UI (main) thread
         	if (Looper.myLooper() != Looper.getMainLooper())
         	{
@@ -697,19 +697,19 @@ public class CresDisplaySurfaceMaster implements CresDisplaySurface
         		streamCtl.runOnUiThread(new Runnable() {
         			@Override
         			public void run() {
-        				UpdateWindowSize(x, y, width, height, idx, use_texture_view);		       		    	 
+        				UpdateWindowSize(x, y, width, height, idx, use_texture_view);
         				latch.countDown();
         			}
-        		});	            	
+        		});
 
-        		try { 
+        		try {
         			if (latch.await(60, TimeUnit.SECONDS) == false)
         			{
         				Log.e(TAG, "_updateWindow: Timeout after 60 seconds");
         				streamCtl.RecoverTxrxService();
         			}
         		}
-        		catch (InterruptedException ex) { ex.printStackTrace(); }  
+        		catch (InterruptedException ex) { ex.printStackTrace(); }
         	}
         	else
         	{
@@ -722,7 +722,7 @@ public class CresDisplaySurfaceMaster implements CresDisplaySurface
             Log.i(TAG, "_updateWindow " + idx + " : Unlock");
         }
     }
-    
+
 	// invalidates parent layout
     public void forceParentLayoutInvalidation() {
 	//Commented lines are where work is being done to support multivideo windows
@@ -733,7 +733,7 @@ public class CresDisplaySurfaceMaster implements CresDisplaySurface
         parentlayout.invalidate();
         parentlayout.requestLayout();
     }
-    
+
 	// invalidates layout
     private void forceLayoutInvalidation(RelativeLayout layout) {
 	//Commented lines are where work is being done to support multivideo windows
@@ -758,38 +758,38 @@ public class CresDisplaySurfaceMaster implements CresDisplaySurface
     				latch.countDown();
     			}
     		});
-    		try { 
+    		try {
     			if (latch.await(30, TimeUnit.SECONDS) == false)
     			{
     				Log.e(TAG, "invalidateSurface: timeout after 30 seconds");
     				streamCtl.RecoverTxrxService();
     			}
     		}
-    		catch (InterruptedException ex) { ex.printStackTrace(); }  
+    		catch (InterruptedException ex) { ex.printStackTrace(); }
     	}
     	else
-    		forceParentLayoutInvalidation();        		
+    		forceParentLayoutInvalidation();
     }
-    
+
     // get Surface for Window idx
     public Surface getSurface(int idx)
     {
     	return GetSurfaceHolder(idx).getSurface();
     }
-    
+
     // set Surface for Window idx
     public void setSurface(int idx, Surface s)
     {
 		Log.i(TAG, "setSurface: idx=" + idx + " called in Master Mode - should not occur");
     }
-    
+
     // delete Surface for Window idx
     public void deleteSurface(int idx)
     {
 		Log.i(TAG, "deleteSurface: idx=" + idx + " called in Master Mode - should not occur");
 
     }
-    
+
 	public int surface2streamId(Surface surface)
 	{
 		int streamId = -1;
@@ -805,7 +805,7 @@ public class CresDisplaySurfaceMaster implements CresDisplaySurface
 		}
 		return streamId;
 	}
-	
+
 	public void setTag(int idx, String tag)
 	{
 		Log.i(TAG, "CresDisplaySurfaceMaster::setTag: idx=" + idx + " setting tag to "+tag);
@@ -824,7 +824,7 @@ public class CresDisplaySurfaceMaster implements CresDisplaySurface
     {
         return sMGR.getCresSurfaceHolder(displaySurface[idx]);
     }
-    
+
     /**
      * Initialize surface holder for the display surface, create the surface for use
      */
@@ -832,7 +832,7 @@ public class CresDisplaySurfaceMaster implements CresDisplaySurface
     {
         sMGR.initCresSurfaceHolder(displaySurface[idx]);
     }
-    
+
     /**
      * Return the surface view for the display surface
      * @return SurfaceView
@@ -841,7 +841,7 @@ public class CresDisplaySurfaceMaster implements CresDisplaySurface
     {
     	return displaySurface[idx];
     }
-    
+
     /**
      * Initialize surface texture, set listener
      */
@@ -849,17 +849,17 @@ public class CresDisplaySurfaceMaster implements CresDisplaySurface
     {
         stMGR.initCresSurfaceTextureListener(displayTexture[idx]);
     }
-	
+
     public TextureView GetTextureView(int idx)
     {
         return displayTexture[idx];
     }
-    
+
     public SurfaceTexture GetSurfaceTexture(int idx)
     {
     	return stMGR.getCresSurfaceTexture(displayTexture[idx]);
     }
-    
+
     /**
      * Hide the window by setting the view visibility
      */
@@ -875,7 +875,7 @@ public class CresDisplaySurfaceMaster implements CresDisplaySurface
     	useTextureView[idx] = false;
     	LogVisibility(MiscUtils.stringFormat("HideWindow-%d", idx));
     }
-    
+
     /**
      * Show the window by setting the view visibility
      */
@@ -885,12 +885,12 @@ public class CresDisplaySurfaceMaster implements CresDisplaySurface
     	useTextureView[idx] = false;
     	LogVisibility(MiscUtils.stringFormat("ShowWindow-%d", idx));
     }
-    
+
 	// Call this function with streams stopped
     public void updateZOrder(Integer[][] zOrder)
     {
     	Log.i(TAG, "Updating z order");
- 		
+
         parentlayout.removeAllViews();
         //Add from lowest zorder to highest
         for (int i = 0; i < CresStreamCtrl.NumOfSurfaces; i++)
@@ -899,7 +899,7 @@ public class CresDisplaySurfaceMaster implements CresDisplaySurface
         }
         forceLayoutInvalidation(parentlayout);
     }
-    
+
     private String visibility(int v)
     {
     	switch (v) {
@@ -911,9 +911,9 @@ public class CresDisplaySurfaceMaster implements CresDisplaySurface
     		return "Gone";
     	default:
     		return "Unknown";
-    	}    		
+    	}
     }
-    
+
     private void LogVisibility(String s)
     {
         StringBuilder sb = new StringBuilder(512);
@@ -934,7 +934,7 @@ public class CresDisplaySurfaceMaster implements CresDisplaySurface
         sb.append("]");
         Log.d(TAG, MiscUtils.stringFormat("%s: %s", s, sb.toString()));
     }
-    
+
     /**
      * Hide the window by setting the view visibility
      */
@@ -945,34 +945,34 @@ public class CresDisplaySurfaceMaster implements CresDisplaySurface
     	useTextureView[idx] = false;
     	LogVisibility(MiscUtils.stringFormat("HideTextureWindow-%d", idx));
     }
-    
+
     /**
      * Show the window by setting the view visibility
      */
     public void ShowTextureWindow(int idx)
     {
     	//parentlayout.addView(displayTexture);
-    	displayTexture[idx].setVisibility(View.VISIBLE);        	
+    	displayTexture[idx].setVisibility(View.VISIBLE);
     	useTextureView[idx] = true;
     	LogVisibility(MiscUtils.stringFormat("ShowTextureWindow-%d", idx));
     }
-    
+
     public boolean getUseTextureView(int idx)
     {
     	return useTextureView[idx];
     }
-    
+
     public void setInvalidateOnSurfaceTextureUpdate(boolean enable)
     {
     	stMGR.setInvalidateOnSurfaceTextureUpdate(true);
     }
-    
+
     private void createBackgroundWindow(int windowWidth, int windowHeight, int color, boolean haveExternalDisplays)
     {
     	// Bug 134825: Just create 32x32 window to save memory
     	windowHeight = 32;
     	windowWidth = 32;
-    	
+
     	// For Devices with external display, put a surface always on background of external display
     	if(haveExternalDisplays)
     	{
@@ -985,8 +985,8 @@ public class CresDisplaySurfaceMaster implements CresDisplaySurface
     		// Create and setup view (ImageView)
     		backgroundView = new ImageView(context);
     		backgroundView.setBackgroundColor(color);
-    		backgroundView.setVisibility(View.VISIBLE);        	
-    		
+    		backgroundView.setVisibility(View.VISIBLE);
+
     		// Add in view to layout
     		RelativeLayout.LayoutParams layoutParams = new RelativeLayout.LayoutParams(windowWidth, windowHeight);
     		backgroundLayout.addView(backgroundView, layoutParams);
@@ -1006,12 +1006,12 @@ public class CresDisplaySurfaceMaster implements CresDisplaySurface
 				else
 					windowType = WindowManager.LayoutParams.TYPE_PHONE;
     			backgroundWmParams = new WindowManager.LayoutParams(
-    					windowWidth, 
+    					windowWidth,
     					windowHeight,
 						windowType,
-    					(0 | WindowManager.LayoutParams.FLAG_NOT_TOUCHABLE | WindowManager.LayoutParams.FLAG_NOT_FOCUSABLE), 
+    					(0 | WindowManager.LayoutParams.FLAG_NOT_TOUCHABLE | WindowManager.LayoutParams.FLAG_NOT_FOCUSABLE),
     					PixelFormat.RGB_888);
-    			backgroundWmParams.gravity = Gravity.TOP | Gravity.LEFT; 
+    			backgroundWmParams.gravity = Gravity.TOP | Gravity.LEFT;
     			backgroundWmParams.x = 0;
     			backgroundWmParams.y = 0;
     		}
@@ -1023,7 +1023,7 @@ public class CresDisplaySurfaceMaster implements CresDisplaySurface
     		forceLayoutInvalidation(backgroundLayout);
     	}
     }
-    
+
     private boolean isX70() {
 
         String prop = null;
