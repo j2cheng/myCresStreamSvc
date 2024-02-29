@@ -219,14 +219,20 @@ void set_TLS_version_ciphers()
 
 void set_gst_debug_level(void)
 {
-	//FILE * f = fopen("/dev/crestron/gst_debug", "r");
-	//if (f == NULL)
-	{
-		// default to errors, warning for all plugins
-        //setenv("GST_DEBUG", "4,amc*:7", 1);
-        //setenv("GST_DEBUG_DUMP_DOT_DIR", "/tmp/gstreamer", 1);
-        setenv("GST_DEBUG", "4", 1);
-        setenv("G_MESSAGES_DEBUG", "all", 1);
+    if(0 == access("/tmp/gstreamer", F_OK))
+    {
+	    FILE *gst_debug_file = fopen("/tmp/gstreamer/gst_debug", "r");
+        if (gst_debug_file)
+        {
+            // GST_DEBUG=4,amc*:7
+            char gst_debug[1024] = "";
+            if(fgets(gst_debug, sizeof(gst_debug), gst_debug_file))
+            {
+                setenv("GST_DEBUG", gst_debug, 1);
+                setenv("G_MESSAGES_DEBUG", "all", 1);
+            }
+        }
+        setenv("GST_DEBUG_DUMP_DOT_DIR", "/tmp/gstreamer", 1);
 	}
 #if 0
 	else
@@ -249,6 +255,7 @@ void set_gst_debug_level(void)
 	// for x60, but should not harm other platforms - without this change you don't see any video
 	setenv("GST_AMC_IGNORE_UNKNOWN_COLOR_FORMATS", "yes", 1);
     CSIO_LOG(eLogLevel_debug, "Set GST_DEBUG to %s", getenv("GST_DEBUG"));
+    CSIO_LOG(eLogLevel_debug, "Set GST_DEBUG_DUMP_DOT_DIR to %s", getenv("GST_DEBUG_DUMP_DOT_DIR"));
     CSIO_LOG(eLogLevel_debug, "Set GST_TRACERS to %s", getenv("GST_TRACERS"));
     CSIO_LOG(eLogLevel_debug, "Get GST_VERSION_MAJOR  %d", GST_VERSION_MAJOR);
     CSIO_LOG(eLogLevel_debug, "Get GST_VERSION_MINOR  %d", GST_VERSION_MINOR);
