@@ -538,7 +538,7 @@ public class ProductSpecific
         {
         	for (String s : audioList) { 
         		// Assumes only one audio capture device exists and has one of these patterns
-        		if (s.equals("snd/pcmC5D0c") || s.equals("snd/pcmC6D0c"))
+        		if (s.equals("snd/pcmC5D0c") || s.equals("snd/pcmC6D0c") || s.equals("snd/pcmC3D0c"))
         			return "/dev/"+s;
         	}
         	return null;
@@ -548,7 +548,7 @@ public class ProductSpecific
         {
         	for (String s : audioList) { 
         		// Look for one of these devices to flag presence of a speaker
-        		if (s.equals("snd/pcmC5D0p") || s.equals("snd/pcmC6D0p"))
+        		if (s.equals("snd/pcmC5D0p") || s.equals("snd/pcmC6D0p") || s.equals("snd/pcmC3D0c"))
         		{
         		    return "/dev/"+s;
         		}
