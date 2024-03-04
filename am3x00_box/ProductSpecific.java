@@ -548,7 +548,7 @@ public class ProductSpecific
         {
         	for (String s : audioList) { 
         		// Look for one of these devices to flag presence of a speaker
-        		if (s.equals("snd/pcmC5D0p") || s.equals("snd/pcmC6D0p"))
+        		if (s.equals("snd/pcmC5D0p") || s.equals("snd/pcmC6D0p") || s.equals("snd/pcmC3D0c"))
         		{
         		    return "/dev/"+s;
         		}
