@@ -1,4 +1,7 @@
-#include <stdio.h>
+#include <cassert>
+#include <climits>
+#include <cstdio>
+
 #include <unistd.h>
 #include <sys/types.h>
 
@@ -11,7 +14,7 @@
 #include "csioCommBase.h"
 
 #include "shared-ssl.h"
-#include "../ms_mice_sink/shared/glib-utilities.h"// 
+#include "../ms_mice_sink/shared/glib-utilities.h"//
 // #include "support/android-miraclecast-common.h"
 // #include "../gstreamer_android/miraclecast/src/shared/shl_log.h"
 // #ifdef __ANDROID__
@@ -24,25 +27,24 @@
 #define LOGLEV_warning        eLogLevel_warning
 #define LOGLEV_info           eLogLevel_info
 #define LOGLEV_debug          eLogLevel_debug
-// 
+//
 // #define sssl_log              log_printf
 // //
-// #define LOGLEV_error          LOG_ERROR  
+// #define LOGLEV_error          LOG_ERROR
 // #define LOGLEV_warning        LOG_WARNING
-// #define LOGLEV_info           LOG_INFO   
-// #define LOGLEV_debug          LOG_DEBUG  
+// #define LOGLEV_info           LOG_INFO
+// #define LOGLEV_debug          LOG_DEBUG
 
 #define GEN_KEY 1
 #ifdef GEN_KEY
-#define CRESTRON_SERV_PRIVATEKEY_FILE        "/dev/shm/mice_key.pem"
-#define CRESTRON_SERV_CERTIFICATE_FILE       "/dev/shm/mice_cert.pem"
+#define CRESTRON_SERV_PRIVATEKEY_FILE        "mice_key.pem"
+#define CRESTRON_SERV_CERTIFICATE_FILE       "mice_cert.pem"
 #else
 //Note: these pem files came from:
 //https://urldefense.proofpoint.com/v2/url?u=https-3A__github.com_wolfSSL_wolfssl-2Dexamples_blob_master_certs_ca-2Dcert.pem&d=DwIFAg&c=BevoquqpKcc6oV2fwHriBQ&r=B2DQCtbHXG3qgJ8_23NookXHqe9juKFgc0eymwW84dc&m=nc5B26E1qiVNx0fXkofRODp4ubXsYHN5RP_BiPerc8c&s=Vjzth1NkEV992wH_drRhFn4UxNwIpN5wUy4RnhqchLc&e=
 //https://urldefense.proofpoint.com/v2/url?u=https-3A__github.com_wolfSSL_wolfssl-2Dexamples_blob_master_certs_ca-2Dkey.pem&d=DwIFAg&c=BevoquqpKcc6oV2fwHriBQ&r=B2DQCtbHXG3qgJ8_23NookXHqe9juKFgc0eymwW84dc&m=nc5B26E1qiVNx0fXkofRODp4ubXsYHN5RP_BiPerc8c&s=76F7UGOV9UnYIfK46dHnPbYZHW3DtJbxBTqHqQQQerc&e=
-#define CRESTRON_SERV_PRIVATEKEY_FILE        "/dev/shm/server-key.pem"
-#define CRESTRON_SERV_CERTIFICATE_FILE       "/dev/shm/server-cert.pem"
-#define CRESTRON_CA_CERTIFICATE_FILE         "/dev/shm/ca-cert.pem"
+#define CRESTRON_SERV_PRIVATEKEY_FILE        "server-key.pem"
+#define CRESTRON_SERV_CERTIFICATE_FILE       "server-cert.pem"
 #endif
 
 
@@ -50,14 +52,14 @@
 // ***
 #define LOCKSLEEPTIME      10          // seconds
 
-int gOneTimeBeforeLockDelay = 0;
-int gOneTimeAfterLockDelay = 0;
-int gOneTimeBeforeUnlockDelay = 0;
-int gOneTimeAfterUnlockDelay = 0;
-int gCurrentStreamID = -1;
-unsigned long long gCurrentSessionID = 0;
-int gDelayValue = LOCKSLEEPTIME;
-int gDelaySkipCnt = 1;
+static int gOneTimeBeforeLockDelay = 0;
+static int gOneTimeAfterLockDelay = 0;
+static int gOneTimeBeforeUnlockDelay = 0;
+static int gOneTimeAfterUnlockDelay = 0;
+static int gCurrentStreamID = -1;
+static unsigned long long gCurrentSessionID = 0;
+static int gDelayValue = LOCKSLEEPTIME;
+static int gDelaySkipCnt = 1;
 // ***
 
 
@@ -95,24 +97,38 @@ typedef struct {
 } SSL_CONTEXT_STORAGE_ELEM;
 
 
-COMMON_SSL_SERVER_CONTEXT * gCommonSSLServerContext = NULL;
-SSL_CONTEXT_STORAGE_ELEM gSSLContextStorage[SSL_CONTEXT_STORAGE_SIZE];
-pthread_mutex_t gContextStorageMutex;
+static COMMON_SSL_SERVER_CONTEXT * gCommonSSLServerContext = NULL;
+static SSL_CONTEXT_STORAGE_ELEM gSSLContextStorage[SSL_CONTEXT_STORAGE_SIZE];
+static pthread_mutex_t gContextStorageMutex;
 
 
-SSL_CTX * CreateNewSSLContext();
+static
+SSL_CTX * CreateNewSSLContext(const char *config_path);
+static
 SSL_CTX * InitServerCTX();
+static
 bool LoadCertificates(SSL_CTX * ctx, char * CertFile, char * KeyFile);
+#if ENABLE_SSL_CALLBACK
+static
 void ssl_info_callback(const SSL * ssl, int where, int ret);
+#endif
+static
 EVP_PKEY * generate_key();
+static
 X509 * generate_x509(EVP_PKEY * pkey);
-bool write_to_disk(EVP_PKEY * pkey, X509 * x509);
-
+static
+bool write_to_disk(EVP_PKEY * pkey, X509 * x509, const char *config_path);
+static
+void * sssl_contextCreate(unsigned long long sessionID);
+static
 void sssl_contextStorageInitialize();
+static
+int sssl_contextRemove(unsigned long long sessionID);
 
 
-int sssl_initialize()
+int sssl_initialize(const char *config_path)
 {
+    assert(config_path);
     if(gCommonSSLServerContext)
     {
         sssl_log(LOGLEV_error,"mira: sssl_initialize() - gCommonSSLServerContext is NOT NULL - exiting");
@@ -158,15 +174,15 @@ int sssl_initialize()
             }
             else
             {
-                bool ret = write_to_disk(sslServerContext->pKey, sslServerContext->pX509);
+                bool ret = write_to_disk(sslServerContext->pKey, sslServerContext->pX509, config_path);
                 sssl_log(LOGLEV_debug,"mira: initialize_SSL: writing key and certificate to disk....[%d]",ret);
             }
         }
     }
 #endif
 
-    sslServerContext->common_SSL_CTX = CreateNewSSLContext();
-    sssl_log(LOGLEV_debug,"mira: initialize_SSL() - CreateNewSSLContext() returned [0x%x]",
+    sslServerContext->common_SSL_CTX = CreateNewSSLContext(config_path);
+    sssl_log(LOGLEV_debug,"mira: initialize_SSL() - CreateNewSSLContext() returned [%p]",
         sslServerContext->common_SSL_CTX);
 
     gCommonSSLServerContext = sslServerContext;
@@ -262,31 +278,32 @@ void * sssl_createDTLS(unsigned long long sessionID)
 
 
 
-    sssl_log(LOGLEV_debug,"mira: sssl_createDTLS() ssslContext->commonServerContext->common_SSL_CTX = [0x%x]",
+    sssl_log(LOGLEV_debug,"mira: sssl_createDTLS() ssslContext->commonServerContext->common_SSL_CTX = [%p]",
       ssslContext->commonServerContext->common_SSL_CTX);
 
     if(ssslContext->commonServerContext->common_SSL_CTX)
     {
         SSL * ssl = SSL_new(ssslContext->commonServerContext->common_SSL_CTX);
         ssslContext->ssl = ssl;
-        sssl_log(LOGLEV_debug,"mira: sssl_createDTLS() ssl[0x%x] ",ssl);
+        sssl_log(LOGLEV_debug,"mira: sssl_createDTLS() ssl[%p] ",ssl);
 
-        //uncomment for the callback
-        //SSL_set_info_callback(ssl, ssl_info_callback);
+#if ENABLE_SSL_CALLBACK
+        SSL_set_info_callback(ssl, ssl_info_callback);
+#endif
 
         BIO *rbio = BIO_new(BIO_s_mem());
         BIO_set_close(rbio, BIO_CLOSE);
         //BIO_set_mem_eof_return(rbio, -1);
         BIO_set_nbio(rbio, 1);
         ssslContext->rbio = rbio;
-        sssl_log(LOGLEV_debug,"mira: sssl_createDTLS() rbio[0x%x] ",rbio);
+        sssl_log(LOGLEV_debug,"mira: sssl_createDTLS() rbio[%p] ",rbio);
 
         BIO *wbio = BIO_new(BIO_s_mem());
         BIO_set_close(wbio, BIO_CLOSE);
         //BIO_set_mem_eof_return(wbio, -1);
         BIO_set_nbio(wbio, 1);
         ssslContext->wbio = wbio;
-        sssl_log(LOGLEV_debug,"mira: sssl_createDTLS() wbio[0x%x] ",wbio);
+        sssl_log(LOGLEV_debug,"mira: sssl_createDTLS() wbio[%p] ",wbio);
 
         SSL_set_bio(ssl, rbio, wbio);
         SSL_set_accept_state(ssl); // The server uses SSL_set_accept_state
@@ -381,7 +398,7 @@ void * sssl_getDTLSWithSessionID(unsigned long long sessionID,int checkHandshake
     }
     simpleLockGet(&gContextStorageMutex);
     void * sssl = sssl_getContextWithSessionID(sessionID);
-    if(checkHandshake && sssl) 
+    if(checkHandshake && sssl)
     {
         if(((SHARED_SSL_CONTEXT *)sssl)->ready != 1)
         {
@@ -402,7 +419,7 @@ void * sssl_getDTLSWithStreamID(int streamID,int checkHandshake)
     }
     simpleLockGet(&gContextStorageMutex);
     void * sssl = sssl_getContextWithStreamID(streamID);
-    if(checkHandshake && sssl) 
+    if(checkHandshake && sssl)
     {
         if(((SHARED_SSL_CONTEXT *)sssl)->ready != 1)
         {
@@ -477,7 +494,7 @@ int sssl_encryptDTLSInner(void * sssl,void * inBuff,int inBuffSize,void * outBuf
         if(retv <= 0)
         {
             // treat 0 as potential failure
-            if(BIO_should_retry(ssslContext->wbio))  
+            if(BIO_should_retry(ssslContext->wbio))
             {
                 usleep(5*1000);     // 5 msec
                 retryCount--;
@@ -526,7 +543,7 @@ int sssl_decryptDTLSInner(void * sssl,void * inBuff,int inBuffSize,void * outBuf
         if(retv <= 0)
         {
             // treat 0 as potential failure
-            if(BIO_should_retry(ssslContext->rbio))  
+            if(BIO_should_retry(ssslContext->rbio))
             {
                 usleep(5*1000);     // 5 msec
                 retryCount--;
@@ -804,7 +821,7 @@ int sssl_runDTLSHandshakeWithSecToken(void * sssl,void * secToken,int secTokenLe
     else
     {
         sssl_log(LOGLEV_error,
-            "mira: sssl_commenceDTLSHandshakeWithSecToken() - bad ssslContext[0x%x]",ssslContext);
+            "mira: sssl_commenceDTLSHandshakeWithSecToken() - bad ssslContext[%p]",ssslContext);
     }
 
     sssl_log(LOGLEV_debug,"mira: {%s} - exiting",__FUNCTION__);
@@ -836,7 +853,7 @@ int sssl_setDTLSAppThInitializedCommon(int streamID, unsigned long long sessionI
     // return values:
     //  >= 0 - appThInitialized was set as requested. Its previous value is returned.
     //  -1 - corresponding sssl did not exist when this function was invoked.
-    // 
+    //
     // Remarks:
     //   1. May pass NULL for ssslPtr.
     //   2. *ssslPtr only valid when return value >= 0.
@@ -891,11 +908,11 @@ int sssl_getDTLSAppThInitializedCommon(int streamID, unsigned long long sessionI
     // return values:
     //  >= 0 - value of appThInitialized
     //  -1 - corresponding sssl did not exist when this function was invoked.
-    // 
+    //
     // Remarks:
     //   1. May pass NULL for ssslPtr.
     //   2. *ssslPtr only valid when return value >= 0.
-    // 
+    //
 
     int retv;
     void * sssl;
@@ -997,18 +1014,18 @@ int sssl_cancelDTLSAppThAndWaitCommon(unsigned long long sessionID,int streamID)
                 //
                 // To signal a condition variable when there is no corresponding wait is a logical error
                 // because nothing will ever receive the signal.
-                // 
+                //
                 // !!! Condition variables don't remain in a signalled state !!!
-                // 
+                //
 
 	             struct timespec stopTimeout;
                 struct timeval tp;
-                
+
                 retv1 = gettimeofday(&tp,NULL);
                 stopTimeout.tv_sec  = tp.tv_sec;
                 stopTimeout.tv_nsec = tp.tv_usec * 1000;
                 stopTimeout.tv_sec += 10;
-                
+
 	             // lock obtained up top
 	             retv1 = pthread_cond_timedwait(&((SHARED_SSL_CONTEXT *)sssl)->appThCancelComplCondVar,
                    &gContextStorageMutex,&stopTimeout);
@@ -1194,7 +1211,7 @@ int sssl_signalDTLSAppThCanceledCommon(int streamID, unsigned long long sessionI
 int simpleLockInit(pthread_mutex_t * slMutexPtr)
 {
     int retv;
-    
+
     pthread_mutexattr_t attr;
     pthread_mutexattr_init(&attr);
     // PTHREAD_MUTEX_ERRORCHECK:
@@ -1235,7 +1252,7 @@ int simpleLockGet(pthread_mutex_t * slMutexPtr)
         {
             gDelaySkipCnt--;
         }
-        else 
+        else
         {
             delayValue = gOneTimeBeforeLockDelay * 1000000;    // usec
             gOneTimeBeforeLockDelay = 0;
@@ -1251,7 +1268,7 @@ int simpleLockGet(pthread_mutex_t * slMutexPtr)
         {
             gDelaySkipCnt--;
         }
-        else 
+        else
         {
             delayValue = gOneTimeAfterLockDelay * 1000000;    // usec
             gOneTimeAfterLockDelay = 0;
@@ -1285,7 +1302,7 @@ int simpleLockRelease(pthread_mutex_t * slMutexPtr)
         {
             gDelaySkipCnt--;
         }
-        else 
+        else
         {
             delayValue = gOneTimeBeforeUnlockDelay * 1000000;    // usec
             gOneTimeBeforeUnlockDelay = 0;
@@ -1301,7 +1318,7 @@ int simpleLockRelease(pthread_mutex_t * slMutexPtr)
         {
             gDelaySkipCnt--;
         }
-        else 
+        else
         {
             delayValue = gOneTimeAfterUnlockDelay * 1000000;    // usec
             gOneTimeAfterUnlockDelay = 0;
@@ -1317,7 +1334,7 @@ int simpleLockRelease(pthread_mutex_t * slMutexPtr)
 
 
 // --- shared context storage management facility ---
-
+static
 void sssl_contextStorageInitialize()
 {
     int nn;
@@ -1357,7 +1374,7 @@ void * sssl_contextCreate(unsigned long long sessionID)
    return(NULL);
 }
 
-
+static
 int sssl_contextRemove(unsigned long long sessionID)
 {
     int index = sssl_getIndexWithSessionID(sessionID);
@@ -1477,7 +1494,8 @@ int sssl_getIndexWithStreamID(int streamID)
 
 // --- local functions ---
 
-SSL_CTX * CreateNewSSLContext()
+static
+SSL_CTX * CreateNewSSLContext(const char *config_path)
 {
     SSL_CTX* ctx = NULL;
 
@@ -1485,7 +1503,16 @@ SSL_CTX * CreateNewSSLContext()
 
     if (ctx)
     {
-        int ret = LoadCertificates(ctx, CRESTRON_SERV_CERTIFICATE_FILE, CRESTRON_SERV_PRIVATEKEY_FILE);
+        char cert_path[PATH_MAX];
+        char privkey_path[PATH_MAX];
+
+        assert(config_path);
+        (void)snprintf(cert_path, sizeof(cert_path), "%s/%s", config_path, CRESTRON_SERV_CERTIFICATE_FILE);
+        (void)snprintf(privkey_path, sizeof(privkey_path), "%s/%s", config_path, CRESTRON_SERV_PRIVATEKEY_FILE);
+
+        sssl_log(LOGLEV_info, "loading cert: %s, key: %s", cert_path, privkey_path);
+
+        int ret = LoadCertificates(ctx, cert_path, privkey_path);
         if (ret == false)
         {
             SSL_CTX_free(ctx);
@@ -1494,11 +1521,11 @@ SSL_CTX * CreateNewSSLContext()
         }
     }
 
-    sssl_log(LOGLEV_debug,"mira: CreateNewSSLContext ret[0x%x]\n", ctx);
+    sssl_log(LOGLEV_debug,"mira: CreateNewSSLContext ret[%p]", ctx);
     return ctx;
 }
 
-
+static
 SSL_CTX * InitServerCTX()
 {
     SSL_CTX *ctx = NULL;
@@ -1515,11 +1542,11 @@ SSL_CTX * InitServerCTX()
         SSL_CTX_set_read_ahead (ctx, 1);
     }
 
-    sssl_log(LOGLEV_debug,"mira: InitServerCTX ret[0x%x]\n", ctx);
+    sssl_log(LOGLEV_debug,"mira: InitServerCTX ret[%p]\n", ctx);
     return ctx;
 }
 
-
+static
 bool LoadCertificates(SSL_CTX* ctx, char* CertFile, char* KeyFile)
 {
     /* set the local certificate from CertFile */
@@ -1566,6 +1593,8 @@ bool LoadCertificates(SSL_CTX* ctx, char* CertFile, char* KeyFile)
     }                                                      \
   }
 
+#if ENABLE_SSL_CALLBACK
+static
 void ssl_info_callback(const SSL* ssl, int where, int ret) {
 
     if(ret == 0) {
@@ -1581,12 +1610,14 @@ void ssl_info_callback(const SSL* ssl, int where, int ret) {
     sssl_log(LOGLEV_debug,"ssl_info_callback BIO_ctrl_pending[%d],where[0x%x]",pending,where);
     sssl_log(LOGLEV_debug,"ssl_info_callback SSL_get_state return[%d]", SSL_get_state(ssl));
 }
+#endif
 
 
 
 #ifdef GEN_KEY
 
 /* Generates a 2048-bit RSA key. */
+static
 EVP_PKEY * generate_key()
 {
     /* Allocate memory for the EVP_PKEY structure. */
@@ -1619,6 +1650,7 @@ EVP_PKEY * generate_key()
 }
 
 /* Generates a self-signed x509 certificate. */
+static
 X509 * generate_x509(EVP_PKEY * pkey)
 {
     /* Allocate memory for the X509 structure. */
@@ -1661,15 +1693,23 @@ X509 * generate_x509(EVP_PKEY * pkey)
     return x509;
 }
 
-bool write_to_disk(EVP_PKEY * pkey, X509 * x509)
+static
+bool write_to_disk(EVP_PKEY * pkey, X509 * x509, const char *config_path)
 {
+    char file_path[PATH_MAX];
+
+    assert(config_path);
+
+    (void)snprintf(file_path, sizeof(file_path), "%s/%s", config_path, CRESTRON_SERV_PRIVATEKEY_FILE);
+
     /* Open the PEM file for writing the key to disk. */
-    FILE * pkey_file = fopen(CRESTRON_SERV_PRIVATEKEY_FILE, "wb");
+    FILE * pkey_file = fopen(file_path, "wb");
     if(!pkey_file)
     {
-        sssl_log(LOGLEV_error,"Unable to open %s",CRESTRON_SERV_PRIVATEKEY_FILE);
+        sssl_log(LOGLEV_error,"Unable to open %s", file_path);
         return false;
     }
+    else sssl_log(LOGLEV_info, "opened %s", file_path);
 
     /* Write the key to disk. */
     bool ret = PEM_write_PrivateKey(pkey_file, pkey, NULL, NULL, 0, NULL, NULL);
@@ -1681,13 +1721,16 @@ bool write_to_disk(EVP_PKEY * pkey, X509 * x509)
         return false;
     }
 
+    (void)snprintf(file_path, sizeof(file_path), "%s/%s", config_path, CRESTRON_SERV_CERTIFICATE_FILE);
+
     /* Open the PEM file for writing the certificate to disk. */
-    FILE * x509_file = fopen(CRESTRON_SERV_CERTIFICATE_FILE, "wb");
+    FILE * x509_file = fopen(file_path, "wb");
     if(!x509_file)
     {
-        sssl_log(LOGLEV_error,"Unable to open %s",CRESTRON_SERV_CERTIFICATE_FILE);
+        sssl_log(LOGLEV_error,"Unable to open %s", file_path);
         return false;
     }
+    else sssl_log(LOGLEV_info, "opened %s", file_path);
 
     /* Write the certificate to disk. */
     ret = PEM_write_X509(x509_file, x509);

@@ -2,20 +2,20 @@
 //
 // Copyright (C) 2016 to the present, Crestron Electronics, Inc.
 // All rights reserved.
-// No part of this software may be reproduced in any form, 
-// machine or natural, 
+// No part of this software may be reproduced in any form,
+// machine or natural,
 // without the express written consent of Crestron Electronics.
-//  
+//
 ///////////////////////////////////////////////////////////////////////////////
 //
 // \file        GstreamOut.java
-// 
+//
 // \brief       Java class to interface to gstreamer rtsp server
-// 
+//
 // \author      Pete McCormick
-// 
+//
 // \date        04/15/2016
-// 
+//
 // \note        Real gstreamer code is in jni.c
 //
 ///////////////////////////////////////////////////////////////////////////////
@@ -51,20 +51,20 @@ public class GstreamOut {
 
     static String TAG = "GstreamOut";
 
-    private static final String RTSP_CERTIFICATE_FOLDER_PATH = "/dev/shm/crestron/CresStreamSvc/wc";
+    private static final String RTSP_CERTIFICATE_FOLDER_PATH = "wc";
     private static final String RTSP_ROOT_CERT_PEM_FILENAME = "root_cert.pem";
     private static final String RTSP_ROOT_CERT_KEY = "root_key.pem";
     private static final String WC_URL_PATH = RTSP_CERTIFICATE_FOLDER_PATH + "/" + "server.url";
 
 ///////////////////////////////////////////////////////////////////////////////
 
-    // Function prototypes for 
+    // Function prototypes for
     private static native boolean nativeClassInitRtspServer();
     private native void nativeRtspServerStart();
     private native void nativeRtspServerStop();
-    private native void nativeInitRtspServer(Object s);     
+    private native void nativeInitRtspServer(Object s);
     private native void nativeInitWirelessConferencingRtspServer();
-    private native void nativeFinalizeRtspServer();    
+    private native void nativeFinalizeRtspServer();
     private native void nativeSetRtspPort(int port, int sessionId);
     private native void nativeSet_Res_x(int xRes, int sessionId);
     private native void nativeSet_Res_y(int yRes, int sessionId);
@@ -94,7 +94,7 @@ public class GstreamOut {
     private native int  nativeWaitForPreviewClosed(int sessionId,int timeout_sec);
     private native int  nativeSet_HDMIInResolution_x(int xRes, int sessionId);
     private native int  nativeSet_HDMIInResolution_y(int yRes, int sessionId);
-   
+
     private final int sessionId = 0;    // This is currently always 0
     private long native_custom_data;    // Native code will use this to keep private data
     private Object mSurface;            // We keep surface as just an object because that's how we pass it to jni
@@ -113,8 +113,20 @@ public class GstreamOut {
 
     public boolean wcStarted() {return wirelessConferencing_server_started; }
     public String getWcServerUrl() { return wcServerUrl; }
-    public String getWcServerCertificate() { return readStringFromDisk(RTSP_CERTIFICATE_FOLDER_PATH+"/"+RTSP_ROOT_CERT_PEM_FILENAME); }
-    public String getWcServerKey() { return readStringFromDisk(RTSP_CERTIFICATE_FOLDER_PATH+"/"+RTSP_ROOT_CERT_KEY); }
+    public String getWcServerCertificate()
+    {
+        String path = (new File(streamCtl.getFilesDir(),
+                RTSP_CERTIFICATE_FOLDER_PATH + "/" + RTSP_ROOT_CERT_PEM_FILENAME)).getAbsolutePath();
+        Log.i(TAG, "getWcServerCertificate path:" + path);
+        return readStringFromDisk(path);
+    }
+    public String getWcServerKey()
+    {
+        String path = (new File(streamCtl.getFilesDir(),
+            RTSP_CERTIFICATE_FOLDER_PATH + "/" + RTSP_ROOT_CERT_KEY)).getAbsolutePath();
+        Log.i(TAG, "getWcServerKey path:" + path);
+        return readStringFromDisk(path);
+    }
 
 ///////////////////////////////////////////////////////////////////////////////
 
@@ -130,8 +142,8 @@ public class GstreamOut {
         try {
             File file = new File(filePath);
 
-            BufferedReader br = new BufferedReader(new FileReader(file));  
-            String line;   
+            BufferedReader br = new BufferedReader(new FileReader(file));
+            String line;
             while ((line = br.readLine()) != null) {
                 text.append("\r\n");
                 text.append(line);
@@ -140,13 +152,13 @@ public class GstreamOut {
         }catch (Exception e) {}
         return text.toString();
     }
-    
+
     public GstreamOut(CresStreamCtrl ctl) {
         Log.i(TAG, "Streamout: JAVA - constructor called");
         streamCtl = ctl;
         //Don't start server until we have a surface to get data from...
         //nativeInitRtspServer(null);
-        
+
         if (!streamCtl.isWirelessConferencingEnabled && streamCtl.userSettings.getCamStreamEnable() == true)        {
             start();
         }
@@ -154,7 +166,7 @@ public class GstreamOut {
         Log.i(TAG, "Streamout: Application cache folder path = "+appCacheFolder);
         if (CresStreamCtrl.isAM3K)
         {
-            File file = new File(WC_URL_PATH);
+            File file = new File(streamCtl.getFilesDir(), WC_URL_PATH);
             if (!file.getParentFile().exists())
                 file.getParentFile().mkdirs();  // make parent dirs if necessary
             monitorWcCertificateGenerationCompletion();
@@ -164,7 +176,7 @@ public class GstreamOut {
     public void setSessionIndex(int id){
         idx = id;
     }
-    
+
     public int getSessionIndex(){
         return(idx);
     }
@@ -173,7 +185,7 @@ public class GstreamOut {
         //Log.i(TAG, "Set surface to " + s);
         //mSurface = s;
     }
-    
+
     public void start() {
         if (streamCtl.mCameraDisabled == false)
         {
@@ -182,7 +194,7 @@ public class GstreamOut {
                 nativeInitRtspServer(null);
                 resReleased = false;
             }
-            
+
             updateCamStreamUrl();
             updateCamSnapshotUrl();
             updateNativeDataStruct();
@@ -191,7 +203,7 @@ public class GstreamOut {
             camStreamActive = true;
         }
     }
-    
+
     public void stop() {
         updateCamStreamUrl();
         updateCamSnapshotUrl();
@@ -200,8 +212,8 @@ public class GstreamOut {
         if (previewActive) {
             Log.i(TAG, "Streamout: JAVA - stop() RtspServer ONLY");
             nativeRtspServerStop();
-        } 
-        else { 
+        }
+        else {
             Log.i(TAG, "Streamout: JAVA - stop() finalize RtspServer");
             nativeFinalizeRtspServer();
             resReleased = true;
@@ -214,7 +226,7 @@ public class GstreamOut {
     	if (videoFile.equalsIgnoreCase("none"))
     		Log.i(TAG, "videoFile is 'none' - no video formats");
     	else if (videoFile.contains("/dev/video")) {
-            String hdmiHorRes, hdmiVerRes;  
+            String hdmiHorRes, hdmiVerRes;
     		WC_VideoFormat format = new WC_VideoFormat(0,0,0);
             if( streamCtl.hdmiInput != null )
             {
@@ -240,7 +252,7 @@ public class GstreamOut {
     	}
     	return videoFormats;
     }
-    
+
     public List<WC_AudioFormat> getAudioFormats(String audioFile)
     {
     	List<WC_AudioFormat> audioFormats = new ArrayList<WC_AudioFormat>();
@@ -262,7 +274,7 @@ public class GstreamOut {
     	}
     	return audioFormats;
     }
-    
+
     public void wirelessConferencing_start() {
         Log.i(TAG, "Streamout: JAVA - wirelessConferencing_start() entered" );
         if (!wirelessConferencing_server_started)
@@ -283,7 +295,7 @@ public class GstreamOut {
     {
         wcOwner = owner;
     }
-    
+
     public void wirelessConferencing_stop() {
         Log.i(TAG, "Streamout: JAVA - wirelessConferencing_stop() entered" );
         if (wirelessConferencing_server_started)
@@ -306,7 +318,7 @@ public class GstreamOut {
         {
             nativeSetVideoCaptureDevice("none");
             nativeSetAudioCaptureDevice(hdmiAudio);
-        } else 
+        } else
         {
             WC_SessionFlags flags = streamCtl.mWC_Service.getSessionFlags();
             if (flags == WC_SessionFlags.Audio)
@@ -328,7 +340,7 @@ public class GstreamOut {
                 nativeSetAudioCaptureDevice(streamCtl.userSettings.getWcAudioCaptureDevice());
             }
             if (!streamCtl.userSettings.getWcAudioCaptureDevice().equalsIgnoreCase("aes"))
-            {            
+            {
                 //send the HDMI input resolution to CPP layer in order to confgure V4l2src controller.
                 if( streamCtl.hdmiInput != null )
                 {
@@ -360,8 +372,8 @@ public class GstreamOut {
         } else {
             // aes67 mode
             setCamStreamMulticastAddress(streamCtl.userSettings.getCamStreamMulticastAddress());
-            setPort(streamCtl.userSettings.getCamStreamPort());        
-            setMulticastEnable(streamCtl.userSettings.getCamStreamMulticastEnable());        
+            setPort(streamCtl.userSettings.getCamStreamPort());
+            setMulticastEnable(streamCtl.userSettings.getCamStreamMulticastEnable());
             setServerIpAddress();
             setCamStreamName("aes");
             setWcSecurityEnable(false);
@@ -412,7 +424,7 @@ public class GstreamOut {
         }
         Log.d(TAG,"finished running script to generate server certificates");
     }
-    
+
     private void wcCertificateGenerationComplete(boolean success)
     {
         Log.i(TAG,"server certificate generation completed result="+success);
@@ -420,7 +432,7 @@ public class GstreamOut {
             wcCertificateGenerationCompletedLatch.countDown();
         }
     }
-    
+
     @SuppressWarnings("deprecation")
     private void monitorWcCertificateGenerationCompletion()
     {
@@ -429,12 +441,12 @@ public class GstreamOut {
         streamCtl.checkFileExistsElseCreate(generationStatusPath);
         Log.i(TAG, "Monitor CLOSE_WRITE events on "+generationStatusPath+" file for certificate genrate completion");
         // Monitor certificate completion events by monitoring CLOSE_WRITE events on file
-        wcCertificateCompletionObserver = new FileObserver(generationStatusPath, FileObserver.CLOSE_WRITE) 
-        {                     
+        wcCertificateCompletionObserver = new FileObserver(generationStatusPath, FileObserver.CLOSE_WRITE)
+        {
             @Override
-            public void onEvent(int event, String path) 
+            public void onEvent(int event, String path)
             {
-                synchronized (wcCertificateCompletionObserverLock) 
+                synchronized (wcCertificateCompletionObserverLock)
                 {
                     String result = MiscUtils.readStringFromDisk(generationStatusPath);
                     Log.i(TAG, "certificate generation status = "+result);
@@ -444,7 +456,7 @@ public class GstreamOut {
         };
         wcCertificateCompletionObserver.startWatching();
     }
-    
+
     public void generateRtspServerCertificates()
     {
         Log.i(TAG,"asking csio to run script to generate server certificates");
@@ -453,21 +465,21 @@ public class GstreamOut {
         Log.i(TAG,"sent command to csio");
         try {
            wcCertificateGenerationCompletedLatch.await(10000, TimeUnit.MILLISECONDS);
-        } catch (Exception e) { 
-            e.printStackTrace(); 
+        } catch (Exception e) {
+            e.printStackTrace();
         } finally {
             wcCertificateGenerationCompletedLatch = null;
         }
         Log.i(TAG,"finished running script to generate server certificates");
     }
-    
+
     public List<String> getWcServerUrlList()
     {
         List<String> list = new ArrayList<String>(Arrays.asList(wcServerUrl.split("\\s*,\\s*")));
         //Log.v(TAG, "getWcServerUrlList(): urlList="+list);
         return list;
     }
-    
+
     public void setWcServerUrl(String url)
     {
         //Log.v(TAG, "Streamout: setWcServerUrl: incoming url="+url);
@@ -497,7 +509,7 @@ public class GstreamOut {
         if (wcServerUrl != null)
         {
             String[] urls = wcServerUrl.split(",");
-            MiscUtils.writeStringToDisk(WC_URL_PATH, urls[0]);
+            MiscUtils.writeStringToDisk((new File(streamCtl.getFilesDir(), WC_URL_PATH)).getAbsolutePath(), urls[0]);
         }
         //Log.v(TAG, "setWcServerUrl: WC server url="+wcServerUrl);
     }
@@ -528,59 +540,59 @@ public class GstreamOut {
         Log.i(TAG, "Streamout: onServerStart");
         streamCtl.mWC_Service.onServerStart();
     }
-    
+
     public void onServerStop()
     {
         Log.i(TAG, "Streamout: onServerStop");
         streamCtl.mWC_Service.onServerStop();
     }
-    
+
     public void onClientConnected(String clientIp)
     {
         Log.i(TAG, "Streamout: onClientConnected: clientIp="+clientIp);
         streamCtl.mWC_Service.onClientConnected(clientIp);
     }
-    
+
     public void onClientDisconnected(String clientIp)
     {
         Log.i(TAG, "Streamout: onClientDisconnected: clientIp="+clientIp);
         streamCtl.mWC_Service.onClientDisconnected(clientIp);
     }
-    
+
     public void resetHdmiInput()
     {
         Log.i(TAG, "Streamout: resetHdmiInput");
         streamCtl.sockTask.SendDataToAllClients("RESET_HDMI_INPUT=true");
     }
-    
+
     public void setAppCacheFolder()
     {
         nativeSetAppCacheFolder(appCacheFolder);
     }
-    
+
     public void setHostName()
     {
         nativeSetHostName(streamCtl.getHostName());
     }
-    
+
     public void setDomainName()
     {
         nativeSetDomainName(streamCtl.getDomainName());
     }
-    
+
     public void setServerIpAddress()
     {
         nativeSetServerIpAddress(streamCtl.userSettings.getDeviceIp());
     }
-    
+
     public void setPort(int port) {
         nativeSetRtspPort(port, sessionId);
     }
-    
+
     public void setMulticastEnable(boolean enable) {
         nativeSet_MulticastEnable(enable, sessionId);
     }
-    
+
     public void setResolution(int resolution) {
 //      switch (resolution)
 //      {
@@ -596,7 +608,7 @@ public class GstreamOut {
 //          break;
 //      }
     }
-    
+
 
     public void setWirelessConferencingResolution(int resolution) {
 //      switch (resolution)
@@ -617,15 +629,15 @@ public class GstreamOut {
     public void setWcSecurityEnable(boolean enable) {
         nativeSet_WcSecurityEnable(enable, sessionId);
     }
-    
+
     public void setWcRandomUserPwEnable(boolean enable) {
         nativeSet_WcRandomUserPwEnable(enable, sessionId);
     }
-    
+
     public void setFramerate(int fps) {
         nativeSet_FrameRate(fps, sessionId);
     }
-    
+
     public void setBitrate(int bitrate) {
         nativeSet_Bitrate(bitrate, sessionId);
     }
@@ -642,34 +654,34 @@ public class GstreamOut {
     {
         nativeSetCodec(owner, sessionId);
     }
-    
+
     public void setHDMIInResolution(int xRes, int yRes) {
         nativeSet_HDMIInResolution_x(xRes, sessionId);
         nativeSet_HDMIInResolution_y(yRes, sessionId);
     }
 
-    public void setCamStreamName(String name) {     
-        nativeSet_StreamName(name, sessionId);      
+    public void setCamStreamName(String name) {
+        nativeSet_StreamName(name, sessionId);
     }
-    
+
     public void setCamStreamSnapshotName(String name) {
         nativeSet_SnapshotName(name, sessionId);
         updateCamSnapshotUrl();
     }
-    
+
     public void setCamStreamMulticastAddress(String address) {
         nativeSet_MulticastAddress(address, sessionId);
     }
-    
+
     private void updateNativeDataStruct() {
-        setPort(streamCtl.userSettings.getCamStreamPort());        
-        setMulticastEnable(streamCtl.userSettings.getCamStreamMulticastEnable());        
+        setPort(streamCtl.userSettings.getCamStreamPort());
+        setMulticastEnable(streamCtl.userSettings.getCamStreamMulticastEnable());
         setResolution(streamCtl.userSettings.getCamStreamResolution());
-        setFramerate(streamCtl.userSettings.getCamStreamFrameRate());        
-        setBitrate(streamCtl.userSettings.getCamStreamBitrate());        
-        setIFrameInterval(streamCtl.userSettings.getCamStreamIFrameInterval());        
+        setFramerate(streamCtl.userSettings.getCamStreamFrameRate());
+        setBitrate(streamCtl.userSettings.getCamStreamBitrate());
+        setIFrameInterval(streamCtl.userSettings.getCamStreamIFrameInterval());
         setCamStreamName(streamCtl.userSettings.getCamStreamName());
-        setCamStreamSnapshotName(streamCtl.userSettings.getCamStreamSnapshotName());        
+        setCamStreamSnapshotName(streamCtl.userSettings.getCamStreamSnapshotName());
         setCamStreamMulticastAddress(streamCtl.userSettings.getCamStreamMulticastAddress());
         setWcSecurityEnable(false);
     }
@@ -678,55 +690,55 @@ public class GstreamOut {
     {
         StringBuilder url = new StringBuilder(1024);
         url.append("");
-    
+
         if ( (streamCtl.mCameraDisabled == false) && (streamCtl.userSettings.getCamStreamEnable() == true) )
         {
             int port = streamCtl.userSettings.getCamStreamPort();
             String deviceIp= streamCtl.userSettings.getDeviceIp();
             String file = streamCtl.userSettings.getCamStreamName();
-            
+
             url.append("rtsp://").append(deviceIp).append(":").append(port).append("/").append(file).append(".sdp");
-        } 
+        }
         Log.i(TAG, "buildCamStreamUrl() CamStreamUrl = "+url.toString());
-    
+
         return url.toString();
     }
-    
+
     public String buildCamSnapshotUrl()
     {
         StringBuilder url = new StringBuilder(1024);
         url.append("");
-    
+
         if ( (streamCtl.mCameraDisabled == false) && (streamCtl.userSettings.getCamStreamEnable() == true) )
         {
             String deviceIp= streamCtl.userSettings.getDeviceIp();
             String file = streamCtl.userSettings.getCamStreamSnapshotName();
-            
+
             url.append("http://").append(deviceIp).append("/camera/").append(file).append(".jpg");
-        } 
+        }
         Log.i(TAG, "buildCamSnapshotUrl()  = " + url.toString());
-    
+
         return url.toString();
     }
-    
+
     public void updateCamStreamUrl()
     {
         String camUrl = buildCamStreamUrl();
-        
+
         streamCtl.userSettings.setCamStreamUrl(camUrl);
-    
+
         streamCtl.sockTask.SendDataToAllClients(MiscUtils.stringFormat("CAMERA_STREAMING_STREAM_URL=%s", camUrl));
     }
-    
+
     public void updateCamSnapshotUrl()
     {
         String snapshotUrl = buildCamSnapshotUrl();
-        
+
         streamCtl.userSettings.setCamStreamSnapshotUrl(snapshotUrl);
-    
+
         streamCtl.sockTask.SendDataToAllClients(MiscUtils.stringFormat("CAMERA_STREAMING_SNAPSHOT_URL=%s", snapshotUrl));
     }
- 
+
     protected void startPreview(Object surface, int sessionId) {
         Log.i(TAG, "Streamout: startPreview() resReleased = " + resReleased);
         if (streamCtl.mCameraDisabled == false)
@@ -742,15 +754,15 @@ public class GstreamOut {
             nativeStartPreview(surface,sessionId);
             previewActive = true;
         }
-        
+
         SystemClock.sleep(2000);
         Log.i(TAG, "Streamout: now getCamStreamEnable = " + streamCtl.userSettings.getCamStreamEnable());
         if (streamCtl.userSettings.getCamStreamEnable() == false) {
             stop();
-        }           
+        }
 
     }
-    
+
     protected void pausePreview(int sessionId) {
         //Log.i(TAG, "Streamout: pausePreview() is_preview = " + streamCtl.cam_preview.is_preview);
         if (streamCtl.mCameraDisabled == false)
@@ -765,7 +777,7 @@ public class GstreamOut {
             Log.i(TAG, "Streamout: stopPreview() camStreamActive = " + camStreamActive + ", resReleased = "+ resReleased );
             nativeStopPreview(sessionId);
             previewActive = false;
-            
+
             if (!camStreamActive && !resReleased) {
                 Log.i(TAG, "Streamout: stopPreview() release all resources");
                 nativeFinalizeRtspServer();
@@ -773,53 +785,53 @@ public class GstreamOut {
             }
         }
     }
-    
+
     protected int waitForPreviewAvailable(int sessionId,int timeout_sec) {
-        int rtn = -1;   
+        int rtn = -1;
         if (streamCtl.mCameraDisabled == false)
         {
             Log.i(TAG, "Streamout: waitForPreviewAvailable() ");
             rtn = nativeWaitForPreviewAvailable(sessionId,timeout_sec);
         }
-        
+
         return(rtn);
     }
 
     protected int waitForPreviewClosed(int sessionId,int timeout_sec) {
-        int rtn = -1;   
+        int rtn = -1;
         if (streamCtl.mCameraDisabled == false)
         {
             Log.i(TAG, "Streamout: waitForPreviewClosed() ");
             rtn = nativeWaitForPreviewClosed(sessionId,timeout_sec);
         }
-        
+
         return(rtn);
     }
 
     public void recoverTxrxService()
     {
-        streamCtl.RecoverTxrxService();         
+        streamCtl.RecoverTxrxService();
     }
 
     public void sendCameraStopFb()
     {
-        streamCtl.sockTask.SendDataToAllClients("CAMERA_STREAMING_ENABLE=false");           
+        streamCtl.sockTask.SendDataToAllClients("CAMERA_STREAMING_ENABLE=false");
     }
-        
+
 //    public void recoverWCStreamOut()
 //    {
 //		Log.i(TAG, "Wireless Conferencing recovery.");
 //		streamCtl.setWirelessConferencingStreamEnable(false);
 //		streamCtl.setWirelessConferencingStreamEnable(true);
 //    }
-    
+
 ///////////////////////////////////////////////////////////////////////////////
-    
+
     protected void onDestroy() {
         Log.i(TAG, "destructor called");
         nativeFinalizeRtspServer();
-    }    
-    
+    }
+
 ///////////////////////////////////////////////////////////////////////////////
 
     private void setMessage(final String message) {

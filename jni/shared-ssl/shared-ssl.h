@@ -27,7 +27,7 @@ typedef enum {
 
 typedef void (* DTLS_MSGSENDER)(void *,char *,int,void **);
 
-int sssl_initialize();
+int sssl_initialize(const char *config_path);
    // internally sets COMMON_SSL_SERVER_CONTEXT
 int sssl_deinitialize();
 
@@ -74,9 +74,6 @@ int sssl_initDTLSAppThCancCondVar(int streamID);
 
 // --- shared context storage management facility ---
 
-void sssl_contextStorageInitialize();
-void * sssl_contextCreate(unsigned long long sessionID);
-int sssl_contextRemove(unsigned long long sessionID);
 void * sssl_getContextWithSessionID(unsigned long long sessionID);
 void * sssl_getContextWithStreamID(int streamID);
 int sssl_setContextStreamID(unsigned long long sessionID,int streamID);
