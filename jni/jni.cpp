@@ -7298,11 +7298,13 @@ void Wfd_setup_gst_pipeline (int id, int state, struct GST_PIPELINE_CONFIG* gst_
 }
 
 //Note: it is not allowed to pass NULL for msMiceSinkProjInit
-JNIEXPORT void JNICALL Java_com_crestron_txrxservice_GstreamIn_nativeMsMiceStart(JNIEnv *env, jobject thiz)
+JNIEXPORT void JNICALL Java_com_crestron_txrxservice_GstreamIn_nativeMsMiceStart(JNIEnv *env, jobject thiz, jstring jconfigPath)
 {
+    const char* configPath = env->GetStringUTFChars(jconfigPath, 0);
     CSIO_LOG(eLogLevel_debug,"mira: {%s} - ***** calling sssl_initialize() *****",__FUNCTION__);
-    sssl_initialize();
+    sssl_initialize(configPath);
     CSIO_LOG(eLogLevel_debug, "mira: {%s} - ===== returned from sssl_initialize() =====",__FUNCTION__);
+    env->ReleaseStringUTFChars(jconfigPath, configPath);
 }
 JNIEXPORT void JNICALL Java_com_crestron_txrxservice_GstreamIn_nativeMsMiceSetAdapterAddress(JNIEnv *env, jobject thiz, jstring address)
 {
