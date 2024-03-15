@@ -17,11 +17,11 @@ import android.util.Log;
 import androidx.core.app.ActivityCompat;
 import androidx.core.content.ContextCompat;
 
-import com.crestron.txrxservice.CSIOService;
+//import com.crestron.txrxservice.CSIOService;
 import com.crestron.txrxservice.CresStreamCtrl;
 import com.crestron.txrxservice.ProductSpecific;
 
-public class RuntimePermission extends Activity 
+public class RuntimePermission extends Activity
 {
     public static String TAG = "TxRx RuntimePermActivity";
     public final static int REQUIRED_PERMISSIONS_REQUEST_CODE = 1000000;
@@ -95,8 +95,8 @@ public class RuntimePermission extends Activity
     {
         Log.i(TAG, "start CSS Service");
         startService(new Intent(this, CresStreamCtrl.class));
-        Log.i(TAG, "start CSIO Service");
-        startService(new Intent(this, CSIOService.class));
+        //Log.i(TAG, "start CSIO Service");
+        //startService(new Intent(this, CSIOService.class));
         Log.i(TAG, "startServices completed");
     }
 

@@ -60,9 +60,11 @@
             </intent-filter>
 		</service>
 
+        <!--
         <service android:name=".CSIOService" android:theme="@android:style/Theme.Translucent.NoTitleBar"
             android:process=":txrx_csio"
             android:exported="false">
-        </service>
+            </service>
+        -->
     </application>
 </manifest>

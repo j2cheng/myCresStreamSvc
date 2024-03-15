@@ -31,7 +31,7 @@ typedef enum _eWCstatus
 
 #define WCERROR_CODE_FATAL_CLOSESESSION  -1
 
-#define RTSP_CERTIFICATE_PATH  "wc"
+#define RTSP_CERTIFICATE_FOLDER_PATH  "wc"
 #define RTSP_ROOT_CERT_PEM_FILENAME   "root_cert.pem"
 #define RTSP_ROOT_CERT_KEY            "root_key.pem"
 #define RTSP_CERT_PEM_FILENAME        "server_cert.pem"

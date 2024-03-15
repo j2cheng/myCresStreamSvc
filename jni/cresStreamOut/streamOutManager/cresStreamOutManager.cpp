@@ -3,7 +3,7 @@
  * All rights reserved.
  * No part of this software may be reproduced in any form, machine
  * or natural, without the express written consent of Crestron Electronics.
- * 
+ *
  * \file        cresStreamOutManager.cpp
  *
  * \brief       Implementation of stream out
@@ -17,6 +17,7 @@
 
 ///////////////////////////////////////////////////////////////////////////////
 
+#include <cassert>
 #include <stdlib.h>
 #include <fcntl.h>
 #include <ctime>
@@ -60,7 +61,7 @@ char encoded_frame_rate[20] = {'1', '5', '/', '1', '\0'};
 #define WC_RTP_PORT_MIN 9010
 #define WC_RTP_PORT_MAX 9020
 
-#define MAX_NUMBER_OF_FRAMES 150 
+#define MAX_NUMBER_OF_FRAMES 150
 #define VIDEO_DUMP_FILE "/logs/videoencdata.h264"
 #define AUDIO_DUMP_FILE "/logs/audioencdata.mp4"
 
@@ -174,7 +175,7 @@ int get_encoded_video_rate(VideoCaps *pCaps, int *fps_num, int *fps_den)
         CSIO_LOG(eLogLevel_info, "--Streamout - encoder frame rate requested=%s", framerate);
         /* get the first token */
         token = strtok(framerate, delim);
-        if( token != NULL ) 
+        if( token != NULL )
         {
             *fps_num = atoi(token);
             token = strtok(NULL, delim);
@@ -182,7 +183,7 @@ int get_encoded_video_rate(VideoCaps *pCaps, int *fps_num, int *fps_den)
             {
                 *fps_den = atoi(token);
             }
-        } 
+        }
     } else {
         sscanf(encoded_frame_rate, "%d/%d", fps_num, fps_den);
     }
@@ -670,15 +671,15 @@ void get_audio_data_for_pull(CStreamoutManager *pMgr, guint size)
             if(appSrcClock)
             {
                 GstClockTime base_time = gst_element_get_base_time (GST_ELEMENT_CAST (pMgr->m_appsrc));
-                GstClockTime now_time  = gst_clock_get_time (appSrcClock);           
+                GstClockTime now_time  = gst_clock_get_time (appSrcClock);
                 GstClockTime run_time  = 0;
 
                 CSIO_LOG(eLogLevel_extraVerbose, "Streamout: get_audio_data_for_pull: appSrcClock[0x%p]",appSrcClock);
-        
+
                 if (now_time > base_time)
                     run_time = now_time - base_time;
                 else
-                    run_time = 0;           
+                    run_time = 0;
 
                 CSIO_LOG(eLogLevel_extraVerbose, "Streamout: get_audio_data_for_pull: base_time %" GST_TIME_FORMAT " now_time %" GST_TIME_FORMAT " run_time %" GST_TIME_FORMAT,
                         GST_TIME_ARGS (base_time), GST_TIME_ARGS (now_time), GST_TIME_ARGS (run_time));
@@ -753,7 +754,7 @@ static GstPadProbeReturn cb_dump_enc_data (
               gpointer         user_data)
 {
     GstBuffer *buffer;
-    GstMapInfo map; 
+    GstMapInfo map;
     const guint8 *data;
     GstBuffer *codec_data = NULL;
     FILE *fp;
@@ -806,13 +807,13 @@ static GstPadProbeReturn cb_dump_enc_data (
             GstCaps *caps = gst_pad_get_current_caps (pad);
             if( caps == NULL )
                 return GST_PAD_PROBE_OK;
-                
+
             s = gst_caps_get_structure (caps, 0);
             if( s == NULL )
                 return GST_PAD_PROBE_OK;
 
 
-            gst_structure_get (s, "codec_data", GST_TYPE_BUFFER, &codec_data, NULL); 
+            gst_structure_get (s, "codec_data", GST_TYPE_BUFFER, &codec_data, NULL);
 
             if (!codec_data) {
                 CSIO_LOG(eLogLevel_debug, "codec_data not present and hence video dumo is not possible");
@@ -830,7 +831,7 @@ static GstPadProbeReturn cb_dump_enc_data (
                 if( fp != NULL )
                 {
 
-                    // codec data has the required sps and pps. Store starting of the file. 
+                    // codec data has the required sps and pps. Store starting of the file.
                     fwrite(c, 1, sizeof(c), fp);
                     //write sps data
                     for(unsigned int i= 8; i < size-7; i++)
@@ -857,7 +858,7 @@ static GstPadProbeReturn cb_dump_enc_data (
 
             if (buffer == NULL)
                 return GST_PAD_PROBE_OK;
-            if (gst_buffer_map (buffer, &map, GST_MAP_READ) ) 
+            if (gst_buffer_map (buffer, &map, GST_MAP_READ) )
             {
                 int found_data = 0;
                 data = map.data;
@@ -894,7 +895,7 @@ static GstPadProbeReturn cb_dump_enc_data (
 
         if( videoDumpCount == MAX_NUMBER_OF_FRAMES)
         {
-            CSIO_LOG(eLogLevel_debug, "Streamout: finished storing of video encoded data");  
+            CSIO_LOG(eLogLevel_debug, "Streamout: finished storing of video encoded data");
             videoDumpCount++;
         }
     }
@@ -982,7 +983,7 @@ static void vstats_cb (
 }
 
 //Todo: use gst_rtsp_media_factory_set_dscp_qos after update to 1.18
-static void 
+static void
 cres_streams_set_dscp_qos(GstRTSPMedia *media, gint dscp_qos)
 {
     guint i, n_streams;
@@ -991,7 +992,7 @@ cres_streams_set_dscp_qos(GstRTSPMedia *media, gint dscp_qos)
        CSIO_LOG(eLogLevel_error,"invalid: media %p , dscp_qos: %d", media, dscp_qos);
        return;
      }
-     
+
      n_streams = gst_rtsp_media_n_streams(media);
      CSIO_LOG(eLogLevel_verbose,"media %p has %u streams", media, n_streams);
 
@@ -1001,7 +1002,7 @@ cres_streams_set_dscp_qos(GstRTSPMedia *media, gint dscp_qos)
         stream = gst_rtsp_media_get_stream(media, i);
         if (stream == NULL)
            continue;
-        
+
         gst_rtsp_stream_set_dscp_qos(stream,dscp_qos);
         CSIO_LOG(eLogLevel_verbose,"set stream %p for dscp_qos:%d", stream, dscp_qos);
      }
@@ -1172,7 +1173,7 @@ wc_media_configure (GstRTSPMediaFactory * factory, GstRTSPMedia * media,
     CSIO_LOG(eLogLevel_debug, "Streamout: set media reusable to true media[%p]",media);
     gst_rtsp_media_set_reusable (media, TRUE);
 
-    if (pMgr->m_streamoutMode == STREAMOUT_MODE_WIRELESSCONFERENCING) 
+    if (pMgr->m_streamoutMode == STREAMOUT_MODE_WIRELESSCONFERENCING)
     {
         gint dscp_qos = get_dscp_qos();
         if(dscp_qos!= -1)
@@ -1507,6 +1508,7 @@ void* CStreamoutManager::ThreadEntry()
 
     if (m_streamoutMode == STREAMOUT_MODE_WIRELESSCONFERENCING)
     {
+        assert(false);
     	initWcCertificates();
     	wc_InitRtn = initWcAudioVideo();
     	if (!m_videoStream && !m_audioStream)
@@ -1943,7 +1945,7 @@ void* CStreamoutManager::ThreadEntry()
         }
         csio_jni_onServerStart();
         sent_csio_jni_onServerStart = true;
-    
+
 #ifdef AM3X00
         // Reset threadname back to original - for some reason jni calls change the name of the thread
         pthread_setname_np(pthread_self(), threadname);
@@ -1978,7 +1980,7 @@ exitThread:
 
         for (i = 0; i < n_streams; i++)
         {
-            GstRTSPStream *stream = gst_rtsp_media_get_stream (m_pMedia, i);            
+            GstRTSPStream *stream = gst_rtsp_media_get_stream (m_pMedia, i);
 
             if (stream == NULL)  continue;
 
@@ -2141,6 +2143,8 @@ void CStreamoutManager::initWcCertificates()
 	}
     if (m_streamoutMode == STREAMOUT_MODE_WIRELESSCONFERENCING)
     {
+        assert(false);
+        // TODO: provide relative path to APK config
         if (m_tls_on) {
             std::string folder = std::string(RTSP_CERTIFICATE_FOLDER_PATH) + std::string("/");
             std::string filename = folder + std::string(RTSP_ROOT_CERT_PEM_FILENAME);
@@ -2215,7 +2219,7 @@ eWCstatus CStreamoutManager::initWcAudioVideo()
             	{
                     //colorimetry=(string)1:4:0:0 - is required to make the video convert to use I420 to NV12 faster implementation
                     //this could be bug with Video convert as the gstreamer implementation traditionally does not support faster I420 to NV12 format.
-                    snprintf(m_videoconvert, sizeof(m_videoconvert), "queue name=jpegQ ! jpegdec ! queue name=vidConvQ ! videoconvert ! video/x-raw,format=NV12, colorimetry=(string)1:4:0:0 ! ");                 
+                    snprintf(m_videoconvert, sizeof(m_videoconvert), "queue name=jpegQ ! jpegdec ! queue name=vidConvQ ! videoconvert ! video/x-raw,format=NV12, colorimetry=(string)1:4:0:0 ! ");
             	}
             	else if (is_supported(m_video_caps.format))
         		{
