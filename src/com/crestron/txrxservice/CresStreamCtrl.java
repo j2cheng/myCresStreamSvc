@@ -864,18 +864,10 @@ public class CresStreamCtrl extends Service {
 	            	}
 	                Log.i(TAG, "device using "+((CresCanvas.useCanvasSurfaces)?"canvas":"internal")+" surfaceviews");
 	            	f = new File(homeDir, "useSimulatedAVF");
-	            	if (f.exists())
-	            	{
-	                	CresCanvas.useSimulatedAVF = MiscUtils.readStringFromDisk(f).equals("1");
-	            	}
-                    CresCanvas.useSimulatedAVF = true;
+	            	if (f.exists()) CresCanvas.useSimulatedAVF = MiscUtils.readStringFromDisk(f).equals("1");
 	                Log.i(TAG, "device using "+((CresCanvas.useSimulatedAVF)?"simulated":"normal")+" AVF");
 	            	f = new File(homeDir, "useFauxPPUX");
-	            	if (f.exists())
-	            	{
-	                	useFauxPPUX = MiscUtils.readStringFromDisk(f).equals("1");
-	            	}
-                    useFauxPPUX = true;
+	            	if (f.exists()) useFauxPPUX = MiscUtils.readStringFromDisk(f).equals("1");
 	                Log.i(TAG, "device using "+((useFauxPPUX)?"Faux PPUX":"Real PPUX"));
 	            }
 	            f = new File(homeDir, "forceSurfaceRelease");
