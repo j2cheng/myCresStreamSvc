@@ -1508,7 +1508,6 @@ void* CStreamoutManager::ThreadEntry()
 
     if (m_streamoutMode == STREAMOUT_MODE_WIRELESSCONFERENCING)
     {
-        assert(false);
     	initWcCertificates();
     	wc_InitRtn = initWcAudioVideo();
     	if (!m_videoStream && !m_audioStream)
