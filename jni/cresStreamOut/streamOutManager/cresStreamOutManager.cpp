@@ -2142,7 +2142,6 @@ void CStreamoutManager::initWcCertificates()
 	}
     if (m_streamoutMode == STREAMOUT_MODE_WIRELESSCONFERENCING)
     {
-        assert(false);
         // TODO: provide relative path to APK config
         if (m_tls_on) {
             std::string folder = std::string(RTSP_CERTIFICATE_FOLDER_PATH) + std::string("/");
