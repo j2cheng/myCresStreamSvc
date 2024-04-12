@@ -242,7 +242,7 @@ void Streamout_SetQuality(char *quality)
     if(quality)
     {
         CSIO_LOG(StreamOutProjDebugLevel, "Streamout: set Quality to [%s].\n", quality);
-        
+
         StreamoutProjectSendEvent(0, STREAMOUT_EVENT_JNI_CMD_QUALITY,strlen(quality), quality);
     }
 
@@ -375,9 +375,9 @@ CStreamoutManager * StreamoutProjectGetManagerObj()
                         {
                             pManager = StreamOutProjList[i]->m_StreamoutTaskObjList[j];
                             CSIO_LOG(StreamOutProjDebugLevel, "Streamout: found pManager :i[%d],j[%d].[0x%x]\n",i,j,
-                                     pManager);  
- 
-                            break;//only one for now                         
+                                     pManager);
+
+                            break;//only one for now
                         }
                     }
                 }
@@ -727,7 +727,6 @@ void CStreamoutProject::DumpClassPara(int level)
     CSIO_LOG(eLogLevel_info, "--Streamout: Streamout project m_projectID:       %d.\n",m_projectID);
     CSIO_LOG(eLogLevel_info, "--Streamout: Streamout project threadObjLoopCnt:  %d.\n",m_threadObjLoopCnt);
 
-    CSIO_LOG(eLogLevel_info, "--Streamout: ThredId 0x%x", (unsigned long int)getThredId());
     CSIO_LOG(eLogLevel_info, "--Streamout: m_debugLevel %d", m_debugLevel);
 
     if(m_projEventQ)
@@ -1132,7 +1131,7 @@ void* CStreamoutProject::ThreadEntry()
 
                     CSIO_LOG(m_debugLevel, "Streamout: STREAMOUT_EVENT_JNI_CMD_HDMI_IN_RES_Y done.");
                     break;
-                }                
+                }
                 case STREAMOUT_EVENT_JNI_CMD_ENABLE_SECURITY:
                 {
                     if (m_streamoutMode == STREAMOUT_MODE_CAMERA) { // short circuit - not applicable for WirelessConferencing case
@@ -1194,7 +1193,7 @@ void* CStreamoutProject::ThreadEntry()
 //                    	break;
 //                    }
                 	int id = evntQ.streamout_obj_id;
-                	
+
                 	if( evntQ.buf_size && evntQ.buffPtr)
                 	{
 						int enable = *((int *)evntQ.buffPtr);
@@ -1326,14 +1325,14 @@ void* CStreamoutProject::ThreadEntry()
 								}
 								else
 								{
-									CSIO_LOG(eLogLevel_error, "Streamout: START_PREVIEW doesn't exist [0x%x]", 
+									CSIO_LOG(eLogLevel_error, "Streamout: START_PREVIEW doesn't exist [0x%x]",
 											m_StreamoutTaskObjList[id]);
-								
+
 									m_StreamoutTaskObjList[id] = new CStreamoutManager(m_streamoutMode, id);
-								
+
 									m_StreamoutTaskObjList[id]->setParent(this);
 									m_StreamoutTaskObjList[id]->setServManagerDebugLevel(m_debugLevel);
-								
+
 									//init default variables
 									m_StreamoutTaskObjList[id]->setPort(m_rtsp_port);
 									m_StreamoutTaskObjList[id]->setResX(m_res_x);
@@ -1589,7 +1588,7 @@ void CStreamoutProject::sendEvent(EventQueueStruct* pEvntQ)
 				case STREAMOUT_EVENT_JNI_CMD_AUDIO_CAPTURE_DEVICE:
                 case STREAMOUT_EVENT_JNI_CMD_HDMI_IN_RES_X:
                 case STREAMOUT_EVENT_JNI_CMD_HDMI_IN_RES_Y:
-                
+
                 {
                     evntQ.buffPtr = new char [dataSize + 1];//data might be binary
                     if(evntQ.buffPtr)

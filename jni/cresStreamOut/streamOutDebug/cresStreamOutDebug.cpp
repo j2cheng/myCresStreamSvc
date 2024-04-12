@@ -3,7 +3,7 @@
  * All rights reserved.
  * No part of this software may be reproduced in any form, machine
  * or natural, without the express written consent of Crestron Electronics.
- * 
+ *
  * \file        cresStreamOutDebug.cpp
  *
  * \brief       Implementation of stream out debug
@@ -439,14 +439,14 @@ void jni_rtsp_server_debug(char *cmd_cstring)
                                         CSIO_LOG(eLogLevel_info, "Invalid Format, need property name\r\n");
                                     }
                                     else
-                                    {                                
+                                    {
                                         bool  tmp = 0;
 
                                         g_object_get(G_OBJECT(ele), CmdPtr, &tmp, NULL);
-                                        CSIO_LOG(eLogLevel_info, "properties[%s] setting[%d].\r\n", CmdPtr,tmp);                                        
-                                    }      
-                                                                        
-                                    
+                                        CSIO_LOG(eLogLevel_info, "properties[%s] setting[%d].\r\n", CmdPtr,tmp);
+                                    }
+
+
                                     gst_object_unref(ele);
                                 } //else
 
@@ -491,13 +491,13 @@ void jni_rtsp_server_debug(char *cmd_cstring)
                                         CSIO_LOG(eLogLevel_info, "Invalid Format, need property name\r\n");
                                     }
                                     else
-                                    {                                
+                                    {
                                         int  tmp = 0;
 
                                         g_object_get(G_OBJECT(ele), CmdPtr, &tmp, NULL);
-                                        CSIO_LOG(eLogLevel_info, "properties[%s] setting[%d].\r\n", CmdPtr,tmp);                                        
-                                    }                           
-                                    
+                                        CSIO_LOG(eLogLevel_info, "properties[%s] setting[%d].\r\n", CmdPtr,tmp);
+                                    }
+
                                     gst_object_unref(ele);
                                 } //else
 
@@ -542,14 +542,14 @@ void jni_rtsp_server_debug(char *cmd_cstring)
                                         CSIO_LOG(eLogLevel_info, "Invalid Format, need property name\r\n");
                                     }
                                     else
-                                    {                                
+                                    {
                                         gint64  tmp = 0;
 
                                         g_object_get(G_OBJECT(ele), CmdPtr, &tmp, NULL);
-                                        CSIO_LOG(eLogLevel_info, "properties[%s] setting[%lld].\r\n", CmdPtr,tmp);                                        
-                                    }      
-                                                                        
-                                    
+                                        CSIO_LOG(eLogLevel_info, "properties[%s] setting[%lld].\r\n", CmdPtr,tmp);
+                                    }
+
+
                                     gst_object_unref(ele);
                                 } //else
 
@@ -572,7 +572,7 @@ void jni_rtsp_server_debug(char *cmd_cstring)
 
                             GstElement *bin = gst_rtsp_media_get_element(pMedia);
                             gchar *nBin = gst_element_get_name(bin);
-                            CSIO_LOG(eLogLevel_info, "rtsp_server: bin name[%s] of pMedia[0x%x] for %s", nBin, pMedia, CmdPtr);                                               
+                            CSIO_LOG(eLogLevel_info, "rtsp_server: bin name[%s] of pMedia[0x%x] for %s", nBin, pMedia, CmdPtr);
 
                             CSIO_LOG(eLogLevel_info, "rtsp_server bin[0x%x],isBin[%d]", bin,GST_IS_BIN (bin));
 
@@ -591,7 +591,7 @@ void jni_rtsp_server_debug(char *cmd_cstring)
                             g_value_unset(&item);
                             gst_iterator_free(it);
 
-                            
+
                             //Note: create graph of the media bin, and use this command(in VM) to create the image:
                             //      dot -Tsvg -o pipelineGraph.svg pipelineGraph.dot
                             {
@@ -600,7 +600,7 @@ void jni_rtsp_server_debug(char *cmd_cstring)
                                     char filePath[1024];
                                     GstDebugGraphDetails graph_option = GST_DEBUG_GRAPH_SHOW_ALL;
                                     bool verbose = true;
-                                    CSIO_LOG(eLogLevel_info, "command graph[pipelineGraph] verbose[%d]", "pipelineGraph", verbose);
+                                    CSIO_LOG(eLogLevel_info, "command graph[pipelineGraph] verbose[%d]", verbose);
 
                                     snprintf(filePath, 1024, "/dev/shm/crestron/CresStreamSvc/pipelineGraph.dot");
 

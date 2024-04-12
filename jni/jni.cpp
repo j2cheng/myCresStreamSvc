@@ -5456,9 +5456,10 @@ void *csio_SendInitiatorAddressFb( void * arg )
         return NULL;
     }
 
-	char *initiatorAddress_cstr = data->sourceIP_addr;//csio_GetInitiatorFbAddress(streamId);
+	const char *initiatorAddress_cstr = data->sourceIP_addr;//csio_GetInitiatorFbAddress(streamId);
+    assert(initiatorAddress_cstr);
 
-	CSIO_LOG(eLogLevel_debug,  "Sent INITIATOR FB %s", initiatorAddress_cstr );
+	CSIO_LOG(eLogLevel_debug,  "Sent INITIATOR FB %s", initiatorAddress_cstr ? initiatorAddress_cstr : "NULL");
 
 	initiatorAddress_jstr = env->NewStringUTF(initiatorAddress_cstr);
 
@@ -5631,7 +5632,7 @@ void csio_jni_SendWCServerURL( void * arg )
 
 	char *serverUrl_cstr = (char *) arg;
 
-	CSIO_LOG(eLogLevel_verbose,  "%s: Sending server URL %s", __FUNCTION__, serverUrl_cstr );
+	CSIO_LOG(eLogLevel_info,  "%s: Sending server URL %s", __FUNCTION__, serverUrl_cstr );
 
 	jmethodID setWcServerUrl = env->GetMethodID((jclass)gStreamOut_javaClass_id, "setWcServerUrl", "(Ljava/lang/String;)V");
 	if (setWcServerUrl == NULL) {
@@ -6480,10 +6481,11 @@ JNIEXPORT int JNICALL Java_com_crestron_txrxservice_GstreamOut_nativeGetVideoFor
     // get the video format from the device file
     VideoCaps videoCaps;
     char display_name[256];
+    memset(display_name, 0, sizeof(display_name));
     const char *min_capture_rate="15/1";
     const char *codec = "H264";
-    rtn = get_video_caps((char *)device_cstring, &videoCaps, display_name, sizeof(display_name), quality,
-            codec, min_capture_rate, (char *)phdmi_in_res_x, (char *)phdmi_in_res_y);
+    rtn = get_video_caps(device_cstring, &videoCaps, display_name, sizeof(display_name), quality,
+            codec, min_capture_rate, phdmi_in_res_x, phdmi_in_res_y);
     CSIO_LOG(eLogLevel_info, "%s: name=%s format=%s w=%d h=%d frame_rate=%d/%d", device_cstring, display_name,
             videoCaps.format, videoCaps.w, videoCaps.h, videoCaps.frame_rate_num, videoCaps.frame_rate_den);
 

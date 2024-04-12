@@ -1,7 +1,7 @@
-#ifndef _CRES_PROJECT_BASE_CLASS_H_
-#define _CRES_PROJECT_BASE_CLASS_H_
+#pragma once
 
 #include <pthread.h>
+#include <string>
 
 #define THREAD_LOOP_TO       50//50ms
 #define MAX_DEBUG_ARRAY_SIZE 100
@@ -18,66 +18,35 @@ class CresProjBaseClass
 {
 public:
     CresProjBaseClass() ;
-    virtual ~CresProjBaseClass() {/* empty */}
-
+    virtual ~CresProjBaseClass() = default;
     /** Returns true if created, false otherwise */
-    int CreateNewThread(const char* name, pthread_attr_t* attr)
-    {
-        int ret = pthread_create(&_thread, attr, ThreadEntryFunc, this);
-
-        if(ret == 0)//success
-        {
-            if(name)
-            {
-#ifdef AM3X00
-                pthread_setname_np(_thread,name);
-#endif
-            }
-
-            m_ThreadIsRunning = 1;
-        }
-
-        return ret;
-    }
-
+    int CreateNewThread(const char* name, pthread_attr_t* attr);
     /* Will not return until thread has exited. */
-    void WaitForThreadToExit()
-    {
-        (void) pthread_join(_thread, NULL);
-    }
-
-
-
+    void WaitForThreadToExit();
     void setDebugLevel(int level) { m_debugLevel = level; }
     int  getDebugLevel() { return m_debugLevel; }
 
     void exitThread() { m_forceThreadExit = 1; }
-    pthread_t getThredId() { return _thread; }
-
     virtual void DumpClassPara( int ) = 0;
 
     char  m_forceThreadExit;
-
     int  m_ThreadIsRunning;
-
+private:
     int  eventPushArray[MAX_DEBUG_ARRAY_SIZE];
     int  eventPushIndex;
-    void logEventPush(int e);
-
     int  eventPopArray[MAX_DEBUG_ARRAY_SIZE];
     int  eventPopIndex;
-    void logEventPop(int e);
 protected:
+    void logEventPop(int e);
+    void logEventPush(int e);
     /** Must implement in subclass. */
     virtual void* ThreadEntry() = 0;
 
     int   m_debugLevel;
     int   m_threadObjLoopCnt;
     int   m_threadObjID;
-
+    std::string name_;
 private:
-    static void * ThreadEntryFunc(void * This) {((CresProjBaseClass *)This)->ThreadEntry(); return NULL;}
-
-    pthread_t _thread;
+    static void *ThreadEntryFunc(void *);
+    pthread_t thread_;
 };
-#endif /* _CRES_PROJECT_BASE_CLASS_H_ */

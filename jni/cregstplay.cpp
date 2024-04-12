@@ -235,6 +235,25 @@ void set_gst_debug_level(void)
         setenv("GST_DEBUG_DUMP_DOT_DIR", "/tmp/gstreamer", 1);
 	}
 #if 0
+    else setenv(
+        "GST_DEBUG",
+        "bin:4,"
+        "rtp*:5,"
+        "rtpptdemux:4,"
+        "rtpjitterbuffer:4,"
+        "GST_BUS:4,"
+        "GST_PAD:4,"
+        "GST_EVENT:4,"
+        "GST_SCHEDULING:4,"
+        "GST_REFCOUNTING:5,"
+        "videodecoder:4,"
+        "GST_CAPS:4,"
+        "amc*:4,"
+        "default:4,"
+        "v4l2:4",
+        1);
+#endif
+#if 0
 	else
 	{
         gchar temp[256];

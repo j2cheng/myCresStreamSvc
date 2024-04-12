@@ -124,7 +124,7 @@ static int isFormatRank(const char *fourcc, const char *codec)
 }
 
 static void
-get_video_caps_from_caps(GstCaps *caps, double min_frame_rate, VideoCaps *video_caps, int quality, const char *codec)
+get_video_caps_from_caps(const GstCaps *caps, double min_frame_rate, VideoCaps *video_caps, int quality, const char *codec)
 {
     int maxw = 0, maxh = 0;
     int max_frmrate_num = 0;
@@ -244,8 +244,8 @@ get_video_caps_from_caps(GstCaps *caps, double min_frame_rate, VideoCaps *video_
                 }
                 if( maxw==0 )
                 {
-                    /* In case where camera supports only one resolution (ex, 1920x1080) then for medium and low quality 
-                    settings, resolution will never get set. WC session does not start. 
+                    /* In case where camera supports only one resolution (ex, 1920x1080) then for medium and low quality
+                    settings, resolution will never get set. WC session does not start.
                     So we will try to go to resolution which is nearest */
                     if( (width*height) <= (widthNearestVal*heightNearestVal) )
                     {
@@ -276,19 +276,22 @@ get_video_caps_from_caps(GstCaps *caps, double min_frame_rate, VideoCaps *video_
         video_caps->h = heightNearestVal;
         video_caps->frame_rate_num = max_frmrate_num;
         video_caps->frame_rate_den = max_frmrate_den;
-    }    
+    }
 
 }
 
-int get_video_caps(char *device_name, VideoCaps *video_caps, char *display_name, int display_name_len, int quality, const char *codec,
-        const char *capture_rate, char *m_hdmi_in_res_x, char *m_hdmi_in_res_y)
+int get_video_caps(const char *device_name, VideoCaps *video_caps, char *display_name, int display_name_len, int quality, const char *codec,
+        const char *capture_rate, const char *m_hdmi_in_res_x, const char *m_hdmi_in_res_y)
 {
 	int rv= -1;
 
+    memset(video_caps->format, 0, sizeof(video_caps->format));
     video_caps->w = 0;
     video_caps->h = 0;
     video_caps->frame_rate_num = 1;
     video_caps->frame_rate_den = 1;
+
+    CSIO_LOG(eLogLevel_info, "%s: %s, %s, %s %s, %s", __func__, device_name, codec, capture_rate, m_hdmi_in_res_x, m_hdmi_in_res_y);
 
     if (device_name == NULL)
     {
@@ -302,7 +305,7 @@ int get_video_caps(char *device_name, VideoCaps *video_caps, char *display_name,
         int res_x = atoi(m_hdmi_in_res_x);
         int res_y = atoi(m_hdmi_in_res_y);
         CSIO_LOG(eLogLevel_info, "%s: HDMI input selected as video device\n", __FUNCTION__);
-        strcpy(display_name, "HDMI-camera");
+        strncpy(display_name, "HDMI-camera", display_name_len);
         strncpy(video_caps->format, "NV12", sizeof(video_caps->format));
         switch (quality)
         {
@@ -333,12 +336,12 @@ int get_video_caps(char *device_name, VideoCaps *video_caps, char *display_name,
         }
         video_caps->frame_rate_num = read_int_from_file("/dev/shm/crestron/CresStreamSvc/wc/hdmicapturerate", 15);
         video_caps->frame_rate_den = 1;
-       
-        // AM3XX-10328: Below code changes is done for /dev/video0 not to affect other /dev/video*  
-        sprintf(systemCmd, "v4l2-ctl -d %s --set-crop=top=0,left=0,width=%s,height=%s",device_name, m_hdmi_in_res_x, m_hdmi_in_res_y); 
+
+        // AM3XX-10328: Below code changes is done for /dev/video0 not to affect other /dev/video*
+        sprintf(systemCmd, "v4l2-ctl -d %s --set-crop=top=0,left=0,width=%s,height=%s",device_name, m_hdmi_in_res_x, m_hdmi_in_res_y);
         system(systemCmd);
         CSIO_LOG(eLogLevel_info, "Executed command %s", systemCmd);
-        
+
         return 0;
     }
 
@@ -394,6 +397,7 @@ int get_video_caps(char *device_name, VideoCaps *video_caps, char *display_name,
             }
             gst_structure_free (props);
          }
+        else CSIO_LOG(eLogLevel_info, "%s: skipped class %s", __func__, devclass);
 
         g_free(devclass);
     }
@@ -420,8 +424,8 @@ int get_video_caps_string(VideoCaps *video_caps, char *caps, int maxlen)
 		return -1;
 }
 #else    // HAS_V4L2
-int get_video_caps(char *device_name, VideoCaps *video_caps, char *display_name, int display_name_len, int quality, const char *codec,
-        const char *capture_rate, char *m_hdmi_in_res_x, char *m_hdmi_in_res_y)
+int get_video_caps(const char *device_name, VideoCaps *video_caps, char *display_name, int display_name_len, int quality, const char *codec,
+        const char *capture_rate, const char *m_hdmi_in_res_x, const char *m_hdmi_in_res_y)
 {
     video_caps->w = 0;
     video_caps->h = 0;

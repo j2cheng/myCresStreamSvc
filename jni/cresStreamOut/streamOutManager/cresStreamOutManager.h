@@ -60,10 +60,10 @@ class CStreamoutManager : public CresProjBaseClass
 public:
 
     CStreamoutManager(eStreamoutMode streamoutMode,int id);
-    ~CStreamoutManager();
+    virtual ~CStreamoutManager();
 
-    void   DumpClassPara(int);
-    void*  ThreadEntry();
+    void   DumpClassPara(int) override final;
+    void*  ThreadEntry() override final;
     void setParent(CStreamoutProject* p) {m_parent = p;}
     int  saveRawFrame(GstPad *pad, GstPadProbeInfo *buffer, gpointer user_data);
 

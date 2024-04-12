@@ -238,33 +238,33 @@ static GstRTSPResult
 dump_rtsp_message (GstRTSPMessage * msg)
 {
   g_return_val_if_fail (msg != NULL, GST_RTSP_EINVAL);
-  int logLevel = eLogLevel_verbose;
+  int logLevel = eLogLevel_info;
 
   switch (msg->type) {
     case GST_RTSP_MESSAGE_REQUEST:
-      CSIO_LOG(logLevel,"RTSP request message %p\n", msg);
-      CSIO_LOG(logLevel," request line:\n");
-      CSIO_LOG(logLevel,"   method: '%s'\n",
+      CSIO_LOG(logLevel,"RTSP request message %p", msg);
+      CSIO_LOG(logLevel," request line:");
+      CSIO_LOG(logLevel,"   method: '%s'",
           gst_rtsp_method_as_text (msg->type_data.request.method));
-      CSIO_LOG(logLevel,"   uri:    '%s'\n", msg->type_data.request.uri);
-      CSIO_LOG(logLevel,"   version: '%s'\n",
+      CSIO_LOG(logLevel,"   uri:    '%s'", msg->type_data.request.uri);
+      CSIO_LOG(logLevel,"   version: '%s'",
           gst_rtsp_version_as_text (msg->type_data.request.version));
       break;
     case GST_RTSP_MESSAGE_RESPONSE:
-      CSIO_LOG(logLevel,"RTSP response message %p\n", msg);
-      CSIO_LOG(logLevel," status line:\n");
-      CSIO_LOG(logLevel,"   code:   '%d'\n", msg->type_data.response.code);
-      CSIO_LOG(logLevel,"   reason: '%s'\n", msg->type_data.response.reason);
-      CSIO_LOG(logLevel,"   version: '%s'\n",
+      CSIO_LOG(logLevel,"RTSP response message %p", msg);
+      CSIO_LOG(logLevel," status line:");
+      CSIO_LOG(logLevel,"   code:   '%d'", msg->type_data.response.code);
+      CSIO_LOG(logLevel,"   reason: '%s'", msg->type_data.response.reason);
+      CSIO_LOG(logLevel,"   version: '%s'",
           gst_rtsp_version_as_text (msg->type_data.response.version));
       break;
     case GST_RTSP_MESSAGE_DATA:
-      CSIO_LOG(logLevel,"RTSP data message %p\n", msg);
-      CSIO_LOG(logLevel," channel: '%d'\n", msg->type_data.data.channel);
-      CSIO_LOG(logLevel," size:    '%d'\n", msg->body_size);
+      CSIO_LOG(logLevel,"RTSP data message %p", msg);
+      CSIO_LOG(logLevel," channel: '%d'", msg->type_data.data.channel);
+      CSIO_LOG(logLevel," size:    '%d'", msg->body_size);
       break;
     default:
-      CSIO_LOG(eLogLevel_warning,"unsupported message type %d\n", msg->type);
+      CSIO_LOG(eLogLevel_warning,"unsupported message type %d", msg->type);
       return GST_RTSP_EINVAL;
   }
   return GST_RTSP_OK;
@@ -289,7 +289,7 @@ client_closed (GstRTSPClient * client, void *user_data)
     }
 //    if (PushModel && pMgr->m_clientList.size() == 0)
 //        pMgr->m_bNeedData = false;
-    CSIO_LOG(eLogLevel_info,"********** RTSP Client %s closed (size=%d) ****************\n", clientIpAddress, pMgr->m_clientList.size());
+    CSIO_LOG(eLogLevel_info,"********** RTSP Client %s closed (size=%d) ****************", clientIpAddress, pMgr->m_clientList.size());
 }
 
 #if 0
@@ -297,7 +297,7 @@ static void
 client_rtsp_session(GstRTSPClient * client, GstRTSPContext * ctx, gpointer user_data)
 {
     GstRTSPMessage * request = ctx->request;
-    CSIO_LOG(eLogLevel_info,"client_rtsp_session RTSP Message: %d\n", gst_rtsp_message_get_type (request));
+    CSIO_LOG(eLogLevel_info,"client_rtsp_session RTSP Message: %d", gst_rtsp_message_get_type (request));
 }
 #endif
 
@@ -305,7 +305,7 @@ static void  describe_request_cb (GstRTSPClient * self,
                            GstRTSPContext * ctx,
                            gpointer user_data)
 {
-    CSIO_LOG(eLogLevel_info,"RTSP Message: 'DESCRIBE' request\n");
+    CSIO_LOG(eLogLevel_info,"RTSP Message: 'DESCRIBE' request");
     dump_rtsp_message (ctx->request);
 }
 
@@ -313,7 +313,7 @@ static void  play_request_cb (GstRTSPClient * self,
                            GstRTSPContext * ctx,
                            gpointer user_data)
 {
-    CSIO_LOG(eLogLevel_info,"RTSP Message: 'PLAY' request\n");
+    CSIO_LOG(eLogLevel_info,"RTSP Message: 'PLAY' request");
     dump_rtsp_message (ctx->request);
 }
 
@@ -321,7 +321,7 @@ static void  setup_request_cb (GstRTSPClient * self,
                            GstRTSPContext * ctx,
                            gpointer user_data)
 {
-    CSIO_LOG(eLogLevel_info,"RTSP Message: 'SETUP' request\n");
+    CSIO_LOG(eLogLevel_info,"RTSP Message: 'SETUP' request");
     dump_rtsp_message (ctx->request);
 }
 
@@ -329,7 +329,7 @@ static void options_request_cb(GstRTSPClient * self,
                           GstRTSPContext * ctx,
                           gpointer user_data)
 {
-    CSIO_LOG(eLogLevel_info,"RTSP Message: 'OPTIONS' request\n");
+    CSIO_LOG(eLogLevel_info,"RTSP Message: 'OPTIONS' request");
     dump_rtsp_message (ctx->request);
 }
 
@@ -349,7 +349,7 @@ client_connected (GstRTSPServer * server, GstRTSPClient * client, void *user_dat
     g_signal_connect(client, "setup-request", (GCallback) setup_request_cb, pMgr);
 
     pMgr->m_clientList.push_back(e);
-    CSIO_LOG(eLogLevel_info,"********** RTSP Client connected (size=%d  ip=%s e=0x%p) **************\n", pMgr->m_clientList.size(),
+    CSIO_LOG(eLogLevel_info,"********** RTSP Client connected (size=%d  ip=%s e=0x%p) **************", pMgr->m_clientList.size(),
             e->client_ip_address, e);
 }
 
@@ -379,8 +379,11 @@ accept_certificate (GstRTSPAuth *auth,
                     GTlsCertificate *peer_cert,
                     GTlsCertificateFlags errors,
                     gpointer user_data) {
-    CSIO_LOG(eLogLevel_info, "%s(): auth=%p conn=%p peer_cert=%p errors=%x user_data=%p",
-            __FUNCTION__, auth, conn, peer_cert, errors, user_data);
+    assert(auth);
+    assert(conn);
+    assert(peer_cert);
+    assert(errors);
+    CSIO_LOG(eLogLevel_info, "%s: auth=%p conn=%p peer_cert=%p errors=%x user_data=%p", __func__, auth, conn, peer_cert, errors, user_data);
 #ifdef SHOW_PEER_CERTIFICATE
     gchar *cert_pem = NULL;
     g_object_get(peer_cert, "certificate-pem", &cert_pem, NULL);
@@ -404,21 +407,21 @@ accept_certificate (GstRTSPAuth *auth,
     if (database) {
         GSocketConnectable *peer_identity;
         GTlsCertificateFlags validation_flags;
-        CSIO_LOG(eLogLevel_debug, "TLS peer certificate not accepted, checking user database...\n");
+        CSIO_LOG(eLogLevel_debug, "TLS peer certificate not accepted, checking user database...");
         peer_identity = NULL;
         errors =
                 g_tls_database_verify_chain (database, peer_cert,
                                              G_TLS_DATABASE_PURPOSE_AUTHENTICATE_CLIENT, peer_identity,
                                              g_tls_connection_get_interaction (conn), G_TLS_DATABASE_VERIFY_NONE,
                                              NULL, &error);
-        CSIO_LOG(eLogLevel_info, "*******accept-certificate******* errors value %d\n",errors);
+        CSIO_LOG(eLogLevel_info, "*******accept-certificate******* errors value %x", errors);
 
         // Alternate verification
         if (errors == 0) {
             GTlsCertificateFlags flags = g_tls_certificate_verify(peer_cert, peer_identity, ca_cert);
             if (flags != 0)
             {
-                CSIO_LOG(eLogLevel_info, "certificates did not verify susccessfully  flags=0x%x\n", flags);
+                CSIO_LOG(eLogLevel_info, "certificates did not verify susccessfully  flags=0x%x", flags);
                 errors = flags;
             }
         }
@@ -585,10 +588,13 @@ media_configure (GstRTSPMediaFactory * factory, GstRTSPMedia * media,
 {
 	CStreamoutManager *pMgr = (CStreamoutManager *) user_data;
 	GstElement *element;
-	GstElement *ele;
 	/* get the element used for providing the streams of the media */
 	element = gst_rtsp_media_get_element (media);
 	gchar * n = gst_element_get_name(element);
+
+    assert(element);
+    assert(n);
+
 	CSIO_LOG(eLogLevel_debug, "Streamout: media_configure element name[%s] of media[0x%p]",n,media);
 
   //set up video source
@@ -597,7 +603,7 @@ media_configure (GstRTSPMediaFactory * factory, GstRTSPMedia * media,
 		int height = atoi(pMgr->m_res_y);
 		int framerate = atoi(pMgr->m_frame_rate);
 
-		ele = gst_bin_get_by_name_recurse_up (GST_BIN (element), "cresappsrc");
+        GstElement *ele = gst_bin_get_by_name_recurse_up (GST_BIN (element), "cresappsrc");
 		if(ele)
 		{
 			CSIO_LOG(eLogLevel_verbose, "Streamout: get_by_name cresappsrc[%p]",ele);
@@ -640,9 +646,7 @@ media_configure (GstRTSPMediaFactory * factory, GstRTSPMedia * media,
 	pMgr->m_pMedia = media;
 
 	((CresRTSPMedia *)media)->m_loop = pMgr->m_loop;
-
-    if (pMgr->m_streamoutMode == STREAMOUT_MODE_CAMERA)
-        pMgr->m_bPushRawFrames = true;
+    if(pMgr->m_streamoutMode == STREAMOUT_MODE_CAMERA) pMgr->m_bPushRawFrames = true;
 
 	gst_object_unref (element);
 	g_free(n);
@@ -1015,11 +1019,9 @@ wc_media_configure (GstRTSPMediaFactory * factory, GstRTSPMedia * media,
                  gpointer user_data)
 {
     CStreamoutManager *pMgr = (CStreamoutManager *) user_data;
-    GstElement *element;
-    GstElement *ele;
     guint leakyVal;
     /* get the element used for providing the streams of the media */
-    element = gst_rtsp_media_get_element (media);
+    GstElement *element = gst_rtsp_media_get_element (media);
     gchar * n = gst_element_get_name(element);
     CSIO_LOG(eLogLevel_debug, "Streamout: wc_media_configure element name[%s] of media[0x%p]",n,media);
 
@@ -1037,7 +1039,7 @@ wc_media_configure (GstRTSPMediaFactory * factory, GstRTSPMedia * media,
             }
         }
 
-        ele = gst_bin_get_by_name_recurse_up (GST_BIN (element), "wc_appsrc");
+        GstElement *ele = gst_bin_get_by_name_recurse_up (GST_BIN (element), "wc_appsrc");
         if(ele)
         {
             CSIO_LOG(eLogLevel_verbose, "Streamout: get_by_name wc_appsrc[%p]",ele);
@@ -1071,7 +1073,7 @@ wc_media_configure (GstRTSPMediaFactory * factory, GstRTSPMedia * media,
 
     if (pMgr->m_videoStream)
     {
-        ele = gst_bin_get_by_name_recurse_up(GST_BIN (element), "v4l2src");
+        GstElement *ele = gst_bin_get_by_name_recurse_up(GST_BIN (element), "v4l2src");
         if (ele)
         {
             CSIO_LOG(eLogLevel_info, "Streamout: v4l2src is-live: %d", gst_base_src_is_live((GstBaseSrc *) ele));
@@ -1143,7 +1145,7 @@ wc_media_configure (GstRTSPMediaFactory * factory, GstRTSPMedia * media,
         }
     }
     if (pMgr->m_audioStream) {
-        ele = gst_bin_get_by_name_recurse_up(GST_BIN (element), "audPreQ");
+        GstElement *ele = gst_bin_get_by_name_recurse_up(GST_BIN (element), "audPreQ");
         if (ele) {
             CSIO_LOG(eLogLevel_info, "Streamout: set leaky downstream on audPreQ");
             g_object_set(G_OBJECT(ele), "leaky", (guint) 2 /*GST_QUEUE_LEAK_DOWNSTREAM*/, NULL);
@@ -1357,7 +1359,6 @@ CStreamoutManager::~CStreamoutManager()
 
 void CStreamoutManager::DumpClassPara(int level)
 {
-    CSIO_LOG(eLogLevel_info, "---Streamout: ThredId 0x%lx", (unsigned long int)getThredId());
     CSIO_LOG(eLogLevel_info, "---Streamout: m_debugLevel %d", m_debugLevel);
 
     CSIO_LOG(eLogLevel_info, "---Streamout: m_parent 0x%p", m_parent);
@@ -1474,12 +1475,12 @@ void CStreamoutManager::forceMediaUnprepare(GstRTSPMedia * pMedia)
 
 	if (result == ETIMEDOUT)
 	{
-		CSIO_LOG(eLogLevel_error, "forceUnprepare timed out after %d seconds, restart txrxservice ...\n", timeout_sec);
+		CSIO_LOG(eLogLevel_error, "forceUnprepare timed out after %d seconds, restart txrxservice ...", timeout_sec);
 		csio_jni_sendCameraStopFb();
 		csio_jni_recoverTxrxService();
 	}
 	else if (result != 0)
-		CSIO_LOG(eLogLevel_error, "Unknown error occurred while waiting for forceUnprepare to complete, error = %d\n", result);
+		CSIO_LOG(eLogLevel_error, "Unknown error occurred while waiting for forceUnprepare to complete, error = %d", result);
     CSIO_LOG(eLogLevel_info, "forceMediaUnprepare() exiting.....");
 }
 
@@ -1501,9 +1502,10 @@ void* CStreamoutManager::ThreadEntry()
     bool wcRestart = false;
     bool sent_csio_jni_onServerStart = false;
 #ifdef AM3X00
-    char threadname[256]={0};
-    pthread_getname_np(pthread_self(), threadname, sizeof(threadname));
-    CSIO_LOG(eLogLevel_error, "Streamout: Starting StreamOutManager Thread: threadname=%s tid=%d", threadname, gettid());
+    CSIO_LOG(
+        eLogLevel_info,
+        "%s: %s tid %d auth_on %d random_user_pw %d tls_on %d",
+        __func__, name_.c_str(), gettid(), m_auth_on, m_random_user_pw, m_tls_on);
 #endif
 
     if (m_streamoutMode == STREAMOUT_MODE_WIRELESSCONFERENCING)
@@ -1533,7 +1535,7 @@ void* CStreamoutManager::ThreadEntry()
         //create new context
         context = g_main_context_new ();
         g_main_context_push_thread_default(context);
-        CSIO_LOG(m_debugLevel,  "Streamout: create new context: 0x%p\n", context );
+        CSIO_LOG(m_debugLevel,  "Streamout: create new context: %p", context );
         if(!context)
         {
             CSIO_LOG(eLogLevel_error, "Streamout: Failed to create rtsp server context");
@@ -1579,10 +1581,10 @@ void* CStreamoutManager::ThreadEntry()
              * the factories on the server or on individual factories. */
             auth = gst_rtsp_auth_new();
             if (m_tls_on) {
-                CSIO_LOG(eLogLevel_info, "Streamout: RTSP server's TLS configuration\n");
+                CSIO_LOG(eLogLevel_info, "Streamout: RTSP server's TLS configuration cert: %s, key: %s", m_rtsp_cert_filename, m_rtsp_key_filename);
                 cert = g_tls_certificate_new_from_files(m_rtsp_cert_filename, m_rtsp_key_filename, &error);
                 if (cert == NULL) {
-                    CSIO_LOG(eLogLevel_error, "Streamout: failed to parse PEM: %s\n", error->message);
+                    CSIO_LOG(eLogLevel_error, "Streamout: failed to parse PEM: %s", error->message);
                     goto exitThread;
                 }
     #ifdef CLIENT_AUTHENTICATION_ENABLED
@@ -1590,7 +1592,7 @@ void* CStreamoutManager::ThreadEntry()
                 //GTlsDatabase *database = g_tls_file_database_new(RTSP_CERT_PEM_FILENAME, &error);
                 if (database == NULL)
                 {
-                    CSIO_LOG(eLogLevel_error, "Streamout: failed to create database from ca cert: %s\n", error->message);
+                    CSIO_LOG(eLogLevel_error, "Streamout: failed to create database from ca cert: %s", error->message);
                     goto exitThread;
                 }
                 gst_rtsp_auth_set_tls_database(auth, database);
@@ -1609,9 +1611,7 @@ void* CStreamoutManager::ThreadEntry()
                 // to client during TLS exchange
                 gst_rtsp_auth_set_tls_authentication_mode(auth, G_TLS_AUTHENTICATION_REQUIRED);
 
-                g_signal_connect (auth, "accept-certificate", G_CALLBACK
-                        (accept_certificate), ca_cert);
-                //if (ca_cert) g_object_unref(ca_cert); //TODO is this needed - had crash when put it in code
+                g_signal_connect (auth, "accept-certificate", G_CALLBACK(accept_certificate), ca_cert);
 
                 gst_rtsp_auth_set_tls_certificate(auth, cert);
 
@@ -1820,8 +1820,7 @@ void* CStreamoutManager::ThreadEntry()
 
         if (m_auth_on) {
             /* add permissions for the user media role */
-            GstRTSPPermissions *permissions = NULL;
-            permissions = gst_rtsp_permissions_new();
+            GstRTSPPermissions *permissions = gst_rtsp_permissions_new();
             gst_rtsp_permissions_add_role(permissions, rtsp_server_username,
                                           GST_RTSP_PERM_MEDIA_FACTORY_ACCESS, G_TYPE_BOOLEAN, TRUE,
                                           GST_RTSP_PERM_MEDIA_FACTORY_CONSTRUCT, G_TYPE_BOOLEAN, TRUE,
@@ -1944,14 +1943,6 @@ void* CStreamoutManager::ThreadEntry()
         }
         csio_jni_onServerStart();
         sent_csio_jni_onServerStart = true;
-
-#ifdef AM3X00
-        // Reset threadname back to original - for some reason jni calls change the name of the thread
-        pthread_setname_np(pthread_self(), threadname);
-        pthread_getname_np(pthread_self(), threadname, sizeof(threadname));
-        CSIO_LOG(eLogLevel_info, "Streamout: name=%s tid=%d pid=%d", threadname, gettid(), getpid());
-#endif
-
         CSIO_LOG(eLogLevel_info, "Streamout: running main loop......");
         g_main_loop_run (m_loop);
     }
@@ -2339,7 +2330,7 @@ void CStreamoutManager::sendWcUrl(GstRTSPServer *server, char *mountPoint)
             }
         }
         g_free(ipAddr);
-        CSIO_LOG(eLogLevel_verbose, "Streamout: sending WC url=%s", url);
+        CSIO_LOG(eLogLevel_info, "Streamout: sending WC url=%s", url);
         csio_jni_SendWCServerURL(url);
     }
 }
