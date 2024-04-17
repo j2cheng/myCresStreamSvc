@@ -3,7 +3,7 @@
  * All rights reserved.
  * No part of this software may be reproduced in any form, machine
  * or natural, without the express written consent of Crestron Electronics.
- * 
+ *
  * \file        usbVolumeControl.h
  *
  * \brief       Java <--> native interface code.
@@ -14,7 +14,7 @@
  *
  *
  * This module is intended to encapsulate the mixer interface with Java/Android.
- * 
+ *
  */
 
 ///////////////////////////////////////////////////////////////////////////////
@@ -24,7 +24,7 @@
 #include "csioCommonShare.h"
 
 #ifdef HAS_TINYALSA
-#include "/opt/rk3399_android/android/external/tinyalsa/include/tinyalsa/asoundlib.h"
+#include <tinyalsa/asoundlib.h>
 #endif
 /* Header for class Java_com_crestron_txrxservice_UsbVolumeCtrl */
 
@@ -50,17 +50,17 @@
 extern "C" {
 #endif
 
-JNIEXPORT jboolean JNICALL Java_com_crestron_txrxservice_UsbVolumeCtrl_nativeSetPeripheralMute(    JNIEnv *env, 
+JNIEXPORT jboolean JNICALL Java_com_crestron_txrxservice_UsbVolumeCtrl_nativeSetPeripheralMute(    JNIEnv *env,
                                                     jobject thiz,
                                                     jstring deviceId,
                                                     jboolean peripheralMute);
-                                                    
-JNIEXPORT jboolean JNICALL Java_com_crestron_txrxservice_UsbVolumeCtrl_nativeSetPeripheralVolume(  JNIEnv *env, 
+
+JNIEXPORT jboolean JNICALL Java_com_crestron_txrxservice_UsbVolumeCtrl_nativeSetPeripheralVolume(  JNIEnv *env,
                                                     jobject thiz,
                                                     jstring deviceId,
                                                     jint peripheralVolume);
 
-JNIEXPORT jboolean JNICALL Java_com_crestron_txrxservice_UsbVolumeCtrl_nativeGetPeripheralVolume(  JNIEnv *env, 
+JNIEXPORT jboolean JNICALL Java_com_crestron_txrxservice_UsbVolumeCtrl_nativeGetPeripheralVolume(  JNIEnv *env,
                                                     jobject thiz,
                                                     jstring deviceId,
                                                     jobject devvolume);
@@ -101,7 +101,7 @@ public:
     unsigned int num_ctl_values = 0;
 #endif
     unsigned int m_card_idx;
-    unsigned int m_device_idx;    
+    unsigned int m_device_idx;
     char m_device_file[128];
 
 };

@@ -5,7 +5,7 @@
 
 #include "../cresStreamOutProject.h"
 #ifdef HAS_TINYALSA
-#include "/opt/rk3399_android/android/external/tinyalsa/include/tinyalsa/asoundlib.h"
+#include <tinyalsa/asoundlib.h>
 #else
 enum pcm_format {
 	PCM_FORMAT_DUMMY

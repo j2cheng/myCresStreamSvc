@@ -3,7 +3,7 @@
  * All rights reserved.
  * No part of this software may be reproduced in any form, machine
  * or natural, without the express written consent of Crestron Electronics.
- * 
+ *
  * \file        cresStreamOutManager.cpp
  *
  * \brief       Implementation of stream out
@@ -101,8 +101,8 @@ unsigned int UsbAudio::usb_audio_avail(pcm *pcm_device)
     else
     {
         CSIO_LOG(eLogLevel_verbose, "UsbAudio: usb_audio_avail(): timestamp=%ld.%ld avail=%d", tstamp.tv_sec, tstamp.tv_nsec, avail);
-        
-        
+
+
         GstClockTime timestamp = GST_TIMESPEC_TO_TIME (tstamp);
 
         CSIO_LOG (eLogLevel_verbose, "UsbAudio: usb_audio_avail(): timestamp : %" GST_TIME_FORMAT", delay %u", GST_TIME_ARGS (timestamp), avail);
@@ -111,7 +111,7 @@ unsigned int UsbAudio::usb_audio_avail(pcm *pcm_device)
 }
 
 void UsbAudio::usb_audio_get_samples(pcm *pcm_device, void *data, int size, int channels, GstClockTime *timestamp, GstClockTime *duration) {
-    
+
     guint64 nsamples = (guint64)(size/(channels*2));
     int error;
 
